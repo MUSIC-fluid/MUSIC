@@ -1,0 +1,121 @@
+These files contain the Equation of State s95p-PCE165-v0 described in
+Huovinen and Petreczky, arXiv:0912.2541. Below 184 MeV temperature,
+the EoS is based on hadron resonance gas with resonances up to 2 GeV
+mass (see the resonance list in pdg05.dat file), and above 184 MeV it
+is based on the lattice result by Bazavov et al., Phys.Rev.D80, 014504 (2009).  
+Within the temperature interval 165 < T < 184 MeV, the hadron
+resonance gas is in chemical equilibrium. Below 165 MeV temperatures,
+it is in partial chemical equilibrium with particle ratios fixed to
+those in chemical equilibrium at T = 165 MeV.
+
+Note that this is a version 0. In the published version the fit is
+done to the N_t=6 lattice data at temperatures 552, 630 and 716
+MeV. This version uses only two datapoints of the N_t=6 data, namely
+at temperatures 548 and 729 MeV. The parameters of this fit are
+
+   d2 =  0.2588
+   d4 =  3.483*10^-3
+   c1 = -1.634*10^-6
+   c2 =  2.560*10^-28
+   n1 =  9
+   n2 =  37
+   T0 =  184.2 MeV
+
+The differences between this and the published parametrization are
+less than 0.5% and thus negligible in any hydrodynamical calculation.
+
+The files
+
+	s95p-PCE165-v0_par1.dat, s95-PCE165-v0_dens1.dat
+	s95p-PCE165-v0_par2.dat, s95-PCE165-v0_dens2.dat
+	s95p-PCE165-v0_par3.dat, s95-PCE165-v0_dens3.dat
+	s95p-PCE165-v0_par4.dat, s95-PCE165-v0_dens4.dat
+
+contain the EoS as function of energy density, i.e. on equidistant
+energy density grid(s).
+
+All the files begin by two lines with
+
+    e0
+    de	ne
+
+where 'e0' is the lowest energy density of the grid, 'de' grid spacing
+and 'ne' the number of grid points, i.e. lines.
+
+In the *par*.dat files the thermodynamical parameters,
+temperature (in GeV, first row) and chemical potentials are tabulated
+from the third line on. The *dens*.dat files contain the
+densities from the third line on. First line is energy density (in
+GeV/fm^3), second pressure (in GeV/fm^3), third entropy density (in
+fm^-3), fourth net baryon density (in fm^-3) and the fifth a plasma
+fraction of the fluid (zero below 184 MeV, one above 220 MeV, lineary
+proportional to temperature in the transition region 184 < T < 220
+MeV). The lines on par* and dens* files correspond to each other,
+i.e. the nth line in *par*.dat gives a temperature and the nth
+line in *dens*.dat gives the corresponding densities and
+pressure. Note that the densities and temperature in the files run
+from the highest value _down_.
+
+The file
+
+        pdg05.dat
+
+contains the hadrons and resonances included in the hadron resonance
+gas. The format is explained at the end of the file.
+
+When constructing the EoS below chemical freeze-out temperature, we
+follow the procedure explained in Bebie et al. Nucl. Phys. B, 378, 95
+(1992) (see also Hirano and Tsuda, Phys. Rev. C 66, 054905 (2002)). We
+assume that the particle number changing processes cease below T = 165
+MeV temperature, but that the resonance formation and decay processes
+continue as in higher temperatures. This means that there is no
+separate chemical potential associated with each particle/resonance
+species, but only with those species considered stable. The chemical
+potential for a resonance i is obtained from mu_i = sum_j mu_j n^i_j
+where mu_j is the chemical potential associated with a particle j and
+the n^i_j is the average number of particles j formed in a decay of
+particle i.
+
+We have considered stable all the particles/resonances with lifetime
+longer than 40 fm/c, and consider each isospin state individually. 
+This list of particles can either be reconstructed from the list
+pdg05.dat, or seen in the file particles.dat. In that file the names
+of all the particles in pdg05.dat and their lifetimes are listed. The
+particles considered stable are also numbered in the very first
+column. The numbers of daughter particles are not separately listed,
+but can be constructed from the information in the pdg05.dat file.
+
+The files 
+
+        s95p-PCE165-v0_pidens1.dat
+	s95p-PCE165-v0_pichem1.dat
+
+contain the particle-number densities and chemical potentials required
+for the chemically non-equilibrated description. These files begin
+with the same two lines than *dens*.dat and *par*.dat files,
+
+    e0
+    de	ne
+
+and the meaning of these numbers is also the same than in *dens*.dat
+and *par*.dat files. The third line contains a single number, 'nn',
+which is the number of stable particles and thus the number of
+separate chemical potentials below the chemical freeze-out
+temperature.
+
+From the fourth line on the files contain a two dimensional table with
+'nn' columns and 'ne' rows. The j:th column corresponds to the j:th
+stable particle in pdg05.dat, or to the number in the first column in
+particles.dat. The i:th row corresponds (again) to the i:th row in
+*par1.dat and *dens1.dat files, i.e. to temperature/energy density.
+
+The file *pichem1.dat contains chemical potentials (in GeV)
+and the file *pidens1.dat contains effective densities of
+the stable particles (in fm^-3). "Effective" means that the, say,
+first column does not contain the actual density of positive pions,
+but what the density of positive pions would be if all the resonances
+decayed releasing their daughter particles. The latter is not needed
+for hydrodynamical evolution, but can be used as a consistency check
+when calculating the spectra.
+
+     	 	   	     	- PH, Frankfurt, Jan 25, 2010 -

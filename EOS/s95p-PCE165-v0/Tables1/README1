@@ -1,0 +1,74 @@
+This file contains instructions for files
+
+	p1.dat, p2.dat, p3.dat, p4.dat
+	t1.dat, t2.dat, t3.dat, t4.dat
+	s1.dat, s2.dat, s3.dat, s4.dat
+	pichem1.dat
+	pidens1.dat
+
+These files are ALMOST in the AZHYDRO format for EoS tables, but there
+are two differences: First, in AZHYDRO the values are listed from low
+energy density up, whereas here they are listed from high density
+DOWN. Second, the grid spacing and number of grid points on the second
+line are in a different order.
+
+As one may guess, the files p*.dat contain pressure (in GeV/fm^3),
+t*.dat temperature (in GeV) and s*.dat entropy density (in fm^-3) as
+function of energy density and the baryon number density. The trick is
+that the EoS does NOT depend on baryon number density, but to be able
+to use the EoS and interpolating routines of AZHYDRO, it is tabulated
+as if it did depend.  Thus the numbers related to net baryon number
+density still appear even if this EoS is for mu_b=0.
+
+Tables *1.dat contain values from energy density 0.001 GeV/fm^3 to
+1.001 GeV/fm^3, *2.dat from 1.001 GeV/fm^3 to 11.001 GeV/fm^3, *3.dat
+from 11.001 GeV/fm^3 to 61.001 GeV/fm^3 and *4.dat from 61.001
+GeV/fm^3 to 311.001 GeV/fm^3.
+
+In each file, the first row contains two numbers, the lowest baryon
+density (nb0) and lowest energy density (e0). The second row contains
+the grid spacing in baryon density (dnb) , number of columns (nnb),
+the spacing in energy density (de) and the number of rows (ne) (from
+third row on). So, the value on row 3, is the pressure/temperature/
+entropy density at energy density e0*(ne-1)*de, and the last row
+corresponds to values at energy density e0.
+
+The EoS does not depend on baryon density - both columns contain
+exactly the same values. But this way one can use the two-dimensional
+interpolation routine of AZHYDRO.
+
+The files pichem1.dat and pidens1.dat contain the pion etc. chemical
+potentials (in GeV, zero above T_chem) and corresponding number
+densities (in fm^-3). Note that the pion number density in
+pidens1.dat-file is not the density of actual pions, but the density
+of pion number as defined by Bebie et al. and used in all chemically
+frozen hadron gas -studies. These files cover the same energy density
+range than the other *1.dat files. The number on the first row is
+again the energy density at the lowest grid point (e0), the second row
+contains the grid spacing in energy density, and the number of grid
+points. No redundant baryon density in these file, since these files
+are not necessarily needed in VISH2+1 and their format differes from
+AZHYDRO files in any case.
+
+The third row contains one single number, which is the number of
+columns. This is also the number of conserved particle numbers during
+the chemically frozen stage. The large number is due to me treating
+each isospin state as a separate particle. Which particle each row
+correspond to can be found using the file hidut.dat, see README3.
+
+The ordering is the same than in the pressure etc. files, the first
+row of the actual table corresponds to the highest energy density
+(e0+(ne-1)*de) and the last to the lowest (e0). Thus the values in the
+beginning of pichem1.dat table are zero - 1.001 GeV/fm^3 is well above
+the chemical freeze-out temperature. Densities at the begining of the
+pidens1.dat file are not zero but correspond to the equilibrium
+values.
+
+The chemical potentials for each resonance can be obtained in the
+usual Bebie et al. fashion, i.e. the potential of each resonance is
+the sum of all chemical potentials multiplied by the corresponding
+"particle number" of the resonance. These are the are the average
+numbers of the particle in question formed when the resonance
+decays. I have not listed these numbers anywhere, but evaluate them
+using the particle data in pdg.dat file (see README3) at the beginning
+of the spectra calculation.

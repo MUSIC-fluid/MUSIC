@@ -1,0 +1,5429 @@
+#include "freeze.h"
+
+using namespace std;
+
+Freeze::Freeze()
+{
+  integral = new Int;
+  util = new Util;
+}
+
+// destructors
+Freeze::~Freeze()
+{
+  delete integral;
+  delete util;
+}
+
+void Freeze::checkForReadError(FILE *file, char* name)
+{
+  if(!(file))
+    {
+      fprintf(stderr, "file %s not found.\n", name);
+      fprintf(stderr, "Exiting...\n");
+      exit(0);
+    }
+}
+
+
+void Freeze::ReadParticleData(InitData *DATA)
+{
+  // read in particle and decay information from file:
+  // partid = (int *)malloc(MAXINTV * sizeof(int)); 
+  partid = new int[MAXINTV * sizeof(int)]; 
+  int bytes_read;
+  static char *s;
+  s = new char[120];
+  int i, j, k, d1, d2, d3, decays, h;
+  double b, npi, nK, neta, dummy;
+  fprintf(stderr,"reading particle data\n");
+  char *anti;
+  // open particle data file:
+  const char* EOSPATH = "HYDROPROGRAMPATH";
+  char* envPath = getenv(EOSPATH);
+  char* p_name;
+  if (envPath != 0 && *envPath != '\0') 
+    {
+      p_name = util->char_malloc(100);
+      strcat(p_name, envPath);
+      strcat(p_name,"/EOS/pdg05.dat");
+    }  
+  else
+    {
+      p_name = util->char_malloc(100);
+      strcat(p_name, ".");
+      strcat(p_name,"/EOS/pdg05.dat");
+    }
+  
+  cout << "from " << p_name << endl; 
+
+  FILE *p_file;
+  p_file = fopen(p_name, "r");
+  checkForReadError(p_file,p_name);
+  
+  for(k=0;k<MAXINTV;k++) 
+    partid[k] = -1; 
+
+  i=0;
+  j=0;
+  particleList = (Particle *)malloc((DATA->NumberOfParticlesToInclude+1) * sizeof(Particle));
+  
+  //particleList = new Particle[DATA->NumberOfParticlesToInclude+1];
+  cout <<"after first (check if there is enough memory... seg fault may be due to that)" << endl; 
+  
+  // read particle data:
+  while(i<DATA->NumberOfParticlesToInclude+1)
+    {
+      particleList[i].name = util->char_malloc(50);
+      //particleList[i].name = new char[50];
+      bytes_read=fscanf(p_file, "%d", &particleList[i].number);
+      bytes_read=fscanf(p_file, "%s", particleList[i].name);
+      bytes_read=fscanf(p_file, "%lf", &particleList[i].mass);
+      bytes_read=fscanf(p_file, "%lf", &particleList[i].width);
+      bytes_read=fscanf(p_file, "%d", &particleList[i].degeneracy);
+      bytes_read=fscanf(p_file, "%d", &particleList[i].baryon);
+      bytes_read=fscanf(p_file, "%d", &particleList[i].strange);
+      bytes_read=fscanf(p_file, "%d", &particleList[i].charm);
+      bytes_read=fscanf(p_file, "%d", &particleList[i].bottom);
+      bytes_read=fscanf(p_file, "%d", &particleList[i].isospin);
+      bytes_read=fscanf(p_file, "%lf", &particleList[i].charge);
+      bytes_read=fscanf(p_file, "%d", &particleList[i].decays); // number of decays
+      
+      //Bytes_read=fscanf(p_file, "%lf", &npi);
+      //bytes_read=fscanf(p_file, "%lf", &nK);
+      //bytes_read=fscanf(p_file, "%lf", &neta);
+   
+   /*    fprintf(stderr,"%s %i \n",particleList[i].name,particleList[i].number); */
+/*       fprintf(stderr,"%lf %lf %d %d %d %d %d %d %lf %d \n",particleList[i].mass,particleList[i].width, */
+/* 	      particleList[i].degeneracy,particleList[i].baryon,particleList[i].strange, */
+/* 	      particleList[i].charm,particleList[i].bottom,particleList[i].isospin,particleList[i].charge,particleList[i].decays); */
+      
+      partid[MHALF + particleList[i].number] = i;
+      
+      particleList[i].stable = 0;
+      
+      for(k=0;k<particleList[i].decays;k++) 
+	{
+	  h=fscanf(p_file,"%i%i%lf%i%i%i%i%i",
+		   &decay[j].reso, &decay[j].numpart, &decay[j].branch, 
+		   &decay[j].part[0], &decay[j].part[1], &decay[j].part[2],
+		   &decay[j].part[3], &decay[j].part[4]);
+/* 	  fprintf(stderr,"%i %i %lf %i %i %i %i %i\n", */
+/* 		   decay[j].reso, decay[j].numpart, decay[j].branch, */
+/* 		   decay[j].part[0], decay[j].part[1], decay[j].part[2], */
+/* 		   decay[j].part[3], decay[j].part[4]); */
+	 
+	  if (h != 8) 
+	    {
+	      printf("Error in scanf decay \n");
+	      exit(0);
+	    }
+	  if (decay[j].numpart == 1) particleList[i].stable = 1; //"decays" into one particle, i.e. is stable 
+	  j++; // increase the decay counting variable "j" by 1
+	}
+	
+      // include anti-baryons (there are none in the file)
+      //fprintf(stderr,"[%i] has pid %i \n",MHALF + particleList[i].number,partid[MHALF + particleList[i].number]);
+      //if (particleList[i].number==960225) sleep(1);
+      if ( particleList[i].baryon!=0 )
+	{
+	  //fprintf(stderr,"b=%d\n",particleList[i].baryon);
+	  i++;
+	  particleList[i].name = util->char_malloc(20);
+	  anti = util->char_malloc(30);
+	  strcat(anti,"Anti-");
+	  strcat(anti,particleList[i-1].name);
+	  particleList[i].width    =  particleList[i-1].width;
+	  particleList[i].charm    = -particleList[i-1].charm;
+	  particleList[i].bottom   = -particleList[i-1].bottom;
+	  particleList[i].isospin =  particleList[i-1].isospin;
+	  particleList[i].charge   = -particleList[i-1].charge;
+	  particleList[i].decays   = particleList[i-1].decays;
+	  particleList[i].stable =  particleList[i-1].stable;
+	  particleList[i].number = -particleList[i-1].number;
+	  particleList[i].name = anti; 
+	  particleList[i].mass = particleList[i-1].mass;
+	  particleList[i].degeneracy = particleList[i-1].degeneracy;
+	  particleList[i].baryon = -particleList[i-1].baryon;
+	  particleList[i].strange = -particleList[i-1].strange;
+	  particleList[i].charge = -particleList[i-1].charge;
+	  partid[MHALF + particleList[i].number] = i;
+	  	  //  fprintf(stderr,"%s %i \n",particleList[i].name,particleList[i].number);
+	  //fprintf(stderr,"[%i] has pid %i \n",MHALF + particleList[i].number,partid[MHALF + particleList[i].number]);
+	}
+      i++;
+    } 
+  decayMax = j;
+  particleMax = i-1;
+  fclose(p_file);
+  cout << "Done reading particle data." << endl;
+  // fprintf(stderr,"decayMax=%d\n",decayMax);
+  // fprintf(stderr,"particleMax=%d\n",particleMax);
+}
+
+
+int Freeze::countLines (std::istream& in)
+{
+    return std::count(std::istreambuf_iterator<char>(in),
+                      std::istreambuf_iterator<char>(),
+                      '\n');
+}
+
+void Freeze::ReadFreezeOutSurface(InitData *DATA)
+{
+  size_t nbytes=100;
+  int i=0;
+  int bytes_read;
+  char * dummy;
+  double test;
+  fprintf(stderr,"reading freeze-out surface\n");
+  // open particle data file:
+  FILE *s_file;
+  char* line;
+  char* s_name = "../surface3.dat"; // change back to surface.dat
+  s_file = fopen(s_name, "r");
+  checkForReadError(s_file,s_name);
+  // open geometry data file:
+  FILE *g_file;
+  char* g_name = "./geometry.dat"; 
+  g_file = fopen(g_name, "r");
+  double tecc2, tecc3, tecc3r3, tPsi2, tPsi3, tPsi3r3;
+  
+  if(!(g_file))
+     {
+       cout << "file " << g_name << " not found." << endl;
+       tecc2 = 1.; 
+       tecc3 = 1.; 
+       tecc3r3 = 1.; 
+       tPsi2 = 0.;
+       tPsi3 = 0.; 
+       tPsi3r3 = 0.; 
+     }
+   else
+     {
+       bytes_read=fscanf(g_file, "%lf", &tecc2);
+       bytes_read=fscanf(g_file, "%lf", &tPsi2);
+       bytes_read=fscanf(g_file, "%lf", &tecc3);
+       bytes_read=fscanf(g_file, "%lf", &tPsi3);
+       bytes_read=fscanf(g_file, "%lf", &tecc3r3);
+       bytes_read=fscanf(g_file, "%lf", &tPsi3r3);
+       fclose(g_file);
+   }
+  
+   DATA->ecc2 = tecc2;
+   DATA->ecc3 = tecc3;
+   DATA->ecc3r3 = tecc3r3;
+   DATA->Psi2 = tPsi2;
+   DATA->Psi3 = tPsi3;
+   DATA->Psi3r3 = tPsi3r3;
+   
+   cout << "e2=" << DATA->ecc2 << ", Psi2=" << DATA->Psi2 << ", e3=" << DATA->ecc3 << ", Psi3=" << DATA->Psi3 
+	<< ", e3r3=" << DATA->ecc3 << ", Psi3r3=" << DATA->Psi3r3 << endl;
+   
+  NCells=0;
+  /*   int bytes_read; */
+  //  fprintf(s_file,"%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf \n",
+  //  tauf, xf, yf, etaf, FULLSU[0],FULLSU[1],FULLSU[2],FULLSU[3],
+  //  utau, ux, uy, ueta, epsFO, TFO, muB);
+  //  line = (char *) malloc(nbytes + 1);
+  //   while( getline(&line, &nbytes, s_file)!=-1 )
+  //     {
+  //       NCells++;
+  //     }
+
+  // new counting, mac compatible ...
+  ifstream in;
+  in.open(s_name);
+  NCells = 0;
+  NCells += countLines(in);
+  fprintf(stderr,"NCells=%d\n",NCells);
+  fclose(s_file);
+
+  s_file = fopen(s_name, "r");
+  checkForReadError(s_file,s_name);
+
+  // Now allocate memory: array of surfaceElements with length NCells
+  surface = (SurfaceElement *) malloc((NCells)*sizeof(SurfaceElement));
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+//   bytes_read=fscanf(s_file, "%s", dummy);
+ 
+  while(i<NCells-1)
+    {
+      // position in (tau, x, y, eta)
+      bytes_read=fscanf(s_file, "%lf", &surface[i].x[0]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].x[1]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].x[2]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].x[3]);
+      // hypersurface vector in (tau, x, y, eta)
+      bytes_read=fscanf(s_file, "%lf", &surface[i].s[0]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].s[1]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].s[2]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].s[3]);
+      // flow velocity in (tau, x, y, eta)
+      bytes_read=fscanf(s_file, "%lf", &surface[i].u[0]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].u[1]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].u[2]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].u[3]);
+      // freeze-out energy density
+      bytes_read=fscanf(s_file, "%lf", &surface[i].epsilon_f);
+      // freeze-out temperature
+      bytes_read=fscanf(s_file, "%lf", &surface[i].T_f);
+      // freeze-out baryon chemical potential
+      bytes_read=fscanf(s_file, "%lf", &surface[i].mu_B);
+      // freeze-out entropy density s
+      bytes_read=fscanf(s_file, "%lf", &surface[i].sFO);
+      // freeze-out Wmunu
+      bytes_read=fscanf(s_file, "%lf", &surface[i].W[0][0]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].W[0][1]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].W[0][2]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].W[0][3]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].W[1][1]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].W[1][2]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].W[1][3]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].W[2][2]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].W[2][3]);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].W[3][3]);
+      i++;
+    }				
+  fclose(s_file);
+ 
+//  for(i=0; i<NCells; i++) 
+//     { 
+//       fprintf(stderr,"%lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf\n", 
+// 	      surface[i].x[0],surface[i].x[1],surface[i].x[2],surface[i].x[3],surface[i].s[0],surface[i].s[1],surface[i].s[2],surface[i].s[3], 
+//  	      surface[i].u[0],surface[i].u[1],surface[i].u[2],surface[i].u[3],surface[i].epsilon_f,surface[i].T_f,surface[i].mu_B,surface[i].sFO,
+// 	      surface[i].W[0][0],surface[i].W[0][1],surface[i].W[0][2],surface[i].W[0][3],surface[i].W[1][1],
+// 	      surface[i].W[1][2],surface[i].W[1][3],surface[i].W[2][2],surface[i].W[2][3],surface[i].W[3][3]); 
+//       sleep(2);
+//     }
+}
+
+// read in thermal spectra from file to then perform resonance decays with them
+void Freeze::ReadSpectra(InitData* DATA)
+{
+  // read in thermal spectra from file:
+  int number, iymax, iptmax, iphimax;
+  double deltaY, ymax, slope, phimax, phimin;
+  int ip, iphi, ipt, i;
+  double *p, *w;		        // pointing to data for Gaussian integration in phi 
+  int bytes_read;
+  static char *s;
+  s = util->char_malloc(120);
+  int iy, j, k, d1, d2, d3, decays, h;
+  double b, npi, nK, neta, dummy;
+  fprintf(stderr,"reading spectra\n");
+  char *anti;
+  // open particle information file:
+  FILE *p_file;
+  char* p_name = "particleInformation.dat";
+  p_file = fopen(p_name, "r");
+  checkForReadError(p_file,p_name);
+  int count;
+  count = 0;
+  // read particle information:
+  while( fscanf(p_file,"%d %lf %lf %lf %lf %lf %d %d %d ",&number, &deltaY, &ymax, &slope, &phimin, &phimax, &iymax, &iptmax, &iphimax) == 9)
+    {
+      count ++;
+      if (count>DATA->NumberOfParticlesToInclude) break;
+      fprintf(stderr,"%d %e %e %e %e %d %d %d \n", number, deltaY, ymax, slope, phimax, iymax, iptmax, iphimax);
+      ip = partid[MHALF+number];
+      particleList[ip].ny = iymax;
+      particleList[ip].npt = iptmax;
+      particleList[ip].nphi = iphimax;
+      particleList[ip].phimax = phimax;
+      particleList[ip].phimin = phimin;
+      particleList[ip].slope = slope;
+      particleList[ip].ymax = ymax;
+      particleList[ip].deltaY = deltaY;
+      for ( i=0; i<iptmax; i++ )
+	{
+	  particleList[ip].pt[i] =  gala15x[i]/slope;
+	}
+      for ( i=0; i<iymax; i++ )
+	{
+	  particleList[ip].y[i] =  i*deltaY-ymax+deltaY/2.;
+	  //	  if (ip==1) cout << "read particleList[ip].y[" << i << "] = " <<  particleList[ip].y[i] << endl;
+	}
+      
+      switch (iphimax) 
+	{
+	case 4: p= gaulep4; w= gaulew4; break;
+	case 8: p= gaulep8; w= gaulew8; break;
+	case 10: p= gaulep10; w= gaulew10; break;
+	case 12: p= gaulep12; w= gaulew12; break;
+	case 16: p= gaulep16; w= gaulew16; break;
+	case 20: p= gaulep20; w= gaulew20; break;
+	case 48: p= gaulep48; w= gaulew48; break;
+	default: fprintf(stderr,"specified number of phi-points not available\n"); exit(1);
+	}
+      
+      phiArray = util->vector_malloc(iphimax);
+      for(iphi=0; iphi<iphimax; iphi++)
+	{
+	  if ( iphi < iphimax/2 )
+	    {
+	      phiArray[iphi] = (phimax-phimin)/2.*(1.-p[iphi])+phimin;
+	    }
+	  else
+	    {
+	      phiArray[iphi] = (phimax-phimin)/2.*(1.+p[iphimax-iphi-1])+phimin;
+	    }
+	  //      cout << "phi[" << iphi << "]=" << phiArray[iphi] << ", " <<  phimax/2.*(1.-p[iphi]) << ", " 
+	  //   << (phimax)/2.*(1.+p[iphimax-iphi-1]) << endl;
+	}
+    }
+  
+  particleMax = ip;
+
+  fclose(p_file);
+
+  FILE *s_file;
+  char* s_name = "yptphiSpectra.dat";
+  s_file = fopen(s_name, "r");
+  checkForReadError(s_file,s_name);
+  
+  cout << "iymax=" << iymax << endl;
+  cout << "cells=" << iymax*iptmax*iphimax << endl;
+  for ( ip=1; ip<=particleMax; ip++ )
+    {
+      //cout << ip << endl;
+      fprintf(stderr,"reading particle %d: %d %s\n", ip, particleList[ip].number, particleList[ip].name);
+      for (iy=0; iy<iymax; iy++)
+	{
+	  for (ipt=0; ipt<iptmax; ipt++)
+	    {
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  bytes_read=fscanf(s_file, "%lf", &particleList[ip].dNdydptdphi[iy][ipt][iphi]);
+		  //		  cout << particleList[ip].y[iy] << " " << particleList[ip].pt[ipt] << " " << phiArray[iphi] << " " << particleList[ip].dNdydptdphi[iy][ipt][iphi] << endl; 
+		  //	  printf("%f %f %f \n",particleList[ip].y[iy],particleList[ip].pt[ipt],phiArray[iphi]);
+		}
+	    }
+	}
+    }
+  //particleMax=2;
+  fclose(s_file);
+}
+
+// read in thermal spectra from file to then perform resonance decays or something else with them
+void Freeze::Read3Spectra(InitData* DATA) // read pion, kaon, proton
+{
+  // read in thermal spectra from file:
+  int number, iymax, iptmax, iphimax;
+  double deltaY, ymax, slope, phimax, phimin;
+  int ip, iphi, ipt, i;
+  double *p, *w;		        // pointing to data for Gaussian integration in phi 
+  int bytes_read;
+  static char *s;
+  s = util->char_malloc(120);
+  int iy, j, k, d1, d2, d3, decays, h;
+  double b, npi, nK, neta, dummy;
+  fprintf(stderr,"reading spectra\n");
+  char *anti;
+  // open particle information file:
+  FILE *p_file;
+  char* p_name = "particleInformation.dat";
+  p_file = fopen(p_name, "r");
+  checkForReadError(p_file,p_name);
+  int count;
+  count = 0;
+  // read particle information:
+  while( fscanf(p_file,"%d %lf %lf %lf %lf %lf %d %d %d ",&number, &deltaY, &ymax, &slope, &phimin, &phimax, &iymax, &iptmax, &iphimax) == 9)
+    {
+      count ++;
+      if (count>DATA->NumberOfParticlesToInclude) break;
+      fprintf(stderr,"%d %e %e %e %e %d %d %d \n", number, deltaY, ymax, slope, phimax, iymax, iptmax, iphimax);
+      ip = count;
+      particleList[ip].number = number;
+      particleList[ip].ny = iymax;
+      particleList[ip].npt = iptmax;
+      particleList[ip].nphi = iphimax;
+      particleList[ip].phimax = phimax;
+      particleList[ip].phimin = phimin;
+      particleList[ip].slope = slope;
+      particleList[ip].ymax = ymax;
+      particleList[ip].deltaY = deltaY;
+      for ( i=0; i<iptmax; i++ )
+	{
+	  particleList[ip].pt[i] =  gala15x[i]/slope;
+	}
+      for ( i=0; i<iymax; i++ )
+	{
+	  particleList[ip].y[i] =  i*deltaY-ymax+deltaY/2.;
+	  //	  if (ip==1) cout << "read particleList[ip].y[" << i << "] = " <<  particleList[ip].y[i] << endl;
+	}
+      
+      switch (iphimax) 
+	{
+	case 4: p= gaulep4; w= gaulew4; break;
+	case 8: p= gaulep8; w= gaulew8; break;
+	case 10: p= gaulep10; w= gaulew10; break;
+	case 12: p= gaulep12; w= gaulew12; break;
+	case 16: p= gaulep16; w= gaulew16; break;
+	case 20: p= gaulep20; w= gaulew20; break;
+	case 48: p= gaulep48; w= gaulew48; break;
+	default: fprintf(stderr,"specified number of phi-points not available\n"); exit(1);
+	}
+      
+      phiArray = util->vector_malloc(iphimax);
+      for(iphi=0; iphi<iphimax; iphi++)
+	{
+	  if ( iphi < iphimax/2 )
+	    {
+	      phiArray[iphi] = (phimax-phimin)/2.*(1.-p[iphi])+phimin;
+	    }
+	  else
+	    {
+	      phiArray[iphi] = (phimax-phimin)/2.*(1.+p[iphimax-iphi-1])+phimin;
+	    }
+	  //      cout << "phi[" << iphi << "]=" << phiArray[iphi] << ", " <<  phimax/2.*(1.-p[iphi]) << ", " 
+	  //   << (phimax)/2.*(1.+p[iphimax-iphi-1]) << endl;
+	}
+    }
+  
+  particleMax = ip;
+
+  fclose(p_file);
+
+  FILE *s_file;
+  char* s_name = "yptphiSpectra.dat";
+  s_file = fopen(s_name, "r");
+  checkForReadError(s_file,s_name);
+  
+  cout << "iymax=" << iymax << endl;
+  cout << "cells=" << iymax*iptmax*iphimax << endl;
+  for ( ip=1; ip<=particleMax; ip++ )
+    {
+      //cout << ip << endl;
+      fprintf(stderr,"reading particle %d: %d \n", ip, particleList[ip].number);
+      for (iy=0; iy<iymax; iy++)
+	{
+	  for (ipt=0; ipt<iptmax; ipt++)
+	    {
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  bytes_read=fscanf(s_file, "%lf", &particleList[ip].dNdydptdphi[iy][ipt][iphi]);
+		}
+	    }
+	}
+    }
+  //particleMax=2;
+  fclose(s_file);
+}
+
+
+// read in thermal spectra from file to then perform resonance decays with them
+void Freeze::ReadSingleSpectrum(InitData* DATA)
+{
+  // read in thermal spectra from file:
+  int number, iymax, iptmax, iphimax;
+  double deltaY, ymax, slope, phimax, phimin;
+  int ip, iphi, ipt, i;
+  double *p, *w;		        // pointing to data for Gaussian integration in phi 
+  int bytes_read;
+  static char *s;
+  s = util->char_malloc(120);
+  int iy, j, k, d1, d2, d3, decays, h;
+  double b, npi, nK, neta, dummy;
+  fprintf(stderr,"reading spectra\n");
+  char *anti;
+  // open particle information file:
+  FILE *p_file;
+  char* p_name = "particleInformation.dat";
+  p_file = fopen(p_name, "r");
+  checkForReadError(p_file,p_name);
+  int count;
+  count = 0;
+  // read particle information:
+  while( fscanf(p_file,"%d %lf %lf %lf %lf %lf %d %d %d ",&number, &deltaY, &ymax, &slope, &phimin, &phimax, &iymax, &iptmax, &iphimax) == 9)
+    {
+      count ++;
+      if (count>DATA->NumberOfParticlesToInclude) break;
+      fprintf(stderr,"%d %e %e %e %e %d %d %d \n", number, deltaY, ymax, slope, phimax, iymax, iptmax, iphimax);
+      ip = partid[MHALF+number];
+      particleList[ip].ny = iymax;
+      particleList[ip].npt = iptmax;
+      particleList[ip].nphi = iphimax;
+      particleList[ip].phimax = phimax;
+      particleList[ip].phimin = phimin;
+      particleList[ip].slope = slope;
+      particleList[ip].ymax = ymax;
+      particleList[ip].deltaY = deltaY;
+      for ( i=0; i<iptmax; i++ )
+	{
+	  particleList[ip].pt[i] =  gala15x[i]/slope;
+	}
+      for ( i=0; i<iymax; i++ )
+	{
+	  particleList[ip].y[i] =  i*deltaY-ymax+deltaY/2.;
+	  //	  if (ip==1) cout << "read particleList[ip].y[" << i << "] = " <<  particleList[ip].y[i] << endl;
+	}
+
+      switch (iphimax) 
+	{
+	case 4: p= gaulep4; w= gaulew4; break;
+	case 8: p= gaulep8; w= gaulew8; break;
+	case 10: p= gaulep10; w= gaulew10; break;
+	case 12: p= gaulep12; w= gaulew12; break;
+	case 16: p= gaulep16; w= gaulew16; break;
+	case 20: p= gaulep20; w= gaulew20; break;
+	case 48: p= gaulep48; w= gaulew48; break;
+	default: fprintf(stderr,"specified number of phi-points not available\n"); exit(1);
+	}
+      
+      phiArray = util->vector_malloc(iphimax);
+      for(iphi=0; iphi<iphimax; iphi++)
+	{
+	  if ( iphi < iphimax/2 )
+	    {
+	      phiArray[iphi] = (phimax-phimin)/2.*(1.-p[iphi])+phimin;
+	    }
+	  else
+	    {
+	      phiArray[iphi] = (phimax-phimin)/2.*(1.+p[iphimax-iphi-1])+phimin;
+	    }
+	  //      cout << "phi[" << iphi << "]=" << phiArray[iphi] << ", " <<  phimax/2.*(1.-p[iphi]) << ", " 
+	  //   << (phimax)/2.*(1.+p[iphimax-iphi-1]) << endl;
+	}
+    }
+  
+  particleMax = ip;
+
+  fclose(p_file);
+
+  FILE *s_file;
+  char* s_name = "yptphiSpectra.dat";
+  s_file = fopen(s_name, "r");
+  checkForReadError(s_file,s_name);
+  
+  cout << "iymax=" << iymax << endl;
+  cout << "cells=" << iymax*iptmax*iphimax << endl;
+
+  //fprintf(stderr,"reading particle %d: %d %s\n", ip, particleList[ip].number, particleList[ip].name);
+  for (iy=0; iy<iymax; iy++)
+    {
+      for (ipt=0; ipt<iptmax; ipt++)
+	{
+	  for (iphi=0; iphi<iphimax; iphi++)
+	    {
+	      bytes_read=fscanf(s_file, "%lf", &particleList[ip].dNdydptdphi[iy][ipt][iphi]);
+	      //	      cout << particleList[ip].y[iy] << " " << particleList[ip].pt[ipt] << " " << phiArray[iphi] << " " << particleList[ip].dNdydptdphi[iy][ipt][iphi] << endl; 
+	      //	  printf("%f %f %f \n",particleList[ip].y[iy],particleList[ip].pt[ipt],phiArray[iphi]);
+	    }
+	}
+    }
+  
+  //particleMax=2;
+  fclose(s_file);
+}
+
+double Freeze::summation(double px, double py, double y, double m, int deg, int baryon, InitData *DATA)
+{
+  double sum = 0.;
+  int i;
+  double ptau, peta;
+  double f, T, mu, tau, x, eta, E, sign, delta_f;
+  double pdSigma, Wfactor;
+  double mt = sqrt(m*m+px*px+py*py); // all in GeV
+  // Bose or Fermi statistics.
+  if (baryon==0)
+    sign = -1.;
+  else
+    sign = 1.;
+
+  //fprintf(stderr,"sign=%f\n",sign);
+  //fprintf(stderr,"baryon=%d\n",baryon);
+  for (i=0; i<NCells-1; i++)
+    {
+      tau = surface[i].x[0];
+      eta = surface[i].x[3];
+      
+      ptau = mt*cosh(y-eta); // GeV    this is p^tau
+      peta = mt/tau*sinh(y-eta); // GeV/fm     this is p^eta
+
+      // compute p^mu*dSigma_mu
+      pdSigma = tau*(ptau*surface[i].s[0]+px*surface[i].s[1]+py*surface[i].s[2]+peta*surface[i].s[3]); //fm^3*GeV
+      //pdSigma = tau*(ptau*surface[i].s[0]-px*surface[i].s[1]-py*surface[i].s[2]-peta*surface[i].s[3]); //fm^3*GeV
+     
+      // compute f
+      T = surface[i].T_f*hbarc; // GeV
+      mu = baryon*surface[i].mu_B*hbarc; //GeV
+      // E = u^mu*p_mu
+      E = (ptau*surface[i].u[0]-px*surface[i].u[1]-py*surface[i].u[2]-tau*tau*peta*surface[i].u[3]/tau);
+      //E = (ptau*surface[i].u[0]+px*surface[i].u[1]+py*surface[i].u[2]+tau*tau*peta*surface[i].u[3]/tau);
+      // this is the equilibrium f, f_0:
+      f = 1./(exp(1./T*(E-mu))+sign);
+      // now comes the delta_f: check if still correct at finite mu_b 
+      // we assume here the same C=eta/s for all particle species because it is the simplest way to do it.
+      // also we assume Xi(p)=p^2, the quadratic Ansatz
+
+     
+      if (DATA->include_deltaf==1 && DATA->viscosity_flag==1)
+	{
+	  Wfactor=(ptau*surface[i].W[0][0]*ptau
+		   -2.*ptau*surface[i].W[0][1]*px
+		   -2.*ptau*surface[i].W[0][2]*py
+		   -2.*tau*tau*ptau*surface[i].W[0][3]/tau*peta
+		   +px*surface[i].W[1][1]*px
+		   +2.*px*surface[i].W[1][2]*py
+		   +2.*tau*tau*px*surface[i].W[1][3]/tau*peta
+		   +py*surface[i].W[2][2]*py
+		   +2.*tau*tau*py*surface[i].W[2][3]/tau*peta
+		   +tau*tau*tau*tau*peta*surface[i].W[3][3]/tau/tau*peta)
+	    *pow(hbarc,4.); // W is like energy density
+	  
+	  
+	  delta_f = f*(1.-sign*f)/(2.*surface[i].sFO*pow(hbarc,3.)*pow(T,3.))*Wfactor;
+	}
+      else
+	{
+	  delta_f=0.;
+	}
+      
+ //      if( fabs(surface[i].W[3][3]/surface[i].sFO/(T/hbarc))>1.5) 
+// 	{cout << surface[i].W[0][0]/surface[i].sFO/(T/hbarc) << " " 
+// 	      << surface[i].W[0][1]/surface[i].sFO/(T/hbarc) << " " 
+// 	      << surface[i].W[0][2]/surface[i].sFO/(T/hbarc) << " " 
+// 	      << surface[i].W[0][3]/surface[i].sFO/(T/hbarc) << " " 
+// 	      << surface[i].W[1][1]/surface[i].sFO/(T/hbarc) << " " 
+// 	      << surface[i].W[1][2]/surface[i].sFO/(T/hbarc) << " " 
+// 	      << surface[i].W[1][3]/surface[i].sFO/(T/hbarc) << " " 
+// 	      << surface[i].W[2][2]/surface[i].sFO/(T/hbarc) << " " 
+// 	      << surface[i].W[2][3]/surface[i].sFO/(T/hbarc) << " " 
+// 	      << surface[i].W[3][3]/surface[i].sFO/(T/hbarc) << " " 
+// 	      << endl;
+// 	}
+//       cout << ptau*surface[i].W[0][0]*ptau << " " 
+// 	   << -2.*ptau*surface[i].W[0][1]*px << " " 
+// 	   << -2.*ptau*surface[i].W[0][2]*py << " "
+// 	   << -2.*tau*tau*ptau*surface[i].W[0][3]/tau*peta << " " 
+// 	   << px*surface[i].W[1][1]*px << " " 
+// 	   << 2.*px*surface[i].W[1][2]*py << " " 
+// 	   << 2.*tau*tau*px*surface[i].W[1][3]/tau*peta << " " 
+// 	   << py*surface[i].W[2][2]*py << " " 
+// 	   << 2.*tau*tau*py*surface[i].W[2][3]/tau*peta << " " 
+// 	   << tau*tau*tau*tau*peta*surface[i].W[3][3]/tau/tau*peta << " " << endl;
+//       cout << Wfactor/pow(hbarc,4.) << endl;
+	
+
+
+    //   if (delta_f>f && f>0.001 && fabs(y)>3.)
+// 	{
+// 	  cout << "f=" << f << ", delta_f=" << delta_f << ", delta_f/f=" << delta_f/f <<endl;
+// 	  cout << "y=" << y << ", px=" << px << ", py=" << py << ", Wfactor=" << Wfactor << endl;
+// 	  cout << "f*(1.-sign*f)=" << f*(1.-sign*f) << endl;
+// 	  cout << "1/(2.*surface[i].sFO*pow(hbarc,3.)*pow(T,3.))=" <<1/(2.*surface[i].sFO*pow(hbarc,3.)*pow(T,3.)) << endl;
+// 	  cout << "surface[i].sFO*pow(hbarc,3.)=" << surface[i].sFO*pow(hbarc,3.) << endl;
+// 	  cout << "surface[i].sFO=" << surface[i].sFO << endl;
+// 	  cout << "pow(T,3.)=" << pow(T,3.) << endl;
+// 	  cout << "T=" << T << endl;
+
+// 	  cout << surface[i].W[0][0] << " " << surface[i].W[0][1] << " " << surface[i].W[0][2] << " " << surface[i].W[0][3] << " " << 
+// 	    surface[i].W[1][1] << " " << surface[i].W[1][2] << " " << surface[i].W[1][3] << " " << surface[i].W[2][2] << " " << 
+// 	    surface[i].W[2][3] << " " << surface[i].W[3][3] << endl;
+	
+// 	  cout << surface[i].W[1][1] << " " << surface[i].W[2][2] << " " << surface[i].W[3][3] << endl;
+// 	  cout << ptau << " " << px << " " << py << " " << peta << endl;
+// 	  cout << "y=" << y << ", eta=" << eta << endl;
+// 	}
+
+	sum += 1/pow(2.*PI,3.) * (f+delta_f) * pdSigma;
+    }
+
+  sum *= deg/pow(hbarc,3.); // in GeV^(-2)
+  
+  return sum;
+}
+
+void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int iptmax, int iphimax, int size, int rank)
+{
+  char *specString;
+  specString = util->char_malloc(30);
+  char *numberStringy;
+  char *numberString;
+  char *numberStringPhi;
+  char *numberStringeta;
+  char *numberStringv2;
+  char *numberStringv2eta;
+  char *numberStringv4;
+  char *numberStringv4eta;
+  char buf[5];
+  double *p, *w;		        // pointing to data for Gaussian integration in phi 
+  double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
+  double ymaxIntegral;
+  int ipt, iphi, iymax, iy, iymaxIntegral, ieta, ietamax;
+  int i,j;
+  double pt, phi, px, py, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[5];
+  double phiOffs, phiDiff, deltaEta, etamax;
+  int returnValue;
+  double eta, mt, etaMaxIntegral;
+  double half;
+ 
+  if (iptmax != 15) 
+    {
+      fprintf(stderr,"only iptmax=15 possible. you picked %d. exiting.\n", iptmax);
+      exit(1);
+    }
+
+  j = partid[MHALF+number];
+  // set some parameters
+  deltaY = DATA->deltaY; //use 0.05
+  ymax = DATA->ymax;
+  etaMaxIntegral = 1.3;
+  ymaxIntegral = 0.5-deltaY/2.;
+  iymax = floor(2.*ymax/deltaY+0.0001);
+  fprintf(stderr,"iymax=%d\n",iymax);
+  if (size>0)
+    {
+      if (iymax%size!=0)
+	{
+	  fprintf(stderr,"number of steps in y (iymax) is not a multiple of the number of processors. Exiting.\n");
+	  MPI::Finalize();
+	  exit(1);
+	}
+      iymax=iymax/size;
+      cout << "r" << rank << " iymax=" << iymax << endl;
+    }
+  iymaxIntegral = floor(2.*ymaxIntegral/deltaY);
+  particleList[j].ymax = ymax;
+  particleList[j].deltaY = deltaY;
+  
+  if (DATA->rotateBy45degrees==0)
+    {
+      phimin = 0.;
+      phimax = 2.*PI;
+    }
+  else
+    {
+      phimin = PI/4.;
+      phimax = 3.*PI/4.; // can select larger phi.
+    }
+  
+  phiArray = util->vector_malloc(iphimax);
+  phiOffs = 0.5 * ( phimin + phimax );
+  phiDiff = 0.5 * ( phimax - phimin );
+
+  fprintf(stderr,"Doing %d: %s (%d)\n", j, particleList[j].name, particleList[j].number);
+ 
+  particleList[j].ny = iymax*size;
+  particleList[j].npt = iptmax;
+  particleList[j].nphi = iphimax;
+  
+  // set particle properties
+  double m = particleList[j].mass;
+  int d = particleList[j].degeneracy;
+  int b = particleList[j].baryon;
+  int s = particleList[j].strange;
+  double c = particleList[j].charge;
+  //fprintf(stderr,"m=%f \n", m);
+  //fprintf(stderr,"d=%d \n", d);
+  //fprintf(stderr,"b=%d \n", b);
+  sumYPtPhi = util->cube_malloc(iymax, iptmax, iphimax);
+
+  // set up file names
+  numberStringy = util->char_malloc(30);
+  numberString = util->char_malloc(30);
+  numberStringPhi = util->char_malloc(30);
+  numberStringeta = util->char_malloc(30);
+  numberStringv2 = util->char_malloc(30);
+  numberStringv2eta = util->char_malloc(30);
+  numberStringv4 = util->char_malloc(30);
+  numberStringv4eta = util->char_malloc(30);
+  sprintf (buf, "%d", number);
+  
+  //itoa(number, buf);
+  
+  if( chdir("./outputs") != 0 )
+    {
+      fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
+      exit(1);
+    }
+  else returnValue=chdir("..");
+
+  strcat(numberString, "./outputs/Npt-");
+  strcat(numberString, buf);
+  strcat(numberString,".dat");
+
+  strcat(numberStringPhi, "./outputs/NphiPT2-3-");
+  strcat(numberStringPhi, buf);
+  strcat(numberStringPhi,".dat");
+
+  strcat(numberStringeta, "./outputs/Neta-");
+  strcat(numberStringeta, buf);
+  strcat(numberStringeta,".dat");
+
+  strcat(numberStringv2eta, "./outputs/v2eta-");
+  strcat(numberStringv2eta, buf);
+  strcat(numberStringv2eta,".dat");
+  
+  strcat(numberStringv4eta, "./outputs/v4eta-");
+  strcat(numberStringv4eta, buf);
+  strcat(numberStringv4eta,".dat");
+  
+  strcat(numberStringy, "./outputs/Ny-");
+  strcat(numberStringy, buf);
+  strcat(numberStringy,".dat");
+ 
+  strcat(numberStringv2, "./outputs/v2pt-");
+  strcat(numberStringv2, buf);
+  strcat(numberStringv2,".dat");
+
+  strcat(numberStringv4, "./outputs/v4pt-");
+  strcat(numberStringv4, buf);
+  strcat(numberStringv4,".dat");
+
+  // open files to write
+  FILE *d_file;
+  char* d_name = "particleInformation.dat";
+  d_file = fopen(d_name, "a");
+
+  FILE *s_file;
+  sprintf (buf, "%d", rank);
+  
+  strcat(specString, "yptphiSpectra");
+  strcat(specString, buf);
+  strcat(specString, ".dat");
+  char* s_name = specString;
+  s_file = fopen(s_name, "a");
+
+  FILE *y_file;
+  char* y_name = numberStringy;
+  y_file = fopen(y_name, "w");
+
+  FILE *eta_file;
+  char* eta_name = numberStringeta;
+  eta_file = fopen(eta_name, "w");
+
+  FILE *v2_eta_file;
+  char* v2_eta_name = numberStringv2eta;
+  v2_eta_file = fopen(v2_eta_name, "w");
+
+  FILE *v4_eta_file;
+  char* v4_eta_name = numberStringv4eta;
+  v4_eta_file = fopen(v4_eta_name, "w");
+
+  FILE *p_file;
+  char* p_name = numberString;
+  p_file = fopen(p_name, "w");
+
+  FILE *phi_file;
+  char* phi_name = numberStringPhi;
+  phi_file = fopen(phi_name, "w");
+
+  FILE *v2_file;
+  char* v2_name = numberStringv2;
+  v2_file = fopen(v2_name, "w");
+
+  FILE *v4_file;
+  char* v4_name = numberStringv4;
+  v4_file = fopen(v4_name, "w");
+
+  FILE *a_file;
+  char* a_name = "angle";
+  a_file = fopen(a_name, "w");
+
+  // set spacing in pt and phi:
+
+  // --------------------------------------------------------------------------
+  // slope for the pt-spacing
+  fright1 = summation(ptmax, 0., y, m, d, b, DATA);
+  fleft1  = summation(0.9*ptmax, 0., y, m, d, b, DATA);
+  slope1  = -(log(fright1)-log(fleft1))/(ptmax-ptmax*0.9);
+  fright2 = summation(0., ptmax, y, m, d, b, DATA);
+  fleft2  = summation(0., 0.9*ptmax, y, m, d, b, DATA);
+  slope2  = -(log(fright2)-log(fleft2))/(ptmax-ptmax*0.9);
+  slope = 0.5 * (slope1+slope2); // slope at the high-pt end of the spectrum
+  // --------------------------------------------------------------------------
+  if (slope!=slope)
+    {
+      cout << "[Freeze:ComputePartcileSpectrum]: WARNING: slope not a number" << endl;
+      slope=3.;
+    }
+
+  // fixed slope. makes more sense right now
+  slope=3;
+
+
+  slope = slope*4;
+  //slope = 15.943641;
+  particleList[j].slope = slope;
+  
+  fprintf(stderr,"slope=%f\n",slope);
+  // --------------------------------------------------------------------------
+  // define phi spacings
+  switch (iphimax) 
+    {
+    case 4: p= gaulep4; w= gaulew4; break;
+    case 8: p= gaulep8; w= gaulew8; break;
+    case 10: p= gaulep10; w= gaulew10; break;
+    case 12: p= gaulep12; w= gaulew12; break;
+    case 16: p= gaulep16; w= gaulew16; break;
+    case 20: p= gaulep20; w= gaulew20; break;
+    case 48: p= gaulep48; w= gaulew48; break;
+    default: fprintf(stderr,"specified number of phi-points not available\n"); exit(1);
+    }
+
+  //  deltaPhi=(phimax-phimin)/iphimax;
+  for(iphi=0; iphi<iphimax; iphi++)
+    {
+      if ( iphi < iphimax/2 )
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.-p[iphi])+phimin;
+	}
+      else
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.+p[iphimax-iphi-1])+phimin;
+	}
+      //            cout << "phi[" << iphi << "]=" << phiArray[iphi] << endl;
+    }
+  // --------------------------------------------------------------------------
+  
+  // write information in the particle information file
+  if (rank==0) fprintf(d_file,"%d %e %e %e %e %e %d %d %d \n", number, deltaY, ymax, slope, phimin, phimax, iymax*size, iptmax, iphimax);
+
+  // store value as function of phi, pt and y in sumPtPhi:
+  
+  // uncomment this!!!!!
+  // uncomment this!!!!!
+  // uncomment this!!!!!
+  
+  for (iy=0; iy<iymax; iy++)
+    {
+      y = iy*deltaY-ymax+rank*(ymax/size*2.)+deltaY/2.;
+      particleList[j].y[iy] = y;
+      //     if (j==1) cout << " do particleList[ip].y[" << iy << "] = " <<  particleList[j].y[iy] << " y = " << y << endl;
+      sumpt=0.;
+      for (ipt=0; ipt<iptmax; ipt++)
+	{
+	  pt = gala15x[ipt]/slope; // legendre abscissa / slope
+	  particleList[j].pt[ipt] = pt;
+	  for (iphi=0; iphi<iphimax; iphi++)
+	    {
+	      phi = phiArray[iphi];
+	      px = pt*cos(phi);
+	      py = pt*sin(phi);
+	      //cout << "phi=" << phi << endl;
+	      sum = summation(px, py, y, m, d, b, DATA);
+	      sumYPtPhi[iy][ipt][iphi] = sum;
+	      particleList[j].dNdydptdphi[iy][ipt][iphi] = sum;
+	      fprintf(s_file,"%e ", sum);
+	      //	      sumpt += deltaPhi * ( sum ) * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+	      if (iphi<iphimax/2)
+		{
+		  sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		}
+	      else
+		{
+		  sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		}
+	    }
+	  fprintf(s_file,"\n");
+	}
+      
+      fprintf(stderr,"r=%d,       y=%f, sumpt=%f\n",rank, y, sumpt/slope);
+      fprintf(y_file,"%f %f\n", y, sumpt/slope);
+    }
+
+  // uncomment this for correlations
+
+//   //as function of phi for 'correlations'
+//   deltaEta=deltaY;
+//   double sumPhi;
+//   etamax=ymax;
+//   ietamax=floor(2.*etamax/deltaEta);
+//   double assocLower = 2.;
+//   double assocHigher = 3.;
+//   double ptRange = assocHigher-assocLower;
+//   double MydeltaPT;
+//   double MydeltaPhi;
+//   int steps = 40;
+//   MydeltaPT = ptRange/steps;
+//   MydeltaPhi = 2*PI/iphimax;
+//   for (iphi=0; iphi<iphimax; iphi++)
+//     {
+//       sumPhi=0.;
+//       phi = MydeltaPhi*iphi;
+//       for (ipt=0; ipt<steps; ipt++)
+// 	{
+// 	  pt = assocLower+ipt*MydeltaPT;
+// 	  y = 0.;
+// 	  cout << "phi=" << phi << ", pt=" << pt << endl;
+// 	  iy = floor((y+ymax)/deltaY+0.0001);
+
+// 	  //cout << "y=" << iy*deltaY-ymax << endl;
+	  
+// 	  px = pt*cos(phi);
+// 	  py = pt*sin(phi);
+// 	  mt = sqrt(pt*pt+m*m);
+// 	  sum = summation(px, py, y, m, d, b)*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+// 	  if(ipt==0 || ipt==steps)
+// 	    sumPhi += 0.5 * sum * pt * MydeltaPT *0.7 ; // 0.7 for eta range -0.35 < eta < 0.35
+// 	  else
+// 	    sumPhi += sum * pt * MydeltaPT *0.7 ; // 0.7 for eta range -0.35 < eta < 0.35
+// 	}
+      
+//       fprintf(phi_file,"%e %e\n", phi, sumPhi);
+//       cout << phi << " " << sumPhi << endl;
+//     }
+
+// ---- correlations end
+
+
+
+ 
+
+//    for (ipt=0; ipt<iptmax; ipt++)
+//     {
+//       int countY = 0;
+//       sumpt = 0.;
+//       pt = gala15x[ipt]/slope; // legendre abscissa / slope
+//       for (iy=0; iy<iymax; iy++)
+// 	{
+// 	  y = iy*deltaY-ymax+deltaY/2.;
+// 	  if (fabs(y)>ymaxIntegral) continue;
+// 	  countY++;
+// 	  fprintf(stderr,"y=%f\n",y);
+// 	  // fprintf(stderr,"countY=%d\n",countY);
+// 	  // fprintf(stderr,"iymaxIntegral=%d\n",iymaxIntegral);
+// 	  for (iphi=0; iphi<iphimax; iphi++)
+// 	    {
+// 	      phi = phiArray[iphi];
+// 	      sum = sumYPtPhi[iy][ipt][iphi];
+// 	      if (iphi<iphimax/2)
+// 		{
+// 		  if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 		    {
+// 		      sumpt += 0.5 * w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/phimax;
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/phimax;
+// 		    }
+// 		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+// 		}
+// 	      else
+// 		{
+// 		  if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 		    {
+// 		      sumpt += 0.5 * w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/phimax ;
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/phimax ;
+// 		    }
+// 		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphimax-iphi-1], iphi, -p[iphimax-iphi-1]);
+// 		}
+// 	      //if (iphi==iphimax-1) fprintf(stderr,"value for y=%f: %f\n",y, sumpt);
+// 	    }
+// 	}
+//       fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+//       fprintf(p_file,"%e %e \n", pt, sumpt / (2.*ymaxIntegral));
+//     }
+
+//   // v2 and v4
+//   for (ipt=0; ipt<iptmax; ipt++)
+//     {
+//       sumpt = 0.;
+//       sumv[2] = 0.;
+//       sumv[4] = 0.;
+//       int countY = 0;
+//       pt = particleList[j].pt[ipt];
+//       ymaxIntegral = 0.5*log((sqrt(pt*pt*cosh(etaMaxIntegral)*cosh(etaMaxIntegral)+m*m)
+// 			      +pt*sinh(etaMaxIntegral))/(sqrt(pt*pt*cosh(etaMaxIntegral)*cosh(etaMaxIntegral)+m*m)-pt*sinh(etaMaxIntegral)));
+//       iymaxIntegral = floor(2.*ymaxIntegral/deltaY);
+//       for (iy=0; iy<iymax; iy++)
+// 	{
+// 	  y = iy*deltaY-ymax;
+// 	  if (fabs(y)>ymaxIntegral) continue;
+// 	  countY++;
+// 	  for (iphi=0; iphi<iphimax; iphi++)
+// 	    {
+// 	      phi = phiArray[iphi];
+// 	      sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+// 	      if (iphi<iphimax/2)
+// 		{
+// 		  if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 		    {
+// 		      sumpt += 0.5 * w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/phimax;
+// 		      sumv[2] += 0.5 * w[iphi] * ( sum*cos(2.*phi) ) * deltaY * phiDiff * 2.*PI/phimax;
+// 		      sumv[4] += 0.5 * w[iphi] * ( sum*cos(4.*phi) ) * deltaY * phiDiff * 2.*PI/phimax;
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/phimax;
+// 		      sumv[2] += w[iphi] * ( sum*cos(2.*phi) ) * deltaY * phiDiff * 2.*PI/phimax;
+// 		      sumv[4] += w[iphi] * ( sum*cos(4.*phi) ) * deltaY * phiDiff * 2.*PI/phimax;
+// 		    }
+// 		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+// 		}
+// 	      else
+// 		{
+// 		  if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 		    {
+// 		      sumpt += 0.5 * w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/phimax ;
+// 		      sumv[2] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(2.*phi) ) * deltaY * phiDiff * 2.*PI/phimax;
+// 		      sumv[4] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(4.*phi) ) * deltaY * phiDiff * 2.*PI/phimax;
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/phimax ;
+// 		      sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*phi) ) * deltaY * phiDiff * 2.*PI/phimax;
+// 		      sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*phi) ) * deltaY * phiDiff * 2.*PI/phimax;
+// 		    }
+// 		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphimax-iphi-1], iphi, -p[iphimax-iphi-1]);
+// 		}
+// 	    }
+// 	}
+//       //fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+//       //fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt);
+//       fprintf(v2_file,"%e %e \n", pt, sumv[2]/sumpt);
+//       fprintf(v4_file,"%e %e \n", pt, sumv[4]/sumpt);
+//     }
+
+
+
+//   //pseudorapidity2
+//   deltaEta=deltaY;
+//   etamax=ymax;
+//   ietamax=floor(2.*etamax/deltaEta);
+//   for (ieta=0; ieta<ietamax; ieta++)
+//     {
+//       eta = ieta*deltaEta-etamax+deltaEta/2.;
+//       sumpt=0.;
+//       sumv[2]=0.;
+//       for (ipt=0; ipt<iptmax; ipt++)
+// 	{
+// 	  pt = particleList[j].pt[ipt];
+// 	  y = 0.5*log((sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)+pt*sinh(eta))/(sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)-pt*sinh(eta)));
+	 
+// 	  for(i=0; i<iymax-1; i++) // find closest iy
+// 	    {
+// 	      if ( particleList[j].y[i]< y &&  particleList[j].y[i+1] > y )
+// 		{
+// 		  if ( fabs(particleList[j].y[i]-y) <  fabs(particleList[j].y[i+1]-y)) 
+// 		    iy = i;
+// 		  else
+// 		    iy = i+1;
+// 		}
+// 	    }
+
+// 	  mt = sqrt(pt*pt+m*m);
+// 	  for (iphi=0; iphi<iphimax; iphi++)
+// 	    {
+// 	      phi = phiArray[iphi];
+// 	      px = pt*cos(phi);
+// 	      py = pt*sin(phi);
+// 	      sum = particleList[j].dNdydptdphi[iy][ipt][iphi]*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+// 	      if (iphi<iphimax/2)
+// 		{
+// 		  sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/phimax;
+// 		  sumv[2] += w[iphi] * ( sum*cos(2.*phi) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/phimax;
+// 		  sumv[4] += w[iphi] * ( sum*cos(4.*phi) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/phimax;
+// 		}
+// 	      else
+// 		{
+// 		  sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/phimax;
+// 		  sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/phimax;
+// 		  sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/phimax;
+// 		}
+// 	    }
+// 	}
+//       //   fprintf(stderr,"eta=%f, sumpt=%f\n", eta, sumpt/slope);
+//       fprintf(eta_file,"%f %f\n", eta, sumpt/slope);
+//       fprintf(v2_eta_file,"%f %f\n", eta, sumv[2]/sumpt);
+//       fprintf(v4_eta_file,"%f %f\n", eta, sumv[4]/sumpt);
+//     }
+  
+
+//   //angle
+//   ipt = floor((double)(iptmax)/2.);
+//   pt = particleList[j].pt[ipt];
+//   iy = floor((double)(iymax)/2.);
+//   y = iy*deltaY-ymax;
+//   for (iphi=0; iphi<iphimax; iphi++)
+//     {
+//       phi = phiArray[iphi];
+//       sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+//       fprintf(a_file,"%e %e %e %e %e %e %e %e \n", pt, y, phi, particleList[j].dNdydptdphi[iy-4][ipt][iphi], particleList[j].dNdydptdphi[iy-2][ipt][iphi], sum,particleList[j].dNdydptdphi[iy+2][ipt][iphi],particleList[j].dNdydptdphi[iy+4][ipt][iphi] );
+//     }
+
+
+
+/*   //trapezoid */
+/*   fprintf(y_file,"\n"); */
+/*   deltaPhi = 0.1; */
+/*   iphimax = floor(phimax/deltaPhi); */
+/*   deltaPT = 0.1; */
+/*   iptmax = floor(5./deltaPT); */
+  
+/*   for (iy=0; iy<iymax; iy++) */
+/*     { */
+/*       y = iy*deltaY-ymax+deltaY/2.; */
+/*       sumpt=0.; */
+/*       for (ipt=0; ipt<iptmax; ipt++) */
+/* 	{ */
+/* 	  pt = ipt*deltaPT; */
+/* 	  for (iphi=0; iphi<iphimax; iphi++) */
+/* 	    { */
+/* 	      phi = iphi*deltaPhi; */
+/* 	      px = pt*cos(phi); */
+/* 	      py = pt*sin(phi); */
+/* 	      sum = summation(px, py, y, m, d, b); */
+/* 	      if (ipt==0 || ipt==iptmax-1) // trapezoid rule: only half the edges */
+/* 		{ */
+/* 		  if (iphi==0 || iphi==iphimax-1) // trapezoid rule: only half the edges */
+/* 		    { */
+/* 		      half = 0.25; */
+/* 		    } */
+/* 		  else */
+/* 		    { */
+/* 		      half = 0.5; */
+/* 		    } */
+/* 		} */
+/* 	      else */
+/* 		{ */
+/* 		  if (iphi==0 || iphi==iphimax-1) // trapezoid rule: only half the edges */
+/* 		    { */
+/* 		      half = 0.5; */
+/* 		    } */
+/* 		  else */
+/* 		    { */
+/* 		      half = 1.; */
+/* 		    } */
+/* 		} */
+/* 	      sumpt += half * ( sum ) * deltaPhi * deltaPT * pt * 2.*PI/phimax; */
+/* 	    } */
+/* 	} */
+/*       fprintf(stderr,"y=%f, sumpt=%f\n", y, sumpt); */
+/*       fprintf(y_file,"%f %f\n", y, sumpt); */
+/*     } */
+/*   exit(1); */
+
+   
+  // simple integration for check
+/*   for (ipt=0; ipt<2.*iptmax; ipt++) */
+/*     {    */
+/*       deltaPT = 0.05; */
+/*       sumpt = 0.; */
+/*       sumv[2] = 0.; */
+/*       for (iy=0; iy<iymax; iy++) */
+/* 	{ */
+/* 	  y = iy*deltaY-ymax; */
+/* 	  pt = ipt*deltaPT; // legendre abscissa / slope */
+/* 	  deltaPhi=0.01; */
+/* 	  iphimax = floor(phimax/deltaPhi); */
+/* 	  for (iphi=0; iphi<iphimax; iphi++) */
+/* 	    { */
+/* 	      phi = iphi*deltaPhi; */
+/* 	      px = pt*cos(phi); */
+/* 	      py = pt*sin(phi); */
+/* 	      sum = summation(px, py, y, m, d, b); */
+/* 	      sumpt += ( sum ) * deltaY * deltaPhi * 2.*PI/phimax; */
+/* 	      sumv[2] += ( sum*cos(2.*phi) ) * deltaY * deltaPhi * 2.*PI/phimax; */
+/* 	    } */
+/* 	} */
+/*       fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymax)); */
+/*       fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt); */
+/*     } */
+
+  fclose(a_file);
+  fclose(d_file);
+  fclose(s_file);
+  fclose(p_file);
+  fclose(phi_file);
+  fclose(y_file);
+  fclose(eta_file);
+  fclose(v2_file);
+  fclose(v2_eta_file);
+  fclose(v4_file);
+  fclose(v4_eta_file);
+  util->vector_free(phiArray);
+  util->cube_free(sumYPtPhi,iptmax,iphimax,iymax);
+}
+
+  void Freeze::OutputFullParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int full)
+{
+  char *numberStringy;
+  char *numberString;
+  char *numberStringPhi;
+  char *numberStringv2;
+  char *numberStringv2eta;
+  char *numberStringv2tot;
+  char *numberStringv3;
+  char *numberStringv3r3;
+  char *numberStringv3eta;
+  char *numberStringv3tot;
+  char *numberStringv3r3eta;
+  char *numberStringv3r3tot;
+  char *numberStringv4;
+  char *numberStringv4eta;
+  char *numberStringv4tot;
+  char *numberStringeta;
+  FILE *s_file;
+  FILE *d_file;
+  char buf[5];
+  double *p, *w;		        // pointing to data for Gaussian integration in phi 
+  double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
+  int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
+  int i,j, iymaxIntegral;
+  double pt, phi, px, py, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[5], sumv3r3, sumPhi;
+  double phiOffs, phiDiff, ymaxIntegral, eta, deltaEta, etamax, mt, etaMaxIntegral;
+  int returnValue;
+
+  // set some parameters
+  
+  j = partid[MHALF+number];
+  fprintf(stderr,"Doing %s\n", particleList[j].name, particleList[j].number);
+  phimax = particleList[j].phimax;
+  phimin = particleList[j].phimin;
+  phiOffs = 0.5 * ( phimin + phimax );
+  phiDiff = 0.5 * ( phimax - phimin );
+  iphimax = particleList[j].nphi;
+  iptmax = particleList[j].npt;
+
+  if (iptmax != 15) 
+    {
+      fprintf(stderr,"only iptmax=15 possible. you picked %d. exiting.\n", iptmax);
+      exit(1);
+    }
+
+  ymax = particleList[j].ymax;
+  ymaxIntegral = 0.5-deltaY/2.;
+  etaMaxIntegral = 1.3; // for v2 integration
+  deltaY = particleList[j].deltaY;
+  iymax = particleList[j].ny;
+  iymaxIntegral = floor(2.*ymaxIntegral/deltaY);
+  iptmax = particleList[j].npt;
+  iphimax = particleList[j].nphi;
+  
+  // set particle properties
+  double m = particleList[j].mass;
+  int d = particleList[j].degeneracy;
+  int b = particleList[j].baryon;
+  int s = particleList[j].strange;
+  double c = particleList[j].charge;
+  //fprintf(stderr,"m=%f \n", m);
+  //fprintf(stderr,"d=%d \n", d);
+  //fprintf(stderr,"b=%d \n", b);
+  //fprintf(stderr,"iptmax=%d \n",iptmax );
+  //fprintf(stderr,"phimax=%f \n", phimax);
+  //fprintf(stderr,"iymax=%d \n", iymax);
+
+  // set up file names
+  numberStringy = util->char_malloc(30);
+  numberString = util->char_malloc(30);
+  numberStringPhi = util->char_malloc(30);
+  numberStringeta = util->char_malloc(30);
+  numberStringv2 = util->char_malloc(30);
+  numberStringv3 = util->char_malloc(30);
+  numberStringv3r3 = util->char_malloc(30);
+  numberStringv4 = util->char_malloc(30);
+  numberStringv2eta = util->char_malloc(30);
+  numberStringv3eta = util->char_malloc(30);
+  numberStringv3r3eta = util->char_malloc(30);
+  numberStringv4eta = util->char_malloc(30);
+  numberStringv2tot = util->char_malloc(30);
+  numberStringv3tot = util->char_malloc(30);
+  numberStringv3r3tot = util->char_malloc(30);
+  numberStringv4tot = util->char_malloc(30);
+  
+  if( chdir("./outputs") != 0 )
+    {
+      fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
+      exit(1);
+    }
+  else returnValue=chdir("..");
+
+  if (full==1)
+    {
+      sprintf (buf, "%d", number);
+      //itoa(number, buf);
+      strcat(numberString, "./outputs/FNpt-");
+      strcat(numberString, buf);
+      strcat(numberString,".dat");
+      
+      strcat(numberStringPhi, "./outputs/FNphi-");
+      strcat(numberStringPhi, buf);
+      strcat(numberStringPhi,".dat");
+      
+      strcat(numberStringy, "./outputs/FNy-");
+      strcat(numberStringy, buf);
+      strcat(numberStringy,".dat");
+      
+      strcat(numberStringv2, "./outputs/Fv2pt-");
+      strcat(numberStringv2, buf);
+      strcat(numberStringv2,".dat");
+      
+      strcat(numberStringv3, "./outputs/Fv3pt-");
+      strcat(numberStringv3, buf);
+      strcat(numberStringv3,".dat");
+      
+      strcat(numberStringv3r3, "./outputs/Fv3r3pt-");
+      strcat(numberStringv3r3, buf);
+      strcat(numberStringv3r3,".dat");
+      
+      strcat(numberStringv4, "./outputs/Fv4pt-");
+      strcat(numberStringv4, buf);
+      strcat(numberStringv4,".dat");
+      
+      strcat(numberStringeta, "./outputs/FNeta-");
+      strcat(numberStringeta, buf);
+      strcat(numberStringeta,".dat");
+      
+      strcat(numberStringv2eta, "./outputs/Fv2eta-");
+      strcat(numberStringv2eta, buf);
+      strcat(numberStringv2eta,".dat");
+      
+      strcat(numberStringv3eta, "./outputs/Fv3eta-");
+      strcat(numberStringv3eta, buf);
+      strcat(numberStringv3eta,".dat");
+      
+      strcat(numberStringv3r3eta, "./outputs/Fv3r3eta-");
+      strcat(numberStringv3r3eta, buf);
+      strcat(numberStringv3r3eta,".dat");
+      
+      strcat(numberStringv4eta, "./outputs/Fv4eta-");
+      strcat(numberStringv4eta, buf);
+      strcat(numberStringv4eta,".dat");
+      
+      strcat(numberStringv2tot, "./outputs/Fv2tot-");
+      strcat(numberStringv2tot, buf);
+      strcat(numberStringv2tot,".dat");
+      
+      strcat(numberStringv3tot, "./outputs/Fv3tot-");
+      strcat(numberStringv3tot, buf);
+      strcat(numberStringv3tot,".dat");
+      
+      strcat(numberStringv3r3tot, "./outputs/Fv3r3tot-");
+      strcat(numberStringv3r3tot, buf);
+      strcat(numberStringv3r3tot,".dat");
+      
+      strcat(numberStringv4tot, "./outputs/Fv4tot-");
+      strcat(numberStringv4tot, buf);
+      strcat(numberStringv4tot,".dat");
+      
+      // open files to write
+      char* d_name = "FparticleInformation.dat";
+      d_file = fopen(d_name, "a");
+      
+      char* s_name = "FyptphiSpectra.dat";
+      s_file = fopen(s_name, "a");
+    }
+  else if (full==0)
+    {
+      sprintf (buf, "%d", number);
+      //itoa(number, buf);
+      strcat(numberString, "./outputs/Npt-");
+      strcat(numberString, buf);
+      strcat(numberString,".dat");
+      
+      strcat(numberStringPhi, "./outputs/Nphi-");
+      strcat(numberStringPhi, buf);
+      strcat(numberStringPhi,".dat");
+      
+      strcat(numberStringy, "./outputs/Ny-");
+      strcat(numberStringy, buf);
+      strcat(numberStringy,".dat");
+      
+      strcat(numberStringv2, "./outputs/v2pt-");
+      strcat(numberStringv2, buf);
+      strcat(numberStringv2,".dat");
+      
+      strcat(numberStringv3, "./outputs/v3pt-");
+      strcat(numberStringv3, buf);
+      strcat(numberStringv3,".dat");
+      
+      strcat(numberStringv3r3, "./outputs/v3r3pt-");
+      strcat(numberStringv3r3, buf);
+      strcat(numberStringv3r3,".dat");
+      
+      strcat(numberStringv4, "./outputs/v4pt-");
+      strcat(numberStringv4, buf);
+      strcat(numberStringv4,".dat");
+      
+      strcat(numberStringeta, "./outputs/Neta-");
+      strcat(numberStringeta, buf);
+      strcat(numberStringeta,".dat");
+      
+      strcat(numberStringv2eta, "./outputs/v2eta-");
+      strcat(numberStringv2eta, buf);
+      strcat(numberStringv2eta,".dat");
+      
+      strcat(numberStringv3eta, "./outputs/v3eta-");
+      strcat(numberStringv3eta, buf);
+      strcat(numberStringv3eta,".dat");
+      
+      strcat(numberStringv3r3eta, "./outputs/v3r3eta-");
+      strcat(numberStringv3r3eta, buf);
+      strcat(numberStringv3r3eta,".dat");
+      
+      strcat(numberStringv4eta, "./outputs/v4eta-");
+      strcat(numberStringv4eta, buf);
+      strcat(numberStringv4eta,".dat");
+
+      strcat(numberStringv2tot, "./outputs/v2tot-");
+      strcat(numberStringv2tot, buf);
+      strcat(numberStringv2tot,".dat");
+      
+      strcat(numberStringv3tot, "./outputs/v3tot-");
+      strcat(numberStringv3tot, buf);
+      strcat(numberStringv3tot,".dat");
+      
+      strcat(numberStringv3r3tot, "./outputs/v3r3tot-");
+      strcat(numberStringv3r3tot, buf);
+      strcat(numberStringv3r3tot,".dat");
+      
+      strcat(numberStringv4tot, "./outputs/v4tot-");
+      strcat(numberStringv4tot, buf);
+      strcat(numberStringv4tot,".dat");
+    }
+  else
+    fprintf(stderr,"[ERROR in Freeze]: Wrong option 'full=%d' in OutputFullParticleSpectrum\n",full);
+  
+  FILE *y_file;
+  char* y_name = numberStringy;
+  y_file = fopen(y_name, "w");
+  
+  FILE *eta_file;
+  char* eta_name = numberStringeta;
+  eta_file = fopen(eta_name, "w");
+  
+  FILE *v2_eta_file;
+  char* v2_eta_name = numberStringv2eta;
+  v2_eta_file = fopen(v2_eta_name, "w");
+
+  FILE *v3_eta_file;
+  char* v3_eta_name = numberStringv3eta;
+  v3_eta_file = fopen(v3_eta_name, "w");
+
+  FILE *v3r3_eta_file;
+  char* v3r3_eta_name = numberStringv3r3eta;
+  v3r3_eta_file = fopen(v3r3_eta_name, "w");
+
+  FILE *v4_eta_file;
+  char* v4_eta_name = numberStringv4eta;
+  v4_eta_file = fopen(v4_eta_name, "w");
+
+  FILE *v2_tot_file;
+  char* v2_tot_name = numberStringv2tot;
+  v2_tot_file = fopen(v2_tot_name, "w");
+
+  FILE *v3_tot_file;
+  char* v3_tot_name = numberStringv3tot;
+  v3_tot_file = fopen(v3_tot_name, "w");
+
+  FILE *v3r3_tot_file;
+  char* v3r3_tot_name = numberStringv3r3tot;
+  v3r3_tot_file = fopen(v3r3_tot_name, "w");
+
+  FILE *v4_tot_file;
+  char* v4_tot_name = numberStringv4tot;
+  v4_tot_file = fopen(v4_tot_name, "w");
+
+  FILE *p_file;
+  char* p_name = numberString;
+  p_file = fopen(p_name, "w");
+
+  FILE *phi_file;
+  char* phi_name = numberStringPhi;
+  phi_file = fopen(phi_name, "w");
+
+  FILE *v2_file;
+  char* v2_name = numberStringv2;
+  v2_file = fopen(v2_name, "w");
+
+  FILE *v3_file;
+  char* v3_name = numberStringv3;
+  v3_file = fopen(v3_name, "w");
+
+  FILE *v3r3_file;
+  char* v3r3_name = numberStringv3r3;
+  v3r3_file = fopen(v3r3_name, "w");
+
+  FILE *v4_file;
+  char* v4_name = numberStringv4;
+  v4_file = fopen(v4_name, "w");
+
+
+  slope = particleList[j].slope;
+  switch (iphimax) 
+    {
+    case 4: p= gaulep4; w= gaulew4; break;
+    case 8: p= gaulep8; w= gaulew8; break;
+    case 10: p= gaulep10; w= gaulew10; break;
+    case 12: p= gaulep12; w= gaulew12; break;
+    case 16: p= gaulep16; w= gaulew16; break;
+    case 20: p= gaulep20; w= gaulew20; break;
+    case 48: p= gaulep48; w= gaulew48; break;
+    default: fprintf(stderr,"specified number of phi-points not available\n"); exit(1);
+    }
+
+  cout << "phimin=" << phimin << endl;
+  cout << "phimax=" << phimax << endl;
+
+//   deltaPhi=(phimax-phimin)/iphimax;
+//   for(iphi=0; iphi<iphimax; iphi++)
+//     {
+//       phiArray[iphi] = iphi*(phimax-phimin)/iphimax;
+//       cout << "phi[" << iphi << "]=" << phiArray[iphi] << endl;
+//     }
+
+
+  for(iphi=0; iphi<iphimax; iphi++)
+    {
+      if ( iphi < iphimax/2 )
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.-p[iphi])+phimin;
+	}
+      else
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.+p[iphimax-iphi-1])+phimin;
+	}
+      //      cout << "phi[" << iphi << "]=" << phiArray[iphi] << ", " <<  phimax/2.*(1.-p[iphi]) << ", " 
+      //   << (phimax)/2.*(1.+p[iphimax-iphi-1]) << endl;
+    }
+
+  // write information in the particle information file
+  if (full==1) fprintf(d_file,"%d %e %e %e %e %e %d %d %d \n", number, deltaY, ymax, slope, phimin, phimax, iymax, iptmax, iphimax);
+
+  // retrieve value as function of phi, pt and y in sumPtPhi:
+  double Psi3pSin = 0.;
+  double Psi3pCos = 0.;
+  double Psi3p;
+  double Psi2pSin = 0.;
+  double Psi2pCos = 0.;
+  double Psi2p;
+  for (iy=0; iy<iymax; iy++)
+    {
+      y =  particleList[j].y[iy];
+      //      fprintf(stderr,"y=%f \n", y);
+      sumpt=0.;
+      for (ipt=0; ipt<iptmax; ipt++)
+	{
+	  pt = particleList[j].pt[ipt];
+	  //fprintf(stderr,"pt=%f \n", pt);
+	  for (iphi=0; iphi<iphimax; iphi++)
+	    {
+	      phi = phiArray[iphi];
+	      sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+	      if (full==1) fprintf(s_file,"%e ", sum);
+	      // integrate over pt and phi
+	      //     sumpt += deltaPhi * ( sum ) * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+	      // Psi3pSin += deltaPhi * ( sum*pt*sin(3.*phi) ) * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+	      //Psi3pCos += deltaPhi * ( sum*pt*cos(3.*phi) ) * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+	      if (iphi<iphimax/2)
+		{
+		  sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  Psi3pSin += w[iphi] * ( sum*pt*sin(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  Psi3pCos += w[iphi] * ( sum*pt*cos(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  Psi2pSin += w[iphi] * ( sum*pt*sin(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  Psi2pCos += w[iphi] * ( sum*pt*cos(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  //fprintf(stderr,"sumpt=%f \n", sumpt);
+		}
+	      else
+		{
+		  sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  Psi3pSin += w[iphimax-iphi-1] * ( sum*pt*sin(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  Psi3pCos += w[iphimax-iphi-1] * ( sum*pt*cos(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  Psi2pSin += w[iphimax-iphi-1] * ( sum*pt*sin(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  Psi2pCos += w[iphimax-iphi-1] * ( sum*pt*cos(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  //fprintf(stderr,"sumpt=%f \n", sumpt);
+		}
+	    }
+	  if (full==1) fprintf(s_file,"\n");
+	}
+      fprintf(stderr,"y=%f, sumpt=%f\n", y, sumpt/slope);
+      fprintf(y_file,"%f %f\n", y, sumpt/slope);
+    }
+  if (Psi2pCos<0.)
+    Psi2p = 1./2.*(atan(Psi2pSin/Psi2pCos)+PI);
+  else
+    Psi2p = 1./2.*(atan(Psi2pSin/Psi2pCos));
+  
+  if (Psi3pCos<0.) 
+    Psi3p = 1./3.*(atan(Psi3pSin/Psi3pCos)+PI);
+  else
+    Psi3p = 1./3.*(atan(Psi3pSin/Psi3pCos));
+  
+  cout << "Psi2p=" << Psi2p << endl; 
+  cout << "Psi2pSin=" << Psi2pSin << endl; 
+  cout << "Psi2pCos=" << Psi2pCos << endl; 
+  cout << "Psi3p=" << Psi3p << endl; 
+  cout << "Psi3pSin=" << Psi3pSin << endl; 
+  cout << "Psi3pCos=" << Psi3pCos << endl; 
+  
+
+//    for (ipt=0; ipt<iptmax; ipt++)
+//     {
+//       int countY = 0;
+//       sumpt = 0.;
+//       pt = gala15x[ipt]/slope; // legendre abscissa / slope
+//       for (iy=0; iy<iymax; iy++)
+// 	{
+// 	  y = iy*deltaY-ymax+deltaY/2.;
+// 	  if (fabs(y)>ymaxIntegral) continue;
+// 	  countY++;
+// 	  fprintf(stderr,"y=%f\n",y);
+// 	  // fprintf(stderr,"countY=%d\n",countY);
+// 	  // fprintf(stderr,"iymaxIntegral=%d\n",iymaxIntegral);
+// 	  for (iphi=0; iphi<iphimax; iphi++)
+// 	    {
+// 	      phi = phiArray[iphi];
+// 	      sum = sumYPtPhi[iy][ipt][iphi];
+// 	      if (iphi<iphimax/2)
+// 		{
+// 		  if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 		    {
+// 		      sumpt += 0.5 * w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/phimax;
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/phimax;
+// 		    }
+// 		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+// 		}
+// 	      else
+// 		{
+// 		  if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 		    {
+// 		      sumpt += 0.5 * w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/phimax ;
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/phimax ;
+// 		    }
+// 		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphimax-iphi-1], iphi, -p[iphimax-iphi-1]);
+// 		}
+// 	      //if (iphi==iphimax-1) fprintf(stderr,"value for y=%f: %f\n",y, sumpt);
+// 	    }
+// 	}
+//       fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+//       fprintf(p_file,"%e %e \n", pt, sumpt / (2.*ymaxIntegral));
+//     }
+  //pt spectra
+  for (ipt=0; ipt<iptmax; ipt++)
+    {
+      sumpt = 0.;
+      int countY = 0;
+      pt = particleList[j].pt[ipt];
+      for (iy=0; iy<iymax; iy++)
+	{
+	  y = iy*deltaY-ymax;
+	  if (fabs(y)>ymaxIntegral) continue;
+	  countY++;
+	  for (iphi=0; iphi<iphimax; iphi++)
+	    {
+	      phi = phiArray[iphi];
+	      sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+	      
+	  //     if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 		{
+// 		  sumpt += 0.5 * deltaPhi * ( sum ) * deltaY * 2.*PI/(phimax-phimin);
+// 		}
+// 	      else
+// 		{
+// 		  sumpt += deltaPhi * ( sum ) * deltaY * 2.*PI/(phimax-phimin);
+// 		}
+		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+		
+	      if (iphi<iphimax/2)
+		{
+		  if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+		    {
+		      sumpt += 0.5 * w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+		    }
+		  else
+		    {
+		      sumpt += w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+		    }
+		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+		}
+	      else
+		{
+		  if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+		    {
+		      sumpt += 0.5 * w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		    }
+		  else
+		    {
+		      sumpt += w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		    }
+		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphimax-iphi-1], iphi, -p[iphimax-iphi-1]);
+		}
+ 	    }
+	}
+      //fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+      fprintf(p_file,"%e %e \n", pt, sumpt / (2.*ymaxIntegral));
+      //fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt);
+    }
+
+
+  // v2, v3 and v4
+  for (ipt=0; ipt<iptmax; ipt++)
+    {
+      sumpt = 0.;
+      sumv[2] = 0.;
+      sumv[3] = 0.;
+      sumv3r3 = 0.;
+      sumv[4] = 0.;
+      int countY = 0;
+      pt = particleList[j].pt[ipt];
+      ymaxIntegral = 0.5*log((sqrt(pt*pt*cosh(etaMaxIntegral)*cosh(etaMaxIntegral)+m*m)
+			      +pt*sinh(etaMaxIntegral))/(sqrt(pt*pt*cosh(etaMaxIntegral)*cosh(etaMaxIntegral)+m*m)-pt*sinh(etaMaxIntegral)));
+      iymaxIntegral = floor(2.*ymaxIntegral/deltaY);
+      for (iy=0; iy<iymax; iy++)
+	{
+	  y = iy*deltaY-ymax;
+	  if (fabs(y)>ymaxIntegral) continue;
+	  countY++;
+	  for (iphi=0; iphi<iphimax; iphi++)
+	    {
+	      phi = phiArray[iphi];
+	      sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+	      
+	//       if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 		    {
+// 		      sumpt += 0.5 * deltaPhi * ( sum ) * deltaY  * 2.*PI/(phimax-phimin);
+// 		      sumv[2] += 0.5 * deltaPhi * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv[3] += 0.5 * deltaPhi * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv3r3 += 0.5 * deltaPhi * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv[4] += 0.5 * deltaPhi * ( sum*cos(4.*(phi-phimin)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += deltaPhi * ( sum ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv[2] += deltaPhi * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv[3] += deltaPhi * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv3r3 += deltaPhi * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv[4] += deltaPhi * ( sum*cos(4.*(phi-phimin)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		    }
+		
+	      if (iphi<iphimax/2)
+		{
+		  if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+		    {
+		      sumpt += 0.5 * w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+		      sumv[2] += 0.5 * w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[3] += 0.5 * w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv3r3 += 0.5 * w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[4] += 0.5 * w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		    }
+		  else
+		    {
+		      sumpt += w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+		      sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		    }
+		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+		}
+	      else
+		{
+		  if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+		    {
+		      sumpt += 0.5 * w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[2] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[3] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv3r3 += 0.5 * w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[4] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		    }
+		  else
+		    {
+		      sumpt += w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+		    }
+		  //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphimax-iphi-1], iphi, -p[iphimax-iphi-1]);
+		}
+ 	    }
+	}
+      //fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+      //fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt);
+      fprintf(v2_file,"%e %e \n", pt, sumv[2]/sumpt);
+      fprintf(v3_file,"%e %e \n", pt, sumv[3]/sumpt);
+      fprintf(v3r3_file,"%e %e \n", pt, sumv3r3/sumpt);
+      fprintf(v4_file,"%e %e \n", pt, sumv[4]/sumpt);
+    }
+
+
+  //pseudorapidity2
+  deltaEta=deltaY;
+  etamax=ymax;
+  ietamax=floor(2.*etamax/deltaEta);
+  for (ieta=0; ieta<ietamax; ieta++)
+    {
+      eta = ieta*deltaEta-etamax+deltaEta/2.;
+      sumpt=0.;
+      sumv[2]=0.;
+      sumv[3]=0.;
+      sumv3r3=0.;
+      sumv[4]=0.;
+      for (ipt=0; ipt<iptmax; ipt++)
+	{
+	  pt = particleList[j].pt[ipt];
+	  y = 0.5*log((sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)+pt*sinh(eta))/(sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)-pt*sinh(eta)));
+	 
+	  for(i=0; i<iymax-1; i++) // find closest iy
+	    {
+	      if ( particleList[j].y[i]< y &&  particleList[j].y[i+1] > y )
+		{
+		  if ( fabs(particleList[j].y[i]-y) <  fabs(particleList[j].y[i+1]-y)) 
+		    iy = i;
+		  else
+		    iy = i+1;
+		}
+	    }
+
+	  mt = sqrt(pt*pt+m*m);
+	  for (iphi=0; iphi<iphimax; iphi++)
+	    {
+	      phi = phiArray[iphi];
+	      px = pt*cos(phi);
+	      py = pt*sin(phi);
+	      sum = particleList[j].dNdydptdphi[iy][ipt][iphi]*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+	      if (iphi<iphimax/2)
+		{
+		  sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		  sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		  sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		  sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		}
+	      else
+		{
+		  sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		}
+	    }
+	}
+      //   fprintf(stderr,"eta=%f, sumpt=%f\n", eta, sumpt/slope);
+      fprintf(eta_file,"%f %f\n", eta, sumpt/slope);
+      fprintf(v2_eta_file,"%f %f\n", eta, sumv[2]/sumpt);
+      fprintf(v3_eta_file,"%f %f\n", eta, sumv[3]/sumpt);
+      fprintf(v3r3_eta_file,"%f %f\n", eta, sumv3r3/sumpt);
+      fprintf(v4_eta_file,"%f %f\n", eta, sumv[4]/sumpt);
+ 
+    }
+
+
+  //total v2, v3 and v4
+  deltaEta=deltaY;
+  etamax=ymax;
+  ietamax=floor(2.*etamax/deltaEta);
+  double sumtotv2 =0.;
+  double sumtotv3 =0.;
+  double sumtotv3r3 =0.;
+  double sumtotv4 =0.;
+  int eta1=0;
+  for (ieta=0; ieta<ietamax; ieta++)
+    {
+      eta = ieta*deltaEta-etamax+deltaEta/2.;
+      if (fabs(eta)>1.5) continue; // experimental cut
+      eta1+=1;
+      sumpt=0.;
+      sumv[2]=0.;
+      sumv[3]=0.;
+      sumv3r3=0.;
+      sumv[4]=0.;
+      for (ipt=0; ipt<iptmax; ipt++)
+	{
+	  pt = particleList[j].pt[ipt];
+	  if (pt < 0.8 || pt > 4.) continue; // experimental cut 
+	  y = 0.5*log((sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)+pt*sinh(eta))/(sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)-pt*sinh(eta)));
+	 
+	  for(i=0; i<iymax-1; i++) // find closest iy
+	    {
+	      if ( particleList[j].y[i]< y &&  particleList[j].y[i+1] > y )
+		{
+		  if ( fabs(particleList[j].y[i]-y) <  fabs(particleList[j].y[i+1]-y)) 
+		    iy = i;
+		  else
+		    iy = i+1;
+		}
+	    }
+
+	  mt = sqrt(pt*pt+m*m);
+	  for (iphi=0; iphi<iphimax; iphi++)
+	    {
+	      phi = phiArray[iphi];
+	      px = pt*cos(phi);
+	      py = pt*sin(phi);
+	      sum = particleList[j].dNdydptdphi[iy][ipt][iphi]*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+	      if (iphi<iphimax/2)
+		{
+		  sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		  sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		  sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		  sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		}
+	      else
+		{
+		  sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		}
+	    }
+	}
+
+      sumtotv2 += sumv[2]/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv2 -= 0.5 * sumv[2]/sumpt * deltaEta;
+      sumtotv3 += sumv[3]/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv3 -= 0.5 * sumv[3]/sumpt * deltaEta;
+      sumtotv3r3 += sumv3r3/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv3r3 -= 0.5 * sumv3r3/sumpt * deltaEta;
+      sumtotv4 += sumv[4]/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv4 -= 0.5 * sumv[4]/sumpt * deltaEta;
+    }
+  sumtotv2 -= 0.5 * sumv[2]/sumpt * deltaEta;
+  sumtotv3 -= 0.5 * sumv[3]/sumpt * deltaEta;
+  sumtotv3r3 -= 0.5 * sumv3r3/sumpt * deltaEta;
+  sumtotv4 -= 0.5 * sumv[4]/sumpt * deltaEta;
+  
+  fprintf(v2_tot_file,"%f\n", sumtotv2);
+  fprintf(v3_tot_file,"%f\n", sumtotv3);
+  fprintf(v3r3_tot_file,"%f\n", sumtotv3r3);
+  fprintf(v4_tot_file,"%f\n", sumtotv4);
+  
+  
+  //as function of phi for 'correlations'
+  deltaEta=deltaY;
+  etamax=ymax;
+  ietamax=floor(2.*etamax/deltaEta);
+  for (iphi=0; iphi<iphimax; iphi++)
+    {
+      sumPhi=0.;
+      phi = phiArray[iphi];
+      for (ipt=iptmax-3; ipt<iptmax-2; ipt++)
+	{
+	  pt = particleList[j].pt[ipt];
+	  y = 0.;
+	  cout << "pt=" << pt << endl;
+	  iy = floor((y+ymax)/deltaY+0.0001);
+
+	  cout << "y=" << iy*deltaY-ymax << endl;
+	  
+	  px = pt*cos(phi);
+	  py = pt*sin(phi);
+	  mt = sqrt(pt*pt+m*m);
+	  sum = particleList[j].dNdydptdphi[iy][ipt][iphi]*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+	  
+	  sumPhi = sum * 0.7; // 0.7 for eta range -0.35 < eta < 0.35
+	}
+      
+      fprintf(phi_file,"%e %e\n", phi, sumPhi);
+    }
+  
+
+
+  // simple integration for check
+/*   for (ipt=0; ipt<2.*iptmax; ipt++) */
+/*     {    */
+/*       deltaPT = 0.05; */
+/*       sumpt = 0.; */
+/*       sumv[2] = 0.; */
+/*       for (iy=0; iy<iymax; iy++) */
+/* 	{ */
+/* 	  y = iy*deltaY-ymax; */
+/* 	  pt = ipt*deltaPT; // legendre abscissa / slope */
+/* 	  deltaPhi=0.01; */
+/* 	  iphimax = floor(phimax/deltaPhi); */
+/* 	  for (iphi=0; iphi<iphimax; iphi++) */
+/* 	    { */
+/* 	      phi = iphi*deltaPhi; */
+/* 	      px = pt*cos(phi); */
+/* 	      py = pt*sin(phi); */
+/* 	      sum = summation(px, py, y, m, d, b); */
+/* 	      sumpt += ( sum ) * deltaY * deltaPhi * 2.*PI/phimax; */
+/* 	      sumv[2] += ( sum*cos(2.*phi) ) * deltaY * deltaPhi * 2.*PI/phimax; */
+/* 	    } */
+/* 	} */
+/*       fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymax)); */
+/*       fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt); */
+/*     } */
+
+  if (full==1) fclose(s_file);
+  if (full==1) fclose(d_file);
+  fclose(p_file);
+  fclose(phi_file);
+  fclose(v2_eta_file);
+  fclose(v4_eta_file);
+  fclose(v2_tot_file);
+  fclose(v3_tot_file);
+  fclose(v4_tot_file);
+  fclose(eta_file);
+  fclose(y_file);
+  fclose(v2_file);
+  fclose(v3_file);
+  fclose(v3r3_file);
+  fclose(v4_file);
+  fprintf(stderr,"Done with %s\n", particleList[j].name, particleList[j].number);
+}
+
+
+// read in full spectra from file to then perform anything with them
+void Freeze::ReadFullSpectra(InitData* DATA)
+{
+  // read in thermal spectra from file:
+  int number, iymax, iptmax, iphimax;
+  double deltaY, ymax, slope, phimax, phimin;
+  int ip, iphi, ipt, i;
+  double *p, *w;		        // pointing to data for Gaussian integration in phi 
+  int bytes_read;
+  static char *s;
+  s = util->char_malloc(120);
+  int iy, j, k, d1, d2, d3, decays, h;
+  double b, npi, nK, neta, dummy;
+  fprintf(stderr,"reading spectra\n");
+  char *anti;
+  // open particle information file:
+  FILE *p_file;
+  char* p_name = "FparticleInformation.dat";
+  p_file = fopen(p_name, "r");
+  checkForReadError(p_file,p_name);
+  int count;
+  count = 0;
+  // read particle information:
+  while( fscanf(p_file,"%d %lf %lf %lf %lf %lf %d %d %d ",&number, &deltaY, &ymax, &slope, &phimin, &phimax, &iymax, &iptmax, &iphimax) == 9)
+    //while( fscanf(p_file,"%d %lf %lf %lf %lf %d %d %d ",&number, &deltaY, &ymax, &slope, &phimax, &iymax, &iptmax, &iphimax) == 8)
+    {
+      count ++;
+     
+      //phimin=0.;
+     
+      if (count>DATA->NumberOfParticlesToInclude) break;
+      fprintf(stderr,"%d %e %e %e %e %e %d %d %d \n", number, deltaY, ymax, slope, phimin, phimax, iymax, iptmax, iphimax);
+      ip = partid[MHALF+number];
+      particleList[ip].ny = iymax;
+      particleList[ip].npt = iptmax;
+      particleList[ip].nphi = iphimax;
+      particleList[ip].phimin = phimin;
+      particleList[ip].phimax = phimax;
+      particleList[ip].slope = slope;
+      particleList[ip].ymax = ymax;
+      particleList[ip].deltaY = deltaY;
+      for ( i=0; i<iptmax; i++ )
+	{
+	  particleList[ip].pt[i] =  gala15x[i]/slope;
+	}
+      for ( i=0; i<iymax; i++ )
+	{
+	  particleList[ip].y[i] =  i*deltaY-ymax+deltaY/2.;
+	}
+
+      switch (iphimax) 
+	{
+	case 4: p= gaulep4; w= gaulew4; break;
+	case 8: p= gaulep8; w= gaulew8; break;
+	case 10: p= gaulep10; w= gaulew10; break;
+	case 12: p= gaulep12; w= gaulew12; break;
+	case 16: p= gaulep16; w= gaulew16; break;
+	case 20: p= gaulep20; w= gaulew20; break;
+	case 48: p= gaulep48; w= gaulew48; break;
+	default: fprintf(stderr,"specified number of phi-points %d not available\n",iphimax); exit(1);
+	}
+      
+      phiArray = util->vector_malloc(iphimax);
+
+      for(iphi=0; iphi<iphimax; iphi++)
+	{
+	  if ( iphi < iphimax/2 )
+	    {
+	      phiArray[iphi] = (phimax-phimin)/2.*(1.-p[iphi])+phimin;
+	    }
+	  else
+	    {
+	      phiArray[iphi] = (phimax-phimin)/2.*(1.+p[iphimax-iphi-1])+phimin;
+	    }
+	  //      cout << "phi[" << iphi << "]=" << phiArray[iphi] << ", " <<  phimax/2.*(1.-p[iphi]) << ", " 
+	  //   << (phimax)/2.*(1.+p[iphimax-iphi-1]) << endl;
+	}
+    }
+
+  particleMax = ip;
+
+  fclose(p_file);
+
+  FILE *s_file;
+  char* s_name = "FyptphiSpectra.dat";
+  s_file = fopen(s_name, "r");
+  checkForReadError(s_file,s_name);
+  
+  for ( ip=1; ip<=particleMax; ip++ )
+    {
+      //fprintf(stderr,"reading particle %d: %d %s\n", ip, particleList[ip].number, particleList[ip].name);
+      for (iy=0; iy<iymax; iy++)
+	{
+	  for (ipt=0; ipt<iptmax; ipt++)
+	    {
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  bytes_read=fscanf(s_file, "%lf", &particleList[ip].dNdydptdphi[iy][ipt][iphi]);
+		  //printf("%f %f %f \n",particleList[ip].y[iy],particleList[ip].pt[ipt],phiArray[iphi]);
+		}
+	    }
+	}
+    }
+  fclose(s_file);
+}
+
+void Freeze::ComputeAveragePT(int number, double ptmax)
+{
+  char *numberString;
+  char buf[10];
+  double *p, *w;		        // pointing to data for Gaussian integration in phi 
+  double slope;
+  int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
+  int i,j, iymaxIntegral;
+  double pt, phi, px, py, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumnorm, sumv[5];
+  double phiOffs, phiDiff, ymaxIntegral, eta, deltaEta, etamax, mt, etaMaxIntegral;
+  int returnValue;
+  int ip;
+
+  // set some parameters
+  
+  j = partid[MHALF+number];
+  fprintf(stderr,"Doing %s\n", particleList[j].name, particleList[j].number);
+  phimax = particleList[j].phimax;
+  phimin = particleList[j].phimin;
+  phiOffs = 0.5 * ( phimin + phimax );
+  phiDiff = 0.5 * ( phimax - phimin );
+  iphimax = particleList[j].nphi;
+  iptmax = particleList[j].npt;
+
+  if (iptmax != 15) 
+    {
+      fprintf(stderr,"only iptmax=15 possible. you picked %d. exiting.\n", iptmax);
+      exit(1);
+    }
+
+  ymax = particleList[j].ymax;
+  ymaxIntegral = 0.5-deltaY/2.;
+  etaMaxIntegral = 1.3; // for v2 integration
+  deltaY = particleList[j].deltaY;
+  iymax = particleList[j].ny;
+  iymaxIntegral = floor(2.*ymaxIntegral/deltaY);
+  iptmax = particleList[j].npt;
+  iphimax = particleList[j].nphi;
+  
+  // set particle properties
+  double m = particleList[j].mass;
+  int d = particleList[j].degeneracy;
+  int b = particleList[j].baryon;
+  int s = particleList[j].strange;
+  double c = particleList[j].charge;
+  
+  // set up file names
+  numberString = util->char_malloc(30);
+  
+  if( chdir("./outputs") != 0 )
+    {
+      fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
+      exit(1);
+    }
+  else returnValue=chdir("..");
+
+  sprintf (buf, "%d", number);
+  strcat(numberString, "./outputs/FavPT-");
+  strcat(numberString, buf);
+  strcat(numberString,".dat");
+    
+  FILE *p_file;
+  char* p_name = numberString;
+  p_file = fopen(p_name, "w");
+
+  slope = particleList[j].slope;
+  switch (iphimax) 
+    {
+    case 4: p= gaulep4; w= gaulew4; break;
+    case 8: p= gaulep8; w= gaulew8; break;
+    case 10: p= gaulep10; w= gaulew10; break;
+    case 12: p= gaulep12; w= gaulew12; break;
+    case 16: p= gaulep16; w= gaulew16; break;
+    case 20: p= gaulep20; w= gaulew20; break;
+    case 48: p= gaulep48; w= gaulew48; break;
+    default: fprintf(stderr,"specified number of phi-points not available\n"); exit(1);
+    }
+
+  for(iphi=0; iphi<iphimax; iphi++)
+    {
+      if ( iphi < iphimax/2 )
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.-p[iphi])+phimin;
+	}
+      else
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.+p[iphimax-iphi-1])+phimin;
+	}
+    }
+
+  cout << "starting..." << endl;
+
+  //compute average p_T as function of y:
+  for (iy=0; iy<iymax; iy++)
+    {
+      y =  particleList[j].y[iy];
+      //      fprintf(stderr,"y=%f \n", y);
+      sumpt=0.;
+      sumnorm=0.;
+      for (ipt=0; ipt<iptmax; ipt++)
+	{
+	  pt = particleList[j].pt[ipt];
+	  //fprintf(stderr,"pt=%f \n", pt);
+	  for (iphi=0; iphi<iphimax; iphi++)
+	    {
+	      phi = phiArray[iphi];
+	      sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+	      // integrate over pt and phi
+	      if (iphi<iphimax/2)
+		{
+		  sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * pt * 2.*PI/(phimax-phimin);
+		  sumnorm += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  //fprintf(stderr,"sumpt=%f \n", sumpt);
+		}
+	      else
+		{
+		  sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * pt * 2.*PI/(phimax-phimin);
+		  sumnorm += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  //fprintf(stderr,"sumpt=%f \n", sumpt);
+		}
+	    }
+	}
+      fprintf(stderr,"y=%f, sumpt=%f\n", y, sumpt/sumnorm);
+      fprintf(p_file,"%f %f\n", y, sumpt/sumnorm);
+    }
+  fclose(p_file);
+  util->char_free(numberString);
+}
+
+void Freeze::ComputeChargedHadrons(InitData* DATA, double ptmax)
+{
+  char *numberStringy;
+  char *numberString;
+  char *numberStringPhi;
+  char *numberStringv2;
+  char *numberStringv2eta;
+  char *numberStringv2tot;
+  char *numberStringv3;
+  char *numberStringv3r3;
+  char *numberStringv3eta;
+  char *numberStringv3tot;
+  char *numberStringv3r3eta;
+  char *numberStringv3r3tot;
+  char *numberStringv4;
+  char *numberStringv4eta;
+  char *numberStringv4tot;
+  char *numberStringeta;
+  char buf[5];
+  double *p, *w;		        // pointing to data for Gaussian integration in phi 
+  double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
+  int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
+  int i,j, iymaxIntegral;
+  double pt, phi, px, py, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[5], m, sumv3r3;
+  double phiOffs, phiDiff, ymaxIntegral, eta, deltaEta, etamax, mt, etaMaxIntegral;
+  int returnValue;
+  int number;
+  int setOfNumbers[6] = {211,-211,2212,-2212,321,-321};
+  int ip;
+  
+
+  // set some parameters
+
+  number = setOfNumbers[0]; //use pion to get settings
+
+  j = 1;
+  fprintf(stderr,"Doing charged hadrons\n");
+  phimax = particleList[j].phimax;
+  phimin = particleList[j].phimin;
+  
+  phiOffs = 0.5 * ( phimin + phimax );
+  phiDiff = 0.5 * ( phimax - phimin );
+  iphimax = particleList[j].nphi;
+  iptmax = particleList[j].npt;
+
+  if (iptmax != 15) 
+    {
+      fprintf(stderr,"only iptmax=15 possible. you picked %d. exiting.\n", iptmax);
+      exit(1);
+    }
+
+  ymax = particleList[j].ymax;
+  ymaxIntegral = 0.5-deltaY/2.;
+  etaMaxIntegral = 1.3; // for v2 integration
+  deltaY = particleList[j].deltaY;
+  iymax = particleList[j].ny;
+  iymaxIntegral = floor(2.*ymaxIntegral/deltaY);
+  iptmax = particleList[j].npt;
+  iphimax = particleList[j].nphi;
+
+
+  // set up file names
+  numberStringy = util->char_malloc(30);
+  numberString = util->char_malloc(30);
+  numberStringPhi = util->char_malloc(30);
+  numberStringeta = util->char_malloc(30);
+  numberStringv2 = util->char_malloc(30);
+  numberStringv3 = util->char_malloc(30);
+  numberStringv3r3 = util->char_malloc(30);
+  numberStringv4 = util->char_malloc(30);
+  numberStringv2eta = util->char_malloc(30);
+  numberStringv3eta = util->char_malloc(30);
+  numberStringv3r3eta = util->char_malloc(30);
+  numberStringv4eta = util->char_malloc(30);
+  numberStringv2tot = util->char_malloc(30);
+  numberStringv3tot = util->char_malloc(30);
+  numberStringv3r3tot = util->char_malloc(30);
+  numberStringv4tot = util->char_malloc(30);
+  
+  if( chdir("./outputs") != 0 )
+    {
+      fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
+      exit(1);
+    }
+  else returnValue=chdir("..");
+  
+  
+  strcat(numberString, "./outputs/FNpt-H+-");
+  strcat(numberString,".dat");
+  
+  strcat(numberStringPhi, "./outputs/FNphi-H+-");
+  strcat(numberStringPhi,".dat");
+  
+  strcat(numberStringy, "./outputs/FNy-H+-");
+  strcat(numberStringy,".dat");
+  
+  strcat(numberStringv2, "./outputs/Fv2pt-H+-");
+  strcat(numberStringv2,".dat");
+  
+  strcat(numberStringv3, "./outputs/Fv3pt-H+-");
+  strcat(numberStringv3,".dat");
+  
+  strcat(numberStringv3r3, "./outputs/Fv3r3pt-H+-");
+  strcat(numberStringv3r3,".dat");
+  
+  strcat(numberStringv4, "./outputs/Fv4pt-H+-");
+  strcat(numberStringv4,".dat");
+  
+  strcat(numberStringeta, "./outputs/FNeta-H+-");
+  strcat(numberStringeta,".dat");
+  
+  strcat(numberStringv2eta, "./outputs/Fv2eta-H+-");
+  strcat(numberStringv2eta,".dat");
+  
+  strcat(numberStringv3eta, "./outputs/Fv3eta-H+-");
+  strcat(numberStringv3eta,".dat");
+  
+  strcat(numberStringv3r3eta, "./outputs/Fv3r3eta-H+-");
+  strcat(numberStringv3r3eta,".dat");
+  
+  strcat(numberStringv4eta, "./outputs/Fv4eta-H+-");
+  strcat(numberStringv4eta,".dat");
+  
+  strcat(numberStringv2tot, "./outputs/Fv2tot-H+-");
+  strcat(numberStringv2tot,".dat");
+  
+  strcat(numberStringv3tot, "./outputs/Fv3tot-H+-");
+  strcat(numberStringv3tot,".dat");
+  
+  strcat(numberStringv3r3tot, "./outputs/Fv3r3tot-H+-");
+  strcat(numberStringv3r3tot,".dat");
+  
+  strcat(numberStringv4tot, "./outputs/Fv4tot-H+-");
+  strcat(numberStringv4tot,".dat");
+  
+  FILE *y_file;
+  char* y_name = numberStringy;
+  y_file = fopen(y_name, "w");
+  
+  FILE *eta_file;
+  char* eta_name = numberStringeta;
+  eta_file = fopen(eta_name, "w");
+  
+  FILE *v2_eta_file;
+  char* v2_eta_name = numberStringv2eta;
+  v2_eta_file = fopen(v2_eta_name, "w");
+
+  FILE *v3_eta_file;
+  char* v3_eta_name = numberStringv3eta;
+  v3_eta_file = fopen(v3_eta_name, "w");
+
+  FILE *v3r3_eta_file;
+  char* v3r3_eta_name = numberStringv3r3eta;
+  v3r3_eta_file = fopen(v3r3_eta_name, "w");
+
+  FILE *v4_eta_file;
+  char* v4_eta_name = numberStringv4eta;
+  v4_eta_file = fopen(v4_eta_name, "w");
+
+  FILE *v2_tot_file;
+  char* v2_tot_name = numberStringv2tot;
+  v2_tot_file = fopen(v2_tot_name, "w");
+
+  FILE *v3_tot_file;
+  char* v3_tot_name = numberStringv3tot;
+  v3_tot_file = fopen(v3_tot_name, "w");
+
+  FILE *v3r3_tot_file;
+  char* v3r3_tot_name = numberStringv3r3tot;
+  v3r3_tot_file = fopen(v3r3_tot_name, "w");
+
+  FILE *v4_tot_file;
+  char* v4_tot_name = numberStringv4tot;
+  v4_tot_file = fopen(v4_tot_name, "w");
+
+  FILE *p_file;
+  char* p_name = numberString;
+  p_file = fopen(p_name, "w");
+
+  FILE *phi_file;
+  char* phi_name = numberStringPhi;
+  phi_file = fopen(phi_name, "w");
+
+  FILE *v2_file;
+  char* v2_name = numberStringv2;
+  v2_file = fopen(v2_name, "w");
+
+  FILE *v3_file;
+  char* v3_name = numberStringv3;
+  v3_file = fopen(v3_name, "w");
+
+  FILE *v3r3_file;
+  char* v3r3_name = numberStringv3r3;
+  v3r3_file = fopen(v3r3_name, "w");
+
+  FILE *v4_file;
+  char* v4_name = numberStringv4;
+  v4_file = fopen(v4_name, "w");
+
+
+  slope = particleList[j].slope;
+  switch (iphimax) 
+    {
+    case 4: p= gaulep4; w= gaulew4; break;
+    case 8: p= gaulep8; w= gaulew8; break;
+    case 10: p= gaulep10; w= gaulew10; break;
+    case 12: p= gaulep12; w= gaulew12; break;
+    case 16: p= gaulep16; w= gaulew16; break;
+    case 20: p= gaulep20; w= gaulew20; break;
+    case 48: p= gaulep48; w= gaulew48; break;
+    default: fprintf(stderr,"specified number of phi-points not available\n"); exit(1);
+    }
+
+  for(iphi=0; iphi<iphimax; iphi++)
+    {
+      if ( iphi < iphimax/2 )
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.-p[iphi])+phimin;
+	}
+      else
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.+p[iphimax-iphi-1])+phimin;
+	}
+      //      cout << "phi[" << iphi << "]=" << phiArray[iphi] << ", " <<  phimax/2.*(1.-p[iphi]) << ", " 
+      //   << (phimax)/2.*(1.+p[iphimax-iphi-1]) << endl;
+    }
+
+  cout << "starting..." << endl;
+
+  double Psi3pSin = 0.;
+  double Psi3pCos = 0.;
+  double Psi3p;
+  double Psi2pSin = 0.;
+  double Psi2pCos = 0.;
+  double Psi2p;
+  for (iy=0; iy<iymax; iy++)
+    {
+      y =  particleList[j].y[iy];
+      //      fprintf(stderr,"y=%f \n", y);
+      sumpt=0.;
+      for (ip = 0; ip<6; ip++)
+	{
+	  j = partid[MHALF+setOfNumbers[ip]];
+	  //cout << j << " " << setOfNumbers[ip] << endl;
+	  for (ipt=0; ipt<iptmax; ipt++)
+	    {
+	      pt = particleList[j].pt[ipt];
+	      //fprintf(stderr,"pt=%f \n", pt);
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  phi = phiArray[iphi];
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+		  // integrate over pt and phi
+		  if (iphi<iphimax/2)
+		    {
+		      sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi3pSin += w[iphi] * ( sum*pt*sin(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi3pCos += w[iphi] * ( sum*pt*cos(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi2pSin += w[iphi] * ( sum*pt*sin(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi2pCos += w[iphi] * ( sum*pt*cos(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      //fprintf(stderr,"sumpt=%f \n", sumpt);
+		    }
+		  else
+		    {
+		      sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi3pSin += w[iphimax-iphi-1] * ( sum*pt*sin(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi3pCos += w[iphimax-iphi-1] * ( sum*pt*cos(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi2pSin += w[iphimax-iphi-1] * ( sum*pt*sin(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi2pCos += w[iphimax-iphi-1] * ( sum*pt*cos(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      //fprintf(stderr,"sumpt=%f \n", sumpt);
+		    }
+		}
+	    }
+	}
+      //      fprintf(stderr,"y=%f, sumpt=%f\n", y, sumpt/slope);
+      fprintf(y_file,"%f %f\n", y, sumpt/slope);
+    }
+  if (Psi2pCos<0.)
+    Psi2p = 1./2.*(atan(Psi2pSin/Psi2pCos)+PI);
+  else
+    Psi2p = 1./2.*(atan(Psi2pSin/Psi2pCos));
+  
+  if (Psi3pCos<0.) 
+    Psi3p = 1./3.*(atan(Psi3pSin/Psi3pCos)+PI);
+  else
+    Psi3p = 1./3.*(atan(Psi3pSin/Psi3pCos));
+  
+  cout << "Psi2p=" << Psi2p << endl; 
+  cout << "Psi2pSin=" << Psi2pSin << endl; 
+  cout << "Psi2pCos=" << Psi2pCos << endl; 
+  cout << "Psi3p=" << Psi3p << endl; 
+  cout << "Psi3pSin=" << Psi3pSin << endl; 
+  cout << "Psi3pCos=" << Psi3pCos << endl; 
+
+  //pt spectra
+  for (ipt=0; ipt<iptmax; ipt++)
+    {
+      sumpt = 0.;
+      int countY = 0;
+      pt = particleList[j].pt[ipt];
+      for (ip = 0; ip<6; ip++)
+	{
+	  j = partid[MHALF+setOfNumbers[ip]];
+	  for (iy=0; iy<iymax; iy++)
+	    {
+	      y = iy*deltaY-ymax;
+	      if (fabs(y)>ymaxIntegral) continue;
+	      countY++;
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  phi = phiArray[iphi];
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+		  if (iphi<iphimax/2)
+		    {
+		      if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+			{
+			  sumpt += 0.5 * w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+			}
+		      else
+			{
+			  sumpt += w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+			}
+		      //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+		    }
+		  else
+		    {
+		      if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+			{
+			  sumpt += 0.5 * w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      else
+			{
+			  sumpt += w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphimax-iphi-1], iphi, -p[iphimax-iphi-1]);
+		    }
+		}
+	    }
+	}
+      //fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+      fprintf(p_file,"%e %e \n", pt, sumpt / (2.*ymaxIntegral));
+      //fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt);
+    }
+  
+  cout << "pT done" << endl;
+
+
+//   // v2, v3 and v4
+//   for (ipt=0; ipt<iptmax; ipt++)
+//     {
+//       sumpt = 0.;
+//       sumv[2] = 0.;
+//       sumv[3] = 0.;
+//       sumv3r3 = 0.;
+//       sumv[4] = 0.;
+//       int countY = 0;
+//       for (j=1; j<=3; j++)
+// 	{
+// 	  pt = particleList[j].pt[ipt];
+// 	  ymaxIntegral = 0.5*log((sqrt(pt*pt*cosh(etaMaxIntegral)*cosh(etaMaxIntegral)+m*m)
+// 				  +pt*sinh(etaMaxIntegral))/(sqrt(pt*pt*cosh(etaMaxIntegral)*cosh(etaMaxIntegral)+m*m)-pt*sinh(etaMaxIntegral)));
+// 	  iymaxIntegral = floor(2.*ymaxIntegral/deltaY);
+// 	  for (iy=0; iy<iymax; iy++)
+// 	    {
+// 	      y = iy*deltaY-ymax;
+// 	      if (fabs(y)>ymaxIntegral) continue;
+// 	      countY++;
+// 	      for (iphi=0; iphi<iphimax; iphi++)
+// 		{
+// 		  phi = phiArray[iphi];
+// 		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+		  
+// 		  //       if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// // 		    {
+// // 		      sumpt += 0.5 * deltaPhi * ( sum ) * deltaY  * 2.*PI/(phimax-phimin);
+// // 		      sumv[2] += 0.5 * deltaPhi * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// // 		      sumv[3] += 0.5 * deltaPhi * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// // 		      sumv3r3 += 0.5 * deltaPhi * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * 2.*PI/(phimax-phimin);
+// // 		      sumv[4] += 0.5 * deltaPhi * ( sum*cos(4.*(phi-phimin)) ) * deltaY * 2.*PI/(phimax-phimin);
+// // 		    }
+// // 		  else
+// // 		    {
+// // 		      sumpt += deltaPhi * ( sum ) * deltaY * 2.*PI/(phimax-phimin);
+// // 		      sumv[2] += deltaPhi * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// // 		      sumv[3] += deltaPhi * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// // 		      sumv3r3 += deltaPhi * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * 2.*PI/(phimax-phimin);
+// // 		      sumv[4] += deltaPhi * ( sum*cos(4.*(phi-phimin)) ) * deltaY * 2.*PI/(phimax-phimin);
+// // 		    }
+		
+// 		  if (iphi<iphimax/2)
+// 		    {
+// 		      if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 			{
+// 			  sumpt += 0.5 * w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+// 			  sumv[2] += 0.5 * w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv[3] += 0.5 * w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv3r3 += 0.5 * w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv[4] += 0.5 * w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			}
+// 		      else
+// 			{
+// 			  sumpt += w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+// 			  sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			}
+// 		      //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+// 		    }
+// 		  else
+// 		    {
+// 		      if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 			{
+// 			  sumpt += 0.5 * w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv[2] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv[3] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv3r3 += 0.5 * w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv[4] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			}
+// 		      else
+// 			{
+// 			  sumpt += w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			  sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+// 			}
+// 		      //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphimax-iphi-1], iphi, -p[iphimax-iphi-1]);
+// 		    }
+// 		}
+// 	    }
+// 	}
+//       //fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+//       //fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt);
+//       fprintf(v2_file,"%e %e \n", pt, sumv[2]/sumpt);
+//       fprintf(v3_file,"%e %e \n", pt, sumv[3]/sumpt);
+//       fprintf(v3r3_file,"%e %e \n", pt, sumv3r3/sumpt);
+//       fprintf(v4_file,"%e %e \n", pt, sumv[4]/sumpt);
+//     }
+
+     
+  // v2, v3 and v4
+  for (ipt=0; ipt<iptmax; ipt++)
+    {
+      //cout << "pt=" << pt << endl;
+      sumpt = 0.;
+      sumv[2] = 0.;
+      sumv[4] = 0.;
+      sumv[3] = 0.;
+      sumv3r3 = 0.;
+      int countY = 0;
+      pt = particleList[j].pt[ipt];
+      //cout << "doing v2 v3 v4 at pT=" << pt << endl;
+      for (ip = 0; ip<6; ip++)
+	{
+	  j = partid[MHALF+setOfNumbers[ip]];
+	  m = particleList[j].mass;
+	  //cout << "particle=" << ip << endl;
+	  for (iy=0; iy<iymax; iy++)
+	    {
+	      y = iy*deltaY-ymax;
+	      ymaxIntegral = 0.5*log((sqrt(pt*pt*cosh(etaMaxIntegral)*cosh(etaMaxIntegral)+m*m)
+				      +pt*sinh(etaMaxIntegral))/(sqrt(pt*pt*cosh(etaMaxIntegral)*cosh(etaMaxIntegral)+m*m)-pt*sinh(etaMaxIntegral)));
+	      if (fabs(y)>ymaxIntegral) continue;
+	      countY++;
+	      //cout << "iy=" << iy << endl;
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  //cout << "iphi=" << iphi << endl;
+		  phi = phiArray[iphi];
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+		  if (iphi<iphimax/2)
+		    {
+		      if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+			{
+			  sumpt += 0.5 * w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+			  sumv[2] += 0.5 * w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[3] += 0.5 * w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv3r3 += 0.5 * w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[4] += 0.5 * w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      else
+			{
+			  sumpt += w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+			  sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+		    }
+		  else
+		    {
+		      if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+			{
+			  sumpt += 0.5 * w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[2] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[3] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv3r3 += 0.5 * w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[4] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      else
+			{
+			  sumpt += w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphimax-iphi-1], iphi, -p[iphimax-iphi-1]);
+		    }
+		}
+	    }
+	}
+      //cout << "ok" << endl;
+      //fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+      //fprintf(p_file,"%e %e \n", pt, sumpt / (2.*ymaxIntegral));
+      //fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt);
+      fprintf(v2_file,"%e %e \n", pt, sumv[2]/sumpt);
+      //cout << "v2file ok" << endl;
+      fprintf(v4_file,"%e %e \n", pt, sumv[4]/sumpt);
+      //cout << "v4file ok" << endl;
+      fprintf(v3_file,"%e %e \n", pt, sumv[3]/sumpt);
+      //cout << "v3file ok" << endl;
+      fprintf(v3r3_file,"%e %e \n", pt, sumv3r3/sumpt);
+      //cout << "v3r3file ok" << endl;
+    }
+
+  cout << "v2v3v4(pT) done" << endl;
+  
+//   //pseudorapidity2
+//   deltaEta=deltaY;
+//   etamax=ymax;
+//   ietamax=floor(2.*etamax/deltaEta);
+//   for (ieta=0; ieta<ietamax; ieta++)
+//     {
+//       eta = ieta*deltaEta-etamax+deltaEta/2.;
+//       sumpt=0.;
+//       sumv[2]=0.;
+//       sumv[3]=0.;
+//       sumv3r3=0.;
+//       sumv[4]=0.;
+//       for (j=1; j<=3; j++)
+// 	{
+// 	  for (ipt=0; ipt<iptmax; ipt++)
+// 	    {
+// 	      pt = particleList[j].pt[ipt];
+// 	      y = 0.5*log((sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)+pt*sinh(eta))/(sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)-pt*sinh(eta)));
+	      
+// 	      for(i=0; i<iymax-1; i++) // find closest iy
+// 		{
+// 		  if ( particleList[j].y[i]< y &&  particleList[j].y[i+1] > y )
+// 		    {
+// 		      if ( fabs(particleList[j].y[i]-y) <  fabs(particleList[j].y[i+1]-y)) 
+// 			iy = i;
+// 		      else
+// 			iy = i+1;
+// 		    }
+// 		}
+	      
+// 	      mt = sqrt(pt*pt+m*m);
+// 	      for (iphi=0; iphi<iphimax; iphi++)
+// 		{
+// 		  phi = phiArray[iphi];
+// 		  px = pt*cos(phi);
+// 		  py = pt*sin(phi);
+// 		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi]*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+// 		  if (iphi<iphimax/2)
+// 		    {
+// 		      sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+// 		      sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+// 		      sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+// 		      sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		    }
+// 		}
+// 	    }
+// 	}
+//       //   fprintf(stderr,"eta=%f, sumpt=%f\n", eta, sumpt/slope);
+//       fprintf(eta_file,"%f %f\n", eta, sumpt/slope);
+//       fprintf(v2_eta_file,"%f %f\n", eta, sumv[2]/sumpt);
+//       fprintf(v3_eta_file,"%f %f\n", eta, sumv[3]/sumpt);
+//       fprintf(v3r3_eta_file,"%f %f\n", eta, sumv3r3/sumpt);
+//       fprintf(v4_eta_file,"%f %f\n", eta, sumv[4]/sumpt);
+      
+//     }
+  
+  
+//   //total v2, v3 and v4
+//   deltaEta=deltaY;
+//   etamax=ymax;
+//   ietamax=floor(2.*etamax/deltaEta);
+//   double sumtotv2 =0.;
+//   double sumtotv3 =0.;
+//   double sumtotv3r3 =0.;
+//   double sumtotv4 =0.;
+//   int eta1=0;
+//   for (ieta=0; ieta<ietamax; ieta++)
+//     {
+//       eta = ieta*deltaEta-etamax+deltaEta/2.;
+//       if (fabs(eta)>1.5) continue; // experimental cut
+//       eta1+=1;
+//       sumpt=0.;
+//       sumv[2]=0.;
+//       sumv[3]=0.;
+//       sumv3r3=0.;
+//       sumv[4]=0.;
+//       for (j=1; j<=3; j++)
+// 	{
+// 	  for (ipt=0; ipt<iptmax; ipt++)
+// 	    {
+// 	      pt = particleList[j].pt[ipt];
+// 	      if (pt < 0.8 || pt > 4.) continue; // experimental cut 
+// 	      y = 0.5*log((sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)+pt*sinh(eta))/(sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)-pt*sinh(eta)));
+	      
+// 	      for(i=0; i<iymax-1; i++) // find closest iy
+// 		{
+// 		  if ( particleList[j].y[i]< y &&  particleList[j].y[i+1] > y )
+// 		    {
+// 		      if ( fabs(particleList[j].y[i]-y) <  fabs(particleList[j].y[i+1]-y)) 
+// 			iy = i;
+// 		      else
+// 			iy = i+1;
+// 		    }
+// 		}
+	      
+// 	      mt = sqrt(pt*pt+m*m);
+// 	      for (iphi=0; iphi<iphimax; iphi++)
+// 		{
+// 		  phi = phiArray[iphi];
+// 		  px = pt*cos(phi);
+// 		  py = pt*sin(phi);
+// 		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi]*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+// 		  if (iphi<iphimax/2)
+// 		    {
+// 		      sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+// 		      sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+// 		      sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+// 		      sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		    }
+// 		}
+// 	    }
+// 	}
+//       sumtotv2 += sumv[2]/sumpt * deltaEta;
+//       if (eta1 == 1)
+// 	sumtotv2 -= 0.5 * sumv[2]/sumpt * deltaEta;
+//       sumtotv3 += sumv[3]/sumpt * deltaEta;
+//       if (eta1 == 1)
+// 	sumtotv3 -= 0.5 * sumv[3]/sumpt * deltaEta;
+//       sumtotv3r3 += sumv3r3/sumpt * deltaEta;
+//       if (eta1 == 1)
+// 	sumtotv3r3 -= 0.5 * sumv3r3/sumpt * deltaEta;
+//       sumtotv4 += sumv[4]/sumpt * deltaEta;
+//       if (eta1 == 1)
+// 	sumtotv4 -= 0.5 * sumv[4]/sumpt * deltaEta;
+//     }
+//   sumtotv2 -= 0.5 * sumv[2]/sumpt * deltaEta;
+//   sumtotv3 -= 0.5 * sumv[3]/sumpt * deltaEta;
+//   sumtotv3r3 -= 0.5 * sumv3r3/sumpt * deltaEta;
+//   sumtotv4 -= 0.5 * sumv[4]/sumpt * deltaEta;
+  
+//   fprintf(v2_tot_file,"%f\n", sumtotv2);
+//   fprintf(v3_tot_file,"%f\n", sumtotv3);
+//   fprintf(v3r3_tot_file,"%f\n", sumtotv3r3);
+//   fprintf(v4_tot_file,"%f\n", sumtotv4);
+   
+  
+  //pseudorapidity
+  deltaEta=deltaY;
+  etamax=ymax;
+  ietamax=floor(2.*etamax/deltaEta);
+  for (ieta=0; ieta<ietamax; ieta++)
+    {
+      eta = ieta*deltaEta-etamax+deltaEta/2.;
+      sumpt=0.;
+      sumv[2]=0.;
+      sumv[3]=0.;
+      sumv3r3=0.;
+      sumv[4]=0.;
+      for (ip = 0; ip<6; ip++)
+	{
+	  j = partid[MHALF+setOfNumbers[ip]];
+	  m = particleList[j].mass;
+	  for (ipt=0; ipt<iptmax; ipt++)
+	    {
+	      pt = particleList[j].pt[ipt];
+	      y = 0.5*log((sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)+pt*sinh(eta))/(sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)-pt*sinh(eta)));
+	      
+	      for(i=0; i<iymax-1; i++) // find closest iy
+		{
+		  if ( particleList[j].y[i]< y &&  particleList[j].y[i+1] > y )
+		    {
+		      if ( fabs(particleList[j].y[i]-y) <  fabs(particleList[j].y[i+1]-y)) 
+			iy = i;
+		      else
+			iy = i+1;
+		    }
+		}
+	      
+	      mt = sqrt(pt*pt+m*m);
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  phi = phiArray[iphi];
+		  px = pt*cos(phi);
+		  py = pt*sin(phi);
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi]*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+		  if (iphi<iphimax/2)
+		    {
+		      sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		    }
+		  else
+		    {
+		      sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		    }
+		}
+	    }
+	}	
+      //   fprintf(stderr,"eta=%f, sumpt=%f\n", eta, sumpt/slope);
+      fprintf(eta_file,"%f %f\n", eta, sumpt/slope);
+      fprintf(v2_eta_file,"%f %f\n", eta, sumv[2]/sumpt);
+      fprintf(v3_eta_file,"%f %f\n", eta, sumv[3]/sumpt);
+      fprintf(v3r3_eta_file,"%f %f\n", eta, sumv3r3/sumpt);
+      fprintf(v4_eta_file,"%f %f\n", eta, sumv[4]/sumpt);
+    }
+
+  cout << "pseudo-rapidity done" << endl;
+
+
+//   //angle
+// //   ipt = floor((double)(iptmax)/2.);
+// //   iy = floor((double)(iymax)/2.);
+// //   pt = particleList[j].pt[ipt];
+// //   j = partid[MHALF+setOfNumbers[ip]];
+// //   y = iy*deltaY-ymax;
+// //   for (iphi=0; iphi<iphimax; iphi++)
+// //     {
+// //       phi = phiArray[iphi];
+// //       sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+// //       //fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+// //       fprintf(a_file,"%e %e %e %e \n", pt, y, phi, sum );
+// //       //fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt);
+// //     }
+
+
+  //total v2 and v4
+  deltaEta=deltaY;
+  etamax=ymax;
+  ietamax=floor(2.*etamax/deltaEta);
+  double sumtotv2 =0.;
+  double sumtotv4 =0.;
+  double sumtotv3 =0.;
+  double sumtotv3r3 =0.;
+  int eta1=0;
+  for (ip = 0; ip<6; ip++)
+    {
+      j = partid[MHALF+setOfNumbers[ip]];
+      m = particleList[j].mass;
+      for (ieta=0; ieta<ietamax; ieta++)
+	{
+	  eta = ieta*deltaEta-etamax+deltaEta/2.;
+	  if (fabs(eta)>1.5) continue; // experimental cut
+	  eta1+=1;
+	  sumpt=0.;
+	  sumv[2]=0.;
+	  sumv[4]=0.;
+	  for (ipt=0; ipt<iptmax; ipt++)
+	    {
+	      pt = particleList[j].pt[ipt];
+	      if (pt < 0.8 || pt > 4.) continue; // experimental cut 
+	      y = 0.5*log((sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)+pt*sinh(eta))/(sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)-pt*sinh(eta)));
+	      
+	      for(i=0; i<iymax-1; i++) // find closest iy
+		{
+		  if ( particleList[j].y[i]< y &&  particleList[j].y[i+1] > y )
+		    {
+		      if ( fabs(particleList[j].y[i]-y) <  fabs(particleList[j].y[i+1]-y)) 
+			iy = i;
+		      else
+			iy = i+1;
+		    }
+		}
+	      
+	      mt = sqrt(pt*pt+m*m);
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  phi = phiArray[iphi];
+		  px = pt*cos(phi);
+		  py = pt*sin(phi);
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi]*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+		  if (iphi<iphimax/2)
+		    {
+		      sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		    }
+		  else
+		    {
+		      sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		    }
+		}
+	    }
+ 
+	  sumtotv2 += sumv[2]/sumpt * deltaEta;
+	  if (eta1 == 1)
+	    sumtotv2 -= 0.5 * sumv[2]/sumpt * deltaEta;
+	  sumtotv4 += sumv[4]/sumpt * deltaEta;
+	  if (eta1 == 1)
+	    sumtotv4 -= 0.5 * sumv[4]/sumpt * deltaEta;
+	}
+      sumtotv2 += sumv[2]/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv2 -= 0.5 * sumv[2]/sumpt * deltaEta;
+      sumtotv3 += sumv[3]/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv3 -= 0.5 * sumv[3]/sumpt * deltaEta;
+      sumtotv3r3 += sumv3r3/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv3r3 -= 0.5 * sumv3r3/sumpt * deltaEta;
+      sumtotv4 += sumv[4]/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv4 -= 0.5 * sumv[4]/sumpt * deltaEta;
+    }
+  sumtotv2 -= 0.5 * sumv[2]/sumpt * deltaEta;
+  sumtotv3 -= 0.5 * sumv[3]/sumpt * deltaEta;
+  sumtotv3r3 -= 0.5 * sumv3r3/sumpt * deltaEta;
+  sumtotv4 -= 0.5 * sumv[4]/sumpt * deltaEta;
+  
+  fprintf(v2_tot_file,"%f\n", sumtotv2);
+  fprintf(v3_tot_file,"%f\n", sumtotv3);
+  fprintf(v3r3_tot_file,"%f\n", sumtotv3r3);
+  fprintf(v4_tot_file,"%f\n", sumtotv4);
+    
+  fprintf(stderr,"done.\n");
+  cout << "done" << endl;
+   
+  fclose(p_file);
+  fclose(v2_eta_file);
+  fclose(v4_eta_file);
+  fclose(v2_tot_file);
+  fclose(v3_tot_file);
+  fclose(v4_tot_file);
+  fclose(eta_file);
+  fclose(y_file);
+  fclose(v2_file);
+  fclose(v3_file);
+  fclose(v3r3_file);
+  fclose(v4_file);
+}
+
+//compute pair yield and yield as functions of phi1 and delta phi
+void Freeze::ComputeCorrelations(InitData* DATA, double ptmax)
+{
+  char *numberString;
+  char buf[5];
+  double *p, *w;		        // pointing to data for Gaussian integration in phi 
+  double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
+  int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
+  int i,j, iymaxIntegral;
+  double pt, phi, px, py, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[5], m, sumv3r3;
+  double phiOffs, phiDiff, ymaxIntegral, eta, deltaEta, etamax, mt, etaMaxIntegral;
+  int returnValue;
+  int number;
+  int setOfNumbers[6] = {211,-211,2212,-2212,321,-321}; //these are the charged hadrons to include 
+  int ip;
+  
+  // set some parameters
+
+  number = setOfNumbers[0]; //use pion to get settings
+
+  j = 1;
+  fprintf(stderr,"Doing correlations\n");
+  phimax = particleList[j].phimax;
+  phimin = particleList[j].phimin;
+  
+  phiOffs = 0.5 * ( phimin + phimax );
+  phiDiff = 0.5 * ( phimax - phimin );
+  iphimax = particleList[j].nphi;
+  iptmax = particleList[j].npt;
+
+  if (iptmax != 15) 
+    {
+      fprintf(stderr,"only iptmax=15 possible. you picked %d. exiting.\n", iptmax);
+      exit(1);
+    }
+
+  ymax = particleList[j].ymax;
+  ymaxIntegral = 0.5-deltaY/2.;
+  etaMaxIntegral = 1.3; // for v2 integration
+  deltaY = particleList[j].deltaY;
+  iymax = particleList[j].ny;
+  iymaxIntegral = floor(2.*ymaxIntegral/deltaY);
+  iptmax = particleList[j].npt;
+  iphimax = particleList[j].nphi;
+
+
+  // set up file names
+  numberString = util->char_malloc(30);
+  
+  if( chdir("./outputs") != 0 )
+    {
+      fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
+      exit(1);
+    }
+  else returnValue=chdir("..");
+  
+  
+  strcat(numberString, "./outputs/correlation");
+  strcat(numberString,".dat");
+  
+  
+  FILE *p_file;
+  char* p_name = numberString;
+  p_file = fopen(p_name, "w");
+
+  slope = particleList[j].slope;
+  switch (iphimax) 
+    {
+    case 4: p= gaulep4; w= gaulew4; break;
+    case 8: p= gaulep8; w= gaulew8; break;
+    case 10: p= gaulep10; w= gaulew10; break;
+    case 12: p= gaulep12; w= gaulew12; break;
+    case 16: p= gaulep16; w= gaulew16; break;
+    case 20: p= gaulep20; w= gaulew20; break;
+    case 48: p= gaulep48; w= gaulew48; break;
+    default: fprintf(stderr,"specified number of phi-points not available\n"); exit(1);
+    }
+
+  phiArray = util->vector_malloc(iphimax+1);
+  for(iphi=0; iphi<iphimax; iphi++)
+    {
+      if ( iphi < iphimax/2 )
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.-p[iphi])+phimin;
+	}
+      else
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.+p[iphimax-iphi-1])+phimin;
+	}
+      //      cout << "phi[" << iphi << "]=" << phiArray[iphi] << ", " <<  phimax/2.*(1.-p[iphi]) << ", " 
+      //   << (phimax)/2.*(1.+p[iphimax-iphi-1]) << endl;
+    }
+
+  cout << "starting..." << endl;
+
+  double Psi3pSin = 0.;
+  double Psi3pCos = 0.;
+  double Psi3p;
+  double Psi2pSin = 0.;
+  double Psi2pCos = 0.;
+  double Psi2p;
+
+  //compute N for normalization - taking all pt here (put in cuts later)
+  sumpt=0.;
+  for (ip = 0; ip<6; ip++)
+    {
+      j = partid[MHALF+setOfNumbers[ip]];
+      cout << j << " " << setOfNumbers[ip] << endl;
+      for (iy = 0; iy<iymax; iy++)
+	{
+	  y =  particleList[j].y[iy];
+	  //  fprintf(stderr,"iy=%d, iymax=%d,  y=%f \n",iy, iymax, y);
+	  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	  for (ipt=12; ipt<iptmax; ipt++) // put cuts right
+	    {
+	      pt = particleList[j].pt[ipt];
+	      //fprintf(stderr,"pt=%f \n", pt);
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  phi = phiArray[iphi];
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+		  // integrate over pt, y, and phi
+		  if(iy==0 || iy==iymax) // trapezoid, 0.5 at edge
+		    {
+		      if (iphi<iphimax/2)
+			{
+			  sumpt += 0.5*w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin) *deltaY;
+			}
+		      else
+			{
+			  sumpt += 0.5*w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin)*deltaY;
+			}
+		    }
+		  else
+		    {
+		      if (iphi<iphimax/2)
+			{
+			  sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin) *deltaY;
+			}
+		      else
+			{
+			  sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin)*deltaY;
+			}
+		    }
+		}
+	    }
+	}
+    }
+
+  double N = sumpt;
+  
+  cout << "N=" << N << endl;
+  
+  
+  // next put in interpolation in phi and y to get same distances in phi and eta
+  
+  // outer loop deltaEta and deltaPhi (eta-eta2 and phi-phi2)
+  // average over phi, eta
+  // 1/(N*(N-1))*dN/dPhi dEta*dN/d(Phi-DeltaPhi)d(Eta-DeltaEta) = a
+  // and 1/N*dN/dPhi dEta = b and 1/N*dN/d(phi-DeltaPhi)d(Eta-DeltaEta) = c
+  // in the end average the three quantities over events
+  // finally C=<a>-<b><c>
+
+  double sum1, sum1Up, sum1Down, sum1PhiUp, sum1PhiDown;
+  double sum2, sum2Up, sum2Down, sum2PhiUp, sum2PhiDown;
+  double sum3, sum3Up, sum3Down, sum3PhiUp, sum3PhiDown;
+  double sum4, sum4Up, sum4Down, sum4PhiUp, sum4PhiDown;
+  
+  // deltaEta=deltaY;
+  etamax=4.;
+  ietamax=20;
+  cout << "ietamax=" << ietamax << endl;
+  int ideltaeta, ideltaphi, iy2, iphi1, iphi2, pointsForDeltaEta, pointsForDeltaPhi;
+  //double deltaEta, deltaPhi;
+  double suma, sumb, sumc, y2, phi1, phi2, sum1Average, sum4Average, sum1sum4Average;
+
+  for (ideltaeta=0; ideltaeta<61; ideltaeta++)
+    {
+      deltaEta = -4. + 0.4*ideltaeta; 
+      cout << "deltaeta=" << deltaEta << endl;
+      for (ideltaphi=0; ideltaphi<61; ideltaphi++)
+	{
+	  pointsForDeltaEta=0;
+	  pointsForDeltaPhi=0;
+	  deltaPhi = -1.5 + 0.1*ideltaphi;
+	  cout << "deltaphi=" << deltaPhi << endl;
+	  sum1Average=0.;
+	  sum4Average=0.;
+	  sum1sum4Average=0.;
+	  for (ieta=0; ieta<ietamax; ieta++)
+	    {
+	      eta = -etamax+0.1*ieta;
+	      if (eta-deltaEta<-etamax) continue;
+	      if (eta-deltaEta>etamax) continue;
+	      pointsForDeltaEta++;
+	      for (ip = 0; ip<6; ip++)
+		{
+		  j = partid[MHALF+setOfNumbers[ip]];
+		  m = particleList[j].mass;
+		  //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		  for (ipt=12; ipt<iptmax; ipt++) // put cuts right
+		    {
+		      pt = particleList[j].pt[ipt];
+		      //cout << "pt=" << pt << endl;
+		      y = 0.5*log((sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)+pt*sinh(eta))
+				  /(sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)-pt*sinh(eta)));
+		      
+		      y2 = 0.5*log((sqrt(pt*pt*cosh(eta-deltaEta)*cosh(eta-deltaEta)+m*m)
+				    +pt*sinh(eta-deltaEta))
+				  /(sqrt(pt*pt*cosh(eta-deltaEta)*cosh(eta-deltaEta)+m*m)
+				    -pt*sinh(eta-deltaEta)));
+		      
+		      // cout << "y=" << y << ", eta=" << eta << ",pt=" << pt << endl;
+		      // cout << "y2=" << y2 << ", eta-deltaEta=" 
+		      //    << eta-deltaEta << ", pt=" << pt << endl;
+		      
+		      
+		      int ok=0;
+		      for(i=0; i<iymax-2; i++) // for interpolation in y
+			{
+			  //			  cout << particleList[j].y[i] << endl;
+			  if ( particleList[j].y[i]<= y &&  particleList[j].y[i+1] > y )
+			    {
+			      iy = i;
+			      ok+=1;
+			      //cout << "iy=" << iy << endl;
+			    }
+			}
+		      if (ok==0)
+			{
+			  cout << "no iy found for y=" << y << endl; 
+			  exit(1);
+			}
+		      ok=0;
+		      for(i=0; i<iymax-2; i++) // for interpolation in y
+			{
+			  if ( particleList[j].y[i]<= y2 &&  particleList[j].y[i+1] > y2 )
+			    {
+			      iy2 = i;
+			      ok+=1;
+			      //cout << "iy2=" << iy2 << endl;
+			    }
+			}
+		      if (ok==0) 
+			{
+			  cout << "no iy2 found for y2=" << y2 << endl; 
+			  exit(1);
+			}
+
+		      mt = sqrt(pt*pt+m*m);
+		      for (iphi=0; iphi<60; iphi++)
+			{
+			  phi = iphi*0.1047;
+			  phi2 = iphi*0.1047-deltaPhi;
+			  
+			  if (phi2<0) // go in a circle
+			    phi2+=2.*M_PI;
+			  if (phi2>2*M_PI) // go in a circle
+			    phi2-=2.*M_PI;
+			  pointsForDeltaPhi++;
+  
+			  // cout << "phi=" << phi << endl;
+			  //cout << "phi2=" << phi2 << endl;
+                          //cout << "phimax=" << phiArray[iphimax-1] << endl;
+		          //cout << "phimin=" << phiArray[0] << endl;
+			  
+			  ok=0;
+			  for(i=0; i<iphimax-1; i++) // for interpolation in phi
+			    {
+			      if ( phiArray[i] <= phi 
+				   &&  (phiArray[i+1] > phi || i+1 == iphimax-1))
+				{
+				  iphi1 = i;
+				  ok+=1;
+				}
+			    }
+			  if (ok==0 && (phi>phiArray[0]&&phi<phiArray[iphimax-1]))
+			    {
+			      cout << "no iphi found for phi=" << phi << endl; 
+			      //cout << "phimax=" << phimax << endl; 
+			      exit(1);
+			    }
+			  else if(phi<phiArray[0])
+			    iphi1=0;
+			  else if(phi>phiArray[iphimax-1])
+			    {
+			      iphi1=iphimax-1;
+			      phiArray[iphimax]=phiArray[0];
+			    }
+			  ok=0;
+			  for(i=0; i<iphimax-1; i++) // for interpolation in phi
+			    {
+			      if ( phiArray[i]<= phi2 
+				   && (phiArray[i+1] > phi2 || i+1 == iphimax-1))
+				{
+				  iphi2 = i;
+				  ok++;
+				}
+			    }
+			  if (ok==0 && (phi2>phiArray[0]&&phi2<phiArray[iphimax-1]))
+			    {
+			      cout << "no iphi2 found for phi2=" << phi2 << endl; 
+			      exit(1);
+			    }
+			  else if(phi2<phiArray[iphimax-1])
+			    iphi2 = 0;
+			  else if(phi2>phiArray[iphimax-1])
+			    {
+			      iphi2=iphimax-1;
+			      phiArray[iphimax]=phiArray[0];
+			    }
+		
+			  //cout << "iphimax=" << iphimax << endl;
+			  //cout << "iphi=" << iphi1 << endl;
+			  //cout << "iphi2=" << iphi2 << endl;
+			  //phiArray[iphi];
+			  
+			  //px = pt*cos(phi);
+			  //py = pt*sin(phi);
+	
+
+			  // check interpolation for phi<phiArray[0]
+			  
+			  if (phi>=phiArray[0])
+			    {
+			      //sum1: this is at eta1, phi1
+			      sum1Down = particleList[j].dNdydptdphi[iy][ipt][iphi1]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+			      sum1Up = particleList[j].dNdydptdphi[iy+1][ipt][iphi1]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+			      sum1PhiDown = sum1Down*(1-(y-particleList[j].y[iy]))
+				+sum1Up*(y-particleList[j].y[iy]);
+			      
+			      sum1Down = particleList[j].dNdydptdphi[iy][ipt][iphi1+1]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+			      sum1Up = particleList[j].dNdydptdphi[iy+1][ipt][iphi1+1]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+			      sum1PhiUp = sum1Down*(1-(y-particleList[j].y[iy]))
+				+sum1Up*(y-particleList[j].y[iy]);
+			      
+			      sum1 = sum1PhiDown*(1-(phi-phiArray[iphi1]))
+				+sum1PhiUp*(phi-phiArray[iphi1]);
+			      
+			      //cout << sum1 << endl;
+			    }
+			  else
+			    {
+			      sum1Down = particleList[j].dNdydptdphi[iy][ipt][0]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+			      sum1Up = particleList[j].dNdydptdphi[iy+1][ipt][0]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+			      sum1 = sum1Down*(1-(y-particleList[j].y[iy]))
+				+sum1Up*(y-particleList[j].y[iy]);
+			    }
+
+			  //sum4: this is at eta1-deltaEta, phi1-deltaEta
+			  //cout << particleList[j].dNdydptdphi[iy2][ipt][iphi2] << endl;
+			  //cout << iy2 << " " << ipt << " " << iphi2 << " " << phi2 << endl;
+			  if(phi2>=phiArray[0])
+			    {
+			      sum4Down = particleList[j].dNdydptdphi[iy2][ipt][iphi2]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y2)*cosh(y2)));
+			      sum4Up = particleList[j].dNdydptdphi[iy2+1][ipt][iphi2]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y2)*cosh(y2)));
+			      sum4PhiDown = sum4Down*(1-(y2-particleList[j].y[iy2]))
+				+sum4Up*(y2-particleList[j].y[iy2]);
+			      
+			      sum4Down = particleList[j].dNdydptdphi[iy2][ipt][iphi2+1]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y2)*cosh(y2)));
+			      sum4Up = particleList[j].dNdydptdphi[iy2+1][ipt][iphi2+1]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y2)*cosh(y2)));
+			      sum4PhiUp = sum4Down*(1-(y2-particleList[j].y[iy2]))
+				+sum4Up*(y2-particleList[j].y[iy2]);
+			      
+			      sum4 = sum4PhiDown*(1-(phi2-phiArray[iphi2]))
+				+sum4PhiUp*(phi2-phiArray[iphi2]);
+			      
+			      //cout << sum4 << endl;
+			    }
+			  else
+			    {
+			      sum4Down = particleList[j].dNdydptdphi[iy2][ipt][0]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y2)*cosh(y2)));
+			      sum4Up = particleList[j].dNdydptdphi[iy2+1][ipt][0]
+				*sqrt(1.-(m*m)/(mt*mt*cosh(y2)*cosh(y2)));
+			      sum4 = sum4Down*(1-(y2-particleList[j].y[iy2]))
+				+sum4Up*(y2-particleList[j].y[iy2]);
+			    }
+
+//      cout << "sum=" << sum << ", sum1=" << sum1 << ", sumUp=" << sumUp << endl;
+			  
+			  // here integrate over pT and average over phi1 and eta1   
+			  //0.1047 is step in phi
+			  //0.1 is step in eta
+			  
+			  // cout << "sum1=" << sum1 << endl;
+			  //cout << "sum4=" << sum4 << endl;
+
+			  if ( iphi == 0 || iphi == 60 )
+			    {
+			      if ( ieta == 0 || ieta == ietamax-1 )
+				{
+				  sum1Average+=0.5*0.5*(0.1047 * ( sum1 ) 
+							* gala15w[ipt] * pt * 0.1);
+				  sum4Average+=0.5*0.5*(0.1047 * ( sum4 ) 
+							* gala15w[ipt] * pt * 0.1);
+				  sum1sum4Average+=0.5*0.5*(0.1047 * ( sum1*sum4 ) 
+							    * gala15w[ipt] * pt * 0.1);
+				}
+			      else
+				{
+				  sum1Average+=0.5*(0.1047 * ( sum1 ) 
+						    * gala15w[ipt] * pt * 0.1);
+				  sum4Average+=0.5*(0.1047 * ( sum4 ) 
+							* gala15w[ipt] * pt * 0.1);
+				  sum1sum4Average+=0.5*(0.1047 * ( sum1*sum4 ) 
+							    * gala15w[ipt] * pt * 0.1);
+				}
+			    }
+			  else if ( ieta == 0 || ieta == ietamax-1 )
+				 {
+				   sum1Average += 0.5*0.1047 * ( sum1 ) * gala15w[ipt] * pt * 0.1;
+				   sum4Average+=0.5*(0.1047 * ( sum4 ) 
+							 * gala15w[ipt] * pt * 0.1);
+				   sum1sum4Average+=0.5*(0.1047 * ( sum1*sum4 ) 
+							     * gala15w[ipt] * pt * 0.1);
+				 }
+			  else
+			    {
+			      sum1Average += 0.1047 * ( sum1 ) * gala15w[ipt] * pt * 0.1;
+			      sum4Average +=(0.1047 * ( sum4 ) * gala15w[ipt] * pt * 0.1);
+			      sum1sum4Average+=(0.1047 * ( sum1*sum4 ) 
+						* gala15w[ipt] * pt * 0.1);
+			    }
+			}
+		    }
+		}
+	    }
+
+	  //sum1Average/=pointsForDeltaPhi; //average
+	  //sum4Average/=pointsForDeltaPhi; //average
+	  //sum1sum4Average/=pointsForDeltaPhi; //average
+	
+	  //sum1Average/=pointsForDeltaEta; //average
+	  //sum4Average/=pointsForDeltaEta; //average
+	  //sum1sum4Average/=pointsForDeltaEta; //average
+	  
+	  sum1Average/=N;
+	  sum4Average/=N;
+	  sum1sum4Average/=(N*(N-1));
+
+	  cout << pointsForDeltaEta << endl;
+	  cout << (sum1sum4Average - sum1Average*sum4Average)/pointsForDeltaPhi << endl;
+	  cout << sum1sum4Average << " " << sum1Average << " " << sum4Average << endl;
+	  
+	  fprintf(p_file, "%f %f %e %e %e\n", deltaEta, deltaPhi, sum1Average/pointsForDeltaPhi/pointsForDeltaEta, sum4Average/pointsForDeltaPhi/pointsForDeltaEta, 
+		  sum1sum4Average/pointsForDeltaPhi/pointsForDeltaEta);
+	}
+      fprintf(p_file,"\n");
+    }
+  // normalization with Ns here
+  fclose(p_file);
+}
+
+
+
+void Freeze::Compute3ChargedHadrons(InitData* DATA,double ptmax)
+{
+  char *numberStringy;
+  char *numberString;
+  char *numberStringPhi;
+  char *numberStringv2;
+  char *numberStringv2eta;
+  char *numberStringv2tot;
+  char *numberStringv3;
+  char *numberStringv3r3;
+  char *numberStringv3eta;
+  char *numberStringv3tot;
+  char *numberStringv3r3eta;
+  char *numberStringv3r3tot;
+  char *numberStringv4;
+  char *numberStringv4eta;
+  char *numberStringv4tot;
+  char *numberStringeta;
+  char buf[5];
+  double *p, *w;		        // pointing to data for Gaussian integration in phi 
+  double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
+  int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
+  int i,j, iymaxIntegral;
+  double pt, phi, px, py, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[5], m, sumv3r3;
+  double phiOffs, phiDiff, ymaxIntegral, eta, deltaEta, etamax, mt, etaMaxIntegral;
+  int returnValue;
+  int number;
+  int setOfNumbers[6] = {211,-211,2212,-2212,321,-321};
+  int ip;
+  
+
+  // set some parameters
+
+  number = setOfNumbers[0]; //use pion to get settings
+
+  j = 1;
+  fprintf(stderr,"Doing charged hadrons\n");
+  phimax = particleList[j].phimax;
+  phimin = particleList[j].phimin;
+  
+  phiOffs = 0.5 * ( phimin + phimax );
+  phiDiff = 0.5 * ( phimax - phimin );
+  iphimax = particleList[j].nphi;
+  iptmax = particleList[j].npt;
+
+  if (iptmax != 15) 
+    {
+      fprintf(stderr,"only iptmax=15 possible. you picked %d. exiting.\n", iptmax);
+      exit(1);
+    }
+
+  ymax = particleList[j].ymax;
+  ymaxIntegral = 0.5-deltaY/2.;
+  etaMaxIntegral = 1.3; // for v2 integration
+  deltaY = particleList[j].deltaY;
+  iymax = particleList[j].ny;
+  iymaxIntegral = floor(2.*ymaxIntegral/deltaY);
+  iptmax = particleList[j].npt;
+  iphimax = particleList[j].nphi;
+
+
+  // set up file names
+  numberStringy = util->char_malloc(30);
+  numberString = util->char_malloc(30);
+  numberStringPhi = util->char_malloc(30);
+  numberStringeta = util->char_malloc(30);
+  numberStringv2 = util->char_malloc(30);
+  numberStringv3 = util->char_malloc(30);
+  numberStringv3r3 = util->char_malloc(30);
+  numberStringv4 = util->char_malloc(30);
+  numberStringv2eta = util->char_malloc(30);
+  numberStringv3eta = util->char_malloc(30);
+  numberStringv3r3eta = util->char_malloc(30);
+  numberStringv4eta = util->char_malloc(30);
+  numberStringv2tot = util->char_malloc(30);
+  numberStringv3tot = util->char_malloc(30);
+  numberStringv3r3tot = util->char_malloc(30);
+  numberStringv4tot = util->char_malloc(30);
+  
+  if( chdir("./outputs") != 0 )
+    {
+      fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
+      exit(1);
+    }
+  else returnValue=chdir("..");
+  
+  
+  strcat(numberString, "./outputs/Npt-H+-");
+  strcat(numberString,".dat");
+  
+  strcat(numberStringPhi, "./outputs/Nphi-H+-");
+  strcat(numberStringPhi,".dat");
+  
+  strcat(numberStringy, "./outputs/Ny-H+-");
+  strcat(numberStringy,".dat");
+  
+  strcat(numberStringv2, "./outputs/v2pt-H+-");
+  strcat(numberStringv2,".dat");
+  
+  strcat(numberStringv3, "./outputs/v3pt-H+-");
+  strcat(numberStringv3,".dat");
+  
+  strcat(numberStringv3r3, "./outputs/v3r3pt-H+-");
+  strcat(numberStringv3r3,".dat");
+  
+  strcat(numberStringv4, "./outputs/v4pt-H+-");
+  strcat(numberStringv4,".dat");
+  
+  strcat(numberStringeta, "./outputs/Neta-H+-");
+  strcat(numberStringeta,".dat");
+  
+  strcat(numberStringv2eta, "./outputs/v2eta-H+-");
+  strcat(numberStringv2eta,".dat");
+  
+  strcat(numberStringv3eta, "./outputs/v3eta-H+-");
+  strcat(numberStringv3eta,".dat");
+  
+  strcat(numberStringv3r3eta, "./outputs/v3r3eta-H+-");
+  strcat(numberStringv3r3eta,".dat");
+  
+  strcat(numberStringv4eta, "./outputs/v4eta-H+-");
+  strcat(numberStringv4eta,".dat");
+  
+  strcat(numberStringv2tot, "./outputs/v2tot-H+-");
+  strcat(numberStringv2tot,".dat");
+  
+  strcat(numberStringv3tot, "./outputs/v3tot-H+-");
+  strcat(numberStringv3tot,".dat");
+  
+  strcat(numberStringv3r3tot, "./outputs/v3r3tot-H+-");
+  strcat(numberStringv3r3tot,".dat");
+  
+  strcat(numberStringv4tot, "./outputs/v4tot-H+-");
+  strcat(numberStringv4tot,".dat");
+  
+  FILE *y_file;
+  char* y_name = numberStringy;
+  y_file = fopen(y_name, "w");
+  
+  FILE *eta_file;
+  char* eta_name = numberStringeta;
+  eta_file = fopen(eta_name, "w");
+  
+  FILE *v2_eta_file;
+  char* v2_eta_name = numberStringv2eta;
+  v2_eta_file = fopen(v2_eta_name, "w");
+
+  FILE *v3_eta_file;
+  char* v3_eta_name = numberStringv3eta;
+  v3_eta_file = fopen(v3_eta_name, "w");
+
+  FILE *v3r3_eta_file;
+  char* v3r3_eta_name = numberStringv3r3eta;
+  v3r3_eta_file = fopen(v3r3_eta_name, "w");
+
+  FILE *v4_eta_file;
+  char* v4_eta_name = numberStringv4eta;
+  v4_eta_file = fopen(v4_eta_name, "w");
+
+  FILE *v2_tot_file;
+  char* v2_tot_name = numberStringv2tot;
+  v2_tot_file = fopen(v2_tot_name, "w");
+
+  FILE *v3_tot_file;
+  char* v3_tot_name = numberStringv3tot;
+  v3_tot_file = fopen(v3_tot_name, "w");
+
+  FILE *v3r3_tot_file;
+  char* v3r3_tot_name = numberStringv3r3tot;
+  v3r3_tot_file = fopen(v3r3_tot_name, "w");
+
+  FILE *v4_tot_file;
+  char* v4_tot_name = numberStringv4tot;
+  v4_tot_file = fopen(v4_tot_name, "w");
+
+  FILE *p_file;
+  char* p_name = numberString;
+  p_file = fopen(p_name, "w");
+
+  FILE *phi_file;
+  char* phi_name = numberStringPhi;
+  phi_file = fopen(phi_name, "w");
+
+  FILE *v2_file;
+  char* v2_name = numberStringv2;
+  v2_file = fopen(v2_name, "w");
+
+  FILE *v3_file;
+  char* v3_name = numberStringv3;
+  v3_file = fopen(v3_name, "w");
+
+  FILE *v3r3_file;
+  char* v3r3_name = numberStringv3r3;
+  v3r3_file = fopen(v3r3_name, "w");
+
+  FILE *v4_file;
+  char* v4_name = numberStringv4;
+  v4_file = fopen(v4_name, "w");
+
+  slope = particleList[j].slope;
+  switch (iphimax) 
+    {
+    case 4: p= gaulep4; w= gaulew4; break;
+    case 8: p= gaulep8; w= gaulew8; break;
+    case 10: p= gaulep10; w= gaulew10; break;
+    case 12: p= gaulep12; w= gaulew12; break;
+    case 16: p= gaulep16; w= gaulew16; break;
+    case 20: p= gaulep20; w= gaulew20; break;
+    case 48: p= gaulep48; w= gaulew48; break;
+    default: fprintf(stderr,"specified number of phi-points not available\n"); exit(1);
+    }
+
+  for(iphi=0; iphi<iphimax; iphi++)
+    {
+      if ( iphi < iphimax/2 )
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.-p[iphi])+phimin;
+	}
+      else
+	{
+	  phiArray[iphi] = (phimax-phimin)/2.*(1.+p[iphimax-iphi-1])+phimin;
+	}
+      //      cout << "phi[" << iphi << "]=" << phiArray[iphi] << ", " <<  phimax/2.*(1.-p[iphi]) << ", " 
+      //   << (phimax)/2.*(1.+p[iphimax-iphi-1]) << endl;
+    }
+
+  cout << "starting..." << endl;
+
+
+  // retrieve value as function of phi, pt and y in sumPtPhi:
+  double Psi3pSin = 0.;
+  double Psi3pCos = 0.;
+  double Psi3p;
+  double Psi2pSin = 0.;
+  double Psi2pCos = 0.;
+  double Psi2p;
+  for (iy=0; iy<iymax; iy++)
+    {
+      sumpt=0.;
+      for (j=1; j<=3; j++)
+	{
+	  y =  particleList[j].y[iy];
+	  //      fprintf(stderr,"y=%f \n", y);
+	  for (ipt=0; ipt<iptmax; ipt++)
+	    {
+	      pt = particleList[j].pt[ipt];
+	      //fprintf(stderr,"pt=%f \n", pt);
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  phi = phiArray[iphi];
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+		  // integrate over pt and phi
+		  //     sumpt += deltaPhi * ( sum ) * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  // Psi3pSin += deltaPhi * ( sum*pt*sin(3.*phi) ) * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  //Psi3pCos += deltaPhi * ( sum*pt*cos(3.*phi) ) * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		  if (iphi<iphimax/2)
+		    {
+		      sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi3pSin += w[iphi] * ( sum*pt*sin(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi3pCos += w[iphi] * ( sum*pt*cos(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi2pSin += w[iphi] * ( sum*pt*sin(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi2pCos += w[iphi] * ( sum*pt*cos(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      //fprintf(stderr,"sumpt=%f \n", sumpt);
+		    }
+		  else
+		    {
+		      sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi3pSin += w[iphimax-iphi-1] * ( sum*pt*sin(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi3pCos += w[iphimax-iphi-1] * ( sum*pt*cos(3.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi2pSin += w[iphimax-iphi-1] * ( sum*pt*sin(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      Psi2pCos += w[iphimax-iphi-1] * ( sum*pt*cos(2.*phi) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      //fprintf(stderr,"sumpt=%f \n", sumpt);
+		    }
+		}
+	    }
+	}
+      fprintf(y_file,"%f %f\n", y, 2.*sumpt/slope);
+    }
+  if (Psi2pCos<0.)
+    Psi2p = 1./2.*(atan(Psi2pSin/Psi2pCos)+PI);
+  else
+    Psi2p = 1./2.*(atan(Psi2pSin/Psi2pCos));
+  
+  if (Psi3pCos<0.) 
+    Psi3p = 1./3.*(atan(Psi3pSin/Psi3pCos)+PI);
+  else
+    Psi3p = 1./3.*(atan(Psi3pSin/Psi3pCos));
+  
+  cout << "Psi2p=" << Psi2p << endl; 
+  cout << "Psi2pSin=" << Psi2pSin << endl; 
+  cout << "Psi2pCos=" << Psi2pCos << endl; 
+  cout << "Psi3p=" << Psi3p << endl; 
+  cout << "Psi3pSin=" << Psi3pSin << endl; 
+  cout << "Psi3pCos=" << Psi3pCos << endl; 
+
+//   for (iy=0; iy<iymax; iy++)
+//     {
+//       y =  particleList[j].y[iy];
+//       //      fprintf(stderr,"y=%f \n", y);
+//       sumpt=0.;
+//       for (ip = 1; ip<4; ip++)
+// 	{
+// 	  j = ip;
+// 	  //	  cout << j << " " << particleList[j].name << endl;
+// 	  for (ipt=0; ipt<iptmax; ipt++)
+// 	    {
+// 	      pt = particleList[j].pt[ipt];
+// 	      //fprintf(stderr,"pt=%f \n", pt);
+// 	      for (iphi=0; iphi<iphimax; iphi++)
+// 		{
+// 		  phi = phiArray[iphi];
+// 		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+// 		  // integrate over pt and phi
+// 		  if (iphi<iphimax/2)
+// 		    {
+// 		      sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      //fprintf(stderr,"sumpt=%f \n", sumpt);
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+// 		      //fprintf(stderr,"sumpt=%f \n", sumpt);
+// 		    }
+// 		}
+// 	    }
+// 	}
+//       //      fprintf(stderr,"y=%f, sumpt=%f\n", y, sumpt/slope);
+//       fprintf(y_file,"%f %f\n", y, 2.*sumpt/slope); //times two for anti-particles
+//     }
+
+  //pt spectra
+  for (ipt=0; ipt<iptmax; ipt++)
+    {
+      sumpt = 0.;
+      int countY = 0;
+      pt = particleList[j].pt[ipt];
+      for (ip = 1; ip<4; ip++)
+	{
+	  j = ip;
+	  for (iy=0; iy<iymax; iy++)
+	    {
+	      y = iy*deltaY-ymax;
+	      if (fabs(y)>ymaxIntegral) continue;
+	      countY++;
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  phi = phiArray[iphi];
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+		  if (iphi<iphimax/2)
+		    {
+		      if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+			{
+			  sumpt += 0.5 * w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+			}
+		      else
+			{
+			  sumpt += w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+			}
+		      //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+		    }
+		  else
+		    {
+		      if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+			{
+			  sumpt += 0.5 * w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      else
+			{
+			  sumpt += w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphimax-iphi-1], iphi, -p[iphimax-iphi-1]);
+		    }
+		}
+	    }
+	}
+      //fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+      fprintf(p_file,"%e %e \n", pt, 2.*sumpt / (2.*ymaxIntegral));
+      //fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt);
+    }
+
+
+  // v2, v3 and v4
+  for (ipt=0; ipt<iptmax; ipt++)
+    {
+      sumpt = 0.;
+      sumv[2] = 0.;
+      sumv[3] = 0.;
+      sumv3r3 = 0.;
+      sumv[4] = 0.;
+      int countY = 0;
+      for (j=1; j<=3; j++)
+	{
+	  pt = particleList[j].pt[ipt];
+	  ymaxIntegral = 0.5*log((sqrt(pt*pt*cosh(etaMaxIntegral)*cosh(etaMaxIntegral)+m*m)
+				  +pt*sinh(etaMaxIntegral))/(sqrt(pt*pt*cosh(etaMaxIntegral)*cosh(etaMaxIntegral)+m*m)-pt*sinh(etaMaxIntegral)));
+	  iymaxIntegral = floor(2.*ymaxIntegral/deltaY);
+	  for (iy=0; iy<iymax; iy++)
+	    {
+	      y = iy*deltaY-ymax;
+	      if (fabs(y)>ymaxIntegral) continue;
+	      countY++;
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  phi = phiArray[iphi];
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi];
+		  
+		  //       if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+// 		    {
+// 		      sumpt += 0.5 * deltaPhi * ( sum ) * deltaY  * 2.*PI/(phimax-phimin);
+// 		      sumv[2] += 0.5 * deltaPhi * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv[3] += 0.5 * deltaPhi * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv3r3 += 0.5 * deltaPhi * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv[4] += 0.5 * deltaPhi * ( sum*cos(4.*(phi-phimin)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		    }
+// 		  else
+// 		    {
+// 		      sumpt += deltaPhi * ( sum ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv[2] += deltaPhi * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv[3] += deltaPhi * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv3r3 += deltaPhi * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		      sumv[4] += deltaPhi * ( sum*cos(4.*(phi-phimin)) ) * deltaY * 2.*PI/(phimax-phimin);
+// 		    }
+		
+		  if (iphi<iphimax/2)
+		    {
+		      if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+			{
+			  sumpt += 0.5 * w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+			  sumv[2] += 0.5 * w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[3] += 0.5 * w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv3r3 += 0.5 * w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[4] += 0.5 * w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      else
+			{
+			  sumpt += w[iphi] * ( sum ) * deltaY * phiDiff  * 2.*PI/(phimax-phimin);
+			  sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphi], iphi, p[iphi]);
+		    }
+		  else
+		    {
+		      if (countY==1 || countY==iymaxIntegral) // trapezoid rule: only half the edges
+			{
+			  sumpt += 0.5 * w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[2] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[3] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv3r3 += 0.5 * w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[4] += 0.5 * w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      else
+			{
+			  sumpt += w[iphimax-iphi-1] * ( sum ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			  sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * deltaY * phiDiff * 2.*PI/(phimax-phimin);
+			}
+		      //fprintf(stderr,"iphi=%d, w[%d]=%f, p[%d]=%f\n", iphi, iphi, w[iphimax-iphi-1], iphi, -p[iphimax-iphi-1]);
+		    }
+		}
+	    }
+	}
+      //fprintf(stderr,"pt=%f, sumpt=%f\n", pt, sumpt / (2.*ymaxIntegral));
+      //fprintf(stderr,"pt=%f, sumv%d=%f\n", pt, 2, sumv[2]/sumpt);
+      fprintf(v2_file,"%e %e \n", pt, sumv[2]/sumpt);
+      fprintf(v3_file,"%e %e \n", pt, sumv[3]/sumpt);
+      fprintf(v3r3_file,"%e %e \n", pt, sumv3r3/sumpt);
+      fprintf(v4_file,"%e %e \n", pt, sumv[4]/sumpt);
+    }
+
+
+  //pseudorapidity2
+  deltaEta=deltaY;
+  etamax=ymax;
+  ietamax=floor(2.*etamax/deltaEta);
+  for (ieta=0; ieta<ietamax; ieta++)
+    {
+      eta = ieta*deltaEta-etamax+deltaEta/2.;
+      sumpt=0.;
+      sumv[2]=0.;
+      sumv[3]=0.;
+      sumv3r3=0.;
+      sumv[4]=0.;
+      for (j=1; j<=3; j++)
+	{
+	  for (ipt=0; ipt<iptmax; ipt++)
+	    {
+	      pt = particleList[j].pt[ipt];
+	      y = 0.5*log((sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)+pt*sinh(eta))/(sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)-pt*sinh(eta)));
+	      
+	      for(i=0; i<iymax-1; i++) // find closest iy
+		{
+		  if ( particleList[j].y[i]< y &&  particleList[j].y[i+1] > y )
+		    {
+		      if ( fabs(particleList[j].y[i]-y) <  fabs(particleList[j].y[i+1]-y)) 
+			iy = i;
+		      else
+			iy = i+1;
+		    }
+		}
+	      
+	      mt = sqrt(pt*pt+m*m);
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  phi = phiArray[iphi];
+		  px = pt*cos(phi);
+		  py = pt*sin(phi);
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi]*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+		  if (iphi<iphimax/2)
+		    {
+		      sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		    }
+		  else
+		    {
+		      sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		    }
+		}
+	    }
+	}
+      //   fprintf(stderr,"eta=%f, sumpt=%f\n", eta, sumpt/slope);
+      fprintf(eta_file,"%f %f\n", eta, 2.*sumpt/slope);
+      fprintf(v2_eta_file,"%f %f\n", eta, sumv[2]/sumpt);
+      fprintf(v3_eta_file,"%f %f\n", eta, sumv[3]/sumpt);
+      fprintf(v3r3_eta_file,"%f %f\n", eta, sumv3r3/sumpt);
+      fprintf(v4_eta_file,"%f %f\n", eta, sumv[4]/sumpt);
+      
+    }
+  
+  
+  //total v2, v3 and v4
+  deltaEta=deltaY;
+  etamax=ymax;
+  ietamax=floor(2.*etamax/deltaEta);
+  double sumtotv2 =0.;
+  double sumtotv3 =0.;
+  double sumtotv3r3 =0.;
+  double sumtotv4 =0.;
+  int eta1=0;
+  for (ieta=0; ieta<ietamax; ieta++)
+    {
+      eta = ieta*deltaEta-etamax+deltaEta/2.;
+      if (fabs(eta)>1.5) continue; // experimental cut
+      eta1+=1;
+      sumpt=0.;
+      sumv[2]=0.;
+      sumv[3]=0.;
+      sumv3r3=0.;
+      sumv[4]=0.;
+      for (j=1; j<=3; j++)
+	{
+	  for (ipt=0; ipt<iptmax; ipt++)
+	    {
+	      pt = particleList[j].pt[ipt];
+	      if (pt < 0.8 || pt > 4.) continue; // experimental cut 
+	      y = 0.5*log((sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)+pt*sinh(eta))/(sqrt(pt*pt*cosh(eta)*cosh(eta)+m*m)-pt*sinh(eta)));
+	      
+	      for(i=0; i<iymax-1; i++) // find closest iy
+		{
+		  if ( particleList[j].y[i]< y &&  particleList[j].y[i+1] > y )
+		    {
+		      if ( fabs(particleList[j].y[i]-y) <  fabs(particleList[j].y[i+1]-y)) 
+			iy = i;
+		      else
+			iy = i+1;
+		    }
+		}
+	      
+	      mt = sqrt(pt*pt+m*m);
+	      for (iphi=0; iphi<iphimax; iphi++)
+		{
+		  phi = phiArray[iphi];
+		  px = pt*cos(phi);
+		  py = pt*sin(phi);
+		  sum = particleList[j].dNdydptdphi[iy][ipt][iphi]*sqrt(1.-(m*m)/(mt*mt*cosh(y)*cosh(y)));
+		  if (iphi<iphimax/2)
+		    {
+		      sumpt += w[iphi] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[2] += w[iphi] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[3] += w[iphi] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv3r3 += w[iphi] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		      sumv[4] += w[iphi] * ( sum*cos(4.*(phi-phimin)) ) * gala15w[ipt] * pt * phiDiff * 2.*PI/(phimax-phimin);
+		    }
+		  else
+		    {
+		      sumpt += w[iphimax-iphi-1] * ( sum ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[2] += w[iphimax-iphi-1] * ( sum*cos(2.*(phi-phimin-Psi2p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[3] += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-Psi3p)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv3r3 += w[iphimax-iphi-1] * ( sum*cos(3.*(phi-phimin-DATA->Psi3r3)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		      sumv[4] += w[iphimax-iphi-1] * ( sum*cos(4.*(phi-phimin)) ) * phiDiff * gala15w[ipt] * pt * 2.*PI/(phimax-phimin);
+		    }
+		}
+	    }
+	}
+      sumtotv2 += sumv[2]/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv2 -= 0.5 * sumv[2]/sumpt * deltaEta;
+      sumtotv3 += sumv[3]/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv3 -= 0.5 * sumv[3]/sumpt * deltaEta;
+      sumtotv3r3 += sumv3r3/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv3r3 -= 0.5 * sumv3r3/sumpt * deltaEta;
+      sumtotv4 += sumv[4]/sumpt * deltaEta;
+      if (eta1 == 1)
+	sumtotv4 -= 0.5 * sumv[4]/sumpt * deltaEta;
+    }
+  sumtotv2 -= 0.5 * sumv[2]/sumpt * deltaEta;
+  sumtotv3 -= 0.5 * sumv[3]/sumpt * deltaEta;
+  sumtotv3r3 -= 0.5 * sumv3r3/sumpt * deltaEta;
+  sumtotv4 -= 0.5 * sumv[4]/sumpt * deltaEta;
+  
+  fprintf(v2_tot_file,"%f\n", sumtotv2);
+  fprintf(v3_tot_file,"%f\n", sumtotv3);
+  fprintf(v3r3_tot_file,"%f\n", sumtotv3r3);
+  fprintf(v4_tot_file,"%f\n", sumtotv4);
+  
+  fclose(p_file);
+  fclose(phi_file);
+  fclose(v2_eta_file);
+  fclose(v4_eta_file);
+  fclose(v2_tot_file);
+  fclose(v3_tot_file);
+  fclose(v4_tot_file);
+  fclose(eta_file);
+  fclose(y_file);
+  fclose(v2_file);
+  fclose(v3_file);
+  fclose(v3r3_file);
+  fclose(v4_file);
+}
+
+
+
+
+
+// --------------------- resonance decays. adapted from azhydro ------------------------------------------------
+
+
+/*************************************************
+*
+*	Edndp3
+*
+* 
+**************************************************/
+// This function interpolates the needed spectra for a given y, pt and phi.
+
+double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num)
+/* 				/\* supersedes during test the right one *\/ */
+/* 	double	yr;		/\* y  of resonance *\/ */
+
+/* 	double	ptr;		/\* pt of resonance *\/ */
+/* 	double	phirin;		/\* phi angle  of resonance *\/ */
+/* 	int	res_num;	/\* Montecarlo number of resonance 	*\/ */
+{
+  double	phir, val, val1, val2;
+  double        f1, f2, f1s, f2s;
+  int     	pn, ny, npt, nphi;
+  
+  if(phirin < 0.0){
+    printf("ERROR: phir %15.8le < 0 !!! \n", phirin);exit(0);}
+  if(phirin > 2.0*PI){
+    printf("ERROR: phir %15.8le > 2PI !!! \n", phirin);exit(0);}
+  if(phirin < 0.5*PI) phir = phirin;
+  else{
+    if(phirin < PI) phir = PI - phirin;
+    else{
+      if(phirin < 1.5*PI) phir = phirin - PI;
+      else phir = 2.0*PI - phirin;
+    }
+  }
+  
+  pn = partid[MHALF + res_num];
+
+  if (yr < -particleList[pn].ymax || yr > particleList[pn].ymax)
+    {
+      //      fprintf(stderr,"yr=%f out of range ymax=%f\n", yr,particleList[pn].ymax);
+
+      return 0.;
+    }
+
+  nphi = 1; 
+  while((phir > phiArray[nphi])&&(nphi<(particleList[pn].nphi-1))) nphi++; 
+  npt = 1; 
+  while((ptr > particleList[pn].pt[npt]) && npt<(particleList[pn].npt - 1)) npt++; 
+  ny = 1; 
+  while((yr > particleList[pn].y[ny]) && ny<(particleList[pn].ny - 1)) ny++; 
+
+  /* phi interpolation */
+  f1 = util->lin_int(phiArray[nphi-1], phiArray[nphi], 
+	       particleList[pn].dNdydptdphi[ny-1][npt-1][nphi-1], 
+	       particleList[pn].dNdydptdphi[ny-1][npt-1][nphi], phir);
+  f2 = util->lin_int(phiArray[nphi-1], phiArray[nphi], 
+	       particleList[pn].dNdydptdphi[ny-1][npt][nphi-1], 
+	       particleList[pn].dNdydptdphi[ny-1][npt][nphi], phir);
+
+  if (f1<0.) f1=0.; // security: if for some reason we got a negative number of particles (happened in the viscous code at large eta sometimes)
+  if (f2<0.) f2=0.;
+
+  f1s=f1;
+  f2s=f2;
+
+  if(ptr > PTCHANGE && f1!=0 && f2!=0){
+    f1 = log(f1); 
+    f2 = log(f2);
+  }
+  val1 = util->lin_int(particleList[pn].pt[npt-1],particleList[pn].pt[npt], 
+		f1, f2, ptr);
+
+  if(ptr > PTCHANGE && f1!=0 && f2!=0)
+    val1 = exp(val1);
+  
+  
+
+  if (isnan(val1))
+    {
+      fprintf(stderr,"\n number=%d\n\n",res_num);
+      fprintf(stderr,"val=%f\n",val);
+      fprintf(stderr,"val1=%f\n",val1);
+      fprintf(stderr,"val2=%f\n",val2);
+      fprintf(stderr,"f1=%f\n",f1);
+      fprintf(stderr,"f2=%f\n",f2);
+      fprintf(stderr,"f1s=%f\n",f1s);
+      fprintf(stderr,"f2s=%f\n",f2s);
+      
+      fprintf(stderr,"pn=%d\n",pn);
+      fprintf(stderr,"ny=%d\n",ny);
+      fprintf(stderr,"npt=%d\n",npt);
+      fprintf(stderr,"nphi=%d\n",nphi);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi]);
+      fprintf(stderr,"phi1=%f\n",phiArray[nphi-1]);
+      fprintf(stderr,"phi2=%f\n",phiArray[nphi]);
+      fprintf(stderr,"pt1=%f\n",particleList[pn].pt[npt-1]);
+      fprintf(stderr,"pt2=%f\n",particleList[pn].pt[npt]);
+      fprintf(stderr,"y1=%f\n",particleList[pn].y[ny-1]);
+      fprintf(stderr,"y2=%f\n",particleList[pn].y[ny]);
+  }
+
+  f1 = util->lin_int(phiArray[nphi-1], phiArray[nphi], 
+	       particleList[pn].dNdydptdphi[ny][npt-1][nphi-1], 
+	       particleList[pn].dNdydptdphi[ny][npt-1][nphi], phir);
+  f2 = util->lin_int(phiArray[nphi-1], phiArray[nphi], 
+	       particleList[pn].dNdydptdphi[ny][npt][nphi-1], 
+	       particleList[pn].dNdydptdphi[ny][npt][nphi], phir);
+  
+  if (f1<0.) f1=0.; // security: if for some reason we got a negative number of particles (happened in the viscous code at large eta sometimes)
+  if (f2<0.) f2=0.;
+
+  if(ptr > PTCHANGE && f1!=0 && f2!=0){
+    f1 = log(f1); 
+    f2 = log(f2);
+  }
+  val2 = util->lin_int(particleList[pn].pt[npt-1],particleList[pn].pt[npt], 
+		f1, f2, ptr);
+  if(ptr > PTCHANGE && f1!=0 && f2!=0)
+    val2 = exp(val2);
+  
+  val = util->lin_int(particleList[pn].y[ny-1],particleList[pn].y[ny],val1,val2,yr);
+
+  /*
+    printf(" nphi  %i npt %i \n", nphi,npt);
+    printf(" f1  %15.8le %15.8le  \n", f1, f2);
+    printf(" phi  %15.8lf %15.8lf  \n", phiArray[nphi-1], phiArray[nphi]); 
+    printf(" pt   %15.8lf %15.8lf  \n", particleList[pn].pt[npt-1],particleList[pn].pt[npt]);
+    printf(" phi  %15.8lf pt %15.8lf    val %15.8lf \n", phir, ptr,val); 
+    printf(" phi %15.8le %15.8le \n",particleList[pn].dNdydptdphi[npt][nphi-1],
+    particleList[pn].dNdydptdphi[npt][nphi]);
+    printf(" pt  %15.8le %15.8le \n",particleList[pn].dNdydptdphi[npt-1][nphi-1],
+    particleList[pn].dNdydptdphi[npt-1][nphi]);
+    
+    exit(0);
+  */
+  if (isnan(val))
+    {
+      fprintf(stderr,"val=%f\n",val);
+      fprintf(stderr,"val1=%f\n",val1);
+      fprintf(stderr,"val2=%f\n",val2);
+      fprintf(stderr,"f1=%f\n",f1);
+      fprintf(stderr,"f2=%f\n",f2);
+      fprintf(stderr,"f1s=%f\n",f1s);
+      fprintf(stderr,"f2s=%f\n",f2s);
+      fprintf(stderr,"ny=%d\n",ny);
+      fprintf(stderr,"npt=%d\n",npt);
+      fprintf(stderr,"nphi=%d\n",nphi);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi]);
+      fprintf(stderr,"phi1=%f\n",phiArray[nphi-1]);
+      fprintf(stderr,"phi2=%f\n",phiArray[nphi]);
+      fprintf(stderr,"pt1=%f\n",particleList[pn].pt[npt-1]);
+      fprintf(stderr,"pt2=%f\n",particleList[pn].pt[npt]);
+      fprintf(stderr,"y1=%f\n",particleList[pn].y[ny-1]);
+      fprintf(stderr,"y2=%f\n",particleList[pn].y[ny]);
+      fprintf(stderr,"yR=%f\n",yr);
+    }
+  
+/*   if (val2>10*val1) */
+/*     { */
+/*       fprintf(stderr,"y1=%f\n",particleList[pn].y[ny-1]); */
+/*       fprintf(stderr,"y2=%f\n",particleList[pn].y[ny]); */
+/*       fprintf(stderr,"yR=%f\n",yr); */
+/*       fprintf(stderr,"val1=%f\n",val1); */
+/*       fprintf(stderr,"val2=%f\n",val2); */
+/*       fprintf(stderr,"val=%f\n",val); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi]); */
+/*     } */
+
+//  fprintf(stderr,"yr=%f, ptr=%f, phir=%f, val=%e\n",yr,ptr,phirin,val);
+ /*  if(ptr<0.5 && fabs(yr)<0.5) */
+/*     { */
+/*       fprintf(stderr,"\n number=%d\n\n",res_num); */
+/*       fprintf(stderr,"val=%f\n",val); */
+/*       fprintf(stderr,"val1=%f\n",val1); */
+/*       fprintf(stderr,"val2=%f\n",val2); */
+/*       fprintf(stderr,"f1=%f\n",f1); */
+/*       fprintf(stderr,"f2=%f\n",f2); */
+/*       fprintf(stderr,"f1s=%f\n",f1s); */
+/*       fprintf(stderr,"f2s=%f\n",f2s); */
+      
+/*       fprintf(stderr,"pn=%d\n",pn); */
+/*       fprintf(stderr,"ny=%d\n",ny); */
+/*       fprintf(stderr,"npt=%d\n",npt); */
+/*       fprintf(stderr,"nphi=%d\n",nphi); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi]); */
+/*       fprintf(stderr,"phi1=%f\n",phiArray[nphi-1]); */
+/*       fprintf(stderr,"phi2=%f\n",phiArray[nphi]); */
+/*       fprintf(stderr,"pt1=%f\n",particleList[pn].pt[npt-1]); */
+/*       fprintf(stderr,"pt2=%f\n",particleList[pn].pt[npt]); */
+/*       fprintf(stderr,"yr=%f\n",yr); */
+/*       fprintf(stderr,"y1=%f\n",particleList[pn].y[ny-1]); */
+/*       fprintf(stderr,"y2=%f\n",particleList[pn].y[ny]); */
+/*     }  */
+  return val;
+}
+
+
+double Freeze::dnpir2N (double phi, void *para1)    
+{
+  pblockN *para = (pblockN *) para1;
+  double D;
+  double eR, plR, ptR, yR, phiR, sume, jac;
+  double cphiR, sphiR;
+  double dnr;			/* dn/mtdmt of resonance */
+  
+  sume = para->e + para->e0;
+
+  D = para->e * para->e0 + para->pl * para->p0 * para->costh +
+    para->pt * para->p0 * para->sinth * cos (phi) + para->m1 * para->m1;
+
+  eR = para->mr * (sume * sume / D - 1.0);
+  jac = para->mr + eR;
+  plR = para->mr * sume * (para->pl - para->p0 * para->costh) / D;
+  ptR = (eR * eR - plR * plR - para->mr * para->mr);
+
+  if (ptR < 0.0)
+    ptR = 0.0;
+
+  else
+    ptR = sqrt (ptR);
+
+  yR = 0.5 * log ((eR + plR) / (eR - plR));
+  cphiR = -jac * (para->p0 * para->sinth * cos (phi + para->phi)
+		  - para->pt * cos (para->phi)) / (sume * ptR);
+  sphiR = -jac * (para->p0 * para->sinth * sin (phi + para->phi)
+		  - para->pt * sin (para->phi)) / (sume * ptR);
+
+  if ((fabs (cphiR) > 1.000) || (fabs (sphiR) > 1.000))
+    {
+      if ((fabs (cphiR) > 1.0001) || (fabs (sphiR) > 1.0001))
+	{
+	  printf ("  |phir| = %15.8lf  > 1 ! \n", phiR);
+	  printf (" phi %15.8le D %15.8le \n", phi, D);
+	  printf (" eR %15.8le plR %15.8le \n", eR, plR);
+	  printf (" ptR %15.8le jac %15.8le \n", ptR, jac);
+	  printf (" sume %15.8le costh %15.8le \n", sume, para->costh);
+
+	  printf (" pt %15.8le \n", para->pt);
+	  printf (" mt  %15.8le \n", para->mt);
+	  printf (" y %15.8le \n", para->y);
+	  printf (" e %15.8le \n", para->e);
+	  printf (" e0 %15.8le \n", para->e0);
+	  printf (" p0 %15.8le \n", para->p0);
+	  printf (" pl %15.8le \n", para->pl);
+	  printf (" phi %15.8le \n", para->phi);
+
+	  printf (" m1 %15.8le \n", para->m1);
+	  printf (" m2 %15.8le \n", para->m2);
+	  printf (" m3 %15.8le \n", para->m3);
+	  printf (" mr %15.8le \n", para->mr);
+	  exit (0);
+	}
+      else
+	{
+	  if (cphiR > 1.0)
+	    cphiR = 1.0;
+	  if (cphiR < -1.0)
+	    cphiR = -1.0;
+	}
+    }
+
+  phiR = acos (cphiR);
+  if (sphiR < 0.0)
+    phiR = 2.0 * PI - phiR;
+
+  dnr = Edndp3 (yR, ptR, phiR, para->res_num);
+
+  /*printf(" phir = %15.8lf  ! ", phiR);
+     printf(" ptR %15.8le jac %15.8le ", ptR, jac );
+     printf(" dnr %15.8le \n", dnr); */
+
+  return dnr * jac * jac / (2.0 * sume * sume);
+}
+
+double Freeze::norm3int (double x, void *paranorm) // this computes "Q(m_R,m_1,m_2,m_3)"
+{
+  nblock *tmp = (nblock *) paranorm;
+  double res = sqrt ((tmp->a - x) * (tmp->b - x)
+		     * (x - tmp->c) * (x - tmp->d)) / x;
+  return res;
+}
+
+double Freeze::dnpir1N (double costh, void* para1)	       
+{
+  pblockN *para = (pblockN *) para1;
+  double r;
+  para->costh = costh;
+  para->sinth = sqrt (1.0 - para->costh * para->costh);
+  r = gauss (PTN2, &Freeze::dnpir2N, 0.0, 2.0 * PI, para); //Integrates the "dnpir2N" kernel over phi using gaussian integration
+  return r;
+}
+
+double Freeze::dn2ptN (double w2, void* para1)
+{
+  pblockN *para = (pblockN *) para1;
+  para->e0 = (para->mr * para->mr + para->m1 * para->m1 - w2) / (2 * para->mr); //particle one energy in resonance rest frame
+  para->p0 = sqrt (para->e0 * para->e0 - para->m1 * para->m1); // particle one absolute value of three momentum on resonance rest frame
+  return gauss (PTN1, &Freeze::dnpir1N, -1.0, 1.0, para); //Integrate the "dnpir1N" kernel over cos(theta) using gaussian integration
+}
+
+double Freeze::dn3ptN (double x, void* para1)  //The integration kernel for "W" in 3-body decays. x=invariant mass of other particles squared
+{
+  pblockN *para = (pblockN *) para1;
+  double e0 =(para->mr * para->mr + para->m1 * para->m1 - x) / (2 * para->mr);
+  double p0 = sqrt (e0 * e0 - para->m1 * para->m1);
+  double a = (para->m2 + para->m3) * (para->m2 + para->m3);
+  double b = (para->m2 - para->m3) * (para->m2 - para->m3);
+  double re = p0 * sqrt ((x - a) * (x - b)) / x * dn2ptN (x, para);
+  return re;
+}
+
+double Freeze::gauss(int n, double (Freeze::*f)(double, void *), double xlo, double xhi, void *optvec )
+	{
+	double	xoffs, xdiff; 
+	int	ix;
+	double	s;		/* summing up */
+	double	*p, *w;		/* pointing to active list */
+
+	switch ( n ) {
+		case 4:		p= gaulep4; w= gaulew4; break;
+		case 8:		p= gaulep8; w= gaulew8; break;
+		case 10:	p=gaulep10; w=gaulew10; break;
+		case 12:	p=gaulep12; w=gaulew12; break;
+		case 16:	p=gaulep16; w=gaulew16; break;
+		case 20:	p=gaulep20; w=gaulew20; break;
+		case 48:	p=gaulep48; w=gaulew48; break;
+		default:	printf("\ngauss():%d points not in list\n",n);
+				exit(0);
+		}
+	xoffs = 0.5 * ( xlo + xhi );
+	xdiff = 0.5 * ( xhi - xlo );
+	s = 0;
+	for( ix=0; ix<n/2; ix++ ) 	/* n is even */
+	  s += w[ix] * ( (this->*f)(xoffs+xdiff*p[ix],optvec)
+			     + (this->*f)(xoffs-xdiff*p[ix],optvec) );
+	return( s * xdiff );
+	}
+
+
+
+/********************************************************************
+*
+*	Edndp3_2bodyN()
+*
+* transverse momentum spectrum in GeV^-2 from pions out of resonances
+*********************************************************************/
+double Freeze::Edndp3_2bodyN (double y, double pt, double phi, double m1, double m2, double mr, int res_num)
+/* 		/\* in units of GeV^-2,includes phasespace and volume, */
+/* 		   does not include degeneracy factors  *\/ */
+/*      double y;			/\* rapidity of particle 1       *\/ */
+/*      double pt;			/\* transverse momentum of particle 1    *\/ */
+/*      double phi;		/\* phi angle of particle 1      *\/ */
+/*      double m1, m2;		/\* restmasses of decay particles in MeV *\/ */
+/*      double mr;			/\* restmass of resonance MeV            *\/ */
+/*      int res_num;		/* Montecarlo number of the Resonance   */ 
+
+{
+  double mt = sqrt (pt * pt + m1 * m1);
+  double norm2;			/* 2-body normalization         */
+  pblockN para;
+  double res2;
+
+  para.pt = pt;
+  para.mt = mt;
+  para.e = mt * cosh (y);
+  para.pl = mt * sinh (y);
+  para.y = y;
+  para.phi = phi;
+  para.m1 = m1;
+  para.m2 = m2;
+  para.mr = mr;
+
+  para.res_num = res_num;
+
+  norm2 = 1.0 / (2.0 * PI);
+  res2 = norm2 * dn2ptN (m2 * m2, &para); //Calls the integration routines for 2-body
+  return res2;			/* like Ed3ndp3_2body() */
+}
+
+
+/********************************************************************
+*
+*	Edndp3_3bodyN()
+*
+* transverse momentum spectrum in GeV^-2 from pions out of resonances
+*********************************************************************/
+double Freeze::Edndp3_3bodyN (double y, double pt, double phi, double m1, double m2,
+		      double m3, double mr, double norm3, int res_num)
+		/* in units of GeV^-2,includes phasespace and volume,
+		   does not include degeneracy factors  */
+{
+  double mt = sqrt (pt * pt + m1 * m1);
+  pblockN para;
+  double wmin, wmax;
+  double res3;
+  double slope;			/* slope of resonance for high mt */
+  int pn;
+
+  para.pt = pt;
+  para.mt = mt;
+  para.y = y;
+  para.e = mt * cosh (y);
+  para.pl = mt * sinh (y);
+  para.phi = phi;
+
+  para.m1 = m1;
+  para.m2 = m2;
+  para.m3 = m3;
+  para.mr = mr;
+
+  pn = partid[MHALF + res_num];
+
+  para.res_num = res_num;
+
+  wmin = (m2 + m3) * (m2 + m3); 
+  wmax = (mr - m1) * (mr - m1);
+  res3 = 2.0 * norm3 * gauss (PTS4, &Freeze::dn3ptN, wmin, wmax, &para) / mr;  //Integrates "W" using gaussian 
+  return res3;
+}
+
+
+/**************************************************************************
+*									  *
+*	add_reso							  *
+*									  *
+* computes the pt, mt distribution including resonance decays		  *
+***************************************************************************/
+
+void Freeze::add_reso (int pn, int pnR, int k, int j)
+{
+  nblock paranorm;		/* for 3body normalization integral */
+  double y;
+  double m1, m2, m3, mr;
+  double norm3;			/* normalisation of 3-body integral */
+  int pn2, pn3, pn4;		/* internal numbers for resonances */
+  int part;
+  int l, i, n;
+  int ny, npt, nphi;
+
+  ny = particleList[pn].ny;
+  npt = particleList[pn].npt;
+  nphi = particleList[pn].nphi;
+
+  // Determine the number of particles involved in the decay with the switch
+  switch (abs (decay[j].numpart))
+    {
+    case 1: //Only 1 particle, if it gets here, by accident, this prevents any integration for 1 particle chains
+      break;
+
+    case 2: // 2-body decay 
+      {
+	if (k == 0)
+	  pn2 = partid[MHALF + decay[j].part[1]];
+
+	else
+	  pn2 = partid[MHALF + decay[j].part[0]];
+
+	//printf ("case 2:  i %3i j %3i k %3i \n", pn, j, k);
+	m1 = particleList[pn].mass;
+	m2 = particleList[pn2].mass;
+	mr = particleList[pnR].mass;
+
+	while ((m1 + m2) > mr)
+	  {
+	    mr += 0.25 * particleList[pnR].width;
+	    m1 -= 0.5 * particleList[pn].width;
+	    m2 -= 0.5 * particleList[pn2].width;
+	  }
+	fprintf(stderr,"mr=%f\n",mr);
+	fprintf(stderr,"m1=%f\n",m1);
+	fprintf(stderr,"m2=%f\n",m2);
+		
+	for (n = 0; n < ny; n++)
+	  {
+	    y = particleList[pn].y[n];
+	    for (l = 0; l < npt; l++)
+	      {
+		for (i = 0; i < nphi; i++)
+		  {
+		    if (isnan(Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number))
+			)
+		      //	||Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number)<0
+		      {
+			fprintf(stderr,"2 pt=%f\n",particleList[pn].pt[l]);
+			fprintf(stderr,"2 number=%d\n",particleList[pnR].number);
+			fprintf(stderr,"2 Edn..=%f\n", Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
+								      m1, m2, mr, particleList[pnR].number));
+		      }
+		    else
+		      // Call the 2-body decay integral and add its contribution to the daughter particle of interest
+		      {   
+			particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
+			  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
+					 m1, m2, mr, particleList[pnR].number); 
+			if(n==ny/2 && i==0) {
+			  // fprintf(stderr,"m1=%f, m2=%f, mr=%f, pnR=%d\n",m1,m2,mr,pnR);
+
+			  particleList[pn].resCont[n][l][i]+= decay[j].branch *
+			  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
+					 m1, m2, mr, particleList[pnR].number); 
+			  fprintf(stderr," %d %f %e %e %e %e\n", n, y, particleList[pn].pt[l], decay[j].branch *
+				  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[0], m1, m2, mr, 
+						 particleList[pnR].number),
+				  particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
+				  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[0], m1, m2, mr, 
+						 particleList[pnR].number),particleList[pn].resCont[n][l][i]); 
+			}
+		      }
+		  }
+	      }
+	  }
+	break;
+      }
+
+    case 3: //3-body decay
+      {
+	if (k == 0)
+	  {
+	    pn2 = partid[MHALF + decay[j].part[1]];
+	    pn3 = partid[MHALF + decay[j].part[2]];
+	  }
+	else
+	  {
+	    if (k == 1)
+	      {
+		pn2 = partid[MHALF + decay[j].part[0]];
+		pn3 = partid[MHALF + decay[j].part[2]];
+	      }
+	    else
+	      {
+		pn2 = partid[MHALF + decay[j].part[0]];
+		pn3 = partid[MHALF + decay[j].part[1]];
+	      }
+	  }
+	
+	m1 = particleList[pn].mass;
+	m2 = particleList[pn2].mass;
+	m3 = particleList[pn3].mass;
+	mr = particleList[pnR].mass;
+	paranorm.a = (mr + m1) * (mr + m1);
+	paranorm.b = (mr - m1) * (mr - m1);
+	paranorm.c = (m2 + m3) * (m2 + m3);
+	paranorm.d = (m2 - m3) * (m2 - m3);
+	norm3 = mr * mr / (2 * PI * gauss (PTS3, &Freeze::norm3int, paranorm.c,
+					   paranorm.b, &paranorm));
+	
+	// printf("case 3:  i %3i j %3i k %3i \n",pn,j,k); 
+	
+	for (n = 0; n < ny; n++)
+	  {
+	    y = particleList[pn].y[n];
+	    for (l = 0; l < npt; l++)
+	      {
+		for (i = 0; i < nphi; i++)
+		  {
+		    if (isnan(Edndp3_3bodyN(y, particleList[pn].pt[l], phiArray[i],
+					    m1, m2, m3, mr, norm3, particleList[pnR].number)))
+		      {
+			fprintf(stderr,"3 number=%d\n",particleList[pnR].number);
+			// Call the 3-body decay integral and add its contribution to the daughter particle of interest 
+			fprintf(stderr,"3 Edn..=%f\n",   Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+									m1, m2, m3, mr, norm3, particleList[pnR].number));
+		      }
+		    else
+		      {
+			particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
+		      	Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+				       m1, m2, m3, mr, norm3, particleList[pnR].number);
+		      }
+		    
+		    if(n==ny/2 && i==0)
+		      {
+			//	fprintf(stderr,"m1=%f, m2=%f, m3=%f, mr=%f, pnR=%d\n",m1,m2,m3,mr,pnR);
+			particleList[pn].resCont[n][l][i]+= decay[j].branch *
+			  Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+					 m1, m2, m3, mr, norm3, particleList[pnR].number);
+		       
+			fprintf(stderr,"%d %f %e %e %e %e\n",n,y, particleList[pn].pt[l], decay[j].branch *
+				Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+					       m1, m2, m3, mr, norm3, particleList[pnR].number),
+				particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
+				Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+					       m1, m2, m3, mr, norm3, particleList[pnR].number),particleList[pn].resCont[n][l][i]); 
+		      }
+		  }
+	      }
+	  }
+	break;
+      }
+
+    case 4: //4-body decay (rare and low contribution)
+      {
+	if (k == 0)
+	  {
+	    pn2 = partid[MHALF + decay[j].part[1]];
+	    pn3 = partid[MHALF + decay[j].part[2]];
+	    pn4 = partid[MHALF + decay[j].part[3]];
+	  }
+	else
+	  {
+	    if (k == 1)
+	      {
+		pn2 = partid[MHALF + decay[j].part[0]];
+		pn3 = partid[MHALF + decay[j].part[2]];
+		pn4 = partid[MHALF + decay[j].part[3]];
+	      }
+	    else
+	      {
+		if (k == 2)
+		  {
+		    pn2 = partid[MHALF + decay[j].part[0]];
+		    pn3 = partid[MHALF + decay[j].part[1]];
+		    pn4 = partid[MHALF + decay[j].part[3]];
+		  }
+		else
+		  {
+		    pn2 = partid[MHALF + decay[j].part[0]];
+		    pn3 = partid[MHALF + decay[j].part[1]];
+		    pn4 = partid[MHALF + decay[j].part[2]];
+		  }
+	      }
+	  }
+	//approximate the 4-body with a 3-body decay with the 4th particle being the center of mass of 2 particles.
+	m1 = particleList[pn].mass;
+	m2 = particleList[pn2].mass;
+	mr = particleList[pnR].mass;
+	m3 = 0.5 * (particleList[pn3].mass + particleList[pn4].mass + mr - m1 - m2);
+	paranorm.a = (mr + m1) * (mr + m1);
+	paranorm.b = (mr - m1) * (mr - m1);
+	paranorm.c = (m2 + m3) * (m2 + m3);
+	paranorm.d = (m2 - m3) * (m2 - m3);
+	norm3 = mr * mr / (2 * PI * gauss (PTS3, &Freeze::norm3int, paranorm.c,
+					   paranorm.b, &paranorm));
+	// printf("case 3:  i %3i j %3i k %3i \n",pn,j,k); 
+	
+	
+	for (n = 0; n < ny; n++)
+	  {
+	    y = particleList[pn].y[n];
+	    for (i = 0; i < nphi; i++)
+	      {
+		for (l = 0; l < npt; l++)
+		  {
+		     if (isnan(Edndp3_3bodyN(y, particleList[pn].pt[l], phiArray[i],
+					    m1, m2, m3, mr, norm3, particleList[pnR].number)))
+		      {
+			fprintf(stderr,"3 number=%d\n",particleList[pnR].number);
+			// Call the 3-body decay integral and add its contribution to the daughter particle of interest 
+			particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
+			  Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+					 m1, m2, m3, mr, norm3, particleList[pnR].number);
+		      }
+		     else
+		      particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
+			Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+				       m1, m2, m3, mr, norm3, particleList[pnR].number);
+		     //fprintf(stderr,"4 Edn..=%f\n", Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
+		    //					m1, m2, mr, particleList[pnR].number));
+		    // the 4-body decay approximated by the 3-body decay routine
+		  }
+	      }
+	  }
+	break;
+      }
+      
+    default:
+      printf ("ERROR in add_reso! \n");
+      printf ("%i decay not implemented ! \n", abs (decay[j].numpart));
+      exit (0);
+    }
+}
+
+
+void Freeze::cal_reso_decays (int maxpart, int maxdecay, int bound, int mode)
+{
+  // mode=4: do all
+  // mode=5: do one
+  int i, j, k, l, ll;
+  int pn, pnR, pnaR;
+  int part,n1,n2,n3,ny,npt,nphi;
+  
+  fprintf (stderr," CALCULATE RESONANCE DECAYS (as fast as I can) \n");
+  pn = partid[MHALF + bound];
+  if (mode==5) pn = maxpart-1;
+
+  ny = particleList[pn].ny;
+  npt = particleList[pn].npt;
+  nphi = particleList[pn].nphi;
+  
+  for(i=maxpart-1;i > pn-1;i--)  //Cycle the particles known from the particle.dat input
+    {
+
+      for (n1 = 0; n1 < ny; n1++)
+	{
+	  for (n2 = 0; n2 < npt; n2++)
+	    {
+	      for (n3 = 0; n3 < nphi; n3++)
+		{
+		  particleList[pn].resCont[n1][n2][n3] =0.;
+		}
+	    }
+	}
+
+      part = particleList[i].number;
+      fprintf (stderr,"Calculating the decays with ");
+      fprintf (stderr,"%s \n", particleList[i].name);
+      //fprintf (stderr,"%i, %i, b=%d\n", part, maxdecay,particleList[i].baryon);
+      switch (particleList[i].baryon)  // Check to see whether or not the particle is baryon, anti-baryon or meson
+	{
+	case 1: //Baryon
+	  {
+	    //fprintf(stderr,"Is a baryon. \n");
+	   
+	    for (j = 0; j < maxdecay; j++) // Cycle through every decay channel known (as given in resoweak.dat)
+	      {                            // to see if the particle was a daughter particle in a decay channel
+		pnR = partid[MHALF + decay[j].reso];
+		//fprintf(stderr,"Partid is %i.\n",pnR);
+		for (k = 0; k < abs (decay[j].numpart); k++)
+		  {
+		    if ((part == decay[j].part[k]) && (decay[j].numpart != 1))// Make sure that the decay channel isn't trivial
+		      {                                                       // and contains the daughter particle
+			fprintf(stderr,"Partid is %i. %s into %s \n",pnR,particleList[pnR].name,particleList[i].name);
+			//fprintf(stderr,"Calculating a decay \n");
+			add_reso (i, pnR, k, j);
+		      }
+		  }
+	      }
+	    break;
+	  }
+
+	case -1: //Anti-Baryon
+	  {
+	    //fprintf(stderr,"Is an anti-baryon.\n");
+	    for (j = 0; j < maxdecay; j++)// Cycle through every decay channel known (as given in resoweak.dat)
+	      {                            // to see if the particle was a daughter particle in a decay channel
+		pnaR = partid[MHALF - decay[j].reso];
+		//if (pnaR==-1) continue;
+		for (k = 0; k < abs (decay[j].numpart); k++)
+		  {
+		    if ((-part == decay[j].part[k]) && (decay[j].numpart != 1))// Make sure that the decay channel isn't trivial
+		      {                                                        // and contains the daughter particle
+			fprintf(stderr,"Partid is %i. %s into %s \n",pnaR,particleList[pnaR].name,particleList[i].name);
+			//fprintf(stderr,"Calculating a decay \n");
+			add_reso (i, pnaR, k, j);
+		      }
+		  }
+	      }
+	    break;
+	  }
+
+	case 0:// Meson
+	  {
+	    //fprintf(stderr,"Is a meson. \n");
+	    
+	    for (j = 0; j < maxdecay; j++)
+	      {
+		pnR = partid[MHALF + decay[j].reso];
+		//fprintf(stderr,"Partid is %i.\n",pnR);
+		for (k = 0; k < abs (decay[j].numpart); k++)
+		  {
+		    if (particleList[pnR].baryon == 1)
+		      {
+			pnaR = partid[MHALF - decay[j].reso];
+			if ((particleList[i].charge == 0)
+			    && (particleList[i].strange == 0))
+			  {
+			    if ((part == decay[j].part[k])
+				&& (decay[j].numpart != 1))
+			      {
+				fprintf(stderr,"Partid is %i, %s into %s \n",pnR,particleList[pnR].name,particleList[i].name);
+				fprintf(stderr,"and %i, %s into %s \n",pnaR,particleList[pnaR].name,particleList[i].name);
+				//fprintf(stderr,"Calculating a decay \n");
+				add_reso (i, pnR, k, j);
+				add_reso (i, pnaR, k, j);
+			      }
+			  }
+			else
+			  {
+			    if ((part == decay[j].part[k])
+				&& (decay[j].numpart != 1))
+			      {
+				fprintf(stderr,"Partid is %i, %s into %s \n",pnR,particleList[pnR].name,particleList[i].name);
+				//fprintf(stderr,"Calculating a decay \n");
+				add_reso (i, pnR, k, j);
+			      }
+			    if ((-part == decay[j].part[k])
+				&& (decay[j].numpart != 1))
+			      {
+				fprintf(stderr,"Partid is %i, %s into %s \n",pnaR,particleList[pnaR].name,particleList[i].name);
+				//fprintf(stderr,"Calculating a decay \n");
+				add_reso (i, pnaR, k, j);
+			      }
+			  }
+		      }
+		    else
+		      {
+			if ((part == decay[j].part[k])
+			    && (decay[j].numpart != 1))
+			  {
+			    fprintf(stderr,"Partid is %i, %s into %s \n",pnR,particleList[pnR].name,particleList[i].name);
+			    //fprintf(stderr,"Calculating a decay \n");
+			    add_reso (i, pnR, k, j);
+			  }
+		      }
+		  }
+	      }
+	    break;
+	  }
+
+	  
+	default:
+	  fprintf (stderr,"Error in switch in func partden_wdecay \n");
+	  exit (0);
+
+	}
+    }
+}
+
+void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, int size, int rank)
+{
+  ReadParticleData(DATA); // read in data for Cooper-Frye
+  int i, b, number;
+  if (mode == 3 || mode == 1) // compute thermal spectra
+    {
+      char *specString;
+      specString = util->char_malloc(30);
+      FILE *d_file;
+      char* d_name = "particleInformation.dat";
+      d_file = fopen(d_name, "w");
+      fprintf(d_file,"");
+      fclose(d_file);
+      char buf[5];
+      FILE *s_file;
+      sprintf (buf, "%d", rank);
+      strcat(specString, "yptphiSpectra");
+      strcat(specString, buf);
+      strcat(specString, ".dat");
+      char* s_name = specString;
+      s_file = fopen(s_name, "w");
+      fclose(s_file);
+      ReadFreezeOutSurface(DATA); // read freeze out surface (has to be done after the evolution of course)
+      // (particle number, maximum p_T, [baryon=1, anti-baryon=-1], # of pts for pt integration, # of pts for phi integration)
+      int ret;
+      if (particleSpectrumNumber==0) // do all particles
+	{
+	  fprintf(stderr,"Doing all particles on this processor. May take a while ... \n");
+	  for ( i=1; i<particleMax; i++ )
+	    {
+	      number = particleList[i].number;
+	      b = particleList[i].baryon;
+	      ComputeParticleSpectrum(DATA, number, 4., b, 15, 16, size, rank);
+	    }
+	  ReadSpectra(DATA);
+	  for ( i=1; i<particleMax; i++ )
+	    {
+	      number = particleList[i].number;
+	      b = particleList[i].baryon;
+	      OutputFullParticleSpectrum(DATA, number, 4., b, 0);
+	    }
+	}
+      else
+	{
+	  if (particleSpectrumNumber>=particleMax)
+	    {
+	      fprintf(stderr,"No particle has the number %d. Exiting.\n",particleSpectrumNumber); exit(1);
+	    }  
+	  number = particleList[particleSpectrumNumber].number;
+	  b = particleList[particleSpectrumNumber].baryon;
+	  cout << "COMPUTE" << endl;
+	  ComputeParticleSpectrum(DATA, number, 4., b, 15, 16, size, rank);
+	  // send something just to make sure that rank 0 waits for all others to be done:
+	  int check[1];
+	  check[0]=rank;
+	  
+	  if (rank > 0)
+	    MPI::COMM_WORLD.Send(check,1,MPI::DOUBLE,0,1);
+	    
+	  if (rank == 0)
+	    {
+	      for (int from=1; from < size; from ++)
+		MPI::COMM_WORLD.Recv(check,1,MPI::DOUBLE,from,1);
+
+	      remove("yptphiSpectra.dat");
+	      
+	      switch (size) 
+		{
+		case 1: ret = system("cat yptphiSpectra0.dat > yptphiSpectra.dat"); break;
+		case 2: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat > yptphiSpectra.dat"); break;
+		case 3: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat > yptphiSpectra.dat"); break;
+		case 4: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat > yptphiSpectra.dat"); break;
+		case 5: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat > yptphiSpectra.dat"); break;
+		case 6: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat > yptphiSpectra.dat"); break;
+		case 7: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat> yptphiSpectra.dat"); break;
+		case 8: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat > yptphiSpectra.dat"); break;
+		case 9: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat > yptphiSpectra.dat"); break;
+		case 10: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat > yptphiSpectra.dat"); break;
+		case 11: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat > yptphiSpectra.dat"); break;
+		case 12: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat > yptphiSpectra.dat"); break;
+		case 13: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat > yptphiSpectra.dat"); break;
+		case 14: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat > yptphiSpectra.dat"); break;
+		case 15: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat yptphiSpectra14.dat > yptphiSpectra.dat"); break;
+		case 16: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat yptphiSpectra14.dat yptphiSpectra15.dat > yptphiSpectra.dat"); break;
+		case 32: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat yptphiSpectra14.dat yptphiSpectra15.dat yptphiSpectra16.dat yptphiSpectra17.dat yptphiSpectra18.dat yptphiSpectra19.dat yptphiSpectra20.dat yptphiSpectra21.dat yptphiSpectra22.dat yptphiSpectra23.dat yptphiSpectra24.dat yptphiSpectra25.dat yptphiSpectra26.dat yptphiSpectra27.dat yptphiSpectra28.dat yptphiSpectra29.dat yptphiSpectra30.dat yptphiSpectra31.dat > yptphiSpectra.dat"); break;
+		default: fprintf(stderr,"maximum number of processors is 16 at the moment\n");exit(1);
+		}
+	      
+	      ReadSingleSpectrum(DATA);
+	      OutputFullParticleSpectrum(DATA, number, 4., b, 0);
+	      //Read3Spectra(DATA);
+	      //Compute3ChargedHadrons(DATA, 4.);
+	    }
+	}
+    }
+  else if (mode==4 || mode==5) //  do resonance decays
+    {
+      ReadSpectra(DATA);
+      FILE *d_file;
+      char* d_name = "FparticleInformation.dat";
+      d_file = fopen(d_name, "w");
+      fprintf(d_file,"");
+      fclose(d_file);
+      FILE *s_file;
+      char* s_name = "FyptphiSpectra.dat";
+      s_file = fopen(s_name, "w");
+      fprintf(s_file,"");
+      fclose(s_file);
+      int bound = 211; //number of lightest particle to calculate. 
+      if (mode==4) // do resonance decays
+	{
+	  fprintf(stderr,"doing all from %i: %s to %i: %s.\n",particleMax,particleList[particleMax].name,
+		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
+	  cal_reso_decays(particleMax,decayMax,bound,mode);
+	  for ( i=1; i<particleMax; i++ )
+	    {
+	      number = particleList[i].number;
+	      b = particleList[i].baryon;
+	      OutputFullParticleSpectrum(DATA, number, 4., b, 1);
+	    }
+	  if(particleMax>=20)
+	    {
+	      ReadFullSpectra(DATA);
+	      ComputeChargedHadrons(DATA,4.);
+	    }
+	}
+      else if (mode==5) // only for testing - this will miss the complete chain of decays
+	{
+	  cal_reso_decays(particleSpectrumNumber+1,decayMax,bound,mode);
+          number = particleList[particleSpectrumNumber].number;
+	  b = particleList[particleSpectrumNumber].baryon;
+	  OutputFullParticleSpectrum(DATA, number, 4., b, 1);
+	}
+    }
+  else if (mode==6) //  do additional manipulation
+    {
+      ReadFullSpectra(DATA);
+      ComputeChargedHadrons(DATA,4.);
+    //   for ( i=1; i<particleMax; i++ )
+// 	{
+// 	  number = particleList[i].number;
+// 	  ComputeAveragePT(number,4.);
+// 	}
+      //  util->vector_free(phiArray);
+      //ComputeChargedHadrons(DATA,4.);
+    }
+  else if (mode==7) //  do additional manipulation
+    {
+      Read3Spectra(DATA);
+      Compute3ChargedHadrons(DATA, 4.);
+      util->vector_free(phiArray);
+      //ComputeChargedHadrons(DATA,4.);
+    }
+  else if (mode==8) //  compute correlations
+    {
+      ReadFullSpectra(DATA);
+      ComputeCorrelations(DATA, 4.);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+

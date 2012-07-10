@@ -1,0 +1,116 @@
+Name p
+A 1.0
+Z 1.0
+density_func 3Fermi
+R_WS 1.0
+w_WS 0.0
+a_WS 1.0
+
+Name C
+A 12.0
+Z 6.0
+density_func 2HO
+R_WS 2.44
+w_WS 1.403
+a_WS 1.635
+
+Name O
+A 16.0
+Z 8.0
+density_func 3Fermi
+R_WS 2.608 
+w_WS -0.051 
+a_WS 0.513 
+
+Name S
+A 32.0
+Z 16.0
+density_func 3Gauss
+R_WS 2.54
+w_WS 0.16
+a_WS 2.191
+
+Name W
+A 184.0
+Z 74.0
+density_func 3Fermi
+R_WS 6.51
+w_WS 0.0
+a_WS 0.535
+
+Name Al
+A 27.0
+Z 13.0
+density_func 3Fermi
+R_WS 3.07
+w_WS 0.0
+a_WS 0.519
+
+Name Au
+A 197.0
+Z 79.0
+density_func 3Fermi
+R_WS 6.38
+w_WS 0.0
+a_WS 0.535
+
+Name Ca
+A 40.0
+Z 20.0
+density_func 3Fermi
+R_WS 3.766
+w_WS -0.161
+a_WS 0.586
+
+Name Cu
+A 63.0
+Z 29.0
+density_func 3Fermi
+R_WS 4.163
+w_WS 0.0
+a_WS 0.606
+
+Name Fe
+A 56.0
+Z 26.0
+density_func 3Fermi
+R_WS 4.106
+w_WS 0.0
+a_WS 0.519
+
+Name Pb
+A 208.0
+Z 82.0
+density_func 3Fermi
+R_WS 6.62
+w_WS 0.0
+a_WS 0.546
+
+Name Pt
+A 195.0
+Z 78.0
+density_func 3Fermi
+R_WS 6.78
+w_WS 0.0
+a_WS 0.54
+
+Name U
+A 238.0
+Z 92.0
+density_func 3Fermi
+R_WS 6.874
+w_WS 0.0
+a_WS 0.556
+EndOfData
+#this is a nuclei data file 
+#the format 
+#Name
+#A
+#Z
+#density_func
+#R_WS
+#w_WS
+#a_WA
+#(blank line)
+#must be strictly oberseved.
+#the last line is vital. don't delete it!
