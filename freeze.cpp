@@ -44,13 +44,13 @@ void Freeze::ReadParticleData(InitData *DATA)
   char* p_name;
   if (envPath != 0 && *envPath != '\0') 
     {
-      p_name = util->char_malloc(100);
+      p_name = util->char_malloc(300);
       strcat(p_name, envPath);
       strcat(p_name,"/EOS/pdg05.dat");
     }  
   else
     {
-      p_name = util->char_malloc(100);
+      p_name = util->char_malloc(300);
       strcat(p_name, ".");
       strcat(p_name,"/EOS/pdg05.dat");
     }
@@ -168,7 +168,7 @@ void Freeze::ReadParticleData(InitData *DATA)
       char* mu_name;
       if (envPath != 0 && *envPath != '\0') 
 	{
-	  mu_name = util->char_malloc(100);
+	  mu_name = util->char_malloc(300);
 	  strcat(mu_name, envPath);
 	  if (DATA->whichEOS==3)
 	    strcat(mu_name,"/EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat");
@@ -181,7 +181,7 @@ void Freeze::ReadParticleData(InitData *DATA)
 	}  
       else
 	{
-	  mu_name = util->char_malloc(100);
+	  mu_name = util->char_malloc(300);
 	  strcat(mu_name, ".");
 	  if (DATA->whichEOS==3)
 	    strcat(mu_name,"/EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat");
@@ -396,14 +396,37 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA)
   fprintf(stderr,"reading freeze-out surface\n");
   // open particle data file:
   FILE *s_file;
-  char* line;
-  char* s_name = "../surface3.dat"; // change back to surface.dat
+  FILE *g_file;
+  //Read environment variables
+  const char* RESPATH = "HYDRORESULTPATH";
+  char* resEnvPath = getenv(RESPATH);
+  //Path to the freeze-out file
+  char* s_name;
+  s_name = util->char_malloc(300);
+  //Path to the file whose purpose is still unclear
+  char* g_name;
+  g_name = util->char_malloc(300);
+  //If the environment variable is defined
+  if (resEnvPath != 0 && *resEnvPath != '\0')
+    {
+      strcat(s_name, resEnvPath);
+      strcat(s_name,"/surface.dat");
+      strcat(g_name, resEnvPath);
+      strcat(g_name,"/geometry.dat");
+    }
+  //If not, use default
+  else
+    {
+      strcat(s_name,"./surface.dat");
+      strcat(g_name,"./geometry.dat");
+    }
+  //Open files and check for errors
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
-  // open geometry data file:
-  FILE *g_file;
-  char* g_name = "./geometry.dat"; 
   g_file = fopen(g_name, "r");
+  checkForReadError(g_file,g_name);
+
+  char* line;
   double tecc2, tecc3, tecc3r3, tPsi2, tPsi3, tPsi3r3;
   
   if(!(g_file))
@@ -998,7 +1021,7 @@ double Freeze::summation(double px, double py, double y, double m, int deg, int 
 void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int iptmax, int iphimax, int size, int rank)
 {
   char *specString;
-  specString = util->char_malloc(30);
+  specString = util->char_malloc(50);
   char *numberStringy;
   char *numberString;
   char *numberStringpty;
@@ -1083,15 +1106,15 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   sumYPtPhi = util->cube_malloc(iymax, iptmax, iphimax);
 
   // set up file names
-  numberStringy = util->char_malloc(30);
-  numberString = util->char_malloc(30);
-  numberStringpty = util->char_malloc(30);
-  numberStringPhi = util->char_malloc(30);
-  numberStringeta = util->char_malloc(30);
-  numberStringv2 = util->char_malloc(30);
-  numberStringv2eta = util->char_malloc(30);
-  numberStringv4 = util->char_malloc(30);
-  numberStringv4eta = util->char_malloc(30);
+  numberStringy = util->char_malloc(50);
+  numberString = util->char_malloc(50);
+  numberStringpty = util->char_malloc(50);
+  numberStringPhi = util->char_malloc(50);
+  numberStringeta = util->char_malloc(50);
+  numberStringv2 = util->char_malloc(50);
+  numberStringv2eta = util->char_malloc(50);
+  numberStringv4 = util->char_malloc(50);
+  numberStringv4eta = util->char_malloc(50);
   sprintf (buf, "%d", number);
   
   //itoa(number, buf);
@@ -1608,6 +1631,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   fclose(v4_eta_file);
   //  util->vector_free(phiArray);
   //util->cube_free(sumYPtPhi,iptmax,iphimax,iymax);
+  fclose(pty_file);
 }
 
   void Freeze::OutputFullParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int full)
@@ -1697,36 +1721,36 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   //fprintf(stderr,"iymax=%d \n", iymax);
 
   // set up file names
-  numberStringy = util->char_malloc(30);
-  numberString = util->char_malloc(30);
-  numberStringy0 = util->char_malloc(30);
-  numberStringpteta = util->char_malloc(30);
-  numberStringPhi = util->char_malloc(30);
-  numberStringeta = util->char_malloc(30);
-  numberStringv2 = util->char_malloc(30);
-  numberStringv2y0 = util->char_malloc(30);
-  numberStringv3 = util->char_malloc(30);
-  numberStringv3r3 = util->char_malloc(30);
-  numberStringv4 = util->char_malloc(30);
-  numberStringv2eta = util->char_malloc(30);
-  numberStringv3eta = util->char_malloc(30);
-  numberStringv3r3eta = util->char_malloc(30);
-  numberStringv4eta = util->char_malloc(30);
-  numberStringv2pteta = util->char_malloc(30);
-  numberStringv3pteta = util->char_malloc(30);
-  numberStringv4pteta = util->char_malloc(30);
-  numberStringv2tot = util->char_malloc(30);
-  numberStringv3tot = util->char_malloc(30);
-  numberStringv3r3tot = util->char_malloc(30);
-  numberStringv4tot = util->char_malloc(30);
+  numberStringy = util->char_malloc(50);
+  numberString = util->char_malloc(50);
+  numberStringy0 = util->char_malloc(50);
+  numberStringpteta = util->char_malloc(50);
+  numberStringPhi = util->char_malloc(50);
+  numberStringeta = util->char_malloc(50);
+  numberStringv2 = util->char_malloc(50);
+  numberStringv2y0 = util->char_malloc(50);
+  numberStringv3 = util->char_malloc(50);
+  numberStringv3r3 = util->char_malloc(50);
+  numberStringv4 = util->char_malloc(50);
+  numberStringv2eta = util->char_malloc(50);
+  numberStringv3eta = util->char_malloc(50);
+  numberStringv3r3eta = util->char_malloc(50);
+  numberStringv4eta = util->char_malloc(50);
+  numberStringv2pteta = util->char_malloc(50);
+  numberStringv3pteta = util->char_malloc(50);
+  numberStringv4pteta = util->char_malloc(50);
+  numberStringv2tot = util->char_malloc(50);
+  numberStringv3tot = util->char_malloc(50);
+  numberStringv3r3tot = util->char_malloc(50);
+  numberStringv4tot = util->char_malloc(50);
   
-  numberStringpt = util->char_malloc(30);
-  numberStringv1pt = util->char_malloc(30);
-  numberStringv2pt = util->char_malloc(30);
-  numberStringv3pt = util->char_malloc(30);
-  numberStringv4pt = util->char_malloc(30);
-  numberStringv5pt = util->char_malloc(30);
-  numberStringv6pt = util->char_malloc(30);
+  numberStringpt = util->char_malloc(50);
+  numberStringv1pt = util->char_malloc(50);
+  numberStringv2pt = util->char_malloc(50);
+  numberStringv3pt = util->char_malloc(50);
+  numberStringv4pt = util->char_malloc(50);
+  numberStringv5pt = util->char_malloc(50);
+  numberStringv6pt = util->char_malloc(50);
   
   if( chdir("./outputs") != 0 )
     {
@@ -2291,13 +2315,16 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
 	<<endl;
   fout2.close();
 
+  //Compute and output the phi integrated midrapidity spectrum in its own function
+  OutputSpectrum_PhiInt_midrap(DATA, number, full, iphimax, phimin, phimax);
+  
   cout << "doing pt spectrum at y=0" << endl;
   //pt spectra at y=0
   for (ipt=0; ipt<iptmax; ipt++)
     {
       sumpt = 0.;
       sumv[2] = 0.;
-      int countY = 1;//= 0;
+      int countY = 0;
       pt = particleList[j].pt[ipt];
       for (iy=iymax/2; iy<=iymax/2; iy++) // modify
 	{
@@ -2836,6 +2863,22 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   fclose(v3r3_file);
   fclose(v4_file);
   fprintf(stderr,"Done with %s\n", particleList[j].name, particleList[j].number);
+  fclose(pteta_file);
+  fclose(v3_eta_file);
+  fclose(v3r3_eta_file);
+  fclose(v2_pteta_file);
+  fclose(v3_pteta_file);
+  fclose(v4_pteta_file);
+  fclose(v3r3_tot_file);
+  fclose(py0_file);
+  fclose(v2y0_file);
+  fclose(pt_file);
+  fclose(v1_pt_file);
+  fclose(v2_pt_file);
+  fclose(v3_pt_file);
+  fclose(v4_pt_file);
+  fclose(v5_pt_file);
+  fclose(v6_pt_file);
 }
 
 
@@ -3099,7 +3142,7 @@ void Freeze::ComputeAveragePT(int number, double ptmax)
   double mu = particleList[j].muAtFreezeOut;
  
   // set up file names
-  numberString = util->char_malloc(30);
+  numberString = util->char_malloc(50);
   
   if( chdir("./outputs") != 0 )
     {
@@ -3267,46 +3310,46 @@ void Freeze::ComputeChargedHadrons(InitData* DATA, double ptmax)
 
   cout << "setting up file names..."  << endl;
   // set up file names
-  numberStringy = util->char_malloc(30);
-  numberString = util->char_malloc(30);
-  numberStringPhi = util->char_malloc(30);
-  numberStringeta = util->char_malloc(30);
-  numberStringv2 = util->char_malloc(30);
-  numberStringv3 = util->char_malloc(30);
-  numberStringv2reac = util->char_malloc(30);
-  numberStringv3reac = util->char_malloc(30);
-  numberStringv4reac = util->char_malloc(30);
-  numberStringv5reac = util->char_malloc(30);
-  numberStringv3r3 = util->char_malloc(30);
-  numberStringv4 = util->char_malloc(30);
-  numberStringv5 = util->char_malloc(30);
-  numberStringv2eta = util->char_malloc(30);
-  numberStringv3eta = util->char_malloc(30);
-  numberStringv3r3eta = util->char_malloc(30);
-  numberStringv4eta = util->char_malloc(30);
-  numberStringv5eta = util->char_malloc(30);
-  numberStringv6eta = util->char_malloc(30);
-  numberStringv2tot = util->char_malloc(30);
-  numberStringv3tot = util->char_malloc(30);
-  numberStringv3r3tot = util->char_malloc(30);
-  numberStringv4tot = util->char_malloc(30);
-  numberStringv5tot = util->char_malloc(30);
-  numberStringv6tot = util->char_malloc(30);
-  numberStringv1tot = util->char_malloc(30);
-  numberStringv1eta = util->char_malloc(30);
-  numberStringpteta = util->char_malloc(30);
-  numberStringv2pteta = util->char_malloc(30);
-  numberStringv3pteta = util->char_malloc(30);
-  numberStringv4pteta = util->char_malloc(30);
-  numberStringv5pteta = util->char_malloc(30);
+  numberStringy = util->char_malloc(50);
+  numberString = util->char_malloc(50);
+  numberStringPhi = util->char_malloc(50);
+  numberStringeta = util->char_malloc(50);
+  numberStringv2 = util->char_malloc(50);
+  numberStringv3 = util->char_malloc(50);
+  numberStringv2reac = util->char_malloc(50);
+  numberStringv3reac = util->char_malloc(50);
+  numberStringv4reac = util->char_malloc(50);
+  numberStringv5reac = util->char_malloc(50);
+  numberStringv3r3 = util->char_malloc(50);
+  numberStringv4 = util->char_malloc(50);
+  numberStringv5 = util->char_malloc(50);
+  numberStringv2eta = util->char_malloc(50);
+  numberStringv3eta = util->char_malloc(50);
+  numberStringv3r3eta = util->char_malloc(50);
+  numberStringv4eta = util->char_malloc(50);
+  numberStringv5eta = util->char_malloc(50);
+  numberStringv6eta = util->char_malloc(50);
+  numberStringv2tot = util->char_malloc(50);
+  numberStringv3tot = util->char_malloc(50);
+  numberStringv3r3tot = util->char_malloc(50);
+  numberStringv4tot = util->char_malloc(50);
+  numberStringv5tot = util->char_malloc(50);
+  numberStringv6tot = util->char_malloc(50);
+  numberStringv1tot = util->char_malloc(50);
+  numberStringv1eta = util->char_malloc(50);
+  numberStringpteta = util->char_malloc(50);
+  numberStringv2pteta = util->char_malloc(50);
+  numberStringv3pteta = util->char_malloc(50);
+  numberStringv4pteta = util->char_malloc(50);
+  numberStringv5pteta = util->char_malloc(50);
 
-  numberStringpt = util->char_malloc(30);
-  numberStringv1pt = util->char_malloc(30);
-  numberStringv2pt = util->char_malloc(30);
-  numberStringv3pt = util->char_malloc(30);
-  numberStringv4pt = util->char_malloc(30);
-  numberStringv5pt = util->char_malloc(30);
-  numberStringv6pt = util->char_malloc(30);
+  numberStringpt = util->char_malloc(50);
+  numberStringv1pt = util->char_malloc(50);
+  numberStringv2pt = util->char_malloc(50);
+  numberStringv3pt = util->char_malloc(50);
+  numberStringv4pt = util->char_malloc(50);
+  numberStringv5pt = util->char_malloc(50);
+  numberStringv6pt = util->char_malloc(50);
   
   if( chdir("./outputs") != 0 )
     {
@@ -4564,7 +4607,7 @@ void Freeze::ComputeCorrelations(InitData* DATA, double ptmax)
 
 
   // set up file names
-  numberString = util->char_malloc(30);
+  numberString = util->char_malloc(50);
   
   if( chdir("./outputs") != 0 )
     {
@@ -5113,22 +5156,22 @@ void Freeze::Compute3ChargedHadrons(InitData* DATA,double ptmax)
 
 
   // set up file names
-  numberStringy = util->char_malloc(30);
-  numberString = util->char_malloc(30);
-  numberStringPhi = util->char_malloc(30);
-  numberStringeta = util->char_malloc(30);
-  numberStringv2 = util->char_malloc(30);
-  numberStringv3 = util->char_malloc(30);
-  numberStringv3r3 = util->char_malloc(30);
-  numberStringv4 = util->char_malloc(30);
-  numberStringv2eta = util->char_malloc(30);
-  numberStringv3eta = util->char_malloc(30);
-  numberStringv3r3eta = util->char_malloc(30);
-  numberStringv4eta = util->char_malloc(30);
-  numberStringv2tot = util->char_malloc(30);
-  numberStringv3tot = util->char_malloc(30);
-  numberStringv3r3tot = util->char_malloc(30);
-  numberStringv4tot = util->char_malloc(30);
+  numberStringy = util->char_malloc(50);
+  numberString = util->char_malloc(50);
+  numberStringPhi = util->char_malloc(50);
+  numberStringeta = util->char_malloc(50);
+  numberStringv2 = util->char_malloc(50);
+  numberStringv3 = util->char_malloc(50);
+  numberStringv3r3 = util->char_malloc(50);
+  numberStringv4 = util->char_malloc(50);
+  numberStringv2eta = util->char_malloc(50);
+  numberStringv3eta = util->char_malloc(50);
+  numberStringv3r3eta = util->char_malloc(50);
+  numberStringv4eta = util->char_malloc(50);
+  numberStringv2tot = util->char_malloc(50);
+  numberStringv3tot = util->char_malloc(50);
+  numberStringv3r3tot = util->char_malloc(50);
+  numberStringv4tot = util->char_malloc(50);
   
   if( chdir("./outputs") != 0 )
     {
@@ -6564,7 +6607,7 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, in
   if (mode == 3 || mode == 1) // compute thermal spectra
     {
       char *specString;
-      specString = util->char_malloc(30);
+      specString = util->char_malloc(50);
       FILE *d_file;
       char* d_name = "particleInformation.dat";
       d_file = fopen(d_name, "w");
@@ -6591,6 +6634,19 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, in
 	      b = particleList[i].baryon;
 	      ComputeParticleSpectrum(DATA, number, 4., b, 15, 16, size, rank);
 	    }
+          // send something just to make sure that rank 0 waits for all others to be done:
+          int check[1];
+          check[0]=rank;
+
+          if (rank > 0)
+            MPI::COMM_WORLD.Send(check,1,MPI::DOUBLE,0,1);
+
+          if (rank == 0)
+            {
+            for (int from=1; from < size; from ++)
+                MPI::COMM_WORLD.Recv(check,1,MPI::DOUBLE,from,1);
+
+	  Freeze::cat_yptfile(0 == particleSpectrumNumber ? DATA->NumberOfParticlesToInclude : 0, size, 15*floor(2.*DATA->ymax/DATA->deltaY+0.0001)/size);
 	  ReadSpectra(DATA);
 	  for ( i=1; i<particleMax; i++ )
 	    {
@@ -6598,6 +6654,8 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, in
 	      b = particleList[i].baryon;
 	      OutputFullParticleSpectrum(DATA, number, 4., b, 0);
 	    }
+
+	 }
 	}
       else
 	{
@@ -6621,29 +6679,32 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, in
 	      for (int from=1; from < size; from ++)
 		MPI::COMM_WORLD.Recv(check,1,MPI::DOUBLE,from,1);
 
-	      remove("yptphiSpectra.dat");
+
+	      Freeze::cat_yptfile(0, size, 0);
 	      
-	      switch (size) 
-		{
-		case 1: ret = system("cat yptphiSpectra0.dat > yptphiSpectra.dat"); break;
-		case 2: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat > yptphiSpectra.dat"); break;
-		case 3: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat > yptphiSpectra.dat"); break;
-		case 4: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat > yptphiSpectra.dat"); break;
-		case 5: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat > yptphiSpectra.dat"); break;
-		case 6: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat > yptphiSpectra.dat"); break;
-		case 7: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat> yptphiSpectra.dat"); break;
-		case 8: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat > yptphiSpectra.dat"); break;
-		case 9: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat > yptphiSpectra.dat"); break;
-		case 10: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat > yptphiSpectra.dat"); break;
-		case 11: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat > yptphiSpectra.dat"); break;
-		case 12: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat > yptphiSpectra.dat"); break;
-		case 13: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat > yptphiSpectra.dat"); break;
-		case 14: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat > yptphiSpectra.dat"); break;
-		case 15: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat yptphiSpectra14.dat > yptphiSpectra.dat"); break;
-		case 16: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat yptphiSpectra14.dat yptphiSpectra15.dat > yptphiSpectra.dat"); break;
-		case 32: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat yptphiSpectra14.dat yptphiSpectra15.dat yptphiSpectra16.dat yptphiSpectra17.dat yptphiSpectra18.dat yptphiSpectra19.dat yptphiSpectra20.dat yptphiSpectra21.dat yptphiSpectra22.dat yptphiSpectra23.dat yptphiSpectra24.dat yptphiSpectra25.dat yptphiSpectra26.dat yptphiSpectra27.dat yptphiSpectra28.dat yptphiSpectra29.dat yptphiSpectra30.dat yptphiSpectra31.dat > yptphiSpectra.dat"); break;
-		default: fprintf(stderr,"maximum number of processors is 32 at the moment - intermediate ones are missing!\n");exit(1);
-		}
+	      //remove("yptphiSpectra.dat");
+	      
+	      //switch (size) 
+		//{
+		//case 1: ret = system("cat yptphiSpectra0.dat > yptphiSpectra.dat"); break;
+		//case 2: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat > yptphiSpectra.dat"); break;
+		//case 3: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat > yptphiSpectra.dat"); break;
+		//case 4: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat > yptphiSpectra.dat"); break;
+		//case 5: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat > yptphiSpectra.dat"); break;
+		//case 6: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat > yptphiSpectra.dat"); break;
+		//case 7: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat> yptphiSpectra.dat"); break;
+		//case 8: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat > yptphiSpectra.dat"); break;
+		//case 9: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat > yptphiSpectra.dat"); break;
+		//case 10: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat > yptphiSpectra.dat"); break;
+		//case 11: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat > yptphiSpectra.dat"); break;
+		//case 12: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat > yptphiSpectra.dat"); break;
+		//case 13: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat > yptphiSpectra.dat"); break;
+		//case 14: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat > yptphiSpectra.dat"); break;
+		//case 15: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat yptphiSpectra14.dat > yptphiSpectra.dat"); break;
+		//case 16: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat yptphiSpectra14.dat yptphiSpectra15.dat > yptphiSpectra.dat"); break;
+		//case 32: ret = system("cat yptphiSpectra0.dat yptphiSpectra1.dat yptphiSpectra2.dat yptphiSpectra3.dat yptphiSpectra4.dat yptphiSpectra5.dat yptphiSpectra6.dat yptphiSpectra7.dat yptphiSpectra8.dat yptphiSpectra9.dat yptphiSpectra10.dat yptphiSpectra11.dat yptphiSpectra12.dat yptphiSpectra13.dat yptphiSpectra14.dat yptphiSpectra15.dat yptphiSpectra16.dat yptphiSpectra17.dat yptphiSpectra18.dat yptphiSpectra19.dat yptphiSpectra20.dat yptphiSpectra21.dat yptphiSpectra22.dat yptphiSpectra23.dat yptphiSpectra24.dat yptphiSpectra25.dat yptphiSpectra26.dat yptphiSpectra27.dat yptphiSpectra28.dat yptphiSpectra29.dat yptphiSpectra30.dat yptphiSpectra31.dat > yptphiSpectra.dat"); break;
+		//default: fprintf(stderr,"maximum number of processors is 32 at the moment - intermediate ones are missing!\n");exit(1);
+		//}
 	      
 	      ReadSingleSpectrum(DATA);
 	      cout << "output results..." << endl;
@@ -6655,6 +6716,7 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, in
     }
   else if (mode==4 || mode==5) //  do resonance decays
     {
+	if (0 == rank) {
       ReadSpectra(DATA);
       FILE *d_file;
       char* d_name = "FparticleInformation.dat";
@@ -6691,6 +6753,7 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, in
           number = particleList[particleSpectrumNumber].number;
 	  b = particleList[particleSpectrumNumber].baryon;
 	  OutputFullParticleSpectrum(DATA, number, 4., b, 1);
+	}
 	}
     }
   else if (mode==6) //  do additional manipulation
@@ -6734,13 +6797,422 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, in
     }
 }
 
+//Concatenates "yptphiSpectraXYZ.dat" files created on different CPUs
+void Freeze::cat_yptfile(int partSpecNum, int size, int blocksize) {
+
+	//There are two cases:
+	//1) the "yptphiSpectraXYZ.dat" files contain the spectrum of a single particle
+	//2) the files contain the spectra of many particles
+
+	//They share part of the code but the way files are read and concatenated is different
+
+	//Get the number of CPUs on which the code was run	
+	int nbCPUs=MPI::COMM_WORLD.Get_size();
+
+	//Open output file "yptphiSpectra.dat" in writing mode
+	//Note that this overwrites any existing "yptphiSpectra.dat" file
+	ofstream outputFile;
+	outputFile.open("yptphiSpectra.dat", ios::out | ios::trunc);
+
+	//Define variable to store file names
+	char fname[100];
+
+	//Define _the_ input file that will be used over and over again
+	ifstream inputFile;
+
+	//Define a character array where the copied line will be stored, hoping that no line is longer than 1000 caracters.
+	char tmpStr[1000];
+
+	//Treat case 1 and 2 independently
+ 	if (partSpecNum == 0) {
+	
+		std::cout << "Concatenating " << size << " yptphiSpectraN.dat files...\n";
+
+                //Loop over the number of files/number of CPU used nF
+                for(int nF=0;nF<nbCPUs;nF++) {
+
+                        //Set file name
+                        sprintf ( fname, "yptphiSpectra%i.dat", nF);
+
+                        //Open file nF
+                        inputFile.open(fname,ios::in);
+
+                        //Check if file is opened
+                        if (!inputFile.is_open()) {
+                                std::cout << "Can't open file '" << fname << "'. Aborting...\n";
+                                exit(1);
+                        }
+
+
+			while(!inputFile.eof()){
+                                //Copy Npt*Ny lines from nF'th file to output file
+                                inputFile.getline(tmpStr,998);
+                                strcat(tmpStr,"\n");
+                                outputFile.write(tmpStr,strlen(tmpStr));
+                        }
+
+                        //Close file nF
+                        inputFile.close();
+                }
+	
+
+
+	}
+	else {
+		//Each file yptphiSpectraN.dat contains information for all particles for a given range of y:
+		// (phi block)X(pT block)X(partial y block)X(particle types block)
+		//What we want is one file with:
+		// (phi block)X(pT block)X(total y block)X(particle types block)
+
+		std::cout << "Concatenating and ordering " << size << " yptphiSpectraN.dat files...\n";
+
+
+		//std::cout << "Blocksize is " << blocksize << "\n"; 
+
+		//Define an array at position pos[nF]=0 for all nF
+		int * posArr = new int [nbCPUs];
+		if (0 == posArr) {
+			std::cout << "Unable to allocate memory. You must be using a _huge_ number of CPU man!\n";
+			exit(1);		
+		}
+
+		for(int i=0;i<nbCPUs;i++) {
+			posArr[i]=0;
+		}
+
+
+	//Loop over the number of particles nP
+	for(int nP=0;nP<partSpecNum-1;nP++) {
+
+		//Loop over the number of files/number of CPU used nF
+		for(int nF=0;nF<nbCPUs;nF++) {
+
+			//Set file name
+			sprintf ( fname, "yptphiSpectra%i.dat", nF);
+
+			//Open file nF
+			inputFile.open(fname,ios::in);
+
+			//Check if file is opened
+			if (!inputFile.is_open()) {
+				std::cout << "Can't open file '" << fname << "'. Aborting...\n";
+				exit(1);	
+			}
+
+
+			//Go to position pos[nF] in file
+			inputFile.seekg(posArr[nF]);
+
+			if (!inputFile.good()) {
+				std::cout << "Something's fishy. Let's abort just in case...\n";
+				exit(1);
+			}
+			
+			for(int nLine=1;nLine<=blocksize;nLine++) {
+				//Copy Npt*Ny lines from nF'th file to output file
+				inputFile.getline(tmpStr,998);
+				strcat(tmpStr,"\n");
+				outputFile.write(tmpStr,strlen(tmpStr));
+			}
+			//Save position in pos[nF]
+			posArr[nF]=inputFile.tellg();
+
+			//Close file nF
+			inputFile.close();
+		}
+	//Check if all the pos are equal. If not, something's fishy?
+	//for(int i=0;i<nbCPUs;i++) {
+	//}
 
 
 
+	}
+	
+	//
+	delete [] posArr;
+
+
+	}
+	
+	//Close outfile file
+	outputFile.close();
+
+}
+
+
+//Output the phi-integrated, rapidity-averaged-around-0 yield as a function of pT
+void Freeze::OutputSpectrum_PhiInt_midrap(InitData *DATA, int number, bool full, int iphimax, double phimin, double phimax) {
+
+	//std::cout << "In Freeze::OutputSpectrum_PhiInt_midrap()...\n";
+
+	//Array dNdydptdphi[NY][NPT][NPHI+1] contains everything that is needed to calculate every possible observable
+	//However, one needs to know the values of y, pt and phi at which the function was sampled, and also the exact expression for the differential dN
+	//dNdydptdphi[iy][ipt][iphi] = dN/dy dpT dphi(y=-ymax+(iy+1/2)*deltaY,pt=GaLa_nodes[ipt]/12,phi=phimin+(phimax-phimin)/2.0*(1+Gaule_nodes[i]))
+	//where:
+	//deltaY and ymax are input parameters, iphimax is a parameter of the function ComputeParticleSpectrum(), phimax and phimin are semi-hard-coded parameters that control the sampling in phi
+	//GaLa_nodes[i]=i-th node for 15th order Gauss-Laguerre quadrature
+	//GauLe_nodes[i]=i-th node for the "iphimax"-th order Gauss-Legendre quadrature, which are distributed in [-1,1] (ordered so that the first node is the closest to -1)
+	//The factor of 12 rescaling the Gauss-Laguerre nodes is hardcoded in ComputeParticleSpectrum()
+
+	//First, number of points in rapidity
+	double ymax=DATA->ymax;
+	double deltaY=DATA->deltaY;
+	int iymax;
+	//Use exactly the same formula as in ComputeParticleSpectrum() to calculate iymax;
+	iymax = floor(2.*ymax/deltaY+0.0001);
+
+	//Mid-rapidity cut: the midrapidity result will be an average over from -midRapCut to midRapCut
+	const double midRapCut = 0.5;
+
+	//Hard-coded number of points in pT
+	int iptmax = 15;
+
+	//Other useful variables
+	double pt, yval, intRes, phiFac, yFac,tmpIntRes;
+	int ystep;
+	
+	//Retrieve the right Gauss quadrature nodes and weights
+	std::vector<double> phiQuadNodes, phiQuadWeights;	
+	gaussQuadNodesAndWeights(legendre, iphimax, &phiQuadNodes, &phiQuadWeights);
+
+	//full or mode 4?
+	//I'm pretty sure the full parameter is not necessary, if it's mode 4, it's full and the mode can be read from DATA.
+	//bool full = 0;
+	//if (4 == DATA->mode) {
+	//	full=1;
+	//}
+
+	//Define index j used in particleList[j]
+	int j = partid[MHALF+number];
+
+	//Set output file name
+	string fname;
+	stringstream tmpStr;
+	fname="./outputs/";
+	if (full) {
+		fname+="F";
+	}
+	fname+="Npty0prime-";
+	tmpStr << number;
+	fname+=tmpStr.str();
+	fname+=".dat";	
+
+	//Open output file
+	ofstream outfile;
+	outfile.open(fname.c_str());
+
+	//Set the format of the output
+	//outfile.width (10);
+	outfile.precision(6);
+	outfile.setf(ios::scientific);
+
+	//Loop over pT
+	for(int ipt=0;ipt<iptmax;ipt++) {
+
+		//Value of pT
+		pt=particleList[j].pt[ipt];
+
+		//intRes will contain the result of the phi integration and rapidity averaging
+		intRes=0.0;
+
+		//Integrate over phi using Gauss-Legendre quadrature
+		for(int iphi=0;iphi<phiQuadNodes.size();iphi++) {
+
+			//By default, Gauss-Legendre quadrature integrates over [-1,1]: 
+			//\int_{-1}^{1} dx f(x) \approx \sum_{k=0}^{N-1} w_k f(x_k)
+			//We want to integrate from phimin to phimax instead: u = (x-(phimin+phimax)/2)*2/(phimax-phimin) 
+			//\int_{\phimin}^{\phimax} dx f(x) = \int_{-1}^{1} du (phimax-phimin)/2 f((phimax-phimin)/2*u+(phimin+phimax)/2)
+			//dNdydptdphi[NY][NPT][NPHI+1] is already sampled as f((phimax-phimin)/2*u+(phimin+phimax)/2), so:
+			//\int_{\phimin}^{\phimax} dx f(x) = (phimax-phimin)/2 \sum_{k=0}^{N-1} w_k dNdydptdphi[NY][NPT][NPHI+1]
+			//(It is important that the order of the weights and nodes here be the same as the one used to define dNdydptdphi[NY][NPT][NPHI+1])
+			phiFac=(phimax-phimin)/2.0*phiQuadWeights[iphi];
+
+			//Count how many rapidity interval make the midrapidity cut	
+			ystep=0;
+
+			//tmpIntRes will contain the results of the rapidity integral
+			tmpIntRes=0.0;
+	
+			//_Average_ (not integrate) over rapidity. What should be done is to integrate over range (-midRapCut to midRapCut) and divide by 2*midRapCut.
+			//However, that can be tricky as the spectrum is pre-sampled (In ComputeParticleSpectrum(), the spectrum was sampled at y=-ymax+(iy+1/2)*deltaY)
+			//To simplify things, we integrate over a convenient-to-integrate range (which depends on the integration method) close to midRapCut
+			for(int iy=0;iy<iymax;iy++) { 
+			
+				//Value of the rapidity at this iy
+				yval=-ymax+(iy+0.5)*deltaY;
+
+				//Impose the midrapidity cut
+				if (fabs(yval) <= midRapCut) { 
+
+					//std::cout << "iy=" << iy << "\n";
+
+					//Let's use a simple midpoint rule for now
+					yFac=deltaY;
+		
+					ystep+=1;
+	
+					//Finally, multiply by dNdydptdphi[NY][NPT][NPHI+1] 
+					tmpIntRes+=phiFac*yFac*particleList[j].dNdydptdphi[iy][ipt][iphi];
+					
+					//Test to make sure we're using the right value of dNdydptdphi[iy][ipt][iphi]
+					//std::vector<double> pTQuadNodes, pTQuadWeights;
+        				//gaussQuadNodesAndWeights(laguerre, 15, &pTQuadNodes, &pTQuadWeights);
+					//double pt, phi;
+					//pt=pTQuadNodes[ipt]/12.0;
+					//phi=((phimax - phimin)/2.0*phiQuadNodes[iphi] + (phimin + phimax)/2.0);
+										
+					
+					//std::cout << "yval=" << yval << " and dN/dy=" << particleList[j].dNdydptdphi[iy][ipt][iphi] << "\n";
+					//std::cout << "value evaluated at (pt, phi, y)=" << summation(pt*cos(phi), pt*sin(phi), yval, particleList[j].mass, particleList[j].degeneracy, particleList[j].degeneracy, DATA) << "\n"; 
+
+					//Simple way to test the integrator
+					//tmpIntRes+=phiFac*yFac*yval*yval*cos(((phimax - phimin)/2.0*phiQuadNodes[iphi] + (phimin + phimax)/2.0)/3.0);
 
 
 
+				}
+
+			}
+			
+			//Divide by the rapidity integration range to yield an average instead of an integral
+			intRes+=tmpIntRes/(ystep*deltaY);
+			//std::cout << "intRes=" << intRes << "\n";
 
 
+		}
+
+
+		//Output result
+		outfile << pt << "\t" << intRes << "\n";
+
+
+
+	}
+
+	//Close file
+	outfile.close();
+
+}
+
+//Fill vectors "nodes" and "weights" with the appropriate nodes and weights for a Gauss quadrature of type "type" and order "order"
+//Possible type: Laguerre, Hermitte, Legendre (use enum variables {laguerre, hermitte, legendre} to specify)
+void Freeze::gaussQuadNodesAndWeights(gaussQuadType type, int order, std::vector<double> * nodes, std::vector<double> * weights) {
+
+	//
+	std::vector<double> tmpNodes, tmpWeights;
+	int tmpLen;
+
+	//First retrieves the tabulated nodes and weights (hardcoded in "int.h") 
+	//In "int.h", when nodes are symmetric with respect to 0 (e.g. Hermite and Legendre), only the positive nodes are specified.
+	//This is taken care of here, the nodes and weights returned include the negative nodes
+	switch(type) {
+
+		//Laguerre
+		case laguerre:
+			switch(order) {
+                                case 4: tmpNodes.assign(gala4x,gala4x+sizeof(gala4x)/sizeof(double)); tmpWeights.assign(gala4w,gala4w+sizeof(gala4w)/sizeof(double)); break;
+                                case 8: tmpNodes.assign(gala8x,gala8x+sizeof(gala8x)/sizeof(double)); tmpWeights.assign(gala8w,gala8w+sizeof(gala8w)/sizeof(double)); break;
+                                case 12: tmpNodes.assign(gala12x,gala12x+sizeof(gala12x)/sizeof(double)); tmpWeights.assign(gala12w,gala12w+sizeof(gala12w)/sizeof(double)); break;
+                                case 15: tmpNodes.assign(gala15x,gala15x+sizeof(gala15x)/sizeof(double)); tmpWeights.assign(gala15w,gala15w+sizeof(gala15w)/sizeof(double)); break;
+                                std::cout << "Error: nodes unavailable for order " << order << " in gaussQuadNodesAndWeights()\n";
+                        }	
+			break;
+
+		//Hermite
+		case hermite:
+                        switch(order) {
+                                case 4: tmpNodes.assign(gahep4,gahep4+sizeof(gahep4)/sizeof(double)); tmpWeights.assign(gahew4,gahew4+sizeof(gahew4)/sizeof(double)); break;
+                                case 8: tmpNodes.assign(gahep8,gahep8+sizeof(gahep8)/sizeof(double)); tmpWeights.assign(gahew8,gahew8+sizeof(gahew8)/sizeof(double)); break;
+                                case 16: tmpNodes.assign(gahep16,gahep16+sizeof(gahep16)/sizeof(double)); tmpWeights.assign(gahew16,gahew16+sizeof(gahew16)/sizeof(double)); break;
+                                case 20: tmpNodes.assign(gahep20,gahep20+sizeof(gahep20)/sizeof(double)); tmpWeights.assign(gahew20,gahew20+sizeof(gahew20)/sizeof(double)); break;
+                                std::cout << "Error: nodes unavailable for order " << order << " in gaussQuadNodesAndWeights()\n";
+                        }
+			break;
+
+		//Legendre
+		case legendre:
+			switch(order) {
+                                case 4: tmpNodes.assign(gaulep4,gaulep4+sizeof(gaulep4)/sizeof(double)); tmpWeights.assign(gaulew4,gaulew4+sizeof(gaulew4)/sizeof(double)); break;
+                                case 8: tmpNodes.assign(gaulep8,gaulep8+sizeof(gaulep8)/sizeof(double)); tmpWeights.assign(gaulew8,gaulew8+sizeof(gaulew8)/sizeof(double)); break;
+                                case 10: tmpNodes.assign(gaulep10,gaulep10+sizeof(gaulep10)/sizeof(double)); tmpWeights.assign(gaulew10,gaulew10+sizeof(gaulew10)/sizeof(double)); break;
+                                case 12: tmpNodes.assign(gaulep12,gaulep12+sizeof(gaulep12)/sizeof(double)); tmpWeights.assign(gaulew12,gaulew12+sizeof(gaulew12)/sizeof(double)); break;
+                                case 16: tmpNodes.assign(gaulep16,gaulep16+sizeof(gaulep16)/sizeof(double)); tmpWeights.assign(gaulew16,gaulew16+sizeof(gaulew16)/sizeof(double)); break;
+                                case 20: tmpNodes.assign(gaulep20,gaulep20+sizeof(gaulep20)/sizeof(double)); tmpWeights.assign(gaulew20,gaulew20+sizeof(gaulew20)/sizeof(double)); break;
+                                case 48: tmpNodes.assign(gaulep48,gaulep48+sizeof(gaulep48)/sizeof(double)); tmpWeights.assign(gaulew48,gaulew48+sizeof(gaulew48)/sizeof(double)); break;
+				std::cout << "Error: nodes unavailable for order " << order << " in gaussQuadNodesAndWeights()\n";
+			}
+			break;
+
+		//Default
+		default:
+			std::cout << "Error: unknown quadrature type " << type << " in gaussQuadNodesAndWeights()\n";
+			exit(1);
+
+	}
+
+	
+	//Now, add the negative values for the nodes (and the associated weights) when necessary
+	//Can't order (e.g. from smallest nodes to largest) because the ordering of the pre-entered nodes and weights is not consistent 
+	switch(type) {
+
+		//Laguerre
+		case laguerre:
+			//Everything is already in right order, just copy
+			//Not sure what's the fastest way of copying a vector into another vector...	
+			for(unsigned int i=0;i<tmpNodes.size();i++) {
+				nodes->push_back(tmpNodes[i]);
+				weights->push_back(tmpWeights[i]);
+			}
+			//std::copy(tmpNodes.begin(),tmpNodes.begin()+tmpNodes.size(),nodes->begin());
+			//std::copy(tmpWeights.begin(),tmpWeights.begin()+tmpWeights.size(),nodes->begin());
+			//nodes->assign(tmpNodes,tmpNodes+tmpNodes.size());
+			//weights->assign(tmpWeights);
+			break;
+
+		//Hermitte
+		case hermite:
+		//Legendre
+		case legendre:
+			//Add negative nodes.
+			tmpLen=tmpNodes.size();
+			//In even order case
+			if (0 == tmpLen%2) {
+				//Negative
+				for(unsigned int i=0;i<tmpNodes.size();i++) {
+					nodes->push_back(-tmpNodes[i]);
+					weights->push_back(tmpWeights[i]);
+				}
+				//Positive
+				for(unsigned int i=0;i<tmpNodes.size();i++) {
+					nodes->push_back(tmpNodes[tmpLen-1-i]);
+					weights->push_back(tmpWeights[tmpLen-1-i]);
+				}
+			}
+			else {
+			//For odd number of nodes, we need to know where the node x=0 is, and we don't here (the ordering of the nodes and weights is not consistent)
+			std::cout << "Error: gaussQuadNodesAndWeights() not set up to deal with odd orders of Hermite or Legendre quadrature\n";
+			exit(1);
+
+
+		//		//Negative
+		//		for(unsigned int i=1;i<tmpNodes.size();i++) {
+		//			nodes->push_back(-tmpNodes[tmpLen-1-i]);
+		//			weights->push_back(tmpWeights[tmpLen-1-i]);
+		//		}
+		//		//Zero
+		//		nodes->push_back(tmpNodes[0]);
+		//		weights->push_back(tmpWeights[0]);
+		//		//Positive
+		//		for(unsigned int i=1;i<tmpNodes.size();i++) {
+		//			nodes->push_back(tmpNodes[i]);
+		//			weights->push_back(tmpWeights[i]);
+		//		 }
+			}
+			break;
+
+	}
+	
+
+}
 
 
