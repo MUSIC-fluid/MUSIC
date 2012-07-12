@@ -23,7 +23,7 @@ Reconst::~Reconst()
   delete util;
 }
 
-int Reconst::ReconstIt(Grid::Grid *grid_p, int direc, double tau, double **uq, Grid::Grid *grid_pt,
+int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
 		       double eps_init, double rhob_init, InitData *DATA, int rk_flag)
 {
  /* reconstruct TJb from q[0] - q[4] */
