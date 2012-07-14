@@ -88,7 +88,6 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
   /* at this point, the original values in grid_pt->TJb are not touched. */
     grid_p->epsilon = grid_pt->epsilon;
     grid_p->rhob = grid_pt->rhob;
-    grid_p->p = grid_pt->p;
     //rhob =grid_p->rhob ;
     //  if (rhob>1) cout << "rhob=" << rhob << endl;
      
