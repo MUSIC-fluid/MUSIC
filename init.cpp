@@ -2065,6 +2065,32 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		       }/* nu */
 		   }/* mu */
 	       }}}/* ix, iy, ieta */
+     //This is somewhat computationally intensive, but only needs to be
+     //done once, on one processor. This will write out the coordinates
+     //of the collisions. -CFY 11/2/2010
+     if(rank==0){
+       if(DATA->Nbin_to_file==1){
+	 //Write the coordinates of the collisions to file for MARTINI, where
+	 //appropriate. -CFY 11/1/2010
+	 ofstream nbin_file;
+	 nbin_file.open("x_y_binary.dat");
+	 
+	 for(int i=0; i<A; i++){
+	   for(int j=0; j<A; j++){
+	     double dx = nucleusB.at(j).x-nucleusA.at(i).x;
+	     double dy = nucleusB.at(j).y-nucleusA.at(i).y;
+	     double dij = dx*dx+dy*dy;
+	     if(dij<d2){
+	       cout << "dij<d2, is this getting written down?" << endl;
+	       double xm = 0.5*(nucleusB.at(j).x+nucleusA.at(i).x);
+	       double ym = 0.5*(nucleusB.at(j).y+nucleusA.at(i).y);
+	       cout << xm << " " << ym << endl;
+	       nbin_file << xm << " " << ym << endl;
+	     }
+	   }
+	 }
+       }
+     }
    }
  else if (DATA->Initial_profile==4) // sample initial distribution with a Glauber Monte-Carlo and average over them to compare to average as in 1
    {
