@@ -178,9 +178,8 @@ void EOS::init_eos2()
   whichEOS = 2; 
   int bytes_read;
   int i, j;
-  FILE *eos_d1, *eos_d2, *eos_d3, *eos_d4;
-  FILE *eos_T1, *eos_T2, *eos_T3, *eos_T4;
-  
+  FILE *eos_d1, *eos_d2, *eos_d3, *eos_d4, *eos_d5, *eos_d6, *eos_d7;
+  FILE *eos_T1, *eos_T2, *eos_T3, *eos_T4, *eos_T5, *eos_T6, *eos_T7;
   const char* EOSPATH = "HYDROPROGRAMPATH";
   char* envPath;
   envPath = util->char_malloc(100);
@@ -189,10 +188,16 @@ void EOS::init_eos2()
   char* eos_d2_name;
   char* eos_d3_name;
   char* eos_d4_name;
+  char* eos_d5_name;
+  char* eos_d6_name;
+  char* eos_d7_name;
   char* eos_T1_name;
   char* eos_T2_name;
   char* eos_T3_name;
   char* eos_T4_name;
+  char* eos_T5_name;
+  char* eos_T6_name;
+  char* eos_T7_name;
   double eps, baryonDensity; //dummies for now
   char* temp;
   temp = new char[80];//util->char_malloc(100);
@@ -228,6 +233,24 @@ void EOS::init_eos2()
       strcat(eos_d4_name,envPath);
       strcat(eos_d4_name,temp);
       
+      strcpy(temp,"/EOS/s95p-v1/s95p-v1_dens5.dat");
+      eos_d5_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_dens5.dat")+1];//util->char_malloc(100);
+      eos_d5_name[0] = '\0';
+      strcat(eos_d5_name,envPath);
+      strcat(eos_d5_name,temp);
+      
+      strcpy(temp,"/EOS/s95p-v1/s95p-v1_dens6.dat");
+      eos_d6_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_dens6.dat")+1];//util->char_malloc(100);
+      eos_d6_name[0] = '\0';
+      strcat(eos_d6_name,envPath);
+      strcat(eos_d6_name,temp);
+      
+      strcpy(temp,"/EOS/s95p-v1/s95p-v1_dens7.dat");
+      eos_d7_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_dens7.dat")+1];//util->char_malloc(100);
+      eos_d7_name[0] = '\0';
+      strcat(eos_d7_name,envPath);
+      strcat(eos_d7_name,temp);
+      
       strcpy(temp,"/EOS/s95p-v1/s95p-v1_par1.dat");
       eos_T1_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par1.dat")+1];//util->char_malloc(100);
       eos_T1_name[0] = '\0';
@@ -251,52 +274,100 @@ void EOS::init_eos2()
       eos_T4_name[0] = '\0';
       strcat(eos_T4_name,envPath);
       strcat(eos_T4_name,temp);
+      
+      strcpy(temp,"/EOS/s95p-v1/s95p-v1_par5.dat");
+      eos_T5_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par5.dat")+1];//util->char_malloc(100);
+      eos_T5_name[0] = '\0';
+      strcat(eos_T5_name,envPath);
+      strcat(eos_T5_name,temp);
+      
+      strcpy(temp,"/EOS/s95p-v1/s95p-v1_par6.dat");
+      eos_T6_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par6.dat")+1];//util->char_malloc(100);
+      eos_T6_name[0] = '\0';
+      strcat(eos_T6_name,envPath);
+      strcat(eos_T6_name,temp);
+      
+      strcpy(temp,"/EOS/s95p-v1/s95p-v1_par7.dat");
+      eos_T7_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par7.dat")+1];//util->char_malloc(100);
+      eos_T7_name[0] = '\0';
+      strcat(eos_T7_name,envPath);
+      strcat(eos_T7_name,temp);
     }
  else //if path is not set in the environment use current folder and then /EOS/s95p-v1 subfolder
     {
-      eos_d1_name = util->char_malloc(100);
+      eos_d1_name = util->char_malloc(300);
       strcat(eos_d1_name,".");
       strcat(eos_d1_name,"/EOS/s95p-v1/s95p-v1_dens1.dat");
-      eos_d2_name = util->char_malloc(100);
+      eos_d2_name = util->char_malloc(300);
       strcat(eos_d2_name,".");
       strcat(eos_d2_name,"/EOS/s95p-v1/s95p-v1_dens2.dat");
-      eos_d3_name = util->char_malloc(100);
+      eos_d3_name = util->char_malloc(300);
       strcat(eos_d3_name,".");
       strcat(eos_d3_name,"/EOS/s95p-v1/s95p-v1_dens3.dat");
-      eos_d4_name = util->char_malloc(100);
+      eos_d4_name = util->char_malloc(300);
       strcat(eos_d4_name,".");
       strcat(eos_d4_name,"/EOS/s95p-v1/s95p-v1_dens4.dat");
-      eos_T1_name = util->char_malloc(100);
+      eos_d5_name = util->char_malloc(300);
+      strcat(eos_d5_name,".");
+      strcat(eos_d5_name,"/EOS/s95p-v1/s95p-v1_dens5.dat");
+      eos_d6_name = util->char_malloc(300);
+      strcat(eos_d6_name,".");
+      strcat(eos_d6_name,"/EOS/s95p-v1/s95p-v1_dens6.dat");
+      eos_d7_name = util->char_malloc(300);
+      strcat(eos_d7_name,".");
+      strcat(eos_d7_name,"/EOS/s95p-v1/s95p-v1_dens7.dat");
+      eos_T1_name = util->char_malloc(300);
       strcat(eos_T1_name,".");
       strcat(eos_T1_name,"/EOS/s95p-v1/s95p-v1_par1.dat");
-      eos_T2_name = util->char_malloc(100);
+      eos_T2_name = util->char_malloc(300);
       strcat(eos_T2_name,".");
       strcat(eos_T2_name,"/EOS/s95p-v1/s95p-v1_par2.dat");
-      eos_T3_name = util->char_malloc(100);
+      eos_T3_name = util->char_malloc(300);
       strcat(eos_T3_name,".");
       strcat(eos_T3_name,"/EOS/s95p-v1/s95p-v1_par3.dat");
-      eos_T4_name = util->char_malloc(100);
+      eos_T4_name = util->char_malloc(300);
       strcat(eos_T4_name,".");
       strcat(eos_T4_name,"/EOS/s95p-v1/s95p-v1_par4.dat");
+      eos_T5_name = util->char_malloc(300);
+      strcat(eos_T5_name,".");
+      strcat(eos_T5_name,"/EOS/s95p-v1/s95p-v1_par5.dat");
+      eos_T6_name = util->char_malloc(300);
+      strcat(eos_T6_name,".");
+      strcat(eos_T6_name,"/EOS/s95p-v1/s95p-v1_par6.dat");
+      eos_T7_name = util->char_malloc(300);
+      strcat(eos_T7_name,".");
+      strcat(eos_T7_name,"/EOS/s95p-v1/s95p-v1_par7.dat");
     }
   
   eos_d1 = fopen(eos_d1_name, "r");
   eos_d2 = fopen(eos_d2_name, "r");
   eos_d3 = fopen(eos_d3_name, "r");
   eos_d4 = fopen(eos_d4_name, "r");
+  eos_d5 = fopen(eos_d5_name, "r");
+  eos_d6 = fopen(eos_d6_name, "r");
+  eos_d7 = fopen(eos_d7_name, "r");
   eos_T1 = fopen(eos_T1_name, "r");
   eos_T2 = fopen(eos_T2_name, "r");
   eos_T3 = fopen(eos_T3_name, "r");
   eos_T4 = fopen(eos_T4_name, "r");
+  eos_T5 = fopen(eos_T5_name, "r");
+  eos_T6 = fopen(eos_T6_name, "r");
+  eos_T7 = fopen(eos_T7_name, "r");
   
   checkForReadError(eos_d1,eos_d1_name);
   checkForReadError(eos_d2,eos_d2_name);
   checkForReadError(eos_d3,eos_d3_name);
   checkForReadError(eos_d4,eos_d4_name);
+  checkForReadError(eos_d5,eos_d5_name);
+  checkForReadError(eos_d6,eos_d6_name);
+  checkForReadError(eos_d7,eos_d7_name);
   checkForReadError(eos_T1,eos_T1_name);
   checkForReadError(eos_T2,eos_T2_name);
   checkForReadError(eos_T3,eos_T3_name);
   checkForReadError(eos_T4,eos_T4_name);
+  checkForReadError(eos_T5,eos_T5_name);
+  checkForReadError(eos_T6,eos_T6_name);
+  checkForReadError(eos_T7,eos_T7_name);
  
   //read the first two lines with general info:
   // lowest value of epsilon
@@ -309,6 +380,12 @@ void EOS::init_eos2()
   bytes_read=fscanf(eos_T3,"%lf %d",&deltaEPP3,&NEPP3);
   bytes_read=fscanf(eos_T4,"%lf",&EPP4);
   bytes_read=fscanf(eos_T4,"%lf %d",&deltaEPP4,&NEPP4);
+  bytes_read=fscanf(eos_T5,"%lf",&EPP5);
+  bytes_read=fscanf(eos_T5,"%lf %d",&deltaEPP5,&NEPP5);
+  bytes_read=fscanf(eos_T6,"%lf",&EPP6);
+  bytes_read=fscanf(eos_T6,"%lf %d",&deltaEPP6,&NEPP6);
+  bytes_read=fscanf(eos_T7,"%lf",&EPP7);
+  bytes_read=fscanf(eos_T7,"%lf %d",&deltaEPP7,&NEPP7);
   bytes_read=fscanf(eos_d1,"%lf",&EPP1);
   bytes_read=fscanf(eos_d1,"%lf %d",&deltaEPP1,&NEPP1);
   bytes_read=fscanf(eos_d2,"%lf",&EPP2);
@@ -317,36 +394,58 @@ void EOS::init_eos2()
   bytes_read=fscanf(eos_d3,"%lf %d",&deltaEPP3,&NEPP3);
   bytes_read=fscanf(eos_d4,"%lf",&EPP4);
   bytes_read=fscanf(eos_d4,"%lf %d",&deltaEPP4,&NEPP4);
+  bytes_read=fscanf(eos_d5,"%lf",&EPP5);
+  bytes_read=fscanf(eos_d5,"%lf %d",&deltaEPP5,&NEPP5);
+  bytes_read=fscanf(eos_d6,"%lf",&EPP6);
+  bytes_read=fscanf(eos_d6,"%lf %d",&deltaEPP6,&NEPP6);
+  bytes_read=fscanf(eos_d7,"%lf",&EPP7);
+  bytes_read=fscanf(eos_d7,"%lf %d",&deltaEPP7,&NEPP7);
+  
  
   // no rho_b dependence at the moment
   NBNP1=0; 
   NBNP2=0;
   NBNP3=0;
   NBNP4=0;
+  NBNP5=0;
+  NBNP6=0;
+  NBNP7=0;
 
   // allocate memory for pressure arrays
   pressure1=util->mtx_malloc(NBNP1+1,NEPP1+1);
   pressure2=util->mtx_malloc(NBNP2+1,NEPP2+1);
   pressure3=util->mtx_malloc(NBNP3+1,NEPP3+1);
   pressure4=util->mtx_malloc(NBNP4+1,NEPP4+1);
+  pressure5=util->mtx_malloc(NBNP5+1,NEPP5+1);
+  pressure6=util->mtx_malloc(NBNP6+1,NEPP6+1);
+  pressure7=util->mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for entropy density arrays
   entropyDensity1=util->mtx_malloc(NBNP1+1,NEPP1+1);
   entropyDensity2=util->mtx_malloc(NBNP2+1,NEPP2+1);
   entropyDensity3=util->mtx_malloc(NBNP3+1,NEPP3+1);
   entropyDensity4=util->mtx_malloc(NBNP4+1,NEPP4+1);
+  entropyDensity5=util->mtx_malloc(NBNP5+1,NEPP5+1);
+  entropyDensity6=util->mtx_malloc(NBNP6+1,NEPP6+1);
+  entropyDensity7=util->mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for QGP fraction arrays
   QGPfraction1=util->mtx_malloc(NBNP1+1,NEPP1+1);
   QGPfraction2=util->mtx_malloc(NBNP2+1,NEPP2+1);
   QGPfraction3=util->mtx_malloc(NBNP3+1,NEPP3+1);
   QGPfraction4=util->mtx_malloc(NBNP4+1,NEPP4+1);
+  QGPfraction5=util->mtx_malloc(NBNP5+1,NEPP5+1);
+  QGPfraction6=util->mtx_malloc(NBNP6+1,NEPP6+1);
+  QGPfraction7=util->mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for temperature arrays
   temperature1=util->mtx_malloc(NBNP1+1,NEPP1+1);
   temperature2=util->mtx_malloc(NBNP2+1,NEPP2+1);
   temperature3=util->mtx_malloc(NBNP3+1,NEPP3+1);
   temperature4=util->mtx_malloc(NBNP4+1,NEPP4+1);
+  temperature5=util->mtx_malloc(NBNP5+1,NEPP5+1);
+  temperature6=util->mtx_malloc(NBNP6+1,NEPP6+1);
+  temperature7=util->mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for baryon chemical potential arrays
   // currently always zero
@@ -406,6 +505,42 @@ void EOS::init_eos2()
       bytes_read=fscanf(eos_T4,"%lf",&eps); //dummy
     }
 
+  for(j=NEPP5-1; j>=0; j--)
+    {
+      bytes_read=fscanf(eos_d5,"%lf",&eps);
+      bytes_read=fscanf(eos_d5,"%lf",&pressure5[i][j]);
+      bytes_read=fscanf(eos_d5,"%lf",&entropyDensity5[i][j]);
+      bytes_read=fscanf(eos_d5,"%lf",&baryonDensity);
+      bytes_read=fscanf(eos_d5,"%lf",&QGPfraction5[i][j]);
+      bytes_read=fscanf(eos_T5,"%lf",&temperature5[i][j]);
+      bytes_read=fscanf(eos_T5,"%lf",&eps); //dummy
+      bytes_read=fscanf(eos_T5,"%lf",&eps); //dummy
+    } 
+
+  for(j=NEPP6-1; j>=0; j--)
+    {
+      bytes_read=fscanf(eos_d6,"%lf",&eps);
+      bytes_read=fscanf(eos_d6,"%lf",&pressure6[i][j]);
+      bytes_read=fscanf(eos_d6,"%lf",&entropyDensity6[i][j]);
+      bytes_read=fscanf(eos_d6,"%lf",&baryonDensity);
+      bytes_read=fscanf(eos_d6,"%lf",&QGPfraction6[i][j]);
+      bytes_read=fscanf(eos_T6,"%lf",&temperature6[i][j]);
+      bytes_read=fscanf(eos_T6,"%lf",&eps); //dummy
+      bytes_read=fscanf(eos_T6,"%lf",&eps); //dummy
+    } 
+
+  for(j=NEPP7-1; j>=0; j--)
+    {
+      bytes_read=fscanf(eos_d7,"%lf",&eps);
+      bytes_read=fscanf(eos_d7,"%lf",&pressure7[i][j]);
+      bytes_read=fscanf(eos_d7,"%lf",&entropyDensity7[i][j]);
+      bytes_read=fscanf(eos_d7,"%lf",&baryonDensity);
+      bytes_read=fscanf(eos_d7,"%lf",&QGPfraction7[i][j]);
+      bytes_read=fscanf(eos_T7,"%lf",&temperature7[i][j]);
+      bytes_read=fscanf(eos_T7,"%lf",&eps); //dummy
+      bytes_read=fscanf(eos_T7,"%lf",&eps); //dummy
+    } 
+
 //test if the reading worked:
 /*   for(j=0; j<NEPP1; j++) */
 /*     { */
@@ -428,10 +563,16 @@ void EOS::init_eos2()
   fclose(eos_d2);
   fclose(eos_d3);
   fclose(eos_d4);
+  fclose(eos_d5);
+  fclose(eos_d6);
+  fclose(eos_d7);
   fclose(eos_T1);
   fclose(eos_T2);
   fclose(eos_T3);
   fclose(eos_T4);
+  fclose(eos_T5);
+  fclose(eos_T6);
+  fclose(eos_T7);
 }
 
 void EOS::init_eos3(int selector)
