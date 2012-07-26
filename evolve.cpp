@@ -4255,7 +4255,7 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
 	      else
 		fprintf(oout_file,"OSCAR2008H ideal history\n");
 
-	      fprintf(oout_file,"INIT: MUSIC %s+%s at b=%f fm, Glauber\n",DATA->Target, DATA->Projectile,DATA->b);
+	      fprintf(oout_file,"INIT: MUSIC %s+%s at b=%f fm, Glauber\n",DATA->Target.c_str(), DATA->Projectile.c_str(),DATA->b);
 	      fprintf(oout_file,"INIT: \n");
 	      
 	      if (DATA->whichEOS==0)
