@@ -38,7 +38,7 @@ void EOS::init_eos()
   FILE *eos_mu1, *eos_mu2;
   const char* EOSPATH = "HYDROPROGRAMPATH";
   char* envPath;
-  envPath = util->char_malloc(300);
+  envPath = util->char_malloc(100);
   envPath = getenv(EOSPATH);
   char* eos_p1_name;
   char* eos_p2_name;
@@ -50,53 +50,53 @@ void EOS::init_eos()
   if (envPath != 0 && *envPath != '\0') 
     {
       fprintf(stderr,"from path %s/EOS \n", envPath);
-      eos_p1_name = util->char_malloc(300);
+      eos_p1_name = util->char_malloc(100);
       strcat(eos_p1_name,envPath);
       strcat(eos_p1_name,"/EOS/aa1_p.dat");
 
-      eos_p2_name = util->char_malloc(300);
+      eos_p2_name = util->char_malloc(100);
       strcat(eos_p2_name,envPath);
       strcat(eos_p2_name,"/EOS/aa2_p.dat");
 
-      eos_T1_name = util->char_malloc(300);
+      eos_T1_name = util->char_malloc(100);
       strcat(eos_T1_name,envPath);
       strcat(eos_T1_name,"/EOS/aa1_t.dat");
 
-      eos_T2_name = util->char_malloc(300);
+      eos_T2_name = util->char_malloc(100);
       strcat(eos_T2_name,envPath);
       strcat(eos_T2_name,"/EOS/aa2_t.dat");
 
-      eos_mu1_name = util->char_malloc(300);
+      eos_mu1_name = util->char_malloc(100);
       strcat(eos_mu1_name,envPath);
       strcat(eos_mu1_name,"/EOS/aa1_mb.dat");
  
-      eos_mu2_name = util->char_malloc(300);
+      eos_mu2_name = util->char_malloc(100);
       strcat(eos_mu2_name,envPath);
       strcat(eos_mu2_name,"/EOS/aa2_mb.dat");
     }
   else
     {
-      eos_p1_name = util->char_malloc(300);
+      eos_p1_name = util->char_malloc(100);
       strcat(eos_p1_name,".");
       strcat(eos_p1_name,"/EOS/aa1_p.dat");
 
-      eos_p2_name = util->char_malloc(300);
+      eos_p2_name = util->char_malloc(100);
       strcat(eos_p2_name,".");
       strcat(eos_p2_name,"/EOS/aa2_p.dat");
 
-      eos_T1_name = util->char_malloc(300);
+      eos_T1_name = util->char_malloc(100);
       strcat(eos_T1_name,".");
       strcat(eos_T1_name,"/EOS/aa1_t.dat");
 
-      eos_T2_name = util->char_malloc(300);
+      eos_T2_name = util->char_malloc(100);
       strcat(eos_T2_name,".");
       strcat(eos_T2_name,"/EOS/aa2_t.dat");
 
-      eos_mu1_name = util->char_malloc(300);
+      eos_mu1_name = util->char_malloc(100);
       strcat(eos_mu1_name,".");
       strcat(eos_mu1_name,"/EOS/aa1_mb.dat");
  
-      eos_mu2_name = util->char_malloc(300);
+      eos_mu2_name = util->char_malloc(100);
       strcat(eos_mu2_name,".");
       strcat(eos_mu2_name,"/EOS/aa2_mb.dat");
     }
@@ -183,7 +183,7 @@ void EOS::init_eos2()
   
   const char* EOSPATH = "HYDROPROGRAMPATH";
   char* envPath;
-  envPath = util->char_malloc(300);
+  envPath = util->char_malloc(100);
   envPath = getenv(EOSPATH);
   char* eos_d1_name;
   char* eos_d2_name;
@@ -254,28 +254,28 @@ void EOS::init_eos2()
     }
  else //if path is not set in the environment use current folder and then /EOS/s95p-v1 subfolder
     {
-      eos_d1_name = util->char_malloc(300);
+      eos_d1_name = util->char_malloc(100);
       strcat(eos_d1_name,".");
       strcat(eos_d1_name,"/EOS/s95p-v1/s95p-v1_dens1.dat");
-      eos_d2_name = util->char_malloc(300);
+      eos_d2_name = util->char_malloc(100);
       strcat(eos_d2_name,".");
       strcat(eos_d2_name,"/EOS/s95p-v1/s95p-v1_dens2.dat");
-      eos_d3_name = util->char_malloc(300);
+      eos_d3_name = util->char_malloc(100);
       strcat(eos_d3_name,".");
       strcat(eos_d3_name,"/EOS/s95p-v1/s95p-v1_dens3.dat");
-      eos_d4_name = util->char_malloc(300);
+      eos_d4_name = util->char_malloc(100);
       strcat(eos_d4_name,".");
       strcat(eos_d4_name,"/EOS/s95p-v1/s95p-v1_dens4.dat");
-      eos_T1_name = util->char_malloc(300);
+      eos_T1_name = util->char_malloc(100);
       strcat(eos_T1_name,".");
       strcat(eos_T1_name,"/EOS/s95p-v1/s95p-v1_par1.dat");
-      eos_T2_name = util->char_malloc(300);
+      eos_T2_name = util->char_malloc(100);
       strcat(eos_T2_name,".");
       strcat(eos_T2_name,"/EOS/s95p-v1/s95p-v1_par2.dat");
-      eos_T3_name = util->char_malloc(300);
+      eos_T3_name = util->char_malloc(100);
       strcat(eos_T3_name,".");
       strcat(eos_T3_name,"/EOS/s95p-v1/s95p-v1_par3.dat");
-      eos_T4_name = util->char_malloc(300);
+      eos_T4_name = util->char_malloc(100);
       strcat(eos_T4_name,".");
       strcat(eos_T4_name,"/EOS/s95p-v1/s95p-v1_par4.dat");
     }
