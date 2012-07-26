@@ -66,6 +66,21 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
  s_file.close();
  ofstream out_file("evolution.dat");
  out_file.close();
+ FILE *out_file_xyeta;
+ FILE *out_file_W_xyeta;
+ char* out_name_xyeta = "evolution_xyeta.dat";
+ char* out_name_W_xyeta = "evolution_Wmunu_over_shear_xyeta.dat";
+ if (0 == DATA->outputBinaryEvolution) {
+   out_file_xyeta = fopen(out_name_xyeta, "w");
+   out_file_W_xyeta = fopen(out_name_W_xyeta,"w");
+
+ }
+ else {
+   out_file_xyeta = fopen(out_name_xyeta, "wb");
+   out_file_W_xyeta = fopen(out_name_W_xyeta,"wb");
+ }
+ fclose(out_file_xyeta);
+ fclose(out_file_W_xyeta);
  ofstream oout_file("OSCAR.dat");
  oout_file.close();
  ofstream cout_file("contoutPlot.dat");
@@ -117,8 +132,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 
    if(it%10==0 && DATA->outputEvolutionData) 
      {
-       grid->OutputXY(arena, DATA, eos, tau, size, rank);
-       grid->OutputEvolutionOSCAR(arena, DATA, eos, tau, size, rank); 
+       //grid->OutputXY(arena, DATA, eos, tau, size, rank);
+       grid->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
+       //grid->OutputEvolutionOSCAR(arena, DATA, eos, tau, size, rank); 
        //  grid->OutputEvolutionDataXYZ(arena, DATA, eos, tau, size, rank); 
        // this produces potentially huge outputs so beware
      }

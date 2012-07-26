@@ -81,6 +81,7 @@ typedef struct init_data
   double hard;          // fraction of binary collisons scaling in initial distribution
   int rotateBy45degrees;// if 1: rotate the initial configuration in the x-y plane by 45 degrees (to test dependence of v_4 on lattice)
   int outputEvolutionData; // decide whether to output the evolution data (1) or not (0)
+  int outputBinaryEvolution; // decide whether to output "evolution_xyeta.dat" and "evolution_Wmunu_over_shear_xyeta.dat" in binary format (1) or in text format (0)
   int includeJet;
   int includeTrigger;
   int include_deltaf;

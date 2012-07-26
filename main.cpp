@@ -357,6 +357,9 @@ void ReadInData(InitData *DATA, string file)
  //MARTINI to sample. -CFY 11/2/2010
  DATA->Nbin_to_file = util->IFind(file, "Write_Nbin_to_File");
 
+ //
+ DATA->outputBinaryEvolution = util->IFind(file, "outputBinaryEvolution");
+
   cout << "Done ReadInData." << endl;
   delete util;
 }/* ReadInData */

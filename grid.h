@@ -96,6 +96,7 @@ class Grid{
   void PrintAxy2(InitData *DATA, Grid ***arena, double tau);
   void PrintdEdEta(InitData *DATA, Grid ***arena);
   void OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
+  void OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
   void OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
   void OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
   void OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
