@@ -353,6 +353,10 @@ void ReadInData(InitData *DATA, string file)
 	}
     }/* m */
   
+ //These were added for writing the coordinates of collisions to file for
+ //MARTINI to sample. -CFY 11/2/2010
+ DATA->Nbin_to_file = util->IFind(file, "Write_Nbin_to_File");
+
   cout << "Done ReadInData." << endl;
   delete util;
 }/* ReadInData */

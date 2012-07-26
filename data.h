@@ -116,6 +116,9 @@ typedef struct init_data
   double bmax;
   int doFreezeOut;  
   int seed;
+
+  int Nbin_to_file;
+
   double sigma0;
   double TFO; // freeze-out temperature. Used if useEpsFO=0
   int useEpsFO; // if 1, use energy density value to define freeze out condition, if 0 use temperature in TFO
