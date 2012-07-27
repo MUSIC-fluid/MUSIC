@@ -1542,7 +1542,7 @@ double EOS::p_func(double e, double rhob)
    f = cs2*e;
  else if (whichEOS==1)
    f = interpolate_pressure(e,rhob);
- else if (whichEOS==2 || whichEOS==3)
+ else if (whichEOS>=2)
    f = interpolate2(e,rhob,0); //selector 0 means get pressure 
  return f;
 }/* p_func */
@@ -1554,7 +1554,7 @@ double EOS::p_rho_func(double e, double rhob)
    f = 0.0;
  else if (whichEOS==1)
    f = get_dpOverdrhob(e, rhob);
- else if (whichEOS==2 || whichEOS==3)
+ else if (whichEOS>=2)
    f = 0.0;
  return f;
 }/* p_rho_func */
@@ -1567,7 +1567,7 @@ double EOS::p_e_func(double e, double rhob)
    f = cs2;
  else if (whichEOS==1)
    f = get_dpOverde(e, rhob);
- else if (whichEOS==2 || whichEOS==3)
+ else if (whichEOS>=2)
    f = get_dpOverde2(e, rhob);
  return f;
 }/* p_e_func */
@@ -1752,7 +1752,7 @@ double EOS::s_func(double epsilon, double p, double rhob)
      T = interpolate(epsilon, rhob, 0);
      mu = interpolate(epsilon, rhob, 1);
    }
- else if (whichEOS==2 || whichEOS==3) 
+ else if (whichEOS>=2) 
    {
      T = interpolate2(epsilon, rhob, 1);
      mu = 0.0;
@@ -1777,7 +1777,7 @@ double EOS::ssolve(double e, double rhob, double s)
       T = interpolate(e/hbarc, rhob, 0);
       mu = interpolate(e/hbarc, rhob, 1);
     }
-  else if (whichEOS==2 || whichEOS==3)
+  else if (whichEOS>=2)
     {
       T = interpolate2(e/hbarc, rhob, 1);
       mu = 0.0;
@@ -1802,7 +1802,7 @@ double EOS::Tsolve(double e, double rhob, double T)
       s = s_func(e/hbarc, P, rhob);
       mu = interpolate(e/hbarc, rhob, 1);
     }
-  else if (whichEOS==2 || whichEOS==3)
+  else if (whichEOS>=2)
     {
       s = s_func(e/hbarc, P, rhob);
       mu = 0.0;
