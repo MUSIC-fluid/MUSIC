@@ -5735,14 +5735,15 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num)
     printf("ERROR: phir %15.8le < 0 !!! \n", phirin);exit(0);}
   if(phirin > 2.0*PI){
     printf("ERROR: phir %15.8le > 2PI !!! \n", phirin);exit(0);}
-  if(phirin < 0.5*PI) phir = phirin;
-  else{
-    if(phirin < PI) phir = PI - phirin;
-    else{
-      if(phirin < 1.5*PI) phir = phirin - PI;
-      else phir = 2.0*PI - phirin;
-    }
-  }
+  phir= phirin;
+//  if(phirin < 0.5*PI) phir = phirin;
+//  else{
+//    if(phirin < PI) phir = PI - phirin;
+//    else{
+//      if(phirin < 1.5*PI) phir = phirin - PI;
+//      else phir = 2.0*PI - phirin;
+//    }
+//  }
   
   pn = partid[MHALF + res_num];
 
