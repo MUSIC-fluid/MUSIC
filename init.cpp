@@ -1001,6 +1001,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 
 	 // test start -----------------------------------
 	 
+	 double avxs = avx;
+	 double avys = avy;
 
 	 avx = 0.;
 	 avy = 0.;
@@ -1797,7 +1799,16 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	     twodplotB_file << nucleusB.at(i).x << " " << nucleusB.at(i).y << endl; 
 	   }
 
-       } 
+	 for (int i = 0; i<A; i++) 
+	   {
+	     nucleusA.at(i).x+=avxs;
+	     nucleusB.at(i).x+=avxs;
+	     nucleusA.at(i).y+=avys;
+	     nucleusB.at(i).y+=avys;
+	   }
+
+
+       }
 
      //     printf("hallo\n");
      
