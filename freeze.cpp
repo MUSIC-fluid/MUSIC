@@ -160,7 +160,16 @@ void Freeze::ReadParticleData(InitData *DATA)
   // here read the stable particles' chemical potential at freeze-out
   if (DATA->whichEOS>=3)
     {
-      double ef=DATA->epsilonFreeze;
+      double ef;
+      if (1==DATA->useEpsFO) {
+        ef=DATA->epsilonFreeze;
+      }
+      else {
+        cout << "determining epsFO from TFO=" << DATA->TFO << endl; 
+        ef= eos->findRoot(&EOS::Tsolve, 0., DATA->TFO/hbarc, 0.001, 300.,0.001)*hbarc;
+        cout << "freeze out energy density (assuming rhob=0) is " << ef << endl;
+      }
+
       cout << "Determining chemical potentials at freeze out energy density " << ef << " GeV/fm^3." << endl;
       
       const char* EOSPATH = "HYDROPROGRAMPATH";
@@ -271,66 +280,86 @@ void Freeze::ReadParticleData(InitData *DATA)
 	    }
 	  //	  cout << "mu of stable particle " << i << "=" << mu[i] << endl;
 	}
-      
+     
       for(i=0; i<DATA->NumberOfParticlesToInclude; i++)
-	{
-	  particleList[i].muAtFreezeOut = 0.;	  
-	}
+        {
+          particleList[i].muAtFreezeOut = 0.;      
+        }
       
       if (DATA->NumberOfParticlesToInclude>=17)
-	{for(i=1; i<=8; i++)
-	    {
-	      particleList[i].muAtFreezeOut = mu[i];
-	    }
-	}
+        {
+          for(i=1; i<=9; i++)
+            {
+              particleList[i].muAtFreezeOut = mu[i];
+            }
+        }
       else
-	{
-	  cout << "Need at least 8 particles. Increase number of particles to include. Exiting." << endl;
-	  exit(1);
-	}
+        {
+          cout << "Need at least 9 particles. Increase number of particles to include. Exiting." << endl;
+          exit(1);
+        }
       if (DATA->NumberOfParticlesToInclude>=17)
-	particleList[17].muAtFreezeOut = mu[9];
+      particleList[17].muAtFreezeOut = mu[10];
       if (DATA->NumberOfParticlesToInclude>=18)
-      particleList[18].muAtFreezeOut = mu[10];
+      particleList[18].muAtFreezeOut = mu[11];
       if (DATA->NumberOfParticlesToInclude>=19)
-      particleList[19].muAtFreezeOut = mu[11];
+      particleList[19].muAtFreezeOut = mu[12];
       if (DATA->NumberOfParticlesToInclude>=20)
-      particleList[20].muAtFreezeOut = mu[12];
+      particleList[20].muAtFreezeOut = mu[13];
       if (DATA->NumberOfParticlesToInclude>=21)
-      particleList[21].muAtFreezeOut = mu[13];
+      particleList[21].muAtFreezeOut = mu[14];
+
       if (DATA->NumberOfParticlesToInclude>=26)
-      particleList[26].muAtFreezeOut = mu[14];
+      particleList[26].muAtFreezeOut = mu[15];
       if (DATA->NumberOfParticlesToInclude>=27)
-      particleList[27].muAtFreezeOut = mu[15];
+      particleList[27].muAtFreezeOut = mu[16];
       if (DATA->NumberOfParticlesToInclude>=28)
-      particleList[28].muAtFreezeOut = mu[16];
+      particleList[28].muAtFreezeOut = mu[17];
+
       if (DATA->NumberOfParticlesToInclude>=30)
-      particleList[30].muAtFreezeOut = mu[17];
+      particleList[30].muAtFreezeOut = mu[18];
       if (DATA->NumberOfParticlesToInclude>=31)
-      particleList[31].muAtFreezeOut = mu[18];
+      particleList[31].muAtFreezeOut = mu[19];
       if (DATA->NumberOfParticlesToInclude>=32)
-      particleList[32].muAtFreezeOut = mu[19];
+      particleList[32].muAtFreezeOut = mu[20];
       if (DATA->NumberOfParticlesToInclude>=33)
-      particleList[33].muAtFreezeOut = mu[20];
+      particleList[33].muAtFreezeOut = mu[21];
       if (DATA->NumberOfParticlesToInclude>=34)
-      particleList[34].muAtFreezeOut = mu[21];
+      particleList[34].muAtFreezeOut = mu[22];
       if (DATA->NumberOfParticlesToInclude>=35)
-      particleList[35].muAtFreezeOut = mu[22];
+      particleList[35].muAtFreezeOut = mu[23];
+
       if (DATA->NumberOfParticlesToInclude>=60)
-      particleList[60].muAtFreezeOut = mu[23];
+      particleList[60].muAtFreezeOut = mu[24];
       if (DATA->NumberOfParticlesToInclude>=61)
-      particleList[61].muAtFreezeOut = mu[24];
+      particleList[61].muAtFreezeOut = mu[25];
       if (DATA->NumberOfParticlesToInclude>=62)
-      particleList[62].muAtFreezeOut = mu[25];
+      particleList[62].muAtFreezeOut = mu[26];
       if (DATA->NumberOfParticlesToInclude>=63)
-      particleList[63].muAtFreezeOut = mu[26];
+      particleList[63].muAtFreezeOut = mu[27];
+
+      if (DATA->NumberOfParticlesToInclude>=110)
+      particleList[110].muAtFreezeOut = mu[28];
+      if (DATA->NumberOfParticlesToInclude>=111)
+      particleList[111].muAtFreezeOut = mu[29];
+
+      if (DATA->NumberOfParticlesToInclude>=117)
+      particleList[117].muAtFreezeOut = mu[30];
+      if (DATA->NumberOfParticlesToInclude>=118)
+      particleList[118].muAtFreezeOut = mu[31];
+      if (DATA->NumberOfParticlesToInclude>=119)
+      particleList[119].muAtFreezeOut = mu[32];
+      if (DATA->NumberOfParticlesToInclude>=120)
+      particleList[120].muAtFreezeOut = mu[33];
+
       if (DATA->NumberOfParticlesToInclude>=170)
-      particleList[170].muAtFreezeOut = mu[27];
+      particleList[170].muAtFreezeOut = mu[34];
       if (DATA->NumberOfParticlesToInclude>=171)
-      particleList[171].muAtFreezeOut = mu[28];
+      particleList[171].muAtFreezeOut = mu[35];
+
       
       cout << "Got the chemical potentials at freeze out for stable particles." << endl;
-
+ 
       k=0;
       for(i=1; i<DATA->NumberOfParticlesToInclude; i++) //skip the photon (i=0)
 	{
