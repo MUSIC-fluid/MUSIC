@@ -26,7 +26,7 @@ void Freeze::checkForReadError(FILE *file, char* name)
 }
 
 
-void Freeze::ReadParticleData(InitData *DATA)
+void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 {
   // read in particle and decay information from file:
   // partid = (int *)malloc(MAXINTV * sizeof(int)); 
@@ -6587,9 +6587,9 @@ void Freeze::cal_reso_decays (int maxpart, int maxdecay, int bound, int mode)
     }
 }
 
-void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, int size, int rank)
+void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank)
 {
-  ReadParticleData(DATA); // read in data for Cooper-Frye
+  ReadParticleData(DATA, eos); // read in data for Cooper-Frye
   int i, b, number;
   if (mode == 3 || mode == 1) // compute thermal spectra
     {

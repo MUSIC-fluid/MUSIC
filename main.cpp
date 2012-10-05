@@ -191,7 +191,7 @@ main(int argc, char *argv[])
       //  freeze-out
       Freeze *freeze;
       freeze = new Freeze();
-      freeze->CooperFrye(DATA.particleSpectrumNumber, DATA.mode, &DATA, size, rank);
+      freeze->CooperFrye(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
       delete freeze;
     }
   if(DATA.mode!=8)

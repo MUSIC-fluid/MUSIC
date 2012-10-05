@@ -119,7 +119,7 @@ class Freeze{
   ~Freeze();//destructor
 
   double gauss(int n, double (Freeze::*f)(double, void *), double xlo, double xhi, void *optvec );
-  void ReadParticleData(InitData *DATA);
+  void ReadParticleData(InitData *DATA, EOS *eos);
   void ReadFreezeOutSurface(InitData *DATA);
   void ReadSpectra(InitData *DATA);
   void Read3Spectra(InitData *DATA);
@@ -160,7 +160,7 @@ class Freeze{
   
   int countLines (std::istream& in);
   void checkForReadError(FILE *file, char* name);
-  void CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, int size, int rank);
+  void CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
 };
 #endif
   
