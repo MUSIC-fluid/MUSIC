@@ -801,8 +801,8 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
  rho = 1e-30;
  regStr = 1.; //0.5
  //factor = 100.*pow(tanh(1/grid_pt->epsilon)*grid_pt->epsilon,1.); //0.5
- factor = 10.*pow(tanh(tau)/tau,2.5)+1.; //20, 0.5
- //factor=10.;
+ //factor = 10.*pow(tanh(tau)/tau,2.5)+1.; //20, 0.5
+ factor=2.;
  // cout << "factor=" << factor << endl;
  int whichCorr=0;
  

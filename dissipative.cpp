@@ -270,13 +270,11 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
  
  s_den = eos->s_func(epsilon, grid_pt->p, rhob);
  shear = (shear_to_s)*s_den;
-
- 
+ tau_pi = 3.0*shear/(grid_pt->epsilon + grid_pt->p);
 
  //set viscosity to zero if energy density is very low (~1/10 of freeze out energy density)
  if (grid_pt->epsilon < 0.01/hbarc) shear = 0.;
 
- tau_pi = 3.0*shear/(grid_pt->epsilon + grid_pt->p);
 
  tau_pi = maxi(tau_pi, DATA->tau_pi);
  if(!finite(tau_pi)) tau_pi = DATA->tau_pi;

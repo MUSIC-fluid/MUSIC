@@ -57,7 +57,7 @@ Bulk_to_S_ratio 0.1
 Include_Rhob_Yes_1_No_0 0
 Minimum_Epsilon_Frac_For_Visc 0.00001
 Bulk_relaxation_time_tau_b_pi 0.6
-Shear_relaxation_time_tau_pi 0.2
+Shear_relaxation_time_tau_pi 0.01
 Verbose_Flag_Yes_1_No_0 0
 Maximum_Local_Rapidity 20.0
 EndOfData
