@@ -173,7 +173,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *
       }
 
      g = minmod->minmod_dx(fp1, f, fm1, DATA);
-     g /= delta[n]/taufactor;
+     g /= delta[n]*taufactor;
      grid_pt->dUsup[rk_flag][m][n] = g;
     
     }
@@ -214,7 +214,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *
      }
 
    g = minmod->minmod_dx(fp1, f, fm1, DATA);
-   g /= delta[n]/taufactor;
+   g /= delta[n]*taufactor;
    grid_pt->dUsup[rk_flag][m][n] = g;
    
   }
