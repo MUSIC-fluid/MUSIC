@@ -1,7 +1,7 @@
 #ifndef HYDRO_DATA_H
 #define HYDRO_DATA_H
 
-#define SMALL (1.0e-8)
+#define SMALL (1.0e-16)
 
 #include <stdio.h>
 #include <stdlib.h>
