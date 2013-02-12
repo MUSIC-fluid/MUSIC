@@ -239,10 +239,10 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
    {
      for(ix=0; ix<=DATA->nx; ix++)
        {
-	 x = (DATA->delta_x)*ix - (DATA->x_size)/2.0;
+	 x = DATA->delta_x*(ix*2 - DATA->nx)/2.0;
 	 for(iy=0; iy<=DATA->ny; iy++)
 	   {
-	     y = (DATA->delta_y)*iy - (DATA->y_size)/2.0;
+	     y = DATA->delta_y*(iy*2 - DATA->ny)/2.0;
 	     rho = sqrt(x*x/(a_short*a_short) + y*y/(a_long*a_long));
 	     rho *= sqrt(a_short*a_short + a_long*a_long);
 	     (*Lneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
@@ -463,10 +463,10 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      // loop over the whole lattice and initialize values:
      for(ix=0; ix<=DATA->nx; ix++)
        {
-	 x = (DATA->delta_x)*ix - (DATA->x_size)/2.0;
+	 x = DATA->delta_x*(ix*2 - DATA->nx)/2.0;
 	 for(iy=0; iy<=DATA->ny; iy++)
 	   {
-	     y = (DATA->delta_y)*iy - (DATA->y_size)/2.0;
+	     y = DATA->delta_y*(iy*2 - DATA->ny)/2.0;
 	     if(DATA->rotateBy45degrees ==0)
 	       {
 		 r1 = sqrt((x+b/2.)*(x+b/2.)+(y*y));
@@ -681,10 +681,10 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      // loop over the whole lattice and initialize values:
      for(ix=0; ix<=DATA->nx; ix++)
        {
-	 x = (DATA->delta_x)*ix - (DATA->x_size)/2.0;
+	 x = DATA->delta_x*(ix*2 - DATA->nx)/2.0;
 	 for(iy=0; iy<=DATA->ny; iy++)
 	   {
-	     y = (DATA->delta_y)*iy - (DATA->y_size)/2.0;
+	     y = DATA->delta_y*(iy*2 - DATA->ny)/2.0;
 	     (*Lneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
 	     (*Rneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
 	     (*Lneighbor)[ix][iy][1].TJb = util->cube_malloc(rk_order+1, 5,4);
@@ -1830,10 +1830,10 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      // loop over the whole lattice and initialize values:
      for(ix=0; ix<=DATA->nx; ix++)
        {
-	 x = (DATA->delta_x)*ix - (DATA->x_size)/2.0;
+	 x = DATA->delta_x*(ix*2 - DATA->nx)/2.0;
 	 for(iy=0; iy<=DATA->ny; iy++)
 	   {
-	     y = (DATA->delta_y)*iy - (DATA->y_size)/2.0;
+	     y = DATA->delta_y*(iy*2 - DATA->ny)/2.0;
 	     
 	     W = 0.;
 	     WbinColl = 0.;
@@ -2297,10 +2297,10 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      // loop over the whole lattice and initialize values:
      for(ix=0; ix<=DATA->nx; ix++)
        {
-	 x = (DATA->delta_x)*ix - (DATA->x_size)/2.0;
+	 x = DATA->delta_x*(ix*2 - DATA->nx)/2.0;
 	 for(iy=0; iy<=DATA->ny; iy++)
 	   {
-	     y = (DATA->delta_y)*iy - (DATA->y_size)/2.0;
+	     y = DATA->delta_y*(iy*2 - DATA->ny)/2.0;
 	  
 	     //number of binary collisions:
 	     nBinary = TAProjectile(DATA, r2)*TATarget(DATA, r1)*DATA->SigmaNN/10.;
