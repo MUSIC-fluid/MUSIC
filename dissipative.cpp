@@ -503,8 +503,8 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
     
 /* add a source term -u^tau Wmn/tau due to the coordinate change to tau-eta */
     
-    sum -= (grid_pt->u[rk_flag][0])*(grid_pt->Wmunu[rk_flag+1][mu][nu])/tau;
-    sum += (grid_pt->theta_u[rk_flag])*(grid_pt->Wmunu[rk_flag+1][mu][nu]);
+    sum -= (grid_pt->u[rk_flag][0])*(grid_pt->Wmunu[rk_flag][mu][nu])/tau;
+    sum += (grid_pt->theta_u[rk_flag])*(grid_pt->Wmunu[rk_flag][mu][nu]);
    
    /* this is from udW = d(uW) - Wdu = RHS */
    /* or d(uW) = udW + Wdu */
@@ -514,19 +514,19 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 /* other source terms due to the coordinate change to tau-eta */
     tempf = 0.0;
 
-    tempf += -(DATA->gmunu[3][mu])*(grid_pt->Wmunu[rk_flag+1][0][nu]);
-    tempf += -(DATA->gmunu[3][nu])*(grid_pt->Wmunu[rk_flag+1][0][mu]);
-    tempf +=  (DATA->gmunu[0][mu])*(grid_pt->Wmunu[rk_flag+1][3][nu]);
-    tempf +=  (DATA->gmunu[0][nu])*(grid_pt->Wmunu[rk_flag+1][3][mu]);
+    tempf += -(DATA->gmunu[3][mu])*(grid_pt->Wmunu[rk_flag][0][nu]);
+    tempf += -(DATA->gmunu[3][nu])*(grid_pt->Wmunu[rk_flag][0][mu]);
+    tempf +=  (DATA->gmunu[0][mu])*(grid_pt->Wmunu[rk_flag][3][nu]);
+    tempf +=  (DATA->gmunu[0][nu])*(grid_pt->Wmunu[rk_flag][3][mu]);
   
     tempf +=
-    (grid_pt->Wmunu[rk_flag+1][3][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][0]);
+    (grid_pt->Wmunu[rk_flag][3][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][0]);
     tempf += 
-    (grid_pt->Wmunu[rk_flag+1][3][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][0]);
+    (grid_pt->Wmunu[rk_flag][3][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][0]);
     tempf -=
-    (grid_pt->Wmunu[rk_flag+1][0][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][3]);
+    (grid_pt->Wmunu[rk_flag][0][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][3]);
     tempf -=
-    (grid_pt->Wmunu[rk_flag+1][0][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][3]);
+    (grid_pt->Wmunu[rk_flag][0][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][3]);
     
     tempf *= (grid_pt->u[rk_flag][3]/tau);
     
@@ -534,26 +534,26 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
     {
      ic_fac = (ic==0 ? -1.0 : 1.0);
      tempf +=
-     (grid_pt->Wmunu[rk_flag+1][ic][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->a[rk_flag][ic])*ic_fac;
+     (grid_pt->Wmunu[rk_flag][ic][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->a[rk_flag][ic])*ic_fac;
      tempf +=
-     (grid_pt->Wmunu[rk_flag+1][ic][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->a[rk_flag][ic])*ic_fac;
+     (grid_pt->Wmunu[rk_flag][ic][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->a[rk_flag][ic])*ic_fac;
     }
 /* SYM TEST */
     tempg = 0.0;
 
-    tempg += -(DATA->gmunu[3][nu])*(grid_pt->Wmunu[rk_flag+1][0][mu]);
-    tempg += -(DATA->gmunu[3][mu])*(grid_pt->Wmunu[rk_flag+1][0][nu]);
-    tempg +=  (DATA->gmunu[0][nu])*(grid_pt->Wmunu[rk_flag+1][3][mu]);
-    tempg +=  (DATA->gmunu[0][mu])*(grid_pt->Wmunu[rk_flag+1][3][nu]);
+    tempg += -(DATA->gmunu[3][nu])*(grid_pt->Wmunu[rk_flag][0][mu]);
+    tempg += -(DATA->gmunu[3][mu])*(grid_pt->Wmunu[rk_flag][0][nu]);
+    tempg +=  (DATA->gmunu[0][nu])*(grid_pt->Wmunu[rk_flag][3][mu]);
+    tempg +=  (DATA->gmunu[0][mu])*(grid_pt->Wmunu[rk_flag][3][nu]);
   
     tempg +=
-    (grid_pt->Wmunu[rk_flag+1][3][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][0]);
+    (grid_pt->Wmunu[rk_flag][3][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][0]);
     tempg += 
-    (grid_pt->Wmunu[rk_flag+1][3][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][0]);
+    (grid_pt->Wmunu[rk_flag][3][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][0]);
     tempg -=
-    (grid_pt->Wmunu[rk_flag+1][0][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][3]);
+    (grid_pt->Wmunu[rk_flag][0][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][3]);
     tempg -=
-    (grid_pt->Wmunu[rk_flag+1][0][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][3]);
+    (grid_pt->Wmunu[rk_flag][0][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][3]);
     
     tempg *= (grid_pt->u[rk_flag][3]/tau);
     
@@ -561,9 +561,9 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
     {
      ic_fac = (ic==0 ? -1.0 : 1.0);
      tempg +=
-     (grid_pt->Wmunu[rk_flag+1][ic][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->a[rk_flag][ic])*ic_fac;
+     (grid_pt->Wmunu[rk_flag][ic][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->a[rk_flag][ic])*ic_fac;
      tempg +=
-     (grid_pt->Wmunu[rk_flag+1][ic][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->a[rk_flag][ic])*ic_fac;
+     (grid_pt->Wmunu[rk_flag][ic][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->a[rk_flag][ic])*ic_fac;
     }
 /* SYM TEST */
 
@@ -601,7 +601,7 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
  nmax[2] = DATA->ny;
  nmax[3] = DATA->neta-1;
 
-       tg = grid_pt->Wmunu[rk_flag+1][mu][nu];
+       tg = grid_pt->Wmunu[rk_flag][mu][nu];
        tf = tg*grid_pt->u[rk_flag][direc];
        tg *=   grid_pt->u[rk_flag][0];
        
@@ -615,11 +615,11 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 	       tgp1 = tg;
 	       tfp1 = tf;
 	 
-	       tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 	       
-	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 	     }
@@ -628,25 +628,25 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 	       tgp2 = tg;
 	       tfp2 = tf;
 	       
-	       tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 	       
-	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 	     }
 	   else if(grid_pt->position[direc] == 0)
 	     {
-	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 	       
@@ -658,15 +658,15 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 	     }
 	   else if(grid_pt->position[direc] == 1)
 	     {
-	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 	       
@@ -675,19 +675,19 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 	     }
 	   else 
 	     {
-	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 	       
-	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 	     }
@@ -706,36 +706,36 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 		   tgp1 = tg;
 		   tfp1 = tf;
 		   
-		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
-		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 		 }
 	       else // for all other ranks use values from neighboring CPUs
 		 {
-		   tgp2 = Rneighbor2->Wmunu[rk_flag+1][mu][nu];
+		   tgp2 = Rneighbor2->Wmunu[rk_flag][mu][nu];
 		   tfp2 = tgp2*Rneighbor2->u[rk_flag][direc];
 		   tgp2 *=     Rneighbor2->u[rk_flag][0];
 		   
-		   tgp1 = Rneighbor->Wmunu[rk_flag+1][mu][nu];
+		   tgp1 = Rneighbor->Wmunu[rk_flag][mu][nu];
 		   tfp1 = tgp1*Rneighbor->u[rk_flag][direc];
 		   tgp1 *=     Rneighbor->u[rk_flag][0];
 		     
-		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
-		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
-	// 	   tgm1 = Lneighbor->Wmunu[rk_flag+1][mu][nu];
+	// 	   tgm1 = Lneighbor->Wmunu[rk_flag][mu][nu];
 // 		   tfm1 = tgm1*Lneighbor->u[rk_flag][direc];
 // 		   tgm1 *=     Lneighbor->u[rk_flag][0];
 		   
-// 		   tgm2 = Lneighbor2->Wmunu[rk_flag+1][mu][nu];
+// 		   tgm2 = Lneighbor2->Wmunu[rk_flag][mu][nu];
 // 		   tfm2 = tgm2*Lneighbor2->u[rk_flag][direc];
 // 		   tgm2 *=     Lneighbor2->u[rk_flag][0];
 		   
@@ -748,33 +748,33 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 		   tgp2 = tg;
 		   tfp2 = tf;
 		   
-		   tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
-		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 		 }
 	       else // for all other ranks use values from neighboring CPUs
 		 {
-		   tgp2 = Rneighbor->Wmunu[rk_flag+1][mu][nu];
+		   tgp2 = Rneighbor->Wmunu[rk_flag][mu][nu];
 		   tfp2 = tgp2*Rneighbor->u[rk_flag][direc];
 		   tgp2 *=     Rneighbor->u[rk_flag][0];
 		   
-		   tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
-		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 		 
@@ -784,11 +784,11 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 	     {
 	      if(rank == 0) // for the left most rank do boundary condition on the left
 		{
-		  tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		  tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 		  tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 		  tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 		  
-		  tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		  tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 		  tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		  tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		  
@@ -801,19 +801,19 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 	      
 	      else // for all other ranks use values from neighboring CPUs
 		{
-		  tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		  tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 		  tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 		  tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 		  
-		  tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		  tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 		  tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		  tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		  
-		  tgm1 = Lneighbor->Wmunu[rk_flag+1][mu][nu];
+		  tgm1 = Lneighbor->Wmunu[rk_flag][mu][nu];
 		  tfm1 = tgm1*Lneighbor->u[rk_flag][direc];
 		  tgm1 *=     Lneighbor->u[rk_flag][0];
 		  
-		  tgm2 = Lneighbor2->Wmunu[rk_flag+1][mu][nu];
+		  tgm2 = Lneighbor2->Wmunu[rk_flag][mu][nu];
 		  tfm2 = tgm2*Lneighbor2->u[rk_flag][direc];
 		  tgm2 *=     Lneighbor2->u[rk_flag][0];
 		}
@@ -822,15 +822,15 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 	     {
 	       if(rank == 0) // for the left most rank do boundary condition on the left
 		 {
-		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
@@ -839,38 +839,38 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 		 }
 	       else // for all other ranks use values from neighboring CPUs
 		 {
-		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+		   tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
-		   tgm2 = Lneighbor->Wmunu[rk_flag+1][mu][nu];
+		   tgm2 = Lneighbor->Wmunu[rk_flag][mu][nu];
 		   tfm2 = tgm2*Lneighbor->u[rk_flag][direc];
 		   tgm2 *=     Lneighbor->u[rk_flag][0];
 		 }
 	     }
 	   else // normal case (not at a boundary)
 	     {
-	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 	       
-	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag+1][mu][nu];
+	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
 	       tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 	     }
@@ -1039,7 +1039,7 @@ int Diss::Make_uPRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
       }/* direction */
        
 /* add a source term due to the coordinate change to tau-eta */
-     sum -= (grid_pt->pi_b[rk_flag+1])*(grid_pt->u[rk_flag][0])/tau;
+     sum -= (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0])/tau;
 
      *p_rhs = sum*(DATA->delta_tau)*bulk_on;
 
@@ -1062,7 +1062,7 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
  nmax[2] = DATA->ny;
  nmax[3] = DATA->neta-1;
 
-       tg = grid_pt->pi_b[rk_flag+1];
+       tg = grid_pt->pi_b[rk_flag];
        tf = tg*grid_pt->u[rk_flag][direc];
        tg *=   grid_pt->u[rk_flag][0];
 
@@ -1076,11 +1076,11 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 	       tgp1 = tg;
 	       tfp1 = tf;
 	       
-	       tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+	       tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 	       tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 	       
-	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag+1];
+	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag];
 	       tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 	     }
@@ -1089,25 +1089,25 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 	       tgp2 = tg;
 	       tfp2 = tf;
 	       
-	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+	       tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 	       tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 	       
-	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag+1];
+	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag];
 	       tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 	     }
 	   else if(grid_pt->position[direc] == 0)
 	     {
-	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag+1];
+	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 	       
@@ -1119,15 +1119,15 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 	     }
 	   else if(grid_pt->position[direc] == 1)
 	     {
-	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag+1];
+	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+	       tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 	       tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 	       
@@ -1136,19 +1136,19 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 	     }
 	   else 
 	     {
-	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag+1];
+	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+	       tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 	       tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 	       
-	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag+1];
+	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag];
 	       tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 	     }
@@ -1165,30 +1165,30 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 		   tgp1 = tg;
 		   tfp1 = tf;
 		   
-		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
-		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag+1];
+		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag];
 		   tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 		 }
 	       else // for all other ranks use values from neighboring CPUs
 		 {
-		   tgp2 = Rneighbor2->pi_b[rk_flag+1];
+		   tgp2 = Rneighbor2->pi_b[rk_flag];
 		   tfp2 = tgp2*Rneighbor2->u[rk_flag][direc];
 		   tgp2 *=     Rneighbor2->u[rk_flag][0];
 		   
-		   tgp1 = Rneighbor->pi_b[rk_flag+1];
+		   tgp1 = Rneighbor->pi_b[rk_flag];
 		   tfp1 = tgp1*Rneighbor->u[rk_flag][direc];
 		   tgp1 *=     Rneighbor->u[rk_flag][0];
 	
 
-		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
-		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag+1];
+		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag];
 		   tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 		 }
@@ -1200,33 +1200,33 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 		   tgp2 = tg;
 		   tfp2 = tf;
 		   
-		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 		   tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
-		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag+1];
+		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag];
 		   tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 		 }
 	       else // for all other ranks use values from neighboring CPUs
 		 {
-		   tgp2 = Rneighbor->pi_b[rk_flag+1];
+		   tgp2 = Rneighbor->pi_b[rk_flag];
 		   tfp2 = tgp2*Rneighbor->u[rk_flag][direc];
 		   tgp2 *=     Rneighbor->u[rk_flag][0];
 		
-		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 		   tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
-		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag+1];
+		   tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag];
 		   tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 		 }
@@ -1235,11 +1235,11 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 	     {
 	       if(rank==0) // for left most rank use boundary condition
 		 {
-		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag+1];
+		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag];
 		   tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 		   tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		   
@@ -1251,19 +1251,19 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 		 }
 	       else // for all other ranks use values from neighboring CPUs
 		 {
-		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag+1];
+		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag];
 		   tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 		   tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		  
-		   tgm1 = Lneighbor->pi_b[rk_flag+1];
+		   tgm1 = Lneighbor->pi_b[rk_flag];
 		   tfm1 = tgm1*Lneighbor->u[rk_flag][direc];
 		   tgm1 *=     Lneighbor->u[rk_flag][0];
 		   
-		   tgm2 = Lneighbor2->pi_b[rk_flag+1];
+		   tgm2 = Lneighbor2->pi_b[rk_flag];
 		   tfm2 = tgm2*Lneighbor2->u[rk_flag][direc];
 		   tgm2 *=     Lneighbor2->u[rk_flag][0];
 		 }       
@@ -1272,15 +1272,15 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 	     {
 	       if(rank==0) // for left most rank use boundary condition
 		 {
-		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag+1];
+		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag];
 		   tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 		   tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 		   
@@ -1289,38 +1289,38 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 		 }
 	       else // for all other ranks use values from neighboring CPUs
 		 {
-		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag+1];
+		   tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag];
 		   tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+		   tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 		   tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 		   tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 		   
-		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+		   tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 		   tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 		   tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 
-		   tgm2 = Lneighbor->pi_b[rk_flag+1];
+		   tgm2 = Lneighbor->pi_b[rk_flag];
 		   tfm2 = tgm2*Lneighbor->u[rk_flag][direc];
 		   tgm2 *=     Lneighbor->u[rk_flag][0];
 		 }
 	     }
 	   else // usual case (not at a boundary)
 	     {
-	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag+1];
+	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag+1];
+	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
 	       
-	       tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag+1];
+	       tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
 	       tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
 	       
-	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag+1];
+	       tgm2 = grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->pi_b[rk_flag];
 	       tfm2 = tgm2*grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][direc];
 	       tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 	     }
