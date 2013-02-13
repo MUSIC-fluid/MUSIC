@@ -126,7 +126,7 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + (nx*iy)));
+		  position = ieta+(neta*(ix + ((nx+1)*iy)));
 		  eps[position] = arena[ix][iy][ieta].epsilon;
 		  rhob[position] = arena[ix][iy][ieta].rhob;
 		  utau[position] = arena[ix][iy][ieta].u[0][0];
@@ -195,7 +195,7 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		      position = ieta+(neta*(ix + (nx*iy)));
+		      position = ieta+(neta*(ix + ((nx+1)*iy)));
 		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
 		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
 		      utauFrom[ix][iy][ieta+irank*neta] = utau[position];
@@ -405,7 +405,7 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + (nx*iy)));
+		  position = ieta+(neta*(ix + ((nx+1)*iy)));
 		  eps[position] = arena[ix][iy][ieta].epsilon;
 		  rhob[position] = arena[ix][iy][ieta].rhob;
 		  utau[position] = arena[ix][iy][ieta].u[0][0];
@@ -616,7 +616,7 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		    position = ieta+(neta*(ix + (nx*iy)));
+		    position = ieta+(neta*(ix + ((nx+1)*iy)));
 		    epsFrom[ix][iy][ieta+irank*neta] = eps[position];
 		    rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
 		    utauFrom[ix][iy][ieta+irank*neta] = utau[position];
@@ -904,7 +904,7 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + (nx*iy)));
+		  position = ieta+(neta*(ix + ((nx+1)*iy)));
 		  eps[position] = arena[ix][iy][ieta].epsilon;
 		  rhob[position] = arena[ix][iy][ieta].rhob;
 		  utau[position] = arena[ix][iy][ieta].u[0][0];
@@ -973,7 +973,7 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		      position = ieta+(neta*(ix + (nx*iy)));
+		      position = ieta+(neta*(ix + ((nx+1)*iy)));
 		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
 		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
 		      utauFrom[ix][iy][ieta+irank*neta] = utau[position];
@@ -1116,7 +1116,7 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + (nx*iy)));
+		  position = ieta+(neta*(ix + ((nx+1)*iy)));
 		  eps[position] = arena[ix][iy][ieta].epsilon;
 		  rhob[position] = arena[ix][iy][ieta].rhob;
 		  utau[position] = arena[ix][iy][ieta].u[0][0];
@@ -1185,7 +1185,7 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		      position = ieta+(neta*(ix + (nx*iy)));
+		      position = ieta+(neta*(ix + ((nx+1)*iy)));
 		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
 		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
 		      utauFrom[ix][iy][ieta+irank*neta] = utau[position];
@@ -1357,7 +1357,7 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + (nx*iy)));
+		  position = ieta+(neta*(ix + ((nx+1)*iy)));
 		  eps[position] = arena[ix][iy][ieta].epsilon;
 		  rhob[position] = arena[ix][iy][ieta].rhob;
 		}
@@ -1402,7 +1402,7 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		      position = ieta+(neta*(ix + (nx*iy)));
+		      position = ieta+(neta*(ix + ((nx+1)*iy)));
 		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
 		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
 		    }
@@ -1556,7 +1556,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + (nx*iy)));
+		  position = ieta+(neta*(ix + ((nx+1)*iy)));
 		  eps[position] = arena[ix][iy][ieta].epsilon;
 		  trouble[position] = static_cast<double>(arena[ix][iy][ieta].trouble);
 		  Txx[position] = arena[ix][iy][ieta].TJb[0][1][1];
@@ -1655,7 +1655,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		      position = ieta+(neta*(ix + (nx*iy)));
+		      position = ieta+(neta*(ix + ((nx+1)*iy)));
 		      //	      corrFrom[ix][iy][ieta+irank*neta] = corr[position];
 		      troubleFrom[ix][iy][ieta+irank*neta] = trouble[position];
 		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];

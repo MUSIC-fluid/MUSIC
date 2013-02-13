@@ -114,7 +114,7 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 		    {
 		      //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 		      //cout << "arena[ix][iy][0].TJb[i][alpha][0]=" << arena[ix][iy][0].TJb[i][alpha][0] << endl;
-		      position = (i+3*(alpha+(5*(ix + (nx*iy)))));
+		      position = (i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 		      package[position]  = arena[ix][iy][0].TJb[i][alpha][0];
 		      package2[position] = arena[ix][iy][1].TJb[i][alpha][0];
 		    }
@@ -139,7 +139,7 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 		{
 		  for(i=0; i<=DATA->rk_order; i++)
 		    {
-		      position = (i+3*(alpha+(5*(ix + (nx*iy)))));
+		      position = (i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 		      //	      if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 		      //cout << "Rneighbor[ix][iy][0].TJb[i][alpha][0]=" << package[position] << endl;
 		      Rneighbor[ix][iy][0].TJb[i][alpha][0] = package[position];
@@ -167,7 +167,7 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 		{
 		  for(i=0; i<=DATA->rk_order; i++)
 		    {
-		      position = (i+3*(alpha+(5*(ix + (nx*iy)))));
+		      position = (i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 		      package[position]  = arena[ix][iy][neta-1].TJb[i][alpha][0];
 		      package2[position] = arena[ix][iy][neta-2].TJb[i][alpha][0];
 		    }
@@ -192,7 +192,7 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 		{
 		  for(i=0; i<=DATA->rk_order; i++)
 		    {
-		      position = (i+3*(alpha+(5*(ix + (nx*iy)))));
+		      position = (i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 		      Lneighbor[ix][iy][0].TJb[i][alpha][0] = package[position];
 		      Lneighbor[ix][iy][1].TJb[i][alpha][0] = package2[position];
 		    }
@@ -258,20 +258,20 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 		{
 		  //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 		  //cout << "arena[ix][iy][0].TJb[i][alpha][0]=" << arena[ix][iy][0].TJb[i][alpha][0] << endl;
-		  positionPi_b = i+3*(ix + (nx*iy));
+		  positionPi_b = i+3*(ix + ((nx+1)*iy));
 		  packagePi_b[positionPi_b] = arena[ix][iy][0].pi_b[i];
 		  packagePi_b2[positionPi_b] = arena[ix][iy][1].pi_b[i];
 		  for(beta=0; beta<4; beta++) // dissipative part
 		    {
 		      for(alpha=0; alpha<5; alpha++)
 			{
-			  positionDis = beta+4*(i+3*(alpha+(5*(ix + (nx*iy)))));
+			  positionDis = beta+4*(i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 			  packageW[positionDis] = arena[ix][iy][0].Wmunu[i][alpha][beta];
 			  packageW2[positionDis] = arena[ix][iy][1].Wmunu[i][alpha][beta];
 			  packagePi[positionDis] = arena[ix][iy][0].Pimunu[i][alpha][beta];
 			  packagePi2[positionDis] = arena[ix][iy][1].Pimunu[i][alpha][beta];
 			}	  
-		      positionU = (i+3*(beta+(4*(ix + (nx*iy)))));
+		      positionU = (i+3*(beta+(4*(ix + ((nx+1)*iy)))));
 		      packageU[positionU] = arena[ix][iy][0].u[i][beta];
 		      packageU2[positionU] = arena[ix][iy][1].u[i][beta];
 		    }
@@ -307,21 +307,21 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	    {
 	      for(i=0; i<=DATA->rk_order; i++)
 		{
-		  positionPi_b = i+3*(ix + (nx*iy));
+		  positionPi_b = i+3*(ix + ((nx+1)*iy));
 		  Rneighbor[ix][iy][0].pi_b[i] = packagePi_b[positionPi_b];
 		  Rneighbor[ix][iy][1].pi_b[i] = packagePi_b2[positionPi_b];
 		  for(beta=0; beta<4; beta++) // dissipative part
 		    {
 		      for(alpha=0; alpha<5; alpha++)
 			{
-			  positionDis = beta+4*(i+3*(alpha+(5*(ix + (nx*iy)))));
+			  positionDis = beta+4*(i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 			  Rneighbor[ix][iy][0].Wmunu[i][alpha][beta] = packageW[positionDis];
 			  Rneighbor[ix][iy][1].Wmunu[i][alpha][beta] = packageW2[positionDis];
 			  Rneighbor[ix][iy][0].Pimunu[i][alpha][beta] = packagePi[positionDis];
 			  Rneighbor[ix][iy][1].Pimunu[i][alpha][beta] = packagePi2[positionDis];
 			  //cout << "received from right Wmunu=" <<  Rneighbor[ix][iy][0].Wmunu[i][alpha][beta] << endl;
 			}
-		      positionU = (i+3*(beta+(4*(ix + (nx*iy)))));
+		      positionU = (i+3*(beta+(4*(ix + ((nx+1)*iy)))));
 		      Rneighbor[ix][iy][0].u[i][beta] = packageU[positionU];
 		      Rneighbor[ix][iy][1].u[i][beta] = packageU2[positionU];
 		    }
@@ -345,20 +345,20 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	    {
 	      for(i=0; i<=DATA->rk_order; i++)
 		{
-		  positionPi_b = i+3*(ix + (nx*iy));
+		  positionPi_b = i+3*(ix + ((nx+1)*iy));
 		  packagePi_b[positionPi_b] = arena[ix][iy][neta-1].pi_b[i];
 		  packagePi_b2[positionPi_b] = arena[ix][iy][neta-2].pi_b[i];
 		  for(beta=0; beta<4; beta++) // dissipative part
 		    {
 		      for(alpha=0; alpha<5; alpha++)
 			{
-			  positionDis = beta+4*(i+3*(alpha+(5*(ix + (nx*iy)))));
+			  positionDis = beta+4*(i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 			  packageW[positionDis] = arena[ix][iy][neta-1].Wmunu[i][alpha][beta];
 			  packageW2[positionDis] = arena[ix][iy][neta-2].Wmunu[i][alpha][beta];
 			  packagePi[positionDis] = arena[ix][iy][neta-1].Pimunu[i][alpha][beta];
 			  packagePi2[positionDis] = arena[ix][iy][neta-2].Pimunu[i][alpha][beta];
 			}
-		      positionU = (i+3*(beta+(4*(ix + (nx*iy)))));
+		      positionU = (i+3*(beta+(4*(ix + ((nx+1)*iy)))));
 		      packageU[positionU] = arena[ix][iy][neta-1].u[i][beta];
 		      packageU2[positionU] = arena[ix][iy][neta-2].u[i][beta];
 		    }
@@ -396,20 +396,20 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	    {
 	      for(i=0; i<=DATA->rk_order; i++)
 		{
-		  positionPi_b = i+3*(ix + (nx*iy));
+		  positionPi_b = i+3*(ix + ((nx+1)*iy));
 		  Lneighbor[ix][iy][0].pi_b[i] = packagePi_b[positionPi_b];
 		  Lneighbor[ix][iy][1].pi_b[i] = packagePi_b2[positionPi_b];
 		  for(beta=0; beta<4; beta++) // dissipative part
 		    {
 		      for(alpha=0; alpha<5; alpha++)
 			{
-			  positionDis = beta+4*(i+3*(alpha+(5*(ix + (nx*iy)))));
+			  positionDis = beta+4*(i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 			  Lneighbor[ix][iy][0].Wmunu[i][alpha][beta] = packageW[positionDis];
 			  Lneighbor[ix][iy][1].Wmunu[i][alpha][beta] = packageW2[positionDis];
 			  Lneighbor[ix][iy][0].Pimunu[i][alpha][beta] = packagePi[positionDis];
 			  Lneighbor[ix][iy][1].Pimunu[i][alpha][beta] = packagePi2[positionDis];
 			}
-		      positionU = (i+3*(beta+(4*(ix + (nx*iy)))));
+		      positionU = (i+3*(beta+(4*(ix + ((nx+1)*iy)))));
 		      Lneighbor[ix][iy][0].u[i][beta] = packageU[positionU];
 		      Lneighbor[ix][iy][1].u[i][beta] = packageU2[positionU];
 		    }
