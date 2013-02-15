@@ -819,7 +819,7 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
    }
  trace += grid_pt->Wmunu[rk_flag+1][3][3];
  
- rho=max(fabs(trace)/fabs(grid_pt->epsilon-3.*grid_pt->p)/factor/0.5,rho); //factor/0.01
+ rho=max(fabs(trace)/fabs(grid_pt->epsilon+3.*grid_pt->p)/factor/0.5,rho); //factor/0.01
 
  whichCorr=1;
  
