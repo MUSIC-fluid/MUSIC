@@ -585,7 +585,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		     (*arena)[ix][iy][ieta].T = eos->interpolate(epsilon, rhob, 0);
 		     (*arena)[ix][iy][ieta].mu = eos->interpolate(epsilon, rhob, 1);
 		   }
-		 else if (DATA->whichEOS==2)
+		 else if (DATA->whichEOS>=2)
 		   {
 		     (*arena)[ix][iy][ieta].T = eos->interpolate2(epsilon, rhob, 1);
 		     (*arena)[ix][iy][ieta].mu = 0.0;
@@ -727,7 +727,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		     (*arena)[ix][iy][ieta].T = eos->interpolate(epsilon, rhob, 0);
 		     (*arena)[ix][iy][ieta].mu = eos->interpolate(epsilon, rhob, 1);
 		   }
-		 else if (DATA->whichEOS==2)
+		 else if (DATA->whichEOS>=2)
 		   {
 		     (*arena)[ix][iy][ieta].T = eos->interpolate2(epsilon, rhob, 1);
 		     (*arena)[ix][iy][ieta].mu = 0.0;
@@ -2002,7 +2002,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		     (*arena)[ix][iy][ieta].T = eos->interpolate(epsilon, rhob, 0);
 		     (*arena)[ix][iy][ieta].mu = eos->interpolate(epsilon, rhob, 1);
 		   }
-		 else if (DATA->whichEOS==2)
+		 else if (DATA->whichEOS>=2)
 		   {
 		     (*arena)[ix][iy][ieta].T = eos->interpolate2(epsilon, rhob, 1);
 		     (*arena)[ix][iy][ieta].mu = 0.0;
@@ -2380,7 +2380,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		     (*arena)[ix][iy][ieta].T = eos->interpolate(epsilon, rhob, 0);
 		     (*arena)[ix][iy][ieta].mu = eos->interpolate(epsilon, rhob, 1);
 		   }
-		 else if (DATA->whichEOS==2)
+		 else if (DATA->whichEOS>=2)
 		   {
 		     (*arena)[ix][iy][ieta].T = eos->interpolate2(epsilon, rhob, 1);
 		     (*arena)[ix][iy][ieta].mu = 0.0;

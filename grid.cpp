@@ -279,7 +279,7 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 		      if (QGPfrac>1.) QGPfrac = 1;
 		      else if (QGPfrac<0.) QGPfrac=0.;
 		    }
-		  else if (DATA->whichEOS==2)
+		  else if (DATA->whichEOS>=2)
 		    {
 		      T = eos->interpolate2(eps, rhob, 1);
 		      QGPfrac = eos->interpolate2(eps, rhob, 3);
@@ -717,7 +717,7 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 		    if (QGPfrac1>1.) QGPfrac1 = 1;
 		    else if (QGPfrac1<0.) QGPfrac1=0.;
 		  }
-		else if (DATA->whichEOS==2)
+		else if (DATA->whichEOS>=2)
 		  {
 		    T1 = eos->interpolate2(epsilon1, rhob1, 1);
 		    QGPfrac1 = eos->interpolate2(epsilon1, rhob1, 3);
@@ -1028,7 +1028,7 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
 		      if (QGPfrac>1.) QGPfrac = 1;
 		      else if (QGPfrac<0.) QGPfrac=0.;
 		    }
-		  else if (DATA->whichEOS==2)
+		  else if (DATA->whichEOS>=2)
 		    {
 		      T = eos->interpolate2(eps, rhob, 1);
 		      QGPfrac = eos->interpolate2(eps, rhob, 3);
@@ -1269,7 +1269,7 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 		      if (QGPfrac>1.) QGPfrac = 1;
 		      else if (QGPfrac<0.) QGPfrac=0.;
 		    }
-		  else if (DATA->whichEOS==2)
+		  else if (DATA->whichEOS>=2)
 		    {
 		      T = eos->interpolate2(eps, rhob, 1);
 		      QGPfrac = eos->interpolate2(eps, rhob, 3);
