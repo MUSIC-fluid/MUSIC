@@ -33,6 +33,8 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
  double eps_guess, scalef;
  int m, iter, mu, nu, alpha;
  double q[5];
+ const double RECONST_PRECISION = 1e-8;
+
 
 /* prepare for the iteration */
 /* uq = qiphL, qiphR, etc 
@@ -136,7 +138,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
  err = 1.0;
  for(iter=0; iter<100; iter++)
   {
-   if(err < (SMALL)*0.01)
+   if(err < (RECONST_PRECISION)*0.01)
     {
       if(isnan(epsilon_next)) cout << "problem2" << endl;
       p_next = eos->p_func(epsilon_next, rhob_next);
