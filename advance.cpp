@@ -46,10 +46,6 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena, Grid ***Lneigh
 	    {
 	      flag = AdvanceLocalT(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
 				   &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank);
-	      if(flag==0) 
-		{ 
-		  return 0; 
-		}
 	    }/* ieta */
 	}/*iy */
     }/* ix */
@@ -66,10 +62,6 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena, Grid ***Lneigh
 		{
 		  flag = AdvanceLocalW(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
 				       &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank);
-		  if(flag==0) 
-		    { 
-		      return 0; 
-		    }
 		}/* ieta */
 	    }/*iy */
 	}/* ix */
