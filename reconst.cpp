@@ -261,36 +261,38 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
 
 
 
- /* TEST */
+ /* Correcting normalization of 4-velocity */
  temph = u[0]*u[0] - u[1]*u[1] - u[2]*u[2] - u[3]*u[3];
- //remove if for speed
- if(fabs(temph - 1.0) > sqrt(SMALL))
+ //Correct velocity when unitarity is not satisfied to numerical accuracy (constant "SMALL")
+ if(fabs(temph - 1.0) > SMALL)
  {
+  //If the deviation is too large, exit MUSIC
   if(fabs(temph - 1.0) > 0.1)
    {
     fprintf(stderr, "In Reconst, reconstructed : u2 = %e\n", temph);
     fprintf(stderr, "Can't happen.\n");
     exit(0);
    }
-  else
-   {
-    if(u[0] < 10.0e4)
-     {
+  //Warn only when the deviation from 1 is relatively large
+  else if(fabs(temph - 1.0) > sqrt(SMALL))
+  {
       fprintf(stderr, "In Reconst, reconstructed : u2 = %e\n", temph);
       fprintf(stderr, "with u[0] = %e\n", u[0]);
       fprintf(stderr, "Correcting it...\n");
-     }
-  
-    scalef = (u[0]-1.0);
-    scalef *= (u[0]+1.0);
-    scalef /= (u[1]*u[1]+u[2]*u[2]+u[3]*u[3]);
-    scalef = sqrt(scalef);
-    u[1] *= scalef;
-    u[2] *= scalef;
-    u[3] *= scalef;
-   }
+  }   
+
+  //Rescaling spatial components of velocity so that unitarity is exactly satisfied
+  //(u[0] is not modified)
+  scalef = (u[0]-1.0);
+  scalef *= (u[0]+1.0);
+  scalef /= (u[1]*u[1]+u[2]*u[2]+u[3]*u[3]);
+  scalef = sqrt(scalef);
+  u[1] *= scalef;
+  u[2] *= scalef;
+  u[3] *= scalef;
+   
  }/* if u^mu u_\mu != 1 */
- /* TEST */
+ /* End: Correcting normalization of 4-velocity */
 
  for(mu=0; mu<4; mu++)
   {
