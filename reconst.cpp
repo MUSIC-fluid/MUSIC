@@ -171,7 +171,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
      rhob_next = 0.0;
     }
    
-   temperr = fabs((epsilon_next-epsilon_prev)/(epsilon_prev)); 
+   temperr = fabs((epsilon_next-epsilon_prev)/(epsilon_prev+SMALL));
    if(finite(temperr)) err += temperr;
    else if(isinf(temperr)) err += 1000.0; /* big enough */
    else if(isnan(temperr)) err += 1000.0;
