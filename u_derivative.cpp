@@ -178,7 +178,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *
     
     }
 
-   n==3;
+   n=3;
    taufactor = tau;
    f = grid_pt->u[rk_flag][m];
    if(grid_pt->position[n] == nmax[n]) 
