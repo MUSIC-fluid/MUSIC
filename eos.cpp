@@ -1489,13 +1489,15 @@ double EOS::get_dpOverdrhob(double e, double rhob)
 double EOS::get_dpOverde2(double e, double rhob)
 {
   double dp, pL, pR, deltaEps, eLeft, eRight;
-  //use linear interpolation
+
+  //The energy has to be in GeV in what follows
+  e=e*hbarc;
 
    if (e<EPP2)
      {
        deltaEps = deltaEPP1;
      }
-   if (e<EPP3)
+   else if (e<EPP3)
      {
        deltaEps = deltaEPP2;
      }
@@ -1517,10 +1519,10 @@ double EOS::get_dpOverde2(double e, double rhob)
        eRight=EPP1+deltaEPP1;
      }
    
-   pL = p_func(eLeft, rhob);
-   pR = p_func(eRight,  rhob);
+   pL = p_func(eLeft/hbarc, rhob);
+   pR = p_func(eRight/hbarc,  rhob);
       
-   dp = pR-pL;
+   dp = (pR-pL)*hbarc;
       
    if(dp<0) 
      { 
@@ -1532,7 +1534,7 @@ double EOS::get_dpOverde2(double e, double rhob)
        fprintf(stderr,"1eRight=%lf\n", eRight/hbarc);  
      } 
    
-   return dp/((deltaEps)/hbarc);
+   return dp/deltaEps;
 }
 
 double EOS::p_func(double e, double rhob)
