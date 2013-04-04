@@ -426,7 +426,7 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA)
   // open particle data file:
   FILE *s_file;
   char* line;
-  char* s_name = "../surface3.dat"; // change back to surface.dat
+  char* s_name = "./surface.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
   // open geometry data file:
