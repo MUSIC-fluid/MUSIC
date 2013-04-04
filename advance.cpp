@@ -725,7 +725,6 @@ grid_pt->Wmunu[rk_flag+1][3][3] = (2.*( grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_f
      grid_pt->Wmunu[rk_flag+1][0][mu] = tempf/(grid_pt->u[rk_flag+1][0]);
     }
 
-   //if(isnan(grid_pt->Wmunu[2][0][1])) cout << "6 firstrksW Wmunu[2][0][1]" << grid_pt->Wmunu[2][0][1] << endl;
 
 /* make Wmunu[0][0] */
      
@@ -739,18 +738,13 @@ grid_pt->Wmunu[rk_flag+1][3][3] = (2.*( grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_f
  
 //   TestW(tau, DATA, grid_pt, rk_flag);
 
-
+/// If the energy density of the fluid element is smaller than 0.01GeV
+/// reduce Wmunu using the QuestRevert algorithm
+if (grid_pt->epsilon < 0.01*hbarc){
 revert_flag = 
   QuestRevert(tau, 0, grid_pt, rk_flag, DATA, size, rank);
-
-// for(int i=0; i<100; i++)
-//   {
-//     if(revert_flag==1)
-//       revert_flag = 
-// 	QuestRevert(tau, i, grid_pt, rk_flag, DATA, size, rank);
-//     if(revert_flag==0)
-//       continue;
-//   }
+}
+  
 
 /* if reverted, this is 1, otherwise, 0 */
    grid_pt->revert_flag = revert_flag;
@@ -792,241 +786,72 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, InitData *DATA, int rk_f
 
 }/* UpdateTJbRK */
 
-
-
 int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
 {
- double f11, f22, f33, g11, g22, g33, trace;
- int mu, nu, revert_flag;
- double regStr, rho, ezero, factor, trans, zero, pisize;
- rho = 1e-30;
- regStr = 1.; //0.5
- //factor = 100.*pow(tanh(1/grid_pt->epsilon)*grid_pt->epsilon,1.); //0.5
- //factor = 10.*pow(tanh(tau)/tau,2.5)+1.; //20, 0.5
- factor=2.;
- // cout << "factor=" << factor << endl;
- int whichCorr=0;
+ int mu, nu;
+ double rho_shear, rho_bulk, factor, pisize, bulksize;
+ int revert_flag=0;
  
- revert_flag = 0;
-
- zero = 1e-2/(regStr+1.);
- ezero = max(grid_pt->epsilon*zero,zero);
-
- // correct trace
- trace = -grid_pt->Wmunu[rk_flag+1][0][0];
- for(mu=1; mu<=2; mu++)
-   {
-     trace += grid_pt->Wmunu[rk_flag+1][mu][mu];
-   }
- trace += grid_pt->Wmunu[rk_flag+1][3][3];
+ rho_shear = 0.;
+ rho_bulk = 0.;
+ factor = 2.;
  
- rho=max(fabs(trace)/fabs(grid_pt->epsilon+3.*grid_pt->p)/factor/0.5,rho); //factor/0.01
-
- whichCorr=1;
- 
- // correct transversality
- trans = -grid_pt->u[rk_flag+1][0]*grid_pt->Wmunu[rk_flag+1][0][1]
-   +grid_pt->u[rk_flag+1][1]*grid_pt->Wmunu[rk_flag+1][1][1]
-   +grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][2][1]
-   +grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][3][1];
- if(fabs(trans)/ezero/factor>rho)
-   whichCorr=2;
- rho=max(fabs(trans)/ezero/factor,rho);
- trans = -grid_pt->u[rk_flag+1][0]*grid_pt->Wmunu[rk_flag+1][0][2]
-   +grid_pt->u[rk_flag+1][1]*grid_pt->Wmunu[rk_flag+1][1][2]
-   +grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][2][2]
-   +grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][3][2];
- if(fabs(trans)/ezero/factor>rho)
-   whichCorr=3;
- rho=max(fabs(trans)/ezero/factor,rho);
- trans = -grid_pt->u[rk_flag+1][0]*grid_pt->Wmunu[rk_flag+1][0][3]
-   +grid_pt->u[rk_flag+1][1]*grid_pt->Wmunu[rk_flag+1][1][3]
-   +grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][2][3]
-   +grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][3][3]/tau;
- if(fabs(trans)/ezero/factor>rho)
-   whichCorr=4;
- rho=max(fabs(trans)/ezero/factor,rho);
- trans = -grid_pt->u[rk_flag+1][0]*grid_pt->Wmunu[rk_flag+1][0][0]
-   +grid_pt->u[rk_flag+1][1]*grid_pt->Wmunu[rk_flag+1][1][0]
-   +grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][2][0]
-   +grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][3][0];
- if(fabs(trans)/ezero/factor>rho)
-   whichCorr=5;
- rho=max(fabs(trans)/ezero/factor,rho);
-
- // correct size
- 
-// all the tau's are already in there
+  
  pisize = 
   (grid_pt->Wmunu[rk_flag+1][0][0]*grid_pt->Wmunu[rk_flag+1][0][0]
   +grid_pt->Wmunu[rk_flag+1][1][1]*grid_pt->Wmunu[rk_flag+1][1][1]
   +grid_pt->Wmunu[rk_flag+1][2][2]*grid_pt->Wmunu[rk_flag+1][2][2]
   +grid_pt->Wmunu[rk_flag+1][3][3]*grid_pt->Wmunu[rk_flag+1][3][3]
   -2.*(
-       grid_pt->Wmunu[rk_flag+1][0][1]*grid_pt->Wmunu[rk_flag+1][0][1]
+        grid_pt->Wmunu[rk_flag+1][0][1]*grid_pt->Wmunu[rk_flag+1][0][1]
        +grid_pt->Wmunu[rk_flag+1][0][2]*grid_pt->Wmunu[rk_flag+1][0][2]
        +grid_pt->Wmunu[rk_flag+1][0][3]*grid_pt->Wmunu[rk_flag+1][0][3]
        )
   +2.*(
-       grid_pt->Wmunu[rk_flag+1][1][2]*grid_pt->Wmunu[rk_flag+1][1][2]
+        grid_pt->Wmunu[rk_flag+1][1][2]*grid_pt->Wmunu[rk_flag+1][1][2]
        +grid_pt->Wmunu[rk_flag+1][1][3]*grid_pt->Wmunu[rk_flag+1][1][3]
        +grid_pt->Wmunu[rk_flag+1][2][3]*grid_pt->Wmunu[rk_flag+1][2][3]
        ));
 
- if(sqrt(pisize)/(sqrt((grid_pt->epsilon*grid_pt->epsilon+3.*grid_pt->p*grid_pt->p)))/factor>rho)
-   whichCorr=6;
+ bulksize = 3.*grid_pt->pi_b[rk_flag+1]*grid_pt->pi_b[rk_flag+1] ;
+       
+ rho_shear = sqrt(  pisize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p )  )/factor ; 
 
- // rho =  max(fabs(grid_pt->Wmunu[rk_flag+1][1][1] + grid_pt->Pimunu[rk_flag+1][1][1])/grid_pt->TJb[rk_flag+1][1][1]/factor,rho);
- //rho =  max(fabs(grid_pt->Wmunu[rk_flag+1][2][2] + grid_pt->Pimunu[rk_flag+1][2][2])/grid_pt->TJb[rk_flag+1][2][2]/factor,rho);
- //rho =  max(fabs(grid_pt->Wmunu[rk_flag+1][3][3] + grid_pt->Pimunu[rk_flag+1][3][3])/grid_pt->TJb[rk_flag+1][3][3]/factor,rho);
+ rho_bulk  = sqrt(  bulksize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p ) )/factor ;
  
- rho = max(sqrt(pisize)/(sqrt((grid_pt->epsilon*grid_pt->epsilon+3.*grid_pt->p*grid_pt->p)))/factor, rho);
-
-
-// cout << pow(tanh(pow(rho,1.)),1.)/rho << endl;
-	     
- // if (pow(tanh(pow(rho,1.)),1.)/rho<0.9)
-//    cout << "correction=" << pow(tanh(pow(rho,1.)),1.)/rho << " at " << grid_pt->position[1] 
-// 	<< ", " << grid_pt->position[2] << ", " << grid_pt->position[3] << endl;
- 
-// grid_pt->correction = pow(tanh(pow(rho,1.)),1.)/rho;
- 
-
-
- if(rho>0.00000000000000000001)
+ /// Reducing the shear stress tensor 
+ if(rho_shear>0.00000000000000000001) 
    {
-     //     cout << pow(tanh(pow(rho,1.)),1.)/rho << endl;
+     
      for(mu=0; mu<4; mu++)
        {
 	 for(nu=0; nu<4; nu++)
-	   {
-	     grid_pt->Pimunu[rk_flag+1][mu][nu] = 
-	       pow(tanh(pow(rho,1.)),1.)/rho*grid_pt->Pimunu[rk_flag+1][mu][nu];
-	     grid_pt->Wmunu[rk_flag+1][mu][nu] = 
-	       pow(tanh(pow(rho,1.)),1.)/rho*grid_pt->Wmunu[rk_flag+1][mu][nu];
-// 	     if(grid_pt->epsilon<DATA->epsilonFreeze/0.1973/4.)
-// 	       {
-// 		 grid_pt->Pimunu[rk_flag+1][mu][nu] = 1e-10;
-// 		 grid_pt->Wmunu[rk_flag+1][mu][nu] = 1e-10;
-// 		 grid_pt->pi_b[rk_flag+1] = 1e-10;
-// 	       }
+	   {   	       
+	     grid_pt->Wmunu[rk_flag+1][mu][nu] = (tanh(rho_shear)/rho_shear)*grid_pt->Wmunu[rk_flag+1][mu][nu];
 	   }
        }
    }
-
- if(tanh(pow(rho,1.))/rho<0.99)
-  revert_flag = 1;
-
- f11 = grid_pt->TJb[rk_flag+1][1][1];
- g11 = fabs(grid_pt->Wmunu[rk_flag+1][1][1] + grid_pt->Pimunu[rk_flag+1][1][1]);
- 
- f22 = grid_pt->TJb[rk_flag+1][2][2];
- g22 = fabs(grid_pt->Wmunu[rk_flag+1][2][2] + grid_pt->Pimunu[rk_flag+1][2][2]);
-
- f33 = grid_pt->TJb[rk_flag+1][3][3];
- g33 = fabs(grid_pt->Wmunu[rk_flag+1][3][3] + grid_pt->Pimunu[rk_flag+1][3][3]);
-
- // if( ((f11 < 1.*g11) || (f22 < 1.*g22) || (f33 < 1.*g33)) || ( ((f11 < 1.5*g11) || (f22 < 1.5*g22) || (f33 < 1.5*g33)) && grid_pt->epsilon<10. ) )
- if( ((f11 < 0.*g11) || (f22 < 0.*g22) || (f33 < 0.*g33)) )
-  {
-    //  cout << "reverting. epsilon=" <<  grid_pt->epsilon << endl;
-     double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-     double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-     double eta;
-     if(size>1)
-       eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
-     else
-       eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-     double r;
-     r=sqrt(x*x+y*y);
-//      if( grid_pt->epsilon > 10. ) // was 0.3 , changed by Schenke 2010/07/16  
-//        {
-// 	 fprintf(stderr, 
-// 		 "QuestRevert: Viscous correction is bigger than T on rank %d ", rank);
-	 
-// 	 fprintf(stderr, "at (%d, %d, %d).\n", 
-// 		 grid_pt->position[1], grid_pt->position[2], grid_pt->position[3]);
-	 
-// 	 fprintf(stderr, "at (r=%f, eta=%f).\n",r, eta); 
-// 	 if (r<3.) fprintf(stderr, "WARNING: r=%f fm < 3 fm.\n",r); 
-	 
-// 	 grid_pt->trouble ++;
-// 	 //cout << grid_pt->trouble << endl;
-	 
-// 	 fprintf(stderr, 
-// 		 "Reporting because epsilon = %e is larger than 10/fm^4 \n", 
-// 		 grid_pt->epsilon);
-	 
-// 	 fprintf(stderr, "trace = %e\n", trace);
-// 	 if(DATA->zero_or_stop==2) // add this in name : 2 means that we set W^{munu}=0.9*T{munu}
-// 	   {
-// 	     fprintf(stderr, "Setting W^{munu}=0.85W^{munu}...\n");
-// 	   }
-// 	 if(DATA->zero_or_stop==1)
-// 	   {
-// 	     fprintf(stderr, "Reverting to the previous values...\n");
-// 	   }
-// 	 if(DATA->zero_or_stop==0)
-// 	   {
-// 	     fprintf(stderr, "Zeroing Wmunu...\n");
-// 	   }
-	 
-//        }
+  
+  /// Reducing bulk viscous pressure 
+  if( rho_bulk>0.00000000000000000001) 
+   {
+     grid_pt->pi_b[rk_flag+1] = (tanh(rho_bulk)/rho_bulk)*grid_pt->pi_b[rk_flag+1];
      
-     /* revert back */
-     /* reverting everything back to the previous value seems to not work
-   that well. It leaves a core in the middle untouched. 
-   must find a way to quench the viscous part but make the ideal part
-   still proceed. However, this tends to make some part of the total T_ii
-   negative. Need to reconcile those two. Let's try zero-ing.
-   Zero-ing does stabilize. However, it looks like that it may make 
-   the viscous effect too small. Also zeroing produces spikes a lot more than reverting.
-   However, reverting will produce too large W^\mu\nu's at freeze-out that mess up
-   the correction delta_f to the distribution function (it becomes way too large).
-   */
-
-   if(DATA->zero_or_stop==1)
-    {
-     grid_pt->pi_b[rk_flag+1] = grid_pt->pi_b[rk_flag];
      for(mu=0; mu<4; mu++)
        {
 	 for(nu=0; nu<4; nu++)
-	   {
-	     grid_pt->Pimunu[rk_flag+1][mu][nu] = grid_pt->Pimunu[rk_flag][mu][nu];
-	     grid_pt->Wmunu[rk_flag+1][mu][nu] = grid_pt->Wmunu[rk_flag][mu][nu]; 
+	   {   	       
+           grid_pt->Pimunu[rk_flag+1][mu][nu] = tanh(rho_bulk)/rho_bulk*grid_pt->Pimunu[rk_flag+1][mu][nu];
 	   }
-       } /* mu nu */
-    }
-   else if(DATA->zero_or_stop==0)
-    {
-      grid_pt->pi_b[rk_flag+1] = 0.0;
-      for(mu=0; mu<4; mu++)
-	{
-	  for(nu=0; nu<4; nu++)
-	    {
-	      grid_pt->Pimunu[rk_flag+1][mu][nu] = 0.0;
-	      grid_pt->Wmunu[rk_flag+1][mu][nu] = 0.0;
-	    }
-	} /* mu nu */
-    }
-   else if(DATA->zero_or_stop==2) 
-    {
-      grid_pt->pi_b[rk_flag+1] = 0.95*grid_pt->pi_b[rk_flag+1];
-      for(mu=0; mu<4; mu++)
-	{
-	  for(nu=0; nu<4; nu++)
-	    {
-	      grid_pt->Pimunu[rk_flag+1][mu][nu] = 0.95*grid_pt->Pimunu[rk_flag+1][mu][nu];
-	      grid_pt->Wmunu[rk_flag+1][mu][nu] = 0.95*grid_pt->Wmunu[rk_flag+1][mu][nu];		
-	    }
-	} /* mu nu */
-    }
-   
-   revert_flag = 1;
-  }/* if something is wrong, revert back to the original values */
+       }   
+       
+   }
 
- return revert_flag;
+return 0;
+
+
 }/* QuestRevert */
+
 
 void Advance::TestW(double tau, InitData *DATA, Grid *grid_pt, int rk_flag)
 {
