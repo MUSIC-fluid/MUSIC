@@ -377,15 +377,22 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
   t_file = fopen(t_name, "a");
   char *buf;
   buf = util->char_malloc(40);
-  FILE *s_file;
-  char* s_name;
-  s_name = util->char_malloc(100);
-  sprintf (buf, "%d", rank);
-  strcat(s_name, "surface");
-  strcat(s_name,buf);
-  strcat(s_name, ".dat");
+//   FILE *s_file;
+//   char* s_name;
+//   s_name = util->char_malloc(100);
+//   sprintf (buf, "%d", rank);
+//   strcat(s_name, "surface");
+//   strcat(s_name,buf);
+//   strcat(s_name, ".dat");
 
-  s_file = fopen(s_name, "a");
+//   s_file = fopen(s_name, "a");
+
+  stringstream strs_name;
+  strs_name << "surface" << rank << ".dat";
+  string s_name = strs_name.str();
+  
+  ofstream s_file;
+  s_file.open(s_name.c_str() , ios::out | ios::app );
   //fprintf(t_file,"x [fm], tau_f(x) [fm] \n");
   int ix, iy, ieta, nx, ny, neta;
   double x, y, eta;
@@ -397,7 +404,7 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
   double FULLSU[4];
   int fac, intersect, intersectx, intersecty, intersecteta, intersecttau;
   double DX, DY, DETA, DTAU, SIG;
-  double rhob, utau, ux, uy, ueta, TFO, muB;
+  double rhob, utau, ux, uy, ueta, TFO, muB, sFO;
   double utauX1, utauX2, utauX3, utauX4, utauY1, utauY2, utau1, utau2;
   double rhobX1, rhobX2, rhobX3, rhobX4, rhobY1, rhobY2, rhob1, rhob2;
   double uxX1, uxX2, uxX3, uxX4, uxY1, uxY2, ux1, ux2;
@@ -676,11 +683,13 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
 		{
 		  TFO = eos->interpolate(epsFO, rhob, 0);
 		  muB = eos->interpolate(epsFO, rhob, 1);
+		  sFO = eos->interpolate(epsFO, rhob, 2);
 		}
 	      else if (DATA->whichEOS>1)
 		{
 		  TFO = eos->interpolate2(epsFO, rhob, 1);
 		  muB = 0.0;
+		  sFO = eos->interpolate2(epsFO, rhob, 2);
 		}
 
  
@@ -703,9 +712,15 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
 		
 	      if (intersecttau)
 		{
-		  fprintf(s_file,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e \n",
-			  tauf, x, y, eta, FULLSU[0], 0., 0., 0.,
-			  utau, ux, uy, ueta, epsFO, TFO, muB);
+		  s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
+			 << FULLSU[0] << " " << 0. << " " << 0. << " " << 0. 
+			 << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
+			 << epsFO << " " << TFO << " " << muB << " " << sFO << " " 
+			 << 0. << " " << 0. << " " << 0. << " " << 0. << " " 
+			 << 0. << " " << 0. << " " << 0. << " " << 0. << " " << 0. << " " << 0. << endl;
+//		  fprintf(s_file,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e \n",
+//			  tauf, x, y, eta, FULLSU[0], 0., 0., 0.,
+//			  utau, ux, uy, ueta, epsFO, TFO, muB);
 		  if(fabs(x)<0.05 && (fabs(y)<0.05))
 		    {
 		      fprintf(t_file,"%f %f %f %f %f %f %f %f\n",tauf, x, y, eta, FULLSU[0],0.,0.,0.);
@@ -713,9 +728,15 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
 		}
 	      if (intersectx)
 		{
-		  fprintf(s_file,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e \n",
-			  tau, xf, y, eta, 0., FULLSU[1], 0., 0.,
-			  utau, ux, uy, ueta, epsFO, TFO, muB);
+		  s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
+			 << 0. << " " << FULLSU[1] << " " << 0. << " " << 0. 
+			 << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
+			 << epsFO << " " << TFO << " " << muB << " " << sFO << " " 
+			 << 0. << " " << 0. << " " << 0. << " " << 0. << " " 
+			 << 0. << " " << 0. << " " << 0. << " " << 0. << " " << 0. << " " << 0. << endl;
+//		  fprintf(s_file,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e \n",
+//			  tau, xf, y, eta, 0., FULLSU[1], 0., 0.,
+//			  utau, ux, uy, ueta, epsFO, TFO, muB);
 		  if(fabs(x)<0.05 && (fabs(y)<0.05))
 		    {
 		      fprintf(t_file,"%f %f %f %f %f %f %f %f\n",tau, xf, y, eta, 0., FULLSU[1],0.,0.);
@@ -723,9 +744,15 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
 		}
 	      if (intersecty)
 		{
-		  fprintf(s_file,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e \n",
-			  tau, x, yf, eta, 0., 0., FULLSU[2], 0.,
-			  utau, ux, uy, ueta, epsFO, TFO, muB);
+		  s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
+			 << 0. << " " << 0. << " " << FULLSU[2] << " " << 0.
+			 << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
+			 << epsFO << " " << TFO << " " << muB << " " << sFO << " " 
+			 << 0. << " " << 0. << " " << 0. << " " << 0. << " " 
+			 << 0. << " " << 0. << " " << 0. << " " << 0. << " " << 0. << " " << 0. << endl;
+//		  fprintf(s_file,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e \n",
+//			  tau, x, yf, eta, 0., 0., FULLSU[2], 0.,
+//			  utau, ux, uy, ueta, epsFO, TFO, muB);
 		  if(fabs(x)<0.05 && (fabs(y)<0.05))
 		    {
 		      fprintf(t_file,"%f %f %f %f %f %f %f %f\n",tau, x, yf, eta, 0.,0.,FULLSU[2],0.);
@@ -733,9 +760,15 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
 		}
 	      if (intersecteta)
 		{
-		  fprintf(s_file,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e \n",
-			  tau, x, y, etaf, 0., 0., 0., FULLSU[3],
-			  utau, ux, uy, ueta, epsFO, TFO, muB);
+		  s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
+			 << 0. << " " << 0. << " " << 0. << " " << FULLSU[3]
+			 << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
+			 << epsFO << " " << TFO << " " << muB << " " << sFO << " " 
+			 << 0. << " " << 0. << " " << 0. << " " << 0. << " " 
+			 << 0. << " " << 0. << " " << 0. << " " << 0. << " " << 0. << " " << 0. << endl;
+//		  fprintf(s_file,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e \n",
+//			  tau, x, y, etaf, 0., 0., 0., FULLSU[3],
+//			  utau, ux, uy, ueta, epsFO, TFO, muB);
 		  if(fabs(x)<0.05 && (fabs(y)<0.05))
 		    {
 		      fprintf(t_file,"%f %f %f %f %f %f %f %f\n",tau, x, y, etaf, 0.,0.,0., FULLSU[3]);
@@ -751,7 +784,8 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
   fprintf(stderr,"Volume=%f\n", SUM);
   delete []package;
   fclose(t_file);
-  fclose(s_file);
+//   fclose(s_file);
+  s_file.close();
 }
 
 
