@@ -159,6 +159,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 	  FindFreezeOutSurface(tau, DATA, arena, size, rank);
 	else if (DATA->freezeOutMethod == 2)
 	  FindFreezeOutSurface2(tau, DATA, arena, size, rank);
+	else if (DATA->freezeOutMethod == 3)
+	  FindFreezeOutSurface3(tau, DATA, arena, size, rank);
 	storePreviousEpsilon2(tau, DATA, arena);
 	storePreviousW(tau, DATA, arena);
       } 
@@ -4490,3 +4492,388 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
   s_file.close();
 
 }
+
+// Modified version of simplified freeze out  (M. Luzum, 04/2013)
+// Every element of the freezeout surface is a rectangular cuboid
+// located mid-way between cells/grid points.
+void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int size, int rank)
+{	
+  stringstream strs_name;
+  strs_name << "surface" << rank << ".dat";
+  string s_name = strs_name.str();
+  
+  ofstream s_file;
+  s_file.open(s_name.c_str() , ios::out | ios::app );
+  
+  int frozen = 1;
+  
+  int ix, iy, ieta, nx, ny, neta;
+  double x, y, eta;
+  double epsFO=DATA->epsilonFreeze/hbarc;
+  double tauf, xf, yf, etaf;
+  nx = DATA->nx;
+  ny = DATA->ny;
+  neta = DATA->neta;
+  double FULLSU[4];
+  int fac;
+  double DX, DY, DETA, DTAU, SIG;
+  double epshome, epsneighbor, iepsFO;
+  int nix, niy, nieta;
+  double Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta, Wyy, Wyeta, Wetaeta;
+  double rhob, utau, ux, uy, ueta, TFO, muB, sFO;
+  int shown;
+  
+  fac=1;
+  facTau = DATA->facTau;
+  DX=fac*DATA->delta_x;
+  DY=fac*DATA->delta_y;
+  DETA=fac*DATA->delta_eta;
+  DTAU=facTau*DATA->delta_tau;
+
+  double maxDETA = 5.;// maximum size of cuboid in eta direction.  If DETA > maxDETA, split the surface into several identical sections spread across eta.
+  int subsections = floor(DETA/maxDETA) + 1;// subdivide the blocks into this many subdivisions in eta
+ 
+//  cout << "subsections = " << subsections << endl;
+ 
+//   fprintf(stderr,"DTAU=%f\n", DTAU);
+//   fprintf(stderr,"DX=%f\n", DX);
+//   fprintf(stderr,"DY=%f\n", DY);
+//   fprintf(stderr,"DETA=%f\n", DETA);
+  shown = 0;
+  
+//  For now, ignore MPI.  Can only run on one processor
+  if(rank!=0)
+  {
+   cout << "Freeze out method 3 can only run on 1 processor.  Try again.\n";
+   exit(1);
+  }
+  int maxEta;
+  maxEta = neta-fac;
+
+  for(ix=0; ix<=nx; ix+=fac)
+    {
+      x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
+      for(iy=0; iy<=ny; iy+=fac)
+	{
+	  y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+	  for(ieta=1; ieta<=maxEta; ieta+=fac)
+	    {
+	      eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
+	      if (arena[ix][iy][ieta].epsilon >= epsFO) frozen = 0;
+
+	      if(ix<nx)
+	      {
+	      // check forward in x
+	      xf = x + DX/2.;
+	      yf = y;
+	      etaf = eta;// no longer used
+	      tauf = tau;
+
+	      nix = ix+fac;
+	      niy = iy;
+	      nieta = ieta;
+	      FULLSU[0]=0.;
+	      FULLSU[1]=DTAU*DY*DETA/subsections;
+	      FULLSU[2]=0.;
+	      FULLSU[3]=0.;
+	      
+	      epshome = arena[ix][iy][ieta].epsilon;
+	      epsneighbor = arena[nix][niy][nieta].epsilon;
+	      if(((epshome > epsFO) && (epsneighbor <= epsFO)) || ((epshome <= epsFO) && (epsneighbor > epsFO)))
+		{
+		  if (epshome<=epsFO)
+		    SIG=-1.;
+		  else SIG=1.;
+		  for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
+		  // simple linear interpolation of all independent variables
+		  ux = 0.5*(arena[ix][iy][ieta].u[0][1] + arena[nix][niy][nieta].u[0][1]);
+		  uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u[0][2]);
+		  ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u[0][3]);
+		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
+		  iepsFO = 0.5*(epshome + epsneighbor);
+		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
+		  if (DATA->whichEOS==1)
+		    {
+		      TFO = eos->interpolate(iepsFO, rhob, 0);
+		      muB = eos->interpolate(iepsFO, rhob, 1);
+		      sFO = eos->interpolate(iepsFO, rhob, 2);
+		    }
+		  else if (DATA->whichEOS>1)
+		    {
+		      TFO = eos->interpolate2(iepsFO, rhob, 1);
+		      muB = 0.0;
+		      sFO = eos->interpolate2(iepsFO, rhob, 2);
+		    }
+		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
+		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
+		  Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].Wmunu[0][1][3]);
+		  Wyy = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][2] + arena[nix][niy][nieta].Wmunu[0][2][2]);
+		  Wyeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][3] + arena[nix][niy][nieta].Wmunu[0][2][3]);
+
+		  Wetaeta = (2.*(ux*uy*Wxy 
+                            + ux*ueta*Wxeta
+                            + uy*ueta*Wyeta )
+                         -( utau*utau - ux*ux )*Wxx
+                         -( utau*utau - uy*uy )*Wyy
+			)/( utau*utau - ueta*ueta ) ;
+		  Wtaux = (ux*Wxx + uy*Wxy + ueta*Wxeta)/utau;
+		  Wtauy = (ux*Wxy + uy*Wyy + ueta*Wyeta)/utau;
+		  Wtaueta = (ux*Wxeta + uy*Wyeta + ueta*Wetaeta)/utau;
+		  Wtautau = (ux*Wtaux + uy*Wtauy + ueta*Wtaueta)/utau;
+		  
+		  for (int i = 1; i <= subsections; i++)
+		  {
+		    etaf = eta - DETA/2. + (i*DETA)/(subsections+1);
+		    
+		    s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
+			  << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
+			  << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
+			  << iepsFO << " " << TFO << " " << muB << " " << sFO << " " 
+			  << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
+			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;  
+		  }
+		} // if grid pair straddles freeze out density
+		} //if(ix<nx)
+		
+	      if(iy<ny)
+	      {
+	      // check forward in y
+	      xf = x;
+	      yf = y + DY/2.;
+	      etaf = eta; // no longer used
+	      tauf = tau;
+
+	      nix = ix;
+	      niy = iy+fac;
+	      nieta = ieta;
+	      FULLSU[0]=0.;
+	      FULLSU[1]=0.;
+	      FULLSU[2]=DTAU*DX*DETA/subsections;
+	      FULLSU[3]=0.;
+		
+	      epshome = arena[ix][iy][ieta].epsilon;
+	      epsneighbor = arena[nix][niy][nieta].epsilon;
+	      if(((epshome > epsFO) && (epsneighbor <= epsFO)) || ((epshome <= epsFO) && (epsneighbor > epsFO)))
+		{
+		  if (epshome<=epsFO)
+		    SIG=-1.;
+		  else SIG=1.;
+		  for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
+		  // simple linear interpolation of all independent variables
+		  ux = 0.5*(arena[ix][iy][ieta].u[0][1] + arena[nix][niy][nieta].u[0][1]);
+		  uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u[0][2]);
+		  ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u[0][3]);
+		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
+		  iepsFO = 0.5*(epshome + epsneighbor);
+		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
+		  if (DATA->whichEOS==1)
+		    {
+		      TFO = eos->interpolate(iepsFO, rhob, 0);
+		      muB = eos->interpolate(iepsFO, rhob, 1);
+		      sFO = eos->interpolate(iepsFO, rhob, 2);
+		    }
+		  else if (DATA->whichEOS>1)
+		    {
+		      TFO = eos->interpolate2(iepsFO, rhob, 1);
+		      muB = 0.0;
+		      sFO = eos->interpolate2(iepsFO, rhob, 2);
+		    }
+		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
+		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
+		  Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].Wmunu[0][1][3]);
+		  Wyy = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][2] + arena[nix][niy][nieta].Wmunu[0][2][2]);
+		  Wyeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][3] + arena[nix][niy][nieta].Wmunu[0][2][3]);
+
+		  Wetaeta = (2.*(ux*uy*Wxy 
+                            + ux*ueta*Wxeta
+                            + uy*ueta*Wyeta )
+                         -( utau*utau - ux*ux )*Wxx
+                         -( utau*utau - uy*uy )*Wyy
+			)/( utau*utau - ueta*ueta ) ;
+		  Wtaux = (ux*Wxx + uy*Wxy + ueta*Wxeta)/utau;
+		  Wtauy = (ux*Wxy + uy*Wyy + ueta*Wyeta)/utau;
+		  Wtaueta = (ux*Wxeta + uy*Wyeta + ueta*Wetaeta)/utau;
+		  Wtautau = (ux*Wtaux + uy*Wtauy + ueta*Wtaueta)/utau;
+		  
+		  for (int i = 1; i <= subsections; i++)
+		  {
+		    etaf = eta - DETA/2. + (i*DETA)/(subsections+1);
+		    
+		    s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
+			  << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
+			  << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
+			  << iepsFO << " " << TFO << " " << muB << " " << sFO << " " 
+			  << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
+			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;  
+		  }
+		} // if grid pair straddles freeze out density
+		} //if(iy<ny)
+		
+	      if(ieta<(maxEta))
+	      {
+	      // check forward in eta
+	      xf = x;
+	      yf = y;
+	      etaf = eta + DETA/2;
+	      tauf = tau;
+
+	      nix = ix;
+	      niy = iy;
+	      nieta = ieta + fac;
+	      FULLSU[0]=0.;
+	      FULLSU[1]=0.;
+	      FULLSU[2]=0.;
+	      FULLSU[3]=DTAU*DX*DY;
+	      
+	      epshome = arena[ix][iy][ieta].epsilon;
+	      epsneighbor = arena[nix][niy][nieta].epsilon;
+// 	       if (ieta>=neta-fac)
+// 		 {
+// 		  epsneighbor = Rneighbor_eps[ix][iy];
+// 		 }
+	      if(((epshome > epsFO) && (epsneighbor <= epsFO)) || ((epshome <= epsFO) && (epsneighbor > epsFO)))
+		{
+		  if (epshome<=epsFO)
+		    SIG=-1.;
+		  else SIG=1.;
+		  for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
+		  // simple linear interpolation of all independent variables
+		  ux = 0.5*(arena[ix][iy][ieta].u[0][1] + arena[nix][niy][nieta].u[0][1]);
+		  uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u[0][2]);
+		  ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u[0][3]);
+		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
+		  iepsFO = 0.5*(epshome + epsneighbor);
+		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
+		  if (DATA->whichEOS==1)
+		    {
+		      TFO = eos->interpolate(iepsFO, rhob, 0);
+		      muB = eos->interpolate(iepsFO, rhob, 1);
+		      sFO = eos->interpolate(iepsFO, rhob, 2);
+		    }
+		  else if (DATA->whichEOS>1)
+		    {
+		      TFO = eos->interpolate2(iepsFO, rhob, 1);
+		      muB = 0.0;
+		      sFO = eos->interpolate2(iepsFO, rhob, 2);
+		    }
+		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
+		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
+		  Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].Wmunu[0][1][3]);
+		  Wyy = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][2] + arena[nix][niy][nieta].Wmunu[0][2][2]);
+		  Wyeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][3] + arena[nix][niy][nieta].Wmunu[0][2][3]);
+
+		  Wetaeta = (2.*(ux*uy*Wxy 
+                            + ux*ueta*Wxeta
+                            + uy*ueta*Wyeta )
+                         -( utau*utau - ux*ux )*Wxx
+                         -( utau*utau - uy*uy )*Wyy
+			)/( utau*utau - ueta*ueta ) ;
+		  Wtaux = (ux*Wxx + uy*Wxy + ueta*Wxeta)/utau;
+		  Wtauy = (ux*Wxy + uy*Wyy + ueta*Wyeta)/utau;
+		  Wtaueta = (ux*Wxeta + uy*Wyeta + ueta*Wetaeta)/utau;
+		  Wtautau = (ux*Wtaux + uy*Wtauy + ueta*Wtaueta)/utau;
+		  
+		  s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
+			 << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
+			 << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
+			 << iepsFO << " " << TFO << " " << muB << " " << sFO << " " 
+			 << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
+			 << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;
+		}// if grid pair straddles freeze out density
+	      }// if (ieta<maxEta)
+		
+		
+		
+	      // check backward in time
+	      xf = x;
+	      yf = y;
+	      etaf = eta;
+	      tauf = tau-DTAU/2.;
+
+	      nix = ix;
+	      niy = iy;
+	      nieta = ieta;
+	      FULLSU[0]=DX*DY*DETA/subsections;
+	      FULLSU[1]=0.;
+	      FULLSU[2]=0.;
+	      FULLSU[3]=0.;
+		
+	      epsneighbor = epshome;
+	      epshome = arena[ix][iy][ieta].epsilon_prev;
+	      if(((epshome > epsFO) && (epsneighbor <= epsFO)) || ((epshome <= epsFO) && (epsneighbor > epsFO)))
+		{
+		  if (epshome<=epsFO)
+		    SIG=-1.;
+		  else SIG=1.;
+		  for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
+		  // simple linear interpolation of all independent variables
+		  ux = 0.5*(arena[ix][iy][ieta].u[0][1] + arena[nix][niy][nieta].u_prev[1]);
+		  uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u_prev[2]);
+		  ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u_prev[3]);
+		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
+		  iepsFO = 0.5*(epshome + epsneighbor);
+		  //I don't seem to have accesss to value of rhob from previous timestep.  Use value at current timestep.
+		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
+		  if (DATA->whichEOS==1)
+		    {
+		      TFO = eos->interpolate(iepsFO, rhob, 0);
+		      muB = eos->interpolate(iepsFO, rhob, 1);
+		      sFO = eos->interpolate(iepsFO, rhob, 2);
+		    }
+		  else if (DATA->whichEOS>1)
+		    {
+		      TFO = eos->interpolate2(iepsFO, rhob, 1);
+		      muB = 0.0;
+		      sFO = eos->interpolate2(iepsFO, rhob, 2);
+		    }
+		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].W_prev[1][1]);
+		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].W_prev[1][2]);
+		  Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].W_prev[1][3]);
+		  Wyy = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][2] + arena[nix][niy][nieta].W_prev[2][2]);
+		  Wyeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][3] + arena[nix][niy][nieta].W_prev[2][3]);
+
+		  Wetaeta = (2.*(ux*uy*Wxy 
+                            + ux*ueta*Wxeta
+                            + uy*ueta*Wyeta )
+                         -( utau*utau - ux*ux )*Wxx
+                         -( utau*utau - uy*uy )*Wyy
+			)/( utau*utau - ueta*ueta ) ;
+		  Wtaux = (ux*Wxx + uy*Wxy + ueta*Wxeta)/utau;
+		  Wtauy = (ux*Wxy + uy*Wyy + ueta*Wyeta)/utau;
+		  Wtaueta = (ux*Wxeta + uy*Wyeta + ueta*Wetaeta)/utau;
+		  Wtautau = (ux*Wtaux + uy*Wtauy + ueta*Wtaueta)/utau;
+		  
+		  for (int i = 1; i <= subsections; i++)
+		  {
+		    etaf = eta - DETA/2. + (i*DETA)/(subsections+1);
+		    
+		    s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
+			  << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
+			  << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
+			  << iepsFO << " " << TFO << " " << muB << " " << sFO << " " 
+			  << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
+			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;  
+		  }
+		} // if grid pair straddles density
+	      
+// 	      if(shown==0)
+// 		{
+// 		  fprintf(stderr,"DTAU=%f\n", DTAU);
+// 		  fprintf(stderr,"DX=%f\n", DX);
+// 		  fprintf(stderr,"DY=%f\n", DY);
+// 		  fprintf(stderr,"DETA=%f\n", DETA);
+// 		  shown=1;
+// 		}
+		
+	    }
+	}
+    }
+//   delete []package;
+  s_file.close();
+  if(frozen)
+  {
+	  cout << "All cells frozen out. Exiting." << endl;
+ 	  exit(1);
+  }
+}
+
