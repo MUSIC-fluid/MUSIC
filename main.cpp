@@ -521,7 +521,8 @@ void ReadInData2(InitData *DATA, string file)
   
   
   // mode: 
-/* X1: (Not functional) Does everything. Evolution. Computation of thermal spectra. Resonance decays. (surface.dat → ../surface3.dat -This part needs to be changed so that mode=1 actually works. The thermal spectrum computation reads in ../surface3.dat, but evolution writes ./surface.dat.)Does not work in current version. Always run mode 2 and then mode 3 and 4 separately
+/* X1: (Not functional) Does everything. Evolution. Computation of thermal spectra. Resonance decays. (surface.dat → ../surface3.dat -This part needs to be changed so that mode=1 actually works. The thermal spectrum computation reads in ../surface3.dat, but evolution writes ./surface.dat.)
+Does not work in current version. Always run mode 2 and then mode 3 and 4 separately
   // 2: Evolution only.
   // 3: Compute all thermal spectra only.
   // 4: Resonance decays only.
@@ -589,6 +590,11 @@ void ReadInData2(InitData *DATA, string file)
   if(DATA->freezeOutMethod>3) 
   {
     cerr << "Invalid option for freeze_out_method:" << DATA->freezeOutMethod << endl;
+    exit(1);
+  }
+  else if(DATA->freezeOutMethod!=2 && MPI::COMM_WORLD.Get_size()>1)
+  {
+    cerr << "freeze_out_method " << DATA->freezeOutMethod << " can only run on one processor\n";
     exit(1);
   }
   
@@ -749,7 +755,9 @@ void ReadInData2(InitData *DATA, string file)
   
   
 /*  // Maximum_energy_density:
-  // determines the maximum energy density at zero impact parameter given in [GeV/fm3] (for initialize_with_entropy = 0)or the maximum entropy density at zero impact parameter given in [1/fm3](for initialize_with_entropy = 1)
+  // determines the maximum energy density at zero impact parameter given in [GeV/fm3] (for initialize_with_entropy = 0)
+or the maximum entropy density at zero impact parameter given in [1/fm3]
+(for initialize_with_entropy = 1)
 //   DATA->epsilon0 = util->DFind(file, "Maximum_energy_density");*/
   double tempepsilon0 = 21.67;
   tempinput = util->StringFind3(file, "Maximum_energy_density");
@@ -931,6 +939,8 @@ void ReadInData2(InitData *DATA, string file)
   tempinput = util->StringFind3(file, "Viscosity_Flag_Yes_1_No_0");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempviscosity_flag;
   DATA->viscosity_flag = tempviscosity_flag;
+  if(DATA->viscosity_flag == 1 && DATA->freezeOutMethod==1) 
+    cerr << "freeze_out_method 1 does not currently work properly with viscosity.  Shear viscous tensor will be set to zero on freeze out surface.\n";
   
   
   // Verbose_Flag_Yes_1_No_0:  unused
