@@ -599,6 +599,19 @@ Does not work in current version. Always run mode 2 and then mode 3 and 4 separa
   }
   
   
+  // max_delta_eta:  maximum size of freeze out surface segment in eta direction.
+  // Even when hydro variables vary slowly in eta (e.g., in a boost-invariant solution),
+  // the Cosh(y-eta) factor can vary within a step in eta of delta_eta is too large.
+  // The freeze out surface will be subdivided into identical slices in eta with size
+  // less than max_delta_eta.
+  // Only used with freeze_out_method = 3.
+  double tempmax_delta_eta = 5.;
+  tempinput = util->StringFind3(file, "max_delta_eta");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_delta_eta;
+  DATA->max_delta_eta = tempmax_delta_eta;
+  if(tempinput != "empty" && DATA->freezeOutMethod != 3) cerr << "max_delta_eta unused when freeze_out_method != 3\n";
+
+  
   
   
   // rho_b_max: maximum baryon density for zero impact parameter. The shape of the ρB distribution is the same as that for the energy/entropy density distribution

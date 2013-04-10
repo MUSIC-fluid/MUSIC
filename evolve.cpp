@@ -4530,7 +4530,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   DETA=fac*DATA->delta_eta;
   DTAU=facTau*DATA->delta_tau;
 
-  double maxDETA = 5.;// maximum size of cuboid in eta direction.  If DETA > maxDETA, split the surface into several identical sections spread across eta.
+  double maxDETA = DATA->max_delta_eta;// maximum size of cuboid in eta direction.  If DETA > maxDETA, split the surface into several identical sections spread across eta.
   int subsections = floor(DETA/maxDETA) + 1;// subdivide the blocks into this many subdivisions in eta
  
 //  cout << "subsections = " << subsections << endl;
@@ -4542,7 +4542,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   shown = 0;
   
 //  For now, ignore MPI.  Can only run on one processor
-  if(rank!=0)
+  if(size>1)
   {
    cout << "Freeze out method 3 can only run on 1 processor.  Try again.\n";
    exit(1);
