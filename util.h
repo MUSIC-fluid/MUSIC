@@ -84,6 +84,7 @@ double LinearPara(double , double , double , double *);
 double DFind(string file_name, char *st);
 string StringFind(string file_name, char *st);
 char *StringFind2(char *file_name, char *st);
+string StringFind3(string file_name, char *st);
 int IFind(string file_name, char *st);
 
 void FileCopy(char *in_file, char *out_file);

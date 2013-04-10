@@ -456,6 +456,76 @@ string Util::StringFind(string file_name, char *st)
       }    
 }/* StringFind */
 
+string Util::StringFind3(string file_name, char *st)
+{
+  string inputname = file_name;
+  string tmpfilename;
+  stringstream sinput;
+  stringstream strinput;
+  string str;
+  strinput << st;
+  strinput >> str;
+
+  string s;
+  string xstr;
+ 
+  tmpfilename = "input.default";
+
+  int ind;
+  static int flag = 0;
+  
+  if(flag == 0)
+    {
+      if(!IsFile(file_name))
+	{
+	  if(file_name == "") 
+	    {
+	      fprintf(stderr, "No input file name specified.\n");
+	      fprintf(stderr, "Creating a default file named input.default\n");
+	    }
+	  else 
+	    {
+	      cerr << "The file named " << file_name << " is absent." << endl;
+	      cout << "Creating " << file_name << "..." << endl;
+	      tmpfilename = file_name;
+	    }
+	  ofstream tmp_file(tmpfilename.c_str());
+	  tmp_file << "EndOfData" << endl;
+	  tmp_file.close();
+	  exit(1);
+	}/* if isfile */
+      flag == 1;
+    }/* if flag == 0 */
+  
+    ifstream input(inputname.c_str());
+    
+    input >> s;
+
+    ind = 0;
+    while(s.compare("EndOfData") != 0)
+      {
+	input >> xstr;
+	if(s.compare(str) == 0)
+	  {
+	    ind++;
+	    input.close();
+	    return xstr;
+	  }/* if right, return */
+	input >> s;
+      }/* while */
+
+    input.close();
+    
+    if(ind == 0)
+      {
+// 	cerr << str << " not found in " << inputname << endl; 
+// 	cout << "Create an input file." << endl;
+// 	exit(1);
+	return "empty";
+      }    
+}/* StringFind */
+
+
 char *Util::StringFind2(char *file_name, char *st)
 {
  char *s;
