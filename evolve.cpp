@@ -685,14 +685,16 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
 		{
 		  TFO = eos->interpolate(epsFO, rhob, 0);
 		  muB = eos->interpolate(epsFO, rhob, 1);
-		  sFO = eos->interpolate(epsFO, rhob, 2);
+// 		  sFO = eos->interpolate(epsFO, rhob, 2);
 		}
 	      else if (DATA->whichEOS>1)
 		{
 		  TFO = eos->interpolate2(epsFO, rhob, 1);
 		  muB = 0.0;
-		  sFO = eos->interpolate2(epsFO, rhob, 2);
+// 		  sFO = eos->interpolate2(epsFO, rhob, 2);
 		}
+		double P=eos->p_func(epsFO, rhob);
+		sFO=eos->s_func(epsFO, P, rhob);
 
  
 	   /*    if (xf==x) */
@@ -4596,14 +4598,16 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		    {
 		      TFO = eos->interpolate(iepsFO, rhob, 0);
 		      muB = eos->interpolate(iepsFO, rhob, 1);
-		      sFO = eos->interpolate(iepsFO, rhob, 2);
+// 		      sFO = eos->interpolate(iepsFO, rhob, 2);
 		    }
 		  else if (DATA->whichEOS>1)
 		    {
 		      TFO = eos->interpolate2(iepsFO, rhob, 1);
 		      muB = 0.0;
-		      sFO = eos->interpolate2(iepsFO, rhob, 2);
+// 		      sFO = eos->interpolate2(iepsFO, rhob, 2);
 		    }
+		  double P=eos->p_func(iepsFO, rhob);
+		  sFO=eos->s_func(iepsFO, P, rhob);
 		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
 		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
 		  Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].Wmunu[0][1][3]);
@@ -4670,14 +4674,16 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		    {
 		      TFO = eos->interpolate(iepsFO, rhob, 0);
 		      muB = eos->interpolate(iepsFO, rhob, 1);
-		      sFO = eos->interpolate(iepsFO, rhob, 2);
+// 		      sFO = eos->interpolate(iepsFO, rhob, 2);
 		    }
 		  else if (DATA->whichEOS>1)
 		    {
 		      TFO = eos->interpolate2(iepsFO, rhob, 1);
 		      muB = 0.0;
-		      sFO = eos->interpolate2(iepsFO, rhob, 2);
+// 		      sFO = eos->interpolate2(iepsFO, rhob, 2);
 		    }
+		  double P=eos->p_func(iepsFO, rhob);
+		  sFO=eos->s_func(iepsFO, P, rhob);
 		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
 		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
 		  Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].Wmunu[0][1][3]);
@@ -4748,14 +4754,16 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		    {
 		      TFO = eos->interpolate(iepsFO, rhob, 0);
 		      muB = eos->interpolate(iepsFO, rhob, 1);
-		      sFO = eos->interpolate(iepsFO, rhob, 2);
+// 		      sFO = eos->interpolate(iepsFO, rhob, 2);
 		    }
 		  else if (DATA->whichEOS>1)
 		    {
 		      TFO = eos->interpolate2(iepsFO, rhob, 1);
 		      muB = 0.0;
-		      sFO = eos->interpolate2(iepsFO, rhob, 2);
+// 		      sFO = eos->interpolate2(iepsFO, rhob, 2);
 		    }
+		  double P=eos->p_func(iepsFO, rhob);
+		  sFO=eos->s_func(iepsFO, P, rhob);
 		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
 		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
 		  Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].Wmunu[0][1][3]);
@@ -4818,14 +4826,16 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		    {
 		      TFO = eos->interpolate(iepsFO, rhob, 0);
 		      muB = eos->interpolate(iepsFO, rhob, 1);
-		      sFO = eos->interpolate(iepsFO, rhob, 2);
+// 		      sFO = eos->interpolate(iepsFO, rhob, 2);
 		    }
 		  else if (DATA->whichEOS>1)
 		    {
 		      TFO = eos->interpolate2(iepsFO, rhob, 1);
 		      muB = 0.0;
-		      sFO = eos->interpolate2(iepsFO, rhob, 2);
+// 		      sFO = eos->interpolate2(iepsFO, rhob, 2);
 		    }
+		  double P=eos->p_func(iepsFO, rhob);
+		  sFO=eos->s_func(iepsFO, P, rhob);
 		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].W_prev[1][1]);
 		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].W_prev[1][2]);
 		  Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].W_prev[1][3]);
