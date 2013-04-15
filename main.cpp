@@ -592,11 +592,6 @@ Does not work in current version. Always run mode 2 and then mode 3 and 4 separa
     cerr << "Invalid option for freeze_out_method:" << DATA->freezeOutMethod << endl;
     exit(1);
   }
-  else if(DATA->freezeOutMethod!=2 && MPI::COMM_WORLD.Get_size()>1)
-  {
-    cerr << "freeze_out_method " << DATA->freezeOutMethod << " can only run on one processor\n";
-    exit(1);
-  }
   
   
   // max_delta_eta:  maximum size of freeze out surface segment in eta direction.
