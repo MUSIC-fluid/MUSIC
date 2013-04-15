@@ -506,7 +506,7 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA)
 //   bytes_read=fscanf(s_file, "%s", dummy);
 //   bytes_read=fscanf(s_file, "%s", dummy);
  
-  while(i<NCells-1)
+  while(i<NCells)
     {
       // position in (tau, x, y, eta)
       bytes_read=fscanf(s_file, "%lf", &surface[i].x[0]);
@@ -899,7 +899,7 @@ double Freeze::summation(double px, double py, double y, double m, int deg, int 
 
   //fprintf(stderr,"sign=%f\n",sign);
   //fprintf(stderr,"baryon=%d\n",baryon);
-  for (i=0; i<NCells-1; i++)
+  for (i=0; i<NCells; i++)
     {
       tau = surface[i].x[0];
       eta = surface[i].x[3];
