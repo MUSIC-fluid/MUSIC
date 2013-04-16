@@ -78,11 +78,14 @@ class EOS{
   double get_dpOverde(double e, double rhob);
   double get_dpOverde2(double e, double rhob);
   double get_dpOverdrhob(double e, double rhob);
-  double p_func(double e, double rhob);
   double p_rho_func(double e, double rhob);
   double p_e_func(double e, double rhob);
   double T_func_ideal_gas(double p);
-  double s_func(double epsilon, double p, double rhob);
+  double get_entropy(double epsilon, double rhob);
+  double get_temperature(double epsilon, double rhob);
+  double get_mu(double epsilon, double rhob);
+  double get_qgp_frac(double epsilon, double rhob);
+  double get_pressure(double epsilon, double rhob);
   double ssolve(double e, double rhob, double s);
   double Tsolve(double e, double rhob, double T);
   double findRoot(double (EOS::*function)(double, double, double), double rhob, double s, double e1, double e2, double eacc);

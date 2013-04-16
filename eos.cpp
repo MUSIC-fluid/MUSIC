@@ -1365,8 +1365,8 @@ double EOS::get_dpOverde(double e, double rhob)
 	  //if(eRight-eLeft<deltaEPP1) fprintf(stderr,"delta=%lf, EPP1=%lf\n", eRight-eLeft, deltaEPP1); 
 	}
 
-      pL = p_func(eLeft/hbarc, rhob);
-      pR = p_func(eRight/hbarc,  rhob);
+      pL = get_pressure(eLeft/hbarc, rhob);
+      pR = get_pressure(eRight/hbarc,  rhob);
       
       dp = pR-pL;
       
@@ -1398,8 +1398,8 @@ double EOS::get_dpOverde(double e, double rhob)
 	  eRight=EPP2+NEPP2*deltaEPP2;
 	}
       
-      pL = p_func(eLeft/hbarc, rhob);
-      pR = p_func(eRight/hbarc, rhob);
+      pL = get_pressure(eLeft/hbarc, rhob);
+      pR = get_pressure(eRight/hbarc, rhob);
       
       dp = pR-pL;
       
@@ -1453,8 +1453,8 @@ double EOS::get_dpOverdrhob(double e, double rhob)
 /* 	  fprintf(stderr,"rho=%lf\n", rhob); */
 /* 	  fprintf(stderr,"BNP1=%lf\n", BNP1); */
 /* 	} */
-      pL = p_func(e/hbarc, rhoLeft);
-      pR = p_func(e/hbarc, rhoRight);
+      pL = get_pressure(e/hbarc, rhoLeft);
+      pR = get_pressure(e/hbarc, rhoRight);
 
       dp = pR-pL;
       return dp/((rhoRight-rhoLeft));
@@ -1473,8 +1473,8 @@ double EOS::get_dpOverdrhob(double e, double rhob)
 	  rhoRight=BNP2+NBNP2*deltaBNP2;
 	}
 
-      pL = p_func(e/hbarc, rhoLeft); 
-      pR = p_func(e/hbarc, rhoRight);
+      pL = get_pressure(e/hbarc, rhoLeft); 
+      pR = get_pressure(e/hbarc, rhoRight);
 
 /*       fprintf(stderr,"rhoLeft=%lf\n", rhoLeft); */
 /*       fprintf(stderr,"rhoRight=%lf\n", rhoRight); */
@@ -1524,8 +1524,8 @@ double EOS::get_dpOverde2(double e, double rhob)
        eRight=EPP1+deltaEPP1;
      }
    
-   pL = p_func(eLeft/hbarc, rhob);
-   pR = p_func(eRight/hbarc,  rhob);
+   pL = get_pressure(eLeft/hbarc, rhob);
+   pR = get_pressure(eRight/hbarc,  rhob);
       
    dp = (pR-pL)*hbarc;
       
@@ -1542,7 +1542,7 @@ double EOS::get_dpOverde2(double e, double rhob)
    return dp/deltaEps;
 }
 
-double EOS::p_func(double e, double rhob)
+double EOS::get_pressure(double e, double rhob)
 {
  double f;
  if (whichEOS==0)
@@ -1552,7 +1552,7 @@ double EOS::p_func(double e, double rhob)
  else if (whichEOS>=2)
    f = interpolate2(e,rhob,0); //selector 0 means get pressure 
  return f;
-}/* p_func */
+}/* get_pressure */
 
 double EOS::p_rho_func(double e, double rhob)
 {
@@ -1742,39 +1742,24 @@ double EOS::interpolate(double e, double rhob, int selector)
   return T/hbarc;
 }
 
-double EOS::T_func_ideal_gas(double p) {
+double EOS::T_func_ideal_gas(double eps) {
 
 	//Define number of colours and of flavours
  	const double Nc=3, Nf=2.5;
 	
-	return pow(90.0/M_PI/M_PI*(p)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
+	return pow(90.0/M_PI/M_PI*(eps/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
 
 }
 
 
-double EOS::s_func(double epsilon, double p, double rhob)
+double EOS::get_entropy(double epsilon, double rhob)
 {
  double f;
  double P, T, mu;
 
- P = p_func(epsilon, rhob);
-
- if (whichEOS==0)
-   {
-    //T=pow(90.0/M_PI/M_PI*P/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
-    T=T_func_ideal_gas(P);
-    mu=0.0;
-   }
- else if (whichEOS==1)
-   {
-     T = interpolate(epsilon, rhob, 0);
-     mu = interpolate(epsilon, rhob, 1);
-   }
- else if (whichEOS>=2) 
-   {
-     T = interpolate2(epsilon, rhob, 1);
-     mu = 0.0;
-   }
+ P = get_pressure(epsilon, rhob);
+ T = get_temperature(epsilon,rhob);
+ mu = get_mu(epsilon, rhob);
  
  if (T!=0)
    f = (epsilon + P - mu*rhob)/T;
@@ -1783,23 +1768,15 @@ double EOS::s_func(double epsilon, double p, double rhob)
 
  return f;
  
-}/* s_func */
+}/* get_entropy */
 
 double EOS::ssolve(double e, double rhob, double s)
 {
   // takes e in GeV/fm^3 and passes it on in 1/fm^4 ...
   double P, T, mu;
-  P = p_func(e/hbarc, rhob);
-  if (whichEOS==1)
-    {
-      T = interpolate(e/hbarc, rhob, 0);
-      mu = interpolate(e/hbarc, rhob, 1);
-    }
-  else if (whichEOS>=2)
-    {
-      T = interpolate2(e/hbarc, rhob, 1);
-      mu = 0.0;
-    }
+  P = get_pressure(e/hbarc, rhob);
+  T = get_temperature(e/hbarc, rhob);
+  mu = get_mu(e/hbarc, rhob);
       
 //   fprintf(stderr,"T=%f\n",T*hbarc);
 //   fprintf(stderr,"P=%f\n",P*hbarc);
@@ -1814,18 +1791,11 @@ double EOS::Tsolve(double e, double rhob, double T)
 {
   // takes e in GeV/fm^3 and passes it on in 1/fm^4 ...
   double P, s, mu;
-  P = p_func(e/hbarc, rhob);
-  if (whichEOS==1)
-    {
-      s = s_func(e/hbarc, P, rhob);
-      mu = interpolate(e/hbarc, rhob, 1);
-    }
-  else if (whichEOS>=2)
-    {
-      s = s_func(e/hbarc, P, rhob);
-      mu = 0.0;
-    }
-      
+  P = get_pressure(e/hbarc, rhob);
+
+  s = get_entropy(e/hbarc, rhob);
+  mu = get_mu(e/hbarc, rhob);
+  
   return T*s-e/hbarc-P+mu*rhob;
 }
 
@@ -1879,3 +1849,70 @@ double EOS::findRoot(double (EOS::*func)(double, double, double), double rhob, d
   return 0.;
 }
 
+
+double EOS::get_temperature(double eps, double rhob) {
+
+ double T;
+
+ if (whichEOS==0)
+   {
+     T=T_func_ideal_gas(eps);
+   }
+ else if (whichEOS==1)
+   {
+     T = interpolate(eps, rhob, 0);
+   }
+ else if (whichEOS>=2)
+   {
+     T= interpolate2(eps, rhob, 1);
+   }
+
+  return T;
+
+}
+
+
+double EOS::get_mu(double eps, double rhob) {
+
+ double mu;
+
+ if (whichEOS==0)
+   {
+     mu=0.0;
+   }
+ else if (whichEOS==1)
+   {
+     mu = 0.0;
+   }
+ else if (whichEOS>=2)
+   {
+     mu = 0.0;
+   }
+
+  return mu;
+
+}
+
+
+double EOS::get_qgp_frac(double eps, double rhob) {
+
+ double frac;
+
+ if (whichEOS==0)
+   {
+     frac=-1.0;
+   }
+ else if (whichEOS==1)
+   {
+     frac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
+     if (frac>1.) frac = 1;
+     else if (frac<0.) frac=0.;
+   }
+ else if (whichEOS>=2)
+   {
+     frac = interpolate2(eps, rhob, 3);
+   }
+
+  return frac;
+
+}

@@ -243,14 +243,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
 
  if(DATA->T_dependent_shear_to_s == 1)
    {
-     if (DATA->whichEOS==1)
-       {
-	 T = eos->interpolate(epsilon, rhob, 0)*hbarc;
-       }
-     else if (DATA->whichEOS>1)
-       {
-	 T = eos->interpolate2(epsilon, rhob, 1)*hbarc;
-       }
+     T=eos->get_temperature(epsilon,rhob)*hbarc;
      
      if(T < 0.18)
        {
@@ -268,7 +261,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
  
  //cout << "eta/s=" << shear_to_s << endl;
  
- s_den = eos->s_func(epsilon, grid_pt->p, rhob);
+ s_den = eos->get_entropy(epsilon, rhob);
  shear = (shear_to_s)*s_den;
  tau_pi = 3.0*shear/(grid_pt->epsilon + grid_pt->p);
 
@@ -1353,7 +1346,7 @@ double Diss::Make_uPiSource
 
     if(DATA->turn_on_bulk == 0) return 0.0;
 
-    s_den = eos->s_func(grid_pt->epsilon, grid_pt->p, grid_pt->rhob);
+    s_den = eos->get_entropy(grid_pt->epsilon, grid_pt->rhob);
     
     bulk = (DATA->bulk_to_s)*s_den;
 

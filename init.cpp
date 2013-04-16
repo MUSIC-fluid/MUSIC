@@ -280,7 +280,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 
 		 rhob = (1e-6)*epsilon; /* in fm^-3 */
 		 
-		 p = eos->p_func(epsilon, rhob);
+		 p = eos->get_pressure(epsilon, rhob);
 		 
 		 (*arena)[ix][iy][ieta].epsilon = epsilon;
 		 (*arena)[ix][iy][ieta].rhob = rhob;
@@ -572,7 +572,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 // 		       }
 		   }
 		 // intial pressure distribution:
-		 p = eos->p_func(epsilon, rhob);
+		 p = eos->get_pressure(epsilon, rhob);
 
 		 // set all values in the grid element:
 		 (*arena)[ix][iy][ieta].epsilon = epsilon;
@@ -580,22 +580,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].p = p;
 		 (*arena)[ix][iy][ieta].trouble = 0;
 
-		 if (DATA->whichEOS==0)
-		   {
-		     (*arena)[ix][iy][ieta].T = eos->T_func_ideal_gas(epsilon/3.0); 
-		     //pow(90.0/M_PI/M_PI*(epsilon/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
-		     (*arena)[ix][iy][ieta].mu = 0.0;
-		   }
-		 else if (DATA->whichEOS==1)
-		   {
-		     (*arena)[ix][iy][ieta].T = eos->interpolate(epsilon, rhob, 0);
-		     (*arena)[ix][iy][ieta].mu = eos->interpolate(epsilon, rhob, 1);
-		   }
-		 else if (DATA->whichEOS>=2)
-		   {
-		     (*arena)[ix][iy][ieta].T = eos->interpolate2(epsilon, rhob, 1);
-		     (*arena)[ix][iy][ieta].mu = 0.0;
-		   }
+		 (*arena)[ix][iy][ieta].T = eos->get_temperature(epsilon, rhob); 
+		 (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
 		 
 		 (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 4,4);
@@ -720,7 +706,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		   epsilon = DATA->epsilonFreeze/hbarc-1.;
 		 
 		 // intial pressure distribution:
-		 p = eos->p_func(epsilon, rhob);
+		 p = eos->get_pressure(epsilon, rhob);
 		 
 		 // set all values in the grid element:
 		 (*arena)[ix][iy][ieta].epsilon = epsilon;
@@ -728,16 +714,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].p = p;
 		 (*arena)[ix][iy][ieta].trouble = 0;
 
-		 if (DATA->whichEOS==1)
-		   {
-		     (*arena)[ix][iy][ieta].T = eos->interpolate(epsilon, rhob, 0);
-		     (*arena)[ix][iy][ieta].mu = eos->interpolate(epsilon, rhob, 1);
-		   }
-		 else if (DATA->whichEOS>=2)
-		   {
-		     (*arena)[ix][iy][ieta].T = eos->interpolate2(epsilon, rhob, 1);
-		     (*arena)[ix][iy][ieta].mu = 0.0;
-		   }
+		 (*arena)[ix][iy][ieta].T = eos->get_temperature(epsilon, rhob);
+		 (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
 	
 		 (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 4,4);
@@ -1994,7 +1972,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 // 		       }
 		   }
 		 // intial pressure distribution:
-		 p = eos->p_func(epsilon, rhob);
+		 p = eos->get_pressure(epsilon, rhob);
 
 		 // set all values in the grid element:
 		 (*arena)[ix][iy][ieta].epsilon = epsilon;
@@ -2003,16 +1981,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].p = p;
 		 (*arena)[ix][iy][ieta].trouble = 0;
 
-		 if (DATA->whichEOS==1)
-		   {
-		     (*arena)[ix][iy][ieta].T = eos->interpolate(epsilon, rhob, 0);
-		     (*arena)[ix][iy][ieta].mu = eos->interpolate(epsilon, rhob, 1);
-		   }
-		 else if (DATA->whichEOS>=2)
-		   {
-		     (*arena)[ix][iy][ieta].T = eos->interpolate2(epsilon, rhob, 1);
-		     (*arena)[ix][iy][ieta].mu = 0.0;
-		   }
+		 (*arena)[ix][iy][ieta].T = eos->get_temperature(epsilon, rhob);
+		 (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
 		 
 		 (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 4,4);
@@ -2373,7 +2343,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		     exit(1);
 		   }
 		 // intial pressure distribution:
-		 p = eos->p_func(epsilon, rhob);
+		 p = eos->get_pressure(epsilon, rhob);
 
 		 // set all values in the grid element:
 		 (*arena)[ix][iy][ieta].epsilon = epsilon;
@@ -2381,16 +2351,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].p = p;
 		 (*arena)[ix][iy][ieta].trouble = 0;
 
-		 if (DATA->whichEOS==1)
-		   {
-		     (*arena)[ix][iy][ieta].T = eos->interpolate(epsilon, rhob, 0);
-		     (*arena)[ix][iy][ieta].mu = eos->interpolate(epsilon, rhob, 1);
-		   }
-		 else if (DATA->whichEOS>=2)
-		   {
-		     (*arena)[ix][iy][ieta].T = eos->interpolate2(epsilon, rhob, 1);
-		     (*arena)[ix][iy][ieta].mu = 0.0;
-		   }
+		 (*arena)[ix][iy][ieta].T = eos->get_temperature(epsilon, rhob);
+		 (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
 		 
 		 (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 4,4);
@@ -2604,7 +2566,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		   epsilon = 0.00000000001;
 
 		 // intial pressure distribution:
-		 p = eos->p_func(epsilon, rhob);
+		 p = eos->get_pressure(epsilon, rhob);
 		 
 		 // set all values in the grid element:
 		 (*arena)[ix][iy][ieta2].epsilon = epsilon;
@@ -2612,16 +2574,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta2].p = p;
 		 (*arena)[ix][iy][ieta2].trouble = 0;
 		 
-		 if (DATA->whichEOS==1)
-		   {
-		     (*arena)[ix][iy][ieta2].T = eos->interpolate(epsilon, rhob, 0);
-		     (*arena)[ix][iy][ieta2].mu = eos->interpolate(epsilon, rhob, 1);
-		   }
-		 else if (DATA->whichEOS>1)
-		   {
-		     (*arena)[ix][iy][ieta2].T = eos->interpolate2(epsilon, rhob, 1);
-		     (*arena)[ix][iy][ieta2].mu = 0.0;
-		   }
+		 (*arena)[ix][iy][ieta2].T = eos->get_temperature(epsilon, rhob);
+		 (*arena)[ix][iy][ieta2].mu = eos->get_mu(epsilon, rhob);
 		 
 		//  if (ix==DATA->nx/2+1 && iy==DATA->ny/2+1 && ieta2==DATA->neta/2)
 // 		   {
@@ -2827,7 +2781,7 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 		   epsilon = 0.00000000001;
 		 
 		 // intial pressure distribution:
-		 p = eos->p_func(epsilon, rhob);
+		 p = eos->get_pressure(epsilon, rhob);
 		 
 		 // set all values in the grid element:
 		 (*arena)[ix][iy][ieta2].epsilon = epsilon;
@@ -2835,16 +2789,8 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 		 (*arena)[ix][iy][ieta2].p = p;
 		 (*arena)[ix][iy][ieta2].trouble = 0;
 		 
-		 if (DATA->whichEOS==1)
-		   {
-		     (*arena)[ix][iy][ieta2].T = eos->interpolate(epsilon, rhob, 0);
-		     (*arena)[ix][iy][ieta2].mu = eos->interpolate(epsilon, rhob, 1);
-		   }
-		 else if (DATA->whichEOS>1)
-		   {
-		     (*arena)[ix][iy][ieta2].T = eos->interpolate2(epsilon, rhob, 1);
-		     (*arena)[ix][iy][ieta2].mu = 0.0;
-		   }
+		 (*arena)[ix][iy][ieta2].T = eos->get_temperature(epsilon, rhob);
+		 (*arena)[ix][iy][ieta2].mu = eos->get_mu(epsilon, rhob);
 		 
 		//  if (ix==DATA->nx/2+1 && iy==DATA->ny/2+1 && ieta2==DATA->neta/2)
 // 		   {

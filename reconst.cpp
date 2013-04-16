@@ -120,7 +120,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
  if(isnan(epsilon_next)) cout << "problem " << eps_guess << " T00=" << T00 << " K00=" << K00 << " cs2=" 
 			      << cs2 << " q[0]=" << q[0] << " uq[0][" << direc << "]=" << uq[0][direc] 
 			      << " q[1]=" << q[1] << " q[2]=" << q[2] << endl;
- p_guess = eos->p_func(epsilon_next, rhob_init);
+ p_guess = eos->get_pressure(epsilon_next, rhob_init);
  p_next = p_guess;
 
 /* rhob = J0*sqrt( (eps + p)/(T00 + p) ) */
@@ -141,7 +141,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
    if(err < (RECONST_PRECISION)*0.01)
     {
       if(isnan(epsilon_next)) cout << "problem2" << endl;
-      p_next = eos->p_func(epsilon_next, rhob_next);
+      p_next = eos->get_pressure(epsilon_next, rhob_next);
      break;
     }
    else
@@ -155,7 +155,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
      
    if(isnan(epsilon_prev)) cout << "problem3" << endl;
 
-   p_prev = eos->p_func(epsilon_prev, rhob_prev);
+   p_prev = eos->get_pressure(epsilon_prev, rhob_prev);
    epsilon_next = T00 - K00/(T00 + p_prev);
   
    err = 0.0;

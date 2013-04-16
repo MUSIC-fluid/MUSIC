@@ -271,19 +271,8 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 		  uy = uy_lower * (1.-etafrac) + (etafrac)*uy_higher;
 		  ueta = ueta_lower * (1.-etafrac) + (etafrac)*ueta_higher;
 		  
-		  if (DATA->whichEOS==1)
-		    {
-		      T = eos->interpolate(eps, rhob, 0);
-		      QGPfrac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
-		      //cout << T << " " << QGPfrac << endl;
-		      if (QGPfrac>1.) QGPfrac = 1;
-		      else if (QGPfrac<0.) QGPfrac=0.;
-		    }
-		  else if (DATA->whichEOS>=2)
-		    {
-		      T = eos->interpolate2(eps, rhob, 1);
-		      QGPfrac = eos->interpolate2(eps, rhob, 3);
-		    }
+		  T = eos->get_temperature(eps, rhob);
+		  QGPfrac = eos->get_qgp_frac(eps, rhob);
 		  
 		  //Now these are the flow velocities as e,g, MARTINI needs them
 		  u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
@@ -707,28 +696,9 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 		uz1 = ueta1*cosh(eta)+utau1*sinh(eta);
 		uz1 /= u01;
 	
-		if (DATA->whichEOS==0) {
-		  //T1=pow(90.0/M_PI/M_PI*(epsilon1/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
-		  T1=eos->T_func_ideal_gas(epsilon1/3.0);
-		  QGPfrac1=-1.0;
-		  entropy=eos->s_func(epsilon1, 0.0, 0.0);
-		}	
-		else if (DATA->whichEOS==1)
-		  {
-		    T1 = eos->interpolate(epsilon1, rhob1, 0);
-		    QGPfrac1=(epsilon1*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
-		    //cout << T << " " << QGPfrac << endl;
-		    pressure = pFrom[ix][iy][ieta];
-		    entropy = (epsilon1+pressure)/T1;
-		    if (QGPfrac1>1.) QGPfrac1 = 1;
-		    else if (QGPfrac1<0.) QGPfrac1=0.;
-		  }
-		else if (DATA->whichEOS>=2)
-		  {
-		    T1 = eos->interpolate2(epsilon1, rhob1, 1);
-		    QGPfrac1 = eos->interpolate2(epsilon1, rhob1, 3);
-		    entropy = eos->interpolate2(epsilon1, rhob1, 2); // added by Maxime
-		  }
+		T1=eos->get_temperature(epsilon1,rhob1);
+		QGPfrac1=eos->get_qgp_frac(epsilon1,rhob1);
+		entropy=eos->get_entropy(epsilon1, rhob1);
 //		if(T > 0.12)
 //		{
                   shear_visc=DATA->shear_to_s*entropy;
@@ -1026,19 +996,8 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
 		  uy = uyFrom[ix][iy][ieta];
 		  ueta = uetaFrom[ix][iy][ieta];
 		  
-		  if (DATA->whichEOS==1)
-		    {
-		      T = eos->interpolate(eps, rhob, 0);
-		      QGPfrac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
-		      //cout << T << " " << QGPfrac << endl;
-		      if (QGPfrac>1.) QGPfrac = 1;
-		      else if (QGPfrac<0.) QGPfrac=0.;
-		    }
-		  else if (DATA->whichEOS>=2)
-		    {
-		      T = eos->interpolate2(eps, rhob, 1);
-		      QGPfrac = eos->interpolate2(eps, rhob, 3);
-		    }
+		  T = eos->get_temperature(eps, rhob);
+		  QGPfrac = eos->get_qgp_frac(eps, rhob);
 		  
 		  //Now these are the flow velocities as e,g, MARTINI needs them
 		  u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
@@ -1267,19 +1226,8 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 		  uy = uy_lower * (1.-etafrac) + (etafrac)*uy_higher;
 		  ueta = ueta_lower * (1.-etafrac) + (etafrac)*ueta_higher;
 		  
-		  if (DATA->whichEOS==1)
-		    {
-		      T = eos->interpolate(eps, rhob, 0);
-		      QGPfrac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
-		      //cout << T << " " << QGPfrac << endl;
-		      if (QGPfrac>1.) QGPfrac = 1;
-		      else if (QGPfrac<0.) QGPfrac=0.;
-		    }
-		  else if (DATA->whichEOS>=2)
-		    {
-		      T = eos->interpolate2(eps, rhob, 1);
-		      QGPfrac = eos->interpolate2(eps, rhob, 3);
-		    }
+		  T = eos->get_temperature(eps, rhob);
+		  QGPfrac = eos->get_qgp_frac(eps, rhob);
 		  
 		  //Now these are the flow velocities as e,g, MARTINI needs them
 		  u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
@@ -1440,23 +1388,8 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
 		  eps = epsFrom[ix][iy][ieta];
 		  rhob = rhobFrom[ix][iy][ieta];
 			  
-		if (DATA->whichEOS==0) {
-		  T=eos->T_func_ideal_gas(eps/3.0); //pow(90.0/M_PI/M_PI*(eps/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
-		  QGPfrac=-1.0;
-		}	
-		else if (DATA->whichEOS==1)
-		    {
-		      T = eos->interpolate(eps, rhob, 0);
-		      QGPfrac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
-		      //cout << T << " " << QGPfrac << endl;
-		      if (QGPfrac>1.) QGPfrac = 1;
-		      else if (QGPfrac<0.) QGPfrac=0.;
-		    }
-		  else if (DATA->whichEOS>1)
-		    {
-		      T = eos->interpolate2(eps, rhob, 1);
-		      QGPfrac = eos->interpolate2(eps, rhob, 3);
-		    }
+		  T=eos->get_temperature(eps,rhob);
+		  QGPfrac=eos->get_qgp_frac(eps,rhob);
 		  
 		  if(T>0.16/hbarc && QGPfrac==1)
 		    {
@@ -1787,19 +1720,8 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	      uy = uy_lower * (1.-etafrac) + (etafrac)*uy_higher;
 	      ueta = ueta_lower * (1.-etafrac) + (etafrac)*ueta_higher;
 	      
-	      if (DATA->whichEOS==1)
-		{
-		  T = eos->interpolate(eps, rhob, 0);
-		  QGPfrac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
-		  //cout << T << " " << QGPfrac << endl;
-		  if (QGPfrac>1.) QGPfrac = 1;
-		  else if (QGPfrac<0.) QGPfrac=0.;
-		}
-	      else if (DATA->whichEOS>1)
-		{
-		  T = eos->interpolate2(eps, rhob, 1);
-		  QGPfrac = eos->interpolate2(eps, rhob, 3);
-		}
+	      T = eos->get_temperature(eps, rhob);
+	      QGPfrac = eos->get_qgp_frac(eps, rhob);
 	      
 	      //Now these are the flow velocities as e,g, MARTINI needs them
 	      u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
