@@ -67,6 +67,7 @@ class EOS{
  public:
   EOS();//constructor
   ~EOS();//destructor
+  void init_eos0(); // for whichEOS=0
   void init_eos(); // for whichEOS=1
   void init_eos2(); // for whichEOS=2
   void init_eos3(int selector); // for whichEOS=3 (PCE 150 MeV), whichEOS=4 (PCE 155 MeV), whichEOS=5 (PCE 160 MeV), whichEOS=6 (PCE 165 MeV)
@@ -80,6 +81,7 @@ class EOS{
   double p_func(double e, double rhob);
   double p_rho_func(double e, double rhob);
   double p_e_func(double e, double rhob);
+  double T_func_ideal_gas(double p);
   double s_func(double epsilon, double p, double rhob);
   double ssolve(double e, double rhob, double s);
   double Tsolve(double e, double rhob, double T);

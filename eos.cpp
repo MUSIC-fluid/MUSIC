@@ -25,6 +25,11 @@ void EOS::checkForReadError(FILE *file, char* name)
     }
 }
 
+void EOS::init_eos0() {
+  whichEOS = 0;
+}
+
+
 void EOS::init_eos()
 {
   // read the azhydro pressure, temperature, and 
@@ -1737,17 +1742,28 @@ double EOS::interpolate(double e, double rhob, int selector)
   return T/hbarc;
 }
 
+double EOS::T_func_ideal_gas(double p) {
+
+	//Define number of colours and of flavours
+ 	const double Nc=3, Nf=2.5;
+	
+	return pow(90.0/M_PI/M_PI*(p)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
+
+}
+
+
 double EOS::s_func(double epsilon, double p, double rhob)
 {
  double f;
  double P, T, mu;
-  
+
  P = p_func(epsilon, rhob);
 
  if (whichEOS==0)
    {
-    f = pow(epsilon + p, 0.75)/2.1365;
-    return f;
+    //T=pow(90.0/M_PI/M_PI*P/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
+    T=T_func_ideal_gas(P);
+    mu=0.0;
    }
  else if (whichEOS==1)
    {

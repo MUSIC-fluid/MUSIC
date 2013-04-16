@@ -104,6 +104,7 @@ main(int argc, char *argv[])
     {
       if (rank == 0) 
         cout << "Using the ideal gas EOS" << endl;
+        eos->init_eos0();
     }
   else if (DATA.whichEOS==1)
     {
@@ -1120,4 +1121,3 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   cout << "Done ReadInData." << endl;
   delete util;
 }/* ReadInData */
-

@@ -706,8 +706,14 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 		uy1 = uy1/u01;
 		uz1 = ueta1*cosh(eta)+utau1*sinh(eta);
 		uz1 /= u01;
-		
-		if (DATA->whichEOS==1)
+	
+		if (DATA->whichEOS==0) {
+		  //T1=pow(90.0/M_PI/M_PI*(epsilon1/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
+		  T1=eos->T_func_ideal_gas(epsilon1/3.0);
+		  QGPfrac1=-1.0;
+		  entropy=eos->s_func(epsilon1, 0.0, 0.0);
+		}	
+		else if (DATA->whichEOS==1)
 		  {
 		    T1 = eos->interpolate(epsilon1, rhob1, 0);
 		    QGPfrac1=(epsilon1*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
@@ -1434,7 +1440,11 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
 		  eps = epsFrom[ix][iy][ieta];
 		  rhob = rhobFrom[ix][iy][ieta];
 			  
-		  if (DATA->whichEOS==1)
+		if (DATA->whichEOS==0) {
+		  T=eos->T_func_ideal_gas(eps/3.0); //pow(90.0/M_PI/M_PI*(eps/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
+		  QGPfrac=-1.0;
+		}	
+		else if (DATA->whichEOS==1)
 		    {
 		      T = eos->interpolate(eps, rhob, 0);
 		      QGPfrac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase

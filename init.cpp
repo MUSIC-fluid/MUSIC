@@ -580,7 +580,13 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].p = p;
 		 (*arena)[ix][iy][ieta].trouble = 0;
 
-		 if (DATA->whichEOS==1)
+		 if (DATA->whichEOS==0)
+		   {
+		     (*arena)[ix][iy][ieta].T = eos->T_func_ideal_gas(epsilon/3.0); 
+		     //pow(90.0/M_PI/M_PI*(epsilon/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
+		     (*arena)[ix][iy][ieta].mu = 0.0;
+		   }
+		 else if (DATA->whichEOS==1)
 		   {
 		     (*arena)[ix][iy][ieta].T = eos->interpolate(epsilon, rhob, 0);
 		     (*arena)[ix][iy][ieta].mu = eos->interpolate(epsilon, rhob, 1);
