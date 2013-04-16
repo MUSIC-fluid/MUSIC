@@ -7,6 +7,7 @@
 #include "eos.h"
 #include "freeze.h"
 #include "evolve.h"
+#include <sys/stat.h>// for mkdir
 
 using namespace std;
 void ReadInData(InitData *DATA, string file);
@@ -189,6 +190,7 @@ main(int argc, char *argv[])
   
   if (DATA.mode == 1 || DATA.mode == 3 || DATA.mode == 4 || DATA.mode >= 5)
     {
+      mkdir("./outputs", 755);
       //if (rank == 0) int ret = system("rm yptphiSpectra*");
       //  freeze-out
       Freeze *freeze;
