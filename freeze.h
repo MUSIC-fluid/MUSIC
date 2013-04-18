@@ -27,6 +27,7 @@
 #include <iterator>
 #include <algorithm>
 #include <fstream>
+#include <unistd.h>
 
 class Freeze{
 
