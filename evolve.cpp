@@ -4487,11 +4487,12 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   ofstream s_file;
   s_file.open(s_name.c_str() , ios::out | ios::app );
   
-  int frozen = 1;
+  int frozen[1];
+  frozen[0] = 1;
   
   int ix, iy, ieta, nx, ny, neta;
   double x, y, eta;
-  double epsFO=DATA->epsilonFreeze/hbarc;
+//   double epsFO=DATA->epsilonFreeze/hbarc;
   double tauf, xf, yf, etaf;
   nx = DATA->nx;
   ny = DATA->ny;
@@ -4512,6 +4513,23 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   DETA=fac*DATA->delta_eta;
   DTAU=facTau*DATA->delta_tau;
 
+  double epsFO;
+  if (DATA->useEpsFO)
+    {
+      epsFO=DATA->epsilonFreeze/hbarc;
+    }
+  else 
+    {
+      if(rhob!=0) 
+      {
+	rhob = 0.;
+	cout << "[evolve.cpp:FindFreezeoutSurface3]: Using T_freeze works for rhob=0 only" << endl;
+      }
+      epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA->TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
+      cout << "T_freeze=" << DATA->TFO << ", epsFO=" << epsFO*hbarc << endl;
+    }
+  
+  
   double maxDETA = DATA->max_delta_eta;// maximum size of cuboid in eta direction.  If DETA > maxDETA, split the surface into several identical sections spread across eta.
   int subsections = floor(DETA/maxDETA) + 1;// subdivide the blocks into this many subdivisions in eta
  
@@ -4523,13 +4541,326 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 //   fprintf(stderr,"DETA=%f\n", DETA);
   shown = 0;
   
-//  For now, ignore MPI.  Can only run on one processor
-  if(size>1)
-  {
-   cout << "Freeze out method 3 can only run on 1 processor.  Try again.\n";
-   exit(1);
-  }
   int maxEta;
+  
+  //  MPI code copied from FindFreezeOutSurface2
+  //*******************************************
+    //  int ix, iy, ieta, nx, ny, neta, i, alpha, iflag;
+  int sizeOfData = (nx+1)*(ny+1);
+  int position;
+  double *package;
+  double *package_prev;
+  double *packageutau;
+  double *packageux;
+  double *packageuy;
+  double *packageueta;
+  double *packagerhob;
+
+  double *packageutau_prev;
+  double *packageux_prev;
+  double *packageuy_prev;
+  double *packageueta_prev;
+  double *packagerhob_prev;
+  
+  double **Rneighbor_eps;
+  double **Rneighbor_eps_prev;
+  double **Rneighbor_utau;
+  double **Rneighbor_ux;
+  double **Rneighbor_uy;
+  double **Rneighbor_ueta;
+  double **Rneighbor_rhob;
+ 
+  double **Rneighbor_utau_prev;
+  double **Rneighbor_ux_prev;
+  double **Rneighbor_uy_prev;
+  double **Rneighbor_ueta_prev;
+  double **Rneighbor_rhob_prev;
+
+  double *packageWtautau;
+  double *packageWtaux;
+  double *packageWtauy;
+  double *packageWtaueta;
+  double *packageWxx;
+  double *packageWxy;
+  double *packageWxeta;
+  double *packageWyy;
+  double *packageWyeta;
+  double *packageWetaeta;
+
+  double *packageWtautau_prev;
+  double *packageWtaux_prev;
+  double *packageWtauy_prev;
+  double *packageWtaueta_prev;
+  double *packageWxx_prev;
+  double *packageWxy_prev;
+  double *packageWxeta_prev;
+  double *packageWyy_prev;
+  double *packageWyeta_prev;
+  double *packageWetaeta_prev;
+
+  double **Rneighbor_Wtautau_prev;
+  double **Rneighbor_Wtaux_prev;
+  double **Rneighbor_Wtauy_prev;
+  double **Rneighbor_Wtaueta_prev;
+  double **Rneighbor_Wxx_prev;
+  double **Rneighbor_Wxy_prev;
+  double **Rneighbor_Wxeta_prev;
+  double **Rneighbor_Wyy_prev;
+  double **Rneighbor_Wyeta_prev;
+  double **Rneighbor_Wetaeta_prev;
+
+  double **Rneighbor_Wtautau;
+  double **Rneighbor_Wtaux;
+  double **Rneighbor_Wtauy;
+  double **Rneighbor_Wtaueta;
+  double **Rneighbor_Wxx;
+  double **Rneighbor_Wxy;
+  double **Rneighbor_Wxeta;
+  double **Rneighbor_Wyy;
+  double **Rneighbor_Wyeta;
+  double **Rneighbor_Wetaeta;
+
+  package = new double[sizeOfData];
+  package_prev = new double[sizeOfData];
+  packageutau = new double[sizeOfData];
+  packageux = new double[sizeOfData];
+  packageuy = new double[sizeOfData];
+  packageueta = new double[sizeOfData];
+  packagerhob = new double[sizeOfData];
+
+  packageWtautau = new double[sizeOfData];
+  packageWtaux = new double[sizeOfData];
+  packageWtauy = new double[sizeOfData];
+  packageWtaueta = new double[sizeOfData];
+  packageWxx = new double[sizeOfData];
+  packageWxy = new double[sizeOfData];
+  packageWxeta = new double[sizeOfData];
+  packageWyy = new double[sizeOfData];
+  packageWyeta = new double[sizeOfData];
+  packageWetaeta = new double[sizeOfData];
+  
+  packageWtautau_prev = new double[sizeOfData];
+  packageWtaux_prev = new double[sizeOfData];
+  packageWtauy_prev = new double[sizeOfData];
+  packageWtaueta_prev = new double[sizeOfData];
+  packageWxx_prev = new double[sizeOfData];
+  packageWxy_prev = new double[sizeOfData];
+  packageWxeta_prev = new double[sizeOfData];
+  packageWyy_prev = new double[sizeOfData];
+  packageWyeta_prev = new double[sizeOfData];
+  packageWetaeta_prev = new double[sizeOfData];
+  
+  packageutau_prev = new double[sizeOfData];
+  packageux_prev = new double[sizeOfData];
+  packageuy_prev = new double[sizeOfData];
+  packageueta_prev = new double[sizeOfData];
+  packagerhob_prev = new double[sizeOfData];
+
+  Rneighbor_eps = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_eps_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_utau = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_ux = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_uy = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_ueta = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_rhob = util->mtx_malloc(nx+1,ny+1);
+ 
+  Rneighbor_Wtautau = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wtaux = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wtauy = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wtaueta = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wxx = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wxy = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wxeta = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wyy = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wyeta = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wetaeta = util->mtx_malloc(nx+1,ny+1);
+
+  Rneighbor_Wtautau_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wtaux_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wtauy_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wtaueta_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wxx_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wxy_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wxeta_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wyy_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wyeta_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Wetaeta_prev = util->mtx_malloc(nx+1,ny+1);
+ 
+  Rneighbor_utau_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_ux_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_uy_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_ueta_prev = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_rhob_prev = util->mtx_malloc(nx+1,ny+1);
+  
+  // receive from the right / send to the left
+  int from = rank+1;
+  int to = rank-1;
+
+  // get cells from neighboring processors
+  if ( rank != 0 )
+    {
+      //      cout << " sending to the left on rank " << rank << endl;
+      for(ix=0; ix<=nx; ix++)
+	{
+	  for(iy=0; iy<=ny; iy++)
+	    {
+	      //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
+	      //cout << "arena[ix][iy][0].TJb[i][alpha][0]=" << arena[ix][iy][0].TJb[i][alpha][0] << endl;
+	      position = ix + (nx*iy);
+	      package[position] = arena[ix][iy][0].epsilon;
+	      package_prev[position] = arena[ix][iy][0].epsilon_prev;
+	      packageutau[position] = arena[ix][iy][0].u[0][0];
+	      packageux[position] = arena[ix][iy][0].u[0][1];
+	      packageuy[position] = arena[ix][iy][0].u[0][2];
+	      packageueta[position] = arena[ix][iy][0].u[0][3];
+	      
+	      packageWtautau[position] = arena[ix][iy][0].Wmunu[0][0][0];
+	      packageWtaux[position] = arena[ix][iy][0].Wmunu[0][0][1];
+	      packageWtauy[position] = arena[ix][iy][0].Wmunu[0][0][2];
+	      packageWtaueta[position] = arena[ix][iy][0].Wmunu[0][0][3];
+	      packageWxx[position] = arena[ix][iy][0].Wmunu[0][1][1];
+	      packageWxy[position] = arena[ix][iy][0].Wmunu[0][1][2];
+	      packageWxeta[position] = arena[ix][iy][0].Wmunu[0][1][3];
+	      packageWyy[position] = arena[ix][iy][0].Wmunu[0][2][2];
+	      packageWyeta[position] = arena[ix][iy][0].Wmunu[0][2][3];
+	      packageWetaeta[position] = arena[ix][iy][0].Wmunu[0][3][3];
+      
+	      packageWtautau_prev[position] = arena[ix][iy][0].W_prev[0][0];
+	      packageWtaux_prev[position] = arena[ix][iy][0].W_prev[0][1];
+	      packageWtauy_prev[position] = arena[ix][iy][0].W_prev[0][2];
+	      packageWtaueta_prev[position] = arena[ix][iy][0].W_prev[0][3];
+	      packageWxx_prev[position] = arena[ix][iy][0].W_prev[1][1];
+	      packageWxy_prev[position] = arena[ix][iy][0].W_prev[1][2];
+	      packageWxeta_prev[position] = arena[ix][iy][0].W_prev[1][3];
+	      packageWyy_prev[position] = arena[ix][iy][0].W_prev[2][2];
+	      packageWyeta_prev[position] = arena[ix][iy][0].W_prev[2][3];
+	      packageWetaeta_prev[position] = arena[ix][iy][0].W_prev[3][3];
+      
+	      packagerhob[position] = arena[ix][iy][0].rhob;
+	      packageutau_prev[position] = arena[ix][iy][0].u_prev[0];
+	      packageux_prev[position] = arena[ix][iy][0].u_prev[1];
+	      packageuy_prev[position] = arena[ix][iy][0].u_prev[2];
+	      packageueta_prev[position] = arena[ix][iy][0].u_prev[3];
+	    }
+	}
+      MPI::COMM_WORLD.Send(package,sizeOfData,MPI::DOUBLE,to,1);
+      MPI::COMM_WORLD.Send(package_prev,sizeOfData,MPI::DOUBLE,to,2);
+      MPI::COMM_WORLD.Send(packageutau,sizeOfData,MPI::DOUBLE,to,3);
+      MPI::COMM_WORLD.Send(packageux,sizeOfData,MPI::DOUBLE,to,4);
+      MPI::COMM_WORLD.Send(packageuy,sizeOfData,MPI::DOUBLE,to,5);
+      MPI::COMM_WORLD.Send(packageueta,sizeOfData,MPI::DOUBLE,to,6);
+      MPI::COMM_WORLD.Send(packagerhob,sizeOfData,MPI::DOUBLE,to,7);
+      MPI::COMM_WORLD.Send(packageutau_prev,sizeOfData,MPI::DOUBLE,to,8);
+      MPI::COMM_WORLD.Send(packageux_prev,sizeOfData,MPI::DOUBLE,to,9);
+      MPI::COMM_WORLD.Send(packageuy_prev,sizeOfData,MPI::DOUBLE,to,10);
+      MPI::COMM_WORLD.Send(packageueta_prev,sizeOfData,MPI::DOUBLE,to,11);
+      MPI::COMM_WORLD.Send(packageWtautau,sizeOfData,MPI::DOUBLE,to,12);
+      MPI::COMM_WORLD.Send(packageWtaux,sizeOfData,MPI::DOUBLE,to,13);
+      MPI::COMM_WORLD.Send(packageWtauy,sizeOfData,MPI::DOUBLE,to,14);
+      MPI::COMM_WORLD.Send(packageWtaueta,sizeOfData,MPI::DOUBLE,to,15);
+      MPI::COMM_WORLD.Send(packageWxx,sizeOfData,MPI::DOUBLE,to,16);
+      MPI::COMM_WORLD.Send(packageWxy,sizeOfData,MPI::DOUBLE,to,17);
+      MPI::COMM_WORLD.Send(packageWxeta,sizeOfData,MPI::DOUBLE,to,18);
+      MPI::COMM_WORLD.Send(packageWyy,sizeOfData,MPI::DOUBLE,to,19);
+      MPI::COMM_WORLD.Send(packageWyeta,sizeOfData,MPI::DOUBLE,to,20);
+      MPI::COMM_WORLD.Send(packageWetaeta,sizeOfData,MPI::DOUBLE,to,21);
+      MPI::COMM_WORLD.Send(packageWtautau_prev,sizeOfData,MPI::DOUBLE,to,22);
+      MPI::COMM_WORLD.Send(packageWtaux_prev,sizeOfData,MPI::DOUBLE,to,23);
+      MPI::COMM_WORLD.Send(packageWtauy_prev,sizeOfData,MPI::DOUBLE,to,24);
+      MPI::COMM_WORLD.Send(packageWtaueta_prev,sizeOfData,MPI::DOUBLE,to,25);
+      MPI::COMM_WORLD.Send(packageWxx_prev,sizeOfData,MPI::DOUBLE,to,26);
+      MPI::COMM_WORLD.Send(packageWxy_prev,sizeOfData,MPI::DOUBLE,to,27);
+      MPI::COMM_WORLD.Send(packageWxeta_prev,sizeOfData,MPI::DOUBLE,to,28);
+      MPI::COMM_WORLD.Send(packageWyy_prev,sizeOfData,MPI::DOUBLE,to,29);
+      MPI::COMM_WORLD.Send(packageWyeta_prev,sizeOfData,MPI::DOUBLE,to,30);
+      MPI::COMM_WORLD.Send(packageWetaeta_prev,sizeOfData,MPI::DOUBLE,to,31);
+        //cout << " done sending to the left on rank " << rank << endl;
+    }
+  // receiving and unwrapping the package
+  if ( rank != size-1 )
+    {  
+      MPI::COMM_WORLD.Recv(package,sizeOfData,MPI::DOUBLE,from,1);
+      MPI::COMM_WORLD.Recv(package_prev,sizeOfData,MPI::DOUBLE,from,2);
+      MPI::COMM_WORLD.Recv(packageutau,sizeOfData,MPI::DOUBLE,from,3);
+      MPI::COMM_WORLD.Recv(packageux,sizeOfData,MPI::DOUBLE,from,4);
+      MPI::COMM_WORLD.Recv(packageuy,sizeOfData,MPI::DOUBLE,from,5);
+      MPI::COMM_WORLD.Recv(packageueta,sizeOfData,MPI::DOUBLE,from,6);
+      MPI::COMM_WORLD.Recv(packagerhob,sizeOfData,MPI::DOUBLE,from,7);
+      MPI::COMM_WORLD.Recv(packageutau_prev,sizeOfData,MPI::DOUBLE,from,8);
+      MPI::COMM_WORLD.Recv(packageux_prev,sizeOfData,MPI::DOUBLE,from,9);
+      MPI::COMM_WORLD.Recv(packageuy_prev,sizeOfData,MPI::DOUBLE,from,10);
+      MPI::COMM_WORLD.Recv(packageueta_prev,sizeOfData,MPI::DOUBLE,from,11);
+      MPI::COMM_WORLD.Recv(packageWtautau,sizeOfData,MPI::DOUBLE,from,12);
+      MPI::COMM_WORLD.Recv(packageWtaux,sizeOfData,MPI::DOUBLE,from,13);
+      MPI::COMM_WORLD.Recv(packageWtauy,sizeOfData,MPI::DOUBLE,from,14);
+      MPI::COMM_WORLD.Recv(packageWtaueta,sizeOfData,MPI::DOUBLE,from,15);
+      MPI::COMM_WORLD.Recv(packageWxx,sizeOfData,MPI::DOUBLE,from,16);
+      MPI::COMM_WORLD.Recv(packageWxy,sizeOfData,MPI::DOUBLE,from,17);
+      MPI::COMM_WORLD.Recv(packageWxeta,sizeOfData,MPI::DOUBLE,from,18);
+      MPI::COMM_WORLD.Recv(packageWyy,sizeOfData,MPI::DOUBLE,from,19);
+      MPI::COMM_WORLD.Recv(packageWyeta,sizeOfData,MPI::DOUBLE,from,20);
+      MPI::COMM_WORLD.Recv(packageWetaeta,sizeOfData,MPI::DOUBLE,from,21);
+      MPI::COMM_WORLD.Recv(packageWtautau_prev,sizeOfData,MPI::DOUBLE,from,22);
+      MPI::COMM_WORLD.Recv(packageWtaux_prev,sizeOfData,MPI::DOUBLE,from,23);
+      MPI::COMM_WORLD.Recv(packageWtauy_prev,sizeOfData,MPI::DOUBLE,from,24);
+      MPI::COMM_WORLD.Recv(packageWtaueta_prev,sizeOfData,MPI::DOUBLE,from,25);
+      MPI::COMM_WORLD.Recv(packageWxx_prev,sizeOfData,MPI::DOUBLE,from,26);
+      MPI::COMM_WORLD.Recv(packageWxy_prev,sizeOfData,MPI::DOUBLE,from,27);
+      MPI::COMM_WORLD.Recv(packageWxeta_prev,sizeOfData,MPI::DOUBLE,from,28);
+      MPI::COMM_WORLD.Recv(packageWyy_prev,sizeOfData,MPI::DOUBLE,from,29);
+      MPI::COMM_WORLD.Recv(packageWyeta_prev,sizeOfData,MPI::DOUBLE,from,30);
+      MPI::COMM_WORLD.Recv(packageWetaeta_prev,sizeOfData,MPI::DOUBLE,from,31);
+      //cout << " receiving from the right on rank " << rank << endl;
+      for(ix=0; ix<=nx; ix++)
+	{
+	  for(iy=0; iy<=ny; iy++)
+	    {
+	      position = ix + (nx*iy);
+	      //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
+	      //cout << "Rneighbor[ix][iy][0].TJb[i][alpha][0]=" << package[position] << endl;
+	      Rneighbor_eps[ix][iy] = package[position];
+	      Rneighbor_eps_prev[ix][iy] = package_prev[position];
+	      Rneighbor_utau[ix][iy] = packageutau[position];
+	      Rneighbor_ux[ix][iy] = packageux[position];
+	      Rneighbor_uy[ix][iy] = packageuy[position];
+	      Rneighbor_ueta[ix][iy] = packageueta[position];
+	      Rneighbor_rhob[ix][iy] = packagerhob[position];
+	      Rneighbor_utau_prev[ix][iy] = packageutau_prev[position];
+	      Rneighbor_ux_prev[ix][iy] = packageux_prev[position];
+	      Rneighbor_uy_prev[ix][iy] = packageuy_prev[position];
+	      Rneighbor_ueta_prev[ix][iy] = packageueta_prev[position];
+	      Rneighbor_Wtautau[ix][iy] = packageWtautau[position];
+	      Rneighbor_Wtaux[ix][iy] = packageWtaux[position];
+	      Rneighbor_Wtauy[ix][iy] = packageWtauy[position];
+	      Rneighbor_Wtaueta[ix][iy] = packageWtaueta[position];
+	      Rneighbor_Wxx[ix][iy] = packageWxx[position];
+	      Rneighbor_Wxy[ix][iy] = packageWxy[position];
+	      Rneighbor_Wxeta[ix][iy] = packageWxeta[position];
+	      Rneighbor_Wyy[ix][iy] = packageWyy[position];
+	      Rneighbor_Wyeta[ix][iy] = packageWyeta[position];
+	      Rneighbor_Wetaeta[ix][iy] = packageWetaeta[position];
+	      Rneighbor_Wtautau_prev[ix][iy] = packageWtautau_prev[position];
+	      Rneighbor_Wtaux_prev[ix][iy] = packageWtaux_prev[position];
+	      Rneighbor_Wtauy_prev[ix][iy] = packageWtauy_prev[position];
+	      Rneighbor_Wtaueta_prev[ix][iy] = packageWtaueta_prev[position];
+	      Rneighbor_Wxx_prev[ix][iy] = packageWxx_prev[position];
+	      Rneighbor_Wxy_prev[ix][iy] = packageWxy_prev[position];
+	      Rneighbor_Wxeta_prev[ix][iy] = packageWxeta_prev[position];
+	      Rneighbor_Wyy_prev[ix][iy] = packageWyy_prev[position];
+	      Rneighbor_Wyeta_prev[ix][iy] = packageWyeta_prev[position];
+	      Rneighbor_Wetaeta_prev[ix][iy] = packageWetaeta_prev[position];
+	    }
+	}
+      //cout << " done receiving from the right on rank " << rank << endl;
+    }
+
+//   if (rank == size-1) maxEta = neta-fac;
+//   else maxEta = neta;
+  
+  //*******************************************
+  //  end MPI code copied from FindFreezeOutSurface2
+  
+//   int maxEta;
   maxEta = neta-fac;
 
   for(ix=0; ix<=nx; ix+=fac)
@@ -4541,7 +4872,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 	  for(ieta=1; ieta<=maxEta; ieta+=fac)
 	    {
 	      eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
-	      if (arena[ix][iy][ieta].epsilon >= epsFO) frozen = 0;
+	      if (arena[ix][iy][ieta].epsilon >= epsFO) frozen[0] = 0;
 
 	      if(ix<nx)
 	      {
@@ -4816,14 +5147,115 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 // 		}
 		
 	    }
+
+	    
+	    
+	    
+	    
+	    
+	  //  At the end of the eta grid in the +eta direction, check neighboring cell in eta, 
+	  //  received from neighboring processor.  Only check if surface is in between cells in eta direction
+	  //  (steps in x, y, and tau are checked on the neighboring processor)
+	  if (rank != size-1) 
+	  {
+	    eta = (DATA->delta_eta)*(neta+DATA->neta*rank) - (DATA->eta_size)/2.0;
+	
+	      // from Rneighbor, check backward in eta
+	      xf = x;
+	      yf = y;
+	      etaf = eta - DETA/2;
+	      tauf = tau;
+
+	      nix = ix;
+	      niy = iy;
+	      nieta = maxEta;
+	      FULLSU[0]=0.;
+	      FULLSU[1]=0.;
+	      FULLSU[2]=0.;
+	      FULLSU[3]=DTAU*DX*DY;
+	      
+	      epshome = arena[ix][iy][nieta].epsilon;
+	      epsneighbor = Rneighbor_eps[nix][niy];
+// 	       if (ieta>=neta-fac)
+// 		 {
+// 		  epsneighbor = Rneighbor_eps[ix][iy];
+// 		 }
+	      if(((epshome > epsFO) && (epsneighbor <= epsFO)) || ((epshome <= epsFO) && (epsneighbor > epsFO)))
+		{
+		  if (epshome<=epsFO)
+		    SIG=-1.;
+		  else SIG=1.;
+		  for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
+		  // simple linear interpolation of all independent variables
+		  ux = 0.5*(Rneighbor_ux[ix][iy] + arena[nix][niy][nieta].u[0][1]);
+		  uy = 0.5*(Rneighbor_uy[ix][iy] + arena[nix][niy][nieta].u[0][2]);
+		  ueta = 0.5*(Rneighbor_ueta[ix][iy] + arena[nix][niy][nieta].u[0][3]);
+		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
+		  iepsFO = 0.5*(epshome + epsneighbor);
+		  rhob = 0.5*(Rneighbor_rhob[ix][iy] + arena[nix][niy][nieta].rhob);
+		  if (DATA->whichEOS==1)
+		    {
+		      TFO = eos->interpolate(iepsFO, rhob, 0);
+		      muB = eos->interpolate(iepsFO, rhob, 1);
+// 		      sFO = eos->interpolate(iepsFO, rhob, 2);
+		    }
+		  else if (DATA->whichEOS>1)
+		    {
+		      TFO = eos->interpolate2(iepsFO, rhob, 1);
+		      muB = 0.0;
+// 		      sFO = eos->interpolate2(iepsFO, rhob, 2);
+		    }
+		  double P=eos->p_func(iepsFO, rhob);
+		  sFO=eos->s_func(iepsFO, P, rhob);
+		  Wxx = 0.5*(Rneighbor_Wxx[ix][iy] + arena[nix][niy][nieta].Wmunu[0][1][1]);
+		  Wxy = 0.5*(Rneighbor_Wxy[ix][iy] + arena[nix][niy][nieta].Wmunu[0][1][2]);
+		  Wxeta = 0.5*(Rneighbor_Wxeta[ix][iy] + arena[nix][niy][nieta].Wmunu[0][1][3]);
+		  Wyy = 0.5*(Rneighbor_Wyy[ix][iy] + arena[nix][niy][nieta].Wmunu[0][2][2]);
+		  Wyeta = 0.5*(Rneighbor_Wyeta[ix][iy] + arena[nix][niy][nieta].Wmunu[0][2][3]);
+
+		  Wetaeta = (2.*(ux*uy*Wxy 
+                            + ux*ueta*Wxeta
+                            + uy*ueta*Wyeta )
+                         -( utau*utau - ux*ux )*Wxx
+                         -( utau*utau - uy*uy )*Wyy
+			)/( utau*utau - ueta*ueta ) ;
+		  Wtaux = (ux*Wxx + uy*Wxy + ueta*Wxeta)/utau;
+		  Wtauy = (ux*Wxy + uy*Wyy + ueta*Wyeta)/utau;
+		  Wtaueta = (ux*Wxeta + uy*Wyeta + ueta*Wetaeta)/utau;
+		  Wtautau = (ux*Wtaux + uy*Wtauy + ueta*Wtaueta)/utau;
+		  
+		  s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
+			 << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
+			 << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
+			 << iepsFO << " " << TFO << " " << muB << " " << sFO << " " 
+			 << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
+			 << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;
+		}// if grid pair straddles freeze out density
+
+	  }
 	}
     }
 //   delete []package;
   s_file.close();
-  if(frozen)
-  {
-	  cout << "All cells frozen out. Exiting." << endl;
- 	  exit(1);
-  }
+  
+  // check if all cells are frozen out 
+  if (rank!=0) //send to rank 0
+    {
+      MPI::COMM_WORLD.Send(frozen,1,MPI::INT,0,1);
+    }
+  if (rank==0) // receive from all ranks >0
+    {		  
+      int allfrozen = frozen[0];
+      for (from = 1; from<size; from ++)
+	{
+	  MPI::COMM_WORLD.Recv(frozen,1,MPI::INT,from,1);
+	  allfrozen=(allfrozen && frozen[0]);
+	}
+      if(allfrozen)
+	{
+		cout << "All cells frozen out. Exiting." << endl;
+		exit(rank);
+	}
+      }
 }
 
