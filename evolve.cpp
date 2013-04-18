@@ -4907,7 +4907,6 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
-		  double P=eos->get_pressure(iepsFO, rhob);
 		  sFO=eos->get_entropy(iepsFO, rhob);
 		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
 		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
@@ -4973,7 +4972,6 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
-		  double P=eos->get_pressure(iepsFO, rhob);
 		  sFO=eos->get_entropy(iepsFO, rhob);
 		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
 		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
@@ -5043,7 +5041,6 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
-		  double P=eos->get_pressure(iepsFO, rhob);
 		  sFO=eos->get_entropy(iepsFO, rhob);
 		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
 		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
@@ -5105,7 +5102,6 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
-		  double P=eos->get_pressure(iepsFO, rhob);
 		  sFO=eos->get_entropy(iepsFO, rhob);
 		  Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].W_prev[1][1]);
 		  Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].W_prev[1][2]);
@@ -5193,20 +5189,9 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
 		  iepsFO = 0.5*(epshome + epsneighbor);
 		  rhob = 0.5*(Rneighbor_rhob[ix][iy] + arena[nix][niy][nieta].rhob);
-		  if (DATA->whichEOS==1)
-		    {
-		      TFO = eos->interpolate(iepsFO, rhob, 0);
-		      muB = eos->interpolate(iepsFO, rhob, 1);
-// 		      sFO = eos->interpolate(iepsFO, rhob, 2);
-		    }
-		  else if (DATA->whichEOS>1)
-		    {
-		      TFO = eos->interpolate2(iepsFO, rhob, 1);
-		      muB = 0.0;
-// 		      sFO = eos->interpolate2(iepsFO, rhob, 2);
-		    }
-		  double P=eos->p_func(iepsFO, rhob);
-		  sFO=eos->s_func(iepsFO, P, rhob);
+		  TFO = eos->get_temperature(iepsFO, rhob);
+		  muB = eos->get_mu(iepsFO, rhob);
+		  sFO=eos->get_entropy(iepsFO, rhob);
 		  Wxx = 0.5*(Rneighbor_Wxx[ix][iy] + arena[nix][niy][nieta].Wmunu[0][1][1]);
 		  Wxy = 0.5*(Rneighbor_Wxy[ix][iy] + arena[nix][niy][nieta].Wmunu[0][1][2]);
 		  Wxeta = 0.5*(Rneighbor_Wxeta[ix][iy] + arena[nix][niy][nieta].Wmunu[0][1][3]);
