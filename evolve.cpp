@@ -4869,7 +4869,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
       for(iy=0; iy<=ny; iy+=fac)
 	{
 	  y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
-	  for(ieta=1; ieta<=maxEta; ieta+=fac)
+	  for(ieta=0; ieta<=maxEta; ieta+=fac)
 	    {
 	      eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
 	      if (arena[ix][iy][ieta].epsilon >= epsFO) frozen[0] = 0;
