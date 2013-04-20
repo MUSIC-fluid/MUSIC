@@ -190,7 +190,7 @@ main(int argc, char *argv[])
   
   if (DATA.mode == 1 || DATA.mode == 3 || DATA.mode == 4 || DATA.mode >= 5)
     {
-      mkdir("./outputs", 755);
+      mkdir("./outputs", 0755);
       //if (rank == 0) int ret = system("rm yptphiSpectra*");
       //  freeze-out
       Freeze *freeze;
