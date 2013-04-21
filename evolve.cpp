@@ -5114,5 +5114,31 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		exit(rank);
 	}
       }
+
+  delete[] packageWxx;
+  delete[] packageWxy;
+  delete[] packageWxeta;
+  delete[] packageWyy;
+  delete[] packageWyeta; 
+
+  delete[] package;
+  delete[] packageux;
+  delete[] packageuy;
+  delete[] packageueta;
+  delete[] packagerhob;
+
+  util->mtx_free(Rneighbor_eps,nx+1,ny+1);
+  util->mtx_free(Rneighbor_ux,nx+1,ny+1);
+  util->mtx_free(Rneighbor_uy,nx+1,ny+1);
+  util->mtx_free(Rneighbor_ueta,nx+1,ny+1);
+  util->mtx_free(Rneighbor_rhob,nx+1,ny+1);
+ 
+  util->mtx_free(Rneighbor_Wxx,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wxy,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wxeta,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wyy,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wyeta,nx+1,ny+1);
+  
+ 
 }
 
