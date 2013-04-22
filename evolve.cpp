@@ -4489,15 +4489,15 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   
   
   // output file for computing spectra with UVH2+1 code by Luzum & Romatschke
-  if(boost_invariant)
-  {
+//   if(DATA->boost_invariant)
+//   {
     stringstream fr_name;
     fr_name << "freezeout" << rank << ".dat";
     string freeze_name = fr_name.str();
   
     ofstream freeze_file;
     freeze_file.open(freeze_name.c_str() , ios::out | ios::app );
-  }
+//   }
   
   int frozen[1];
   frozen[0] = 1;
@@ -4820,12 +4820,13 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 			  << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
 			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;  
 		  }
-		  if(boost_invariant && ((eta - DETA/2.)==0.0))
+		  if(DATA->boost_invariant && (eta==0.0))
 		  {
 		    double P = eos->get_pressure(iepsFO, rhob);
-		    freeze_file << setprecision(10) << xf "\t" << yf << "\t" << tauf << "\t";
+		    freeze_file << setprecision(10) << xf << "\t" << yf << "\t" << tauf << "\t";
 		    freeze_file << SIG << "\t" << ux << "\t" << uy << "\t";
-		    freeze_file << Wxx << "\t" << Wxy << "\t" << Wyy << "\t"
+		    freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
+		    freeze_file << TFO*hbarc << "\n";
 		  }
 		} // if grid pair straddles freeze out density
 		} //if(ix<nx)
@@ -4892,12 +4893,13 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 			  << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
 			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;  
 		  }
-		  if(boost_invariant && ((eta - DETA/2.)==0.0))
+		  if(DATA->boost_invariant && (eta==0.0))
 		  {
 		    double P = eos->get_pressure(iepsFO, rhob);
-		    freeze_file << setprecision(10) << xf "\t" << yf << "\t" << tauf << "\t";
+		    freeze_file << setprecision(10) << xf << "\t" << yf << "\t" << tauf << "\t";
 		    freeze_file << SIG*2 << "\t" << ux << "\t" << uy << "\t";
-		    freeze_file << Wxx << "\t" << Wxy << "\t" << Wyy << "\t"
+		    freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
+		    freeze_file << TFO*hbarc << "\n";
 		  }
 		} // if grid pair straddles freeze out density
 		} //if(iy<ny)
@@ -5029,12 +5031,13 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 			  << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
 			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;  
 		  }
-		  if(boost_invariant && ((eta - DETA/2.)==0.0))
+		  if(DATA->boost_invariant && (eta==0.0))
 		  {
 		    double P = eos->get_pressure(iepsFO, rhob);
-		    freeze_file << setprecision(10) << xf "\t" << yf << "\t" << tauf << "\t";
+		    freeze_file << setprecision(10) << xf << "\t" << yf << "\t" << tauf << "\t";
 		    freeze_file << SIG*3 << "\t" << ux << "\t" << uy << "\t";
-		    freeze_file << Wxx << "\t" << Wxy << "\t" << Wyy << "\t"
+		    freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
+		    freeze_file << TFO*hbarc << "\n";
 		  }
 		} // if grid pair straddles density
 	      
