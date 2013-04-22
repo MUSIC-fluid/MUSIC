@@ -1117,6 +1117,15 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempoutputBinaryEvolution;
   DATA->outputBinaryEvolution = tempoutputBinaryEvolution;
  
+  // End MARTINI parameters
+
+
+
+  int tempboost_invariant = 0;
+  tempinput = util->StringFind3(file, "boost_invariant");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempboost_invariant;
+  DATA->boost_invariant = tempboost_invariant;
+
 
   cout << "Done ReadInData." << endl;
   delete util;
