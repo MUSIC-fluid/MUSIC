@@ -4501,6 +4501,8 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   
   int frozen[1];
   frozen[0] = 1;
+  int allfrozen[1];
+  allfrozen[0] = 1;
   
   int ix, iy, ieta, nx, ny, neta;
   double x, y, eta;
@@ -5130,6 +5132,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
     }
 //   delete []package;
   s_file.close();
+  freeze_file.close();
   
   // check if all cells are frozen out 
   if (rank!=0) //send to rank 0
@@ -5138,18 +5141,140 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
     }
   if (rank==0) // receive from all ranks >0
     {		  
-      int allfrozen = frozen[0];
+      allfrozen[0] = frozen[0];
       for (from = 1; from<size; from ++)
 	{
 	  MPI::COMM_WORLD.Recv(frozen,1,MPI::INT,from,1);
-	  allfrozen=(allfrozen && frozen[0]);
+	  allfrozen[0]=(allfrozen[0] && frozen[0]);
 	}
-      if(allfrozen)
+      for (from = 1; from<size; from ++)
 	{
-		cout << "All cells frozen out. Exiting." << endl;
-		exit(rank);
+	  MPI::COMM_WORLD.Send(allfrozen,1,MPI::INT,from,2);
+	}
+      if(allfrozen[0])
+// 	{
+// 		cout << "All cells frozen out. Exiting." << endl;
+// 		exit(rank);
+// 	}
+	{
+	  cout << "All cells frozen out. Exiting." << endl;
+// 	  // write OSCAR header if wanted:  (seems to be unused at the moment, so I'll keep the code, but comment out)
+// 	  FILE *oout_file;
+// 	  char* oout_name = "OSCARheader.dat";
+// 	  oout_file = fopen(oout_name, "w");
+// 	  if(DATA->outputEvolutionData)
+// 	    {
+// 	      if(DATA->viscosity_flag==1)
+// 		fprintf(oout_file,"OSCAR2008H viscous history\n");
+// 	      else
+// 		fprintf(oout_file,"OSCAR2008H ideal history\n");
+// 
+// 	      fprintf(oout_file,"INIT: MUSIC %s+%s at b=%f fm, Glauber\n",DATA->Target.c_str(), DATA->Projectile.c_str(),DATA->b);
+// 	      fprintf(oout_file,"INIT: \n");
+// 	      
+// 	      if (DATA->whichEOS==0)
+// 		{
+// 		  fprintf(oout_file,"EOS: ideal gas EOS \n");
+// 		}
+// 	      else if (DATA->whichEOS==1)
+// 		{
+// 		    fprintf(oout_file,"EOS: EOS-Q from AZHYDRO \n");
+// 		}
+// 	      else if (DATA->whichEOS==2)
+// 		{
+// 		    fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky \n");
+// 		}
+// 	      else if (DATA->whichEOS==3)
+// 		{
+// 		    fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 150 MeV\n");
+// 		}
+// 	      else if (DATA->whichEOS==4)
+// 		{
+// 		    fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 155 MeV\n");
+// 		}
+// 	      else if (DATA->whichEOS==5)
+// 		{
+// 		    fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 160 MeV\n");
+// 		}
+// 	      else if (DATA->whichEOS==6)
+// 		{
+// 		    fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 165 MeV\n");
+// 		}
+// 
+// 	      if(DATA->turn_on_rhob==0)
+// 		fprintf(oout_file,"CHARGES: none\n");
+// 	      else
+// 		fprintf(oout_file,"CHARGES: baryon\n");
+// 
+// 	      fprintf(oout_file,"HYPER: full evolution\n");
+//  
+// 	      fprintf(oout_file,"GEOM: 3d\n");
+//        
+// 	      fprintf(oout_file,"GRID: Euler\n");
+//  
+// 	      fprintf(oout_file,"%d %d %d %d %d %d %d\n", static_cast<int>(((tau-DATA->tau0)/static_cast<double>(DATA->delta_tau)+1)/10.)+1, 
+// 		      DATA->nx, DATA->ny, DATA->neta, 0, 0, 0);
+// 	    
+// 	      fprintf(oout_file,"%f %f %f %f %f %f %f %f\n", DATA->tau0, tau, -DATA->x_size/2., DATA->x_size/2., -DATA->y_size/2., DATA->y_size/2.,
+// 		      -DATA->eta_size/2., DATA->eta_size/2.);
+// 
+// 	      if(DATA->viscosity_flag==1)
+// 		{
+// 		  if(DATA->turn_on_shear && DATA->turn_on_bulk)
+// 		    {
+// 		      fprintf(oout_file,"VISCOSITY: shear and bulk viscosity\n");
+// 		      fprintf(oout_file,"VISCOSITY: eta/s = %f, zeta/s = %f\n", DATA->shear_to_s, DATA->bulk_to_s);
+// 		    }
+// 		  else if(DATA->turn_on_shear==1 && DATA->turn_on_bulk==0)
+// 		    {
+// 		      fprintf(oout_file,"VISCOSITY: shear viscosity only\n");
+// 		      fprintf(oout_file,"VISCOSITY: eta/s = %f\n", DATA->shear_to_s);
+// 		    }
+// 		  else if(DATA->turn_on_shear==0 && DATA->turn_on_bulk==1)
+// 		    {
+// 		      fprintf(oout_file,"VISCOSITY: bulk viscosity only\n");
+// 		      fprintf(oout_file,"VISCOSITY: zeta/s = %f\n", DATA->bulk_to_s);
+// 		    }
+// 		  else if(DATA->turn_on_shear==0 && DATA->turn_on_bulk==0)
+// 		    {
+// 		      fprintf(oout_file,"VISCOSITY: none\n");
+// 		      fprintf(oout_file,"VISCOSITY: \n");
+// 		    }
+// 		}
+// 	      else
+// 		{
+// 		  fprintf(oout_file,"VISCOSITY: none\n");
+// 		  fprintf(oout_file,"VISCOSITY: \n");
+// 		}
+// 	      
+// 	      fprintf(oout_file,"COMM:\n");
+// 
+// 	      fprintf(oout_file,"END_OF_HEADER\n");
+// 	    }
+// 	  	  
+// 	  fclose(oout_file);
+// 	  
+// 	  int check=system ("cat OSCARheader.dat OSCAR.dat >OSCARoutput.dat");
+// 	  if(check==0)
+// 	    {
+// 	      system ("rm OSCAR.dat");
+// 	      system ("rm OSCARheader.dat");
+// 	    }
+// 	  
+	  MPI::Finalize();
+ 	  exit(1);
 	}
       }
+  if (rank!=0)
+    {
+      MPI::COMM_WORLD.Recv(allfrozen,1,MPI::INT,0,2);
+      if (allfrozen[0])
+	{
+// 	  cout << "All cells frozen out. Exiting." << endl;
+	  MPI::Finalize();
+ 	  exit(1);
+	}
+    }
 
   delete[] packageWxx;
   delete[] packageWxy;
