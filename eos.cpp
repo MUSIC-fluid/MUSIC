@@ -1757,14 +1757,20 @@ double EOS::get_entropy(double epsilon, double rhob)
  double f;
  double P, T, mu;
 
- P = get_pressure(epsilon, rhob);
- T = get_temperature(epsilon,rhob);
- mu = get_mu(epsilon, rhob);
- 
- if (T!=0)
-   f = (epsilon + P - mu*rhob)/T;
- else
-   f = 0.;
+ if (whichEOS >=0 && whichEOS <=1) {
+
+   P = get_pressure(epsilon, rhob);
+   T = get_temperature(epsilon,rhob);
+   mu = get_mu(epsilon, rhob);
+   
+   if (T!=0)
+     f = (epsilon + P - mu*rhob)/T;
+   else
+     f = 0.;
+ }
+ else if (whichEOS >= 2) {
+   f=interpolate2(epsilon,rhob,2);
+ }
 
  return f;
  
