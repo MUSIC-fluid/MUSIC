@@ -4,7 +4,6 @@
 #include "eos.h"
 #include "evolve.h"
 #include "advance.h"
-#include "ideal.h"
 
 using namespace std;
 
