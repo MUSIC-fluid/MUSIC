@@ -1510,11 +1510,23 @@ double EOS::get_dpOverde2(double e, double rhob)
      {
        deltaEps = deltaEPP3;
      }
-   else
+   else if (e<EPP5)
      {
        deltaEps = deltaEPP4;
      }
-   
+   else if (e<EPP6)
+     {
+       deltaEps = deltaEPP5;
+     }
+   else if (e<EPP7)
+     {
+       deltaEps = deltaEPP6;
+     }
+   else 
+     {
+       deltaEps = deltaEPP7;
+     }
+
    eLeft=e-deltaEps/2.;
    eRight=e+deltaEps/2.;
    
