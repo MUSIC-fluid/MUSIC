@@ -8,3 +8,6 @@ used in Freeze::summation() should be (energy_density+pressure)/temperature
 [2012-05-01]
 The initialisation of Wmunu somehow has an effect on the ideal hydro evolution,
 though it clearly shouldn't
+
+[2012-05-10]
+Integer being MPI-passed as a double in Freeze:CooperFrye(). Sangwook will fix it soon.
