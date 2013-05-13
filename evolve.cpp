@@ -69,7 +69,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
  FILE *out_file_xyeta;
  FILE *out_file_W_xyeta;
  char* out_name_xyeta = "evolution_xyeta.dat";
- char* out_name_W_xyeta = "evolution_Wmunu_over_shear_xyeta.dat";
+ char* out_name_W_xyeta = "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
  if (0 == DATA->outputBinaryEvolution) {
    out_file_xyeta = fopen(out_name_xyeta, "w");
    out_file_W_xyeta = fopen(out_name_W_xyeta,"w");
