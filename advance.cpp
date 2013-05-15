@@ -693,6 +693,15 @@ else if(rk_flag > 0)
      }/* nu */
     }/* mu */
 
+
+/* re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless */
+grid_pt->Wmunu[rk_flag+1][3][3] = (2.*( grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][1][2] 
+                            + grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][1][3]
+                            + grid_pt->u[rk_flag+1][2]*grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][2][3] )
+                         -( grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] - grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][1] )*grid_pt->Wmunu[rk_flag+1][1][1] 
+                         -( grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] - grid_pt->u[rk_flag+1][2]*grid_pt->u[rk_flag+1][2] )*grid_pt->Wmunu[rk_flag+1][2][2]
+			)/( grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] - grid_pt->u[rk_flag+1][3]*grid_pt->u[rk_flag+1][3] ) ;
+
 /* make Wmunu[i][0] */
    for(mu=1; mu<=3; mu++)
     {
@@ -719,7 +728,7 @@ else if(rk_flag > 0)
 
    //if(isnan(grid_pt->Wmunu[2][0][1])) cout << "6 firstrksW Wmunu[2][0][1]" << grid_pt->Wmunu[2][0][1] << endl;
 
-/* make Wmunu[mu][0] */
+/* make Wmunu[0][0] */
      
      tempf = 0.0;
      for(nu=1; nu<=3; nu++)
@@ -730,6 +739,7 @@ else if(rk_flag > 0)
      grid_pt->Wmunu[rk_flag+1][0][0] = tempf/(grid_pt->u[rk_flag+1][0]);
  
 //   TestW(tau, DATA, grid_pt, rk_flag);
+
 
 revert_flag = 
   QuestRevert(tau, 0, grid_pt, rk_flag, DATA, size, rank);

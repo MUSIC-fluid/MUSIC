@@ -2994,6 +2994,22 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   fclose(v3r3_file);
   fclose(v4_file);
   fprintf(stderr,"Done with %s\n", particleList[j].name, particleList[j].number);
+  fclose(pteta_file);
+  fclose(v3_eta_file);
+  fclose(v3r3_eta_file);
+  fclose(v2_pteta_file);
+  fclose(v3_pteta_file);
+  fclose(v4_pteta_file);
+  fclose(v3r3_tot_file);
+  fclose(py0_file);
+  fclose(v2y0_file);
+  fclose(pt_file);
+  fclose(v1_pt_file);
+  fclose(v2_pt_file);
+  fclose(v3_pt_file);
+  fclose(v4_pt_file);
+  fclose(v5_pt_file);
+  fclose(v6_pt_file);
 }
 
 
