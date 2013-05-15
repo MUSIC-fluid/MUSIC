@@ -151,6 +151,8 @@ main(int argc, char *argv[])
       
   if (DATA.mode == 1 || DATA.mode == 2)
     {
+      int ret;
+      ret = system("rm surface.dat surface?.dat surface??.dat");
       Glauber *glauber;
       glauber = new Glauber;
       
@@ -173,6 +175,7 @@ main(int argc, char *argv[])
       cout << "size=" << size << endl;
       cout << "rank=" << rank << endl;
       flag =  evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank); 
+
       
       tau = DATA.tau0 + DATA.tau_size; 
       
@@ -196,7 +199,8 @@ main(int argc, char *argv[])
       //  freeze-out
       Freeze *freeze;
       freeze = new Freeze();
-      freeze->CooperFrye(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
+      if(DATA.pseudofreeze) freeze->CooperFrye2(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
+      else  freeze->CooperFrye(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
       delete freeze;
     }
   if(DATA.mode!=8)
@@ -865,6 +869,45 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   DATA->deltaY   = tempdeltaY;
   
   
+  // max_pseudorapidity:  spectra calculated from zero to this pseudorapidity in +eta and -eta
+  double tempmax_pseudorapidity   = 2.4;
+  tempinput = util->StringFind3(file, "max_pseudorapidity");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_pseudorapidity  ;
+  DATA->max_pseudorapidity   = tempmax_pseudorapidity;
+  
+   // pseudo_steps:
+  // steps in pseudorapidity in calculation of spectra
+  int temppseudo_steps   = 26;
+  tempinput = util->StringFind3(file, "pseudo_steps");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temppseudo_steps  ;
+  DATA->pseudo_steps   = temppseudo_steps; 
+  
+  // phi_steps
+  // steps in azimuthal angle in calculation of spectra
+  int tempphi_steps   = 30;
+  tempinput = util->StringFind3(file, "phi_steps");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temppseudo_steps  ;
+  DATA->phi_steps   = tempphi_steps; 
+  
+  // max_pt:  spectra calculated from zero to this transverse momentum in GeV
+  double tempmax_pt   = 6;
+  tempinput = util->StringFind3(file, "max_pt");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_pt  ;
+  DATA->max_pt   = tempmax_pt;
+  
+   // pt_steps:
+  // steps in transverse momentum in calculation of spectra
+  int temppt_steps   = 60;
+  tempinput = util->StringFind3(file, "pt_steps");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temppt_steps  ;
+  DATA->pt_steps   = temppt_steps;   
+  
+  // pseudofreeze
+  // Calculate spectra at fixed, equally-spaced grid in pseudorapidity, pt, and phi
+  int temppseudofreeze = 0;
+  tempinput = util->StringFind3(file, "pseudofreeze");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temppseudofreeze;
+  DATA->pseudofreeze = temppseudofreeze;
   
   if(DATA->turn_on_rhob == 1)
     {

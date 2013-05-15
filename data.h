@@ -67,6 +67,15 @@ typedef struct init_data
   double deltaY;
   double ymax;
   
+  // for calculation of spectra
+  double max_pseudorapidity;
+  int pseudo_steps;
+  int phi_steps;
+  double max_pt;
+  int pt_steps;
+  
+  int pseudofreeze;
+  
   int NumberOfParticlesToInclude; // # of resonances to include. maximum=319 (all up to 2 GeV) 
   int whichEOS;         // 1: EOS-Q as in AZHYDRO, 2: Huovinen/Petrczky lattice EOS, 3:Huovinen/Petrczky lattice EOS with PCE
   int Initial_profile;  // 1: for a realistic profile in AA collision

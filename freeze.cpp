@@ -1639,6 +1639,135 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   //util->cube_free(sumYPtPhi,iptmax,iphimax,iymax);
 }
 
+
+//Modified spectra calculation by ML 05/2013
+//Calculates on fixed grid in pseudorapidity, pt, and phi
+void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int size, int rank)
+{
+  char *specString;
+  specString = util->char_malloc(30);
+  char buf[5];
+  int ipt, iphi, iymax, iy, ieta;
+  int i,j;
+  double pt, phi, px, py, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[5];
+  double phiOffs, phiDiff;
+  int returnValue;
+  double eta, mt, etaMaxIntegral;
+  double half;
+ 
+
+  j = partid[MHALF+number];
+  // set some parameters
+  double etamax = DATA->max_pseudorapidity;
+  int ietamax = DATA->pseudo_steps;
+  double deltaeta = etamax/ietamax;
+  double ptmax = DATA->max_pt;
+  int iptmax = DATA->pt_steps;
+  double deltapt = ptmax/iptmax;
+  int iphimax = DATA->phi_steps;
+  double deltaphi = 2*PI/iphimax;
+
+
+  if (size>0)
+    {
+      if (ietamax%size!=0)
+	{
+	  fprintf(stderr,"number of steps in pseudorapidity (pseudo_steps) is not a multiple of the number of processors. Exiting.\n");
+	  MPI::Finalize();
+	  exit(1);
+	}
+      ietamax/=size;
+      cout << "r" << rank << " ietamax=" << ietamax << endl;
+    }
+//   particleList[j].ymax = ymax;
+//   particleList[j].deltaY = deltaY;
+
+  fprintf(stderr,"Doing %d: %s (%d)\n", j, particleList[j].name, particleList[j].number);
+ 
+  particleList[j].ny = ietamax*size;
+  particleList[j].npt = iptmax;
+  particleList[j].nphi = iphimax;
+  
+  // set particle properties
+  double m = particleList[j].mass;
+  int d = particleList[j].degeneracy;
+  int b = particleList[j].baryon;
+  int s = particleList[j].strange;
+  double c = particleList[j].charge;
+  double mu = particleList[j].muAtFreezeOut;
+
+  sprintf (buf, "%d", number);  
+ 
+  // open files to write
+  FILE *d_file;
+  char* d_name = "particleInformation.dat";
+  d_file = fopen(d_name, "a");
+
+  FILE *s_file;
+  sprintf (buf, "%d", rank);
+  
+  strcat(specString, "yptphiSpectra");
+  strcat(specString, buf);
+  strcat(specString, ".dat");
+  char* s_name = specString;
+  s_file = fopen(s_name, "w");
+
+  phiArray = util->vector_malloc(iphimax);
+  //  deltaPhi=(phimax-phimin)/iphimax;
+  for(iphi=0; iphi<iphimax; iphi++)
+    {
+      phiArray[iphi] = iphi*deltaphi;
+    }
+  // --------------------------------------------------------------------------
+  
+  // write information in the particle information file
+//   if (rank==0) fprintf(d_file,"%d %e %d %e %d %d \n", number,  etamax, DATA->pseudo_steps, ptmax, iptmax, iphimax);
+  if (rank==0) fprintf(d_file,"%d %e %e %d %e %d %d \n", number, deltaeta, etamax,  DATA->pseudo_steps, ptmax, iptmax, iphimax);
+
+  
+  
+  // store value as function of phi, pt and y in sumPtPhi:
+  
+  for (ieta=0; ieta<ietamax; ieta++)
+    {
+      eta = -etamax + deltaeta/2. + ieta*deltaeta + rank*(etamax/size*2.);
+      //     if (j==1) cout << " do particleList[ip].y[" << iy << "] = " <<  particleList[j].y[iy] << " y = " << y << endl;
+      sumpt=0.;
+      for (ipt=0; ipt<iptmax; ipt++)
+	{
+	  pt = deltapt/2. + ipt*deltapt; 
+	  particleList[j].pt[ipt] = pt;
+	  
+	  
+	  //rapidity as a function of pseudorapidity:
+	  y = Rap(eta,pt,m);
+	  
+	  // Use this variable to store pseudorpadity instead of rapidity
+	  // May cause confusion in the future, but easier to to share code for both options:
+	  // calculating on a fixed grid in rapidity or pseudorapidity
+	  particleList[j].y[ieta] = eta;
+	  
+	  
+	  for (iphi=0; iphi<iphimax; iphi++)
+	    {
+	      phi = deltaphi*iphi;
+	      px = pt*cos(phi);
+	      py = pt*sin(phi);
+	      sum = summation(px, py, y, m, d, b, mu, DATA);
+	      particleList[j].dNdydptdphi[ieta][ipt][iphi] = sum;
+	      fprintf(s_file,"%e ", sum);
+	    }
+	  fprintf(s_file,"\n");
+	}
+      
+//       fprintf(stderr,"r=%d,       y=%f, sumpt=%f\n",rank, y, sumpt/slope);
+//       fprintf(y_file,"%f %f\n", y, sumpt/slope);
+    }
+  fclose(s_file);
+  fclose(d_file);
+}
+
+
   void Freeze::OutputFullParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int full)
 {
   char *numberStringy;
@@ -2865,6 +2994,46 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   fclose(v3r3_file);
   fclose(v4_file);
   fprintf(stderr,"Done with %s\n", particleList[j].name, particleList[j].number);
+}
+
+
+// part of new cooper frye calculation from ML 5/2013
+  void Freeze::OutputFullParticleSpectrum2(InitData *DATA, int number, double ptmax, int anti, int full)
+{
+// 
+//   FILE *d_file;
+//   
+//   string d_name;
+//   if(full) d_name = "F";
+//   else d_name = "";
+//   string s_name;
+//   if(full) s_name = "F";
+//   else s_name = "";
+//       // open files to write
+//   d_name += "particleInformation.dat";
+// //   d_file = fopen(d_name, "a");
+//   
+//   FILE *s_file;
+//       
+//   s_name += "yptphiSpectra.dat";
+// //   s_file = fopen(s_name, "a");
+// 
+//   // write information in the particle information file
+// //   fprintf(d_file,"%d %e %e %e %e %e %d %d %d \n", number, deltaY, ymax, slope, phimin, phimax, iymax, iptmax, iphimax);
+// 
+//   for (int iy=0; iy<iymax; iy++)
+//     {
+//       for (int ipt=0; ipt<iptmax; ipt++)
+// 	{
+// 	  for (int iphi=0; iphi<iphimax; iphi++)
+// 	    {
+// 
+// 	      fprintf(s_file,"%e ", particleList[j].dNdydptdphi[iy][ipt][iphi]);
+// 
+// 	    }
+// 	  fprintf(s_file,"\n");
+// 	}
+//     }     
 }
 
 
@@ -5751,6 +5920,7 @@ void Freeze::Compute3ChargedHadrons(InitData* DATA,double ptmax)
 double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num)
 /* 				/\* supersedes during test the right one *\/ */
 /* 	double	yr;		/\* y  of resonance *\/ */
+// if pseudofreeze flag is set, yr is the *pseudorapidity* of the resonance
 
 /* 	double	ptr;		/\* pt of resonance *\/ */
 /* 	double	phirin;		/\* phi angle  of resonance *\/ */
@@ -5776,6 +5946,7 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num)
   
   pn = partid[MHALF + res_num];
 
+  
   if (yr < -particleList[pn].ymax || yr > particleList[pn].ymax)
     {
       //      fprintf(stderr,"yr=%f out of range ymax=%f\n", yr,particleList[pn].ymax);
@@ -6441,6 +6612,253 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
     }
 }
 
+void Freeze::add_reso2 (int pn, int pnR, int k, int j, int pseudofreeze)
+{
+  nblock paranorm;		/* for 3body normalization integral */
+  double y;
+  double m1, m2, m3, mr;
+  double norm3;			/* normalisation of 3-body integral */
+  int pn2, pn3, pn4;		/* internal numbers for resonances */
+  int part;
+  int l, i, n;
+  int ny, npt, nphi;
+
+  ny = particleList[pn].ny;
+  npt = particleList[pn].npt;
+  nphi = particleList[pn].nphi;
+
+  // Determine the number of particles involved in the decay with the switch
+  switch (abs (decay[j].numpart))
+    {
+    case 1: //Only 1 particle, if it gets here, by accident, this prevents any integration for 1 particle chains
+      break;
+
+    case 2: // 2-body decay 
+      {
+	if (k == 0)
+	  pn2 = partid[MHALF + decay[j].part[1]];
+
+	else
+	  pn2 = partid[MHALF + decay[j].part[0]];
+
+	//printf ("case 2:  i %3i j %3i k %3i \n", pn, j, k);
+	m1 = particleList[pn].mass;
+	m2 = particleList[pn2].mass;
+	mr = particleList[pnR].mass;
+
+	while ((m1 + m2) > mr)
+	  {
+	    mr += 0.25 * particleList[pnR].width;
+	    m1 -= 0.5 * particleList[pn].width;
+	    m2 -= 0.5 * particleList[pn2].width;
+	  }
+	fprintf(stderr,"mr=%f\n",mr);
+	fprintf(stderr,"m1=%f\n",m1);
+	fprintf(stderr,"m2=%f\n",m2);
+		
+	for (n = 0; n < ny; n++)
+	  {
+	    y = particleList[pn].y[n];
+	    for (l = 0; l < npt; l++)
+	      {
+		if(pseudofreeze)  y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
+		for (i = 0; i < nphi; i++)
+		  {
+		    if (isnan(Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number))
+			)
+		      //	||Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number)<0
+		      {
+			fprintf(stderr,"2 pt=%f\n",particleList[pn].pt[l]);
+			fprintf(stderr,"2 number=%d\n",particleList[pnR].number);
+			fprintf(stderr,"2 Edn..=%f\n", Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
+								      m1, m2, mr, particleList[pnR].number));
+		      }
+		    else
+		      // Call the 2-body decay integral and add its contribution to the daughter particle of interest
+		      {   
+			particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
+			  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
+					 m1, m2, mr, particleList[pnR].number); 
+			if(n==ny/2 && i==0) {
+			  // fprintf(stderr,"m1=%f, m2=%f, mr=%f, pnR=%d\n",m1,m2,mr,pnR);
+
+			  particleList[pn].resCont[n][l][i]+= decay[j].branch *
+			  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
+					 m1, m2, mr, particleList[pnR].number); 
+			  fprintf(stderr," %d %f %e %e %e %e\n", n, y, particleList[pn].pt[l], decay[j].branch *
+				  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[0], m1, m2, mr, 
+						 particleList[pnR].number),
+				  particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
+				  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[0], m1, m2, mr, 
+						 particleList[pnR].number),particleList[pn].resCont[n][l][i]); 
+			}
+		      }
+		  }
+	      }
+	  }
+	break;
+      }
+
+    case 3: //3-body decay
+      {
+	if (k == 0)
+	  {
+	    pn2 = partid[MHALF + decay[j].part[1]];
+	    pn3 = partid[MHALF + decay[j].part[2]];
+	  }
+	else
+	  {
+	    if (k == 1)
+	      {
+		pn2 = partid[MHALF + decay[j].part[0]];
+		pn3 = partid[MHALF + decay[j].part[2]];
+	      }
+	    else
+	      {
+		pn2 = partid[MHALF + decay[j].part[0]];
+		pn3 = partid[MHALF + decay[j].part[1]];
+	      }
+	  }
+	
+	m1 = particleList[pn].mass;
+	m2 = particleList[pn2].mass;
+	m3 = particleList[pn3].mass;
+	mr = particleList[pnR].mass;
+	paranorm.a = (mr + m1) * (mr + m1);
+	paranorm.b = (mr - m1) * (mr - m1);
+	paranorm.c = (m2 + m3) * (m2 + m3);
+	paranorm.d = (m2 - m3) * (m2 - m3);
+	norm3 = mr * mr / (2 * PI * gauss (PTS3, &Freeze::norm3int, paranorm.c,
+					   paranorm.b, &paranorm));
+	
+	// printf("case 3:  i %3i j %3i k %3i \n",pn,j,k); 
+	
+	for (n = 0; n < ny; n++)
+	  {
+	    y = particleList[pn].y[n];
+	    for (l = 0; l < npt; l++)
+	      {
+		if(pseudofreeze)  y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
+		for (i = 0; i < nphi; i++)
+		  {
+		    if (isnan(Edndp3_3bodyN(y, particleList[pn].pt[l], phiArray[i],
+					    m1, m2, m3, mr, norm3, particleList[pnR].number)))
+		      {
+			fprintf(stderr,"3 number=%d\n",particleList[pnR].number);
+			// Call the 3-body decay integral and add its contribution to the daughter particle of interest 
+			fprintf(stderr,"3 Edn..=%f\n",   Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+									m1, m2, m3, mr, norm3, particleList[pnR].number));
+		      }
+		    else
+		      {
+			particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
+		      	Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+				       m1, m2, m3, mr, norm3, particleList[pnR].number);
+		      }
+		    
+		    if(n==ny/2 && i==0)
+		      {
+			//	fprintf(stderr,"m1=%f, m2=%f, m3=%f, mr=%f, pnR=%d\n",m1,m2,m3,mr,pnR);
+			particleList[pn].resCont[n][l][i]+= decay[j].branch *
+			  Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+					 m1, m2, m3, mr, norm3, particleList[pnR].number);
+		       
+			fprintf(stderr,"%d %f %e %e %e %e\n",n,y, particleList[pn].pt[l], decay[j].branch *
+				Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+					       m1, m2, m3, mr, norm3, particleList[pnR].number),
+				particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
+				Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+					       m1, m2, m3, mr, norm3, particleList[pnR].number),particleList[pn].resCont[n][l][i]); 
+		      }
+		  }
+	      }
+	  }
+	break;
+      }
+
+    case 4: //4-body decay (rare and low contribution)
+      {
+	if (k == 0)
+	  {
+	    pn2 = partid[MHALF + decay[j].part[1]];
+	    pn3 = partid[MHALF + decay[j].part[2]];
+	    pn4 = partid[MHALF + decay[j].part[3]];
+	  }
+	else
+	  {
+	    if (k == 1)
+	      {
+		pn2 = partid[MHALF + decay[j].part[0]];
+		pn3 = partid[MHALF + decay[j].part[2]];
+		pn4 = partid[MHALF + decay[j].part[3]];
+	      }
+	    else
+	      {
+		if (k == 2)
+		  {
+		    pn2 = partid[MHALF + decay[j].part[0]];
+		    pn3 = partid[MHALF + decay[j].part[1]];
+		    pn4 = partid[MHALF + decay[j].part[3]];
+		  }
+		else
+		  {
+		    pn2 = partid[MHALF + decay[j].part[0]];
+		    pn3 = partid[MHALF + decay[j].part[1]];
+		    pn4 = partid[MHALF + decay[j].part[2]];
+		  }
+	      }
+	  }
+	//approximate the 4-body with a 3-body decay with the 4th particle being the center of mass of 2 particles.
+	m1 = particleList[pn].mass;
+	m2 = particleList[pn2].mass;
+	mr = particleList[pnR].mass;
+	m3 = 0.5 * (particleList[pn3].mass + particleList[pn4].mass + mr - m1 - m2);
+	paranorm.a = (mr + m1) * (mr + m1);
+	paranorm.b = (mr - m1) * (mr - m1);
+	paranorm.c = (m2 + m3) * (m2 + m3);
+	paranorm.d = (m2 - m3) * (m2 - m3);
+	norm3 = mr * mr / (2 * PI * gauss (PTS3, &Freeze::norm3int, paranorm.c,
+					   paranorm.b, &paranorm));
+	// printf("case 3:  i %3i j %3i k %3i \n",pn,j,k); 
+	
+	
+	for (n = 0; n < ny; n++)
+	  {
+	    y = particleList[pn].y[n];
+	    for (i = 0; i < nphi; i++)
+	      {
+		for (l = 0; l < npt; l++)
+		  {
+		    if(pseudofreeze)  y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
+		     if (isnan(Edndp3_3bodyN(y, particleList[pn].pt[l], phiArray[i],
+					    m1, m2, m3, mr, norm3, particleList[pnR].number)))
+		      {
+			fprintf(stderr,"3 number=%d\n",particleList[pnR].number);
+			// Call the 3-body decay integral and add its contribution to the daughter particle of interest 
+			particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
+			  Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+					 m1, m2, m3, mr, norm3, particleList[pnR].number);
+		      }
+		     else
+		      particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
+			Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
+				       m1, m2, m3, mr, norm3, particleList[pnR].number);
+		     //fprintf(stderr,"4 Edn..=%f\n", Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
+		    //					m1, m2, mr, particleList[pnR].number));
+		    // the 4-body decay approximated by the 3-body decay routine
+		  }
+	      }
+	  }
+	break;
+      }
+      
+    default:
+      printf ("ERROR in add_reso! \n");
+      printf ("%i decay not implemented ! \n", abs (decay[j].numpart));
+      exit (0);
+    }
+}
+
 
 void Freeze::cal_reso_decays (int maxpart, int maxdecay, int bound, int mode)
 {
@@ -6586,6 +7004,152 @@ void Freeze::cal_reso_decays (int maxpart, int maxdecay, int bound, int mode)
 	}
     }
 }
+
+void Freeze::cal_reso_decays2 (int maxpart, int maxdecay, int bound, int mode, int pseudofreeze)
+{
+  // mode=4: do all
+  // mode=5: do one
+  int i, j, k, l, ll;
+  int pn, pnR, pnaR;
+  int part,n1,n2,n3,ny,npt,nphi;
+  
+  fprintf (stderr," CALCULATE RESONANCE DECAYS (as fast as I can) \n");
+  pn = partid[MHALF + bound];
+  if (mode==5) pn = maxpart-1;
+
+  ny = particleList[pn].ny;
+  npt = particleList[pn].npt;
+  nphi = particleList[pn].nphi;
+  
+  for(i=maxpart-1;i > pn-1;i--)  //Cycle the particles known from the particle.dat input
+    {
+
+      for (n1 = 0; n1 < ny; n1++)
+	{
+	  for (n2 = 0; n2 < npt; n2++)
+	    {
+	      for (n3 = 0; n3 < nphi; n3++)
+		{
+		  particleList[pn].resCont[n1][n2][n3] =0.;
+		}
+	    }
+	}
+
+      part = particleList[i].number;
+      fprintf (stderr,"Calculating the decays with ");
+      fprintf (stderr,"%s \n", particleList[i].name);
+      //fprintf (stderr,"%i, %i, b=%d\n", part, maxdecay,particleList[i].baryon);
+      switch (particleList[i].baryon)  // Check to see whether or not the particle is baryon, anti-baryon or meson
+	{
+	case 1: //Baryon
+	  {
+	    //fprintf(stderr,"Is a baryon. \n");
+	   
+	    for (j = 0; j < maxdecay; j++) // Cycle through every decay channel known (as given in resoweak.dat)
+	      {                            // to see if the particle was a daughter particle in a decay channel
+		pnR = partid[MHALF + decay[j].reso];
+		//fprintf(stderr,"Partid is %i.\n",pnR);
+		for (k = 0; k < abs (decay[j].numpart); k++)
+		  {
+		    if ((part == decay[j].part[k]) && (decay[j].numpart != 1))// Make sure that the decay channel isn't trivial
+		      {                                                       // and contains the daughter particle
+			fprintf(stderr,"Partid is %i. %s into %s \n",pnR,particleList[pnR].name,particleList[i].name);
+			//fprintf(stderr,"Calculating a decay \n");
+			add_reso2 (i, pnR, k, j, pseudofreeze);
+		      }
+		  }
+	      }
+	    break;
+	  }
+
+	case -1: //Anti-Baryon
+	  {
+	    //fprintf(stderr,"Is an anti-baryon.\n");
+	    for (j = 0; j < maxdecay; j++)// Cycle through every decay channel known (as given in resoweak.dat)
+	      {                            // to see if the particle was a daughter particle in a decay channel
+		pnaR = partid[MHALF - decay[j].reso];
+		//if (pnaR==-1) continue;
+		for (k = 0; k < abs (decay[j].numpart); k++)
+		  {
+		    if ((-part == decay[j].part[k]) && (decay[j].numpart != 1))// Make sure that the decay channel isn't trivial
+		      {                                                        // and contains the daughter particle
+			fprintf(stderr,"Partid is %i. %s into %s \n",pnaR,particleList[pnaR].name,particleList[i].name);
+			//fprintf(stderr,"Calculating a decay \n");
+			add_reso2 (i, pnaR, k, j, pseudofreeze);
+		      }
+		  }
+	      }
+	    break;
+	  }
+
+	case 0:// Meson
+	  {
+	    //fprintf(stderr,"Is a meson. \n");
+	    
+	    for (j = 0; j < maxdecay; j++)
+	      {
+		pnR = partid[MHALF + decay[j].reso];
+		//fprintf(stderr,"Partid is %i.\n",pnR);
+		for (k = 0; k < abs (decay[j].numpart); k++)
+		  {
+		    if (particleList[pnR].baryon == 1)
+		      {
+			pnaR = partid[MHALF - decay[j].reso];
+			if ((particleList[i].charge == 0)
+			    && (particleList[i].strange == 0))
+			  {
+			    if ((part == decay[j].part[k])
+				&& (decay[j].numpart != 1))
+			      {
+				fprintf(stderr,"Partid is %i, %s into %s \n",pnR,particleList[pnR].name,particleList[i].name);
+				fprintf(stderr,"and %i, %s into %s \n",pnaR,particleList[pnaR].name,particleList[i].name);
+				//fprintf(stderr,"Calculating a decay \n");
+				add_reso2 (i, pnR, k, j, pseudofreeze);
+				add_reso2 (i, pnaR, k, j, pseudofreeze);
+			      }
+			  }
+			else
+			  {
+			    if ((part == decay[j].part[k])
+				&& (decay[j].numpart != 1))
+			      {
+				fprintf(stderr,"Partid is %i, %s into %s \n",pnR,particleList[pnR].name,particleList[i].name);
+				//fprintf(stderr,"Calculating a decay \n");
+				add_reso2 (i, pnR, k, j, pseudofreeze);
+			      }
+			    if ((-part == decay[j].part[k])
+				&& (decay[j].numpart != 1))
+			      {
+				fprintf(stderr,"Partid is %i, %s into %s \n",pnaR,particleList[pnaR].name,particleList[i].name);
+				//fprintf(stderr,"Calculating a decay \n");
+				add_reso2 (i, pnaR, k, j, pseudofreeze);
+			      }
+			  }
+		      }
+		    else
+		      {
+			if ((part == decay[j].part[k])
+			    && (decay[j].numpart != 1))
+			  {
+			    fprintf(stderr,"Partid is %i, %s into %s \n",pnR,particleList[pnR].name,particleList[i].name);
+			    //fprintf(stderr,"Calculating a decay \n");
+			    add_reso2 (i, pnR, k, j, pseudofreeze);
+			  }
+		      }
+		  }
+	      }
+	    break;
+	  }
+
+	  
+	default:
+	  fprintf (stderr,"Error in switch in func partden_wdecay \n");
+	  exit (0);
+
+	}
+    }
+}
+
 
 void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank)
 {
@@ -6766,11 +7330,213 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EO
 
 
 
+//Cooper-Frye routine adapted by ML 05/2013
+//-- spectra calculated on an equally-spaced grid in p_t. phi and pseudorapidity,
+//for ease in comparing to experimental data (and improved accuracy in azimuthal integrals)
+
+void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank)
+{
+  ReadParticleData(DATA, eos); // read in data for Cooper-Frye
+  int i, b, number;
+  if (mode == 3 || mode == 1) // compute thermal spectra
+    {
+      int ret;
+      if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat");
+      char *specString;
+      specString = util->char_malloc(30);
+      FILE *d_file;
+      char* d_name = "particleInformation.dat";
+      d_file = fopen(d_name, "w");
+      fprintf(d_file,"");
+      fclose(d_file);
+      char buf[5];
+      FILE *s_file;
+      sprintf (buf, "%d", rank);
+      strcat(specString, "yptphiSpectra");
+      strcat(specString, buf);
+      strcat(specString, ".dat");
+      char* s_name = specString;
+      s_file = fopen(s_name, "w");
+      fclose(s_file);
+      ReadFreezeOutSurface(DATA); // read freeze out surface (has to be done after the evolution of course)
+      // (particle number, maximum p_T, [baryon=1, anti-baryon=-1], # of pts for pt integration, # of pts for phi integration)
+      if (particleSpectrumNumber==0) // do all particles
+	{
+	  fprintf(stderr,"Doing all particles on this processor. May take a while ... \n");
+	  for ( i=1; i<particleMax; i++ )
+	    {
+	      number = particleList[i].number;
+	      b = particleList[i].baryon;
+	      ComputeParticleSpectrum2(DATA, number, b, size, rank);
+	      if(rank==0) ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat");
+	    }
+	    
+	  int check[1];
+	  check[0]=rank;
+	  if (rank > 0)
+	    MPI::COMM_WORLD.Send(check,1,MPI::DOUBLE,0,1);
+	    
+	  if (rank == 0)
+	    {
+	      for (int from=1; from < size; from ++)
+		MPI::COMM_WORLD.Recv(check,1,MPI::DOUBLE,from,1);
+	      ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat");
+	    }
+// 	  ReadSpectra(DATA);
+// 	  for ( i=1; i<particleMax; i++ )
+// 	    {
+// 	      number = particleList[i].number;
+// 	      b = particleList[i].baryon;
+// // 	      OutputFullParticleSpectrum2(DATA, number, 4, b, 1);
+// 	    }
+	}
+      else
+	{
+	  if (particleSpectrumNumber>=particleMax)
+	    {
+	      fprintf(stderr,"No particle has the number %d. Exiting.\n",particleSpectrumNumber); exit(1);
+	    }  
+	  number = particleList[particleSpectrumNumber].number;
+	  b = particleList[particleSpectrumNumber].baryon;
+	  cout << "COMPUTE" << endl;
+	  ComputeParticleSpectrum2(DATA, number,  b,  size, rank);
+	  // send something just to make sure that rank 0 waits for all others to be done:
+	  int check[1];
+	  check[0]=rank;
+	  
+	  if (rank > 0)
+	    MPI::COMM_WORLD.Send(check,1,MPI::DOUBLE,0,1);
+	    
+	  if (rank == 0)
+	    {
+	      for (int from=1; from < size; from ++)
+		MPI::COMM_WORLD.Recv(check,1,MPI::DOUBLE,from,1);
+
+// 	      remove("yptphiSpectra.dat");
+	      
+	      ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat");
+/*	      
+	      ReadSingleSpectrum(DATA);
+	      cout << "output results..." << endl;
+	      OutputFullParticleSpectrum2(DATA, number, 4., b, 0);*/
+	    }
+	}
+    }
+  else if (mode==4 || mode==5) //  do resonance decays
+    {
+      ReadSpectra(DATA);
+      FILE *d_file;
+      char* d_name = "FparticleInformation.dat";
+      d_file = fopen(d_name, "w");
+      fprintf(d_file,"");
+      fclose(d_file);
+      FILE *s_file;
+      char* s_name = "FyptphiSpectra.dat";
+      s_file = fopen(s_name, "w");
+      fprintf(s_file,"");
+      fclose(s_file);
+      int bound = 211; //number of lightest particle to calculate. 
+      if (mode==4) // do resonance decays
+	{
+	  fprintf(stderr,"doing all from %i: %s to %i: %s.\n",particleMax,particleList[particleMax].name,
+		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
+	  cal_reso_decays2(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
+	  for ( i=1; i<particleMax; i++ )
+	    {
+	      number = particleList[i].number;
+	      b = particleList[i].baryon;
+	      OutputFullParticleSpectrum(DATA, number, 4., b, 1);
+	      ComputeAveragePT(number,4.);
+	    }
+	  if(particleMax>=20)
+	    {
+	      ReadFullSpectra(DATA);
+	      ComputeChargedHadrons(DATA,4.);
+	    }
+	}
+      else if (mode==5) // only for testing - this will miss the complete chain of decays
+	{
+	  cal_reso_decays2(particleSpectrumNumber+1,decayMax,bound,mode, DATA->pseudofreeze);
+          number = particleList[particleSpectrumNumber].number;
+	  b = particleList[particleSpectrumNumber].baryon;
+	  OutputFullParticleSpectrum(DATA, number, 4., b, 1);
+	}
+    }
+  else if (mode==6) //  do additional manipulation
+    {
+      ReadFullSpectra(DATA);
+      ComputeChargedHadrons(DATA,4.);
+      number = particleList[particleSpectrumNumber].number;
+      b = particleList[particleSpectrumNumber].baryon;
+      OutputFullParticleSpectrum(DATA, number, 4., b, 1);
+      for ( i=1; i<particleMax; i++ )
+	{
+	  number = particleList[i].number;
+	  ComputeAveragePT(number,4.);
+	}
+      //  util->vector_free(phiArray);
+      //ComputeChargedHadrons(DATA,4.);
+    }
+  else if (mode==7) //  do additional manipulation
+    {
+      Read3Spectra(DATA);
+      Compute3ChargedHadrons(DATA, 4.);
+      util->vector_free(phiArray);
+      //ComputeChargedHadrons(DATA,4.);
+    }
+  else if (mode==8) //  compute correlations
+    {
+      ReadFullSpectra(DATA);
+      ReadFullSpectra2(DATA);
+      ComputeCorrelations(DATA, 4.);
+    }
+  else if (mode==9) // output full spectra
+    {
+      ReadFullSpectra(DATA);
+      for ( i=1; i<particleMax; i++ )
+	{
+	  number = particleList[i].number;
+	  b = particleList[i].baryon;
+	  OutputFullParticleSpectrum(DATA, number, 4., b, 1);
+	}
+      ComputeChargedHadrons(DATA,4.);
+    }
+}
 
 
+// returns pseudorapidity for a given rapidity, transverse momentum, and mass
+double Freeze::PseudoRap(double y, double pt, double m)
+{
+  double eta = acosh(
+		  2*m*m/pt/pt*sinh(y)*sinh(y)
+		  + cosh(2*y)
+	       )/2.;
+  if (y<0) eta*=-1.;
+  return eta;
+}
 
+// returns rapidity for a given pseudorapidity, transverse momentum, and mass
+double Freeze::Rap(double eta, double pt, double m)
+{
+  double y = log
+  (
+    (
+      sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))
+      + pt*sinh(eta)
+    )
+    /
+    sqrt(m*m+pt*pt)
+  );
+  return y;
+}
 
-
-
-
-
+//   // if pseudofreeze flag is set;
+//   // spectra was calculated on a fixed grid in pseudorapidity and
+//   // particleList[].y[] stores the value of pseudorapidity.
+//   // Switch to pseudorapidity and interpolate spectrum at value
+//   // of pseudorapidity corresponding to input rapidity yr
+//   if(DATA.pseudofreeze)
+//   {
+//     double eta = PeudoRap(yr,ptr,particleList[pn].mass);
+//     yr = eta;
+//   }

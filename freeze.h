@@ -133,7 +133,9 @@ class Freeze{
   void ComputeCorrelations(InitData* DATA, double ptmax);
   double summation(double px, double py, double y, double m, int deg, int baryon, double mu, InitData *DATA);
   void ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int iptmax, int iphimax, int size, int rank);
+  void ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int size, int rank);
   void OutputFullParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int full);
+  void OutputFullParticleSpectrum2(InitData *DATA, int number, double ptmax, int anti, int full);
   
   // --------------------------------------------------------------------------------------
   // the following routines are adapted from the public version of
@@ -156,12 +158,18 @@ class Freeze{
   double Edndp3_3bodyN (double y, double pt, double phi, double m1, double m2,
 			double m3, double mr, double norm3, int res_num);
   void add_reso (int pn, int pnR, int k, int j);
+  void add_reso2 (int pn, int pnR, int k, int j, int pseudofreeze);
   void cal_reso_decays (int maxpart, int maxdecay, int bound, int mode);
+  void cal_reso_decays2 (int maxpart, int maxdecay, int bound, int mode, int pseudofreeze);
   // --------------------------------------------------------------------------------------
   
   int countLines (std::istream& in);
   void checkForReadError(FILE *file, char* name);
   void CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
+  void CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
+  double Rap(double eta, double pt, double m);
+  double PseudoRap(double y, double pt, double m);
+
 };
 #endif
   

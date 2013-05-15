@@ -5261,6 +5261,11 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 // 	      system ("rm OSCARheader.dat");
 // 	    }
 // 	  
+	  
+	  int ret;
+	  ret = system("cat surface?.dat surface??.dat > surface.dat");
+	  ret = system("rm surface?.dat surface??.dat");
+	  
 	  MPI::Finalize();
  	  exit(1);
 	}
