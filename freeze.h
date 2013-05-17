@@ -135,7 +135,7 @@ class Freeze{
   void ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int iptmax, int iphimax, int size, int rank);
   void ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int size, int rank);
   void OutputFullParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int full);
-  void OutputFullParticleSpectrum2(InitData *DATA, int number, double ptmax, int anti, int full);
+  void OutputFullParticleSpectrum2(InitData *DATA, int number, int anti, int full);
   
   // --------------------------------------------------------------------------------------
   // the following routines are adapted from the public version of
