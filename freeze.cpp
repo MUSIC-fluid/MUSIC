@@ -1725,14 +1725,15 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   // set some parameters
   double etamax = DATA->max_pseudorapidity;
   int ietamax = DATA->pseudo_steps;
-  double deltaeta = etamax/ietamax;
+  double deltaeta = 0;
+  if(ietamax>1) deltaeta = 2*etamax/(ietamax-1);
   double ptmax = DATA->max_pt;
   int iptmax = DATA->pt_steps;
   double deltapt = ptmax/iptmax;
   int iphimax = DATA->phi_steps;
   double deltaphi = 2*PI/iphimax;
 
-
+// 	  cout << "size = " << size << endl;
   if (size>0)
     {
       if (ietamax%size!=0)
@@ -1787,14 +1788,16 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   
   // store E dN/d^3p as function of phi, pt and eta (pseudorapidity) in sumPtPhi:
   
-  for (ieta=0; ieta<ietamax; ieta++)
+  for (ieta=0; ieta<=ietamax; ieta++)
     {
-      eta = -etamax + deltaeta/2. + ieta*deltaeta + rank*(etamax/size*2.);
+//       eta = -etamax + deltaeta/2. + ieta*deltaeta + rank*(etamax/size*2.);
+      eta = -etamax + ieta*deltaeta + rank*(etamax/size*2.);
       //     if (j==1) cout << " do particleList[ip].y[" << iy << "] = " <<  particleList[j].y[iy] << " y = " << y << endl;
       sumpt=0.;
-      for (ipt=0; ipt<iptmax; ipt++)
+      for (ipt=0; ipt<=iptmax; ipt++)
 	{
-	  pt = deltapt/2. + ipt*deltapt; 
+// 	  pt = deltapt/2. + ipt*deltapt;
+	  pt = ipt*deltapt;
 	  particleList[j].pt[ipt] = pt;
 	  
 	  
@@ -6741,10 +6744,10 @@ void Freeze::add_reso2 (int pn, int pnR, int k, int j, int pseudofreeze)
 	fprintf(stderr,"m1=%f\n",m1);
 	fprintf(stderr,"m2=%f\n",m2);
 		
-	for (n = 0; n < neta; n++)
+	for (n = 0; n <= neta; n++)
 	  {
 	    eta = particleList[pn].y[n];// for pseudofreeze, this variable stores pseudorapidity
-	    for (l = 0; l < npt; l++)
+	    for (l = 0; l <= npt; l++)
 	      {
 // 		if(pseudofreeze)  eta = Rap(y,particleList[pn].pt[l],m1);
 		for (i = 0; i < nphi; i++)
@@ -6815,10 +6818,10 @@ void Freeze::add_reso2 (int pn, int pnR, int k, int j, int pseudofreeze)
 	
 	// printf("case 3:  i %3i j %3i k %3i \n",pn,j,k); 
 	
-	for (n = 0; n < neta; n++)
+	for (n = 0; n <= neta; n++)
 	  {
 	    eta = particleList[pn].y[n];// for pseudofreeze, this variable stores pseudorapidity
-	    for (l = 0; l < npt; l++)
+	    for (l = 0; l <= npt; l++)
 	      {
 // 		if(pseudofreeze)  y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
 		for (i = 0; i < nphi; i++)
@@ -6901,13 +6904,13 @@ void Freeze::add_reso2 (int pn, int pnR, int k, int j, int pseudofreeze)
 	// printf("case 3:  i %3i j %3i k %3i \n",pn,j,k); 
 	
 	
-	for (n = 0; n < neta; n++)
+	for (n = 0; n <= neta; n++)
 	  {
 	    eta = particleList[pn].y[n];// for pseudofreeze, this variable stores pseudorapidity
 	    for (i = 0; i < nphi; i++)
 	      {
 		double phi = i*deltaphi;
-		for (l = 0; l < npt; l++)
+		for (l = 0; l <= npt; l++)
 		  {
 // 		    if(pseudofreeze)  y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
 		    double spectrum = Edndp3_3bodyN(y, particleList[pn].pt[l], phi,
@@ -7446,7 +7449,9 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
 	    {
 	      number = particleList[i].number;
 	      b = particleList[i].baryon;
+// 	      	  cout << "number2 = " << number << endl;
 	      ComputeParticleSpectrum2(DATA, number, b, size, rank);
+// 	      	  cout << "number3 = " << number << endl;
   
 	      // Wait until all processors are finished and concatonate results
 	      // (Don't want any processors to start writing the next particle to 
