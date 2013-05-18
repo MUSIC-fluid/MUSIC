@@ -762,7 +762,7 @@ void Freeze::ReadFSpectra(InitData* DATA)
   checkForReadError(p_file,p_name);
   int count;
   count = 0;
-  cout << "FNumberOfParticlesToInclude " << DATA->NumberOfParticlesToInclude << endl;
+  cout << "NumberOfParticlesToInclude " << DATA->NumberOfParticlesToInclude << endl;
   // read particle information:
   if(!DATA->pseudofreeze)
   {
@@ -823,7 +823,7 @@ void Freeze::ReadFSpectra(InitData* DATA)
   fclose(p_file);
 
   FILE *s_file;
-  char* s_name = "yptphiSpectra.dat";
+  char* s_name = "FyptphiSpectra.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
   
@@ -883,7 +883,7 @@ void Freeze::ReadFSpectra(InitData* DATA)
   fclose(p_file);
 
   FILE *s_file;
-  char* s_name = "yptphiSpectra.dat";
+  char* s_name = "FyptphiSpectra.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
   
