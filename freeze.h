@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <fstream>
 #include <unistd.h>
+#include <sstream>
 
 class Freeze{
 
@@ -123,6 +124,7 @@ class Freeze{
   void ReadParticleData(InitData *DATA, EOS *eos);
   void ReadFreezeOutSurface(InitData *DATA);
   void ReadSpectra(InitData *DATA);
+  void ReadFSpectra(InitData *DATA);
   void Read3Spectra(InitData *DATA);
   void ReadSingleSpectrum(InitData* DATA);
   void ReadFullSpectra(InitData *DATA);
@@ -169,6 +171,7 @@ class Freeze{
   void CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
   double Rap(double eta, double pt, double m);
   double PseudoRap(double y, double pt, double m);
+  void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
 
 };
 #endif
