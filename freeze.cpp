@@ -6893,7 +6893,6 @@ void Freeze::add_reso2 (int pn, int pnR, int k, int j, int pseudofreeze)
   npt = particleList[pn].npt;
   nphi = particleList[pn].nphi;
   double deltaphi = 2*PI/nphi;
-    cout << "decays " << decay[j].numpart << endl;
 
 
   // Determine the number of particles involved in the decay with the switch
@@ -7777,7 +7776,6 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
     }
   else if (mode==13) // take tabulated spectra and compute various observables and integrated quantities
     {
-//       cout << "spectra now\n";
       ReadSpectra(DATA);
 //       for ( i=1; i<particleMax; i++ )
       for ( i=1; i<2; i++ )
@@ -7785,6 +7783,9 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
 	  number = particleList[i].number;
 	  OutputDifferentialFlowAtMidrapidity(DATA, number,0);
 	}
+    }
+  else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
+    {
       ReadFSpectra(DATA);
 //       for ( i=1; i<particleMax; i++ )
       for ( i=1; i<2; i++ )
@@ -7870,7 +7871,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 // 	outfile.setf(ios::scientific);
 	outfilevn.precision(6);
 	outfilevn.setf(ios::scientific);
-	outfilevn << "#pt\tdN/ptdYdptdphi\tv1cin\tv1sin\tv2cos\tv2sine\t...\n";
+	outfilevn << "#pt\tdN/ptdYdptdphi\tv1cos\tv1sin\tv2cos\tv2sin\tv3cos\tv3sin\tv4cos\tv4sin\tv5cos\tv5sin\tv6cos\tv6sin\tv7cos\tv7sin\n";
 
 
 	//Loop over pT
@@ -7897,13 +7898,9 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 
 
 		//Output result
-// 		outfile << pt << "\t" << intRes << "\n";
 		outfilevn << pt << "\t" << intvn[0][0]/2/PI;
 		for(int i = 1;i<8;i++) for(int k =0;k<2;k++) outfilevn << "\t" << intvn[i][k]/intvn[0][0];
 		outfilevn << endl;
-// 		outfilev2 << pt << "\t" << intv2c/intRes << "\t" << intv2s/intRes 
-// 		<< "\t" << intv3c/intRes << "\t" << intv3s/intRes
-// 		<< endl;
 	}
 
 	//Close file
