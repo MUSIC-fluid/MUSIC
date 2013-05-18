@@ -699,6 +699,8 @@ void Freeze::ReadSpectra(InitData* DATA)
 	      particleList[ip].y[i] =  i*deltaeta-etamax; // store pseudorapidity here
 	      //	  if (ip==1) cout << "read particleList[ip].y[" << i << "] = " <<  particleList[ip].y[i] << endl;
 	    }
+	  phiArray = util->vector_malloc(iphimax);
+	  for(iphi=0; iphi<iphimax; iphi++) phiArray[iphi] = iphi*2*PI/iphimax;
 	}
   
   particleMax = ip;
@@ -6891,6 +6893,8 @@ void Freeze::add_reso2 (int pn, int pnR, int k, int j, int pseudofreeze)
   npt = particleList[pn].npt;
   nphi = particleList[pn].nphi;
   double deltaphi = 2*PI/nphi;
+    cout << "decays " << decay[j].numpart << endl;
+
 
   // Determine the number of particles involved in the decay with the switch
   switch (abs (decay[j].numpart))
@@ -7004,7 +7008,7 @@ void Freeze::add_reso2 (int pn, int pnR, int k, int j, int pseudofreeze)
 		for (i = 0; i < nphi; i++)
 		  {
 		    double phi = i*deltaphi;
-		    double spectrum = Edndp3_3bodyN(y, particleList[pn].pt[l], phi,
+		    double spectrum = Edndp3_3bodyN(eta, particleList[pn].pt[l], phi,
 					    m1, m2, m3, mr, norm3, particleList[pnR].number);
 		    if (isnan(spectrum))
 		      {
@@ -7720,7 +7724,7 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
 	    }
 	  if(particleMax>=20)
 	    {
-	      ReadFullSpectra(DATA);
+// 	      ReadFullSpectra(DATA);
 // 	      ComputeChargedHadrons(DATA,4.);
 	    }
 	}
