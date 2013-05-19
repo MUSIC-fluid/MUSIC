@@ -886,7 +886,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   // steps in azimuthal angle in calculation of spectra
   int tempphi_steps   = 30;
   tempinput = util->StringFind3(file, "phi_steps");
-  if(tempinput != "empty") istringstream ( tempinput ) >> temppseudo_steps  ;
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempphi_steps  ;
   DATA->phi_steps   = tempphi_steps; 
   
   // max_pt:  spectra calculated from zero to this transverse momentum in GeV

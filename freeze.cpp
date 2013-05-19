@@ -69,7 +69,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
   cout << "before" << endl; cout << "sizeofParticle=" << sizeof(Particle)/1000000 << endl;
   particleList = (Particle *)malloc((DATA->NumberOfParticlesToInclude+1) * sizeof(Particle));
   
-  //particleList = new Particle[DATA->NumberOfParticlesToInclude+1];
+//   particleList = new Particle[(DATA->NumberOfParticlesToInclude)];
   cout <<"after first (check if there is enough memory... seg fault may be due to lack of memory)" << endl; 
   
   // read particle data:
@@ -1922,7 +1922,7 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
 	  exit(1);
 	}
       ietamax/=size;
-      cout << "r" << rank << " ietamax=" << ietamax << endl;
+//       cout << "r" << rank << " ietamax=" << ietamax << endl;
     }
 //   particleList[j].ymax = ymax;
 //   particleList[j].deltaY = deltaY;
@@ -7679,12 +7679,12 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
 	  check=rank;
 	  
 	  if (rank > 0)
-	    MPI::COMM_WORLD.Send(&check,1,MPI::DOUBLE,0,1);
+	    MPI::COMM_WORLD.Send(&check,1,MPI::INT,0,1);
 	    
 	  if (rank == 0)
 	    {
 	      for (int from=1; from < size; from ++)
-		MPI::COMM_WORLD.Recv(&check,1,MPI::DOUBLE,from,1);
+		MPI::COMM_WORLD.Recv(&check,1,MPI::INT,from,1);
 	      
 	      ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat");
 /*	      
@@ -7778,7 +7778,7 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
     {
       ReadSpectra(DATA);
 //       for ( i=1; i<particleMax; i++ )
-      for ( i=1; i<2; i++ )
+      for ( i=1; i<10; i++ )
 	{
 	  number = particleList[i].number;
 	  OutputDifferentialFlowAtMidrapidity(DATA, number,0);
@@ -7788,7 +7788,7 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
     {
       ReadFSpectra(DATA);
 //       for ( i=1; i<particleMax; i++ )
-      for ( i=1; i<2; i++ )
+      for ( i=1; i<10; i++ )
 	{
 	  number = particleList[i].number;
 	  OutputDifferentialFlowAtMidrapidity(DATA, number,1);
@@ -7910,14 +7910,3 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 
 }
 
-
-//   // if pseudofreeze flag is set;
-//   // spectra was calculated on a fixed grid in pseudorapidity and
-//   // particleList[].y[] stores the value of pseudorapidity.
-//   // Switch to pseudorapidity and interpolate spectrum at value
-//   // of pseudorapidity corresponding to input rapidity yr
-//   if(DATA.pseudofreeze)
-//   {
-//     double eta = PeudoRap(yr,ptr,particleList[pn].mass);
-//     yr = eta;
-//   }
