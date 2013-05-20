@@ -1888,9 +1888,8 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
 //Calculates on fixed grid in pseudorapidity, pt, and phi
 void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int size, int rank)
 {
-  char *specString;
-  specString = util->char_malloc(30);
-  char buf[5];
+//   char *specString;
+//   specString = util->char_malloc(30);
   int ipt, iphi, iymax, iy, ieta;
   int i,j;
   double pt, phi, px, py, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[5];
@@ -1903,29 +1902,41 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   j = partid[MHALF+number];
   // set some parameters
   double etamax = DATA->max_pseudorapidity;
-  int ietamax = DATA->pseudo_steps;
+  int ietamax = DATA->pseudo_steps + 1;// pseudo_steps is number of steps.  Including edges, number of points is steps + 1
   double deltaeta = 0;
-  if(ietamax>1) deltaeta = 2*etamax/(ietamax-1);
+  if(ietamax>=1) deltaeta = 2*etamax/DATA->pseudo_steps;
   double ptmax = DATA->max_pt;
-  int iptmax = DATA->pt_steps;
+  int iptmax = DATA->pt_steps; // Number of points is iptmax  - 1 (ipt goes from 0 to iptmax)
   double deltapt = ptmax/iptmax;
-  int iphimax = DATA->phi_steps;
+  int iphimax = DATA->phi_steps; // Number of steps equal to number of points (phi=2pi is understood as equal to phi=0)
   double deltaphi = 2*PI/iphimax;
+  
+  //  Parallellize in pseudorapidity.
+  //  Allow for unequal load division if number of points does
+  //  not divide equally among processors.  Not efficient, but
+  //  might be convenient to have the option (e.g. for mode 1).
+  int rem = ietamax%size;
+  ietamax/=size;
+  if(rank<rem) ietamax++;
 
-// 	  cout << "size = " << size << endl;
-  if (size>0)
-    {
-      if (ietamax%size!=0)
-	{
-	  fprintf(stderr,"number of steps in pseudorapidity (pseudo_steps) is not a multiple of the number of processors. Exiting.\n");
-	  MPI::Finalize();
-	  exit(1);
-	}
-      ietamax/=size;
-//       cout << "r" << rank << " ietamax=" << ietamax << endl;
-    }
-//   particleList[j].ymax = ymax;
-//   particleList[j].deltaY = deltaY;
+	  cout << "size = " << size << endl;
+//   if (size>1)
+//     {
+//       if (ietamax%size!=1)
+// 	{
+// 	  fprintf(stderr,"number of steps in pseudorapidity (pseudo_steps) is not a multiple of the number of processors. Exiting.\n");
+// 	  MPI::Finalize();
+// 	  exit(1);
+// 	}
+//       ietamax/=size;
+// //       cout << "r" << rank << " ietamax=" << ietamax << endl;
+//     }
+	  
+	  
+// Reuse rapidity variables (Need to reuse variable y so resonance decay routine can be used as is.
+// 	  Might as well misuse ymax and deltaY too)
+  particleList[j].ymax = etamax; 
+  particleList[j].deltaY = deltaeta;
 
   fprintf(stderr,"Doing %d: %s (%d)\n", j, particleList[j].name, particleList[j].number);
  
@@ -1941,6 +1952,7 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   double c = particleList[j].charge;
   double mu = particleList[j].muAtFreezeOut;
 
+  char *buf = new char[10];
   sprintf (buf, "%d", number);  
  
   // open files to write
@@ -1948,14 +1960,18 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   char* d_name = "particleInformation.dat";
   d_file = fopen(d_name, "a");
 
+  char *specString=new char[30];
+  
   FILE *s_file;
   sprintf (buf, "%d", rank);
   
-  strcat(specString, "yptphiSpectra");
+  strcpy(specString, "yptphiSpectra");
   strcat(specString, buf);
   strcat(specString, ".dat");
   char* s_name = specString;
   s_file = fopen(s_name, "w");
+  delete specString;
+  delete buf;
 
   // --------------------------------------------------------------------------
   
@@ -1967,10 +1983,13 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   
   // store E dN/d^3p as function of phi, pt and eta (pseudorapidity) in sumPtPhi:
   
-  for (ieta=0; ieta<=ietamax; ieta++)
+  for (ieta=0; ieta<ietamax; ieta++)
     {
 //       eta = -etamax + deltaeta/2. + ieta*deltaeta + rank*(etamax/size*2.);
-      eta = -etamax + ieta*deltaeta + rank*(etamax/size*2.);
+      double offset;
+      if(rank<=rem) offset = deltaeta*rank*floor((DATA->pseudo_steps+1)/size + 1);
+      else offset = deltaeta*(rank*floor((DATA->pseudo_steps+1)/size) + rem);
+      eta = -etamax + ieta*deltaeta + offset;
       //     if (j==1) cout << " do particleList[ip].y[" << iy << "] = " <<  particleList[j].y[iy] << " y = " << y << endl;
       sumpt=0.;
       for (ipt=0; ipt<=iptmax; ipt++)
@@ -7270,7 +7289,7 @@ void Freeze::cal_reso_decays (int maxpart, int maxdecay, int bound, int mode)
 void Freeze::cal_reso_decays2 (int maxpart, int maxdecay, int bound, int mode, int pseudofreeze)
 {
   // mode=4: do all
-  // mode=5: do one
+  // mode=5: do one --- probably not working at present
   int i, j, k, l, ll;
   int pn, pnR, pnaR;
   int part,n1,n2,n3,ny,npt,nphi;
@@ -7603,23 +7622,25 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
   if (mode == 3 || mode == 1) // compute thermal spectra
     {
       int ret;
-      if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat");
-      char *specString;
-      specString = util->char_malloc(30);
+      if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat 2> /dev/null");
+//       char *specString;
+//       specString = util->char_malloc(30);
       FILE *d_file;
       char* d_name = "particleInformation.dat";
       d_file = fopen(d_name, "w");
       fprintf(d_file,"");
       fclose(d_file);
-      char buf[5];
+      char *buf = new char[10];
       FILE *s_file;
       sprintf (buf, "%d", rank);
+      char *specString = new char[30];
       strcat(specString, "yptphiSpectra");
       strcat(specString, buf);
       strcat(specString, ".dat");
       char* s_name = specString;
       s_file = fopen(s_name, "w");
       fclose(s_file);
+      delete buf;
       ReadFreezeOutSurface(DATA); // read freeze out surface (has to be done after the evolution of course)
       // (particle number, maximum p_T, [baryon=1, anti-baryon=-1], # of pts for pt integration, # of pts for phi integration)
       if (particleSpectrumNumber==0) // do all particles
@@ -7653,7 +7674,7 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
 // 	      if (rank > 0)
 // 		MPI::COMM_WORLD.Recv(check,1,MPI::INT,0,1);
 	      
-	      if(rank==0) ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat");
+	      if(rank==0) ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
 	    }
 // 	  ReadSpectra(DATA);
 // 	  for ( i=1; i<particleMax; i++ )
@@ -7686,7 +7707,7 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
 	      for (int from=1; from < size; from ++)
 		MPI::COMM_WORLD.Recv(&check,1,MPI::INT,from,1);
 	      
-	      ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat");
+	      ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
 /*	      
 	      ReadSingleSpectrum(DATA);
 	      cout << "output results..." << endl;
@@ -7778,7 +7799,7 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
     {
       ReadSpectra(DATA);
 //       for ( i=1; i<particleMax; i++ )
-      for ( i=1; i<10; i++ )
+      for ( i=1; i<20; i++ )
 	{
 	  number = particleList[i].number;
 	  OutputDifferentialFlowAtMidrapidity(DATA, number,0);
@@ -7788,7 +7809,7 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
     {
       ReadFSpectra(DATA);
 //       for ( i=1; i<particleMax; i++ )
-      for ( i=1; i<10; i++ )
+      for ( i=1; i<20; i++ )
 	{
 	  number = particleList[i].number;
 	  OutputDifferentialFlowAtMidrapidity(DATA, number,1);
