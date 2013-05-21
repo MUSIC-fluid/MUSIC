@@ -265,8 +265,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
  shear = (shear_to_s)*s_den;
  tau_pi = 3.0*shear/(grid_pt->epsilon + grid_pt->p);
 
- tau_pi = maxi(tau_pi, DATA->tau_pi);
- if(!finite(tau_pi)) tau_pi = DATA->tau_pi;
+ if(!finite(tau_pi)) tau_pi = DATA->delta_tau;
 
 
 /*
