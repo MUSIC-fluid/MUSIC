@@ -689,6 +689,8 @@ void Freeze::ReadSpectra(InitData* DATA)
 	  particleList[ip].phimin = 2*PI;
 	  particleList[ip].slope = 1;
 	  particleList[ip].ymax = etamax;
+	  deltaeta = 0.;
+	  if(pseudo_steps>=1) deltaeta = 2*etamax/pseudo_steps;
 	  particleList[ip].deltaY = deltaeta;
 	  for ( i=0; i<=iptmax; i++ )
 	    {
@@ -866,6 +868,8 @@ void Freeze::ReadFSpectra(InitData* DATA)
 	  particleList[ip].phimin = 2*PI;
 	  particleList[ip].slope = 1;
 	  particleList[ip].ymax = etamax;
+	  deltaeta = 0.;
+	  if(pseudo_steps>=1) deltaeta = 2*etamax/pseudo_steps;
 	  particleList[ip].deltaY = deltaeta;
 	  for ( i=0; i<=iptmax; i++ )
 	    {
@@ -7799,20 +7803,22 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
     {
       ReadSpectra(DATA);
 //       for ( i=1; i<particleMax; i++ )
-      for ( i=1; i<20; i++ )
+      for ( i=1; i<5; i++ )
 	{
 	  number = particleList[i].number;
 	  OutputDifferentialFlowAtMidrapidity(DATA, number,0);
+	  OutputIntegratedFlowForCMS(DATA, number,0);
 	}
     }
   else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
     {
       ReadFSpectra(DATA);
 //       for ( i=1; i<particleMax; i++ )
-      for ( i=1; i<20; i++ )
+      for ( i=1; i<5; i++ )
 	{
 	  number = particleList[i].number;
 	  OutputDifferentialFlowAtMidrapidity(DATA, number,1);
+	  OutputIntegratedFlowForCMS(DATA, number,1);
 	}
     }
 }
@@ -7844,8 +7850,9 @@ double Freeze::Rap(double eta, double pt, double m)
   return y;
 }
 
-//Output the phi-integrated, rapidity-averaged-around-0 yield as a function of pT
-void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full) {
+//Output yield and v_n at eta=0 as a function of pT
+void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full) 
+{
 
   
 	//Define index j used in particleList[j]
@@ -7877,7 +7884,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 	if (full) {
 		fname+="F";
 	}
-	fname+="vnpty0prime-";
+	fname+="vnpteta0-";
 	tmpStr << number;
 	fname+=tmpStr.str();
 	fname+=".dat";	
@@ -7931,3 +7938,97 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 
 }
 
+//Output yield and v_n integrated over pT>500MeV (or the closest point in pT that has been calculated) as a function of pseudorapidity
+void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full) 
+{
+
+  
+      //Define index j used in particleList[j]
+      int j = partid[MHALF+number];
+      double fac, pt;
+      double intvn[8][2] = {0};
+      int nphi = particleList[j].nphi;
+      int npt = particleList[j].npt;
+      int minipt=0;
+      double minpt=0.;
+
+      // Simple trapezoid rule needs the value at the boundary.  
+      // Find nearest lower bound to desired value and integrate to highest pT available
+      for(int ipt=0;ipt<=npt;ipt++) 
+      {
+	pt=particleList[j].pt[ipt];
+	if(pt<=0.5)
+	{
+	  minipt = ipt;
+	  minpt = pt;
+	}
+	if(pt>0.5) break;
+      }
+	cout << "Calculating integrated flow for |p_T| > " << minpt << " for particle " << number << endl;
+
+// 	for (int iphi=0;iphi<nphi;iphi++) phipbuff[iphi] = iphi*2*PI/nphi;
+
+	//Set output file name
+	string fname;
+	stringstream tmpStr;
+	fname="./outputs/";
+	if (full) {
+		fname+="F";
+	}
+	fname+="vnetaCMS-";
+	tmpStr << number;
+	fname+=tmpStr.str();
+	fname+=".dat";	
+	
+		//Open output file for vn
+	ofstream outfilevn;
+	outfilevn.open(fname.c_str());
+
+	//Set the format of the output
+	outfilevn.precision(6);
+	outfilevn.setf(ios::scientific);
+	outfilevn << "#eta\tdN/ptdYdptdphi\tv1cos\tv1sin\tv2cos\tv2sin\tv3cos\tv3sin\tv4cos\tv4sin\tv5cos\tv5sin\tv6cos\tv6sin\tv7cos\tv7sin\n";
+
+
+	//loop over pseudorapidity
+	for(int ieta=0;ieta<=particleList[j].ny;ieta++)
+	{
+	  for(int i = 0;i<8;i++) for(int k =0;k<2;k++) intvn[i][k]=0;
+	  double eta = particleList[j].y[ieta];
+	  cout << "eta = " << eta << endl;
+	  //Loop over pT
+  // 	cout << "npt = " << npt << endl;
+	  for(int ipt=minipt;ipt<=npt;ipt++) 
+	  {
+		  pt=particleList[j].pt[ipt];
+		  double intvnphi[8][2] = {0};
+		  //Integrate over phi using trapezoid rule
+		  for(int iphi=0;iphi<nphi;iphi++) {
+  // 			int ieta = particleList[j].ny/2;
+			  double dN = particleList[j].dNdydptdphi[ieta][ipt][iphi];
+			  fac = 1.;
+			  double phi = iphi*2*PI/nphi;
+			  for(int i = 0;i<8;i++)
+			  {
+			    intvnphi[i][0] += cos(i*phi)*fac*dN;
+			    intvnphi[i][1] += sin(i*phi)*fac*dN;
+			  }
+		  }
+		  for(int i = 1;i<8;i++) for(int k =0;k<2;k++) intvnphi[i][k]/=intvnphi[0][0];
+		  if(ipt==minipt || ipt == npt) fac = 0.5;
+		  else fac = 1.0;
+		  for(int i = 0;i<8;i++) for(int k =0;k<2;k++) intvn[i][k]+=fac*intvnphi[i][k];
+	  }// pt loop
+	  
+	  //Output result
+	  outfilevn << eta << "\t" << intvn[0][0]/2/PI;
+	  for(int i = 1;i<8;i++) for(int k =0;k<2;k++) outfilevn << "\t" << intvn[i][k]/intvn[0][0];
+	  outfilevn << endl;
+	}// eta loop
+
+	//Close file
+// 	outfile.close();
+	outfilevn.close();
+// 	}
+
+}

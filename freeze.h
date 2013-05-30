@@ -172,6 +172,7 @@ class Freeze{
   double Rap(double eta, double pt, double m);
   double PseudoRap(double y, double pt, double m);
   void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
+  void OutputIntegratedFlowForCMS(InitData *DATA, int number, int full);
 
 };
 #endif
