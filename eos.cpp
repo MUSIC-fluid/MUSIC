@@ -29,7 +29,6 @@ void EOS::init_eos0() {
   whichEOS = 0;
 }
 
-
 void EOS::init_eos()
 {
   // read the azhydro pressure, temperature, and 
@@ -57,53 +56,53 @@ void EOS::init_eos()
       fprintf(stderr,"from path %s/EOS \n", envPath);
       eos_p1_name = util->char_malloc(100);
       strcat(eos_p1_name,envPath);
-      strcat(eos_p1_name,"/EOS/aa1_p.dat");
+      strcat(eos_p1_name,"/EOS/EOS-Q/aa1_p.dat");
 
       eos_p2_name = util->char_malloc(100);
       strcat(eos_p2_name,envPath);
-      strcat(eos_p2_name,"/EOS/aa2_p.dat");
+      strcat(eos_p2_name,"/EOS/EOS-Q/aa2_p.dat");
 
       eos_T1_name = util->char_malloc(100);
       strcat(eos_T1_name,envPath);
-      strcat(eos_T1_name,"/EOS/aa1_t.dat");
+      strcat(eos_T1_name,"/EOS/EOS-Q/aa1_t.dat");
 
       eos_T2_name = util->char_malloc(100);
       strcat(eos_T2_name,envPath);
-      strcat(eos_T2_name,"/EOS/aa2_t.dat");
+      strcat(eos_T2_name,"/EOS/EOS-Q/aa2_t.dat");
 
       eos_mu1_name = util->char_malloc(100);
       strcat(eos_mu1_name,envPath);
-      strcat(eos_mu1_name,"/EOS/aa1_mb.dat");
+      strcat(eos_mu1_name,"/EOS/EOS-Q/aa1_mb.dat");
  
       eos_mu2_name = util->char_malloc(100);
       strcat(eos_mu2_name,envPath);
-      strcat(eos_mu2_name,"/EOS/aa2_mb.dat");
+      strcat(eos_mu2_name,"/EOS/EOS-Q/aa2_mb.dat");
     }
   else
     {
       eos_p1_name = util->char_malloc(100);
       strcat(eos_p1_name,".");
-      strcat(eos_p1_name,"/EOS/aa1_p.dat");
+      strcat(eos_p1_name,"/EOS/EOS-Q/aa1_p.dat");
 
       eos_p2_name = util->char_malloc(100);
       strcat(eos_p2_name,".");
-      strcat(eos_p2_name,"/EOS/aa2_p.dat");
+      strcat(eos_p2_name,"/EOS/EOS-Q/aa2_p.dat");
 
       eos_T1_name = util->char_malloc(100);
       strcat(eos_T1_name,".");
-      strcat(eos_T1_name,"/EOS/aa1_t.dat");
+      strcat(eos_T1_name,"/EOS/EOS-Q/aa1_t.dat");
 
       eos_T2_name = util->char_malloc(100);
       strcat(eos_T2_name,".");
-      strcat(eos_T2_name,"/EOS/aa2_t.dat");
+      strcat(eos_T2_name,"/EOS/EOS-Q/aa2_t.dat");
 
       eos_mu1_name = util->char_malloc(100);
       strcat(eos_mu1_name,".");
-      strcat(eos_mu1_name,"/EOS/aa1_mb.dat");
+      strcat(eos_mu1_name,"/EOS/EOS-Q/aa1_mb.dat");
  
       eos_mu2_name = util->char_malloc(100);
       strcat(eos_mu2_name,".");
-      strcat(eos_mu2_name,"/EOS/aa2_mb.dat");
+      strcat(eos_mu2_name,"/EOS/EOS-Q/aa2_mb.dat");
     }
   
   eos_p1 = fopen(eos_p1_name, "r");
