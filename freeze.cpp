@@ -680,7 +680,7 @@ void Freeze::ReadSpectra(InitData* DATA)
 	{
 	  count ++;
 	  if (count>DATA->NumberOfParticlesToInclude) break;
-	  fprintf(stderr,"%d %e %d %e %e %d %d \n", number, etamax, pseudo_steps, ptmin, ptmax, iptmax, iphimax);
+// 	  fprintf(stderr,"%d %e %d %e %e %d %d \n", number, etamax, pseudo_steps, ptmin, ptmax, iptmax, iphimax);
 	  ip = partid[MHALF+number];
 	  particleList[ip].ny = pseudo_steps;
 	  particleList[ip].npt = iptmax;
@@ -692,10 +692,11 @@ void Freeze::ReadSpectra(InitData* DATA)
 	  deltaeta = 0.;
 	  if(pseudo_steps>=1) deltaeta = 2*etamax/pseudo_steps;
 	  particleList[ip].deltaY = deltaeta;
-	  cout << "ptmin = " << ptmin << endl;
+// 	  cout << "ptmin = " << ptmin << endl;
 	  for ( i=0; i<=iptmax; i++ )
 	    {
-	      particleList[ip].pt[i] =  ptmin + (ptmax - ptmin)*(exp(i)-1)/(exp(iptmax)-1);
+// 	      particleList[ip].pt[i] =  ptmin + (ptmax - ptmin)*(exp(i)-1)/(exp(iptmax)-1); // log distributed values
+	      particleList[ip].pt[i] =  ptmin + (ptmax - ptmin)*pow(i,2)/pow(iptmax,2); // power law
 	    }
 	  for ( i=0; i<=pseudo_steps; i++ )
 	    {
@@ -875,7 +876,8 @@ void Freeze::ReadFSpectra(InitData* DATA)
 	  particleList[ip].deltaY = deltaeta;
 	  for ( i=0; i<=iptmax; i++ )
 	    {
-	      particleList[ip].pt[i] =  ptmin + (ptmax - ptmin)*(exp(i)-1)/(exp(iptmax)-1);
+// 	      particleList[ip].pt[i] =  ptmin + (ptmax - ptmin)*(exp(i)-1)/(exp(iptmax)-1); // log distributed values
+	      particleList[ip].pt[i] =  ptmin + (ptmax - ptmin)*pow(i,2)/pow(iptmax,2); // power law
 	    }
 	  for ( i=0; i<=pseudo_steps; i++ )
 	    {
@@ -2002,7 +2004,9 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
 	{
 // 	  pt = deltapt/2. + ipt*deltapt;
 // 	  pt = ipt*deltapt;
-	  pt = ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1);
+// 	  pt = ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1);
+// 	      pt =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
+	      pt =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax,2); // power law
 	  particleList[j].pt[ipt] = pt;
 	  
 	  
@@ -7818,12 +7822,14 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
       outfile.open(fname.c_str(),ios::trunc);
 
       //Set the format of the output
-      outfile.precision(4);
-      outfile.setf(ios::scientific);
+//       outfile.precision(4);
+//       outfile.setf(ios::scientific);
       
       
-      for ( i=1; i<5; i++ )
+      int chargedhd[5] = {1,3,4,5,17};
+      for ( int k=0; k<5; k++ )
 	{
+	  i = chargedhd[k];
 	  number = particleList[i].number;
 	  OutputDifferentialFlowAtMidrapidity(DATA, number,0);
 	  OutputIntegratedFlowForCMS(DATA, number,0);
@@ -7852,11 +7858,11 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
       outfile.open(fname.c_str(),ios::trunc);
 
       //Set the format of the output
-      outfile.precision(4);
-      outfile.setf(ios::scientific);
+//       outfile.precision(4);
+//       outfile.setf(ios::scientific);
       
       double N = 0;
-      for ( int k=0; k<5; i++ )
+      for ( int k=0; k<5; k++ )
 	{
 	  i = chargedhd[k];
 	  number = particleList[i].number;
@@ -7864,7 +7870,9 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
 // 	  OutputIntegratedFlowForCMS(DATA, number,1);
  	  N += OutputYieldForCMS(DATA, number,1);
 	}
-	outfile.close();
+      cout << "Nch = " << N << endl;
+      outfile << N << endl;
+      outfile.close();
     }
 }
 
@@ -8046,7 +8054,7 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 	{
 	  for(int i = 0;i<8;i++) for(int k =0;k<2;k++) intvn[i][k]=0;
 	  double eta = particleList[j].y[ieta];
-	  cout << "eta = " << eta << endl;
+// 	  cout << "eta = " << eta << endl;
 	  //Loop over pT
   // 	cout << "npt = " << npt << endl;
 	  for(int ipt=minipt;ipt<=npt;ipt++) 
@@ -8100,7 +8108,9 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 	double minpt=0.4; // in GeV
 	double etamax = particleList[j].ymax;
 
-	cout << "Calculating yield for " << minpt << " < p_T < " << particleList[j].pt[npt-1] << " and |eta| < " << etamax << " for particle " << number << endl;
+	cout << "Calculating yield for " << minpt << " < p_T < " << particleList[j].pt[npt] 
+	      << " and |eta| < " << etamax << " for particle " << number << ", " 
+	      << particleList[j].name << endl;
 
 	for(int ipt=0;ipt<=npt;ipt++) 
 	{
@@ -8128,23 +8138,36 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 
 			
 		}// eta loop
-		dndpt[ipt]/=2*PI;
-		cout << particleList[j].pt[ipt] << ", " << dndpt[ipt] << endl;	
+		dndpt[ipt]*=2*PI/nphi*2*etamax/neta;
+// 		cout << particleList[j].pt[ipt] << ", " << dndpt[ipt] << endl;	
 	}// pt loop
 	
 	gsl_interp_accel *acc = gsl_interp_accel_alloc ();
         gsl_spline *spline = gsl_spline_alloc (gsl_interp_cspline, npt+1);
+//         gsl_spline *spline = gsl_spline_alloc (gsl_interp_akima, npt+1); //other types of splines to test
+// 	gsl_spline *spline = gsl_spline_alloc (gsl_interp_polynomial, npt+1);
 	gsl_spline_init (spline, particleList[j].pt ,dndpt , npt+1);
 	
+	
+// 	for(int ipt=0;ipt<=npt;ipt++) //for testing
+// 	{
+// 		double pt = particleList[j].pt[ipt];
+// 		cout << particleList[j].pt[ipt] << ", " << 
+// 		gsl_spline_eval(spline, pt, acc) << endl;
+// 	}
+// 	
+// 	cout << "minpt = " << minpt << endl;
+// 	cout << "maxpt = " << particleList[j].pt[npt] << endl;
 	double N = 
-	  gsl_spline_eval_integ(spline, minpt, particleList[j].pt[npt-1],acc);
+	  gsl_spline_eval_integ(spline, minpt, particleList[j].pt[npt],acc);
 // 	  gsl_spline_eval_integ(spline, 1.0, 2.0, acc);
 // 	  gsl_spline_eval(spline, 0.250464, acc);
 
-	return N;
-	cout << "N = " << N << endl;
+// 	cout << "N = " << N << endl;
 	
 	gsl_spline_free (spline);
         gsl_interp_accel_free (acc);
+	  
+	return N;
 
 }
