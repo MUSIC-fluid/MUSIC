@@ -889,7 +889,13 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempphi_steps  ;
   DATA->phi_steps   = tempphi_steps; 
   
-  // max_pt:  spectra calculated from zero to this transverse momentum in GeV
+  // min_pt:  spectra calculated from this to max_pt transverse momentum in GeV
+  double tempmin_pt   = 0.4;
+  tempinput = util->StringFind3(file, "min_pt");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempmin_pt  ;
+  DATA->min_pt   = tempmin_pt;
+    
+  // max_pt:  spectra calculated from min_pt to this transverse momentum in GeV
   double tempmax_pt   = 6;
   tempinput = util->StringFind3(file, "max_pt");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_pt  ;

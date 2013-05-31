@@ -567,7 +567,7 @@ void Freeze::ReadSpectra(InitData* DATA)
   // read in thermal spectra from file:
   int number, iymax, iptmax, iphimax;
   double deltaY, ymax, slope, phimax, phimin;
-  double deltaeta, etamax, ptmax;
+  double deltaeta, etamax, ptmin, ptmax;
   int pseudo_steps;
   int ip, iphi, ipt, i;
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
@@ -676,11 +676,11 @@ void Freeze::ReadSpectra(InitData* DATA)
   }
     else
     {
-      while( fscanf(p_file,"%d %lf %d %lf %d %d ",&number, &etamax, &pseudo_steps, &ptmax, &iptmax, &iphimax) == 6)
+      while( fscanf(p_file,"%d %lf %d %lf %lf %d %d ",&number, &etamax, &pseudo_steps, &ptmin, &ptmax, &iptmax, &iphimax) == 7)
 	{
 	  count ++;
 	  if (count>DATA->NumberOfParticlesToInclude) break;
-	  fprintf(stderr,"%d %e %d %e %d %d \n", number, etamax, pseudo_steps, ptmax, iptmax, iphimax);
+	  fprintf(stderr,"%d %e %d %e %e %d %d \n", number, etamax, pseudo_steps, ptmin, ptmax, iptmax, iphimax);
 	  ip = partid[MHALF+number];
 	  particleList[ip].ny = pseudo_steps;
 	  particleList[ip].npt = iptmax;
@@ -692,9 +692,10 @@ void Freeze::ReadSpectra(InitData* DATA)
 	  deltaeta = 0.;
 	  if(pseudo_steps>=1) deltaeta = 2*etamax/pseudo_steps;
 	  particleList[ip].deltaY = deltaeta;
+	  cout << "ptmin = " << ptmin << endl;
 	  for ( i=0; i<=iptmax; i++ )
 	    {
-	      particleList[ip].pt[i] =  i*ptmax/iptmax;
+	      particleList[ip].pt[i] =  ptmin + (ptmax - ptmin)*(exp(i)-1)/(exp(iptmax)-1);
 	    }
 	  for ( i=0; i<=pseudo_steps; i++ )
 	    {
@@ -716,6 +717,7 @@ void Freeze::ReadSpectra(InitData* DATA)
   
   cout << "ietamax=" << pseudo_steps << endl;
   cout << "cells=" << pseudo_steps*iptmax*iphimax << endl;
+  cout << "particleMax = " << particleMax << endl;
   for ( ip=1; ip<=particleMax; ip++ )
     {
       //cout << ip << endl;
@@ -746,7 +748,7 @@ void Freeze::ReadFSpectra(InitData* DATA)
   // read in thermal spectra from file:
   int number, iymax, iptmax, iphimax;
   double deltaY, ymax, slope, phimax, phimin;
-  double deltaeta, etamax, ptmax;
+  double deltaeta, etamax, ptmin, ptmax;
   int pseudo_steps;
   int ip, iphi, ipt, i;
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
@@ -855,11 +857,11 @@ void Freeze::ReadFSpectra(InitData* DATA)
   }
     else
     {
-      while( fscanf(p_file,"%d %lf %d %lf %d %d ",&number, &etamax, &pseudo_steps, &ptmax, &iptmax, &iphimax) == 6)
+      while( fscanf(p_file,"%d %lf %d %lf %lf %d %d ",&number, &etamax, &pseudo_steps, &ptmin, &ptmax, &iptmax, &iphimax) == 7)
 	{
 	  count ++;
 	  if (count>DATA->NumberOfParticlesToInclude) break;
-	  fprintf(stderr,"%d %e %d %e %d %d \n", number, etamax, pseudo_steps, ptmax, iptmax, iphimax);
+	  fprintf(stderr,"%d %e %d %e %e %d %d \n", number, etamax, pseudo_steps, ptmin, ptmax, iptmax, iphimax);
 	  ip = partid[MHALF+number];
 	  particleList[ip].ny = pseudo_steps;
 	  particleList[ip].npt = iptmax;
@@ -873,7 +875,7 @@ void Freeze::ReadFSpectra(InitData* DATA)
 	  particleList[ip].deltaY = deltaeta;
 	  for ( i=0; i<=iptmax; i++ )
 	    {
-	      particleList[ip].pt[i] =  i*ptmax/iptmax;
+	      particleList[ip].pt[i] =  ptmin + (ptmax - ptmin)*(exp(i)-1)/(exp(iptmax)-1);
 	    }
 	  for ( i=0; i<=pseudo_steps; i++ )
 	    {
@@ -1910,8 +1912,9 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   double deltaeta = 0;
   if(ietamax>=1) deltaeta = 2*etamax/DATA->pseudo_steps;
   double ptmax = DATA->max_pt;
+  double ptmin = DATA->min_pt;
   int iptmax = DATA->pt_steps; // Number of points is iptmax  - 1 (ipt goes from 0 to iptmax)
-  double deltapt = ptmax/iptmax;
+//   double deltapt = ptmax/iptmax;
   int iphimax = DATA->phi_steps; // Number of steps equal to number of points (phi=2pi is understood as equal to phi=0)
   double deltaphi = 2*PI/iphimax;
   
@@ -1923,7 +1926,6 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   ietamax/=size;
   if(rank<rem) ietamax++;
 
-	  cout << "size = " << size << endl;
 //   if (size>1)
 //     {
 //       if (ietamax%size!=1)
@@ -1980,7 +1982,7 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   // --------------------------------------------------------------------------
   
   // write information in the particle information file
-  if (rank==0) fprintf(d_file,"%d %e %d %e %d %d \n", number,  etamax, DATA->pseudo_steps, ptmax, iptmax, iphimax);
+  if (rank==0) fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  etamax, DATA->pseudo_steps, ptmin, ptmax, iptmax, iphimax);
 //   if (rank==0) fprintf(d_file,"%d %e %e %d %e %d %d \n", number, deltaeta, etamax,  DATA->pseudo_steps, ptmax, iptmax, iphimax);
 
   
@@ -1999,7 +2001,8 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
       for (ipt=0; ipt<=iptmax; ipt++)
 	{
 // 	  pt = deltapt/2. + ipt*deltapt;
-	  pt = ipt*deltapt;
+// 	  pt = ipt*deltapt;
+	  pt = ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1);
 	  particleList[j].pt[ipt] = pt;
 	  
 	  
@@ -3295,7 +3298,7 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   char* d_name = "FparticleInformation.dat";
   d_file = fopen(d_name, "a");
   
-  fprintf(d_file,"%d %e %d %e %d %d \n", number,  DATA->max_pseudorapidity, DATA->pseudo_steps, DATA->max_pt, DATA->pt_steps, DATA->phi_steps);
+  fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  DATA->max_pseudorapidity, DATA->pseudo_steps, DATA->min_pt, DATA->max_pt, DATA->pt_steps, DATA->phi_steps);
 
 //   fprintf(d_file,"%d %e %e %e %e %e %d %d %d \n", number, DATA->, ymax, slope, phimin, phimax, iymax, iptmax, iphimax);
 
@@ -7803,23 +7806,65 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
     {
       ReadSpectra(DATA);
 //       for ( i=1; i<particleMax; i++ )
+      
+
+      //Set output file name for total multiplicity
+      string fname;
+      stringstream tmpStr;
+      fname="./outputs/NCMS.dat";	
+      
+      ofstream outfile;
+
+      outfile.open(fname.c_str(),ios::trunc);
+
+      //Set the format of the output
+      outfile.precision(4);
+      outfile.setf(ios::scientific);
+      
+      
       for ( i=1; i<5; i++ )
 	{
 	  number = particleList[i].number;
 	  OutputDifferentialFlowAtMidrapidity(DATA, number,0);
 	  OutputIntegratedFlowForCMS(DATA, number,0);
+	  
+	  double N = OutputYieldForCMS(DATA, number,0);
+	  
+	  outfile << number << "\t" << N << endl;
 	}
+
+	outfile.close();
     }
   else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
     {
       ReadFSpectra(DATA);
 //       for ( i=1; i<particleMax; i++ )
-      for ( i=1; i<5; i++ )
+      int chargedhd[5] = {1,3,4,5,17};
+      
+
+      //Set output file name for total multiplicity
+      string fname;
+      stringstream tmpStr;
+      fname="./outputs/FNchCMS.dat";	
+      
+      ofstream outfile;
+
+      outfile.open(fname.c_str(),ios::trunc);
+
+      //Set the format of the output
+      outfile.precision(4);
+      outfile.setf(ios::scientific);
+      
+      double N = 0;
+      for ( int k=0; k<5; i++ )
 	{
+	  i = chargedhd[k];
 	  number = particleList[i].number;
-	  OutputDifferentialFlowAtMidrapidity(DATA, number,1);
-	  OutputIntegratedFlowForCMS(DATA, number,1);
+// 	  OutputDifferentialFlowAtMidrapidity(DATA, number,1);
+// 	  OutputIntegratedFlowForCMS(DATA, number,1);
+ 	  N += OutputYieldForCMS(DATA, number,1);
 	}
+	outfile.close();
     }
 }
 
@@ -7857,10 +7902,11 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
   
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
-      double fac, pt;
-      double intvn[8][2] = {0};
-      int nphi = particleList[j].nphi;
-      int npt = particleList[j].npt;
+	double fac, pt;
+	double intvn[8][2] = {0};
+	double m = particleList[j].mass;
+	int nphi = particleList[j].nphi;
+	int npt = particleList[j].npt;
 //         double phipbuff[nphi];
 // 	double resbuff[npt+1][nphi]; 
 /*	
@@ -7901,20 +7947,25 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 	outfilevn.setf(ios::scientific);
 	outfilevn << "#pt\tdN/ptdYdptdphi\tv1cos\tv1sin\tv2cos\tv2sin\tv3cos\tv3sin\tv4cos\tv4sin\tv5cos\tv5sin\tv6cos\tv6sin\tv7cos\tv7sin\n";
 
+	int ieta = particleList[j].ny/2;
+	double eta = particleList[j].y[ieta];
 
 	//Loop over pT
 // 	cout << "npt = " << npt << endl;
 	for(int ipt=0;ipt<=npt;ipt++) {
 		pt=particleList[j].pt[ipt];
 // 		cout << "pt = " << pt << endl;
+		
+		//jacobian to switch from dN/dY to dN/deta
+		double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
 
 		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) intvn[i][k]=0;
 
 // 		cout << "ipt = " << ipt << endl;
 		//Integrate over phi using trapezoid rule at closest point to midrapidity
 		for(int iphi=0;iphi<nphi;iphi++) {
-			int ieta = particleList[j].ny/2;
-		        double dN = particleList[j].dNdydptdphi[ieta][ipt][iphi];
+// 			int ieta = particleList[j].ny/2;
+		        double dN = jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
 			fac = 1.;
 			double phi = iphi*2*PI/nphi;
 			for(int i = 0;i<8;i++)
@@ -8030,5 +8081,70 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 // 	outfile.close();
 	outfilevn.close();
 // 	}
+
+}
+
+//Output total yield integrated over pT>400MeV and |eta|>max_pseudorapidity
+double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full) 
+{
+
+    
+	//Define index j used in particleList[j]
+	int j = partid[MHALF+number];
+	double fac, pt;
+	int nphi = particleList[j].nphi;
+	int npt = particleList[j].npt;
+	int neta = particleList[j].ny;
+	double m = particleList[j].mass;
+	double *dndpt = new double[npt](); // This initializes array to zero
+	double minpt=0.4; // in GeV
+	double etamax = particleList[j].ymax;
+
+	cout << "Calculating yield for " << minpt << " < p_T < " << particleList[j].pt[npt-1] << " and |eta| < " << etamax << " for particle " << number << endl;
+
+	for(int ipt=0;ipt<=npt;ipt++) 
+	{
+		double pt = particleList[j].pt[ipt];
+		dndpt[ipt] = 0.;
+		double norm = 0.;
+		
+		//Integrate over pseudorapidity using trapezoid rule
+		for(int ieta=0;ieta<=neta;ieta++)
+		{
+			double dndpteta = 0;
+			double eta = particleList[j].y[ieta];
+			double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+			//Integrate over phi using trapezoid rule
+			for(int iphi=0;iphi<nphi;iphi++) 
+			{
+				double dNdY = particleList[j].dNdydptdphi[ieta][ipt][iphi];
+				double dNdeta = dNdY*jac;
+				dndpteta+=dNdeta;
+			}
+			
+			if(ieta==0 || ieta==neta) fac = 0.5;
+			else fac = 1.0;
+			dndpt[ipt]+= fac*dndpteta;
+
+			
+		}// eta loop
+		dndpt[ipt]/=2*PI;
+		cout << particleList[j].pt[ipt] << ", " << dndpt[ipt] << endl;	
+	}// pt loop
+	
+	gsl_interp_accel *acc = gsl_interp_accel_alloc ();
+        gsl_spline *spline = gsl_spline_alloc (gsl_interp_cspline, npt+1);
+	gsl_spline_init (spline, particleList[j].pt ,dndpt , npt+1);
+	
+	double N = 
+	  gsl_spline_eval_integ(spline, minpt, particleList[j].pt[npt-1],acc);
+// 	  gsl_spline_eval_integ(spline, 1.0, 2.0, acc);
+// 	  gsl_spline_eval(spline, 0.250464, acc);
+
+	return N;
+	cout << "N = " << N << endl;
+	
+	gsl_spline_free (spline);
+        gsl_interp_accel_free (acc);
 
 }

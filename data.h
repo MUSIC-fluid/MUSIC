@@ -71,6 +71,7 @@ typedef struct init_data
   double max_pseudorapidity;
   int pseudo_steps;
   int phi_steps;
+  double min_pt;
   double max_pt;
   int pt_steps;
   

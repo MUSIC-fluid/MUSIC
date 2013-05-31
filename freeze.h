@@ -29,6 +29,9 @@
 #include <fstream>
 #include <unistd.h>
 #include <sstream>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
+#include <gsl/gsl_interp.h>
 
 class Freeze{
 
@@ -173,6 +176,7 @@ class Freeze{
   double PseudoRap(double y, double pt, double m);
   void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
   void OutputIntegratedFlowForCMS(InitData *DATA, int number, int full);
+  double OutputYieldForCMS(InitData *DATA, int number, int full);
 
 };
 #endif
