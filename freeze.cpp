@@ -572,8 +572,6 @@ void Freeze::ReadSpectra(InitData* DATA)
   int ip, iphi, ipt, i;
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
   int bytes_read;
-  static char *s;
-  s = util->char_malloc(120);
   int iy, j, k, d1, d2, d3, decays, h;
   double b, npi, nK, neta, dummy;
   fprintf(stderr,"reading spectra\n");
@@ -754,8 +752,6 @@ void Freeze::ReadFSpectra(InitData* DATA)
   int ip, iphi, ipt, i;
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
   int bytes_read;
-  static char *s;
-  s = util->char_malloc(120);
   int iy, j, k, d1, d2, d3, decays, h;
   double b, npi, nK, neta, dummy;
   fprintf(stderr,"reading spectra\n");
@@ -1978,8 +1974,8 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   strcat(specString, ".dat");
   char* s_name = specString;
   s_file = fopen(s_name, "w");
-  delete specString;
-  delete buf;
+  delete[] specString;
+  delete[] buf;
 
   // --------------------------------------------------------------------------
   
@@ -3305,6 +3301,7 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  DATA->max_pseudorapidity, DATA->pseudo_steps, DATA->min_pt, DATA->max_pt, DATA->pt_steps, DATA->phi_steps);
 
 //   fprintf(d_file,"%d %e %e %e %e %e %d %d %d \n", number, DATA->, ymax, slope, phimin, phimax, iymax, iptmax, iphimax);
+   fclose(d_file);
 
   
   FILE *s_file;
@@ -3325,11 +3322,11 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
 	    {
 
 	      fprintf(s_file,"%e ", particleList[j].dNdydptdphi[iy][ipt][iphi]);
-
 	    }
 	  fprintf(s_file,"\n");
 	}
     }     
+  fclose(s_file);
 }
 
 
@@ -7633,27 +7630,8 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
   if (mode == 3 || mode == 1) // compute thermal spectra
     {
       int ret;
-      if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat 2> /dev/null");
-//       char *specString;
-//       specString = util->char_malloc(30);
-      FILE *d_file;
-      char* d_name = "particleInformation.dat";
-      d_file = fopen(d_name, "w");
-      fprintf(d_file,"");
-      fclose(d_file);
-      char *buf = new char[10];
-      FILE *s_file;
-      sprintf (buf, "%d", rank);
-      char *specString = new char[30];
-      strcat(specString, "yptphiSpectra");
-      strcat(specString, buf);
-      strcat(specString, ".dat");
-      char* s_name = specString;
-      s_file = fopen(s_name, "w");
-      fclose(s_file);
-      delete buf;
+      if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
       ReadFreezeOutSurface(DATA); // read freeze out surface (has to be done after the evolution of course)
-      // (particle number, maximum p_T, [baryon=1, anti-baryon=-1], # of pts for pt integration, # of pts for phi integration)
       if (particleSpectrumNumber==0) // do all particles
 	{
 	  fprintf(stderr,"Doing all particles on this processor. May take a while ... \n");
@@ -7669,31 +7647,9 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
 	      // (Don't want any processors to start writing the next particle to 
 	      // file until the concatonation is done)
 	      MPI_Barrier(MPI_COMM_WORLD);
-// 	      int check;
-// 	      check=rank;
-// 	      if (rank > 0)
-// 		MPI::COMM_WORLD.Send(&check,1,MPI::INT,0,1);
-// 		
-// 	      if (rank == 0)
-// 		{
-// 		  for (int from=1; from < size; from ++)
-// 		    MPI::COMM_WORLD.Recv(&check,1,MPI::INT,from,1);
-// 		  for (int to=1; to < size; to ++)
-// 		    MPI::COMM_WORLD.Send(&check,1,MPI::INT,to,1);
-// 		  ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat");
-// 		}
-// 	      if (rank > 0)
-// 		MPI::COMM_WORLD.Recv(check,1,MPI::INT,0,1);
 	      
 	      if(rank==0) ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
 	    }
-// 	  ReadSpectra(DATA);
-// 	  for ( i=1; i<particleMax; i++ )
-// 	    {
-// 	      number = particleList[i].number;
-// 	      b = particleList[i].baryon;
-// // 	      OutputFullParticleSpectrum2(DATA, number, 4, b, 1);
-// 	    }
 	}
       else
 	{
@@ -7729,16 +7685,6 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
   else if (mode==4 || mode==5) //  do resonance decays
     {
       ReadSpectra(DATA);
-      FILE *d_file;
-      char* d_name = "FparticleInformation.dat";
-      d_file = fopen(d_name, "w");
-      fprintf(d_file,"");
-      fclose(d_file);
-      FILE *s_file;
-      char* s_name = "FyptphiSpectra.dat";
-      s_file = fopen(s_name, "w");
-      fprintf(s_file,"");
-      fclose(s_file);
       int bound = 211; //number of lightest particle to calculate. 
       if (mode==4) // do resonance decays
 	{
@@ -7746,6 +7692,7 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
 	  fprintf(stderr,"doing all from %i: %s to %i: %s.\n",particleMax,particleList[particleMax].name,
 		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
 	  cal_reso_decays2(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
+      if (rank == 0) int ret = system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
 	  for ( i=1; i<particleMax; i++ )
 	    {
 	      number = particleList[i].number;
@@ -7866,8 +7813,8 @@ void Freeze::CooperFrye2(int particleSpectrumNumber, int mode, InitData *DATA, E
 	{
 	  i = chargedhd[k];
 	  number = particleList[i].number;
-// 	  OutputDifferentialFlowAtMidrapidity(DATA, number,1);
-// 	  OutputIntegratedFlowForCMS(DATA, number,1);
+ 	  OutputDifferentialFlowAtMidrapidity(DATA, number,1);
+ 	  OutputIntegratedFlowForCMS(DATA, number,1);
  	  N += OutputYieldForCMS(DATA, number,1);
 	}
       cout << "Nch = " << N << endl;
