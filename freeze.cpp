@@ -8051,7 +8051,10 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 	int npt = particleList[j].npt;
 	int neta = particleList[j].ny;
 	double m = particleList[j].mass;
-	double *dndpt = new double[npt](); // This initializes array to zero
+//	double *dndpt = new double[npt](); // This initializes array to zero
+//	double *dndpt;
+//       	dndpt = new double[npt]; // Not initialized
+	double dndpt[50];
 	double minpt=0.4; // in GeV
 	double etamax = particleList[j].ymax;
 
@@ -8061,7 +8064,7 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 
 	for(int ipt=0;ipt<=npt;ipt++) 
 	{
-		double pt = particleList[j].pt[ipt];
+		pt = particleList[j].pt[ipt];
 		dndpt[ipt] = 0.;
 		double norm = 0.;
 		
@@ -8114,6 +8117,8 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 	
 	gsl_spline_free (spline);
         gsl_interp_accel_free (acc);
+
+//	delete [] dndpt;
 	  
 	return N;
 
