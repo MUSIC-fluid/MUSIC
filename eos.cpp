@@ -176,6 +176,7 @@ void EOS::init_eos()
   fprintf(stderr,"done reading\n");
 
   //Allocate arrays for get_energy_from_temperature()
+  //Duplicate temperatures are skipped
   double last=0.0, tmp_T;
   temp_list_rho0_length=0;
   eps_list_rho0= new double [(NEPP1+1)+(NEPP2)];
@@ -199,13 +200,6 @@ void EOS::init_eos()
 	}
 	last=tmp_T;
   }
-  //for(i=1;i<(NEPP2+1);i++) {
-  //      eps_list_rho0[NEPP1+i]=EPP2+i*deltaEPP2;
-  //      temp_list_rho0[NEPP1+i]=temperature2[0][i];
-  //}
-  //for(i=0; i<(NEPP1+1)+(NEPP2);i++) cout << temp_list_rho0[i] << " ";
-  //for(i=0; i<(NEPP1+1)+(NEPP2)-1;i++) if (temp_list_rho0[i] >= temp_list_rho0[i+1]) cout << "WTH!!!!:" << i << " ";
-  //cout << "Trying to initialise GSL interpolation...\n";
   interp_T_from_eps = gsl_interp_alloc(gsl_interp_cspline, temp_list_rho0_length);
   gsl_interp_init(interp_T_from_eps, temp_list_rho0, eps_list_rho0, temp_list_rho0_length);
   accel_T_from_eps = gsl_interp_accel_alloc();
@@ -615,6 +609,40 @@ void EOS::init_eos2()
   fclose(eos_T5);
   fclose(eos_T6);
   fclose(eos_T7);
+
+  //Allocate and fill arrays for get_energy_from_temperature()
+  //First, create new arrays that will permit to extract what the information we need from each EOS table
+  //in a unified way
+  const int number_of_EOS_tables = 7;
+  double lowest_eps_list[number_of_EOS_tables] = {EPP1,EPP2,EPP3,EPP4,EPP5,EPP6,EPP7};
+  double delta_eps_list[number_of_EOS_tables] = {deltaEPP1,deltaEPP2,deltaEPP3,deltaEPP4,deltaEPP5,deltaEPP6,deltaEPP7};
+  int nb_elements_list[number_of_EOS_tables] = {NEPP1,NEPP2,NEPP3,NEPP4,NEPP5,NEPP6,NEPP7};
+  double ** temp_list[number_of_EOS_tables] = {temperature1,temperature2,temperature3,temperature4,temperature5,temperature6,temperature7};
+  //Compute the maximum number of temperature elements (the actual number of temperature elements we will use 
+  //will be smaller since we skip duplicate temperatures)
+  int temp_list_rho0_maximal_length=0;
+  for(int kk=0;kk<number_of_EOS_tables;kk++) temp_list_rho0_maximal_length+=nb_elements_list[kk];
+  double last=0.0, tmp_T;
+  temp_list_rho0_length=0;
+  //Allocate memory
+  eps_list_rho0= new double [temp_list_rho0_maximal_length];
+  temp_list_rho0= new double [temp_list_rho0_maximal_length];
+
+  for(int table_id=0; table_id<number_of_EOS_tables;table_id++) {
+	  for(i=0;i<nb_elements_list[table_id];i++) {
+		tmp_T=temp_list[table_id][0][i];
+		if (tmp_T > last) {
+			eps_list_rho0[temp_list_rho0_length]=(lowest_eps_list[table_id]+i*delta_eps_list[table_id])/hbarc;
+			temp_list_rho0[temp_list_rho0_length]=tmp_T/hbarc;
+			temp_list_rho0_length++;
+		}
+		last=tmp_T;
+	  }
+  }
+  //Initialise the gsl interpolator
+  interp_T_from_eps = gsl_interp_alloc(gsl_interp_cspline, temp_list_rho0_length);
+  gsl_interp_init(interp_T_from_eps, temp_list_rho0, eps_list_rho0, temp_list_rho0_length);
+  accel_T_from_eps = gsl_interp_accel_alloc();
 }
 
 void EOS::init_eos3(int selector)
@@ -624,10 +652,13 @@ void EOS::init_eos3(int selector)
   cout << "reading EOS..." << endl;
   whichEOS = 3; 
   int i, j;
-  char* envPath;
-  envPath = new char[strlen(getenv("HYDROPROGRAMPATH"))];
-  envPath = getenv("HYDROPROGRAMPATH");
-  envPath[strlen(getenv("HYDROPROGRAMPATH"))]='\0';
+  string envPath;
+  if (getenv("HYDROPROGRAMPATH") != 0) {
+    envPath=getenv("HYDROPROGRAMPATH");
+  }
+  else {
+	envPath="";
+  }
   
   stringstream spath;
   stringstream slocalpath;
@@ -687,7 +718,7 @@ void EOS::init_eos3(int selector)
   string localpath = slocalpath.str();
 
 
-  if (envPath != 0 && *envPath != '\0') // if path is set in the environment
+  if (envPath != "") // if path is set in the environment
     {
       streos_d1_name << path << "dens1.dat";
       eos_d1_name = streos_d1_name.str();
@@ -1028,6 +1059,40 @@ void EOS::init_eos3(int selector)
 
   cout << "Done reading EOS." << endl;
   
+  //This code is identical to the one in init_eos2()
+  //Allocate and fill arrays for get_energy_from_temperature()
+  //First, create new arrays that will permit to extract what the information we need from each EOS table
+  //in a unified way
+  const int number_of_EOS_tables = 7;
+  double lowest_eps_list[number_of_EOS_tables] = {EPP1,EPP2,EPP3,EPP4,EPP5,EPP6,EPP7};
+  double delta_eps_list[number_of_EOS_tables] = {deltaEPP1,deltaEPP2,deltaEPP3,deltaEPP4,deltaEPP5,deltaEPP6,deltaEPP7};
+  int nb_elements_list[number_of_EOS_tables] = {NEPP1,NEPP2,NEPP3,NEPP4,NEPP5,NEPP6,NEPP7};
+  double ** temp_list[number_of_EOS_tables] = {temperature1,temperature2,temperature3,temperature4,temperature5,temperature6,temperature7};
+  //Compute the maximum number of temperature elements (the actual number of temperature elements we will use 
+  //will be smaller since we skip duplicate temperatures)
+  int temp_list_rho0_maximal_length=0;
+  for(int kk=0;kk<number_of_EOS_tables;kk++) temp_list_rho0_maximal_length+=nb_elements_list[kk];
+  double last=0.0, tmp_T;
+  temp_list_rho0_length=0;
+  //Allocate memory
+  eps_list_rho0= new double [temp_list_rho0_maximal_length];
+  temp_list_rho0= new double [temp_list_rho0_maximal_length];
+
+  for(int table_id=0; table_id<number_of_EOS_tables;table_id++) {
+	  for(i=0;i<nb_elements_list[table_id];i++) {
+		tmp_T=temp_list[table_id][0][i];
+		if (tmp_T > last) {
+			eps_list_rho0[temp_list_rho0_length]=(lowest_eps_list[table_id]+i*delta_eps_list[table_id])/hbarc;
+			temp_list_rho0[temp_list_rho0_length]=tmp_T/hbarc;
+			temp_list_rho0_length++;
+		}
+		last=tmp_T;
+	  }
+  }
+  //Initialise the gsl interpolator
+  interp_T_from_eps = gsl_interp_alloc(gsl_interp_cspline, temp_list_rho0_length);
+  gsl_interp_init(interp_T_from_eps, temp_list_rho0, eps_list_rho0, temp_list_rho0_length);
+  accel_T_from_eps = gsl_interp_accel_alloc();
 }
 
 
@@ -1341,7 +1406,7 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	  fprintf(stderr,"e=%f,eps0=%f; maxe=%f, deltaEps=%f\n", e, eps0, NEps*deltaEps+eps0, deltaEps);
 	  exit(0);
 	}
-      if(ie2>NEps)
+      if(ie2>=NEps)
 	{
 	  fprintf(stderr,"ERROR in inperpolate2. out of range.\n");
 	  fprintf(stderr,"ie2=%d,NEPP2=%d\n", ie2, NEps);
@@ -1999,21 +2064,12 @@ double EOS::get_energy_from_temperature(double T, double rhob) {
 	if (whichEOS==0) {
 		eps=eps_from_T_ideal_gas(T);
 	}
-	else if (whichEOS==1) {
+	else if (whichEOS>=1) {
 		status=gsl_interp_eval_e(interp_T_from_eps, temp_list_rho0, eps_list_rho0, T, accel_T_from_eps, &eps);
 		if (status == GSL_EDOM) {
 			cerr << "Error: can't get energy from temperature, temperature T="<<T<<" fm^-1 is outside the current tabulation of the EOS...\n";
 			exit(1);
 		}
-	}
-	else if (whichEOS>=2) {
-		exit(1);
-		//Get the tables
-
-		//Get the minimum value
-
-		//Get the maximum value
-		//frac = interpolate2(eps, rhob, 3);
 	}
 
 	return eps;
