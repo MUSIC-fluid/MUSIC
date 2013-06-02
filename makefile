@@ -33,7 +33,7 @@ CFT= mpiCC
 FFLAGS= -O3 -Wno-write-strings
 O3FFLAGS=
 LDFLAGS=
-LIBS= -lm
+LIBS= -lm -lgsl -lblas
 COMMAND=  mpihydro
  
  
