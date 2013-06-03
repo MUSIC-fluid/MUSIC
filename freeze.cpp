@@ -165,8 +165,8 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
         ef=DATA->epsilonFreeze;
       }
       else {
-        cout << "determining epsFO from TFO=" << DATA->TFO << endl; 
-        ef= eos->findRoot(&EOS::Tsolve, 0., DATA->TFO/hbarc, 0.001, 300.,0.001)*hbarc;
+        cout << "determining epsFO from TFO=" << DATA->TFO << " GeV" << endl; 
+	ef=eos->get_energy_from_temperature(DATA->TFO/hbarc, 0.0)*hbarc;
         cout << "freeze out energy density (assuming rhob=0) is " << ef << endl;
       }
 
