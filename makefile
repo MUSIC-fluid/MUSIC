@@ -18,7 +18,7 @@
  
 SRCS= \
 main.cpp eos.cpp evolve.cpp grid.cpp  \
-init.cpp reconst.cpp freeze.cpp minmod.cpp\
+init.cpp reconst.cpp freeze.cpp freeze_pseudo.cpp minmod.cpp\
 random.cpp glauber.cpp util.cpp advance.cpp u_derivative.cpp dissipative.cpp
   
 OBJS= \
@@ -26,14 +26,14 @@ grid.o  eos.o    evolve.o     \
 init.o    reconst.o  freeze.o minmod.o  \
 glauber.o advance.o u_derivative.o \
 dissipative.o random.o\
-util.o main.o 
+util.o main.o freeze_pseudo.o
 
  
 CFT= mpiCC
-FFLAGS= -O3 -Wno-write-strings
+FFLAGS= -g -Wno-write-strings
 O3FFLAGS=
 LDFLAGS=
-LIBS= -lm
+LIBS= -lm -lgsl -lblas
 COMMAND=  mpihydro
  
  
@@ -81,6 +81,9 @@ glauber.o : glauber.cpp util.h glauber.h
 
 freeze.o : freeze.cpp data.h eos.h grid.h util.h freeze.h int.h
 	$(CFT) $(FFLAGS)  -c freeze.cpp -o freeze.o
+
+freeze_pseudo.o : freeze_pseudo.cpp data.h eos.h grid.h util.h freeze.h int.h
+	$(CFT) $(FFLAGS)  -c freeze_pseudo.cpp -o freeze_pseudo.o
 
 main.o : main.cpp data.h eos.h evolve.h grid.h init.h util.h 
 	$(CFT) $(FFLAGS)  -c main.cpp -o main.o
