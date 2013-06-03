@@ -651,7 +651,7 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
       char* out_name = "evolution_xyeta.dat";
       FILE *out_file_W;
 //      FILE *out_file_T;
-      char* out_name_W = "evolution_Wmunu_over_shear_xyeta.dat"; // added by Maxime
+      char* out_name_W = "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat"; // added by Maxime
 //      char* out_name_T = "evolution_Tmunu_xyeta.dat"; // added by Maxime
       if (0 == DATA->outputBinaryEvolution) {
         out_file = fopen(out_name, "a");
@@ -674,7 +674,7 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 //      double Ttt, Ttx, Tty, Ttz, Tzz, Txz, Tyz; // added by Maxime
       double Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta, Wyy, Wyeta, Wetaeta; // added by Maxime
 //      double Ttautau, Ttaux, Ttauy, Ttaueta, Txx, Txy, Txeta, Tyy, Tyeta, Tetaeta; // added by Maxime
-      double shear_visc;
+      double div_factor, pressure1;
 
       //No interpolation is necessary here!
       for(ieta=0; ieta<(DATA->neta)*size; ieta++){
@@ -684,6 +684,7 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 	    for(ix=0; ix<=DATA->nx; ix++) // All x
 	      {
 		epsilon1 = epsFrom[ix][iy][ieta];
+		pressure1 = pFrom[ix][iy][ieta];
 		rhob1 = rhobFrom[ix][iy][ieta];
 		utau1 = utauFrom[ix][iy][ieta];
 		ux1 = uxFrom[ix][iy][ieta];
@@ -701,17 +702,17 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 		entropy=eos->get_entropy(epsilon1, rhob1);
 //		if(T > 0.12)
 //		{
-                  shear_visc=DATA->shear_to_s*entropy;
-		  Wtautau = WtautauFrom[ix][iy][ieta]/(shear_visc); // I need <del_mu u_nu> not Wmunu so I divide by the viscosity -Maxime
-		  Wtaux = WtauxFrom[ix][iy][ieta]/(shear_visc);
-		  Wtauy = WtauyFrom[ix][iy][ieta]/(shear_visc);
-		  Wtaueta = WtauetaFrom[ix][iy][ieta]/(shear_visc);
-		  Wxx = WxxFrom[ix][iy][ieta]/(shear_visc);
-		  Wxy = WxyFrom[ix][iy][ieta]/(shear_visc);
-		  Wxeta = WxetaFrom[ix][iy][ieta]/(shear_visc);
-		  Wyy = WyyFrom[ix][iy][ieta]/(shear_visc);
-		  Wyeta = WyetaFrom[ix][iy][ieta]/(shear_visc);
-		  Wetaeta = WetaetaFrom[ix][iy][ieta]/(shear_visc);
+                  div_factor=(epsilon1+pressure1);
+		  Wtautau = WtautauFrom[ix][iy][ieta]/(div_factor); // I need <del_mu u_nu> not Wmunu so I divide by the viscosity -Maxime
+		  Wtaux = WtauxFrom[ix][iy][ieta]/(div_factor);
+		  Wtauy = WtauyFrom[ix][iy][ieta]/(div_factor);
+		  Wtaueta = WtauetaFrom[ix][iy][ieta]/(div_factor);
+		  Wxx = WxxFrom[ix][iy][ieta]/(div_factor);
+		  Wxy = WxyFrom[ix][iy][ieta]/(div_factor);
+		  Wxeta = WxetaFrom[ix][iy][ieta]/(div_factor);
+		  Wyy = WyyFrom[ix][iy][ieta]/(div_factor);
+		  Wyeta = WyetaFrom[ix][iy][ieta]/(div_factor);
+		  Wetaeta = WetaetaFrom[ix][iy][ieta]/(div_factor);
 
 		  Wtt = pow(cosh(eta),2)*Wtautau + pow(tau*sinh(eta),2)*Wetaeta*pow(tau,-2) + 2*tau*cosh(eta)*sinh(eta)*Wtaueta*pow(tau,-1);
 		  Wtx = cosh(eta)*Wtaux + tau*sinh(eta)*Wxeta*pow(tau,-1);

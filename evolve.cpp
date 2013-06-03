@@ -69,7 +69,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
  FILE *out_file_xyeta;
  FILE *out_file_W_xyeta;
  char* out_name_xyeta = "evolution_xyeta.dat";
- char* out_name_W_xyeta = "evolution_Wmunu_over_shear_xyeta.dat";
+ char* out_name_W_xyeta = "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
  if (0 == DATA->outputBinaryEvolution) {
    out_file_xyeta = fopen(out_name_xyeta, "w");
    out_file_W_xyeta = fopen(out_name_W_xyeta,"w");
@@ -4532,7 +4532,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
     {
       epsFO=DATA->epsilonFreeze/hbarc;
     }
-  else if(DATA->turn_on_rhob = 0)
+  else if(0 == DATA->turn_on_rhob)
     {
       rhob = 0.;
 //       cout << "[evolve.cpp:FindFreezeoutSurface3]: Using T_freeze works for rhob=0 only" << endl;
@@ -4755,7 +4755,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 	      if (arena[ix][iy][ieta].epsilon >= epsFO) frozen[0] = 0;
 	      
 	        rhob = arena[ix][iy][ieta].rhob;
-	        if (!DATA->useEpsFO && (DATA->turn_on_rhob = 1))
+	        if (!DATA->useEpsFO && (1 == DATA->turn_on_rhob))
 		{
 		  epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA->TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
 		}

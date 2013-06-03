@@ -6665,12 +6665,12 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EO
 	  check[0]=rank;
 	  
 	  if (rank > 0)
-	    MPI::COMM_WORLD.Send(check,1,MPI::DOUBLE,0,1);
+	    MPI::COMM_WORLD.Send(check,1,MPI::INT,0,1);
 	    
 	  if (rank == 0)
 	    {
 	      for (int from=1; from < size; from ++)
-		MPI::COMM_WORLD.Recv(check,1,MPI::DOUBLE,from,1);
+		MPI::COMM_WORLD.Recv(check,1,MPI::INT,from,1);
 
 	      remove("yptphiSpectra.dat");
 	      
