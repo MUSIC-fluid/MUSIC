@@ -534,7 +534,7 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA)
       // freeze-out baryon chemical potential
       bytes_read=fscanf(s_file, "%lf", &surface[i].mu_B);
       // freeze-out entropy density s
-      bytes_read=fscanf(s_file, "%lf", &surface[i].sFO);
+      bytes_read=fscanf(s_file, "%lf", &surface[i].eps_plus_p_over_T_FO);
       // freeze-out Wmunu
       bytes_read=fscanf(s_file, "%lf", &surface[i].W[0][0]);
       bytes_read=fscanf(s_file, "%lf", &surface[i].W[0][1]);
@@ -952,7 +952,7 @@ double Freeze::summation(double px, double py, double y, double m, int deg, int 
 	    *pow(hbarc,4.); // W is like energy density
 	  
 	  
-	  delta_f = f*(1.-sign*f)/(2.*surface[i].sFO*pow(hbarc,3.)*pow(T,3.))*Wfactor;
+	  delta_f = f*(1.-sign*f)/(2.*surface[i].eps_plus_p_over_T_FO*pow(hbarc,3.)*pow(T,3.))*Wfactor;
 	
 	  if (DATA->include_deltaf==2) // if delta f is supposed to be proportional to p^(2-alpha):
 	    {
