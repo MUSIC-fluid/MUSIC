@@ -688,7 +688,7 @@ void Freeze::ReadSpectra(InitData* DATA)
 	  particleList[ip].slope = 1;
 	  particleList[ip].ymax = etamax;
 	  deltaeta = 0.;
-	  if(pseudo_steps>=1) deltaeta = 2*etamax/pseudo_steps;
+	  if(pseudo_steps>1) deltaeta = 2*etamax/pseudo_steps;
 	  particleList[ip].deltaY = deltaeta;
 // 	  cout << "ptmin = " << ptmin << endl;
 	  for ( i=0; i<=iptmax; i++ )
@@ -868,7 +868,7 @@ void Freeze::ReadFSpectra(InitData* DATA)
 	  particleList[ip].slope = 1;
 	  particleList[ip].ymax = etamax;
 	  deltaeta = 0.;
-	  if(pseudo_steps>=1) deltaeta = 2*etamax/pseudo_steps;
+	  if(pseudo_steps>1) deltaeta = 2*etamax/pseudo_steps;
 	  particleList[ip].deltaY = deltaeta;
 	  for ( i=0; i<=iptmax; i++ )
 	    {
@@ -1908,7 +1908,7 @@ void Freeze::ComputeParticleSpectrum2(InitData *DATA, int number, int anti, int 
   double etamax = DATA->max_pseudorapidity;
   int ietamax = DATA->pseudo_steps + 1;// pseudo_steps is number of steps.  Including edges, number of points is steps + 1
   double deltaeta = 0;
-  if(ietamax>=1) deltaeta = 2*etamax/DATA->pseudo_steps;
+  if(ietamax>1) deltaeta = 2*etamax/DATA->pseudo_steps;
   double ptmax = DATA->max_pt;
   double ptmin = DATA->min_pt;
   int iptmax = DATA->pt_steps; // Number of points is iptmax  - 1 (ipt goes from 0 to iptmax)
