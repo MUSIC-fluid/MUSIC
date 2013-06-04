@@ -672,7 +672,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 {
   ReadParticleData(DATA, eos); // read in data for Cooper-Frye
   int i, b, number;
-  if (mode == 3 || mode == 1) // compute thermal spectra
+  if (mode == 3) // compute thermal spectra
     {
       int ret;
       if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
@@ -727,12 +727,10 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	    }
 	}
     }
-  else if (mode==4 || mode==5) //  do resonance decays
+  else if (mode==4) //  do resonance decays
     {
       ReadSpectra_pseudo(DATA, 0);
       int bound = 211; //number of lightest particle to calculate. 
-      if (mode==4) // do resonance decays
-	{
 	  cout << "particleaMax = " << particleMax << endl;
 	  fprintf(stderr,"doing all from %i: %s to %i: %s.\n",particleMax,particleList[particleMax].name,
 		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
@@ -750,53 +748,6 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 // 	      ReadFullSpectra(DATA);
 // 	      ComputeChargedHadrons(DATA,4.);
 	    }
-	}
-      else if (mode==5) // only for testing - this will miss the complete chain of decays
-	{
-	  cal_reso_decays_pseudo(particleSpectrumNumber+1,decayMax,bound,mode, DATA->pseudofreeze);
-          number = particleList[particleSpectrumNumber].number;
-	  b = particleList[particleSpectrumNumber].baryon;
-	  OutputFullParticleSpectrum(DATA, number, 4., b, 1);
-	}
-    }
-  else if (mode==6) //  do additional manipulation
-    {
-      ReadFullSpectra(DATA);
-      ComputeChargedHadrons(DATA,4.);
-      number = particleList[particleSpectrumNumber].number;
-      b = particleList[particleSpectrumNumber].baryon;
-      OutputFullParticleSpectrum(DATA, number, 4., b, 1);
-      for ( i=1; i<particleMax; i++ )
-	{
-	  number = particleList[i].number;
-	  ComputeAveragePT(number,4.);
-	}
-      //  util->vector_free(phiArray);
-      //ComputeChargedHadrons(DATA,4.);
-    }
-  else if (mode==7) //  do additional manipulation
-    {
-      Read3Spectra(DATA);
-      Compute3ChargedHadrons(DATA, 4.);
-      util->vector_free(phiArray);
-      //ComputeChargedHadrons(DATA,4.);
-    }
-  else if (mode==8) //  compute correlations
-    {
-      ReadFullSpectra(DATA);
-      ReadFullSpectra2(DATA);
-      ComputeCorrelations(DATA, 4.);
-    }
-  else if (mode==9) // output full spectra
-    {
-      ReadFullSpectra(DATA);
-      for ( i=1; i<particleMax; i++ )
-	{
-	  number = particleList[i].number;
-	  b = particleList[i].baryon;
-	  OutputFullParticleSpectrum(DATA, number, 4., b, 1);
-	}
-      ComputeChargedHadrons(DATA,4.);
     }
   else if (mode==13) // take tabulated spectra and compute various observables and integrated quantities
     {
@@ -865,6 +816,10 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       cout << "Nch = " << N << endl;
       outfile << N << endl;
       outfile.close();
+    }
+    else {
+      cerr << "Mode " << mode << " is not available in the pseudo-rapidity Cooper-Frye and decay mode\n";
+      exit(1);
     }
 }
 
