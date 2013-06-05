@@ -14,8 +14,10 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
   // open particle information file:
   FILE *p_file;
   char* p_name = "particleInformation.dat";
-  if(full) strcpy(p_name, "FparticleInformation.dat");
-  p_file = fopen(p_name, "r");
+  char* pf_name = "FparticleInformation.dat";
+//   if(full) strcpy(p_name, "FparticleInformation.dat");
+  if(full) p_file = fopen(pf_name, "r");
+  else p_file = fopen(p_name, "r");
   checkForReadError(p_file,p_name);
   int count;
   count = 0;
@@ -58,8 +60,9 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
 
   FILE *s_file;
   char* s_name = "yptphiSpectra.dat";
-  if(full) strcpy(s_name, "FyptphiSpectra.dat");
-  s_file = fopen(s_name, "r");
+  char* sf_name = "FyptphiSpectra.dat";
+  if(full) s_file = fopen(sf_name, "r");
+  else s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
   
   cout << "ietamax=" << pseudo_steps+1 << endl;
@@ -520,8 +523,7 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 
 void Freeze::cal_reso_decays_pseudo(int maxpart, int maxdecay, int bound, int mode, int pseudofreeze)
 {
-  // mode=4: do all
-  // mode=5: do one --- probably not working at present
+
   int i, j, k, l, ll;
   int pn, pnR, pnaR;
   int part,n1,n2,n3,ny,npt,nphi;
@@ -751,52 +753,6 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 // 	      ComputeChargedHadrons(DATA,4.);
 	    }
 	}
-      else if (mode==5) // only for testing - this will miss the complete chain of decays
-	{
-	  cal_reso_decays_pseudo(particleSpectrumNumber+1,decayMax,bound,mode, DATA->pseudofreeze);
-          number = particleList[particleSpectrumNumber].number;
-	  b = particleList[particleSpectrumNumber].baryon;
-	  OutputFullParticleSpectrum(DATA, number, 4., b, 1);
-	}
-    }
-  else if (mode==6) //  do additional manipulation
-    {
-      ReadFullSpectra(DATA);
-      ComputeChargedHadrons(DATA,4.);
-      number = particleList[particleSpectrumNumber].number;
-      b = particleList[particleSpectrumNumber].baryon;
-      OutputFullParticleSpectrum(DATA, number, 4., b, 1);
-      for ( i=1; i<particleMax; i++ )
-	{
-	  number = particleList[i].number;
-	  ComputeAveragePT(number,4.);
-	}
-      //  util->vector_free(phiArray);
-      //ComputeChargedHadrons(DATA,4.);
-    }
-  else if (mode==7) //  do additional manipulation
-    {
-      Read3Spectra(DATA);
-      Compute3ChargedHadrons(DATA, 4.);
-      util->vector_free(phiArray);
-      //ComputeChargedHadrons(DATA,4.);
-    }
-  else if (mode==8) //  compute correlations
-    {
-      ReadFullSpectra(DATA);
-      ReadFullSpectra2(DATA);
-      ComputeCorrelations(DATA, 4.);
-    }
-  else if (mode==9) // output full spectra
-    {
-      ReadFullSpectra(DATA);
-      for ( i=1; i<particleMax; i++ )
-	{
-	  number = particleList[i].number;
-	  b = particleList[i].baryon;
-	  OutputFullParticleSpectrum(DATA, number, 4., b, 1);
-	}
-      ComputeChargedHadrons(DATA,4.);
     }
   else if (mode==13) // take tabulated spectra and compute various observables and integrated quantities
     {
@@ -824,7 +780,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	  i = chargedhd[k];
 	  number = particleList[i].number;
 	  OutputDifferentialFlowAtMidrapidity(DATA, number,0);
-	  OutputIntegratedFlowForCMS(DATA, number,0);
+// 	  OutputIntegratedFlowForCMS(DATA, number,0);
 	  
 	  double N = OutputYieldForCMS(DATA, number,0);
 	  
@@ -859,12 +815,17 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	  i = chargedhd[k];
 	  number = particleList[i].number;
  	  OutputDifferentialFlowAtMidrapidity(DATA, number,1);
- 	  OutputIntegratedFlowForCMS(DATA, number,1);
+//  	  OutputIntegratedFlowForCMS(DATA, number,1);
  	  N += OutputYieldForCMS(DATA, number,1);
 	}
       cout << "Nch = " << N << endl;
       outfile << N << endl;
       outfile.close();
+    }
+    else 
+    {
+      cerr << "Mode " << mode << " not supported for pseudofreeze = 1.  Exiting.\n";
+      exit(1);
     }
 }
 
