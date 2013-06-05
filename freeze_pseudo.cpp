@@ -674,7 +674,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 {
   ReadParticleData(DATA, eos); // read in data for Cooper-Frye
   int i, b, number;
-  if (mode == 3 || mode == 1) // compute thermal spectra
+  if (mode == 3) // compute thermal spectra
     {
       int ret;
       if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
@@ -729,12 +729,10 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	    }
 	}
     }
-  else if (mode==4 || mode==5) //  do resonance decays
+  else if (mode==4) //  do resonance decays
     {
       ReadSpectra_pseudo(DATA, 0);
       int bound = 211; //number of lightest particle to calculate. 
-      if (mode==4) // do resonance decays
-	{
 	  cout << "particleaMax = " << particleMax << endl;
 	  fprintf(stderr,"doing all from %i: %s to %i: %s.\n",particleMax,particleList[particleMax].name,
 		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
@@ -752,7 +750,6 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 // 	      ReadFullSpectra(DATA);
 // 	      ComputeChargedHadrons(DATA,4.);
 	    }
-	}
     }
   else if (mode==13) // take tabulated spectra and compute various observables and integrated quantities
     {
