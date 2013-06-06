@@ -43,7 +43,8 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
       for (int ipt=0; ipt<=iptmax; ipt++ )
 	{
 // 	      particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
-	  particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax,2); // power law
+// 	  particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax,2); // power law
+	  particleList[ip].pt[ipt] = gala15x[ipt]/12; // gauss laguerre abissas
 	}
       for (int ieta=0; ieta<=pseudo_steps; ieta++ )
 	{
@@ -201,7 +202,8 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
 // 	  pt = ipt*deltapt;
 // 	  pt = ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1);
 // 	      pt =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
-	      pt =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax,2); // power law
+// 	      pt =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax,2); // power law
+	      pt = gala15x[ipt]/12.; // gauss laguerre absissas
 	  particleList[j].pt[ipt] = pt;
 	  
 	  
@@ -539,9 +541,9 @@ void Freeze::cal_reso_decays_pseudo(int maxpart, int maxdecay, int bound, int mo
   for(i=maxpart-1;i > pn-1;i--)  //Cycle the particles known from the particle.dat input
     {
 
-      for (n1 = 0; n1 < ny; n1++)
+      for (n1 = 0; n1 <= ny; n1++)
 	{
-	  for (n2 = 0; n2 < npt; n2++)
+	  for (n2 = 0; n2 <= npt; n2++)
 	    {
 	      for (n3 = 0; n3 < nphi; n3++)
 		{
@@ -755,7 +757,6 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
     {
       ReadSpectra_pseudo(DATA, 0);
 //       for ( i=1; i<particleMax; i++ )
-      
 
       //Set output file name for total multiplicity
       string fname;
@@ -915,8 +916,9 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 // 		cout << "pt = " << pt << endl;
 		
 		//jacobian to switch from dN/dY to dN/deta
-		double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
-
+// 		double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+		double jac = 1.;
+		
 		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) intvn[i][k]=0;
 
 // 		cout << "ipt = " << ipt << endl;
@@ -924,6 +926,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 		for(int iphi=0;iphi<nphi;iphi++) {
 // 			int ieta = particleList[j].ny/2;
 		        double dN = jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
+			if (iphi==0) cout << "pt, dndydpt = " << pt << ", " << 2*PI*dN << endl;
 			fac = 1.;
 			double phi = iphi*2*PI/nphi;
 			for(int i = 0;i<8;i++)
@@ -935,7 +938,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 
 
 		//Output result
-		outfilevn << pt << "\t" << intvn[0][0]/2/PI;
+		outfilevn << pt << "\t" << intvn[0][0]*2*PI/nphi;
 		for(int i = 1;i<8;i++) for(int k =0;k<2;k++) outfilevn << "\t" << intvn[i][k]/intvn[0][0];
 		outfilevn << endl;
 	}
@@ -1077,6 +1080,7 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 			double dndpteta = 0;
 			double eta = particleList[j].y[ieta];
 			double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+// 			cout << "jac = " << jac << endl;
 			//Integrate over phi using trapezoid rule
 			for(int iphi=0;iphi<nphi;iphi++) 
 			{
@@ -1088,10 +1092,12 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 			if(ieta==0 || ieta==neta) fac = 0.5;
 			else fac = 1.0;
 			dndpt[ipt]+= fac*dndpteta;
+// 			cout << "dndpt = " << dndpt[ipt] << endl;
 
 			
 		}// eta loop
-		dndpt[ipt]*=2*PI/nphi*2*etamax/neta;
+		if(0!=neta) dndpt[ipt]*=2*PI/nphi*2*etamax/neta;
+		else dndpt[ipt]*=2*PI/nphi*2;
 // 		cout << particleList[j].pt[ipt] << ", " << dndpt[ipt] << endl;	
 	}// pt loop
 	
@@ -1111,6 +1117,7 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 // 	
 // 	cout << "minpt = " << minpt << endl;
 // 	cout << "maxpt = " << particleList[j].pt[npt] << endl;
+// 	cout << gsl_spline_eval(spline, 0.250464, acc) << endl;
 	double N = 
 	  gsl_spline_eval_integ(spline, minpt, particleList[j].pt[npt],acc);
 // 	  gsl_spline_eval_integ(spline, 1.0, 2.0, acc);

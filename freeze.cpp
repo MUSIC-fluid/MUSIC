@@ -429,43 +429,43 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA)
   char* s_name = "./surface.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
-  // open geometry data file:
-  FILE *g_file;
-  char* g_name = "./geometry.dat"; 
-  g_file = fopen(g_name, "r");
-  double tecc2, tecc3, tecc3r3, tPsi2, tPsi3, tPsi3r3;
-  
-  if(!(g_file))
-     {
-       cout << "file " << g_name << " not found." << endl;
-       tecc2 = 1.; 
-       tecc3 = 1.; 
-       tecc3r3 = 1.; 
-       tPsi2 = 0.;
-       tPsi3 = 0.; 
-       tPsi3r3 = 0.; 
-     }
-   else
-     {
-       bytes_read=fscanf(g_file, "%lf", &tecc2);
-       bytes_read=fscanf(g_file, "%lf", &tPsi2);
-       bytes_read=fscanf(g_file, "%lf", &tecc3);
-       bytes_read=fscanf(g_file, "%lf", &tPsi3);
-       //bytes_read=fscanf(g_file, "%lf", &tecc3r3);
-       //bytes_read=fscanf(g_file, "%lf", &tPsi3r3);
-       fclose(g_file);
-   }
-  
-   DATA->ecc2 = tecc2;
-   DATA->ecc3 = tecc3;
-   DATA->ecc3r3 = tecc3r3;
-   DATA->Psi2 = tPsi2;
-   //DATA->Psi3 = tPsi3;
-   //DATA->Psi3r3 = tPsi3r3;
-   
-   cout << "e2=" << DATA->ecc2 << ", Psi2=" << DATA->Psi2 << ", e3=" << DATA->ecc3 << ", Psi3=" << DATA->Psi3 << endl;
-   //	<< ", e3r3=" << DATA->ecc3 << ", Psi3r3=" << DATA->Psi3r3 << endl;
-   
+//   // open geometry data file:
+//   FILE *g_file;
+//   char* g_name = "./geometry.dat"; 
+//   g_file = fopen(g_name, "r");
+//   double tecc2, tecc3, tecc3r3, tPsi2, tPsi3, tPsi3r3;
+//   
+//   if(!(g_file))
+//      {
+//        cout << "file " << g_name << " not found." << endl;
+//        tecc2 = 1.; 
+//        tecc3 = 1.; 
+//        tecc3r3 = 1.; 
+//        tPsi2 = 0.;
+//        tPsi3 = 0.; 
+//        tPsi3r3 = 0.; 
+//      }
+//    else
+//      {
+//        bytes_read=fscanf(g_file, "%lf", &tecc2);
+//        bytes_read=fscanf(g_file, "%lf", &tPsi2);
+//        bytes_read=fscanf(g_file, "%lf", &tecc3);
+//        bytes_read=fscanf(g_file, "%lf", &tPsi3);
+//        //bytes_read=fscanf(g_file, "%lf", &tecc3r3);
+//        //bytes_read=fscanf(g_file, "%lf", &tPsi3r3);
+//        fclose(g_file);
+//    }
+//   
+//    DATA->ecc2 = tecc2;
+//    DATA->ecc3 = tecc3;
+//    DATA->ecc3r3 = tecc3r3;
+//    DATA->Psi2 = tPsi2;
+//    //DATA->Psi3 = tPsi3;
+//    //DATA->Psi3r3 = tPsi3r3;
+//    
+//    cout << "e2=" << DATA->ecc2 << ", Psi2=" << DATA->Psi2 << ", e3=" << DATA->ecc3 << ", Psi3=" << DATA->Psi3 << endl;
+//    //	<< ", e3r3=" << DATA->ecc3 << ", Psi3r3=" << DATA->Psi3r3 << endl;
+//    
   NCells=0;
   /*   int bytes_read; */
   //  fprintf(s_file,"%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf \n",
@@ -1039,7 +1039,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   char *numberStringv2eta;
   char *numberStringv4;
   char *numberStringv4eta;
-  char buf[5];
+  char buf[10];
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
   double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
   double ymaxIntegral;
@@ -1677,7 +1677,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
 
   FILE *s_file;
   FILE *d_file;
-  char buf[5];
+  char buf[10];
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
   double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
   int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
@@ -3273,7 +3273,7 @@ void Freeze::ComputeChargedHadrons(InitData* DATA, double ptmax)
   char *numberStringv5pt;
   char *numberStringv6pt;
 
-  char buf[5];
+  char buf[10];
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
   double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
   int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
@@ -4569,7 +4569,7 @@ void Freeze::ComputeChargedHadrons(InitData* DATA, double ptmax)
 void Freeze::ComputeCorrelations(InitData* DATA, double ptmax)
 {
   char *numberString;
-  char buf[5];
+  char buf[10];
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
   double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
   int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
@@ -5118,7 +5118,7 @@ void Freeze::Compute3ChargedHadrons(InitData* DATA,double ptmax)
   char *numberStringv4eta;
   char *numberStringv4tot;
   char *numberStringeta;
-  char buf[5];
+  char buf[10];
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
   double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
   int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
@@ -6621,7 +6621,7 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EO
       d_file = fopen(d_name, "w");
       fprintf(d_file,"");
       fclose(d_file);
-      char buf[5];
+      char buf[10];
       FILE *s_file;
       sprintf (buf, "%d", rank);
       strcat(specString, "yptphiSpectra");
