@@ -173,6 +173,14 @@ class Freeze{
   void ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti, int size, int rank);
   void OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int anti, int full);
   void CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
+  double	Edndp3_pseudo(double yr, double ptr, double phirin, int res_num);
+  double dnpir2N_pseudo (double phi, void *para1);    
+  double dnpir1N_pseudo (double costh, void* para1);
+  double dn2ptN_pseudo (double w2, void* para1);
+  double dn3ptN_pseudo (double x, void* para1);
+  double Edndp3_2bodyN_pseudo (double y, double pt, double phi, double m1, double m2, double mr, int res_num);
+  double Edndp3_3bodyN_pseudo (double y, double pt, double phi, double m1, double m2,
+			double m3, double mr, double norm3, int res_num);
   void add_reso_pseudo (int pn, int pnR, int k, int j, int pseudofreeze);
   void cal_reso_decays_pseudo (int maxpart, int maxdecay, int bound, int mode, int pseudofreeze);
   double Rap(double eta, double pt, double m);

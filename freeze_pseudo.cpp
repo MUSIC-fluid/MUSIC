@@ -280,6 +280,440 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
   fclose(s_file);
 }
 
+  
+
+// --------------------- resonance decays. adapted from azhydro ------------------------------------------------
+
+
+/*************************************************
+*
+*	Edndp3
+*
+* 
+**************************************************/
+// This function interpolates the needed spectra for a given y, pt and phi.
+// Uses bilinear interpolation
+
+double Freeze::Edndp3_pseudo(double yr, double ptr, double phirin, int res_num)
+/* 				/\* supersedes during test the right one *\/ */
+/* 	double	yr;		/\* y  of resonance *\/ */
+// if pseudofreeze flag is set, yr is the *pseudorapidity* of the resonance
+
+/* 	double	ptr;		/\* pt of resonance *\/ */
+/* 	double	phirin;		/\* phi angle  of resonance *\/ */
+/* 	int	res_num;	/\* Montecarlo number of resonance 	*\/ */
+{
+  double	phir, val, val1, val2;
+  double        f1, f2, f1s, f2s;
+  int     	pn, ny, npt, nphi;
+  
+  if(phirin < 0.0){
+    printf("ERROR: phir %15.8le < 0 !!! \n", phirin);exit(0);}
+  if(phirin > 2.0*PI){
+    printf("ERROR: phir %15.8le > 2PI !!! \n", phirin);exit(0);}
+  phir= phirin;
+//  if(phirin < 0.5*PI) phir = phirin;
+//  else{
+//    if(phirin < PI) phir = PI - phirin;
+//    else{
+//      if(phirin < 1.5*PI) phir = phirin - PI;
+//      else phir = 2.0*PI - phirin;
+//    }
+//  }
+  
+  pn = partid[MHALF + res_num];
+
+  double yrtemp = yr;
+  // if pseudofreeze flag is set, set yr to the *pseudorapidity* of the resonance
+  yr = PseudoRap(yrtemp, ptr, particleList[pn].mass);
+  
+  if (yr < -particleList[pn].ymax || yr > particleList[pn].ymax)
+    {
+      //      fprintf(stderr,"yr=%f out of range ymax=%f\n", yr,particleList[pn].ymax);
+
+      return 0.;
+    }
+
+  nphi = 1; 
+  while((phir > phiArray[nphi])&&(nphi<(particleList[pn].nphi-1))) nphi++; 
+  npt = 1; 
+  while((ptr > particleList[pn].pt[npt]) && npt<(particleList[pn].npt - 1)) npt++; 
+  ny = 1; 
+  while((yr > particleList[pn].y[ny]) && ny<(particleList[pn].ny - 1)) ny++; 
+
+  /* phi interpolation */
+  f1 = util->lin_int(phiArray[nphi-1], phiArray[nphi], 
+	       particleList[pn].dNdydptdphi[ny-1][npt-1][nphi-1], 
+	       particleList[pn].dNdydptdphi[ny-1][npt-1][nphi], phir);
+  f2 = util->lin_int(phiArray[nphi-1], phiArray[nphi], 
+	       particleList[pn].dNdydptdphi[ny-1][npt][nphi-1], 
+	       particleList[pn].dNdydptdphi[ny-1][npt][nphi], phir);
+
+  if (f1<0.) f1=0.; // security: if for some reason we got a negative number of particles (happened in the viscous code at large eta sometimes)
+  if (f2<0.) f2=0.;
+
+  f1s=f1;
+  f2s=f2;
+
+  if(ptr > PTCHANGE && f1!=0 && f2!=0){
+    f1 = log(f1); 
+    f2 = log(f2);
+  }
+  val1 = util->lin_int(particleList[pn].pt[npt-1],particleList[pn].pt[npt], 
+		f1, f2, ptr);
+
+  if(ptr > PTCHANGE && f1!=0 && f2!=0)
+    val1 = exp(val1);
+  
+  
+
+  if (isnan(val1))
+    {
+      fprintf(stderr,"\n number=%d\n\n",res_num);
+      //      fprintf(stderr,"val=%f\n",val);
+      fprintf(stderr,"val1=%f\n",val1);
+      fprintf(stderr,"val2=%f\n",val2);
+      fprintf(stderr,"f1=%f\n",f1);
+      fprintf(stderr,"f2=%f\n",f2);
+      fprintf(stderr,"f1s=%f\n",f1s);
+      fprintf(stderr,"f2s=%f\n",f2s);
+      
+      fprintf(stderr,"pn=%d\n",pn);
+      fprintf(stderr,"ny=%d\n",ny);
+      fprintf(stderr,"npt=%d\n",npt);
+      fprintf(stderr,"nphi=%d\n",nphi);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi]);
+      fprintf(stderr,"phi1=%f\n",phiArray[nphi-1]);
+      fprintf(stderr,"phi2=%f\n",phiArray[nphi]);
+      fprintf(stderr,"pt1=%f\n",particleList[pn].pt[npt-1]);
+      fprintf(stderr,"pt2=%f\n",particleList[pn].pt[npt]);
+      fprintf(stderr,"y1=%f\n",particleList[pn].y[ny-1]);
+      fprintf(stderr,"y2=%f\n",particleList[pn].y[ny]);
+  }
+
+  f1 = util->lin_int(phiArray[nphi-1], phiArray[nphi], 
+	       particleList[pn].dNdydptdphi[ny][npt-1][nphi-1], 
+	       particleList[pn].dNdydptdphi[ny][npt-1][nphi], phir);
+  f2 = util->lin_int(phiArray[nphi-1], phiArray[nphi], 
+	       particleList[pn].dNdydptdphi[ny][npt][nphi-1], 
+	       particleList[pn].dNdydptdphi[ny][npt][nphi], phir);
+  
+  if (f1<0.) f1=0.; // security: if for some reason we got a negative number of particles (happened in the viscous code at large eta sometimes)
+  if (f2<0.) f2=0.;
+
+  if(ptr > PTCHANGE && f1!=0 && f2!=0){
+    f1 = log(f1); 
+    f2 = log(f2);
+  }
+  val2 = util->lin_int(particleList[pn].pt[npt-1],particleList[pn].pt[npt], 
+		f1, f2, ptr);
+  if(ptr > PTCHANGE && f1!=0 && f2!=0)
+    val2 = exp(val2);
+  
+  val = util->lin_int(particleList[pn].y[ny-1],particleList[pn].y[ny],val1,val2,yr);
+
+  /*
+    printf(" nphi  %i npt %i \n", nphi,npt);
+    printf(" f1  %15.8le %15.8le  \n", f1, f2);
+    printf(" phi  %15.8lf %15.8lf  \n", phiArray[nphi-1], phiArray[nphi]); 
+    printf(" pt   %15.8lf %15.8lf  \n", particleList[pn].pt[npt-1],particleList[pn].pt[npt]);
+    printf(" phi  %15.8lf pt %15.8lf    val %15.8lf \n", phir, ptr,val); 
+    printf(" phi %15.8le %15.8le \n",particleList[pn].dNdydptdphi[npt][nphi-1],
+    particleList[pn].dNdydptdphi[npt][nphi]);
+    printf(" pt  %15.8le %15.8le \n",particleList[pn].dNdydptdphi[npt-1][nphi-1],
+    particleList[pn].dNdydptdphi[npt-1][nphi]);
+    
+    exit(0);
+  */
+  if (isnan(val))
+    {
+      fprintf(stderr,"val=%f\n",val);
+      fprintf(stderr,"val1=%f\n",val1);
+      fprintf(stderr,"val2=%f\n",val2);
+      fprintf(stderr,"f1=%f\n",f1);
+      fprintf(stderr,"f2=%f\n",f2);
+      fprintf(stderr,"f1s=%f\n",f1s);
+      fprintf(stderr,"f2s=%f\n",f2s);
+      fprintf(stderr,"ny=%d\n",ny);
+      fprintf(stderr,"npt=%d\n",npt);
+      fprintf(stderr,"nphi=%d\n",nphi);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi-1]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi]);
+      fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi]);
+      fprintf(stderr,"phi1=%f\n",phiArray[nphi-1]);
+      fprintf(stderr,"phi2=%f\n",phiArray[nphi]);
+      fprintf(stderr,"pt1=%f\n",particleList[pn].pt[npt-1]);
+      fprintf(stderr,"pt2=%f\n",particleList[pn].pt[npt]);
+      fprintf(stderr,"y1=%f\n",particleList[pn].y[ny-1]);
+      fprintf(stderr,"y2=%f\n",particleList[pn].y[ny]);
+      fprintf(stderr,"yR=%f\n",yr);
+    }
+  
+/*   if (val2>10*val1) */
+/*     { */
+/*       fprintf(stderr,"y1=%f\n",particleList[pn].y[ny-1]); */
+/*       fprintf(stderr,"y2=%f\n",particleList[pn].y[ny]); */
+/*       fprintf(stderr,"yR=%f\n",yr); */
+/*       fprintf(stderr,"val1=%f\n",val1); */
+/*       fprintf(stderr,"val2=%f\n",val2); */
+/*       fprintf(stderr,"val=%f\n",val); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi]); */
+/*     } */
+
+//  fprintf(stderr,"yr=%f, ptr=%f, phir=%f, val=%e\n",yr,ptr,phirin,val);
+ /*  if(ptr<0.5 && fabs(yr)<0.5) */
+/*     { */
+/*       fprintf(stderr,"\n number=%d\n\n",res_num); */
+/*       fprintf(stderr,"val=%f\n",val); */
+/*       fprintf(stderr,"val1=%f\n",val1); */
+/*       fprintf(stderr,"val2=%f\n",val2); */
+/*       fprintf(stderr,"f1=%f\n",f1); */
+/*       fprintf(stderr,"f2=%f\n",f2); */
+/*       fprintf(stderr,"f1s=%f\n",f1s); */
+/*       fprintf(stderr,"f2s=%f\n",f2s); */
+      
+/*       fprintf(stderr,"pn=%d\n",pn); */
+/*       fprintf(stderr,"ny=%d\n",ny); */
+/*       fprintf(stderr,"npt=%d\n",npt); */
+/*       fprintf(stderr,"nphi=%d\n",nphi); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt-1][nphi]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi-1]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny-1][npt][nphi]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt-1][nphi]); */
+/*       fprintf(stderr,"dN..=%e\n",particleList[pn].dNdydptdphi[ny][npt][nphi]); */
+/*       fprintf(stderr,"phi1=%f\n",phiArray[nphi-1]); */
+/*       fprintf(stderr,"phi2=%f\n",phiArray[nphi]); */
+/*       fprintf(stderr,"pt1=%f\n",particleList[pn].pt[npt-1]); */
+/*       fprintf(stderr,"pt2=%f\n",particleList[pn].pt[npt]); */
+/*       fprintf(stderr,"yr=%f\n",yr); */
+/*       fprintf(stderr,"y1=%f\n",particleList[pn].y[ny-1]); */
+/*       fprintf(stderr,"y2=%f\n",particleList[pn].y[ny]); */
+/*     }  */
+  return val;
+}
+
+
+double Freeze::dnpir2N_pseudo (double phi, void *para1)    
+{
+  pblockN *para = (pblockN *) para1;
+  double D;
+  double eR, plR, ptR, yR, phiR, sume, jac;
+  double cphiR, sphiR;
+  double dnr;			/* dn/mtdmt of resonance */
+  
+  sume = para->e + para->e0;
+
+  D = para->e * para->e0 + para->pl * para->p0 * para->costh +
+    para->pt * para->p0 * para->sinth * cos (phi) + para->m1 * para->m1;
+
+  eR = para->mr * (sume * sume / D - 1.0);
+  jac = para->mr + eR;
+  plR = para->mr * sume * (para->pl - para->p0 * para->costh) / D;
+  ptR = (eR * eR - plR * plR - para->mr * para->mr);
+
+  if (ptR < 0.0)
+    ptR = 0.0;
+
+  else
+    ptR = sqrt (ptR);
+
+  yR = 0.5 * log ((eR + plR) / (eR - plR));
+  cphiR = -jac * (para->p0 * para->sinth * cos (phi + para->phi)
+		  - para->pt * cos (para->phi)) / (sume * ptR);
+  sphiR = -jac * (para->p0 * para->sinth * sin (phi + para->phi)
+		  - para->pt * sin (para->phi)) / (sume * ptR);
+
+  if ((fabs (cphiR) > 1.000) || (fabs (sphiR) > 1.000))
+    {
+      if ((fabs (cphiR) > 1.01) || (fabs (sphiR) > 1.01))
+	{
+	  //  printf ("  |phir| = %15.8lf  > 1 ! \n", phiR);
+	  printf (" phi %15.8le D %15.8le \n", phi, D);
+	  printf (" eR %15.8le plR %15.8le \n", eR, plR);
+	  printf (" ptR %15.8le jac %15.8le \n", ptR, jac);
+	  printf (" sume %15.8le costh %15.8le \n", sume, para->costh);
+
+	  printf (" pt %15.8le \n", para->pt);
+	  printf (" mt  %15.8le \n", para->mt);
+	  printf (" y %15.8le \n", para->y);
+	  printf (" e %15.8le \n", para->e);
+	  printf (" e0 %15.8le \n", para->e0);
+	  printf (" p0 %15.8le \n", para->p0);
+	  printf (" pl %15.8le \n", para->pl);
+	  printf (" phi %15.8le \n", para->phi);
+
+	  printf (" m1 %15.8le \n", para->m1);
+	  printf (" m2 %15.8le \n", para->m2);
+	  printf (" m3 %15.8le \n", para->m3);
+	  printf (" mr %15.8le \n", para->mr);
+	  if (cphiR > 1.0)
+	    cphiR = 1.0;
+	  if (cphiR < -1.0)
+	    cphiR = -1.0;
+	  //exit (0);
+	}
+      else
+	{
+	  if (cphiR > 1.0)
+	    cphiR = 1.0;
+	  if (cphiR < -1.0)
+	    cphiR = -1.0;
+	}
+    }
+
+  phiR = acos (cphiR);
+  if (sphiR < 0.0)
+    phiR = 2.0 * PI - phiR;
+
+  dnr = Edndp3_pseudo (yR, ptR, phiR, para->res_num);
+
+  /*printf(" phir = %15.8lf  ! ", phiR);
+     printf(" ptR %15.8le jac %15.8le ", ptR, jac );
+     printf(" dnr %15.8le \n", dnr); */
+
+  return dnr * jac * jac / (2.0 * sume * sume);
+}
+
+double Freeze::dnpir1N_pseudo (double costh, void* para1)	       
+{
+  pblockN *para = (pblockN *) para1;
+  double r;
+  para->costh = costh;
+  para->sinth = sqrt (1.0 - para->costh * para->costh);
+  r = gauss (PTN2, &Freeze::dnpir2N_pseudo, 0.0, 2.0 * PI, para); //Integrates the "dnpir2N" kernel over phi using gaussian integration
+  return r;
+}
+
+double Freeze::dn2ptN_pseudo (double w2, void* para1)
+{
+  pblockN *para = (pblockN *) para1;
+  para->e0 = (para->mr * para->mr + para->m1 * para->m1 - w2) / (2 * para->mr); //particle one energy in resonance rest frame
+  para->p0 = sqrt (para->e0 * para->e0 - para->m1 * para->m1); // particle one absolute value of three momentum on resonance rest frame
+  return gauss (PTN1, &Freeze::dnpir1N_pseudo, -1.0, 1.0, para); //Integrate the "dnpir1N" kernel over cos(theta) using gaussian integration
+}
+
+double Freeze::dn3ptN_pseudo (double x, void* para1)  //The integration kernel for "W" in 3-body decays. x=invariant mass of other particles squared
+{
+  pblockN *para = (pblockN *) para1;
+  double e0 =(para->mr * para->mr + para->m1 * para->m1 - x) / (2 * para->mr);
+  double p0 = sqrt (e0 * e0 - para->m1 * para->m1);
+  double a = (para->m2 + para->m3) * (para->m2 + para->m3);
+  double b = (para->m2 - para->m3) * (para->m2 - para->m3);
+  double re = p0 * sqrt ((x - a) * (x - b)) / x * dn2ptN_pseudo (x, para);
+  return re;
+}
+
+
+
+/********************************************************************
+*
+*	Edndp3_2bodyN()
+*
+* transverse momentum spectrum in GeV^-2 from pions out of resonances
+*********************************************************************/
+double Freeze::Edndp3_2bodyN_pseudo (double y, double pt, double phi, double m1, double m2, double mr, int res_num)
+/* 		/\* in units of GeV^-2,includes phasespace and volume, */
+/* 		   does not include degeneracy factors  *\/ */
+/*      double y;			/\* rapidity of particle 1       *\/ */
+/*      double pt;			/\* transverse momentum of particle 1    *\/ */
+/*      double phi;		/\* phi angle of particle 1      *\/ */
+/*      double m1, m2;		/\* restmasses of decay particles in MeV *\/ */
+/*      double mr;			/\* restmass of resonance MeV            *\/ */
+/*      int res_num;		/* Montecarlo number of the Resonance   */ 
+
+{
+  double mt = sqrt (pt * pt + m1 * m1);
+  double norm2;			/* 2-body normalization         */
+  pblockN para;
+  double res2;
+
+  para.pt = pt;
+  para.mt = mt;
+  para.e = mt * cosh (y);
+  para.pl = mt * sinh (y);
+  para.y = y;
+  para.phi = phi;
+  para.m1 = m1;
+  para.m2 = m2;
+  para.mr = mr;
+
+  para.res_num = res_num;
+
+  norm2 = 1.0 / (2.0 * PI);
+  res2 = norm2 * dn2ptN_pseudo (m2 * m2, &para); //Calls the integration routines for 2-body
+  if (res2<0.) res2=0.;
+  return res2;			/* like Ed3ndp3_2body() */
+}
+
+
+/********************************************************************
+*
+*	Edndp3_3bodyN()
+*
+* transverse momentum spectrum in GeV^-2 from pions out of resonances
+*********************************************************************/
+double Freeze::Edndp3_3bodyN_pseudo (double y, double pt, double phi, double m1, double m2,
+		      double m3, double mr, double norm3, int res_num)
+		/* in units of GeV^-2,includes phasespace and volume,
+		   does not include degeneracy factors  */
+{
+  double mt = sqrt (pt * pt + m1 * m1);
+  pblockN para;
+  double wmin, wmax;
+  double res3;
+  double slope;			/* slope of resonance for high mt */
+  int pn;
+
+  para.pt = pt;
+  para.mt = mt;
+  para.y = y;
+  para.e = mt * cosh (y);
+  para.pl = mt * sinh (y);
+  para.phi = phi;
+
+  para.m1 = m1;
+  para.m2 = m2;
+  para.m3 = m3;
+  para.mr = mr;
+
+  pn = partid[MHALF + res_num];
+
+  para.res_num = res_num;
+
+  wmin = (m2 + m3) * (m2 + m3); 
+  wmax = (mr - m1) * (mr - m1);
+  res3 = 2.0 * norm3 * gauss (PTS4, &Freeze::dn3ptN_pseudo, wmin, wmax, &para) / mr;  //Integrates "W" using gaussian 
+  if (res3<0.) res3=0.; 
+  return res3;
+}
+
+
+/**************************************************************************
+*									  *
+*	add_reso							  *
+*									  *
+* computes the pt, mt distribution including resonance decays		  *
+***************************************************************************/
+
+
 void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 {
   nblock paranorm;		/* for 3body normalization integral */
@@ -331,11 +765,11 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 	    eta = particleList[pn].y[n];// for pseudofreeze, this variable stores pseudorapidity
 	    for (l = 0; l <= npt; l++)
 	      {
-// 		if(pseudofreeze)  eta = Rap(y,particleList[pn].pt[l],m1);
+		y = Rap(eta,particleList[pn].pt[l],m1);
 		for (i = 0; i < nphi; i++)
 		  {
 		    double phi = i*deltaphi;
-		    double spectrum = Edndp3_2bodyN (eta, particleList[pn].pt[l], phi, m1, m2, mr, particleList[pnR].number);
+		    double spectrum = Edndp3_2bodyN (y, particleList[pn].pt[l], phi, m1, m2, mr, particleList[pnR].number);
 		    if (isnan(spectrum)
 			)
 		      //	||Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number)<0
@@ -406,10 +840,11 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 	    for (l = 0; l <= npt; l++)
 	      {
 // 		if(pseudofreeze)  y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
+		y = Rap(eta,particleList[pn].pt[l],m1);
 		for (i = 0; i < nphi; i++)
 		  {
 		    double phi = i*deltaphi;
-		    double spectrum = Edndp3_3bodyN(eta, particleList[pn].pt[l], phi,
+		    double spectrum = Edndp3_3bodyN(y, particleList[pn].pt[l], phi,
 					    m1, m2, m3, mr, norm3, particleList[pnR].number);
 		    if (isnan(spectrum))
 		      {
@@ -495,6 +930,7 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 		for (l = 0; l <= npt; l++)
 		  {
 // 		    if(pseudofreeze)  y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
+		    y = Rap(eta,particleList[pn].pt[l],m1);
 		    double spectrum = Edndp3_3bodyN(y, particleList[pn].pt[l], phi,
 					    m1, m2, m3, mr, norm3, particleList[pnR].number);
 		     if (isnan(spectrum))
@@ -777,12 +1213,15 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	{
 	  i = chargedhd[k];
 	  number = particleList[i].number;
-	  OutputDifferentialFlowAtMidrapidity(DATA, number,0);
-// 	  OutputIntegratedFlowForCMS(DATA, number,0);
-	  
-	  double N = OutputYieldForCMS(DATA, number,0);
-	  
-	  outfile << number << "\t" << N << endl;
+	  if(particleMax>=i)
+	  {
+	    OutputDifferentialFlowAtMidrapidity(DATA, number,0);
+    // 	  OutputIntegratedFlowForCMS(DATA, number,0);
+	    
+	    double N = OutputYieldForCMS(DATA, number,0);
+	    
+	    outfile << number << "\t" << N << endl;
+	  }
 	}
 
 	outfile.close();
@@ -812,9 +1251,12 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	{
 	  i = chargedhd[k];
 	  number = particleList[i].number;
- 	  OutputDifferentialFlowAtMidrapidity(DATA, number,1);
-//  	  OutputIntegratedFlowForCMS(DATA, number,1);
- 	  N += OutputYieldForCMS(DATA, number,1);
+	  if(particleMax>=i)
+	  {
+	    OutputDifferentialFlowAtMidrapidity(DATA, number,1);
+  //  	  OutputIntegratedFlowForCMS(DATA, number,1);
+	    N += OutputYieldForCMS(DATA, number,1);
+	  }
 	}
       cout << "Nch = " << N << endl;
       outfile << N << endl;
