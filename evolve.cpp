@@ -202,6 +202,7 @@ void Evolve::storePreviousEpsilon2(double tau, InitData *DATA, Grid ***arena)
 	      arena[ix][iy][ieta].u_prev[1]=arena[ix][iy][ieta].u[0][1];
 	      arena[ix][iy][ieta].u_prev[2]=arena[ix][iy][ieta].u[0][2];
 	      arena[ix][iy][ieta].u_prev[3]=arena[ix][iy][ieta].u[0][3];
+	      arena[ix][iy][ieta].rhob_prev=arena[ix][iy][ieta].rhob;
 	    }
 	}
     }
@@ -4499,10 +4500,10 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
     freeze_file.open(freeze_name.c_str() , ios::out | ios::app );
 //   }
   
-  int frozen[1];
-  frozen[0] = 1;
-  int allfrozen[1];
-  allfrozen[0] = 1;
+  int frozen;
+  frozen = 1;
+  int allfrozen;
+  allfrozen = 1;
   
   int ix, iy, ieta, nx, ny, neta;
   double x, y, eta;
@@ -4514,31 +4515,19 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   double FULLSU[4];
   int fac;
   double DX, DY, DETA, DTAU, SIG;
-  double epshome, epsneighbor, iepsFO;
+  double iepsFO;
+  double home, neighbor, FO;
   int nix, niy, nieta;
   double Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta, Wyy, Wyeta, Wetaeta;
   double rhob, utau, ux, uy, ueta, TFO, muB, sFO;
   int shown;
   
-  fac=1;
+  fac=1; // Non-unity value does not currently work
   facTau = DATA->facTau;
   DX=fac*DATA->delta_x;
   DY=fac*DATA->delta_y;
   DETA=fac*DATA->delta_eta;
   DTAU=facTau*DATA->delta_tau;
-
-  double epsFO;
-  if (DATA->useEpsFO)
-    {
-      epsFO=DATA->epsilonFreeze/hbarc;
-    }
-  else if(0 == DATA->turn_on_rhob)
-    {
-      rhob = 0.;
-//       cout << "[evolve.cpp:FindFreezeoutSurface3]: Using T_freeze works for rhob=0 only" << endl;
-      epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA->TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
-      cout << "T_freeze=" << DATA->TFO << ", epsFO=" << epsFO*hbarc << endl;
-    }
   
   
   double maxDETA = DATA->max_delta_eta;// maximum size of cuboid in eta direction.  If DETA > maxDETA, split the surface into several identical sections spread across eta.
@@ -4742,6 +4731,9 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   
 //   int maxEta;
   maxEta = neta-fac;
+  
+  if (DATA->useEpsFO) FO = DATA->epsilonFreeze/hbarc;
+  else FO = DATA->TFO/hbarc;
 
   for(ix=0; ix<=nx; ix+=fac)
     {
@@ -4752,13 +4744,13 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 	  for(ieta=0; ieta<=maxEta; ieta+=fac)
 	    {
 	      eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
-	      if (arena[ix][iy][ieta].epsilon >= epsFO) frozen[0] = 0;
 	      
-	        rhob = arena[ix][iy][ieta].rhob;
-	        if (!DATA->useEpsFO && (1 == DATA->turn_on_rhob))
-		{
-		  epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA->TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
-		}
+	      if (DATA->useEpsFO && (arena[ix][iy][ieta].epsilon >= FO)) frozen = 0;
+	      else if (!DATA->useEpsFO && (eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob) >= FO)) frozen = 0;
+	      
+// 	        rhob = arena[ix][iy][ieta].rhob;
+// 	        if (!DATA->useEpsFO && (1 == DATA->turn_on_rhob)) 
+// 		  cerr << "Caution! Constant temperature freezeout with nonzero chemical potential doesn't yet work properly (need to implement rhob_prev)\n";
 
 	      if(ix<nx)
 	      {
@@ -4776,11 +4768,21 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 	      FULLSU[2]=0.;
 	      FULLSU[3]=0.;
 	      
-	      epshome = arena[ix][iy][ieta].epsilon;
-	      epsneighbor = arena[nix][niy][nieta].epsilon;
-	      if(((epshome > epsFO) && (epsneighbor <= epsFO)) || ((epshome <= epsFO) && (epsneighbor > epsFO)))
+	      if (DATA->useEpsFO)
+	      {
+		  home = arena[ix][iy][ieta].epsilon;
+		  neighbor = arena[nix][niy][nieta].epsilon;
+	      }
+	      else
+	      {
+// 		  home = arena[ix][iy][ieta].T;
+// 		  neighbor = arena[nix][niy][nieta].T;
+		  home = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob);
+		  neighbor = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[nix][niy][nieta].rhob);
+	      }
+	      if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 		{
-		  if (epshome<=epsFO)
+		  if (home<=FO)
 		    SIG=-1.;
 		  else SIG=1.;
 		  for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
@@ -4789,7 +4791,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		  uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u[0][2]);
 		  ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u[0][3]);
 		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
-		  iepsFO = 0.5*(epshome + epsneighbor);
+		  iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[nix][niy][nieta].epsilon);
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
@@ -4849,11 +4851,21 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 	      FULLSU[2]=DTAU*DX*DETA/subsections;
 	      FULLSU[3]=0.;
 		
-	      epshome = arena[ix][iy][ieta].epsilon;
-	      epsneighbor = arena[nix][niy][nieta].epsilon;
-	      if(((epshome > epsFO) && (epsneighbor <= epsFO)) || ((epshome <= epsFO) && (epsneighbor > epsFO)))
+	      if (DATA->useEpsFO)
+	      {
+		  home = arena[ix][iy][ieta].epsilon;
+		  neighbor = arena[nix][niy][nieta].epsilon;
+	      }
+	      else
+	      {
+// 		  home = arena[ix][iy][ieta].T;
+// 		  neighbor = arena[nix][niy][nieta].T;
+		  home = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob);
+		  neighbor = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[nix][niy][nieta].rhob);
+	      }
+	      if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 		{
-		  if (epshome<=epsFO)
+		  if (home<=FO)
 		    SIG=-1.;
 		  else SIG=1.;
 		  for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
@@ -4862,7 +4874,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		  uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u[0][2]);
 		  ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u[0][3]);
 		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
-		  iepsFO = 0.5*(epshome + epsneighbor);
+		  iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[nix][niy][nieta].epsilon);
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
@@ -4922,15 +4934,21 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 	      FULLSU[2]=0.;
 	      FULLSU[3]=DTAU*DX*DY;
 	      
-	      epshome = arena[ix][iy][ieta].epsilon;
-	      epsneighbor = arena[nix][niy][nieta].epsilon;
-// 	       if (ieta>=neta-fac)
-// 		 {
-// 		  epsneighbor = Rneighbor_eps[ix][iy];
-// 		 }
-	      if(((epshome > epsFO) && (epsneighbor <= epsFO)) || ((epshome <= epsFO) && (epsneighbor > epsFO)))
+	      if (DATA->useEpsFO)
+	      {
+		  home = arena[ix][iy][ieta].epsilon;
+		  neighbor = arena[nix][niy][nieta].epsilon;
+	      }
+	      else
+	      {
+// 		  home = arena[ix][iy][ieta].T;
+// 		  neighbor = arena[nix][niy][nieta].T;
+		  home = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob);
+		  neighbor = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[nix][niy][nieta].rhob);
+	      }
+	      if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 		{
-		  if (epshome<=epsFO)
+		  if (home<=FO)
 		    SIG=-1.;
 		  else SIG=1.;
 		  for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
@@ -4939,7 +4957,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		  uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u[0][2]);
 		  ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u[0][3]);
 		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
-		  iepsFO = 0.5*(epshome + epsneighbor);
+		  iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[nix][niy][nieta].epsilon);
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
@@ -4986,11 +5004,23 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 	      FULLSU[2]=0.;
 	      FULLSU[3]=0.;
 		
-	      epsneighbor = epshome;
-	      epshome = arena[ix][iy][ieta].epsilon_prev;
-	      if(((epshome > epsFO) && (epsneighbor <= epsFO)) || ((epshome <= epsFO) && (epsneighbor > epsFO)))
+	      neighbor = home;
+	      if (DATA->useEpsFO)
+	      {
+		  home = arena[ix][iy][ieta].epsilon_prev;
+	      }
+	      else
+	      {
+// 		  home = arena[ix][iy][ieta].T;
+// 		  home = eos->get_temperature(arena[ix][iy][ieta].epsilon_prev,arena[ix][iy][ieta].rhob);
+		  
+		// Need temperature at previous time step. Use value of rhob at previous time step,
+		// or else use T_prev if that is available
+		  home = eos->get_temperature(arena[ix][iy][ieta].epsilon_prev,arena[ix][iy][ieta].rhob_prev);
+	      }
+	      if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 		{
-		  if (epshome<=epsFO)
+		  if (home<=FO)
 		    SIG=-1.;
 		  else SIG=1.;
 		  for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
@@ -4999,9 +5029,10 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		  uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u_prev[2]);
 		  ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u_prev[3]);
 		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
-		  iepsFO = 0.5*(epshome + epsneighbor);
+		  iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[ix][iy][ieta].epsilon_prev);
 		  //I don't seem to have accesss to value of rhob from previous timestep.  Use value at current timestep.
-		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
+// 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
+		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob_prev);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
 		  sFO=eos->get_entropy(iepsFO, rhob);
@@ -5052,7 +5083,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 // 		  shown=1;
 // 		}
 		
-	    }
+	    }// eta loop
 
 	    
 	    
@@ -5080,15 +5111,25 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 	      FULLSU[2]=0.;
 	      FULLSU[3]=DTAU*DX*DY;
 	      
-	      epshome = arena[ix][iy][nieta].epsilon;
-	      epsneighbor = Rneighbor_eps[nix][niy];
+	      if (DATA->useEpsFO)
+	      {
+		  home = arena[ix][iy][nieta].epsilon;
+		  neighbor = Rneighbor_eps[nix][niy];
+	      }
+	      else
+	      {
+// 		  home = arena[ix][iy][ieta].T;
+// 		  neighbor = arena[nix][niy][nieta].T;
+		  home = eos->get_temperature(arena[ix][iy][nieta].epsilon,arena[ix][iy][nieta].rhob);
+		  neighbor = eos->get_temperature(Rneighbor_eps[nix][niy],Rneighbor_rhob[nix][niy]);
+	      }
 // 	       if (ieta>=neta-fac)
 // 		 {
 // 		  epsneighbor = Rneighbor_eps[ix][iy];
 // 		 }
-	      if(((epshome > epsFO) && (epsneighbor <= epsFO)) || ((epshome <= epsFO) && (epsneighbor > epsFO)))
+	      if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 		{
-		  if (epshome<=epsFO)
+		  if (home<=FO)
 		    SIG=-1.;
 		  else SIG=1.;
 		  for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
@@ -5097,7 +5138,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 		  uy = 0.5*(Rneighbor_uy[ix][iy] + arena[nix][niy][nieta].u[0][2]);
 		  ueta = 0.5*(Rneighbor_ueta[ix][iy] + arena[nix][niy][nieta].u[0][3]);
 		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
-		  iepsFO = 0.5*(epshome + epsneighbor);
+		  iepsFO = 0.5*(arena[ix][iy][nieta].epsilon + Rneighbor_eps[nix][niy]);
 		  rhob = 0.5*(Rneighbor_rhob[ix][iy] + arena[nix][niy][nieta].rhob);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
@@ -5127,9 +5168,9 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 			 << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;
 		}// if grid pair straddles freeze out density
 
-	  }
-	}
-    }
+	  }// if (rank != size-1)
+	}// y loop
+    }// x loop
 //   delete []package;
   s_file.close();
   freeze_file.close();
@@ -5137,21 +5178,21 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   // check if all cells are frozen out 
   if (rank!=0) //send to rank 0
     {
-      MPI::COMM_WORLD.Send(frozen,1,MPI::INT,0,1);
+      MPI::COMM_WORLD.Send(&frozen,1,MPI::INT,0,1);
     }
   if (rank==0) // receive from all ranks >0
     {		  
-      allfrozen[0] = frozen[0];
+      allfrozen = frozen;
       for (from = 1; from<size; from ++)
 	{
-	  MPI::COMM_WORLD.Recv(frozen,1,MPI::INT,from,1);
-	  allfrozen[0]=(allfrozen[0] && frozen[0]);
+	  MPI::COMM_WORLD.Recv(&frozen,1,MPI::INT,from,1);
+	  allfrozen=(allfrozen && frozen);
 	}
       for (from = 1; from<size; from ++)
 	{
-	  MPI::COMM_WORLD.Send(allfrozen,1,MPI::INT,from,2);
+	  MPI::COMM_WORLD.Send(&allfrozen,1,MPI::INT,from,2);
 	}
-      if(allfrozen[0])
+      if(allfrozen)
 // 	{
 // 		cout << "All cells frozen out. Exiting." << endl;
 // 		exit(rank);
@@ -5272,8 +5313,8 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
       }
   if (rank!=0)
     {
-      MPI::COMM_WORLD.Recv(allfrozen,1,MPI::INT,0,2);
-      if (allfrozen[0])
+      MPI::COMM_WORLD.Recv(&allfrozen,1,MPI::INT,0,2);
+      if (allfrozen)
 	{
 // 	  cout << "All cells frozen out. Exiting." << endl;
 	  MPI::Finalize();

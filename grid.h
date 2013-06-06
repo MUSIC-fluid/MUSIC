@@ -83,6 +83,7 @@ class Grid{
   ~Grid(){};//destructor
 
   double epsilon_prev; //added (previous 10 epsilons)
+  double rhob_prev;
   double u_prev[4]; //added (previous 10 epsilons)
 
   void ComputeV2(InitData *DATA, Grid ***arena, double tau); //added
