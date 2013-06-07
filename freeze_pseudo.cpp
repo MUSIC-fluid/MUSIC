@@ -292,13 +292,11 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
 * 
 **************************************************/
 // This function interpolates the needed spectra for a given y, pt and phi.
-// Uses bilinear interpolation
+// Uses trilinear interpolation
 
 double Freeze::Edndp3_pseudo(double yr, double ptr, double phirin, int res_num)
 /* 				/\* supersedes during test the right one *\/ */
 /* 	double	yr;		/\* y  of resonance *\/ */
-// if pseudofreeze flag is set, yr is the *pseudorapidity* of the resonance
-
 /* 	double	ptr;		/\* pt of resonance *\/ */
 /* 	double	phirin;		/\* phi angle  of resonance *\/ */
 /* 	int	res_num;	/\* Montecarlo number of resonance 	*\/ */
@@ -324,7 +322,9 @@ double Freeze::Edndp3_pseudo(double yr, double ptr, double phirin, int res_num)
   pn = partid[MHALF + res_num];
 
   double yrtemp = yr;
-  // if pseudofreeze flag is set, set yr to the *pseudorapidity* of the resonance
+  // If pseudofreeze flag is set,  dNdydptdphi is on a fixed grid in pseudorapidity. 
+  // Set yr to the *pseudorapidity* of the resonance, and then interpolate the yield
+  // at that value.
   yr = PseudoRap(yrtemp, ptr, particleList[pn].mass);
   
   if (yr < -particleList[pn].ymax || yr > particleList[pn].ymax)
@@ -622,7 +622,6 @@ double Freeze::dn3ptN_pseudo (double x, void* para1)  //The integration kernel f
 }
 
 
-
 /********************************************************************
 *
 *	Edndp3_2bodyN()
@@ -756,9 +755,9 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 	    m1 -= 0.5 * particleList[pn].width;
 	    m2 -= 0.5 * particleList[pn2].width;
 	  }
-	fprintf(stderr,"mr=%f\n",mr);
-	fprintf(stderr,"m1=%f\n",m1);
-	fprintf(stderr,"m2=%f\n",m2);
+// 	fprintf(stderr,"mr=%f\n",mr);
+// 	fprintf(stderr,"m1=%f\n",m1);
+// 	fprintf(stderr,"m2=%f\n",m2);
 		
 	for (n = 0; n <= neta; n++)
 	  {
@@ -788,10 +787,10 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 
 			  particleList[pn].resCont[n][l][i]+= decay[j].branch *
 			  spectrum; 
-			  fprintf(stderr," %d %f %e %e %e %e\n", n, eta, particleList[pn].pt[l], decay[j].branch *
-				  spectrum,
-				  particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
-				  spectrum,particleList[pn].resCont[n][l][i]); 
+// 			  fprintf(stderr," %d %f %e %e %e %e\n", n, eta, particleList[pn].pt[l], decay[j].branch *
+// 				  spectrum,
+// 				  particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
+// 				  spectrum,particleList[pn].resCont[n][l][i]); 
 			}
 		      }
 		  }
@@ -1124,8 +1123,60 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	    {
 	      number = particleList[i].number;
 	      b = particleList[i].baryon;
+	      int computespectrum = 1;
+	      
+	      // Only calculate particles with unique mass (and/or baryon number)
+	      for(int part = 1; part < i; part++)
+	      {
+		if(
+		  (particleList[i].mass == particleList[part].mass) &&
+		  (DATA->turn_on_rhob == 0 || particleList[i].baryon==particleList[part].baryon)
+		)
+		{
+		  computespectrum = 0;
+		  fprintf(stderr,"Copying %d: %s (%d) from %s\n", i, particleList[i].name, particleList[i].number, particleList[part].name);
+		  if(rank==0)
+		  {
+		    int iphimax = DATA->phi_steps;
+		    int iptmax = DATA->pt_steps;
+		    int ietamax = DATA->pseudo_steps + 1;
+		    double ptmax = DATA->max_pt;
+		    double ptmin = DATA->min_pt;
+		    double etamax = DATA->max_pseudorapidity;
+		    // open files to write
+		    FILE *d_file;
+		    char* d_name = "particleInformation.dat";
+		    d_file = fopen(d_name, "a");
+		    FILE *s_file;
+		    char* s_name = "yptphiSpectra.dat";
+		    s_file = fopen(s_name, "a");
+		    particleList[i].ymax = particleList[part].ymax; 
+		    particleList[i].deltaY = particleList[part].deltaY;
+		    particleList[i].ny = particleList[part].ny;
+		    particleList[i].npt = particleList[part].npt;
+		    particleList[i].nphi = particleList[part].nphi;
+		    fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  etamax, DATA->pseudo_steps, ptmin, ptmax, iptmax, iphimax);
+		    for (int ieta=0; ieta<ietamax; ieta++)
+		    for (int ipt=0; ipt<=iptmax; ipt++)
+		      {
+			particleList[i].pt[ipt] = particleList[part].pt[ipt];
+			particleList[i].y[ieta] = particleList[part].y[ieta];  
+			for (int iphi=0; iphi<iphimax; iphi++)
+			  {
+			    particleList[i].dNdydptdphi[ieta][ipt][iphi] = particleList[part].dNdydptdphi[ieta][ipt][iphi];
+			    fprintf(s_file,"%e ", particleList[i].dNdydptdphi[ieta][ipt][iphi]);
+			  }
+			fprintf(s_file,"\n");
+		      }
+		    fclose(s_file);
+		    fclose(d_file);
+		  }// if rank==0
+		  part=particleMax; // break out of particle loop
+		}// if particles have same mass
+	      }// loop over particles that have already been calculated
+	      
 // 	      	  cout << "number2 = " << number << endl;
-	      ComputeParticleSpectrum_pseudo(DATA, number, b, size, rank);
+	      if(computespectrum) ComputeParticleSpectrum_pseudo(DATA, number, b, size, rank);
 // 	      	  cout << "number3 = " << number << endl;
   
 	      // Wait until all processors are finished and concatonate results
@@ -1133,7 +1184,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	      // file until the concatonation is done)
 	      MPI_Barrier(MPI_COMM_WORLD);
 	      
-	      if(rank==0) ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+	      if(rank==0 && computespectrum) ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
 	    }
 	}
       else
