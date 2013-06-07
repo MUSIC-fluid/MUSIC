@@ -6270,33 +6270,29 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 	      {
 		for (i = 0; i < nphi; i++)
 		  {
-		    if (isnan(Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number))
+		    double spectrum = Edndp3_2bodyN_pseudo (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number);
+		    if (isnan(spectrum)
 			)
 		      //	||Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number)<0
 		      {
 			fprintf(stderr,"2 pt=%f\n",particleList[pn].pt[l]);
 			fprintf(stderr,"2 number=%d\n",particleList[pnR].number);
-			fprintf(stderr,"2 Edn..=%f\n", Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
-								      m1, m2, mr, particleList[pnR].number));
+			fprintf(stderr,"2 Edn..=%f\n", spectrum);
 		      }
 		    else
 		      // Call the 2-body decay integral and add its contribution to the daughter particle of interest
 		      {   
 			particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
-			  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
-					 m1, m2, mr, particleList[pnR].number); 
+			  spectrum; 
 			if(n==ny/2 && i==0) {
 			  // fprintf(stderr,"m1=%f, m2=%f, mr=%f, pnR=%d\n",m1,m2,mr,pnR);
 
 			  particleList[pn].resCont[n][l][i]+= decay[j].branch *
-			  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
-					 m1, m2, mr, particleList[pnR].number); 
+			  spectrum; 
 			  fprintf(stderr," %d %f %e %e %e %e\n", n, y, particleList[pn].pt[l], decay[j].branch *
-				  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[0], m1, m2, mr, 
-						 particleList[pnR].number),
+				  spectrum,
 				  particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
-				  Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[0], m1, m2, mr, 
-						 particleList[pnR].number),particleList[pn].resCont[n][l][i]); 
+				  spectrum,particleList[pn].resCont[n][l][i]); 
 			}
 		      }
 		  }
