@@ -286,7 +286,7 @@ int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
 // 	 /* this was the previous previous value */
 //        arena[ix][iy][ieta].pprev_pi_b[0] = arena[ix][iy][ieta].prev_pi_b[0];
 	 /* this was the previous value */
-       arena[ix][iy][ieta].prev_pi_b[0] = arena[ix][iy][ieta].pi_b[0];
+//        arena[ix][iy][ieta].prev_pi_b[0] = arena[ix][iy][ieta].pi_b[0];
 	 /* this is the new value */
        arena[ix][iy][ieta].pi_b[0] = arena[ix][iy][ieta].pi_b[rk_order];
       

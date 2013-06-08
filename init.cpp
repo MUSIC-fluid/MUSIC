@@ -293,7 +293,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
 // 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
 // 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
@@ -327,7 +327,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 // 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
 // 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 		 
 
@@ -589,7 +589,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
 // 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
 // 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
@@ -627,7 +627,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 // 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
 // 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 
 		 //(*arena)[ix][iy][ieta].correction = 1.0;
@@ -723,7 +723,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
 // 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
 // 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
@@ -760,7 +760,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 // 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
 // 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
       		 
 		 for(mu=0; mu<4; mu++)
@@ -1990,7 +1990,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
 // 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
 // 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
@@ -2029,7 +2029,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 // 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
 // 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
@@ -2360,7 +2360,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
 // 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
 // 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
@@ -2398,7 +2398,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 // 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
 // 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
@@ -2590,7 +2590,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta2].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta2].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta2].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
 // 		 (*arena)[ix][iy][ieta2].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta2].prev_u = util->mtx_malloc(1, 4);
 // 		 (*arena)[ix][iy][ieta2].pprev_u = util->mtx_malloc(1, 4);
@@ -2628,7 +2628,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 // 		 (*arena)[ix][iy][ieta2].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta2].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta2].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].prev_pi_b[0] = 0.0;
 // 		 (*arena)[ix][iy][ieta2].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
@@ -2805,7 +2805,7 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 		 (*arena)[ix][iy][ieta2].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta2].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta2].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
 // 		 (*arena)[ix][iy][ieta2].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta2].prev_u = util->mtx_malloc(1, 4);
 // 		 (*arena)[ix][iy][ieta2].pprev_u = util->mtx_malloc(1, 4);
@@ -2843,7 +2843,7 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 // 		 (*arena)[ix][iy][ieta2].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta2].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta2].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].prev_pi_b[0] = 0.0;
 // 		 (*arena)[ix][iy][ieta2].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
