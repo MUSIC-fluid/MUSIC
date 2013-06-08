@@ -150,7 +150,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
    //storePreviousT(tau, DATA, arena);
 
    //determine freeze-out surface
-  
+  int frozen=0;
   if(DATA->doFreezeOut == 1)
    {
     if (it%facTau==0 && it>0) 
@@ -160,13 +160,14 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 	else if (DATA->freezeOutMethod == 2)
 	  FindFreezeOutSurface2(tau, DATA, arena, size, rank);
 	else if (DATA->freezeOutMethod == 3)
-	  FindFreezeOutSurface3(tau, DATA, arena, size, rank);
+	  frozen = FindFreezeOutSurface3(tau, DATA, arena, size, rank);
 	storePreviousEpsilon2(tau, DATA, arena);
 	storePreviousW(tau, DATA, arena);
       } 
    }/* do freeze-out determination */
     
     if (rank == 0) fprintf(stderr, "Done time step %d/%d.\n", it, itmax);
+    if (frozen) break;
     
   }/* it */ 
 
@@ -4479,7 +4480,7 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
 // Modified version of simplified freeze out  (M. Luzum, 04/2013)
 // Every element of the freezeout surface is a rectangular cuboid
 // located mid-way between cells/grid points.
-void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int size, int rank)
+int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int size, int rank)
 {	
   stringstream strs_name;
   strs_name << "surface" << rank << ".dat";
@@ -5198,7 +5199,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 // 		exit(rank);
 // 	}
 	{
-	  cout << "All cells frozen out. Exiting." << endl;
+	  cout << "All cells frozen out. Exiting hydro evolution." << endl;
 // 	  // write OSCAR header if wanted:  (seems to be unused at the moment, so I'll keep the code, but comment out)
 // 	  FILE *oout_file;
 // 	  char* oout_name = "OSCARheader.dat";
@@ -5307,8 +5308,9 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 	  ret = system("cat surface?.dat surface??.dat > surface.dat");
 	  ret = system("rm surface?.dat surface??.dat");
 	  
-	  MPI::Finalize();
- 	  exit(1);
+// 	  MPI::Finalize();
+//  	  exit(1);
+	  return 1;
 	}
       }
   if (rank!=0)
@@ -5317,8 +5319,9 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
       if (allfrozen)
 	{
 // 	  cout << "All cells frozen out. Exiting." << endl;
-	  MPI::Finalize();
- 	  exit(1);
+// 	  MPI::Finalize();
+//  	  exit(1);
+	  return 1;
 	}
     }
 
@@ -5346,6 +5349,6 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   util->mtx_free(Rneighbor_Wyy,nx+1,ny+1);
   util->mtx_free(Rneighbor_Wyeta,nx+1,ny+1);
   
- 
+ return 0;
 }
 

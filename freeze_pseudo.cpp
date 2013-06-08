@@ -40,7 +40,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
       if(pseudo_steps>1) deltaeta = 2*etamax/pseudo_steps;
       particleList[ip].deltaY = deltaeta;
 // 	  cout << "ptmin = " << ptmin << endl;
-      for (int ipt=0; ipt<=iptmax; ipt++ )
+      for (int ipt=0; ipt<iptmax; ipt++ )
 	{
 // 	      particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
 // 	  particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax,2); // power law
@@ -67,7 +67,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
   checkForReadError(s_file,s_name);
   
   cout << "ietamax=" << pseudo_steps+1 << endl;
-  cout << "cells=" << (pseudo_steps+1)*(iptmax+1)*iphimax << endl;
+  cout << "cells=" << (pseudo_steps+1)*(iptmax)*iphimax << endl;
   cout << "particleMax = " << particleMax << endl;
   for ( ip=1; ip<=particleMax; ip++ )
     {
@@ -75,7 +75,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
       fprintf(stderr,"reading particle %d: %d %s\n", ip, particleList[ip].number, particleList[ip].name);
       for (int ieta=0; ieta<=pseudo_steps; ieta++)
 	{
-	  for (int ipt=0; ipt<=iptmax; ipt++)
+	  for (int ipt=0; ipt<iptmax; ipt++)
 	    {
 	      for (int iphi=0; iphi<iphimax; iphi++)
 		{
@@ -111,7 +111,7 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
   if(ietamax>1) deltaeta = 2*etamax/DATA->pseudo_steps;
   double ptmax = DATA->max_pt;
   double ptmin = DATA->min_pt;
-  int iptmax = DATA->pt_steps; // Number of points is iptmax + 1 (ipt goes from 0 to iptmax)
+  int iptmax = DATA->pt_steps+1; // Number of points is iptmax + 1 (ipt goes from 0 to iptmax)
 //   double deltapt = ptmax/iptmax;
   int iphimax = DATA->phi_steps; // Number of steps equal to number of points (phi=2pi is understood as equal to phi=0)
   double deltaphi = 2*PI/iphimax;
@@ -144,7 +144,8 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
 
   fprintf(stderr,"Doing %d: %s (%d)\n", j, particleList[j].name, particleList[j].number);
  
-  particleList[j].ny = ietamax*size;
+//   particleList[j].ny = ietamax*size;
+  particleList[j].ny = DATA->pseudo_steps + 1;
   particleList[j].npt = iptmax;
   particleList[j].nphi = iphimax;
   
@@ -196,7 +197,7 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
       eta = -etamax + ieta*deltaeta + offset;
       //     if (j==1) cout << " do particleList[ip].y[" << iy << "] = " <<  particleList[j].y[iy] << " y = " << y << endl;
 
-      for (int ipt=0; ipt<=iptmax; ipt++)
+      for (int ipt=0; ipt<iptmax; ipt++)
 	{
 // 	  pt = deltapt/2. + ipt*deltapt;
 // 	  pt = ipt*deltapt;
@@ -762,7 +763,7 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 	for (n = 0; n <= neta; n++)
 	  {
 	    eta = particleList[pn].y[n];// for pseudofreeze, this variable stores pseudorapidity
-	    for (l = 0; l <= npt; l++)
+	    for (l = 0; l < npt; l++)
 	      {
 		y = Rap(eta,particleList[pn].pt[l],m1);
 		for (i = 0; i < nphi; i++)
@@ -836,7 +837,7 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 	for (n = 0; n <= neta; n++)
 	  {
 	    eta = particleList[pn].y[n];// for pseudofreeze, this variable stores pseudorapidity
-	    for (l = 0; l <= npt; l++)
+	    for (l = 0; l < npt; l++)
 	      {
 // 		if(pseudofreeze)  y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
 		y = Rap(eta,particleList[pn].pt[l],m1);
@@ -863,10 +864,10 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 			particleList[pn].resCont[n][l][i]+= decay[j].branch *
 			  spectrum;
 		       
-			fprintf(stderr,"%d %f %e %e %e %e\n",n,eta, particleList[pn].pt[l], decay[j].branch *
+/*			fprintf(stderr,"%d %f %e %e %e %e\n",n,eta, particleList[pn].pt[l], decay[j].branch *
 				spectrum,
 				particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
-				spectrum,particleList[pn].resCont[n][l][i]); 
+				spectrum,particleList[pn].resCont[n][l][i]);*/ 
 		      }
 		  }
 	      }
@@ -926,7 +927,7 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 	    for (i = 0; i < nphi; i++)
 	      {
 		double phi = i*deltaphi;
-		for (l = 0; l <= npt; l++)
+		for (l = 0; l < npt; l++)
 		  {
 // 		    if(pseudofreeze)  y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
 		    y = Rap(eta,particleList[pn].pt[l],m1);
@@ -976,9 +977,9 @@ void Freeze::cal_reso_decays_pseudo(int maxpart, int maxdecay, int bound, int mo
   for(i=maxpart-1;i > pn-1;i--)  //Cycle the particles known from the particle.dat input
     {
 
-      for (n1 = 0; n1 <= ny; n1++)
+      for (n1 = 0; n1 < ny; n1++)
 	{
-	  for (n2 = 0; n2 <= npt; n2++)
+	  for (n2 = 0; n2 < npt; n2++)
 	    {
 	      for (n3 = 0; n3 < nphi; n3++)
 		{
@@ -1111,14 +1112,14 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 {
   ReadParticleData(DATA, eos); // read in data for Cooper-Frye
   int i, b, number;
-  if (mode == 3) // compute thermal spectra
+  if (mode == 3 || mode == 1) // compute thermal spectra
     {
       int ret;
       if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
       ReadFreezeOutSurface(DATA); // read freeze out surface (has to be done after the evolution of course)
       if (particleSpectrumNumber==0) // do all particles
 	{
-	  fprintf(stderr,"Doing all particles on this processor. May take a while ... \n");
+	  fprintf(stderr,"Doing all particles. May take a while ... \n");
 	  for ( i=1; i<particleMax; i++ )
 	    {
 	      number = particleList[i].number;
@@ -1134,11 +1135,11 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		)
 		{
 		  computespectrum = 0;
-		  fprintf(stderr,"Copying %d: %s (%d) from %s\n", i, particleList[i].name, particleList[i].number, particleList[part].name);
 		  if(rank==0)
 		  {
+		    fprintf(stderr,"Copying %d: %s (%d) from %s\n", i, particleList[i].name, particleList[i].number, particleList[part].name);
 		    int iphimax = DATA->phi_steps;
-		    int iptmax = DATA->pt_steps;
+		    int iptmax = DATA->pt_steps + 1;
 		    int ietamax = DATA->pseudo_steps + 1;
 		    double ptmax = DATA->max_pt;
 		    double ptmin = DATA->min_pt;
@@ -1157,7 +1158,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		    particleList[i].nphi = particleList[part].nphi;
 		    fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  etamax, DATA->pseudo_steps, ptmin, ptmax, iptmax, iphimax);
 		    for (int ieta=0; ieta<ietamax; ieta++)
-		    for (int ipt=0; ipt<=iptmax; ipt++)
+		    for (int ipt=0; ipt<iptmax; ipt++)
 		      {
 			particleList[i].pt[ipt] = particleList[part].pt[ipt];
 			particleList[i].y[ieta] = particleList[part].y[ieta];  
@@ -1175,9 +1176,9 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		}// if particles have same mass
 	      }// loop over particles that have already been calculated
 	      
-// 	      	  cout << "number2 = " << number << endl;
+
 	      if(computespectrum) ComputeParticleSpectrum_pseudo(DATA, number, b, size, rank);
-// 	      	  cout << "number3 = " << number << endl;
+
   
 	      // Wait until all processors are finished and concatonate results
 	      // (Don't want any processors to start writing the next particle to 
@@ -1218,26 +1219,21 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	    }
 	}
     }
-  else if (mode==4) //  do resonance decays
+  if (mode==4 || mode==1)  //  do resonance decays
     {
       ReadSpectra_pseudo(DATA, 0);
       int bound = 211; //number of lightest particle to calculate. 
 	  cout << "particleaMax = " << particleMax << endl;
 	  fprintf(stderr,"doing all from %i: %s to %i: %s.\n",particleMax,particleList[particleMax].name,
 		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
-	  cal_reso_decays_pseudo(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
+      if(rank==0)  cal_reso_decays_pseudo(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
       if (rank == 0) int ret = system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
+      cout << "here?" << rank << "\n";
 	  for ( i=1; i<particleMax; i++ )
 	    {
 	      number = particleList[i].number;
 	      b = particleList[i].baryon;
-	      OutputFullParticleSpectrum_pseudo(DATA, number, b, 1);
-// 	      ComputeAveragePT(number,4.);
-	    }
-	  if(particleMax>=20)
-	    {
-// 	      ReadFullSpectra(DATA);
-// 	      ComputeChargedHadrons(DATA,4.);
+	      if(rank==0) OutputFullParticleSpectrum_pseudo(DATA, number, b, 1);
 	    }
     }
   else if (mode==13) // take tabulated spectra and compute various observables and integrated quantities
@@ -1313,7 +1309,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       outfile << N << endl;
       outfile.close();
     }
-    else 
+  else if (mode!=3)
     {
       cerr << "Mode " << mode << " not supported for pseudofreeze = 1.  Exiting.\n";
       exit(1);
@@ -1404,7 +1400,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 
 	//Loop over pT
 // 	cout << "npt = " << npt << endl;
-	for(int ipt=0;ipt<=npt;ipt++) {
+	for(int ipt=0;ipt<npt;ipt++) {
 		pt=particleList[j].pt[ipt];
 // 		cout << "pt = " << pt << endl;
 		
@@ -1459,7 +1455,7 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 
       // Simple trapezoid rule needs the value at the boundary.  
       // Find nearest lower bound to desired value and integrate to highest pT available
-      for(int ipt=0;ipt<=npt;ipt++) 
+      for(int ipt=0;ipt<npt;ipt++) 
       {
 	pt=particleList[j].pt[ipt];
 	if(pt<=0.5)
@@ -1503,7 +1499,7 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 // 	  cout << "eta = " << eta << endl;
 	  //Loop over pT
   // 	cout << "npt = " << npt << endl;
-	  for(int ipt=minipt;ipt<=npt;ipt++) 
+	  for(int ipt=minipt;ipt<npt;ipt++) 
 	  {
 		  pt=particleList[j].pt[ipt];
 		  double intvnphi[8][2] = {0};
@@ -1520,7 +1516,7 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 			  }
 		  }
 		  for(int i = 1;i<8;i++) for(int k =0;k<2;k++) intvnphi[i][k]/=intvnphi[0][0];
-		  if(ipt==minipt || ipt == npt) fac = 0.5;
+		  if(ipt==minipt || ipt == npt-1) fac = 0.5;
 		  else fac = 1.0;
 		  for(int i = 0;i<8;i++) for(int k =0;k<2;k++) intvn[i][k]+=fac*intvnphi[i][k];
 	  }// pt loop
@@ -1561,7 +1557,7 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 	      << " and |eta| < " << etamax << " for particle " << number << ", " 
 	      << particleList[j].name << endl;
 
-	for(int ipt=0;ipt<=npt;ipt++) 
+	for(int ipt=0;ipt<npt;ipt++) 
 	{
 		pt = particleList[j].pt[ipt];
 		dndpt[ipt] = 0.;
@@ -1595,13 +1591,13 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 	}// pt loop
 	
 	gsl_interp_accel *acc = gsl_interp_accel_alloc ();
-        gsl_spline *spline = gsl_spline_alloc (gsl_interp_cspline, npt+1);
-//         gsl_spline *spline = gsl_spline_alloc (gsl_interp_akima, npt+1); //other types of splines to test
-// 	gsl_spline *spline = gsl_spline_alloc (gsl_interp_polynomial, npt+1);
-	gsl_spline_init (spline, particleList[j].pt ,dndpt , npt+1);
+        gsl_spline *spline = gsl_spline_alloc (gsl_interp_cspline, npt);
+//         gsl_spline *spline = gsl_spline_alloc (gsl_interp_akima, npt); //other types of splines to test
+// 	gsl_spline *spline = gsl_spline_alloc (gsl_interp_polynomial, npt);
+	gsl_spline_init (spline, particleList[j].pt ,dndpt , npt);
 	
 	
-// 	for(int ipt=0;ipt<=npt;ipt++) //for testing
+// 	for(int ipt=0;ipt<npt;ipt++) //for testing
 // 	{
 // 		double pt = particleList[j].pt[ipt];
 // 		cout << particleList[j].pt[ipt] << ", " << 

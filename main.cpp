@@ -540,11 +540,11 @@ Does not work in current version. Always run mode 2 and then mode 3 and 4 separa
   int tempmode = 2;
   tempinput = util->StringFind3(file, "mode");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmode;
-  if (tempmode == 1) 
-  {
-    cerr << "mode=1 not currently functional.  Run each step separately with mode>=2\n";
-    exit(1);
-  }
+//   if (tempmode == 1) 
+//   {
+//     cerr << "mode=1 not currently functional.  Run each step separately with mode>=2\n";
+//     exit(1);
+//   }
   DATA->mode = tempmode;
   
   
@@ -914,6 +914,11 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind3(file, "pseudofreeze");
   if(tempinput != "empty") istringstream ( tempinput ) >> temppseudofreeze;
   DATA->pseudofreeze = temppseudofreeze;
+  if (DATA->mode == 1 && (DATA->pseudofreeze!=1 || DATA->freezeOutMethod!=3)) 
+  {
+    cerr << "mode=1 only works with freeze_out_method=3 and pseudofreeze=1.  Run each step separately with mode>=2\n";
+    exit(1);
+  }
   
   if(DATA->turn_on_rhob == 1)
     {

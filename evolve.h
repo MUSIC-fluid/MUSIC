@@ -119,7 +119,7 @@ class Evolve{
   
   void FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int size, int rank);//added
   void FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, int size, int rank);//added
-  void FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int size, int rank);
+  int FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int size, int rank);
   void storePreviousEpsilon(double tau, InitData *DATA, Grid ***arena);//added
   void storePreviousEpsilon2(double tau, InitData *DATA, Grid ***arena);
   void storePreviousW(double tau, InitData *DATA, Grid ***arena);
