@@ -43,8 +43,8 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
       for (int ipt=0; ipt<iptmax; ipt++ )
 	{
 // 	      particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
-// 	  particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax,2); // power law
-	  particleList[ip].pt[ipt] = gala15x[ipt]/12; // gauss laguerre abissas
+	  particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax-1,2); // power law
+// 	  particleList[ip].pt[ipt] = gala15x[ipt]/12; // gauss laguerre abissas
 	}
       for (int ieta=0; ieta<=pseudo_steps; ieta++ )
 	{
@@ -203,8 +203,8 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
 // 	  pt = ipt*deltapt;
 // 	  pt = ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1);
 // 	      pt =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
-// 	      pt =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax,2); // power law
-	      pt = gala15x[ipt]/12.; // gauss laguerre absissas
+	      pt =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax-1,2); // power law
+// 	      pt = gala15x[ipt]/12.; // gauss laguerre absissas
 	  particleList[j].pt[ipt] = pt;
 	  
 	  
@@ -1228,7 +1228,6 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
       if(rank==0)  cal_reso_decays_pseudo(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
       if (rank == 0) int ret = system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
-      cout << "here?" << rank << "\n";
 	  for ( i=1; i<particleMax; i++ )
 	    {
 	      number = particleList[i].number;
@@ -1553,7 +1552,7 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 	double minpt=0.4; // in GeV
 	double etamax = particleList[j].ymax;
 
-	cout << "Calculating yield for " << minpt << " < p_T < " << particleList[j].pt[npt] 
+	cout << "Calculating yield for " << minpt << " < p_T < " << particleList[j].pt[npt-1] 
 	      << " and |eta| < " << etamax << " for particle " << number << ", " 
 	      << particleList[j].name << endl;
 
@@ -1564,7 +1563,7 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 		double norm = 0.;
 		
 		//Integrate over pseudorapidity using trapezoid rule
-		for(int ieta=0;ieta<=neta;ieta++)
+		for(int ieta=0;ieta<neta;ieta++)
 		{
 			double dndpteta = 0;
 			double eta = particleList[j].y[ieta];
@@ -1578,7 +1577,7 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 				dndpteta+=dNdeta;
 			}
 			
-			if(ieta==0 || ieta==neta) fac = 0.5;
+			if(ieta==0 || ieta==neta-1) fac = 0.5;
 			else fac = 1.0;
 			dndpt[ipt]+= fac*dndpteta;
 // 			cout << "dndpt = " << dndpt[ipt] << endl;
@@ -1608,7 +1607,7 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 // 	cout << "maxpt = " << particleList[j].pt[npt] << endl;
 // 	cout << gsl_spline_eval(spline, 0.250464, acc) << endl;
 	double N = 
-	  gsl_spline_eval_integ(spline, minpt, particleList[j].pt[npt],acc);
+	  gsl_spline_eval_integ(spline, minpt, particleList[j].pt[npt-1],acc);
 // 	  gsl_spline_eval_integ(spline, 1.0, 2.0, acc);
 // 	  gsl_spline_eval(spline, 0.250464, acc);
 
