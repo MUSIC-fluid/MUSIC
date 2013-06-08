@@ -1158,7 +1158,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		    particleList[i].ny = particleList[part].ny;
 		    particleList[i].npt = particleList[part].npt;
 		    particleList[i].nphi = particleList[part].nphi;
-		    fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  etamax, DATA->pseudo_steps+1, ptmin, ptmax, iptmax, iphimax);
+		    fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  etamax, ietamax, ptmin, ptmax, iptmax, iphimax);
 		    for (int ieta=0; ieta<ietamax; ieta++)
 		    for (int ipt=0; ipt<iptmax; ipt++)
 		      {
@@ -1632,6 +1632,11 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 	  
 	}// eta loop
 	
+	//Close file
+// 	outfile.close();
+	outfilevn.close();
+	
+	
 	double N = 0;
 	double neta = particleList[j].ny;
 	//integrate over pseudorapidity |eta| < 2.4
@@ -1672,9 +1677,6 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 	  
 	}
 
-	//Close file
-// 	outfile.close();
-	outfilevn.close();
 // 	}
 
 }

@@ -283,8 +283,8 @@ int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
        arena[ix][iy][ieta].epsilon = arena[ix][iy][ieta].epsilon_t;
        arena[ix][iy][ieta].rhob = arena[ix][iy][ieta].rhob_t;
        
-	 /* this was the previous previous value */
-       arena[ix][iy][ieta].pprev_pi_b[0] = arena[ix][iy][ieta].prev_pi_b[0];
+// 	 /* this was the previous previous value */
+//        arena[ix][iy][ieta].pprev_pi_b[0] = arena[ix][iy][ieta].prev_pi_b[0];
 	 /* this was the previous value */
        arena[ix][iy][ieta].prev_pi_b[0] = arena[ix][iy][ieta].pi_b[0];
 	 /* this is the new value */
@@ -292,9 +292,9 @@ int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
       
        for(mu=0; mu<4; mu++)
         {
-	 /* this was the previous previous value */
-	 arena[ix][iy][ieta].pprev_u[0][mu] = 
-	               arena[ix][iy][ieta].prev_u[0][mu]; 
+// 	 /* this was the previous previous value */
+// 	 arena[ix][iy][ieta].pprev_u[0][mu] = 
+// 	               arena[ix][iy][ieta].prev_u[0][mu]; 
 	 
 	 /* this was the previous value */
 	 arena[ix][iy][ieta].prev_u[0][mu] = 
@@ -310,9 +310,9 @@ int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
 	  arena[ix][iy][ieta].TJb[0][alpha][mu] = 
 	               arena[ix][iy][ieta].TJb[rk_order][alpha][mu]; 
 	 
-	 /* this was the previous previous value */
-	  arena[ix][iy][ieta].pprevWmunu[0][alpha][mu] = 
-	                    arena[ix][iy][ieta].prevWmunu[0][alpha][mu]; 
+// 	 /* this was the previous previous value */
+// 	  arena[ix][iy][ieta].pprevWmunu[0][alpha][mu] = 
+// 	                    arena[ix][iy][ieta].prevWmunu[0][alpha][mu]; 
 
 	 /* this was the previous value */
 	  arena[ix][iy][ieta].prevWmunu[0][alpha][mu] = 
@@ -326,9 +326,9 @@ int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
 	    //    cout << "updateArena Wmunu[" << ix << "][" << iy << "][" << ieta << "],[" 
 	    // << 0 << "][alpha=" << alpha << "][mu=" << "]=" << arena[ix][iy][ieta].Wmunu[0][alpha][mu] << endl;
 
-	 /* this was the previous previous value */
-	  arena[ix][iy][ieta].pprevPimunu[0][alpha][mu] = 
-	                    arena[ix][iy][ieta].prevPimunu[0][alpha][mu]; 
+// 	 /* this was the previous previous value */
+// 	  arena[ix][iy][ieta].pprevPimunu[0][alpha][mu] = 
+// 	                    arena[ix][iy][ieta].prevPimunu[0][alpha][mu]; 
 
 	 /* this was the previous value */
 	  arena[ix][iy][ieta].prevPimunu[0][alpha][mu] = 

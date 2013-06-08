@@ -294,15 +294,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
 
 		 (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
 		 
@@ -321,14 +321,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 		 
 
 		 for(mu=0; mu<4; mu++)
@@ -343,11 +343,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 
 			 (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 			 
 		       }/* nu */
 		   }/* mu */
@@ -590,15 +590,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
 
 		 (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
 		//  int taui;
@@ -621,14 +621,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 
 		 //(*arena)[ix][iy][ieta].correction = 1.0;
 
@@ -645,11 +645,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 
 			 (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 		 
@@ -724,15 +724,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
 
 		 (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
 // 		 int taui;
@@ -754,14 +754,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
       		 
 		 for(mu=0; mu<4; mu++)
 		   {
@@ -774,11 +774,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 			   = (epsilon + p)*u[mu]*u[nu] + p*(DATA->gmunu)[mu][nu];
 			 (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 		 
@@ -1991,15 +1991,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
 
 		 (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
 				
@@ -2023,14 +2023,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
 		   {
@@ -2044,11 +2044,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 
 			 (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 	       }}}/* ix, iy, ieta */
@@ -2361,15 +2361,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
 
 		 (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
 // 		 int taui;
@@ -2392,14 +2392,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
 		   {
@@ -2413,11 +2413,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 
 			 (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 		 
@@ -2591,15 +2591,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta2].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta2].pi_b = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta2].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta2].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta2].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta2].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta2].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta2].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta2].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta2].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta2].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta2].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta2].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta2].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta2].pprevPimunu = util->cube_malloc(1, 5,4);
 		 
 		 (*arena)[ix][iy][ieta2].W_prev = util->mtx_malloc(5,4);
 // 		 int taui;
@@ -2622,14 +2622,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta2].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta2].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta2].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta2].pi_b[0] = 0.0;
 		 (*arena)[ix][iy][ieta2].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
 		   {
@@ -2643,11 +2643,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 			 
 			 (*arena)[ix][iy][ieta2].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta2].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta2].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta2].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta2].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta2].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta2].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta2].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 		 
@@ -2806,15 +2806,15 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 		 (*arena)[ix][iy][ieta2].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta2].pi_b = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta2].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta2].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta2].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta2].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta2].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta2].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta2].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta2].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta2].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta2].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta2].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta2].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta2].pprevPimunu = util->cube_malloc(1, 5,4);
 		 
 		 (*arena)[ix][iy][ieta2].W_prev = util->mtx_malloc(5,4);
 // 		 int taui;
@@ -2837,14 +2837,14 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 		 (*arena)[ix][iy][ieta2].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta2].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta2].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta2].pi_b[0] = 0.0;
 		 (*arena)[ix][iy][ieta2].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
 		   {
@@ -2858,11 +2858,11 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 			 
 			 (*arena)[ix][iy][ieta2].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta2].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta2].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta2].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta2].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta2].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta2].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta2].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 		 

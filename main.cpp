@@ -152,7 +152,7 @@ main(int argc, char *argv[])
   if (DATA.mode == 1 || DATA.mode == 2)
     {
       int ret;
-      ret = system("rm surface.dat surface?.dat surface??.dat");
+      ret = system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
       Glauber *glauber;
       glauber = new Glauber;
       
