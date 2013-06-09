@@ -27,8 +27,6 @@
 #include <iterator>
 #include <algorithm>
 #include <fstream>
-#include <vector>
-#include <sstream>
 #include <unistd.h>
 
 class Freeze{
@@ -164,12 +162,6 @@ class Freeze{
   int countLines (std::istream& in);
   void checkForReadError(FILE *file, char* name);
   void CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
-  void OutputSpectrum_PhiInt_midrap(InitData *DATA, int number, bool full, int iphimax, double phimin, double phimax);
-  void Output_vn_PhiInt_midrap(InitData *DATA, int number, bool full, int iphimax, double phimin, double phimax);
-
-  //This shouldn't be here, it should probably be in "int.h", but I'm uncomfortable modifying "int.h" and "int.c" as they're clearly someone else's program [JFP - March 2012]
-  enum gaussQuadType {laguerre, hermite, legendre};
-  void gaussQuadNodesAndWeights(gaussQuadType type, int order, std::vector<double> * nodes, std::vector<double> * weights);
 };
 #endif
   
