@@ -6285,7 +6285,7 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 		    double phi;
 		    if (pseudofreeze) double phi = i*deltaphi;
 		    else phi = phiArray[i];
-		    double spectrum = Edndp3_2bodyN_pseudo (y, particleList[pn].pt[l], phi, m1, m2, mr, particleList[pnR].number);
+		    double spectrum = Edndp3_2bodyN (y, particleList[pn].pt[l], phi, m1, m2, mr, particleList[pnR].number);
 		    if (isnan(spectrum)
 			)
 		      //	||Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number)<0
