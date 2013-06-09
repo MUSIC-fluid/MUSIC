@@ -35,8 +35,8 @@ class Grid{
   /* we need to calculate partial_tau u[mu] */
   double **prev_u;  /* u[mu] from the previous time step including the rk flag */
 //   double **pprev_u; /* u[mu] from 2 time step ago including the rk flag */
-  double **dU; /* dU[m][n] = partial_m u_n at the current time */
-  double ***pimunu; /* Stress part of the TJb */
+//  double **dU; /* dU[m][n] = partial_m u_n at the current time */
+//  double ***pimunu; /* Stress part of the TJb */
     
   Grid **nbr_p_1; 
   Grid **nbr_m_1; 

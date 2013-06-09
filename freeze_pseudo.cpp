@@ -771,7 +771,7 @@ void Freeze::add_reso_pseudo(int pn, int pnR, int k, int j, int pseudofreeze)
 		for (i = 0; i < nphi; i++)
 		  {
 		    double phi = i*deltaphi;
-		    double spectrum = Edndp3_2bodyN_pseudo (y, particleList[pn].pt[l], phi, m1, m2, mr, particleList[pnR].number);
+		    double spectrum = Edndp3_2bodyN (y, particleList[pn].pt[l], phi, m1, m2, mr, particleList[pnR].number);
 		    if (isnan(spectrum)
 			)
 		      //	||Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number)<0
@@ -1112,6 +1112,8 @@ void Freeze::cal_reso_decays_pseudo(int maxpart, int maxdecay, int bound, int mo
 
 void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank)
 {
+  if(DATA->pseudofreeze) pseudofreeze = 1;
+  else pseudofreeze =0;
   ReadParticleData(DATA, eos); // read in data for Cooper-Frye
   int i, b, number;
   if (mode == 3 || mode == 1) // compute thermal spectra
@@ -1228,7 +1230,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	  cout << "particleaMax = " << particleMax << endl;
 	  fprintf(stderr,"doing all from %i: %s to %i: %s.\n",particleMax,particleList[particleMax].name,
 		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
-      if(rank==0)  cal_reso_decays_pseudo(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
+//       if(rank==0)  cal_reso_decays_pseudo(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
+      if(rank==0)  cal_reso_decays(particleMax,decayMax,bound,mode);
       if (rank == 0) int ret = system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
 	  for ( i=1; i<particleMax; i++ )
 	    {

@@ -5798,6 +5798,15 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num)
   pn = partid[MHALF + res_num];
 
   
+  // If pseudofreeze flag is set,  dNdydptdphi is on a fixed grid in pseudorapidity. 
+  // Set yr to the *pseudorapidity* of the resonance, and then interpolate the yield
+  // at that value.
+  if(pseudofreeze)
+  {
+    double yrtemp = yr;
+    yr = PseudoRap(yrtemp, ptr, particleList[pn].mass);
+  }
+  
   if (yr < -particleList[pn].ymax || yr > particleList[pn].ymax)
     {
       //      fprintf(stderr,"yr=%f out of range ymax=%f\n", yr,particleList[pn].ymax);
@@ -6230,9 +6239,11 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
   int l, i, n;
   int ny, npt, nphi;
 
-  ny = particleList[pn].ny;
+  ny = particleList[pn].ny; // for pseudofreeze, this variable stores number of points in pseudorapidity
   npt = particleList[pn].npt;
   nphi = particleList[pn].nphi;
+  double deltaphi = 2*PI/nphi; // for pseudofreeze
+  
 
   // Determine the number of particles involved in the decay with the switch
   switch (abs (decay[j].numpart))
@@ -6268,9 +6279,13 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 	    y = particleList[pn].y[n];
 	    for (l = 0; l < npt; l++)
 	      {
+		if(pseudofreeze) double ydummy = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
 		for (i = 0; i < nphi; i++)
 		  {
-		    double spectrum = Edndp3_2bodyN_pseudo (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number);
+		    double phi;
+		    if (pseudofreeze) double phi = i*deltaphi;
+		    else phi = phiArray[i];
+		    double spectrum = Edndp3_2bodyN_pseudo (y, particleList[pn].pt[l], phi, m1, m2, mr, particleList[pnR].number);
 		    if (isnan(spectrum)
 			)
 		      //	||Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i], m1, m2, mr, particleList[pnR].number)<0
@@ -6289,10 +6304,10 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 
 			  particleList[pn].resCont[n][l][i]+= decay[j].branch *
 			  spectrum; 
-			  fprintf(stderr," %d %f %e %e %e %e\n", n, y, particleList[pn].pt[l], decay[j].branch *
-				  spectrum,
-				  particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
-				  spectrum,particleList[pn].resCont[n][l][i]); 
+// 			  fprintf(stderr," %d %f %e %e %e %e\n", n, y, particleList[pn].pt[l], decay[j].branch *
+// 				  spectrum,
+// 				  particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
+// 				  spectrum,particleList[pn].resCont[n][l][i]); 
 			}
 		      }
 		  }
@@ -6340,36 +6355,36 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 	    y = particleList[pn].y[n];
 	    for (l = 0; l < npt; l++)
 	      {
+		if(pseudofreeze) y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
 		for (i = 0; i < nphi; i++)
 		  {
-		    if (isnan(Edndp3_3bodyN(y, particleList[pn].pt[l], phiArray[i],
-					    m1, m2, m3, mr, norm3, particleList[pnR].number)))
+		    double phi;
+		    if (pseudofreeze) double phi = i*deltaphi;
+		    else phi = phiArray[i];
+		    double spectrum = Edndp3_3bodyN(y, particleList[pn].pt[l], phi,
+					    m1, m2, m3, mr, norm3, particleList[pnR].number);
+		    if (isnan(spectrum)))
 		      {
 			fprintf(stderr,"3 number=%d\n",particleList[pnR].number);
 			// Call the 3-body decay integral and add its contribution to the daughter particle of interest 
-			fprintf(stderr,"3 Edn..=%f\n",   Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
-									m1, m2, m3, mr, norm3, particleList[pnR].number));
+			fprintf(stderr,"3 Edn..=%f\n",   spectrum));
 		      }
 		    else
 		      {
 			particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
-		      	Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
-				       m1, m2, m3, mr, norm3, particleList[pnR].number);
+		      	spectrum;
 		      }
 		    
 		    if(n==ny/2 && i==0)
 		      {
 			//	fprintf(stderr,"m1=%f, m2=%f, m3=%f, mr=%f, pnR=%d\n",m1,m2,m3,mr,pnR);
 			particleList[pn].resCont[n][l][i]+= decay[j].branch *
-			  Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
-					 m1, m2, m3, mr, norm3, particleList[pnR].number);
+			  spectrum;
 		       
 			fprintf(stderr,"%d %f %e %e %e %e\n",n,y, particleList[pn].pt[l], decay[j].branch *
-				Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
-					       m1, m2, m3, mr, norm3, particleList[pnR].number),
+				spectrum,
 				particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
-				Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
-					       m1, m2, m3, mr, norm3, particleList[pnR].number),particleList[pn].resCont[n][l][i]); 
+				spectrum,particleList[pn].resCont[n][l][i]); 
 		      }
 		  }
 	      }
@@ -6428,21 +6443,23 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 	    y = particleList[pn].y[n];
 	    for (i = 0; i < nphi; i++)
 	      {
+		double phi;
+		if (pseudofreeze) double phi = i*deltaphi;
 		for (l = 0; l < npt; l++)
 		  {
-		     if (isnan(Edndp3_3bodyN(y, particleList[pn].pt[l], phiArray[i],
-					    m1, m2, m3, mr, norm3, particleList[pnR].number)))
+		      if(pseudofreeze) y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
+		      double spectrum = Edndp3_3bodyN(y, particleList[pn].pt[l], phi,
+					      m1, m2, m3, mr, norm3, particleList[pnR].number);
+		     if (isnan(spectrum))
 		      {
 			fprintf(stderr,"3 number=%d\n",particleList[pnR].number);
 			// Call the 3-body decay integral and add its contribution to the daughter particle of interest 
 			particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
-			  Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
-					 m1, m2, m3, mr, norm3, particleList[pnR].number);
+			  spectrum;
 		      }
 		     else
 		      particleList[pn].dNdydptdphi[n][l][i] += decay[j].branch *
-			Edndp3_3bodyN (y, particleList[pn].pt[l], phiArray[i],
-				       m1, m2, m3, mr, norm3, particleList[pnR].number);
+			spectrum;
 		     //fprintf(stderr,"4 Edn..=%f\n", Edndp3_2bodyN (y, particleList[pn].pt[l], phiArray[i],
 		    //					m1, m2, mr, particleList[pnR].number));
 		    // the 4-body decay approximated by the 3-body decay routine
@@ -6606,6 +6623,8 @@ void Freeze::cal_reso_decays (int maxpart, int maxdecay, int bound, int mode)
 
 void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank)
 {
+  if(DATA->pseudofreeze) pseudofreeze = 1;
+  else pseudofreeze =0;
   ReadParticleData(DATA, eos); // read in data for Cooper-Frye
   int i, b, number;
   if (mode == 3 || mode == 1) // compute thermal spectra

@@ -118,6 +118,7 @@ class Freeze{
   double *phiArray;
   Int *integral;
   Util *util;
+  int pseudofreeze;
 
  public:
   Freeze();//constructor
