@@ -137,6 +137,7 @@ class Freeze{
   void Compute3ChargedHadrons(InitData *DATA, double ptmax);
   void ComputeCorrelations(InitData* DATA, double ptmax);
   double summation(double px, double py, double y, double m, int deg, int baryon, double mu, InitData *DATA);
+  double summation3(double px, double py, double y, double m, int deg, int baryon, double mu, InitData *DATA);
   void ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int iptmax, int iphimax, int size, int rank);
   void OutputFullParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int full);
   

@@ -94,6 +94,120 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
   fclose(s_file);
 }
 
+// Improved accuracy when freeze out method 3 is used.  
+// Contribution from each surface segment is integrated 
+// over its extent in eta using Riemann sum,
+// instead of counting entire contribution from center of segment.
+double Freeze::summation3(double px, double py, double y, double m, int deg, int baryon, double muAtFreezeOut, InitData *DATA)
+{
+  double sum = 0.;
+  int i;
+  double ptau, peta;
+  double f, T, mu, tau, x, eta, E, sign, delta_f;
+  double pdSigma, Wfactor;
+  double mt = sqrt(m*m+px*px+py*py); // all in GeV
+  double alpha = 0.; // make a parameter
+  int subsections;
+  double maxDETA = DATA->max_delta_eta2;
+  // if max_delta_eta was set smaller than delta_eta, the freezeout surface
+  // segment was already subdivided in FindFreezeOutSurface3.  The extent
+  // in eta (for cells not oriented in the eta direction) is actually:
+  double DETA=DATA->delta_eta/(floor(DATA->delta_eta/DATA->max_delta_eta) + 1);
+    // Bose or Fermi statistics.
+  if (baryon==0)
+    sign = -1.;
+  else
+    sign = 1.;
+
+  //fprintf(stderr,"sign=%f\n",sign);
+  //fprintf(stderr,"baryon=%d\n",baryon);
+  for (i=0; i<NCells; i++)
+    {
+      if(surface[i].s[3]==0) 
+      {
+	subsections = floor(DETA/maxDETA) + 1;
+	for (int j=0; j<3; j++) surface[i].s[3]/=subsections;
+//       if (subsections > 1) cout << "Splitting surface element into " << subsections << " segments in eta\n";
+      }
+      else subsections = 1;
+      
+      tau = surface[i].x[0];
+
+      T = surface[i].T_f*hbarc; // GeV
+      mu = baryon*surface[i].mu_B*hbarc; //GeV
+      if(DATA->whichEOS>=3) // for PCE use the previously computed mu at the freeze-out energy density
+	mu=muAtFreezeOut; //GeV
+      
+      for (int k=1; k <= subsections; k++)
+      {
+	  eta = surface[i].x[3] - DETA/2. + (k*DETA)/(subsections+1);
+	  
+	  ptau = mt*cosh(y-eta); // GeV    this is p^tau
+	  peta = mt/tau*sinh(y-eta); // GeV/fm     this is p^eta
+
+	  // compute p^mu*dSigma_mu
+	  pdSigma = tau*(ptau*surface[i].s[0]+px*surface[i].s[1]+py*surface[i].s[2]+peta*surface[i].s[3]); //fm^3*GeV
+	  E = (ptau*surface[i].u[0]-px*surface[i].u[1]-py*surface[i].u[2]-tau*tau*peta*surface[i].u[3]/tau);
+	  // this is the equilibrium f, f_0:
+	  f = 1./(exp(1./T*(E-mu))+sign);
+	  // now comes the delta_f: check if still correct at finite mu_b 
+	  // we assume here the same C=eta/s for all particle species because it is the simplest way to do it.
+	  // also we assume Xi(p)=p^2, the quadratic Ansatz
+
+	  if(f<0)
+	  {
+	    cerr << "Mistake in thermal spectrum calculation, f<0\n";
+	    f=0;
+	  }
+
+	  if(E<=0)
+	    f=0;
+	  
+	  if(T<0)
+	    f=0;
+	
+	  if (DATA->include_deltaf>=1 && DATA->viscosity_flag==1)
+	    {
+	      Wfactor=(ptau*surface[i].W[0][0]*ptau
+		      -2.*ptau*surface[i].W[0][1]*px
+		      -2.*ptau*surface[i].W[0][2]*py
+		      -2.*tau*tau*ptau*surface[i].W[0][3]/tau*peta
+		      +px*surface[i].W[1][1]*px
+		      +2.*px*surface[i].W[1][2]*py
+		      +2.*tau*tau*px*surface[i].W[1][3]/tau*peta
+		      +py*surface[i].W[2][2]*py
+		      +2.*tau*tau*py*surface[i].W[2][3]/tau*peta
+		      +tau*tau*tau*tau*peta*surface[i].W[3][3]/tau/tau*peta)
+		*pow(hbarc,4.); // W is like energy density
+	      
+	      
+	      delta_f = f*(1.-sign*f)/(2.*surface[i].sFO*pow(hbarc,3.)*pow(T,3.))*Wfactor;
+	    
+	      if (DATA->include_deltaf==2) // if delta f is supposed to be proportional to p^(2-alpha):
+		{
+		  delta_f = delta_f * pow((T/E),1.*alpha)*120./(tgamma(6.-alpha)); 
+		}
+	      
+	    }
+	  else
+	    {
+	      delta_f=0.;
+	    }
+
+	    sum += 1/pow(2.*PI,3.) * (f+delta_f) * pdSigma;
+	    //	cout << "sum=" << sum << ", pdSigma=" << pdSigma << endl;
+	    if (sum>10000)
+	      cout << "WARNING: sum>10000 in summation. sum=" << sum << ", f=" << f << ", deltaf=" << delta_f << ", pdSigma=" << pdSigma 
+		  << ", T=" << T << ", E=" << E << ", mu=" << mu << endl;
+      }// loop over subsections
+    }
+
+  sum *= deg/pow(hbarc,3.); // in GeV^(-2)
+
+  return sum;
+}
+
+
 //Modified spectra calculation by ML 05/2013
 //Calculates on fixed grid in pseudorapidity, pt, and phi
 void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti, int size, int rank)
@@ -224,7 +338,10 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
 	      phi = deltaphi*iphi;
 	      px = pt*cos(phi);
 	      py = pt*sin(phi);
-	      double sum = summation(px, py, y, m, d, b, mu, DATA);
+	      double sum;
+// 	      if(DATA->freezeOutMethod==3) cout << "Calling summation3\n";
+	      if(DATA->freezeOutMethod==3) sum = summation3(px, py, y, m, d, b, mu, DATA);
+	      else sum = summation(px, py, y, m, d, b, mu, DATA);
 	      particleList[j].dNdydptdphi[ieta][ipt][iphi] = sum;
 	      fprintf(s_file,"%e ", sum);
 	    }

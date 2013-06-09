@@ -142,7 +142,8 @@ typedef struct init_data
   double plasmaEvolutionTime;
   double plasmaEvolutionTime2;
   double sFactor;
-  double max_delta_eta;// For use with freeze_out_method=3.  Maximum size of freeze out hypersurface in eta.
+  double max_delta_eta;// For use with freeze_out_method=3.  Maximum size of freeze out hypersurface in eta, implemented in freeze out finder.
+  double max_delta_eta2;// For use with freeze_out_method=3.  Maximum size of freeze out hypersurface in eta, implemented in Cooper-Frye.
   int boost_invariant; // set to 1 for rapidity-indendent solution.
 } InitData;
 

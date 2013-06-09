@@ -612,6 +612,18 @@ Does not work in current version. Always run mode 2 and then mode 3 and 4 separa
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_delta_eta;
   DATA->max_delta_eta = tempmax_delta_eta;
   if(tempinput != "empty" && DATA->freezeOutMethod != 3) cerr << "max_delta_eta unused when freeze_out_method != 3\n";
+  
+  
+  // max_delta_eta2:  maximum size of freeze out surface segment in eta direction.
+  // Alternate to max_delta_eta above 
+  // (Though both can be used in combination.  Only has effect if max_delta_eta2 < max_delta_eta):
+  // Integrate each segment over eta directly in Cooper-Frye calculation, rather than 
+  // writing extra lines to surface.dat that need to be read in. Faster this way.
+  double tempmax_delta_eta2 = 5.;
+  tempinput = util->StringFind3(file, "max_delta_eta2");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_delta_eta2;
+  DATA->max_delta_eta2 = tempmax_delta_eta2;
+  if(tempinput != "empty" && DATA->freezeOutMethod != 3) cerr << "max_delta_eta2 unused when freeze_out_method != 3\n";
 
   
   
