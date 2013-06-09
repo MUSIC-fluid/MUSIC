@@ -6279,7 +6279,7 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 	    y = particleList[pn].y[n];
 	    for (l = 0; l < npt; l++)
 	      {
-		if(pseudofreeze) double ydummy = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
+		if(pseudofreeze) y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);
 		for (i = 0; i < nphi; i++)
 		  {
 		    double phi;
@@ -6363,11 +6363,11 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 		    else phi = phiArray[i];
 		    double spectrum = Edndp3_3bodyN(y, particleList[pn].pt[l], phi,
 					    m1, m2, m3, mr, norm3, particleList[pnR].number);
-		    if (isnan(spectrum)))
+		    if (isnan(spectrum))
 		      {
 			fprintf(stderr,"3 number=%d\n",particleList[pnR].number);
 			// Call the 3-body decay integral and add its contribution to the daughter particle of interest 
-			fprintf(stderr,"3 Edn..=%f\n",   spectrum));
+			fprintf(stderr,"3 Edn..=%f\n",   spectrum);
 		      }
 		    else
 		      {
@@ -6381,10 +6381,10 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 			particleList[pn].resCont[n][l][i]+= decay[j].branch *
 			  spectrum;
 		       
-			fprintf(stderr,"%d %f %e %e %e %e\n",n,y, particleList[pn].pt[l], decay[j].branch *
-				spectrum,
-				particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
-				spectrum,particleList[pn].resCont[n][l][i]); 
+// 			fprintf(stderr,"%d %f %e %e %e %e\n",n,y, particleList[pn].pt[l], decay[j].branch *
+// 				spectrum,
+// 				particleList[pn].dNdydptdphi[n][l][i]-decay[j].branch *
+// 				spectrum,particleList[pn].resCont[n][l][i]); 
 		      }
 		  }
 	      }
