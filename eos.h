@@ -3,9 +3,6 @@
 #include "util.h"
 #include "data.h"
 #include <iostream>
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
-#include "gsl/gsl_errno.h"
 
 
 class EOS{
@@ -62,12 +59,6 @@ class EOS{
   double **entropyDensity7;
   double **mu1;
   double **mu2;
-
-  double * eps_list_rho0, * temp_list_rho0;
-  int temp_list_rho0_length;
-  gsl_interp * interp_T_from_eps;
-  gsl_interp_accel * accel_T_from_eps;
-
   
   int whichEOS;
 
@@ -89,14 +80,12 @@ class EOS{
   double get_dpOverdrhob(double e, double rhob);
   double p_rho_func(double e, double rhob);
   double p_e_func(double e, double rhob);
-  double T_from_eps_ideal_gas(double eps);
-  double eps_from_T_ideal_gas(double T);
+  double T_func_ideal_gas(double p);
   double get_entropy(double epsilon, double rhob);
   double get_temperature(double epsilon, double rhob);
   double get_mu(double epsilon, double rhob);
   double get_qgp_frac(double epsilon, double rhob);
   double get_pressure(double epsilon, double rhob);
-  double get_energy_from_temperature(double temperature, double rhob);
   double ssolve(double e, double rhob, double s);
   double Tsolve(double e, double rhob, double T);
   double findRoot(double (EOS::*function)(double, double, double), double rhob, double s, double e1, double e2, double eacc);

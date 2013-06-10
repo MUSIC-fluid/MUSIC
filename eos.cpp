@@ -13,8 +13,6 @@ EOS::EOS()
 EOS::~EOS()
 {
   delete util;
-  gsl_interp_accel_reset(accel_T_from_eps);
-  gsl_interp_free(interp_T_from_eps);
 }
 
 void EOS::checkForReadError(FILE *file, char* name)
@@ -174,42 +172,6 @@ void EOS::init_eos()
   fclose(eos_mu1);
   fclose(eos_mu2);
   fprintf(stderr,"done reading\n");
-
-  //Allocate arrays for get_energy_from_temperature()
-  double last=0.0, tmp_T;
-  temp_list_rho0_length=0;
-  eps_list_rho0= new double [(NEPP1+1)+(NEPP2)];
-  temp_list_rho0= new double [(NEPP1+1)+(NEPP2)];
-  for(i=0;i<NEPP1+1;i++) {
-  	tmp_T=temperature1[0][i];
-  	if (tmp_T > last) {
-		eps_list_rho0[temp_list_rho0_length]=(EPP1+i*deltaEPP1)/hbarc;
-		temp_list_rho0[temp_list_rho0_length]=tmp_T/hbarc;
-		temp_list_rho0_length++;
-	}
-	last=tmp_T;
-  }
-  //Beware: the last energy of the first table is the same as the first energy of the second table
-  for(i=0;i<NEPP2+1;i++) {
-  	tmp_T=temperature2[0][i];
-  	if (tmp_T > last) {
-		eps_list_rho0[temp_list_rho0_length]=(EPP2+i*deltaEPP2)/hbarc;
-		temp_list_rho0[temp_list_rho0_length]=tmp_T/hbarc;
-		temp_list_rho0_length++;
-	}
-	last=tmp_T;
-  }
-  //for(i=1;i<(NEPP2+1);i++) {
-  //      eps_list_rho0[NEPP1+i]=EPP2+i*deltaEPP2;
-  //      temp_list_rho0[NEPP1+i]=temperature2[0][i];
-  //}
-  //for(i=0; i<(NEPP1+1)+(NEPP2);i++) cout << temp_list_rho0[i] << " ";
-  //for(i=0; i<(NEPP1+1)+(NEPP2)-1;i++) if (temp_list_rho0[i] >= temp_list_rho0[i+1]) cout << "WTH!!!!:" << i << " ";
-  //cout << "Trying to initialise GSL interpolation...\n";
-  interp_T_from_eps = gsl_interp_alloc(gsl_interp_cspline, temp_list_rho0_length);
-  gsl_interp_init(interp_T_from_eps, temp_list_rho0, eps_list_rho0, temp_list_rho0_length);
-  accel_T_from_eps = gsl_interp_accel_alloc();
-
 }
 
 void EOS::init_eos2()
@@ -1791,8 +1753,7 @@ double EOS::interpolate(double e, double rhob, int selector)
   return T/hbarc;
 }
 
-double EOS::T_from_eps_ideal_gas(double eps)
-{
+double EOS::T_func_ideal_gas(double eps) {
 
 	//Define number of colours and of flavours
  	const double Nc=3, Nf=2.5;
@@ -1801,15 +1762,6 @@ double EOS::T_from_eps_ideal_gas(double eps)
 
 }
 
-double EOS::eps_from_T_ideal_gas(double T)
-{
-
-	//Define number of colours and of flavours
- 	const double Nc=3, Nf=2.5;
-	
-	return T*T*T*T*(M_PI*M_PI*3.0*(2*(Nc*Nc-1)+7./2*Nc*Nf)/90.0);
-
-}
 
 double EOS::get_entropy(double epsilon, double rhob)
 {
@@ -1921,7 +1873,7 @@ double EOS::get_temperature(double eps, double rhob) {
 
  if (whichEOS==0)
    {
-     T=T_from_eps_ideal_gas(eps);
+     T=T_func_ideal_gas(eps);
    }
  else if (whichEOS==1)
    {
@@ -1979,43 +1931,5 @@ double EOS::get_qgp_frac(double eps, double rhob) {
    }
 
   return frac;
-
-}
-
-
-
-
-double EOS::get_energy_from_temperature(double T, double rhob) {
-
-	double eps;
-	int status;
-
-	//This function does not work for non-zero baryon density
-	if (rhob > 0.0) {
-		cerr << "Function get_energy_from_temperature() is only implemented for rhob=0. Aborting...\n";
-		exit(1);
-	}
-
-	if (whichEOS==0) {
-		eps=eps_from_T_ideal_gas(T);
-	}
-	else if (whichEOS==1) {
-		status=gsl_interp_eval_e(interp_T_from_eps, temp_list_rho0, eps_list_rho0, T, accel_T_from_eps, &eps);
-		if (status == GSL_EDOM) {
-			cerr << "Error: can't get energy from temperature, temperature T="<<T<<" fm^-1 is outside the current tabulation of the EOS...\n";
-			exit(1);
-		}
-	}
-	else if (whichEOS>=2) {
-		exit(1);
-		//Get the tables
-
-		//Get the minimum value
-
-		//Get the maximum value
-		//frac = interpolate2(eps, rhob, 3);
-	}
-
-	return eps;
 
 }
