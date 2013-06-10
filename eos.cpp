@@ -1811,13 +1811,7 @@ double EOS::ssolve(double e, double rhob, double s)
 double EOS::Tsolve(double e, double rhob, double T)
 {
   // takes e in GeV/fm^3 and passes it on in 1/fm^4 ...
-  double P, s, mu;
-  P = get_pressure(e/hbarc, rhob);
-
-  s = get_entropy(e/hbarc, rhob);
-  mu = get_mu(e/hbarc, rhob);
-  
-  return T*s-e/hbarc-P+mu*rhob;
+  return T-get_temperature(e/hbarc,rhob);
 }
 
 double EOS::findRoot(double (EOS::*func)(double, double, double), double rhob, double s, double e1, double e2, double eacc)
