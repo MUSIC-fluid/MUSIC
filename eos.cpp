@@ -29,7 +29,6 @@ void EOS::init_eos0() {
   whichEOS = 0;
 }
 
-
 void EOS::init_eos()
 {
   // read the azhydro pressure, temperature, and 
@@ -57,53 +56,53 @@ void EOS::init_eos()
       fprintf(stderr,"from path %s/EOS \n", envPath);
       eos_p1_name = util->char_malloc(100);
       strcat(eos_p1_name,envPath);
-      strcat(eos_p1_name,"/EOS/aa1_p.dat");
+      strcat(eos_p1_name,"/EOS/EOS-Q/aa1_p.dat");
 
       eos_p2_name = util->char_malloc(100);
       strcat(eos_p2_name,envPath);
-      strcat(eos_p2_name,"/EOS/aa2_p.dat");
+      strcat(eos_p2_name,"/EOS/EOS-Q/aa2_p.dat");
 
       eos_T1_name = util->char_malloc(100);
       strcat(eos_T1_name,envPath);
-      strcat(eos_T1_name,"/EOS/aa1_t.dat");
+      strcat(eos_T1_name,"/EOS/EOS-Q/aa1_t.dat");
 
       eos_T2_name = util->char_malloc(100);
       strcat(eos_T2_name,envPath);
-      strcat(eos_T2_name,"/EOS/aa2_t.dat");
+      strcat(eos_T2_name,"/EOS/EOS-Q/aa2_t.dat");
 
       eos_mu1_name = util->char_malloc(100);
       strcat(eos_mu1_name,envPath);
-      strcat(eos_mu1_name,"/EOS/aa1_mb.dat");
+      strcat(eos_mu1_name,"/EOS/EOS-Q/aa1_mb.dat");
  
       eos_mu2_name = util->char_malloc(100);
       strcat(eos_mu2_name,envPath);
-      strcat(eos_mu2_name,"/EOS/aa2_mb.dat");
+      strcat(eos_mu2_name,"/EOS/EOS-Q/aa2_mb.dat");
     }
   else
     {
       eos_p1_name = util->char_malloc(100);
       strcat(eos_p1_name,".");
-      strcat(eos_p1_name,"/EOS/aa1_p.dat");
+      strcat(eos_p1_name,"/EOS/EOS-Q/aa1_p.dat");
 
       eos_p2_name = util->char_malloc(100);
       strcat(eos_p2_name,".");
-      strcat(eos_p2_name,"/EOS/aa2_p.dat");
+      strcat(eos_p2_name,"/EOS/EOS-Q/aa2_p.dat");
 
       eos_T1_name = util->char_malloc(100);
       strcat(eos_T1_name,".");
-      strcat(eos_T1_name,"/EOS/aa1_t.dat");
+      strcat(eos_T1_name,"/EOS/EOS-Q/aa1_t.dat");
 
       eos_T2_name = util->char_malloc(100);
       strcat(eos_T2_name,".");
-      strcat(eos_T2_name,"/EOS/aa2_t.dat");
+      strcat(eos_T2_name,"/EOS/EOS-Q/aa2_t.dat");
 
       eos_mu1_name = util->char_malloc(100);
       strcat(eos_mu1_name,".");
-      strcat(eos_mu1_name,"/EOS/aa1_mb.dat");
+      strcat(eos_mu1_name,"/EOS/EOS-Q/aa1_mb.dat");
  
       eos_mu2_name = util->char_malloc(100);
       strcat(eos_mu2_name,".");
-      strcat(eos_mu2_name,"/EOS/aa2_mb.dat");
+      strcat(eos_mu2_name,"/EOS/EOS-Q/aa2_mb.dat");
     }
   
   eos_p1 = fopen(eos_p1_name, "r");
@@ -587,10 +586,13 @@ void EOS::init_eos3(int selector)
   cout << "reading EOS..." << endl;
   whichEOS = 3; 
   int i, j;
-  char* envPath;
-  envPath = new char[strlen(getenv("HYDROPROGRAMPATH"))];
-  envPath = getenv("HYDROPROGRAMPATH");
-  envPath[strlen(getenv("HYDROPROGRAMPATH"))]='\0';
+  string envPath;
+  if (getenv("HYDROPROGRAMPATH") != 0) {
+    envPath=getenv("HYDROPROGRAMPATH");
+  }
+  else {
+	envPath="";
+  }
   
   stringstream spath;
   stringstream slocalpath;
@@ -650,7 +652,7 @@ void EOS::init_eos3(int selector)
   string localpath = slocalpath.str();
 
 
-  if (envPath != 0 && *envPath != '\0') // if path is set in the environment
+  if (envPath != "") // if path is set in the environment
     {
       streos_d1_name << path << "dens1.dat";
       eos_d1_name = streos_d1_name.str();
@@ -1304,7 +1306,7 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	  fprintf(stderr,"e=%f,eps0=%f; maxe=%f, deltaEps=%f\n", e, eps0, NEps*deltaEps+eps0, deltaEps);
 	  exit(0);
 	}
-      if(ie2>NEps)
+      if(ie2>=NEps)
 	{
 	  fprintf(stderr,"ERROR in inperpolate2. out of range.\n");
 	  fprintf(stderr,"ie2=%d,NEPP2=%d\n", ie2, NEps);
@@ -1754,7 +1756,8 @@ double EOS::interpolate(double e, double rhob, int selector)
   return T/hbarc;
 }
 
-double EOS::T_func_ideal_gas(double eps) {
+double EOS::T_from_eps_ideal_gas(double eps)
+{
 
 	//Define number of colours and of flavours
  	const double Nc=3, Nf=2.5;
@@ -1808,13 +1811,7 @@ double EOS::ssolve(double e, double rhob, double s)
 double EOS::Tsolve(double e, double rhob, double T)
 {
   // takes e in GeV/fm^3 and passes it on in 1/fm^4 ...
-  double P, s, mu;
-  P = get_pressure(e/hbarc, rhob);
-
-  s = get_entropy(e/hbarc, rhob);
-  mu = get_mu(e/hbarc, rhob);
-  
-  return T*s-e/hbarc-P+mu*rhob;
+  return T-get_temperature(e/hbarc,rhob);
 }
 
 double EOS::findRoot(double (EOS::*func)(double, double, double), double rhob, double s, double e1, double e2, double eacc)
@@ -1874,7 +1871,7 @@ double EOS::get_temperature(double eps, double rhob) {
 
  if (whichEOS==0)
    {
-     T=T_func_ideal_gas(eps);
+     T=T_from_eps_ideal_gas(eps);
    }
  else if (whichEOS==1)
    {

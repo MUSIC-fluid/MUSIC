@@ -1,10 +1,7 @@
-[2012-05-01]
-EOS::Tsolve() does not return the right value when PCE EOS are used
-
-[2012-05-01] 
-sFO calculated in the Evolve::FindFreezeOutSurface*() functions and
-used in Freeze::summation() should be (energy_density+pressure)/temperature
-
-[2012-05-01]
+[2013-05-01]
 The initialisation of Wmunu somehow has an effect on the ideal hydro evolution,
 though it clearly shouldn't
+
+[2013-05-31]
+The dependencies (which files and headers are needed to compile a file) in the makefile
+appear not to be up-to-date. Someone who knows how "make" works should take a look.

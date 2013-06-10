@@ -178,12 +178,14 @@ main(int argc, char *argv[])
 
       
       tau = DATA.tau0 + DATA.tau_size; 
-      
-      FILE *t4_file;
-      char* t4_name = "avgT.dat";
-      t4_file = fopen(t4_name, "a");
-      fprintf(t4_file,"time average: %f GeV and %f GeV", DATA.avgT/DATA.nSteps*hbarc, DATA.avgT2/DATA.nSteps2*hbarc );
-      fclose(t4_file);
+     
+      if (DATA.output_hydro_debug_info) {
+        FILE *t4_file;
+        char* t4_name = "avgT.dat";
+        t4_file = fopen(t4_name, "a");
+        fprintf(t4_file,"time average: %f GeV and %f GeV", DATA.avgT/DATA.nSteps*hbarc, DATA.avgT2/DATA.nSteps2*hbarc );
+        fclose(t4_file);
+      }
       
       cout << "average plasma T=" << DATA.avgT/DATA.nSteps*hbarc << " GeV." << endl; 
       cout << "average plasma+mixed T=" << DATA.avgT2/DATA.nSteps2*hbarc << " GeV." << endl; 
@@ -1186,13 +1188,40 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   // End MARTINI parameters
 
 
-
+  //
   int tempboost_invariant = 0;
   tempinput = util->StringFind3(file, "boost_invariant");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempboost_invariant;
   DATA->boost_invariant = tempboost_invariant;
 
+  //Check if the freeze-out surface ever reaches the edge of the grid in the x or y direction
+  //Warning: this check is only made when freeze-out method 3 is used! (not implemented for the other freeze-out methods)
+  //set to 0 to disable
+  //set to 1 to just output an error message when this happens
+  //set to 2 to stop the evolution and exit when this happens
+  int tempcheck_FO3_at_boundary_xy = 2;
+  tempinput = util->StringFind3(file, "check_FO3_at_boundary_xy");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempcheck_FO3_at_boundary_xy;
+  DATA->check_FO3_at_boundary_xy = tempcheck_FO3_at_boundary_xy;
 
-  cout << "Done ReadInData." << endl;
+  //Check if the freeze-out surface ever reaches the edge of the grid in the eta direction
+  //Warning: this check is only made when freeze-out method 3 is used! (not implemented for the other freeze-out methods)
+  //set to 0 to disable
+  //set to 1 to just output an error message when this happens
+  //set to 2 to stop the evolution and exit when this happens
+  int tempcheck_FO3_at_boundary_eta = 1;
+  tempinput = util->StringFind3(file, "check_FO3_at_boundary_eta");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempcheck_FO3_at_boundary_eta;
+  if (DATA->boost_invariant > 0) tempcheck_FO3_at_boundary_eta = 0;
+  DATA->check_FO3_at_boundary_eta = tempcheck_FO3_at_boundary_eta;
+
+  //Make MUSIC output additionnal hydro information
+  //0 for false (do not output), 1 for true
+  bool tempoutput_hydro_debug_info = true;
+  tempinput = util->StringFind3(file, "output_hydro_debug_info");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempoutput_hydro_debug_info;
+  DATA->output_hydro_debug_info = tempoutput_hydro_debug_info;
+  
+  cout << "Done ReadInData2." << endl;
   delete util;
-}/* ReadInData */
+}/* ReadInData2 */
