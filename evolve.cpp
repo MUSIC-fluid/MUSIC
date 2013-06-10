@@ -5307,8 +5307,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 // 	  
 	  
 	  int ret;
-	  ret = system("cat surface?.dat > surface.dat");
-	  ret = system("cat surface??.dat > surface.dat 2> /dev/null");
+	  ret = system("cat surface?.dat surface??.dat > surface.dat");
 	  ret = system("rm surface?.dat surface??.dat 2> /dev/null");
 	  
 // 	  MPI::Finalize();

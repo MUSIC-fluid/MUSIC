@@ -1262,7 +1262,11 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		  if(rank==0)
 		  {
 		    // If there is more than one processor, this processor doesn't have all pseudorapidity values in memory
-		    if(size > 1 && part > alreadyread)  ReadSpectra_pseudo(DATA, 0);
+		    if(size > 1 && part > alreadyread)  
+		    {
+		      alreadyread = part;
+		      ReadSpectra_pseudo(DATA, 0);
+		    }
 		    fprintf(stderr,"Copying %d: %s (%d) from %s\n", i, particleList[i].name, particleList[i].number, particleList[part].name);
 		    int iphimax = DATA->phi_steps;
 		    int iptmax = DATA->pt_steps + 1;
