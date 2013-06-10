@@ -36,28 +36,22 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
  int ix, iy, ieta, nx, ny, neta, it, itmax, rk_flag, flag, cent_eta;
  double dt, tau0, tau, x;
 
- ofstream ent_file("entropy-eta.dat");
- ent_file.close();
- ofstream ep_file("e_profile.dat");
- ep_file.close();
- ofstream exp_file("e_x_profile.dat");
- exp_file.close();
- ofstream pc_file("cellsWithProblems.dat");
- pc_file.close();
- ofstream v2_file("aniso.dat");
- v2_file.close();
- ofstream ecc_file("eccentricity");
- ecc_file.close();
- ofstream t_file("tau.dat");
- t_file.close();
- ofstream t2_file("taux.dat");
- t2_file.close();
- ofstream t3_file("tauy.dat");
- t3_file.close();
- ofstream t4_file("avgT.dat");
- t4_file.close();
- ofstream t5_file("plasmaEvolutionTime.dat");
- t5_file.close();
+ if (DATA->output_hydro_debug_info) {
+   ofstream ent_file("entropy-eta.dat");
+   ent_file.close();
+   ofstream ep_file("e_profile.dat");
+   ep_file.close();
+   ofstream exp_file("e_x_profile.dat");
+   exp_file.close();
+   ofstream v2_file("aniso.dat");
+   v2_file.close();
+   ofstream t4_file("avgT.dat");
+   t4_file.close();
+   ofstream t5_file("plasmaEvolutionTime.dat");
+   t5_file.close();
+   ofstream cout_file("contourPlot.dat");
+   cout_file.close();
+ }
  stringstream strs_name;
  strs_name << "surface" << rank << ".dat";
  string s_name;
@@ -66,25 +60,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
  s_file.close();
  ofstream out_file("evolution.dat");
  out_file.close();
- FILE *out_file_xyeta;
- FILE *out_file_W_xyeta;
- char* out_name_xyeta = "evolution_xyeta.dat";
- char* out_name_W_xyeta = "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
- if (0 == DATA->outputBinaryEvolution) {
-   out_file_xyeta = fopen(out_name_xyeta, "w");
-   out_file_W_xyeta = fopen(out_name_W_xyeta,"w");
-
- }
- else {
-   out_file_xyeta = fopen(out_name_xyeta, "wb");
-   out_file_W_xyeta = fopen(out_name_W_xyeta,"wb");
- }
- fclose(out_file_xyeta);
- fclose(out_file_W_xyeta);
  ofstream oout_file("OSCAR.dat");
  oout_file.close();
- ofstream cout_file("contoutPlot.dat");
- cout_file.close();
 
  facTau = DATA->facTau;
 
@@ -118,25 +95,27 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 /*    exit(1); */
    //for testing
 
+   if (DATA->output_hydro_debug_info) {
+     if(it%10==0 && it>=0) 
+       {
+         grid->PrintEtaEpsilon(arena, DATA, tau, size, rank);
+         grid->PrintxEpsilon(arena, DATA, tau, size, rank);
+         //       grid->ComputeEccentricity(DATA, arena, tau);
+         grid->ComputeAnisotropy(DATA, arena, tau);
+       }
 
-   if(it%10==0 && it>=0) 
-     {
-       grid->PrintEtaEpsilon(arena, DATA, tau, size, rank);
-       grid->PrintxEpsilon(arena, DATA, tau, size, rank);
-       //       grid->ComputeEccentricity(DATA, arena, tau);
-       grid->ComputeAnisotropy(DATA, arena, tau);
-     }
-
-   grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
-
+     grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
+   }
 
    if(it%10==0 && DATA->outputEvolutionData) 
      {
-       //grid->OutputXY(arena, DATA, eos, tau, size, rank);
        grid->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
+       if (DATA->output_hydro_debug_info) {
+       //grid->OutputXY(arena, DATA, eos, tau, size, rank);
        //grid->OutputEvolutionOSCAR(arena, DATA, eos, tau, size, rank); 
        //  grid->OutputEvolutionDataXYZ(arena, DATA, eos, tau, size, rank); 
        // this produces potentially huge outputs so beware
+       }
      }
 
    /* execute rk steps */

@@ -175,12 +175,14 @@ main(int argc, char *argv[])
       flag =  evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank); 
       
       tau = DATA.tau0 + DATA.tau_size; 
-      
-      FILE *t4_file;
-      char* t4_name = "avgT.dat";
-      t4_file = fopen(t4_name, "a");
-      fprintf(t4_file,"time average: %f GeV and %f GeV", DATA.avgT/DATA.nSteps*hbarc, DATA.avgT2/DATA.nSteps2*hbarc );
-      fclose(t4_file);
+     
+      if (DATA.output_hydro_debug_info) {
+        FILE *t4_file;
+        char* t4_name = "avgT.dat";
+        t4_file = fopen(t4_name, "a");
+        fprintf(t4_file,"time average: %f GeV and %f GeV", DATA.avgT/DATA.nSteps*hbarc, DATA.avgT2/DATA.nSteps2*hbarc );
+        fclose(t4_file);
+      }
       
       cout << "average plasma T=" << DATA.avgT/DATA.nSteps*hbarc << " GeV." << endl; 
       cout << "average plasma+mixed T=" << DATA.avgT2/DATA.nSteps2*hbarc << " GeV." << endl; 
@@ -1146,6 +1148,13 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempcheck_FO3_at_boundary_eta;
   if (DATA->boost_invariant > 0) tempcheck_FO3_at_boundary_eta = 0;
   DATA->check_FO3_at_boundary_eta = tempcheck_FO3_at_boundary_eta;
+
+  //Make MUSIC output additionnal hydro information
+  //0 for false (do not output), 1 for true
+  bool tempoutput_hydro_debug_info = true;
+  tempinput = util->StringFind3(file, "output_hydro_debug_info");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempoutput_hydro_debug_info;
+  DATA->output_hydro_debug_info = tempoutput_hydro_debug_info;
   
   cout << "Done ReadInData2." << endl;
   delete util;

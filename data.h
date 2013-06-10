@@ -135,6 +135,7 @@ typedef struct init_data
   double max_delta_eta;// For use with freeze_out_method=3.  Maximum size of freeze out hypersurface in eta.
   int boost_invariant; // set to 1 for rapidity-indendent solution.
   int check_FO3_at_boundary_eta, check_FO3_at_boundary_xy;
+  bool output_hydro_debug_info;
 } InitData;
 
 

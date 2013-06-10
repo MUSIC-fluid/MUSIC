@@ -351,6 +351,7 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
   double *Wtautau, *Wtaux, *Wtauy, *Wtaueta, *Wxx, *Wxy, *Wxeta, *Wyy, *Wyeta, *Wetaeta; // added by Maxime  
 //  double *Ttautau, *Ttaux, *Ttauy, *Ttaueta, *Txx, *Txy, *Txeta, *Tyy, *Tyeta, *Tetaeta; // added by Maxime
 
+
   eps = (double *)malloc(sizeof(double)*sizeOfData);
   rhob = (double *)malloc(sizeof(double)*sizeOfData);
   utau = (double *)malloc(sizeof(double)*sizeOfData);
@@ -646,22 +647,27 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 	}
       
       //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
-      
-      FILE *out_file;
-      char* out_name = "evolution_xyeta.dat";
-      FILE *out_file_W;
-//      FILE *out_file_T;
-      char* out_name_W = "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat"; // added by Maxime
-//      char* out_name_T = "evolution_Tmunu_xyeta.dat"; // added by Maxime
-      if (0 == DATA->outputBinaryEvolution) {
-        out_file = fopen(out_name, "a");
-        out_file_W = fopen(out_name_W,"a");
+  //set up file name
+  const string out_name_xyeta = "evolution_xyeta.dat";
+  const string out_name_W_xyeta = "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
+  string out_open_mode;
+  FILE *out_file_xyeta;
+  FILE *out_file_W_xyeta;
 
-      }
-      else {
-        out_file = fopen(out_name, "ab");
-        out_file_W = fopen(out_name_W,"ab");
-      }
+  //If it's the first timestep, overwrite the previous file
+  if (tau == DATA->tau0) {
+     out_open_mode = "w";
+  }
+  else {
+     out_open_mode = "a";	
+  }
+  //If we output in binary, set the mode accordingly
+  if (0 == DATA->outputBinaryEvolution) {
+    out_open_mode += "b";
+  }
+
+  out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
+  out_file_W_xyeta = fopen(out_name_W_xyeta.c_str(), out_open_mode.c_str());
       
 //      out_file_T = fopen(out_name_T,"a");
       //fprintf(out_file,"");
@@ -747,18 +753,18 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 
                 // exclude the actual coordinates from the output to save space:
                 if (0 == DATA->outputBinaryEvolution) {
-		  fprintf(out_file,"%e %e %e %e %e\n", T1*hbarc, QGPfrac1, ux1, uy1, uz1);
+		  fprintf(out_file_xyeta,"%e %e %e %e %e\n", T1*hbarc, QGPfrac1, ux1, uy1, uz1);
 		  if (1 == DATA->viscosity_flag) {
-		    fprintf(out_file_W,"%e %e %e %e %e %e %e %e %e %e\n",Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz); 
+		    fprintf(out_file_W_xyeta,"%e %e %e %e %e %e %e %e %e %e\n",Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz); 
 		  }
 		}
 		else {
 		  float array[]={T1*hbarc, QGPfrac1, ux1, uy1, uz1};
-		  fwrite(array,sizeof(float),5,out_file);
+		  fwrite(array,sizeof(float),5,out_file_xyeta);
 		  //Write Wmunu/shear only if viscosity is on --- no need to fill a file with zeros in the ideal case
 		  if (1 == DATA->viscosity_flag) {
 		  	float array2[]={Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz};
-		  	fwrite(array2,sizeof(float),10,out_file_W);
+		  	fwrite(array2,sizeof(float),10,out_file_W_xyeta);
 		  }
 		}
 		//fprintf(out_file_T,"%e %e %e %e %e %e %e %e %e %e\n",Ttt,Ttx,Tty,Ttz,Txx,Txy,Txz,Tyy,Tyz,Tzz);
@@ -766,8 +772,8 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 	      }/* ix */
 	  }/* iy */
       }/* ieta */
-      fclose(out_file);
-      fclose(out_file_W);
+      fclose(out_file_xyeta);
+      fclose(out_file_W_xyeta);
 //      fclose(out_file_T);
 
       /*End of hydro output in tau,x,y,eta*/
