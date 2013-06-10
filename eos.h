@@ -80,7 +80,7 @@ class EOS{
   double get_dpOverdrhob(double e, double rhob);
   double p_rho_func(double e, double rhob);
   double p_e_func(double e, double rhob);
-  double T_func_ideal_gas(double p);
+  double T_from_eps_ideal_gas(double eps);
   double get_entropy(double epsilon, double rhob);
   double get_temperature(double epsilon, double rhob);
   double get_mu(double epsilon, double rhob);

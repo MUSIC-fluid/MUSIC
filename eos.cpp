@@ -586,10 +586,13 @@ void EOS::init_eos3(int selector)
   cout << "reading EOS..." << endl;
   whichEOS = 3; 
   int i, j;
-  char* envPath;
-  envPath = new char[strlen(getenv("HYDROPROGRAMPATH"))];
-  envPath = getenv("HYDROPROGRAMPATH");
-  envPath[strlen(getenv("HYDROPROGRAMPATH"))]='\0';
+  string envPath;
+  if (getenv("HYDROPROGRAMPATH") != 0) {
+    envPath=getenv("HYDROPROGRAMPATH");
+  }
+  else {
+	envPath="";
+  }
   
   stringstream spath;
   stringstream slocalpath;
@@ -649,7 +652,7 @@ void EOS::init_eos3(int selector)
   string localpath = slocalpath.str();
 
 
-  if (envPath != 0 && *envPath != '\0') // if path is set in the environment
+  if (envPath != "") // if path is set in the environment
     {
       streos_d1_name << path << "dens1.dat";
       eos_d1_name = streos_d1_name.str();
@@ -1303,7 +1306,7 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	  fprintf(stderr,"e=%f,eps0=%f; maxe=%f, deltaEps=%f\n", e, eps0, NEps*deltaEps+eps0, deltaEps);
 	  exit(0);
 	}
-      if(ie2>NEps)
+      if(ie2>=NEps)
 	{
 	  fprintf(stderr,"ERROR in inperpolate2. out of range.\n");
 	  fprintf(stderr,"ie2=%d,NEPP2=%d\n", ie2, NEps);
@@ -1753,7 +1756,8 @@ double EOS::interpolate(double e, double rhob, int selector)
   return T/hbarc;
 }
 
-double EOS::T_func_ideal_gas(double eps) {
+double EOS::T_from_eps_ideal_gas(double eps)
+{
 
 	//Define number of colours and of flavours
  	const double Nc=3, Nf=2.5;
@@ -1873,7 +1877,7 @@ double EOS::get_temperature(double eps, double rhob) {
 
  if (whichEOS==0)
    {
-     T=T_func_ideal_gas(eps);
+     T=T_from_eps_ideal_gas(eps);
    }
  else if (whichEOS==1)
    {
