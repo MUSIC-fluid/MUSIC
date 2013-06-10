@@ -19,7 +19,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
 //   if(full) strcpy(p_name, "FparticleInformation.dat");
   if(full) p_file = fopen(pf_name, "r");
   else p_file = fopen(p_name, "r");
-  checkForReadError(p_file,p_name);
+//   checkForReadError(p_file,p_name);
   int count;
   count = 0;
   cout << "NumberOfParticlesToInclude " << DATA->NumberOfParticlesToInclude << endl;
@@ -1306,7 +1306,12 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	      // file until the concatonation is done)
 	      MPI_Barrier(MPI_COMM_WORLD);
 	      
-	      if(rank==0 && computespectrum) ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+	      if(rank==0 && computespectrum) 
+	      {
+		ret = system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
+		ret = system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+	      }
+	      
 	    }
 	}
       else
@@ -1332,7 +1337,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	      for (int from=1; from < size; from ++)
 		MPI::COMM_WORLD.Recv(&check,1,MPI::INT,from,1);
 	      
-	      ret = system("cat yptphiSpectra?.dat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+	      ret = system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
+	      ret = system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
 /*	      
 	      ReadSingleSpectrum(DATA);
 	      cout << "output results..." << endl;

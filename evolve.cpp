@@ -4643,6 +4643,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 	      packageux[position] = arena[ix][iy][0].u[0][1];
 	      packageuy[position] = arena[ix][iy][0].u[0][2];
 	      packageueta[position] = arena[ix][iy][0].u[0][3];
+	      packagerhob[position] = arena[ix][iy][0].rhob;
 	      
 //	      packageWtautau[position] = arena[ix][iy][0].Wmunu[0][0][0];
 //	      packageWtaux[position] = arena[ix][iy][0].Wmunu[0][0][1];
@@ -4654,6 +4655,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 	      packageWyy[position] = arena[ix][iy][0].Wmunu[0][2][2];
 	      packageWyeta[position] = arena[ix][iy][0].Wmunu[0][2][3];
 //	      packageWetaeta[position] = arena[ix][iy][0].Wmunu[0][3][3];
+	      
       
       
 	    }
@@ -5305,7 +5307,8 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 // 	  
 	  
 	  int ret;
-	  ret = system("cat surface?.dat surface??.dat > surface.dat 2> /dev/null");
+	  ret = system("cat surface?.dat > surface.dat");
+	  ret = system("cat surface??.dat > surface.dat 2> /dev/null");
 	  ret = system("rm surface?.dat surface??.dat 2> /dev/null");
 	  
 // 	  MPI::Finalize();
