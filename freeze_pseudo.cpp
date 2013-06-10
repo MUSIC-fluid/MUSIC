@@ -46,6 +46,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
 	{
 // 	      particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
 	  particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax-1,2); // power law
+// 	  particleList[ip].pt[ipt] =  0.01 + ipt*ptmax/(iptmax-1); // compare to UVH2+1
 // 	  particleList[ip].pt[ipt] = gala15x[ipt]/12; // gauss laguerre abissas
 	}
       for (int ieta=0; ieta<=pseudo_steps; ieta++ )
@@ -320,6 +321,7 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
 // 	  pt = ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1);
 // 	      pt =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
 	      pt =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax-1,2); // power law
+// 	      pt =  0.01 + ipt*ptmax/(iptmax-1); // compare to UVH2+1
 // 	      pt = gala15x[ipt]/12.; // gauss laguerre absissas
 	  particleList[j].pt[ipt] = pt;
 	  
@@ -1231,6 +1233,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 {
   if(DATA->pseudofreeze) pseudofreeze = 1;
   else pseudofreeze =0;
+  int alreadyread = 0;
   ReadParticleData(DATA, eos); // read in data for Cooper-Frye
   int i, b, number;
   if (mode == 3 || mode == 1) // compute thermal spectra
@@ -1258,6 +1261,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		  computespectrum = 0;
 		  if(rank==0)
 		  {
+		    // If there is more than one processor, this processor doesn't have all pseudorapidity values in memory
+		    if(size > 1 && part > alreadyread)  ReadSpectra_pseudo(DATA, 0);
 		    fprintf(stderr,"Copying %d: %s (%d) from %s\n", i, particleList[i].name, particleList[i].number, particleList[part].name);
 		    int iphimax = DATA->phi_steps;
 		    int iptmax = DATA->pt_steps + 1;
@@ -1298,18 +1303,21 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	      }// loop over particles that have already been calculated
 	      
 
-	      if(computespectrum) ComputeParticleSpectrum_pseudo(DATA, number, b, size, rank);
+	      if(computespectrum) 
+	      {
+		ComputeParticleSpectrum_pseudo(DATA, number, b, size, rank);
 
   
-	      // Wait until all processors are finished and concatonate results
-	      // (Don't want any processors to start writing the next particle to 
-	      // file until the concatonation is done)
-	      MPI_Barrier(MPI_COMM_WORLD);
-	      
-	      if(rank==0 && computespectrum) 
-	      {
-		ret = system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
-		ret = system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+		// Wait until all processors are finished and concatonate results
+		// (Don't want any processors to start writing the next particle to 
+		// file until the concatonation is done)
+		MPI_Barrier(MPI_COMM_WORLD);
+		
+		if(rank==0) 
+		{
+		  ret = system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
+		  ret = system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+		}
 	      }
 	      
 	    }
