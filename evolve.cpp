@@ -5312,7 +5312,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 	  
 // 	  MPI::Finalize();
 //  	  exit(1);
-	  return 1;
+// 	  return 1;
 	}
       }
   if (rank!=0)
@@ -5323,7 +5323,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 // 	  cout << "All cells frozen out. Exiting." << endl;
 // 	  MPI::Finalize();
 //  	  exit(1);
-	  return 1;
+// 	  return 1;
 	}
     }
 
@@ -5351,6 +5351,6 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
   util->mtx_free(Rneighbor_Wyy,nx+1,ny+1);
   util->mtx_free(Rneighbor_Wyeta,nx+1,ny+1);
   
- return 0;
+ return allfrozen;
 }
 
