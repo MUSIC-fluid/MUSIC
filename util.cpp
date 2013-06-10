@@ -523,7 +523,7 @@ string Util::StringFind3(string file_name, char *st)
 // 	exit(1);
 	return "empty";
       }    
-}/* StringFind */
+}/* StringFind3 */
 
 
 char *Util::StringFind2(char *file_name, char *st)

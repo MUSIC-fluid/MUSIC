@@ -104,7 +104,7 @@ class Freeze{
     double epsilon_f;
     double T_f;
     double mu_B; 
-    double sFO; // entropy density
+    double eps_plus_p_over_T_FO; // (energy_density+pressure)/temperature
   } SurfaceElement;
   
   SurfaceElement *surface;
