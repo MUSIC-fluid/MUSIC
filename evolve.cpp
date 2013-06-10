@@ -879,7 +879,7 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
     {
       rhob = 0.;
       cout << "[evolve.cpp:FindFreezeoutSurface2]: Using T_freeze works for rhob=0 only" << endl;
-      epsFO=eos->get_energy_from_temperature(DATA->TFO/hbarc,rhob);
+      epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA->TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
       cout << "T_freeze=" << DATA->TFO << ", epsFO=" << epsFO*hbarc << endl;
     }
 
@@ -4514,7 +4514,8 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
   else if(0 == DATA->turn_on_rhob)
     {
       rhob = 0.;
-      epsFO=eos->get_energy_from_temperature(DATA->TFO/hbarc,rhob);
+//       cout << "[evolve.cpp:FindFreezeoutSurface3]: Using T_freeze works for rhob=0 only" << endl;
+      epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA->TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
       cout << "T_freeze=" << DATA->TFO << ", epsFO=" << epsFO*hbarc << endl;
     }
   
@@ -4735,7 +4736,7 @@ void Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, in
 	        rhob = arena[ix][iy][ieta].rhob;
 	        if (!DATA->useEpsFO && (1 == DATA->turn_on_rhob))
 		{
-		  epsFO=eos->get_energy_from_temperature(DATA->TFO/hbarc,rhob);
+		  epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA->TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
 		}
 
 	      if(ix<nx)

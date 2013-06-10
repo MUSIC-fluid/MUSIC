@@ -1,4 +1,7 @@
 [2013-05-01]
+EOS::Tsolve() does not return the right value when PCE EOS are used
+
+[2013-05-01]
 The initialisation of Wmunu somehow has an effect on the ideal hydro evolution,
 though it clearly shouldn't
 
