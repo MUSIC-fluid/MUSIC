@@ -4814,11 +4814,17 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		    freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
 		    freeze_file << TFO*hbarc << "\n";
 		  }
-		  if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
+		  if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
 		  {
-		    cerr << "Freeze out surface exiting the volume in x direction at x,y,eta = " 
+		    cerr << "Freeze out surface exiting the volume in y direction at tau, x,y,eta = " 
 			  << x << ", " << y << ", " << eta << endl;
 		    if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+		  }
+		  if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))
+		  {
+		    cerr << "Freeze out surface exiting the volume in eta direction at tau, x,y,eta = " 
+			  << tauf << ", " << x << ", " << y << ", " << eta << endl;
+		    if(DATA->check_FO3_at_boundary_eta>1) exit(42);
 		  }
 		} // if grid pair straddles freeze out density
 		} //if(ix<nx)
@@ -4903,11 +4909,17 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		    freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
 		    freeze_file << TFO*hbarc << "\n";
 		  }
-		  if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
+		  if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
 		  {
-		    cerr << "Freeze out surface exiting the volume in y direction at x,y,eta = " 
-			  << x << ", " << y << ", " << eta << endl;
+		    cerr << "Freeze out surface exiting the volume in x direction at tau, x,y,eta = " 
+			  << tauf << ", " << x << ", " << y << ", " << eta << endl;
 		    if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+		  }
+		  if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))
+		  {
+		    cerr << "Freeze out surface exiting the volume in eta direction at tau, x,y,eta = " 
+			  << tauf << ", " << x << ", " << y << ", " << eta << endl;
+		    if(DATA->check_FO3_at_boundary_eta>1) exit(42);
 		  }
 		} // if grid pair straddles freeze out density
 		} //if(iy<ny)
@@ -4980,11 +4992,17 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 			 << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
 			 << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;
 			 
-		  if((ieta==0 || (nieta==neta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))
+		  if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
 		  {
-		    cerr << "Freeze out surface exiting the volume in eta direction at x,y,eta = " 
-			  << x << ", " << y << ", " << eta << endl;
-		    if(DATA->check_FO3_at_boundary_eta>1) exit(42);
+		    cerr << "Freeze out surface exiting the volume in x direction at tau, x,y,eta = " 
+			  << tauf << ", " << x << ", " << y << ", " << eta << endl;
+		    if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+		  }
+		  if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
+		  {
+		    cerr << "Freeze out surface exiting the volume in y direction at tau, x,y,eta = " 
+			  << tauf << ", " << x << ", " << y << ", " << eta << endl;
+		    if(DATA->check_FO3_at_boundary_xy>1) exit(42);
 		  }
 		}// if grid pair straddles freeze out density
 	      }// if (ieta<maxEta)
@@ -5072,6 +5090,24 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		    freeze_file << SIG*3 << "\t" << ux << "\t" << uy << "\t";
 		    freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
 		    freeze_file << TFO*hbarc << "\n";
+		  }
+		  if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
+		  {
+		    cerr << "Freeze out surface exiting the volume in x direction at tau, x,y,eta = " 
+			  << tauf << ", " << x << ", " << y << ", " << eta << endl;
+		    if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+		  }
+		  if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
+		  {
+		    cerr << "Freeze out surface exiting the volume in y direction at tau, x,y,eta = " 
+			  << tauf << ", " << x << ", " << y << ", " << eta << endl;
+		    if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+		  }
+		  if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))
+		  {
+		    cerr << "Freeze out surface exiting the volume in eta direction at tau, x,y,eta = " 
+			  << tauf << ", " << x << ", " << y << ", " << eta << endl;
+		    if(DATA->check_FO3_at_boundary_eta>1) exit(42);
 		  }
 		} // if grid pair straddles density
 	      
