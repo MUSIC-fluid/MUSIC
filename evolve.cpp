@@ -4817,7 +4817,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		  if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
 		  {
 		    cerr << "Freeze out surface exiting the volume in y direction at tau, x,y,eta = " 
-			  << x << ", " << y << ", " << eta << endl;
+			  << tauf << ", " << x << ", " << y << ", " << eta << endl;
 		    if(DATA->check_FO3_at_boundary_xy>1) exit(42);
 		  }
 		  if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))

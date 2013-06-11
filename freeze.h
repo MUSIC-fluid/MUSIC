@@ -171,7 +171,7 @@ class Freeze{
 
   //When the pseudorapidity mode is used
   void ReadFSpectra_pseudo(InitData *DATA);
-  void ReadSpectra_pseudo(InitData* DATA, int full);
+  void ReadSpectra_pseudo(InitData* DATA, int full, int verbose);
   void ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti, int size, int rank);
   void OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int anti, int full);
   void CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);

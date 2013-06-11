@@ -1,7 +1,7 @@
 #include "freeze.h"
 
 // read in thermal spectra from file to then perform resonance decays with them
-void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
+void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
 {
   // read in thermal spectra from file:
   int number, iptmax, iphimax;
@@ -22,7 +22,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
 //   checkForReadError(p_file,p_name);
   int count;
   count = 0;
-  cout << "NumberOfParticlesToInclude " << DATA->NumberOfParticlesToInclude << endl;
+  if(verbose) cout << "NumberOfParticlesToInclude " << DATA->NumberOfParticlesToInclude << endl;
   // read particle information:
   while( fscanf(p_file,"%d %lf %d %lf %lf %d %d ",&number, &etamax, &ietamax, &ptmin, &ptmax, &iptmax, &iphimax) == 7)
     {
@@ -57,8 +57,12 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
       phiArray = util->vector_malloc(iphimax);
       for(int iphi=0; iphi<iphimax; iphi++) phiArray[iphi] = iphi*2*PI/iphimax;
     }
-  
-  particleMax = ip;
+  double pMax = ip;
+  if(verbose)
+  {
+    cout << "particleMax = " << particleMax << endl;
+    particleMax = ip;
+  }
 
   fclose(p_file);
 
@@ -69,10 +73,13 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full)
   else s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
   
-  cout << "ietamax=" << pseudo_steps+1 << endl;
-  cout << "cells=" << (pseudo_steps+1)*(iptmax)*iphimax << endl;
-  cout << "particleMax = " << particleMax << endl;
-  for ( ip=1; ip<=particleMax; ip++ )
+  if(verbose)
+  {
+    cout << "ietamax=" << pseudo_steps+1 << endl;
+    cout << "cells=" << (pseudo_steps+1)*(iptmax)*iphimax << endl;
+    cout << "particleMax = " << particleMax << endl;
+  }
+  for ( ip=1; ip<=pMax; ip++ )
     {
       //cout << ip << endl;
       fprintf(stderr,"reading particle %d: %d %s\n", ip, particleList[ip].number, particleList[ip].name);
@@ -240,6 +247,7 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
   int rem = ietamax%size;
   ietamax/=size;
   if(rank<rem) ietamax++;
+//   cout << "rank = " << rank << ", ietamax = " << ietamax << endl;
 
 //   if (size>1)
 //     {
@@ -1240,6 +1248,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
     {
       int ret;
       if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
+//       MPI_Barrier(MPI_COMM_WORLD);
       ReadFreezeOutSurface(DATA); // read freeze out surface (has to be done after the evolution of course)
       if (particleSpectrumNumber==0) // do all particles
 	{
@@ -1258,6 +1267,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		  (DATA->turn_on_rhob == 0 || particleList[i].baryon==particleList[part].baryon)
 		)
 		{
+// 		  cout << "rank " << rank << ", same mass " << particleList[i].number << ", " << particleList[part].number << endl;
 		  computespectrum = 0;
 		  if(rank==0)
 		  {
@@ -1265,7 +1275,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		    if(size > 1 && part > alreadyread)  
 		    {
 		      alreadyread = part;
-		      ReadSpectra_pseudo(DATA, 0);
+		      ReadSpectra_pseudo(DATA, 0, 0);
 		    }
 		    fprintf(stderr,"Copying %d: %s (%d) from %s\n", i, particleList[i].name, particleList[i].number, particleList[part].name);
 		    int iphimax = DATA->phi_steps;
@@ -1322,6 +1332,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		  ret = system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
 		  ret = system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
 		}
+		
+		MPI_Barrier(MPI_COMM_WORLD); // occasionally another processor will open file before concatonation is done if this is removed
 	      }
 	      
 	    }
@@ -1360,7 +1372,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
     }
   if (mode==4 || mode==1)  //  do resonance decays
     {
-      ReadSpectra_pseudo(DATA, 0);
+      ReadSpectra_pseudo(DATA, 0, 1);
       int bound = 211; //number of lightest particle to calculate. 
 	  cout << "particleaMax = " << particleMax << endl;
 	  fprintf(stderr,"doing all from %i: %s to %i: %s.\n",particleMax,particleList[particleMax].name,
@@ -1377,7 +1389,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
     }
   else if (mode==13) // take tabulated spectra and compute various observables and integrated quantities
     {
-      ReadSpectra_pseudo(DATA, 0);
+      ReadSpectra_pseudo(DATA, 0, 1);
 //       for ( i=1; i<particleMax; i++ )
 
       //Set output file name for total multiplicity
@@ -1414,7 +1426,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
     }
   else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
     {
-      ReadSpectra_pseudo(DATA, 1);
+      ReadSpectra_pseudo(DATA, 1, 1);
 //       for ( i=1; i<particleMax; i++ )
       int chargedhd[5] = {1,3,4,5,17};
       
