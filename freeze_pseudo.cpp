@@ -182,7 +182,7 @@ double Freeze::summation3(double px, double py, double y, double m, int deg, int
 		*pow(hbarc,4.); // W is like energy density
 	      
 	      
-	      delta_f = f*(1.-sign*f)/(2.*surface[i].sFO*pow(hbarc,3.)*pow(T,3.))*Wfactor;
+	      delta_f = f*(1.-sign*f)/(2.*surface[i].eps_plus_p_over_T_FO*pow(hbarc,3.)*pow(T,3.))*Wfactor;
 	    
 	      if (DATA->include_deltaf==2) // if delta f is supposed to be proportional to p^(2-alpha):
 		{
