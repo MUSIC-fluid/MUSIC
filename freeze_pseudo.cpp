@@ -1392,6 +1392,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       ReadSpectra_pseudo(DATA, 0, 1);
 //       for ( i=1; i<particleMax; i++ )
 
+	Output_charged_hadrons_eta_differential_spectra(DATA, 0);
+/*
       //Set output file name for total multiplicity
       string fname;
       stringstream tmpStr;
@@ -1406,7 +1408,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 //       outfile.setf(ios::scientific);
       
       
-      int chargedhd[5] = {1,3,4,5,17};
+      int chargedhd[5] = {211,-211,321,-321,2212};
       for ( int k=0; k<5; k++ )
 	{
 	  i = chargedhd[k];
@@ -1423,6 +1425,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	}
 
 	outfile.close();
+	*/
     }
   else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
     {
@@ -1918,5 +1921,139 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 //	delete [] dndpt;
 	  
 	return N;
+
+}
+
+
+//Output pT and phi integrated charged hadron spectra as a function of eta
+void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full) 
+{
+	//
+	const int nb_stable_charged_mesons_and_antimesons = 4;
+	const int stable_charged_mesons_and_antimesons[nb_stable_charged_mesons_and_antimesons] = {211,-211,321,-321};
+	const int nb_stable_charged_baryons = 1;
+	const int stable_charged_baryons[nb_stable_charged_baryons] = {2212};
+//	const int nb_stable_charged_mesons_and_antimesons = 2;
+//	const int stable_charged_mesons_and_antimesons[nb_stable_charged_mesons_and_antimesons] = {211,-211};
+//	const int nb_stable_charged_baryons = 0;
+//	const int stable_charged_baryons[1]={1};
+	
+	int j, number, nphi, npt, neta;
+	double eta;
+	double m;
+	double fac, pt;
+	double tmp_dNdeta, * tmp_dNdetadpT, * tmp_ptList;
+
+	//Make sure all the necessary spectra are available
+	for(int ihadron=-1*nb_stable_charged_mesons_and_antimesons+1;ihadron<nb_stable_charged_baryons;ihadron++) {
+
+		if (ihadron<=0) {
+			j=partid[MHALF+stable_charged_mesons_and_antimesons[-1*ihadron]];
+		}
+		else {
+			j=partid[MHALF+stable_charged_baryons[ihadron-1]];
+		}
+
+		if (j >= particleMax) {
+			cout << "Can't compute charged hadron spectra, some spectra are not available\n";
+			exit(1);
+		}
+	}
+
+
+	//Set output file name
+	string fname;
+	stringstream tmpStr;
+	fname="./outputs/";
+	if (full) {
+		fname+="F";
+	}
+	fname+="dNdy_charged_hadrons.dat";
+	
+	//Open output file for vn
+	ofstream outfile;
+	outfile.open(fname.c_str());
+
+	//Set the format of the output
+	outfile.precision(6);
+	outfile.setf(ios::scientific);
+	outfile << "#pt\tdN/deta\n";
+
+	//Assume all particles have the same discretization in pT, eta and phi
+	j=partid[MHALF+stable_charged_mesons_and_antimesons[0]];
+	nphi = particleList[j].nphi;
+	npt = particleList[j].npt;
+	neta = particleList[j].ny;
+
+	tmp_dNdetadpT = (double *) malloc(npt*sizeof(double));
+	tmp_ptList = (double *) malloc(npt*sizeof(double));
+
+	gsl_interp * interp_pT = gsl_interp_alloc(gsl_interp_cspline, npt);
+	gsl_interp_accel * accel_pT = gsl_interp_accel_alloc();
+
+	cout << "Calculating dN/dy for charged hadrons" << endl;
+	
+	for(int ieta=0;ieta<neta;ieta++) {
+
+		eta = particleList[j].y[ieta];
+
+		tmp_dNdeta=0.0;
+
+		//Negative and zero indices are mesons and antimesons, even positive indices are baryons, odd positive indices are antibaryons
+		for(int ihadron=-1*nb_stable_charged_mesons_and_antimesons+1;ihadron<2*nb_stable_charged_baryons;ihadron++) {
+
+			//Meson
+			if (ihadron<=0) {
+				number=stable_charged_mesons_and_antimesons[-1*ihadron];
+			}
+			//Baryon
+			else if (ihadron%2 == 0) {
+				number=stable_charged_baryons[ihadron/2];
+			}
+			//Anti-baryon
+			else if (ihadron%2 == 1) {
+				number=-1*stable_charged_baryons[ihadron/2];
+			}
+			else {
+				cout << "!@*()&_&*()^*(^%@`\n";
+				exit(666);
+			}
+
+			//Define index j used in particleList[j]
+			j = partid[MHALF+number];
+			m = particleList[j].mass;
+			
+			//Loop over pT
+			for(int ipt=0;ipt<npt;ipt++) {
+				//pt=particleList[j].pt[ipt];
+			
+				tmp_dNdetadpT[ipt]=0.0;
+				tmp_ptList[ipt]=particleList[j].pt[ipt];
+				//jacobian to switch from dN/dY to dN/deta
+				//double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+				//double jac = 1.;
+				
+				//Integrate over phi using trapezoid rule at closest point to midrapidity
+				for(int iphi=0;iphi<nphi;iphi++) {
+					tmp_dNdetadpT[ipt]+=particleList[j].dNdydptdphi[ieta][ipt][iphi]*(2*M_PI)/(nphi-1);
+				}
+			}
+
+			//Integrate in pT with GSL
+			gsl_interp_init(interp_pT, tmp_ptList, tmp_dNdetadpT, npt);
+			tmp_dNdeta+=gsl_interp_eval_integ(interp_pT, tmp_ptList, tmp_dNdetadpT, DATA->min_pt, DATA->max_pt, accel_pT);
+
+		}
+
+		//Output result
+		outfile << eta << "\t" << tmp_dNdeta << "\n";
+
+	}
+
+	gsl_interp_accel_reset(accel_pT);
+	gsl_interp_free(interp_pT);
+
+	//Close file
+	outfile.close();
 
 }
