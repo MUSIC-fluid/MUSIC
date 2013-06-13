@@ -81,17 +81,17 @@ double Dot(double *, double *, int);
 double m4p(double *, double *);
 double LinearPara(double , double , double , double *);
 
-double DFind(string file_name, char *st);
-string StringFind(string file_name, char *st);
-char *StringFind2(char *file_name, char *st);
-string StringFind3(string file_name, char *st);
-int IFind(string file_name, char *st);
+double DFind(string file_name, const char *st);
+string StringFind(string file_name, const char *st);
+char *StringFind2(char *file_name, const char *st);
+string StringFind3(string file_name, const char *st);
+int IFind(string file_name, const char *st);
 
-void FileCopy(char *in_file, char *out_file);
-void FileCat(char *in_file, char *out_file);
+void FileCopy(const char *in_file, const char *out_file);
+void FileCat(const char *in_file, const char *out_file);
 
 void ReWrite(char *file_name, char *st, double x);
-void ReWriteString(char *file_name, char *st, char *x);
+void ReWriteString(char *file_name, const char *st, char *x);
 
 int IFindXInVx(double x, double *Vx, int ymax);
 
@@ -114,7 +114,7 @@ double lin_int(double x1,double x2,double f1,double f2,double x);
 
 /* nrutil.h */
 
-void nrerror(char error_text[]);
+void nrerror(const char error_text[]);
 float *vector(int , int );
 int *ivector(int , int );
 double *dvector(int , int );

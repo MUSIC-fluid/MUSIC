@@ -15,7 +15,7 @@ Freeze::~Freeze()
   delete util;
 }
 
-void Freeze::checkForReadError(FILE *file, char* name)
+void Freeze::checkForReadError(FILE *file, const char* name)
 {
   if(!(file))
     {
@@ -426,7 +426,7 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA)
   // open particle data file:
   FILE *s_file;
   char* line;
-  char* s_name = "./surface.dat";
+  const char* s_name = "./surface.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
 //   // open geometry data file:
@@ -578,7 +578,7 @@ void Freeze::ReadSpectra(InitData* DATA)
   char *anti;
   // open particle information file:
   FILE *p_file;
-  char* p_name = "particleInformation.dat";
+  const char* p_name = "particleInformation.dat";
   p_file = fopen(p_name, "r");
   checkForReadError(p_file,p_name);
   int count;
@@ -642,7 +642,7 @@ void Freeze::ReadSpectra(InitData* DATA)
   fclose(p_file);
 
   FILE *s_file;
-  char* s_name = "yptphiSpectra.dat";
+  const char* s_name = "yptphiSpectra.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
   
@@ -689,7 +689,7 @@ void Freeze::Read3Spectra(InitData* DATA) // read pion, kaon, proton
   char *anti;
   // open particle information file:
   FILE *p_file;
-  char* p_name = "particleInformation.dat";
+  const char* p_name = "particleInformation.dat";
   p_file = fopen(p_name, "r");
   checkForReadError(p_file,p_name);
   int count;
@@ -753,7 +753,7 @@ void Freeze::Read3Spectra(InitData* DATA) // read pion, kaon, proton
   fclose(p_file);
 
   FILE *s_file;
-  char* s_name = "yptphiSpectra.dat";
+  const char* s_name = "yptphiSpectra.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
   
@@ -796,7 +796,7 @@ void Freeze::ReadSingleSpectrum(InitData* DATA)
   char *anti;
   // open particle information file:
   FILE *p_file;
-  char* p_name = "particleInformation.dat";
+  const char* p_name = "particleInformation.dat";
   p_file = fopen(p_name, "r");
   checkForReadError(p_file,p_name);
   int count;
@@ -859,7 +859,7 @@ void Freeze::ReadSingleSpectrum(InitData* DATA)
   fclose(p_file);
 
   FILE *s_file;
-  char* s_name = "yptphiSpectra.dat";
+  const char* s_name = "yptphiSpectra.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
   
@@ -1172,7 +1172,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
 
   // open files to write
   FILE *d_file;
-  char* d_name = "particleInformation.dat";
+  const char* d_name = "particleInformation.dat";
   d_file = fopen(d_name, "a");
 
   FILE *s_file;
@@ -1221,7 +1221,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   v4_file = fopen(v4_name, "w");
 
   FILE *a_file;
-  char* a_name = "angle";
+  const char* a_name = "angle";
   a_file = fopen(a_name, "w");
 
   // set spacing in pt and phi:
@@ -1889,10 +1889,10 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
       strcat(numberStringv6pt,".dat");
       
       // open files to write
-      char* d_name = "FparticleInformation.dat";
+      const char* d_name = "FparticleInformation.dat";
       d_file = fopen(d_name, "a");
       
-      char* s_name = "FyptphiSpectra.dat";
+      const char* s_name = "FyptphiSpectra.dat";
       s_file = fopen(s_name, "a");
     }
   else if (full==0)
@@ -2904,7 +2904,7 @@ void Freeze::ReadFullSpectra(InitData* DATA)
   char *anti;
   // open particle information file:
   FILE *p_file;
-  char* p_name = "FparticleInformation.dat";
+  const char* p_name = "FparticleInformation.dat";
   p_file = fopen(p_name, "r");
   checkForReadError(p_file,p_name);
   int count;
@@ -2971,7 +2971,7 @@ void Freeze::ReadFullSpectra(InitData* DATA)
   fclose(p_file);
 
   FILE *s_file;
-  char* s_name = "FyptphiSpectra.dat";
+  const char* s_name = "FyptphiSpectra.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
   
@@ -3010,7 +3010,7 @@ void Freeze::ReadFullSpectra2(InitData* DATA)
   char *anti;
   // open particle information file:
   FILE *p_file;
-  char* p_name = "FparticleInformation.dat";
+  const char* p_name = "FparticleInformation.dat";
   p_file = fopen(p_name, "r");
   checkForReadError(p_file,p_name);
   int count;
@@ -3077,7 +3077,7 @@ void Freeze::ReadFullSpectra2(InitData* DATA)
   fclose(p_file);
 
   FILE *s_file;
-  char* s_name = "FyptphiSpectra2.dat";
+  const char* s_name = "FyptphiSpectra2.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
   
@@ -6632,7 +6632,7 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EO
       char *specString;
       specString = util->char_malloc(30);
       FILE *d_file;
-      char* d_name = "particleInformation.dat";
+      const char* d_name = "particleInformation.dat";
       d_file = fopen(d_name, "w");
       fprintf(d_file,"");
       fclose(d_file);
@@ -6723,12 +6723,12 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EO
     {
       ReadSpectra(DATA);
       FILE *d_file;
-      char* d_name = "FparticleInformation.dat";
+      const char* d_name = "FparticleInformation.dat";
       d_file = fopen(d_name, "w");
       fprintf(d_file,"");
       fclose(d_file);
       FILE *s_file;
-      char* s_name = "FyptphiSpectra.dat";
+      const char* s_name = "FyptphiSpectra.dat";
       s_file = fopen(s_name, "w");
       fprintf(s_file,"");
       fclose(s_file);

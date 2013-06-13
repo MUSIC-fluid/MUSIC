@@ -181,7 +181,7 @@ main(int argc, char *argv[])
      
       if (DATA.output_hydro_debug_info) {
         FILE *t4_file;
-        char* t4_name = "avgT.dat";
+        const char* t4_name = "avgT.dat";
         t4_file = fopen(t4_name, "a");
         fprintf(t4_file,"time average: %f GeV and %f GeV", DATA.avgT/DATA.nSteps*hbarc, DATA.avgT2/DATA.nSteps2*hbarc );
         fclose(t4_file);

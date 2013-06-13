@@ -389,7 +389,7 @@ int Util::IsFile(string file_name)
 }/* IsFile */
 
 
-string Util::StringFind(string file_name, char *st)
+string Util::StringFind(string file_name, const char *st)
 {
   string inputname = file_name;
   string tmpfilename;
@@ -456,7 +456,7 @@ string Util::StringFind(string file_name, char *st)
       }    
 }/* StringFind */
 
-string Util::StringFind3(string file_name, char *st)
+string Util::StringFind3(string file_name, const char *st)
 {
   string inputname = file_name;
   string tmpfilename;
@@ -526,7 +526,7 @@ string Util::StringFind3(string file_name, char *st)
 }/* StringFind3 */
 
 
-char *Util::StringFind2(char *file_name, char *st)
+char *Util::StringFind2(char *file_name, const char *st)
 {
  char *s;
  char *x;
@@ -544,8 +544,8 @@ char *Util::StringFind2(char *file_name, char *st)
      if(file_name == NULL) 
       {
        fprintf(stderr, "No input file name specified.\n");
-       fprintf(stderr, "Creating a default file named input...\n");
-       file_name = "input";
+//        fprintf(stderr, "Creating a default file named input...\n");
+//        file_name = "input";
       }
      else 
       {
@@ -611,7 +611,7 @@ char *Util::StringFind2(char *file_name, char *st)
 }/* StringFind */
 
 
-double Util::DFind(string file_name, char *st)
+double Util::DFind(string file_name, const char *st)
 {
   string s;
   double x;
@@ -624,7 +624,7 @@ double Util::DFind(string file_name, char *st)
 }/* DFind */
 
 
-int Util::IFind(string file_name, char *st)
+int Util::IFind(string file_name, const char *st)
 {
  double f;
  f = DFind(file_name, st);
@@ -654,7 +654,7 @@ void Util::ReWrite(char* file_name, char *st, double x)
 }/* ReWrite */
 
 
-void Util::ReWriteString(char *file_name, char *st, char *x)
+void Util::ReWriteString(char *file_name, const char *st, char *x)
 {
  char c, *com, *str;
  double y;
@@ -682,7 +682,7 @@ void Util::ReWriteString(char *file_name, char *st, char *x)
 }/* ReWriteString */
 
 
-void Util::FileCopy(char *in_file, char *out_file)
+void Util::FileCopy(const char *in_file, const char *out_file)
 {
  FILE *output, *input;
  char c; 
@@ -702,7 +702,7 @@ void Util::FileCopy(char *in_file, char *out_file)
 }/* FileCopy */
 
 
-void Util::FileCat(char *in_file, char *out_file)
+void Util::FileCat(const char *in_file, const char *out_file)
 {
  FILE *output, *input;
  char c; 
@@ -976,7 +976,7 @@ double Util::Theta(double x, double a)
 /* nrutil.c */
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 /* nrutil.c */
-void Util::nrerror(char error_text[])
+void Util::nrerror(const char error_text[])
 /* Numerical Recipes standard error handler */
 {
 

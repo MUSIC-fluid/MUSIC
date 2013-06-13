@@ -432,10 +432,12 @@ double Glauber::InterNuTInST(double s)
 
  
  char *paf;
- paf = "./NuTInST";
+//  paf = "./NuTInST";
+ strcpy(paf, "./NuTInST");
 
  st = util->char_malloc(120);
- dst = ".dat";
+//  dst = ".dat";
+ strcpy(dst, "./NuTInST");
 
  st = strcpy(st, paf);
  st = strcat(st, dst);

@@ -166,7 +166,7 @@ class Freeze{
   // --------------------------------------------------------------------------------------
   
   int countLines (std::istream& in);
-  void checkForReadError(FILE *file, char* name);
+  void checkForReadError(FILE *file, const char* name);
   void CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
 
   //When the pseudorapidity mode is used

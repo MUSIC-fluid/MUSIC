@@ -29,8 +29,8 @@ dissipative.o random.o\
 util.o main.o freeze_pseudo.o
 
  
-CFT= mpiCC
-FFLAGS= -g -Wno-write-strings
+CFT= mpic++
+FFLAGS= -g
 O3FFLAGS=
 LDFLAGS=
 LIBS= -lm -lgsl -lblas

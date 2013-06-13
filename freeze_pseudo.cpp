@@ -14,8 +14,8 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
   fprintf(stderr,"reading spectra\n");
   // open particle information file:
   FILE *p_file;
-  char* p_name = "particleInformation.dat";
-  char* pf_name = "FparticleInformation.dat";
+  const char* p_name = "particleInformation.dat";
+  const char* pf_name = "FparticleInformation.dat";
 //   if(full) strcpy(p_name, "FparticleInformation.dat");
   if(full) p_file = fopen(pf_name, "r");
   else p_file = fopen(p_name, "r");
@@ -67,11 +67,11 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
   fclose(p_file);
 
   FILE *s_file;
-  char* s_name = "yptphiSpectra.dat";
-  char* sf_name = "FyptphiSpectra.dat";
+  const char* s_name = "yptphiSpectra.dat";
+  const char* sf_name = "FyptphiSpectra.dat";
   if(full) s_file = fopen(sf_name, "r");
   else s_file = fopen(s_name, "r");
-  checkForReadError(s_file,s_name);
+//   checkForReadError(s_file,s_name);
   
   if(verbose)
   {
@@ -287,7 +287,7 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
  
   // open files to write
   FILE *d_file;
-  char* d_name = "particleInformation.dat";
+  const char* d_name = "particleInformation.dat";
   d_file = fopen(d_name, "a");
 
   char *specString=new char[30];
@@ -379,7 +379,7 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
 //   else s_name = "";
 //       // open files to write
 //   d_name += "particleInformation.dat";
-  char* d_name = "FparticleInformation.dat";
+  const char* d_name = "FparticleInformation.dat";
   d_file = fopen(d_name, "a");
   
   fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  DATA->max_pseudorapidity, DATA->pseudo_steps+1, DATA->min_pt, DATA->max_pt, DATA->pt_steps, DATA->phi_steps);
@@ -391,7 +391,7 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
   FILE *s_file;
       
 //   s_name += "yptphiSpectra.dat";
-  char* s_name = "FyptphiSpectra.dat";
+  const char* s_name = "FyptphiSpectra.dat";
   s_file = fopen(s_name, "a");
 
   int j = partid[MHALF+number];
@@ -1286,10 +1286,10 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		    double etamax = DATA->max_pseudorapidity;
 		    // open files to write
 		    FILE *d_file;
-		    char* d_name = "particleInformation.dat";
+		    const char* d_name = "particleInformation.dat";
 		    d_file = fopen(d_name, "a");
 		    FILE *s_file;
-		    char* s_name = "yptphiSpectra.dat";
+		    const char* s_name = "yptphiSpectra.dat";
 		    s_file = fopen(s_name, "a");
 		    particleList[i].ymax = particleList[part].ymax; 
 		    particleList[i].deltaY = particleList[part].deltaY;
