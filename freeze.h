@@ -190,7 +190,7 @@ class Freeze{
   void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
   void OutputIntegratedFlowForCMS(InitData *DATA, int number, int full);
   double OutputYieldForCMS(InitData *DATA, int number, int full);
-  void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full);
+  void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full, const int *, int);
 };
 #endif
   
