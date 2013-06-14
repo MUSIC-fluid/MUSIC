@@ -1389,6 +1389,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
     }
   else if (mode==13) // take tabulated spectra and compute various observables and integrated quantities
     {
+    
       ReadSpectra_pseudo(DATA, 0, 1);
 //       for ( i=1; i<particleMax; i++ )
 
@@ -1408,8 +1409,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 //       outfile.setf(ios::scientific);
       
       
-      int chargedhd[5] = {211,-211,321,-321,2212};
-      for ( int k=0; k<5; k++ )
+      int chargedhd[6] = {1,3,4,5,17,18};
+      for ( int k=0; k<6; k++ )
 	{
 	  i = chargedhd[k];
 	  number = particleList[i].number;
@@ -1425,13 +1426,15 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	}
 
 	outfile.close();
-	*/
+*/	
     }
   else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
     {
       ReadSpectra_pseudo(DATA, 1, 1);
+	Output_charged_hadrons_eta_differential_spectra(DATA, 1);
+/*
 //       for ( i=1; i<particleMax; i++ )
-      int chargedhd[5] = {1,3,4,5,17};
+      int chargedhd[6] = {1,3,4,5,17,18};
       
 
       //Set output file name for total multiplicity
@@ -1448,7 +1451,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 //       outfile.setf(ios::scientific);
       
       double N = 0;
-      for ( int k=0; k<5; k++ )
+      for ( int k=0; k<6; k++ )
 	{
 	  i = chargedhd[k];
 	  number = particleList[i].number;
@@ -1462,6 +1465,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       cout << "Nch = " << N << endl;
       outfile << N << endl;
       outfile.close();
+      */
+      
     }
   else if (mode!=3)
     {
@@ -1929,14 +1934,8 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full) 
 {
 	//
-	const int nb_stable_charged_mesons_and_antimesons = 4;
-	const int stable_charged_mesons_and_antimesons[nb_stable_charged_mesons_and_antimesons] = {211,-211,321,-321};
-	const int nb_stable_charged_baryons = 1;
-	const int stable_charged_baryons[nb_stable_charged_baryons] = {2212};
-//	const int nb_stable_charged_mesons_and_antimesons = 2;
-//	const int stable_charged_mesons_and_antimesons[nb_stable_charged_mesons_and_antimesons] = {211,-211};
-//	const int nb_stable_charged_baryons = 0;
-//	const int stable_charged_baryons[1]={1};
+	const int nb_stable_charged_hadrons = 6;
+	const int stable_charged_hadrons[nb_stable_charged_hadrons] = {211,-211,321,-321,2212,-2212};
 	
 	int j, number, nphi, npt, neta;
 	double eta;
@@ -1945,21 +1944,15 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 	double tmp_dNdeta, * tmp_dNdetadpT, * tmp_ptList;
 
 	//Make sure all the necessary spectra are available
-	for(int ihadron=-1*nb_stable_charged_mesons_and_antimesons+1;ihadron<nb_stable_charged_baryons;ihadron++) {
+	for(int ihadron=0;ihadron<nb_stable_charged_hadrons;ihadron++) {
 
-		if (ihadron<=0) {
-			j=partid[MHALF+stable_charged_mesons_and_antimesons[-1*ihadron]];
-		}
-		else {
-			j=partid[MHALF+stable_charged_baryons[ihadron-1]];
-		}
+		j=partid[MHALF+stable_charged_hadrons[ihadron]];
 
 		if (j >= particleMax) {
 			cout << "Can't compute charged hadron spectra, some spectra are not available\n";
 			exit(1);
 		}
 	}
-
 
 	//Set output file name
 	string fname;
@@ -1980,7 +1973,7 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 	outfile << "#pt\tdN/deta\n";
 
 	//Assume all particles have the same discretization in pT, eta and phi
-	j=partid[MHALF+stable_charged_mesons_and_antimesons[0]];
+	j=partid[MHALF+stable_charged_hadrons[0]];
 	nphi = particleList[j].nphi;
 	npt = particleList[j].npt;
 	neta = particleList[j].ny;
@@ -2000,42 +1993,29 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 		tmp_dNdeta=0.0;
 
 		//Negative and zero indices are mesons and antimesons, even positive indices are baryons, odd positive indices are antibaryons
-		for(int ihadron=-1*nb_stable_charged_mesons_and_antimesons+1;ihadron<2*nb_stable_charged_baryons;ihadron++) {
-
-			//Meson
-			if (ihadron<=0) {
-				number=stable_charged_mesons_and_antimesons[-1*ihadron];
-			}
-			//Baryon
-			else if (ihadron%2 == 0) {
-				number=stable_charged_baryons[ihadron/2];
-			}
-			//Anti-baryon
-			else if (ihadron%2 == 1) {
-				number=-1*stable_charged_baryons[ihadron/2];
-			}
-			else {
-				cout << "!@*()&_&*()^*(^%@`\n";
-				exit(666);
-			}
+		for(int ihadron=0;ihadron<nb_stable_charged_hadrons;ihadron++) {
 
 			//Define index j used in particleList[j]
+			number=stable_charged_hadrons[ihadron];
 			j = partid[MHALF+number];
 			m = particleList[j].mass;
+
+			cout << "Adding hadron " << j << " with mass=" << m << "..." << endl;
 			
 			//Loop over pT
 			for(int ipt=0;ipt<npt;ipt++) {
-				//pt=particleList[j].pt[ipt];
+				pt=particleList[j].pt[ipt];
 			
 				tmp_dNdetadpT[ipt]=0.0;
-				tmp_ptList[ipt]=particleList[j].pt[ipt];
+				tmp_ptList[ipt]=pt;
 				//jacobian to switch from dN/dY to dN/deta
-				//double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+				double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
 				//double jac = 1.;
 				
-				//Integrate over phi using trapezoid rule at closest point to midrapidity
+				//Integrate over phi using trapezoid rule
 				for(int iphi=0;iphi<nphi;iphi++) {
-					tmp_dNdetadpT[ipt]+=particleList[j].dNdydptdphi[ieta][ipt][iphi]*(2*M_PI)/(nphi-1);
+					tmp_dNdetadpT[ipt]+=jac*particleList[j].dNdydptdphi[ieta][ipt][iphi]*(2*M_PI)/(nphi);
+					//tmp_dNdetadpT[ipt]+=exp(-1*particleList[j].pt[ipt])*pow(cos(iphi*2*M_PI/(nphi)),2)*(2*M_PI)/(nphi);
 				}
 			}
 
@@ -2050,6 +2030,8 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 
 	}
 
+	free(tmp_dNdetadpT);
+	free(tmp_ptList);
 	gsl_interp_accel_reset(accel_pT);
 	gsl_interp_free(interp_pT);
 

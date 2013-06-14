@@ -5,8 +5,8 @@
 #define MAXINTV         2000000 /* size of arry for Montecarlo numbers note that I modified pdg05.dat by replacing 90...... 9......*/
 #define MHALF           (MAXINTV/2)
 #define NY		200 /* size of arry for storage of the y-spectrum */
-#define NPT		50 /* size of arry for storage of the pt-spectrum */
-#define NPHI		50 /* size of arry for storage of the phi-spectrum */
+#define NPT		100 /* size of arry for storage of the pt-spectrum */
+#define NPHI		100 /* size of arry for storage of the phi-spectrum */
 #define NPHI1		NPHI + 1 
 #define	PTS3	12		/* normalization of 3-body decay */
 #define	PTS4	12		/* inv. mass integral 3-body    */
