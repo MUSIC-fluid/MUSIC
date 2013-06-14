@@ -356,7 +356,7 @@ for(rk_flag = 0; rk_flag < DATA->rk_order; rk_flag++)
 void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int size, int rank)
 {	
   FILE *t_file;
-  char* t_name = "tauf.dat";
+  const char* t_name = "tauf.dat";
   t_file = fopen(t_name, "a");
   char *buf;
   buf = util->char_malloc(40);
@@ -4261,7 +4261,7 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
 	  cout << "All cells frozen out. Exiting." << endl;
 	  // write OSCAR header if wanted:
 	  FILE *oout_file;
-	  char* oout_name = "OSCARheader.dat";
+	  const char* oout_name = "OSCARheader.dat";
 	  oout_file = fopen(oout_name, "w");
 	  if(DATA->outputEvolutionData)
 	    {

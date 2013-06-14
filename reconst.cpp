@@ -335,7 +335,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
 
 
 
-void Reconst::ReconstError(char *str, int i, int rk_flag, double *qi, double **qi2, Grid *grid_pt)
+void Reconst::ReconstError(const char *str, int i, int rk_flag, double *qi, double **qi2, Grid *grid_pt)
 {
  int alpha;
 

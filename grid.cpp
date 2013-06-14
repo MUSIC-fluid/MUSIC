@@ -211,7 +211,7 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
       //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
 
       FILE *out_file;
-      char* out_name = "evolution.dat";
+      const char* out_name = "evolution.dat";
       out_file = fopen(out_name, "a");
       fprintf(out_file,"");
       int iz, nz;
@@ -972,7 +972,7 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
       //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
 
       FILE *out_file;
-      char* out_name = "OSCAR.dat";
+      const char* out_name = "OSCAR.dat";
       out_file = fopen(out_name, "a");
       fprintf(out_file,"");
       int iz, nz;
@@ -1173,7 +1173,7 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
       //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
 
       FILE *out_file;
-      char* out_name = "contourPlot.dat";
+      const char* out_name = "contourPlot.dat";
       out_file = fopen(out_name, "a");
       fprintf(out_file,"");
       int iz, nz;
@@ -1625,7 +1625,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
       
       //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
       FILE *ecc_file;
-      char* ecc_name = "eccentricity.dat";
+      const char* ecc_name = "eccentricity.dat";
       ecc_file = fopen(ecc_name, "a");
       
       double value, rA, epsp;
@@ -1635,15 +1635,15 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
       double eccentricity2, eccentricity3;
 
       FILE *out_file;
-      char* out_name = "e_x_y_profile.dat";
+      const char* out_name = "e_x_y_profile.dat";
       out_file = fopen(out_name, "a");
       fprintf(out_file,"");
       FILE *s_file;
-      char* s_name = "entropy-eta.dat";
+      const char* s_name = "entropy-eta.dat";
       s_file = fopen(s_name, "a");
       fprintf(s_file,"");
       FILE *out_file_2;
-      char* out_name_2 = "e_x_y_profile_05.dat";
+      const char* out_name_2 = "e_x_y_profile_05.dat";
       out_file_2 = fopen(out_name_2, "a");
       fprintf(out_file_2,"");
       int iz, nz;
@@ -2159,7 +2159,7 @@ void Grid::PrintAxy2(InitData *DATA, Grid ***arena, double tau)
 void Grid::PrintAxy(InitData *DATA, Grid ***arena, double tau)
 {
  FILE *d_file;
- char* d_name = "e_x_y_profile.dat";
+ const char* d_name = "e_x_y_profile.dat";
  d_file = fopen(d_name, "a");
  int ix, iy, ieta;
  double x, y;
@@ -2223,7 +2223,7 @@ void Grid::ComputeAnisotropy(InitData *DATA, Grid ***arena, double tau)
 void Grid::ComputeEccentricity(InitData *DATA, Grid ***arena, double tau)
 {
   FILE *ecc_file;
-  char* ecc_name = "eccentricity.dat";
+  const char* ecc_name = "eccentricity.dat";
   ecc_file = fopen(ecc_name, "a");
   
   int ix, iy, ieta;
@@ -2253,7 +2253,7 @@ void Grid::ComputeEccentricity(InitData *DATA, Grid ***arena, double tau)
 void Grid::ComputeEnergyConservation(InitData *DATA, Grid ***arena, double tau)
 {
   FILE *ecc_file;
-  char* ecc_name = "energyConservation.dat";
+  const char* ecc_name = "energyConservation.dat";
   ecc_file = fopen(ecc_name, "a");
   
   int ix, iy, ieta;

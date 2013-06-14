@@ -14,8 +14,8 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
   fprintf(stderr,"reading spectra\n");
   // open particle information file:
   FILE *p_file;
-  char* p_name = "particleInformation.dat";
-  char* pf_name = "FparticleInformation.dat";
+  const char* p_name = "particleInformation.dat";
+  const char* pf_name = "FparticleInformation.dat";
 //   if(full) strcpy(p_name, "FparticleInformation.dat");
   if(full) p_file = fopen(pf_name, "r");
   else p_file = fopen(p_name, "r");
@@ -67,11 +67,11 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
   fclose(p_file);
 
   FILE *s_file;
-  char* s_name = "yptphiSpectra.dat";
-  char* sf_name = "FyptphiSpectra.dat";
+  const char* s_name = "yptphiSpectra.dat";
+  const char* sf_name = "FyptphiSpectra.dat";
   if(full) s_file = fopen(sf_name, "r");
   else s_file = fopen(s_name, "r");
-  checkForReadError(s_file,s_name);
+//   checkForReadError(s_file,s_name);
   
   if(verbose)
   {
@@ -287,7 +287,7 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
  
   // open files to write
   FILE *d_file;
-  char* d_name = "particleInformation.dat";
+  const char* d_name = "particleInformation.dat";
   d_file = fopen(d_name, "a");
 
   char *specString=new char[30];
@@ -379,7 +379,7 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
 //   else s_name = "";
 //       // open files to write
 //   d_name += "particleInformation.dat";
-  char* d_name = "FparticleInformation.dat";
+  const char* d_name = "FparticleInformation.dat";
   d_file = fopen(d_name, "a");
   
   fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  DATA->max_pseudorapidity, DATA->pseudo_steps+1, DATA->min_pt, DATA->max_pt, DATA->pt_steps, DATA->phi_steps);
@@ -391,7 +391,7 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
   FILE *s_file;
       
 //   s_name += "yptphiSpectra.dat";
-  char* s_name = "FyptphiSpectra.dat";
+  const char* s_name = "FyptphiSpectra.dat";
   s_file = fopen(s_name, "a");
 
   int j = partid[MHALF+number];
@@ -1286,10 +1286,10 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		    double etamax = DATA->max_pseudorapidity;
 		    // open files to write
 		    FILE *d_file;
-		    char* d_name = "particleInformation.dat";
+		    const char* d_name = "particleInformation.dat";
 		    d_file = fopen(d_name, "a");
 		    FILE *s_file;
-		    char* s_name = "yptphiSpectra.dat";
+		    const char* s_name = "yptphiSpectra.dat";
 		    s_file = fopen(s_name, "a");
 		    particleList[i].ymax = particleList[part].ymax; 
 		    particleList[i].deltaY = particleList[part].deltaY;
@@ -1389,9 +1389,14 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
     }
   else if (mode==13) // take tabulated spectra and compute various observables and integrated quantities
     {
+    
       ReadSpectra_pseudo(DATA, 0, 1);
 //       for ( i=1; i<particleMax; i++ )
-
+	const int stable_charged_hadron_list[] = {211,-211,321,-321,2212,-2212};
+	Output_charged_hadrons_eta_differential_spectra(DATA, 0, stable_charged_hadron_list,sizeof(stable_charged_hadron_list)/sizeof(int));
+	int other_hadron = 211;
+	Output_charged_hadrons_eta_differential_spectra(DATA, 0, &other_hadron,1);
+/*
       //Set output file name for total multiplicity
       string fname;
       stringstream tmpStr;
@@ -1423,10 +1428,15 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	}
 
 	outfile.close();
+*/	
     }
   else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
     {
       ReadSpectra_pseudo(DATA, 1, 1);
+	const int stable_charged_hadron_list[] = {211,-211,321,-321,2212,-2212};
+	Output_charged_hadrons_eta_differential_spectra(DATA, 1, stable_charged_hadron_list,sizeof(stable_charged_hadron_list)/sizeof(int));
+	//Output_charged_hadrons_eta_differential_spectra(DATA, 1);
+/*
 //       for ( i=1; i<particleMax; i++ )
       int chargedhd[6] = {1,3,4,5,17,18};
       
@@ -1459,6 +1469,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       cout << "Nch = " << N << endl;
       outfile << N << endl;
       outfile.close();
+      */
+      
     }
   else if (mode!=3)
     {
@@ -2121,5 +2133,116 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 //	delete [] dndpt;
 	  
 	return N;
+
+}
+
+
+//Output pT and phi integrated charged hadron spectra as a function of eta
+void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full, const int * hadron_list, int nb_hadrons) {
+	//
+	int nb_hadron = nb_hadrons;
+	
+	int j, number, nphi, npt, neta;
+	double eta;
+	double m;
+	double fac, pt;
+	double tmp_dNdeta, * tmp_dNdetadpT, * tmp_ptList;
+
+	//Make sure all the necessary spectra are available
+	for(int ihadron=0;ihadron<nb_hadron;ihadron++) {
+
+		j=partid[MHALF+hadron_list[ihadron]];
+
+		if (j >= particleMax) {
+			cout << "Can't compute charged hadron spectra, some spectra are not available\n";
+			exit(1);
+		}
+	}
+
+	//Set output file name
+	stringstream fname;
+	//stringstream tmpStr;
+	fname << "./outputs/";
+	if (full) {
+		fname <<"F";
+	}
+	fname <<"dNdy";
+	for(int ihadron=0;ihadron<nb_hadron;ihadron++) fname << "_" << hadron_list[ihadron]; 
+	fname << ".dat";
+	
+	//Open output file for vn
+	ofstream outfile;
+	outfile.open(fname.str().c_str());
+
+	//Set the format of the output
+	outfile.precision(6);
+	outfile.setf(ios::scientific);
+	outfile << "#pt\tdN/deta\n";
+
+	//Assume all particles have the same discretization in pT, eta and phi
+	j=partid[MHALF+hadron_list[0]];
+	nphi = particleList[j].nphi;
+	npt = particleList[j].npt;
+	neta = particleList[j].ny;
+
+	tmp_dNdetadpT = (double *) malloc(npt*sizeof(double));
+	tmp_ptList = (double *) malloc(npt*sizeof(double));
+
+	gsl_interp * interp_pT = gsl_interp_alloc(gsl_interp_cspline, npt);
+	gsl_interp_accel * accel_pT = gsl_interp_accel_alloc();
+
+	//cout << "Calculating dN/dy for charged hadrons" << endl;
+	
+	for(int ieta=0;ieta<neta;ieta++) {
+
+		eta = particleList[j].y[ieta];
+
+		tmp_dNdeta=0.0;
+
+		//Negative and zero indices are mesons and antimesons, even positive indices are baryons, odd positive indices are antibaryons
+		for(int ihadron=0;ihadron<nb_hadron;ihadron++) {
+
+			//Define index j used in particleList[j]
+			number=hadron_list[ihadron];
+			j = partid[MHALF+number];
+			m = particleList[j].mass;
+
+			//cout << "Adding hadron " << j << " with mass=" << m << "..." << endl;
+			
+			//Loop over pT
+			for(int ipt=0;ipt<npt;ipt++) {
+				pt=particleList[j].pt[ipt];
+			
+				tmp_dNdetadpT[ipt]=0.0;
+				tmp_ptList[ipt]=pt;
+				//jacobian to switch from dN/dY to dN/deta
+				double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+				//double jac = 1.;
+				
+				//Integrate over phi using trapezoid rule
+				for(int iphi=0;iphi<nphi;iphi++) {
+					tmp_dNdetadpT[ipt]+=jac*particleList[j].dNdydptdphi[ieta][ipt][iphi]*(2*M_PI)/(nphi);
+					//tmp_dNdetadpT[ipt]+=exp(-1*particleList[j].pt[ipt])*pow(cos(iphi*2*M_PI/(nphi)),2)*(2*M_PI)/(nphi);
+				}
+			}
+
+			//Integrate in pT with GSL
+			gsl_interp_init(interp_pT, tmp_ptList, tmp_dNdetadpT, npt);
+			tmp_dNdeta+=gsl_interp_eval_integ(interp_pT, tmp_ptList, tmp_dNdetadpT, DATA->min_pt, DATA->max_pt, accel_pT);
+
+		}
+
+		//Output result
+		outfile << eta << "\t" << tmp_dNdeta << "\n";
+
+	}
+
+	free(tmp_dNdetadpT);
+	free(tmp_ptList);
+	gsl_interp_accel_reset(accel_pT);
+	gsl_interp_free(interp_pT);
+
+	//Close file
+	outfile.close();
 
 }

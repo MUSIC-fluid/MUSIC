@@ -424,21 +424,23 @@ double Glauber::InterNuTInST(double s)
  static double *vx, *vy;
  int i;
  double dx;
- static char *st, *dst;
+ //static char *st, *dst;
  FILE *output;
 
  ind++;
  if(LexusData.Target.A == 1.0) return 0.0;
 
  
- char *paf;
- paf = "./NuTInST";
+ const char *paf = "./NuTInST.dat";
+//  paf = "./NuTInST";
+// strcpy(paf, "./NuTInST");
 
- st = util->char_malloc(120);
- dst = ".dat";
+ //st = util->char_malloc(120);
+//  dst = ".dat";
+ //strcpy(dst, "./NuTInST");
 
- st = strcpy(st, paf);
- st = strcat(st, dst);
+ //st = strcpy(st, paf);
+ //st = strcat(st, dst);
  
  if(ind == 1) 
   {
@@ -465,7 +467,7 @@ double Glauber::InterNuTInST(double s)
 //    }
   }/* if ind */
  
- util->char_free(st);
+ //util->char_free(st);
 
  if(s > up) return 0.0;
  else{

@@ -15,7 +15,7 @@ EOS::~EOS()
   delete util;
 }
 
-void EOS::checkForReadError(FILE *file, char* name)
+void EOS::checkForReadError(FILE *file, const char* name)
 {
   if(!(file))
     {
