@@ -1392,12 +1392,12 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
     {
     
       ReadSpectra_pseudo(DATA, 0, 1);
-//       for ( i=1; i<particleMax; i++ )
-	const int stable_charged_hadron_list[] = {211,-211,321,-321,2212,-2212};
-	Output_charged_hadrons_eta_differential_spectra(DATA, 0, stable_charged_hadron_list,sizeof(stable_charged_hadron_list)/sizeof(int));
-	int other_hadron = 211;
-	Output_charged_hadrons_eta_differential_spectra(DATA, 0, &other_hadron,1);
-/*
+// //       for ( i=1; i<particleMax; i++ )
+// 	const int stable_charged_hadron_list[] = {211,-211,321,-321,2212,-2212};
+// 	Output_charged_hadrons_eta_differential_spectra(DATA, 0, stable_charged_hadron_list,sizeof(stable_charged_hadron_list)/sizeof(int));
+// 	int other_hadron = 211;
+// 	Output_charged_hadrons_eta_differential_spectra(DATA, 0, &other_hadron,1);
+
       //Set output file name for total multiplicity
       string fname;
       stringstream tmpStr;
@@ -1420,7 +1420,9 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	  if(particleMax>=i)
 	  {
 	    OutputDifferentialFlowAtMidrapidity(DATA, number,0);
+	    OutputDifferentialFlowAtMidrapidity2(DATA, number,0);
 	    OutputIntegratedFlowForCMS(DATA, number,0);
+	    OutputIntegratedFlow(DATA, number,0);
 	    
 	    double N = OutputYieldForCMS(DATA, number,0);
 	    
@@ -1429,7 +1431,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	}
 
 	outfile.close();
-*/	
+	
     }
   else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
     {
@@ -1778,7 +1780,6 @@ void Freeze::pt_and_eta_integrated_flow(InitData *DATA, int number, double minpt
 //   double vneta[2][8][2][100] = {0};
   double vneta[8][2][100] = {0};
   pt_integrated_flow(DATA, number, minpt, maxpt, vneta);
-  // Fix this!  Have to define varable for yield vs. eta, then weight vn integrals with it
   double dndeta[100];
   for(int ieta=0;ieta<neta;ieta++) 
   {
@@ -1932,6 +1933,99 @@ void Freeze::pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, 
 }
 
 
+//Output yield and v_n at eta=0 as a function of pT
+void Freeze::OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, int full) 
+{
+  
+	//Define index j used in particleList[j]
+	int j = partid[MHALF+number];
+	double fac, pt;
+	double intvn[8][2] = {0};
+	double m = particleList[j].mass;
+	int nphi = particleList[j].nphi;
+	int npt = particleList[j].npt;
+
+	double minpt = particleList[j].pt[0];
+	double maxpt = particleList[j].pt[npt-1];
+	double eta = 0.0;
+	
+	cout << "Calculating flow at midrapidity for particle " << number << endl;
+
+// 	for (int iphi=0;iphi<nphi;iphi++) phipbuff[iphi] = iphi*2*PI/nphi;
+
+	//Set output file name
+	string fname;
+	stringstream tmpStr;
+	fname="./outputs/";
+	if (full) {
+		fname+="F";
+	}
+	fname+="vnpteta02-";
+	tmpStr << number;
+	fname+=tmpStr.str();
+	fname+=".dat";	
+	
+	string fname2;
+	stringstream tmpStr2;
+	fname2="./outputs/";
+	if (full) {
+		fname2+="F";
+	}
+	fname2+="vnpteta03-";
+	tmpStr2 << number;
+	fname2+=tmpStr.str();
+	fname2+=".dat";	
+	
+		//Open output file for vn
+	ofstream outfilevn;
+	outfilevn.open(fname.c_str());
+	
+	ofstream outfilevn2;
+	outfilevn2.open(fname2.c_str());
+
+	//Set the format of the output
+	//outfile.width (10);
+// 	outfile.precision(6);
+// 	outfile.setf(ios::scientific);
+// 	outfilevn.precision(6);
+// 	outfilevn.setf(ios::scientific);
+	outfilevn << "#pt\tdN/ptdYdptdphi\tv1cos\tv1sin\tv2cos\tv2sin\tv3cos\tv3sin\tv4cos\tv4sin\tv5cos\tv5sin\tv6cos\tv6sin\tv7cos\tv7sin\n";
+	
+// 	outfilevn.precision(6);
+// 	outfilevn.setf(ios::scientific);
+	outfilevn2 << "#pt\tdN/ptdYdptdphi\tv1cos\tv1sin\tv2cos\tv2sin\tv3cos\tv3sin\tv4cos\tv4sin\tv5cos\tv5sin\tv6cos\tv6sin\tv7cos\tv7sin\n";
+
+	double vn[8][2];
+
+	//Loop over pT
+// 	cout << "npt = " << npt << endl;
+	for(int ipt=0;ipt<npt;ipt++) {
+		pt=particleList[j].pt[ipt];
+// 		cout << "pt = " << pt << endl;
+		
+		pt_and_eta_integrated_flow(DATA, number, pt, pt, eta, eta, vn);
+
+		//Output result
+		outfilevn << pt;
+		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) outfilevn << "\t" << vn[i][k];
+		outfilevn << endl;
+		
+		pt_and_eta_integrated_flow2(DATA, number, pt, pt, eta, eta, vn);
+		
+		outfilevn2 << pt;
+		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) outfilevn2 << "\t" << vn[i][k];
+		outfilevn2 << endl;
+	}
+	
+
+	//Close file
+ 	outfilevn.close();
+	outfilevn2.close();
+// 	}
+
+}
+
+
 //Output yield and v_n at eta~0 as a function of pT
 void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full) 
 {
@@ -2024,6 +2118,98 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 	//Close file
 // 	outfile.close();
 	outfilevn.close();
+// 	}
+
+}
+
+
+//Output yield and v_n integrated over pT, as a function of pseudorapidity
+void Freeze::OutputIntegratedFlow(InitData *DATA, int number, int full) 
+{
+  
+	//Define index j used in particleList[j]
+	int j = partid[MHALF+number];
+	double intvn[8][2] = {0};
+	double m = particleList[j].mass;
+	int neta = particleList[j].ny;
+	int npt = particleList[j].npt;
+
+	double minpt = particleList[j].pt[0];
+	double maxpt = particleList[j].pt[npt-1];
+// 	double eta = 0.0;
+	
+	cout << "Calculating integrated flow vs. midrapidity for particle " << number << endl;
+
+// 	for (int iphi=0;iphi<nphi;iphi++) phipbuff[iphi] = iphi*2*PI/nphi;
+
+	//Set output file name
+	string fname;
+	stringstream tmpStr;
+	fname="./outputs/";
+	if (full) {
+		fname+="F";
+	}
+	fname+="vneta2-";
+	tmpStr << number;
+	fname+=tmpStr.str();
+	fname+=".dat";	
+	
+	string fname2;
+	stringstream tmpStr2;
+	fname2="./outputs/";
+	if (full) {
+		fname2+="F";
+	}
+	fname2+="vneta3-";
+	tmpStr2 << number;
+	fname2+=tmpStr.str();
+	fname2+=".dat";	
+	
+		//Open output file for vn
+	ofstream outfilevn;
+	outfilevn.open(fname.c_str());
+	
+	ofstream outfilevn2;
+	outfilevn2.open(fname2.c_str());
+
+	//Set the format of the output
+	//outfile.width (10);
+// 	outfile.precision(6);
+// 	outfile.setf(ios::scientific);
+// 	outfilevn.precision(6);
+// 	outfilevn.setf(ios::scientific);
+	outfilevn << "#eta\tdN/ptdYdptdphi\tv1cos\tv1sin\tv2cos\tv2sin\tv3cos\tv3sin\tv4cos\tv4sin\tv5cos\tv5sin\tv6cos\tv6sin\tv7cos\tv7sin\n";
+	
+// 	outfilevn.precision(6);
+// 	outfilevn.setf(ios::scientific);
+	outfilevn2 << "#eta\tdN/ptdYdptdphi\tv1cos\tv1sin\tv2cos\tv2sin\tv3cos\tv3sin\tv4cos\tv4sin\tv5cos\tv5sin\tv6cos\tv6sin\tv7cos\tv7sin\n";
+
+	double vn[8][2];
+
+	//Loop over pT
+// 	cout << "npt = " << npt << endl;
+	for(int ieta=0;ieta<neta;ieta++) {
+		double eta=particleList[j].y[ieta];
+// 		cout << "pt = " << pt << endl;
+		
+		pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, eta, eta, vn);
+
+		//Output result
+		outfilevn << eta;
+		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) outfilevn << "\t" << vn[i][k];
+		outfilevn << endl;
+		
+		pt_and_eta_integrated_flow2(DATA, number, minpt, maxpt, eta, eta, vn);
+		
+		outfilevn2 << eta;
+		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) outfilevn2 << "\t" << vn[i][k];
+		outfilevn2 << endl;
+	}
+	
+
+	//Close file
+ 	outfilevn.close();
+	outfilevn2.close();
 // 	}
 
 }
