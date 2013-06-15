@@ -36,7 +36,7 @@ util.o main.o freeze_pseudo.o
  
 CXX= mpic++
 CXXFLAGS=  -O3
-LIBS= -lm -lgsl -lblas
+LIBS= -L/software/libraries/GSL/1.15/lib -lm -lgsl -lgslcblas
 COMMAND=  mpihydro
  
  
