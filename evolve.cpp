@@ -96,7 +96,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
    //for testing
 
    if (DATA->output_hydro_debug_info) {
-     if(it%10==0 && it>=0) 
+     if(it%DATA->output_evolution_every_N_timesteps==0 && it>=0) 
        {
          grid->PrintEtaEpsilon(arena, DATA, tau, size, rank);
          grid->PrintxEpsilon(arena, DATA, tau, size, rank);
@@ -107,7 +107,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
      grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
    }
 
-   if(it%10==0 && DATA->outputEvolutionData) 
+   if(it%DATA->output_evolution_every_N_timesteps==0 && DATA->outputEvolutionData) 
      {
        grid->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
        if (DATA->output_hydro_debug_info) {

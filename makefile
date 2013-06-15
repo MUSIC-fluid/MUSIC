@@ -35,7 +35,7 @@ util.o main.o freeze_pseudo.o
 
  
 CXX= mpic++
-CXXFLAGS=  -O3
+CXXFLAGS=  -g
 LIBS= -lm -lgsl -lblas
 COMMAND=  mpihydro
  

@@ -1221,6 +1221,10 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind3(file, "output_hydro_debug_info");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempoutput_hydro_debug_info;
   DATA->output_hydro_debug_info = tempoutput_hydro_debug_info;
+
+  //The evolution is outputted every "output_evolution_every_N_timesteps" timesteps
+  //Can't be modified from the input file for now, for safety.
+  DATA->output_evolution_every_N_timesteps=10;
   
   cout << "Done ReadInData2." << endl;
   delete util;
