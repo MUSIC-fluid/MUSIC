@@ -82,4 +82,4 @@ clean:
 #	tar cf - makefile eos.cpp evolve.cpp grid.cpp init.cpp main.cpp reconst.cpp util.cpp glauber.cpp eos.h evolve.h grid.h init.h util.h glauber.h data.h freeze.cpp freeze.h freeze_pseudo.cpp input > $(COMMAND).tar
 
 #compress:	tar
-	compress $(COMMAND).tar
+#	compress $(COMMAND).tar
