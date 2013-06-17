@@ -106,6 +106,7 @@ class Grid{
   void PrintxEpsilon(Grid ***arena, InitData *DATA, double tau, int size, int rank);
   void ComputeEnergyConservation(InitData *DATA, Grid ***arena, double tau);
   void getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
+  void Output_hydro_information_header(InitData *DATA, EOS *eos);
 };
 #endif
   

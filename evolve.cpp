@@ -65,6 +65,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 
  facTau = DATA->facTau;
 
+ //Output information about the hydro parameters in the format of a C header file
+ if (DATA->output_hydro_params_header) grid->Output_hydro_information_header(DATA, eos);
+
  cout << "Starting Evolve on rank " <<  rank << endl;
  
  itmax = DATA->nt;

@@ -148,6 +148,7 @@ typedef struct init_data
   int check_FO3_at_boundary_eta, check_FO3_at_boundary_xy;
   bool output_hydro_debug_info;
   int output_evolution_every_N_timesteps;
+  bool output_hydro_params_header;
 } InitData;
 
 

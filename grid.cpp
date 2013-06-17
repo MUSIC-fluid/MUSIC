@@ -2362,3 +2362,43 @@ void Grid::PrintdEdEta(InitData *DATA, Grid ***arena)
   }
 }
 
+void Grid::Output_hydro_information_header(InitData *DATA, EOS *eos) {
+
+	string fname = "hydro_info_header_h";
+
+	//Open output file
+	ofstream outfile;
+	outfile.open(fname.c_str());
+
+	outfile << "const int MUSIC_real_nx=" << DATA->nx+1 << ";\n";
+	outfile << "const int MUSIC_real_ny=" << DATA->ny+1 << ";\n";
+	outfile << "const int MUSIC_real_neta=" << DATA->neta << ";\n";
+
+	//double x_size; /* in fermi -x_size/2 < x < x_size/2 */
+	//double y_size; /* in fermi, ditto */
+	//double eta_size; /* ditto */
+
+	outfile << "const double MUSIC_tau0=" << DATA->tau0 << ";\n";
+
+	outfile << "const double MUSIC_dx=" << DATA->delta_x << ";\n";
+	outfile << "const double MUSIC_dy=" << DATA->delta_y << ";\n";
+	outfile << "const double MUSIC_deta=" << DATA->delta_eta << ";\n";
+	outfile << "const double MUSIC_effective_dtau=" << DATA->output_evolution_every_N_timesteps*DATA->delta_tau << ";\n";
+
+	outfile << "const bool MUSIC_with_shear_viscosity=" << ((DATA->viscosity_flag)&&(DATA->turn_on_shear)) << ";\n";
+	outfile << "const bool MUSIC_with_bulk_viscosity=" << ((DATA->viscosity_flag)&&(DATA->turn_on_bulk)) << ";\n";
+
+	outfile << "const double MUSIC_kinetic_FO_temperature_in_GeV=";
+	if (DATA->useEpsFO) {
+		outfile << eos->get_temperature(DATA->epsilonFreeze/hbarc,0.0)*hbarc;
+	}
+	else {
+		outfile << DATA->TFO;
+	}
+	outfile << ";\n";
+
+	outfile << "const bool MUSIC_outputBinaryEvolution=" << DATA->outputBinaryEvolution << ";\n";
+
+	outfile.close();
+
+}
