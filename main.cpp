@@ -483,7 +483,7 @@ void ReadInData2(InitData *DATA, string file)
   // 0: freeze out at constant temperature T_freeze
   // 1: freeze out at constant energy density epsilon_freeze
 //   DATA->useEpsFO = util->IFind(file, "use_eps_for_freeze_out");
-  int tempuseEpsFO = 0;
+  int tempuseEpsFO = 1;
   tempinput = util->StringFind3(file, "use_eps_for_freeze_out");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempuseEpsFO;
   DATA->useEpsFO = tempuseEpsFO;
