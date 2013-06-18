@@ -1247,6 +1247,11 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
   int i, b, number;
   if (mode == 3 || mode == 1) // compute thermal spectra
     {
+      if (size > (DATA->pseudo_steps + 1)) 
+      {
+	cout << "Cannot run Cooper-Frye with " << DATA->pseudo_steps << " steps in pseudorapidity on " << size << " processors.  Exiting\n";
+	exit(1);
+      }
       int ret;
       if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
 //       MPI_Barrier(MPI_COMM_WORLD);
