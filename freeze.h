@@ -187,8 +187,17 @@ class Freeze{
   void cal_reso_decays_pseudo (int maxpart, int maxdecay, int bound, int mode, int pseudofreeze);
   double Rap(double eta, double pt, double m);
   double PseudoRap(double y, double pt, double m);
+//   void pt_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double ****vn);
+  void pt_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double vn[8][2][100]);
+  void eta_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double vn[8][2][100]);
+  void y_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double vn[8][2][100]);
+  void pt_and_eta_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[8][2]);
+  void pt_and_eta_integrated_flow2(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[8][2]);
+  void pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, double vn[8][2]);
   void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
+  void OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, int full);
   void OutputIntegratedFlowForCMS(InitData *DATA, int number, int full);
+  void OutputIntegratedFlow(InitData *DATA, int number, int full);
   double OutputYieldForCMS(InitData *DATA, int number, int full);
   void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full, const int *, int);
 };
