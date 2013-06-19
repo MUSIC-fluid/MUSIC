@@ -2372,7 +2372,8 @@ void Grid::Output_hydro_information_header(InitData *DATA, EOS *eos) {
 
 	outfile << "const int MUSIC_real_nx=" << DATA->nx+1 << ";\n";
 	outfile << "const int MUSIC_real_ny=" << DATA->ny+1 << ";\n";
-	outfile << "const int MUSIC_real_neta=" << DATA->neta << ";\n";
+	//DATA->neta is _not_ the actual number of cells in eta, it is the number of cells in eta _per_ processor
+	outfile << "const int MUSIC_real_neta=" << DATA->neta*MPI::COMM_WORLD.Get_size() << ";\n";
 
 	//double x_size; /* in fermi -x_size/2 < x < x_size/2 */
 	//double y_size; /* in fermi, ditto */
