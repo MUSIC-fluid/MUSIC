@@ -1562,8 +1562,8 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 		pt = particleList[j].pt[ipt];
 		// jacobian -- dN/deta = jac*dN/dy
 		double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
-		dnetadpt[ipt] = jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
-		dnydpt[ipt] = particleList[j].dNdydptdphi[ieta][ipt][iphi];
+		dnetadpt[ipt] = pt*jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
+		dnydpt[ipt] = pt*particleList[j].dNdydptdphi[ieta][ipt][iphi];
 // 		cout << "spectra = " << dndpt[ipt] << endl;
 	      }
 	      gsl_interp_accel *ptacc = gsl_interp_accel_alloc ();
@@ -2285,7 +2285,7 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 	      {
 		pt = particleList[j].pt[ipt];
 		double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
-		dndpt[ipt] = jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
+		dndpt[ipt] = pt*jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
 // 		cout << "spectra = " << dndpt[ipt] << endl;
 	      }
 	      gsl_interp_accel *ptacc = gsl_interp_accel_alloc ();
@@ -2418,8 +2418,8 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 
 			
 		}// eta loop
-		if(0!=neta) dndpt[ipt]*=2*PI/nphi*2*etamax/neta;
-		else dndpt[ipt]*=2*PI/nphi*2;
+		if(0!=neta) dndpt[ipt]*=pt*2*PI/nphi*2*etamax/neta;
+		else dndpt[ipt]*=pt*2*PI/nphi*2;
 // 		cout << particleList[j].pt[ipt] << ", " << dndpt[ipt] << endl;	
 	}// pt loop
 	
@@ -2541,7 +2541,7 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 				
 				//Integrate over phi using trapezoid rule
 				for(int iphi=0;iphi<nphi;iphi++) {
-					tmp_dNdetadpT[ipt]+=jac*particleList[j].dNdydptdphi[ieta][ipt][iphi]*(2*M_PI)/(nphi);
+					tmp_dNdetadpT[ipt]+=pt*jac*particleList[j].dNdydptdphi[ieta][ipt][iphi]*(2*M_PI)/(nphi);
 					//tmp_dNdetadpT[ipt]+=exp(-1*particleList[j].pt[ipt])*pow(cos(iphi*2*M_PI/(nphi)),2)*(2*M_PI)/(nphi);
 				}
 			}
