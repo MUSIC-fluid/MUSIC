@@ -385,7 +385,7 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
   const char* d_name = "FparticleInformation.dat";
   d_file = fopen(d_name, "a");
   
-  fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  DATA->max_pseudorapidity, DATA->pseudo_steps+1, DATA->min_pt, DATA->max_pt, DATA->pt_steps, DATA->phi_steps);
+  fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  DATA->max_pseudorapidity, DATA->pseudo_steps+1, DATA->min_pt, DATA->max_pt, DATA->pt_steps+1, DATA->phi_steps);
 
 //   fprintf(d_file,"%d %e %e %e %e %e %d %d %d \n", number, DATA->, ymax, slope, phimin, phimax, iymax, iptmax, iphimax);
    fclose(d_file);
