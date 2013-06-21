@@ -129,12 +129,12 @@ double Freeze::summation3(double px, double py, double y, double m, int deg, int
   else
     sign = 1.;
 
-  dSigma[3] = surface[i].s[3];
   //fprintf(stderr,"sign=%f\n",sign);
   //fprintf(stderr,"baryon=%d\n",baryon);
   for (i=0; i<NCells; i++)
     {
-      if(surface[i].s[3]==0) 
+      dSigma[3] = surface[i].s[3];
+      if(dSigma[3]==0) 
       {
 	subsections = floor(DETA/maxDETA) + 1;
 	for (int j=0; j<3; j++) dSigma[j] = surface[i].s[j]/subsections;
