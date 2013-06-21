@@ -135,7 +135,7 @@ double Freeze::summation3(double px, double py, double y, double m, int deg, int
       if(surface[i].s[3]==0) 
       {
 	subsections = floor(DETA/maxDETA) + 1;
-	for (int j=0; j<3; j++) surface[i].s[3]/=subsections;
+	for (int j=0; j<3; j++) surface[i].s[j]/=subsections;
 //       if (subsections > 1) cout << "Splitting surface element into " << subsections << " segments in eta\n";
       }
       else subsections = 1;
@@ -147,9 +147,9 @@ double Freeze::summation3(double px, double py, double y, double m, int deg, int
       if(DATA->whichEOS>=3) // for PCE use the previously computed mu at the freeze-out energy density
 	mu=muAtFreezeOut; //GeV
       
-      for (int k=1; k <= subsections; k++)
+      for (int k=0; k < subsections; k++)
       {
-	  eta = surface[i].x[3] - DETA/2. + (k*DETA)/(subsections+1);
+	  eta = surface[i].x[3] - DETA/2 + DETA/2/subsections + (k*DETA)/(subsections);
 	  
 	  ptau = mt*cosh(y-eta); // GeV    this is p^tau
 	  peta = mt/tau*sinh(y-eta); // GeV/fm     this is p^eta
