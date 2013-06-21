@@ -1563,7 +1563,7 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 	      {
 		pt = particleList[j].pt[ipt];
 		// jacobian -- dN/deta = jac*dN/dy
-		double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+		double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta));
 		dnetadpt[ipt] = jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
 		dnydpt[ipt] = particleList[j].dNdydptdphi[ieta][ipt][iphi];
 // 		cout << "spectra = " << dndpt[ipt] << endl;
@@ -1657,7 +1657,7 @@ void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, doub
 	      {
 		double eta = particleList[j].y[ieta];
 		// jacobian -- dN/deta = jac*dN/dy
-		double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+		double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta));
 		dndpt[ieta] = jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
 // 		cout << "spectra = " << dndpt[ipt] << endl;
 	      }
@@ -2095,8 +2095,8 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 // 		cout << "pt = " << pt << endl;
 		
 		//jacobian to switch from dN/dY to dN/deta
-// 		double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
-		double jac = 1.;
+		double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+// 		double jac = 1.;
 		
 		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) intvn[i][k]=0;
 
@@ -2286,7 +2286,7 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 	      for(int ipt=0;ipt<npt;ipt++) 
 	      {
 		pt = particleList[j].pt[ipt];
-		double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+		double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta);
 		dndpt[ipt] = jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
 // 		cout << "spectra = " << dndpt[ipt] << endl;
 	      }
@@ -2403,7 +2403,7 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 		{
 			double dndpteta = 0;
 			double eta = particleList[j].y[ieta];
-			double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+			double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta));
 // 			cout << "jac = " << jac << endl;
 			//Integrate over phi using trapezoid rule
 			for(int iphi=0;iphi<nphi;iphi++) 
@@ -2538,7 +2538,7 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 				tmp_dNdetadpT[ipt]=0.0;
 				tmp_ptList[ipt]=pt;
 				//jacobian to switch from dN/dY to dN/deta
-				double jac = sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
+				double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta));
 				//double jac = 1.;
 				
 				//Integrate over phi using trapezoid rule
