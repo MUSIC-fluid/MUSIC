@@ -110,6 +110,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
 double Freeze::summation3(double px, double py, double y, double m, int deg, int baryon, double muAtFreezeOut, InitData *DATA)
 {
   double sum = 0.;
+  double dSigma[4] = {0};
   int i;
   double ptau, peta;
   double f, T, mu, tau, x, eta, E, sign, delta_f;
@@ -128,6 +129,7 @@ double Freeze::summation3(double px, double py, double y, double m, int deg, int
   else
     sign = 1.;
 
+  dSigma[3] = surface[i].s[3];
   //fprintf(stderr,"sign=%f\n",sign);
   //fprintf(stderr,"baryon=%d\n",baryon);
   for (i=0; i<NCells; i++)
@@ -135,7 +137,7 @@ double Freeze::summation3(double px, double py, double y, double m, int deg, int
       if(surface[i].s[3]==0) 
       {
 	subsections = floor(DETA/maxDETA) + 1;
-	for (int j=0; j<3; j++) surface[i].s[j]/=subsections;
+	for (int j=0; j<3; j++) dSigma[j] = surface[i].s[j]/subsections;
 //       if (subsections > 1) cout << "Splitting surface element into " << subsections << " segments in eta\n";
       }
       else subsections = 1;
@@ -155,7 +157,7 @@ double Freeze::summation3(double px, double py, double y, double m, int deg, int
 	  peta = mt/tau*sinh(y-eta); // GeV/fm     this is p^eta
 
 	  // compute p^mu*dSigma_mu
-	  pdSigma = tau*(ptau*surface[i].s[0]+px*surface[i].s[1]+py*surface[i].s[2]+peta*surface[i].s[3]); //fm^3*GeV
+	  pdSigma = tau*(ptau*dSigma[0]+px*dSigma[1]+py*dSigma[2]+peta*dSigma[3]); //fm^3*GeV
 	  E = (ptau*surface[i].u[0]-px*surface[i].u[1]-py*surface[i].u[2]-tau*tau*peta*surface[i].u[3]/tau);
 	  // this is the equilibrium f, f_0:
 	  f = 1./(exp(1./T*(E-mu))+sign);
