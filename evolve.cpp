@@ -4797,7 +4797,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		  
 		  for (int i = 0; i < subsections; i++)
 		  {
-		    etaf = eta - DETA/2 + DETA/2/subsections. + (i*DETA)/(subsections);
+		    etaf = eta - DETA/2 + DETA/2/subsections + (i*DETA)/(subsections);
 		    
 		    s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
 			  << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
@@ -4892,7 +4892,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		  
 		  for (int i = 0; i < subsections; i++)
 		  {
-		    etaf = eta - DETA/2 + DETA/2/subsections. + (i*DETA)/(subsections);
+		    etaf = eta - DETA/2 + DETA/2/subsections + (i*DETA)/(subsections);
 		    
 		    s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
 			  << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
@@ -5074,7 +5074,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		  
 		  for (int i = 0; i < subsections; i++)
 		  {
-		    etaf = eta - DETA/2 + DETA/2/subsections. + (i*DETA)/(subsections);
+		    etaf = eta - DETA/2 + DETA/2/subsections + (i*DETA)/(subsections);
 		    
 		    s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
 			  << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 

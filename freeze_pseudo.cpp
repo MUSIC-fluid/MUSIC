@@ -149,7 +149,7 @@ double Freeze::summation3(double px, double py, double y, double m, int deg, int
       
       for (int k=0; k < subsections; k++)
       {
-	  eta = surface[i].x[3] - DETA/2 + DETA/2/subsections. + (k*DETA)/(subsections);
+	  eta = surface[i].x[3] - DETA/2 + DETA/2/subsections + (k*DETA)/(subsections);
 	  
 	  ptau = mt*cosh(y-eta); // GeV    this is p^tau
 	  peta = mt/tau*sinh(y-eta); // GeV/fm     this is p^eta
