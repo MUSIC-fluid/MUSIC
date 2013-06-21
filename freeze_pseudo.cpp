@@ -133,11 +133,11 @@ double Freeze::summation3(double px, double py, double y, double m, int deg, int
   //fprintf(stderr,"baryon=%d\n",baryon);
   for (i=0; i<NCells; i++)
     {
-      dSigma[3] = surface[i].s[3];
+      for (int j=0; j<4; j++) dSigma[j] = surface[i].s[j];
       if(dSigma[3]==0) 
       {
 	subsections = floor(DETA/maxDETA) + 1;
-	for (int j=0; j<3; j++) dSigma[j] = surface[i].s[j]/subsections;
+	for (int j=0; j<3; j++) dSigma[j]/=subsections;
 //       if (subsections > 1) cout << "Splitting surface element into " << subsections << " segments in eta\n";
       }
       else subsections = 1;
