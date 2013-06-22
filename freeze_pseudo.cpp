@@ -2105,6 +2105,62 @@ double Freeze::get_yield(InitData *DATA, int number, double minpt, double maxpt,
 }
 
 
+// Return <pt> in specified range of phase space
+double Freeze::get_meanpt(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta)
+{
+  int j = partid[MHALF+number];
+  int npt = particleList[j].npt;
+//   int neta = particleList[j].ny;
+  
+  
+  if(minpt < particleList[j].pt[0]) 
+  {
+    cerr << "Error: called out of range pt in pt_and_eta_integrated_flow2, " 
+    << minpt << " < minimum " << particleList[j].pt[0] << endl;
+    exit(1);
+  }
+  if(maxpt > particleList[j].pt[npt-1]) 
+  {
+    cerr << "Error: called out of range pt in pt_and_eta_integrated_flow2, " 
+    << maxpt << " > maximum " << particleList[j].pt[npt-1] << endl;
+    exit(1);
+  }
+  if (minpt > maxpt)
+  {
+    cerr << "Error in pt_and_eta_integrated_flow2:  minpt must be less than or equal to maxpt\n";
+    exit(1);
+  }
+  
+
+  double ptdndpt[etasize];
+  double dndpt[etasize];
+  for(int ipt=0;ipt<npt;ipt++) 
+  {
+    double pt = particleList[j].pt[ipt];
+    dndpt[ipt] = get_yield(DATA, number, pt, pt, mineta, maxeta);
+    ptdndpt[ipt] = pt*dndpt[ipt];
+  }
+    gsl_interp_accel *numacc = gsl_interp_accel_alloc ();
+    gsl_spline *numspline = gsl_spline_alloc (gsl_interp_cspline, npt);
+    gsl_spline_init (numspline, particleList[j].pt ,ptdndpt , npt);
+    
+    gsl_interp_accel *denacc = gsl_interp_accel_alloc ();
+    gsl_spline *denspline = gsl_spline_alloc (gsl_interp_cspline, npt);
+    gsl_spline_init (denspline, particleList[j].pt ,dndpt , npt);
+    
+    double num = gsl_spline_eval_integ(numspline, minpt, maxpt, numacc);
+    double den = gsl_spline_eval_integ(denspline, minpt, maxpt, denacc);
+    
+    gsl_spline_free (numspline);
+    gsl_interp_accel_free (numacc);
+    gsl_spline_free (denspline);
+    gsl_interp_accel_free (denacc);
+    
+    return num/den;
+  
+}
+
+
 // Return v_n for specified range of phase space
 double Freeze::get_vn(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int n)
 {
@@ -2217,6 +2273,7 @@ double Freeze::get_psi_n_ch(InitData *DATA, double minpt, double maxpt, double m
     }
   return atan2(numi, numr);
 }
+
 
 // Return yield and v_n at eta=0 as a function of pT
 void Freeze::OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, int full) 

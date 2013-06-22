@@ -196,6 +196,7 @@ class Freeze{
   void pt_and_eta_integrated_flow2(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[8][2]);
   void pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, double vn[8][2]);
   double get_yield(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy);
+  double get_meanpt(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy);
   double get_vn(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, int n);
   double get_psi_n(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, int n);
   double get_Nch(InitData *DATA, double minpt, double maxpt, double miny, double maxy);
