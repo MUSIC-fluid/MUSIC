@@ -204,11 +204,8 @@ class Freeze{
   double get_psi_n_ch(InitData *DATA, double minpt, double maxpt, double miny, double maxy, int n);
 
   void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
-  void OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, int full);
   void OutputDifferentialFlowNearMidrapidity(InitData *DATA, int number, int full);
-  void OutputIntegratedFlowForCMS(InitData *DATA, int number, int full);
   void OutputIntegratedFlow(InitData *DATA, int number, int full);
-  double OutputYieldForCMS(InitData *DATA, int number, int full);
   void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full, const int *, int);
 };
 #endif
