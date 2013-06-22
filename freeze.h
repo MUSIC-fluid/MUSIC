@@ -205,6 +205,7 @@ class Freeze{
 
   void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
   void OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, int full);
+  void OutputDifferentialFlowNearMidrapidity(InitData *DATA, int number, int full);
   void OutputIntegratedFlowForCMS(InitData *DATA, int number, int full);
   void OutputIntegratedFlow(InitData *DATA, int number, int full);
   double OutputYieldForCMS(InitData *DATA, int number, int full);
