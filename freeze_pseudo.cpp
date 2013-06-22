@@ -1597,6 +1597,11 @@ double Freeze::Rap(double eta, double pt, double m)
   return y;
 }
 
+// jacobian to convert dN/dy to dN/deta:  dN/deta = dydeta*dN/dy
+double Freeze::dydeta(double eta, double pt, double m)
+{
+  return pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta));
+}
 
 const int nharmonics = 8; // calculate up to maximum harmonic (n-1) -- for nharmonics = 8, calculate from v_0 o v_7
 const int etasize = 100; // max number of points in eta for array
@@ -1611,7 +1616,7 @@ const int ptsize = 100; // max number of points in pt for array
 // n=2 i=0 is v_2 cos(Psi_2)
 // n=2 i=1 is v_2 sin(Psi_2)
 // etc.
-// Setting ptmin=ptmax evaluates flow at a fixed transverse momentum
+// Setting ptmin=ptmax evaluates flow at a fixed transverse momentum, in which case the spectrum is dN/deta/dpt
 // void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double ****vn)
 void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double vn[nharmonics][2][etasize])
 {
@@ -1723,7 +1728,7 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 // format is vn[n][i(real=0 or imaginary part=1)][pt] .
 // Yield (n=0) is dN/dpt. 
 // void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double ***vn)
-// Setting etamin=etamax evaluates flow at a fixed pseudorapidity
+// Setting etamin=etamax evaluates flow at a fixed pseudorapidity, with yield dN/dpt/deta
 void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double vn[nharmonics][2][ptsize])
 {
 // 	cout << "Calculating integrated flow for " << mineta << " < eta < " << maxeta << " for particle " << number << endl;
@@ -2134,6 +2139,40 @@ void Freeze::pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, 
   }
 }
 
+// Output yield in specified range of phase space
+// if mineta==maxeta, returns dN/eta.  If minpt==maxpt, dN/dpt.  If both, dN/dpt/deta.  Otherwise, total yield N
+double Freeze::get_yield(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta)
+{
+  double vn[nharmonics][2];
+  pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
+  return vn[0][0];
+}
+
+// Output v_n for specified range of phase space
+double Freeze::get_vn(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int n)
+{
+  if( n > nharmonics-1 ) 
+  {
+    cout << "harmonic (" << n << ") too large.  Must increase nharmonics in freeze_pseudo.cpp\n";
+    exit(1);
+  }
+  double vn[nharmonics][2];
+  pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
+  return sqrt(vn[n][0]*vn[n][0] + vn[n][1]*vn[n][1]);
+}
+
+// Output Psi_n for specified range of phase space
+double Freeze::get_psi_n(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int n)
+{
+  if( n > nharmonics-1 ) 
+  {
+    cout << "harmonic (" << n << ") too large.  Must increase nharmonics in freeze_pseudo.cpp\n";
+    exit(1);
+  }
+  double vn[nharmonics][2];
+  pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
+  return atan2(vn[n][1],vn[n][0]);
+}
 
 //Output yield and v_n at eta=0 as a function of pT
 void Freeze::OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, int full) 
