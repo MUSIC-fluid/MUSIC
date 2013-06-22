@@ -35,10 +35,20 @@ util.o main.o freeze_pseudo.o
 
  
 CXX= mpic++
-#  Lots of variables are declared, but never used.  Suppressing warnings with no-unused-variable.
-#  Several zero-length strings are used with fprintf.  Suppressing warnings with no-format-zero-length
-#  Showing all other warnings with -Wall.  May help spot problems when developing code.
-CXXFLAGS= -Wall -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-zero-length
+
+# -Wall shows all compiler warnings, and can help spot problems when developing code.
+#  Unfortunately, there are currently a large number of warnings that cannot be easily parsed.
+#  Lots of variables are declared, but never used.  Can suppress these warnings with no-unused-variable.
+#  Some compilers have a separate warning unused-but-set-variable that can be suppressed.
+#  Unfortunately, compilers that do not recognize this will not compile 
+#  at all if -Wno-unused-but-set-variable is set.
+#  Several zero-length strings are used with fprintf.  
+#  Some compilers can suppress this warning with no-format-zero-length, while other compilers
+#  will just ignore this flag with a warning.
+#  
+#  When developing, uncomment this line, and keep flags appropriate for your compiler
+#  CXXFLAGS= -Wall -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-zero-length
+CXXFLAGS= 
 LIBS= -L/software/libraries/GSL/1.15/lib -lm -lgsl -lgslcblas
 COMMAND=  mpihydro
  
