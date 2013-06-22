@@ -1703,7 +1703,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	      else
 		{
 		  eps_higher = eps_lower;
-		  trouble_higher = trouble_lower;
+// 		  trouble_higher = trouble_lower;
 		  //corr_higher = corr_lower;
 		  Txx_higher = Txx_lower;
 		  Tyy_higher = Tyy_lower;
@@ -1716,7 +1716,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 		}
 	      
 	      eps = eps_lower * (1.-etafrac) + (etafrac)*eps_higher;
-	      trouble = trouble_lower * (1.-etafrac) + (etafrac)*trouble_higher;
+// 	      trouble = trouble_lower * (1.-etafrac) + (etafrac)*trouble_higher;
 	      //corr = corr_lower * (1.-etafrac) + (etafrac)*corr_higher;
 	      Txx = Txx_lower * (1.-etafrac) + (etafrac)*Txx_higher;
 	      Tyy = Tyy_lower * (1.-etafrac) + (etafrac)*Tyy_higher;

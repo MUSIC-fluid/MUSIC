@@ -18,7 +18,7 @@ Glauber::~Glauber()
 void Glauber::FindNucleusData(Nucleus *nucleus, string target, string file_name, int rank)
 {
   string func_name;
- char *tmp_name; 
+//  char *tmp_name; 
 //  char *buf;
 //  double x;
  static int ind;
@@ -117,7 +117,7 @@ void Glauber::FindNucleusData(Nucleus *nucleus, string target, string file_name,
   }
 
 
- remove(tmp_name);
+//  remove(tmp_name);
 }/* FindNucleusData */
 
 

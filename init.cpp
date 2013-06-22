@@ -705,6 +705,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 else
 		   epsilon = DATA->epsilonFreeze/hbarc-1.;
 		 
+		 rhob=0;
 		 // intial pressure distribution:
 		 p = eos->get_pressure(epsilon, rhob);
 		 
@@ -2278,6 +2279,9 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	   {
 	     y = DATA->delta_y*(iy*2 - DATA->ny)/2.0;
 	  
+	     // r2 and r1 were used here uninitialized.  Set to zero to avoid compiler error.
+	     r2=0.;
+	     r1=0.;
 	     //number of binary collisions:
 	     nBinary = TAProjectile(DATA, r2)*TATarget(DATA, r1)*DATA->SigmaNN/10.;
 	     //number of wounded nucleons:

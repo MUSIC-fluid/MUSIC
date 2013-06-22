@@ -4956,7 +4956,7 @@ void Freeze::ComputeCorrelations(InitData* DATA, double ptmax)
 			      sum1 = sum1PhiDown*(1.-(phi-phiArray[iphi1])/(phiArray[iphi1+1]-phiArray[iphi1]))
 				+sum1PhiUp*(phi-phiArray[iphi1])/(phiArray[iphi1+1]-phiArray[iphi1]);
 			      
-			      sumv21=sum1*cos(2.*(phi-phimin-Psi2p));
+// 			      sumv21=sum1*cos(2.*(phi-phimin-Psi2p));
 			      
 			      //cout << sum1 << endl;
 			      //}
@@ -4992,7 +4992,7 @@ void Freeze::ComputeCorrelations(InitData* DATA, double ptmax)
 			      sum4 = sum4PhiDown*(1.-(phi2-phiArray[iphi2])/(phiArray[iphi2+1]-phiArray[iphi2]))
 				+sum4PhiUp*(phi2-phiArray[iphi2])/(phiArray[iphi2+1]-phiArray[iphi2]);
 			      
-			      sumv24=sum1*cos(2.*(phi-phimin-Psi2p));
+// 			      sumv24=sum1*cos(2.*(phi-phimin-Psi2p));
 			      
 			      //cout << sum4 << endl;
 			      //}
@@ -5144,6 +5144,8 @@ void Freeze::Compute3ChargedHadrons(InitData* DATA,double ptmax)
   phiDiff = 0.5 * ( phimax - phimin );
   iphimax = particleList[j].nphi;
   iptmax = particleList[j].npt;
+  
+  m = particleList[j].mass;
 
   if (iptmax != 15) 
     {
@@ -5852,7 +5854,7 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num)
       fprintf(stderr,"\n number=%d\n\n",res_num);
       //      fprintf(stderr,"val=%f\n",val);
       fprintf(stderr,"val1=%f\n",val1);
-      fprintf(stderr,"val2=%f\n",val2);
+//       fprintf(stderr,"val2=%f\n",val2);
       fprintf(stderr,"f1=%f\n",f1);
       fprintf(stderr,"f2=%f\n",f2);
       fprintf(stderr,"f1s=%f\n",f1s);
@@ -6372,7 +6374,7 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 		for (i = 0; i < nphi; i++)
 		  {
 		    double phi;
-		    if (pseudofreeze) double phi = i*deltaphi;
+		    if (pseudofreeze) phi = i*deltaphi;
 		    else phi = phiArray[i];
 		    double spectrum = Edndp3_3bodyN(y, particleList[pn].pt[l], phi,
 					    m1, m2, m3, mr, norm3, particleList[pnR].number);
@@ -6457,7 +6459,8 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 	    for (i = 0; i < nphi; i++)
 	      {
 		double phi;
-		if (pseudofreeze) double phi = i*deltaphi;
+		if (pseudofreeze) phi = i*deltaphi;
+		else phi = phiArray[i];
 		for (l = 0; l < npt; l++)
 		  {
 		      if(pseudofreeze) y = Rap(particleList[pn].y[n],particleList[pn].pt[l],m1);

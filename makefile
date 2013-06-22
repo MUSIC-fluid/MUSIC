@@ -38,7 +38,7 @@ CXX= mpic++
 #  Lots of variables are declared, but never used.  Suppressing warnings with no-unused-variable.
 #  Several zero-length strings are used with fprintf.  Suppressing warnings with no-format-zero-length
 #  Showing all other warnings with -Wall.  May help spot problems when developing code.
-CXXFLAGS=  -Wall -Wno-unused-variable -Wno-format-zero-length
+CXXFLAGS= -Wall -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-zero-length
 LIBS= -L/software/libraries/GSL/1.15/lib -lm -lgsl -lgslcblas
 COMMAND=  mpihydro
  
