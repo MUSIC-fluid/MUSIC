@@ -4,8 +4,10 @@
 double ***Util::cube_malloc(int n1, int n2, int n3)
 {
   //  cout << "test1" << endl;
-    int i,j,k,inc;
-    double ***d1_ptr, *tmp_ptr;
+    int i,j,k;
+//     int inc;
+    double ***d1_ptr; 
+//     double *tmp_ptr;
     n1+=1;
     n2+=1;
     n3+=1;
@@ -86,7 +88,8 @@ void Util::cube_free(double ***cube, int n1, int n2, int n3)
 double **Util::mtx_malloc(int n1, int n2)
 {
     int i, j;
-    double **d1_ptr, *tmp_ptr;
+    double **d1_ptr; 
+//     double *tmp_ptr;
 
     //    tmp_ptr = (double *)malloc(sizeof(double)*n1*n2);
     // tmp_ptr = new double[n1*n2];
@@ -174,7 +177,7 @@ return d1_ptr;
 
 char **Util::char_mtx_malloc(int n1, int n2)
 {
-    int i,j,k;
+    int k;
     char ** d1_ptr;
     char * d2_ptr;
 
@@ -257,6 +260,8 @@ int Util::is_yes_no(char *st)
    } 
  if(strcmp(st, "yes\0")==0) return 1;
  else if(strcmp(st, "no\0")==0) return 0;
+  cout << "Error in Util::is_yes_no\n";
+ return 0;
 }
 
 
@@ -375,9 +380,9 @@ double Util::LinearPara(double nu, double max, double min, double *jacob)
 
 int Util::IsFile(string file_name)
 {
- static int isf;
- static int ind = 0;
- char st[80];
+//  static int isf;
+//  static int ind = 0;
+//  char st[80];
  FILE *temp;
 
  if( (temp = fopen(file_name.c_str(),"r")) == NULL) return 0;
@@ -425,7 +430,7 @@ string Util::StringFind(string file_name, const char *st)
 	  tmp_file << "EndOfData" << endl;
 	  tmp_file.close();
 	}/* if isfile */
-      flag == 1;
+//       flag == 1;
     }/* if flag == 0 */
   
     ifstream input(inputname.c_str());
@@ -453,7 +458,9 @@ string Util::StringFind(string file_name, const char *st)
 	cout << "Create an input file." << endl;
 	exit(1);
 	return xstr;
-      }    
+      }  
+  cout << "Error in Util::StringFind\n";
+ return "empty";
 }/* StringFind */
 
 string Util::StringFind3(string file_name, const char *st)
@@ -494,7 +501,7 @@ string Util::StringFind3(string file_name, const char *st)
 	  tmp_file.close();
 	  exit(1);
 	}/* if isfile */
-      flag == 1;
+//       flag == 1;
     }/* if flag == 0 */
   
     ifstream input(inputname.c_str());
@@ -522,7 +529,9 @@ string Util::StringFind3(string file_name, const char *st)
 // 	cout << "Create an input file." << endl;
 // 	exit(1);
 	return "empty";
-      }    
+      } 
+  cout << "Error in Util::StringFind3\n";
+ return "empty";
 }/* StringFind3 */
 
 
@@ -555,7 +564,7 @@ char *Util::StringFind2(char *file_name, const char *st)
      fprintf(tmp_file, "EndOfData\n");
      fclose(tmp_file);
     }/* if isfile */
-   flag == 1;
+//    flag == 1;
   }/* if flag == 0 */
  
  input = fopen(file_name,"r");
@@ -607,7 +616,8 @@ char *Util::StringFind2(char *file_name, const char *st)
    ReWriteString(file_name, st, x);
    return x;
   }
-
+  cout << "Error in Util::StringFind2\n";
+ return 0;
 }/* StringFind */
 
 
@@ -766,7 +776,8 @@ int Util::IFindXInVx(double x, double *Vx, int ymax)
    while((Vx[i] <= x) && i > 0) i--;   
    return ((fabs(Vx[i]-x) < fabs(Vx[i+1]-x)) ? i : i+1);
   }/* mono decreasing */
-
+  cout << "Error in Util::IFindXInVx\n";
+ return 0;
 }/* IFindXInVx */
 
 int Util::CheckMono(double *Vx, int ymax, int *mono_ind)
@@ -1254,6 +1265,8 @@ double Util::Solve
    
    return Solve(nu, func, s_down, s_mid, tol, count);
   }
+  cout << "Error in Util::Solve\n";
+ return 0;
 }/* Solve */
 #undef MAX_SEARCH 
 

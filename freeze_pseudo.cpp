@@ -16,7 +16,6 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
   int pseudo_steps;
   int ip;
   int bytes_read;
-  double  neta;
   fprintf(stderr,"reading spectra\n");
   // open particle information file:
   FILE *p_file;
@@ -122,7 +121,7 @@ double Freeze::summation3(double px, double py, double y, double m, int deg, int
   double dSigma[4] = {0};
   int i;
   double ptau, peta;
-  double f, T, mu, tau, x, eta, E, sign, delta_f;
+  double f, T, mu, tau, eta, E, sign, delta_f;
   double pdSigma, Wfactor;
   double mt = sqrt(m*m+px*px+py*py); // all in GeV
   double alpha = 0.; // make a parameter
@@ -290,8 +289,8 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
   double m = particleList[j].mass;
   int d = particleList[j].degeneracy;
   int b = particleList[j].baryon;
-  int s = particleList[j].strange;
-  double c = particleList[j].charge;
+//   int s = particleList[j].strange;
+//   double c = particleList[j].charge;
   double mu = particleList[j].muAtFreezeOut;
 
   char *buf = new char[10];
@@ -571,7 +570,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
 //       if(rank==0)  cal_reso_decays_pseudo(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
       if(rank==0)  cal_reso_decays(particleMax,decayMax,bound,mode);
-      if (rank == 0) int ret = system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
+      int ret;
+      if (rank == 0) ret = system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
 	  for ( i=1; i<particleMax; i++ )
 	    {
 	      number = particleList[i].number;
@@ -590,7 +590,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       
       int neta = particleList[1].ny;
 
-      int chargedhd[6] = {1,3,4,5,17,18};
+//       int chargedhd[6] = {1,3,4,5,17,18};
       int positivech[3] = {1,4,17};
 
       for ( int k=0; k<3; k++ )
@@ -638,7 +638,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	Output_charged_hadrons_eta_differential_spectra(DATA, 1, stable_charged_hadron_list,sizeof(stable_charged_hadron_list)/sizeof(int));
 
 	
-      int chargedhd[6] = {1,3,4,5,17,18};
+//       int chargedhd[6] = {1,3,4,5,17,18};
       
       int positivech[3] = {1,4,17};
       for ( int k=0; k<3; k++ )
@@ -735,13 +735,13 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
-	double fac, pt;
+	double  pt;
   //       double intvn[8][2] = {0};
 	int nphi = particleList[j].nphi;
 	int npt = particleList[j].npt;
 	int neta = particleList[j].ny;
-	double intvneta[etasize][nharmonics][2] = {0};
-	double intvny[etasize][nharmonics][2] = {0};
+	double intvneta[etasize][nharmonics][2] = {};
+	double intvny[etasize][nharmonics][2] = {};
 	double m = particleList[j].mass;
 	
 	if(minpt < particleList[j].pt[0]) 
@@ -846,12 +846,12 @@ void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, doub
     
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
-	double fac, pt;
+// 	double fac, pt;
   //       double intvn[8][2] = {0};
 	int nphi = particleList[j].nphi;
 	int npt = particleList[j].npt;
 	int neta = particleList[j].ny;
-	double intvn[ptsize][nharmonics][2] = {0};
+	double intvn[ptsize][nharmonics][2] = {};
 	double m = particleList[j].mass;
 	
 	if(mineta < particleList[j].y[0]) 
@@ -939,12 +939,12 @@ void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double m
     
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
-	double fac, pt;
+// 	double fac, pt;
   //       double intvn[8][2] = {0};
 	int nphi = particleList[j].nphi;
 	int npt = particleList[j].npt;
 	int neta = particleList[j].ny;
-	double intvn[etasize][nharmonics][2] = {0};
+	double intvn[etasize][nharmonics][2] = {};
 	double m = particleList[j].mass;
 	
 	
@@ -1053,7 +1053,7 @@ void Freeze::pt_and_eta_integrated_flow(InitData *DATA, int number, double minpt
     exit(1);
   }
   
-  double vneta[nharmonics][2][etasize] = {0};
+  double vneta[nharmonics][2][etasize] = {};
   pt_integrated_flow(DATA, number, minpt, maxpt, vneta);
   double dndeta[etasize];
   for(int ieta=0;ieta<neta;ieta++) 
@@ -1130,7 +1130,7 @@ void Freeze::pt_and_eta_integrated_flow2(InitData *DATA, int number, double minp
   
   
   // do  eta-integral first
-  double vnpt[nharmonics][2][etasize] = {0};
+  double vnpt[nharmonics][2][etasize] = {};
   eta_integrated_flow(DATA, number, mineta, maxeta, vnpt);
   double dndpt[etasize];
   for(int ipt=0;ipt<npt;ipt++) 
@@ -1181,9 +1181,7 @@ void Freeze::pt_and_eta_integrated_flow2(InitData *DATA, int number, double minp
 void Freeze::pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, double vn[nharmonics][2])
 {
   int j = partid[MHALF+number];
-  int npt = particleList[j].npt;
-  int neta = particleList[j].ny;
-  
+  int npt = particleList[j].npt;  
   
   if(minpt < particleList[j].pt[0]) 
   {
@@ -1204,7 +1202,7 @@ void Freeze::pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, 
   }
   
   // do  y-integral first
-  double vnpt[nharmonics][2][ptsize] = {0};
+  double vnpt[nharmonics][2][ptsize] = {};
   y_integrated_flow(DATA, number, miny, maxy, vnpt);
   double dndpt[ptsize];
   for(int ipt=0;ipt<npt;ipt++) 
@@ -1436,11 +1434,11 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
 	double m = particleList[j].mass;
-	int nphi = particleList[j].nphi;
+// 	int nphi = particleList[j].nphi;
 	int npt = particleList[j].npt;
 
-	double minpt = particleList[j].pt[0];
-	double maxpt = particleList[j].pt[npt-1];
+// 	double minpt = particleList[j].pt[0];
+// 	double maxpt = particleList[j].pt[npt-1];
 	double eta = 0.0;
 	
 	cout << "Calculating flow at midrapidity for particle " << number << endl;
@@ -1529,11 +1527,8 @@ void Freeze::OutputDifferentialFlowNearMidrapidity(InitData *DATA, int number, i
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
 	double m = particleList[j].mass;
-	int nphi = particleList[j].nphi;
 	int npt = particleList[j].npt;
 
-	double minpt = particleList[j].pt[0];
-	double maxpt = particleList[j].pt[npt-1];
 	double mineta = -1.;
 	double maxeta = 1.;
 	
@@ -1625,8 +1620,6 @@ void Freeze::OutputIntegratedFlow(InitData *DATA, int number, int full)
   
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
-	double intvn[nharmonics][2] = {0};
-	double m = particleList[j].mass;
 	int neta = particleList[j].ny;
 	int npt = particleList[j].npt;
 
@@ -1719,7 +1712,7 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 	int j, number, nphi, npt, neta;
 	double eta;
 	double m;
-	double fac, pt;
+	double pt;
 	double tmp_dNdeta, * tmp_dNdetadpT, * tmp_ptList;
 
 	//Make sure all the necessary spectra are available

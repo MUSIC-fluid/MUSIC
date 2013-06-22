@@ -1689,7 +1689,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   // set some parameters
   
   j = partid[MHALF+number];
-  fprintf(stderr,"Doing %s\n", particleList[j].name, particleList[j].number);
+  fprintf(stderr,"Doing %s (%d)\n", particleList[j].name, particleList[j].number);
   phimax = particleList[j].phimax;
   phimin = particleList[j].phimin;
   phiOffs = 0.5 * ( phimin + phimax );
@@ -2867,7 +2867,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   fclose(v3_file);
   fclose(v3r3_file);
   fclose(v4_file);
-  fprintf(stderr,"Done with %s\n", particleList[j].name, particleList[j].number);
+  fprintf(stderr,"Done with %s (%d)\n", particleList[j].name, particleList[j].number);
   fclose(pteta_file);
   fclose(v3_eta_file);
   fclose(v3r3_eta_file);
@@ -3116,7 +3116,7 @@ void Freeze::ComputeAveragePT(int number, double ptmax)
   // set some parameters
   
   j = partid[MHALF+number];
-  fprintf(stderr,"Doing %s\n", particleList[j].name, particleList[j].number);
+  fprintf(stderr,"Doing %s (%d)\n", particleList[j].name, particleList[j].number);
   phimax = particleList[j].phimax;
   phimin = particleList[j].phimin;
   phiOffs = 0.5 * ( phimin + phimax );

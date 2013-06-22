@@ -15,7 +15,7 @@ void ReadInData2(InitData *DATA, string file);
 
 
 // main program
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int rank;
   int size;
@@ -25,8 +25,8 @@ main(int argc, char *argv[])
  
   string input_file;
   static InitData DATA;
-  int ieta, ix, iy, flag;
-  double f, tau;
+  int flag;
+  double  tau;
 
 
   // you have the option to give a second command line option, which is an integer to be added to the random seed from the current time
