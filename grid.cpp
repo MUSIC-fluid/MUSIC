@@ -759,12 +759,12 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 		  }
 		}
 		else {
-		  float array[]={T1*hbarc, QGPfrac1, ux1, uy1, uz1};
-		  fwrite(array,sizeof(float),5,out_file_xyeta);
+		  double array[]={T1*hbarc, QGPfrac1, ux1, uy1, uz1};
+		  fwrite(array,sizeof(double),5,out_file_xyeta);
 		  //Write Wmunu/shear only if viscosity is on --- no need to fill a file with zeros in the ideal case
 		  if (1 == DATA->viscosity_flag) {
-		  	float array2[]={Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz};
-		  	fwrite(array2,sizeof(float),10,out_file_W_xyeta);
+		  	double array2[]={Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz};
+		  	fwrite(array2,sizeof(double),10,out_file_W_xyeta);
 		  }
 		}
 		//fprintf(out_file_T,"%e %e %e %e %e %e %e %e %e %e\n",Ttt,Ttx,Tty,Ttz,Txx,Txy,Txz,Tyy,Tyz,Tzz);
