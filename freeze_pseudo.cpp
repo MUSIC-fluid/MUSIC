@@ -385,7 +385,7 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
   const char* d_name = "FparticleInformation.dat";
   d_file = fopen(d_name, "a");
   
-  fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  DATA->max_pseudorapidity, DATA->pseudo_steps+1, DATA->min_pt, DATA->max_pt, DATA->pt_steps, DATA->phi_steps);
+  fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  DATA->max_pseudorapidity, DATA->pseudo_steps+1, DATA->min_pt, DATA->max_pt, DATA->pt_steps+1, DATA->phi_steps);
 
 //   fprintf(d_file,"%d %e %e %e %e %e %d %d %d \n", number, DATA->, ymax, slope, phimin, phimax, iymax, iptmax, iphimax);
    fclose(d_file);
@@ -1418,7 +1418,10 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 //       outfile.precision(4);
 //       outfile.setf(ios::scientific);
       
+      int neta = particleList[i].ny;
       
+//       double dndeta[etasize] = {0};
+      double dNchdeta[100] = {0};
       int chargedhd[6] = {1,3,4,5,17,18};
       for ( int k=0; k<6; k++ )
 	{
@@ -1426,16 +1429,44 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	  number = particleList[i].number;
 	  if(particleMax>=i)
 	  {
-	    OutputDifferentialFlowAtMidrapidity(DATA, number,0);
-	    OutputDifferentialFlowAtMidrapidity2(DATA, number,0);
-	    OutputIntegratedFlowForCMS(DATA, number,0);
-	    OutputIntegratedFlow(DATA, number,0);
+// 	    OutputDifferentialFlowAtMidrapidity(DATA, number,0);
+// 	    OutputDifferentialFlowAtMidrapidity2(DATA, number,0);
+// 	    OutputIntegratedFlowForCMS(DATA, number,0);
+// 	    OutputIntegratedFlow(DATA, number,0);
+// 	    
+// 	    double N = OutputYieldForCMS(DATA, number,0);
+// 	    
+// 	    outfile << number << "\t" << N << endl;
+	    double vnpt[8][2][100] = {0};
+	    eta_integrated_flow(DATA, number, 0, 0, vnpt);
+	    int npt = particleList[i].npt;
+// 	    for(int ipt=0; ipt<npt; ipt++) cout << "pt, yield = " << particleList[i].pt[ipt] << ", " << vnpt[0][0][ipt] << endl;
+	    cout << "pt, yield = " << particleList[i].pt[1] << ", " << vnpt[0][0][1] << endl;
+	    double vn[8][2];
+	    pt_and_eta_integrated_flow(DATA,number,particleList[i].pt[0],particleList[i].pt[npt-1],-3,3,vn);
+	    cout << "pt, yield2 = " << particleList[i].pt[1] << ", " << vn[0][0] << endl;
+	    pt_and_eta_integrated_flow2(DATA,number,particleList[i].pt[0],particleList[i].pt[npt-1],-3,3,vn);
+	    cout << "pt, yield3 = " << particleList[i].pt[1] << ", " << vn[0][0] << endl;
+	    pt_integrated_flow(DATA, number,particleList[i].pt[1],particleList[i].pt[1], vnpt);
+	    cout << "pt, yield4 = " << particleList[i].pt[1] << ", " << vnpt[0][0][particleList[i].ny/2-1] << endl;
+	    pt_integrated_flow(DATA, number, 0.035, 3.0, vnpt);
+// 	    for(int ieta=0; ieta<neta; ieta++) cout << "eta, yield = " << particleList[i].y[ieta] << ", " << vnpt[0][0][ieta] << endl;
 	    
-	    double N = OutputYieldForCMS(DATA, number,0);
-	    
+	    for(int ieta=0; ieta<neta; ieta++)
+	    {
+	      double eta = particleList[i].y[ieta];
+	      double minpt = particleList[i].pt[0];
+	      double maxpt = particleList[i].pt[npt-1];
+	      pt_and_eta_integrated_flow(DATA,number,minpt,maxpt,eta,eta,vn);
+	      dNchdeta[ieta]+=vn[0][0];
+	    }
+	    pt_and_eta_integrated_flow(DATA,number,0.5,particleList[i].pt[npt-1],-2.4,2.4,vn);
+	    double N = vn[0][0];
 	    outfile << number << "\t" << N << endl;
 	  }
 	}
+	for(int ieta=0; ieta<neta; ieta++) cout << "eta, yield = " << particleList[i].y[ieta] << ", " << dNchdeta[ieta] << endl;
+
 
 	outfile.close();
 	
@@ -1446,7 +1477,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	const int stable_charged_hadron_list[] = {211,-211,321,-321,2212,-2212};
 	Output_charged_hadrons_eta_differential_spectra(DATA, 1, stable_charged_hadron_list,sizeof(stable_charged_hadron_list)/sizeof(int));
 	//Output_charged_hadrons_eta_differential_spectra(DATA, 1);
-/*
+
 //       for ( i=1; i<particleMax; i++ )
       int chargedhd[6] = {1,3,4,5,17,18};
       
@@ -1479,7 +1510,57 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       cout << "Nch = " << N << endl;
       outfile << N << endl;
       outfile.close();
-      */
+      
+      int neta = particleList[i].ny;
+
+     double dNchdeta[100] = {0};
+//       int chargedhd[6] = {1,3,4,5,17,18};
+      for ( int k=0; k<6; k++ )
+	{
+	  i = chargedhd[k];
+	  number = particleList[i].number;
+	  if(particleMax>=i)
+	  {
+// 	    OutputDifferentialFlowAtMidrapidity(DATA, number,0);
+// 	    OutputDifferentialFlowAtMidrapidity2(DATA, number,0);
+// 	    OutputIntegratedFlowForCMS(DATA, number,0);
+// 	    OutputIntegratedFlow(DATA, number,0);
+// 	    
+// 	    double N = OutputYieldForCMS(DATA, number,0);
+// 	    
+// 	    outfile << number << "\t" << N << endl;
+	    double vnpt[8][2][100] = {0};
+	    eta_integrated_flow(DATA, number, 0, 0, vnpt);
+	    int npt = particleList[i].npt;
+// 	    for(int ipt=0; ipt<npt; ipt++) cout << "pt, yield = " << particleList[i].pt[ipt] << ", " << vnpt[0][0][ipt] << endl;
+	    cout << "pt, yield = " << particleList[i].pt[1] << ", " << vnpt[0][0][1] << endl;
+	    double vn[8][2];
+	    pt_and_eta_integrated_flow(DATA,number,particleList[i].pt[0],particleList[i].pt[npt-1],-3,3,vn);
+	    cout << "pt, yield2 = " << particleList[i].pt[1] << ", " << vn[0][0] << endl;
+	    pt_and_eta_integrated_flow2(DATA,number,particleList[i].pt[0],particleList[i].pt[npt-1],-3,3,vn);
+	    cout << "pt, yield3 = " << particleList[i].pt[1] << ", " << vn[0][0] << endl;
+	    pt_integrated_flow(DATA, number,particleList[i].pt[1],particleList[i].pt[1], vnpt);
+	    cout << "pt, yield4 = " << particleList[i].pt[1] << ", " << vnpt[0][0][particleList[i].ny/2-1] << endl;
+	    pt_integrated_flow(DATA, number, 0.035, 3.0, vnpt);
+	    int neta = particleList[i].ny;
+// 	    for(int ieta=0; ieta<neta; ieta++) cout << "eta, yield = " << particleList[i].y[ieta] << ", " << vnpt[0][0][ieta] << endl;
+	    
+	    for(int ieta=0; ieta<neta; ieta++)
+	    {
+	      double eta = particleList[i].y[ieta];
+	      double minpt = particleList[i].pt[0];
+	      double maxpt = particleList[i].pt[npt-1];
+	      pt_and_eta_integrated_flow(DATA,number,minpt,maxpt,eta,eta,vn);
+	      dNchdeta[ieta]+=vn[0][0];
+	    }
+	    pt_and_eta_integrated_flow(DATA,number,0.5,particleList[i].pt[npt-1],-2.4,2.4,vn);
+	    double N = vn[0][0];
+	    outfile << number << "\t" << N << endl;
+	  }
+	}
+	for(int ieta=0; ieta<neta; ieta++) cout << "eta, yield = " << particleList[i].y[ieta] << ", " << dNchdeta[ieta] << endl;
+
+      
       
     }
   else if (mode!=3)
@@ -1516,6 +1597,12 @@ double Freeze::Rap(double eta, double pt, double m)
   return y;
 }
 
+
+const int nharmonics = 8; // calculate up to maximum harmonic (n-1) -- for nharmonics = 8, calculate from v_0 o v_7
+const int etasize = 100; // max number of points in eta for array
+const int ptsize = 100; // max number of points in pt for array
+
+
 // calculates pt-integrated flow versus pseudorapidity with dn/deta weights.
 // format is vn[n][i(real=0 or imaginary part=1)][eta] .
 // n=0 i=1,2 is the phi-integrated spectrum, dN/deta.
@@ -1526,13 +1613,10 @@ double Freeze::Rap(double eta, double pt, double m)
 // etc.
 // Setting ptmin=ptmax evaluates flow at a fixed transverse momentum
 // void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double ****vn)
-void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double vn[8][2][100])
+void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double vn[nharmonics][2][etasize])
 {
-	const int nharmonics = 8; // calculate up to maximum harmonic (n-1) -- for nharmonics = 8, calculate from v_0 o v_7
-	const int etasize = 100; // max number of points in eta for array
 // 	cout << "Calculating integrated flow for " << minpt << " < p_T > " << maxpt << " for particle " << number << endl;
 
-    
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
 	double fac, pt;
@@ -1543,6 +1627,24 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 	double intvneta[etasize][nharmonics][2] = {0};
 	double intvny[etasize][nharmonics][2] = {0};
 	double m = particleList[j].mass;
+	
+	if(minpt < particleList[j].pt[0]) 
+	{
+	  cerr << "Error: called out of range pt in pt_integrated_flow, " 
+	  << minpt << " < minimum " << particleList[j].pt[0] << endl;
+	  exit(1);
+	}
+	if(maxpt > particleList[j].pt[npt-1]) 
+	{
+	  cerr << "Error: called out of range pt in pt_integrated_flow, " 
+	  << maxpt << " > maximum " << particleList[j].pt[npt-1] << endl;
+	  exit(1);
+	}
+	if (minpt > maxpt)
+	{
+	  cerr << "Error in pt_integrated_flow:  minpt must be less than or equal to maxpt\n";
+	  exit(1);
+	}
 	
 	
 	//loop over pseudorapidity
@@ -1564,8 +1666,8 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 		pt = particleList[j].pt[ipt];
 		// jacobian -- dN/deta = jac*dN/dy
 		double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta));
-		dnetadpt[ipt] = jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
-		dnydpt[ipt] = particleList[j].dNdydptdphi[ieta][ipt][iphi];
+		dnetadpt[ipt] = pt*jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
+		dnydpt[ipt] = pt*particleList[j].dNdydptdphi[ieta][ipt][iphi];
 // 		cout << "spectra = " << dndpt[ipt] << endl;
 	      }
 	      gsl_interp_accel *ptacc = gsl_interp_accel_alloc ();
@@ -1581,11 +1683,11 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 	      else dNdeta = gsl_spline_eval(ptspline, minpt, ptacc);
 	      double dNdy;
 	      if (minpt!=maxpt) dNdy = gsl_spline_eval_integ(yptspline, minpt, maxpt, yptacc);
-	      else gsl_spline_eval(yptspline, minpt, yptacc);
+	      else dNdy = gsl_spline_eval(yptspline, minpt, yptacc);
 // 	      cout << "dN = " << dN << endl;
 	      
 	      double phi = iphi*2*PI/nphi;
-	      for(int i = 0;i<8;i++)
+	      for(int i = 0;i<nharmonics;i++)
 	      {
 		intvneta[ieta][i][0] += cos(i*phi)*dNdeta*2*PI/nphi;
 		intvneta[ieta][i][1] += sin(i*phi)*dNdeta*2*PI/nphi;
@@ -1606,7 +1708,7 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 // 	    vn[1][0][k][ieta] = intvny[ieta][0][k];
 	  }
 	  
-	  for(int i = 1;i<8;i++) for(int k =0;k<2;k++) 
+	  for(int i = 1;i<nharmonics;i++) for(int k =0;k<2;k++) 
 	  {
 	    vn[i][k][ieta] = intvneta[ieta][i][k]/intvneta[ieta][0][0];
 // 	    vn[1][i][k][ieta] = intvny[ieta][i][k]/intvny[ieta][0][0];
@@ -1617,15 +1719,13 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 
 }
 
-// calculates eta-integrated flow versus pseudorapidity.
+// calculates eta-integrated yeild dN/dpt and eta-averaged flow versus pt.
 // format is vn[n][i(real=0 or imaginary part=1)][pt] .
-// Yield (n=0) is dN/deta. 
+// Yield (n=0) is dN/dpt. 
 // void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double ***vn)
 // Setting etamin=etamax evaluates flow at a fixed pseudorapidity
-void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double vn[8][2][100])
+void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double vn[nharmonics][2][ptsize])
 {
-	const int nharmonics = 8; // calculate up to maximum harmonic (n-1) -- for nharmonics = 8, calculate from v_0 o v_7
-	const int ptsize = 100; // max number of points in pt for array
 // 	cout << "Calculating integrated flow for " << mineta << " < eta < " << maxeta << " for particle " << number << endl;
 
     
@@ -1639,6 +1739,24 @@ void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, doub
 	double intvn[ptsize][nharmonics][2] = {0};
 	double m = particleList[j].mass;
 	
+	if(mineta < particleList[j].y[0]) 
+	{
+	  cerr << "Error: called out of range eta in eta_integrated_flow, " 
+	  << mineta << " < minimum " << particleList[j].y[0] << endl;
+	  exit(1);
+	}
+	if(maxeta > particleList[j].y[neta-1]) 
+	{
+	  cerr << "Error: called out of range eta in eta_integrated_flow, " 
+	  << maxeta << " > maximum " << particleList[j].y[neta-1] << endl;
+	  exit(1);
+	}
+	if (mineta > maxeta)
+	{
+	  cerr << "Error in eta_integrated_flow:  mineta must be less than or equal to maxeta\n";
+	  exit(1);
+	}
+
 	
 	//loop over pt
 // 	cout << "ietamax = " << particleList[j].ny << endl;
@@ -1658,20 +1776,19 @@ void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, doub
 		double eta = particleList[j].y[ieta];
 		// jacobian -- dN/deta = jac*dN/dy
 		double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta));
-		dndpt[ieta] = jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
+		dndpt[ieta] = pt*jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
 // 		cout << "spectra = " << dndpt[ipt] << endl;
 	      }
 	      gsl_interp_accel *etaacc = gsl_interp_accel_alloc ();
-	      gsl_spline *etaspline = gsl_spline_alloc (gsl_interp_cspline, npt);
-	      gsl_spline_init (etaspline, particleList[j].y ,dndpt , npt);
-	      
+	      gsl_spline *etaspline = gsl_spline_alloc (gsl_interp_cspline, neta);
+	      gsl_spline_init (etaspline, particleList[j].y ,dndpt , neta);
 	      
 	      double dNdp;
 	      if (mineta!=maxeta) dNdp = gsl_spline_eval_integ(etaspline, mineta, maxeta, etaacc);
 	      else dNdp = gsl_spline_eval(etaspline, maxeta, etaacc);
 	      
 	      double phi = iphi*2*PI/nphi;
-	      for(int i = 0;i<8;i++)
+	      for(int i = 0;i<nharmonics;i++)
 	      {
 		intvn[ipt][i][0] += cos(i*phi)*dNdp*2*PI/nphi;
 		intvn[ipt][i][1] += sin(i*phi)*dNdp*2*PI/nphi;
@@ -1686,7 +1803,7 @@ void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, doub
 	    vn[0][k][ipt] = intvn[ipt][0][k];
 	  }
 	  
-	  for(int i = 1;i<8;i++) for(int k =0;k<2;k++) 
+	  for(int i = 1;i<nharmonics;i++) for(int k =0;k<2;k++) 
 	  {
 	    vn[i][k][ipt] = intvn[ipt][i][k]/intvn[ipt][0][0];
 	  }
@@ -1699,12 +1816,10 @@ void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, doub
 
 // calculates y-integrated flow versus rapidity.
 // format is vn[n][i(real=0 or imaginary part=1)][pt] .
-// Yield (n=0) is dN/dy. 
+// Yield (n=0) is dN/dpt. 
 // void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double ***vn)
-void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double maxy, double vn[8][2][100])
+void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double maxy, double vn[nharmonics][2][etasize])
 {
-	const int nharmonics = 8; // calculate up to maximum harmonic (n-1) -- for nharmonics = 8, calculate from v_0 o v_7
-	const int etasize = 100; // max number of points in pt for array
 // 	cout << "Calculating integrated flow for " << miney << " < y < " << maxy << " for particle " << number << endl;
 
     
@@ -1717,6 +1832,25 @@ void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double m
 	int neta = particleList[j].ny;
 	double intvn[etasize][nharmonics][2] = {0};
 	double m = particleList[j].mass;
+	
+	
+	if(miny < Rap(particleList[j].y[0],particleList[j].pt[npt-1],m)) 
+	{
+	  cerr << "Error: called out of range y in y_integrated_flow, " 
+	  << miny << " < minimum " << Rap(particleList[j].y[0],particleList[j].pt[npt-1],m) << endl;
+	  exit(1);
+	}
+	if(maxy > Rap(particleList[j].y[neta-1],particleList[j].pt[npt-1],m)) 
+	{
+	  cerr << "Error: called out of range y in y_integrated_flow, " 
+	  << maxy << " > maximum " << Rap(particleList[j].y[neta-1],particleList[j].pt[npt-1],m) << endl;
+	  exit(1);
+	}
+	if (miny > maxy)
+	{
+	  cerr << "Error in y_integrated_flow:  miny must be less than or equal to maxy\n";
+	  exit(1);
+	}
 	
 	
 	//loop over pt
@@ -1737,7 +1871,7 @@ void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double m
 	      {
 		double eta = particleList[j].y[ieta];
 		ylist[ieta] = Rap(eta, pt, m);
-		dndpt[ieta] = particleList[j].dNdydptdphi[ieta][ipt][iphi];
+		dndpt[ieta] = pt*particleList[j].dNdydptdphi[ieta][ipt][iphi];
 	      }
 	      gsl_interp_accel *yacc = gsl_interp_accel_alloc ();
 	      gsl_spline *yspline = gsl_spline_alloc (gsl_interp_cspline, npt);
@@ -1749,7 +1883,7 @@ void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double m
 	      else dNdp = gsl_spline_eval(yspline, maxy, yacc);
 	      
 	      double phi = iphi*2*PI/nphi;
-	      for(int i = 0;i<8;i++)
+	      for(int i = 0;i<nharmonics;i++)
 	      {
 		intvn[ipt][i][0] += cos(i*phi)*dNdp*2*PI/nphi;
 		intvn[ipt][i][1] += sin(i*phi)*dNdp*2*PI/nphi;
@@ -1764,7 +1898,7 @@ void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double m
 	    vn[0][k][ipt] = intvn[ipt][0][k];
 	  }
 	  
-	  for(int i = 1;i<8;i++) for(int k =0;k<2;k++) 
+	  for(int i = 1;i<nharmonics;i++) for(int k =0;k<2;k++) 
 	  {
 	    vn[i][k][ipt] = intvn[ipt][i][k]/intvn[ipt][0][0];
 	  }
@@ -1778,28 +1912,47 @@ void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double m
 // calculates pt- and eta-integrated flow for a given range in pt and eta
 // format is vn[n][i(real=0 or imaginary part=1)]
 // this one has the pt integral nested inside the phi integral inside the eta integral
-void Freeze::pt_and_eta_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[8][2])
+void Freeze::pt_and_eta_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[nharmonics][2])
 {
   int j = partid[MHALF+number];
 //   int npt = particleList[j].npt;
   int neta = particleList[j].ny;
   // do pt integration first
 //   double vneta[2][8][2][100] = {0};
-  double vneta[8][2][100] = {0};
+  
+  if(mineta < particleList[j].y[0]) 
+  {
+    cerr << "Error: called out of range eta in pt_and_eta_integrated_flow, " 
+    << mineta << " < minimum " << particleList[j].y[0] << endl;
+    exit(1);
+  }
+  if(maxeta > particleList[j].y[neta-1]) 
+  {
+    cerr << "Error: called out of range eta in pt_and_eta_integrated_flow, " 
+    << maxeta << " > maximum " << particleList[j].y[neta-1] << endl;
+    exit(1);
+  }
+  if (mineta > maxeta)
+  {
+    cerr << "Error in pt_and_eta_integrated_flow:  mineta must be less than or equal to maxeta\n";
+    exit(1);
+  }
+  
+  double vneta[nharmonics][2][etasize] = {0};
   pt_integrated_flow(DATA, number, minpt, maxpt, vneta);
-  double dndeta[100];
+  double dndeta[etasize];
   for(int ieta=0;ieta<neta;ieta++) 
   {
     dndeta[ieta] = vneta[0][0][ieta];
   }
-  for(int n = 0; n < 8; n++)
+  for(int n = 0; n < nharmonics; n++)
   {
-    double vncos[100] = {0};
-    double vnsin[100] = {0};
+    double vncos[etasize] = {0};
+    double vnsin[etasize] = {0};
     for(int ieta=0;ieta<neta;ieta++) 
     {
       double weight;
-      if (n==0) weight = dndeta[ieta];
+      if (n!=0) weight = dndeta[ieta];
       else weight = 1;
       vncos[ieta] = vneta[n][0][ieta]*weight;
       vnsin[ieta] = vneta[n][1][ieta]*weight;
@@ -1834,27 +1987,49 @@ void Freeze::pt_and_eta_integrated_flow(InitData *DATA, int number, double minpt
 // calculates pt- and eta-integrated flow for a given range in pt and eta
 // format is vn[n][i(real=0 or imaginary part=1)]
 // this one has the eta integral nested inside the phi integral inside the pt integral
-void Freeze::pt_and_eta_integrated_flow2(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[8][2])
+void Freeze::pt_and_eta_integrated_flow2(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[nharmonics][2])
 {
   int j = partid[MHALF+number];
   int npt = particleList[j].npt;
 //   int neta = particleList[j].ny;
+  
+  
+  if(minpt < particleList[j].pt[0]) 
+  {
+    cerr << "Error: called out of range pt in pt_and_eta_integrated_flow2, " 
+    << minpt << " < minimum " << particleList[j].pt[0] << endl;
+    exit(1);
+  }
+  if(maxpt > particleList[j].pt[npt-1]) 
+  {
+    cerr << "Error: called out of range pt in pt_and_eta_integrated_flow2, " 
+    << maxpt << " > maximum " << particleList[j].pt[npt-1] << endl;
+    exit(1);
+  }
+  if (minpt > maxpt)
+  {
+    cerr << "Error in pt_and_eta_integrated_flow2:  minpt must be less than or equal to maxpt\n";
+    exit(1);
+  }
+  
+  
+  
   // do  eta-integral first
-  double vnpt[8][2][100] = {0};
+  double vnpt[nharmonics][2][etasize] = {0};
   eta_integrated_flow(DATA, number, mineta, maxeta, vnpt);
-  double dndpt[100];
+  double dndpt[etasize];
   for(int ipt=0;ipt<npt;ipt++) 
   {
     dndpt[ipt] = vnpt[0][0][ipt];
   }
-  for(int n = 0; n < 8; n++)
+  for(int n = 0; n < nharmonics; n++)
   {
-    double vncos[100] = {0};
-    double vnsin[100] = {0};
+    double vncos[ptsize] = {0};
+    double vnsin[ptsize] = {0};
     for(int ipt=0;ipt<npt;ipt++) 
     {
       double weight;
-      if (n==0) weight = dndpt[ipt];
+      if (n!=0) weight = dndpt[ipt];
       else weight = 1;
       vncos[ipt] = vnpt[n][0][ipt]*weight;
       vnsin[ipt] = vnpt[n][1][ipt]*weight;
@@ -1888,23 +2063,43 @@ void Freeze::pt_and_eta_integrated_flow2(InitData *DATA, int number, double minp
 // calculates pt- and y-integrated flow for a given range in pt and y
 // format is vn[n][i(real=0 or imaginary part=1)]
 //  the y integral is nested inside the phi integral inside the pt integral
-void Freeze::pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, double vn[8][2])
+void Freeze::pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, double vn[nharmonics][2])
 {
   int j = partid[MHALF+number];
   int npt = particleList[j].npt;
   int neta = particleList[j].ny;
+  
+  
+  if(minpt < particleList[j].pt[0]) 
+  {
+    cerr << "Error: called out of range pt in pt_and_y_integrated_flow, " 
+    << minpt << " < minimum " << particleList[j].pt[0] << endl;
+    exit(1);
+  }
+  if(maxpt > particleList[j].pt[npt-1]) 
+  {
+    cerr << "Error: called out of range pt in pt_and_y_integrated_flow, " 
+    << maxpt << " > maximum " << particleList[j].pt[npt-1] << endl;
+    exit(1);
+  }
+  if (minpt > maxpt)
+  {
+    cerr << "Error in pt_and_y_integrated_flow:  minpt must be less than or equal to maxpt\n";
+    exit(1);
+  }
+  
   // do  eta-integral first
-  double vnpt[8][2][100] = {0};
+  double vnpt[nharmonics][2][ptsize] = {0};
   y_integrated_flow(DATA, number, miny, maxy, vnpt);
-  double dndpt[100];
+  double dndpt[ptsize];
   for(int ipt=0;ipt<npt;ipt++) 
   {
     dndpt[ipt] = vnpt[0][0][ipt];
   }
-  for(int n = 0; n < 8; n++)
+  for(int n = 0; n < nharmonics; n++)
   {
-    double vncos[100] = {0};
-    double vnsin[100] = {0};
+    double vncos[ptsize] = {0};
+    double vnsin[ptsize] = {0};
     for(int ipt=0;ipt<npt;ipt++) 
     {
       double weight;
@@ -1947,7 +2142,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, in
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
 	double fac, pt;
-	double intvn[8][2] = {0};
+	double intvn[nharmonics][2] = {0};
 	double m = particleList[j].mass;
 	int nphi = particleList[j].nphi;
 	int npt = particleList[j].npt;
@@ -2002,7 +2197,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, in
 // 	outfilevn.setf(ios::scientific);
 	outfilevn2 << "#pt\tdN/ptdYdptdphi\tv1cos\tv1sin\tv2cos\tv2sin\tv3cos\tv3sin\tv4cos\tv4sin\tv5cos\tv5sin\tv6cos\tv6sin\tv7cos\tv7sin\n";
 
-	double vn[8][2];
+	double vn[nharmonics][2];
 
 	//Loop over pT
 // 	cout << "npt = " << npt << endl;
@@ -2014,13 +2209,13 @@ void Freeze::OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, in
 
 		//Output result
 		outfilevn << pt;
-		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) outfilevn << "\t" << vn[i][k];
+		for(int i = 0;i<nharmonics;i++) for(int k =0;k<2;k++) outfilevn << "\t" << vn[i][k];
 		outfilevn << endl;
 		
 		pt_and_eta_integrated_flow2(DATA, number, pt, pt, eta, eta, vn);
 		
 		outfilevn2 << pt;
-		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) outfilevn2 << "\t" << vn[i][k];
+		for(int i = 0;i<nharmonics;i++) for(int k =0;k<2;k++) outfilevn2 << "\t" << vn[i][k];
 		outfilevn2 << endl;
 	}
 	
@@ -2041,7 +2236,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
 	double fac, pt;
-	double intvn[8][2] = {0};
+	double intvn[nharmonics][2] = {0};
 	double m = particleList[j].mass;
 	int nphi = particleList[j].nphi;
 	int npt = particleList[j].npt;
@@ -2098,7 +2293,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 		double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta))/pt/cosh(eta);
 // 		double jac = 1.;
 		
-		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) intvn[i][k]=0;
+		for(int i = 0;i<nharmonics;i++) for(int k =0;k<2;k++) intvn[i][k]=0;
 
 // 		cout << "ipt = " << ipt << endl;
 		//Integrate over phi using trapezoid rule at closest point to midrapidity
@@ -2108,7 +2303,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 			if (iphi==0) cout << "pt, dndydpt = " << pt << ", " << 2*PI*dN << endl;
 			fac = 1.;
 			double phi = iphi*2*PI/nphi;
-			for(int i = 0;i<8;i++)
+			for(int i = 0;i<nharmonics;i++)
 			{
 			  intvn[i][0] += cos(i*phi)*fac*dN;
 			  intvn[i][1] += sin(i*phi)*fac*dN;
@@ -2118,7 +2313,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 
 		//Output result
 		outfilevn << pt << "\t" << intvn[0][0]*2*PI/nphi;
-		for(int i = 1;i<8;i++) for(int k =0;k<2;k++) outfilevn << "\t" << intvn[i][k]/intvn[0][0];
+		for(int i = 1;i<nharmonics;i++) for(int k =0;k<2;k++) outfilevn << "\t" << intvn[i][k]/intvn[0][0];
 		outfilevn << endl;
 	}
 
@@ -2136,7 +2331,7 @@ void Freeze::OutputIntegratedFlow(InitData *DATA, int number, int full)
   
 	//Define index j used in particleList[j]
 	int j = partid[MHALF+number];
-	double intvn[8][2] = {0};
+	double intvn[nharmonics][2] = {0};
 	double m = particleList[j].mass;
 	int neta = particleList[j].ny;
 	int npt = particleList[j].npt;
@@ -2191,7 +2386,7 @@ void Freeze::OutputIntegratedFlow(InitData *DATA, int number, int full)
 // 	outfilevn.setf(ios::scientific);
 	outfilevn2 << "#eta\tdN/ptdYdptdphi\tv1cos\tv1sin\tv2cos\tv2sin\tv3cos\tv3sin\tv4cos\tv4sin\tv5cos\tv5sin\tv6cos\tv6sin\tv7cos\tv7sin\n";
 
-	double vn[8][2];
+	double vn[nharmonics][2];
 
 	//Loop over pT
 // 	cout << "npt = " << npt << endl;
@@ -2203,13 +2398,13 @@ void Freeze::OutputIntegratedFlow(InitData *DATA, int number, int full)
 
 		//Output result
 		outfilevn << eta;
-		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) outfilevn << "\t" << vn[i][k];
+		for(int i = 0;i<nharmonics;i++) for(int k =0;k<2;k++) outfilevn << "\t" << vn[i][k];
 		outfilevn << endl;
 		
 		pt_and_eta_integrated_flow2(DATA, number, minpt, maxpt, eta, eta, vn);
 		
 		outfilevn2 << eta;
-		for(int i = 0;i<8;i++) for(int k =0;k<2;k++) outfilevn2 << "\t" << vn[i][k];
+		for(int i = 0;i<nharmonics;i++) for(int k =0;k<2;k++) outfilevn2 << "\t" << vn[i][k];
 		outfilevn2 << endl;
 	}
 	
@@ -2264,8 +2459,8 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 	outfilevn.setf(ios::scientific);
 	outfilevn << "#eta\tdN/ptdetadptdphi\tv1cos\tv1sin\tv2cos\tv2sin\tv3cos\tv3sin\tv4cos\tv4sin\tv5cos\tv5sin\tv6cos\tv6sin\tv7cos\tv7sin\n";
 
-	double intvn[100][8][2] = {0};
-	double etalist[100];
+	double intvn[etasize][nharmonics][2] = {0};
+	double etalist[etasize];
 	
 	
 	//loop over pseudorapidity
@@ -2282,11 +2477,11 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 	    {
 	      
 	      // Integrate over pt using gsl
-	      double dndpt[100] = {0};
+	      double dndpt[ptsize] = {0};
 	      for(int ipt=0;ipt<npt;ipt++) 
 	      {
 		pt = particleList[j].pt[ipt];
-		double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta);
+		double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta));
 		dndpt[ipt] = jac*particleList[j].dNdydptdphi[ieta][ipt][iphi];
 // 		cout << "spectra = " << dndpt[ipt] << endl;
 	      }
@@ -2299,7 +2494,7 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 // 	      cout << "dN = " << dN << endl;
 	      
 	      double phi = iphi*2*PI/nphi;
-	      for(int i = 0;i<8;i++)
+	      for(int i = 0;i<nharmonics;i++)
 	      {
 		intvn[ieta][i][0] += cos(i*phi)*dN*2*PI/nphi;
 		intvn[ieta][i][1] += sin(i*phi)*dN*2*PI/nphi;
@@ -2313,7 +2508,7 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 	  
 	  //Output result
 	  outfilevn << eta << "\t" << intvn[ieta][0][0];
-	  for(int i = 1;i<8;i++) for(int k =0;k<2;k++) outfilevn << "\t" << intvn[ieta][i][k]/intvn[ieta][0][0];
+	  for(int i = 1;i<nharmonics;i++) for(int k =0;k<2;k++) outfilevn << "\t" << intvn[ieta][i][k]/intvn[ieta][0][0];
 	  outfilevn << endl;
 	  
 	  
@@ -2328,10 +2523,10 @@ void Freeze::OutputIntegratedFlowForCMS(InitData *DATA, int number, int full)
 	double neta = particleList[j].ny;
 	//integrate over pseudorapidity |eta| < 2.4
 	if (particleList[j].ymax >=2.4)
-	for (int i = 0;i<8;i++)
+	for (int i = 0;i<nharmonics;i++)
 	{
-	  double vncos[100] = {0};
-	  double vnsin[100] = {0};
+	  double vncos[etasize] = {0};
+	  double vnsin[etasize] = {0};
 	  for(int ieta=0;ieta<neta;ieta++)
 	  {
 	    vncos[ieta] = intvn[ieta][i][0];
