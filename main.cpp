@@ -483,7 +483,7 @@ void ReadInData2(InitData *DATA, string file)
   // 0: freeze out at constant temperature T_freeze
   // 1: freeze out at constant energy density epsilon_freeze
 //   DATA->useEpsFO = util->IFind(file, "use_eps_for_freeze_out");
-  int tempuseEpsFO = 0;
+  int tempuseEpsFO = 1;
   tempinput = util->StringFind3(file, "use_eps_for_freeze_out");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempuseEpsFO;
   DATA->useEpsFO = tempuseEpsFO;
@@ -1221,6 +1221,17 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind3(file, "output_hydro_debug_info");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempoutput_hydro_debug_info;
   DATA->output_hydro_debug_info = tempoutput_hydro_debug_info;
+
+  //The evolution is outputted every "output_evolution_every_N_timesteps" timesteps
+  //Can't be modified from the input file for now, for safety.
+  DATA->output_evolution_every_N_timesteps=10;
+  
+  //Make MUSIC output a C header file containing informations about the hydro parameters used
+  //0 for false (do not output), 1 for true
+  bool tempoutput_hydro_params_header = false;
+  tempinput = util->StringFind3(file, "output_hydro_params_header");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempoutput_hydro_params_header;
+  DATA->output_hydro_params_header = tempoutput_hydro_params_header;
   
   cout << "Done ReadInData2." << endl;
   delete util;

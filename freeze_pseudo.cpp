@@ -2615,8 +2615,8 @@ double Freeze::OutputYieldForCMS(InitData *DATA, int number, int full)
 
 			
 		}// eta loop
-		if(0!=neta) dndpt[ipt]*=2*PI/nphi*2*etamax/neta;
-		else dndpt[ipt]*=2*PI/nphi*2;
+		if(0!=neta) dndpt[ipt]*=pt*2*PI/nphi*2*etamax/neta;
+		else dndpt[ipt]*=pt*2*PI/nphi*2;
 // 		cout << particleList[j].pt[ipt] << ", " << dndpt[ipt] << endl;	
 	}// pt loop
 	
@@ -2738,7 +2738,7 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 				
 				//Integrate over phi using trapezoid rule
 				for(int iphi=0;iphi<nphi;iphi++) {
-					tmp_dNdetadpT[ipt]+=jac*particleList[j].dNdydptdphi[ieta][ipt][iphi]*(2*M_PI)/(nphi);
+					tmp_dNdetadpT[ipt]+=pt*jac*particleList[j].dNdydptdphi[ieta][ipt][iphi]*(2*M_PI)/(nphi);
 					//tmp_dNdetadpT[ipt]+=exp(-1*particleList[j].pt[ipt])*pow(cos(iphi*2*M_PI/(nphi)),2)*(2*M_PI)/(nphi);
 				}
 			}
