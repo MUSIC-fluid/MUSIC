@@ -117,6 +117,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
 // instead of counting entire contribution from center of segment.
 double Freeze::summation3(double px, double py, double y, double m, int deg, int baryon, double muAtFreezeOut, InitData *DATA)
 {
+  
   double sum = 0.;
   double dSigma[4] = {0};
   int i;
@@ -1710,7 +1711,7 @@ void Freeze::OutputIntegratedFlow(InitData *DATA, int number, int full)
 }
 
 //Output pT and phi integrated charged hadron spectra as a function of eta
-// Function from J-F 
+// Function by J-F 
 void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full, const int * hadron_list, int nb_hadrons) {
 	//
 	int nb_hadron = nb_hadrons;

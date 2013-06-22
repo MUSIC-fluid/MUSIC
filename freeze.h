@@ -125,6 +125,7 @@ class Freeze{
   ~Freeze();//destructor
 
   double gauss(int n, double (Freeze::*f)(double, void *), double xlo, double xhi, void *optvec );
+  double riemannsum(int n, double (Freeze::*f)(double, void *), double xlo, double xhi, void *optvec );
   void ReadParticleData(InitData *DATA, EOS *eos);
   void ReadFreezeOutSurface(InitData *DATA);
   void ReadSpectra(InitData *DATA);

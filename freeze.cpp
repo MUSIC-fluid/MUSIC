@@ -1301,7 +1301,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
 	      px = pt*cos(phi);
 	      py = pt*sin(phi);
 	      //cout << "phi=" << phi << endl;
-	      sum = summation(px, py, y, m, d, b, mu, DATA);
+	      sum = summation3(px, py, y, m, d, b, mu, DATA);
 	      sumYPtPhi[iy][ipt][iphi] = sum;
 	      particleList[j].dNdydptdphi[iy][ipt][iphi] = sum;
 	      fprintf(s_file,"%e ", sum);
@@ -6087,6 +6087,7 @@ double Freeze::dnpir1N (double costh, void* para1)
   para->costh = costh;
   para->sinth = sqrt (1.0 - para->costh * para->costh);
   r = gauss (PTN2, &Freeze::dnpir2N, 0.0, 2.0 * PI, para); //Integrates the "dnpir2N" kernel over phi using gaussian integration
+//   r = riemannsum (PTN2, &Freeze::dnpir2N, 0.0, 2.0 * PI, para); //Integrates the "dnpir2N" kernel over phi using trapezoid rule (same as riemann sum for periodic functions)
   return r;
 }
 
@@ -6137,7 +6138,19 @@ double Freeze::gauss(int n, double (Freeze::*f)(double, void *), double xlo, dou
 	}
 
 
-
+// Left Riemann Sum.  For integration of periodic functions (e.g., over phi)
+double Freeze::riemannsum(int n, double (Freeze::*f)(double, void *), double xlo, double xhi, void *optvec )
+	{
+	double	s=0;		/* summing up */
+	double xdiff = xhi - xlo ;
+	for(int ix=0; ix<n; ix++ )
+	{
+	  s +=  ( (this->*f)(ix*xdiff/n,optvec));
+	}
+	return( s * xdiff/n );
+	}
+	
+	
 /********************************************************************
 *
 *	Edndp3_2bodyN()
@@ -6152,7 +6165,7 @@ double Freeze::Edndp3_2bodyN (double y, double pt, double phi, double m1, double
 /*      double phi;		/\* phi angle of particle 1      *\/ */
 /*      double m1, m2;		/\* restmasses of decay particles in MeV *\/ */
 /*      double mr;			/\* restmass of resonance MeV            *\/ */
-/*      int res_num;		/* Montecarlo number of the Resonance   */ 
+/*      int res_num;		/\* Montecarlo number of the Resonance   */ 
 
 {
   double mt = sqrt (pt * pt + m1 * m1);
@@ -6270,9 +6283,9 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
 	    m1 -= 0.5 * particleList[pn].width;
 	    m2 -= 0.5 * particleList[pn2].width;
 	  }
-	fprintf(stderr,"mr=%f\n",mr);
-	fprintf(stderr,"m1=%f\n",m1);
-	fprintf(stderr,"m2=%f\n",m2);
+// 	fprintf(stderr,"mr=%f\n",mr);
+// 	fprintf(stderr,"m1=%f\n",m1);
+// 	fprintf(stderr,"m2=%f\n",m2);
 		
 	for (n = 0; n < ny; n++)
 	  {
