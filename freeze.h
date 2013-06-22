@@ -33,6 +33,12 @@
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_interp.h>
 
+
+
+const int nharmonics = 8; // calculate up to maximum harmonic (n-1) -- for nharmonics = 8, calculate from v_0 o v_7
+const int etasize = 100; // max number of points in eta for array
+const int ptsize = 100; // max number of points in pt for array
+
 class Freeze{
 
  private:
@@ -190,9 +196,9 @@ class Freeze{
   double PseudoRap(double y, double pt, double m);
   double dydeta(double eta, double pt, double m);
 //   void pt_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double ****vn);
-  void pt_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double vn[8][2][100]);
-  void eta_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double vn[8][2][100]);
-  void y_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double vn[8][2][100]);
+  void pt_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double vn[nharmonics][2][etasize]);
+  void eta_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double vn[nharmonics][2][ptsize]);
+  void y_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double vn[nharmonics][2][ptsize]);
   void pt_and_eta_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[8][2]);
   void pt_and_eta_integrated_flow2(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[8][2]);
   void pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, double vn[8][2]);

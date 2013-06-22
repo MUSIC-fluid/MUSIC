@@ -1,10 +1,5 @@
 #include "freeze.h"
 
-
-const int nharmonics = 8; // calculate up to maximum harmonic (n-1) -- for nharmonics = 8, calculate from v_0 o v_7
-const int etasize = 100; // max number of points in eta for array
-const int ptsize = 100; // max number of points in pt for array
-
 // read in thermal spectra from file to then perform resonance decays with them
 // Must set verbose to 1 if you want particleMax to be set by this routine.
 void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)

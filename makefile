@@ -72,9 +72,9 @@ util.o : util.cpp util.h
 
 glauber.o : glauber.cpp util.h glauber.h data.h random.h
 
-freeze.o : freeze.cpp freeze_pseudo.cpp data.h eos.h grid.h util.h freeze.h int.h
+freeze.o : freeze.cpp data.h eos.h grid.h util.h freeze.h int.h
 
-freeze_pseudo.o : freeze_pseudo.cpp freeze.cpp data.h eos.h grid.h util.h freeze.h int.h
+freeze_pseudo.o : freeze_pseudo.cpp data.h eos.h grid.h util.h freeze.h int.h
 
 main.o : main.cpp data.h eos.h evolve.h grid.h init.h util.h glauber.h random.h reconst.h advance.h u_derivative.h
 
