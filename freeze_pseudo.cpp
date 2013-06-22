@@ -2148,6 +2148,7 @@ double Freeze::get_yield(InitData *DATA, int number, double minpt, double maxpt,
   return vn[0][0];
 }
 
+
 // Output v_n for specified range of phase space
 double Freeze::get_vn(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int n)
 {
@@ -2161,7 +2162,7 @@ double Freeze::get_vn(InitData *DATA, int number, double minpt, double maxpt, do
   return sqrt(vn[n][0]*vn[n][0] + vn[n][1]*vn[n][1]);
 }
 
-// Output Psi_n for specified range of phase space
+// Return Psi_n for specified range of phase space
 double Freeze::get_psi_n(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int n)
 {
   if( n > nharmonics-1 ) 
@@ -2174,7 +2175,93 @@ double Freeze::get_psi_n(InitData *DATA, int number, double minpt, double maxpt,
   return atan2(vn[n][1],vn[n][0]);
 }
 
-//Output yield and v_n at eta=0 as a function of pT
+// Return charged hadron yield in specified range of phase space
+// if mineta==maxeta, returns dN/eta.  If minpt==maxpt, dN/dpt.  If both, dN/dpt/deta.  Otherwise, total yield N
+double Freeze::get_Nch(InitData *DATA, double minpt, double maxpt, double mineta, double maxeta)
+{
+  if(particleMax<18)
+  {
+    cout << "Cannot compute charged hadron yield.  \
+	  Spectra for all charged hadrons have not been computed. \
+	  particleMax = " << particleMax << endl;
+    exit(1);
+  }
+  double N=0;
+  int chargedhd[6] = {1,3,4,5,17,18};
+  for ( int k=0; k<6; k++ )
+    {
+      int i = chargedhd[k];
+      int number = particleList[i].number;
+      double vn[nharmonics][2];
+      pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
+      N+= vn[0][0];
+    }
+    return N;
+}
+
+// Return charged hadron vn for specified range of phase space
+double Freeze::get_vn_ch(InitData *DATA, double minpt, double maxpt, double mineta, double maxeta, int n)
+{
+  if(particleMax<18)
+  {
+    cout << "Cannot compute charged hadron vn.  \
+	  Spectra for all charged hadrons have not been computed. \
+	  particleMax = " << particleMax << endl;
+    exit(1);
+  }
+  if( n > nharmonics-1 ) 
+  {
+    cout << "harmonic (" << n << ") too large.  Must increase nharmonics in freeze_pseudo.cpp\n";
+    exit(1);
+  }
+  double numr=0.;//real part (x projection, \sum N*v_n*cos(Psi_n))
+  double numi=0.;//imaginary part (y projection, \sum N*v_n*sin(Psi_n))
+  double den=0.;// denominator (\sum N)
+  int chargedhd[6] = {1,3,4,5,17,18};
+  for ( int k=0; k<6; k++ )
+    {
+      int i = chargedhd[k];
+      int number = particleList[i].number;
+      double vn[nharmonics][2];
+      pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
+      numr+= vn[0][0]*vn[n][0];
+      numi+= vn[0][0]*vn[n][1];
+      den+= vn[0][0];
+    }
+  return sqrt(numr*numr+numi*numi)/den;
+}
+
+// Return charged hadron Psi_n for specified range of phase space
+double Freeze::get_psi_n_ch(InitData *DATA, double minpt, double maxpt, double mineta, double maxeta, int n)
+{
+  if(particleMax<18)
+  {
+    cout << "Cannot compute charged hadron event plane.  \
+	  Spectra for all charged hadrons have not been computed. \
+	  particleMax = " << particleMax << endl;
+    exit(1);
+  }
+  if( n > nharmonics-1 ) 
+  {
+    cout << "harmonic (" << n << ") too large.  Must increase nharmonics in freeze_pseudo.cpp\n";
+    exit(1);
+  }
+  double numr=0.;//real part (x projection, \sum N*v_n*cos(Psi_n))
+  double numi=0.;//imaginary part (y projection, \sum N*v_n*sin(Psi_n))
+  int chargedhd[6] = {1,3,4,5,17,18};
+  for ( int k=0; k<6; k++ )
+    {
+      int i = chargedhd[k];
+      int number = particleList[i].number;
+      double vn[nharmonics][2];
+      pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
+      numr+= vn[0][0]*vn[n][0];
+      numi+= vn[0][0]*vn[n][1];
+    }
+  return atan2(numi, numr);
+}
+
+// Return yield and v_n at eta=0 as a function of pT
 void Freeze::OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, int full) 
 {
   
@@ -2267,7 +2354,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, in
 }
 
 
-//Output yield and v_n at eta~0 as a function of pT
+// Return yield and v_n at eta~0 as a function of pT
 void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full) 
 {
 
@@ -2364,7 +2451,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 }
 
 
-//Output yield and v_n integrated over pT, as a function of pseudorapidity
+// Return yield and v_n integrated over pT, as a function of pseudorapidity
 void Freeze::OutputIntegratedFlow(InitData *DATA, int number, int full) 
 {
   

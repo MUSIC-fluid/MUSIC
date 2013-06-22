@@ -198,6 +198,9 @@ class Freeze{
   double get_yield(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy);
   double get_vn(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, int n);
   double get_psi_n(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, int n);
+  double get_Nch(InitData *DATA, double minpt, double maxpt, double miny, double maxy);
+  double get_vn_ch(InitData *DATA, double minpt, double maxpt, double miny, double maxy, int n);
+  double get_psi_n_ch(InitData *DATA, double minpt, double maxpt, double miny, double maxy, int n);
 
   void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
   void OutputDifferentialFlowAtMidrapidity2(InitData *DATA, int number, int full);
