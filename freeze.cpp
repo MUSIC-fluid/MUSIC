@@ -6650,7 +6650,7 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EO
       FILE *d_file;
       const char* d_name = "particleInformation.dat";
       d_file = fopen(d_name, "w");
-      fprintf(d_file,"");
+//       fprintf(d_file,"");
       fclose(d_file);
       char buf[10];
       FILE *s_file;
@@ -6741,12 +6741,12 @@ void Freeze::CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EO
       FILE *d_file;
       const char* d_name = "FparticleInformation.dat";
       d_file = fopen(d_name, "w");
-      fprintf(d_file,"");
+//       fprintf(d_file,"");
       fclose(d_file);
       FILE *s_file;
       const char* s_name = "FyptphiSpectra.dat";
       s_file = fopen(s_name, "w");
-      fprintf(s_file,"");
+//       fprintf(s_file,"");
       fclose(s_file);
       int bound = 211; //number of lightest particle to calculate. 
       if (mode==4) // do resonance decays

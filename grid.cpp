@@ -213,7 +213,7 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
       FILE *out_file;
       const char* out_name = "evolution.dat";
       out_file = fopen(out_name, "a");
-      fprintf(out_file,"");
+//       fprintf(out_file,"");
       int iz, nz;
       double T, x, y, z, eta, delta_z, z_size, eps, etafrac;
       double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
@@ -974,7 +974,7 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
       FILE *out_file;
       const char* out_name = "OSCAR.dat";
       out_file = fopen(out_name, "a");
-      fprintf(out_file,"");
+//       fprintf(out_file,"");
       int iz, nz;
       double T, x, y, z, eta, delta_z, z_size, eps, etafrac;
       double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
@@ -1175,7 +1175,7 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
       FILE *out_file;
       const char* out_name = "contourPlot.dat";
       out_file = fopen(out_name, "a");
-      fprintf(out_file,"");
+//       fprintf(out_file,"");
       int iz, nz;
       double T, x, y, z, eta, delta_z, z_size, eps, etafrac;
       double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
@@ -1637,15 +1637,15 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
       FILE *out_file;
       const char* out_name = "e_x_y_profile.dat";
       out_file = fopen(out_name, "a");
-      fprintf(out_file,"");
+//       fprintf(out_file,"");
       FILE *s_file;
       const char* s_name = "entropy-eta.dat";
       s_file = fopen(s_name, "a");
-      fprintf(s_file,"");
+//       fprintf(s_file,"");
       FILE *out_file_2;
       const char* out_name_2 = "e_x_y_profile_05.dat";
       out_file_2 = fopen(out_name_2, "a");
-      fprintf(out_file_2,"");
+//       fprintf(out_file_2,"");
       int iz, nz;
       double trouble,trouble_lower,trouble_higher,T, x, y, z, eta, delta_z, z_size, eps, Txx, Tyy, Txy,etafrac;
       //double corr_lower, corr_higher;
