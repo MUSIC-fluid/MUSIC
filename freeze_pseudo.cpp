@@ -1279,8 +1279,8 @@ double Freeze::get_meanpt(InitData *DATA, int number, double minpt, double maxpt
   }
   
 
-  double ptdndpt[etasize];
-  double dndpt[etasize];
+  double ptdndpt[ptsize];
+  double dndpt[ptsize];
   for(int ipt=0;ipt<npt;ipt++) 
   {
     double pt = particleList[j].pt[ipt];
@@ -1420,6 +1420,139 @@ double Freeze::get_psi_n_ch(InitData *DATA, double minpt, double maxpt, double m
     }
   return atan2(numi, numr);
 }
+
+
+
+// Calculates v1 and psi_1 with pt-dependent weight (pt - <pt^2>/<pt>) in specified range of phase space
+// ch == 0 calculates for particle "number", while ch > 0 calculates for all charged hadrons
+void Freeze::weighted_v1(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[2], int ch)
+{
+  int j = partid[MHALF+number];
+  int npt = particleList[j].npt;
+//   int neta = particleList[j].ny;
+  
+  
+  if(minpt < particleList[j].pt[0]) 
+  {
+    cerr << "Error: called out of range pt in pt_and_eta_integrated_flow2, " 
+    << minpt << " < minimum " << particleList[j].pt[0] << endl;
+    exit(1);
+  }
+  if(maxpt > particleList[j].pt[npt-1]) 
+  {
+    cerr << "Error: called out of range pt in pt_and_eta_integrated_flow2, " 
+    << maxpt << " > maximum " << particleList[j].pt[npt-1] << endl;
+    exit(1);
+  }
+  if (minpt > maxpt)
+  {
+    cerr << "Error in pt_and_eta_integrated_flow2:  minpt must be less than or equal to maxpt\n";
+    exit(1);
+  }
+  
+  
+  // start by finding <pt> and <pt^2>
+  double ptptdndpt[ptsize];
+  double ptdndpt[ptsize];
+  double dndpt[ptsize];
+  for(int ipt=0;ipt<npt;ipt++) 
+  {
+    double pt = particleList[j].pt[ipt];
+    if(ch) dndpt[ipt] = get_Nch(DATA, pt, pt, mineta, maxeta);
+    else dndpt[ipt] = get_yield(DATA, number, pt, pt, mineta, maxeta);
+    ptdndpt[ipt] = pt*dndpt[ipt];
+    ptptdndpt[ipt] = pt*pt*dndpt[ipt];
+  }
+  
+  
+    gsl_interp_accel *numacc = gsl_interp_accel_alloc ();
+    gsl_spline *numspline = gsl_spline_alloc (gsl_interp_cspline, npt);
+    gsl_spline_init (numspline, particleList[j].pt ,ptdndpt , npt);
+    
+    gsl_interp_accel *num2acc = gsl_interp_accel_alloc ();
+    gsl_spline *num2spline = gsl_spline_alloc (gsl_interp_cspline, npt);
+    gsl_spline_init (num2spline, particleList[j].pt, ptptdndpt , npt);
+    
+    gsl_interp_accel *denacc = gsl_interp_accel_alloc ();
+    gsl_spline *denspline = gsl_spline_alloc (gsl_interp_cspline, npt);
+    gsl_spline_init (denspline, particleList[j].pt ,dndpt , npt);
+    
+    double num2 = gsl_spline_eval_integ(num2spline, minpt, maxpt, numacc);
+    double num = gsl_spline_eval_integ(numspline, minpt, maxpt, numacc);
+    double den = gsl_spline_eval_integ(denspline, minpt, maxpt, denacc);
+    
+    gsl_spline_free (numspline);
+    gsl_interp_accel_free (numacc);
+    gsl_spline_free (num2spline);
+    gsl_interp_accel_free (num2acc);
+    gsl_spline_free (denspline);
+    gsl_interp_accel_free (denacc);
+    
+    double meanpt = num/den;
+    double meanpt2 = num2/den;
+    
+    // next calculate integrated v1 and psi1 with weight pt - <pt^2>/<pt>
+    double v1cos[ptsize];
+    double v1sin[ptsize];
+    double v1den[ptsize];
+    for(int ipt=0;ipt<npt;ipt++) 
+    {
+      double pt = particleList[j].pt[ipt];
+      double weight = (pt - meanpt2/meanpt)*dndpt[ipt];
+      
+      double v1;
+      double psi1;
+      if(ch) v1 = get_vn_ch(DATA, pt, pt, mineta, maxeta, 1);
+      else v1 = get_vn(DATA, number, pt, pt, mineta, maxeta, 1);
+      if(ch) psi1 = get_psi_n_ch(DATA, pt, pt, mineta, maxeta, 1);
+      else psi1 = get_psi_n(DATA, number, pt, pt, mineta, maxeta, 1);
+      v1cos[ipt] = weight*v1*cos(psi1);
+      v1sin[ipt] = weight*v1*sin(psi1);
+      v1den[ipt] = weight;
+    }
+    
+  
+//     gsl_interp_accel *numacc = gsl_interp_accel_alloc ();
+//     gsl_spline *numspline = gsl_spline_alloc (gsl_interp_cspline, npt);
+    gsl_spline_init (numspline, particleList[j].pt ,v1cos , npt);
+    
+//     gsl_interp_accel *num2acc = gsl_interp_accel_alloc ();
+//     gsl_spline *num2spline = gsl_spline_alloc (gsl_interp_cspline, npt);
+    gsl_spline_init (num2spline, particleList[j].pt, v1sin , npt);
+    
+//     gsl_interp_accel *denacc = gsl_interp_accel_alloc ();
+//     gsl_spline *denspline = gsl_spline_alloc (gsl_interp_cspline, npt);
+    gsl_spline_init (denspline, particleList[j].pt ,v1den , npt);
+    
+    num2 = gsl_spline_eval_integ(num2spline, minpt, maxpt, numacc);
+    num = gsl_spline_eval_integ(numspline, minpt, maxpt, numacc);
+    den = gsl_spline_eval_integ(denspline, minpt, maxpt, denacc);
+    
+    gsl_spline_free (numspline);
+    gsl_interp_accel_free (numacc);
+    gsl_spline_free (num2spline);
+    gsl_interp_accel_free (num2acc);
+    gsl_spline_free (denspline);
+    gsl_interp_accel_free (denacc);
+  
+    vn[0] = sqrt(num*num+num2*num2)/den;
+    vn[1] = atan2(num2,num);
+}
+
+double Freeze::get_weighted_v1(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int ch)
+{
+  double vn[2];
+  weighted_v1(DATA, number, minpt, maxpt, mineta, maxeta, vn, ch);
+  return vn[0];
+}
+
+double Freeze::get_weighted_psi1(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int ch)
+{
+  double vn[2];
+  weighted_v1(DATA, number, minpt, maxpt, mineta, maxeta, vn, ch);
+  return vn[1];
+}
+
 
 
 // Output yield dN/ptdydpt and v_n at eta=0 as a function of pT
