@@ -462,6 +462,23 @@ void ReadInData2(InitData *DATA, string file)
     cerr << "Initial profile" << DATA->Initial_profile << "not defined\n";
     exit(1);
   }
+
+  //Select the profile to use in eta for the energy/entropy initialisation
+  //Warning: profile 2 is only available when smooth transverse initial conditions (DATA->Initial_profile == 2) are used
+  //1 for Hirano's central plateau + Gaussian decay
+  //2 for a Woods-Saxon profile
+  int tempinitial_eta_profile = 1;
+  tempinput = util->StringFind3(file, "initial_eta_profile");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempinitial_eta_profile;
+  if (2 == DATA->Initial_profile) {
+  	DATA->initial_eta_profile = tempinitial_eta_profile;  
+  }
+  else {
+	if (tempinitial_eta_profile != 1) {
+		cerr << "Initial eta profile " << tempinitial_eta_profile << " can only be used with transverse Initial_profile==2. Using the default eta profile.\n";
+	}
+	DATA->initial_eta_profile=1;
+  }
   
   
   //initialize_with_entropy:
@@ -1232,7 +1249,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind3(file, "output_hydro_params_header");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempoutput_hydro_params_header;
   DATA->output_hydro_params_header = tempoutput_hydro_params_header;
-  
+
   cout << "Done ReadInData2." << endl;
   delete util;
 }/* ReadInData2 */

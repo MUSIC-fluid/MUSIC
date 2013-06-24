@@ -516,13 +516,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	      for(ieta=0; ieta<DATA->neta; ieta++)
 	       {
 		 eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
+
 		 if ( initializeEntropy==0 )
 		   {
-		     exparg1 = (fabs(eta-eta0) - eta_flat/2.0)/eta_fall_off;
-		     exparg = exparg1*exparg1/2.0;
-		     
 		     // distribution of the initial energy density in eta:
-		     epsilon = epsilon0*exp(-exparg*theta(exparg1));
+		     epsilon = epsilon0*eta_profile_normalisation(DATA, eta);
 		     // and x,y:
 		     epsilon *= W;
 
@@ -548,9 +546,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 else if ( initializeEntropy==1 )
 		   {
 		     s = epsilon0*W;
-		     exparg1 = (fabs(eta-eta0) - eta_flat/2.0)/eta_fall_off;
-		     exparg = exparg1*exparg1/2.0;
-		     s *= exp(-exparg*theta(exparg1));
+		     s *= eta_profile_normalisation(DATA, eta);
 		     rhob = DATA->rhoB0/epsilon0*s;
 		     if ( DATA->whichEOS==1 && s>96.288 )
 		       {
@@ -2928,3 +2924,25 @@ double Init::TAProjectile(InitData *DATA, double r)
 	 // done testing b sampling - works fine
 
  
+double Init::eta_profile_normalisation(InitData *DATA, double eta) {
+
+	double res;
+
+	//Hirano's plateau + Gaussian fall-off
+	if (1 == DATA->initial_eta_profile) {
+		double exparg1, exparg;
+		exparg1 = (fabs(eta) - DATA->eta_flat/2.0)/DATA->eta_fall_off;
+		exparg = exparg1*exparg1/2.0;
+		res=exp(-exparg*theta(exparg1));
+	}
+	//Woods-Saxon
+	//The radius is set to be half of DATA->eta_flat
+	//The diffusiveness is set to DATA->eta_fall_off
+	else if (2 == DATA->initial_eta_profile) {
+		double ws_R=DATA->eta_flat/2.0, ws_a=DATA->eta_fall_off;
+		res = (1.0+exp(-ws_R/ws_a))/(1.0+exp((abs(eta)-ws_R)/ws_a));
+	}
+
+	return res;
+
+}

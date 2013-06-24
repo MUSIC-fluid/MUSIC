@@ -149,6 +149,7 @@ typedef struct init_data
   bool output_hydro_debug_info;
   int output_evolution_every_N_timesteps;
   bool output_hydro_params_header;
+  int initial_eta_profile;
 } InitData;
 
 
