@@ -578,10 +578,14 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
     {
     
       ReadSpectra_pseudo(DATA, 0, 1);
-
-      const int stable_charged_hadron_list[] = {211,-211,321,-321,2212,-2212};
-      Output_charged_hadrons_eta_differential_spectra(DATA, 0, stable_charged_hadron_list,sizeof(stable_charged_hadron_list)/sizeof(int));
-    
+// //       for ( i=1; i<particleMax; i++ )
+ 	const int stable_charged_hadron_list[] = {211,-211,321,-321,2212,-2212};
+ 	Output_charged_hadrons_eta_differential_spectra(DATA, 0, stable_charged_hadron_list,sizeof(stable_charged_hadron_list)/sizeof(int));
+ 	int other_hadron = 211;
+//	Output_charged_hadrons_eta_differential_spectra(DATA, 0,  &other_hadron,1);
+        Output_midrapidity_hadrons_spectra(DATA, 0,  &other_hadron,1);
+// 	int other_hadron = 211;
+// 	Output_charged_hadrons_eta_differential_spectra(DATA, 0, &other_hadron,1);
       
       int neta = particleList[1].ny;
 
@@ -632,9 +636,11 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	const int stable_charged_hadron_list[] = {211,-211,321,-321,2212,-2212};
 	Output_charged_hadrons_eta_differential_spectra(DATA, 1, stable_charged_hadron_list,sizeof(stable_charged_hadron_list)/sizeof(int));
 
+ 	int other_hadron = 211;
+//	Output_charged_hadrons_eta_differential_spectra(DATA, 0,  &other_hadron,1);
+        Output_midrapidity_hadrons_spectra(DATA, 1,  &other_hadron,1);
+	//Output_charged_hadrons_eta_differential_spectra(DATA, 1);
 	
-//       int chargedhd[6] = {1,3,4,5,17,18};
-      
       int positivech[3] = {1,4,17};
       for ( int k=0; k<3; k++ )
 	{
@@ -1861,7 +1867,7 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 	if (full) {
 		fname <<"F";
 	}
-	fname <<"dNdy";
+	fname <<"dNdeta";
 	for(int ihadron=0;ihadron<nb_hadron;ihadron++) fname << "_" << hadron_list[ihadron]; 
 	fname << ".dat";
 	
@@ -1936,6 +1942,97 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 	free(tmp_ptList);
 	gsl_interp_accel_reset(accel_pT);
 	gsl_interp_free(interp_pT);
+
+	//Close file
+	outfile.close();
+
+}
+
+//Output midrapidity, phi integrated hadron spectra as a function of pT
+void Freeze::Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const int * hadron_list, int nb_hadrons) {
+	//
+	int nb_hadron = nb_hadrons;
+	
+	int j, number, nphi, npt, neta;
+	double eta;
+	double m;
+	double fac, pt;
+	double tmp_dNdy, tmp_dNdeta, tmp;
+
+	//Make sure all the necessary spectra are available
+	for(int ihadron=0;ihadron<nb_hadron;ihadron++) {
+
+		j=partid[MHALF+hadron_list[ihadron]];
+
+		if (j >= particleMax) {
+			cout << "Can't compute charged hadron spectra, some spectra are not available\n";
+			exit(1);
+		}
+	}
+
+	//Set output file name
+	stringstream fname;
+	//stringstream tmpStr;
+	fname << "./outputs/";
+	if (full) {
+		fname <<"F";
+	}
+	fname <<"spectra_eta0";
+	for(int ihadron=0;ihadron<nb_hadron;ihadron++) fname << "_" << hadron_list[ihadron]; 
+	fname << ".dat";
+	
+	//Open output file for vn
+	ofstream outfile;
+	outfile.open(fname.str().c_str());
+
+	//Set the format of the output
+	outfile.precision(6);
+	outfile.setf(ios::scientific);
+	outfile << "#pt\t1/pT dN/dpt dy\t1/pT dN/dpt deta\n";
+
+	//Assume all particles have the same discretization in pT, eta and phi
+	j=partid[MHALF+hadron_list[0]];
+	nphi = particleList[j].nphi;
+	npt = particleList[j].npt;
+	neta = particleList[j].ny;
+
+	//cout << "Calculating dN/dy for charged hadrons" << endl;
+	int ieta=neta/2;
+	
+	//Loop over pT
+	for(int ipt=0;ipt<npt;ipt++) {
+
+		pt=particleList[j].pt[ipt];
+
+		tmp_dNdy=0.0;
+		tmp_dNdeta=0.0;
+
+		for(int ihadron=0;ihadron<nb_hadron;ihadron++) {
+
+			//Define index j used in particleList[j]
+			number=hadron_list[ihadron];
+			j = partid[MHALF+number];
+			m = particleList[j].mass;
+
+			//cout << "Adding hadron " << j << " with mass=" << m << "..." << endl;
+			
+			//jacobian to switch from dN/dY to dN/deta
+			double jac = pt*cosh(eta)/sqrt(m*m + pt*pt*cosh(eta)*cosh(eta));
+			//double jac = 1.;
+			
+			//Integrate over phi using trapezoid rule
+			for(int iphi=0;iphi<nphi;iphi++) {
+				tmp=particleList[j].dNdydptdphi[ieta][ipt][iphi]*(2*M_PI)/(nphi);
+				tmp_dNdy+=tmp;
+				tmp_dNdeta+=jac*tmp;
+				//tmp_dNdetadpT[ipt]+=exp(-1*particleList[j].pt[ipt])*pow(cos(iphi*2*M_PI/(nphi)),2)*(2*M_PI)/(nphi);
+			}
+		}
+
+		//Output result
+		outfile << pt << "\t" << tmp_dNdy << "\t" << tmp_dNdeta << "\n";
+
+	}
 
 	//Close file
 	outfile.close();
