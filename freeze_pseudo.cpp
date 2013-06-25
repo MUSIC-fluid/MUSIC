@@ -1998,6 +1998,7 @@ void Freeze::Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const 
 
 	//cout << "Calculating dN/dy for charged hadrons" << endl;
 	int ieta=neta/2;
+	eta = particleList[j].y[ieta];
 	
 	//Loop over pT
 	for(int ipt=0;ipt<npt;ipt++) {
