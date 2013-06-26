@@ -176,6 +176,7 @@ int main(int argc, char *argv[])
       cout << "rank=" << rank << endl;
       flag =  evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank); 
 
+      MPI_Barrier(MPI_COMM_WORLD);
       
       tau = DATA.tau0 + DATA.tau_size; 
      
