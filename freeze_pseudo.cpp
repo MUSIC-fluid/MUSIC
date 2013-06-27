@@ -1092,6 +1092,8 @@ void Freeze::pt_and_eta_integrated_flow(InitData *DATA, int number, double minpt
       vn[n][1] = gsl_spline_eval(sinspline, mineta, sinacc);
     }
     
+    if(n!=0) for(int i = 0; i<2; i++) vn[n][0]/=vn[0][0];
+    
     gsl_spline_free (cosspline);
     gsl_interp_accel_free (cosacc);
     gsl_spline_free (sinspline);
@@ -1169,10 +1171,15 @@ void Freeze::pt_and_eta_integrated_flow2(InitData *DATA, int number, double minp
       vn[n][1] = gsl_spline_eval(sinspline, minpt, sinacc);
     }
     
+    if(n!=0) for(int i = 0; i<2; i++) vn[n][0]/=vn[0][0];
+    
     gsl_spline_free (cosspline);
     gsl_interp_accel_free (cosacc);
     gsl_spline_free (sinspline);
     gsl_interp_accel_free (sinacc);
+    
+    
+    
   }
 }
 
@@ -1240,6 +1247,8 @@ void Freeze::pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, 
       vn[n][0] = gsl_spline_eval(cosspline, minpt, cosacc);
       vn[n][1] = gsl_spline_eval(sinspline, minpt, sinacc);
     }
+    
+    if(n!=0) for(int i = 0; i<2; i++) vn[n][0]/=vn[0][0];
     
     gsl_spline_free (cosspline);
     gsl_interp_accel_free (cosacc);
