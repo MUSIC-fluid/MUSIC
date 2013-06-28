@@ -1372,19 +1372,19 @@ void Freeze::pt_and_rapidity_integrated_flow(InitData *DATA, int number, double 
   
   if(minpt < particleList[j].pt[0]) 
   {
-    cerr << "Error: called out of range pt in pt_and_y_integrated_flow, " 
+    cerr << "Error: called out of range pt in pt_and_rapidity_integrated_flow, " 
     << minpt << " < minimum " << particleList[j].pt[0] << endl;
     exit(1);
   }
   if(maxpt > particleList[j].pt[npt-1]) 
   {
-    cerr << "Error: called out of range pt in pt_and_y_integrated_flow, " 
+    cerr << "Error: called out of range pt in pt_and_rapidity_integrated_flow, " 
     << maxpt << " > maximum " << particleList[j].pt[npt-1] << endl;
     exit(1);
   }
   if (minpt > maxpt)
   {
-    cerr << "Error in pt_and_y_integrated_flow:  minpt must be less than or equal to maxpt\n";
+    cerr << "Error in pt_and_rapidity_integrated_flow:  minpt must be less than or equal to maxpt\n";
     exit(1);
   }
   
@@ -1464,19 +1464,19 @@ double Freeze::get_meanpt(InitData *DATA, int number, double minpt, double maxpt
   
   if(minpt < particleList[j].pt[0]) 
   {
-    cerr << "Error: called out of range pt in pt_and_eta_integrated_flow2, " 
+    cerr << "Error: called out of range pt in get_meanpt, " 
     << minpt << " < minimum " << particleList[j].pt[0] << endl;
     exit(1);
   }
   if(maxpt > particleList[j].pt[npt-1]) 
   {
-    cerr << "Error: called out of range pt in pt_and_eta_integrated_flow2, " 
+    cerr << "Error: called out of range pt in get_meanpt, " 
     << maxpt << " > maximum " << particleList[j].pt[npt-1] << endl;
     exit(1);
   }
   if (minpt > maxpt)
   {
-    cerr << "Error in pt_and_eta_integrated_flow2:  minpt must be less than or equal to maxpt\n";
+    cerr << "Error in get_meanpt:  minpt must be less than or equal to maxpt\n";
     exit(1);
   }
   
@@ -1637,19 +1637,19 @@ void Freeze::weighted_v1(InitData *DATA, int number, double minpt, double maxpt,
   
   if(minpt < particleList[j].pt[0]) 
   {
-    cerr << "Error: called out of range pt in pt_and_eta_integrated_flow2, " 
+    cerr << "Error: called out of range pt in weighted_v1, " 
     << minpt << " < minimum " << particleList[j].pt[0] << endl;
     exit(1);
   }
   if(maxpt > particleList[j].pt[npt-1]) 
   {
-    cerr << "Error: called out of range pt in pt_and_eta_integrated_flow2, " 
+    cerr << "Error: called out of range pt in weighted_v1, " 
     << maxpt << " > maximum " << particleList[j].pt[npt-1] << endl;
     exit(1);
   }
   if (minpt > maxpt)
   {
-    cerr << "Error in pt_and_eta_integrated_flow2:  minpt must be less than or equal to maxpt\n";
+    cerr << "Error in weighted_v1:  minpt must be less than or equal to maxpt\n";
     exit(1);
   }
   
@@ -1836,7 +1836,8 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 		for(int i = 1;i<nharmonics;i++) for(int k =0;k<2;k++) outfilevn << "\t" << vn[i][k];
 		outfilevn << endl;
 		
-		pt_and_eta_integrated_flow2(DATA, number, pt, pt, eta, eta, vn);
+// 		pt_and_eta_integrated_flow2(DATA, number, pt, pt, eta, eta, vn);
+		pt_and_rapidity_integrated_flow(DATA, number, pt, pt, 0, eta, eta, vn);
 		
 		outfilevn2 << pt;
 		outfilevn2 << "\t" << vn[0][0]/dydeta(eta, pt, m)/pt;
@@ -2022,7 +2023,8 @@ void Freeze::OutputIntegratedFlow(InitData *DATA, int number, int full)
 		for(int i = 0;i<nharmonics;i++) for(int k =0;k<2;k++) outfilevn << "\t" << vn[i][k];
 		outfilevn << endl;
 		
-		pt_and_eta_integrated_flow2(DATA, number, minpt, maxpt, eta, eta, vn);
+// 		pt_and_eta_integrated_flow2(DATA, number, minpt, maxpt, eta, eta, vn);
+		pt_and_rapidity_integrated_flow(DATA, number, minpt, maxpt, 1, eta, eta, vn);
 		
 		outfilevn2 << eta;
 		for(int i = 0;i<nharmonics;i++) for(int k =0;k<2;k++) outfilevn2 << "\t" << vn[i][k];
