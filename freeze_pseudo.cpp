@@ -840,6 +840,7 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 // format is vn[n][i(real=0 or imaginary part=1)][pt] .
 // Yield (n=0) is dN/dpt/deta for mineta==maxeta, or dN/dpt otherwise
 // Setting etamin=etamax evaluates flow at a fixed pseudorapidity, with yield dN/dpt/deta
+// Made obsolete by rapidity_integrated_flow
 void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, double maxeta, double vn[nharmonics][2][ptsize])
 {
 // 	cout << "Calculating integrated flow for " << mineta << " < eta < " << maxeta << " for particle " << number << endl;
@@ -933,6 +934,7 @@ void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, doub
 // calculates y-integrated flow versus rapidity.
 // format is vn[n][i(real=0 or imaginary part=1)][pt] .
 // Yield (n=0) is dN/dpt/dy for miny==maxy, or dN/dpt otherwise 
+// Made obsolete by rapidity_integrated_flow
 void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double maxy, double vn[nharmonics][2][etasize])
 {
 // 	cout << "Calculating integrated flow for " << miney << " < y < " << maxy << " for particle " << number << endl;
@@ -1210,6 +1212,7 @@ void Freeze::pt_and_eta_integrated_flow(InitData *DATA, int number, double minpt
 // calculates pt- and eta-integrated flow for a given range in pt and eta
 // format is vn[n][i(real=0 or imaginary part=1)]
 // this one has the eta integral nested inside the phi integral inside the pt integral
+// Made obsolete by pt_and_rapidity_integrated_flow
 void Freeze::pt_and_eta_integrated_flow2(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[nharmonics][2])
 {
   int j = partid[MHALF+number];
@@ -1291,6 +1294,7 @@ void Freeze::pt_and_eta_integrated_flow2(InitData *DATA, int number, double minp
 // calculates pt- and y-integrated flow for a given range in pt and y
 // format is vn[n][i(real=0 or imaginary part=1)]
 //  the y integral is nested inside the phi integral inside the pt integral
+// Made obsolete by pt_and_rapidity_integrated_flow
 void Freeze::pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, double miny, double maxy, double vn[nharmonics][2])
 {
   int j = partid[MHALF+number];
@@ -1680,7 +1684,7 @@ void Freeze::weighted_v1(InitData *DATA, int number, double minpt, double maxpt,
     gsl_spline *denspline = gsl_spline_alloc (gsl_interp_cspline, npt);
     gsl_spline_init (denspline, particleList[j].pt ,dndpt , npt);
     
-    double num2 = gsl_spline_eval_integ(num2spline, minpt, maxpt, numacc);
+    double num2 = gsl_spline_eval_integ(num2spline, minpt, maxpt, num2acc);
     double num = gsl_spline_eval_integ(numspline, minpt, maxpt, numacc);
     double den = gsl_spline_eval_integ(denspline, minpt, maxpt, denacc);
     
