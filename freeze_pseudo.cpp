@@ -625,8 +625,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 
 	outfile.close();
 	
-	cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |eta| < 1 = " 
-	<< get_meanpt(DATA, 211, 0.25, 1.8, -1, 1) << endl;
+	cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |y| < 1 = " 
+	<< get_meanpt(DATA, 211, 0.25, 1.8, 1, -1, 1) << endl;
 	
     }
   else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
@@ -674,8 +674,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       
 	outfile.close();
 	
-	cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |eta| < 1 = " 
-	<< get_meanpt(DATA, 211, 0.25, 1.8, -1, 1) << endl;
+	cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |y| < 1 = " 
+	<< get_meanpt(DATA, 211, 0.25, 1.8, 1, -1, 1) << endl;
 	
     }
   else if (mode!=3)
@@ -1024,6 +1024,111 @@ void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double m
 
 }
 
+// calculates eta= or y-integrated flow versus rapidity.
+// format is vn[n][i(real=0 or imaginary part=1)][pt] .
+// yflag = 0 takes minrap and maxrap as a range in psuedorapidity,
+// while yflag = 1 uses rapidity
+// Yield (n=0) is dN/dpt/dy or dN/dpt/deta for minrap==maxrap, or dN/dpt otherwise 
+void Freeze::rapidity_integrated_flow(InitData *DATA, int number, int yflag, double minrap, double maxrap, double vn[nharmonics][2][etasize])
+{
+// 	cout << "Calculating integrated flow for " << miney << " < y < " << maxy << " for particle " << number << endl;
+
+    
+	//Define index j used in particleList[j]
+	int j = partid[MHALF+number];
+// 	double fac, pt;
+  //       double intvn[8][2] = {0};
+	int nphi = particleList[j].nphi;
+	int npt = particleList[j].npt;
+	int neta = particleList[j].ny;
+	double intvn[ptsize][nharmonics][2] = {};
+	double m = particleList[j].mass;
+	
+	double testmin;
+	if(yflag) testmin = Rap(particleList[j].y[0],particleList[j].pt[0],m);
+	else testmin = particleList[j].y[0];
+	if(minrap < testmin) 
+	{
+	  cerr << "Error: called out of range rapidity in rap_integrated_flow, " 
+	  << minrap << " < minimum " << testmin << endl;
+	  exit(1);
+	}
+	double testmax;
+	if(yflag) testmax = Rap(particleList[j].y[neta-1],particleList[j].pt[0],m);
+	else testmax = particleList[j].y[neta-1];
+	if(maxrap > testmax) 
+	{
+	  cerr << "Error: called out of range rapidity in rap_integrated_flow, " 
+	  << maxrap << " > maximum " << testmax << endl;
+	  exit(1);
+	}
+	if (minrap > maxrap)
+	{
+	  cerr << "Error in rap_integrated_flow:  minrap must be less than or equal to maxrap\n";
+	  exit(1);
+	}
+	
+	
+	//loop over pt
+// 	cout << "ietamax = " << particleList[j].ny << endl;
+	for(int ipt=0;ipt<npt;ipt++)
+	{
+// 	  for(int i = 0;i<8;i++) for(int k =0;k<2;k++) intvn[ieta][i][k]=0;
+	  double pt = particleList[j].pt[ipt];
+	  
+	    //Integrate over phi using trapezoid rule
+	    for(int iphi=0;iphi<nphi;iphi++) 
+	    {
+	      double ylist[etasize] = {0};
+	      
+	      // Integrate over pseudorapidity using gsl
+	      double dndpt[etasize] = {0};
+	      for(int ieta=0;ieta<neta;ieta++) 
+	      {
+		double eta = particleList[j].y[ieta];
+		ylist[ieta] = Rap(eta, pt, m);
+		
+		if(yflag)dndpt[ieta] = pt*particleList[j].dNdydptdphi[ieta][ipt][iphi];
+		else dndpt[ieta] = pt*dydeta(eta, pt, m)*particleList[j].dNdydptdphi[ieta][ipt][iphi];
+		
+	      }
+	      gsl_interp_accel *acc = gsl_interp_accel_alloc ();
+	      gsl_spline *spline = gsl_spline_alloc (gsl_interp_cspline, neta);
+	      if(yflag) gsl_spline_init (spline, ylist ,dndpt , neta);
+	      else gsl_spline_init (spline, particleList[j].y ,dndpt , neta);
+
+	      
+	      double dNdp;
+	      if (minrap!=maxrap) dNdp = gsl_spline_eval_integ(spline, minrap, maxrap, acc);
+	      else dNdp = gsl_spline_eval(spline, maxrap, acc);
+	      
+	      
+	      double phi = iphi*2*PI/nphi;
+	      for(int i = 0;i<nharmonics;i++)
+	      {
+		intvn[ipt][i][0] += cos(i*phi)*dNdp*2*PI/nphi;
+		intvn[ipt][i][1] += sin(i*phi)*dNdp*2*PI/nphi;
+	      }
+	      gsl_spline_free (spline);
+	      gsl_interp_accel_free (acc);
+	    }// phi loop
+
+
+	  for(int k =0;k<2;k++) 
+	  {
+	    vn[0][k][ipt] = intvn[ipt][0][k];
+	  }
+	  
+	  for(int i = 1;i<nharmonics;i++) for(int k =0;k<2;k++) 
+	  {
+	    vn[i][k][ipt] = intvn[ipt][i][k]/intvn[ipt][0][0];
+	  }
+	  
+	  
+	}// pt loop
+
+}
+
 
 // calculates pt- and eta-integrated flow for a given range in pt and eta
 // format is vn[n][i(real=0 or imaginary part=1)]
@@ -1257,6 +1362,88 @@ void Freeze::pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, 
   }
 }
 
+// calculates pt- and (pseudo)rapidity-integrated flow for a given range in pt and eta or y
+// format is vn[n][i(real=0 or imaginary part=1)]
+//  the rapidity integral is nested inside the phi integral inside the pt integral
+void Freeze::pt_and_rapidity_integrated_flow(InitData *DATA, int number, double minpt, double maxpt, int yflag,  double minrap, double maxrap, double vn[nharmonics][2])
+{
+  int j = partid[MHALF+number];
+  int npt = particleList[j].npt;  
+  
+  if(minpt < particleList[j].pt[0]) 
+  {
+    cerr << "Error: called out of range pt in pt_and_y_integrated_flow, " 
+    << minpt << " < minimum " << particleList[j].pt[0] << endl;
+    exit(1);
+  }
+  if(maxpt > particleList[j].pt[npt-1]) 
+  {
+    cerr << "Error: called out of range pt in pt_and_y_integrated_flow, " 
+    << maxpt << " > maximum " << particleList[j].pt[npt-1] << endl;
+    exit(1);
+  }
+  if (minpt > maxpt)
+  {
+    cerr << "Error in pt_and_y_integrated_flow:  minpt must be less than or equal to maxpt\n";
+    exit(1);
+  }
+  
+  // do  rapidity-integral first
+  double vnpt[nharmonics][2][ptsize] = {};
+  rapidity_integrated_flow(DATA, number, yflag,  minrap, maxrap, vnpt);
+  double dndpt[ptsize];
+  for(int ipt=0;ipt<npt;ipt++) 
+  {
+    dndpt[ipt] = vnpt[0][0][ipt];
+  }
+  for(int n = 0; n < nharmonics; n++)
+  {
+    double vncos[ptsize] = {0};
+    double vnsin[ptsize] = {0};
+    for(int ipt=0;ipt<npt;ipt++) 
+    {
+      double weight;
+      if (n!=0) weight = dndpt[ipt];
+      else weight = 1;
+      vncos[ipt] = vnpt[n][0][ipt]*weight;
+      vnsin[ipt] = vnpt[n][1][ipt]*weight;
+    }
+    gsl_interp_accel *cosacc = gsl_interp_accel_alloc ();
+    gsl_spline *cosspline = gsl_spline_alloc (gsl_interp_cspline, npt);
+    gsl_spline_init (cosspline, particleList[j].pt ,vncos , npt);
+    
+    gsl_interp_accel *sinacc = gsl_interp_accel_alloc ();
+    gsl_spline *sinspline = gsl_spline_alloc (gsl_interp_cspline, npt);
+    gsl_spline_init (sinspline, particleList[j].pt ,vnsin , npt);
+    
+    if (minpt!=maxpt)
+    {
+      vn[n][0] = gsl_spline_eval_integ(cosspline, minpt, maxpt, cosacc);
+      vn[n][1] = gsl_spline_eval_integ(sinspline, minpt, maxpt, sinacc);
+    }
+    else 
+    {
+      vn[n][0] = gsl_spline_eval(cosspline, minpt, cosacc);
+      vn[n][1] = gsl_spline_eval(sinspline, minpt, sinacc);
+    }
+    
+    if(n!=0) for(int i = 0; i<2; i++) vn[n][i]/=vn[0][0];
+    
+    gsl_spline_free (cosspline);
+    gsl_interp_accel_free (cosacc);
+    gsl_spline_free (sinspline);
+    gsl_interp_accel_free (sinacc);
+  }
+}
+
+// Return yield in specified range of phase space
+double Freeze::get_N(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap)
+{
+  double vn[nharmonics][2];
+  pt_and_rapidity_integrated_flow(DATA, number, minpt, maxpt, yflag, minrap, maxrap, vn);
+  return vn[0][0];
+}
+
 // Return yield in specified range of phase space
 // if mineta==maxeta, returns dN/eta.  If minpt==maxpt, dN/dpt.  If both, dN/dpt/deta.  Otherwise, total yield N
 double Freeze::get_yield(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta)
@@ -1268,7 +1455,7 @@ double Freeze::get_yield(InitData *DATA, int number, double minpt, double maxpt,
 
 
 // Return <pt> in specified range of phase space
-double Freeze::get_meanpt(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta)
+double Freeze::get_meanpt(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap)
 {
   int j = partid[MHALF+number];
   int npt = particleList[j].npt;
@@ -1299,7 +1486,7 @@ double Freeze::get_meanpt(InitData *DATA, int number, double minpt, double maxpt
   for(int ipt=0;ipt<npt;ipt++) 
   {
     double pt = particleList[j].pt[ipt];
-    dndpt[ipt] = get_yield(DATA, number, pt, pt, mineta, maxeta);
+    dndpt[ipt] = get_N(DATA, number, pt, pt, yflag, minrap, maxrap);
     ptdndpt[ipt] = pt*dndpt[ipt];
   }
     gsl_interp_accel *numacc = gsl_interp_accel_alloc ();
