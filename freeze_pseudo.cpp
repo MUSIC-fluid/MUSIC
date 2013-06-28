@@ -619,7 +619,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	  outfile 
 // 	  << "eta, dNch/deta = " 
 	  << particleList[1].y[ieta] << "\t"  
-	  << get_Nch(DATA, particleList[1].pt[0], particleList[1].pt[particleList[i].npt-1], particleList[1].y[ieta], particleList[1].y[ieta]) 
+	  << get_Nch(DATA, particleList[1].pt[0], particleList[1].pt[particleList[i].npt-1], 0, particleList[1].y[ieta], particleList[1].y[ieta]) 
 	  << endl;
 
 
@@ -669,7 +669,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	  outfile 
 // 	  << "eta, dNch/deta = " 
 	  << particleList[1].y[ieta] << "\t" 
-	  << get_Nch(DATA, particleList[i].pt[0], particleList[1].pt[particleList[i].npt-1], particleList[1].y[ieta], particleList[1].y[ieta]) 
+	  << get_Nch(DATA, particleList[i].pt[0], particleList[1].pt[particleList[i].npt-1], 0, particleList[1].y[ieta], particleList[1].y[ieta]) 
 	  << endl;
       
 	outfile.close();
@@ -1511,7 +1511,7 @@ double Freeze::get_meanpt(InitData *DATA, int number, double minpt, double maxpt
 
 
 // Return v_n for specified range of phase space
-double Freeze::get_vn(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int n)
+double Freeze::get_vn(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n)
 {
   if( n > nharmonics-1 ) 
   {
@@ -1519,12 +1519,12 @@ double Freeze::get_vn(InitData *DATA, int number, double minpt, double maxpt, do
     exit(1);
   }
   double vn[nharmonics][2];
-  pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
+  pt_and_rapidity_integrated_flow(DATA, number, minpt, maxpt, yflag, minrap, maxrap, vn);
   return sqrt(vn[n][0]*vn[n][0] + vn[n][1]*vn[n][1]);
 }
 
 // Return Psi_n for specified range of phase space
-double Freeze::get_psi_n(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int n)
+double Freeze::get_psi_n(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n)
 {
   if( n > nharmonics-1 ) 
   {
@@ -1532,13 +1532,14 @@ double Freeze::get_psi_n(InitData *DATA, int number, double minpt, double maxpt,
     exit(1);
   }
   double vn[nharmonics][2];
-  pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
+  pt_and_rapidity_integrated_flow(DATA, number, minpt, maxpt, yflag, minrap, maxrap, vn);
   return atan2(vn[n][1],vn[n][0]);
 }
 
 // Return charged hadron yield in specified range of phase space
-// if mineta==maxeta, returns dN/eta.  If minpt==maxpt, dN/dpt.  If both, dN/dpt/deta.  Otherwise, total yield N
-double Freeze::get_Nch(InitData *DATA, double minpt, double maxpt, double mineta, double maxeta)
+// You'll almost certainly want to set yflat=0 to calculate over a fixed range in eta
+// if minrap==maxrap, returns dN/eta.  If minpt==maxpt, dN/dpt.  If both, dN/dpt/deta.  Otherwise, total yield N
+double Freeze::get_Nch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap)
 {
   if(particleMax<18)
   {
@@ -1556,13 +1557,13 @@ double Freeze::get_Nch(InitData *DATA, double minpt, double maxpt, double mineta
 //       double vn[nharmonics][2];
 //       pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
 //       N+= vn[0][0];
-      N+= get_yield(DATA, number, minpt, maxpt, mineta, maxeta);
+      N+= get_N(DATA, number, minpt, maxpt, yflag, minrap, maxrap);
     }
     return N;
 }
 
 // Return charged hadron vn for specified range of phase space
-double Freeze::get_vn_ch(InitData *DATA, double minpt, double maxpt, double mineta, double maxeta, int n)
+double Freeze::get_vn_ch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n)
 {
   if(particleMax<18)
   {
@@ -1585,7 +1586,7 @@ double Freeze::get_vn_ch(InitData *DATA, double minpt, double maxpt, double mine
       int i = chargedhd[k];
       int number = particleList[i].number;
       double vn[nharmonics][2];
-      pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
+      pt_and_rapidity_integrated_flow(DATA, number, minpt, maxpt, yflag,  minrap, maxrap, vn);
       numr+= vn[0][0]*vn[n][0];
       numi+= vn[0][0]*vn[n][1];
       den+= vn[0][0];
@@ -1594,7 +1595,7 @@ double Freeze::get_vn_ch(InitData *DATA, double minpt, double maxpt, double mine
 }
 
 // Return charged hadron Psi_n for specified range of phase space
-double Freeze::get_psi_n_ch(InitData *DATA, double minpt, double maxpt, double mineta, double maxeta, int n)
+double Freeze::get_psi_n_ch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n)
 {
   if(particleMax<18)
   {
@@ -1616,7 +1617,7 @@ double Freeze::get_psi_n_ch(InitData *DATA, double minpt, double maxpt, double m
       int i = chargedhd[k];
       int number = particleList[i].number;
       double vn[nharmonics][2];
-      pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, mineta, maxeta, vn);
+      pt_and_rapidity_integrated_flow(DATA, number, minpt, maxpt, yflag, minrap, maxrap, vn);
       numr+= vn[0][0]*vn[n][0];
       numi+= vn[0][0]*vn[n][1];
     }
@@ -1627,7 +1628,7 @@ double Freeze::get_psi_n_ch(InitData *DATA, double minpt, double maxpt, double m
 
 // Calculates v1 and psi_1 with pt-dependent weight (pt - <pt^2>/<pt>) in specified range of phase space
 // ch == 0 calculates for particle "number", while ch > 0 calculates for all charged hadrons
-void Freeze::weighted_v1(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, double vn[2], int ch)
+void Freeze::weighted_v1(InitData *DATA, int number, double minpt, double maxpt, int yflag,  double minrap, double maxrap, double vn[2], int ch)
 {
   int j = partid[MHALF+number];
   int npt = particleList[j].npt;
@@ -1660,8 +1661,8 @@ void Freeze::weighted_v1(InitData *DATA, int number, double minpt, double maxpt,
   for(int ipt=0;ipt<npt;ipt++) 
   {
     double pt = particleList[j].pt[ipt];
-    if(ch) dndpt[ipt] = get_Nch(DATA, pt, pt, mineta, maxeta);
-    else dndpt[ipt] = get_yield(DATA, number, pt, pt, mineta, maxeta);
+    if(ch) dndpt[ipt] = get_Nch(DATA, pt, pt, yflag, minrap, maxrap);
+    else dndpt[ipt] = get_N(DATA, number, pt, pt, yflag, minrap, maxrap);
     ptdndpt[ipt] = pt*dndpt[ipt];
     ptptdndpt[ipt] = pt*pt*dndpt[ipt];
   }
@@ -1704,10 +1705,10 @@ void Freeze::weighted_v1(InitData *DATA, int number, double minpt, double maxpt,
       
       double v1;
       double psi1;
-      if(ch) v1 = get_vn_ch(DATA, pt, pt, mineta, maxeta, 1);
-      else v1 = get_vn(DATA, number, pt, pt, mineta, maxeta, 1);
-      if(ch) psi1 = get_psi_n_ch(DATA, pt, pt, mineta, maxeta, 1);
-      else psi1 = get_psi_n(DATA, number, pt, pt, mineta, maxeta, 1);
+      if(ch) v1 = get_vn_ch(DATA, pt, pt, yflag, minrap, maxrap, 1);
+      else v1 = get_vn(DATA, number, pt, pt, yflag, minrap, maxrap, 1);
+      if(ch) psi1 = get_psi_n_ch(DATA, pt, pt, yflag, minrap, maxrap, 1);
+      else psi1 = get_psi_n(DATA, number, pt, pt, yflag, minrap, maxrap, 1);
       v1cos[ipt] = weight*v1*cos(psi1);
       v1sin[ipt] = weight*v1*sin(psi1);
       v1den[ipt] = weight;
@@ -1741,17 +1742,17 @@ void Freeze::weighted_v1(InitData *DATA, int number, double minpt, double maxpt,
     vn[1] = atan2(num2,num);
 }
 
-double Freeze::get_weighted_v1(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int ch)
+double Freeze::get_weighted_v1(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int ch)
 {
   double vn[2];
-  weighted_v1(DATA, number, minpt, maxpt, mineta, maxeta, vn, ch);
+  weighted_v1(DATA, number, minpt, maxpt, yflag, minrap, maxrap, vn, ch);
   return vn[0];
 }
 
-double Freeze::get_weighted_psi1(InitData *DATA, int number, double minpt, double maxpt, double mineta, double maxeta, int ch)
+double Freeze::get_weighted_psi1(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int ch)
 {
   double vn[2];
-  weighted_v1(DATA, number, minpt, maxpt, mineta, maxeta, vn, ch);
+  weighted_v1(DATA, number, minpt, maxpt, yflag, minrap, maxrap, vn, ch);
   return vn[1];
 }
 
@@ -1826,7 +1827,8 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 // 		cout << "pt = " << pt << endl;
 		
 // 		pt_and_eta_integrated_flow(DATA, number, pt, pt, eta, eta, vn);
-		pt_and_y_integrated_flow(DATA, number, pt, pt, 0., 0., vn);
+// 		pt_and_y_integrated_flow(DATA, number, pt, pt, 0., 0., vn);
+		pt_and_rapidity_integrated_flow(DATA, number, pt, pt, 1, 0., 0., vn);
 
 		//Output result
 		outfilevn << pt;
@@ -1850,7 +1852,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 
 }
 
-// Output yield dN/ptdydpt and v_n for |eta|<1 as a function of pT
+// Output yield dN/ptdydpt and v_n for |y|<1 as a function of pT
 void Freeze::OutputDifferentialFlowNearMidrapidity(InitData *DATA, int number, int full) 
 {
   
@@ -1919,7 +1921,8 @@ void Freeze::OutputDifferentialFlowNearMidrapidity(InitData *DATA, int number, i
 // 		pt_and_eta_integrated_flow(DATA, number, pt, pt, mineta, maxeta, vn);
 		double miny = Rap(mineta,pt,m);
 		double maxy = Rap(maxeta,pt,m);
-		pt_and_y_integrated_flow(DATA, number, pt, pt, miny, maxy, vn);
+// 		pt_and_y_integrated_flow(DATA, number, pt, pt, miny, maxy, vn);
+		pt_and_rapidity_integrated_flow(DATA, number, pt, pt, 1, miny, maxy, vn);
 
 		//Output result
 		outfilevn << pt;
@@ -2011,7 +2014,8 @@ void Freeze::OutputIntegratedFlow(InitData *DATA, int number, int full)
 		double eta=particleList[j].y[ieta];
 // 		cout << "pt = " << pt << endl;
 		
-		pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, eta, eta, vn);
+// 		pt_and_eta_integrated_flow(DATA, number, minpt, maxpt, eta, eta, vn);
+		pt_and_rapidity_integrated_flow(DATA, number, minpt, maxpt, 0, eta, eta, vn);
 
 		//Output result
 		outfilevn << eta;
