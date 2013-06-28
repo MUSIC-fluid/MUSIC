@@ -25,8 +25,8 @@ int main(int argc, char *argv[])
  
   string input_file;
   static InitData DATA;
-  int flag;
-  double  tau;
+//   int flag;
+//   double  tau;
 
 
   // you have the option to give a second command line option, which is an integer to be added to the random seed from the current time
@@ -151,8 +151,7 @@ int main(int argc, char *argv[])
       
   if (DATA.mode == 1 || DATA.mode == 2)
     {
-      int ret;
-      ret = system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+      system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
       Glauber *glauber;
       glauber = new Glauber;
       
@@ -174,11 +173,11 @@ int main(int argc, char *argv[])
  
       cout << "size=" << size << endl;
       cout << "rank=" << rank << endl;
-      flag =  evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank); 
+      evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank); 
 
       MPI_Barrier(MPI_COMM_WORLD);
       
-      tau = DATA.tau0 + DATA.tau_size; 
+//       tau = DATA.tau0 + DATA.tau_size; 
      
       if (DATA.output_hydro_debug_info) {
         FILE *t4_file;

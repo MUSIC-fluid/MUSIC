@@ -35,7 +35,7 @@ void EOS::init_eos()
   // baryon chemical potential from file
   whichEOS = 1;
   fprintf(stderr,"reading EOS... \n");
-  int bytes_read;
+//   int bytes_read;
   int i, j;
   FILE *eos_p1, *eos_p2;
   FILE *eos_T1, *eos_T2;
@@ -122,18 +122,18 @@ void EOS::init_eos()
   //read the first two lines:
   // first value of rhob, first value of epsilon
   // deltaRhob, deltaEpsilon, number of rhob steps, number of epsilon steps
-  bytes_read=fscanf(eos_p1,"%lf %lf",&BNP1,&EPP1);
-  bytes_read=fscanf(eos_p1,"%lf %lf %d %d",&deltaBNP1,&deltaEPP1,&NBNP1,&NEPP1);
-  bytes_read=fscanf(eos_p2,"%lf %lf",&BNP2,&EPP2);
-  bytes_read=fscanf(eos_p2,"%lf %lf %d %d",&deltaBNP2,&deltaEPP2,&NBNP2,&NEPP2);
-  bytes_read=fscanf(eos_T1,"%lf %lf",&BNP1,&EPP1);
-  bytes_read=fscanf(eos_T1,"%lf %lf %d %d",&deltaBNP1,&deltaEPP1,&NBNP1,&NEPP1);
-  bytes_read=fscanf(eos_T2,"%lf %lf",&BNP2,&EPP2);
-  bytes_read=fscanf(eos_T2,"%lf %lf %d %d",&deltaBNP2,&deltaEPP2,&NBNP2,&NEPP2);
-  bytes_read=fscanf(eos_mu1,"%lf %lf",&BNP1,&EPP1);
-  bytes_read=fscanf(eos_mu1,"%lf %lf %d %d",&deltaBNP1,&deltaEPP1,&NBNP1,&NEPP1);
-  bytes_read=fscanf(eos_mu2,"%lf %lf",&BNP2,&EPP2);
-  bytes_read=fscanf(eos_mu2,"%lf %lf %d %d",&deltaBNP2,&deltaEPP2,&NBNP2,&NEPP2);
+  fscanf(eos_p1,"%lf %lf",&BNP1,&EPP1);
+  fscanf(eos_p1,"%lf %lf %d %d",&deltaBNP1,&deltaEPP1,&NBNP1,&NEPP1);
+  fscanf(eos_p2,"%lf %lf",&BNP2,&EPP2);
+  fscanf(eos_p2,"%lf %lf %d %d",&deltaBNP2,&deltaEPP2,&NBNP2,&NEPP2);
+  fscanf(eos_T1,"%lf %lf",&BNP1,&EPP1);
+  fscanf(eos_T1,"%lf %lf %d %d",&deltaBNP1,&deltaEPP1,&NBNP1,&NEPP1);
+  fscanf(eos_T2,"%lf %lf",&BNP2,&EPP2);
+  fscanf(eos_T2,"%lf %lf %d %d",&deltaBNP2,&deltaEPP2,&NBNP2,&NEPP2);
+  fscanf(eos_mu1,"%lf %lf",&BNP1,&EPP1);
+  fscanf(eos_mu1,"%lf %lf %d %d",&deltaBNP1,&deltaEPP1,&NBNP1,&NEPP1);
+  fscanf(eos_mu2,"%lf %lf",&BNP2,&EPP2);
+  fscanf(eos_mu2,"%lf %lf %d %d",&deltaBNP2,&deltaEPP2,&NBNP2,&NEPP2);
  
   // allocate memory for pressure arrays
   pressure1=util->mtx_malloc(NBNP1+1,NEPP1+1);
@@ -152,17 +152,17 @@ void EOS::init_eos()
   for(j=0;j<=NEPP1;j++)
     for(i=0;i<=NBNP1;i++)
       {
-	bytes_read=fscanf(eos_p1,"%lf",&pressure1[i][j]);
-	bytes_read=fscanf(eos_T1,"%lf",&temperature1[i][j]);
-	bytes_read=fscanf(eos_mu1,"%lf",&mu1[i][j]);
+	fscanf(eos_p1,"%lf",&pressure1[i][j]);
+	fscanf(eos_T1,"%lf",&temperature1[i][j]);
+	fscanf(eos_mu1,"%lf",&mu1[i][j]);
       }
 
   for(j=0;j<=NEPP2;j++)
     for(i=0;i<=NBNP2;i++)
       {
-	bytes_read=fscanf(eos_p2,"%lf",&pressure2[i][j]);
-	bytes_read=fscanf(eos_T2,"%lf",&temperature2[i][j]);
-	bytes_read=fscanf(eos_mu2,"%lf",&mu2[i][j]);
+	fscanf(eos_p2,"%lf",&pressure2[i][j]);
+	fscanf(eos_T2,"%lf",&temperature2[i][j]);
+	fscanf(eos_mu2,"%lf",&mu2[i][j]);
       }
 
   fclose(eos_p1);
@@ -376,34 +376,34 @@ void EOS::init_eos2()
   //read the first two lines with general info:
   // lowest value of epsilon
   // deltaEpsilon, number of epsilon steps (i.e. # of lines)
-  bytes_read=fscanf(eos_T1,"%lf",&EPP1);
-  bytes_read=fscanf(eos_T1,"%lf %d",&deltaEPP1,&NEPP1);
-  bytes_read=fscanf(eos_T2,"%lf",&EPP2);
-  bytes_read=fscanf(eos_T2,"%lf %d",&deltaEPP2,&NEPP2);
-  bytes_read=fscanf(eos_T3,"%lf",&EPP3);
-  bytes_read=fscanf(eos_T3,"%lf %d",&deltaEPP3,&NEPP3);
-  bytes_read=fscanf(eos_T4,"%lf",&EPP4);
-  bytes_read=fscanf(eos_T4,"%lf %d",&deltaEPP4,&NEPP4);
-  bytes_read=fscanf(eos_T5,"%lf",&EPP5);
-  bytes_read=fscanf(eos_T5,"%lf %d",&deltaEPP5,&NEPP5);
-  bytes_read=fscanf(eos_T6,"%lf",&EPP6);
-  bytes_read=fscanf(eos_T6,"%lf %d",&deltaEPP6,&NEPP6);
-  bytes_read=fscanf(eos_T7,"%lf",&EPP7);
-  bytes_read=fscanf(eos_T7,"%lf %d",&deltaEPP7,&NEPP7);
-  bytes_read=fscanf(eos_d1,"%lf",&EPP1);
-  bytes_read=fscanf(eos_d1,"%lf %d",&deltaEPP1,&NEPP1);
-  bytes_read=fscanf(eos_d2,"%lf",&EPP2);
-  bytes_read=fscanf(eos_d2,"%lf %d",&deltaEPP2,&NEPP2);
-  bytes_read=fscanf(eos_d3,"%lf",&EPP3);
-  bytes_read=fscanf(eos_d3,"%lf %d",&deltaEPP3,&NEPP3);
-  bytes_read=fscanf(eos_d4,"%lf",&EPP4);
-  bytes_read=fscanf(eos_d4,"%lf %d",&deltaEPP4,&NEPP4);
-  bytes_read=fscanf(eos_d5,"%lf",&EPP5);
-  bytes_read=fscanf(eos_d5,"%lf %d",&deltaEPP5,&NEPP5);
-  bytes_read=fscanf(eos_d6,"%lf",&EPP6);
-  bytes_read=fscanf(eos_d6,"%lf %d",&deltaEPP6,&NEPP6);
-  bytes_read=fscanf(eos_d7,"%lf",&EPP7);
-  bytes_read=fscanf(eos_d7,"%lf %d",&deltaEPP7,&NEPP7);
+  fscanf(eos_T1,"%lf",&EPP1);
+  fscanf(eos_T1,"%lf %d",&deltaEPP1,&NEPP1);
+  fscanf(eos_T2,"%lf",&EPP2);
+  fscanf(eos_T2,"%lf %d",&deltaEPP2,&NEPP2);
+  fscanf(eos_T3,"%lf",&EPP3);
+  fscanf(eos_T3,"%lf %d",&deltaEPP3,&NEPP3);
+  fscanf(eos_T4,"%lf",&EPP4);
+  fscanf(eos_T4,"%lf %d",&deltaEPP4,&NEPP4);
+  fscanf(eos_T5,"%lf",&EPP5);
+  fscanf(eos_T5,"%lf %d",&deltaEPP5,&NEPP5);
+  fscanf(eos_T6,"%lf",&EPP6);
+  fscanf(eos_T6,"%lf %d",&deltaEPP6,&NEPP6);
+  fscanf(eos_T7,"%lf",&EPP7);
+  fscanf(eos_T7,"%lf %d",&deltaEPP7,&NEPP7);
+  fscanf(eos_d1,"%lf",&EPP1);
+  fscanf(eos_d1,"%lf %d",&deltaEPP1,&NEPP1);
+  fscanf(eos_d2,"%lf",&EPP2);
+  fscanf(eos_d2,"%lf %d",&deltaEPP2,&NEPP2);
+  fscanf(eos_d3,"%lf",&EPP3);
+  fscanf(eos_d3,"%lf %d",&deltaEPP3,&NEPP3);
+  fscanf(eos_d4,"%lf",&EPP4);
+  fscanf(eos_d4,"%lf %d",&deltaEPP4,&NEPP4);
+  fscanf(eos_d5,"%lf",&EPP5);
+  fscanf(eos_d5,"%lf %d",&deltaEPP5,&NEPP5);
+  fscanf(eos_d6,"%lf",&EPP6);
+  fscanf(eos_d6,"%lf %d",&deltaEPP6,&NEPP6);
+  fscanf(eos_d7,"%lf",&EPP7);
+  fscanf(eos_d7,"%lf %d",&deltaEPP7,&NEPP7);
   
  
   // no rho_b dependence at the moment
@@ -463,86 +463,86 @@ void EOS::init_eos2()
   i=0;
   for(j=NEPP1-1; j>=0; j--)
     {
-      bytes_read=fscanf(eos_d1,"%lf",&eps);
-      bytes_read=fscanf(eos_d1,"%lf",&pressure1[i][j]);
-      bytes_read=fscanf(eos_d1,"%lf",&entropyDensity1[i][j]);
-      bytes_read=fscanf(eos_d1,"%lf",&baryonDensity);
-      bytes_read=fscanf(eos_d1,"%lf",&QGPfraction1[i][j]);
-      bytes_read=fscanf(eos_T1,"%lf",&temperature1[i][j]);
-      bytes_read=fscanf(eos_T1,"%lf",&eps); //dummy
-      bytes_read=fscanf(eos_T1,"%lf",&eps); //dummy
+      fscanf(eos_d1,"%lf",&eps);
+      fscanf(eos_d1,"%lf",&pressure1[i][j]);
+      fscanf(eos_d1,"%lf",&entropyDensity1[i][j]);
+      fscanf(eos_d1,"%lf",&baryonDensity);
+      fscanf(eos_d1,"%lf",&QGPfraction1[i][j]);
+      fscanf(eos_T1,"%lf",&temperature1[i][j]);
+      fscanf(eos_T1,"%lf",&eps); //dummy
+      fscanf(eos_T1,"%lf",&eps); //dummy
     }
 
   for(j=NEPP2-1; j>=0; j--)
     {
-      bytes_read=fscanf(eos_d2,"%lf",&eps);
-      bytes_read=fscanf(eos_d2,"%lf",&pressure2[i][j]);
-      bytes_read=fscanf(eos_d2,"%lf",&entropyDensity2[i][j]);
-      bytes_read=fscanf(eos_d2,"%lf",&baryonDensity);
-      bytes_read=fscanf(eos_d2,"%lf",&QGPfraction2[i][j]);
-      bytes_read=fscanf(eos_T2,"%lf",&temperature2[i][j]);
-      bytes_read=fscanf(eos_T2,"%lf",&eps); //dummy
-      bytes_read=fscanf(eos_T2,"%lf",&eps); //dummy
+      fscanf(eos_d2,"%lf",&eps);
+      fscanf(eos_d2,"%lf",&pressure2[i][j]);
+      fscanf(eos_d2,"%lf",&entropyDensity2[i][j]);
+      fscanf(eos_d2,"%lf",&baryonDensity);
+      fscanf(eos_d2,"%lf",&QGPfraction2[i][j]);
+      fscanf(eos_T2,"%lf",&temperature2[i][j]);
+      fscanf(eos_T2,"%lf",&eps); //dummy
+      fscanf(eos_T2,"%lf",&eps); //dummy
     }
 
   for(j=NEPP3-1; j>=0; j--)
     {
-      bytes_read=fscanf(eos_d3,"%lf",&eps);
-      bytes_read=fscanf(eos_d3,"%lf",&pressure3[i][j]);
-      bytes_read=fscanf(eos_d3,"%lf",&entropyDensity3[i][j]);
-      bytes_read=fscanf(eos_d3,"%lf",&baryonDensity);
-      bytes_read=fscanf(eos_d3,"%lf",&QGPfraction3[i][j]);
-      bytes_read=fscanf(eos_T3,"%lf",&temperature3[i][j]);
-      bytes_read=fscanf(eos_T3,"%lf",&eps); //dummy
-      bytes_read=fscanf(eos_T3,"%lf",&eps); //dummy
+      fscanf(eos_d3,"%lf",&eps);
+      fscanf(eos_d3,"%lf",&pressure3[i][j]);
+      fscanf(eos_d3,"%lf",&entropyDensity3[i][j]);
+      fscanf(eos_d3,"%lf",&baryonDensity);
+      fscanf(eos_d3,"%lf",&QGPfraction3[i][j]);
+      fscanf(eos_T3,"%lf",&temperature3[i][j]);
+      fscanf(eos_T3,"%lf",&eps); //dummy
+      fscanf(eos_T3,"%lf",&eps); //dummy
     }
 
   for(j=NEPP4-1; j>=0; j--)
     {
-      bytes_read=fscanf(eos_d4,"%lf",&eps);
-      bytes_read=fscanf(eos_d4,"%lf",&pressure4[i][j]);
-      bytes_read=fscanf(eos_d4,"%lf",&entropyDensity4[i][j]);
-      bytes_read=fscanf(eos_d4,"%lf",&baryonDensity);
-      bytes_read=fscanf(eos_d4,"%lf",&QGPfraction4[i][j]);
-      bytes_read=fscanf(eos_T4,"%lf",&temperature4[i][j]);
-      bytes_read=fscanf(eos_T4,"%lf",&eps); //dummy
-      bytes_read=fscanf(eos_T4,"%lf",&eps); //dummy
+      fscanf(eos_d4,"%lf",&eps);
+      fscanf(eos_d4,"%lf",&pressure4[i][j]);
+      fscanf(eos_d4,"%lf",&entropyDensity4[i][j]);
+      fscanf(eos_d4,"%lf",&baryonDensity);
+      fscanf(eos_d4,"%lf",&QGPfraction4[i][j]);
+      fscanf(eos_T4,"%lf",&temperature4[i][j]);
+      fscanf(eos_T4,"%lf",&eps); //dummy
+      fscanf(eos_T4,"%lf",&eps); //dummy
     }
 
   for(j=NEPP5-1; j>=0; j--)
     {
-      bytes_read=fscanf(eos_d5,"%lf",&eps);
-      bytes_read=fscanf(eos_d5,"%lf",&pressure5[i][j]);
-      bytes_read=fscanf(eos_d5,"%lf",&entropyDensity5[i][j]);
-      bytes_read=fscanf(eos_d5,"%lf",&baryonDensity);
-      bytes_read=fscanf(eos_d5,"%lf",&QGPfraction5[i][j]);
-      bytes_read=fscanf(eos_T5,"%lf",&temperature5[i][j]);
-      bytes_read=fscanf(eos_T5,"%lf",&eps); //dummy
-      bytes_read=fscanf(eos_T5,"%lf",&eps); //dummy
+      fscanf(eos_d5,"%lf",&eps);
+      fscanf(eos_d5,"%lf",&pressure5[i][j]);
+      fscanf(eos_d5,"%lf",&entropyDensity5[i][j]);
+      fscanf(eos_d5,"%lf",&baryonDensity);
+      fscanf(eos_d5,"%lf",&QGPfraction5[i][j]);
+      fscanf(eos_T5,"%lf",&temperature5[i][j]);
+      fscanf(eos_T5,"%lf",&eps); //dummy
+      fscanf(eos_T5,"%lf",&eps); //dummy
     } 
 
   for(j=NEPP6-1; j>=0; j--)
     {
-      bytes_read=fscanf(eos_d6,"%lf",&eps);
-      bytes_read=fscanf(eos_d6,"%lf",&pressure6[i][j]);
-      bytes_read=fscanf(eos_d6,"%lf",&entropyDensity6[i][j]);
-      bytes_read=fscanf(eos_d6,"%lf",&baryonDensity);
-      bytes_read=fscanf(eos_d6,"%lf",&QGPfraction6[i][j]);
-      bytes_read=fscanf(eos_T6,"%lf",&temperature6[i][j]);
-      bytes_read=fscanf(eos_T6,"%lf",&eps); //dummy
-      bytes_read=fscanf(eos_T6,"%lf",&eps); //dummy
+      fscanf(eos_d6,"%lf",&eps);
+      fscanf(eos_d6,"%lf",&pressure6[i][j]);
+      fscanf(eos_d6,"%lf",&entropyDensity6[i][j]);
+      fscanf(eos_d6,"%lf",&baryonDensity);
+      fscanf(eos_d6,"%lf",&QGPfraction6[i][j]);
+      fscanf(eos_T6,"%lf",&temperature6[i][j]);
+      fscanf(eos_T6,"%lf",&eps); //dummy
+      fscanf(eos_T6,"%lf",&eps); //dummy
     } 
 
   for(j=NEPP7-1; j>=0; j--)
     {
-      bytes_read=fscanf(eos_d7,"%lf",&eps);
-      bytes_read=fscanf(eos_d7,"%lf",&pressure7[i][j]);
-      bytes_read=fscanf(eos_d7,"%lf",&entropyDensity7[i][j]);
-      bytes_read=fscanf(eos_d7,"%lf",&baryonDensity);
-      bytes_read=fscanf(eos_d7,"%lf",&QGPfraction7[i][j]);
-      bytes_read=fscanf(eos_T7,"%lf",&temperature7[i][j]);
-      bytes_read=fscanf(eos_T7,"%lf",&eps); //dummy
-      bytes_read=fscanf(eos_T7,"%lf",&eps); //dummy
+      fscanf(eos_d7,"%lf",&eps);
+      fscanf(eos_d7,"%lf",&pressure7[i][j]);
+      fscanf(eos_d7,"%lf",&entropyDensity7[i][j]);
+      fscanf(eos_d7,"%lf",&baryonDensity);
+      fscanf(eos_d7,"%lf",&QGPfraction7[i][j]);
+      fscanf(eos_T7,"%lf",&temperature7[i][j]);
+      fscanf(eos_T7,"%lf",&eps); //dummy
+      fscanf(eos_T7,"%lf",&eps); //dummy
     } 
 
 //test if the reading worked:
@@ -793,8 +793,8 @@ void EOS::init_eos3(int selector)
   eos_d7 >> deltaEPP7;
   eos_d7 >> NEPP7;
   
-  // bytes_read=fscanf(eos_d1,"%lf",&EPP1);
-  // bytes_read=fscanf(eos_d1,"%lf %d",&deltaEPP1,&NEPP1);
+  // fscanf(eos_d1,"%lf",&EPP1);
+  // fscanf(eos_d1,"%lf %d",&deltaEPP1,&NEPP1);
   // cout << "check 4" << endl;
 
   // no rho_b dependence at the moment
@@ -861,17 +861,17 @@ void EOS::init_eos3(int selector)
       eos_d1 >> entropyDensity1[i][j];
       eos_d1 >> baryonDensity;
       eos_d1 >> QGPfraction1[i][j];
-      //      bytes_read=fscanf(eos_d1,"%lf",&eps);
-      //bytes_read=fscanf(eos_d1,"%lf",&pressure1[i][j]);
-      //bytes_read=fscanf(eos_d1,"%lf",&entropyDensity1[i][j]);
-      //bytes_read=fscanf(eos_d1,"%lf",&baryonDensity);
-      //bytes_read=fscanf(eos_d1,"%lf",&QGPfraction1[i][j]);
+      //      fscanf(eos_d1,"%lf",&eps);
+      //fscanf(eos_d1,"%lf",&pressure1[i][j]);
+      //fscanf(eos_d1,"%lf",&entropyDensity1[i][j]);
+      //fscanf(eos_d1,"%lf",&baryonDensity);
+      //fscanf(eos_d1,"%lf",&QGPfraction1[i][j]);
       eos_T1 >> temperature1[i][j];
       eos_T1 >> eps;
       eos_T1 >> eps;
-      //bytes_read=fscanf(eos_T1,"%lf",&temperature1[i][j]);
-      //bytes_read=fscanf(eos_T1,"%lf",&eps); //dummy
-      //bytes_read=fscanf(eos_T1,"%lf",&eps); //dummy
+      //fscanf(eos_T1,"%lf",&temperature1[i][j]);
+      //fscanf(eos_T1,"%lf",&eps); //dummy
+      //fscanf(eos_T1,"%lf",&eps); //dummy
     }
 
   for(j=NEPP2-1; j>=0; j--)

@@ -34,7 +34,8 @@ Advance::~Advance()
 
 int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int rk_flag, int size, int rank)
 {
-  int ix, iy, ieta, flag;
+  int ix, iy, ieta;
+//   int flag;
   //cout << "0 AdvanceIt Wmunu=" << (Lneighbor[1][1][0]).Wmunu[rk_flag][1][1] << endl;
   
   for(ix=0; ix<=DATA->nx; ix++)
@@ -43,7 +44,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena, Grid ***Lneigh
 	{
           for(ieta=0; ieta<DATA->neta; ieta++)
 	    {
-	      flag = AdvanceLocalT(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
+	      AdvanceLocalT(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
 				   &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank);
 	    }/* ieta */
 	}/*iy */
@@ -59,7 +60,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena, Grid ***Lneigh
 	    {
 	      for(ieta=0; ieta<DATA->neta; ieta++)
 		{
-		  flag = AdvanceLocalW(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
+		  AdvanceLocalW(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
 				       &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank);
 		}/* ieta */
 	    }/*iy */
@@ -580,15 +581,16 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
 int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, Grid *Lneighbor2, Grid *Rneighbor2, int rk_flag, 
 double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size, int rank)
 { 
- double tau_now, tau_next, tempf, p_rhs, temp_mu, temps, eps_ratio, tempd, tau_rk;
+ double tau_now, tau_next, tempf, p_rhs, temp_mu, temps, eps_ratio, tempd;
+//  double tau_rk;
  int alpha, flag, mu, nu, revert_flag;
  static int ind=0;
 
  tau_now = tau;
  tau_next = tau + (DATA->delta_tau);
  
- if(rk_flag == 0) {tau_rk = tau_now;}
- else if(rk_flag > 0) {tau_rk = tau_next;}
+//  if(rk_flag == 0) {tau_rk = tau_now;}
+//  else if(rk_flag > 0) {tau_rk = tau_next;}
 
 /*
  Solve partial_a (u^a W^{mu nu}) = 0
@@ -772,7 +774,7 @@ revert_flag =
 void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, InitData *DATA, int rk_flag)
 {
  int trk_flag, mu, alpha;
- double tempf;
+//  double tempf;
 
  trk_flag = rk_flag+1;
 
@@ -783,7 +785,7 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, InitData *DATA, int rk_f
   /* reconstructed grid_rk uses rk_flag 0 only */
    for(mu=0; mu<4; mu++)
     {
-     tempf = grid_pt->u[trk_flag][mu] = grid_rk->u[0][mu];
+//      tempf = grid_pt->u[trk_flag][mu] = grid_rk->u[0][mu];
      for(alpha=0; alpha<5; alpha++)
       {
         grid_pt->TJb[trk_flag][alpha][mu] = grid_rk->TJb[0][alpha][mu];
@@ -805,7 +807,7 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
  //factor = 10.*pow(tanh(tau)/tau,2.5)+1.; //20, 0.5
  factor=2.;
  // cout << "factor=" << factor << endl;
- int whichCorr=0;
+//  int whichCorr=0;
  
  revert_flag = 0;
 
@@ -822,36 +824,36 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
  
  rho=max(fabs(trace)/fabs(grid_pt->epsilon+3.*grid_pt->p)/factor/0.5,rho); //factor/0.01
 
- whichCorr=1;
+//  whichCorr=1;
  
  // correct transversality
  trans = -grid_pt->u[rk_flag+1][0]*grid_pt->Wmunu[rk_flag+1][0][1]
    +grid_pt->u[rk_flag+1][1]*grid_pt->Wmunu[rk_flag+1][1][1]
    +grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][2][1]
    +grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][3][1];
- if(fabs(trans)/ezero/factor>rho)
-   whichCorr=2;
+//  if(fabs(trans)/ezero/factor>rho)
+//    whichCorr=2;
  rho=max(fabs(trans)/ezero/factor,rho);
  trans = -grid_pt->u[rk_flag+1][0]*grid_pt->Wmunu[rk_flag+1][0][2]
    +grid_pt->u[rk_flag+1][1]*grid_pt->Wmunu[rk_flag+1][1][2]
    +grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][2][2]
    +grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][3][2];
- if(fabs(trans)/ezero/factor>rho)
-   whichCorr=3;
+//  if(fabs(trans)/ezero/factor>rho)
+//    whichCorr=3;
  rho=max(fabs(trans)/ezero/factor,rho);
  trans = -grid_pt->u[rk_flag+1][0]*grid_pt->Wmunu[rk_flag+1][0][3]
    +grid_pt->u[rk_flag+1][1]*grid_pt->Wmunu[rk_flag+1][1][3]
    +grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][2][3]
    +grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][3][3]/tau;
- if(fabs(trans)/ezero/factor>rho)
-   whichCorr=4;
+//  if(fabs(trans)/ezero/factor>rho)
+//    whichCorr=4;
  rho=max(fabs(trans)/ezero/factor,rho);
  trans = -grid_pt->u[rk_flag+1][0]*grid_pt->Wmunu[rk_flag+1][0][0]
    +grid_pt->u[rk_flag+1][1]*grid_pt->Wmunu[rk_flag+1][1][0]
    +grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][2][0]
    +grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][3][0];
- if(fabs(trans)/ezero/factor>rho)
-   whichCorr=5;
+//  if(fabs(trans)/ezero/factor>rho)
+//    whichCorr=5;
  rho=max(fabs(trans)/ezero/factor,rho);
 
  // correct size
@@ -873,8 +875,8 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
        +grid_pt->Wmunu[rk_flag+1][2][3]*grid_pt->Wmunu[rk_flag+1][2][3]
        ));
 
- if(sqrt(pisize)/(sqrt((grid_pt->epsilon*grid_pt->epsilon+3.*grid_pt->p*grid_pt->p)))/factor>rho)
-   whichCorr=6;
+//  if(sqrt(pisize)/(sqrt((grid_pt->epsilon*grid_pt->epsilon+3.*grid_pt->p*grid_pt->p)))/factor>rho)
+//    whichCorr=6;
 
  // rho =  max(fabs(grid_pt->Wmunu[rk_flag+1][1][1] + grid_pt->Pimunu[rk_flag+1][1][1])/grid_pt->TJb[rk_flag+1][1][1]/factor,rho);
  //rho =  max(fabs(grid_pt->Wmunu[rk_flag+1][2][2] + grid_pt->Pimunu[rk_flag+1][2][2])/grid_pt->TJb[rk_flag+1][2][2]/factor,rho);
@@ -932,13 +934,13 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
     //  cout << "reverting. epsilon=" <<  grid_pt->epsilon << endl;
      double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
      double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-     double eta;
-     if(size>1)
-       eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
-     else
-       eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-     double r;
-     r=sqrt(x*x+y*y);
+//      double eta;
+//      if(size>1)
+//        eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
+//      else
+//        eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
+//      double r;
+//      r=sqrt(x*x+y*y);
 //      if( grid_pt->epsilon > 10. ) // was 0.3 , changed by Schenke 2010/07/16  
 //        {
 // 	 fprintf(stderr, 
@@ -1297,19 +1299,20 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
 {
   double xjet, yjet, xtrigger, ytrigger;
   static double delta[4], sumf;
-  static double tau_fac[4];
-  static int alpha, i, rk_order_m1, nmax[4], flag;
+//   static double tau_fac[4];
+  static int alpha, i, rk_order_m1;
+//   static int nmax[4], flag;
   static double **DFmmp;
   static NbrQs NbrCells;
   static BdryCells HalfwayCells;
   static int ind=0;
   double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
   double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-  double eta;
-  if(size>1)
-    eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
-  else
-    eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
+//   double eta;
+//   if(size>1)
+//     eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
+//   else
+//     eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
   
   ind++;
   if(ind==1)
@@ -1323,9 +1326,9 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
   delta[2] = DATA->delta_y;
   delta[3] = DATA->delta_eta;
   
-  nmax[1] = DATA->nx;
-  nmax[2] = DATA->ny;
-  nmax[3] = DATA->neta-1;
+//   nmax[1] = DATA->nx;
+//   nmax[2] = DATA->ny;
+//   nmax[3] = DATA->neta-1;
 
 /* \partial_tau (tau Ttautau) + \partial_eta Tetatau 
            + \partial_x (tau Txtau) + \partial_y (tau Tytau) + Tetaeta = 0 */
@@ -1334,9 +1337,9 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
 /* \partial_tau (tau Txtau) + \partial_eta Tetax + \partial_x tau T_xx
   + \partial_y tau Tyx = 0 */
 
-     tau_fac[1] = tau;
-     tau_fac[2] = tau;
-     tau_fac[3] = 1.0;
+//      tau_fac[1] = tau;
+//      tau_fac[2] = tau;
+//      tau_fac[3] = 1.0;
  
  for(alpha=0; alpha<5; alpha++) 
   {
@@ -1346,10 +1349,10 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
  /* implement Kurganov-Tadmor scheme */
  GetQIs(tau, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, qi, &NbrCells, rk_flag, DATA, size, rank);
  
- flag = 
+//  flag = 
    MakeQIHalfs(qi, &NbrCells, &HalfwayCells, grid_pt, DATA);
  
- flag = 
+//  flag = 
    ConstHalfwayCells(tau, &HalfwayCells, qi, grid_pt, DATA, rk_flag, size, rank);
  
  MakeKTCurrents(tau, DFmmp, grid_pt, &HalfwayCells, rk_flag);
@@ -1642,14 +1645,15 @@ void Advance::GetQIs
 int Advance::MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells, 
 			 Grid *grid_pt, InitData *DATA)
 {
- int alpha, direc, nmax[4], flag;
+ int alpha, direc, flag;
+//  int nmax[4];
  double fphL, fphR, fmhL, fmhR;
  double gphL, gphR, gmhL, gmhR;
  double x, y, eta, tempf;
 
-  nmax[1] = DATA->nx;
-  nmax[2] = DATA->ny;
-  nmax[3] = DATA->neta-1;
+//   nmax[1] = DATA->nx;
+//   nmax[2] = DATA->ny;
+//   nmax[3] = DATA->neta-1;
   
   for(alpha=0; alpha<5; alpha++)
   {

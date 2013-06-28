@@ -10,7 +10,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
   int ietamax;
   int pseudo_steps;
   int ip;
-  int bytes_read;
+//   int bytes_read;
   fprintf(stderr,"reading spectra\n");
   // open particle information file:
   FILE *p_file;
@@ -92,7 +92,8 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
 	    {
 	      for (int iphi=0; iphi<iphimax; iphi++)
 		{
-		  bytes_read=fscanf(s_file, "%lf", &particleList[ip].dNdydptdphi[ieta][ipt][iphi]);
+// 		  bytes_read=fscanf(s_file, "%lf", &particleList[ip].dNdydptdphi[ieta][ipt][iphi]);
+		  fscanf(s_file, "%lf", &particleList[ip].dNdydptdphi[ieta][ipt][iphi]);
 		  if(particleList[ip].dNdydptdphi[ieta][ipt][iphi]<0.)
 		    particleList[ip].dNdydptdphi[ieta][ipt][iphi]=0;
 			  //		  cout << particleList[ip].y[ieta] << " " << particleList[ip].pt[ipt] << " " << phiArray[iphi] << " " << particleList[ip].dNdydptdphi[ieta][ipt][iphi] << endl; 
@@ -435,8 +436,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	cout << "Cannot run Cooper-Frye with " << DATA->pseudo_steps << " steps in pseudorapidity on " << size << " processors.  Exiting\n";
 	exit(1);
       }
-      int ret;
-      if (rank == 0) ret = system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
+
+      if (rank == 0) system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
 //       MPI_Barrier(MPI_COMM_WORLD);
       ReadFreezeOutSurface(DATA); // read freeze out surface (has to be done after the evolution of course)
       if (particleSpectrumNumber==0) // do all particles
@@ -518,8 +519,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		
 		if(rank==0) 
 		{
-		  ret = system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
-		  ret = system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+		  system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
+		  system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
 		}
 		
 		MPI_Barrier(MPI_COMM_WORLD); // occasionally another processor will open file before concatonation is done if this is removed
@@ -550,8 +551,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	      for (int from=1; from < size; from ++)
 		MPI::COMM_WORLD.Recv(&check,1,MPI::INT,from,1);
 	      
-	      ret = system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
-	      ret = system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+	      system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
+	      system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
 	      
 	    }
 	}
@@ -565,8 +566,8 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
 //       if(rank==0)  cal_reso_decays_pseudo(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
       if(rank==0)  cal_reso_decays(particleMax,decayMax,bound,mode);
-      int ret;
-      if (rank == 0) ret = system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
+
+      if (rank == 0) system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
 	  for ( i=1; i<particleMax; i++ )
 	    {
 	      number = particleList[i].number;

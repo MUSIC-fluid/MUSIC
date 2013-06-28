@@ -653,8 +653,9 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
    }   
  else if (DATA->Initial_profile==2) // this is a test scenario for testing the freeze-out surface algorithms
    {
-     double va, test;
-     va = eos->findRoot(&EOS::ssolve, 0., 110., 1.15*0.+0.001,1500.,0.001);
+//      double va;
+     double test;
+//      va = eos->findRoot(&EOS::ssolve, 0., 110., 1.15*0.+0.001,1500.,0.001);
      //fprintf(stderr,"test=%f\n",ssolve(va, 0., 110.));
      //fprintf(stderr,"T(e)=%f\n",interpolate(va, 0., 0));
      //fprintf(stderr,"e=%f\n",va);
@@ -2155,19 +2156,20 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 
 	 
 	 double va, test;
-	 double r1, r2, nBinary, nWounded, W0;
+	 double r1, r2, nBinary, nWounded;
+// 	 double W0;
 	 // impact parameter:
 	 //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
 	 double normT = glauber->LexusData.Target.A;
 	 double normP = glauber->LexusData.Projectile.A;
 	 // the fraction of the hard (binary collisions) contribution (will be made a parameter)
-	 double hard;
-	 hard=DATA->hard;
+// 	 double hard;
+// 	 hard=DATA->hard;
 	 
 	 // The value of W at x=y=0 for normalization of W in central collisions:
-	 W0 = hard*(TATarget(DATA, 0.+0./2.)*TAProjectile(DATA, 0.+0./2.)*DATA->SigmaNN/10.)
-	   + (1.-hard)*(TATarget(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, 0.+0./2.)/normP),normP))
-			+ TAProjectile(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, 0.+0./2.)/normT),normT))); 
+// 	 W0 = hard*(TATarget(DATA, 0.+0./2.)*TAProjectile(DATA, 0.+0./2.)*DATA->SigmaNN/10.)
+// 	   + (1.-hard)*(TATarget(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, 0.+0./2.)/normP),normP))
+// 			+ TAProjectile(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, 0.+0./2.)/normT),normT))); 
 	 
 	 // loop over the whole lattice and initialize values:
 	 
@@ -2255,7 +2257,9 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
  else if (DATA->Initial_profile==5) //something like pp
    {
      double va, test;
-     double s, r1, r2, W, nBinary, nWounded, W0;
+     double s, W, nWounded, W0;
+//      double r1, r2;
+//      double nBinary;
      // impact parameter:
      double b=DATA->b;
      int i;
@@ -2263,8 +2267,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      double normT = glauber->LexusData.Target.A;
      double normP = glauber->LexusData.Projectile.A;
      // the fraction of the hard (binary collisions) contribution (will be made a parameter)
-     double hard;
-     hard=DATA->hard;
+//      double hard;
+//      hard=DATA->hard;
 
 
      // loop over the whole lattice and initialize values:
@@ -2275,14 +2279,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	   {
 	     y = DATA->delta_y*(iy*2 - DATA->ny)/2.0;
 	  
-	     // r2 and r1 were used here uninitialized.  Set to zero to avoid compiler error.
-	     r2=0.;
-	     r1=0.;
 	     //number of binary collisions:
-	     nBinary = TAProjectile(DATA, r2)*TATarget(DATA, r1)*DATA->SigmaNN/10.;
+// 	     nBinary = TAProjectile(DATA, r2)*TATarget(DATA, r1)*DATA->SigmaNN/10.;
 	     //number of wounded nucleons:
-	     nWounded = TATarget(DATA, r1)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, r2)/normP),normP))
-	       + TAProjectile(DATA, r2)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, r1)/normT),normT));
+// 	     nWounded = TATarget(DATA, r1)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, r2)/normP),normP))
+// 	       + TAProjectile(DATA, r2)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, r1)/normT),normT));
 	     //distribution in the transverse plane, normalized so that maximum value is 1:
 	     
 	     W = exp(-x*x/(2.*0.25*0.25)-y*y/(2.*0.25*0.25))/(2.*PI*0.25*0.25);

@@ -19,9 +19,10 @@ U_derivative::~U_derivative()
 
 int U_derivative::MakedU(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int rk_flag, int size, int rank)
 {
- int ix, iy, ieta, nx, ny, neta, flag, ic, mu, nu;
+ int ix, iy, ieta, nx, ny, neta, ic, mu, nu;
+//  int flag;
  double g, f, h, tfac, gfac, temp_nu;
- Grid *grid_pt;
+//  Grid *grid_pt;
 
  if(DATA->viscosity_flag == 0) return 1;
 
@@ -39,13 +40,13 @@ int U_derivative::MakedU(double tau, InitData *DATA, Grid ***arena, Grid ***Lnei
       {
 	/* this calculates du/dx, du/dy, (du/deta)/tau */
    
-	flag = MakeDSpatial(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
+	MakeDSpatial(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
 			    &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank); 
 
 	/* this calculates du/dtau */
-        flag = MakeDTau(tau, DATA, &(arena[ix][iy][ieta]), rk_flag); 
+        MakeDTau(tau, DATA, &(arena[ix][iy][ieta]), rk_flag); 
       
-	grid_pt= &(arena[ix][iy][ieta]);
+// 	grid_pt= &(arena[ix][iy][ieta]);
 	
 	/* TEST TEST */
 // 	temp_nu = -(grid_pt->u[rk_flag][0])*(grid_pt->dUsup[rk_flag][0][0]);
