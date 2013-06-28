@@ -804,12 +804,12 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 // 	      cout << "dN = " << dN << endl;
 	      
 	      double phi = iphi*2*PI/nphi;
-	      for(int i = 0;i<nharmonics;i++)
+	      for(int n = 0;n<nharmonics;n++)
 	      {
-		intvneta[ieta][i][0] += cos(i*phi)*dNdeta*2*PI/nphi;
-		intvneta[ieta][i][1] += sin(i*phi)*dNdeta*2*PI/nphi;
-		intvny[ieta][i][0] += cos(i*phi)*dNdy*2*PI/nphi;
-		intvny[ieta][i][1] += sin(i*phi)*dNdy*2*PI/nphi;
+		intvneta[ieta][n][0] += cos(n*phi)*dNdeta*2*PI/nphi;
+		intvneta[ieta][n][1] += sin(n*phi)*dNdeta*2*PI/nphi;
+		intvny[ieta][n][0] += cos(n*phi)*dNdy*2*PI/nphi;
+		intvny[ieta][n][1] += sin(n*phi)*dNdy*2*PI/nphi;
 	      }
 	      gsl_spline_free (ptspline);
 	      gsl_interp_accel_free (ptacc);
@@ -825,10 +825,10 @@ void Freeze::pt_integrated_flow(InitData *DATA, int number, double minpt, double
 // 	    vn[1][0][k][ieta] = intvny[ieta][0][k];
 	  }
 	  
-	  for(int i = 1;i<nharmonics;i++) for(int k =0;k<2;k++) 
+	  for(int n = 1;n<nharmonics;n++) for(int k =0;k<2;k++) 
 	  {
-	    vn[i][k][ieta] = intvneta[ieta][i][k]/intvneta[ieta][0][0];
-// 	    vn[1][i][k][ieta] = intvny[ieta][i][k]/intvny[ieta][0][0];
+	    vn[n][k][ieta] = intvneta[ieta][n][k]/intvneta[ieta][0][0];
+// 	    vn[1][n][k][ieta] = intvny[ieta][n][k]/intvny[ieta][0][0];
 	  }
 	  
 	  
@@ -919,13 +919,13 @@ void Freeze::eta_integrated_flow(InitData *DATA, int number, double mineta, doub
 	    vn[0][k][ipt] = intvn[ipt][0][k];
 	  }
 	  
-	  for(int i = 1;i<nharmonics;i++) for(int k =0;k<2;k++) 
+	  for(int n = 1;n<nharmonics;n++) for(int k =0;k<2;k++) 
 	  {
-	    vn[i][k][ipt] = intvn[ipt][i][k]/intvn[ipt][0][0];
+	    vn[n][k][ipt] = intvn[ipt][n][k]/intvn[ipt][0][0];
 	  }
 	  
 	  
-	}// eta loop
+	}// pt loop
 
 }
 
@@ -1014,9 +1014,9 @@ void Freeze::y_integrated_flow(InitData *DATA, int number, double miny, double m
 	    vn[0][k][ipt] = intvn[ipt][0][k];
 	  }
 	  
-	  for(int i = 1;i<nharmonics;i++) for(int k =0;k<2;k++) 
+	  for(int n = 1;n<nharmonics;n++) for(int k =0;k<2;k++) 
 	  {
-	    vn[i][k][ipt] = intvn[ipt][i][k]/intvn[ipt][0][0];
+	    vn[n][k][ipt] = intvn[ipt][n][k]/intvn[ipt][0][0];
 	  }
 	  
 	  
@@ -1092,7 +1092,7 @@ void Freeze::pt_and_eta_integrated_flow(InitData *DATA, int number, double minpt
       vn[n][1] = gsl_spline_eval(sinspline, mineta, sinacc);
     }
     
-    if(n!=0) for(int i = 0; i<2; i++) vn[n][0]/=vn[0][0];
+    if(n!=0) for(int i = 0; i<2; i++) vn[n][i]/=vn[0][0];
     
     gsl_spline_free (cosspline);
     gsl_interp_accel_free (cosacc);
@@ -1171,7 +1171,7 @@ void Freeze::pt_and_eta_integrated_flow2(InitData *DATA, int number, double minp
       vn[n][1] = gsl_spline_eval(sinspline, minpt, sinacc);
     }
     
-    if(n!=0) for(int i = 0; i<2; i++) vn[n][0]/=vn[0][0];
+    if(n!=0) for(int i = 0; i<2; i++) vn[n][i]/=vn[0][0];
     
     gsl_spline_free (cosspline);
     gsl_interp_accel_free (cosacc);
@@ -1248,7 +1248,7 @@ void Freeze::pt_and_y_integrated_flow(InitData *DATA, int number, double minpt, 
       vn[n][1] = gsl_spline_eval(sinspline, minpt, sinacc);
     }
     
-    if(n!=0) for(int i = 0; i<2; i++) vn[n][0]/=vn[0][0];
+    if(n!=0) for(int i = 0; i<2; i++) vn[n][i]/=vn[0][0];
     
     gsl_spline_free (cosspline);
     gsl_interp_accel_free (cosacc);
