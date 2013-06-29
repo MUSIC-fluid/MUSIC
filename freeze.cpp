@@ -67,7 +67,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
   i=0;
   j=0;
   cout << "before" << endl; cout << "sizeofParticle=" << sizeof(Particle)/1000000 << endl;
-  particleList = (Particle *)malloc((DATA->NumberOfParticlesToInclude+1) * sizeof(Particle));
+  particleList = (Particle *)malloc((DATA->NumberOfParticlesToInclude+2) * sizeof(Particle));
   
 //   particleList = new Particle[(DATA->NumberOfParticlesToInclude)];
   cout <<"after first (check if there is enough memory... seg fault may be due to lack of memory)" << endl; 
