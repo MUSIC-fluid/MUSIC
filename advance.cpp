@@ -793,7 +793,7 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, InitData *DATA, int rk_f
   /* reconstructed grid_rk uses rk_flag 0 only */
    for(mu=0; mu<4; mu++)
     {
-//      tempf = grid_pt->u[trk_flag][mu] = grid_rk->u[0][mu];
+      grid_pt->u[trk_flag][mu] = grid_rk->u[0][mu];
      for(alpha=0; alpha<5; alpha++)
       {
         grid_pt->TJb[trk_flag][alpha][mu] = grid_rk->TJb[0][alpha][mu];
