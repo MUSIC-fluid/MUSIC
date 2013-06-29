@@ -77,7 +77,8 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
   // this sends and receives information from neighboring cells in the next processor in the eta direction 
   // and stores it in Lneighbor and Rneighbor (unless the processor is really at the edge of the total grid
 
-  int ix, iy, ieta, nx, ny, neta, i, alpha, iflag;
+  int ix, iy, nx, ny, neta, i, alpha;
+//   int ieta, iflag;
   nx = DATA->nx;
   ny = DATA->ny;
   neta = DATA->neta;
@@ -206,7 +207,8 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
   // this sends and receives information from neighboring cells in the next processor in the eta direction 
   // and stores it in Lneighbor and Rneighbor (unless the processor is really at the edge of the total grid
   
-  int ix, iy, ieta, nx, ny, neta, i, alpha, beta, iflag;
+  int ix, iy, nx, ny, neta, i, alpha, beta;
+//   int ieta, iflag;
   nx = DATA->nx;
   ny = DATA->ny;
   neta = DATA->neta;
@@ -215,7 +217,8 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
   int sizeOfDataU = 4*3*(nx+1)*(ny+1); // size of data package for u's
   int sizeOfDataPi_b = 3*(nx+1)*(ny+1); // size of data package for pi_b's
 
-  int position, positionDis, positionU, positionPi_b;
+//   int position;
+  int positionDis, positionU, positionPi_b;
 
   double *packageW; // dissipative parts
   double *packagePi;
@@ -434,9 +437,9 @@ int Advance::AdvanceLocalT(double tau, InitData *DATA, Grid *grid_pt, Grid *Lnei
   // this advances the ideal part
  static Grid grid_rk;
  static double **qirk, *qi, *rhs, **w_rhs;
- double tau_now, tau_next;
- int trk_flag, rk_order_m1, flag;
- int i, alpha, mu;
+//  double tau_now, tau_next;
+//  int trk_flag, rk_order_m1, flag;
+//  int i, alpha, mu;
  static int ind=0;
 
  ind++;
@@ -464,9 +467,10 @@ int Advance::AdvanceLocalW(double tau, InitData *DATA, Grid *grid_pt, Grid *Lnei
 {
  static Grid grid_rk;
  static double **qirk, *qi, *rhs, **w_rhs;
- double tau_now, tau_next;
- int trk_flag, rk_order_m1, flag;
- int i, alpha, mu;
+//  double tau_now, tau_next;
+//  int trk_flag, rk_order_m1;
+ int flag;
+//  int i, alpha, mu;
  static int ind=0;
 
  ind++;
@@ -496,9 +500,11 @@ int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt, Grid *Lneig
 double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size, int rank)
 { 
   // this advances the ideal part
- double tau_now, tau_next, tau_rk, tempf, p_rhs, temp_mu, temps, tempd, dwmn;
- int alpha, flag, mu, nu;
- static int ind=0;
+ double tau_now, tau_next, tau_rk, dwmn;
+//  double tempf, p_rhs, temp_mu, temps, tempd;
+ int alpha, flag;
+//  int mu, nu;
+//  static int ind=0;
  
  tau_now = tau;
  tau_next = tau + (DATA->delta_tau);
@@ -581,10 +587,12 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
 int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, Grid *Lneighbor2, Grid *Rneighbor2, int rk_flag, 
 double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size, int rank)
 { 
- double tau_now, tau_next, tempf, p_rhs, temp_mu, temps, eps_ratio, tempd;
+ double tau_now, tau_next, tempf, p_rhs, temps;
+//  double temp_mu, eps_ratio, tempd;
 //  double tau_rk;
- int alpha, flag, mu, nu, revert_flag;
- static int ind=0;
+//  int alpha, flag;
+ int mu, nu, revert_flag;
+//  static int ind=0;
 
  tau_now = tau;
  tau_next = tau + (DATA->delta_tau);
@@ -932,8 +940,8 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
  if( ((f11 < 0.*g11) || (f22 < 0.*g22) || (f33 < 0.*g33)) )
   {
     //  cout << "reverting. epsilon=" <<  grid_pt->epsilon << endl;
-     double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-     double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
+//      double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
+//      double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
 //      double eta;
 //      if(size>1)
 //        eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
@@ -1033,7 +1041,8 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
 void Advance::TestW(double tau, InitData *DATA, Grid *grid_pt, int rk_flag)
 {
  int mu, nu;
- double trace, transv, mufac, nufac;
+ double trace, transv, nufac;
+//  double mufac;
 
  trace = -grid_pt->Wmunu[rk_flag+1][0][0];
  for(mu=1; mu<=3; mu++)
@@ -1075,7 +1084,8 @@ if( (fabs(trace) > 1.0e-10 || fabs(transv) > 1.0e-10) && (grid_pt->epsilon > 0.3
 
 void Advance::ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
 {
- double Delta[4][4], tD[4][4], f[4][4], trace, norm, mfac, nfac, sum;
+ double Delta[4][4], tD[4][4], trace, norm, mfac, nfac, sum;
+//  double  f[4][4];
  int m, n, a, b;
 
 /* projecting the spin 2 part for W[rk_flag+1] */
@@ -1202,7 +1212,8 @@ void Advance::ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag, InitData *D
 
 void Advance::ProjectSpin2W(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
 {
- double Delta[4][4], f[4][4], trace, norm, mfac, nfac;
+ double Delta[4][4], trace, norm;
+//  double  f[4][4], mfac, nfac;
  int m, n, a, b;
 
  for(m=0; m<4; m++)
@@ -1297,17 +1308,18 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
 			 Grid *Lneighbor2, Grid *Rneighbor2, double *qi, double *rhs, 
 			 InitData *DATA, int rk_flag, int size, int rank) 
 {
-  double xjet, yjet, xtrigger, ytrigger;
+//   double xjet, yjet, xtrigger, ytrigger;
   static double delta[4], sumf;
 //   static double tau_fac[4];
-  static int alpha, i, rk_order_m1;
+  static int alpha, i;
+//   static int rk_order_m1;
 //   static int nmax[4], flag;
   static double **DFmmp;
   static NbrQs NbrCells;
   static BdryCells HalfwayCells;
   static int ind=0;
-  double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-  double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
+//   double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
+//   double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
 //   double eta;
 //   if(size>1)
 //     eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
@@ -1376,8 +1388,8 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
 
    //   cout << tau << " " << x << " " << " " << y << " " << eta << endl;
 
-   int jetPosition=DATA->includeJet;
-   int includeTrigger = DATA->includeTrigger;
+//    int jetPosition=DATA->includeJet;
+//    int includeTrigger = DATA->includeTrigger;
    
    //plug in rates here:
    
@@ -1398,11 +1410,12 @@ void Advance::GetQIs
  double *qi, NbrQs *NbrCells, int rk_flag, InitData *DATA, int size, int rank)
 {
  int alpha, i;
- double tempg, T00, K00, tempf;
+ double tempg;
+//  double T00, K00, tempf;
  int nmax[4];
  // auxiliary grids to store the received grids from the neighbor processor
- int from;
- int to;
+//  int from;
+//  int to;
 
  nmax[1] = DATA->nx;
  nmax[2] = DATA->ny;
@@ -1645,11 +1658,13 @@ void Advance::GetQIs
 int Advance::MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells, 
 			 Grid *grid_pt, InitData *DATA)
 {
- int alpha, direc, flag;
+ int alpha, direc;
+//  int flag;
 //  int nmax[4];
  double fphL, fphR, fmhL, fmhR;
  double gphL, gphR, gmhL, gmhR;
- double x, y, eta, tempf;
+//  double x, y, eta;
+ double tempf;
 
 //   nmax[1] = DATA->nx;
 //   nmax[2] = DATA->ny;
@@ -1785,7 +1800,8 @@ void Advance::MakeKTCurrents(double tau, double **DFmmp, Grid *grid_pt,
 {
  int i, alpha;
  double FiphL[5][4], FiphR[5][4], FimhL[5][4], FimhR[5][4];
- double Fiph[5][4], Fimh[5][4], delta[4];
+ double Fiph[5][4], Fimh[5][4];
+//  double delta[4];
  double aiph[4], aimh[4], tau_fac[4], tempf;
 
  MakeMaxSpeedAs(tau, HalfwayCells, aiph, aimh, rk_flag);
@@ -1883,9 +1899,11 @@ void Advance::MakeMaxSpeedAs(double tau, BdryCells *HalfwayCells, double aiph[],
 double Advance::MaxSpeed (double tau, int direc, Grid *grid_p, int rk_flag)
 {
  double f, den, num;
- double rhob, utau, utau2, ux2, ux, uy, ueta, p, eps, h; 
- double deriv_p_rho, deriv_p_eps, deriv_p_h, rho_p_rho, h_p_h;
- double ut2mux2, ut, pe, rho, rpr;
+ double rhob, utau, utau2, ux2, ux, p, eps, h; 
+//  double  uy, ueta;
+//  double deriv_p_rho, deriv_p_eps, deriv_p_h, rho_p_rho, h_p_h;
+ double ut2mux2, ut, pe, rpr;
+//  double rho;
  
  rhob = grid_p->rhob;
 

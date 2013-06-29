@@ -36,8 +36,9 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 //   int bytes_read;
 //   static char *s;
 //   s = new char[120];
-  int i, j, k, d1, d2, d3, decays, h;
-  double b, npi, nK, neta, dummy;
+  int i, j, k, h;
+//   int d1, d2, d3, decays;
+//   double b, npi, nK, neta, dummy;
   fprintf(stderr,"reading particle data\n");
   char *anti;
   // open particle data file:
@@ -209,9 +210,12 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
       FILE *mu_file;
       mu_file = fopen(mu_name, "r");
       checkForReadError(mu_file,mu_name);
-      double BNP1, EPP1;            // start value for \mu_B and epsilon
-      double deltaBNP1, deltaEPP1;  // step size for \mu_B and epsilon
-      int NBNP1, NEPP1;             // number of entries for \mu_B and epsilon
+//       double BNP1;
+      double EPP1;            // start value for \mu_B and epsilon
+//       double deltaBNP1;
+      double deltaEPP1;  // step size for \mu_B and epsilon
+//       int NBNP1;
+      int NEPP1;             // number of entries for \mu_B and epsilon
       int numStable;                // number of stable particles (number of columns in the file)
       double **chemPot;
 
@@ -419,15 +423,15 @@ int Freeze::countLines (std::istream& in)
 
 void Freeze::ReadFreezeOutSurface(InitData *DATA)
 {
-  size_t nbytes=100;
+//   size_t nbytes=100;
   int i=0;
 //   int bytes_read;
-  char * dummy;
-  double test;
+//   char * dummy;
+//   double test;
   fprintf(stderr,"reading freeze-out surface\n");
   // open particle data file:
   FILE *s_file;
-  char* line;
+//   char* line;
   const char* s_name = "./surface.dat";
   s_file = fopen(s_name, "r");
   checkForReadError(s_file,s_name);
@@ -569,15 +573,16 @@ void Freeze::ReadSpectra(InitData* DATA)
   // read in thermal spectra from file:
   int number, iymax, iptmax, iphimax;
   double deltaY, ymax, slope, phimax, phimin;
-  double deltaeta, etamax, ptmin, ptmax;
+//   double deltaeta, etamax, ptmin, ptmax;
   int ip, iphi, ipt, i;
   double *p;
 //   double *w;		        // pointing to data for Gaussian integration in phi 
 //   int bytes_read;
-  int iy, j, k, d1, d2, d3, decays, h;
-  double b, npi, nK, neta, dummy;
+  int iy;
+//   int j, k, d1, d2, d3, decays, h;
+//   double b, npi, nK, neta, dummy;
   fprintf(stderr,"reading spectra\n");
-  char *anti;
+//   char *anti;
   // open particle information file:
   FILE *p_file;
   const char* p_name = "particleInformation.dat";
@@ -686,10 +691,11 @@ void Freeze::Read3Spectra(InitData* DATA) // read pion, kaon, proton
 //   int bytes_read;
 //   static char *s;
 //   s = util->char_malloc(120);
-  int iy, j, k, d1, d2, d3, decays, h;
-  double b, npi, nK, neta, dummy;
+  int iy;
+//   int j, k, d1, d2, d3, decays, h;
+//   double b, npi, nK, neta, dummy;
   fprintf(stderr,"reading spectra\n");
-  char *anti;
+//   char *anti;
   // open particle information file:
   FILE *p_file;
   const char* p_name = "particleInformation.dat";
@@ -794,10 +800,11 @@ void Freeze::ReadSingleSpectrum(InitData* DATA)
 //   int bytes_read;
 //   static char *s;
 //   s = util->char_malloc(120);
-  int iy, j, k, d1, d2, d3, decays, h;
-  double b, npi, nK, neta, dummy;
+  int iy;
+//   int j, k, d1, d2, d3, decays, h;
+//   double b, npi, nK, neta, dummy;
   fprintf(stderr,"reading spectra\n");
-  char *anti;
+//   char *anti;
   // open particle information file:
   FILE *p_file;
   const char* p_name = "particleInformation.dat";
@@ -893,7 +900,8 @@ double Freeze::summation(double px, double py, double y, double m, int deg, int 
   double sum = 0.;
   int i;
   double ptau, peta;
-  double f, T, mu, tau, x, eta, E, sign, delta_f;
+  double f, T, mu, tau, eta, E, sign, delta_f;
+//   double x;
   double pdSigma, Wfactor;
   double mt = sqrt(m*m+px*px+py*py); // all in GeV
   double alpha = 0.; // make a parameter
@@ -1045,18 +1053,23 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   char *numberStringv4eta;
   char buf[10];
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
-  double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
+  double slope;
+//   double slope1, slope2, fleft1, fleft2, fright1, fright2;
 //   double ymaxIntegral;
-  int ipt, iphi, iymax, iy, ieta, ietamax;
+  int ipt, iphi, iymax, iy;
+//   int ieta, ietamax;
 //   int iymaxIntegral;
-  int i,j;
-  double pt, phi, px, py, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[5];
+  int j;
+//   int i;
+  double pt, phi, px, py, y, deltaY, ymax, phimin, phimax, sum, sumpt;
+//   double deltaPT, deltaPhi, sumpt2, sumv[5];
 //   double phiOffs;
-  double phiDiff, deltaEta, etamax;
+  double phiDiff;
+//   double deltaEta, etamax;
 //   int returnValue;
-  double eta, mt;
+//   double eta, mt;
 //   double etaMaxIntegral;
-  double half;
+//   double half;
  
   if (iptmax != 15) 
     {
@@ -1112,8 +1125,8 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   double m = particleList[j].mass;
   int d = particleList[j].degeneracy;
   int b = particleList[j].baryon;
-  int s = particleList[j].strange;
-  double c = particleList[j].charge;
+//   int s = particleList[j].strange;
+//   double c = particleList[j].charge;
   double mu = particleList[j].muAtFreezeOut;
   //fprintf(stderr,"m=%f \n", m);
   //fprintf(stderr,"d=%d \n", d);
@@ -1686,10 +1699,12 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   FILE *d_file;
   char buf[10];
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
-  double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
+  double slope;
+//   double slope1, slope2, fleft1, fleft2, fright1, fright2;
   int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
   int i,j, iymaxIntegral;
-  double pt, phi, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[7], sumPhi, sumpteta, sumvpteta[7];
+  double pt, phi, y, deltaY, ymax, phimin, phimax, sum, sumpt, sumv[7], sumPhi, sumpteta, sumvpteta[7];
+//   double deltaPT, deltaPhi, sumpt2; 
 //   double  px, py, sumv3r3;
   double phiDiff, ymaxIntegral, eta, deltaEta, etamax, mt, etaMaxIntegral;
 //   double phiOffs;
@@ -1725,11 +1740,11 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   
   // set particle properties
   double m = particleList[j].mass;
-  int d = particleList[j].degeneracy;
-  int b = particleList[j].baryon;
-  int s = particleList[j].strange;
-  double c = particleList[j].charge;
-  double mu = particleList[j].muAtFreezeOut;
+//   int d = particleList[j].degeneracy;
+//   int b = particleList[j].baryon;
+//   int s = particleList[j].strange;
+//   double c = particleList[j].charge;
+//   double mu = particleList[j].muAtFreezeOut;
   //fprintf(stderr,"m=%f \n", m);
   //fprintf(stderr,"d=%d \n", d);
   //fprintf(stderr,"b=%d \n", b);
@@ -2612,7 +2627,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   double sumtot =0.;
   double sumtotv2 =0.;
   double sumtotv3 =0.;
-  double sumtotv3r3 =0.;
+//   double sumtotv3r3 =0.;
   double sumtotv4 =0.;
   int eta1=0;
   for (ieta=0; ieta<ietamax; ieta++)
@@ -2731,7 +2746,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
   
 
   //pt integrated over eta
-  int countY = 0;
+//   int countY = 0;
   deltaEta=deltaY;
   etamax=1.; //ATLAS
   ietamax=floor(2.*etamax/deltaEta);
@@ -2908,10 +2923,11 @@ void Freeze::ReadFullSpectra(InitData* DATA)
 //   int bytes_read;
 //   static char *s;
 //   s = util->char_malloc(120);
-  int iy, j, k, d1, d2, d3, decays, h;
-  double b, npi, nK, neta, dummy;
+  int iy;
+//   int j, k, d1, d2, d3, decays, h;
+//   double b, npi, nK, neta, dummy;
   fprintf(stderr,"reading spectra\n");
-  char *anti;
+//   char *anti;
   // open particle information file:
   FILE *p_file;
   const char* p_name = "FparticleInformation.dat";
@@ -3015,10 +3031,11 @@ void Freeze::ReadFullSpectra2(InitData* DATA)
 //   int bytes_read;
 //   static char *s;
 //   s = util->char_malloc(120);
-  int iy, j, k, d1, d2, d3, decays, h;
-  double b, npi, nK, neta, dummy;
+  int iy;
+//   int j, k, d1, d2, d3, decays, h;
+//   double b, npi, nK, neta, dummy;
   fprintf(stderr,"reading spectra\n");
-  char *anti;
+//   char *anti;
   // open particle information file:
   FILE *p_file;
   const char* p_name = "FparticleInformation.dat";
@@ -3117,15 +3134,17 @@ void Freeze::ComputeAveragePT(int number, double ptmax)
   char buf[10];
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
 //   double slope;
-  int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
-  int i,j;
+  int ipt, iphi, iymax, iy, iptmax, iphimax, j;
+//   int i, ieta, ietamax;
 //   double iymaxIntegral;
-  double pt, px, py, y, deltaPT, deltaPhi, phimin, phimax, sum, sumpt, sumnorm, sumv[5];
+//   double px, py, deltaPT, deltaPhi, sumv[5];
+  double  pt, y, phimin, phimax, sum, sumpt, sumnorm;
 //   double phi, ymax, deltaY;
 //   double phiOffs, ymaxIntegral, etaMaxIntegral;
-  double phiDiff, eta, deltaEta, etamax, mt;
+  double phiDiff;
+//   double eta, deltaEta, etamax, mt;
 //   int returnValue;
-  int ip;
+//   int ip;
 
   // set some parameters
   
@@ -3154,12 +3173,12 @@ void Freeze::ComputeAveragePT(int number, double ptmax)
   iphimax = particleList[j].nphi;
   
   // set particle properties
-  double m = particleList[j].mass;
-  int d = particleList[j].degeneracy;
-  int b = particleList[j].baryon;
-  int s = particleList[j].strange;
-  double c = particleList[j].charge;
-  double mu = particleList[j].muAtFreezeOut;
+//   double m = particleList[j].mass;
+//   int d = particleList[j].degeneracy;
+//   int b = particleList[j].baryon;
+//   int s = particleList[j].strange;
+//   double c = particleList[j].charge;
+//   double mu = particleList[j].muAtFreezeOut;
  
   // set up file names
   numberString = util->char_malloc(30);
@@ -3287,12 +3306,14 @@ void Freeze::ComputeChargedHadrons(InitData* DATA, double ptmax)
   char *numberStringv5pt;
   char *numberStringv6pt;
 
-  char buf[10];
+//   char buf[10];
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
-  double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
+  double slope;
+//   double slope1, slope2, fleft1, fleft2, fright1, fright2;
   int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
   int i,j, iymaxIntegral;
-  double pt, phi, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[7], m, sumv3r3, sumpteta, sumvpteta[7];
+  double pt, phi, y, deltaY, ymax, phimin, phimax, sum, sumpt, sumv[7], m, sumv3r3, sumpteta, sumvpteta[7];
+//   double  deltaPT, deltaPhi, sumpt2;
 //   double px, py;
   double phiDiff, ymaxIntegral, eta, deltaEta, etamax, mt, etaMaxIntegral;
 //   double phiOffs;
@@ -4314,7 +4335,7 @@ void Freeze::ComputeChargedHadrons(InitData* DATA, double ptmax)
   cout << "pseudo-rapidity done" << endl;
 
   //pt integrated over eta
-  int countY = 0;
+//   int countY = 0;
   deltaEta=deltaY;
   etamax=1.; //ATLAS
   ietamax=floor(2.*etamax/deltaEta);
@@ -4432,7 +4453,7 @@ void Freeze::ComputeChargedHadrons(InitData* DATA, double ptmax)
   double sumtotv5 =0.;
   double sumtotv6 =0.;
   double sumtotv3 =0.;
-  double sumtotv3r3 =0.;
+//   double sumtotv3r3 =0.;
   int eta1=0;
   for (ip = 0; ip<6; ip++)
     {
@@ -4585,15 +4606,16 @@ void Freeze::ComputeChargedHadrons(InitData* DATA, double ptmax)
 void Freeze::ComputeCorrelations(InitData* DATA, double ptmax)
 {
   char *numberString;
-  char buf[10];
+//   char buf[10];
   double *p;
 //   double *w;		        // pointing to data for Gaussian integration in phi 
-  double slope1, slope2, fleft1, fleft2, fright1, fright2;
+//   double slope1, slope2, fleft1, fleft2, fright1, fright2;
 //   double slope;
   int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
   int i,j;
 //   int iymaxIntegral;
-  double pt, phi, px, py, y, deltaPT, deltaPhi, phimin, phimax, sum, sumpt, sumpt2, sumv[5], m, sumv3r3;
+  double pt, phi, y, deltaPhi, phimin, phimax, m;
+//   double px, py, deltaPT, sum, sumpt, sumpt2, sumv[5], sumv3r3;
 //   double  deltaY;
 //   double  ymax;
 //   double phiOffs, phiDiff, ymaxIntegral, etaMaxIntegral;
@@ -4683,12 +4705,12 @@ void Freeze::ComputeCorrelations(InitData* DATA, double ptmax)
 
   cout << "starting..." << endl;
 
-  double Psi3pSin = 0.;
-  double Psi3pCos = 0.;
-  double Psi3p;
-  double Psi2pSin = 0.;
-  double Psi2pCos = 0.;
-  double Psi2p;
+//   double Psi3pSin = 0.;
+//   double Psi3pCos = 0.;
+//   double Psi3p;
+//   double Psi2pSin = 0.;
+//   double Psi2pCos = 0.;
+//   double Psi2p;
 
 //   //compute event plane to subtract v_2
 //   for (iy=0; iy<iymax; iy++)
@@ -4745,8 +4767,8 @@ void Freeze::ComputeCorrelations(InitData* DATA, double ptmax)
   // finally C=<a>-<b><c>
 
   double sum1, sum1Up, sum1Down, sum1PhiUp, sum1PhiDown;
-  double sum2, sum2Up, sum2Down, sum2PhiUp, sum2PhiDown;
-  double sum3, sum3Up, sum3Down, sum3PhiUp, sum3PhiDown;
+//   double sum2, sum2Up, sum2Down, sum2PhiUp, sum2PhiDown;
+//   double sum3, sum3Up, sum3Down, sum3PhiUp, sum3PhiDown;
   double sum4, sum4Up, sum4Down, sum4PhiUp, sum4PhiDown;
 //   double sumv21, sumv24;
   
@@ -4757,7 +4779,9 @@ void Freeze::ComputeCorrelations(InitData* DATA, double ptmax)
   cout << "ietamax=" << ietamax << endl;
   int ideltaeta, ideltaphi, iy2, iphi1, iphi2, pointsForDeltaEta, pointsForDeltaPhi;
   //double deltaEta, deltaPhi;
-  double suma, sumb, sumc, y2, phi1, phi2, sum1Average, sum4Average, sumv21Average, sumv24Average, sum1sum4Average;
+//   double suma, sumb, sumc, phi1, sum4Average, sumv21Average, sumv24Average;
+  double y2, phi2, sum1sum4Average;
+//   double sum1Average;
 
   v2Delta=0.;
   v3Delta=0.;
@@ -5140,18 +5164,20 @@ void Freeze::Compute3ChargedHadrons(InitData* DATA,double ptmax)
   char *numberStringv4eta;
   char *numberStringv4tot;
   char *numberStringeta;
-  char buf[10];
+//   char buf[10];
   double *p, *w;		        // pointing to data for Gaussian integration in phi 
-  double slope, slope1, slope2, fleft1, fleft2, fright1, fright2;
+  double slope;
+//   double slope1, slope2, fleft1, fleft2, fright1, fright2;
   int ipt, iphi, iymax, iy, iptmax, iphimax, ieta, ietamax;
   int i,j, iymaxIntegral;
-  double pt, phi, y, deltaPT, deltaPhi, deltaY, ymax, phimin, phimax, sum, sumpt, sumpt2, sumv[5], m, sumv3r3;
+  double pt, phi, y, deltaY, ymax, phimin, phimax, sum, sumpt, sumv[5], m, sumv3r3;
+//   double deltaPT, deltaPhi, sumpt2;
 //   double  px, py;
   double phiDiff, ymaxIntegral, eta, deltaEta, etamax, mt, etaMaxIntegral;
 //   double phiOffs;
 //   int returnValue;
 //   int number;
-  int setOfNumbers[6] = {211,-211,2212,-2212,321,-321};
+//   int setOfNumbers[6] = {211,-211,2212,-2212,321,-321};
   int ip;
   
 
@@ -6233,7 +6259,7 @@ double Freeze::Edndp3_3bodyN (double y, double pt, double phi, double m1, double
   pblockN para;
   double wmin, wmax;
   double res3;
-  double slope;			/* slope of resonance for high mt */
+//   double slope;			/* slope of resonance for high mt */
 //   int pn;
 
   para.pt = pt;
@@ -6274,7 +6300,7 @@ void Freeze::add_reso (int pn, int pnR, int k, int j)
   double m1, m2, m3, mr;
   double norm3;			/* normalisation of 3-body integral */
   int pn2, pn3, pn4;		/* internal numbers for resonances */
-  int part;
+//   int part;
   int l, i, n;
   int ny, npt, nphi;
 
@@ -6520,7 +6546,8 @@ void Freeze::cal_reso_decays (int maxpart, int maxdecay, int bound, int mode)
 {
   // mode=4: do all
   // mode=5: do one
-  int i, j, k, l, ll;
+  int i, j, k;
+//   int l, ll;
   int pn, pnR, pnaR;
   int part,n1,n2,n3,ny,npt,nphi;
   
