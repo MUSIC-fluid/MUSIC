@@ -8,6 +8,7 @@
 #include "freeze.h"
 #include "evolve.h"
 #include <sys/stat.h>// for mkdir
+// #include "int.h"
 
 using namespace std;
 void ReadInData(InitData *DATA, string file);

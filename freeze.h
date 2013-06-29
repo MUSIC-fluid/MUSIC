@@ -22,7 +22,7 @@
 #include <mpi.h>
 #include "data.h"
 #include "util.h"
-#include "int.h"
+// #include "int.h"
 #include "eos.h"
 #include <iterator>
 #include <algorithm>
@@ -122,7 +122,7 @@ class Freeze{
   int *partid;
   // array for converting Montecarlo numbers in internal numbering of the resonances 
   double *phiArray;
-  Int *integral;
+//   Int *integral;
   Util *util;
   int pseudofreeze;
 

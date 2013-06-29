@@ -1,4 +1,6 @@
 #include "freeze.h"
+#include "int.h"
+Int *integral;
 
 using namespace std;
 
@@ -568,7 +570,6 @@ void Freeze::ReadSpectra(InitData* DATA)
   int number, iymax, iptmax, iphimax;
   double deltaY, ymax, slope, phimax, phimin;
   double deltaeta, etamax, ptmin, ptmax;
-  int pseudo_steps;
   int ip, iphi, ipt, i;
   double *p;
 //   double *w;		        // pointing to data for Gaussian integration in phi 
