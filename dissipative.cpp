@@ -352,7 +352,6 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 //  double SW;
 /*  HW[4][4][4], SW[4][4][4] */
  double tempf, tempg, sum, shear_on;
- double s_den;
 
 /* Kurganov-Tadmor for Wmunu */
 /* implement 
