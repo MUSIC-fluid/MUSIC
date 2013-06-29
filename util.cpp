@@ -644,9 +644,8 @@ int Util::IFind(string file_name, const char *st)
 
 void Util::ReWrite(char* file_name, char *st, double x)
 {
- FILE *output, *input;
- char *s, c;
- double y;
+ FILE *output;
+ char *s;
 
  s = char_malloc(80);
  
@@ -666,12 +665,9 @@ void Util::ReWrite(char* file_name, char *st, double x)
 
 void Util::ReWriteString(char *file_name, const char *st, char *x)
 {
- char c, *com, *str;
- double y;
- int i = 0;
- char template1[16];
+//  char template1[16];
  char tmp_file[16];
- FILE *output, *input;
+ FILE *output;
 
  /* tmp_file = tmpnam(); this does not work with gcc */
 
@@ -734,7 +730,7 @@ void Util::FileCat(const char *in_file, const char *out_file)
 
 int Util::IFindXInVx(double x, double *Vx, int ymax)
 {
- int i, f, temp_i;
+ int i, temp_i;
  static double *rmbr_Vx, minimum, maximum;
  static int ind = 0;
  static int mono_ind;
@@ -782,7 +778,7 @@ int Util::IFindXInVx(double x, double *Vx, int ymax)
 
 int Util::CheckMono(double *Vx, int ymax, int *mono_ind)
 {
- int i, i_down, i_up;
+ int i;
 
  if(Vx[0] < Vx[ymax]) *mono_ind = 1; /* increasing */
  else *mono_ind = -1; /* decreasing */

@@ -19,9 +19,10 @@ U_derivative::~U_derivative()
 
 int U_derivative::MakedU(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int rk_flag, int size, int rank)
 {
- int ix, iy, ieta, nx, ny, neta, ic, mu, nu;
+ int ix, iy, ieta, nx, ny, neta, ic, mu;
 //  int flag;
- double g, f, h, tfac, gfac, temp_nu;
+ double g, f, h, tfac, gfac;
+//  double temp_nu, nu;
 //  Grid *grid_pt;
 
  if(DATA->viscosity_flag == 0) return 1;
@@ -244,8 +245,8 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *
 
 int U_derivative::MakeDTau(double tau, InitData *DATA, Grid *grid_pt, int rk_flag)
 {
- int m, n;
- double g, f;
+ int m;
+ double f;
 
 /* this makes dU[m][0] = partial^tau u^m */
 /* note the minus sign at the end because of g[0][0] = -1 */

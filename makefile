@@ -43,7 +43,7 @@ CXX= mpic++
 #  Unfortunately, old versions of gcc do not recognize this and will not compile if -Wno-unused-but-set-variable is set.
 #  In this case, remove the option from the following:
 #  
-CXXFLAGS= -Wall -Wno-unused-variable 
+CXXFLAGS= -Wall 
 #  CXXFLAGS= -Wall -Wno-unused-variable -Wno-unused-but-set-variable
 LIBS= -L/software/libraries/GSL/1.15/lib -lm -lgsl -lgslcblas
 COMMAND=  mpihydro

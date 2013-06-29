@@ -30,9 +30,9 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
  double K00, T00, J0, u[4], epsilon, p, h, rhob;
 //  double tempk; 
  double epsilon_prev, rhob_prev, p_prev, p_guess, temperr;
- double epsilon_next, rhob_next, p_next, err, tempf, tempg, temph, cs2;
+ double epsilon_next, rhob_next, p_next, err, tempf, temph, cs2;
  double eps_guess, scalef;
- int m, iter, mu, nu, alpha;
+ int iter, mu, nu, alpha;
  double q[5];
  const double RECONST_PRECISION = 1e-8;
 

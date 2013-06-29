@@ -419,7 +419,7 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA)
 {
   size_t nbytes=100;
   int i=0;
-  int bytes_read;
+//   int bytes_read;
   char * dummy;
   double test;
   fprintf(stderr,"reading freeze-out surface\n");
@@ -572,7 +572,7 @@ void Freeze::ReadSpectra(InitData* DATA)
   int ip, iphi, ipt, i;
   double *p;
 //   double *w;		        // pointing to data for Gaussian integration in phi 
-  int bytes_read;
+//   int bytes_read;
   int iy, j, k, d1, d2, d3, decays, h;
   double b, npi, nK, neta, dummy;
   fprintf(stderr,"reading spectra\n");
@@ -682,7 +682,7 @@ void Freeze::Read3Spectra(InitData* DATA) // read pion, kaon, proton
   int ip, iphi, ipt, i;
   double *p;
 //   double *w;		        // pointing to data for Gaussian integration in phi 
-  int bytes_read;
+//   int bytes_read;
 //   static char *s;
 //   s = util->char_malloc(120);
   int iy, j, k, d1, d2, d3, decays, h;
@@ -790,7 +790,7 @@ void Freeze::ReadSingleSpectrum(InitData* DATA)
   int ip, iphi, ipt, i;
   double *p;
 //   double *w;		        // pointing to data for Gaussian integration in phi 
-  int bytes_read;
+//   int bytes_read;
 //   static char *s;
 //   s = util->char_malloc(120);
   int iy, j, k, d1, d2, d3, decays, h;
@@ -2904,7 +2904,7 @@ void Freeze::ReadFullSpectra(InitData* DATA)
   int ip, iphi, ipt, i;
   double *p;
 //   double *w;		        // pointing to data for Gaussian integration in phi 
-  int bytes_read;
+//   int bytes_read;
 //   static char *s;
 //   s = util->char_malloc(120);
   int iy, j, k, d1, d2, d3, decays, h;
@@ -3011,7 +3011,7 @@ void Freeze::ReadFullSpectra2(InitData* DATA)
   int ip, iphi, ipt, i;
   double *p;
 //   double *w;		        // pointing to data for Gaussian integration in phi 
-  int bytes_read;
+//   int bytes_read;
 //   static char *s;
 //   s = util->char_malloc(120);
   int iy, j, k, d1, d2, d3, decays, h;

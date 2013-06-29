@@ -31,7 +31,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor, 
  double sgp1, sgm1, bgp1, bgm1;
  double delta[4], taufactor, tf;
  double shear_on, bulk_on, sf, bf, sg, bg;
- int i, nmax[4], mu, nu;
+ int i, nmax[4];
 
  if(DATA->turn_on_shear) shear_on = 1.0;
  else shear_on = 0.0;
@@ -233,7 +233,6 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
 {
  double tempf, tempg, temps, tau_pi;
  double SW, s_den, shear, shear_to_s, T, epsilon, rhob, Ttr;
- int ic;
  Ttr = 0.18;
  
  epsilon = grid_pt->epsilon;
@@ -345,12 +344,14 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 			 Grid *Lneighbor2, Grid *Rneighbor2, double **w_rhs, InitData *DATA, int rk_flag, int size, int rank)
 {
  int mu, nu, direc, nmax[4], ic;
- double f, fp1, fm1, fp2, fm2, ux, delta[4], sumf;
+ double f, fp1, fm1, fp2, fm2, delta[4];
+//  double ux;
  double g, gp1, gm1, gp2, gm2, a, am1, ap1, ax;
  double uWphR, uWphL, uWmhR, uWmhL, WphR, WphL, WmhR, WmhL;
- double HWph, HWmh, taufactor, HW, SW, ic_fac;
+ double HWph, HWmh, taufactor, HW, ic_fac;
+//  double SW;
 /*  HW[4][4][4], SW[4][4][4] */
- double tempf, tempg, shear, sum, shear_on;
+ double tempf, tempg, sum, shear_on;
  double s_den;
 
 /* Kurganov-Tadmor for Wmunu */
@@ -885,13 +886,14 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 int Diss::Make_uPRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
 		     Grid *Lneighbor2, Grid *Rneighbor2, double *p_rhs, InitData *DATA, int rk_flag, int size, int rank)
 {
- int mu, nu, direc, nmax[4], ic;
- double f, fp1, fm1, fp2, fm2, ux, delta[4];
+ int direc, nmax[4];
+ double f, fp1, fm1, fp2, fm2, delta[4];
+//  double ux;
  double g, gp1, gm1, gp2, gm2, a, am1, ap1, ax;
  double uPiphR, uPiphL, uPimhR, uPimhL, PiphR, PiphL, PimhR, PimhL;
- double HPiph, HPimh, taufactor, HPi, SPi;
- double tempf, tempg, sum;
- double s_den, bulk_on;
+ double HPiph, HPimh, taufactor, HPi;
+ double sum;
+ double bulk_on;
 
 /* Kurganov-Tadmor for Pi */
 /* implement 

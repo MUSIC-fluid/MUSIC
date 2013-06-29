@@ -342,7 +342,7 @@ double *Glauber::ReadInVy(char *file_name, int maxi_num, int quiet)
  int i;
  FILE *input;
  static char *s, *sy;
- int bytes_read;
+//  int bytes_read;
  s = util->char_malloc(120);
  sy = util->char_malloc(120);
  

@@ -180,7 +180,7 @@ void EOS::init_eos2()
   // baryon chemical potential from file
   fprintf(stderr,"reading EOS... \n");
   whichEOS = 2; 
-  int bytes_read;
+//   int bytes_read;
   int i, j;
   FILE *eos_d1, *eos_d2, *eos_d3, *eos_d4, *eos_d5, *eos_d6, *eos_d7;
   FILE *eos_T1, *eos_T2, *eos_T3, *eos_T4, *eos_T5, *eos_T6, *eos_T7;
@@ -1138,10 +1138,11 @@ double EOS::interpolate_pressure(double e, double rhob)
 
 double EOS::interpolate2(double e, double rhob, int selector)
 {
-  double p, pa, pb, pa1, pa2, pb1, pb2, s;
+  double p, pa, pb;
+
   //use linear interpolation
-  int ie1, ie2, inb1, inb2, NEps;
-  double frace, fracnb;
+  int ie1, ie2, NEps;
+  double frace;
   double eps0, deltaEps;
   double **array; 
   //selector = 0 : pressure

@@ -1815,7 +1815,7 @@ void Freeze::Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const 
 	int j, number, nphi, npt, neta;
 	double eta;
 	double m;
-	double fac, pt;
+	double pt;
 	double tmp_dNdy, tmp_dNdeta, tmp;
 
 	//Make sure all the necessary spectra are available

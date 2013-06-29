@@ -2431,7 +2431,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      // impact parameter:
      double b=DATA->b;
      int i;
-     int bytes_read;
+//      int bytes_read;
      string dummy;
      int nx, ny, neta;
      int y_size, x_size;
@@ -2482,7 +2482,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
   
      double density, dummy1, dummy2, dummy3, eta0, x0, y0;
      // loop over the whole lattice and initialize values:
-     //     bytes_read=fscanf(profile,"%s %s %s %s %d %s %d %s %d %s %lf %s %lf %s %lf",
+     //     fscanf(profile,"%s %s %s %s %d %s %d %s %d %s %lf %s %lf %s %lf",
      //		       &dummy,&dummy,&dummy,&dummy,&neta,&dummy,&nx,&dummy,&ny,&dummy,
      //		       &deta,&dummy,&dx,&dummy,&dy);
    
@@ -2501,7 +2501,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	       {
 
 		 profile >> dummy1 >> dummy2 >> dummy3 >> density;
-		 //bytes_read=fscanf(profile,"%lf %lf %lf %lf",&dummy1,&dummy2,&dummy3,&density);
+		 //fscanf(profile,"%lf %lf %lf %lf",&dummy1,&dummy2,&dummy3,&density);
 		 
 		 if (ieta==0 && ix == 0 && iy == 0)
 		   {
@@ -2666,7 +2666,7 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
      // impact parameter:
      double b=DATA->b;
      int i;
-     int bytes_read;
+//      int bytes_read;
      string dummy;
      int nx, ny, neta;
      int y_size, x_size;
