@@ -1153,7 +1153,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
       fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
       exit(1);
     }
-//   else returnValue=chdir("..");
+   else chdir("..");
 
   strcat(numberString, "./outputs/Npt-");
   strcat(numberString, buf);
@@ -1790,7 +1790,7 @@ void Freeze::ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, i
       fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
       exit(1);
     }
-//   else returnValue=chdir("..");
+   else chdir("..");
 
   if (full==1)
     {
@@ -3189,7 +3189,7 @@ void Freeze::ComputeAveragePT(int number, double ptmax)
       fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
       exit(1);
     }
-//   else returnValue=chdir("..");
+   else chdir("..");
 
   sprintf (buf, "%d", number);
   strcat(numberString, "./outputs/FavPT-");
@@ -3400,7 +3400,7 @@ void Freeze::ComputeChargedHadrons(InitData* DATA, double ptmax)
       fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
       exit(1);
     }
-//   else returnValue=chdir("..");
+   else chdir("..");
   
   
   strcat(numberString, "./outputs/FNpt-H+-");
@@ -4665,7 +4665,7 @@ void Freeze::ComputeCorrelations(InitData* DATA, double ptmax)
       fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
       exit(1);
     }
-//   else returnValue=chdir("..");
+   else chdir("..");
   
   
   strcat(numberString, "./outputs/correlation");
@@ -5237,7 +5237,7 @@ void Freeze::Compute3ChargedHadrons(InitData* DATA,double ptmax)
       fprintf(stderr,"directory \"outputs\" does not exist. Exiting.\n");
       exit(1);
     }
-//   else returnValue=chdir("..");
+   else chdir("..");
   
   strcat(numberString, "./outputs/Npt-H+-");
   strcat(numberString,".dat");
