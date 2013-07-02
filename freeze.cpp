@@ -237,7 +237,6 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	  //	  cout << endl;
 	}
 
-      fclose(mu_file);
       double frace;
       int ie1, ie2;
       if(ef<EPP1) 
@@ -5860,16 +5859,12 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num)
     yr = PseudoRap(yrtemp, ptr, particleList[pn].mass);
   }
   
-//   double maxyr = particleList[pn].ymax;
-  npt = particleList[pn].npt;  // will be redefined below
-  double maxptr = particleList[pn].pt[npt-1];
-  if (ptr > maxptr) return 0.;
-//   if (ptr > maxptr || fabs(yr) > maxyr) return 0;
-//     {
+  if (yr < -particleList[pn].ymax || yr > particleList[pn].ymax)
+    {
       //      fprintf(stderr,"yr=%f out of range ymax=%f\n", yr,particleList[pn].ymax);
 
-//       return 0.;
-//     }
+      return 0.;
+    }
 
   nphi = 1; 
   while((phir > phiArray[nphi])&&(nphi<(particleList[pn].nphi-1))) nphi++; 
@@ -5956,7 +5951,6 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num)
   
   val = util->lin_int(particleList[pn].y[ny-1],particleList[pn].y[ny],val1,val2,yr);
 
-//   if(ptr > maxptr && (f2 < f1 || f2s < f1s)) return 0.;
   /*
     printf(" nphi  %i npt %i \n", nphi,npt);
     printf(" f1  %15.8le %15.8le  \n", f1, f2);
