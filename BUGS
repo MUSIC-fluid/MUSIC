@@ -5,3 +5,6 @@ though it clearly shouldn't
 [2013-05-31]
 The dependencies (which files and headers are needed to compile a file) in the makefile
 appear not to be up-to-date. Someone who knows how "make" works should take a look.
+
+[2013-07-02]
+Running with mode 1 requires a lot more memory than running mode 2, 3 and 4 separately as memory is not freed after each mode is run. At the very least, memory should be freed after mode 2.
