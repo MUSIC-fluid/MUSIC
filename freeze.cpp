@@ -237,6 +237,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	  //	  cout << endl;
 	}
 
+      fclose(mu_file);
       double frace;
       int ie1, ie2;
       if(ef<EPP1) 
