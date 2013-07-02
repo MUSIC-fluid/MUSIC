@@ -556,6 +556,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 	      
 	    }
 	}
+	free(surface);
     }
   if (mode==4 || mode==1)  //  do resonance decays
     {
@@ -684,6 +685,9 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       cerr << "Mode " << mode << " not supported for pseudofreeze = 1.  Exiting.\n";
       exit(1);
     }
+  delete[] partid;
+//   for (int i=0;i<=DATA->NumberOfParticlesToInclude;i++) util->char_free(particleList[i].name);
+  free(particleList);
 }
 
 

@@ -32,7 +32,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 {
   // read in particle and decay information from file:
   // partid = (int *)malloc(MAXINTV * sizeof(int)); 
-  partid = new int[MAXINTV * sizeof(int)]; 
+  partid = new int[MAXINTV]; 
 //   int bytes_read;
 //   static char *s;
 //   s = new char[120];
@@ -40,20 +40,21 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 //   int d1, d2, d3, decays;
 //   double b, npi, nK, neta, dummy;
   fprintf(stderr,"reading particle data\n");
-  char *anti;
+//   char *anti;
   // open particle data file:
   const char* EOSPATH = "HYDROPROGRAMPATH";
   char* envPath = getenv(EOSPATH);
   char* p_name;
+  p_name = util->char_malloc(100);
   if (envPath != 0 && *envPath != '\0') 
     {
-      p_name = util->char_malloc(100);
+//       p_name = util->char_malloc(100);
       strcat(p_name, envPath);
       strcat(p_name,"/EOS/pdg05.dat");
     }  
   else
     {
-      p_name = util->char_malloc(100);
+//       p_name = util->char_malloc(100);
       strcat(p_name, ".");
       strcat(p_name,"/EOS/pdg05.dat");
     }
@@ -63,6 +64,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
   FILE *p_file;
   p_file = fopen(p_name, "r");
   checkForReadError(p_file,p_name);
+  util->char_free(p_name);
   
   for(k=0;k<MAXINTV;k++) 
     partid[k] = -1; 
@@ -134,6 +136,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	  //fprintf(stderr,"b=%d\n",particleList[i].baryon);
 	  i++;
 	  particleList[i].name = util->char_malloc(20);
+	  char *anti;
 	  anti = util->char_malloc(30);
 	  strcat(anti,"Anti-");
 	  strcat(anti,particleList[i-1].name);
@@ -152,6 +155,8 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	  particleList[i].strange = -particleList[i-1].strange;
 	  particleList[i].charge = -particleList[i-1].charge;
 	  partid[MHALF + particleList[i].number] = i;
+	  util->char_free(anti);
+	  
 	  	  //  fprintf(stderr,"%s %i \n",particleList[i].name,particleList[i].number);
 	  //fprintf(stderr,"[%i] has pid %i \n",MHALF + particleList[i].number,partid[MHALF + particleList[i].number]);
 	}
@@ -178,9 +183,10 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
       const char* EOSPATH = "HYDROPROGRAMPATH";
       char* envPath = getenv(EOSPATH);
       char* mu_name;
+      mu_name = util->char_malloc(100);
       if (envPath != 0 && *envPath != '\0') 
 	{
-	  mu_name = util->char_malloc(100);
+// 	  mu_name = util->char_malloc(100);
 	  strcat(mu_name, envPath);
 	  if (DATA->whichEOS==3)
 	    strcat(mu_name,"/EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat");
@@ -193,7 +199,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	}  
       else
 	{
-	  mu_name = util->char_malloc(100);
+// 	  mu_name = util->char_malloc(100);
 	  strcat(mu_name, ".");
 	  if (DATA->whichEOS==3)
 	    strcat(mu_name,"/EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat");
@@ -210,6 +216,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
       FILE *mu_file;
       mu_file = fopen(mu_name, "r");
       checkForReadError(mu_file,mu_name);
+      util->char_free(mu_name);
 //       double BNP1;
       double EPP1;            // start value for \mu_B and epsilon
 //       double deltaBNP1;
