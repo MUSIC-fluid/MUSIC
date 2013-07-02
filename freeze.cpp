@@ -64,7 +64,6 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
   FILE *p_file;
   p_file = fopen(p_name, "r");
   checkForReadError(p_file,p_name);
-  util->char_free(p_name);
   
   for(k=0;k<MAXINTV;k++) 
     partid[k] = -1; 
@@ -136,10 +135,10 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	  //fprintf(stderr,"b=%d\n",particleList[i].baryon);
 	  i++;
 	  particleList[i].name = util->char_malloc(20);
-	  char *anti;
-	  anti = util->char_malloc(30);
-	  strcat(anti,"Anti-");
-	  strcat(anti,particleList[i-1].name);
+// 	  char *anti;
+// 	  anti = util->char_malloc(30);
+// 	  strcat(anti,"Anti-");
+// 	  strcat(anti,particleList[i-1].name);
 	  particleList[i].width    =  particleList[i-1].width;
 	  particleList[i].charm    = -particleList[i-1].charm;
 	  particleList[i].bottom   = -particleList[i-1].bottom;
@@ -148,14 +147,16 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	  particleList[i].decays   = particleList[i-1].decays;
 	  particleList[i].stable =  particleList[i-1].stable;
 	  particleList[i].number = -particleList[i-1].number;
-	  particleList[i].name = anti; 
+// 	  particleList[i].name = anti; 
+	  strcpy(particleList[i].name, "Anti-");
+	  strcat(particleList[i].name,particleList[i-1].name);
 	  particleList[i].mass = particleList[i-1].mass;
 	  particleList[i].degeneracy = particleList[i-1].degeneracy;
 	  particleList[i].baryon = -particleList[i-1].baryon;
 	  particleList[i].strange = -particleList[i-1].strange;
 	  particleList[i].charge = -particleList[i-1].charge;
 	  partid[MHALF + particleList[i].number] = i;
-	  util->char_free(anti);
+// 	  util->char_free(anti);
 	  
 	  	  //  fprintf(stderr,"%s %i \n",particleList[i].name,particleList[i].number);
 	  //fprintf(stderr,"[%i] has pid %i \n",MHALF + particleList[i].number,partid[MHALF + particleList[i].number]);
@@ -165,6 +166,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
   decayMax = j;
   particleMax = i-1;
   fclose(p_file);
+  util->char_free(p_name);
   // here read the stable particles' chemical potential at freeze-out
   if (DATA->whichEOS>=3)
     {
@@ -216,7 +218,6 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
       FILE *mu_file;
       mu_file = fopen(mu_name, "r");
       checkForReadError(mu_file,mu_name);
-      util->char_free(mu_name);
 //       double BNP1;
       double EPP1;            // start value for \mu_B and epsilon
 //       double deltaBNP1;
@@ -245,6 +246,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	}
 
       fclose(mu_file);
+      util->char_free(mu_name);
       double frace;
       int ie1, ie2;
       if(ef<EPP1) 

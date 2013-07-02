@@ -686,7 +686,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       exit(1);
     }
   delete[] partid;
-//   for (int i=0;i<=DATA->NumberOfParticlesToInclude;i++) util->char_free(particleList[i].name);
+  for (int i=0;i<=DATA->NumberOfParticlesToInclude+1;i++) util->char_free(particleList[i].name);
   free(particleList);
 }
 
