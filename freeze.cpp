@@ -5859,7 +5859,7 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num)
     yr = PseudoRap(yrtemp, ptr, particleList[pn].mass);
   }
   
-  if (yr < -particleList[pn].ymax || yr > particleList[pn].ymax)
+  if ((yr < -particleList[pn].ymax) || (yr > particleList[pn].ymax)||(ptr > particleList[pn].pt[particleList[pn].npt - 1]))
     {
       //      fprintf(stderr,"yr=%f out of range ymax=%f\n", yr,particleList[pn].ymax);
 
