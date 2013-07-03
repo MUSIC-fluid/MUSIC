@@ -49,13 +49,13 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
   if (envPath != 0 && *envPath != '\0') 
     {
 //       p_name = util->char_malloc(100);
-      strcat(p_name, envPath);
+      strcpy(p_name, envPath);
       strcat(p_name,"/EOS/pdg05.dat");
     }  
   else
     {
 //       p_name = util->char_malloc(100);
-      strcat(p_name, ".");
+      strcpy(p_name, ".");
       strcat(p_name,"/EOS/pdg05.dat");
     }
   
@@ -189,7 +189,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
       if (envPath != 0 && *envPath != '\0') 
 	{
 // 	  mu_name = util->char_malloc(100);
-	  strcat(mu_name, envPath);
+	  strcpy(mu_name, envPath);
 	  if (DATA->whichEOS==3)
 	    strcat(mu_name,"/EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat");
 	  else if (DATA->whichEOS==4)
@@ -202,7 +202,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
       else
 	{
 // 	  mu_name = util->char_malloc(100);
-	  strcat(mu_name, ".");
+	  strcpy(mu_name, ".");
 	  if (DATA->whichEOS==3)
 	    strcat(mu_name,"/EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat");
 	  else if (DATA->whichEOS==4)
@@ -413,7 +413,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 // 	}
       
       cout << "Got the chemical potentials at freeze-out for the resonances." << endl;
-
+      util->mtx_free(chemPot,numStable+1,NEPP1+1);
     }
 
   
