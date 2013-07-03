@@ -75,7 +75,7 @@ void Util::cube_free(double ***cube, int n1, int n2, int n3)
 	  delete [] cube[i][j];
 	}
     }
-  for(j=0; j<n2; j++) 
+  for(j=0; j<n1; j++) 
     {
       delete [] cube[j];
     }
@@ -119,7 +119,7 @@ void Util::mtx_free(double **m, int n1, int n2)
 {
   int j;
   
- for(j=0; j<n2; j++) 
+ for(j=0; j<n1; j++) 
    {
      delete [] m[j];
    }
