@@ -4763,7 +4763,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 // 		  home = arena[ix][iy][ieta].T;
 // 		  neighbor = arena[nix][niy][nieta].T;
 		  home = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob);
-		  neighbor = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[nix][niy][nieta].rhob);
+		  neighbor = eos->get_temperature(arena[nix][niy][nieta].epsilon,arena[nix][niy][nieta].rhob);
 	      }
 	      if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 		{
@@ -4858,7 +4858,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 // 		  home = arena[ix][iy][ieta].T;
 // 		  neighbor = arena[nix][niy][nieta].T;
 		  home = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob);
-		  neighbor = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[nix][niy][nieta].rhob);
+		  neighbor = eos->get_temperature(arena[nix][niy][nieta].epsilon,arena[nix][niy][nieta].rhob);
 	      }
 	      if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 		{
@@ -4953,7 +4953,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 // 		  home = arena[ix][iy][ieta].T;
 // 		  neighbor = arena[nix][niy][nieta].T;
 		  home = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob);
-		  neighbor = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[nix][niy][nieta].rhob);
+		  neighbor = eos->get_temperature(arena[nix][niy][nieta].epsilon,arena[nix][niy][nieta].rhob);
 	      }
 	      if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 		{
