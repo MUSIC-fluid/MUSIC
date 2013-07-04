@@ -434,7 +434,7 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
 	    {
 	      //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 	      //cout << "arena[ix][iy][0].TJb[i][alpha][0]=" << arena[ix][iy][0].TJb[i][alpha][0] << endl;
-	      position = ix + (nx*iy);
+	      position = ix + ((nx+1)*iy);
 	      package[position] = arena[ix][iy][0].epsilon;
 	    }
 	}
@@ -450,7 +450,7 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
 	{
 	  for(iy=0; iy<=ny; iy++)
 	    {
-	      position = ix + (nx*iy);
+	      position = ix + ((nx+1)*iy);
 	      //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 	      //cout << "Rneighbor[ix][iy][0].TJb[i][alpha][0]=" << package[position] << endl;
 	      Rneighbor_eps[ix][iy] = package[position];
@@ -1049,7 +1049,7 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
 	    {
 	      //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 	      //cout << "arena[ix][iy][0].TJb[i][alpha][0]=" << arena[ix][iy][0].TJb[i][alpha][0] << endl;
-	      position = ix + (nx*iy);
+	      position = ix + ((nx+1)*iy);
 	      package[position] = arena[ix][iy][0].epsilon;
 	      package_prev[position] = arena[ix][iy][0].epsilon_prev;
 	      packageutau[position] = arena[ix][iy][0].u[0][0];
@@ -1158,7 +1158,7 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
 	{
 	  for(iy=0; iy<=ny; iy++)
 	    {
-	      position = ix + (nx*iy);
+	      position = ix + ((nx+1)*iy);
 	      //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 	      //cout << "Rneighbor[ix][iy][0].TJb[i][alpha][0]=" << package[position] << endl;
 	      Rneighbor_eps[ix][iy] = package[position];
@@ -4619,7 +4619,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 	    {
 	      //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 	      //cout << "arena[ix][iy][0].TJb[i][alpha][0]=" << arena[ix][iy][0].TJb[i][alpha][0] << endl;
-	      position = ix + (nx*iy);
+	      position = ix + ((nx+1)*iy);
 	      package[position] = arena[ix][iy][0].epsilon;
 //	      packageutau[position] = arena[ix][iy][0].u[0][0];
 	      packageux[position] = arena[ix][iy][0].u[0][1];
@@ -4684,7 +4684,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 	{
 	  for(iy=0; iy<=ny; iy++)
 	    {
-	      position = ix + (nx*iy);
+	      position = ix + ((nx+1)*iy);
 	      //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 	      //cout << "Rneighbor[ix][iy][0].TJb[i][alpha][0]=" << package[position] << endl;
 	      Rneighbor_eps[ix][iy] = package[position];
