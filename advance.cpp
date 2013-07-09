@@ -740,7 +740,7 @@ grid_pt->Wmunu[rk_flag+1][3][3] = (2.*( grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_f
 
 /// If the energy density of the fluid element is smaller than 0.01GeV
 /// reduce Wmunu using the QuestRevert algorithm
-if (grid_pt->epsilon < 0.01*hbarc){
+if (grid_pt->epsilon < 0.01/hbarc){
 revert_flag = 
   QuestRevert(tau, 0, grid_pt, rk_flag, DATA, size, rank);
 }
@@ -794,7 +794,7 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
  
  rho_shear = 0.;
  rho_bulk = 0.;
- factor = 2.;
+ factor = 10.;
  
   
  pisize = 
