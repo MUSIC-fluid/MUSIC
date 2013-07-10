@@ -203,24 +203,10 @@ else if(rk_flag > 0)
 
  tf = (sf*shear_on + bf*bulk_on);
 
-/*
- if(tf == 0.0 && tau > DATA->tau0+DATA->delta_tau) 
-  {
-   fprintf(stderr, "MakeWSource: tf = %e\n", tf);
-   fprintf(stderr, "MakeWSource: sf = %e\n", sf);
-   fprintf(stderr, "MakeWSource: bf = %e\n", bf);
-   fprintf(stderr, "MakeWSource: shear_on = %e\n", shear_on);
-   fprintf(stderr, "MakeWSource: bulk_on =  %e\n", bulk_on);
-   fprintf(stderr, "MakeWSource: tau =  %e\n", tau);
-   fprintf(stderr, "MakeWSource: rk_flag =  %d\n", rk_flag);
-  }
-*/
 
  if (isnan(tf)) cout << "sf=" << sf << " bf=" << bf << " sg=" << sg << " bg=" << bg << " Wmunu[" << rk_flag << "]=" << grid_pt->Wmunu[rk_flag][0][alpha]
 		     << " Pimunu[" << rk_flag << "]=" << grid_pt->Pimunu[rk_flag][0][alpha] 
 		     << " prevWmunu=" << grid_pt->prevWmunu[0][0][alpha] << endl;
-
- // cout << "tf=" << tf << endl;
 
 
  return tf;
@@ -234,18 +220,26 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
  double tempf, tempg, temps, tau_pi;
  double SW, s_den, shear, shear_to_s, T, epsilon, rhob, Ttr;
  int ic;
- Ttr = 0.18;
- 
- epsilon = grid_pt->epsilon;
- rhob = grid_pt->rhob; 
-	
+ int a, b;
+ double sigma[4][4], gamma, ueta;
+ double NS_term;
+ Ttr = 0.18;  /// phase transition temperature
+
+
+/// Useful variables to define
+gamma = grid_pt->u[rk_flag][0];
+ueta  = grid_pt->u[rk_flag][3];
+epsilon = grid_pt->epsilon;
+rhob = grid_pt->rhob;
+
+
  if(DATA->turn_on_shear == 0) return 0.0;
 
  if(DATA->T_dependent_shear_to_s == 1)
    {
      T=eos->get_temperature(epsilon,rhob)*hbarc;
-     
-     if(T < 0.18)
+
+     if(T < Ttr)
        {
 	 shear_to_s=0.681-0.0594*T/Ttr-0.544*(T/Ttr)*(T/Ttr);
        }
@@ -258,85 +252,246 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
    {
      shear_to_s = DATA->shear_to_s;
    }
- 
- //cout << "eta/s=" << shear_to_s << endl;
- 
+
+
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+///                 Defining transport coefficients                        ///
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
  s_den = eos->get_entropy(epsilon, rhob);
  shear = (shear_to_s)*s_den;
  tau_pi = 3.0*shear/(grid_pt->epsilon + grid_pt->p);
 
- if(!finite(tau_pi)) tau_pi = DATA->delta_tau;
+ //tau_pi = maxi(tau_pi, DATA->tau_pi);
+ if(!finite(tau_pi)) {tau_pi = DATA->delta_tau; cout << "tau_pi was infinite ..." << endl;}
 
+ /// transport coefficient for nonlinear terms -- shear only terms -- 4Mar2013
+ double transport_coefficient, transport_coefficient2, transport_coefficient3, transport_coefficient4;
+ /// transport coefficients of a massless gas of single component particles
+ transport_coefficient  = 9./70.*tau_pi/shear*(4./5.) ;
+ transport_coefficient2 = 4./3.*tau_pi;
+ transport_coefficient3 = 10./7.*tau_pi;
+ transport_coefficient4 = 2.*tau_pi;
 
-/*
- fprintf(stderr, "tau_pi = %e\n", tau_pi);
- fprintf(stderr, "h = %e\n", grid_pt->epsilon + grid_pt->p);
-*/
+ /// transport coefficient for nonlinear terms -- coupling to bulk viscous pressure -- 4Mar2013
+ double transport_coefficient_b, transport_coefficient2_b;
+ /// transport coefficients not yet known -- fixed to zero
+ transport_coefficient_b  = 0. ;
+ transport_coefficient2_b = 0.;
+
 
 /* This source has many terms */
 /* everyting in the 1/(tau_pi) piece is here */
 /* third step in the split-operator time evol 
    use Wmunu[rk_flag] and u[rk_flag] with rk_flag = 0 */
-    
-    tempf = 0.0;
-    tempg = (1.0 + (4.0/3.0)*(tau_pi)*(grid_pt->theta_u[rk_flag]) );
-    tempg *= (grid_pt->Wmunu[rk_flag][mu][nu]);
-    tempf -= tempg;
- 
-   /* remember dUsup[m][n] = u^{m,n} = partial^n u^m */
 
-/* this is a crude approximation. fix this. */
-/* u+d+s+g e+p \approx 21 T^4 */
-/* T = ((e+p)/21)^(1/4) */
-/* s = (e+p)/T = (e+p)^(3/4)/(21)^(1/4) \approx (e+p)^(3/4)/2.14 */
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+///            Wmunu + transport_coefficient2*Wmunu*theta                  ///
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
 
-/* inside the parenthesis */
-
-    temps = 0.0;
-
-    temps -=
-    (grid_pt->dUsup[rk_flag][nu][mu] + grid_pt->dUsup[rk_flag][mu][nu]);
-
-    tempg = (2.0*grid_pt->u[rk_flag][0]);
-    tempg *= (DATA->gmunu[mu][3])*(DATA->gmunu[nu][3])/tau;
-    temps -= tempg;
-    
-    tempg = (2.0/3.0)*(DATA->gmunu[mu][nu] 
-                        + (grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][nu]));
-    tempg *= (grid_pt->theta_u[rk_flag]);
-    temps += tempg;
-    
-    temps +=
-    (grid_pt->u[rk_flag][3]*(DATA->gmunu[mu][3])*(DATA->gmunu[nu][0]))/tau;
-    temps +=
-    (grid_pt->u[rk_flag][3]*(DATA->gmunu[nu][3])*(DATA->gmunu[mu][0]))/tau;
+/// full term is
+    tempf = -(1.0 + transport_coefficient2*(grid_pt->theta_u[rk_flag]) )*(grid_pt->Wmunu[rk_flag][mu][nu]);
+/// FOR GUBSER ANALYTIC
+//     tempf = -( transport_coefficient2*(grid_pt->theta_u[rk_flag]) )*(grid_pt->Wmunu[rk_flag][mu][nu]);
 
 
-/* start: This is what's causing the most problems */
-/* because it has the time derivative */
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+///             Navier-Stokes Term -- -2.*shear*sigma^munu                 ///
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
 
-    temps -= ( grid_pt->u[rk_flag][mu]*grid_pt->a[rk_flag][nu] 
-              +grid_pt->u[rk_flag][nu]*grid_pt->a[rk_flag][mu] );
+// / remember: dUsup[m][n] = partial^n u^m  ///
+// / remember:  a[n]  =  u^m*partial_m u^n  ///
+
+    for( a=0;a<=3;a++ ){
+    for( b=0;b<=3;b++ ){
+
+    sigma[a][b] = ( grid_pt->dUsup[rk_flag][a][b] + grid_pt->dUsup[rk_flag][b][a] )/2.
+
+                - ( DATA->gmunu[a][b] + (grid_pt->u[rk_flag][a])*(grid_pt->u[rk_flag][b]) )*(grid_pt->theta_u[rk_flag])/3.
+
+                + gamma/tau*(DATA->gmunu[a][3])*(DATA->gmunu[b][3])
+
+                - ueta/tau/2.*( (DATA->gmunu[a][3])*(DATA->gmunu[b][0]) + (DATA->gmunu[b][3])*(DATA->gmunu[a][0]) )
+
+                + ueta*gamma/tau/2.*( (DATA->gmunu[a][3])*(grid_pt->u[rk_flag][b]) +( DATA->gmunu[b][3])*(grid_pt->u[rk_flag][a]) )
+
+                - ueta*ueta/tau/2.*( (DATA->gmunu[a][0])*(grid_pt->u[rk_flag][b]) + (DATA->gmunu[b][0])*(grid_pt->u[rk_flag][a]) )
+
+                + ( grid_pt->u[rk_flag][a]*grid_pt->a[rk_flag][b] + grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a] )/2. ;
+
+    }
+    }
+
+/// full Navier-Stokes term is
+    NS_term = -2.*shear*sigma[mu][nu] ;
 
 
-/* end: This is what's causing the most problems */
-    
-    tempg = (grid_pt->u[rk_flag][3])*(grid_pt->u[rk_flag][0]);
-    tempg *= ( (grid_pt->u[rk_flag][mu])*(DATA->gmunu[nu][3]) 
-              +(grid_pt->u[rk_flag][nu])*(DATA->gmunu[mu][3]) );
-    tempg /= tau;
-    temps -= tempg;
-    
-    tempg = (grid_pt->u[rk_flag][3])*(grid_pt->u[rk_flag][3]);
-    tempg *= ( (grid_pt->u[rk_flag][mu])*(DATA->gmunu[nu][0]) 
-              +(grid_pt->u[rk_flag][nu])*(DATA->gmunu[mu][0]) );
-    tempg /= tau;
-    temps += tempg;
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+///                             Vorticity Term                             ///
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+double omega[4][4];
+double term1_Vorticity;
+double Vorticity_term;
+
+// / remember: dUsup[m][n] = partial^n u^m  ///
+// / remember:  a[n]  =  u^m*partial_m u^n  ///
+
+    for( a=0;a<=3;a++ ){
+    for( b=0;b<=3;b++ ){
+
+    omega[a][b] = ( grid_pt->dUsup[rk_flag][a][b] - grid_pt->dUsup[rk_flag][b][a] )/2.
+                + ueta/tau/2.*( DATA->gmunu[a][0]*DATA->gmunu[b][3] - DATA->gmunu[b][0]*DATA->gmunu[a][3] )
+                - ueta*gamma/tau/2.*( DATA->gmunu[a][3]*grid_pt->u[rk_flag][b] - DATA->gmunu[b][3]*grid_pt->u[rk_flag][a] )
+                + ueta*ueta/tau/2.*( DATA->gmunu[a][0]*grid_pt->u[rk_flag][b] - DATA->gmunu[b][0]*grid_pt->u[rk_flag][a] )
+                + ( grid_pt->u[rk_flag][a]*grid_pt->a[rk_flag][b] - grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a] )/2. ;
+
+    }}
+
+   term1_Vorticity = (  -grid_pt->Wmunu[rk_flag][mu][0]*omega[nu][0] - grid_pt->Wmunu[rk_flag][nu][0]*omega[mu][0]
+                       + grid_pt->Wmunu[rk_flag][mu][1]*omega[nu][1] + grid_pt->Wmunu[rk_flag][nu][1]*omega[mu][1]
+                       + grid_pt->Wmunu[rk_flag][mu][2]*omega[nu][2] + grid_pt->Wmunu[rk_flag][nu][2]*omega[mu][2]
+                       + grid_pt->Wmunu[rk_flag][mu][3]*omega[nu][3] + grid_pt->Wmunu[rk_flag][nu][3]*omega[mu][3] )/2.;
+
+/// multiply term by its respective transport coefficient
+   term1_Vorticity = transport_coefficient4*term1_Vorticity;
+
+/// full term is
+    Vorticity_term = -term1_Vorticity ;
 
 
-    tempf += temps*shear;
-    SW = tempf/(tau_pi);
-    
+/// //////////////////////////////////////////////////////////////////////////// ///
+/// //////////////////////////////////////////////////////////////////////////// ///
+///                   Add nonlinear term in shear-stress tensor                  ///
+///   transport_coefficient3*Delta(mu nu)(alpha beta)*Wmu gamma sigma nu gamma   ///
+/// //////////////////////////////////////////////////////////////////////////// ///
+/// //////////////////////////////////////////////////////////////////////////// ///
+double Wsigma, Wsigma_term;
+double term1_Wsigma, term2_Wsigma;
+
+    Wsigma =
+  (
+   grid_pt->Wmunu[rk_flag][0][0]*sigma[0][0]
+  +grid_pt->Wmunu[rk_flag][1][1]*sigma[1][1]
+  +grid_pt->Wmunu[rk_flag][2][2]*sigma[2][2]
+  +grid_pt->Wmunu[rk_flag][3][3]*sigma[3][3]
+
+  -2.*(
+        grid_pt->Wmunu[rk_flag][0][1]*sigma[0][1]
+       +grid_pt->Wmunu[rk_flag][0][2]*sigma[0][2]
+       +grid_pt->Wmunu[rk_flag][0][3]*sigma[0][3]
+       )
+
+  +2.*(
+        grid_pt->Wmunu[rk_flag][1][2]*sigma[1][2]
+       +grid_pt->Wmunu[rk_flag][1][3]*sigma[1][3]
+       +grid_pt->Wmunu[rk_flag][2][3]*sigma[2][3]
+       )
+   );
+
+   term1_Wsigma = (  - grid_pt->Wmunu[rk_flag][mu][0]*sigma[nu][0] - grid_pt->Wmunu[rk_flag][nu][0]*sigma[mu][0]
+                     + grid_pt->Wmunu[rk_flag][mu][1]*sigma[nu][1] + grid_pt->Wmunu[rk_flag][nu][1]*sigma[mu][1]
+                     + grid_pt->Wmunu[rk_flag][mu][2]*sigma[nu][2] + grid_pt->Wmunu[rk_flag][nu][2]*sigma[mu][2]
+                     + grid_pt->Wmunu[rk_flag][mu][3]*sigma[nu][3] + grid_pt->Wmunu[rk_flag][nu][3]*sigma[mu][3] )/2.;
+
+   term2_Wsigma = -(1./3.)*( DATA->gmunu[mu][nu] + grid_pt->u[rk_flag][mu]*grid_pt->u[rk_flag][nu] )*Wsigma;
+
+/// multiply term by its respective transport coefficient
+   term1_Wsigma = transport_coefficient3*term1_Wsigma;
+   term2_Wsigma = transport_coefficient3*term2_Wsigma;
+
+/// full term is
+   Wsigma_term = -term1_Wsigma - term2_Wsigma ;
+
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+///               Add nonlinear term in shear-stress tensor                ///
+///   transport_coefficient*Delta(mu nu)(alpha beta)*Wmu gamma Wnu gamma   ///
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+    double Wsquare, WW_term;
+    double term1_WW, term2_WW;
+
+    Wsquare =
+  (
+   grid_pt->Wmunu[rk_flag][0][0]*grid_pt->Wmunu[rk_flag][0][0]
+  +grid_pt->Wmunu[rk_flag][1][1]*grid_pt->Wmunu[rk_flag][1][1]
+  +grid_pt->Wmunu[rk_flag][2][2]*grid_pt->Wmunu[rk_flag][2][2]
+  +grid_pt->Wmunu[rk_flag][3][3]*grid_pt->Wmunu[rk_flag][3][3]
+
+  -2.*(
+       grid_pt->Wmunu[rk_flag][0][1]*grid_pt->Wmunu[rk_flag][0][1]
+       +grid_pt->Wmunu[rk_flag][0][2]*grid_pt->Wmunu[rk_flag][0][2]
+       +grid_pt->Wmunu[rk_flag][0][3]*grid_pt->Wmunu[rk_flag][0][3]
+       )
+
+  +2.*(
+       grid_pt->Wmunu[rk_flag][1][2]*grid_pt->Wmunu[rk_flag][1][2]
+       +grid_pt->Wmunu[rk_flag][1][3]*grid_pt->Wmunu[rk_flag][1][3]
+       +grid_pt->Wmunu[rk_flag][2][3]*grid_pt->Wmunu[rk_flag][2][3]
+       )
+   );
+
+   term1_WW = - grid_pt->Wmunu[rk_flag][mu][0]*grid_pt->Wmunu[rk_flag][nu][0]
+           + grid_pt->Wmunu[rk_flag][mu][1]*grid_pt->Wmunu[rk_flag][nu][1]
+           + grid_pt->Wmunu[rk_flag][mu][2]*grid_pt->Wmunu[rk_flag][nu][2]
+           + grid_pt->Wmunu[rk_flag][mu][3]*grid_pt->Wmunu[rk_flag][nu][3] ;
+
+   term2_WW = -(1./3.)*( DATA->gmunu[mu][nu] + grid_pt->u[rk_flag][mu]*grid_pt->u[rk_flag][nu] )*Wsquare;
+
+/// multiply term by its respective transport coefficient
+   term1_WW = term1_WW*transport_coefficient;
+   term2_WW = term2_WW*transport_coefficient;
+
+/// full term is
+   WW_term = term1_WW + term2_WW ;
+
+
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+///               Add coupling to bulk viscous pressure                    ///
+///              transport_coefficient_b*Bulk*sigma^mu nu                  ///
+///               transport_coefficient2_b*Bulk*W^mu nu                    ///
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+    double Bulk_Sigma, Bulk_Sigma_term;
+    double Bulk_W, Bulk_W_term;
+    double Coupling_to_Bulk;
+
+    Bulk_Sigma = grid_pt->pi_b[rk_flag]*sigma[mu][nu];
+
+    Bulk_W = grid_pt->pi_b[rk_flag]*grid_pt->Wmunu[rk_flag][mu][nu];
+
+/// multiply term by its respective transport coefficient
+   Bulk_Sigma_term = Bulk_Sigma*transport_coefficient_b;
+   Bulk_W_term     = Bulk_W*transport_coefficient2_b;
+
+/// full term is
+   Coupling_to_Bulk = Bulk_Sigma_term + Bulk_W_term ;
+
+
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+/// ////////////////////////////////////////////////////////////////////// ///
+
+/// Comment the appropriate line in order to include the corresponding new term
+WW_term=0.;
+Vorticity_term = 0.;
+Wsigma_term = 0.;
+
+
+/// final answer is
+  SW = ( NS_term + tempf + Vorticity_term + Wsigma_term + WW_term + Coupling_to_Bulk)/(tau_pi);
+
+
+
     return SW;
 }/* Make_uWSource */
 
@@ -526,42 +681,11 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
      tempf +=
      (grid_pt->Wmunu[rk_flag][ic][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->a[rk_flag][ic])*ic_fac;
     }
-/* SYM TEST */
-    tempg = 0.0;
 
-    tempg += -(DATA->gmunu[3][nu])*(grid_pt->Wmunu[rk_flag][0][mu]);
-    tempg += -(DATA->gmunu[3][mu])*(grid_pt->Wmunu[rk_flag][0][nu]);
-    tempg +=  (DATA->gmunu[0][nu])*(grid_pt->Wmunu[rk_flag][3][mu]);
-    tempg +=  (DATA->gmunu[0][mu])*(grid_pt->Wmunu[rk_flag][3][nu]);
-  
-    tempg +=
-    (grid_pt->Wmunu[rk_flag][3][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][0]);
-    tempg += 
-    (grid_pt->Wmunu[rk_flag][3][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][0]);
-    tempg -=
-    (grid_pt->Wmunu[rk_flag][0][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][3]);
-    tempg -=
-    (grid_pt->Wmunu[rk_flag][0][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][3]);
-    
-    tempg *= (grid_pt->u[rk_flag][3]/tau);
-    
-    for(ic=0; ic<4; ic++)
-    {
-     ic_fac = (ic==0 ? -1.0 : 1.0);
-     tempg +=
-     (grid_pt->Wmunu[rk_flag][ic][mu])*(grid_pt->u[rk_flag][nu])*(grid_pt->a[rk_flag][ic])*ic_fac;
-     tempg +=
-     (grid_pt->Wmunu[rk_flag][ic][nu])*(grid_pt->u[rk_flag][mu])*(grid_pt->a[rk_flag][ic])*ic_fac;
-    }
-/* SYM TEST */
+    sum += tempf;
 
-    sum += (tempf+tempg)/2.0;
-     
      w_rhs[mu][nu] = sum*(DATA->delta_tau)*shear_on;
-   //   cout << "w_rhs=" << w_rhs << ", sum=" << sum << ", tempf=" << tempf << ", HW=" << HW << endl; 
-//      cout << "a=" << a << ", am1=" << am1 << ", ap1=" << ap1 << ", ax=" << ax << endl;
-//      cout << "uWphR=" << uWphR << ", uWphL=" << uWphL << ", uWmhR=" << uWmhR << ", uWmhL=" << uWmhL << endl;
-//      cout << "fp1=" << fp1 << ", fm1=" << fm1 << ", f=" << f << endl;
+
     }/* nu */
   }/* mu */
 
@@ -570,8 +694,7 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 
 
 
-//needs to be parallelized:
-void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
+void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 		     Grid *Lneighbor2, Grid *Rneighbor2, int mu, int nu, int direc,
 		     double *g, double *f, double *gp1, double *fp1,
 		     double *gp2, double *fp2, double *gm1, double *fm1, double *gm2, double *fm2, 
@@ -1299,7 +1422,7 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 	       tgp2 = grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp2 = tgp2*grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp2 *=     grid_pt->nbr_p_1[direc]->nbr_p_1[direc]->u[rk_flag][0];
-	       
+
 	       tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
 	       tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
 	       tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
@@ -1333,24 +1456,119 @@ double Diss::Make_uPiSource
 {
  double tempf;
  double s_den, bulk;
+ double Bulk_Relax_time, transport_coeff1, transport_coeff2, transport_coeff1_s, transport_coeff2_s;
+ double NS_term, BB_term;
+ double Final_Answer;
+ 
 
-/* this is the first step in the split-operator evolution */
-/* use rk_flag = 0 */
-/* this is a crude approximation. fix this. */
+/// Useful variables to define
+double gamma, ueta;
+gamma = grid_pt->u[rk_flag][0];
+ueta  = grid_pt->u[rk_flag][3];
 
 
     if(DATA->turn_on_bulk == 0) return 0.0;
 
+    /// defining bulk viscosity coefficient
     s_den = eos->get_entropy(grid_pt->epsilon, grid_pt->rhob);
-    
-    bulk = (DATA->bulk_to_s)*s_den;
+    //bulk = (DATA->bulk_to_s)*s_den;
+    bulk = 0.1*s_den;
 
-    tempf = 0.0;
-    tempf -= (grid_pt->pi_b[rk_flag]);
-    tempf -= bulk*(grid_pt->theta_u[rk_flag]);
-    tempf -= (1.0/3.0)*(DATA->tau_b_pi)*(grid_pt->theta_u[rk_flag])*(grid_pt->pi_b[rk_flag]);
-   
-    return tempf/(DATA->tau_b_pi);
+    /// defining bulk relaxation time and additional transport coefficients
+    Bulk_Relax_time    = 5.0*bulk/(grid_pt->epsilon + grid_pt->p);
+    transport_coeff1   = 1.0/3.0*(Bulk_Relax_time); /// not known, but Sangyong chose 1/3
+    transport_coeff2   = 0.;                        /// not known; for now, put 0
+    transport_coeff1_s = 0.;                        /// not known; for now, put 0
+    transport_coeff2_s = 0.;                        /// not known; for now, put 0
+
+    /// Computing Navier-Stokes term (-zeta*theta)
+    NS_term = -bulk*(grid_pt->theta_u[rk_flag]);
+
+    /// Computing relaxation term and nonlinear term: - Bulk - transport_coeff1*Bulk*theta
+    tempf = -(grid_pt->pi_b[rk_flag]) - transport_coeff1*(grid_pt->theta_u[rk_flag])*(grid_pt->pi_b[rk_flag]);
+
+    /// Computing nonlinear term: + transport_coeff2*Bulk*Bulk
+    BB_term = transport_coeff2*(grid_pt->pi_b[rk_flag])*(grid_pt->pi_b[rk_flag]);
+
+
+    /// Computing sigma^mu^nu
+    int a, b;
+    double sigma[4][4];
+
+    for( a=0;a<=3;a++ ){
+    for( b=0;b<=3;b++ ){
+
+    sigma[a][b] = ( grid_pt->dUsup[rk_flag][a][b] + grid_pt->dUsup[rk_flag][b][a] )/2.
+
+                - ( DATA->gmunu[a][b] + (grid_pt->u[rk_flag][a])*(grid_pt->u[rk_flag][b]) )*(grid_pt->theta_u[rk_flag])/3.
+
+                + gamma/tau*(DATA->gmunu[a][3])*(DATA->gmunu[b][3])
+
+                - ueta/tau/2.*( (DATA->gmunu[a][3])*(DATA->gmunu[b][0]) + (DATA->gmunu[b][3])*(DATA->gmunu[a][0]) )
+
+                + ueta*gamma/tau/2.*( (DATA->gmunu[a][3])*(grid_pt->u[rk_flag][b]) +( DATA->gmunu[b][3])*(grid_pt->u[rk_flag][a]) )
+
+                - ueta*ueta/tau/2.*( (DATA->gmunu[a][0])*(grid_pt->u[rk_flag][b]) + (DATA->gmunu[b][0])*(grid_pt->u[rk_flag][a]) )
+
+                + ( grid_pt->u[rk_flag][a]*grid_pt->a[rk_flag][b] + grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a] )/2. ;
+
+    }
+    }
+
+    /// Computing terms that Couple with shear-stress tensor
+    double Wsigma, WW, Shear_Sigma_term, Shear_Shear_term, Coupling_to_Shear;
+
+    Wsigma =
+  (
+   grid_pt->Wmunu[rk_flag][0][0]*sigma[0][0]
+  +grid_pt->Wmunu[rk_flag][1][1]*sigma[1][1]
+  +grid_pt->Wmunu[rk_flag][2][2]*sigma[2][2]
+  +grid_pt->Wmunu[rk_flag][3][3]*sigma[3][3]
+
+  -2.*(
+        grid_pt->Wmunu[rk_flag][0][1]*sigma[0][1]
+       +grid_pt->Wmunu[rk_flag][0][2]*sigma[0][2]
+       +grid_pt->Wmunu[rk_flag][0][3]*sigma[0][3]
+       )
+
+  +2.*(
+        grid_pt->Wmunu[rk_flag][1][2]*sigma[1][2]
+       +grid_pt->Wmunu[rk_flag][1][3]*sigma[1][3]
+       +grid_pt->Wmunu[rk_flag][2][3]*sigma[2][3]
+       )
+   );
+
+    WW =
+  (
+   grid_pt->Wmunu[rk_flag][0][0]*grid_pt->Wmunu[rk_flag][0][0]
+  +grid_pt->Wmunu[rk_flag][1][1]*grid_pt->Wmunu[rk_flag][1][1]
+  +grid_pt->Wmunu[rk_flag][2][2]*grid_pt->Wmunu[rk_flag][2][2]
+  +grid_pt->Wmunu[rk_flag][3][3]*grid_pt->Wmunu[rk_flag][3][3]
+
+  -2.*(
+       grid_pt->Wmunu[rk_flag][0][1]*grid_pt->Wmunu[rk_flag][0][1]
+       +grid_pt->Wmunu[rk_flag][0][2]*grid_pt->Wmunu[rk_flag][0][2]
+       +grid_pt->Wmunu[rk_flag][0][3]*grid_pt->Wmunu[rk_flag][0][3]
+       )
+
+  +2.*(
+       grid_pt->Wmunu[rk_flag][1][2]*grid_pt->Wmunu[rk_flag][1][2]
+       +grid_pt->Wmunu[rk_flag][1][3]*grid_pt->Wmunu[rk_flag][1][3]
+       +grid_pt->Wmunu[rk_flag][2][3]*grid_pt->Wmunu[rk_flag][2][3]
+       )
+   );
+
+    /// multiply term by its respective transport coefficient
+    Shear_Sigma_term = Wsigma*transport_coeff1_s;
+    Shear_Shear_term = WW*transport_coeff2_s;
+
+    /// full term that couples to shear is
+    Coupling_to_Shear = Shear_Sigma_term + Shear_Shear_term ;
+
+    /// Final Answer
+    Final_Answer = NS_term + tempf + BB_term + Coupling_to_Shear;
+
+    return Final_Answer/(Bulk_Relax_time);
 }/* Make_uPiSource */
 
 
