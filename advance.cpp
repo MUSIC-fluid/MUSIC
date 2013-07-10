@@ -34,7 +34,8 @@ Advance::~Advance()
 
 int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int rk_flag, int size, int rank)
 {
-  int ix, iy, ieta, flag;
+  int ix, iy, ieta;
+//   int flag;
   //cout << "0 AdvanceIt Wmunu=" << (Lneighbor[1][1][0]).Wmunu[rk_flag][1][1] << endl;
   
   for(ix=0; ix<=DATA->nx; ix++)
@@ -43,7 +44,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena, Grid ***Lneigh
 	{
           for(ieta=0; ieta<DATA->neta; ieta++)
 	    {
-	      flag = AdvanceLocalT(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
+	      AdvanceLocalT(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
 				   &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank);
 	    }/* ieta */
 	}/*iy */
@@ -59,7 +60,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena, Grid ***Lneigh
 	    {
 	      for(ieta=0; ieta<DATA->neta; ieta++)
 		{
-		  flag = AdvanceLocalW(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
+		  AdvanceLocalW(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
 				       &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank);
 		}/* ieta */
 	    }/*iy */
@@ -76,7 +77,8 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
   // this sends and receives information from neighboring cells in the next processor in the eta direction 
   // and stores it in Lneighbor and Rneighbor (unless the processor is really at the edge of the total grid
 
-  int ix, iy, ieta, nx, ny, neta, i, alpha, iflag;
+  int ix, iy, nx, ny, neta, i, alpha;
+//   int ieta, iflag;
   nx = DATA->nx;
   ny = DATA->ny;
   neta = DATA->neta;
@@ -205,7 +207,8 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
   // this sends and receives information from neighboring cells in the next processor in the eta direction 
   // and stores it in Lneighbor and Rneighbor (unless the processor is really at the edge of the total grid
   
-  int ix, iy, ieta, nx, ny, neta, i, alpha, beta, iflag;
+  int ix, iy, nx, ny, neta, i, alpha, beta;
+//   int ieta, iflag;
   nx = DATA->nx;
   ny = DATA->ny;
   neta = DATA->neta;
@@ -214,7 +217,8 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
   int sizeOfDataU = 4*3*(nx+1)*(ny+1); // size of data package for u's
   int sizeOfDataPi_b = 3*(nx+1)*(ny+1); // size of data package for pi_b's
 
-  int position, positionDis, positionU, positionPi_b;
+//   int position;
+  int positionDis, positionU, positionPi_b;
 
   double *packageW; // dissipative parts
   double *packagePi;
@@ -433,9 +437,9 @@ int Advance::AdvanceLocalT(double tau, InitData *DATA, Grid *grid_pt, Grid *Lnei
   // this advances the ideal part
  static Grid grid_rk;
  static double **qirk, *qi, *rhs, **w_rhs;
- double tau_now, tau_next;
- int trk_flag, rk_order_m1, flag;
- int i, alpha, mu;
+//  double tau_now, tau_next;
+//  int trk_flag, rk_order_m1, flag;
+//  int i, alpha, mu;
  static int ind=0;
 
  ind++;
@@ -463,9 +467,10 @@ int Advance::AdvanceLocalW(double tau, InitData *DATA, Grid *grid_pt, Grid *Lnei
 {
  static Grid grid_rk;
  static double **qirk, *qi, *rhs, **w_rhs;
- double tau_now, tau_next;
- int trk_flag, rk_order_m1, flag;
- int i, alpha, mu;
+//  double tau_now, tau_next;
+//  int trk_flag, rk_order_m1;
+ int flag;
+//  int i, alpha, mu;
  static int ind=0;
 
  ind++;
@@ -495,9 +500,11 @@ int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt, Grid *Lneig
 double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size, int rank)
 { 
   // this advances the ideal part
- double tau_now, tau_next, tau_rk, tempf, p_rhs, temp_mu, temps, tempd, dwmn;
- int alpha, flag, mu, nu;
- static int ind=0;
+ double tau_now, tau_next, tau_rk, dwmn;
+//  double tempf, p_rhs, temp_mu, temps, tempd;
+ int alpha, flag;
+//  int mu, nu;
+//  static int ind=0;
  
  tau_now = tau;
  tau_next = tau + (DATA->delta_tau);
@@ -580,15 +587,18 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
 int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, Grid *Lneighbor2, Grid *Rneighbor2, int rk_flag, 
 double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size, int rank)
 { 
- double tau_now, tau_next, tempf, p_rhs, temp_mu, temps, eps_ratio, tempd, tau_rk;
- int alpha, flag, mu, nu, revert_flag;
- static int ind=0;
+ double tau_now, tau_next, tempf, p_rhs, temps;
+//  double temp_mu, eps_ratio, tempd;
+//  double tau_rk;
+//  int alpha, flag;
+ int mu, nu, revert_flag;
+//  static int ind=0;
 
  tau_now = tau;
  tau_next = tau + (DATA->delta_tau);
  
- if(rk_flag == 0) {tau_rk = tau_now;}
- else if(rk_flag > 0) {tau_rk = tau_next;}
+//  if(rk_flag == 0) {tau_rk = tau_now;}
+//  else if(rk_flag > 0) {tau_rk = tau_next;}
 
 /*
  Solve partial_a (u^a W^{mu nu}) = 0
@@ -766,7 +776,7 @@ revert_flag =
 void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, InitData *DATA, int rk_flag)
 {
  int trk_flag, mu, alpha;
- double tempf;
+//  double tempf;
 
  trk_flag = rk_flag+1;
 
@@ -777,7 +787,7 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, InitData *DATA, int rk_f
   /* reconstructed grid_rk uses rk_flag 0 only */
    for(mu=0; mu<4; mu++)
     {
-     tempf = grid_pt->u[trk_flag][mu] = grid_rk->u[0][mu];
+      grid_pt->u[trk_flag][mu] = grid_rk->u[0][mu];
      for(alpha=0; alpha<5; alpha++)
       {
         grid_pt->TJb[trk_flag][alpha][mu] = grid_rk->TJb[0][alpha][mu];
@@ -795,8 +805,8 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
  rho_shear = 0.;
  rho_bulk = 0.;
  factor = 10.;
- 
-  
+
+
  pisize = 
   (grid_pt->Wmunu[rk_flag+1][0][0]*grid_pt->Wmunu[rk_flag+1][0][0]
   +grid_pt->Wmunu[rk_flag+1][1][1]*grid_pt->Wmunu[rk_flag+1][1][1]
@@ -856,7 +866,8 @@ return 0;
 void Advance::TestW(double tau, InitData *DATA, Grid *grid_pt, int rk_flag)
 {
  int mu, nu;
- double trace, transv, mufac, nufac;
+ double trace, transv, nufac;
+//  double mufac;
 
  trace = -grid_pt->Wmunu[rk_flag+1][0][0];
  for(mu=1; mu<=3; mu++)
@@ -898,7 +909,8 @@ if( (fabs(trace) > 1.0e-10 || fabs(transv) > 1.0e-10) && (grid_pt->epsilon > 0.3
 
 void Advance::ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
 {
- double Delta[4][4], tD[4][4], f[4][4], trace, norm, mfac, nfac, sum;
+ double Delta[4][4], tD[4][4], trace, norm, mfac, nfac, sum;
+//  double  f[4][4];
  int m, n, a, b;
 
 /* projecting the spin 2 part for W[rk_flag+1] */
@@ -1025,7 +1037,8 @@ void Advance::ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag, InitData *D
 
 void Advance::ProjectSpin2W(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
 {
- double Delta[4][4], f[4][4], trace, norm, mfac, nfac;
+ double Delta[4][4], trace, norm;
+//  double  f[4][4], mfac, nfac;
  int m, n, a, b;
 
  for(m=0; m<4; m++)
@@ -1120,21 +1133,23 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
 			 Grid *Lneighbor2, Grid *Rneighbor2, double *qi, double *rhs, 
 			 InitData *DATA, int rk_flag, int size, int rank) 
 {
-  double xjet, yjet, xtrigger, ytrigger;
+//   double xjet, yjet, xtrigger, ytrigger;
   static double delta[4], sumf;
-  static double tau_fac[4];
-  static int alpha, i, rk_order_m1, nmax[4], flag;
+//   static double tau_fac[4];
+  static int alpha, i;
+//   static int rk_order_m1;
+//   static int nmax[4], flag;
   static double **DFmmp;
   static NbrQs NbrCells;
   static BdryCells HalfwayCells;
   static int ind=0;
-  double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-  double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-  double eta;
-  if(size>1)
-    eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
-  else
-    eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
+//   double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
+//   double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
+//   double eta;
+//   if(size>1)
+//     eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
+//   else
+//     eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
   
   ind++;
   if(ind==1)
@@ -1148,9 +1163,9 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
   delta[2] = DATA->delta_y;
   delta[3] = DATA->delta_eta;
   
-  nmax[1] = DATA->nx;
-  nmax[2] = DATA->ny;
-  nmax[3] = DATA->neta-1;
+//   nmax[1] = DATA->nx;
+//   nmax[2] = DATA->ny;
+//   nmax[3] = DATA->neta-1;
 
 /* \partial_tau (tau Ttautau) + \partial_eta Tetatau 
            + \partial_x (tau Txtau) + \partial_y (tau Tytau) + Tetaeta = 0 */
@@ -1159,9 +1174,9 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
 /* \partial_tau (tau Txtau) + \partial_eta Tetax + \partial_x tau T_xx
   + \partial_y tau Tyx = 0 */
 
-     tau_fac[1] = tau;
-     tau_fac[2] = tau;
-     tau_fac[3] = 1.0;
+//      tau_fac[1] = tau;
+//      tau_fac[2] = tau;
+//      tau_fac[3] = 1.0;
  
  for(alpha=0; alpha<5; alpha++) 
   {
@@ -1171,10 +1186,10 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
  /* implement Kurganov-Tadmor scheme */
  GetQIs(tau, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, qi, &NbrCells, rk_flag, DATA, size, rank);
  
- flag = 
+//  flag = 
    MakeQIHalfs(qi, &NbrCells, &HalfwayCells, grid_pt, DATA);
  
- flag = 
+//  flag = 
    ConstHalfwayCells(tau, &HalfwayCells, qi, grid_pt, DATA, rk_flag, size, rank);
  
  MakeKTCurrents(tau, DFmmp, grid_pt, &HalfwayCells, rk_flag);
@@ -1198,8 +1213,8 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
 
    //   cout << tau << " " << x << " " << " " << y << " " << eta << endl;
 
-   int jetPosition=DATA->includeJet;
-   int includeTrigger = DATA->includeTrigger;
+//    int jetPosition=DATA->includeJet;
+//    int includeTrigger = DATA->includeTrigger;
    
    //plug in rates here:
    
@@ -1220,11 +1235,12 @@ void Advance::GetQIs
  double *qi, NbrQs *NbrCells, int rk_flag, InitData *DATA, int size, int rank)
 {
  int alpha, i;
- double tempg, T00, K00, tempf;
+ double tempg;
+//  double T00, K00, tempf;
  int nmax[4];
  // auxiliary grids to store the received grids from the neighbor processor
- int from;
- int to;
+//  int from;
+//  int to;
 
  nmax[1] = DATA->nx;
  nmax[2] = DATA->ny;
@@ -1467,14 +1483,17 @@ void Advance::GetQIs
 int Advance::MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells, 
 			 Grid *grid_pt, InitData *DATA)
 {
- int alpha, direc, nmax[4], flag;
+ int alpha, direc;
+//  int flag;
+//  int nmax[4];
  double fphL, fphR, fmhL, fmhR;
  double gphL, gphR, gmhL, gmhR;
- double x, y, eta, tempf;
+//  double x, y, eta;
+ double tempf;
 
-  nmax[1] = DATA->nx;
-  nmax[2] = DATA->ny;
-  nmax[3] = DATA->neta-1;
+//   nmax[1] = DATA->nx;
+//   nmax[2] = DATA->ny;
+//   nmax[3] = DATA->neta-1;
   
   for(alpha=0; alpha<5; alpha++)
   {
@@ -1606,7 +1625,8 @@ void Advance::MakeKTCurrents(double tau, double **DFmmp, Grid *grid_pt,
 {
  int i, alpha;
  double FiphL[5][4], FiphR[5][4], FimhL[5][4], FimhR[5][4];
- double Fiph[5][4], Fimh[5][4], delta[4];
+ double Fiph[5][4], Fimh[5][4];
+//  double delta[4];
  double aiph[4], aimh[4], tau_fac[4], tempf;
 
  MakeMaxSpeedAs(tau, HalfwayCells, aiph, aimh, rk_flag);
@@ -1704,9 +1724,11 @@ void Advance::MakeMaxSpeedAs(double tau, BdryCells *HalfwayCells, double aiph[],
 double Advance::MaxSpeed (double tau, int direc, Grid *grid_p, int rk_flag)
 {
  double f, den, num;
- double rhob, utau, utau2, ux2, ux, uy, ueta, p, eps, h; 
- double deriv_p_rho, deriv_p_eps, deriv_p_h, rho_p_rho, h_p_h;
- double ut2mux2, ut, pe, rho, rpr;
+ double rhob, utau, utau2, ux2, ux, p, eps, h; 
+//  double  uy, ueta;
+//  double deriv_p_rho, deriv_p_eps, deriv_p_h, rho_p_rho, h_p_h;
+ double ut2mux2, ut, pe, rpr;
+//  double rho;
  
  rhob = grid_p->rhob;
 

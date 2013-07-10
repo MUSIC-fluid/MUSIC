@@ -33,8 +33,11 @@ Evolve::~Evolve()
 int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank)
 {
 /* implement Kurganov-Tadmor */
- int ix, iy, ieta, nx, ny, neta, it, itmax, rk_flag, flag, cent_eta;
- double dt, tau0, tau, x;
+//  int ix, iy, ieta, nx, ny, neta, rk_flag,  cent_eta;
+ int it, itmax;
+//  int flag;
+ double dt, tau0, tau;
+//  double x;
 
  if (DATA->output_hydro_debug_info) {
    ofstream ent_file("entropy-eta.dat");
@@ -123,7 +126,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 
    /* execute rk steps */
   
-   flag = AdvanceRK(tau, DATA, arena, Lneighbor, Rneighbor, size, rank);
+   AdvanceRK(tau, DATA, arena, Lneighbor, Rneighbor, size, rank);
 
    UpdateArena(tau, DATA, arena);
    
@@ -157,6 +160,33 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 //  {
 //   grid->PrintAxy2(DATA, arena, tau);
 //  }
+
+  int rk_order = DATA->rk_order;
+  for(int ix=0; ix<=DATA->nx; ix++) 
+    for(int iy=0; iy<=DATA->ny; iy++)
+      for(int ieta=0; ieta<DATA->neta; ieta++)
+      {
+ 	util->cube_free(arena[ix][iy][ieta].TJb,rk_order+1, 5,4);
+	util->cube_free(arena[ix][iy][ieta].dUsup,rk_order+1, 5,4);
+	util->cube_free(arena[ix][iy][ieta].Wmunu,rk_order+1, 5,4);
+	util->cube_free(arena[ix][iy][ieta].prevWmunu,1, 5,4);
+	util->cube_free(arena[ix][iy][ieta].Pimunu,rk_order+1, 5,4);
+	util->cube_free(arena[ix][iy][ieta].prevPimunu,1, 5,4);
+	util->mtx_free(arena[ix][iy][ieta].u,rk_order+1, 4);
+	util->mtx_free(arena[ix][iy][ieta].a,rk_order+1, 4);
+	util->mtx_free(arena[ix][iy][ieta].prev_u,rk_order+1, 4);
+	util->vector_free(arena[ix][iy][ieta].theta_u);
+	util->vector_free(arena[ix][iy][ieta].pi_b);
+ 	
+	util->mtx_free(arena[ix][iy][ieta].W_prev, 5,4);
+	
+// 	for(int i = 0; i<4; i++) delete arena[ix][iy][ieta].nbr_p_1[i];
+// 	delete arena[ix][iy][ieta].nbr_p_1[0];
+	delete[] arena[ix][iy][ieta].nbr_p_1;
+// 	delete arena[ix][iy][ieta].nbr_m_1[0];
+	delete[] arena[ix][iy][ieta].nbr_m_1;
+      }
+
  
  fprintf(stderr,"SUM=%f\n", SUM);
  return 1; /* successful */
@@ -167,11 +197,12 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 void Evolve::storePreviousEpsilon2(double tau, InitData *DATA, Grid ***arena)
 {
   int ix, iy, ieta, nx, ny, neta;
-  double x, y, eta, tau0;
+//   double x, y, eta;
+//   double tau0;
   nx = DATA->nx;
   ny = DATA->ny;
   neta = DATA->neta;
-  tau0 = DATA->tau0;
+//   tau0 = DATA->tau0;
 
   for(ix=0; ix<=nx; ix++)
     {
@@ -195,11 +226,12 @@ void Evolve::storePreviousEpsilon2(double tau, InitData *DATA, Grid ***arena)
 void Evolve::storePreviousW(double tau, InitData *DATA, Grid ***arena)
 {
   int ix, iy, ieta, nx, ny, neta;
-  double x, y, eta, tau0;
+//   double x, y, eta;
+//   double tau0;
   nx = DATA->nx;
   ny = DATA->ny;
   neta = DATA->neta;
-  tau0 = DATA->tau0;
+//   tau0 = DATA->tau0;
 
   for(ix=0; ix<=nx; ix++)
     {
@@ -225,11 +257,12 @@ void Evolve::storePreviousW(double tau, InitData *DATA, Grid ***arena)
 void Evolve::storePreviousT(double tau, InitData *DATA, Grid ***arena)
 {
   int ix, iy, ieta, nx, ny, neta;
-  double x, y, eta, tau0;
+//   double x, y, eta;
+//   double tau0;
   nx = DATA->nx;
   ny = DATA->ny;
   neta = DATA->neta;
-  tau0 = DATA->tau0;
+//   tau0 = DATA->tau0;
 
   for(ix=0; ix<=nx; ix++)
     {
@@ -246,9 +279,10 @@ void Evolve::storePreviousT(double tau, InitData *DATA, Grid ***arena)
 
 int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
 {
- int rk_flag, ix, iy, ieta, nx, ny, neta, flag, alpha, mu, rk_order, nu;
- double tempd;
- Grid *grid_pt;
+//  int rk_flag, flag, nu;
+ int ix, iy, ieta, nx, ny, neta, alpha, mu, rk_order;
+//  double tempd;
+//  Grid *grid_pt;
  
  nx = DATA->nx;
  ny = DATA->ny;
@@ -328,7 +362,8 @@ int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
 
 int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank)
 {
- int rk_flag, ix, iy, ieta, nx, ny, neta, flag;
+ int rk_flag, flag;
+//  int ix, iy, ieta, nx, ny, neta;
 
 for(rk_flag = 0; rk_flag < DATA->rk_order; rk_flag++)
 {
@@ -361,8 +396,8 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
   FILE *t_file;
   const char* t_name = "tauf.dat";
   t_file = fopen(t_name, "a");
-  char *buf;
-  buf = util->char_malloc(40);
+//   char *buf;
+//   buf = util->char_malloc(40);
 //   FILE *s_file;
 //   char* s_name;
 //   s_name = util->char_malloc(100);
@@ -392,7 +427,8 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
   double DX, DY, DETA, DTAU, SIG;
   double rhob, utau, ux, uy, ueta, TFO, muB, eps_plus_p_over_T_FO;
   double utauX1, utauX2, utauX3, utauX4, utauY1, utauY2, utau1, utau2;
-  double rhobX1, rhobX2, rhobX3, rhobX4, rhobY1, rhobY2, rhob1, rhob2;
+  double rhobX1, rhobX2, rhobX3, rhobX4, rhobY1, rhobY2;
+//   double rhob1, rhob2;
   double uxX1, uxX2, uxX3, uxX4, uxY1, uxY2, ux1, ux2;
   double uyX1, uyX2, uyX3, uyX4, uyY1, uyY2, uy1, uy2;
   double uetaX1, uetaX2, uetaX3, uetaX4, uetaY1, uetaY2, ueta1, ueta2;
@@ -667,7 +703,7 @@ void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int
 	      
    	      TFO = eos->get_temperature(epsFO, rhob);
 	      muB = eos->get_mu(epsFO, rhob);
-		double P=eos->get_pressure(epsFO, rhob);
+// 		double P=eos->get_pressure(epsFO, rhob);
 		eps_plus_p_over_T_FO=(epsFO+eos->get_pressure(epsFO, rhob))/TFO;
 
  
@@ -795,7 +831,8 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
   double cuts[32][4]; // a 4d hypercube has (2^(n-1)*n=32) edges.
   double VLower0, VHigher0, VLower1, VHigher1, VLower2, VHigher2, VLower3, VHigher3;
   double V0, V1, V2, V3, VD0, VD1, VD2, VD3;
-  double VMID[4], AD[32][4], BD[4], CD[4], DD[32][4], SU[32][4], FULLSU[4];
+  double VMID[4], AD[32][4], BD[4], DD[32][4], SU[32][4], FULLSU[4];
+//   double CD[4];
   int NSurfaces;
   int iEdge[32];
   int prevEdge[32];
@@ -804,16 +841,19 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
   int additionalNeighbors[32][6];
   int edge1[32];
   int edge2[32];
-  int is, intersect, IE, JE, IS, KE, i, j, k, MINPTS, JMIN, IPTS, NSE, NSM, M, M2;
-  double DX, DY, DETA, DTAU, APU, SIG;
+  int is, intersect, IE, JE, IS, i, j, k;
+//   int KE, MINPTS, JMIN, IPTS, NSE, NSM, M, M2;
+  double DX, DY, DETA, DTAU;
+//   double APU, SIG;
   int countEdges, skip;
   int previousEdges[32], usedEdges1[32],usedEdges2[32],usedEdges3[32],usedEdges4[32], countAdditionalEdges;
   int fac,l, COUNTER, additionalEdges, temp, m, m2;
   int group[32][3];
-  int tries, tries2, tries3;
+  int tries, tries3;
+//   int tries2;
   int shift;
-  int addCOUNTER;
-  int ISID[32];
+//   int addCOUNTER;
+//   int ISID[32];
   int countSingleEdges;
   int singleConnections[32][2];
   int singleConnectionsUsed[32];
@@ -824,7 +864,8 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
   double WX1, WX2, WX3, WX4, WY1, WY2;
   double rhob, utau, ux, uy, ueta, TFO, muB;
   double utauX1, utauX2, utauX3, utauX4, utauY1, utauY2, utau1, utau2;
-  double rhobX1, rhobX2, rhobX3, rhobX4, rhobY1, rhobY2, rhob1, rhob2;
+  double rhobX1, rhobX2, rhobX3, rhobX4, rhobY1, rhobY2;
+//   double rhob1, rhob2;
   double uxX1, uxX2, uxX3, uxX4, uxY1, uxY2, ux1, ux2;
   double uyX1, uyX2, uyX3, uyX4, uyY1, uyY2, uy1, uy2;
   double uetaX1, uetaX2, uetaX3, uetaX4, uetaY1, uetaY2, ueta1, ueta2;
@@ -2212,7 +2253,7 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
 			      if ( IBIT[IE-1][JE-1]==1 ) 
 				{
 				  IS = IS+1;
-				  ISID[IS-1] = j;
+// 				  ISID[IS-1] = j;
 				  neighbors[i][IS-1]=JE; // determines the neighbors of ith edge (which is iEdge[i])
 				}
 			    }
@@ -2223,7 +2264,7 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
 			      if ( IS<6 && IBIT[IE-1][JE-1]==2 ) 
 				{
 				  IS = IS+1;
-				  ISID[IS-1] = j;
+// 				  ISID[IS-1] = j;
 				  neighbors[i][IS-1]=JE; // determines the neighbors of ith edge (which is iEdge[i])
 				}
 			    }
@@ -2400,7 +2441,7 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
 		      countSingleEdges=1; // just to get started in the while loop at all
 		      shift=0;
 		      //addCOUNTER=0;
-		      tries2=0;
+// 		      tries2=0;
 		   /*    for(j=1; j<=32; j++) */
 /* 			for (k=1; k<j; k++) */
 /* 			  { */
@@ -4503,7 +4544,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
   int nix, niy, nieta;
   double Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta, Wyy, Wyeta, Wetaeta;
   double rhob, utau, ux, uy, ueta, TFO, muB, eps_plus_p_over_T_FO;
-  int shown;
+//   int shown;
   
   fac=1; // Non-unity value does not currently work
   facTau = DATA->facTau;
@@ -4522,7 +4563,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 //   fprintf(stderr,"DX=%f\n", DX);
 //   fprintf(stderr,"DY=%f\n", DY);
 //   fprintf(stderr,"DETA=%f\n", DETA);
-  shown = 0;
+//   shown = 0;
   
   int maxEta;
   
@@ -5343,9 +5384,8 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 // 	    }
 // 	  
 	  
-	  int ret;
-	  ret = system("cat surface?.dat surface??.dat > surface.dat");
-	  ret = system("rm surface?.dat surface??.dat 2> /dev/null");
+	  system("cat surface?.dat surface??.dat > surface.dat");
+	  system("rm surface?.dat surface??.dat 2> /dev/null");
 	  
 // 	  MPI::Finalize();
 //  	  exit(1);

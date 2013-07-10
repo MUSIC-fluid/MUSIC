@@ -8,6 +8,7 @@
 #include "freeze.h"
 #include "evolve.h"
 #include <sys/stat.h>// for mkdir
+// #include "int.h"
 
 using namespace std;
 void ReadInData(InitData *DATA, string file);
@@ -25,8 +26,8 @@ int main(int argc, char *argv[])
  
   string input_file;
   static InitData DATA;
-  int flag;
-  double  tau;
+//   int flag;
+//   double  tau;
 
 
   // you have the option to give a second command line option, which is an integer to be added to the random seed from the current time
@@ -151,8 +152,7 @@ int main(int argc, char *argv[])
       
   if (DATA.mode == 1 || DATA.mode == 2)
     {
-      int ret;
-      ret = system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+      system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
       Glauber *glauber;
       glauber = new Glauber;
       
@@ -174,11 +174,11 @@ int main(int argc, char *argv[])
  
       cout << "size=" << size << endl;
       cout << "rank=" << rank << endl;
-      flag =  evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank); 
+      evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank); 
 
       MPI_Barrier(MPI_COMM_WORLD);
       
-      tau = DATA.tau0 + DATA.tau_size; 
+//       tau = DATA.tau0 + DATA.tau_size; 
      
       if (DATA.output_hydro_debug_info) {
         FILE *t4_file;
@@ -496,20 +496,19 @@ void ReadInData2(InitData *DATA, string file)
     exit(1);
   }
   
+  DATA->useEpsFO = 2; // Must set either freeze out energy density or temperature, otherwise generate error message below.
   
-  //use_eps_for_freeze_out: 
-  // 0: freeze out at constant temperature T_freeze
-  // 1: freeze out at constant energy density epsilon_freeze
-//   DATA->useEpsFO = util->IFind(file, "use_eps_for_freeze_out");
-  int tempuseEpsFO = 1;
-  tempinput = util->StringFind3(file, "use_eps_for_freeze_out");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempuseEpsFO;
-  DATA->useEpsFO = tempuseEpsFO;
-  if(DATA->useEpsFO>1 || DATA->useEpsFO<0) 
-  {
-    cerr << "Invalid option for use_eps_for_freeze_out:" << DATA->useEpsFO << endl;
-    exit(1);
-  }
+  // T_freeze:  freeze out temperature
+  // only used with use_eps_for_freeze_out = 0
+//   DATA->TFO = util->DFind(file, "T_freeze");
+  double tempTFO = 0.12;
+  tempinput = util->StringFind3(file, "T_freeze");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempTFO;
+  DATA->TFO = tempTFO;
+//   if(tempinput != "empty" && DATA->useEpsFO != 0) cerr << "T_freeze unused when use_eps_for_freeze_out set\n";
+  if(tempinput != "empty") DATA->useEpsFO = 0;  // if only freeze out temperature is set, freeze out by temperature
+  int tfoset = 0;
+  if(tempinput != "empty") tfoset = 1;
   
   
   // epsilon_freeze: freeze-out energy density in GeV/fm^3
@@ -524,16 +523,26 @@ void ReadInData2(InitData *DATA, string file)
     cerr << "Freeze out energy density must be greater than zero\n";
     exit(1);
   }
+  if(tempinput != "empty") DATA->useEpsFO = 1; // if epsilon_freeze is set, freeze out by epsilon
   
-  
-  // T_freeze:  freeze out temperature
-  // only used with use_eps_for_freeze_out = 0
-//   DATA->TFO = util->DFind(file, "T_freeze");
-  double tempTFO = 0.12;
-  tempinput = util->StringFind3(file, "T_freeze");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempTFO;
-  DATA->TFO = tempTFO;
-  if(tempinput != "empty" && DATA->useEpsFO != 0) cerr << "T_freeze unused when use_eps_for_freeze_out set\n";
+
+  //use_eps_for_freeze_out: 
+  // 0: freeze out at constant temperature T_freeze
+  // 1: freeze out at constant energy density epsilon_freeze
+  // if set in input file, overide above defaults
+//   DATA->useEpsFO = util->IFind(file, "use_eps_for_freeze_out");
+  int tempuseEpsFO = DATA->useEpsFO;
+  tempinput = util->StringFind3(file, "use_eps_for_freeze_out");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempuseEpsFO;
+  DATA->useEpsFO = tempuseEpsFO;
+  if(DATA->useEpsFO>1 || DATA->useEpsFO<0) 
+  {
+    cerr << "Error: did not set either freeze out energy density or temperature, or invalid option for use_eps_for_freeze_out:" << DATA->useEpsFO << endl;
+    exit(1);
+  }
+  if(tfoset == 1 && DATA->useEpsFO == 1) 
+    cerr << "T_freeze set but overridden -- freezing out by energy density at " 
+    << DATA->epsilonFreeze << " GeV/fm^3\n";
   
   
   
@@ -548,18 +557,23 @@ void ReadInData2(InitData *DATA, string file)
   
   
   // mode: 
-/* X1: (Not functional) Does everything. Evolution. Computation of thermal spectra. Resonance decays. (surface.dat → ../surface3.dat -This part needs to be changed so that mode=1 actually works. The thermal spectrum computation reads in ../surface3.dat, but evolution writes ./surface.dat.)
-Does not work in current version. Always run mode 2 and then mode 3 and 4 separately
+  // 1: Does everything. Evolution. Computation of thermal spectra. Resonance decays. Observables.  Only compatible with freeze_out_method=3 and pseudofreeze=1
   // 2: Evolution only.
   // 3: Compute all thermal spectra only.
   // 4: Resonance decays only.
   // 5: Resonance decays for just one specific particle (only for testing - this will miss the complete chain of decays).
   // 6: only combine charged hadrons - can be used for any postprocessing with the stored results */
 //   DATA->mode = util->IFind(file, "mode"); // 1: do everything; 2: do hydro evolution only; 3: do calculation of thermal spectra only;
-  // 4: do resonance decays only
-  int tempmode = 2;
+  // 13: Compute observables from previously-computed thermal spectra
+  // 14: Compute observables from post-decay spectra
+  int tempmode = 1;
   tempinput = util->StringFind3(file, "mode");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmode;
+  else
+  {
+    cerr << "Must specify mode. Exiting.\n";
+    exit(1);
+  }
 //   if (tempmode == 1) 
 //   {
 //     cerr << "mode=1 not currently functional.  Run each step separately with mode>=2\n";
@@ -578,13 +592,13 @@ Does not work in current version. Always run mode 2 and then mode 3 and 4 separa
   // 5: PCE EOS at 160 MeV
   // 6: PCE EOS at 165 MeV
 //   DATA->whichEOS = util->IFind(file, "EOS_to_use");
-  int tempwhichEOS = 2;
+  int tempwhichEOS = 9;
   tempinput = util->StringFind3(file, "EOS_to_use");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempwhichEOS;
   DATA->whichEOS = tempwhichEOS;
   if(DATA->whichEOS>6 || DATA->whichEOS<0) 
   {
-    cerr << "Invalid option for EOS_to_use:" << DATA->whichEOS << endl;
+    cerr << "EOS_to_use unspecified or invalid option:" << DATA->whichEOS << endl;
     exit(1);
   }
   
@@ -627,7 +641,7 @@ Does not work in current version. Always run mode 2 and then mode 3 and 4 separa
   // The freeze out surface will be subdivided into identical slices in eta with size
   // less than max_delta_eta.
   // Only used with freeze_out_method = 3.
-  double tempmax_delta_eta = 5.;
+  double tempmax_delta_eta = 5.;  // if this is larger than delta_eta, it does nothing
   tempinput = util->StringFind3(file, "max_delta_eta");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_delta_eta;
   DATA->max_delta_eta = tempmax_delta_eta;
@@ -1016,7 +1030,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   
   // Minmod_Theta: theta parameter in the min-mod like limiter
 //   DATA->minmod_theta = util->DFind(file, "Minmod_Theta");
-  double tempminmod_theta   = 1.1;
+  double tempminmod_theta   = 1.8;
   tempinput = util->StringFind3(file, "Minmod_Theta");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempminmod_theta  ;
   DATA->minmod_theta   = tempminmod_theta;
@@ -1221,6 +1235,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind3(file, "check_FO3_at_boundary_xy");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempcheck_FO3_at_boundary_xy;
   DATA->check_FO3_at_boundary_xy = tempcheck_FO3_at_boundary_xy;
+  if(0 < DATA->check_FO3_at_boundary_xy && 3 != DATA->freezeOutMethod) cerr << "check_FO3_at_boundary_xy only used when freeze_out_method = 3.  Ignoring.\n";
 
   //Check if the freeze-out surface ever reaches the edge of the grid in the eta direction
   //Warning: this check is only made when freeze-out method 3 is used! (not implemented for the other freeze-out methods)
@@ -1232,6 +1247,8 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempcheck_FO3_at_boundary_eta;
   if (DATA->boost_invariant > 0) tempcheck_FO3_at_boundary_eta = 0;
   DATA->check_FO3_at_boundary_eta = tempcheck_FO3_at_boundary_eta;
+  if(0 <  DATA->check_FO3_at_boundary_eta && 3 != DATA->freezeOutMethod) cerr << "check_FO3_at_boundary_eta only used when freeze_out_method = 3.  Ignoring.\n";
+
 
   //Make MUSIC output additionnal hydro information
   //0 for false (do not output), 1 for true

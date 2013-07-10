@@ -75,8 +75,8 @@ void Init::InitArena(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid **
 
 void Init::LinkNeighbors(InitData *DATA, Grid ****arena, int size, int rank)
 {
- int ix, iy, ieta, mu, nu, nx, ny, neta;
- int x_nbr, y_nbr, eta_nbr;
+ int ix, iy, ieta, nx, ny, neta;
+//  int x_nbr, y_nbr, eta_nbr, mu, nu,;
 
  nx = DATA->nx;
  ny = DATA->ny;
@@ -182,10 +182,10 @@ void Init::sampleTA()
 
 int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****Rneighbor, int size, int rank)
 {
- double epsilon0, testEpsilon, epsilon, R_A, a_A, p, h, u[4], x, y, eta, rho, volume;
- double cosheta, sinheta, rhob, exparg1, exparg;
+ double epsilon0, epsilon, R_A, a_A, p, u[4], x, y, eta, rho;
+ double rhob, exparg1, exparg;
  double eta0, eta_fall_off, eta_flat, a_short, a_long;
- int ix, iy, ieta, ietar, mu, nu, rk_order;
+ int ix, iy, ieta, mu, nu, rk_order;
  int initializeEntropy = DATA->initializeEntropy;
 
 
@@ -356,7 +356,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
    }
  else if (DATA->Initial_profile==1) //full average initial conditions using Glauber
    {
-     double va, test;
+//      double va, test;
      //va = findRoot(&ssolve, 0., 110., 1.15*0.+0.001,1500.,0.001);
      //fprintf(stderr,"test=%f\n",ssolve(va, 0., 110.));
      //fprintf(stderr,"T(e)=%f\n",interpolate(va, 0., 0));
@@ -366,7 +366,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      double s, r1, r2, W, nBinary, nWounded, W0;
      // impact parameter:
      double b=DATA->b;
-     int i;
+//      int i;
      //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
      double normT = glauber->LexusData.Target.A;
      double normP = glauber->LexusData.Projectile.A;
@@ -653,17 +653,18 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
    }   
  else if (DATA->Initial_profile==2) // this is a test scenario for testing the freeze-out surface algorithms
    {
-     double va, test;
-     va = eos->findRoot(&EOS::ssolve, 0., 110., 1.15*0.+0.001,1500.,0.001);
+//      double va;
+//      double test;
+//      va = eos->findRoot(&EOS::ssolve, 0., 110., 1.15*0.+0.001,1500.,0.001);
      //fprintf(stderr,"test=%f\n",ssolve(va, 0., 110.));
      //fprintf(stderr,"T(e)=%f\n",interpolate(va, 0., 0));
      //fprintf(stderr,"e=%f\n",va);
      //fprintf(stderr,"P=%f\n",interpolate_pressure(va,0.));
      
-     double s, r1, r2, W, nBinary, nWounded, W0;
+//      double s, r1, r2, W, nBinary, nWounded, W0;
      // impact parameter:
-     double b=DATA->b;
-     int i;
+//      double b=DATA->b;
+//      int i;
          //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
      
      // loop over the whole lattice and initialize values:
@@ -801,12 +802,13 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      double norm = 0.2357518037*(0.4/width)*(0.4/width); // norm to get the right average energy density in the center. can be determined bu using option Initial_Profile = 4
      double A;
      double avxBinary, avyBinary;
-     double Z;
+//      double Z;
      double bArray[1];
      double AxArray[300], AyArray[300]; // arrays for sending when using MPI
      double BxArray[300], ByArray[300];
      ReturnValue rv, rv2; //auxiliary nucleons
-     double eccentricity2, Psi2, Psi2a, Psi2b;
+     double eccentricity2, Psi2;
+//      double Psi2a, Psi2b;
      double eccentricity3, Psi3;
      double eccentricity4, Psi4;
      double eccentricity5, Psi5;
@@ -1020,8 +1022,6 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 // -----------------------------------------------------------------
 	 avrSq = 0.;
 	 double avcos = 0.;
-	 double avcosa = 0.;
-	 double avcosb = 0.;
 	 double avsin = 0.;
 	 double avcos3 = 0.;
 	 double avsin3 = 0.;
@@ -1140,9 +1140,9 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 double DeltaL6;
 	 double DeltaL6rn;
 
-	 double randalpha;
+// 	 double randalpha;
 	 int counter=0;
-	 double alpha =0.14;
+// 	 double alpha =0.14;
 	 
        	 for (int i = 0; i<A; i++) 
 	   {
@@ -1797,13 +1797,13 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      //exit(1);
      
      //make a distribution function from the initial positions by putting Gaussians on top of each other
-     double phipart, rpart; // angular coordinates of the participants
-     double va, test;
-     double s, r1, r2, W, nBinary, nWounded, W0;
+//      double phipart, rpart; // angular coordinates of the participants
+//      double va, test;
+     double s, W;
      // impact parameter:
      //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
-     double normT = glauber->LexusData.Target.A;
-     double normP = glauber->LexusData.Projectile.A;
+//      double normT = glauber->LexusData.Target.A;
+//      double normP = glauber->LexusData.Projectile.A;
      // the fraction of the hard (binary collisions) contribution
      double hard;
      hard=DATA->hard;
@@ -1819,7 +1819,6 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	     W = 0.;
 	     WbinColl = 0.;
 	     
-	     int wns=0;
 	     for (int i = 0; i<A; i++) 
 	       {
 		 if (nucleusB.at(i).collided==1)
@@ -2090,24 +2089,25 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      double norm = 0.2357518037;
     
      double A;
-     double Z;
+//      double Z;
      
-     double AxArray[300], AyArray[300];
-     double BxArray[300], ByArray[300];
+//      double AxArray[300], AyArray[300];
+//      double BxArray[300], ByArray[300];
      
-     ReturnValue rv, rv2;
+//      ReturnValue rv, rv2;
      
      double sigma, epsSigma;
-     double a, x, y, xm, ym, dx, dy, dij;
+//      double a;
+     double x, y, xm, ym, dx, dy, dij;
      double b = DATA->b;
 
-     int posx;
-     int posy;
-     int n1=0;
-     int n2=0;
-     int i;
+//      int posx;
+//      int posy;
+//      int n1=0;
+//      int n2=0;
+//      int i;
      double W;     
-     double r = 1.2*pow(glauber->nucleusA(),1./3.);
+//      double r = 1.2*pow(glauber->nucleusA(),1./3.);
      double s;
      double WSq=0.;
      A=glauber->nucleusA();
@@ -2154,20 +2154,21 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 // use positions of wounded nucleons only:
 	 
 	 
-	 double va, test;
-	 double r1, r2, nBinary, nWounded, W0;
+// 	 double va, test;
+// 	 double r1, r2, nBinary, nWounded;
+// 	 double W0;
 	 // impact parameter:
 	 //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
-	 double normT = glauber->LexusData.Target.A;
-	 double normP = glauber->LexusData.Projectile.A;
+// 	 double normT = glauber->LexusData.Target.A;
+// 	 double normP = glauber->LexusData.Projectile.A;
 	 // the fraction of the hard (binary collisions) contribution (will be made a parameter)
-	 double hard;
-	 hard=DATA->hard;
+// 	 double hard;
+// 	 hard=DATA->hard;
 	 
 	 // The value of W at x=y=0 for normalization of W in central collisions:
-	 W0 = hard*(TATarget(DATA, 0.+0./2.)*TAProjectile(DATA, 0.+0./2.)*DATA->SigmaNN/10.)
-	   + (1.-hard)*(TATarget(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, 0.+0./2.)/normP),normP))
-			+ TAProjectile(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, 0.+0./2.)/normT),normT))); 
+// 	 W0 = hard*(TATarget(DATA, 0.+0./2.)*TAProjectile(DATA, 0.+0./2.)*DATA->SigmaNN/10.)
+// 	   + (1.-hard)*(TATarget(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, 0.+0./2.)/normP),normP))
+// 			+ TAProjectile(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, 0.+0./2.)/normT),normT))); 
 	 
 	 // loop over the whole lattice and initialize values:
 	 
@@ -2254,17 +2255,20 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
    }
  else if (DATA->Initial_profile==5) //something like pp
    {
-     double va, test;
-     double s, r1, r2, W, nBinary, nWounded, W0;
+//      double va, test;
+//      double s, nWounded, W0;
+     double W;
+//      double r1, r2;
+//      double nBinary;
      // impact parameter:
-     double b=DATA->b;
-     int i;
+//      double b=DATA->b;
+//      int i;
      //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
-     double normT = glauber->LexusData.Target.A;
-     double normP = glauber->LexusData.Projectile.A;
+//      double normT = glauber->LexusData.Target.A;
+//      double normP = glauber->LexusData.Projectile.A;
      // the fraction of the hard (binary collisions) contribution (will be made a parameter)
-     double hard;
-     hard=DATA->hard;
+//      double hard;
+//      hard=DATA->hard;
 
 
      // loop over the whole lattice and initialize values:
@@ -2275,14 +2279,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	   {
 	     y = DATA->delta_y*(iy*2 - DATA->ny)/2.0;
 	  
-	     // r2 and r1 were used here uninitialized.  Set to zero to avoid compiler error.
-	     r2=0.;
-	     r1=0.;
 	     //number of binary collisions:
-	     nBinary = TAProjectile(DATA, r2)*TATarget(DATA, r1)*DATA->SigmaNN/10.;
+// 	     nBinary = TAProjectile(DATA, r2)*TATarget(DATA, r1)*DATA->SigmaNN/10.;
 	     //number of wounded nucleons:
-	     nWounded = TATarget(DATA, r1)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, r2)/normP),normP))
-	       + TAProjectile(DATA, r2)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, r1)/normT),normT));
+// 	     nWounded = TATarget(DATA, r1)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, r2)/normP),normP))
+// 	       + TAProjectile(DATA, r2)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, r1)/normT),normT));
 	     //distribution in the transverse plane, normalized so that maximum value is 1:
 	     
 	     W = exp(-x*x/(2.*0.25*0.25)-y*y/(2.*0.25*0.25))/(2.*PI*0.25*0.25);
@@ -2425,15 +2426,16 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
    }   
  else if (DATA->Initial_profile==6) //read in the profile from file - work with Ohio group
    {
-    double va, test;
-     double s, r1, r2, W, nBinary, nWounded, W0;
+//     double va, test;
+//      double r1, r2, W, nBinary, nWounded, W0;
+    double s;
      // impact parameter:
-     double b=DATA->b;
-     int i;
-     int bytes_read;
+//      double b=DATA->b;
+//      int i;
+//      int bytes_read;
      string dummy;
      int nx, ny, neta;
-     int y_size, x_size;
+//      int y_size, x_size;
      double dx, dy, deta;
      int ieta2;
      size = DATA->size;
@@ -2479,9 +2481,10 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 //	 sleep(1);
        }
   
-     double density, dummy1, dummy2, dummy3, eta0, x0, y0;
+     double density, dummy1, dummy2, dummy3;
+//      double eta0, x0, y0;
      // loop over the whole lattice and initialize values:
-     //     bytes_read=fscanf(profile,"%s %s %s %s %d %s %d %s %d %s %lf %s %lf %s %lf",
+     //     fscanf(profile,"%s %s %s %s %d %s %d %s %d %s %lf %s %lf %s %lf",
      //		       &dummy,&dummy,&dummy,&dummy,&neta,&dummy,&nx,&dummy,&ny,&dummy,
      //		       &deta,&dummy,&dx,&dummy,&dy);
    
@@ -2500,7 +2503,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	       {
 
 		 profile >> dummy1 >> dummy2 >> dummy3 >> density;
-		 //bytes_read=fscanf(profile,"%lf %lf %lf %lf",&dummy1,&dummy2,&dummy3,&density);
+		 //fscanf(profile,"%lf %lf %lf %lf",&dummy1,&dummy2,&dummy3,&density);
 		 
 		 if (ieta==0 && ix == 0 && iy == 0)
 		   {
@@ -2660,15 +2663,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 
 else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initial conditions
    {
-     double va, test;
-     double s, r1, r2, W, nBinary, nWounded, W0;
+//      double va, test;
+//      double s, r1, r2, W, nBinary, nWounded, W0;
      // impact parameter:
-     double b=DATA->b;
-     int i;
-     int bytes_read;
+//      double b=DATA->b;
+//      int i;
+//      int bytes_read;
      string dummy;
      int nx, ny, neta;
-     int y_size, x_size;
+//      int y_size, x_size;
      double dx, dy, deta;
      int ieta2;
      size = DATA->size;
@@ -2714,7 +2717,8 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 	 //	 sleep(1);
        }
   
-     double density, dummy1, dummy2, dummy3, eta0, x0, y0;
+     double density, dummy1, dummy2, dummy3;
+//      double eta0, x0, y0;
      // loop over the whole lattice and initialize values:
      //     bytes_read=fscanf(profile,"%s %s %s %s %d %s %d %s %d %s %lf %s %lf %s %lf",
      //		       &dummy,&dummy,&dummy,&dummy,&neta,&dummy,&nx,&dummy,&ny,&dummy,

@@ -6,7 +6,7 @@ using namespace std;
 Grid *Grid::grid_v_malloc(int n1)
 {
   Grid *d1_ptr;
-  int i;
+//   int i;
   
   /* pointer to the n1 array */
   d1_ptr = new Grid[n1];
@@ -18,7 +18,8 @@ Grid *Grid::grid_v_malloc(int n1)
 
 Grid **Grid::grid_m_malloc(int n1, int n2)
 {
-    int i, j;
+    int i;
+//     int j;
     Grid **d1_ptr, *tmp_ptr;
 
     tmp_ptr = (Grid *)malloc(sizeof(Grid)*n1*n2);
@@ -35,8 +36,10 @@ return d1_ptr;
 
 Grid ***Grid::grid_c_malloc(int n1, int n2, int n3)
 {
-    int i,j,k,inc;
-    Grid ***d1_ptr, *tmp_ptr;
+    int i,j;
+//     int k,inc;
+    Grid ***d1_ptr;
+//     Grid *tmp_ptr;
 
     d1_ptr = new Grid **[n1];
 
@@ -215,8 +218,10 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
       out_file = fopen(out_name, "a");
 //       fprintf(out_file,"");
       int iz, nz;
-      double T, x, y, z, eta, delta_z, z_size, eps, etafrac;
-      double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
+      double T, z, eta, delta_z, z_size, eps, etafrac;
+//       double x, y;
+      double ux, uy, ueta, utau, rhob, QGPfrac;
+//       double epsilon;
       double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher;
       double utau_lower, utau_higher, ux_lower, ux_higher, uy_lower, uy_higher, ueta_lower, ueta_higher, u0, uz;
       nz = 160;
@@ -234,10 +239,10 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 	  
 	  for(iy=DATA->ny/2; iy<DATA->ny; iy++) // only do positive y
 	    {
-	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
+// 	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
 	      for(ix=DATA->nx/2; ix<DATA->nx; ix++) // only do positive x
 		{
-		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
+// 		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
 		  eps_lower = epsFrom[ix][iy][ieta];
 		  rhob_lower = rhobFrom[ix][iy][ieta];
 		  utau_lower = utauFrom[ix][iy][ieta];
@@ -675,7 +680,8 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
       //and save at these points vx, vy, and vz. -CFY 11/16/2010
       double T1, u01, ux1, uy1, uz1, ueta1, utau1, epsilon1, rhob1, QGPfrac1;
       double eta;
-      double entropy, pressure; // added by Maxime
+//       double entropy; // added by Maxime
+//       double pressure; // added by Maxime
       double Wtt, Wtx, Wty, Wtz, Wzz, Wxz, Wyz; // added by Maxime
 //      double Ttt, Ttx, Tty, Ttz, Tzz, Txz, Tyz; // added by Maxime
       double Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta, Wyy, Wyeta, Wetaeta; // added by Maxime
@@ -705,7 +711,7 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 	
 		T1=eos->get_temperature(epsilon1,rhob1);
 		QGPfrac1=eos->get_qgp_frac(epsilon1,rhob1);
-		entropy=eos->get_entropy(epsilon1, rhob1);
+// 		entropy=eos->get_entropy(epsilon1, rhob1);
 //		if(T > 0.12)
 //		{
                   div_factor=(epsilon1+pressure1);
@@ -975,11 +981,15 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
       const char* out_name = "OSCAR.dat";
       out_file = fopen(out_name, "a");
 //       fprintf(out_file,"");
-      int iz, nz;
-      double T, x, y, z, eta, delta_z, z_size, eps, etafrac;
-      double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
-      double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher;
-      double utau_lower, utau_higher, ux_lower, ux_higher, uy_lower, uy_higher, ueta_lower, ueta_higher, u0, uz;
+//       int iz, nz;
+      double T, eta, eps;
+//       double z, delta_z, z_size, etafrac;
+//       double x, y;
+      double ux, uy, ueta, utau, rhob, QGPfrac;
+//       double epsilon;
+//       double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher;
+//       double utau_lower, utau_higher, ux_lower, ux_higher, uy_lower, uy_higher, ueta_lower, ueta_higher; 
+      double u0, uz;
       for(ieta=0; ieta<neta; ieta++)
 	{
 	  // get temperature value and others by interpolation
@@ -992,10 +1002,10 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
 	  
 	  for(iy=0; iy<DATA->ny; iy++)
 	    {
-	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
+// 	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
 	      for(ix=0; ix<DATA->nx; ix++)
 		{
-		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
+// 		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
 		  eps = epsFrom[ix][iy][ieta];
 		  rhob = rhobFrom[ix][iy][ieta];
 		  utau = utauFrom[ix][iy][ieta];
@@ -1177,8 +1187,10 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
       out_file = fopen(out_name, "a");
 //       fprintf(out_file,"");
       int iz, nz;
-      double T, x, y, z, eta, delta_z, z_size, eps, etafrac;
-      double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
+      double T, z, eta, delta_z, z_size, eps, etafrac;
+//       double x, y;
+      double ux, uy, ueta, utau, rhob, QGPfrac;
+//       double epsilon;
       double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher;
       double utau_lower, utau_higher, ux_lower, ux_higher, uy_lower, uy_higher, ueta_lower, ueta_higher, u0, uz;
       nz = 160;
@@ -1196,10 +1208,10 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 	  
 	  for(iy=0; iy<DATA->ny; iy++) // do all y
 	    {
-	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
+// 	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
 	      for(ix=0; ix<DATA->nx; ix++) // do all x
 		{
-		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
+// 		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
 		  eps_lower = epsFrom[ix][iy][ieta];
 		  rhob_lower = rhobFrom[ix][iy][ieta];
 		  utau_lower = utauFrom[ix][iy][ieta];
@@ -1382,10 +1394,14 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
       string out_name2 = "plasmaEvolutionTime.dat";
       out_file2.open(out_name2.c_str(), ios::out | ios::app );
 
-      int iz, nCells=0, nCells2=0;
-      double T, totalT=0, totalT2=0, x, y, z, eta, delta_z, z_size, eps, etafrac;
-      double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
-      double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher;
+//       int iz;
+      int nCells=0, nCells2=0;
+//       double x, y, z, eta, delta_z, z_size, etafrac;
+      double T, eps;
+      double totalT=0, totalT2=0;
+//       double ux, uy, ueta, utau, epsilon;
+      double rhob, QGPfrac;
+//       double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher;
       for(ieta=0; ieta<neta; ieta++)
 	{
 	  for(iy=0; iy<DATA->ny; iy++) // do all y
@@ -1448,8 +1464,8 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
       util->cube_free(rhobFrom,nx+1,ny+1,size*neta);
     }
 
-  delete [] eps;
-  delete [] rhob;
+//   delete [] eps;
+//   delete [] rhob;
   delete(util);
   
 }/* OutputEvolutionDataXYZ */
@@ -1628,8 +1644,9 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
       const char* ecc_name = "eccentricity.dat";
       ecc_file = fopen(ecc_name, "a");
       
-      double value, rA, epsp;
-      double numerator, denominator;
+//       double value, epsp;
+      double rA;
+//       double numerator, denominator;
       double avcos, avsin, avcos3, avsin3;
       double Psi2, phiA, Psi3, avrSq, avr3;
       double eccentricity2, eccentricity3;
@@ -1647,9 +1664,12 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
       out_file_2 = fopen(out_name_2, "a");
 //       fprintf(out_file_2,"");
       int iz, nz;
-      double trouble,trouble_lower,trouble_higher,T, x, y, z, eta, delta_z, z_size, eps, Txx, Tyy, Txy,etafrac;
+//       double trouble_lower;
+      double T, x, y, z, eta, delta_z, z_size, eps, Txx, Tyy, Txy,etafrac;
+//       double trouble, trouble_higher;
       //double corr_lower, corr_higher;
-      double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
+      double ux, uy, ueta, utau, rhob, QGPfrac;
+//       double epsilon;
       double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher, Txx_lower, Txx_higher, Tyy_lower, Tyy_higher, Txy_lower, Txy_higher;
       double utau_lower, utau_higher, ux_lower, ux_higher, uy_lower, uy_higher, ueta_lower, ueta_higher, u0, uz;
       nz = 80;
@@ -1674,7 +1694,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	  for(ix=0; ix<DATA->nx; ix++)
 	    {
 	      x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
-	      trouble = troubleFrom[ix][iy][ieta];
+// 	      trouble = troubleFrom[ix][iy][ieta];
 	      //corr_lower = corrFrom[ix][iy][ieta];
 	      eps_lower = epsFrom[ix][iy][ieta];
 	      Txx_lower = TxxFrom[ix][iy][ieta];
@@ -1689,7 +1709,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	      if (ieta+1 < DATA->neta*size)
 		{
 		  eps_higher = epsFrom[ix][iy][ieta+1];
-		  trouble_higher = troubleFrom[ix][iy][ieta+1];
+// 		  trouble_higher = troubleFrom[ix][iy][ieta+1];
 		  //corr_higher = corrFrom[ix][iy][ieta+1];
 		  Txx_higher = TxxFrom[ix][iy][ieta+1];
 		  Tyy_higher = TyyFrom[ix][iy][ieta+1];
@@ -1763,8 +1783,8 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
       fclose(out_file);
 
       // compute and print eccentricity and angles:
-      numerator = 0.;
-      denominator = 0.;
+//       numerator = 0.;
+//       denominator = 0.;
       avcos = 0.;
       avsin = 0.;
       avcos3 = 0.;
@@ -2008,8 +2028,10 @@ void Grid::PrintArena(Grid ***arena, InitData *DATA, double tau)
 void Grid::PrintEtaEpsilon(Grid ***arena, InitData *DATA, double tau, int size, int rank)
 {
  int ix, iy, ieta;
- double x, y, eta;
- double ux, uy, ueta, utau, epsilon, rhob;
+//  double x, y;
+ double eta;
+//  double ux, uy, ueta, utau, rhob;
+ double epsilon;
  string d_name;
  ofstream d_file;
 
@@ -2017,8 +2039,8 @@ void Grid::PrintEtaEpsilon(Grid ***arena, InitData *DATA, double tau, int size, 
  else d_name = "e_profile2.dat";
  d_file.open(d_name.c_str(), ios::out | ios::app );
 
- x=0.;
- y=0.;
+//  x=0.;
+//  y=0.;
  ix = floor(DATA->x_size/2/DATA->delta_x);
  iy = floor(DATA->y_size/2/DATA->delta_y);
 
@@ -2037,8 +2059,9 @@ void Grid::PrintEtaEpsilon(Grid ***arena, InitData *DATA, double tau, int size, 
 void Grid::PrintxEpsilon(Grid ***arena, InitData *DATA, double tau, int size, int rank)
 {
  int ix, iy, ieta;
- double x, y, eta;
- double ux, uy, ueta, utau, epsilon, rhob;
+ double x, y;
+//  double ux, uy, ueta, utau, rhob, eta;
+ double epsilon;
  if(size==1 || (size==2 && rank==1))
    {
      string d_name;
@@ -2082,7 +2105,8 @@ void Grid::PrintxEpsilon(Grid ***arena, InitData *DATA, double tau, int size, in
 
 void Grid::PrintGrid(Grid *grid_p, int rk_order)
 {
- int r, m,n,i,j,a;
+ int r, i, a;
+//  int m, n, j;
 
  fprintf(stderr, "\nStarting PrintGrid...\n");
  fprintf(stderr, "TJb\n");
@@ -2198,7 +2222,8 @@ void Grid::ComputeAnisotropy(InitData *DATA, Grid ***arena, double tau)
   d_file.open(d_name.c_str(), ios::out | ios::app );
   
   int ix, iy, ieta;
-  double v2, x, y, epsp;
+  double v2;
+//   double x, y, epsp;
   double numerator, denominator;
   numerator = 0.;
   denominator = 0.;
@@ -2206,10 +2231,10 @@ void Grid::ComputeAnisotropy(InitData *DATA, Grid ***arena, double tau)
   ieta = DATA->neta/2;
   for(ix=0; ix<=DATA->nx; ix++)
     {
-      x = ix*(DATA->delta_x) - (DATA->x_size/2.0);  
+//       x = ix*(DATA->delta_x) - (DATA->x_size/2.0);  
       for(iy=0; iy<=DATA->ny; iy++)
 	{
-	  y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
+// 	  y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
 	  numerator += (arena[ix][iy][ieta].TJb[0][1][1]-arena[ix][iy][ieta].TJb[0][2][2]);
 	  denominator += (arena[ix][iy][ieta].TJb[0][1][1]+arena[ix][iy][ieta].TJb[0][2][2]);
 	}
@@ -2227,7 +2252,8 @@ void Grid::ComputeEccentricity(InitData *DATA, Grid ***arena, double tau)
   ecc_file = fopen(ecc_name, "a");
   
   int ix, iy, ieta;
-  double value, x, y, epsp;
+  double value, x, y;
+//   double epsp;
   double numerator, denominator;
   numerator = 0.;
   denominator = 0.;
@@ -2257,11 +2283,12 @@ void Grid::ComputeEnergyConservation(InitData *DATA, Grid ***arena, double tau)
   ecc_file = fopen(ecc_name, "a");
   
   int ix, iy, ieta;
-  double value, x, y, epsp, eta;
-  double TtautauPart, TetaetaPart, TetaetaPrev;
+  double value;
+//   double x, y, epsp, eta;
+  double TtautauPart, TetaetaPart;//, TetaetaPrev;
   TtautauPart = 0.;
   TetaetaPart = 0.;
-  TetaetaPrev = 0.;
+//   TetaetaPrev = 0.;
   
   for(ieta=0; ieta<DATA->neta; ieta++)
     {
@@ -2342,8 +2369,10 @@ void Grid::ComputeEnergyConservation(InitData *DATA, Grid ***arena, double tau)
 
 void Grid::PrintdEdEta(InitData *DATA, Grid ***arena)
 {
- int ix, iy, ieta, i;
- double eta, f, g, h, l, k, x, y;
+ int ix, iy, ieta;
+//  int i;
+ double eta, f, g, h, l, k;
+//  double x, y;
 
  ix = DATA->nx/2; 
  iy = DATA->ny/2; 

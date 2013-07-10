@@ -36,14 +36,8 @@ util.o main.o freeze_pseudo.o
  
 CXX= mpic++
 
-# -Wall shows all compiler warnings, and can help spot problems when developing code.
-#  Unfortunately, there are currently a large number of warnings that cannot be easily parsed.
-#  Lots of variables are declared, but never used.  Can suppress these warnings with no-unused-variable.
-#  Newer compilers have a separate warning unused-but-set-variable that can be suppressed.
-#  Unfortunately, old versions of gcc do not recognize this and will not compile if -Wno-unused-but-set-variable is set.
-#  In this case, remove the option from the following:
-#  
-CXXFLAGS= -Wall -Wno-unused-variable -Wno-unused-but-set-variable
+# -Wall shows all compiler warnings, and can help spot problems when developing code. 
+CXXFLAGS= -Wall -g3
 LIBS= -L/software/libraries/GSL/1.15/lib -lm -lgsl -lgslcblas
 COMMAND=  mpihydro
  
@@ -79,7 +73,7 @@ glauber.o : glauber.cpp util.h glauber.h data.h random.h
 
 freeze.o : freeze.cpp data.h eos.h grid.h util.h freeze.h int.h
 
-freeze_pseudo.o : freeze_pseudo.cpp data.h eos.h grid.h util.h freeze.h int.h
+freeze_pseudo.o : freeze_pseudo.cpp data.h eos.h grid.h util.h freeze.h
 
 main.o : main.cpp data.h eos.h evolve.h grid.h init.h util.h glauber.h random.h reconst.h advance.h u_derivative.h
 
