@@ -217,6 +217,7 @@ void Evolve::storePreviousEpsilon2(double tau, InitData *DATA, Grid ***arena)
 	      arena[ix][iy][ieta].u_prev[2]=arena[ix][iy][ieta].u[0][2];
 	      arena[ix][iy][ieta].u_prev[3]=arena[ix][iy][ieta].u[0][3];
 	      arena[ix][iy][ieta].rhob_prev=arena[ix][iy][ieta].rhob;
+	      arena[ix][iy][ieta].pi_b_prev=arena[ix][iy][ieta].pi_b[0];
 	    }
 	}
     }
@@ -4544,6 +4545,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
   int nix, niy, nieta;
   double Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta, Wyy, Wyeta, Wetaeta;
   double rhob, utau, ux, uy, ueta, TFO, muB, eps_plus_p_over_T_FO;
+  double pi_b; // bulk
 //   int shown;
   
   fac=1; // Non-unity value does not currently work
@@ -4578,6 +4580,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
   double *packageuy;
   double *packageueta;
   double *packagerhob;
+  double *packagePi_b;
 
   double **Rneighbor_eps;
 //  double **Rneighbor_utau;
@@ -4585,6 +4588,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
   double **Rneighbor_uy;
   double **Rneighbor_ueta;
   double **Rneighbor_rhob;
+  double **Rneighbor_Pi_b;
  
 //  double *packageWtautau;
 //  double *packageWtaux;
@@ -4614,6 +4618,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
   packageuy = new double[sizeOfData];
   packageueta = new double[sizeOfData];
   packagerhob = new double[sizeOfData];
+  packagePi_b = new double[sizeOfData];
 
 //  packageWtautau = new double[sizeOfData];
 //  packageWtaux = new double[sizeOfData];
@@ -4632,6 +4637,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
   Rneighbor_uy = util->mtx_malloc(nx+1,ny+1);
   Rneighbor_ueta = util->mtx_malloc(nx+1,ny+1);
   Rneighbor_rhob = util->mtx_malloc(nx+1,ny+1);
+  Rneighbor_Pi_b = util->mtx_malloc(nx+1,ny+1);
  
 //  Rneighbor_Wtautau = util->mtx_malloc(nx+1,ny+1);
 //  Rneighbor_Wtaux = util->mtx_malloc(nx+1,ny+1);
@@ -4666,18 +4672,21 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 	      packageux[position] = arena[ix][iy][0].u[0][1];
 	      packageuy[position] = arena[ix][iy][0].u[0][2];
 	      packageueta[position] = arena[ix][iy][0].u[0][3];
-	      packagerhob[position] = arena[ix][iy][0].rhob;
-	      
-//	      packageWtautau[position] = arena[ix][iy][0].Wmunu[0][0][0];
-//	      packageWtaux[position] = arena[ix][iy][0].Wmunu[0][0][1];
-//	      packageWtauy[position] = arena[ix][iy][0].Wmunu[0][0][2];
-//	      packageWtaueta[position] = arena[ix][iy][0].Wmunu[0][0][3];
-	      packageWxx[position] = arena[ix][iy][0].Wmunu[0][1][1];
-	      packageWxy[position] = arena[ix][iy][0].Wmunu[0][1][2];
-	      packageWxeta[position] = arena[ix][iy][0].Wmunu[0][1][3];
-	      packageWyy[position] = arena[ix][iy][0].Wmunu[0][2][2];
-	      packageWyeta[position] = arena[ix][iy][0].Wmunu[0][2][3];
-//	      packageWetaeta[position] = arena[ix][iy][0].Wmunu[0][3][3];
+	      if(DATA->turn_on_rhob) packagerhob[position] = arena[ix][iy][0].rhob;
+	      if(DATA->turn_on_bulk) packagePi_b[position] = arena[ix][iy][0].pi_b[0];
+	      if(DATA->turn_on_shear) 
+	      {
+  //	      packageWtautau[position] = arena[ix][iy][0].Wmunu[0][0][0];
+  //	      packageWtaux[position] = arena[ix][iy][0].Wmunu[0][0][1];
+  //	      packageWtauy[position] = arena[ix][iy][0].Wmunu[0][0][2];
+  //	      packageWtaueta[position] = arena[ix][iy][0].Wmunu[0][0][3];
+		packageWxx[position] = arena[ix][iy][0].Wmunu[0][1][1];
+		packageWxy[position] = arena[ix][iy][0].Wmunu[0][1][2];
+		packageWxeta[position] = arena[ix][iy][0].Wmunu[0][1][3];
+		packageWyy[position] = arena[ix][iy][0].Wmunu[0][2][2];
+		packageWyeta[position] = arena[ix][iy][0].Wmunu[0][2][3];
+  //	      packageWetaeta[position] = arena[ix][iy][0].Wmunu[0][3][3];
+	      }
 	      
       
       
@@ -4688,17 +4697,21 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
       MPI::COMM_WORLD.Send(packageux,sizeOfData,MPI::DOUBLE,to,4);
       MPI::COMM_WORLD.Send(packageuy,sizeOfData,MPI::DOUBLE,to,5);
       MPI::COMM_WORLD.Send(packageueta,sizeOfData,MPI::DOUBLE,to,6);
-      MPI::COMM_WORLD.Send(packagerhob,sizeOfData,MPI::DOUBLE,to,7);
-//      MPI::COMM_WORLD.Send(packageWtautau,sizeOfData,MPI::DOUBLE,to,12);
-//      MPI::COMM_WORLD.Send(packageWtaux,sizeOfData,MPI::DOUBLE,to,13);
-//      MPI::COMM_WORLD.Send(packageWtauy,sizeOfData,MPI::DOUBLE,to,14);
-//      MPI::COMM_WORLD.Send(packageWtaueta,sizeOfData,MPI::DOUBLE,to,15);
-      MPI::COMM_WORLD.Send(packageWxx,sizeOfData,MPI::DOUBLE,to,16);
-      MPI::COMM_WORLD.Send(packageWxy,sizeOfData,MPI::DOUBLE,to,17);
-      MPI::COMM_WORLD.Send(packageWxeta,sizeOfData,MPI::DOUBLE,to,18);
-      MPI::COMM_WORLD.Send(packageWyy,sizeOfData,MPI::DOUBLE,to,19);
-      MPI::COMM_WORLD.Send(packageWyeta,sizeOfData,MPI::DOUBLE,to,20);
- //     MPI::COMM_WORLD.Send(packageWetaeta,sizeOfData,MPI::DOUBLE,to,21);
+      if(DATA->turn_on_rhob) MPI::COMM_WORLD.Send(packagerhob,sizeOfData,MPI::DOUBLE,to,7);
+      if(DATA->turn_on_bulk) MPI::COMM_WORLD.Send(packagePi_b,sizeOfData,MPI::DOUBLE,to,8);
+      if(DATA->turn_on_shear) 
+      {
+  //      MPI::COMM_WORLD.Send(packageWtautau,sizeOfData,MPI::DOUBLE,to,12);
+  //      MPI::COMM_WORLD.Send(packageWtaux,sizeOfData,MPI::DOUBLE,to,13);
+  //      MPI::COMM_WORLD.Send(packageWtauy,sizeOfData,MPI::DOUBLE,to,14);
+  //      MPI::COMM_WORLD.Send(packageWtaueta,sizeOfData,MPI::DOUBLE,to,15);
+	MPI::COMM_WORLD.Send(packageWxx,sizeOfData,MPI::DOUBLE,to,16);
+	MPI::COMM_WORLD.Send(packageWxy,sizeOfData,MPI::DOUBLE,to,17);
+	MPI::COMM_WORLD.Send(packageWxeta,sizeOfData,MPI::DOUBLE,to,18);
+	MPI::COMM_WORLD.Send(packageWyy,sizeOfData,MPI::DOUBLE,to,19);
+	MPI::COMM_WORLD.Send(packageWyeta,sizeOfData,MPI::DOUBLE,to,20);
+  //     MPI::COMM_WORLD.Send(packageWetaeta,sizeOfData,MPI::DOUBLE,to,21);
+      }
         //cout << " done sending to the left on rank " << rank << endl;
     }
   // receiving and unwrapping the package
@@ -4709,17 +4722,21 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
       MPI::COMM_WORLD.Recv(packageux,sizeOfData,MPI::DOUBLE,from,4);
       MPI::COMM_WORLD.Recv(packageuy,sizeOfData,MPI::DOUBLE,from,5);
       MPI::COMM_WORLD.Recv(packageueta,sizeOfData,MPI::DOUBLE,from,6);
-      MPI::COMM_WORLD.Recv(packagerhob,sizeOfData,MPI::DOUBLE,from,7);
-//      MPI::COMM_WORLD.Recv(packageWtautau,sizeOfData,MPI::DOUBLE,from,12);
-//      MPI::COMM_WORLD.Recv(packageWtaux,sizeOfData,MPI::DOUBLE,from,13);
-//      MPI::COMM_WORLD.Recv(packageWtauy,sizeOfData,MPI::DOUBLE,from,14);
-//      MPI::COMM_WORLD.Recv(packageWtaueta,sizeOfData,MPI::DOUBLE,from,15);
-      MPI::COMM_WORLD.Recv(packageWxx,sizeOfData,MPI::DOUBLE,from,16);
-      MPI::COMM_WORLD.Recv(packageWxy,sizeOfData,MPI::DOUBLE,from,17);
-      MPI::COMM_WORLD.Recv(packageWxeta,sizeOfData,MPI::DOUBLE,from,18);
-      MPI::COMM_WORLD.Recv(packageWyy,sizeOfData,MPI::DOUBLE,from,19);
-      MPI::COMM_WORLD.Recv(packageWyeta,sizeOfData,MPI::DOUBLE,from,20);
-//      MPI::COMM_WORLD.Recv(packageWetaeta,sizeOfData,MPI::DOUBLE,from,21);
+      if(DATA->turn_on_rhob) MPI::COMM_WORLD.Recv(packagerhob,sizeOfData,MPI::DOUBLE,from,7);
+      if(DATA->turn_on_bulk) MPI::COMM_WORLD.Recv(packagePi_b,sizeOfData,MPI::DOUBLE,from,8);
+      if(DATA->turn_on_shear) 
+      {
+  //      MPI::COMM_WORLD.Recv(packageWtautau,sizeOfData,MPI::DOUBLE,from,12);
+  //      MPI::COMM_WORLD.Recv(packageWtaux,sizeOfData,MPI::DOUBLE,from,13);
+  //      MPI::COMM_WORLD.Recv(packageWtauy,sizeOfData,MPI::DOUBLE,from,14);
+  //      MPI::COMM_WORLD.Recv(packageWtaueta,sizeOfData,MPI::DOUBLE,from,15);
+	MPI::COMM_WORLD.Recv(packageWxx,sizeOfData,MPI::DOUBLE,from,16);
+	MPI::COMM_WORLD.Recv(packageWxy,sizeOfData,MPI::DOUBLE,from,17);
+	MPI::COMM_WORLD.Recv(packageWxeta,sizeOfData,MPI::DOUBLE,from,18);
+	MPI::COMM_WORLD.Recv(packageWyy,sizeOfData,MPI::DOUBLE,from,19);
+	MPI::COMM_WORLD.Recv(packageWyeta,sizeOfData,MPI::DOUBLE,from,20);
+  //      MPI::COMM_WORLD.Recv(packageWetaeta,sizeOfData,MPI::DOUBLE,from,21);
+      }
       //cout << " receiving from the right on rank " << rank << endl;
       for(ix=0; ix<=nx; ix++)
 	{
@@ -4733,17 +4750,31 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 	      Rneighbor_ux[ix][iy] = packageux[position];
 	      Rneighbor_uy[ix][iy] = packageuy[position];
 	      Rneighbor_ueta[ix][iy] = packageueta[position];
-	      Rneighbor_rhob[ix][iy] = packagerhob[position];
-//	      Rneighbor_Wtautau[ix][iy] = packageWtautau[position];
-//	      Rneighbor_Wtaux[ix][iy] = packageWtaux[position];
-//	      Rneighbor_Wtauy[ix][iy] = packageWtauy[position];
-//	      Rneighbor_Wtaueta[ix][iy] = packageWtaueta[position];
-	      Rneighbor_Wxx[ix][iy] = packageWxx[position];
-	      Rneighbor_Wxy[ix][iy] = packageWxy[position];
-	      Rneighbor_Wxeta[ix][iy] = packageWxeta[position];
-	      Rneighbor_Wyy[ix][iy] = packageWyy[position];
-	      Rneighbor_Wyeta[ix][iy] = packageWyeta[position];
-//	      Rneighbor_Wetaeta[ix][iy] = packageWetaeta[position];
+	      if(DATA->turn_on_rhob) Rneighbor_rhob[ix][iy] = packagerhob[position];
+	      else Rneighbor_rhob[ix][iy] = 0.;
+	      if(DATA->turn_on_rhob) Rneighbor_Pi_b[ix][iy] = packagePi_b[position];
+	      else Rneighbor_Pi_b[ix][iy] = 0.;
+	      if(DATA->turn_on_shear) 
+	      {
+  //	      Rneighbor_Wtautau[ix][iy] = packageWtautau[position];
+  //	      Rneighbor_Wtaux[ix][iy] = packageWtaux[position];
+  //	      Rneighbor_Wtauy[ix][iy] = packageWtauy[position];
+  //	      Rneighbor_Wtaueta[ix][iy] = packageWtaueta[position];
+		Rneighbor_Wxx[ix][iy] = packageWxx[position];
+		Rneighbor_Wxy[ix][iy] = packageWxy[position];
+		Rneighbor_Wxeta[ix][iy] = packageWxeta[position];
+		Rneighbor_Wyy[ix][iy] = packageWyy[position];
+		Rneighbor_Wyeta[ix][iy] = packageWyeta[position];
+  //	      Rneighbor_Wetaeta[ix][iy] = packageWetaeta[position];
+	      }
+	      else
+	      {
+		Rneighbor_Wxx[ix][iy] = 0.;
+		Rneighbor_Wxy[ix][iy] = 0.;
+		Rneighbor_Wxeta[ix][iy] = 0.;
+		Rneighbor_Wyy[ix][iy] = 0.;
+		Rneighbor_Wyeta[ix][iy] = 0.;
+	      }
 	    }
 	}
       //cout << " done receiving from the right on rank " << rank << endl;
@@ -4819,6 +4850,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
 		  iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[nix][niy][nieta].epsilon);
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
+		  pi_b = 0.5*(arena[ix][iy][ieta].pi_b[0] + arena[nix][niy][nieta].pi_b[0]);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
 		  eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
@@ -4848,7 +4880,9 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 			  << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
 			  << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
 			  << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
-			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;  
+			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
+		    if(DATA->turn_on_bulk) s_file << " " << pi_b;
+		    s_file << endl;  
 		  }
 		  if(DATA->boost_invariant && (eta==0.0))
 		  {
@@ -4914,6 +4948,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
 		  iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[nix][niy][nieta].epsilon);
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
+		  pi_b = 0.5*(arena[ix][iy][ieta].pi_b[0] + arena[nix][niy][nieta].pi_b[0]);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
 		  eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
@@ -4943,7 +4978,9 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 			  << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
 			  << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
 			  << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
-			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;  
+			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
+		    if(DATA->turn_on_bulk) s_file << " " << pi_b;
+		    s_file << endl; 
 		  }
 		  if(DATA->boost_invariant && (eta==0.0))
 		  {
@@ -5009,6 +5046,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
 		  iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[nix][niy][nieta].epsilon);
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
+		  pi_b = 0.5*(arena[ix][iy][ieta].pi_b[0] + arena[nix][niy][nieta].pi_b[0]);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
 		  eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
@@ -5034,7 +5072,9 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 			 << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
 			 << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
 			 << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
-			 << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;
+			 << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
+		  if(DATA->turn_on_bulk) s_file << " " << pi_b;
+		  s_file << endl; 
 			 
 		  if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
 		  {
@@ -5096,6 +5136,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		  //I don't seem to have accesss to value of rhob from previous timestep.  Use value at current timestep.
 // 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob_prev);
+		  pi_b = 0.5*(arena[ix][iy][ieta].pi_b[0] + arena[nix][niy][nieta].pi_b_prev);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
 		  eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
@@ -5125,7 +5166,9 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 			  << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
 			  << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
 			  << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
-			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;  
+			  << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
+		    if(DATA->turn_on_bulk) s_file << " " << pi_b;
+		    s_file << endl; 
 		  }
 		  if(DATA->boost_invariant && (eta==0.0))
 		  {
@@ -5221,6 +5264,7 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 		  utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
 		  iepsFO = 0.5*(arena[ix][iy][nieta].epsilon + Rneighbor_eps[nix][niy]);
 		  rhob = 0.5*(Rneighbor_rhob[ix][iy] + arena[nix][niy][nieta].rhob);
+		  pi_b = 0.5*(Rneighbor_Pi_b[ix][iy] + arena[nix][niy][nieta].pi_b[0]);
 		  TFO = eos->get_temperature(iepsFO, rhob);
 		  muB = eos->get_mu(iepsFO, rhob);
 		  eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
@@ -5246,7 +5290,9 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 			 << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
 			 << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
 			 << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
-			 << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta << endl;
+			 << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
+		  if(DATA->turn_on_bulk) s_file << " " << pi_b;
+		  s_file << endl; 
 		}// if grid pair straddles freeze out density
 
 	  }// if (rank != size-1)
