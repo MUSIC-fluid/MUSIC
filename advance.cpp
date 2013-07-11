@@ -800,7 +800,7 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
 {
  int mu, nu;
  double rho_shear, rho_bulk, factor, pisize, bulksize;
- int revert_flag=0;
+//  int revert_flag=0;
  
  rho_shear = 0.;
  rho_bulk = 0.;

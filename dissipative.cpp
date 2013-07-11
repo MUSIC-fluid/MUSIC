@@ -217,7 +217,8 @@ else if(rk_flag > 0)
 
 double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *DATA, int rk_flag)
 {
- double tempf, tempg, temps, tau_pi;
+ double tempf, tau_pi;
+//  double tempg, temps;
  double SW, s_den, shear, shear_to_s, T, epsilon, rhob, Ttr;
  int a, b;
  double sigma[4][4], gamma, ueta;
@@ -506,7 +507,8 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
  double HWph, HWmh, taufactor, HW, ic_fac;
 //  double SW;
 /*  HW[4][4][4], SW[4][4][4] */
- double tempf, tempg, sum, shear_on;
+ double tempf, sum, shear_on;
+//  double tempg;
 
 /* Kurganov-Tadmor for Wmunu */
 /* implement 
