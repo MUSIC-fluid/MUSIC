@@ -1476,8 +1476,8 @@ ueta  = grid_pt->u[rk_flag][3];
 
     /// defining bulk viscosity coefficient
     s_den = eos->get_entropy(grid_pt->epsilon, grid_pt->rhob);
-    //bulk = (DATA->bulk_to_s)*s_den;
-    bulk = 0.1*s_den;
+    bulk = (DATA->bulk_to_s)*s_den;
+    //bulk = 0.1*s_den;
 
     /// defining bulk relaxation time and additional transport coefficients
     Bulk_Relax_time    = 5.0*bulk/(grid_pt->epsilon + grid_pt->p);
