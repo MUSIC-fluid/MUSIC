@@ -892,7 +892,7 @@ void Util::CountTime(int i, int inc1, int inc2, int last)
 {
  if(i % inc1 == 0) fprintf(stderr, "%d ", i);
  if(i % inc2 == 0) fprintf(stderr, "\n");
- if( (i == last) )
+ if(i == last) //if( (i == last) )
   {
    fprintf(stderr, "\nDone with this loop.\n");   
   }
@@ -1231,6 +1231,7 @@ double Util::Solve
  if(nu != 0.0) diff = (fmid-nu)/nu;
  else if( (nu == 0.0) && (fmid != 0.0) ) diff = (fmid-nu)/fmid;
  else if( (nu == 0.0) && (fmid == 0.0) ) return s_mid;
+   	else {fprintf(stderr,"util.cpp error.\n");exit(0);}
 
  if( fabs(diff) < tol ) return s_mid;
  else if( (fmid > nu) && ind == 1) 

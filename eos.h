@@ -9,18 +9,28 @@ class EOS{
  private:
   double BNP1, EPP1;            // start value for \mu_B and epsilon
   double BNP2, EPP2;            // start value for \mu_B and epsilon
-  double BNP3, EPP3;            // start value for \mu_B and epsilon
-  double BNP4, EPP4;            // start value for \mu_B and epsilon
-  double BNP5, EPP5;            // start value for \mu_B and epsilon
-  double BNP6, EPP6;            // start value for \mu_B and epsilon
-  double BNP7, EPP7;            // start value for \mu_B and epsilon
+  double       EPP3;            // start value for \mu_B and epsilon
+  double       EPP4;            // start value for \mu_B and epsilon
+  double       EPP5;            // start value for \mu_B and epsilon
+  double       EPP6;            // start value for \mu_B and epsilon
+  double       EPP7;            // start value for \mu_B and epsilon
+  //double BNP3, EPP3;            // start value for \mu_B and epsilon
+  //double BNP4, EPP4;            // start value for \mu_B and epsilon
+  //double BNP5, EPP5;            // start value for \mu_B and epsilon
+  //double BNP6, EPP6;            // start value for \mu_B and epsilon
+  //double BNP7, EPP7;            // start value for \mu_B and epsilon
   double deltaBNP1, deltaEPP1;  // step size for \mu_B and epsilon
   double deltaBNP2, deltaEPP2;  // step size for \mu_B and epsilon
-  double deltaBNP3, deltaEPP3;  // step size for \mu_B and epsilon
-  double deltaBNP4, deltaEPP4;  // step size for \mu_B and epsilon
-  double deltaBNP5, deltaEPP5;  // step size for \mu_B and epsilon
-  double deltaBNP6, deltaEPP6;  // step size for \mu_B and epsilon
-  double deltaBNP7, deltaEPP7;  // step size for \mu_B and epsilon
+  double            deltaEPP3;  // step size for \mu_B and epsilon
+  double            deltaEPP4;  // step size for \mu_B and epsilon
+  double            deltaEPP5;  // step size for \mu_B and epsilon
+  double            deltaEPP6;  // step size for \mu_B and epsilon
+  double            deltaEPP7;  // step size for \mu_B and epsilon
+  //double deltaBNP3, deltaEPP3;  // step size for \mu_B and epsilon
+  //double deltaBNP4, deltaEPP4;  // step size for \mu_B and epsilon
+  //double deltaBNP5, deltaEPP5;  // step size for \mu_B and epsilon
+  //double deltaBNP6, deltaEPP6;  // step size for \mu_B and epsilon
+  //double deltaBNP7, deltaEPP7;  // step size for \mu_B and epsilon
   int NBNP1, NEPP1;             // number of entries for \mu_B and epsilon
   int NBNP2, NEPP2;             // number of entries for \mu_B and epsilon
   int NBNP3, NEPP3;             // number of entries for \mu_B and epsilon

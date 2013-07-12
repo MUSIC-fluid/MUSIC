@@ -511,6 +511,7 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
  
  if(rk_flag == 0) {tau_rk = tau_now;}
  else if(rk_flag > 0) {tau_rk = tau_next;}
+   	else {fprintf(stderr,"rk_flag out of range.\n");exit(0);}
 
 /* TEST */
  if(rk_flag==2) fprintf(stderr, "FirstRKStepT: rk_flag = %d\n", rk_flag);

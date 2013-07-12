@@ -1566,6 +1566,7 @@ double EOS::get_pressure(double e, double rhob)
    f = interpolate_pressure(e,rhob);
  else if (whichEOS>=2)
    f = interpolate2(e,rhob,0); //selector 0 means get pressure 
+   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
  return f;
 }/* get_pressure */
 
@@ -1578,6 +1579,7 @@ double EOS::p_rho_func(double e, double rhob)
    f = get_dpOverdrhob(e, rhob);
  else if (whichEOS>=2)
    f = 0.0;
+   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
  return f;
 }/* p_rho_func */
 
@@ -1591,6 +1593,7 @@ double EOS::p_e_func(double e, double rhob)
    f = get_dpOverde(e, rhob);
  else if (whichEOS>=2)
    f = get_dpOverde2(e, rhob);
+   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
  return f;
 }/* p_e_func */
 
@@ -1659,6 +1662,7 @@ double EOS::interpolate(double e, double rhob, int selector)
 	  pa1 = mu1[inb1][ie1];
 	  pa2 = mu1[inb2][ie1];
 	}
+   	else {fprintf(stderr,"selector out of range.\n");exit(0);}
 
       if (pa1<0) pa1=0.;
       if (pa2<0) pa2=0.;
@@ -1677,6 +1681,7 @@ double EOS::interpolate(double e, double rhob, int selector)
 	  pb1 = mu1[inb1][ie2];
 	  pb2 = mu1[inb2][ie2];
 	}
+   	else {fprintf(stderr,"selector out of range.\n");exit(0);}
 
       if (pb1<0) pb1=0.;
       if (pb2<0) pb2=0.;
@@ -1727,6 +1732,7 @@ double EOS::interpolate(double e, double rhob, int selector)
 	  pa1 = mu2[inb1][ie1];
 	  pa2 = mu2[inb2][ie1];
 	}
+   	else {fprintf(stderr,"selector out of range.\n");exit(0);}
       
       if (pa1<0) pa1=0.;
       if (pa2<0) pa2=0.;
@@ -1746,6 +1752,7 @@ double EOS::interpolate(double e, double rhob, int selector)
 	  pb1 = mu2[inb1][ie2];
 	  pb2 = mu2[inb2][ie2];
 	}
+   	else {fprintf(stderr,"selector out of range.\n");exit(0);}
 
       if (pb1<0) pb1=0.;
       if (pb2<0) pb2=0.;
@@ -1787,6 +1794,7 @@ double EOS::get_entropy(double epsilon, double rhob)
  else if (whichEOS >= 2) {
    f=interpolate2(epsilon,rhob,2);
  }
+   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
 
  return f;
  
@@ -1882,6 +1890,7 @@ double EOS::get_temperature(double eps, double rhob) {
    {
      T= interpolate2(eps, rhob, 1);
    }
+   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
 
   return T;
 
@@ -1904,6 +1913,7 @@ double EOS::get_mu(double eps, double rhob) {
    {
      mu = 0.0;
    }
+   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
 
   return mu;
 
@@ -1928,6 +1938,7 @@ double EOS::get_qgp_frac(double eps, double rhob) {
    {
      frac = interpolate2(eps, rhob, 3);
    }
+   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
 
   return frac;
 

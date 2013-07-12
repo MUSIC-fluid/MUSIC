@@ -2096,7 +2096,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      
 //      ReturnValue rv, rv2;
      
-     double sigma, epsSigma;
+     double sigma, epsSigma = 0.0;
 //      double a;
      double x, y, xm, ym, dx, dy, dij;
      double b = DATA->b;
@@ -2239,6 +2239,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	     epsilon=0;
 	   }
        }
+   	else {fprintf(stderr,"initializeEntropy out of range.\n");exit(0);}
  
      cout << "the desired initial epsilon0 = " << DATA->epsilon0 << " GeV/fm^3" << endl;
      cout << "the average central epsilon = " << epsilon*hbarc << " GeV/fm^3" << endl;
@@ -2946,6 +2947,7 @@ double Init::eta_profile_normalisation(InitData *DATA, double eta) {
 		double ws_R=DATA->eta_flat/2.0, ws_a=DATA->eta_fall_off;
 		res = (1.0+exp(-ws_R/ws_a))/(1.0+exp((abs(eta)-ws_R)/ws_a));
 	}
+   	else {fprintf(stderr,"initial_eta_profile out of range.\n");exit(0);}
 
 	return res;
 

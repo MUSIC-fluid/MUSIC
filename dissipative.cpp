@@ -71,6 +71,7 @@ else if(rk_flag > 0)
  tf -= (grid_pt->Wmunu[0][0][alpha]);
  tf /= (DATA->delta_tau);
 }
+   	else {fprintf(stderr,"rk_flag out of range.\n");exit(0);}
  
 sf += tf;
 
@@ -1439,6 +1440,7 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 	       tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 	     }
 	 }
+   	else {fprintf(stderr,"direc out of range.\n");exit(0);}
 
        *g = tg;
        *f = tf;

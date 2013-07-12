@@ -503,6 +503,7 @@ void Glauber::CalcRho(Nucleus *nucleus)
    f = Anum3Gauss(R_WS)/(nucleus->rho_WS);
  else if (nucleus->AnumFunc==3)
    f = Anum3Fermi(R_WS)/(nucleus->rho_WS);
+   	else {fprintf(stderr,"AnumFunc out of range.\n");exit(0);}
  nucleus->rho_WS = (nucleus->A)/f;
 }/* CalcRho */
 
