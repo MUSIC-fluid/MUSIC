@@ -8,6 +8,7 @@
 #include "freeze.h"
 #include "evolve.h"
 #include <sys/stat.h>// for mkdir
+// #include "int.h"
 
 using namespace std;
 void ReadInData(InitData *DATA, string file);
@@ -15,7 +16,7 @@ void ReadInData2(InitData *DATA, string file);
 
 
 // main program
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int rank;
   int size;
@@ -25,8 +26,8 @@ main(int argc, char *argv[])
  
   string input_file;
   static InitData DATA;
-  int ieta, ix, iy, flag;
-  double f, tau;
+//   int flag;
+//   double  tau;
 
 
   // you have the option to give a second command line option, which is an integer to be added to the random seed from the current time
@@ -151,6 +152,7 @@ main(int argc, char *argv[])
       
   if (DATA.mode == 1 || DATA.mode == 2)
     {
+      system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
       Glauber *glauber;
       glauber = new Glauber;
       
@@ -172,15 +174,19 @@ main(int argc, char *argv[])
  
       cout << "size=" << size << endl;
       cout << "rank=" << rank << endl;
-      flag =  evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank); 
+      evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank); 
+
+      MPI_Barrier(MPI_COMM_WORLD);
       
-      tau = DATA.tau0 + DATA.tau_size; 
-      
-      FILE *t4_file;
-      char* t4_name = "avgT.dat";
-      t4_file = fopen(t4_name, "a");
-      fprintf(t4_file,"time average: %f GeV and %f GeV", DATA.avgT/DATA.nSteps*hbarc, DATA.avgT2/DATA.nSteps2*hbarc );
-      fclose(t4_file);
+//       tau = DATA.tau0 + DATA.tau_size; 
+     
+      if (DATA.output_hydro_debug_info) {
+        FILE *t4_file;
+        const char* t4_name = "avgT.dat";
+        t4_file = fopen(t4_name, "a");
+        fprintf(t4_file,"time average: %f GeV and %f GeV", DATA.avgT/DATA.nSteps*hbarc, DATA.avgT2/DATA.nSteps2*hbarc );
+        fclose(t4_file);
+      }
       
       cout << "average plasma T=" << DATA.avgT/DATA.nSteps*hbarc << " GeV." << endl; 
       cout << "average plasma+mixed T=" << DATA.avgT2/DATA.nSteps2*hbarc << " GeV." << endl; 
@@ -196,7 +202,8 @@ main(int argc, char *argv[])
       //  freeze-out
       Freeze *freeze;
       freeze = new Freeze();
-      freeze->CooperFrye(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
+      if(DATA.pseudofreeze) freeze->CooperFrye_pseudo(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
+      else  freeze->CooperFrye(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
       delete freeze;
     }
   if(DATA.mode!=8)
@@ -456,6 +463,23 @@ void ReadInData2(InitData *DATA, string file)
     cerr << "Initial profile" << DATA->Initial_profile << "not defined\n";
     exit(1);
   }
+
+  //Select the profile to use in eta for the energy/entropy initialisation
+  //Warning: profile 2 is only available when smooth transverse initial conditions (DATA->Initial_profile == 2) are used
+  //1 for Hirano's central plateau + Gaussian decay
+  //2 for a Woods-Saxon profile
+  int tempinitial_eta_profile = 1;
+  tempinput = util->StringFind3(file, "initial_eta_profile");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempinitial_eta_profile;
+  if (2 == DATA->Initial_profile) {
+  	DATA->initial_eta_profile = tempinitial_eta_profile;  
+  }
+  else {
+	if (tempinitial_eta_profile != 1) {
+		cerr << "Initial eta profile " << tempinitial_eta_profile << " can only be used with transverse Initial_profile==2. Using the default eta profile.\n";
+	}
+	DATA->initial_eta_profile=1;
+  }
   
   
   //initialize_with_entropy:
@@ -472,20 +496,19 @@ void ReadInData2(InitData *DATA, string file)
     exit(1);
   }
   
+  DATA->useEpsFO = 2; // Must set either freeze out energy density or temperature, otherwise generate error message below.
   
-  //use_eps_for_freeze_out: 
-  // 0: freeze out at constant temperature T_freeze
-  // 1: freeze out at constant energy density epsilon_freeze
-//   DATA->useEpsFO = util->IFind(file, "use_eps_for_freeze_out");
-  int tempuseEpsFO = 0;
-  tempinput = util->StringFind3(file, "use_eps_for_freeze_out");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempuseEpsFO;
-  DATA->useEpsFO = tempuseEpsFO;
-  if(DATA->useEpsFO>1 || DATA->useEpsFO<0) 
-  {
-    cerr << "Invalid option for use_eps_for_freeze_out:" << DATA->useEpsFO << endl;
-    exit(1);
-  }
+  // T_freeze:  freeze out temperature
+  // only used with use_eps_for_freeze_out = 0
+//   DATA->TFO = util->DFind(file, "T_freeze");
+  double tempTFO = 0.12;
+  tempinput = util->StringFind3(file, "T_freeze");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempTFO;
+  DATA->TFO = tempTFO;
+//   if(tempinput != "empty" && DATA->useEpsFO != 0) cerr << "T_freeze unused when use_eps_for_freeze_out set\n";
+  if(tempinput != "empty") DATA->useEpsFO = 0;  // if only freeze out temperature is set, freeze out by temperature
+  int tfoset = 0;
+  if(tempinput != "empty") tfoset = 1;
   
   
   // epsilon_freeze: freeze-out energy density in GeV/fm^3
@@ -500,16 +523,26 @@ void ReadInData2(InitData *DATA, string file)
     cerr << "Freeze out energy density must be greater than zero\n";
     exit(1);
   }
+  if(tempinput != "empty") DATA->useEpsFO = 1; // if epsilon_freeze is set, freeze out by epsilon
   
-  
-  // T_freeze:  freeze out temperature
-  // only used with use_eps_for_freeze_out = 0
-//   DATA->TFO = util->DFind(file, "T_freeze");
-  double tempTFO = 0.12;
-  tempinput = util->StringFind3(file, "T_freeze");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempTFO;
-  DATA->TFO = tempTFO;
-  if(tempinput != "empty" && DATA->useEpsFO != 0) cerr << "T_freeze unused when use_eps_for_freeze_out set\n";
+
+  //use_eps_for_freeze_out: 
+  // 0: freeze out at constant temperature T_freeze
+  // 1: freeze out at constant energy density epsilon_freeze
+  // if set in input file, overide above defaults
+//   DATA->useEpsFO = util->IFind(file, "use_eps_for_freeze_out");
+  int tempuseEpsFO = DATA->useEpsFO;
+  tempinput = util->StringFind3(file, "use_eps_for_freeze_out");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempuseEpsFO;
+  DATA->useEpsFO = tempuseEpsFO;
+  if(DATA->useEpsFO>1 || DATA->useEpsFO<0) 
+  {
+    cerr << "Error: did not set either freeze out energy density or temperature, or invalid option for use_eps_for_freeze_out:" << DATA->useEpsFO << endl;
+    exit(1);
+  }
+  if(tfoset == 1 && DATA->useEpsFO == 1) 
+    cerr << "T_freeze set but overridden -- freezing out by energy density at " 
+    << DATA->epsilonFreeze << " GeV/fm^3\n";
   
   
   
@@ -524,23 +557,28 @@ void ReadInData2(InitData *DATA, string file)
   
   
   // mode: 
-/* X1: (Not functional) Does everything. Evolution. Computation of thermal spectra. Resonance decays. (surface.dat → ../surface3.dat -This part needs to be changed so that mode=1 actually works. The thermal spectrum computation reads in ../surface3.dat, but evolution writes ./surface.dat.)
-Does not work in current version. Always run mode 2 and then mode 3 and 4 separately
+  // 1: Does everything. Evolution. Computation of thermal spectra. Resonance decays. Observables.  Only compatible with freeze_out_method=3 and pseudofreeze=1
   // 2: Evolution only.
   // 3: Compute all thermal spectra only.
   // 4: Resonance decays only.
   // 5: Resonance decays for just one specific particle (only for testing - this will miss the complete chain of decays).
   // 6: only combine charged hadrons - can be used for any postprocessing with the stored results */
 //   DATA->mode = util->IFind(file, "mode"); // 1: do everything; 2: do hydro evolution only; 3: do calculation of thermal spectra only;
-  // 4: do resonance decays only
-  int tempmode = 2;
+  // 13: Compute observables from previously-computed thermal spectra
+  // 14: Compute observables from post-decay spectra
+  int tempmode = 1;
   tempinput = util->StringFind3(file, "mode");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmode;
-  if (tempmode == 1) 
+  else
   {
-    cerr << "mode=1 not currently functional.  Run each step separately with mode>=2\n";
+    cerr << "Must specify mode. Exiting.\n";
     exit(1);
   }
+//   if (tempmode == 1) 
+//   {
+//     cerr << "mode=1 not currently functional.  Run each step separately with mode>=2\n";
+//     exit(1);
+//   }
   DATA->mode = tempmode;
   
   
@@ -554,13 +592,13 @@ Does not work in current version. Always run mode 2 and then mode 3 and 4 separa
   // 5: PCE EOS at 160 MeV
   // 6: PCE EOS at 165 MeV
 //   DATA->whichEOS = util->IFind(file, "EOS_to_use");
-  int tempwhichEOS = 2;
+  int tempwhichEOS = 9;
   tempinput = util->StringFind3(file, "EOS_to_use");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempwhichEOS;
   DATA->whichEOS = tempwhichEOS;
   if(DATA->whichEOS>6 || DATA->whichEOS<0) 
   {
-    cerr << "Invalid option for EOS_to_use:" << DATA->whichEOS << endl;
+    cerr << "EOS_to_use unspecified or invalid option:" << DATA->whichEOS << endl;
     exit(1);
   }
   
@@ -603,11 +641,23 @@ Does not work in current version. Always run mode 2 and then mode 3 and 4 separa
   // The freeze out surface will be subdivided into identical slices in eta with size
   // less than max_delta_eta.
   // Only used with freeze_out_method = 3.
-  double tempmax_delta_eta = 5.;
+  double tempmax_delta_eta = 5.;  // if this is larger than delta_eta, it does nothing
   tempinput = util->StringFind3(file, "max_delta_eta");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_delta_eta;
   DATA->max_delta_eta = tempmax_delta_eta;
   if(tempinput != "empty" && DATA->freezeOutMethod != 3) cerr << "max_delta_eta unused when freeze_out_method != 3\n";
+  
+  
+  // max_delta_eta2:  maximum size of freeze out surface segment in eta direction.
+  // Alternate to max_delta_eta above 
+  // (Though both can be used in combination.  Only has effect if max_delta_eta2 < max_delta_eta):
+  // Integrate each segment over eta directly in Cooper-Frye calculation, rather than 
+  // writing extra lines to surface.dat that need to be read in. Faster this way.
+  double tempmax_delta_eta2 = 5.;
+  tempinput = util->StringFind3(file, "max_delta_eta2");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_delta_eta2;
+  DATA->max_delta_eta2 = tempmax_delta_eta2;
+  if(tempinput != "empty" && DATA->freezeOutMethod != 3) cerr << "max_delta_eta2 unused when freeze_out_method != 3\n";
 
   
   
@@ -865,6 +915,56 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   DATA->deltaY   = tempdeltaY;
   
   
+  // max_pseudorapidity:  spectra calculated from zero to this pseudorapidity in +eta and -eta
+  double tempmax_pseudorapidity   = 2.4;
+  tempinput = util->StringFind3(file, "max_pseudorapidity");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_pseudorapidity  ;
+  DATA->max_pseudorapidity   = tempmax_pseudorapidity;
+  
+   // pseudo_steps:
+  // steps in pseudorapidity in calculation of spectra
+  int temppseudo_steps   = 26;
+  tempinput = util->StringFind3(file, "pseudo_steps");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temppseudo_steps  ;
+  DATA->pseudo_steps   = temppseudo_steps; 
+  
+  // phi_steps
+  // steps in azimuthal angle in calculation of spectra
+  int tempphi_steps   = 30;
+  tempinput = util->StringFind3(file, "phi_steps");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempphi_steps  ;
+  DATA->phi_steps   = tempphi_steps; 
+  
+  // min_pt:  spectra calculated from this to max_pt transverse momentum in GeV
+  double tempmin_pt   = 0.4;
+  tempinput = util->StringFind3(file, "min_pt");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempmin_pt  ;
+  DATA->min_pt   = tempmin_pt;
+    
+  // max_pt:  spectra calculated from min_pt to this transverse momentum in GeV
+  double tempmax_pt   = 6;
+  tempinput = util->StringFind3(file, "max_pt");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_pt  ;
+  DATA->max_pt   = tempmax_pt;
+  
+   // pt_steps:
+  // steps in transverse momentum in calculation of spectra
+  int temppt_steps   = 60;
+  tempinput = util->StringFind3(file, "pt_steps");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temppt_steps  ;
+  DATA->pt_steps   = temppt_steps;   
+  
+  // pseudofreeze
+  // Calculate spectra at fixed, equally-spaced grid in pseudorapidity, pt, and phi
+  int temppseudofreeze = 0;
+  tempinput = util->StringFind3(file, "pseudofreeze");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temppseudofreeze;
+  DATA->pseudofreeze = temppseudofreeze;
+  if (DATA->mode == 1 && (DATA->pseudofreeze!=1 || DATA->freezeOutMethod!=3)) 
+  {
+    cerr << "mode=1 only works with freeze_out_method=3 and pseudofreeze=1.  Run each step separately with mode>=2\n";
+    exit(1);
+  }
   
   if(DATA->turn_on_rhob == 1)
     {
@@ -930,7 +1030,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   
   // Minmod_Theta: theta parameter in the min-mod like limiter
 //   DATA->minmod_theta = util->DFind(file, "Minmod_Theta");
-  double tempminmod_theta   = 1.1;
+  double tempminmod_theta   = 1.8;
   tempinput = util->StringFind3(file, "Minmod_Theta");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempminmod_theta  ;
   DATA->minmod_theta   = tempminmod_theta;
@@ -1120,13 +1220,54 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   // End MARTINI parameters
 
 
-
+  //
   int tempboost_invariant = 0;
   tempinput = util->StringFind3(file, "boost_invariant");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempboost_invariant;
   DATA->boost_invariant = tempboost_invariant;
 
+  //Check if the freeze-out surface ever reaches the edge of the grid in the x or y direction
+  //Warning: this check is only made when freeze-out method 3 is used! (not implemented for the other freeze-out methods)
+  //set to 0 to disable
+  //set to 1 to just output an error message when this happens
+  //set to 2 to stop the evolution and exit when this happens
+  int tempcheck_FO3_at_boundary_xy = 2;
+  tempinput = util->StringFind3(file, "check_FO3_at_boundary_xy");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempcheck_FO3_at_boundary_xy;
+  DATA->check_FO3_at_boundary_xy = tempcheck_FO3_at_boundary_xy;
+  if(0 < DATA->check_FO3_at_boundary_xy && 3 != DATA->freezeOutMethod) cerr << "check_FO3_at_boundary_xy only used when freeze_out_method = 3.  Ignoring.\n";
 
-  cout << "Done ReadInData." << endl;
+  //Check if the freeze-out surface ever reaches the edge of the grid in the eta direction
+  //Warning: this check is only made when freeze-out method 3 is used! (not implemented for the other freeze-out methods)
+  //set to 0 to disable
+  //set to 1 to just output an error message when this happens
+  //set to 2 to stop the evolution and exit when this happens
+  int tempcheck_FO3_at_boundary_eta = 1;
+  tempinput = util->StringFind3(file, "check_FO3_at_boundary_eta");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempcheck_FO3_at_boundary_eta;
+  if (DATA->boost_invariant > 0) tempcheck_FO3_at_boundary_eta = 0;
+  DATA->check_FO3_at_boundary_eta = tempcheck_FO3_at_boundary_eta;
+  if(0 <  DATA->check_FO3_at_boundary_eta && 3 != DATA->freezeOutMethod) cerr << "check_FO3_at_boundary_eta only used when freeze_out_method = 3.  Ignoring.\n";
+
+
+  //Make MUSIC output additionnal hydro information
+  //0 for false (do not output), 1 for true
+  bool tempoutput_hydro_debug_info = true;
+  tempinput = util->StringFind3(file, "output_hydro_debug_info");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempoutput_hydro_debug_info;
+  DATA->output_hydro_debug_info = tempoutput_hydro_debug_info;
+
+  //The evolution is outputted every "output_evolution_every_N_timesteps" timesteps
+  //Can't be modified from the input file for now, for safety.
+  DATA->output_evolution_every_N_timesteps=10;
+  
+  //Make MUSIC output a C header file containing informations about the hydro parameters used
+  //0 for false (do not output), 1 for true
+  bool tempoutput_hydro_params_header = false;
+  tempinput = util->StringFind3(file, "output_hydro_params_header");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempoutput_hydro_params_header;
+  DATA->output_hydro_params_header = tempoutput_hydro_params_header;
+
+  cout << "Done ReadInData2." << endl;
   delete util;
-}/* ReadInData */
+}/* ReadInData2 */

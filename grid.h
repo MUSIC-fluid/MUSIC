@@ -34,9 +34,9 @@ class Grid{
   /* to include shear viscosity */
   /* we need to calculate partial_tau u[mu] */
   double **prev_u;  /* u[mu] from the previous time step including the rk flag */
-  double **pprev_u; /* u[mu] from 2 time step ago including the rk flag */
-  double **dU; /* dU[m][n] = partial_m u_n at the current time */
-  double ***pimunu; /* Stress part of the TJb */
+//   double **pprev_u; /* u[mu] from 2 time step ago including the rk flag */
+//  double **dU; /* dU[m][n] = partial_m u_n at the current time */
+//  double ***pimunu; /* Stress part of the TJb */
     
   Grid **nbr_p_1; 
   Grid **nbr_m_1; 
@@ -59,15 +59,15 @@ class Grid{
   /* note that they are superscripted. So partial^t = -partial_t */
   double ***Wmunu; /* shear part of the TJb with the rk_flag */
   double ***prevWmunu; 
-  double ***pprevWmunu; 
+//   double ***pprevWmunu; 
   
   double ***Pimunu; /* bulk part of the TJb with the rk_flag */
   double ***prevPimunu; 
-  double ***pprevPimunu; 
+//   double ***pprevPimunu; 
   
   double *pi_b; /* bulk pressure */
-  double *prev_pi_b; /* bulk pressure */
-  double *pprev_pi_b; /* bulk pressure */
+//   double *prev_pi_b; /* bulk pressure */
+//   double *pprev_pi_b; /* bulk pressure */
 
   double **W_prev; // the one for the freeze-out surface finder for interpolation
 
@@ -83,6 +83,8 @@ class Grid{
   ~Grid(){};//destructor
 
   double epsilon_prev; //added (previous 10 epsilons)
+  double rhob_prev;
+  double pi_b_prev;
   double u_prev[4]; //added (previous 10 epsilons)
 
   void ComputeV2(InitData *DATA, Grid ***arena, double tau); //added
@@ -105,6 +107,7 @@ class Grid{
   void PrintxEpsilon(Grid ***arena, InitData *DATA, double tau, int size, int rank);
   void ComputeEnergyConservation(InitData *DATA, Grid ***arena, double tau);
   void getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
+  void Output_hydro_information_header(InitData *DATA, EOS *eos);
 };
 #endif
   

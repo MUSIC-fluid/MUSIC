@@ -75,8 +75,8 @@ void Init::InitArena(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid **
 
 void Init::LinkNeighbors(InitData *DATA, Grid ****arena, int size, int rank)
 {
- int ix, iy, ieta, mu, nu, nx, ny, neta;
- int x_nbr, y_nbr, eta_nbr;
+ int ix, iy, ieta, nx, ny, neta;
+//  int x_nbr, y_nbr, eta_nbr, mu, nu,;
 
  nx = DATA->nx;
  ny = DATA->ny;
@@ -182,10 +182,10 @@ void Init::sampleTA()
 
 int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****Rneighbor, int size, int rank)
 {
- double epsilon0, testEpsilon, epsilon, R_A, a_A, p, h, u[4], x, y, eta, rho, volume;
- double cosheta, sinheta, rhob, exparg1, exparg;
+ double epsilon0, epsilon, R_A, a_A, p, u[4], x, y, eta, rho;
+ double rhob, exparg1, exparg;
  double eta0, eta_fall_off, eta_flat, a_short, a_long;
- int ix, iy, ieta, ietar, mu, nu, rk_order;
+ int ix, iy, ieta, mu, nu, rk_order;
  int initializeEntropy = DATA->initializeEntropy;
 
 
@@ -293,16 +293,16 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
 
 		 (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
 		 
@@ -321,14 +321,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 		 
 
 		 for(mu=0; mu<4; mu++)
@@ -343,11 +343,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 
 			 (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 			 
 		       }/* nu */
 		   }/* mu */
@@ -356,7 +356,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
    }
  else if (DATA->Initial_profile==1) //full average initial conditions using Glauber
    {
-     double va, test;
+//      double va, test;
      //va = findRoot(&ssolve, 0., 110., 1.15*0.+0.001,1500.,0.001);
      //fprintf(stderr,"test=%f\n",ssolve(va, 0., 110.));
      //fprintf(stderr,"T(e)=%f\n",interpolate(va, 0., 0));
@@ -366,7 +366,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      double s, r1, r2, W, nBinary, nWounded, W0;
      // impact parameter:
      double b=DATA->b;
-     int i;
+//      int i;
      //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
      double normT = glauber->LexusData.Target.A;
      double normP = glauber->LexusData.Projectile.A;
@@ -516,13 +516,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	      for(ieta=0; ieta<DATA->neta; ieta++)
 	       {
 		 eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
+
 		 if ( initializeEntropy==0 )
 		   {
-		     exparg1 = (fabs(eta-eta0) - eta_flat/2.0)/eta_fall_off;
-		     exparg = exparg1*exparg1/2.0;
-		     
 		     // distribution of the initial energy density in eta:
-		     epsilon = epsilon0*exp(-exparg*theta(exparg1));
+		     epsilon = epsilon0*eta_profile_normalisation(DATA, eta);
 		     // and x,y:
 		     epsilon *= W;
 
@@ -548,9 +546,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 else if ( initializeEntropy==1 )
 		   {
 		     s = epsilon0*W;
-		     exparg1 = (fabs(eta-eta0) - eta_flat/2.0)/eta_fall_off;
-		     exparg = exparg1*exparg1/2.0;
-		     s *= exp(-exparg*theta(exparg1));
+		     s *= eta_profile_normalisation(DATA, eta);
 		     rhob = DATA->rhoB0/epsilon0*s;
 		     if ( DATA->whichEOS==1 && s>96.288 )
 		       {
@@ -589,16 +585,16 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
 
 		 (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
 		//  int taui;
@@ -621,14 +617,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 
 		 //(*arena)[ix][iy][ieta].correction = 1.0;
 
@@ -645,11 +641,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 
 			 (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 		 
@@ -657,17 +653,18 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
    }   
  else if (DATA->Initial_profile==2) // this is a test scenario for testing the freeze-out surface algorithms
    {
-     double va, test;
-     va = eos->findRoot(&EOS::ssolve, 0., 110., 1.15*0.+0.001,1500.,0.001);
+//      double va;
+//      double test;
+//      va = eos->findRoot(&EOS::ssolve, 0., 110., 1.15*0.+0.001,1500.,0.001);
      //fprintf(stderr,"test=%f\n",ssolve(va, 0., 110.));
      //fprintf(stderr,"T(e)=%f\n",interpolate(va, 0., 0));
      //fprintf(stderr,"e=%f\n",va);
      //fprintf(stderr,"P=%f\n",interpolate_pressure(va,0.));
      
-     double s, r1, r2, W, nBinary, nWounded, W0;
+//      double s, r1, r2, W, nBinary, nWounded, W0;
      // impact parameter:
-     double b=DATA->b;
-     int i;
+//      double b=DATA->b;
+//      int i;
          //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
      
      // loop over the whole lattice and initialize values:
@@ -705,6 +702,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 else
 		   epsilon = DATA->epsilonFreeze/hbarc-1.;
 		 
+		 rhob=0;
 		 // intial pressure distribution:
 		 p = eos->get_pressure(epsilon, rhob);
 		 
@@ -723,16 +721,16 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
 
 		 (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
 // 		 int taui;
@@ -754,14 +752,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
       		 
 		 for(mu=0; mu<4; mu++)
 		   {
@@ -774,11 +772,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 			   = (epsilon + p)*u[mu]*u[nu] + p*(DATA->gmunu)[mu][nu];
 			 (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 		 
@@ -804,12 +802,13 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      double norm = 0.2357518037*(0.4/width)*(0.4/width); // norm to get the right average energy density in the center. can be determined bu using option Initial_Profile = 4
      double A;
      double avxBinary, avyBinary;
-     double Z;
+//      double Z;
      double bArray[1];
      double AxArray[300], AyArray[300]; // arrays for sending when using MPI
      double BxArray[300], ByArray[300];
      ReturnValue rv, rv2; //auxiliary nucleons
-     double eccentricity2, Psi2, Psi2a, Psi2b;
+     double eccentricity2, Psi2;
+//      double Psi2a, Psi2b;
      double eccentricity3, Psi3;
      double eccentricity4, Psi4;
      double eccentricity5, Psi5;
@@ -1023,8 +1022,6 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 // -----------------------------------------------------------------
 	 avrSq = 0.;
 	 double avcos = 0.;
-	 double avcosa = 0.;
-	 double avcosb = 0.;
 	 double avsin = 0.;
 	 double avcos3 = 0.;
 	 double avsin3 = 0.;
@@ -1143,9 +1140,9 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 double DeltaL6;
 	 double DeltaL6rn;
 
-	 double randalpha;
+// 	 double randalpha;
 	 int counter=0;
-	 double alpha =0.14;
+// 	 double alpha =0.14;
 	 
        	 for (int i = 0; i<A; i++) 
 	   {
@@ -1800,13 +1797,13 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      //exit(1);
      
      //make a distribution function from the initial positions by putting Gaussians on top of each other
-     double phipart, rpart; // angular coordinates of the participants
-     double va, test;
-     double s, r1, r2, W, nBinary, nWounded, W0;
+//      double phipart, rpart; // angular coordinates of the participants
+//      double va, test;
+     double s, W;
      // impact parameter:
      //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
-     double normT = glauber->LexusData.Target.A;
-     double normP = glauber->LexusData.Projectile.A;
+//      double normT = glauber->LexusData.Target.A;
+//      double normP = glauber->LexusData.Projectile.A;
      // the fraction of the hard (binary collisions) contribution
      double hard;
      hard=DATA->hard;
@@ -1822,7 +1819,6 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	     W = 0.;
 	     WbinColl = 0.;
 	     
-	     int wns=0;
 	     for (int i = 0; i<A; i++) 
 	       {
 		 if (nucleusB.at(i).collided==1)
@@ -1990,16 +1986,16 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
 
 		 (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
 				
@@ -2023,14 +2019,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
 		   {
@@ -2044,11 +2040,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 
 			 (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 	       }}}/* ix, iy, ieta */
@@ -2093,24 +2089,25 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
      double norm = 0.2357518037;
     
      double A;
-     double Z;
+//      double Z;
      
-     double AxArray[300], AyArray[300];
-     double BxArray[300], ByArray[300];
+//      double AxArray[300], AyArray[300];
+//      double BxArray[300], ByArray[300];
      
-     ReturnValue rv, rv2;
+//      ReturnValue rv, rv2;
      
-     double sigma, epsSigma;
-     double a, x, y, xm, ym, dx, dy, dij;
+     double sigma, epsSigma = 0.0;
+//      double a;
+     double x, y, xm, ym, dx, dy, dij;
      double b = DATA->b;
 
-     int posx;
-     int posy;
-     int n1=0;
-     int n2=0;
-     int i;
+//      int posx;
+//      int posy;
+//      int n1=0;
+//      int n2=0;
+//      int i;
      double W;     
-     double r = 1.2*pow(glauber->nucleusA(),1./3.);
+//      double r = 1.2*pow(glauber->nucleusA(),1./3.);
      double s;
      double WSq=0.;
      A=glauber->nucleusA();
@@ -2157,20 +2154,21 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 // use positions of wounded nucleons only:
 	 
 	 
-	 double va, test;
-	 double r1, r2, nBinary, nWounded, W0;
+// 	 double va, test;
+// 	 double r1, r2, nBinary, nWounded;
+// 	 double W0;
 	 // impact parameter:
 	 //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
-	 double normT = glauber->LexusData.Target.A;
-	 double normP = glauber->LexusData.Projectile.A;
+// 	 double normT = glauber->LexusData.Target.A;
+// 	 double normP = glauber->LexusData.Projectile.A;
 	 // the fraction of the hard (binary collisions) contribution (will be made a parameter)
-	 double hard;
-	 hard=DATA->hard;
+// 	 double hard;
+// 	 hard=DATA->hard;
 	 
 	 // The value of W at x=y=0 for normalization of W in central collisions:
-	 W0 = hard*(TATarget(DATA, 0.+0./2.)*TAProjectile(DATA, 0.+0./2.)*DATA->SigmaNN/10.)
-	   + (1.-hard)*(TATarget(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, 0.+0./2.)/normP),normP))
-			+ TAProjectile(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, 0.+0./2.)/normT),normT))); 
+// 	 W0 = hard*(TATarget(DATA, 0.+0./2.)*TAProjectile(DATA, 0.+0./2.)*DATA->SigmaNN/10.)
+// 	   + (1.-hard)*(TATarget(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, 0.+0./2.)/normP),normP))
+// 			+ TAProjectile(DATA, 0.+0./2.)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, 0.+0./2.)/normT),normT))); 
 	 
 	 // loop over the whole lattice and initialize values:
 	 
@@ -2241,6 +2239,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	     epsilon=0;
 	   }
        }
+   	else {fprintf(stderr,"initializeEntropy out of range.\n");exit(0);}
  
      cout << "the desired initial epsilon0 = " << DATA->epsilon0 << " GeV/fm^3" << endl;
      cout << "the average central epsilon = " << epsilon*hbarc << " GeV/fm^3" << endl;
@@ -2257,17 +2256,20 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
    }
  else if (DATA->Initial_profile==5) //something like pp
    {
-     double va, test;
-     double s, r1, r2, W, nBinary, nWounded, W0;
+//      double va, test;
+//      double s, nWounded, W0;
+     double W;
+//      double r1, r2;
+//      double nBinary;
      // impact parameter:
-     double b=DATA->b;
-     int i;
+//      double b=DATA->b;
+//      int i;
      //normalization of TATarget and TAProjectile is given by Target.A and Projectie.A, respectively
-     double normT = glauber->LexusData.Target.A;
-     double normP = glauber->LexusData.Projectile.A;
+//      double normT = glauber->LexusData.Target.A;
+//      double normP = glauber->LexusData.Projectile.A;
      // the fraction of the hard (binary collisions) contribution (will be made a parameter)
-     double hard;
-     hard=DATA->hard;
+//      double hard;
+//      hard=DATA->hard;
 
 
      // loop over the whole lattice and initialize values:
@@ -2279,10 +2281,10 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	     y = DATA->delta_y*(iy*2 - DATA->ny)/2.0;
 	  
 	     //number of binary collisions:
-	     nBinary = TAProjectile(DATA, r2)*TATarget(DATA, r1)*DATA->SigmaNN/10.;
+// 	     nBinary = TAProjectile(DATA, r2)*TATarget(DATA, r1)*DATA->SigmaNN/10.;
 	     //number of wounded nucleons:
-	     nWounded = TATarget(DATA, r1)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, r2)/normP),normP))
-	       + TAProjectile(DATA, r2)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, r1)/normT),normT));
+// 	     nWounded = TATarget(DATA, r1)*(1.-pow((1.-(DATA->SigmaNN/10.)*TAProjectile(DATA, r2)/normP),normP))
+// 	       + TAProjectile(DATA, r2)*(1.-pow((1.-(DATA->SigmaNN/10.)*TATarget(DATA, r1)/normT),normT));
 	     //distribution in the transverse plane, normalized so that maximum value is 1:
 	     
 	     W = exp(-x*x/(2.*0.25*0.25)-y*y/(2.*0.25*0.25))/(2.*PI*0.25*0.25);
@@ -2360,16 +2362,16 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
 
 		 (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
 // 		 int taui;
@@ -2392,14 +2394,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
 		   {
@@ -2413,11 +2415,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 
 			 (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 		 
@@ -2425,15 +2427,16 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
    }   
  else if (DATA->Initial_profile==6) //read in the profile from file - work with Ohio group
    {
-    double va, test;
-     double s, r1, r2, W, nBinary, nWounded, W0;
+//     double va, test;
+//      double r1, r2, W, nBinary, nWounded, W0;
+    double s;
      // impact parameter:
-     double b=DATA->b;
-     int i;
-     int bytes_read;
+//      double b=DATA->b;
+//      int i;
+//      int bytes_read;
      string dummy;
      int nx, ny, neta;
-     int y_size, x_size;
+//      int y_size, x_size;
      double dx, dy, deta;
      int ieta2;
      size = DATA->size;
@@ -2479,9 +2482,10 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 //	 sleep(1);
        }
   
-     double density, dummy1, dummy2, dummy3, eta0, x0, y0;
+     double density, dummy1, dummy2, dummy3;
+//      double eta0, x0, y0;
      // loop over the whole lattice and initialize values:
-     //     bytes_read=fscanf(profile,"%s %s %s %s %d %s %d %s %d %s %lf %s %lf %s %lf",
+     //     fscanf(profile,"%s %s %s %s %d %s %d %s %d %s %lf %s %lf %s %lf",
      //		       &dummy,&dummy,&dummy,&dummy,&neta,&dummy,&nx,&dummy,&ny,&dummy,
      //		       &deta,&dummy,&dx,&dummy,&dy);
    
@@ -2500,7 +2504,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	       {
 
 		 profile >> dummy1 >> dummy2 >> dummy3 >> density;
-		 //bytes_read=fscanf(profile,"%lf %lf %lf %lf",&dummy1,&dummy2,&dummy3,&density);
+		 //fscanf(profile,"%lf %lf %lf %lf",&dummy1,&dummy2,&dummy3,&density);
 		 
 		 if (ieta==0 && ix == 0 && iy == 0)
 		   {
@@ -2590,16 +2594,16 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta2].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta2].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta2].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta2].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta2].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta2].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta2].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta2].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta2].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta2].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta2].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta2].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta2].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta2].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta2].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta2].pprevPimunu = util->cube_malloc(1, 5,4);
 		 
 		 (*arena)[ix][iy][ieta2].W_prev = util->mtx_malloc(5,4);
 // 		 int taui;
@@ -2622,14 +2626,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta2].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta2].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta2].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta2].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta2].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
 		   {
@@ -2643,11 +2647,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 			 
 			 (*arena)[ix][iy][ieta2].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta2].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta2].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta2].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta2].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta2].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta2].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta2].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 		 
@@ -2660,15 +2664,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 
 else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initial conditions
    {
-     double va, test;
-     double s, r1, r2, W, nBinary, nWounded, W0;
+//      double va, test;
+//      double s, r1, r2, W, nBinary, nWounded, W0;
      // impact parameter:
-     double b=DATA->b;
-     int i;
-     int bytes_read;
+//      double b=DATA->b;
+//      int i;
+//      int bytes_read;
      string dummy;
      int nx, ny, neta;
-     int y_size, x_size;
+//      int y_size, x_size;
      double dx, dy, deta;
      int ieta2;
      size = DATA->size;
@@ -2714,7 +2718,8 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 	 //	 sleep(1);
        }
   
-     double density, dummy1, dummy2, dummy3, eta0, x0, y0;
+     double density, dummy1, dummy2, dummy3;
+//      double eta0, x0, y0;
      // loop over the whole lattice and initialize values:
      //     bytes_read=fscanf(profile,"%s %s %s %s %d %s %d %s %d %s %lf %s %lf %s %lf",
      //		       &dummy,&dummy,&dummy,&dummy,&neta,&dummy,&nx,&dummy,&ny,&dummy,
@@ -2805,16 +2810,16 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 		 (*arena)[ix][iy][ieta2].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta2].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta2].pi_b = util->vector_malloc(rk_order+1);
-		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
-		 (*arena)[ix][iy][ieta2].pprev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
+// 		 (*arena)[ix][iy][ieta2].pprev_pi_b = util->vector_malloc(1);
 		 (*arena)[ix][iy][ieta2].prev_u = util->mtx_malloc(1, 4);
-		 (*arena)[ix][iy][ieta2].pprev_u = util->mtx_malloc(1, 4);
+// 		 (*arena)[ix][iy][ieta2].pprev_u = util->mtx_malloc(1, 4);
 		 (*arena)[ix][iy][ieta2].Wmunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta2].prevWmunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta2].pprevWmunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta2].pprevWmunu = util->cube_malloc(1, 5,4);
 		 (*arena)[ix][iy][ieta2].Pimunu = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta2].prevPimunu = util->cube_malloc(1, 5,4);
-		 (*arena)[ix][iy][ieta2].pprevPimunu = util->cube_malloc(1, 5,4);
+// 		 (*arena)[ix][iy][ieta2].pprevPimunu = util->cube_malloc(1, 5,4);
 		 
 		 (*arena)[ix][iy][ieta2].W_prev = util->mtx_malloc(5,4);
 // 		 int taui;
@@ -2837,14 +2842,14 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 		 (*arena)[ix][iy][ieta2].prev_u[0][3] = 0.0;
 		 (*arena)[ix][iy][ieta2].prev_u[0][1] = 0.0;
 		 (*arena)[ix][iy][ieta2].prev_u[0][2] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][0] = 1.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][3] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][1] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_u[0][2] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][0] = 1.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][3] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][1] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_u[0][2] = 0.0;
 		 
 		 (*arena)[ix][iy][ieta2].pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta2].prev_pi_b[0] = 0.0;
-		 (*arena)[ix][iy][ieta2].pprev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].prev_pi_b[0] = 0.0;
+// 		 (*arena)[ix][iy][ieta2].pprev_pi_b[0] = 0.0;
 		 
 		 for(mu=0; mu<4; mu++)
 		   {
@@ -2858,11 +2863,11 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 			 
 			 (*arena)[ix][iy][ieta2].Wmunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta2].prevWmunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta2].pprevWmunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta2].pprevWmunu[0][nu][mu] = (double) 0.0;
 			 
 			 (*arena)[ix][iy][ieta2].Pimunu[0][nu][mu] = (double) 0.0;
 			 (*arena)[ix][iy][ieta2].prevPimunu[0][nu][mu] = (double) 0.0;
-			 (*arena)[ix][iy][ieta2].pprevPimunu[0][nu][mu] = (double) 0.0;
+// 			 (*arena)[ix][iy][ieta2].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
 		 
@@ -2924,3 +2929,26 @@ double Init::TAProjectile(InitData *DATA, double r)
 	 // done testing b sampling - works fine
 
  
+double Init::eta_profile_normalisation(InitData *DATA, double eta) {
+
+	double res;
+
+	//Hirano's plateau + Gaussian fall-off
+	if (1 == DATA->initial_eta_profile) {
+		double exparg1, exparg;
+		exparg1 = (fabs(eta) - DATA->eta_flat/2.0)/DATA->eta_fall_off;
+		exparg = exparg1*exparg1/2.0;
+		res=exp(-exparg*theta(exparg1));
+	}
+	//Woods-Saxon
+	//The radius is set to be half of DATA->eta_flat
+	//The diffusiveness is set to DATA->eta_fall_off
+	else if (2 == DATA->initial_eta_profile) {
+		double ws_R=DATA->eta_flat/2.0, ws_a=DATA->eta_fall_off;
+		res = (1.0+exp(-ws_R/ws_a))/(1.0+exp((abs(eta)-ws_R)/ws_a));
+	}
+   	else {fprintf(stderr,"initial_eta_profile out of range.\n");exit(0);}
+
+	return res;
+
+}

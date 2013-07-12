@@ -17,7 +17,7 @@ class Reconst{
   ~Reconst();//destructor
   
   void ReconstError
-    (char *str, int i, int rk_flag, double *qi, double **qi2, Grid *grid_pt);
+    (const char *str, int i, int rk_flag, double *qi, double **qi2, Grid *grid_pt);
   
   double GuessEps(double T00, double K00, double cs2);
   

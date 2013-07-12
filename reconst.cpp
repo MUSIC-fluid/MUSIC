@@ -27,11 +27,12 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
 		       double eps_init, double rhob_init, InitData *DATA, int rk_flag)
 {
  /* reconstruct TJb from q[0] - q[4] */
- double K00, T00, J0, u[4], epsilon, p, h, rhob, tempk; 
+ double K00, T00, J0, u[4], epsilon, p, h, rhob;
+//  double tempk; 
  double epsilon_prev, rhob_prev, p_prev, p_guess, temperr;
- double epsilon_next, rhob_next, p_next, err, tempf, tempg, temph, cs2;
+ double epsilon_next, rhob_next, p_next, err, tempf, temph, cs2;
  double eps_guess, scalef;
- int m, iter, mu, nu, alpha;
+ int iter, mu, nu, alpha;
  double q[5];
  const double RECONST_PRECISION = 1e-8;
 
@@ -67,7 +68,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
  
  //if(q[4]<0)
  //  cout << q[4] << " direc=" << direc << endl;
- tempk = T00-K00/T00;
+//  tempk = T00-K00/T00;
 
  //remove if for speed
  // if(!finite(T00) || !finite(K00) || !finite(J0))
@@ -335,7 +336,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
 
 
 
-void Reconst::ReconstError(char *str, int i, int rk_flag, double *qi, double **qi2, Grid *grid_pt)
+void Reconst::ReconstError(const char *str, int i, int rk_flag, double *qi, double **qi2, Grid *grid_pt)
 {
  int alpha;
 

@@ -31,7 +31,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor, 
  double sgp1, sgm1, bgp1, bgm1;
  double delta[4], taufactor, tf;
  double shear_on, bulk_on, sf, bf, sg, bg;
- int i, nmax[4], mu, nu;
+ int i, nmax[4];
 
  if(DATA->turn_on_shear) shear_on = 1.0;
  else shear_on = 0.0;
@@ -71,6 +71,7 @@ else if(rk_flag > 0)
  tf -= (grid_pt->Wmunu[0][0][alpha]);
  tf /= (DATA->delta_tau);
 }
+   	else {fprintf(stderr,"rk_flag out of range.\n");exit(0);}
  
 sf += tf;
 
@@ -217,9 +218,9 @@ else if(rk_flag > 0)
 
 double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *DATA, int rk_flag)
 {
- double tempf, tempg, temps, tau_pi;
+ double tempf, tau_pi;
+//  double tempg, temps;
  double SW, s_den, shear, shear_to_s, T, epsilon, rhob, Ttr;
- int ic;
  int a, b;
  double sigma[4][4], gamma, ueta;
  double NS_term;
@@ -500,13 +501,15 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 			 Grid *Lneighbor2, Grid *Rneighbor2, double **w_rhs, InitData *DATA, int rk_flag, int size, int rank)
 {
  int mu, nu, direc, nmax[4], ic;
- double f, fp1, fm1, fp2, fm2, ux, delta[4], sumf;
+ double f, fp1, fm1, fp2, fm2, delta[4];
+//  double ux;
  double g, gp1, gm1, gp2, gm2, a, am1, ap1, ax;
  double uWphR, uWphL, uWmhR, uWmhL, WphR, WphL, WmhR, WmhL;
- double HWph, HWmh, taufactor, HW, SW, ic_fac;
+ double HWph, HWmh, taufactor, HW, ic_fac;
+//  double SW;
 /*  HW[4][4][4], SW[4][4][4] */
- double tempf, tempg, shear, sum, shear_on;
- double s_den;
+ double tempf, sum, shear_on;
+//  double tempg;
 
 /* Kurganov-Tadmor for Wmunu */
 /* implement 
@@ -1008,13 +1011,14 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 int Diss::Make_uPRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
 		     Grid *Lneighbor2, Grid *Rneighbor2, double *p_rhs, InitData *DATA, int rk_flag, int size, int rank)
 {
- int mu, nu, direc, nmax[4], ic;
- double f, fp1, fm1, fp2, fm2, ux, delta[4];
+ int direc, nmax[4];
+ double f, fp1, fm1, fp2, fm2, delta[4];
+//  double ux;
  double g, gp1, gm1, gp2, gm2, a, am1, ap1, ax;
  double uPiphR, uPiphL, uPimhR, uPimhL, PiphR, PiphL, PimhR, PimhL;
- double HPiph, HPimh, taufactor, HPi, SPi;
- double tempf, tempg, sum;
- double s_den, bulk_on;
+ double HPiph, HPimh, taufactor, HPi;
+ double sum;
+ double bulk_on;
 
 /* Kurganov-Tadmor for Pi */
 /* implement 
@@ -1436,6 +1440,7 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 	       tgm2 *=     grid_pt->nbr_m_1[direc]->nbr_m_1[direc]->u[rk_flag][0];
 	     }
 	 }
+   	else {fprintf(stderr,"direc out of range.\n");exit(0);}
 
        *g = tg;
        *f = tf;
@@ -1471,8 +1476,8 @@ ueta  = grid_pt->u[rk_flag][3];
 
     /// defining bulk viscosity coefficient
     s_den = eos->get_entropy(grid_pt->epsilon, grid_pt->rhob);
-    //bulk = (DATA->bulk_to_s)*s_den;
-    bulk = 0.1*s_den;
+    bulk = (DATA->bulk_to_s)*s_den;
+    //bulk = 0.1*s_den;
 
     /// defining bulk relaxation time and additional transport coefficients
     Bulk_Relax_time    = 5.0*bulk/(grid_pt->epsilon + grid_pt->p);

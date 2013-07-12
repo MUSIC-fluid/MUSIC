@@ -9,18 +9,28 @@ class EOS{
  private:
   double BNP1, EPP1;            // start value for \mu_B and epsilon
   double BNP2, EPP2;            // start value for \mu_B and epsilon
-  double BNP3, EPP3;            // start value for \mu_B and epsilon
-  double BNP4, EPP4;            // start value for \mu_B and epsilon
-  double BNP5, EPP5;            // start value for \mu_B and epsilon
-  double BNP6, EPP6;            // start value for \mu_B and epsilon
-  double BNP7, EPP7;            // start value for \mu_B and epsilon
+  double       EPP3;            // start value for \mu_B and epsilon
+  double       EPP4;            // start value for \mu_B and epsilon
+  double       EPP5;            // start value for \mu_B and epsilon
+  double       EPP6;            // start value for \mu_B and epsilon
+  double       EPP7;            // start value for \mu_B and epsilon
+  //double BNP3, EPP3;            // start value for \mu_B and epsilon
+  //double BNP4, EPP4;            // start value for \mu_B and epsilon
+  //double BNP5, EPP5;            // start value for \mu_B and epsilon
+  //double BNP6, EPP6;            // start value for \mu_B and epsilon
+  //double BNP7, EPP7;            // start value for \mu_B and epsilon
   double deltaBNP1, deltaEPP1;  // step size for \mu_B and epsilon
   double deltaBNP2, deltaEPP2;  // step size for \mu_B and epsilon
-  double deltaBNP3, deltaEPP3;  // step size for \mu_B and epsilon
-  double deltaBNP4, deltaEPP4;  // step size for \mu_B and epsilon
-  double deltaBNP5, deltaEPP5;  // step size for \mu_B and epsilon
-  double deltaBNP6, deltaEPP6;  // step size for \mu_B and epsilon
-  double deltaBNP7, deltaEPP7;  // step size for \mu_B and epsilon
+  double            deltaEPP3;  // step size for \mu_B and epsilon
+  double            deltaEPP4;  // step size for \mu_B and epsilon
+  double            deltaEPP5;  // step size for \mu_B and epsilon
+  double            deltaEPP6;  // step size for \mu_B and epsilon
+  double            deltaEPP7;  // step size for \mu_B and epsilon
+  //double deltaBNP3, deltaEPP3;  // step size for \mu_B and epsilon
+  //double deltaBNP4, deltaEPP4;  // step size for \mu_B and epsilon
+  //double deltaBNP5, deltaEPP5;  // step size for \mu_B and epsilon
+  //double deltaBNP6, deltaEPP6;  // step size for \mu_B and epsilon
+  //double deltaBNP7, deltaEPP7;  // step size for \mu_B and epsilon
   int NBNP1, NEPP1;             // number of entries for \mu_B and epsilon
   int NBNP2, NEPP2;             // number of entries for \mu_B and epsilon
   int NBNP3, NEPP3;             // number of entries for \mu_B and epsilon
@@ -71,7 +81,7 @@ class EOS{
   void init_eos(); // for whichEOS=1
   void init_eos2(); // for whichEOS=2
   void init_eos3(int selector); // for whichEOS=3 (PCE 150 MeV), whichEOS=4 (PCE 155 MeV), whichEOS=5 (PCE 160 MeV), whichEOS=6 (PCE 165 MeV)
-  void checkForReadError(FILE *file, char* name);
+  void checkForReadError(FILE *file, const char* name);
   double interpolate_pressure(double e, double rhob); // for whichEOS=1
   double interpolate2(double e, double rhob, int selector); // for whichEOS=2
   double interpolate(double e, double rhob, int selector);
@@ -80,7 +90,7 @@ class EOS{
   double get_dpOverdrhob(double e, double rhob);
   double p_rho_func(double e, double rhob);
   double p_e_func(double e, double rhob);
-  double T_func_ideal_gas(double p);
+  double T_from_eps_ideal_gas(double eps);
   double get_entropy(double epsilon, double rhob);
   double get_temperature(double epsilon, double rhob);
   double get_mu(double epsilon, double rhob);

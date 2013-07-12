@@ -32,5 +32,6 @@ class Init{
   // Normalization: \int r T_A(r) dr dphi = A
   double TATarget(InitData *DATA, double r);
   double TAProjectile(InitData *DATA, double r);
+  double eta_profile_normalisation(InitData *DATA, double eta);
 };
 #endif

@@ -67,6 +67,16 @@ typedef struct init_data
   double deltaY;
   double ymax;
   
+  // for calculation of spectra
+  double max_pseudorapidity;
+  int pseudo_steps;
+  int phi_steps;
+  double min_pt;
+  double max_pt;
+  int pt_steps;
+  
+  int pseudofreeze;
+  
   int NumberOfParticlesToInclude; // # of resonances to include. maximum=319 (all up to 2 GeV) 
   int whichEOS;         // 1: EOS-Q as in AZHYDRO, 2: Huovinen/Petrczky lattice EOS, 3:Huovinen/Petrczky lattice EOS with PCE
   int Initial_profile;  // 1: for a realistic profile in AA collision
@@ -132,8 +142,14 @@ typedef struct init_data
   double plasmaEvolutionTime;
   double plasmaEvolutionTime2;
   double sFactor;
-  double max_delta_eta;// For use with freeze_out_method=3.  Maximum size of freeze out hypersurface in eta.
+  double max_delta_eta;// For use with freeze_out_method=3.  Maximum size of freeze out hypersurface in eta, implemented in freeze out finder.
+  double max_delta_eta2;// For use with freeze_out_method=3.  Maximum size of freeze out hypersurface in eta, implemented in Cooper-Frye.
   int boost_invariant; // set to 1 for rapidity-indendent solution.
+  int check_FO3_at_boundary_eta, check_FO3_at_boundary_xy;
+  bool output_hydro_debug_info;
+  int output_evolution_every_N_timesteps;
+  bool output_hydro_params_header;
+  int initial_eta_profile;
 } InitData;
 
 
