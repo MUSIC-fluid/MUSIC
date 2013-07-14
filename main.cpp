@@ -1080,20 +1080,32 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   
   // Include_Shear_Visc_Yes_1_No_0
 //   DATA->turn_on_shear = util->IFind(file, "Include_Shear_Visc_Yes_1_No_0");
-  int tempturn_on_shear = 1;
+  int tempturn_on_shear = 0;
   tempinput = util->StringFind3(file, "Include_Shear_Visc_Yes_1_No_0");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempturn_on_shear;
   DATA->turn_on_shear = tempturn_on_shear;
   
+
+  
+  
+  // Bulk_to_S_ratio:  constant zeta/s
+//   DATA->bulk_to_s = util->DFind(file, "Bulk_to_S_ratio");
+  double tempbulk_to_s   = 0.0;
+  tempinput = util->StringFind3(file, "Bulk_to_S_ratio");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempbulk_to_s  ;
+  DATA->bulk_to_s   = tempbulk_to_s;
+  int tempturn_on_bulk = 0;
+  if(tempinput != "empty") tempturn_on_bulk = 1;
+  
   
   // Include_Bulk_Visc_Yes_1_No_0
 //   DATA->turn_on_bulk = util->IFind(file, "Include_Bulk_Visc_Yes_1_No_0");
-  int tempturn_on_bulk = 1;
+//   int tempturn_on_bulk = 0;
   tempinput = util->StringFind3(file, "Include_Bulk_Visc_Yes_1_No_0");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempturn_on_bulk;
   DATA->turn_on_bulk = tempturn_on_bulk;
   
-  //Vicous_Trouble_Zero=0_or_Stop=1: unkown.  Used in QuestRevert
+  //Vicous_Trouble_Zero=0_or_Stop=1: unused
 //   DATA->zero_or_stop = util->IFind(file, "Vicous_Trouble_Zero=0_or_Stop=1:");
   int tempzero_or_stop = 2;
   tempinput = util->StringFind3(file, "Vicous_Trouble_Zero=0_or_Stop=1");
@@ -1124,6 +1136,15 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind3(file, "Shear_to_S_ratio");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempshear_to_s  ;
   DATA->shear_to_s   = tempshear_to_s;
+  int tempturn_on_shear = 0;
+  if(tempinput != "empty") tempturn_on_shear = 1;
+    
+  // Include_Shear_Visc_Yes_1_No_0
+//   DATA->turn_on_shear = util->IFind(file, "Include_Shear_Visc_Yes_1_No_0");
+//   int tempturn_on_shear = 0;
+  tempinput = util->StringFind3(file, "Include_Shear_Visc_Yes_1_No_0");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempturn_on_shear;
+  DATA->turn_on_shear = tempturn_on_shear;
   
   
   
@@ -1133,15 +1154,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind3(file, "T_dependent_Shear_to_S_ratio");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempT_dependent_shear_to_s;
   DATA->T_dependent_shear_to_s = tempT_dependent_shear_to_s;
-  
-  
-  // Bulk_to_S_ratio:  constant zeta/s
-//   DATA->bulk_to_s = util->DFind(file, "Bulk_to_S_ratio");
-  double tempbulk_to_s   = 0.0;
-  tempinput = util->StringFind3(file, "Bulk_to_S_ratio");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempbulk_to_s  ;
-  DATA->bulk_to_s   = tempbulk_to_s;
-  
   
   // Include_deltaf:  
   // Looks like 0 sets delta_f=0, 1 uses standard quadratic ansatz,
@@ -1242,7 +1254,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   //set to 0 to disable
   //set to 1 to just output an error message when this happens
   //set to 2 to stop the evolution and exit when this happens
-  int tempcheck_FO3_at_boundary_eta = 1;
+  int tempcheck_FO3_at_boundary_eta = 0;
   tempinput = util->StringFind3(file, "check_FO3_at_boundary_eta");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempcheck_FO3_at_boundary_eta;
   if (DATA->boost_invariant > 0) tempcheck_FO3_at_boundary_eta = 0;
