@@ -1232,11 +1232,12 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   // End MARTINI parameters
 
 
-  //
+  // Set to 1 if initial condition is boost-invariant 
   int tempboost_invariant = 0;
   tempinput = util->StringFind3(file, "boost_invariant");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempboost_invariant;
   DATA->boost_invariant = tempboost_invariant;
+  DATA->boostInvariant = DATA->boost_invariant; // for compatibility with code from MUSIC light fork
 
   //Check if the freeze-out surface ever reaches the edge of the grid in the x or y direction
   //Warning: this check is only made when freeze-out method 3 is used! (not implemented for the other freeze-out methods)
