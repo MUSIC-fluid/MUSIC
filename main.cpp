@@ -1078,16 +1078,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   DATA->turn_on_rhob = tempturn_on_rhob;
   
   
-  // Include_Shear_Visc_Yes_1_No_0
-//   DATA->turn_on_shear = util->IFind(file, "Include_Shear_Visc_Yes_1_No_0");
-  int tempturn_on_shear = 0;
-  tempinput = util->StringFind3(file, "Include_Shear_Visc_Yes_1_No_0");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempturn_on_shear;
-  DATA->turn_on_shear = tempturn_on_shear;
-  
-
-  
-  
   // Bulk_to_S_ratio:  constant zeta/s
 //   DATA->bulk_to_s = util->DFind(file, "Bulk_to_S_ratio");
   double tempbulk_to_s   = 0.0;
