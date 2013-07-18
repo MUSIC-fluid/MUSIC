@@ -167,14 +167,14 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
       for(int ieta=0; ieta<DATA->neta; ieta++)
       {
  	util->cube_free(arena[ix][iy][ieta].TJb,rk_order+1, 5,4);
-	util->cube_free(arena[ix][iy][ieta].dUsup,rk_order+1, 5,4);
+	util->cube_free(arena[ix][iy][ieta].dUsup,rk_order+1, 4,4);
 	util->cube_free(arena[ix][iy][ieta].Wmunu,rk_order+1, 5,4);
 	util->cube_free(arena[ix][iy][ieta].prevWmunu,1, 5,4);
 	util->cube_free(arena[ix][iy][ieta].Pimunu,rk_order+1, 5,4);
 	util->cube_free(arena[ix][iy][ieta].prevPimunu,1, 5,4);
 	util->mtx_free(arena[ix][iy][ieta].u,rk_order+1, 4);
 	util->mtx_free(arena[ix][iy][ieta].a,rk_order+1, 4);
-	util->mtx_free(arena[ix][iy][ieta].prev_u,rk_order+1, 4);
+	util->mtx_free(arena[ix][iy][ieta].prev_u,1, 4);
 	util->vector_free(arena[ix][iy][ieta].theta_u);
 	util->vector_free(arena[ix][iy][ieta].pi_b);
  	
