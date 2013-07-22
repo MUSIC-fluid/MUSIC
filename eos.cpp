@@ -13,6 +13,8 @@ EOS::EOS()
 EOS::~EOS()
 {
   delete util;
+  gsl_interp_free(interp_s2e);
+  gsl_interp_accel_free(accel_s2e);
 }
 
 void EOS::checkForReadError(FILE *file, const char* name)
@@ -577,6 +579,40 @@ void EOS::init_eos2()
   fclose(eos_T5);
   fclose(eos_T6);
   fclose(eos_T7);
+
+  cout << "Done reading EOS." << endl;
+  //Allocate and fill arrays for get_s2e()
+  //First, create new arrays that will permit to extract information we need from each EOS table in a unified way
+  const int number_of_EOS_tables = 7;
+  double lowest_eps_list[number_of_EOS_tables] = {EPP1,EPP2,EPP3,EPP4,EPP5,EPP6,EPP7};
+  double delta_eps_list[number_of_EOS_tables] = {deltaEPP1,deltaEPP2,deltaEPP3,deltaEPP4,deltaEPP5,deltaEPP6,deltaEPP7};
+  int nb_elements_list[number_of_EOS_tables] = {NEPP1,NEPP2,NEPP3,NEPP4,NEPP5,NEPP6,NEPP7};
+  double ** s_list[number_of_EOS_tables] = {entropyDensity1,entropyDensity2,entropyDensity3,entropyDensity4,entropyDensity5,entropyDensity6,entropyDensity7};
+  //Compute the maximum number of entropyDensity elements (the actual number of entropyDensity elements we will use 
+  //will be smaller since we skip duplicate entropyDensities)
+  int s_list_rho0_maximal_length=0;
+  for(int kk=0;kk<number_of_EOS_tables;kk++) s_list_rho0_maximal_length+=nb_elements_list[kk];
+  double last=0.0, tmp_s;
+  s_list_rho0_length=0;
+  //Allocate memory
+  eps_list_rho0= new double [s_list_rho0_maximal_length];
+  s_list_rho0= new double [s_list_rho0_maximal_length];
+
+  for(int table_id=0; table_id<number_of_EOS_tables;table_id++) {
+	  for(i=0;i<nb_elements_list[table_id];i++) {
+		tmp_s=s_list[table_id][0][i];
+		if (tmp_s > last) {
+			eps_list_rho0[s_list_rho0_length]=(lowest_eps_list[table_id]+i*delta_eps_list[table_id])/hbarc;
+			s_list_rho0[s_list_rho0_length]=tmp_s;
+			s_list_rho0_length++;
+		}
+		last=tmp_s;
+	  }
+  }
+  //Initialise the gsl interpolator
+  interp_s2e = gsl_interp_alloc(gsl_interp_cspline, s_list_rho0_length);
+  gsl_interp_init(interp_s2e, s_list_rho0, eps_list_rho0, s_list_rho0_length);
+  accel_s2e = gsl_interp_accel_alloc();
 }
 
 void EOS::init_eos3(int selector)
@@ -992,7 +1028,38 @@ void EOS::init_eos3(int selector)
   eos_T7.close();
 
   cout << "Done reading EOS." << endl;
-  
+  //Allocate and fill arrays for get_s2e()
+  //First, create new arrays that will permit to extract information we need from each EOS table in a unified way
+  const int number_of_EOS_tables = 7;
+  double lowest_eps_list[number_of_EOS_tables] = {EPP1,EPP2,EPP3,EPP4,EPP5,EPP6,EPP7};
+  double delta_eps_list[number_of_EOS_tables] = {deltaEPP1,deltaEPP2,deltaEPP3,deltaEPP4,deltaEPP5,deltaEPP6,deltaEPP7};
+  int nb_elements_list[number_of_EOS_tables] = {NEPP1,NEPP2,NEPP3,NEPP4,NEPP5,NEPP6,NEPP7};
+  double ** s_list[number_of_EOS_tables] = {entropyDensity1,entropyDensity2,entropyDensity3,entropyDensity4,entropyDensity5,entropyDensity6,entropyDensity7};
+  //Compute the maximum number of entropyDensity elements (the actual number of entropyDensity elements we will use 
+  //will be smaller since we skip duplicate entropyDensities)
+  int s_list_rho0_maximal_length=0;
+  for(int kk=0;kk<number_of_EOS_tables;kk++) s_list_rho0_maximal_length+=nb_elements_list[kk];
+  double last=0.0, tmp_s;
+  s_list_rho0_length=0;
+  //Allocate memory
+  eps_list_rho0= new double [s_list_rho0_maximal_length];
+  s_list_rho0= new double [s_list_rho0_maximal_length];
+
+  for(int table_id=0; table_id<number_of_EOS_tables;table_id++) {
+	  for(i=0;i<nb_elements_list[table_id];i++) {
+		tmp_s=s_list[table_id][0][i];
+		if (tmp_s > last) {
+			eps_list_rho0[s_list_rho0_length]=(lowest_eps_list[table_id]+i*delta_eps_list[table_id])/hbarc;
+			s_list_rho0[s_list_rho0_length]=tmp_s;
+			s_list_rho0_length++;
+		}
+		last=tmp_s;
+	  }
+  }
+  //Initialise the gsl interpolator
+  interp_s2e = gsl_interp_alloc(gsl_interp_cspline, s_list_rho0_length);
+  gsl_interp_init(interp_s2e, s_list_rho0, eps_list_rho0, s_list_rho0_length);
+  accel_s2e = gsl_interp_accel_alloc();
 }
 
 
@@ -1773,8 +1840,19 @@ double EOS::T_from_eps_ideal_gas(double eps)
 	return pow(90.0/M_PI/M_PI*(eps/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
 
 }
+double EOS::s2e_ideal_gas(double s)
+{
 
+	//Define number of colours and of flavours
+ 	const double Nc=3, Nf=2.5;
 
+	//e=T*T*T*T*(M_PI*M_PI*3.0*(2*(Nc*Nc-1)+7./2*Nc*Nf)/90.0);
+	//s = 4 e / (3 T)
+	//s =4/3 T*T*T*(M_PI*M_PI*3.0*(2*(Nc*Nc-1)+7./2*Nc*Nf)/90.0);
+	//T = pow(3. * s / 4. / (M_PI*M_PI*3.0*(2*(Nc*Nc-1)+7./2*Nc*Nf)/90.0), 1./3.);
+	return 3. / 4. * s * pow(3. * s / 4. / (M_PI*M_PI*3.0*(2*(Nc*Nc-1)+7./2*Nc*Nf)/90.0), 1./3.); //in 1/fm^4
+
+}
 double EOS::get_entropy(double epsilon, double rhob)
 {
  double f;
@@ -1941,5 +2019,33 @@ double EOS::get_qgp_frac(double eps, double rhob) {
    	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
 
   return frac;
+
+}
+
+
+double EOS::get_s2e(double s, double rhob) { //s - entropy density in 1/fm^3
+
+	double e; //epsilon - energy density
+	int status;
+
+	//This function does not work for non-zero baryon density
+	if (rhob > 0.0) {
+		cerr << "Function get_s2e() is only implemented for rhob=0. Aborting...\n";
+		exit(1);
+	}
+
+	if (whichEOS==0) {
+		e=s2e_ideal_gas(s);
+	}
+	else if (whichEOS>=2 && whichEOS<=6) {
+		status=gsl_interp_eval_e(interp_s2e, s_list_rho0, eps_list_rho0, s, accel_s2e, &e);
+		if (status == GSL_EDOM) {
+			cerr << "Error: can't get energy from entropy, entropy s="<<s<<" fm^-3 is outside the current tabulation of the EOS...\n";
+			exit(1);
+		}
+	}
+   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
+
+	return e; //in 1/fm^4
 
 }
