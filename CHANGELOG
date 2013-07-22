@@ -1,0 +1,134 @@
+MUSIC version 1.0, July 2012
+git revision:
+663701c2023f048517321820e67b766615706c5e
+
+3+1D viscous hydrodynamic code by S. Jeon, B. Schenke, and C. Gale
+
+
+
+MUSIC version 2.0 (not yet finalized -- for completion in 2013);
+maintained by M. Luzum and J.-F. Paquet, with contributions from
+G. Denicol
+M. Dion
+C. Young
+G. Vujanovic
+S. Riu
+I. Kozlov
+
+
+
+***** New Features: *****
+
+New freezeout surface finder (to use, set freeze_out_method = 3):  
+Surface elements are rectangular cuboids ("lego blocks").  Just as 
+accurate as old finder, but faster for both hydro and Cooper-Frye, and 
+uses less RAM in Cooper-Frye calculation.  Works correctly 
+for freezing out at constant energy density or temperature, with or 
+without baryon chemical potential and partial chemical equilibrium.  
+Can subdivide surface in spatial rapidity eta, for when the hydro solution varies 
+slowly with eta, but the Riemann sum in the Cooper-Frye routine needs better 
+resolution in eta.  Also can produce a warning or error when the freeze out 
+surface hits the edge of the calculational volume, so that e.g.,  a script 
+can enlarge the volume and restart automatically.
+Can output freeze out file in format for input in UVH2+1 code, 
+for use in testing Cooper-Frye and resonance decays or increased
+speed for boost-invariant solutions.
+
+New Cooper-Frye routine (to use, set pseudofreeze = 1):  
+Calculates on a fixed grid in pseudorapidity, phi, and pt.  Currently uses an 
+equally spaced grid in phi and eta, while an arbitrarily-spaced grid in pt 
+can be used (the min and max pt and the number of steps are runtime parameters, 
+while the spacing can only be changed in the source code).  Calculates 
+observables at arbitrary values or ranges of pt and eta or y using GSL 
+interpolation and integration routines (integrals in phi are calculated using 
+trapezoid rule -- a more accurate and efficient method than Gauss-Legendre for 
+periodic functions).  Can calculate thermal spectra using an arbitrary number 
+of processors, and only calculates for particles with unique mass and baryon 
+chemical potential.  When used in conjuction with the new freeze out finder, 
+can calculate the contribution from each surface segment with an integral over 
+its extent in eta, instead of all the contribution coming from its center.
+
+New surface finder and Cooper-Frye/Resonance decay routines are interchangeable 
+with old routines.
+
+Added complete set of second-order hydro terms (except for vorticity-vorticity
+term that is missing in all hydro codes).
+
+Completed implementation of bulk viscosity and baryon chemical potential.
+
+Implemented "mode 1", which calculates hydro, thermal spectra, and resonance decays without 
+having to stop, change the input file, and restart at the end of each stage.
+Only works with new Cooper-Frye routine.
+Hydro still needs a number of processors that divides the eta grid equally, with at least
+4 points per processor, but Cooper-Frye can use an arbitrary number of processors less
+than or equal to the number of points in pseudorapidity that are to be calculated. 
+Does Cooper-Frye calculation only for particles with unique mass (and baryon number 
+depending on whether baryon chemical potential is nonzero).
+Resonance decays are calculated on one processor, but it works properly when an arbitrary 
+number are called.
+
+Modified how the input parameters are read in so that you can remove unused lines from input file.
+
+Added initial conditions for Gubser hydro solution.  Useful to test hydro evolution.
+
+Added an option to make MUSIC output information about the hydro parameters used, in 
+the format of a C header file (which can then be used directly by other programs)
+
+Introduced the possibility of using a Woods-Saxon-inspired distribution for the initial profile in rapidity
+
+
+
+
+***** Code cleanup and speedup: *****
+
+Sped up resonance decay calculation by a factor of 2-5, depending on size
+of grid in rapidity and phi.
+
+Removed allocation of memory for unused variables (such as all the hydro 
+variables two timesteps in the past), which saves ~20% RAM usage.
+
+Fixed all code that produced compiler warnings (over 800 warnings fixed)
+
+Introduced functions get_temperature/mu/pressure/qgp_frac/entropy() to simplify 
+the handling of different EOS.
+
+Introduced new input parameter "output_hydro_debug_info" to control when various 
+useful debug information about the hydro is outputted.
+
+Set "QuestRevert" stabalization routine to only apply at low density, to ensure solution is 
+not changed inside freeze out surface.
+
+
+
+
+
+***** Bug Fixes: *****
+
+Fixed Cooper-Frye so that it reads in entire freeze out surface.
+
+Fixed implementation of PCE equation of state.
+
+Fixed ideal gas equation of state, EOS_to_use = 0
+
+Fixed cube_free and mtx_free so that memory can be released after hydro evolution 
+and so one can choose the number of cells in the y direction to be greater than 
+the number in the x direction without the program crashing.
+
+Fixed the function that computes the speed of sound when lattice EOS are used
+
+A number of bugfixes sent by Bjoern and Sangyong (To be elaborated upon by Bjoern and/or Sangyong)
+Fixed wrong factor of tau in eta derivative
+Fixed mistake in message passing, where some cells got overwritten while being passed
+Fixed mistake in Runge-Kutta
+Corrected bugs in freeze out
+
+Numerous fixes to hydro evolution (tau_pi, QuestRevert, traceless Wmunu, etc.  
+To be elaborated upon by Gabriel and/or JF)
+
+Fixed a number of bugs that probably did not affect results, but were 
+potentially dangerous (e.g., the use of uninitialized variables).
+
+In Edndp3(y,pt,phi) used by the decay routine, eliminated exponential extrapolation -- 
+interpolates with trilinear interpolation inside the sampled range of pt or y, but 
+now sets spectra to 0 when evaluated outside the sampled range.
+
