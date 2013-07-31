@@ -111,6 +111,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
        }
 
      grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
+     //grid->Tmax_profile(arena, DATA, eos, tau, size, rank);
    }
 
    if(it%DATA->output_evolution_every_N_timesteps==0 && DATA->outputEvolutionData) 

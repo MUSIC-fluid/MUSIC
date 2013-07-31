@@ -1300,6 +1300,176 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 }/* OutputEvolutionDataXYZ */
 
 
+void Grid::Tmax_profile(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
+{
+  Util *util;
+  util = new Util();
+
+  int position;
+  int ix, iy, ieta, nx, ny, neta;
+  nx = DATA->nx;
+  ny = DATA->ny;
+  neta = DATA->neta;
+
+  int sizeOfData = (nx+1)*(ny+1)*(neta);
+  int to, from;
+  
+  double *eps;
+  double *rhob;
+
+  eps = new double[sizeOfData];
+  rhob = new double[sizeOfData];
+
+   if (rank>0)
+    {
+      to = 0;
+      for(ix=0; ix<=nx; ix++)
+	{
+	  for(iy=0; iy<=ny; iy++)
+	    {
+	      for(ieta=0; ieta<neta; ieta++)
+		{
+		  position = ieta+(neta*(ix + ((nx+1)*iy)));
+		  eps[position] = arena[ix][iy][ieta].epsilon;
+		  rhob[position] = arena[ix][iy][ieta].rhob;
+		}
+	    }
+	}
+    
+      MPI::COMM_WORLD.Send(eps,sizeOfData,MPI::DOUBLE,to,1);
+      MPI::COMM_WORLD.Send(rhob,sizeOfData,MPI::DOUBLE,to,2);
+    }
+  
+  if (rank==0) 
+    {
+      double ***epsFrom;
+      double ***rhobFrom;
+      
+      epsFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      rhobFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      
+      for(ix=0; ix<=nx; ix++)
+	{
+	  for(iy=0; iy<=ny; iy++)
+	    {
+	      for(ieta=0; ieta<neta; ieta++)
+		{
+		  epsFrom[ix][iy][ieta] = arena[ix][iy][ieta].epsilon;
+		  rhobFrom[ix][iy][ieta] = arena[ix][iy][ieta].rhob;
+		}
+	    }
+	}
+	
+
+      for (int irank=1; irank<size; irank++)
+	{
+	  from = irank;
+	  MPI::COMM_WORLD.Recv(eps,sizeOfData,MPI::DOUBLE,from,1);
+	  MPI::COMM_WORLD.Recv(rhob,sizeOfData,MPI::DOUBLE,from,2);
+	  
+	  for(ix=0; ix<=nx; ix++)
+	    {
+	      for(iy=0; iy<=ny; iy++)
+		{
+		  for(ieta=0; ieta<neta; ieta++)
+		    {
+		      position = ieta+(neta*(ix + ((nx+1)*iy)));
+		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
+		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
+		    }
+		}
+	    }
+	}
+
+      double e;
+
+      double * e_max_eta = util->vector_malloc(size*neta);
+      for(ieta=0; ieta<size*neta; ieta++)
+	{
+	  for(iy=0; iy<=ny; iy++)
+	    {
+	      for(ix=0; ix<=nx; ix++)
+		{
+		  e = epsFrom[ix][iy][ieta];
+		  if (e > e_max_eta[ieta]) e_max_eta[ieta] = e;
+		}
+	    }
+	}
+      double * e_max_x = util->vector_malloc(nx+1);
+      for(ix=0; ix<=nx; ix++)
+      {
+            for(ieta=0; ieta<size*neta; ieta++)
+	    {
+	        for(iy=0; iy<=ny; iy++)
+	        {
+		  e = epsFrom[ix][iy][ieta];
+		  if (e > e_max_x[ix]) e_max_x[ix] = e;
+		}
+	    }
+      }
+      double * e_max_y = util->vector_malloc(ny+1);
+      for(iy=0; iy<=ny; iy++)
+      {
+            for(ieta=0; ieta<size*neta; ieta++)
+	    {
+	        for(ix=0; ix<=nx; ix++)
+	        {
+		  e = epsFrom[ix][iy][ieta];
+		  if (e > e_max_y[iy]) e_max_y[iy] = e;
+		}
+	    }
+      }
+
+	int Nfiles = 3;
+	string strTmaxAll[] = {"T_max_eta.txt", "T_max_x.txt", "T_max_y.txt"};
+	int NRec[] = {neta*size, nx+1, ny+1};
+	double * arrRec;
+	for (int ifile = 0; ifile < Nfiles; ifile++)
+	{
+		if (! ( util->fileExists( strTmaxAll[ifile] ) ) ) 
+		{
+			std::ofstream Tmax (strTmaxAll[ifile].c_str(), std::ofstream::out | std::fstream::app);
+			Tmax
+				<< "#tau0= " <<  DATA->tau0
+				<< " nx= " << DATA->nx 
+				<< " ny= " << DATA->ny 
+				<< " neta= " << DATA->neta
+				<< " x_size= " << DATA->x_size
+				<< " y_size= " << DATA->y_size
+				<< " eta_size= " << DATA->eta_size
+			<< endl;
+			Tmax.close();
+		}
+			
+		std::ofstream Tmax (strTmaxAll[ifile].c_str(), std::ofstream::out | std::fstream::app);
+		Tmax << std::setprecision (4) << setw(5);
+
+		switch (ifile)
+		{
+			case 0: arrRec = e_max_eta; break;
+			case 1: arrRec = e_max_x; break;
+			case 2: arrRec = e_max_y; break;
+		}
+		for (int iRec = 0; iRec < NRec[ifile]; iRec++) 
+		Tmax << eos->get_temperature(arrRec[iRec], 0.)*hbarc << "\t";
+		Tmax << endl;
+		Tmax.close();
+	}
+      
+      delete [] e_max_x;
+      delete [] e_max_y;
+      delete [] e_max_eta;
+      util->cube_free(epsFrom,nx+1,ny+1,size*neta);
+      util->cube_free(rhobFrom,nx+1,ny+1,size*neta);
+    }
+
+  delete [] eps;
+  delete [] rhob;
+  delete(util);
+  
+}
+
+
 void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
 {
   Util *util;

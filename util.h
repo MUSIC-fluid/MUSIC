@@ -7,6 +7,7 @@
 #include <sstream>
 #include <fstream>
 #include <cstring>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -133,5 +134,7 @@ void free_submatrix(float **, int , int , int , int );
 void free_convert_matrix(float **, int , int , int , int );
 int siftDown(double *numbers, int root, int bottom, int *re_arrange);
 int CheckMono(double *Vx, int ymax, int *mono_ind);
+bool fileExists(const std::string& filename);
 };
+
 #endif
