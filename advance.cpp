@@ -592,7 +592,7 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
 //  double temp_mu, eps_ratio, tempd;
 //  double tau_rk;
 //  int alpha, flag;
- int mu, nu, revert_flag;
+ int mu, nu, revert_flag = 0;
 //  static int ind=0;
 
  tau_now = tau;
@@ -751,7 +751,7 @@ grid_pt->Wmunu[rk_flag+1][3][3] = (2.*( grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_f
 
 /// If the energy density of the fluid element is smaller than 0.01GeV
 /// reduce Wmunu using the QuestRevert algorithm
-if (grid_pt->epsilon < 0.01/hbarc){
+if (grid_pt->epsilon < DATA->QuestRevert_epsilon_min/hbarc){
 revert_flag = 
   QuestRevert(tau, 0, grid_pt, rk_flag, DATA, size, rank);
 }
@@ -801,11 +801,23 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
 {
  int mu, nu;
  double rho_shear, rho_bulk, factor, pisize, bulksize;
+ double epsFO = 0.;
 //  int revert_flag=0;
  
  rho_shear = 0.;
  rho_bulk = 0.;
- factor = 10.;
+   	if ( DATA->useEpsFO == 0 )
+	{
+ 		epsFO = eos->findRoot(&EOS::Tsolve, 0., DATA->TFO/hbarc, 0.001, 300.,0.001);
+	}
+   	if ( DATA->useEpsFO == 1 )
+	{
+		epsFO = DATA->epsilonFreeze / hbarc;
+	}
+ if (DATA->QuestRevert_factor == 0.)
+	factor = DATA->QuestRevert_prefactor * tanh (grid_pt->epsilon / epsFO * DATA->QuestRevert_eps_factor);
+ else
+ 	factor = DATA->QuestRevert_factor;
 
 
  pisize = 
@@ -831,28 +843,27 @@ int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitDa
  rho_bulk  = sqrt(  bulksize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p ) )/factor ;
  
  /// Reducing the shear stress tensor 
- if(rho_shear>0.00000000000000000001) 
+ if(rho_shear>DATA->QuestRevert_rho_shear_max) 
    {
-     
      for(mu=0; mu<4; mu++)
        {
 	 for(nu=0; nu<4; nu++)
 	   {   	       
-	     grid_pt->Wmunu[rk_flag+1][mu][nu] = (tanh(rho_shear)/rho_shear)*grid_pt->Wmunu[rk_flag+1][mu][nu];
+	     grid_pt->Wmunu[rk_flag+1][mu][nu] = (DATA->QuestRevert_rho_shear_max/rho_shear)*grid_pt->Wmunu[rk_flag+1][mu][nu];
 	   }
        }
    }
   
   /// Reducing bulk viscous pressure 
-  if( rho_bulk>0.00000000000000000001) 
+  if( rho_bulk>DATA->QuestRevert_rho_bulk_max) 
    {
-     grid_pt->pi_b[rk_flag+1] = (tanh(rho_bulk)/rho_bulk)*grid_pt->pi_b[rk_flag+1];
+     grid_pt->pi_b[rk_flag+1] = (DATA->QuestRevert_rho_bulk_max/rho_bulk)*grid_pt->pi_b[rk_flag+1];
      
      for(mu=0; mu<4; mu++)
        {
 	 for(nu=0; nu<4; nu++)
 	   {   	       
-           grid_pt->Pimunu[rk_flag+1][mu][nu] = tanh(rho_bulk)/rho_bulk*grid_pt->Pimunu[rk_flag+1][mu][nu];
+           grid_pt->Pimunu[rk_flag+1][mu][nu] = (DATA->QuestRevert_rho_bulk_max/rho_bulk)*grid_pt->Pimunu[rk_flag+1][mu][nu];
 	   }
        }   
        

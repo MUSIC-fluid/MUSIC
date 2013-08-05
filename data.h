@@ -151,6 +151,8 @@ typedef struct init_data
   int output_evolution_every_N_timesteps;
   bool output_hydro_params_header;
   int initial_eta_profile;
+	//QuestRevert
+	double QuestRevert_rho_shear_max, QuestRevert_rho_bulk_max, QuestRevert_factor, QuestRevert_epsilon_min, QuestRevert_prefactor, QuestRevert_eps_factor;
 } InitData;
 
 

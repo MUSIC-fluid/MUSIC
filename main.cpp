@@ -1271,6 +1271,42 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempoutput_hydro_params_header;
   DATA->output_hydro_params_header = tempoutput_hydro_params_header;
 
+  // QuestRevert_rho_shear_max: QuestRevert has condition rho_shear > rho_shear_max
+  double tempQuestRevert_rho_shear_max = 0.1;
+  tempinput = util->StringFind3(file, "QuestRevert_rho_shear_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempQuestRevert_rho_shear_max;
+  DATA->QuestRevert_rho_shear_max = tempQuestRevert_rho_shear_max;
+
+  // QuestRevert_rho_bulk_max: QuestRevert has condition rho_bulk > rho_bulk_max
+  double tempQuestRevert_rho_bulk_max = 0.1;
+  tempinput = util->StringFind3(file, "QuestRevert_rho_bulk_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempQuestRevert_rho_bulk_max;
+  DATA->QuestRevert_rho_bulk_max = tempQuestRevert_rho_bulk_max;
+
+  // QuestRevert_factor: defines aggressiveness of QuestRevert
+  double tempQuestRevert_factor = 0.;
+  tempinput = util->StringFind3(file, "QuestRevert_factor");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempQuestRevert_factor;
+  DATA->QuestRevert_factor = tempQuestRevert_factor;
+
+  // QuestRevert_prefactor: defines aggressiveness of QuestRevert
+  double tempQuestRevert_prefactor = 300.;
+  tempinput = util->StringFind3(file, "QuestRevert_prefactor");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempQuestRevert_prefactor;
+  DATA->QuestRevert_prefactor = tempQuestRevert_prefactor;
+
+  // QuestRevert_eps_factor: factor \sim tanh ( eps / eps_F0 * QuestRevert_eps_factor)
+  double tempQuestRevert_eps_factor = 1.22149;
+  tempinput = util->StringFind3(file, "QuestRevert_eps_factor");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempQuestRevert_eps_factor;
+  DATA->QuestRevert_eps_factor = tempQuestRevert_eps_factor;
+
+  // QuestRevert_epsilon_min: QuestRevert is applied if epsilon > epsilon_min
+  double tempQuestRevert_epsilon_min = 39061.;
+  tempinput = util->StringFind3(file, "QuestRevert_epsilon_min");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempQuestRevert_epsilon_min;
+  DATA->QuestRevert_epsilon_min = tempQuestRevert_epsilon_min;
+
   cout << "Done ReadInData2." << endl;
   delete util;
 }/* ReadInData2 */

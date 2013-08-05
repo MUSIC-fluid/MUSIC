@@ -45,7 +45,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
       for (int ipt=0; ipt<iptmax; ipt++ )
 	{
 // 	      particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
-	  particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax-1,2); // power law
+	  particleList[ip].pt[ipt] =  ptmin + (ptmax - ptmin)*pow((double)ipt,(double)2)/pow((double)iptmax-1,(double)2); // power law
 // 	  particleList[ip].pt[ipt] =  0.01 + ipt*ptmax/(iptmax-1); // compare to UVH2+1
 // 	  particleList[ip].pt[ipt] = gala15x[ipt]/12; // gauss laguerre abissas
 	}
@@ -335,7 +335,7 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
 // 	  pt = ipt*deltapt;
 // 	  pt = ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1);
 // 	      pt =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
-	      pt =  ptmin + (ptmax - ptmin)*pow(ipt,2)/pow(iptmax-1,2); // power law
+	      pt =  ptmin + (ptmax - ptmin)*pow((double)ipt,(double)2)/pow((double)iptmax-1,(double)2); // power law
 // 	      pt =  0.01 + ipt*ptmax/(iptmax-1); // compare to UVH2+1
 // 	      pt = gala15x[ipt]/12.; // gauss laguerre absissas
 	  particleList[j].pt[ipt] = pt;
