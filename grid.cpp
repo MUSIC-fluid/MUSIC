@@ -790,6 +790,7 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
       util->cube_free(uxFrom,nx+1,ny+1,size*neta);
       util->cube_free(uyFrom,nx+1,ny+1,size*neta);
       util->cube_free(uetaFrom,nx+1,ny+1,size*neta);
+      util->cube_free(pFrom,nx+1,ny+1,size*neta);
 
       // added by Maxime
       util->cube_free(WtautauFrom,nx+1,ny+1,size*neta);
