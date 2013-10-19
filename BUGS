@@ -8,3 +8,6 @@ appear not to be up-to-date. Someone who knows how "make" works should take a lo
 
 [2013-07-02]
 Running with mode 1 requires a lot more memory than running mode 2, 3 and 4 separately as memory is not freed after each mode is run. At the very least, memory should be freed after mode 2.
+
+[2013-10-19]
+MUSIC will crash if the content of the environment variable "HYDROPROGRAMPATH" is longer than the allocated fixed-size character array where it is stored. The fixed-size char arrays have to be replaced by strings or dynamic memory allocation.
