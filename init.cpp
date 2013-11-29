@@ -1871,8 +1871,6 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	     (*Rneighbor)[ix][iy][1].pi_b = util->vector_malloc(rk_order+1);
 	 	 
 	     epsilon = epsilon0*W;
-	     if (epsilon<0.00000000001)
-	       epsilon = 0.00000000001;
 		     
 	  //    int check[size];
 // 	     check[rank] = 0;
@@ -1923,7 +1921,6 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 				     
 		     epsilon *= exp(-exparg*theta(exparg1));
 
-
 		     // distribution of initial baryon density:
 		     rhob = DATA->rhoB0/epsilon0*epsilon; /* in fm^-3 */
 		    
@@ -1967,6 +1964,10 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 // 			 fprintf(e_file,"%e %e %e %e\n",eta,s,rhob, epsilon*hbarc);
 // 		       }
 		   }
+
+	         if (epsilon<0.00000000001)
+	             epsilon = 0.00000000001;
+
 		 // intial pressure distribution:
 		 p = eos->get_pressure(epsilon, rhob);
 
