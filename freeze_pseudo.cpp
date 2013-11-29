@@ -1194,7 +1194,7 @@ double Freeze::get_psi_n(InitData *DATA, int number, double minpt, double maxpt,
   }
   double vn[nharmonics][2];
   pt_and_rapidity_integrated_flow(DATA, number, minpt, maxpt, yflag, minrap, maxrap, vn);
-  return atan2(vn[n][1],vn[n][0]);
+  return atan2(vn[n][1],vn[n][0])/n;
 }
 
 // Return charged hadron yield in specified range of phase space
@@ -1282,7 +1282,7 @@ double Freeze::get_psi_n_ch(InitData *DATA, double minpt, double maxpt, int yfla
       numr+= vn[0][0]*vn[n][0];
       numi+= vn[0][0]*vn[n][1];
     }
-  return atan2(numi, numr);
+  return atan2(numi, numr)/n;
 }
 
 
