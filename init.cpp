@@ -1914,12 +1914,9 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
 		 if ( initializeEntropy==0 )
 		   {
-		     exparg1 = (fabs(eta-eta0) - eta_flat/2.0)/eta_fall_off;
-		     exparg = exparg1*exparg1/2.0;
-		     
 		     epsilon = epsilon0*W;
 				     
-		     epsilon *= exp(-exparg*theta(exparg1));
+		     epsilon*=eta_profile_normalisation(DATA, eta);
 
 		     // distribution of initial baryon density:
 		     rhob = DATA->rhoB0/epsilon0*epsilon; /* in fm^-3 */
@@ -1941,9 +1938,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 else if ( initializeEntropy==1 )
 		   {
 		     s = epsilon0*W;
-		     exparg1 = (fabs(eta-eta0) - eta_flat/2.0)/eta_fall_off;
-		     exparg = exparg1*exparg1/2.0;
-		     s *= exp(-exparg*theta(exparg1));
+		     s*=eta_profile_normalisation(DATA, eta);
 		     rhob = DATA->rhoB0/epsilon0*s;
 		     if ( DATA->whichEOS==1 && s>96.288 )
 		       {
