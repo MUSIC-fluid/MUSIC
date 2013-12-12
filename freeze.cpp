@@ -162,9 +162,9 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	  //fprintf(stderr,"[%i] has pid %i \n",MHALF + particleList[i].number,partid[MHALF + particleList[i].number]);
 	}
       i++;
-    } 
+    }
   decayMax = j;
-  particleMax = i-1;
+  particleMax = DATA->NumberOfParticlesToInclude;
   fclose(p_file);
   util->char_free(p_name);
   // here read the stable particles' chemical potential at freeze-out

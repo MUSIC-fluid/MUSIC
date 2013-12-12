@@ -610,7 +610,7 @@ void ReadInData2(InitData *DATA, string file)
   tempinput = util->StringFind3(file, "number_of_particles_to_include");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempNumberOfParticlesToInclude;
   DATA->NumberOfParticlesToInclude = tempNumberOfParticlesToInclude;
-  if(DATA->NumberOfParticlesToInclude>319) 
+  if(DATA->NumberOfParticlesToInclude>320) 
   {
     cerr << "Invalid option for number_of_particles_to_include:" << DATA->NumberOfParticlesToInclude << endl;
     exit(1);
