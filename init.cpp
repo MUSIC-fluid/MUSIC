@@ -1838,8 +1838,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	     for (int i = 0; i<NbinColl; i++) 
 	       {
 		   {
-		     xm = xbinColl[i]-avxBinary;
-		     ym = ybinColl[i]-avyBinary;
+		     xm = xbinColl[i];
+		     ym = ybinColl[i];
 		     WbinColl += norm*exp((-(x-xm)*(x-xm)-(y-ym)*(y-ym))/(2.*width*width)); // normalize later to energy density I need
 		   }
 	       }
