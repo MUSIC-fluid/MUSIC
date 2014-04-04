@@ -262,7 +262,8 @@ rhob = grid_pt->rhob;
 /// ////////////////////////////////////////////////////////////////////// ///
  s_den = eos->get_entropy(epsilon, rhob);
  shear = (shear_to_s)*s_den;
- tau_pi = 3.0*shear/(grid_pt->epsilon + grid_pt->p);
+ tau_pi = 5.0*shear/(grid_pt->epsilon + grid_pt->p);
+  
 
  //tau_pi = maxi(tau_pi, DATA->tau_pi);
  if(!finite(tau_pi)) {tau_pi = DATA->delta_tau; cout << "tau_pi was infinite ..." << endl;}
@@ -278,7 +279,7 @@ rhob = grid_pt->rhob;
  /// transport coefficient for nonlinear terms -- coupling to bulk viscous pressure -- 4Mar2013
  double transport_coefficient_b, transport_coefficient2_b;
  /// transport coefficients not yet known -- fixed to zero
- transport_coefficient_b  = 0. ;
+ transport_coefficient_b  = 6./5.*tau_pi ;
  transport_coefficient2_b = 0.;
 
 
@@ -329,7 +330,7 @@ rhob = grid_pt->rhob;
     }
 
 /// full Navier-Stokes term is
-    NS_term = -2.*shear*sigma[mu][nu] ;
+    NS_term = -2.*shear*sigma[mu][nu] ; // sign changes according to metric sign convention
 
 
 /// ////////////////////////////////////////////////////////////////////// ///
@@ -364,7 +365,7 @@ double Vorticity_term;
    term1_Vorticity = transport_coefficient4*term1_Vorticity;
 
 /// full term is
-    Vorticity_term = -term1_Vorticity ;
+    Vorticity_term = term1_Vorticity ;
 
 
 /// //////////////////////////////////////////////////////////////////////////// ///
@@ -451,7 +452,7 @@ double term1_Wsigma, term2_Wsigma;
    term2_WW = term2_WW*transport_coefficient;
 
 /// full term is
-   WW_term = term1_WW + term2_WW ;
+   WW_term = -term1_WW - term2_WW ; // sign changes according to metric sign convention
 
 
 /// ////////////////////////////////////////////////////////////////////// ///
@@ -474,7 +475,7 @@ double term1_Wsigma, term2_Wsigma;
    Bulk_W_term     = Bulk_W*transport_coefficient2_b;
 
 /// full term is
-   Coupling_to_Bulk = Bulk_Sigma_term + Bulk_W_term ;
+   Coupling_to_Bulk = -Bulk_Sigma_term + Bulk_W_term ;  // first term: sign changes according to metric sign convention
 
 
 /// ////////////////////////////////////////////////////////////////////// ///
@@ -1460,14 +1461,14 @@ double Diss::Make_uPiSource
 (double tau, Grid *grid_pt, InitData *DATA, int rk_flag)
 {
  double tempf;
- double s_den, bulk;
+ double s_den, shear, bulk;
  double Bulk_Relax_time, transport_coeff1, transport_coeff2, transport_coeff1_s, transport_coeff2_s;
  double NS_term, BB_term;
  double Final_Answer;
  
 
 /// Useful variables to define
-double gamma, ueta;
+double gamma, ueta, cs2;
 gamma = grid_pt->u[rk_flag][0];
 ueta  = grid_pt->u[rk_flag][3];
 
@@ -1476,17 +1477,19 @@ ueta  = grid_pt->u[rk_flag][3];
 
     /// defining bulk viscosity coefficient
     s_den = eos->get_entropy(grid_pt->epsilon, grid_pt->rhob);
-    bulk = (DATA->bulk_to_s)*s_den;
-    //bulk = 0.1*s_den;
+    cs2 = eos->p_e_func(grid_pt->epsilon, grid_pt->rhob);    // cs2 is the velocity of sound squared
+    shear = (DATA->shear_to_s)*s_den;                   // shear viscosity = constant * entropy density
+    bulk = (DATA->bulk_to_s)*shear*(1./3.-cs2)*(1./3.-cs2);  // bulk viscosity = constant * shear viscosity * (1/3-cs2)**2
+   // parameter DATA->bulk_to_s should be between 15 -- 75
 
     /// defining bulk relaxation time and additional transport coefficients
-    Bulk_Relax_time    = 5.0*bulk/(grid_pt->epsilon + grid_pt->p);
-    transport_coeff1   = 1.0/3.0*(Bulk_Relax_time); /// not known, but Sangyong chose 1/3
-    transport_coeff2   = 0.;                        /// not known; for now, put 0
-    transport_coeff1_s = 0.;                        /// not known; for now, put 0
-    transport_coeff2_s = 0.;                        /// not known; for now, put 0
+    Bulk_Relax_time    = 1./14.55/(1./3.-cs2)/(1./3.-cs2)/(grid_pt->epsilon + grid_pt->p)*bulk; // Bulk relaxation time from kinetic theory
+    transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);          /// from kinetic theory, small mass limit
+    transport_coeff2   = 0.;                                 /// not known; put 0
+    transport_coeff1_s = 8./5.*(1./3.-cs2)*Bulk_Relax_time;  /// from kinetic theory
+    transport_coeff2_s = 0.;                                 /// not known;  put 0
 
-    /// Computing Navier-Stokes term (-zeta*theta)
+    /// Computing Navier-Stokes term (-bulk viscosity * theta)
     NS_term = -bulk*(grid_pt->theta_u[rk_flag]);
 
     /// Computing relaxation term and nonlinear term: - Bulk - transport_coeff1*Bulk*theta
@@ -1568,7 +1571,7 @@ ueta  = grid_pt->u[rk_flag][3];
     Shear_Shear_term = WW*transport_coeff2_s;
 
     /// full term that couples to shear is
-    Coupling_to_Shear = Shear_Sigma_term + Shear_Shear_term ;
+    Coupling_to_Shear = -Shear_Sigma_term + Shear_Shear_term ;
 
     /// Final Answer
     Final_Answer = NS_term + tempf + BB_term + Coupling_to_Shear;
