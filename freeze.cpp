@@ -302,18 +302,20 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
           particleList[i].muAtFreezeOut = 0.;      
         }
       
-      if (DATA->NumberOfParticlesToInclude>=17)
+      if (DATA->NumberOfParticlesToInclude>=8)
         {
-          for(i=1; i<=9; i++)
+          for(i=1; i<=8; i++)
             {
               particleList[i].muAtFreezeOut = mu[i];
             }
         }
       else
         {
-          cout << "Need at least 9 particles. Increase number of particles to include. Exiting." << endl;
+          cout << "Need at least 8 particles. Increase number of particles to include. Exiting." << endl;
           exit(1);
         }
+      if (DATA->NumberOfParticlesToInclude>=12)
+      particleList[12].muAtFreezeOut = mu[9];
       if (DATA->NumberOfParticlesToInclude>=17)
       particleList[17].muAtFreezeOut = mu[10];
       if (DATA->NumberOfParticlesToInclude>=18)
