@@ -381,17 +381,22 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	{
 	  if (particleList[i].muAtFreezeOut==0)
 	    {
+	      if (particleList[i].baryon == -1)
+		k -= particleList[i].decays;
 	      for(j=1; j<=particleList[i].decays; j++)
 		{
-		  if (particleList[i].baryon > -1)
-		    k++;
-
+		  k++;
+	
 		  for (int m=0; m<abs(decay[k].numpart); m++)
 		    {
-		      
-		      particleList[i].muAtFreezeOut += decay[k].branch*particleList[partid[MHALF+decay[k].part[m]]].muAtFreezeOut;
-		      
-		      //        cout <<  particleList[partid[MHALF+decay[k].part[m]]].name << endl;
+		      if (particleList[i].baryon == -1 && particleList[partid[MHALF+decay[k].part[m]]].baryon!=0)
+			{
+			  particleList[i].muAtFreezeOut += decay[k].branch*particleList[partid[MHALF-decay[k].part[m]]].muAtFreezeOut;
+			}
+		      else
+			{
+			  particleList[i].muAtFreezeOut += decay[k].branch*particleList[partid[MHALF+decay[k].part[m]]].muAtFreezeOut;
+			}      
 		    }
 		}
 	    }
