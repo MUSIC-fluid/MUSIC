@@ -5502,6 +5502,9 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    neta = DATA->neta;
    double FULLSU[4];  // d^3 \sigma_\mu
 
+   double dim = 4;
+   double lattice_spacing[4];
+
    int fac;    // step to skip in x and y direction
    double DX, DY, DETA, DTAU, SIG;
    double iepsFO;
@@ -5511,13 +5514,52 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    double rhob, utau, ux, uy, ueta, TFO, muB, eps_plus_p_over_T_FO;
    double pi_b; // bulk viscous pressure
    int shown;   // control parameter for the mount of output messages
-  
+   
+   int intersect;
+   int intersections = 0;
+
+   double epsFO;        // freeeze out energy density
+   if (DATA->useEpsFO)  // freeze out at given energy density
+      epsFO = DATA->epsilonFreeze/hbarc;
+   else 
+   {
+      rhob = 0.;
+      cout << "[evolve.cpp:FindFreezeoutSurface_Cornelius]: Using T_freeze works for rhob=0 only" << endl;
+      epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA->TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
+      cout << "T_freeze=" << DATA->TFO << ", epsFO=" << epsFO*hbarc << endl;
+   }
+
    fac=1; // Non-unity value does not currently work
    facTau = DATA->facTau;   // step to skip in tau direction
    DX=fac*DATA->delta_x;
    DY=fac*DATA->delta_y;
    DETA=fac*DATA->delta_eta;
    DTAU=facTau*DATA->delta_tau;
+
+   lattice_spacing[0] = DTAU;
+   lattice_spacing[1] = DX;
+   lattice_spacing[2] = DY;
+   lattice_spacing[2] = DETA;
+
+   // initialize Cornelius
+   Cornelius* cornelius_ptr = new Cornelius();
+   cornelius_ptr->init(dim, epsFO, lattice_spacing);
+
+   double ****cube = new double *** [2];
+   for(int i = 0; i < 2; i++)
+   {
+      cube[i] = new double ** [2];
+      for(int j = 0; j < 2; j++)
+      {
+         cube[i][j] = new double * [2];
+         for(int k = 0; k < 2; k++)
+         {
+            cube[i][j][k] = new double [2];
+            for(int l = 0; l < 2; l++)
+                cube[i][j][k][l] =0.0;
+         }
+      }
+   }
   
    double maxDETA = DATA->max_delta_eta;  // maximum size of cuboid in eta direction.  If DETA > maxDETA, split the surface into several identical sections spread across eta.
    int subsections = floor(DETA/maxDETA) + 1;// subdivide the blocks into this many subdivisions in eta
@@ -5656,7 +5698,6 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    Rneighbor_uy = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_ueta = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_rhob = util->mtx_malloc(nx+1,ny+1);
-   Rneighbor_Pi_b = util->mtx_malloc(nx+1,ny+1);
 
    Rneighbor_utau_prev = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_ux_prev = util->mtx_malloc(nx+1,ny+1);
@@ -5664,6 +5705,9 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    Rneighbor_ueta_prev = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_rhob_prev = util->mtx_malloc(nx+1,ny+1);
  
+   Rneighbor_Pi_b = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Pi_b_prev = util->mtx_malloc(nx+1,ny+1);
+
    Rneighbor_Wtautau = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_Wtaux = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_Wtauy = util->mtx_malloc(nx+1,ny+1);
@@ -5941,6 +5985,131 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
   //*******************************************
   // end MPI code copied from FindFreezeOutSurface2
 
-  
+  for(ix=0; ix<=nx-fac; ix+=fac)
+  {
+     x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
+     for(iy=0; iy<=ny-fac; iy+=fac)
+     {
+        y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+	  for(ieta=0; ieta<maxEta; ieta+=fac)
+        {
+	     eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
+
+	     // make sure the epsilon value is never exactly the same as epsFO...
+	     if(arena[ix+fac][iy+fac][ieta+fac].epsilon==epsFO)
+	        arena[ix+fac][iy+fac][ieta+fac].epsilon+=0.000001;
+	     if(arena[ix][iy][ieta].epsilon_prev==epsFO)
+	        arena[ix][iy][ieta].epsilon_prev+=0.000001;
+	     if(arena[ix+fac][iy][ieta].epsilon==epsFO)
+	        arena[ix+fac][iy][ieta].epsilon+=0.000001;
+	     if(arena[ix][iy+fac][ieta+fac].epsilon_prev==epsFO)
+	        arena[ix][iy+fac][ieta+fac].epsilon_prev+=0.000001;
+	     if(arena[ix][iy+fac][ieta].epsilon==epsFO)
+	        arena[ix][iy+fac][ieta].epsilon+=0.000001;
+	     if(arena[ix+fac][iy][ieta+fac].epsilon_prev==epsFO)
+	        arena[ix+fac][iy][ieta+fac].epsilon_prev+=0.000001;
+	     if(arena[ix][iy][ieta+fac].epsilon==epsFO)
+	        arena[ix][iy][ieta+fac].epsilon+=0.000001;
+	     if(arena[ix+fac][iy+fac][ieta].epsilon_prev==epsFO)
+	        arena[ix+fac][iy+fac][ieta].epsilon_prev+=0.000001;
+	     if(arena[ix+fac][iy+fac][ieta].epsilon==epsFO)
+	        arena[ix+fac][iy+fac][ieta].epsilon+=0.000001;
+	     if(arena[ix][iy][ieta+fac].epsilon_prev==epsFO)
+	        arena[ix][iy][ieta+fac].epsilon_prev+=0.000001;
+	     if(arena[ix+fac][iy][ieta+fac].epsilon==epsFO)
+	        arena[ix+fac][iy][ieta+fac].epsilon+=0.000001;
+	     if(arena[ix][iy+fac][ieta].epsilon_prev==epsFO)
+	        arena[ix][iy+fac][ieta].epsilon_prev+=0.000001;
+	     if(arena[ix][iy+fac][ieta+fac].epsilon==epsFO)
+	        arena[ix][iy+fac][ieta+fac].epsilon+=0.000001;
+	     if(arena[ix+fac][iy][ieta].epsilon_prev==epsFO)
+	        arena[ix+fac][iy][ieta].epsilon_prev+=0.000001;
+	     if(arena[ix][iy][ieta].epsilon==epsFO)
+	        arena[ix][iy][ieta].epsilon+=0.000001;
+	     if(arena[ix+fac][iy+fac][ieta+fac].epsilon_prev==epsFO)
+	        arena[ix+fac][iy+fac][ieta+fac].epsilon_prev+=0.000001;
+           
+           // judge intersection (from Bjoern)
+	     intersect=1;
+	     if (ieta<neta-fac)
+	     {
+		  if((arena[ix+fac][iy+fac][ieta+fac].epsilon-epsFO)*(arena[ix][iy][ieta].epsilon_prev-epsFO)>0.)
+		    if((arena[ix+fac][iy][ieta].epsilon-epsFO)*(arena[ix][iy+fac][ieta+fac].epsilon_prev-epsFO)>0.)
+		      if((arena[ix][iy+fac][ieta].epsilon-epsFO)*(arena[ix+fac][iy][ieta+fac].epsilon_prev-epsFO)>0.)
+			  if((arena[ix][iy][ieta+fac].epsilon-epsFO)*(arena[ix+fac][iy+fac][ieta].epsilon_prev-epsFO)>0.)
+			    if((arena[ix+fac][iy+fac][ieta].epsilon-epsFO)*(arena[ix][iy][ieta+fac].epsilon_prev-epsFO)>0.)
+			      if((arena[ix+fac][iy][ieta+fac].epsilon-epsFO)*(arena[ix][iy+fac][ieta].epsilon_prev-epsFO)>0.)
+			        if((arena[ix][iy+fac][ieta+fac].epsilon-epsFO)*(arena[ix+fac][iy][ieta].epsilon_prev-epsFO)>0.)
+				    if((arena[ix][iy][ieta].epsilon-epsFO)*(arena[ix+fac][iy+fac][ieta+fac].epsilon_prev-epsFO)>0.)
+				      intersect=0;
+
+           }
+	     else // if this is the right most edge
+	     {
+	       if((Rneighbor_eps[ix+fac][iy+fac] - epsFO)*(arena[ix][iy][ieta].epsilon_prev-epsFO)>0.)
+	         if((arena[ix+fac][iy][ieta].epsilon-epsFO)*(Rneighbor_eps_prev[ix][iy+fac]-epsFO)>0.)
+	           if((arena[ix][iy+fac][ieta].epsilon-epsFO)*(Rneighbor_eps_prev[ix+fac][iy]-epsFO)>0.)
+	     	       if((Rneighbor_eps[ix][iy]-epsFO)*(arena[ix+fac][iy+fac][ieta].epsilon_prev-epsFO)>0.)
+	     	         if((arena[ix+fac][iy+fac][ieta].epsilon-epsFO)*(Rneighbor_eps_prev[ix][iy]-epsFO)>0.)
+	     	           if((Rneighbor_eps[ix+fac][iy]-epsFO)*(arena[ix][iy+fac][ieta].epsilon_prev-epsFO)>0.)
+	     	             if((Rneighbor_eps[ix][iy+fac]-epsFO)*(arena[ix+fac][iy][ieta].epsilon_prev-epsFO)>0.)
+	     		         if((arena[ix][iy][ieta].epsilon-epsFO)*(Rneighbor_eps_prev[ix+fac][iy+fac]-epsFO)>0.)
+	     		           intersect=0;
+	     }
+
+	     if (intersect==0)
+	       continue;
+	     else    // if intersect, prepare for the hyper-cube
+	     {
+	        intersections++;
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][0] = arena[ix][iy][ieta].epsilon_prev;
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].epsilon_prev;
+	           cube[0][0][1][0] = arena[ix][iy+fac][ieta].epsilon_prev;
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].epsilon_prev;
+	           cube[0][1][0][0] = arena[ix+fac][iy][ieta].epsilon_prev;
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].epsilon_prev;
+	           cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].epsilon_prev;
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].epsilon_prev;
+	           cube[1][0][0][0] = arena[ix][iy][ieta].epsilon;
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].epsilon;
+	           cube[1][0][1][0] = arena[ix][iy+fac][ieta].epsilon;
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].epsilon;
+	           cube[1][1][0][0] = arena[ix+fac][iy][ieta].epsilon;
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].epsilon;
+	           cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].epsilon;
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].epsilon;
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][0] = arena[ix][iy][ieta].epsilon_prev;
+	           cube[0][0][0][1] = Rneighbor_eps_prev[ix][iy];
+	           cube[0][0][1][0] = arena[ix][iy+fac][ieta].epsilon_prev;
+	           cube[0][0][1][1] = Rneighbor_eps_prev[ix][iy+fac];
+	           cube[0][1][0][0] = arena[ix+fac][iy][ieta].epsilon_prev;
+	           cube[0][1][0][1] = Rneighbor_eps_prev[ix+fac][iy];
+	           cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].epsilon_prev;
+	           cube[0][1][1][1] = Rneighbor_eps_prev[ix+fac][iy+fac];
+	           cube[1][0][0][0] = arena[ix][iy][ieta].epsilon;
+	           cube[1][0][0][1] = Rneighbor_eps[ix][iy];
+	           cube[1][0][1][0] = arena[ix][iy+fac][ieta].epsilon;
+	           cube[1][0][1][1] = Rneighbor_eps[ix][iy+fac];
+	           cube[1][1][0][0] = arena[ix+fac][iy][ieta].epsilon;
+	           cube[1][1][0][1] = Rneighbor_eps[ix+fac][iy];
+	           cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].epsilon;
+	           cube[1][1][1][1] = Rneighbor_eps[ix+fac][iy+fac];
+	        }
+           }
+
+
+
+        }
+     }
+  }
+
+  delete cornelius_ptr;
+
+  return 0;
 }
 
