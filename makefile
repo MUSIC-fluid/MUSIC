@@ -33,6 +33,7 @@ glauber.o advance.o u_derivative.o \
 dissipative.o random.o\
 util.o main.o freeze_pseudo.o cornelius.o
 
+OBJDIR = obj
  
 CXX= mpicxx-openmpi-mp
 
