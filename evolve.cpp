@@ -6103,21 +6103,25 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 	        }
            }
            
+           // Cornelius is doing the real hard work...
            cornelius_ptr->find_surface_4d(cube);
+
+           // get positions of the freeze-out surface and interpolating results
            for(int isurf = 0; isurf < cornelius_ptr->get_Nelements(); isurf++)
            {
+              // position of the freeze-out fluid cell
               tau_center = cornelius_ptr->get_centroid_elem(isurf, 0) + tau - DTAU;
               x_center = cornelius_ptr->get_centroid_elem(isurf, 1) + x;
               y_center = cornelius_ptr->get_centroid_elem(isurf, 2) + y;
               eta_center = cornelius_ptr->get_centroid_elem(isurf, 3) + eta;
 
+              // surface normal vector d^3 \sigma_\mu
               for(int ii = 0; ii < 4; ii++)
                  FULLSU[ii] = cornelius_ptr->get_normal_elem(isurf, ii);
               
+              // perform 4-d linear interpolation for all fluid quantities
 
            }
-
-
 
         }
      }
