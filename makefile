@@ -31,14 +31,14 @@ grid.o  eos.o    evolve.o     \
 init.o    reconst.o  freeze.o minmod.o  \
 glauber.o advance.o u_derivative.o \
 dissipative.o random.o\
-util.o main.o freeze_pseudo.o
+util.o main.o freeze_pseudo.o cornelius.o
 
  
-CXX= mpic++
+CXX= mpicxx-openmpi-mp
 
 # -Wall shows all compiler warnings, and can help spot problems when developing code. 
-CXXFLAGS= -Wall -g3
-LIBS= -L/software/libraries/GSL/1.15/lib -lm -lgsl -lgslcblas
+CXXFLAGS= -Wall -g3 -I/opt/local/include
+LIBS= -L/opt/local/lib -lm -lgsl -lgslcblas
 COMMAND=  mpihydro
  
  
@@ -57,7 +57,7 @@ eos.o : eos.cpp eos.h util.h data.h
 
 random.o : random.cpp random.h util.h 
 
-evolve.o : evolve.cpp data.h eos.h evolve.h grid.h reconst.h advance.h util.h dissipative.h minmod.h u_derivative.h
+evolve.o : evolve.cpp data.h eos.h evolve.h grid.h reconst.h advance.h util.h dissipative.h minmod.h u_derivative.h cornelius.h
 
 grid.o : grid.cpp grid.h util.h data.h eos.h
 
@@ -74,6 +74,8 @@ glauber.o : glauber.cpp util.h glauber.h data.h random.h
 freeze.o : freeze.cpp data.h eos.h grid.h util.h freeze.h int.h
 
 freeze_pseudo.o : freeze_pseudo.cpp data.h eos.h grid.h util.h freeze.h
+
+cornelius.o : cornelius.h cornelius.cpp
 
 main.o : main.cpp data.h eos.h evolve.h grid.h init.h util.h glauber.h random.h reconst.h advance.h u_derivative.h
 
