@@ -5530,80 +5530,161 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    int sizeOfData = (nx+1)*(ny+1);
    int position;
    double *package;
-   //double *packageutau;
+   double *package_prev;
+
+   double *packageutau;
    double *packageux;
    double *packageuy;
    double *packageueta;
    double *packagerhob;
+  
+   double *packageutau_prev;
+   double *packageux_prev;
+   double *packageuy_prev;
+   double *packageueta_prev;
+   double *packagerhob_prev;
+
    double *packagePi_b;
+   double *packagePi_b_prev;
 
    double **Rneighbor_eps;
-   //double **Rneighbor_utau;
+   double **Rneighbor_eps_prev;
+   double **Rneighbor_utau;
    double **Rneighbor_ux;
    double **Rneighbor_uy;
    double **Rneighbor_ueta;
    double **Rneighbor_rhob;
+
+   double **Rneighbor_utau_prev;
+   double **Rneighbor_ux_prev;
+   double **Rneighbor_uy_prev;
+   double **Rneighbor_ueta_prev;
+   double **Rneighbor_rhob_prev;
+
    double **Rneighbor_Pi_b;
+   double **Rneighbor_Pi_b_prev;
  
-   //double *packageWtautau;
-   //double *packageWtaux;
-   //double *packageWtauy;
-   //double *packageWtaueta;
+   double *packageWtautau;
+   double *packageWtaux;
+   double *packageWtauy;
+   double *packageWtaueta;
    double *packageWxx;
    double *packageWxy;
    double *packageWxeta;
    double *packageWyy;
    double *packageWyeta;
-   //double *packageWetaeta;
+   double *packageWetaeta;
+  
+   double *packageWtautau_prev;
+   double *packageWtaux_prev;
+   double *packageWtauy_prev;
+   double *packageWtaueta_prev;
+   double *packageWxx_prev;
+   double *packageWxy_prev;
+   double *packageWxeta_prev;
+   double *packageWyy_prev;
+   double *packageWyeta_prev;
+   double *packageWetaeta_prev;
 
-   //double **Rneighbor_Wtautau;
-   //double **Rneighbor_Wtaux;
-   //double **Rneighbor_Wtauy;
-   //double **Rneighbor_Wtaueta;
+   double **Rneighbor_Wtautau;
+   double **Rneighbor_Wtaux;
+   double **Rneighbor_Wtauy;
+   double **Rneighbor_Wtaueta;
    double **Rneighbor_Wxx;
    double **Rneighbor_Wxy;
    double **Rneighbor_Wxeta;
    double **Rneighbor_Wyy;
    double **Rneighbor_Wyeta;
-   //double **Rneighbor_Wetaeta;
+   double **Rneighbor_Wetaeta;
+   
+   double **Rneighbor_Wtautau_prev;
+   double **Rneighbor_Wtaux_prev;
+   double **Rneighbor_Wtauy_prev;
+   double **Rneighbor_Wtaueta_prev;
+   double **Rneighbor_Wxx_prev;
+   double **Rneighbor_Wxy_prev;
+   double **Rneighbor_Wxeta_prev;
+   double **Rneighbor_Wyy_prev;
+   double **Rneighbor_Wyeta_prev;
+   double **Rneighbor_Wetaeta_prev;
 
    package = new double[sizeOfData];
-   //packageutau = new double[sizeOfData];
+   package_prev = new double[sizeOfData];
+   
+   packageutau = new double[sizeOfData];
    packageux = new double[sizeOfData];
    packageuy = new double[sizeOfData];
    packageueta = new double[sizeOfData];
    packagerhob = new double[sizeOfData];
-   packagePi_b = new double[sizeOfData];
 
-   //packageWtautau = new double[sizeOfData];
-   //packageWtaux = new double[sizeOfData];
-   //packageWtauy = new double[sizeOfData];
-   //packageWtaueta = new double[sizeOfData];
+   packageutau_prev = new double[sizeOfData];
+   packageux_prev = new double[sizeOfData];
+   packageuy_prev = new double[sizeOfData];
+   packageueta_prev = new double[sizeOfData];
+   packagerhob_prev = new double[sizeOfData];
+
+   packagePi_b = new double[sizeOfData];
+   packagePi_b_prev = new double[sizeOfData];
+
+   packageWtautau = new double[sizeOfData];
+   packageWtaux = new double[sizeOfData];
+   packageWtauy = new double[sizeOfData];
+   packageWtaueta = new double[sizeOfData];
    packageWxx = new double[sizeOfData];
    packageWxy = new double[sizeOfData];
    packageWxeta = new double[sizeOfData];
    packageWyy = new double[sizeOfData];
    packageWyeta = new double[sizeOfData];
-   //packageWetaeta = new double[sizeOfData];
+   packageWetaeta = new double[sizeOfData];
+
+   packageWtautau_prev = new double[sizeOfData];
+   packageWtaux_prev = new double[sizeOfData];
+   packageWtauy_prev = new double[sizeOfData];
+   packageWtaueta_prev = new double[sizeOfData];
+   packageWxx_prev = new double[sizeOfData];
+   packageWxy_prev = new double[sizeOfData];
+   packageWxeta_prev = new double[sizeOfData];
+   packageWyy_prev = new double[sizeOfData];
+   packageWyeta_prev = new double[sizeOfData];
+   packageWetaeta_prev = new double[sizeOfData];
   
    Rneighbor_eps = util->mtx_malloc(nx+1,ny+1);
-   //Rneighbor_utau = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_eps_prev = util->mtx_malloc(nx+1,ny+1);
+
+   Rneighbor_utau = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_ux = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_uy = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_ueta = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_rhob = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_Pi_b = util->mtx_malloc(nx+1,ny+1);
+
+   Rneighbor_utau_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_ux_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_uy_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_ueta_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_rhob_prev = util->mtx_malloc(nx+1,ny+1);
  
-   //Rneighbor_Wtautau = util->mtx_malloc(nx+1,ny+1);
-   //Rneighbor_Wtaux = util->mtx_malloc(nx+1,ny+1);
-   //Rneighbor_Wtauy = util->mtx_malloc(nx+1,ny+1);
-   //Rneighbor_Wtaueta = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wtautau = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wtaux = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wtauy = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wtaueta = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_Wxx = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_Wxy = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_Wxeta = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_Wyy = util->mtx_malloc(nx+1,ny+1);
    Rneighbor_Wyeta = util->mtx_malloc(nx+1,ny+1);
-   //Rneighbor_Wetaeta = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wetaeta = util->mtx_malloc(nx+1,ny+1);
+
+   Rneighbor_Wtautau_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wtaux_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wtauy_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wtaueta_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wxx_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wxy_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wxeta_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wyy_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wyeta_prev = util->mtx_malloc(nx+1,ny+1);
+   Rneighbor_Wetaeta_prev = util->mtx_malloc(nx+1,ny+1);
   
    // receive from the right / send to the left
    int from = rank+1;
@@ -5620,47 +5701,101 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
             //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
             //cout << "arena[ix][iy][0].TJb[i][alpha][0]=" << arena[ix][iy][0].TJb[i][alpha][0] << endl;
             position = ix + ((nx+1)*iy);
+
             package[position] = arena[ix][iy][0].epsilon;
-            //packageutau[position] = arena[ix][iy][0].u[0][0];
+	      package_prev[position] = arena[ix][iy][0].epsilon_prev;
+
+            packageutau[position] = arena[ix][iy][0].u[0][0];
             packageux[position] = arena[ix][iy][0].u[0][1];
             packageuy[position] = arena[ix][iy][0].u[0][2];
             packageueta[position] = arena[ix][iy][0].u[0][3];
-            if(DATA->turn_on_rhob) packagerhob[position] = arena[ix][iy][0].rhob;
-            if(DATA->turn_on_bulk) packagePi_b[position] = arena[ix][iy][0].pi_b[0];
+
+	      packageutau_prev[position] = arena[ix][iy][0].u_prev[0];
+	      packageux_prev[position] = arena[ix][iy][0].u_prev[1];
+	      packageuy_prev[position] = arena[ix][iy][0].u_prev[2];
+	      packageueta_prev[position] = arena[ix][iy][0].u_prev[3];
+
+            if(DATA->turn_on_rhob)
+            {
+               packagerhob[position] = arena[ix][iy][0].rhob;
+	         packagerhob_prev[position] = arena[ix][iy][0].rhob_prev;
+            }
+            if(DATA->turn_on_bulk)
+            {
+               packagePi_b[position] = arena[ix][iy][0].pi_b[0];
+               packagePi_b_prev[position] = arena[ix][iy][0].pi_b_prev;
+            }
             if(DATA->turn_on_shear) 
             {
-               //packageWtautau[position] = arena[ix][iy][0].Wmunu[0][0][0];
-               //packageWtaux[position] = arena[ix][iy][0].Wmunu[0][0][1];
-               //packageWtauy[position] = arena[ix][iy][0].Wmunu[0][0][2];
-               //packageWtaueta[position] = arena[ix][iy][0].Wmunu[0][0][3];
+               packageWtautau[position] = arena[ix][iy][0].Wmunu[0][0][0];
+               packageWtaux[position] = arena[ix][iy][0].Wmunu[0][0][1];
+               packageWtauy[position] = arena[ix][iy][0].Wmunu[0][0][2];
+               packageWtaueta[position] = arena[ix][iy][0].Wmunu[0][0][3];
                packageWxx[position] = arena[ix][iy][0].Wmunu[0][1][1];
                packageWxy[position] = arena[ix][iy][0].Wmunu[0][1][2];
                packageWxeta[position] = arena[ix][iy][0].Wmunu[0][1][3];
                packageWyy[position] = arena[ix][iy][0].Wmunu[0][2][2];
                packageWyeta[position] = arena[ix][iy][0].Wmunu[0][2][3];
-               //packageWetaeta[position] = arena[ix][iy][0].Wmunu[0][3][3];
+               packageWetaeta[position] = arena[ix][iy][0].Wmunu[0][3][3];
+
+	         packageWtautau_prev[position] = arena[ix][iy][0].W_prev[0][0];
+	         packageWtaux_prev[position] = arena[ix][iy][0].W_prev[0][1];
+	         packageWtauy_prev[position] = arena[ix][iy][0].W_prev[0][2];
+	         packageWtaueta_prev[position] = arena[ix][iy][0].W_prev[0][3];
+	         packageWxx_prev[position] = arena[ix][iy][0].W_prev[1][1];
+	         packageWxy_prev[position] = arena[ix][iy][0].W_prev[1][2];
+	         packageWxeta_prev[position] = arena[ix][iy][0].W_prev[1][3];
+	         packageWyy_prev[position] = arena[ix][iy][0].W_prev[2][2];
+	         packageWyeta_prev[position] = arena[ix][iy][0].W_prev[2][3];
+	         packageWetaeta_prev[position] = arena[ix][iy][0].W_prev[3][3];
             }
          }
       }
       MPI::COMM_WORLD.Send(package,sizeOfData,MPI::DOUBLE,to,1);
-      //MPI::COMM_WORLD.Send(packageutau,sizeOfData,MPI::DOUBLE,to,3);
+      MPI::COMM_WORLD.Send(package_prev,sizeOfData,MPI::DOUBLE,to,2);
+
+      MPI::COMM_WORLD.Send(packageutau,sizeOfData,MPI::DOUBLE,to,3);
       MPI::COMM_WORLD.Send(packageux,sizeOfData,MPI::DOUBLE,to,4);
       MPI::COMM_WORLD.Send(packageuy,sizeOfData,MPI::DOUBLE,to,5);
       MPI::COMM_WORLD.Send(packageueta,sizeOfData,MPI::DOUBLE,to,6);
-      if(DATA->turn_on_rhob) MPI::COMM_WORLD.Send(packagerhob,sizeOfData,MPI::DOUBLE,to,7);
-      if(DATA->turn_on_bulk) MPI::COMM_WORLD.Send(packagePi_b,sizeOfData,MPI::DOUBLE,to,8);
+
+      MPI::COMM_WORLD.Send(packageutau_prev,sizeOfData,MPI::DOUBLE,to,8);
+      MPI::COMM_WORLD.Send(packageux_prev,sizeOfData,MPI::DOUBLE,to,9);
+      MPI::COMM_WORLD.Send(packageuy_prev,sizeOfData,MPI::DOUBLE,to,10);
+      MPI::COMM_WORLD.Send(packageueta_prev,sizeOfData,MPI::DOUBLE,to,11);
+
+      if(DATA->turn_on_rhob)
+      {
+         MPI::COMM_WORLD.Send(packagerhob,sizeOfData,MPI::DOUBLE,to,7);
+         MPI::COMM_WORLD.Send(packagerhob_prev,sizeOfData,MPI::DOUBLE,to,32);
+      }
+      if(DATA->turn_on_bulk)
+      {
+         MPI::COMM_WORLD.Send(packagePi_b,sizeOfData,MPI::DOUBLE,to,33);
+         MPI::COMM_WORLD.Send(packagePi_b_prev,sizeOfData,MPI::DOUBLE,to,34);
+      }
       if(DATA->turn_on_shear) 
       {
-         //MPI::COMM_WORLD.Send(packageWtautau,sizeOfData,MPI::DOUBLE,to,12);
-         //MPI::COMM_WORLD.Send(packageWtaux,sizeOfData,MPI::DOUBLE,to,13);
-         //MPI::COMM_WORLD.Send(packageWtauy,sizeOfData,MPI::DOUBLE,to,14);
-         //MPI::COMM_WORLD.Send(packageWtaueta,sizeOfData,MPI::DOUBLE,to,15);
+         MPI::COMM_WORLD.Send(packageWtautau,sizeOfData,MPI::DOUBLE,to,12);
+         MPI::COMM_WORLD.Send(packageWtaux,sizeOfData,MPI::DOUBLE,to,13);
+         MPI::COMM_WORLD.Send(packageWtauy,sizeOfData,MPI::DOUBLE,to,14);
+         MPI::COMM_WORLD.Send(packageWtaueta,sizeOfData,MPI::DOUBLE,to,15);
          MPI::COMM_WORLD.Send(packageWxx,sizeOfData,MPI::DOUBLE,to,16);
          MPI::COMM_WORLD.Send(packageWxy,sizeOfData,MPI::DOUBLE,to,17);
          MPI::COMM_WORLD.Send(packageWxeta,sizeOfData,MPI::DOUBLE,to,18);
          MPI::COMM_WORLD.Send(packageWyy,sizeOfData,MPI::DOUBLE,to,19);
          MPI::COMM_WORLD.Send(packageWyeta,sizeOfData,MPI::DOUBLE,to,20);
-         //MPI::COMM_WORLD.Send(packageWetaeta,sizeOfData,MPI::DOUBLE,to,21);
+         MPI::COMM_WORLD.Send(packageWetaeta,sizeOfData,MPI::DOUBLE,to,21);
+         MPI::COMM_WORLD.Send(packageWtautau_prev,sizeOfData,MPI::DOUBLE,to,22);
+         MPI::COMM_WORLD.Send(packageWtaux_prev,sizeOfData,MPI::DOUBLE,to,23);
+         MPI::COMM_WORLD.Send(packageWtauy_prev,sizeOfData,MPI::DOUBLE,to,24);
+         MPI::COMM_WORLD.Send(packageWtaueta_prev,sizeOfData,MPI::DOUBLE,to,25);
+         MPI::COMM_WORLD.Send(packageWxx_prev,sizeOfData,MPI::DOUBLE,to,26);
+         MPI::COMM_WORLD.Send(packageWxy_prev,sizeOfData,MPI::DOUBLE,to,27);
+         MPI::COMM_WORLD.Send(packageWxeta_prev,sizeOfData,MPI::DOUBLE,to,28);
+         MPI::COMM_WORLD.Send(packageWyy_prev,sizeOfData,MPI::DOUBLE,to,29);
+         MPI::COMM_WORLD.Send(packageWyeta_prev,sizeOfData,MPI::DOUBLE,to,30);
+         MPI::COMM_WORLD.Send(packageWetaeta_prev,sizeOfData,MPI::DOUBLE,to,31);
       }
       //cout << " done sending to the left on rank " << rank << endl;
    }
@@ -5668,24 +5803,49 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    if ( rank != size-1 )
    {  
       MPI::COMM_WORLD.Recv(package,sizeOfData,MPI::DOUBLE,from,1);
-      //MPI::COMM_WORLD.Recv(packageutau,sizeOfData,MPI::DOUBLE,from,3);
+      MPI::COMM_WORLD.Recv(package_prev,sizeOfData,MPI::DOUBLE,from,2);
+
+      MPI::COMM_WORLD.Recv(packageutau,sizeOfData,MPI::DOUBLE,from,3);
       MPI::COMM_WORLD.Recv(packageux,sizeOfData,MPI::DOUBLE,from,4);
       MPI::COMM_WORLD.Recv(packageuy,sizeOfData,MPI::DOUBLE,from,5);
       MPI::COMM_WORLD.Recv(packageueta,sizeOfData,MPI::DOUBLE,from,6);
-      if(DATA->turn_on_rhob) MPI::COMM_WORLD.Recv(packagerhob,sizeOfData,MPI::DOUBLE,from,7);
-      if(DATA->turn_on_bulk) MPI::COMM_WORLD.Recv(packagePi_b,sizeOfData,MPI::DOUBLE,from,8);
+
+      MPI::COMM_WORLD.Recv(packageutau_prev,sizeOfData,MPI::DOUBLE,from,8);
+      MPI::COMM_WORLD.Recv(packageux_prev,sizeOfData,MPI::DOUBLE,from,9);
+      MPI::COMM_WORLD.Recv(packageuy_prev,sizeOfData,MPI::DOUBLE,from,10);
+      MPI::COMM_WORLD.Recv(packageueta_prev,sizeOfData,MPI::DOUBLE,from,11);
+      if(DATA->turn_on_rhob)
+      {
+         MPI::COMM_WORLD.Recv(packagerhob,sizeOfData,MPI::DOUBLE,from,7);
+         MPI::COMM_WORLD.Recv(packagerhob_prev,sizeOfData,MPI::DOUBLE,from,32);
+      }
+      if(DATA->turn_on_bulk)
+      {
+         MPI::COMM_WORLD.Recv(packagePi_b,sizeOfData,MPI::DOUBLE,from,33);
+         MPI::COMM_WORLD.Recv(packagePi_b_prev,sizeOfData,MPI::DOUBLE,from,34);
+      }
       if(DATA->turn_on_shear) 
       {
-         //MPI::COMM_WORLD.Recv(packageWtautau,sizeOfData,MPI::DOUBLE,from,12);
-         //MPI::COMM_WORLD.Recv(packageWtaux,sizeOfData,MPI::DOUBLE,from,13);
-         //MPI::COMM_WORLD.Recv(packageWtauy,sizeOfData,MPI::DOUBLE,from,14);
-         //MPI::COMM_WORLD.Recv(packageWtaueta,sizeOfData,MPI::DOUBLE,from,15);
+         MPI::COMM_WORLD.Recv(packageWtautau,sizeOfData,MPI::DOUBLE,from,12);
+         MPI::COMM_WORLD.Recv(packageWtaux,sizeOfData,MPI::DOUBLE,from,13);
+         MPI::COMM_WORLD.Recv(packageWtauy,sizeOfData,MPI::DOUBLE,from,14);
+         MPI::COMM_WORLD.Recv(packageWtaueta,sizeOfData,MPI::DOUBLE,from,15);
          MPI::COMM_WORLD.Recv(packageWxx,sizeOfData,MPI::DOUBLE,from,16);
          MPI::COMM_WORLD.Recv(packageWxy,sizeOfData,MPI::DOUBLE,from,17);
          MPI::COMM_WORLD.Recv(packageWxeta,sizeOfData,MPI::DOUBLE,from,18);
          MPI::COMM_WORLD.Recv(packageWyy,sizeOfData,MPI::DOUBLE,from,19);
          MPI::COMM_WORLD.Recv(packageWyeta,sizeOfData,MPI::DOUBLE,from,20);
-         //MPI::COMM_WORLD.Recv(packageWetaeta,sizeOfData,MPI::DOUBLE,from,21);
+         MPI::COMM_WORLD.Recv(packageWetaeta,sizeOfData,MPI::DOUBLE,from,21);
+         MPI::COMM_WORLD.Recv(packageWtautau_prev,sizeOfData,MPI::DOUBLE,from,22);
+         MPI::COMM_WORLD.Recv(packageWtaux_prev,sizeOfData,MPI::DOUBLE,from,23);
+         MPI::COMM_WORLD.Recv(packageWtauy_prev,sizeOfData,MPI::DOUBLE,from,24);
+         MPI::COMM_WORLD.Recv(packageWtaueta_prev,sizeOfData,MPI::DOUBLE,from,25);
+         MPI::COMM_WORLD.Recv(packageWxx_prev,sizeOfData,MPI::DOUBLE,from,26);
+         MPI::COMM_WORLD.Recv(packageWxy_prev,sizeOfData,MPI::DOUBLE,from,27);
+         MPI::COMM_WORLD.Recv(packageWxeta_prev,sizeOfData,MPI::DOUBLE,from,28);
+         MPI::COMM_WORLD.Recv(packageWyy_prev,sizeOfData,MPI::DOUBLE,from,29);
+         MPI::COMM_WORLD.Recv(packageWyeta_prev,sizeOfData,MPI::DOUBLE,from,30);
+         MPI::COMM_WORLD.Recv(packageWetaeta_prev,sizeOfData,MPI::DOUBLE,from,31);
       }
       //cout << " receiving from the right on rank " << rank << endl;
       for(ix=0; ix<=nx; ix++)
@@ -5696,709 +5856,91 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
             //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
             //cout << "Rneighbor[ix][iy][0].TJb[i][alpha][0]=" << package[position] << endl;
             Rneighbor_eps[ix][iy] = package[position];
-            //Rneighbor_utau[ix][iy] = packageutau[position];
+	      Rneighbor_eps_prev[ix][iy] = package_prev[position];
+
+            Rneighbor_utau[ix][iy] = packageutau[position];
             Rneighbor_ux[ix][iy] = packageux[position];
             Rneighbor_uy[ix][iy] = packageuy[position];
             Rneighbor_ueta[ix][iy] = packageueta[position];
-            if(DATA->turn_on_rhob) Rneighbor_rhob[ix][iy] = packagerhob[position];
-            else Rneighbor_rhob[ix][iy] = 0.;
-            if(DATA->turn_on_rhob) Rneighbor_Pi_b[ix][iy] = packagePi_b[position];
-            else Rneighbor_Pi_b[ix][iy] = 0.;
+
+            if(DATA->turn_on_rhob)
+            {
+               Rneighbor_rhob[ix][iy] = packagerhob[position];
+               Rneighbor_rhob_prev[ix][iy] = packagerhob_prev[position];
+            }
+            else
+            {
+               Rneighbor_rhob[ix][iy] = 0.;
+               Rneighbor_rhob_prev[ix][iy] = 0.;
+            }
+            if(DATA->turn_on_bulk)
+            {
+               Rneighbor_Pi_b[ix][iy] = packagePi_b[position];
+               Rneighbor_Pi_b_prev[ix][iy] = packagePi_b_prev[position];
+            }
+            else
+            {
+               Rneighbor_Pi_b[ix][iy] = 0.;
+               Rneighbor_Pi_b_prev[ix][iy] = 0.;
+            }
             if(DATA->turn_on_shear) 
             {
-               //Rneighbor_Wtautau[ix][iy] = packageWtautau[position];
-               //Rneighbor_Wtaux[ix][iy] = packageWtaux[position];
-               //Rneighbor_Wtauy[ix][iy] = packageWtauy[position];
-               //Rneighbor_Wtaueta[ix][iy] = packageWtaueta[position];
+               Rneighbor_Wtautau[ix][iy] = packageWtautau[position];
+               Rneighbor_Wtaux[ix][iy] = packageWtaux[position];
+               Rneighbor_Wtauy[ix][iy] = packageWtauy[position];
+               Rneighbor_Wtaueta[ix][iy] = packageWtaueta[position];
                Rneighbor_Wxx[ix][iy] = packageWxx[position];
                Rneighbor_Wxy[ix][iy] = packageWxy[position];
                Rneighbor_Wxeta[ix][iy] = packageWxeta[position];
                Rneighbor_Wyy[ix][iy] = packageWyy[position];
                Rneighbor_Wyeta[ix][iy] = packageWyeta[position];
-               //Rneighbor_Wetaeta[ix][iy] = packageWetaeta[position];
+               Rneighbor_Wetaeta[ix][iy] = packageWetaeta[position];
+	         Rneighbor_Wtautau_prev[ix][iy] = packageWtautau_prev[position];
+	         Rneighbor_Wtaux_prev[ix][iy] = packageWtaux_prev[position];
+	         Rneighbor_Wtauy_prev[ix][iy] = packageWtauy_prev[position];
+	         Rneighbor_Wtaueta_prev[ix][iy] = packageWtaueta_prev[position];
+	         Rneighbor_Wxx_prev[ix][iy] = packageWxx_prev[position];
+	         Rneighbor_Wxy_prev[ix][iy] = packageWxy_prev[position];
+	         Rneighbor_Wxeta_prev[ix][iy] = packageWxeta_prev[position];
+	         Rneighbor_Wyy_prev[ix][iy] = packageWyy_prev[position];
+	         Rneighbor_Wyeta_prev[ix][iy] = packageWyeta_prev[position];
+	         Rneighbor_Wetaeta_prev[ix][iy] = packageWetaeta_prev[position];
             }
             else
             {
-               Rneighbor_Wxx[ix][iy] = 0.;
-               Rneighbor_Wxy[ix][iy] = 0.;
-               Rneighbor_Wxeta[ix][iy] = 0.;
-               Rneighbor_Wyy[ix][iy] = 0.;
-               Rneighbor_Wyeta[ix][iy] = 0.;
+               Rneighbor_Wtautau[ix][iy] = 0.0;
+               Rneighbor_Wtaux[ix][iy] = 0.0;
+               Rneighbor_Wtauy[ix][iy] = 0.0;
+               Rneighbor_Wtaueta[ix][iy] = 0.0;
+               Rneighbor_Wxx[ix][iy] = 0.0;
+               Rneighbor_Wxy[ix][iy] = 0.0;
+               Rneighbor_Wxeta[ix][iy] = 0.0;
+               Rneighbor_Wyy[ix][iy] = 0.0;
+               Rneighbor_Wyeta[ix][iy] = 0.0;
+               Rneighbor_Wetaeta[ix][iy] = 0.0;
+	         Rneighbor_Wtautau_prev[ix][iy] = 0.0;
+	         Rneighbor_Wtaux_prev[ix][iy] = 0.0;
+	         Rneighbor_Wtauy_prev[ix][iy] = 0.0;
+	         Rneighbor_Wtaueta_prev[ix][iy] = 0.0;
+	         Rneighbor_Wxx_prev[ix][iy] = 0.0;
+	         Rneighbor_Wxy_prev[ix][iy] = 0.0;
+	         Rneighbor_Wxeta_prev[ix][iy] = 0.0;
+	         Rneighbor_Wyy_prev[ix][iy] = 0.0;
+	         Rneighbor_Wyeta_prev[ix][iy] = 0.0;
+	         Rneighbor_Wetaeta_prev[ix][iy] = 0.0;
             }
          }
       }
       //cout << " done receiving from the right on rank " << rank << endl;
    }
 
-   //if (rank == size-1) maxEta = neta-fac;
-   //else maxEta = neta;
+   if (rank == size-1)
+      maxEta = neta-fac;
+   else
+      maxEta = neta;
   //*******************************************
   // end MPI code copied from FindFreezeOutSurface2
 
   
-//   int maxEta;
-  maxEta = neta-fac;
-  
-  if (DATA->useEpsFO) FO = DATA->epsilonFreeze/hbarc;
-  else FO = DATA->TFO/hbarc;
-
-  for(ix=0; ix<=nx; ix+=fac)
-    {
-      x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
-      for(iy=0; iy<=ny; iy+=fac)
-      {
-        y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
-        for(ieta=0; ieta<=maxEta; ieta+=fac)
-          {
-            eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
-            
-            if (DATA->useEpsFO && (arena[ix][iy][ieta].epsilon >= FO)) frozen = 0;
-            else if (!DATA->useEpsFO && (eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob) >= FO)) frozen = 0;
-            
-// 	        rhob = arena[ix][iy][ieta].rhob;
-// 	        if (!DATA->useEpsFO && (1 == DATA->turn_on_rhob)) 
-// 		  cerr << "Caution! Constant temperature freezeout with nonzero chemical potential doesn't yet work properly (need to implement rhob_prev)\n";
-
-            if(ix<nx)
-            {
-            // check forward in x
-            xf = x + DX/2.;
-            yf = y;
-            etaf = eta;// no longer used
-            tauf = tau;
-
-            nix = ix+fac;
-            niy = iy;
-            nieta = ieta;
-            FULLSU[0]=0.;
-            FULLSU[1]=DTAU*DY*DETA/subsections;
-            FULLSU[2]=0.;
-            FULLSU[3]=0.;
-            
-            if (DATA->useEpsFO)
-            {
-              home = arena[ix][iy][ieta].epsilon;
-              neighbor = arena[nix][niy][nieta].epsilon;
-            }
-            else
-            {
-// 		  home = arena[ix][iy][ieta].T;
-// 		  neighbor = arena[nix][niy][nieta].T;
-              home = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob);
-              neighbor = eos->get_temperature(arena[nix][niy][nieta].epsilon,arena[nix][niy][nieta].rhob);
-            }
-            if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
-            {
-              if (home<=FO)
-                SIG=-1.;
-              else SIG=1.;
-              for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
-              // simple linear interpolation of all independent variables
-              ux = 0.5*(arena[ix][iy][ieta].u[0][1] + arena[nix][niy][nieta].u[0][1]);
-              uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u[0][2]);
-              ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u[0][3]);
-              utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
-              iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[nix][niy][nieta].epsilon);
-              rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
-              pi_b = 0.5*(arena[ix][iy][ieta].pi_b[0] + arena[nix][niy][nieta].pi_b[0]);
-              TFO = eos->get_temperature(iepsFO, rhob);
-              muB = eos->get_mu(iepsFO, rhob);
-              eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
-              Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
-              Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
-              Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].Wmunu[0][1][3]);
-              Wyy = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][2] + arena[nix][niy][nieta].Wmunu[0][2][2]);
-              Wyeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][3] + arena[nix][niy][nieta].Wmunu[0][2][3]);
-
-              Wetaeta = (2.*(ux*uy*Wxy 
-                            + ux*ueta*Wxeta
-                            + uy*ueta*Wyeta )
-                         -( utau*utau - ux*ux )*Wxx
-                         -( utau*utau - uy*uy )*Wyy
-                  )/( utau*utau - ueta*ueta ) ;
-              Wtaux = (ux*Wxx + uy*Wxy + ueta*Wxeta)/utau;
-              Wtauy = (ux*Wxy + uy*Wyy + ueta*Wyeta)/utau;
-              Wtaueta = (ux*Wxeta + uy*Wyeta + ueta*Wetaeta)/utau;
-              Wtautau = (ux*Wtaux + uy*Wtauy + ueta*Wtaueta)/utau;
-              
-              for (int i = 0; i < subsections; i++)
-              {
-                etaf = eta - DETA/2 + DETA/2/subsections + (i*DETA)/(subsections);
-                
-                s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
-                    << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
-                    << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
-                    << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
-                    << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
-                    << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
-                if(DATA->turn_on_bulk) s_file << " " << pi_b;
-                s_file << endl;  
-              }
-              if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
-              {
-                cerr << "Freeze out surface exiting the volume in y direction at tau, x,y,eta = " 
-                    << tauf << ", " << x << ", " << y << ", " << eta << endl;
-                if(DATA->check_FO3_at_boundary_xy>1) exit(42);
-              }
-              if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))
-              {
-                cerr << "Freeze out surface exiting the volume in eta direction at tau, x,y,eta = " 
-                    << tauf << ", " << x << ", " << y << ", " << eta << endl;
-                if(DATA->check_FO3_at_boundary_eta>1) exit(42);
-              }
-            } // if grid pair straddles freeze out density
-            } //if(ix<nx)
-            
-            if(iy<ny)
-            {
-            // check forward in y
-            xf = x;
-            yf = y + DY/2.;
-            etaf = eta; // no longer used
-            tauf = tau;
-
-            nix = ix;
-            niy = iy+fac;
-            nieta = ieta;
-            FULLSU[0]=0.;
-            FULLSU[1]=0.;
-            FULLSU[2]=DTAU*DX*DETA/subsections;
-            FULLSU[3]=0.;
-            
-            if (DATA->useEpsFO)
-            {
-              home = arena[ix][iy][ieta].epsilon;
-              neighbor = arena[nix][niy][nieta].epsilon;
-            }
-            else
-            {
-// 		  home = arena[ix][iy][ieta].T;
-// 		  neighbor = arena[nix][niy][nieta].T;
-              home = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob);
-              neighbor = eos->get_temperature(arena[nix][niy][nieta].epsilon,arena[nix][niy][nieta].rhob);
-            }
-            if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
-            {
-              if (home<=FO)
-                SIG=-1.;
-              else SIG=1.;
-              for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
-              // simple linear interpolation of all independent variables
-              ux = 0.5*(arena[ix][iy][ieta].u[0][1] + arena[nix][niy][nieta].u[0][1]);
-              uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u[0][2]);
-              ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u[0][3]);
-              utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
-              iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[nix][niy][nieta].epsilon);
-              rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
-              pi_b = 0.5*(arena[ix][iy][ieta].pi_b[0] + arena[nix][niy][nieta].pi_b[0]);
-              TFO = eos->get_temperature(iepsFO, rhob);
-              muB = eos->get_mu(iepsFO, rhob);
-              eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
-              Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
-              Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
-              Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].Wmunu[0][1][3]);
-              Wyy = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][2] + arena[nix][niy][nieta].Wmunu[0][2][2]);
-              Wyeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][3] + arena[nix][niy][nieta].Wmunu[0][2][3]);
-
-              Wetaeta = (2.*(ux*uy*Wxy 
-                            + ux*ueta*Wxeta
-                            + uy*ueta*Wyeta )
-                         -( utau*utau - ux*ux )*Wxx
-                         -( utau*utau - uy*uy )*Wyy
-                  )/( utau*utau - ueta*ueta ) ;
-              Wtaux = (ux*Wxx + uy*Wxy + ueta*Wxeta)/utau;
-              Wtauy = (ux*Wxy + uy*Wyy + ueta*Wyeta)/utau;
-              Wtaueta = (ux*Wxeta + uy*Wyeta + ueta*Wetaeta)/utau;
-              Wtautau = (ux*Wtaux + uy*Wtauy + ueta*Wtaueta)/utau;
-              
-              for (int i = 0; i < subsections; i++)
-              {
-                etaf = eta - DETA/2 + DETA/2/subsections + (i*DETA)/(subsections);
-                
-                s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
-                    << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
-                    << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
-                    << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
-                    << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
-                    << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
-                if(DATA->turn_on_bulk) s_file << " " << pi_b;
-                s_file << endl; 
-              }
-              if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
-              {
-                cerr << "Freeze out surface exiting the volume in x direction at tau, x,y,eta = " 
-                    << tauf << ", " << x << ", " << y << ", " << eta << endl;
-                if(DATA->check_FO3_at_boundary_xy>1) exit(42);
-              }
-              if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))
-              {
-                cerr << "Freeze out surface exiting the volume in eta direction at tau, x,y,eta = " 
-                    << tauf << ", " << x << ", " << y << ", " << eta << endl;
-                if(DATA->check_FO3_at_boundary_eta>1) exit(42);
-              }
-            } // if grid pair straddles freeze out density
-            } //if(iy<ny)
-            
-            if(ieta<(maxEta))
-            {
-            // check forward in eta
-            xf = x;
-            yf = y;
-            etaf = eta + DETA/2;
-            tauf = tau;
-
-            nix = ix;
-            niy = iy;
-            nieta = ieta + fac;
-            FULLSU[0]=0.;
-            FULLSU[1]=0.;
-            FULLSU[2]=0.;
-            FULLSU[3]=DTAU*DX*DY;
-            
-            if (DATA->useEpsFO)
-            {
-              home = arena[ix][iy][ieta].epsilon;
-              neighbor = arena[nix][niy][nieta].epsilon;
-            }
-            else
-            {
-// 		  home = arena[ix][iy][ieta].T;
-// 		  neighbor = arena[nix][niy][nieta].T;
-              home = eos->get_temperature(arena[ix][iy][ieta].epsilon,arena[ix][iy][ieta].rhob);
-              neighbor = eos->get_temperature(arena[nix][niy][nieta].epsilon,arena[nix][niy][nieta].rhob);
-            }
-            if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
-            {
-              if (home<=FO)
-                SIG=-1.;
-              else SIG=1.;
-              for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
-              // simple linear interpolation of all independent variables
-              ux = 0.5*(arena[ix][iy][ieta].u[0][1] + arena[nix][niy][nieta].u[0][1]);
-              uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u[0][2]);
-              ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u[0][3]);
-              utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
-              iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[nix][niy][nieta].epsilon);
-              rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
-              pi_b = 0.5*(arena[ix][iy][ieta].pi_b[0] + arena[nix][niy][nieta].pi_b[0]);
-              TFO = eos->get_temperature(iepsFO, rhob);
-              muB = eos->get_mu(iepsFO, rhob);
-              eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
-              Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].Wmunu[0][1][1]);
-              Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].Wmunu[0][1][2]);
-              Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].Wmunu[0][1][3]);
-              Wyy = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][2] + arena[nix][niy][nieta].Wmunu[0][2][2]);
-              Wyeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][3] + arena[nix][niy][nieta].Wmunu[0][2][3]);
-
-              Wetaeta = (2.*(ux*uy*Wxy 
-                            + ux*ueta*Wxeta
-                            + uy*ueta*Wyeta )
-                         -( utau*utau - ux*ux )*Wxx
-                         -( utau*utau - uy*uy )*Wyy
-                  )/( utau*utau - ueta*ueta ) ;
-              Wtaux = (ux*Wxx + uy*Wxy + ueta*Wxeta)/utau;
-              Wtauy = (ux*Wxy + uy*Wyy + ueta*Wyeta)/utau;
-              Wtaueta = (ux*Wxeta + uy*Wyeta + ueta*Wetaeta)/utau;
-              Wtautau = (ux*Wtaux + uy*Wtauy + ueta*Wtaueta)/utau;
-              
-              s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
-                   << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
-                   << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
-                   << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
-                   << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
-                   << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
-              if(DATA->turn_on_bulk) s_file << " " << pi_b;
-              s_file << endl; 
-                   
-              if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
-              {
-                cerr << "Freeze out surface exiting the volume in x direction at tau, x,y,eta = " 
-                    << tauf << ", " << x << ", " << y << ", " << eta << endl;
-                if(DATA->check_FO3_at_boundary_xy>1) exit(42);
-              }
-              if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
-              {
-                cerr << "Freeze out surface exiting the volume in y direction at tau, x,y,eta = " 
-                    << tauf << ", " << x << ", " << y << ", " << eta << endl;
-                if(DATA->check_FO3_at_boundary_xy>1) exit(42);
-              }
-            }// if grid pair straddles freeze out density
-            }// if (ieta<maxEta)
-            
-            
-            
-            // check backward in time
-            xf = x;
-            yf = y;
-            etaf = eta;
-            tauf = tau-DTAU/2.;
-
-            nix = ix;
-            niy = iy;
-            nieta = ieta;
-            FULLSU[0]=DX*DY*DETA/subsections;
-            FULLSU[1]=0.;
-            FULLSU[2]=0.;
-            FULLSU[3]=0.;
-            
-            neighbor = home;
-            if (DATA->useEpsFO)
-            {
-              home = arena[ix][iy][ieta].epsilon_prev;
-            }
-            else
-            {
-// 		  home = arena[ix][iy][ieta].T;
-// 		  home = eos->get_temperature(arena[ix][iy][ieta].epsilon_prev,arena[ix][iy][ieta].rhob);
-              
-            // Need temperature at previous time step. Use value of rhob at previous time step,
-            // or else use T_prev if that is available
-              home = eos->get_temperature(arena[ix][iy][ieta].epsilon_prev,arena[ix][iy][ieta].rhob_prev);
-            }
-            if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
-            {
-              if (home<=FO)
-                SIG=-1.;
-              else SIG=1.;
-              for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
-              // simple linear interpolation of all independent variables
-              ux = 0.5*(arena[ix][iy][ieta].u[0][1] + arena[nix][niy][nieta].u_prev[1]);
-              uy = 0.5*(arena[ix][iy][ieta].u[0][2] + arena[nix][niy][nieta].u_prev[2]);
-              ueta = 0.5*(arena[ix][iy][ieta].u[0][3] + arena[nix][niy][nieta].u_prev[3]);
-              utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
-              iepsFO = 0.5*(arena[ix][iy][ieta].epsilon + arena[ix][iy][ieta].epsilon_prev);
-              //I don't seem to have accesss to value of rhob from previous timestep.  Use value at current timestep.
-// 		  rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob);
-              rhob = 0.5*(arena[ix][iy][ieta].rhob + arena[nix][niy][nieta].rhob_prev);
-              pi_b = 0.5*(arena[ix][iy][ieta].pi_b[0] + arena[nix][niy][nieta].pi_b_prev);
-              TFO = eos->get_temperature(iepsFO, rhob);
-              muB = eos->get_mu(iepsFO, rhob);
-              eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
-              Wxx = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][1] + arena[nix][niy][nieta].W_prev[1][1]);
-              Wxy = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][2] + arena[nix][niy][nieta].W_prev[1][2]);
-              Wxeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][1][3] + arena[nix][niy][nieta].W_prev[1][3]);
-              Wyy = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][2] + arena[nix][niy][nieta].W_prev[2][2]);
-              Wyeta = 0.5*(arena[ix][iy][ieta].Wmunu[0][2][3] + arena[nix][niy][nieta].W_prev[2][3]);
-
-              Wetaeta = (2.*(ux*uy*Wxy 
-                            + ux*ueta*Wxeta
-                            + uy*ueta*Wyeta )
-                         -( utau*utau - ux*ux )*Wxx
-                         -( utau*utau - uy*uy )*Wyy
-                  )/( utau*utau - ueta*ueta ) ;
-              Wtaux = (ux*Wxx + uy*Wxy + ueta*Wxeta)/utau;
-              Wtauy = (ux*Wxy + uy*Wyy + ueta*Wyeta)/utau;
-              Wtaueta = (ux*Wxeta + uy*Wyeta + ueta*Wetaeta)/utau;
-              Wtautau = (ux*Wtaux + uy*Wtauy + ueta*Wtaueta)/utau;
-              
-              for (int i = 0; i < subsections; i++)
-              {
-                etaf = eta - DETA/2 + DETA/2/subsections + (i*DETA)/(subsections);
-                
-                s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
-                    << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
-                    << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
-                    << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
-                    << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
-                    << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
-                if(DATA->turn_on_bulk) s_file << " " << pi_b;
-                s_file << endl; 
-              }
-              if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
-              {
-                cerr << "Freeze out surface exiting the volume in x direction at tau, x,y,eta = " 
-                    << tauf << ", " << x << ", " << y << ", " << eta << endl;
-                if(DATA->check_FO3_at_boundary_xy>1) exit(42);
-              }
-              if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
-              {
-                cerr << "Freeze out surface exiting the volume in y direction at tau, x,y,eta = " 
-                    << tauf << ", " << x << ", " << y << ", " << eta << endl;
-                if(DATA->check_FO3_at_boundary_xy>1) exit(42);
-              }
-              if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))
-              {
-                cerr << "Freeze out surface exiting the volume in eta direction at tau, x,y,eta = " 
-                    << tauf << ", " << x << ", " << y << ", " << eta << endl;
-                if(DATA->check_FO3_at_boundary_eta>1) exit(42);
-              }
-            } // if grid pair straddles density
-            
-// 	      if(shown==0)
-// 		{
-// 		  fprintf(stderr,"DTAU=%f\n", DTAU);
-// 		  fprintf(stderr,"DX=%f\n", DX);
-// 		  fprintf(stderr,"DY=%f\n", DY);
-// 		  fprintf(stderr,"DETA=%f\n", DETA);
-// 		  shown=1;
-// 		}
-            
-          }// eta loop
-
-          
-          
-          
-          
-          
-        //  At the end of the eta grid in the +eta direction, check neighboring cell in eta, 
-        //  received from neighboring processor.  Only check if surface is in between cells in eta direction
-        //  (steps in x, y, and tau are checked on the neighboring processor)
-        if (rank != size-1) 
-        {
-          eta = (DATA->delta_eta)*(neta+DATA->neta*rank) - (DATA->eta_size)/2.0;
-      
-            // from Rneighbor, check backward in eta
-            xf = x;
-            yf = y;
-            etaf = eta - DETA/2;
-            tauf = tau;
-
-            nix = ix;
-            niy = iy;
-            nieta = maxEta;
-            FULLSU[0]=0.;
-            FULLSU[1]=0.;
-            FULLSU[2]=0.;
-            FULLSU[3]=DTAU*DX*DY;
-            
-            if (DATA->useEpsFO)
-            {
-              home = arena[ix][iy][nieta].epsilon;
-              neighbor = Rneighbor_eps[nix][niy];
-            }
-            else
-            {
-// 		  home = arena[ix][iy][ieta].T;
-// 		  neighbor = arena[nix][niy][nieta].T;
-              home = eos->get_temperature(arena[ix][iy][nieta].epsilon,arena[ix][iy][nieta].rhob);
-              neighbor = eos->get_temperature(Rneighbor_eps[nix][niy],Rneighbor_rhob[nix][niy]);
-            }
-// 	       if (ieta>=neta-fac)
-// 		 {
-// 		  epsneighbor = Rneighbor_eps[ix][iy];
-// 		 }
-            if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
-            {
-              if (home<=FO)
-                SIG=-1.;
-              else SIG=1.;
-              for (int orient = 0; orient < 4; orient++) FULLSU[orient]*=SIG;
-              // simple linear interpolation of all independent variables
-              ux = 0.5*(Rneighbor_ux[ix][iy] + arena[nix][niy][nieta].u[0][1]);
-              uy = 0.5*(Rneighbor_uy[ix][iy] + arena[nix][niy][nieta].u[0][2]);
-              ueta = 0.5*(Rneighbor_ueta[ix][iy] + arena[nix][niy][nieta].u[0][3]);
-              utau = sqrt(1 + ux*ux + uy*uy + ueta*ueta);
-              iepsFO = 0.5*(arena[ix][iy][nieta].epsilon + Rneighbor_eps[nix][niy]);
-              rhob = 0.5*(Rneighbor_rhob[ix][iy] + arena[nix][niy][nieta].rhob);
-              pi_b = 0.5*(Rneighbor_Pi_b[ix][iy] + arena[nix][niy][nieta].pi_b[0]);
-              TFO = eos->get_temperature(iepsFO, rhob);
-              muB = eos->get_mu(iepsFO, rhob);
-              eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
-              Wxx = 0.5*(Rneighbor_Wxx[ix][iy] + arena[nix][niy][nieta].Wmunu[0][1][1]);
-              Wxy = 0.5*(Rneighbor_Wxy[ix][iy] + arena[nix][niy][nieta].Wmunu[0][1][2]);
-              Wxeta = 0.5*(Rneighbor_Wxeta[ix][iy] + arena[nix][niy][nieta].Wmunu[0][1][3]);
-              Wyy = 0.5*(Rneighbor_Wyy[ix][iy] + arena[nix][niy][nieta].Wmunu[0][2][2]);
-              Wyeta = 0.5*(Rneighbor_Wyeta[ix][iy] + arena[nix][niy][nieta].Wmunu[0][2][3]);
-
-              Wetaeta = (2.*(ux*uy*Wxy 
-                            + ux*ueta*Wxeta
-                            + uy*ueta*Wyeta )
-                         -( utau*utau - ux*ux )*Wxx
-                         -( utau*utau - uy*uy )*Wyy
-                  )/( utau*utau - ueta*ueta ) ;
-              Wtaux = (ux*Wxx + uy*Wxy + ueta*Wxeta)/utau;
-              Wtauy = (ux*Wxy + uy*Wyy + ueta*Wyeta)/utau;
-              Wtaueta = (ux*Wxeta + uy*Wyeta + ueta*Wetaeta)/utau;
-              Wtautau = (ux*Wtaux + uy*Wtauy + ueta*Wtaueta)/utau;
-              
-              s_file << setprecision(10) << tauf << " " << xf << " " << yf << " " << etaf << " " 
-                   << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] 
-                   << " " <<  utau << " " << ux << " " << uy << " " << ueta << " " 
-                   << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
-                   << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
-                   << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
-              if(DATA->turn_on_bulk) s_file << " " << pi_b;
-              s_file << endl; 
-            }// if grid pair straddles freeze out density
-
-        }// if (rank != size-1)
-      }// y loop
-    }// x loop
-//   delete []package;
-  s_file.close();
-  
-  // check if all cells are frozen out 
-  if (rank!=0) //send to rank 0
-    {
-      MPI::COMM_WORLD.Send(&frozen,1,MPI::INT,0,1);
-    }
-  if (rank==0) // receive from all ranks >0
-    {		  
-      allfrozen = frozen;
-      for (from = 1; from<size; from ++)
-      {
-        MPI::COMM_WORLD.Recv(&frozen,1,MPI::INT,from,1);
-        allfrozen=(allfrozen && frozen);
-      }
-      for (from = 1; from<size; from ++)
-      {
-        MPI::COMM_WORLD.Send(&allfrozen,1,MPI::INT,from,2);
-      }
-      if(allfrozen)
-// 	{
-// 		cout << "All cells frozen out. Exiting." << endl;
-// 		exit(rank);
-// 	}
-      {
-        cout << "All cells frozen out. Exiting hydro evolution." << endl;
-// 	  // write OSCAR header if wanted:  (seems to be unused at the moment, so I'll keep the code, but comment out)
-// 	  FILE *oout_file;
-// 	  char* oout_name = "OSCARheader.dat";
-// 	  oout_file = fopen(oout_name, "w");
-// 	  if(DATA->outputEvolutionData)
-// 	    {
-// 	      if(DATA->viscosity_flag==1)
-// 		fprintf(oout_file,"OSCAR2008H viscous history\n");
-// 	      else
-// 		fprintf(oout_file,"OSCAR2008H ideal history\n");
-// 
-// 	      fprintf(oout_file,"INIT: MUSIC %s+%s at b=%f fm, Glauber\n",DATA->Target.c_str(), DATA->Projectile.c_str(),DATA->b);
-// 	      fprintf(oout_file,"INIT: \n");
-// 	      
-// 	      if (DATA->whichEOS==0)
-// 		{
-// 		  fprintf(oout_file,"EOS: ideal gas EOS \n");
-// 		}
-// 	      else if (DATA->whichEOS==1)
-// 		{
-// 		    fprintf(oout_file,"EOS: EOS-Q from AZHYDRO \n");
-// 		}
-// 	      else if (DATA->whichEOS==2)
-// 		{
-// 		    fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky \n");
-// 		}
-// 	      else if (DATA->whichEOS==3)
-// 		{
-// 		    fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 150 MeV\n");
-// 		}
-// 	      else if (DATA->whichEOS==4)
-// 		{
-// 		    fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 155 MeV\n");
-// 		}
-// 	      else if (DATA->whichEOS==5)
-// 		{
-// 		    fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 160 MeV\n");
-// 		}
-// 	      else if (DATA->whichEOS==6)
-// 		{
-// 		    fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 165 MeV\n");
-// 		}
-// 
-// 	      if(DATA->turn_on_rhob==0)
-// 		fprintf(oout_file,"CHARGES: none\n");
-// 	      else
-// 		fprintf(oout_file,"CHARGES: baryon\n");
-// 
-// 	      fprintf(oout_file,"HYPER: full evolution\n");
-//  
-// 	      fprintf(oout_file,"GEOM: 3d\n");
-//        
-// 	      fprintf(oout_file,"GRID: Euler\n");
-//  
-// 	      fprintf(oout_file,"%d %d %d %d %d %d %d\n", static_cast<int>(((tau-DATA->tau0)/static_cast<double>(DATA->delta_tau)+1)/10.)+1, 
-// 		      DATA->nx, DATA->ny, DATA->neta, 0, 0, 0);
-// 	    
-// 	      fprintf(oout_file,"%f %f %f %f %f %f %f %f\n", DATA->tau0, tau, -DATA->x_size/2., DATA->x_size/2., -DATA->y_size/2., DATA->y_size/2.,
-// 		      -DATA->eta_size/2., DATA->eta_size/2.);
-// 
-// 	      if(DATA->viscosity_flag==1)
-// 		{
-// 		  if(DATA->turn_on_shear && DATA->turn_on_bulk)
-// 		    {
-// 		      fprintf(oout_file,"VISCOSITY: shear and bulk viscosity\n");
-// 		      fprintf(oout_file,"VISCOSITY: eta/s = %f, zeta/s = %f\n", DATA->shear_to_s, DATA->bulk_to_s);
-// 		    }
-// 		  else if(DATA->turn_on_shear==1 && DATA->turn_on_bulk==0)
-// 		    {
-// 		      fprintf(oout_file,"VISCOSITY: shear viscosity only\n");
-// 		      fprintf(oout_file,"VISCOSITY: eta/s = %f\n", DATA->shear_to_s);
-// 		    }
-// 		  else if(DATA->turn_on_shear==0 && DATA->turn_on_bulk==1)
-// 		    {
-// 		      fprintf(oout_file,"VISCOSITY: bulk viscosity only\n");
-// 		      fprintf(oout_file,"VISCOSITY: zeta/s = %f\n", DATA->bulk_to_s);
-// 		    }
-// 		  else if(DATA->turn_on_shear==0 && DATA->turn_on_bulk==0)
-// 		    {
-// 		      fprintf(oout_file,"VISCOSITY: none\n");
-// 		      fprintf(oout_file,"VISCOSITY: \n");
-// 		    }
-// 		}
-// 	      else
-// 		{
-// 		  fprintf(oout_file,"VISCOSITY: none\n");
-// 		  fprintf(oout_file,"VISCOSITY: \n");
-// 		}
-// 	      
-// 	      fprintf(oout_file,"COMM:\n");
-// 
-// 	      fprintf(oout_file,"END_OF_HEADER\n");
-// 	    }
-// 	  	  
-// 	  fclose(oout_file);
-// 	  
-// 	  int check=system ("cat OSCARheader.dat OSCAR.dat >OSCARoutput.dat");
-// 	  if(check==0)
-// 	    {
-// 	      system ("rm OSCAR.dat");
-// 	      system ("rm OSCARheader.dat");
-// 	    }
-// 	  
-        
-        system("cat surface?.dat surface??.dat > surface.dat");
-        system("rm surface?.dat surface??.dat 2> /dev/null");
-        
-// 	  MPI::Finalize();
-//  	  exit(1);
-// 	  return 1;
-      }
-      }
-  if (rank!=0)
-    {
-      MPI::COMM_WORLD.Recv(&allfrozen,1,MPI::INT,0,2);
-      if (allfrozen)
-      {
-// 	  cout << "All cells frozen out. Exiting." << endl;
-// 	  MPI::Finalize();
-//  	  exit(1);
-// 	  return 1;
-      }
-    }
-
-  delete[] packageWxx;
-  delete[] packageWxy;
-  delete[] packageWxeta;
-  delete[] packageWyy;
-  delete[] packageWyeta; 
-
-  delete[] package;
-  delete[] packageux;
-  delete[] packageuy;
-  delete[] packageueta;
-  delete[] packagerhob;
-
-  util->mtx_free(Rneighbor_eps,nx+1,ny+1);
-  util->mtx_free(Rneighbor_ux,nx+1,ny+1);
-  util->mtx_free(Rneighbor_uy,nx+1,ny+1);
-  util->mtx_free(Rneighbor_ueta,nx+1,ny+1);
-  util->mtx_free(Rneighbor_rhob,nx+1,ny+1);
- 
-  util->mtx_free(Rneighbor_Wxx,nx+1,ny+1);
-  util->mtx_free(Rneighbor_Wxy,nx+1,ny+1);
-  util->mtx_free(Rneighbor_Wxeta,nx+1,ny+1);
-  util->mtx_free(Rneighbor_Wyy,nx+1,ny+1);
-  util->mtx_free(Rneighbor_Wyeta,nx+1,ny+1);
-  
- return allfrozen;
 }
 
