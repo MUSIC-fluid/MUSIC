@@ -5496,7 +5496,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
   
    int ix, iy, ieta, nx, ny, neta;
    double x, y, eta;
-   double tauf, xf, yf, etaf;
+   double tau_center, x_center, y_center, eta_center;
    nx = DATA->nx;
    ny = DATA->ny;
    neta = DATA->neta;
@@ -5545,6 +5545,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    Cornelius* cornelius_ptr = new Cornelius();
    cornelius_ptr->init(dim, epsFO, lattice_spacing);
 
+   // initialize the hyper-cube for Cornelius
    double ****cube = new double *** [2];
    for(int i = 0; i < 2; i++)
    {
@@ -6101,6 +6102,20 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 	           cube[1][1][1][1] = Rneighbor_eps[ix+fac][iy+fac];
 	        }
            }
+           
+           cornelius_ptr->find_surface_4d(cube);
+           for(int isurf = 0; isurf < cornelius_ptr->get_Nelements(); isurf++)
+           {
+              tau_center = cornelius_ptr->get_centroid_elem(isurf, 0) + tau - DTAU;
+              x_center = cornelius_ptr->get_centroid_elem(isurf, 1) + x;
+              y_center = cornelius_ptr->get_centroid_elem(isurf, 2) + y;
+              eta_center = cornelius_ptr->get_centroid_elem(isurf, 3) + eta;
+
+              for(int ii = 0; ii < 4; ii++)
+                 FULLSU[ii] = cornelius_ptr->get_normal_elem(isurf, ii);
+              
+
+           }
 
 
 
@@ -6108,6 +6123,102 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
      }
   }
 
+
+  s_file.close();
+  // clean up
+  delete[] package;
+  delete[] package_prev;
+  
+  delete[] packageutau;
+  delete[] packageux;
+  delete[] packageuy;
+  delete[] packageueta;
+
+  delete[] packageutau_prev;
+  delete[] packageux_prev;
+  delete[] packageuy_prev;
+  delete[] packageueta_prev;
+
+  delete[] packagerhob;
+  delete[] packagerhob_prev;
+
+  delete[] packagePi_b;
+  delete[] packagePi_b_prev;
+
+  delete[] packageWtautau;
+  delete[] packageWtaux;
+  delete[] packageWtauy;
+  delete[] packageWtaueta;
+  delete[] packageWxx;
+  delete[] packageWxy;
+  delete[] packageWxeta;
+  delete[] packageWyy;
+  delete[] packageWyeta; 
+  delete[] packageWetaeta;
+  
+  delete[] packageWtautau_prev;
+  delete[] packageWtaux_prev;
+  delete[] packageWtauy_prev;
+  delete[] packageWtaueta_prev;
+  delete[] packageWxx_prev;
+  delete[] packageWxy_prev;
+  delete[] packageWxeta_prev;
+  delete[] packageWyy_prev;
+  delete[] packageWyeta_prev; 
+  delete[] packageWetaeta_prev;
+
+  util->mtx_free(Rneighbor_eps,nx+1,ny+1);
+  util->mtx_free(Rneighbor_eps_prev,nx+1,ny+1);
+
+  util->mtx_free(Rneighbor_utau,nx+1,ny+1);
+  util->mtx_free(Rneighbor_ux,nx+1,ny+1);
+  util->mtx_free(Rneighbor_uy,nx+1,ny+1);
+  util->mtx_free(Rneighbor_ueta,nx+1,ny+1);
+  
+  util->mtx_free(Rneighbor_utau_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_ux_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_uy_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_ueta_prev,nx+1,ny+1);
+
+  util->mtx_free(Rneighbor_rhob,nx+1,ny+1);
+  util->mtx_free(Rneighbor_rhob_prev,nx+1,ny+1);
+
+  util->mtx_free(Rneighbor_Pi_b, nx+1, ny+1);
+  util->mtx_free(Rneighbor_Pi_b_prev, nx+1, ny+1);
+
+  util->mtx_free(Rneighbor_Wtautau,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wtaux,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wtauy,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wtaueta,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wxx,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wxy,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wxeta,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wyy,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wyeta,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wetaeta,nx+1,ny+1);
+
+  util->mtx_free(Rneighbor_Wtautau_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wtaux_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wtauy_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wtaueta_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wxx_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wxy_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wxeta_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wyy_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wyeta_prev,nx+1,ny+1);
+  util->mtx_free(Rneighbor_Wetaeta_prev,nx+1,ny+1);
+
+  for(int i = 0; i < 2; i++)
+  {
+     for(int j = 0; j < 2; j++)
+     {
+        for(int k = 0; k < 2; k++)
+           delete [] cube[i][j][k];
+        delete [] cube[i][j];
+     }
+     delete [] cube[i];
+  }
+  delete [] cube;
   delete cornelius_ptr;
 
   return 0;
