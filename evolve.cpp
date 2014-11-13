@@ -5489,31 +5489,34 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    ofstream s_file;
    s_file.open(s_name.c_str() , ios::out | ios::app );
   
-   int frozen;
-   frozen = 1;
-   int allfrozen;
-   allfrozen = 1;
-  
    int ix, iy, ieta, nx, ny, neta;
-   double x, y, eta;
-   double tau_center, x_center, y_center, eta_center;
    nx = DATA->nx;
    ny = DATA->ny;
    neta = DATA->neta;
    double FULLSU[4];  // d^3 \sigma_\mu
 
+   double x, y, eta;
+
+   double tau_center, x_center, y_center, eta_center;
+   double Wtautau_center, Wtaux_center, Wtauy_center, Wtaueta_center;
+   double Wxx_center, Wxy_center, Wxeta_center;
+   double Wyy_center, Wyeta_center, Wetaeta_center;
+   double rhob_center;
+   double utau_center, ux_center, uy_center, ueta_center;
+   double TFO, muB, pressure, eps_plus_p_over_T_FO;
+   double pi_b_center; // bulk viscous pressure
+
    double dim = 4;
    double lattice_spacing[4];
 
+   double *lattice_spacing_ptr = new double [4];
+   // for 4-d linear interpolation
+   double** x_fraction = new double* [2];
+   for(int i = 0; i < 2; i++)
+      x_fraction[i] = new double [4];
+
    int fac;    // step to skip in x and y direction
-   double DX, DY, DETA, DTAU, SIG;
-   double iepsFO;
-   double home, neighbor, FO;
-   int nix, niy, nieta;
-   double Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta, Wyy, Wyeta, Wetaeta;
-   double rhob, utau, ux, uy, ueta, TFO, muB, eps_plus_p_over_T_FO;
-   double pi_b; // bulk viscous pressure
-   int shown;   // control parameter for the mount of output messages
+   double DX, DY, DETA, DTAU;
    
    int intersect;
    int intersections = 0;
@@ -5523,9 +5526,9 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
       epsFO = DATA->epsilonFreeze/hbarc;
    else 
    {
-      rhob = 0.;
+      rhob_center = 0.;
       cout << "[evolve.cpp:FindFreezeoutSurface_Cornelius]: Using T_freeze works for rhob=0 only" << endl;
-      epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA->TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
+      epsFO= eos->findRoot(&EOS::Tsolve, rhob_center, DATA->TFO/hbarc, 1.15*rhob_center+0.001, 300.,0.001);
       cout << "T_freeze=" << DATA->TFO << ", epsFO=" << epsFO*hbarc << endl;
    }
 
@@ -5541,6 +5544,10 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    lattice_spacing[2] = DY;
    lattice_spacing[2] = DETA;
 
+   lattice_spacing_ptr[0] = DTAU;
+   lattice_spacing_ptr[1] = DX;
+   lattice_spacing_ptr[2] = DY;
+   lattice_spacing_ptr[2] = DETA;
    // initialize Cornelius
    Cornelius* cornelius_ptr = new Cornelius();
    cornelius_ptr->init(dim, epsFO, lattice_spacing);
@@ -5562,9 +5569,6 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
       }
    }
   
-   double maxDETA = DATA->max_delta_eta;  // maximum size of cuboid in eta direction.  If DETA > maxDETA, split the surface into several identical sections spread across eta.
-   int subsections = floor(DETA/maxDETA) + 1;// subdivide the blocks into this many subdivisions in eta
- 
    int maxEta;
   
    //  MPI code copied from FindFreezeOutSurface2
@@ -6063,42 +6067,34 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 	     else    // if intersect, prepare for the hyper-cube
 	     {
 	        intersections++;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].epsilon_prev;
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].epsilon_prev;
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].epsilon_prev;
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].epsilon_prev;
+	        cube[1][0][0][0] = arena[ix][iy][ieta].epsilon;
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].epsilon;
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].epsilon;
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].epsilon;
 	        if (ieta<neta-fac)
 	        {
-	           cube[0][0][0][0] = arena[ix][iy][ieta].epsilon_prev;
 	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].epsilon_prev;
-	           cube[0][0][1][0] = arena[ix][iy+fac][ieta].epsilon_prev;
 	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].epsilon_prev;
-	           cube[0][1][0][0] = arena[ix+fac][iy][ieta].epsilon_prev;
 	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].epsilon_prev;
-	           cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].epsilon_prev;
 	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].epsilon_prev;
-	           cube[1][0][0][0] = arena[ix][iy][ieta].epsilon;
 	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].epsilon;
-	           cube[1][0][1][0] = arena[ix][iy+fac][ieta].epsilon;
 	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].epsilon;
-	           cube[1][1][0][0] = arena[ix+fac][iy][ieta].epsilon;
 	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].epsilon;
-	           cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].epsilon;
 	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].epsilon;
 	        }
 	        else  // right most slice in eta_s
 	        {
-	           cube[0][0][0][0] = arena[ix][iy][ieta].epsilon_prev;
 	           cube[0][0][0][1] = Rneighbor_eps_prev[ix][iy];
-	           cube[0][0][1][0] = arena[ix][iy+fac][ieta].epsilon_prev;
 	           cube[0][0][1][1] = Rneighbor_eps_prev[ix][iy+fac];
-	           cube[0][1][0][0] = arena[ix+fac][iy][ieta].epsilon_prev;
 	           cube[0][1][0][1] = Rneighbor_eps_prev[ix+fac][iy];
-	           cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].epsilon_prev;
 	           cube[0][1][1][1] = Rneighbor_eps_prev[ix+fac][iy+fac];
-	           cube[1][0][0][0] = arena[ix][iy][ieta].epsilon;
 	           cube[1][0][0][1] = Rneighbor_eps[ix][iy];
-	           cube[1][0][1][0] = arena[ix][iy+fac][ieta].epsilon;
 	           cube[1][0][1][1] = Rneighbor_eps[ix][iy+fac];
-	           cube[1][1][0][0] = arena[ix+fac][iy][ieta].epsilon;
 	           cube[1][1][0][1] = Rneighbor_eps[ix+fac][iy];
-	           cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].epsilon;
 	           cube[1][1][1][1] = Rneighbor_eps[ix+fac][iy+fac];
 	        }
            }
@@ -6109,20 +6105,619 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
            // get positions of the freeze-out surface and interpolating results
            for(int isurf = 0; isurf < cornelius_ptr->get_Nelements(); isurf++)
            {
-              // position of the freeze-out fluid cell
-              tau_center = cornelius_ptr->get_centroid_elem(isurf, 0) + tau - DTAU;
-              x_center = cornelius_ptr->get_centroid_elem(isurf, 1) + x;
-              y_center = cornelius_ptr->get_centroid_elem(isurf, 2) + y;
-              eta_center = cornelius_ptr->get_centroid_elem(isurf, 3) + eta;
-
               // surface normal vector d^3 \sigma_\mu
               for(int ii = 0; ii < 4; ii++)
                  FULLSU[ii] = cornelius_ptr->get_normal_elem(isurf, ii);
-              
+
+              // check the size of the surface normal vector
+		  if (fabs(FULLSU[0])>DX*DY*DETA+0.01)
+		  {
+		     cerr << "problem: volume in tau direction " << fabs(FULLSU[0]) << "  > DX*DY*DETA = "  << DX*DY*DETA << endl;
+		     //FULLSU[0] = DX*DY*DETA*(FULLSU[0])/fabs(FULLSU[0]);
+		  }
+		  if (fabs(FULLSU[1])>DTAU*DY*DETA+0.01)
+		  {
+		     cerr << "problem: volume in x direction " << fabs(FULLSU[1]) << "  > DTAU*DY*DETA = "  << DTAU*DY*DETA << endl;
+		     //FULLSU[1] = DTAU*DY*DETA*(FULLSU[1])/fabs(FULLSU[1]);
+		  }
+		  if (fabs(FULLSU[2])>DX*DTAU*DETA+0.01)
+		  {
+		     cerr << "problem: volume in y direction " << fabs(FULLSU[2]) << "  > DX*DTAU*DETA = "  << DX*DTAU*DETA << endl;
+		     //FULLSU[2] = DX*DTAU*DETA*(FULLSU[2])/fabs(FULLSU[2]);
+		  }
+		  if (fabs(FULLSU[3])>DX*DY*DTAU+0.01)
+		  {
+		     cerr << "problem: volume in eta direction " << fabs(FULLSU[3]) << "  > DX*DY*DTAU = "  << DX*DY*DTAU << endl;
+		     //FULLSU[3] = DX*DY*DTAU*(FULLSU[3])/fabs(FULLSU[3]);
+		  }
+
+              // position of the freeze-out fluid cell
+              for(int ii = 0; ii < 4; ii++)
+              {
+                  x_fraction[0][ii] = cornelius_ptr->get_centroid_elem(isurf, ii);
+                  x_fraction[1][ii] = lattice_spacing_ptr[ii] - x_fraction[0][ii];
+              }
+              tau_center = tau - DTAU + x_fraction[0][0];
+              x_center = x + x_fraction[0][1];
+              y_center = y + x_fraction[0][2];
+              eta_center = eta + x_fraction[0][3];
+
               // perform 4-d linear interpolation for all fluid quantities
 
-           }
+              // flow velocity u^\tau
+	        cube[0][0][0][0] = arena[ix][iy][ieta].u_prev[0];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].u_prev[0];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].u_prev[0];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].u_prev[0];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].u[0][0];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].u[0][0];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].u[0][0];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].u[0][0];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].u_prev[0];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].u_prev[0];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].u_prev[0];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].u_prev[0];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].u[0][0];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].u[0][0];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].u[0][0];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].u[0][0];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_utau_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_utau_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_utau_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_utau_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_utau[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_utau[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_utau[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_utau[ix+fac][iy+fac];
+	        }
+              utau_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
 
+              // flow velocity u^x
+	        cube[0][0][0][0] = arena[ix][iy][ieta].u_prev[1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].u_prev[1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].u_prev[1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].u_prev[1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].u[0][1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].u[0][1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].u[0][1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].u[0][1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].u_prev[1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].u_prev[1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].u_prev[1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].u_prev[1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].u[0][1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].u[0][1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].u[0][1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].u[0][1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_ux_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_ux_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_ux_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_ux_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_ux[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_ux[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_ux[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_ux[ix+fac][iy+fac];
+	        }
+              ux_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+              // flow velocity u^y
+	        cube[0][0][0][0] = arena[ix][iy][ieta].u_prev[2];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].u_prev[2];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].u_prev[2];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].u_prev[2];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].u[0][2];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].u[0][2];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].u[0][2];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].u[0][2];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].u_prev[2];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].u_prev[2];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].u_prev[2];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].u_prev[2];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].u[0][2];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].u[0][2];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].u[0][2];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].u[0][2];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_uy_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_uy_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_uy_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_uy_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_uy[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_uy[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_uy[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_uy[ix+fac][iy+fac];
+	        }
+              uy_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+              // flow velocity u^eta
+	        cube[0][0][0][0] = arena[ix][iy][ieta].u_prev[3];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].u_prev[3];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].u_prev[3];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].u_prev[3];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].u[0][3];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].u[0][3];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].u[0][3];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].u[0][3];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].u_prev[3];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].u_prev[3];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].u_prev[3];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].u_prev[3];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].u[0][3];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].u[0][3];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].u[0][3];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].u[0][3];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_ueta_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_ueta_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_ueta_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_ueta_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_ueta[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_ueta[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_ueta[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_ueta[ix+fac][iy+fac];
+	        }
+              ueta_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+              // baryon density rho_b
+	        cube[0][0][0][0] = arena[ix][iy][ieta].rhob_prev;
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].rhob_prev;
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].rhob_prev;
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].rhob_prev;
+	        cube[1][0][0][0] = arena[ix][iy][ieta].rhob;
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].rhob;
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].rhob;
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].rhob;
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].rhob_prev;
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].rhob_prev;
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].rhob_prev;
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].rhob_prev;
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].rhob;
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].rhob;
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].rhob;
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].rhob;
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_rhob_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_rhob_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_rhob_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_rhob_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_rhob[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_rhob[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_rhob[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_rhob[ix+fac][iy+fac];
+	        }
+              rhob_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+              // bulk viscous pressure pi_b
+	        cube[0][0][0][0] = arena[ix][iy][ieta].pi_b_prev;
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].pi_b_prev;
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].pi_b_prev;
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].pi_b_prev;
+	        cube[1][0][0][0] = arena[ix][iy][ieta].pi_b[0];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].pi_b[0];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].pi_b[0];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].pi_b[0];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].pi_b_prev;
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].pi_b_prev;
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].pi_b_prev;
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].pi_b_prev;
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].pi_b[0];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].pi_b[0];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].pi_b[0];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].pi_b[0];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Pi_b_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Pi_b_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Pi_b_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Pi_b_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Pi_b[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Pi_b[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Pi_b[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Pi_b[ix+fac][iy+fac];
+	        }
+              pi_b_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+              // shear viscous tensor W^\tau\tau
+              int idx0 = 0;
+              int idx1 = 0;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Wtautau_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Wtautau_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Wtautau_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Wtautau_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Wtautau[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Wtautau[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Wtautau[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Wtautau[ix+fac][iy+fac];
+	        }
+              Wtautau_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+              
+              // shear viscous tensor W^{\tau x}
+              idx0 = 0;
+              idx1 = 1;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Wtaux_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Wtaux_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Wtaux_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Wtaux_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Wtaux[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Wtaux[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Wtaux[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Wtaux[ix+fac][iy+fac];
+	        }
+              Wtaux_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+              // shear viscous tensor W^{\tau y}
+              idx0 = 0;
+              idx1 = 2;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Wtauy_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Wtauy_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Wtauy_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Wtauy_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Wtauy[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Wtauy[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Wtauy[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Wtauy[ix+fac][iy+fac];
+	        }
+              Wtauy_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+              
+              // shear viscous tensor W^{\tau \eta}
+              idx0 = 0;
+              idx1 = 3;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Wtaueta_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Wtaueta_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Wtaueta_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Wtaueta_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Wtaueta[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Wtaueta[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Wtaueta[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Wtaueta[ix+fac][iy+fac];
+	        }
+              Wtaueta_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+              
+              // shear viscous tensor W^{xx}
+              idx0 = 1;
+              idx1 = 1;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Wxx_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Wxx_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Wxx_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Wxx_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Wxx[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Wxx[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Wxx[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Wxx[ix+fac][iy+fac];
+	        }
+              Wxx_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+              // shear viscous tensor W^{xy}
+              idx0 = 1;
+              idx1 = 2;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Wxy_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Wxy_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Wxy_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Wxy_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Wxy[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Wxy[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Wxy[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Wxy[ix+fac][iy+fac];
+	        }
+              Wxy_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+              // shear viscous tensor W^{x\eta}
+              idx0 = 1;
+              idx1 = 3;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Wxeta_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Wxeta_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Wxeta_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Wxeta_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Wxeta[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Wxeta[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Wxeta[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Wxeta[ix+fac][iy+fac];
+	        }
+              Wxeta_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+              
+              // shear viscous tensor W^{yy}
+              idx0 = 2;
+              idx1 = 2;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Wyy_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Wyy_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Wyy_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Wyy_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Wyy[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Wyy[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Wyy[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Wyy[ix+fac][iy+fac];
+	        }
+              Wyy_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+              
+              // shear viscous tensor W^{y\eta}
+              idx0 = 2;
+              idx1 = 3;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Wyeta_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Wyeta_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Wyeta_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Wyeta_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Wyeta[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Wyeta[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Wyeta[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Wyeta[ix+fac][iy+fac];
+	        }
+              Wyeta_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+              
+              // shear viscous tensor W^{\eta\eta}
+              idx0 = 3;
+              idx1 = 3;
+	        cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][0][1][0] = arena[ix][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[0][1][0][0] = arena[ix+fac][iy][ieta].W_prev[idx0][idx1];
+	        cube[0][1][1][0] = arena[ix+fac][iy+fac][ieta].W_prev[idx0][idx1];
+	        cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][0][1][0] = arena[ix][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][0][0] = arena[ix+fac][iy][ieta].Wmunu[0][idx0][idx1];
+	        cube[1][1][1][0] = arena[ix+fac][iy+fac][ieta].Wmunu[0][idx0][idx1];
+	        if (ieta<neta-fac)
+	        {
+	           cube[0][0][0][1] = arena[ix][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][0][1][1] = arena[ix][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][0][1] = arena[ix+fac][iy][ieta+fac].W_prev[idx0][idx1];
+	           cube[0][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].W_prev[idx0][idx1];
+	           cube[1][0][0][1] = arena[ix][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][0][1][1] = arena[ix][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][0][1] = arena[ix+fac][iy][ieta+fac].Wmunu[0][idx0][idx1];
+	           cube[1][1][1][1] = arena[ix+fac][iy+fac][ieta+fac].Wmunu[0][idx0][idx1];
+	        }
+	        else  // right most slice in eta_s
+	        {
+	           cube[0][0][0][1] = Rneighbor_Wetaeta_prev[ix][iy];
+	           cube[0][0][1][1] = Rneighbor_Wetaeta_prev[ix][iy+fac];
+	           cube[0][1][0][1] = Rneighbor_Wetaeta_prev[ix+fac][iy];
+	           cube[0][1][1][1] = Rneighbor_Wetaeta_prev[ix+fac][iy+fac];
+	           cube[1][0][0][1] = Rneighbor_Wetaeta[ix][iy];
+	           cube[1][0][1][1] = Rneighbor_Wetaeta[ix][iy+fac];
+	           cube[1][1][0][1] = Rneighbor_Wetaeta[ix+fac][iy];
+	           cube[1][1][1][1] = Rneighbor_Wetaeta[ix+fac][iy+fac];
+	        }
+              Wetaeta_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+              // 4-dimension interpolation done
+		  
+              TFO = eos->get_temperature(epsFO, rhob_center);
+		  muB = eos->get_mu(epsFO, rhob_center);
+		  if (TFO < 0)
+              {
+		    cout << "TFO=" << TFO << "<0. ERROR. exiting." << endl;
+		    exit(1);
+		  }
+
+		  pressure = eos->get_pressure(epsFO, rhob_center);
+		  eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
+
+              // finally output results !!!!
+		  s_file << scientific << setprecision(10) 
+                     << tau_center << " " << x_center << " " << y_center << " " << eta_center << " " 
+			   << FULLSU[0] << " " <<FULLSU[1] << " " <<FULLSU[2] << " " <<FULLSU[3] << " " 
+                     <<  utau_center << " " << ux_center << " " << uy_center << " " << ueta_center << " " 
+			   << epsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
+			   << Wtautau_center << " " << Wtaux_center << " " << Wtauy_center << " " << Wtaueta_center << " " 
+			   << Wxx_center << " " << Wxy_center << " " << Wxeta_center << " " 
+                     << Wyy_center << " " << Wyeta_center << " " 
+                     << Wetaeta_center << " " 
+                     << pi_b_center << " " << rhob_center
+                     << endl;
+           }
         }
      }
   }
@@ -6221,8 +6816,11 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
         delete [] cube[i][j];
      }
      delete [] cube[i];
+     delete [] x_fraction[i];
   }
   delete [] cube;
+  delete [] x_fraction;
+  delete [] lattice_spacing_ptr;
   delete cornelius_ptr;
 
   return 0;

@@ -135,6 +135,8 @@ void free_convert_matrix(float **, int , int , int , int );
 int siftDown(double *numbers, int root, int bottom, int *re_arrange);
 int CheckMono(double *Vx, int ymax, int *mono_ind);
 bool fileExists(const std::string& filename);
+double four_dimension_linear_interpolation(double* lattice_spacing, double** fraction, double**** cube);
+
 };
 
 #endif
