@@ -147,7 +147,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 	else if (DATA->freezeOutMethod == 2)
 	  FindFreezeOutSurface2(tau, DATA, arena, size, rank);
 	else if (DATA->freezeOutMethod == 3)
-	  frozen = FindFreezeOutSurface3(tau, DATA, arena, size, rank);
+	  frozen = FindFreezeOutSurface_Cornelius(tau, DATA, arena, size, rank);
+	  //frozen = FindFreezeOutSurface3(tau, DATA, arena, size, rank);
 	else if (DATA->freezeOutMethod == 4)
 	  frozen = FindFreezeOutSurface_Cornelius(tau, DATA, arena, size, rank);
 	storePreviousEpsilon2(tau, DATA, arena);
@@ -5544,12 +5545,12 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    lattice_spacing[0] = DTAU;
    lattice_spacing[1] = DX;
    lattice_spacing[2] = DY;
-   lattice_spacing[2] = DETA;
+   lattice_spacing[3] = DETA;
 
    lattice_spacing_ptr[0] = DTAU;
    lattice_spacing_ptr[1] = DX;
    lattice_spacing_ptr[2] = DY;
-   lattice_spacing_ptr[2] = DETA;
+   lattice_spacing_ptr[3] = DETA;
    // initialize Cornelius
    Cornelius* cornelius_ptr = new Cornelius();
    cornelius_ptr->init(dim, epsFO, lattice_spacing);
@@ -6101,7 +6102,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 	        }
            }
            
-           // Cornelius is doing the real hard work...
+           // Now, the magic will happen in the Cornelius ...
            cornelius_ptr->find_surface_4d(cube);
 
            // get positions of the freeze-out surface and interpolating results
