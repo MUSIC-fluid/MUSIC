@@ -12,7 +12,7 @@ use_eps_for_freeze_out 1
 T_freeze 0.135
 Initial_profile 6
 Initial_Distribution_Filename filename
-freeze_out_method 2
+freeze_out_method 4
 SigmaNN 42.1
 Impact_parameter 9.
 bmin 9.
