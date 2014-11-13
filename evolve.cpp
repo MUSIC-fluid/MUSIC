@@ -148,6 +148,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 	  FindFreezeOutSurface2(tau, DATA, arena, size, rank);
 	else if (DATA->freezeOutMethod == 3)
 	  frozen = FindFreezeOutSurface3(tau, DATA, arena, size, rank);
+	else if (DATA->freezeOutMethod == 4)
+	  frozen = FindFreezeOutSurface_Cornelius(tau, DATA, arena, size, rank);
 	storePreviousEpsilon2(tau, DATA, arena);
 	storePreviousW(tau, DATA, arena);
       } 
@@ -6722,6 +6724,47 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
      }
   }
 
+  // judge whether the entire fireball is freeze-out
+  int intersectionsArray[1];
+  int allIntersectionsArray[1];
+
+  intersectionsArray[0] = intersections;
+  if (rank!=0) //send to rank 0
+  {
+     MPI::COMM_WORLD.Send(intersectionsArray,1,MPI::INT,0,1);
+  }
+  
+  if (rank==0) // receive from all ranks >0
+  {
+    //fprintf(stderr,"percent error=%f\n", 100*(warnings*1.0)/(cells*1.0));
+    int allIntersections = intersections;
+    for (from = 1; from<size; from ++)
+    {
+       MPI::COMM_WORLD.Recv(intersectionsArray,1,MPI::INT,from,1);
+       allIntersections += intersectionsArray[0];
+    }
+    for (from = 1; from<size; from ++)
+    {
+       allIntersectionsArray[0] = allIntersections;
+       MPI::COMM_WORLD.Send(allIntersectionsArray,1,MPI::INT,from,2);
+    }
+    if (allIntersections==0)
+    {
+       cout << "All cells frozen out. Exiting." << endl;
+	 MPI::Finalize();
+ 	 exit(1);
+    }
+  }
+  if (rank!=0)
+  {
+     MPI::COMM_WORLD.Recv(allIntersectionsArray,1,MPI::INT,0,2);
+     if (allIntersectionsArray[0]==0)
+     {
+        cout << "All cells frozen out. Exiting." << endl;
+        MPI::Finalize();
+        exit(1);
+     }
+  }
 
   s_file.close();
   // clean up
