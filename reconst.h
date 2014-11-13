@@ -24,6 +24,10 @@ class Reconst{
   int ReconstIt
     (Grid *grid_p, int i, double tau, double **uq, Grid *grid_pt,
      double eps_init, double rhob_init, InitData *DATA, int rk_flag);
-  double phi(double r);
+
+  //double phi(double r); // not defined?
+
+  int ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
+		             double eps_init, double rhob_init, InitData *DATA, int rk_flag);
 };
 #endif
