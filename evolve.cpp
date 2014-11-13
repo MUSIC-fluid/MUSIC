@@ -6716,15 +6716,19 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 			   << Wtautau_center << " " << Wtaux_center << " " << Wtauy_center << " " << Wtaueta_center << " " 
 			   << Wxx_center << " " << Wxy_center << " " << Wxeta_center << " " 
                      << Wyy_center << " " << Wyeta_center << " " 
-                     << Wetaeta_center << " " 
-                     << pi_b_center << " " << rhob_center
-                     << endl;
+                     << Wetaeta_center << " " ;
+		  if(DATA->turn_on_bulk)
+                 s_file << pi_b_center << " " ;
+              if(DATA->turn_on_rhob)
+                 s_file << rhob_center << " " ;
+              s_file << endl;
            }
         }
      }
   }
 
   // judge whether the entire fireball is freeze-out
+  int all_frozen = 0;
   int intersectionsArray[1];
   int allIntersectionsArray[1];
 
@@ -6751,19 +6755,15 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
     if (allIntersections==0)
     {
        cout << "All cells frozen out. Exiting." << endl;
-	 MPI::Finalize();
- 	 exit(1);
+       all_frozen = 1;
+
+	 system("cat surface?.dat surface??.dat > surface.dat");
+	 system("rm surface?.dat surface??.dat 2> /dev/null");
     }
   }
   if (rank!=0)
   {
      MPI::COMM_WORLD.Recv(allIntersectionsArray,1,MPI::INT,0,2);
-     if (allIntersectionsArray[0]==0)
-     {
-        cout << "All cells frozen out. Exiting." << endl;
-        MPI::Finalize();
-        exit(1);
-     }
   }
 
   s_file.close();
@@ -6866,6 +6866,6 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
   delete [] lattice_spacing_ptr;
   delete cornelius_ptr;
 
-  return 0;
+  return(all_frozen);
 }
 
