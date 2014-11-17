@@ -34,11 +34,11 @@ dissipative.o random.o\
 util.o main.o freeze_pseudo.o
 
  
-CXX= mpic++
+CXX= mpicxx-openmpi-mp
 
 # -Wall shows all compiler warnings, and can help spot problems when developing code. 
-CXXFLAGS= -Wall -g3
-LIBS= -L/software/libraries/GSL/1.15/lib -lm -lgsl -lgslcblas
+CXXFLAGS= -Wall -g3 -I/opt/local/include
+LIBS= -L/opt/local/lib -lm -lgsl -lgslcblas
 COMMAND=  mpihydro
  
  
