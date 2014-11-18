@@ -17,7 +17,7 @@ Reconst::Reconst(EOS *eosIn, Grid *gridIn)
 
   // initialize gsl root finding solver
   gsl_rootfinding_max_iter = 100;
-  gsl_rootfinding_relerr = 1e-8;
+  gsl_rootfinding_relerr = 1e-6;
   gsl_rootfinding_abserr = 1e-10;
   gsl_solverType = gsl_root_fsolver_brent;   // Brent-Dekker method
   gsl_rootfinding_solver = gsl_root_fsolver_alloc (gsl_solverType);
@@ -466,12 +466,11 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    pressure = eos->get_pressure(epsilon, rhob);
    grid_p->p = pressure;
 
-   double enthalpy_inverse = 1./(epsilon + pressure);
 
    // individual components of velocity
    u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*SMALL);
-   //double rapidity = 0.5*(log(1. + v_solution) - log(1. - v_solution));
-   //u[0] = cosh(rapidity);
+
+   double velocity_inverse_factor = u[0]/(T00 + pressure);
 
    //remove if for speed
    if(!isfinite(u[0]))
@@ -508,12 +507,9 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    }/* if u[0] is too large, revert */
    else
    {
-      //u[1] = q[1]*enthalpy_inverse/u[0]; 
-      //u[2] = q[2]*enthalpy_inverse/u[0]; 
-      //u[3] = q[3]*enthalpy_inverse/u[0]; 
-      u[1] = q[1]/(T00 + pressure)*u[0]; 
-      u[2] = q[2]/(T00 + pressure)*u[0]; 
-      u[3] = q[3]/(T00 + pressure)*u[0]; 
+      u[1] = q[1]*velocity_inverse_factor; 
+      u[2] = q[2]*velocity_inverse_factor; 
+      u[3] = q[3]*velocity_inverse_factor; 
    }
 
    // Correcting normalization of 4-velocity
@@ -616,12 +612,14 @@ double Reconst::reconst_velocity_function(double v, void *params)
    double K00 = params_ptr->K00;
    double J0 = params_ptr->J0;
 
-   double epsilon = T00 - v*sqrt(K00);
+   double M = sqrt(K00);
+
+   double epsilon = T00 - v*M;
    double rho = J0*sqrt(1 - v*v);
    
    double pressure = eos->get_pressure(epsilon, rho);
    //double f = v*(T00 + pressure) - K00;
-   double f = v - sqrt(K00)/(T00 + pressure);
+   double f = v - M/(T00 + pressure);
 
    return(f);
 }
