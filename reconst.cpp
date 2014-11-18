@@ -17,7 +17,8 @@ Reconst::Reconst(EOS *eosIn, Grid *gridIn)
 
   // initialize gsl root finding solver
   gsl_rootfinding_max_iter = 100;
-  gsl_rootfinding_relerr = 1e-4;
+  gsl_rootfinding_relerr = 1e-6;
+  gsl_rootfinding_abserr = 1e-10;
   gsl_solverType = gsl_root_fsolver_brent;   // Brent-Dekker method
   gsl_rootfinding_solver = gsl_root_fsolver_alloc (gsl_solverType);
 
@@ -80,7 +81,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
 //  tempk = T00-K00/T00;
 
  //remove if for speed
- // if(!finite(T00) || !finite(K00) || !finite(J0))
+ // if(!isfinite(T00) || !isfinite(K00) || !isfinite(J0))
 //   {
 //    fprintf(stderr, "T00 = %e\n", T00);
 //    fprintf(stderr, "K00 = %e\n", K00);
@@ -139,7 +140,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
   {rhob_next = 0.0;}
  else
   { rhob_next = J0*sqrt((eps_guess + p_guess)/(T00 + p_guess));
-    if(!finite(rhob_next) || rhob_next<0) 
+    if(!isfinite(rhob_next) || rhob_next<0) 
     {
      rhob_next = 0.0;
     }
@@ -174,7 +175,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
     {
      rhob_next = J0*sqrt((epsilon_prev + p_prev)/(T00 + p_prev));
      temperr = fabs((rhob_next-rhob_prev)/(rhob_prev+SMALL));
-     if(finite(temperr)) err += temperr;
+     if(isfinite(temperr)) err += temperr;
      else if(isinf(temperr)) err += 1000.0; /* big enough */
      else if(isnan(temperr)) err += 1000.0;
     }
@@ -184,7 +185,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
     }
    
    temperr = fabs((epsilon_next-epsilon_prev)/(epsilon_prev+SMALL));
-   if(finite(temperr)) err += temperr;
+   if(isfinite(temperr)) err += temperr;
    else if(isinf(temperr)) err += 1000.0; /* big enough */
    else if(isnan(temperr)) err += 1000.0;
 
@@ -219,7 +220,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
  rhob = grid_p->rhob = rhob_next;
  h = p+epsilon;
  //remove if for speed
- // if( (epsilon < 0.0) || !finite(epsilon) )
+ // if( (epsilon < 0.0) || !isfinite(epsilon) )
 //   {
 //    fprintf(stderr, "In Reconst, reconstructed epsilon = %e.\n", epsilon);
 //    fprintf(stderr, "Can't happen.\n"); 
@@ -231,7 +232,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
 
  u[0] = sqrt((q[0]/tau + p)/h);
  //remove if for speed
- if(!finite(u[0]))
+ if(!isfinite(u[0]))
   {
    u[0] = 1.0;
    u[1] = 0.0;
@@ -311,7 +312,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
    
    tempf = grid_p->TJb[0][4][mu] = rhob*u[mu];
    //remove if for speed
- //   if(!finite(tempf)) 
+ //   if(!isfinite(tempf)) 
 //      {
 //        fprintf(stderr, "Update: Jb[%d] is %e.\n", mu, rhob*u[mu]);
 //        fprintf(stderr, "Update: rhob is %e.\n", rhob);
@@ -322,7 +323,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
    tempf = grid_p->u[0][mu] = u[mu];
    
    //remove if for speed
- //   if(!finite(tempf)) {
+ //   if(!isfinite(tempf)) {
 //     fprintf(stderr, "Update: u[%d] is %e.\n", mu, u[mu]);
 //     exit(0);
 //     }
@@ -331,7 +332,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
     {
      tempf = grid_p->TJb[0][nu][mu] 
      = ((epsilon + p)*u[nu]*u[mu] + p*(DATA->gmunu)[nu][mu]);
-     if(!finite(tempf)) {
+     if(!isfinite(tempf)) {
        fprintf(stderr, "Update: TJb[0][%d][%d] is %e.\n",
                         nu, mu, grid_p->TJb[0][nu][mu]);
        fprintf(stderr, "Update: epsilon is %e.\n", epsilon);
@@ -344,7 +345,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq, Grid *g
 }/* Reconst */
 
 /* reconstruct TJb from q[0] - q[4] */
-/* reconstruct velocity first for finite mu_B case (add by C. Shen Nov. 2014) */
+/* reconstruct velocity first for isfinite mu_B case (add by C. Shen Nov. 2014) */
 int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
 		                    double eps_init, double rhob_init, InitData *DATA, int rk_flag)
 {
@@ -369,13 +370,11 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
 
 
    for(alpha=0; alpha<5; alpha++)
-      q[alpha] = uq[alpha][direc];
+      q[alpha] = uq[alpha][direc]/tau;
 
    K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
-   K00 /= (tau*tau);
-   
-   T00 = q[0]/tau;
-   J0 = q[4]/tau;
+   T00 = q[0];
+   J0 = q[4];
  
    if( ((T00 - K00/T00) < 0.0) || (T00 < SMALL) )
    {
@@ -424,14 +423,14 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
       status = gsl_root_fsolver_iterate (gsl_rootfinding_solver);
       double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
       double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
-      status = gsl_root_test_interval (x_lo, x_hi, 0, gsl_rootfinding_relerr);
+      status = gsl_root_test_interval (x_lo, x_hi, gsl_rootfinding_abserr, gsl_rootfinding_relerr);
       
    }while (status == GSL_CONTINUE && iter < gsl_rootfinding_max_iter);
 
    double v_solution;
    if(status == GSL_SUCCESS)
    {
-      v_solution = gsl_root_fsolver_root (gsl_rootfinding_solver);
+      v_solution = gsl_root_fsolver_root(gsl_rootfinding_solver);
    }
    else
    {
@@ -440,7 +439,7 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
       double result = gsl_root_fsolver_root (gsl_rootfinding_solver);
       fprintf(stderr, "***Warning: Reconst velocity:: can not find solution!!!\n");
       fprintf(stderr, "***output the results at the last iteration: \n");
-      fprintf(stderr, "%5s [%9s, %9s] %9s %10s %9s\n",
+      fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
               "iter", "lower", "upper", "root", "err(est)");
       fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
               iter, x_lo, x_hi, result, x_hi - x_lo);
@@ -467,12 +466,12 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    pressure = eos->get_pressure(epsilon, rhob);
    grid_p->p = pressure;
 
-   double velocity_prefactor = 1./(T00 + pressure);
+   double enthalpy_inverse = 1./(epsilon + pressure);
 
    // individual components of velocity
    u[0] = 1./sqrt(1. - v_solution*v_solution);
    //remove if for speed
-   if(!finite(u[0]))
+   if(!isfinite(u[0]))
    {
       u[0] = 1.0;
       u[1] = 0.0;
@@ -481,10 +480,10 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    }
    else if(u[0] > cosh(DATA->local_y_max)) // check whether velocity is too large
    {
-      fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
+      fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n", u[0]);
       if(grid_pt->epsilon > 0.3)
 	{
-	   fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
+	   fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n", u[0]);
 	   fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
 	   fprintf(stderr, "Reverting to the previous TJb...\n"); 
 	}
@@ -506,9 +505,9 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    }/* if u[0] is too large, revert */
    else
    {
-      u[1] = q[1]/tau*velocity_prefactor; 
-      u[2] = q[2]/tau*velocity_prefactor; 
-      u[3] = q[3]/tau*velocity_prefactor; 
+      u[1] = q[1]*enthalpy_inverse/u[0]; 
+      u[2] = q[2]*enthalpy_inverse/u[0]; 
+      u[3] = q[3]*enthalpy_inverse/u[0]; 
    }
 
    // Correcting normalization of 4-velocity
@@ -519,15 +518,21 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
       //If the deviation is too large, exit MUSIC
       if(fabs(temp_usq - 1.0) > 0.1)
       {
-         fprintf(stderr, "In Reconst, reconstructed : u^2 = %e\n", temp_usq);
+         fprintf(stderr, "In Reconst velocity, reconstructed : u^2 - 1= %e\n", temp_usq - 1.0);
          fprintf(stderr, "Can't happen.\n");
          exit(0);
       }
       //Warn only when the deviation from 1 is relatively large
       else if(fabs(temp_usq - 1.0) > sqrt(SMALL))
       {
-          fprintf(stderr, "In Reconst, reconstructed : u^2 = %e\n", temp_usq);
-          fprintf(stderr, "with u[0] = %e\n", u[0]);
+          fprintf(stderr, "In Reconst velocity, reconstructed : u^2 - 1 = %e\n", temp_usq - 1.0);
+          double f_res = fabs(reconst_velocity_function(v_solution, &params));
+          fprintf(stderr, "with v = %e, u[0] = %e, res = %e \n", v_solution, u[0], f_res);
+          fprintf(stderr, "with u[1] = %e\n", u[1]);
+          fprintf(stderr, "with u[2] = %e\n", u[2]);
+          fprintf(stderr, "with u[3] = %e\n", u[3]);
+          fprintf(stderr, "with T00 = %e, K = %e \n", T00, K00);
+          fprintf(stderr, "with q1 = %e, q2 = %e, q3 = %e \n", q[1]/tau, q[2]/tau, q[3]/tau);
           fprintf(stderr, "Correcting it...\n");
       }   
       //Rescaling spatial components of velocity so that unitarity is exactly satisfied
@@ -547,7 +552,7 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
       for(nu=0; nu<4; nu++)
       {
          tempf = grid_p->TJb[0][nu][mu] = ((epsilon + pressure)*u[nu]*u[mu] + pressure*(DATA->gmunu)[nu][mu]);
-         if(!finite(tempf))
+         if(!isfinite(tempf))
          {
             fprintf(stderr, "Update: TJb[0][%d][%d] is %e.\n",
                              nu, mu, grid_p->TJb[0][nu][mu]);

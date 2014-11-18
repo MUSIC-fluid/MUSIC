@@ -1,7 +1,7 @@
 mode 2
 EOS_to_use 5
 Do_FreezeOut_Yes_1_No_0 1
-average_surface_over_this_many_time_steps 50
+average_surface_over_this_many_time_steps 5
 binary_collision_scaling_fraction 0.
 initialize_with_entropy 0
 Maximum_energy_density 54.
@@ -10,7 +10,7 @@ rho_b_max 0.
 s_factor 0.00745
 use_eps_for_freeze_out 1
 T_freeze 0.135
-Initial_profile 6
+Initial_profile 1
 Initial_Distribution_Filename filename
 freeze_out_method 2
 SigmaNN 42.1
@@ -27,7 +27,7 @@ Initial_asym_long_axis_in_fm 4
 Initial_asym_short_axis_in_fm 2
 Eta_plateau_size 20.
 Eta_fall_off 0.7
-Delta_Tau 0.25
+Delta_Tau 0.04
 Minmod_Theta 1.1
 Runge_Kutta_order 1
 Initial_radial_fall_off_in_fm 0.5
@@ -36,11 +36,11 @@ Initial_radius_size_in_fm 2.6
 Initial_time_tau_0 0.4
 Total_evolution_time_tau 30.
 Eta_grid_size 14.0
-Y_grid_size_in_fm 25.0
-X_grid_size_in_fm 25.0
+Y_grid_size_in_fm 20.0
+X_grid_size_in_fm 20.0
 Grid_size_in_eta 10
-Grid_size_in_y 20
-Grid_size_in_x 20
+Grid_size_in_y 200
+Grid_size_in_x 200
 number_of_particles_to_include 40
 particle_spectrum_to_compute 30
 maximal_rapidity 4.8

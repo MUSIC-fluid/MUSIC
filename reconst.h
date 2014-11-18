@@ -35,7 +35,7 @@ class Reconst
 
       // initialize gsl root finding solver
       int gsl_rootfinding_max_iter;
-      double gsl_rootfinding_relerr;
+      double gsl_rootfinding_abserr, gsl_rootfinding_relerr;
       const gsl_root_fsolver_type *gsl_solverType;
       gsl_root_fsolver *gsl_rootfinding_solver;
       gsl_function gslFunc;

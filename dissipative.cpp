@@ -266,7 +266,7 @@ rhob = grid_pt->rhob;
   
 
  //tau_pi = maxi(tau_pi, DATA->tau_pi);
- if(!finite(tau_pi)) {tau_pi = DATA->delta_tau; cout << "tau_pi was infinite ..." << endl;}
+ if(!isfinite(tau_pi)) {tau_pi = DATA->delta_tau; cout << "tau_pi was infinite ..." << endl;}
 
  /// transport coefficient for nonlinear terms -- shear only terms -- 4Mar2013
  double transport_coefficient, transport_coefficient2, transport_coefficient3, transport_coefficient4;
