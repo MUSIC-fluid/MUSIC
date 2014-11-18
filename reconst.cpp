@@ -376,7 +376,7 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    T00 = q[0];
    J0 = q[4];
  
-   if( ((T00 - K00/T00) < 0.0) || (T00 < SMALL) )
+   if( (T00 < SMALL) || ((T00 - K00/T00) < 0.0) )
    {
       // can't make Tmunu with this. restore the previous value 
       // remember that uq are eigher halfway cells or the final q_next 
@@ -469,7 +469,8 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    double enthalpy_inverse = 1./(epsilon + pressure);
 
    // individual components of velocity
-   u[0] = 1./sqrt(1. - v_solution*v_solution);
+   u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*SMALL);
+
    //remove if for speed
    if(!isfinite(u[0]))
    {
@@ -532,12 +533,12 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
           fprintf(stderr, "with u[2] = %e\n", u[2]);
           fprintf(stderr, "with u[3] = %e\n", u[3]);
           fprintf(stderr, "with T00 = %e, K = %e \n", T00, K00);
-          fprintf(stderr, "with q1 = %e, q2 = %e, q3 = %e \n", q[1]/tau, q[2]/tau, q[3]/tau);
+          fprintf(stderr, "with q1 = %e, q2 = %e, q3 = %e \n", q[1], q[2], q[3]);
           fprintf(stderr, "Correcting it...\n");
       }   
       //Rescaling spatial components of velocity so that unitarity is exactly satisfied
       //(u[0] is not modified)
-      double scalef = sqrt((u[0]*u[0] - 1.0)/(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]));
+      double scalef = sqrt((u[0]*u[0] - 1.0)/(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]+SMALL));
       u[1] *= scalef;
       u[2] *= scalef;
       u[3] *= scalef;
@@ -614,7 +615,8 @@ double Reconst::reconst_velocity_function(double v, void *params)
    double rho = J0*sqrt(1 - v*v);
    
    double pressure = eos->get_pressure(epsilon, rho);
-   double f = v*(T00 + pressure) - K00;
+   //double f = v*(T00 + pressure) - K00;
+   double f = v - K00/(T00 + pressure);
 
    return(f);
 }
