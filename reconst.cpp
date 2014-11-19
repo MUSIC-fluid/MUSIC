@@ -17,7 +17,7 @@ Reconst::Reconst(EOS *eosIn, Grid *gridIn)
 
   // initialize gsl root finding solver
   gsl_rootfinding_max_iter = 100;
-  gsl_rootfinding_relerr = 1e-6;
+  gsl_rootfinding_relerr = 1e-8;
   gsl_rootfinding_abserr = 1e-10;
   gsl_solverType = gsl_root_fsolver_brent;   // Brent-Dekker method
   gsl_rootfinding_solver = gsl_root_fsolver_alloc (gsl_solverType);
@@ -353,6 +353,8 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    int iter, mu, nu, alpha;
    double q[5];
 
+   double v_critical = 0.563624;
+
 /* prepare for the iteration */
 /* uq = qiphL, qiphR, etc 
    qiphL[alpha][direc] means, for instance, TJ[alpha][0] 
@@ -411,6 +413,7 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    Callback_params->cls = this;
    Callback_params->params = &params;
 
+   // solve velocity first
    gslFunc.function = this->CCallback_reconst_v;
    gslFunc.params = Callback_params;
    gsl_root_fsolver_set (gsl_rootfinding_solver, &gslFunc, 0.0, 1.0);
@@ -456,20 +459,79 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
       grid_p->rhob = grid_pt->rhob;
       return -2;
    }/* if iteration is unsuccessful, revert */
+   
+   // for large velocity, solve u0
+   double u0_solution;
+   if(v_solution > v_critical)
+   {
+      double u0_max_guess = max(5e3, 2*T00/(T00*T00 - K00));
+      gslFunc.function = this->CCallback_reconst_u0;
+      gslFunc.params = Callback_params;
+      gsl_root_fsolver_set (gsl_rootfinding_solver, &gslFunc, 1.0, u0_max_guess);
+ 
+      int status;
+      iter = 0;
+      do
+      {
+         iter++;
+         status = gsl_root_fsolver_iterate (gsl_rootfinding_solver);
+         double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
+         double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
+         status = gsl_root_test_interval (x_lo, x_hi, gsl_rootfinding_abserr, gsl_rootfinding_relerr);
+         
+      }while (status == GSL_CONTINUE && iter < gsl_rootfinding_max_iter);
+
+      if(status == GSL_SUCCESS)
+      {
+         u0_solution = gsl_root_fsolver_root(gsl_rootfinding_solver);
+      }
+      else
+      {
+         double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
+         double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
+         double result = gsl_root_fsolver_root (gsl_rootfinding_solver);
+         fprintf(stderr, "***Warning: Reconst velocity:: can not find solution!!!\n");
+         fprintf(stderr, "***output the results at the last iteration: \n");
+         fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
+                 "iter", "lower", "upper", "root", "err(est)");
+         fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
+                 iter, x_lo, x_hi, result, x_hi - x_lo);
+         fprintf(stderr, "Reverting to the previous TJb...\n"); 
+         for(mu=0; mu<4; mu++)
+         {
+            grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
+            grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
+            for(nu=0; nu<4; nu++)
+               grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
+         }
+         grid_p->epsilon = grid_pt->epsilon;
+         grid_p->p = grid_pt->p;
+         grid_p->rhob = grid_pt->rhob;
+         return -2;
+      }/* if iteration is unsuccessful, revert */
+      v_solution = sqrt(1. - 1./u0_solution/u0_solution);
+   }
 
    // successfully found velocity, now update everything else
-   epsilon = T00 - v_solution*sqrt(K00);
-   rhob = J0*sqrt(1 - v_solution*v_solution);
+   if(v_solution < v_critical)
+   {
+      epsilon = T00 - v_solution*sqrt(K00);
+      rhob = J0*sqrt(1 - v_solution*v_solution);
+      u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*SMALL);
+   }
+   else
+   {
+      epsilon = T00 - sqrt((1. - 1./u0_solution/u0_solution)*K00);
+      rhob = J0/u0_solution;
+      u[0] = u0_solution;
+   }
    grid_p->epsilon = epsilon;
    grid_p->rhob = rhob;
 
    pressure = eos->get_pressure(epsilon, rhob);
    grid_p->p = pressure;
 
-
    // individual components of velocity
-   u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*SMALL);
-
    double velocity_inverse_factor = u[0]/(T00 + pressure);
 
    //remove if for speed
@@ -564,6 +626,10 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
          grid_p->TJb[0][nu][mu] = tempf;
       }/* nu */
    }/* mu */
+
+   //clean up
+   delete Callback_params;
+
    return 1; /* on successful execution */
 
 }/* Reconst */
@@ -620,6 +686,25 @@ double Reconst::reconst_velocity_function(double v, void *params)
    double pressure = eos->get_pressure(epsilon, rho);
    //double f = v*(T00 + pressure) - K00;
    double f = v - M/(T00 + pressure);
+
+   return(f);
+}
+
+double Reconst::reconst_u0_function(double u0, void *params)
+{
+   reconst_v_params *params_ptr = (reconst_v_params *) params;
+
+   double T00 = params_ptr->T00;
+   double K00 = params_ptr->K00;
+   double J0 = params_ptr->J0;
+
+   double M = sqrt(K00);
+
+   double epsilon = T00 - sqrt(1. - 1./u0/u0)*M;
+   double rho = J0/u0;
+   
+   double pressure = eos->get_pressure(epsilon, rho);
+   double f = u0 - (T00 + pressure)/sqrt((T00 + pressure)*(T00 + pressure) - K00);
 
    return(f);
 }

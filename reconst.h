@@ -64,6 +64,12 @@ class Reconst
           CCallbackHolder* h = static_cast<CCallbackHolder*>(params);
           return h->cls->reconst_velocity_function(x, h->params);
       }
+      double reconst_u0_function(double u0, void *params);
+      static double CCallback_reconst_u0(double x, void* params)
+      {
+          CCallbackHolder* h = static_cast<CCallbackHolder*>(params);
+          return h->cls->reconst_u0_function(x, h->params);
+      }
 
 };
 #endif
