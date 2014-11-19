@@ -6137,13 +6137,13 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
               // position of the freeze-out fluid cell
               for(int ii = 0; ii < 4; ii++)
               {
-                  x_fraction[0][ii] = cornelius_ptr->get_centroid_elem(isurf, ii);
-                  x_fraction[1][ii] = lattice_spacing_ptr[ii] - x_fraction[0][ii];
+                  x_fraction[1][ii] = cornelius_ptr->get_centroid_elem(isurf, ii);
+                  x_fraction[0][ii] = lattice_spacing_ptr[ii] - x_fraction[1][ii];
               }
-              tau_center = tau - DTAU + x_fraction[0][0];
-              x_center = x + x_fraction[0][1];
-              y_center = y + x_fraction[0][2];
-              eta_center = eta + x_fraction[0][3];
+              tau_center = tau - DTAU + x_fraction[1][0];
+              x_center = x + x_fraction[1][1];
+              y_center = y + x_fraction[1][2];
+              eta_center = eta + x_fraction[1][3];
 
               // perform 4-d linear interpolation for all fluid quantities
 
@@ -7034,12 +7034,12 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
            // position of the freeze-out fluid cell
            for(int ii = 0; ii < dim; ii++)
            {
-               x_fraction[0][ii] = cornelius_ptr->get_centroid_elem(isurf, ii);
-               x_fraction[1][ii] = lattice_spacing_ptr[ii] - x_fraction[0][ii];
+               x_fraction[1][ii] = cornelius_ptr->get_centroid_elem(isurf, ii);
+               x_fraction[0][ii] = lattice_spacing_ptr[ii] - x_fraction[1][ii];
            }
-           tau_center = tau - DTAU + x_fraction[0][0];
-           x_center = x + x_fraction[0][1];
-           y_center = y + x_fraction[0][2];
+           tau_center = tau - DTAU + x_fraction[1][0];
+           x_center = x + x_fraction[1][1];
+           y_center = y + x_fraction[1][2];
            eta_center = 0.0;
 
            // perform 3-d linear interpolation for all fluid quantities
