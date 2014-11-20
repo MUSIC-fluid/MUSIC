@@ -17,7 +17,7 @@ Reconst::Reconst(EOS *eosIn, Grid *gridIn)
 
   // initialize gsl root finding solver
   gsl_rootfinding_max_iter = 100;
-  gsl_rootfinding_relerr = 1e-8;
+  gsl_rootfinding_relerr = 1e-9;
   gsl_rootfinding_abserr = 1e-10;
   gsl_solverType = gsl_root_fsolver_brent;   // Brent-Dekker method
   gsl_rootfinding_solver = gsl_root_fsolver_alloc (gsl_solverType);
@@ -589,9 +589,13 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
       //Warn only when the deviation from 1 is relatively large
       else if(fabs(temp_usq - 1.0) > sqrt(SMALL))
       {
-          fprintf(stderr, "In Reconst velocity, reconstructed : u^2 - 1 = %e\n", temp_usq - 1.0);
-          double f_res = fabs(reconst_velocity_function(v_solution, &params));
-          fprintf(stderr, "with v = %e, u[0] = %e, res = %e \n", v_solution, u[0], f_res);
+          fprintf(stderr, "In Reconst velocity, reconstructed : u^2 - 1 = %.8e \n", temp_usq - 1.0);
+          double f_res;
+          if(v_solution < v_critical)
+             f_res = fabs(reconst_velocity_function(v_solution, &params));
+          else
+             f_res = fabs(reconst_u0_function(u0_solution, &params));
+          fprintf(stderr, "with v = %.8e, u[0] = %.8e, res = %.8e \n", v_solution, u[0], f_res);
           fprintf(stderr, "with u[1] = %e\n", u[1]);
           fprintf(stderr, "with u[2] = %e\n", u[2]);
           fprintf(stderr, "with u[3] = %e\n", u[3]);
