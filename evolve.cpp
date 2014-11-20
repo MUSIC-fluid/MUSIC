@@ -16,7 +16,7 @@ Evolve::Evolve(EOS *eosIn)
   reconst = new Reconst(eosIn, grid);
   util = new Util;
   advance = new Advance(eosIn, grid);
-  u_derivative = new U_derivative();
+  u_derivative = new U_derivative(eosIn);
 }
 
 // destructor

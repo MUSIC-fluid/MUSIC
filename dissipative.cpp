@@ -1615,10 +1615,9 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
  epsilon = grid_pt->epsilon;
  rhob = grid_pt->rhob;
 
+ T=eos->get_temperature(epsilon,rhob)*hbarc;
  if(DATA->T_dependent_shear_to_s == 1)
    {
-     T=eos->get_temperature(epsilon,rhob)*hbarc;
-
      if(T < Ttr)
        {
 	 shear_to_s=0.681-0.0594*T/Ttr-0.544*(T/Ttr)*(T/Ttr);
