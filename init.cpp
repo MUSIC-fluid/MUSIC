@@ -288,9 +288,13 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].trouble = 0;
 		
 		 (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
-		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 4,4);
+		 /* Sangyong Nov 18 2014 */
+		 /* dUsup(4,4) -> (5,4) to use dUsup[4][m] = partial_m rhob */
+		 /* a(4) -> a(5) to use a[4] = Drhob */
+		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 5,4);
+		 /* a(4) -> a(5) to use a[4] = Drhob */
+		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 5);
 		 (*arena)[ix][iy][ieta].u = util->mtx_malloc(rk_order+1, 4);
-		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
 // 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
@@ -580,9 +584,12 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
 		 
 		 (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
-		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 4,4);
+		 /* Sangyong Nov 18 2014 */
+		 /* dUsup(4,4) -> (5,4) to use dUsup[4][m] = partial_m rhob */
+		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].u = util->mtx_malloc(rk_order+1, 4);
-		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
+		 /* a(4) -> a(5) to use a[4] = Drhob */
+		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 5);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
 // 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
@@ -716,9 +723,12 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
 	
 		 (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
-		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 4,4);
+		 /* Sangyong Nov 18 2014 */
+		 /* dUsup(4,4) -> (5,4) to use dUsup[4][m] = partial_m rhob */
+		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].u = util->mtx_malloc(rk_order+1, 4);
-		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
+		 /* a(4) -> a(5) to use a[4] = Drhob */
+		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 5);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
 // 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
@@ -1977,9 +1987,12 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
 		 
 		 (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
-		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 4,4);
+		 /* Sangyong Nov 18 2014 */
+		 /* dUsup(4,4) -> (5,4) to use dUsup[4][m] = partial_m rhob */
+		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].u = util->mtx_malloc(rk_order+1, 4);
-		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
+		 /* a(4) -> a(5) to use a[4] = Drhob */
+		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 5);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
 // 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
@@ -2353,9 +2366,12 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		 (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
 		 
 		 (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
-		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 4,4);
+		 /* Sangyong Nov 18 2014 */
+		 /* dUsup(4,4) -> (5,4) to use dUsup[4][m] = partial_m rhob */
+		 (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta].u = util->mtx_malloc(rk_order+1, 4);
-		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 4);
+		 /* a(4) -> a(5) to use a[4] = Drhob */
+		 (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 5);
 		 (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
 // 		 (*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
@@ -2585,9 +2601,12 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 // 		   }
 
 		 (*arena)[ix][iy][ieta2].TJb = util->cube_malloc(rk_order+1, 5,4);
-		 (*arena)[ix][iy][ieta2].dUsup = util->cube_malloc(rk_order+1, 4,4);
+		 /* Sangyong Nov 18 2014 */
+		 /* dUsup(4,4) -> (5,4) to use dUsup[4][m] = partial_m rhob */
+		 (*arena)[ix][iy][ieta2].dUsup = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta2].u = util->mtx_malloc(rk_order+1, 4);
-		 (*arena)[ix][iy][ieta2].a = util->mtx_malloc(rk_order+1, 4);
+		 /* a(4) -> a(5) to use a[4] = Drhob */
+		 (*arena)[ix][iy][ieta2].a = util->mtx_malloc(rk_order+1, 5);
 		 (*arena)[ix][iy][ieta2].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta2].pi_b = util->vector_malloc(rk_order+1);
 // 		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
@@ -2801,9 +2820,12 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 // 		   }
 
 		 (*arena)[ix][iy][ieta2].TJb = util->cube_malloc(rk_order+1, 5,4);
-		 (*arena)[ix][iy][ieta2].dUsup = util->cube_malloc(rk_order+1, 4,4);
+		 /* Sangyong Nov 18 2014 */
+		 /* dUsup(4,4) -> (5,4) to use dUsup[4][m] = partial_m rhob */
+		 (*arena)[ix][iy][ieta2].dUsup = util->cube_malloc(rk_order+1, 5,4);
 		 (*arena)[ix][iy][ieta2].u = util->mtx_malloc(rk_order+1, 4);
-		 (*arena)[ix][iy][ieta2].a = util->mtx_malloc(rk_order+1, 4);
+		 /* a(4) -> a(5) to use a[4] = Drhob */
+		 (*arena)[ix][iy][ieta2].a = util->mtx_malloc(rk_order+1, 5);
 		 (*arena)[ix][iy][ieta2].theta_u = util->vector_malloc(rk_order+1);
 		 (*arena)[ix][iy][ieta2].pi_b = util->vector_malloc(rk_order+1);
 // 		 (*arena)[ix][iy][ieta2].prev_pi_b = util->vector_malloc(1);
