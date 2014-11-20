@@ -50,7 +50,9 @@ using namespace std;
 #define DMAX(a,b) ((a) > (b) ? (a) : (b))
 #define DMIN(a,b) ((a) < (b) ? (a) : (b))
 #define SIGN(a,b) ((b) >= 0.0 ? absol(a): -absol(a)) 
-
+/* Sangyong Nov 18 2014 */
+/* added gmn = Minkowski metric to be used in sums */
+#define gmn(a) ((a) == 0 ? (-1.0) : (1.0))
 
 class Util{
  public:
