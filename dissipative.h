@@ -45,5 +45,13 @@ class Diss{
   
   double Make_uPiSource
     (double tau, Grid *grid_pt, InitData *DATA, int rk_flag);
+
+  // Sangyong Nov 18 2014
+  int Make_uqRHS
+    (double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
+     Grid *Lneighbor2, Grid *Rneighbor2, double **w_rhs, InitData *DATA, int rk_flag, int size, int rank);
+  
+  double Make_uqSource
+    (double tau, Grid *grid_pt, int nu, InitData *DATA, int rk_flag); 
 };
 #endif
