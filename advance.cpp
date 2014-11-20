@@ -17,7 +17,7 @@ Advance::Advance(EOS *eosIn, Grid *gridIn)
   util = new Util;
   diss = new Diss(eosIn);
   minmod = new Minmod;
-  u_derivative = new U_derivative;
+  u_derivative = new U_derivative(eosIn);
 }
 
 // destructor
@@ -448,7 +448,8 @@ int Advance::AdvanceLocalT(double tau, InitData *DATA, Grid *grid_pt, Grid *Lnei
   qirk = util->mtx_malloc(5,4);
   qi = util->vector_malloc(5);
   rhs = util->vector_malloc(5);
-  w_rhs = util->mtx_malloc(4,4); // this is new in dissipative code
+  /* Sangyong Nov 18 2014 w_rhs(4,4) -> (5,4) */
+  w_rhs = util->mtx_malloc(5,4); // this is new in dissipative code
   grid_rk.TJb = util->cube_malloc(DATA->rk_order,5,4);
   grid_rk.u = util->mtx_malloc(DATA->rk_order,4);
  } 
@@ -479,7 +480,8 @@ int Advance::AdvanceLocalW(double tau, InitData *DATA, Grid *grid_pt, Grid *Lnei
   qirk = util->mtx_malloc(5,4);
   qi = util->vector_malloc(5);
   rhs = util->vector_malloc(5);
-  w_rhs = util->mtx_malloc(4,4);
+  /* Sangyong Nov 18 2014 w_rhs(4,4) -> (5,4) */
+  w_rhs = util->mtx_malloc(5,4);
   grid_rk.TJb = util->cube_malloc(DATA->rk_order,5,4);
   grid_rk.u = util->mtx_malloc(DATA->rk_order,4);
  } 
@@ -593,10 +595,16 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
 //  double tau_rk;
 //  int alpha, flag;
  int mu, nu, revert_flag = 0;
+ int mu_max; // Sangyong Nov 18 2014
 //  static int ind=0;
 
  tau_now = tau;
  tau_next = tau + (DATA->delta_tau);
+  
+
+// Sangyong Nov 18 2014 implemented mu_max
+   if(DATA->turn_on_rhob == 1) { mu_max = 4; }
+   else { mu_max = 3; }
  
 //  if(rk_flag == 0) {tau_rk = tau_now;}
 //  else if(rk_flag > 0) {tau_rk = tau_next;}
@@ -604,6 +612,7 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
 /*
  Solve partial_a (u^a W^{mu nu}) = 0
  Update W^{mu nu}
+ mu = 4 is the baryon current qmu
 */
 
 /* u[1][mu] now has u1[mu] */
@@ -619,7 +628,9 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
 if(rk_flag == 0)
 {
    diss->Make_uWRHS(tau_now, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
-   for(mu=1; mu<=3; mu++)
+
+// Sangyong Nov 18 2014: this was for(mu=1; mu<=3; mu++)
+   for(mu=1; mu<=mu_max; mu++)
     {
      for(nu=1; nu<=3; nu++)
       {
@@ -636,7 +647,8 @@ if(rk_flag == 0)
 else if(rk_flag > 0)
 {
    diss->Make_uWRHS(tau_next, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
-   for(mu=1; mu<=3; mu++)
+// Sangyong Nov 18 2014: this was for(mu=1; mu<=3; mu++)
+   for(mu=1; mu<=mu_max; mu++)
     {
      for(nu=1; nu<=3; nu++)
       {
@@ -712,8 +724,9 @@ grid_pt->Wmunu[rk_flag+1][3][3] = (2.*( grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_f
                          -( grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] - grid_pt->u[rk_flag+1][2]*grid_pt->u[rk_flag+1][2] )*grid_pt->Wmunu[rk_flag+1][2][2]
 			)/( grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] - grid_pt->u[rk_flag+1][3]*grid_pt->u[rk_flag+1][3] ) ;
 
-/* make Wmunu[i][0] */
-   for(mu=1; mu<=3; mu++)
+/* make Wmunu[i][0] using the transversality */
+// Sangyong Nov 18 2014: this was for(mu=1; mu<=3; mu++)
+   for(mu=1; mu<=mu_max; mu++)
     {
      tempf = 0.0;
      for(nu=1; nu<=3; nu++)
@@ -789,7 +802,7 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, InitData *DATA, int rk_f
    for(mu=0; mu<4; mu++)
     {
       grid_pt->u[trk_flag][mu] = grid_rk->u[0][mu];
-     for(alpha=0; alpha<5; alpha++)
+     for(alpha=0; alpha<5; alpha++) // alpha = 4 is the baryon current
       {
         grid_pt->TJb[trk_flag][alpha][mu] = grid_rk->TJb[0][alpha][mu];
       }/* alpha */
