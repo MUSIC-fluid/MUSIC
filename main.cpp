@@ -966,15 +966,19 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
     exit(1);
   }
   
+  // switch for baryon current propagation
+  int tempturn_on_rhob = 0;
+  tempinput = util->StringFind3(file, "Include_Rhob_Yes_1_No_0");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempturn_on_rhob;
+  DATA->turn_on_rhob = tempturn_on_rhob;
   if(DATA->turn_on_rhob == 1)
-    {
-      DATA->alpha_max = 5;
-    }
+     DATA->alpha_max = 5;
   else
-    {
-      DATA->alpha_max = 4;
-    }
-  
+     DATA->alpha_max = 4;
+  int tempturn_on_diff = 0;
+  tempinput = util->StringFind3(file, "turn_on_baryon_diffusion");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempturn_on_diff;
+  DATA->turn_on_diff = tempturn_on_diff;
   
   // Runge_Kutta_order:  must be 1 or 2
 //   DATA->rk_order = util->IFind(file, "Runge_Kutta_order");
@@ -987,8 +991,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
     cerr << "Invalid option for Runge_Kutta_order:" << DATA->freezeOutMethod << endl;
     exit(1);
   }
-  
-  
   
   if( (DATA->rk_order != 1) )
     {
@@ -1070,12 +1072,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   DATA->eps_limit   = tempeps_limit;
   
   
-  // Include_Rhob_Yes_1_No_0:  baryon chemical potential
-//   DATA->turn_on_rhob = util->IFind(file, "Include_Rhob_Yes_1_No_0");
-  int tempturn_on_rhob = 0;
-  tempinput = util->StringFind3(file, "Include_Rhob_Yes_1_No_0");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempturn_on_rhob;
-  DATA->turn_on_rhob = tempturn_on_rhob;
   
   
   // Bulk_to_S_ratio:  constant zeta/s
