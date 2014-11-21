@@ -580,14 +580,14 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    if(fabs(temp_usq - 1.0) > SMALL)
    {
       //If the deviation is too large, exit MUSIC
-      if(fabs(temp_usq - 1.0) > 0.1)
+      if(fabs(temp_usq - 1.0) > 0.1*u[0])
       {
          fprintf(stderr, "In Reconst velocity, reconstructed : u^2 - 1= %e\n", temp_usq - 1.0);
          fprintf(stderr, "Can't happen.\n");
          exit(0);
       }
       //Warn only when the deviation from 1 is relatively large
-      else if(fabs(temp_usq - 1.0) > sqrt(SMALL))
+      else if(fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0])
       {
           fprintf(stderr, "In Reconst velocity, reconstructed : u^2 - 1 = %.8e \n", temp_usq - 1.0);
           double f_res;
