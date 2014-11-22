@@ -1,64 +1,139 @@
-mode 2
-EOS_to_use 5
-Do_FreezeOut_Yes_1_No_0 1
-average_surface_over_this_many_time_steps 5
-binary_collision_scaling_fraction 0.
-initialize_with_entropy 0
-Maximum_energy_density 54.
-epsilon_freeze 0.18
-rho_b_max 0.
-s_factor 0.00745
-use_eps_for_freeze_out 1
-T_freeze 0.135
-Initial_profile 1
-Initial_Distribution_Filename filename
-freeze_out_method 2
-SigmaNN 42.1
-Impact_parameter 9.
-bmin 9.
-bmax 9.
-sigma_0 0.4
-rotate_by_45_degrees 0
-output_evolution_data 0
-Target Au
-Projectile Au
-Lexus_Imax 100
-Initial_asym_long_axis_in_fm 4
-Initial_asym_short_axis_in_fm 2
-Eta_plateau_size 20.
-Eta_fall_off 0.7
-Delta_Tau 0.04
-Minmod_Theta 1.1
-Runge_Kutta_order 1
-Initial_radial_fall_off_in_fm 0.5
-Initial_radius_size_in_fm 2.6
-#Maximum_energy_density 21.67
-Initial_time_tau_0 0.4
-Total_evolution_time_tau 30.
-Eta_grid_size 14.0
-Y_grid_size_in_fm 20.0
-X_grid_size_in_fm 20.0
-Grid_size_in_eta 10
-Grid_size_in_y 200
-Grid_size_in_x 200
-number_of_particles_to_include 40
-particle_spectrum_to_compute 30
-maximal_rapidity 4.8
-delta_y 0.1
-Include_deltaf 1
-Include_Jet 0
-Include_Trigger 0
-Vicous_Trouble_Zero=0_or_Stop=1: 2
-Viscosity_Flag_Yes_1_No_0 1
-Include_Shear_Visc_Yes_1_No_0 1
-Shear_to_S_ratio 0.08
-Include_Bulk_Visc_Yes_1_No_0 0
-Bulk_to_S_ratio 0.1
-Include_Rhob_Yes_1_No_0 0
-Minimum_Epsilon_Frac_For_Visc 0.00001
-Bulk_relaxation_time_tau_b_pi 0.6
-Shear_relaxation_time_tau_pi 0.01
-Verbose_Flag_Yes_1_No_0 0
-Maximum_Local_Rapidity 20.0
+mode 2                                    # MUSIC running mode
+                                          # 1: Does everything. Evolution. Computation of thermal spectra. 
+                                          #    Resonance decays. Observables.  
+                                          #    Only compatible with freeze_out_method=3 and pseudofreeze=1
+                                          # 2: Evolution only.
+                                          # 3: Compute all thermal spectra only.
+                                          # 4: Resonance decays only.
+                                          # 5: Resonance decays for just one specific particle 
+                                          #    (only for testing - this will miss the complete chain of decays).
+                                          # 6: only combine charged hadrons - can be used for any 
+                                          #    postprocessing with the stored results
+                                          # 13: Compute observables from previously-computed thermal spectra
+                                          # 14: Compute observables from post-decay spectra
+#
+#
+###################################
+# parameters for initial conditions
+###################################
+Initial_profile 1                         # type of initial condition 
+                                          # 0: Sangyong’s simple profile
+                                          # 1: Optical Glauber model
+                                          # 2: Test scenario for the freeze-out surface finder
+                                          # 3: Event-by-event Glauber MC
+                                          # 4: for testing the Glauber MC initial condition
+                                          # 5: Something like p+p
+                                          # 6,7,8: Read in initial profile from a file (e.g., IP-Glasma)
+initialize_with_entropy 0                 # 0: with energy density 1: with entropy density (entropy might not work)
+# read in initial conditions from external file
+Initial_Distribution_Filename filename    # the filename of initial profile (for Initial_profile = 6,7,8)
+s_factor 0.00745                          # normalization factor read in initial data file
+# parameters for Glauber model
+binary_collision_scaling_fraction 0.      # for wounded nucleon/binary collision mixing ratio in the Glauber model
+Maximum_energy_density 54.                # maximum energy density for Glauber initial condition
+SigmaNN 42.1                              # NN inelastic cross section for Glauber model
+Impact_parameter 9.                       # impact parameter for optical Glauber model
+bmin 9.                                   # minimum sampling range for impact parameter in MC-Glauber model (fm)
+bmax 9.                                   # maximum sampling range for impact parameter in MC-Glauber model (fm)
+sigma_0 0.4                               # Gaussian width for individual nucleon (fm)
+Target Au                                 # type of target nucleus
+Projectile Au                             # type of projectile nucleus
+Lexus_Imax 100                            # ???
+Eta_plateau_size 20.                      # size of the plateau in eta_s direction 
+Eta_fall_off 0.7                          # the scale of the fall off of the plateau in eta_s direction
+#
+Initial_asym_long_axis_in_fm 4            # parameter for Initial_profile = 0
+Initial_asym_short_axis_in_fm 2           # parameter for Initial_profile = 0
+Initial_radial_fall_off_in_fm 0.5         # parameter for Initial_profile = 0
+Initial_radius_size_in_fm 2.6             # parameter for Initial_profile = 0
+#
+#
+#######################################
+# parameters for hydrodynamic evolution
+#######################################
+# grid information
+Initial_time_tau_0 0.4                    # starting time of the hydrodynamic evolution (fm/c)
+Total_evolution_time_tau 30.              # the maximum allowed running evolution time (fm/c)
+                                          # need to be set to some large enough number
+Delta_Tau 0.25                            # time step to use in the evolution [fm/c]
+                                          # If a too large value is given, it will automatically be 
+                                          # reduced to the maximal acceptable value according to the CFL condition.
+                                          # CFL condition : delta_tau < min(delta_x/10, tau0 delta_eta/10)
+Eta_grid_size 14.0                        # spatial rapidity range 
+                                          # [-Eta_grid_size, Eta_grid_size - delta_eta]
+Grid_size_in_eta 10                       # number of the grid points in spatial rapidity direction
+                                          # Must have at least 4 cells per processor.
+                                          # Must be an even number.
+                                          # One cell is positioned at eta=0, 
+                                          # half the cells are at negative eta,
+                                          # the rest (one fewer) are at positive eta
+X_grid_size_in_fm 25.0                    # spatial range along x direction in the transverse plane 
+                                          # [-X_grid_size_in_fm/2, X_grid_size_in_fm/2]
+Y_grid_size_in_fm 25.0                    # spatial range along y direction in the transverse plane 
+                                          # [-Y_grid_size_in_fm/2, Y_grid_size_in_fm/2]
+Grid_size_in_y 200                        # number of the grid points in y direction
+Grid_size_in_x 200                        # number of the grid points in x direction
+#
+#
+EOS_to_use 5                              # type of the equation of state
+                                          # 0: ideal gas
+                                          # 1: EOS-Q from azhydro
+                                          # 2: lattice EOS s95p-v1 from Huovinen and Petreczky
+                                          # 3: lattice EOS s95p with partial chemical equilibrium (PCE) at 150 MeV 
+                                          #    (see https://wiki.bnl.gov/TECHQM/index.php/QCD_Equation_of_State)
+                                          # 4: lattice EOS s95p with chemical freeze out at 155 MeV
+                                          # 5: lattice EOS s95p at 160 MeV
+                                          # 6: lattice EOS s95p at 165 MeV
+Minmod_Theta 1.1                          # theta parameter in the min-mod like limiter
+Runge_Kutta_order 1                       # order of Runge_Kutta for temporal evolution (must be 1 or 2)
+Vicous_Trouble_Zero=0_or_Stop=1 2         # ??? (unused)
+Viscosity_Flag_Yes_1_No_0 1               # turn on viscosity in the evolution
+Include_Shear_Visc_Yes_1_No_0 1           # include shear viscous effect
+Shear_to_S_ratio 0.08                     # value of \eta/s
+Include_Bulk_Visc_Yes_1_No_0 0            # include bulk viscous effect
+Bulk_to_S_ratio 0.1                       # value of \zeta/s
+Include_Rhob_Yes_1_No_0 0                 # turn on propagation of baryon current
+Minimum_Epsilon_Frac_For_Visc 0.00001     # ??? (unused)
+Bulk_relaxation_time_tau_b_pi 0.6         # bulk relation time
+Shear_relaxation_time_tau_pi 0.01         # shear relation time
+Verbose_Flag_Yes_1_No_0 0                 # parameter control the mount of output warning messages (unused)
+Maximum_Local_Rapidity 20.0               # the maximum allowed flow rapidity in reconst.cpp
+rho_b_max 0.                              # maximum baryon density for zero impact parameter. The shape of the ρB distribution is the same as that for the energy/entropy density distribution
+                                          # any number > 0.  (don’t use 0, however if the EOS does not support finite baryon chemical potential, it does not matter what you put)
+#
+#
+rotate_by_45_degrees 0                    # rotate the grid by 45 degree for test
+output_evolution_data 0                   # flag to output evolution history to file
+#
+#
+#
+###########################################
+# parameters for freeze out and Cooper-Frye 
+###########################################
+Do_FreezeOut_Yes_1_No_0 1                 # flag to find freeze-out surface
+freeze_out_method 2                       # method for hyper-surface finder
+                                          # 1: Hirano's simplified lego method
+                                          # 2: Schenke's more complex method
+                                          # 3: Luzum's simple lego  method
+                                          # 4: Cornelius (added by Shen)
+average_surface_over_this_many_time_steps 50   # the step skipped in the tau direction
+epsilon_freeze 0.18                       # the freeze out energy density (GeV/fm^3)
+use_eps_for_freeze_out 1                  # flag to use energy density as criteria to find freeze-out surface 0: use temperature, 1: use energy density
+T_freeze 0.135                            # freeze-out temperature (GeV)
+#
+number_of_particles_to_include 40         # number of thermal particles to compute for particle spectra and vn
+                                          # current maximum = 319
+particle_spectrum_to_compute 30           # 0: Do all up to number_of_particles_to_include
+                                          # any natural number: Do the particle with this (internal) ID
+maximal_rapidity 4.8                      # the integration range in spatial rapidity direction (-maximal_rapidity, maximal_rapidity)
+delta_y 0.1                               # grid spacing in spatial rapidity for the integration
+Include_deltaf 1                          # flag to include delta f correction in Cooper-Frye formula
+#
+#
+# other parameters
+Include_Jet 0                             # ???
+Include_Trigger 0                         # ???
+#
+#
+#
 EndOfData
-

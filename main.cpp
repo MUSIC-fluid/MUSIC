@@ -1468,8 +1468,7 @@ void ReadInData3(InitData *DATA, string file)
   // 3: Compute all thermal spectra only.
   // 4: Resonance decays only.
   // 5: Resonance decays for just one specific particle (only for testing - this will miss the complete chain of decays).
-  // 6: only combine charged hadrons - can be used for any postprocessing with the stored results */
-//   DATA->mode = util->IFind(file, "mode"); // 1: do everything; 2: do hydro evolution only; 3: do calculation of thermal spectra only;
+  // 6: only combine charged hadrons - can be used for any postprocessing with the stored results
   // 13: Compute observables from previously-computed thermal spectra
   // 14: Compute observables from post-decay spectra
   int tempmode = 1;
@@ -1517,7 +1516,7 @@ void ReadInData3(InitData *DATA, string file)
   // 1: Hirano's simplified method
   // 2: Schenke's more complex method
   // 3: Luzum's simple method
-//   DATA->freezeOutMethod = util->IFind(file, "freeze_out_method");
+  // 4: Cornelius 
   int tempfreezeOutMethod = 3;//  This default allows for new users to run MUSIC without warnings.  Should set to 2 in input file for production use.
   tempinput = util->StringFind4(file, "freeze_out_method");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempfreezeOutMethod;
@@ -1622,7 +1621,6 @@ void ReadInData3(InitData *DATA, string file)
   if(tempinput != "empty") istringstream ( tempinput ) >> temptau_size;
   DATA->tau_size = temptau_size;
   
-  
   // Initial_time_tau_0:  in fm
   double temptau0 = 0.4;
   tempinput = util->StringFind4(file, "Initial_time_tau_0");
@@ -1650,8 +1648,6 @@ void ReadInData3(InitData *DATA, string file)
   if(tempf < DATA->delta_tau) DATA->delta_tau = tempf;
   
   cerr << " DeltaTau=" << DATA->delta_tau << endl;
-  
-  
   
   // rotate_by_45_degrees: rotates initial condition by Pi/4
   // only used if Initial_profile==1
@@ -1695,7 +1691,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempeta_flat  ;
   DATA->eta_flat   = tempeta_flat;
   
-  //Initial_radius_size_in_fm
+  // Initial_radius_size_in_fm
   // initial radial size in [fm] for Initial_profile = 0
   double tempR_A   = 2.6;
   tempinput = util->StringFind4(file, "Initial_radius_size_in_fm");
@@ -1814,7 +1810,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   DATA->turn_on_diff = tempturn_on_diff;
   
   // Runge_Kutta_order:  must be 1 or 2
-//   DATA->rk_order = util->IFind(file, "Runge_Kutta_order");
   int temprk_order = 1;
   tempinput = util->StringFind4(file, "Runge_Kutta_order");
   if(tempinput != "empty") istringstream ( tempinput ) >> temprk_order;
@@ -1968,7 +1963,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempsigma0  ;
   DATA->sigma0   = tempsigma0;
   
-  // Initial_Distribution_Filename:  unknown
+  // Initial_Distribution_Filename
   string tempinitName = "filename";
   tempinput = util->StringFind4(file, "Initial_Distribution_Filename");
   if(tempinput != "empty") tempinitName.assign(tempinput);
