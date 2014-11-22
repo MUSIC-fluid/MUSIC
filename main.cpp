@@ -48,7 +48,8 @@ int main(int argc, char *argv[])
   else input_file = "";
 
   
-  ReadInData2(&DATA, input_file);
+  //ReadInData2(&DATA, input_file);
+  ReadInData3(&DATA, input_file);
 
   // initialize MPI
   if(DATA.mode!=8)
@@ -1318,7 +1319,7 @@ void ReadInData3(InitData *DATA, string file)
   Util *util;
   util = new Util();
   string tempinput;
-  
+ 
   // Lexus_Imax: number of points to use to store the data of the thickness function
   int tempLexusImax = 100;
   tempinput = util->StringFind4(file, "Lexus_Imax");

@@ -108,6 +108,7 @@ typedef struct init_data
   
   int turn_on_shear;
   int turn_on_bulk;
+  int turn_on_diff;
   
   int zero_or_stop;
   

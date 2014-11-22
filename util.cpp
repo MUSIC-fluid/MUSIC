@@ -509,7 +509,7 @@ string Util::StringFind4(string file_name, string str_in)
     string para_string;
     stringstream temp_ss(temp_string);
     getline(temp_ss, para_string, '#');  // remove the comments
-    if(para_string.compare("") != 0)  // check the read in string is not empty
+    if(para_string.compare("") != 0 && para_string.find_first_not_of(' ') != std::string::npos)  // check the read in string is not empty
     {
       stringstream para_stream(para_string);
       para_stream >> para_name >> para_val;
