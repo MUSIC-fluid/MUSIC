@@ -88,6 +88,7 @@ double DFind(string file_name, const char *st);
 string StringFind(string file_name, const char *st);
 char *StringFind2(char *file_name, const char *st);
 string StringFind3(string file_name, const char *st);
+string StringFind4(string file_name, string str_in);
 int IFind(string file_name, const char *st);
 
 void FileCopy(const char *in_file, const char *out_file);

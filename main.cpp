@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
   if(argc >1)   input_file = *(argv+1);
   else input_file = "";
 
-
+  
   ReadInData2(&DATA, input_file);
 
   // initialize MPI
@@ -1131,8 +1131,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind3(file, "Include_Shear_Visc_Yes_1_No_0");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempturn_on_shear;
   DATA->turn_on_shear = tempturn_on_shear;
-  
-  
   
   // T_dependent_Shear_to_S_ratio:  if 1, ignore constant eta/s and use hard-coded T-dependent shear viscosity
 //   DATA->T_dependent_shear_to_s = util->IFind(file, "T_dependent_Shear_to_S_ratio");
