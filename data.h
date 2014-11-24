@@ -50,6 +50,7 @@ typedef struct init_data
   double a_short;
   double a_long;
   int rk_order;
+  int reconst_type;
   int taufac;
 
   double minmod_theta;

@@ -1824,6 +1824,17 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   {
     cout << "Runge-Kutta order = " << DATA->rk_order << endl;
   }
+
+  // reconstruction type
+  int tempreconst_type = 0;
+  tempinput = util->StringFind4(file, "reconst_type");
+  if(tempinput != "empty") istringstream (tempinput) >> tempreconst_type;
+  DATA->reconst_type = tempreconst_type;
+  if(DATA->reconst_type != 1 || DATA->reconst_type !=0)
+  {
+    cerr << "unrecognized reconst_type: " << DATA->reconst_type << endl;
+    exit(1);
+  }
   
   // in case of using Initial_Distribution 3, these are the limits between which to sample the impact parameter
   double tempbmin   = 0.;
