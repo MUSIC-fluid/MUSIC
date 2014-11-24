@@ -559,17 +559,19 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
       }
    }
  
- //flag = reconst->ReconstIt(grid_rk, 0, tau_next, qirk, grid_pt,
- //                          grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
- flag = reconst->ReconstIt_velocity(grid_rk, 0, tau_next, qirk, grid_pt,
-                                    grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
+ if(DATA->reconst_type == 0)
+   flag = reconst->ReconstIt(grid_rk, 0, tau_next, qirk, grid_pt,
+                             grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
+ else
+   flag = reconst->ReconstIt_velocity(grid_rk, 0, tau_next, qirk, grid_pt,
+                                      grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
 
  if(flag==0)
  {
     reconst->ReconstError("grid_rk", 0, rk_flag+1, qi, qirk, grid_pt);
     return 0;
  }/* flag == 0 */
- else if(flag != 0) 
+ else
  {
     UpdateTJbRK(grid_rk, grid_pt, DATA, rk_flag); 
     /* TJb[rk_flag+1] is filled */
@@ -1581,55 +1583,36 @@ int Advance::ConstHalfwayCells(double tau, BdryCells *HalfwayCells, double *qi, 
  for(direc=1; direc<=3; direc++)
  {
    /* for each direction, reconstruct half-way cells */
-   //flag = reconst->ReconstIt(&(HalfwayCells->grid_p_h_L[direc]), 
-   //     	                 direc, tau, HalfwayCells->qiphL, grid_pt,
-   //     	                 epsilon_init, rhob_init, DATA, rk_flag); 
-    
-   flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_p_h_L[direc]), 
-                                      direc, tau, HalfwayCells->qiphL, grid_pt,
-                                      epsilon_init, rhob_init, DATA, rk_flag); 
-   //if(flag==0)
-   //{
-   //  reconst->ReconstError("grid_p_h_L", direc, rk_flag, qi, HalfwayCells->qiphL, grid_pt);
-   //  return 0;
-   //}/* if Reconst returns error */
-
-   //flag = reconst->ReconstIt(&(HalfwayCells->grid_p_h_R[direc]), 
-   //                          direc, tau, HalfwayCells->qiphR, grid_pt,
-   //                          epsilon_init, rhob_init, DATA, rk_flag); 
-
-   flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_p_h_R[direc]), 
-                                      direc, tau, HalfwayCells->qiphR, grid_pt,
-                                      epsilon_init, rhob_init, DATA, rk_flag); 
-   //if(flag==0)
-   //{
-   //  reconst->ReconstError("grid_p_h_R", direc, rk_flag, qi, HalfwayCells->qiphR, grid_pt);
-   //  return 0;
-   //}
-   
-   //flag = reconst->ReconstIt(&(HalfwayCells->grid_m_h_L[direc]), 
-   //                          direc, tau, HalfwayCells->qimhL, grid_pt,
-   //                          epsilon_init, rhob_init, DATA, rk_flag); 
-   flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_m_h_L[direc]), 
-                                      direc, tau, HalfwayCells->qimhL, grid_pt,
-                                      epsilon_init, rhob_init, DATA, rk_flag); 
-   //if(flag==0)
-   //{
-   //  reconst->ReconstError("grid_m_h_L", direc, rk_flag, qi, HalfwayCells->qimhL, grid_pt);
-   //  return 0;
-   //}
-   
-   //flag = reconst->ReconstIt(&(HalfwayCells->grid_m_h_R[direc]), 
-   //                          direc, tau, HalfwayCells->qimhR, grid_pt,
-   //                          epsilon_init, rhob_init, DATA, rk_flag); 
-   flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_m_h_R[direc]), 
-                                      direc, tau, HalfwayCells->qimhR, grid_pt,
-                                      epsilon_init, rhob_init, DATA, rk_flag); 
-   //if(flag==0)
-   //{
-   //  reconst->ReconstError("grid_m_h_R", direc, rk_flag, qi, HalfwayCells->qimhR, grid_pt);
-   //  return 0;
-   //}
+   if(DATA->reconst_type == 0)
+   {
+     flag = reconst->ReconstIt(&(HalfwayCells->grid_p_h_L[direc]), 
+          	                   direc, tau, HalfwayCells->qiphL, grid_pt,
+          	                   epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt(&(HalfwayCells->grid_p_h_R[direc]), 
+                               direc, tau, HalfwayCells->qiphR, grid_pt,
+                               epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt(&(HalfwayCells->grid_m_h_L[direc]), 
+                               direc, tau, HalfwayCells->qimhL, grid_pt,
+                               epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt(&(HalfwayCells->grid_m_h_R[direc]), 
+                               direc, tau, HalfwayCells->qimhR, grid_pt,
+                               epsilon_init, rhob_init, DATA, rk_flag); 
+   }
+   else
+   {
+     flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_p_h_L[direc]), 
+                                        direc, tau, HalfwayCells->qiphL, grid_pt,
+                                        epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_p_h_R[direc]), 
+                                        direc, tau, HalfwayCells->qiphR, grid_pt,
+                                        epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_m_h_L[direc]), 
+                                        direc, tau, HalfwayCells->qimhL, grid_pt,
+                                        epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_m_h_R[direc]), 
+                                        direc, tau, HalfwayCells->qimhR, grid_pt,
+                                        epsilon_init, rhob_init, DATA, rk_flag); 
+   }
 
    if(HalfwayCells->grid_m_h_R[direc].rhob>1.&& HalfwayCells->grid_m_h_R[direc].epsilon<0.0000001) 
       HalfwayCells->grid_m_h_R[direc].rhob=0.;
