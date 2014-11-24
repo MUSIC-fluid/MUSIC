@@ -1518,11 +1518,11 @@ void ReadInData3(InitData *DATA, string file)
   // 2: Schenke's more complex method
   // 3: Luzum's simple method
   // 4: Cornelius 
-  int tempfreezeOutMethod = 3;//  This default allows for new users to run MUSIC without warnings.  Should set to 2 in input file for production use.
+  int tempfreezeOutMethod = 4;//  This default allows for new users to run MUSIC without warnings.  Should set to 2 in input file for production use.
   tempinput = util->StringFind4(file, "freeze_out_method");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempfreezeOutMethod;
   DATA->freezeOutMethod = tempfreezeOutMethod;
-  if(DATA->freezeOutMethod>3) 
+  if(DATA->freezeOutMethod>4) 
   {
     cerr << "Invalid option for freeze_out_method:" << DATA->freezeOutMethod << endl;
     exit(1);

@@ -114,7 +114,7 @@ output_evolution_data 0                   # flag to output evolution history to 
 # parameters for freeze out and Cooper-Frye 
 ###########################################
 Do_FreezeOut_Yes_1_No_0 1                 # flag to find freeze-out surface
-freeze_out_method 2                       # method for hyper-surface finder
+freeze_out_method 4                       # method for hyper-surface finder
                                           # 1: Hirano's simplified lego method
                                           # 2: Schenke's more complex method
                                           # 3: Luzum's simple lego  method
