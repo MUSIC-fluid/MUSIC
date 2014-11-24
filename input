@@ -6,11 +6,11 @@ binary_collision_scaling_fraction 0.
 initialize_with_entropy 0
 Maximum_energy_density 54.
 epsilon_freeze 0.18
-rho_b_max 0.
+rho_b_max 0.5
 s_factor 0.00745
 use_eps_for_freeze_out 1
 T_freeze 0.135
-Initial_profile 6
+Initial_profile 1
 Initial_Distribution_Filename filename
 freeze_out_method 2
 SigmaNN 42.1
@@ -38,9 +38,9 @@ Total_evolution_time_tau 30.
 Eta_grid_size 14.0
 Y_grid_size_in_fm 25.0
 X_grid_size_in_fm 25.0
-Grid_size_in_eta 10
-Grid_size_in_y 20
-Grid_size_in_x 20
+Grid_size_in_eta 4
+Grid_size_in_y 100
+Grid_size_in_x 100
 number_of_particles_to_include 40
 particle_spectrum_to_compute 30
 maximal_rapidity 4.8
@@ -54,7 +54,7 @@ Include_Shear_Visc_Yes_1_No_0 1
 Shear_to_S_ratio 0.08
 Include_Bulk_Visc_Yes_1_No_0 0
 Bulk_to_S_ratio 0.1
-Include_Rhob_Yes_1_No_0 0
+Include_Rhob_Yes_1_No_0 1
 Minimum_Epsilon_Frac_For_Visc 0.00001
 Bulk_relaxation_time_tau_b_pi 0.6
 Shear_relaxation_time_tau_pi 0.01

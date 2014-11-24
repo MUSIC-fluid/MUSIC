@@ -274,167 +274,311 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *
 // dUsup[rk_flag][4][n] = partial_n (muB/T)
 // partial_x (muB/T) and partial_y (muB/T) first
 
-m = 4; // means (muB/T)
+   m = 4; // means (muB/T)
    for(n=1; n<=2; n++)
-    {
+   {
      taufactor = 1.0;
      // f = grid_pt->rhob_t;
-     rhob = grid_pt->rhob_t;
-     eps = grid_pt->epsilon_t;
+     if(rk_flag == 0)
+     {
+       rhob = grid_pt->rhob;
+       eps = grid_pt->epsilon;
+     }
+     else
+     {
+       rhob = grid_pt->rhob_t;
+       eps = grid_pt->epsilon_t;
+     }
      muB = eos->get_mu(eps, rhob);
      T = eos->get_temperature(eps, rhob);
      f = muB/T; 
-     
+    
      if(grid_pt->position[n] == nmax[n]) 
-      {
+     {
        // fp1 = grid_pt->rhob;
-       rhob = grid_pt->rhob_t;
-       eps = grid_pt->epsilon_t;
+       if(rk_flag == 0)
+       {
+         rhob = grid_pt->rhob;
+         eps = grid_pt->epsilon;
+       }
+       else
+       {
+         rhob = grid_pt->rhob_t;
+         eps = grid_pt->epsilon_t;
+       }
        muB = eos->get_mu(eps, rhob);
        T = eos->get_temperature(eps, rhob);
        fp1 = muB/T; 
        
        // fm1 = grid_pt->nbr_m_1[n]->rhob;
-       rhob = grid_pt->nbr_m_1[n]->rhob_t;
-       eps = grid_pt->nbr_m_1[n]->epsilon_t;
+       if(rk_flag == 0)
+       {
+         rhob = grid_pt->nbr_m_1[n]->rhob;
+         eps = grid_pt->nbr_m_1[n]->epsilon;
+       }
+       else
+       {
+         rhob = grid_pt->nbr_m_1[n]->rhob_t;
+         eps = grid_pt->nbr_m_1[n]->epsilon_t;
+       }
        muB = eos->get_mu(eps, rhob);
        T = eos->get_temperature(eps, rhob);
        fm1 = muB/T; 
-      }
+     }
      else if(grid_pt->position[n] == 0) 
-      {
+     {
        // fp1 = grid_pt->nbr_p_1[n]->rhob;
-       rhob = grid_pt->nbr_p_1[n]->rhob_t;
-       eps = grid_pt->nbr_p_1[n]->epsilon_t;
+       if(rk_flag == 0)
+       {
+         rhob = grid_pt->nbr_p_1[n]->rhob;
+         eps = grid_pt->nbr_p_1[n]->epsilon;
+       }
+       else
+       {
+         rhob = grid_pt->nbr_p_1[n]->rhob_t;
+         eps = grid_pt->nbr_p_1[n]->epsilon_t;
+       }
        muB = eos->get_mu(eps, rhob);
        T = eos->get_temperature(eps, rhob);
        fp1 = muB/T; 
        
        // fm1 = grid_pt->rhob;
-       rhob = grid_pt->rhob_t;
-       eps = grid_pt->epsilon_t;
+       if(rk_flag == 0)
+       {
+         rhob = grid_pt->rhob;
+         eps = grid_pt->epsilon;
+       }
+       else
+       {
+         rhob = grid_pt->rhob_t;
+         eps = grid_pt->epsilon_t;
+       }
        muB = eos->get_mu(eps, rhob);
        T = eos->get_temperature(eps, rhob);
        fm1 = muB/T; 
-      }
+     }
      else
-      {
+     {
        //fp1 = grid_pt->nbr_p_1[n]->rhob;
-       rhob = grid_pt->nbr_p_1[n]->rhob_t;
-       eps = grid_pt->nbr_p_1[n]->epsilon_t;
+       if(rk_flag == 0)
+       {
+         rhob = grid_pt->nbr_p_1[n]->rhob;
+         eps = grid_pt->nbr_p_1[n]->epsilon;
+       }
+       else
+       {
+         rhob = grid_pt->nbr_p_1[n]->rhob_t;
+         eps = grid_pt->nbr_p_1[n]->epsilon_t;
+       }
        muB = eos->get_mu(eps, rhob);
        T = eos->get_temperature(eps, rhob);
        fp1 = muB/T; 
        
        // fm1 = grid_pt->nbr_m_1[n]->rhob;
-       rhob = grid_pt->nbr_m_1[n]->rhob_t;
-       eps = grid_pt->nbr_m_1[n]->epsilon_t;
+       if(rk_flag == 0)
+       {
+         rhob = grid_pt->nbr_m_1[n]->rhob;
+         eps = grid_pt->nbr_m_1[n]->epsilon;
+       }
+       else
+       {
+         rhob = grid_pt->nbr_m_1[n]->rhob_t;
+         eps = grid_pt->nbr_m_1[n]->epsilon_t;
+       }
        muB = eos->get_mu(eps, rhob);
        T = eos->get_temperature(eps, rhob);
        fm1 = muB/T; 
-      }
+     }
 
      g = minmod->minmod_dx(fp1, f, fm1, DATA);
      g /= delta[n]*taufactor;
      grid_pt->dUsup[rk_flag][m][n] = g;
-    }// n=x,y
+   }// n=x,y
   
   // eta derivative
    n=3; // means eta
    taufactor = tau;
 //   f = grid_pt->rhob_t;
-   rhob = grid_pt->rhob_t;
-   eps = grid_pt->epsilon_t;
+   if(rk_flag == 0)
+   {
+     rhob = grid_pt->rhob;
+     eps = grid_pt->epsilon;
+   }
+   else
+   {
+     rhob = grid_pt->rhob_t;
+     eps = grid_pt->epsilon_t;
+   }
    muB = eos->get_mu(eps, rhob);
    T = eos->get_temperature(eps, rhob);
    f = muB/T; 
    
    if(grid_pt->position[n] == nmax[n]) 
+   {
+     if (rank==size-1)
      {
-       if (rank==size-1)
-	 {
-	  // fp1 = grid_pt->rhob;
+      // fp1 = grid_pt->rhob;
+        if(rk_flag == 0)
+        {
+          rhob = grid_pt->rhob;
+          eps = grid_pt->epsilon;
+        }
+        else
+        {
           rhob = grid_pt->rhob_t;
           eps = grid_pt->epsilon_t;
-          muB = eos->get_mu(eps, rhob);
-          T = eos->get_temperature(eps, rhob);
-          fp1 = muB/T; 
-       
-	  // fm1 = grid_pt->nbr_m_1[n]->rhob;
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fp1 = muB/T; 
+     
+      // fm1 = grid_pt->nbr_m_1[n]->rhob;
+        if(rk_flag == 0)
+        {
+          rhob = grid_pt->nbr_m_1[n]->rhob;
+          eps = grid_pt->nbr_m_1[n]->epsilon;
+        }
+        else
+        {
           rhob = grid_pt->nbr_m_1[n]->rhob_t;
           eps = grid_pt->nbr_m_1[n]->epsilon_t;
-          muB = eos->get_mu(eps, rhob);
-          T = eos->get_temperature(eps, rhob);
-          fm1 = muB/T; 
-	 }
-       else
-	 {
-	  // fp1 = Rneighbor->rhob;
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fm1 = muB/T; 
+     }
+     else
+     {
+      // fp1 = Rneighbor->rhob;
+        if(rk_flag == 0)
+        {
+          rhob = Rneighbor->rhob;
+          eps = Rneighbor->epsilon;
+        }
+        else
+        {
           rhob = Rneighbor->rhob_t;
           eps = Rneighbor->epsilon_t;
-          muB = eos->get_mu(eps, rhob);
-          T = eos->get_temperature(eps, rhob);
-          fp1 = muB/T; 
-	  
-	  // fm1 = grid_pt->nbr_m_1[n]->rhob;
-          rhob = grid_pt->nbr_m_1[n]->rhob_t;
-          eps = grid_pt->nbr_m_1[n]->epsilon_t;
-          muB = eos->get_mu(eps, rhob);
-          T = eos->get_temperature(eps, rhob);
-          fm1 = muB/T; 
-	 }
-     }
-   else if(grid_pt->position[n] == 0) 
-     {
-       if(rank==0)
-	 {
-	   // fp1 = grid_pt->nbr_p_1[n]->rhob;
-           rhob = grid_pt->nbr_p_1[n]->rhob_t;
-           eps = grid_pt->nbr_p_1[n]->epsilon_t;
-           muB = eos->get_mu(eps, rhob);
-           T = eos->get_temperature(eps, rhob);
-           fp1 = muB/T; 
-	   
-	   // fm1 = grid_pt->rhob;
-           rhob = grid_pt->rhob_t;
-           eps = grid_pt->epsilon_t;
-           muB = eos->get_mu(eps, rhob);
-           T = eos->get_temperature(eps, rhob);
-           fm1 = muB/T; 
-	 }
-       else
-	 {
-	  // fp1 = grid_pt->nbr_p_1[n]->rhob;
-          rhob = grid_pt->nbr_p_1[n]->rhob_t;
-          eps = grid_pt->nbr_p_1[n]->epsilon_t;
-          muB = eos->get_mu(eps, rhob);
-          T = eos->get_temperature(eps, rhob);
-          fp1 = muB/T; 
-	  
-	  // fm1 = Lneighbor->rhob;
-          rhob = Lneighbor->rhob_t;
-          eps = Lneighbor->epsilon_t;
-          muB = eos->get_mu(eps, rhob);
-          T = eos->get_temperature(eps, rhob);
-          fm1 = muB/T; 
-	 } 
-     }
-   else
-     {
-      // fp1 = grid_pt->nbr_p_1[n]->rhob;
-          rhob = grid_pt->nbr_p_1[n]->rhob_t;
-          eps = grid_pt->nbr_p_1[n]->epsilon_t;
-          muB = eos->get_mu(eps, rhob);
-          T = eos->get_temperature(eps, rhob);
-          fp1 = muB/T; 
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fp1 = muB/T; 
       
       // fm1 = grid_pt->nbr_m_1[n]->rhob;
+        if(rk_flag == 0)
+        {
+          rhob = grid_pt->nbr_m_1[n]->rhob;
+          eps = grid_pt->nbr_m_1[n]->epsilon;
+        }
+        else
+        {
           rhob = grid_pt->nbr_m_1[n]->rhob_t;
           eps = grid_pt->nbr_m_1[n]->epsilon_t;
-          muB = eos->get_mu(eps, rhob);
-          T = eos->get_temperature(eps, rhob);
-          fm1 = muB/T; 
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fm1 = muB/T; 
      }
+   }
+   else if(grid_pt->position[n] == 0) 
+   {
+     if(rank==0)
+     {
+       // fp1 = grid_pt->nbr_p_1[n]->rhob;
+         if(rk_flag == 0)
+         {
+           rhob = grid_pt->nbr_p_1[n]->rhob;
+           eps = grid_pt->nbr_p_1[n]->epsilon;
+         }
+         else
+         {
+           rhob = grid_pt->nbr_p_1[n]->rhob_t;
+           eps = grid_pt->nbr_p_1[n]->epsilon_t;
+         }
+         muB = eos->get_mu(eps, rhob);
+         T = eos->get_temperature(eps, rhob);
+         fp1 = muB/T; 
+       
+       // fm1 = grid_pt->rhob;
+         if(rk_flag == 0)
+         {
+           rhob = grid_pt->rhob;
+           eps = grid_pt->epsilon;
+         }
+         else
+         {
+           rhob = grid_pt->rhob_t;
+           eps = grid_pt->epsilon_t;
+         }
+         muB = eos->get_mu(eps, rhob);
+         T = eos->get_temperature(eps, rhob);
+         fm1 = muB/T; 
+     }
+     else
+     {
+      // fp1 = grid_pt->nbr_p_1[n]->rhob;
+        if(rk_flag == 0)
+        {
+          rhob = grid_pt->nbr_p_1[n]->rhob;
+          eps = grid_pt->nbr_p_1[n]->epsilon;
+        }
+        else
+        {
+          rhob = grid_pt->nbr_p_1[n]->rhob_t;
+          eps = grid_pt->nbr_p_1[n]->epsilon_t;
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fp1 = muB/T; 
+      
+      // fm1 = Lneighbor->rhob;
+        if(rk_flag == 0)
+        {
+          rhob = Lneighbor->rhob;
+          eps = Lneighbor->epsilon;
+        }
+        else
+        {
+          rhob = Lneighbor->rhob_t;
+          eps = Lneighbor->epsilon_t;
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fm1 = muB/T; 
+     } 
+   }
+   else
+   {
+    // fp1 = grid_pt->nbr_p_1[n]->rhob;
+      if(rk_flag == 0)
+      {
+        rhob = grid_pt->nbr_p_1[n]->rhob;
+        eps = grid_pt->nbr_p_1[n]->epsilon;
+      }
+      else
+      {
+        rhob = grid_pt->nbr_p_1[n]->rhob_t;
+        eps = grid_pt->nbr_p_1[n]->epsilon_t;
+      }
+      muB = eos->get_mu(eps, rhob);
+      T = eos->get_temperature(eps, rhob);
+      fp1 = muB/T; 
+    
+    // fm1 = grid_pt->nbr_m_1[n]->rhob;
+      if(rk_flag == 0)
+      {
+        rhob = grid_pt->nbr_m_1[n]->rhob;
+        eps = grid_pt->nbr_m_1[n]->epsilon;
+      }
+      else
+      {
+        rhob = grid_pt->nbr_m_1[n]->rhob_t;
+        eps = grid_pt->nbr_m_1[n]->epsilon_t;
+      }
+      muB = eos->get_mu(eps, rhob);
+      T = eos->get_temperature(eps, rhob);
+      fm1 = muB/T; 
+   }
    g = minmod->minmod_dx(fp1, f, fm1, DATA);
    g /= delta[n]*taufactor;
    grid_pt->dUsup[rk_flag][m][n] = g;

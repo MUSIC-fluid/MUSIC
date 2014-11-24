@@ -629,7 +629,7 @@ if(rk_flag == 0)
 {
    diss->Make_uWRHS(tau_now, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
 
-// Sangyong Nov 18 2014: this was for(mu=1; mu<=3; mu++)
+// Sangyong Nov 18 2014:
    for(mu=1; mu<=mu_max; mu++)
     {
      for(nu=1; nu<=3; nu++)
@@ -647,7 +647,7 @@ if(rk_flag == 0)
 else if(rk_flag > 0)
 {
    diss->Make_uWRHS(tau_next, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
-// Sangyong Nov 18 2014: this was for(mu=1; mu<=3; mu++)
+// Sangyong Nov 18 2014:
    for(mu=1; mu<=mu_max; mu++)
     {
      for(nu=1; nu<=3; nu++)
