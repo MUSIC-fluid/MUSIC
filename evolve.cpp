@@ -147,10 +147,14 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 	else if (DATA->freezeOutMethod == 2)
 	  FindFreezeOutSurface2(tau, DATA, arena, size, rank);
 	else if (DATA->freezeOutMethod == 3)
-	  frozen = FindFreezeOutSurface_Cornelius(tau, DATA, arena, size, rank);
-	  //frozen = FindFreezeOutSurface3(tau, DATA, arena, size, rank);
+	  frozen = FindFreezeOutSurface3(tau, DATA, arena, size, rank);
 	else if (DATA->freezeOutMethod == 4)
-	  frozen = FindFreezeOutSurface_Cornelius(tau, DATA, arena, size, rank);
+      {
+        if (DATA->boost_invariant == 0)
+	     frozen = FindFreezeOutSurface_Cornelius(tau, DATA, arena, size, rank);
+        else
+	     frozen = FindFreezeOutSurface_boostinvariant_Cornelius(tau, DATA, arena, size, rank);
+      }
 	storePreviousEpsilon2(tau, DATA, arena);
 	storePreviousW(tau, DATA, arena);
       } 
