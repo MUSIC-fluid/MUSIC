@@ -1831,7 +1831,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind4(file, "reconst_type");
   if(tempinput != "empty") istringstream (tempinput) >> tempreconst_type;
   DATA->reconst_type = tempreconst_type;
-  if(DATA->reconst_type != 1 || DATA->reconst_type !=0)
+  if(DATA->reconst_type != 1 &&  DATA->reconst_type !=0)
   {
     cerr << "unrecognized reconst_type: " << DATA->reconst_type << endl;
     exit(1);
