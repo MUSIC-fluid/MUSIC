@@ -412,8 +412,7 @@ double term1_Wsigma, term2_Wsigma;
                      + grid_pt->Wmunu[rk_flag][mu][2]*sigma[nu][2] + grid_pt->Wmunu[rk_flag][nu][2]*sigma[mu][2]
                      + grid_pt->Wmunu[rk_flag][mu][3]*sigma[nu][3] + grid_pt->Wmunu[rk_flag][nu][3]*sigma[mu][3] )/2.;
 
-   term2_Wsigma = -(1./3.)*( DATA->gmunu[mu][nu] + grid_pt->u[rk_flag][mu]*grid_pt->u[rk_flag][nu] )*Wsigma;
-
+   term2_Wsigma = -(1./3.)*( DATA->gmunu[mu][nu] + grid_pt->u[rk_flag][mu]*grid_pt->u[rk_flag][nu] )*Wsigma; 
 /// multiply term by its respective transport coefficient
    term1_Wsigma = transport_coefficient3*term1_Wsigma;
    term2_Wsigma = transport_coefficient3*term2_Wsigma;
