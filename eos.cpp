@@ -1831,6 +1831,228 @@ double EOS::interpolate(double e, double rhob, int selector)
   return T/hbarc;
 }
 
+double EOS::interpolate2D(double e, double rhob, int selector)
+// This is a generic bilinear interpolation routine for EOS at finite mu_B
+// it assumes the class has already read in 
+//        P(e, rho_b), T(e, rho_b), s(e, rho_b), mu_b(e, rho_b) 
+// as two-dimensional arrays on an equally spacing lattice grid
+// selector: return specific type of thermodynamical quantities
+//           0: pressure [GeV/fm^3]
+//           1: temperature [GeV]
+//           2: entropy density [1/fm^3]
+//           3: mu_B [GeV]
+{
+    double **array; 
+  
+    double local_ed = e*hbarc; // convert energy density from 1/fm^4 to GeV/fm^3
+    double local_rhob = rhob*hbarc; // convert from 1/fm to GeV
+
+    // first choosing the right table
+    double eps0, rhob0, deltaEps, deltaRhob;
+    int NEps, Nrhob;
+    if(local_ed < EPP1)  // energy density is smaller than the smallest value in the table use linear extrapolation
+    {
+	  eps0 = EPP1;
+	  NEps = NEPP1;
+	  deltaEps = deltaEPP1;
+        rhob0 = BNP1;
+	  Nrhob = NBNP1;
+	  deltaRhob = deltaBNP1;
+        switch (selector) 
+	  {
+	      case 0: array = pressure1; break;
+	      case 1: array = temperature1; break;
+	      case 2: array = entropyDensity1; break;
+	      case 3: array = mu1; break;
+	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2, or 3\n"); exit(1);
+	  }
+    }
+    else if(local_ed < EPP2)
+    {
+	  eps0 = EPP1;
+	  NEps = NEPP1;
+	  deltaEps = deltaEPP1;
+        rhob0 = BNP1;
+	  Nrhob = NBNP1;
+	  deltaRhob = deltaBNP1;
+        switch (selector) 
+	  {
+	      case 0: array = pressure1; break;
+	      case 1: array = temperature1; break;
+	      case 2: array = entropyDensity1; break;
+	      case 3: array = mu1; break;
+	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2, or 3\n"); exit(1);
+	  }
+    }
+    else if(local_ed < EPP3)
+    {
+	  eps0 = EPP2;
+	  NEps = NEPP2;
+	  deltaEps = deltaEPP2;
+        rhob0 = BNP2;
+	  Nrhob = NBNP2;
+	  deltaRhob = deltaBNP2;
+	  switch (selector) 
+	  {
+	      case 0: array = pressure2; break;
+	      case 1: array = temperature2; break;
+	      case 2: array = entropyDensity2; break;
+	      case 3: array = mu2; break;
+	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	  }
+    }
+    else if(local_ed < EPP4)
+    {
+	  eps0 = EPP3;
+	  NEps = NEPP3;
+	  deltaEps = deltaEPP3;
+        rhob0 = BNP3;
+	  Nrhob = NBNP3;
+	  deltaRhob = deltaBNP3;
+	  switch (selector) 
+	  {
+	      case 0: array = pressure3; break;
+	      case 1: array = temperature3; break;
+	      case 2: array = entropyDensity3; break;
+	      case 3: array = mu3; break;
+	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	  }
+    }
+    else if(local_ed < EPP5)
+    {
+	  eps0 = EPP4;
+	  NEps = NEPP4;
+	  deltaEps = deltaEPP4;
+        rhob0 = BNP4;
+	  Nrhob = NBNP4;
+	  deltaRhob = deltaBNP4;
+	  switch (selector) 
+	  {
+	      case 0: array = pressure4; break;
+	      case 1: array = temperature4; break;
+	      case 2: array = entropyDensity4; break;
+	      case 3: array = mu4; break;
+	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	  }
+    }
+    else if(local_ed < EPP6)
+    {
+	  eps0 = EPP5;
+	  NEps = NEPP5;
+	  deltaEps = deltaEPP5;
+        rhob0 = BNP5;
+	  Nrhob = NBNP5;
+	  deltaRhob = deltaBNP5;
+	  switch (selector) 
+	  {
+	      case 0: array = pressure5; break;
+	      case 1: array = temperature5; break;
+	      case 2: array = entropyDensity5; break;
+	      case 3: array = mu5; break;
+	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	  }
+    }
+    else if(local_ed < EPP7)
+    {
+	  eps0 = EPP6;
+	  NEps = NEPP6;
+	  deltaEps = deltaEPP6;
+        rhob0 = BNP6;
+	  Nrhob = NBNP6;
+	  deltaRhob = deltaBNP6;
+	  switch (selector) 
+	  {
+	      case 0: array = pressure6; break;
+	      case 1: array = temperature6; break;
+	      case 2: array = entropyDensity6; break;
+	      case 3: array = mu6; break;
+	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	  }
+    }
+    else
+    {
+	  eps0 = EPP7;
+	  NEps = NEPP7;
+	  deltaEps = deltaEPP7;
+        rhob0 = BNP7;
+	  Nrhob = NBNP7;
+	  deltaRhob = deltaBNP7;
+	  switch (selector) 
+	  {
+	      case 0: array = pressure7; break;
+	      case 1: array = temperature7; break;
+	      case 2: array = entropyDensity7; break;
+	      case 3: array = mu7; break;
+	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	  }
+    }
+
+    // compute the indices
+    int idx_e = (int)((local_ed - eps0)/deltaEps);
+    double frac_e = (local_ed - (idx_e*deltaEps + eps0))/deltaEps; 
+    int idx_nb = (int)((local_rhob - rhob0)/deltaRhob);
+    double frac_rhob = (local_rhob - (idx_nb*deltaRhob + rhob0))/deltaRhob; 
+
+    // check overflow
+    if(idx_e > NEps || idx_nb > Nrhob)
+    {
+        fprintf(stderr, "ERROR in inperpolate2D: out of range of the table! \n");
+        fprintf(stderr, "e = %e, rhob = %e, eps0 = %e, rhob0 = %e\n", 
+                local_ed, local_rhob, eps0, rhob0);
+        fprintf(stderr, "idx_e=%d, NEPP1=%d; idx_nb=%d, NBNP1=%d\n", 
+                idx_e, NEps, idx_nb, Nrhob);
+        exit(0);
+    }
+    
+    // check underflow
+    if(idx_nb < 0)
+    {
+        fprintf(stderr, "ERROR in inperpolate2D: out of range of the table! \n");
+        fprintf(stderr, "e = %e, rhob = %e, eps0 = %e, rhob0 = %e\n", 
+                local_ed, local_rhob, eps0, rhob0);
+        fprintf(stderr, "idx_e=%d, NEPP1=%d; idx_nb=%d, NBNP1=%d\n", 
+                idx_e, NEps, idx_nb, Nrhob);
+        exit(0);
+    }
+
+    if(idx_e < 0)
+    {
+        if(local_ed > EPP1 + 1e-15 || local_ed < 0.)
+        {
+            fprintf(stderr, "ERROR in inperpolate2D: out of range of the table! \n");
+            fprintf(stderr, "e = %e, rhob = %e, eps0 = %e, rhob0 = %e\n", 
+                    local_ed, local_rhob, eps0, rhob0);
+            fprintf(stderr, "idx_e=%d, NEPP1=%d; idx_nb=%d, NBNP1=%d\n", 
+                    idx_e, NEps, idx_nb, Nrhob);
+            exit(0);
+        }
+        else
+            idx_e = 0;  // do linear extrapolation for small energy density
+    }
+
+    double temp1 = max(array[idx_nb][idx_e], 0.0);
+    double temp2 = max(array[idx_nb][idx_e+1], 0.0);
+    double temp3 = max(array[idx_nb+1][idx_e+1], 0.0);
+    double temp4 = max(array[idx_nb+1][idx_e], 0.0);
+
+    double result = (  temp1*(1. - frac_e)*(1. - frac_rhob) 
+                     + temp2*frac_e*(1. - frac_rhob)
+                     + temp3*frac_e*frac_rhob 
+                     + temp4*(1. - frac_e)*frac_rhob);
+    
+    // convert back to fm unit
+    switch (selector) 
+    {
+    case 0: result /= hbarc; break;   // pressure in [1/fm^4]
+    case 1: result /= hbarc; break;   // temperature in [1/fm]
+    case 2: break;                    // entropy density in [1/fm^3]
+    case 3: result /= hbarc; break;   // mu_B in [1/fm]
+    default: fprintf(stderr, "ERROR in interpolate2D - selector must be 0,1,2, or 3\n"); exit(1);
+    }
+
+    return result;
+}
+
 double EOS::T_from_eps_ideal_gas(double eps)
 {
 
