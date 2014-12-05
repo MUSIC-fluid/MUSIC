@@ -1624,44 +1624,113 @@ double EOS::get_dpOverde2(double e, double rhob)
    return dp/deltaEps;
 }
 
+double EOS::get_dpOverdrhob2(double e, double rhob)
+{
+    //The energy and rho_B have to be in GeV in what follows
+    double local_ed = e*hbarc;
+    double local_rhob = rhob*hbarc;
+    
+    double deltaRhob;   // in GeV
+    if (local_ed < EPP2)
+        deltaRhob = deltaBNP1;
+    else if (local_ed < EPP3)
+        deltaRhob = deltaBNP2;
+    else if (local_ed < EPP4)
+        deltaRhob = deltaBNP3;
+    else if (local_ed < EPP5)
+        deltaRhob = deltaBNP4;
+    else if (local_ed < EPP6)
+        deltaRhob = deltaBNP5;
+    else if (local_ed < EPP7)
+        deltaRhob = deltaBNP6;
+    else 
+        deltaRhob = deltaBNP7;
+    
+    double rhobLeft = local_rhob - deltaRhob/2.;
+    double rhobRight = local_rhob + deltaRhob/2.;
+   
+    if(rhobLeft < BNP1)
+    {
+        rhobLeft = BNP1;
+        rhobRight = BNP1 + deltaRhob;
+    }
+   
+    double pL = get_pressure(e, rhobLeft/hbarc);
+    double pR = get_pressure(e, rhobRight/hbarc);
+      
+    double dp = (pR-pL)*hbarc; //in GeV
+      
+    if(dp < 0.) 
+    { 
+        fprintf(stderr,"dp/drho=%lf\n", dp/((rhobRight - rhobLeft)/hbarc)); 
+        fprintf(stderr,"pL=%lf\n", pL); 
+        fprintf(stderr,"pR=%lf\n", pR); 
+        fprintf(stderr,"e=%lf\n", local_ed);  
+        fprintf(stderr,"rhobLeft=%lf\n", rhobLeft);  
+        fprintf(stderr,"rhobRight=%lf\n", rhobRight);  
+    } 
+   
+    return dp/deltaRhob;
+}
+
 double EOS::get_pressure(double e, double rhob)
 {
- double f;
- if (whichEOS==0)
-   f = cs2*e;
- else if (whichEOS==1)
-   f = interpolate_pressure(e,rhob);
- else if (whichEOS>=2)
-   f = interpolate2(e,rhob,0); //selector 0 means get pressure 
-   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
- return f;
+    double f;
+    if (whichEOS==0)
+        f = cs2*e;
+    else if (whichEOS==1)
+        f = interpolate_pressure(e,rhob);
+    else if (whichEOS>=2 && whichEOS < 10)
+        f = interpolate2(e,rhob,0);    //selector 0 means get pressure 
+    else if (whichEOS >= 10)
+        f = interpolate2D(e,rhob,0);   //selector 0 means get pressure 
+    else
+    {
+        fprintf(stderr,"EOS::get_pressure: whichEOS = %d is out of range!\n", whichEOS);
+        exit(0);
+    }
+    return f;
 }/* get_pressure */
 
+
 double EOS::p_rho_func(double e, double rhob)
+// return dP/drho_b
 {
- double f;
- if (whichEOS==0) 
-   f = 0.0;
- else if (whichEOS==1)
-   f = get_dpOverdrhob(e, rhob);
- else if (whichEOS>=2)
-   f = 0.0;
-   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
- return f;
+    double f;
+    if (whichEOS==0) 
+        f = 0.0;
+    else if (whichEOS==1)
+        f = get_dpOverdrhob(e, rhob);
+    else if (whichEOS>=2 && whichEOS < 10)
+        f = 0.0;
+    else if (whichEOS >= 10)
+        f = get_dpOverdrhob2(e, rhob);
+    else
+    {
+        fprintf(stderr,"EOS::p_rho_func: whichEOS = %d is out of range!\n", whichEOS);
+        exit(0);
+    }
+    return f;
 }/* p_rho_func */
 
 double EOS::p_e_func(double e, double rhob)
+// return dP/de
 {
- double f;
- 
- if (whichEOS==0)
-   f = cs2;
- else if (whichEOS==1)
-   f = get_dpOverde(e, rhob);
- else if (whichEOS>=2)
-   f = get_dpOverde2(e, rhob);
-   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
- return f;
+    double f;
+    if (whichEOS==0)
+        f = cs2;
+    else if (whichEOS==1)
+        f = get_dpOverde(e, rhob);
+    else if (whichEOS>=2 && whichEOS < 10)
+        f = get_dpOverde2(e, rhob);
+    else if (whichEOS >= 10)
+        f = get_dpOverde2(e, rhob);
+    else
+    {
+        fprintf(stderr,"EOS::p_e_func: whichEOS = %d is out of range!\n", whichEOS);
+        exit(0);
+    }
+    return f;
 }/* p_e_func */
 
 
@@ -2077,27 +2146,30 @@ double EOS::s2e_ideal_gas(double s)
 }
 double EOS::get_entropy(double epsilon, double rhob)
 {
- double f;
- double P, T, mu;
-
- if (whichEOS >=0 && whichEOS <=1) {
-
-   P = get_pressure(epsilon, rhob);
-   T = get_temperature(epsilon,rhob);
-   mu = get_mu(epsilon, rhob);
+    double f;
+    double P, T, mu;
+    
+    if (whichEOS >=0 && whichEOS <=1)
+    {
+        P = get_pressure(epsilon, rhob);
+        T = get_temperature(epsilon,rhob);
+        mu = get_mu(epsilon, rhob);
    
-   if (T!=0)
-     f = (epsilon + P - mu*rhob)/T;
-   else
-     f = 0.;
- }
- else if (whichEOS >= 2) {
-   f=interpolate2(epsilon,rhob,2);
- }
-   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
-
- return f;
- 
+        if (T!=0)
+            f = (epsilon + P - mu*rhob)/T;
+        else
+            f = 0.;
+    }
+    else if (whichEOS >= 2 && whichEOS < 10)
+        f = interpolate2(epsilon,rhob,2);
+    else if (whichEOS >= 10)
+        f = interpolate2D(epsilon,rhob,2);
+    else
+    {
+        fprintf(stderr,"EOS::get_entropy: whichEOS = %d is out of range!\n", whichEOS);
+        exit(0);
+    }
+    return f;
 }/* get_entropy */
 
 double EOS::ssolve(double e, double rhob, double s)
@@ -2174,49 +2246,43 @@ double EOS::findRoot(double (EOS::*func)(double, double, double), double rhob, d
 }
 
 
-double EOS::get_temperature(double eps, double rhob) {
-
- double T;
-
- if (whichEOS==0)
-   {
-     T=T_from_eps_ideal_gas(eps);
-   }
- else if (whichEOS==1)
-   {
-     T = interpolate(eps, rhob, 0);
-   }
- else if (whichEOS>=2)
-   {
-     T= interpolate2(eps, rhob, 1);
-   }
-   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
-
-  return T;
-
+double EOS::get_temperature(double eps, double rhob)
+{
+    double T;
+    if (whichEOS==0)
+        T = T_from_eps_ideal_gas(eps);
+    else if (whichEOS==1)
+        T = interpolate(eps, rhob, 0);
+    else if (whichEOS>=2 && whichEOS < 10)
+        T = interpolate2(eps, rhob, 1);
+    else if (whichEOS >= 10)
+        T = interpolate2D(eps, rhob, 1);
+    else
+    {
+        fprintf(stderr,"EOS::get_temperature: whichEOS = %d is out of range!\n", whichEOS);
+        exit(0);
+    }
+    return T;
 }
 
 
-double EOS::get_mu(double eps, double rhob) {
-
- double mu;
-
- if (whichEOS==0)
-   {
-     mu=0.0;
-   }
- else if (whichEOS==1)
-   {
-     mu = 0.0;
-   }
- else if (whichEOS>=2)
-   {
-     mu = 0.0;
-   }
-   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
-
-  return mu;
-
+double EOS::get_mu(double eps, double rhob)
+{
+    double mu;
+    if (whichEOS==0)
+        mu=0.0;
+    else if (whichEOS==1)
+        mu = 0.0;
+    else if (whichEOS>=2 && whichEOS < 10)
+        mu = 0.0;
+    else if (whichEOS >= 10)
+        mu = interpolate2D(eps, rhob, 3);
+    else
+    {
+        fprintf(stderr,"EOS::get_mu: whichEOS = %d is out of range!\n", whichEOS);
+        exit(0);
+    }
+    return mu;
 }
 
 

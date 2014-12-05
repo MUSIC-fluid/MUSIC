@@ -89,11 +89,12 @@ class EOS
       double interpolate_pressure(double e, double rhob); // for whichEOS=1
       double interpolate2(double e, double rhob, int selector); // for whichEOS=2
       double interpolate(double e, double rhob, int selector);
-      double interpolate2D(double e, double rhob, int selector);  
+      double interpolate2D(double e, double rhob, int selector);  // for EOS at finite mu_B
 
       double get_dpOverde(double e, double rhob);
       double get_dpOverde2(double e, double rhob);
       double get_dpOverdrhob(double e, double rhob);
+      double get_dpOverdrhob2(double e, double rhob);
       double p_rho_func(double e, double rhob);
       double p_e_func(double e, double rhob);
       double T_from_eps_ideal_gas(double eps);
