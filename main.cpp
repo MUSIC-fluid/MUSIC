@@ -1527,6 +1527,21 @@ void ReadInData3(InitData *DATA, string file)
     cerr << "Invalid option for freeze_out_method:" << DATA->freezeOutMethod << endl;
     exit(1);
   }
+
+  int temp_N_freeze_out = 1;
+  tempinput = util->StringFind4(file, "N_freeze_out");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_N_freeze_out;
+  DATA->N_freeze_out = temp_N_freeze_out;
+  
+  double temp_eps_freeze_max = 0.18;
+  tempinput = util->StringFind4(file, "eps_freeze_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_eps_freeze_max;
+  DATA->eps_freeze_max = temp_eps_freeze_max;
+  
+  double temp_eps_freeze_min = 0.18;
+  tempinput = util->StringFind4(file, "eps_freeze_min");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_eps_freeze_min;
+  DATA->eps_freeze_min = temp_eps_freeze_min;
   
   // max_delta_eta:  maximum size of freeze out surface segment in eta direction.
   // Even when hydro variables vary slowly in eta (e.g., in a boost-invariant solution),
@@ -1571,6 +1586,16 @@ void ReadInData3(InitData *DATA, string file)
   tempinput = util->StringFind4(file, "average_surface_over_this_many_time_steps");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempfacTau;
   DATA->facTau = tempfacTau;
+  
+  int tempfac_x = 1;
+  tempinput = util->StringFind4(file, "Ncell_skip_x");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempfac_x;
+  DATA->fac_x = tempfac_x;
+  
+  int tempfac_y = 1;
+  tempinput = util->StringFind4(file, "Ncell_skip_y");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempfac_y;
+  DATA->fac_y = tempfac_y;
   
   
   //  Grid_size_in_*
