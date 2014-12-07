@@ -535,7 +535,7 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
  for(alpha=0; alpha<5; alpha++)
    {
      qirk[alpha][0] = qi[alpha] + rhs[alpha];
-     if(!finite(qirk[alpha][0]))
+     if(!isfinite(qirk[alpha][0]))
        {
 	 fprintf(stderr, "qirk[%d][0] = %e is a nan.\n", alpha, qirk[alpha][0]);
 	 fprintf(stderr, "qi[%d] = %e\n", alpha, qi[alpha]);
@@ -561,20 +561,23 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
       }
    }
  
- flag=
-   reconst->ReconstIt(grid_rk, 0, tau_next, qirk, grid_pt,
-		      grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
- 
+ if(DATA->reconst_type == 0)
+   flag = reconst->ReconstIt(grid_rk, 0, tau_next, qirk, grid_pt,
+                             grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
+ else
+   flag = reconst->ReconstIt_velocity(grid_rk, 0, tau_next, qirk, grid_pt,
+                                      grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
+
  if(flag==0)
-   {
-     reconst->ReconstError("grid_rk", 0, rk_flag+1, qi, qirk, grid_pt);
-     return 0;
-   }/* flag == 0 */
- else if(flag != 0) 
-   {
-     UpdateTJbRK(grid_rk, grid_pt, DATA, rk_flag); 
-     /* TJb[rk_flag+1] is filled */
-   }
+ {
+    reconst->ReconstError("grid_rk", 0, rk_flag+1, qi, qirk, grid_pt);
+    return 0;
+ }/* flag == 0 */
+ else
+ {
+    UpdateTJbRK(grid_rk, grid_pt, DATA, rk_flag); 
+    /* TJb[rk_flag+1] is filled */
+ }
  
  return 1;
 }/* FirstRKStepT */
@@ -1572,7 +1575,7 @@ int Advance::MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells,
                             NbrCells->qim1[alpha][direc], DATA);
 
      tempf = HalfwayCells->qiphL[alpha][direc] = gphL + fphL;
-     if(!finite(tempf))
+     if(!isfinite(tempf))
       {
        fprintf(stderr, "qiphL is not finite with g = %e, f = %e\n", gphL, fphL);
        fprintf(stderr, "alpha = %d\n", alpha);
@@ -1580,7 +1583,7 @@ int Advance::MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells,
        exit(0);
       }
      tempf = HalfwayCells->qiphR[alpha][direc] = gphR + fphR;
-     if(!finite(tempf))
+     if(!isfinite(tempf))
       {
        fprintf(stderr, "qiphR is not finite with g = %e, f = %e\n", gphR, fphR);
        fprintf(stderr, "alpha = %d\n", alpha);
@@ -1588,7 +1591,7 @@ int Advance::MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells,
        exit(0);
       }
      tempf = HalfwayCells->qimhL[alpha][direc] = gmhL + fmhL;
-     if(!finite(tempf))
+     if(!isfinite(tempf))
       {
        fprintf(stderr, "qimhL is not finite with g = %e, f = %e\n", gmhL, fmhL);
        fprintf(stderr, "alpha = %d\n", alpha);
@@ -1596,7 +1599,7 @@ int Advance::MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells,
        exit(0);
       }
      tempf = HalfwayCells->qimhR[alpha][direc] = gmhR + fmhR;
-     if(!finite(tempf))
+     if(!isfinite(tempf))
       {
        fprintf(stderr, "qimhR is not finite with g = %e, f = %e\n", gmhR, fmhR);
        fprintf(stderr, "alpha = %d\n", alpha);
@@ -1622,46 +1625,40 @@ int Advance::ConstHalfwayCells(double tau, BdryCells *HalfwayCells, double *qi, 
 
  for(direc=1; direc<=3; direc++)
  {
- /* for each direction, reconstruct half-way cells */
-
-  flag=
-    reconst->ReconstIt(&(HalfwayCells->grid_p_h_L[direc]), 
-		       direc, tau, HalfwayCells->qiphL, grid_pt,
-		       epsilon_init, rhob_init, DATA, rk_flag); 
-  if(flag==0) {
-    reconst->ReconstError("grid_p_h_L", direc, rk_flag, qi, HalfwayCells->qiphL, grid_pt);
-    return 0;
-   }/* if Reconst returns error */
-
-  flag=
-    reconst->ReconstIt(&(HalfwayCells->grid_p_h_R[direc]), 
-		       direc, tau, HalfwayCells->qiphR, grid_pt,
-		       epsilon_init, rhob_init, DATA, rk_flag); 
-  if(flag==0) {
-    reconst->ReconstError("grid_p_h_R", direc, rk_flag, qi, HalfwayCells->qiphR, grid_pt);
-    return 0;
+   /* for each direction, reconstruct half-way cells */
+   if(DATA->reconst_type == 0)
+   {
+     flag = reconst->ReconstIt(&(HalfwayCells->grid_p_h_L[direc]), 
+          	                   direc, tau, HalfwayCells->qiphL, grid_pt,
+          	                   epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt(&(HalfwayCells->grid_p_h_R[direc]), 
+                               direc, tau, HalfwayCells->qiphR, grid_pt,
+                               epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt(&(HalfwayCells->grid_m_h_L[direc]), 
+                               direc, tau, HalfwayCells->qimhL, grid_pt,
+                               epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt(&(HalfwayCells->grid_m_h_R[direc]), 
+                               direc, tau, HalfwayCells->qimhR, grid_pt,
+                               epsilon_init, rhob_init, DATA, rk_flag); 
    }
-  
-  flag=
-    reconst->ReconstIt(&(HalfwayCells->grid_m_h_L[direc]), 
-		       direc, tau, HalfwayCells->qimhL, grid_pt,
-		       epsilon_init, rhob_init, DATA, rk_flag); 
-  if(flag==0) {
-    reconst->ReconstError("grid_m_h_L", direc, rk_flag, qi, HalfwayCells->qimhL, grid_pt);
-    return 0;
-  }
-  
-  flag=
-    reconst->ReconstIt(&(HalfwayCells->grid_m_h_R[direc]), 
-		       direc, tau, HalfwayCells->qimhR, grid_pt,
-		       epsilon_init, rhob_init, DATA, rk_flag); 
-  if(flag==0) {
-    reconst->ReconstError("grid_m_h_R", direc, rk_flag, qi, HalfwayCells->qimhR, grid_pt);
-    return 0;
+   else
+   {
+     flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_p_h_L[direc]), 
+                                        direc, tau, HalfwayCells->qiphL, grid_pt,
+                                        epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_p_h_R[direc]), 
+                                        direc, tau, HalfwayCells->qiphR, grid_pt,
+                                        epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_m_h_L[direc]), 
+                                        direc, tau, HalfwayCells->qimhL, grid_pt,
+                                        epsilon_init, rhob_init, DATA, rk_flag); 
+     flag = reconst->ReconstIt_velocity(&(HalfwayCells->grid_m_h_R[direc]), 
+                                        direc, tau, HalfwayCells->qimhR, grid_pt,
+                                        epsilon_init, rhob_init, DATA, rk_flag); 
    }
 
-  if (HalfwayCells->grid_m_h_R[direc].rhob>1.&& HalfwayCells->grid_m_h_R[direc].epsilon<0.0000001) 
-    HalfwayCells->grid_m_h_R[direc].rhob=0.;
+   if(HalfwayCells->grid_m_h_R[direc].rhob>1.&& HalfwayCells->grid_m_h_R[direc].epsilon<0.0000001) 
+      HalfwayCells->grid_m_h_R[direc].rhob=0.;
  }/* direc */
 
 //  if (HalfwayCells->grid_p_h_R[direc].rhob>2) cout << "phR rhob =" <<  HalfwayCells->grid_p_h_R[direc].rhob << endl;
@@ -1717,7 +1714,7 @@ void Advance::MakeKTCurrents(double tau, double **DFmmp, Grid *grid_pt,
                                   - HalfwayCells->qimhL[alpha][i]);
     
 tempf=DFmmp[alpha][i] = (Fimh[alpha][i] - Fiph[alpha][i]);
-if(!finite(tempf))
+if(!isfinite(tempf))
 {
  fprintf(stderr, "DFmmp[%d][%d] is not finite.\n", alpha, i);
  fprintf(stderr, "FimhL[%d][%d] is %e.\n", alpha, i, FimhL[alpha][i]);

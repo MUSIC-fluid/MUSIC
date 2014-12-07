@@ -48,7 +48,8 @@ int main(int argc, char *argv[])
   else input_file = "";
 
   
-  ReadInData2(&DATA, input_file);
+  //ReadInData2(&DATA, input_file);
+  ReadInData3(&DATA, input_file);
 
   // initialize MPI
   if(DATA.mode!=8)
@@ -649,12 +650,13 @@ void ReadInData2(InitData *DATA, string file)
   // 1: Hirano's simplified method
   // 2: Schenke's more complex method
   // 3: Luzum's simple method
+  // 4: Cornelius hyper-surface finder
 //   DATA->freezeOutMethod = util->IFind(file, "freeze_out_method");
   int tempfreezeOutMethod = 3;//  This default allows for new users to run MUSIC without warnings.  Should set to 2 in input file for production use.
   tempinput = util->StringFind3(file, "freeze_out_method");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempfreezeOutMethod;
   DATA->freezeOutMethod = tempfreezeOutMethod;
-  if(DATA->freezeOutMethod>3) 
+  if(DATA->freezeOutMethod>4) 
   {
     cerr << "Invalid option for freeze_out_method:" << DATA->freezeOutMethod << endl;
     exit(1);
@@ -1339,7 +1341,7 @@ void ReadInData3(InitData *DATA, string file)
   Util *util;
   util = new Util();
   string tempinput;
-  
+
   // Lexus_Imax: number of points to use to store the data of the thickness function
   int tempLexusImax = 100;
   tempinput = util->StringFind4(file, "Lexus_Imax");
@@ -1488,8 +1490,7 @@ void ReadInData3(InitData *DATA, string file)
   // 3: Compute all thermal spectra only.
   // 4: Resonance decays only.
   // 5: Resonance decays for just one specific particle (only for testing - this will miss the complete chain of decays).
-  // 6: only combine charged hadrons - can be used for any postprocessing with the stored results */
-//   DATA->mode = util->IFind(file, "mode"); // 1: do everything; 2: do hydro evolution only; 3: do calculation of thermal spectra only;
+  // 6: only combine charged hadrons - can be used for any postprocessing with the stored results
   // 13: Compute observables from previously-computed thermal spectra
   // 14: Compute observables from post-decay spectra
   int tempmode = 1;
@@ -1538,16 +1539,31 @@ void ReadInData3(InitData *DATA, string file)
   // 1: Hirano's simplified method
   // 2: Schenke's more complex method
   // 3: Luzum's simple method
-//   DATA->freezeOutMethod = util->IFind(file, "freeze_out_method");
-  int tempfreezeOutMethod = 3;//  This default allows for new users to run MUSIC without warnings.  Should set to 2 in input file for production use.
+  // 4: Cornelius 
+  int tempfreezeOutMethod = 4;//  This default allows for new users to run MUSIC without warnings.  Should set to 2 in input file for production use.
   tempinput = util->StringFind4(file, "freeze_out_method");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempfreezeOutMethod;
   DATA->freezeOutMethod = tempfreezeOutMethod;
-  if(DATA->freezeOutMethod>3) 
+  if(DATA->freezeOutMethod>4) 
   {
     cerr << "Invalid option for freeze_out_method:" << DATA->freezeOutMethod << endl;
     exit(1);
   }
+
+  int temp_N_freeze_out = 1;
+  tempinput = util->StringFind4(file, "N_freeze_out");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_N_freeze_out;
+  DATA->N_freeze_out = temp_N_freeze_out;
+  
+  double temp_eps_freeze_max = 0.18;
+  tempinput = util->StringFind4(file, "eps_freeze_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_eps_freeze_max;
+  DATA->eps_freeze_max = temp_eps_freeze_max;
+  
+  double temp_eps_freeze_min = 0.18;
+  tempinput = util->StringFind4(file, "eps_freeze_min");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_eps_freeze_min;
+  DATA->eps_freeze_min = temp_eps_freeze_min;
   
   // max_delta_eta:  maximum size of freeze out surface segment in eta direction.
   // Even when hydro variables vary slowly in eta (e.g., in a boost-invariant solution),
@@ -1592,6 +1608,16 @@ void ReadInData3(InitData *DATA, string file)
   tempinput = util->StringFind4(file, "average_surface_over_this_many_time_steps");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempfacTau;
   DATA->facTau = tempfacTau;
+  
+  int tempfac_x = 1;
+  tempinput = util->StringFind4(file, "Ncell_skip_x");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempfac_x;
+  DATA->fac_x = tempfac_x;
+  
+  int tempfac_y = 1;
+  tempinput = util->StringFind4(file, "Ncell_skip_y");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempfac_y;
+  DATA->fac_y = tempfac_y;
   
   
   //  Grid_size_in_*
@@ -1643,7 +1669,6 @@ void ReadInData3(InitData *DATA, string file)
   if(tempinput != "empty") istringstream ( tempinput ) >> temptau_size;
   DATA->tau_size = temptau_size;
   
-  
   // Initial_time_tau_0:  in fm
   double temptau0 = 0.4;
   tempinput = util->StringFind4(file, "Initial_time_tau_0");
@@ -1671,8 +1696,6 @@ void ReadInData3(InitData *DATA, string file)
   if(tempf < DATA->delta_tau) DATA->delta_tau = tempf;
   
   cerr << " DeltaTau=" << DATA->delta_tau << endl;
-  
-  
   
   // rotate_by_45_degrees: rotates initial condition by Pi/4
   // only used if Initial_profile==1
@@ -1716,7 +1739,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempeta_flat  ;
   DATA->eta_flat   = tempeta_flat;
   
-  //Initial_radius_size_in_fm
+  // Initial_radius_size_in_fm
   // initial radial size in [fm] for Initial_profile = 0
   double tempR_A   = 2.6;
   tempinput = util->StringFind4(file, "Initial_radius_size_in_fm");
@@ -1835,7 +1858,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   DATA->turn_on_diff = tempturn_on_diff;
   
   // Runge_Kutta_order:  must be 1 or 2
-//   DATA->rk_order = util->IFind(file, "Runge_Kutta_order");
   int temprk_order = 1;
   tempinput = util->StringFind4(file, "Runge_Kutta_order");
   if(tempinput != "empty") istringstream ( tempinput ) >> temprk_order;
@@ -1849,6 +1871,17 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if( (DATA->rk_order != 1) )
   {
     cout << "Runge-Kutta order = " << DATA->rk_order << endl;
+  }
+
+  // reconstruction type
+  int tempreconst_type = 0;
+  tempinput = util->StringFind4(file, "reconst_type");
+  if(tempinput != "empty") istringstream (tempinput) >> tempreconst_type;
+  DATA->reconst_type = tempreconst_type;
+  if(DATA->reconst_type != 1 &&  DATA->reconst_type !=0)
+  {
+    cerr << "unrecognized reconst_type: " << DATA->reconst_type << endl;
+    exit(1);
   }
   
   // in case of using Initial_Distribution 3, these are the limits between which to sample the impact parameter
@@ -1989,7 +2022,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempsigma0  ;
   DATA->sigma0   = tempsigma0;
   
-  // Initial_Distribution_Filename:  unknown
+  // Initial_Distribution_Filename
   string tempinitName = "filename";
   tempinput = util->StringFind4(file, "Initial_Distribution_Filename");
   if(tempinput != "empty") tempinitName.assign(tempinput);

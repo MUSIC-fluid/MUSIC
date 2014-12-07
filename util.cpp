@@ -509,7 +509,7 @@ string Util::StringFind4(string file_name, string str_in)
     string para_string;
     stringstream temp_ss(temp_string);
     getline(temp_ss, para_string, '#');  // remove the comments
-    if(para_string.compare("") != 0)  // check the read in string is not empty
+    if(para_string.compare("") != 0 && para_string.find_first_not_of(' ') != std::string::npos)  // check the read in string is not empty
     {
       stringstream para_stream(para_string);
       para_stream >> para_name >> para_val;
@@ -1469,4 +1469,33 @@ bool Util::fileExists(const std::string& filename)
         return true;
     }
     return false;
+}
+
+double Util::four_dimension_linear_interpolation(double* lattice_spacing, double** fraction, double**** cube)
+{
+   double denorm = 1.0;
+   double results = 0.0;
+   for(int i = 0; i < 4; i++)
+      denorm *= lattice_spacing[i];
+   for(int i = 0; i < 2; i++)
+      for(int j = 0; j < 2; j++)
+         for(int k = 0; k < 2; k++)
+            for(int l = 0; l < 2; l++)
+               results += cube[i][j][k][l]*fraction[i][0]*fraction[j][1]*fraction[k][2]*fraction[l][3];
+   results = results/denorm;
+   return(results);
+}
+
+double Util::three_dimension_linear_interpolation(double* lattice_spacing, double** fraction, double*** cube)
+{
+   double denorm = 1.0;
+   double results = 0.0;
+   for(int i = 0; i < 3; i++)
+      denorm *= lattice_spacing[i];
+   for(int i = 0; i < 2; i++)
+      for(int j = 0; j < 2; j++)
+         for(int k = 0; k < 2; k++)
+            results += cube[i][j][k]*fraction[i][0]*fraction[j][1]*fraction[k][2];
+   results = results/denorm;
+   return(results);
 }

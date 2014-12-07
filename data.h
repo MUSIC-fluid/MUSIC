@@ -50,6 +50,7 @@ typedef struct init_data
   double a_short;
   double a_long;
   int rk_order;
+  int reconst_type;
   int taufac;
 
   double minmod_theta;
@@ -62,7 +63,11 @@ typedef struct init_data
 
 
   int LexusImax;
-  int facTau; // maximally 10
+
+  // skip step for freeze out surface finder
+  int facTau;
+  int fac_x;
+  int fac_y;
 
   double deltaY;
   double ymax;
@@ -82,6 +87,11 @@ typedef struct init_data
   int Initial_profile;  // 1: for a realistic profile in AA collision
   int initializeEntropy;// 1: make the entropy density proportional to 3 of BC and WN instead of the energy density, 0: use energy denisty
   double epsilonFreeze; // freeze-out energy density in GeV/fm^3
+
+  int N_freeze_out;
+  double eps_freeze_min;
+  double eps_freeze_max;
+
   int particleSpectrumNumber; // number of particle for which the spectrum is to be computed. 0: all particles
   int freezeOutMethod;  // 1: Hirano's simple method, 2: 4d-triangulation
   int mode;             // 1: do everything; 
