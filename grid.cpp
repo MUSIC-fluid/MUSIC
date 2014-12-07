@@ -278,6 +278,7 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 		  
 		  T = eos->get_temperature(eps, rhob);
 		  //QGPfrac = eos->get_qgp_frac(eps, rhob);
+              QGPfrac = 0.0;
 		  
 		  //Now these are the flow velocities as e,g, MARTINI needs them
 		  u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
@@ -711,6 +712,7 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 	
 		T1=eos->get_temperature(epsilon1,rhob1);
 //		QGPfrac1=eos->get_qgp_frac(epsilon1,rhob1);
+            QGPfrac1 = 0.0;
 // 		entropy=eos->get_entropy(epsilon1, rhob1);
 //		if(T > 0.12)
 //		{
@@ -1016,6 +1018,7 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
 		  
 		  T = eos->get_temperature(eps, rhob);
 		  //QGPfrac = eos->get_qgp_frac(eps, rhob);
+              QGPfrac = 0.0;
 		  
 		  //Now these are the flow velocities as e,g, MARTINI needs them
 		  u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
@@ -1248,6 +1251,7 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 		  
 		  T = eos->get_temperature(eps, rhob);
 		  //QGPfrac = eos->get_qgp_frac(eps, rhob);
+              QGPfrac = 0.0;
 		  
 		  //Now these are the flow velocities as e,g, MARTINI needs them
 		  u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
@@ -1584,6 +1588,7 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
 			  
 		  T=eos->get_temperature(eps,rhob);
 		  //QGPfrac=eos->get_qgp_frac(eps,rhob);
+              QGPfrac = 0.0;
 		  
 		  if(T>0.16/hbarc && QGPfrac==1)
 		    {
@@ -1920,6 +1925,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	      
 	      T = eos->get_temperature(eps, rhob);
 	      //QGPfrac = eos->get_qgp_frac(eps, rhob);
+            QGPfrac = 0.0;
 	      
 	      //Now these are the flow velocities as e,g, MARTINI needs them
 	      u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
