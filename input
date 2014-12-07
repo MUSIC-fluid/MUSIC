@@ -89,6 +89,7 @@ Runge_Kutta_order 1                       # order of Runge_Kutta for temporal ev
 reconst_type 1                            # the type of quantity that will be first reconstruct from T^0\mu and J^0
                                           # 0: energy density and rho_baryon
                                           # 1: flow velocity
+boost_invariant 0                         # initial condition is boost invariant 
 Vicous_Trouble_Zero=0_or_Stop=1 2         # ??? (unused)
 Viscosity_Flag_Yes_1_No_0 1               # turn on viscosity in the evolution
 Include_Shear_Visc_Yes_1_No_0 1           # include shear viscous effect
@@ -119,7 +120,7 @@ freeze_out_method 4                       # method for hyper-surface finder
                                           # 2: Schenke's more complex method
                                           # 3: Luzum's simple lego  method
                                           # 4: Cornelius (added by Shen)
-average_surface_over_this_many_time_steps 50   # the step skipped in the tau direction
+average_surface_over_this_many_time_steps 5   # the step skipped in the tau direction
 Ncell_skip_x 5                            # the step skipped in x direction
 Ncell_skip_y 5                            # the step skipped in y direction
 epsilon_freeze 0.18                       # the freeze out energy density (GeV/fm^3)
