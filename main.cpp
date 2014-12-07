@@ -144,10 +144,32 @@ int main(int argc, char *argv[])
 	cout << "Using lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 165 MeV" << endl;
       eos->init_eos3(4);
     }
+  else if (DATA.whichEOS==10)
+    {
+      if (rank == 0)
+	cout << "Using lattice EOS from A. Monnai" << endl;
+      eos->init_eos10(0);
+      /*
+      ofstream of("test_eos.dat");
+      for(int ii = 0; ii < 100; ii++)
+      {
+          double ed = 0.0 + ii*0.1;
+          double rhob = 0.0;
+          double pressure = eos->get_pressure(ed/hbarc, rhob)*hbarc;
+          double temperature = eos->get_temperature(ed/hbarc, rhob)*hbarc;
+          double entropy = eos->get_entropy(ed/hbarc, rhob);
+          of << scientific << setw(18) << setprecision(8)
+             << ed << "   " << pressure << "   " 
+             << entropy << "   " << temperature << endl;
+      }
+      of.close();
+      exit(0);
+      */
+    }
   else 
     {
       if (rank == 0)
-	cout << "No EOS for whichEOS = " << DATA.whichEOS << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), 2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), 5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1)" << endl;
+	cout << "No EOS for whichEOS = " << DATA.whichEOS << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), 2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), 5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1), 10(lattice EOS at finite muB)" << endl;
       exit(1);
     }
       
@@ -592,12 +614,13 @@ void ReadInData2(InitData *DATA, string file)
   // 4: PCE EOS with chemical freeze out at 155 MeV
   // 5: PCE EOS at 160 MeV
   // 6: PCE EOS at 165 MeV
+  // 10: lattice EOS at finite mu_B from A. Monnai
 //   DATA->whichEOS = util->IFind(file, "EOS_to_use");
   int tempwhichEOS = 9;
   tempinput = util->StringFind3(file, "EOS_to_use");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempwhichEOS;
   DATA->whichEOS = tempwhichEOS;
-  if(DATA->whichEOS>6 || DATA->whichEOS<0) 
+  if(DATA->whichEOS>10 || DATA->whichEOS<0) 
   {
     cerr << "EOS_to_use unspecified or invalid option:" << DATA->whichEOS << endl;
     exit(1);
@@ -1486,11 +1509,12 @@ void ReadInData3(InitData *DATA, string file)
   // 4: PCE EOS with chemical freeze out at 155 MeV
   // 5: PCE EOS at 160 MeV
   // 6: PCE EOS at 165 MeV
+  // 10: lattice EOS at finite mu_B from A. Monnai
   int tempwhichEOS = 9;
   tempinput = util->StringFind4(file, "EOS_to_use");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempwhichEOS;
   DATA->whichEOS = tempwhichEOS;
-  if(DATA->whichEOS>6 || DATA->whichEOS<0) 
+  if(DATA->whichEOS>10 || DATA->whichEOS<0) 
   {
     cerr << "EOS_to_use unspecified or invalid option:" << DATA->whichEOS << endl;
     exit(1);

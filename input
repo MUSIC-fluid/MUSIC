@@ -1,7 +1,7 @@
 mode 2
-EOS_to_use 5
+EOS_to_use 10
 Do_FreezeOut_Yes_1_No_0 1
-average_surface_over_this_many_time_steps 50
+average_surface_over_this_many_time_steps 5
 binary_collision_scaling_fraction 0.
 initialize_with_entropy 0
 Maximum_energy_density 54.

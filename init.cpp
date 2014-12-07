@@ -532,7 +532,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		       epsilon = 0.00000000001;
 		     
 		     // distribution of initial baryon density:
-		     rhob = DATA->rhoB0/epsilon0*epsilon; /* in fm^-3 */
+		     //rhob = DATA->rhoB0/epsilon0*epsilon; /* in fm^-3 */
+		     rhob = nWounded; /* in fm^-3 */
 		  //    if (x==0 && y==0) 
 // 		       {
 // 			 fprintf(stderr,"e(%f)=%f GeV/fm^3, rhob=%f\n",eta,epsilon*hbarc, rhob);
