@@ -1,3 +1,7 @@
+#########################################
+# parameters list for MUSIC with comments
+#########################################
+#
 mode 2                                    # MUSIC running mode
                                           # 1: Does everything. Evolution. Computation of thermal spectra. 
                                           #    Resonance decays. Observables.  
@@ -75,7 +79,7 @@ Grid_size_in_y 100                        # number of the grid points in y direc
 Grid_size_in_x 100                        # number of the grid points in x direction
 #
 #
-EOS_to_use 5                              # type of the equation of state
+EOS_to_use 10                             # type of the equation of state
                                           # 0: ideal gas
                                           # 1: EOS-Q from azhydro
                                           # 2: lattice EOS s95p-v1 from Huovinen and Petreczky
@@ -84,6 +88,7 @@ EOS_to_use 5                              # type of the equation of state
                                           # 4: lattice EOS s95p with chemical freeze out at 155 MeV
                                           # 5: lattice EOS s95p at 160 MeV
                                           # 6: lattice EOS s95p at 165 MeV
+                                          # 10: lattice EOS at finite muB (from A. Monnai)
 Minmod_Theta 1.1                          # theta parameter in the min-mod like limiter
 Runge_Kutta_order 1                       # order of Runge_Kutta for temporal evolution (must be 1 or 2)
 reconst_type 1                            # the type of quantity that will be first reconstruct from T^0\mu and J^0
@@ -91,16 +96,19 @@ reconst_type 1                            # the type of quantity that will be fi
                                           # 1: flow velocity
 boost_invariant 0                         # initial condition is boost invariant 
 Vicous_Trouble_Zero=0_or_Stop=1 2         # ??? (unused)
+# ## viscosity and diffusion options ##
 Viscosity_Flag_Yes_1_No_0 1               # turn on viscosity in the evolution
 Include_Shear_Visc_Yes_1_No_0 1           # include shear viscous effect
 Shear_to_S_ratio 0.08                     # value of \eta/s
 Include_Bulk_Visc_Yes_1_No_0 0            # include bulk viscous effect
 Bulk_to_S_ratio 0.1                       # value of \zeta/s
 Include_Rhob_Yes_1_No_0 1                 # turn on propagation of baryon current
-Minimum_Epsilon_Frac_For_Visc 0.00001     # ??? (unused)
+turn_on_baryon_diffusion 1                # turn on baryon current diffusion
 Bulk_relaxation_time_tau_b_pi 0.6         # bulk relation time
 Shear_relaxation_time_tau_pi 0.01         # shear relation time
+#
 Verbose_Flag_Yes_1_No_0 0                 # parameter control the mount of output warning messages (unused)
+Minimum_Epsilon_Frac_For_Visc 0.00001     # ??? (unused)
 Maximum_Local_Rapidity 20.0               # the maximum allowed flow rapidity in reconst.cpp
 rho_b_max 0.5                             # maximum baryon density for zero impact parameter. The shape of the ρB distribution is the same as that for the energy/entropy density distribution
                                           # any number > 0.  (don’t use 0, however if the EOS does not support finite baryon chemical potential, it does not matter what you put)
