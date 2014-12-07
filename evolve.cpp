@@ -56,12 +56,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
    ofstream cout_file("contourPlot.dat");
    cout_file.close();
  }
- stringstream strs_name;
- strs_name << "surface" << rank << ".dat";
- string s_name;
- s_name = strs_name.str();
- ofstream s_file(s_name.c_str());
- s_file.close();
  ofstream out_file("evolution.dat");
  out_file.close();
  ofstream oout_file("OSCAR.dat");
