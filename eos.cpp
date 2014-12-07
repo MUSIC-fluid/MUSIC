@@ -1167,6 +1167,8 @@ void EOS::init_eos10(int selector)
   eos_mub4 >> BNP4 >> EPP4;
   eos_mub4 >> deltaBNP4 >> deltaEPP4 >> NBNP4 >> NEPP4;
 
+  EPP5 = 1e4;  // take a large enough value to make sure only the first 4 tables will be used
+
   // allocate memory for pressure arrays
   pressure1=util->mtx_malloc(NBNP1+1, NEPP1+1);
   pressure2=util->mtx_malloc(NBNP2+1, NEPP2+1);
@@ -1828,11 +1830,10 @@ double EOS::get_dpOverde2(double e, double rhob)
 
 double EOS::get_dpOverdrhob2(double e, double rhob)
 {
-    //The energy and rho_B have to be in GeV in what follows
-    double local_ed = e*hbarc;
-    double local_rhob = rhob*hbarc;
+    double local_ed = e*hbarc;      // GeV/fm^3
+    double local_rhob = rhob;       // 1/fm^3
     
-    double deltaRhob;   // in GeV
+    double deltaRhob;               // in 1/fm^3
     if (local_ed < EPP2)
         deltaRhob = deltaBNP1;
     else if (local_ed < EPP3)
@@ -1857,27 +1858,29 @@ double EOS::get_dpOverdrhob2(double e, double rhob)
         rhobRight = BNP1 + deltaRhob;
     }
    
-    double pL = get_pressure(e, rhobLeft/hbarc);
-    double pR = get_pressure(e, rhobRight/hbarc);
+    double pL = get_pressure(e, rhobLeft);  // 1/fm^4
+    double pR = get_pressure(e, rhobRight); // 1/fm^4
       
-    double dp = (pR - pL)*hbarc; //in GeV
+    double dp = (pR - pL);    // 1/fm^4
 
     /*
-    if(dp > 1e-15) 
+    if(dp < 0.0) 
     { 
-        fprintf(stderr,"dp/drho=%lf\n", dp/((rhobRight - rhobLeft)/hbarc)); 
+        fprintf(stderr,"dp/drho=%lf\n", dp/((rhobRight - rhobLeft))); 
         fprintf(stderr,"pL=%lf\n", pL); 
         fprintf(stderr,"pR=%lf\n", pR); 
         fprintf(stderr,"e=%lf\n", local_ed);  
         fprintf(stderr,"rhob=%lf\n", local_rhob);  
         fprintf(stderr,"rhobLeft=%lf\n", rhobLeft);  
         fprintf(stderr,"rhobRight=%lf\n", rhobRight);  
-    }*/
+    }
+    */
    
-    return dp/deltaRhob;
+    return dp/deltaRhob;   // in 1/fm
 }
 
 double EOS::get_pressure(double e, double rhob)
+// return pressure in [1/fm^4]
 {
     double f;
     if (whichEOS==0)
@@ -1887,7 +1890,7 @@ double EOS::get_pressure(double e, double rhob)
     else if (whichEOS>=2 && whichEOS < 10)
         f = interpolate2(e,rhob,0);    //selector 0 means get pressure 
     else if (whichEOS >= 10)
-        f = interpolate2D(e,rhob,0);   //selector 0 means get pressure 
+        f = interpolate2D(e, fabs(rhob), 0);   // EOS is symmetric in rho_b for pressure
     else
     {
         fprintf(stderr,"EOS::get_pressure: whichEOS = %d is out of range!\n", whichEOS);
@@ -1898,7 +1901,7 @@ double EOS::get_pressure(double e, double rhob)
 
 
 double EOS::p_rho_func(double e, double rhob)
-// return dP/drho_b
+// return dP/drho_b (in 1/fm)
 {
     double f;
     if (whichEOS==0) 
@@ -2109,16 +2112,17 @@ double EOS::interpolate2D(double e, double rhob, int selector)
 // it assumes the class has already read in 
 //        P(e, rho_b), T(e, rho_b), s(e, rho_b), mu_b(e, rho_b) 
 // as two-dimensional arrays on an equally spacing lattice grid
+// units: e is in 1/fm^4, rhob is in 1/fm^3
 // selector: return specific type of thermodynamical quantities
-//           0: pressure [GeV/fm^3]
-//           1: temperature [GeV]
+//           0: pressure [1/fm^4]
+//           1: temperature [1/fm]
 //           2: entropy density [1/fm^3]
-//           3: mu_B [GeV]
+//           3: mu_B [1/fm]
 {
     double **array; 
   
     double local_ed = e*hbarc; // convert energy density from 1/fm^4 to GeV/fm^3
-    double local_rhob = rhob*hbarc; // convert from 1/fm to GeV
+    double local_rhob = rhob;  // [1/fm^3]
 
     // first choosing the right table
     double eps0, rhob0, deltaEps, deltaRhob;
@@ -2354,7 +2358,9 @@ double EOS::s2e_ideal_gas(double s)
 	return 3. / 4. * s * pow(3. * s / 4. / (M_PI*M_PI*3.0*(2*(Nc*Nc-1)+7./2*Nc*Nf)/90.0), 1./3.); //in 1/fm^4
 
 }
+
 double EOS::get_entropy(double epsilon, double rhob)
+// return entropy density in [1/fm^3]
 {
     double f;
     double P, T, mu;
@@ -2366,14 +2372,14 @@ double EOS::get_entropy(double epsilon, double rhob)
         mu = get_mu(epsilon, rhob);
    
         if (T!=0)
-            f = (epsilon + P - mu*rhob)/T;
+            f = (epsilon + P - mu*rhob)/(T + 1e-15);
         else
             f = 0.;
     }
     else if (whichEOS >= 2 && whichEOS < 10)
         f = interpolate2(epsilon,rhob,2);
     else if (whichEOS >= 10)
-        f = interpolate2D(epsilon,rhob,2);
+        f = interpolate2D(epsilon, fabs(rhob), 2);  // EOS is symmetric in rho_b
     else
     {
         fprintf(stderr,"EOS::get_entropy: whichEOS = %d is out of range!\n", whichEOS);
@@ -2457,6 +2463,7 @@ double EOS::findRoot(double (EOS::*func)(double, double, double), double rhob, d
 
 
 double EOS::get_temperature(double eps, double rhob)
+// return temperature in [1/fm]
 {
     double T;
     if (whichEOS==0)
@@ -2466,7 +2473,7 @@ double EOS::get_temperature(double eps, double rhob)
     else if (whichEOS>=2 && whichEOS < 10)
         T = interpolate2(eps, rhob, 1);
     else if (whichEOS >= 10)
-        T = interpolate2D(eps, rhob, 1);
+        T = interpolate2D(eps, fabs(rhob), 1);  // EOS is symmetric in rho_b
     else
     {
         fprintf(stderr,"EOS::get_temperature: whichEOS = %d is out of range!\n", whichEOS);
@@ -2477,6 +2484,7 @@ double EOS::get_temperature(double eps, double rhob)
 
 
 double EOS::get_mu(double eps, double rhob)
+// return mu_B in [1/fm]
 {
     double mu;
     if (whichEOS==0)
@@ -2486,7 +2494,12 @@ double EOS::get_mu(double eps, double rhob)
     else if (whichEOS>=2 && whichEOS < 10)
         mu = 0.0;
     else if (whichEOS >= 10)
-        mu = interpolate2D(eps, rhob, 3);
+    {
+        if(rhob < 0.0)    // EOS is anti-symmetric in rho_b for mu_B
+            mu = -interpolate2D(eps, -rhob, 3);
+        else
+            mu = interpolate2D(eps, rhob, 3);
+    }
     else
     {
         fprintf(stderr,"EOS::get_mu: whichEOS = %d is out of range!\n", whichEOS);

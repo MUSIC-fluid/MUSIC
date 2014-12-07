@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
       if (rank == 0)
 	cout << "Using lattice EOS from A. Monnai" << endl;
       eos->init_eos10(0);
-      /*
+      
       ofstream of("test_eos.dat");
       for(int ii = 0; ii < 100; ii++)
       {
@@ -158,13 +158,15 @@ int main(int argc, char *argv[])
           double pressure = eos->get_pressure(ed/hbarc, rhob)*hbarc;
           double temperature = eos->get_temperature(ed/hbarc, rhob)*hbarc;
           double entropy = eos->get_entropy(ed/hbarc, rhob);
+          double cs2 = eos->get_dpOverde2(ed/hbarc, rhob);
           of << scientific << setw(18) << setprecision(8)
              << ed << "   " << pressure << "   " 
-             << entropy << "   " << temperature << endl;
+             << entropy << "   " << temperature << "  "
+             << cs2 << endl;
       }
       of.close();
       exit(0);
-      */
+      
     }
   else 
     {
