@@ -6623,6 +6623,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 		      }
 
 		      pressure = eos->get_pressure(epsFO, rhob_center);
+                  double mu_B = eos->get_mu(epsFO, rhob_center);
 		      eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                   // finally output results !!!!
@@ -6638,7 +6639,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 		      if(DATA->turn_on_bulk)
                      s_file << pi_b_center << " " ;
                   if(DATA->turn_on_rhob)
-                     s_file << rhob_center << " " ;
+                     s_file << mu_B << " " ;
                   s_file << endl;
                }
             }
@@ -7129,6 +7130,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
 	         }
 
 	         pressure = eos->get_pressure(epsFO, rhob_center);
+               double mu_B = eos->get_mu(epsFO, rhob_center);
 	         eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                // finally output results !!!!
@@ -7144,7 +7146,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
 	         if(DATA->turn_on_bulk)
                   s_file << pi_b_center << " " ;
                if(DATA->turn_on_rhob)
-                  s_file << rhob_center << " " ;
+                  s_file << mu_B << " " ;
                s_file << endl;
             }
          }

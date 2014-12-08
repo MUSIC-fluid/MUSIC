@@ -154,16 +154,17 @@ int main(int argc, char *argv[])
       ofstream of("test_eos.dat");
       for(int ii = 0; ii < 100; ii++)
       {
-          double ed = 0.0 + ii*0.1;
-          double rhob = 0.0;
+          double ed = 0.25;
+          double rhob = 0.0 + ii*0.01;
           double pressure = eos->get_pressure(ed/hbarc, rhob)*hbarc;
           double temperature = eos->get_temperature(ed/hbarc, rhob)*hbarc;
           double entropy = eos->get_entropy(ed/hbarc, rhob);
-          double cs2 = eos->get_dpOverde2(ed/hbarc, rhob);
+          double cs2 = eos->get_dpOverdrhob2(ed/hbarc, rhob);
+          double muB = eos->get_mu(ed/hbarc, rhob)*hbarc;
           of << scientific << setw(18) << setprecision(8)
-             << ed << "   " << pressure << "   " 
+             << ed << "   " << rhob << "   " << pressure << "   " 
              << entropy << "   " << temperature << "  "
-             << cs2 << endl;
+             << muB << "   " << cs2 << endl;
       }
       of.close();
       exit(0);
