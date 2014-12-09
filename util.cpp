@@ -1499,3 +1499,33 @@ double Util::three_dimension_linear_interpolation(double* lattice_spacing, doubl
    results = results/denorm;
    return(results);
 }
+
+int Util::binary_search(double* array, int length, double x)
+// this function return the left index of the array where x sits in 
+// between array[idx] and array[idx+1]
+// this function assumes that the input array is monotonic 
+{
+   if(length < 3)  // array is too short
+       return(0);
+
+   int low_idx, mid_idx, high_idx;
+   low_idx = 0;
+   high_idx = length - 1;
+   // first check the boundaries
+   if((array[low_idx] - x)*(array[high_idx] - x) > 0.)
+   {
+       fprintf(stderr, "Util::binary_search: can not find idx!\n");
+       exit(-1);
+   }
+   
+   // find the index
+   while(high_idx - low_idx > 1)
+   {
+       mid_idx = (int)((high_idx + low_idx)/2.);
+       if((array[low_idx] - x)*(array[mid_idx] - x) > 0.)
+           low_idx = mid_idx;
+       else
+           high_idx = mid_idx;
+   }
+   return(low_idx);
+}

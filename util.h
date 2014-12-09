@@ -140,6 +140,7 @@ int CheckMono(double *Vx, int ymax, int *mono_ind);
 bool fileExists(const std::string& filename);
 double four_dimension_linear_interpolation(double* lattice_spacing, double** fraction, double**** cube);
 double three_dimension_linear_interpolation(double* lattice_spacing, double** fraction, double*** cube);
+int binary_search(double* array, int length, double x);
 
 };
 
