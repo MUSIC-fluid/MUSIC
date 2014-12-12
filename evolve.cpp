@@ -40,7 +40,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
  double dt, tau0, tau;
 //  double x;
 
- if (DATA->output_hydro_debug_info) {
+ if (DATA->output_hydro_debug_info)
+ {
+   // first create output files
    ofstream ent_file("entropy-eta.dat");
    ent_file.close();
    ofstream ep_file("e_profile.dat");
@@ -55,6 +57,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
    t5_file.close();
    ofstream cout_file("contourPlot.dat");
    cout_file.close();
+   ofstream baryon_file("rhoB_evo.dat");
+   baryon_file.close();
  }
  ofstream out_file("evolution.dat");
  out_file.close();
@@ -103,6 +107,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
          grid->PrintxEpsilon(arena, DATA, tau, size, rank);
          //       grid->ComputeEccentricity(DATA, arena, tau);
          grid->ComputeAnisotropy(DATA, arena, tau);
+         grid->print_rhob_evolution(DATA, arena, tau);
        }
 
      grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 

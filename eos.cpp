@@ -1849,34 +1849,57 @@ double EOS::get_dpOverdrhob2(double e, double rhob)
     else 
         deltaRhob = deltaBNP7;
     
-    double rhobLeft = local_rhob - deltaRhob/2.;
-    double rhobRight = local_rhob + deltaRhob/2.;
+    double rhobLeft = local_rhob - deltaRhob*0.1;
+    double rhobRight = local_rhob + deltaRhob*0.1;
    
-    if(rhobLeft < BNP1)
-    {
-        rhobLeft = BNP1;
-        rhobRight = BNP1 + deltaRhob;
-    }
+    //if(rhobLeft < BNP1)
+    //{
+    //    rhobLeft = BNP1;
+    //    rhobRight = BNP1 + deltaRhob;
+    //}
    
     double pL = get_pressure(e, rhobLeft);  // 1/fm^4
     double pR = get_pressure(e, rhobRight); // 1/fm^4
+    double p_mid = get_pressure(e, local_rhob);
       
-    double dp = (pR - pL);    // 1/fm^4
+    double dpdrho = (pR - pL)/(rhobRight - rhobLeft);  // 1/fm
 
-    /*
-    if(dp < 0.0) 
+    double v_sound = p_e_func(e, local_rhob) + rhob/(e + p_mid)*dpdrho;
+    
+    if(v_sound < 0.) 
     { 
-        fprintf(stderr,"dp/drho=%lf\n", dp/((rhobRight - rhobLeft))); 
+        fprintf(stderr, "EOS::get_dpOverdrhob2: velocity of sound is negative!\n");
+        fprintf(stderr,"v_sound=%lf\n", v_sound); 
+        fprintf(stderr,"dp/drho=%lf\n", dpdrho); 
         fprintf(stderr,"pL=%lf\n", pL); 
         fprintf(stderr,"pR=%lf\n", pR); 
         fprintf(stderr,"e=%lf\n", local_ed);  
         fprintf(stderr,"rhob=%lf\n", local_rhob);  
         fprintf(stderr,"rhobLeft=%lf\n", rhobLeft);  
         fprintf(stderr,"rhobRight=%lf\n", rhobRight);  
+        exit(0);
     }
-    */
    
-    return dp/deltaRhob;   // in 1/fm
+    return dpdrho;   // in 1/fm
+}
+
+double EOS::get_velocity_of_sound(double e, double rhob)
+{
+    double dpde = p_e_func(e, rhob);
+    double dpdrho = p_rho_func(e, rhob);
+    double pressure = get_pressure(e, rhob);
+    double v_sound = dpde + rhob/(e + pressure + 1e-15)*dpdrho;
+    if(v_sound < 0.)
+    {
+        fprintf(stderr, "EOS::get_velocity_of_sound:velocity of sound is negative!\n");
+        fprintf(stderr, "v_sound = %lf \n", v_sound);
+        fprintf(stderr, "e = %lf \n", e*hbarc);
+        fprintf(stderr, "rhob = %lf \n", rhob);
+        fprintf(stderr, "pressure = %lf \n", pressure);
+        fprintf(stderr, "dP/de = %lf \n", dpde);
+        fprintf(stderr, "dP/drho = %lf \n", dpdrho);
+    }
+    return(v_sound);
 }
 
 double EOS::get_pressure(double e, double rhob)
@@ -2271,7 +2294,7 @@ double EOS::interpolate2D(double e, double rhob, int selector)
     double frac_rhob = (local_rhob - (idx_nb*deltaRhob + rhob0))/deltaRhob; 
 
     // check overflow
-    if(idx_e > NEps || idx_nb > Nrhob)
+    if(idx_e > (NEps-1) || idx_nb > (Nrhob-1))
     {
         fprintf(stderr, "ERROR in inperpolate2D: out of range of the table! \n");
         fprintf(stderr, "e = %e, rhob = %e, eps0 = %e, rhob0 = %e\n", 

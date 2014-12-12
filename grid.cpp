@@ -2390,6 +2390,36 @@ void Grid::PrintAxy(InitData *DATA, Grid ***arena, double tau)
   return;
 }/* PrintAxy */
 
+void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau)
+{
+  string d_name;
+  ofstream d_file;
+  d_name = "rhoB_evo.dat";
+  d_file.open(d_name.c_str(), ios::out | ios::app );
+  
+  int ieta = DATA->neta/2;
+  for(int ix=0; ix<=DATA->nx; ix++)
+  {
+    double x = ix*(DATA->delta_x) - (DATA->x_size/2.0);
+    int iy = (int)(DATA->ny/2);
+    double y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
+    double rhob = arena[ix][iy][ieta].rhob;
+    d_file << scientific << setw(18) << setprecision(8)
+           << tau << "  " << x << "  " << y << "  " << rhob << endl;
+  }
+  for(int iy=0; iy<=DATA->ny; iy++)
+  {
+    double y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
+    int ix = (int)(DATA->nx/2);
+    double x = ix*(DATA->delta_x) - (DATA->x_size/2.0);
+    double rhob = arena[ix][iy][ieta].rhob;
+    d_file << scientific << setw(18) << setprecision(8)
+           << tau << "  " << x << "  " << y << "  " << rhob << endl;
+  }
+  d_file.close();
+  return;
+}/* print rhob evolution */
+
 void Grid::ComputeAnisotropy(InitData *DATA, Grid ***arena, double tau)
 {
   

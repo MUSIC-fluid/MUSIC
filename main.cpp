@@ -150,12 +150,12 @@ int main(int argc, char *argv[])
       if (rank == 0)
 	cout << "Using lattice EOS from A. Monnai" << endl;
       eos->init_eos10(0);
-      
+      /* 
       ofstream of("test_eos.dat");
-      for(int ii = 0; ii < 100; ii++)
+      for(int ii = 0; ii < 900; ii++)
       {
-          double ed = 0.25;
-          double rhob = 0.0 + ii*0.01;
+          double ed = 0.01;
+          double rhob = 0.0 + ii*0.0005;
           double pressure = eos->get_pressure(ed/hbarc, rhob)*hbarc;
           double temperature = eos->get_temperature(ed/hbarc, rhob)*hbarc;
           double entropy = eos->get_entropy(ed/hbarc, rhob);
@@ -167,7 +167,22 @@ int main(int argc, char *argv[])
              << muB << "   " << cs2 << endl;
       }
       of.close();
+      ofstream of1("test_eos_v_s.dat");
+      for(int ii = 0; ii < 1000; ii++)
+      {
+          double ed = 0.0 + ii*0.005;
+          for(int jj = 0; jj < 100; jj++)
+          {
+              double rhob = 0.0 + jj*0.005;
+              double v_s = eos->get_velocity_of_sound(ed, rhob);
+              of1 << v_s << "   ";
+          }
+          of1 << endl;
+      }
+      of1.close();
       exit(0);
+      */
+      
       
     }
   else 

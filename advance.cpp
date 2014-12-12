@@ -550,15 +550,18 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
      
      // set baryon density back to zero if viscous correction made it non-zero
      // remove/modify if rho_b!=0 - this is only to remove the viscous correction that can make rho_b negative which we do not want.
-     if(alpha==4 && qirk[alpha][0]!=0)
-       qirk[alpha][0]=0.;
+     if(DATA->turn_on_rhob == 0)
+     {
+       if(alpha==4 && qirk[alpha][0]!=0)
+         qirk[alpha][0]=0.;
+     }
 
      /* if rk_flag > 0, we now have q0 + k1 + k2. So add q0 and multiply by 1/2 */
      if(rk_flag > 0)
-      {
+     {
        qirk[alpha][0] += (grid_pt->TJb[0][alpha][0])*tau_now;
        qirk[alpha][0] *= 0.5;
-      }
+     }
    }
  
  if(DATA->reconst_type == 0)
@@ -1831,12 +1834,14 @@ double Advance::MaxSpeed (double tau, int direc, Grid *grid_p, int rk_flag)
 		 -((h*pe + rpr + pe*rpr)*(h*(pe*(-1.0 + ut2mux2) - ut2mux2) + (1.0 + pe)*rpr*(-1.0 + ut2mux2))));
 	 fprintf(stderr,"at value e=%lf. \n",eps);
 	 fprintf(stderr,"at value p=%lf. \n",p);
-	 //fprintf(stderr,"at value rho=%lf. \n",rhob);
-	 //fprintf(stderr,"at value prho=%lf. \n",p_rho_func(eps, rhob));
-	 //fprintf(stderr,"at value h=%lf. \n",h);
+	 fprintf(stderr,"at value rhob=%lf. \n",rhob);
+	 fprintf(stderr,"at value dpdrhob=%lf. \n",eos->p_rho_func(eps, rhob));
+	 fprintf(stderr,"at value h=%lf. \n",h);
 	 fprintf(stderr,"at value rpr=%lf. \n",rpr);
-	 fprintf(stderr,"at value pe=%lf. \n",pe);
+	 fprintf(stderr,"at value dpde=%lf. \n",pe);
 	 fprintf(stderr,"at value (h*pe + rpr + pe*rpr)=%lf. \n",(h*pe + rpr + pe*rpr));
+	 fprintf(stderr,"at value utau=%lf. \n", ut);
+	 fprintf(stderr,"at value uk=%lf. \n", ux);
 	 fprintf(stderr, "MaxSpeed: exiting.\n");
    
 	 exit(0);
