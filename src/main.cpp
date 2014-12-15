@@ -1300,7 +1300,8 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
 
   //The evolution is outputted every "output_evolution_every_N_timesteps" timesteps
   //Can't be modified from the input file for now, for safety.
-  DATA->output_evolution_every_N_timesteps=10;
+  //DATA->output_evolution_every_N_timesteps=10;
+  DATA->output_evolution_every_N_timesteps=1;
   
   //Make MUSIC output a C header file containing informations about the hydro parameters used
   //0 for false (do not output), 1 for true
@@ -2122,7 +2123,8 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
 
   //The evolution is outputted every "output_evolution_every_N_timesteps" timesteps
   //Can't be modified from the input file for now, for safety.
-  DATA->output_evolution_every_N_timesteps=10;
+  //DATA->output_evolution_every_N_timesteps=10;
+  DATA->output_evolution_every_N_timesteps=1;
   
   //Make MUSIC output a C header file containing informations about the hydro parameters used
   //0 for false (do not output), 1 for true

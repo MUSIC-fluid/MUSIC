@@ -36,7 +36,7 @@ s_factor 0.00745                          # normalization factor read in initial
 binary_collision_scaling_fraction 0.      # for wounded nucleon/binary collision mixing ratio in the Glauber model
 Maximum_energy_density 54.                # maximum energy density for Glauber initial condition
 SigmaNN 42.1                              # NN inelastic cross section for Glauber model
-Impact_parameter 9.                       # impact parameter for optical Glauber model
+Impact_parameter 3.                       # impact parameter for optical Glauber model
 bmin 9.                                   # minimum sampling range for impact parameter in MC-Glauber model (fm)
 bmax 9.                                   # maximum sampling range for impact parameter in MC-Glauber model (fm)
 sigma_0 0.4                               # Gaussian width for individual nucleon (fm)

@@ -2390,7 +2390,7 @@ void Grid::PrintAxy(InitData *DATA, Grid ***arena, double tau)
   return;
 }/* PrintAxy */
 
-void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau)
+void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* eos)
 {
   string d_name;
   ofstream d_file;
@@ -2404,8 +2404,14 @@ void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau)
     int iy = (int)(DATA->ny/2);
     double y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
     double rhob = arena[ix][iy][ieta].rhob;
+    double ed = arena[ix][iy][ieta].epsilon;
+    double mub = eos->get_mu(ed, rhob);
+    double temperature = eos->get_temperature(ed, rhob);
     d_file << scientific << setw(18) << setprecision(8)
-           << tau << "  " << x << "  " << y << "  " << rhob << endl;
+           << tau << "  " << x << "  " << y << "  "
+           << ed << "  " << rhob << "  " 
+           << mub << "  " << temperature << "  "
+           << mub/temperature << endl;
   }
   for(int iy=0; iy<=DATA->ny; iy++)
   {
@@ -2413,10 +2419,17 @@ void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau)
     int ix = (int)(DATA->nx/2);
     double x = ix*(DATA->delta_x) - (DATA->x_size/2.0);
     double rhob = arena[ix][iy][ieta].rhob;
+    double ed = arena[ix][iy][ieta].epsilon;
+    double mub = eos->get_mu(ed, rhob);
+    double temperature = eos->get_temperature(ed, rhob);
     d_file << scientific << setw(18) << setprecision(8)
-           << tau << "  " << x << "  " << y << "  " << rhob << endl;
+           << tau << "  " << x << "  " << y << "  " 
+           << ed << "  " << rhob << "  "
+           << mub << "  " << temperature << "  "
+           << mub/temperature << endl;
   }
   d_file.close();
+  
   return;
 }/* print rhob evolution */
 

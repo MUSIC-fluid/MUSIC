@@ -339,6 +339,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		   {
 		     /* baryon density */
 		     (*arena)[ix][iy][ieta].TJb[0][4][mu] = rhob*u[mu];
+		     (*arena)[ix][iy][ieta].Wmunu[0][4][mu] = (double) 0.0;
+		     (*arena)[ix][iy][ieta].Pimunu[0][4][mu] = (double) 0.0;
 		     
 		     for(nu=0; nu<4; nu++)
 		       {
