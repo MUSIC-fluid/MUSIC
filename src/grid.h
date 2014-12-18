@@ -90,6 +90,7 @@ class Grid{
   void ComputeV2(InitData *DATA, Grid ***arena, double tau); //added
   void ComputeEccentricity(InitData *DATA, Grid ***arena, double tau); //added
   void print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* eos);
+  void print_qmu_evolution(InitData *DATA, Grid ***arena, double tau);
   void ComputeAnisotropy(InitData *DATA, Grid ***arena, double tau); //added
   void PrintGrid(Grid *grid_p, int rk_order);
   //void InitArena(InitData *DATA, GridElem ****arena);

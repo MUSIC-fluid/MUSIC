@@ -181,8 +181,24 @@ int main(int argc, char *argv[])
       }
       of1.close();
       exit(0);
+      ofstream of1("test_eos_entropy2.dat");
+      for(int ii = 0; ii < 1000; ii++)
+      {
+          double ed = 0.0 + ii*0.005;
+          for(int jj = 0; jj < 100; jj++)
+          {
+              double rhob = 0.0 + jj*0.005;
+              double pressure = eos->get_pressure(ed, rhob);
+              double temperature = eos->get_temperature(ed, rhob);
+              double muB = eos->get_mu(ed, rhob);
+              double s = (ed + pressure - muB*rhob)/temperature ;
+              of1 << s << "   ";
+          }
+          of1 << endl;
+      }
+      of1.close();
+      exit(0);
       */
-      
       
     }
   else 

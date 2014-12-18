@@ -60,6 +60,8 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor, 
 /* this is partial_tau evaluated at tau */
 /* this is the first step. so rk_flag = 0 */
  
+ //if(alpha == 4)
+ //    return (0.0);
  sf = 0.0;
  bf = 0.0;
 
@@ -68,75 +70,68 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor, 
 for everywhere else. also, this change is necessary
 to use Wmunu[rk_flag][4][mu] as the dissipative baryon current
 */
-if(rk_flag==0)
-{
-/* first order is more stable */
- tf = (grid_pt->Wmunu[rk_flag][alpha][0]);
- tf -= (grid_pt->prevWmunu[0][alpha][0]);
- tf /= (DATA->delta_tau);
-}
-else if(rk_flag > 0)
-{
-/* first order since we don't know next values yet */
- tf = (grid_pt->Wmunu[rk_flag][alpha][0]);
- tf -= (grid_pt->Wmunu[0][alpha][0]);
- tf /= (DATA->delta_tau);
-}
-   	else {fprintf(stderr,"rk_flag out of range.\n");exit(0);}
- 
-sf += tf;
 
-/* bulk pressure term */
+ // dW/dtau
+ if(rk_flag==0)
+ {
+   // backward time derivative (first order is more stable) 
+   tf = (grid_pt->Wmunu[rk_flag][alpha][0] - grid_pt->prevWmunu[0][alpha][0])/DATA->delta_tau;
+ }
+ else if(rk_flag > 0)
+ {
+   /* first order since we don't know next values yet */
+   tf = (grid_pt->Wmunu[rk_flag][alpha][0] - grid_pt->Wmunu[0][alpha][0])/DATA->delta_tau;
+ }
+ else
+ {
+   fprintf(stderr,"rk_flag out of range.\n");
+   exit(0);
+ }
+ sf += tf;
 
-if(rk_flag==0)
-{
-/* second order since we know prev and pprev */
- tf  = (grid_pt->Pimunu[rk_flag][alpha][0]);
- tf -= (grid_pt->prevPimunu[rk_flag][alpha][0]);
- tf /= (DATA->delta_tau);
-}
-else if(rk_flag > 0)
-{
-/* first order since we don't know next values yet */
- tf  = (grid_pt->Pimunu[rk_flag][alpha][0]);
- tf -= (grid_pt->Pimunu[0][alpha][0]);
- tf /= (DATA->delta_tau);
-}
- 
+ /* bulk pressure term */
+ if(rk_flag==0)
+ {
+   /* second order since we know prev and pprev */ // is this really second order?
+   tf  = (grid_pt->Pimunu[rk_flag][alpha][0] - grid_pt->prevPimunu[rk_flag][alpha][0])/DATA->delta_tau;
+ }
+ else if(rk_flag > 0)
+ {
+  /* first order since we don't know next values yet */
+  tf  = (grid_pt->Pimunu[rk_flag][alpha][0] - grid_pt->Pimunu[0][alpha][0])/DATA->delta_tau;
+ }
  bf += tf;
 
  for(i=1; i<=2; i++) // x and y
-  {
-    taufactor = 1.0;
-    
-    sg = grid_pt->Wmunu[rk_flag][alpha][i];
-    bg = grid_pt->Pimunu[rk_flag][alpha][i];
-   
+ {
+   sg = grid_pt->Wmunu[rk_flag][alpha][i];
+   bg = grid_pt->Pimunu[rk_flag][alpha][i];
+  
    if(grid_pt->position[i] == nmax[i])
-    {
+   {
      sgp1 = sg;
      bgp1 = bg;
      sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
      bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-    } 
+   } 
    else if(grid_pt->position[i] == 0)
-    {
+   {
      sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
      bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
      sgm1 = sg;
      bgm1 = bg;
-    }
+   }
    else
-    {
+   {
      sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
      bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
      sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
      bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-    }
-   
-   sf += minmod->minmod_dx(sgp1, sg, sgm1, DATA)/delta[i]/taufactor; 
-   bf += minmod->minmod_dx(bgp1, bg, bgm1, DATA)/delta[i]/taufactor; 
-  }/* i */
+   }
+  
+   sf += minmod->minmod_dx(sgp1, sg, sgm1, DATA)/delta[i]; 
+   bf += minmod->minmod_dx(bgp1, bg, bgm1, DATA)/delta[i]; 
+ }/* i */
 
  i=3;
  taufactor = tau;
@@ -145,47 +140,46 @@ else if(rk_flag > 0)
  bg = grid_pt->Pimunu[rk_flag][alpha][i];
  
  if(grid_pt->position[i] == nmax[i])
+ {
+   if(rank == size-1) // for the right most rank do boundary condition on the right
    {
-     if(rank == size-1) // for the right most rank do boundary condition on the right
-       {
-	 sgp1 = sg;
-	 bgp1 = bg;
-	 sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-	 bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-       }
-     else
-       {
-	 sgp1 = Rneighbor->Wmunu[rk_flag][alpha][i];
-	 bgp1 = Rneighbor->Pimunu[rk_flag][alpha][i];
-	 sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-	 bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-       }
-   } 
- else if(grid_pt->position[i] == 0)
-   {
-     if(rank == 0) // for the left most rank do boundary condition on the left
-       {
-	 sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
-	 bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
-	 sgm1 = sg;
-	 bgm1 = bg;
-       }
-     else
-       {
-	 sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
-	 bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
-	 sgm1 = Lneighbor->Wmunu[rk_flag][alpha][i];
-	 bgm1 = Lneighbor->Pimunu[rk_flag][alpha][i];
-       }
-   }
- else
-   {
-     sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
-     bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
+     sgp1 = sg;
+     bgp1 = bg;
      sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
      bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
    }
- 
+   else
+   {
+     sgp1 = Rneighbor->Wmunu[rk_flag][alpha][i];
+     bgp1 = Rneighbor->Pimunu[rk_flag][alpha][i];
+     sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
+     bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
+   }
+ } 
+ else if(grid_pt->position[i] == 0)
+ {
+   if(rank == 0) // for the left most rank do boundary condition on the left
+   {
+     sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
+     bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
+     sgm1 = sg;
+     bgm1 = bg;
+   }
+   else
+   {
+     sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
+     bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
+     sgm1 = Lneighbor->Wmunu[rk_flag][alpha][i];
+     bgm1 = Lneighbor->Pimunu[rk_flag][alpha][i];
+   }
+ }
+ else
+ {
+   sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
+   bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
+   sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
+   bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
+ }
  sf += minmod->minmod_dx(sgp1, sg, sgm1, DATA)/delta[i]/taufactor; 
  bf += minmod->minmod_dx(bgp1, bg, bgm1, DATA)/delta[i]/taufactor; 
 
@@ -195,32 +189,27 @@ else if(rk_flag > 0)
  sf *= tau;
  bf *= tau;
 
-/* add W^0n */
+ /* add W^0n */
  sf += grid_pt->Wmunu[rk_flag][alpha][0];
  bf += grid_pt->Pimunu[rk_flag][alpha][0];
 
-/* sources due to coordinate transform this is added to partial_m W^mn */
-
+ /* sources due to coordinate transform this is added to partial_m W^mn */
  if(alpha == 0)
-  {
+ {
    sf += grid_pt->Wmunu[rk_flag][3][3];
    bf += grid_pt->Pimunu[rk_flag][3][3];
-  }
+ }
  
  if(alpha == 3)
-  {
+ {
    sf += grid_pt->Wmunu[rk_flag][0][3];
    bf += grid_pt->Pimunu[rk_flag][0][3];
-  }
-
+ } 
  tf = (sf*shear_on + bf*bulk_on);
-
 
  if (isnan(tf)) cout << "sf=" << sf << " bf=" << bf << " sg=" << sg << " bg=" << bg << " Wmunu[" << rk_flag << "]=" << grid_pt->Wmunu[rk_flag][alpha][0]
 		     << " Pimunu[" << rk_flag << "]=" << grid_pt->Pimunu[rk_flag][alpha][0]
 		     << " prevWmunu=" << grid_pt->prevWmunu[0][alpha][0] << endl;
-
-
  return tf;
 }/* MakeWSource */
 
@@ -237,18 +226,18 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
  double NS_term;
 
 /// Useful variables to define
-Ttr = 0.18;  /// phase transition temperature
+Ttr = 0.18/hbarc;  /// phase transition temperature
 gamma = grid_pt->u[rk_flag][0];
 ueta  = grid_pt->u[rk_flag][3];
 epsilon = grid_pt->epsilon;
 rhob = grid_pt->rhob;
+T=eos->get_temperature(epsilon,rhob);
 
 
  if(DATA->turn_on_shear == 0) return 0.0;
 
  if(DATA->T_dependent_shear_to_s == 1)
    {
-     T=eos->get_temperature(epsilon,rhob)*hbarc;
 
      if(T < Ttr)
        {
@@ -271,12 +260,13 @@ rhob = grid_pt->rhob;
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
  s_den = eos->get_entropy(epsilon, rhob);
- shear = (shear_to_s)*s_den;
+ shear = (shear_to_s)*(grid_pt->epsilon + grid_pt->p)/T;
  tau_pi = 5.0*shear/(grid_pt->epsilon + grid_pt->p);
   
 
  //tau_pi = maxi(tau_pi, DATA->tau_pi);
  if(!isfinite(tau_pi)) {tau_pi = DATA->delta_tau; cout << "tau_pi was infinite ..." << endl;}
+ if(tau_pi < DATA->delta_tau) {tau_pi = DATA->delta_tau;}
 
  /// transport coefficient for nonlinear terms -- shear only terms -- 4Mar2013
  double transport_coefficient, transport_coefficient2, transport_coefficient3, transport_coefficient4;
@@ -1610,11 +1600,11 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
  if(DATA->turn_on_diff == 0) return 0.0;
  
  /// Useful variables to define
- Ttr = 0.18;  /// phase transition temperature
+ Ttr = 0.18/hbarc;  /// phase transition temperature
  epsilon = grid_pt->epsilon;
  rhob = grid_pt->rhob;
 
- T=eos->get_temperature(epsilon,rhob)*hbarc;
+ T=eos->get_temperature(epsilon,rhob);
  if(DATA->T_dependent_shear_to_s == 1)
    {
      if(T < Ttr)
@@ -1632,8 +1622,11 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
    }
 
  s_den = eos->get_entropy(epsilon, rhob);
- shear = (shear_to_s)*s_den;
+ shear = (shear_to_s)*(grid_pt->epsilon + grid_pt->p)/T;
  tau_pi = 5.0*shear/(grid_pt->epsilon + grid_pt->p);
+ 
+ if(!isfinite(tau_pi)) {tau_pi = DATA->delta_tau; cout << "tau_pi was infinite ..." << endl;}
+ if(tau_pi < DATA->delta_tau) {tau_pi = DATA->delta_tau;}
 
  // Sangyong Nov 18 2014: From Gabriel
  // tau_rho = 27/20 * tau_shear
@@ -1660,31 +1653,67 @@ for(i=0; i<4; i++)
  // and a[4] = u^a partial_a (muB/T) = DmuB/T
  // -(1/tau_rho)(q[a] + kappa g[a][b]DmuB/T[b] + kappa u[a] u[b]g[b][c]DmuB/T[c])
  // a = nu 
+ SW = 0;
  tempf = q[nu];
  tempf += kappa*(grid_pt->dUsup[rk_flag][4][nu]); // derivative already upper index
  tempf += kappa*(grid_pt->u[rk_flag][nu])*(grid_pt->a[rk_flag][4]) ;
- SW = -tempf/tau_rho;
+ SW = -tempf/(tau_rho + 1e-15);
+
+ if(isnan(SW))
+ {
+     cout << "ns " << endl;
+     cout << q[nu] << endl;
+     cout << grid_pt->dUsup[rk_flag][4][nu] << endl; // derivative already upper index
+     cout << grid_pt->a[rk_flag][4] << endl;
+     cout << tau_rho << endl;
+     cout << kappa << endl;
+     cout << grid_pt->u[rk_flag][nu] << endl;
+     cout << s_den << endl;
+ }
 
  // + theta q[a]
- SW += (grid_pt->theta_u[rk_flag])*q[nu];
+ SW += (grid_pt->theta_u[rk_flag] - grid_pt->u[rk_flag][0]/tau)*q[nu];
+ 
+ if(isnan(SW))
+ {
+     cout << "ns2 " << endl;
+ }
+
 
  // +Delta[a][tau] u[eta] q[eta]/tau 
  tempf = (DATA->gmunu[nu][0] + (grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][0]));
  tempf *= (grid_pt->u[rk_flag][3])*q[3]/tau;
  SW += tempf;
  
+ if(isnan(SW))
+ {
+     cout << "ns3 " << endl;
+ }
+
+ 
  // -Delta[a][eta] u[eta] q[tau]/tau
  tempf = (DATA->gmunu[nu][3] + (grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][3]));
  tempf *= (grid_pt->u[rk_flag][3])*q[0]/tau;
  SW -= tempf;
  
+ if(isnan(SW))
+ {
+     cout << "ns4 " << endl;
+ }
+
+ 
  //-u[a] u[b]g[b][e] Dq[e] -> u[a] (q[e] g[e][b] Du[b])
- // tempf = 0.0;
+ tempf = 0.0;
  for(i=0; i<4; i++)
   {
    tempf += q[i]*gmn(i)*(grid_pt->a[rk_flag][i]);
   }
  SW += (grid_pt->u[rk_flag][nu])*tempf;
+ 
+ if(isnan(SW))
+ {
+     cout << "ns5 " << endl;
+ }
 
  return SW;
 }/* Make_uqSource */

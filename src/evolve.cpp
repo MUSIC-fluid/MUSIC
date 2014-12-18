@@ -59,6 +59,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
    cout_file.close();
    ofstream baryon_file("rhoB_evo.dat");
    baryon_file.close();
+   ofstream qm_file("qmu_evo.dat");
+   qm_file.close();
  }
  ofstream out_file("evolution.dat");
  out_file.close();
@@ -107,6 +109,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
          grid->PrintxEpsilon(arena, DATA, tau, size, rank);
          //       grid->ComputeEccentricity(DATA, arena, tau);
          grid->ComputeAnisotropy(DATA, arena, tau);
+         grid->print_qmu_evolution(DATA, arena, tau);
          grid->print_rhob_evolution(DATA, arena, tau, eos);
        }
 

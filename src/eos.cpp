@@ -1866,7 +1866,7 @@ double EOS::get_dpOverdrhob2(double e, double rhob)
 
     double v_sound = p_e_func(e, local_rhob) + rhob/(e + p_mid)*dpdrho;
     
-    if(v_sound < 0.0) 
+    if(v_sound < 0.03) 
     { 
         fprintf(stderr, "EOS::get_dpOverdrhob2: velocity of sound is negative!\n");
         fprintf(stderr,"v_sound=%lf\n", v_sound); 
@@ -1877,8 +1877,8 @@ double EOS::get_dpOverdrhob2(double e, double rhob)
         fprintf(stderr,"rhob=%lf\n", local_rhob);  
         fprintf(stderr,"rhobLeft=%lf\n", rhobLeft);  
         fprintf(stderr,"rhobRight=%lf\n", rhobRight);  
-        //dpdrho = (0.03 - p_e_func(e, local_rhob))*(e + p_mid)/rhob;
-        exit(0);
+        dpdrho = (0.03 - p_e_func(e, local_rhob))*(e + p_mid)/rhob;
+        //exit(0);
     }
    
     return dpdrho;   // in 1/fm

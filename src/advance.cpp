@@ -511,12 +511,23 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
  tau_now = tau;
  tau_next = tau + (DATA->delta_tau);
  
- if(rk_flag == 0) {tau_rk = tau_now;}
- else if(rk_flag > 0) {tau_rk = tau_next;}
-   	else {fprintf(stderr,"rk_flag out of range.\n");exit(0);}
+ if(rk_flag == 0)
+ {
+   tau_rk = tau_now;
+ }
+ else if(rk_flag > 0)
+ {
+   tau_rk = tau_next;
+ }
+ else
+ {
+   fprintf(stderr,"rk_flag out of range.\n");
+   exit(0);
+ }
 
 /* TEST */
- if(rk_flag==2) fprintf(stderr, "FirstRKStepT: rk_flag = %d\n", rk_flag);
+ if(rk_flag==2)
+   fprintf(stderr, "FirstRKStepT: rk_flag = %d\n", rk_flag);
 /* TEST */
 
 /*
@@ -1240,10 +1251,11 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rnei
 //      tau_fac[2] = tau;
 //      tau_fac[3] = 1.0;
  
+ // tau*Tmu0
  for(alpha=0; alpha<5; alpha++) 
-  {
+ {
    qi[alpha] = grid_pt->TJb[rk_flag][alpha][0]*tau;
-  }/* get qi first */
+ }/* get qi first */
 
  /* implement Kurganov-Tadmor scheme */
  GetQIs(tau, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, qi, &NbrCells, rk_flag, DATA, size, rank);

@@ -2390,6 +2390,34 @@ void Grid::PrintAxy(InitData *DATA, Grid ***arena, double tau)
   return;
 }/* PrintAxy */
 
+void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau)
+{
+  string d_name;
+  ofstream d_file;
+  d_name = "qmu_evo.dat";
+  d_file.open(d_name.c_str(), ios::out | ios::app );
+  
+  int ieta = DATA->neta/2;
+  for(int ix=0; ix<=DATA->nx; ix++)
+  {
+    double x = ix*(DATA->delta_x) - (DATA->x_size/2.0);
+    int iy = (int)(DATA->ny/2);
+    double y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
+    double rhob = arena[ix][iy][ieta].rhob;
+    double q0 = arena[ix][iy][ieta].Wmunu[0][4][0];
+    double qx = arena[ix][iy][ieta].Wmunu[0][4][1];
+    double qy = arena[ix][iy][ieta].Wmunu[0][4][2];
+    double qeta = arena[ix][iy][ieta].Wmunu[0][4][3];
+    d_file << scientific << setw(18) << setprecision(8)
+           << tau << "  " << x << "  " << y << "  "
+           << q0 << "  " << qx << "  " 
+           << qy << "  " << qeta << "   " << rhob << endl;
+  }
+  d_file.close();
+  
+  return;
+}/* print qmu evolution */
+
 void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* eos)
 {
   string d_name;

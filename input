@@ -89,8 +89,8 @@ EOS_to_use 10                             # type of the equation of state
                                           # 5: lattice EOS s95p at 160 MeV
                                           # 6: lattice EOS s95p at 165 MeV
                                           # 10: lattice EOS at finite muB (from A. Monnai)
-Minmod_Theta 1.1                          # theta parameter in the min-mod like limiter
-Runge_Kutta_order 1                       # order of Runge_Kutta for temporal evolution (must be 1 or 2)
+Minmod_Theta 1.8                          # theta parameter in the min-mod like limiter
+Runge_Kutta_order 2                       # order of Runge_Kutta for temporal evolution (must be 1 or 2)
 reconst_type 1                            # the type of quantity that will be first reconstruct from T^0\mu and J^0
                                           # 0: energy density and rho_baryon
                                           # 1: flow velocity
