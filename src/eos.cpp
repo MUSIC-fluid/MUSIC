@@ -1081,8 +1081,8 @@ void EOS::init_eos10(int selector)
 
   if(selector == 0)  // lattice EOS from A. Monnai
   {
-    spath << envPath << "/EOS/neos/";
-    slocalpath << "./EOS/neos/";
+    spath << envPath << "/EOS/neos_2/";
+    slocalpath << "./EOS/neos_2/";
   }
   else
   {
@@ -1100,29 +1100,35 @@ void EOS::init_eos10(int selector)
   stringstream streos_p2_name;
   stringstream streos_p3_name;
   stringstream streos_p4_name;
+  stringstream streos_p5_name;
   stringstream streos_T1_name;
   stringstream streos_T2_name;
   stringstream streos_T3_name;
   stringstream streos_T4_name;
+  stringstream streos_T5_name;
   stringstream streos_mub1_name;
   stringstream streos_mub2_name;
   stringstream streos_mub3_name;
   stringstream streos_mub4_name;
+  stringstream streos_mub5_name;
 
-  streos_p1_name << path << "neos1_p.dat";
-  streos_p2_name << path << "neos2_p.dat";
-  streos_p3_name << path << "neos3_p.dat";
-  streos_p4_name << path << "neos4_p.dat";
+  streos_p1_name << path << "neos0_p.dat";
+  streos_p2_name << path << "neos1a_p.dat";
+  streos_p3_name << path << "neos2_p.dat";
+  streos_p4_name << path << "neos3_p.dat";
+  streos_p5_name << path << "neos4_p.dat";
 
-  streos_T1_name << path << "neos1_t.dat";
-  streos_T2_name << path << "neos2_t.dat";
-  streos_T3_name << path << "neos3_t.dat";
-  streos_T4_name << path << "neos4_t.dat";
+  streos_T1_name << path << "neos0_t.dat";
+  streos_T2_name << path << "neos1a_t.dat";
+  streos_T3_name << path << "neos2_t.dat";
+  streos_T4_name << path << "neos3_t.dat";
+  streos_T5_name << path << "neos4_t.dat";
   
-  streos_mub1_name << path << "neos1_mb.dat";
-  streos_mub2_name << path << "neos2_mb.dat";
-  streos_mub3_name << path << "neos3_mb.dat";
-  streos_mub4_name << path << "neos4_mb.dat";
+  streos_mub1_name << path << "neos0_mb.dat";
+  streos_mub2_name << path << "neos1a_mb.dat";
+  streos_mub3_name << path << "neos2_mb.dat";
+  streos_mub4_name << path << "neos3_mb.dat";
+  streos_mub5_name << path << "neos4_mb.dat";
   
   cout << "from path " << path << endl;
 
@@ -1130,14 +1136,17 @@ void EOS::init_eos10(int selector)
   ifstream eos_p2(streos_p2_name.str().c_str());
   ifstream eos_p3(streos_p3_name.str().c_str());
   ifstream eos_p4(streos_p4_name.str().c_str());
+  ifstream eos_p5(streos_p5_name.str().c_str());
   ifstream eos_T1(streos_T1_name.str().c_str());
   ifstream eos_T2(streos_T2_name.str().c_str());
   ifstream eos_T3(streos_T3_name.str().c_str());
   ifstream eos_T4(streos_T4_name.str().c_str());
+  ifstream eos_T5(streos_T5_name.str().c_str());
   ifstream eos_mub1(streos_mub1_name.str().c_str());
   ifstream eos_mub2(streos_mub2_name.str().c_str());
   ifstream eos_mub3(streos_mub3_name.str().c_str());
   ifstream eos_mub4(streos_mub4_name.str().c_str());
+  ifstream eos_mub5(streos_mub5_name.str().c_str());
   
   // read the first two lines with general info:
   // first value of rhob, first value of epsilon
@@ -1150,6 +1159,8 @@ void EOS::init_eos10(int selector)
   eos_p3 >> deltaBNP3 >> deltaEPP3 >> NBNP3 >> NEPP3;
   eos_p4 >> BNP4 >> EPP4;
   eos_p4 >> deltaBNP4 >> deltaEPP4 >> NBNP4 >> NEPP4;
+  eos_p5 >> BNP5 >> EPP5;
+  eos_p5 >> deltaBNP5 >> deltaEPP5 >> NBNP5 >> NEPP5;
   eos_T1 >> BNP1 >> EPP1;
   eos_T1 >> deltaBNP1 >> deltaEPP1 >> NBNP1 >> NEPP1;
   eos_T2 >> BNP2 >> EPP2;
@@ -1158,6 +1169,8 @@ void EOS::init_eos10(int selector)
   eos_T3 >> deltaBNP3 >> deltaEPP3 >> NBNP3 >> NEPP3;
   eos_T4 >> BNP4 >> EPP4;
   eos_T4 >> deltaBNP4 >> deltaEPP4 >> NBNP4 >> NEPP4;
+  eos_T5 >> BNP5 >> EPP5;
+  eos_T5 >> deltaBNP5 >> deltaEPP5 >> NBNP5 >> NEPP5;
   eos_mub1 >> BNP1 >> EPP1;
   eos_mub1 >> deltaBNP1 >> deltaEPP1 >> NBNP1 >> NEPP1;
   eos_mub2 >> BNP2 >> EPP2;
@@ -1166,32 +1179,38 @@ void EOS::init_eos10(int selector)
   eos_mub3 >> deltaBNP3 >> deltaEPP3 >> NBNP3 >> NEPP3;
   eos_mub4 >> BNP4 >> EPP4;
   eos_mub4 >> deltaBNP4 >> deltaEPP4 >> NBNP4 >> NEPP4;
+  eos_mub5 >> BNP5 >> EPP5;
+  eos_mub5 >> deltaBNP5 >> deltaEPP5 >> NBNP5 >> NEPP5;
 
-  EPP5 = 1e4;  // take a large enough value to make sure only the first 4 tables will be used
+  EPP6 = 1e4;  // take a large enough value to make sure only the first 5 tables will be used
 
   // allocate memory for pressure arrays
   pressure1=util->mtx_malloc(NBNP1+1, NEPP1+1);
   pressure2=util->mtx_malloc(NBNP2+1, NEPP2+1);
   pressure3=util->mtx_malloc(NBNP3+1, NEPP3+1);
   pressure4=util->mtx_malloc(NBNP4+1, NEPP4+1);
+  pressure5=util->mtx_malloc(NBNP5+1, NEPP5+1);
  
   // allocate memory for entropy density arrays
   entropyDensity1=util->mtx_malloc(NBNP1+1, NEPP1+1);
   entropyDensity2=util->mtx_malloc(NBNP2+1, NEPP2+1);
   entropyDensity3=util->mtx_malloc(NBNP3+1, NEPP3+1);
   entropyDensity4=util->mtx_malloc(NBNP4+1, NEPP4+1);
+  entropyDensity5=util->mtx_malloc(NBNP5+1, NEPP5+1);
 
   // allocate memory for temperature arrays
   temperature1=util->mtx_malloc(NBNP1+1, NEPP1+1);
   temperature2=util->mtx_malloc(NBNP2+1, NEPP2+1);
   temperature3=util->mtx_malloc(NBNP3+1, NEPP3+1);
   temperature4=util->mtx_malloc(NBNP4+1, NEPP4+1);
+  temperature5=util->mtx_malloc(NBNP5+1, NEPP5+1);
   
   // allocate memory for mu_B arrays
   mu1=util->mtx_malloc(NBNP1+1, NEPP1+1);
   mu2=util->mtx_malloc(NBNP2+1, NEPP2+1);
   mu3=util->mtx_malloc(NBNP3+1, NEPP3+1);
   mu4=util->mtx_malloc(NBNP4+1, NEPP4+1);
+  mu5=util->mtx_malloc(NBNP5+1, NEPP5+1);
 
   // read pressure, temperature and chemical potential values
   for(int j = 0; j < NEPP1 + 1; j++)
@@ -1249,19 +1268,36 @@ void EOS::init_eos10(int selector)
       entropyDensity4[i][j] = sd;
     }
   }
+  
+  for(int j = 0; j < NEPP5 + 1; j++)
+  {
+    double ed = EPP5 + j*deltaEPP5;
+    for(int i = 0; i < NBNP5 + 1; i++)
+    {
+      double rhob = BNP5 + i*deltaBNP5;
+      eos_p5 >> pressure5[i][j];
+      eos_T5 >> temperature5[i][j];
+      eos_mub5 >> mu5[i][j];
+      double sd = (ed + pressure5[i][j] - mu5[i][j]*rhob)/temperature5[i][j];
+      entropyDensity5[i][j] = sd;
+    }
+  }
 
   eos_p1.close();
   eos_p2.close();
   eos_p3.close();
   eos_p4.close();
+  eos_p5.close();
   eos_T1.close();
   eos_T2.close();
   eos_T3.close();
   eos_T4.close();
+  eos_T5.close();
   eos_mub1.close();
   eos_mub2.close();
   eos_mub3.close();
   eos_mub4.close();
+  eos_mub5.close();
 
   cout << "Done reading EOS." << endl;
 }
