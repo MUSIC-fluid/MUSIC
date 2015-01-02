@@ -27,6 +27,10 @@ class Evolve
     Advance *advance;
     U_derivative *u_derivative;
 
+    // simulation information
+    int rk_order;
+    int grid_nx, grid_ny, grid_neta;
+
     double SUM, SUM2;
     int warnings;
     int cells;
@@ -40,7 +44,7 @@ class Evolve
     
     int AdvanceRK(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank);
     
-    int UpdateArena(double tau, InitData *DATA, Grid ***arena);
+    int UpdateArena(double tau, Grid ***arena);
     
     void FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int size, int rank);
     void FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, int size, int rank);
@@ -48,9 +52,9 @@ class Evolve
     int FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***arena, int size, int rank);
     int FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *DATA, Grid ***arena, int size, int rank);
 
-    void storePreviousEpsilon2(double tau, InitData *DATA, Grid ***arena);
-    void storePreviousW(double tau, InitData *DATA, Grid ***arena);
-    void storePreviousT(double tau, InitData *DATA, Grid ***arena);
+    void storePreviousEpsilon(Grid ***arena);
+    void storePreviousW(Grid ***arena);
+    void storePreviousT(Grid ***arena);
 
   ////////////////////////////////////////////////////////////////////////////
   // all the following variables and functions seems to be outdated

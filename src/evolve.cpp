@@ -18,6 +18,11 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in)
   util = new Util;
   advance = new Advance(eosIn, grid, DATA_in);
   u_derivative = new U_derivative(eosIn, DATA_in);
+
+  rk_order = DATA_in->rk_order;
+  grid_nx = DATA_in->nx;
+  grid_ny = DATA_in->ny;
+  grid_neta = DATA_in->neta;
 }
 
 // destructor
@@ -99,8 +104,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
      if(it==0) 
      {
         //storePreviousT(tau, DATA, arena);
-        storePreviousEpsilon2(tau, DATA, arena);
-        storePreviousW(tau, DATA, arena);
+        storePreviousEpsilon(arena);
+        storePreviousW(arena);
      }
      //for testing */
      //FindFreezeOutSurface(tau, DATA, arena); */
@@ -127,19 +132,18 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
      if((it%Nskip_timestep) == 0 && outputEvo_flag == 1) 
      {
         grid->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
-        if (DATA->output_hydro_debug_info)
+        if (DATA->output_hydro_debug_info) // this produces potentially huge outputs so beware
         {
            //grid->OutputXY(arena, DATA, eos, tau, size, rank);
            //grid->OutputEvolutionOSCAR(arena, DATA, eos, tau, size, rank); 
-           //  grid->OutputEvolutionDataXYZ(arena, DATA, eos, tau, size, rank); 
-           // this produces potentially huge outputs so beware
+           //grid->OutputEvolutionDataXYZ(arena, DATA, eos, tau, size, rank); 
         }
      }
 
     /* execute rk steps */
     // all the evolution are at here !!!
     AdvanceRK(tau, DATA, arena, Lneighbor, Rneighbor, size, rank);
-    UpdateArena(tau, DATA, arena);
+    UpdateArena(tau, arena);
    
     //check energy conservation
     //grid->ComputeEnergyConservation(DATA, arena, tau);
@@ -164,8 +168,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
           else
 	      frozen = FindFreezeOutSurface_boostinvariant_Cornelius(tau, DATA, arena, size, rank);
         }
-	  storePreviousEpsilon2(tau, DATA, arena);
-	  storePreviousW(tau, DATA, arena);
+	  storePreviousEpsilon(arena);
+	  storePreviousW(arena);
       } 
     }/* do freeze-out determination */
 
@@ -173,13 +177,12 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
     if (frozen) break;
   }/* it */ 
 
-//  if(rank == 0)
-//  {
-//   grid->PrintAxy2(DATA, arena, tau);
-//  }
+  //if(rank == 0)
+  //{
+  // grid->PrintAxy2(DATA, arena, tau);
+  //}
 
   // clean up
-  int rk_order = DATA->rk_order;
   for(int ix=0; ix<=DATA->nx; ix++) 
     for(int iy=0; iy<=DATA->ny; iy++)
       for(int ieta=0; ieta<DATA->neta; ieta++)
@@ -209,23 +212,17 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
   return 1; /* successful */
 }/* Evolve */
 
-// faster one, needs to be called only every facTau time steps
-void Evolve::storePreviousEpsilon2(double tau, InitData *DATA, Grid ***arena)
+void Evolve::storePreviousEpsilon(Grid ***arena)
 {
-  int ix, iy, ieta, nx, ny, neta;
-//   double x, y, eta;
-//   double tau0;
-  nx = DATA->nx;
-  ny = DATA->ny;
-  neta = DATA->neta;
-//   tau0 = DATA->tau0;
-
-  for(ix=0; ix<=nx; ix++)
+  int nx = grid_nx;
+  int ny = grid_ny;
+  int neta = grid_neta;
+  for(int ix=0; ix<=nx; ix++)
+  {
+    for(int iy=0; iy<=ny; iy++)
     {
-      for(iy=0; iy<=ny; iy++)
-	{
-	  for(ieta=0; ieta<neta; ieta++)
-	    {
+      for(int ieta=0; ieta<neta; ieta++)
+      {
 	      //cout << ix << " " << iy << " " << ieta << " " << " " << arena[ix][iy][ieta].u[0][1] << endl;
 	      arena[ix][iy][ieta].epsilon_prev=arena[ix][iy][ieta].epsilon;
 	      arena[ix][iy][ieta].u_prev[0]=arena[ix][iy][ieta].u[0][0];
@@ -234,85 +231,69 @@ void Evolve::storePreviousEpsilon2(double tau, InitData *DATA, Grid ***arena)
 	      arena[ix][iy][ieta].u_prev[3]=arena[ix][iy][ieta].u[0][3];
 	      arena[ix][iy][ieta].rhob_prev=arena[ix][iy][ieta].rhob;
 	      arena[ix][iy][ieta].pi_b_prev=arena[ix][iy][ieta].pi_b[0];
-	    }
 	}
     }
+  }
 }
 
-// faster one, needs to be called only every facTau time steps
-void Evolve::storePreviousW(double tau, InitData *DATA, Grid ***arena)
+void Evolve::storePreviousW(Grid ***arena)
 {
-  int ix, iy, ieta, nx, ny, neta;
-//   double x, y, eta;
-//   double tau0;
-  nx = DATA->nx;
-  ny = DATA->ny;
-  neta = DATA->neta;
-//   tau0 = DATA->tau0;
+  int nx = grid_nx;
+  int ny = grid_ny;
+  int neta = grid_neta;
 
-  for(ix=0; ix<=nx; ix++)
+  for(int ix=0; ix<=nx; ix++)
+  {
+    for(int iy=0; iy<=ny; iy++)
     {
-      for(iy=0; iy<=ny; iy++)
-	{
-	  for(ieta=0; ieta<neta; ieta++)
-	    {
-	      arena[ix][iy][ieta].W_prev[0][0]=arena[ix][iy][ieta].Wmunu[0][0][0];
-	      arena[ix][iy][ieta].W_prev[0][1]=arena[ix][iy][ieta].Wmunu[0][0][1];
-	      arena[ix][iy][ieta].W_prev[0][2]=arena[ix][iy][ieta].Wmunu[0][0][2];
-	      arena[ix][iy][ieta].W_prev[0][3]=arena[ix][iy][ieta].Wmunu[0][0][3];
-	      arena[ix][iy][ieta].W_prev[1][1]=arena[ix][iy][ieta].Wmunu[0][1][1];
-	      arena[ix][iy][ieta].W_prev[1][2]=arena[ix][iy][ieta].Wmunu[0][1][2];
-	      arena[ix][iy][ieta].W_prev[1][3]=arena[ix][iy][ieta].Wmunu[0][1][3];
-	      arena[ix][iy][ieta].W_prev[2][2]=arena[ix][iy][ieta].Wmunu[0][2][2];
-	      arena[ix][iy][ieta].W_prev[2][3]=arena[ix][iy][ieta].Wmunu[0][2][3];
-	      arena[ix][iy][ieta].W_prev[3][3]=arena[ix][iy][ieta].Wmunu[0][3][3];
-	    }
-	}
+      for(int ieta=0; ieta<neta; ieta++)
+      {
+	  arena[ix][iy][ieta].W_prev[0][0]=arena[ix][iy][ieta].Wmunu[0][0][0];
+	  arena[ix][iy][ieta].W_prev[0][1]=arena[ix][iy][ieta].Wmunu[0][0][1];
+	  arena[ix][iy][ieta].W_prev[0][2]=arena[ix][iy][ieta].Wmunu[0][0][2];
+	  arena[ix][iy][ieta].W_prev[0][3]=arena[ix][iy][ieta].Wmunu[0][0][3];
+	  arena[ix][iy][ieta].W_prev[1][1]=arena[ix][iy][ieta].Wmunu[0][1][1];
+	  arena[ix][iy][ieta].W_prev[1][2]=arena[ix][iy][ieta].Wmunu[0][1][2];
+	  arena[ix][iy][ieta].W_prev[1][3]=arena[ix][iy][ieta].Wmunu[0][1][3];
+	  arena[ix][iy][ieta].W_prev[2][2]=arena[ix][iy][ieta].Wmunu[0][2][2];
+	  arena[ix][iy][ieta].W_prev[2][3]=arena[ix][iy][ieta].Wmunu[0][2][3];
+	  arena[ix][iy][ieta].W_prev[3][3]=arena[ix][iy][ieta].Wmunu[0][3][3];
+      }
     }
+  }
 }
 
-void Evolve::storePreviousT(double tau, InitData *DATA, Grid ***arena)
+void Evolve::storePreviousT(Grid ***arena)
 {
-  int ix, iy, ieta, nx, ny, neta;
-//   double x, y, eta;
-//   double tau0;
-  nx = DATA->nx;
-  ny = DATA->ny;
-  neta = DATA->neta;
-//   tau0 = DATA->tau0;
-
-  for(ix=0; ix<=nx; ix++)
+  int nx = grid_nx;
+  int ny = grid_ny;
+  int neta = grid_neta;
+  
+  for(int ix=0; ix<=nx; ix++)
+  {
+    for(int iy=0; iy<=ny; iy++)
     {
-      for(iy=0; iy<=ny; iy++)
-	{
-	  for(ieta=0; ieta<neta; ieta++)
-	    {
-	      arena[ix][iy][ieta].prev_T00=arena[ix][iy][ieta].TJb[0][0][0];
-	      arena[ix][iy][ieta].prev_T33=arena[ix][iy][ieta].TJb[0][3][3];
-	    }
+      for(int ieta=0; ieta<neta; ieta++)
+      {
+	  arena[ix][iy][ieta].prev_T00=arena[ix][iy][ieta].TJb[0][0][0];
+	  arena[ix][iy][ieta].prev_T33=arena[ix][iy][ieta].TJb[0][3][3];
 	}
     }
+  }
 }
 
 
 // update grid information after the tau RK evolution 
-int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
+int Evolve::UpdateArena(double tau, Grid ***arena)
 {
-  //int rk_flag, flag, nu;
-  int ix, iy, ieta, nx, ny, neta, alpha, mu, rk_order;
-  //double tempd;
-  //Grid *grid_pt;
-
-  nx = DATA->nx;
-  ny = DATA->ny;
-  neta = DATA->neta-1;
-  rk_order = DATA->rk_order;
-
-  for(ix=0; ix<=nx; ix++)
+  int nx = grid_nx;
+  int ny = grid_ny;
+  int neta = grid_neta - 1;
+  for(int ix = 0; ix <= nx; ix++)
   {
-    for(iy=0; iy<=ny; iy++)
+    for(int iy = 0; iy <= ny; iy++)
     {
-      for(ieta=0; ieta<=neta; ieta++)
+      for(int ieta = 0; ieta <= neta; ieta++)
       {
         arena[ix][iy][ieta].p = arena[ix][iy][ieta].p_t;
         arena[ix][iy][ieta].epsilon = arena[ix][iy][ieta].epsilon_t;
@@ -324,7 +305,7 @@ int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
         //arena[ix][iy][ieta].prev_pi_b[0] = arena[ix][iy][ieta].pi_b[0];
 	  /* this is the new value */
         arena[ix][iy][ieta].pi_b[0] = arena[ix][iy][ieta].pi_b[rk_order];
-        for(mu=0; mu<4; mu++)
+        for(int mu = 0; mu < 4; mu++)
         {
           /* this was the previous previous value */
           //arena[ix][iy][ieta].pprev_u[0][mu] = arena[ix][iy][ieta].prev_u[0][mu]; 
@@ -335,7 +316,7 @@ int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
 	    /* this is the new value */
 	    arena[ix][iy][ieta].u[0][mu] = arena[ix][iy][ieta].u[rk_order][mu]; 
 	 
-	    for(alpha=0; alpha<5; alpha++)
+	    for(int alpha = 0; alpha < 5; alpha++)
 	    {
 	      /* this is the new value */
 	      arena[ix][iy][ieta].TJb[0][alpha][mu] = 
@@ -373,10 +354,9 @@ int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
 // control function for Runge-Kutta evolution in tau
 int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank)
 {
-  int rk_flag, flag;
-
+  int flag;
   // loop over Runge-Kutta steps
-  for(rk_flag = 0; rk_flag < DATA->rk_order; rk_flag++)
+  for(int rk_flag = 0; rk_flag < rk_order; rk_flag++)
   {
     // cout << "1 AdvanceRK Wmunu=" << (Lneighbor[1][1][0]).Wmunu[rk_flag][1][1] << endl;
     // advance->MPISendReceive(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
@@ -831,9 +811,9 @@ void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, in
   double x, y, eta;
   double epsFO;
   double tauf, xf, yf, etaf;
-  nx = DATA->nx;
-  ny = DATA->ny;
-  neta = DATA->neta;
+  nx = grid_nx;
+  ny = grid_ny;
+  neta = grid_neta;
   double cube[16];
   double EK, EL, DEK, DEL, ADEK, ADEL, ELowerSum, EHigherSum;
   double cuts[32][4]; // a 4d hypercube has (2^(n-1)*n=32) edges.
@@ -4541,9 +4521,9 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
   double x, y, eta;
 //   double epsFO=DATA->epsilonFreeze/hbarc;
   double tauf, xf, yf, etaf;
-  nx = DATA->nx;
-  ny = DATA->ny;
-  neta = DATA->neta;
+  nx = grid_nx;
+  ny = grid_ny;
+  neta = grid_neta;
   double FULLSU[4];
   int fac;
   double DX, DY, DETA, DTAU, SIG;
@@ -5493,9 +5473,9 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    double d_epsFO = (freeze_max_ed - freeze_min_ed)/(n_freeze_surf - 1 + 1e-15);
    int *all_frozen = new int [n_freeze_surf];
       
-   int nx = DATA->nx;
-   int ny = DATA->ny;
-   int neta = DATA->neta;
+   int nx = grid_nx;
+   int ny = grid_ny;
+   int neta = grid_neta;
    
    //  MPI code copied from FindFreezeOutSurface2
    //*******************************************
@@ -6812,8 +6792,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
       ofstream s_file;
       s_file.open(strs_name.str().c_str() , ios::out | ios::app );
   
-      int nx = DATA->nx;
-      int ny = DATA->ny;
+      int nx = grid_nx;
+      int ny = grid_ny;
       double FULLSU[4];  // d^3 \sigma_\mu
 
       double tau_center, x_center, y_center, eta_center;
