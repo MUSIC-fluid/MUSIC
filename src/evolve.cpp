@@ -162,7 +162,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
       } 
    }/* do freeze-out determination */
     
-    if (rank == 0) fprintf(stderr, "Done time step %d/%d.\n", it, itmax);
+    if (rank == 0) fprintf(stderr, "Done time step %d/%d. tau = %6.3f fm/c \n", it, itmax, tau);
     if (frozen) break;
     
   }/* it */ 
