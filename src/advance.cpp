@@ -7,7 +7,7 @@
 
 using namespace std;
 
-Advance::Advance(EOS *eosIn, Grid *gridIn)
+Advance::Advance(EOS *eosIn, Grid *gridIn, InitData* DATA_in)
 {
   eos = new EOS;
   eos = eosIn;
@@ -15,9 +15,9 @@ Advance::Advance(EOS *eosIn, Grid *gridIn)
   grid = gridIn;
   reconst = new Reconst(eosIn, grid);
   util = new Util;
-  diss = new Diss(eosIn);
-  minmod = new Minmod;
-  u_derivative = new U_derivative(eosIn);
+  diss = new Diss(eosIn, DATA_in);
+  minmod = new Minmod(DATA_in);
+  u_derivative = new U_derivative(eosIn, DATA_in);
 }
 
 // destructor
@@ -1575,19 +1575,19 @@ int Advance::MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells,
     {
       gphL = qi[alpha];
       fphL = 0.5*minmod->minmod_dx(NbrCells->qip1[alpha][direc], qi[alpha],
-                           NbrCells->qim1[alpha][direc], DATA);
+                                   NbrCells->qim1[alpha][direc]);
       
       gphR = NbrCells->qip1[alpha][direc];
       fphR = -0.5*minmod->minmod_dx(NbrCells->qip2[alpha][direc],
-                            NbrCells->qip1[alpha][direc], qi[alpha], DATA);
+                                    NbrCells->qip1[alpha][direc], qi[alpha]);
       
       gmhL = NbrCells->qim1[alpha][direc];
       fmhL = 0.5*minmod->minmod_dx(qi[alpha], NbrCells->qim1[alpha][direc], 
-                           NbrCells->qim2[alpha][direc], DATA);
+                                   NbrCells->qim2[alpha][direc]);
       
       gmhR = qi[alpha];
       fmhR = -0.5*minmod->minmod_dx(NbrCells->qip1[alpha][direc], qi[alpha],
-                            NbrCells->qim1[alpha][direc], DATA);
+                                    NbrCells->qim1[alpha][direc]);
 
      tempf = HalfwayCells->qiphL[alpha][direc] = gphL + fphL;
      if(!isfinite(tempf))

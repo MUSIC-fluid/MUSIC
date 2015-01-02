@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
       init = new Init(eos,glauber);
       
       Evolve *evolve;
-      evolve = new Evolve(eos);
+      evolve = new Evolve(eos, &DATA);
       
       cout << "init Glauber" << endl;
       glauber->initGlauber(DATA.SigmaNN, DATA.Target, DATA.Projectile, DATA.b, DATA.LexusImax, size, rank);

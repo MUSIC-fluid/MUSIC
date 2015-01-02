@@ -56,7 +56,7 @@ class Evolve{
   int facTau;
   
  public:
-  Evolve(EOS *eos);//constructor
+  Evolve(EOS *eos, InitData *DATA_in);//constructor
   ~Evolve();//destructor
   int EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank);
   
@@ -103,7 +103,7 @@ class Evolve{
     (double tau, double **qirk, double **Fiph, double **Fimh, double *qi,
      Grid *grid_pt, InitData *DATA, int rk_flag);
   
-  double minmod_dx(double up1, double u, double um1, InitData *DATA);
+  //double minmod_dx(double up1, double u, double um1, InitData *DATA);
   
   
   int ConstNewTJb(double tau, double *qi, double **qirk,

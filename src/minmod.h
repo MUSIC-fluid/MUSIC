@@ -3,13 +3,15 @@
 
 #include "data.h"
 
-class Minmod{
- private:
+class Minmod
+{
+    private:
+        double theta_flux;
 
- public:
-  Minmod();
-  ~Minmod();
-  double minmod_dx(double up1, double u, double um1, InitData *DATA);
-  double minmod_theta_dx(double up1, double u, double um1, double theta);
+    public:
+        Minmod(InitData* DATA);
+        ~Minmod();
+        double minmod_dx(double up1, double u, double um1);
+        double minmod_theta_dx(double up1, double u, double um1, double theta);
 };
 #endif

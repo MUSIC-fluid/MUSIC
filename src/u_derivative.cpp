@@ -9,12 +9,12 @@ using namespace std;
 
 // Sangyong Nov 18 2014
 // added EOS in the argument 
-U_derivative::U_derivative(EOS *eosIn)
+U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in)
 {
 // Sangyong Nov 18 2014: added eos
   eos = new EOS;
   eos = eosIn;
-  minmod = new Minmod;
+  minmod = new Minmod(DATA_in);
 }
 
 // destructor
@@ -206,7 +206,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *
        fm1 = grid_pt->nbr_m_1[n]->u[rk_flag][m];
       }
 
-     g = minmod->minmod_dx(fp1, f, fm1, DATA);
+     g = minmod->minmod_dx(fp1, f, fm1);
      g /= delta[n]*taufactor;
      grid_pt->dUsup[rk_flag][m][n] = g;
     }// n=x,y
@@ -245,7 +245,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *
        fm1 = grid_pt->nbr_m_1[n]->u[rk_flag][m];
      }
 
-   g = minmod->minmod_dx(fp1, f, fm1, DATA);
+   g = minmod->minmod_dx(fp1, f, fm1);
    g /= delta[n]*taufactor;
    grid_pt->dUsup[rk_flag][m][n] = g;
    
@@ -390,7 +390,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *
        fm1 = muB/T; 
      }
 
-     g = minmod->minmod_dx(fp1, f, fm1, DATA);
+     g = minmod->minmod_dx(fp1, f, fm1);
      g /= delta[n]*taufactor;
      grid_pt->dUsup[rk_flag][m][n] = g;
    }// n=x,y
@@ -579,7 +579,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *
       T = eos->get_temperature(eps, rhob);
       fm1 = muB/T; 
    }
-   g = minmod->minmod_dx(fp1, f, fm1, DATA);
+   g = minmod->minmod_dx(fp1, f, fm1);
    g /= delta[n]*taufactor;
    grid_pt->dUsup[rk_flag][m][n] = g;
 // 

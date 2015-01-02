@@ -9,15 +9,15 @@
 
 using namespace std;
 
-Evolve::Evolve(EOS *eosIn)
+Evolve::Evolve(EOS *eosIn, InitData *DATA_in)
 {
   eos = new EOS;
   eos = eosIn;
   grid = new Grid;
   reconst = new Reconst(eosIn, grid);
   util = new Util;
-  advance = new Advance(eosIn, grid);
-  u_derivative = new U_derivative(eosIn);
+  advance = new Advance(eosIn, grid, DATA_in);
+  u_derivative = new U_derivative(eosIn, DATA_in);
 }
 
 // destructor

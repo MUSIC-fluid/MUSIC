@@ -6,11 +6,11 @@
 
 using namespace std;
 
-Diss::Diss(EOS *eosIn)
+Diss::Diss(EOS *eosIn, InitData* DATA_in)
 {
   eos = new EOS;
   eos = eosIn;
-  minmod = new Minmod;
+  minmod = new Minmod(DATA_in);
 }
 
 // destructor
@@ -131,8 +131,8 @@ to use Wmunu[rk_flag][4][mu] as the dissipative baryon current
      bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
    }
   
-   sf += minmod->minmod_dx(sgp1, sg, sgm1, DATA)/delta[i]; 
-   bf += minmod->minmod_dx(bgp1, bg, bgm1, DATA)/delta[i]; 
+   sf += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]; 
+   bf += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i]; 
  }/* i */
 
  i=3;
@@ -182,8 +182,8 @@ to use Wmunu[rk_flag][4][mu] as the dissipative baryon current
    sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
    bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
  }
- sf += minmod->minmod_dx(sgp1, sg, sgm1, DATA)/delta[i]/taufactor; 
- bf += minmod->minmod_dx(bgp1, bg, bgm1, DATA)/delta[i]/taufactor; 
+ sf += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor; 
+ bf += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor; 
 
  /* partial_m (tau W^mn) = W^0n + tau partial_m W^mn */
 
@@ -563,16 +563,16 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
  
 /*  MakeuWmnHalfs */
 /* uWmn */
-       uWphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f, DATA); 
-       uWphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1, DATA);
-       uWmhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1, DATA);
-       uWmhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2, DATA);
+       uWphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f); 
+       uWphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1);
+       uWmhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1);
+       uWmhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2);
 
 /* just Wmn */
-       WphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g, DATA); 
-       WphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1, DATA);
-       WmhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1, DATA);
-       WmhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2, DATA);
+       WphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g); 
+       WphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1);
+       WmhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1);
+       WmhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2);
 
        a = fabs(grid_pt->u[rk_flag][direc]);
        a /= grid_pt->u[rk_flag][0];
@@ -1068,16 +1068,16 @@ int Diss::Make_uPRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 
 /*  Make upi Halfs */
 /* uPi */
-       uPiphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f, DATA); 
-       uPiphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1, DATA);
-       uPimhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1, DATA);
-       uPimhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2, DATA);
+       uPiphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f); 
+       uPiphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1);
+       uPimhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1);
+       uPimhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2);
 
 /* just Pi */
-       PiphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g, DATA); 
-       PiphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1, DATA);
-       PimhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1, DATA);
-       PimhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2, DATA);
+       PiphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g); 
+       PiphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1);
+       PimhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1);
+       PimhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2);
 
 /* MakePimnCurrents following Kurganov-Tadmor */
     
@@ -1780,16 +1780,16 @@ int Diss::Make_uqRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
  
       /*  MakeuWmnHalfs */
       /* uWmn */
-      uWphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f, DATA); 
-      uWphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1, DATA);
-      uWmhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1, DATA);
-      uWmhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2, DATA);
+      uWphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f); 
+      uWphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1);
+      uWmhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1);
+      uWmhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2);
 
       /* just Wmn */
-      WphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g, DATA); 
-      WphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1, DATA);
-      WmhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1, DATA);
-      WmhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2, DATA);
+      WphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g); 
+      WphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1);
+      WmhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1);
+      WmhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2);
 
       a = fabs(grid_pt->u[rk_flag][direc]);
       a /= grid_pt->u[rk_flag][0];

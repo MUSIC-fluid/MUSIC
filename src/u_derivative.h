@@ -16,7 +16,7 @@ class U_derivative{
   
  public:
   // Sangyong Nov 18 2014: added EOS *eos in the argument
-  U_derivative(EOS *eos);//constructor
+  U_derivative(EOS *eosIn, InitData* DATA_in);//constructor
   ~U_derivative();
   int UpdateDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
 		     Grid *Lneighbor2, Grid *Rneighbor2, int rk_flag, int size, int rank);

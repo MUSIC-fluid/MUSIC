@@ -13,7 +13,7 @@ class Diss{
   Minmod *minmod;
 
  public:
-  Diss(EOS *eosIn);
+  Diss(EOS *eosIn, InitData* DATA_in);
   ~Diss();
   
   double MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 

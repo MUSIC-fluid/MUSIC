@@ -45,7 +45,7 @@ class Advance{
   } NbrQs;
 
  public:
-  Advance(EOS *eosIn, Grid *grid);
+  Advance(EOS *eosIn, Grid *grid, InitData* DATA_in);
   ~Advance();
 
   int AdvanceIt(double tau_init, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int rk_flag, int size, int rank);
