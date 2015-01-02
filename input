@@ -103,7 +103,7 @@ Shear_to_S_ratio 0.08                     # value of \eta/s
 Include_Bulk_Visc_Yes_1_No_0 0            # include bulk viscous effect
 Bulk_to_S_ratio 0.1                       # value of \zeta/s
 Include_Rhob_Yes_1_No_0 1                 # turn on propagation of baryon current
-turn_on_baryon_diffusion 0                # turn on baryon current diffusion
+turn_on_baryon_diffusion 1                # turn on baryon current diffusion
 Bulk_relaxation_time_tau_b_pi 0.6         # bulk relation time
 Shear_relaxation_time_tau_pi 0.01         # shear relation time
 #

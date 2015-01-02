@@ -9,15 +9,20 @@ using namespace std;
 
 Advance::Advance(EOS *eosIn, Grid *gridIn, InitData* DATA_in)
 {
-  eos = new EOS;
+  //eos = new EOS;
   eos = eosIn;
-  grid = new Grid;
+  //grid = new Grid;
   grid = gridIn;
   reconst = new Reconst(eosIn, grid);
   util = new Util;
   diss = new Diss(eosIn, DATA_in);
   minmod = new Minmod(DATA_in);
   u_derivative = new U_derivative(eosIn, DATA_in);
+
+  grid_nx = DATA_in->nx;
+  grid_ny = DATA_in->ny;
+  grid_neta = DATA_in->neta;
+  rk_order = DATA_in->rk_order;
 }
 
 // destructor
@@ -26,62 +31,67 @@ Advance::~Advance()
   delete reconst;
   delete util;
   delete diss;
-  delete grid;
-  delete eos;
+  //delete grid;
+  //delete eos;
   delete minmod;
   delete u_derivative;
 }
 
+
+// evolve Runge-Kutta step in tau
 int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int rk_flag, int size, int rank)
 {
-  int ix, iy, ieta;
-//   int flag;
+  //int flag;
   //cout << "0 AdvanceIt Wmunu=" << (Lneighbor[1][1][0]).Wmunu[rk_flag][1][1] << endl;
   
-  for(ix=0; ix<=DATA->nx; ix++)
-    {
-      for(iy=0; iy<=DATA->ny; iy++)
+  for(int ix=0; ix<=grid_nx; ix++)
+  {
+      for(int iy=0; iy<=grid_ny; iy++)
 	{
-          for(ieta=0; ieta<DATA->neta; ieta++)
+          for(int ieta=0; ieta<grid_neta; ieta++)
 	    {
-	      AdvanceLocalT(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
-				   &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank);
+	        AdvanceLocalT(tau, DATA, &(arena[ix][iy][ieta]), 
+                            &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
+				    &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), 
+                            rk_flag, size, rank);
 	    }/* ieta */
 	}/*iy */
-    }/* ix */
+  }/* ix */
   
-  MPISendReceiveT(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
+  MPISendReceiveT(arena, Lneighbor, Rneighbor, size, rank, rk_flag);
 
   if(DATA->viscosity_flag == 1)
-    {
-      for(ix=0; ix<=DATA->nx; ix++)
+  {
+      for(int ix=0; ix<=grid_nx; ix++)
 	{
-	  for(iy=0; iy<=DATA->ny; iy++)
+	    for(int iy=0; iy<=grid_ny; iy++)
 	    {
-	      for(ieta=0; ieta<DATA->neta; ieta++)
-		{
-		  AdvanceLocalW(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
-				       &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank);
-		}/* ieta */
+	        for(int ieta=0; ieta<grid_neta; ieta++)
+		  {
+		      AdvanceLocalW(tau, DATA, &(arena[ix][iy][ieta]), 
+                                &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
+				        &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), 
+                                rk_flag, size, rank);
+		  }/* ieta */
 	    }/*iy */
 	}/* ix */
-    }/* if viscosity flag is set */
+  }/* if viscosity flag is set */
   
-  MPISendReceiveW(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
+  MPISendReceiveW(arena, Lneighbor, Rneighbor, size, rank, rk_flag);
   
   return 1;
 }/* AdvanceIt */
 
-void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank, int rk_flag)
+void Advance::MPISendReceiveT(Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank, int rk_flag)
 {
   // this sends and receives information from neighboring cells in the next processor in the eta direction 
   // and stores it in Lneighbor and Rneighbor (unless the processor is really at the edge of the total grid
 
-  int ix, iy, nx, ny, neta, i, alpha;
-//   int ieta, iflag;
-  nx = DATA->nx;
-  ny = DATA->ny;
-  neta = DATA->neta;
+  int ix, iy, i, alpha;
+  int nx = grid_nx;
+  int ny = grid_ny;
+  int neta = grid_neta;
+
   int sizeOfData = 5*3*(nx+1)*(ny+1);
   int position;
   double *package;
@@ -103,7 +113,7 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	    {
 	      for(alpha=0; alpha<5; alpha++)
 		{
-		  for(i=0; i<=DATA->rk_order; i++) // rk_order 2 means rk_flag = 0, 1, 2
+		  for(i=0; i<=rk_order; i++) // rk_order 2 means rk_flag = 0, 1, 2
 		    {
 		      //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 		      //cout << "arena[ix][iy][0].TJb[i][alpha][0]=" << arena[ix][iy][0].TJb[i][alpha][0] << endl;
@@ -130,7 +140,7 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	    {
 	      for(alpha=0; alpha<5; alpha++)
 		{
-		  for(i=0; i<=DATA->rk_order; i++)
+		  for(i=0; i<=rk_order; i++)
 		    {
 		      position = (i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 		      //	      if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
@@ -158,7 +168,7 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	    {
 	      for(alpha=0; alpha<5; alpha++)
 		{
-		  for(i=0; i<=DATA->rk_order; i++)
+		  for(i=0; i<=rk_order; i++)
 		    {
 		      position = (i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 		      package[position]  = arena[ix][iy][neta-1].TJb[i][alpha][0];
@@ -183,7 +193,7 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	    {
 	      for(alpha=0; alpha<5; alpha++)
 		{
-		  for(i=0; i<=DATA->rk_order; i++)
+		  for(i=0; i<=rk_order; i++)
 		    {
 		      position = (i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
 		      Lneighbor[ix][iy][0].TJb[i][alpha][0] = package[position];
@@ -202,16 +212,16 @@ void Advance::MPISendReceiveT(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 
 
 
-void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank, int rk_flag)
+void Advance::MPISendReceiveW(Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank, int rk_flag)
 {
   // this sends and receives information from neighboring cells in the next processor in the eta direction 
   // and stores it in Lneighbor and Rneighbor (unless the processor is really at the edge of the total grid
   
-  int ix, iy, nx, ny, neta, i, alpha, beta;
+  int ix, iy, i, alpha, beta;
 //   int ieta, iflag;
-  nx = DATA->nx;
-  ny = DATA->ny;
-  neta = DATA->neta;
+  int nx = grid_nx;
+  int ny = grid_ny;
+  int neta = grid_neta;
 
   int sizeOfDataDis = 5*3*(nx+1)*(ny+1)*4; // size of data package for W's and Pi's
   int sizeOfDataU = 4*3*(nx+1)*(ny+1); // size of data package for u's
@@ -249,7 +259,7 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	{
 	  for(iy=0; iy<=ny; iy++)
 	    {
-	      for(i=0; i<=DATA->rk_order; i++) // rk_flag iterator
+	      for(i=0; i<=rk_order; i++) // rk_flag iterator
 		{
 		  //if (ix ==nx/2 && iy==ny/2 && alpha == 0 && i == 0 )
 		  //cout << "arena[ix][iy][0].TJb[i][alpha][0]=" << arena[ix][iy][0].TJb[i][alpha][0] << endl;
@@ -300,7 +310,7 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	{
 	  for(iy=0; iy<=ny; iy++)
 	    {
-	      for(i=0; i<=DATA->rk_order; i++)
+	      for(i=0; i<=rk_order; i++)
 		{
 		  positionPi_b = i+3*(ix + ((nx+1)*iy));
 		  Rneighbor[ix][iy][0].pi_b[i] = packagePi_b[positionPi_b];
@@ -338,7 +348,7 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	{
 	  for(iy=0; iy<=ny; iy++)
 	    {
-	      for(i=0; i<=DATA->rk_order; i++)
+	      for(i=0; i<=rk_order; i++)
 		{
 		  positionPi_b = i+3*(ix + ((nx+1)*iy));
 		  packagePi_b[positionPi_b] = arena[ix][iy][neta-1].pi_b[i];
@@ -389,7 +399,7 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 	{
 	  for(iy=0; iy<=ny; iy++)
 	    {
-	      for(i=0; i<=DATA->rk_order; i++)
+	      for(i=0; i<=rk_order; i++)
 		{
 		  positionPi_b = i+3*(ix + ((nx+1)*iy));
 		  Lneighbor[ix][iy][0].pi_b[i] = packagePi_b[positionPi_b];
@@ -429,133 +439,114 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%  Advance Local T %%%%%%%%%%%%%%%%%% */
-
-
-int Advance::AdvanceLocalT(double tau, InitData *DATA, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
-			   Grid *Lneighbor2, Grid *Rneighbor2, int rk_flag, int size, int rank)
+int Advance::AdvanceLocalT(double tau, InitData *DATA, Grid *grid_pt, 
+                           Grid *Lneighbor, Grid *Rneighbor, 
+			         Grid *Lneighbor2, Grid *Rneighbor2, 
+                           int rk_flag, int size, int rank)
 {
   // this advances the ideal part
- static Grid grid_rk;
- static double **qirk, *qi, *rhs, **w_rhs;
-//  double tau_now, tau_next;
-//  int trk_flag, rk_order_m1, flag;
-//  int i, alpha, mu;
- static int ind=0;
+  static Grid grid_rk;
+  static double **qirk, *qi, *rhs, **w_rhs;
+  //double tau_now, tau_next;
+  //int trk_flag, rk_order_m1, flag;
+  //int i, alpha, mu;
+  static int ind=0;
 
- ind++;
- if(ind == 1)
- {
-  qirk = util->mtx_malloc(5,4);
-  qi = util->vector_malloc(5);
-  rhs = util->vector_malloc(5);
-  /* Sangyong Nov 18 2014 w_rhs(4,4) -> (5,4) */
-  w_rhs = util->mtx_malloc(5,4); // this is new in dissipative code
-  grid_rk.TJb = util->cube_malloc(DATA->rk_order,5,4);
-  grid_rk.u = util->mtx_malloc(DATA->rk_order,4);
- } 
+  ind++;
+  if(ind == 1)
+  {
+    qirk = util->mtx_malloc(5,4);
+    qi = util->vector_malloc(5);
+    rhs = util->vector_malloc(5);
+    /* Sangyong Nov 18 2014 w_rhs(4,4) -> (5,4) for baryon diffusion*/
+    w_rhs = util->mtx_malloc(5,4); // this is new in dissipative code
+    grid_rk.TJb = util->cube_malloc(DATA->rk_order,5,4);
+    grid_rk.u = util->mtx_malloc(DATA->rk_order,4);
+  } 
  
- FirstRKStepT(tau, DATA, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, rk_flag, qi, rhs, w_rhs, qirk, &grid_rk, size, rank);
+  FirstRKStepT(tau, DATA, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, rk_flag, qi, rhs, w_rhs, qirk, &grid_rk, size, rank);
 
- return 1; /* if successful */
+  return 1; /* if successful */
 }/* AdvanceLocalT */
 
 
 /* %%%%%%%%%%%%%%%%% Advance Local W %%%%%%%%%% */
-
-
-int Advance::AdvanceLocalW(double tau, InitData *DATA, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
-			   Grid *Lneighbor2, Grid *Rneighbor2, int rk_flag, int size, int rank)
+int Advance::AdvanceLocalW(double tau, InitData *DATA, Grid *grid_pt, 
+                           Grid *Lneighbor, Grid *Rneighbor, 
+			         Grid *Lneighbor2, Grid *Rneighbor2, 
+                           int rk_flag, int size, int rank)
 {
- static Grid grid_rk;
- static double **qirk, *qi, *rhs, **w_rhs;
-//  double tau_now, tau_next;
-//  int trk_flag, rk_order_m1;
- int flag;
-//  int i, alpha, mu;
- static int ind=0;
+  static Grid grid_rk;
+  static double **qirk, *qi, *rhs, **w_rhs;
+  //double tau_now, tau_next;
+  //int trk_flag, rk_order_m1;
+  int flag;
+  //int i, alpha, mu;
+  static int ind=0;
 
- ind++;
- if(ind == 1)
- {
-  qirk = util->mtx_malloc(5,4);
-  qi = util->vector_malloc(5);
-  rhs = util->vector_malloc(5);
-  /* Sangyong Nov 18 2014 w_rhs(4,4) -> (5,4) */
-  w_rhs = util->mtx_malloc(5,4);
-  grid_rk.TJb = util->cube_malloc(DATA->rk_order,5,4);
-  grid_rk.u = util->mtx_malloc(DATA->rk_order,4);
- } 
+  ind++;
+  if(ind == 1)
+  {
+    qirk = util->mtx_malloc(5,4);
+    qi = util->vector_malloc(5);
+    rhs = util->vector_malloc(5);
+    /* Sangyong Nov 18 2014 w_rhs(4,4) -> (5,4) for baryon diffusion*/
+    w_rhs = util->mtx_malloc(5,4);
+    grid_rk.TJb = util->cube_malloc(DATA->rk_order,5,4);
+    grid_rk.u = util->mtx_malloc(DATA->rk_order,4);
+  } 
 
- flag = FirstRKStepW(tau, DATA, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, rk_flag, qi, rhs, w_rhs, qirk, &grid_rk, size, rank);
- /* flag = 1 means it was successful 
-    flag = -1 means that Wmunu had to be reverted */
-
- return flag; 
+  flag = FirstRKStepW(tau, DATA, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, rk_flag, qi, rhs, w_rhs, qirk, &grid_rk, size, rank);
+  //flag = 1 means it was successful, flag = -1 means that Wmunu had to be reverted
+  return flag; 
 }/* AdvanceLocalW */
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
-
-
-
 int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, Grid *Lneighbor2, Grid *Rneighbor2, int rk_flag, 
 double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size, int rank)
 { 
   // this advances the ideal part
- double tau_now, tau_next, tau_rk, dwmn;
-//  double tempf, p_rhs, temp_mu, temps, tempd;
- int alpha, flag;
-//  int mu, nu;
-//  static int ind=0;
- 
- tau_now = tau;
- tau_next = tau + (DATA->delta_tau);
- 
- if(rk_flag == 0)
- {
-   tau_rk = tau_now;
- }
- else if(rk_flag > 0)
- {
-   tau_rk = tau_next;
- }
- else
- {
-   fprintf(stderr,"rk_flag out of range.\n");
-   exit(0);
- }
+  double tau_now = tau;
+  double tau_next = tau + (DATA->delta_tau);
+  double tau_rk;
+  if(rk_flag == 0)
+  {
+    tau_rk = tau_now;
+  }
+  else if(rk_flag == 1)
+  {
+    tau_rk = tau_next;
+  }
+  else
+  {
+    fprintf(stderr,"rk_flag = %d out of range.\n", rk_flag);
+    exit(0);
+  }
 
-/* TEST */
- if(rk_flag==2)
-   fprintf(stderr, "FirstRKStepT: rk_flag = %d\n", rk_flag);
-/* TEST */
+  //Solve partial_a T^{a mu} = -partial_a W^{a mu}
+  //Update T^{mu nu}
 
-/*
- Solve partial_a T^{a mu} = -partial_a W^{a mu}
- Update T^{mu nu}
-*/
+  //MakeDelatQI gets
+  //  qi = q0 if rk_flag = 0 or
+  //  qi = q0 + k1 if rk_flag = 1
+  //rhs[alpha] is what MakeDeltaQI outputs. 
+  //It is the spatial derivative part of partial_a T^{a mu} (including geometric terms)
+  MakeDeltaQI(tau_rk, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, 
+              qi, rhs, DATA, rk_flag, size, rank);
 
- MakeDeltaQI(tau_rk, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, qi, rhs, DATA, rk_flag, size, rank);
-
- /* MakeDelatQI gets
-    qi = q0 if rk_flag = 0 or
-    qi = q0 + k1 if rk_flag = 1 */
- 
- //rhs[alpha] is what MakeDeltaQI outputs. It is the spatial derivative part of partial_a T^{a mu} (including geometric terms)
-
- for(alpha=0; alpha<5; alpha++)
-   {
+  for(int alpha=0; alpha<5; alpha++)
+  {
      qirk[alpha][0] = qi[alpha] + rhs[alpha];
      if(!isfinite(qirk[alpha][0]))
-       {
+     {
 	 fprintf(stderr, "qirk[%d][0] = %e is a nan.\n", alpha, qirk[alpha][0]);
 	 fprintf(stderr, "qi[%d] = %e\n", alpha, qi[alpha]);
 	 fprintf(stderr, "rhs[%d] = %e\n", alpha, rhs[alpha]);
-       }
-
+     }
      // now MakeWSource returns partial_a W^{a mu} (including geometric terms) 
-     dwmn = diss->MakeWSource(tau_rk, alpha, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, DATA, rk_flag, size, rank);
-
+     double dwmn = diss->MakeWSource(tau_rk, alpha, grid_pt, 
+         Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, DATA, rk_flag, size, rank);
      /* dwmn is the only one with the minus sign */
      qirk[alpha][0] -= dwmn*(DATA->delta_tau);
      
@@ -573,27 +564,27 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
        qirk[alpha][0] += (grid_pt->TJb[0][alpha][0])*tau_now;
        qirk[alpha][0] *= 0.5;
      }
-   }
- 
- if(DATA->reconst_type == 0)
-   flag = reconst->ReconstIt(grid_rk, 0, tau_next, qirk, grid_pt,
-                             grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
- else
-   flag = reconst->ReconstIt_velocity(grid_rk, 0, tau_next, qirk, grid_pt,
-                                      grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
+  }
 
- if(flag==0)
- {
-    reconst->ReconstError("grid_rk", 0, rk_flag+1, qi, qirk, grid_pt);
-    return 0;
- }/* flag == 0 */
- else
- {
-    UpdateTJbRK(grid_rk, grid_pt, DATA, rk_flag); 
-    /* TJb[rk_flag+1] is filled */
- }
- 
- return 1;
+  int flag;
+  if(DATA->reconst_type == 0)
+    flag = reconst->ReconstIt(grid_rk, 0, tau_next, qirk, grid_pt,
+        grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
+  else
+    flag = reconst->ReconstIt_velocity(grid_rk, 0, tau_next, qirk, grid_pt,
+        grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
+
+  if(flag==0)
+  {
+     reconst->ReconstError("grid_rk", 0, rk_flag+1, qi, qirk, grid_pt);
+     return 0;
+  }/* flag == 0 */
+  else
+  {
+     UpdateTJbRK(grid_rk, grid_pt, rk_flag); 
+     /* TJb[rk_flag+1] is filled */
+  }
+  return 1;
 }/* FirstRKStepT */
 
 
@@ -604,72 +595,129 @@ double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size,
 */
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
-int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, Grid *Lneighbor2, Grid *Rneighbor2, int rk_flag, 
-double *qi, double *rhs, double **w_rhs, double **qirk, Grid *grid_rk, int size, int rank)
+int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt, 
+                          Grid *Lneighbor, Grid *Rneighbor, 
+                          Grid *Lneighbor2, Grid *Rneighbor2, int rk_flag, 
+                          double *qi, double *rhs, double **w_rhs, double **qirk, 
+                          Grid *grid_rk, int size, int rank)
 { 
- double tau_now, tau_next, tempf, p_rhs, temps;
-//  double temp_mu, eps_ratio, tempd;
-//  double tau_rk;
-//  int alpha, flag;
- int mu, nu, revert_flag = 0;
- int mu_max; // Sangyong Nov 18 2014
-//  static int ind=0;
-
- tau_now = tau;
- tau_next = tau + (DATA->delta_tau);
+  double tau_now = tau;
+  double tau_next = tau + (DATA->delta_tau);
   
-
-// Sangyong Nov 18 2014 implemented mu_max
-   if(DATA->turn_on_rhob == 1) { mu_max = 4; }
-   else { mu_max = 3; }
- 
-//  if(rk_flag == 0) {tau_rk = tau_now;}
-//  else if(rk_flag > 0) {tau_rk = tau_next;}
-
-/*
- Solve partial_a (u^a W^{mu nu}) = 0
- Update W^{mu nu}
- mu = 4 is the baryon current qmu
-*/
-
-/* u[1][mu] now has u1[mu] */
-
-/* calculate delta uWmunu  */
-/* need to use u[0][mu], remember rk_flag = 0 here */
-/* with the KT flux */
-/* solve partial_tau (u^0 W^{kl}) = -partial_i (u^i W^{kl})  */
+   // Sangyong Nov 18 2014 implemented mu_max
+   int mu_max;
+   if(DATA->turn_on_rhob == 1)
+       mu_max = 4;
+   else 
+       mu_max = 3;
  
 
-/* Advance uWmunu */
+   //Solve partial_a (u^a W^{mu nu}) = 0
+   //Update W^{mu nu}
+   //mu = 4 is the baryon current qmu
 
-if(rk_flag == 0)
-{
-   diss->Make_uWRHS(tau_now, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
+   // calculate delta uWmunu
+   // need to use u[0][mu], remember rk_flag = 0 here
+   // with the KT flux 
+   // solve partial_tau (u^0 W^{kl}) = -partial_i (u^i W^{kl}
+ 
+   /* Advance uWmunu */
+   double tempf, temps;
+   if(rk_flag == 0)
+   {
+     diss->Make_uWRHS(tau_now, grid_pt, Lneighbor, Rneighbor, 
+                      Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
+     for(int mu=1; mu<=3; mu++)
+     {
+       for(int nu=1; nu<=3; nu++)
+       {
+         tempf = (grid_pt->Wmunu[rk_flag][mu][nu])*(grid_pt->u[rk_flag][0]);
+         temps = diss->Make_uWSource(tau_now, grid_pt, mu, nu, DATA, rk_flag); 
+         tempf += temps*(DATA->delta_tau);
+         tempf += w_rhs[mu][nu];
+
+         grid_pt->Wmunu[rk_flag+1][mu][nu] = tempf/(grid_pt->u[rk_flag+1][0]);
+       }
+     }
+   }/* rk_flag == 0 */
+   else if(rk_flag > 0)
+   {
+     diss->Make_uWRHS(tau_next, grid_pt, Lneighbor, Rneighbor, 
+                      Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
+     for(int mu=1; mu<=3; mu++)
+     {
+       for(int nu=1; nu<=3; nu++)
+       {
+         tempf = (grid_pt->Wmunu[0][mu][nu])*(grid_pt->u[0][0]);
+         temps = diss->Make_uWSource(tau_next, grid_pt, mu, nu, DATA, rk_flag); 
+         tempf += temps*(DATA->delta_tau);
+         tempf += w_rhs[mu][nu];
+
+         tempf += (grid_pt->Wmunu[rk_flag][mu][nu])*(grid_pt->u[rk_flag][0]);
+         tempf *= 0.5;
+       
+         grid_pt->Wmunu[rk_flag+1][mu][nu] = tempf/(grid_pt->u[rk_flag+1][0]);
+       }
+     }
+   }/* rk_flag > 0 */
+
+   /* calculate delta u pi */
+   double p_rhs;
+   if(rk_flag == 0)
+   {
+     /* calculate delta u^0 pi */
+     diss->Make_uPRHS(tau_now, grid_pt, Lneighbor, Rneighbor, 
+                      Lneighbor2, Rneighbor2, &p_rhs, DATA, rk_flag, size, rank);
    
-   for(mu=1; mu<=3; mu++)
-    {
-     for(nu=1; nu<=3; nu++)
-      {
-       tempf = (grid_pt->Wmunu[rk_flag][mu][nu])*(grid_pt->u[rk_flag][0]);
+     tempf = (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
+     temps = diss->Make_uPiSource(tau_now, grid_pt, DATA, rk_flag);
+     tempf += temps*(DATA->delta_tau);
+     tempf += p_rhs;
+   
+     grid_pt->pi_b[rk_flag+1] = tempf/(grid_pt->u[rk_flag+1][0]);
+   }/* rk_flag == 0 */
+   else if(rk_flag > 0)
+   {
+     /* calculate delta u^0 pi */
+     diss->Make_uPRHS(tau_next, grid_pt, Lneighbor, Rneighbor, 
+                      Lneighbor2, Rneighbor2, &p_rhs, DATA, rk_flag, size, rank);
+   
+     tempf = (grid_pt->pi_b[0])*(grid_pt->u[0][0]);
+     temps = diss->Make_uPiSource(tau_next, grid_pt, DATA, rk_flag);
+     tempf += temps*(DATA->delta_tau);
+     tempf += p_rhs;
+  
+     tempf += (grid_pt->pi_b[1])*(grid_pt->u[0][0]);
+     tempf *= 0.5;
 
-       temps = diss->Make_uWSource(tau_now, grid_pt, mu, nu, DATA, rk_flag); 
+     grid_pt->pi_b[rk_flag+1] = tempf/(grid_pt->u[rk_flag+1][0]);
+   }/* rk_flag > 0 */
+
+   // CShen: add source term for baryon diffusion
+   if(rk_flag == 0)
+   {
+     diss->Make_uqRHS(tau_now, grid_pt, Lneighbor, Rneighbor, 
+                      Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
+     int mu = 4;
+     for(int nu=1; nu<=3; nu++)
+     {
+       tempf = (grid_pt->Wmunu[rk_flag][mu][nu])*(grid_pt->u[rk_flag][0]);
+       temps = diss->Make_uqSource(tau_now, grid_pt, nu, DATA, rk_flag); 
        tempf += temps*(DATA->delta_tau);
        tempf += w_rhs[mu][nu];
 
        grid_pt->Wmunu[rk_flag+1][mu][nu] = tempf/(grid_pt->u[rk_flag+1][0]);
-      }
-    }
-}/* rk_flag == 0 */
-else if(rk_flag > 0)
-{
-   diss->Make_uWRHS(tau_next, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
-   for(mu=1; mu<=3; mu++)
-    {
-     for(nu=1; nu<=3; nu++)
-      {
+     }
+   }/* rk_flag == 0 */
+   else if(rk_flag > 0)
+   {
+     diss->Make_uqRHS(tau_next, grid_pt, Lneighbor, Rneighbor, 
+                      Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
+     int mu = 4;
+     for(int nu=1; nu<=3; nu++)
+     {
        tempf = (grid_pt->Wmunu[0][mu][nu])*(grid_pt->u[0][0]);
-
-       temps = diss->Make_uWSource(tau_next, grid_pt, mu, nu, DATA, rk_flag); 
+       temps = diss->Make_uqSource(tau_next, grid_pt, nu, DATA, rk_flag); 
        tempf += temps*(DATA->delta_tau);
        tempf += w_rhs[mu][nu];
 
@@ -677,266 +725,172 @@ else if(rk_flag > 0)
        tempf *= 0.5;
        
        grid_pt->Wmunu[rk_flag+1][mu][nu] = tempf/(grid_pt->u[rk_flag+1][0]);
-      }
-    }
-}/* rk_flag > 0 */
-
-
-/* calculate delta u pi */
-
-if(rk_flag == 0)
-{
-/* calculate delta u^0 pi */
-   diss->Make_uPRHS(tau_now, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, &p_rhs, DATA, rk_flag, size, rank);
+     }
+   }/* rk_flag > 0 */
    
-   tempf = (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
-   
-   temps = diss->Make_uPiSource(tau_now, grid_pt, DATA, rk_flag);
-   tempf += temps*(DATA->delta_tau);
-   tempf += p_rhs;
-   
-   grid_pt->pi_b[rk_flag+1] = tempf/(grid_pt->u[rk_flag+1][0]);
-   
-}/* rk_flag == 0 */
-else if(rk_flag > 0)
-{
-/* calculate delta u^0 pi */
-   diss->Make_uPRHS(tau_next, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, &p_rhs, DATA, rk_flag, size, rank);
-   
-   tempf = (grid_pt->pi_b[0])*(grid_pt->u[0][0]);
-   
-   temps = diss->Make_uPiSource(tau_next, grid_pt, DATA, rk_flag);
-   tempf += temps*(DATA->delta_tau);
-   tempf += p_rhs;
-  
-   tempf += (grid_pt->pi_b[1])*(grid_pt->u[0][0]);
-   tempf *= 0.5;
+   //re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless
+   grid_pt->Wmunu[rk_flag+1][3][3] = (
+       2.*(grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][1][2] 
+       + grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][1][3]
+       + grid_pt->u[rk_flag+1][2]*grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][2][3])
+       - (grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] 
+          - grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][1])*grid_pt->Wmunu[rk_flag+1][1][1] 
+       - (grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] 
+          - grid_pt->u[rk_flag+1][2]*grid_pt->u[rk_flag+1][2])*grid_pt->Wmunu[rk_flag+1][2][2]
+	 )/(grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] 
+          - grid_pt->u[rk_flag+1][3]*grid_pt->u[rk_flag+1][3]);
 
-   grid_pt->pi_b[rk_flag+1] = tempf/(grid_pt->u[rk_flag+1][0]);
-
-}/* rk_flag > 0 */
-
-// CShen: add source term for baryon diffusion
-if(rk_flag == 0)
-{
-   diss->Make_uqRHS(tau_now, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
-   mu = 4;
-   for(nu=1; nu<=3; nu++)
+   //make Wmunu[i][0] using the transversality
+   for(int mu=1; mu<4; mu++)
    {
-     tempf = (grid_pt->Wmunu[rk_flag][mu][nu])*(grid_pt->u[rk_flag][0]);
-     temps = diss->Make_uqSource(tau_now, grid_pt, nu, DATA, rk_flag); 
-     tempf += temps*(DATA->delta_tau);
-     tempf += w_rhs[mu][nu];
-
-     grid_pt->Wmunu[rk_flag+1][mu][nu] = tempf/(grid_pt->u[rk_flag+1][0]);
-   }
-}/* rk_flag == 0 */
-else if(rk_flag > 0)
-{
-   diss->Make_uqRHS(tau_next, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, w_rhs, DATA, rk_flag, size, rank);
-   mu = 4;
-   for(nu=1; nu<=3; nu++)
-   {
-     tempf = (grid_pt->Wmunu[0][mu][nu])*(grid_pt->u[0][0]);
-     temps = diss->Make_uqSource(tau_next, grid_pt, nu, DATA, rk_flag); 
-     tempf += temps*(DATA->delta_tau);
-     tempf += w_rhs[mu][nu];
-
-     tempf += (grid_pt->Wmunu[rk_flag][mu][nu])*(grid_pt->u[rk_flag][0]);
-     tempf *= 0.5;
-     
-     grid_pt->Wmunu[rk_flag+1][mu][nu] = tempf/(grid_pt->u[rk_flag+1][0]);
-   }
-}/* rk_flag > 0 */
-
-
-/* update Pimunu */
-   for(mu=0; mu<4; mu++)
-    {
-     for(nu=0; nu<4; nu++)
-     {
-      grid_pt->Pimunu[rk_flag+1][mu][nu]  = (grid_pt->u[rk_flag+1][mu]);
-      grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->u[rk_flag+1][nu]);
-      grid_pt->Pimunu[rk_flag+1][mu][nu] += DATA->gmunu[mu][nu];
-      grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->pi_b[rk_flag+1]);
-     }/* nu */
-    }/* mu */
-
-
-/* re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless */
-grid_pt->Wmunu[rk_flag+1][3][3] = (2.*( grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][2]*grid_pt->Wmunu[rk_flag+1][1][2] 
-                            + grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][1][3]
-                            + grid_pt->u[rk_flag+1][2]*grid_pt->u[rk_flag+1][3]*grid_pt->Wmunu[rk_flag+1][2][3] )
-                         -( grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] - grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][1] )*grid_pt->Wmunu[rk_flag+1][1][1] 
-                         -( grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] - grid_pt->u[rk_flag+1][2]*grid_pt->u[rk_flag+1][2] )*grid_pt->Wmunu[rk_flag+1][2][2]
-			)/( grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] - grid_pt->u[rk_flag+1][3]*grid_pt->u[rk_flag+1][3] ) ;
-
-/* make Wmunu[i][0] using the transversality */
-// Sangyong Nov 18 2014: this was for(mu=1; mu<=3; mu++)
-   for(mu=1; mu<=mu_max; mu++)
-    {
      tempf = 0.0;
-     for(nu=1; nu<=3; nu++)
-      {
-       tempf +=
-       (grid_pt->Wmunu[rk_flag+1][mu][nu])*(grid_pt->u[rk_flag+1][nu]); 
-      }
+     for(int nu=1; nu<4; nu++)
+       tempf += grid_pt->Wmunu[rk_flag+1][mu][nu]*grid_pt->u[rk_flag+1][nu]; 
      grid_pt->Wmunu[rk_flag+1][mu][0] = tempf/(grid_pt->u[rk_flag+1][0]);
-    }
+   }
    
-
-   for(mu=1; mu<=3; mu++)
-    {
+   for(int mu=1; mu<4; mu++)
+   {
      tempf = 0.0;
-     for(nu=1; nu<=3; nu++)
-      {
-       tempf +=
-       (grid_pt->Wmunu[rk_flag+1][nu][mu])*(grid_pt->u[rk_flag+1][nu]); 
-      }
+     for(int nu=1; nu<4; nu++)
+       tempf += grid_pt->Wmunu[rk_flag+1][nu][mu]*grid_pt->u[rk_flag+1][nu]; 
      grid_pt->Wmunu[rk_flag+1][0][mu] = tempf/(grid_pt->u[rk_flag+1][0]);
-    }
+   }
 
-
-/* make Wmunu[0][0] */
-     
-     tempf = 0.0;
-     for(nu=1; nu<=3; nu++)
-      {
-       tempf +=
-       (grid_pt->Wmunu[rk_flag+1][0][nu])*(grid_pt->u[rk_flag+1][nu]); 
-      }
-     grid_pt->Wmunu[rk_flag+1][0][0] = tempf/(grid_pt->u[rk_flag+1][0]);
+   //make Wmunu[0][0]
+   tempf = 0.0;
+   for(int nu=1; nu<4; nu++)
+     tempf += grid_pt->Wmunu[rk_flag+1][0][nu]*grid_pt->u[rk_flag+1][nu]; 
+   grid_pt->Wmunu[rk_flag+1][0][0] = tempf/(grid_pt->u[rk_flag+1][0]);
  
-//   TestW(tau, DATA, grid_pt, rk_flag);
+   //TestW(tau, DATA, grid_pt, rk_flag);
+   
+   // update Pimunu
+   for(int mu=0; mu<4; mu++)
+   {
+     for(int nu=0; nu<4; nu++)
+     {
+       grid_pt->Pimunu[rk_flag+1][mu][nu]  = (grid_pt->u[rk_flag+1][mu]);
+       grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->u[rk_flag+1][nu]);
+       grid_pt->Pimunu[rk_flag+1][mu][nu] += DATA->gmunu[mu][nu];
+       grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->pi_b[rk_flag+1]);
+     }/* nu */
+   }/* mu */
 
-/// If the energy density of the fluid element is smaller than 0.01GeV
-/// reduce Wmunu using the QuestRevert algorithm
-if (grid_pt->epsilon < DATA->QuestRevert_epsilon_min/hbarc){
-revert_flag = 
-  QuestRevert(tau, 0, grid_pt, rk_flag, DATA, size, rank);
-}
-  
+   // make qmu[0] using transversality
+   for(int mu=4; mu<mu_max+1; mu++)
+   {
+     tempf = 0.0;
+     for(int nu=1; nu<4; nu++)
+       tempf += grid_pt->Wmunu[rk_flag+1][mu][nu]*grid_pt->u[rk_flag+1][nu]; 
+     grid_pt->Wmunu[rk_flag+1][mu][0] = tempf/(grid_pt->u[rk_flag+1][0]);
+   }
 
-/* if reverted, this is 1, otherwise, 0 */
+   // If the energy density of the fluid element is smaller than 0.01GeV
+   // reduce Wmunu using the QuestRevert algorithm
+   int revert_flag = 0;
+   if (grid_pt->epsilon < DATA->QuestRevert_epsilon_min/hbarc)
+     revert_flag = QuestRevert(tau, 0, grid_pt, rk_flag, DATA, size, rank);
+   //if reverted, this is 1, otherwise, 0 
    grid_pt->revert_flag = revert_flag;
 
    if(revert_flag == 1)
-    {
      return -1;
-    }
    else
-    {
      return 1;
-    }
 }/* FirstRKStepW */
-
-
 /* First steps done */
 
 
-void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, InitData *DATA, int rk_flag)
+// update results after RK evolution to grid_pt
+void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag)
 {
- int trk_flag, mu, alpha;
-//  double tempf;
+   int trk_flag = rk_flag+1;
 
- trk_flag = rk_flag+1;
-
- grid_pt->epsilon_t = grid_rk->epsilon;
- grid_pt->p_t = grid_rk->p;
- grid_pt->rhob_t = grid_rk->rhob;
-  
-  /* reconstructed grid_rk uses rk_flag 0 only */
-   for(mu=0; mu<4; mu++)
-    {
+   grid_pt->epsilon_t = grid_rk->epsilon;
+   grid_pt->p_t = grid_rk->p;
+   grid_pt->rhob_t = grid_rk->rhob;
+    
+   // reconstructed grid_rk uses rk_flag 0 only
+   for(int mu=0; mu<4; mu++)
+   {
       grid_pt->u[trk_flag][mu] = grid_rk->u[0][mu];
-     for(alpha=0; alpha<5; alpha++) // alpha = 4 is the baryon current
-      {
+      for(int alpha=0; alpha<5; alpha++) // alpha = 4 is the baryon current
         grid_pt->TJb[trk_flag][alpha][mu] = grid_rk->TJb[0][alpha][mu];
-      }/* alpha */
-    }/* mu */
-
+   }/* mu */
 }/* UpdateTJbRK */
 
+// reduce the size of shear stress tensor and bulk pressure in the dilute region
 int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
 {
- int mu, nu;
- double rho_shear, rho_bulk, factor, pisize, bulksize;
- double epsFO = 0.;
-//  int revert_flag=0;
+  int mu, nu;
+  double rho_shear, rho_bulk, factor, pisize, bulksize;
+  double epsFO = 0.;
  
- rho_shear = 0.;
- rho_bulk = 0.;
-   	if ( DATA->useEpsFO == 0 )
-	{
- 		epsFO = eos->findRoot(&EOS::Tsolve, 0., DATA->TFO/hbarc, 0.001, 300.,0.001);
-	}
-   	if ( DATA->useEpsFO == 1 )
-	{
-		epsFO = DATA->epsilonFreeze / hbarc;
-	}
- if (DATA->QuestRevert_factor == 0.)
+  rho_shear = 0.;
+  rho_bulk = 0.;
+  if (DATA->useEpsFO == 0)
+      epsFO = eos->findRoot(&EOS::Tsolve, 0., DATA->TFO/hbarc, 0.001, 300.,0.001);
+  if (DATA->useEpsFO == 1)
+      epsFO = DATA->epsilonFreeze / hbarc;
+  if (DATA->QuestRevert_factor == 0.)
 	factor = DATA->QuestRevert_prefactor * tanh (grid_pt->epsilon / epsFO * DATA->QuestRevert_eps_factor);
- else
+  else
  	factor = DATA->QuestRevert_factor;
 
+  pisize = 
+   (grid_pt->Wmunu[rk_flag+1][0][0]*grid_pt->Wmunu[rk_flag+1][0][0]
+   +grid_pt->Wmunu[rk_flag+1][1][1]*grid_pt->Wmunu[rk_flag+1][1][1]
+   +grid_pt->Wmunu[rk_flag+1][2][2]*grid_pt->Wmunu[rk_flag+1][2][2]
+   +grid_pt->Wmunu[rk_flag+1][3][3]*grid_pt->Wmunu[rk_flag+1][3][3]
+   -2.*(
+         grid_pt->Wmunu[rk_flag+1][0][1]*grid_pt->Wmunu[rk_flag+1][0][1]
+        +grid_pt->Wmunu[rk_flag+1][0][2]*grid_pt->Wmunu[rk_flag+1][0][2]
+        +grid_pt->Wmunu[rk_flag+1][0][3]*grid_pt->Wmunu[rk_flag+1][0][3]
+        )
+   +2.*(
+         grid_pt->Wmunu[rk_flag+1][1][2]*grid_pt->Wmunu[rk_flag+1][1][2]
+        +grid_pt->Wmunu[rk_flag+1][1][3]*grid_pt->Wmunu[rk_flag+1][1][3]
+        +grid_pt->Wmunu[rk_flag+1][2][3]*grid_pt->Wmunu[rk_flag+1][2][3]
+        ));
 
- pisize = 
-  (grid_pt->Wmunu[rk_flag+1][0][0]*grid_pt->Wmunu[rk_flag+1][0][0]
-  +grid_pt->Wmunu[rk_flag+1][1][1]*grid_pt->Wmunu[rk_flag+1][1][1]
-  +grid_pt->Wmunu[rk_flag+1][2][2]*grid_pt->Wmunu[rk_flag+1][2][2]
-  +grid_pt->Wmunu[rk_flag+1][3][3]*grid_pt->Wmunu[rk_flag+1][3][3]
-  -2.*(
-        grid_pt->Wmunu[rk_flag+1][0][1]*grid_pt->Wmunu[rk_flag+1][0][1]
-       +grid_pt->Wmunu[rk_flag+1][0][2]*grid_pt->Wmunu[rk_flag+1][0][2]
-       +grid_pt->Wmunu[rk_flag+1][0][3]*grid_pt->Wmunu[rk_flag+1][0][3]
-       )
-  +2.*(
-        grid_pt->Wmunu[rk_flag+1][1][2]*grid_pt->Wmunu[rk_flag+1][1][2]
-       +grid_pt->Wmunu[rk_flag+1][1][3]*grid_pt->Wmunu[rk_flag+1][1][3]
-       +grid_pt->Wmunu[rk_flag+1][2][3]*grid_pt->Wmunu[rk_flag+1][2][3]
-       ));
-
- bulksize = 3.*grid_pt->pi_b[rk_flag+1]*grid_pt->pi_b[rk_flag+1] ;
+  bulksize = 3.*grid_pt->pi_b[rk_flag+1]*grid_pt->pi_b[rk_flag+1] ;
        
- rho_shear = sqrt(  pisize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p )  )/factor ; 
+  rho_shear = sqrt(pisize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p )  )/factor ; 
 
- rho_bulk  = sqrt(  bulksize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p ) )/factor ;
+  rho_bulk  = sqrt(bulksize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p ) )/factor ;
  
- /// Reducing the shear stress tensor 
- if(rho_shear>DATA->QuestRevert_rho_shear_max) 
-   {
-     for(mu=0; mu<4; mu++)
-       {
-	 for(nu=0; nu<4; nu++)
-	   {   	       
-	     grid_pt->Wmunu[rk_flag+1][mu][nu] = (DATA->QuestRevert_rho_shear_max/rho_shear)*grid_pt->Wmunu[rk_flag+1][mu][nu];
-	   }
-       }
-   }
-  
-  /// Reducing bulk viscous pressure 
+  // Reducing the shear stress tensor 
+  if(rho_shear>DATA->QuestRevert_rho_shear_max) 
+  {
+    for(mu=0; mu<4; mu++)
+    {
+      for(nu=0; nu<4; nu++)
+      {   	       
+        grid_pt->Wmunu[rk_flag+1][mu][nu] = (DATA->QuestRevert_rho_shear_max/rho_shear)*grid_pt->Wmunu[rk_flag+1][mu][nu];
+      }
+    }
+  }
+   
+  // Reducing bulk viscous pressure 
   if( rho_bulk>DATA->QuestRevert_rho_bulk_max) 
-   {
+  {
      grid_pt->pi_b[rk_flag+1] = (DATA->QuestRevert_rho_bulk_max/rho_bulk)*grid_pt->pi_b[rk_flag+1];
-     
      for(mu=0; mu<4; mu++)
-       {
-	 for(nu=0; nu<4; nu++)
-	   {   	       
-           grid_pt->Pimunu[rk_flag+1][mu][nu] = (DATA->QuestRevert_rho_bulk_max/rho_bulk)*grid_pt->Pimunu[rk_flag+1][mu][nu];
-	   }
-       }   
-       
-   }
+     {
+       for(nu=0; nu<4; nu++)
+       {   	       
+         grid_pt->Pimunu[rk_flag+1][mu][nu] = (DATA->QuestRevert_rho_bulk_max/rho_bulk)*grid_pt->Pimunu[rk_flag+1][mu][nu];
+       }
+     }
+  }
 
-return 0;
-
-
+  return 0;
 }/* QuestRevert */
 
 
-
-void Advance::TestW(double tau, InitData *DATA, Grid *grid_pt, int rk_flag)
+// test the traceless and transversality of shear stress tensor
+void Advance::TestW(double tau, Grid *grid_pt, int rk_flag)
 {
  int mu, nu;
  double trace, transv, nufac;
@@ -1788,127 +1742,123 @@ void Advance::MakeMaxSpeedAs(double tau, BdryCells *HalfwayCells, double aiph[],
 
 
 
-
-double Advance::MaxSpeed (double tau, int direc, Grid *grid_p, int rk_flag)
+// determine the maximum signal propagation speed at the given direction
+double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag)
 {
- double f, den, num;
- double rhob, utau, utau2, ux2, ux, p, eps, h; 
-//  double  uy, ueta;
-//  double deriv_p_rho, deriv_p_eps, deriv_p_h, rho_p_rho, h_p_h;
- double ut2mux2, ut, pe, rpr;
-//  double rho;
- 
- rhob = grid_p->rhob;
+  //grid_p = grid_p_h_L, grid_p_h_R, grid_m_h_L, grid_m_h_R
+  //these are reconstructed by Reconst which only uses u[0] and TJb[0]
+  double utau = (grid_p->u[0][0]);
+  double utau2 = utau*utau;
+  double ux = fabs((grid_p->u[0][direc]));
+  double ux2 = ux*ux;
+  double ut2mux2 = utau2 - ux2;
+  
+  double eps = grid_p->epsilon;
+  double rhob = grid_p->rhob;
+  
+  double vs2 = eos->get_velocity_of_sound_sq(eps, rhob);
 
-/* grid_p = grid_p_h_L, grid_p_h_R, grid_m_h_L, grid_m_h_R
-   these are reconstructed by Reconst which only uses u[0] and TJb[0] */
- 
- utau = (grid_p->u[0][0]);
- utau2 = utau*utau;
- ut = utau;
-
- /* to get the maximum value */
- ux = fabs((grid_p->u[0][direc]));
- ux2 = ux*ux;
-
- ut2mux2 = utau2-ux2;
- 
- p = grid_p->p;
- eps = grid_p->epsilon;
- h = p+eps;
- 
- pe = eos->p_e_func(eps, rhob);
- rpr = rhob*eos->p_rho_func(eps, rhob)/(1.+pe); // fixed this, June 15th 2010 times 1/(1.+pe)
-
- den = -((1.0 + pe)*rpr*(-1.0 + util->Power(ut,2))) 
-       + h*(pe + util->Power(ut,2) - pe*util->Power(ut,2));
- 
- num = 
- sqrt(-((h*pe + rpr + pe*rpr)*(h*(pe*(-1.0 + ut2mux2) - ut2mux2) 
-          + (1.0 + pe)*rpr*(-1.0 + ut2mux2)))) 
-	  - h*(-1.0 + pe)*ut*ux - rpr*ut*ux - pe*rpr*ut*ux;
-
- if(-((h*pe + rpr + pe*rpr)*(h*(pe*(-1.0 + ut2mux2) - ut2mux2) 
-			     + (1.0 + pe)*rpr*(-1.0 + ut2mux2)))<0) 
-   {
-     if(pe<0.001) 
-       {
-	 rpr=0.;
-	 num = 
-	   sqrt(-((h*pe + rpr + pe*rpr)*(h*(pe*(-1.0 + ut2mux2) - ut2mux2) 
-					 + (1.0 + pe)*rpr*(-1.0 + ut2mux2)))) 
-	   - h*(-1.0 + pe)*ut*ux - rpr*ut*ux - pe*rpr*ut*ux;
-       }
-     else 
-       {
-	 //fprintf(stderr,"num=%lf for pr=%lf\n",num,p_rho_func(eps, rhob));
-	 fprintf(stderr,"WARNING: in MaxSpeed. Expression under sqrt in num=%lf. \n",
-		 -((h*pe + rpr + pe*rpr)*(h*(pe*(-1.0 + ut2mux2) - ut2mux2) + (1.0 + pe)*rpr*(-1.0 + ut2mux2))));
-	 fprintf(stderr,"at value e=%lf. \n",eps);
-	 fprintf(stderr,"at value p=%lf. \n",p);
-	 fprintf(stderr,"at value rhob=%lf. \n",rhob);
-	 fprintf(stderr,"at value dpdrhob=%lf. \n",eos->p_rho_func(eps, rhob));
-	 fprintf(stderr,"at value h=%lf. \n",h);
-	 fprintf(stderr,"at value rpr=%lf. \n",rpr);
-	 fprintf(stderr,"at value dpde=%lf. \n",pe);
-	 fprintf(stderr,"at value (h*pe + rpr + pe*rpr)=%lf. \n",(h*pe + rpr + pe*rpr));
-	 fprintf(stderr,"at value utau=%lf. \n", ut);
-	 fprintf(stderr,"at value uk=%lf. \n", ux);
-	 fprintf(stderr, "MaxSpeed: exiting.\n");
-   
-	 exit(0);
-       }
-   
-   }
-// if(den == 0.0) den += SMALL; 
-
- if( (num == 0.0) && (den != 0.0) )
+  double den = utau2*(1. - vs2) + vs2;
+  double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.)*vs2)*vs2;
+  double num;
+  if(num_temp_sqrt >= 0)
+      num = utau*ux*(1. - vs2) + sqrt(num_temp_sqrt);
+  else
   {
-   f = 0.0;
-  }
- else if( (num != 0.0) && (den != 0.0) )
-  {
-   f = num/den;
-  }
- else if( (num == 0.0) && (den == 0.0) )
-  {
-   /* nothing there */
-   f = 0.0;
-  }
- else /* (num != 0.0) && (den == 0.0) */
-  {
-   fprintf(stderr, "SpeedMax = is infinite.\n");
-   fprintf(stderr, "Can't happen.\n");
-   exit(0);
+    double dpde = eos->p_e_func(eps, rhob);
+    double p = grid_p->p;
+    double h = p+eps;
+    if(dpde < 0.001) 
+      num = sqrt(-(h*dpde*h*(dpde*(-1.0 + ut2mux2) - ut2mux2))) - h*(-1.0 + dpde)*utau*ux;
+    else
+    {
+      fprintf(stderr,"WARNING: in MaxSpeed. Expression under sqrt in num=%lf. \n", num_temp_sqrt);
+      fprintf(stderr,"at value e=%lf. \n",eps);
+      fprintf(stderr,"at value p=%lf. \n",p);
+      fprintf(stderr,"at value h=%lf. \n",h);
+      fprintf(stderr,"at value rhob=%lf. \n",rhob);
+      fprintf(stderr,"at value utau=%lf. \n", utau);
+      fprintf(stderr,"at value uk=%lf. \n", ux);
+      fprintf(stderr,"at value vs^2=%lf. \n", vs2);
+      fprintf(stderr,"at value dpde=%lf. \n",eos->p_e_func(eps, rhob));
+      fprintf(stderr,"at value dpdrhob=%lf. \n",eos->p_rho_func(eps, rhob));
+      fprintf(stderr, "MaxSpeed: exiting.\n");
+      exit(0);
+    }
   }
 
+  //double dpde = eos->p_e_func(eps, rhob);
+  //double rpr = rhob*eos->p_rho_func(eps, rhob)/(1.+dpde); // fixed this, June 15th 2010 times 1/(1.+pe)
 
- if(f < 0.0) 
+  //double den = -((1.0 + dpde)*rpr*(-1.0 + utau2)) + h*(pe + utau2 - dpde*utau2);
+  //
+  //double num = sqrt(-((h*dpde + rpr + dpde*rpr)*(h*(dpde*(-1.0 + ut2mux2) - ut2mux2) 
+  //                  + (1.0 + dpde)*rpr*(-1.0 + ut2mux2)))) 
+  //             - h*(-1.0 + dpde)*utau*ux - rpr*utau*ux - dpde*rpr*utau*ux;
+
+  //if(-((h*pe + rpr + pe*rpr)*(h*(pe*(-1.0 + ut2mux2) - ut2mux2) 
+  //    		     + (1.0 + pe)*rpr*(-1.0 + ut2mux2)))<0) 
+  // {
+  //   if(pe<0.001) 
+  //     {
+  //     rpr=0.;
+  //     num = 
+  //       sqrt(-((h*pe + rpr + pe*rpr)*(h*(pe*(-1.0 + ut2mux2) - ut2mux2) 
+  //    				 + (1.0 + pe)*rpr*(-1.0 + ut2mux2)))) 
+  //       - h*(-1.0 + pe)*ut*ux - rpr*ut*ux - pe*rpr*ut*ux;
+  //     }
+  //   else 
+  //     {
+  //     //fprintf(stderr,"num=%lf for pr=%lf\n",num,p_rho_func(eps, rhob));
+  //     fprintf(stderr,"WARNING: in MaxSpeed. Expression under sqrt in num=%lf. \n",
+  //    	 -((h*pe + rpr + pe*rpr)*(h*(pe*(-1.0 + ut2mux2) - ut2mux2) + (1.0 + pe)*rpr*(-1.0 + ut2mux2))));
+  //     fprintf(stderr,"at value e=%lf. \n",eps);
+  //     fprintf(stderr,"at value p=%lf. \n",p);
+  //     fprintf(stderr,"at value rhob=%lf. \n",rhob);
+  //     fprintf(stderr,"at value dpdrhob=%lf. \n",eos->p_rho_func(eps, rhob));
+  //     fprintf(stderr,"at value h=%lf. \n",h);
+  //     fprintf(stderr,"at value rpr=%lf. \n",rpr);
+  //     fprintf(stderr,"at value dpde=%lf. \n",pe);
+  //     fprintf(stderr,"at value (h*pe + rpr + pe*rpr)=%lf. \n",(h*pe + rpr + pe*rpr));
+  //     fprintf(stderr,"at value utau=%lf. \n", ut);
+  //     fprintf(stderr,"at value uk=%lf. \n", ux);
+  //     fprintf(stderr, "MaxSpeed: exiting.\n");
+  // 
+  //     exit(0);
+  //     }
+  // 
+  // }
+  // if(den == 0.0) den += SMALL; 
+  
+  double f = num/(den + 1e-15);
+  
+  if(f < 0.0) 
   {
-   fprintf(stderr, "SpeedMax = %e\n is negative.\n", f);
-   fprintf(stderr, "Can't happen.\n");
-   exit(0);
+    fprintf(stderr, "SpeedMax = %e\n is negative.\n", f);
+    fprintf(stderr, "Can't happen.\n");
+    exit(0);
   }
- else if(f <  ux/ut) 
+  else if(f <  ux/utau) 
   {
     if(num != 0.0)
     {
-     if(fabs(f-ux/ut)<0.0001) f = ux/ut;
-     else 
+       if(fabs(f-ux/utau)<0.0001)
+         f = ux/utau;
+       else 
        {
-	 fprintf(stderr, "SpeedMax-v = %lf\n", f-ux/ut);
-	 fprintf(stderr, "SpeedMax = %e\n is smaller than v = %e.\n", f, ux/ut);
-	 fprintf(stderr, "Can't happen.\n");
-	 exit(0);
+	   fprintf(stderr, "SpeedMax-v = %lf\n", f-ux/utau);
+	   fprintf(stderr, "SpeedMax = %e\n is smaller than v = %e.\n", f, ux/utau);
+	   fprintf(stderr, "Can't happen.\n");
+	   exit(0);
        }
     }
   }
- else if(f >  1.0) 
+  else if(f >  1.0) 
   {
-   fprintf(stderr, "SpeedMax = %e\n is bigger than 1.\n", f);
-   fprintf(stderr, "Can't happen.\n");
-   f =1.;
-   //exit(0);
+    fprintf(stderr, "SpeedMax = %e\n is bigger than 1.\n", f);
+    fprintf(stderr, "Can't happen.\n");
+    f =1.;
+    exit(0);
   }
 
  if(direc == 3) f /= tau;

@@ -1896,31 +1896,31 @@ double EOS::get_dpOverdrhob2(double e, double rhob)
    
     double pL = get_pressure(e, rhobLeft);  // 1/fm^4
     double pR = get_pressure(e, rhobRight); // 1/fm^4
-    double p_mid = get_pressure(e, local_rhob);
       
     double dpdrho = (pR - pL)/(rhobRight - rhobLeft);  // 1/fm
 
-    double v_sound = p_e_func(e, local_rhob) + rhob/(e + p_mid)*dpdrho;
-    
-    if(v_sound < 0.03) 
-    { 
-        fprintf(stderr, "EOS::get_dpOverdrhob2: velocity of sound is negative!\n");
-        fprintf(stderr,"v_sound=%lf\n", v_sound); 
-        fprintf(stderr,"dp/drho=%lf\n", dpdrho); 
-        fprintf(stderr,"pL=%lf\n", pL); 
-        fprintf(stderr,"pR=%lf\n", pR); 
-        fprintf(stderr,"e=%lf\n", local_ed);  
-        fprintf(stderr,"rhob=%lf\n", local_rhob);  
-        fprintf(stderr,"rhobLeft=%lf\n", rhobLeft);  
-        fprintf(stderr,"rhobRight=%lf\n", rhobRight);  
-        dpdrho = (0.03 - p_e_func(e, local_rhob))*(e + p_mid)/rhob;
-        //exit(0);
-    }
+    //double p_mid = get_pressure(e, local_rhob);
+    //double v_sound = p_e_func(e, local_rhob) + rhob/(e + p_mid)*dpdrho;
+    //
+    //if(v_sound < 0.03) 
+    //{ 
+    //    fprintf(stderr, "EOS::get_dpOverdrhob2: velocity of sound is negative!\n");
+    //    fprintf(stderr,"v_sound=%lf\n", v_sound); 
+    //    fprintf(stderr,"dp/drho=%lf\n", dpdrho); 
+    //    fprintf(stderr,"pL=%lf\n", pL); 
+    //    fprintf(stderr,"pR=%lf\n", pR); 
+    //    fprintf(stderr,"e=%lf\n", local_ed);  
+    //    fprintf(stderr,"rhob=%lf\n", local_rhob);  
+    //    fprintf(stderr,"rhobLeft=%lf\n", rhobLeft);  
+    //    fprintf(stderr,"rhobRight=%lf\n", rhobRight);  
+    //    dpdrho = (0.03 - p_e_func(e, local_rhob))*(e + p_mid)/rhob;
+    //    //exit(0);
+    //}
    
     return dpdrho;   // in 1/fm
 }
 
-double EOS::get_velocity_of_sound(double e, double rhob)
+double EOS::get_velocity_of_sound_sq(double e, double rhob)
 {
     double dpde = p_e_func(e, rhob);
     double dpdrho = p_rho_func(e, rhob);

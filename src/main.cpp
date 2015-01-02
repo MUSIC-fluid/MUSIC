@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
           for(int jj = 0; jj < 100; jj++)
           {
               double rhob = 0.0 + jj*0.005;
-              double v_s = eos->get_velocity_of_sound(ed, rhob);
+              double v_s = eos->get_velocity_of_sound_sq(ed, rhob);
               of1 << v_s << "   ";
           }
           of1 << endl;

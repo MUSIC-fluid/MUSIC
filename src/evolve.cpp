@@ -362,8 +362,8 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighb
     // advance->MPISendReceive(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
     //cout << "2 AdvanceRK Wmunu=" << (Lneighbor[1][1][0]).Wmunu[rk_flag][1][1] << endl;
        
-    advance->MPISendReceiveT(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag); 
-    advance->MPISendReceiveW(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
+    advance->MPISendReceiveT(arena, Lneighbor, Rneighbor, size, rank, rk_flag); 
+    advance->MPISendReceiveW(arena, Lneighbor, Rneighbor, size, rank, rk_flag);
 
     flag = u_derivative->MakedU(tau, DATA, arena, Lneighbor, Rneighbor, rk_flag, size, rank); 
     if(flag == 0) return 0;

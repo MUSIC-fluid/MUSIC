@@ -92,7 +92,7 @@ class EOS
       double interpolate(double e, double rhob, int selector);
       double interpolate2D(double e, double rhob, int selector);  // for EOS at finite mu_B
 
-      double get_velocity_of_sound(double e, double rhob);
+      double get_velocity_of_sound_sq(double e, double rhob);
       double get_dpOverde(double e, double rhob);
       double get_dpOverde2(double e, double rhob);
       double get_dpOverdrhob(double e, double rhob);
