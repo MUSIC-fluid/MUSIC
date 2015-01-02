@@ -11,7 +11,7 @@ using namespace std;
 
 Evolve::Evolve(EOS *eosIn, InitData *DATA_in)
 {
-  eos = new EOS;
+  //eos = new EOS;  // seems redundant
   eos = eosIn;
   grid = new Grid;
   reconst = new Reconst(eosIn, grid);
@@ -23,7 +23,7 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in)
 // destructor
 Evolve::~Evolve()
 {
-  delete eos;
+  //delete eos;
   delete reconst;
   delete grid;
   delete util;
@@ -31,140 +31,146 @@ Evolve::~Evolve()
   delete u_derivative;
 }
 
+// master control function for hydrodynamic evolution
 int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank)
 {
-/* implement Kurganov-Tadmor */
-//  int ix, iy, ieta, nx, ny, neta, rk_flag,  cent_eta;
- int it, itmax;
-//  int flag;
- double dt, tau0, tau;
-//  double x;
+  // first pass some control parameters
+  facTau = DATA->facTau;
+  int output_hydro_debug_flag = DATA->output_hydro_debug_info;
+  int Nskip_timestep = DATA->output_evolution_every_N_timesteps;
+  int outputEvo_flag = DATA->outputEvolutionData;
+  int freezeout_flag = DATA->doFreezeOut;
+  int freezeout_method = DATA->freezeOutMethod;
+  int boost_invariant_flag = DATA->boost_invariant;
 
- if (DATA->output_hydro_debug_info)
- {
-   // first create output files
-   ofstream ent_file("entropy-eta.dat");
-   ent_file.close();
-   ofstream ep_file("e_profile.dat");
-   ep_file.close();
-   ofstream exp_file("e_x_profile.dat");
-   exp_file.close();
-   ofstream v2_file("aniso.dat");
-   v2_file.close();
-   ofstream t4_file("avgT.dat");
-   t4_file.close();
-   ofstream t5_file("plasmaEvolutionTime.dat");
-   t5_file.close();
-   ofstream cout_file("contourPlot.dat");
-   cout_file.close();
-   ofstream baryon_file("rhoB_evo.dat");
-   baryon_file.close();
-   ofstream qm_file("qmu_evo.dat");
-   qm_file.close();
- }
- ofstream out_file("evolution.dat");
- out_file.close();
- ofstream oout_file("OSCAR.dat");
- oout_file.close();
-
- facTau = DATA->facTau;
-
- //Output information about the hydro parameters in the format of a C header file
- if (DATA->output_hydro_params_header) grid->Output_hydro_information_header(DATA, eos);
-
- cout << "Starting Evolve on rank " <<  rank << endl;
- 
- itmax = DATA->nt;
- tau0 = DATA->tau0;
- dt = DATA->delta_tau;
- weirdCases=0;
- SUM = 0.;
- SUM2 = 0.;
- warnings = 0;
- cells = 0;
-       
- for(it=0; it<=itmax; it++)
-   {
-   tau = tau0 + dt*it;
-   //fprintf(stderr, "Starting time step %d/%d on rank %d.\n", it, itmax, rank);
-   if(it==0) 
-     {
-       // storePreviousT(tau, DATA, arena);
-       storePreviousEpsilon2(tau, DATA, arena);
-       storePreviousW(tau, DATA, arena);
-     }
-
-   //storePreviousEpsilon(tau, DATA, arena);
-/*    //for testing */
-/*    FindFreezeOutSurface(tau, DATA, arena); */
-/*    sleep(1); */
-/*    FindFreezeOutSurface2(tau, DATA, arena); */
-/*    exit(1); */
-   //for testing
-
-   if (DATA->output_hydro_debug_info) {
-     if(it%DATA->output_evolution_every_N_timesteps==0 && it>=0) 
-       {
-         grid->PrintEtaEpsilon(arena, DATA, tau, size, rank);
-         grid->PrintxEpsilon(arena, DATA, tau, size, rank);
-         //       grid->ComputeEccentricity(DATA, arena, tau);
-         grid->ComputeAnisotropy(DATA, arena, tau);
-         grid->print_qmu_evolution(DATA, arena, tau);
-         grid->print_rhob_evolution(DATA, arena, tau, eos);
-       }
-
-     grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
-     //grid->Tmax_profile(arena, DATA, eos, tau, size, rank);
-   }
-
-   if(it%DATA->output_evolution_every_N_timesteps==0 && DATA->outputEvolutionData) 
-     {
-       grid->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
-       if (DATA->output_hydro_debug_info) {
-       //grid->OutputXY(arena, DATA, eos, tau, size, rank);
-       //grid->OutputEvolutionOSCAR(arena, DATA, eos, tau, size, rank); 
-       //  grid->OutputEvolutionDataXYZ(arena, DATA, eos, tau, size, rank); 
-       // this produces potentially huge outputs so beware
-       }
-     }
-
-   /* execute rk steps */
+  // create evolution files for checking and debugging
+  if(output_hydro_debug_flag == 1)
+  {
+    // first create output files
+    ofstream ent_file("entropy-eta.dat");
+    ent_file.close();
+    ofstream ep_file("e_profile.dat");
+    ep_file.close();
+    ofstream exp_file("e_x_profile.dat");
+    exp_file.close();
+    ofstream v2_file("aniso.dat");
+    v2_file.close();
+    ofstream t4_file("avgT.dat");
+    t4_file.close();
+    ofstream t5_file("plasmaEvolutionTime.dat");
+    t5_file.close();
+    ofstream cout_file("contourPlot.dat");
+    cout_file.close();
+    ofstream baryon_file("rhoB_evo.dat");
+    baryon_file.close();
+    ofstream qm_file("qmu_evo.dat");
+    qm_file.close();
+  }
+  ofstream out_file("evolution.dat");
+  out_file.close();
+  ofstream oout_file("OSCAR.dat");
+  oout_file.close();
   
-   AdvanceRK(tau, DATA, arena, Lneighbor, Rneighbor, size, rank);
+  //Output information about the hydro parameters in the format of a C header file
+  if(DATA->output_hydro_params_header)
+      grid->Output_hydro_information_header(DATA, eos);
 
-   UpdateArena(tau, DATA, arena);
+
+  // main loop starts ...
+  cout << "Starting Evolve on rank " <<  rank << endl;
+ 
+  int itmax = DATA->nt;
+  double tau0 = DATA->tau0;
+  double dt = DATA->delta_tau;
+
+  weirdCases=0;
+  SUM = 0.;
+  SUM2 = 0.;
+  warnings = 0;
+  cells = 0;
+      
+  double tau;
+  for(int it=0; it<=itmax; it++)
+  {
+     tau = tau0 + dt*it;
+     //fprintf(stderr, "Starting time step %d/%d on rank %d.\n", it, itmax, rank); 
+     
+     // store initial conditions
+     if(it==0) 
+     {
+        //storePreviousT(tau, DATA, arena);
+        storePreviousEpsilon2(tau, DATA, arena);
+        storePreviousW(tau, DATA, arena);
+     }
+     //for testing */
+     //FindFreezeOutSurface(tau, DATA, arena); */
+     //sleep(1); */
+     //FindFreezeOutSurface2(tau, DATA, arena); */
+     //exit(1); */
+     //for testing
    
-   //check energy conservation
-   //grid->ComputeEnergyConservation(DATA, arena, tau);
-   //storePreviousT(tau, DATA, arena);
+     // output evolution information for debug
+     if(output_hydro_debug_flag == 1)
+     {
+        if((it%Nskip_timestep) == 0) 
+        {
+          grid->PrintEtaEpsilon(arena, DATA, tau, size, rank);
+          grid->PrintxEpsilon(arena, DATA, tau, size, rank);
+          //grid->ComputeEccentricity(DATA, arena, tau);
+          grid->ComputeAnisotropy(DATA, arena, tau);
+          grid->print_qmu_evolution(DATA, arena, tau);
+          grid->print_rhob_evolution(DATA, arena, tau, eos);
+        }
+        grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
+        //grid->Tmax_profile(arena, DATA, eos, tau, size, rank);
+     }
+     if((it%Nskip_timestep) == 0 && outputEvo_flag == 1) 
+     {
+        grid->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
+        if (DATA->output_hydro_debug_info)
+        {
+           //grid->OutputXY(arena, DATA, eos, tau, size, rank);
+           //grid->OutputEvolutionOSCAR(arena, DATA, eos, tau, size, rank); 
+           //  grid->OutputEvolutionDataXYZ(arena, DATA, eos, tau, size, rank); 
+           // this produces potentially huge outputs so beware
+        }
+     }
 
-   //determine freeze-out surface
-  int frozen=0;
-  if(DATA->doFreezeOut == 1)
-   {
-    if (it%facTau==0 && it>0) 
+    /* execute rk steps */
+    // all the evolution are at here !!!
+    AdvanceRK(tau, DATA, arena, Lneighbor, Rneighbor, size, rank);
+    UpdateArena(tau, DATA, arena);
+   
+    //check energy conservation
+    //grid->ComputeEnergyConservation(DATA, arena, tau);
+    //storePreviousT(tau, DATA, arena);
+
+    //determine freeze-out surface
+    int frozen=0;
+    if(freezeout_flag == 1)
+    {
+      if(it%facTau==0) 
       {
-	if (DATA->freezeOutMethod == 1)
-	  FindFreezeOutSurface(tau, DATA, arena, size, rank);
-	else if (DATA->freezeOutMethod == 2)
-	  FindFreezeOutSurface2(tau, DATA, arena, size, rank);
-	else if (DATA->freezeOutMethod == 3)
-	  frozen = FindFreezeOutSurface3(tau, DATA, arena, size, rank);
-	else if (DATA->freezeOutMethod == 4)
-      {
-        if (DATA->boost_invariant == 0)
-	     frozen = FindFreezeOutSurface_Cornelius(tau, DATA, arena, size, rank);
-        else
-	     frozen = FindFreezeOutSurface_boostinvariant_Cornelius(tau, DATA, arena, size, rank);
-      }
-	storePreviousEpsilon2(tau, DATA, arena);
-	storePreviousW(tau, DATA, arena);
+	  if(freezeout_method == 1)
+	    FindFreezeOutSurface(tau, DATA, arena, size, rank);
+	  else if (freezeout_method == 2)
+	    FindFreezeOutSurface2(tau, DATA, arena, size, rank);
+	  else if (freezeout_method == 3)
+	    frozen = FindFreezeOutSurface3(tau, DATA, arena, size, rank);
+	  else if (freezeout_method == 4)
+        {
+          if (boost_invariant_flag == 0)
+	      frozen = FindFreezeOutSurface_Cornelius(tau, DATA, arena, size, rank);
+          else
+	      frozen = FindFreezeOutSurface_boostinvariant_Cornelius(tau, DATA, arena, size, rank);
+        }
+	  storePreviousEpsilon2(tau, DATA, arena);
+	  storePreviousW(tau, DATA, arena);
       } 
-   }/* do freeze-out determination */
-    
+    }/* do freeze-out determination */
+
     if (rank == 0) fprintf(stderr, "Done time step %d/%d. tau = %6.3f fm/c \n", it, itmax, tau);
     if (frozen) break;
-    
   }/* it */ 
 
 //  if(rank == 0)
@@ -172,36 +178,35 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 //   grid->PrintAxy2(DATA, arena, tau);
 //  }
 
+  // clean up
   int rk_order = DATA->rk_order;
   for(int ix=0; ix<=DATA->nx; ix++) 
     for(int iy=0; iy<=DATA->ny; iy++)
       for(int ieta=0; ieta<DATA->neta; ieta++)
       {
- 	util->cube_free(arena[ix][iy][ieta].TJb,rk_order+1, 5,4);
-	util->cube_free(arena[ix][iy][ieta].dUsup,rk_order+1, 4,4);
-	util->cube_free(arena[ix][iy][ieta].Wmunu,rk_order+1, 5,4);
-	util->cube_free(arena[ix][iy][ieta].prevWmunu,1, 5,4);
-	util->cube_free(arena[ix][iy][ieta].Pimunu,rk_order+1, 5,4);
-	util->cube_free(arena[ix][iy][ieta].prevPimunu,1, 5,4);
-	util->mtx_free(arena[ix][iy][ieta].u,rk_order+1, 4);
-	util->mtx_free(arena[ix][iy][ieta].a,rk_order+1, 4);
-	util->mtx_free(arena[ix][iy][ieta].prev_u,1, 4);
-	util->vector_free(arena[ix][iy][ieta].theta_u);
-	util->vector_free(arena[ix][iy][ieta].pi_b);
- 	
-	util->mtx_free(arena[ix][iy][ieta].W_prev, 5,4);
+ 	  util->cube_free(arena[ix][iy][ieta].TJb,rk_order+1, 5,4);
+	  util->cube_free(arena[ix][iy][ieta].dUsup,rk_order+1, 4,4);
+	  util->cube_free(arena[ix][iy][ieta].Wmunu,rk_order+1, 5,4);
+	  util->cube_free(arena[ix][iy][ieta].prevWmunu,1, 5,4);
+	  util->cube_free(arena[ix][iy][ieta].Pimunu,rk_order+1, 5,4);
+	  util->cube_free(arena[ix][iy][ieta].prevPimunu,1, 5,4);
+	  util->mtx_free(arena[ix][iy][ieta].u,rk_order+1, 4);
+	  util->mtx_free(arena[ix][iy][ieta].a,rk_order+1, 4);
+	  util->mtx_free(arena[ix][iy][ieta].prev_u,1, 4);
+	  util->vector_free(arena[ix][iy][ieta].theta_u);
+	  util->vector_free(arena[ix][iy][ieta].pi_b);
+ 	  
+	  util->mtx_free(arena[ix][iy][ieta].W_prev, 5,4);
 	
-// 	for(int i = 0; i<4; i++) delete arena[ix][iy][ieta].nbr_p_1[i];
-// 	delete arena[ix][iy][ieta].nbr_p_1[0];
-	delete[] arena[ix][iy][ieta].nbr_p_1;
-// 	delete arena[ix][iy][ieta].nbr_m_1[0];
-	delete[] arena[ix][iy][ieta].nbr_m_1;
+        //for(int i = 0; i<4; i++) delete arena[ix][iy][ieta].nbr_p_1[i];
+        //delete arena[ix][iy][ieta].nbr_p_1[0];
+	  delete[] arena[ix][iy][ieta].nbr_p_1;
+        //delete arena[ix][iy][ieta].nbr_m_1[0];
+	  delete[] arena[ix][iy][ieta].nbr_m_1;
       }
 
- 
- fprintf(stderr,"SUM=%f\n", SUM);
- return 1; /* successful */
-
+  fprintf(stderr,"SUM=%f\n", SUM);
+  return 1; /* successful */
 }/* Evolve */
 
 // faster one, needs to be called only every facTau time steps
@@ -289,118 +294,109 @@ void Evolve::storePreviousT(double tau, InitData *DATA, Grid ***arena)
     }
 }
 
+
+// update grid information after the tau RK evolution 
 int Evolve::UpdateArena(double tau, InitData *DATA, Grid ***arena)
 {
-//  int rk_flag, flag, nu;
- int ix, iy, ieta, nx, ny, neta, alpha, mu, rk_order;
-//  double tempd;
-//  Grid *grid_pt;
- 
- nx = DATA->nx;
- ny = DATA->ny;
- neta = DATA->neta-1;
- rk_order = DATA->rk_order;
+  //int rk_flag, flag, nu;
+  int ix, iy, ieta, nx, ny, neta, alpha, mu, rk_order;
+  //double tempd;
+  //Grid *grid_pt;
 
- for(ix=0; ix<=nx; ix++)
+  nx = DATA->nx;
+  ny = DATA->ny;
+  neta = DATA->neta-1;
+  rk_order = DATA->rk_order;
+
+  for(ix=0; ix<=nx; ix++)
   {
-   for(iy=0; iy<=ny; iy++)
+    for(iy=0; iy<=ny; iy++)
     {
-     for(ieta=0; ieta<=neta; ieta++)
+      for(ieta=0; ieta<=neta; ieta++)
       {
-       arena[ix][iy][ieta].p = arena[ix][iy][ieta].p_t;
-       arena[ix][iy][ieta].epsilon = arena[ix][iy][ieta].epsilon_t;
-       arena[ix][iy][ieta].rhob = arena[ix][iy][ieta].rhob_t;
+        arena[ix][iy][ieta].p = arena[ix][iy][ieta].p_t;
+        arena[ix][iy][ieta].epsilon = arena[ix][iy][ieta].epsilon_t;
+        arena[ix][iy][ieta].rhob = arena[ix][iy][ieta].rhob_t;
        
-// 	 /* this was the previous previous value */
-//        arena[ix][iy][ieta].pprev_pi_b[0] = arena[ix][iy][ieta].prev_pi_b[0];
-	 /* this was the previous value */
-//        arena[ix][iy][ieta].prev_pi_b[0] = arena[ix][iy][ieta].pi_b[0];
-	 /* this is the new value */
-       arena[ix][iy][ieta].pi_b[0] = arena[ix][iy][ieta].pi_b[rk_order];
-      
-       for(mu=0; mu<4; mu++)
-        {
-// 	 /* this was the previous previous value */
-// 	 arena[ix][iy][ieta].pprev_u[0][mu] = 
-// 	               arena[ix][iy][ieta].prev_u[0][mu]; 
-	 
-	 /* this was the previous value */
-	 arena[ix][iy][ieta].prev_u[0][mu] = 
-	               arena[ix][iy][ieta].u[0][mu]; 
-	 
-	 /* this is the new value */
-	 arena[ix][iy][ieta].u[0][mu] = 
-	               arena[ix][iy][ieta].u[rk_order][mu]; 
-	 
-	 for(alpha=0; alpha<5; alpha++)
-	 {
+ 	  /* this was the previous previous value */
+        //arena[ix][iy][ieta].pprev_pi_b[0] = arena[ix][iy][ieta].prev_pi_b[0];
+	  /* this was the previous value */
+        //arena[ix][iy][ieta].prev_pi_b[0] = arena[ix][iy][ieta].pi_b[0];
 	  /* this is the new value */
-	  arena[ix][iy][ieta].TJb[0][alpha][mu] = 
-	               arena[ix][iy][ieta].TJb[rk_order][alpha][mu]; 
+        arena[ix][iy][ieta].pi_b[0] = arena[ix][iy][ieta].pi_b[rk_order];
+        for(mu=0; mu<4; mu++)
+        {
+          /* this was the previous previous value */
+          //arena[ix][iy][ieta].pprev_u[0][mu] = arena[ix][iy][ieta].prev_u[0][mu]; 
 	 
-// 	 /* this was the previous previous value */
-// 	  arena[ix][iy][ieta].pprevWmunu[0][alpha][mu] = 
-// 	                    arena[ix][iy][ieta].prevWmunu[0][alpha][mu]; 
-
-	 /* this was the previous value */
-	  arena[ix][iy][ieta].prevWmunu[0][alpha][mu] = 
-	                    arena[ix][iy][ieta].Wmunu[0][alpha][mu]; 
-
-	 /* this is the new value */
-	  arena[ix][iy][ieta].Wmunu[0][alpha][mu] = 
-	              arena[ix][iy][ieta].Wmunu[rk_order][alpha][mu]; 
-	  
-	  //if(isnan(arena[ix][iy][ieta].Wmunu[rk_order][alpha][mu]))
-	    //    cout << "updateArena Wmunu[" << ix << "][" << iy << "][" << ieta << "],[" 
-	    // << 0 << "][alpha=" << alpha << "][mu=" << "]=" << arena[ix][iy][ieta].Wmunu[0][alpha][mu] << endl;
-
-// 	 /* this was the previous previous value */
-// 	  arena[ix][iy][ieta].pprevPimunu[0][alpha][mu] = 
-// 	                    arena[ix][iy][ieta].prevPimunu[0][alpha][mu]; 
-
-	 /* this was the previous value */
-	  arena[ix][iy][ieta].prevPimunu[0][alpha][mu] = 
-	                    arena[ix][iy][ieta].Pimunu[0][alpha][mu]; 
-
-	 /* this is the new value */
-	  arena[ix][iy][ieta].Pimunu[0][alpha][mu] = 
-	              arena[ix][iy][ieta].Pimunu[rk_order][alpha][mu]; 
-	 }}/* mu, alpha */
-
-      }}}/* ix, iy, ieta */
- return 1;
+	    /* this was the previous value */
+	    arena[ix][iy][ieta].prev_u[0][mu] = arena[ix][iy][ieta].u[0][mu]; 
+	 
+	    /* this is the new value */
+	    arena[ix][iy][ieta].u[0][mu] = arena[ix][iy][ieta].u[rk_order][mu]; 
+	 
+	    for(alpha=0; alpha<5; alpha++)
+	    {
+	      /* this is the new value */
+	      arena[ix][iy][ieta].TJb[0][alpha][mu] = 
+                arena[ix][iy][ieta].TJb[rk_order][alpha][mu];
+            /* this was the previous previous value */
+            //arena[ix][iy][ieta].pprevWmunu[0][alpha][mu] = //arena[ix][iy][ieta].prevWmunu[0][alpha][mu]; 
+            /* this was the previous value */
+	      arena[ix][iy][ieta].prevWmunu[0][alpha][mu] = 
+	          arena[ix][iy][ieta].Wmunu[0][alpha][mu]; 
+            /* this is the new value */
+            arena[ix][iy][ieta].Wmunu[0][alpha][mu] = 
+	          arena[ix][iy][ieta].Wmunu[rk_order][alpha][mu]; 
+            
+            //if(isnan(arena[ix][iy][ieta].Wmunu[rk_order][alpha][mu]))
+	          //cout << "updateArena Wmunu[" << ix << "][" << iy << "][" << ieta << "],[" 
+	          // << 0 << "][alpha=" << alpha << "][mu=" << "]=" << arena[ix][iy][ieta].Wmunu[0][alpha][mu] << endl;
+            
+            /* this was the previous previous value */
+            //arena[ix][iy][ieta].pprevPimunu[0][alpha][mu] = arena[ix][iy][ieta].prevPimunu[0][alpha][mu]; 
+	      /* this was the previous value */
+            arena[ix][iy][ieta].prevPimunu[0][alpha][mu] = 
+                arena[ix][iy][ieta].Pimunu[0][alpha][mu]; 
+            /* this is the new value */
+            arena[ix][iy][ieta].Pimunu[0][alpha][mu] = 
+                arena[ix][iy][ieta].Pimunu[rk_order][alpha][mu]; 
+	    }
+        }/* mu, alpha */
+      }
+    }
+  }/* ix, iy, ieta */
+  return 1;
 }/* UpdateArena */
 
 
+// control function for Runge-Kutta evolution in tau
 int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank)
 {
- int rk_flag, flag;
-//  int ix, iy, ieta, nx, ny, neta;
+  int rk_flag, flag;
 
-for(rk_flag = 0; rk_flag < DATA->rk_order; rk_flag++)
-{
-      // cout << "1 AdvanceRK Wmunu=" << (Lneighbor[1][1][0]).Wmunu[rk_flag][1][1] << endl;
-      // advance->MPISendReceive(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
-      //cout << "2 AdvanceRK Wmunu=" << (Lneighbor[1][1][0]).Wmunu[rk_flag][1][1] << endl;
+  // loop over Runge-Kutta steps
+  for(rk_flag = 0; rk_flag < DATA->rk_order; rk_flag++)
+  {
+    // cout << "1 AdvanceRK Wmunu=" << (Lneighbor[1][1][0]).Wmunu[rk_flag][1][1] << endl;
+    // advance->MPISendReceive(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
+    //cout << "2 AdvanceRK Wmunu=" << (Lneighbor[1][1][0]).Wmunu[rk_flag][1][1] << endl;
        
- advance->MPISendReceiveT(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag); 
- advance->MPISendReceiveW(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
+    advance->MPISendReceiveT(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag); 
+    advance->MPISendReceiveW(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
 
- flag = u_derivative->MakedU(tau, DATA, arena, Lneighbor, Rneighbor, rk_flag, size, rank); 
- if(flag == 0) return 0;
+    flag = u_derivative->MakedU(tau, DATA, arena, Lneighbor, Rneighbor, rk_flag, size, rank); 
+    if(flag == 0) return 0;
  
-      // advance->MPISendReceive(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
-
- flag = advance->AdvanceIt(tau, DATA, arena, Lneighbor, Rneighbor, rk_flag, size, rank);
+    // advance->MPISendReceive(DATA, arena, Lneighbor, Rneighbor, size, rank, rk_flag);
+    flag = advance->AdvanceIt(tau, DATA, arena, Lneighbor, Rneighbor, rk_flag, size, rank);
      
-     //AdvanceIt(tau, DATA, arena, rk_flag, size, rank); 
-}/* loop over rk_flag */
+    //AdvanceIt(tau, DATA, arena, rk_flag, size, rank); 
+  }/* loop over rk_flag */
+  if(flag == 0) return 0;
  
- if(flag == 0) return 0;
- 
- return 1; /* successful */
-
-}/* AdvanceRK1 *///      cout << "going through Advance rk_flag=" << rk_flag << " rank " << rank << endl;
+  return 1; /* successful */
+}/* AdvanceRK */
       
 
 void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int size, int rank)
