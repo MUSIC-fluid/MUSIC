@@ -509,21 +509,21 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
          grid_p->rhob = grid_pt->rhob;
          return -2;
       }/* if iteration is unsuccessful, revert */
-      v_solution = sqrt(1. - 1./u0_solution/u0_solution);
+      v_solution = sqrt(1. - 1./(u0_solution*u0_solution));
    }
 
    // successfully found velocity, now update everything else
    if(v_solution < v_critical)
    {
-      epsilon = T00 - v_solution*sqrt(K00);
-      rhob = J0*sqrt(1 - v_solution*v_solution);
       u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*SMALL);
+      epsilon = T00 - v_solution*sqrt(K00);
+      rhob = J0/u[0];
    }
    else
    {
-      epsilon = T00 - sqrt((1. - 1./u0_solution/u0_solution)*K00);
-      rhob = J0/u0_solution;
       u[0] = u0_solution;
+      epsilon = T00 - sqrt((1. - 1./(u0_solution*u0_solution))*K00);
+      rhob = J0/u0_solution;
    }
    grid_p->epsilon = epsilon;
    grid_p->rhob = rhob;
@@ -534,6 +534,7 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    // individual components of velocity
    double velocity_inverse_factor = u[0]/(T00 + pressure);
 
+   double u_max = 242582597.70489514; // cosh(20)
    //remove if for speed
    if(!isfinite(u[0]))
    {
@@ -542,7 +543,7 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
       u[2] = 0.0;
       u[3] = 0.0;
    }
-   else if(u[0] > cosh(DATA->local_y_max)) // check whether velocity is too large
+   else if(u[0] > u_max) // check whether velocity is too large
    {
       fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n", u[0]);
       if(grid_pt->epsilon > 0.3)

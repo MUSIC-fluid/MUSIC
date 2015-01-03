@@ -8,7 +8,7 @@ using namespace std;
 
 Diss::Diss(EOS *eosIn, InitData* DATA_in)
 {
-  eos = new EOS;
+  //eos = new EOS;
   eos = eosIn;
   minmod = new Minmod(DATA_in);
 }
@@ -16,7 +16,7 @@ Diss::Diss(EOS *eosIn, InitData* DATA_in)
 // destructor
 Diss::~Diss()
 {
-  delete eos;
+  //delete eos;
   delete minmod;
 }
 
@@ -228,10 +228,12 @@ to use Wmunu[rk_flag][4][mu] as the dissipative baryon current
 double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *DATA, int rk_flag)
 {
  double tempf, tau_pi;
- double SW, s_den, shear, shear_to_s, T, epsilon, rhob, Ttr;
+ double SW, shear, shear_to_s, T, epsilon, rhob, Ttr;
  int a, b;
  double sigma[4][4], gamma, ueta;
  double NS_term;
+
+ if(DATA->turn_on_shear == 0) return 0.0;
 
  // Useful variables to define
  Ttr = 0.18/hbarc;  /// phase transition temperature
@@ -241,24 +243,25 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
  rhob = grid_pt->rhob;
  T=eos->get_temperature(epsilon,rhob);
 
- if(DATA->turn_on_shear == 0) return 0.0;
-
  if(DATA->T_dependent_shear_to_s == 1)
-   {
-
+ {
      if(T < Ttr)
-       {
-	 shear_to_s=0.681-0.0594*T/Ttr-0.544*(T/Ttr)*(T/Ttr);
-       }
+     {
+         shear_to_s=0.681-0.0594*T/Ttr-0.544*(T/Ttr)*(T/Ttr);
+     }
      else
-       {
-	 shear_to_s=-0.289+0.288*T/Ttr+0.0818*(T/Ttr)*(T/Ttr);
-       }
-   }
+     {
+         shear_to_s=-0.289+0.288*T/Ttr+0.0818*(T/Ttr)*(T/Ttr);
+     }
+ }
  else
-   {
-     shear_to_s = DATA->shear_to_s;
-   }
+ {
+   shear_to_s = DATA->shear_to_s;
+ }
+
+ int include_WWterm = 0;
+ int include_Vorticity_term = 0;
+ int include_Wsigma_term = 0;
 
 
 /// ////////////////////////////////////////////////////////////////////// ///
@@ -266,14 +269,18 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
 ///                 Defining transport coefficients                        ///
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
- s_den = eos->get_entropy(epsilon, rhob);
+ //double s_den = eos->get_entropy(epsilon, rhob);
  shear = (shear_to_s)*(grid_pt->epsilon + grid_pt->p)/T;
  tau_pi = 5.0*shear/(grid_pt->epsilon + grid_pt->p);
   
-
  //tau_pi = maxi(tau_pi, DATA->tau_pi);
- if(!isfinite(tau_pi)) {tau_pi = DATA->delta_tau; cout << "tau_pi was infinite ..." << endl;}
- if(tau_pi < DATA->delta_tau) {tau_pi = DATA->delta_tau;}
+ if(!isfinite(tau_pi))
+ {
+     tau_pi = DATA->delta_tau; 
+     cout << "tau_pi was infinite ..." << endl;
+ }
+ if(tau_pi < DATA->delta_tau)
+     tau_pi = DATA->delta_tau;
 
  /// transport coefficient for nonlinear terms -- shear only terms -- 4Mar2013
  double transport_coefficient, transport_coefficient2, transport_coefficient3, transport_coefficient4;
@@ -291,7 +298,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
 
 
 /* This source has many terms */
-/* everyting in the 1/(tau_pi) piece is here */
+/* everything in the 1/(tau_pi) piece is here */
 /* third step in the split-operator time evol 
    use Wmunu[rk_flag] and u[rk_flag] with rk_flag = 0 */
 
@@ -351,28 +358,32 @@ double Vorticity_term;
 
 // / remember: dUsup[m][n] = partial^n u^m  ///
 // / remember:  a[n]  =  u^m*partial_m u^n  ///
+    if(include_Vorticity_term == 1)
+    {
+        for( a=0;a<=3;a++ ){
+        for( b=0;b<=3;b++ ){
 
-    for( a=0;a<=3;a++ ){
-    for( b=0;b<=3;b++ ){
+        omega[a][b] = ( grid_pt->dUsup[rk_flag][a][b] - grid_pt->dUsup[rk_flag][b][a] )/2.
+                    + ueta/tau/2.*( DATA->gmunu[a][0]*DATA->gmunu[b][3] - DATA->gmunu[b][0]*DATA->gmunu[a][3] )
+                    - ueta*gamma/tau/2.*( DATA->gmunu[a][3]*grid_pt->u[rk_flag][b] - DATA->gmunu[b][3]*grid_pt->u[rk_flag][a] )
+                    + ueta*ueta/tau/2.*( DATA->gmunu[a][0]*grid_pt->u[rk_flag][b] - DATA->gmunu[b][0]*grid_pt->u[rk_flag][a] )
+                    + ( grid_pt->u[rk_flag][a]*grid_pt->a[rk_flag][b] - grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a] )/2. ;
 
-    omega[a][b] = ( grid_pt->dUsup[rk_flag][a][b] - grid_pt->dUsup[rk_flag][b][a] )/2.
-                + ueta/tau/2.*( DATA->gmunu[a][0]*DATA->gmunu[b][3] - DATA->gmunu[b][0]*DATA->gmunu[a][3] )
-                - ueta*gamma/tau/2.*( DATA->gmunu[a][3]*grid_pt->u[rk_flag][b] - DATA->gmunu[b][3]*grid_pt->u[rk_flag][a] )
-                + ueta*ueta/tau/2.*( DATA->gmunu[a][0]*grid_pt->u[rk_flag][b] - DATA->gmunu[b][0]*grid_pt->u[rk_flag][a] )
-                + ( grid_pt->u[rk_flag][a]*grid_pt->a[rk_flag][b] - grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a] )/2. ;
+        }}
 
-    }}
+        term1_Vorticity = (  -grid_pt->Wmunu[rk_flag][mu][0]*omega[nu][0] - grid_pt->Wmunu[rk_flag][nu][0]*omega[mu][0]
+                            + grid_pt->Wmunu[rk_flag][mu][1]*omega[nu][1] + grid_pt->Wmunu[rk_flag][nu][1]*omega[mu][1]
+                            + grid_pt->Wmunu[rk_flag][mu][2]*omega[nu][2] + grid_pt->Wmunu[rk_flag][nu][2]*omega[mu][2]
+                            + grid_pt->Wmunu[rk_flag][mu][3]*omega[nu][3] + grid_pt->Wmunu[rk_flag][nu][3]*omega[mu][3] )/2.;
 
-   term1_Vorticity = (  -grid_pt->Wmunu[rk_flag][mu][0]*omega[nu][0] - grid_pt->Wmunu[rk_flag][nu][0]*omega[mu][0]
-                       + grid_pt->Wmunu[rk_flag][mu][1]*omega[nu][1] + grid_pt->Wmunu[rk_flag][nu][1]*omega[mu][1]
-                       + grid_pt->Wmunu[rk_flag][mu][2]*omega[nu][2] + grid_pt->Wmunu[rk_flag][nu][2]*omega[mu][2]
-                       + grid_pt->Wmunu[rk_flag][mu][3]*omega[nu][3] + grid_pt->Wmunu[rk_flag][nu][3]*omega[mu][3] )/2.;
+        // multiply term by its respective transport coefficient
+        term1_Vorticity = transport_coefficient4*term1_Vorticity;
 
-/// multiply term by its respective transport coefficient
-   term1_Vorticity = transport_coefficient4*term1_Vorticity;
-
-/// full term is
-    Vorticity_term = term1_Vorticity ;
+        // full term is
+        Vorticity_term = term1_Vorticity ;
+    }
+    else
+        Vorticity_term = 0.0;
 
 
 /// //////////////////////////////////////////////////////////////////////////// ///
@@ -384,38 +395,43 @@ double Vorticity_term;
 double Wsigma, Wsigma_term;
 double term1_Wsigma, term2_Wsigma;
 
-    Wsigma =
-  (
-   grid_pt->Wmunu[rk_flag][0][0]*sigma[0][0]
-  +grid_pt->Wmunu[rk_flag][1][1]*sigma[1][1]
-  +grid_pt->Wmunu[rk_flag][2][2]*sigma[2][2]
-  +grid_pt->Wmunu[rk_flag][3][3]*sigma[3][3]
+    if(include_Wsigma_term == 1)
+    {
+        Wsigma =
+            (
+              grid_pt->Wmunu[rk_flag][0][0]*sigma[0][0]
+             +grid_pt->Wmunu[rk_flag][1][1]*sigma[1][1]
+             +grid_pt->Wmunu[rk_flag][2][2]*sigma[2][2]
+             +grid_pt->Wmunu[rk_flag][3][3]*sigma[3][3]
 
-  -2.*(
-        grid_pt->Wmunu[rk_flag][0][1]*sigma[0][1]
-       +grid_pt->Wmunu[rk_flag][0][2]*sigma[0][2]
-       +grid_pt->Wmunu[rk_flag][0][3]*sigma[0][3]
-       )
+             -2.*(
+                   grid_pt->Wmunu[rk_flag][0][1]*sigma[0][1]
+                  +grid_pt->Wmunu[rk_flag][0][2]*sigma[0][2]
+                  +grid_pt->Wmunu[rk_flag][0][3]*sigma[0][3]
+                  )
 
-  +2.*(
-        grid_pt->Wmunu[rk_flag][1][2]*sigma[1][2]
-       +grid_pt->Wmunu[rk_flag][1][3]*sigma[1][3]
-       +grid_pt->Wmunu[rk_flag][2][3]*sigma[2][3]
-       )
-   );
+             +2.*(
+                   grid_pt->Wmunu[rk_flag][1][2]*sigma[1][2]
+                  +grid_pt->Wmunu[rk_flag][1][3]*sigma[1][3]
+                  +grid_pt->Wmunu[rk_flag][2][3]*sigma[2][3]
+                  )
+            );
 
-   term1_Wsigma = (  - grid_pt->Wmunu[rk_flag][mu][0]*sigma[nu][0] - grid_pt->Wmunu[rk_flag][nu][0]*sigma[mu][0]
-                     + grid_pt->Wmunu[rk_flag][mu][1]*sigma[nu][1] + grid_pt->Wmunu[rk_flag][nu][1]*sigma[mu][1]
-                     + grid_pt->Wmunu[rk_flag][mu][2]*sigma[nu][2] + grid_pt->Wmunu[rk_flag][nu][2]*sigma[mu][2]
-                     + grid_pt->Wmunu[rk_flag][mu][3]*sigma[nu][3] + grid_pt->Wmunu[rk_flag][nu][3]*sigma[mu][3] )/2.;
+            term1_Wsigma = (  - grid_pt->Wmunu[rk_flag][mu][0]*sigma[nu][0] - grid_pt->Wmunu[rk_flag][nu][0]*sigma[mu][0]
+                              + grid_pt->Wmunu[rk_flag][mu][1]*sigma[nu][1] + grid_pt->Wmunu[rk_flag][nu][1]*sigma[mu][1]
+                              + grid_pt->Wmunu[rk_flag][mu][2]*sigma[nu][2] + grid_pt->Wmunu[rk_flag][nu][2]*sigma[mu][2]
+                              + grid_pt->Wmunu[rk_flag][mu][3]*sigma[nu][3] + grid_pt->Wmunu[rk_flag][nu][3]*sigma[mu][3] )/2.;
 
-   term2_Wsigma = -(1./3.)*( DATA->gmunu[mu][nu] + grid_pt->u[rk_flag][mu]*grid_pt->u[rk_flag][nu] )*Wsigma; 
-/// multiply term by its respective transport coefficient
-   term1_Wsigma = transport_coefficient3*term1_Wsigma;
-   term2_Wsigma = transport_coefficient3*term2_Wsigma;
+            term2_Wsigma = -(1./3.)*( DATA->gmunu[mu][nu] + grid_pt->u[rk_flag][mu]*grid_pt->u[rk_flag][nu] )*Wsigma; 
+            // multiply term by its respective transport coefficient
+            term1_Wsigma = transport_coefficient3*term1_Wsigma;
+            term2_Wsigma = transport_coefficient3*term2_Wsigma;
 
-/// full term is
-   Wsigma_term = -term1_Wsigma - term2_Wsigma ;
+            // full term is
+            Wsigma_term = -term1_Wsigma - term2_Wsigma ;
+    }
+    else
+        Wsigma_term = 0.0;
 
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
@@ -425,41 +441,44 @@ double term1_Wsigma, term2_Wsigma;
 /// ////////////////////////////////////////////////////////////////////// ///
     double Wsquare, WW_term;
     double term1_WW, term2_WW;
+    if(include_WWterm == 1)
+    {
+        Wsquare =
+            (
+             grid_pt->Wmunu[rk_flag][0][0]*grid_pt->Wmunu[rk_flag][0][0]
+            +grid_pt->Wmunu[rk_flag][1][1]*grid_pt->Wmunu[rk_flag][1][1]
+            +grid_pt->Wmunu[rk_flag][2][2]*grid_pt->Wmunu[rk_flag][2][2]
+            +grid_pt->Wmunu[rk_flag][3][3]*grid_pt->Wmunu[rk_flag][3][3]
 
-    Wsquare =
-  (
-   grid_pt->Wmunu[rk_flag][0][0]*grid_pt->Wmunu[rk_flag][0][0]
-  +grid_pt->Wmunu[rk_flag][1][1]*grid_pt->Wmunu[rk_flag][1][1]
-  +grid_pt->Wmunu[rk_flag][2][2]*grid_pt->Wmunu[rk_flag][2][2]
-  +grid_pt->Wmunu[rk_flag][3][3]*grid_pt->Wmunu[rk_flag][3][3]
+            -2.*(
+                 grid_pt->Wmunu[rk_flag][0][1]*grid_pt->Wmunu[rk_flag][0][1]
+                 +grid_pt->Wmunu[rk_flag][0][2]*grid_pt->Wmunu[rk_flag][0][2]
+                 +grid_pt->Wmunu[rk_flag][0][3]*grid_pt->Wmunu[rk_flag][0][3]
+                 )
 
-  -2.*(
-       grid_pt->Wmunu[rk_flag][0][1]*grid_pt->Wmunu[rk_flag][0][1]
-       +grid_pt->Wmunu[rk_flag][0][2]*grid_pt->Wmunu[rk_flag][0][2]
-       +grid_pt->Wmunu[rk_flag][0][3]*grid_pt->Wmunu[rk_flag][0][3]
-       )
+            +2.*(
+                 grid_pt->Wmunu[rk_flag][1][2]*grid_pt->Wmunu[rk_flag][1][2]
+                 +grid_pt->Wmunu[rk_flag][1][3]*grid_pt->Wmunu[rk_flag][1][3]
+                 +grid_pt->Wmunu[rk_flag][2][3]*grid_pt->Wmunu[rk_flag][2][3]
+                 )
+            );
 
-  +2.*(
-       grid_pt->Wmunu[rk_flag][1][2]*grid_pt->Wmunu[rk_flag][1][2]
-       +grid_pt->Wmunu[rk_flag][1][3]*grid_pt->Wmunu[rk_flag][1][3]
-       +grid_pt->Wmunu[rk_flag][2][3]*grid_pt->Wmunu[rk_flag][2][3]
-       )
-   );
+        term1_WW = - grid_pt->Wmunu[rk_flag][mu][0]*grid_pt->Wmunu[rk_flag][nu][0]
+                + grid_pt->Wmunu[rk_flag][mu][1]*grid_pt->Wmunu[rk_flag][nu][1]
+                + grid_pt->Wmunu[rk_flag][mu][2]*grid_pt->Wmunu[rk_flag][nu][2]
+                + grid_pt->Wmunu[rk_flag][mu][3]*grid_pt->Wmunu[rk_flag][nu][3] ;
 
-   term1_WW = - grid_pt->Wmunu[rk_flag][mu][0]*grid_pt->Wmunu[rk_flag][nu][0]
-           + grid_pt->Wmunu[rk_flag][mu][1]*grid_pt->Wmunu[rk_flag][nu][1]
-           + grid_pt->Wmunu[rk_flag][mu][2]*grid_pt->Wmunu[rk_flag][nu][2]
-           + grid_pt->Wmunu[rk_flag][mu][3]*grid_pt->Wmunu[rk_flag][nu][3] ;
+        term2_WW = -(1./3.)*( DATA->gmunu[mu][nu] + grid_pt->u[rk_flag][mu]*grid_pt->u[rk_flag][nu] )*Wsquare;
 
-   term2_WW = -(1./3.)*( DATA->gmunu[mu][nu] + grid_pt->u[rk_flag][mu]*grid_pt->u[rk_flag][nu] )*Wsquare;
+        //multiply term by its respective transport coefficient
+        term1_WW = term1_WW*transport_coefficient;
+        term2_WW = term2_WW*transport_coefficient;
 
-/// multiply term by its respective transport coefficient
-   term1_WW = term1_WW*transport_coefficient;
-   term2_WW = term2_WW*transport_coefficient;
-
-/// full term is
-   WW_term = -term1_WW - term2_WW ; // sign changes according to metric sign convention
-
+        // full term is
+        WW_term = -term1_WW - term2_WW ; // sign changes according to metric sign convention
+    }
+    else
+        WW_term = 0.0;
 
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
