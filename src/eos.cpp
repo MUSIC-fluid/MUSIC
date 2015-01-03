@@ -2367,20 +2367,26 @@ double EOS::interpolate2D(double e, double rhob, int selector)
             idx_e = 0;  // do linear extrapolation for small energy density
     }
 
-    double temp1 = max(array[idx_nb][idx_e], 0.0);
-    double temp2 = max(array[idx_nb][idx_e+1], 0.0);
-    double temp3 = max(array[idx_nb+1][idx_e+1], 0.0);
-    double temp4 = max(array[idx_nb+1][idx_e], 0.0);
-
-    double result = (  temp1*(1. - frac_e)*(1. - frac_rhob) 
-                     + temp2*frac_e*(1. - frac_rhob)
-                     + temp3*frac_e*frac_rhob 
-                     + temp4*(1. - frac_e)*frac_rhob);
+    double result;
     if(local_ed < EPP1)
     {
         double temp11 = max(array[idx_nb][idx_e], 0.0);
         double temp22 = max(array[idx_nb+1][idx_e], 0.0);
         result = (temp11*(1. - frac_rhob) + temp22*frac_rhob)*local_ed/EPP1;
+    }
+    else
+    {
+        double temp1 = max(array[idx_nb][idx_e], 0.0);
+        double temp2 = max(array[idx_nb][idx_e+1], 0.0);
+        double temp3 = max(array[idx_nb+1][idx_e+1], 0.0);
+        double temp4 = max(array[idx_nb+1][idx_e], 0.0);
+
+        //result = (  temp1*(1. - frac_e)*(1. - frac_rhob) 
+        //          + temp2*frac_e*(1. - frac_rhob)
+        //          + temp3*frac_e*frac_rhob 
+        //          + temp4*(1. - frac_e)*frac_rhob);
+        result = (  (temp1*(1. - frac_e) + temp2*frac_e)*(1. - frac_rhob)
+                  + (temp3*frac_e + temp4*(1. - frac_e))*frac_rhob);
     }
     
     // convert back to fm unit
