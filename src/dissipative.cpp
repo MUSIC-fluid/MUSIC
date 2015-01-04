@@ -1486,7 +1486,7 @@ double Diss::Make_uPiSource
 (double tau, Grid *grid_pt, InitData *DATA, int rk_flag)
 {
  double tempf;
- double s_den, shear, bulk;
+ double shear, bulk;
  double Bulk_Relax_time, transport_coeff1, transport_coeff2, transport_coeff1_s, transport_coeff2_s;
  double NS_term, BB_term;
  double Final_Answer;
@@ -1501,9 +1501,12 @@ ueta  = grid_pt->u[rk_flag][3];
     if(DATA->turn_on_bulk == 0) return 0.0;
 
     /// defining bulk viscosity coefficient
-    s_den = eos->get_entropy(grid_pt->epsilon, grid_pt->rhob);
-    cs2 = eos->p_e_func(grid_pt->epsilon, grid_pt->rhob);    // cs2 is the velocity of sound squared
-    shear = (DATA->shear_to_s)*s_den;                   // shear viscosity = constant * entropy density
+    //s_den = eos->get_entropy(grid_pt->epsilon, grid_pt->rhob);
+    //shear = (DATA->shear_to_s)*s_den;                   // shear viscosity = constant * entropy density
+    double temperature = eos->get_temperature(grid_pt->epsilon, grid_pt->rhob);
+    shear = (DATA->shear_to_s)*(grid_pt->epsilon + grid_pt->p)/temperature;  // shear viscosity = constant * (e + P)/T
+    //cs2 = eos->p_e_func(grid_pt->epsilon, grid_pt->rhob);    // cs2 is the velocity of sound squared
+    cs2 = eos->get_velocity_of_sound_sq(grid_pt->epsilon, grid_pt->rhob);  // cs2 is the velocity of sound squared
     bulk = (DATA->bulk_to_s)*shear*(1./3.-cs2)*(1./3.-cs2);  // bulk viscosity = constant * shear viscosity * (1/3-cs2)**2
    // parameter DATA->bulk_to_s should be between 15 -- 75
 
@@ -1619,7 +1622,7 @@ this part contains
 double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, int rk_flag)
 {
   double tempf, tau_rho, tau_pi, shear, shear_to_s;
-  double SW, s_den, kappa, T, epsilon, rhob, Ttr;
+  double SW, kappa, T, epsilon, rhob, Ttr;
   int i;
   double q[4];
   
@@ -1641,9 +1644,9 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
   else
     shear_to_s = DATA->shear_to_s;
 
-  s_den = eos->get_entropy(epsilon, rhob);
-  shear = (shear_to_s)*(grid_pt->epsilon + grid_pt->p)/T;
-  tau_pi = 5.0*shear/(grid_pt->epsilon + grid_pt->p);
+  //double s_den = eos->get_entropy(epsilon, rhob);
+  shear = (shear_to_s)*(epsilon + grid_pt->p)/T;
+  tau_pi = 5.0*shear/(epsilon + grid_pt->p);
  
   if(!isfinite(tau_pi))
   {
@@ -1692,7 +1695,6 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
       cout << tau_rho << endl;
       cout << kappa << endl;
       cout << grid_pt->u[rk_flag][nu] << endl;
-      cout << s_den << endl;
   }
 
   // + theta q[a] - q[a] u^\tau/tau
