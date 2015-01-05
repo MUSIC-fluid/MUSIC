@@ -52,6 +52,9 @@ class Grid{
   
   /* this is the expansion rate partial_mu u^mu */
   double *theta_u;
+
+  // the velocity shear tensor
+  double ***sigma;
   
   /* we need to calculate partial_tau u[mu] */
   double ***dUsup; 

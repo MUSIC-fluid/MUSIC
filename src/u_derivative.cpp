@@ -11,156 +11,160 @@ using namespace std;
 // added EOS in the argument 
 U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in)
 {
-// Sangyong Nov 18 2014: added eos
-  eos = new EOS;
-  eos = eosIn;
-  minmod = new Minmod(DATA_in);
+   //Sangyong Nov 18 2014: added eos
+   //eos = new EOS;
+   eos = eosIn;
+   minmod = new Minmod(DATA_in);
 }
 
 // destructor
 U_derivative::~U_derivative()
 {
-  delete minmod;
-// Sangyong Nov 18 2014: added delete eos
-  delete eos;
+   delete minmod;
+   //Sangyong Nov 18 2014: added delete eos
+   //delete eos;
 }
 
 int U_derivative::MakedU(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int rk_flag, int size, int rank)
 {
- int ix, iy, ieta, nx, ny, neta, ic, mu;
-//  int flag;
- double g, f, h, tfac, gfac;
-//  double temp_nu, nu;
-//  Grid *grid_pt;
+   //int flag;
+   //double temp_nu, nu;
+   //Grid *grid_pt;
 
- if(DATA->viscosity_flag == 0) return 1;
+   // ideal hydro: no need to evaluate any flow derivatives
+   if(DATA->viscosity_flag == 0)
+       return 1;  
 
- nx = DATA->nx;
- ny = DATA->ny;
- neta = DATA->neta-1;
+   int nx = DATA->nx;
+   int ny = DATA->ny;
+   int neta = DATA->neta-1;
 
- cout << "";
+   //cout << "";
 
- for(ix=0; ix<=nx; ix++)
-  {
-   for(iy=0; iy<=ny; iy++)
-    {
-     for(ieta=0; ieta<=neta; ieta++)
+   for(int ix=0; ix<=nx; ix++)
+   {
+      for(int iy=0; iy<=ny; iy++)
       {
-	/* this calculates du/dx, du/dy, (du/deta)/tau */
-   
-	MakeDSpatial(tau, DATA, &(arena[ix][iy][ieta]), &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
-			    &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank); 
-
-	/* this calculates du/dtau */
-        MakeDTau(tau, DATA, &(arena[ix][iy][ieta]), rk_flag); 
+         for(int ieta=0; ieta<=neta; ieta++)
+         {
+	      /* this calculates du/dx, du/dy, (du/deta)/tau */
+            MakeDSpatial(tau, DATA, &(arena[ix][iy][ieta]), 
+                         &(Lneighbor[ix][iy][0]), &(Rneighbor[ix][iy][0]), 
+			       &(Lneighbor[ix][iy][1]), &(Rneighbor[ix][iy][1]), rk_flag, size, rank);
+            /* this calculates du/dtau */
+            MakeDTau(tau, DATA, &(arena[ix][iy][ieta]), rk_flag); 
       
-// 	grid_pt= &(arena[ix][iy][ieta]);
-	
-	/* TEST TEST */
-// 	temp_nu = -(grid_pt->u[rk_flag][0])*(grid_pt->dUsup[rk_flag][0][0]);
-// 	temp_nu += (grid_pt->u[rk_flag][1])*(grid_pt->dUsup[rk_flag][1][0]);
-// 	temp_nu += (grid_pt->u[rk_flag][2])*(grid_pt->dUsup[rk_flag][2][0]);
-// 	temp_nu += (grid_pt->u[rk_flag][3])*(grid_pt->dUsup[rk_flag][3][0]);
-// 	if(fabs(temp_nu) > 0.01)
-// 	 { 
-// 	  fprintf(stderr, "partial u^2 = %e\n", temp_nu);
-// 	  fprintf(stderr, "This can't happen.\n");
-// 	  exit(0);
-// 	 }
-	/* Test TEST */
-      }/* ieta */
-    }/*iy */
-  }/* ix */
+            //grid_pt= &(arena[ix][iy][ieta]);
+            /* TEST TEST */
+            //temp_nu = -(grid_pt->u[rk_flag][0])*(grid_pt->dUsup[rk_flag][0][0]);
+            //temp_nu += (grid_pt->u[rk_flag][1])*(grid_pt->dUsup[rk_flag][1][0]);
+            //temp_nu += (grid_pt->u[rk_flag][2])*(grid_pt->dUsup[rk_flag][2][0]);
+            //temp_nu += (grid_pt->u[rk_flag][3])*(grid_pt->dUsup[rk_flag][3][0]);
+            //if(fabs(temp_nu) > 0.01)
+            // { 
+            //  fprintf(stderr, "partial u^2 = %e\n", temp_nu);
+            //  fprintf(stderr, "This can't happen.\n");
+            //  exit(0);
+            // }
+	      /* Test TEST */
+         }/* ieta */
+      }/*iy */
+   }/* ix */
 
- // cout << "first part done" << endl;
+   //cout << "first part done" << endl;
+   //cout << "second part" << endl;
 
- // cout << "second part" << endl;
-
-/* theta_u = partial_mu u^mu */
- for(ix=0; ix<=nx; ix++)
-  {
-   for(iy=0; iy<=ny; iy++)
-    {
-     for(ieta=0; ieta<=neta; ieta++)
+   for(int ix=0; ix<=nx; ix++)
+   {
+      for(int iy=0; iy<=ny; iy++)
       {
-       g = 0.0;
-       for(mu=0; mu<4; mu++)
-        {
-	 if(mu==0) gfac = -1.0;
-	 else gfac = 1.0;
+         for(int ieta=0; ieta<=neta; ieta++)
+         {
+            double dUsup_local[4][4];
+            double u_local[4];
+            for(int i = 0; i < 4; i++)
+            {
+               u_local[i] = arena[ix][iy][ieta].u[rk_flag][i];
+               for(int j = 0; j < 4; j++)
+               {
+                  dUsup_local[i][j] = arena[ix][iy][ieta].dUsup[rk_flag][i][j];
+               }
+            }
+            double partial_mu_u_supmu = 0.0;
+            for(int mu=0; mu<4; mu++)
+            {
+               double gfac = (mu==0 ? -1.0 : 1.0);
+               partial_mu_u_supmu += dUsup_local[mu][mu]*gfac; // for expansion rate: theta
 
-	 g += arena[ix][iy][ieta].dUsup[rk_flag][mu][mu]*gfac;
-	}/* mu */
-/* need to add the tau-eta coordinate source term */
-       g += arena[ix][iy][ieta].u[rk_flag][0]/tau;
-       arena[ix][iy][ieta].theta_u[rk_flag] = g;
-      
-      }/* ieta */
-    }/*iy */
-  }/* ix */
+               double u_supnu_partial_nu_u_supmu = 0.0;
+	         for(int nu=0; nu<4; nu++)
+               {
+                  double tfac = (nu==0 ? -1.0 : 1.0);
+                  u_supnu_partial_nu_u_supmu += tfac*u_local[nu]*dUsup_local[nu][mu];
+               }
+               arena[ix][iy][ieta].a[rk_flag][mu] = u_supnu_partial_nu_u_supmu;
+	      }/* mu */
+            // derivatives of chemical potentials for diffusion
+            int mu = 4;
+            double u_supnu_partial_nu_muoverT = 0.0;
+	      for(int nu=0; nu<4; nu++)
+            {
+               double tfac = (nu==0 ? -1.0 : 1.0);
+               u_supnu_partial_nu_muoverT += tfac*u_local[nu]*dUsup_local[nu][mu];
+            }
+            arena[ix][iy][ieta].a[rk_flag][mu] = u_supnu_partial_nu_muoverT;
 
- // cout << "second part done " << endl;
+            // expansion rate need to add the tau-eta coordinate source term
+            arena[ix][iy][ieta].theta_u[rk_flag] = partial_mu_u_supmu + u_local[0]/tau;
+         }/* ieta */
+      }/*iy */
+   }/* ix */
 
- // cout << "third part" << endl;
-
-/* a[mu] = u^nu partial_nu u_mu */
-// Sangyong Nov 18 2014, a[4] = u^nu partial_nu (mu/T)
- for(ix=0; ix<=nx; ix++)
-  {
-   for(iy=0; iy<=ny; iy++)
-    {
-     for(ieta=0; ieta<=neta; ieta++)
+   // calculate the velocity shear tensor sigma^{\mu\nu}
+   // immigrate the code from dissipative.cpp
+   for(int ix=0; ix<=nx; ix++)
+   {
+      for(int iy=0; iy<=ny; iy++)
       {
-       for(mu=0; mu<4; mu++)
-        {
-         f = 0.0;
-	 for(ic=0; ic<4; ic++)
-          {
-	   /* eta derivative already has 1/tau 
-	   remember: du[m][n] = u^{m,n} = partial^n u^m 
-	   so g_{ln} u^l\partial^n u^m*/
+         for(int ieta=0; ieta<=neta; ieta++)
+         {
+            double dUsup_local[4][4];
+            double u_local[4];
+            double a_local[4];
+            double theta_u_local = arena[ix][iy][ieta].theta_u[rk_flag];
+            double sigma_local[4][4];
+            for(int i = 0; i < 4; i++)
+            {
+               u_local[i] = arena[ix][iy][ieta].u[rk_flag][i];
+               a_local[i] = arena[ix][iy][ieta].a[rk_flag][i];
+               for(int j = 0; j < 4; j++)
+               {
+                  dUsup_local[i][j] = arena[ix][iy][ieta].dUsup[rk_flag][i][j];
+               }
+            }
+            for(int a=0; a<4; a++)
+            {
+               for(int b=0; b<4; b++)
+               {
+                  sigma_local[a][b] = (
+                      (dUsup_local[a][b] + dUsup_local[b][a])/2.
+                      - (DATA->gmunu[a][b] + u_local[a]*u_local[b])*theta_u_local/3.
+                      + u_local[0]/tau*DATA->gmunu[a][3]*DATA->gmunu[b][3]
+                      - u_local[3]/tau/2.*(DATA->gmunu[a][3]*DATA->gmunu[b][0] 
+                                           + DATA->gmunu[b][3]*DATA->gmunu[a][0])
+                      + u_local[3]*u_local[0]/tau/2.*(DATA->gmunu[a][3]*u_local[b] 
+                                                      + DATA->gmunu[b][3]*u_local[a])
+                      - u_local[3]*u_local[3]/tau/2.*(DATA->gmunu[a][0]*u_local[b] 
+                                                      + DATA->gmunu[b][0]*u_local[a])
+                      + (u_local[a]*a_local[b] + u_local[b]*a_local[a])/2.);
+                  arena[ix][iy][ieta].sigma[rk_flag][a][b] = sigma_local[a][b];
+               }
+            }
+         }/* ieta */
+      }/*iy */
+   }/* ix */
 
-	   tfac = (ic==0 ? -1.0 : 1.0);
-	  
-           h =  (arena[ix][iy][ieta].u[rk_flag][ic]);
-           /*
-	   h += (arena[ix][iy][ieta].prev_u[rk_flag][ic]);
-	   h *= 0.5;
-	   */
-	   h *= (arena[ix][iy][ieta].dUsup[rk_flag][mu][ic]);
-	     
-	   f += h*tfac;
-	  }/* ic  */
-	 arena[ix][iy][ieta].a[rk_flag][mu] = f;
-	
-	}/* mu */
-	 
-	 // Sangyong Nov 18 2014
-	 // for rhob
-	 mu = 4; // means muB/T 
-         f = 0.0;
-	 for(ic=0; ic<4; ic++)
-          {
-	   /* eta derivative already has 1/tau  
-	   remember: du[m][n] = u^{m,n} = partial^n u^m 
-	   so g_{ln} u^l\partial^n u^m */
-
-	   tfac = (ic==0 ? -1.0 : 1.0);
-	  
-           h =  (arena[ix][iy][ieta].u[rk_flag][ic]);
-	   h *= (arena[ix][iy][ieta].dUsup[rk_flag][mu][ic]);
-	     
-	   f += h*tfac;
-	  }/* ic  */
-	 arena[ix][iy][ieta].a[rk_flag][mu] = f;
-      
-      }/* ieta */
-    }/*iy */
-  }/* ix */
- // cout << "third part done" << endl;
-
- return 1; /* successful */
+   return 1; /* successful */
 }/* MakedU */
 
 

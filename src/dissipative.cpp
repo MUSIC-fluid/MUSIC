@@ -323,24 +323,27 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
 // / remember: dUsup[m][n] = partial^n u^m  ///
 // / remember:  a[n]  =  u^m*partial_m u^n  ///
 
-    for( a=0;a<=3;a++ ){
-    for( b=0;b<=3;b++ ){
+    for( a=0;a<4;a++ )
+    {
+        for( b=0;b<4;b++ )
+        {
+            sigma[a][b] = grid_pt->sigma[rk_flag][a][b];
 
-    sigma[a][b] = ( grid_pt->dUsup[rk_flag][a][b] + grid_pt->dUsup[rk_flag][b][a] )/2.
+    //sigma[a][b] = ( grid_pt->dUsup[rk_flag][a][b] + grid_pt->dUsup[rk_flag][b][a] )/2.
 
-                - ( DATA->gmunu[a][b] + (grid_pt->u[rk_flag][a])*(grid_pt->u[rk_flag][b]) )*(grid_pt->theta_u[rk_flag])/3.
+    //            - ( DATA->gmunu[a][b] + (grid_pt->u[rk_flag][a])*(grid_pt->u[rk_flag][b]) )*(grid_pt->theta_u[rk_flag])/3.
 
-                + gamma/tau*(DATA->gmunu[a][3])*(DATA->gmunu[b][3])
+    //            + gamma/tau*(DATA->gmunu[a][3])*(DATA->gmunu[b][3])
 
-                - ueta/tau/2.*( (DATA->gmunu[a][3])*(DATA->gmunu[b][0]) + (DATA->gmunu[b][3])*(DATA->gmunu[a][0]) )
+    //            - ueta/tau/2.*( (DATA->gmunu[a][3])*(DATA->gmunu[b][0]) + (DATA->gmunu[b][3])*(DATA->gmunu[a][0]) )
 
-                + ueta*gamma/tau/2.*( (DATA->gmunu[a][3])*(grid_pt->u[rk_flag][b]) +( DATA->gmunu[b][3])*(grid_pt->u[rk_flag][a]) )
+    //            + ueta*gamma/tau/2.*( (DATA->gmunu[a][3])*(grid_pt->u[rk_flag][b]) +( DATA->gmunu[b][3])*(grid_pt->u[rk_flag][a]) )
 
-                - ueta*ueta/tau/2.*( (DATA->gmunu[a][0])*(grid_pt->u[rk_flag][b]) + (DATA->gmunu[b][0])*(grid_pt->u[rk_flag][a]) )
+    //            - ueta*ueta/tau/2.*( (DATA->gmunu[a][0])*(grid_pt->u[rk_flag][b]) + (DATA->gmunu[b][0])*(grid_pt->u[rk_flag][a]) )
 
-                + ( grid_pt->u[rk_flag][a]*grid_pt->a[rk_flag][b] + grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a] )/2. ;
+    //            + ( grid_pt->u[rk_flag][a]*grid_pt->a[rk_flag][b] + grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a] )/2. ;
 
-    }
+        }
     }
 
 /// full Navier-Stokes term is
@@ -1531,24 +1534,27 @@ ueta  = grid_pt->u[rk_flag][3];
     int a, b;
     double sigma[4][4];
 
-    for( a=0;a<=3;a++ ){
-    for( b=0;b<=3;b++ ){
+    for( a=0;a<4;a++ )
+    {
+        for( b=0;b<4;b++ )
+        {
+            sigma[a][b] = grid_pt->sigma[rk_flag][a][b];
 
-    sigma[a][b] = ( grid_pt->dUsup[rk_flag][a][b] + grid_pt->dUsup[rk_flag][b][a] )/2.
+    //sigma[a][b] = ( grid_pt->dUsup[rk_flag][a][b] + grid_pt->dUsup[rk_flag][b][a] )/2.
 
-                - ( DATA->gmunu[a][b] + (grid_pt->u[rk_flag][a])*(grid_pt->u[rk_flag][b]) )*(grid_pt->theta_u[rk_flag])/3.
+    //            - ( DATA->gmunu[a][b] + (grid_pt->u[rk_flag][a])*(grid_pt->u[rk_flag][b]) )*(grid_pt->theta_u[rk_flag])/3.
 
-                + gamma/tau*(DATA->gmunu[a][3])*(DATA->gmunu[b][3])
+    //            + gamma/tau*(DATA->gmunu[a][3])*(DATA->gmunu[b][3])
 
-                - ueta/tau/2.*( (DATA->gmunu[a][3])*(DATA->gmunu[b][0]) + (DATA->gmunu[b][3])*(DATA->gmunu[a][0]) )
+    //            - ueta/tau/2.*( (DATA->gmunu[a][3])*(DATA->gmunu[b][0]) + (DATA->gmunu[b][3])*(DATA->gmunu[a][0]) )
 
-                + ueta*gamma/tau/2.*( (DATA->gmunu[a][3])*(grid_pt->u[rk_flag][b]) +( DATA->gmunu[b][3])*(grid_pt->u[rk_flag][a]) )
+    //            + ueta*gamma/tau/2.*( (DATA->gmunu[a][3])*(grid_pt->u[rk_flag][b]) +( DATA->gmunu[b][3])*(grid_pt->u[rk_flag][a]) )
 
-                - ueta*ueta/tau/2.*( (DATA->gmunu[a][0])*(grid_pt->u[rk_flag][b]) + (DATA->gmunu[b][0])*(grid_pt->u[rk_flag][a]) )
+    //            - ueta*ueta/tau/2.*( (DATA->gmunu[a][0])*(grid_pt->u[rk_flag][b]) + (DATA->gmunu[b][0])*(grid_pt->u[rk_flag][a]) )
 
-                + ( grid_pt->u[rk_flag][a]*grid_pt->a[rk_flag][b] + grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a] )/2. ;
+    //            + ( grid_pt->u[rk_flag][a]*grid_pt->a[rk_flag][b] + grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a] )/2. ;
 
-    }
+        }
     }
 
     /// Computing terms that Couple with shear-stress tensor
