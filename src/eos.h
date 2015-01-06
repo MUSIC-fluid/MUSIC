@@ -69,6 +69,13 @@ class EOS
       double **mu5;
       double **mu6;
       double **mu7;
+      double **cs2_1;
+      double **cs2_2;
+      double **cs2_3;
+      double **cs2_4;
+      double **cs2_5;
+      double **cs2_6;
+      double **cs2_7;
 
       double * eps_list_rho0, * s_list_rho0;
       int s_list_rho0_length;
@@ -92,7 +99,11 @@ class EOS
       double interpolate(double e, double rhob, int selector);
       double interpolate2D(double e, double rhob, int selector);  // for EOS at finite mu_B
 
-      double get_velocity_of_sound_sq(double e, double rhob);
+      double get_cs2(double e, double rhob);
+      double calculate_velocity_of_sound_sq(double e, double rhob);
+      void fill_cs2_matrix(double e0, double de, int ne, 
+                           double rhob0, double drhob, int nrhob, double** cs2_ptr);
+      void build_velocity_of_sound_sq_matrix();
       double get_dpOverde(double e, double rhob);
       double get_dpOverde2(double e, double rhob);
       double get_dpOverdrhob(double e, double rhob);

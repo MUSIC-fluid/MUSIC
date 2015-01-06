@@ -150,6 +150,10 @@ void EOS::init_eos()
   mu1=util->mtx_malloc(NBNP1+1,NEPP1+1);
   mu2=util->mtx_malloc(NBNP2+1,NEPP2+1);
   
+  // allocate memory for baryon chemical potential arrays
+  cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
+  cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
+
   // read pressure, temperature and chemical potential values
   for(j=0;j<=NEPP1;j++)
     for(i=0;i<=NBNP1;i++)
@@ -167,6 +171,7 @@ void EOS::init_eos()
 	fscanf(eos_mu2,"%lf",&mu2[i][j]);
       }
 
+  build_velocity_of_sound_sq_matrix();
   fclose(eos_p1);
   fclose(eos_p2);
   fclose(eos_T1);
@@ -452,6 +457,15 @@ void EOS::init_eos2()
   temperature5=util->mtx_malloc(NBNP5+1,NEPP5+1);
   temperature6=util->mtx_malloc(NBNP6+1,NEPP6+1);
   temperature7=util->mtx_malloc(NBNP7+1,NEPP7+1);
+  
+  // allocate memory for velocity of sound squared arrays
+  cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
+  cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
+  cs2_3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
+  cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+  cs2_5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
+  cs2_6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
+  cs2_7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
 
   // allocate memory for baryon chemical potential arrays
   // currently always zero
@@ -581,6 +595,9 @@ void EOS::init_eos2()
   fclose(eos_T7);
 
   cout << "Done reading EOS." << endl;
+
+  build_velocity_of_sound_sq_matrix();
+
   //Allocate and fill arrays for get_s2e()
   //First, create new arrays that will permit to extract information we need from each EOS table in a unified way
   const int number_of_EOS_tables = 7;
@@ -877,6 +894,15 @@ void EOS::init_eos3(int selector)
   temperature5=util->mtx_malloc(NBNP5+1,NEPP5+1);
   temperature6=util->mtx_malloc(NBNP6+1,NEPP6+1);
   temperature7=util->mtx_malloc(NBNP7+1,NEPP7+1);
+  
+  // allocate memory for velocity of sound squared arrays
+  cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
+  cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
+  cs2_3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
+  cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+  cs2_5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
+  cs2_6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
+  cs2_7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
 
   // allocate memory for baryon chemical potential arrays
   // currently always zero
@@ -1028,6 +1054,9 @@ void EOS::init_eos3(int selector)
   eos_T7.close();
 
   cout << "Done reading EOS." << endl;
+
+  build_velocity_of_sound_sq_matrix();
+
   //Allocate and fill arrays for get_s2e()
   //First, create new arrays that will permit to extract information we need from each EOS table in a unified way
   const int number_of_EOS_tables = 7;
@@ -1211,6 +1240,13 @@ void EOS::init_eos10(int selector)
   mu3=util->mtx_malloc(NBNP3+1, NEPP3+1);
   mu4=util->mtx_malloc(NBNP4+1, NEPP4+1);
   mu5=util->mtx_malloc(NBNP5+1, NEPP5+1);
+  
+  // allocate memory for velocity of sound squared arrays
+  cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
+  cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
+  cs2_3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
+  cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+  cs2_5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
 
   // read pressure, temperature and chemical potential values
   for(int j = 0; j < NEPP1 + 1; j++)
@@ -1300,6 +1336,9 @@ void EOS::init_eos10(int selector)
   eos_mub5.close();
 
   cout << "Done reading EOS." << endl;
+
+  build_velocity_of_sound_sq_matrix();
+
 }
 
 
@@ -1456,6 +1495,7 @@ double EOS::interpolate2(double e, double rhob, int selector)
   //selector = 1 : temperature
   //selector = 2 : entropy density
   //selector = 3 : QGP fraction
+  //selector = 4 : velocity of sound squared
   
   //if(rhob>0.00001) fprintf(stderr,"rhob=%lf\n", rhob);
   //fprintf(stderr,"e=%f\n",e);
@@ -1498,7 +1538,8 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	case 1: array = temperature1; break;
 	case 2: array = entropyDensity1; break;
 	case 3: array = QGPfraction1; break;
-	default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	case 4: array = cs2_1; break;
+	default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
 	}
 
       pa = array[0][ie1];
@@ -1529,7 +1570,8 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	    case 1: array = temperature2; break;
 	    case 2: array = entropyDensity2; break;
 	    case 3: array = QGPfraction2; break;
-	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	    case 4: array = cs2_2; break;
+	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
 	    }
 	}
       else if (e<EPP4)
@@ -1543,7 +1585,8 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	    case 1: array = temperature3; break;
 	    case 2: array = entropyDensity3; break;
 	    case 3: array = QGPfraction3; break;
-	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	    case 4: array = cs2_3; break;
+	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
 	    }
 	}
       else if (e<EPP5)
@@ -1557,7 +1600,8 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	    case 1: array = temperature4; break;
 	    case 2: array = entropyDensity4; break;
 	    case 3: array = QGPfraction4; break;
-	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	    case 4: array = cs2_4; break;
+	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
 	    }
 	}
       else if (e<EPP6)
@@ -1571,7 +1615,8 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	    case 1: array = temperature5; break;
 	    case 2: array = entropyDensity5; break;
 	    case 3: array = QGPfraction5; break;
-	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	    case 4: array = cs2_5; break;
+	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
 	    }
 	}
       else if (e<EPP7)
@@ -1585,7 +1630,8 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	    case 1: array = temperature6; break;
 	    case 2: array = entropyDensity6; break;
 	    case 3: array = QGPfraction6; break;
-	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	    case 4: array = cs2_6; break;
+	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
 	    }
 	}
       else
@@ -1599,13 +1645,13 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	    case 1: array = temperature7; break;
 	    case 2: array = entropyDensity7; break;
 	    case 3: array = QGPfraction7; break;
-	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	    case 4: array = cs2_7; break;
+	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
 	    }
 	}
 
       ie1 = floor((e-eps0)/deltaEps);
       ie2 = floor((e-eps0)/deltaEps+1);
-      
 
       if(ie1>NEps)
 	{
@@ -1639,7 +1685,8 @@ double EOS::interpolate2(double e, double rhob, int selector)
     case 1: p/=hbarc; break;
     case 2: break;
     case 3: break;
-    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+    case 4: break;
+    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
     }
 
   return p;
@@ -1803,65 +1850,87 @@ double EOS::get_dpOverdrhob(double e, double rhob)
 
 double EOS::get_dpOverde2(double e, double rhob)
 {
-  double dp, pL, pR, deltaEps, eLeft, eRight;
 
-  //The energy has to be in GeV in what follows
-  e=e*hbarc;
+   //The energy has to be in GeV in what follows
+   e=e*hbarc;
 
-   if (e<EPP2)
-     {
+   double eps0, deltaEps;
+   int Neps;
+
+   if(e < EPP1)
+   {
+       eps0 = 0.0;
+       deltaEps = EPP1;
+       Neps = 2;
+   }
+   if(e<EPP2)
+   {
+       eps0 = EPP1;
        deltaEps = deltaEPP1;
-     }
+       Neps = NEPP1;
+   }
    else if (e<EPP3)
-     {
+   {
+       eps0 = EPP2;
        deltaEps = deltaEPP2;
-     }
+       Neps = NEPP2;
+   }
    else if (e<EPP4)
-     {
+   {
+       eps0 = EPP3;
        deltaEps = deltaEPP3;
-     }
+       Neps = NEPP3;
+   }
    else if (e<EPP5)
-     {
+   {
+       eps0 = EPP4;
        deltaEps = deltaEPP4;
-     }
+       Neps = NEPP4;
+   }
    else if (e<EPP6)
-     {
+   {
+       eps0 = EPP5;
        deltaEps = deltaEPP5;
-     }
+       Neps = NEPP5;
+   }
    else if (e<EPP7)
-     {
+   {
+       eps0 = EPP6;
        deltaEps = deltaEPP6;
-     }
+       Neps = NEPP6;
+   }
    else 
-     {
+   {
+       eps0 = EPP7;
        deltaEps = deltaEPP7;
-     }
+       Neps = NEPP7;
+   }
+   double eps_end = eps0 + (Neps - 1)*deltaEps;
 
-   eLeft=e-deltaEps/2.;
-   eRight=e+deltaEps/2.;
-   
-   if(eLeft<EPP1)
-     {
-       eLeft=EPP1;
-       eRight=EPP1+deltaEPP1;
-     }
-   
-   pL = get_pressure(eLeft/hbarc, rhob);
-   pR = get_pressure(eRight/hbarc,  rhob);
+   double eLeft = e - deltaEps*0.1;    // GeV/fm^3
+   double eRight = e + deltaEps*0.1;   // GeV/fm^3
+  
+   // deal with boundary, avoid to exceed the table
+   if(eLeft < eps0)
+       eLeft = eps0;
+   if(eRight > eps_end)
+       eRight = eps_end;
+
+   double pL = get_pressure(eLeft/hbarc, rhob);  // 1/fm^4
+   double pR = get_pressure(eRight/hbarc, rhob); // 1/fm^4
       
-   dp = (pR-pL)*hbarc;
+   double dpde = (pR - pL)*hbarc/(eRight - eLeft);
       
-   if(dp<0) 
-     { 
-       fprintf(stderr,"1dp/de=%lf\n", dp/((eRight-eLeft)/hbarc)); 
-       fprintf(stderr,"1pL=%lf\n", pL); 
-       fprintf(stderr,"1pR=%lf\n", pR); 
-       fprintf(stderr,"1e=%lf\n", e);  
-       fprintf(stderr,"1eLeft=%lf\n", eLeft/hbarc);  
-       fprintf(stderr,"1eRight=%lf\n", eRight/hbarc);  
-     } 
-   
-   return dp/deltaEps;
+   if(dpde < 0) 
+   { 
+       fprintf(stderr, "dp/de=%lf\n", dpde); 
+       fprintf(stderr, "pL=%lf\n", pL); 
+       fprintf(stderr, "pR=%lf\n", pR); 
+       fprintf(stderr, "e=%lf\n", e);  
+       fprintf(stderr, "eLeft=%lf\n", eLeft/hbarc);  
+       fprintf(stderr, "eRight=%lf\n", eRight/hbarc);  
+   } 
+   return dpde;
 }
 
 double EOS::get_dpOverdrhob2(double e, double rhob)
@@ -1870,62 +1939,135 @@ double EOS::get_dpOverdrhob2(double e, double rhob)
     double local_rhob = rhob;       // 1/fm^3
     
     double deltaRhob;               // in 1/fm^3
+    double rhob_end;
     if (local_ed < EPP2)
+    {
         deltaRhob = deltaBNP1;
+        rhob_end = BNP1 + (NBNP1 - 1)*deltaRhob;
+    }
     else if (local_ed < EPP3)
+    {
         deltaRhob = deltaBNP2;
+        rhob_end = BNP2 + (NBNP2 - 1)*deltaRhob;
+    }
     else if (local_ed < EPP4)
+    {
         deltaRhob = deltaBNP3;
+        rhob_end = BNP3 + (NBNP3 - 1)*deltaRhob;
+    }
     else if (local_ed < EPP5)
+    {
         deltaRhob = deltaBNP4;
+        rhob_end = BNP4 + (NBNP4 - 1)*deltaRhob;
+    }
     else if (local_ed < EPP6)
+    {
         deltaRhob = deltaBNP5;
+        rhob_end = BNP5 + (NBNP5 - 1)*deltaRhob;
+    }
     else if (local_ed < EPP7)
+    {
         deltaRhob = deltaBNP6;
+        rhob_end = BNP6 + (NBNP6 - 1)*deltaRhob;
+    }
     else 
+    {
         deltaRhob = deltaBNP7;
+        rhob_end = BNP7 + (NBNP7 - 1)*deltaRhob;
+    }
     
     double rhobLeft = local_rhob - deltaRhob*0.1;
     double rhobRight = local_rhob + deltaRhob*0.1;
-   
-    //if(rhobLeft < BNP1)
-    //{
-    //    rhobLeft = BNP1;
-    //    rhobRight = BNP1 + deltaRhob;
-    //}
+
+    // avoid exceeding the table
+    if(rhobRight > rhob_end)
+        rhobRight = rhob_end;
    
     double pL = get_pressure(e, rhobLeft);  // 1/fm^4
     double pR = get_pressure(e, rhobRight); // 1/fm^4
       
     double dpdrho = (pR - pL)/(rhobRight - rhobLeft);  // 1/fm
-
-    //double p_mid = get_pressure(e, local_rhob);
-    //double v_sound = p_e_func(e, local_rhob) + rhob/(e + p_mid)*dpdrho;
-    //
-    //if(v_sound < 0.03) 
-    //{ 
-    //    fprintf(stderr, "EOS::get_dpOverdrhob2: velocity of sound is negative!\n");
-    //    fprintf(stderr,"v_sound=%lf\n", v_sound); 
-    //    fprintf(stderr,"dp/drho=%lf\n", dpdrho); 
-    //    fprintf(stderr,"pL=%lf\n", pL); 
-    //    fprintf(stderr,"pR=%lf\n", pR); 
-    //    fprintf(stderr,"e=%lf\n", local_ed);  
-    //    fprintf(stderr,"rhob=%lf\n", local_rhob);  
-    //    fprintf(stderr,"rhobLeft=%lf\n", rhobLeft);  
-    //    fprintf(stderr,"rhobRight=%lf\n", rhobRight);  
-    //    dpdrho = (0.03 - p_e_func(e, local_rhob))*(e + p_mid)/rhob;
-    //    //exit(0);
-    //}
    
     return dpdrho;   // in 1/fm
 }
 
-double EOS::get_velocity_of_sound_sq(double e, double rhob)
+double EOS::get_cs2(double e, double rhob)
 {
+    double f;
+    if (whichEOS==0)
+        f = cs2;
+    else if (whichEOS==1)
+        f = interpolate(e, rhob, 2);
+    else if (whichEOS>=2 && whichEOS < 10)
+        f = interpolate2(e, rhob, 4);
+    else if (whichEOS >= 10)
+        f = interpolate2D(e, fabs(rhob), 4);
+    else
+    {
+        fprintf(stderr,"EOS::get_cs2: whichEOS = %d is out of range!\n", whichEOS);
+        exit(0);
+    }
+    return f;
+}
+
+void EOS::build_velocity_of_sound_sq_matrix()
+{
+    // whiichEOS == 0 : ideal gas EoS, cs^2 = 1/3 always
+    if (whichEOS==1)  // 2 tables
+    {
+        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, BNP1, deltaBNP1, NBNP1, cs2_1);
+        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
+    }
+    else if (whichEOS>=2 && whichEOS < 10)  // 7 tables
+    {
+        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, BNP1, deltaBNP1, NBNP1, cs2_1);
+        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
+        fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, BNP3, deltaBNP3, NBNP3, cs2_3);
+        fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, BNP4, deltaBNP4, NBNP4, cs2_4);
+        fill_cs2_matrix(EPP5, deltaEPP5, NEPP5, BNP5, deltaBNP5, NBNP5, cs2_5);
+        fill_cs2_matrix(EPP6, deltaEPP6, NEPP6, BNP6, deltaBNP6, NBNP6, cs2_6);
+        fill_cs2_matrix(EPP7, deltaEPP7, NEPP7, BNP7, deltaBNP7, NBNP7, cs2_7);
+    }
+    else if (whichEOS >= 10)  // 5 tables
+    {
+        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, BNP1, deltaBNP1, NBNP1, cs2_1);
+        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
+        fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, BNP3, deltaBNP3, NBNP3, cs2_3);
+        fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, BNP4, deltaBNP4, NBNP4, cs2_4);
+        fill_cs2_matrix(EPP5, deltaEPP5, NEPP5, BNP5, deltaBNP5, NBNP5, cs2_5);
+    }
+    else
+    {
+        fprintf(stderr,"EOS::build_velocity_of_sound_sq_matrix: whichEOS = %d is out of range!\n", whichEOS);
+        exit(0);
+    }
+}
+
+void EOS::fill_cs2_matrix(double e0, double de, int ne, double rhob0, double drhob, int nrhob, double** cs2_ptr)
+{
+    for(int i = 0; i < nrhob; i++)
+    {
+        double rhob_local = rhob0 + i*drhob;
+        for(int j = 0; j < ne; j++)
+        {
+            double epsilon_local = (e0 + j*de)/hbarc;
+            double cs2_local = calculate_velocity_of_sound_sq(epsilon_local, rhob_local);
+            cs2_ptr[i][j] = cs2_local;
+        }
+    }
+}
+
+double EOS::calculate_velocity_of_sound_sq(double e, double rhob)
+{
+    double v_min = 0.0;
     double dpde = p_e_func(e, rhob);
     double dpdrho = p_rho_func(e, rhob);
     double pressure = get_pressure(e, rhob);
     double v_sound = dpde + rhob/(e + pressure + 1e-15)*dpdrho;
+
+    if(v_sound < v_min)
+        v_sound = v_min;
+    /*
     if(v_sound < 0.)
     {
         fprintf(stderr, "EOS::get_velocity_of_sound:velocity of sound is negative!\n");
@@ -1936,6 +2078,7 @@ double EOS::get_velocity_of_sound_sq(double e, double rhob)
         fprintf(stderr, "dP/de = %lf \n", dpde);
         fprintf(stderr, "dP/drho = %lf \n", dpdrho);
     }
+    */
     return(v_sound);
 }
 
@@ -2005,6 +2148,7 @@ double EOS::interpolate(double e, double rhob, int selector)
 {
   // selector=0 : return temperature
   // selector=1 : return baryon chemical potential
+  // selector=2 : return cs^2
   double T, pa, pb, pa1, pa2, pb1, pb2;
   //use linear interpolation
   int ie1, ie2, inb1, inb2;
@@ -2065,7 +2209,16 @@ double EOS::interpolate(double e, double rhob, int selector)
 	  pa1 = mu1[inb1][ie1];
 	  pa2 = mu1[inb2][ie1];
 	}
-   	else {fprintf(stderr,"selector out of range.\n");exit(0);}
+      else if (selector == 2)
+      {
+	  pa1 = cs2_1[inb1][ie1];
+	  pa2 = cs2_1[inb2][ie1];
+      }
+   	else
+      {
+        fprintf(stderr,"selector = %d is out of range.\n", selector); 
+        exit(0);
+      }
 
       if (pa1<0) pa1=0.;
       if (pa2<0) pa2=0.;
@@ -2084,7 +2237,16 @@ double EOS::interpolate(double e, double rhob, int selector)
 	  pb1 = mu1[inb1][ie2];
 	  pb2 = mu1[inb2][ie2];
 	}
-   	else {fprintf(stderr,"selector out of range.\n");exit(0);}
+      else if (selector == 2)
+      {
+	  pb1 = cs2_1[inb1][ie2];
+	  pb2 = cs2_1[inb2][ie2];
+      }
+   	else
+      {
+        fprintf(stderr,"selector = %d is out of range.\n", selector); 
+        exit(0);
+      }
 
       if (pb1<0) pb1=0.;
       if (pb2<0) pb2=0.;
@@ -2135,7 +2297,16 @@ double EOS::interpolate(double e, double rhob, int selector)
 	  pa1 = mu2[inb1][ie1];
 	  pa2 = mu2[inb2][ie1];
 	}
-   	else {fprintf(stderr,"selector out of range.\n");exit(0);}
+      else if (selector == 2)
+      {
+	  pa1 = cs2_1[inb1][ie1];
+	  pa2 = cs2_1[inb2][ie1];
+      }
+   	else
+      {
+        fprintf(stderr,"selector = %d is out of range.\n", selector); 
+        exit(0);
+      }
       
       if (pa1<0) pa1=0.;
       if (pa2<0) pa2=0.;
@@ -2155,7 +2326,16 @@ double EOS::interpolate(double e, double rhob, int selector)
 	  pb1 = mu2[inb1][ie2];
 	  pb2 = mu2[inb2][ie2];
 	}
-   	else {fprintf(stderr,"selector out of range.\n");exit(0);}
+      else if (selector == 2)
+      {
+	  pb1 = cs2_1[inb1][ie2];
+	  pb2 = cs2_1[inb2][ie2];
+      }
+   	else
+      {
+        fprintf(stderr,"selector = %d is out of range.\n", selector); 
+        exit(0);
+      }
 
       if (pb1<0) pb1=0.;
       if (pb2<0) pb2=0.;
@@ -2178,6 +2358,7 @@ double EOS::interpolate2D(double e, double rhob, int selector)
 //           1: temperature [1/fm]
 //           2: entropy density [1/fm^3]
 //           3: mu_B [1/fm]
+//           4: velocity of sound squared cs^2
 {
     double **array; 
   
@@ -2201,7 +2382,8 @@ double EOS::interpolate2D(double e, double rhob, int selector)
 	      case 1: array = temperature1; break;
 	      case 2: array = entropyDensity1; break;
 	      case 3: array = mu1; break;
-	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2, or 3\n"); exit(1);
+	      case 4: array = cs2_1; break;
+	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2,3, or 4, selector = %d \n", selector); exit(1);
 	  }
     }
     else if(local_ed < EPP2)
@@ -2218,7 +2400,8 @@ double EOS::interpolate2D(double e, double rhob, int selector)
 	      case 1: array = temperature1; break;
 	      case 2: array = entropyDensity1; break;
 	      case 3: array = mu1; break;
-	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2, or 3\n"); exit(1);
+	      case 4: array = cs2_1; break;
+	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2,3, or 4, selector = %d \n", selector); exit(1);
 	  }
     }
     else if(local_ed < EPP3)
@@ -2235,7 +2418,8 @@ double EOS::interpolate2D(double e, double rhob, int selector)
 	      case 1: array = temperature2; break;
 	      case 2: array = entropyDensity2; break;
 	      case 3: array = mu2; break;
-	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	      case 4: array = cs2_2; break;
+	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2,3, or 4, selector = %d \n", selector); exit(1);
 	  }
     }
     else if(local_ed < EPP4)
@@ -2252,7 +2436,8 @@ double EOS::interpolate2D(double e, double rhob, int selector)
 	      case 1: array = temperature3; break;
 	      case 2: array = entropyDensity3; break;
 	      case 3: array = mu3; break;
-	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	      case 4: array = cs2_3; break;
+	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2,3, or 4, selector = %d \n", selector); exit(1);
 	  }
     }
     else if(local_ed < EPP5)
@@ -2269,7 +2454,8 @@ double EOS::interpolate2D(double e, double rhob, int selector)
 	      case 1: array = temperature4; break;
 	      case 2: array = entropyDensity4; break;
 	      case 3: array = mu4; break;
-	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	      case 4: array = cs2_4; break;
+	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2,3, or 4, selector = %d \n", selector); exit(1);
 	  }
     }
     else if(local_ed < EPP6)
@@ -2286,7 +2472,8 @@ double EOS::interpolate2D(double e, double rhob, int selector)
 	      case 1: array = temperature5; break;
 	      case 2: array = entropyDensity5; break;
 	      case 3: array = mu5; break;
-	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	      case 4: array = cs2_5; break;
+	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2,3, or 4, selector = %d \n", selector); exit(1);
 	  }
     }
     else if(local_ed < EPP7)
@@ -2303,7 +2490,8 @@ double EOS::interpolate2D(double e, double rhob, int selector)
 	      case 1: array = temperature6; break;
 	      case 2: array = entropyDensity6; break;
 	      case 3: array = mu6; break;
-	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	      case 4: array = cs2_6; break;
+	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2,3, or 4, selector = %d \n", selector); exit(1);
 	  }
     }
     else
@@ -2320,7 +2508,8 @@ double EOS::interpolate2D(double e, double rhob, int selector)
 	      case 1: array = temperature7; break;
 	      case 2: array = entropyDensity7; break;
 	      case 3: array = mu7; break;
-	      default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2, or 3\n"); exit(1);
+	      case 4: array = cs2_7; break;
+	      default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2,3, or 4, selector = %d \n", selector); exit(1);
 	  }
     }
 
@@ -2338,6 +2527,7 @@ double EOS::interpolate2D(double e, double rhob, int selector)
                 local_ed, local_rhob, eps0, rhob0);
         fprintf(stderr, "idx_e=%d, NEPP1=%d; idx_nb=%d, NBNP1=%d\n", 
                 idx_e, NEps, idx_nb, Nrhob);
+        fprintf(stderr, "deps = %f, drho = %f \n", deltaEps, deltaRhob);
         exit(0);
     }
     
@@ -2349,6 +2539,7 @@ double EOS::interpolate2D(double e, double rhob, int selector)
                 local_ed, local_rhob, eps0, rhob0);
         fprintf(stderr, "idx_e=%d, NEPP1=%d; idx_nb=%d, NBNP1=%d\n", 
                 idx_e, NEps, idx_nb, Nrhob);
+        fprintf(stderr, "deps = %f, drho = %f \n", deltaEps, deltaRhob);
         exit(0);
     }
 
@@ -2361,6 +2552,7 @@ double EOS::interpolate2D(double e, double rhob, int selector)
                     local_ed, local_rhob, eps0, rhob0);
             fprintf(stderr, "idx_e=%d, NEPP1=%d; idx_nb=%d, NBNP1=%d\n", 
                     idx_e, NEps, idx_nb, Nrhob);
+            fprintf(stderr, "deps = %f, drho = %f \n", deltaEps, deltaRhob);
             exit(0);
         }
         else
@@ -2381,10 +2573,6 @@ double EOS::interpolate2D(double e, double rhob, int selector)
         double temp3 = max(array[idx_nb+1][idx_e+1], 0.0);
         double temp4 = max(array[idx_nb+1][idx_e], 0.0);
 
-        //result = (  temp1*(1. - frac_e)*(1. - frac_rhob) 
-        //          + temp2*frac_e*(1. - frac_rhob)
-        //          + temp3*frac_e*frac_rhob 
-        //          + temp4*(1. - frac_e)*frac_rhob);
         result = (  (temp1*(1. - frac_e) + temp2*frac_e)*(1. - frac_rhob)
                   + (temp3*frac_e + temp4*(1. - frac_e))*frac_rhob);
     }
@@ -2396,7 +2584,8 @@ double EOS::interpolate2D(double e, double rhob, int selector)
         case 1: result /= hbarc; break;   // temperature in [1/fm]
         case 2: break;                    // entropy density in [1/fm^3]
         case 3: result /= hbarc; break;   // mu_B in [1/fm]
-        default: fprintf(stderr, "ERROR in interpolate2D - selector must be 0,1,2, or 3\n"); exit(1);
+        case 4: break;                    // cs^2
+	  default: fprintf(stderr,"ERROR in interpolate2D - selector must be 0,1,2,3, or 4, selector = %d \n", selector); exit(1);
     }
 
     return result;

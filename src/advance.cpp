@@ -1756,7 +1756,7 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag)
   double eps = grid_p->epsilon;
   double rhob = grid_p->rhob;
   
-  double vs2 = eos->get_velocity_of_sound_sq(eps, rhob);
+  double vs2 = eos->get_cs2(eps, rhob);
 
   double den = utau2*(1. - vs2) + vs2;
   double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.)*vs2)*vs2;

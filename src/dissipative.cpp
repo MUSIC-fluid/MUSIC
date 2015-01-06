@@ -1483,7 +1483,7 @@ ueta  = grid_pt->u[rk_flag][3];
     double temperature = eos->get_temperature(grid_pt->epsilon, grid_pt->rhob);
     shear = (DATA->shear_to_s)*(grid_pt->epsilon + grid_pt->p)/temperature;  // shear viscosity = constant * (e + P)/T
     //cs2 = eos->p_e_func(grid_pt->epsilon, grid_pt->rhob);    // cs2 is the velocity of sound squared
-    cs2 = eos->get_velocity_of_sound_sq(grid_pt->epsilon, grid_pt->rhob);  // cs2 is the velocity of sound squared
+    cs2 = eos->get_cs2(grid_pt->epsilon, grid_pt->rhob);  // cs2 is the velocity of sound squared
     bulk = (DATA->bulk_to_s)*shear*(1./3.-cs2)*(1./3.-cs2);  // bulk viscosity = constant * shear viscosity * (1/3-cs2)**2
    // parameter DATA->bulk_to_s should be between 15 -- 75
 
