@@ -91,7 +91,7 @@ EOS_to_use 10                             # type of the equation of state
                                           # 10: lattice EOS at finite muB (from A. Monnai)
 Minmod_Theta 1.8                          # theta parameter in the min-mod like limiter
 Runge_Kutta_order 2                       # order of Runge_Kutta for temporal evolution (must be 1 or 2)
-reconst_type 0                            # the type of quantity that will be first reconstruct from T^0\mu and J^0
+reconst_type 1                            # the type of quantity that will be first reconstruct from T^0\mu and J^0
                                           # 0: energy density and rho_baryon
                                           # 1: flow velocity
 boost_invariant 0                         # initial condition is boost invariant 
@@ -103,7 +103,7 @@ Shear_to_S_ratio 0.08                     # value of \eta/s
 Include_Bulk_Visc_Yes_1_No_0 0            # include bulk viscous effect
 Bulk_to_S_ratio 0.1                       # value of \zeta/s
 Include_Rhob_Yes_1_No_0 1                 # turn on propagation of baryon current
-turn_on_baryon_diffusion 0                # turn on baryon current diffusion
+turn_on_baryon_diffusion 1                # turn on baryon current diffusion
 Bulk_relaxation_time_tau_b_pi 0.6         # bulk relation time
 Shear_relaxation_time_tau_pi 0.01         # shear relation time
 #
@@ -122,7 +122,7 @@ output_evolution_data 0                   # flag to output evolution history to 
 ###########################################
 # parameters for freeze out and Cooper-Frye 
 ###########################################
-Do_FreezeOut_Yes_1_No_0 1                 # flag to find freeze-out surface
+Do_FreezeOut_Yes_1_No_0 0                 # flag to find freeze-out surface
 freeze_out_method 4                       # method for hyper-surface finder
                                           # 1: Hirano's simplified lego method
                                           # 2: Schenke's more complex method
