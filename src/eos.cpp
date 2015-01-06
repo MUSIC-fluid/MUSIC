@@ -1921,15 +1921,15 @@ double EOS::get_dpOverde2(double e, double rhob)
       
    double dpde = (pR - pL)*hbarc/(eRight - eLeft);
       
-   if(dpde < 0) 
-   { 
-       fprintf(stderr, "dp/de=%lf\n", dpde); 
-       fprintf(stderr, "pL=%lf\n", pL); 
-       fprintf(stderr, "pR=%lf\n", pR); 
-       fprintf(stderr, "e=%lf\n", e);  
-       fprintf(stderr, "eLeft=%lf\n", eLeft/hbarc);  
-       fprintf(stderr, "eRight=%lf\n", eRight/hbarc);  
-   } 
+   //if(dpde < 0) 
+   //{ 
+   //    fprintf(stderr, "dp/de=%lf\n", dpde); 
+   //    fprintf(stderr, "pL=%lf\n", pL); 
+   //    fprintf(stderr, "pR=%lf\n", pR); 
+   //    fprintf(stderr, "e=%lf\n", e);  
+   //    fprintf(stderr, "eLeft=%lf\n", eLeft/hbarc);  
+   //    fprintf(stderr, "eRight=%lf\n", eRight/hbarc);  
+   //} 
    return dpde;
 }
 
