@@ -104,6 +104,7 @@ class EOS
       void fill_cs2_matrix(double e0, double de, int ne, 
                            double rhob0, double drhob, int nrhob, double** cs2_ptr);
       void build_velocity_of_sound_sq_matrix();
+      double get_rhob_from_mub(double e, double mub);
       double get_dpOverde(double e, double rhob);
       double get_dpOverde2(double e, double rhob);
       double get_dpOverdrhob(double e, double rhob);

@@ -2815,3 +2815,151 @@ double EOS::get_s2e(double s, double rhob) { //s - entropy density in 1/fm^3
 	return e; //in 1/fm^4
 
 }
+
+double EOS::get_rhob_from_mub(double e, double mub)
+{
+    double local_ed = e*hbarc;      // GeV/fm^3
+    double local_mub = mub*hbarc;   // GeV
+    double **array;
+
+    double eps0, deltaEps, rhob0, deltaRhob;
+    int NEps, Nrhob;
+    if(local_ed < EPP1)  // energy density is smaller than the smallest value in the table use linear extrapolation
+    {
+	  eps0 = EPP1;
+	  NEps = NEPP1;
+	  deltaEps = deltaEPP1;
+        rhob0 = BNP1;
+	  Nrhob = NBNP1;
+	  deltaRhob = deltaBNP1;
+        array = mu1;
+    }
+    else if(local_ed < EPP2)
+    {
+	  eps0 = EPP1;
+	  NEps = NEPP1;
+	  deltaEps = deltaEPP1;
+        rhob0 = BNP1;
+	  Nrhob = NBNP1;
+	  deltaRhob = deltaBNP1;
+        array = mu1;
+    }
+    else if(local_ed < EPP3)
+    {
+	  eps0 = EPP2;
+	  NEps = NEPP2;
+	  deltaEps = deltaEPP2;
+        rhob0 = BNP2;
+	  Nrhob = NBNP2;
+	  deltaRhob = deltaBNP2;
+        array = mu2;
+    }
+    else if(local_ed < EPP4)
+    {
+	  eps0 = EPP3;
+	  NEps = NEPP3;
+	  deltaEps = deltaEPP3;
+        rhob0 = BNP3;
+	  Nrhob = NBNP3;
+	  deltaRhob = deltaBNP3;
+        array = mu3;
+    }
+    else if(local_ed < EPP5)
+    {
+	  eps0 = EPP4;
+	  NEps = NEPP4;
+	  deltaEps = deltaEPP4;
+        rhob0 = BNP4;
+	  Nrhob = NBNP4;
+	  deltaRhob = deltaBNP4;
+        array = mu4;
+    }
+    else if(local_ed < EPP6)
+    {
+	  eps0 = EPP5;
+	  NEps = NEPP5;
+	  deltaEps = deltaEPP5;
+        rhob0 = BNP5;
+	  Nrhob = NBNP5;
+	  deltaRhob = deltaBNP5;
+        array = mu5;
+    }
+    else if(local_ed < EPP7)
+    {
+	  eps0 = EPP6;
+	  NEps = NEPP6;
+	  deltaEps = deltaEPP6;
+        rhob0 = BNP6;
+	  Nrhob = NBNP6;
+	  deltaRhob = deltaBNP6;
+        array = mu6;
+    }
+    else
+    {
+	  eps0 = EPP7;
+	  NEps = NEPP7;
+	  deltaEps = deltaEPP7;
+        rhob0 = BNP7;
+	  Nrhob = NBNP7;
+	  deltaRhob = deltaBNP7;
+        array = mu7;
+    }
+
+    // compute the indices
+    int idx_e = (int)((local_ed - eps0)/deltaEps);
+    double frac_e = (local_ed - (idx_e*deltaEps + eps0))/deltaEps; 
+    
+    // check overflow
+    if(idx_e > (NEps-1))
+    {
+        fprintf(stderr, "ERROR in get_rhob_from_mub: out of range of the table! \n");
+        fprintf(stderr, "e = %e, eps0 = %e \n", local_ed, eps0);
+        fprintf(stderr, "idx_e=%d, NEPP1=%d; \n", idx_e, NEps);
+        fprintf(stderr, "deps = %f \n", deltaEps);
+        exit(0);
+    }
+    
+    // check underflow
+    if(idx_e < 0)
+    {
+        if(local_ed > EPP1 + 1e-15 || local_ed < 0.)
+        {
+            fprintf(stderr, "ERROR in get_rhob_from_mub: out of range of the table! \n");
+            fprintf(stderr, "e = %e, eps0 = %e \n", local_ed, eps0);
+            fprintf(stderr, "idx_e=%d, NEPP1=%d; \n", idx_e, NEps);
+            fprintf(stderr, "deps = %f \n", deltaEps);
+            exit(0);
+        }
+        else
+            idx_e = 0;  // do linear extrapolation for small energy density
+    }
+
+    double *array_left = new double [Nrhob+1];
+    double *array_right = new double [Nrhob+1];
+
+    for(int i = 0; i < Nrhob+1; i++)
+    {
+       array_left[i] = array[i][idx_e];
+       array_right[i] = array[i][idx_e+1];
+    }
+
+    int idx_rhob_left = util->binary_search(array_left, Nrhob+1, local_mub);
+    int idx_rhob_right = util->binary_search(array_right, Nrhob+1, local_mub);
+    double rhob_left_1 = rhob0 + idx_rhob_left*deltaRhob;
+    double rhob_left_2 = rhob0 + (idx_rhob_left+1)*deltaRhob;
+    double mub_left_1 = array_left[idx_rhob_left];
+    double mub_left_2 = array_left[idx_rhob_left+1];
+    double frac_mub_left = (local_mub - mub_left_1)/(mub_left_2 - mub_left_1);
+    double rhob_left = rhob_left_1*(1. - frac_mub_left) + rhob_left_2*frac_mub_left;
+
+    double rhob_right_1 = rhob0 + idx_rhob_right*deltaRhob;
+    double rhob_right_2 = rhob0 + (idx_rhob_right+1)*deltaRhob;
+    double mub_right_1 = array_right[idx_rhob_right];
+    double mub_right_2 = array_right[idx_rhob_right+1];
+    double frac_mub_right = (local_mub - mub_right_1)/(mub_right_2 - mub_right_1);
+    double rhob_right = rhob_right_1*(1. - frac_mub_right) + rhob_right_2*frac_mub_right;
+
+    double rhob = rhob_left*(1. - frac_e) + rhob_right*frac_e;   // 1/fm^3
+    return(rhob);
+}
+

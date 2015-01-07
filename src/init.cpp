@@ -556,7 +556,12 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		     
 		     // distribution of initial baryon density:
 		     //rhob = DATA->rhoB0/epsilon0*epsilon; /* in fm^-3 */
-		     rhob = nWounded; /* in fm^-3 */
+		     //rhob = nWounded; /* in fm^-3 */
+                 //double mub_over_T = 0.01*W;
+                 //double temperature = eos->get_temperature(epsilon, 0.0);
+                 double mub = 0.01*W;
+                 if(mub*hbarc < 1e-7) mub = 1e-7/hbarc;
+                 rhob = eos->get_rhob_from_mub(epsilon, mub);
 		  //    if (x==0 && y==0) 
 // 		       {
 // 			 fprintf(stderr,"e(%f)=%f GeV/fm^3, rhob=%f\n",eta,epsilon*hbarc, rhob);

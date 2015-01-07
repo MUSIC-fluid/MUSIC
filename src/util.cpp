@@ -1515,6 +1515,7 @@ int Util::binary_search(double* array, int length, double x)
    if((array[low_idx] - x)*(array[high_idx] - x) > 0.)
    {
        fprintf(stderr, "Util::binary_search: can not find idx!\n");
+       fprintf(stderr, "a[0] = %e, a[end] = %e, a = %e \n", array[low_idx], array[high_idx], x);
        exit(-1);
    }
    
