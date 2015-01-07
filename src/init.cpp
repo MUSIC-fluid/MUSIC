@@ -75,88 +75,108 @@ void Init::InitArena(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid **
 
 void Init::LinkNeighbors(InitData *DATA, Grid ****arena, int size, int rank)
 {
- int ix, iy, ieta, nx, ny, neta;
-//  int x_nbr, y_nbr, eta_nbr, mu, nu,;
+  int ix, iy, ieta, nx, ny, neta;
+  //int x_nbr, y_nbr, eta_nbr, mu, nu,;
 
- nx = DATA->nx;
- ny = DATA->ny;
- neta = DATA->neta;
+  nx = DATA->nx;
+  ny = DATA->ny;
+  neta = DATA->neta;
 
-/* allocate memory */
- for(ix=0; ix<=nx; ix++)
+  /* allocate memory */
+  for(ix=0; ix<=nx; ix++)
   {
-   for(iy=0; iy<=ny; iy++)
+    for(iy=0; iy<=ny; iy++)
     {
-     for(ieta=0; ieta<neta; ieta++)
+      for(ieta=0; ieta<neta; ieta++)
       {
-	//       (*arena)[ix][iy][ieta].nbr_p_1 =  (Grid **) malloc (sizeof(Grid *)*4); 
-	//       (*arena)[ix][iy][ieta].nbr_m_1 = (Grid **) malloc (sizeof(Grid *)*4); 
-	(*arena)[ix][iy][ieta].nbr_p_1 = new Grid *[4];
-	(*arena)[ix][iy][ieta].nbr_m_1 = new Grid *[4];
+	  //(*arena)[ix][iy][ieta].nbr_p_1 =  (Grid **) malloc (sizeof(Grid *)*4); 
+	  //(*arena)[ix][iy][ieta].nbr_m_1 = (Grid **) malloc (sizeof(Grid *)*4); 
+	  (*arena)[ix][iy][ieta].nbr_p_1 = new Grid *[4];
+	  (*arena)[ix][iy][ieta].nbr_m_1 = new Grid *[4];
+	  (*arena)[ix][iy][ieta].nbr_p_2 = new Grid *[4];
+	  (*arena)[ix][iy][ieta].nbr_m_2 = new Grid *[4];
 	
-	for(int i=1; i<4; i++)
-	  {
-	    (*arena)[ix][iy][ieta].nbr_p_1[i] = new Grid;
-	    (*arena)[ix][iy][ieta].nbr_m_1[i] = new Grid;
-	  }
+	  //for(int i=1; i<4; i++)
+	  //{
+	  //  (*arena)[ix][iy][ieta].nbr_p_1[i] = new Grid;
+	  //  (*arena)[ix][iy][ieta].nbr_m_1[i] = new Grid;
+	  //  (*arena)[ix][iy][ieta].nbr_p_2[i] = new Grid;
+	  //  (*arena)[ix][iy][ieta].nbr_m_2[i] = new Grid;
+	  //}
 
-	(*arena)[ix][iy][ieta].position[1] = ix;
-	(*arena)[ix][iy][ieta].position[2] = iy;
-	(*arena)[ix][iy][ieta].position[3] = ieta;
+	  (*arena)[ix][iy][ieta].position[1] = ix;
+	  (*arena)[ix][iy][ieta].position[2] = iy;
+	  (*arena)[ix][iy][ieta].position[3] = ieta;
       }/* ieta */
     }/* iy */
   }/* ix */
 
- for(ix=0; ix<=nx; ix++)
+  for(ix=0; ix<=nx; ix++)
   {
-   for(iy=0; iy<=ny; iy++)
+    for(iy=0; iy<=ny; iy++)
     {
-     for(ieta=0; ieta<neta; ieta++)
+      for(ieta=0; ieta<neta; ieta++)
       {
-	 if(ix != nx)
-          { (*arena)[ix][iy][ieta].nbr_p_1[1] = &(*arena)[ix+1][iy][ieta]; 
-	  }
-         else 
-          { (*arena)[ix][iy][ieta].nbr_p_1[1] = NULL; 
-	  }
-         
-	 if(ix != 0)
-          { (*arena)[ix][iy][ieta].nbr_m_1[1] = &(*arena)[ix-1][iy][ieta]; 
-	  }
-         else
-          { (*arena)[ix][iy][ieta].nbr_m_1[1] = NULL; 
-	  }
-         
-	 if(iy != ny)
-          { (*arena)[ix][iy][ieta].nbr_p_1[2] = &(*arena)[ix][iy+1][ieta]; 
-	  }
-         else
-          { (*arena)[ix][iy][ieta].nbr_p_1[2] = NULL; 
-	  }
-         
-	 if(iy != 0)
-          { (*arena)[ix][iy][ieta].nbr_m_1[2] = &(*arena)[ix][iy-1][ieta]; 
-          }
-         else
-          { (*arena)[ix][iy][ieta].nbr_m_1[2] = NULL; 
-          }
+	    if(ix != nx)
+             (*arena)[ix][iy][ieta].nbr_p_1[1] = &(*arena)[ix+1][iy][ieta]; 
+          else 
+             (*arena)[ix][iy][ieta].nbr_p_1[1] = NULL; 
 
-	 // do not care which rank it is - that is dealt with in evolve.cpp
-	 if(ieta != neta-1)
-          { (*arena)[ix][iy][ieta].nbr_p_1[3] = &(*arena)[ix][iy][ieta+1]; 
-	  }
-         else 
-	   {
-	     (*arena)[ix][iy][ieta].nbr_p_1[3] = NULL; 
-	   }
+	    if(ix < nx - 1)
+             (*arena)[ix][iy][ieta].nbr_p_2[1] = &(*arena)[ix+2][iy][ieta]; 
+          else 
+             (*arena)[ix][iy][ieta].nbr_p_2[1] = NULL; 
          
-	 if(ieta != 0)
-	   { (*arena)[ix][iy][ieta].nbr_m_1[3] = &(*arena)[ix][iy][ieta-1]; 
-	   }
-         else
-	   {
-	     (*arena)[ix][iy][ieta].nbr_m_1[3] = NULL; 
-	   }
+	    if(ix != 0)
+             (*arena)[ix][iy][ieta].nbr_m_1[1] = &(*arena)[ix-1][iy][ieta]; 
+          else
+             (*arena)[ix][iy][ieta].nbr_m_1[1] = NULL; 
+
+	    if(ix > 1)
+             (*arena)[ix][iy][ieta].nbr_m_2[1] = &(*arena)[ix-2][iy][ieta]; 
+          else
+             (*arena)[ix][iy][ieta].nbr_m_2[1] = NULL; 
+         
+	    if(iy != ny)
+             (*arena)[ix][iy][ieta].nbr_p_1[2] = &(*arena)[ix][iy+1][ieta]; 
+          else
+             (*arena)[ix][iy][ieta].nbr_p_1[2] = NULL; 
+	    
+          if(iy < ny - 1)
+             (*arena)[ix][iy][ieta].nbr_p_2[2] = &(*arena)[ix][iy+2][ieta]; 
+          else
+             (*arena)[ix][iy][ieta].nbr_p_2[2] = NULL; 
+         
+	    if(iy != 0)
+             (*arena)[ix][iy][ieta].nbr_m_1[2] = &(*arena)[ix][iy-1][ieta]; 
+          else
+             (*arena)[ix][iy][ieta].nbr_m_1[2] = NULL; 
+	    
+          if(iy > 1)
+             (*arena)[ix][iy][ieta].nbr_m_2[2] = &(*arena)[ix][iy-2][ieta]; 
+          else
+             (*arena)[ix][iy][ieta].nbr_m_2[2] = NULL; 
+
+	    // do not care which rank it is - that is dealt with in evolve.cpp
+	    if(ieta != neta-1)
+             (*arena)[ix][iy][ieta].nbr_p_1[3] = &(*arena)[ix][iy][ieta+1]; 
+          else 
+	       (*arena)[ix][iy][ieta].nbr_p_1[3] = NULL; 
+	    
+          if(ieta < neta-2)
+             (*arena)[ix][iy][ieta].nbr_p_2[3] = &(*arena)[ix][iy][ieta+2]; 
+          else 
+	       (*arena)[ix][iy][ieta].nbr_p_2[3] = NULL; 
+         
+	    if(ieta != 0)
+             (*arena)[ix][iy][ieta].nbr_m_1[3] = &(*arena)[ix][iy][ieta-1]; 
+          else
+	       (*arena)[ix][iy][ieta].nbr_m_1[3] = NULL; 
+	    
+          if(ieta > 1)
+             (*arena)[ix][iy][ieta].nbr_m_2[3] = &(*arena)[ix][iy][ieta-2]; 
+          else
+	       (*arena)[ix][iy][ieta].nbr_m_2[3] = NULL; 
 	 
       }/* ieta */
     }/* iy */

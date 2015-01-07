@@ -204,8 +204,10 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
         //for(int i = 0; i<4; i++) delete arena[ix][iy][ieta].nbr_p_1[i];
         //delete arena[ix][iy][ieta].nbr_p_1[0];
 	  delete[] arena[ix][iy][ieta].nbr_p_1;
+	  delete[] arena[ix][iy][ieta].nbr_p_2;
         //delete arena[ix][iy][ieta].nbr_m_1[0];
 	  delete[] arena[ix][iy][ieta].nbr_m_1;
+	  delete[] arena[ix][iy][ieta].nbr_m_2;
       }
 
   fprintf(stderr,"SUM=%f\n", SUM);

@@ -1289,8 +1289,7 @@ void Advance::GetQIs
 	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qim1[alpha][i] *= tempg;
 	    
-	    NbrCells->qim2[alpha][i] 
-	      = grid_pt->nbr_m_1[i]->nbr_m_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qim2[alpha][i] *= tempg;  
 	 
 	    NbrCells->qip1[alpha][i] = qi[alpha];
@@ -1305,8 +1304,7 @@ void Advance::GetQIs
 	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qim1[alpha][i] *= tempg;
 	    
-	    NbrCells->qim2[alpha][i] 
-	      = grid_pt->nbr_m_1[i]->nbr_m_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qim2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
@@ -1318,7 +1316,7 @@ void Advance::GetQIs
 	    NbrCells->qip1[alpha][i] *= tempg;  
 	    
 	    NbrCells->qip2[alpha][i] 
-	      = grid_pt->nbr_p_1[i]->nbr_p_1[i]->TJb[rk_flag][alpha][0]; 
+	      = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qip2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qim1[alpha][i] = qi[alpha];
@@ -1330,8 +1328,7 @@ void Advance::GetQIs
 	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qip1[alpha][i] *= tempg;  
 	    
-	    NbrCells->qip2[alpha][i] 
-	      = grid_pt->nbr_p_1[i]->nbr_p_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qip2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
@@ -1345,15 +1342,13 @@ void Advance::GetQIs
 	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qip1[alpha][i] *= tempg;  
 	    
-	    NbrCells->qip2[alpha][i] 
-	      = grid_pt->nbr_p_1[i]->nbr_p_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qip2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qim1[alpha][i] *= tempg;
 	    
-	    NbrCells->qim2[alpha][i] 
-	      = grid_pt->nbr_m_1[i]->nbr_m_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qim2[alpha][i] *= tempg;  
 	  }
       }/* i */    
@@ -1366,7 +1361,7 @@ void Advance::GetQIs
 	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qim1[alpha][i] *= tempg;
 	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_1[i]->nbr_m_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qim2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qip1[alpha][i] = qi[alpha];
@@ -1378,7 +1373,7 @@ void Advance::GetQIs
 	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qim1[alpha][i] *= tempg;
 	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_1[i]->nbr_m_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qim2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qip1[alpha][i] = Rneighbor->TJb[rk_flag][alpha][0];
@@ -1398,7 +1393,7 @@ void Advance::GetQIs
 	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qim1[alpha][i] *= tempg;
 	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_1[i]->nbr_m_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qim2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
@@ -1412,7 +1407,7 @@ void Advance::GetQIs
 	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qim1[alpha][i] *= tempg;
 	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_1[i]->nbr_m_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qim2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qip2[alpha][i] = Rneighbor->TJb[rk_flag][alpha][0]; 
@@ -1427,7 +1422,7 @@ void Advance::GetQIs
 	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qip1[alpha][i] *= tempg;  
 	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_1[i]->nbr_p_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qip2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qim1[alpha][i] = qi[alpha];
@@ -1439,7 +1434,7 @@ void Advance::GetQIs
 	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qip1[alpha][i] *= tempg;  
 	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_1[i]->nbr_p_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qip2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qim1[alpha][i] = Lneighbor->TJb[rk_flag][alpha][0];
@@ -1463,7 +1458,7 @@ void Advance::GetQIs
 	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qip1[alpha][i] *= tempg;  
 	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_1[i]->nbr_p_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qip2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
@@ -1478,7 +1473,7 @@ void Advance::GetQIs
 	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
 	    NbrCells->qip1[alpha][i] *= tempg;  
 	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_1[i]->nbr_p_1[i]->TJb[rk_flag][alpha][0]; 
+	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
 	    NbrCells->qip2[alpha][i] *= tempg;  
 	    
 	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
@@ -1493,13 +1488,13 @@ void Advance::GetQIs
 	NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
 	NbrCells->qip1[alpha][i] *= tempg;  
 	
-	NbrCells->qip2[alpha][i] = grid_pt->nbr_p_1[i]->nbr_p_1[i]->TJb[rk_flag][alpha][0]; 
+	NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
 	NbrCells->qip2[alpha][i] *= tempg;  
 	
 	NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
 	NbrCells->qim1[alpha][i] *= tempg;
 	
-	NbrCells->qim2[alpha][i] = grid_pt->nbr_m_1[i]->nbr_m_1[i]->TJb[rk_flag][alpha][0]; 
+	NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
 	NbrCells->qim2[alpha][i] *= tempg;  
       }
   }/* alpha */

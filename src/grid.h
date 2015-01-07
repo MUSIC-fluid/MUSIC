@@ -40,6 +40,8 @@ class Grid{
     
   Grid **nbr_p_1; 
   Grid **nbr_m_1; 
+  Grid **nbr_p_2; 
+  Grid **nbr_m_2; 
   
   Grid *grid_v_malloc(int );
   Grid **grid_m_malloc(int , int );
