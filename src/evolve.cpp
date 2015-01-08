@@ -123,7 +123,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
           grid->PrintxEpsilon(arena, DATA, tau, size, rank);
           //grid->ComputeEccentricity(DATA, arena, tau);
           grid->ComputeAnisotropy(DATA, arena, tau);
-          grid->print_qmu_evolution(DATA, arena, tau);
+          grid->print_qmu_evolution(DATA, arena, tau, eos);
           grid->print_rhob_evolution(DATA, arena, tau, eos);
         }
         grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
@@ -297,6 +297,8 @@ int Evolve::UpdateArena(double tau, Grid ***arena)
     {
       for(int ieta = 0; ieta <= neta; ieta++)
       {
+        arena[ix][iy][ieta].epsilon_prev = arena[ix][iy][ieta].epsilon;
+        arena[ix][iy][ieta].rhob_prev = arena[ix][iy][ieta].rhob;
         arena[ix][iy][ieta].p = arena[ix][iy][ieta].p_t;
         arena[ix][iy][ieta].epsilon = arena[ix][iy][ieta].epsilon_t;
         arena[ix][iy][ieta].rhob = arena[ix][iy][ieta].rhob_t;

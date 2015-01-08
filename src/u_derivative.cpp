@@ -80,16 +80,15 @@ int U_derivative::MakedU(double tau, InitData *DATA, Grid ***arena, Grid ***Lnei
       {
          for(int ieta=0; ieta<=neta; ieta++)
          {
-            double dUsup_local[4][4];
             double u_local[4];
             for(int i = 0; i < 4; i++)
-            {
                u_local[i] = arena[ix][iy][ieta].u[rk_flag][i];
+            double dUsup_local[5][4];   // dUsup[m][n] = partial^n u^m
+            for(int i = 0; i < 5; i++)
                for(int j = 0; j < 4; j++)
                {
                   dUsup_local[i][j] = arena[ix][iy][ieta].dUsup[rk_flag][i][j];
                }
-            }
             double partial_mu_u_supmu = 0.0;
             for(int mu=0; mu<4; mu++)
             {
@@ -100,7 +99,7 @@ int U_derivative::MakedU(double tau, InitData *DATA, Grid ***arena, Grid ***Lnei
 	         for(int nu=0; nu<4; nu++)
                {
                   double tfac = (nu==0 ? -1.0 : 1.0);
-                  u_supnu_partial_nu_u_supmu += tfac*u_local[nu]*dUsup_local[nu][mu];
+                  u_supnu_partial_nu_u_supmu += tfac*u_local[nu]*dUsup_local[mu][nu];
                }
                arena[ix][iy][ieta].a[rk_flag][mu] = u_supnu_partial_nu_u_supmu;
 	      }/* mu */
@@ -110,9 +109,17 @@ int U_derivative::MakedU(double tau, InitData *DATA, Grid ***arena, Grid ***Lnei
 	      for(int nu=0; nu<4; nu++)
             {
                double tfac = (nu==0 ? -1.0 : 1.0);
-               u_supnu_partial_nu_muoverT += tfac*u_local[nu]*dUsup_local[nu][mu];
+               u_supnu_partial_nu_muoverT += tfac*u_local[nu]*dUsup_local[mu][nu];
             }
             arena[ix][iy][ieta].a[rk_flag][mu] = u_supnu_partial_nu_muoverT;
+
+            //double check = 0.0;
+            //for(int nu = 0; nu < 4; nu++)
+            //{
+            //    double tfac = (nu==0 ? -1.0 : 1.0);
+            //    check += tfac*u_local[nu]*(dUsup_local[nu][4] + u_local[nu]*u_supnu_partial_nu_muoverT);
+            //}
+            //cout << check << endl;
 
             // expansion rate need to add the tau-eta coordinate source term
             arena[ix][iy][ieta].theta_u[rk_flag] = partial_mu_u_supmu + u_local[0]/tau;
@@ -586,7 +593,6 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, Grid *
    g = minmod->minmod_dx(fp1, f, fm1);
    g /= delta[n]*taufactor;
    grid_pt->dUsup[rk_flag][m][n] = g;
-// 
 
  return 1;
 }/* MakeDSpatial */

@@ -2390,7 +2390,7 @@ void Grid::PrintAxy(InitData *DATA, Grid ***arena, double tau)
   return;
 }/* PrintAxy */
 
-void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau)
+void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS *eos)
 {
   string d_name;
   ofstream d_file;
@@ -2398,20 +2398,53 @@ void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau)
   d_file.open(d_name.c_str(), ios::out | ios::app );
   
   int ieta = DATA->neta/2;
+  int iy = (int)(DATA->ny/2);
   for(int ix=0; ix<=DATA->nx; ix++)
   {
     double x = ix*(DATA->delta_x) - (DATA->x_size/2.0);
-    int iy = (int)(DATA->ny/2);
     double y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
     double rhob = arena[ix][iy][ieta].rhob;
-    double q0 = arena[ix][iy][ieta].Wmunu[0][4][0];
-    double qx = arena[ix][iy][ieta].Wmunu[0][4][1];
-    double qy = arena[ix][iy][ieta].Wmunu[0][4][2];
-    double qeta = arena[ix][iy][ieta].Wmunu[0][4][3];
+    double epsilon = arena[ix][iy][ieta].epsilon;
+    double muB = eos->get_mu(epsilon, rhob);
+    double kappa = 0.2*rhob/muB;
     d_file << scientific << setw(18) << setprecision(8)
-           << tau << "  " << x << "  " << y << "  "
-           << q0 << "  " << qx << "  " 
-           << qy << "  " << qeta << "   " << rhob << endl;
+           << tau << "  " << x << "  " << y << "   " << rhob << "  " ;
+    double D_mu = arena[ix][iy][ieta].a[0][4];
+    for(int nu = 0; nu < 4; nu++)
+    {
+        double q_nu = arena[ix][iy][ieta].Wmunu[0][4][nu];
+        double partial_mu = arena[ix][iy][ieta].dUsup[0][4][nu];
+        double flow_u = arena[ix][iy][ieta].u[0][nu];
+        double NS_term = -kappa*(partial_mu + flow_u*D_mu);
+        d_file << scientific << setw(18) << setprecision(8)
+               << q_nu << "   " << NS_term << "   " ;
+               //<< partial_mu << "  " << flow_u*D_mu << "  " << NS_term << "  " ;
+    }
+    d_file << endl;
+  }
+  int ix = (int)(DATA->ny/2);
+  for(int iy=0; iy<=DATA->ny; iy++)
+  {
+    double x = ix*(DATA->delta_x) - (DATA->x_size/2.0);
+    double y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
+    double rhob = arena[ix][iy][ieta].rhob;
+    double epsilon = arena[ix][iy][ieta].epsilon;
+    double muB = eos->get_mu(epsilon, rhob);
+    double kappa = 0.2*rhob/muB;
+    d_file << scientific << setw(18) << setprecision(8)
+           << tau << "  " << x << "  " << y << "   " << rhob << "  " ;
+    double D_mu = arena[ix][iy][ieta].a[0][4];
+    for(int nu = 0; nu < 4; nu++)
+    {
+        double q_nu = arena[ix][iy][ieta].Wmunu[0][4][nu];
+        double partial_mu = arena[ix][iy][ieta].dUsup[0][4][nu];
+        double flow_u = arena[ix][iy][ieta].u[0][nu];
+        double NS_term = -kappa*(partial_mu + flow_u*D_mu);
+        d_file << scientific << setw(18) << setprecision(8)
+               << q_nu << "   " << NS_term << "   " ;
+               //<< partial_mu << "  " << flow_u*D_mu << "   " ;
+    }
+    d_file << endl;
   }
   d_file.close();
   
