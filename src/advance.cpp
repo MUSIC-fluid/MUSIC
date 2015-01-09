@@ -790,8 +790,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
    // reduce Wmunu using the QuestRevert algorithm
    int revert_flag = 0;
    if (grid_pt->epsilon < DATA->QuestRevert_epsilon_min/hbarc)
-     revert_flag = QuestRevert(tau, 0, grid_pt, rk_flag, DATA, size, rank);
-   //if reverted, this is 1, otherwise, 0 
+     revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA, size, rank); //if reverted, this is 1, otherwise, 0
    grid_pt->revert_flag = revert_flag;
 
    if(revert_flag == 1)
@@ -821,73 +820,122 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag)
 }/* UpdateTJbRK */
 
 // reduce the size of shear stress tensor and bulk pressure in the dilute region
-int Advance::QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
+int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
 {
-  int mu, nu;
-  double rho_shear, rho_bulk, factor, pisize, bulksize;
-  double epsFO = 0.;
- 
-  rho_shear = 0.;
-  rho_bulk = 0.;
+  int revert_flag = 0;
+  double epsFO;
   if (DATA->useEpsFO == 0)
       epsFO = eos->findRoot(&EOS::Tsolve, 0., DATA->TFO/hbarc, 0.001, 300.,0.001);
   if (DATA->useEpsFO == 1)
       epsFO = DATA->epsilonFreeze / hbarc;
+  double factor;
   if (DATA->QuestRevert_factor == 0.)
 	factor = DATA->QuestRevert_prefactor * tanh (grid_pt->epsilon / epsFO * DATA->QuestRevert_eps_factor);
   else
  	factor = DATA->QuestRevert_factor;
 
-  pisize = 
-   (grid_pt->Wmunu[rk_flag+1][0][0]*grid_pt->Wmunu[rk_flag+1][0][0]
-   +grid_pt->Wmunu[rk_flag+1][1][1]*grid_pt->Wmunu[rk_flag+1][1][1]
-   +grid_pt->Wmunu[rk_flag+1][2][2]*grid_pt->Wmunu[rk_flag+1][2][2]
-   +grid_pt->Wmunu[rk_flag+1][3][3]*grid_pt->Wmunu[rk_flag+1][3][3]
-   -2.*(
-         grid_pt->Wmunu[rk_flag+1][0][1]*grid_pt->Wmunu[rk_flag+1][0][1]
-        +grid_pt->Wmunu[rk_flag+1][0][2]*grid_pt->Wmunu[rk_flag+1][0][2]
-        +grid_pt->Wmunu[rk_flag+1][0][3]*grid_pt->Wmunu[rk_flag+1][0][3]
-        )
-   +2.*(
-         grid_pt->Wmunu[rk_flag+1][1][2]*grid_pt->Wmunu[rk_flag+1][1][2]
-        +grid_pt->Wmunu[rk_flag+1][1][3]*grid_pt->Wmunu[rk_flag+1][1][3]
-        +grid_pt->Wmunu[rk_flag+1][2][3]*grid_pt->Wmunu[rk_flag+1][2][3]
-        ));
+  double pisize = (
+             grid_pt->Wmunu[rk_flag+1][0][0]*grid_pt->Wmunu[rk_flag+1][0][0]
+           + grid_pt->Wmunu[rk_flag+1][1][1]*grid_pt->Wmunu[rk_flag+1][1][1]
+           + grid_pt->Wmunu[rk_flag+1][2][2]*grid_pt->Wmunu[rk_flag+1][2][2]
+           + grid_pt->Wmunu[rk_flag+1][3][3]*grid_pt->Wmunu[rk_flag+1][3][3]
+           - 2.*(  grid_pt->Wmunu[rk_flag+1][0][1]*grid_pt->Wmunu[rk_flag+1][0][1]
+                 + grid_pt->Wmunu[rk_flag+1][0][2]*grid_pt->Wmunu[rk_flag+1][0][2]
+                 + grid_pt->Wmunu[rk_flag+1][0][3]*grid_pt->Wmunu[rk_flag+1][0][3]
+                )
+           + 2.*(
+                   grid_pt->Wmunu[rk_flag+1][1][2]*grid_pt->Wmunu[rk_flag+1][1][2]
+                 + grid_pt->Wmunu[rk_flag+1][1][3]*grid_pt->Wmunu[rk_flag+1][1][3]
+                 + grid_pt->Wmunu[rk_flag+1][2][3]*grid_pt->Wmunu[rk_flag+1][2][3]
+                ));
 
-  bulksize = 3.*grid_pt->pi_b[rk_flag+1]*grid_pt->pi_b[rk_flag+1] ;
+  double bulksize = 3.*grid_pt->pi_b[rk_flag+1]*grid_pt->pi_b[rk_flag+1] ;
        
-  rho_shear = sqrt(pisize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p )  )/factor ; 
+  double rho_shear = sqrt(pisize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p )  )/factor ; 
 
-  rho_bulk  = sqrt(bulksize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p ) )/factor ;
+  double rho_bulk  = sqrt(bulksize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p ) )/factor ;
  
   // Reducing the shear stress tensor 
-  if(rho_shear>DATA->QuestRevert_rho_shear_max) 
+  double rho_shear_max = DATA->QuestRevert_rho_shear_max;
+  if(rho_shear > rho_shear_max) 
   {
-    for(mu=0; mu<4; mu++)
-    {
-      for(nu=0; nu<4; nu++)
-      {   	       
-        grid_pt->Wmunu[rk_flag+1][mu][nu] = (DATA->QuestRevert_rho_shear_max/rho_shear)*grid_pt->Wmunu[rk_flag+1][mu][nu];
-      }
-    }
+     for(int mu=0; mu<4; mu++)
+     {
+        for(int nu=0; nu<4; nu++)
+        {   	       
+           grid_pt->Wmunu[rk_flag+1][mu][nu] = (rho_shear_max/rho_shear)*grid_pt->Wmunu[rk_flag+1][mu][nu];
+        }
+     }
+     revert_flag = 1;
   }
    
   // Reducing bulk viscous pressure 
-  if( rho_bulk>DATA->QuestRevert_rho_bulk_max) 
+  double rho_bulk_max = DATA->QuestRevert_rho_bulk_max;
+  if(rho_bulk > rho_bulk_max) 
   {
-     grid_pt->pi_b[rk_flag+1] = (DATA->QuestRevert_rho_bulk_max/rho_bulk)*grid_pt->pi_b[rk_flag+1];
-     for(mu=0; mu<4; mu++)
+     grid_pt->pi_b[rk_flag+1] = (rho_bulk_max/rho_bulk)*grid_pt->pi_b[rk_flag+1];
+     for(int mu=0; mu<4; mu++)
      {
-       for(nu=0; nu<4; nu++)
+       for(int nu=0; nu<4; nu++)
        {   	       
-         grid_pt->Pimunu[rk_flag+1][mu][nu] = (DATA->QuestRevert_rho_bulk_max/rho_bulk)*grid_pt->Pimunu[rk_flag+1][mu][nu];
+         grid_pt->Pimunu[rk_flag+1][mu][nu] = (rho_bulk_max/rho_bulk)*grid_pt->Pimunu[rk_flag+1][mu][nu];
        }
      }
+     revert_flag = 1;
   }
 
-  return 0;
+  return(revert_flag);
 }/* QuestRevert */
 
+
+int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
+{
+  int revert_flag = 0;
+  double epsFO = DATA->epsilonFreeze/hbarc;   // in 1/fm^4
+  double factor;
+  if (DATA->QuestRevert_factor == 0.)
+	factor = DATA->QuestRevert_prefactor * tanh (grid_pt->epsilon / epsFO * DATA->QuestRevert_eps_factor);
+  else
+ 	factor = DATA->QuestRevert_factor;
+
+  double q_mu_local[4];
+  for(int i = 0; i < 4; i++)  // copy the value from the grid
+      q_mu_local[i] = grid_pt->Wmunu[rk_flag+1][4][i];
+
+  // calculate the size of q^\mu
+  double q_size = 0.0;
+  for(int i = 0; i < 4; i++)
+  {
+      double gfac = (i == 0 ? -1.0 : 1.0);
+      q_size += gfac*q_mu_local[i]*q_mu_local[i];
+  }
+
+  // first check the positivity of q^mu q_mu 
+  // (in the conversion of gmn = diag(-+++))
+  if(q_size < 0.0)
+  {
+      cout << "Advance::QuestRevert_qmu: q^mu q_mu = " << q_size << " < 0!" << endl;
+      cout << "Reset it to zero!!!!" << endl;
+      for(int i = 0; i < 4; i++)
+      {
+          grid_pt->Wmunu[rk_flag+1][4][i] = 0.0;
+      }
+      revert_flag = 1;
+  }
+
+  // reduce the size of q^mu according to rhoB
+  double rhob_local = grid_pt->rhob;
+  double rho_q = sqrt(q_size/(rhob_local*rhob_local))/factor;
+  double rho_q_max = DATA->QuestRevert_rho_q_max;
+  if(rho_q > rho_q_max)
+  {
+      for(int i = 0; i < 4; i++)
+          grid_pt->Wmunu[rk_flag+1][4][i] = (rho_q_max/rho_q)*q_mu_local[i];
+      revert_flag = 1;
+  }
+
+  return(revert_flag);
+}
 
 // test the traceless and transversality of shear stress tensor
 void Advance::TestW(double tau, Grid *grid_pt, int rk_flag)

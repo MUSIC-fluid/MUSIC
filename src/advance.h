@@ -83,7 +83,8 @@ class Advance{
                     double **qirk, Grid *grid_rk, int size, int rank);
 
    void UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag);
-   int QuestRevert(double tau, int add, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank);
+   int QuestRevert(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank);
+   int QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank);
    void TestW(double tau, Grid *grid_pt, int rk_flag);
    void ProjectSpin2W(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank);
    void ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank);
