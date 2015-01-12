@@ -1771,6 +1771,21 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind4(file, "Eta_plateau_size");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempeta_flat  ;
   DATA->eta_flat   = tempeta_flat;
+
+  // eta envelope function parameter for rhob
+  int temp_rhob_flag = 1;
+  tempinput = util->StringFind4(file, "initial_eta_rhob_profile");
+  if(tempinput != "empty") istringstream(tempinput) >> temp_rhob_flag;
+  DATA->initial_eta_rhob_profile = temp_rhob_flag;
+  double temp_eta_0 = 3.0;
+  tempinput = util->StringFind4(file, "eta_rhob_0");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_0;
+  DATA->eta_rhob_0   = temp_eta_0;
+  double temp_eta_width = 1.0;
+  tempinput = util->StringFind4(file, "eta_rhob_width");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_width;
+  DATA->eta_rhob_width   = temp_eta_width;
+
   
   // Initial_radius_size_in_fm
   // initial radial size in [fm] for Initial_profile = 0
@@ -2160,6 +2175,12 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind4(file, "QuestRevert_rho_bulk_max");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempQuestRevert_rho_bulk_max;
   DATA->QuestRevert_rho_bulk_max = tempQuestRevert_rho_bulk_max;
+  
+  // QuestRevert_rho_q_max: QuestRevert has condition rho_q > rho_q_max
+  double tempQuestRevert_rho_q_max = 0.1;
+  tempinput = util->StringFind4(file, "QuestRevert_rho_q_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempQuestRevert_rho_q_max;
+  DATA->QuestRevert_rho_q_max = tempQuestRevert_rho_q_max;
 
   // QuestRevert_factor: defines aggressiveness of QuestRevert
   double tempQuestRevert_factor = 0.;

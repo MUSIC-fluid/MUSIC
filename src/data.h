@@ -45,6 +45,8 @@ typedef struct init_data
   double rhoB0;
   double eta_fall_off;
   double eta_flat;
+  double eta_rhob_width;
+  double eta_rhob_0;
   double R_A;
   double a_A;
   double a_short;
@@ -162,6 +164,7 @@ typedef struct init_data
   int output_evolution_every_N_timesteps;
   bool output_hydro_params_header;
   int initial_eta_profile;
+  int initial_eta_rhob_profile;
 	//QuestRevert
 	double QuestRevert_rho_shear_max, QuestRevert_rho_bulk_max, QuestRevert_factor, QuestRevert_epsilon_min, QuestRevert_prefactor, QuestRevert_eps_factor;
       double QuestRevert_rho_q_max;

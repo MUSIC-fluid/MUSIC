@@ -556,12 +556,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 		     
 		     // distribution of initial baryon density:
 		     //rhob = DATA->rhoB0/epsilon0*epsilon; /* in fm^-3 */
-		     //rhob = nWounded; /* in fm^-3 */
+
+		     rhob = nWounded*eta_rhob_profile_normalisation(DATA, eta); /* in fm^-3 */
+                 //double entropy = eos->get_entropy(epsilon, 0.0);
+                 //rhob = 0.025*entropy;
                  //double mub_over_T = 0.01*W;
                  //double temperature = eos->get_temperature(epsilon, 0.0);
-                 double mub = 0.01*W;
-                 if(mub*hbarc < 1e-7) mub = 1e-7/hbarc;
-                 rhob = eos->get_rhob_from_mub(epsilon, mub);
+                 //double mub = 0.01*W;
+                 //if(mub*hbarc < 1e-7) mub = 1e-7/hbarc;
+                 //rhob = eos->get_rhob_from_mub(epsilon, mub);
 		  //    if (x==0 && y==0) 
 // 		       {
 // 			 fprintf(stderr,"e(%f)=%f GeV/fm^3, rhob=%f\n",eta,epsilon*hbarc, rhob);
@@ -3004,4 +3007,26 @@ double Init::eta_profile_normalisation(InitData *DATA, double eta) {
 
 	return res;
 
+}
+
+double Init::eta_rhob_profile_normalisation(InitData *DATA, double eta)
+{
+    double res;
+    int profile_flag = DATA->initial_eta_rhob_profile;
+    double eta_0 = DATA->eta_rhob_0;
+    double eta_width = DATA->eta_rhob_width;
+    double tau0 = DATA->tau0;
+    double norm = 1./(2.*sqrt(2*M_PI)*eta_width*tau0);
+    if (profile_flag == 1)
+    {
+        double exparg1 = (eta - eta_0)/eta_width;
+        double exparg2 = (eta + eta_0)/eta_width;
+        res = norm*(exp(-exparg1*exparg1/2.0) + exp(-exparg2*exparg2/2.0));
+    }
+    else
+    {
+        fprintf(stderr,"initial_eta_rhob_profile = %d out of range.\n", profile_flag);
+        exit(0);
+    }
+    return res;
 }

@@ -789,8 +789,12 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
    // If the energy density of the fluid element is smaller than 0.01GeV
    // reduce Wmunu using the QuestRevert algorithm
    int revert_flag = 0;
+   int revert_q_flag = 0;
    if (grid_pt->epsilon < DATA->QuestRevert_epsilon_min/hbarc)
+   {
      revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA, size, rank); //if reverted, this is 1, otherwise, 0
+     revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA, size, rank); //if reverted, this is 1, otherwise, 0
+   }
    grid_pt->revert_flag = revert_flag;
 
    if(revert_flag == 1)
@@ -829,7 +833,7 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag, InitData *DATA,
   if (DATA->useEpsFO == 1)
       epsFO = DATA->epsilonFreeze / hbarc;
   double factor;
-  if (DATA->QuestRevert_factor == 0.)
+  if (fabs(DATA->QuestRevert_factor) < 1e-15)
 	factor = DATA->QuestRevert_prefactor * tanh (grid_pt->epsilon / epsFO * DATA->QuestRevert_eps_factor);
   else
  	factor = DATA->QuestRevert_factor;
@@ -893,7 +897,7 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag, InitData *D
   int revert_flag = 0;
   double epsFO = DATA->epsilonFreeze/hbarc;   // in 1/fm^4
   double factor;
-  if (DATA->QuestRevert_factor == 0.)
+  if (fabs(DATA->QuestRevert_factor) < 1e-15)
 	factor = DATA->QuestRevert_prefactor * tanh (grid_pt->epsilon / epsFO * DATA->QuestRevert_eps_factor);
   else
  	factor = DATA->QuestRevert_factor;

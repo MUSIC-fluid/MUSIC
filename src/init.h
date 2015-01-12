@@ -33,5 +33,6 @@ class Init{
   double TATarget(InitData *DATA, double r);
   double TAProjectile(InitData *DATA, double r);
   double eta_profile_normalisation(InitData *DATA, double eta);
+  double eta_rhob_profile_normalisation(InitData *DATA, double eta);
 };
 #endif

@@ -45,6 +45,8 @@ Projectile Au                             # type of projectile nucleus
 Lexus_Imax 100                            # ???
 Eta_plateau_size 20.                      # size of the plateau in eta_s direction 
 Eta_fall_off 0.7                          # the scale of the fall off of the plateau in eta_s direction
+eta_rhob_0 3.0                            # peak position of rho_B in eta_s direction
+eta_rhob_width 1.0                        # the width 
 #
 Initial_asym_long_axis_in_fm 4            # parameter for Initial_profile = 0
 Initial_asym_short_axis_in_fm 2           # parameter for Initial_profile = 0
