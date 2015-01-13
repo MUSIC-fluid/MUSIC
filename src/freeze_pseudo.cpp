@@ -412,14 +412,14 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
 //     }
 	  
 	  
-// Reuse rapidity variables (Need to reuse variable y so resonance decay routine can be used as is.
-// 	  Might as well misuse ymax and deltaY too)
+  // Reuse rapidity variables (Need to reuse variable y so resonance decay routine can be used as is.
+  // Might as well misuse ymax and deltaY too)
   particleList[j].ymax = etamax; 
   particleList[j].deltaY = deltaeta;
 
   fprintf(stderr,"Doing %d: %s (%d)\n", j, particleList[j].name, particleList[j].number);
  
-//   particleList[j].ny = ietamax*size;
+  //particleList[j].ny = ietamax*size;
   particleList[j].ny = DATA->pseudo_steps + 1;
   particleList[j].npt = iptmax;
   particleList[j].nphi = iphimax;
@@ -510,7 +510,6 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         double pt = pt_array[ipt];
         //rapidity as a function of pseudorapidity:
         rapidity[ipt] = Rap(eta, pt, m);
-
      }
 
      double** temp_sum = new double* [iptmax];
