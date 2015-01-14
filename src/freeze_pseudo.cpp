@@ -545,6 +545,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
            sigma_mu[ii] = surface[icell].s[ii];
            u_flow[ii] = surface[icell].u[ii];
         }
+
         double W00 = surface[icell].W[0][0];
         double W01 = surface[icell].W[0][1];
         double W02 = surface[icell].W[0][2];
@@ -557,6 +558,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         double W33 = surface[icell].W[3][3];
 
         double eps_plus_P_over_T = surface[icell].eps_plus_p_over_T_FO;
+        double prefactor_shear = 1./(2.*eps_plus_P_over_T*T*T*T)*hbarc; // fm^4/GeV^2
 
         for (int ipt=0; ipt<iptmax; ipt++)
         {
@@ -596,9 +598,9 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
                     Wfactor = (  ptau*W00*ptau - 2.*ptau*W01*px - 2.*ptau*W02*py - 2.*tau*tau*ptau*W03/tau*peta
 	           	          + px*W11*px + 2.*px*W12*py + 2.*tau*tau*px*W13/tau*peta
 	           	          + py*W22*py + 2.*tau*tau*py*W23/tau*peta
-	           	          +tau*tau*tau*tau*peta*W33/tau/tau*peta)*pow(hbarc,4.); // W is like energy density
+	           	          +tau*tau*tau*tau*peta*W33/tau/tau*peta); // W is like energy density
 	             
-	             delta_f_shear = f*(1.-sign*f)/(2.*eps_plus_P_over_T*pow(hbarc,3.)*pow(T,3.))*Wfactor;
+	             delta_f_shear = f*(1.-sign*f)*prefactor_shear*Wfactor;
 	           
 	             if (DATA->include_deltaf==2) // if delta f is supposed to be proportional to p^(2-alpha):
 	             {
