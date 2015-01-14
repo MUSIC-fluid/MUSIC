@@ -1785,6 +1785,18 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind4(file, "eta_rhob_width");
   if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_width;
   DATA->eta_rhob_width   = temp_eta_width;
+  double temp_eta_plateau_height = 0.5;
+  tempinput = util->StringFind4(file, "eta_rhob_plateau_height");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_plateau_height;
+  DATA->eta_rhob_plateau_height   = temp_eta_plateau_height;
+  double temp_eta_width_1 = 1.0;
+  tempinput = util->StringFind4(file, "eta_rhob_width_1");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_width_1;
+  DATA->eta_rhob_width_1   = temp_eta_width_1;
+  double temp_eta_width_2 = 1.0;
+  tempinput = util->StringFind4(file, "eta_rhob_width_2");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_width_2;
+  DATA->eta_rhob_width_2   = temp_eta_width_2;
 
   
   // Initial_radius_size_in_fm
@@ -1881,7 +1893,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   
   // pseudofreeze
   // Calculate spectra at fixed, equally-spaced grid in pseudorapidity, pt, and phi
-  int temppseudofreeze = 0;
+  int temppseudofreeze = 1;
   tempinput = util->StringFind4(file, "pseudofreeze");
   if(tempinput != "empty") istringstream ( tempinput ) >> temppseudofreeze;
   DATA->pseudofreeze = temppseudofreeze;

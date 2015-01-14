@@ -2,7 +2,7 @@
 # parameters list for MUSIC with comments
 #########################################
 #
-mode 2                                    # MUSIC running mode
+mode 3                                    # MUSIC running mode
                                           # 1: Does everything. Evolution. Computation of thermal spectra. 
                                           #    Resonance decays. Observables.  
                                           #    Only compatible with freeze_out_method=3 and pseudofreeze=1
@@ -124,7 +124,7 @@ output_evolution_data 0                   # flag to output evolution history to 
 ###########################################
 # parameters for freeze out and Cooper-Frye 
 ###########################################
-Do_FreezeOut_Yes_1_No_0 0                 # flag to find freeze-out surface
+Do_FreezeOut_Yes_1_No_0 1                 # flag to find freeze-out surface
 freeze_out_method 4                       # method for hyper-surface finder
                                           # 1: Hirano's simplified lego method
                                           # 2: Schenke's more complex method
@@ -141,9 +141,9 @@ N_freeze_out 5                            # number of freeze-out surfaces
 eps_freeze_max 0.508                      # the maximum freeze-out energy density (GeV/fm^3)
 eps_freeze_min 0.100                      # the minimum freeze-out energy density (GeV/fm^3)
 #
-number_of_particles_to_include 40         # number of thermal particles to compute for particle spectra and vn
+number_of_particles_to_include 8          # number of thermal particles to compute for particle spectra and vn
                                           # current maximum = 319
-particle_spectrum_to_compute 30           # 0: Do all up to number_of_particles_to_include
+particle_spectrum_to_compute 1            # 0: Do all up to number_of_particles_to_include
                                           # any natural number: Do the particle with this (internal) ID
 maximal_rapidity 4.8                      # the integration range in spatial rapidity direction (-maximal_rapidity, maximal_rapidity)
 delta_y 0.1                               # grid spacing in spatial rapidity for the integration

@@ -1098,7 +1098,6 @@ double Freeze::summation(double px, double py, double y, double m, int deg, int 
 // 	}
 
 	sum += 1/pow(2.*PI,3.) * (f+delta_f) * pdSigma;
-	//	cout << "sum=" << sum << ", pdSigma=" << pdSigma << endl;
 	if (sum>10000)
 	  cout << "WARNING: sum>10000 in summation. sum=" << sum << ", f=" << f << ", deltaf=" << delta_f << ", pdSigma=" << pdSigma 
 	       << ", T=" << T << ", E=" << E << ", mu=" << mu << endl;

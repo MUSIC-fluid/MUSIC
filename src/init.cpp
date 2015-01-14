@@ -3014,14 +3014,31 @@ double Init::eta_rhob_profile_normalisation(InitData *DATA, double eta)
     double res;
     int profile_flag = DATA->initial_eta_rhob_profile;
     double eta_0 = DATA->eta_rhob_0;
-    double eta_width = DATA->eta_rhob_width;
     double tau0 = DATA->tau0;
-    double norm = 1./(2.*sqrt(2*M_PI)*eta_width*tau0);
     if (profile_flag == 1)
     {
+        double eta_width = DATA->eta_rhob_width;
+        double norm = 1./(2.*sqrt(2*M_PI)*eta_width*tau0);
         double exparg1 = (eta - eta_0)/eta_width;
         double exparg2 = (eta + eta_0)/eta_width;
         res = norm*(exp(-exparg1*exparg1/2.0) + exp(-exparg2*exparg2/2.0));
+    }
+    else if (profile_flag == 2)
+    {
+        double eta_abs = fabs(eta);
+        double delta_eta_1 = DATA->eta_rhob_width_1;
+        double delta_eta_2 = DATA->eta_rhob_width_2;
+        double A = DATA->eta_rhob_plateau_height;
+        double exparg1 = (eta_abs - eta_0)/delta_eta_1;
+        double exparg2 = (eta_abs - eta_0)/delta_eta_2;
+        double theta;
+        double norm = 1./(sqrt(2.*M_PI)*delta_eta_1 + (1. - A)*sqrt(2.*M_PI)*delta_eta_2 + 2.*A*eta_0)*1./tau0;
+        if(eta_abs > eta_0)
+            theta = 1.0;
+        else
+            theta = 0.0;
+        res = norm*(theta*exp(-exparg1*exparg1/2.) 
+                    + (1. - theta)*(A + (1. - A)*exp(-exparg2*exparg2/2.)));
     }
     else
     {

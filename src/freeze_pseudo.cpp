@@ -566,7 +566,8 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
 
               // compute p^mu*dSigma_mu
               double pdSigma = tau*(ptau*sigma_mu[0]+px*sigma_mu[1]+py*sigma_mu[2]+peta*sigma_mu[3]); //fm^3*GeV
-              double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]- tau*tau*peta*u_flow[3]/tau);
+              //double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]- tau*tau*peta*u_flow[3]/tau);
+              double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]- tau*peta*u_flow[3]);
               // this is the equilibrium f, f_0:
               double f = 1./(exp(1./T*(E - mu)) + sign);
 
@@ -595,7 +596,6 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
 	           delta_f_shear = 0.;
 	        }
 	        sum = (f + delta_f_shear) * pdSigma;
-	        //cout << "sum=" << sum << ", pdSigma=" << pdSigma << endl;
 	        if (sum>10000)
 	           cout << "WARNING: sum>10000 in summation. sum=" << sum 
                       << ", f=" << f << ", deltaf=" << delta_f_shear
@@ -606,12 +606,13 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         }
      }
 
+     double prefactor = deg/(pow(2.*PI,3.)*pow(hbarc,3.));
      // store the final results
      for(int ipt = 0; ipt < iptmax; ipt++)
      {
         for(int iphi = 0; iphi < iphimax; iphi++)
         {
-            double sum = temp_sum[ipt][iphi]*deg/(pow(2.*PI,3.)*pow(2*PI*hbarc,3.));   // in GeV^(-2)
+            double sum = temp_sum[ipt][iphi]*prefactor;   // in GeV^(-2)
             particleList[j].dNdydptdphi[ieta][ipt][iphi] = sum;
             fprintf(s_file,"%e ", sum);
         }

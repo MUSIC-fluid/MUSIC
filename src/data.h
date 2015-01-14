@@ -45,8 +45,6 @@ typedef struct init_data
   double rhoB0;
   double eta_fall_off;
   double eta_flat;
-  double eta_rhob_width;
-  double eta_rhob_0;
   double R_A;
   double a_A;
   double a_short;
@@ -60,7 +58,12 @@ typedef struct init_data
   double SigmaNN;
   double b;
  
-
+  // envelope function parameter for rhoB in eta_s direction
+  double eta_rhob_0;               // peak position
+  double eta_rhob_width;           // Gaussian width for profile 1
+  double eta_rhob_plateau_height;   // central plateau height for profile 2
+  double eta_rhob_width_1;         // outside tail Gaussian width for profile 2
+  double eta_rhob_width_2;         // inside Gaussian width for profile 2
 
 
 
