@@ -568,7 +568,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
            if( fabs(y - eta_s) < y_minus_eta_cut)
            {
               // ptau = mt*cosh(y - eta_s) // GeV
-              double ptau = mt*(cosh_y_local*cosh_eta_s + sinh_y_local*sinh_eta_s); 
+              double ptau = mt*(cosh_y_local*cosh_eta_s - sinh_y_local*sinh_eta_s); 
               // peta = mt/tau*sinh(y - eta_s); // GeV/fm
               double peta = mt/tau*(sinh_y_local*cosh_eta_s - cosh_y_local*sinh_eta_s); 
 
