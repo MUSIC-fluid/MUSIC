@@ -103,6 +103,7 @@ class Freeze{
   typedef struct surfaceElement
   {
     double x[4]; // position in (tau, x, y, eta)
+    double cosh_eta_s, sinh_eta_s; // caching the sinh and cosh of eta_s for speed
     double s[4]; // hypersurface vector in (tau, x, y, eta)
     double u[4]; // flow velocity in (tau, x, y, eta)
     double W[4][4]; // W^{\mu\nu}

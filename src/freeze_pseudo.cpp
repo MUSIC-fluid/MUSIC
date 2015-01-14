@@ -374,6 +374,7 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
 // adapted from ML
 void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number, int anti, int size, int rank)
 {
+  double y_minus_eta_cut = 10.0;
   //char *specString;
   //specString = util->char_malloc(30);
   int j = partid[MHALF+number];
@@ -505,11 +506,16 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
      particleList[j].y[ieta] = eta; // store particle pseudo-rapidity
 
      double* rapidity = new double [iptmax];
+     double* cosh_y = new double [iptmax];
+     double* sinh_y = new double [iptmax];
      for (int ipt=0; ipt<iptmax; ipt++)
      {
         double pt = pt_array[ipt];
         //rapidity as a function of pseudorapidity:
-        rapidity[ipt] = Rap(eta, pt, m);
+        double y_local = Rap(eta, pt, m);
+        rapidity[ipt] = y_local;
+        cosh_y[ipt] = cosh(y_local);
+        sinh_y[ipt] = sinh(y_local);
      }
 
      double** temp_sum = new double* [iptmax];
@@ -524,6 +530,9 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
      {
         double tau = surface[icell].x[0];
         double eta_s = surface[icell].x[3];
+        double cosh_eta_s = surface[icell].cosh_eta_s;
+        double sinh_eta_s = surface[icell].sinh_eta_s;
+
         double T = surface[icell].T_f*hbarc; // GeV
         double mu = baryon*surface[icell].mu_B*hbarc; //GeV
         if(DATA->whichEOS>=3 && DATA->whichEOS < 10) // for PCE use the previously computed mu at the freeze-out energy density
@@ -552,56 +561,63 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         for (int ipt=0; ipt<iptmax; ipt++)
         {
            double pt = pt_array[ipt];
+           double cosh_y_local = cosh_y[ipt];
+           double sinh_y_local = sinh_y[ipt];
            double mt = sqrt(m*m + pt*pt); // all in GeV
            double y = rapidity[ipt];
-           double ptau = mt*cosh(y - eta_s); // GeV    this is p^tau
-           double peta = mt/tau*sinh(y - eta_s); // GeV/fm     this is p^eta
-
-           for (int iphi=0; iphi<iphimax; iphi++)
+           if( fabs(y - eta_s) < y_minus_eta_cut)
            {
-              double px = pt*cos_phi[iphi];
-              double py = pt*sin_phi[iphi];
-           
-              double sum;
+              // ptau = mt*cosh(y - eta_s) // GeV
+              double ptau = mt*(cosh_y_local*cosh_eta_s + sinh_y_local*sinh_eta_s); 
+              // peta = mt/tau*sinh(y - eta_s); // GeV/fm
+              double peta = mt/tau*(sinh_y_local*cosh_eta_s - cosh_y_local*sinh_eta_s); 
 
-              // compute p^mu*dSigma_mu
-              double pdSigma = tau*(ptau*sigma_mu[0]+px*sigma_mu[1]+py*sigma_mu[2]+peta*sigma_mu[3]); //fm^3*GeV
-              //double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]- tau*tau*peta*u_flow[3]/tau);
-              double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]- tau*peta*u_flow[3]);
-              // this is the equilibrium f, f_0:
-              double f = 1./(exp(1./T*(E - mu)) + sign);
+              for (int iphi=0; iphi<iphimax; iphi++)
+              {
+                 double px = pt*cos_phi[iphi];
+                 double py = pt*sin_phi[iphi];
+              
+                 double sum;
 
-              // now comes the delta_f: check if still correct at finite mu_b 
-              // we assume here the same C=eta/s for all particle species because it is the simplest way to do it.
-              // also we assume Xi(p)=p^2, the quadratic Ansatz
-              double Wfactor = 0.0;
-              double delta_f_shear = 0.0;
-              if (DATA->include_deltaf>=1 && DATA->viscosity_flag==1)
-	        {
-                 Wfactor = (  ptau*W00*ptau - 2.*ptau*W01*px - 2.*ptau*W02*py - 2.*tau*tau*ptau*W03/tau*peta
-	        	          + px*W11*px + 2.*px*W12*py + 2.*tau*tau*px*W13/tau*peta
-	        	          + py*W22*py + 2.*tau*tau*py*W23/tau*peta
-	        	          +tau*tau*tau*tau*peta*W33/tau/tau*peta)*pow(hbarc,4.); // W is like energy density
-	          
-	          delta_f_shear = f*(1.-sign*f)/(2.*eps_plus_P_over_T*pow(hbarc,3.)*pow(T,3.))*Wfactor;
-	        
-	          if (DATA->include_deltaf==2) // if delta f is supposed to be proportional to p^(2-alpha):
-	          {
-	             delta_f_shear = delta_f_shear * pow((T/E),1.*alpha)*120./(tgamma(6.-alpha)); 
-	          }
-	          
-	        }
-              else
-	        {
-	           delta_f_shear = 0.;
-	        }
-	        sum = (f + delta_f_shear) * pdSigma;
-	        if (sum>10000)
-	           cout << "WARNING: sum>10000 in summation. sum=" << sum 
-                      << ", f=" << f << ", deltaf=" << delta_f_shear
-                      << ", pdSigma=" << pdSigma << ", T=" << T 
-                      << ", E=" << E << ", mu=" << mu << endl;
-              temp_sum[ipt][iphi] += sum;
+                 // compute p^mu*dSigma_mu
+                 double pdSigma = tau*(ptau*sigma_mu[0]+px*sigma_mu[1]+py*sigma_mu[2]+peta*sigma_mu[3]); //fm^3*GeV
+                 //double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]- tau*tau*peta*u_flow[3]/tau);
+                 double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]- tau*peta*u_flow[3]);
+                 // this is the equilibrium f, f_0:
+                 double f = 1./(exp(1./T*(E - mu)) + sign);
+
+                 // now comes the delta_f: check if still correct at finite mu_b 
+                 // we assume here the same C=eta/s for all particle species because it is the simplest way to do it.
+                 // also we assume Xi(p)=p^2, the quadratic Ansatz
+                 double Wfactor = 0.0;
+                 double delta_f_shear = 0.0;
+                 if (DATA->include_deltaf>=1 && DATA->viscosity_flag==1)
+	           {
+                    Wfactor = (  ptau*W00*ptau - 2.*ptau*W01*px - 2.*ptau*W02*py - 2.*tau*tau*ptau*W03/tau*peta
+	           	          + px*W11*px + 2.*px*W12*py + 2.*tau*tau*px*W13/tau*peta
+	           	          + py*W22*py + 2.*tau*tau*py*W23/tau*peta
+	           	          +tau*tau*tau*tau*peta*W33/tau/tau*peta)*pow(hbarc,4.); // W is like energy density
+	             
+	             delta_f_shear = f*(1.-sign*f)/(2.*eps_plus_P_over_T*pow(hbarc,3.)*pow(T,3.))*Wfactor;
+	           
+	             if (DATA->include_deltaf==2) // if delta f is supposed to be proportional to p^(2-alpha):
+	             {
+	                delta_f_shear = delta_f_shear * pow((T/E),1.*alpha)*120./(tgamma(6.-alpha)); 
+	             }
+	             
+	           }
+                 else
+	           {
+	              delta_f_shear = 0.;
+	           }
+	           sum = (f + delta_f_shear) * pdSigma;
+	           if (sum>10000)
+	              cout << "WARNING: sum>10000 in summation. sum=" << sum 
+                         << ", f=" << f << ", deltaf=" << delta_f_shear
+                         << ", pdSigma=" << pdSigma << ", T=" << T 
+                         << ", E=" << E << ", mu=" << mu << endl;
+                 temp_sum[ipt][iphi] += sum;
+              }
            }
         }
      }
@@ -621,6 +637,8 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
 
      //clean up
      delete [] rapidity;
+     delete [] cosh_y;
+     delete [] sinh_y;
      for(int ipt = 0; ipt < iptmax; ipt++)
         delete [] temp_sum[ipt];
      delete [] temp_sum;

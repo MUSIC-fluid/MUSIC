@@ -589,6 +589,8 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA)
       fscanf(s_file, "%lf", &surface[i].x[1]);
       fscanf(s_file, "%lf", &surface[i].x[2]);
       fscanf(s_file, "%lf", &surface[i].x[3]);
+      surface[i].sinh_eta_s = sinh(surface[i].x[3]);
+      surface[i].cosh_eta_s = cosh(surface[i].x[3]);
       // hypersurface vector in (tau, x, y, eta)
       fscanf(s_file, "%lf", &surface[i].s[0]);
       fscanf(s_file, "%lf", &surface[i].s[1]);
