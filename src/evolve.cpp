@@ -105,6 +105,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
      if(it==0) 
      {
         //storePreviousT(tau, DATA, arena);
+        initial_prev_variables(arena);
         storePreviousEpsilon(arena);
         storePreviousW(arena);
      }
@@ -214,6 +215,25 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
   fprintf(stderr,"SUM=%f\n", SUM);
   return 1; /* successful */
 }/* Evolve */
+
+void Evolve::initial_prev_variables(Grid ***arena)
+{
+  int nx = grid_nx;
+  int ny = grid_ny;
+  int neta = grid_neta;
+  for(int ix=0; ix<=nx; ix++)
+  {
+    for(int iy=0; iy<=ny; iy++)
+    {
+      for(int ieta=0; ieta<neta; ieta++)
+      {
+	      //cout << ix << " " << iy << " " << ieta << " " << " " << arena[ix][iy][ieta].u[0][1] << endl;
+	      arena[ix][iy][ieta].prev_epsilon = arena[ix][iy][ieta].epsilon;
+	      arena[ix][iy][ieta].prev_rhob=arena[ix][iy][ieta].rhob;
+	}
+    }
+  }
+}
 
 void Evolve::storePreviousEpsilon(Grid ***arena)
 {
