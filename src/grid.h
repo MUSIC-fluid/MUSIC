@@ -27,6 +27,10 @@ class Grid{
   double epsilon_t;
   double p_t;
   double rhob_t;
+  
+  // store the epsilon and rhob at previous time step
+  double prev_epsilon;
+  double prev_rhob;
 
   /* u[flag][mu]: flag=0 is the actual values. flag != are for RK steps */
   double **u;
@@ -64,17 +68,15 @@ class Grid{
   /* note that they are superscripted. So partial^t = -partial_t */
   double ***Wmunu; /* shear part of the TJb with the rk_flag */
   double ***prevWmunu; 
-//   double ***pprevWmunu; 
+  //double ***pprevWmunu; 
   
   double ***Pimunu; /* bulk part of the TJb with the rk_flag */
   double ***prevPimunu; 
-//   double ***pprevPimunu; 
+  //double ***pprevPimunu; 
   
   double *pi_b; /* bulk pressure */
-//   double *prev_pi_b; /* bulk pressure */
-//   double *pprev_pi_b; /* bulk pressure */
-
-  double **W_prev; // the one for the freeze-out surface finder for interpolation
+  //double *prev_pi_b; /* bulk pressure */
+  //double *pprev_pi_b; /* bulk pressure */
 
   int revert_flag;
   int trouble;
@@ -84,13 +86,16 @@ class Grid{
   
   int position[4];
 
+  // the following variables are for hyper-surface finder to determine freeze-out surface
+  // they are only updated every freeze-out step not every evolution time step
+  double epsilon_prev;
+  double rhob_prev;
+  double u_prev[4];
+  double pi_b_prev;
+  double **W_prev; // the one for the freeze-out surface finder for interpolation
+  
   Grid(){};//constructor
   ~Grid(){};//destructor
-
-  double epsilon_prev; //added (previous 10 epsilons)
-  double rhob_prev;
-  double pi_b_prev;
-  double u_prev[4]; //added (previous 10 epsilons)
 
   void ComputeV2(InitData *DATA, Grid ***arena, double tau); //added
   void ComputeEccentricity(InitData *DATA, Grid ***arena, double tau); //added

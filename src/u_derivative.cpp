@@ -664,8 +664,8 @@ if(rk_flag == 0)
    tildemu = muB/T;
 
    // f -= (grid_pt->rhob_prev);
-   rhob = grid_pt->rhob_prev;
-   eps = grid_pt->epsilon_prev;
+   rhob = grid_pt->prev_rhob;
+   eps = grid_pt->prev_epsilon;
    muB = eos->get_mu(eps, rhob);
    T = eos->get_temperature(eps, rhob);
    tildemu_prev = muB/T;

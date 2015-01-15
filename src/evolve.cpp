@@ -297,8 +297,8 @@ int Evolve::UpdateArena(double tau, Grid ***arena)
     {
       for(int ieta = 0; ieta <= neta; ieta++)
       {
-        arena[ix][iy][ieta].epsilon_prev = arena[ix][iy][ieta].epsilon;
-        arena[ix][iy][ieta].rhob_prev = arena[ix][iy][ieta].rhob;
+        arena[ix][iy][ieta].prev_epsilon = arena[ix][iy][ieta].epsilon;
+        arena[ix][iy][ieta].prev_rhob = arena[ix][iy][ieta].rhob;
         arena[ix][iy][ieta].p = arena[ix][iy][ieta].p_t;
         arena[ix][iy][ieta].epsilon = arena[ix][iy][ieta].epsilon_t;
         arena[ix][iy][ieta].rhob = arena[ix][iy][ieta].rhob_t;
