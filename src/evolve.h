@@ -27,6 +27,8 @@ class Evolve
     Advance *advance;
     U_derivative *u_derivative;
 
+    InitData *DATA_ptr;
+
     // simulation information
     int rk_order;
     int grid_nx, grid_ny, grid_neta;

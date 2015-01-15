@@ -18,7 +18,8 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in)
   util = new Util;
   advance = new Advance(eosIn, grid, DATA_in);
   u_derivative = new U_derivative(eosIn, DATA_in);
-
+ 
+  DATA_ptr = DATA_in;
   rk_order = DATA_in->rk_order;
   grid_nx = DATA_in->nx;
   grid_ny = DATA_in->ny;
@@ -260,6 +261,21 @@ void Evolve::storePreviousW(Grid ***arena)
 	  arena[ix][iy][ieta].W_prev[2][2]=arena[ix][iy][ieta].Wmunu[0][2][2];
 	  arena[ix][iy][ieta].W_prev[2][3]=arena[ix][iy][ieta].Wmunu[0][2][3];
 	  arena[ix][iy][ieta].W_prev[3][3]=arena[ix][iy][ieta].Wmunu[0][3][3];
+
+        if(DATA_ptr->turn_on_diff == 1)
+        {
+	    arena[ix][iy][ieta].W_prev[4][0]=arena[ix][iy][ieta].Wmunu[0][4][0];
+	    arena[ix][iy][ieta].W_prev[4][1]=arena[ix][iy][ieta].Wmunu[0][4][1];
+	    arena[ix][iy][ieta].W_prev[4][2]=arena[ix][iy][ieta].Wmunu[0][4][2];
+	    arena[ix][iy][ieta].W_prev[4][3]=arena[ix][iy][ieta].Wmunu[0][4][3];
+        }
+        else
+        {
+	    arena[ix][iy][ieta].W_prev[4][0] = 0.0;
+	    arena[ix][iy][ieta].W_prev[4][1] = 0.0;
+	    arena[ix][iy][ieta].W_prev[4][2] = 0.0;
+	    arena[ix][iy][ieta].W_prev[4][3] = 0.0;
+        }
       }
     }
   }
@@ -5524,6 +5540,16 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    double* packageWyy_prev = new double[sizeOfData];
    double* packageWyeta_prev = new double[sizeOfData];
    double* packageWetaeta_prev = new double[sizeOfData];
+
+   double* package_qtau = new double [sizeOfData];
+   double* package_qx = new double [sizeOfData];
+   double* package_qy = new double [sizeOfData];
+   double* package_qeta = new double [sizeOfData];
+   
+   double* package_qtau_prev = new double [sizeOfData];
+   double* package_qx_prev = new double [sizeOfData];
+   double* package_qy_prev = new double [sizeOfData];
+   double* package_qeta_prev = new double [sizeOfData];
   
    double** Rneighbor_eps = util->mtx_malloc(nx+1,ny+1);
    double** Rneighbor_eps_prev = util->mtx_malloc(nx+1,ny+1);
@@ -5564,6 +5590,16 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    double** Rneighbor_Wyy_prev = util->mtx_malloc(nx+1,ny+1);
    double** Rneighbor_Wyeta_prev = util->mtx_malloc(nx+1,ny+1);
    double** Rneighbor_Wetaeta_prev = util->mtx_malloc(nx+1,ny+1);
+
+   double** Rneighbor_qtau = util->mtx_malloc(nx+1, ny+1);
+   double** Rneighbor_qx = util->mtx_malloc(nx+1, ny+1);
+   double** Rneighbor_qy = util->mtx_malloc(nx+1, ny+1);
+   double** Rneighbor_qeta = util->mtx_malloc(nx+1, ny+1);
+   
+   double** Rneighbor_qtau_prev = util->mtx_malloc(nx+1, ny+1);
+   double** Rneighbor_qx_prev = util->mtx_malloc(nx+1, ny+1);
+   double** Rneighbor_qy_prev = util->mtx_malloc(nx+1, ny+1);
+   double** Rneighbor_qeta_prev = util->mtx_malloc(nx+1, ny+1);
   
    // receive from the right / send to the left
    int from = rank+1;
@@ -5629,6 +5665,17 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
                packageWyeta_prev[position] = arena[ix][iy][0].W_prev[2][3];
                packageWetaeta_prev[position] = arena[ix][iy][0].W_prev[3][3];
             }
+            if(DATA->turn_on_diff)
+            {
+               package_qtau[position] = arena[ix][iy][0].Wmunu[0][4][0];
+               package_qx[position] = arena[ix][iy][0].Wmunu[0][4][1];
+               package_qy[position] = arena[ix][iy][0].Wmunu[0][4][2];
+               package_qeta[position] = arena[ix][iy][0].Wmunu[0][4][3];
+               package_qtau_prev[position] = arena[ix][iy][0].W_prev[4][0];
+               package_qx_prev[position] = arena[ix][iy][0].W_prev[4][1];
+               package_qy_prev[position] = arena[ix][iy][0].W_prev[4][2];
+               package_qeta_prev[position] = arena[ix][iy][0].W_prev[4][3];
+            }
          }
       }
       MPI::COMM_WORLD.Send(package,sizeOfData,MPI::DOUBLE,to,1);
@@ -5676,6 +5723,17 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
          MPI::COMM_WORLD.Send(packageWyy_prev,sizeOfData,MPI::DOUBLE,to,29);
          MPI::COMM_WORLD.Send(packageWyeta_prev,sizeOfData,MPI::DOUBLE,to,30);
          MPI::COMM_WORLD.Send(packageWetaeta_prev,sizeOfData,MPI::DOUBLE,to,31);
+      }
+      if(DATA->turn_on_diff)
+      {
+         MPI::COMM_WORLD.Send(package_qtau, sizeOfData, MPI::DOUBLE, to, 35);
+         MPI::COMM_WORLD.Send(package_qx, sizeOfData, MPI::DOUBLE, to, 36);
+         MPI::COMM_WORLD.Send(package_qy, sizeOfData, MPI::DOUBLE, to, 37);
+         MPI::COMM_WORLD.Send(package_qeta, sizeOfData, MPI::DOUBLE, to, 38);
+         MPI::COMM_WORLD.Send(package_qtau_prev, sizeOfData, MPI::DOUBLE, to, 39);
+         MPI::COMM_WORLD.Send(package_qx_prev, sizeOfData, MPI::DOUBLE, to, 40);
+         MPI::COMM_WORLD.Send(package_qy_prev, sizeOfData, MPI::DOUBLE, to, 41);
+         MPI::COMM_WORLD.Send(package_qeta_prev, sizeOfData, MPI::DOUBLE, to, 42);
       }
       //cout << " done sending to the left on rank " << rank << endl;
    }
@@ -5726,6 +5784,17 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
          MPI::COMM_WORLD.Recv(packageWyy_prev,sizeOfData,MPI::DOUBLE,from,29);
          MPI::COMM_WORLD.Recv(packageWyeta_prev,sizeOfData,MPI::DOUBLE,from,30);
          MPI::COMM_WORLD.Recv(packageWetaeta_prev,sizeOfData,MPI::DOUBLE,from,31);
+      }
+      if(DATA->turn_on_diff)
+      {
+         MPI::COMM_WORLD.Recv(package_qtau, sizeOfData, MPI::DOUBLE, from, 35);
+         MPI::COMM_WORLD.Recv(package_qx, sizeOfData, MPI::DOUBLE, from, 36);
+         MPI::COMM_WORLD.Recv(package_qy, sizeOfData, MPI::DOUBLE, from, 37);
+         MPI::COMM_WORLD.Recv(package_qeta, sizeOfData, MPI::DOUBLE, from, 38);
+         MPI::COMM_WORLD.Recv(package_qtau_prev, sizeOfData, MPI::DOUBLE, from, 39);
+         MPI::COMM_WORLD.Recv(package_qx_prev, sizeOfData, MPI::DOUBLE, from, 40);
+         MPI::COMM_WORLD.Recv(package_qy_prev, sizeOfData, MPI::DOUBLE, from, 41);
+         MPI::COMM_WORLD.Recv(package_qeta_prev, sizeOfData, MPI::DOUBLE, from, 42);
       }
       //cout << " receiving from the right on rank " << rank << endl;
       for(int ix=0; ix<=nx; ix++)
@@ -5809,6 +5878,17 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
                Rneighbor_Wyeta_prev[ix][iy] = 0.0;
                Rneighbor_Wetaeta_prev[ix][iy] = 0.0;
             }
+            if(DATA->turn_on_diff)
+            {
+               Rneighbor_qtau[ix][iy] = package_qtau[position];
+               Rneighbor_qx[ix][iy] = package_qx[position];
+               Rneighbor_qy[ix][iy] = package_qy[position];
+               Rneighbor_qeta[ix][iy] = package_qeta[position];
+               Rneighbor_qtau_prev[ix][iy] = package_qtau_prev[position];
+               Rneighbor_qx_prev[ix][iy] = package_qx_prev[position];
+               Rneighbor_qy_prev[ix][iy] = package_qy_prev[position];
+               Rneighbor_qeta_prev[ix][iy] = package_qeta_prev[position];
+            }
          }
       }
       //cout << " done receiving from the right on rank " << rank << endl;
@@ -5838,6 +5918,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
       double Wxx_center, Wxy_center, Wxeta_center;
       double Wyy_center, Wyeta_center, Wetaeta_center;
       double rhob_center;
+      double qtau_center, qx_center, qy_center, qeta_center;
       double utau_center, ux_center, uy_center, ueta_center;
       double TFO, muB, pressure, eps_plus_p_over_T_FO;
       double pi_b_center; // bulk viscous pressure
@@ -6217,6 +6298,146 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 	               cube[1][1][1][1] = Rneighbor_rhob[ix+fac_x][iy+fac_y];
 	            }
                   rhob_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+                  
+                  // baryon diffusion current q^tau
+                  int idx0 = 4;
+                  int idx1 = 0;
+	            cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	            cube[0][0][1][0] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+	            cube[0][1][0][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+	            cube[0][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+	            cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][0][1][0] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][1][0][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	            if (ieta < neta - fac_eta)
+	            {
+	               cube[0][0][0][1] = arena[ix][iy][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[1][0][0][1] = arena[ix][iy][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	            }
+	            else  // right most slice in eta_s
+	            {
+	               cube[0][0][0][1] = Rneighbor_qtau_prev[ix][iy];
+	               cube[0][0][1][1] = Rneighbor_qtau_prev[ix][iy+fac_y];
+	               cube[0][1][0][1] = Rneighbor_qtau_prev[ix+fac_x][iy];
+	               cube[0][1][1][1] = Rneighbor_qtau_prev[ix+fac_x][iy+fac_y];
+	               cube[1][0][0][1] = Rneighbor_qtau[ix][iy];
+	               cube[1][0][1][1] = Rneighbor_qtau[ix][iy+fac_y];
+	               cube[1][1][0][1] = Rneighbor_qtau[ix+fac_x][iy];
+	               cube[1][1][1][1] = Rneighbor_qtau[ix+fac_x][iy+fac_y];
+	            }
+                  qtau_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+                  
+                  // baryon diffusion current q^x
+                  idx0 = 4;
+                  idx1 = 1;
+	            cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	            cube[0][0][1][0] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+	            cube[0][1][0][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+	            cube[0][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+	            cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][0][1][0] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][1][0][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	            if (ieta < neta - fac_eta)
+	            {
+	               cube[0][0][0][1] = arena[ix][iy][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[1][0][0][1] = arena[ix][iy][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	            }
+	            else  // right most slice in eta_s
+	            {
+	               cube[0][0][0][1] = Rneighbor_qx_prev[ix][iy];
+	               cube[0][0][1][1] = Rneighbor_qx_prev[ix][iy+fac_y];
+	               cube[0][1][0][1] = Rneighbor_qx_prev[ix+fac_x][iy];
+	               cube[0][1][1][1] = Rneighbor_qx_prev[ix+fac_x][iy+fac_y];
+	               cube[1][0][0][1] = Rneighbor_qx[ix][iy];
+	               cube[1][0][1][1] = Rneighbor_qx[ix][iy+fac_y];
+	               cube[1][1][0][1] = Rneighbor_qx[ix+fac_x][iy];
+	               cube[1][1][1][1] = Rneighbor_qx[ix+fac_x][iy+fac_y];
+	            }
+                  qx_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+                  // baryon diffusion current q^y
+                  idx0 = 4;
+                  idx1 = 2;
+	            cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	            cube[0][0][1][0] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+	            cube[0][1][0][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+	            cube[0][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+	            cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][0][1][0] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][1][0][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	            if (ieta < neta - fac_eta)
+	            {
+	               cube[0][0][0][1] = arena[ix][iy][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[1][0][0][1] = arena[ix][iy][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	            }
+	            else  // right most slice in eta_s
+	            {
+	               cube[0][0][0][1] = Rneighbor_qy_prev[ix][iy];
+	               cube[0][0][1][1] = Rneighbor_qy_prev[ix][iy+fac_y];
+	               cube[0][1][0][1] = Rneighbor_qy_prev[ix+fac_x][iy];
+	               cube[0][1][1][1] = Rneighbor_qy_prev[ix+fac_x][iy+fac_y];
+	               cube[1][0][0][1] = Rneighbor_qy[ix][iy];
+	               cube[1][0][1][1] = Rneighbor_qy[ix][iy+fac_y];
+	               cube[1][1][0][1] = Rneighbor_qy[ix+fac_x][iy];
+	               cube[1][1][1][1] = Rneighbor_qy[ix+fac_x][iy+fac_y];
+	            }
+                  qy_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+                  
+                  // baryon diffusion current q^eta
+                  idx0 = 4;
+                  idx1 = 3;
+	            cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	            cube[0][0][1][0] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+	            cube[0][1][0][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+	            cube[0][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+	            cube[1][0][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][0][1][0] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][1][0][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+	            cube[1][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	            if (ieta < neta - fac_eta)
+	            {
+	               cube[0][0][0][1] = arena[ix][iy][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[0][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].W_prev[idx0][idx1];
+	               cube[1][0][0][1] = arena[ix][iy][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	               cube[1][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].Wmunu[0][idx0][idx1];
+	            }
+	            else  // right most slice in eta_s
+	            {
+	               cube[0][0][0][1] = Rneighbor_qeta_prev[ix][iy];
+	               cube[0][0][1][1] = Rneighbor_qeta_prev[ix][iy+fac_y];
+	               cube[0][1][0][1] = Rneighbor_qeta_prev[ix+fac_x][iy];
+	               cube[0][1][1][1] = Rneighbor_qeta_prev[ix+fac_x][iy+fac_y];
+	               cube[1][0][0][1] = Rneighbor_qeta[ix][iy];
+	               cube[1][0][1][1] = Rneighbor_qeta[ix][iy+fac_y];
+	               cube[1][1][0][1] = Rneighbor_qeta[ix+fac_x][iy];
+	               cube[1][1][1][1] = Rneighbor_qeta[ix+fac_x][iy+fac_y];
+	            }
+                  qeta_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
 
                   // bulk viscous pressure pi_b
 	            cube[0][0][0][0] = arena[ix][iy][ieta].pi_b_prev;
@@ -6252,8 +6473,8 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
                   pi_b_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
 
                   // shear viscous tensor W^\tau\tau
-                  int idx0 = 0;
-                  int idx1 = 0;
+                  idx0 = 0;
+                  idx1 = 0;
 	            cube[0][0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
 	            cube[0][0][1][0] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
 	            cube[0][1][0][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
@@ -6611,7 +6832,6 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 		      }
 
 		      pressure = eos->get_pressure(epsFO, rhob_center);
-                  double mu_B = eos->get_mu(epsFO, rhob_center);
 		      eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                   // finally output results !!!!
@@ -6627,7 +6847,9 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 		      if(DATA->turn_on_bulk)
                      s_file << pi_b_center << " " ;
                   if(DATA->turn_on_rhob)
-                     s_file << mu_B << " " ;
+                     s_file << rhob_center << " " ;
+                  if(DATA->turn_on_diff)
+                     s_file << qtau_center << " " << qx_center << " " << qy_center << " " << qeta_center << " " ;
                   s_file << endl;
                }
             }
@@ -6701,6 +6923,15 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    delete[] packagerhob;
    delete[] packagerhob_prev;
 
+   delete[] package_qtau;
+   delete[] package_qx;
+   delete[] package_qy;
+   delete[] package_qeta;
+   delete[] package_qtau_prev;
+   delete[] package_qx_prev;
+   delete[] package_qy_prev;
+   delete[] package_qeta_prev;
+
    delete[] packagePi_b;
    delete[] packagePi_b_prev;
 
@@ -6741,6 +6972,15 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 
    util->mtx_free(Rneighbor_rhob,nx+1,ny+1);
    util->mtx_free(Rneighbor_rhob_prev,nx+1,ny+1);
+
+   util->mtx_free(Rneighbor_qtau, nx+1, ny+1);
+   util->mtx_free(Rneighbor_qx, nx+1, ny+1);
+   util->mtx_free(Rneighbor_qy, nx+1, ny+1);
+   util->mtx_free(Rneighbor_qeta, nx+1, ny+1);
+   util->mtx_free(Rneighbor_qtau_prev, nx+1, ny+1);
+   util->mtx_free(Rneighbor_qx_prev, nx+1, ny+1);
+   util->mtx_free(Rneighbor_qy_prev, nx+1, ny+1);
+   util->mtx_free(Rneighbor_qeta_prev, nx+1, ny+1);
 
    util->mtx_free(Rneighbor_Pi_b, nx+1, ny+1);
    util->mtx_free(Rneighbor_Pi_b_prev, nx+1, ny+1);
@@ -6805,6 +7045,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
       double Wxx_center, Wxy_center, Wxeta_center;
       double Wyy_center, Wyeta_center, Wetaeta_center;
       double rhob_center;
+      double qtau_center, qx_center, qy_center, qeta_center;
       double utau_center, ux_center, uy_center, ueta_center;
       double TFO, muB, pressure, eps_plus_p_over_T_FO;
       double pi_b_center; // bulk viscous pressure
@@ -7009,10 +7250,51 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
 	         cube[1][1][0] = arena[ix+fac_x][iy][ieta].pi_b[0];
 	         cube[1][1][1] = arena[ix+fac_x][iy+fac_y][ieta].pi_b[0];
                pi_b_center = util->three_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+               
+               // baryon diffusion current q^\tau
+               int idx0 = 4;
+               int idx1 = 0;
+	         cube[0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	         cube[0][0][1] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+	         cube[0][1][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+	         cube[0][1][1] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+	         cube[1][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	         cube[1][0][1] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	         cube[1][1][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+	         cube[1][1][1] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+               qtau_center = util->three_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+               
+               // baryon diffusion current q^x
+               idx0 = 4;
+               idx1 = 1;
+	         cube[0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	         cube[0][0][1] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+	         cube[0][1][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+	         cube[0][1][1] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+	         cube[1][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	         cube[1][0][1] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	         cube[1][1][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+	         cube[1][1][1] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+               qx_center = util->three_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+               
+               // baryon diffusion current q^y
+               idx0 = 4;
+               idx1 = 2;
+	         cube[0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+	         cube[0][0][1] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+	         cube[0][1][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+	         cube[0][1][1] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+	         cube[1][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+	         cube[1][0][1] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+	         cube[1][1][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+	         cube[1][1][1] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+               qy_center = util->three_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+               
+               qeta_center = 0.0;
 
                // shear viscous tensor W^\tau\tau
-               int idx0 = 0;
-               int idx1 = 0;
+               idx0 = 0;
+               idx1 = 0;
 	         cube[0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
 	         cube[0][0][1] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
 	         cube[0][1][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
@@ -7118,7 +7400,6 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
 	         }
 
 	         pressure = eos->get_pressure(epsFO, rhob_center);
-               double mu_B = eos->get_mu(epsFO, rhob_center);
 	         eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                // finally output results !!!!
@@ -7134,7 +7415,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
 	         if(DATA->turn_on_bulk)
                   s_file << pi_b_center << " " ;
                if(DATA->turn_on_rhob)
-                  s_file << mu_B << " " ;
+                  s_file << rhob_center << " " ;
+               if(DATA->turn_on_diff)
+                  s_file << qtau_center << " " << qx_center << " " << qy_center << " " << qeta_center << " " ;
                s_file << endl;
             }
          }
