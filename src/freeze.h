@@ -107,7 +107,9 @@ class Freeze{
     double s[4]; // hypersurface vector in (tau, x, y, eta)
     double u[4]; // flow velocity in (tau, x, y, eta)
     double W[4][4]; // W^{\mu\nu}
+    double q[4]; // baryon diffusion current
     double pi_b; // bulk pressure
+    double rho_B;  // net baryon density
     
     double epsilon_f;
     double T_f;

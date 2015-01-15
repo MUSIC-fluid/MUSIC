@@ -624,7 +624,17 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA)
       fscanf(s_file, "%lf", &surface[i].W[2][2]);
       fscanf(s_file, "%lf", &surface[i].W[2][3]);
       fscanf(s_file, "%lf", &surface[i].W[3][3]);
-      if(DATA->turn_on_bulk) fscanf(s_file, "%lf", &surface[i].pi_b);
+      if(DATA->turn_on_bulk)
+          fscanf(s_file, "%lf", &surface[i].pi_b);
+      if(DATA->turn_on_rhob)
+          fscanf(s_file, "%lf", &surface[i].rho_B);
+      if(DATA->turn_on_diff)
+      {
+          fscanf(s_file, "%lf", &surface[i].q[0]);
+          fscanf(s_file, "%lf", &surface[i].q[1]);
+          fscanf(s_file, "%lf", &surface[i].q[2]);
+          fscanf(s_file, "%lf", &surface[i].q[3]);
+      }
       i++;
     }				
   fclose(s_file);
