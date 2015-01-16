@@ -248,9 +248,10 @@ int main(int argc, char *argv[])
       
       cout << "average plasma T=" << DATA.avgT/DATA.nSteps*hbarc << " GeV." << endl; 
       cout << "average plasma+mixed T=" << DATA.avgT2/DATA.nSteps2*hbarc << " GeV." << endl; 
-      //    delete evolve;
+      //delete evolve;
       //delete glauber;
       //delete init;
+      //MPI::Finalize();
     }
   
   if (DATA.mode == 1 || DATA.mode == 3 || DATA.mode == 4 || DATA.mode >= 5)

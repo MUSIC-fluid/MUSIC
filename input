@@ -45,12 +45,12 @@ Projectile Au                             # type of projectile nucleus
 Lexus_Imax 100                            # ???
 Eta_plateau_size 20.                      # size of the plateau in eta_s direction 
 Eta_fall_off 0.7                          # the scale of the fall off of the plateau in eta_s direction
-initial_eta_rhob_profile 1                # type of the envelope profile for rho_B's eta_s distribution
+initial_eta_rhob_profile 2                # type of the envelope profile for rho_B's eta_s distribution
                                           # 1: double Gaussian
                                           # 2: double Gaussian + central plateau
-eta_rhob_0 3.0                            # peak position of rho_B in eta_s direction
+eta_rhob_0 20.0                            # peak position of rho_B in eta_s direction
 eta_rhob_width 1.0                        # the width of the Gaussian (for initial_eta_rhob_profile == 1)
-eta_rhob_plateau_height 0.3               # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
+eta_rhob_plateau_height 1.0               # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
 eta_rhob_width_1 1.0                      # the width of the Gaussian for the outside tail (for initial_eta_rhob_profile == 2)
 eta_rhob_width_2 0.5                      # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
 
@@ -72,9 +72,9 @@ Delta_Tau 0.25                            # time step to use in the evolution [f
                                           # If a too large value is given, it will automatically be 
                                           # reduced to the maximal acceptable value according to the CFL condition.
                                           # CFL condition : delta_tau < min(delta_x/10, tau0 delta_eta/10)
-Eta_grid_size 10.0                        # spatial rapidity range 
+Eta_grid_size 14.0                         # spatial rapidity range 
                                           # [-Eta_grid_size, Eta_grid_size - delta_eta]
-Grid_size_in_eta 10                        # number of the grid points in spatial rapidity direction
+Grid_size_in_eta 8                        # number of the grid points in spatial rapidity direction
                                           # Must have at least 4 cells per processor.
                                           # Must be an even number.
                                           # One cell is positioned at eta=0, 
@@ -137,7 +137,7 @@ freeze_out_method 4                       # method for hyper-surface finder
                                           # 2: Schenke's more complex method
                                           # 3: Luzum's simple lego  method
                                           # 4: Cornelius (added by Shen)
-average_surface_over_this_many_time_steps 5   # the step skipped in the tau direction
+average_surface_over_this_many_time_steps 1   # the step skipped in the tau direction
 Ncell_skip_x 1                            # the step skipped in x direction
 Ncell_skip_y 1                            # the step skipped in y direction
 epsilon_freeze 0.18                       # the freeze out energy density (GeV/fm^3)
