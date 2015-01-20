@@ -1424,11 +1424,12 @@ void ReadInData3(InitData *DATA, string file)
   //   4: for testing the Glauber MC initial condition
   //   5: Something like p+p
   //   6: Read in initial profile from a file
+  //  11: Read in initial profiles for energy density and rhob in the transverse plane from files
   int tempInitial_profile = 1;
   tempinput = util->StringFind4(file, "Initial_profile");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempInitial_profile;
   DATA->Initial_profile = tempInitial_profile;
-  if(DATA->Initial_profile>6 || DATA->Initial_profile<0) 
+  if(DATA->Initial_profile<0) 
   {
     cerr << "Initial profile" << DATA->Initial_profile << "not defined\n";
     exit(1);
@@ -2084,10 +2085,15 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   DATA->sigma0   = tempsigma0;
   
   // Initial_Distribution_Filename
-  string tempinitName = "filename";
+  string tempinitName = "initial/initial_ed.dat";
   tempinput = util->StringFind4(file, "Initial_Distribution_Filename");
   if(tempinput != "empty") tempinitName.assign(tempinput);
   DATA->initName.assign(tempinitName);
+  // Initial_Distribution_Filename for rhob
+  string tempinitName_rhob = "initial/initial_rhob.dat";
+  tempinput = util->StringFind4(file, "Initial_Rhob_Distribution_Filename");
+  if(tempinput != "empty") tempinitName_rhob.assign(tempinput);
+  DATA->initName_rhob.assign(tempinitName_rhob);
   
   /* initialize the metric, mostly plus */
   
