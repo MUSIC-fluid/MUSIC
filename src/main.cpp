@@ -1727,8 +1727,8 @@ void ReadInData3(InitData *DATA, string file)
   if(tempinput != "empty") istringstream ( tempinput ) >> tempdelta_tau;
   DATA->delta_tau = tempdelta_tau;
 
-  tempf = mini(DATA->delta_x/10.0, (DATA->tau0)*(DATA->delta_eta/10.0));
-  if(tempf < DATA->delta_tau) DATA->delta_tau = tempf;
+  //tempf = mini(DATA->delta_x/10.0, (DATA->tau0)*(DATA->delta_eta/10.0));
+  //if(tempf < DATA->delta_tau) DATA->delta_tau = tempf;
   
   cerr << " DeltaTau=" << DATA->delta_tau << endl;
   
