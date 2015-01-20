@@ -125,8 +125,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
           grid->PrintxEpsilon(arena, DATA, tau, size, rank);
           //grid->ComputeEccentricity(DATA, arena, tau);
           grid->ComputeAnisotropy(DATA, arena, tau);
-          grid->print_qmu_evolution(DATA, arena, tau, eos);
-          grid->print_rhob_evolution(DATA, arena, tau, eos);
+          grid->print_qmu_evolution(DATA, arena, tau, eos, rank);
+          grid->print_rhob_evolution(DATA, arena, tau, eos, rank);
         }
         grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
         //grid->Tmax_profile(arena, DATA, eos, tau, size, rank);

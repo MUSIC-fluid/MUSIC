@@ -2390,7 +2390,7 @@ void Grid::PrintAxy(InitData *DATA, Grid ***arena, double tau)
   return;
 }/* PrintAxy */
 
-void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS *eos)
+void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS *eos, int rank)
 {
   string d_name;
   ofstream d_file;
@@ -2398,6 +2398,7 @@ void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS *e
   d_file.open(d_name.c_str(), ios::out | ios::app );
   
   int ieta = DATA->neta/2;
+  double eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
   int iy = (int)(DATA->ny/2);
   for(int ix=0; ix<=DATA->nx; ix++)
   {
@@ -2408,7 +2409,8 @@ void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS *e
     double muB = eos->get_mu(epsilon, rhob);
     double kappa = 0.2*rhob/muB;
     d_file << scientific << setw(18) << setprecision(8)
-           << tau << "  " << x << "  " << y << "   " << rhob << "  " ;
+           << tau << "  " << x << "  " << y << "  " << eta << "  " 
+           << rhob << "  " ;
     double D_mu = arena[ix][iy][ieta].a[0][4];
     for(int nu = 0; nu < 4; nu++)
     {
@@ -2417,7 +2419,7 @@ void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS *e
         double flow_u = arena[ix][iy][ieta].u[0][nu];
         double NS_term = -kappa*(partial_mu + flow_u*D_mu);
         d_file << scientific << setw(18) << setprecision(8)
-               << q_nu << "   " << NS_term << "   " ;
+               << q_nu << "  " << NS_term << "  " ;
                //<< partial_mu << "  " << flow_u*D_mu << "  " << NS_term << "  " ;
     }
     d_file << endl;
@@ -2432,7 +2434,8 @@ void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS *e
     double muB = eos->get_mu(epsilon, rhob);
     double kappa = 0.2*rhob/muB;
     d_file << scientific << setw(18) << setprecision(8)
-           << tau << "  " << x << "  " << y << "   " << rhob << "  " ;
+           << tau << "  " << x << "  " << y << "  " << eta << "  "
+           << rhob << "  " ;
     double D_mu = arena[ix][iy][ieta].a[0][4];
     for(int nu = 0; nu < 4; nu++)
     {
@@ -2441,7 +2444,7 @@ void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS *e
         double flow_u = arena[ix][iy][ieta].u[0][nu];
         double NS_term = -kappa*(partial_mu + flow_u*D_mu);
         d_file << scientific << setw(18) << setprecision(8)
-               << q_nu << "   " << NS_term << "   " ;
+               << q_nu << "  " << NS_term << "  " ;
                //<< partial_mu << "  " << flow_u*D_mu << "   " ;
     }
     d_file << endl;
@@ -2451,7 +2454,7 @@ void Grid::print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS *e
   return;
 }/* print qmu evolution */
 
-void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* eos)
+void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank)
 {
   string d_name;
   ofstream d_file;
@@ -2459,6 +2462,7 @@ void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* 
   d_file.open(d_name.c_str(), ios::out | ios::app );
   
   int ieta = DATA->neta/2;
+  double eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
   for(int ix=0; ix<=DATA->nx; ix++)
   {
     double x = ix*(DATA->delta_x) - (DATA->x_size/2.0);
@@ -2469,7 +2473,7 @@ void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* 
     double mub = eos->get_mu(ed, rhob);
     double temperature = eos->get_temperature(ed, rhob);
     d_file << scientific << setw(18) << setprecision(8)
-           << tau << "  " << x << "  " << y << "  "
+           << tau << "  " << x << "  " << y << "  " << eta << "  "
            << ed << "  " << rhob << "  " 
            << mub << "  " << temperature << "  "
            << mub/temperature << endl;
@@ -2484,7 +2488,7 @@ void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* 
     double mub = eos->get_mu(ed, rhob);
     double temperature = eos->get_temperature(ed, rhob);
     d_file << scientific << setw(18) << setprecision(8)
-           << tau << "  " << x << "  " << y << "  " 
+           << tau << "  " << x << "  " << y << "  "  << eta << "  "
            << ed << "  " << rhob << "  "
            << mub << "  " << temperature << "  "
            << mub/temperature << endl;
