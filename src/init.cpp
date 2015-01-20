@@ -227,15 +227,6 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 //  char* e5_name = "e_x_y_profile_05.dat"; 
 //  e5_file = fopen(e5_name, "w");
 
- ofstream geometry_file("geometry.dat");
- ofstream geometry_file_rn("geometry_rn.dat");
-
- ofstream twodplot_file("2d_positions.dat");
- ofstream twodplotA_file("2dA_positions.dat");
- ofstream twodplotB_file("2dB_positions.dat");
-
- ofstream psi_file("psi.gp");
- 
  R_A = DATA->R_A;
  a_A = DATA->a_A;
  a_short = DATA->a_short;
@@ -829,6 +820,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
  else if (DATA->Initial_profile==3) // sample initial distribution with a Glauber Monte-Carlo (event-by-event initial condition)
    {
 
+      ofstream geometry_file("geometry.dat");
+      ofstream geometry_file_rn("geometry_rn.dat");
+
+      ofstream twodplot_file("2d_positions.dat");
+      ofstream twodplotA_file("2dA_positions.dat");
+      ofstream twodplotB_file("2dB_positions.dat");
+
+      ofstream psi_file("psi.gp");
      //keep this in mind: from Nara and Hirano: 0904.2966
 //      In our MC-Glauber model, we find the defaultWoods-Saxon
 //      distribution is reproduced by a larger radius parameter
@@ -2118,6 +2117,12 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****R
 	 }
        }
      }
+     psi_file.close();
+     twodplot_file.close();
+     twodplotA_file.close();
+     twodplotB_file.close();
+     geometry_file.close();
+     geometry_file_rn.close();
    }
  else if (DATA->Initial_profile==4) // sample initial distribution with a Glauber Monte-Carlo and average over them to compare to average as in 1
    {
@@ -2933,23 +2938,171 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
 	 //exit(1);
        }/* ix, iy, ieta */
    }
+else if (DATA->Initial_profile==11) //read in the transverse profile from file
+   {
+     size = DATA->size;
+      
+     cout << "size=" << size << endl;
+     cout << " ----- information on initial distribution -----" << endl;
+     cout << "file name used: " << DATA->initName << " and " << DATA->initName_rhob << endl;
+  
+     // first load in the transverse profile
+     ifstream profile_ed(DATA->initName.c_str());
+     ifstream profile_rhob(DATA->initName_rhob.c_str());
+     int nx = DATA->nx;
+     int ny = DATA->ny;
+     double** temp_profile_ed = new double* [nx+1];
+     double** temp_profile_rhob = new double* [nx+1];
+     for(int i = 0; i < nx+1; i++)
+     {
+         temp_profile_ed[i] = new double [ny+1];
+         temp_profile_rhob[i] = new double [ny+1];
+     }
+     for(int i = 0; i < nx+1; i++)
+     {
+        for(int j = 0; j < ny+1; j++)
+        {
+           profile_ed >> temp_profile_ed[i][j];
+           profile_rhob >> temp_profile_rhob[i][j];
+        }
+     }
+     profile_ed.close();
+     profile_rhob.close();
+
+     for(int ix=0; ix< (DATA->nx+1); ix++)
+     {
+	  for(int iy=0; iy< (DATA->ny+1); iy++)
+	  {
+ 	     (*Lneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Rneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Lneighbor)[ix][iy][1].TJb = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Rneighbor)[ix][iy][1].TJb = util->cube_malloc(rk_order+1, 5,4);
+  	     (*Lneighbor)[ix][iy][0].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+  	     (*Rneighbor)[ix][iy][0].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+  	     (*Lneighbor)[ix][iy][1].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+  	     (*Rneighbor)[ix][iy][1].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Lneighbor)[ix][iy][0].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Rneighbor)[ix][iy][0].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Lneighbor)[ix][iy][1].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Rneighbor)[ix][iy][1].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Lneighbor)[ix][iy][0].u = util->mtx_malloc(rk_order+1, 4);
+ 	     (*Rneighbor)[ix][iy][0].u = util->mtx_malloc(rk_order+1, 4);
+ 	     (*Lneighbor)[ix][iy][1].u = util->mtx_malloc(rk_order+1, 4);
+ 	     (*Rneighbor)[ix][iy][1].u = util->mtx_malloc(rk_order+1, 4);
+ 	     (*Lneighbor)[ix][iy][0].pi_b = util->vector_malloc(rk_order+1);
+ 	     (*Rneighbor)[ix][iy][0].pi_b = util->vector_malloc(rk_order+1);
+ 	     (*Lneighbor)[ix][iy][1].pi_b = util->vector_malloc(rk_order+1);
+ 	     (*Rneighbor)[ix][iy][1].pi_b = util->vector_malloc(rk_order+1);
+	  }
+     }
+  
+     for(int ieta = 0; ieta < DATA->neta; ieta++)
+     {
+	   double eta = (DATA->delta_eta)*(ieta + DATA->neta*rank) - (DATA->eta_size)/2.0;
+         double eta_envelop_ed = eta_profile_normalisation(DATA, eta);
+         double eta_envelop_rhob = eta_rhob_profile_normalisation(DATA, eta);
+	   for(int ix = 0; ix < (DATA->nx+1); ix++)
+	   {
+	       for(int iy = 0; iy< (DATA->ny+1); iy++)
+	       {
+		    epsilon= temp_profile_ed[ix][iy]*eta_envelop_ed*DATA->sFactor/hbarc;  // 1/fm^4
+		    if (epsilon<0.00000000001)
+		      epsilon = 0.00000000001;
+		
+		    rhob = temp_profile_rhob[ix][iy]*eta_envelop_rhob;  // 1/fm^3
+		 
+		    // initial pressure distribution:
+		    p = eos->get_pressure(epsilon, rhob);
+		 
+		    // set all values in the grid element:
+		    (*arena)[ix][iy][ieta].epsilon = epsilon;
+		    (*arena)[ix][iy][ieta].rhob = rhob;
+		    (*arena)[ix][iy][ieta].p = p;
+		    (*arena)[ix][iy][ieta].trouble = 0;
+		    
+		    (*arena)[ix][iy][ieta].T = eos->get_temperature(epsilon, rhob);
+		    (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
+		 
+		    (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
+		    (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 5,4);
+		    (*arena)[ix][iy][ieta].u = util->mtx_malloc(rk_order+1, 4);
+		    (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 5);
+		    (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
+		    (*arena)[ix][iy][ieta].sigma = util->cube_malloc(rk_order+1, 4, 4);
+		    (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
+                //(*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+                //(*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+		    (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
+                //(*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+		    (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+		    (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
+                //(*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+		    (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+		    (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
+                //(*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+		 
+		    (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
+		    /* for HIC */
+		    u[0] = (*arena)[ix][iy][ieta].u[0][0] = 1.0;
+		    u[3] = (*arena)[ix][iy][ieta].u[0][3] = 0.0;
+		    u[1] = (*arena)[ix][iy][ieta].u[0][1] = 0.0;
+		    u[2] = (*arena)[ix][iy][ieta].u[0][2] = 0.0;
+		    
+		    (*arena)[ix][iy][ieta].prev_u[0][0] = 1.0;
+		    (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
+		    (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
+		    (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
+                //(*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+                //(*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+                //(*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+                //(*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+		 
+		    (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
+                //(*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+                //(*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+		 
+		    for(int mu=0; mu<4; mu++)
+		    {
+		       /* baryon density */
+		       (*arena)[ix][iy][ieta].TJb[0][4][mu] = rhob*u[mu];
+		     
+		       for(nu=0; nu<4; nu++)
+		       {
+			    (*arena)[ix][iy][ieta].TJb[0][nu][mu] = (epsilon + p)*u[mu]*u[nu] + p*(DATA->gmunu)[mu][nu];
+			    (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
+			    (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
+                      //(*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+			    
+			    (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
+			    (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
+                      //(*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+		       }/* nu */
+		   }/* mu */
+		 
+	       }
+          }
+       }/* ix, iy, ieta */
+       
+       // clean up
+       for(int i = 0; i < nx+1; i++)
+       {
+           delete[] temp_profile_ed[i];
+           delete[] temp_profile_rhob[i];
+       }
+       delete[] temp_profile_ed;
+       delete[] temp_profile_rhob;
+   }
 
 
-//  fclose(e_file);
-//  fclose(e2_file);
-//  fclose(e3_file);
-//  fclose(e4_file);
-//  fclose(e5_file);
- psi_file.close();
- twodplot_file.close();
- twodplotA_file.close();
- twodplotB_file.close();
- geometry_file.close();
- geometry_file_rn.close();
+  //fclose(e_file);
+  //fclose(e2_file);
+  //fclose(e3_file);
+  //fclose(e4_file);
+  //fclose(e5_file);
 
- //system("gnuplot 2dplot.plt");
- cout << "initial distribution done." << endl;
- return 1;
+  //system("gnuplot 2dplot.plt");
+  cout << "initial distribution done." << endl;
+  return 1;
 }/* InitTJb*/
  
 
