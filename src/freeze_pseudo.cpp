@@ -371,7 +371,7 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
   
 }
 
-// adapted from ML
+// adapted from ML and improved on performance (C. Shen 2015)
 void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number, int anti, int size, int rank)
 {
   double y_minus_eta_cut = 4.0;
@@ -430,7 +430,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
   int deg = particleList[j].degeneracy;
   int baryon = particleList[j].baryon;
   //int s = particleList[j].strange;
-  //double c = particleList[j].charge;
+  //int c = particleList[j].charge;
   double mu_PCE = particleList[j].muAtFreezeOut;
   int sign;
   if (baryon==0)

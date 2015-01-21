@@ -11,7 +11,7 @@
 ##  
 
 CC := mpic++
-CFLAGS= -Wall -O2 -I /software/libraries/GSL/1.15/include/
+CFLAGS= -Wall -O3 -I /software/libraries/GSL/1.15/include/
 
 RM		=	rm -f
 O               =       .o
