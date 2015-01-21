@@ -33,8 +33,6 @@
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_interp.h>
 
-
-
 const int nharmonics = 8; // calculate up to maximum harmonic (n-1) -- for nharmonics = 8, calculate from v_0 o v_7
 const int etasize = 100; // max number of points in eta for array
 const int ptsize = 100; // max number of points in pt for array

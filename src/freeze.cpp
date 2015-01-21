@@ -72,13 +72,12 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
   j=0;
   cout << "before" << endl; cout << "sizeofParticle=" << sizeof(Particle)/1000000 << endl;
   particleList = (Particle *)malloc((DATA->NumberOfParticlesToInclude+2) * sizeof(Particle));
-  
-//   particleList = new Particle[(DATA->NumberOfParticlesToInclude)];
+  //particleList = new Particle[(DATA->NumberOfParticlesToInclude)];
   cout <<"after first (check if there is enough memory... seg fault may be due to lack of memory)" << endl; 
   
   // read particle data:
   while(i<DATA->NumberOfParticlesToInclude+1)
-    {
+  {
       particleList[i].name = util->char_malloc(50);
       //particleList[i].name = new char[50];
       fscanf(p_file, "%d", &particleList[i].number);
@@ -98,10 +97,10 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
       //fscanf(p_file, "%lf", &nK);
       //fscanf(p_file, "%lf", &neta);
    
-   /*    fprintf(stderr,"%s %i \n",particleList[i].name,particleList[i].number); */
-/*       fprintf(stderr,"%lf %lf %d %d %d %d %d %d %lf %d \n",particleList[i].mass,particleList[i].width, */
-/* 	      particleList[i].degeneracy,particleList[i].baryon,particleList[i].strange, */
-/* 	      particleList[i].charm,particleList[i].bottom,particleList[i].isospin,particleList[i].charge,particleList[i].decays); */
+      //fprintf(stderr,"%s %i \n",particleList[i].name,particleList[i].number);
+      //fprintf(stderr,"%lf %lf %d %d %d %d %d %d %lf %d \n",particleList[i].mass,particleList[i].width,
+      //        particleList[i].degeneracy,particleList[i].baryon,particleList[i].strange,
+      //        particleList[i].charm,particleList[i].bottom,particleList[i].isospin,particleList[i].charge,particleList[i].decays);
       
       partid[MHALF + particleList[i].number] = i;
       
@@ -135,10 +134,6 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	  //fprintf(stderr,"b=%d\n",particleList[i].baryon);
 	  i++;
 	  particleList[i].name = util->char_malloc(20);
-// 	  char *anti;
-// 	  anti = util->char_malloc(30);
-// 	  strcat(anti,"Anti-");
-// 	  strcat(anti,particleList[i-1].name);
 	  particleList[i].width    =  particleList[i-1].width;
 	  particleList[i].charm    = -particleList[i-1].charm;
 	  particleList[i].bottom   = -particleList[i-1].bottom;
@@ -147,7 +142,6 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	  particleList[i].decays   = particleList[i-1].decays;
 	  particleList[i].stable =  particleList[i-1].stable;
 	  particleList[i].number = -particleList[i-1].number;
-// 	  particleList[i].name = anti; 
 	  strcpy(particleList[i].name, "Anti-");
 	  strcat(particleList[i].name,particleList[i-1].name);
 	  particleList[i].mass = particleList[i-1].mass;
@@ -156,19 +150,18 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	  particleList[i].strange = -particleList[i-1].strange;
 	  particleList[i].charge = -particleList[i-1].charge;
 	  partid[MHALF + particleList[i].number] = i;
-// 	  util->char_free(anti);
 	  
-	  	  //  fprintf(stderr,"%s %i \n",particleList[i].name,particleList[i].number);
+	  //fprintf(stderr,"%s %i \n",particleList[i].name,particleList[i].number);
 	  //fprintf(stderr,"[%i] has pid %i \n",MHALF + particleList[i].number,partid[MHALF + particleList[i].number]);
 	}
       i++;
     }
-  decayMax = j;
-  particleMax = DATA->NumberOfParticlesToInclude;
-  fclose(p_file);
-  util->char_free(p_name);
-  // here read the stable particles' chemical potential at freeze-out
-  if (DATA->whichEOS>=3 && DATA->whichEOS < 10)
+    decayMax = j;
+    particleMax = DATA->NumberOfParticlesToInclude;
+    fclose(p_file);
+    util->char_free(p_name);
+    // here read the stable particles' chemical potential at freeze-out
+    if (DATA->whichEOS>=3 && DATA->whichEOS < 10)
     {
       double ef;
       if (1==DATA->useEpsFO) {
@@ -188,7 +181,6 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
       mu_name = util->char_malloc(100);
       if (envPath != 0 && *envPath != '\0') 
 	{
-// 	  mu_name = util->char_malloc(100);
 	  strcpy(mu_name, envPath);
 	  if (DATA->whichEOS==3)
 	    strcat(mu_name,"/EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat");
@@ -201,7 +193,6 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 	}  
       else
 	{
-// 	  mu_name = util->char_malloc(100);
 	  strcpy(mu_name, ".");
 	  if (DATA->whichEOS==3)
 	    strcat(mu_name,"/EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat");

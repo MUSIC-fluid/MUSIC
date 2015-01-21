@@ -771,7 +771,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       if (rank == 0) system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
 //       MPI_Barrier(MPI_COMM_WORLD);
       ReadFreezeOutSurface(DATA); // read freeze out surface (has to be done after the evolution of course)
-      if (particleSpectrumNumber==0) // do all particles
+      if (particleSpectrumNumber==0) // do all particles up to particleMax
 	{
 	  fprintf(stderr,"Doing all particles. May take a while ... \n");
 	  for ( i=1; i<particleMax; i++ )
@@ -840,27 +840,26 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 
 	      if(computespectrum) 
 	      {
-		//ComputeParticleSpectrum_pseudo(DATA, number, b, size, rank);
-		ComputeParticleSpectrum_pseudo_improved(DATA, number, b, size, rank);
+		    //ComputeParticleSpectrum_pseudo(DATA, number, b, size, rank);
+		    ComputeParticleSpectrum_pseudo_improved(DATA, number, b, size, rank);
 
   
-		// Wait until all processors are finished and concatonate results
-		// (Don't want any processors to start writing the next particle to 
-		// file until the concatonation is done)
-		MPI_Barrier(MPI_COMM_WORLD);
-		
-		if(rank==0) 
-		{
-		  system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
-		  system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
-		}
-		
-		MPI_Barrier(MPI_COMM_WORLD); // occasionally another processor will open file before concatonation is done if this is removed
+		    // Wait until all processors are finished and concatonate results
+		    // (Don't want any processors to start writing the next particle to 
+		    // file until the concatonation is done)
+		    MPI_Barrier(MPI_COMM_WORLD);
+		    
+		    if(rank==0) 
+		    {
+		      system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
+		      system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+		    }
+		    
+		    MPI_Barrier(MPI_COMM_WORLD); // occasionally another processor will open file before concatonation is done if this is removed
 	      }
-	      
 	    }
 	}
-      else
+      else  // compute single one particle with pid = particleSpectrumNumber
 	{
 	  if (particleSpectrumNumber>=particleMax)
 	    {
@@ -895,7 +894,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
     {
       ReadSpectra_pseudo(DATA, 0, 1);
       int bound = 211; //number of lightest particle to calculate. 
-	  cout << "particleaMax = " << particleMax << endl;
+	  cout << "particleMax = " << particleMax << endl;
 	  fprintf(stderr,"doing all from %i: %s to %i: %s.\n",particleMax,particleList[particleMax].name,
 		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
 //       if(rank==0)  cal_reso_decays_pseudo(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
