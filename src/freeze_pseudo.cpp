@@ -559,7 +559,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         double W22 = 0.0;
         double W23 = 0.0;
         double W33 = 0.0;
-        if(DATA->include_deltaf == 1)
+        if(DATA->turn_on_shear == 1 && DATA->include_deltaf == 1)
         {
            W00 = surface[icell].W[0][0];
            W01 = surface[icell].W[0][1];
@@ -574,7 +574,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         }
 
         double Pi_bulk = 0.0;
-        if(DATA->include_deltaf_bulk == 1)
+        if(DATA->turn_on_bulk == 1 && DATA->include_deltaf_bulk == 1)
            Pi_bulk = surface[icell].pi_b;
 
         double qmu_0 = 0.0;
@@ -582,7 +582,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         double qmu_2 = 0.0;
         double qmu_3 = 0.0;
         double deltaf_qmu_coeff = 0.0;
-        if(DATA->include_deltaf_qmu == 1)
+        if(DATA->turn_on_diff == 1 && DATA->include_deltaf_qmu == 1)
         {
            qmu_0 = surface[icell].q[0];
            qmu_1 = surface[icell].q[1];
