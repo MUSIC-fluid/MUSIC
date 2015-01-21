@@ -753,8 +753,10 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
 
 void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank)
 {
-  if(DATA->pseudofreeze) pseudofreeze = 1;
-  else pseudofreeze =0;
+  if(DATA->pseudofreeze)
+    pseudofreeze = 1;
+  else 
+    pseudofreeze =0;
   int alreadyread = 0;
   ReadParticleData(DATA, eos); // read in data for Cooper-Frye
   int i, b, number;

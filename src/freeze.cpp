@@ -168,7 +168,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
   fclose(p_file);
   util->char_free(p_name);
   // here read the stable particles' chemical potential at freeze-out
-  if (DATA->whichEOS>=3)
+  if (DATA->whichEOS>=3 && DATA->whichEOS < 10)
     {
       double ef;
       if (1==DATA->useEpsFO) {
