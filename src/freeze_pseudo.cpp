@@ -374,7 +374,7 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
 // adapted from ML
 void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number, int anti, int size, int rank)
 {
-  double y_minus_eta_cut = 10.0;
+  double y_minus_eta_cut = 4.0;
   //char *specString;
   //specString = util->char_malloc(30);
   int j = partid[MHALF+number];

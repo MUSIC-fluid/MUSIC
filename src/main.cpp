@@ -977,14 +977,14 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   
   
   // max_pseudorapidity:  spectra calculated from zero to this pseudorapidity in +eta and -eta
-  double tempmax_pseudorapidity   = 2.4;
+  double tempmax_pseudorapidity   = 2.5;
   tempinput = util->StringFind3(file, "max_pseudorapidity");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_pseudorapidity  ;
   DATA->max_pseudorapidity   = tempmax_pseudorapidity;
   
    // pseudo_steps:
   // steps in pseudorapidity in calculation of spectra
-  int temppseudo_steps   = 26;
+  int temppseudo_steps   = 25;
   tempinput = util->StringFind3(file, "pseudo_steps");
   if(tempinput != "empty") istringstream ( tempinput ) >> temppseudo_steps  ;
   DATA->pseudo_steps   = temppseudo_steps; 
@@ -1842,20 +1842,20 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   
   // for calculation of spectra:
   // maximal_rapidity:  spectra calculated from zero to this rapidity in +y and -y
-  double tempymax   = 2.;
+  double tempymax   = 4.8;
   tempinput = util->StringFind4(file, "maximal_rapidity");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempymax  ;
   DATA->ymax   = tempymax;
   
   // delta_y:
   // step size in rapidity in calculation of spectra
-  double tempdeltaY   = 0.2;
+  double tempdeltaY   = 0.1;
   tempinput = util->StringFind4(file, "delta_y");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempdeltaY  ;
   DATA->deltaY   = tempdeltaY;
   
   // max_pseudorapidity:  spectra calculated from zero to this pseudorapidity in +eta and -eta
-  double tempmax_pseudorapidity   = 2.4;
+  double tempmax_pseudorapidity   = 2.5;
   tempinput = util->StringFind4(file, "max_pseudorapidity");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_pseudorapidity  ;
   DATA->max_pseudorapidity   = tempmax_pseudorapidity;
@@ -1869,19 +1869,19 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   
   // phi_steps
   // steps in azimuthal angle in calculation of spectra
-  int tempphi_steps   = 30;
+  int tempphi_steps   = 48;
   tempinput = util->StringFind4(file, "phi_steps");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempphi_steps  ;
   DATA->phi_steps   = tempphi_steps; 
   
   // min_pt:  spectra calculated from this to max_pt transverse momentum in GeV
-  double tempmin_pt   = 0.4;
+  double tempmin_pt   = 0.0;
   tempinput = util->StringFind4(file, "min_pt");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmin_pt  ;
   DATA->min_pt   = tempmin_pt;
     
   // max_pt:  spectra calculated from min_pt to this transverse momentum in GeV
-  double tempmax_pt   = 6;
+  double tempmax_pt   = 3.0;
   tempinput = util->StringFind4(file, "max_pt");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempmax_pt  ;
   DATA->max_pt   = tempmax_pt;
