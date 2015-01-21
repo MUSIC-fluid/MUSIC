@@ -75,7 +75,7 @@ Delta_Tau 0.04                            # time step to use in the evolution [f
                                           # reduced to the maximal acceptable value according to the CFL condition.
                                           # CFL condition : delta_tau < min(delta_x/10, tau0 delta_eta/10)
 Eta_grid_size 14.0                         # spatial rapidity range 
-                                          # [-Eta_grid_size, Eta_grid_size - delta_eta]
+                                          # [-Eta_grid_size/2, Eta_grid_size/2 - delta_eta]
 Grid_size_in_eta 4                        # number of the grid points in spatial rapidity direction
                                           # Must have at least 4 cells per processor.
                                           # Must be an even number.
