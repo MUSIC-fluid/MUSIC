@@ -534,7 +534,10 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         double sinh_eta_s = surface[icell].sinh_eta_s;
 
         double T = surface[icell].T_f*hbarc; // GeV
-        double mu = baryon*surface[icell].mu_B*hbarc; //GeV
+        double muB = 0.0;
+        if(DATA->turn_on_rhob == 1)
+           muB = surface[icell].mu_B*hbarc; // GeV
+        double mu = baryon*muB; //GeV
         if(DATA->whichEOS>=3 && DATA->whichEOS < 10) // for PCE use the previously computed mu at the freeze-out energy density
 	     mu += mu_PCE; //GeV
 
@@ -546,19 +549,55 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
            u_flow[ii] = surface[icell].u[ii];
         }
 
-        double W00 = surface[icell].W[0][0];
-        double W01 = surface[icell].W[0][1];
-        double W02 = surface[icell].W[0][2];
-        double W03 = surface[icell].W[0][3];
-        double W11 = surface[icell].W[1][1];
-        double W12 = surface[icell].W[1][2];
-        double W13 = surface[icell].W[1][3];
-        double W22 = surface[icell].W[2][2];
-        double W23 = surface[icell].W[2][3];
-        double W33 = surface[icell].W[3][3];
+        double W00 = 0.0;
+        double W01 = 0.0;
+        double W02 = 0.0;
+        double W03 = 0.0;
+        double W11 = 0.0;
+        double W12 = 0.0;
+        double W13 = 0.0;
+        double W22 = 0.0;
+        double W23 = 0.0;
+        double W33 = 0.0;
+        if(DATA->include_deltaf == 1)
+        {
+           W00 = surface[icell].W[0][0];
+           W01 = surface[icell].W[0][1];
+           W02 = surface[icell].W[0][2];
+           W03 = surface[icell].W[0][3];
+           W11 = surface[icell].W[1][1];
+           W12 = surface[icell].W[1][2];
+           W13 = surface[icell].W[1][3];
+           W22 = surface[icell].W[2][2];
+           W23 = surface[icell].W[2][3];
+           W33 = surface[icell].W[3][3];
+        }
+
+        double Pi_bulk = 0.0;
+        if(DATA->include_deltaf_bulk == 1)
+           Pi_bulk = surface[icell].pi_b;
+
+        double qmu_0 = 0.0;
+        double qmu_1 = 0.0;
+        double qmu_2 = 0.0;
+        double qmu_3 = 0.0;
+        double deltaf_qmu_coeff = 0.0;
+        if(DATA->include_deltaf_qmu == 1)
+        {
+           qmu_0 = surface[icell].q[0];
+           qmu_1 = surface[icell].q[1];
+           qmu_2 = surface[icell].q[2];
+           qmu_3 = surface[icell].q[3];
+           deltaf_qmu_coeff = get_deltaf_qmu_coeff(T, muB);
+        }
+
+        double rhoB = 0.0;
+        if(DATA->turn_on_rhob == 1)
+           rhoB = surface[icell].rho_B;
 
         double eps_plus_P_over_T = surface[icell].eps_plus_p_over_T_FO;
         double prefactor_shear = 1./(2.*eps_plus_P_over_T*T*T*T)*hbarc; // fm^4/GeV^2
+        double prefactor_qmu = rhoB/(eps_plus_P_over_T*T);  // 1/GeV
 
         for (int ipt=0; ipt<iptmax; ipt++)
         {
@@ -593,7 +632,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
                  // also we assume Xi(p)=p^2, the quadratic Ansatz
                  double Wfactor = 0.0;
                  double delta_f_shear = 0.0;
-                 if (DATA->include_deltaf>=1 && DATA->viscosity_flag==1)
+                 if (DATA->include_deltaf ==1 && DATA->viscosity_flag==1)
 	           {
                     Wfactor = (  ptau*W00*ptau - 2.*ptau*W01*px - 2.*ptau*W02*py - 2.*tau*tau*ptau*W03/tau*peta
 	           	          + px*W11*px + 2.*px*W12*py + 2.*tau*tau*px*W13/tau*peta
@@ -608,11 +647,19 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
 	             }
 	             
 	           }
-                 else
-	           {
-	              delta_f_shear = 0.;
-	           }
-	           sum = (f + delta_f_shear) * pdSigma;
+
+                 // delta f for qmu
+                 double qmufactor = 0.0;
+                 double delta_f_qmu = 0.0;
+                 if(DATA->include_deltaf_qmu == 1)
+                 {
+                     // p^\mu q_\mu
+                     qmufactor = ptau*qmu_0 - px*qmu_1 - py*qmu_2 - tau*tau*peta*qmu_3/tau;
+                     
+                     delta_f_qmu = f*(1. - sign*f)*(prefactor_qmu - baryon/E)*qmufactor/deltaf_qmu_coeff;
+                 }
+
+	           sum = (f + delta_f_shear + delta_f_qmu) * pdSigma;
 	           if (sum>10000)
 	              cout << "WARNING: sum>10000 in summation. sum=" << sum 
                          << ", f=" << f << ", deltaf=" << delta_f_shear
@@ -2185,4 +2232,9 @@ void Freeze::Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const 
 	//Close file
 	outfile.close();
 
+}
+
+double Freeze::get_deltaf_qmu_coeff(double T, double muB)
+{
+    return(1.0);
 }

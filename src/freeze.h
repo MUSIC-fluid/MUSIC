@@ -226,6 +226,8 @@ class Freeze{
   void OutputIntegratedFlow(InitData *DATA, int number, int full);
   void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full, const int *, int);
   void Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const int * hadron_list, int nb_hadrons);
+
+   double get_deltaf_qmu_coeff(double T, double muB);
 };
 #endif
   

@@ -163,6 +163,8 @@ max_pt 3.0                                # the maximum value of pT calculated i
 pt_steps 15                               # number of the pT points calculated in the Cooper-Frye
 
 Include_deltaf 1                          # flag to include delta f correction in Cooper-Frye formula
+Include_deltaf_qmu 1                      # flag to include delta f for qmu
+Inlucde_deltaf_bulk 0                     # flag to include delta f for bulk viscosity
 #
 #
 # other parameters

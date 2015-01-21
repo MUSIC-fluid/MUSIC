@@ -2070,6 +2070,15 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempinclude_deltaf;
   DATA->include_deltaf = tempinclude_deltaf;
   
+  int tempinclude_deltaf_qmu = 0;
+  tempinput = util->StringFind4(file, "Include_deltaf_qmu");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempinclude_deltaf_qmu;
+  DATA->include_deltaf_qmu = tempinclude_deltaf_qmu;
+  
+  int tempinclude_deltaf_bulk = 0;
+  tempinput = util->StringFind4(file, "Include_deltaf_bulk");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempinclude_deltaf_bulk;
+  DATA->include_deltaf_bulk = tempinclude_deltaf_bulk;
   
   // Do_FreezeOut_Yes_1_No_0
   // set to 0 to bypass freeze out surface finder
