@@ -559,8 +559,10 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         double W22 = 0.0;
         double W23 = 0.0;
         double W33 = 0.0;
+        int flag_shear_deltaf = 0;
         if(DATA->turn_on_shear == 1 && DATA->include_deltaf == 1)
         {
+           flag_shear_deltaf = 1;
            W00 = surface[icell].W[0][0];
            W01 = surface[icell].W[0][1];
            W02 = surface[icell].W[0][2];
@@ -574,16 +576,22 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         }
 
         double Pi_bulk = 0.0;
+        int flag_bulk_deltaf = 0;
         if(DATA->turn_on_bulk == 1 && DATA->include_deltaf_bulk == 1)
+        {
+           flag_bulk_deltaf = 1;
            Pi_bulk = surface[icell].pi_b;
+        }
 
         double qmu_0 = 0.0;
         double qmu_1 = 0.0;
         double qmu_2 = 0.0;
         double qmu_3 = 0.0;
-        double deltaf_qmu_coeff = 0.0;
+        double deltaf_qmu_coeff = 1.0;
+        int flag_qmu_deltaf = 0;
         if(DATA->turn_on_diff == 1 && DATA->include_deltaf_qmu == 1)
         {
+           flag_qmu_deltaf = 1;
            qmu_0 = surface[icell].q[0];
            qmu_1 = surface[icell].q[1];
            qmu_2 = surface[icell].q[2];
@@ -626,13 +634,13 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
                  double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]- tau*peta*u_flow[3]);
                  // this is the equilibrium f, f_0:
                  double f = 1./(exp(1./T*(E - mu)) + sign);
-
+                 
                  // now comes the delta_f: check if still correct at finite mu_b 
                  // we assume here the same C=eta/s for all particle species because it is the simplest way to do it.
                  // also we assume Xi(p)=p^2, the quadratic Ansatz
                  double Wfactor = 0.0;
                  double delta_f_shear = 0.0;
-                 if (DATA->include_deltaf ==1 && DATA->viscosity_flag==1)
+                 if (flag_shear_deltaf == 1)
 	           {
                     Wfactor = (  ptau*W00*ptau - 2.*ptau*W01*px - 2.*ptau*W02*py - 2.*tau*tau*ptau*W03/tau*peta
 	           	          + px*W11*px + 2.*px*W12*py + 2.*tau*tau*px*W13/tau*peta
@@ -651,7 +659,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
                  // delta f for qmu
                  double qmufactor = 0.0;
                  double delta_f_qmu = 0.0;
-                 if(DATA->include_deltaf_qmu == 1)
+                 if(flag_qmu_deltaf == 1)
                  {
                      // p^\mu q_\mu
                      qmufactor = ptau*qmu_0 - px*qmu_1 - py*qmu_2 - tau*tau*peta*qmu_3/tau;
@@ -659,7 +667,9 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
                      delta_f_qmu = f*(1. - sign*f)*(prefactor_qmu - baryon/E)*qmufactor/deltaf_qmu_coeff;
                  }
 
+
 	           sum = (f + delta_f_shear + delta_f_qmu) * pdSigma;
+                 
 	           if (sum>10000)
 	              cout << "WARNING: sum>10000 in summation. sum=" << sum 
                          << ", f=" << f << ", deltaf=" << delta_f_shear
