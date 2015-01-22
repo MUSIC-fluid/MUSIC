@@ -5512,6 +5512,8 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    double freeze_min_ed = DATA->eps_freeze_min;
    double d_epsFO = (freeze_max_ed - freeze_min_ed)/(n_freeze_surf - 1 + 1e-15);
    int *all_frozen = new int [n_freeze_surf];
+   for(int i = 0; i < n_freeze_surf; i++)
+      all_frozen[i] = 0;
       
    int nx = grid_nx;
    int ny = grid_ny;
@@ -7030,8 +7032,10 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    util->mtx_free(Rneighbor_Wetaeta_prev,nx+1,ny+1);
 
    int all_frozen_flag = 1;
+
    for(int ii = 0; ii < n_freeze_surf; ii++)
       all_frozen_flag *= all_frozen[ii];
+
    if(all_frozen_flag == 1)
    {
       cout << "All cells frozen out. Exiting." << endl;

@@ -3009,7 +3009,10 @@ else if (DATA->Initial_profile==11) //read in the transverse profile from file
 		    if (epsilon<0.00000000001)
 		      epsilon = 0.00000000001;
 		
-		    rhob = temp_profile_rhob[ix][iy]*eta_envelop_rhob;  // 1/fm^3
+                if(DATA->turn_on_rhob == 1)
+		       rhob = temp_profile_rhob[ix][iy]*eta_envelop_rhob;  // 1/fm^3
+                else
+                   rhob = 0.0;
 		 
 		    // initial pressure distribution:
 		    p = eos->get_pressure(epsilon, rhob);
