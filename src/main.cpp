@@ -206,7 +206,6 @@ int main(int argc, char *argv[])
   
   if (DATA.mode == 1 || DATA.mode == 3 || DATA.mode == 4 || DATA.mode >= 5)
     {
-      mkdir("./outputs", 0755);
       //if (rank == 0) int ret = system("rm yptphiSpectra*");
       //  freeze-out
       Freeze *freeze;
@@ -2182,6 +2181,32 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind4(file, "QuestRevert_epsilon_min");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempQuestRevert_epsilon_min;
   DATA->QuestRevert_epsilon_min = tempQuestRevert_epsilon_min;
+
+  // initial parameters for mode 14
+  double temp_dNdy_rap_min = -2.0;
+  tempinput = util->StringFind4(file, "dNdy_rap_min");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_rap_min;
+  DATA->dNdy_rap_min = temp_dNdy_rap_min;
+  
+  double temp_dNdy_rap_max = 2.0;
+  tempinput = util->StringFind4(file, "dNdy_rap_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_rap_max;
+  DATA->dNdy_rap_max = temp_dNdy_rap_max;
+  
+  int temp_dNdy_nrap = 30;
+  tempinput = util->StringFind4(file, "dNdy_nrap");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_nrap;
+  DATA->dNdy_nrap = temp_dNdy_nrap;
+  
+  double temp_dNdyptdpt_rap_min = -0.5;
+  tempinput = util->StringFind4(file, "dNdyptdpt_rap_min");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdyptdpt_rap_min;
+  DATA->dNdyptdpt_rap_min = temp_dNdyptdpt_rap_min;
+  
+  double temp_dNdyptdpt_rap_max = 0.5;
+  tempinput = util->StringFind4(file, "dNdyptdpt_rap_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdyptdpt_rap_max;
+  DATA->dNdyptdpt_rap_max = temp_dNdyptdpt_rap_max;
 
   cout << "Done ReadInData3." << endl;
   delete util;

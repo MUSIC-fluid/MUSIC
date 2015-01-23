@@ -171,9 +171,20 @@ typedef struct init_data
   bool output_hydro_params_header;
   int initial_eta_profile;
   int initial_eta_rhob_profile;
-	//QuestRevert
-	double QuestRevert_rho_shear_max, QuestRevert_rho_bulk_max, QuestRevert_factor, QuestRevert_epsilon_min, QuestRevert_prefactor, QuestRevert_eps_factor;
-      double QuestRevert_rho_q_max;
+  
+  //QuestRevert
+  double QuestRevert_rho_shear_max, QuestRevert_rho_bulk_max, QuestRevert_factor, QuestRevert_epsilon_min, QuestRevert_prefactor, QuestRevert_eps_factor;
+  double QuestRevert_rho_q_max;
+
+  // parameters for mode 14
+  double dNdy_rap_min;    // rapidity range for dN/dy as a function of y
+  double dNdy_rap_max;
+  int dNdy_nrap;
+  // the integrated rapidity range for dN/dypTdpT
+  double dNdyptdpt_rap_min;
+  double dNdyptdpt_rap_max;
+
+
 } InitData;
 
 

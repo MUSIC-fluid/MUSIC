@@ -2,7 +2,7 @@
 # parameters list for MUSIC with comments
 #########################################
 #
-mode 3                                    # MUSIC running mode
+mode 14                                    # MUSIC running mode
                                           # 1: Does everything. Evolution. Computation of thermal spectra. 
                                           #    Resonance decays. Observables.  
                                           #    Only compatible with freeze_out_method=3 and pseudofreeze=1
@@ -67,7 +67,7 @@ Initial_radius_size_in_fm 2.6             # parameter for Initial_profile = 0
 # parameters for hydrodynamic evolution
 #######################################
 # grid information
-Initial_time_tau_0 0.4                    # starting time of the hydrodynamic evolution (fm/c)
+Initial_time_tau_0 0.6                    # starting time of the hydrodynamic evolution (fm/c)
 Total_evolution_time_tau 30.              # the maximum allowed running evolution time (fm/c)
                                           # need to be set to some large enough number
 Delta_Tau 0.04                            # time step to use in the evolution [fm/c]
@@ -165,6 +165,17 @@ pt_steps 15                               # number of the pT points calculated i
 Include_deltaf 0                          # flag to include delta f correction in Cooper-Frye formula
 Include_deltaf_qmu 0                      # flag to include delta f for qmu
 Inlucde_deltaf_bulk 0                     # flag to include delta f for bulk viscosity
+#
+#
+#
+###########################################################
+# parameters for mode 14 to collect particle spectra and vn
+###########################################################
+dNdy_rap_min -0.5                         # the minimum rapidity (or pseudorapidity) 
+dNdy_rap_max 0.5
+dNdy_nrap 30
+dNdyptdpt_rap_min -0.5
+dNdyptdpt_rap_max 0.5
 #
 #
 # other parameters
