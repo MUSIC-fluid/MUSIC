@@ -2183,30 +2183,50 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   DATA->QuestRevert_epsilon_min = tempQuestRevert_epsilon_min;
 
   // initial parameters for mode 14
-  double temp_dNdy_rap_min = -2.0;
-  tempinput = util->StringFind4(file, "dNdy_rap_min");
-  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_rap_min;
-  DATA->dNdy_rap_min = temp_dNdy_rap_min;
+  double temp_dNdy_y_min = -0.5;
+  tempinput = util->StringFind4(file, "dNdy_y_min");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_y_min;
+  DATA->dNdy_y_min = temp_dNdy_y_min;
   
-  double temp_dNdy_rap_max = 2.0;
-  tempinput = util->StringFind4(file, "dNdy_rap_max");
-  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_rap_max;
-  DATA->dNdy_rap_max = temp_dNdy_rap_max;
+  double temp_dNdy_y_max = 0.5;
+  tempinput = util->StringFind4(file, "dNdy_y_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_y_max;
+  DATA->dNdy_y_max = temp_dNdy_y_max;
+  
+  double temp_dNdy_eta_min = -2.0;
+  tempinput = util->StringFind4(file, "dNdy_eta_min");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_eta_min;
+  DATA->dNdy_eta_min = temp_dNdy_eta_min;
+  
+  double temp_dNdy_eta_max = 2.0;
+  tempinput = util->StringFind4(file, "dNdy_eta_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_eta_max;
+  DATA->dNdy_eta_max = temp_dNdy_eta_max;
   
   int temp_dNdy_nrap = 30;
   tempinput = util->StringFind4(file, "dNdy_nrap");
   if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_nrap;
   DATA->dNdy_nrap = temp_dNdy_nrap;
   
-  double temp_dNdyptdpt_rap_min = -0.5;
-  tempinput = util->StringFind4(file, "dNdyptdpt_rap_min");
-  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdyptdpt_rap_min;
-  DATA->dNdyptdpt_rap_min = temp_dNdyptdpt_rap_min;
+  double temp_dNdyptdpt_y_min = -0.5;
+  tempinput = util->StringFind4(file, "dNdyptdpt_y_min");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdyptdpt_y_min;
+  DATA->dNdyptdpt_y_min = temp_dNdyptdpt_y_min;
   
-  double temp_dNdyptdpt_rap_max = 0.5;
-  tempinput = util->StringFind4(file, "dNdyptdpt_rap_max");
-  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdyptdpt_rap_max;
-  DATA->dNdyptdpt_rap_max = temp_dNdyptdpt_rap_max;
+  double temp_dNdyptdpt_y_max = 0.5;
+  tempinput = util->StringFind4(file, "dNdyptdpt_y_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdyptdpt_y_max;
+  DATA->dNdyptdpt_y_max = temp_dNdyptdpt_y_max;
+  
+  double temp_dNdyptdpt_eta_min = -0.5;
+  tempinput = util->StringFind4(file, "dNdyptdpt_eta_min");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdyptdpt_eta_min;
+  DATA->dNdyptdpt_eta_min = temp_dNdyptdpt_eta_min;
+  
+  double temp_dNdyptdpt_eta_max = 0.5;
+  tempinput = util->StringFind4(file, "dNdyptdpt_eta_max");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdyptdpt_eta_max;
+  DATA->dNdyptdpt_eta_max = temp_dNdyptdpt_eta_max;
 
   cout << "Done ReadInData3." << endl;
   delete util;

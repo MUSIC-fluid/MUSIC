@@ -177,12 +177,16 @@ typedef struct init_data
   double QuestRevert_rho_q_max;
 
   // parameters for mode 14
-  double dNdy_rap_min;    // rapidity range for dN/dy as a function of y
-  double dNdy_rap_max;
+  double dNdy_y_min;      // rapidity range for dN/dy as a function of y
+  double dNdy_y_max;
+  double dNdy_eta_min;    // pseudo-rapidity range for dN/dy as a function of y
+  double dNdy_eta_max;
   int dNdy_nrap;
   // the integrated rapidity range for dN/dypTdpT
-  double dNdyptdpt_rap_min;
-  double dNdyptdpt_rap_max;
+  double dNdyptdpt_y_min;
+  double dNdyptdpt_y_max;
+  double dNdyptdpt_eta_min;
+  double dNdyptdpt_eta_max;
 
 
 } InitData;

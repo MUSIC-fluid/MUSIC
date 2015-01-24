@@ -8,6 +8,13 @@ Freeze::Freeze()
 {
   integral = new Int;
   util = new Util;
+
+  // for final particle spectra and flow analysis
+  int temp_list [] = {211, -211, 321, -321, 2212, -2212};
+  charged_hadron_list_length = sizeof(temp_list)/sizeof(int);
+  charged_hadron_list = new int [charged_hadron_list_length];
+  for(int i = 0; i < charged_hadron_list_length; i++)
+      charged_hadron_list[i] = temp_list[i];
 }
 
 // destructors
@@ -15,6 +22,7 @@ Freeze::~Freeze()
 {
   delete integral;
   delete util;
+  delete [] charged_hadron_list;
 }
 
 void Freeze::checkForReadError(FILE *file, const char* name)

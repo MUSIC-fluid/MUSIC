@@ -128,6 +128,9 @@ class Freeze{
   Util *util;
   int pseudofreeze;
 
+  int *charged_hadron_list;
+  int charged_hadron_list_length;
+
  public:
   Freeze();//constructor
   ~Freeze();//destructor
@@ -182,7 +185,7 @@ class Freeze{
   void ReadFSpectra_pseudo(InitData *DATA);
   void ReadSpectra_pseudo(InitData* DATA, int full, int verbose);
   void ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti, int size, int rank);
-  void ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number, int anti, int size, int rank);
+  void ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number, int size, int rank);
   void OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int anti, int full);
   void CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
   double	Edndp3_pseudo(double yr, double ptr, double phirin, int res_num);
@@ -214,15 +217,15 @@ class Freeze{
   double get_vn(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n);
   double get_psi_n(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n);
   double get_Nch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap);
-  double get_vn_ch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n);
+  double get_vn_ch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n, double* vn_results);
   double get_psi_n_ch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n);
   double get_weighted_v1(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int ch);
   double get_weighted_psi1(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int ch);
 
   void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
   void OutputDifferentialFlowNearMidrapidity(InitData *DATA, int number, int full);
-  void OutputIntegratedFlow(InitData *DATA, int number, int full);
-  void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full, const int *, int);
+  void OutputIntegratedFlow(InitData *DATA, int number, int full, double pT_min, double pT_max);
+  void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full);
   void Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const int * hadron_list, int nb_hadrons);
 
    double get_deltaf_qmu_coeff(double T, double muB);

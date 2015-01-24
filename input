@@ -171,11 +171,15 @@ Inlucde_deltaf_bulk 0                     # flag to include delta f for bulk vis
 ###########################################################
 # parameters for mode 14 to collect particle spectra and vn
 ###########################################################
-dNdy_rap_min -0.5                         # the minimum rapidity (or pseudorapidity) 
-dNdy_rap_max 0.5
+dNdy_y_min -0.01                           # the minimum rapidity
+dNdy_y_max 0.01
+dNdy_eta_min -2.5                         # the minimum pseudorapidity
+dNdy_eta_max 2.5
 dNdy_nrap 30
-dNdyptdpt_rap_min -0.5
-dNdyptdpt_rap_max 0.5
+dNdyptdpt_y_min -0.01
+dNdyptdpt_y_max 0.01
+dNdyptdpt_eta_min -0.5
+dNdyptdpt_eta_max 0.5
 #
 #
 # other parameters
