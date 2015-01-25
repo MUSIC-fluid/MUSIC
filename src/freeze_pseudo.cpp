@@ -950,9 +950,9 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       ReadSpectra_pseudo(DATA, 1, 1);  // read in particle spectra information
       
       // calculate spectra and vn for charged hadrons
-	Output_charged_hadrons_eta_differential_spectra(DATA, 1, 0.01, 3.0);
+	Output_charged_hadrons_eta_differential_spectra(DATA, 1, 0.1, 3.0);
       Output_charged_hadrons_pT_differential_spectra(DATA, 1, -0.5, 0.5);
-      Output_charged_IntegratedFlow(DATA, 0.01, 3.0, -0.5, 0.5);
+      Output_charged_IntegratedFlow(DATA, 0.1, 3.0, -0.5, 0.5);
 
 	// calculate spectra and vn for identified particles
       int pid_list [] = {211, -211, 321, -321, 2212, -2212};
@@ -965,7 +965,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
          {
 	      OutputDifferentialFlowAtMidrapidity(DATA, number, 1);
 	      OutputDifferentialFlowNearMidrapidity(DATA, number, 1);
-	      OutputIntegratedFlow_vs_y(DATA, number, 1, 0.01, 3.0);
+	      OutputIntegratedFlow_vs_y(DATA, number, 1, 0.1, 3.0);
          }
 	}
 	
@@ -1714,7 +1714,6 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
 {
     //Define index j used in particleList[j]
     int j = partid[MHALF+number];
-    double m = particleList[j].mass;
     //int nphi = particleList[j].nphi;
     int npt = particleList[j].npt;
 
@@ -1775,7 +1774,7 @@ void Freeze::OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int
         pt_and_rapidity_integrated_flow(DATA, number, pt, pt, 0, eta, eta, vn);  // pseudo-rapidity
 		
         outfilevn2 << pt;
-        outfilevn2 << "  " << vn[0][0]/dydeta(eta, pt, m)/pt/(2*M_PI);
+        outfilevn2 << "  " << vn[0][0]/pt/(2*M_PI);
         for(int i = 1;i<nharmonics;i++) 
             for(int k =0;k<2;k++) 
                 outfilevn2 << "  " << vn[i][k];
@@ -1804,32 +1803,24 @@ void Freeze::OutputDifferentialFlowNearMidrapidity(InitData *DATA, int number, i
     //for (int iphi=0;iphi<nphi;iphi++) phipbuff[iphi] = iphi*2*PI/nphi;
     
     //Set output file name
-    string fname;
-    stringstream tmpStr;
-    fname="./outputs/";
+    stringstream fname;
     if (full)
-    	fname+="F";
-    fname+="vnptTPC2-";
-    tmpStr << number;
-    fname+=tmpStr.str();
-    fname+=".dat";	
+        fname << "./outputs/FvnptTPC2-" << number << "_y_" << y_min << "_" << y_max << ".dat";
+    else
+        fname << "./outputs/vnptTPC2-" << number << "_y_" << y_min << "_" << y_max << ".dat";
     
-    string fname2;
-    stringstream tmpStr2;
-    fname2="./outputs/";
+    stringstream fname2;
     if (full)
-    	fname2+="F";
-    fname2+="vnptTPC3-";
-    tmpStr2 << number;
-    fname2+=tmpStr.str();
-    fname2+=".dat";	
+        fname2 << "./outputs/FvnptTPC3-" << number << "_eta_" << eta_min << "_" << eta_max << ".dat";
+    else
+        fname2 << "./outputs/vnptTPC3-" << number << "_eta_" << y_min << "_" << eta_max << ".dat";
     
     //Open output file for vn
     ofstream outfilevn;
-    outfilevn.open(fname.c_str());
+    outfilevn.open(fname.str().c_str());
     
     ofstream outfilevn2;
-    outfilevn2.open(fname2.c_str());
+    outfilevn2.open(fname2.str().c_str());
 
     //Set the format of the output
     outfilevn << "#pt  dN/ptdYdptdphi  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  v4cos  v4sin  v5cos  v5sin  v6cos  v6sin  v7cos  v7sin\n";   // in rapidity
@@ -1876,33 +1867,24 @@ void Freeze::OutputIntegratedFlow_vs_y(InitData *DATA, int number, int full, dou
    cout << "Calculating flow integrated between " << pT_min << " < p_T < " << pT_max << " vs. pseudorapidity for particle " << number << endl;
    
    //Set output file name
-   // store 
-   string fname;
-   stringstream tmpStr;
-   fname="./outputs/";
+   stringstream fname;
    if (full)
-   	fname+="F";
-   fname+="vneta2-";
-   tmpStr << number;
-   fname+=tmpStr.str();
-   fname+=".dat";	
+      fname << "./outputs/Fvneta2-" << number << "_pT_" << pT_min << "_" << pT_max << ".dat";
+   else
+      fname << "./outputs/vneta2-" << number << "_pT_" << pT_min << "_" << pT_max << ".dat";
    
-   string fname2;
-   stringstream tmpStr2;
-   fname2="./outputs/";
-   if (full) 
-   	fname2+="F";
-   fname2+="vneta3-";
-   tmpStr2 << number;
-   fname2+=tmpStr.str();
-   fname2+=".dat";	
+   stringstream fname2;
+   if (full)
+      fname2 << "./outputs/Fvneta3-" << number << "_pT_" << pT_min << "_" << pT_max << ".dat";
+   else
+      fname2 << "./outputs/vneta3-" << number << "_pT_" << pT_min << "_" << pT_max << ".dat";
    
    //Open output file for vn
    ofstream outfilevn;
-   outfilevn.open(fname.c_str());
+   outfilevn.open(fname.str().c_str());
    
    ofstream outfilevn2;
-   outfilevn2.open(fname2.c_str());
+   outfilevn2.open(fname2.str().c_str());
    
    // header of the files
    outfilevn << "#y  dN/dy  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  v4cos  v4sin  v5cos  v5sin  v6cos  v6sin  v7cos  v7sin\n";
@@ -2015,8 +1997,8 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int
 // output eta and phi integerated charged hadron spectra and vn as functions of pT
 void Freeze::Output_charged_hadrons_pT_differential_spectra(InitData *DATA, int full, double eta_min, double eta_max)
 {
-    double pT_min = 0.01;
-    double pT_max = 3.0;
+    double pT_min = particleList[1].pt[0];
+    double pT_max = particleList[1].pt[particleList[1].npt-1];
     int npT = 30;
     double dpT = (pT_max - pT_min)/(npT - 1);
     cout << "Collecting charged hadrons dN/detapTdpT and vn(pT) vs pT..." << endl;

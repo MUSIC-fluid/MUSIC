@@ -10,7 +10,7 @@ Freeze::Freeze()
   util = new Util;
 
   // for final particle spectra and flow analysis
-  int temp_list [] = {211, -211, 321, -321, 2212, -2212};
+  int temp_list [] = {211, -211, 321, -321, 2212, -2212, 3222, -3222, 3112, -3112, 3312, -3312};
   charged_hadron_list_length = sizeof(temp_list)/sizeof(int);
   charged_hadron_list = new int [charged_hadron_list_length];
   for(int i = 0; i < charged_hadron_list_length; i++)
