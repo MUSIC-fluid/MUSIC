@@ -224,8 +224,10 @@ class Freeze{
 
   void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
   void OutputDifferentialFlowNearMidrapidity(InitData *DATA, int number, int full);
-  void OutputIntegratedFlow(InitData *DATA, int number, int full, double pT_min, double pT_max);
-  void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full);
+  void OutputIntegratedFlow_vs_y(InitData *DATA, int number, int full, double pT_min, double pT_max);
+  void Output_charged_IntegratedFlow(InitData *DATA, double pT_min, double pT_max, double eta_min, double eta_max);
+  void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full, double pT_min ,double pT_max);
+  void Output_charged_hadrons_pT_differential_spectra(InitData *DATA, int full, double eta_min, double eta_max);
   void Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const int * hadron_list, int nb_hadrons);
 
    double get_deltaf_qmu_coeff(double T, double muB);
