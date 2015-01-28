@@ -5833,6 +5833,10 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
             Rneighbor_ux[ix][iy] = packageux[position];
             Rneighbor_uy[ix][iy] = packageuy[position];
             Rneighbor_ueta[ix][iy] = packageueta[position];
+            Rneighbor_utau_prev[ix][iy] = packageutau_prev[position];
+            Rneighbor_ux_prev[ix][iy] = packageux_prev[position];
+            Rneighbor_uy_prev[ix][iy] = packageuy_prev[position];
+            Rneighbor_ueta_prev[ix][iy] = packageueta_prev[position];
 
             if(DATA->turn_on_rhob)
             {

@@ -936,12 +936,12 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
          {
 	      OutputDifferentialFlowAtMidrapidity(DATA, number, 0);
 	      OutputDifferentialFlowNearMidrapidity(DATA, number, 0);
-	      OutputIntegratedFlow_vs_y(DATA, number, 0, 0.01, 3.5);
+	      OutputIntegratedFlow_vs_y(DATA, number, 0, 0.01, 3.0);
          }
 	}
       
-	cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |y| < 1 = " 
-	<< get_meanpt(DATA, 211, 0.25, 1.8, 1, -1, 1) << endl;
+	//cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |y| < 1 = " 
+	//     << get_meanpt(DATA, 211, 0.25, 1.8, 1, -1, 1) << endl;
 	
     }
   else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
@@ -950,9 +950,9 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
       ReadSpectra_pseudo(DATA, 1, 1);  // read in particle spectra information
       
       // calculate spectra and vn for charged hadrons
-	Output_charged_hadrons_eta_differential_spectra(DATA, 1, 0.1, 3.0);
+	Output_charged_hadrons_eta_differential_spectra(DATA, 1, 0.01, 3.0);
       Output_charged_hadrons_pT_differential_spectra(DATA, 1, -0.5, 0.5);
-      Output_charged_IntegratedFlow(DATA, 0.1, 3.0, -0.5, 0.5);
+      Output_charged_IntegratedFlow(DATA, 0.01, 3.0, -0.5, 0.5);
 
 	// calculate spectra and vn for identified particles
       int pid_list [] = {211, -211, 321, -321, 2212, -2212};
@@ -965,12 +965,12 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
          {
 	      OutputDifferentialFlowAtMidrapidity(DATA, number, 1);
 	      OutputDifferentialFlowNearMidrapidity(DATA, number, 1);
-	      OutputIntegratedFlow_vs_y(DATA, number, 1, 0.1, 3.0);
+	      OutputIntegratedFlow_vs_y(DATA, number, 1, 0.01, 3.0);
          }
 	}
 	
-	cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |y| < 0.5 = " 
-           << get_meanpt(DATA, 211, 0.25, 1.8, 1, -0.5, 0.5) << endl;
+	//cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |y| < 0.5 = " 
+      //     << get_meanpt(DATA, 211, 0.25, 1.8, 1, -0.5, 0.5) << endl;
     }
   else if (mode!=3)
     {
