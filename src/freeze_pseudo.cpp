@@ -2121,7 +2121,41 @@ void Freeze::Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const 
 
 }
 
+void Freeze::load_deltaf_qmu_coeff_table(string filename)
+{
+    ifstream table(filename.c_str());
+    deltaf_qmu_coeff_table_length_T = 100;
+    deltaf_qmu_coeff_table_length_mu = 100;
+    delta_qmu_coeff_table_T0 = 0.1;
+    delta_qmu_coeff_table_mu0 = 0.0;
+    delta_qmu_coeff_table_dT = 0.001;
+    delta_qmu_coeff_table_dmu = 0.007892;
+    deltaf_qmu_coeff_tb = new double* [deltaf_qmu_coeff_table_length_T];
+    for(int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
+       deltaf_qmu_coeff_tb[i] = new double [deltaf_qmu_coeff_table_length_mu];
+
+    double dummy;
+    for(int j = 0; j < deltaf_qmu_coeff_table_length_mu; j++)
+       for(int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
+          table >> dummy >> dummy >> deltaf_qmu_coeff_tb[i][j];
+    table.close();
+}
+
 double Freeze::get_deltaf_qmu_coeff(double T, double muB)
 {
-    return(1.0);
+    int idx_T = (int)((T - delta_qmu_coeff_table_T0)/delta_qmu_coeff_table_dT);
+    int idx_mu = (int)((muB - delta_qmu_coeff_table_mu0)/delta_qmu_coeff_table_dmu);
+    double x_fraction = (T - delta_qmu_coeff_table_T0)/delta_qmu_coeff_table_dT - idx_T;
+    double y_fraction = (muB - delta_qmu_coeff_table_mu0)/delta_qmu_coeff_table_dmu - idx_mu;
+    
+    double f1 = deltaf_qmu_coeff_tb[idx_T][idx_mu];
+    double f2 = deltaf_qmu_coeff_tb[idx_T][idx_mu+1];
+    double f3 = deltaf_qmu_coeff_tb[idx_T+1][idx_mu+1];
+    double f4 = deltaf_qmu_coeff_tb[idx_T+1][idx_mu];
+
+    double coeff = f1*(1. - x_fraction)*(1. - y_fraction) 
+                   + f2*(1. - x_fraction)*y_fraction
+                   + f3*x_fraction*y_fraction
+                   + f4*x_fraction*(1. - y_fraction);
+    return(coeff);
 }

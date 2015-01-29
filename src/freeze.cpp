@@ -4,17 +4,20 @@ Int *integral;
 
 using namespace std;
 
-Freeze::Freeze()
+Freeze::Freeze(InitData* DATA_in)
 {
   integral = new Int;
   util = new Util;
 
+  DATA_ptr = DATA_in;
   // for final particle spectra and flow analysis
   int temp_list [] = {211, -211, 321, -321, 2212, -2212, 3222, -3222, 3112, -3112, 3312, -3312};
   charged_hadron_list_length = sizeof(temp_list)/sizeof(int);
   charged_hadron_list = new int [charged_hadron_list_length];
   for(int i = 0; i < charged_hadron_list_length; i++)
       charged_hadron_list[i] = temp_list[i];
+  if(DATA_ptr->include_deltaf_qmu == 1)
+      load_deltaf_qmu_coeff_table("tables/Coefficients_RTA_diffusion.dat");
 }
 
 // destructors
@@ -23,6 +26,12 @@ Freeze::~Freeze()
   delete integral;
   delete util;
   delete [] charged_hadron_list;
+  if(DATA_ptr->include_deltaf_qmu == 1)
+  {
+     for(int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
+        delete [] deltaf_qmu_coeff_tb[i];
+     delete [] deltaf_qmu_coeff_tb;
+  }
 }
 
 void Freeze::checkForReadError(FILE *file, const char* name)

@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
       //if (rank == 0) int ret = system("rm yptphiSpectra*");
       //  freeze-out
       Freeze *freeze;
-      freeze = new Freeze();
+      freeze = new Freeze(&DATA);
       if(DATA.pseudofreeze) freeze->CooperFrye_pseudo(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
       else  freeze->CooperFrye(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
       delete freeze;

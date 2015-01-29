@@ -128,11 +128,18 @@ class Freeze{
   Util *util;
   int pseudofreeze;
 
+  InitData* DATA_ptr;
   int *charged_hadron_list;
   int charged_hadron_list_length;
 
+  int deltaf_qmu_coeff_table_length_T;
+  int deltaf_qmu_coeff_table_length_mu;
+  double delta_qmu_coeff_table_T0, delta_qmu_coeff_table_mu0;
+  double delta_qmu_coeff_table_dT, delta_qmu_coeff_table_dmu;
+  double **deltaf_qmu_coeff_tb;
+
  public:
-  Freeze();//constructor
+  Freeze(InitData* DATA_in);//constructor
   ~Freeze();//destructor
 
   double gauss(int n, double (Freeze::*f)(double, void *), double xlo, double xhi, void *optvec );
@@ -152,6 +159,7 @@ class Freeze{
   double summation3(double px, double py, double y, double m, int deg, int baryon, double mu, InitData *DATA);
   void ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int iptmax, int iphimax, int size, int rank);
   void OutputFullParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int full);
+  void load_deltaf_qmu_coeff_table(string filename);
   
   // --------------------------------------------------------------------------------------
   // the following routines are adapted from the public version of
