@@ -7635,16 +7635,15 @@ void Evolve::regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated)
        { 0, 0, 1, 0},
        { 0, 0, 0, 1}
    };
-   double u_dot_pi[4] = {0.0, 0.0, 0.0, 0.0};
+   double u_dot_pi[4];
    double u_mu[4];
    for(int i = 0; i < 4; i++)
    {
-      u_dot_pi[i] += (- u[0]*Wmunu[0][i] + u[1]*Wmunu[1][i] 
-         + u[2]*Wmunu[2][i] + u[3]*Wmunu[3][i]);
+      u_dot_pi[i] = (- u[0]*Wmunu[0][i] + u[1]*Wmunu[1][i] 
+                     + u[2]*Wmunu[2][i] + u[3]*Wmunu[3][i]);
       u_mu[i] = gmunu[i][i]*u[i];
    }
-   double tr_pi = (- Wmunu[0][0]*Wmunu[0][0] + Wmunu[1][1]*Wmunu[1][1] 
-      + Wmunu[2][2]*Wmunu[2][2] + Wmunu[3][3]*Wmunu[3][3]);
+   double tr_pi = - Wmunu[0][0] + Wmunu[1][1] + Wmunu[2][2] + Wmunu[3][3];
    double u_dot_pi_dot_u = 0.0;
    for(int i = 0; i < 4; i++)
       for(int j = 0; j < 4; j++)
