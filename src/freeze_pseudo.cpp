@@ -927,10 +927,11 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *D
 
  	//Output_charged_hadrons_eta_differential_spectra(DATA, 0);
       
-      int positivech[3] = {211, 321, 2212};  // pi, K, and proton
-      for(int k=0; k<3; k++ )
+      int pid_list [] = {211, -211, 321, -321, 2212, -2212};
+      int pid_list_length = sizeof(pid_list)/sizeof(int);
+      for (int k = 0; k < pid_list_length; k++)
 	{
-	   number = positivech[k];
+	   number = pid_list[k];
          int id = partid[MHALF+number];
          if(id < particleMax)
          {
