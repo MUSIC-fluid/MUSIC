@@ -6161,37 +6161,37 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
                   // perform 4-d linear interpolation for all fluid quantities
 
                   // flow velocity u^\tau
-	            cube[0][0][0][0] = arena[ix][iy][ieta].u_prev[0];
-	            cube[0][0][1][0] = arena[ix][iy+fac_y][ieta].u_prev[0];
-	            cube[0][1][0][0] = arena[ix+fac_x][iy][ieta].u_prev[0];
-	            cube[0][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].u_prev[0];
-	            cube[1][0][0][0] = arena[ix][iy][ieta].u[0][0];
-	            cube[1][0][1][0] = arena[ix][iy+fac_y][ieta].u[0][0];
-	            cube[1][1][0][0] = arena[ix+fac_x][iy][ieta].u[0][0];
-	            cube[1][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].u[0][0];
-	            if (ieta < neta - fac_eta)
-	            {
-	               cube[0][0][0][1] = arena[ix][iy][ieta+fac_eta].u_prev[0];
-	               cube[0][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].u_prev[0];
-	               cube[0][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].u_prev[0];
-	               cube[0][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].u_prev[0];
-	               cube[1][0][0][1] = arena[ix][iy][ieta+fac_eta].u[0][0];
-	               cube[1][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].u[0][0];
-	               cube[1][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].u[0][0];
-	               cube[1][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].u[0][0];
-	            }
-	            else  // right most slice in eta_s
-	            {
-	               cube[0][0][0][1] = Rneighbor_utau_prev[ix][iy];
-	               cube[0][0][1][1] = Rneighbor_utau_prev[ix][iy+fac_y];
-	               cube[0][1][0][1] = Rneighbor_utau_prev[ix+fac_x][iy];
-	               cube[0][1][1][1] = Rneighbor_utau_prev[ix+fac_x][iy+fac_y];
-	               cube[1][0][0][1] = Rneighbor_utau[ix][iy];
-	               cube[1][0][1][1] = Rneighbor_utau[ix][iy+fac_y];
-	               cube[1][1][0][1] = Rneighbor_utau[ix+fac_x][iy];
-	               cube[1][1][1][1] = Rneighbor_utau[ix+fac_x][iy+fac_y];
-	            }
-                  utau_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+	            //cube[0][0][0][0] = arena[ix][iy][ieta].u_prev[0];
+	            //cube[0][0][1][0] = arena[ix][iy+fac_y][ieta].u_prev[0];
+	            //cube[0][1][0][0] = arena[ix+fac_x][iy][ieta].u_prev[0];
+	            //cube[0][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].u_prev[0];
+	            //cube[1][0][0][0] = arena[ix][iy][ieta].u[0][0];
+	            //cube[1][0][1][0] = arena[ix][iy+fac_y][ieta].u[0][0];
+	            //cube[1][1][0][0] = arena[ix+fac_x][iy][ieta].u[0][0];
+	            //cube[1][1][1][0] = arena[ix+fac_x][iy+fac_y][ieta].u[0][0];
+	            //if (ieta < neta - fac_eta)
+	            //{
+	            //   cube[0][0][0][1] = arena[ix][iy][ieta+fac_eta].u_prev[0];
+	            //   cube[0][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].u_prev[0];
+	            //   cube[0][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].u_prev[0];
+	            //   cube[0][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].u_prev[0];
+	            //   cube[1][0][0][1] = arena[ix][iy][ieta+fac_eta].u[0][0];
+	            //   cube[1][0][1][1] = arena[ix][iy+fac_y][ieta+fac_eta].u[0][0];
+	            //   cube[1][1][0][1] = arena[ix+fac_x][iy][ieta+fac_eta].u[0][0];
+	            //   cube[1][1][1][1] = arena[ix+fac_x][iy+fac_y][ieta+fac_eta].u[0][0];
+	            //}
+	            //else  // right most slice in eta_s
+	            //{
+	            //   cube[0][0][0][1] = Rneighbor_utau_prev[ix][iy];
+	            //   cube[0][0][1][1] = Rneighbor_utau_prev[ix][iy+fac_y];
+	            //   cube[0][1][0][1] = Rneighbor_utau_prev[ix+fac_x][iy];
+	            //   cube[0][1][1][1] = Rneighbor_utau_prev[ix+fac_x][iy+fac_y];
+	            //   cube[1][0][0][1] = Rneighbor_utau[ix][iy];
+	            //   cube[1][0][1][1] = Rneighbor_utau[ix][iy+fac_y];
+	            //   cube[1][1][0][1] = Rneighbor_utau[ix+fac_x][iy];
+	            //   cube[1][1][1][1] = Rneighbor_utau[ix+fac_x][iy+fac_y];
+	            //}
+                  //utau_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
 
                   // flow velocity u^x
 	            cube[0][0][0][0] = arena[ix][iy][ieta].u_prev[1];
@@ -6291,6 +6291,9 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 	               cube[1][1][1][1] = Rneighbor_ueta[ix+fac_x][iy+fac_y];
 	            }
                   ueta_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+                  // reconstruct u^tau from u^i
+                  utau_center = sqrt(1. + ux_center*ux_center + uy_center*uy_center + ueta_center*ueta_center);
 
                   // baryon density rho_b
 	            cube[0][0][0][0] = arena[ix][iy][ieta].rhob_prev;
@@ -6464,6 +6467,30 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 	               cube[1][1][1][1] = Rneighbor_qeta[ix+fac_x][iy+fac_y];
 	            }
                   qeta_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+                  // reconstruct q^\tau from the transverality criteria
+                  double *u_flow = new double [4];
+                  u_flow[0] = utau_center;
+                  u_flow[1] = ux_center;
+                  u_flow[2] = uy_center;
+                  u_flow[3] = ueta_center;
+                  double *q_mu = new double [4];
+                  q_mu[0] = qtau_center;
+                  q_mu[1] = qx_center;
+                  q_mu[2] = qy_center;
+                  q_mu[3] = qeta_center;
+                  double *q_regulated = new double [4];
+                  for(int i = 0; i < 4; i++)
+                     q_regulated[i] = 0.0;
+                  regulate_qmu(u_flow, q_mu, q_regulated);
+                  qtau_center = q_regulated[0];
+                  qx_center = q_regulated[1];
+                  qy_center = q_regulated[2];
+                  qeta_center = q_regulated[3];
+
+                  // clean up
+                  delete [] q_mu;
+                  delete [] q_regulated;
 
                   // bulk viscous pressure pi_b
 	            cube[0][0][0][0] = arena[ix][iy][ieta].pi_b_prev;
@@ -6847,6 +6874,49 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 	               cube[1][1][1][1] = Rneighbor_Wetaeta[ix+fac_x][iy+fac_y];
 	            }
                   Wetaeta_center = util->four_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
+
+                  // regulate Wmunu according to transversality and traceless
+                  double **Wmunu_input = new double* [4];
+                  double **Wmunu_regulated = new double* [4];
+                  for(int i = 0; i < 4; i++)
+                  {
+                     Wmunu_input[i] = new double [4];
+                     Wmunu_regulated[i] = new double [4];
+                     for(int j = 0; j < 4; j++)
+                        Wmunu_regulated[i][j] = 0.0;
+                  }
+                  Wmunu_input[0][0] = Wtautau_center;
+                  Wmunu_input[0][1] = Wmunu_input[1][0] = Wtaux_center;
+                  Wmunu_input[0][2] = Wmunu_input[2][0] = Wtauy_center;
+                  Wmunu_input[0][3] = Wmunu_input[3][0] = Wtaueta_center;
+                  Wmunu_input[1][1] = Wxx_center;
+                  Wmunu_input[1][2] = Wmunu_input[2][1] = Wxy_center;
+                  Wmunu_input[1][3] = Wmunu_input[3][1] = Wxeta_center;
+                  Wmunu_input[2][2] = Wyy_center;
+                  Wmunu_input[2][3] = Wmunu_input[3][2] = Wyeta_center;
+                  Wmunu_input[3][3] = Wetaeta_center;
+                  regulate_Wmunu(u_flow, Wmunu_input, Wmunu_regulated);
+                  Wtautau_center = Wmunu_regulated[0][0];
+                  Wtaux_center = Wmunu_regulated[0][1];
+                  Wtauy_center = Wmunu_regulated[0][2];
+                  Wtaueta_center = Wmunu_regulated[0][3];
+                  Wxx_center = Wmunu_regulated[1][1];
+                  Wxy_center = Wmunu_regulated[1][2];
+                  Wxeta_center = Wmunu_regulated[1][3];
+                  Wyy_center = Wmunu_regulated[2][2];
+                  Wyeta_center = Wmunu_regulated[2][3];
+                  Wetaeta_center = Wmunu_regulated[3][3];
+
+                  // clean up
+                  delete [] u_flow;
+                  for(int i = 0; i < 4; i++)
+                  {
+                     delete [] Wmunu_input[i];
+                     delete [] Wmunu_regulated[i];
+                  }
+                  delete [] Wmunu_input;
+                  delete [] Wmunu_regulated;
+
 
                   // 4-dimension interpolation done
                   TFO = eos->get_temperature(epsFO, rhob_center);
@@ -7324,6 +7394,30 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
                
                qeta_center = 0.0;
 
+               // reconstruct q^\tau from the transverality criteria
+               double *u_flow = new double [4];
+               u_flow[0] = utau_center;
+               u_flow[1] = ux_center;
+               u_flow[2] = uy_center;
+               u_flow[3] = ueta_center;
+               double *q_mu = new double [4];
+               q_mu[0] = qtau_center;
+               q_mu[1] = qx_center;
+               q_mu[2] = qy_center;
+               q_mu[3] = qeta_center;
+               double *q_regulated = new double [4];
+               for(int i = 0; i < 4; i++)
+                  q_regulated[i] = 0.0;
+               regulate_qmu(u_flow, q_mu, q_regulated);
+               qtau_center = q_regulated[0];
+               qx_center = q_regulated[1];
+               qy_center = q_regulated[2];
+               qeta_center = q_regulated[3];
+
+               // clean up
+               delete [] q_mu;
+               delete [] q_regulated;
+
                // shear viscous tensor W^\tau\tau
                idx0 = 0;
                idx1 = 0;
@@ -7421,6 +7515,48 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
 	         cube[1][1][1] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
                Wetaeta_center = util->three_dimension_linear_interpolation(lattice_spacing_ptr, x_fraction, cube);
 
+               // regulate Wmunu according to transversality and traceless
+               double **Wmunu_input = new double* [4];
+               double **Wmunu_regulated = new double* [4];
+               for(int i = 0; i < 4; i++)
+               {
+                  Wmunu_input[i] = new double [4];
+                  Wmunu_regulated[i] = new double [4];
+                  for(int j = 0; j < 4; j++)
+                     Wmunu_regulated[i][j] = 0.0;
+               }
+               Wmunu_input[0][0] = Wtautau_center;
+               Wmunu_input[0][1] = Wmunu_input[1][0] = Wtaux_center;
+               Wmunu_input[0][2] = Wmunu_input[2][0] = Wtauy_center;
+               Wmunu_input[0][3] = Wmunu_input[3][0] = Wtaueta_center;
+               Wmunu_input[1][1] = Wxx_center;
+               Wmunu_input[1][2] = Wmunu_input[2][1] = Wxy_center;
+               Wmunu_input[1][3] = Wmunu_input[3][1] = Wxeta_center;
+               Wmunu_input[2][2] = Wyy_center;
+               Wmunu_input[2][3] = Wmunu_input[3][2] = Wyeta_center;
+               Wmunu_input[3][3] = Wetaeta_center;
+               regulate_Wmunu(u_flow, Wmunu_input, Wmunu_regulated);
+               Wtautau_center = Wmunu_regulated[0][0];
+               Wtaux_center = Wmunu_regulated[0][1];
+               Wtauy_center = Wmunu_regulated[0][2];
+               Wtaueta_center = Wmunu_regulated[0][3];
+               Wxx_center = Wmunu_regulated[1][1];
+               Wxy_center = Wmunu_regulated[1][2];
+               Wxeta_center = Wmunu_regulated[1][3];
+               Wyy_center = Wmunu_regulated[2][2];
+               Wyeta_center = Wmunu_regulated[2][3];
+               Wetaeta_center = Wmunu_regulated[3][3];
+
+               // clean up
+               delete [] u_flow;
+               for(int i = 0; i < 4; i++)
+               {
+                  delete [] Wmunu_input[i];
+                  delete [] Wmunu_regulated[i];
+               }
+               delete [] Wmunu_input;
+               delete [] Wmunu_regulated;
+
                // 3-dimension interpolation done
 	            
                TFO = eos->get_temperature(epsFO, rhob_center);
@@ -7483,3 +7619,41 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
    return(all_frozen_flag);
 }
 
+void Evolve::regulate_qmu(double *u, double *q, double *q_regulated)
+{
+   double u_dot_q = - u[0]*q[0] + u[1]*q[1] + u[2]*q[2] + u[3]*q[3];
+   for(int i = 0; i < 4; i++)
+      q_regulated[i] = q[i] + u[i]*u_dot_q;
+   return;
+}
+    
+void Evolve::regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated)
+{
+   double gmunu[4][4] = {
+       {-1, 0, 0, 0},
+       { 0, 1, 0, 0},
+       { 0, 0, 1, 0},
+       { 0, 0, 0, 1}
+   };
+   double u_dot_pi[4] = {0.0, 0.0, 0.0, 0.0};
+   double u_mu[4];
+   for(int i = 0; i < 4; i++)
+   {
+      u_dot_pi[i] += (- u[0]*Wmunu[0][i] + u[1]*Wmunu[1][i] 
+         + u[2]*Wmunu[2][i] + u[3]*Wmunu[3][i]);
+      u_mu[i] = gmunu[i][i]*u[i];
+   }
+   double tr_pi = (- Wmunu[0][0]*Wmunu[0][0] + Wmunu[1][1]*Wmunu[1][1] 
+      + Wmunu[2][2]*Wmunu[2][2] + Wmunu[3][3]*Wmunu[3][3]);
+   double u_dot_pi_dot_u = 0.0;
+   for(int i = 0; i < 4; i++)
+      for(int j = 0; j < 4; j++)
+         u_dot_pi_dot_u += u_mu[i]*Wmunu[i][j]*u_mu[j];
+   for(int i = 0; i < 4; i++)
+      for(int j = 0; j < 4; j++)
+         Wmunu_regulated[i][j] = (
+             Wmunu[i][j] + u[i]*u_dot_pi[j] + u[j]*u_dot_pi[i] 
+             + u[i]*u[j]*u_dot_pi_dot_u 
+             - 1./3.*(gmunu[i][j] + u[i]*u[j])*(tr_pi + u_dot_pi_dot_u));
+
+}

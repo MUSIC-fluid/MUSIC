@@ -59,6 +59,9 @@ class Evolve
     void storePreviousW(Grid ***arena);
     void storePreviousT(Grid ***arena);
 
+    void regulate_qmu(double* u, double* q, double* q_regulated);
+    void regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated);
+
   ////////////////////////////////////////////////////////////////////////////
   // all the following variables and functions seems to be outdated
   // all the corresponding functions can be found in class advance
