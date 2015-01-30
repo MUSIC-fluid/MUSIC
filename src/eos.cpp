@@ -1660,7 +1660,7 @@ double EOS::interpolate2(double e, double rhob, int selector)
 	  fprintf(stderr,"e=%f,eps0=%f; maxe=%f, deltaEps=%f\n", e, eps0, NEps*deltaEps+eps0, deltaEps);
 	  exit(0);
 	}
-      if(ie2>=NEps)
+      if(ie2>NEps)
 	{
 	  fprintf(stderr,"ERROR in inperpolate2. out of range.\n");
 	  fprintf(stderr,"ie2=%d,NEPP2=%d\n", ie2, NEps);
@@ -2020,13 +2020,13 @@ void EOS::build_velocity_of_sound_sq_matrix()
     }
     else if (whichEOS>=2 && whichEOS < 10)  // 7 tables
     {
-        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, BNP1, deltaBNP1, NBNP1, cs2_1);
-        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
-        fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, BNP3, deltaBNP3, NBNP3, cs2_3);
-        fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, BNP4, deltaBNP4, NBNP4, cs2_4);
-        fill_cs2_matrix(EPP5, deltaEPP5, NEPP5, BNP5, deltaBNP5, NBNP5, cs2_5);
-        fill_cs2_matrix(EPP6, deltaEPP6, NEPP6, BNP6, deltaBNP6, NBNP6, cs2_6);
-        fill_cs2_matrix(EPP7, deltaEPP7, NEPP7, BNP7, deltaBNP7, NBNP7, cs2_7);
+        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, 0.0, 0.0, 1, cs2_1);
+        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, 0.0, 0.0, 1, cs2_2);
+        fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, 0.0, 0.0, 1, cs2_3);
+        fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, 0.0, 0.0, 1, cs2_4);
+        fill_cs2_matrix(EPP5, deltaEPP5, NEPP5, 0.0, 0.0, 1, cs2_5);
+        fill_cs2_matrix(EPP6, deltaEPP6, NEPP6, 0.0, 0.0, 1, cs2_6);
+        fill_cs2_matrix(EPP7, deltaEPP7, NEPP7, 0.0, 0.0, 1, cs2_7);
     }
     else if (whichEOS >= 10)  // 5 tables
     {
