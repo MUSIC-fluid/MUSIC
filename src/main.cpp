@@ -1670,14 +1670,20 @@ void ReadInData3(InitData *DATA, string file)
   // Delta_Tau: 
   // time step to use in [fm]. If a too large value is given, it will automatically be reduced to the maximal acceptable value according to the CFL condition.
   /* CFL condition : delta_tau < min(delta_x/10, tau0 delta_eta/10) */
+  int tempUseCFL_condition = 0;
+  tempinput = util->StringFind4(file, "UseCFL_condition");
+  if(tempinput != "empty") istringstream ( tempinput ) >> tempUseCFL_condition;
+
   double tempdelta_tau = 8.;
   tempinput = util->StringFind4(file, "Delta_Tau");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempdelta_tau;
   DATA->delta_tau = tempdelta_tau;
-
-  //double tempf = mini(DATA->delta_x/10.0, (DATA->tau0)*(DATA->delta_eta/10.0));
-  //if(tempf < DATA->delta_tau) DATA->delta_tau = tempf;
-  
+ 
+  if(tempUseCFL_condition == 1)
+  {
+      double tempf = mini(DATA->delta_x/10.0, (DATA->tau0)*(DATA->delta_eta/10.0));
+      if(tempf < DATA->delta_tau) DATA->delta_tau = tempf;
+  }
   cerr << " DeltaTau=" << DATA->delta_tau << endl;
   
   // rotate_by_45_degrees: rotates initial condition by Pi/4
