@@ -15,14 +15,14 @@ module add ifort_icc/14.0.4
 results_folder=results
 spectra_folder=particle_spectra_vn
 
-mpirun -np 16 ./mpihydro input_2 1>cf.log 2>cf.err
+mpirun -np 16 ./mpihydro music_input_2 1>cf.log 2>cf.err
 ./sweeper.sh $results_folder
 cp results/surface_eps_0.202.dat ./surface.dat
-mpirun -np 16 ./mpihydro input_3 1>cf.log 2>cf.err
+mpirun -np 16 ./mpihydro music_input_3 1>cf.log 2>cf.err
 rm -fr yptphiSpectra?.dat yptphiSpectra??.dat
-mpirun -np 1 ./mpihydro input_4 1>cf.log 2>cf.err
-mpirun -np 1 ./mpihydro input_13 1>cf.log 2>cf.err
-mpirun -np 1 ./mpihydro input_14 1>cf.log 2>cf.err
+mpirun -np 1 ./mpihydro music_input_4 1>cf.log 2>cf.err
+mpirun -np 1 ./mpihydro music_input_13 1>cf.log 2>cf.err
+mpirun -np 1 ./mpihydro music_input_14 1>cf.log 2>cf.err
 ./sweeper.sh $spectra_folder
 mv outputs $spectra_folder
 mv $spectra_folder $results_folder
