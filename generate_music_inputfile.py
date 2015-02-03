@@ -118,6 +118,7 @@ def generate_music_input_file():
         temp_list = dict_list[idict].items()
         for i in range(len(temp_list)):
             f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+    f.write('EndOfData\n')
     f.close()
 
     # mode 3:
@@ -129,6 +130,7 @@ def generate_music_input_file():
         temp_list = dict_list[idict].items()
         for i in range(len(temp_list)):
             f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+    f.write('EndOfData\n')
     f.close()
 
     # mode 4:
@@ -140,6 +142,7 @@ def generate_music_input_file():
         temp_list = dict_list[idict].items()
         for i in range(len(temp_list)):
             f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+    f.write('EndOfData\n')
     f.close()
 
     # mode 13:
@@ -151,6 +154,7 @@ def generate_music_input_file():
         temp_list = dict_list[idict].items()
         for i in range(len(temp_list)):
             f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+    f.write('EndOfData\n')
     f.close()
 
     # mode 14:
@@ -162,6 +166,7 @@ def generate_music_input_file():
         temp_list = dict_list[idict].items()
         for i in range(len(temp_list)):
             f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+    f.write('EndOfData\n')
     f.close()
 
 
