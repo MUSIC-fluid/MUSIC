@@ -6,6 +6,6 @@ mkdir $folder_name
 mv *.dat $folder_name
 mv *.err $folder_name
 mv *.log $folder_name
-cp input $folder_name
+cp music_input_2 $folder_name
 mv $folder_name/known_nuclei.dat ./
 rm -fr $folder_name/tmp*.dat
