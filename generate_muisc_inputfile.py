@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+from os import path
 from music_parameters_dict import *
 
 class color:
@@ -164,6 +165,54 @@ def generate_music_input_file():
     f.close()
 
 
+def generate_submit_script():
+    print(color.purple + "\n" + "-"*80 
+          + "\n>>>>> generating submission script! <<<<<\n" + "-"*80 + color.end)
+    decoupling_energy_density = '0.202'
+    queue_name = 'lm2'
+    ppn = 16
+    walltime = '5:00:00'
+    working_folder = path.abspath('./') 
+    hydro_results_folder = 'results'
+    spectra_results_folder = 'particle_spectra'
+    folder_name = working_folder.split('/')[-1]
+    script = open("submit_full_job.pbs", "w")
+    script.write(
+"""#!/usr/bin/env bash
+#PBS -N %s
+#PBS -l walltime=%s
+#PBS -l nodes=1:ppn=%d
+#PBS -S /bin/bash
+#PBS -e test.err
+#PBS -o test.log
+#PBS -A cqn-654-ad
+#PBS -q %s
+#PBS -m bea
+#PBS -M chunshen1987@gmail.com
+#PBS -d %s
+
+module add ifort_icc/14.0.4
+
+results_folder=%s
+spectra_folder=%s
+
+mpirun -np %d ./mpihydro music_input_2 1>cf.log 2>cf.err
+./sweeper.sh $results_folder
+cp results/surface_eps_%s.dat ./surface.dat
+mpirun -np %d ./mpihydro music_input_3 1>cf.log 2>cf.err
+rm -fr yptphiSpectra?.dat yptphiSpectra??.dat
+mpirun -np 1 ./mpihydro music_input_4 1>cf.log 2>cf.err
+mpirun -np 1 ./mpihydro music_input_13 1>cf.log 2>cf.err
+mpirun -np 1 ./mpihydro music_input_14 1>cf.log 2>cf.err
+./sweeper.sh $spectra_folder
+mv outputs $spectra_folder
+mv $spectra_folder $results_folder
+
+""" % (folder_name, walltime, ppn, queue_name, working_folder, 
+       hydro_results_folder, spectra_results_folder, ppn, 
+       decoupling_energy_density, ppn)
+)
+
 
 def print_help_message():
     print "Usage : "
@@ -216,3 +265,4 @@ if __name__ == "__main__":
             sys.exit(1)
 
     generate_music_input_file()
+    generate_submit_script()

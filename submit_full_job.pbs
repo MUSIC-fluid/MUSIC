@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
-#PBS -N test_full
+#PBS -N MUSIC
 #PBS -l walltime=5:00:00
 #PBS -l nodes=1:ppn=16
-#PBS -j oe
-#PBS -q lm2
 #PBS -S /bin/bash
 #PBS -e test.err
 #PBS -o test.log
 #PBS -A cqn-654-ad
-#PBS -d /gs/project/cqn-654-ad/cshen/MUSIC_baryon_diffusion_test/MCGlb_test/MUSIC_new
-#PBS -m abe -M chunshen1987@gmail.com
+#PBS -q lm2
+#PBS -m bea
+#PBS -M chunshen1987@gmail.com
+#PBS -d /Users/chunshen/Desktop/MUSIC_dev/MUSIC
+
 module add ifort_icc/14.0.4
 
 results_folder=results
-spectra_folder=particle_spectra_vn
+spectra_folder=particle_spectra
 
 mpirun -np 16 ./mpihydro music_input_2 1>cf.log 2>cf.err
 ./sweeper.sh $results_folder
