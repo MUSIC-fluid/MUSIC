@@ -25,7 +25,7 @@ initial_condition_dict.update({
     'Initial_Distribution_Filename': 'initial/edAvg_order_2_C0-5.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_fromEd_order_2_C0-5.dat',
-    's_factor': 10.515679450,   # normalization factor read in initial data file
+    's_factor': 13.25,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
     'Eta_plateau_size': 20.,          # size of the plateau in eta_s direction
@@ -33,9 +33,9 @@ initial_condition_dict.update({
     'initial_eta_rhob_profile': 1,    # type of the envelope profile for rho_B's eta_s distribution
     'eta_rhob_0': 3.0,                # peak position of rho_B in eta_s direction
     'eta_rhob_width': 1.0,            # the width of the Gaussian (for initial_eta_rhob_profile == 1)
-    'eta_rhob_plateau_height': 1.0,   # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
+    'eta_rhob_plateau_height': 0.5,   # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
     'eta_rhob_width_1': 1.0,          # the width of the Gaussian for the outside tail (for initial_eta_rhob_profile == 2)
-    'eta_rhob_width_2': 0.5,          # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
+    'eta_rhob_width_2': 1.0,          # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
 })
 
 hydro_dict.update({
@@ -60,8 +60,8 @@ hydro_dict.update({
     'Shear_to_S_ratio': 0.08,               # value of \eta/s
     'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect
     'Bulk_to_S_ratio': 0.1,                 # value of \zeta/s
-    'Include_Rhob_Yes_1_No_0': 0,           # turn on propagation of baryon current
-    'turn_on_baryon_diffusion': 0,          # turn on baryon current diffusion
+    'Include_Rhob_Yes_1_No_0': 1,           # turn on propagation of baryon current
+    'turn_on_baryon_diffusion': 1,          # turn on baryon current diffusion
     'Bulk_relaxation_time_tau_b_pi': 0.6,   # bulk relation time
     'Shear_relaxation_time_tau_pi': 0.01,   # shear relation time
 
@@ -80,7 +80,7 @@ freeze_out_dict.update({
     'eps_freeze_min': 0.100,        # the minimum freeze-out energy density (GeV/fm^3)
 
     'Include_deltaf': 1,        # flag to include delta f correction in Cooper-Frye formula
-    'Include_deltaf_qmu': 0,    # flag to include delta f for qmu
+    'Include_deltaf_qmu': 1,    # flag to include delta f for qmu
     'Inlucde_deltaf_bulk': 0,   # flag to include delta f for bulk viscosity
 
     'number_of_particles_to_include': 320,  # number of thermal particles to compute for particle spectra and vn
@@ -88,7 +88,7 @@ freeze_out_dict.update({
 
     'pseudofreeze': 1,          # calculated particle spectra in equally-spaced pseudorapidity
     'max_pseudorapidity': 2.5,  # particle spectra calculated from (0, max_pseudorapidity)
-    'pseudo_steps': 11,         # number of lattice points along pseudo-rapidity
+    'pseudo_steps': 25,         # number of lattice points along pseudo-rapidity
     'phi_steps': 40,            # number of points calculated in phi for Cooper-Frye
     'min_pt': 0.01,             # the minimum value of pT calculated in the Cooper-Frye
     'max_pt': 3.0,              # the maximum value of pT calculated in the Cooper-Frye
@@ -201,14 +201,14 @@ module add ifort_icc/14.0.4
 results_folder=%s
 spectra_folder=%s
 
-mpirun -np %d ./mpihydro music_input_2 1>cf.log 2>cf.err
+mpirun -np %d ./mpihydro music_input_2 1>mode_2.log 2>mode_2.err
 ./sweeper.sh $results_folder
 cp results/surface_eps_%s.dat ./surface.dat
-mpirun -np %d ./mpihydro music_input_3 1>cf.log 2>cf.err
+mpirun -np %d ./mpihydro music_input_3 1>mode_3.log 2>mode_3.err
 rm -fr yptphiSpectra?.dat yptphiSpectra??.dat
-mpirun -np 1 ./mpihydro music_input_4 1>cf.log 2>cf.err
-mpirun -np 1 ./mpihydro music_input_13 1>cf.log 2>cf.err
-mpirun -np 1 ./mpihydro music_input_14 1>cf.log 2>cf.err
+mpirun -np 1 ./mpihydro music_input_4 1>mode_4.log 2>mode_4.err
+mpirun -np 1 ./mpihydro music_input_13 1>mode_13.log 2>mode_13.err
+mpirun -np 1 ./mpihydro music_input_14 1>mode_14.log 2>mode_14.err
 ./sweeper.sh $spectra_folder
 mv outputs $spectra_folder
 mv $spectra_folder $results_folder
