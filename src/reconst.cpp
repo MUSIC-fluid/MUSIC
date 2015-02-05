@@ -598,24 +598,21 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
          exit(0);
       }
       //Warn only when the deviation from 1 is relatively large
-      else if(fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0])
+      else if(fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0] && echo_level > 5)
       {
-          fprintf(stderr, "In Reconst velocity, reconstructed : u^2 - 1 = %.8e \n", temp_usq - 1.0);
-          double f_res;
-          if(v_solution < v_critical)
-             f_res = fabs(reconst_velocity_function(v_solution, &params));
-          else
-             f_res = fabs(reconst_u0_function(u0_solution, &params));
-          if(echo_level > 5)
-          {
-             fprintf(stderr, "with v = %.8e, u[0] = %.8e, res = %.8e \n", v_solution, u[0], f_res);
-             fprintf(stderr, "with u[1] = %e\n", u[1]);
-             fprintf(stderr, "with u[2] = %e\n", u[2]);
-             fprintf(stderr, "with u[3] = %e\n", u[3]);
-             fprintf(stderr, "with T00 = %e, K = %e \n", T00, K00);
-             fprintf(stderr, "with q1 = %e, q2 = %e, q3 = %e \n", q[1], q[2], q[3]);
-             fprintf(stderr, "Correcting it...\n");
-          }
+         fprintf(stderr, "In Reconst velocity, reconstructed : u^2 - 1 = %.8e \n", temp_usq - 1.0);
+         double f_res;
+         if(v_solution < v_critical)
+            f_res = fabs(reconst_velocity_function(v_solution, &params));
+         else
+            f_res = fabs(reconst_u0_function(u0_solution, &params));
+         fprintf(stderr, "with v = %.8e, u[0] = %.8e, res = %.8e \n", v_solution, u[0], f_res);
+         fprintf(stderr, "with u[1] = %e\n", u[1]);
+         fprintf(stderr, "with u[2] = %e\n", u[2]);
+         fprintf(stderr, "with u[3] = %e\n", u[3]);
+         fprintf(stderr, "with T00 = %e, K = %e \n", T00, K00);
+         fprintf(stderr, "with q1 = %e, q2 = %e, q3 = %e \n", q[1], q[2], q[3]);
+         fprintf(stderr, "Correcting it...\n");
       }   
       //Rescaling spatial components of velocity so that unitarity is exactly satisfied
       //(u[0] is not modified)
