@@ -188,6 +188,8 @@ typedef struct init_data
   double dNdyptdpt_eta_min;
   double dNdyptdpt_eta_max;
 
+  int echo_level;
+
 
 } InitData;
 

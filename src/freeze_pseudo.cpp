@@ -72,10 +72,10 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose)
   fclose(p_file);
 
   FILE *s_file;
-  const char* s_name = "yptphiSpectra.dat";
-  const char* sf_name = "FyptphiSpectra.dat";
-  if(full) s_file = fopen(sf_name, "r");
-  else s_file = fopen(s_name, "r");
+  string s_name = "yptphiSpectra.dat";
+  string sf_name = "FyptphiSpectra.dat";
+  if(full) s_file = fopen(sf_name.c_str(), "r");
+  else s_file = fopen(s_name.c_str(), "r");
 //   checkForReadError(s_file,s_name);
   
   if(verbose)
@@ -514,7 +514,11 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
      {
         double pt = pt_array[ipt];
         //rapidity as a function of pseudorapidity:
-        double y_local = Rap(eta, pt, m);
+        double y_local;
+        if(DATA->pseudofreeze == 1)
+            y_local = Rap(eta, pt, m);
+        else
+            y_local = eta;
         rapidity[ipt] = y_local;
         cosh_y[ipt] = cosh(y_local);
         sinh_y[ipt] = sinh(y_local);
@@ -765,10 +769,6 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
 
 void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank)
 {
-  if(DATA->pseudofreeze)
-    pseudofreeze = 1;
-  else 
-    pseudofreeze =0;
   int alreadyread = 0;
   ReadParticleData(DATA, eos); // read in data for Cooper-Frye
   int i, b, number;
@@ -1154,9 +1154,20 @@ void Freeze::rapidity_integrated_flow(InitData *DATA, int number, int yflag, dou
    
    double testmin;
    if(yflag)
-      testmin = Rap(particleList[j].y[0], particleList[j].pt[0], m);
+   {
+      if(DATA->pseudofreeze == 1)
+         testmin = Rap(particleList[j].y[0], particleList[j].pt[0], m);
+      else
+         testmin = particleList[j].y[0];
+   }
    else 
-      testmin = particleList[j].y[0];
+   {
+      if(DATA->pseudofreeze == 1)
+         testmin = particleList[j].y[0];
+      else
+         testmin = PseudoRap(particleList[j].y[0], particleList[j].pt[0], m);
+   }
+
    if(minrap < testmin) 
    {
       cerr << "Error: called out of range rapidity in rap_integrated_flow, " 
@@ -1166,9 +1177,19 @@ void Freeze::rapidity_integrated_flow(InitData *DATA, int number, int yflag, dou
    }
    double testmax;
    if(yflag)
-      testmax = Rap(particleList[j].y[neta-1],particleList[j].pt[0],m);
+   {
+      if(DATA->pseudofreeze == 1)
+         testmax = Rap(particleList[j].y[neta-1],particleList[j].pt[0],m);
+      else
+         testmax = particleList[j].y[neta-1];
+   }
    else 
-      testmax = particleList[j].y[neta-1];
+   {
+      if(DATA->pseudofreeze == 1)
+         testmax = particleList[j].y[neta-1];
+      else
+         testmax = Rap(particleList[j].y[neta-1],particleList[j].pt[0],m);
+   }
    if(maxrap > testmax) 
    {
       cerr << "Error: called out of range rapidity in rap_integrated_flow, " 
@@ -1192,24 +1213,40 @@ void Freeze::rapidity_integrated_flow(InitData *DATA, int number, int yflag, dou
        for(int iphi=0;iphi<nphi;iphi++) 
        {
            double ylist[etasize] = {0};
+           double etalist[etasize] = {0};
            
            // Integrate over pseudorapidity using gsl
            double dndpt[etasize] = {0};
            for(int ieta=0;ieta<neta;ieta++) 
            {
-               double eta = particleList[j].y[ieta];
-               ylist[ieta] = Rap(eta, pt, m);   // get rapidity
+               double rap_local = particleList[j].y[ieta];
+
+               double eta_local, y_local;
+               if(DATA->pseudofreeze == 1)
+               {
+                  eta_local = rap_local;
+                  etalist[ieta] = eta_local;
+                  y_local = Rap(eta_local, pt, m);   // get rapidity
+                  ylist[ieta] = y_local;   // get rapidity
+               }
+               else
+               {
+                  y_local = rap_local;
+                  ylist[ieta] = y_local;
+                  eta_local = PseudoRap(y_local, pt, m);   // get Pseudo-rapidity
+                  etalist[ieta] = eta_local;   // get Pseudo-rapidity
+               }
                if(yflag)
                   dndpt[ieta] = pt*particleList[j].dNdydptdphi[ieta][ipt][iphi];  // dN/(dydpTdphi)
                else 
-                  dndpt[ieta] = pt*dydeta(eta, pt, m)*particleList[j].dNdydptdphi[ieta][ipt][iphi];  // dN/(detadpTdphi)
+                  dndpt[ieta] = pt*dydeta(eta_local, pt, m)*particleList[j].dNdydptdphi[ieta][ipt][iphi];  // dN/(detadpTdphi)
            }
            gsl_interp_accel *acc = gsl_interp_accel_alloc ();
            gsl_spline *spline = gsl_spline_alloc (gsl_interp_cspline, neta);
            if(yflag)
-               gsl_spline_init (spline, ylist ,dndpt , neta);   // rapidity
+               gsl_spline_init (spline, ylist, dndpt , neta);   // rapidity
            else
-               gsl_spline_init (spline, particleList[j].y ,dndpt , neta);  // pseudo-rapidity
+               gsl_spline_init (spline, etalist, dndpt , neta);  // pseudo-rapidity
    
            double dNdp;
            if (minrap!=maxrap)

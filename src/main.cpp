@@ -210,8 +210,11 @@ int main(int argc, char *argv[])
       //  freeze-out
       Freeze *freeze;
       freeze = new Freeze(&DATA);
-      if(DATA.pseudofreeze) freeze->CooperFrye_pseudo(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
-      else  freeze->CooperFrye(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
+      if(DATA.pseudofreeze) 
+         freeze->CooperFrye_pseudo(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
+      else
+         freeze->CooperFrye_pseudo(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
+         //freeze->CooperFrye(DATA.particleSpectrumNumber, DATA.mode, &DATA, eos, size, rank);
       delete freeze;
     }
   if(DATA.mode!=8)
@@ -1340,6 +1343,12 @@ void ReadInData3(InitData *DATA, string file)
     cerr << "Impact parameter must be greater than zero\n";
     exit(1);
   }
+
+  // echo_level controls the mount of warning message output during the evolution
+  double temp_echo_level = 9;
+  tempinput = util->StringFind4(file, "echo_level");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_echo_level;
+  DATA->echo_level = temp_echo_level;
 
   // Target, Projectile:  any name as defined in known_nuclei.dat
   string tempTarget = "Pb";

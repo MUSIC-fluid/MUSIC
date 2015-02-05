@@ -354,6 +354,7 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    double q[5];
 
    double v_critical = 0.563624;
+   int echo_level = DATA->echo_level;
 
 /* prepare for the iteration */
 /* uq = qiphL, qiphR, etc 
@@ -437,16 +438,19 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    }
    else
    {
-      double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
-      double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
-      double result = gsl_root_fsolver_root (gsl_rootfinding_solver);
-      fprintf(stderr, "***Warning: Reconst velocity:: can not find solution!!!\n");
-      fprintf(stderr, "***output the results at the last iteration: \n");
-      fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
-              "iter", "lower", "upper", "root", "err(est)");
-      fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
-              iter, x_lo, x_hi, result, x_hi - x_lo);
-      fprintf(stderr, "Reverting to the previous TJb...\n"); 
+      if(echo_level > 5)
+      {
+         double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
+         double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
+         double result = gsl_root_fsolver_root (gsl_rootfinding_solver);
+         fprintf(stderr, "***Warning: Reconst velocity:: can not find solution!!!\n");
+         fprintf(stderr, "***output the results at the last iteration: \n");
+         fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
+                 "iter", "lower", "upper", "root", "err(est)");
+         fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
+                 iter, x_lo, x_hi, result, x_hi - x_lo);
+         fprintf(stderr, "Reverting to the previous TJb...\n"); 
+      }
       for(mu=0; mu<4; mu++)
       {
          grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
@@ -487,16 +491,19 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
       }
       else
       {
-         double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
-         double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
-         double result = gsl_root_fsolver_root (gsl_rootfinding_solver);
-         fprintf(stderr, "***Warning: Reconst velocity:: can not find solution!!!\n");
-         fprintf(stderr, "***output the results at the last iteration: \n");
-         fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
-                 "iter", "lower", "upper", "root", "err(est)");
-         fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
-                 iter, x_lo, x_hi, result, x_hi - x_lo);
-         fprintf(stderr, "Reverting to the previous TJb...\n"); 
+         if(echo_level > 5)
+         {
+            double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
+            double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
+            double result = gsl_root_fsolver_root (gsl_rootfinding_solver);
+            fprintf(stderr, "***Warning: Reconst velocity:: can not find solution!!!\n");
+            fprintf(stderr, "***output the results at the last iteration: \n");
+            fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
+                    "iter", "lower", "upper", "root", "err(est)");
+            fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
+                    iter, x_lo, x_hi, result, x_hi - x_lo);
+            fprintf(stderr, "Reverting to the previous TJb...\n"); 
+         }
          for(mu=0; mu<4; mu++)
          {
             grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
@@ -545,13 +552,16 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
    }
    else if(u[0] > u_max) // check whether velocity is too large
    {
-      fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n", u[0]);
-      if(grid_pt->epsilon > 0.3)
-	{
-	   fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n", u[0]);
-	   fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
-	   fprintf(stderr, "Reverting to the previous TJb...\n"); 
-	}
+      if(echo_level > 5)
+      {
+         fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n", u[0]);
+         if(grid_pt->epsilon > 0.3)
+	   {
+	      fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n", u[0]);
+	      fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
+	      fprintf(stderr, "Reverting to the previous TJb...\n"); 
+	   }
+      }
       for(mu=0; mu<4; mu++)
 	{
 	  grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
@@ -596,13 +606,16 @@ int Reconst::ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq
              f_res = fabs(reconst_velocity_function(v_solution, &params));
           else
              f_res = fabs(reconst_u0_function(u0_solution, &params));
-          fprintf(stderr, "with v = %.8e, u[0] = %.8e, res = %.8e \n", v_solution, u[0], f_res);
-          fprintf(stderr, "with u[1] = %e\n", u[1]);
-          fprintf(stderr, "with u[2] = %e\n", u[2]);
-          fprintf(stderr, "with u[3] = %e\n", u[3]);
-          fprintf(stderr, "with T00 = %e, K = %e \n", T00, K00);
-          fprintf(stderr, "with q1 = %e, q2 = %e, q3 = %e \n", q[1], q[2], q[3]);
-          fprintf(stderr, "Correcting it...\n");
+          if(echo_level > 5)
+          {
+             fprintf(stderr, "with v = %.8e, u[0] = %.8e, res = %.8e \n", v_solution, u[0], f_res);
+             fprintf(stderr, "with u[1] = %e\n", u[1]);
+             fprintf(stderr, "with u[2] = %e\n", u[2]);
+             fprintf(stderr, "with u[3] = %e\n", u[3]);
+             fprintf(stderr, "with T00 = %e, K = %e \n", T00, K00);
+             fprintf(stderr, "with q1 = %e, q2 = %e, q3 = %e \n", q[1], q[2], q[3]);
+             fprintf(stderr, "Correcting it...\n");
+          }
       }   
       //Rescaling spatial components of velocity so that unitarity is exactly satisfied
       //(u[0] is not modified)

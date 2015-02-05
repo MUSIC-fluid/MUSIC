@@ -16,6 +16,8 @@ control_dict = {
                 #    postprocessing with the stored results
                 # 13: Compute observables from thermal spectra
                 # 14: Compute observables from post-decay spectra
+    'echo_level' : 1,   # switch to control the mount of warning message output
+                        # chosen from 1 to 9
 }
 
 

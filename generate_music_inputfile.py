@@ -87,8 +87,8 @@ freeze_out_dict.update({
     'particle_spectrum_to_compute': 0,      # 0: Do all up to number_of_particles_to_include
 
     'pseudofreeze': 1,          # calculated particle spectra in equally-spaced pseudorapidity
-    'max_pseudorapidity': 2.5,  # particle spectra calculated from (0, max_pseudorapidity)
-    'pseudo_steps': 25,         # number of lattice points along pseudo-rapidity
+    'max_pseudorapidity': 5.0,  # particle spectra calculated from (0, max_pseudorapidity)
+    'pseudo_steps': 50,         # number of lattice points along pseudo-rapidity
     'phi_steps': 40,            # number of points calculated in phi for Cooper-Frye
     'min_pt': 0.01,             # the minimum value of pT calculated in the Cooper-Frye
     'max_pt': 3.0,              # the maximum value of pT calculated in the Cooper-Frye
@@ -96,19 +96,22 @@ freeze_out_dict.update({
 })
 
 collect_dict.update({
-    'dNdy_y_min': -0.01,
-    'dNdy_y_max': 0.01,
-    'dNdy_eta_min': -2.5,
-    'dNdy_eta_max': 2.5,
-    'dNdy_nrap': 30,
-    'dNdyptdpt_y_min': -0.01,
-    'dNdyptdpt_y_max': 0.01,
+    'dNdy_y_min': -0.5,
+    'dNdy_y_max': 0.5,
+    'dNdy_eta_min': -5.0,
+    'dNdy_eta_max': 5.0,
+    'dNdy_nrap': 51,
+    'dNdyptdpt_y_min': -0.5,
+    'dNdyptdpt_y_max': 0.5,
     'dNdyptdpt_eta_min': -0.5,
     'dNdyptdpt_eta_max': 0.5,
 })
 
 
-def generate_music_input_file():
+def generate_music_input_file(include_nodeltaf, include_y):
+    print(color.purple + "\n" + "-"*80 
+          + "\n>>>>> generating music input files! <<<<<\n" + "-"*80 
+          + color.end)
     # mode 2:
     control_dict.update({'mode': 2})
     f = open('music_input_2', 'w')
@@ -132,6 +135,44 @@ def generate_music_input_file():
             f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
     f.write('EndOfData\n')
     f.close()
+    
+    if include_nodeltaf == 1:
+        freeze_out_dict.update({'Include_deltaf_qmu': 0})
+        f = open('music_input_3_nodeltaf', 'w')
+        dict_list = [control_dict, initial_condition_dict, hydro_dict,
+                     freeze_out_dict, collect_dict]
+        for idict in range(len(dict_list)):
+            temp_list = dict_list[idict].items()
+            for i in range(len(temp_list)):
+                f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+        f.write('EndOfData\n')
+        f.close()
+        freeze_out_dict.update({'Include_deltaf_qmu': 1})
+    
+    if include_y == 1:
+        freeze_out_dict.update({'pseudofreeze': 0})
+        f = open('music_input_3_y', 'w')
+        dict_list = [control_dict, initial_condition_dict, hydro_dict,
+                     freeze_out_dict, collect_dict]
+        for idict in range(len(dict_list)):
+            temp_list = dict_list[idict].items()
+            for i in range(len(temp_list)):
+                f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+        f.write('EndOfData\n')
+        f.close()
+        if include_nodeltaf == 1:
+            freeze_out_dict.update({'Include_deltaf_qmu': 0})
+            f = open('music_input_3_y_nodeltaf', 'w')
+            dict_list = [control_dict, initial_condition_dict, hydro_dict,
+                         freeze_out_dict, collect_dict]
+            for idict in range(len(dict_list)):
+                temp_list = dict_list[idict].items()
+                for i in range(len(temp_list)):
+                    f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+            f.write('EndOfData\n')
+            f.close()
+            freeze_out_dict.update({'Include_deltaf_qmu': 1})
+        freeze_out_dict.update({'pseudofreeze': 1})
 
     # mode 4:
     control_dict.update({'mode': 4})
@@ -144,6 +185,18 @@ def generate_music_input_file():
             f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
     f.write('EndOfData\n')
     f.close()
+    if include_y == 1:
+        freeze_out_dict.update({'pseudofreeze': 0})
+        f = open('music_input_4_y', 'w')
+        dict_list = [control_dict, initial_condition_dict, hydro_dict,
+                     freeze_out_dict, collect_dict]
+        for idict in range(len(dict_list)):
+            temp_list = dict_list[idict].items()
+            for i in range(len(temp_list)):
+                f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+        f.write('EndOfData\n')
+        f.close()
+        freeze_out_dict.update({'pseudofreeze': 1})
 
     # mode 13:
     control_dict.update({'mode': 13})
@@ -156,6 +209,30 @@ def generate_music_input_file():
             f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
     f.write('EndOfData\n')
     f.close()
+    if include_y == 1:
+        freeze_out_dict.update({'pseudofreeze': 0})
+        collect_dict.update({
+            'dNdy_y_min': -5.0,
+            'dNdy_y_max': 5.0,
+            'dNdy_eta_min': -0.5,
+            'dNdy_eta_max': 0.5,
+        })
+        f = open('music_input_13_y', 'w')
+        dict_list = [control_dict, initial_condition_dict, hydro_dict,
+                     freeze_out_dict, collect_dict]
+        for idict in range(len(dict_list)):
+            temp_list = dict_list[idict].items()
+            for i in range(len(temp_list)):
+                f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+        f.write('EndOfData\n')
+        f.close()
+        freeze_out_dict.update({'pseudofreeze': 1})
+        collect_dict.update({
+            'dNdy_y_min': -0.5,
+            'dNdy_y_max': 0.5,
+            'dNdy_eta_min': -5.0,
+            'dNdy_eta_max': 5.0,
+        })
 
     # mode 14:
     control_dict.update({'mode': 14})
@@ -168,15 +245,40 @@ def generate_music_input_file():
             f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
     f.write('EndOfData\n')
     f.close()
+    if include_y == 1:
+        freeze_out_dict.update({'pseudofreeze': 0})
+        collect_dict.update({
+            'dNdy_y_min': -5.0,
+            'dNdy_y_max': 5.0,
+            'dNdy_eta_min': -0.5,
+            'dNdy_eta_max': 0.5,
+        })
+        f = open('music_input_14_y', 'w')
+        dict_list = [control_dict, initial_condition_dict, hydro_dict,
+                     freeze_out_dict, collect_dict]
+        for idict in range(len(dict_list)):
+            temp_list = dict_list[idict].items()
+            for i in range(len(temp_list)):
+                f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+        f.write('EndOfData\n')
+        f.close()
+        freeze_out_dict.update({'pseudofreeze': 1})
+        collect_dict.update({
+            'dNdy_y_min': -0.5,
+            'dNdy_y_max': 0.5,
+            'dNdy_eta_min': -5.0,
+            'dNdy_eta_max': 5.0,
+        })
 
 
-def generate_submit_script():
+def generate_submit_script(include_nodeltaf, include_y):
     print(color.purple + "\n" + "-"*80 
-          + "\n>>>>> generating submission script! <<<<<\n" + "-"*80 + color.end)
-    decoupling_energy_density = '0.202'
+          + "\n>>>>> generating submission script! <<<<<\n" + "-"*80 
+          + color.end)
+    decoupling_energy_density = ['0.100', '0.202']
     queue_name = 'lm2'
     ppn = 16
-    walltime = '5:00:00'
+    walltime = '8:00:00'
     working_folder = path.abspath('./') 
     hydro_results_folder = 'results'
     spectra_results_folder = 'particle_spectra'
@@ -199,25 +301,149 @@ def generate_submit_script():
 module add ifort_icc/14.0.4
 
 results_folder=%s
-spectra_folder=%s
 
 mpirun -np %d ./mpihydro music_input_2 1>mode_2.log 2>mode_2.err
 ./sweeper.sh $results_folder
-cp results/surface_eps_%s.dat ./surface.dat
+""" % (folder_name, walltime, ppn, queue_name, working_folder, 
+       hydro_results_folder, ppn))
+
+    # multiple Cooper-Frye in sequence
+    for isurf in range(len(decoupling_energy_density)):
+        script.write(
+"""cp results/surface_eps_%s.dat ./surface.dat
 mpirun -np %d ./mpihydro music_input_3 1>mode_3.log 2>mode_3.err
 rm -fr yptphiSpectra?.dat yptphiSpectra??.dat
-mpirun -np 1 ./mpihydro music_input_4 1>mode_4.log 2>mode_4.err
+thermal_folder=spvn_eps_%s
+mkdir $thermal_folder
+mv particleInformation.dat $thermal_folder
+mv yptphiSpectra.dat $thermal_folder
+cp mpihydro $thermal_folder
+cp music_input_4 $thermal_folder
+cp music_input_13 $thermal_folder
+cp music_input_14 $thermal_folder
+cp known_nuclei.dat $thermal_folder
+""" % (decoupling_energy_density[isurf], ppn, 
+       decoupling_energy_density[isurf]))
+
+        if include_nodeltaf == 1:
+            script.write(
+"""mpirun -np %d ./mpihydro music_input_3_nodeltaf 1>mode_3_nodeltaf.log 2>mode_3_nodeltaf.err
+rm -fr yptphiSpectra?.dat yptphiSpectra??.dat
+thermal_folder=spvn_nodeltaf_eps_%s
+mkdir $thermal_folder
+mv particleInformation.dat $thermal_folder
+mv yptphiSpectra.dat $thermal_folder
+cp mpihydro $thermal_folder
+cp music_input_4 $thermal_folder
+cp music_input_13 $thermal_folder
+cp music_input_14 $thermal_folder
+cp known_nuclei.dat $thermal_folder
+""" % (ppn, decoupling_energy_density[isurf]))
+
+        if include_y == 1:
+            script.write(
+"""mpirun -np %d ./mpihydro music_input_3_y 1>mode_3_y.log 2>mode_3_y.err
+rm -fr yptphiSpectra?.dat yptphiSpectra??.dat
+thermal_folder=spvn_y_eps_%s
+mkdir $thermal_folder
+mv particleInformation.dat $thermal_folder
+mv yptphiSpectra.dat $thermal_folder
+cp mpihydro $thermal_folder
+cp music_input_4_y $thermal_folder
+cp music_input_13_y $thermal_folder
+cp music_input_14_y $thermal_folder
+cp known_nuclei.dat $thermal_folder
+""" % (ppn, decoupling_energy_density[isurf]))
+
+            if include_nodeltaf == 1:
+                script.write(
+"""mpirun -np %d ./mpihydro music_input_3_y_nodeltaf 1>mode_3_y_nodeltaf.log 2>mode_3_y_nodeltaf.err
+rm -fr yptphiSpectra?.dat yptphiSpectra??.dat
+thermal_folder=spvn_y_nodeltaf_eps_%s
+mkdir $thermal_folder
+mv particleInformation.dat $thermal_folder
+mv yptphiSpectra.dat $thermal_folder
+cp mpihydro $thermal_folder
+cp music_input_4_y $thermal_folder
+cp music_input_13_y $thermal_folder
+cp music_input_14_y $thermal_folder
+cp known_nuclei.dat $thermal_folder
+""" % (ppn, decoupling_energy_density[isurf]))
+
+    # resonance decay in parallel 
+    for isurf in range(len(decoupling_energy_density)):
+        script.write(
+"""(cd spvn_eps_%s
+mpirun -np 1 ./mpihydro music_input_4 1>mode_4.log 2>mode_4.err &)
+""" % (decoupling_energy_density[isurf]))
+        if include_nodeltaf == 1:
+            script.write(
+"""(cd spvn_nodeltaf_eps_%s
+mpirun -np 1 ./mpihydro music_input_4 1>mode_4.log 2>mode_4.err &)
+""" % (decoupling_energy_density[isurf]))
+        if include_y == 1:
+            script.write(
+"""(cd spvn_y_eps_%s
+mpirun -np 1 ./mpihydro music_input_4_y 1>mode_4.log 2>mode_4.err &)
+""" % (decoupling_energy_density[isurf]))
+        if include_nodeltaf == 1:
+            script.write(
+"""(cd spvn_y_nodeltaf_eps_%s
+mpirun -np 1 ./mpihydro music_input_4_y 1>mode_4.log 2>mode_4.err &)
+""" % (decoupling_energy_density[isurf]))
+
+    # final collecting data
+    script2 = open("submit_collecting_job.pbs", "w")
+    script2.write(
+"""#!/usr/bin/env bash
+#PBS -N %s
+#PBS -l walltime=00:20:00
+#PBS -l nodes=1:ppn=1
+#PBS -S /bin/bash
+#PBS -e test.err
+#PBS -o test.log
+#PBS -A cqn-654-ad
+#PBS -q sw
+#PBS -m bea
+#PBS -M chunshen1987@gmail.com
+#PBS -d %s
+
+module add ifort_icc/14.0.4
+
+results_folder=%s
+spectra_folder=%s
+
+""" % (folder_name, working_folder, 
+       hydro_results_folder, spectra_results_folder))
+    for isurf in range(len(decoupling_energy_density)):
+        script2.write(
+"""(cd spvn_eps_%s
 mpirun -np 1 ./mpihydro music_input_13 1>mode_13.log 2>mode_13.err
-mpirun -np 1 ./mpihydro music_input_14 1>mode_14.log 2>mode_14.err
-./sweeper.sh $spectra_folder
-mv outputs $spectra_folder
+mpirun -np 1 ./mpihydro music_input_14 1>mode_14.log 2>mode_14.err)
+""" % (decoupling_energy_density[isurf]))
+        if include_nodeltaf == 1:
+            script2.write(
+"""(cd spvn_nodeltaf_eps_%s
+mpirun -np 1 ./mpihydro music_input_13 1>mode_13.log 2>mode_13.err
+mpirun -np 1 ./mpihydro music_input_14 1>mode_14.log 2>mode_14.err)
+""" % (decoupling_energy_density[isurf]))
+        if include_y == 1:
+            script2.write(
+"""(cd spvn_y_eps_%s
+mpirun -np 1 ./mpihydro music_input_13_y 1>mode_13.log 2>mode_13.err
+mpirun -np 1 ./mpihydro music_input_14_y 1>mode_14.log 2>mode_14.err)
+""" % (decoupling_energy_density[isurf]))
+        if include_nodeltaf == 1:
+            script2.write(
+"""(cd spvn_y_nodeltaf_eps_%s
+mpirun -np 1 ./mpihydro music_input_13_y 1>mode_13.log 2>mode_13.err
+mpirun -np 1 ./mpihydro music_input_14_y 1>mode_14.log 2>mode_14.err)
+""" % (decoupling_energy_density[isurf]))
+
+    script2.write(
+"""mv spvn* $spectra_folder
 mv $spectra_folder $results_folder
-
-""" % (folder_name, walltime, ppn, queue_name, working_folder, 
-       hydro_results_folder, spectra_results_folder, ppn, 
-       decoupling_energy_density, ppn)
-)
-
+""")
 
 def print_help_message():
     print "Usage : "
@@ -269,5 +495,5 @@ if __name__ == "__main__":
             print_help_message()
             sys.exit(1)
 
-    generate_music_input_file()
-    generate_submit_script()
+    generate_music_input_file(1, 1)
+    generate_submit_script(1, 1)
