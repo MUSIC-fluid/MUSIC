@@ -278,7 +278,7 @@ def generate_submit_script(include_nodeltaf, include_y):
     decoupling_energy_density = ['0.1', '0.202']
     queue_name = 'lm2'
     ppn = 16
-    walltime = '8:00:00'
+    walltime = '12:00:00'
     working_folder = path.abspath('./') 
     hydro_results_folder = 'results'
     spectra_results_folder = 'particle_spectra'
@@ -303,6 +303,7 @@ module add ifort_icc/14.0.4
 results_folder=%s
 spectra_folder=%s
 
+# hydro evolution
 mpirun -np %d ./mpihydro music_input_2 1>mode_2.log 2>mode_2.err
 ./sweeper.sh $results_folder
 """ % (folder_name, walltime, ppn, queue_name, working_folder, 
@@ -311,11 +312,12 @@ mpirun -np %d ./mpihydro music_input_2 1>mode_2.log 2>mode_2.err
     # multiple Cooper-Frye in sequence
     script.write("# multiple Cooper-Frye in sequence ... \n")
     for isurf in range(len(decoupling_energy_density)):
+        thermal_folder_name = 'spvn_eps_%s' % decoupling_energy_density[isurf]
         script.write(
 """cp results/surface_eps_%s.dat ./surface.dat
 mpirun -np %d ./mpihydro music_input_3 1>mode_3.log 2>mode_3.err
 rm -fr yptphiSpectra?.dat yptphiSpectra??.dat
-thermal_folder=spvn_eps_%s
+thermal_folder=%s
 mkdir $thermal_folder
 mv particleInformation.dat $thermal_folder
 mv yptphiSpectra.dat $thermal_folder
@@ -325,8 +327,11 @@ cp music_input_13 $thermal_folder
 cp music_input_14 $thermal_folder
 cp known_nuclei.dat $thermal_folder
 cp -r EOS $thermal_folder
-""" % (decoupling_energy_density[isurf], ppn, 
-       decoupling_energy_density[isurf]))
+./generate_resonance_decay_job.py $thermal_folder
+cd $thermal_folder
+qsub -A cqn-654-ad submit_resonance_job.pbs
+cd ..
+""" % (decoupling_energy_density[isurf], ppn, thermal_folder_name))
 
         if include_nodeltaf == 1:
             script.write(
@@ -342,6 +347,10 @@ cp music_input_13 $thermal_folder
 cp music_input_14 $thermal_folder
 cp known_nuclei.dat $thermal_folder
 cp -r EOS $thermal_folder
+./generate_resonance_decay_job.py $thermal_folder
+cd $thermal_folder
+qsub -A cqn-654-ad submit_resonance_job.pbs
+cd ..
 """ % (ppn, decoupling_energy_density[isurf]))
 
         if include_y == 1:
@@ -358,6 +367,10 @@ cp music_input_13_y $thermal_folder
 cp music_input_14_y $thermal_folder
 cp known_nuclei.dat $thermal_folder
 cp -r EOS $thermal_folder
+./generate_resonance_decay_job.py $thermal_folder
+cd $thermal_folder
+qsub -A cqn-654-ad submit_resonance_job.pbs
+cd ..
 """ % (ppn, decoupling_energy_density[isurf]))
 
             if include_nodeltaf == 1:
@@ -374,72 +387,12 @@ cp music_input_13_y $thermal_folder
 cp music_input_14_y $thermal_folder
 cp known_nuclei.dat $thermal_folder
 cp -r EOS $thermal_folder
+./generate_resonance_decay_job.py $thermal_folder
+cd $thermal_folder
+qsub -A cqn-654-ad submit_resonance_job.pbs
+cd ..
 """ % (ppn, decoupling_energy_density[isurf]))
 
-    # resonance decay in parallel 
-    script.write("# resonance decays in parallel ... \n")
-    for isurf in range(len(decoupling_energy_density)):
-        script.write(
-"""(
-cd spvn_eps_%s
-mpirun -np 1 ./mpihydro music_input_4 1>mode_4.log 2>mode_4.err &
-)
-""" % (decoupling_energy_density[isurf]))
-        if include_nodeltaf == 1:
-            script.write(
-"""cd spvn_nodeltaf_eps_%s
-mpirun -np 1 ./mpihydro music_input_4 1>mode_4.log 2>mode_4.err &
-cd ..
-""" % (decoupling_energy_density[isurf]))
-        if include_y == 1:
-            script.write(
-"""cd spvn_y_eps_%s
-mpirun -np 1 ./mpihydro music_input_4_y 1>mode_4.log 2>mode_4.err &
-cd ..
-""" % (decoupling_energy_density[isurf]))
-        if include_nodeltaf == 1:
-            script.write(
-"""cd spvn_y_nodeltaf_eps_%s
-mpirun -np 1 ./mpihydro music_input_4_y 1>mode_4.log 2>mode_4.err &
-cd ..
-""" % (decoupling_energy_density[isurf]))
-    script.write('wait\n')
-
-    # final collecting data
-    script.write("# final collecting data ... \n")
-    for isurf in range(len(decoupling_energy_density)):
-        script.write(
-"""cd spvn_eps_%s
-mpirun -np 1 ./mpihydro music_input_13 1>mode_13.log 2>mode_13.err
-mpirun -np 1 ./mpihydro music_input_14 1>mode_14.log 2>mode_14.err
-cd ..
-""" % (decoupling_energy_density[isurf]))
-        if include_nodeltaf == 1:
-            script.write(
-"""cd spvn_nodeltaf_eps_%s
-mpirun -np 1 ./mpihydro music_input_13 1>mode_13.log 2>mode_13.err
-mpirun -np 1 ./mpihydro music_input_14 1>mode_14.log 2>mode_14.err
-cd ..
-""" % (decoupling_energy_density[isurf]))
-        if include_y == 1:
-            script.write(
-"""cd spvn_y_eps_%s
-mpirun -np 1 ./mpihydro music_input_13_y 1>mode_13.log 2>mode_13.err
-mpirun -np 1 ./mpihydro music_input_14_y 1>mode_14.log 2>mode_14.err
-cd ..
-""" % (decoupling_energy_density[isurf]))
-        if include_nodeltaf == 1:
-            script.write(
-"""cd spvn_y_nodeltaf_eps_%s
-mpirun -np 1 ./mpihydro music_input_13_y 1>mode_13.log 2>mode_13.err
-mpirun -np 1 ./mpihydro music_input_14_y 1>mode_14.log 2>mode_14.err
-cd ..
-""" % (decoupling_energy_density[isurf]))
-
-    script.write(
-"""mv spvn* $spectra_folder
-mv $spectra_folder $results_folder
-""")
     script.close()
 
 
