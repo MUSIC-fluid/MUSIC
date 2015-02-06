@@ -324,6 +324,7 @@ cp music_input_4 $thermal_folder
 cp music_input_13 $thermal_folder
 cp music_input_14 $thermal_folder
 cp known_nuclei.dat $thermal_folder
+cp -r EOS $thermal_folder
 """ % (decoupling_energy_density[isurf], ppn, 
        decoupling_energy_density[isurf]))
 
@@ -340,6 +341,7 @@ cp music_input_4 $thermal_folder
 cp music_input_13 $thermal_folder
 cp music_input_14 $thermal_folder
 cp known_nuclei.dat $thermal_folder
+cp -r EOS $thermal_folder
 """ % (ppn, decoupling_energy_density[isurf]))
 
         if include_y == 1:
@@ -355,6 +357,7 @@ cp music_input_4_y $thermal_folder
 cp music_input_13_y $thermal_folder
 cp music_input_14_y $thermal_folder
 cp known_nuclei.dat $thermal_folder
+cp -r EOS $thermal_folder
 """ % (ppn, decoupling_energy_density[isurf]))
 
             if include_nodeltaf == 1:
@@ -370,6 +373,7 @@ cp music_input_4_y $thermal_folder
 cp music_input_13_y $thermal_folder
 cp music_input_14_y $thermal_folder
 cp known_nuclei.dat $thermal_folder
+cp -r EOS $thermal_folder
 """ % (ppn, decoupling_energy_density[isurf]))
 
     # resonance decay in parallel 
@@ -383,24 +387,21 @@ mpirun -np 1 ./mpihydro music_input_4 1>mode_4.log 2>mode_4.err &
 """ % (decoupling_energy_density[isurf]))
         if include_nodeltaf == 1:
             script.write(
-"""(
-cd spvn_nodeltaf_eps_%s
+"""cd spvn_nodeltaf_eps_%s
 mpirun -np 1 ./mpihydro music_input_4 1>mode_4.log 2>mode_4.err &
-)
+cd ..
 """ % (decoupling_energy_density[isurf]))
         if include_y == 1:
             script.write(
-"""(
-cd spvn_y_eps_%s
+"""cd spvn_y_eps_%s
 mpirun -np 1 ./mpihydro music_input_4_y 1>mode_4.log 2>mode_4.err &
-)
+cd ..
 """ % (decoupling_energy_density[isurf]))
         if include_nodeltaf == 1:
             script.write(
-"""(
-cd spvn_y_nodeltaf_eps_%s
+"""cd spvn_y_nodeltaf_eps_%s
 mpirun -np 1 ./mpihydro music_input_4_y 1>mode_4.log 2>mode_4.err &
-)
+cd ..
 """ % (decoupling_energy_density[isurf]))
     script.write('wait\n')
 
@@ -408,35 +409,31 @@ mpirun -np 1 ./mpihydro music_input_4_y 1>mode_4.log 2>mode_4.err &
     script.write("# final collecting data ... \n")
     for isurf in range(len(decoupling_energy_density)):
         script.write(
-"""(
-cd spvn_eps_%s
+"""cd spvn_eps_%s
 mpirun -np 1 ./mpihydro music_input_13 1>mode_13.log 2>mode_13.err
 mpirun -np 1 ./mpihydro music_input_14 1>mode_14.log 2>mode_14.err
-)
+cd ..
 """ % (decoupling_energy_density[isurf]))
         if include_nodeltaf == 1:
             script.write(
-"""(
-cd spvn_nodeltaf_eps_%s
+"""cd spvn_nodeltaf_eps_%s
 mpirun -np 1 ./mpihydro music_input_13 1>mode_13.log 2>mode_13.err
 mpirun -np 1 ./mpihydro music_input_14 1>mode_14.log 2>mode_14.err
-)
+cd ..
 """ % (decoupling_energy_density[isurf]))
         if include_y == 1:
             script.write(
-"""(
-cd spvn_y_eps_%s
+"""cd spvn_y_eps_%s
 mpirun -np 1 ./mpihydro music_input_13_y 1>mode_13.log 2>mode_13.err
 mpirun -np 1 ./mpihydro music_input_14_y 1>mode_14.log 2>mode_14.err
-)
+cd ..
 """ % (decoupling_energy_density[isurf]))
         if include_nodeltaf == 1:
             script.write(
-"""(
-cd spvn_y_nodeltaf_eps_%s
+"""cd spvn_y_nodeltaf_eps_%s
 mpirun -np 1 ./mpihydro music_input_13_y 1>mode_13.log 2>mode_13.err
 mpirun -np 1 ./mpihydro music_input_14_y 1>mode_14.log 2>mode_14.err
-)
+cd ..
 """ % (decoupling_energy_density[isurf]))
 
     script.write(
