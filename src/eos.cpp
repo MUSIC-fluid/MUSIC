@@ -2520,7 +2520,7 @@ double EOS::interpolate2D(double e, double rhob, int selector)
     double frac_rhob = (local_rhob - (idx_nb*deltaRhob + rhob0))/deltaRhob; 
 
     // check overflow
-    if(idx_e > (NEps-1) || idx_nb > (Nrhob-1))
+    if(idx_e > NEps || idx_nb > Nrhob)
     {
         fprintf(stderr, "ERROR in inperpolate2D: out of range of the table! \n");
         fprintf(stderr, "e = %e, rhob = %e, eps0 = %e, rhob0 = %e\n", 
@@ -2789,31 +2789,193 @@ double EOS::get_qgp_frac(double eps, double rhob) {
 }
 
 
-double EOS::get_s2e(double s, double rhob) { //s - entropy density in 1/fm^3
+double EOS::get_s2e(double s, double rhob)
+{ //s - entropy density in 1/fm^3
+   double e; //epsilon - energy density
+   int status;
+   
+   if (whichEOS==0)
+      e=s2e_ideal_gas(s);
+   else if (whichEOS>=2 && whichEOS<=6)
+   {
+      status=gsl_interp_eval_e(interp_s2e, s_list_rho0, eps_list_rho0, s, accel_s2e, &e);
+      if (status == GSL_EDOM)
+      {
+         cerr << "Error: can't get energy from entropy, entropy s="<<s<<" fm^-3 is outside the current tabulation of the EOS...\n";
+         exit(1);
+      }
+   }
+   else if (whichEOS == 10)
+   {
+      e = get_s2e_finite_rhob(s, rhob);
+   }
+   else
+   {
+      fprintf(stderr,"get_s2e:: whichEOS = %d out of range.\n", whichEOS);
+      exit(0);
+   }
+   return e; //in 1/fm^4
+}
 
-	double e; //epsilon - energy density
-	int status;
+double EOS::get_s2e_finite_rhob(double s, double rhob)
+{
+   double **entropy_array;
+   double eps0, rhob0, deltaEps, deltaRhob;
+   int NEps, Nrhob;
+   // first need to determine the table idx
+   double rhob_max_1 = BNP1 + deltaBNP1*NBNP1;
+   double rhob_max_2 = BNP2 + deltaBNP2*NBNP2;
+   double rhob_max_3 = BNP3 + deltaBNP3*NBNP3;
+   double rhob_max_4 = BNP4 + deltaBNP4*NBNP4;
+   double rhob_max_5 = BNP5 + deltaBNP5*NBNP5;
+   double rhob_max_6 = BNP6 + deltaBNP6*NBNP6;
+   double rhob_max_7 = BNP7 + deltaBNP7*NBNP7;
 
-	//This function does not work for non-zero baryon density
-	if (rhob > 0.0) {
-		cerr << "Function get_s2e() is only implemented for rhob=0. Aborting...\n";
-		exit(1);
-	}
+   double eps_max_1 = (EPP1 + deltaEPP1*NEPP1)/hbarc;
+   double eps_max_2 = (EPP2 + deltaEPP2*NEPP2)/hbarc;
+   double eps_max_3 = (EPP3 + deltaEPP3*NEPP3)/hbarc;
+   double eps_max_4 = (EPP4 + deltaEPP4*NEPP4)/hbarc;
+   double eps_max_5 = (EPP5 + deltaEPP5*NEPP5)/hbarc;
+   double eps_max_6 = (EPP6 + deltaEPP6*NEPP6)/hbarc;
+   double eps_max_7 = (EPP7 + deltaEPP7*NEPP7)/hbarc;
 
-	if (whichEOS==0) {
-		e=s2e_ideal_gas(s);
-	}
-	else if (whichEOS>=2 && whichEOS<=6) {
-		status=gsl_interp_eval_e(interp_s2e, s_list_rho0, eps_list_rho0, s, accel_s2e, &e);
-		if (status == GSL_EDOM) {
-			cerr << "Error: can't get energy from entropy, entropy s="<<s<<" fm^-3 is outside the current tabulation of the EOS...\n";
-			exit(1);
-		}
-	}
-   	else {fprintf(stderr,"whichEOS out of range.\n");exit(0);}
+   cout << rhob_max_1 << "   " << rhob_max_2 << endl;
 
-	return e; //in 1/fm^4
+   int flag = 0;
+   if (rhob <= rhob_max_1)
+   {
+      cout << get_entropy(eps_max_1, rhob) << endl;
+      if(flag == 0 && s < get_entropy(eps_max_1, rhob) && s > 0.0)   // entropy density is smaller than table 2
+      {
+          eps0 = EPP1;
+          NEps = NEPP1;
+	    deltaEps = deltaEPP1;
+          rhob0 = BNP1;
+	    Nrhob = NBNP1;
+	    deltaRhob = deltaBNP1;
+          entropy_array = entropyDensity1;
+          flag = 1;
+      }
+   }
+   if (rhob < rhob_max_2)
+   {
+      cout << get_entropy(EPP2/hbarc, rhob) << "   " << get_entropy(eps_max_2, rhob) << endl;
+      if (flag == 0 && s < get_entropy(eps_max_2, rhob) && s > get_entropy(EPP2/hbarc, rhob))  // in table 2
+      {
+         eps0 = EPP2;
+         NEps = NEPP2;
+         deltaEps = deltaEPP2;
+         rhob0 = BNP2;
+         Nrhob = NBNP2;
+         deltaRhob = deltaBNP2;
+         entropy_array = entropyDensity2;
+         flag = 1;
+      }
+   }
+   if (rhob < rhob_max_3)
+   {
+      if (flag == 0 && s < get_entropy(eps_max_3, rhob) && s > get_entropy(eps_max_2, rhob))  // in table 3
+      {
+         eps0 = EPP3;
+         NEps = NEPP3;
+         deltaEps = deltaEPP3;
+         rhob0 = BNP3;
+         Nrhob = NBNP3;
+         deltaRhob = deltaBNP3;
+         entropy_array = entropyDensity3;
+         flag = 1;
+      }
+   }
+   if (rhob < rhob_max_4)
+   {
+      if (flag == 0 && s < get_entropy(eps_max_4, rhob) && s > get_entropy(eps_max_3, rhob))  // in table 4
+      {
+         eps0 = EPP4;
+         NEps = NEPP4;
+         deltaEps = deltaEPP4;
+         rhob0 = BNP4;
+         Nrhob = NBNP4;
+         deltaRhob = deltaBNP4;
+         entropy_array = entropyDensity4;
+         flag = 1;
+      }
+   }
+   if (rhob < rhob_max_5)
+   {
+      if (flag == 0 && s < get_entropy(eps_max_5, rhob) && s > get_entropy(eps_max_4, rhob))  // in table 5
+      {
+         eps0 = EPP5;
+         NEps = NEPP5;
+         deltaEps = deltaEPP5;
+         rhob0 = BNP5;
+         Nrhob = NBNP5;
+         deltaRhob = deltaBNP5;
+         entropy_array = entropyDensity5;
+         flag = 1;
+      }
+   }
+   if (rhob < rhob_max_6)
+   {
+      if (flag == 0 && s < get_entropy(eps_max_6, rhob) && s > get_entropy(eps_max_5, rhob))  // in table 6
+      {
+         eps0 = EPP6;
+         NEps = NEPP6;
+         deltaEps = deltaEPP6;
+         rhob0 = BNP6;
+         Nrhob = NBNP6;
+         deltaRhob = deltaBNP6;
+         entropy_array = entropyDensity6;
+         flag = 1;
+      }
+   }
+   if (rhob < rhob_max_7)
+   {
+      if (flag == 0 && s < get_entropy(eps_max_7, rhob) && s > get_entropy(eps_max_6, rhob))  // in table 7
+      {
+         eps0 = EPP7;
+         NEps = NEPP7;
+         deltaEps = deltaEPP7;
+         rhob0 = BNP7;
+         Nrhob = NBNP7;
+         deltaRhob = deltaBNP7;
+         entropy_array = entropyDensity7;
+         flag = 1;
+      }
+   }
+   if(flag == 0)
+   {
+       fprintf(stderr, "Error: get_s2e_finite_rhob: can not find (s = %.5e, rhob = %.5e) \n", s, rhob);
+       exit(1);
+   }
 
+   int rhob_idx = (int)((rhob - rhob0)/deltaRhob);
+   double rhob_frac = rhob - (rhob0 + rhob_idx*deltaRhob);
+   
+   int idx_e_1 = NEps;
+   int idx_e_2 = NEps;
+   for(int i = 0; i < NEps; i++)
+   {
+      if(s < entropy_array[rhob_idx][i])
+      {
+         idx_e_1 = i;
+         break;
+      }
+   }
+   for(int i = 0; i < NEps; i++)
+   {
+      if(s < entropy_array[rhob_idx+1][i])
+      {
+         idx_e_2 = i;
+         break;
+      }
+   }
+
+   double e1 = (eps0 + idx_e_1*deltaEps)/hbarc;    // 1/fm^4
+   double e2 = (eps0 + idx_e_2*deltaEps)/hbarc;    // 1/fm^4
+
+   double local_e = e2*rhob_frac/deltaRhob + e1*(1. - rhob_frac/deltaRhob);
+
+   return(local_e);
 }
 
 double EOS::get_rhob_from_mub(double e, double mub)

@@ -122,6 +122,7 @@ class EOS
       double findRoot(double (EOS::*function)(double, double, double), double rhob, double s, double e1, double e2, double eacc);
       double s2e_ideal_gas(double s);
       double get_s2e(double s, double rhob);
+      double get_s2e_finite_rhob(double s, double rhob);
 };
 
 #endif

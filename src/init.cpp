@@ -2996,6 +2996,7 @@ else if (DATA->Initial_profile==11) //read in the transverse profile from file
 	  }
      }
   
+     int entropy_flag = DATA->initializeEntropy;
      for(int ieta = 0; ieta < DATA->neta; ieta++)
      {
 	   double eta = (DATA->delta_eta)*(ieta + DATA->neta*rank) - (DATA->eta_size)/2.0;
@@ -3005,15 +3006,21 @@ else if (DATA->Initial_profile==11) //read in the transverse profile from file
 	   {
 	       for(int iy = 0; iy< (DATA->ny+1); iy++)
 	       {
-		    epsilon= temp_profile_ed[ix][iy]*eta_envelop_ed*DATA->sFactor/hbarc;  // 1/fm^4
-		    if (epsilon<0.00000000001)
-		      epsilon = 0.00000000001;
-		
                 if(DATA->turn_on_rhob == 1)
 		       rhob = temp_profile_rhob[ix][iy]*eta_envelop_rhob;  // 1/fm^3
                 else
                    rhob = 0.0;
-		 
+
+                if(entropy_flag == 0)
+		       epsilon= temp_profile_ed[ix][iy]*eta_envelop_ed*DATA->sFactor/hbarc;  // 1/fm^4
+                else
+                {
+                   double local_sd = temp_profile_ed[ix][iy]*DATA->sFactor;
+                   epsilon = eos->get_s2e(local_sd, rhob)*eta_envelop_ed;
+                }
+		    if (epsilon<0.00000000001)
+		      epsilon = 0.00000000001;
+		
 		    // initial pressure distribution:
 		    p = eos->get_pressure(epsilon, rhob);
 		 
