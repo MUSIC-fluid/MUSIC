@@ -3021,7 +3021,7 @@ else if (DATA->Initial_profile==11) //read in the transverse profile from file
 		    if (epsilon<0.00000000001)
 		      epsilon = 0.00000000001;
 		
-		    // initial pressure distribution:
+		    // initial pressure distribution
 		    p = eos->get_pressure(epsilon, rhob);
 		 
 		    // set all values in the grid element:

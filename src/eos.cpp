@@ -1,5 +1,7 @@
 #include "util.h"
 #include "eos.h"
+#include<fstream>
+#include<iomanip>
 using namespace std;
 
 #define cs2 (1.0/3.0)
@@ -1212,6 +1214,7 @@ void EOS::init_eos10(int selector)
   eos_mub5 >> deltaBNP5 >> deltaEPP5 >> NBNP5 >> NEPP5;
 
   EPP6 = 1e4;  // take a large enough value to make sure only the first 5 tables will be used
+  double eps = 1e-15;
 
   // allocate memory for pressure arrays
   pressure1=util->mtx_malloc(NBNP1+1, NEPP1+1);
@@ -1259,7 +1262,7 @@ void EOS::init_eos10(int selector)
       eos_T1 >> temperature1[i][j];
       eos_mub1 >> mu1[i][j];
       double sd = (ed + pressure1[i][j] - mu1[i][j]*rhob)/temperature1[i][j];
-      entropyDensity1[i][j] = sd;
+      entropyDensity1[i][j] = max(sd, eps);
     }
   }
   
@@ -1273,7 +1276,7 @@ void EOS::init_eos10(int selector)
       eos_T2 >> temperature2[i][j];
       eos_mub2 >> mu2[i][j];
       double sd = (ed + pressure2[i][j] - mu2[i][j]*rhob)/temperature2[i][j];
-      entropyDensity2[i][j] = sd;
+      entropyDensity2[i][j] = max(sd, eps);
     }
   }
   
@@ -1287,7 +1290,7 @@ void EOS::init_eos10(int selector)
       eos_T3 >> temperature3[i][j];
       eos_mub3 >> mu3[i][j];
       double sd = (ed + pressure3[i][j] - mu3[i][j]*rhob)/temperature3[i][j];
-      entropyDensity3[i][j] = sd;
+      entropyDensity3[i][j] = max(sd, eps);
     }
   }
   
@@ -1301,7 +1304,7 @@ void EOS::init_eos10(int selector)
       eos_T4 >> temperature4[i][j];
       eos_mub4 >> mu4[i][j];
       double sd = (ed + pressure4[i][j] - mu4[i][j]*rhob)/temperature4[i][j];
-      entropyDensity4[i][j] = sd;
+      entropyDensity4[i][j] = max(sd, eps);
     }
   }
   
@@ -1315,7 +1318,7 @@ void EOS::init_eos10(int selector)
       eos_T5 >> temperature5[i][j];
       eos_mub5 >> mu5[i][j];
       double sd = (ed + pressure5[i][j] - mu5[i][j]*rhob)/temperature5[i][j];
-      entropyDensity5[i][j] = sd;
+      entropyDensity5[i][j] = max(sd, eps);
     }
   }
 
@@ -1338,6 +1341,20 @@ void EOS::init_eos10(int selector)
   cout << "Done reading EOS." << endl;
 
   build_velocity_of_sound_sq_matrix();
+
+  //ofstream output("check_eos_1.dat");
+  //for(int j = 0; j < NEPP1+1; j++)
+  //{
+  //   for(int i = 0; i < NBNP1 + 1; i++)
+  //   {
+  //       double rhob = NBNP1 + i*deltaBNP1;
+  //       output << scientific << setw(18) << setprecision(8)
+  //              << entropyDensity1[i][j] << "    ";
+  //   }
+  //   output << endl;
+  //}
+  //output.close();
+  //exit(0);
 
 }
 
@@ -2819,10 +2836,13 @@ double EOS::get_s2e(double s, double rhob)
 
 double EOS::get_s2e_finite_rhob(double s, double rhob)
 {
+   if(s < 1e-15 && rhob < 1e-15)
+       return(1e-15);
    double **entropy_array;
    double eps0, rhob0, deltaEps, deltaRhob;
    int NEps, Nrhob;
    // first need to determine the table idx
+   double rhob_max;
    double rhob_max_1 = BNP1 + deltaBNP1*NBNP1;
    double rhob_max_2 = BNP2 + deltaBNP2*NBNP2;
    double rhob_max_3 = BNP3 + deltaBNP3*NBNP3;
@@ -2839,12 +2859,9 @@ double EOS::get_s2e_finite_rhob(double s, double rhob)
    double eps_max_6 = (EPP6 + deltaEPP6*NEPP6)/hbarc;
    double eps_max_7 = (EPP7 + deltaEPP7*NEPP7)/hbarc;
 
-   cout << rhob_max_1 << "   " << rhob_max_2 << endl;
-
    int flag = 0;
    if (rhob <= rhob_max_1)
    {
-      cout << get_entropy(eps_max_1, rhob) << endl;
       if(flag == 0 && s < get_entropy(eps_max_1, rhob) && s > 0.0)   // entropy density is smaller than table 2
       {
           eps0 = EPP1;
@@ -2859,7 +2876,7 @@ double EOS::get_s2e_finite_rhob(double s, double rhob)
    }
    if (rhob < rhob_max_2)
    {
-      cout << get_entropy(EPP2/hbarc, rhob) << "   " << get_entropy(eps_max_2, rhob) << endl;
+      rhob_max = rhob_max_1;
       if (flag == 0 && s < get_entropy(eps_max_2, rhob) && s > get_entropy(EPP2/hbarc, rhob))  // in table 2
       {
          eps0 = EPP2;
@@ -2874,6 +2891,7 @@ double EOS::get_s2e_finite_rhob(double s, double rhob)
    }
    if (rhob < rhob_max_3)
    {
+      rhob_max = rhob_max_2;
       if (flag == 0 && s < get_entropy(eps_max_3, rhob) && s > get_entropy(eps_max_2, rhob))  // in table 3
       {
          eps0 = EPP3;

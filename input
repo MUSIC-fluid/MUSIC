@@ -2,7 +2,7 @@
 # parameters list for MUSIC with comments
 #########################################
 #
-mode 13                                    # MUSIC running mode
+mode 2                                    # MUSIC running mode
                                           # 1: Does everything. Evolution. Computation of thermal spectra. 
                                           #    Resonance decays. Observables.  
                                           #    Only compatible with freeze_out_method=3 and pseudofreeze=1
