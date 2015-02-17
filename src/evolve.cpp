@@ -7113,11 +7113,11 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
    if(all_frozen_flag == 1)
    {
       cout << "All cells frozen out. Exiting." << endl;
-      if(rank == 0)
-      {
-          system("for ii in `ls surface_eps*.dat`; do jj=`echo $ii | cut -f 1-3 -d _ `; cat $jj*.dat > $jj.dat; done");
-          system("rm surface_eps_*_*.dat 2> /dev/null");
-      }
+      //if(rank == 0)
+      //{
+      //    system("for ii in `ls surface_eps*.dat`; do jj=`echo $ii | cut -f 1-3 -d _ `; cat $jj\_*.dat > $jj.dat; done");
+      //    system("rm surface_eps_*_*.dat 2> /dev/null");
+      //}
    }
    return(all_frozen_flag);
 }
