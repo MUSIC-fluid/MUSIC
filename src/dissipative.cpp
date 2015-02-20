@@ -1681,7 +1681,16 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
   double transport_coeff = 1.0*tau_rho;   // from conformal kinetic theory
   double Nonlinear1 = -transport_coeff*(q[nu]*grid_pt->theta_u[rk_flag]);
 
-  SW = (q[nu] + NS + Nonlinear1)/(tau_rho + 1e-15);
+  // add a new non-linear term (-q^\mu \sigma_\mu\nu)
+  double transport_coeff_2 = 3./5.*tau_rho;   // from 14-momentum massless
+  double temptemp = 0.0;
+  for(int i = 0 ; i < 4; i++)
+  {
+      temptemp += q[i]*grid_pt->sigma[rk_flag][i][nu]*DATA->gmunu[i][i]; 
+  }
+  double Nonlinear2 = - transport_coeff_2*temptemp;
+
+  SW = (q[nu] + NS + Nonlinear1 + Nonlinear2)/(tau_rho + 1e-15);
 
 
   // all other geometric terms....
