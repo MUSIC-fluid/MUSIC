@@ -2162,9 +2162,9 @@ void Freeze::Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const 
 void Freeze::load_deltaf_qmu_coeff_table(string filename)
 {
     ifstream table(filename.c_str());
-    deltaf_qmu_coeff_table_length_T = 100;
+    deltaf_qmu_coeff_table_length_T = 150;
     deltaf_qmu_coeff_table_length_mu = 100;
-    delta_qmu_coeff_table_T0 = 0.1;
+    delta_qmu_coeff_table_T0 = 0.05;
     delta_qmu_coeff_table_mu0 = 0.0;
     delta_qmu_coeff_table_dT = 0.001;
     delta_qmu_coeff_table_dmu = 0.007892;
