@@ -3015,8 +3015,8 @@ else if (DATA->Initial_profile==11) //read in the transverse profile from file
 		       epsilon= temp_profile_ed[ix][iy]*eta_envelop_ed*DATA->sFactor/hbarc;  // 1/fm^4
                 else
                 {
-                   double local_sd = temp_profile_ed[ix][iy]*DATA->sFactor;
-                   epsilon = eos->get_s2e(local_sd, rhob)*eta_envelop_ed;
+                   double local_sd = temp_profile_ed[ix][iy]*DATA->sFactor*eta_envelop_ed;
+                   epsilon = eos->get_s2e(local_sd, rhob);
                 }
 		    if (epsilon<0.00000000001)
 		      epsilon = 0.00000000001;
