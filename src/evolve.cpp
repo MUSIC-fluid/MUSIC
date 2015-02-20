@@ -129,6 +129,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
           grid->print_rhob_evolution(DATA, arena, tau, eos, rank);
         }
         grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
+        grid->print_fireball_evolution_on_phasediagram(DATA, arena, tau, eos, rank);
         //grid->Tmax_profile(arena, DATA, eos, tau, size, rank);
      }
      if((it%Nskip_timestep) == 0 && outputEvo_flag == 1) 

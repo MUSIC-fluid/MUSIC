@@ -2498,6 +2498,72 @@ void Grid::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* 
   return;
 }/* print rhob evolution */
 
+void Grid::print_fireball_evolution_on_phasediagram(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank)
+{
+  int n_skip = 25;
+  int nT = 401;
+  int nmu = 801;
+  double T0 = 0.0;
+  double T_max = 0.4;
+  double dT = (T_max - T0)/(nT - 1);
+  double mu0 = 0.0;
+  double mu_max = 0.8;
+  double dmu = (mu_max - mu0)/(nmu - 1);
+  if((int)((tau - DATA->tau0)/DATA->delta_tau) % n_skip == 0)
+  {
+     double** dVdeta = new double* [nT];
+     for(int iT = 0; iT < nT; iT++)
+     {
+        dVdeta[iT] = new double [nmu];
+        for(int imu = 0; imu < nmu; imu++)
+           dVdeta[iT][imu] = 0.0;
+     }
+
+     double eta_goal = 0.0;
+     double volume_element = DATA->delta_x * DATA->delta_y;
+     
+     ostringstream filename;
+     filename << "fireball_evo_phasediagram_tau_" << tau << ".dat";
+     ofstream d_file;
+     d_file.open(filename.str().c_str());
+
+     for(int ieta = 0; ieta < DATA->neta; ieta++)
+     {
+        double eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
+        if(fabs(eta - eta_goal) < 1e-5)  // mid rapidity
+        {
+            for(int ix=0; ix<=DATA->nx; ix++)
+            {
+                for(int iy = 0; iy <= DATA->ny; iy++)
+                {
+                    double rhob = arena[ix][iy][ieta].rhob;
+                    double ed = arena[ix][iy][ieta].epsilon;
+                    double mub = eos->get_mu(ed, rhob);
+                    double temperature = eos->get_temperature(ed, rhob);
+
+                    int T_idx = (int)((temperature - T0)/dT);
+                    int mu_idx = (int)((mub - mu0)/dmu);
+
+                    dVdeta[T_idx][mu_idx] += volume_element;
+               }
+            }
+        }
+     }
+     
+     for(int iT = 0; iT < nT; iT++)
+     {
+        for(int imu = 0; imu < nmu; imu++)
+        {
+            d_file << scientific << setw(18) << setprecision(8)
+                   << dVdeta[iT][imu] << "   ";
+        }
+        d_file << endl;
+    }
+    d_file.close();
+  }
+  return;
+}
+
 void Grid::ComputeAnisotropy(InitData *DATA, Grid ***arena, double tau)
 {
   

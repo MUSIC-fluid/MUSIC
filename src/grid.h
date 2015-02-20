@@ -101,6 +101,7 @@ class Grid{
   void ComputeEccentricity(InitData *DATA, Grid ***arena, double tau); //added
   void print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank);
   void print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank);
+  void print_fireball_evolution_on_phasediagram(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank);
   void ComputeAnisotropy(InitData *DATA, Grid ***arena, double tau); //added
   void PrintGrid(Grid *grid_p, int rk_order);
   //void InitArena(InitData *DATA, GridElem ****arena);
