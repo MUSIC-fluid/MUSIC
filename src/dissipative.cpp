@@ -1664,11 +1664,9 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
   // and a[4] = u^a partial_a (muB/T) = DmuB/T
   // -(1/tau_rho)(q[a] + kappa g[a][b]DmuB/T[b] + kappa u[a] u[b]g[b][c]DmuB/T[c])
   // a = nu 
-  tempf = q[nu] + kappa*(grid_pt->dUsup[rk_flag][4][nu] 
+  double NS = kappa*(grid_pt->dUsup[rk_flag][4][nu] 
                          + grid_pt->u[rk_flag][nu]*grid_pt->a[rk_flag][4]);
-  SW = -tempf/(tau_rho + 1e-15);
-
-  if(isnan(SW))
+  if(isnan(NS))
   {
       cout << "Navier Stock term is nan! " << endl;
       cout << q[nu] << endl;
@@ -1678,6 +1676,15 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
       cout << kappa << endl;
       cout << grid_pt->u[rk_flag][nu] << endl;
   }
+  
+  // add a new non-linear term (- q \theta)
+  double transport_coeff = 1.0*tau_rho;   // from conformal kinetic theory
+  double Nonlinear1 = -transport_coeff*(q[nu]*grid_pt->theta_u[rk_flag]);
+
+  SW = (q[nu] + NS + Nonlinear1)/(tau_rho + 1e-15);
+
+
+  // all other geometric terms....
 
   // + theta q[a] - q[a] u^\tau/tau
   SW += (grid_pt->theta_u[rk_flag] - grid_pt->u[rk_flag][0]/tau)*q[nu];
@@ -1712,6 +1719,7 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
   {
       cout << "u^a q_b Du^b term is nan! " << endl;
   }
+
 
   return SW;
 }/* Make_uqSource */
