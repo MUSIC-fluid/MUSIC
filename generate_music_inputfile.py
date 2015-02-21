@@ -22,10 +22,10 @@ class color:
 initial_condition_dict.update({
     'Initial_profile': 11,          # type of initial condition
     'initialize_with_entropy': 0,   # 0: with energy density, 1: with entropy density
-    'Initial_Distribution_Filename': 'initial/rhob_fromSd_order_2_C0-5.dat',
+    'Initial_Distribution_Filename': 'initial/edAvg_order_2_C0-5.dat',
     'Initial_Rhob_Distribution_Filename':
-        'initial/rhob_fromSd_order_2_C0-5.dat',
-    's_factor': 13.25,   # normalization factor read in initial data file
+        'initial/rhob_fromEd_order_2_C0-5.dat',
+    's_factor': 28,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
     'Eta_plateau_size': 20.,          # size of the plateau in eta_s direction
@@ -44,7 +44,7 @@ hydro_dict.update({
     'Delta_Tau': 0.04,           # time step to use in the evolution [fm/c]
 
     'Eta_grid_size': 14.0,       # spatial rapidity range
-    'Grid_size_in_eta': 4,       # number of the grid points in spatial rapidity direction
+    'Grid_size_in_eta': 8,       # number of the grid points in spatial rapidity direction
     'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
     'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
     'Grid_size_in_y': 260,       # number of the grid points in y direction
