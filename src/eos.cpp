@@ -2536,17 +2536,28 @@ double EOS::interpolate2D(double e, double rhob, int selector)
     int idx_nb = (int)((local_rhob - rhob0)/deltaRhob);
     double frac_rhob = (local_rhob - (idx_nb*deltaRhob + rhob0))/deltaRhob; 
 
-    // check overflow
-    if(idx_e > NEps || idx_nb > Nrhob)
+    if(idx_e > (NEps - 1))
     {
-        fprintf(stderr, "ERROR in inperpolate2D: out of range of the table! \n");
-        fprintf(stderr, "e = %e, rhob = %e, eps0 = %e, rhob0 = %e\n", 
-                local_ed, local_rhob, eps0, rhob0);
-        fprintf(stderr, "idx_e=%d, NEPP1=%d; idx_nb=%d, NBNP1=%d\n", 
-                idx_e, NEps, idx_nb, Nrhob);
-        fprintf(stderr, "deps = %f, drho = %f \n", deltaEps, deltaRhob);
-        exit(0);
+        idx_e = NEps - 1;
+        frac_e = 1.0;
     }
+    if(idx_nb > (Nrhob - 1))
+    {
+        idx_nb = Nrhob - 1;
+        frac_rhob = 1.0;
+    }
+
+    // check overflow
+    //if(idx_e > (NEps-1) || idx_nb > (Nrhob-1))
+    //{
+    //    fprintf(stderr, "ERROR in inperpolate2D: out of range of the table! \n");
+    //    fprintf(stderr, "e = %e, rhob = %e, eps0 = %e, rhob0 = %e\n", 
+    //            local_ed, local_rhob, eps0, rhob0);
+    //    fprintf(stderr, "idx_e=%d, NEPP1=%d; idx_nb=%d, NBNP1=%d\n", 
+    //            idx_e, NEps, idx_nb, Nrhob);
+    //    fprintf(stderr, "deps = %f, drho = %f \n", deltaEps, deltaRhob);
+    //    exit(0);
+    //}
     
     // check underflow
     if(idx_nb < 0)
