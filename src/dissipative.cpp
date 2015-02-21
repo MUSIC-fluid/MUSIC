@@ -1690,7 +1690,7 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
   }
   double Nonlinear2 = - transport_coeff_2*temptemp;
 
-  SW = (q[nu] + NS + Nonlinear1 + Nonlinear2)/(tau_rho + 1e-15);
+  SW = (-q[nu] - NS + Nonlinear1 + Nonlinear2)/(tau_rho + 1e-15);
 
 
   // all other geometric terms....
