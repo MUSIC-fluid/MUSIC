@@ -1109,11 +1109,11 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
           double uy1 = uyFrom[ix][iy][ieta];
           double ueta1 = uetaFrom[ix][iy][ieta];
 
-          // calculate lab frame velocity ???
+          // calculate lab frame velocity
           double u01 = ueta1*sinh(eta)+utau1*cosh(eta); // = gamma factor
-          ux1 = ux1/u01;
-          uy1 = uy1/u01;
-          double uz1 = (ueta1*cosh(eta)+utau1*sinh(eta))/u01;
+          double vx1 = ux1/u01;
+          double vy1 = uy1/u01;
+          double vz1 = (ueta1*cosh(eta)+utau1*sinh(eta))/u01;
           
           double T1=eos->get_temperature(epsilon1, rhob1);
           double muB1 = eos->get_mu(epsilon1, rhob1);
@@ -1139,7 +1139,7 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
           
           if (DATA->outputBinaryEvolution == 0)
           {
-            fprintf(out_file_xyeta, "%e %e %e %e %e\n", T1*hbarc, muB1*hbarc, ux1, uy1, uz1);
+            fprintf(out_file_xyeta, "%e %e %e %e %e\n", T1*hbarc, muB1*hbarc, vx1, vy1, vz1);
 		if (DATA->viscosity_flag == 1)
             {
               fprintf(out_file_W_xyeta, "%e %e %e %e %e %e %e %e %e %e\n", 
@@ -1148,7 +1148,7 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
 	    }
 	    else
           {
-            double array[]={T1*hbarc, muB1*hbarc, ux1, uy1, uz1};
+            double array[]={T1*hbarc, muB1*hbarc, vx1, vy1, vz1};
             fwrite(array, sizeof(double), 5, out_file_xyeta);
 		if (DATA->viscosity_flag == 1)
             {

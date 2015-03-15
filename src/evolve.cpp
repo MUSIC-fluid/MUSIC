@@ -134,7 +134,10 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
      }
      if((it%Nskip_timestep) == 0 && outputEvo_flag == 1) 
      {
-        grid->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
+        if(DATA->turn_on_rhob == 0)
+           grid->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
+        else
+           grid->OutputEvolutionDataXYEta_finite_muB(arena, DATA, eos, tau, size, rank);
         if (DATA->output_hydro_debug_info) // this produces potentially huge outputs so beware
         {
            //grid->OutputXY(arena, DATA, eos, tau, size, rank);
