@@ -69,6 +69,13 @@ class EOS
       double **mu5;
       double **mu6;
       double **mu7;
+      double **mus1;
+      double **mus2;
+      double **mus3;
+      double **mus4;
+      double **mus5;
+      double **mus6;
+      double **mus7;
       double **cs2_1;
       double **cs2_2;
       double **cs2_3;
@@ -93,6 +100,7 @@ class EOS
       void init_eos2(); // for whichEOS=2
       void init_eos3(int selector); // for whichEOS=3 (PCE 150 MeV), whichEOS=4 (PCE 155 MeV), whichEOS=5 (PCE 160 MeV), whichEOS=6 (PCE 165 MeV)
       void init_eos10(int selector); // for EOS at finite mu_B
+      void init_eos11(int selector);
       void checkForReadError(FILE *file, const char* name);
       double interpolate_pressure(double e, double rhob); // for whichEOS=1
       double interpolate2(double e, double rhob, int selector); // for whichEOS=2

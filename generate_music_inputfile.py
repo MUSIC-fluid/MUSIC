@@ -50,7 +50,7 @@ hydro_dict.update({
     'Grid_size_in_y': 260,       # number of the grid points in y direction
     'Grid_size_in_x': 260,       # number of the grid points in x direction
 
-    'EOS_to_use': 10,        # type of the equation of state
+    'EOS_to_use': 11,        # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
     'boost_invariant': 0,    # initial condition is boost invariant
 
@@ -89,7 +89,7 @@ freeze_out_dict.update({
 
     'pseudofreeze': 1,          # calculated particle spectra in equally-spaced pseudorapidity
     'max_pseudorapidity': 5.0,  # particle spectra calculated from (0, max_pseudorapidity)
-    'pseudo_steps': 50,         # number of lattice points along pseudo-rapidity
+    'pseudo_steps': 47,         # number of lattice points along pseudo-rapidity
     'phi_steps': 40,            # number of points calculated in phi for Cooper-Frye
     'min_pt': 0.01,             # the minimum value of pT calculated in the Cooper-Frye
     'max_pt': 3.0,              # the maximum value of pT calculated in the Cooper-Frye

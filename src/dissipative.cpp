@@ -263,8 +263,8 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
  //double s_den = eos->get_entropy(epsilon, rhob);
- shear = (shear_to_s)*(grid_pt->epsilon + grid_pt->p)/T;
- tau_pi = 5.0*shear/(grid_pt->epsilon + grid_pt->p);
+ shear = (shear_to_s)*(grid_pt->epsilon + grid_pt->p)/(T + 1e-15);
+ tau_pi = 5.0*shear/(grid_pt->epsilon + grid_pt->p + 1e-15);
   
  //tau_pi = maxi(tau_pi, DATA->tau_pi);
  if(!isfinite(tau_pi))
@@ -1625,8 +1625,8 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
     shear_to_s = DATA->shear_to_s;
 
   //double s_den = eos->get_entropy(epsilon, rhob);
-  shear = (shear_to_s)*(epsilon + grid_pt->p)/T;
-  tau_pi = 5.0*shear/(epsilon + grid_pt->p);
+  shear = (shear_to_s)*(epsilon + grid_pt->p)/(T + 1e-15);
+  tau_pi = 5.0*shear/(epsilon + grid_pt->p + 1e-15);
  
   if(!isfinite(tau_pi))
   {
@@ -1641,9 +1641,9 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA, in
   // D = 9/64 * eta/T
   //tau_rho = (27.0/20.0)*tau_pi;
   //kappa = (9.0/64.0)*shear/T;
-  tau_rho = 0.2/T;
+  tau_rho = 0.2/(T + 1e-15);
   double mub = eos->get_mu(epsilon, rhob);
-  kappa = 0.2*rhob/mub;
+  kappa = 0.2*rhob/(mub + 1e-15);
 
   // copy the value of \tilde{q^\mu}
   for(i=0; i<4; i++)
