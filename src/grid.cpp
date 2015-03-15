@@ -857,6 +857,354 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
   delete(util);
 }/* OutputEvolutionDataXYEta */
 
+// output hydro evolution history with muB information for RHIC BES
+void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
+{
+  Util *util;
+  util = new Util();
+  
+  int position;
+  int ix, iy, ieta, nx, ny, neta;
+  nx = DATA->nx;
+  ny = DATA->ny;
+  neta = DATA->neta;
+
+  // for MPI send and receive
+  int sizeOfData = (nx+1)*(ny+1)*(neta);
+  int to, from;
+  
+  double *eps, *rhob;
+  double *p;
+  double *utau, *ux, *uy, *ueta;
+  double *Wtautau, *Wtaux, *Wtauy, *Wtaueta, *Wxx, *Wxy, *Wxeta, *Wyy, *Wyeta, *Wetaeta;
+
+  eps = (double *)malloc(sizeof(double)*sizeOfData);
+  rhob = (double *)malloc(sizeof(double)*sizeOfData);
+  utau = (double *)malloc(sizeof(double)*sizeOfData);
+  ux = (double *)malloc(sizeof(double)*sizeOfData);
+  uy = (double *)malloc(sizeof(double)*sizeOfData);
+  ueta = (double *)malloc(sizeof(double)*sizeOfData);
+  p = (double *)malloc(sizeof(double)*sizeOfData);
+
+  Wtautau = (double *)malloc(sizeof(double)*sizeOfData);
+  Wtaux = (double *)malloc(sizeof(double)*sizeOfData);
+  Wtauy = (double *)malloc(sizeof(double)*sizeOfData);
+  Wtaueta = (double *)malloc(sizeof(double)*sizeOfData);
+  Wxx = (double *)malloc(sizeof(double)*sizeOfData);
+  Wxy = (double *)malloc(sizeof(double)*sizeOfData);
+  Wxeta = (double *)malloc(sizeof(double)*sizeOfData);
+  Wyy = (double *)malloc(sizeof(double)*sizeOfData); 
+  Wyeta = (double *)malloc(sizeof(double)*sizeOfData);
+  Wetaeta = (double *)malloc(sizeof(double)*sizeOfData);
+
+  if (rank>0) //send all to rank 0
+  {
+    to = 0;
+    for(ix=0; ix<=nx; ix++)
+    {
+      for(iy=0; iy<=ny; iy++)
+      {
+        for(ieta=0; ieta<neta; ieta++)
+        {
+          position = ieta+(neta*(ix + ((nx+1)*iy)));
+
+          eps[position] = arena[ix][iy][ieta].epsilon;
+          p[position] = arena[ix][iy][ieta].p; 
+          rhob[position] = arena[ix][iy][ieta].rhob;
+
+          utau[position] = arena[ix][iy][ieta].u[0][0];
+          ux[position] = arena[ix][iy][ieta].u[0][1];
+          uy[position] = arena[ix][iy][ieta].u[0][2];
+          ueta[position] = arena[ix][iy][ieta].u[0][3];
+          
+          Wtautau[position] = arena[ix][iy][ieta].Wmunu[0][0][0];
+          Wtaux[position] = arena[ix][iy][ieta].Wmunu[0][0][1];
+          Wtauy[position] = arena[ix][iy][ieta].Wmunu[0][0][2];
+          Wtaueta[position] = arena[ix][iy][ieta].Wmunu[0][0][3];
+          Wxx[position] = arena[ix][iy][ieta].Wmunu[0][1][1];
+          Wxy[position] = arena[ix][iy][ieta].Wmunu[0][1][2];
+          Wxeta[position] = arena[ix][iy][ieta].Wmunu[0][1][3];
+          Wyy[position] = arena[ix][iy][ieta].Wmunu[0][2][2];
+          Wyeta[position] = arena[ix][iy][ieta].Wmunu[0][2][3];
+          Wetaeta[position] = arena[ix][iy][ieta].Wmunu[0][3][3];
+        }
+      }
+    }
+
+    MPI::COMM_WORLD.Send(eps,sizeOfData,MPI::DOUBLE,to,1);
+    MPI::COMM_WORLD.Send(rhob,sizeOfData,MPI::DOUBLE,to,2);
+    MPI::COMM_WORLD.Send(p,sizeOfData,MPI::DOUBLE,to,17);
+
+    MPI::COMM_WORLD.Send(utau,sizeOfData,MPI::DOUBLE,to,3);
+    MPI::COMM_WORLD.Send(ux,sizeOfData,MPI::DOUBLE,to,4);
+    MPI::COMM_WORLD.Send(uy,sizeOfData,MPI::DOUBLE,to,5);
+    MPI::COMM_WORLD.Send(ueta,sizeOfData,MPI::DOUBLE,to,6);
+    
+    MPI::COMM_WORLD.Send(Wtautau,sizeOfData,MPI::DOUBLE,to,7);
+    MPI::COMM_WORLD.Send(Wtaux,sizeOfData,MPI::DOUBLE,to,8);
+    MPI::COMM_WORLD.Send(Wtauy,sizeOfData,MPI::DOUBLE,to,9);
+    MPI::COMM_WORLD.Send(Wtaueta,sizeOfData,MPI::DOUBLE,to,10);
+    MPI::COMM_WORLD.Send(Wxx,sizeOfData,MPI::DOUBLE,to,11);
+    MPI::COMM_WORLD.Send(Wxy,sizeOfData,MPI::DOUBLE,to,12);
+    MPI::COMM_WORLD.Send(Wxeta,sizeOfData,MPI::DOUBLE,to,13);
+    MPI::COMM_WORLD.Send(Wyy,sizeOfData,MPI::DOUBLE,to,14);
+    MPI::COMM_WORLD.Send(Wyeta,sizeOfData,MPI::DOUBLE,to,15);
+    MPI::COMM_WORLD.Send(Wetaeta,sizeOfData,MPI::DOUBLE,to,16);
+  }
+  
+  if (rank==0)
+  {
+    double ***epsFrom, ***rhobFrom;
+    double ***pFrom;
+
+    double ***utauFrom, ***uxFrom, ***uyFrom, ***uetaFrom;
+    double ***WtautauFrom, ***WtauxFrom, ***WtauyFrom, ***WtauetaFrom, ***WxxFrom;
+    double ***WxyFrom, ***WxetaFrom, ***WyyFrom, ***WyetaFrom, ***WetaetaFrom;
+      
+    epsFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    rhobFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    pFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+
+    utauFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    uxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    uyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    uetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+
+    WtautauFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    WtauxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    WtauyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    WtauetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    WxxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    WxyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    WxetaFrom = util->cube_malloc(nx+1,ny+1,size*neta); 
+    WyyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    WyetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+    WetaetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);  
+      
+    // record rank 0 first
+    for(ix=0; ix<=nx; ix++)
+    {
+      for(iy=0; iy<=ny; iy++)
+      {
+        for(ieta=0; ieta<neta; ieta++)
+	  {
+          epsFrom[ix][iy][ieta] = arena[ix][iy][ieta].epsilon;
+          rhobFrom[ix][iy][ieta] = arena[ix][iy][ieta].rhob;
+          pFrom[ix][iy][ieta] = arena[ix][iy][ieta].p;
+
+          utauFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][0];
+          uxFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][1];
+          uyFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][2];
+          uetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][3];
+	  
+          WtautauFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][0]; 
+          WtauxFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][1];
+          WtauyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][2];
+          WtauetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][3];
+          WxxFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][1];
+          WxyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][2];
+          WxetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][3];
+          WyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][2][2];
+          WyetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][2][3];
+          WetaetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][3][3];
+	  }
+	}
+    }
+      
+    // then record other rank
+    for (int irank=1; irank<size; irank++)
+    {
+      from = irank;
+      MPI::COMM_WORLD.Recv(eps,sizeOfData,MPI::DOUBLE,from,1);
+      MPI::COMM_WORLD.Recv(rhob,sizeOfData,MPI::DOUBLE,from,2);
+      MPI::COMM_WORLD.Recv(p,sizeOfData,MPI::DOUBLE,from,17);
+
+      MPI::COMM_WORLD.Recv(utau,sizeOfData,MPI::DOUBLE,from,3);
+      MPI::COMM_WORLD.Recv(ux,sizeOfData,MPI::DOUBLE,from,4);
+      MPI::COMM_WORLD.Recv(uy,sizeOfData,MPI::DOUBLE,from,5);
+      MPI::COMM_WORLD.Recv(ueta,sizeOfData,MPI::DOUBLE,from,6);
+      
+      MPI::COMM_WORLD.Recv(Wtautau,sizeOfData,MPI::DOUBLE,from,7);
+      MPI::COMM_WORLD.Recv(Wtaux,sizeOfData,MPI::DOUBLE,from,8);
+      MPI::COMM_WORLD.Recv(Wtauy,sizeOfData,MPI::DOUBLE,from,9);
+      MPI::COMM_WORLD.Recv(Wtaueta,sizeOfData,MPI::DOUBLE,from,10);
+      MPI::COMM_WORLD.Recv(Wxx,sizeOfData,MPI::DOUBLE,from,11);
+      MPI::COMM_WORLD.Recv(Wxy,sizeOfData,MPI::DOUBLE,from,12);
+      MPI::COMM_WORLD.Recv(Wxeta,sizeOfData,MPI::DOUBLE,from,13);
+      MPI::COMM_WORLD.Recv(Wyy,sizeOfData,MPI::DOUBLE,from,14);
+      MPI::COMM_WORLD.Recv(Wyeta,sizeOfData,MPI::DOUBLE,from,15);
+      MPI::COMM_WORLD.Recv(Wetaeta,sizeOfData,MPI::DOUBLE,from,16);
+	  
+      for(ix=0; ix<=nx; ix++)
+      {
+        for(iy=0; iy<=ny; iy++)
+        {
+          for(ieta=0; ieta<neta; ieta++)
+          {
+            position = ieta+(neta*(ix + ((nx+1)*iy)));
+
+            epsFrom[ix][iy][ieta+irank*neta] = eps[position];
+            rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
+            pFrom[ix][iy][ieta+irank*neta] = p[position];
+
+            utauFrom[ix][iy][ieta+irank*neta] = utau[position];
+            uxFrom[ix][iy][ieta+irank*neta] = ux[position];
+            uyFrom[ix][iy][ieta+irank*neta] = uy[position];
+            uetaFrom[ix][iy][ieta+irank*neta] = ueta[position];
+        
+            WtautauFrom[ix][iy][ieta+irank*neta] = Wtautau[position];
+            WtauxFrom[ix][iy][ieta+irank*neta] = Wtaux[position];
+            WtauyFrom[ix][iy][ieta+irank*neta] = Wtauy[position];
+            WtauetaFrom[ix][iy][ieta+irank*neta] = Wtaueta[position];
+            WxxFrom[ix][iy][ieta+irank*neta] = Wxx[position];
+            WxyFrom[ix][iy][ieta+irank*neta] = Wxy[position];
+            WxetaFrom[ix][iy][ieta+irank*neta] = Wxeta[position];
+            WyyFrom[ix][iy][ieta+irank*neta] = Wyy[position];
+            WyetaFrom[ix][iy][ieta+irank*neta] = Wyeta[position];
+            WetaetaFrom[ix][iy][ieta+irank*neta] = Wetaeta[position];
+	    }
+	  }
+	}
+    }
+    //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
+
+    //set up file name
+    const string out_name_xyeta = "evolution_xyeta.dat";
+    const string out_name_W_xyeta = "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
+    string out_open_mode;
+    FILE *out_file_xyeta;
+    FILE *out_file_W_xyeta;
+    
+    //If it's the first timestep, overwrite the previous file
+    if (tau == DATA->tau0)
+    {
+      out_open_mode = "w";
+    }
+    else
+    {
+      out_open_mode = "a";	
+    }
+    //If we output in binary, set the mode accordingly
+    if (0 == DATA->outputBinaryEvolution)
+    {
+      out_open_mode += "b";
+    }
+
+    out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
+    out_file_W_xyeta = fopen(out_name_W_xyeta.c_str(), out_open_mode.c_str());
+    
+    // output hydro history
+    for(ieta = 0; ieta < (DATA->neta)*size; ieta++)
+    {
+      double eta = ((double)ieta)*(DATA->delta_eta) - (DATA->eta_size)/2.0;
+      for(iy = 0; iy < DATA->ny+1; iy++) //All y
+	{
+        for(ix = 0; ix<DATA->nx+1; ix++) // All x
+        {
+          double epsilon1 = epsFrom[ix][iy][ieta];
+          double rhob1 = rhobFrom[ix][iy][ieta];
+
+          double utau1 = utauFrom[ix][iy][ieta];
+          double ux1 = uxFrom[ix][iy][ieta];
+          double uy1 = uyFrom[ix][iy][ieta];
+          double ueta1 = uetaFrom[ix][iy][ieta];
+
+          // calculate lab frame velocity ???
+          double u01 = ueta1*sinh(eta)+utau1*cosh(eta); // = gamma factor
+          ux1 = ux1/u01;
+          uy1 = uy1/u01;
+          double uz1 = (ueta1*cosh(eta)+utau1*sinh(eta))/u01;
+          
+          double T1=eos->get_temperature(epsilon1, rhob1);
+          double muB1 = eos->get_mu(epsilon1, rhob1);
+
+          double Wtautau = WtautauFrom[ix][iy][ieta];
+          double Wtaux = WtauxFrom[ix][iy][ieta];
+          double Wtauy = WtauyFrom[ix][iy][ieta];
+          double Wtaueta = WtauetaFrom[ix][iy][ieta];
+          double Wxx = WxxFrom[ix][iy][ieta];
+          double Wxy = WxyFrom[ix][iy][ieta];
+          double Wxeta = WxetaFrom[ix][iy][ieta];
+          double Wyy = WyyFrom[ix][iy][ieta];
+          double Wyeta = WyetaFrom[ix][iy][ieta];
+          double Wetaeta = WetaetaFrom[ix][iy][ieta];
+
+          double Wtt = pow(cosh(eta),2)*Wtautau + pow(tau*sinh(eta),2)*Wetaeta*pow(tau,-2) + 2*tau*cosh(eta)*sinh(eta)*Wtaueta*pow(tau,-1);
+          double Wtx = cosh(eta)*Wtaux + tau*sinh(eta)*Wxeta*pow(tau,-1);
+          double Wty = cosh(eta)*Wtauy + tau*sinh(eta)*Wyeta*pow(tau,-1);
+          double Wtz = cosh(eta)*sinh(eta)*Wtautau + tau*( pow(cosh(eta),2) + pow(sinh(eta),2) )*Wtaueta*pow(tau,-1) + tau*tau*cosh(eta)*sinh(eta)*Wetaeta*pow(tau,-2);
+          double Wxz = sinh(eta)*Wtaux + tau*cosh(eta)*Wxeta*pow(tau,-1);
+          double Wyz = sinh(eta)*Wtauy + tau*cosh(eta)*Wyeta*pow(tau,-1);
+          double Wzz = pow(sinh(eta),2)*Wtautau + pow(tau*cosh(eta),2)*Wetaeta*pow(tau,-2) + 2*tau*cosh(eta)*sinh(eta)*Wtaueta*pow(tau,-1);
+          
+          if (DATA->outputBinaryEvolution == 0)
+          {
+            fprintf(out_file_xyeta, "%e %e %e %e %e\n", T1*hbarc, muB1*hbarc, ux1, uy1, uz1);
+		if (DATA->viscosity_flag == 1)
+            {
+              fprintf(out_file_W_xyeta, "%e %e %e %e %e %e %e %e %e %e\n", 
+                      Wtt, Wtx, Wty, Wtz, Wxx, Wxy, Wxz, Wyy, Wyz, Wzz); 
+		}
+	    }
+	    else
+          {
+            double array[]={T1*hbarc, muB1*hbarc, ux1, uy1, uz1};
+            fwrite(array, sizeof(double), 5, out_file_xyeta);
+		if (DATA->viscosity_flag == 1)
+            {
+              double array2[]={Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz};
+              fwrite(array2, sizeof(double), 10, out_file_W_xyeta);
+		}
+	    }
+	  }/* ix */
+	}/* iy */
+    }/* ieta */
+    fclose(out_file_xyeta);
+    fclose(out_file_W_xyeta);
+
+    /*End of hydro output in tau,x,y,eta*/
+    // clean up
+    util->cube_free(epsFrom,nx+1,ny+1,size*neta);
+    util->cube_free(rhobFrom,nx+1,ny+1,size*neta);
+    util->cube_free(utauFrom,nx+1,ny+1,size*neta);
+    util->cube_free(uxFrom,nx+1,ny+1,size*neta);
+    util->cube_free(uyFrom,nx+1,ny+1,size*neta);
+    util->cube_free(uetaFrom,nx+1,ny+1,size*neta);
+    util->cube_free(pFrom,nx+1,ny+1,size*neta);
+    
+    util->cube_free(WtautauFrom,nx+1,ny+1,size*neta);
+    util->cube_free(WtauxFrom,nx+1,ny+1,size*neta);
+    util->cube_free(WtauyFrom,nx+1,ny+1,size*neta);
+    util->cube_free(WtauetaFrom,nx+1,ny+1,size*neta);
+    util->cube_free(WxxFrom,nx+1,ny+1,size*neta);
+    util->cube_free(WxyFrom,nx+1,ny+1,size*neta);
+    util->cube_free(WxetaFrom,nx+1,ny+1,size*neta);
+    util->cube_free(WyyFrom,nx+1,ny+1,size*neta);
+    util->cube_free(WyetaFrom,nx+1,ny+1,size*neta);
+    util->cube_free(WetaetaFrom,nx+1,ny+1,size*neta);
+  } // if(rank == 0)
+
+  // clean up
+  free(eps);
+  free(rhob);
+  free(utau);
+  free(ux);
+  free(uy);
+  free(ueta);
+  free(p);
+
+  free(Wtautau);
+  free(Wtaux);
+  free(Wtauy);
+  free(Wtaueta);
+  free(Wxx);
+  free(Wxy);
+  free(Wxeta);
+  free(Wyy);
+  free(Wyeta);
+  free(Wetaeta);
+  delete(util);
+}/* OutputEvolutionDataXYEta */
 
 void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
 {
