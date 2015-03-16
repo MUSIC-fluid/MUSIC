@@ -143,6 +143,8 @@ hydro_dict = {
     'rotate_by_45_degrees': 0,                    # rotate the grid by 45 degree for test
 
     'output_evolution_data': 0,                   # flag to output evolution history to file
+    'output_hydro_params_header' : 1,             # flag to output hydro evolution information header
+    'outputBinaryEvolution': 1,                   # flag to output evolution history in binary format
 }
 
 ###########################################
