@@ -2224,6 +2224,22 @@ void Freeze::load_deltaf_qmu_coeff_table_14mom(string filename)
                 >> deltaf_coeff_tb_14mom_DV[i][j] >> deltaf_coeff_tb_14mom_BV[i][j]
                 >> deltaf_coeff_tb_14mom_Bpi_shear[i][j];
     table.close();
+
+    // convert units
+    double hbarc3 = hbarc*hbarc*hbarc;
+    double hbarc4 = hbarc3*hbarc;
+    for(int i = 0; i < deltaf_coeff_table_14mom_length_T; i++)
+    {
+       for(int j = 0; j < deltaf_coeff_table_14mom_length_mu; j++)
+       {
+          deltaf_coeff_tb_14mom_DPi[i][j] = deltaf_coeff_tb_14mom_DPi[i][j]*hbarc4;   // fm^4/GeV
+          deltaf_coeff_tb_14mom_BPi[i][j] = deltaf_coeff_tb_14mom_BPi[i][j]*hbarc4;   // fm^4/(GeV^2)
+          deltaf_coeff_tb_14mom_BPitilde[i][j] = deltaf_coeff_tb_14mom_BPitilde[i][j]*hbarc4;   // fm^4/(GeV^2)
+          deltaf_coeff_tb_14mom_DV[i][j] = deltaf_coeff_tb_14mom_DV[i][j]*hbarc3;   // fm^3/GeV
+          deltaf_coeff_tb_14mom_BV[i][j] = deltaf_coeff_tb_14mom_BV[i][j]*hbarc3;   // fm^3/(GeV^2)
+          deltaf_coeff_tb_14mom_Bpi_shear[i][j] = deltaf_coeff_tb_14mom_Bpi_shear[i][j]*hbarc4;   // fm^4/(GeV^2)
+       }
+    }
 }
 
 double Freeze::get_deltaf_qmu_coeff(double T, double muB)
