@@ -137,6 +137,15 @@ class Freeze{
   double delta_qmu_coeff_table_T0, delta_qmu_coeff_table_mu0;
   double delta_qmu_coeff_table_dT, delta_qmu_coeff_table_dmu;
   double **deltaf_qmu_coeff_tb;
+  
+  int deltaf_coeff_table_14mom_length_T;
+  int deltaf_coeff_table_14mom_length_mu;
+  double delta_coeff_table_14mom_T0, delta_coeff_table_14mom_mu0;
+  double delta_coeff_table_14mom_dT, delta_coeff_table_14mom_dmu;
+  double **deltaf_coeff_tb_14mom_DPi, **deltaf_coeff_tb_14mom_BPi;
+  double **deltaf_coeff_tb_14mom_BPitilde;
+  double **deltaf_coeff_tb_14mom_BV, **deltaf_coeff_tb_14mom_DV;
+  double **deltaf_coeff_tb_14mom_Bpi_shear;
 
  public:
   Freeze(InitData* DATA_in);//constructor
@@ -160,6 +169,7 @@ class Freeze{
   void ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int iptmax, int iphimax, int size, int rank);
   void OutputFullParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int full);
   void load_deltaf_qmu_coeff_table(string filename);
+  void load_deltaf_qmu_coeff_table_14mom(string filename);
   
   // --------------------------------------------------------------------------------------
   // the following routines are adapted from the public version of
@@ -239,6 +249,7 @@ class Freeze{
   void Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const int * hadron_list, int nb_hadrons);
 
    double get_deltaf_qmu_coeff(double T, double muB);
+   double get_deltaf_coeff_14moments(double T, double muB, double type);
 };
 #endif
   

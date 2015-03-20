@@ -183,6 +183,7 @@ freeze_out_dict = {
     'Include_deltaf': 1,                          # flag to include delta f correction in Cooper-Frye formula
     'Include_deltaf_qmu': 0,                      # flag to include delta f for qmu
     'Inlucde_deltaf_bulk': 0,                     # flag to include delta f for bulk viscosity
+    'deltaf_14moments': 0,                        # use delta f from 14 moments approximation
 }
 
 ###########################################################

@@ -113,6 +113,7 @@ typedef struct init_data
   int include_deltaf;
   int include_deltaf_qmu;
   int include_deltaf_bulk;
+  int deltaf_14moments;
 
   double tau_pi;
   double tau_b_pi;

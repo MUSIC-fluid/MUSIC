@@ -2062,6 +2062,11 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempinclude_deltaf_qmu;
   DATA->include_deltaf_qmu = tempinclude_deltaf_qmu;
   
+  int temp_deltaf_14moments = 0;
+  tempinput = util->StringFind4(file, "deltaf_14moments");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_deltaf_14moments;
+  DATA->deltaf_14moments = temp_deltaf_14moments;
+  
   int tempinclude_deltaf_bulk = 0;
   tempinput = util->StringFind4(file, "Include_deltaf_bulk");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempinclude_deltaf_bulk;
