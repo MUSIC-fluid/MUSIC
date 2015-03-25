@@ -10,9 +10,24 @@
 class Grid_info
 {
     private:
+        InitData* DATA_ptr;
+        
+        int deltaf_qmu_coeff_table_length_T;
+        int deltaf_qmu_coeff_table_length_mu;
+        double delta_qmu_coeff_table_T0, delta_qmu_coeff_table_mu0;
+        double delta_qmu_coeff_table_dT, delta_qmu_coeff_table_dmu;
+        double **deltaf_qmu_coeff_tb;
+        int deltaf_coeff_table_14mom_length_T;
+        int deltaf_coeff_table_14mom_length_mu;
+        double delta_coeff_table_14mom_T0, delta_coeff_table_14mom_mu0;
+        double delta_coeff_table_14mom_dT, delta_coeff_table_14mom_dmu;
+        double **deltaf_coeff_tb_14mom_DPi, **deltaf_coeff_tb_14mom_BPi;
+        double **deltaf_coeff_tb_14mom_BPitilde;
+        double **deltaf_coeff_tb_14mom_BV, **deltaf_coeff_tb_14mom_DV;
+        double **deltaf_coeff_tb_14mom_Bpi_shear;
 
     public:
-        Grid_info();
+        Grid_info(InitData* DATA_in);
         ~Grid_info();
 
         void ComputeV2(InitData *DATA, Grid ***arena, double tau); //added
@@ -40,5 +55,10 @@ class Grid_info
         void getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
         void Output_hydro_information_header(InitData *DATA, EOS *eos);
         void Tmax_profile(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
+
+        void load_deltaf_qmu_coeff_table(string filename);
+        void load_deltaf_qmu_coeff_table_14mom(string filename);
+        double get_deltaf_qmu_coeff(double T, double muB);
+        double get_deltaf_coeff_14moments(double T, double muB, double type);
 };
 #endif

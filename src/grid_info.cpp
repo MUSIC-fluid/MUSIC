@@ -3,14 +3,55 @@
 
 using namespace std;
 
-Grid_info::Grid_info()
+Grid_info::Grid_info(InitData* DATA_in)
 {
+   DATA_ptr = DATA_in;
 
+   // read in tables for delta f coefficients
+   if(DATA_ptr->turn_on_diff == 1)
+   {
+       if(DATA_ptr->deltaf_14moments == 1)
+           load_deltaf_qmu_coeff_table_14mom("tables/deltaf_coefficients_14moments.dat");
+       else
+       {
+           if(DATA_ptr->include_deltaf_qmu == 1)
+               load_deltaf_qmu_coeff_table("tables/Coefficients_RTA_diffusion.dat");
+       }
+   }
 }
 
 Grid_info::~Grid_info()
 {
-
+   if(DATA_ptr->turn_on_diff == 1)
+   {
+      if(DATA_ptr->deltaf_14moments == 1)
+      {
+          for(int i = 0; i < deltaf_coeff_table_14mom_length_T; i++)
+          {
+             delete [] deltaf_coeff_tb_14mom_DPi[i];
+             delete [] deltaf_coeff_tb_14mom_BPi[i];
+             delete [] deltaf_coeff_tb_14mom_BPitilde[i];
+             delete [] deltaf_coeff_tb_14mom_DV[i];
+             delete [] deltaf_coeff_tb_14mom_BV[i];
+             delete [] deltaf_coeff_tb_14mom_Bpi_shear[i];
+          }
+          delete [] deltaf_coeff_tb_14mom_DPi;
+          delete [] deltaf_coeff_tb_14mom_BPi;
+          delete [] deltaf_coeff_tb_14mom_BPitilde;
+          delete [] deltaf_coeff_tb_14mom_DV;
+          delete [] deltaf_coeff_tb_14mom_BV;
+          delete [] deltaf_coeff_tb_14mom_Bpi_shear;
+      }
+      else
+      {
+          if(DATA_ptr->include_deltaf_qmu == 1)
+          {
+             for(int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
+                delete [] deltaf_qmu_coeff_tb[i];
+             delete [] deltaf_qmu_coeff_tb;
+          }
+      }
+   }
 }
 
 
@@ -3182,3 +3223,131 @@ void Grid_info::Output_hydro_information_header(InitData *DATA, EOS *eos)
 
 }
 
+void Grid_info::load_deltaf_qmu_coeff_table(string filename)
+{
+    ifstream table(filename.c_str());
+    deltaf_qmu_coeff_table_length_T = 150;
+    deltaf_qmu_coeff_table_length_mu = 100;
+    delta_qmu_coeff_table_T0 = 0.05;
+    delta_qmu_coeff_table_mu0 = 0.0;
+    delta_qmu_coeff_table_dT = 0.001;
+    delta_qmu_coeff_table_dmu = 0.007892;
+    deltaf_qmu_coeff_tb = new double* [deltaf_qmu_coeff_table_length_T];
+    for(int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
+       deltaf_qmu_coeff_tb[i] = new double [deltaf_qmu_coeff_table_length_mu];
+
+    double dummy;
+    for(int j = 0; j < deltaf_qmu_coeff_table_length_mu; j++)
+       for(int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
+          table >> dummy >> dummy >> deltaf_qmu_coeff_tb[i][j];
+    table.close();
+}
+
+void Grid_info::load_deltaf_qmu_coeff_table_14mom(string filename)
+{
+    ifstream table(filename.c_str());
+    deltaf_coeff_table_14mom_length_T = 190;
+    deltaf_coeff_table_14mom_length_mu = 160;
+    delta_coeff_table_14mom_T0 = 0.01;
+    delta_coeff_table_14mom_mu0 = 0.0;
+    delta_coeff_table_14mom_dT = 0.001;
+    delta_coeff_table_14mom_dmu = 0.005;
+
+    deltaf_coeff_tb_14mom_DPi = new double* [deltaf_coeff_table_14mom_length_T];
+    deltaf_coeff_tb_14mom_BPi = new double* [deltaf_coeff_table_14mom_length_T];
+    deltaf_coeff_tb_14mom_BPitilde = new double* [deltaf_coeff_table_14mom_length_T];
+    deltaf_coeff_tb_14mom_DV = new double* [deltaf_coeff_table_14mom_length_T];
+    deltaf_coeff_tb_14mom_BV = new double* [deltaf_coeff_table_14mom_length_T];
+    deltaf_coeff_tb_14mom_Bpi_shear = new double* [deltaf_coeff_table_14mom_length_T];
+    for(int i = 0; i < deltaf_coeff_table_14mom_length_T; i++)
+    {
+       deltaf_coeff_tb_14mom_DPi[i] = new double [deltaf_coeff_table_14mom_length_mu];
+       deltaf_coeff_tb_14mom_BPi[i] = new double [deltaf_coeff_table_14mom_length_mu];
+       deltaf_coeff_tb_14mom_BPitilde[i] = new double [deltaf_coeff_table_14mom_length_mu];
+       deltaf_coeff_tb_14mom_DV[i] = new double [deltaf_coeff_table_14mom_length_mu];
+       deltaf_coeff_tb_14mom_BV[i] = new double [deltaf_coeff_table_14mom_length_mu];
+       deltaf_coeff_tb_14mom_Bpi_shear[i] = new double [deltaf_coeff_table_14mom_length_mu];
+    }
+
+    double dummy;
+    for(int i = 0; i < deltaf_coeff_table_14mom_length_T; i++)
+       for(int j = 0; j < deltaf_coeff_table_14mom_length_mu; j++)
+          table >> dummy >> dummy >> deltaf_coeff_tb_14mom_DPi[i][j]
+                >> deltaf_coeff_tb_14mom_BPi[i][j] >> deltaf_coeff_tb_14mom_BPitilde[i][j]
+                >> deltaf_coeff_tb_14mom_DV[i][j] >> deltaf_coeff_tb_14mom_BV[i][j]
+                >> deltaf_coeff_tb_14mom_Bpi_shear[i][j];
+    table.close();
+
+    // convert units
+    double hbarc3 = hbarc*hbarc*hbarc;
+    double hbarc4 = hbarc3*hbarc;
+    for(int i = 0; i < deltaf_coeff_table_14mom_length_T; i++)
+    {
+       for(int j = 0; j < deltaf_coeff_table_14mom_length_mu; j++)
+       {
+          deltaf_coeff_tb_14mom_DPi[i][j] = deltaf_coeff_tb_14mom_DPi[i][j]*hbarc4;   // fm^4/GeV
+          deltaf_coeff_tb_14mom_BPi[i][j] = deltaf_coeff_tb_14mom_BPi[i][j]*hbarc4;   // fm^4/(GeV^2)
+          deltaf_coeff_tb_14mom_BPitilde[i][j] = deltaf_coeff_tb_14mom_BPitilde[i][j]*hbarc4;   // fm^4/(GeV^2)
+          deltaf_coeff_tb_14mom_DV[i][j] = deltaf_coeff_tb_14mom_DV[i][j]*hbarc3;   // fm^3/GeV
+          deltaf_coeff_tb_14mom_BV[i][j] = deltaf_coeff_tb_14mom_BV[i][j]*hbarc3;   // fm^3/(GeV^2)
+          deltaf_coeff_tb_14mom_Bpi_shear[i][j] = deltaf_coeff_tb_14mom_Bpi_shear[i][j]*hbarc4;   // fm^4/(GeV^2)
+       }
+    }
+}
+
+double Grid_info::get_deltaf_qmu_coeff(double T, double muB)
+{
+    int idx_T = (int)((T - delta_qmu_coeff_table_T0)/delta_qmu_coeff_table_dT);
+    int idx_mu = (int)((muB - delta_qmu_coeff_table_mu0)/delta_qmu_coeff_table_dmu);
+    double x_fraction = (T - delta_qmu_coeff_table_T0)/delta_qmu_coeff_table_dT - idx_T;
+    double y_fraction = (muB - delta_qmu_coeff_table_mu0)/delta_qmu_coeff_table_dmu - idx_mu;
+    
+    double f1 = deltaf_qmu_coeff_tb[idx_T][idx_mu];
+    double f2 = deltaf_qmu_coeff_tb[idx_T][idx_mu+1];
+    double f3 = deltaf_qmu_coeff_tb[idx_T+1][idx_mu+1];
+    double f4 = deltaf_qmu_coeff_tb[idx_T+1][idx_mu];
+
+    double coeff = f1*(1. - x_fraction)*(1. - y_fraction) 
+                   + f2*(1. - x_fraction)*y_fraction
+                   + f3*x_fraction*y_fraction
+                   + f4*x_fraction*(1. - y_fraction);
+    return(coeff);
+}
+
+double Grid_info::get_deltaf_coeff_14moments(double T, double muB, double type)
+{
+    int idx_T = (int)((T - delta_coeff_table_14mom_T0)/delta_coeff_table_14mom_dT);
+    int idx_mu = (int)((muB - delta_coeff_table_14mom_mu0)/delta_coeff_table_14mom_dmu);
+    double x_fraction = (T - delta_coeff_table_14mom_T0)/delta_coeff_table_14mom_dT - idx_T;
+    double y_fraction = (muB - delta_coeff_table_14mom_mu0)/delta_coeff_table_14mom_dmu - idx_mu;
+
+    double **deltaf_table = NULL;
+    if (type == 0)
+       deltaf_table = deltaf_coeff_tb_14mom_DPi;
+    else if (type == 1)
+       deltaf_table = deltaf_coeff_tb_14mom_BPi;
+    else if (type == 2)
+       deltaf_table = deltaf_coeff_tb_14mom_BPitilde;
+    else if (type == 3)
+       deltaf_table = deltaf_coeff_tb_14mom_DV;
+    else if (type == 4)
+       deltaf_table = deltaf_coeff_tb_14mom_BV;
+    else if (type == 5)
+       deltaf_table = deltaf_coeff_tb_14mom_Bpi_shear;
+    else
+    {
+       cout << "Freeze::get_deltaf_coeff_14moments: unknown type: " << type << endl;
+       exit(-1);
+    }
+    
+    double f1 = deltaf_table[idx_T][idx_mu];
+    double f2 = deltaf_table[idx_T][idx_mu+1];
+    double f3 = deltaf_table[idx_T+1][idx_mu+1];
+    double f4 = deltaf_table[idx_T+1][idx_mu];
+
+    double coeff = f1*(1. - x_fraction)*(1. - y_fraction) 
+                   + f2*(1. - x_fraction)*y_fraction
+                   + f3*x_fraction*y_fraction
+                   + f4*x_fraction*(1. - y_fraction);
+    return(coeff);
+}
