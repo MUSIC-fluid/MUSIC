@@ -877,6 +877,7 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
   double *p;
   double *utau, *ux, *uy, *ueta;
   double *Wtautau, *Wtaux, *Wtauy, *Wtaueta, *Wxx, *Wxy, *Wxeta, *Wyy, *Wyeta, *Wetaeta;
+  double *qtau, *qx, *qy, *qeta;
 
   eps = (double *)malloc(sizeof(double)*sizeOfData);
   rhob = (double *)malloc(sizeof(double)*sizeOfData);
@@ -896,6 +897,14 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
   Wyy = (double *)malloc(sizeof(double)*sizeOfData); 
   Wyeta = (double *)malloc(sizeof(double)*sizeOfData);
   Wetaeta = (double *)malloc(sizeof(double)*sizeOfData);
+
+  if(DATA->turn_on_diff == 1)
+  {
+      qtau = (double *)malloc(sizeof(double)*sizeOfData);
+      qx = (double *)malloc(sizeof(double)*sizeOfData);
+      qy = (double *)malloc(sizeof(double)*sizeOfData);
+      qeta = (double *)malloc(sizeof(double)*sizeOfData);
+  }
 
   if (rank>0) //send all to rank 0
   {
@@ -927,6 +936,13 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
           Wyy[position] = arena[ix][iy][ieta].Wmunu[0][2][2];
           Wyeta[position] = arena[ix][iy][ieta].Wmunu[0][2][3];
           Wetaeta[position] = arena[ix][iy][ieta].Wmunu[0][3][3];
+          if(DATA->turn_on_diff == 1)
+          {
+              qtau[position] = arena[ix][iy][ieta].Wmunu[0][4][0];
+              qx[position] = arena[ix][iy][ieta].Wmunu[0][4][1];
+              qy[position] = arena[ix][iy][ieta].Wmunu[0][4][2];
+              qeta[position] = arena[ix][iy][ieta].Wmunu[0][4][3];
+          }
         }
       }
     }
@@ -950,6 +966,14 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
     MPI::COMM_WORLD.Send(Wyy,sizeOfData,MPI::DOUBLE,to,14);
     MPI::COMM_WORLD.Send(Wyeta,sizeOfData,MPI::DOUBLE,to,15);
     MPI::COMM_WORLD.Send(Wetaeta,sizeOfData,MPI::DOUBLE,to,16);
+    
+    if(DATA->turn_on_diff == 1)
+    {
+        MPI::COMM_WORLD.Send(qtau,sizeOfData,MPI::DOUBLE,to,17);
+        MPI::COMM_WORLD.Send(qx,sizeOfData,MPI::DOUBLE,to,18);
+        MPI::COMM_WORLD.Send(qy,sizeOfData,MPI::DOUBLE,to,19);
+        MPI::COMM_WORLD.Send(qeta,sizeOfData,MPI::DOUBLE,to,20);
+    }
   }
   
   if (rank==0)
@@ -960,6 +984,8 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
     double ***utauFrom, ***uxFrom, ***uyFrom, ***uetaFrom;
     double ***WtautauFrom, ***WtauxFrom, ***WtauyFrom, ***WtauetaFrom, ***WxxFrom;
     double ***WxyFrom, ***WxetaFrom, ***WyyFrom, ***WyetaFrom, ***WetaetaFrom;
+    
+    double ***qtauFrom, ***qxFrom, ***qyFrom, ***qetaFrom;
       
     epsFrom = util->cube_malloc(nx+1,ny+1,size*neta);
     rhobFrom = util->cube_malloc(nx+1,ny+1,size*neta);
@@ -980,6 +1006,14 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
     WyyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
     WyetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
     WetaetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);  
+
+    if(DATA->turn_on_diff == 1)
+    {
+        qtauFrom = util->cube_malloc(nx+1, ny+1, size*neta);
+        qxFrom = util->cube_malloc(nx+1, ny+1, size*neta);
+        qyFrom = util->cube_malloc(nx+1, ny+1, size*neta);
+        qetaFrom = util->cube_malloc(nx+1, ny+1, size*neta);
+    }
       
     // record rank 0 first
     for(ix=0; ix<=nx; ix++)
@@ -1007,6 +1041,14 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
           WyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][2][2];
           WyetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][2][3];
           WetaetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][3][3];
+          
+          if(DATA->turn_on_diff == 1)
+          {
+              qtauFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][4][0];
+              qxFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][4][1];
+              qyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][4][2];
+              qetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][4][3];
+          }
 	  }
 	}
     }
@@ -1034,6 +1076,14 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
       MPI::COMM_WORLD.Recv(Wyy,sizeOfData,MPI::DOUBLE,from,14);
       MPI::COMM_WORLD.Recv(Wyeta,sizeOfData,MPI::DOUBLE,from,15);
       MPI::COMM_WORLD.Recv(Wetaeta,sizeOfData,MPI::DOUBLE,from,16);
+
+      if(DATA->turn_on_diff == 1)
+      {
+          MPI::COMM_WORLD.Recv(qtau,sizeOfData,MPI::DOUBLE,from,17);
+          MPI::COMM_WORLD.Recv(qx,sizeOfData,MPI::DOUBLE,from,18);
+          MPI::COMM_WORLD.Recv(qy,sizeOfData,MPI::DOUBLE,from,19);
+          MPI::COMM_WORLD.Recv(qeta,sizeOfData,MPI::DOUBLE,from,20);
+      }
 	  
       for(ix=0; ix<=nx; ix++)
       {
@@ -1062,6 +1112,13 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
             WyyFrom[ix][iy][ieta+irank*neta] = Wyy[position];
             WyetaFrom[ix][iy][ieta+irank*neta] = Wyeta[position];
             WetaetaFrom[ix][iy][ieta+irank*neta] = Wetaeta[position];
+            if(DATA->turn_on_diff == 1)
+            {
+                qtauFrom[ix][iy][ieta+irank*neta] = qtau[position];
+                qxFrom[ix][iy][ieta+irank*neta] = qx[position];
+                qyFrom[ix][iy][ieta+irank*neta] = qy[position];
+                qetaFrom[ix][iy][ieta+irank*neta] = qeta[position];
+            }
 	    }
 	  }
 	}
@@ -1071,9 +1128,11 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
     //set up file name
     const string out_name_xyeta = "evolution_xyeta.dat";
     const string out_name_W_xyeta = "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
+    const string out_name_q_xyeta = "evolution_qmu_xyeta.dat";
     string out_open_mode;
     FILE *out_file_xyeta;
     FILE *out_file_W_xyeta;
+    FILE *out_file_q_xyeta;
     
     //If it's the first timestep, overwrite the previous file
     if (tau == DATA->tau0)
@@ -1085,13 +1144,17 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
       out_open_mode = "a";	
     }
     //If we output in binary, set the mode accordingly
-    if (0 == DATA->outputBinaryEvolution)
+    if (DATA->outputBinaryEvolution == 1)
     {
       out_open_mode += "b";
     }
 
     out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
     out_file_W_xyeta = fopen(out_name_W_xyeta.c_str(), out_open_mode.c_str());
+    if(DATA->turn_on_diff == 1)
+    {
+        out_file_q_xyeta = fopen(out_name_q_xyeta.c_str(), out_open_mode.c_str());
+    }
     
     // output hydro history
     for(ieta = 0; ieta < (DATA->neta)*size; ieta++)
@@ -1117,17 +1180,19 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
           
           double T1=eos->get_temperature(epsilon1, rhob1);
           double muB1 = eos->get_mu(epsilon1, rhob1);
+          double pressure1 = eos->get_pressure(epsilon1, rhob1);
 
-          double Wtautau = WtautauFrom[ix][iy][ieta];
-          double Wtaux = WtauxFrom[ix][iy][ieta];
-          double Wtauy = WtauyFrom[ix][iy][ieta];
-          double Wtaueta = WtauetaFrom[ix][iy][ieta];
-          double Wxx = WxxFrom[ix][iy][ieta];
-          double Wxy = WxyFrom[ix][iy][ieta];
-          double Wxeta = WxetaFrom[ix][iy][ieta];
-          double Wyy = WyyFrom[ix][iy][ieta];
-          double Wyeta = WyetaFrom[ix][iy][ieta];
-          double Wetaeta = WetaetaFrom[ix][iy][ieta];
+          double enthalpy = epsilon1 + pressure1;    // 1/fm^4
+          double Wtautau = WtautauFrom[ix][iy][ieta]/enthalpy;
+          double Wtaux = WtauxFrom[ix][iy][ieta]/enthalpy;
+          double Wtauy = WtauyFrom[ix][iy][ieta]/enthalpy;
+          double Wtaueta = WtauetaFrom[ix][iy][ieta]/enthalpy;
+          double Wxx = WxxFrom[ix][iy][ieta]/enthalpy;
+          double Wxy = WxyFrom[ix][iy][ieta]/enthalpy;
+          double Wxeta = WxetaFrom[ix][iy][ieta]/enthalpy;
+          double Wyy = WyyFrom[ix][iy][ieta]/enthalpy;
+          double Wyeta = WyetaFrom[ix][iy][ieta]/enthalpy;
+          double Wetaeta = WetaetaFrom[ix][iy][ieta]/enthalpy;
 
           double Wtt = pow(cosh(eta),2)*Wtautau + pow(tau*sinh(eta),2)*Wetaeta*pow(tau,-2) + 2*tau*cosh(eta)*sinh(eta)*Wtaueta*pow(tau,-1);
           double Wtx = cosh(eta)*Wtaux + tau*sinh(eta)*Wxeta*pow(tau,-1);
@@ -1136,6 +1201,21 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
           double Wxz = sinh(eta)*Wtaux + tau*cosh(eta)*Wxeta*pow(tau,-1);
           double Wyz = sinh(eta)*Wtauy + tau*cosh(eta)*Wyeta*pow(tau,-1);
           double Wzz = pow(sinh(eta),2)*Wtautau + pow(tau*cosh(eta),2)*Wetaeta*pow(tau,-2) + 2*tau*cosh(eta)*sinh(eta)*Wtaueta*pow(tau,-1);
+
+          // outputs for baryon diffusion part
+          double common_term_q;
+          double qtau, qx, qy, qeta, qt, qz;
+          if(DATA->turn_on_diff == 1)
+          {
+             common_term_q = rhob1*T1/enthalpy;
+             qtau = qtauFrom[ix][iy][ieta];
+             qx = qxFrom[ix][iy][ieta];
+             qy = qyFrom[ix][iy][ieta];
+             qeta = qetaFrom[ix][iy][ieta];
+
+             qt = cosh(eta)*qtau + sinh(eta)*qeta;
+             qz = sinh(eta)*qtau + cosh(eta)*qeta;
+          }
           
           if (DATA->outputBinaryEvolution == 0)
           {
@@ -1144,6 +1224,11 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
             {
               fprintf(out_file_W_xyeta, "%e %e %e %e %e %e %e %e %e %e\n", 
                       Wtt, Wtx, Wty, Wtz, Wxx, Wxy, Wxz, Wyy, Wyz, Wzz); 
+              if(DATA->turn_on_diff == 1)
+              {
+                  fprintf(out_file_q_xyeta, "%e %e %e %e\n",
+                          common_term_q, qx, qy, qz);
+              }
 		}
 	    }
 	    else
@@ -1154,6 +1239,12 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
             {
               double array2[]={Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz};
               fwrite(array2, sizeof(double), 10, out_file_W_xyeta);
+
+              if(DATA->turn_on_diff == 1)
+              {
+                  double array3[]={common_term_q, qx, qy, qz};
+                  fwrite(array3, sizeof(double), 4, out_file_q_xyeta);
+              }
 		}
 	    }
 	  }/* ix */
@@ -1161,6 +1252,8 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
     }/* ieta */
     fclose(out_file_xyeta);
     fclose(out_file_W_xyeta);
+    if(DATA->turn_on_diff == 1)
+       fclose(out_file_q_xyeta);
 
     /*End of hydro output in tau,x,y,eta*/
     // clean up
@@ -1182,6 +1275,14 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
     util->cube_free(WyyFrom,nx+1,ny+1,size*neta);
     util->cube_free(WyetaFrom,nx+1,ny+1,size*neta);
     util->cube_free(WetaetaFrom,nx+1,ny+1,size*neta);
+
+    if(DATA->turn_on_diff == 1)
+    {
+       util->cube_free(qtauFrom, nx+1, ny+1, size*neta);
+       util->cube_free(qxFrom, nx+1, ny+1, size*neta);
+       util->cube_free(qyFrom, nx+1, ny+1, size*neta);
+       util->cube_free(qetaFrom, nx+1, ny+1, size*neta);
+    }
   } // if(rank == 0)
 
   // clean up
@@ -1203,6 +1304,14 @@ void Grid::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EO
   free(Wyy);
   free(Wyeta);
   free(Wetaeta);
+  
+  if(DATA->turn_on_diff == 1)
+  {
+     free(qtau);
+     free(qx);
+     free(qy);
+     free(qeta);
+  }
   delete(util);
 }/* OutputEvolutionDataXYEta */
 
