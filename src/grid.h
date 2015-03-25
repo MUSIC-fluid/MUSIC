@@ -123,6 +123,7 @@ class Grid{
   void getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
   void Output_hydro_information_header(InitData *DATA, EOS *eos);
   void Tmax_profile(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
+
 };
 #endif
   

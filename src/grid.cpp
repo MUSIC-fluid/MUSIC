@@ -3248,7 +3248,9 @@ void Grid::Output_hydro_information_header(InitData *DATA, EOS *eos) {
 	outfile << ";\n";
 
 	outfile << "const bool MUSIC_outputBinaryEvolution=" << DATA->outputBinaryEvolution << ";\n";
+	outfile << "const bool MUSIC_with_baryon_diffusion=" << ((DATA->viscosity_flag)&&(DATA->turn_on_diff)) << ";\n";
 
 	outfile.close();
 
 }
+
