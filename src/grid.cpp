@@ -86,6 +86,7 @@ Grid ***Grid::grid_c_malloc(int n1, int n2, int n3)
 //     return d1_ptr;
 // }/* grid_c_malloc */
 
+
 // output for e.g. MARTINI on a tau-x-y-z-grid: T, QGP fraction, flow velocities
 // note that this is really z, not eta.
 // also note that MARTINI's Hydro:xmax etc. are 0.5 times the values in the mpihydro input file, i.e.,
@@ -3253,4 +3254,3 @@ void Grid::Output_hydro_information_header(InitData *DATA, EOS *eos) {
 	outfile.close();
 
 }
-

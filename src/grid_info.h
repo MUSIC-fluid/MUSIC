@@ -1,5 +1,5 @@
-#ifndef GRID_info_H
-#define GRID_inf0_H
+#ifndef GRID_INFO_H
+#define GRID_INFO_H
 #include "data.h"
 #include "eos.h"
 #include "Grid.h"

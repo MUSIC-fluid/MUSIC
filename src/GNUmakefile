@@ -27,11 +27,11 @@ endif
 SRC		=	main.cpp grid.cpp eos.cpp evolve.cpp init.cpp reconst.cpp \
                   freeze.cpp freeze_pseudo.cpp minmod.cpp glauber.cpp \
                   advance.cpp u_derivative.cpp dissipative.cpp random.cpp \
-                  util.cpp cornelius.cpp
+                  util.cpp cornelius.cpp grid_info.cpp
 
 INC		= 	grid.h eos.h evolve.h init.h reconst.h freeze.h \
                   minmod.h glauber.h advance.h u_derivative.h dissipative.h \
-                  random.h util.h cornelius.h reconst.h int.h data.h
+                  random.h util.h cornelius.h reconst.h int.h data.h grid_info.h
 
 # -------------------------------------------------
 

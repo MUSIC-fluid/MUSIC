@@ -2,6 +2,7 @@
 #include "util.h"
 #include "data.h"
 #include "grid.h"
+#include "grid_info.h"
 #include "eos.h"
 #include "reconst.h"
 #include "advance.h"
@@ -14,6 +15,7 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in)
   //eos = new EOS;  // seems redundant
   eos = eosIn;
   grid = new Grid;
+  grid_info = new Grid_info;
   reconst = new Reconst(eosIn, grid);
   util = new Util;
   advance = new Advance(eosIn, grid, DATA_in);
@@ -32,6 +34,7 @@ Evolve::~Evolve()
   //delete eos;
   delete reconst;
   delete grid;
+  delete grid_info;
   delete util;
   delete advance;
   delete u_derivative;
@@ -79,7 +82,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
   
   //Output information about the hydro parameters in the format of a C header file
   if(DATA->output_hydro_params_header)
-      grid->Output_hydro_information_header(DATA, eos);
+      grid_info->Output_hydro_information_header(DATA, eos);
 
 
   // main loop starts ...
@@ -121,28 +124,28 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
      {
         if((it%Nskip_timestep) == 0) 
         {
-          grid->PrintEtaEpsilon(arena, DATA, tau, size, rank);
-          grid->PrintxEpsilon(arena, DATA, tau, size, rank);
-          //grid->ComputeEccentricity(DATA, arena, tau);
-          grid->ComputeAnisotropy(DATA, arena, tau);
-          grid->print_qmu_evolution(DATA, arena, tau, eos, rank);
-          grid->print_rhob_evolution(DATA, arena, tau, eos, rank);
+          grid_info->PrintEtaEpsilon(arena, DATA, tau, size, rank);
+          grid_info->PrintxEpsilon(arena, DATA, tau, size, rank);
+          //grid_info->ComputeEccentricity(DATA, arena, tau);
+          grid_info->ComputeAnisotropy(DATA, arena, tau);
+          grid_info->print_qmu_evolution(DATA, arena, tau, eos, rank);
+          grid_info->print_rhob_evolution(DATA, arena, tau, eos, rank);
         }
-        grid->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
-        grid->print_fireball_evolution_on_phasediagram(DATA, arena, tau, eos, rank);
-        //grid->Tmax_profile(arena, DATA, eos, tau, size, rank);
+        grid_info->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
+        grid_info->print_fireball_evolution_on_phasediagram(DATA, arena, tau, eos, rank);
+        //grid_info->Tmax_profile(arena, DATA, eos, tau, size, rank);
      }
      if((it%Nskip_timestep) == 0 && outputEvo_flag == 1) 
      {
         if(DATA->turn_on_rhob == 0)
-           grid->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
+           grid_info->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
         else
-           grid->OutputEvolutionDataXYEta_finite_muB(arena, DATA, eos, tau, size, rank);
+           grid_info->OutputEvolutionDataXYEta_finite_muB(arena, DATA, eos, tau, size, rank);
         if (DATA->output_hydro_debug_info) // this produces potentially huge outputs so beware
         {
-           //grid->OutputXY(arena, DATA, eos, tau, size, rank);
-           //grid->OutputEvolutionOSCAR(arena, DATA, eos, tau, size, rank); 
-           //grid->OutputEvolutionDataXYZ(arena, DATA, eos, tau, size, rank); 
+           //grid_info->OutputXY(arena, DATA, eos, tau, size, rank);
+           //grid_info->OutputEvolutionOSCAR(arena, DATA, eos, tau, size, rank); 
+           //grid_info->OutputEvolutionDataXYZ(arena, DATA, eos, tau, size, rank); 
         }
      }
 
@@ -152,7 +155,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
     UpdateArena(tau, arena);
    
     //check energy conservation
-    //grid->ComputeEnergyConservation(DATA, arena, tau);
+    //grid_info->ComputeEnergyConservation(DATA, arena, tau);
     //storePreviousT(tau, DATA, arena);
 
     //determine freeze-out surface
@@ -185,7 +188,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
 
   //if(rank == 0)
   //{
-  // grid->PrintAxy2(DATA, arena, tau);
+  // grid_info->PrintAxy2(DATA, arena, tau);
   //}
 
   // clean up

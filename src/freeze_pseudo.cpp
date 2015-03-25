@@ -2268,7 +2268,7 @@ double Freeze::get_deltaf_coeff_14moments(double T, double muB, double type)
     double x_fraction = (T - delta_coeff_table_14mom_T0)/delta_coeff_table_14mom_dT - idx_T;
     double y_fraction = (muB - delta_coeff_table_14mom_mu0)/delta_coeff_table_14mom_dmu - idx_mu;
 
-    double **deltaf_table;
+    double **deltaf_table = NULL;
     if (type == 0)
        deltaf_table = deltaf_coeff_tb_14mom_DPi;
     else if (type == 1)
@@ -2281,6 +2281,11 @@ double Freeze::get_deltaf_coeff_14moments(double T, double muB, double type)
        deltaf_table = deltaf_coeff_tb_14mom_BV;
     else if (type == 5)
        deltaf_table = deltaf_coeff_tb_14mom_Bpi_shear;
+    else
+    {
+       cout << "Freeze::get_deltaf_coeff_14moments: unknown type: " << type << endl;
+       exit(-1);
+    }
     
     double f1 = deltaf_table[idx_T][idx_mu];
     double f2 = deltaf_table[idx_T][idx_mu+1];
