@@ -1204,16 +1204,16 @@ void Grid_info::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DAT
 	    }
 	    else
           {
-            double array[]={T1*hbarc, muB1*hbarc, vx1, vy1, vz1, epsilon1*hbarc};
+            float array[]={T1*hbarc, muB1*hbarc, vx1, vy1, vz1, epsilon1*hbarc};
             fwrite(array, sizeof(float), 6, out_file_xyeta);
 		if (DATA->viscosity_flag == 1)
             {
-              double array2[]={Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz};
+              float array2[]={Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz};
               fwrite(array2, sizeof(float), 10, out_file_W_xyeta);
 
               if(DATA->turn_on_diff == 1)
               {
-                  double array3[]={common_term_q, qx, qy, qz, kappa_hat};
+                  float array3[]={common_term_q, qx, qy, qz, kappa_hat};
                   fwrite(array3, sizeof(float), 5, out_file_q_xyeta);
               }
 		}
