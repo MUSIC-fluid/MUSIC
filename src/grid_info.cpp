@@ -3193,9 +3193,9 @@ void Grid_info::Output_hydro_information_header(InitData *DATA, EOS *eos)
 	ofstream outfile;
 	outfile.open(fname.c_str());
 
-      int grid_nx = ceil((DATA->nx+1)/DATA->output_evolution_every_N_x);
-      int grid_ny = ceil((DATA->ny+1)/DATA->output_evolution_every_N_y);
-      int grid_neta = ceil((DATA->neta*MPI::COMM_WORLD.Get_size())/DATA->output_evolution_every_N_eta);
+      int grid_nx = ceil(((double)(DATA->nx+1))/DATA->output_evolution_every_N_x);
+      int grid_ny = ceil(((double)(DATA->ny+1))/DATA->output_evolution_every_N_y);
+      int grid_neta = ceil(((double)(DATA->neta*MPI::COMM_WORLD.Get_size()))/DATA->output_evolution_every_N_eta);
 
 	outfile << "const int MUSIC_real_nx=" << grid_nx << ";" << endl;
 	outfile << "const int MUSIC_real_ny=" << grid_ny << ";" << endl;
