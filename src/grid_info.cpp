@@ -1190,7 +1190,7 @@ void Grid_info::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DAT
           
           if (DATA->outputBinaryEvolution == 0)
           {
-            fprintf(out_file_xyeta, "%e %e %e %e %e\n", T1*hbarc, muB1*hbarc, vx1, vy1, vz1);
+            fprintf(out_file_xyeta, "%e %e %e %e %e %e\n", T1*hbarc, muB1*hbarc, vx1, vy1, vz1, epsilon1*hbarc);
 		if (DATA->viscosity_flag == 1)
             {
               fprintf(out_file_W_xyeta, "%e %e %e %e %e %e %e %e %e %e\n", 
@@ -1204,8 +1204,8 @@ void Grid_info::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DAT
 	    }
 	    else
           {
-            double array[]={T1*hbarc, muB1*hbarc, vx1, vy1, vz1};
-            fwrite(array, sizeof(float), 5, out_file_xyeta);
+            double array[]={T1*hbarc, muB1*hbarc, vx1, vy1, vz1, epsilon1*hbarc};
+            fwrite(array, sizeof(float), 6, out_file_xyeta);
 		if (DATA->viscosity_flag == 1)
             {
               double array2[]={Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz};
