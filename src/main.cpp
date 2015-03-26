@@ -2174,8 +2174,25 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
 
   //The evolution is outputted every "output_evolution_every_N_timesteps" timesteps
   //Can't be modified from the input file for now, for safety.
-  //DATA->output_evolution_every_N_timesteps=10;
-  DATA->output_evolution_every_N_timesteps=1;
+  int temp_evo_N_tau = 1;
+  tempinput = util->StringFind4(file, "output_evolution_every_N_timesteps");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_tau;
+  DATA->output_evolution_every_N_timesteps = temp_evo_N_tau;
+  
+  int temp_evo_N_x = 1;
+  tempinput = util->StringFind4(file, "output_evolution_every_N_x");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_x;
+  DATA->output_evolution_every_N_x = temp_evo_N_x;
+  
+  int temp_evo_N_y = 1;
+  tempinput = util->StringFind4(file, "output_evolution_every_N_y");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_y;
+  DATA->output_evolution_every_N_y = temp_evo_N_y;
+
+  int temp_evo_N_eta = 1;
+  tempinput = util->StringFind4(file, "output_evolution_every_N_eta");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_eta;
+  DATA->output_evolution_every_N_eta = temp_evo_N_eta;
   
   //Make MUSIC output a C header file containing informations about the hydro parameters used
   //0 for false (do not output), 1 for true

@@ -1125,13 +1125,16 @@ void Grid_info::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DAT
         out_file_q_xyeta = fopen(out_name_q_xyeta.c_str(), out_open_mode.c_str());
     }
     
+    int n_skip_x = DATA->output_evolution_every_N_x;
+    int n_skip_y = DATA->output_evolution_every_N_y;
+    int n_skip_eta = DATA->output_evolution_every_N_eta;
     // output hydro history
-    for(ieta = 0; ieta < (DATA->neta)*size; ieta++)
+    for(ieta = 0; ieta < (DATA->neta)*size; ieta+=n_skip_eta)
     {
       double eta = ((double)ieta)*(DATA->delta_eta) - (DATA->eta_size)/2.0;
-      for(iy = 0; iy < DATA->ny+1; iy++) //All y
+      for(iy = 0; iy < DATA->ny+1; iy+=n_skip_y) //All y
 	{
-        for(ix = 0; ix<DATA->nx+1; ix++) // All x
+        for(ix = 0; ix<DATA->nx+1; ix+=n_skip_x) // All x
         {
           double epsilon1 = epsFrom[ix][iy][ieta];
           double rhob1 = rhobFrom[ix][iy][ieta];
@@ -3190,39 +3193,49 @@ void Grid_info::Output_hydro_information_header(InitData *DATA, EOS *eos)
 	ofstream outfile;
 	outfile.open(fname.c_str());
 
-	outfile << "const int MUSIC_real_nx=" << DATA->nx+1 << ";\n";
-	outfile << "const int MUSIC_real_ny=" << DATA->ny+1 << ";\n";
+      int grid_nx = ceil((DATA->nx+1)/DATA->output_evolution_every_N_x);
+      int grid_ny = ceil((DATA->ny+1)/DATA->output_evolution_every_N_y);
+      int grid_neta = ceil((DATA->neta*MPI::COMM_WORLD.Get_size())/DATA->output_evolution_every_N_eta);
+
+	outfile << "const int MUSIC_real_nx=" << grid_nx << ";" << endl;
+	outfile << "const int MUSIC_real_ny=" << grid_ny << ";" << endl;
 	//DATA->neta is _not_ the actual number of cells in eta, it is the number of cells in eta _per_ processor
-	outfile << "const int MUSIC_real_neta=" << DATA->neta*MPI::COMM_WORLD.Get_size() << ";\n";
+	outfile << "const int MUSIC_real_neta=" << grid_neta << ";" << endl;
 
 	//double x_size; /* in fermi -x_size/2 < x < x_size/2 */
 	//double y_size; /* in fermi, ditto */
 	//double eta_size; /* ditto */
 
-	outfile << "const double MUSIC_tau0=" << DATA->tau0 << ";\n";
+	outfile << "const double MUSIC_tau0=" << DATA->tau0 << ";" << endl;
 
-	outfile << "const double MUSIC_dx=" << DATA->delta_x << ";\n";
-	outfile << "const double MUSIC_dy=" << DATA->delta_y << ";\n";
-	outfile << "const double MUSIC_deta=" << DATA->delta_eta << ";\n";
-	outfile << "const double MUSIC_effective_dtau=" << DATA->output_evolution_every_N_timesteps*DATA->delta_tau << ";\n";
+	outfile << "const double MUSIC_dx=" << DATA->delta_x*DATA->output_evolution_every_N_x << ";" << endl;
+	outfile << "const double MUSIC_dy=" << DATA->delta_y*DATA->output_evolution_every_N_y << ";" << endl;
+	outfile << "const double MUSIC_deta=" << DATA->delta_eta*DATA->output_evolution_every_N_eta << ";" << endl;
+	outfile << "const double MUSIC_effective_dtau=" << DATA->output_evolution_every_N_timesteps*DATA->delta_tau << ";" << endl;
 
 	outfile << "const bool MUSIC_with_shear_viscosity=" << ((DATA->viscosity_flag)&&(DATA->turn_on_shear)) << ";\n";
 	outfile << "const bool MUSIC_with_bulk_viscosity=" << ((DATA->viscosity_flag)&&(DATA->turn_on_bulk)) << ";\n";
 
-	outfile << "const double MUSIC_kinetic_FO_temperature_in_GeV=";
-	if (DATA->useEpsFO) {
-		outfile << eos->get_temperature(DATA->epsilonFreeze/hbarc,0.0)*hbarc;
-	}
-	else {
-		outfile << DATA->TFO;
-	}
-	outfile << ";\n";
+      if(DATA->turn_on_rhob == 0)
+      {
+	    outfile << "const double MUSIC_kinetic_FO_temperature_in_GeV=";
+	    if (DATA->useEpsFO) {
+	    	outfile << eos->get_temperature(DATA->epsilonFreeze/hbarc,0.0)*hbarc;
+	    }
+	    else {
+	    	outfile << DATA->TFO;
+	    }
+	    outfile << ";" << endl;
+      }
+      else
+      {
+	    outfile << "const double MUSIC_kinetic_FO_energy_density_in_GeV_over_fm3=" << DATA->eps_freeze_min*hbarc << ";" << endl;
+      }
 
-	outfile << "const bool MUSIC_outputBinaryEvolution=" << DATA->outputBinaryEvolution << ";\n";
-	outfile << "const bool MUSIC_with_baryon_diffusion=" << ((DATA->viscosity_flag)&&(DATA->turn_on_diff)) << ";\n";
+	outfile << "const bool MUSIC_outputBinaryEvolution=" << DATA->outputBinaryEvolution << ";" << endl;
+	outfile << "const bool MUSIC_with_baryon_diffusion=" << ((DATA->viscosity_flag)&&(DATA->turn_on_diff)) << ";" << endl;
 
 	outfile.close();
-
 }
 
 void Grid_info::load_deltaf_qmu_coeff_table(string filename)

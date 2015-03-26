@@ -69,6 +69,10 @@ hydro_dict.update({
     'output_evolution_data': 0,             # flag to output evolution history to file
     'output_hydro_params_header' : 1,       # flag to output hydro evolution information header
     'outputBinaryEvolution': 1,             # flag to output evolution history in binary format
+    'output_evolution_every_N_timesteps' : 1,     # number of points to skip in tau direction for hydro evolution
+    'output_evolution_every_N_x' : 2,             # number of points to skip in x direction for hydro evolution
+    'output_evolution_every_N_y' : 2,             # number of points to skip in y direction for hydro evolution
+    'output_evolution_every_N_eta' : 1,           # number of points to skip in eta direction for hydro evolution
 })
 
 freeze_out_dict.update({
