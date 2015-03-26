@@ -1510,7 +1510,6 @@ void EOS::init_eos11(int selector)
   eos_mus4 >> deltaBNP4 >> NBNP4 >> deltaEPP4 >> NEPP4;
 
   EPP5 = 1e4;  // take a large enough value to make sure only the first 5 tables will be used
-  double eps = 1e-15;
 
   // allocate memory for pressure arrays
   pressure1=util->mtx_malloc(NBNP1+1, NEPP1+1);

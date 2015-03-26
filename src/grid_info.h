@@ -2,7 +2,7 @@
 #define GRID_INFO_H
 #include "data.h"
 #include "eos.h"
-#include "Grid.h"
+#include "grid.h"
 #include <mpi.h>
 #include <iostream>
 #include <iomanip>

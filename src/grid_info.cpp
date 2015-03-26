@@ -1174,9 +1174,11 @@ void Grid_info::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DAT
           // outputs for baryon diffusion part
           double common_term_q;
           double qtau, qx, qy, qeta, qt, qz;
+          double kappa_hat;
           if(DATA->turn_on_diff == 1)
           {
              common_term_q = rhob1*T1/enthalpy;
+             kappa_hat = get_deltaf_qmu_coeff(T1, muB1);
              qtau = qtauFrom[ix][iy][ieta];
              qx = qxFrom[ix][iy][ieta];
              qy = qyFrom[ix][iy][ieta];
@@ -1195,24 +1197,24 @@ void Grid_info::OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DAT
                       Wtt, Wtx, Wty, Wtz, Wxx, Wxy, Wxz, Wyy, Wyz, Wzz); 
               if(DATA->turn_on_diff == 1)
               {
-                  fprintf(out_file_q_xyeta, "%e %e %e %e\n",
-                          common_term_q, qx, qy, qz);
+                  fprintf(out_file_q_xyeta, "%e %e %e %e %e\n",
+                          common_term_q, qx, qy, qz, kappa_hat);
               }
 		}
 	    }
 	    else
           {
             double array[]={T1*hbarc, muB1*hbarc, vx1, vy1, vz1};
-            fwrite(array, sizeof(double), 5, out_file_xyeta);
+            fwrite(array, sizeof(float), 5, out_file_xyeta);
 		if (DATA->viscosity_flag == 1)
             {
               double array2[]={Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz};
-              fwrite(array2, sizeof(double), 10, out_file_W_xyeta);
+              fwrite(array2, sizeof(float), 10, out_file_W_xyeta);
 
               if(DATA->turn_on_diff == 1)
               {
-                  double array3[]={common_term_q, qx, qy, qz};
-                  fwrite(array3, sizeof(double), 4, out_file_q_xyeta);
+                  double array3[]={common_term_q, qx, qy, qz, kappa_hat};
+                  fwrite(array3, sizeof(float), 5, out_file_q_xyeta);
               }
 		}
 	    }
@@ -3297,11 +3299,21 @@ void Grid_info::load_deltaf_qmu_coeff_table_14mom(string filename)
 
 double Grid_info::get_deltaf_qmu_coeff(double T, double muB)
 {
+    if(muB < 0)
+    {
+       muB = -muB;
+    }
     int idx_T = (int)((T - delta_qmu_coeff_table_T0)/delta_qmu_coeff_table_dT);
     int idx_mu = (int)((muB - delta_qmu_coeff_table_mu0)/delta_qmu_coeff_table_dmu);
+
+    if(idx_T > deltaf_qmu_coeff_table_length_T - 2 || idx_T < 0)
+        return(1.0);
+    if(idx_mu > deltaf_qmu_coeff_table_length_mu - 2)
+        return(1.0);
+
     double x_fraction = (T - delta_qmu_coeff_table_T0)/delta_qmu_coeff_table_dT - idx_T;
     double y_fraction = (muB - delta_qmu_coeff_table_mu0)/delta_qmu_coeff_table_dmu - idx_mu;
-    
+
     double f1 = deltaf_qmu_coeff_tb[idx_T][idx_mu];
     double f2 = deltaf_qmu_coeff_tb[idx_T][idx_mu+1];
     double f3 = deltaf_qmu_coeff_tb[idx_T+1][idx_mu+1];
