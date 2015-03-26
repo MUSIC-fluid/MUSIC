@@ -28,14 +28,14 @@ initial_condition_dict.update({
     's_factor': 28,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
-    'Eta_plateau_size': 20.,          # size of the plateau in eta_s direction
-    'Eta_fall_off': 0.7,              # the scale of the fall off of the plateau in eta_s direction
-    'initial_eta_rhob_profile': 1,    # type of the envelope profile for rho_B's eta_s distribution
-    'eta_rhob_0': 3.0,                # peak position of rho_B in eta_s direction
+    'Eta_plateau_size': 3.0,          # size of the plateau in eta_s direction
+    'Eta_fall_off': 0.2,              # the scale of the fall off of the plateau in eta_s direction
+    'initial_eta_rhob_profile': 2,    # type of the envelope profile for rho_B's eta_s distribution
+    'eta_rhob_0': 1.5,                # peak position of rho_B in eta_s direction
     'eta_rhob_width': 1.0,            # the width of the Gaussian (for initial_eta_rhob_profile == 1)
     'eta_rhob_plateau_height': 0.5,   # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
-    'eta_rhob_width_1': 1.0,          # the width of the Gaussian for the outside tail (for initial_eta_rhob_profile == 2)
-    'eta_rhob_width_2': 1.0,          # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
+    'eta_rhob_width_1': 0.2,          # the width of the Gaussian for the outside tail (for initial_eta_rhob_profile == 2)
+    'eta_rhob_width_2': 0.7,          # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
 })
 
 hydro_dict.update({
@@ -43,14 +43,14 @@ hydro_dict.update({
     'Initial_time_tau_0': 0.6,   # starting time of the hydrodynamic evolution (fm/c)
     'Delta_Tau': 0.04,           # time step to use in the evolution [fm/c]
 
-    'Eta_grid_size': 14.0,       # spatial rapidity range
+    'Eta_grid_size': 8.0,       # spatial rapidity range
     'Grid_size_in_eta': 8,       # number of the grid points in spatial rapidity direction
     'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
     'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
     'Grid_size_in_y': 260,       # number of the grid points in y direction
     'Grid_size_in_x': 260,       # number of the grid points in x direction
 
-    'EOS_to_use': 11,        # type of the equation of state
+    'EOS_to_use': 10,        # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
     'boost_invariant': 0,    # initial condition is boost invariant
 

@@ -3026,8 +3026,13 @@ else if (DATA->Initial_profile==11) //read in the transverse profile from file
 		 
 		    // set all values in the grid element:
 		    (*arena)[ix][iy][ieta].epsilon = epsilon;
+		    (*arena)[ix][iy][ieta].epsilon_t = epsilon;
+		    (*arena)[ix][iy][ieta].prev_epsilon = epsilon;
 		    (*arena)[ix][iy][ieta].rhob = rhob;
+		    (*arena)[ix][iy][ieta].rhob_t = rhob;
+		    (*arena)[ix][iy][ieta].prev_rhob = rhob;
 		    (*arena)[ix][iy][ieta].p = p;
+		    (*arena)[ix][iy][ieta].p_t = p;
 		    (*arena)[ix][iy][ieta].trouble = 0;
 		    
 		    (*arena)[ix][iy][ieta].T = eos->get_temperature(epsilon, rhob);
