@@ -3226,10 +3226,12 @@ void Grid_info::Output_hydro_information_header(InitData *DATA, EOS *eos)
 	    	outfile << DATA->TFO;
 	    }
 	    outfile << ";" << endl;
+	    outfile << "const int MUSIC_use_temperature_FO=1;" << endl;
       }
       else
       {
 	    outfile << "const double MUSIC_kinetic_FO_energy_density_in_GeV_over_fm3=" << DATA->eps_freeze_min << ";" << endl;
+	    outfile << "const int MUSIC_use_temperature_FO=0;" << endl;
       }
 
 	outfile << "const bool MUSIC_outputBinaryEvolution=" << DATA->outputBinaryEvolution << ";" << endl;
