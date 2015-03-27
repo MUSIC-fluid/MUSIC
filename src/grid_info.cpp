@@ -3229,7 +3229,7 @@ void Grid_info::Output_hydro_information_header(InitData *DATA, EOS *eos)
       }
       else
       {
-	    outfile << "const double MUSIC_kinetic_FO_energy_density_in_GeV_over_fm3=" << DATA->eps_freeze_min*hbarc << ";" << endl;
+	    outfile << "const double MUSIC_kinetic_FO_energy_density_in_GeV_over_fm3=" << DATA->eps_freeze_min << ";" << endl;
       }
 
 	outfile << "const bool MUSIC_outputBinaryEvolution=" << DATA->outputBinaryEvolution << ";" << endl;
