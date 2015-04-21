@@ -1181,7 +1181,8 @@ void EOS::init_eos10(int selector)
   
   // read the first two lines with general info:
   // first value of rhob, first value of epsilon
-  // deltaRhob, deltaEpsilon, number of rhob steps, number of epsilon steps
+  // deltaRhob, deltaEpsilon, number of rhob points, number of epsilon points
+  // the table size is (number of rhob points + 1, number of epsilon points + 1)
   eos_p1 >> BNP1 >> EPP1;
   eos_p1 >> deltaBNP1 >> deltaEPP1 >> NBNP1 >> NEPP1;
   eos_p2 >> BNP2 >> EPP2;
@@ -1213,7 +1214,11 @@ void EOS::init_eos10(int selector)
   eos_mub5 >> BNP5 >> EPP5;
   eos_mub5 >> deltaBNP5 >> deltaEPP5 >> NBNP5 >> NEPP5;
 
-  EPP6 = 1e4;  // take a large enough value to make sure only the first 5 tables will be used
+  // take a large enough value to make sure only the first 5 tables will be used
+  EPP6 = 1e4; deltaEPP6 = -10; NEPP6 = 1;
+  EPP7 = 1e4; deltaEPP7 = -10; NEPP7 = 1;
+  BNP6 = -BNP1; deltaBNP6 = -deltaBNP1; NBNP6 = NBNP1;
+  BNP7 = -BNP1; deltaBNP7 = -deltaBNP1; NBNP7 = NBNP1;
   double eps = 1e-15;
 
   // allocate memory for pressure arrays
@@ -2826,6 +2831,7 @@ double EOS::interpolate2D(double e, double rhob, int selector)
     int idx_nb = (int)((local_rhob - rhob0)/deltaRhob);
     double frac_rhob = (local_rhob - (idx_nb*deltaRhob + rhob0))/deltaRhob; 
 
+    // treatment for overflow, use the last two points to do extrapolation
     if(idx_e > (NEps - 1))
     {
         idx_e = NEps - 1;
@@ -2894,6 +2900,7 @@ double EOS::interpolate2D(double e, double rhob, int selector)
         result = (  (temp1*(1. - frac_e) + temp2*frac_e)*(1. - frac_rhob)
                   + (temp3*frac_e + temp4*(1. - frac_e))*frac_rhob);
     }
+    result = max(result, 1e-15);
     
     // convert back to fm unit
     switch (selector) 
@@ -3141,164 +3148,43 @@ double EOS::get_s2e(double s, double rhob)
 
 double EOS::get_s2e_finite_rhob(double s, double rhob)
 {
-   if(s < 1e-15 && rhob < 1e-15)
+   if(s < 1e-14 && rhob < 1e-15)
        return(1e-15);
-   double **entropy_array;
-   double eps0, rhob0, deltaEps, deltaRhob;
-   int NEps, Nrhob;
-   // first need to determine the table idx
-   double rhob_max;
-   double rhob_max_1 = BNP1 + deltaBNP1*NBNP1;
-   double rhob_max_2 = BNP2 + deltaBNP2*NBNP2;
-   double rhob_max_3 = BNP3 + deltaBNP3*NBNP3;
-   double rhob_max_4 = BNP4 + deltaBNP4*NBNP4;
-   double rhob_max_5 = BNP5 + deltaBNP5*NBNP5;
-   double rhob_max_6 = BNP6 + deltaBNP6*NBNP6;
-   double rhob_max_7 = BNP7 + deltaBNP7*NBNP7;
-
-   double eps_max_1 = (EPP1 + deltaEPP1*NEPP1)/hbarc;
-   double eps_max_2 = (EPP2 + deltaEPP2*NEPP2)/hbarc;
-   double eps_max_3 = (EPP3 + deltaEPP3*NEPP3)/hbarc;
-   double eps_max_4 = (EPP4 + deltaEPP4*NEPP4)/hbarc;
-   double eps_max_5 = (EPP5 + deltaEPP5*NEPP5)/hbarc;
-   double eps_max_6 = (EPP6 + deltaEPP6*NEPP6)/hbarc;
-   double eps_max_7 = (EPP7 + deltaEPP7*NEPP7)/hbarc;
-
-   int flag = 0;
-   if (rhob <= rhob_max_1)
+   // get entropy density using binary search
+   double eps_max = (EPP7 + deltaEPP7*NEPP7)/hbarc; // [1/fm^4]
+   double eps_lower = 1e-15;
+   double eps_upper = eps_max;
+   double eps_mid = (eps_upper + eps_lower)/2.;
+   double s_lower = get_entropy(eps_lower, rhob);
+   double s_upper = get_entropy(eps_upper, rhob);
+   int ntol = 1000;
+   if(s < s_lower || s > s_upper)
    {
-      if(flag == 0 && s < get_entropy(eps_max_1, rhob) && s > 0.0)   // entropy density is smaller than table 2
-      {
-          eps0 = EPP1;
-          NEps = NEPP1;
-	    deltaEps = deltaEPP1;
-          rhob0 = BNP1;
-	    Nrhob = NBNP1;
-	    deltaRhob = deltaBNP1;
-          entropy_array = entropyDensity1;
-          flag = 1;
-      }
-   }
-   if (rhob < rhob_max_2)
-   {
-      rhob_max = rhob_max_1;
-      if (flag == 0 && s < get_entropy(eps_max_2, rhob) && s > get_entropy(EPP2/hbarc, rhob))  // in table 2
-      {
-         eps0 = EPP2;
-         NEps = NEPP2;
-         deltaEps = deltaEPP2;
-         rhob0 = BNP2;
-         Nrhob = NBNP2;
-         deltaRhob = deltaBNP2;
-         entropy_array = entropyDensity2;
-         flag = 1;
-      }
-   }
-   if (rhob < rhob_max_3)
-   {
-      rhob_max = rhob_max_2;
-      if (flag == 0 && s < get_entropy(eps_max_3, rhob) && s > get_entropy(eps_max_2, rhob))  // in table 3
-      {
-         eps0 = EPP3;
-         NEps = NEPP3;
-         deltaEps = deltaEPP3;
-         rhob0 = BNP3;
-         Nrhob = NBNP3;
-         deltaRhob = deltaBNP3;
-         entropy_array = entropyDensity3;
-         flag = 1;
-      }
-   }
-   if (rhob < rhob_max_4)
-   {
-      if (flag == 0 && s < get_entropy(eps_max_4, rhob) && s > get_entropy(eps_max_3, rhob))  // in table 4
-      {
-         eps0 = EPP4;
-         NEps = NEPP4;
-         deltaEps = deltaEPP4;
-         rhob0 = BNP4;
-         Nrhob = NBNP4;
-         deltaRhob = deltaBNP4;
-         entropy_array = entropyDensity4;
-         flag = 1;
-      }
-   }
-   if (rhob < rhob_max_5)
-   {
-      if (flag == 0 && s < get_entropy(eps_max_5, rhob) && s > get_entropy(eps_max_4, rhob))  // in table 5
-      {
-         eps0 = EPP5;
-         NEps = NEPP5;
-         deltaEps = deltaEPP5;
-         rhob0 = BNP5;
-         Nrhob = NBNP5;
-         deltaRhob = deltaBNP5;
-         entropy_array = entropyDensity5;
-         flag = 1;
-      }
-   }
-   if (rhob < rhob_max_6)
-   {
-      if (flag == 0 && s < get_entropy(eps_max_6, rhob) && s > get_entropy(eps_max_5, rhob))  // in table 6
-      {
-         eps0 = EPP6;
-         NEps = NEPP6;
-         deltaEps = deltaEPP6;
-         rhob0 = BNP6;
-         Nrhob = NBNP6;
-         deltaRhob = deltaBNP6;
-         entropy_array = entropyDensity6;
-         flag = 1;
-      }
-   }
-   if (rhob < rhob_max_7)
-   {
-      if (flag == 0 && s < get_entropy(eps_max_7, rhob) && s > get_entropy(eps_max_6, rhob))  // in table 7
-      {
-         eps0 = EPP7;
-         NEps = NEPP7;
-         deltaEps = deltaEPP7;
-         rhob0 = BNP7;
-         Nrhob = NBNP7;
-         deltaRhob = deltaBNP7;
-         entropy_array = entropyDensity7;
-         flag = 1;
-      }
-   }
-   if(flag == 0)
-   {
-       fprintf(stderr, "Error: get_s2e_finite_rhob: can not find (s = %.5e, rhob = %.5e) \n", s, rhob);
+       fprintf(stderr, "get_s2e_finite_rhob:: s is out of bound, s = %.5e, s_upper = %.5e, s_lower = %.5e \n", s, s_upper, s_lower);
        exit(1);
    }
-
-   int rhob_idx = (int)((rhob - rhob0)/deltaRhob);
-   double rhob_frac = rhob - (rhob0 + rhob_idx*deltaRhob);
-   
-   int idx_e_1 = NEps;
-   int idx_e_2 = NEps;
-   for(int i = 0; i < NEps; i++)
+   double rel_accuracy = 1e-8;
+   double abs_accuracy = 1e-15;
+   double s_mid;
+   int iter = 0;
+   while(((eps_upper - eps_lower)/eps_mid > rel_accuracy && (eps_upper - eps_lower) > abs_accuracy) && iter < ntol)
    {
-      if(s < entropy_array[rhob_idx][i])
-      {
-         idx_e_1 = i;
-         break;
-      }
+       s_mid = get_entropy(eps_mid, rhob);
+       if(s < s_mid)
+           eps_upper = eps_mid;
+       else 
+           eps_lower = eps_mid;
+       eps_mid = (eps_upper + eps_lower)/2.;
+       iter++;
    }
-   for(int i = 0; i < NEps; i++)
+   if(iter == ntol)
    {
-      if(s < entropy_array[rhob_idx+1][i])
-      {
-         idx_e_2 = i;
-         break;
-      }
+       fprintf(stderr, "get_s2e_finite_rhob:: max iteration reached, s = %.5e, rhob = %.5e \n", s, rhob);
+       fprintf(stderr, "s_upper = %.5e, s_lower = %.5e \n", get_entropy(eps_upper, rhob), get_entropy(eps_lower, rhob));
+       fprintf(stderr, "eps_upper = %.5e, eps_lower = %.5e, diff = %.10e \n", eps_upper, eps_lower, (eps_upper - eps_lower));
+       exit(1);
    }
-
-   double e1 = (eps0 + idx_e_1*deltaEps)/hbarc;    // 1/fm^4
-   double e2 = (eps0 + idx_e_2*deltaEps)/hbarc;    // 1/fm^4
-
-   double local_e = e2*rhob_frac/deltaRhob + e1*(1. - rhob_frac/deltaRhob);
-
-   return(local_e);
+   return(eps_mid);
 }
 
 double EOS::get_rhob_from_mub(double e, double mub)

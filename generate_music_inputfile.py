@@ -21,7 +21,7 @@ class color:
 
 initial_condition_dict.update({
     'Initial_profile': 11,          # type of initial condition
-    'initialize_with_entropy': 0,   # 0: with energy density, 1: with entropy density
+    'initialize_with_entropy': 1,   # 0: with energy density, 1: with entropy density
     'Initial_Distribution_Filename': 'initial/edAvg_order_2_C0-5.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_fromEd_order_2_C0-5.dat',
@@ -44,7 +44,7 @@ hydro_dict.update({
     'Delta_Tau': 0.04,           # time step to use in the evolution [fm/c]
 
     'Eta_grid_size': 8.0,       # spatial rapidity range
-    'Grid_size_in_eta': 8,       # number of the grid points in spatial rapidity direction
+    'Grid_size_in_eta': 4,       # number of the grid points in spatial rapidity direction
     'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
     'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
     'Grid_size_in_y': 260,       # number of the grid points in y direction
@@ -66,7 +66,7 @@ hydro_dict.update({
     'Bulk_relaxation_time_tau_b_pi': 0.6,   # bulk relation time
     'Shear_relaxation_time_tau_pi': 0.01,   # shear relation time
 
-    'output_evolution_data': 1,             # flag to output evolution history to file
+    'output_evolution_data': 0,             # flag to output evolution history to file
     'output_hydro_params_header' : 1,       # flag to output hydro evolution information header
     'outputBinaryEvolution': 1,             # flag to output evolution history in binary format
     'output_evolution_every_N_timesteps' : 1,     # number of points to skip in tau direction for hydro evolution
