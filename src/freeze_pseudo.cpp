@@ -2248,6 +2248,18 @@ double Freeze::get_deltaf_qmu_coeff(double T, double muB)
     int idx_mu = (int)((muB - delta_qmu_coeff_table_mu0)/delta_qmu_coeff_table_dmu);
     double x_fraction = (T - delta_qmu_coeff_table_T0)/delta_qmu_coeff_table_dT - idx_T;
     double y_fraction = (muB - delta_qmu_coeff_table_mu0)/delta_qmu_coeff_table_dmu - idx_mu;
+
+    //avoid overflow
+    if(idx_mu > deltaf_qmu_coeff_table_length_mu - 2)
+        return(1e30);
+    if(idx_T > deltaf_qmu_coeff_table_length_T - 2)
+        return(1e30);
+    
+    // avoid underflow
+    if(idx_mu < 0)
+        return(1e30);
+    if(idx_T < 0)
+        return(1e30);
     
     double f1 = deltaf_qmu_coeff_tb[idx_T][idx_mu];
     double f2 = deltaf_qmu_coeff_tb[idx_T][idx_mu+1];
