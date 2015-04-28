@@ -3120,14 +3120,22 @@ double EOS::get_s2e(double s, double rhob)
    int status;
    
    if (whichEOS==0)
-      e=s2e_ideal_gas(s);
+      e = s2e_ideal_gas(s);
    else if (whichEOS>=2 && whichEOS<=6)
    {
-      status=gsl_interp_eval_e(interp_s2e, s_list_rho0, eps_list_rho0, s, accel_s2e, &e);
-      if (status == GSL_EDOM)
+      if(s < entropyDensity1[0][0])
       {
-         cerr << "Error: can't get energy from entropy, entropy s="<<s<<" fm^-3 is outside the current tabulation of the EOS...\n";
-         exit(1);
+         double frac = s/entropyDensity1[0][0];
+         e = frac*EPP1;
+      }
+      else
+      {
+         status = gsl_interp_eval_e(interp_s2e, s_list_rho0, eps_list_rho0, s, accel_s2e, &e);
+         if (status == GSL_EDOM)
+         {
+            cerr << "Error: can't get energy from entropy, entropy s="<<s<<" fm^-3 is outside the current tabulation of the EOS...\n";
+            exit(1);
+         }
       }
    }
    else if (whichEOS == 10)
