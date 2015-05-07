@@ -422,29 +422,43 @@ def print_help_message():
           + "  specify the centrality bin: "
           + color.bold + "0-5 [default]" + color.end
           + color.purple + ', e.g. 20-30' + color.end)
+    print(color.bold + "-evo" + color.end
+          + "   switch to output the hydro evolution history file (0 or 1)\n"
+          + color.bold + "       evo = 0 [default]" + color.end)
+    print(color.bold + "-tau0" + color.end
+          + "   the starting time for hydrodynamic evolution [fm/c]\n"
+          + color.bold + "       tau_0 = 0.6 [default]" + color.end)
     print(color.bold + "-h | -help" + color.end + "    This message")
 
 
-if __name__ == "__main__":
+def read_in_parameters_from_command_line():
     while len(sys.argv) > 1:
         option = sys.argv[1]
         del sys.argv[1]
-        if option == '-cen':
+        if option == '-cen':            # centrality 
             centrality = str(sys.argv[1])
             del sys.argv[1]
             initial_condition_dict.update({
                 'Initial_Distribution_Filename':
-                    'initial/edAvg_order_2_C%s.dat' % centrality,
+                    'initial/sdAvg_order_2_C%s.dat' % centrality,
                 'Initial_Rhob_Distribution_Filename':
-                    'initial/rhob_fromEd_order_2_C%s.dat' % centrality,})
-        elif option == '-shear_vis':
+                    'initial/rhob_fromSd_order_2_C%s.dat' % centrality,})
+        elif option == '-shear_vis':    # shear viscosity
             vis = float(sys.argv[1])
             del sys.argv[1]
             hydro_dict.update({'Shear_to_S_ratio': vis,})
-        elif option == '-EOS':
+        elif option == '-EOS':          # EOS
             eos_type = int(sys.argv[1])
             del sys.argv[1]
-            hydro_dict.update({'EOS_to_use': 10,})
+            hydro_dict.update({'EOS_to_use': eos_type,})
+        elif option == '-evo':          # output hydro evolution file
+            evo_type = int(sys.argv[1])
+            del sys.argv[1]
+            hydro_dict.update({'output_evolution_data': evo_type,})
+        elif option == '-tau0':         # hydro start time
+            tau0 = float(sys.argv[1])
+            del sys.argv[1]
+            hydro_dict.update({'Initial_time_tau_0': tau0,})
         elif option == '-h':
             print_help_message()
             sys.exit(0)
@@ -452,6 +466,11 @@ if __name__ == "__main__":
             print sys.argv[0], ': invalid option', option
             print_help_message()
             sys.exit(1)
+    
+
+
+if __name__ == "__main__":
+    read_in_parameters_from_command_line()
 
     generate_music_input_file(1, 1)
     generate_submit_script(1, 1)
