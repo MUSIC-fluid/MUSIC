@@ -1904,6 +1904,8 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag)
   {
     fprintf(stderr, "SpeedMax = %e\n is bigger than 1.\n", f);
     fprintf(stderr, "Can't happen.\n");
+    fprintf(stderr, "SpeedMax = num/den, num = %e, den = %e \n", num, den);
+    fprintf(stderr, "cs2 = %e \n", vs2);
     f =1.;
     exit(0);
   }

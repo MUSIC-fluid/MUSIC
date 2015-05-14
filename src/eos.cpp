@@ -1514,7 +1514,22 @@ void EOS::init_eos11(int selector)
   eos_mus4 >> BNP4 >> EPP4;
   eos_mus4 >> deltaBNP4 >> NBNP4 >> deltaEPP4 >> NEPP4;
 
+  NBNP1 = NBNP1 - 1;
+  NBNP2 = NBNP2 - 1;
+  NBNP3 = NBNP3 - 1;
+  NBNP4 = NBNP4 - 1;
+  NEPP1 = NEPP1 - 1;
+  NEPP2 = NEPP2 - 1;
+  NEPP3 = NEPP3 - 1;
+  NEPP4 = NEPP4 - 1;
+
   EPP5 = 1e4;  // take a large enough value to make sure only the first 5 tables will be used
+  
+  EPP6 = 1e4; deltaEPP6 = -10; NEPP6 = 1;
+  EPP7 = 1e4; deltaEPP7 = -10; NEPP7 = 1;
+  BNP6 = -BNP1; deltaBNP6 = -deltaBNP1; NBNP6 = NBNP1;
+  BNP7 = -BNP1; deltaBNP7 = -deltaBNP1; NBNP7 = NBNP1;
+  double eps = 1e-15;
 
   // allocate memory for pressure arrays
   pressure1=util->mtx_malloc(NBNP1+1, NEPP1+1);
@@ -1553,51 +1568,55 @@ void EOS::init_eos11(int selector)
   cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
 
   // read pressure, temperature and chemical potential values
-  for(int j = NEPP1-1; j >= 0; j--)
+  for(int j = NEPP1; j >= 0; j--)
   {
-    for(int i = 0; i < NBNP1; i++)
+    for(int i = 0; i < NBNP1+1; i++)
     {
       eos_p1 >> pressure1[i][j];
       eos_s1 >> entropyDensity1[i][j];
       eos_T1 >> temperature1[i][j];
       eos_mub1 >> mu1[i][j];
       eos_mus1 >> mus1[i][j];
+      entropyDensity1[i][j] = max(entropyDensity1[i][j], eps);
     }
   }
   
-  for(int j = NEPP2-1; j >= 0; j--)
+  for(int j = NEPP2; j >= 0; j--)
   {
-    for(int i = 0; i < NBNP2; i++)
+    for(int i = 0; i < NBNP2+1; i++)
     {
       eos_p2 >> pressure2[i][j];
       eos_s2 >> entropyDensity2[i][j];
       eos_T2 >> temperature2[i][j];
       eos_mub2 >> mu2[i][j];
       eos_mus2 >> mus2[i][j];
+      entropyDensity2[i][j] = max(entropyDensity2[i][j], eps);
     }
   }
   
-  for(int j = NEPP3-1; j >= 0; j--)
+  for(int j = NEPP3; j >= 0; j--)
   {
-    for(int i = 0; i < NBNP3; i++)
+    for(int i = 0; i < NBNP3+1; i++)
     {
       eos_p3 >> pressure3[i][j];
       eos_s3 >> entropyDensity3[i][j];
       eos_T3 >> temperature3[i][j];
       eos_mub3 >> mu3[i][j];
       eos_mus3 >> mus3[i][j];
+      entropyDensity3[i][j] = max(entropyDensity3[i][j], eps);
     }
   }
   
-  for(int j = NEPP4-1; j >= 0; j--)
+  for(int j = NEPP4; j >= 0; j--)
   {
-    for(int i = 0; i < NBNP4; i++)
+    for(int i = 0; i < NBNP4+1; i++)
     {
       eos_p4 >> pressure4[i][j];
       eos_s4 >> entropyDensity4[i][j];
       eos_T4 >> temperature4[i][j];
       eos_mub4 >> mu4[i][j];
       eos_mus4 >> mus4[i][j];
+      entropyDensity4[i][j] = max(entropyDensity4[i][j], eps);
     }
   }
   
@@ -2226,6 +2245,15 @@ double EOS::get_dpOverde2(double e, double rhob)
       
    double dpde = (pR - pL)*hbarc/(eRight - eLeft);
       
+   //if(dpde > 1./3.) 
+   //{ 
+   //    fprintf(stderr, "dp/de=%lf\n", dpde); 
+   //    fprintf(stderr, "pL=%lf\n", pL); 
+   //    fprintf(stderr, "pR=%lf\n", pR); 
+   //    fprintf(stderr, "e=%lf\n", e/hbarc);  
+   //    fprintf(stderr, "eLeft=%lf\n", eLeft/hbarc);  
+   //    fprintf(stderr, "eRight=%lf\n", eRight/hbarc);  
+   //} 
    //if(dpde < 0) 
    //{ 
    //    fprintf(stderr, "dp/de=%lf\n", dpde); 
@@ -2372,6 +2400,7 @@ void EOS::fill_cs2_matrix(double e0, double de, int ne, double rhob0, double drh
 double EOS::calculate_velocity_of_sound_sq(double e, double rhob)
 {
     double v_min = 0.01;
+    double v_max = 1./3;
     double dpde = p_e_func(e, rhob);
     double dpdrho = p_rho_func(e, rhob);
     double pressure = get_pressure(e, rhob);
@@ -2379,6 +2408,18 @@ double EOS::calculate_velocity_of_sound_sq(double e, double rhob)
 
     if(v_sound < v_min)
         v_sound = v_min;
+    if(v_sound > v_max)
+    {
+        //fprintf(stderr, "EOS::get_velocity_of_sound:velocity of sound is larger than 1/3!\n");
+        //fprintf(stderr, "v_sound = %lf \n", v_sound);
+        //fprintf(stderr, "e = %lf \n", e*hbarc);
+        //fprintf(stderr, "rhob = %lf \n", rhob);
+        //fprintf(stderr, "pressure = %lf \n", pressure);
+        //fprintf(stderr, "dP/de = %lf \n", dpde);
+        //fprintf(stderr, "dP/drho = %lf \n", dpdrho);
+        //exit(0);
+        v_sound = v_max;
+    }
     /*
     if(v_sound < 0.)
     {
