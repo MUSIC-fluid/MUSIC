@@ -156,24 +156,6 @@ int main(int argc, char *argv[])
       if (rank == 0)
 	cout << "Using lattice EOS from Pasi" << endl;
       eos->init_eos11(0);
-      ofstream check_eos("check_eos_pasi.dat");
-      double e0 = 0.01;
-      double ef = 10.0;
-      int ne = 1000;
-      double de = (ef - e0)/(ne - 1);
-      double rhob_local = 0.0;
-      for(int i = 0; i < ne; i++)
-      {
-          double ed_local = e0 + i*de;
-          double pressure = eos->get_pressure(ed_local, rhob_local);
-          double entropy = eos->get_entropy(ed_local, rhob_local);
-          double temperature = eos->get_temperature(ed_local, rhob_local);
-          check_eos << scientific << setw(18) << setprecision(8)
-                    << ed_local << "   " << pressure << "   " 
-                    << entropy << "   " << temperature << endl;
-      }
-      check_eos.close();
-      exit(0);
     }
   else 
     {

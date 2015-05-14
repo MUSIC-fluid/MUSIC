@@ -1553,9 +1553,9 @@ void EOS::init_eos11(int selector)
   cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
 
   // read pressure, temperature and chemical potential values
-  for(int j = NEPP1; j < 0; j--)
+  for(int j = NEPP1-1; j >= 0; j--)
   {
-    for(int i = 0; i < NBNP1 + 1; i++)
+    for(int i = 0; i < NBNP1; i++)
     {
       eos_p1 >> pressure1[i][j];
       eos_s1 >> entropyDensity1[i][j];
@@ -1565,9 +1565,9 @@ void EOS::init_eos11(int selector)
     }
   }
   
-  for(int j = NEPP2; j < 0; j--)
+  for(int j = NEPP2-1; j >= 0; j--)
   {
-    for(int i = 0; i < NBNP2 + 1; i++)
+    for(int i = 0; i < NBNP2; i++)
     {
       eos_p2 >> pressure2[i][j];
       eos_s2 >> entropyDensity2[i][j];
@@ -1577,9 +1577,9 @@ void EOS::init_eos11(int selector)
     }
   }
   
-  for(int j = NEPP3; j < 0; j--)
+  for(int j = NEPP3-1; j >= 0; j--)
   {
-    for(int i = 0; i < NBNP3 + 1; i++)
+    for(int i = 0; i < NBNP3; i++)
     {
       eos_p3 >> pressure3[i][j];
       eos_s3 >> entropyDensity3[i][j];
@@ -1589,9 +1589,9 @@ void EOS::init_eos11(int selector)
     }
   }
   
-  for(int j = NEPP4; j < 0; j--)
+  for(int j = NEPP4-1; j >= 0; j--)
   {
-    for(int i = 0; i < NBNP4 + 1; i++)
+    for(int i = 0; i < NBNP4; i++)
     {
       eos_p4 >> pressure4[i][j];
       eos_s4 >> entropyDensity4[i][j];

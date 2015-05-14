@@ -22,10 +22,10 @@ class color:
 initial_condition_dict.update({
     'Initial_profile': 11,          # type of initial condition
     'initialize_with_entropy': 1,   # 0: with energy density, 1: with entropy density
-    'Initial_Distribution_Filename': 'initial/edAvg_order_2_C0-5.dat',
+    'Initial_Distribution_Filename': 'initial/sdAvg_order_2_C0-5.dat',
     'Initial_Rhob_Distribution_Filename':
-        'initial/rhob_fromEd_order_2_C0-5.dat',
-    's_factor': 28,   # normalization factor read in initial data file
+        'initial/rhob_fromSd_order_2_C0-5.dat',
+    's_factor': 28.0,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
     'Eta_plateau_size': 3.0,          # size of the plateau in eta_s direction
@@ -50,7 +50,7 @@ hydro_dict.update({
     'Grid_size_in_y': 260,       # number of the grid points in y direction
     'Grid_size_in_x': 260,       # number of the grid points in x direction
 
-    'EOS_to_use': 10,        # type of the equation of state
+    'EOS_to_use': 11,        # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
     'boost_invariant': 0,    # initial condition is boost invariant
 
@@ -62,7 +62,7 @@ hydro_dict.update({
     'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect
     'Bulk_to_S_ratio': 0.1,                 # value of \zeta/s
     'Include_Rhob_Yes_1_No_0': 1,           # turn on propagation of baryon current
-    'turn_on_baryon_diffusion': 1,          # turn on baryon current diffusion
+    'turn_on_baryon_diffusion': 0,          # turn on baryon current diffusion
     'Bulk_relaxation_time_tau_b_pi': 0.6,   # bulk relation time
     'Shear_relaxation_time_tau_pi': 0.01,   # shear relation time
 
@@ -82,8 +82,8 @@ freeze_out_dict.update({
     'average_surface_over_this_many_time_steps': 5,   # the step skipped in the tau direction
     'Ncell_skip_x': 5,              # the step skipped in x direction
     'Ncell_skip_y': 5,              # the step skipped in y direction
-    'N_freeze_out': 5,              # number of freeze-out surfaces
-    'eps_freeze_max': 0.508,        # the maximum freeze-out energy density (GeV/fm^3)
+    'N_freeze_out': 14,              # number of freeze-out surfaces
+    'eps_freeze_max': 0.750,        # the maximum freeze-out energy density (GeV/fm^3)
     'eps_freeze_min': 0.100,        # the minimum freeze-out energy density (GeV/fm^3)
 
     'Include_deltaf': 1,        # flag to include delta f correction in Cooper-Frye formula
