@@ -31,9 +31,9 @@ initial_condition_dict.update({
     'Eta_plateau_size': 3.0,          # size of the plateau in eta_s direction
     'Eta_fall_off': 0.2,              # the scale of the fall off of the plateau in eta_s direction
     'initial_eta_rhob_profile': 2,    # type of the envelope profile for rho_B's eta_s distribution
-    'eta_rhob_0': 1.5,                # peak position of rho_B in eta_s direction
+    'eta_rhob_0': 3.5,                # peak position of rho_B in eta_s direction
     'eta_rhob_width': 1.0,            # the width of the Gaussian (for initial_eta_rhob_profile == 1)
-    'eta_rhob_plateau_height': 0.5,   # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
+    'eta_rhob_plateau_height': 0.13,   # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
     'eta_rhob_width_1': 0.2,          # the width of the Gaussian for the outside tail (for initial_eta_rhob_profile == 2)
     'eta_rhob_width_2': 0.7,          # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
 })
@@ -50,7 +50,7 @@ hydro_dict.update({
     'Grid_size_in_y': 260,       # number of the grid points in y direction
     'Grid_size_in_x': 260,       # number of the grid points in x direction
 
-    'EOS_to_use': 11,        # type of the equation of state
+    'EOS_to_use': 10,        # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
     'boost_invariant': 0,    # initial condition is boost invariant
 

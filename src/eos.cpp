@@ -3198,7 +3198,7 @@ double EOS::get_s2e(double s, double rhob)
 double EOS::get_s2e_finite_rhob(double s, double rhob)
 {
    if(s < 1e-14) return(1e-15);
-   // get entropy density using binary search
+   // get energy density using binary search
    double eps_max = (EPP7 + deltaEPP7*NEPP7)/hbarc; // [1/fm^4]
    double eps_lower = 1e-15;
    double eps_upper = eps_max;

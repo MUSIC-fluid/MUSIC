@@ -3093,19 +3093,18 @@ else if (DATA->Initial_profile==11) //read in the transverse profile from file
                       //(*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
 		       }/* nu */
 		   }/* mu */
-		 
 	       }
-          }
-       }/* ix, iy, ieta */
+         }
+     }/* ix, iy, ieta */
        
-       // clean up
-       for(int i = 0; i < nx+1; i++)
-       {
-           delete[] temp_profile_ed[i];
-           delete[] temp_profile_rhob[i];
-       }
-       delete[] temp_profile_ed;
-       delete[] temp_profile_rhob;
+     // clean up
+     for(int i = 0; i < nx+1; i++)
+     {
+         delete[] temp_profile_ed[i];
+         delete[] temp_profile_rhob[i];
+     }
+     delete[] temp_profile_ed;
+     delete[] temp_profile_rhob;
    }
 
 
