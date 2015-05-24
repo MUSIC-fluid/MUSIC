@@ -505,9 +505,9 @@ double term1_Wsigma, term2_Wsigma;
 /// ////////////////////////////////////////////////////////////////////// ///
 
 /// Comment the appropriate line in order to include the corresponding new term
-WW_term=0.;
-Vorticity_term = 0.;
-Wsigma_term = 0.;
+//WW_term=0.;
+//Vorticity_term = 0.;
+//Wsigma_term = 0.;
 
 
 /// final answer is
@@ -1013,155 +1013,162 @@ void Diss::Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor
 
 
 
-int Diss::Make_uPRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
-		     Grid *Lneighbor2, Grid *Rneighbor2, double *p_rhs, InitData *DATA, int rk_flag, int size, int rank)
+int Diss::Make_uPRHS(
+    double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
+    Grid *Lneighbor2, Grid *Rneighbor2, double *p_rhs, InitData *DATA, 
+    int rk_flag, int size, int rank)
 {
- int direc, nmax[4];
- double f, fp1, fm1, fp2, fm2, delta[4];
-//  double ux;
- double g, gp1, gm1, gp2, gm2, a, am1, ap1, ax;
- double uPiphR, uPiphL, uPimhR, uPimhL, PiphR, PiphL, PimhR, PimhL;
- double HPiph, HPimh, taufactor, HPi;
- double sum;
- double bulk_on;
+    int direc, nmax[4];
+    double f, fp1, fm1, fp2, fm2, delta[4];
+    //double ux;
+    double g, gp1, gm1, gp2, gm2, a, am1, ap1, ax;
+    double uPiphR, uPiphL, uPimhR, uPimhL, PiphR, PiphL, PimhR, PimhL;
+    double HPiph, HPimh, taufactor, HPi;
+    double sum;
+    double bulk_on;
 
-/* Kurganov-Tadmor for Pi */
-/* implement 
-  partial_tau (utau Pi) + (1/tau)partial_eta (ueta Pi) 
-  + partial_x (ux Pi) + partial_y (uy Pi) + utau Pi/tau = SP 
-  or the right hand side of
-  partial_tau (utau Pi) = -
-  (1/tau)partial_eta (ueta Pi) - partial_x (ux Pi) - partial_y (uy Pi)
-  - utau Pi/tau + SP 
-  */
+    /* Kurganov-Tadmor for Pi */
+    /* implement 
+      partial_tau (utau Pi) + (1/tau)partial_eta (ueta Pi) 
+      + partial_x (ux Pi) + partial_y (uy Pi) + utau Pi/tau = SP 
+      or the right hand side of
+      partial_tau (utau Pi) = -
+      (1/tau)partial_eta (ueta Pi) - partial_x (ux Pi) - partial_y (uy Pi)
+      - utau Pi/tau + SP 
+      */
+    
+    /* the local velocity is just u_x/u_tau, u_y/u_tau, u_eta/tau/u_tau */
+    /* KT flux is given by 
+       H_{j+1/2} = (fRph + fLph)/2 - ax(uRph - uLph) 
+       Here fRph = ux PiRph and ax uRph = |ux/utau|_max utau Pin */
+    
+    /* This is the second step in the operator splitting. it uses
+       rk_flag+1 as initial condition */
 
-/* the local velocity is just u_x/u_tau, u_y/u_tau, u_eta/tau/u_tau */
-/* KT flux is given by 
-   H_{j+1/2} = (fRph + fLph)/2 - ax(uRph - uLph) 
-   Here fRph = ux PiRph and ax uRph = |ux/utau|_max utau Pin */
+    nmax[1] = DATA->nx;
+    nmax[2] = DATA->ny;
+    nmax[3] = DATA->neta-1;
 
-/* This is the second step in the operator splitting. it uses
-   rk_flag+1 as initial condition */
+    delta[1] = DATA->delta_x;
+    delta[2] = DATA->delta_y;
+    delta[3] = DATA->delta_eta;
 
- nmax[1] = DATA->nx;
- nmax[2] = DATA->ny;
- nmax[3] = DATA->neta-1;
-
- delta[1] = DATA->delta_x;
- delta[2] = DATA->delta_y;
- delta[3] = DATA->delta_eta;
-
- if(DATA->turn_on_bulk) bulk_on = 1.0;
- else bulk_on = 0.0;
+    if(DATA->turn_on_bulk)
+        bulk_on = 1.0;
+    else 
+        bulk_on = 0.0;
 
      sum = 0.0;
      for(direc=1; direc<=3; direc++)
-      {
-       if(direc==3) taufactor = tau;
-       else taufactor = 1.0;
+     {
+         if(direc==3) 
+            taufactor = tau;
+         else 
+            taufactor = 1.0;
 
-/* Get_uPis */
-       Get_uPis(tau, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, direc, &g, &f, &gp1, &fp1, &gp2, &fp2, 
-		&gm1, &fm1, &gm2, &fm2, DATA, rk_flag, size, rank);
+         /* Get_uPis */
+         Get_uPis(tau, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, 
+                  direc, &g, &f, &gp1, &fp1, &gp2, &fp2, 
+		      &gm1, &fm1, &gm2, &fm2, DATA, rk_flag, size, rank);
 
-/*  Make upi Halfs */
-/* uPi */
-       uPiphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f); 
-       uPiphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1);
-       uPimhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1);
-       uPimhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2);
+         /*  Make upi Halfs */
+         /* uPi */
+         uPiphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f); 
+         uPiphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1);
+         uPimhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1);
+         uPimhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2);
 
-/* just Pi */
-       PiphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g); 
-       PiphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1);
-       PimhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1);
-       PimhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2);
+         /* just Pi */
+         PiphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g); 
+         PiphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1);
+         PimhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1);
+         PimhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2);
 
-/* MakePimnCurrents following Kurganov-Tadmor */
+         /* MakePimnCurrents following Kurganov-Tadmor */
     
-       a = fabs(grid_pt->u[rk_flag][direc]);
-       a /= grid_pt->u[rk_flag][0];
+         a = fabs(grid_pt->u[rk_flag][direc]);
+         a /= grid_pt->u[rk_flag][0];
   
-       if (direc<3) // x,y direction
-	 {
-	   if(grid_pt->position[direc] == 0)
-	     {
-	       am1 = a;
-	     }
-	   else
-	     {
-	       am1 = fabs(grid_pt->nbr_m_1[direc]->u[rk_flag][direc]);
-	       am1 /= grid_pt->nbr_m_1[direc]->u[rk_flag][0];
-	     }
-	   
-	   if(grid_pt->position[direc] == nmax[direc])
-	     {
-	       ap1 = a;
-	     }
-	   else
-	     {
-	       ap1 = fabs(grid_pt->nbr_p_1[direc]->u[rk_flag][direc]);
-	       ap1 /= grid_pt->nbr_p_1[direc]->u[rk_flag][0];
-	     } 
-	 }
-       else if (direc==3) // eta direction
-	 {
-	   if(grid_pt->position[direc] == 0)
-	     {
-	       if (rank==0) // for left most rank use boundary conditions
-		 {
-		   am1 = a;
-		 }
-	       else // use value from neighboring CPU for all other ranks 
-		 {
-		   am1 = fabs(Lneighbor->u[rk_flag][direc]);
-		   am1 /= Lneighbor->u[rk_flag][0];
-		 }
-	     }
-	   else
-	     {
-	       am1 = fabs(grid_pt->nbr_m_1[direc]->u[rk_flag][direc]);
-	       am1 /= grid_pt->nbr_m_1[direc]->u[rk_flag][0];
-	     }
+         if (direc<3) // x,y direction
+	   {
+	       if(grid_pt->position[direc] == 0)
+	       {
+	         am1 = a;
+	       }
+	       else
+	       {
+	         am1 = fabs(grid_pt->nbr_m_1[direc]->u[rk_flag][direc]);
+	         am1 /= grid_pt->nbr_m_1[direc]->u[rk_flag][0];
+	       }
 	     
-	   
-	   if(grid_pt->position[direc] == nmax[direc])
-	     {
-	       if (rank == size-1) // for right most CPU use boundary conditions
-		 {
-		   ap1 = a;
-		 }
-	       else // use value from neighboring CPU for all other ranks 
-		 {
-		   ap1 = fabs(Rneighbor->u[rk_flag][direc]);
-		   ap1 /= Rneighbor->u[rk_flag][0];
-		 }
-	     }
-	   else // usual case (not at a boundary)
-	     {
-	       ap1 = fabs(grid_pt->nbr_p_1[direc]->u[rk_flag][direc]);
-	       ap1 /= grid_pt->nbr_p_1[direc]->u[rk_flag][0];
-	     } 
-	 }
-       ax = maxi(a, ap1);
-       HPiph = ((uPiphR + uPiphL) - ax*(PiphR - PiphL))*0.5;
-       
-       ax = maxi(a, am1); 
-       HPimh = ((uPimhR + uPimhL) - ax*(PimhR - PimhL))*0.5;
+	       if(grid_pt->position[direc] == nmax[direc])
+	       {
+	         ap1 = a;
+	       }
+	       else
+	       {
+	         ap1 = fabs(grid_pt->nbr_p_1[direc]->u[rk_flag][direc]);
+	         ap1 /= grid_pt->nbr_p_1[direc]->u[rk_flag][0];
+	       } 
+	   }
+         else if (direc==3) // eta direction
+	   {
+	       if(grid_pt->position[direc] == 0)
+	       {
+	         if (rank==0) // for left most rank use boundary conditions
+	         {
+	           am1 = a;
+	         }
+	         else // use value from neighboring CPU for all other ranks 
+	         {
+	           am1 = fabs(Lneighbor->u[rk_flag][direc]);
+	           am1 /= Lneighbor->u[rk_flag][0];
+	         }
+	       }
+	       else
+	       {
+	         am1 = fabs(grid_pt->nbr_m_1[direc]->u[rk_flag][direc]);
+	         am1 /= grid_pt->nbr_m_1[direc]->u[rk_flag][0];
+	       }
+	       
+	     
+	       if(grid_pt->position[direc] == nmax[direc])
+	       {
+	         if (rank == size-1) // for right most CPU use boundary conditions
+	         {
+	           ap1 = a;
+	         }
+	         else // use value from neighboring CPU for all other ranks 
+	         {
+	           ap1 = fabs(Rneighbor->u[rk_flag][direc]);
+	           ap1 /= Rneighbor->u[rk_flag][0];
+	         }
+	       }
+	       else // usual case (not at a boundary)
+	       {
+	         ap1 = fabs(grid_pt->nbr_p_1[direc]->u[rk_flag][direc]);
+	         ap1 /= grid_pt->nbr_p_1[direc]->u[rk_flag][0];
+	       } 
+	   }
+         ax = maxi(a, ap1);
+         HPiph = ((uPiphR + uPiphL) - ax*(PiphR - PiphL))*0.5;
+         
+         ax = maxi(a, am1); 
+         HPimh = ((uPimhR + uPimhL) - ax*(PimhR - PimhL))*0.5;
       
-       HPi = (HPiph - HPimh)/delta[direc]/taufactor;
+         HPi = (HPiph - HPimh)/delta[direc]/taufactor;
 
-/* make partial_i (u^i Pi) */
-       sum += -HPi;
+         /* make partial_i (u^i Pi) */
+         sum += -HPi;
 
-      }/* direction */
+     }/* direction */
        
-/* add a source term due to the coordinate change to tau-eta */
+     /* add a source term due to the coordinate change to tau-eta */
      sum -= (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0])/tau;
 
      *p_rhs = sum*(DATA->delta_tau)*bulk_on;
 
- return 1; /* if successful */
+     return 1; /* if successful */
 }/* Make_uPRHS */
 
 
@@ -1459,33 +1466,92 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor,
 }/* Get_uPis */
 
 
-double Diss::Make_uPiSource
-(double tau, Grid *grid_pt, InitData *DATA, int rk_flag)
+double Diss::Make_uPiSource(
+    double tau, Grid *grid_pt, InitData *DATA, int rk_flag)
 {
- double tempf;
- double shear, bulk;
- double Bulk_Relax_time, transport_coeff1, transport_coeff2, transport_coeff1_s, transport_coeff2_s;
- double NS_term, BB_term;
- double Final_Answer;
+    double tempf;
+    double shear, bulk;
+    double Bulk_Relax_time;
+    double transport_coeff1, transport_coeff2;
+    double transport_coeff1_s, transport_coeff2_s;
+    double NS_term, BB_term;
+    double Final_Answer;
  
-
-/// Useful variables to define
-double gamma, ueta, cs2;
-gamma = grid_pt->u[rk_flag][0];
-ueta  = grid_pt->u[rk_flag][3];
-
+    // Useful variables to define
+    double gamma, ueta, cs2;
+    gamma = grid_pt->u[rk_flag][0];
+    ueta  = grid_pt->u[rk_flag][3];
 
     if(DATA->turn_on_bulk == 0) return 0.0;
 
-    /// defining bulk viscosity coefficient
+    // defining bulk viscosity coefficient
     //s_den = eos->get_entropy(grid_pt->epsilon, grid_pt->rhob);
     //shear = (DATA->shear_to_s)*s_den;                   // shear viscosity = constant * entropy density
     double temperature = eos->get_temperature(grid_pt->epsilon, grid_pt->rhob);
     shear = (DATA->shear_to_s)*(grid_pt->epsilon + grid_pt->p)/temperature;  // shear viscosity = constant * (e + P)/T
-    //cs2 = eos->p_e_func(grid_pt->epsilon, grid_pt->rhob);    // cs2 is the velocity of sound squared
     cs2 = eos->get_cs2(grid_pt->epsilon, grid_pt->rhob);  // cs2 is the velocity of sound squared
-    bulk = (DATA->bulk_to_s)*shear*(1./3.-cs2)*(1./3.-cs2);  // bulk viscosity = constant * shear viscosity * (1/3-cs2)**2
-   // parameter DATA->bulk_to_s should be between 15 -- 75
+    //bulk = (DATA->bulk_to_s)*shear*(1./3.-cs2)*(1./3.-cs2);  // bulk viscosity = constant * shear viscosity * (1/3-cs2)**2
+    // parameter DATA->bulk_to_s should be between 15 -- 75
+
+    // T dependent bulk viscosity from Gabriel
+    /////////////////////////////////////////////
+    //           Parametrization 1             //
+    /////////////////////////////////////////////
+    double Ttr=0.18/0.1973;
+    double dummy=temperature/Ttr;
+    double A1=-13.77, A2=27.55, A3=13.45;
+    double lambda1=0.9, lambda2=0.25, lambda3=0.9, lambda4=0.22;
+    double sigma1=0.025, sigma2=0.13, sigma3=0.0025, sigma4=0.022;
+ 
+    bulk = A1*dummy*dummy + A2*dummy - A3;
+    if(temperature < 0.995*Ttr)
+    {
+        bulk = lambda3*exp((dummy-1)/sigma3)+ lambda4*exp((dummy-1)/sigma4)+0.03;
+    }
+    if(temperature > 1.05*Ttr)
+    {
+        bulk = lambda1*exp(-(dummy-1)/sigma1)+ lambda2*exp(-(dummy-1)/sigma2)+0.001;
+    }
+    bulk = bulk*(grid_pt->epsilon + grid_pt->p)/temperature;
+
+    /////////////////////////////////////////////
+    //           Parametrization 2             //
+    /////////////////////////////////////////////
+    //double Ttr=0.18/0.1973;
+    //double dummy=temperature/Ttr;
+    //double A1=-79.53, A2=159.067, A3=79.04;
+    //double lambda1=0.9, lambda2=0.25, lambda3=0.9, lambda4=0.22;
+    //double sigma1=0.025, sigma2=0.13, sigma3=0.0025, sigma4=0.022;
+
+    //bulk = A1*dummy*dummy + A2*dummy - A3;
+
+    //if(temperature < 0.997*Ttr)
+    //{
+    //    bulk = lambda3*exp((dummy-1)/sigma3)+ lambda4*exp((dummy-1)/sigma4)+0.03;
+    //}
+    //if(temperature > 1.04*Ttr)
+    //{
+    //    bulk = lambda1*exp(-(dummy-1)/sigma1)+ lambda2*exp(-(dummy-1)/sigma2)+0.001;
+    //}
+    //bulk = bulk*s_den;
+
+    ////////////////////////////////////////////
+    //           Parametrization 3            //
+    ////////////////////////////////////////////
+    //double Ttr=0.18/0.1973;
+    //double dummy=temperature/Ttr;
+    //double lambda1=0.9, lambda2=0.25, lambda3=0.9, lambda4=0.22;
+    //double sigma1=0.025, sigma2=0.13, sigma3=0.0025, sigma4=0.022;
+    
+    //if(temperature<0.99945*Ttr)
+    //{
+    //    bulk = lambda3*exp((dummy-1)/sigma3)+ lambda4*exp((dummy-1)/sigma4)+0.03;
+    //}
+    //if(temperature>0.99945*Ttr)
+    //{
+    //    bulk = 0.901*exp(14.5*(1.0-dummy)) + 0.061/dummy/dummy;
+    //}
+    //bulk = bulk*s_den;
 
     /// defining bulk relaxation time and additional transport coefficients
     Bulk_Relax_time    = 1./14.55/(1./3.-cs2)/(1./3.-cs2)/(grid_pt->epsilon + grid_pt->p)*bulk; // Bulk relaxation time from kinetic theory
