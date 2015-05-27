@@ -50,7 +50,7 @@ hydro_dict.update({
     'Grid_size_in_y': 260,       # number of the grid points in y direction
     'Grid_size_in_x': 260,       # number of the grid points in x direction
 
-    'EOS_to_use': 10,        # type of the equation of state
+    'EOS_to_use': 11,        # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
     'boost_invariant': 0,    # initial condition is boost invariant
 

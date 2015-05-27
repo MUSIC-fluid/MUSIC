@@ -150,12 +150,14 @@ int main(int argc, char *argv[])
       if (rank == 0)
 	cout << "Using lattice EOS from A. Monnai" << endl;
       eos->init_eos10(0);
+      //eos->check_eos();
     }
   else if (DATA.whichEOS==11)
     {
       if (rank == 0)
 	cout << "Using lattice EOS from Pasi" << endl;
       eos->init_eos11(0);
+      //eos->check_eos();
     }
   else 
     {

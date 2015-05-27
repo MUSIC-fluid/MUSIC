@@ -115,6 +115,7 @@ class EOS
       double get_rhob_from_mub(double e, double mub);
       double get_dpOverde(double e, double rhob);
       double get_dpOverde2(double e, double rhob);
+      double get_dpOverde3(double e, double rhob);
       double get_dpOverdrhob(double e, double rhob);
       double get_dpOverdrhob2(double e, double rhob);
       double p_rho_func(double e, double rhob);
@@ -123,6 +124,7 @@ class EOS
       double get_entropy(double epsilon, double rhob);
       double get_temperature(double epsilon, double rhob);
       double get_mu(double epsilon, double rhob);
+      double get_muS(double epsilon, double rhob);
       double get_qgp_frac(double epsilon, double rhob);
       double get_pressure(double epsilon, double rhob);
       double ssolve(double e, double rhob, double s);
@@ -131,6 +133,7 @@ class EOS
       double s2e_ideal_gas(double s);
       double get_s2e(double s, double rhob);
       double get_s2e_finite_rhob(double s, double rhob);
+      void check_eos();
 };
 
 #endif
