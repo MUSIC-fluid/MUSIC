@@ -22,35 +22,35 @@ class color:
 initial_condition_dict.update({
     'Initial_profile': 11,          # type of initial condition
     'initialize_with_entropy': 1,   # 0: with energy density, 1: with entropy density
-    'Initial_Distribution_Filename': 'initial/sdAvg_order_2_C0-5.dat',
+    'Initial_Distribution_Filename': 'initial/sd_event_1_block.dat',
     'Initial_Rhob_Distribution_Filename':
-        'initial/rhob_fromSd_order_2_C0-5.dat',
-    's_factor': 28.0,   # normalization factor read in initial data file
+        'initial/rhob_event_1_block.dat',
+    's_factor': 12.8,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
-    'Eta_plateau_size': 3.0,          # size of the plateau in eta_s direction
+    'Eta_plateau_size': 3.03,          # size of the plateau in eta_s direction
     'Eta_fall_off': 0.2,              # the scale of the fall off of the plateau in eta_s direction
     'initial_eta_rhob_profile': 2,    # type of the envelope profile for rho_B's eta_s distribution
-    'eta_rhob_0': 3.5,                # peak position of rho_B in eta_s direction
+    'eta_rhob_0': 1.55,                # peak position of rho_B in eta_s direction
     'eta_rhob_width': 1.0,            # the width of the Gaussian (for initial_eta_rhob_profile == 1)
-    'eta_rhob_plateau_height': 0.13,   # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
+    'eta_rhob_plateau_height': 0.3,   # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
     'eta_rhob_width_1': 0.2,          # the width of the Gaussian for the outside tail (for initial_eta_rhob_profile == 2)
     'eta_rhob_width_2': 0.7,          # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
 })
 
 hydro_dict.update({
     # grid information
-    'Initial_time_tau_0': 0.6,   # starting time of the hydrodynamic evolution (fm/c)
+    'Initial_time_tau_0': 0.8,   # starting time of the hydrodynamic evolution (fm/c)
     'Delta_Tau': 0.04,           # time step to use in the evolution [fm/c]
 
-    'Eta_grid_size': 8.0,       # spatial rapidity range
-    'Grid_size_in_eta': 4,       # number of the grid points in spatial rapidity direction
+    'Eta_grid_size': 9.6,       # spatial rapidity range
+    'Grid_size_in_eta': 96,       # number of the grid points in spatial rapidity direction
     'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
     'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
     'Grid_size_in_y': 260,       # number of the grid points in y direction
     'Grid_size_in_x': 260,       # number of the grid points in x direction
 
-    'EOS_to_use': 11,        # type of the equation of state
+    'EOS_to_use': 10,        # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
     'boost_invariant': 0,    # initial condition is boost invariant
 
@@ -62,7 +62,7 @@ hydro_dict.update({
     'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect
     'Bulk_to_S_ratio': 0.1,                 # value of \zeta/s
     'Include_Rhob_Yes_1_No_0': 1,           # turn on propagation of baryon current
-    'turn_on_baryon_diffusion': 0,          # turn on baryon current diffusion
+    'turn_on_baryon_diffusion': 1,          # turn on baryon current diffusion
     'Bulk_relaxation_time_tau_b_pi': 0.6,   # bulk relation time
     'Shear_relaxation_time_tau_pi': 0.01,   # shear relation time
 
@@ -443,6 +443,14 @@ def read_in_parameters_from_command_line():
                     'initial/sdAvg_order_2_C%s.dat' % centrality,
                 'Initial_Rhob_Distribution_Filename':
                     'initial/rhob_fromSd_order_2_C%s.dat' % centrality,})
+        elif option == '-iev':            # event by event mode
+            iev = int(sys.argv[1])
+            del sys.argv[1]
+            initial_condition_dict.update({
+                'Initial_Distribution_Filename':
+                    'initial/sd_event_%d_block.dat' % iev,
+                'Initial_Rhob_Distribution_Filename':
+                    'initial/rhob_event_%d_block.dat' % iev,})
         elif option == '-shear_vis':    # shear viscosity
             vis = float(sys.argv[1])
             del sys.argv[1]
