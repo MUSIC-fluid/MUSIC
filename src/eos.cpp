@@ -414,13 +414,13 @@ void EOS::init_eos2()
   fscanf(eos_d7,"%lf",&EPP7);
   fscanf(eos_d7,"%lf %d",&deltaEPP7,&NEPP7);
   
-  NEPP1 -= 1;
-  NEPP2 -= 1;
-  NEPP3 -= 1;
-  NEPP4 -= 1;
-  NEPP5 -= 1;
-  NEPP6 -= 1;
-  NEPP7 -= 1;
+  //NEPP1 -= 1;
+  //NEPP2 -= 1;
+  //NEPP3 -= 1;
+  //NEPP4 -= 1;
+  //NEPP5 -= 1;
+  //NEPP6 -= 1;
+  //NEPP7 -= 1;
  
   // no rho_b dependence at the moment
   NBNP1=0; 
@@ -1812,13 +1812,12 @@ double EOS::interpolate_pressure(double e, double rhob)
   return p/hbarc;
 }
 
-
 double EOS::interpolate2(double e, double rhob, int selector)
 {
     double p, pa, pb;
 
     //use linear interpolation
-    int ie1, NEps;
+    int ie1, ie2, NEps;
     double frace;
     double eps0, deltaEps;
     double **array; 
@@ -1830,160 +1829,185 @@ double EOS::interpolate2(double e, double rhob, int selector)
     
     //if(rhob>0.00001) fprintf(stderr,"rhob=%lf\n", rhob);
     //fprintf(stderr,"e=%f\n",e);
-  
+    
     e*=hbarc; // in the files epsilon is in GeV/fm^3
+     
+    //fprintf(stderr,"e=%f\n",e);
 
-    if (e<EPP1)
+    if(e<EPP2) //use first file for small epsilon values
     {
-	eps0 = 0.0;
-	NEps = 2;
-	deltaEps = EPP1;
-      switch (selector) 
+      if(e<EPP1) 
 	{
-	case 0: array = pressure1; break;
-	case 1: array = temperature1; break;
-	case 2: array = entropyDensity1; break;
-	case 3: array = QGPfraction1; break;
-	case 4: array = cs2_1; break;
-	default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+	  ie1 = 0;
+	  ie2 = 1;
+	  frace = e/(EPP1);
+	}
+      else
+	{
+	  ie1 = floor((e-EPP1)/deltaEPP1);
+	  ie2 = floor((e-EPP1)/deltaEPP1+1);
+	  frace = (e-(ie1*deltaEPP1+EPP1))/deltaEPP1; 
+	}
+      
+      if(ie1>NEPP1)
+	{
+	  fprintf(stderr,"ERROR interpolate2: someting's wrong.\n");
+	  fprintf(stderr,"ie1=%d,NEPP1=%d\n", ie1, NEPP1);
+	  exit(0);
+	}
+      if(ie2>NEPP1)
+	{
+	  fprintf(stderr,"ERROR interpolate2: someting's wrong.\n");
+	  fprintf(stderr,"ie2=%d,NEPP1=%d\n", ie2, NEPP1);
+	  exit(0);
 	}
 
-    }
-    else if(e<EPP2) //use first file for small epsilon values
-    {
-	eps0 = EPP1;
-	NEps = NEPP1;
-	deltaEps = deltaEPP1;
       switch (selector) 
 	{
-	case 0: array = pressure1; break;
-	case 1: array = temperature1; break;
-	case 2: array = entropyDensity1; break;
-	case 3: array = QGPfraction1; break;
-	case 4: array = cs2_1; break;
-	default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+	    case 0: array = pressure1; break;
+	    case 1: array = temperature1; break;
+	    case 2: array = entropyDensity1; break;
+	    case 3: array = QGPfraction1; break;
+	    case 4: array = cs2_1; break;
+	    default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+	}
+
+      pa = array[0][ie1];
+      pb = array[0][ie2];
+      
+      if(e<EPP1) 
+	{
+	  p = pa*(frace);
+	  //if (p<0) fprintf(stderr,"pa=%lf\n", pa);
+	  //if (p<0) fprintf(stderr,"p=%lf\n", p);
+	}
+      else
+	{
+	  p = pa*(1-frace) + pb*frace;
 	}
     }
-    else if (e<EPP3)
+    else // use other files for larger epsilon values
     {
-      eps0 = EPP2;
-      NEps = NEPP2;
-      deltaEps = deltaEPP2;
-      switch (selector) 
-        {
-        case 0: array = pressure2; break;
-        case 1: array = temperature2; break;
-        case 2: array = entropyDensity2; break;
-        case 3: array = QGPfraction2; break;
-        case 4: array = cs2_2; break;
-        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
-        }
-    }
-    else if (e<EPP4)
-    {
-      eps0 = EPP3;
-      NEps = NEPP3;
-      deltaEps = deltaEPP3;
-      switch (selector) 
-        {
-        case 0: array = pressure3; break;
-        case 1: array = temperature3; break;
-        case 2: array = entropyDensity3; break;
-        case 3: array = QGPfraction3; break;
-        case 4: array = cs2_3; break;
-        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
-        }
-    }
-    else if (e<EPP5)
-    {
-      eps0 = EPP4;
-      NEps = NEPP4;
-      deltaEps = deltaEPP4;
-      switch (selector) 
-        {
-        case 0: array = pressure4; break;
-        case 1: array = temperature4; break;
-        case 2: array = entropyDensity4; break;
-        case 3: array = QGPfraction4; break;
-        case 4: array = cs2_4; break;
-        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
-        }
-    }
-    else if (e<EPP6)
-    {
-      eps0 = EPP5;
-      NEps = NEPP5;
-      deltaEps = deltaEPP5;
-      switch (selector) 
-        {
-        case 0: array = pressure5; break;
-        case 1: array = temperature5; break;
-        case 2: array = entropyDensity5; break;
-        case 3: array = QGPfraction5; break;
-        case 4: array = cs2_5; break;
-        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
-        }
-    }
-    else if (e<EPP7)
-    {
-      eps0 = EPP6;
-      NEps = NEPP6;
-      deltaEps = deltaEPP6;
-      switch (selector) 
-        {
-        case 0: array = pressure6; break;
-        case 1: array = temperature6; break;
-        case 2: array = entropyDensity6; break;
-        case 3: array = QGPfraction6; break;
-        case 4: array = cs2_6; break;
-        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
-        }
-    }
-    else
-    {
-      eps0 = EPP7;
-      NEps = NEPP7;
-      deltaEps = deltaEPP7;
-      switch (selector) 
-        {
-        case 0: array = pressure7; break;
-        case 1: array = temperature7; break;
-        case 2: array = entropyDensity7; break;
-        case 3: array = QGPfraction7; break;
-        case 4: array = cs2_7; break;
-        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
-        }
-    }
-    
-    ie1 = floor((e-eps0)/deltaEps);
-    if(ie1 > NEps - 2)
-    {
-        //fprintf(stderr,"ERROR in inperpolate2. out of range.\n");
-        //fprintf(stderr,"ie1=%d,NEPP2=%d\n", ie1, NEps);
-        //fprintf(stderr,"e=%f,eps0=%f; maxe=%f, deltaEps=%f\n", e, eps0, NEps*deltaEps+eps0, deltaEps);
-        ie1 = NEps - 2;
-        //exit(0);
-    }
-    
-    if(ie1 < 0)
-    {
-        fprintf(stderr,"ERROR in inperpolate2. out of range.\n");
-        fprintf(stderr,"ie1=%d,NEPP2=%d\n", ie1, NEps);
-        fprintf(stderr,"e=%f,eps0=%f; maxe=%f, deltaEps=%f\n", e, eps0, NEps*deltaEps+eps0, deltaEps);
-        ie1 = 0;
-        exit(0);
-    }
-    
-    //if (ie1 ==NEps)
-    //cout << " last e=" << e << " T=" << T1*pow(e,T2)/hbarc << endl;
-   
-    frace = (e - (ie1*deltaEps+eps0))/deltaEps; 
-    pa = array[0][ie1];
-    pb = array[0][ie1+1];
-    
-    p = pa*(1-frace) + pb*frace;
+      if (e<EPP3)
+	{
+	    eps0 = EPP2;
+	    NEps = NEPP2;
+	    deltaEps = deltaEPP2;
+	    switch (selector) 
+	    {
+	        case 0: array = pressure2; break;
+	        case 1: array = temperature2; break;
+	        case 2: array = entropyDensity2; break;
+	        case 3: array = QGPfraction2; break;
+	        case 4: array = cs2_2; break;
+	        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+	    }
+	}
+      else if (e<EPP4)
+	{
+	    eps0 = EPP3;
+	    NEps = NEPP3;
+	    deltaEps = deltaEPP3;
+	    switch (selector) 
+	    {
+	        case 0: array = pressure3; break;
+	        case 1: array = temperature3; break;
+	        case 2: array = entropyDensity3; break;
+	        case 3: array = QGPfraction3; break;
+	        case 4: array = cs2_3; break;
+	        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+	    }
+	}
+      else if (e<EPP5)
+	{
+	    eps0 = EPP4;
+	    NEps = NEPP4;
+	    deltaEps = deltaEPP4;
+	    switch (selector) 
+	    {
+	        case 0: array = pressure4; break;
+	        case 1: array = temperature4; break;
+	        case 2: array = entropyDensity4; break;
+	        case 3: array = QGPfraction4; break;
+	        case 4: array = cs2_4; break;
+	        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+	    }
+	}
+      else if (e<EPP6)
+	{
+	    eps0 = EPP5;
+	    NEps = NEPP5;
+	    deltaEps = deltaEPP5;
+	    switch (selector) 
+	    {
+	        case 0: array = pressure5; break;
+	        case 1: array = temperature5; break;
+	        case 2: array = entropyDensity5; break;
+	        case 3: array = QGPfraction5; break;
+	        case 4: array = cs2_5; break;
+	        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+	    }
+	}
+      else if (e<EPP7)
+	{
+	    eps0 = EPP6;
+	    NEps = NEPP6;
+	    deltaEps = deltaEPP6;
+	    switch (selector) 
+	    {
+	        case 0: array = pressure6; break;
+	        case 1: array = temperature6; break;
+	        case 2: array = entropyDensity6; break;
+	        case 3: array = QGPfraction6; break;
+	        case 4: array = cs2_6; break;
+	        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+	    }
+	}
+      else
+	{
+	    eps0 = EPP7;
+	    NEps = NEPP7;
+	    deltaEps = deltaEPP7;
+	    switch (selector) 
+	    {
+	        case 0: array = pressure7; break;
+	        case 1: array = temperature7; break;
+	        case 2: array = entropyDensity7; break;
+	        case 3: array = QGPfraction7; break;
+	        case 4: array = cs2_7; break;
+	        default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+	    }
+	}
 
-    //fprintf(stderr,"p=%f\n",p);
+      ie1 = floor((e-eps0)/deltaEps);
+      ie2 = floor((e-eps0)/deltaEps+1);
+
+      if(ie1>NEps)
+	{
+	  fprintf(stderr,"ERROR in inperpolate2. out of range.\n");
+	  fprintf(stderr,"ie1=%d,NEPP2=%d\n", ie1, NEps);
+	  fprintf(stderr,"e=%f,eps0=%f; maxe=%f, deltaEps=%f\n", e, eps0, NEps*deltaEps+eps0, deltaEps);
+	  exit(0);
+	}
+      if(ie2>NEps)
+	{
+	  fprintf(stderr,"ERROR in inperpolate2. out of range.\n");
+	  fprintf(stderr,"ie2=%d,NEPP2=%d\n", ie2, NEps);
+	  exit(0);
+	}
+
+      //if (ie1 ==NEps)
+	//cout << " last e=" << e << " T=" << T1*pow(e,T2)/hbarc << endl;
+
+      pa = array[0][ie1];
+           
+      frace = (e-(ie1*deltaEps+eps0))/deltaEps; 
+      
+      pb = array[0][ie2];
+      
+      p = pa*(1-frace) + pb*frace;
+      //fprintf(stderr,"p=%f\n",p);
+    }
     switch (selector) 
     {
         case 0: p/=hbarc; break;
