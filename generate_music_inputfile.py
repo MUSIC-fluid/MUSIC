@@ -49,6 +49,14 @@ hydro_dict.update({
     'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
     'Grid_size_in_y': 260,       # number of the grid points in y direction
     'Grid_size_in_x': 260,       # number of the grid points in x direction
+    
+    # input grid information only works for initial_profile == 12
+    'input_grid_size_in_y': 261,        # number of the grid points in y direction
+    'input_grid_size_in_x': 261,        # number of the grid points in x direction
+    'input_grid_size_in_eta': 101,      # number of the grid points in eta direction
+    'input_grid_dy': 0.1,               # lattice spacing in y direction
+    'input_grid_dx': 0.1,               # lattice spacing in x direction
+    'input_grid_deta': 0.1,             # lattice spacing in eta direction
 
     'EOS_to_use': 10,        # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0

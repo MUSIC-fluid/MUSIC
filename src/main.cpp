@@ -1662,6 +1662,34 @@ void ReadInData3(InitData *DATA, string file)
   DATA->eta_size = tempeta_size;
   
   
+  // Grid information for the input density file (for initial_profile == 12)
+  // number of cells in x, y, and eta directions
+  int temp_input_nx = 10;
+  tempinput = util->StringFind4(file, "input_grid_size_in_x");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_input_nx;
+  DATA->input_grid_nx = temp_input_nx;
+  int temp_input_ny = 10;
+  tempinput = util->StringFind4(file, "input_grid_size_in_y");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_input_ny;
+  DATA->input_grid_ny = temp_input_ny;
+  int temp_input_neta = 4;
+  tempinput = util->StringFind4(file, "input_grid_size_in_eta");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_input_neta;
+  DATA->input_grid_neta = temp_input_neta;
+  // lattice spacing in x, y, and eta directions
+  double temp_input_dx = 0.1;
+  tempinput = util->StringFind4(file, "input_grid_dx");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_input_dx;
+  DATA->input_grid_dx = temp_input_dx;
+  double temp_input_dy = 0.1;
+  tempinput = util->StringFind4(file, "input_grid_dy");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_input_dy;
+  DATA->input_grid_dy = temp_input_dy;
+  double temp_input_deta = 0.1;
+  tempinput = util->StringFind4(file, "input_grid_deta");
+  if(tempinput != "empty") istringstream ( tempinput ) >> temp_input_deta;
+  DATA->input_grid_deta = temp_input_deta;
+  
   // Total_evolution_time_tau
   // total evolution time in [fm]. in case of freeze_out_method = 2,3, evolution will halt earlier if all cells are frozen out.
   double temptau_size = 30.;

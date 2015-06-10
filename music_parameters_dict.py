@@ -36,6 +36,8 @@ initial_condition_dict = {
                              # 6,7,8: Read in initial profile from a file
                              # 11: read in initial profiles for e and rhob
                              #     in the transverse plane from files
+                             # 12: read in initial 3d profiles for e and rhob
+
     'initialize_with_entropy': 0,   # 0: with energy density
                                     # 1: with entropy density
 
@@ -100,6 +102,14 @@ hydro_dict = {
                                         # [-Y_grid_size_in_fm/2, Y_grid_size_in_fm/2]
     'Grid_size_in_y': 260,              # number of the grid points in y direction
     'Grid_size_in_x': 260,              # number of the grid points in x direction
+
+    # input grid information only works for initial_profile == 12
+    'input_grid_size_in_y': 261,        # number of the grid points in y direction
+    'input_grid_size_in_x': 261,        # number of the grid points in x direction
+    'input_grid_size_in_eta': 101,      # number of the grid points in eta direction
+    'input_grid_dy': 0.1,               # lattice spacing in y direction
+    'input_grid_dx': 0.1,               # lattice spacing in x direction
+    'input_grid_deta': 0.1,             # lattice spacing in eta direction
 
 
     'EOS_to_use': 3,  # type of the equation of state

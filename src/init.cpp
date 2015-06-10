@@ -3106,7 +3106,257 @@ else if (DATA->Initial_profile==11) //read in the transverse profile from file
      delete[] temp_profile_ed;
      delete[] temp_profile_rhob;
    }
+else if (DATA->Initial_profile==12) //read in the 3d profile from file
+   {
+     size = DATA->size;
+      
+     cout << "size=" << size << endl;
+     cout << " ----- information on initial distribution -----" << endl;
+     cout << "file name used: " << DATA->initName << " and " << DATA->initName_rhob << endl;
+  
+     // first load in the transverse profile
+     ifstream profile_ed(DATA->initName.c_str());
+     ifstream profile_rhob(DATA->initName_rhob.c_str());
 
+     int input_grid_nx = DATA->input_grid_nx;
+     int input_grid_ny = DATA->input_grid_ny;
+     int input_grid_neta = DATA->input_grid_neta;
+     double input_grid_dx = DATA->input_grid_dx;
+     double input_grid_dy = DATA->input_grid_dy;
+     double input_grid_deta = DATA->input_grid_deta;
+     double input_eta_0 = - (input_grid_neta - 1)/2.*input_grid_deta;
+     double input_x_0 = - (input_grid_nx - 1)/2.*input_grid_dx;
+     double input_y_0 = - (input_grid_ny - 1)/2.*input_grid_dy;
+
+     double*** temp_profile_ed = new double** [input_grid_neta];
+     double*** temp_profile_rhob = new double** [input_grid_neta];
+     for(int i = 0; i < input_grid_neta; i++)
+     {
+         temp_profile_ed[i] = new double* [input_grid_nx];
+         temp_profile_rhob[i] = new double* [input_grid_nx];
+         for(int j = 0; j < input_grid_nx; j++)
+         {
+             temp_profile_ed[i][j] = new double [input_grid_ny];
+             temp_profile_rhob[i][j] = new double [input_grid_ny];
+         }
+     }
+     for(int i = 0; i < input_grid_neta; i++)
+     {
+        for(int j = 0; j < input_grid_nx; j++)
+        {
+           for(int k = 0; k < input_grid_ny; k++)
+           {
+              profile_ed >> temp_profile_ed[i][j][k];
+              profile_rhob >> temp_profile_rhob[i][j][k];
+           }
+        }
+     }
+     profile_ed.close();
+     profile_rhob.close();
+
+     for(int ix=0; ix< (DATA->nx+1); ix++)
+     {
+	  for(int iy=0; iy< (DATA->ny+1); iy++)
+	  {
+ 	     (*Lneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Rneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Lneighbor)[ix][iy][1].TJb = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Rneighbor)[ix][iy][1].TJb = util->cube_malloc(rk_order+1, 5,4);
+  	     (*Lneighbor)[ix][iy][0].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+  	     (*Rneighbor)[ix][iy][0].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+  	     (*Lneighbor)[ix][iy][1].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+  	     (*Rneighbor)[ix][iy][1].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Lneighbor)[ix][iy][0].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Rneighbor)[ix][iy][0].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Lneighbor)[ix][iy][1].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Rneighbor)[ix][iy][1].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+ 	     (*Lneighbor)[ix][iy][0].u = util->mtx_malloc(rk_order+1, 4);
+ 	     (*Rneighbor)[ix][iy][0].u = util->mtx_malloc(rk_order+1, 4);
+ 	     (*Lneighbor)[ix][iy][1].u = util->mtx_malloc(rk_order+1, 4);
+ 	     (*Rneighbor)[ix][iy][1].u = util->mtx_malloc(rk_order+1, 4);
+ 	     (*Lneighbor)[ix][iy][0].pi_b = util->vector_malloc(rk_order+1);
+ 	     (*Rneighbor)[ix][iy][0].pi_b = util->vector_malloc(rk_order+1);
+ 	     (*Lneighbor)[ix][iy][1].pi_b = util->vector_malloc(rk_order+1);
+ 	     (*Rneighbor)[ix][iy][1].pi_b = util->vector_malloc(rk_order+1);
+	  }
+     }
+  
+     int entropy_flag = DATA->initializeEntropy;
+     for(int ieta = 0; ieta < DATA->neta; ieta++)
+     {
+        double eta = (
+           (DATA->delta_eta)*(ieta + DATA->neta*rank) - (DATA->eta_size)/2.0);
+        int eta_idx = (int)((eta - input_eta_0)/input_grid_deta);
+        double eta_frac = (
+           (eta - (input_eta_0 + eta_idx*input_grid_deta))/input_grid_deta);
+        for(int ix = 0; ix < (DATA->nx+1); ix++)
+        {
+            double x_local = (DATA->delta_x)*ix - (DATA->x_size)/2.0;
+            int x_idx = (int)((x_local - input_x_0)/input_grid_dx);
+            double x_frac = (
+               (x_local - (input_x_0 + x_idx*input_grid_dx))/input_grid_dx);
+            for(int iy = 0; iy< (DATA->ny+1); iy++)
+            {
+               double y_local = (DATA->delta_y)*iy - (DATA->y_size)/2.0;
+               int y_idx = (int)((y_local - input_y_0)/input_grid_dy);
+               double y_frac = (
+                  (y_local - (input_y_0 + y_idx*input_grid_dy))/input_grid_dy);
+     
+               double rhob_interp, ed_interp;
+     
+               if(   eta_idx < 0 || eta_idx > input_grid_neta - 2
+                  || x_idx < 0 || x_idx > input_grid_nx - 2 
+                  || y_idx < 0 || y_idx > input_grid_ny - 2)
+               {
+                   rhob = 0.0;
+                   epsilon = 0.0;
+               }
+               else
+               {
+                   rhob_interp = (
+                        temp_profile_rhob[eta_idx][x_idx][y_idx]
+                        *(1. - eta_frac)*(1. - x_frac)*(1. - y_frac)
+                      + temp_profile_rhob[eta_idx+1][x_idx][y_idx]
+                        *eta_frac*(1. - x_frac)*(1. - y_frac)
+                      + temp_profile_rhob[eta_idx][x_idx+1][y_idx]
+                        *(1. - eta_frac)*x_frac*(1. - y_frac)
+                      + temp_profile_rhob[eta_idx+1][x_idx+1][y_idx]
+                        *eta_frac*x_frac*(1. - y_frac)
+                      + temp_profile_rhob[eta_idx][x_idx][y_idx+1]
+                        *(1. - eta_frac)*(1. - x_frac)*y_frac
+                      + temp_profile_rhob[eta_idx+1][x_idx][y_idx+1]
+                        *eta_frac*(1. - x_frac)*y_frac
+                      + temp_profile_rhob[eta_idx][x_idx+1][y_idx+1]
+                        *(1. - eta_frac)*x_frac*y_frac
+                      + temp_profile_rhob[eta_idx+1][x_idx+1][y_idx+1]
+                        *eta_frac*x_frac*y_frac
+                   );
+                   ed_interp = (
+                        temp_profile_ed[eta_idx][x_idx][y_idx]
+                        *(1. - eta_frac)*(1. - x_frac)*(1. - y_frac)
+                      + temp_profile_ed[eta_idx+1][x_idx][y_idx]
+                        *eta_frac*(1. - x_frac)*(1. - y_frac)
+                      + temp_profile_ed[eta_idx][x_idx+1][y_idx]
+                        *(1. - eta_frac)*x_frac*(1. - y_frac)
+                      + temp_profile_ed[eta_idx+1][x_idx+1][y_idx]
+                        *eta_frac*x_frac*(1. - y_frac)
+                      + temp_profile_ed[eta_idx][x_idx][y_idx+1]
+                        *(1. - eta_frac)*(1. - x_frac)*y_frac
+                      + temp_profile_ed[eta_idx+1][x_idx][y_idx+1]
+                        *eta_frac*(1. - x_frac)*y_frac
+                      + temp_profile_ed[eta_idx][x_idx+1][y_idx+1]
+                        *(1. - eta_frac)*x_frac*y_frac
+                      + temp_profile_ed[eta_idx+1][x_idx+1][y_idx+1]
+                        *eta_frac*x_frac*y_frac
+                   );
+               }
+               
+     
+               if(DATA->turn_on_rhob == 1)
+                  rhob = rhob_interp;  // 1/fm^3
+               else
+                  rhob = 0.0;
+     
+               if(entropy_flag == 0)
+                  epsilon= ed_interp*DATA->sFactor/hbarc;  // 1/fm^4
+               else
+               {
+                  double local_sd = ed_interp*DATA->sFactor;
+                  epsilon = eos->get_s2e(local_sd, rhob);
+               }
+
+               if (epsilon<0.00000000001)
+     	           epsilon = 0.00000000001;
+     	
+     	         // initial pressure distribution
+     	         p = eos->get_pressure(epsilon, rhob);
+     	 
+     	         // set all values in the grid element:
+     	         (*arena)[ix][iy][ieta].epsilon = epsilon;
+     	         (*arena)[ix][iy][ieta].epsilon_t = epsilon;
+     	         (*arena)[ix][iy][ieta].prev_epsilon = epsilon;
+     	         (*arena)[ix][iy][ieta].rhob = rhob;
+     	         (*arena)[ix][iy][ieta].rhob_t = rhob;
+     	         (*arena)[ix][iy][ieta].prev_rhob = rhob;
+     	         (*arena)[ix][iy][ieta].p = p;
+     	         (*arena)[ix][iy][ieta].p_t = p;
+     	         (*arena)[ix][iy][ieta].trouble = 0;
+     	         
+     	         (*arena)[ix][iy][ieta].T = eos->get_temperature(epsilon, rhob);
+     	         (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
+     	 
+     	         (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
+     	         (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 5,4);
+     	         (*arena)[ix][iy][ieta].u = util->mtx_malloc(rk_order+1, 4);
+     	         (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 5);
+     	         (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
+     	         (*arena)[ix][iy][ieta].sigma = util->cube_malloc(rk_order+1, 4, 4);
+     	         (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
+                    //(*arena)[ix][iy][ieta].prev_pi_b = util->vector_malloc(1);
+                    //(*arena)[ix][iy][ieta].pprev_pi_b = util->vector_malloc(1);
+     	         (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
+                    //(*arena)[ix][iy][ieta].pprev_u = util->mtx_malloc(1, 4);
+     	         (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+     	         (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
+                    //(*arena)[ix][iy][ieta].pprevWmunu = util->cube_malloc(1, 5,4);
+     	         (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+     	         (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
+                    //(*arena)[ix][iy][ieta].pprevPimunu = util->cube_malloc(1, 5,4);
+     	 
+     	         (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
+     	         /* for HIC */
+     	         u[0] = (*arena)[ix][iy][ieta].u[0][0] = 1.0;
+     	         u[3] = (*arena)[ix][iy][ieta].u[0][3] = 0.0;
+     	         u[1] = (*arena)[ix][iy][ieta].u[0][1] = 0.0;
+     	         u[2] = (*arena)[ix][iy][ieta].u[0][2] = 0.0;
+     	         
+     	         (*arena)[ix][iy][ieta].prev_u[0][0] = 1.0;
+     	         (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
+     	         (*arena)[ix][iy][ieta].prev_u[0][1] = 0.0;
+     	         (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
+               //(*arena)[ix][iy][ieta].pprev_u[0][0] = 1.0;
+               //(*arena)[ix][iy][ieta].pprev_u[0][3] = 0.0;
+               //(*arena)[ix][iy][ieta].pprev_u[0][1] = 0.0;
+               //(*arena)[ix][iy][ieta].pprev_u[0][2] = 0.0;
+     	 
+     	         (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
+               //(*arena)[ix][iy][ieta].prev_pi_b[0] = 0.0;
+               //(*arena)[ix][iy][ieta].pprev_pi_b[0] = 0.0;
+               for(int mu=0; mu<4; mu++)
+               {
+                  /* baryon density */
+                  (*arena)[ix][iy][ieta].TJb[0][4][mu] = rhob*u[mu];
+                  
+                  for(nu=0; nu<4; nu++)
+                  {
+                     (*arena)[ix][iy][ieta].TJb[0][nu][mu] = (epsilon + p)*u[mu]*u[nu] + p*(DATA->gmunu)[mu][nu];
+                     (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
+                     (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
+                          //(*arena)[ix][iy][ieta].pprevWmunu[0][nu][mu] = (double) 0.0;
+                     
+                     (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
+                     (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
+                          //(*arena)[ix][iy][ieta].pprevPimunu[0][nu][mu] = (double) 0.0;
+                  }/* nu */
+               }/* mu */
+            }
+         }
+     }/* ix, iy, ieta */
+       
+     // clean up
+     for(int i = 0; i < input_grid_neta; i++)
+     {
+         for(int j = 0; j < input_grid_nx; j++)
+         {
+             delete[] temp_profile_ed[i][j];
+             delete[] temp_profile_rhob[i][j];
+         }
+         delete[] temp_profile_ed[i];
+         delete[] temp_profile_rhob[i];
+     }
+     delete[] temp_profile_ed;
+     delete[] temp_profile_rhob;
+   }
 
   //fclose(e_file);
   //fclose(e2_file);

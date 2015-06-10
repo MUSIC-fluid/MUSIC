@@ -30,6 +30,13 @@ typedef struct init_data
   int ny;
   int neta;
   int nt;
+
+  int input_grid_nx;
+  int input_grid_ny;
+  int input_grid_neta;
+  double input_grid_dx;
+  double input_grid_dy;
+  double input_grid_deta;
   
   double x_size; /* in fermi -x_size/2 < x < x_size/2 */
   double y_size; /* in fermi, ditto */
