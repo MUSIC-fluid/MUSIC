@@ -2929,6 +2929,76 @@ void Grid_info::print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, 
   return;
 }/* print rhob evolution */
 
+void Grid_info::print_rhob_evolution_3d(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank)
+{
+  int n_skip = 5;
+
+  string d_name;
+  ofstream d_file;
+  d_name = "rhoB_evo_3d_xy.dat";
+  d_file.open(d_name.c_str(), ios::out | ios::app );
+
+  // first in x-y plane at eta = 0
+  double eta_goal = 0.0;
+  if((int)((tau - DATA->tau0)/DATA->delta_tau) % n_skip == 0)
+  {
+     for(int ieta = 0; ieta < DATA->neta; ieta++)
+     {
+        double eta = DATA->delta_eta*(ieta + DATA->neta*rank) - DATA->eta_size/2.0;
+        if(fabs(eta - eta_goal) < 1e-5)  // mid rapidity
+        {
+           for(int ix=0; ix<=DATA->nx; ix++)
+           {
+              double x = ix*(DATA->delta_x) - (DATA->x_size/2.0);
+              for(int iy = 0; iy <= DATA->ny; iy++)
+              {
+                 double y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+                 double rhob = arena[ix][iy][ieta].rhob;
+                 double ed = arena[ix][iy][ieta].epsilon;
+                 double mub = eos->get_mu(ed, rhob);
+                 double temperature = eos->get_temperature(ed, rhob);
+                 d_file << scientific << setw(18) << setprecision(8)
+                        << tau << "  " << x << "  " << y << "  "
+                        << ed << "  " << rhob << "  " 
+                        << mub << "  " << temperature 
+                        << endl;
+              }
+           }
+        }
+     }
+  }
+  d_file.close();
+
+  ofstream d_file_eta;
+  d_name = "rhoB_evo_3d_xeta.dat";
+  d_file_eta.open(d_name.c_str(), ios::out | ios::app );
+  // then in x-eta plane at y = 0
+  if((int)((tau - DATA->tau0)/DATA->delta_tau) % n_skip == 0)
+  {
+     for(int ieta = 0; ieta < DATA->neta; ieta++)
+     {
+        double eta = DATA->delta_eta*(ieta + DATA->neta*rank) - DATA->eta_size/2.0;
+        for(int ix=0; ix<=DATA->nx; ix++)
+        {
+           double x = ix*(DATA->delta_x) - (DATA->x_size/2.0);
+           int iy = DATA->ny/2;
+           double rhob = arena[ix][iy][ieta].rhob;
+           double ed = arena[ix][iy][ieta].epsilon;
+           double mub = eos->get_mu(ed, rhob);
+           double temperature = eos->get_temperature(ed, rhob);
+           d_file_eta << scientific << setw(18) << setprecision(8)
+                      << tau << "  " << x << "  " << eta << "  "
+                      << ed << "  " << rhob << "  " 
+                      << mub << "  " << temperature 
+                      << endl;
+        }
+     }
+  }
+  d_file_eta.close();
+  
+  return;
+}/* print rhob evolution */
+
 void Grid_info::print_fireball_evolution_on_phasediagram(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank)
 {
   int n_skip = 25;

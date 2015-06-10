@@ -74,6 +74,10 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
     baryon_file.close();
     ofstream qm_file("qmu_evo.dat");
     qm_file.close();
+    ofstream baryon_file_3d_xy("rhoB_evo_3d_xy.dat");
+    baryon_file_3d_xy.close();
+    ofstream baryon_file_3d_xeta("rhoB_evo_3d_xeta.dat");
+    baryon_file_3d_xeta.close();
   }
   ofstream out_file("evolution.dat");
   out_file.close();
@@ -130,6 +134,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
           grid_info->ComputeAnisotropy(DATA, arena, tau);
           grid_info->print_qmu_evolution(DATA, arena, tau, eos, rank);
           grid_info->print_rhob_evolution(DATA, arena, tau, eos, rank);
+          grid_info->print_rhob_evolution_3d(DATA, arena, tau, eos, rank);
         }
         grid_info->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
         grid_info->print_fireball_evolution_on_phasediagram(DATA, arena, tau, eos, rank);

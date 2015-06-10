@@ -3140,6 +3140,7 @@ else if (DATA->Initial_profile==12) //read in the 3d profile from file
              temp_profile_rhob[i][j] = new double [input_grid_ny];
          }
      }
+     double check_Npart = 0.0;
      for(int i = 0; i < input_grid_neta; i++)
      {
         for(int j = 0; j < input_grid_nx; j++)
@@ -3148,11 +3149,18 @@ else if (DATA->Initial_profile==12) //read in the 3d profile from file
            {
               profile_ed >> temp_profile_ed[i][j][k];
               profile_rhob >> temp_profile_rhob[i][j][k];
+              if(rank == 0)
+                  check_Npart += temp_profile_rhob[i][j][k];
            }
         }
      }
      profile_ed.close();
      profile_rhob.close();
+     if(rank == 0)
+     {
+         check_Npart *= input_grid_dx*input_grid_dy*input_grid_deta;
+         cout << "Net baryon number (= Npart) = " << check_Npart << endl;
+     }
 
      for(int ix=0; ix< (DATA->nx+1); ix++)
      {
