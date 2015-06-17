@@ -1165,6 +1165,8 @@ int Diss::Make_uPRHS(
        
      /* add a source term due to the coordinate change to tau-eta */
      sum -= (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0])/tau;
+     
+     sum += (grid_pt->pi_b[rk_flag])*(grid_pt->theta_u[rk_flag]);
 
      *p_rhs = sum*(DATA->delta_tau)*bulk_on;
 
