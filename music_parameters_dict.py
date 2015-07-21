@@ -44,6 +44,8 @@ initial_condition_dict = {
     # read in initial conditions from external file
     'Initial_Distribution_Filename': 'initial/initial_ed.dat',
     'Initial_Rhob_Distribution_Filename': 'initial/initial_rhob.dat',
+    'Initial_ux_Distribution_Filename': 'initial/initial_ux.dat',
+    'Initial_uy_Distribution_Filename': 'initial/initial_uy.dat',
     's_factor': 28.0,        # normalization factor read in initial data file
 
     # parameters for Glauber model

@@ -25,6 +25,8 @@ initial_condition_dict.update({
     'Initial_Distribution_Filename': 'initial/sd_event_1_block.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_event_1_block.dat',
+    'Initial_ux_Distribution_Filename': 'initial/ux_event_1_block.dat',
+    'Initial_uy_Distribution_Filename': 'initial/uy_event_1_block.dat',
     's_factor': 12.8,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
@@ -450,7 +452,12 @@ def read_in_parameters_from_command_line():
                 'Initial_Distribution_Filename':
                     'initial/sdAvg_order_2_C%s.dat' % centrality,
                 'Initial_Rhob_Distribution_Filename':
-                    'initial/rhob_fromSd_order_2_C%s.dat' % centrality,})
+                    'initial/rhob_fromSd_order_2_C%s.dat' % centrality,
+                'Initial_ux_Distribution_Filename':
+                    'initial/ux_fromSd_order_2_C%s.dat' % centrality,
+                'Initial_uy_Distribution_Filename':
+                    'initial/uy_fromSd_order_2_C%s.dat' % centrality,
+            })
         elif option == '-iev':            # event by event mode
             iev = int(sys.argv[1])
             del sys.argv[1]
@@ -458,7 +465,12 @@ def read_in_parameters_from_command_line():
                 'Initial_Distribution_Filename':
                     'initial/sd_event_%d_block.dat' % iev,
                 'Initial_Rhob_Distribution_Filename':
-                    'initial/rhob_event_%d_block.dat' % iev,})
+                    'initial/rhob_event_%d_block.dat' % iev,
+                'Initial_ux_Distribution_Filename':
+                    'initial/ux_event_%d_block.dat' % iev,
+                'Initial_uy_Distribution_Filename':
+                    'initial/uy_event_%d_block.dat' % iev,
+            })
         elif option == '-shear_vis':    # shear viscosity
             vis = float(sys.argv[1])
             del sys.argv[1]

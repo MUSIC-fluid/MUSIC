@@ -24,6 +24,8 @@ typedef struct init_data
   string Projectile;
   string initName;
   string initName_rhob;
+  string initName_ux;
+  string initName_uy;
 
 
   int nx;

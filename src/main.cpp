@@ -2107,6 +2107,16 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind4(file, "Initial_Rhob_Distribution_Filename");
   if(tempinput != "empty") tempinitName_rhob.assign(tempinput);
   DATA->initName_rhob.assign(tempinitName_rhob);
+  // Initial_Distribution_Filename for ux
+  string tempinitName_ux = "initial/initial_ux.dat";
+  tempinput = util->StringFind4(file, "Initial_ux_Distribution_Filename");
+  if(tempinput != "empty") tempinitName_ux.assign(tempinput);
+  DATA->initName_ux.assign(tempinitName_ux);
+  // Initial_Distribution_Filename for uy
+  string tempinitName_uy = "initial/initial_uy.dat";
+  tempinput = util->StringFind4(file, "Initial_uy_Distribution_Filename");
+  if(tempinput != "empty") tempinitName_uy.assign(tempinput);
+  DATA->initName_uy.assign(tempinitName_uy);
   
   /* initialize the metric, mostly plus */
   
