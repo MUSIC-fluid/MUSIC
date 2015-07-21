@@ -46,7 +46,7 @@ hydro_dict.update({
     'Delta_Tau': 0.04,           # time step to use in the evolution [fm/c]
 
     'Eta_grid_size': 9.6,       # spatial rapidity range
-    'Grid_size_in_eta': 96,       # number of the grid points in spatial rapidity direction
+    'Grid_size_in_eta': 4,       # number of the grid points in spatial rapidity direction
     'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
     'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
     'Grid_size_in_y': 260,       # number of the grid points in y direction

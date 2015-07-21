@@ -7,10 +7,10 @@ using namespace std;
 
 Init::Init(EOS *eosIn, Glauber *glauberIn)
 {
-  eos = new EOS;
+  //eos = new EOS;
   eos = eosIn;
   util = new Util;
-  glauber = new Glauber;
+  //glauber = new Glauber;
   glauber = glauberIn;
   random = new Random;
 }
@@ -19,9 +19,9 @@ Init::Init(EOS *eosIn, Glauber *glauberIn)
 Init::~Init()
 {
   delete random;
-  delete eos;
+  //delete eos;
   delete util;
-  delete glauber;
+  //delete glauber;
 }
 
 void Init::InitArena(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****Rneighbor, int size, int rank)

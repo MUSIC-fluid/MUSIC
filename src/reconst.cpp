@@ -9,9 +9,9 @@ using namespace std;
 
 Reconst::Reconst(EOS *eosIn, Grid *gridIn)
 {
-  eos = new EOS;
+  //eos = new EOS;
   eos = eosIn;
-  grid = new Grid;
+  //grid = new Grid;
   grid = gridIn;
   util = new Util;
 
@@ -27,8 +27,8 @@ Reconst::Reconst(EOS *eosIn, Grid *gridIn)
 // destructor
 Reconst::~Reconst()
 {
-  delete eos;
-  delete grid;
+  //delete eos;
+  //delete grid;
   delete util;
   gsl_root_fsolver_free (gsl_rootfinding_solver);
 }
