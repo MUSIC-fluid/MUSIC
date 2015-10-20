@@ -7131,6 +7131,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
       //    system("rm surface_eps_*_*.dat 2> /dev/null");
       //}
    }
+   delete [] all_frozen;
    return(all_frozen_flag);
 }
 
@@ -7628,6 +7629,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
       all_frozen_flag *= all_frozen[ii];
    if(all_frozen_flag == 1)
       cout << "All cells frozen out. Exiting." << endl;
+
+   delete [] all_frozen;
    return(all_frozen_flag);
 }
 
