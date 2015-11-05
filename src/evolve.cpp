@@ -46,6 +46,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
   // first pass some control parameters
   facTau = DATA->facTau;
   int output_hydro_debug_flag = DATA->output_hydro_debug_info;
+  int turn_on_rhob = DATA->turn_on_rhob;
+  int turn_on_diff = DATA->turn_on_diff;
   int Nskip_timestep = DATA->output_evolution_every_N_timesteps;
   int outputEvo_flag = DATA->outputEvolutionData;
   int freezeout_flag = DATA->doFreezeOut;
@@ -70,14 +72,20 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
     t5_file.close();
     ofstream cout_file("contourPlot.dat");
     cout_file.close();
-    ofstream baryon_file("rhoB_evo.dat");
-    baryon_file.close();
-    ofstream qm_file("qmu_evo.dat");
-    qm_file.close();
-    ofstream baryon_file_3d_xy("rhoB_evo_3d_xy.dat");
-    baryon_file_3d_xy.close();
-    ofstream baryon_file_3d_xeta("rhoB_evo_3d_xeta.dat");
-    baryon_file_3d_xeta.close();
+    if(turn_on_rhob == 1)
+    {
+      ofstream baryon_file("rhoB_evo.dat");
+      baryon_file.close();
+      ofstream baryon_file_3d_xy("rhoB_evo_3d_xy.dat");
+      baryon_file_3d_xy.close();
+      ofstream baryon_file_3d_xeta("rhoB_evo_3d_xeta.dat");
+      baryon_file_3d_xeta.close();
+      if(turn_on_diff == 1)
+      {
+        ofstream qm_file("qmu_evo.dat");
+        qm_file.close();
+      }
+    }
   }
   ofstream out_file("evolution.dat");
   out_file.close();
@@ -132,26 +140,30 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***R
           grid_info->PrintxEpsilon(arena, DATA, tau, size, rank);
           //grid_info->ComputeEccentricity(DATA, arena, tau);
           grid_info->ComputeAnisotropy(DATA, arena, tau);
-          grid_info->print_qmu_evolution(DATA, arena, tau, eos, rank);
-          grid_info->print_rhob_evolution(DATA, arena, tau, eos, rank);
-          grid_info->print_rhob_evolution_3d(DATA, arena, tau, eos, rank);
+          if(turn_on_rhob == 1)
+          {
+            grid_info->print_rhob_evolution(DATA, arena, tau, eos, rank);
+            grid_info->print_rhob_evolution_3d(DATA, arena, tau, eos, rank);
+            if(turn_on_diff == 1)
+            {
+              grid_info->print_qmu_evolution(DATA, arena, tau, eos, rank);
+            }
+          }
+
         }
         grid_info->getAverageTandPlasmaEvolution(arena, DATA, eos, tau, size, rank); 
-        grid_info->print_fireball_evolution_on_phasediagram(DATA, arena, tau, eos, rank);
+        if(turn_on_rhob == 1)
+        {
+          grid_info->print_fireball_evolution_on_phasediagram(DATA, arena, tau, eos, rank);
+        }
         //grid_info->Tmax_profile(arena, DATA, eos, tau, size, rank);
      }
      if((it%Nskip_timestep) == 0 && outputEvo_flag == 1) 
      {
-        if(DATA->turn_on_rhob == 0)
+        if(turn_on_rhob == 0)
            grid_info->OutputEvolutionDataXYEta(arena, DATA, eos, tau, size, rank);
         else
            grid_info->OutputEvolutionDataXYEta_finite_muB(arena, DATA, eos, tau, size, rank);
-        if (DATA->output_hydro_debug_info) // this produces potentially huge outputs so beware
-        {
-           //grid_info->OutputXY(arena, DATA, eos, tau, size, rank);
-           //grid_info->OutputEvolutionOSCAR(arena, DATA, eos, tau, size, rank); 
-           //grid_info->OutputEvolutionDataXYZ(arena, DATA, eos, tau, size, rank); 
-        }
      }
 
     /* execute rk steps */

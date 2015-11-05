@@ -76,6 +76,7 @@ hydro_dict.update({
     'Bulk_relaxation_time_tau_b_pi': 0.6,   # bulk relation time
     'Shear_relaxation_time_tau_pi': 0.01,   # shear relation time
 
+    'output_hydro_debug_info': 0,           # flag to output additional evolution information for debuging
     'output_evolution_data': 0,             # flag to output evolution history to file
     'output_hydro_params_header' : 1,       # flag to output hydro evolution information header
     'outputBinaryEvolution': 1,             # flag to output evolution history in binary format
