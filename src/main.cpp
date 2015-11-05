@@ -171,25 +171,20 @@ int main(int argc, char *argv[])
       system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
       Glauber *glauber;
       glauber = new Glauber;
+      cout << "init Glauber" << endl;
+      glauber->initGlauber(DATA.SigmaNN, DATA.Target, DATA.Projectile, DATA.b, DATA.LexusImax, size, rank);
       
       Init *init;
       init = new Init(eos,glauber);
-      
-      Evolve *evolve;
-      evolve = new Evolve(eos, &DATA);
-      
-      cout << "init Glauber" << endl;
-      glauber->initGlauber(DATA.SigmaNN, DATA.Target, DATA.Projectile, DATA.b, DATA.LexusImax, size, rank);
-      cout << "size=" << size << endl;
-      cout << "rank=" << rank << endl;
-      
       init->InitArena(&DATA, &arena, &Lneighbor, &Rneighbor, size, rank);
      
       size = DATA.size;
       rank = DATA.rank;
- 
       cout << "size=" << size << endl;
       cout << "rank=" << rank << endl;
+
+      Evolve *evolve;
+      evolve = new Evolve(eos, &DATA);
       evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank); 
 
       MPI_Barrier(MPI_COMM_WORLD);

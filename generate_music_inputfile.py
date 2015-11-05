@@ -20,14 +20,14 @@ class color:
     end = '\033[0m'
 
 initial_condition_dict.update({
-    'Initial_profile': 11,          # type of initial condition
-    'initialize_with_entropy': 1,   # 0: with energy density, 1: with entropy density
-    'Initial_Distribution_Filename': 'initial/sd_event_1_block.dat',
+    'Initial_profile': 8,          # type of initial condition
+    'initialize_with_entropy': 0,   # 0: with energy density, 1: with entropy density
+    'Initial_Distribution_Filename': 'initial/new_u_field_0.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_event_1_block.dat',
     'Initial_ux_Distribution_Filename': 'initial/ux_event_1_block.dat',
     'Initial_uy_Distribution_Filename': 'initial/uy_event_1_block.dat',
-    's_factor': 12.8,   # normalization factor read in initial data file
+    's_factor': 50.0,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
     'Eta_plateau_size': 3.03,          # size of the plateau in eta_s direction
@@ -42,15 +42,15 @@ initial_condition_dict.update({
 
 hydro_dict.update({
     # grid information
-    'Initial_time_tau_0': 0.8,   # starting time of the hydrodynamic evolution (fm/c)
-    'Delta_Tau': 0.04,           # time step to use in the evolution [fm/c]
+    'Initial_time_tau_0': 0.4,   # starting time of the hydrodynamic evolution (fm/c)
+    'Delta_Tau': 0.02,           # time step to use in the evolution [fm/c]
 
-    'Eta_grid_size': 9.6,       # spatial rapidity range
+    'Eta_grid_size': 20.0,       # spatial rapidity range
     'Grid_size_in_eta': 4,       # number of the grid points in spatial rapidity direction
-    'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
-    'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
-    'Grid_size_in_y': 260,       # number of the grid points in y direction
-    'Grid_size_in_x': 260,       # number of the grid points in x direction
+    'X_grid_size_in_fm': 30.0,   # spatial range along x direction in the transverse plane
+    'Y_grid_size_in_fm': 30.0,   # spatial range along y direction in the transverse plane
+    'Grid_size_in_y': 300,       # number of the grid points in y direction
+    'Grid_size_in_x': 300,       # number of the grid points in x direction
     
     # input grid information only works for initial_profile == 12
     'input_grid_size_in_y': 261,        # number of the grid points in y direction
@@ -60,9 +60,9 @@ hydro_dict.update({
     'input_grid_dx': 0.1,               # lattice spacing in x direction
     'input_grid_deta': 0.1,             # lattice spacing in eta direction
 
-    'EOS_to_use': 10,        # type of the equation of state
+    'EOS_to_use': 5,         # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
-    'boost_invariant': 0,    # initial condition is boost invariant
+    'boost_invariant': 1,    # initial condition is boost invariant
 
     #viscosity and diffusion options
     'Viscosity_Flag_Yes_1_No_0': 1,         # turn on viscosity in the evolution
@@ -71,8 +71,8 @@ hydro_dict.update({
     'T_dependent_Shear_to_S_ratio': 0,      # switch to turn on temperature dependent eta/s(T)
     'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect
     'Bulk_to_S_ratio': 0.1,                 # value of \zeta/s
-    'Include_Rhob_Yes_1_No_0': 1,           # turn on propagation of baryon current
-    'turn_on_baryon_diffusion': 1,          # turn on baryon current diffusion
+    'Include_Rhob_Yes_1_No_0': 0,           # turn on propagation of baryon current
+    'turn_on_baryon_diffusion': 0,          # turn on baryon current diffusion
     'Bulk_relaxation_time_tau_b_pi': 0.6,   # bulk relation time
     'Shear_relaxation_time_tau_pi': 0.01,   # shear relation time
 
@@ -96,8 +96,8 @@ freeze_out_dict.update({
     'eps_freeze_max': 0.750,        # the maximum freeze-out energy density (GeV/fm^3)
     'eps_freeze_min': 0.100,        # the minimum freeze-out energy density (GeV/fm^3)
 
-    'Include_deltaf': 1,        # flag to include delta f correction in Cooper-Frye formula
-    'Include_deltaf_qmu': 1,    # flag to include delta f for qmu
+    'Include_deltaf': 0,        # flag to include delta f correction in Cooper-Frye formula
+    'Include_deltaf_qmu': 0,    # flag to include delta f for qmu
     'Inlucde_deltaf_bulk': 0,   # flag to include delta f for bulk viscosity
 
     'number_of_particles_to_include': 320,  # number of thermal particles to compute for particle spectra and vn

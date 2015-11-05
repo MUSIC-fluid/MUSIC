@@ -10,8 +10,8 @@
 ##			distclean	remove all objectsfiles and binaries
 ##  
 
-CC := mpicxx-openmpi-mp
-CFLAGS= -Wall -O3 -I/opt/local/include
+CC := mpicxx-openmpi-gcc5
+CFLAGS= -Wall -g -I/opt/local/include
 
 RM		=	rm -f
 O               =       .o
