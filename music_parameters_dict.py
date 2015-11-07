@@ -180,6 +180,12 @@ freeze_out_dict = {
     'epsilon_freeze': 0.18,                       # the freeze out energy density (GeV/fm^3)
     'use_eps_for_freeze_out': 1,                  # flag to use energy density as criteria to find freeze-out surface 0: use temperature, 1: use energy density
     'T_freeze': 0.135,                            # freeze-out temperature (GeV)
+
+    'freeze_eps_flag': 0,           # flag for defining freeze out energy density (only for freezeoutMethod = 4)
+                                    # 0: freeze out energy densities are equally spaced between 
+                                    #    eps_freeze_min and eps_freeze_max for N_freeze_out surfaces
+                                    # 1: freeze out energy densities are read in from file freeze_list_filename
+    'freeze_list_filename': "eps_freeze_list_s95p_v1.dat",   # filename of the list for the freeze-out energy densities
     'N_freeze_out': 5,                            # number of freeze-out surfaces
                                                   # (only work for freeze_out_method = 4)
     'eps_freeze_max': 0.508,                      # the maximum freeze-out energy density (GeV/fm^3)

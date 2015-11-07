@@ -26,6 +26,9 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in)
   grid_nx = DATA_in->nx;
   grid_ny = DATA_in->ny;
   grid_neta = DATA_in->neta;
+
+  if(DATA_ptr->freezeOutMethod == 4)
+      initialize_freezeout_surface_info();
 }
 
 // destructor
@@ -5531,10 +5534,6 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 // Cornelius freeze out  (C. Shen, 11/2014)
 int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***arena, int size, int rank)
 {	
-   int n_freeze_surf = DATA->N_freeze_out;
-   double freeze_max_ed = DATA->eps_freeze_max;
-   double freeze_min_ed = DATA->eps_freeze_min;
-   double d_epsFO = (freeze_max_ed - freeze_min_ed)/(n_freeze_surf - 1 + 1e-15);
    int *all_frozen = new int [n_freeze_surf];
    for(int i = 0; i < n_freeze_surf; i++)
       all_frozen[i] = 0;
@@ -5949,11 +5948,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 
    for(int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++)
    {
-      double epsFO;
-      if(n_freeze_surf == 1)
-         epsFO = DATA->epsilonFreeze/hbarc;
-      else
-         epsFO= (freeze_min_ed + i_freezesurf*d_epsFO)/hbarc;
+      double epsFO = epsFO_list[i_freezesurf]/hbarc;
 
       stringstream strs_name;
       strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc 
@@ -7149,14 +7144,12 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA, Grid ***a
 
 int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *DATA, Grid ***arena, int size, int rank)
 {	
-   int n_freeze_surf = DATA->N_freeze_out;
-   double freeze_max_ed = DATA->eps_freeze_max;
-   double freeze_min_ed = DATA->eps_freeze_min;
-   double d_epsFO = (freeze_max_ed - freeze_min_ed)/(n_freeze_surf - 1 + 1e-15);
    int *all_frozen = new int [n_freeze_surf];
    for(int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++)
    {
-      double epsFO = (freeze_min_ed + i_freezesurf*d_epsFO)/hbarc;
+      double epsFO;
+      epsFO = epsFO_list[i_freezesurf]/hbarc;
+
       stringstream strs_name;
       strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc << ".dat";
    
@@ -7682,4 +7675,50 @@ void Evolve::regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated)
              + u[i]*u[j]*u_dot_pi_dot_u 
              - 1./3.*(gmunu[i][j] + u[i]*u[j])*(tr_pi + u_dot_pi_dot_u));
 
+}
+
+void Evolve::initialize_freezeout_surface_info()
+{
+   int freeze_eps_flag = DATA_ptr->freeze_eps_flag;
+   if(freeze_eps_flag == 0)  // constant spacing the energy density
+   {
+       n_freeze_surf = DATA_ptr->N_freeze_out;
+       double freeze_max_ed = DATA_ptr->eps_freeze_max;
+       double freeze_min_ed = DATA_ptr->eps_freeze_min;
+       double d_epsFO = (freeze_max_ed - freeze_min_ed)/(n_freeze_surf - 1 + 1e-15);
+       for(int isurf = 0; isurf < n_freeze_surf; isurf++)
+       {
+           double temp_epsFO = freeze_min_ed + isurf*d_epsFO;
+           epsFO_list.push_back(temp_epsFO);
+       }
+   }
+   else if(freeze_eps_flag == 1)  // read in from a file
+   {
+       string eps_freeze_list_filename = DATA_ptr->freeze_list_filename;
+       cout << "read in freeze out surface information from " << eps_freeze_list_filename << endl;
+       ifstream freeze_list_file(eps_freeze_list_filename.c_str());
+       int temp_n_surf = 0;
+       string dummy;
+       double temp_epsFO, dummyd;
+       getline(freeze_list_file, dummy);  // get rid of the comment
+       while(1)
+       {
+           freeze_list_file >> temp_epsFO >> dummyd >> dummyd >> dummyd >> dummyd >> dummyd >> dummyd;
+           if(!freeze_list_file.eof())
+           {
+               epsFO_list.push_back(temp_epsFO);
+               temp_n_surf++;
+           }
+           else
+               break;
+       }
+       freeze_list_file.close();
+       n_freeze_surf = temp_n_surf;
+       cout << "totally " << n_freeze_surf << " freeze-out surface will be generated ..." << endl;
+   }
+   else
+   {
+       cout << "Evolve::initialize_freezeout_surface_info: unrecoginze freeze_eps_flag = " << freeze_eps_flag << endl;
+       exit(1);
+   }
 }

@@ -106,6 +106,8 @@ typedef struct init_data
   int N_freeze_out;
   double eps_freeze_min;
   double eps_freeze_max;
+  int freeze_eps_flag;
+  string freeze_list_filename;
 
   int particleSpectrumNumber; // number of particle for which the spectrum is to be computed. 0: all particles
   int freezeOutMethod;  // 1: Hirano's simple method, 2: 4d-triangulation

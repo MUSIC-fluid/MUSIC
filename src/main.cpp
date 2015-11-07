@@ -1545,6 +1545,16 @@ void ReadInData3(InitData *DATA, string file)
     exit(1);
   }
 
+  int temp_freeze_eps_flag = 0;
+  tempinput = util->StringFind4(file, "freeze_eps_flag");
+  if(tempinput != "empty") istringstream (tempinput) >> temp_freeze_eps_flag;
+  DATA->freeze_eps_flag = temp_freeze_eps_flag;
+  
+  string temp_freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
+  tempinput = util->StringFind4(file, "freeze_list_filename");
+  if(tempinput != "empty") temp_freeze_list_filename.assign(tempinput);
+  DATA->freeze_list_filename.assign(temp_freeze_list_filename);
+
   int temp_N_freeze_out = 1;
   tempinput = util->StringFind4(file, "N_freeze_out");
   if(tempinput != "empty") istringstream ( tempinput ) >> temp_N_freeze_out;

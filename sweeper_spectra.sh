@@ -12,4 +12,5 @@ mv *.dat $folder_name
 mv spvn* $folder_name
 cp music_input_2 $folder_name/music_input
 mv $folder_name/known_nuclei.dat ./
+mv $folder_name/eps_freeze_list_*.dat ./
 rm -fr music_input_*

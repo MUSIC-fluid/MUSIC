@@ -60,9 +60,9 @@ hydro_dict.update({
     'input_grid_dx': 0.1,               # lattice spacing in x direction
     'input_grid_deta': 0.1,             # lattice spacing in eta direction
 
-    'EOS_to_use': 5,         # type of the equation of state
+    'EOS_to_use': 2,         # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
-    'boost_invariant': 1,    # initial condition is boost invariant
+    'boost_invariant': 0,    # initial condition is boost invariant
 
     #viscosity and diffusion options
     'Viscosity_Flag_Yes_1_No_0': 1,         # turn on viscosity in the evolution
@@ -93,7 +93,12 @@ freeze_out_dict.update({
     'average_surface_over_this_many_time_steps': 5,   # the step skipped in the tau direction
     'Ncell_skip_x': 5,              # the step skipped in x direction
     'Ncell_skip_y': 5,              # the step skipped in y direction
-    'N_freeze_out': 14,              # number of freeze-out surfaces
+    'freeze_eps_flag': 1,           # flag for defining freeze out energy density
+                                    # 0: freeze out energy densities are equally spaced between 
+                                    #    eps_freeze_min and eps_freeze_max for N_freeze_out surfaces
+                                    # 1: freeze out energy densities are read in from file freeze_list_filename
+    'freeze_list_filename': "eps_freeze_list_s95p-v1.dat",   # filename of the list for the freeze-out energy densities
+    'N_freeze_out': 14,             # number of freeze-out surfaces
     'eps_freeze_max': 0.750,        # the maximum freeze-out energy density (GeV/fm^3)
     'eps_freeze_min': 0.100,        # the minimum freeze-out energy density (GeV/fm^3)
 

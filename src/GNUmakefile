@@ -11,7 +11,7 @@
 ##  
 
 CC := mpicxx-openmpi-gcc5
-CFLAGS= -Wall -g -I/opt/local/include
+CFLAGS= -Wall -O3 -I/opt/local/include
 
 RM		=	rm -f
 O               =       .o

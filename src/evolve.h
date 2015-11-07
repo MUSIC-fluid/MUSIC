@@ -16,6 +16,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include<vector>
 
 // this is a control class for the hydrodynamic evolution
 class Evolve
@@ -40,6 +41,10 @@ class Evolve
     int cells;
     int weirdCases;
     int facTau;
+
+    // information about freeze-out surface (only used when freezeout_method == 4)
+    int n_freeze_surf;
+    vector<double> epsFO_list;
   
   public:
     Evolve(EOS *eos, InitData *DATA_in);//constructor
@@ -63,6 +68,8 @@ class Evolve
 
     void regulate_qmu(double* u, double* q, double* q_regulated);
     void regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated);
+
+    void initialize_freezeout_surface_info();
 
   ////////////////////////////////////////////////////////////////////////////
   // all the following variables and functions seems to be outdated
