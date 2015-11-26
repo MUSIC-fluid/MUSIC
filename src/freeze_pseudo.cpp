@@ -670,6 +670,14 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
 	             
 	           }
 
+                 double delta_f_bulk = 0.0;
+                 if(flag_bulk_deltaf == 1)
+                 {
+                     double E_over_T = E/T;
+
+                 }
+
+
                  // delta f for qmu
                  double qmufactor = 0.0;
                  double delta_f_qmu = 0.0;

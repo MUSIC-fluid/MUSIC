@@ -252,9 +252,9 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu, InitData *
    shear_to_s = DATA->shear_to_s;
  }
 
- int include_WWterm = 0;
+ int include_WWterm = 1;
  int include_Vorticity_term = 0;
- int include_Wsigma_term = 0;
+ int include_Wsigma_term = 1;
 
 
 /// ////////////////////////////////////////////////////////////////////// ///
