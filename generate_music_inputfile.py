@@ -20,17 +20,17 @@ class color:
     end = '\033[0m'
 
 initial_condition_dict.update({
-    'Initial_profile': 8,          # type of initial condition
+    'Initial_profile': 9,          # type of initial condition
     'initialize_with_entropy': 0,   # 0: with energy density, 1: with entropy density
     'Initial_Distribution_Filename': 'initial/new_u_field_0.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_event_1_block.dat',
     'Initial_ux_Distribution_Filename': 'initial/ux_event_1_block.dat',
     'Initial_uy_Distribution_Filename': 'initial/uy_event_1_block.dat',
-    's_factor': 50.0,   # normalization factor read in initial data file
+    's_factor': 1.0,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
-    'Eta_plateau_size': 3.03,          # size of the plateau in eta_s direction
+    'Eta_plateau_size': 40.0,          # size of the plateau in eta_s direction
     'Eta_fall_off': 0.2,              # the scale of the fall off of the plateau in eta_s direction
     'initial_eta_rhob_profile': 2,    # type of the envelope profile for rho_B's eta_s distribution
     'eta_rhob_0': 1.55,                # peak position of rho_B in eta_s direction
@@ -47,10 +47,10 @@ hydro_dict.update({
 
     'Eta_grid_size': 20.0,       # spatial rapidity range
     'Grid_size_in_eta': 4,       # number of the grid points in spatial rapidity direction
-    'X_grid_size_in_fm': 30.0,   # spatial range along x direction in the transverse plane
-    'Y_grid_size_in_fm': 30.0,   # spatial range along y direction in the transverse plane
-    'Grid_size_in_y': 300,       # number of the grid points in y direction
-    'Grid_size_in_x': 300,       # number of the grid points in x direction
+    'X_grid_size_in_fm': 34.0,   # spatial range along x direction in the transverse plane
+    'Y_grid_size_in_fm': 34.0,   # spatial range along y direction in the transverse plane
+    'Grid_size_in_y': 256,       # number of the grid points in y direction
+    'Grid_size_in_x': 256,       # number of the grid points in x direction
     
     # input grid information only works for initial_profile == 12
     'input_grid_size_in_y': 261,        # number of the grid points in y direction
@@ -62,14 +62,14 @@ hydro_dict.update({
 
     'EOS_to_use': 2,         # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
-    'boost_invariant': 0,    # initial condition is boost invariant
+    'boost_invariant': 1,    # initial condition is boost invariant
 
     #viscosity and diffusion options
     'Viscosity_Flag_Yes_1_No_0': 1,         # turn on viscosity in the evolution
     'Include_Shear_Visc_Yes_1_No_0': 1,     # include shear viscous effect
     'Shear_to_S_ratio': 0.08,               # value of \eta/s
     'T_dependent_Shear_to_S_ratio': 0,      # switch to turn on temperature dependent eta/s(T)
-    'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect
+    'Include_Bulk_Visc_Yes_1_No_0': 1,      # include bulk viscous effect
     'Bulk_to_S_ratio': 0.1,                 # value of \zeta/s
     'Include_Rhob_Yes_1_No_0': 0,           # turn on propagation of baryon current
     'turn_on_baryon_diffusion': 0,          # turn on baryon current diffusion
@@ -91,8 +91,8 @@ freeze_out_dict.update({
     'freeze_out_method': 4,         # method for hyper-surface finder
 
     'average_surface_over_this_many_time_steps': 5,   # the step skipped in the tau direction
-    'Ncell_skip_x': 5,              # the step skipped in x direction
-    'Ncell_skip_y': 5,              # the step skipped in y direction
+    'Ncell_skip_x': 3,              # the step skipped in x direction
+    'Ncell_skip_y': 3,              # the step skipped in y direction
     'freeze_eps_flag': 1,           # flag for defining freeze out energy density
                                     # 0: freeze out energy densities are equally spaced between 
                                     #    eps_freeze_min and eps_freeze_max for N_freeze_out surfaces
@@ -298,8 +298,8 @@ def generate_submit_script(include_nodeltaf, include_y):
     print(color.purple + "\n" + "-"*80 
           + "\n>>>>> generating submission script! <<<<<\n" + "-"*80 
           + color.end)
-    decoupling_energy_density = ['0.1', '0.202']
-    queue_name = 'lm2'
+    decoupling_energy_density = ['0.1']
+    queue_name = 'sw'
     ppn = 16
     walltime = '12:00:00'
     working_folder = path.abspath('./') 
@@ -469,7 +469,7 @@ def read_in_parameters_from_command_line():
             del sys.argv[1]
             initial_condition_dict.update({
                 'Initial_Distribution_Filename':
-                    'initial/sd_event_%d_block.dat' % iev,
+                    '/gs/project/cqn-654-ad/cshen/IP-Glasma/ipglasma-2015-12-02/Event_PbPb/RESULTS/epsilon-u-Hydro%d.dat' % iev,
                 'Initial_Rhob_Distribution_Filename':
                     'initial/rhob_event_%d_block.dat' % iev,
                 'Initial_ux_Distribution_Filename':
@@ -506,5 +506,5 @@ def read_in_parameters_from_command_line():
 if __name__ == "__main__":
     read_in_parameters_from_command_line()
 
-    generate_music_input_file(1, 1)
-    generate_submit_script(1, 1)
+    generate_music_input_file(0, 0)
+    generate_submit_script(0, 0)
