@@ -674,7 +674,6 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
                  if(flag_bulk_deltaf == 1)
                  {
                      double E_over_T = E/T;
-
                  }
 
 

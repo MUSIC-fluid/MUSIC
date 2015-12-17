@@ -827,37 +827,38 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag)
 int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
 {
   int revert_flag = 0;
-  double epsFO;
-  if (DATA->useEpsFO == 0)
-      epsFO = eos->findRoot(&EOS::Tsolve, 0., DATA->TFO/hbarc, 0.001, 300.,0.001);
-  if (DATA->useEpsFO == 1)
-      epsFO = DATA->epsilonFreeze / hbarc;
+  double eps_scale = 1.0;  // 1/fm^4
   double factor;
   if (fabs(DATA->QuestRevert_factor) < 1e-15)
-	factor = DATA->QuestRevert_prefactor * tanh (grid_pt->epsilon / epsFO * DATA->QuestRevert_eps_factor);
+	factor = DATA->QuestRevert_prefactor*tanh(grid_pt->epsilon/eps_scale);
   else
  	factor = DATA->QuestRevert_factor;
 
-  double pisize = (
-             grid_pt->Wmunu[rk_flag+1][0][0]*grid_pt->Wmunu[rk_flag+1][0][0]
-           + grid_pt->Wmunu[rk_flag+1][1][1]*grid_pt->Wmunu[rk_flag+1][1][1]
-           + grid_pt->Wmunu[rk_flag+1][2][2]*grid_pt->Wmunu[rk_flag+1][2][2]
-           + grid_pt->Wmunu[rk_flag+1][3][3]*grid_pt->Wmunu[rk_flag+1][3][3]
-           - 2.*(  grid_pt->Wmunu[rk_flag+1][0][1]*grid_pt->Wmunu[rk_flag+1][0][1]
-                 + grid_pt->Wmunu[rk_flag+1][0][2]*grid_pt->Wmunu[rk_flag+1][0][2]
-                 + grid_pt->Wmunu[rk_flag+1][0][3]*grid_pt->Wmunu[rk_flag+1][0][3]
-                )
-           + 2.*(
-                   grid_pt->Wmunu[rk_flag+1][1][2]*grid_pt->Wmunu[rk_flag+1][1][2]
-                 + grid_pt->Wmunu[rk_flag+1][1][3]*grid_pt->Wmunu[rk_flag+1][1][3]
-                 + grid_pt->Wmunu[rk_flag+1][2][3]*grid_pt->Wmunu[rk_flag+1][2][3]
-                ));
+  double pi_00 = grid_pt->Wmunu[rk_flag+1][0][0];
+  double pi_11 = grid_pt->Wmunu[rk_flag+1][1][1];
+  double pi_22 = grid_pt->Wmunu[rk_flag+1][2][2];
+  double pi_33 = grid_pt->Wmunu[rk_flag+1][3][3];
+  double pi_01 = grid_pt->Wmunu[rk_flag+1][0][1];
+  double pi_02 = grid_pt->Wmunu[rk_flag+1][0][2];
+  double pi_03 = grid_pt->Wmunu[rk_flag+1][0][3];
+  double pi_12 = grid_pt->Wmunu[rk_flag+1][1][2];
+  double pi_13 = grid_pt->Wmunu[rk_flag+1][1][3];
+  double pi_23 = grid_pt->Wmunu[rk_flag+1][2][3];
 
-  double bulksize = 3.*grid_pt->pi_b[rk_flag+1]*grid_pt->pi_b[rk_flag+1] ;
+  double pisize = (pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
+      - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
+      + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
+  
+  double pi_local = grid_pt->pi_b[rk_flag+1];
+  double bulksize = 3.*pi_local*pi_local;
+
+  double e_local = grid_pt->epsilon;
+  double p_local = grid_pt->p;
+  double eq_size = e_local*e_local + 3.*p_local*p_local;
        
-  double rho_shear = sqrt(pisize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p )  )/factor ; 
+  double rho_shear = sqrt(pisize/eq_size)/factor; 
 
-  double rho_bulk  = sqrt(bulksize/( grid_pt->epsilon*grid_pt->epsilon + 3.*grid_pt->p*grid_pt->p ) )/factor ;
+  double rho_bulk  = sqrt(bulksize/eq_size)/factor;
  
   // Reducing the shear stress tensor 
   double rho_shear_max = DATA->QuestRevert_rho_shear_max;
@@ -895,10 +896,10 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag, InitData *DATA,
 int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
 {
   int revert_flag = 0;
-  double epsFO = DATA->epsilonFreeze/hbarc;   // in 1/fm^4
+  double eps_scale = 1.0;   // in 1/fm^4
   double factor;
   if (fabs(DATA->QuestRevert_factor) < 1e-15)
-	factor = DATA->QuestRevert_prefactor * tanh (grid_pt->epsilon / epsFO * DATA->QuestRevert_eps_factor);
+	factor = DATA->QuestRevert_prefactor*tanh(grid_pt->epsilon/eps_scale);
   else
  	factor = DATA->QuestRevert_factor;
 
