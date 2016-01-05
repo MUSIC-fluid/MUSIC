@@ -26,53 +26,53 @@ Init::~Init()
 
 void Init::InitArena(InitData *DATA, Grid ****arena, Grid ****Lneighbor, Grid ****Rneighbor, int size, int rank)
 {
-  Grid *helperGrid;
-  helperGrid = new Grid;
-  cout << "initArena" << endl;
-
-  if (DATA->Initial_profile==6 || DATA->Initial_profile==7 || DATA->Initial_profile == 8 || DATA->Initial_profile == 9)
+    Grid *helperGrid;
+    helperGrid = new Grid;
+    cout << "initArena" << endl;
+    
+    if (DATA->Initial_profile==6 || DATA->Initial_profile==7 
+        || DATA->Initial_profile == 8 || DATA->Initial_profile == 9)
     {
-      string dummy;
-      int nx, ny, neta;
-      cout << DATA->initName <<endl;
-      ifstream profile(DATA->initName.c_str());
-      double deta, dx, dy, dummy2;
-      //     profile = fopen(DATA->initName, "r");
-      // read the first line with general info
-      
-      profile >> dummy >> dummy >> dummy2 >> dummy >> neta >> dummy >> nx >> dummy >> ny >> dummy >> deta >> dummy >> dx >> dummy >> dy ;
-      cout << "neta = " << neta << endl;
-   
-      //   bytes_read=fscanf(profile,"%s %s %lf %s %d %s %d %s %d %s %lf %s %lf %s %lf",
-      //		       &dummy,&dummy,&dummy2,&dummy,&neta,&dummy,&nx,&dummy,&ny,&dummy,&deta,&dummy,&dx,&dummy,&dy);
-      cout << "Using Initial_profile=" << DATA->Initial_profile << ". Overwriting lattice dimensions:" << endl;
-      DATA->nx = nx-1;
-      DATA->ny = ny-1;
-      if(DATA->Initial_profile != 9)
-      {
-          DATA->neta = neta/size;
-          DATA->delta_eta = deta;
-      }
-      DATA->delta_x = dx;
-      DATA->delta_y = dy;
-      cout << "neta=" << neta << ", nx=" << nx << ", ny=" << ny << endl;
-      cout << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x << ", dy=" << DATA->delta_y << endl;
-      //      cout << DATA->neta << " " << DATA->nx << " " << DATA->ny << endl;
-      profile.close();
-   }    
-  
-  // rewrite with new
+        cout << DATA->initName <<endl;
+        ifstream profile(DATA->initName.c_str());
+        string dummy;
+        int nx, ny, neta;
+        double deta, dx, dy, dummy2;
+        
+        // read the first line with general info
+        profile >> dummy >> dummy >> dummy2 
+                >> dummy >> neta >> dummy >> nx >> dummy >> ny 
+                >> dummy >> deta >> dummy >> dx >> dummy >> dy ;
+        profile.close();
+        cout << "Using Initial_profile=" << DATA->Initial_profile 
+             << ". Overwriting lattice dimensions:" << endl;
 
-  *arena = helperGrid->grid_c_malloc(DATA->nx+1, DATA->ny+1, DATA->neta);
-  *Lneighbor = helperGrid->grid_c_malloc(DATA->nx+1, DATA->ny+1, 2);
-  *Rneighbor = helperGrid->grid_c_malloc(DATA->nx+1, DATA->ny+1, 2);
-  
-  cout << "Grid allocated." << endl;
-  while (InitTJb(DATA, arena, Lneighbor, Rneighbor, size, rank)==0);
-  
-  cout << "rank " << rank << " ok." << endl;
-  LinkNeighbors(DATA, arena, size, rank);
-  delete helperGrid;
+        DATA->nx = nx-1;
+        DATA->ny = ny-1;
+        DATA->delta_x = dx;
+        DATA->delta_y = dy;
+        if(DATA->Initial_profile == 6 || DATA->Initial_profile == 7)
+        {
+            DATA->neta = neta/size;
+            DATA->delta_eta = deta;
+        }
+
+        cout << "neta=" << neta << ", nx=" << nx << ", ny=" << ny << endl;
+        cout << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x 
+             << ", dy=" << DATA->delta_y << endl;
+    }
+
+    // initialize arena
+    *arena = helperGrid->grid_c_malloc(DATA->nx+1, DATA->ny+1, DATA->neta);
+    *Lneighbor = helperGrid->grid_c_malloc(DATA->nx+1, DATA->ny+1, 2);
+    *Rneighbor = helperGrid->grid_c_malloc(DATA->nx+1, DATA->ny+1, 2);
+    
+    cout << "Grid allocated." << endl;
+    while (InitTJb(DATA, arena, Lneighbor, Rneighbor, size, rank)==0);
+    
+    cout << "rank " << rank << " ok." << endl;
+    LinkNeighbors(DATA, arena, size, rank);
+    delete helperGrid;
 }/* InitArena */
 
 
@@ -2942,224 +2942,191 @@ else if (DATA->Initial_profile==7) //read in the profile from file - IPSat initi
        }/* ix, iy, ieta */
    }
 else if (DATA->Initial_profile==8) //read in the profile from file - IPGlasma initial conditions with initial flow
-  // this is an updated version, reading a file with only x and y coordinates and one fixed coordinate in eta.
-  // it then distributes the same x-y-distribution to all eta slices present. When using freeze-out 3 and pseudo-freeze 1 
-  // the minimum 4 cells are good enough. Will work on reducing this minimum to 1 in future versions (BPS 2014/01/28)
    {
-     size = DATA->size;
+       size = DATA->size;
 
-     cout << "size=" << size << endl;
-     cout << " ----- information on initial distribution -----" << endl;
-     cout << "file name used: " << DATA->initName << endl;
+       cout << "size=" << size << endl;
+       cout << " ----- information on initial distribution -----" << endl;
+       cout << "file name used: " << DATA->initName << endl;
   
-     ifstream profile(DATA->initName.c_str());
+       ifstream profile(DATA->initName.c_str());
 
-     for(ix=0; ix<=DATA->nx; ix++)
+       string dummy;
+       int nx, ny, neta;
+       double dx, dy, deta;
+       // read the information line
+       profile >> dummy >> dummy >> dummy >> dummy >> neta 
+               >> dummy >> nx >> dummy >> ny 
+               >> dummy >> deta >> dummy >> dx >> dummy >> dy;
+
+       cout << "neta=" << DATA->neta << ", nx=" << nx << ", ny=" << ny 
+            << ", deta=" << DATA->delta_eta << ", dx=" << dx << ", dy=" << dy 
+            << endl;
+
+       double density, dummy1, dummy2, dummy3;
+       double ux, uy, utau;
+       
+       double** temp_profile_ed = new double* [nx+1];
+       double** temp_profile_utau = new double* [nx+1];
+       double** temp_profile_ux = new double* [nx+1];
+       double** temp_profile_uy = new double* [nx+1];
+       for(int i = 0; i < nx+1; i++)
        {
-	 for(iy=0; iy<=DATA->ny; iy++)
-	   {
- 	     (*Lneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
- 	     (*Rneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
- 	     (*Lneighbor)[ix][iy][1].TJb = util->cube_malloc(rk_order+1, 5,4);
- 	     (*Rneighbor)[ix][iy][1].TJb = util->cube_malloc(rk_order+1, 5,4);
-  	     (*Lneighbor)[ix][iy][0].Wmunu = util->cube_malloc(rk_order+1, 5,4);
-  	     (*Rneighbor)[ix][iy][0].Wmunu = util->cube_malloc(rk_order+1, 5,4);
-  	     (*Lneighbor)[ix][iy][1].Wmunu = util->cube_malloc(rk_order+1, 5,4);
-  	     (*Rneighbor)[ix][iy][1].Wmunu = util->cube_malloc(rk_order+1, 5,4);
- 	     (*Lneighbor)[ix][iy][0].Pimunu = util->cube_malloc(rk_order+1, 5,4);
- 	     (*Rneighbor)[ix][iy][0].Pimunu = util->cube_malloc(rk_order+1, 5,4);
- 	     (*Lneighbor)[ix][iy][1].Pimunu = util->cube_malloc(rk_order+1, 5,4);
- 	     (*Rneighbor)[ix][iy][1].Pimunu = util->cube_malloc(rk_order+1, 5,4);
- 	     (*Lneighbor)[ix][iy][0].u = util->mtx_malloc(rk_order+1, 4);
- 	     (*Rneighbor)[ix][iy][0].u = util->mtx_malloc(rk_order+1, 4);
- 	     (*Lneighbor)[ix][iy][1].u = util->mtx_malloc(rk_order+1, 4);
- 	     (*Rneighbor)[ix][iy][1].u = util->mtx_malloc(rk_order+1, 4);
- 	     (*Lneighbor)[ix][iy][0].pi_b = util->vector_malloc(rk_order+1);
- 	     (*Rneighbor)[ix][iy][0].pi_b = util->vector_malloc(rk_order+1);
- 	     (*Lneighbor)[ix][iy][1].pi_b = util->vector_malloc(rk_order+1);
- 	     (*Rneighbor)[ix][iy][1].pi_b = util->vector_malloc(rk_order+1);
-	   }
+           temp_profile_ed[i] = new double [ny+1];
+           temp_profile_utau[i] = new double [ny+1];
+           temp_profile_ux[i] = new double [ny+1];
+           temp_profile_uy[i] = new double [ny+1];
        }
-  
-     string dummy;
-     int nx, ny, neta;
-     double dx, dy, deta;
-     // read the information line
-     profile >> dummy >>dummy >>dummy >>dummy >>neta >> dummy >> nx >> dummy >> ny >> dummy >> deta >> dummy >> dx >> dummy >> dy;
 
-     //cout << "DATA->nx=" << DATA->nx << endl;
-     cout << "neta=" << DATA->neta << ", nx=" << nx << ", ny=" << ny << ", deta=" << DATA->delta_eta << ", dx=" << dx << ", dy=" << dy << endl;
-
-     double density, dummy1, dummy2, dummy3;
-     double ux, uy, utau;
-     //read the one slice
-     for(ix=0; ix<=DATA->nx; ix++)
+       //read the one slice
+       for(ix = 0; ix <= DATA->nx; ix++)
        {
-	 for(iy=0; iy<=DATA->ny; iy++)
-	   {
-	     profile >> dummy1 >> dummy2 >> dummy3 >> density >> utau >> ux >> uy  >> dummy  >> dummy  >> dummy  >> dummy;
-	     if (ix == 0 && iy == 0)
-	       {
-		 DATA->x_size = -dummy2*2*hbarc;
-		 DATA->y_size = -dummy3*2*hbarc;
-		 cout << "eta_size=" << DATA->eta_size << ", x_size=" << DATA->x_size << ", y_size=" << DATA->y_size << endl;
-	       }
-	     
-	     epsilon= density*DATA->sFactor/hbarc;
-	     
-	     rhob=0.;
-	     if (epsilon<0.0000000001)
-	       epsilon = 0.0000000001;
-	     
-	     // intial pressure distribution:
-	     p = eos->get_pressure(epsilon, rhob);
-	     
-	     // set all values in the grid element:
-	     (*arena)[ix][iy][0].epsilon = epsilon;
-	     (*arena)[ix][iy][0].rhob = rhob;
-	     (*arena)[ix][iy][0].p = p;
-	     //		 (*arena)[ix][iy][ieta2].trouble = 0;
-	     
-	     (*arena)[ix][iy][0].T = eos->get_temperature(epsilon, rhob);
-	     (*arena)[ix][iy][0].mu = eos->get_mu(epsilon, rhob);
-	     
-	     (*arena)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
-	     (*arena)[ix][iy][0].dUsup = util->cube_malloc(rk_order+1, 5,4);
-	     (*arena)[ix][iy][0].u = util->mtx_malloc(rk_order+1, 4);
-	     (*arena)[ix][iy][0].a = util->mtx_malloc(rk_order+1, 5);
-	     (*arena)[ix][iy][0].theta_u = util->vector_malloc(rk_order+1);
-           (*arena)[ix][iy][0].sigma = util->cube_malloc(rk_order+1, 4, 4);
-	     (*arena)[ix][iy][0].pi_b = util->vector_malloc(rk_order+1);
-	     (*arena)[ix][iy][0].prev_u = util->mtx_malloc(1, 4);
-	     (*arena)[ix][iy][0].Wmunu = util->cube_malloc(rk_order+1, 5,4);
-	     (*arena)[ix][iy][0].prevWmunu = util->cube_malloc(1, 5,4);
-	     (*arena)[ix][iy][0].Pimunu = util->cube_malloc(rk_order+1, 5,4);
-	     (*arena)[ix][iy][0].prevPimunu = util->cube_malloc(1, 5,4);
-	     
-	     (*arena)[ix][iy][0].W_prev = util->mtx_malloc(5,4);
-	     
-	     if (utau<1)
-	       {
-		 cout << "utau=" << utau << endl;
-		 utau = 1.;
-		 ux = 0.;
-		 uy = 0.;
-	       }
-	     
-	     
-	     /* for HIC */
-	     u[0] = (*arena)[ix][iy][0].u[0][0] = utau;
-	     u[1] = (*arena)[ix][iy][0].u[0][1] = ux;
-	     u[2] = (*arena)[ix][iy][0].u[0][2] = uy;
-	     u[3] = (*arena)[ix][iy][0].u[0][3] = 0.0;
-	     
-	     (*arena)[ix][iy][0].prev_u[0][0] = utau;
-	     (*arena)[ix][iy][0].prev_u[0][1] = ux;
-	     (*arena)[ix][iy][0].prev_u[0][2] = uy;
-	     (*arena)[ix][iy][0].prev_u[0][3] = 0.0;
-
-	     (*arena)[ix][iy][0].pi_b[0] = 0.0;
-	     
-	     
-	     for(mu=0; mu<4; mu++)
-	       {
-		 /* baryon density */
-		 (*arena)[ix][iy][0].TJb[0][4][mu] = rhob*u[mu];
-
-             // diffusion current
-		 (*arena)[ix][iy][0].Wmunu[0][4][mu] = 0.0;
-		 (*arena)[ix][iy][0].prevWmunu[0][4][mu] = 0.0;
-		 
-		 for(nu=0; nu<4; nu++)
-		   {
-		     (*arena)[ix][iy][0].TJb[0][nu][mu] 
-		       = (epsilon + p)*u[mu]*u[nu] + p*(DATA->gmunu)[mu][nu];
-		     
-		     (*arena)[ix][iy][0].Wmunu[0][nu][mu] = (double) 0.0;
-		     (*arena)[ix][iy][0].prevWmunu[0][nu][mu] = (double) 0.0;
-		     
-		     (*arena)[ix][iy][0].Pimunu[0][nu][mu] = (double) 0.0;
-		     (*arena)[ix][iy][0].prevPimunu[0][nu][mu] = (double) 0.0;
-		   }/* nu */
-	       }/* mu */
-	     
-	   }
+           for(iy = 0; iy <= DATA->ny; iy++)
+           {
+               profile >> dummy1 >> dummy2 >> dummy3 
+                       >> density >> utau >> ux >> uy  
+                       >> dummy  >> dummy  >> dummy  >> dummy;
+               temp_profile_ed[ix][iy] = density;
+               temp_profile_utau[ix][iy] = utau;
+               temp_profile_ux[ix][iy] = ux;
+               temp_profile_uy[ix][iy] = uy;
+               if (ix == 0 && iy == 0)
+               {
+                   DATA->x_size = -dummy2*2*hbarc;
+                   DATA->y_size = -dummy3*2*hbarc;
+                   cout << "eta_size=" << DATA->eta_size 
+                        << ", x_size=" << DATA->x_size 
+                        << ", y_size=" << DATA->y_size << endl;
+               }
+           }
        }
-   
-     
-     int ieta2;
-     for(ieta=0; ieta<DATA->neta*size; ieta++)
+       profile.close();
+
+       for(ix = 0; ix <= DATA->nx; ix++)
        {
-	 ieta2 = ieta - rank*DATA->neta;
-	 for(ix=0; ix<=DATA->nx; ix++)
-	   {
-	     for(iy=0; iy<=DATA->ny; iy++)
-	       {
-		 
-		 if ( ieta<DATA->neta*rank || ieta>DATA->neta*(rank+1)-1 )
-		   {
-		     continue;
-		   }
+           for(iy = 0; iy <= DATA->ny; iy++)
+           {
+               (*Lneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
+               (*Rneighbor)[ix][iy][0].TJb = util->cube_malloc(rk_order+1, 5,4);
+               (*Lneighbor)[ix][iy][1].TJb = util->cube_malloc(rk_order+1, 5,4);
+               (*Rneighbor)[ix][iy][1].TJb = util->cube_malloc(rk_order+1, 5,4);
+               (*Lneighbor)[ix][iy][0].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+               (*Rneighbor)[ix][iy][0].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+               (*Lneighbor)[ix][iy][1].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+               (*Rneighbor)[ix][iy][1].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+               (*Lneighbor)[ix][iy][0].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+               (*Rneighbor)[ix][iy][0].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+               (*Lneighbor)[ix][iy][1].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+               (*Rneighbor)[ix][iy][1].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+               (*Lneighbor)[ix][iy][0].u = util->mtx_malloc(rk_order+1, 4);
+               (*Rneighbor)[ix][iy][0].u = util->mtx_malloc(rk_order+1, 4);
+               (*Lneighbor)[ix][iy][1].u = util->mtx_malloc(rk_order+1, 4);
+               (*Rneighbor)[ix][iy][1].u = util->mtx_malloc(rk_order+1, 4);
+               (*Lneighbor)[ix][iy][0].pi_b = util->vector_malloc(rk_order+1);
+               (*Rneighbor)[ix][iy][0].pi_b = util->vector_malloc(rk_order+1);
+               (*Lneighbor)[ix][iy][1].pi_b = util->vector_malloc(rk_order+1);
+               (*Rneighbor)[ix][iy][1].pi_b = util->vector_malloc(rk_order+1);
+           }
+       }
+       
+       int entropy_flag = DATA->initializeEntropy;
+       for(int ieta = 0; ieta < DATA->neta; ieta++)
+       {
+           double eta = (DATA->delta_eta)*(ieta + DATA->neta*rank) - (DATA->eta_size)/2.0;
+           double eta_envelop_ed = eta_profile_normalisation(DATA, eta);
+           for(ix = 0; ix <= DATA->nx; ix++)
+           {
+               for(iy = 0; iy<= DATA->ny; iy++)
+               {
+                   rhob = 0.0;
+                   if(entropy_flag == 0)
+                       epsilon= temp_profile_ed[ix][iy]*eta_envelop_ed*DATA->sFactor/hbarc;  // 1/fm^4
+                   else
+                   {
+                       double local_sd = temp_profile_ed[ix][iy]*DATA->sFactor*eta_envelop_ed;
+                       epsilon = eos->get_s2e(local_sd, rhob);
+                   }
+                   if (epsilon<0.00000000001)
+                       epsilon = 0.00000000001;
 
-		 // set all values in the grid element:
-		 (*arena)[ix][iy][ieta2].epsilon = (*arena)[ix][iy][0].epsilon;
-		 (*arena)[ix][iy][ieta2].rhob = (*arena)[ix][iy][0].rhob;
-		 (*arena)[ix][iy][ieta2].p = (*arena)[ix][iy][0].p;
-		 
-		 (*arena)[ix][iy][ieta2].T = (*arena)[ix][iy][0].T;
-		 (*arena)[ix][iy][ieta2].mu = (*arena)[ix][iy][0].mu;
-		 
-		 if(ieta2!=0)
-		   {
-		     (*arena)[ix][iy][ieta2].TJb = util->cube_malloc(rk_order+1, 5,4);
-		     (*arena)[ix][iy][ieta2].dUsup = util->cube_malloc(rk_order+1, 5,4);
-		     (*arena)[ix][iy][ieta2].u = util->mtx_malloc(rk_order+1, 4);
-		     (*arena)[ix][iy][ieta2].a = util->mtx_malloc(rk_order+1, 5);
-		     (*arena)[ix][iy][ieta2].theta_u = util->vector_malloc(rk_order+1);
-                 (*arena)[ix][iy][ieta2].sigma = util->cube_malloc(rk_order+1, 4, 4);
-		     (*arena)[ix][iy][ieta2].pi_b = util->vector_malloc(rk_order+1);
-		     (*arena)[ix][iy][ieta2].prev_u = util->mtx_malloc(1, 4);
-		     (*arena)[ix][iy][ieta2].Wmunu = util->cube_malloc(rk_order+1, 5,4);
-		     (*arena)[ix][iy][ieta2].prevWmunu = util->cube_malloc(1, 5,4);
-		     (*arena)[ix][iy][ieta2].Pimunu = util->cube_malloc(rk_order+1, 5,4);
-		     (*arena)[ix][iy][ieta2].prevPimunu = util->cube_malloc(1, 5,4);
-		     
-		     (*arena)[ix][iy][ieta2].W_prev = util->mtx_malloc(5,4);
-		   }
-		 /* for HIC */
-		 u[0] = (*arena)[ix][iy][ieta2].u[0][0] = (*arena)[ix][iy][0].u[0][0];
-		 u[1] = (*arena)[ix][iy][ieta2].u[0][1] = (*arena)[ix][iy][0].u[0][1];
-		 u[2] = (*arena)[ix][iy][ieta2].u[0][2] = (*arena)[ix][iy][0].u[0][2];
-		 u[3] = (*arena)[ix][iy][ieta2].u[0][3] = (*arena)[ix][iy][0].u[0][3];
-		 
-		 (*arena)[ix][iy][ieta2].prev_u[0][0] = (*arena)[ix][iy][0].prev_u[0][0];
-		 (*arena)[ix][iy][ieta2].prev_u[0][1] = (*arena)[ix][iy][0].prev_u[0][1];
-		 (*arena)[ix][iy][ieta2].prev_u[0][2] = (*arena)[ix][iy][0].prev_u[0][2];
-		 (*arena)[ix][iy][ieta2].prev_u[0][3] = (*arena)[ix][iy][0].prev_u[0][3];
-		 
-		 (*arena)[ix][iy][ieta2].pi_b[0] = (*arena)[ix][iy][0].pi_b[0];
-		 
+                   // initial pressure distribution
+                   p = eos->get_pressure(epsilon, rhob);
+             
+                   // set all values in the grid element:
+                   (*arena)[ix][iy][ieta].epsilon = epsilon;
+                   (*arena)[ix][iy][ieta].epsilon_t = epsilon;
+                   (*arena)[ix][iy][ieta].prev_epsilon = epsilon;
+                   (*arena)[ix][iy][ieta].rhob = rhob;
+                   (*arena)[ix][iy][ieta].rhob_t = rhob;
+                   (*arena)[ix][iy][ieta].prev_rhob = rhob;
+                   (*arena)[ix][iy][ieta].p = p;
+                   (*arena)[ix][iy][ieta].p_t = p;
+                   (*arena)[ix][iy][ieta].trouble = 0;
 
-		 for(mu=0; mu<4; mu++)
-		   {
-		     /* baryon density */
-		     (*arena)[ix][iy][ieta2].TJb[0][4][mu] = (*arena)[ix][iy][0].TJb[0][4][mu];
-                 // diffusion current
-		     (*arena)[ix][iy][ieta2].Wmunu[0][4][mu] = (*arena)[ix][iy][0].Wmunu[0][4][mu];
-		     (*arena)[ix][iy][ieta2].prevWmunu[0][4][mu] = (*arena)[ix][iy][0].prevWmunu[0][4][mu];
-		     
-		     for(nu=0; nu<4; nu++)
-		       {
-			 (*arena)[ix][iy][ieta2].TJb[0][nu][mu] = (*arena)[ix][iy][0].TJb[0][nu][mu];
-			 (*arena)[ix][iy][ieta2].Wmunu[0][nu][mu] = (*arena)[ix][iy][0].Wmunu[0][nu][mu];
-			 (*arena)[ix][iy][ieta2].prevWmunu[0][nu][mu] = (*arena)[ix][iy][0].prevWmunu[0][nu][mu];
-			 (*arena)[ix][iy][ieta2].Pimunu[0][nu][mu] = (*arena)[ix][iy][0].Pimunu[0][nu][mu];
-			 (*arena)[ix][iy][ieta2].prevPimunu[0][nu][mu] = (*arena)[ix][iy][0].prevPimunu[0][nu][mu];
-		       }/* nu */
-		   }/* mu */
-	       }
-	   }
+                   (*arena)[ix][iy][ieta].T = eos->get_temperature(epsilon, rhob);
+                   (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
+                
+                   (*arena)[ix][iy][ieta].TJb = util->cube_malloc(rk_order+1, 5,4);
+                   (*arena)[ix][iy][ieta].dUsup = util->cube_malloc(rk_order+1, 5,4);
+                   (*arena)[ix][iy][ieta].u = util->mtx_malloc(rk_order+1, 4);
+                   (*arena)[ix][iy][ieta].a = util->mtx_malloc(rk_order+1, 5);
+                   (*arena)[ix][iy][ieta].theta_u = util->vector_malloc(rk_order+1);
+                   (*arena)[ix][iy][ieta].sigma = util->cube_malloc(rk_order+1, 4, 4);
+                   (*arena)[ix][iy][ieta].pi_b = util->vector_malloc(rk_order+1);
+                   (*arena)[ix][iy][ieta].prev_u = util->mtx_malloc(1, 4);
+                   (*arena)[ix][iy][ieta].Wmunu = util->cube_malloc(rk_order+1, 5,4);
+                   (*arena)[ix][iy][ieta].prevWmunu = util->cube_malloc(1, 5,4);
+                   (*arena)[ix][iy][ieta].Pimunu = util->cube_malloc(rk_order+1, 5,4);
+                   (*arena)[ix][iy][ieta].prevPimunu = util->cube_malloc(1, 5,4);
+                   (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5,4);
+
+                   /* for HIC */
+                   u[0] = (*arena)[ix][iy][ieta].u[0][0] = temp_profile_utau[ix][iy];
+                   u[3] = (*arena)[ix][iy][ieta].u[0][3] = temp_profile_ux[ix][iy];
+                   u[1] = (*arena)[ix][iy][ieta].u[0][1] = temp_profile_uy[ix][iy];
+                   u[2] = (*arena)[ix][iy][ieta].u[0][2] = 0.0;
+                   
+                   (*arena)[ix][iy][ieta].prev_u[0][0] = temp_profile_utau[ix][iy];
+                   (*arena)[ix][iy][ieta].prev_u[0][3] = temp_profile_ux[ix][iy];
+                   (*arena)[ix][iy][ieta].prev_u[0][1] = temp_profile_uy[ix][iy];
+                   (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
+                   
+                   (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
+
+                   for(int mu=0; mu<4; mu++)
+                   {
+                       /* baryon density */
+                       (*arena)[ix][iy][ieta].TJb[0][4][mu] = rhob*u[mu];
+
+                       // diffusion current
+            	          (*arena)[ix][iy][ieta].Wmunu[0][4][mu] = (double) 0.0;
+            	          (*arena)[ix][iy][ieta].prevWmunu[0][4][mu] = (double) 0.0;
+                    
+                       for(nu=0; nu<4; nu++)
+                       {
+            	             (*arena)[ix][iy][ieta].TJb[0][nu][mu] = (epsilon + p)*u[mu]*u[nu] + p*(DATA->gmunu)[mu][nu];
+            	             (*arena)[ix][iy][ieta].Wmunu[0][nu][mu] = (double) 0.0;
+            	             (*arena)[ix][iy][ieta].prevWmunu[0][nu][mu] = (double) 0.0;
+            	        
+            	             (*arena)[ix][iy][ieta].Pimunu[0][nu][mu] = (double) 0.0;
+            	             (*arena)[ix][iy][ieta].prevPimunu[0][nu][mu] = (double) 0.0;
+                       }/* nu */
+                   }/* mu */
+               }
+           }
        }/* ix, iy, ieta */
+       // clean up
+       for(int i = 0; i < nx+1; i++)
+       {
+           delete[] temp_profile_ed[i];
+           delete[] temp_profile_utau[i];
+           delete[] temp_profile_ux[i];
+           delete[] temp_profile_uy[i];
+       }
+       delete[] temp_profile_ed;
+       delete[] temp_profile_utau;
+       delete[] temp_profile_ux;
+       delete[] temp_profile_uy;
    }
 else if (DATA->Initial_profile==9) //read in the profile from file - IPGlasma initial conditions with initial flow
   // it then distributes the same x-y-distribution to all eta slices present.
