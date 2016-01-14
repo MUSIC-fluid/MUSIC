@@ -4804,10 +4804,14 @@ int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int
 	      Rneighbor_ux[ix][iy] = packageux[position];
 	      Rneighbor_uy[ix][iy] = packageuy[position];
 	      Rneighbor_ueta[ix][iy] = packageueta[position];
-	      if(DATA->turn_on_rhob) Rneighbor_rhob[ix][iy] = packagerhob[position];
-	      else Rneighbor_rhob[ix][iy] = 0.;
-	      if(DATA->turn_on_rhob) Rneighbor_Pi_b[ix][iy] = packagePi_b[position];
-	      else Rneighbor_Pi_b[ix][iy] = 0.;
+	      if(DATA->turn_on_rhob)
+                Rneighbor_rhob[ix][iy] = packagerhob[position];
+	      else 
+                Rneighbor_rhob[ix][iy] = 0.;
+	      if(DATA->turn_on_bulk)
+                Rneighbor_Pi_b[ix][iy] = packagePi_b[position];
+	      else 
+                Rneighbor_Pi_b[ix][iy] = 0.;
 	      if(DATA->turn_on_shear) 
 	      {
   //	      Rneighbor_Wtautau[ix][iy] = packageWtautau[position];
