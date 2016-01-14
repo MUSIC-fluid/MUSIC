@@ -2992,8 +2992,8 @@ else if (DATA->Initial_profile==8) //read in the profile from file - IPGlasma in
                temp_profile_uy[ix][iy] = uy;
                if (ix == 0 && iy == 0)
                {
-                   DATA->x_size = -dummy2*2*hbarc;
-                   DATA->y_size = -dummy3*2*hbarc;
+                   DATA->x_size = -dummy2*2;
+                   DATA->y_size = -dummy3*2;
                    cout << "eta_size=" << DATA->eta_size 
                         << ", x_size=" << DATA->x_size 
                         << ", y_size=" << DATA->y_size << endl;
