@@ -3082,14 +3082,14 @@ else if (DATA->Initial_profile==8) //read in the profile from file - IPGlasma in
 
                    /* for HIC */
                    u[0] = (*arena)[ix][iy][ieta].u[0][0] = temp_profile_utau[ix][iy];
-                   u[3] = (*arena)[ix][iy][ieta].u[0][3] = temp_profile_ux[ix][iy];
-                   u[1] = (*arena)[ix][iy][ieta].u[0][1] = temp_profile_uy[ix][iy];
-                   u[2] = (*arena)[ix][iy][ieta].u[0][2] = 0.0;
+                   u[1] = (*arena)[ix][iy][ieta].u[0][1] = temp_profile_ux[ix][iy];
+                   u[2] = (*arena)[ix][iy][ieta].u[0][2] = temp_profile_uy[ix][iy];
+                   u[3] = (*arena)[ix][iy][ieta].u[0][3] = 0.0;
                    
                    (*arena)[ix][iy][ieta].prev_u[0][0] = temp_profile_utau[ix][iy];
-                   (*arena)[ix][iy][ieta].prev_u[0][3] = temp_profile_ux[ix][iy];
-                   (*arena)[ix][iy][ieta].prev_u[0][1] = temp_profile_uy[ix][iy];
-                   (*arena)[ix][iy][ieta].prev_u[0][2] = 0.0;
+                   (*arena)[ix][iy][ieta].prev_u[0][1] = temp_profile_ux[ix][iy];
+                   (*arena)[ix][iy][ieta].prev_u[0][2] = temp_profile_uy[ix][iy];
+                   (*arena)[ix][iy][ieta].prev_u[0][3] = 0.0;
                    
                    (*arena)[ix][iy][ieta].pi_b[0] = 0.0;
 
