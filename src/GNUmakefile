@@ -11,11 +11,11 @@
 ##  
 
 CC := mpicxx-openmpi-gcc5
-CFLAGS= -Wall -O3 -I/opt/local/include
+CFLAGS= -Wall -O3 $(shell gsl-config --cflags)
 
 RM		=	rm -f
 O               =       .o
-LDFLAGS         =       $(CFLAGS) -L/opt/local/lib -lm -lgsl -lgslcblas
+LDFLAGS         =       $(CFLAGS) $(shell gsl-config --libs)
 SYSTEMFILES     =       $(SRCGNU)
 
 # --------------- Files involved ------------------

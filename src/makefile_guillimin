@@ -11,11 +11,11 @@
 ##  
 
 CC := mpic++
-CFLAGS= -Wall -O3 -I /software/libraries/GSL/1.15/include/
+CFLAGS= -Wall -O3 $(shell gsl-config --cflags)
 
 RM		=	rm -f
 O               =       .o
-LDFLAGS         =       $(CFLAGS) -L/software/libraries/GSL/1.15/lib -lm -lgsl -lgslcblas
+LDFLAGS         =       $(CFLAGS) $(shell gsl-config --libs)
 SYSTEMFILES     =       $(SRCGNU)
 
 # --------------- Files involved ------------------
