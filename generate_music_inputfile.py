@@ -317,8 +317,6 @@ def generate_submit_script(include_nodeltaf, include_y):
 #PBS -o test.log
 #PBS -A cqn-654-ad
 #PBS -q %s
-#PBS -m bea
-#PBS -M chunshen1987@gmail.com
 #PBS -d %s
 
 module add ifort_icc/14.0.4

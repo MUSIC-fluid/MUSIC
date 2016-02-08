@@ -21,8 +21,6 @@ def generate_script(folder_name):
 #PBS -o test.log
 #PBS -A cqn-654-ad
 #PBS -q %s
-#PBS -m bea
-#PBS -M chunshen1987@gmail.com
 #PBS -d %s
 
 module add ifort_icc/14.0.4
@@ -43,8 +41,6 @@ mpirun -np 1 ./mpihydro music_input_14_y 1>mode_14.log 2>mode_14.err
 #PBS -o test.log
 #PBS -A cqn-654-ad
 #PBS -q %s
-#PBS -m bea
-#PBS -M chunshen1987@gmail.com
 #PBS -d %s
 
 module add ifort_icc/14.0.4
