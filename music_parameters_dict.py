@@ -123,6 +123,7 @@ hydro_dict = {
                       # 4: lattice EOS s95p with chemical freeze out at 155 MeV
                       # 5: lattice EOS s95p at 160 MeV
                       # 6: lattice EOS s95p at 165 MeV
+                      # 7: lattice EOS s95p-v1.2 (for UrQMD)
                       # 10: lattice EOS at finite muB (from A. Monnai)
     'Minmod_Theta': 1.8,     # theta parameter in the min-mod like limiter
     'Runge_Kutta_order': 2,  # order of Runge_Kutta for temporal evolution (must be 1 or 2)
