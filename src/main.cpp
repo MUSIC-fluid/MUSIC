@@ -145,6 +145,12 @@ int main(int argc, char *argv[])
 	cout << "Using lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 165 MeV" << endl;
       eos->init_eos3(4);
     }
+  else if (DATA.whichEOS == 7)
+    {
+      if (rank == 0)
+	cout << "Using lattice EOS from Huovinen/Petreczky s95p-v1.2 (for UrQMD)" << endl;
+      eos->init_eos7();
+    }
   else if (DATA.whichEOS==10)
     {
       if (rank == 0)
