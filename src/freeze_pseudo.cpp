@@ -374,23 +374,33 @@ void Freeze::ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti
 }
 
 // adapted from ML and improved on performance (C. Shen 2015)
-void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number, int size, int rank)
+void Freeze::ComputeParticleSpectrum_pseudo_improved(
+                InitData *DATA, int number, int size, int rank)
 {
   double y_minus_eta_cut = 4.0;
-  //char *specString;
-  //specString = util->char_malloc(30);
   int j = partid[MHALF+number];
+
   // set some parameters
   double etamax = DATA->max_pseudorapidity;
-  int ietamax = DATA->pseudo_steps + 1;// pseudo_steps is number of steps.  Including edges, number of points is steps + 1
+
+  // pseudo_steps is number of steps.  
+  // Including edges, number of points is steps + 1
+  int ietamax = DATA->pseudo_steps + 1;
+
   double deltaeta = 0;
-  if(ietamax>1)
-     deltaeta = 2*etamax/DATA->pseudo_steps;
+
+  if(ietamax > 1)
+     deltaeta = 2.*etamax/DATA->pseudo_steps;
+
   double ptmax = DATA->max_pt;
   double ptmin = DATA->min_pt;
-  int iptmax = DATA->pt_steps+1; // Number of points is iptmax + 1 (ipt goes from 0 to iptmax)
-  //double deltapt = ptmax/iptmax;
-  int iphimax = DATA->phi_steps; // Number of steps equal to number of points (phi=2pi is understood as equal to phi=0)
+
+  // Number of points is iptmax + 1 (ipt goes from 0 to iptmax)
+  int iptmax = DATA->pt_steps+1; 
+
+  // Number of steps equal to number of points 
+  // (phi=2pi is understood as equal to phi=0)
+  int iphimax = DATA->phi_steps; 
   double deltaphi = 2*PI/iphimax;
   
   //  Parallellize in pseudorapidity.
@@ -398,31 +408,21 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
   //  not divide equally among processors.  Not efficient, but
   //  might be convenient to have the option (e.g. for mode 1).
   int rem = ietamax%size;
+  
   ietamax/=size;
-  if(rank<rem) ietamax++;
-//   cout << "rank = " << rank << ", ietamax = " << ietamax << endl;
 
-//   if (size>1)
-//     {
-//       if (ietamax%size!=1)
-// 	{
-// 	  fprintf(stderr,"number of steps in pseudorapidity (pseudo_steps) is not a multiple of the number of processors. Exiting.\n");
-// 	  MPI::Finalize();
-// 	  exit(1);
-// 	}
-//       ietamax/=size;
-// //       cout << "r" << rank << " ietamax=" << ietamax << endl;
-//     }
+  if(rank<rem)
+    ietamax++;
 	  
-	  
-  // Reuse rapidity variables (Need to reuse variable y so resonance decay routine can be used as is.
+  // Reuse rapidity variables 
+  // (Need to reuse variable y so resonance decay routine can be used as is.
   // Might as well misuse ymax and deltaY too)
   particleList[j].ymax = etamax; 
   particleList[j].deltaY = deltaeta;
 
-  fprintf(stderr,"Doing %d: %s (%d)\n", j, particleList[j].name, particleList[j].number);
+  fprintf(stderr, "Doing %d: %s (%d)\n", 
+          j, particleList[j].name, particleList[j].number);
  
-  //particleList[j].ny = ietamax*size;
   particleList[j].ny = DATA->pseudo_steps + 1;
   particleList[j].npt = iptmax;
   particleList[j].nphi = iphimax;
@@ -431,8 +431,6 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
   double m = particleList[j].mass;
   int deg = particleList[j].degeneracy;
   int baryon = particleList[j].baryon;
-  //int s = particleList[j].strange;
-  //int c = particleList[j].charge;
   double mu_PCE = particleList[j].muAtFreezeOut;
   int sign;
   if (baryon==0)
@@ -463,8 +461,8 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
   // --------------------------------------------------------------------------
   // write information in the particle information file
   if (rank==0)
-     fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  etamax, DATA->pseudo_steps+1, ptmin, ptmax, iptmax, iphimax);
-  //if (rank==0) fprintf(d_file,"%d %e %e %d %e %d %d \n", number, deltaeta, etamax,  DATA->pseudo_steps, ptmax, iptmax, iphimax);
+     fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  etamax, 
+             DATA->pseudo_steps+1, ptmin, ptmax, iptmax, iphimax);
 
   // caching 
   double* cos_phi = new double [iphimax];
@@ -478,23 +476,19 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
   double* pt_array = new double [iptmax];
   for(int ipt = 0; ipt < iptmax; ipt++)
   {
-     //pt = deltapt/2. + ipt*deltapt;
-     //pt = ipt*deltapt;
-     //pt = ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1);
-     //pt =  ptmin + (ptmax - ptmin)*(exp(ipt)-1)/(exp(iptmax)-1); // log distributed values
-     //pt =  0.01 + ipt*ptmax/(iptmax-1); // compare to UVH2+1
-     //pt = gala15x[ipt]/12.; // gauss laguerre absissas
-     double pt =  ptmin + (ptmax - ptmin)*pow((double)ipt,(double)2)/pow((double)iptmax-1,(double)2); // power law
+     double pt = (
+         ptmin + (ptmax - ptmin)*pow((double)ipt, 2.)
+                                /pow((double)iptmax-1, 2.)); // power law
      pt_array[ipt] = pt;
      particleList[j].pt[ipt] = pt;
   }
       
   double alpha = 0.0;
   // main loop begins ...
-  // store E dN/d^3p as function of phi, pt and eta (pseudorapidity) in sumPtPhi:
+  // store E dN/d^3p as function of phi, pt and eta (pseudorapidity) 
+  // in sumPtPhi:
   for (int ieta=0; ieta<ietamax; ieta++)
   {
-     //eta = -etamax + deltaeta/2. + ieta*deltaeta + rank*(etamax/size*2.);
      double offset;
      if(rank <= rem)
         offset = deltaeta*rank*floor((DATA->pseudo_steps+1)/size + 1);
@@ -503,8 +497,10 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
      double eta = -etamax + ieta*deltaeta + offset;
 
      // Use this variable to store pseudorapidity instead of rapidity
-     // May cause confusion in the future, but easier to to share code for both options:
+     // May cause confusion in the future, but easier to to share code 
+     // for both options:
      // calculating on a fixed grid in rapidity or pseudorapidity
+     
      particleList[j].y[ieta] = eta; // store particle pseudo-rapidity
 
      double* rapidity = new double [iptmax];
@@ -544,7 +540,10 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
         if(DATA->turn_on_rhob == 1)
            muB = surface[icell].mu_B*hbarc; // GeV
         double mu = baryon*muB; //GeV
-        if(DATA->whichEOS>=3 && DATA->whichEOS < 10) // for PCE use the previously computed mu at the freeze-out energy density
+
+        // for PCE use the previously computed mu 
+        // at the freeze-out energy density
+        if(DATA->whichEOS>=3 && DATA->whichEOS < 7) 
 	     mu += mu_PCE; //GeV
 
         double sigma_mu[4];
@@ -630,10 +629,10 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
            double y = rapidity[ipt];
            if( fabs(y - eta_s) < y_minus_eta_cut)
            {
-              // ptau = mt*cosh(y - eta_s) // GeV
-              double ptau = mt*(cosh_y_local*cosh_eta_s - sinh_y_local*sinh_eta_s); 
-              // peta = mt/tau*sinh(y - eta_s); // GeV/fm
-              double peta = mt/tau*(sinh_y_local*cosh_eta_s - cosh_y_local*sinh_eta_s); 
+              double ptau = mt*(cosh_y_local*cosh_eta_s 
+                                - sinh_y_local*sinh_eta_s); 
+              double peta = mt/tau*(sinh_y_local*cosh_eta_s 
+                                    - cosh_y_local*sinh_eta_s); 
 
               for (int iphi=0; iphi<iphimax; iphi++)
               {
@@ -642,30 +641,40 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
               
                  double sum;
 
-                 // compute p^mu*dSigma_mu
-                 double pdSigma = tau*(ptau*sigma_mu[0]+px*sigma_mu[1]+py*sigma_mu[2]+peta*sigma_mu[3]); //fm^3*GeV
-                 //double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]- tau*tau*peta*u_flow[3]/tau);
-                 double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]- tau*peta*u_flow[3]);
+                 // compute p^mu*dSigma_mu [fm^3*GeV]
+                 double pdSigma = tau*(ptau*sigma_mu[0] + px*sigma_mu[1] 
+                                       + py*sigma_mu[2] + peta*sigma_mu[3]); 
+                 //double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]
+                 //            - tau*tau*peta*u_flow[3]/tau);
+                 double E = (ptau*u_flow[0] - px*u_flow[1] - py*u_flow[2]
+                             - tau*peta*u_flow[3]);
+
                  // this is the equilibrium f, f_0:
                  double f = 1./(exp(1./T*(E - mu)) + sign);
                  
-                 // now comes the delta_f: check if still correct at finite mu_b 
-                 // we assume here the same C=eta/s for all particle species because it is the simplest way to do it.
+                 // now comes the delta_f: check if still correct 
+                 // at finite mu_b 
+                 // we assume here the same C=eta/s for all particle species 
+                 // because it is the simplest way to do it.
                  // also we assume Xi(p)=p^2, the quadratic Ansatz
                  double Wfactor = 0.0;
                  double delta_f_shear = 0.0;
                  if (flag_shear_deltaf == 1)
 	           {
-                    Wfactor = (  ptau*W00*ptau - 2.*ptau*W01*px - 2.*ptau*W02*py - 2.*tau*tau*ptau*W03/tau*peta
-	           	          + px*W11*px + 2.*px*W12*py + 2.*tau*tau*px*W13/tau*peta
-	           	          + py*W22*py + 2.*tau*tau*py*W23/tau*peta
-	           	          +tau*tau*tau*tau*peta*W33/tau/tau*peta); // W is like energy density
+                    Wfactor = (ptau*W00*ptau - 2.*ptau*W01*px - 2.*ptau*W02*py 
+                               - 2.*tau*tau*ptau*W03/tau*peta
+	           	             + px*W11*px + 2.*px*W12*py 
+                               + 2.*tau*tau*px*W13/tau*peta
+                               + py*W22*py + 2.*tau*tau*py*W23/tau*peta
+                               +tau*tau*tau*tau*peta*W33/tau/tau*peta); 
 	             
 	             delta_f_shear = f*(1.-sign*f)*prefactor_shear*Wfactor;
 	           
-	             if (DATA->include_deltaf==2) // if delta f is supposed to be proportional to p^(2-alpha):
+                   // if delta f is supposed to be proportional to p^(2-alpha)
+	             if (DATA->include_deltaf==2) 
 	             {
-	                delta_f_shear = delta_f_shear * pow((T/E),1.*alpha)*120./(tgamma(6.-alpha)); 
+	                delta_f_shear = (delta_f_shear*pow((T/E),1.*alpha)
+                                       *120./(tgamma(6.-alpha))); 
 	             }
 	             
 	           }
@@ -676,29 +685,38 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number,
                      double E_over_T = E/T;
                  }
 
-
                  // delta f for qmu
                  double qmufactor = 0.0;
                  double delta_f_qmu = 0.0;
                  if(flag_qmu_deltaf == 1)
                  {
                      // p^\mu q_\mu
-                     qmufactor = ptau*qmu_0 - px*qmu_1 - py*qmu_2 - tau*tau*peta*qmu_3/tau;
+                     qmufactor = (ptau*qmu_0 - px*qmu_1 - py*qmu_2 
+                                  - tau*tau*peta*qmu_3/tau);
                      if(DATA->deltaf_14moments == 0)
-                        delta_f_qmu = f*(1. - sign*f)*(prefactor_qmu - baryon/E)*qmufactor/deltaf_qmu_coeff;
+                     {
+                        delta_f_qmu = (f*(1. - sign*f)
+                                       *(prefactor_qmu - baryon/E)*qmufactor
+                                       /deltaf_qmu_coeff);
+                     }
                      else
-                        delta_f_qmu = f*(1. - sign*f)*(baryon*deltaf_qmu_coeff_14mom_DV + 2.*deltaf_qmu_coeff_14mom_BV*E)*qmufactor;
-                        
+                     {
+                        delta_f_qmu = (f*(1. - sign*f)
+                                       *(baryon*deltaf_qmu_coeff_14mom_DV 
+                                         + 2.*deltaf_qmu_coeff_14mom_BV*E)
+                                       *qmufactor);
+                     }
                  }
-
 
 	           sum = (f + delta_f_shear + delta_f_qmu) * pdSigma;
                  
 	           if (sum>10000)
+                 {
 	              cout << "WARNING: sum>10000 in summation. sum=" << sum 
                          << ", f=" << f << ", deltaf=" << delta_f_shear
                          << ", pdSigma=" << pdSigma << ", T=" << T 
                          << ", E=" << E << ", mu=" << mu << endl;
+                 }
                  temp_sum[ipt][iphi] += sum;
               }
            }
@@ -785,232 +803,264 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int a
 //-- spectra calculated on an equally-spaced grid in phi and pseudorapidity,
 //for ease in comparing to experimental data (and improved accuracy in azimuthal integrals)
 
-void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank)
+void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode, 
+                               InitData *DATA, EOS *eos, int size, int rank)
 {
-  int alreadyread = 0;
-  ReadParticleData(DATA, eos); // read in data for Cooper-Frye
-  int i, b, number;
-  if (mode == 3 || mode == 1) // compute thermal spectra
+    int alreadyread = 0;
+    ReadParticleData(DATA, eos); // read in data for Cooper-Frye
+    if (mode == 3 || mode == 1) // compute thermal spectra
     {
-      if (size > (DATA->pseudo_steps + 1)) 
-      {
-	cout << "Cannot run Cooper-Frye with " << DATA->pseudo_steps << " steps in pseudorapidity on " << size << " processors.  Exiting\n";
-	exit(1);
-      }
+        if (size > (DATA->pseudo_steps + 1))
+        {
+            cout << "Cannot run Cooper-Frye with " << DATA->pseudo_steps 
+                 << " steps in pseudorapidity on " << size 
+                 << " processors.  Exiting\n";
+            exit(1);
+        }
+        if (rank == 0)
+        {
+            system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
+        }
+        //MPI_Barrier(MPI_COMM_WORLD);
+        
+        // read freeze out surface 
+        // (has to be done after the evolution)
+        ReadFreezeOutSurface(DATA); 
+        if (particleSpectrumNumber==0) // do all particles up to particleMax
+        {
+            fprintf(stderr,"Doing all particles. May take a while ... \n");
+            for (int i = 1; i < particleMax; i++)
+            {
+                int number = particleList[i].number;
+	          int baryon = particleList[i].baryon;
+	          int computespectrum = 1;
+                
+                // Only calculate particles with unique mass 
+                // (and/or baryon number)
+                for(int part = 1; part < i; part++)
+                {
+                    if((particleList[i].mass == particleList[part].mass) 
+                       && (DATA->turn_on_rhob == 0 
+                           || baryon == particleList[part].baryon))
+                    {
+                        //cout << "rank " << rank << ", same mass " 
+                        //     << particleList[i].number << ", " 
+                        //     << particleList[part].number << endl;
+                        computespectrum = 0;
+                        if(rank == 0)
+                        {
+                            // If there is more than one processor, 
+                            // this processor doesn't have all pseudorapidity 
+                            // values in memory
+                            if(size > 1 && part > alreadyread)  
+                            {
+                                alreadyread = part;
+                                ReadSpectra_pseudo(DATA, 0, 0);
+                            }
 
-      if (rank == 0) system("rm yptphiSpectra.dat yptphiSpectra?.dat yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
-//       MPI_Barrier(MPI_COMM_WORLD);
-      ReadFreezeOutSurface(DATA); // read freeze out surface (has to be done after the evolution of course)
-      if (particleSpectrumNumber==0) // do all particles up to particleMax
-	{
-	  fprintf(stderr,"Doing all particles. May take a while ... \n");
-	  for ( i=1; i<particleMax; i++ )
-	    {
-	      number = particleList[i].number;
-	      b = particleList[i].baryon;
-	      int computespectrum = 1;
+                            fprintf(stderr,"Copying %d: %s (%d) from %s\n", 
+                                    i, particleList[i].name, 
+                                    particleList[i].number, 
+                                    particleList[part].name);
+
+                            int iphimax = DATA->phi_steps;
+                            int iptmax = DATA->pt_steps + 1;
+                            int ietamax = DATA->pseudo_steps + 1;
+                            double ptmax = DATA->max_pt;
+                            double ptmin = DATA->min_pt;
+                            double etamax = DATA->max_pseudorapidity;
+                            // open files to write
+                            FILE *d_file;
+                            const char* d_name = "particleInformation.dat";
+                            d_file = fopen(d_name, "a");
+                            FILE *s_file;
+                            const char* s_name = "yptphiSpectra.dat";
+                            s_file = fopen(s_name, "a");
+                            particleList[i].ymax = particleList[part].ymax; 
+                            particleList[i].deltaY = particleList[part].deltaY;
+                            particleList[i].ny = particleList[part].ny;
+                            particleList[i].npt = particleList[part].npt;
+                            particleList[i].nphi = particleList[part].nphi;
+                            fprintf(d_file,"%d %e %d %e %e %d %d \n", 
+                                    number, etamax, ietamax, ptmin, ptmax, 
+                                    iptmax, iphimax);
+                            
+                            for (int ieta=0; ieta<ietamax; ieta++)
+                            {
+                                for (int ipt=0; ipt<iptmax; ipt++)
+                                {
+                                    particleList[i].pt[ipt] = (
+                                            particleList[part].pt[ipt]);
+                                    particleList[i].y[ieta] = (
+                                            particleList[part].y[ieta]);  
+			                  for (int iphi=0; iphi<iphimax; iphi++)
+                                    {
+                                        particleList[i].dNdydptdphi[ieta][ipt][iphi] = particleList[part].dNdydptdphi[ieta][ipt][iphi];
+                                        fprintf(s_file, "%e ", 
+                                                particleList[i].dNdydptdphi[ieta][ipt][iphi]);
+                                    }
+                                    fprintf(s_file,"\n");
+                                }
+                            }
+		                fclose(s_file);
+		                fclose(d_file);
+		            }// if rank==0
+                        part=particleMax; // break out of particle loop
+                    }// if particles have same mass
+                }// loop over particles that have already been calculated
+                
+                if(computespectrum) 
+                {
+                    //ComputeParticleSpectrum_pseudo(DATA, number, 
+                    //                               bayron, size, rank);
+                    ComputeParticleSpectrum_pseudo_improved(DATA, number, 
+                                                            size, rank);
+                    // Wait until all processors are finished and concatonate 
+                    // results
+                    // (Don't want any processors to start writing the next 
+                    // particle to file until the concatonation is done)
+                    
+                    MPI_Barrier(MPI_COMM_WORLD);
+                    if(rank == 0) 
+                    {
+                        system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
+                        system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+                    }
+                    
+                    // occasionally another processor will open file before 
+                    // concatonation is done if this is removed
+                    MPI_Barrier(MPI_COMM_WORLD);
+                }
+            }
+        }
+        else  // compute single one particle with pid = particleSpectrumNumber
+        {
+            if (particleSpectrumNumber>=particleMax)
+            {
+                fprintf(stderr, "No particle has the number %d. Exiting.\n",
+                        particleSpectrumNumber); 
+                exit(1);
+            }  
+            int number = particleList[particleSpectrumNumber].number;
+	      int baryon = particleList[particleSpectrumNumber].baryon;
+            
+            cout << "COMPUTE" << endl;
+            //ComputeParticleSpectrum_pseudo(DATA, number, baryon, size, rank);
+            ComputeParticleSpectrum_pseudo_improved(DATA, number, size, rank);
+
+            // send something just to make sure that rank 0 waits for 
+            // all others to be done:
+            int check;
+            check=rank;
+            if (rank > 0)
+                MPI::COMM_WORLD.Send(&check,1,MPI::INT,0,1);
+            if (rank == 0)
+            {
+                for (int from=1; from < size; from ++)
+                    MPI::COMM_WORLD.Recv(&check,1,MPI::INT,from,1);
 	      
-	      // Only calculate particles with unique mass (and/or baryon number)
-	      for(int part = 1; part < i; part++)
-	      {
-		if(
-		  (particleList[i].mass == particleList[part].mass) &&
-		  (DATA->turn_on_rhob == 0 || particleList[i].baryon==particleList[part].baryon)
-		)
-		{
-// 		  cout << "rank " << rank << ", same mass " << particleList[i].number << ", " << particleList[part].number << endl;
-		  computespectrum = 0;
-		  if(rank==0)
-		  {
-		    // If there is more than one processor, this processor doesn't have all pseudorapidity values in memory
-		    if(size > 1 && part > alreadyread)  
-		    {
-		      alreadyread = part;
-		      ReadSpectra_pseudo(DATA, 0, 0);
-		    }
-		    fprintf(stderr,"Copying %d: %s (%d) from %s\n", i, particleList[i].name, particleList[i].number, particleList[part].name);
-		    int iphimax = DATA->phi_steps;
-		    int iptmax = DATA->pt_steps + 1;
-		    int ietamax = DATA->pseudo_steps + 1;
-		    double ptmax = DATA->max_pt;
-		    double ptmin = DATA->min_pt;
-		    double etamax = DATA->max_pseudorapidity;
-		    // open files to write
-		    FILE *d_file;
-		    const char* d_name = "particleInformation.dat";
-		    d_file = fopen(d_name, "a");
-		    FILE *s_file;
-		    const char* s_name = "yptphiSpectra.dat";
-		    s_file = fopen(s_name, "a");
-		    particleList[i].ymax = particleList[part].ymax; 
-		    particleList[i].deltaY = particleList[part].deltaY;
-		    particleList[i].ny = particleList[part].ny;
-		    particleList[i].npt = particleList[part].npt;
-		    particleList[i].nphi = particleList[part].nphi;
-		    fprintf(d_file,"%d %e %d %e %e %d %d \n", number,  etamax, ietamax, ptmin, ptmax, iptmax, iphimax);
-		    for (int ieta=0; ieta<ietamax; ieta++)
-		    for (int ipt=0; ipt<iptmax; ipt++)
-		      {
-			particleList[i].pt[ipt] = particleList[part].pt[ipt];
-			particleList[i].y[ieta] = particleList[part].y[ieta];  
-			for (int iphi=0; iphi<iphimax; iphi++)
-			  {
-			    particleList[i].dNdydptdphi[ieta][ipt][iphi] = particleList[part].dNdydptdphi[ieta][ipt][iphi];
-			    fprintf(s_file,"%e ", particleList[i].dNdydptdphi[ieta][ipt][iphi]);
-			  }
-			fprintf(s_file,"\n");
-		      }
-		    fclose(s_file);
-		    fclose(d_file);
-		  }// if rank==0
-		  part=particleMax; // break out of particle loop
-		}// if particles have same mass
-	      }// loop over particles that have already been calculated
-	      
-
-	      if(computespectrum) 
-	      {
-		    //ComputeParticleSpectrum_pseudo(DATA, number, b, size, rank);
-		    ComputeParticleSpectrum_pseudo_improved(DATA, number, size, rank);
-
-  
-		    // Wait until all processors are finished and concatonate results
-		    // (Don't want any processors to start writing the next particle to 
-		    // file until the concatonation is done)
-		    MPI_Barrier(MPI_COMM_WORLD);
-		    
-		    if(rank==0) 
-		    {
-		      system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
-		      system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
-		    }
-		    
-		    MPI_Barrier(MPI_COMM_WORLD); // occasionally another processor will open file before concatonation is done if this is removed
-	      }
-	    }
-	}
-      else  // compute single one particle with pid = particleSpectrumNumber
-	{
-	  if (particleSpectrumNumber>=particleMax)
-	    {
-	      fprintf(stderr,"No particle has the number %d. Exiting.\n",particleSpectrumNumber); exit(1);
-	    }  
-	  number = particleList[particleSpectrumNumber].number;
-	  b = particleList[particleSpectrumNumber].baryon;
-	  cout << "COMPUTE" << endl;
-	  //ComputeParticleSpectrum_pseudo(DATA, number,  b,  size, rank);
-	  ComputeParticleSpectrum_pseudo_improved(DATA, number,  size, rank);
-	  
-	  // send something just to make sure that rank 0 waits for all others to be done:
-	  int check;
-	  check=rank;
-	  
-	  if (rank > 0)
-	    MPI::COMM_WORLD.Send(&check,1,MPI::INT,0,1);
-	    
-	  if (rank == 0)
-	    {
-	      for (int from=1; from < size; from ++)
-		MPI::COMM_WORLD.Recv(&check,1,MPI::INT,from,1);
-	      
-	      system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
-	      system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
-	      
-	    }
-	}
-	free(surface);
+                system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
+                system("cat yptphiSpectra??.dat >> yptphiSpectra.dat 2> /dev/null");
+            }
+        }
+        free(surface);
     }
-  if (mode==4 || mode==1)  //  do resonance decays
+    if (mode==4 || mode==1)  //  do resonance decays
     {
-      ReadSpectra_pseudo(DATA, 0, 1);
-      int bound = 211; //number of lightest particle to calculate. 
-	  cout << "particleMax = " << particleMax << endl;
-	  fprintf(stderr,"doing all from %i: %s to %i: %s.\n",particleMax,particleList[particleMax].name,
-		  partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
-//       if(rank==0)  cal_reso_decays_pseudo(particleMax,decayMax,bound,mode, DATA->pseudofreeze);
-      if(rank==0)  cal_reso_decays(particleMax,decayMax,bound,mode);
-
-      if (rank == 0) system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
-	  for ( i=1; i<particleMax; i++ )
-	    {
-	      number = particleList[i].number;
-	      b = particleList[i].baryon;
-	      if(rank==0) OutputFullParticleSpectrum_pseudo(DATA, number, b, 1);
-	    }
+        ReadSpectra_pseudo(DATA, 0, 1);
+        int bound = 211; //number of lightest particle to calculate. 
+        cout << "particleMax = " << particleMax << endl;
+        fprintf(stderr, "doing all from %i: %s to %i: %s.\n",
+                particleMax,particleList[particleMax].name,
+                partid[MHALF+bound],particleList[partid[MHALF+bound]].name);
+        //if(rank == 0)
+        //    cal_reso_decays_pseudo(particleMax, decayMax, 
+        //                           bound, mode, DATA->pseudofreeze);
+        if(rank == 0)
+            cal_reso_decays(particleMax,decayMax,bound,mode);
+        if(rank == 0)
+            system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
+        for (int i = 1; i < particleMax; i++ )
+        {
+            int number = particleList[i].number;
+            int baryon = particleList[i].baryon;
+            if(rank == 0)
+                OutputFullParticleSpectrum_pseudo(DATA, number, baryon, 1);
+        }
     }
-  else if (mode==13) // take tabulated spectra and compute various observables and integrated quantities
+    else if (mode==13) 
+    // take tabulated spectra and compute various 
+    // observables and integrated quantities
     {
-      mkdir("./outputs", 0755);
-      ReadSpectra_pseudo(DATA, 0, 1);
+        mkdir("./outputs", 0755);
+        ReadSpectra_pseudo(DATA, 0, 1);
+        
+        //Output_charged_hadrons_eta_differential_spectra(DATA, 0);
 
- 	//Output_charged_hadrons_eta_differential_spectra(DATA, 0);
-      
-      int pid_list [] = {211, -211, 321, -321, 2212, -2212};
-      int pid_list_length = sizeof(pid_list)/sizeof(int);
-      for (int k = 0; k < pid_list_length; k++)
-	{
-	   number = pid_list[k];
-         int id = partid[MHALF+number];
-         if(id < particleMax)
-         {
-	      OutputDifferentialFlowAtMidrapidity(DATA, number, 0);
-	      OutputDifferentialFlowNearMidrapidity(DATA, number, 0);
-	      OutputIntegratedFlow_vs_y(DATA, number, 0, 0.01, 3.0);
-         }
-	}
-      
-	//cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |y| < 1 = " 
-	//     << get_meanpt(DATA, 211, 0.25, 1.8, 1, -1, 1) << endl;
-	
+        int pid_list [] = {211, -211, 321, -321, 2212, -2212};
+        int pid_list_length = sizeof(pid_list)/sizeof(int);
+        for (int k = 0; k < pid_list_length; k++)
+        {
+            int number = pid_list[k];
+            int id = partid[MHALF+number];
+            if(id < particleMax)
+            {
+                OutputDifferentialFlowAtMidrapidity(DATA, number, 0);
+                OutputDifferentialFlowNearMidrapidity(DATA, number, 0);
+                OutputIntegratedFlow_vs_y(DATA, number, 0, 0.01, 3.0);
+            }
+        }
+        // cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |y| < 1 = " 
+        //      << get_meanpt(DATA, 211, 0.25, 1.8, 1, -1, 1) << endl;
     }
-  else if (mode==14) // take tabulated post-decay spectra and compute various observables and integrated quantities
+    else if (mode==14) 
+    // take tabulated post-decay spectra and compute various observables 
+    // and integrated quantities
     {
-      mkdir("./outputs", 0755);   // output results folder
-      ReadSpectra_pseudo(DATA, 1, 1);  // read in particle spectra information
-      
-      // calculate spectra and vn for charged hadrons
-	Output_charged_hadrons_eta_differential_spectra(DATA, 1, 0.01, 3.0);
-      Output_charged_hadrons_pT_differential_spectra(DATA, 1, -0.5, 0.5);
-      Output_charged_IntegratedFlow(DATA, 0.01, 3.0, -0.5, 0.5);
-
-	// calculate spectra and vn for identified particles
-      int pid_list [] = {211, -211, 321, -321, 2212, -2212};
-      int pid_list_length = sizeof(pid_list)/sizeof(int);
-      for (int k = 0; k < pid_list_length; k++)
-	{
-	   number = pid_list[k];
-         int id = partid[MHALF+number];
-         if(id < particleMax)
-         {
-	      OutputDifferentialFlowAtMidrapidity(DATA, number, 1);
-	      OutputDifferentialFlowNearMidrapidity(DATA, number, 1);
-	      OutputIntegratedFlow_vs_y(DATA, number, 1, 0.01, 3.0);
-         }
-	}
-	
-	//cout << "pion <pt> for 0.25 < pt < 1.8 GeV, |y| < 0.5 = " 
-      //     << get_meanpt(DATA, 211, 0.25, 1.8, 1, -0.5, 0.5) << endl;
+        mkdir("./outputs", 0755);   // output results folder
+        // read in particle spectra information
+        ReadSpectra_pseudo(DATA, 1, 1);  
+        
+        // calculate spectra and vn for charged hadrons
+        Output_charged_hadrons_eta_differential_spectra(DATA, 1, 0.01, 3.0);
+        Output_charged_hadrons_pT_differential_spectra(DATA, 1, -0.5, 0.5);
+        Output_charged_IntegratedFlow(DATA, 0.01, 3.0, -0.5, 0.5);
+        
+        // calculate spectra and vn for identified particles
+        int pid_list [] = {211, -211, 321, -321, 2212, -2212};
+        int pid_list_length = sizeof(pid_list)/sizeof(int);
+        for (int k = 0; k < pid_list_length; k++)
+        {
+             int number = pid_list[k];
+             int id = partid[MHALF+number];
+             if(id < particleMax)
+             {
+                 OutputDifferentialFlowAtMidrapidity(DATA, number, 1);
+                 OutputDifferentialFlowNearMidrapidity(DATA, number, 1);
+                 OutputIntegratedFlow_vs_y(DATA, number, 1, 0.01, 3.0);
+             }
+        }
     }
-  else if (mode!=3)
+    else if (mode!=3)
     {
-      cerr << "Mode " << mode << " not supported for pseudofreeze = 1.  Exiting.\n";
-      exit(1);
+        cerr << "Mode " << mode 
+             << " not supported for pseudofreeze = 1.  Exiting.\n";
+        exit(1);
     }
-  delete[] partid;
-  for (int i=0;i<=DATA->NumberOfParticlesToInclude+1;i++) util->char_free(particleList[i].name);
-  free(particleList);
+    delete[] partid;
+    for (int i = 0; i <= DATA->NumberOfParticlesToInclude+1; i++)
+        util->char_free(particleList[i].name);
+    free(particleList);
 }
 
 
 // returns pseudorapidity for a given rapidity, transverse momentum, and mass
 double Freeze::PseudoRap(double y, double pt, double m)
 {
-  double eta = acosh(
-		  2*m*m/pt/pt*sinh(y)*sinh(y)
-		  + cosh(2*y)
-	       )/2.;
-  if (y<0) eta*=-1.;
-  return eta;
+    double eta = acosh(2.*m*m/pt/pt*sinh(y)*sinh(y) + cosh(2.*y))/2.;
+    if (y<0)
+        eta*=-1.;
+    return eta;
 }
 
 // returns rapidity for a given pseudorapidity, transverse momentum, and mass
@@ -2227,8 +2277,10 @@ void Freeze::load_deltaf_qmu_coeff_table_14mom(string filename)
     for(int i = 0; i < deltaf_coeff_table_14mom_length_T; i++)
        for(int j = 0; j < deltaf_coeff_table_14mom_length_mu; j++)
           table >> dummy >> dummy >> deltaf_coeff_tb_14mom_DPi[i][j]
-                >> deltaf_coeff_tb_14mom_BPi[i][j] >> deltaf_coeff_tb_14mom_BPitilde[i][j]
-                >> deltaf_coeff_tb_14mom_DV[i][j] >> deltaf_coeff_tb_14mom_BV[i][j]
+                >> deltaf_coeff_tb_14mom_BPi[i][j] 
+                >> deltaf_coeff_tb_14mom_BPitilde[i][j]
+                >> deltaf_coeff_tb_14mom_DV[i][j] 
+                >> deltaf_coeff_tb_14mom_BV[i][j]
                 >> deltaf_coeff_tb_14mom_Bpi_shear[i][j];
     table.close();
 
@@ -2239,22 +2291,26 @@ void Freeze::load_deltaf_qmu_coeff_table_14mom(string filename)
     {
        for(int j = 0; j < deltaf_coeff_table_14mom_length_mu; j++)
        {
-          deltaf_coeff_tb_14mom_DPi[i][j] = deltaf_coeff_tb_14mom_DPi[i][j]*hbarc4;   // fm^4/GeV
-          deltaf_coeff_tb_14mom_BPi[i][j] = deltaf_coeff_tb_14mom_BPi[i][j]*hbarc4;   // fm^4/(GeV^2)
-          deltaf_coeff_tb_14mom_BPitilde[i][j] = deltaf_coeff_tb_14mom_BPitilde[i][j]*hbarc4;   // fm^4/(GeV^2)
-          deltaf_coeff_tb_14mom_DV[i][j] = deltaf_coeff_tb_14mom_DV[i][j]*hbarc3;   // fm^3/GeV
-          deltaf_coeff_tb_14mom_BV[i][j] = deltaf_coeff_tb_14mom_BV[i][j]*hbarc3;   // fm^3/(GeV^2)
-          deltaf_coeff_tb_14mom_Bpi_shear[i][j] = deltaf_coeff_tb_14mom_Bpi_shear[i][j]*hbarc4;   // fm^4/(GeV^2)
+          deltaf_coeff_tb_14mom_DPi[i][j] *= hbarc4;          // fm^4/GeV
+          deltaf_coeff_tb_14mom_BPi[i][j] *= hbarc4;          // fm^4/(GeV^2)
+          deltaf_coeff_tb_14mom_BPitilde[i][j] *= hbarc4;     // fm^4/(GeV^2)
+          deltaf_coeff_tb_14mom_DV[i][j] *= hbarc3;           // fm^3/GeV
+          deltaf_coeff_tb_14mom_BV[i][j] *= hbarc3;           // fm^3/(GeV^2)
+          deltaf_coeff_tb_14mom_Bpi_shear[i][j] *= hbarc4;    // fm^4/(GeV^2)
        }
     }
 }
 
 double Freeze::get_deltaf_qmu_coeff(double T, double muB)
 {
-    int idx_T = (int)((T - delta_qmu_coeff_table_T0)/delta_qmu_coeff_table_dT);
-    int idx_mu = (int)((muB - delta_qmu_coeff_table_mu0)/delta_qmu_coeff_table_dmu);
-    double x_fraction = (T - delta_qmu_coeff_table_T0)/delta_qmu_coeff_table_dT - idx_T;
-    double y_fraction = (muB - delta_qmu_coeff_table_mu0)/delta_qmu_coeff_table_dmu - idx_mu;
+    int idx_T = (int)((T - delta_qmu_coeff_table_T0)
+                      /delta_qmu_coeff_table_dT);
+    int idx_mu = (int)((muB - delta_qmu_coeff_table_mu0)
+                       /delta_qmu_coeff_table_dmu);
+    double x_fraction = ((T - delta_qmu_coeff_table_T0)
+                         /delta_qmu_coeff_table_dT - idx_T);
+    double y_fraction = ((muB - delta_qmu_coeff_table_mu0)
+                         /delta_qmu_coeff_table_dmu - idx_mu);
 
     //avoid overflow
     if(idx_mu > deltaf_qmu_coeff_table_length_mu - 2)
@@ -2282,10 +2338,14 @@ double Freeze::get_deltaf_qmu_coeff(double T, double muB)
 
 double Freeze::get_deltaf_coeff_14moments(double T, double muB, double type)
 {
-    int idx_T = (int)((T - delta_coeff_table_14mom_T0)/delta_coeff_table_14mom_dT);
-    int idx_mu = (int)((muB - delta_coeff_table_14mom_mu0)/delta_coeff_table_14mom_dmu);
-    double x_fraction = (T - delta_coeff_table_14mom_T0)/delta_coeff_table_14mom_dT - idx_T;
-    double y_fraction = (muB - delta_coeff_table_14mom_mu0)/delta_coeff_table_14mom_dmu - idx_mu;
+    int idx_T = (int)((T - delta_coeff_table_14mom_T0)
+                      /delta_coeff_table_14mom_dT);
+    int idx_mu = (int)((muB - delta_coeff_table_14mom_mu0)
+                       /delta_coeff_table_14mom_dmu);
+    double x_fraction = ((T - delta_coeff_table_14mom_T0)
+                         /delta_coeff_table_14mom_dT - idx_T);
+    double y_fraction = ((muB - delta_coeff_table_14mom_mu0)
+                         /delta_coeff_table_14mom_dmu - idx_mu);
 
     double **deltaf_table = NULL;
     if (type == 0)
@@ -2302,7 +2362,8 @@ double Freeze::get_deltaf_coeff_14moments(double T, double muB, double type)
        deltaf_table = deltaf_coeff_tb_14mom_Bpi_shear;
     else
     {
-       cout << "Freeze::get_deltaf_coeff_14moments: unknown type: " << type << endl;
+       cout << "Freeze::get_deltaf_coeff_14moments: unknown type: " 
+            << type << endl;
        exit(-1);
     }
     
