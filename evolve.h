@@ -12,8 +12,6 @@
 #include "reconst.h"
 #include "advance.h"
 #include "u_derivative.h"
-#include <fstream>
-#include <sstream>
 
 class Evolve{
   
@@ -53,9 +51,11 @@ class Evolve{
   int cells;
   int weirdCases;
   int facTau;
+
+  gsl_rng *gsl_ran;
   
  public:
-  Evolve(EOS *eos);//constructor
+  Evolve(EOS *eos, int gsl_seed);//constructor
   ~Evolve();//destructor
   int EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank);
   
@@ -110,7 +110,7 @@ class Evolve{
   
   int AdvanceRK(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank);
   
-  int UpdateArena(double tau, InitData *DATA, Grid ***arena);
+  int UpdateArena(double tau, InitData *DATA, Grid ***arena, int it);
   
   void UpdateTJbRK
     (Grid *grid_rk, Grid *grid_pt, InitData *DATA, int rk_flag);
@@ -118,8 +118,9 @@ class Evolve{
   void MPISendReceive(InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank, int rk_flag);
   
   void FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int size, int rank);//added
+  void FindIsochronalFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int size, int rank); //-CFY
   void FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, int size, int rank);//added
-  int FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int size, int rank);
+  int FindFreezeOutSurfaceOfHypercubes(double tau, InitData *DATA, Grid ***arena, int size, int rank); //adapted from ML
   void storePreviousEpsilon(double tau, InitData *DATA, Grid ***arena);//added
   void storePreviousEpsilon2(double tau, InitData *DATA, Grid ***arena);
   void storePreviousW(double tau, InitData *DATA, Grid ***arena);

@@ -157,10 +157,10 @@ int main(int argc, char *argv[])
       glauber = new Glauber;
       
       Init *init;
-      init = new Init(eos,glauber);
+      init = new Init(eos,glauber,1212);//MS
       
       Evolve *evolve;
-      evolve = new Evolve(eos);
+      evolve = new Evolve(eos,1212);
       
       cout << "init Glauber" << endl;
       glauber->initGlauber(DATA.SigmaNN, DATA.Target, DATA.Projectile, DATA.b, DATA.LexusImax, size, rank);

@@ -1,25 +1,25 @@
 #include "util.h"
 #include "grid.h"
+#include <sstream>
+#include <string>
 
 using namespace std;
 
 Grid *Grid::grid_v_malloc(int n1)
 {
-  Grid *d1_ptr;
-//   int i;
-  
-  /* pointer to the n1 array */
-  d1_ptr = new Grid[n1];
-  //(Grid *) malloc (sizeof(Grid )*n1);
-  
-  return d1_ptr;
+ Grid *d1_ptr;
+// int i;
+
+    /* pointer to the n1 array */
+    d1_ptr = (Grid *) malloc (sizeof(Grid )*n1);
+
+ return d1_ptr;
 }/* grid_v_malloc */
 
 
 Grid **Grid::grid_m_malloc(int n1, int n2)
 {
-    int i;
-//     int j;
+    int i;// ,j;
     Grid **d1_ptr, *tmp_ptr;
 
     tmp_ptr = (Grid *)malloc(sizeof(Grid)*n1*n2);
@@ -36,55 +36,31 @@ return d1_ptr;
 
 Grid ***Grid::grid_c_malloc(int n1, int n2, int n3)
 {
-    int i,j;
-//     int k,inc;
-    Grid ***d1_ptr;
-//     Grid *tmp_ptr;
+    int i,j,inc;//k,
+    Grid ***d1_ptr, *tmp_ptr;
 
-    d1_ptr = new Grid **[n1];
+    tmp_ptr = (Grid *) malloc(sizeof(Grid)*n1*n2*n3);
+
+    /* pointer to the n1*n2*n3 memory */
+
+    d1_ptr = (Grid ***) malloc (sizeof(Grid **)*n1);
 
     for(i=0; i<n1; i++) 
      {
-      d1_ptr[i] = new Grid *[n2];
+      d1_ptr[i] = (Grid **) malloc (sizeof(Grid *)*n2);
      } 
     
     for(i=0; i<n1; i++)
     {
      for(j=0; j<n2; j++) 
       {
-       d1_ptr[i][j] = new Grid[n3];
+       inc = n2*n3*i + n3*j;
+       d1_ptr[i][j] = &(tmp_ptr[inc]);
       }
     }
+    
     return d1_ptr;
 }/* grid_c_malloc */
-
-// Grid ***Grid::grid_c_malloc(int n1, int n2, int n3)
-// {
-//     int i,j,k,inc;
-//     Grid ***d1_ptr, *tmp_ptr;
-
-//     tmp_ptr = (Grid *) malloc(sizeof(Grid)*n1*n2*n3);
-
-//     /* pointer to the n1*n2*n3 memory */
-
-//     d1_ptr = (Grid ***) malloc (sizeof(Grid **)*n1);
-
-//     for(i=0; i<n1; i++) 
-//      {
-//       d1_ptr[i] = (Grid **) malloc (sizeof(Grid *)*n2);
-//      } 
-    
-//     for(i=0; i<n1; i++)
-//     {
-//      for(j=0; j<n2; j++) 
-//       {
-//        inc = n2*n3*i + n3*j;
-//        d1_ptr[i][j] = &(tmp_ptr[inc]);
-//       }
-//     }
-    
-//     return d1_ptr;
-// }/* grid_c_malloc */
 
 // output for e.g. MARTINI on a tau-x-y-z-grid: T, QGP fraction, flow velocities
 // note that this is really z, not eta.
@@ -103,6 +79,7 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
   neta = DATA->neta;
 
   /// MPI send and receive
+
   int sizeOfData = (nx+1)*(ny+1)*(neta);
   int to, from;
   
@@ -112,6 +89,9 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
   double *ux;
   double *uy;
   double *ueta;
+  double *Txx;
+  double *Txy;
+  double *Tyy;
 
   eps = (double *)malloc(sizeof(double)*sizeOfData);
   rhob = (double *)malloc(sizeof(double)*sizeOfData);
@@ -119,6 +99,9 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
   ux = (double *)malloc(sizeof(double)*sizeOfData);
   uy = (double *)malloc(sizeof(double)*sizeOfData);
   ueta = (double *)malloc(sizeof(double)*sizeOfData);
+  Txx = (double *)malloc(sizeof(double)*sizeOfData);
+  Txy = (double *)malloc(sizeof(double)*sizeOfData);
+  Tyy = (double *)malloc(sizeof(double)*sizeOfData);
 
   if (rank>0) //send all to rank 0
     {
@@ -129,13 +112,32 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + ((nx+1)*iy)));
+		  position = ieta+(neta*(ix + (nx*iy)));
 		  eps[position] = arena[ix][iy][ieta].epsilon;
 		  rhob[position] = arena[ix][iy][ieta].rhob;
 		  utau[position] = arena[ix][iy][ieta].u[0][0];
 		  ux[position] = arena[ix][iy][ieta].u[0][1];
 		  uy[position] = arena[ix][iy][ieta].u[0][2];
 		  ueta[position] = arena[ix][iy][ieta].u[0][3];
+		  if(DATA->fluctuatingHydroFlag == 2){
+		    //Txx[position] = arena[ix][iy][ieta].TJb[0][1][1] + arena[ix][iy][ieta].deltaT[0][1][1];
+		    //Txy[position] = arena[ix][iy][ieta].TJb[0][1][2] + arena[ix][iy][ieta].deltaT[0][1][2];
+		    //Tyy[position] = arena[ix][iy][ieta].TJb[0][2][2] + arena[ix][iy][ieta].deltaT[0][2][2];
+		    Txx[position] = arena[ix][iy][ieta].TJb[0][1][1] + arena[ix][iy][ieta].Wmunu[0][1][1]
+		      + arena[ix][iy][ieta].deltaT[0][1][1] + arena[ix][iy][ieta].deltaW[0][1][1];
+		    Txy[position] = arena[ix][iy][ieta].TJb[0][1][2] + arena[ix][iy][ieta].Wmunu[0][1][2]
+		      + arena[ix][iy][ieta].deltaT[0][1][2] + arena[ix][iy][ieta].deltaW[0][1][2];
+		    Tyy[position] = arena[ix][iy][ieta].TJb[0][2][2] + arena[ix][iy][ieta].Wmunu[0][2][2]
+		      + arena[ix][iy][ieta].deltaT[0][2][2] + arena[ix][iy][ieta].deltaW[0][2][2];
+		  }
+		  else{
+		    //Txx[position] = arena[ix][iy][ieta].TJb[0][1][1];
+		    //Txy[position] = arena[ix][iy][ieta].TJb[0][1][2];
+		    //Tyy[position] = arena[ix][iy][ieta].TJb[0][2][2];
+		    Txx[position] = arena[ix][iy][ieta].TJb[0][1][1] + arena[ix][iy][ieta].Wmunu[0][1][1];
+		    Txy[position] = arena[ix][iy][ieta].TJb[0][1][2] + arena[ix][iy][ieta].Wmunu[0][1][2];
+		    Tyy[position] = arena[ix][iy][ieta].TJb[0][2][2] + arena[ix][iy][ieta].Wmunu[0][2][2];
+		  }
 		}
 	    }
 	}
@@ -147,6 +149,9 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
       MPI::COMM_WORLD.Send(ux,sizeOfData,MPI::DOUBLE,to,4);
       MPI::COMM_WORLD.Send(uy,sizeOfData,MPI::DOUBLE,to,5);
       MPI::COMM_WORLD.Send(ueta,sizeOfData,MPI::DOUBLE,to,6);
+      MPI::COMM_WORLD.Send(Txx,sizeOfData,MPI::DOUBLE,to,7);
+      MPI::COMM_WORLD.Send(Txy,sizeOfData,MPI::DOUBLE,to,8);
+      MPI::COMM_WORLD.Send(Tyy,sizeOfData,MPI::DOUBLE,to,9);
     }
   
   if (rank==0) 
@@ -157,6 +162,9 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
       double ***uxFrom;
       double ***uyFrom;
       double ***uetaFrom;
+      double ***TxxFrom;
+      double ***TxyFrom;
+      double ***TyyFrom;
       
       epsFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       rhobFrom = util->cube_malloc(nx+1,ny+1,size*neta);
@@ -164,6 +172,9 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
       uxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       uyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       uetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      TxxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      TxyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      TyyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       
       for(ix=0; ix<=nx; ix++)
 	{
@@ -177,6 +188,25 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 		  uxFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][1];
 		  uyFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][2];
 		  uetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][3];
+		  if(DATA->fluctuatingHydroFlag == 2){
+		    //TxxFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][1] + arena[ix][iy][ieta].deltaT[0][1][1];
+		    //TxyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][2] + arena[ix][iy][ieta].deltaT[0][1][2];
+		    //TyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][2][2] + arena[ix][iy][ieta].deltaT[0][2][2];
+		    TxxFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][1] + arena[ix][iy][ieta].Wmunu[0][1][1]
+		      + arena[ix][iy][ieta].deltaT[0][1][1] + arena[ix][iy][ieta].deltaW[0][1][1];
+		    TxyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][2] + arena[ix][iy][ieta].Wmunu[0][1][2]
+		      + arena[ix][iy][ieta].deltaT[0][1][2] + arena[ix][iy][ieta].deltaW[0][1][2];
+		    TyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][2][2] + arena[ix][iy][ieta].Wmunu[0][2][2]
+		      + arena[ix][iy][ieta].deltaT[0][2][2] + arena[ix][iy][ieta].deltaW[0][2][2];
+		  }
+		  else{
+		    //TxxFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][1];
+		    //TxyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][2];
+		    //TyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][2][2];
+		    TxxFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][1] + arena[ix][iy][ieta].Wmunu[0][1][1];
+		    TxyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][2] + arena[ix][iy][ieta].Wmunu[0][1][2];
+		    TyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][2][2] + arena[ix][iy][ieta].Wmunu[0][2][2];
+		  }
 		}
 	    }
 	}
@@ -191,20 +221,26 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 	  MPI::COMM_WORLD.Recv(ux,sizeOfData,MPI::DOUBLE,from,4);
 	  MPI::COMM_WORLD.Recv(uy,sizeOfData,MPI::DOUBLE,from,5);
 	  MPI::COMM_WORLD.Recv(ueta,sizeOfData,MPI::DOUBLE,from,6);
-	  
+	  MPI::COMM_WORLD.Recv(Txx,sizeOfData,MPI::DOUBLE,from,7);
+	  MPI::COMM_WORLD.Recv(Txy,sizeOfData,MPI::DOUBLE,from,8);
+	  MPI::COMM_WORLD.Recv(Tyy,sizeOfData,MPI::DOUBLE,from,9);
+
 	  for(ix=0; ix<=nx; ix++)
 	    {
 	      for(iy=0; iy<=ny; iy++)
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		      position = ieta+(neta*(ix + ((nx+1)*iy)));
+		      position = ieta+(neta*(ix + (nx*iy)));
 		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
 		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
 		      utauFrom[ix][iy][ieta+irank*neta] = utau[position];
 		      uxFrom[ix][iy][ieta+irank*neta] = ux[position];
 		      uyFrom[ix][iy][ieta+irank*neta] = uy[position];
 		      uetaFrom[ix][iy][ieta+irank*neta] = ueta[position];
+		      TxxFrom[ix][iy][ieta+irank*neta] = Txx[position];
+		      TxyFrom[ix][iy][ieta+irank*neta] = Txy[position];
+		      TyyFrom[ix][iy][ieta+irank*neta] = Tyy[position];
 		    }
 		}
 	    }
@@ -213,15 +249,23 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
       
       //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
 
+      stringstream numIn;
+      numIn << DATA->seed;
       FILE *out_file;
-      const char* out_name = "evolution.dat";
-      out_file = fopen(out_name, "a");
-//       fprintf(out_file,"");
+      string out_name;
+      out_name = "evolution_"+numIn.str()+".dat";
+      FILE *ecc_file;
+      string ecc_name;
+      ecc_name = "momentumEccentricity_"+numIn.str()+".dat";
+      //char* out_name = "evolution.dat";
+      //out_file = fopen(out_name, "a");
+      out_file = fopen(out_name.c_str(), "a");
+      fprintf(out_file,"");
+      ecc_file = fopen(ecc_name.c_str(), "a");
+      fprintf(ecc_file,"");
       int iz, nz;
-      double T, z, eta, delta_z, z_size, eps, etafrac;
-//       double x, y;
-      double ux, uy, ueta, utau, rhob, QGPfrac;
-//       double epsilon;
+      double T, x, y, z, eta, delta_z, z_size, eps, etafrac;
+      double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
       double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher;
       double utau_lower, utau_higher, ux_lower, ux_higher, uy_lower, uy_higher, ueta_lower, ueta_higher, u0, uz;
       nz = 160;
@@ -234,15 +278,16 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 	  eta = asinh(z/tau);
 	  //cout << "eta_size=" << (DATA->eta_size) << endl;
 	  ieta = floor((eta + (DATA->eta_size)/2.0)/(DATA->delta_eta));
+	  //cout << "ieta = " << ieta << endl;
 	  eta_lower = ieta*(DATA->delta_eta) - (DATA->eta_size)/2.0;
 	  etafrac = (eta-eta_lower)/DATA->delta_eta;
 	  
 	  for(iy=DATA->ny/2; iy<DATA->ny; iy++) // only do positive y
 	    {
-// 	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
+	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
 	      for(ix=DATA->nx/2; ix<DATA->nx; ix++) // only do positive x
 		{
-// 		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
+		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
 		  eps_lower = epsFrom[ix][iy][ieta];
 		  rhob_lower = rhobFrom[ix][iy][ieta];
 		  utau_lower = utauFrom[ix][iy][ieta];
@@ -276,8 +321,19 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 		  uy = uy_lower * (1.-etafrac) + (etafrac)*uy_higher;
 		  ueta = ueta_lower * (1.-etafrac) + (etafrac)*ueta_higher;
 		  
-		  T = eos->get_temperature(eps, rhob);
-		  QGPfrac = eos->get_qgp_frac(eps, rhob);
+		  if (DATA->whichEOS==1)
+		    {
+		      T = eos->interpolate(eps, rhob, 0);
+		      QGPfrac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
+		      //cout << T << " " << QGPfrac << endl;
+		      if (QGPfrac>1.) QGPfrac = 1;
+		      else if (QGPfrac<0.) QGPfrac=0.;
+		    }
+		  else if (DATA->whichEOS==2)
+		    {
+		      T = eos->interpolate2(eps, rhob, 1);
+		      QGPfrac = eos->interpolate2(eps, rhob, 3);
+		    }
 		  
 		  //Now these are the flow velocities as e,g, MARTINI needs them
 		  u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
@@ -308,20 +364,54 @@ void Grid::OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 		}/* ix */
 	    }/* iy */
 	}/* iz */
+
+      //At this step, compute the momentum eccentricity appropriate for comparing with the v_2 at
+      //the LHC for |y| < 1.0:
+      int EtaRange = (int)(1./DATA->delta_eta);
+      double weightedTxx = 0.;
+      double weightedTxy = 0.;
+      double weightedTyy = 0.;
+      for(int ieta = neta*size/2-EtaRange; ieta <= neta*size/2+EtaRange; ieta++){
+	//cerr << "ieta = " << ieta << endl;
+	for(int ix=0; ix<nx; ix++){
+	  for(int iy=0; iy<ny; iy++){
+	    weightedTxx += TxxFrom[ix][iy][ieta];
+	    weightedTxy += TxyFrom[ix][iy][ieta];
+	    weightedTyy += TyyFrom[ix][iy][ieta];
+	  }
+	}
+      }
+
+      double e1 = (weightedTxx-weightedTyy)/(weightedTxx+weightedTyy);
+      double e2 = 2.*weightedTxy/(weightedTxx+weightedTyy);
+
+      fprintf(ecc_file,"%e %e %e\n", tau, e1, e2);
+
+      //cerr << "<<T^xx-T^yy>>/<<T^xx+T^yy>> = " << (weightedTxx-weightedTyy)/(weightedTxx+weightedTyy) << endl;
+      //cerr << "<<2*T^xy>>/<<T^xx+T^yy>> = " << 2.*weightedTxy/(weightedTxx+weightedTyy) << endl;
+
       fclose(out_file);
+      fclose(ecc_file);
+
       util->cube_free(epsFrom,nx+1,ny+1,size*neta);
       util->cube_free(rhobFrom,nx+1,ny+1,size*neta);
       util->cube_free(utauFrom,nx+1,ny+1,size*neta);
       util->cube_free(uxFrom,nx+1,ny+1,size*neta);
       util->cube_free(uyFrom,nx+1,ny+1,size*neta);
       util->cube_free(uetaFrom,nx+1,ny+1,size*neta);
-     }
+      util->cube_free(TxxFrom,nx+1,ny+1,size*neta);
+      util->cube_free(TxyFrom,nx+1,ny+1,size*neta);
+      util->cube_free(TyyFrom,nx+1,ny+1,size*neta);
+	  }
   free(eps);
   free(rhob);
   free(utau);
   free(ux);
   free(uy);
   free(ueta);
+  free(Txx);
+  free(Txy);
+  free(Tyy);
   delete(util);
 }/* OutputEvolutionDataXYZ */
 
@@ -352,44 +442,13 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
   double *ux;
   double *uy;
   double *ueta;
-  double *p;
-  double *Wtautau, *Wtaux, *Wtauy, *Wtaueta, *Wxx, *Wxy, *Wxeta, *Wyy, *Wyeta, *Wetaeta; // added by Maxime  
-//  double *Ttautau, *Ttaux, *Ttauy, *Ttaueta, *Txx, *Txy, *Txeta, *Tyy, *Tyeta, *Tetaeta; // added by Maxime
-
-
+  
   eps = (double *)malloc(sizeof(double)*sizeOfData);
   rhob = (double *)malloc(sizeof(double)*sizeOfData);
   utau = (double *)malloc(sizeof(double)*sizeOfData);
   ux = (double *)malloc(sizeof(double)*sizeOfData);
   uy = (double *)malloc(sizeof(double)*sizeOfData);
   ueta = (double *)malloc(sizeof(double)*sizeOfData);
-  p = (double *)malloc(sizeof(double)*sizeOfData);
-
-  // added by Maxime
-  Wtautau = (double *)malloc(sizeof(double)*sizeOfData);
-  Wtaux = (double *)malloc(sizeof(double)*sizeOfData);
-  Wtauy = (double *)malloc(sizeof(double)*sizeOfData);
-  Wtaueta = (double *)malloc(sizeof(double)*sizeOfData);
-  Wxx = (double *)malloc(sizeof(double)*sizeOfData);
-  Wxy = (double *)malloc(sizeof(double)*sizeOfData);
-  Wxeta = (double *)malloc(sizeof(double)*sizeOfData);
-  Wyy = (double *)malloc(sizeof(double)*sizeOfData); 
-  Wyeta = (double *)malloc(sizeof(double)*sizeOfData);
-  Wetaeta = (double *)malloc(sizeof(double)*sizeOfData);
-  // end of "added by Maxime"
-
-  // added by Maxime
-//  Ttautau = (double *)malloc(sizeof(double)*sizeOfData);
-//  Ttaux = (double *)malloc(sizeof(double)*sizeOfData);
-//  Ttauy = (double *)malloc(sizeof(double)*sizeOfData);
-//  Ttaueta = (double *)malloc(sizeof(double)*sizeOfData);
-//  Txx = (double *)malloc(sizeof(double)*sizeOfData);
-//  Txy = (double *)malloc(sizeof(double)*sizeOfData);
-//  Txeta = (double *)malloc(sizeof(double)*sizeOfData);
-//  Tyy = (double *)malloc(sizeof(double)*sizeOfData); 
-//  Tyeta = (double *)malloc(sizeof(double)*sizeOfData);
-//  Tetaeta = (double *)malloc(sizeof(double)*sizeOfData);
-  // end of "added by Maxime"
   
   if (rank>0) //send all to rank 0
     {
@@ -400,40 +459,13 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + ((nx+1)*iy)));
+		  position = ieta+(neta*(ix + (nx*iy)));
 		  eps[position] = arena[ix][iy][ieta].epsilon;
 		  rhob[position] = arena[ix][iy][ieta].rhob;
 		  utau[position] = arena[ix][iy][ieta].u[0][0];
 		  ux[position] = arena[ix][iy][ieta].u[0][1];
 		  uy[position] = arena[ix][iy][ieta].u[0][2];
 		  ueta[position] = arena[ix][iy][ieta].u[0][3];
-		  p[position] = arena[ix][iy][ieta].p; 
-
-		  // added by Maxime
-		  Wtautau[position] = arena[ix][iy][ieta].Wmunu[0][0][0];
-		  Wtaux[position] = arena[ix][iy][ieta].Wmunu[0][0][1];
-		  Wtauy[position] = arena[ix][iy][ieta].Wmunu[0][0][2];
-		  Wtaueta[position] = arena[ix][iy][ieta].Wmunu[0][0][3];
-		  Wxx[position] = arena[ix][iy][ieta].Wmunu[0][1][1];
-		  Wxy[position] = arena[ix][iy][ieta].Wmunu[0][1][2];
-		  Wxeta[position] = arena[ix][iy][ieta].Wmunu[0][1][3];
-		  Wyy[position] = arena[ix][iy][ieta].Wmunu[0][2][2];
-		  Wyeta[position] = arena[ix][iy][ieta].Wmunu[0][2][3];
-		  Wetaeta[position] = arena[ix][iy][ieta].Wmunu[0][3][3];
-		  // end of "added by Maxime"
-
-		  // added by Maxime
-//		  Ttautau[position] = arena[ix][iy][ieta].TJb[0][0][0];
-//		  Ttaux[position] = arena[ix][iy][ieta].TJb[0][0][1];
-//		  Ttauy[position] = arena[ix][iy][ieta].TJb[0][0][2];
-//		  Ttaueta[position] = arena[ix][iy][ieta].TJb[0][0][3];
-//		  Txx[position] = arena[ix][iy][ieta].TJb[0][1][1];
-//		  Txy[position] = arena[ix][iy][ieta].TJb[0][1][2];
-//		  Txeta[position] = arena[ix][iy][ieta].TJb[0][1][3];
-//		  Tyy[position] = arena[ix][iy][ieta].TJb[0][2][2];
-//		  Tyeta[position] = arena[ix][iy][ieta].TJb[0][2][3];
-//		  Tetaeta[position] = arena[ix][iy][ieta].TJb[0][3][3];
-		  // end of "added by Maxime"
 		}
 	    }
 	}
@@ -445,34 +477,6 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
       MPI::COMM_WORLD.Send(ux,sizeOfData,MPI::DOUBLE,to,4);
       MPI::COMM_WORLD.Send(uy,sizeOfData,MPI::DOUBLE,to,5);
       MPI::COMM_WORLD.Send(ueta,sizeOfData,MPI::DOUBLE,to,6);
-
-      MPI::COMM_WORLD.Send(p,sizeOfData,MPI::DOUBLE,to,17);
-
-      // added by Maxime
-      MPI::COMM_WORLD.Send(Wtautau,sizeOfData,MPI::DOUBLE,to,7);
-      MPI::COMM_WORLD.Send(Wtaux,sizeOfData,MPI::DOUBLE,to,8);
-      MPI::COMM_WORLD.Send(Wtauy,sizeOfData,MPI::DOUBLE,to,9);
-      MPI::COMM_WORLD.Send(Wtaueta,sizeOfData,MPI::DOUBLE,to,10);
-      MPI::COMM_WORLD.Send(Wxx,sizeOfData,MPI::DOUBLE,to,11);
-      MPI::COMM_WORLD.Send(Wxy,sizeOfData,MPI::DOUBLE,to,12);
-      MPI::COMM_WORLD.Send(Wxeta,sizeOfData,MPI::DOUBLE,to,13);
-      MPI::COMM_WORLD.Send(Wyy,sizeOfData,MPI::DOUBLE,to,14);
-      MPI::COMM_WORLD.Send(Wyeta,sizeOfData,MPI::DOUBLE,to,15);
-      MPI::COMM_WORLD.Send(Wetaeta,sizeOfData,MPI::DOUBLE,to,16);
-      // end of "added by Maxime"
-
-      // added by Maxime
-//      MPI::COMM_WORLD.Send(Ttautau,sizeOfData,MPI::DOUBLE,to,18);
-//      MPI::COMM_WORLD.Send(Ttaux,sizeOfData,MPI::DOUBLE,to,19);
-//      MPI::COMM_WORLD.Send(Ttauy,sizeOfData,MPI::DOUBLE,to,20);
-//      MPI::COMM_WORLD.Send(Ttaueta,sizeOfData,MPI::DOUBLE,to,21);
-//      MPI::COMM_WORLD.Send(Txx,sizeOfData,MPI::DOUBLE,to,22);
-//      MPI::COMM_WORLD.Send(Txy,sizeOfData,MPI::DOUBLE,to,23);
-//      MPI::COMM_WORLD.Send(Txeta,sizeOfData,MPI::DOUBLE,to,24);
-//      MPI::COMM_WORLD.Send(Tyy,sizeOfData,MPI::DOUBLE,to,25);
-//      MPI::COMM_WORLD.Send(Tyeta,sizeOfData,MPI::DOUBLE,to,26);
-//      MPI::COMM_WORLD.Send(Tetaeta,sizeOfData,MPI::DOUBLE,to,27);
-      // end of "added by Maxime"
     }
   
   if (rank==0)
@@ -483,11 +487,6 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
       double ***uxFrom;
       double ***uyFrom;
       double ***uetaFrom;
-      double ***WtautauFrom, ***WtauxFrom, ***WtauyFrom, ***WtauetaFrom, ***WxxFrom; // added by Maxime
-      double ***WxyFrom, ***WxetaFrom, ***WyyFrom, ***WyetaFrom, ***WetaetaFrom; // added by Maxime
-//      double ***TtautauFrom, ***TtauxFrom, ***TtauyFrom, ***TtauetaFrom, ***TxxFrom; // added by Maxime
-//      double ***TxyFrom, ***TxetaFrom, ***TyyFrom, ***TyetaFrom, ***TetaetaFrom; // added by Maxime
-      double ***pFrom;
       
       epsFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       rhobFrom = util->cube_malloc(nx+1,ny+1,size*neta);
@@ -495,33 +494,6 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
       uxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       uyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       uetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      pFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-
-      // added by Maxime
-      WtautauFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      WtauxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      WtauyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      WtauetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      WxxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      WxyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      WxetaFrom = util->cube_malloc(nx+1,ny+1,size*neta); 
-      WyyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      WyetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      WetaetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);  
-      // end of "added by Maxime"   
-
-       // added by Maxime
-//      TtautauFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-//      TtauxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-//      TtauyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-//      TtauetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-//      TxxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-//      TxyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-//      TxetaFrom = util->cube_malloc(nx+1,ny+1,size*neta); 
-//      TyyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-//      TyetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-//      TetaetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);  
-      // end of "added by Maxime"   
       
       for(ix=0; ix<=nx; ix++)
 	{
@@ -535,33 +507,6 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 		  uxFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][1];
 		  uyFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][2];
 		  uetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][3];
-		  pFrom[ix][iy][ieta] = arena[ix][iy][ieta].p;
-		  
-                  // added by Maxime
-                  WtautauFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][0]; 
-                  WtauxFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][1];
-                  WtauyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][2];
-                  WtauetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][3];
-                  WxxFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][1];
-                  WxyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][2];
-                  WxetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][3];
-                  WyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][2][2];
-                  WyetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][2][3];
-                  WetaetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][3][3];
-	  		// end of "added by Maxime"
-
-			// added by Maxime
-//	  		TtautauFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][0][0]; 
-//	  		TtauxFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][0][1];
-//	  		TtauyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][0][2];
-//	  		TtauetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][0][3];
-//	  		TxxFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][1];
-//	  		TxyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][2];
-//	  		TxetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][3];
-//	  		TyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][2][2];
-//	  		TyetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][2][3];
-//	  		TetaetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][3][3];
-	  		// end of "added by Maxime"
 		}
 	    }
 	}
@@ -576,75 +521,20 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 	  MPI::COMM_WORLD.Recv(ux,sizeOfData,MPI::DOUBLE,from,4);
 	  MPI::COMM_WORLD.Recv(uy,sizeOfData,MPI::DOUBLE,from,5);
 	  MPI::COMM_WORLD.Recv(ueta,sizeOfData,MPI::DOUBLE,from,6);
-	  
-	  MPI::COMM_WORLD.Recv(p,sizeOfData,MPI::DOUBLE,from,17);
-
-	  // added by Maxime
-	  MPI::COMM_WORLD.Recv(Wtautau,sizeOfData,MPI::DOUBLE,from,7);
-	  MPI::COMM_WORLD.Recv(Wtaux,sizeOfData,MPI::DOUBLE,from,8);
- 	  MPI::COMM_WORLD.Recv(Wtauy,sizeOfData,MPI::DOUBLE,from,9);
-	  MPI::COMM_WORLD.Recv(Wtaueta,sizeOfData,MPI::DOUBLE,from,10);
-	  MPI::COMM_WORLD.Recv(Wxx,sizeOfData,MPI::DOUBLE,from,11);
-	  MPI::COMM_WORLD.Recv(Wxy,sizeOfData,MPI::DOUBLE,from,12);
-	  MPI::COMM_WORLD.Recv(Wxeta,sizeOfData,MPI::DOUBLE,from,13);
-	  MPI::COMM_WORLD.Recv(Wyy,sizeOfData,MPI::DOUBLE,from,14);
-	  MPI::COMM_WORLD.Recv(Wyeta,sizeOfData,MPI::DOUBLE,from,15);
-   	  MPI::COMM_WORLD.Recv(Wetaeta,sizeOfData,MPI::DOUBLE,from,16);
-	  // end of "added by Maxime"
-
-	  // added by Maxime
-//	  MPI::COMM_WORLD.Recv(Ttautau,sizeOfData,MPI::DOUBLE,from,18);
-//	  MPI::COMM_WORLD.Recv(Ttaux,sizeOfData,MPI::DOUBLE,from,19);
-// 	  MPI::COMM_WORLD.Recv(Ttauy,sizeOfData,MPI::DOUBLE,from,20);
-//	  MPI::COMM_WORLD.Recv(Ttaueta,sizeOfData,MPI::DOUBLE,from,21);
-//	  MPI::COMM_WORLD.Recv(Txx,sizeOfData,MPI::DOUBLE,from,22);
-//	  MPI::COMM_WORLD.Recv(Txy,sizeOfData,MPI::DOUBLE,from,23);
-//	  MPI::COMM_WORLD.Recv(Txeta,sizeOfData,MPI::DOUBLE,from,24);
-//	  MPI::COMM_WORLD.Recv(Tyy,sizeOfData,MPI::DOUBLE,from,25);
-//	  MPI::COMM_WORLD.Recv(Tyeta,sizeOfData,MPI::DOUBLE,from,26);
-//   	  MPI::COMM_WORLD.Recv(Tetaeta,sizeOfData,MPI::DOUBLE,from,27);
-	  // end of "added by Maxime"
-	  
+	    
 	  for(ix=0; ix<=nx; ix++)
 	    {
 	      for(iy=0; iy<=ny; iy++)
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		    position = ieta+(neta*(ix + ((nx+1)*iy)));
-		    epsFrom[ix][iy][ieta+irank*neta] = eps[position];
-		    rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
-		    utauFrom[ix][iy][ieta+irank*neta] = utau[position];
-		    uxFrom[ix][iy][ieta+irank*neta] = ux[position];
-		    uyFrom[ix][iy][ieta+irank*neta] = uy[position];
-		    uetaFrom[ix][iy][ieta+irank*neta] = ueta[position];
-		    pFrom[ix][iy][ieta+irank*neta] = p[position];
-
-		    // added by Maxime
-		    WtautauFrom[ix][iy][ieta+irank*neta] = Wtautau[position];
-		    WtauxFrom[ix][iy][ieta+irank*neta] = Wtaux[position];
-  		    WtauyFrom[ix][iy][ieta+irank*neta] = Wtauy[position];
-		    WtauetaFrom[ix][iy][ieta+irank*neta] = Wtaueta[position];
-		    WxxFrom[ix][iy][ieta+irank*neta] = Wxx[position];
- 		    WxyFrom[ix][iy][ieta+irank*neta] = Wxy[position];
-		    WxetaFrom[ix][iy][ieta+irank*neta] = Wxeta[position];
-		    WyyFrom[ix][iy][ieta+irank*neta] = Wyy[position];
-		    WyetaFrom[ix][iy][ieta+irank*neta] = Wyeta[position];
-		    WetaetaFrom[ix][iy][ieta+irank*neta] = Wetaeta[position];
-		    // end of added by Maxime
-
-		    // added by Maxime
-//		    TtautauFrom[ix][iy][ieta+irank*neta] = Ttautau[position];
-//		    TtauxFrom[ix][iy][ieta+irank*neta] = Ttaux[position];
-//  		    TtauyFrom[ix][iy][ieta+irank*neta] = Ttauy[position];
-//		    TtauetaFrom[ix][iy][ieta+irank*neta] = Ttaueta[position];
-//		    TxxFrom[ix][iy][ieta+irank*neta] = Txx[position];
-// 		    TxyFrom[ix][iy][ieta+irank*neta] = Txy[position];
-//		    TxetaFrom[ix][iy][ieta+irank*neta] = Txeta[position];
-//		    TyyFrom[ix][iy][ieta+irank*neta] = Tyy[position];
-//		    TyetaFrom[ix][iy][ieta+irank*neta] = Tyeta[position];
-//		    TetaetaFrom[ix][iy][ieta+irank*neta] = Tetaeta[position];
-		    // end of added by Maxime
+		      position = ieta+(neta*(ix + (nx*iy)));
+		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
+		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
+		      utauFrom[ix][iy][ieta+irank*neta] = utau[position];
+		      uxFrom[ix][iy][ieta+irank*neta] = ux[position];
+		      uyFrom[ix][iy][ieta+irank*neta] = uy[position];
+		      uetaFrom[ix][iy][ieta+irank*neta] = ueta[position];
 		    }
 		}
 	    }
@@ -652,42 +542,20 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 	}
       
       //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
-  //set up file name
-  const string out_name_xyeta = "evolution_xyeta.dat";
-  const string out_name_W_xyeta = "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
-  string out_open_mode;
-  FILE *out_file_xyeta;
-  FILE *out_file_W_xyeta;
-
-  //If it's the first timestep, overwrite the previous file
-  if (tau == DATA->tau0) {
-     out_open_mode = "w";
-  }
-  else {
-     out_open_mode = "a";	
-  }
-  //If we output in binary, set the mode accordingly
-  if (0 == DATA->outputBinaryEvolution) {
-    out_open_mode += "b";
-  }
-
-  out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
-  out_file_W_xyeta = fopen(out_name_W_xyeta.c_str(), out_open_mode.c_str());
       
-//      out_file_T = fopen(out_name_T,"a");
-      //fprintf(out_file,"");
+      stringstream numIn;
+      numIn << DATA->seed;
+      FILE *out_file;
+      string out_name = "evolution_xyeta_"+numIn.str()+".dat";
+      //char* out_name = "evolution_xyeta.dat";
+      //out_file = fopen(out_name, "a");
+      out_file = fopen(out_name.c_str(), "a");
+      fprintf(out_file,"");
       //Although it is a little confusing, it is easiest to use (tau, x, y, eta) coordinates
       //and save at these points vx, vy, and vz. -CFY 11/16/2010
       double T1, u01, ux1, uy1, uz1, ueta1, utau1, epsilon1, rhob1, QGPfrac1;
       double eta;
-//       double entropy; // added by Maxime
-//       double pressure; // added by Maxime
-      double Wtt, Wtx, Wty, Wtz, Wzz, Wxz, Wyz; // added by Maxime
-//      double Ttt, Ttx, Tty, Ttz, Tzz, Txz, Tyz; // added by Maxime
-      double Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta, Wyy, Wyeta, Wetaeta; // added by Maxime
-//      double Ttautau, Ttaux, Ttauy, Ttaueta, Txx, Txy, Txeta, Tyy, Tyeta, Tetaeta; // added by Maxime
-      double div_factor, pressure1;
-
+      
       //No interpolation is necessary here!
       for(ieta=0; ieta<(DATA->neta)*size; ieta++){
 	eta = ((double)ieta)*(DATA->delta_eta)-(DATA->eta_size)/2.0;
@@ -696,7 +564,6 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 	    for(ix=0; ix<=DATA->nx; ix++) // All x
 	      {
 		epsilon1 = epsFrom[ix][iy][ieta];
-		pressure1 = pFrom[ix][iy][ieta];
 		rhob1 = rhobFrom[ix][iy][ieta];
 		utau1 = utauFrom[ix][iy][ieta];
 		ux1 = uxFrom[ix][iy][ieta];
@@ -708,339 +575,27 @@ void Grid::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, dou
 		uy1 = uy1/u01;
 		uz1 = ueta1*cosh(eta)+utau1*sinh(eta);
 		uz1 /= u01;
-	
-		T1=eos->get_temperature(epsilon1,rhob1);
-		QGPfrac1=eos->get_qgp_frac(epsilon1,rhob1);
-// 		entropy=eos->get_entropy(epsilon1, rhob1);
-//		if(T > 0.12)
-//		{
-                  div_factor=(epsilon1+pressure1);
-		  Wtautau = WtautauFrom[ix][iy][ieta]/(div_factor); // I need <del_mu u_nu> not Wmunu so I divide by the viscosity -Maxime
-		  Wtaux = WtauxFrom[ix][iy][ieta]/(div_factor);
-		  Wtauy = WtauyFrom[ix][iy][ieta]/(div_factor);
-		  Wtaueta = WtauetaFrom[ix][iy][ieta]/(div_factor);
-		  Wxx = WxxFrom[ix][iy][ieta]/(div_factor);
-		  Wxy = WxyFrom[ix][iy][ieta]/(div_factor);
-		  Wxeta = WxetaFrom[ix][iy][ieta]/(div_factor);
-		  Wyy = WyyFrom[ix][iy][ieta]/(div_factor);
-		  Wyeta = WyetaFrom[ix][iy][ieta]/(div_factor);
-		  Wetaeta = WetaetaFrom[ix][iy][ieta]/(div_factor);
-
-		  Wtt = pow(cosh(eta),2)*Wtautau + pow(tau*sinh(eta),2)*Wetaeta*pow(tau,-2) + 2*tau*cosh(eta)*sinh(eta)*Wtaueta*pow(tau,-1);
-		  Wtx = cosh(eta)*Wtaux + tau*sinh(eta)*Wxeta*pow(tau,-1);
-		  Wty = cosh(eta)*Wtauy + tau*sinh(eta)*Wyeta*pow(tau,-1);
-		  Wtz = cosh(eta)*sinh(eta)*Wtautau + tau*( pow(cosh(eta),2) + pow(sinh(eta),2) )*Wtaueta*pow(tau,-1) + tau*tau*cosh(eta)*sinh(eta)*Wetaeta*pow(tau,-2);
-		  Wxz = sinh(eta)*Wtaux + tau*cosh(eta)*Wxeta*pow(tau,-1);
-		  Wyz = sinh(eta)*Wtauy + tau*cosh(eta)*Wyeta*pow(tau,-1);
-		  Wzz = pow(sinh(eta),2)*Wtautau + pow(tau*cosh(eta),2)*Wetaeta*pow(tau,-2) + 2*tau*cosh(eta)*sinh(eta)*Wtaueta*pow(tau,-1);
-//		}
-//		else
-//		{
-//			Wtt = 0.0;
-//			Wtx = 0.0;
-//			Wty = 0.0;
-//			Wtz = 0.0;
-//			Wxx = 0.0;
-//			Wyy = 0.0;
-//			Wxy = 0.0;
-//			Wxz = 0.0;
-//			Wyz = 0.0;
-//			Wzz = 0.0;
-//		}
 		
-
-//		Ttt = pow(cosh(eta),2)*Ttautau + pow(tau*sinh(eta),2)*Tetaeta*pow(tau,-2) + 2*tau*cosh(eta)*sinh(eta)*Ttaueta*pow(tau,-1);
-//		Ttx = cosh(eta)*Ttaux + tau*sinh(eta)*Txeta*pow(tau,-1);
-//		Tty = cosh(eta)*Ttauy + tau*sinh(eta)*Tyeta*pow(tau,-1);
-//		Ttz = cosh(eta)*sinh(eta)*Ttautau + tau*( pow(cosh(eta),2) + pow(sinh(eta),2) )*Ttaueta*pow(tau,-1) + tau*tau*cosh(eta)*sinh(eta)*Tetaeta*pow(tau,-2);
-//		Txz = sinh(eta)*Ttaux + tau*cosh(eta)*Txeta*pow(tau,-1);
-//		Tyz = sinh(eta)*Ttauy + tau*cosh(eta)*Tyeta*pow(tau,-1);
-//		Tzz = pow(sinh(eta),2)*Ttautau + pow(tau*cosh(eta),2)*Tetaeta*pow(tau,-2) + 2*tau*cosh(eta)*sinh(eta)*Ttaueta*pow(tau,-1);
-
-                // exclude the actual coordinates from the output to save space:
-                if (0 == DATA->outputBinaryEvolution) {
-		  fprintf(out_file_xyeta,"%e %e %e %e %e\n", T1*hbarc, QGPfrac1, ux1, uy1, uz1);
-		  if (1 == DATA->viscosity_flag) {
-		    fprintf(out_file_W_xyeta,"%e %e %e %e %e %e %e %e %e %e\n",Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz); 
+		if (DATA->whichEOS==1)
+		  {
+		    T1 = eos->interpolate(epsilon1, rhob1, 0);
+		    QGPfrac1=(epsilon1*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
+		    //cout << T << " " << QGPfrac << endl;
+		    if (QGPfrac1>1.) QGPfrac1 = 1;
+		    else if (QGPfrac1<0.) QGPfrac1=0.;
 		  }
-		}
-		else {
-		  double array[]={T1*hbarc, QGPfrac1, ux1, uy1, uz1};
-		  fwrite(array,sizeof(double),5,out_file_xyeta);
-		  //Write Wmunu/shear only if viscosity is on --- no need to fill a file with zeros in the ideal case
-		  if (1 == DATA->viscosity_flag) {
-		  	double array2[]={Wtt,Wtx,Wty,Wtz,Wxx,Wxy,Wxz,Wyy,Wyz,Wzz};
-		  	fwrite(array2,sizeof(double),10,out_file_W_xyeta);
+		else if (DATA->whichEOS==2)
+		  {
+		    T1 = eos->interpolate2(epsilon1, rhob1, 1);
+		    QGPfrac1 = eos->interpolate2(epsilon1, rhob1, 3);
 		  }
-		}
-		//fprintf(out_file_T,"%e %e %e %e %e %e %e %e %e %e\n",Ttt,Ttx,Tty,Ttz,Txx,Txy,Txz,Tyy,Tyz,Tzz);
-
+		
+		// exclude the actual coordinates from the output to save space:
+		fprintf(out_file,"%e %e %e %e %e\n", T1*hbarc, QGPfrac1, ux1, uy1, uz1);
+		
 	      }/* ix */
 	  }/* iy */
       }/* ieta */
-      fclose(out_file_xyeta);
-      fclose(out_file_W_xyeta);
-//      fclose(out_file_T);
-
-      /*End of hydro output in tau,x,y,eta*/
-
-      util->cube_free(epsFrom,nx+1,ny+1,size*neta);
-      util->cube_free(rhobFrom,nx+1,ny+1,size*neta);
-      util->cube_free(utauFrom,nx+1,ny+1,size*neta);
-      util->cube_free(uxFrom,nx+1,ny+1,size*neta);
-      util->cube_free(uyFrom,nx+1,ny+1,size*neta);
-      util->cube_free(uetaFrom,nx+1,ny+1,size*neta);
-      util->cube_free(pFrom,nx+1,ny+1,size*neta);
-
-      // added by Maxime
-      util->cube_free(WtautauFrom,nx+1,ny+1,size*neta);
-      util->cube_free(WtauxFrom,nx+1,ny+1,size*neta);
-      util->cube_free(WtauyFrom,nx+1,ny+1,size*neta);
-      util->cube_free(WtauetaFrom,nx+1,ny+1,size*neta);
-      util->cube_free(WxxFrom,nx+1,ny+1,size*neta);
-      util->cube_free(WxyFrom,nx+1,ny+1,size*neta);
-      util->cube_free(WxetaFrom,nx+1,ny+1,size*neta);
-      util->cube_free(WyyFrom,nx+1,ny+1,size*neta);
-      util->cube_free(WyetaFrom,nx+1,ny+1,size*neta);
-      util->cube_free(WetaetaFrom,nx+1,ny+1,size*neta);
-      // end of added by Maxime
-
-      // added by Maxime
-//      util->cube_free(TtautauFrom,nx+1,ny+1,size*neta);
-//      util->cube_free(TtauxFrom,nx+1,ny+1,size*neta);
-//      util->cube_free(TtauyFrom,nx+1,ny+1,size*neta);
-//      util->cube_free(TtauetaFrom,nx+1,ny+1,size*neta);
-//      util->cube_free(TxxFrom,nx+1,ny+1,size*neta);
-//      util->cube_free(TxyFrom,nx+1,ny+1,size*neta);
-//      util->cube_free(TxetaFrom,nx+1,ny+1,size*neta);
-//      util->cube_free(TyyFrom,nx+1,ny+1,size*neta);
-//      util->cube_free(TyetaFrom,nx+1,ny+1,size*neta);
-//      util->cube_free(TetaetaFrom,nx+1,ny+1,size*neta);
-      // end of added by Maxime
-    }
-  free(eps);
-  free(rhob);
-  free(utau);
-  free(ux);
-  free(uy);
-  free(ueta);
-  free(p);
-
-  // added by Maxime
-  free(Wtautau);
-  free(Wtaux);
-  free(Wtauy);
-  free(Wtaueta);
-  free(Wxx);
-  free(Wxy);
-  free(Wxeta);
-  free(Wyy);
-  free(Wyeta);
-  free(Wetaeta);
-  // end of "added by Maxime"
-
-  // added by Maxime
-//  free(Ttautau);
-//  free(Ttaux);
-//  free(Ttauy);
-//  free(Ttaueta);
-//  free(Txx);
-//  free(Txy);
-//  free(Txeta);
-//  free(Tyy);
-//  free(Tyeta);
-//  free(Tetaeta);
-  // end of "added by Maxime"
-
-  delete(util);
-}/* OutputEvolutionDataXYEta */
-
-
-void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
-{
-  Util *util;
-  util = new Util();
-
-  int position;
-  int ix, iy, ieta, nx, ny, neta;
-  nx = DATA->nx;
-  ny = DATA->ny;
-  neta = DATA->neta;
-
-  /// MPI send and receive
-  int sizeOfData = (nx+1)*(ny+1)*(neta);
-  int to, from;
-  
-  double *eps;
-  double *rhob;
-  double *utau;
-  double *ux;
-  double *uy;
-  double *ueta;
-
-  eps = (double *)malloc(sizeof(double)*sizeOfData);
-  rhob = (double *)malloc(sizeof(double)*sizeOfData);
-  utau = (double *)malloc(sizeof(double)*sizeOfData);
-  ux = (double *)malloc(sizeof(double)*sizeOfData);
-  uy = (double *)malloc(sizeof(double)*sizeOfData);
-  ueta = (double *)malloc(sizeof(double)*sizeOfData);
-
-  if (rank>0) //send all to rank 0
-    {
-      to = 0;
-      for(ix=0; ix<=nx; ix++)
-	{
-	  for(iy=0; iy<=ny; iy++)
-	    {
-	      for(ieta=0; ieta<neta; ieta++)
-		{
-		  position = ieta+(neta*(ix + ((nx+1)*iy)));
-		  eps[position] = arena[ix][iy][ieta].epsilon;
-		  rhob[position] = arena[ix][iy][ieta].rhob;
-		  utau[position] = arena[ix][iy][ieta].u[0][0];
-		  ux[position] = arena[ix][iy][ieta].u[0][1];
-		  uy[position] = arena[ix][iy][ieta].u[0][2];
-		  ueta[position] = arena[ix][iy][ieta].u[0][3];
-		}
-	    }
-	}
-      //      cout << "eps[5]=" <<eps[5]<< endl;
-    
-      MPI::COMM_WORLD.Send(eps,sizeOfData,MPI::DOUBLE,to,1);
-      MPI::COMM_WORLD.Send(rhob,sizeOfData,MPI::DOUBLE,to,2);
-      MPI::COMM_WORLD.Send(utau,sizeOfData,MPI::DOUBLE,to,3);
-      MPI::COMM_WORLD.Send(ux,sizeOfData,MPI::DOUBLE,to,4);
-      MPI::COMM_WORLD.Send(uy,sizeOfData,MPI::DOUBLE,to,5);
-      MPI::COMM_WORLD.Send(ueta,sizeOfData,MPI::DOUBLE,to,6);
-    }
-  
-  if (rank==0) 
-    {
-      double ***epsFrom;
-      double ***rhobFrom;
-      double ***utauFrom;
-      double ***uxFrom;
-      double ***uyFrom;
-      double ***uetaFrom;
-      
-      epsFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      rhobFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      utauFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      uxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      uyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      uetaFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      
-      for(ix=0; ix<=nx; ix++)
-	{
-	  for(iy=0; iy<=ny; iy++)
-	    {
-	      for(ieta=0; ieta<neta; ieta++)
-		{
-		  epsFrom[ix][iy][ieta] = arena[ix][iy][ieta].epsilon;
-		  rhobFrom[ix][iy][ieta] = arena[ix][iy][ieta].rhob;
-		  utauFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][0];
-		  uxFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][1];
-		  uyFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][2];
-		  uetaFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][3];
-		}
-	    }
-	}
-	
-
-      for (int irank=1; irank<size; irank++)
-	{
-	  from = irank;
-	  MPI::COMM_WORLD.Recv(eps,sizeOfData,MPI::DOUBLE,from,1);
-	  MPI::COMM_WORLD.Recv(rhob,sizeOfData,MPI::DOUBLE,from,2);
-	  MPI::COMM_WORLD.Recv(utau,sizeOfData,MPI::DOUBLE,from,3);
-	  MPI::COMM_WORLD.Recv(ux,sizeOfData,MPI::DOUBLE,from,4);
-	  MPI::COMM_WORLD.Recv(uy,sizeOfData,MPI::DOUBLE,from,5);
-	  MPI::COMM_WORLD.Recv(ueta,sizeOfData,MPI::DOUBLE,from,6);
-	  
-	  for(ix=0; ix<=nx; ix++)
-	    {
-	      for(iy=0; iy<=ny; iy++)
-		{
-		  for(ieta=0; ieta<neta; ieta++)
-		    {
-		      position = ieta+(neta*(ix + ((nx+1)*iy)));
-		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
-		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
-		      utauFrom[ix][iy][ieta+irank*neta] = utau[position];
-		      uxFrom[ix][iy][ieta+irank*neta] = ux[position];
-		      uyFrom[ix][iy][ieta+irank*neta] = uy[position];
-		      uetaFrom[ix][iy][ieta+irank*neta] = ueta[position];
-		    }
-		}
-	    }
-	  //	  cout << "epsFrom[0][0][irank*neta+5]=" <<epsFrom[0][0][irank*neta+5]<< endl;
-	}
-      
-      //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
-
-      FILE *out_file;
-      const char* out_name = "OSCAR.dat";
-      out_file = fopen(out_name, "a");
-//       fprintf(out_file,"");
-//       int iz, nz;
-      double T, eta, eps;
-//       double z, delta_z, z_size, etafrac;
-//       double x, y;
-      double ux, uy, ueta, utau, rhob, QGPfrac;
-//       double epsilon;
-//       double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher;
-//       double utau_lower, utau_higher, ux_lower, ux_higher, uy_lower, uy_higher, ueta_lower, ueta_higher; 
-      double u0, uz;
-      for(ieta=0; ieta<neta; ieta++)
-	{
-	  // get temperature value and others by interpolation
-	  //	  z = iz*(delta_z) - (z_size)/2.0;
-	  eta = -(DATA->eta_size)/2.0 + ieta*DATA->delta_eta;
-	  //cout << "eta_size=" << (DATA->eta_size) << endl;
-
-	  //eta_lower = ieta*(DATA->delta_eta) - (DATA->eta_size)/2.0;
-	  //etafrac = (eta-eta_lower)/DATA->delta_eta;
-	  
-	  for(iy=0; iy<DATA->ny; iy++)
-	    {
-// 	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
-	      for(ix=0; ix<DATA->nx; ix++)
-		{
-// 		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
-		  eps = epsFrom[ix][iy][ieta];
-		  rhob = rhobFrom[ix][iy][ieta];
-		  utau = utauFrom[ix][iy][ieta];
-		  ux = uxFrom[ix][iy][ieta];
-		  uy = uyFrom[ix][iy][ieta];
-		  ueta = uetaFrom[ix][iy][ieta];
-		  
-		  T = eos->get_temperature(eps, rhob);
-		  QGPfrac = eos->get_qgp_frac(eps, rhob);
-		  
-		  //Now these are the flow velocities as e,g, MARTINI needs them
-		  u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
-		  ux = ux/u0;
-		  uy = uy/u0;
-		  uz = ueta*cosh(eta)+utau*sinh(eta);
-		  uz /= u0;
-		  
-		  // it ix iy ieta e p T R_qgp vx vy y_L [2*C entries, D entries, T entries]
-		  fprintf(out_file,"%d %d %d %d %e %e %e %e %e %e %e\n",
-			  static_cast<int>(((tau-DATA->tau0)/static_cast<double>(DATA->delta_tau)+0.0000000000001)/10.), 
-			  ix, 
-			  iy, 
-			  ieta, 
-			  eps*hbarc,
-			  0.,
-		  	  T*hbarc, 
-			  QGPfrac, 
-			  ux, 
-			  uy, 
-			  uz); //this has to change if I want to comply with OSCAR... :(
-		  
-		}/* ix */
-	    }/* iy */
-	}/* iz */
       fclose(out_file);
       util->cube_free(epsFrom,nx+1,ny+1,size*neta);
       util->cube_free(rhobFrom,nx+1,ny+1,size*neta);
@@ -1048,7 +603,7 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
       util->cube_free(uxFrom,nx+1,ny+1,size*neta);
       util->cube_free(uyFrom,nx+1,ny+1,size*neta);
       util->cube_free(uetaFrom,nx+1,ny+1,size*neta);
-     }
+    }
   free(eps);
   free(rhob);
   free(utau);
@@ -1056,15 +611,13 @@ void Grid::OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double 
   free(uy);
   free(ueta);
   delete(util);
-}/* OutputEvolutionDataXYZ */
-
-
+}/* OutputEvolutionDataXYEta */
 
 void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
 {
   Util *util;
   util = new Util();
-
+  double s;
   int position;
   int ix, iy, ieta, nx, ny, neta;
   nx = DATA->nx;
@@ -1082,6 +635,7 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
   double *ux;
   double *uy;
   double *ueta;
+  double totalS = 0.;
 
   eps = (double *)malloc(sizeof(double)*sizeOfData);
   rhob = (double *)malloc(sizeof(double)*sizeOfData);
@@ -1089,6 +643,8 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
   ux = (double *)malloc(sizeof(double)*sizeOfData);
   uy = (double *)malloc(sizeof(double)*sizeOfData);
   ueta = (double *)malloc(sizeof(double)*sizeOfData);
+
+  //cerr << "OK in OutputPlotDataXYZ after allocation" << endl;
 
   if (rank>0) //send all to rank 0
     {
@@ -1099,7 +655,7 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + ((nx+1)*iy)));
+		  position = ieta+(neta*(ix + (nx*iy)));
 		  eps[position] = arena[ix][iy][ieta].epsilon;
 		  rhob[position] = arena[ix][iy][ieta].rhob;
 		  utau[position] = arena[ix][iy][ieta].u[0][0];
@@ -1118,6 +674,8 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
       MPI::COMM_WORLD.Send(uy,sizeOfData,MPI::DOUBLE,to,5);
       MPI::COMM_WORLD.Send(ueta,sizeOfData,MPI::DOUBLE,to,6);
     }
+
+  //cerr << "OK in OutputPlotDataXYZ after MPI Send" << endl;
   
   if (rank==0) 
     {
@@ -1168,7 +726,7 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		      position = ieta+(neta*(ix + ((nx+1)*iy)));
+		      position = ieta+(neta*(ix + (nx*iy)));
 		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
 		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
 		      utauFrom[ix][iy][ieta+irank*neta] = utau[position];
@@ -1181,23 +739,55 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 	  //	  cout << "epsFrom[0][0][irank*neta+5]=" <<epsFrom[0][0][irank*neta+5]<< endl;
 	}
       
-      //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
+      //cerr << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
+
+      double eps;
+
+      stringstream numIn;
+      numIn << DATA->seed;
+      FILE *s_file;
+      string s_name = "entropy_"+numIn.str()+".dat";
+      //char* s_name = "entropy.dat";
+      //s_file = fopen(s_name, "a");
+      s_file = fopen(s_name.c_str(), "a");
+
+      for(ix=0; ix<=nx; ix++)
+	{
+	  for(iy=0; iy<=ny; iy++)
+	    {
+	      for(ieta=0; ieta<neta*size; ieta++)
+		{
+		  if (DATA->whichEOS==2)
+		    {
+		      eps = epsFrom[ix][iy][ieta];
+		      s = eos->interpolate2(eps, 0., 2); //entropy density
+		    }
+		  totalS += utauFrom[ix][iy][ieta]*s*DATA->delta_x*DATA->delta_y*DATA->delta_eta*tau;
+		}
+	    }
+	}
+
+      //cerr << "totalS calculated..." << endl;
+
+      fprintf(s_file,"%f %f\n",tau,totalS);
 
       FILE *out_file;
-      const char* out_name = "contourPlot.dat";
-      out_file = fopen(out_name, "a");
-//       fprintf(out_file,"");
+      string out_name = "contourPlot_"+numIn.str()+".dat";
+      //char* out_name = "contourPlot.dat";
+      //out_file = fopen(out_name, "a");
+      out_file = fopen(out_name.c_str(), "a");
+      fprintf(out_file,"");
       int iz, nz;
-      double T, z, eta, delta_z, z_size, eps, etafrac;
-//       double x, y;
-      double ux, uy, ueta, utau, rhob, QGPfrac;
-//       double epsilon;
+      double T, x, y, z, eta, delta_z, z_size, etafrac;
+      double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
       double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher;
       double utau_lower, utau_higher, ux_lower, ux_higher, uy_lower, uy_higher, ueta_lower, ueta_higher, u0, uz;
       nz = 160;
       z_size = 40.; 
       delta_z = static_cast<double>(z_size)/static_cast<double>(nz);
+      //cerr << "OK after outputting variable definitions in OutputPlotDataXYZ..." << endl;
       for(iz=0; iz<nz; iz++)
+	//for(iz=nz/2; iz<=nz/2; iz++)
 	{
 	  // get temperature value and others by interpolation
 	  z = iz*(delta_z) - (z_size)/2.0;
@@ -1209,10 +799,10 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 	  
 	  for(iy=0; iy<DATA->ny; iy++) // do all y
 	    {
-// 	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
+	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
 	      for(ix=0; ix<DATA->nx; ix++) // do all x
 		{
-// 		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
+		  x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
 		  eps_lower = epsFrom[ix][iy][ieta];
 		  rhob_lower = rhobFrom[ix][iy][ieta];
 		  utau_lower = utauFrom[ix][iy][ieta];
@@ -1246,8 +836,23 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 		  uy = uy_lower * (1.-etafrac) + (etafrac)*uy_higher;
 		  ueta = ueta_lower * (1.-etafrac) + (etafrac)*ueta_higher;
 		  
-		  T = eos->get_temperature(eps, rhob);
-		  QGPfrac = eos->get_qgp_frac(eps, rhob);
+		  //cout << "utau_lower = " << utau_lower << ", ux_lower = " << ux_lower << ", uy_lower = " << uy_lower << ", ueta_lower = " << ueta_lower << endl;
+		  //cout << "utau_higher = " << utau_higher << ", ux_higher = " << ux_higher << ", uy_higher = " << uy_higher << ", ueta_higher = " << ueta_higher << endl;
+
+		  if (DATA->whichEOS==1)
+		    {
+		      T = eos->interpolate(eps, rhob, 0);
+		      QGPfrac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
+		      //cout << T << " " << QGPfrac << endl;
+		      if (QGPfrac>1.) QGPfrac = 1;
+		      else if (QGPfrac<0.) QGPfrac=0.;
+		    }
+		  else if (DATA->whichEOS==2)
+		    {
+		      T = eos->interpolate2(eps, rhob, 1);
+		      QGPfrac = eos->interpolate2(eps, rhob, 3);
+		      s = eos->interpolate2(eps, rhob, 2); //entropy density
+		    }
 		  
 		  //Now these are the flow velocities as e,g, MARTINI needs them
 		  u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
@@ -1277,12 +882,16 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
 		  //fprintf(out_file,"%e %e %e %e %e\n", 
 		  //	  T*hbarc, QGPfrac, ux, uy, uz);
 		  
+		  
 		}/* ix */
 	    }/* iy */
 	}/* iz */
       fprintf(out_file,"\n");
 	
       fclose(out_file);
+      fclose(s_file);
+
+      cout << "S(" << tau << " fm)=" << totalS << endl;
       util->cube_free(epsFrom,nx+1,ny+1,size*neta);
       util->cube_free(rhobFrom,nx+1,ny+1,size*neta);
       util->cube_free(utauFrom,nx+1,ny+1,size*neta);
@@ -1297,184 +906,14 @@ void Grid::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau
   free(uy);
   free(ueta);
   delete(util);
+  //cerr << "OK finishing OutputPlotDataXYZ..." << endl;
 }/* OutputEvolutionDataXYZ */
 
-
-void Grid::Tmax_profile(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
+void Grid::OutputFluctuatingPlotDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
 {
   Util *util;
   util = new Util();
-
-  int position;
-  int ix, iy, ieta, nx, ny, neta;
-  nx = DATA->nx;
-  ny = DATA->ny;
-  neta = DATA->neta;
-
-  int sizeOfData = (nx+1)*(ny+1)*(neta);
-  int to, from;
-  
-  double *eps;
-  double *rhob;
-
-  eps = new double[sizeOfData];
-  rhob = new double[sizeOfData];
-
-   if (rank>0)
-    {
-      to = 0;
-      for(ix=0; ix<=nx; ix++)
-	{
-	  for(iy=0; iy<=ny; iy++)
-	    {
-	      for(ieta=0; ieta<neta; ieta++)
-		{
-		  position = ieta+(neta*(ix + ((nx+1)*iy)));
-		  eps[position] = arena[ix][iy][ieta].epsilon;
-		  rhob[position] = arena[ix][iy][ieta].rhob;
-		}
-	    }
-	}
-    
-      MPI::COMM_WORLD.Send(eps,sizeOfData,MPI::DOUBLE,to,1);
-      MPI::COMM_WORLD.Send(rhob,sizeOfData,MPI::DOUBLE,to,2);
-    }
-  
-  if (rank==0) 
-    {
-      double ***epsFrom;
-      double ***rhobFrom;
-      
-      epsFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      rhobFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      
-      for(ix=0; ix<=nx; ix++)
-	{
-	  for(iy=0; iy<=ny; iy++)
-	    {
-	      for(ieta=0; ieta<neta; ieta++)
-		{
-		  epsFrom[ix][iy][ieta] = arena[ix][iy][ieta].epsilon;
-		  rhobFrom[ix][iy][ieta] = arena[ix][iy][ieta].rhob;
-		}
-	    }
-	}
-	
-
-      for (int irank=1; irank<size; irank++)
-	{
-	  from = irank;
-	  MPI::COMM_WORLD.Recv(eps,sizeOfData,MPI::DOUBLE,from,1);
-	  MPI::COMM_WORLD.Recv(rhob,sizeOfData,MPI::DOUBLE,from,2);
-	  
-	  for(ix=0; ix<=nx; ix++)
-	    {
-	      for(iy=0; iy<=ny; iy++)
-		{
-		  for(ieta=0; ieta<neta; ieta++)
-		    {
-		      position = ieta+(neta*(ix + ((nx+1)*iy)));
-		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
-		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
-		    }
-		}
-	    }
-	}
-
-      double e;
-
-      double * e_max_eta = util->vector_malloc(size*neta);
-      for(ieta=0; ieta<size*neta; ieta++)
-	{
-	  for(iy=0; iy<=ny; iy++)
-	    {
-	      for(ix=0; ix<=nx; ix++)
-		{
-		  e = epsFrom[ix][iy][ieta];
-		  if (e > e_max_eta[ieta]) e_max_eta[ieta] = e;
-		}
-	    }
-	}
-      double * e_max_x = util->vector_malloc(nx+1);
-      for(ix=0; ix<=nx; ix++)
-      {
-            for(ieta=0; ieta<size*neta; ieta++)
-	    {
-	        for(iy=0; iy<=ny; iy++)
-	        {
-		  e = epsFrom[ix][iy][ieta];
-		  if (e > e_max_x[ix]) e_max_x[ix] = e;
-		}
-	    }
-      }
-      double * e_max_y = util->vector_malloc(ny+1);
-      for(iy=0; iy<=ny; iy++)
-      {
-            for(ieta=0; ieta<size*neta; ieta++)
-	    {
-	        for(ix=0; ix<=nx; ix++)
-	        {
-		  e = epsFrom[ix][iy][ieta];
-		  if (e > e_max_y[iy]) e_max_y[iy] = e;
-		}
-	    }
-      }
-
-	int Nfiles = 3;
-	string strTmaxAll[] = {"T_max_eta.txt", "T_max_x.txt", "T_max_y.txt"};
-	int NRec[] = {neta*size, nx+1, ny+1};
-	double * arrRec;
-	for (int ifile = 0; ifile < Nfiles; ifile++)
-	{
-		if (! ( util->fileExists( strTmaxAll[ifile] ) ) ) 
-		{
-			std::ofstream Tmax (strTmaxAll[ifile].c_str(), std::ofstream::out | std::fstream::app);
-			Tmax
-				<< "#tau0= " <<  DATA->tau0
-				<< " nx= " << DATA->nx 
-				<< " ny= " << DATA->ny 
-				<< " neta= " << DATA->neta
-				<< " x_size= " << DATA->x_size
-				<< " y_size= " << DATA->y_size
-				<< " eta_size= " << DATA->eta_size
-			<< endl;
-			Tmax.close();
-		}
-			
-		std::ofstream Tmax (strTmaxAll[ifile].c_str(), std::ofstream::out | std::fstream::app);
-		Tmax << std::setprecision (4) << setw(5);
-
-		switch (ifile)
-		{
-			case 0: arrRec = e_max_eta; break;
-			case 1: arrRec = e_max_x; break;
-			case 2: arrRec = e_max_y; break;
-		}
-		for (int iRec = 0; iRec < NRec[ifile]; iRec++) 
-		Tmax << eos->get_temperature(arrRec[iRec], 0.)*hbarc << "\t";
-		Tmax << endl;
-		Tmax.close();
-	}
-      
-      delete [] e_max_x;
-      delete [] e_max_y;
-      delete [] e_max_eta;
-      util->cube_free(epsFrom,nx+1,ny+1,size*neta);
-      util->cube_free(rhobFrom,nx+1,ny+1,size*neta);
-    }
-
-  delete [] eps;
-  delete [] rhob;
-  delete(util);
-  
-}
-
-
-void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
-{
-  Util *util;
-  util = new Util();
-
+  double s;
   int position;
   int ix, iy, ieta, nx, ny, neta;
   nx = DATA->nx;
@@ -1486,13 +925,53 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
   int sizeOfData = (nx+1)*(ny+1)*(neta);
   int to, from;
   
-  double *eps;
-  double *rhob;
+  double *PTo;
+  double *deltaPTo;
+  double *ETo;
+  double *deltaETo;
+  double *UxTo;
+  double *UyTo;
+  double *UzTo;
+  double *deltaUtTo;
+  double *deltaUxTo;
+  double *deltaUyTo;
+  double *deltaUzTo;
+  double *WttTo;
+  double *WtxTo;
+  double *WtyTo;
+  double *WtzTo;
+  double *WxxTo;
+  double *WxyTo;
+  double *WxzTo;
+  double *WyyTo;
+  double *WyzTo;
+  double *WzzTo;
 
-  eps = new double[sizeOfData];
-  rhob = new double[sizeOfData];
+  PTo = (double *)malloc(sizeof(double)*sizeOfData);
+  deltaPTo = (double *)malloc(sizeof(double)*sizeOfData);
+  ETo = (double *)malloc(sizeof(double)*sizeOfData);
+  deltaETo = (double *)malloc(sizeof(double)*sizeOfData);
+  UxTo = (double *)malloc(sizeof(double)*sizeOfData);
+  UyTo = (double *)malloc(sizeof(double)*sizeOfData);
+  UzTo = (double *)malloc(sizeof(double)*sizeOfData);
+  deltaUtTo = (double *)malloc(sizeof(double)*sizeOfData);
+  deltaUxTo = (double *)malloc(sizeof(double)*sizeOfData);
+  deltaUyTo = (double *)malloc(sizeof(double)*sizeOfData);
+  deltaUzTo = (double *)malloc(sizeof(double)*sizeOfData);
+  WttTo = (double *)malloc(sizeof(double)*sizeOfData);
+  WtxTo = (double *)malloc(sizeof(double)*sizeOfData);
+  WtyTo = (double *)malloc(sizeof(double)*sizeOfData);
+  WtzTo = (double *)malloc(sizeof(double)*sizeOfData);
+  WxxTo = (double *)malloc(sizeof(double)*sizeOfData);
+  WxyTo = (double *)malloc(sizeof(double)*sizeOfData);
+  WxzTo = (double *)malloc(sizeof(double)*sizeOfData);
+  WyyTo = (double *)malloc(sizeof(double)*sizeOfData);
+  WyzTo = (double *)malloc(sizeof(double)*sizeOfData);
+  WzzTo = (double *)malloc(sizeof(double)*sizeOfData);
 
-   if (rank>0) //send all to rank 0
+  //cerr << "OK in OutputFluctuatingPlotDataXYZ after allocation" << endl;
+
+  if (rank>0) //send all to rank 0
     {
       to = 0;
       for(ix=0; ix<=nx; ix++)
@@ -1501,25 +980,116 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + ((nx+1)*iy)));
-		  eps[position] = arena[ix][iy][ieta].epsilon;
-		  rhob[position] = arena[ix][iy][ieta].rhob;
+		  position = ieta+(neta*(ix + (nx*iy)));
+		  PTo[position] = arena[ix][iy][ieta].p_t;
+		  deltaPTo[position] = arena[ix][iy][ieta].deltaP[0];
+		  ETo[position] = arena[ix][iy][ieta].epsilon_t;
+		  deltaETo[position] = arena[ix][iy][ieta].deltaP[0]/eos->get_dpOverde2(arena[ix][iy][ieta].epsilon_t, arena[ix][iy][ieta].rhob_t);
+		  UxTo[position] = arena[ix][iy][ieta].u[0][1];
+		  UyTo[position] = arena[ix][iy][ieta].u[0][2];
+		  UzTo[position] = arena[ix][iy][ieta].u[0][3];
+		  deltaUtTo[position] = arena[ix][iy][ieta].deltaU[0][0];
+		  deltaUxTo[position] = arena[ix][iy][ieta].deltaU[0][1];
+		  deltaUyTo[position] = arena[ix][iy][ieta].deltaU[0][2];
+		  deltaUzTo[position] = arena[ix][iy][ieta].deltaU[0][3];
+		  if(DATA->fluctuatingHydroFlag == 2){
+		    WttTo[position] = arena[ix][iy][ieta].Wmunu[0][0][0] + arena[ix][iy][ieta].deltaW[0][0][0];
+		    WtxTo[position] = arena[ix][iy][ieta].Wmunu[0][0][1] + arena[ix][iy][ieta].deltaW[0][0][1];
+		    WtyTo[position] = arena[ix][iy][ieta].Wmunu[0][0][2] + arena[ix][iy][ieta].deltaW[0][0][2];
+		    WtzTo[position] = arena[ix][iy][ieta].Wmunu[0][0][3] + arena[ix][iy][ieta].deltaW[0][0][3];
+		    WxxTo[position] = arena[ix][iy][ieta].Wmunu[0][1][1] + arena[ix][iy][ieta].deltaW[0][1][1];
+		    WxyTo[position] = arena[ix][iy][ieta].Wmunu[0][1][2] + arena[ix][iy][ieta].deltaW[0][1][2];
+		    WxzTo[position] = arena[ix][iy][ieta].Wmunu[0][1][3] + arena[ix][iy][ieta].deltaW[0][1][3];
+		    WyyTo[position] = arena[ix][iy][ieta].Wmunu[0][2][2] + arena[ix][iy][ieta].deltaW[0][2][2];
+		    WyzTo[position] = arena[ix][iy][ieta].Wmunu[0][2][3] + arena[ix][iy][ieta].deltaW[0][2][3];
+		    WzzTo[position] = arena[ix][iy][ieta].Wmunu[0][3][3] + arena[ix][iy][ieta].deltaW[0][3][3];
+		  }
+		  else{
+		    WttTo[position] = arena[ix][iy][ieta].Wmunu[0][0][0];
+		    WtxTo[position] = arena[ix][iy][ieta].Wmunu[0][0][1];
+		    WtyTo[position] = arena[ix][iy][ieta].Wmunu[0][0][2];
+		    WtzTo[position] = arena[ix][iy][ieta].Wmunu[0][0][3];
+		    WxxTo[position] = arena[ix][iy][ieta].Wmunu[0][1][1];
+		    WxyTo[position] = arena[ix][iy][ieta].Wmunu[0][1][2];
+		    WxzTo[position] = arena[ix][iy][ieta].Wmunu[0][1][3];
+		    WyyTo[position] = arena[ix][iy][ieta].Wmunu[0][2][2];
+		    WyzTo[position] = arena[ix][iy][ieta].Wmunu[0][2][3];
+		    WzzTo[position] = arena[ix][iy][ieta].Wmunu[0][3][3];
+		  }
 		}
 	    }
 	}
-      //      cout << "eps[5]=" <<eps[5]<< endl;
     
-      MPI::COMM_WORLD.Send(eps,sizeOfData,MPI::DOUBLE,to,1);
-      MPI::COMM_WORLD.Send(rhob,sizeOfData,MPI::DOUBLE,to,2);
+      MPI::COMM_WORLD.Send(PTo,sizeOfData,MPI::DOUBLE,to,1);
+      MPI::COMM_WORLD.Send(deltaPTo,sizeOfData,MPI::DOUBLE,to,2);
+      MPI::COMM_WORLD.Send(ETo,sizeOfData,MPI::DOUBLE,to,3);
+      MPI::COMM_WORLD.Send(deltaETo,sizeOfData,MPI::DOUBLE,to,4);
+      MPI::COMM_WORLD.Send(UxTo,sizeOfData,MPI::DOUBLE,to,5);
+      MPI::COMM_WORLD.Send(UyTo,sizeOfData,MPI::DOUBLE,to,6);
+      MPI::COMM_WORLD.Send(UzTo,sizeOfData,MPI::DOUBLE,to,7);
+      MPI::COMM_WORLD.Send(deltaUtTo,sizeOfData,MPI::DOUBLE,to,8);
+      MPI::COMM_WORLD.Send(deltaUxTo,sizeOfData,MPI::DOUBLE,to,9);
+      MPI::COMM_WORLD.Send(deltaUyTo,sizeOfData,MPI::DOUBLE,to,10);
+      MPI::COMM_WORLD.Send(deltaUzTo,sizeOfData,MPI::DOUBLE,to,11);
+      MPI::COMM_WORLD.Send(WttTo,sizeOfData,MPI::DOUBLE,to,12);
+      MPI::COMM_WORLD.Send(WtxTo,sizeOfData,MPI::DOUBLE,to,13);
+      MPI::COMM_WORLD.Send(WtyTo,sizeOfData,MPI::DOUBLE,to,14);
+      MPI::COMM_WORLD.Send(WtzTo,sizeOfData,MPI::DOUBLE,to,15);
+      MPI::COMM_WORLD.Send(WxxTo,sizeOfData,MPI::DOUBLE,to,16);
+      MPI::COMM_WORLD.Send(WxyTo,sizeOfData,MPI::DOUBLE,to,17);
+      MPI::COMM_WORLD.Send(WxzTo,sizeOfData,MPI::DOUBLE,to,18);
+      MPI::COMM_WORLD.Send(WyyTo,sizeOfData,MPI::DOUBLE,to,19);
+      MPI::COMM_WORLD.Send(WyzTo,sizeOfData,MPI::DOUBLE,to,20);
+      MPI::COMM_WORLD.Send(WzzTo,sizeOfData,MPI::DOUBLE,to,21);
     }
+
+  //cerr << "OK in OutputFluctuatingPlotDataXYZ after MPI Send" << endl;
   
   if (rank==0) 
     {
-      double ***epsFrom;
-      double ***rhobFrom;
-      
-      epsFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      rhobFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      double ***PFrom;
+      double ***deltaPFrom;
+      double ***EFrom;
+      double ***deltaEFrom;
+      double ***UxFrom;
+      double ***UyFrom;
+      double ***UzFrom;
+      double ***deltaUtFrom;
+      double ***deltaUxFrom;
+      double ***deltaUyFrom;
+      double ***deltaUzFrom;
+      double ***WttFrom;
+      double ***WtxFrom;
+      double ***WtyFrom;
+      double ***WtzFrom;
+      double ***WxxFrom;
+      double ***WxyFrom;
+      double ***WxzFrom;
+      double ***WyyFrom;
+      double ***WyzFrom;
+      double ***WzzFrom;
+
+      PFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      deltaPFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      EFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      deltaEFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      UxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      UyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      UzFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      deltaUtFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      deltaUxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      deltaUyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      deltaUzFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      WttFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      WtxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      WtyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      WtzFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      WxxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      WxyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      WxzFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      WyyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      WyzFrom = util->cube_malloc(nx+1,ny+1,size*neta);
+      WzzFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       
       for(ix=0; ix<=nx; ix++)
 	{
@@ -1527,18 +1097,69 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  epsFrom[ix][iy][ieta] = arena[ix][iy][ieta].epsilon;
-		  rhobFrom[ix][iy][ieta] = arena[ix][iy][ieta].rhob;
+		  PFrom[ix][iy][ieta] = arena[ix][iy][ieta].p_t;
+		  deltaPFrom[ix][iy][ieta] = arena[ix][iy][ieta].deltaP[0];
+		  EFrom[ix][iy][ieta] = arena[ix][iy][ieta].epsilon_t;
+		  deltaEFrom[ix][iy][ieta] = arena[ix][iy][ieta].deltaP[0]/eos->get_dpOverde2(arena[ix][iy][ieta].epsilon_t, arena[ix][iy][ieta].rhob_t);
+		  UxFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][1];
+		  UyFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][2];
+		  UzFrom[ix][iy][ieta] = arena[ix][iy][ieta].u[0][3];
+		  deltaUtFrom[ix][iy][ieta] = arena[ix][iy][ieta].deltaU[0][0];
+		  deltaUxFrom[ix][iy][ieta] = arena[ix][iy][ieta].deltaU[0][1];
+		  deltaUyFrom[ix][iy][ieta] = arena[ix][iy][ieta].deltaU[0][2];
+		  deltaUzFrom[ix][iy][ieta] = arena[ix][iy][ieta].deltaU[0][3];
+		  if(DATA->fluctuatingHydroFlag == 2){
+		    WttFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][0] + arena[ix][iy][ieta].deltaW[0][0][0];
+		    WtxFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][1] + arena[ix][iy][ieta].deltaW[0][0][1];
+		    WtyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][2] + arena[ix][iy][ieta].deltaW[0][0][2];
+		    WtzFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][3] + arena[ix][iy][ieta].deltaW[0][0][3];
+		    WxxFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][1] + arena[ix][iy][ieta].deltaW[0][1][1];
+		    WxyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][2] + arena[ix][iy][ieta].deltaW[0][1][2];
+		    WxzFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][3] + arena[ix][iy][ieta].deltaW[0][1][3];
+		    WyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][2][2] + arena[ix][iy][ieta].deltaW[0][2][2];
+		    WyzFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][2][3] + arena[ix][iy][ieta].deltaW[0][2][3];
+		    WzzFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][3][3] + arena[ix][iy][ieta].deltaW[0][3][3];
+		  }
+		  else{
+		    WttFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][0];
+		    WtxFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][1];
+		    WtyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][2];
+		    WtzFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][0][3];
+		    WxxFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][1];
+		    WxyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][2];
+		    WxzFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][1][3];
+		    WyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][2][2];
+		    WyzFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][2][3];
+		    WzzFrom[ix][iy][ieta] = arena[ix][iy][ieta].Wmunu[0][3][3];
+		  }
 		}
 	    }
 	}
-	
 
       for (int irank=1; irank<size; irank++)
 	{
 	  from = irank;
-	  MPI::COMM_WORLD.Recv(eps,sizeOfData,MPI::DOUBLE,from,1);
-	  MPI::COMM_WORLD.Recv(rhob,sizeOfData,MPI::DOUBLE,from,2);
+	  MPI::COMM_WORLD.Recv(PTo,sizeOfData,MPI::DOUBLE,from,1);
+	  MPI::COMM_WORLD.Recv(deltaPTo,sizeOfData,MPI::DOUBLE,from,2);
+	  MPI::COMM_WORLD.Recv(ETo,sizeOfData,MPI::DOUBLE,from,3);
+	  MPI::COMM_WORLD.Recv(deltaETo,sizeOfData,MPI::DOUBLE,from,4);
+	  MPI::COMM_WORLD.Recv(UxTo,sizeOfData,MPI::DOUBLE,from,5);
+	  MPI::COMM_WORLD.Recv(UyTo,sizeOfData,MPI::DOUBLE,from,6);
+	  MPI::COMM_WORLD.Recv(UzTo,sizeOfData,MPI::DOUBLE,from,7);
+	  MPI::COMM_WORLD.Recv(deltaUtTo,sizeOfData,MPI::DOUBLE,from,8);
+	  MPI::COMM_WORLD.Recv(deltaUxTo,sizeOfData,MPI::DOUBLE,from,9);
+	  MPI::COMM_WORLD.Recv(deltaUyTo,sizeOfData,MPI::DOUBLE,from,10);
+	  MPI::COMM_WORLD.Recv(deltaUzTo,sizeOfData,MPI::DOUBLE,from,11);
+	  MPI::COMM_WORLD.Recv(WttTo,sizeOfData,MPI::DOUBLE,from,12);
+	  MPI::COMM_WORLD.Recv(WtxTo,sizeOfData,MPI::DOUBLE,from,13);
+	  MPI::COMM_WORLD.Recv(WtyTo,sizeOfData,MPI::DOUBLE,from,14);
+	  MPI::COMM_WORLD.Recv(WtzTo,sizeOfData,MPI::DOUBLE,from,15);
+	  MPI::COMM_WORLD.Recv(WxxTo,sizeOfData,MPI::DOUBLE,from,16);
+	  MPI::COMM_WORLD.Recv(WxyTo,sizeOfData,MPI::DOUBLE,from,17);
+	  MPI::COMM_WORLD.Recv(WxzTo,sizeOfData,MPI::DOUBLE,from,18);
+	  MPI::COMM_WORLD.Recv(WyyTo,sizeOfData,MPI::DOUBLE,from,19);
+	  MPI::COMM_WORLD.Recv(WyzTo,sizeOfData,MPI::DOUBLE,from,20);
+	  MPI::COMM_WORLD.Recv(WzzTo,sizeOfData,MPI::DOUBLE,from,21);
 	  
 	  for(ix=0; ix<=nx; ix++)
 	    {
@@ -1546,102 +1167,110 @@ void Grid::getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		      position = ieta+(neta*(ix + ((nx+1)*iy)));
-		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
-		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
+		      position = ieta+(neta*(ix + (nx*iy)));
+		      PFrom[ix][iy][ieta+irank*neta] = PTo[position];
+		      deltaPFrom[ix][iy][ieta+irank*neta] = deltaPTo[position];
+		      EFrom[ix][iy][ieta+irank*neta] = ETo[position];
+		      deltaEFrom[ix][iy][ieta+irank*neta] = deltaETo[position];
+		      UxFrom[ix][iy][ieta+irank*neta] = UxTo[position];
+		      UyFrom[ix][iy][ieta+irank*neta] = UyTo[position];
+		      UzFrom[ix][iy][ieta+irank*neta] = UzTo[position];
+		      deltaUtFrom[ix][iy][ieta+irank*neta] = deltaUtTo[position];
+		      deltaUxFrom[ix][iy][ieta+irank*neta] = deltaUxTo[position];
+		      deltaUyFrom[ix][iy][ieta+irank*neta] = deltaUyTo[position];
+		      deltaUzFrom[ix][iy][ieta+irank*neta] = deltaUzTo[position];
+		      WttFrom[ix][iy][ieta+irank*neta] = WttTo[position];
+		      WtxFrom[ix][iy][ieta+irank*neta] = WtxTo[position];
+		      WtyFrom[ix][iy][ieta+irank*neta] = WtyTo[position];
+		      WtzFrom[ix][iy][ieta+irank*neta] = WtzTo[position];
+		      WxxFrom[ix][iy][ieta+irank*neta] = WxxTo[position];
+		      WxyFrom[ix][iy][ieta+irank*neta] = WxyTo[position];
+		      WxzFrom[ix][iy][ieta+irank*neta] = WxzTo[position];
+		      WyyFrom[ix][iy][ieta+irank*neta] = WyyTo[position];
+		      WyzFrom[ix][iy][ieta+irank*neta] = WyzTo[position];
+		      WzzFrom[ix][iy][ieta+irank*neta] = WzzTo[position];
 		    }
 		}
 	    }
-	  //	  cout << "epsFrom[0][0][irank*neta+5]=" <<epsFrom[0][0][irank*neta+5]<< endl;
 	}
       
-      //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
+      //cerr << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
 
-      neta*=size;
-      ofstream out_file;
-      string out_name = "avgT.dat";
-      out_file.open(out_name.c_str(), ios::out | ios::app );
-      ofstream out_file2;
-      string out_name2 = "plasmaEvolutionTime.dat";
-      out_file2.open(out_name2.c_str(), ios::out | ios::app );
+      double eps;
 
-//       int iz;
-      int nCells=0, nCells2=0;
-//       double x, y, z, eta, delta_z, z_size, etafrac;
-      double T, eps;
-      double totalT=0, totalT2=0;
-//       double ux, uy, ueta, utau, epsilon;
-      double rhob, QGPfrac;
-//       double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher;
-      for(ieta=0; ieta<neta; ieta++)
-	{
-	  for(iy=0; iy<DATA->ny; iy++) // do all y
-	    {
-	      for(ix=0; ix<DATA->nx; ix++) // do all x
-		{
-		  eps = epsFrom[ix][iy][ieta];
-		  rhob = rhobFrom[ix][iy][ieta];
-			  
-		  T=eos->get_temperature(eps,rhob);
-		  QGPfrac=eos->get_qgp_frac(eps,rhob);
-		  
-		  if(T>0.16/hbarc && QGPfrac==1)
-		    {
-		      totalT+=T;
-		      nCells+=1;
-		    }
+      stringstream numIn;
+      numIn << DATA->seed;
+      FILE *out_file;
+      string out_name = "contourFluctuatingPlot_"+numIn.str()+".dat";
+      //char* out_name = "contourPlot.dat";
+      //out_file = fopen(out_name, "a");
+      out_file = fopen(out_name.c_str(), "a");
+      fprintf(out_file,"");
+
+      for(ieta=0; ieta<neta*size; ieta++){
+	for(iy=0; iy<DATA->ny; iy++){
+	  for(ix=0; ix<DATA->nx; ix++){
+	    fprintf(out_file,"%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e\n", 
+		    PFrom[ix][iy][ieta], deltaPFrom[ix][iy][ieta], EFrom[ix][iy][ieta], deltaEFrom[ix][iy][ieta], 
+		    UxFrom[ix][iy][ieta], UyFrom[ix][iy][ieta], UzFrom[ix][iy][ieta],
+		    deltaUtFrom[ix][iy][ieta], deltaUxFrom[ix][iy][ieta], deltaUyFrom[ix][iy][ieta], deltaUzFrom[ix][iy][ieta],
+		    WttFrom[ix][iy][ieta], WtxFrom[ix][iy][ieta], WtyFrom[ix][iy][ieta], WtzFrom[ix][iy][ieta],
+		    WxxFrom[ix][iy][ieta], WxyFrom[ix][iy][ieta], WxzFrom[ix][iy][ieta],
+		    WyyFrom[ix][iy][ieta], WyzFrom[ix][iy][ieta],
+		    WzzFrom[ix][iy][ieta]);
+	  }/* ix */
+	}/* iy */
+      }/* ieta */
+      fprintf(out_file,"\n");
 	
-		  if(T>0.16/hbarc)
-		    {
-		      totalT2+=T;
-		      nCells2+=1;
-		    }
-		  
-		}/* ix */
-	    }/* iy */
-	}/* iz */
-	
-      if(nCells==0 && DATA->plasmaEvolutionTime==0)
-	{
-	  DATA->plasmaEvolutionTime=tau-DATA->tau0;
-	  out_file2 << setprecision(10) << tau-DATA->tau0;
-     	}
+      fclose(out_file);
 
-      if(nCells2==0 && DATA->plasmaEvolutionTime2==0)
-	{
-	  DATA->plasmaEvolutionTime2=tau-DATA->tau0;
-	  out_file2 << setprecision(10) << tau-DATA->tau0 << endl;
-	}
-      
-      if (nCells>0)
-	{
-	  totalT/=nCells;
-	  DATA->avgT+=totalT;
-	  DATA->nSteps+=1;
-	}
-
-      if (nCells2>0)
-	{
-	  totalT2/=nCells2;
-	  DATA->avgT2+=totalT2;
-	  DATA->nSteps2+=1;
-	}
-      
-      out_file << setprecision(10) << setw(10) << tau << " " << setw(10) <<  totalT*hbarc << " " << setw(10) << totalT2*hbarc << endl;
-      
-      out_file.close();
-      out_file2.close();
-      util->cube_free(epsFrom,nx+1,ny+1,size*neta);
-      util->cube_free(rhobFrom,nx+1,ny+1,size*neta);
+      util->cube_free(PFrom,nx+1,ny+1,size*neta);
+      util->cube_free(deltaPFrom,nx+1,ny+1,size*neta);
+      util->cube_free(EFrom,nx+1,ny+1,size*neta);
+      util->cube_free(deltaEFrom,nx+1,ny+1,size*neta);
+      util->cube_free(UxFrom,nx+1,ny+1,size*neta);
+      util->cube_free(UyFrom,nx+1,ny+1,size*neta);
+      util->cube_free(UzFrom,nx+1,ny+1,size*neta);
+      util->cube_free(deltaUtFrom,nx+1,ny+1,size*neta);
+      util->cube_free(deltaUxFrom,nx+1,ny+1,size*neta);
+      util->cube_free(deltaUyFrom,nx+1,ny+1,size*neta);
+      util->cube_free(deltaUzFrom,nx+1,ny+1,size*neta);
+      util->cube_free(WttFrom,nx+1,ny+1,size*neta);
+      util->cube_free(WtxFrom,nx+1,ny+1,size*neta);
+      util->cube_free(WtyFrom,nx+1,ny+1,size*neta);
+      util->cube_free(WtzFrom,nx+1,ny+1,size*neta);
+      util->cube_free(WxxFrom,nx+1,ny+1,size*neta);
+      util->cube_free(WxyFrom,nx+1,ny+1,size*neta);
+      util->cube_free(WxzFrom,nx+1,ny+1,size*neta);
+      util->cube_free(WyyFrom,nx+1,ny+1,size*neta);
+      util->cube_free(WyzFrom,nx+1,ny+1,size*neta);
+      util->cube_free(WzzFrom,nx+1,ny+1,size*neta);
     }
-
-//   delete [] eps;
-//   delete [] rhob;
+  free(PTo);
+  free(deltaPTo);
+  free(ETo);
+  free(deltaETo);
+  free(UxTo);
+  free(UyTo);
+  free(UzTo);
+  free(deltaUtTo);
+  free(deltaUxTo);
+  free(deltaUyTo);
+  free(deltaUzTo);
+  free(WttTo);
+  free(WtxTo);
+  free(WtyTo);
+  free(WtzTo);
+  free(WxxTo);
+  free(WxyTo);
+  free(WxzTo);
+  free(WyyTo);
+  free(WyzTo);
+  free(WzzTo);
   delete(util);
-  
+  //cerr << "OK finishing OutputFluctuatingPlotDataXYZ..." << endl;
 }/* OutputEvolutionDataXYZ */
-
-
 
 void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
 {
@@ -1658,7 +1287,6 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 
   int sizeOfData = (nx+1)*(ny+1)*(neta);
   int to, from;
-  double s;
   
   double *trouble;
   double *eps;
@@ -1670,8 +1298,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
   double *ux;
   double *uy;
   double *ueta;
-  //  double *corr;
-  
+
   trouble = (double *)malloc(sizeof(double)*sizeOfData);
   eps = (double *)malloc(sizeof(double)*sizeOfData);
   Txx = (double *)malloc(sizeof(double)*sizeOfData);
@@ -1682,7 +1309,6 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
   ux = (double *)malloc(sizeof(double)*sizeOfData);
   uy = (double *)malloc(sizeof(double)*sizeOfData);
   ueta = (double *)malloc(sizeof(double)*sizeOfData);
-  //  corr = (double *)malloc(sizeof(double)*sizeOfData);
 
   if (rank>0) //send all to rank 0
     {
@@ -1693,7 +1319,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	    {
 	      for(ieta=0; ieta<neta; ieta++)
 		{
-		  position = ieta+(neta*(ix + ((nx+1)*iy)));
+		  position = ieta+(neta*(ix + (nx*iy)));
 		  eps[position] = arena[ix][iy][ieta].epsilon;
 		  trouble[position] = static_cast<double>(arena[ix][iy][ieta].trouble);
 		  Txx[position] = arena[ix][iy][ieta].TJb[0][1][1];
@@ -1704,7 +1330,6 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 		  ux[position] = arena[ix][iy][ieta].u[0][1];
 		  uy[position] = arena[ix][iy][ieta].u[0][2];
 		  ueta[position] = arena[ix][iy][ieta].u[0][3];
-		  //corr[position] = arena[ix][iy][ieta].rhob;
 		}
 	    }
 	}
@@ -1720,7 +1345,6 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
       MPI::COMM_WORLD.Send(Txx,sizeOfData,MPI::DOUBLE,to,7);
       MPI::COMM_WORLD.Send(Tyy,sizeOfData,MPI::DOUBLE,to,8);
       MPI::COMM_WORLD.Send(Txy,sizeOfData,MPI::DOUBLE,to,9);
-      //    MPI::COMM_WORLD.Send(corr,sizeOfData,MPI::DOUBLE,to,10);
     }
   
   if (rank==0) 
@@ -1735,10 +1359,8 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
       double ***uxFrom;
       double ***uyFrom;
       double ***uetaFrom;
-      //      double ***corrFrom;
       
       troubleFrom = util->cube_malloc(nx+1,ny+1,size*neta);
-      //corrFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       epsFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       TxxFrom = util->cube_malloc(nx+1,ny+1,size*neta);
       TyyFrom = util->cube_malloc(nx+1,ny+1,size*neta);
@@ -1756,7 +1378,6 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	      for(ieta=0; ieta<neta; ieta++)
 		{
 		  troubleFrom[ix][iy][ieta] = static_cast<double>(arena[ix][iy][ieta].trouble);
-		  //corrFrom[ix][iy][ieta] = arena[ix][iy][ieta].rhob;
 		  epsFrom[ix][iy][ieta] = arena[ix][iy][ieta].epsilon;
 		  TxxFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][1][1];
 		  TyyFrom[ix][iy][ieta] = arena[ix][iy][ieta].TJb[0][2][2];
@@ -1784,7 +1405,6 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	  MPI::COMM_WORLD.Recv(Txx,sizeOfData,MPI::DOUBLE,from,7);
 	  MPI::COMM_WORLD.Recv(Tyy,sizeOfData,MPI::DOUBLE,from,8);
 	  MPI::COMM_WORLD.Recv(Txy,sizeOfData,MPI::DOUBLE,from,9);
-	  //	  MPI::COMM_WORLD.Recv(corr,sizeOfData,MPI::DOUBLE,from,10);
 	  
 	  for(ix=0; ix<=nx; ix++)
 	    {
@@ -1792,8 +1412,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 		{
 		  for(ieta=0; ieta<neta; ieta++)
 		    {
-		      position = ieta+(neta*(ix + ((nx+1)*iy)));
-		      //	      corrFrom[ix][iy][ieta+irank*neta] = corr[position];
+		      position = ieta+(neta*(ix + (nx*iy)));
 		      troubleFrom[ix][iy][ieta+irank*neta] = trouble[position];
 		      epsFrom[ix][iy][ieta+irank*neta] = eps[position];
 		      rhobFrom[ix][iy][ieta+irank*neta] = rhob[position];
@@ -1811,36 +1430,18 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	}
       
       //cout << " RECEIVED ALL DATA FROM OTHER ranks" << endl;
-      FILE *ecc_file;
-      const char* ecc_name = "eccentricity.dat";
-      ecc_file = fopen(ecc_name, "a");
-      
-//       double value, epsp;
-      double rA;
-//       double numerator, denominator;
-      double avcos, avsin, avcos3, avsin3;
-      double Psi2, phiA, Psi3, avrSq, avr3;
-      double eccentricity2, eccentricity3;
 
+      stringstream numIn;
+      numIn << DATA->seed;
       FILE *out_file;
-      const char* out_name = "e_x_y_profile.dat";
-      out_file = fopen(out_name, "a");
-//       fprintf(out_file,"");
-      FILE *s_file;
-      const char* s_name = "entropy-eta.dat";
-      s_file = fopen(s_name, "a");
-//       fprintf(s_file,"");
-      FILE *out_file_2;
-      const char* out_name_2 = "e_x_y_profile_05.dat";
-      out_file_2 = fopen(out_name_2, "a");
-//       fprintf(out_file_2,"");
+      string out_name = "e_x_y_profile_"+numIn.str()+".dat";
+      //char* out_name = "e_x_y_profile.dat";
+      //out_file = fopen(out_name, "a");
+      out_file = fopen(out_name.c_str(), "a");
+      fprintf(out_file,"");
       int iz, nz;
-//       double trouble_lower;
-      double T, x, y, z, eta, delta_z, z_size, eps, Txx, Tyy, Txy,etafrac;
-//       double trouble, trouble_higher;
-      //double corr_lower, corr_higher;
-      double ux, uy, ueta, utau, rhob, QGPfrac;
-//       double epsilon;
+      double trouble,trouble_lower,trouble_higher,T, x, y, z, eta, delta_z, z_size, eps, Txx, Tyy, Txy,etafrac;
+      double ux, uy, ueta, utau, epsilon, rhob, QGPfrac;
       double eta_lower, eps_lower, eps_higher, rhob_lower, rhob_higher, Txx_lower, Txx_higher, Tyy_lower, Tyy_higher, Txy_lower, Txy_higher;
       double utau_lower, utau_higher, ux_lower, ux_higher, uy_lower, uy_higher, ueta_lower, ueta_higher, u0, uz;
       nz = 80;
@@ -1851,9 +1452,8 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
       // get temperature value and others by interpolation
       z = iz*(delta_z) - (z_size)/2.0;
       eta = asinh(z/tau);
-      //eta = 1.;
       //      eta+=5;
-      //      cerr << "eta =" << eta << endl;
+      cerr << "eta =" << eta << endl;
       //cout << "eta_size=" << (DATA->eta_size) << endl;
       ieta = floor((eta + (DATA->eta_size)/2.0)/(DATA->delta_eta));
       eta_lower = ieta*(DATA->delta_eta) - (DATA->eta_size)/2.0;
@@ -1865,8 +1465,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	  for(ix=0; ix<DATA->nx; ix++)
 	    {
 	      x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
-// 	      trouble = troubleFrom[ix][iy][ieta];
-	      //corr_lower = corrFrom[ix][iy][ieta];
+	      trouble = troubleFrom[ix][iy][ieta];
 	      eps_lower = epsFrom[ix][iy][ieta];
 	      Txx_lower = TxxFrom[ix][iy][ieta];
 	      Tyy_lower = TyyFrom[ix][iy][ieta];
@@ -1880,8 +1479,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	      if (ieta+1 < DATA->neta*size)
 		{
 		  eps_higher = epsFrom[ix][iy][ieta+1];
-// 		  trouble_higher = troubleFrom[ix][iy][ieta+1];
-		  //corr_higher = corrFrom[ix][iy][ieta+1];
+		  trouble_higher = troubleFrom[ix][iy][ieta+1];
 		  Txx_higher = TxxFrom[ix][iy][ieta+1];
 		  Tyy_higher = TyyFrom[ix][iy][ieta+1];
 		  Txy_higher = TxyFrom[ix][iy][ieta+1];
@@ -1894,8 +1492,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	      else
 		{
 		  eps_higher = eps_lower;
-// 		  trouble_higher = trouble_lower;
-		  //corr_higher = corr_lower;
+		  trouble_higher = trouble_lower;
 		  Txx_higher = Txx_lower;
 		  Tyy_higher = Tyy_lower;
 		  Txy_higher = Txy_lower;
@@ -1907,8 +1504,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 		}
 	      
 	      eps = eps_lower * (1.-etafrac) + (etafrac)*eps_higher;
-// 	      trouble = trouble_lower * (1.-etafrac) + (etafrac)*trouble_higher;
-	      //corr = corr_lower * (1.-etafrac) + (etafrac)*corr_higher;
+	      trouble = trouble_lower * (1.-etafrac) + (etafrac)*trouble_higher;
 	      Txx = Txx_lower * (1.-etafrac) + (etafrac)*Txx_higher;
 	      Tyy = Tyy_lower * (1.-etafrac) + (etafrac)*Tyy_higher;
 	      Txy = Txy_lower * (1.-etafrac) + (etafrac)*Txy_higher;
@@ -1918,8 +1514,19 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	      uy = uy_lower * (1.-etafrac) + (etafrac)*uy_higher;
 	      ueta = ueta_lower * (1.-etafrac) + (etafrac)*ueta_higher;
 	      
-	      T = eos->get_temperature(eps, rhob);
-	      QGPfrac = eos->get_qgp_frac(eps, rhob);
+	      if (DATA->whichEOS==1)
+		{
+		  T = eos->interpolate(eps, rhob, 0);
+		  QGPfrac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
+		  //cout << T << " " << QGPfrac << endl;
+		  if (QGPfrac>1.) QGPfrac = 1;
+		  else if (QGPfrac<0.) QGPfrac=0.;
+		}
+	      else if (DATA->whichEOS==2)
+		{
+		  T = eos->interpolate2(eps, rhob, 1);
+		  QGPfrac = eos->interpolate2(eps, rhob, 3);
+		}
 	      
 	      //Now these are the flow velocities as e,g, MARTINI needs them
 	      u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
@@ -1941,208 +1548,16 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
 	      //  tau, x, y, z, eta, T*hbarc, QGPfrac, ux, uy, uz);
 	      //cout << "(tau,x,y,z)=(" << tau << ", " << x << ", " << y << ", " << z << ")" << endl;
 	      
-
-	      //	      if(ix%5 == 0 && iy%5 == 0)
-	      fprintf(out_file,"%e %e %e %e %e %e %e %e %e %e %e %e \n",tau, x, y, 
-		      T*hbarc, QGPfrac, eps, Txx, Tyy, Txy, ux, uy, ueta);
+	      
+	      fprintf(out_file,"%e %e %e %e %e %e %e %e %e %e %e %e\n",x, y, 
+		      T*hbarc, QGPfrac, eps, Txx, Tyy, Txy, ux, uy, uz, trouble);
 	      
 	      if (ix==DATA->nx-1)
-	      //if (ix==DATA->nx-1 && iy%5==0)
 		fprintf(out_file,"\n");
-	    }/*  */
+	    }/* ix */
 	}/* iy */
       fclose(out_file);
-
-      // compute and print eccentricity and angles:
-//       numerator = 0.;
-//       denominator = 0.;
-      avcos = 0.;
-      avsin = 0.;
-      avcos3 = 0.;
-      avsin3 = 0.;
-      avrSq=0.;
-      avr3=0.;
-      ieta = DATA->neta/2;
-      for(ix=0; ix<=DATA->nx; ix++)
-	{
-	  x = ix*(DATA->delta_x) - (DATA->x_size/2.0);  
-	  for(iy=0; iy<=DATA->ny; iy++)
-	    {
-	      y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
-	      if (x>=0)
-		{
-		  phiA = atan(y/x);
-		  if (x==0) 
-		    {
-		      if (y>=0) phiA=PI/2.;
-		      else if (y<0) phiA=3.*PI/2.;
-		    }
-		}
-	      else
-		{
-		  phiA = atan(y/x)+PI;
-		}
-	      rA = sqrt( x*x + y*y );
-	      avrSq += rA*rA*(arena[ix][iy][ieta].epsilon); // compute average r^2
-	      avr3 += rA*rA*rA*(arena[ix][iy][ieta].epsilon);
-	      
-	      avcos  += rA*rA*cos(2.*phiA)*(arena[ix][iy][ieta].epsilon);
-	      avsin  += rA*rA*sin(2.*phiA)*(arena[ix][iy][ieta].epsilon);
-	      avcos3 += rA*rA*rA*cos(3.*phiA)*(arena[ix][iy][ieta].epsilon);
-	      avsin3 += rA*rA*rA*sin(3.*phiA)*(arena[ix][iy][ieta].epsilon);
-	    }
-	}
-      Psi2 = (atan(avsin/avcos))/2.+PI/2.;
-      Psi3 = (atan(avsin3/avcos3)+PI)/3.;
-      eccentricity2 = sqrt(avcos*avcos+avsin*avsin)/avrSq;
-      eccentricity3 = sqrt(avcos3*avcos3+avsin3*avsin3)/avr3;
-      
-      cout << "ecc2=" << eccentricity2 << endl;
-      cout << "Psi2=" << Psi2 << endl;
-      cout << "ecc3=" << eccentricity3 << endl;
-      cout << "Psi3=" << Psi3 << endl;
-      fprintf(ecc_file, "%f %f %f %f %f \n", tau, eccentricity2, Psi2, eccentricity3, Psi3);
-      
-      fclose(ecc_file);
-
-
-      // compute entropy as a function of rapidity
-      for(ieta=0; ieta<DATA->neta*size; ieta++) 
-	{
-	  s = 0.;
-	  eta = ieta*(DATA->delta_eta) - (DATA->eta_size)/2.0;
-	  for(iy=0; iy<DATA->ny; iy++) 
-	    {
-	      y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
-	      for(ix=0; ix<DATA->nx; ix++)
-		{
-		  eps = epsFrom[ix][iy][ieta];
-		  rhob=0.;
-		  if (DATA->whichEOS==1)
-		    {
-		      cout << " not implemented for EOS=1" << endl;
-		    }
-		  else if (DATA->whichEOS>1)
-		    {
-		      s += eos->interpolate2(eps, rhob, 2)*utauFrom[ix][iy][ieta]*tau;
-		    }
-		}/*  */
-	    }/* iy */
-	  fprintf(s_file,"%e %e %e \n", tau, eta, s);
-	}//ieta
-      fprintf(s_file,"\n");
-      fclose(s_file);
-
-//       eta = 0.5;
-//       //      eta+=5;
-//       cerr << "eta =" << eta << endl;
-//       //cout << "eta_size=" << (DATA->eta_size) << endl;
-//       ieta = floor((eta + (DATA->eta_size)/2.0)/(DATA->delta_eta));
-//       eta_lower = ieta*(DATA->delta_eta) - (DATA->eta_size)/2.0;
-//       etafrac = (eta-eta_lower)/DATA->delta_eta;
-      
-//       for(iy=0; iy<DATA->ny; iy++) 
-// 	{
-// 	  y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
-// 	  for(ix=0; ix<DATA->nx; ix++)
-// 	    {
-// 	      x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
-// 	      trouble = troubleFrom[ix][iy][ieta];
-// 	      eps_lower = epsFrom[ix][iy][ieta];
-// 	      Txx_lower = TxxFrom[ix][iy][ieta];
-// 	      Tyy_lower = TyyFrom[ix][iy][ieta];
-// 	      Txy_lower = TxyFrom[ix][iy][ieta];
-// 	      rhob_lower = rhobFrom[ix][iy][ieta];
-// 	      utau_lower = utauFrom[ix][iy][ieta];
-// 	      ux_lower = uxFrom[ix][iy][ieta];
-// 	      uy_lower = uyFrom[ix][iy][ieta];
-// 	      ueta_lower = uetaFrom[ix][iy][ieta];
-	      
-// 	      if (ieta+1 < DATA->neta*size)
-// 		{
-// 		  eps_higher = epsFrom[ix][iy][ieta+1];
-// 		  trouble_higher = troubleFrom[ix][iy][ieta+1];
-// 		  Txx_higher = TxxFrom[ix][iy][ieta+1];
-// 		  Tyy_higher = TyyFrom[ix][iy][ieta+1];
-// 		  Txy_higher = TxyFrom[ix][iy][ieta+1];
-// 		  rhob_higher = rhobFrom[ix][iy][ieta+1];
-// 		  utau_higher = utauFrom[ix][iy][ieta+1];
-// 		  ux_higher = uxFrom[ix][iy][ieta+1];
-// 		  uy_higher = uyFrom[ix][iy][ieta+1];
-// 		  ueta_higher = uetaFrom[ix][iy][ieta+1];
-// 		}
-// 	      else
-// 		{
-// 		  eps_higher = eps_lower;
-// 		  trouble_higher = trouble_lower;
-// 		  Txx_higher = Txx_lower;
-// 		  Tyy_higher = Tyy_lower;
-// 		  Txy_higher = Txy_lower;
-// 		  rhob_higher = rhob_lower;
-// 		  utau_higher = utau_lower;
-// 		  ux_higher = ux_lower;
-// 		  uy_higher = uy_lower;
-// 		  ueta_higher = ueta_lower;
-// 		}
-	      
-// 	      eps = eps_lower * (1.-etafrac) + (etafrac)*eps_higher;
-// 	      trouble = trouble_lower * (1.-etafrac) + (etafrac)*trouble_higher;
-// 	      Txx = Txx_lower * (1.-etafrac) + (etafrac)*Txx_higher;
-// 	      Tyy = Tyy_lower * (1.-etafrac) + (etafrac)*Tyy_higher;
-// 	      Txy = Txy_lower * (1.-etafrac) + (etafrac)*Txy_higher;
-// 	      rhob = rhob_lower * (1.-etafrac) + (etafrac)*rhob_higher;
-// 	      utau = utau_lower * (1.-etafrac) + (etafrac)*utau_higher;
-// 	      ux = ux_lower * (1.-etafrac) + (etafrac)*ux_higher;
-// 	      uy = uy_lower * (1.-etafrac) + (etafrac)*uy_higher;
-// 	      ueta = ueta_lower * (1.-etafrac) + (etafrac)*ueta_higher;
-	      
-// 	      if (DATA->whichEOS==1)
-// 		{
-// 		  T = eos->interpolate(eps, rhob, 0);
-// 		  QGPfrac=(eps*hbarc-0.45)/(1.6-0.45); // e=(1-QGPfrac)*e_H + QGPfrac*e_QGP in the mixed phase
-// 		  //cout << T << " " << QGPfrac << endl;
-// 		  if (QGPfrac>1.) QGPfrac = 1;
-// 		  else if (QGPfrac<0.) QGPfrac=0.;
-// 		}
-// 	      else if (DATA->whichEOS>1)
-// 		{
-// 		  T = eos->interpolate2(eps, rhob, 1);
-// 		  QGPfrac = eos->interpolate2(eps, rhob, 3);
-// 		}
-	      
-// 	      //Now these are the flow velocities as e,g, MARTINI needs them
-// 	      u0 = ueta*sinh(eta)+utau*cosh(eta); // = gamma factor
-// 	      ux = ux/u0;
-// 	      uy = uy/u0;
-// 	      uz = ueta*cosh(eta)+utau*sinh(eta);
-// 	      uz /= u0;
-	      
-// 	      /* 	     epsilon = arena[ix][iy][ieta].epsilon; */
-// 	      /* 	     rhob = arena[ix][iy][ieta].rhob; */
-// 	      /* 	     utau = arena[ix][iy][ieta].u[0][0]; */
-// 	      /* 	     ux = arena[ix][iy][ieta].u[0][1]; */
-// 	      /* 	     uy = arena[ix][iy][ieta].u[0][2]; */
-// 	      /* 	     ueta = arena[ix][iy][ieta].u[0][3]; */
-	      
-	      
-// 	      // output with coordinates for testing:
-// 	      //fprintf(out_file,"%e %e %e %e %e %e %e %e %e %e\n", 
-// 	      //  tau, x, y, z, eta, T*hbarc, QGPfrac, ux, uy, uz);
-// 	      //cout << "(tau,x,y,z)=(" << tau << ", " << x << ", " << y << ", " << z << ")" << endl;
-	      
-
-// 	      if(ix%5 == 0 && iy%5 == 0)
-// 		fprintf(out_file_2,"%e %e %e %e %e %e %e %e %e \n",tau, x, y, 
-// 			T*hbarc, QGPfrac, eps, Txx, Tyy, Txy);
-	      
-// 	      if (ix==DATA->nx-1 && iy%5==0)
-// 		fprintf(out_file_2,"\n");
-// 	    }/* ix */
-// 	}/* iy */
-      fclose(out_file_2);
-
       util->cube_free(troubleFrom,nx+1,ny+1,size*neta);
-      //     util->cube_free(corrFrom,nx+1,ny+1,size*neta);
       util->cube_free(epsFrom,nx+1,ny+1,size*neta);
       util->cube_free(TxxFrom,nx+1,ny+1,size*neta);
       util->cube_free(TyyFrom,nx+1,ny+1,size*neta);
@@ -2154,7 +1569,6 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
       util->cube_free(uetaFrom,nx+1,ny+1,size*neta);
     }
   free(trouble);
-  //  free(corr);
   free(eps);
   free(Txx);
   free(Tyy);
@@ -2165,6 +1579,7 @@ void Grid::OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int siz
   free(uy);
   free(ueta);
   delete(util);
+  //cerr << "OutputXY ended successfully..." << endl;
 }/* OutputXY */
 
 
@@ -2199,19 +1614,22 @@ void Grid::PrintArena(Grid ***arena, InitData *DATA, double tau)
 void Grid::PrintEtaEpsilon(Grid ***arena, InitData *DATA, double tau, int size, int rank)
 {
  int ix, iy, ieta;
-//  double x, y;
- double eta;
-//  double ux, uy, ueta, utau, rhob;
- double epsilon;
+ double x, y, eta;
+ double ux, uy, ueta, utau, epsilon, rhob;
+ FILE *d_file;
+ //char* d_name;
  string d_name;
- ofstream d_file;
-
- if(rank==0) d_name = "e_profile.dat";
- else d_name = "e_profile2.dat";
- d_file.open(d_name.c_str(), ios::out | ios::app );
-
-//  x=0.;
-//  y=0.;
+ stringstream numIn;
+ numIn << DATA->seed;
+ if(rank==0) d_name = "e_profile_"+numIn.str()+".dat";
+ else d_name = "e_profile2_"+numIn.str()+".dat";
+ //if(rank==0) d_name = "e_profile.dat";
+ //else d_name = "e_profile2.dat";
+ //d_file = fopen(d_name, "a");
+ d_file = fopen(d_name.c_str(), "a");
+ fprintf(d_file,"\n");
+ x=0.;
+ y=0.;
  ix = floor(DATA->x_size/2/DATA->delta_x);
  iy = floor(DATA->y_size/2/DATA->delta_y);
 
@@ -2220,33 +1638,39 @@ void Grid::PrintEtaEpsilon(Grid ***arena, InitData *DATA, double tau, int size, 
      eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
      //fprintf(stderr,"%d  %d  %d \n", ix, iy, ieta);
      epsilon = arena[ix][iy][ieta].epsilon;
-     d_file << tau << " " << eta << " " << setprecision(8) <<epsilon*hbarc << endl;
+     fprintf(d_file,"%e  %e  %e \n", tau, eta, epsilon*hbarc);
    }
-
- d_file << endl;
- d_file.close();
+ //fprintf(stderr,"grid says arena[20][20][0].epsilon = %e \n", arena[20][20][0].epsilon);
+ fclose(d_file);
 }/* PrintEtaEpsilon */
 
 void Grid::PrintxEpsilon(Grid ***arena, InitData *DATA, double tau, int size, int rank)
 {
  int ix, iy, ieta;
- double x, y;
-//  double ux, uy, ueta, utau, rhob, eta;
- double epsilon;
+ double x, y, eta;
+ double ux, uy, ueta, utau, epsilon, rhob;
  if(size==1 || (size==2 && rank==1))
    {
-     string d_name;
-     ofstream d_file;
-     string d2_name;
-     ofstream d2_file;
-
-     d_name = "e_x_profile.dat";
-     d_file.open(d_name.c_str(), ios::out | ios::app );
-     d2_name = "e_y_profile.dat";
-     d2_file.open(d2_name.c_str(), ios::out | ios::app );
-
-     if (size==1) ieta = floor(DATA->eta_size/2/DATA->delta_eta+0.00001);
+     stringstream numIn;
+     numIn << DATA->seed;
+     FILE *d_file;
+     //char* d_name = "e_x_profile.dat";
+     //d_file = fopen(d_name, "a");
+     string d_name = "e_x_profile_"+numIn.str()+".dat";
+     //d_file = fopen(d_name, "a");
+     d_file = fopen(d_name.c_str(), "a");
+     fprintf(d_file,"\n");
+     FILE *d2_file;
+     //char* d2_name = "e_y_profile.dat";
+     //d2_file = fopen(d2_name, "a");
+     string d2_name = "e_y_profile_"+numIn.str()+".dat";
+     d2_file = fopen(d2_name.c_str(), "a");
+     fprintf(d2_file,"\n");
+     
+     if (size==1) ieta = floor(DATA->eta_size/2/DATA->delta_eta);
      else if (size==2) ieta = 0;
+     //if (size==1) ieta = floor(DATA->eta_size/2/DATA->delta_eta+DATA->eta_size/4/DATA->delta_eta)-2;
+     //else if (size==2) ieta = floor(DATA->eta_size/2-6);
      iy = floor(DATA->y_size/2/DATA->delta_y);
      
      for(ix=0; ix<=DATA->nx; ix++)
@@ -2254,10 +1678,9 @@ void Grid::PrintxEpsilon(Grid ***arena, InitData *DATA, double tau, int size, in
 	 x = ix*(DATA->delta_x) - (DATA->x_size)/2.0;
 	 //fprintf(stderr,"%d  %d  %d \n", ix, iy, ieta);
 	 epsilon = arena[ix][iy][ieta].epsilon;
-	 d_file << setw(10) << tau << " " << setw(10) << x << " " << setw(10) << setprecision(8) <<epsilon*hbarc << endl;
+	 fprintf(d_file,"%e  %e  %e \n", tau, x, epsilon*hbarc);
        }
-     d_file << endl; 
-     d_file.close();
+     fclose(d_file);
      
      ix = floor(DATA->x_size/2/DATA->delta_x);
      
@@ -2266,18 +1689,16 @@ void Grid::PrintxEpsilon(Grid ***arena, InitData *DATA, double tau, int size, in
 	 y = iy*(DATA->delta_y) - (DATA->y_size)/2.0;
 	 //fprintf(stderr,"%d  %d  %d \n", ix, iy, ieta);
 	 epsilon = arena[ix][iy][ieta].epsilon;
-	 d_file << setw(10) << tau << " " << setw(10) << y << " " << setw(10) << setprecision(8) <<epsilon*hbarc << endl;
+	 fprintf(d2_file,"%e  %e  %e \n", tau, y, epsilon*hbarc);
        }
-     d2_file << endl; 
-     d2_file.close();
+     fclose(d2_file);
    }
 }/* PrintxEpsilon */
 
 
 void Grid::PrintGrid(Grid *grid_p, int rk_order)
 {
- int r, i, a;
-//  int m, n, j;
+ int r, m,n,i,j,a;
 
  fprintf(stderr, "\nStarting PrintGrid...\n");
  fprintf(stderr, "TJb\n");
@@ -2324,18 +1745,18 @@ void Grid::PrintAxy2(InitData *DATA, Grid ***arena, double tau)
 /* epsilon is in fm^-4 */
      gxx = arena[ix][iy][ieta].TJb[0][1][1];
      fxx = arena[ix][iy][ieta].Wmunu[0][1][1];
-     hxx = arena[ix][iy][ieta].Pimunu[0][1][1];
-     kxx = gxx + fxx + hxx;
+     //hxx = arena[ix][iy][ieta].Pimunu[0][1][1];
+     kxx = gxx + fxx;// + hxx;
      
      gyy = arena[ix][iy][ieta].TJb[0][2][2];
      fyy = arena[ix][iy][ieta].Wmunu[0][2][2];
-     hyy = arena[ix][iy][ieta].Pimunu[0][2][2];
-     kyy = gyy + fyy + hyy;
+     //hyy = arena[ix][iy][ieta].Pimunu[0][2][2];
+     kyy = gyy + fyy;// + hyy;
     
      g00 = arena[ix][iy][ieta].TJb[0][0][0];
      f00 = arena[ix][iy][ieta].Wmunu[0][0][0];
-     h00 = arena[ix][iy][ieta].Pimunu[0][0][0];
-     k00 = g00 + f00 + h00;
+     //h00 = arena[ix][iy][ieta].Pimunu[0][0][0];
+     k00 = g00 + f00;// + h00;
      
      printf(
      "%e  %e  %e  %e  %e  %e  %e  %e  %e  %e  %e  %e  %e  %e  %e\n", 
@@ -2354,8 +1775,12 @@ void Grid::PrintAxy2(InitData *DATA, Grid ***arena, double tau)
 void Grid::PrintAxy(InitData *DATA, Grid ***arena, double tau)
 {
  FILE *d_file;
- const char* d_name = "e_x_y_profile.dat";
- d_file = fopen(d_name, "a");
+ stringstream numIn;
+ numIn << DATA->seed;
+ //char* d_name = "e_x_y_profile.dat";
+ //d_file = fopen(d_name, "a");
+ string d_name = "e_x_y_profile_"+numIn.str()+".dat";
+ d_file = fopen(d_name.c_str(), "a");
  int ix, iy, ieta;
  double x, y;
 
@@ -2384,47 +1809,63 @@ void Grid::PrintAxy(InitData *DATA, Grid ***arena, double tau)
   return;
 }/* PrintAxy */
 
-void Grid::ComputeAnisotropy(InitData *DATA, Grid ***arena, double tau)
+void Grid::ComputeAnisotropy(InitData *DATA, Grid ***arena, EOS *eos, double tau)
 {
-  
-  string d_name;
-  ofstream d_file;
-  d_name = "aniso.dat";
-  d_file.open(d_name.c_str(), ios::out | ios::app );
+  stringstream numIn;
+  numIn << DATA->seed;
+  FILE *v2_file;
+  string v2_name = "aniso_"+numIn.str()+".dat";
+  //char* v2_name = "aniso.dat";
+  //v2_file = fopen(v2_name, "a");
+  v2_file = fopen(v2_name.c_str(), "a");
   
   int ix, iy, ieta;
-  double v2;
-//   double x, y, epsp;
+  double v2, eps, x, y, epsp, T;
   double numerator, denominator;
   numerator = 0.;
   denominator = 0.;
-  
+  double totalT = 0.;
+
   ieta = DATA->neta/2;
   for(ix=0; ix<=DATA->nx; ix++)
     {
-//       x = ix*(DATA->delta_x) - (DATA->x_size/2.0);  
+      x = ix*(DATA->delta_x) - (DATA->x_size/2.0);  
       for(iy=0; iy<=DATA->ny; iy++)
 	{
-// 	  y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
-	  numerator += (arena[ix][iy][ieta].TJb[0][1][1]-arena[ix][iy][ieta].TJb[0][2][2]);
-	  denominator += (arena[ix][iy][ieta].TJb[0][1][1]+arena[ix][iy][ieta].TJb[0][2][2]);
+	  y = iy*(DATA->delta_x) - (DATA->y_size/2.0);
+	  eps = arena[ix][iy][ieta].epsilon;
+	  if (DATA->whichEOS==1)
+	    {
+	      T = eos->interpolate(eps, 0, 0);
+	     }
+	   else if (DATA->whichEOS==2)
+	     {
+	       T = eos->interpolate2(eps, 0, 1);
+	     }
+	   numerator += (arena[ix][iy][ieta].TJb[0][1][1]-arena[ix][iy][ieta].TJb[0][2][2]);
+	   denominator += (arena[ix][iy][ieta].TJb[0][1][1]+arena[ix][iy][ieta].TJb[0][2][2]);
+	   totalT+=T;
 	}
     }
+  totalT = eos->interpolate2(arena[DATA->nx/2][DATA->ny/2][DATA->neta/2].epsilon, 0, 1);
   v2 = numerator/denominator;
-  d_file << setw(10) << tau << " " << setw(10) << setprecision(10) << v2 << endl;
-  d_file.close();
+  fprintf(v2_file, "%f %f %f \n", tau, v2, totalT); // also print temperature
+  fclose(v2_file);
   return;
 }/* ComputeV2 */
 
 void Grid::ComputeEccentricity(InitData *DATA, Grid ***arena, double tau)
 {
+  stringstream numIn;
+  numIn << DATA->seed;
   FILE *ecc_file;
-  const char* ecc_name = "eccentricity.dat";
-  ecc_file = fopen(ecc_name, "a");
+  string ecc_name = "eccentricity_"+numIn.str()+".dat";
+  //ecc_file = fopen(ecc_name, "a");
+  //char* ecc_name = "eccentricity.dat";
+  ecc_file = fopen(ecc_name.c_str(), "a");
   
   int ix, iy, ieta;
-  double value, x, y;
-//   double epsp;
+  double value, x, y, epsp;
   double numerator, denominator;
   numerator = 0.;
   denominator = 0.;
@@ -2446,20 +1887,22 @@ void Grid::ComputeEccentricity(InitData *DATA, Grid ***arena, double tau)
   return;
 }/* ComputeEccentricity */
 
-
 void Grid::ComputeEnergyConservation(InitData *DATA, Grid ***arena, double tau)
 {
+  stringstream numIn;
+  numIn << DATA->seed;
   FILE *ecc_file;
-  const char* ecc_name = "energyConservation.dat";
-  ecc_file = fopen(ecc_name, "a");
+  string ecc_name = "energyConservation_"+numIn.str()+".dat";
+  //ecc_file = fopen(ecc_name, "a");
+  //char* ecc_name = "energyConservation.dat";
+  ecc_file = fopen(ecc_name.c_str(), "a");
   
   int ix, iy, ieta;
-  double value;
-//   double x, y, epsp, eta;
-  double TtautauPart, TetaetaPart;//, TetaetaPrev;
+  double value, x, y, epsp, eta;
+  double TtautauPart, TetaetaPart, TetaetaPrev;
   TtautauPart = 0.;
   TetaetaPart = 0.;
-//   TetaetaPrev = 0.;
+  TetaetaPrev = 0.;
   
   for(ieta=0; ieta<DATA->neta; ieta++)
     {
@@ -2540,10 +1983,8 @@ void Grid::ComputeEnergyConservation(InitData *DATA, Grid ***arena, double tau)
 
 void Grid::PrintdEdEta(InitData *DATA, Grid ***arena)
 {
- int ix, iy, ieta;
-//  int i;
- double eta, f, g, h, l, k;
-//  double x, y;
+ int ix, iy, ieta, i;
+ double eta, f, g, h, l, k, x, y;
 
  ix = DATA->nx/2; 
  iy = DATA->ny/2; 
@@ -2562,44 +2003,146 @@ void Grid::PrintdEdEta(InitData *DATA, Grid ***arena)
   }
 }
 
-void Grid::Output_hydro_information_header(InitData *DATA, EOS *eos) {
-
-	string fname = "hydro_info_header_h";
-
-	//Open output file
-	ofstream outfile;
-	outfile.open(fname.c_str());
-
-	outfile << "const int MUSIC_real_nx=" << DATA->nx+1 << ";\n";
-	outfile << "const int MUSIC_real_ny=" << DATA->ny+1 << ";\n";
-	//DATA->neta is _not_ the actual number of cells in eta, it is the number of cells in eta _per_ processor
-	outfile << "const int MUSIC_real_neta=" << DATA->neta*MPI::COMM_WORLD.Get_size() << ";\n";
-
-	//double x_size; /* in fermi -x_size/2 < x < x_size/2 */
-	//double y_size; /* in fermi, ditto */
-	//double eta_size; /* ditto */
-
-	outfile << "const double MUSIC_tau0=" << DATA->tau0 << ";\n";
-
-	outfile << "const double MUSIC_dx=" << DATA->delta_x << ";\n";
-	outfile << "const double MUSIC_dy=" << DATA->delta_y << ";\n";
-	outfile << "const double MUSIC_deta=" << DATA->delta_eta << ";\n";
-	outfile << "const double MUSIC_effective_dtau=" << DATA->output_evolution_every_N_timesteps*DATA->delta_tau << ";\n";
-
-	outfile << "const bool MUSIC_with_shear_viscosity=" << ((DATA->viscosity_flag)&&(DATA->turn_on_shear)) << ";\n";
-	outfile << "const bool MUSIC_with_bulk_viscosity=" << ((DATA->viscosity_flag)&&(DATA->turn_on_bulk)) << ";\n";
-
-	outfile << "const double MUSIC_kinetic_FO_temperature_in_GeV=";
-	if (DATA->useEpsFO) {
-		outfile << eos->get_temperature(DATA->epsilonFreeze/hbarc,0.0)*hbarc;
+//Here, S represents the noise term \xi, divided by \sqrt{2.*\eta*T}:
+void Grid::initS(gsl_rng *rng, double sigma, InitData *DATA){
+  //This subroutine is almost the same as updateS, except here, 
+  //prev_S is set to be the same as the newly sampled S. The values 
+  //stored in S and prev_S are simply the W_i's (the sampling of the 
+  //Wiener process), and must be multiplied by the proper function of 
+  //eta, zeta, and T:
+  if(T < DATA->fluctuatingTMin){
+    for(int alpha=0; alpha < 3; alpha++){
+      for(int mu=0; mu < 3; mu++){
+	S[alpha][mu] = 0.;
+      }
+    }
+  }
+  else{
+    for(int alpha=0; alpha < 3; alpha++){
+      for(int mu=0; mu < 3; mu++){
+	if(alpha > mu){
+	  S[alpha][mu] = S[mu][alpha];
 	}
-	else {
-		outfile << DATA->TFO;
+	else if(alpha == mu){
+	  S[alpha][mu] = sqrt(2.)*gsl_ran_gaussian(rng, 1./sigma);
 	}
-	outfile << ";\n";
+	else{
+	  S[alpha][mu] = gsl_ran_gaussian(rng, 1./sigma);
+	}
+      }
+    }
+    
+    //Remove the trace of S, making the proper correlation function in noise:
+    double trS = S[0][0] + S[1][1] + S[2][2];
+    for(int alpha=0; alpha < 3; alpha++){
+      S[alpha][alpha] -= trS/3.;
+    }
+    
+    ////Write out the array of noises:
+    //cout << "S = {" << S[0][0] << ", " << S[0][1] << ", " << S[0][2] << ", " << endl;
+    //cout << "     " << S[1][0] << ", " << S[1][1] << ", " << S[1][2] << ", " << endl;
+    //cout << "     " << S[2][0] << ", " << S[2][1] << ", " << S[2][2] << "} " << endl;
+  }
 
-	outfile << "const bool MUSIC_outputBinaryEvolution=" << DATA->outputBinaryEvolution << ";\n";
+  return;
+}
 
-	outfile.close();
+//Assumes u[0][mu] and Temp[0] have been determined:
+void Grid::initXi(Util *util, EOS *eos, InitData *DATA){
+  //Because epsilon must be that of rk_flag, this routine must be called within 
+  //or immediately after ReconstIt:
+  double entrDens = eos->s_func(epsilon_t, p_t, rhob_t, DATA);
+  double shearV = (DATA->shear_to_s)*entrDens;
+  
+  //Determine the 3x3 Z tensor in the fluid rest frame:
+  double multFactor = sqrt(2.*T_t*shearV);
+  double ZRest[3][3];
+  for(int mu=0; mu<3; mu++){
+    for(int alpha=0; alpha<3; alpha++){
+      ZRest[mu][alpha] = multFactor*S[mu][alpha];
+    }
+  }
+  
+  ////Write out the array of noises:
+  //cout << "Z = {" << ZRest[0][0] << ", " << ZRest[0][1] << ", " << ZRest[0][2] << ", " << endl;
+  //cout << "     " << ZRest[1][0] << ", " << ZRest[1][1] << ", " << ZRest[1][2] << ", " << endl;
+  //cout << "     " << ZRest[2][0] << ", " << ZRest[2][1] << ", " << ZRest[2][2] << "} " << endl;
+  
+  //Now, boost into the grid's frame:
+  double uBoost[4];
+  for(int mu=0; mu<4; mu++){
+    uBoost[mu] = u[0][mu];
+  }
+  double ZCalc[4][4];
+  
+  util->LorentzBoost3x3Tensor(ZRest, uBoost, ZCalc);
+  
+  for(int mu=0; mu<4; mu++){
+    for(int alpha=0; alpha<4; alpha++){
+      //Xi[0][mu][alpha] = ZCalc[mu][alpha];
+      //Instantiate Xi to be zero:
+      Xi[0][mu][alpha] = 0.;
+    }
+  }
+  
+  //cout << "Xi = {" << Xi[0][0][0] << ", " << Xi[0][0][1] << ", " << Xi[0][0][2] << ", " << Xi[0][0][3] << "," << endl;
+  //cout << "      " << Xi[0][1][0] << ", " << Xi[0][1][1] << ", " << Xi[0][1][2] << ", " << Xi[0][1][3] << "," << endl;
+  //cout << "      " << Xi[0][2][0] << ", " << Xi[0][2][1] << ", " << Xi[0][2][2] << ", " << Xi[0][2][3] << "," << endl;
+  //cout << "      " << Xi[0][3][0] << ", " << Xi[0][3][1] << ", " << Xi[0][3][2] << ", " << Xi[0][3][3] << "}" << endl;
 
+  return;
+}
+
+void Grid::updateS(gsl_rng *rng, double sigma, InitData *DATA){
+  if(T < DATA->fluctuatingTMin){
+    for(int alpha=0; alpha < 3; alpha++){
+      for(int mu=0; mu < 3; mu++){
+	S[alpha][mu] = 0.;
+      }
+    }
+  }
+  else{
+    for(int alpha=0; alpha < 3; alpha++){
+      for(int mu=0; mu < 3; mu++){
+	if(alpha > mu){
+	  S[alpha][mu] = S[mu][alpha];
+	}
+	else if(alpha == mu){
+	  S[alpha][mu] = sqrt(2.)*gsl_ran_gaussian(rng, 1./sigma);
+	}
+	else{
+	  S[alpha][mu] = gsl_ran_gaussian(rng, 1./sigma);
+	}
+      }
+    }
+    
+    //Remove the trace of S, giving the proper correlation function:
+    double trS = S[0][0] + S[1][1] + S[2][2];
+    for(int alpha=0; alpha<3; alpha++){
+      S[alpha][alpha] -= trS/3.;
+    }
+  }
+
+  ////Write out the array of noises:
+  //cout << "S = {" << S[0][0] << ", " << S[0][1] << ", " << S[0][2] << ", " << endl;
+  //cout << "     " << S[1][0] << ", " << S[1][1] << ", " << S[1][2] << ", " << endl;
+  //cout << "     " << S[2][0] << ", " << S[2][1] << ", " << S[2][2] << "} " << endl;
+
+  return;
+  
+}
+
+double Grid::getPrevDeltaT(int mu, int nu, EOS *eos){
+
+  double dedp = 1./eos->get_dpOverde2(prev_epsilon, rhob);
+  double prev_deltaT = (prev_epsilon + prev_p)*(prev_deltaU[mu]*prev_u[0][nu] + prev_u[0][mu]*prev_deltaU[nu])
+    +(1. + dedp)*prev_deltaP*prev_u[0][mu]*prev_u[0][nu];
+  if(mu==nu && mu==0){
+    prev_deltaT += -prev_deltaP;
+  }
+  if(mu==nu && mu!=0){
+    prev_deltaT += prev_deltaP;
+  }
+
+  return prev_deltaT;
 }

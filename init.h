@@ -7,8 +7,6 @@
 #include "grid.h"
 #include "glauber.h"
 #include <vector>
-#include <time.h>
-#include <cmath>
 
 class Init{
  private:
@@ -16,12 +14,13 @@ class Init{
   EOS *eos;
   Util * util;
   Glauber *glauber;
+  gsl_rng *gsl_ran;
 
   vector<ReturnValue> nucleusA;  // list of x and y coordinates of nucleons in nucleus A      
   vector<ReturnValue> nucleusB;  // list of x and y coordinates of nucleons in nucleus B 
   
  public:
-  Init(EOS *eos, Glauber* glauber);//constructor
+  Init(EOS *eos, Glauber* glauber, int gsl_ran);//constructor
   ~Init();//destructor
 
   void sampleTA();
@@ -32,6 +31,5 @@ class Init{
   // Normalization: \int r T_A(r) dr dphi = A
   double TATarget(InitData *DATA, double r);
   double TAProjectile(InitData *DATA, double r);
-  double eta_profile_normalisation(InitData *DATA, double eta);
 };
 #endif
