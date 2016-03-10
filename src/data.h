@@ -11,73 +11,70 @@ using namespace std;
 
 struct ReturnValue 
 {
-  double x;
-  double y;
-  int collided;
-  int acceptances;
+    double x;
+    double y;
+    int collided;
+    int acceptances;
 };
 
 typedef struct init_data
 {
-  double **gmunu; /* metric */
-  string Target;
-  string Projectile;
-  string initName;
-  string initName_rhob;
-  string initName_ux;
-  string initName_uy;
+    double **gmunu; /* metric */
+    string Target;
+    string Projectile;
+    string initName;
+    string initName_rhob;
+    string initName_ux;
+    string initName_uy;
 
+    int nx;
+    int ny;
+    int neta;
+    int nt;
 
-  int nx;
-  int ny;
-  int neta;
-  int nt;
+    int input_grid_nx;
+    int input_grid_ny;
+    int input_grid_neta;
+    double input_grid_dx;
+    double input_grid_dy;
+    double input_grid_deta;
+    
+    double x_size; /* in fermi -x_size/2 < x < x_size/2 */
+    double y_size; /* in fermi, ditto */
+    double eta_size; /* ditto */
+    double tau_size; /* tau_0 < tau < tau0+tau_size  */
+    double tau0;
+    
+    double delta_x;
+    double delta_y;
+    double delta_eta;
+    double delta_tau;
+    
+    double epsilon0;
+    double rhoB0;
+    double eta_fall_off;
+    double eta_flat;
+    double R_A;
+    double a_A;
+    double a_short;
+    double a_long;
+    int rk_order;
+    int reconst_type;
+    int taufac;
 
-  int input_grid_nx;
-  int input_grid_ny;
-  int input_grid_neta;
-  double input_grid_dx;
-  double input_grid_dy;
-  double input_grid_deta;
-  
-  double x_size; /* in fermi -x_size/2 < x < x_size/2 */
-  double y_size; /* in fermi, ditto */
-  double eta_size; /* ditto */
-  double tau_size; /* tau_0 < tau < tau0+tau_size  */
-  double tau0;
-  
-  double delta_x;
-  double delta_y;
-  double delta_eta;
-  double delta_tau;
-  
-  double epsilon0;
-  double rhoB0;
-  double eta_fall_off;
-  double eta_flat;
-  double R_A;
-  double a_A;
-  double a_short;
-  double a_long;
-  int rk_order;
-  int reconst_type;
-  int taufac;
+    double minmod_theta;
+    
+    double SigmaNN;
+    double b;
+    
+    // envelope function parameter for rhoB in eta_s direction
+    double eta_rhob_0;               // peak position
+    double eta_rhob_width;           // Gaussian width for profile 1
+    double eta_rhob_plateau_height;   // central plateau height for profile 2
+    double eta_rhob_width_1;         // outside tail Gaussian width for profile 2
+    double eta_rhob_width_2;         // inside Gaussian width for profile 2
 
-  double minmod_theta;
-  
-  double SigmaNN;
-  double b;
- 
-  // envelope function parameter for rhoB in eta_s direction
-  double eta_rhob_0;               // peak position
-  double eta_rhob_width;           // Gaussian width for profile 1
-  double eta_rhob_plateau_height;   // central plateau height for profile 2
-  double eta_rhob_width_1;         // outside tail Gaussian width for profile 2
-  double eta_rhob_width_2;         // inside Gaussian width for profile 2
-
-
-
-  int LexusImax;
+    int LexusImax;
 
   // skip step for freeze out surface finder
   int facTau;
