@@ -147,6 +147,8 @@ class Freeze{
   double **deltaf_coeff_tb_14mom_BV, **deltaf_coeff_tb_14mom_DV;
   double **deltaf_coeff_tb_14mom_Bpi_shear;
 
+  int bulk_deltaf_kind;
+
  public:
   Freeze(InitData* DATA_in);//constructor
   ~Freeze();//destructor
@@ -170,6 +172,7 @@ class Freeze{
   void OutputFullParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int full);
   void load_deltaf_qmu_coeff_table(string filename);
   void load_deltaf_qmu_coeff_table_14mom(string filename);
+  void getbulkvisCoefficients(double Tdec, double* bulkvisCoefficients);
   
   // --------------------------------------------------------------------------------------
   // the following routines are adapted from the public version of
