@@ -7477,7 +7477,19 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
                     qy_center = util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                
-                    qeta_center = 0.0;
+                    // baryon diffusion current q^eta
+                    idx0 = 4;
+                    idx1 = 3;
+                    cube[0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+                    cube[0][0][1] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+                    cube[0][1][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+                    cube[0][1][1] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+                    cube[1][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][0][1] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][1][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][1][1] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+                    qeta_center = util->three_dimension_linear_interpolation(
+                                        lattice_spacing_ptr, x_fraction, cube);
 
                     // reconstruct q^\tau from the transverality criteria
                     double *u_flow = new double [4];
@@ -7552,7 +7564,20 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
-                    Wtaueta_center = 0.0;
+                    // shear viscous tensor W^{\tau \eta}
+                    idx0 = 0;
+                    idx1 = 3;
+                    cube[0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+                    cube[0][0][1] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+                    cube[0][1][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+                    cube[0][1][1] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+                    cube[1][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][0][1] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][1][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][1][1] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+                    Wtaueta_center = 
+                        util->three_dimension_linear_interpolation(
+                                        lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{xx}
                     idx0 = 1;
@@ -7584,7 +7609,20 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
-                    Wxeta_center = 0.0;
+                    // shear viscous tensor W^{x \eta}
+                    idx0 = 1;
+                    idx1 = 3;
+                    cube[0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+                    cube[0][0][1] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+                    cube[0][1][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+                    cube[0][1][1] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+                    cube[1][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][0][1] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][1][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][1][1] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+                    Wxeta_center = 
+                        util->three_dimension_linear_interpolation(
+                                        lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{yy}
                     idx0 = 2;
@@ -7601,7 +7639,20 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
-                    Wyeta_center = 0.0;
+                    // shear viscous tensor W^{yeta}
+                    idx0 = 2;
+                    idx1 = 3;
+                    cube[0][0][0] = arena[ix][iy][ieta].W_prev[idx0][idx1];
+                    cube[0][0][1] = arena[ix][iy+fac_y][ieta].W_prev[idx0][idx1];
+                    cube[0][1][0] = arena[ix+fac_x][iy][ieta].W_prev[idx0][idx1];
+                    cube[0][1][1] = arena[ix+fac_x][iy+fac_y][ieta].W_prev[idx0][idx1];
+                    cube[1][0][0] = arena[ix][iy][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][0][1] = arena[ix][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][1][0] = arena[ix+fac_x][iy][ieta].Wmunu[0][idx0][idx1];
+                    cube[1][1][1] = arena[ix+fac_x][iy+fac_y][ieta].Wmunu[0][idx0][idx1];
+                    Wyeta_center = 
+                        util->three_dimension_linear_interpolation(
+                                        lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{\eta\eta}
                     idx0 = 3;
