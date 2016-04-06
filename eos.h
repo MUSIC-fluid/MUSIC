@@ -87,18 +87,15 @@ class EOS{
   void init_eos(); // for whichEOS=1
   void init_eos2(); // for whichEOS=2
   void init_eos3(int selector); // for whichEOS=3 (PCE 150 MeV), whichEOS=4 (PCE 155 MeV), whichEOS=5 (PCE 160 MeV), whichEOS=6 (PCE 165 MeV)
-  void checkForReadError(FILE *file, char* name);
+  void checkForReadError(FILE *file, const char* name);
   double interpolate_pressure(double e, double rhob); // for whichEOS=1
   double interpolate2(double e, double rhob, int selector); // for whichEOS=2
   double interpolate(double e, double rhob, int selector);
   double get_dpOverde(double e, double rhob);
   double get_dpOverde2(double e, double rhob);
-  double get_dsOverde2(double e, double rhob, InitData *DATA);
   double get_dpOverdrhob(double e, double rhob);
-  double p_func(double e, double rhob);
   double p_rho_func(double e, double rhob);
   double p_e_func(double e, double rhob);
-  double s_func(double epsilon, double p, double rhob, InitData *DATA);
   double T_from_eps_ideal_gas(double eps);
   double get_entropy(double epsilon, double rhob);
   double get_temperature(double epsilon, double rhob);
@@ -113,3 +110,4 @@ class EOS{
 };
 
 #endif
+  

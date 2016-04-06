@@ -76,7 +76,7 @@ void prterr(char *);
 
 int integer(double );
 int count_lines(char *);
-int IsFile(string);
+int IsFile(string );
 
 double Dot(double *, double *, int);
 double m4p(double *, double *);
@@ -134,7 +134,6 @@ void free_submatrix(float **, int , int , int , int );
 void free_convert_matrix(float **, int , int , int , int );
 int siftDown(double *numbers, int root, int bottom, int *re_arrange);
 int CheckMono(double *Vx, int ymax, int *mono_ind);
-void LorentzBoost3x3Tensor(double (*Tin)[3],double *u, double (*Tout)[4]);
 bool fileExists(const std::string& filename);
 };
 

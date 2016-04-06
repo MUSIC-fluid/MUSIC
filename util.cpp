@@ -1,9 +1,4 @@
 #include "util.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
 #include <iostream>
 
 double ***Util::cube_malloc(int n1, int n2, int n3)
@@ -1396,78 +1391,6 @@ main()
 }
 */
 
- //Specific for relativistic noise: takes a contravariant tensor with T^{0 \mu} = T^{\mu 0} = 0 in the 
- //fluid rest frame, and boosts it into the frame where the fluid has velocity u:
-
-void Util::LorentzBoost3x3Tensor(double (*Tin)[3], double *u, double (*Tout)[4]){
-  if(Tin[0][0] == 0. && Tin[0][1] == 0. && Tin[0][2] == 0.
-     && Tin[1][0] == 0. && Tin[1][1] == 0.&& Tin[1][2] == 0.
-     && Tin[2][0] == 0. && Tin[2][1] == 0.&& Tin[2][2] == 0.){
-    for(int ii=0; ii<4; ii++){
-      for(int ij=0; ij<4; ij++){
-	Tout[ii][ij] = 0.;
-      }
-    }
-  }
-  else{
-    //First, determine gamma and beta:
-    double gamma = u[0];
-    double v[4];
-    v[0] = 1.;
-    v[1] = u[1]/gamma;
-    v[2] = u[2]/gamma;
-    v[3] = u[3]/gamma;
-    //Next, construct the Lorentz transformation matrix:
-    double beta2 = v[1]*v[1] + v[2]*v[2] + v[3]*v[3];
-    //For small beta2, simply promote the tensor from being 3x3 to 4x4:
-    if(beta2 < 1.e-12){
-      for(int im=0; im<4; im++){
-	Tout[0][im] = 0.;
-	Tout[im][0] = 0.;
-      }
-      for(int im=1; im<4; im++){
-	for(int ia=1; ia<4; ia++){
-	  Tout[im][ia] = Tin[im-1][ia-1];
-	}
-      }
-    }
-    else{
-      //Determine the Lorentz transformation matrix:
-      double L[4][4];
-      for(int im=0; im<4; im++){
-	L[0][im] = u[im];
-	L[im][0] = L[0][im];
-      }
-      for(int im=1; im<4; im++){
-	for(int ia=1; ia<4; ia++){
-	  L[im][ia] = (gamma-1.)*v[im]*v[ia]/beta2;
-	  if(im == ia){
-	    L[im][ia] += 1.;
-	  }
-	}
-      }
-
-      //With the Lorentz transformation matrix determined, the boosted matrix can be calculated:
-      double TdotL[4][4];
-      for(int im=0; im<4; im++){
-	TdotL[0][im] = 0.;
-      }
-      for(int im=1; im<4; im++){
-	for(int ia=0; ia<4; ia++){
-	  TdotL[im][ia] = Tin[im-1][0]*L[1][ia]+Tin[im-1][1]*L[2][ia]+Tin[im-1][2]*L[3][ia];
-	}
-      }
-
-      for(int im=0; im<4; im++){
-	for(int ia=0; ia<4; ia++){
-	  Tout[im][ia] = L[im][0]*TdotL[0][ia]+L[im][1]*TdotL[1][ia]+L[im][2]*TdotL[2][ia]+L[im][3]*TdotL[3][ia];
-	}
-      }
-    }
-  }
-
-  return;
-}
 bool Util::fileExists(const std::string& filename)
 {
     struct stat buf;

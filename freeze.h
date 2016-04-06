@@ -2,11 +2,11 @@
 #define FREEZE_H
 
 #define NUMDECAY 2000
-#define MAXINTV         20000000 /* size of arry for Montecarlo numbers */
+#define MAXINTV         2000000 /* size of arry for Montecarlo numbers note that I modified pdg05.dat by replacing 90...... 9......*/
 #define MHALF           (MAXINTV/2)
-#define NY		2000 /* size of arry for storage of the y-spectrum */
-#define NPT		50 /* size of arry for storage of the pt-spectrum */
-#define NPHI		50 /* size of arry for storage of the phi-spectrum */
+#define NY		200 /* size of arry for storage of the y-spectrum */
+#define NPT		100 /* size of arry for storage of the pt-spectrum */
+#define NPHI		100 /* size of arry for storage of the phi-spectrum */
 #define NPHI1		NPHI + 1 
 #define	PTS3	12		/* normalization of 3-body decay */
 #define	PTS4	12		/* inv. mass integral 3-body    */
@@ -22,7 +22,7 @@
 #include <mpi.h>
 #include "data.h"
 #include "util.h"
-#include "int.h"
+// #include "int.h"
 #include "eos.h"
 #include <iterator>
 #include <algorithm>
@@ -32,9 +32,13 @@
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_interp.h>
+
+
+
 const int nharmonics = 8; // calculate up to maximum harmonic (n-1) -- for nharmonics = 8, calculate from v_0 o v_7
 const int etasize = 100; // max number of points in eta for array
 const int ptsize = 100; // max number of points in pt for array
+
 class Freeze{
 
  private:
@@ -99,32 +103,18 @@ class Freeze{
   typedef struct surfaceElement
   {
     double x[4]; // position in (tau, x, y, eta)
-    double cosh_eta_s, sinh_eta_s; // caching the sinh and cosh of eta_s for speed
     double s[4]; // hypersurface vector in (tau, x, y, eta)
     double u[4]; // flow velocity in (tau, x, y, eta)
     double W[4][4]; // W^{\mu\nu}
-    double q[4]; // baryon diffusion current
     double pi_b; // bulk pressure
-    double rho_B;  // net baryon density
     
     double epsilon_f;
     double T_f;
     double mu_B; 
-    double sFO; // entropy density
     double eps_plus_p_over_T_FO; // (energy_density+pressure)/temperature
   } SurfaceElement;
   
-  typedef struct dsurfaceElement
-  {
-    double dT;
-    double du[4];
-    double de;
-    double dp;
-    double dW[4][4]; //No d\mu for now. -CFY
-  } DSurfaceElement;
-
   SurfaceElement *surface;
-  DSurfaceElement *dsurface;
   Particle *particleList;
   int NCells;
   int decayMax, particleMax;
@@ -133,35 +123,15 @@ class Freeze{
   int *partid;
   // array for converting Montecarlo numbers in internal numbering of the resonances 
   double *phiArray;
-  Int *integral;
+//   Int *integral;
   Util *util;
   int pseudofreeze;
-
-  InitData* DATA_ptr;
-  int *charged_hadron_list;
-  int charged_hadron_list_length;
-
-  int deltaf_qmu_coeff_table_length_T;
-  int deltaf_qmu_coeff_table_length_mu;
-  double delta_qmu_coeff_table_T0, delta_qmu_coeff_table_mu0;
-  double delta_qmu_coeff_table_dT, delta_qmu_coeff_table_dmu;
-  double **deltaf_qmu_coeff_tb;
-  
-  int deltaf_coeff_table_14mom_length_T;
-  int deltaf_coeff_table_14mom_length_mu;
-  double delta_coeff_table_14mom_T0, delta_coeff_table_14mom_mu0;
-  double delta_coeff_table_14mom_dT, delta_coeff_table_14mom_dmu;
-  double **deltaf_coeff_tb_14mom_DPi, **deltaf_coeff_tb_14mom_BPi;
-  double **deltaf_coeff_tb_14mom_BPitilde;
-  double **deltaf_coeff_tb_14mom_BV, **deltaf_coeff_tb_14mom_DV;
-  double **deltaf_coeff_tb_14mom_Bpi_shear;
 
  public:
   Freeze();//constructor
   ~Freeze();//destructor
 
   double gauss(int n, double (Freeze::*f)(double, void *), double xlo, double xhi, void *optvec );
-  void ReadParticleData(InitData *DATA);
   double riemannsum(int n, double (Freeze::*f)(double, void *), double xlo, double xhi, void *optvec );
   void ReadParticleData(InitData *DATA, EOS *eos);
   void ReadFreezeOutSurface(InitData *DATA);
@@ -176,12 +146,10 @@ class Freeze{
   void ComputeCorrelations(InitData* DATA, double ptmax);
   double summation(double px, double py, double y, double m, int deg, int baryon, double mu, InitData *DATA);
   double summation3(double px, double py, double y, double m, int deg, int baryon, double mu, InitData *DATA);
-  double summation(double px, double py, double y, double m, int deg, int baryon, InitData *DATA);
   void ComputeParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int iptmax, int iphimax, int size, int rank);
   void OutputFullParticleSpectrum(InitData *DATA, int number, double ptmax, int anti, int full);
-  //void CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank); 
-  void CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
-// --------------------------------------------------------------------------------------
+  
+  // --------------------------------------------------------------------------------------
   // the following routines are adapted from the public version of
   /* ... the resonance decay calculation using the output  */
   /* generated by the hydrodynamical code azhydro0p2.  The majority of the code was  */
@@ -206,13 +174,13 @@ class Freeze{
   // --------------------------------------------------------------------------------------
   
   int countLines (std::istream& in);
-  void checkForReadError(FILE *file, char* name);
-  void CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, int size, int rank);
+  void checkForReadError(FILE *file, const char* name);
+  void CooperFrye(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
+
   //When the pseudorapidity mode is used
   void ReadFSpectra_pseudo(InitData *DATA);
   void ReadSpectra_pseudo(InitData* DATA, int full, int verbose);
   void ComputeParticleSpectrum_pseudo(InitData *DATA, int number, int anti, int size, int rank);
-  void ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number, int size, int rank);
   void OutputFullParticleSpectrum_pseudo(InitData *DATA, int number, int anti, int full);
   void CooperFrye_pseudo(int particleSpectrumNumber, int mode, InitData *DATA, EOS *eos, int size, int rank);
   double	Edndp3_pseudo(double yr, double ptr, double phirin, int res_num);
@@ -244,22 +212,16 @@ class Freeze{
   double get_vn(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n);
   double get_psi_n(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n);
   double get_Nch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap);
-  double get_vn_ch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n);//, double* vn_results);
+  double get_vn_ch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n);
   double get_psi_n_ch(InitData *DATA, double minpt, double maxpt, int yflag, double minrap, double maxrap, int n);
   double get_weighted_v1(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int ch);
   double get_weighted_psi1(InitData *DATA, int number, double minpt, double maxpt, int yflag, double minrap, double maxrap, int ch);
 
   void OutputDifferentialFlowAtMidrapidity(InitData *DATA, int number, int full);
   void OutputDifferentialFlowNearMidrapidity(InitData *DATA, int number, int full);
-  void OutputIntegratedFlow_vs_y(InitData *DATA, int number, int full, double pT_min, double pT_max);
-  void OutputIntegratedFlow(InitData *DATA, int number, int full);//, double pT_min, double pT_max);
-  void Output_charged_IntegratedFlow(InitData *DATA, double pT_min, double pT_max, double eta_min, double eta_max);
-  void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full, const int *,int);//double pT_min ,double pT_max);
-  void Output_charged_hadrons_pT_differential_spectra(InitData *DATA, int full, double eta_min, double eta_max);
+  void OutputIntegratedFlow(InitData *DATA, int number, int full);
+  void Output_charged_hadrons_eta_differential_spectra(InitData *DATA, int full, const int *, int);
   void Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const int * hadron_list, int nb_hadrons);
-
-   double get_deltaf_qmu_coeff(double T, double muB);
-   double get_deltaf_coeff_14moments(double T, double muB, double type);
 };
 #endif
   

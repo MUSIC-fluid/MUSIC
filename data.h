@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string>
+#include <string.h>
 
 using namespace std;
 
@@ -20,18 +20,16 @@ struct ReturnValue
 typedef struct init_data
 {
   double **gmunu; /* metric */
-  std::string Target;
-  std::string Projectile;
-  std::string initName;
+  string Target;
+  string Projectile;
+  string initName;
 
 
   int nx;
   int ny;
   int neta;
   int nt;
-  int fluctuatingHydroFlag;
-  int fluctuatingGridFactorTau;
-
+  
   double x_size; /* in fermi -x_size/2 < x < x_size/2 */
   double y_size; /* in fermi, ditto */
   double eta_size; /* ditto */
@@ -59,7 +57,7 @@ typedef struct init_data
   double SigmaNN;
   double b;
  
-  double fluctuatingTMin;
+
 
 
 
