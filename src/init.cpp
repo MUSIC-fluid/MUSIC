@@ -3399,8 +3399,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
                     (*arena)[ix][iy][ieta].p = p;
                     (*arena)[ix][iy][ieta].p_t = p;
                     (*arena)[ix][iy][ieta].trouble = 0;
-                    (*arena)[ix][iy][ieta].T = eos->get_temperature(epsilon,
-                                                                    rhob);
+                    (*arena)[ix][iy][ieta].T =
+                                            eos->get_temperature(epsilon, rhob);
                     (*arena)[ix][iy][ieta].mu = eos->get_mu(epsilon, rhob);
                     (*arena)[ix][iy][ieta].TJb =
                                             util->cube_malloc(rk_order+1, 5, 4);
@@ -3468,7 +3468,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
     } else if (DATA->Initial_profile == 12) {
         // read in the 3d profile from file
         size = DATA->size;
-       
+
         cout << "size=" << size << endl;
         cout << " ----- information on initial distribution -----" << endl;
         cout << "file name used: " << DATA->initName << " and "
