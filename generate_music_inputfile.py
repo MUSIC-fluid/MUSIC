@@ -29,6 +29,7 @@ initial_condition_dict.update({
     'Initial_uy_Distribution_Filename': 'initial/uy_event_1_block.dat',
     'Initial_TA_Distribution_Filename': 'initial/TA_event_1_block.dat',
     'Initial_TB_Distribution_Filename': 'initial/TB_event_1_block.dat',
+    'ecm' : 200,       # center of mass collision energy
     's_factor': 1.0,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction

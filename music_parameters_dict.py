@@ -46,6 +46,7 @@ initial_condition_dict = {
     'Initial_Rhob_Distribution_Filename': 'initial/initial_rhob.dat',
     'Initial_ux_Distribution_Filename': 'initial/initial_ux.dat',
     'Initial_uy_Distribution_Filename': 'initial/initial_uy.dat',
+    'ecm'     : 200.0,       # center of mass collision energy
     's_factor': 28.0,        # normalization factor read in initial data file
 
     # parameters for Glauber model

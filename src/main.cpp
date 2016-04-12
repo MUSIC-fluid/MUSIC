@@ -1017,6 +1017,15 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind4(file, "Initial_TB_Distribution_Filename");
   if(tempinput != "empty") tempinitName_TB.assign(tempinput);
   DATA->initName_TB.assign(tempinitName_TB);
+  
+    // compute beam rapidity according to the collision energy
+    double temp_ecm = 200;
+    tempinput = util->StringFind4(file, "ecm");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_ecm;
+    DATA->ecm = temp_ecm;
+    double y_beam = atanh(sqrt(1. - 1./pow(temp_ecm/2., 2.)));
+    DATA->beam_rapidity = y_beam;
 
     /* initialize the metric, mostly plus */
     DATA->avgT = 0.;
@@ -1051,7 +1060,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
         istringstream(tempinput) >> tempoutputBinaryEvolution;
     DATA->outputBinaryEvolution = tempoutputBinaryEvolution;
     // End MARTINI parameters
-
 
     // Set to 1 if initial condition is boost-invariant
     // for compatibility with code from MUSIC light fork

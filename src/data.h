@@ -55,6 +55,7 @@ typedef struct init_data {
     double rhoB0;
     double eta_fall_off;
     double eta_flat;
+    double ecm;
     double beam_rapidity;
     double R_A;
     double a_A;
