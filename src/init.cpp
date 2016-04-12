@@ -3953,14 +3953,14 @@ double Init::eta_profile_normalisation(InitData *DATA, double eta) {
 double Init::eta_profile_left_factor(InitData *Data, double eta) {
     // this function return the eta envelope for projectile
     double res = eta_profile_normalisation(Data, eta);
-    res = 0.5*(1. - eta/Data->beam_rapidity)*res;
+    res = (1. - eta/Data->beam_rapidity)*res;
     return(res);
 }
 
 double Init::eta_profile_right_factor(InitData *Data, double eta) {
     // this function return the eta envelope for target
     double res = eta_profile_normalisation(Data, eta);
-    res = 0.5*(1. + eta/Data->beam_rapidity)*res;
+    res = (1. + eta/Data->beam_rapidity)*res;
     return(res);
 }
 
@@ -4002,12 +4002,12 @@ double Init::eta_rhob_profile_normalisation(InitData *DATA, double eta) {
 
 double Init::eta_rhob_left_factor(InitData *DATA, double eta) {
     double res = eta_rhob_profile_normalisation(DATA, eta);
-    res = 0.5*(1. - eta/DATA->beam_rapidity)*res;
+    res = (1. - eta/DATA->beam_rapidity)*res;
     return(res);
 }
 
 double Init::eta_rhob_right_factor(InitData *DATA, double eta) {
     double res = eta_rhob_profile_normalisation(DATA, eta);
-    res = 0.5*(1. + eta/DATA->beam_rapidity)*res;
+    res = (1. + eta/DATA->beam_rapidity)*res;
     return(res);
 }
