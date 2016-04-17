@@ -3354,14 +3354,34 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
                 (*Rneighbor)[ix][iy][1].pi_b = util->vector_malloc(rk_order+1);
             }
         }
+        
+        // get normalization of rhob eta envelop profile
+        double eta_rhob_left_norm = 0.0;
+        double eta_rhob_right_norm = 0.0;
+        double deta_rhob_profile = 2.*DATA->beam_rapidity/999;
+        for (int ii = 0; ii < 1000; ii++) {
+            double local_rhob_eta_profile = (
+                                - DATA->beam_rapidity + ii*deta_rhob_profile);
+            double left_factor = eta_rhob_left_factor(DATA,
+                                                      local_rhob_eta_profile);
+            double right_factor = eta_rhob_right_factor(
+                                                DATA, local_rhob_eta_profile);
+            eta_rhob_left_norm += left_factor;
+            eta_rhob_right_norm += right_factor;
+        }
+        eta_rhob_left_norm *= deta_rhob_profile*(DATA->tau0);
+        eta_rhob_right_norm *= deta_rhob_profile*(DATA->tau0);
+
         int entropy_flag = DATA->initializeEntropy;
         for (int ieta = 0; ieta < DATA->neta; ieta++) {
             double eta = ((DATA->delta_eta)*(ieta + DATA->neta*rank)
                           - (DATA->eta_size)/2.0);
             double eta_envelop_left = eta_profile_left_factor(DATA, eta);
             double eta_envelop_right = eta_profile_right_factor(DATA, eta);
-            double eta_rhob_left = eta_rhob_left_factor(DATA, eta);
-            double eta_rhob_right = eta_rhob_right_factor(DATA, eta);
+            double eta_rhob_left = (
+                        eta_rhob_left_factor(DATA, eta)/eta_rhob_left_norm);
+            double eta_rhob_right = (
+                        eta_rhob_right_factor(DATA, eta)/eta_rhob_right_norm);
             for (int ix = 0; ix < (DATA->nx+1); ix++) {
                 for (int iy = 0; iy< (DATA->ny+1); iy++) {
                     if (DATA->turn_on_rhob == 1) {
