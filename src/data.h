@@ -171,6 +171,7 @@ typedef struct init_data {
     double bmin;
     double bmax;
     int doFreezeOut;
+    int doFreezeOut_lowtemp;
     int seed;
 
     int Nbin_to_file;

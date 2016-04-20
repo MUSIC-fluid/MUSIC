@@ -53,6 +53,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
     int Nskip_timestep = DATA->output_evolution_every_N_timesteps;
     int outputEvo_flag = DATA->outputEvolutionData;
     int freezeout_flag = DATA->doFreezeOut;
+    int freezeout_lowtemp_flag = DATA->doFreezeOut_lowtemp;
     int freezeout_method = DATA->freezeOutMethod;
     int boost_invariant_flag = DATA->boost_invariant;
 
@@ -117,15 +118,13 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
     cells = 0;
       
     double tau;
-    for(int it=0; it<=itmax; it++)
-    {
+    for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
         //fprintf(stderr, "Starting time step %d/%d on rank %d.\n", 
         //        it, itmax, rank); 
      
         // store initial conditions
-        if(it==0) 
-        {
+        if (it == 0) {
             //storePreviousT(tau, DATA, arena);
             initial_prev_variables(arena);
             storePreviousEpsilon(arena);
@@ -133,16 +132,13 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
         }
 
         // output evolution information for debug
-        if(output_hydro_debug_flag == 1)
-        {
-            if((it%Nskip_timestep) == 0) 
-            {
+        if (output_hydro_debug_flag == 1) {
+            if ((it%Nskip_timestep) == 0) {
                 grid_info->PrintEtaEpsilon(arena, DATA, tau, size, rank);
                 grid_info->PrintxEpsilon(arena, DATA, tau, size, rank);
                 //grid_info->ComputeEccentricity(DATA, arena, tau);
                 grid_info->ComputeAnisotropy(DATA, arena, tau);
-                if(turn_on_rhob == 1)
-                {
+                if (turn_on_rhob == 1) {
                     grid_info->print_rhob_evolution(DATA, arena, 
                                                     tau, eos, rank);
                     grid_info->print_rhob_evolution_3d(DATA, arena, 
@@ -150,8 +146,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
                     grid_info->print_fireball_evolution_on_phasediagram(
                         DATA, arena, tau, eos, rank);
 
-                    if(turn_on_diff == 1)
-                    {
+                    if (turn_on_diff == 1) {
                         grid_info->print_qmu_evolution(DATA, arena, 
                                                        tau, eos, rank);
                     }
@@ -161,14 +156,13 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
                                                      tau, size, rank); 
             //grid_info->Tmax_profile(arena, DATA, eos, tau, size, rank);
         }
-        if((it%Nskip_timestep) == 0 && outputEvo_flag == 1) 
-        {
-            if(turn_on_rhob == 0)
+        if ((it%Nskip_timestep) == 0 && outputEvo_flag == 1) {
+            if (turn_on_rhob == 0)
                 grid_info->OutputEvolutionDataXYEta(arena, DATA, eos, 
                                                     tau, size, rank);
             else
-                grid_info->OutputEvolutionDataXYEta_finite_muB(arena, DATA, eos, 
-                                                               tau, size, rank);
+                grid_info->OutputEvolutionDataXYEta_finite_muB(
+                                            arena, DATA, eos, tau, size, rank);
         }
         
         /* execute rk steps */
@@ -181,20 +175,25 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
         //storePreviousT(tau, DATA, arena);
 
         //determine freeze-out surface
-        int frozen=0;
-        if(freezeout_flag == 1)
-        {
-            if(it%facTau==0) 
-            {
-                if(freezeout_method == 1)
+        int frozen = 0;
+        if (freezeout_flag == 1) {
+            if (freezeout_lowtemp_flag == 1) {
+                if (it == 0) {
+                    frozen = FreezeOut_equal_tau_Surface(
+                                                tau, DATA, arena, size, rank);
+                }
+            }
+            // avoid freeze-out at the first time step
+            int freeze_out_time_step = static_cast<int>(it/facTau);
+            if (it%facTau == 0 && freeze_out_time_step > 0) {
+                if (freezeout_method == 1)
                     FindFreezeOutSurface(tau, DATA, arena, size, rank);
                 else if (freezeout_method == 2)
                     FindFreezeOutSurface2(tau, DATA, arena, size, rank);
                 else if (freezeout_method == 3)
                     frozen = FindFreezeOutSurface3(tau, DATA, arena, 
                                                    size, rank);
-                else if (freezeout_method == 4)
-                {
+                else if (freezeout_method == 4) {
                     if (boost_invariant_flag == 0)
                         frozen = FindFreezeOutSurface_Cornelius(
                                             tau, DATA, arena, size, rank);
@@ -220,12 +219,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
     //}
 
     // clean up
-    for(int ix=0; ix<=DATA->nx; ix++)
-    {
-        for(int iy=0; iy<=DATA->ny; iy++)
-        {
-            for(int ieta=0; ieta<DATA->neta; ieta++)
-            {
+    for (int ix=0; ix <= DATA->nx; ix++) {
+        for (int iy=0; iy <= DATA->ny; iy++) {
+            for (int ieta=0; ieta < DATA->neta; ieta++) {
                 util->cube_free(arena[ix][iy][ieta].TJb,rk_order+1, 5,4);
                 util->cube_free(arena[ix][iy][ieta].dUsup,rk_order+1, 4,4);
                 util->cube_free(arena[ix][iy][ieta].Wmunu,rk_order+1, 5,4);
@@ -345,12 +341,9 @@ void Evolve::storePreviousT(Grid ***arena)
     int ny = grid_ny;
     int neta = grid_neta;
     
-    for(int ix=0; ix<=nx; ix++)
-    {
-        for(int iy=0; iy<=ny; iy++)
-        {
-            for(int ieta=0; ieta<neta; ieta++)
-            {
+    for (int ix=0; ix <= nx; ix++) {
+        for (int iy=0; iy <= ny; iy++) {
+            for (int ieta=0; ieta<neta; ieta++) {
                 arena[ix][iy][ieta].prev_T00 = arena[ix][iy][ieta].TJb[0][0][0];
                 arena[ix][iy][ieta].prev_T33 = arena[ix][iy][ieta].TJb[0][3][3];
             }
@@ -360,17 +353,13 @@ void Evolve::storePreviousT(Grid ***arena)
 
 
 // update grid information after the tau RK evolution 
-int Evolve::UpdateArena(double tau, Grid ***arena)
-{
+int Evolve::UpdateArena(double tau, Grid ***arena) {
     int nx = grid_nx;
     int ny = grid_ny;
     int neta = grid_neta - 1;
-    for(int ix = 0; ix <= nx; ix++)
-    {
-        for(int iy = 0; iy <= ny; iy++)
-        {
-            for(int ieta = 0; ieta <= neta; ieta++)
-            {
+    for (int ix = 0; ix <= nx; ix++) {
+        for (int iy = 0; iy <= ny; iy++) {
+            for (int ieta = 0; ieta <= neta; ieta++) {
                 arena[ix][iy][ieta].prev_epsilon = arena[ix][iy][ieta].epsilon;
                 arena[ix][iy][ieta].prev_rhob = arena[ix][iy][ieta].rhob;
                 arena[ix][iy][ieta].p = arena[ix][iy][ieta].p_t;
@@ -380,17 +369,15 @@ int Evolve::UpdateArena(double tau, Grid ***arena)
                 // previous pi_b is stored in prevPimunu
                 arena[ix][iy][ieta].pi_b[0] = (
                                         arena[ix][iy][ieta].pi_b[rk_order]);
-                for(int mu = 0; mu < 4; mu++)
-                {
+                for (int mu = 0; mu < 4; mu++) {
                     /* this was the previous value */
                     arena[ix][iy][ieta].prev_u[0][mu] = (
                                                 arena[ix][iy][ieta].u[0][mu]); 
                     /* this is the new value */
                     arena[ix][iy][ieta].u[0][mu] = (
-                                            arena[ix][iy][ieta].u[rk_order][mu]); 
+                                        arena[ix][iy][ieta].u[rk_order][mu]); 
 
-                    for(int alpha = 0; alpha < 5; alpha++)
-                    {
+                    for (int alpha = 0; alpha < 5; alpha++) {
                         /* this is the new value */
                         arena[ix][iy][ieta].TJb[0][alpha][mu] = (
                                 arena[ix][iy][ieta].TJb[rk_order][alpha][mu]);
@@ -400,7 +387,7 @@ int Evolve::UpdateArena(double tau, Grid ***arena)
                                 arena[ix][iy][ieta].Wmunu[0][alpha][mu]); 
                         /* this is the new value */
                         arena[ix][iy][ieta].Wmunu[0][alpha][mu] = (
-                                arena[ix][iy][ieta].Wmunu[rk_order][alpha][mu]); 
+                            arena[ix][iy][ieta].Wmunu[rk_order][alpha][mu]); 
                 
                            
                         /* this was the previous value */
@@ -408,7 +395,7 @@ int Evolve::UpdateArena(double tau, Grid ***arena)
                                 arena[ix][iy][ieta].Pimunu[0][alpha][mu]; 
                         /* this is the new value */
                         arena[ix][iy][ieta].Pimunu[0][alpha][mu] = 
-                                arena[ix][iy][ieta].Pimunu[rk_order][alpha][mu]; 
+                            arena[ix][iy][ieta].Pimunu[rk_order][alpha][mu]; 
                     }
                 }/* mu, alpha */
             }
@@ -418,14 +405,13 @@ int Evolve::UpdateArena(double tau, Grid ***arena)
 }/* UpdateArena */
 
 
-// control function for Runge-Kutta evolution in tau
 int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena, 
-                      Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank)
-{
-    int flag;
+                      Grid ***Lneighbor, Grid ***Rneighbor,
+                      int size, int rank) {
+    // control function for Runge-Kutta evolution in tau
+    int flag = 0;
     // loop over Runge-Kutta steps
-    for(int rk_flag = 0; rk_flag < rk_order; rk_flag++)
-    {
+    for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
              
         advance->MPISendReceiveT(arena, Lneighbor, Rneighbor, 
                                  size, rank, rk_flag); 
@@ -440,7 +426,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena,
         flag = advance->AdvanceIt(tau, DATA, arena, Lneighbor, Rneighbor, 
                                   rk_flag, size, rank);     
     }/* loop over rk_flag */
-    if(flag == 0) 
+    if (flag == 0) 
         return 0;
     return 1; /* successful */
 }/* AdvanceRK */
@@ -7182,6 +7168,728 @@ int Evolve::FindFreezeOutSurface_Cornelius(
     }
     delete [] all_frozen;
     return(all_frozen_flag);
+}
+
+// Cornelius freeze out  (C. Shen, 11/2014)
+int Evolve::FreezeOut_equal_tau_Surface(
+            double tau, InitData *DATA, Grid ***arena, int size, int rank) {
+    // this function freeze-out fluid cells between epsFO and epsFO_low
+    // on an equal time hyper-surface at the first time step
+    // this function will be trigged if freezeout_lowtemp_flag == 1
+    int nx = grid_nx;
+    int ny = grid_ny;
+    int neta = grid_neta;
+   
+    //  MPI code copied from FindFreezeOutSurface2
+    //*******************************************
+    int sizeOfData = (nx+1)*(ny+1);
+
+    double* package = new double[sizeOfData];
+    double* package_prev = new double[sizeOfData];
+   
+    double* packageutau = new double[sizeOfData];
+    double* packageux = new double[sizeOfData];
+    double* packageuy = new double[sizeOfData];
+    double* packageueta = new double[sizeOfData];
+    double* packagerhob = new double[sizeOfData];
+
+    double* packageutau_prev = new double[sizeOfData];
+    double* packageux_prev = new double[sizeOfData];
+    double* packageuy_prev = new double[sizeOfData];
+    double* packageueta_prev = new double[sizeOfData];
+    double* packagerhob_prev = new double[sizeOfData];
+    
+    double* packagePi_b = new double[sizeOfData];
+    double* packagePi_b_prev = new double[sizeOfData];
+    
+    double* packageWtautau = new double[sizeOfData];
+    double* packageWtaux = new double[sizeOfData];
+    double* packageWtauy = new double[sizeOfData];
+    double* packageWtaueta = new double[sizeOfData];
+    double* packageWxx = new double[sizeOfData];
+    double* packageWxy = new double[sizeOfData];
+    double* packageWxeta = new double[sizeOfData];
+    double* packageWyy = new double[sizeOfData];
+    double* packageWyeta = new double[sizeOfData];
+    double* packageWetaeta = new double[sizeOfData];
+    
+    double* packageWtautau_prev = new double[sizeOfData];
+    double* packageWtaux_prev = new double[sizeOfData];
+    double* packageWtauy_prev = new double[sizeOfData];
+    double* packageWtaueta_prev = new double[sizeOfData];
+    double* packageWxx_prev = new double[sizeOfData];
+    double* packageWxy_prev = new double[sizeOfData];
+    double* packageWxeta_prev = new double[sizeOfData];
+    double* packageWyy_prev = new double[sizeOfData];
+    double* packageWyeta_prev = new double[sizeOfData];
+    double* packageWetaeta_prev = new double[sizeOfData];
+    
+    double* package_qtau = new double [sizeOfData];
+    double* package_qx = new double [sizeOfData];
+    double* package_qy = new double [sizeOfData];
+    double* package_qeta = new double [sizeOfData];
+    
+    double* package_qtau_prev = new double [sizeOfData];
+    double* package_qx_prev = new double [sizeOfData];
+    double* package_qy_prev = new double [sizeOfData];
+    double* package_qeta_prev = new double [sizeOfData];
+    
+    double** Rneighbor_eps = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_eps_prev = util->mtx_malloc(nx+1,ny+1);
+    
+    double** Rneighbor_utau = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_ux = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_uy = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_ueta = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_rhob = util->mtx_malloc(nx+1,ny+1);
+
+    double** Rneighbor_utau_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_ux_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_uy_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_ueta_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_rhob_prev = util->mtx_malloc(nx+1,ny+1);
+    
+    double** Rneighbor_Pi_b = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Pi_b_prev = util->mtx_malloc(nx+1,ny+1);
+    
+    double** Rneighbor_Wtautau = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wtaux = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wtauy = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wtaueta = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wxx = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wxy = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wxeta = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wyy = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wyeta = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wetaeta = util->mtx_malloc(nx+1,ny+1);
+    
+    double** Rneighbor_Wtautau_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wtaux_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wtauy_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wtaueta_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wxx_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wxy_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wxeta_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wyy_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wyeta_prev = util->mtx_malloc(nx+1,ny+1);
+    double** Rneighbor_Wetaeta_prev = util->mtx_malloc(nx+1,ny+1);
+    
+    double** Rneighbor_qtau = util->mtx_malloc(nx+1, ny+1);
+    double** Rneighbor_qx = util->mtx_malloc(nx+1, ny+1);
+    double** Rneighbor_qy = util->mtx_malloc(nx+1, ny+1);
+    double** Rneighbor_qeta = util->mtx_malloc(nx+1, ny+1);
+    
+    double** Rneighbor_qtau_prev = util->mtx_malloc(nx+1, ny+1);
+    double** Rneighbor_qx_prev = util->mtx_malloc(nx+1, ny+1);
+    double** Rneighbor_qy_prev = util->mtx_malloc(nx+1, ny+1);
+    double** Rneighbor_qeta_prev = util->mtx_malloc(nx+1, ny+1);
+  
+    // receive from the right / send to the left
+    int from = rank+1;
+    int to = rank-1;
+    
+    int position;
+    // get cells from neighboring processors
+    if ( rank != 0 )
+    {
+        //cout << " sending to the left on rank " << rank << endl;
+        for(int ix=0; ix<=nx; ix++)
+        {
+            for(int iy=0; iy<=ny; iy++)
+            {
+                position = ix + ((nx+1)*iy);
+
+                package[position] = arena[ix][iy][0].epsilon;
+                package_prev[position] = arena[ix][iy][0].epsilon_prev;
+    
+                packageutau[position] = arena[ix][iy][0].u[0][0];
+                packageux[position] = arena[ix][iy][0].u[0][1];
+                packageuy[position] = arena[ix][iy][0].u[0][2];
+                packageueta[position] = arena[ix][iy][0].u[0][3];
+    
+                packageutau_prev[position] = arena[ix][iy][0].u_prev[0];
+                packageux_prev[position] = arena[ix][iy][0].u_prev[1];
+                packageuy_prev[position] = arena[ix][iy][0].u_prev[2];
+                packageueta_prev[position] = arena[ix][iy][0].u_prev[3];
+
+                if(DATA->turn_on_rhob)
+                {
+                    packagerhob[position] = arena[ix][iy][0].rhob;
+                    packagerhob_prev[position] = arena[ix][iy][0].rhob_prev;
+                }
+                if(DATA->turn_on_bulk)
+                {
+                    packagePi_b[position] = arena[ix][iy][0].pi_b[0];
+                    packagePi_b_prev[position] = arena[ix][iy][0].pi_b_prev;
+                }
+                if(DATA->turn_on_shear) 
+                {
+                    packageWtautau[position] = arena[ix][iy][0].Wmunu[0][0][0];
+                    packageWtaux[position] = arena[ix][iy][0].Wmunu[0][0][1];
+                    packageWtauy[position] = arena[ix][iy][0].Wmunu[0][0][2];
+                    packageWtaueta[position] = arena[ix][iy][0].Wmunu[0][0][3];
+                    packageWxx[position] = arena[ix][iy][0].Wmunu[0][1][1];
+                    packageWxy[position] = arena[ix][iy][0].Wmunu[0][1][2];
+                    packageWxeta[position] = arena[ix][iy][0].Wmunu[0][1][3];
+                    packageWyy[position] = arena[ix][iy][0].Wmunu[0][2][2];
+                    packageWyeta[position] = arena[ix][iy][0].Wmunu[0][2][3];
+                    packageWetaeta[position] = arena[ix][iy][0].Wmunu[0][3][3];
+        
+                    packageWtautau_prev[position] = arena[ix][iy][0].W_prev[0][0];
+                    packageWtaux_prev[position] = arena[ix][iy][0].W_prev[0][1];
+                    packageWtauy_prev[position] = arena[ix][iy][0].W_prev[0][2];
+                    packageWtaueta_prev[position] = arena[ix][iy][0].W_prev[0][3];
+                    packageWxx_prev[position] = arena[ix][iy][0].W_prev[1][1];
+                    packageWxy_prev[position] = arena[ix][iy][0].W_prev[1][2];
+                    packageWxeta_prev[position] = arena[ix][iy][0].W_prev[1][3];
+                    packageWyy_prev[position] = arena[ix][iy][0].W_prev[2][2];
+                    packageWyeta_prev[position] = arena[ix][iy][0].W_prev[2][3];
+                    packageWetaeta_prev[position] = arena[ix][iy][0].W_prev[3][3];
+                }
+                if(DATA->turn_on_diff)
+                {
+                    package_qtau[position] = arena[ix][iy][0].Wmunu[0][4][0];
+                    package_qx[position] = arena[ix][iy][0].Wmunu[0][4][1];
+                    package_qy[position] = arena[ix][iy][0].Wmunu[0][4][2];
+                    package_qeta[position] = arena[ix][iy][0].Wmunu[0][4][3];
+                    package_qtau_prev[position] = arena[ix][iy][0].W_prev[4][0];
+                    package_qx_prev[position] = arena[ix][iy][0].W_prev[4][1];
+                    package_qy_prev[position] = arena[ix][iy][0].W_prev[4][2];
+                    package_qeta_prev[position] = arena[ix][iy][0].W_prev[4][3];
+                }
+            }
+        }
+        MPI::COMM_WORLD.Send(package,sizeOfData,MPI::DOUBLE,to,1);
+        MPI::COMM_WORLD.Send(package_prev,sizeOfData,MPI::DOUBLE,to,2);
+    
+        MPI::COMM_WORLD.Send(packageutau,sizeOfData,MPI::DOUBLE,to,3);
+        MPI::COMM_WORLD.Send(packageux,sizeOfData,MPI::DOUBLE,to,4);
+        MPI::COMM_WORLD.Send(packageuy,sizeOfData,MPI::DOUBLE,to,5);
+        MPI::COMM_WORLD.Send(packageueta,sizeOfData,MPI::DOUBLE,to,6);
+    
+        MPI::COMM_WORLD.Send(packageutau_prev,sizeOfData,MPI::DOUBLE,to,8);
+        MPI::COMM_WORLD.Send(packageux_prev,sizeOfData,MPI::DOUBLE,to,9);
+        MPI::COMM_WORLD.Send(packageuy_prev,sizeOfData,MPI::DOUBLE,to,10);
+        MPI::COMM_WORLD.Send(packageueta_prev,sizeOfData,MPI::DOUBLE,to,11);
+    
+        if(DATA->turn_on_rhob)
+        {
+            MPI::COMM_WORLD.Send(packagerhob,sizeOfData,MPI::DOUBLE,to,7);
+            MPI::COMM_WORLD.Send(packagerhob_prev,sizeOfData,MPI::DOUBLE,to,32);
+        }
+        if(DATA->turn_on_bulk)
+        {
+            MPI::COMM_WORLD.Send(packagePi_b,sizeOfData,MPI::DOUBLE,to,33);
+            MPI::COMM_WORLD.Send(packagePi_b_prev,sizeOfData,MPI::DOUBLE,to,34);
+        }
+        if(DATA->turn_on_shear) 
+        {
+            MPI::COMM_WORLD.Send(packageWtautau,sizeOfData,MPI::DOUBLE,to,12);
+            MPI::COMM_WORLD.Send(packageWtaux,sizeOfData,MPI::DOUBLE,to,13);
+            MPI::COMM_WORLD.Send(packageWtauy,sizeOfData,MPI::DOUBLE,to,14);
+            MPI::COMM_WORLD.Send(packageWtaueta,sizeOfData,MPI::DOUBLE,to,15);
+            MPI::COMM_WORLD.Send(packageWxx,sizeOfData,MPI::DOUBLE,to,16);
+            MPI::COMM_WORLD.Send(packageWxy,sizeOfData,MPI::DOUBLE,to,17);
+            MPI::COMM_WORLD.Send(packageWxeta,sizeOfData,MPI::DOUBLE,to,18);
+            MPI::COMM_WORLD.Send(packageWyy,sizeOfData,MPI::DOUBLE,to,19);
+            MPI::COMM_WORLD.Send(packageWyeta,sizeOfData,MPI::DOUBLE,to,20);
+            MPI::COMM_WORLD.Send(packageWetaeta,sizeOfData,MPI::DOUBLE,to,21);
+            MPI::COMM_WORLD.Send(packageWtautau_prev,sizeOfData,MPI::DOUBLE,to,22);
+            MPI::COMM_WORLD.Send(packageWtaux_prev,sizeOfData,MPI::DOUBLE,to,23);
+            MPI::COMM_WORLD.Send(packageWtauy_prev,sizeOfData,MPI::DOUBLE,to,24);
+            MPI::COMM_WORLD.Send(packageWtaueta_prev,sizeOfData,MPI::DOUBLE,to,25);
+            MPI::COMM_WORLD.Send(packageWxx_prev,sizeOfData,MPI::DOUBLE,to,26);
+            MPI::COMM_WORLD.Send(packageWxy_prev,sizeOfData,MPI::DOUBLE,to,27);
+            MPI::COMM_WORLD.Send(packageWxeta_prev,sizeOfData,MPI::DOUBLE,to,28);
+            MPI::COMM_WORLD.Send(packageWyy_prev,sizeOfData,MPI::DOUBLE,to,29);
+            MPI::COMM_WORLD.Send(packageWyeta_prev,sizeOfData,MPI::DOUBLE,to,30);
+            MPI::COMM_WORLD.Send(packageWetaeta_prev,sizeOfData,MPI::DOUBLE,to,31);
+        }
+        if(DATA->turn_on_diff)
+        {
+            MPI::COMM_WORLD.Send(package_qtau, sizeOfData, MPI::DOUBLE, to, 35);
+            MPI::COMM_WORLD.Send(package_qx, sizeOfData, MPI::DOUBLE, to, 36);
+            MPI::COMM_WORLD.Send(package_qy, sizeOfData, MPI::DOUBLE, to, 37);
+            MPI::COMM_WORLD.Send(package_qeta, sizeOfData, MPI::DOUBLE, to, 38);
+            MPI::COMM_WORLD.Send(package_qtau_prev, sizeOfData, MPI::DOUBLE, to, 39);
+            MPI::COMM_WORLD.Send(package_qx_prev, sizeOfData, MPI::DOUBLE, to, 40);
+            MPI::COMM_WORLD.Send(package_qy_prev, sizeOfData, MPI::DOUBLE, to, 41);
+            MPI::COMM_WORLD.Send(package_qeta_prev, sizeOfData, MPI::DOUBLE, to, 42);
+        }
+        //cout << " done sending to the left on rank " << rank << endl;
+    }
+    // receiving and unwrapping the package
+    if ( rank != size-1 )
+    {  
+        MPI::COMM_WORLD.Recv(package,sizeOfData,MPI::DOUBLE,from,1);
+        MPI::COMM_WORLD.Recv(package_prev,sizeOfData,MPI::DOUBLE,from,2);
+    
+        MPI::COMM_WORLD.Recv(packageutau,sizeOfData,MPI::DOUBLE,from,3);
+        MPI::COMM_WORLD.Recv(packageux,sizeOfData,MPI::DOUBLE,from,4);
+        MPI::COMM_WORLD.Recv(packageuy,sizeOfData,MPI::DOUBLE,from,5);
+        MPI::COMM_WORLD.Recv(packageueta,sizeOfData,MPI::DOUBLE,from,6);
+    
+        MPI::COMM_WORLD.Recv(packageutau_prev,sizeOfData,MPI::DOUBLE,from,8);
+        MPI::COMM_WORLD.Recv(packageux_prev,sizeOfData,MPI::DOUBLE,from,9);
+        MPI::COMM_WORLD.Recv(packageuy_prev,sizeOfData,MPI::DOUBLE,from,10);
+        MPI::COMM_WORLD.Recv(packageueta_prev,sizeOfData,MPI::DOUBLE,from,11);
+        if(DATA->turn_on_rhob)
+        {
+            MPI::COMM_WORLD.Recv(packagerhob,sizeOfData,MPI::DOUBLE,from,7);
+            MPI::COMM_WORLD.Recv(packagerhob_prev,sizeOfData,MPI::DOUBLE,from,32);
+        }
+        if(DATA->turn_on_bulk)
+        {
+            MPI::COMM_WORLD.Recv(packagePi_b,sizeOfData,MPI::DOUBLE,from,33);
+            MPI::COMM_WORLD.Recv(packagePi_b_prev,sizeOfData,MPI::DOUBLE,from,34);
+        }
+        if(DATA->turn_on_shear) 
+        {
+            MPI::COMM_WORLD.Recv(packageWtautau,sizeOfData,MPI::DOUBLE,from,12);
+            MPI::COMM_WORLD.Recv(packageWtaux,sizeOfData,MPI::DOUBLE,from,13);
+            MPI::COMM_WORLD.Recv(packageWtauy,sizeOfData,MPI::DOUBLE,from,14);
+            MPI::COMM_WORLD.Recv(packageWtaueta,sizeOfData,MPI::DOUBLE,from,15);
+            MPI::COMM_WORLD.Recv(packageWxx,sizeOfData,MPI::DOUBLE,from,16);
+            MPI::COMM_WORLD.Recv(packageWxy,sizeOfData,MPI::DOUBLE,from,17);
+            MPI::COMM_WORLD.Recv(packageWxeta,sizeOfData,MPI::DOUBLE,from,18);
+            MPI::COMM_WORLD.Recv(packageWyy,sizeOfData,MPI::DOUBLE,from,19);
+            MPI::COMM_WORLD.Recv(packageWyeta,sizeOfData,MPI::DOUBLE,from,20);
+            MPI::COMM_WORLD.Recv(packageWetaeta,sizeOfData,MPI::DOUBLE,from,21);
+            MPI::COMM_WORLD.Recv(packageWtautau_prev,sizeOfData,MPI::DOUBLE,from,22);
+            MPI::COMM_WORLD.Recv(packageWtaux_prev,sizeOfData,MPI::DOUBLE,from,23);
+            MPI::COMM_WORLD.Recv(packageWtauy_prev,sizeOfData,MPI::DOUBLE,from,24);
+            MPI::COMM_WORLD.Recv(packageWtaueta_prev,sizeOfData,MPI::DOUBLE,from,25);
+            MPI::COMM_WORLD.Recv(packageWxx_prev,sizeOfData,MPI::DOUBLE,from,26);
+            MPI::COMM_WORLD.Recv(packageWxy_prev,sizeOfData,MPI::DOUBLE,from,27);
+            MPI::COMM_WORLD.Recv(packageWxeta_prev,sizeOfData,MPI::DOUBLE,from,28);
+            MPI::COMM_WORLD.Recv(packageWyy_prev,sizeOfData,MPI::DOUBLE,from,29);
+            MPI::COMM_WORLD.Recv(packageWyeta_prev,sizeOfData,MPI::DOUBLE,from,30);
+            MPI::COMM_WORLD.Recv(packageWetaeta_prev,sizeOfData,MPI::DOUBLE,from,31);
+        }
+        if(DATA->turn_on_diff)
+        {
+            MPI::COMM_WORLD.Recv(package_qtau, sizeOfData, MPI::DOUBLE, from, 35);
+            MPI::COMM_WORLD.Recv(package_qx, sizeOfData, MPI::DOUBLE, from, 36);
+            MPI::COMM_WORLD.Recv(package_qy, sizeOfData, MPI::DOUBLE, from, 37);
+            MPI::COMM_WORLD.Recv(package_qeta, sizeOfData, MPI::DOUBLE, from, 38);
+            MPI::COMM_WORLD.Recv(package_qtau_prev, sizeOfData, MPI::DOUBLE, from, 39);
+            MPI::COMM_WORLD.Recv(package_qx_prev, sizeOfData, MPI::DOUBLE, from, 40);
+            MPI::COMM_WORLD.Recv(package_qy_prev, sizeOfData, MPI::DOUBLE, from, 41);
+            MPI::COMM_WORLD.Recv(package_qeta_prev, sizeOfData, MPI::DOUBLE, from, 42);
+        }
+        //cout << " receiving from the right on rank " << rank << endl;
+        for(int ix=0; ix<=nx; ix++)
+        {
+            for(int iy=0; iy<=ny; iy++)
+            {
+                position = ix + ((nx+1)*iy);
+
+                Rneighbor_eps[ix][iy] = package[position];
+                Rneighbor_eps_prev[ix][iy] = package_prev[position];
+    
+                Rneighbor_utau[ix][iy] = packageutau[position];
+                Rneighbor_ux[ix][iy] = packageux[position];
+                Rneighbor_uy[ix][iy] = packageuy[position];
+                Rneighbor_ueta[ix][iy] = packageueta[position];
+                Rneighbor_utau_prev[ix][iy] = packageutau_prev[position];
+                Rneighbor_ux_prev[ix][iy] = packageux_prev[position];
+                Rneighbor_uy_prev[ix][iy] = packageuy_prev[position];
+                Rneighbor_ueta_prev[ix][iy] = packageueta_prev[position];
+
+                if(DATA->turn_on_rhob)
+                {
+                    Rneighbor_rhob[ix][iy] = packagerhob[position];
+                    Rneighbor_rhob_prev[ix][iy] = packagerhob_prev[position];
+                }
+                else
+                {
+                    Rneighbor_rhob[ix][iy] = 0.;
+                    Rneighbor_rhob_prev[ix][iy] = 0.;
+                }
+                if(DATA->turn_on_bulk)
+                {
+                    Rneighbor_Pi_b[ix][iy] = packagePi_b[position];
+                    Rneighbor_Pi_b_prev[ix][iy] = packagePi_b_prev[position];
+                }
+                else
+                {
+                    Rneighbor_Pi_b[ix][iy] = 0.;
+                    Rneighbor_Pi_b_prev[ix][iy] = 0.;
+                }
+                if(DATA->turn_on_shear) 
+                {
+                    Rneighbor_Wtautau[ix][iy] = packageWtautau[position];
+                    Rneighbor_Wtaux[ix][iy] = packageWtaux[position];
+                    Rneighbor_Wtauy[ix][iy] = packageWtauy[position];
+                    Rneighbor_Wtaueta[ix][iy] = packageWtaueta[position];
+                    Rneighbor_Wxx[ix][iy] = packageWxx[position];
+                    Rneighbor_Wxy[ix][iy] = packageWxy[position];
+                    Rneighbor_Wxeta[ix][iy] = packageWxeta[position];
+                    Rneighbor_Wyy[ix][iy] = packageWyy[position];
+                    Rneighbor_Wyeta[ix][iy] = packageWyeta[position];
+                    Rneighbor_Wetaeta[ix][iy] = packageWetaeta[position];
+                    Rneighbor_Wtautau_prev[ix][iy] = packageWtautau_prev[position];
+                    Rneighbor_Wtaux_prev[ix][iy] = packageWtaux_prev[position];
+                    Rneighbor_Wtauy_prev[ix][iy] = packageWtauy_prev[position];
+                    Rneighbor_Wtaueta_prev[ix][iy] = packageWtaueta_prev[position];
+                    Rneighbor_Wxx_prev[ix][iy] = packageWxx_prev[position];
+                    Rneighbor_Wxy_prev[ix][iy] = packageWxy_prev[position];
+                    Rneighbor_Wxeta_prev[ix][iy] = packageWxeta_prev[position];
+                    Rneighbor_Wyy_prev[ix][iy] = packageWyy_prev[position];
+                    Rneighbor_Wyeta_prev[ix][iy] = packageWyeta_prev[position];
+                    Rneighbor_Wetaeta_prev[ix][iy] = packageWetaeta_prev[position];
+                }
+                else
+                {
+                    Rneighbor_Wtautau[ix][iy] = 0.0;
+                    Rneighbor_Wtaux[ix][iy] = 0.0;
+                    Rneighbor_Wtauy[ix][iy] = 0.0;
+                    Rneighbor_Wtaueta[ix][iy] = 0.0;
+                    Rneighbor_Wxx[ix][iy] = 0.0;
+                    Rneighbor_Wxy[ix][iy] = 0.0;
+                    Rneighbor_Wxeta[ix][iy] = 0.0;
+                    Rneighbor_Wyy[ix][iy] = 0.0;
+                    Rneighbor_Wyeta[ix][iy] = 0.0;
+                    Rneighbor_Wetaeta[ix][iy] = 0.0;
+                    Rneighbor_Wtautau_prev[ix][iy] = 0.0;
+                    Rneighbor_Wtaux_prev[ix][iy] = 0.0;
+                    Rneighbor_Wtauy_prev[ix][iy] = 0.0;
+                    Rneighbor_Wtaueta_prev[ix][iy] = 0.0;
+                    Rneighbor_Wxx_prev[ix][iy] = 0.0;
+                    Rneighbor_Wxy_prev[ix][iy] = 0.0;
+                    Rneighbor_Wxeta_prev[ix][iy] = 0.0;
+                    Rneighbor_Wyy_prev[ix][iy] = 0.0;
+                    Rneighbor_Wyeta_prev[ix][iy] = 0.0;
+                    Rneighbor_Wetaeta_prev[ix][iy] = 0.0;
+                }
+                if(DATA->turn_on_diff)
+                {
+                    Rneighbor_qtau[ix][iy] = package_qtau[position];
+                    Rneighbor_qx[ix][iy] = package_qx[position];
+                    Rneighbor_qy[ix][iy] = package_qy[position];
+                    Rneighbor_qeta[ix][iy] = package_qeta[position];
+                    Rneighbor_qtau_prev[ix][iy] = package_qtau_prev[position];
+                    Rneighbor_qx_prev[ix][iy] = package_qx_prev[position];
+                    Rneighbor_qy_prev[ix][iy] = package_qy_prev[position];
+                    Rneighbor_qeta_prev[ix][iy] = package_qeta_prev[position];
+                }
+            }
+        }
+        //cout << " done receiving from the right on rank " << rank << endl;
+    }    
+
+    //*******************************************
+    // end MPI code copied from FindFreezeOutSurface2
+
+    for(int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
+        double epsFO_low = 0.05/hbarc;        // 1/fm^4
+        double epsFO = epsFO_list[i_freezesurf]/hbarc;
+
+        stringstream strs_name;
+        strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc 
+                  << "_" << rank << ".dat";
+        ofstream s_file;
+        s_file.open(strs_name.str().c_str() , ios::out | ios::app );
+   
+        double FULLSU[4];  // d^3 \sigma_\mu
+
+        double tau_center, x_center, y_center, eta_center;
+        double Wtautau_center, Wtaux_center, Wtauy_center, Wtaueta_center;
+        double Wxx_center, Wxy_center, Wxeta_center;
+        double Wyy_center, Wyeta_center, Wetaeta_center;
+        double rhob_center;
+        double qtau_center, qx_center, qy_center, qeta_center;
+        double utau_center, ux_center, uy_center, ueta_center;
+        double TFO, muB, pressure, eps_plus_p_over_T_FO;
+        double pi_b_center; // bulk viscous pressure
+
+        int intersect;
+        int intersections = 0;
+
+        int fac_x = DATA->fac_x;
+        int fac_y = DATA->fac_y;
+        int fac_eta = 1;
+        
+        double DX=fac_x*DATA->delta_x;
+        double DY=fac_y*DATA->delta_y;
+        double DETA=fac_eta*DATA->delta_eta;
+
+        int maxEta;
+        if (rank == size-1)
+            maxEta = neta - fac_eta;
+        else
+            maxEta = neta;
+        for (int ix = 0; ix <= nx - fac_x; ix += fac_x) {
+            double x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
+            for (int iy = 0; iy <= ny - fac_y; iy += fac_y) {
+                double y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+                for (int ieta=0; ieta < maxEta; ieta += fac_eta) {
+                    double eta = ((DATA->delta_eta)*(ieta+DATA->neta*rank) 
+                                   - (DATA->eta_size)/2.0);
+
+                    // judge intersection
+                    intersect = 0;
+                    if (arena[ix][iy][ieta].epsilon < epsFO
+                        && arena[ix][iy][ieta].epsilon > epsFO_low)
+                        intersect = 1;
+
+                    if (intersect == 0) {
+                        continue;
+                    }
+                    
+                    // if intersect output the freeze-out cell
+                    intersections++;
+
+                    // surface normal vector d^3 \sigma_\mu
+                    FULLSU[0] = DX*DY*DETA;
+                    FULLSU[1] = 0.0;
+                    FULLSU[2] = 0.0;
+                    FULLSU[3] = 0.0;
+
+                    // get positions of the freeze-out surface
+                    tau_center = tau;
+                    x_center = x;
+                    y_center = y;
+                    eta_center = eta;
+
+                    // flow velocity
+                    ux_center = arena[ix][iy][ieta].u[0][1];
+                    uy_center = arena[ix][iy][ieta].u[0][2];
+                    ueta_center = arena[ix][iy][ieta].u[0][3];  // u^eta/tau
+                    // reconstruct u^tau from u^i
+                    utau_center = sqrt(1. + ux_center*ux_center 
+                                       + uy_center*uy_center 
+                                       + ueta_center*ueta_center);
+
+                    // baryon density rho_b
+                    rhob_center = arena[ix][iy][ieta].rhob;
+
+                    // baryon diffusion current
+                    qtau_center = arena[ix][iy][ieta].Wmunu[0][4][0];
+                    qx_center = arena[ix][iy][ieta].Wmunu[0][4][1];
+                    qy_center = arena[ix][iy][ieta].Wmunu[0][4][2];
+                    qeta_center = arena[ix][iy][ieta].Wmunu[0][4][3];
+                    // reconstruct q^\tau from the transverality criteria
+                    double *u_flow = new double [4];
+                    u_flow[0] = utau_center;
+                    u_flow[1] = ux_center;
+                    u_flow[2] = uy_center;
+                    u_flow[3] = ueta_center;
+                    double *q_mu = new double [4];
+                    q_mu[0] = qtau_center;
+                    q_mu[1] = qx_center;
+                    q_mu[2] = qy_center;
+                    q_mu[3] = qeta_center;
+                    double *q_regulated = new double [4];
+                    for(int i = 0; i < 4; i++)
+                       q_regulated[i] = 0.0;
+                    regulate_qmu(u_flow, q_mu, q_regulated);
+                    qtau_center = q_regulated[0];
+                    qx_center = q_regulated[1];
+                    qy_center = q_regulated[2];
+                    qeta_center = q_regulated[3];
+                    // clean up
+                    delete [] q_mu;
+                    delete [] q_regulated;
+
+                    // bulk viscous pressure pi_b
+                    pi_b_center = arena[ix][iy][ieta].pi_b[0];
+
+                    // shear viscous tensor
+                    Wtautau_center = arena[ix][iy][ieta].Wmunu[0][0][0];
+                    Wtaux_center = arena[ix][iy][ieta].Wmunu[0][0][1];
+                    Wtauy_center = arena[ix][iy][ieta].Wmunu[0][0][2];
+                    Wtaueta_center = arena[ix][iy][ieta].Wmunu[0][0][3];
+                    Wxx_center = arena[ix][iy][ieta].Wmunu[0][1][1];
+                    Wxy_center = arena[ix][iy][ieta].Wmunu[0][1][2];
+                    Wxeta_center = arena[ix][iy][ieta].Wmunu[0][1][3];
+                    Wyy_center = arena[ix][iy][ieta].Wmunu[0][2][2];
+                    Wyeta_center = arena[ix][iy][ieta].Wmunu[0][2][3];
+                    Wetaeta_center = arena[ix][iy][ieta].Wmunu[0][3][3];
+                    // regulate Wmunu according to transversality and traceless
+                    double **Wmunu_input = new double* [4];
+                    double **Wmunu_regulated = new double* [4];
+                    for (int i = 0; i < 4; i++) {
+                        Wmunu_input[i] = new double[4];
+                        Wmunu_regulated[i] = new double[4];
+                        for (int j = 0; j < 4; j++)
+                            Wmunu_regulated[i][j] = 0.0;
+                    }
+                    Wmunu_input[0][0] = Wtautau_center;
+                    Wmunu_input[0][1] = Wmunu_input[1][0] = Wtaux_center;
+                    Wmunu_input[0][2] = Wmunu_input[2][0] = Wtauy_center;
+                    Wmunu_input[0][3] = Wmunu_input[3][0] = Wtaueta_center;
+                    Wmunu_input[1][1] = Wxx_center;
+                    Wmunu_input[1][2] = Wmunu_input[2][1] = Wxy_center;
+                    Wmunu_input[1][3] = Wmunu_input[3][1] = Wxeta_center;
+                    Wmunu_input[2][2] = Wyy_center;
+                    Wmunu_input[2][3] = Wmunu_input[3][2] = Wyeta_center;
+                    Wmunu_input[3][3] = Wetaeta_center;
+                    regulate_Wmunu(u_flow, Wmunu_input, Wmunu_regulated);
+                    Wtautau_center = Wmunu_regulated[0][0];
+                    Wtaux_center = Wmunu_regulated[0][1];
+                    Wtauy_center = Wmunu_regulated[0][2];
+                    Wtaueta_center = Wmunu_regulated[0][3];
+                    Wxx_center = Wmunu_regulated[1][1];
+                    Wxy_center = Wmunu_regulated[1][2];
+                    Wxeta_center = Wmunu_regulated[1][3];
+                    Wyy_center = Wmunu_regulated[2][2];
+                    Wyeta_center = Wmunu_regulated[2][3];
+                    Wetaeta_center = Wmunu_regulated[3][3];
+                    // clean up
+                    delete [] u_flow;
+                    for (int i = 0; i < 4; i++) {
+                        delete [] Wmunu_input[i];
+                        delete [] Wmunu_regulated[i];
+                    }
+                    delete [] Wmunu_input;
+                    delete [] Wmunu_regulated;
+
+                    // get other thermodynamical quantities
+                    TFO = eos->get_temperature(epsFO, rhob_center);
+                    muB = eos->get_mu(epsFO, rhob_center);
+                    if (TFO < 0) {
+                        cout << "Error:Evolve::FreezeOut_equal_tau_Surface: "
+                             << "TFO = " << TFO 
+                             << " <0. ERROR. exiting." << endl;
+                        exit(1);
+                    }
+
+                    pressure = eos->get_pressure(epsFO, rhob_center);
+                    eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
+
+                    // finally output results !!!!
+                    s_file << scientific << setprecision(10) 
+                           << tau_center << " " << x_center << " " 
+                           << y_center << " " << eta_center << " " 
+                           << FULLSU[0] << " " << FULLSU[1] << " " 
+                           << FULLSU[2] << " " << FULLSU[3] << " " 
+                           << utau_center << " " << ux_center << " " 
+                           << uy_center << " " << ueta_center << " " 
+                           << epsFO << " " << TFO << " " << muB << " " 
+                           << eps_plus_p_over_T_FO << " " 
+                           << Wtautau_center << " " << Wtaux_center << " " 
+                           << Wtauy_center << " " << Wtaueta_center << " " 
+                           << Wxx_center << " " << Wxy_center << " " 
+                           << Wxeta_center << " " 
+                           << Wyy_center << " " << Wyeta_center << " " 
+                           << Wetaeta_center << " " ;
+                    if (DATA->turn_on_bulk)
+                        s_file << pi_b_center << " " ;
+                    if (DATA->turn_on_rhob)
+                        s_file << rhob_center << " " ;
+                    if (DATA->turn_on_diff)
+                        s_file << qtau_center << " " << qx_center << " " 
+                               << qy_center << " " << qeta_center << " " ;
+                    s_file << endl;
+                }
+            }
+        }
+        s_file.close();
+    }
+
+    // clean up
+    delete[] package;
+    delete[] package_prev;
+    
+    delete[] packageutau;
+    delete[] packageux;
+    delete[] packageuy;
+    delete[] packageueta;
+    
+    delete[] packageutau_prev;
+    delete[] packageux_prev;
+    delete[] packageuy_prev;
+    delete[] packageueta_prev;
+    
+    delete[] packagerhob;
+    delete[] packagerhob_prev;
+    
+    delete[] package_qtau;
+    delete[] package_qx;
+    delete[] package_qy;
+    delete[] package_qeta;
+    delete[] package_qtau_prev;
+    delete[] package_qx_prev;
+    delete[] package_qy_prev;
+    delete[] package_qeta_prev;
+    
+    delete[] packagePi_b;
+    delete[] packagePi_b_prev;
+    
+    delete[] packageWtautau;
+    delete[] packageWtaux;
+    delete[] packageWtauy;
+    delete[] packageWtaueta;
+    delete[] packageWxx;
+    delete[] packageWxy;
+    delete[] packageWxeta;
+    delete[] packageWyy;
+    delete[] packageWyeta; 
+    delete[] packageWetaeta;
+   
+    delete[] packageWtautau_prev;
+    delete[] packageWtaux_prev;
+    delete[] packageWtauy_prev;
+    delete[] packageWtaueta_prev;
+    delete[] packageWxx_prev;
+    delete[] packageWxy_prev;
+    delete[] packageWxeta_prev;
+    delete[] packageWyy_prev;
+    delete[] packageWyeta_prev; 
+    delete[] packageWetaeta_prev;
+
+    util->mtx_free(Rneighbor_eps,nx+1,ny+1);
+    util->mtx_free(Rneighbor_eps_prev,nx+1,ny+1);
+    
+    util->mtx_free(Rneighbor_utau,nx+1,ny+1);
+    util->mtx_free(Rneighbor_ux,nx+1,ny+1);
+    util->mtx_free(Rneighbor_uy,nx+1,ny+1);
+    util->mtx_free(Rneighbor_ueta,nx+1,ny+1);
+    
+    util->mtx_free(Rneighbor_utau_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_ux_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_uy_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_ueta_prev,nx+1,ny+1);
+    
+    util->mtx_free(Rneighbor_rhob,nx+1,ny+1);
+    util->mtx_free(Rneighbor_rhob_prev,nx+1,ny+1);
+    
+    util->mtx_free(Rneighbor_qtau, nx+1, ny+1);
+    util->mtx_free(Rneighbor_qx, nx+1, ny+1);
+    util->mtx_free(Rneighbor_qy, nx+1, ny+1);
+    util->mtx_free(Rneighbor_qeta, nx+1, ny+1);
+    util->mtx_free(Rneighbor_qtau_prev, nx+1, ny+1);
+    util->mtx_free(Rneighbor_qx_prev, nx+1, ny+1);
+    util->mtx_free(Rneighbor_qy_prev, nx+1, ny+1);
+    util->mtx_free(Rneighbor_qeta_prev, nx+1, ny+1);
+    
+    util->mtx_free(Rneighbor_Pi_b, nx+1, ny+1);
+    util->mtx_free(Rneighbor_Pi_b_prev, nx+1, ny+1);
+    
+    util->mtx_free(Rneighbor_Wtautau,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wtaux,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wtauy,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wtaueta,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wxx,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wxy,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wxeta,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wyy,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wyeta,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wetaeta,nx+1,ny+1);
+    
+    util->mtx_free(Rneighbor_Wtautau_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wtaux_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wtauy_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wtaueta_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wxx_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wxy_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wxeta_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wyy_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wyeta_prev,nx+1,ny+1);
+    util->mtx_free(Rneighbor_Wetaeta_prev,nx+1,ny+1);
+
+    return(0);
 }
 
 int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *DATA, Grid ***arena, int size, int rank)

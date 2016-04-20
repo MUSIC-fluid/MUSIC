@@ -91,6 +91,9 @@ hydro_dict.update({
 
 freeze_out_dict.update({
     'Do_FreezeOut_Yes_1_No_0': 1,   # flag to find freeze-out surface
+    'Do_FreezeOut_lowtemp'   : 1,   # flag to freeze out low temperature fluid
+                                    # cells outside the freeze-out surface
+                                    # at the first time step
     'freeze_out_method': 4,         # method for hyper-surface finder
 
     'average_surface_over_this_many_time_steps': 5,   # the step skipped in the tau direction

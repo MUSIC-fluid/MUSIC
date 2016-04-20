@@ -980,6 +980,11 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind4(file, "Do_FreezeOut_Yes_1_No_0");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempdoFreezeOut;
   DATA->doFreezeOut = tempdoFreezeOut;
+  int tempdoFreezeOut_lowtemp = 1;
+  tempinput = util->StringFind4(file, "Do_FreezeOut_lowtemp");
+  if (tempinput != "empty")
+      istringstream(tempinput) >> tempdoFreezeOut_lowtemp;
+  DATA->doFreezeOut_lowtemp = tempdoFreezeOut_lowtemp;
   
   // sigma_0:  unknown
   double tempsigma0   = 0.4;
