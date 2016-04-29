@@ -373,6 +373,8 @@ int Evolve::UpdateArena(double tau, Grid ***arena) {
                     /* this was the previous value */
                     arena[ix][iy][ieta].prev_u[0][mu] = (
                                                 arena[ix][iy][ieta].u[0][mu]); 
+                    arena[ix][iy][ieta].prev_u[1][mu] = (
+                                                arena[ix][iy][ieta].u[1][mu]); 
                     /* this is the new value */
                     arena[ix][iy][ieta].u[0][mu] = (
                                         arena[ix][iy][ieta].u[rk_order][mu]); 
@@ -385,14 +387,17 @@ int Evolve::UpdateArena(double tau, Grid ***arena) {
                         /* this was the previous value */
                         arena[ix][iy][ieta].prevWmunu[0][alpha][mu] = (
                                 arena[ix][iy][ieta].Wmunu[0][alpha][mu]); 
+                        arena[ix][iy][ieta].prevWmunu[1][alpha][mu] = (
+                                arena[ix][iy][ieta].Wmunu[1][alpha][mu]); 
                         /* this is the new value */
                         arena[ix][iy][ieta].Wmunu[0][alpha][mu] = (
                             arena[ix][iy][ieta].Wmunu[rk_order][alpha][mu]); 
-                
                            
                         /* this was the previous value */
                         arena[ix][iy][ieta].prevPimunu[0][alpha][mu] = 
                                 arena[ix][iy][ieta].Pimunu[0][alpha][mu]; 
+                        arena[ix][iy][ieta].prevPimunu[1][alpha][mu] = 
+                                arena[ix][iy][ieta].Pimunu[1][alpha][mu]; 
                         /* this is the new value */
                         arena[ix][iy][ieta].Pimunu[0][alpha][mu] = 
                             arena[ix][iy][ieta].Pimunu[rk_order][alpha][mu]; 
