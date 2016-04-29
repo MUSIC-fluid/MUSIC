@@ -164,6 +164,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
                 grid_info->OutputEvolutionDataXYEta_finite_muB(
                                             arena, DATA, eos, tau, size, rank);
         }
+        grid_info->check_conservation_law(arena, DATA, tau, size, rank);
         
         /* execute rk steps */
         // all the evolution are at here !!!
@@ -373,8 +374,6 @@ int Evolve::UpdateArena(double tau, Grid ***arena) {
                     /* this was the previous value */
                     arena[ix][iy][ieta].prev_u[0][mu] = (
                                                 arena[ix][iy][ieta].u[0][mu]); 
-                    arena[ix][iy][ieta].prev_u[1][mu] = (
-                                                arena[ix][iy][ieta].u[1][mu]); 
                     /* this is the new value */
                     arena[ix][iy][ieta].u[0][mu] = (
                                         arena[ix][iy][ieta].u[rk_order][mu]); 

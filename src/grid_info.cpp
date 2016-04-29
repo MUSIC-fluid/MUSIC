@@ -1735,6 +1735,78 @@ void Grid_info::OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, doubl
 }/* OutputEvolutionDataXYZ */
 
 
+void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
+                                       double tau, int size, int rank) {
+    int position;
+    int nx = DATA->nx;
+    int ny = DATA->ny;
+    int neta = DATA->neta;
+    double dx = DATA->delta_x;
+    double dy = DATA->delta_y;
+    double deta = DATA->delta_eta;
+
+    if (rank > 0) {
+        int to = 0;
+        double N_B = 0.0;
+        double T_tau_t = 0.0;
+        for (int ix = 0; ix <= nx; ix++) {
+            for (int iy = 0; iy <= ny; iy++) {
+                for (int ieta = 0; ieta < neta; ieta++) {
+                    double eta_s = (deta*(ieta + neta*rank)
+                                    - (DATA->eta_size)/2.0);
+                    double cosh_eta = cosh(eta_s);
+                    double sinh_eta = sinh(eta_s);
+                    N_B += (arena[ix][iy][ieta].rhob
+                            *arena[ix][iy][ieta].u[0][0]
+                            + (arena[ix][iy][ieta].prevWmunu[0][4][0]
+                               + arena[ix][iy][ieta].prevWmunu[0][4][1])*0.5);
+                    T_tau_t += (
+                        arena[ix][iy][ieta].TJb[0][0][0]*cosh_eta
+                        + arena[ix][iy][ieta].TJb[0][0][3]*sinh_eta);
+                }
+            }
+        }
+        MPI::COMM_WORLD.Send(&N_B, 1 , MPI::DOUBLE, to, 1);
+        MPI::COMM_WORLD.Send(&T_tau_t, 1 , MPI::DOUBLE, to, 2);
+    }
+  
+    if (rank == 0) {
+        double N_B = 0.0;
+        double T_tau_t = 0.0;
+        for (int ix = 0; ix<=nx; ix++) {
+            for(int iy = 0; iy <= ny; iy++) {
+                for(int ieta = 0; ieta < neta; ieta++) {
+                    double eta_s = (deta*(ieta + neta*rank)
+                                    - (DATA->eta_size)/2.0);
+                    double cosh_eta = cosh(eta_s);
+                    double sinh_eta = sinh(eta_s);
+                    N_B += (arena[ix][iy][ieta].rhob
+                            *arena[ix][iy][ieta].u[0][0]
+                            + (arena[ix][iy][ieta].prevWmunu[0][4][0]
+                               + arena[ix][iy][ieta].prevWmunu[0][4][1])*0.5);
+                    T_tau_t += (
+                        arena[ix][iy][ieta].TJb[0][0][0]*cosh_eta
+                        + arena[ix][iy][ieta].TJb[0][0][3]*sinh_eta);
+                }
+            }
+        }
+        for (int irank = 1; irank < size; irank++) {
+            int from = irank;
+            double N_B_rank;
+            double T_tau_t_rank;
+            MPI::COMM_WORLD.Recv(&N_B_rank, 1, MPI::DOUBLE, from, 1);
+            MPI::COMM_WORLD.Recv(&T_tau_t_rank, 1, MPI::DOUBLE, from, 2);
+            N_B += N_B_rank;
+            T_tau_t += T_tau_t_rank;
+        }
+        N_B *= tau*dx*dy*deta;
+        T_tau_t *= tau*dx*dy*deta*0.19733;
+        cout << "check: net baryon number N_B = " << N_B << endl;
+        cout << "check: total energy T^{taut} = " << T_tau_t << " GeV" << endl;
+	}
+}
+
+
 void Grid_info::Tmax_profile(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank)
 {
   Util *util;

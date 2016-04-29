@@ -61,5 +61,7 @@ class Grid_info
         void load_deltaf_qmu_coeff_table_14mom(string filename);
         double get_deltaf_qmu_coeff(double T, double muB);
         double get_deltaf_coeff_14moments(double T, double muB, double type);
+        void check_conservation_law(Grid ***arena, InitData *DATA,
+                                    double tau, int size, int rank);
 };
 #endif
