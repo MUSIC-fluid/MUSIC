@@ -1759,10 +1759,16 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                     N_B += (arena[ix][iy][ieta].rhob
                             *arena[ix][iy][ieta].u[0][0]
                             + (arena[ix][iy][ieta].prevWmunu[0][4][0]
-                               + arena[ix][iy][ieta].prevWmunu[0][4][1])*0.5);
-                    T_tau_t += (
-                        arena[ix][iy][ieta].TJb[0][0][0]*cosh_eta
-                        + arena[ix][iy][ieta].TJb[0][0][3]*sinh_eta);
+                               + arena[ix][iy][ieta].prevWmunu[1][4][0])*0.5);
+                    double T_tau_tau = (
+                        arena[ix][iy][ieta].TJb[0][0][0]
+                        + (arena[ix][iy][ieta].prevWmunu[0][0][0]
+                           + arena[ix][iy][ieta].prevWmunu[1][0][0])*0.5);
+                    double T_tau_eta = (
+                        arena[ix][iy][ieta].TJb[0][0][3]
+                        + (arena[ix][iy][ieta].prevWmunu[0][0][3]
+                           + arena[ix][iy][ieta].prevWmunu[1][0][3])*0.5);
+                    T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
                 }
             }
         }
@@ -1783,10 +1789,16 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                     N_B += (arena[ix][iy][ieta].rhob
                             *arena[ix][iy][ieta].u[0][0]
                             + (arena[ix][iy][ieta].prevWmunu[0][4][0]
-                               + arena[ix][iy][ieta].prevWmunu[0][4][1])*0.5);
-                    T_tau_t += (
-                        arena[ix][iy][ieta].TJb[0][0][0]*cosh_eta
-                        + arena[ix][iy][ieta].TJb[0][0][3]*sinh_eta);
+                               + arena[ix][iy][ieta].prevWmunu[1][4][0])*0.5);
+                    double T_tau_tau = (
+                        arena[ix][iy][ieta].TJb[0][0][0]
+                        + (arena[ix][iy][ieta].prevWmunu[0][0][0]
+                           + arena[ix][iy][ieta].prevWmunu[1][0][0])*0.5);
+                    double T_tau_eta = (
+                        arena[ix][iy][ieta].TJb[0][0][3]
+                        + (arena[ix][iy][ieta].prevWmunu[0][0][3]
+                           + arena[ix][iy][ieta].prevWmunu[1][0][3])*0.5);
+                    T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
                 }
             }
         }

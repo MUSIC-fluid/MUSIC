@@ -88,25 +88,21 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor,
             bgp1 = bg;
             sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
             bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-            dWdx_perp += (sgp1 - sgm1)/delta[i];
-            dPidx_perp += (bgp1 - bgm1)/delta[i];
         } else if (grid_pt->position[i] == 0) {
             sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
             bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
             sgm1 = sg;
             bgm1 = bg;
-            dWdx_perp += (sgp1 - sgm1)/delta[i];
-            dPidx_perp += (bgp1 - bgm1)/delta[i];
         } else {
             sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
             bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
             sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
             bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-            dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
-            dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
         }
         //dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
         //dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i];
+        dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
+        dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
     }  /* i */
 
     // eta
@@ -130,8 +126,6 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor,
             sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
             bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
         }
-        dWdeta = (sgp1 - sgm1)/(delta[i]*taufactor);
-        dPideta = (bgp1 - bgm1)/(delta[i]*taufactor);
     } else if (grid_pt->position[i] == 0) {
         if (rank == 0) {
             // for the left most rank do boundary condition on the left
@@ -145,18 +139,16 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor,
             sgm1 = Lneighbor->Wmunu[rk_flag][alpha][i];
             bgm1 = Lneighbor->Pimunu[rk_flag][alpha][i];
         }
-        dWdeta = (sgp1 - sgm1)/(delta[i]*taufactor);
-        dPideta = (bgp1 - bgm1)/(delta[i]*taufactor);
     } else {
         sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
         bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
         sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
         bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-        dWdeta = (sgp1 - sgm1)/(2.*delta[i]*taufactor);
-        dPideta = (bgp1 - bgm1)/(2.*delta[i]*taufactor);
     }
     //dWdeta = minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
     //dPideta = minmod->minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor;
+    dWdeta = (sgp1 - sgm1)/(2.*delta[i]*taufactor);
+    dPideta = (bgp1 - bgm1)/(2.*delta[i]*taufactor);
 
     /* partial_m (tau W^mn) = W^0n + tau partial_m W^mn */
     double sf = (tau*(dWdtau + dWdx_perp + dWdeta)
