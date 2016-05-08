@@ -108,8 +108,8 @@ freeze_out_dict.update({
     'eps_freeze_max': 0.750,        # the maximum freeze-out energy density (GeV/fm^3)
     'eps_freeze_min': 0.100,        # the minimum freeze-out energy density (GeV/fm^3)
 
-    'Include_deltaf': 0,        # flag to include delta f correction in Cooper-Frye formula
-    'Include_deltaf_qmu': 0,    # flag to include delta f for qmu
+    'Include_deltaf': 1,        # flag to include delta f correction in Cooper-Frye formula
+    'Include_deltaf_qmu': 1,    # flag to include delta f for qmu
     'Inlucde_deltaf_bulk': 0,   # flag to include delta f for bulk viscosity
 
     'number_of_particles_to_include': 320,  # number of thermal particles to compute for particle spectra and vn

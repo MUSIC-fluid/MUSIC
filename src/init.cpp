@@ -176,7 +176,8 @@ void Init::sampleTA() {
 int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
                   Grid ****Rneighbor, int size, int rank) {
     double epsilon, p, u[4], x, y, eta, rho;
-    double rhob, exparg1, exparg;
+    double rhob = 0.0;
+    double exparg1, exparg;
     int ix, iy, ieta, mu, nu;
     int initializeEntropy = DATA->initializeEntropy;
 
@@ -3571,7 +3572,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
                double y_frac = (
                   (y_local - (input_y_0 + y_idx*input_grid_dy))/input_grid_dy);
      
-               double rhob_interp, ed_interp;
+               double rhob_interp = 0.0;
+               double ed_interp = 0.0;
      
                if(   eta_idx < 0 || eta_idx > input_grid_neta - 2
                   || x_idx < 0 || x_idx > input_grid_nx - 2 
@@ -4006,16 +4008,14 @@ double Init::eta_rhob_left_factor(InitData *DATA, double eta) {
     double tau0 = DATA->tau0;
     double delta_eta_1 = DATA->eta_rhob_width_1;
     double delta_eta_2 = DATA->eta_rhob_width_2;
-    double norm_1 = 1./(sqrt(M_PI*delta_eta_1)*tau0);
-    double norm_2 = 1./(sqrt(M_PI*delta_eta_2)*tau0);
-    double res = 0.0;
+    double norm = 2./(sqrt(M_PI)*tau0*(delta_eta_1 + delta_eta_2));
+    double exp_arg = 0.0;
     if (eta < eta_0) {
-        double exp_arg = (eta - eta_0)/delta_eta_1;
-        res = norm_1*exp(-exp_arg*exp_arg);
+        exp_arg = (eta - eta_0)/delta_eta_1;
     } else {
-        double exp_arg = (eta - eta_0)/delta_eta_2;
-        res = norm_2*exp(-exp_arg*exp_arg);
+        exp_arg = (eta - eta_0)/delta_eta_2;
     }
+    double res = norm*exp(-exp_arg*exp_arg);
     return(res);
 }
 
@@ -4024,15 +4024,13 @@ double Init::eta_rhob_right_factor(InitData *DATA, double eta) {
     double tau0 = DATA->tau0;
     double delta_eta_1 = DATA->eta_rhob_width_1;
     double delta_eta_2 = DATA->eta_rhob_width_2;
-    double norm_1 = 1./(sqrt(M_PI*delta_eta_1)*tau0);
-    double norm_2 = 1./(sqrt(M_PI*delta_eta_2)*tau0);
-    double res = 0.0;
+    double norm = 2./(sqrt(M_PI)*tau0*(delta_eta_1 + delta_eta_2));
+    double exp_arg = 0.0;
     if (eta < eta_0) {
-        double exp_arg = (eta - eta_0)/delta_eta_2;
-        res = norm_2*exp(-exp_arg*exp_arg);
+        exp_arg = (eta - eta_0)/delta_eta_2;
     } else {
-        double exp_arg = (eta - eta_0)/delta_eta_1;
-        res = norm_1*exp(-exp_arg*exp_arg);
+        exp_arg = (eta - eta_0)/delta_eta_1;
     }
+    double res = norm*exp(-exp_arg*exp_arg);
     return(res);
 }
