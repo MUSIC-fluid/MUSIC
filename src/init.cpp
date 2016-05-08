@@ -3355,33 +3355,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
             }
         }
         
-        // get normalization of rhob eta envelop profile
-        double eta_rhob_left_norm = 0.0;
-        double eta_rhob_right_norm = 0.0;
-        double deta_rhob_profile = 2.*DATA->beam_rapidity/999;
-        for (int ii = 0; ii < 1000; ii++) {
-            double local_rhob_eta_profile = (
-                                - DATA->beam_rapidity + ii*deta_rhob_profile);
-            double left_factor = eta_rhob_left_factor(DATA,
-                                                      local_rhob_eta_profile);
-            double right_factor = eta_rhob_right_factor(
-                                                DATA, local_rhob_eta_profile);
-            eta_rhob_left_norm += left_factor;
-            eta_rhob_right_norm += right_factor;
-        }
-        eta_rhob_left_norm *= deta_rhob_profile*(DATA->tau0);
-        eta_rhob_right_norm *= deta_rhob_profile*(DATA->tau0);
-
         int entropy_flag = DATA->initializeEntropy;
         for (int ieta = 0; ieta < DATA->neta; ieta++) {
             double eta = ((DATA->delta_eta)*(ieta + DATA->neta*rank)
                           - (DATA->eta_size)/2.0);
             double eta_envelop_left = eta_profile_left_factor(DATA, eta);
             double eta_envelop_right = eta_profile_right_factor(DATA, eta);
-            double eta_rhob_left = (
-                        eta_rhob_left_factor(DATA, eta)/eta_rhob_left_norm);
-            double eta_rhob_right = (
-                        eta_rhob_right_factor(DATA, eta)/eta_rhob_right_norm);
+            double eta_rhob_left = eta_rhob_left_factor(DATA, eta);
+            double eta_rhob_right = eta_rhob_right_factor(DATA, eta);
             for (int ix = 0; ix < (DATA->nx+1); ix++) {
                 for (int iy = 0; iy< (DATA->ny+1); iy++) {
                     if (DATA->turn_on_rhob == 1) {
@@ -4021,13 +4002,37 @@ double Init::eta_rhob_profile_normalisation(InitData *DATA, double eta) {
 }
 
 double Init::eta_rhob_left_factor(InitData *DATA, double eta) {
-    double res = eta_rhob_profile_normalisation(DATA, eta);
-    res = (1. - eta/DATA->beam_rapidity)*res;
+    double eta_0 = -fabs(DATA->eta_rhob_0);
+    double tau0 = DATA->tau0;
+    double delta_eta_1 = DATA->eta_rhob_width_1;
+    double delta_eta_2 = DATA->eta_rhob_width_2;
+    double norm_1 = 1./(sqrt(M_PI*delta_eta_1)*tau0);
+    double norm_2 = 1./(sqrt(M_PI*delta_eta_2)*tau0);
+    double res = 0.0;
+    if (eta < eta_0) {
+        double exp_arg = (eta - eta_0)/delta_eta_1;
+        res = norm_1*exp(-exp_arg*exp_arg);
+    } else {
+        double exp_arg = (eta - eta_0)/delta_eta_2;
+        res = norm_2*exp(-exp_arg*exp_arg);
+    }
     return(res);
 }
 
 double Init::eta_rhob_right_factor(InitData *DATA, double eta) {
-    double res = eta_rhob_profile_normalisation(DATA, eta);
-    res = (1. + eta/DATA->beam_rapidity)*res;
+    double eta_0 = fabs(DATA->eta_rhob_0);
+    double tau0 = DATA->tau0;
+    double delta_eta_1 = DATA->eta_rhob_width_1;
+    double delta_eta_2 = DATA->eta_rhob_width_2;
+    double norm_1 = 1./(sqrt(M_PI*delta_eta_1)*tau0);
+    double norm_2 = 1./(sqrt(M_PI*delta_eta_2)*tau0);
+    double res = 0.0;
+    if (eta < eta_0) {
+        double exp_arg = (eta - eta_0)/delta_eta_2;
+        res = norm_2*exp(-exp_arg*exp_arg);
+    } else {
+        double exp_arg = (eta - eta_0)/delta_eta_1;
+        res = norm_1*exp(-exp_arg*exp_arg);
+    }
     return(res);
 }
