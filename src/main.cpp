@@ -44,55 +44,7 @@ int main(int argc, char *argv[]) {
     int size = 1;
     //DATA.neta = DATA.neta/size;
 
-    EOS *eos = new EOS;
-    if (DATA.whichEOS == 0) {
-        cout << "Using the ideal gas EOS" << endl;
-        eos->init_eos0();
-    } else if (DATA.whichEOS == 1) {
-        cout << "Using EOS-Q from AZHYDRO" << endl;
-        eos->init_eos();
-    } else if (DATA.whichEOS == 2) {
-        cout << "Using lattice EOS from Huovinen/Petreczky" << endl;
-        eos->init_eos2();
-    } else if (DATA.whichEOS == 3) {
-        cout << "Using lattice EOS from Huovinen/Petreczky with "
-             << "partial chemical equilibrium (PCE) chem. f.o. at 150 MeV"
-             << endl;
-        eos->init_eos3(1);
-    } else if (DATA.whichEOS == 4) {
-        cout << "Using lattice EOS from Huovinen/Petreczky with "
-             << "partial chemical equilibrium (PCE) chem. f.o. at 155 MeV"
-             << endl;
-        eos->init_eos3(2);
-    } else if (DATA.whichEOS == 5) {
-        cout << "Using lattice EOS from Huovinen/Petreczky with "
-             << "partial chemical equilibrium (PCE) chem. f.o. at 160 MeV"
-             << endl;
-        eos->init_eos3(3);
-    } else if (DATA.whichEOS == 6) {
-        cout << "Using lattice EOS from Huovinen/Petreczky with "
-             << "partial chemical equilibrium (PCE) chem. f.o. at 165 MeV"
-             << endl;
-        eos->init_eos3(4);
-    } else if (DATA.whichEOS == 7) {
-        cout << "Using lattice EOS from Huovinen/Petreczky s95p-v1.2"
-             << "(for UrQMD)" << endl;
-        eos->init_eos7();
-    } else if (DATA.whichEOS == 10) {
-        cout << "Using lattice EOS from A. Monnai" << endl;
-        eos->init_eos10(0);
-    } else if (DATA.whichEOS == 11) {
-        cout << "Using lattice EOS from Pasi" << endl;
-        eos->init_eos11(0);
-    } else {
-        cout << "No EOS for whichEOS = " << DATA.whichEOS
-             << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
-             << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
-             << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1), "
-             << "10(lattice EOS at finite muB), "
-             << "11(lattice EoS at finite muB from Pasi)" << endl;
-        exit(1);
-    }
+    EOS *eos = new EOS(&DATA);
 
     Grid ***arena;
     if (DATA.mode == 1 || DATA.mode == 2) {

@@ -1,66 +1,115 @@
-#include "util.h"
-#include "eos.h"
+// Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include<fstream>
 #include<iomanip>
+
+#include "util.h"
+#include "eos.h"
+#include "data.h"
 using namespace std;
 
 #define cs2 (1.0/3.0)
 
-EOS::EOS()
-{
-  util = new Util;
+EOS::EOS(InitData *para_in) {
+    parameters_ptr = para_in;
+    util = new Util;
+    initialize_eos();
 }
 
 // destructor
-EOS::~EOS()
-{
-  delete util;
-  gsl_interp_free(interp_s2e);
-  gsl_interp_accel_free(accel_s2e);
+EOS::~EOS() {
+    delete util;
+    gsl_interp_free(interp_s2e);
+    gsl_interp_accel_free(accel_s2e);
 }
 
-void EOS::checkForReadError(FILE *file, const char* name)
-{
-  if(!(file))
-    {
-      fprintf(stderr, "file %s not found.\n", name);
-      fprintf(stderr, "Exiting...\n");
-      exit(0);
+void EOS::checkForReadError(FILE *file, const char* name) {
+    if (!(file)) {
+        fprintf(stderr, "file %s not found.\n", name);
+        fprintf(stderr, "Exiting...\n");
+        exit(0);
+    }
+}
+
+void EOS::initialize_eos() {
+    if (parameters_ptr->whichEOS == 0) {
+        cout << "Using the ideal gas EOS" << endl;
+        init_eos0();
+    } else if (parameters_ptr->whichEOS == 1) {
+        cout << "Using EOS-Q from AZHYDRO" << endl;
+        init_eos();
+    } else if (parameters_ptr->whichEOS == 2) {
+        cout << "Using lattice EOS from Huovinen/Petreczky" << endl;
+        init_eos2();
+    } else if (parameters_ptr->whichEOS == 3) {
+        cout << "Using lattice EOS from Huovinen/Petreczky with "
+             << "partial chemical equilibrium (PCE) chem. f.o. at 150 MeV"
+             << endl;
+        init_eos3(1);
+    } else if (parameters_ptr->whichEOS == 4) {
+        cout << "Using lattice EOS from Huovinen/Petreczky with "
+             << "partial chemical equilibrium (PCE) chem. f.o. at 155 MeV"
+             << endl;
+        init_eos3(2);
+    } else if (parameters_ptr->whichEOS == 5) {
+        cout << "Using lattice EOS from Huovinen/Petreczky with "
+             << "partial chemical equilibrium (PCE) chem. f.o. at 160 MeV"
+             << endl;
+        init_eos3(3);
+    } else if (parameters_ptr->whichEOS == 6) {
+        cout << "Using lattice EOS from Huovinen/Petreczky with "
+             << "partial chemical equilibrium (PCE) chem. f.o. at 165 MeV"
+             << endl;
+        init_eos3(4);
+    } else if (parameters_ptr->whichEOS == 7) {
+        cout << "Using lattice EOS from Huovinen/Petreczky s95p-v1.2"
+             << "(for UrQMD)" << endl;
+        init_eos7();
+    } else if (parameters_ptr->whichEOS == 10) {
+        cout << "Using lattice EOS from A. Monnai" << endl;
+        init_eos10(0);
+    } else if (parameters_ptr->whichEOS == 11) {
+        cout << "Using lattice EOS from Pasi" << endl;
+        init_eos11(0);
+    } else {
+        cout << "No EOS for whichEOS = " << parameters_ptr.whichEOS
+             << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
+             << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
+             << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1), "
+             << "10(lattice EOS at finite muB), "
+             << "11(lattice EoS at finite muB from Pasi)" << endl;
+        exit(1);
     }
 }
 
 void EOS::init_eos0() {
-  whichEOS = 0;
+    whichEOS = 0;
 }
 
-void EOS::init_eos()
-{
-  // read the azhydro pressure, temperature, and 
-  // baryon chemical potential from file
-  whichEOS = 1;
-  fprintf(stderr,"reading EOS... \n");
-//   int bytes_read;
-  int i, j;
-  FILE *eos_p1, *eos_p2;
-  FILE *eos_T1, *eos_T2;
-  FILE *eos_mu1, *eos_mu2;
-  const char* EOSPATH = "HYDROPROGRAMPATH";
-  char* envPath;
-  envPath = util->char_malloc(100);
-  envPath = getenv(EOSPATH);
-  char* eos_p1_name;
-  char* eos_p2_name;
-  char* eos_T1_name;
-  char* eos_T2_name;
-  char* eos_mu1_name;
-  char* eos_mu2_name;
+void EOS::init_eos() {
+// read the azhydro pressure, temperature, and 
+// baryon chemical potential from file
+    whichEOS = 1;
+    fprintf(stderr, "reading EOS... \n");
+    int i, j;
+    FILE *eos_p1, *eos_p2;
+    FILE *eos_T1, *eos_T2;
+    FILE *eos_mu1, *eos_mu2;
+    const char* EOSPATH = "HYDROPROGRAMPATH";
+    char* envPath;
+    envPath = util->char_malloc(100);
+    envPath = getenv(EOSPATH);
+    char* eos_p1_name;
+    char* eos_p2_name;
+    char* eos_T1_name;
+    char* eos_T2_name;
+    char* eos_mu1_name;
+    char* eos_mu2_name;
       
-  if (envPath != 0 && *envPath != '\0') 
-    {
-      fprintf(stderr,"from path %s/EOS \n", envPath);
-      eos_p1_name = util->char_malloc(100);
-      strcat(eos_p1_name,envPath);
-      strcat(eos_p1_name,"/EOS/EOS-Q/aa1_p.dat");
+    if (envPath != 0 && *envPath != '\0') {
+        fprintf(stderr, "from path %s/EOS \n", envPath);
+        eos_p1_name = util->char_malloc(100);
+        strcat(eos_p1_name, envPath);
+        strcat(eos_p1_name, "/EOS/EOS-Q/aa1_p.dat");
 
       eos_p2_name = util->char_malloc(100);
       strcat(eos_p2_name,envPath);
