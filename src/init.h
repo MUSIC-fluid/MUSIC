@@ -13,15 +13,13 @@
 
 class Init {
  private:
-    Random *random;
     EOS *eos;
     Util * util;
 
  public:
-    Init(EOS *eos, Glauber* glauber);  // constructor
+    Init(EOS *eos);  // constructor
     ~Init();  // destructor
 
-    void sampleTA();
     void InitArena(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
                    Grid ****Rneighbor, int size, int rank);
     void LinkNeighbors(InitData *DATA, Grid ****arena, int size, int rank);
