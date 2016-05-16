@@ -125,8 +125,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
      
         // store initial conditions
         if (it == 0) {
-            //storePreviousT(tau, DATA, arena);
-            initial_prev_variables(arena);
             storePreviousEpsilon(arena);
             storePreviousW(arena);
         }
@@ -173,7 +171,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
    
         //check energy conservation
         //grid_info->ComputeEnergyConservation(DATA, arena, tau);
-        //storePreviousT(tau, DATA, arena);
 
         //determine freeze-out surface
         int frozen = 0;
@@ -214,11 +211,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
             break;
     }/* it */ 
 
-    //if(rank == 0)
-    //{
-    // grid_info->PrintAxy2(DATA, arena, tau);
-    //}
-
     // clean up
     for (int ix=0; ix <= DATA->nx; ix++) {
         for (int iy=0; iy <= DATA->ny; iy++) {
@@ -248,26 +240,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena,
     fprintf(stderr,"SUM=%f\n", SUM);
     return 1; /* successful */
 }/* Evolve */
-
-void Evolve::initial_prev_variables(Grid ***arena)
-{
-    int nx = grid_nx;
-    int ny = grid_ny;
-    int neta = grid_neta;
-    for(int ix=0; ix<=nx; ix++)
-    {
-        for(int iy=0; iy<=ny; iy++)
-        {
-            for(int ieta=0; ieta<neta; ieta++)
-            {
-                //cout << ix << " " << iy << " " << ieta << " " << " " 
-                //     << arena[ix][iy][ieta].u[0][1] <<  endl;
-                arena[ix][iy][ieta].prev_epsilon = arena[ix][iy][ieta].epsilon;
-                arena[ix][iy][ieta].prev_rhob=arena[ix][iy][ieta].rhob;
-            }
-        }
-    }
-}
 
 void Evolve::storePreviousEpsilon(Grid ***arena)
 {
@@ -335,23 +307,6 @@ void Evolve::storePreviousW(Grid ***arena)
         }
     }
 }
-
-void Evolve::storePreviousT(Grid ***arena)
-{
-    int nx = grid_nx;
-    int ny = grid_ny;
-    int neta = grid_neta;
-    
-    for (int ix=0; ix <= nx; ix++) {
-        for (int iy=0; iy <= ny; iy++) {
-            for (int ieta=0; ieta<neta; ieta++) {
-                arena[ix][iy][ieta].prev_T00 = arena[ix][iy][ieta].TJb[0][0][0];
-                arena[ix][iy][ieta].prev_T33 = arena[ix][iy][ieta].TJb[0][3][3];
-            }
-        }
-    }
-}
-
 
 // update grid information after the tau RK evolution 
 int Evolve::UpdateArena(double tau, Grid ***arena) {

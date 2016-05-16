@@ -17,12 +17,6 @@ void ReadInData3(InitData *DATA, string file);
 
 // main program
 int main(int argc, char *argv[]) {
-    int rank;
-    int size;
-    Grid ***arena;
-    Grid ***Lneighbor;
-    Grid ***Rneighbor;
-
     string input_file;
     static InitData DATA;
 
@@ -47,131 +41,69 @@ int main(int argc, char *argv[]) {
 
     ReadInData3(&DATA, input_file);
 
-    // initialize MPI
-    if (DATA.mode != 8) {
-        MPI::Init(argc, argv);
-
-        rank = MPI::COMM_WORLD.Get_rank();  // number of current processor
-        size = MPI::COMM_WORLD.Get_size();  // total number of processors
-
-        DATA.rank = rank;
-        DATA.size = size;
-
-        cout << "This is processor " << rank << "/" << size << ": READY."
-             << endl;
-    } else {
-        rank = 0;
-        size = 1;
-    }
-
-    for (int i = 1; i < 50; i++) {
-        cout << "#" << endl;
-    }
-
-    if (DATA.neta%size != 0 && DATA.mode < 3) {
-        cerr << " Number of cells in eta direction " << DATA.neta
-             << " is not a multiple of the number of processors " << size
-             << ". Exiting." << endl;
-        if (DATA.mode != 8) {
-            MPI::Finalize();
-        }
-        exit(1);
-    }
-
-    if (DATA.neta/size < 4 && DATA.mode < 3) {
-        cerr << " Number of cells in eta direction per processor "
-             << DATA.neta/size << " is less than 4. Exiting." << endl;
-        if (DATA.mode != 8) {
-            MPI::Finalize();
-        }
-        exit(1);
-    }
-
-    // reduce the lattice size on each processor
-    // (this is slicing it in 'size' pieces)
-    if (size > 0)
-        DATA.neta = DATA.neta/size;
+    int size = 1;
+    //DATA.neta = DATA.neta/size;
 
     EOS *eos = new EOS;
-
     if (DATA.whichEOS == 0) {
-        if (rank == 0)
-            cout << "Using the ideal gas EOS" << endl;
+        cout << "Using the ideal gas EOS" << endl;
         eos->init_eos0();
     } else if (DATA.whichEOS == 1) {
-        if (rank == 0)
-            cout << "Using EOS-Q from AZHYDRO" << endl;
+        cout << "Using EOS-Q from AZHYDRO" << endl;
         eos->init_eos();
     } else if (DATA.whichEOS == 2) {
-        if (rank == 0)
-            cout << "Using lattice EOS from Huovinen/Petreczky" << endl;
+        cout << "Using lattice EOS from Huovinen/Petreczky" << endl;
         eos->init_eos2();
     } else if (DATA.whichEOS == 3) {
-        if (rank == 0)
-            cout << "Using lattice EOS from Huovinen/Petreczky with "
-                 << "partial chemical equilibrium (PCE) chem. f.o. at 150 MeV"
-                 << endl;
+        cout << "Using lattice EOS from Huovinen/Petreczky with "
+             << "partial chemical equilibrium (PCE) chem. f.o. at 150 MeV"
+             << endl;
         eos->init_eos3(1);
     } else if (DATA.whichEOS == 4) {
-        if (rank == 0)
-            cout << "Using lattice EOS from Huovinen/Petreczky with "
-                 << "partial chemical equilibrium (PCE) chem. f.o. at 155 MeV"
-                 << endl;
+        cout << "Using lattice EOS from Huovinen/Petreczky with "
+             << "partial chemical equilibrium (PCE) chem. f.o. at 155 MeV"
+             << endl;
         eos->init_eos3(2);
     } else if (DATA.whichEOS == 5) {
-        if (rank == 0)
-            cout << "Using lattice EOS from Huovinen/Petreczky with "
-                 << "partial chemical equilibrium (PCE) chem. f.o. at 160 MeV"
-                 << endl;
+        cout << "Using lattice EOS from Huovinen/Petreczky with "
+             << "partial chemical equilibrium (PCE) chem. f.o. at 160 MeV"
+             << endl;
         eos->init_eos3(3);
     } else if (DATA.whichEOS == 6) {
-        if (rank == 0)
-            cout << "Using lattice EOS from Huovinen/Petreczky with "
-                 << "partial chemical equilibrium (PCE) chem. f.o. at 165 MeV"
-                 << endl;
+        cout << "Using lattice EOS from Huovinen/Petreczky with "
+             << "partial chemical equilibrium (PCE) chem. f.o. at 165 MeV"
+             << endl;
         eos->init_eos3(4);
     } else if (DATA.whichEOS == 7) {
-        if (rank == 0)
-            cout << "Using lattice EOS from Huovinen/Petreczky s95p-v1.2"
-                 << "(for UrQMD)" << endl;
+        cout << "Using lattice EOS from Huovinen/Petreczky s95p-v1.2"
+             << "(for UrQMD)" << endl;
         eos->init_eos7();
     } else if (DATA.whichEOS == 10) {
-        if (rank == 0)
-            cout << "Using lattice EOS from A. Monnai" << endl;
+        cout << "Using lattice EOS from A. Monnai" << endl;
         eos->init_eos10(0);
     } else if (DATA.whichEOS == 11) {
-        if (rank == 0)
-            cout << "Using lattice EOS from Pasi" << endl;
+        cout << "Using lattice EOS from Pasi" << endl;
         eos->init_eos11(0);
     } else {
-        if (rank == 0)
-            cout << "No EOS for whichEOS = " << DATA.whichEOS
-                 << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
-                 << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
-                 << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1), "
-                 << "10(lattice EOS at finite muB), "
-                 << "11(lattice EoS at finite muB from Pasi)" << endl;
+        cout << "No EOS for whichEOS = " << DATA.whichEOS
+             << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
+             << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
+             << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1), "
+             << "10(lattice EOS at finite muB), "
+             << "11(lattice EoS at finite muB from Pasi)" << endl;
         exit(1);
     }
 
+    Grid ***arena;
     if (DATA.mode == 1 || DATA.mode == 2) {
         // clean all the surface files
         system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
-        Glauber *glauber = new Glauber;
-        cout << "init Glauber" << endl;
-        glauber->initGlauber(DATA.SigmaNN, DATA.Target, DATA.Projectile,
-                             DATA.b, DATA.LexusImax, size, rank);
-        Init *init = new Init(eos, glauber);
+        Init *init = new Init(eos);
         init->InitArena(&DATA, &arena, &Lneighbor, &Rneighbor, size, rank);
-        size = DATA.size;
-        rank = DATA.rank;
-        cout << "size = " << size << endl;
-        cout << "rank = " << rank << endl;
 
         Evolve *evolve = new Evolve(eos, &DATA);
         evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank);
 
-        MPI_Barrier(MPI_COMM_WORLD);
         if (DATA.output_hydro_debug_info) {
             FILE *t4_file;
             const char* t4_name = "avgT.dat";
@@ -188,9 +120,6 @@ int main(int argc, char *argv[]) {
         freeze->CooperFrye_pseudo(DATA.particleSpectrumNumber, DATA.mode,
                                       &DATA, eos, size, rank);
         delete freeze;
-    }
-    if (DATA.mode != 8) {
-        MPI::Finalize();
     }
 }  /* main */
 

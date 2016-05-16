@@ -9,7 +9,6 @@
 #include <cmath>
 #include "./data.h"
 #include "./grid.h"
-#include "./glauber.h"
 
 
 class Init {
@@ -17,12 +16,6 @@ class Init {
     Random *random;
     EOS *eos;
     Util * util;
-    Glauber *glauber;
-
-    // list of x and y coordinates of nucleons in nucleus A
-    vector<ReturnValue> nucleusA;
-    // list of x and y coordinates of nucleons in nucleus B
-    vector<ReturnValue> nucleusB;
 
  public:
     Init(EOS *eos, Glauber* glauber);  // constructor
@@ -32,13 +25,7 @@ class Init {
     void InitArena(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
                    Grid ****Rneighbor, int size, int rank);
     void LinkNeighbors(InitData *DATA, Grid ****arena, int size, int rank);
-    int InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
-                Grid ****Rneighbor, int size, int rank);
-
-    // The following two functions return T_A and T_B.
-    // Normalization: \int r T_A(r) dr dphi = A
-    double TATarget(InitData *DATA, double r);
-    double TAProjectile(InitData *DATA, double r);
+    int InitTJb(InitData *DATA, Grid ****arena, int size, int rank);
 
     double eta_profile_normalisation(InitData *DATA, double eta);
     double eta_rhob_profile_normalisation(InitData *DATA, double eta);
