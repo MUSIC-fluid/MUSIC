@@ -3011,11 +3011,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
                     (*arena)[ix][iy][ieta].Wmunu =
                                             util->cube_malloc(rk_order+1, 5, 4);
                     (*arena)[ix][iy][ieta].prevWmunu =
-                                            util->cube_malloc(1, 5, 4);
+                                            util->cube_malloc(rk_order, 5, 4);
                     (*arena)[ix][iy][ieta].Pimunu =
                                             util->cube_malloc(rk_order+1, 5, 4);
                     (*arena)[ix][iy][ieta].prevPimunu =
-                                            util->cube_malloc(1, 5, 4);
+                                            util->cube_malloc(rk_order, 5, 4);
                     (*arena)[ix][iy][ieta].W_prev = util->mtx_malloc(5, 4);
 
                     /* for HIC */
