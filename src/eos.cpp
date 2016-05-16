@@ -71,7 +71,7 @@ void EOS::initialize_eos() {
         cout << "Using lattice EOS from Pasi" << endl;
         init_eos11(0);
     } else {
-        cout << "No EOS for whichEOS = " << parameters_ptr.whichEOS
+        cout << "No EOS for whichEOS = " << parameters_ptr->whichEOS
              << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
              << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
              << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1), "
