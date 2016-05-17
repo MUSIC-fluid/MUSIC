@@ -2,22 +2,21 @@
 #ifndef SRC_EVOLVE_H_
 #define SRC_EVOLVE_H_
 
-#include <mpi.h>
+#include <time.h>
+#include <vector>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
 #include "util.h"
 #include "data.h"
 #include "grid.h"
 #include "grid_info.h"
 #include "eos.h"
 #include "reconst.h"
-#include <time.h>
 #include "reconst.h"
 #include "advance.h"
 #include "u_derivative.h"
-#include <fstream>
-#include <sstream>
-#include <iomanip>
-#include<vector>
 
 // this is a control class for the hydrodynamic evolution
 class Evolve {
@@ -25,7 +24,7 @@ class Evolve {
     EOS *eos; // declare EOS object
     Reconst *reconst; // declare Reconst object
     Grid *grid; // declare Grid object
-    Grid_info *grid_info;
+    Grid_nfo *grid_info;
     Util *util;
     Advance *advance;
     U_derivative *u_derivative;
@@ -36,7 +35,7 @@ class Evolve {
     int rk_order;
     int grid_nx, grid_ny, grid_neta;
 
-    double SUM, SUM2;
+    double SUM;
     int warnings;
     int cells;
     int weirdCases;
@@ -50,12 +49,9 @@ class Evolve {
  public:
     Evolve(EOS *eos, InitData *DATA_in);
     ~Evolve();
-    int EvolveIt(InitData *DATA, Grid ***arena, Grid ***Lneighbor,
-                 Grid ***Rneighbor, int size, int rank);
+    int EvolveIt(InitData *DATA, Grid ***arena);
     
-    int AdvanceRK(double tau, InitData *DATA, Grid ***arena,
-                  Grid ***Lneighbor, Grid ***Rneighbor, int size, int rank);
-    
+    int AdvanceRK(double tau, InitData *DATA, Grid ***arena);
     int UpdateArena(double tau, Grid ***arena);
     
     int FreezeOut_equal_tau_Surface(double tau, InitData *DATA,

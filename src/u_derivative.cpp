@@ -7,22 +7,14 @@
 
 using namespace std;
 
-// Sangyong Nov 18 2014
-// added EOS in the argument 
-U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in)
-{
-   //Sangyong Nov 18 2014: added eos
-   //eos = new EOS;
+U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in) {
    eos = eosIn;
    minmod = new Minmod(DATA_in);
 }
 
 // destructor
-U_derivative::~U_derivative()
-{
+U_derivative::~U_derivative() {
    delete minmod;
-   //Sangyong Nov 18 2014: added delete eos
-   //delete eos;
 }
 
 int U_derivative::MakedU(double tau, InitData *DATA, Grid ***arena, Grid ***Lneighbor, Grid ***Rneighbor, int rk_flag, int size, int rank)
