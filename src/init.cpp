@@ -77,82 +77,89 @@ void Init::LinkNeighbors(InitData *DATA, Grid ****arena) {
         }
     }
 
-    for (int ieta = 0; ieta < neta; ieta++) {
-        for (int ix = 0; ix <= nx; ix++) {
-            for (int iy = 0; iy <= ny; iy++) {
-                if (ix != nx)
-                    (*arena)[ieta][ix][iy].nbr_p_1[1] =
-                                                &(*arena)[ieta][ix+1][iy];
-                else
-                    (*arena)[ieta][ix][iy].nbr_p_1[1] = 
-                                                &(*arena)[ieta][nx][iy];
-                if (ix < nx - 1)
-                    (*arena)[ieta][ix][iy].nbr_p_2[1] =
-                                                &(*arena)[ieta][ix+2][iy];
-                else
-                    (*arena)[ieta][ix][iy].nbr_p_2[1] = 
-                                                &(*arena)[ieta][nx][iy];
-                if (ix != 0)
-                    (*arena)[ieta][ix][iy].nbr_m_1[1] =
-                                                &(*arena)[ieta][ix-1][iy];
-                else
-                    (*arena)[ieta][ix][iy].nbr_m_1[1] =
-                                                &(*arena)[ieta][0][iy];
-                if (ix > 1)
-                    (*arena)[ieta][ix][iy].nbr_m_2[1] =
-                                                &(*arena)[ieta][ix-2][iy];
-                else
-                    (*arena)[ieta][ix][iy].nbr_m_2[1] = 
-                                                &(*arena)[ieta][0][iy];
-                if (iy != ny)
-                    (*arena)[ieta][ix][iy].nbr_p_1[2] =
-                                                &(*arena)[ieta][ix][iy+1];
-                else
-                    (*arena)[ieta][ix][iy].nbr_p_1[2] = 
-                                                &(*arena)[ieta][ix][ny];
-                if (iy < ny - 1)
-                    (*arena)[ieta][ix][iy].nbr_p_2[2] =
-                                                &(*arena)[ieta][ix][iy+2];
-                else
-                    (*arena)[ieta][ix][iy].nbr_p_2[2] =
-                                                &(*arena)[ieta][ix][ny];
-                if (iy != 0)
-                    (*arena)[ieta][ix][iy].nbr_m_1[2] =
-                                                &(*arena)[ieta][ix][iy-1];
-                else
-                    (*arena)[ieta][ix][iy].nbr_m_1[2] =
-                                                &(*arena)[ieta][ix][0];
-                if (iy > 1)
-                    (*arena)[ieta][ix][iy].nbr_m_2[2] =
-                                                &(*arena)[ieta][ix][iy-2];
-                else
-                    (*arena)[ieta][ix][iy].nbr_m_2[2] =
-                                                &(*arena)[ieta][ix][0];
+    int ieta;
+    #pragma omp parallel private(ieta)
+    {
+        #pragma omp for
+        for (ieta = 0; ieta < neta; ieta++) {
+            //printf("Thread %d executes loop iteraction %d\n",
+            //       omp_get_thread_num(), ieta);
+            for (int ix = 0; ix <= nx; ix++) {
+                for (int iy = 0; iy <= ny; iy++) {
+                    if (ix != nx)
+                        (*arena)[ieta][ix][iy].nbr_p_1[1] =
+                                                    &(*arena)[ieta][ix+1][iy];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_p_1[1] = 
+                                                    &(*arena)[ieta][nx][iy];
+                    if (ix < nx - 1)
+                        (*arena)[ieta][ix][iy].nbr_p_2[1] =
+                                                    &(*arena)[ieta][ix+2][iy];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_p_2[1] = 
+                                                    &(*arena)[ieta][nx][iy];
+                    if (ix != 0)
+                        (*arena)[ieta][ix][iy].nbr_m_1[1] =
+                                                    &(*arena)[ieta][ix-1][iy];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_m_1[1] =
+                                                    &(*arena)[ieta][0][iy];
+                    if (ix > 1)
+                        (*arena)[ieta][ix][iy].nbr_m_2[1] =
+                                                    &(*arena)[ieta][ix-2][iy];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_m_2[1] = 
+                                                    &(*arena)[ieta][0][iy];
+                    if (iy != ny)
+                        (*arena)[ieta][ix][iy].nbr_p_1[2] =
+                                                    &(*arena)[ieta][ix][iy+1];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_p_1[2] = 
+                                                    &(*arena)[ieta][ix][ny];
+                    if (iy < ny - 1)
+                        (*arena)[ieta][ix][iy].nbr_p_2[2] =
+                                                    &(*arena)[ieta][ix][iy+2];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_p_2[2] =
+                                                    &(*arena)[ieta][ix][ny];
+                    if (iy != 0)
+                        (*arena)[ieta][ix][iy].nbr_m_1[2] =
+                                                    &(*arena)[ieta][ix][iy-1];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_m_1[2] =
+                                                    &(*arena)[ieta][ix][0];
+                    if (iy > 1)
+                        (*arena)[ieta][ix][iy].nbr_m_2[2] =
+                                                    &(*arena)[ieta][ix][iy-2];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_m_2[2] =
+                                                    &(*arena)[ieta][ix][0];
 
-                if (ieta != neta-1)
-                    (*arena)[ieta][ix][iy].nbr_p_1[3] =
-                                                &(*arena)[ieta+1][ix][iy];
-                else
-                    (*arena)[ieta][ix][iy].nbr_p_1[3] =
-                                                &(*arena)[neta-1][ix][iy];
-                if (ieta < neta-2)
-                    (*arena)[ieta][ix][iy].nbr_p_2[3] =
-                                                &(*arena)[ieta+2][ix][iy];
-                else
-                    (*arena)[ieta][ix][iy].nbr_p_2[3] =
-                                                &(*arena)[neta-1][ix][iy];
-                if (ieta != 0)
-                    (*arena)[ieta][ix][iy].nbr_m_1[3] =
-                                                &(*arena)[ieta-1][ix][iy];
-                else
-                    (*arena)[ieta][ix][iy].nbr_m_1[3] =
-                                                &(*arena)[0][ix][iy];
-                if (ieta > 1)
-                    (*arena)[ieta][ix][iy].nbr_m_2[3] =
-                                                &(*arena)[ieta-2][ix][iy];
-                else
-                    (*arena)[ieta][ix][iy].nbr_m_2[3] =
-                                                &(*arena)[0][ix][iy];
+                    if (ieta != neta-1)
+                        (*arena)[ieta][ix][iy].nbr_p_1[3] =
+                                                    &(*arena)[ieta+1][ix][iy];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_p_1[3] =
+                                                    &(*arena)[neta-1][ix][iy];
+                    if (ieta < neta-2)
+                        (*arena)[ieta][ix][iy].nbr_p_2[3] =
+                                                    &(*arena)[ieta+2][ix][iy];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_p_2[3] =
+                                                    &(*arena)[neta-1][ix][iy];
+                    if (ieta != 0)
+                        (*arena)[ieta][ix][iy].nbr_m_1[3] =
+                                                    &(*arena)[ieta-1][ix][iy];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_m_1[3] =
+                                                    &(*arena)[0][ix][iy];
+                    if (ieta > 1)
+                        (*arena)[ieta][ix][iy].nbr_m_2[3] =
+                                                    &(*arena)[ieta-2][ix][iy];
+                    else
+                        (*arena)[ieta][ix][iy].nbr_m_2[3] =
+                                                    &(*arena)[0][ix][iy];
+                }
             }
         }
     }
@@ -221,10 +228,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         profile.close();
 
         int entropy_flag = DATA->initializeEntropy;
+        int ieta;
         #pragma omp parallel private(ieta)
         {
             #pragma omp for
-            for (int ieta = 0; ieta < DATA->neta; ieta++) {
+            for (ieta = 0; ieta < DATA->neta; ieta++) {
                 double eta = (DATA->delta_eta)*(ieta) - (DATA->eta_size)/2.0;
                 double eta_envelop_ed = eta_profile_normalisation(DATA, eta);
                 for (int ix = 0; ix <= DATA->nx; ix++) {
@@ -373,8 +381,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                printf("Thread %d executes loop iteraction %d\n",
-                       omp_get_thread_num(), ieta);
+                //printf("Thread %d executes loop iteraction %d\n",
+                //       omp_get_thread_num(), ieta);
                 double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
                 double eta_envelop_left = eta_profile_left_factor(DATA, eta);
                 double eta_envelop_right = eta_profile_right_factor(DATA, eta);
