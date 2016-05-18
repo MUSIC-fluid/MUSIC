@@ -46,7 +46,6 @@ int main(int argc, char *argv[]) {
         system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
         Init *init = new Init(eos);
         init->InitArena(&DATA, &arena);
-
     }
 
 }  /* main */

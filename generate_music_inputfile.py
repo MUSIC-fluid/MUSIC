@@ -20,8 +20,8 @@ class color:
     end = '\033[0m'
 
 initial_condition_dict.update({
-    'Initial_profile': 9,          # type of initial condition
-    'initialize_with_entropy': 0,   # 0: with energy density, 1: with entropy density
+    'Initial_profile': 11,          # type of initial condition
+    'initialize_with_entropy': 1,   # 0: with energy density, 1: with entropy density
     'Initial_Distribution_Filename': 'initial/new_u_field_0.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_event_1_block.dat',
@@ -29,31 +29,31 @@ initial_condition_dict.update({
     'Initial_uy_Distribution_Filename': 'initial/uy_event_1_block.dat',
     'Initial_TA_Distribution_Filename': 'initial/TA_event_1_block.dat',
     'Initial_TB_Distribution_Filename': 'initial/TB_event_1_block.dat',
-    'ecm' : 200,       # center of mass collision energy
-    's_factor': 1.0,   # normalization factor read in initial data file
+    'ecm' : 19.6,       # center of mass collision energy
+    's_factor': 6.5,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
-    'Eta_plateau_size': 40.0,          # size of the plateau in eta_s direction
-    'Eta_fall_off': 0.2,              # the scale of the fall off of the plateau in eta_s direction
+    'Eta_plateau_size': 2.6,          # size of the plateau in eta_s direction
+    'Eta_fall_off': 0.3,              # the scale of the fall off of the plateau in eta_s direction
     'initial_eta_rhob_profile': 2,    # type of the envelope profile for rho_B's eta_s distribution
-    'eta_rhob_0': 1.55,                # peak position of rho_B in eta_s direction
+    'eta_rhob_0': 1.5,                # peak position of rho_B in eta_s direction
     'eta_rhob_width': 1.0,            # the width of the Gaussian (for initial_eta_rhob_profile == 1)
     'eta_rhob_plateau_height': 0.3,   # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
     'eta_rhob_width_1': 0.2,          # the width of the Gaussian for the outside tail (for initial_eta_rhob_profile == 2)
-    'eta_rhob_width_2': 0.7,          # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
+    'eta_rhob_width_2': 0.8,          # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
 })
 
 hydro_dict.update({
     # grid information
-    'Initial_time_tau_0': 0.4,   # starting time of the hydrodynamic evolution (fm/c)
+    'Initial_time_tau_0': 1.5,   # starting time of the hydrodynamic evolution (fm/c)
     'Delta_Tau': 0.02,           # time step to use in the evolution [fm/c]
 
-    'Eta_grid_size': 20.0,       # spatial rapidity range
-    'Grid_size_in_eta': 4,       # number of the grid points in spatial rapidity direction
-    'X_grid_size_in_fm': 34.0,   # spatial range along x direction in the transverse plane
-    'Y_grid_size_in_fm': 34.0,   # spatial range along y direction in the transverse plane
-    'Grid_size_in_y': 256,       # number of the grid points in y direction
-    'Grid_size_in_x': 256,       # number of the grid points in x direction
+    'Eta_grid_size': 9.6,       # spatial rapidity range
+    'Grid_size_in_eta': 8,       # number of the grid points in spatial rapidity direction
+    'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
+    'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
+    'Grid_size_in_y': 261,       # number of the grid points in y direction
+    'Grid_size_in_x': 261,       # number of the grid points in x direction
     
     # input grid information only works for initial_profile == 12
     'input_grid_size_in_y': 261,        # number of the grid points in y direction
@@ -63,9 +63,9 @@ hydro_dict.update({
     'input_grid_dx': 0.1,               # lattice spacing in x direction
     'input_grid_deta': 0.1,             # lattice spacing in eta direction
 
-    'EOS_to_use': 2,         # type of the equation of state
+    'EOS_to_use': 10,         # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
-    'boost_invariant': 1,    # initial condition is boost invariant
+    'boost_invariant': 0,    # initial condition is boost invariant
 
     #viscosity and diffusion options
     'Viscosity_Flag_Yes_1_No_0': 1,         # turn on viscosity in the evolution

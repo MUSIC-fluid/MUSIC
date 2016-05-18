@@ -10,8 +10,8 @@
 ##			distclean	remove all objectsfiles and binaries
 ##  
 
-CC := g++
-CFLAGS= -Wall -O3 $(shell gsl-config --cflags)
+CC := g++-mp-5
+CFLAGS= -Wall -O3 $(shell gsl-config --cflags) -fopenmp
 
 RM		=	rm -f
 O               =       .o
