@@ -106,7 +106,8 @@ int U_derivative::MakedU(double tau, InitData *DATA,
                     for (int b=0; b<4; b++) {
                         sigma_local[a][b] = (
                             (dUsup_local[a][b] + dUsup_local[b][a])/2.
-                            - (DATA->gmunu[a][b] + u_local[a]*u_local[b])*theta_u_local/3.
+                            - (DATA->gmunu[a][b] + u_local[a]*u_local[b])
+                              *theta_u_local/3.
                             + u_local[0]/tau*DATA->gmunu[a][3]*DATA->gmunu[b][3]
                             - u_local[3]/tau/2.
                               *(DATA->gmunu[a][3]*DATA->gmunu[b][0] 
@@ -117,8 +118,10 @@ int U_derivative::MakedU(double tau, InitData *DATA,
                             - u_local[3]*u_local[3]/tau/2.
                               *(DATA->gmunu[a][0]*u_local[b] 
                                 + DATA->gmunu[b][0]*u_local[a])
-                            + (u_local[a]*a_local[b] + u_local[b]*a_local[a])/2.);
-                        arena[ieta][ix][iy].sigma[rk_flag][a][b] = sigma_local[a][b];
+                            + (u_local[a]*a_local[b]
+                               + u_local[b]*a_local[a])/2.);
+                        arena[ieta][ix][iy].sigma[rk_flag][a][b] = (
+                                                            sigma_local[a][b]);
                     }
                 }
             }/*iy */
@@ -154,16 +157,8 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt,
             if (n == 3)
                 taufactor = tau;
             f = grid_pt->u[rk_flag][m];
-            if (grid_pt->position[n] == nmax[n]) {
-                fp1 = grid_pt->u[rk_flag][m];
-                fm1 = grid_pt->nbr_m_1[n]->u[rk_flag][m];
-            } else if (grid_pt->position[n] == 0) {
-                fp1 = grid_pt->nbr_p_1[n]->u[rk_flag][m];
-                fm1 = grid_pt->u[rk_flag][m];
-            } else {
-                fp1 = grid_pt->nbr_p_1[n]->u[rk_flag][m];
-                fm1 = grid_pt->nbr_m_1[n]->u[rk_flag][m];
-            }
+            fp1 = grid_pt->nbr_p_1[n]->u[rk_flag][m];
+            fm1 = grid_pt->nbr_m_1[n]->u[rk_flag][m];
             g = minmod->minmod_dx(fp1, f, fm1);
             g /= delta[n]*taufactor;
             grid_pt->dUsup[rk_flag][m][n] = g;
@@ -190,6 +185,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt,
         taufactor = 1.0;
         if (n == 3)
             taufactor = tau;
+
         // f = grid_pt->rhob_t;
         if (rk_flag == 0) {
             rhob = grid_pt->rhob;
@@ -202,83 +198,34 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt,
         T = eos->get_temperature(eps, rhob);
         f = muB/T; 
     
-        if (grid_pt->position[n] == nmax[n]) {
-            // fp1 = grid_pt->rhob;
-            if (rk_flag == 0) {
-                rhob = grid_pt->rhob;
-                eps = grid_pt->epsilon;
-            } else {
-                rhob = grid_pt->rhob_t;
-                eps = grid_pt->epsilon_t;
-            }
-            muB = eos->get_mu(eps, rhob);
-            T = eos->get_temperature(eps, rhob);
-            fp1 = muB/T; 
-            // fm1 = grid_pt->nbr_m_1[n]->rhob;
-            if (rk_flag == 0) {
-                rhob = grid_pt->nbr_m_1[n]->rhob;
-                eps = grid_pt->nbr_m_1[n]->epsilon;
-            } else {
-                rhob = grid_pt->nbr_m_1[n]->rhob_t;
-                eps = grid_pt->nbr_m_1[n]->epsilon_t;
-            }
-            muB = eos->get_mu(eps, rhob);
-            T = eos->get_temperature(eps, rhob);
-            fm1 = muB/T; 
-        } else if (grid_pt->position[n] == 0) {
-            // fp1 = grid_pt->nbr_p_1[n]->rhob;
-            if (rk_flag == 0) {
-                rhob = grid_pt->nbr_p_1[n]->rhob;
-                eps = grid_pt->nbr_p_1[n]->epsilon;
-            } else {
-                rhob = grid_pt->nbr_p_1[n]->rhob_t;
-                eps = grid_pt->nbr_p_1[n]->epsilon_t;
-            }
-            muB = eos->get_mu(eps, rhob);
-            T = eos->get_temperature(eps, rhob);
-            fp1 = muB/T; 
-       
-            // fm1 = grid_pt->rhob;
-            if (rk_flag == 0) {
-                rhob = grid_pt->rhob;
-                eps = grid_pt->epsilon;
-            } else {
-                rhob = grid_pt->rhob_t;
-                eps = grid_pt->epsilon_t;
-            }
-            muB = eos->get_mu(eps, rhob);
-            T = eos->get_temperature(eps, rhob);
-            fm1 = muB/T; 
+        //fp1 = grid_pt->nbr_p_1[n]->rhob;
+        if (rk_flag == 0) {
+            rhob = grid_pt->nbr_p_1[n]->rhob;
+            eps = grid_pt->nbr_p_1[n]->epsilon;
         } else {
-            //fp1 = grid_pt->nbr_p_1[n]->rhob;
-            if (rk_flag == 0) {
-                rhob = grid_pt->nbr_p_1[n]->rhob;
-                eps = grid_pt->nbr_p_1[n]->epsilon;
-            } else {
-                rhob = grid_pt->nbr_p_1[n]->rhob_t;
-                eps = grid_pt->nbr_p_1[n]->epsilon_t;
-            }
-            muB = eos->get_mu(eps, rhob);
-            T = eos->get_temperature(eps, rhob);
-            fp1 = muB/T; 
-       
-            // fm1 = grid_pt->nbr_m_1[n]->rhob;
-            if (rk_flag == 0) {
-                rhob = grid_pt->nbr_m_1[n]->rhob;
-                eps = grid_pt->nbr_m_1[n]->epsilon;
-            } else {
-                rhob = grid_pt->nbr_m_1[n]->rhob_t;
-                eps = grid_pt->nbr_m_1[n]->epsilon_t;
-            }
-            muB = eos->get_mu(eps, rhob);
-            T = eos->get_temperature(eps, rhob);
-            fm1 = muB/T; 
+            rhob = grid_pt->nbr_p_1[n]->rhob_t;
+            eps = grid_pt->nbr_p_1[n]->epsilon_t;
         }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fp1 = muB/T; 
+       
+        // fm1 = grid_pt->nbr_m_1[n]->rhob;
+        if (rk_flag == 0) {
+            rhob = grid_pt->nbr_m_1[n]->rhob;
+            eps = grid_pt->nbr_m_1[n]->epsilon;
+        } else {
+            rhob = grid_pt->nbr_m_1[n]->rhob_t;
+            eps = grid_pt->nbr_m_1[n]->epsilon_t;
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fm1 = muB/T; 
 
         g = minmod->minmod_dx(fp1, f, fm1);
         g /= delta[n]*taufactor;
         grid_pt->dUsup[rk_flag][m][n] = g;
-    }  // n = x,y, eta
+    }  // n = x, y, eta
     return 1;
 }/* MakeDSpatial */
 
