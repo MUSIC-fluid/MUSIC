@@ -84,63 +84,75 @@ void Init::LinkNeighbors(InitData *DATA, Grid ****arena) {
                     (*arena)[ieta][ix][iy].nbr_p_1[1] =
                                                 &(*arena)[ieta][ix+1][iy];
                 else
-                    (*arena)[ieta][ix][iy].nbr_p_1[1] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_p_1[1] = 
+                                                &(*arena)[ieta][nx][iy];
                 if (ix < nx - 1)
                     (*arena)[ieta][ix][iy].nbr_p_2[1] =
                                                 &(*arena)[ieta][ix+2][iy];
                 else
-                    (*arena)[ieta][ix][iy].nbr_p_2[1] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_p_2[1] = 
+                                                &(*arena)[ieta][nx][iy];
                 if (ix != 0)
                     (*arena)[ieta][ix][iy].nbr_m_1[1] =
                                                 &(*arena)[ieta][ix-1][iy];
                 else
-                    (*arena)[ieta][ix][iy].nbr_m_1[1] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_m_1[1] =
+                                                &(*arena)[ieta][0][iy];
                 if (ix > 1)
                     (*arena)[ieta][ix][iy].nbr_m_2[1] =
                                                 &(*arena)[ieta][ix-2][iy];
                 else
-                    (*arena)[ieta][ix][iy].nbr_m_2[1] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_m_2[1] = 
+                                                &(*arena)[ieta][0][iy];
                 if (iy != ny)
                     (*arena)[ieta][ix][iy].nbr_p_1[2] =
                                                 &(*arena)[ieta][ix][iy+1];
                 else
-                    (*arena)[ieta][ix][iy].nbr_p_1[2] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_p_1[2] = 
+                                                &(*arena)[ieta][ix][ny];
                 if (iy < ny - 1)
                     (*arena)[ieta][ix][iy].nbr_p_2[2] =
                                                 &(*arena)[ieta][ix][iy+2];
                 else
-                    (*arena)[ieta][ix][iy].nbr_p_2[2] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_p_2[2] =
+                                                &(*arena)[ieta][ix][ny];
                 if (iy != 0)
                     (*arena)[ieta][ix][iy].nbr_m_1[2] =
                                                 &(*arena)[ieta][ix][iy-1];
                 else
-                    (*arena)[ieta][ix][iy].nbr_m_1[2] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_m_1[2] =
+                                                &(*arena)[ieta][ix][0];
                 if (iy > 1)
                     (*arena)[ieta][ix][iy].nbr_m_2[2] =
                                                 &(*arena)[ieta][ix][iy-2];
                 else
-                    (*arena)[ieta][ix][iy].nbr_m_2[2] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_m_2[2] =
+                                                &(*arena)[ieta][ix][0];
 
                 if (ieta != neta-1)
                     (*arena)[ieta][ix][iy].nbr_p_1[3] =
                                                 &(*arena)[ieta+1][ix][iy];
                 else
-                    (*arena)[ieta][ix][iy][ieta].nbr_p_1[3] = NULL;
+                    (*arena)[ieta][ix][iy][ieta].nbr_p_1[3] =
+                                                &(*arena)[neta-1][ix][iy];
                 if (ieta < neta-2)
                     (*arena)[ieta][ix][iy].nbr_p_2[3] =
                                                 &(*arena)[ieta+2][ix][iy];
                 else
-                    (*arena)[ieta][ix][iy].nbr_p_2[3] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_p_2[3] =
+                                                &(*arena)[neta-1][ix][iy];
                 if (ieta != 0)
                     (*arena)[ieta][ix][iy].nbr_m_1[3] =
                                                 &(*arena)[ieta-1][ix][iy];
                 else
-                    (*arena)[ieta][ix][iy].nbr_m_1[3] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_m_1[3] =
+                                                &(*arena)[0][ix][iy];
                 if (ieta > 1)
                     (*arena)[ieta][ix][iy].nbr_m_2[3] =
                                                 &(*arena)[ieta-2][ix][iy];
                 else
-                    (*arena)[ieta][ix][iy].nbr_m_2[3] = NULL;
+                    (*arena)[ieta][ix][iy].nbr_m_2[3] =
+                                                &(*arena)[0][ix][iy];
             }
         }
     }

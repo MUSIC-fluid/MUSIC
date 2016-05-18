@@ -328,14 +328,16 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
     for (int mu=1; mu<4; mu++) {
         tempf = 0.0;
         for (int nu=1; nu<4; nu++)
-            tempf += grid_pt->Wmunu[rk_flag+1][mu][nu]*grid_pt->u[rk_flag+1][nu]; 
+            tempf += (
+                grid_pt->Wmunu[rk_flag+1][mu][nu]*grid_pt->u[rk_flag+1][nu]);
         grid_pt->Wmunu[rk_flag+1][mu][0] = tempf/(grid_pt->u[rk_flag+1][0]);
     }
    
     for (int mu=1; mu<4; mu++) {
         tempf = 0.0;
         for (int nu=1; nu<4; nu++)
-            tempf += grid_pt->Wmunu[rk_flag+1][nu][mu]*grid_pt->u[rk_flag+1][nu]; 
+            tempf += (
+                grid_pt->Wmunu[rk_flag+1][nu][mu]*grid_pt->u[rk_flag+1][nu]);
         grid_pt->Wmunu[rk_flag+1][0][mu] = tempf/(grid_pt->u[rk_flag+1][0]);
     }
 
@@ -437,7 +439,8 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
         for (int mu=0; mu<4; mu++) {
             for (int nu=0; nu<4; nu++) {
                 grid_pt->Wmunu[rk_flag+1][mu][nu] = (
-                    (rho_shear_max/rho_shear)*grid_pt->Wmunu[rk_flag+1][mu][nu]);
+                    (rho_shear_max/rho_shear)
+                    *grid_pt->Wmunu[rk_flag+1][mu][nu]);
             }
         }
         revert_flag = 1;
@@ -451,7 +454,8 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
         for (int mu=0; mu<4; mu++) {
             for (int nu=0; nu<4; nu++) {   	       
                 grid_pt->Pimunu[rk_flag+1][mu][nu] = (
-                        (rho_bulk_max/rho_bulk)*grid_pt->Pimunu[rk_flag+1][mu][nu]);
+                        (rho_bulk_max/rho_bulk)
+                        *grid_pt->Pimunu[rk_flag+1][mu][nu]);
             }
         }
         revert_flag = 1;
@@ -545,572 +549,243 @@ void Advance::TestW(double tau, Grid *grid_pt, int rk_flag) {
 }/* TestW */
 
 
-void Advance::ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
-{
- double Delta[4][4], tD[4][4], trace, norm, mfac, nfac, sum;
-//  double  f[4][4];
- int m, n, a, b;
+void Advance::ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag,
+                             InitData *DATA) {
+    double Delta[4][4], tD[4][4], trace, norm, mfac, nfac, sum;
+    int m, n, a, b;
 
-/* projecting the spin 2 part for W[rk_flag+1] */
- for(m=0; m<4; m++)
-  {
-   for(n=0; n<4; n++)
-    {
-     Delta[m][n] = 
-     DATA->gmunu[m][n] + (grid_pt->u[rk_flag][m])*(grid_pt->u[rk_flag][n]);
-    }}
+    /* projecting the spin 2 part for W[rk_flag+1] */
+    for (m=0; m<4; m++) {
+        for (n=0; n<4; n++) {
+            Delta[m][n] = (DATA->gmunu[m][n]
+                           + (grid_pt->u[rk_flag][m])*(grid_pt->u[rk_flag][n]));
+        }
+    }
  
- for(a=0; a<4; a++)
-  {
-   for(b=0; b<4; b++)
-    {
-     tD[a][b] = 0.0;
-       for(n=0; n<4; n++)
-        {
-         nfac = (n==0 ? -1.0 : 1.0);
-         tD[a][b] += Delta[a][n]*Delta[n][b]*nfac;
-	}}}
+    for (a=0; a<4; a++) {
+        for (b=0; b<4; b++) {
+            tD[a][b] = 0.0;
+            for (n=0; n<4; n++) {
+                nfac = (n==0 ? -1.0 : 1.0);
+                tD[a][b] += Delta[a][n]*Delta[n][b]*nfac;
+	        }
+        }
+    }
  
- sum = 0.0; 
- for(a=0; a<4; a++)
-  {
-   for(b=0; b<4; b++)
-    {
-     sum += fabs(tD[a][b] - Delta[a][b]);
-    }}
-  if(sum > 1.0e-6 && grid_pt->epsilon > 0.3)
-   {
-    fprintf(stderr, "delta d check = %3.16e\n", sum);
-   }
+    sum = 0.0; 
+    for (a=0; a<4; a++) {
+        for (b=0; b<4; b++) {
+            sum += fabs(tD[a][b] - Delta[a][b]);
+        }
+    }
+    if (sum > 1.0e-6 && grid_pt->epsilon > 0.3) {
+        fprintf(stderr, "delta d check = %3.16e\n", sum);
+    }
  
- sum = 0.0; 
- for(m=0; m<4; m++)
-  {
-   mfac = (m==0 ? -1.0: 1.0);
-   for(n=0; n<4; n++)
-    {
-     nfac = (n==0 ? -1.0: 1.0);
-     sum += Delta[m][n]*Delta[n][m]*mfac*nfac;
-    }}
-  if(fabs(sum-3.0) >  1.0e-6 && grid_pt->epsilon > 0.3)
-    {
-      double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-      double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-      double eta;
-      if(size>1)
-	eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
-      else
-	eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
+    sum = 0.0; 
+    for (m=0; m<4; m++) {
+        mfac = (m==0 ? -1.0: 1.0);
+        for (n=0; n<4; n++) {
+            nfac = (n==0 ? -1.0: 1.0);
+            sum += Delta[m][n]*Delta[n][m]*mfac*nfac;
+        }
+    }
+    if (fabs(sum-3.0) >  1.0e-6 && grid_pt->epsilon > 0.3) {
+        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
+        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
+        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
       
-      fprintf(stderr, "d trace check = %3.16e\n", sum);
-      fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
-      fprintf(stderr, "u[0] = %e\n", grid_pt->u[rk_flag][0]);
-      fprintf(stderr, "u[1] = %e\n", grid_pt->u[rk_flag][1]);
-      fprintf(stderr, "u[2] = %e\n", grid_pt->u[rk_flag][2]);
-      fprintf(stderr, "u[3] = %e\n", grid_pt->u[rk_flag][3]);
-      fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",tau, x, y, eta);
-      fprintf(stderr, "\n");
+        fprintf(stderr, "d trace check = %3.16e\n", sum);
+        fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
+        fprintf(stderr, "u[0] = %e\n", grid_pt->u[rk_flag][0]);
+        fprintf(stderr, "u[1] = %e\n", grid_pt->u[rk_flag][1]);
+        fprintf(stderr, "u[2] = %e\n", grid_pt->u[rk_flag][2]);
+        fprintf(stderr, "u[3] = %e\n", grid_pt->u[rk_flag][3]);
+        fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",
+                tau, x, y, eta);
+        fprintf(stderr, "\n");
       
-      //      exit(0);
     }
 
- trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
- norm = grid_pt->u[rk_flag][0]*grid_pt->u[rk_flag][0];
- for(a=1; a<=3; a++)
-  {
-   trace += grid_pt->Wmunu[rk_flag+1][a][a];
-   norm -= grid_pt->u[rk_flag][a]*grid_pt->u[rk_flag][a];
-  }
+    trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
+    norm = grid_pt->u[rk_flag][0]*grid_pt->u[rk_flag][0];
+    for (a=1; a<=3; a++) {
+        trace += grid_pt->Wmunu[rk_flag+1][a][a];
+        norm -= grid_pt->u[rk_flag][a]*grid_pt->u[rk_flag][a];
+    }
 
+    if (fabs(norm -1.0) > 1.0e-6 && grid_pt->epsilon > 0.3) {
+        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
+        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
+        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
+        fprintf(stderr, "ProjectSpin2: norm = %3.16e\n", norm);
+        fprintf(stderr, "ProjectSpin2: epsilon = %e\n", grid_pt->epsilon);
+        fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",
+                tau, x, y, eta);
+    }
 
- if(fabs(norm -1.0) > 1.0e-6 && grid_pt->epsilon > 0.3)
-  {
-      double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-      double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-      double eta;
-      if(size>1)
-	eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
-      else
-	eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-   fprintf(stderr, "ProjectSpin2: norm = %3.16e\n", norm);
-   fprintf(stderr, "ProjectSpin2: epsilon = %e\n", grid_pt->epsilon);
-   fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",tau, x, y, eta);
-   //   exit(0);
-  }
-
+    for (a=0; a<4; a++) {
+        for (b=0; b<4; b++) {
+            grid_pt->Wmunu[rk_flag+1][a][b] -= Delta[a][b]*trace/3.0; 
+        }
+    }
  
- for(a=0; a<4; a++)
-  {
-   for(b=0; b<4; b++)
-    {
-     grid_pt->Wmunu[rk_flag+1][a][b] -= Delta[a][b]*trace/3.0; 
-    }}
- 
- trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
- for(a=1; a<=3; a++)
-  {
-   trace += grid_pt->Wmunu[rk_flag+1][a][a];
-  }
- if(fabs(trace) > 1.0e-6 && grid_pt->epsilon > 0.3)
-  {
-      double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-      double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-      double eta;
-      if(size>1)
-	eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
-      else
-	eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-   fprintf(stderr, "ProjectSpin2WS: final trace = 3.16%e\n", trace);
-   fprintf(stderr, "u0 = %e\n", grid_pt->u[rk_flag][0]);
-   fprintf(stderr, "u1 = %e\n", grid_pt->u[rk_flag][1]);
-   fprintf(stderr, "u2 = %e\n", grid_pt->u[rk_flag][2]);
-   fprintf(stderr, "u3 = %e\n", grid_pt->u[rk_flag][3]);
-   fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",tau, x, y, eta);
-   //exit(0);
-  }
-
+    trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
+    for (a=1; a<=3; a++) {
+        trace += grid_pt->Wmunu[rk_flag+1][a][a];
+    }
+    if (fabs(trace) > 1.0e-6 && grid_pt->epsilon > 0.3) {
+        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
+        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
+	    double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
+        fprintf(stderr, "ProjectSpin2WS: final trace = 3.16%e\n", trace);
+        fprintf(stderr, "u0 = %e\n", grid_pt->u[rk_flag][0]);
+        fprintf(stderr, "u1 = %e\n", grid_pt->u[rk_flag][1]);
+        fprintf(stderr, "u2 = %e\n", grid_pt->u[rk_flag][2]);
+        fprintf(stderr, "u3 = %e\n", grid_pt->u[rk_flag][3]);
+        fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",
+                tau, x, y, eta);
+    }
 }/* ProjectSpin2WS */
 
 
 
-void Advance::ProjectSpin2W(double tau, Grid *grid_pt, int rk_flag, InitData *DATA, int size, int rank)
-{
- double Delta[4][4], trace, norm;
-//  double  f[4][4], mfac, nfac;
- int m, n, a, b;
+void Advance::ProjectSpin2W(double tau, Grid *grid_pt, int rk_flag,
+                            InitData *DATA) {
+    double Delta[4][4], trace, norm;
+    int m, n, a, b;
 
- for(m=0; m<4; m++)
-  {
-   for(n=0; n<4; n++)
-    {
-     Delta[m][n] = 
-     DATA->gmunu[m][n] + (grid_pt->u[rk_flag+1][m])*(grid_pt->u[rk_flag+1][n]);
-    }}
-
- trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
- norm = grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0];
- for(a=1; a<=3; a++)
-  {
-   trace += grid_pt->Wmunu[rk_flag+1][a][a];
-   norm -= grid_pt->u[rk_flag+1][a]*grid_pt->u[rk_flag+1][a];
-  }
- if(fabs(norm -1.0) > 1.0e-6 && grid_pt->epsilon > 0.3)
-  {
-    double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-    double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-    double eta;
-    if(size>1)
-      eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
-    else
-      eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-   fprintf(stderr, "ProjectSpin2W: norm = %3.16e\n", norm);
-   fprintf(stderr, "ProjectSpin2W: epsilon = %e\n", grid_pt->epsilon);
-   fprintf(stderr, "ProjectSpin2W at %f %f %f %f: exiting.\n",tau, x, y, eta);
-   //exit(0);
-  }
-
-/* TEST */
-/*
- for(a=0; a<4; a++)
-  {
-   for(b=0; b<4; b++)
-    {
-     f[a][b] = 0.0;
-     for(m=0; m<4; m++)
-      {
-       mfac = (m==0 ? -1.0 : 1.0);
-       for(n=0; n<4; n++)
-        {
-         nfac = (n==0 ? -1.0 : 1.0);
-	 f[a][b] +=
-	 Delta[a][m]*Delta[b][n]*(grid_pt->Wmunu[rk_flag+1][m][n])*mfac*nfac;
-	}
-      }
-     f[a][b] -= Delta[a][b]*trace/3.0; 
+    for (m=0; m<4; m++) {
+        for (n=0; n<4; n++) {
+            Delta[m][n] = (DATA->gmunu[m][n]
+                    + (grid_pt->u[rk_flag+1][m])*(grid_pt->u[rk_flag+1][n]));
+        }
     }
-  }
-*/
- 
- for(a=0; a<4; a++)
-  {
-   for(b=0; b<4; b++)
-    {
-/* TEST */
-//     grid_pt->Wmunu[rk_flag+1][a][b] = (f[a][b]+f[b][a])/2.0;
-     grid_pt->Wmunu[rk_flag+1][a][b] -= Delta[a][b]*trace/3.0; 
-    }}
- 
- trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
- for(a=1; a<=3; a++)
-  {
-   trace += grid_pt->Wmunu[rk_flag+1][a][a];
-  }
- if(fabs(trace) > 1.0e-6 && grid_pt->epsilon > 0.3)
-  {
-    double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-    double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-    double eta;
-    if(size>1)
-      eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
-    else
-      eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-     fprintf(stderr, "ProjectSpin2W: final trace = %e\n", trace);
-   fprintf(stderr, "u0 = %e\n", grid_pt->u[rk_flag+1][0]);
-   fprintf(stderr, "u1 = %e\n", grid_pt->u[rk_flag+1][1]);
-   fprintf(stderr, "u2 = %e\n", grid_pt->u[rk_flag+1][2]);
-   fprintf(stderr, "u3 = %e\n", grid_pt->u[rk_flag+1][3]);
-   fprintf(stderr, "ProjectSpin2W at %f %f %f %f: exiting.\n",tau, x, y, eta);
-   //exit(0);
-  }
 
+    trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
+    norm = grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0];
+    for (a=1; a<=3; a++) {
+        trace += grid_pt->Wmunu[rk_flag+1][a][a];
+        norm -= grid_pt->u[rk_flag+1][a]*grid_pt->u[rk_flag+1][a];
+    }
+    if (fabs(norm -1.0) > 1.0e-6 && grid_pt->epsilon > 0.3) {
+        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
+        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
+        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
+        fprintf(stderr, "ProjectSpin2W: norm = %3.16e\n", norm);
+        fprintf(stderr, "ProjectSpin2W: epsilon = %e\n", grid_pt->epsilon);
+        fprintf(stderr, "ProjectSpin2W at %f %f %f %f: exiting.\n",
+                tau, x, y, eta);
+    }
+
+    for (a=0; a<4; a++) {
+        for (b=0; b<4; b++) {
+            grid_pt->Wmunu[rk_flag+1][a][b] -= Delta[a][b]*trace/3.0; 
+        }
+    }
+ 
+    trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
+    for (a=1; a<=3; a++) {
+        trace += grid_pt->Wmunu[rk_flag+1][a][a];
+    }
+    if (fabs(trace) > 1.0e-6 && grid_pt->epsilon > 0.3) {
+        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
+        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
+        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
+        fprintf(stderr, "ProjectSpin2W: final trace = %e\n", trace);
+        fprintf(stderr, "u0 = %e\n", grid_pt->u[rk_flag+1][0]);
+        fprintf(stderr, "u1 = %e\n", grid_pt->u[rk_flag+1][1]);
+        fprintf(stderr, "u2 = %e\n", grid_pt->u[rk_flag+1][2]);
+        fprintf(stderr, "u3 = %e\n", grid_pt->u[rk_flag+1][3]);
+        fprintf(stderr, "ProjectSpin2W at %f %f %f %f: exiting.\n",
+                tau, x, y, eta);
+    }
 }/* ProjectSpin2W */
 
 
 
-void Advance::MakeDeltaQI(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
-			 Grid *Lneighbor2, Grid *Rneighbor2, double *qi, double *rhs, 
-			 InitData *DATA, int rk_flag, int size, int rank) 
-{
-//   double xjet, yjet, xtrigger, ytrigger;
-  static double delta[4], sumf;
-//   static double tau_fac[4];
-  static int alpha, i;
-//   static int rk_order_m1;
-//   static int nmax[4], flag;
-  static double **DFmmp;
-  static NbrQs NbrCells;
-  static BdryCells HalfwayCells;
-  static int ind=0;
-//   double x=grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-//   double y=grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-//   double eta;
-//   if(size>1)
-//     eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2+static_cast<double>(rank)/static_cast<double>(size)*DATA->eta_size;
-//   else
-//     eta=grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
+void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs, 
+			              InitData *DATA, int rk_flag) {
+    static double delta[4], sumf;
+    static int alpha, i;
+    static double **DFmmp;
+    static NbrQs NbrCells;
+    static BdryCells HalfwayCells;
+    static int ind=0;
   
-  ind++;
-  if(ind==1)
-    {
-      InitTempGrids(&HalfwayCells, DATA->rk_order); 
-      InitNbrQs(&NbrCells);
-      DFmmp = util->mtx_malloc(5,4);
+    ind++;
+    if (ind == 1) {
+        InitTempGrids(&HalfwayCells, DATA->rk_order); 
+        InitNbrQs(&NbrCells);
+        DFmmp = util->mtx_malloc(5,4);
     }
   
-  delta[1] = DATA->delta_x;
-  delta[2] = DATA->delta_y;
-  delta[3] = DATA->delta_eta;
+    delta[1] = DATA->delta_x;
+    delta[2] = DATA->delta_y;
+    delta[3] = DATA->delta_eta;
   
-//   nmax[1] = DATA->nx;
-//   nmax[2] = DATA->ny;
-//   nmax[3] = DATA->neta-1;
 
-/* \partial_tau (tau Ttautau) + \partial_eta Tetatau 
-           + \partial_x (tau Txtau) + \partial_y (tau Tytau) + Tetaeta = 0 */
-/* \partial_tau (tau Ttaueta) + \partial_eta Teteta 
-           + \partial_x (tau Txeta) + \partial_y (tau Txeta) + Tetatau = 0 */
-/* \partial_tau (tau Txtau) + \partial_eta Tetax + \partial_x tau T_xx
-  + \partial_y tau Tyx = 0 */
+    /* \partial_tau (tau Ttautau) + \partial_eta Tetatau 
+            + \partial_x (tau Txtau) + \partial_y (tau Tytau) + Tetaeta = 0 */
+    /* \partial_tau (tau Ttaueta) + \partial_eta Teteta 
+            + \partial_x (tau Txeta) + \partial_y (tau Txeta) + Tetatau = 0 */
+    /* \partial_tau (tau Txtau) + \partial_eta Tetax + \partial_x tau T_xx
+            + \partial_y tau Tyx = 0 */
 
-//      tau_fac[1] = tau;
-//      tau_fac[2] = tau;
-//      tau_fac[3] = 1.0;
- 
- // tau*Tmu0
- for(alpha=0; alpha<5; alpha++) 
- {
-   qi[alpha] = grid_pt->TJb[rk_flag][alpha][0]*tau;
- }/* get qi first */
+    // tau*Tmu0
+    for (alpha=0; alpha<5; alpha++) {
+        qi[alpha] = grid_pt->TJb[rk_flag][alpha][0]*tau;
+    }/* get qi first */
 
- /* implement Kurganov-Tadmor scheme */
- GetQIs(tau, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, qi, &NbrCells, rk_flag, DATA, size, rank);
+    /* implement Kurganov-Tadmor scheme */
+    GetQIs(tau, grid_pt, qi, &NbrCells, rk_flag, DATA);
  
-//  flag = 
-   MakeQIHalfs(qi, &NbrCells, &HalfwayCells, grid_pt, DATA);
+    MakeQIHalfs(qi, &NbrCells, &HalfwayCells, grid_pt, DATA);
  
-//  flag = 
-   ConstHalfwayCells(tau, &HalfwayCells, qi, grid_pt, DATA, rk_flag, size, rank);
+    ConstHalfwayCells(tau, &HalfwayCells, qi, grid_pt, DATA, rk_flag);
  
- MakeKTCurrents(tau, DFmmp, grid_pt, &HalfwayCells, rk_flag);
+    MakeKTCurrents(tau, DFmmp, grid_pt, &HalfwayCells, rk_flag);
  
- for(alpha=0; alpha<5; alpha++) 
-  {
-   sumf = 0.0; 
-   for(i=1; i<=3; i++)
-    {
-     sumf += DFmmp[alpha][i]/delta[i];
-    }/* i */
-    
-   if(alpha==0)
-    {
-      sumf -= grid_pt->TJb[rk_flag][3][3];
-    }
-   else if(alpha==3)
-    {
-     sumf -= grid_pt->TJb[rk_flag][3][0];
-    }
-
-   //   cout << tau << " " << x << " " << " " << y << " " << eta << endl;
-
-//    int jetPosition=DATA->includeJet;
-//    int includeTrigger = DATA->includeTrigger;
-   
-   //plug in rates here:
-   
-   //   if ( DATA->includeJet>=1 )
-   //  {
-   // ...     
-   
-   rhs[alpha] = sumf*(DATA->delta_tau);
-   
-  }/* alpha */
+    for (alpha=0; alpha<5; alpha++) {
+        sumf = 0.0; 
+        for (i=1; i<=3; i++) {
+            sumf += DFmmp[alpha][i]/delta[i];
+        } /* i */
+        if (alpha == 0) {
+            sumf -= grid_pt->TJb[rk_flag][3][3];
+        } else if(alpha==3) {
+            sumf -= grid_pt->TJb[rk_flag][3][0];
+        }
+        rhs[alpha] = sumf*(DATA->delta_tau);
+    }/* alpha */
  
- return;
+    return;
 }/* MakeDeltaQI */
 
 
-void Advance::GetQIs
-(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, Grid *Lneighbor2, Grid *Rneighbor2,
- double *qi, NbrQs *NbrCells, int rk_flag, InitData *DATA, int size, int rank)
-{
- int alpha, i;
- double tempg;
-//  double T00, K00, tempf;
- int nmax[4];
- // auxiliary grids to store the received grids from the neighbor processor
-//  int from;
-//  int to;
-
- nmax[1] = DATA->nx;
- nmax[2] = DATA->ny;
- nmax[3] = DATA->neta-1; // reduced all eta grids by one for parallel
-
- tempg = tau;
-
- for(alpha=0; alpha<5; alpha++)
-  {
-    /* qs from the neighbors */
-    /* implement outflow boundary condition - simply set the two outside
-     * values the same as at the boundary */
-        
-    for(i=1;i<=2;i++)
-      {
-	if(grid_pt->position[i] == nmax[i])/* plus edge */
-	  {
-	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qim2[alpha][i] *= tempg;  
-	 
-	    NbrCells->qip1[alpha][i] = qi[alpha];
-	    
-	    NbrCells->qip2[alpha][i] = qi[alpha];
-	  }
-	else if(grid_pt->position[i] == (nmax[i]-1))/* plus edge - 1 */
-	  {
-	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qim2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip2[alpha][i] *= tempg;
-	  }
-	else if(grid_pt->position[i] == 0)/* minus edge */
-	  {
-	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] 
-	      = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qip2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qim1[alpha][i] = qi[alpha];
-	    
-	    NbrCells->qim2[alpha][i] = qi[alpha];
-	  }
-	else if(grid_pt->position[i] == 1)/* minus edge + 1 */
-	  {
-	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qip2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim2[alpha][i] *= tempg;
-	  }
-	else
-	  {
-	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qip2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qim2[alpha][i] *= tempg;  
-	  }
-      }/* i */    
-    
-    i=3; //in eta direction where the lattice is cut
-    if(grid_pt->position[i] == nmax[i])/* plus edge */
-      {
-	if(rank == size-1) // for the right most rank do boundary condition on the right
-	  {
-	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qim2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip1[alpha][i] = qi[alpha];
-	    
-	    NbrCells->qip2[alpha][i] = qi[alpha];
-	    }
-	else
-	  {
-	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qim2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip1[alpha][i] = Rneighbor->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] = Rneighbor2->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qip2[alpha][i] *= tempg;  
-	  }
-      }
-    else if(grid_pt->position[i] == (nmax[i]-1))/* plus edge - 1 */
-      {
-	if(rank == size-1) // for the right most rank do boundary condition on the right
-	  {
-	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qim2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip2[alpha][i] *= tempg;  
-	  }
-	else
-	  {
-	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qim2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] = Rneighbor->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qip2[alpha][i] *= tempg;  
-	  }
-      }
-    
-    else if(grid_pt->position[i] == 0)/* minus edge */
-      {
-	if(rank == 0) // for the left most rank do boundary condition on the left
-	  {
-	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qip2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qim1[alpha][i] = qi[alpha];
-	      
-	    NbrCells->qim2[alpha][i] = qi[alpha];
-	  }
-	else
-	  {
-	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qip2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qim1[alpha][i] = Lneighbor->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = Lneighbor2->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qim2[alpha][i] *= tempg;  
-	 //    if (grid_pt->position[1]==20 && grid_pt->position[2] == 20)
-// 	      {
-// 		cout << "x=" << grid_pt->position[1] << " y=" << grid_pt->position[2] 
-// 		     << " Lneighbor->TJb[" << rk_flag << "][" << alpha << "][0]=" << Lneighbor->TJb[rk_flag][alpha][0] << endl;
-// 		cout << "x=" << grid_pt->position[1] << " y=" << grid_pt->position[2] 
-// 		     << " Lneighbor2->TJb[" << rk_flag << "][" << alpha << "][0]=" << Lneighbor2->TJb[rk_flag][alpha][0] << endl;
-// 	      }
-	  }
-      }
-    else if(grid_pt->position[i] == 1)/* minus edge + 1 */
-      {
-	if(rank == 0)
-	  {
-	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qip2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim2[alpha][i] *= tempg;
-	    
-	  }
-	else
-	  {
-	    NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qip1[alpha][i] *= tempg;  
-	    
-	    NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qip2[alpha][i] *= tempg;  
-	    
-	    NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	    NbrCells->qim1[alpha][i] *= tempg;
-	    
-	    NbrCells->qim2[alpha][i] = Lneighbor->TJb[rk_flag][alpha][0]; 
-	    NbrCells->qim2[alpha][i] *= tempg;  
-	  }
-      }
-    else // all normal (not edge) cells
-      {
-	NbrCells->qip1[alpha][i] = grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0];
-	NbrCells->qip1[alpha][i] *= tempg;  
-	
-	NbrCells->qip2[alpha][i] = grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]; 
-	NbrCells->qip2[alpha][i] *= tempg;  
-	
-	NbrCells->qim1[alpha][i] = grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0];
-	NbrCells->qim1[alpha][i] *= tempg;
-	
-	NbrCells->qim2[alpha][i] = grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]; 
-	NbrCells->qim2[alpha][i] *= tempg;  
-      }
-  }/* alpha */
+void Advance::GetQIs(double tau, Grid *grid_pt, double *qi, NbrQs *NbrCells,
+                     int rk_flag, InitData *DATA) {
+    double tempg = tau;
+    for (int alpha = 0; alpha < 5; alpha++) {
+        /* qs from the neighbors */
+        /* implement outflow boundary condition - simply set the two outside
+         * values the same as at the boundary */
+        for (int i = 1; i <= 3; i++) {
+            NbrCells->qip1[alpha][i] = (
+                    tempg*grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0]);
+            
+            NbrCells->qip2[alpha][i] = (
+                    tempg*grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]);
+            
+            NbrCells->qim1[alpha][i] = (
+                    tempg*grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0]);
+            
+            NbrCells->qim2[alpha][i] = (
+                    tempg*grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]);
+        }/* i */    
+    }/* alpha */
  
- return; 
+    return; 
 }/* GetQIs */     
 
 
@@ -1426,10 +1101,14 @@ void Advance::InitTempGrids(BdryCells *HalfwayCells, int rk_order) {
     HalfwayCells->qimhR = util->mtx_malloc(5, 4);
  
     for (direc=0; direc<4; direc++) {
-        (HalfwayCells->grid_p_h_L)[direc].TJb = util->cube_malloc(rk_order, 5, 4);
-        (HalfwayCells->grid_p_h_R)[direc].TJb = util->cube_malloc(rk_order, 5, 4);
-        (HalfwayCells->grid_m_h_L)[direc].TJb = util->cube_malloc(rk_order, 5, 4);
-        (HalfwayCells->grid_m_h_R)[direc].TJb = util->cube_malloc(rk_order, 5, 4);
+        (HalfwayCells->grid_p_h_L)[direc].TJb =
+                                            util->cube_malloc(rk_order, 5, 4);
+        (HalfwayCells->grid_p_h_R)[direc].TJb =
+                                            util->cube_malloc(rk_order, 5, 4);
+        (HalfwayCells->grid_m_h_L)[direc].TJb =
+                                            util->cube_malloc(rk_order, 5, 4);
+        (HalfwayCells->grid_m_h_R)[direc].TJb =
+                                            util->cube_malloc(rk_order, 5, 4);
     
         (HalfwayCells->grid_p_h_L)[direc].u = util->mtx_malloc(rk_order, 4);
         (HalfwayCells->grid_p_h_R)[direc].u = util->mtx_malloc(rk_order, 4);
