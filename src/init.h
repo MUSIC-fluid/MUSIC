@@ -20,10 +20,9 @@ class Init {
     Init(EOS *eos);  // constructor
     ~Init();  // destructor
 
-    void InitArena(InitData *DATA, Grid ****arena, Grid ****Lneighbor,
-                   Grid ****Rneighbor, int size, int rank);
-    void LinkNeighbors(InitData *DATA, Grid ****arena, int size, int rank);
-    int InitTJb(InitData *DATA, Grid ****arena, int size, int rank);
+    void InitArena(InitData *DATA, Grid ****arena);
+    void LinkNeighbors(InitData *DATA, Grid ****arena);
+    int InitTJb(InitData *DATA, Grid ****arena);
 
     double eta_profile_normalisation(InitData *DATA, double eta);
     double eta_rhob_profile_normalisation(InitData *DATA, double eta);

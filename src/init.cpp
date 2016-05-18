@@ -50,7 +50,6 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
     cout << "Grid allocated." << endl;
     InitTJb(DATA, arena);
 
-    cout << "rank " << rank << " ok." << endl;
     LinkNeighbors(DATA, arena);
     delete helperGrid;
 }/* InitArena */
@@ -133,7 +132,7 @@ void Init::LinkNeighbors(InitData *DATA, Grid ****arena) {
                     (*arena)[ieta][ix][iy].nbr_p_1[3] =
                                                 &(*arena)[ieta+1][ix][iy];
                 else
-                    (*arena)[ieta][ix][iy][ieta].nbr_p_1[3] =
+                    (*arena)[ieta][ix][iy].nbr_p_1[3] =
                                                 &(*arena)[neta-1][ix][iy];
                 if (ieta < neta-2)
                     (*arena)[ieta][ix][iy].nbr_p_2[3] =
@@ -200,8 +199,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         }
 
         // read the one slice
-        for (ix = 0; ix <= DATA->nx; ix++) {
-            for (iy = 0; iy <= DATA->ny; iy++) {
+        for (int ix = 0; ix <= DATA->nx; ix++) {
+            for (int iy = 0; iy <= DATA->ny; iy++) {
                 profile >> dummy1 >> dummy2 >> dummy3
                         >> density >> utau >> ux >> uy
                         >> dummy  >> dummy  >> dummy  >> dummy;
@@ -335,8 +334,6 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         // constructed by nuclear thickness function TA and TB.
         // Along the longitudinal direction an asymmetric contribution from
         // target and projectile thickness function is allowed
-        size = DATA->size;
-        cout << "size=" << size << endl;
         cout << " ----- information on initial distribution -----" << endl;
         cout << "file name used: " << DATA->initName_TA << " and "
              << DATA->initName_TB << endl;
@@ -392,7 +389,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
                         epsilon = 0.00000000001;
 
                     // initial pressure distribution
-                    p = eos->get_pressure(epsilon, rhob);
+                    double p = eos->get_pressure(epsilon, rhob);
 
                     // set all values in the grid element:
                     (*arena)[ieta][ix][iy].epsilon = epsilon;

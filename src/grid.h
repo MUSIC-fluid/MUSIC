@@ -2,7 +2,6 @@
 #define GRID_H
 #include "data.h"
 #include "eos.h"
-#include <mpi.h>
 #include <iostream>
 #include <iomanip>
 

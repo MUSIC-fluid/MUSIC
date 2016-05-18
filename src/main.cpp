@@ -2,14 +2,11 @@
 #include <stdio.h>
 #include <sys/stat.h>// for mkdir
 
-#include "mpi.h"
 #include "./util.h"
 #include "./grid.h"
 #include "./data.h"
 #include "./init.h"
 #include "./eos.h"
-#include "./freeze.h"
-#include "./evolve.h"
 
 using namespace std;
 
@@ -41,9 +38,6 @@ int main(int argc, char *argv[]) {
 
     ReadInData3(&DATA, input_file);
 
-    int size = 1;
-    //DATA.neta = DATA.neta/size;
-
     EOS *eos = new EOS(&DATA);
 
     Grid ***arena;
@@ -51,28 +45,10 @@ int main(int argc, char *argv[]) {
         // clean all the surface files
         system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
         Init *init = new Init(eos);
-        init->InitArena(&DATA, &arena, &Lneighbor, &Rneighbor, size, rank);
+        init->InitArena(&DATA, &arena);
 
-        Evolve *evolve = new Evolve(eos, &DATA);
-        evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank);
-
-        if (DATA.output_hydro_debug_info) {
-            FILE *t4_file;
-            const char* t4_name = "avgT.dat";
-            t4_file = fopen(t4_name, "a");
-            fprintf(t4_file, "time average: %f GeV and %f GeV",
-                    DATA.avgT/DATA.nSteps*hbarc, DATA.avgT2/DATA.nSteps2*hbarc);
-            fclose(t4_file);
-        }
     }
 
-    if (DATA.mode == 1 || DATA.mode == 3 || DATA.mode == 4 || DATA.mode >= 5) {
-        // freeze-out
-        Freeze *freeze  = new Freeze(&DATA);
-        freeze->CooperFrye_pseudo(DATA.particleSpectrumNumber, DATA.mode,
-                                      &DATA, eos, size, rank);
-        delete freeze;
-    }
 }  /* main */
 
 // improve based on ReadInData2 to support comments in the input parameter file
