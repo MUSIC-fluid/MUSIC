@@ -11,7 +11,7 @@
 ##  
 
 CC := g++-mp-5
-CFLAGS= -Wall -O3 $(shell gsl-config --cflags) -fopenmp
+CFLAGS= -Wall -g $(shell gsl-config --cflags) -fopenmp
 
 RM		=	rm -f
 O               =       .o

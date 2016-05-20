@@ -488,6 +488,10 @@ int Reconst::ReconstIt_velocity(
             fprintf(stderr, "In Reconst velocity, reconstructed: u^2 - 1= %e\n",
                     temp_usq - 1.0);
             fprintf(stderr, "Can't happen.\n");
+            fprintf(stderr, "u[0]=%.6e, u[1]=%.6e, u[2]=%.6e, u[3]=%.6e\n",
+                    u[0], u[1], u[2], u[3]);
+            fprintf(stderr, "e=%.6e, rhob=%.6e, p=%.6e\n",
+                    epsilon, rhob, pressure);
             exit(0);
         } else if(fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0] && echo_level > 5) {
             // Warn only when the deviation from 1 is relatively large
