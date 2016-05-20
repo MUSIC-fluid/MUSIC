@@ -29,7 +29,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
                          InitData *DATA, int rk_flag) {
     double delta[4], taufactor;
     double shear_on, bulk_on, diff_on;
-    int i, nmax[4];
+    int i;
 
     if (DATA->turn_on_shear)
         shear_on = 1.0;
@@ -47,10 +47,6 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
         bulk_on = 0.0;
 
     /* calculate d_m (tau W^{m,alpha}) + (geom source terms) */
-    nmax[1] = DATA->nx;
-    nmax[2] = DATA->ny;
-    nmax[3] = DATA->neta-1;
-
     delta[1] = DATA->delta_x;
     delta[2] = DATA->delta_y;
     delta[3] = DATA->delta_eta;
@@ -123,7 +119,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     }
 
     // final result
-    double result;
+    double result = 0.0;
     if (alpha < 4)
         result = (sf*shear_on + bf*bulk_on);
     else if (alpha == 4)
@@ -144,7 +140,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
 double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
                            InitData *DATA, int rk_flag) {
     double tempf, tau_pi;
-    double SW, shear, shear_to_s, T, epsilon, rhob, Ttr;
+    double SW, shear, shear_to_s, T, epsilon, rhob;
     int a, b;
     double sigma[4][4], gamma, ueta;
     double NS_term;
@@ -394,7 +390,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 
 int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
                      InitData *DATA, int rk_flag) {
-    int mu, nu, direc, nmax[4], ic;
+    int mu, nu, direc, ic;
     double f, fp1, fm1, fp2, fm2, delta[4];
     double g, gp1, gm1, gp2, gm2, a, am1, ap1, ax;
     double uWphR, uWphL, uWmhR, uWmhL, WphR, WphL, WmhR, WmhL;
@@ -418,9 +414,6 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
        Here fRph = ux WmnRph and ax uRph = |ux/utau|_max utau Wmn */
     /* This is the second step in the operator splitting. it uses
        rk_flag+1 as initial condition */
-    nmax[1] = DATA->nx;
-    nmax[2] = DATA->ny;
-    nmax[3] = DATA->neta-1;
     delta[1] = DATA->delta_x;
     delta[2] = DATA->delta_y;
     delta[3] = DATA->delta_eta;
@@ -707,7 +700,7 @@ void Diss::Get_uPis(double tau, Grid *grid_pt, int direc, double *g, double *f,
 double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
                             int rk_flag) {
     double tempf;
-    double shear, bulk;
+    double bulk;
     double Bulk_Relax_time;
     double transport_coeff1, transport_coeff2;
     double transport_coeff1_s, transport_coeff2_s;
@@ -718,11 +711,6 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
     int include_BBterm = 1;
     int include_coupling_to_shear = 1;
  
-    // Useful variables to define
-    double gamma, ueta, cs2;
-    gamma = grid_pt->u[rk_flag][0];
-    ueta  = grid_pt->u[rk_flag][3];
-
     if (DATA->turn_on_bulk == 0) return 0.0;
 
     // defining bulk viscosity coefficient
@@ -732,10 +720,11 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
     //shear = (DATA->shear_to_s)*s_den;   
     // shear viscosity = constant * (e + P)/T
     double temperature = eos->get_temperature(grid_pt->epsilon, grid_pt->rhob);
-    shear = (DATA->shear_to_s)*(grid_pt->epsilon + grid_pt->p)/temperature;  
+    //double shear = ((DATA->shear_to_s)*(grid_pt->epsilon + grid_pt->p)
+    //                /temperature);  
 
     // cs2 is the velocity of sound squared
-    cs2 = eos->get_cs2(grid_pt->epsilon, grid_pt->rhob);  
+    double cs2 = eos->get_cs2(grid_pt->epsilon, grid_pt->rhob);  
 
     // bulk viscosity = constant * shear viscosity * (1/3-cs2)**2
     // parameter DATA->bulk_to_s should be between 15 -- 75
@@ -858,14 +847,13 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
 double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
                            int rk_flag) {
     double tempf, tau_rho, tau_pi, shear, shear_to_s;
-    double SW, kappa, T, epsilon, rhob, Ttr;
+    double SW, kappa, T, epsilon, rhob;
     int i;
     double q[4];
   
     if (DATA->turn_on_diff == 0) return 0.0;
  
     // Useful variables to define
-    Ttr = 0.18/hbarc;  /// phase transition temperature
     epsilon = grid_pt->epsilon;
     rhob = grid_pt->rhob;
 

@@ -374,7 +374,7 @@ int Reconst::ReconstIt_velocity(
     }/* if iteration is unsuccessful, revert */
    
     // for large velocity, solve u0
-    double u0_solution;
+    double u0_solution = 1.0;
     if (v_solution > v_critical) {
         double u0_max_guess = max(5e3, 2*T00/(T00*T00 - K00));
         gslFunc.function = this->CCallback_reconst_u0;

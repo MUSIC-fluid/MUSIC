@@ -14,7 +14,7 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in) {
     eos = eosIn;
     grid = new Grid;
     //grid_info = new Grid_info(DATA_in);
-    reconst = new Reconst(eosIn, grid);
+    reconst = new Reconst(eosIn);
     util = new Util;
     advance = new Advance(eosIn, DATA_in);
     u_derivative = new U_derivative(eosIn, DATA_in);

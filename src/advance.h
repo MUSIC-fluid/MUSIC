@@ -13,8 +13,9 @@
 class Advance {
  private:
     Util *util;
-    Reconst *reconst; // declare Reconst object
-    Diss *diss; // dissipative object
+    Reconst *reconst;  // declare Reconst object
+    Diss *diss;        // dissipative object
+    Grid *grid;
     EOS *eos;
     Minmod *minmod;
     U_derivative *u_derivative;

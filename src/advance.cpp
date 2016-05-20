@@ -11,6 +11,7 @@ using namespace std;
 Advance::Advance(EOS *eosIn, InitData* DATA_in) {
     eos = eosIn;
     reconst = new Reconst(eosIn);
+    grid = new Grid();
     util = new Util;
     diss = new Diss(eosIn, DATA_in);
     minmod = new Minmod(DATA_in);
@@ -25,6 +26,7 @@ Advance::Advance(EOS *eosIn, InitData* DATA_in) {
 // destructor
 Advance::~Advance() {
     delete reconst;
+    delete grid;
     delete util;
     delete diss;
     delete minmod;
@@ -290,7 +292,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
                                             tempf/(grid_pt->u[rk_flag+1][0]));
         }
    } else if (rk_flag > 0) {
-        diss->Make_uqRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag, size, rank);
+        diss->Make_uqRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag);
         int mu = 4;
         for (int nu=1; nu<=3; nu++) {
             tempf = (grid_pt->Wmunu[0][mu][nu])*(grid_pt->u[0][0]);
@@ -1030,7 +1032,7 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag)
             num = (sqrt(-(h*dpde*h*(dpde*(-1.0 + ut2mux2) - ut2mux2))) 
                    - h*(-1.0 + dpde)*utau*ux);
         } else {
-            fprintf(stderr,"WARNING: in MaxSpeed. \n")
+            fprintf(stderr,"WARNING: in MaxSpeed. \n");
             fprintf(stderr, "Expression under sqrt in num=%lf. \n",
                     num_temp_sqrt);
             fprintf(stderr,"at value e=%lf. \n",eps);
