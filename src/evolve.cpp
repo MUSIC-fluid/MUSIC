@@ -1,18 +1,17 @@
 // Copyright 2012 Bjoern Schenke, Sangyong Jeon, and Charles Gale
-#include "evolve.h"
-#include "util.h"
-#include "data.h"
-#include "grid.h"
-#include "grid_info.h"
-#include "eos.h"
-#include "reconst.h"
-#include "advance.h"
-#include "cornelius.h"
+#include "./evolve.h"
+#include "./util.h"
+#include "./data.h"
+#include "./grid.h"
+#include "./grid_info.h"
+#include "./eos.h"
+#include "./reconst.h"
+#include "./advance.h"
+#include "./cornelius.h"
 
 using namespace std;
 
-Evolve::Evolve(EOS *eosIn, InitData *DATA_in)
-{
+Evolve::Evolve(EOS *eosIn, InitData *DATA_in) {
     eos = eosIn;
     grid = new Grid;
     grid_info = new Grid_info(DATA_in);
@@ -32,8 +31,7 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in)
 }
 
 // destructor
-Evolve::~Evolve()
-{
+Evolve::~Evolve() {
     delete reconst;
     delete grid;
     delete grid_info;
@@ -161,34 +159,34 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         //grid_info->ComputeEnergyConservation(DATA, arena, tau);
 
         //determine freeze-out surface
-        int frozen = 0;
-        if (freezeout_flag == 1) {
-            if (freezeout_lowtemp_flag == 1) {
-                if (it == 0) {
-                    frozen = FreezeOut_equal_tau_Surface(tau, DATA, arena);
-                }
-            }
-            // avoid freeze-out at the first time step
-            int freeze_out_time_step = static_cast<int>(it/facTau);
-            if (it%facTau == 0 && freeze_out_time_step > 0) {
-                if (freezeout_method == 1)
-                    FindFreezeOutSurface(tau, DATA, arena);
-                else if (freezeout_method == 2)
-                    FindFreezeOutSurface2(tau, DATA, arena);
-                else if (freezeout_method == 3)
-                    frozen = FindFreezeOutSurface3(tau, DATA, arena);
-                else if (freezeout_method == 4) {
-                    if (boost_invariant_flag == 0)
-                        frozen = FindFreezeOutSurface_Cornelius(
-                                                            tau, DATA, arena);
-                    else
-                        frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
-                                                            tau, DATA, arena);
-                }
-                storePreviousEpsilon(arena);
-                storePreviousW(arena);
-            } 
-        }/* do freeze-out determination */
+        //int frozen = 0;
+        //if (freezeout_flag == 1) {
+        //    if (freezeout_lowtemp_flag == 1) {
+        //        if (it == 0) {
+        //            frozen = FreezeOut_equal_tau_Surface(tau, DATA, arena);
+        //        }
+        //    }
+        //    // avoid freeze-out at the first time step
+        //    int freeze_out_time_step = static_cast<int>(it/facTau);
+        //    if (it%facTau == 0 && freeze_out_time_step > 0) {
+        //        if (freezeout_method == 1)
+        //            FindFreezeOutSurface(tau, DATA, arena);
+        //        else if (freezeout_method == 2)
+        //            FindFreezeOutSurface2(tau, DATA, arena);
+        //        else if (freezeout_method == 3)
+        //            frozen = FindFreezeOutSurface3(tau, DATA, arena);
+        //        else if (freezeout_method == 4) {
+        //            if (boost_invariant_flag == 0)
+        //                frozen = FindFreezeOutSurface_Cornelius(
+        //                                                    tau, DATA, arena);
+        //            else
+        //                frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
+        //                                                    tau, DATA, arena);
+        //        }
+        //        storePreviousEpsilon(arena);
+        //        storePreviousW(arena);
+        //    } 
+        //}/* do freeze-out determination */
     
         if (rank == 0)
             fprintf(stderr, "Done time step %d/%d. tau = %6.3f fm/c \n", 

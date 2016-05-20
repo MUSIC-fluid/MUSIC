@@ -46,6 +46,9 @@ int main(int argc, char *argv[]) {
         system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
         Init *init = new Init(eos);
         init->InitArena(&DATA, &arena);
+        
+        Evolve *evolve = new Evolve(eos, &DATA);
+        evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank);
     }
 
 }  /* main */
