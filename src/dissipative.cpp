@@ -25,9 +25,8 @@ Diss::~Diss() {
 for everywhere else. also, this change is necessary
 to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
 /* this is the only one that is being subtracted in the rhs */
-double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor,
-                         Grid *Rneighbor, Grid *Lneighbor2, Grid *Rneighbor2,
-                         InitData *DATA, int rk_flag, int size, int rank) {
+double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
+                         InitData *DATA, int rk_flag) {
     double delta[4], taufactor;
     double shear_on, bulk_on, diff_on;
     int i, nmax[4];
@@ -80,25 +79,12 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor,
     double dWdx_perp = 0.0;
     double dPidx_perp = 0.0;
     for (i = 1; i <= 2; i++) {  // x and y
-        double sg = grid_pt->Wmunu[rk_flag][alpha][i];
-        double bg = grid_pt->Pimunu[rk_flag][alpha][i];
-        double sgp1, sgm1, bgp1, bgm1;
-        if (grid_pt->position[i] == nmax[i]) {
-            sgp1 = sg;
-            bgp1 = bg;
-            sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-            bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-        } else if (grid_pt->position[i] == 0) {
-            sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
-            bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
-            sgm1 = sg;
-            bgm1 = bg;
-        } else {
-            sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
-            bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
-            sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-            bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-        }
+        //double sg = grid_pt->Wmunu[rk_flag][alpha][i];
+        double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
+        double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
+        //double bg = grid_pt->Pimunu[rk_flag][alpha][i];
+        double bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
+        double bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
         //dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
         //dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i];
         dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
@@ -109,42 +95,12 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor,
     i = 3;
     taufactor = tau;
     double dWdeta, dPideta;
-
-    double sg = grid_pt->Wmunu[rk_flag][alpha][i];
-    double bg = grid_pt->Pimunu[rk_flag][alpha][i];
-    double sgp1, sgm1, bgp1, bgm1;
-    if (grid_pt->position[i] == nmax[i]) {
-        if (rank == size-1)  {
-            // for the right most rank do boundary condition on the right
-            sgp1 = sg;
-            bgp1 = bg;
-            sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-            bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-        } else {
-            sgp1 = Rneighbor->Wmunu[rk_flag][alpha][i];
-            bgp1 = Rneighbor->Pimunu[rk_flag][alpha][i];
-            sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-            bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-        }
-    } else if (grid_pt->position[i] == 0) {
-        if (rank == 0) {
-            // for the left most rank do boundary condition on the left
-            sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
-            bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
-            sgm1 = sg;
-            bgm1 = bg;
-        } else {
-            sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
-            bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
-            sgm1 = Lneighbor->Wmunu[rk_flag][alpha][i];
-            bgm1 = Lneighbor->Pimunu[rk_flag][alpha][i];
-        }
-    } else {
-        sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
-        bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
-        sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-        bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
-    }
+    //double sg = grid_pt->Wmunu[rk_flag][alpha][i];
+    //double bg = grid_pt->Pimunu[rk_flag][alpha][i];
+    double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
+    double bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
+    double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
+    double bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
     //dWdeta = minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
     //dPideta = minmod->minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor;
     dWdeta = (sgp1 - sgm1)/(2.*delta[i]*taufactor);

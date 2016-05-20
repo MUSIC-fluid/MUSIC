@@ -8,9 +8,8 @@
 
 using namespace std;
 
-Reconst::Reconst(EOS *eosIn, Grid *gridIn) {
+Reconst::Reconst(EOS *eosIn) {
     eos = eosIn;
-    grid = gridIn;
     util = new Util;
 
     // initialize gsl root finding solver

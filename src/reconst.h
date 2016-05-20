@@ -28,7 +28,6 @@ struct CCallbackHolder {
 class Reconst {
  private:
     EOS *eos;
-    Grid *grid;
     Util *util;
 
     // initialize gsl root finding solver
@@ -39,7 +38,7 @@ class Reconst {
     gsl_function gslFunc;
 
  public:
-    Reconst(EOS *eos, Grid *grid);//constructor
+    Reconst(EOS *eos);//constructor
     ~Reconst();//destructor
       
     void ReconstError(const char *str, int i, int rk_flag, double *qi,

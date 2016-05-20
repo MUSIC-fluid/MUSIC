@@ -7,6 +7,7 @@
 #include "./data.h"
 #include "./init.h"
 #include "./eos.h"
+#include "./evolve.h"
 
 using namespace std;
 
@@ -48,7 +49,7 @@ int main(int argc, char *argv[]) {
         init->InitArena(&DATA, &arena);
         
         Evolve *evolve = new Evolve(eos, &DATA);
-        evolve->EvolveIt(&DATA, arena, Lneighbor, Rneighbor, size, rank);
+        evolve->EvolveIt(&DATA, arena);
     }
 
 }  /* main */

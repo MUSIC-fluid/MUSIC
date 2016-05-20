@@ -10,7 +10,7 @@ using namespace std;
 
 Advance::Advance(EOS *eosIn, InitData* DATA_in) {
     eos = eosIn;
-    reconst = new Reconst(eosIn, grid);
+    reconst = new Reconst(eosIn);
     util = new Util;
     diss = new Diss(eosIn, DATA_in);
     minmod = new Minmod(DATA_in);
@@ -38,7 +38,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
     for(int ieta=0; ieta<grid_neta; ieta++) {
         for (int ix=0; ix<=grid_nx; ix++) {
             for (int iy=0; iy<=grid_ny; iy++) {
-	            AdvanceLocalT(tau, DATA, &(arena[ix][iy][ieta]), rk_flag);
+	            AdvanceLocalT(tau, DATA, &(arena[ieta][ix][iy]), rk_flag);
 	        }/*iy */
         }/* ix */
 	}/* ieta */
@@ -47,7 +47,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
 	    for (int ieta=0; ieta<grid_neta; ieta++) {
             for (int ix=0; ix<=grid_nx; ix++) {
 	            for (int iy=0; iy<=grid_ny; iy++) {
-		            AdvanceLocalW(tau, DATA, &(arena[ix][iy][ieta]), rk_flag);
+		            AdvanceLocalW(tau, DATA, &(arena[ieta][ix][iy]), rk_flag);
 	            } /*iy */
 	        } /* ix */
 		} /* ieta */

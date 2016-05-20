@@ -25,10 +25,12 @@ MAIN		=	mpihydro
 endif
 
 SRC		=	main.cpp grid.cpp eos.cpp init.cpp \
-            util.cpp
+            util.cpp evolve.cpp advance.cpp u_derivative.cpp \
+			reconst.cpp dissipative.cpp minmod.cpp
 
-INC		= 	grid.h eos.h init.h \
-            util.h data.h
+INC		= 	grid.h eos.h init.h util.h data.h \
+			evolve.h advance.h u_derivative.h reconst.h dissipative.h \
+			minmod.cpp
 
 # -------------------------------------------------
 

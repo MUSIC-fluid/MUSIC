@@ -16,11 +16,10 @@ class Diss{
   Diss(EOS *eosIn, InitData* DATA_in);
   ~Diss();
   
-  double MakeWSource(double tau, int alpha, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
-		     Grid *Lneighbor2, Grid *Rneighbor2, InitData *DATA, int rk_flag, int size, int rank);
+  double MakeWSource(double tau, int alpha, Grid *grid_pt,
+                     InitData *DATA, int rk_flag);
   
-  int Make_uWRHS
-    (double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
+  int Make_uWRHS(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
      Grid *Lneighbor2, Grid *Rneighbor2, double **w_rhs, InitData *DATA, int rk_flag, int size, int rank);
   
   void Get_uWmns(double tau, Grid *grid_pt, Grid *Lneighbor, Grid *Rneighbor, 
