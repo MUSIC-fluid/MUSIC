@@ -374,8 +374,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
 
                                 (*arena)[ieta][ix][iy].prevWmunu[0][mu][nu] =
                                     (*arena)[ieta][ix][iy].Wmunu[0][mu][nu];
+                                (*arena)[ieta][ix][iy].prevWmunu[1][mu][nu] =
+                                    (*arena)[ieta][ix][iy].Wmunu[0][mu][nu];
                                 (*arena)[ieta][ix][iy].Pimunu[0][mu][nu] = 0.0;
                                 (*arena)[ieta][ix][iy].prevPimunu[0][mu][nu] = 0.0;
+                                (*arena)[ieta][ix][iy].prevPimunu[1][mu][nu] = 0.0;
                             }/* nu */
                         }/* mu */
                     }
@@ -563,9 +566,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
                                     + p*(DATA->gmunu)[mu][nu]);
                                 (*arena)[ieta][ix][iy].Wmunu[0][nu][mu] = 0.0;
                                 (*arena)[ieta][ix][iy].prevWmunu[0][nu][mu] = 0.0;
+                                (*arena)[ieta][ix][iy].prevWmunu[1][nu][mu] = 0.0;
 
                                 (*arena)[ieta][ix][iy].Pimunu[0][nu][mu] = 0.0;
                                 (*arena)[ieta][ix][iy].prevPimunu[0][nu][mu] = 0.0;
+                                (*arena)[ieta][ix][iy].prevPimunu[1][nu][mu] = 0.0;
                             }/* nu */
                         }/* mu */
                     }
@@ -715,9 +720,11 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
                                     + p*(DATA->gmunu)[mu][nu]);
                                 (*arena)[ieta][ix][iy].Wmunu[0][nu][mu] = 0.0;
                                 (*arena)[ieta][ix][iy].prevWmunu[0][nu][mu] = 0.0;
+                                (*arena)[ieta][ix][iy].prevWmunu[1][nu][mu] = 0.0;
 
                                 (*arena)[ieta][ix][iy].Pimunu[0][nu][mu] = 0.0;
                                 (*arena)[ieta][ix][iy].prevPimunu[0][nu][mu] = 0.0;
+                                (*arena)[ieta][ix][iy].prevPimunu[1][nu][mu] = 0.0;
                             }/* nu */
                         }/* mu */
                     }

@@ -63,8 +63,15 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
                to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
     // dW/dtau
     // backward time derivative (first order is more stable)
-    double dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
+    double dWdtau;
+    dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
                      - grid_pt->prevWmunu[rk_flag][alpha][0])/DATA->delta_tau;
+    //if (rk_flag == 0)
+    //    dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
+    //                     - grid_pt->prevWmunu[rk_flag][alpha][0])/DATA->delta_tau;
+    //else
+    //    dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
+    //                     - grid_pt->Wmunu[0][alpha][0])/DATA->delta_tau;
 
     /* bulk pressure term */
     double dPidtau = (
@@ -76,9 +83,9 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     double dPidx_perp = 0.0;
     for (i = 1; i <= 2; i++) {  // x and y
         //double sg = grid_pt->Wmunu[rk_flag][alpha][i];
+        //double bg = grid_pt->Pimunu[rk_flag][alpha][i];
         double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
         double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-        //double bg = grid_pt->Pimunu[rk_flag][alpha][i];
         double bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
         double bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
         //dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
@@ -218,17 +225,9 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
 
-    // remember: dUsup[m][n] = partial^n u^m  ///
-    // remember:  a[n]  =  u^m*partial_m u^n  ///
-    for (a = 0; a < 4; a++) {
-        for (b = 0; b < 4; b++) {
-            sigma[a][b] = grid_pt->sigma[rk_flag][a][b];
-        }
-    }
-
     // full Navier-Stokes term is
     // sign changes according to metric sign convention
-    NS_term = -2.*shear*sigma[mu][nu];
+    NS_term = - 2.*shear*grid_pt->sigma[rk_flag][mu][nu];
 
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
@@ -372,7 +371,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
     double Bulk_W, Bulk_W_term;
     double Coupling_to_Bulk;
 
-    Bulk_Sigma = grid_pt->pi_b[rk_flag]*sigma[mu][nu];
+    Bulk_Sigma = grid_pt->pi_b[rk_flag]*grid_pt->sigma[rk_flag][mu][nu];
     Bulk_W = grid_pt->pi_b[rk_flag]*grid_pt->Wmunu[rk_flag][mu][nu];
 
     // multiply term by its respective transport coefficient

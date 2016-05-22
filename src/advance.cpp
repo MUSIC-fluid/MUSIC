@@ -371,11 +371,13 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
     // reduce Wmunu using the QuestRevert algorithm
     int revert_flag = 0;
     int revert_q_flag = 0;
-    if (grid_pt->epsilon < DATA->QuestRevert_epsilon_min/hbarc) {
-        revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA);
-        revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA);
+    if (DATA->Initial_profile != 0) {
+        if (grid_pt->epsilon < DATA->QuestRevert_epsilon_min/hbarc) {
+            revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA);
+            revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA);
+        }
+        grid_pt->revert_flag = revert_flag;
     }
-    grid_pt->revert_flag = revert_flag;
 
     if (revert_flag == 1)
         return -1;

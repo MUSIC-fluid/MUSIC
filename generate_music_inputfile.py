@@ -68,8 +68,8 @@ hydro_dict.update({
     'boost_invariant': 0,    # initial condition is boost invariant
 
     #viscosity and diffusion options
-    'Viscosity_Flag_Yes_1_No_0': 0,         # turn on viscosity in the evolution
-    'Include_Shear_Visc_Yes_1_No_0': 0,     # include shear viscous effect
+    'Viscosity_Flag_Yes_1_No_0': 1,         # turn on viscosity in the evolution
+    'Include_Shear_Visc_Yes_1_No_0': 1,     # include shear viscous effect
     'Shear_to_S_ratio': 0.20,               # value of \eta/s
     'T_dependent_Shear_to_S_ratio': 0,      # switch to turn on temperature dependent eta/s(T)
     'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect

@@ -3537,15 +3537,12 @@ double EOS::interpolate2D(double e, double rhob, int selector)
     return result;
 }
 
-double EOS::T_from_eps_ideal_gas(double eps)
-{
-
+double EOS::T_from_eps_ideal_gas(double eps) {
 	//Define number of colours and of flavours
  	const double Nc=3, Nf=2.5;
-	
-	return pow(90.0/M_PI/M_PI*(eps/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf),.25);
-
+	return pow(90.0/M_PI/M_PI*(eps/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf), .25);
 }
+
 double EOS::s2e_ideal_gas(double s)
 {
 
