@@ -126,6 +126,8 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
         result = sf*diff_on;
 
     if (isnan(result)) {
+        cout << "[Error]Diss::MakeWSource: " << endl;
+        cout << "rk_flag = " << rk_flag << endl;
         cout << "sf=" << sf << " bf=" << bf
              << " Wmunu[" << rk_flag << "]="
              << grid_pt->Wmunu[rk_flag][alpha][0]

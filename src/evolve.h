@@ -11,7 +11,7 @@
 #include "util.h"
 #include "data.h"
 #include "grid.h"
-//#include "grid_info.h"
+#include "grid_info.h"
 #include "eos.h"
 #include "reconst.h"
 #include "reconst.h"
@@ -24,7 +24,7 @@ class Evolve {
     EOS *eos; // declare EOS object
     Reconst *reconst; // declare Reconst object
     Grid *grid; // declare Grid object
-    //Grid_nfo *grid_info;
+    Grid_info *grid_info;
     Util *util;
     Advance *advance;
     U_derivative *u_derivative;

@@ -11,7 +11,7 @@
 ##  
 
 CC := g++-mp-5
-CFLAGS= -Wall -g $(shell gsl-config --cflags) -fopenmp
+CFLAGS= -Wall -O3 $(shell gsl-config --cflags) -fopenmp
 
 RM		=	rm -f
 O               =       .o
@@ -26,11 +26,11 @@ endif
 
 SRC		=	main.cpp grid.cpp eos.cpp init.cpp \
             util.cpp evolve.cpp advance.cpp u_derivative.cpp \
-			reconst.cpp dissipative.cpp minmod.cpp
+			reconst.cpp dissipative.cpp minmod.cpp grid_info.cpp
 
 INC		= 	grid.h eos.h init.h util.h data.h \
 			evolve.h advance.h u_derivative.h reconst.h dissipative.h \
-			minmod.cpp
+			minmod.h grid_info.h
 
 # -------------------------------------------------
 

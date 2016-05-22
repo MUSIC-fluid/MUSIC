@@ -31,7 +31,10 @@ void EOS::checkForReadError(FILE *file, const char* name) {
 }
 
 void EOS::initialize_eos() {
-    if (parameters_ptr->whichEOS == 0) {
+    if (parameters_ptr->Initial_profile == 0) {
+        cout << "Using the ideal gas EOS" << endl;
+        init_eos0();
+    } else if (parameters_ptr->whichEOS == 0) {
         cout << "Using the ideal gas EOS" << endl;
         init_eos0();
     } else if (parameters_ptr->whichEOS == 1) {

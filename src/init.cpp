@@ -21,7 +21,17 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
     Grid *helperGrid;
     helperGrid = new Grid;
     cout << "initArena" << endl;
-    if (DATA->Initial_profile == 8) {
+    if (DATA->Initial_profile == 0) {
+        cout << "Using Initial_profile=" << DATA->Initial_profile
+             << ". Overwriting lattice dimensions:" << endl;
+        DATA->nx = 200;
+        DATA->ny = 200;
+        DATA->delta_x = 0.05;
+        DATA->delta_y = 0.05;
+        
+        cout << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1 << endl;
+        cout << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y << endl;
+    } else if (DATA->Initial_profile == 8) {
         cout << DATA->initName <<endl;
         ifstream profile(DATA->initName.c_str());
         string dummy;
@@ -172,6 +182,209 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
     int rk_order = DATA->rk_order;
     cout << "rk_order=" << rk_order << endl;
     if (DATA->Initial_profile == 0) {
+        // Gubser flow test
+        cout << " Perform Gubser flow test ... " << endl;
+        cout << " ----- information on initial distribution -----" << endl;
+        string input_filename = "tests/Gubser_flow/Initial_Profile.dat";
+        cout << "file name used: " << input_filename << endl;
+        
+        ifstream profile(input_filename.c_str());
+        if (! profile.good()) {
+            cout << "Init::InitTJb: "
+                 << "Can not open the initial file: " << input_filename
+                 << endl;
+            exit(1);
+        }
+        
+        int nx = DATA->nx + 1;
+        int ny = DATA->ny + 1;
+        double** temp_profile_ed = new double* [nx];
+        double** temp_profile_ux = new double* [nx];
+        double** temp_profile_uy = new double* [nx];
+        double** temp_profile_pixx = new double* [nx];
+        double** temp_profile_piyy = new double* [nx];
+        double** temp_profile_pixy = new double* [nx];
+        double** temp_profile_pi00 = new double* [nx];
+        double** temp_profile_pi0x = new double* [nx];
+        double** temp_profile_pi0y = new double* [nx];
+        double** temp_profile_pi33 = new double* [nx];
+        for (int i = 0; i < nx; i++) {
+            temp_profile_ed[i] = new double[ny];
+            temp_profile_ux[i] = new double[ny];
+            temp_profile_uy[i] = new double[ny];
+            temp_profile_pixx[i] = new double[ny];
+            temp_profile_pixy[i] = new double[ny];
+            temp_profile_piyy[i] = new double[ny];
+            temp_profile_pi00[i] = new double[ny];
+            temp_profile_pi0x[i] = new double[ny];
+            temp_profile_pi0y[i] = new double[ny];
+            temp_profile_pi33[i] = new double[ny];
+        }
+
+        double dummy;
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy < ny; iy++) {
+                profile >> dummy >> dummy >> temp_profile_ed[ix][iy]
+                        >> temp_profile_ux[ix][iy] >> temp_profile_uy[ix][iy]
+                        >> temp_profile_pixx[ix][iy]
+                        >> temp_profile_piyy[ix][iy]
+                        >> temp_profile_pixy[ix][iy]
+                        >> temp_profile_pi00[ix][iy]
+                        >> temp_profile_pi0x[ix][iy]
+                        >> temp_profile_pi0y[ix][iy]
+                        >> temp_profile_pi33[ix][iy];
+            }
+        }
+        profile.close();
+        int ieta;
+        #pragma omp parallel private(ieta)
+        {
+            #pragma omp for
+            for (ieta = 0; ieta < DATA->neta; ieta++) {
+                for (int ix = 0; ix < nx; ix++) {
+                    for (int iy = 0; iy< ny; iy++) {
+                        rhob = 0.0;
+                        epsilon = temp_profile_ed[ix][iy];
+                        
+                        // initial pressure distribution
+                        double p = eos->get_pressure(epsilon, rhob);
+                        // set all values in the grid element:
+                        (*arena)[ieta][ix][iy].epsilon = epsilon;
+                        (*arena)[ieta][ix][iy].epsilon_t = epsilon;
+                        (*arena)[ieta][ix][iy].prev_epsilon = epsilon;
+                        (*arena)[ieta][ix][iy].rhob = rhob;
+                        (*arena)[ieta][ix][iy].rhob_t = rhob;
+                        (*arena)[ieta][ix][iy].prev_rhob = rhob;
+                        (*arena)[ieta][ix][iy].p = p;
+                        (*arena)[ieta][ix][iy].p_t = p;
+                        (*arena)[ieta][ix][iy].trouble = 0;
+                        
+                        (*arena)[ieta][ix][iy].T = eos->get_temperature(
+                                                                epsilon, rhob);
+                        (*arena)[ieta][ix][iy].mu = eos->get_mu(epsilon, rhob);
+                    
+                        (*arena)[ieta][ix][iy].TJb =
+                                        util->cube_malloc(rk_order+1, 5, 4);
+                        (*arena)[ieta][ix][iy].dUsup =
+                                        util->cube_malloc(rk_order+1, 5, 4);
+                        (*arena)[ieta][ix][iy].u = 
+                                        util->mtx_malloc(rk_order+1, 4);
+                        (*arena)[ieta][ix][iy].a = 
+                                        util->mtx_malloc(rk_order+1, 5);
+                        (*arena)[ieta][ix][iy].theta_u =
+                                        util->vector_malloc(rk_order+1);
+                        (*arena)[ieta][ix][iy].sigma =
+                                        util->cube_malloc(rk_order+1, 4, 4);
+                        (*arena)[ieta][ix][iy].pi_b =
+                                        util->vector_malloc(rk_order+1);
+                        (*arena)[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
+                        (*arena)[ieta][ix][iy].Wmunu =
+                                        util->cube_malloc(rk_order+1, 5, 4);
+                        (*arena)[ieta][ix][iy].prevWmunu =
+                                        util->cube_malloc(rk_order, 5, 4);
+                        (*arena)[ieta][ix][iy].Pimunu =
+                                        util->cube_malloc(rk_order+1, 5, 4);
+                        (*arena)[ieta][ix][iy].prevPimunu =
+                                        util->cube_malloc(rk_order, 5, 4);
+                        (*arena)[ieta][ix][iy].W_prev = util->mtx_malloc(5, 4);
+                        
+                        /* for HIC */
+                        double utau_local = sqrt(1.
+                            + temp_profile_ux[ix][iy]*temp_profile_ux[ix][iy]
+                            + temp_profile_uy[ix][iy]*temp_profile_uy[ix][iy]);
+                        (*arena)[ieta][ix][iy].u[0][0] = utau_local;
+                        (*arena)[ieta][ix][iy].u[0][1] =
+                                                    temp_profile_ux[ix][iy];
+                        (*arena)[ieta][ix][iy].u[0][2] =
+                                                    temp_profile_uy[ix][iy];
+                        (*arena)[ieta][ix][iy].u[0][3] = 0.0;
+
+                        u[0] = utau_local;
+                        u[1] = temp_profile_ux[ix][iy];
+                        u[2] = temp_profile_uy[ix][iy];
+                        u[3] = 0.0;
+
+                        (*arena)[ieta][ix][iy].prev_u[0][0] = u[0];
+                        (*arena)[ieta][ix][iy].prev_u[0][1] = u[1];
+                        (*arena)[ieta][ix][iy].prev_u[0][2] = u[2];
+                        (*arena)[ieta][ix][iy].prev_u[0][3] = u[3];
+
+                        (*arena)[ieta][ix][iy].pi_b[0] = 0.0;
+
+                        (*arena)[ieta][ix][iy].Wmunu[0][0][0] =
+                                                temp_profile_pi00[ix][iy];
+                        (*arena)[ieta][ix][iy].Wmunu[0][0][1] =
+                                                temp_profile_pi0x[ix][iy];
+                        (*arena)[ieta][ix][iy].Wmunu[0][0][2] =
+                                                temp_profile_pi0y[ix][iy];
+                        (*arena)[ieta][ix][iy].Wmunu[0][0][3] = 0.0;
+                        (*arena)[ieta][ix][iy].Wmunu[0][1][0] =
+                                                temp_profile_pi0x[ix][iy];
+                        (*arena)[ieta][ix][iy].Wmunu[0][1][1] =
+                                                temp_profile_pixx[ix][iy];
+                        (*arena)[ieta][ix][iy].Wmunu[0][1][2] =
+                                                temp_profile_pixy[ix][iy];
+                        (*arena)[ieta][ix][iy].Wmunu[0][1][3] = 0.0;
+                        (*arena)[ieta][ix][iy].Wmunu[0][2][0] =
+                                                temp_profile_pi0y[ix][iy];
+                        (*arena)[ieta][ix][iy].Wmunu[0][2][1] =
+                                                temp_profile_pixy[ix][iy];
+                        (*arena)[ieta][ix][iy].Wmunu[0][2][2] =
+                                                temp_profile_piyy[ix][iy];
+                        (*arena)[ieta][ix][iy].Wmunu[0][2][3] = 0.0;
+                        (*arena)[ieta][ix][iy].Wmunu[0][3][0] = 0.0;
+                        (*arena)[ieta][ix][iy].Wmunu[0][3][1] = 0.0;
+                        (*arena)[ieta][ix][iy].Wmunu[0][3][2] = 0.0;
+                        (*arena)[ieta][ix][iy].Wmunu[0][3][3] =
+                                                temp_profile_pi33[ix][iy];
+                        for (int mu = 0; mu < 4; mu++) {
+                            /* baryon density */
+                            (*arena)[ieta][ix][iy].TJb[0][4][mu] = rhob*u[mu];
+
+                            // diffusion current
+                            (*arena)[ieta][ix][iy].Wmunu[0][4][mu] = 0.0;
+                            (*arena)[ieta][ix][iy].prevWmunu[0][4][mu] = 0.0;
+                        
+                            for (int nu = 0; nu < 4; nu++) {
+                                (*arena)[ieta][ix][iy].TJb[0][mu][nu] = (
+                                    (epsilon + p)*u[mu]*u[nu]
+                                    + p*(DATA->gmunu)[mu][nu]);
+
+                                (*arena)[ieta][ix][iy].prevWmunu[0][mu][nu] =
+                                    (*arena)[ieta][ix][iy].Wmunu[0][mu][nu];
+                                (*arena)[ieta][ix][iy].Pimunu[0][mu][nu] = 0.0;
+                                (*arena)[ieta][ix][iy].Pimunu[1][mu][nu] = 0.0;
+                                (*arena)[ieta][ix][iy].prevPimunu[0][mu][nu] = 0.0;
+                                (*arena)[ieta][ix][iy].prevPimunu[1][mu][nu] = 0.0;
+                            }/* nu */
+                        }/* mu */
+                    }
+                }
+            }/* ix, iy, ieta */
+        }
+        // clean up
+        for (int i = 0; i < nx; i++) {
+            delete[] temp_profile_ed[i];
+            delete[] temp_profile_ux[i];
+            delete[] temp_profile_uy[i];
+            delete[] temp_profile_pixx[i];
+            delete[] temp_profile_piyy[i];
+            delete[] temp_profile_pixy[i];
+            delete[] temp_profile_pi00[i];
+            delete[] temp_profile_pi0x[i];
+            delete[] temp_profile_pi0y[i];
+            delete[] temp_profile_pi33[i];
+        }
+        delete[] temp_profile_ed;
+        delete[] temp_profile_ux;
+        delete[] temp_profile_uy;
+        delete[] temp_profile_pixx;
+        delete[] temp_profile_piyy;
+        delete[] temp_profile_pixy;
+        delete[] temp_profile_pi00;
+        delete[] temp_profile_pi0x;
+        delete[] temp_profile_pi0y;
+        delete[] temp_profile_pi33;
     } else if (DATA->Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow

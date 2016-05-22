@@ -20,8 +20,8 @@ class color:
     end = '\033[0m'
 
 initial_condition_dict.update({
-    'Initial_profile': 11,          # type of initial condition
-    'initialize_with_entropy': 1,   # 0: with energy density, 1: with entropy density
+    'Initial_profile': 0,          # type of initial condition
+    'initialize_with_entropy': 0,   # 0: with energy density, 1: with entropy density
     'Initial_Distribution_Filename': 'initial/new_u_field_0.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_event_1_block.dat',
@@ -33,7 +33,7 @@ initial_condition_dict.update({
     's_factor': 6.5,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
-    'Eta_plateau_size': 2.6,          # size of the plateau in eta_s direction
+    'Eta_plateau_size': 20.0,          # size of the plateau in eta_s direction
     'Eta_fall_off': 0.3,              # the scale of the fall off of the plateau in eta_s direction
     'initial_eta_rhob_profile': 2,    # type of the envelope profile for rho_B's eta_s distribution
     'eta_rhob_0': 1.5,                # peak position of rho_B in eta_s direction
@@ -45,11 +45,11 @@ initial_condition_dict.update({
 
 hydro_dict.update({
     # grid information
-    'Initial_time_tau_0': 1.5,   # starting time of the hydrodynamic evolution (fm/c)
+    'Initial_time_tau_0': 1.0,   # starting time of the hydrodynamic evolution (fm/c)
     'Delta_Tau': 0.02,           # time step to use in the evolution [fm/c]
 
     'Eta_grid_size': 9.6,       # spatial rapidity range
-    'Grid_size_in_eta': 8,       # number of the grid points in spatial rapidity direction
+    'Grid_size_in_eta': 4,       # number of the grid points in spatial rapidity direction
     'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
     'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
     'Grid_size_in_y': 261,       # number of the grid points in y direction
@@ -70,9 +70,9 @@ hydro_dict.update({
     #viscosity and diffusion options
     'Viscosity_Flag_Yes_1_No_0': 1,         # turn on viscosity in the evolution
     'Include_Shear_Visc_Yes_1_No_0': 1,     # include shear viscous effect
-    'Shear_to_S_ratio': 0.08,               # value of \eta/s
+    'Shear_to_S_ratio': 0.20,               # value of \eta/s
     'T_dependent_Shear_to_S_ratio': 0,      # switch to turn on temperature dependent eta/s(T)
-    'Include_Bulk_Visc_Yes_1_No_0': 1,      # include bulk viscous effect
+    'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect
     'Bulk_to_S_ratio': 0.1,                 # value of \zeta/s
     'Include_Rhob_Yes_1_No_0': 0,           # turn on propagation of baryon current
     'turn_on_baryon_diffusion': 0,          # turn on baryon current diffusion

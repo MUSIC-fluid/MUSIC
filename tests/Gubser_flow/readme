@@ -1,0 +1,25 @@
+The file "Initial_Profile_tau=1fm.dat" contains the initial condition and is designed for a grid size of dx=dy=0.05fm. 
+
+ The file is organized as: 
+
+"x (fm)", "y (fm)", "energy density (fm^-4)", "u^x", "u^y", "pi^xx (fm^-4)", "pi^yy (fm^-4)", "pi^xy (fm^-4)", "pi^00 (fm^-4)", "pi^0x (fm^-4)", "pi^0y (fm^-4)", " pi^\eta\eta (fm^-4)"
+
+
+The initial time for the initial profile in "Initial_Profile_tau=1fm.dat" is tau_0 = 1 fm. The shear viscosity to entropy density ratio is eta/s=0.2, while the shear relaxation time is tau_R = 5*eta/(e+P). Here, e is the energy density and P is the thermodynamic pressure. 
+The equation of state must be the one of a conformal fluid, i.e., e=3P. The energy density is related to temperature as
+
+energy density = 3*(16.+7./2.*3.*2.5)/(3.14159*3.14159/90.) T^4  (TECHQM EoS)
+
+These transport coefficients and equation of state have to be used in order to describe the semi-analytic solutions contained here and displayed in the paper. The actual equations of motion that must be solved correspond to equations (2) and (3) of the paper. 
+
+====================================================================================
+
+The files "y=0_tau=1.2_SemiAnalytic.dat", "y=0_tau=1.5_SemiAnalytic.dat", and "y=0_tau=2.0_SemiAnalytic.dat" contain the semi-analytic solution at times tau=1.2 fm, 1.5 fm, and 2.0 fm, respectively, and y=0.
+
+The files "y=x_tau=1.2_SemiAnalytic.dat", "y=x_tau=1.5_SemiAnalytic.dat", and "y=x_tau=2.0_SemiAnalytic.dat" contain the semi-analytic solution at times tau=1.2 fm, 1.5 fm, and 2.0 fm, respectively, and y=x.
+ 
+All files are organized as: 
+
+"x (fm)", "y (fm)", "T (GeV)", "u^x", "u^y", "pi^xx (GeV/fm^3)", "pi^yy (GeV/fm^3)", "pi^xy (GeV/fm^3)", "pi^\eta\eta (GeV/fm^3)"
+
+where T is the Temperature, u^x is the x component of the 4-velocity, and pi^xx is the xx component of the shear stress tensor

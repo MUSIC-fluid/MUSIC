@@ -14,7 +14,7 @@ using namespace std;
 Evolve::Evolve(EOS *eosIn, InitData *DATA_in) {
     eos = eosIn;
     grid = new Grid;
-    //grid_info = new Grid_info(DATA_in);
+    grid_info = new Grid_info(DATA_in);
     reconst = new Reconst(eosIn);
     util = new Util;
     advance = new Advance(eosIn, DATA_in);
@@ -34,7 +34,7 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in) {
 Evolve::~Evolve() {
     delete reconst;
     delete grid;
-    //delete grid_info;
+    delete grid_info;
     delete util;
     delete advance;
     delete u_derivative;
@@ -116,6 +116,21 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         if (it == 0) {
             storePreviousEpsilon(arena);
             storePreviousW(arena);
+        }
+        
+        if (DATA->Initial_profile == 0) {
+            if (fabs(tau - 1.0) < 1e-8) {
+                grid_info->Gubser_flow_check_file(arena, tau);
+            }
+            if (fabs(tau - 1.2) < 1e-8) {
+                grid_info->Gubser_flow_check_file(arena, tau);
+            }
+            if (fabs(tau - 1.5) < 1e-8) {
+                grid_info->Gubser_flow_check_file(arena, tau);
+            }
+            if (fabs(tau - 2.0) < 1e-8) {
+                grid_info->Gubser_flow_check_file(arena, tau);
+            }
         }
 
         // output evolution information for debug
@@ -294,12 +309,12 @@ void Evolve::storePreviousW(Grid ***arena) {
 int Evolve::UpdateArena(double tau, Grid ***arena) {
     int nx = grid_nx;
     int ny = grid_ny;
-    int neta = grid_neta - 1;
+    int neta = grid_neta;
     int ieta;
     #pragma omp parallel private(ieta)
     {
         #pragma omp for
-        for (ieta = 0; ieta <= neta; ieta++) {
+        for (ieta = 0; ieta < neta; ieta++) {
             printf("Evolve::UpdateArena:");
             printf("Thread %d executes loop iteraction %d\n",
                    omp_get_thread_num(), ieta);

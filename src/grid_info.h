@@ -1,11 +1,11 @@
-#ifndef GRID_INFO_H
-#define GRID_INFO_H
-#include "data.h"
-#include "eos.h"
-#include "grid.h"
-#include <mpi.h>
+// Copyright 2012 Bjoern Schenke, Sangyong Jeon, and Charles Gale
+#ifndef SRC_GRID_INFO_H_
+#define SRC_GRID_INFO_H_
 #include <iostream>
 #include <iomanip>
+#include "./data.h"
+#include "./eos.h"
+#include "./grid.h"
 
 class Grid_info
 {
@@ -30,38 +30,14 @@ class Grid_info
         Grid_info(InitData* DATA_in);
         ~Grid_info();
 
-        void ComputeV2(InitData *DATA, Grid ***arena, double tau); //added
-        void ComputeEccentricity(InitData *DATA, Grid ***arena, double tau); //added
-        void print_rhob_evolution(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank);
-        void print_rhob_evolution_3d(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank);
-        void print_qmu_evolution(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank);
-        void print_fireball_evolution_on_phasediagram(InitData *DATA, Grid ***arena, double tau, EOS* eos, int rank);
-        void ComputeAnisotropy(InitData *DATA, Grid ***arena, double tau); //added
-        void PrintGrid(Grid *grid_p, int rk_order);
-        void LinkNeighbors(InitData *DATA, Grid ****arena);
-        void InitTJb(InitData *DATA, Grid ****arena);
-        void PrintAxy(InitData *DATA, Grid ***arena, double tau);
-        void PrintAxy2(InitData *DATA, Grid ***arena, double tau);
-        void PrintdEdEta(InitData *DATA, Grid ***arena);
-        void OutputEvolutionDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
-        void OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
-        void OutputEvolutionDataXYEta_finite_muB(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
-        void OutputPlotDataXYZ(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
-        void OutputEvolutionOSCAR(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
-        void OutputXY(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
-        void PrintArena(Grid ***arena, InitData *DATA, double tau);
-        void PrintEtaEpsilon(Grid ***arena, InitData *DATA, double tau, int size, int rank);
-        void PrintxEpsilon(Grid ***arena, InitData *DATA, double tau, int size, int rank);
-        void ComputeEnergyConservation(InitData *DATA, Grid ***arena, double tau);
-        void getAverageTandPlasmaEvolution(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
-        void Output_hydro_information_header(InitData *DATA, EOS *eos);
-        void Tmax_profile(Grid ***arena, InitData *DATA, EOS *eos, double tau, int size, int rank);
-
+        void OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
+                                      EOS *eos, double tau);
+        void Gubser_flow_check_file(Grid ***arena, double tau);
         void load_deltaf_qmu_coeff_table(string filename);
         void load_deltaf_qmu_coeff_table_14mom(string filename);
         double get_deltaf_qmu_coeff(double T, double muB);
         double get_deltaf_coeff_14moments(double T, double muB, double type);
-        void check_conservation_law(Grid ***arena, InitData *DATA,
-                                    double tau, int size, int rank);
+        void check_conservation_law(Grid ***arena, InitData *DATA, double tau);
 };
-#endif
+
+#endif  // SRC_GRID_INFO_H_
