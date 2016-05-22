@@ -311,13 +311,13 @@ int Evolve::UpdateArena(double tau, Grid ***arena) {
     int ny = grid_ny;
     int neta = grid_neta;
     int ieta;
-    #pragma omp parallel private(ieta)
-    {
-        #pragma omp for
+    //#pragma omp parallel private(ieta)
+    //{
+    //    #pragma omp for
         for (ieta = 0; ieta < neta; ieta++) {
-            printf("Evolve::UpdateArena:");
-            printf("Thread %d executes loop iteraction %d\n",
-                   omp_get_thread_num(), ieta);
+            //printf("Evolve::UpdateArena:");
+            //printf("Thread %d executes loop iteraction %d\n",
+            //       omp_get_thread_num(), ieta);
             for (int ix = 0; ix <= nx; ix++) {
                 for (int iy = 0; iy <= ny; iy++) {
                     arena[ieta][ix][iy].prev_epsilon =
@@ -366,7 +366,7 @@ int Evolve::UpdateArena(double tau, Grid ***arena) {
                 }
             }
         }/* ix, iy, ieta */
-    }
+    //}
     return 1;
 }/* UpdateArena */
 

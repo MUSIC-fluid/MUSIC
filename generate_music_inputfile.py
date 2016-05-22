@@ -48,8 +48,8 @@ hydro_dict.update({
     'Initial_time_tau_0': 1.0,   # starting time of the hydrodynamic evolution (fm/c)
     'Delta_Tau': 0.02,           # time step to use in the evolution [fm/c]
 
-    'Eta_grid_size': 9.6,       # spatial rapidity range
-    'Grid_size_in_eta': 4,       # number of the grid points in spatial rapidity direction
+    'Eta_grid_size': 9.6,        # spatial rapidity range
+    'Grid_size_in_eta': 2,       # number of the grid points in spatial rapidity direction
     'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
     'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
     'Grid_size_in_y': 261,       # number of the grid points in y direction
@@ -68,8 +68,8 @@ hydro_dict.update({
     'boost_invariant': 0,    # initial condition is boost invariant
 
     #viscosity and diffusion options
-    'Viscosity_Flag_Yes_1_No_0': 1,         # turn on viscosity in the evolution
-    'Include_Shear_Visc_Yes_1_No_0': 1,     # include shear viscous effect
+    'Viscosity_Flag_Yes_1_No_0': 0,         # turn on viscosity in the evolution
+    'Include_Shear_Visc_Yes_1_No_0': 0,     # include shear viscous effect
     'Shear_to_S_ratio': 0.20,               # value of \eta/s
     'T_dependent_Shear_to_S_ratio': 0,      # switch to turn on temperature dependent eta/s(T)
     'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect

@@ -240,6 +240,7 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
             double y_local = y_min + iy*dy;
             output_file << scientific << setprecision(8) << setw(18)
                         << x_local << "  " << y_local << "  "
+                        << arena[0][ix][iy].epsilon*unit_convert << "  "
                         << arena[0][ix][iy].T*unit_convert << "  "
                         << arena[0][ix][iy].u[0][1] << "  "
                         << arena[0][ix][iy].u[0][2] << "  "
