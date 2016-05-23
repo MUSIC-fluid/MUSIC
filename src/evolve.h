@@ -54,8 +54,7 @@ class Evolve {
     int AdvanceRK(double tau, InitData *DATA, Grid ***arena);
     int UpdateArena(double tau, Grid ***arena);
     
-    //int FreezeOut_equal_tau_Surface(double tau, InitData *DATA,
-    //                                Grid ***arena, int size, int rank);
+    int FreezeOut_equal_tau_Surface(double tau, InitData *DATA, Grid ***arena);
     //void FindFreezeOutSurface(double tau, InitData *DATA,
     //                          Grid ***arena, int size, int rank);
     //void FindFreezeOutSurface2(double tau, InitData *DATA,
@@ -70,10 +69,10 @@ class Evolve {
     void storePreviousEpsilon(Grid ***arena);
     void storePreviousW(Grid ***arena);
 
-    //void regulate_qmu(double* u, double* q, double* q_regulated);
-    //void regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated);
+    void regulate_qmu(double* u, double* q, double* q_regulated);
+    void regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated);
 
-    //void initialize_freezeout_surface_info();
+    void initialize_freezeout_surface_info();
 };
 
 #endif  // SRC_EVOLVE_H_

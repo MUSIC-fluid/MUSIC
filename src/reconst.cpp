@@ -303,9 +303,6 @@ int Reconst::ReconstIt_velocity(
         // at this point, the original values in grid_pt->TJb are not touched. 
         grid_p->epsilon = grid_pt->epsilon;
         grid_p->rhob = grid_pt->rhob;
-        //rhob =grid_p->rhob;
-        //  if (rhob>1) cout << "rhob=" << rhob << endl;
-     
         grid_p->p = grid_pt->p;
         for (mu=0; mu<4; mu++) {
             grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];

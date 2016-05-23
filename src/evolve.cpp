@@ -26,8 +26,8 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in) {
     grid_ny = DATA_in->ny;
     grid_neta = DATA_in->neta;
   
-    //if(DATA_ptr->freezeOutMethod == 4)
-    //    initialize_freezeout_surface_info();
+    if (DATA_ptr->freezeOutMethod == 4)
+        initialize_freezeout_surface_info();
 }
 
 // destructor
@@ -6723,225 +6723,224 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena) {
 //    return(all_frozen_flag);
 //}
 //
-//// Cornelius freeze out  (C. Shen, 11/2014)
-//int Evolve::FreezeOut_equal_tau_Surface(
-//            double tau, InitData *DATA, Grid ***arena, int size, int rank) {
-//    // this function freeze-out fluid cells between epsFO and epsFO_low
-//    // on an equal time hyper-surface at the first time step
-//    // this function will be trigged if freezeout_lowtemp_flag == 1
-//    int nx = grid_nx;
-//    int ny = grid_ny;
-//    int neta = grid_neta;
-//   
-//    for(int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
-//        double epsFO_low = 0.05/hbarc;        // 1/fm^4
-//        double epsFO = epsFO_list[i_freezesurf]/hbarc;
-//
-//        stringstream strs_name;
-//        strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc 
-//                  << "_" << rank << ".dat";
-//        ofstream s_file;
-//        s_file.open(strs_name.str().c_str() , ios::out | ios::app );
-//   
-//        double FULLSU[4];  // d^3 \sigma_\mu
-//
-//        double tau_center, x_center, y_center, eta_center;
-//        double Wtautau_center, Wtaux_center, Wtauy_center, Wtaueta_center;
-//        double Wxx_center, Wxy_center, Wxeta_center;
-//        double Wyy_center, Wyeta_center, Wetaeta_center;
-//        double rhob_center;
-//        double qtau_center, qx_center, qy_center, qeta_center;
-//        double utau_center, ux_center, uy_center, ueta_center;
-//        double pi_b_center; // bulk viscous pressure
-//
-//        int intersect;
-//        int intersections = 0;
-//
-//        int fac_x = DATA->fac_x;
-//        int fac_y = DATA->fac_y;
-//        int fac_eta = 1;
-//        
-//        double DX=fac_x*DATA->delta_x;
-//        double DY=fac_y*DATA->delta_y;
-//        double DETA=fac_eta*DATA->delta_eta;
-//
-//        int maxEta;
-//        if (rank == size-1)
-//            maxEta = neta - fac_eta;
-//        else
-//            maxEta = neta;
-//        for (int ix = 0; ix <= nx - fac_x; ix += fac_x) {
-//            double x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
-//            for (int iy = 0; iy <= ny - fac_y; iy += fac_y) {
-//                double y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
-//                for (int ieta=0; ieta < maxEta; ieta += fac_eta) {
-//                    double eta = ((DATA->delta_eta)*(ieta+DATA->neta*rank) 
-//                                   - (DATA->eta_size)/2.0);
-//
-//                    // judge intersection
-//                    intersect = 0;
-//                    if (arena[ix][iy][ieta].epsilon < epsFO
-//                        && arena[ix][iy][ieta].epsilon > epsFO_low)
-//                        intersect = 1;
-//
-//                    if (intersect == 0) {
-//                        continue;
-//                    }
-//                    
-//                    // if intersect output the freeze-out cell
-//                    intersections++;
-//
-//                    // surface normal vector d^3 \sigma_\mu
-//                    FULLSU[0] = DX*DY*DETA;
-//                    FULLSU[1] = 0.0;
-//                    FULLSU[2] = 0.0;
-//                    FULLSU[3] = 0.0;
-//
-//                    // get positions of the freeze-out surface
-//                    tau_center = tau;
-//                    x_center = x;
-//                    y_center = y;
-//                    eta_center = eta;
-//
-//                    // flow velocity
-//                    ux_center = arena[ix][iy][ieta].u[0][1];
-//                    uy_center = arena[ix][iy][ieta].u[0][2];
-//                    ueta_center = arena[ix][iy][ieta].u[0][3];  // u^eta/tau
-//                    // reconstruct u^tau from u^i
-//                    utau_center = sqrt(1. + ux_center*ux_center 
-//                                       + uy_center*uy_center 
-//                                       + ueta_center*ueta_center);
-//
-//                    // baryon density rho_b
-//                    rhob_center = arena[ix][iy][ieta].rhob;
-//
-//                    // baryon diffusion current
-//                    qtau_center = arena[ix][iy][ieta].Wmunu[0][4][0];
-//                    qx_center = arena[ix][iy][ieta].Wmunu[0][4][1];
-//                    qy_center = arena[ix][iy][ieta].Wmunu[0][4][2];
-//                    qeta_center = arena[ix][iy][ieta].Wmunu[0][4][3];
-//                    // reconstruct q^\tau from the transverality criteria
-//                    double *u_flow = new double [4];
-//                    u_flow[0] = utau_center;
-//                    u_flow[1] = ux_center;
-//                    u_flow[2] = uy_center;
-//                    u_flow[3] = ueta_center;
-//                    double *q_mu = new double [4];
-//                    q_mu[0] = qtau_center;
-//                    q_mu[1] = qx_center;
-//                    q_mu[2] = qy_center;
-//                    q_mu[3] = qeta_center;
-//                    double *q_regulated = new double [4];
-//                    for(int i = 0; i < 4; i++)
-//                       q_regulated[i] = 0.0;
-//                    regulate_qmu(u_flow, q_mu, q_regulated);
-//                    qtau_center = q_regulated[0];
-//                    qx_center = q_regulated[1];
-//                    qy_center = q_regulated[2];
-//                    qeta_center = q_regulated[3];
-//                    // clean up
-//                    delete [] q_mu;
-//                    delete [] q_regulated;
-//
-//                    // bulk viscous pressure pi_b
-//                    pi_b_center = arena[ix][iy][ieta].pi_b[0];
-//
-//                    // shear viscous tensor
-//                    Wtautau_center = arena[ix][iy][ieta].Wmunu[0][0][0];
-//                    Wtaux_center = arena[ix][iy][ieta].Wmunu[0][0][1];
-//                    Wtauy_center = arena[ix][iy][ieta].Wmunu[0][0][2];
-//                    Wtaueta_center = arena[ix][iy][ieta].Wmunu[0][0][3];
-//                    Wxx_center = arena[ix][iy][ieta].Wmunu[0][1][1];
-//                    Wxy_center = arena[ix][iy][ieta].Wmunu[0][1][2];
-//                    Wxeta_center = arena[ix][iy][ieta].Wmunu[0][1][3];
-//                    Wyy_center = arena[ix][iy][ieta].Wmunu[0][2][2];
-//                    Wyeta_center = arena[ix][iy][ieta].Wmunu[0][2][3];
-//                    Wetaeta_center = arena[ix][iy][ieta].Wmunu[0][3][3];
-//                    // regulate Wmunu according to transversality and traceless
-//                    double **Wmunu_input = new double* [4];
-//                    double **Wmunu_regulated = new double* [4];
-//                    for (int i = 0; i < 4; i++) {
-//                        Wmunu_input[i] = new double[4];
-//                        Wmunu_regulated[i] = new double[4];
-//                        for (int j = 0; j < 4; j++)
-//                            Wmunu_regulated[i][j] = 0.0;
-//                    }
-//                    Wmunu_input[0][0] = Wtautau_center;
-//                    Wmunu_input[0][1] = Wmunu_input[1][0] = Wtaux_center;
-//                    Wmunu_input[0][2] = Wmunu_input[2][0] = Wtauy_center;
-//                    Wmunu_input[0][3] = Wmunu_input[3][0] = Wtaueta_center;
-//                    Wmunu_input[1][1] = Wxx_center;
-//                    Wmunu_input[1][2] = Wmunu_input[2][1] = Wxy_center;
-//                    Wmunu_input[1][3] = Wmunu_input[3][1] = Wxeta_center;
-//                    Wmunu_input[2][2] = Wyy_center;
-//                    Wmunu_input[2][3] = Wmunu_input[3][2] = Wyeta_center;
-//                    Wmunu_input[3][3] = Wetaeta_center;
-//                    regulate_Wmunu(u_flow, Wmunu_input, Wmunu_regulated);
-//                    Wtautau_center = Wmunu_regulated[0][0];
-//                    Wtaux_center = Wmunu_regulated[0][1];
-//                    Wtauy_center = Wmunu_regulated[0][2];
-//                    Wtaueta_center = Wmunu_regulated[0][3];
-//                    Wxx_center = Wmunu_regulated[1][1];
-//                    Wxy_center = Wmunu_regulated[1][2];
-//                    Wxeta_center = Wmunu_regulated[1][3];
-//                    Wyy_center = Wmunu_regulated[2][2];
-//                    Wyeta_center = Wmunu_regulated[2][3];
-//                    Wetaeta_center = Wmunu_regulated[3][3];
-//                    // clean up
-//                    delete [] u_flow;
-//                    for (int i = 0; i < 4; i++) {
-//                        delete [] Wmunu_input[i];
-//                        delete [] Wmunu_regulated[i];
-//                    }
-//                    delete [] Wmunu_input;
-//                    delete [] Wmunu_regulated;
-//
-//                    // get other thermodynamical quantities
-//                    double e_local = arena[ix][iy][ieta].epsilon;
-//                    double T_local = eos->get_temperature(e_local, rhob_center);
-//                    double muB_local = eos->get_mu(e_local, rhob_center);
-//                    if (T_local < 0) {
-//                        cout << "Error:Evolve::FreezeOut_equal_tau_Surface: "
-//                             << "T_local = " << T_local
-//                             << " <0. ERROR. exiting." << endl;
-//                        exit(1);
-//                    }
-//
-//                    double pressure = eos->get_pressure(e_local, rhob_center);
-//                    double eps_plus_p_over_T = (e_local + pressure)/T_local;
-//
-//                    // finally output results !!!!
-//                    s_file << scientific << setprecision(10) 
-//                           << tau_center << " " << x_center << " " 
-//                           << y_center << " " << eta_center << " " 
-//                           << FULLSU[0] << " " << FULLSU[1] << " " 
-//                           << FULLSU[2] << " " << FULLSU[3] << " " 
-//                           << utau_center << " " << ux_center << " " 
-//                           << uy_center << " " << ueta_center << " " 
-//                           << e_local << " " << T_local << " "
-//                           << muB_local << " " 
-//                           << eps_plus_p_over_T << " " 
-//                           << Wtautau_center << " " << Wtaux_center << " " 
-//                           << Wtauy_center << " " << Wtaueta_center << " " 
-//                           << Wxx_center << " " << Wxy_center << " " 
-//                           << Wxeta_center << " " 
-//                           << Wyy_center << " " << Wyeta_center << " " 
-//                           << Wetaeta_center << " " ;
-//                    if (DATA->turn_on_bulk)
-//                        s_file << pi_b_center << " " ;
-//                    if (DATA->turn_on_rhob)
-//                        s_file << rhob_center << " " ;
-//                    if (DATA->turn_on_diff)
-//                        s_file << qtau_center << " " << qx_center << " " 
-//                               << qy_center << " " << qeta_center << " " ;
-//                    s_file << endl;
-//                }
-//            }
-//        }
-//        s_file.close();
-//    }
-//    return(0);
-//}
+// Cornelius freeze out  (C. Shen, 11/2014)
+int Evolve::FreezeOut_equal_tau_Surface(double tau, InitData *DATA,
+                                        Grid ***arena) {
+    // this function freeze-out fluid cells between epsFO and epsFO_low
+    // on an equal time hyper-surface at the first time step
+    // this function will be trigged if freezeout_lowtemp_flag == 1
+    int nx = grid_nx;
+    int ny = grid_ny;
+    int neta = grid_neta;
+   
+    for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
+        double epsFO_low = 0.05/hbarc;        // 1/fm^4
+        double epsFO = epsFO_list[i_freezesurf]/hbarc;
+
+        stringstream strs_name;
+        strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc 
+                  << "_" << rank << ".dat";
+        ofstream s_file;
+        s_file.open(strs_name.str().c_str() , ios::out | ios::app );
+   
+        double FULLSU[4];  // d^3 \sigma_\mu
+
+        double tau_center, x_center, y_center, eta_center;
+        double Wtautau_center, Wtaux_center, Wtauy_center, Wtaueta_center;
+        double Wxx_center, Wxy_center, Wxeta_center;
+        double Wyy_center, Wyeta_center, Wetaeta_center;
+        double rhob_center;
+        double qtau_center, qx_center, qy_center, qeta_center;
+        double utau_center, ux_center, uy_center, ueta_center;
+        double pi_b_center; // bulk viscous pressure
+
+        int intersect;
+        int intersections = 0;
+
+        int fac_x = DATA->fac_x;
+        int fac_y = DATA->fac_y;
+        int fac_eta = 1;
+        
+        double DX=fac_x*DATA->delta_x;
+        double DY=fac_y*DATA->delta_y;
+        double DETA=fac_eta*DATA->delta_eta;
+
+        int maxEta;
+        if (rank == size-1)
+            maxEta = neta - fac_eta;
+        else
+            maxEta = neta;
+        for (int ieta=0; ieta < maxEta; ieta += fac_eta) {
+            double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
+            for (int ix = 0; ix <= nx - fac_x; ix += fac_x) {
+                double x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
+                for (int iy = 0; iy <= ny - fac_y; iy += fac_y) {
+                    double y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+
+                    // judge intersection
+                    intersect = 0;
+                    if (arena[ix][iy][ieta].epsilon < epsFO
+                        && arena[ix][iy][ieta].epsilon > epsFO_low)
+                        intersect = 1;
+
+                    if (intersect == 0) {
+                        continue;
+                    }
+                    
+                    // if intersect output the freeze-out cell
+                    intersections++;
+
+                    // surface normal vector d^3 \sigma_\mu
+                    FULLSU[0] = DX*DY*DETA;
+                    FULLSU[1] = 0.0;
+                    FULLSU[2] = 0.0;
+                    FULLSU[3] = 0.0;
+
+                    // get positions of the freeze-out surface
+                    tau_center = tau;
+                    x_center = x;
+                    y_center = y;
+                    eta_center = eta;
+
+                    // flow velocity
+                    ux_center = arena[ieta][ix][iy].u[0][1];
+                    uy_center = arena[ieta][ix][iy].u[0][2];
+                    ueta_center = arena[ieta][ix][iy].u[0][3];  // u^eta/tau
+                    // reconstruct u^tau from u^i
+                    utau_center = sqrt(1. + ux_center*ux_center 
+                                       + uy_center*uy_center 
+                                       + ueta_center*ueta_center);
+
+                    // baryon density rho_b
+                    rhob_center = arena[ieta][ix][iy].rhob;
+
+                    // baryon diffusion current
+                    qtau_center = arena[ieta][ix][iy].Wmunu[0][4][0];
+                    qx_center = arena[ieta][ix][iy].Wmunu[0][4][1];
+                    qy_center = arena[ieta][ix][iy].Wmunu[0][4][2];
+                    qeta_center = arena[ieta][ix][iy].Wmunu[0][4][3];
+                    // reconstruct q^\tau from the transverality criteria
+                    double *u_flow = new double [4];
+                    u_flow[0] = utau_center;
+                    u_flow[1] = ux_center;
+                    u_flow[2] = uy_center;
+                    u_flow[3] = ueta_center;
+                    double *q_mu = new double [4];
+                    q_mu[0] = qtau_center;
+                    q_mu[1] = qx_center;
+                    q_mu[2] = qy_center;
+                    q_mu[3] = qeta_center;
+                    double *q_regulated = new double [4];
+                    for(int i = 0; i < 4; i++)
+                       q_regulated[i] = 0.0;
+                    regulate_qmu(u_flow, q_mu, q_regulated);
+                    qtau_center = q_regulated[0];
+                    qx_center = q_regulated[1];
+                    qy_center = q_regulated[2];
+                    qeta_center = q_regulated[3];
+                    // clean up
+                    delete [] q_mu;
+                    delete [] q_regulated;
+
+                    // bulk viscous pressure pi_b
+                    pi_b_center = arena[ieta][ix][iy].pi_b[0];
+
+                    // shear viscous tensor
+                    Wtautau_center = arena[ieta][ix][iy].Wmunu[0][0][0];
+                    Wtaux_center = arena[ieta][ix][iy].Wmunu[0][0][1];
+                    Wtauy_center = arena[ieta][ix][iy].Wmunu[0][0][2];
+                    Wtaueta_center = arena[ieta][ix][iy].Wmunu[0][0][3];
+                    Wxx_center = arena[ieta][ix][iy].Wmunu[0][1][1];
+                    Wxy_center = arena[ieta][ix][iy].Wmunu[0][1][2];
+                    Wxeta_center = arena[ieta][ix][iy].Wmunu[0][1][3];
+                    Wyy_center = arena[ieta][ix][iy].Wmunu[0][2][2];
+                    Wyeta_center = arena[ieta][ix][iy].Wmunu[0][2][3];
+                    Wetaeta_center = arena[ieta][ix][iy].Wmunu[0][3][3];
+                    // regulate Wmunu according to transversality and traceless
+                    double **Wmunu_input = new double* [4];
+                    double **Wmunu_regulated = new double* [4];
+                    for (int i = 0; i < 4; i++) {
+                        Wmunu_input[i] = new double[4];
+                        Wmunu_regulated[i] = new double[4];
+                        for (int j = 0; j < 4; j++)
+                            Wmunu_regulated[i][j] = 0.0;
+                    }
+                    Wmunu_input[0][0] = Wtautau_center;
+                    Wmunu_input[0][1] = Wmunu_input[1][0] = Wtaux_center;
+                    Wmunu_input[0][2] = Wmunu_input[2][0] = Wtauy_center;
+                    Wmunu_input[0][3] = Wmunu_input[3][0] = Wtaueta_center;
+                    Wmunu_input[1][1] = Wxx_center;
+                    Wmunu_input[1][2] = Wmunu_input[2][1] = Wxy_center;
+                    Wmunu_input[1][3] = Wmunu_input[3][1] = Wxeta_center;
+                    Wmunu_input[2][2] = Wyy_center;
+                    Wmunu_input[2][3] = Wmunu_input[3][2] = Wyeta_center;
+                    Wmunu_input[3][3] = Wetaeta_center;
+                    regulate_Wmunu(u_flow, Wmunu_input, Wmunu_regulated);
+                    Wtautau_center = Wmunu_regulated[0][0];
+                    Wtaux_center = Wmunu_regulated[0][1];
+                    Wtauy_center = Wmunu_regulated[0][2];
+                    Wtaueta_center = Wmunu_regulated[0][3];
+                    Wxx_center = Wmunu_regulated[1][1];
+                    Wxy_center = Wmunu_regulated[1][2];
+                    Wxeta_center = Wmunu_regulated[1][3];
+                    Wyy_center = Wmunu_regulated[2][2];
+                    Wyeta_center = Wmunu_regulated[2][3];
+                    Wetaeta_center = Wmunu_regulated[3][3];
+                    // clean up
+                    delete [] u_flow;
+                    for (int i = 0; i < 4; i++) {
+                        delete [] Wmunu_input[i];
+                        delete [] Wmunu_regulated[i];
+                    }
+                    delete [] Wmunu_input;
+                    delete [] Wmunu_regulated;
+
+                    // get other thermodynamical quantities
+                    double e_local = arena[ieta][ix][iy].epsilon;
+                    double T_local = eos->get_temperature(e_local, rhob_center);
+                    double muB_local = eos->get_mu(e_local, rhob_center);
+                    if (T_local < 0) {
+                        cout << "Error:Evolve::FreezeOut_equal_tau_Surface: "
+                             << "T_local = " << T_local
+                             << " <0. ERROR. exiting." << endl;
+                        exit(1);
+                    }
+
+                    double pressure = eos->get_pressure(e_local, rhob_center);
+                    double eps_plus_p_over_T = (e_local + pressure)/T_local;
+
+                    // finally output results !!!!
+                    s_file << scientific << setprecision(10) 
+                           << tau_center << " " << x_center << " " 
+                           << y_center << " " << eta_center << " " 
+                           << FULLSU[0] << " " << FULLSU[1] << " " 
+                           << FULLSU[2] << " " << FULLSU[3] << " " 
+                           << utau_center << " " << ux_center << " " 
+                           << uy_center << " " << ueta_center << " " 
+                           << e_local << " " << T_local << " "
+                           << muB_local << " " 
+                           << eps_plus_p_over_T << " " 
+                           << Wtautau_center << " " << Wtaux_center << " " 
+                           << Wtauy_center << " " << Wtaueta_center << " " 
+                           << Wxx_center << " " << Wxy_center << " " 
+                           << Wxeta_center << " " 
+                           << Wyy_center << " " << Wyeta_center << " " 
+                           << Wetaeta_center << " " ;
+                    if (DATA->turn_on_bulk)
+                        s_file << pi_b_center << " " ;
+                    if (DATA->turn_on_rhob)
+                        s_file << rhob_center << " " ;
+                    if (DATA->turn_on_diff)
+                        s_file << qtau_center << " " << qx_center << " " 
+                               << qy_center << " " << qeta_center << " " ;
+                    s_file << endl;
+                }
+            }
+        }
+        s_file.close();
+    }
+    return(0);
+}
 //
 //int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(double tau, InitData *DATA, Grid ***arena, int size, int rank)
 //{   
@@ -7543,107 +7542,93 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena) {
 //    return(all_frozen_flag);
 //}
 //
-//void Evolve::regulate_qmu(double *u, double *q, double *q_regulated)
-//{
-//    double u_dot_q = - u[0]*q[0] + u[1]*q[1] + u[2]*q[2] + u[3]*q[3];
-//    for(int i = 0; i < 4; i++)
-//    {
-//          q_regulated[i] = q[i] + u[i]*u_dot_q;
-//    }
-//    return;
-//}
-//    
-//void Evolve::regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated)
-//{
-//    double gmunu[4][4] = {
-//        {-1, 0, 0, 0},
-//        { 0, 1, 0, 0},
-//        { 0, 0, 1, 0},
-//        { 0, 0, 0, 1}
-//    };
-//    double u_dot_pi[4];
-//    double u_mu[4];
-//    for(int i = 0; i < 4; i++)
-//    {
-//        u_dot_pi[i] = (- u[0]*Wmunu[0][i] + u[1]*Wmunu[1][i] 
-//                       + u[2]*Wmunu[2][i] + u[3]*Wmunu[3][i]);
-//        u_mu[i] = gmunu[i][i]*u[i];
-//    }
-//    double tr_pi = - Wmunu[0][0] + Wmunu[1][1] + Wmunu[2][2] + Wmunu[3][3];
-//    double u_dot_pi_dot_u = 0.0;
-//    for(int i = 0; i < 4; i++)
-//    {
-//        for(int j = 0; j < 4; j++)
-//        {
-//            u_dot_pi_dot_u += u_mu[i]*Wmunu[i][j]*u_mu[j];
-//        }
-//    }
-//    for(int i = 0; i < 4; i++)
-//    {
-//        for(int j = 0; j < 4; j++)
-//        {
-//            Wmunu_regulated[i][j] = (
-//                Wmunu[i][j] + u[i]*u_dot_pi[j] + u[j]*u_dot_pi[i] 
-//                + u[i]*u[j]*u_dot_pi_dot_u 
-//                - 1./3.*(gmunu[i][j] + u[i]*u[j])*(tr_pi + u_dot_pi_dot_u));
-//        }
-//    }
-//}
-//
-//void Evolve::initialize_freezeout_surface_info()
-//{
-//    int freeze_eps_flag = DATA_ptr->freeze_eps_flag;
-//    if(freeze_eps_flag == 0)  // constant spacing the energy density
-//    {
-//        n_freeze_surf = DATA_ptr->N_freeze_out;
-//        double freeze_max_ed = DATA_ptr->eps_freeze_max;
-//        double freeze_min_ed = DATA_ptr->eps_freeze_min;
-//        double d_epsFO = ((freeze_max_ed - freeze_min_ed)
-//                          /(n_freeze_surf - 1 + 1e-15));
-//        for(int isurf = 0; isurf < n_freeze_surf; isurf++)
-//        {
-//            double temp_epsFO = freeze_min_ed + isurf*d_epsFO;
-//            epsFO_list.push_back(temp_epsFO);
-//        }
-//    }
-//    else if(freeze_eps_flag == 1)  // read in from a file
-//    {
-//        string eps_freeze_list_filename = DATA_ptr->freeze_list_filename;
-//        cout << "read in freeze out surface information from " 
-//             << eps_freeze_list_filename << endl;
-//        ifstream freeze_list_file(eps_freeze_list_filename.c_str());
-//        if(!freeze_list_file)
-//        {
-//            cout << "Evolve::initialize_freezeout_surface_info: "
-//                 << "can not open freeze-out list file: " 
-//                 << eps_freeze_list_filename << endl;
-//            exit(1);
-//        }
-//        int temp_n_surf = 0;
-//        string dummy;
-//        double temp_epsFO, dummyd;
-//        getline(freeze_list_file, dummy);  // get rid of the comment
-//        while(1)
-//        {
-//            freeze_list_file >> temp_epsFO >> dummyd >> dummyd 
-//                             >> dummyd >> dummyd >> dummyd >> dummyd;  
-//            if(!freeze_list_file.eof())  
-//            {    
-//                epsFO_list.push_back(temp_epsFO);    
-//                temp_n_surf++;   
-//            }    
-//            else 
-//                break;
-//        }
-//        freeze_list_file.close();
-//        n_freeze_surf = temp_n_surf;
-//        cout << "totally " << n_freeze_surf 
-//             << " freeze-out surface will be generated ..." << endl;
-//    }
-//    else
-//    {
-//        cout << "Evolve::initialize_freezeout_surface_info: "
-//             << "unrecoginze freeze_eps_flag = " << freeze_eps_flag << endl;
-//        exit(1);
-//    }
-//}
+void Evolve::regulate_qmu(double *u, double *q, double *q_regulated) {
+    double u_dot_q = - u[0]*q[0] + u[1]*q[1] + u[2]*q[2] + u[3]*q[3];
+    for (int i = 0; i < 4; i++) {
+          q_regulated[i] = q[i] + u[i]*u_dot_q;
+    }
+    return;
+}
+    
+void Evolve::regulate_Wmunu(double* u, double** Wmunu,
+                            double** Wmunu_regulated) {
+    double gmunu[4][4] = {
+        {-1, 0, 0, 0},
+        { 0, 1, 0, 0},
+        { 0, 0, 1, 0},
+        { 0, 0, 0, 1}
+    };
+    double u_dot_pi[4];
+    double u_mu[4];
+    for (int i = 0; i < 4; i++) {
+        u_dot_pi[i] = (- u[0]*Wmunu[0][i] + u[1]*Wmunu[1][i] 
+                       + u[2]*Wmunu[2][i] + u[3]*Wmunu[3][i]);
+        u_mu[i] = gmunu[i][i]*u[i];
+    }
+    double tr_pi = - Wmunu[0][0] + Wmunu[1][1] + Wmunu[2][2] + Wmunu[3][3];
+    double u_dot_pi_dot_u = 0.0;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            u_dot_pi_dot_u += u_mu[i]*Wmunu[i][j]*u_mu[j];
+        }
+    }
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            Wmunu_regulated[i][j] = (
+                Wmunu[i][j] + u[i]*u_dot_pi[j] + u[j]*u_dot_pi[i] 
+                + u[i]*u[j]*u_dot_pi_dot_u 
+                - 1./3.*(gmunu[i][j] + u[i]*u[j])*(tr_pi + u_dot_pi_dot_u));
+        }
+    }
+}
+
+void Evolve::initialize_freezeout_surface_info() {
+    int freeze_eps_flag = DATA_ptr->freeze_eps_flag;
+    if (freeze_eps_flag == 0) {
+        // constant spacing the energy density
+        n_freeze_surf = DATA_ptr->N_freeze_out;
+        double freeze_max_ed = DATA_ptr->eps_freeze_max;
+        double freeze_min_ed = DATA_ptr->eps_freeze_min;
+        double d_epsFO = ((freeze_max_ed - freeze_min_ed)
+                          /(n_freeze_surf - 1 + 1e-15));
+        for(int isurf = 0; isurf < n_freeze_surf; isurf++)
+        {
+            double temp_epsFO = freeze_min_ed + isurf*d_epsFO;
+            epsFO_list.push_back(temp_epsFO);
+        }
+    } else if(freeze_eps_flag == 1) {
+        // read in from a file
+        string eps_freeze_list_filename = DATA_ptr->freeze_list_filename;
+        cout << "read in freeze out surface information from " 
+             << eps_freeze_list_filename << endl;
+        ifstream freeze_list_file(eps_freeze_list_filename.c_str());
+        if (!freeze_list_file) {
+            cout << "Evolve::initialize_freezeout_surface_info: "
+                 << "can not open freeze-out list file: " 
+                 << eps_freeze_list_filename << endl;
+            exit(1);
+        }
+        int temp_n_surf = 0;
+        string dummy;
+        double temp_epsFO, dummyd;
+        getline(freeze_list_file, dummy);  // get rid of the comment
+        while(1) {
+            freeze_list_file >> temp_epsFO >> dummyd >> dummyd 
+                             >> dummyd >> dummyd >> dummyd >> dummyd;  
+            if (!freeze_list_file.eof()) {    
+                epsFO_list.push_back(temp_epsFO);    
+                temp_n_surf++;   
+            } else {
+                break;
+            }
+        }
+        freeze_list_file.close();
+        n_freeze_surf = temp_n_surf;
+        cout << "totally " << n_freeze_surf 
+             << " freeze-out surface will be generated ..." << endl;
+    } else {
+        cout << "Evolve::initialize_freezeout_surface_info: "
+             << "unrecoginze freeze_eps_flag = " << freeze_eps_flag << endl;
+        exit(1);
+    }
+}
