@@ -29,8 +29,8 @@ initial_condition_dict.update({
     'Initial_uy_Distribution_Filename': 'initial/uy_event_1_block.dat',
     'Initial_TA_Distribution_Filename': 'initial/TA_event_1_block.dat',
     'Initial_TB_Distribution_Filename': 'initial/TB_event_1_block.dat',
-    'ecm' : 19.6,       # center of mass collision energy
-    's_factor': 6.5,   # normalization factor read in initial data file
+    'ecm' : 200,       # center of mass collision energy
+    's_factor': 1.0,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
     'Eta_plateau_size': 20.0,          # size of the plateau in eta_s direction
@@ -48,12 +48,12 @@ hydro_dict.update({
     'Initial_time_tau_0': 1.0,   # starting time of the hydrodynamic evolution (fm/c)
     'Delta_Tau': 0.02,           # time step to use in the evolution [fm/c]
 
-    'Eta_grid_size': 9.6,        # spatial rapidity range
-    'Grid_size_in_eta': 2,       # number of the grid points in spatial rapidity direction
-    'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
-    'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
-    'Grid_size_in_y': 261,       # number of the grid points in y direction
-    'Grid_size_in_x': 261,       # number of the grid points in x direction
+    'Eta_grid_size': 10.0,        # spatial rapidity range
+    'Grid_size_in_eta': 1,       # number of the grid points in spatial rapidity direction
+    'X_grid_size_in_fm': 10.0,   # spatial range along x direction in the transverse plane
+    'Y_grid_size_in_fm': 10.0,   # spatial range along y direction in the transverse plane
+    'Grid_size_in_y': 401,       # number of the grid points in y direction
+    'Grid_size_in_x': 401,       # number of the grid points in x direction
     
     # input grid information only works for initial_profile == 12
     'input_grid_size_in_y': 261,        # number of the grid points in y direction
@@ -63,9 +63,9 @@ hydro_dict.update({
     'input_grid_dx': 0.1,               # lattice spacing in x direction
     'input_grid_deta': 0.1,             # lattice spacing in eta direction
 
-    'EOS_to_use': 10,         # type of the equation of state
+    'EOS_to_use': 0,         # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
-    'boost_invariant': 0,    # initial condition is boost invariant
+    'boost_invariant': 1,    # initial condition is boost invariant
 
     #viscosity and diffusion options
     'Viscosity_Flag_Yes_1_No_0': 1,         # turn on viscosity in the evolution
@@ -90,7 +90,7 @@ hydro_dict.update({
 })
 
 freeze_out_dict.update({
-    'Do_FreezeOut_Yes_1_No_0': 1,   # flag to find freeze-out surface
+    'Do_FreezeOut_Yes_1_No_0': 0,   # flag to find freeze-out surface
     'Do_FreezeOut_lowtemp'   : 1,   # flag to freeze out low temperature fluid
                                     # cells outside the freeze-out surface
                                     # at the first time step
