@@ -52,8 +52,8 @@ hydro_dict.update({
     'Grid_size_in_eta': 1,       # number of the grid points in spatial rapidity direction
     'X_grid_size_in_fm': 10.0,   # spatial range along x direction in the transverse plane
     'Y_grid_size_in_fm': 10.0,   # spatial range along y direction in the transverse plane
-    'Grid_size_in_y': 401,       # number of the grid points in y direction
-    'Grid_size_in_x': 401,       # number of the grid points in x direction
+    'Grid_size_in_y': 201,       # number of the grid points in y direction
+    'Grid_size_in_x': 201,       # number of the grid points in x direction
     
     # input grid information only works for initial_profile == 12
     'input_grid_size_in_y': 261,        # number of the grid points in y direction
