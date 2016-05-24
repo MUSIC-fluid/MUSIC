@@ -20,16 +20,16 @@ class color:
     end = '\033[0m'
 
 initial_condition_dict.update({
-    'Initial_profile': 0,          # type of initial condition
+    'Initial_profile': 8,          # type of initial condition
     'initialize_with_entropy': 0,   # 0: with energy density, 1: with entropy density
-    'Initial_Distribution_Filename': 'initial/new_u_field_0.dat',
+    'Initial_Distribution_Filename': 'initial/u_field_1.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_event_1_block.dat',
     'Initial_ux_Distribution_Filename': 'initial/ux_event_1_block.dat',
     'Initial_uy_Distribution_Filename': 'initial/uy_event_1_block.dat',
     'Initial_TA_Distribution_Filename': 'initial/TA_event_1_block.dat',
     'Initial_TB_Distribution_Filename': 'initial/TB_event_1_block.dat',
-    'ecm' : 200,       # center of mass collision energy
+    'ecm' : 5020,       # center of mass collision energy
     's_factor': 1.0,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
@@ -45,7 +45,7 @@ initial_condition_dict.update({
 
 hydro_dict.update({
     # grid information
-    'Initial_time_tau_0': 1.0,   # starting time of the hydrodynamic evolution (fm/c)
+    'Initial_time_tau_0': 0.4,   # starting time of the hydrodynamic evolution (fm/c)
     'Delta_Tau': 0.02,           # time step to use in the evolution [fm/c]
 
     'Eta_grid_size': 10.0,        # spatial rapidity range
@@ -63,16 +63,16 @@ hydro_dict.update({
     'input_grid_dx': 0.1,               # lattice spacing in x direction
     'input_grid_deta': 0.1,             # lattice spacing in eta direction
 
-    'EOS_to_use': 0,         # type of the equation of state
+    'EOS_to_use': 7,         # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
     'boost_invariant': 1,    # initial condition is boost invariant
 
     #viscosity and diffusion options
     'Viscosity_Flag_Yes_1_No_0': 1,         # turn on viscosity in the evolution
     'Include_Shear_Visc_Yes_1_No_0': 1,     # include shear viscous effect
-    'Shear_to_S_ratio': 0.20,               # value of \eta/s
+    'Shear_to_S_ratio': 0.095,              # value of \eta/s
     'T_dependent_Shear_to_S_ratio': 0,      # switch to turn on temperature dependent eta/s(T)
-    'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect
+    'Include_Bulk_Visc_Yes_1_No_0': 1,      # include bulk viscous effect
     'Bulk_to_S_ratio': 0.1,                 # value of \zeta/s
     'Include_Rhob_Yes_1_No_0': 0,           # turn on propagation of baryon current
     'turn_on_baryon_diffusion': 0,          # turn on baryon current diffusion
@@ -90,7 +90,7 @@ hydro_dict.update({
 })
 
 freeze_out_dict.update({
-    'Do_FreezeOut_Yes_1_No_0': 0,   # flag to find freeze-out surface
+    'Do_FreezeOut_Yes_1_No_0': 1,   # flag to find freeze-out surface
     'Do_FreezeOut_lowtemp'   : 1,   # flag to freeze out low temperature fluid
                                     # cells outside the freeze-out surface
                                     # at the first time step
@@ -103,7 +103,7 @@ freeze_out_dict.update({
                                     # 0: freeze out energy densities are equally spaced between 
                                     #    eps_freeze_min and eps_freeze_max for N_freeze_out surfaces
                                     # 1: freeze out energy densities are read in from file freeze_list_filename
-    'freeze_list_filename': "eps_freeze_list_s95p-v1.dat",   # filename of the list for the freeze-out energy densities
+    'freeze_list_filename': "eps_freeze_list_s95p-v1.2.dat",   # filename of the list for the freeze-out energy densities
     'N_freeze_out': 14,             # number of freeze-out surfaces
     'eps_freeze_max': 0.750,        # the maximum freeze-out energy density (GeV/fm^3)
     'eps_freeze_min': 0.100,        # the minimum freeze-out energy density (GeV/fm^3)

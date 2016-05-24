@@ -66,8 +66,7 @@ class Evolve {
     int FindFreezeOutSurface_boostinvariant_Cornelius(
                                     double tau, InitData *DATA, Grid ***arena);
 
-    void storePreviousEpsilon(Grid ***arena);
-    void storePreviousW(Grid ***arena);
+    void store_previous_step_for_freezeout(Grid ***arena);
 
     void regulate_qmu(double* u, double* q, double* q_regulated);
     void regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated);

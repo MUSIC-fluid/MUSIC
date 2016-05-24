@@ -1,10 +1,10 @@
-#include "util.h"
-#include "grid.h"
+// Copyright 2012 Bjoern Schenke, Sangyong Jeon, and Charles Gale
+#include "./util.h"
+#include "./grid.h"
 
 using namespace std;
 
-Grid::Grid()
-{
+Grid::Grid() {
    prev_epsilon = 0.0;
    epsilon_t = 0.0;
    epsilon = 0.0;
@@ -15,17 +15,13 @@ Grid::Grid()
 
    p = 0.0;
    p_t = 0.0;
-
 }
 
-Grid::~Grid()
-{
-
+Grid::~Grid() {
 }
 
 
-Grid *Grid::grid_v_malloc(int n1)
-{
+Grid *Grid::grid_v_malloc(int n1) {
    Grid *d1_ptr;
    //int i;
   
@@ -37,8 +33,7 @@ Grid *Grid::grid_v_malloc(int n1)
 }/* grid_v_malloc */
 
 
-Grid **Grid::grid_m_malloc(int n1, int n2)
-{
+Grid **Grid::grid_m_malloc(int n1, int n2) {
    int i;
    //int j;
    Grid **d1_ptr, *tmp_ptr;
@@ -46,16 +41,14 @@ Grid **Grid::grid_m_malloc(int n1, int n2)
    tmp_ptr = (Grid *)malloc(sizeof(Grid)*n1*n2);
    d1_ptr = (Grid **) malloc (sizeof(Grid *)*n1);
 
-   for(i=0; i<n1; i++) 
-   {
+   for (i=0; i<n1; i++) {
       d1_ptr[i] = &(tmp_ptr[i*n2]);
    }
     
    return d1_ptr;
 }/* grid_m_malloc */
 
-Grid ***Grid::grid_c_malloc(int n1, int n2, int n3)
-{
+Grid ***Grid::grid_c_malloc(int n1, int n2, int n3) {
    int i,j;
    //int k,inc;
    Grid ***d1_ptr;
@@ -63,15 +56,12 @@ Grid ***Grid::grid_c_malloc(int n1, int n2, int n3)
 
    d1_ptr = new Grid **[n1];
 
-   for(i=0; i<n1; i++) 
-   {
+   for (i=0; i<n1; i++) {
       d1_ptr[i] = new Grid *[n2];
    } 
    
-   for(i=0; i<n1; i++)
-   {
-      for(j=0; j<n2; j++) 
-      {
+   for (i=0; i<n1; i++) {
+      for (j=0; j<n2; j++) {
          d1_ptr[i][j] = new Grid[n3];
       }
    }

@@ -1,97 +1,99 @@
-#ifndef GRID_H
-#define GRID_H
-#include "data.h"
-#include "eos.h"
+// Copyright 2012 Bjoern Schenke, Sangyong Jeon, and Charles Gale
+#ifndef SRC_GRID_H_
+#define SRC_GRID_H_
 #include <iostream>
 #include <iomanip>
+#include "./data.h"
+#include "./eos.h"
 
-class Grid
-{
-    public:
-        double prev_T00;
-        double prev_T33;
-        double epsilon;
-        double p;
-        double rhob;
-        double ***TJb; 
-        /* stress energy tensor plus baryon current  */
-        /* TJb[flag][alpha][mu] */
-        /* flag = 0 is the actual values. flag != 0 are the intermediate values
-           for the Runge-Kutta step */
-        /* alpha = 4 means Jb */
-        // double correction;
+class Grid {
+ public:
+    double epsilon;
+    double p;
+    double rhob;
+    double ***TJb; 
+    /* stress energy tensor plus baryon current  */
+    /* TJb[flag][alpha][mu] */
+    /* flag = 0 is the actual values. flag != 0 are the intermediate values
+       for the Runge-Kutta step */
+    /* alpha = 4 means Jb */
+    // double correction;
         
-        /* temporary values for the final RK update */
-        double epsilon_t;
-        double p_t;
-        double rhob_t;
+    /* temporary values for the final RK update */
+    double epsilon_t;
+    double p_t;
+    double rhob_t;
         
-        // store the epsilon and rhob at previous time step
-        double prev_epsilon;
-        double prev_rhob;
+    // store the epsilon and rhob at previous time step
+    double prev_epsilon;
+    double prev_rhob;
 
-        /* u[flag][mu]: flag=0 is the actual values. flag != are for RK steps */
-        double **u;
+    /* u[flag][mu]: flag=0 is the actual values. flag != are for RK steps */
+    double **u;
         
-        /* to include shear viscosity */
-        /* we need to calculate partial_tau u[mu] */
-        double **prev_u;  /* u[mu] from the previous time step including the rk flag */
-        //double **pprev_u; /* u[mu] from 2 time step ago including the rk flag */
-        //double **dU; /* dU[m][n] = partial_m u_n at the current time */
-        //double ***pimunu; /* Stress part of the TJb */
+    /* to include shear viscosity */
+    /* we need to calculate partial_tau u[mu] */
+    double **prev_u;
+    /* u[mu] from the previous time step including the rk flag */
+    //double **pprev_u; /* u[mu] from 2 time step ago including the rk flag */
+    //double **dU; /* dU[m][n] = partial_m u_n at the current time */
+    //double ***pimunu; /* Stress part of the TJb */
     
-        Grid **nbr_p_1; 
-        Grid **nbr_m_1; 
-        Grid **nbr_p_2; 
-        Grid **nbr_m_2; 
+    Grid **nbr_p_1; 
+    Grid **nbr_m_1; 
+    Grid **nbr_p_2; 
+    Grid **nbr_m_2; 
         
-        /* This is u^mu partial_mu u^nu */
-        double **a;
+    /* This is u^mu partial_mu u^nu */
+    double **a;
         
-        /* this is the expansion rate partial_mu u^mu */
-        double *theta_u;
+    /* this is the expansion rate partial_mu u^mu */
+    double *theta_u;
 
-        // the velocity shear tensor
-        double ***sigma;
+    // the velocity shear tensor
+    double ***sigma;
         
-        /* we need to calculate partial_tau u[mu] */
-        double ***dUsup; 
-        /* dU[flag][m][n] = u^{m,n} = partial^n u^m with the rk flag */
-        /* note that they are superscripted. So partial^t = -partial_t */
-        double ***Wmunu; /* shear part of the TJb with the rk_flag */
-        double ***prevWmunu; 
-        //double ***pprevWmunu; 
-        
-        double ***Pimunu; /* bulk part of the TJb with the rk_flag */
-        double ***prevPimunu; 
-        //double ***pprevPimunu; 
-        
-        double *pi_b; /* bulk pressure */
-        //double *prev_pi_b; /* bulk pressure */
-        //double *pprev_pi_b; /* bulk pressure */
+    /* we need to calculate partial_tau u[mu] */
+    /* dU[flag][m][n] = u^{m,n} = partial^n u^m with the rk flag */
+    /* note that they are superscripted. So partial^t = -partial_t */
+    double ***dUsup; 
 
-        int revert_flag;
-        int trouble;
-        double T;  //added
-        double mu; //added
-        //  double tauF; //added
+    double ***Wmunu; /* shear part of the TJb with the rk_flag */
+    double ***prevWmunu; 
+    //double ***pprevWmunu; 
         
-        int position[4];
-
-        // the following variables are for hyper-surface finder to determine freeze-out surface
-        // they are only updated every freeze-out step not every evolution time step
-        double epsilon_prev;
-        double rhob_prev;
-        double u_prev[4];
-        double pi_b_prev;
-        double **W_prev; // the one for the freeze-out surface finder for interpolation
+    double ***Pimunu; /* bulk part of the TJb with the rk_flag */
+    double ***prevPimunu; 
+    //double ***pprevPimunu; 
         
-        Grid();//constructor
-        ~Grid();//destructor
-        Grid *grid_v_malloc(int );
-        Grid **grid_m_malloc(int , int );
-        Grid ***grid_c_malloc(int , int , int );
+    double *pi_b; /* bulk pressure */
+    //double *prev_pi_b; /* bulk pressure */
+    //double *pprev_pi_b; /* bulk pressure */
 
+    int revert_flag;
+    int trouble;
+    double T;  //added
+    double mu; //added
+        
+    int position[4];
+
+    // the following variables are for hyper-surface finder 
+    // to determine freeze-out surface
+    // they are only updated every freeze-out step not every evolution
+    // time step
+    // the one for the freeze-out surface finder for interpolation
+    double epsilon_prev;
+    double rhob_prev;
+    double u_prev[4];
+    double pi_b_prev;
+    double **W_prev;
+        
+    Grid();//constructor
+    ~Grid();//destructor
+    Grid *grid_v_malloc(int );
+    Grid **grid_m_malloc(int , int );
+    Grid ***grid_c_malloc(int , int , int );
 };
-#endif
+
+#endif  // SRC_GRID_H_
   

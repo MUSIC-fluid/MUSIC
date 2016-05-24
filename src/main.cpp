@@ -51,7 +51,6 @@ int main(int argc, char *argv[]) {
         Evolve *evolve = new Evolve(eos, &DATA);
         evolve->EvolveIt(&DATA, arena);
     }
-
 }  /* main */
 
 // improve based on ReadInData2 to support comments in the input parameter file

@@ -114,8 +114,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
      
         // store initial conditions
         if (it == 0) {
-            storePreviousEpsilon(arena);
-            storePreviousW(arena);
+            store_previous_step_for_freezeout(arena);
         }
         
         if (DATA->Initial_profile == 0) {
@@ -166,7 +165,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         AdvanceRK(tau, DATA, arena);
         UpdateArena(tau, arena);
    
-        //check energy conservation
+        // check energy conservation
         //grid_info->check_conservation_law(arena, DATA, tau);
         //grid_info->ComputeEnergyConservation(DATA, arena, tau);
 
@@ -195,8 +194,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                         frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
                                                             tau, DATA, arena);
                 }
-                storePreviousEpsilon(arena);
-                storePreviousW(arena);
+                store_previous_step_for_freezeout(arena);
             } 
         }/* do freeze-out determination */
     
@@ -236,8 +234,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     return 1; /* successful */
 }/* Evolve */
 
-void Evolve::storePreviousEpsilon(Grid ***arena)
-{
+void Evolve::store_previous_step_for_freezeout(Grid ***arena) {
     int nx = grid_nx;
     int ny = grid_ny;
     int neta = grid_neta;
@@ -250,20 +247,9 @@ void Evolve::storePreviousEpsilon(Grid ***arena)
                 arena[ieta][ix][iy].u_prev[2] = arena[ieta][ix][iy].u[0][2];
                 arena[ieta][ix][iy].u_prev[3] = arena[ieta][ix][iy].u[0][3];
                 arena[ieta][ix][iy].rhob_prev = arena[ieta][ix][iy].rhob;
-                arena[ieta][ix][iy].pi_b_prev = arena[ieta][ix][iy].pi_b[0];
-            }
-        }
-    }
-}
 
-void Evolve::storePreviousW(Grid ***arena) {
-    int nx = grid_nx;
-    int ny = grid_ny;
-    int neta = grid_neta;
-    
-    for (int ieta=0; ieta<neta; ieta++) {
-        for (int ix=0; ix<=nx; ix++) {
-            for (int iy=0; iy<=ny; iy++) {
+                arena[ieta][ix][iy].pi_b_prev = arena[ieta][ix][iy].pi_b[0];
+
                 arena[ieta][ix][iy].W_prev[0][0] =
                                         arena[ieta][ix][iy].Wmunu[0][0][0];
                 arena[ieta][ix][iy].W_prev[0][1] =
@@ -377,9 +363,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena) {
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
         flag = u_derivative->MakedU(tau, DATA, arena, rk_flag);
-        if(flag == 0)
-            return 0;
- 
+        if (flag == 0) return 0;
         flag = advance->AdvanceIt(tau, DATA, arena, rk_flag);
     }  /* loop over rk_flag */
     return(flag);
