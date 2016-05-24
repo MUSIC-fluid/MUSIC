@@ -22,7 +22,7 @@ class color:
 initial_condition_dict.update({
     'Initial_profile': 8,          # type of initial condition
     'initialize_with_entropy': 0,   # 0: with energy density, 1: with entropy density
-    'Initial_Distribution_Filename': 'initial/u_field_1.dat',
+    'Initial_Distribution_Filename': 'initial/u_field_1_enlarged.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_event_1_block.dat',
     'Initial_ux_Distribution_Filename': 'initial/ux_event_1_block.dat',
@@ -30,7 +30,7 @@ initial_condition_dict.update({
     'Initial_TA_Distribution_Filename': 'initial/TA_event_1_block.dat',
     'Initial_TB_Distribution_Filename': 'initial/TB_event_1_block.dat',
     'ecm' : 5020,       # center of mass collision energy
-    's_factor': 1.0,   # normalization factor read in initial data file
+    's_factor': 0.89,   # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
     'Eta_plateau_size': 20.0,          # size of the plateau in eta_s direction

@@ -200,8 +200,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     
         fprintf(stderr, "Done time step %d/%d. tau = %6.3f fm/c \n", 
                 it, itmax, tau);
-        //if (frozen) 
-        //    break;
+        if (frozen) break;
     }/* it */ 
 
     // clean up
