@@ -435,15 +435,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         double density, dummy1, dummy2, dummy3;
         double ux, uy, utau;
 
-        double** temp_profile_ed = new double* [nx+1];
-        double** temp_profile_utau = new double* [nx+1];
-        double** temp_profile_ux = new double* [nx+1];
-        double** temp_profile_uy = new double* [nx+1];
-        for (int i = 0; i < nx+1; i++) {
-            temp_profile_ed[i] = new double[ny+1];
-            temp_profile_utau[i] = new double[ny+1];
-            temp_profile_ux[i] = new double[ny+1];
-            temp_profile_uy[i] = new double[ny+1];
+        double** temp_profile_ed = new double* [nx];
+        double** temp_profile_utau = new double* [nx];
+        double** temp_profile_ux = new double* [nx];
+        double** temp_profile_uy = new double* [nx];
+        for (int i = 0; i < nx; i++) {
+            temp_profile_ed[i] = new double[ny];
+            temp_profile_utau[i] = new double[ny];
+            temp_profile_ux[i] = new double[ny];
+            temp_profile_uy[i] = new double[ny];
         }
 
         // read the one slice
@@ -578,7 +578,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
             }/* ix, iy, ieta */
         //}
         // clean up
-        for (int i = 0; i < nx+1; i++) {
+        for (int i = 0; i < nx; i++) {
             delete[] temp_profile_ed[i];
             delete[] temp_profile_utau[i];
             delete[] temp_profile_ux[i];

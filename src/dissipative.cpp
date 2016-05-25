@@ -66,17 +66,11 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     double dWdtau;
     dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
                      - grid_pt->prevWmunu[rk_flag][alpha][0])/DATA->delta_tau;
-    //if (rk_flag == 0)
-    //    dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
-    //                     - grid_pt->prevWmunu[rk_flag][alpha][0])/DATA->delta_tau;
-    //else
-    //    dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
-    //                     - grid_pt->Wmunu[0][alpha][0])/DATA->delta_tau;
 
     /* bulk pressure term */
-    double dPidtau = (
-        grid_pt->Pimunu[rk_flag][alpha][0]
-        - grid_pt->prevPimunu[rk_flag][alpha][0])/DATA->delta_tau;
+    double dPidtau;
+    dPidtau = (grid_pt->Pimunu[rk_flag][alpha][0]
+               - grid_pt->prevPimunu[rk_flag][alpha][0])/DATA->delta_tau;
 
     // use central difference to preserve conservation law exactly
     double dWdx_perp = 0.0;
