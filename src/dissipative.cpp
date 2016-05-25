@@ -226,7 +226,12 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 
     // full Navier-Stokes term is
     // sign changes according to metric sign convention
-    NS_term = - 2.*shear*grid_pt->sigma[rk_flag][mu][nu];
+    for (int ii = 0; ii < 4; ii++) {
+        for (int jj = 0; jj < 4; jj++) {
+            sigma[ii][jj] = grid_pt->sigma[rk_flag][ii][jj];
+        }
+    }
+    NS_term = - 2.*shear*sigma[mu][nu];
 
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
@@ -370,7 +375,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
     double Bulk_W, Bulk_W_term;
     double Coupling_to_Bulk;
 
-    Bulk_Sigma = grid_pt->pi_b[rk_flag]*grid_pt->sigma[rk_flag][mu][nu];
+    Bulk_Sigma = grid_pt->pi_b[rk_flag]*sigma[mu][nu];
     Bulk_W = grid_pt->pi_b[rk_flag]*grid_pt->Wmunu[rk_flag][mu][nu];
 
     // multiply term by its respective transport coefficient
