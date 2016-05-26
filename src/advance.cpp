@@ -220,8 +220,8 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
     double tempf, temps;
     if (rk_flag == 0) {
         diss->Make_uWRHS(tau_now, grid_pt, w_rhs, DATA, rk_flag);
-        for (int mu=1; mu<=3; mu++) {
-            for (int nu=1; nu<=3; nu++) {
+        for (int mu = 1; mu < 4; mu++) {
+            for (int nu = mu; nu < 4; nu++) {
                 tempf = ((grid_pt->Wmunu[rk_flag][mu][nu])
                          *(grid_pt->u[rk_flag][0]));
                 temps = diss->Make_uWSource(tau_now, grid_pt, mu, nu, DATA,
@@ -232,10 +232,16 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
                                     tempf/(grid_pt->u[rk_flag+1][0]));
             }
         }
-   } else if (rk_flag > 0) {
+        for (int mu = 1; mu < 4; mu++) {
+            for (int nu = mu+1; nu < 4; nu++) {
+                grid_pt->Wmunu[rk_flag+1][nu][mu] =
+                            grid_pt->Wmunu[rk_flag+1][mu][nu];
+            }
+        }
+    } else if (rk_flag > 0) {
         diss->Make_uWRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag);
-        for (int mu=1; mu<=3; mu++) {
-            for (int nu=1; nu<=3; nu++) {
+        for (int mu = 1; mu < 4; mu++) {
+            for (int nu = mu; nu < 4; nu++) {
                 tempf = (grid_pt->Wmunu[0][mu][nu])*(grid_pt->u[0][0]);
                 temps = diss->Make_uWSource(tau_next, grid_pt, mu, nu, DATA,
                                             rk_flag); 
@@ -250,64 +256,83 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
                                             tempf/(grid_pt->u[rk_flag+1][0]));
             }
         }
-   } /* rk_flag > 0 */
-
-   /* calculate delta u pi */
-   double p_rhs;
-   if (rk_flag == 0) {
-        /* calculate delta u^0 pi */
-        diss->Make_uPRHS(tau_now, grid_pt, &p_rhs, DATA, rk_flag);
-   
-        tempf = (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
-        temps = diss->Make_uPiSource(tau_now, grid_pt, DATA, rk_flag);
-        tempf += temps*(DATA->delta_tau);
-        tempf += p_rhs;
-   
-        grid_pt->pi_b[rk_flag+1] = tempf/(grid_pt->u[rk_flag+1][0]);
-   } else if (rk_flag > 0) {
-        /* calculate delta u^0 pi */
-        diss->Make_uPRHS(tau_next, grid_pt, &p_rhs, DATA, rk_flag);
-   
-        tempf = (grid_pt->pi_b[0])*(grid_pt->u[0][0]);
-        temps = diss->Make_uPiSource(tau_next, grid_pt, DATA, rk_flag);
-        tempf += temps*(DATA->delta_tau);
-        tempf += p_rhs;
-  
-        tempf += (grid_pt->pi_b[1])*(grid_pt->u[0][0]);
-        tempf *= 0.5;
-
-        grid_pt->pi_b[rk_flag+1] = tempf/(grid_pt->u[rk_flag+1][0]);
-   }
-   // CShen: add source term for baryon diffusion
-   if (rk_flag == 0) {
-        diss->Make_uqRHS(tau_now, grid_pt, w_rhs, DATA, rk_flag);
-        int mu = 4;
-        for (int nu=1; nu<=3; nu++) {
-            tempf = (grid_pt->Wmunu[rk_flag][mu][nu])*(grid_pt->u[rk_flag][0]);
-            temps = diss->Make_uqSource(tau_now, grid_pt, nu, DATA, rk_flag); 
-            tempf += temps*(DATA->delta_tau);
-            tempf += w_rhs[mu][nu];
-
-            grid_pt->Wmunu[rk_flag+1][mu][nu] = (
-                                            tempf/(grid_pt->u[rk_flag+1][0]));
-        }
-   } else if (rk_flag > 0) {
-        diss->Make_uqRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag);
-        int mu = 4;
-        for (int nu=1; nu<=3; nu++) {
-            tempf = (grid_pt->Wmunu[0][mu][nu])*(grid_pt->u[0][0]);
-            temps = diss->Make_uqSource(tau_next, grid_pt, nu, DATA, rk_flag); 
-            tempf += temps*(DATA->delta_tau);
-            tempf += w_rhs[mu][nu];
-
-            tempf += ((grid_pt->Wmunu[rk_flag][mu][nu])
-                      *(grid_pt->u[rk_flag][0]));
-            tempf *= 0.5;
-       
-            grid_pt->Wmunu[rk_flag+1][mu][nu] = (
-                                        tempf/(grid_pt->u[rk_flag+1][0]));
+        for (int mu = 1; mu < 4; mu++) {
+            for (int nu = mu+1; nu < 4; nu++) {
+                grid_pt->Wmunu[rk_flag+1][nu][mu] =
+                            grid_pt->Wmunu[rk_flag+1][mu][nu];
+            }
         }
     } /* rk_flag > 0 */
+
+    if (DATA->turn_on_bulk == 1) {
+        /* calculate delta u pi */
+        double p_rhs;
+        if (rk_flag == 0) {
+            /* calculate delta u^0 pi */
+            diss->Make_uPRHS(tau_now, grid_pt, &p_rhs, DATA, rk_flag);
+   
+            tempf = (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
+            temps = diss->Make_uPiSource(tau_now, grid_pt, DATA, rk_flag);
+            tempf += temps*(DATA->delta_tau);
+            tempf += p_rhs;
+   
+            grid_pt->pi_b[rk_flag+1] = tempf/(grid_pt->u[rk_flag+1][0]);
+        } else if (rk_flag > 0) {
+            /* calculate delta u^0 pi */
+            diss->Make_uPRHS(tau_next, grid_pt, &p_rhs, DATA, rk_flag);
+   
+            tempf = (grid_pt->pi_b[0])*(grid_pt->u[0][0]);
+            temps = diss->Make_uPiSource(tau_next, grid_pt, DATA, rk_flag);
+            tempf += temps*(DATA->delta_tau);
+            tempf += p_rhs;
+  
+            tempf += (grid_pt->pi_b[1])*(grid_pt->u[0][0]);
+            tempf *= 0.5;
+
+            grid_pt->pi_b[rk_flag+1] = tempf/(grid_pt->u[rk_flag+1][0]);
+        }
+    } else {
+            grid_pt->pi_b[rk_flag+1] = 0.0;
+    }
+
+    // CShen: add source term for baryon diffusion
+    if (DATA->turn_on_diff == 1) {
+        if (rk_flag == 0) {
+            diss->Make_uqRHS(tau_now, grid_pt, w_rhs, DATA, rk_flag);
+            int mu = 4;
+            for (int nu=1; nu<=3; nu++) {
+                tempf = ((grid_pt->Wmunu[rk_flag][mu][nu])
+                         *(grid_pt->u[rk_flag][0]));
+                temps = diss->Make_uqSource(tau_now, grid_pt, nu, DATA,
+                                            rk_flag); 
+                tempf += temps*(DATA->delta_tau);
+                tempf += w_rhs[mu][nu];
+
+                grid_pt->Wmunu[rk_flag+1][mu][nu] = (
+                                            tempf/(grid_pt->u[rk_flag+1][0]));
+            }
+        } else if (rk_flag > 0) {
+            diss->Make_uqRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag);
+            int mu = 4;
+            for (int nu=1; nu<=3; nu++) {
+                tempf = (grid_pt->Wmunu[0][mu][nu])*(grid_pt->u[0][0]);
+                temps = diss->Make_uqSource(tau_next, grid_pt, nu, DATA,
+                                            rk_flag); 
+                tempf += temps*(DATA->delta_tau);
+                tempf += w_rhs[mu][nu];
+
+                tempf += ((grid_pt->Wmunu[rk_flag][mu][nu])
+                          *(grid_pt->u[rk_flag][0]));
+                tempf *= 0.5;
+       
+                grid_pt->Wmunu[rk_flag+1][mu][nu] = (
+                                        tempf/(grid_pt->u[rk_flag+1][0]));
+            }
+        } /* rk_flag > 0 */
+    } else {
+        for (int nu = 0; nu < 4; nu++)
+            grid_pt->Wmunu[rk_flag+1][4][nu] = 0.0;
+    }
    
     // re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless
     grid_pt->Wmunu[rk_flag+1][3][3] = (
@@ -349,22 +374,36 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
         tempf += grid_pt->Wmunu[rk_flag+1][0][nu]*grid_pt->u[rk_flag+1][nu]; 
     grid_pt->Wmunu[rk_flag+1][0][0] = tempf/(grid_pt->u[rk_flag+1][0]);
  
-    // update Pimunu
-    for (int mu=0; mu<4; mu++) {
-        for (int nu=0; nu<4; nu++) {
-            grid_pt->Pimunu[rk_flag+1][mu][nu]  = (grid_pt->u[rk_flag+1][mu]);
-            grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->u[rk_flag+1][nu]);
-            grid_pt->Pimunu[rk_flag+1][mu][nu] += DATA->gmunu[mu][nu];
-            grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->pi_b[rk_flag+1]);
-        }/* nu */
-    }/* mu */
+    if (DATA->turn_on_bulk == 1) {
+        // update Pimunu
+        for (int mu=0; mu<4; mu++) {
+            for (int nu=0; nu<4; nu++) {
+                grid_pt->Pimunu[rk_flag+1][mu][nu]  = (grid_pt->u[rk_flag+1][mu]);
+                grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->u[rk_flag+1][nu]);
+                grid_pt->Pimunu[rk_flag+1][mu][nu] += DATA->gmunu[mu][nu];
+                grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->pi_b[rk_flag+1]);
+            } /* nu */
+        } /* mu */
+    } else {
+        for (int mu=0; mu<4; mu++) {
+            for (int nu=0; nu<4; nu++) {
+                grid_pt->Pimunu[rk_flag+1][mu][nu]  = 0.0;
+            }
+        }
+    }
 
-    // make qmu[0] using transversality
-    for (int mu=4; mu<mu_max+1; mu++) {
-        tempf = 0.0;
-        for (int nu=1; nu<4; nu++)
-            tempf += grid_pt->Wmunu[rk_flag+1][mu][nu]*grid_pt->u[rk_flag+1][nu]; 
-        grid_pt->Wmunu[rk_flag+1][mu][0] = tempf/(grid_pt->u[rk_flag+1][0]);
+    if (DATA->turn_on_diff == 1) {
+        // make qmu[0] using transversality
+        for (int mu=4; mu<mu_max+1; mu++) {
+            tempf = 0.0;
+            for (int nu=1; nu<4; nu++)
+                tempf += (grid_pt->Wmunu[rk_flag+1][mu][nu]
+                          *grid_pt->u[rk_flag+1][nu]);
+            grid_pt->Wmunu[rk_flag+1][mu][0] = (
+                                        tempf/(grid_pt->u[rk_flag+1][0]));
+        }
+    } else {
+        grid_pt->Wmunu[rk_flag+1][4][0] = 0.0;
     }
 
     // If the energy density of the fluid element is smaller than 0.01GeV
@@ -374,9 +413,11 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
     if (DATA->Initial_profile != 0) {
         if (grid_pt->epsilon < DATA->QuestRevert_epsilon_min/hbarc) {
             revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA);
-            revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA);
+            if (DATA->turn_on_diff == 1) {
+                revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA);
+            }
         }
-        grid_pt->revert_flag = revert_flag;
+        grid_pt->revert_flag = revert_flag + revert_q_flag;
     }
 
     if (revert_flag == 1)

@@ -261,12 +261,12 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     return 1; /* on successful execution */
 }/* Reconst */
 
-/* reconstruct TJb from q[0] - q[4] */
-/* reconstruct velocity first for isfinite mu_B case
- * (add by C. Shen Nov. 2014) */
 int Reconst::ReconstIt_velocity(
     Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
     double eps_init, double rhob_init, InitData *DATA, int rk_flag) {
+    /* reconstruct TJb from q[0] - q[4] */
+    /* reconstruct velocity first for finite mu_B case
+     * (add by C. Shen Nov. 2014) */
     double K00, T00, J0, u[4], epsilon, pressure, rhob;
     int iter, mu, nu, alpha;
     double q[5];
@@ -343,14 +343,15 @@ int Reconst::ReconstIt_velocity(
 
     double v_solution;
     if (status == GSL_SUCCESS) {
-       v_solution = gsl_root_fsolver_root(gsl_rootfinding_solver);
+        v_solution = gsl_root_fsolver_root(gsl_rootfinding_solver);
     } else {
         if (echo_level > 5) {
            double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
            double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
            double result = gsl_root_fsolver_root (gsl_rootfinding_solver);
-           fprintf(stderr, 
-                   "***Warning: Reconst velocity:: can not find solution!!!\n");
+           fprintf(
+                stderr, 
+                "***Warning: Reconst velocity:: can not find solution!!!\n");
            fprintf(stderr, "***output the results at the last iteration: \n");
            fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
                    "iter", "lower", "upper", "root", "err(est)");
@@ -397,8 +398,11 @@ int Reconst::ReconstIt_velocity(
                 double x_lo = gsl_root_fsolver_x_lower(gsl_rootfinding_solver);
                 double x_hi = gsl_root_fsolver_x_upper(gsl_rootfinding_solver);
                 double result = gsl_root_fsolver_root(gsl_rootfinding_solver);
-                fprintf(stderr, "***Warning: Reconst velocity:: can not find solution!!!\n");
-                fprintf(stderr, "***output the results at the last iteration: \n");
+                fprintf(
+                    stderr,
+                    "***Warning: Reconst velocity:: can not find solution!\n");
+                fprintf(stderr,
+                        "***output the results at the last iteration:\n");
                 fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
                         "iter", "lower", "upper", "root", "err(est)");
                 fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
@@ -478,11 +482,12 @@ int Reconst::ReconstIt_velocity(
 
     // Correcting normalization of 4-velocity
     double temp_usq = u[0]*u[0] - u[1]*u[1] - u[2]*u[2] - u[3]*u[3];
-    // Correct velocity when unitarity is not satisfied to numerical accuracy (constant "SMALL")
+    // Correct velocity when unitarity is not satisfied to numerical accuracy
     if (fabs(temp_usq - 1.0) > SMALL) {
         // If the deviation is too large, exit MUSIC
         if (fabs(temp_usq - 1.0) > 0.1*u[0]) {
-            fprintf(stderr, "In Reconst velocity, reconstructed: u^2 - 1= %e\n",
+            fprintf(stderr,
+                    "In Reconst velocity, reconstructed: u^2 - 1= %e\n",
                     temp_usq - 1.0);
             fprintf(stderr, "Can't happen.\n");
             fprintf(stderr, "u[0]=%.6e, u[1]=%.6e, u[2]=%.6e, u[3]=%.6e\n",
@@ -490,9 +495,10 @@ int Reconst::ReconstIt_velocity(
             fprintf(stderr, "e=%.6e, rhob=%.6e, p=%.6e\n",
                     epsilon, rhob, pressure);
             exit(0);
-        } else if(fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0] && echo_level > 5) {
+        } else if (fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0] && echo_level > 5) {
             // Warn only when the deviation from 1 is relatively large
-            fprintf(stderr, "In Reconst velocity, reconstructed: u^2 - 1 = %.8e \n",
+            fprintf(stderr,
+                    "In Reconst velocity, reconstructed: u^2 - 1 = %.8e \n",
                     temp_usq - 1.0);
             double f_res;
             if (v_solution < v_critical)
@@ -505,13 +511,14 @@ int Reconst::ReconstIt_velocity(
             fprintf(stderr, "with u[2] = %e\n", u[2]);
             fprintf(stderr, "with u[3] = %e\n", u[3]);
             fprintf(stderr, "with T00 = %e, K = %e \n", T00, K00);
-            fprintf(stderr, "with q1 = %e, q2 = %e, q3 = %e \n", q[1], q[2], q[3]);
+            fprintf(stderr, "with q1 = %e, q2 = %e, q3 = %e \n",
+                    q[1], q[2], q[3]);
             fprintf(stderr, "Correcting it...\n");
         }
         // Rescaling spatial components of velocity so that unitarity 
         // is exactly satisfied (u[0] is not modified)
         double scalef = sqrt(
-                (u[0]*u[0] - 1.0)/(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]+SMALL));
+                (u[0]*u[0] - 1.0)/(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + SMALL));
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;

@@ -54,10 +54,6 @@ Grid_info::~Grid_info() {
 // here. -CFY 11/12/2010
 void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                                          EOS *eos, double tau) {
-    int nx = DATA->nx;
-    int ny = DATA->ny;
-    int neta = DATA->neta;
-    
     const string out_name_xyeta = "evolution_xyeta.dat";
     const string out_name_W_xyeta = 
                         "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
@@ -112,7 +108,6 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                 
                 double T_local = arena[ieta][ix][iy].T;  // 1/fm
                 double muB_local = arena[ieta][ix][iy].mu;  // 1/fm
-                double QGPfrac1 = 0.0;
                 double div_factor = e_local + p_local;  // 1/fm^4
 
                 double Wtautau, Wtaux, Wtauy, Wtaueta;
@@ -165,7 +160,7 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                             Wyy, Wyeta, Wetaeta};
 		  	            fwrite(array2, sizeof(double), 10, out_file_W_xyeta);
                         if (DATA->turn_on_diff == 1) {
-                            float array3[] = {common_term_q,
+                            double array3[] = {common_term_q,
                                               qtau, qx, qy, qeta};
                             fwrite(array3, sizeof(double), 5,
                                    out_file_q_xyeta);
@@ -186,7 +181,6 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
 
 void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                                        double tau) {
-    int position;
     int nx = DATA->nx;
     int ny = DATA->ny;
     int neta = DATA->neta;

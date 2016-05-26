@@ -142,14 +142,25 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
 
 double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
                            InitData *DATA, int rk_flag) {
+    if (DATA->turn_on_shear == 0)
+        return 0.0;
+
     double tempf, tau_pi;
     double SW, shear, shear_to_s, T, epsilon, rhob;
     int a, b;
     double sigma[4][4], gamma, ueta;
     double NS_term;
-
-    if (DATA->turn_on_shear == 0)
-        return 0.0;
+    double Wmunu[4][4];
+    for (int a = 0; a < 4; a++) {
+        for (int b = a; b < 4; b++) {
+            Wmunu[a][b] = grid_pt->Wmunu[rk_flag][a][b];
+        }
+    }
+    for (int a = 0; a < 4; a++) {
+        for (int b = a+1; b < 4; b++) {
+            Wmunu[b][a] = Wmunu[a][b];
+        }
+    }
 
     // Useful variables to define
     gamma = grid_pt->u[rk_flag][0];
@@ -216,7 +227,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
     // full term is
     tempf = (
         - (1.0 + transport_coefficient2*(grid_pt->theta_u[rk_flag]))
-        *(grid_pt->Wmunu[rk_flag][mu][nu]));
+        *(Wmunu[mu][nu]));
 
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
@@ -227,8 +238,13 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
     // full Navier-Stokes term is
     // sign changes according to metric sign convention
     for (int ii = 0; ii < 4; ii++) {
-        for (int jj = 0; jj < 4; jj++) {
+        for (int jj = ii; jj < 4; jj++) {
             sigma[ii][jj] = grid_pt->sigma[rk_flag][ii][jj];
+        }
+    }
+    for (int ii = 0; ii < 4; ii++) {
+        for (int jj = ii+1; jj < 4; jj++) {
+            sigma[jj][ii] = sigma[ii][jj];
         }
     }
     NS_term = - 2.*shear*sigma[mu][nu];
@@ -262,15 +278,14 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
                        - grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a])/2.);
             }
         }
-        term1_Vorticity = (
-            - grid_pt->Wmunu[rk_flag][mu][0]*omega[nu][0]
-            - grid_pt->Wmunu[rk_flag][nu][0]*omega[mu][0]
-            + grid_pt->Wmunu[rk_flag][mu][1]*omega[nu][1]
-            + grid_pt->Wmunu[rk_flag][nu][1]*omega[mu][1]
-            + grid_pt->Wmunu[rk_flag][mu][2]*omega[nu][2]
-            + grid_pt->Wmunu[rk_flag][nu][2]*omega[mu][2]
-            + grid_pt->Wmunu[rk_flag][mu][3]*omega[nu][3]
-            + grid_pt->Wmunu[rk_flag][nu][3]*omega[mu][3])/2.;
+        term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
+                           - Wmunu[nu][0]*omega[mu][0]
+                           + Wmunu[mu][1]*omega[nu][1]
+                           + Wmunu[nu][1]*omega[mu][1]
+                           + Wmunu[mu][2]*omega[nu][2]
+                           + Wmunu[nu][2]*omega[mu][2]
+                           + Wmunu[mu][3]*omega[nu][3]
+                           + Wmunu[nu][3]*omega[mu][3])/2.;
         // multiply term by its respective transport coefficient
         term1_Vorticity = transport_coefficient4*term1_Vorticity;
         // full term is
@@ -289,25 +304,24 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
     double term1_Wsigma, term2_Wsigma;
     if (include_Wsigma_term == 1) {
         Wsigma = (
-               grid_pt->Wmunu[rk_flag][0][0]*sigma[0][0]
-             + grid_pt->Wmunu[rk_flag][1][1]*sigma[1][1]
-             + grid_pt->Wmunu[rk_flag][2][2]*sigma[2][2]
-             + grid_pt->Wmunu[rk_flag][3][3]*sigma[3][3]
-             - 2.*(grid_pt->Wmunu[rk_flag][0][1]*sigma[0][1]
-                   + grid_pt->Wmunu[rk_flag][0][2]*sigma[0][2]
-                   + grid_pt->Wmunu[rk_flag][0][3]*sigma[0][3])
-             +2.*(grid_pt->Wmunu[rk_flag][1][2]*sigma[1][2]
-                  + grid_pt->Wmunu[rk_flag][1][3]*sigma[1][3]
-                  + grid_pt->Wmunu[rk_flag][2][3]*sigma[2][3]));
-        term1_Wsigma = (
-            - grid_pt->Wmunu[rk_flag][mu][0]*sigma[nu][0]
-            - grid_pt->Wmunu[rk_flag][nu][0]*sigma[mu][0]
-            + grid_pt->Wmunu[rk_flag][mu][1]*sigma[nu][1]
-            + grid_pt->Wmunu[rk_flag][nu][1]*sigma[mu][1]
-            + grid_pt->Wmunu[rk_flag][mu][2]*sigma[nu][2]
-            + grid_pt->Wmunu[rk_flag][nu][2]*sigma[mu][2]
-            + grid_pt->Wmunu[rk_flag][mu][3]*sigma[nu][3]
-            + grid_pt->Wmunu[rk_flag][nu][3]*sigma[mu][3])/2.;
+               Wmunu[0][0]*sigma[0][0]
+             + Wmunu[1][1]*sigma[1][1]
+             + Wmunu[2][2]*sigma[2][2]
+             + Wmunu[3][3]*sigma[3][3]
+             - 2.*(  Wmunu[0][1]*sigma[0][1]
+                   + Wmunu[0][2]*sigma[0][2]
+                   + Wmunu[0][3]*sigma[0][3])
+             +2.*(  Wmunu[1][2]*sigma[1][2]
+                  + Wmunu[1][3]*sigma[1][3]
+                  + Wmunu[2][3]*sigma[2][3]));
+        term1_Wsigma = ( - Wmunu[mu][0]*sigma[nu][0]
+                         - Wmunu[nu][0]*sigma[mu][0]
+                         + Wmunu[mu][1]*sigma[nu][1]
+                         + Wmunu[nu][1]*sigma[mu][1]
+                         + Wmunu[mu][2]*sigma[nu][2]
+                         + Wmunu[nu][2]*sigma[mu][2]
+                         + Wmunu[mu][3]*sigma[nu][3]
+                         + Wmunu[nu][3]*sigma[mu][3])/2.;
 
         term2_Wsigma = (-(1./3.)*(DATA->gmunu[mu][nu]
                                   + grid_pt->u[rk_flag][mu]
@@ -331,22 +345,20 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
     double Wsquare, WW_term;
     double term1_WW, term2_WW;
     if (include_WWterm == 1) {
-        Wsquare = (
-              grid_pt->Wmunu[rk_flag][0][0]*grid_pt->Wmunu[rk_flag][0][0]
-            + grid_pt->Wmunu[rk_flag][1][1]*grid_pt->Wmunu[rk_flag][1][1]
-            + grid_pt->Wmunu[rk_flag][2][2]*grid_pt->Wmunu[rk_flag][2][2]
-            + grid_pt->Wmunu[rk_flag][3][3]*grid_pt->Wmunu[rk_flag][3][3]
-            - 2.*(grid_pt->Wmunu[rk_flag][0][1]*grid_pt->Wmunu[rk_flag][0][1]
-                  + grid_pt->Wmunu[rk_flag][0][2]*grid_pt->Wmunu[rk_flag][0][2]
-                  + grid_pt->Wmunu[rk_flag][0][3]*grid_pt->Wmunu[rk_flag][0][3])
-            + 2.*(grid_pt->Wmunu[rk_flag][1][2]*grid_pt->Wmunu[rk_flag][1][2]
-                  + grid_pt->Wmunu[rk_flag][1][3]*grid_pt->Wmunu[rk_flag][1][3]
-                  + grid_pt->Wmunu[rk_flag][2][3]*grid_pt->Wmunu[rk_flag][2][3]));
-        term1_WW = (
-            - grid_pt->Wmunu[rk_flag][mu][0]*grid_pt->Wmunu[rk_flag][nu][0]
-            + grid_pt->Wmunu[rk_flag][mu][1]*grid_pt->Wmunu[rk_flag][nu][1]
-            + grid_pt->Wmunu[rk_flag][mu][2]*grid_pt->Wmunu[rk_flag][nu][2]
-            + grid_pt->Wmunu[rk_flag][mu][3]*grid_pt->Wmunu[rk_flag][nu][3]);
+        Wsquare = (  Wmunu[0][0]*Wmunu[0][0]
+                   + Wmunu[1][1]*Wmunu[1][1]
+                   + Wmunu[2][2]*Wmunu[2][2]
+                   + Wmunu[3][3]*Wmunu[3][3]
+            - 2.*(  Wmunu[0][1]*Wmunu[0][1]
+                  + Wmunu[0][2]*Wmunu[0][2]
+                  + Wmunu[0][3]*Wmunu[0][3])
+            + 2.*(  Wmunu[1][2]*Wmunu[1][2]
+                  + Wmunu[1][3]*Wmunu[1][3]
+                  + Wmunu[2][3]*Wmunu[2][3]));
+        term1_WW = ( - Wmunu[mu][0]*Wmunu[nu][0]
+                     + Wmunu[mu][1]*Wmunu[nu][1]
+                     + Wmunu[mu][2]*Wmunu[nu][2]
+                     + Wmunu[mu][3]*Wmunu[nu][3]);
 
         term2_WW = (
             -(1./3.)*(DATA->gmunu[mu][nu]
@@ -395,13 +407,20 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 
 int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
                      InitData *DATA, int rk_flag) {
+    for (int a = 0; a < 4; a++) {
+        for (int b = 0; b < 4; b++) {
+            w_rhs[a][b] = 0.0;
+        }
+    }
+    if (DATA->turn_on_shear == 0)
+        return(1);
+
     int mu, nu, direc, ic;
-    double f, fp1, fm1, fp2, fm2, delta[4];
+    double f, fp1, fm1, fp2, fm2;
     double g, gp1, gm1, gp2, gm2, a, am1, ap1, ax;
     double uWphR, uWphL, uWmhR, uWmhL, WphR, WphL, WmhR, WmhL;
     double HWph, HWmh, taufactor, HW, ic_fac;
-    /*  HW[4][4][4], SW[4][4][4] */
-    double tempf, sum, shear_on;
+    double tempf;
 
     /* Kurganov-Tadmor for Wmunu */
     /* implement 
@@ -419,28 +438,44 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
        Here fRph = ux WmnRph and ax uRph = |ux/utau|_max utau Wmn */
     /* This is the second step in the operator splitting. it uses
        rk_flag+1 as initial condition */
+    double delta[4];
     delta[1] = DATA->delta_x;
     delta[2] = DATA->delta_y;
     delta[3] = DATA->delta_eta;
-
-    if (DATA->turn_on_shear)
-        shear_on = 1.0;
-    else
-        shear_on = 0.0;
-
-    for (mu = 0; mu < 4; mu++) {
-        for (nu = 0; nu < 4; nu++) {
+    
+    double sum;
+    // pi^\mu\nu is symmetric
+    for (mu = 1; mu < 4; mu++) {
+        for (nu = mu; nu < 4; nu++) {
             sum = 0.0;
             for (direc = 1; direc <= 3; direc++) {
                 if (direc == 3)
                     taufactor = tau;
                 else
                     taufactor = 1.0;
-                /* Get_uWmns */
-                Get_uWmns(tau, grid_pt, mu, nu, direc, &g, &f, &gp1, &fp1,
-                          &gp2, &fp2, &gm1, &fm1, &gm2, &fm2, DATA, rk_flag);
 
-                /*  MakeuWmnHalfs */
+                /* Get_uWmns */
+                g = grid_pt->Wmunu[rk_flag][mu][nu];
+                f = g*grid_pt->u[rk_flag][direc];
+                g *=   grid_pt->u[rk_flag][0];
+                   
+                gp2 = grid_pt->nbr_p_2[direc]->Wmunu[rk_flag][mu][nu];
+                fp2 = gp2*grid_pt->nbr_p_2[direc]->u[rk_flag][direc];
+                gp2 *= grid_pt->nbr_p_2[direc]->u[rk_flag][0];
+                
+                gp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
+                fp1 = gp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
+                gp1 *= grid_pt->nbr_p_1[direc]->u[rk_flag][0];
+                
+                gm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
+                fm1 = gm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
+                gm1 *= grid_pt->nbr_m_1[direc]->u[rk_flag][0];
+                
+                gm2 = grid_pt->nbr_m_2[direc]->Wmunu[rk_flag][mu][nu];
+                fm2 = gm2*grid_pt->nbr_m_2[direc]->u[rk_flag][direc];
+                gm2 *= grid_pt->nbr_m_2[direc]->u[rk_flag][0];
+
+                /* MakeuWmnHalfs */
                 /* uWmn */
                 uWphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f);
                 uWphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1);
@@ -455,17 +490,10 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
 
                 a = fabs(grid_pt->u[rk_flag][direc]);
                 a /= grid_pt->u[rk_flag][0];
-                if (direc < 3) {  // x,y direction
-                    am1 = (fabs(grid_pt->nbr_m_1[direc]->u[rk_flag][direc])
-                           /grid_pt->nbr_m_1[direc]->u[rk_flag][0]);
-                    ap1 = (fabs(grid_pt->nbr_p_1[direc]->u[rk_flag][direc])
-                           /grid_pt->nbr_p_1[direc]->u[rk_flag][0]);
-                } else if (direc == 3) {
-                    am1 = (fabs(grid_pt->nbr_m_1[direc]->u[rk_flag][direc])
-                           /grid_pt->nbr_m_1[direc]->u[rk_flag][0]);
-                    ap1 = (fabs(grid_pt->nbr_p_1[direc]->u[rk_flag][direc])
-                           /grid_pt->nbr_p_1[direc]->u[rk_flag][0]);
-                }
+                am1 = (fabs(grid_pt->nbr_m_1[direc]->u[rk_flag][direc])
+                       /grid_pt->nbr_m_1[direc]->u[rk_flag][0]);
+                ap1 = (fabs(grid_pt->nbr_p_1[direc]->u[rk_flag][direc])
+                       /grid_pt->nbr_p_1[direc]->u[rk_flag][0]);
 
                 ax = maxi(a, ap1);
                 HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
@@ -478,14 +506,12 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
                 /* make partial_i (u^i Wmn) */
                 sum += -HW;
             }/* direction */
-
             /* add a source term -u^tau Wmn/tau
                due to the coordinate change to tau-eta */
-            sum += (
-                - (grid_pt->u[rk_flag][0])
-                  *(grid_pt->Wmunu[rk_flag][mu][nu])/tau
-                + (grid_pt->theta_u[rk_flag])
-                  *(grid_pt->Wmunu[rk_flag][mu][nu]));
+            sum += (- (grid_pt->u[rk_flag][0])
+                      *(grid_pt->Wmunu[rk_flag][mu][nu])/tau
+                    + (grid_pt->theta_u[rk_flag])
+                      *(grid_pt->Wmunu[rk_flag][mu][nu]));
 
             /* this is from udW = d(uW) - Wdu = RHS */
             /* or d(uW) = udW + Wdu */
@@ -517,9 +543,16 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
                        *(grid_pt->a[rk_flag][ic])*ic_fac);
             }
             sum += tempf;
-            w_rhs[mu][nu] = sum*(DATA->delta_tau)*shear_on;
+            w_rhs[mu][nu] = sum*(DATA->delta_tau);
         }  /* nu */
     }  /* mu */
+
+    // pi^\mu\nu is symmetric
+    for (int mu = 1; mu < 4; mu++) {
+        for (int nu = mu+1; nu < 4; nu++) {
+            w_rhs[nu][mu] = w_rhs[mu][nu];
+        }
+    }
     return 1; /* if successful */
 }/* Make_uWRHS */
 
@@ -746,12 +779,10 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
 
     // from kinetic theory, small mass limit
     transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);
-
     transport_coeff2   = 0.;  // not known; put 0
 
     // from kinetic theory
     transport_coeff1_s = 8./5.*(1./3.-cs2)*Bulk_Relax_time;
-
     transport_coeff2_s = 0.;  // not known;  put 0
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
@@ -764,62 +795,47 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
                *(grid_pt->pi_b[rk_flag]));
 
     // Computing nonlinear term: + transport_coeff2*Bulk*Bulk
-    if (include_BBterm == 1)
+    if (include_BBterm == 1) {
         BB_term = (transport_coeff2*(grid_pt->pi_b[rk_flag])
                    *(grid_pt->pi_b[rk_flag]));
-    else
+    } else {
         BB_term = 0.0;
+    }
 
     // Computing terms that Couple with shear-stress tensor
     double Wsigma, WW, Shear_Sigma_term, Shear_Shear_term, Coupling_to_Shear;
 
     if (include_coupling_to_shear == 1) {
         // Computing sigma^mu^nu
-        double sigma[4][4];
+        double sigma[4][4], Wmunu[4][4];
         for (int a = 0; a < 4 ; a++) {
-            for (int b = 0; b < 4; b++) {
+            for (int b = a; b < 4; b++) {
                 sigma[a][b] = grid_pt->sigma[rk_flag][a][b];
+                Wmunu[a][b] = grid_pt->Wmunu[rk_flag][a][b];
             }
         }
 
-        Wsigma = (
-                    grid_pt->Wmunu[rk_flag][0][0]*sigma[0][0]
-                   +grid_pt->Wmunu[rk_flag][1][1]*sigma[1][1]
-                   +grid_pt->Wmunu[rk_flag][2][2]*sigma[2][2]
-                   +grid_pt->Wmunu[rk_flag][3][3]*sigma[3][3]
+        Wsigma = (  Wmunu[0][0]*sigma[0][0]
+                  + Wmunu[1][1]*sigma[1][1]
+                  + Wmunu[2][2]*sigma[2][2]
+                  + Wmunu[3][3]*sigma[3][3]
+                  - 2.*(  Wmunu[0][1]*sigma[0][1]
+                        + Wmunu[0][2]*sigma[0][2]
+                        + Wmunu[0][3]*sigma[0][3])
+                  + 2.*(  Wmunu[1][2]*sigma[1][2]
+                        + Wmunu[1][3]*sigma[1][3]
+                        + Wmunu[2][3]*sigma[2][3]));
 
-                   -2.*(
-                         grid_pt->Wmunu[rk_flag][0][1]*sigma[0][1]
-                        +grid_pt->Wmunu[rk_flag][0][2]*sigma[0][2]
-                        +grid_pt->Wmunu[rk_flag][0][3]*sigma[0][3]
-                        )
-
-                   +2.*(
-                         grid_pt->Wmunu[rk_flag][1][2]*sigma[1][2]
-                        +grid_pt->Wmunu[rk_flag][1][3]*sigma[1][3]
-                        +grid_pt->Wmunu[rk_flag][2][3]*sigma[2][3]
-                        )
-                 );
-
-        WW = (
-                grid_pt->Wmunu[rk_flag][0][0]*grid_pt->Wmunu[rk_flag][0][0]
-               +grid_pt->Wmunu[rk_flag][1][1]*grid_pt->Wmunu[rk_flag][1][1]
-               +grid_pt->Wmunu[rk_flag][2][2]*grid_pt->Wmunu[rk_flag][2][2]
-               +grid_pt->Wmunu[rk_flag][3][3]*grid_pt->Wmunu[rk_flag][3][3]
-
-               -2.*(
-                    grid_pt->Wmunu[rk_flag][0][1]*grid_pt->Wmunu[rk_flag][0][1]
-                    +grid_pt->Wmunu[rk_flag][0][2]*grid_pt->Wmunu[rk_flag][0][2]
-                    +grid_pt->Wmunu[rk_flag][0][3]*grid_pt->Wmunu[rk_flag][0][3]
-                    )
-
-               +2.*(
-                    grid_pt->Wmunu[rk_flag][1][2]*grid_pt->Wmunu[rk_flag][1][2]
-                    +grid_pt->Wmunu[rk_flag][1][3]*grid_pt->Wmunu[rk_flag][1][3]
-                    +grid_pt->Wmunu[rk_flag][2][3]*grid_pt->Wmunu[rk_flag][2][3]
-                    )
-             );
-
+        WW = (   Wmunu[0][0]*Wmunu[0][0]
+               + Wmunu[1][1]*Wmunu[1][1]
+               + Wmunu[2][2]*Wmunu[2][2]
+               + Wmunu[3][3]*Wmunu[3][3]
+               - 2.*(  Wmunu[0][1]*Wmunu[0][1]
+                     + Wmunu[0][2]*Wmunu[0][2]
+                     + Wmunu[0][3]*Wmunu[0][3])
+               + 2.*(  Wmunu[1][2]*Wmunu[1][2]
+                     + Wmunu[1][3]*Wmunu[1][3]
+                     + Wmunu[2][3]*Wmunu[2][3]));
         // multiply term by its respective transport coefficient
         Shear_Sigma_term = Wsigma*transport_coeff1_s;
         Shear_Shear_term = WW*transport_coeff2_s;
@@ -1004,7 +1020,7 @@ int Diss::Make_uqRHS(double tau, Grid *grid_pt, double **w_rhs, InitData *DATA,
 
     // we use the Wmunu[4][nu] = q[nu] 
     mu = 4;
-    for (nu=0; nu<4; nu++) {
+    for (nu=1; nu<4; nu++) {
         double sum = 0.0;
         for (direc=1; direc<=3; direc++) {
             if (direc==3)
@@ -1013,8 +1029,25 @@ int Diss::Make_uqRHS(double tau, Grid *grid_pt, double **w_rhs, InitData *DATA,
                 taufactor = 1.0;
 
             /* Get_uWmns */
-            Get_uWmns(tau, grid_pt, mu, nu, direc, &g, &f, &gp1, &fp1, &gp2,
-                      &fp2, &gm1, &fm1, &gm2, &fm2, DATA, rk_flag);
+            g = grid_pt->Wmunu[rk_flag][mu][nu];
+            f = g*grid_pt->u[rk_flag][direc];
+            g *=   grid_pt->u[rk_flag][0];
+               
+            gp2 = grid_pt->nbr_p_2[direc]->Wmunu[rk_flag][mu][nu];
+            fp2 = gp2*grid_pt->nbr_p_2[direc]->u[rk_flag][direc];
+            gp2 *=     grid_pt->nbr_p_2[direc]->u[rk_flag][0];
+            
+            gp1 = grid_pt->nbr_p_1[direc]->Wmunu[rk_flag][mu][nu];
+            fp1 = gp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
+            gp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
+            
+            gm1 = grid_pt->nbr_m_1[direc]->Wmunu[rk_flag][mu][nu];
+            fm1 = gm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
+            gm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
+            
+            gm2 = grid_pt->nbr_m_2[direc]->Wmunu[rk_flag][mu][nu];
+            fm2 = gm2*grid_pt->nbr_m_2[direc]->u[rk_flag][direc];
+            gm2 *=     grid_pt->nbr_m_2[direc]->u[rk_flag][0];
  
             /*  MakeuWmnHalfs */
             /* uWmn */
