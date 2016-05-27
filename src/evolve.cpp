@@ -55,35 +55,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     int boost_invariant_flag = DATA->boost_invariant;
 
     // create evolution files for checking and debugging
-    if (output_hydro_debug_flag == 1) {
-        // first create output files
-        ofstream ent_file("entropy-eta.dat");
-        ent_file.close();
-        ofstream ep_file("e_profile.dat");
-        ep_file.close();
-        ofstream exp_file("e_x_profile.dat");
-        exp_file.close();
-        ofstream v2_file("aniso.dat");
-        v2_file.close();
-        ofstream t4_file("avgT.dat");
-        t4_file.close();
-        ofstream t5_file("plasmaEvolutionTime.dat");
-        t5_file.close();
-        ofstream cout_file("contourPlot.dat");
-        cout_file.close();
-        if (turn_on_rhob == 1) {
-            ofstream baryon_file("rhoB_evo.dat");
-            baryon_file.close();
-            ofstream baryon_file_3d_xy("rhoB_evo_3d_xy.dat");
-            baryon_file_3d_xy.close();
-            ofstream baryon_file_3d_xeta("rhoB_evo_3d_xeta.dat");
-            baryon_file_3d_xeta.close();
-            if (turn_on_diff == 1) {
-                ofstream qm_file("qmu_evo.dat");
-                qm_file.close();
-            }
-        }
-    }
     if (outputEvo_flag == 1) {
         ofstream out_file("evolution.dat");
         out_file.close();
@@ -129,6 +100,10 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
             }
         }
 
+        /* execute rk steps */
+        // all the evolution are at here !!!
+        AdvanceRK(tau, DATA, arena);
+        
         // output evolution information for debug
         if (output_hydro_debug_flag == 1) {
             if ((it%Nskip_timestep) == 0) {
@@ -136,9 +111,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
             }
         }
 
-        /* execute rk steps */
-        // all the evolution are at here !!!
-        AdvanceRK(tau, DATA, arena);
         UpdateArena(tau, arena);
    
         // check energy conservation
@@ -184,14 +156,15 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         for (int ix=0; ix <= DATA->nx; ix++) {
             for (int iy=0; iy <= DATA->ny; iy++) {
                 util->cube_free(arena[ieta][ix][iy].TJb, rk_order+1, 5, 4);
-                util->cube_free(arena[ieta][ix][iy].dUsup, rk_order+1, 4, 4);
+                util->cube_free(arena[ieta][ix][iy].dUsup, 1, 5, 4);
+                util->cube_free(arena[ieta][ix][iy].sigma, 1, 4, 4);
                 util->cube_free(arena[ieta][ix][iy].Wmunu, rk_order+1, 5, 4);
                 util->cube_free(arena[ieta][ix][iy].prevWmunu, rk_order, 5, 4);
                 util->cube_free(arena[ieta][ix][iy].Pimunu, rk_order+1, 5, 4);
                 util->cube_free(arena[ieta][ix][iy].prevPimunu,
                                 rk_order, 5, 4);
                 util->mtx_free(arena[ieta][ix][iy].u, rk_order+1, 4);
-                util->mtx_free(arena[ieta][ix][iy].a, rk_order+1, 4);
+                util->mtx_free(arena[ieta][ix][iy].a, 1, 5);
                 util->mtx_free(arena[ieta][ix][iy].prev_u, 1, 4);
                 util->vector_free(arena[ieta][ix][iy].theta_u);
                 util->vector_free(arena[ieta][ix][iy].pi_b);

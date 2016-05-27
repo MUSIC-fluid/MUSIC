@@ -226,7 +226,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 
     // full term is
     tempf = (
-        - (1.0 + transport_coefficient2*(grid_pt->theta_u[rk_flag]))
+        - (1.0 + transport_coefficient2*(grid_pt->theta_u[0]))
         *(Wmunu[mu][nu]));
 
 /// ////////////////////////////////////////////////////////////////////// ///
@@ -239,7 +239,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
     // sign changes according to metric sign convention
     for (int ii = 0; ii < 4; ii++) {
         for (int jj = ii; jj < 4; jj++) {
-            sigma[ii][jj] = grid_pt->sigma[rk_flag][ii][jj];
+            sigma[ii][jj] = grid_pt->sigma[0][ii][jj];
         }
     }
     for (int ii = 0; ii < 4; ii++) {
@@ -264,8 +264,8 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
         for (a = 0; a < 4; a++) {
             for (b = 0; b <4; b++) {
                 omega[a][b] = (
-                    (grid_pt->dUsup[rk_flag][a][b]
-                     - grid_pt->dUsup[rk_flag][b][a])/2.
+                    (grid_pt->dUsup[0][a][b]
+                     - grid_pt->dUsup[0][b][a])/2.
                     + ueta/tau/2.*(DATA->gmunu[a][0]*DATA->gmunu[b][3]
                                    - DATA->gmunu[b][0]*DATA->gmunu[a][3])
                     - ueta*gamma/tau/2.
@@ -274,8 +274,8 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
                     + ueta*ueta/tau/2.
                       *(DATA->gmunu[a][0]*grid_pt->u[rk_flag][b]
                          - DATA->gmunu[b][0]*grid_pt->u[rk_flag][a])
-                    + (grid_pt->u[rk_flag][a]*grid_pt->a[rk_flag][b]
-                       - grid_pt->u[rk_flag][b]*grid_pt->a[rk_flag][a])/2.);
+                    + (grid_pt->u[rk_flag][a]*grid_pt->a[0][b]
+                       - grid_pt->u[rk_flag][b]*grid_pt->a[0][a])/2.);
             }
         }
         term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
@@ -510,7 +510,7 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
                due to the coordinate change to tau-eta */
             sum += (- (grid_pt->u[rk_flag][0])
                       *(grid_pt->Wmunu[rk_flag][mu][nu])/tau
-                    + (grid_pt->theta_u[rk_flag])
+                    + (grid_pt->theta_u[0])
                       *(grid_pt->Wmunu[rk_flag][mu][nu]));
 
             /* this is from udW = d(uW) - Wdu = RHS */
@@ -537,10 +537,10 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
                 tempf += (
                       (grid_pt->Wmunu[rk_flag][ic][nu])
                       *(grid_pt->u[rk_flag][mu])
-                      *(grid_pt->a[rk_flag][ic])*ic_fac
+                      *(grid_pt->a[0][ic])*ic_fac
                     + (grid_pt->Wmunu[rk_flag][ic][mu])
                        *(grid_pt->u[rk_flag][nu])
-                       *(grid_pt->a[rk_flag][ic])*ic_fac);
+                       *(grid_pt->a[0][ic])*ic_fac);
             }
             sum += tempf;
             w_rhs[mu][nu] = sum*(DATA->delta_tau);
@@ -688,7 +688,7 @@ int Diss::Make_uPRHS(double tau, Grid *grid_pt, double *p_rhs, InitData *DATA,
        
      /* add a source term due to the coordinate change to tau-eta */
      sum -= (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0])/tau;
-     sum += (grid_pt->pi_b[rk_flag])*(grid_pt->theta_u[rk_flag]);
+     sum += (grid_pt->pi_b[rk_flag])*(grid_pt->theta_u[0]);
      *p_rhs = sum*(DATA->delta_tau)*bulk_on;
 
      return 1; /* if successful */
@@ -786,12 +786,12 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
     transport_coeff2_s = 0.;  // not known;  put 0
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
-    NS_term = -bulk*(grid_pt->theta_u[rk_flag]);
+    NS_term = -bulk*(grid_pt->theta_u[0]);
 
     // Computing relaxation term and nonlinear term:
     // - Bulk - transport_coeff1*Bulk*theta
     tempf = (-(grid_pt->pi_b[rk_flag])
-             - transport_coeff1*(grid_pt->theta_u[rk_flag])
+             - transport_coeff1*(grid_pt->theta_u[0])
                *(grid_pt->pi_b[rk_flag]));
 
     // Computing nonlinear term: + transport_coeff2*Bulk*Bulk
@@ -810,7 +810,7 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
         double sigma[4][4], Wmunu[4][4];
         for (int a = 0; a < 4 ; a++) {
             for (int b = a; b < 4; b++) {
-                sigma[a][b] = grid_pt->sigma[rk_flag][a][b];
+                sigma[a][b] = grid_pt->sigma[0][a][b];
                 Wmunu[a][b] = grid_pt->Wmunu[rk_flag][a][b];
             }
         }
@@ -925,14 +925,14 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
     // -(1/tau_rho)(q[a] + kappa g[a][b]DmuB/T[b] 
     // + kappa u[a] u[b]g[b][c]DmuB/T[c])
     // a = nu 
-    double NS = kappa*(grid_pt->dUsup[rk_flag][4][nu] 
-                           + grid_pt->u[rk_flag][nu]*grid_pt->a[rk_flag][4]);
+    double NS = kappa*(grid_pt->dUsup[0][4][nu] 
+                           + grid_pt->u[rk_flag][nu]*grid_pt->a[0][4]);
     if (isnan(NS)) {
         cout << "Navier Stock term is nan! " << endl;
         cout << q[nu] << endl;
         // derivative already upper index
-        cout << grid_pt->dUsup[rk_flag][4][nu] << endl;
-        cout << grid_pt->a[rk_flag][4] << endl;
+        cout << grid_pt->dUsup[0][4][nu] << endl;
+        cout << grid_pt->a[0][4] << endl;
         cout << tau_rho << endl;
         cout << kappa << endl;
         cout << grid_pt->u[rk_flag][nu] << endl;
@@ -940,13 +940,13 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
   
     // add a new non-linear term (- q \theta)
     double transport_coeff = 1.0*tau_rho;   // from conformal kinetic theory
-    double Nonlinear1 = -transport_coeff*(q[nu]*grid_pt->theta_u[rk_flag]);
+    double Nonlinear1 = -transport_coeff*(q[nu]*grid_pt->theta_u[0]);
 
     // add a new non-linear term (-q^\mu \sigma_\mu\nu)
     double transport_coeff_2 = 3./5.*tau_rho;   // from 14-momentum massless
     double temptemp = 0.0;
     for (int i = 0 ; i < 4; i++) {
-        temptemp += q[i]*grid_pt->sigma[rk_flag][i][nu]*DATA->gmunu[i][i]; 
+        temptemp += q[i]*grid_pt->sigma[0][i][nu]*DATA->gmunu[i][i]; 
     }
     double Nonlinear2 = - transport_coeff_2*temptemp;
 
@@ -954,7 +954,7 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
 
     // all other geometric terms....
     // + theta q[a] - q[a] u^\tau/tau
-    SW += (grid_pt->theta_u[rk_flag] - grid_pt->u[rk_flag][0]/tau)*q[nu];
+    SW += (grid_pt->theta_u[0] - grid_pt->u[rk_flag][0]/tau)*q[nu];
  
     if (isnan(SW)) {
         cout << "theta term is nan! " << endl;
@@ -976,7 +976,7 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
     //-u[a] u[b]g[b][e] Dq[e] -> u[a] (q[e] g[e][b] Du[b])
     tempf = 0.0;
     for (i=0; i<4; i++) {
-      tempf += q[i]*gmn(i)*(grid_pt->a[rk_flag][i]);
+      tempf += q[i]*gmn(i)*(grid_pt->a[0][i]);
     }
     SW += (grid_pt->u[rk_flag][nu])*tempf;
     

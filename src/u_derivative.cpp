@@ -48,7 +48,7 @@ int U_derivative::MakedU(double tau, InitData *DATA,
                 for (int i = 0; i < 5; i++) {
                     for (int j = 0; j < 4; j++) {
                         dUsup_local[i][j] = (
-                                arena[ieta][ix][iy].dUsup[rk_flag][i][j]);
+                                arena[ieta][ix][iy].dUsup[0][i][j]);
                     }
                 }
                 double partial_mu_u_supmu = 0.0;
@@ -63,7 +63,7 @@ int U_derivative::MakedU(double tau, InitData *DATA,
                         u_supnu_partial_nu_u_supmu += (
                                 tfac*u_local[nu]*dUsup_local[mu][nu]);
                     }
-                    arena[ieta][ix][iy].a[rk_flag][mu] = (
+                    arena[ieta][ix][iy].a[0][mu] = (
                                                 u_supnu_partial_nu_u_supmu);
 	            }/* mu */
                 // derivatives of chemical potentials for diffusion
@@ -74,11 +74,10 @@ int U_derivative::MakedU(double tau, InitData *DATA,
                     u_supnu_partial_nu_muoverT += (
                                     tfac*u_local[nu]*dUsup_local[mu][nu]);
                 }
-                arena[ieta][ix][iy].a[rk_flag][mu] = (
-                                                u_supnu_partial_nu_muoverT);
+                arena[ieta][ix][iy].a[0][mu] = u_supnu_partial_nu_muoverT;
 
                 // expansion rate need to add the tau-eta coordinate source term
-                arena[ieta][ix][iy].theta_u[rk_flag] = (
+                arena[ieta][ix][iy].theta_u[0] = (
                                         partial_mu_u_supmu + u_local[0]/tau);
             }/*iy */
         }/* ix */
@@ -92,14 +91,14 @@ int U_derivative::MakedU(double tau, InitData *DATA,
                 double dUsup_local[4][4];
                 double u_local[4];
                 double a_local[4];
-                double theta_u_local = arena[ieta][ix][iy].theta_u[rk_flag];
+                double theta_u_local = arena[ieta][ix][iy].theta_u[0];
                 double sigma_local[4][4];
                 for (int i = 0; i < 4; i++) {
                     u_local[i] = arena[ieta][ix][iy].u[rk_flag][i];
-                    a_local[i] = arena[ieta][ix][iy].a[rk_flag][i];
+                    a_local[i] = arena[ieta][ix][iy].a[0][i];
                     for (int j = 0; j < 4; j++) {
                         dUsup_local[i][j] = (
-                                    arena[ieta][ix][iy].dUsup[rk_flag][i][j]);
+                                    arena[ieta][ix][iy].dUsup[0][i][j]);
                     }
                 }
                 for (int a = 1; a < 4; a++) {
@@ -150,7 +149,7 @@ int U_derivative::MakedU(double tau, InitData *DATA,
                 sigma_local[0][0] = temp/u_local[0];
                 for (int a = 0; a < 4; a++) {
                     for (int b = 0; b < 4; b++) {
-                        arena[ieta][ix][iy].sigma[rk_flag][a][b] = (
+                        arena[ieta][ix][iy].sigma[0][a][b] = (
                                                             sigma_local[a][b]);
                     }
                 }
@@ -198,7 +197,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt,
             fm1 = grid_pt->nbr_m_1[n]->u[rk_flag][m];
             g = minmod->minmod_dx(fp1, f, fm1);
             g /= delta[n]*taufactor;
-            grid_pt->dUsup[rk_flag][m][n] = g;
+            grid_pt->dUsup[0][m][n] = g;
         }  // n = x, y, eta
     }  // m = x, y, eta
     /* for u[0], use u[0]u[0] = 1 + u[i]u[i] */
@@ -208,10 +207,10 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt,
         f = 0.0;
         for (int m = 1; m <= 3; m++) {
 	        /* (partial_n u^m) u[m] */
-	        f += (grid_pt->dUsup[rk_flag][m][n])*(grid_pt->u[rk_flag][m]);
+	        f += (grid_pt->dUsup[0][m][n])*(grid_pt->u[rk_flag][m]);
         }
         f /= grid_pt->u[rk_flag][0];
-        grid_pt->dUsup[rk_flag][0][n] = f;
+        grid_pt->dUsup[0][0][n] = f;
     }
     // Sangyong Nov 18 2014
     // Here we make derivatives of muB/T
@@ -261,7 +260,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt,
 
         g = minmod->minmod_dx(fp1, f, fm1);
         g /= delta[n]*taufactor;
-        grid_pt->dUsup[rk_flag][m][n] = g;
+        grid_pt->dUsup[0][m][n] = g;
     }  // n = x, y, eta
     return 1;
 }/* MakeDSpatial */
@@ -282,14 +281,14 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Grid *grid_pt,
             /* first order is more stable */
             f = ((grid_pt->u[rk_flag][m] - grid_pt->prev_u[0][m])
                  /DATA->delta_tau);
-            grid_pt->dUsup[rk_flag][m][0] = -f; /* g00 = -1 */
+            grid_pt->dUsup[0][m][0] = -f; /* g00 = -1 */
         }/* m */
     } else if (rk_flag > 0) {
         for (m=1; m<=3; m++) {
             /* first order */
             // this is from the prev full RK step 
             f = (grid_pt->u[rk_flag][m] - grid_pt->u[0][m])/(DATA->delta_tau);
-            grid_pt->dUsup[rk_flag][m][0] = -f; /* g00 = -1 */
+            grid_pt->dUsup[0][m][0] = -f; /* g00 = -1 */
         }/* m */
     }
 
@@ -302,10 +301,10 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Grid *grid_pt,
     f = 0.0;
     for (m=1; m<=3; m++) {
         /* (partial_0 u^m) u[m] */
-        f += (grid_pt->dUsup[rk_flag][m][0])*(grid_pt->u[rk_flag][m]);
+        f += (grid_pt->dUsup[0][m][0])*(grid_pt->u[rk_flag][m]);
     }
     f /= grid_pt->u[rk_flag][0];
-    grid_pt->dUsup[rk_flag][0][0] = f;
+    grid_pt->dUsup[0][0][0] = f;
 
     // Sangyong Nov 18 2014
     // Here we make the time derivative of (muB/T)
@@ -327,7 +326,7 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Grid *grid_pt,
         T = eos->get_temperature(eps, rhob);
         tildemu_prev = muB/T;
         f = (tildemu - tildemu_prev)/(DATA->delta_tau);
-        grid_pt->dUsup[rk_flag][m][0] = -f; /* g00 = -1 */
+        grid_pt->dUsup[0][m][0] = -f; /* g00 = -1 */
     } else if (rk_flag > 0) {
         m = 4;  
         // first order 
@@ -347,7 +346,7 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Grid *grid_pt,
         T = eos->get_temperature(eps, rhob);
         tildemu_prev = muB/T;
         f = (tildemu - tildemu_prev)/(DATA->delta_tau);
-        grid_pt->dUsup[rk_flag][m][0] = -f; /* g00 = -1 */
+        grid_pt->dUsup[0][m][0] = -f; /* g00 = -1 */
     }
     // Ends Sangyong's addition Nov 18 2014
     return 1;

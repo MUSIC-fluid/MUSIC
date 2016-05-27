@@ -232,10 +232,10 @@ void Grid_info::check_velocity_shear_tensor(Grid ***arena, double tau) {
         output_file << scientific << setprecision(8) << setw(18)
                     << x_local << "  "
                     << e_local*unit_convert << "  "
-                    << arena[0][ix][ix].prev_u[0][0] << "  "
-                    << arena[0][ix][ix].prev_u[0][1] << "  "
-                    << arena[0][ix][ix].prev_u[0][2] << "  "
-                    << arena[0][ix][ix].prev_u[0][3] << "  "
+                    << arena[0][ix][ix].u[0][0] << "  "
+                    << arena[0][ix][ix].u[0][1] << "  "
+                    << arena[0][ix][ix].u[0][2] << "  "
+                    << arena[0][ix][ix].u[0][3] << "  "
                     << arena[0][ix][ix].sigma[0][0][0] << "  "
                     << arena[0][ix][ix].sigma[0][0][1] << "  "
                     << arena[0][ix][ix].sigma[0][0][2] << "  "
@@ -245,7 +245,11 @@ void Grid_info::check_velocity_shear_tensor(Grid ***arena, double tau) {
                     << arena[0][ix][ix].sigma[0][1][3] << "  "
                     << arena[0][ix][ix].sigma[0][2][2] << "  "
                     << arena[0][ix][ix].sigma[0][2][3] << "  "
-                    << arena[0][ix][ix].sigma[0][3][3]
+                    << arena[0][ix][ix].sigma[0][3][3] << "  "
+                    << arena[0][ix][ix].prev_u[0][0] << "  "
+                    << arena[0][ix][ix].prev_u[0][1] << "  "
+                    << arena[0][ix][ix].prev_u[0][2] << "  "
+                    << arena[0][ix][ix].prev_u[0][3]
                     << endl;
     }
     output_file.close();

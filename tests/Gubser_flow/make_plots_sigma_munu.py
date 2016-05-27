@@ -14,6 +14,7 @@ plotLinewidth = 2
 plotMarkerSize = 8
 
 tau_list = linspace(1, 1.1, 11)
+tau_list = [1.02,]
 filename = "../../Check_velocity_shear_tensor_tau_%g.dat"
 # numerical simulation resutls
 
@@ -45,7 +46,7 @@ ax = plt.axes([0.14, 0.12, 0.81, 0.83])
 iplot = 0
 for itau, tau in enumerate(tau_list):
     data = loadtxt(filename % tau)
-    plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(itau)
+    plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
     plt.plot(data[:, 0], data[:, 11], color = plotColor,
              linestyle = '-', linewidth = plotLinewidth,
              label = r'$\tau = %g$ fm' % tau)
@@ -59,6 +60,28 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$\sigma^{12}$', fontsize = plotfontsize)
 plt.savefig('/Users/chunshen/Desktop/check_sigma12_x=y.pdf', format='pdf')
+plt.close()
+
+# plot sigma^{12}
+fig = plt.figure()
+ax = plt.axes([0.14, 0.12, 0.81, 0.83])
+iplot = 0
+for itau, tau in enumerate(tau_list):
+    data = loadtxt(filename % tau)
+    plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
+    plt.plot(data[:, 0], data[:, 17] - data[:, 3], color = plotColor,
+             linestyle = '-', linewidth = plotLinewidth,
+             label = r'$\tau = %g$ fm' % tau)
+hl = plt.legend(loc=(2), fontsize = 17)
+hl.draw_frame(False)
+plt.xlim(-5.0, 5.0)
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
+#plt.ylim(-2.0, 2.0)
+plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
+#plt.yticks(linspace(-2.0, 2.0, 5), color = 'k', size = plotfontsize)
+plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
+plt.ylabel(r'$\sigma^{12}$', fontsize = plotfontsize)
+plt.savefig('/Users/chunshen/Desktop/check_ux_x=y.pdf', format='pdf')
 plt.show()
 plt.close()
 
