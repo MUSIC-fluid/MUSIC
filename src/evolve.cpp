@@ -109,9 +109,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     double tau;
     for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
-        //fprintf(stderr, "Starting time step %d/%d on rank %d.\n", 
-        //        it, itmax, rank); 
-     
         // store initial conditions
         if (it == 0) {
             store_previous_step_for_freezeout(arena);
@@ -119,47 +116,26 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         
         if (DATA->Initial_profile == 0) {
             if (fabs(tau - 1.0) < 1e-8) {
-                grid_info->Gubser_flow_check_file(arena, tau);
+                grid_info->Gubser_flow_check_file(arena, eos, tau);
             }
             if (fabs(tau - 1.2) < 1e-8) {
-                grid_info->Gubser_flow_check_file(arena, tau);
+                grid_info->Gubser_flow_check_file(arena, eos, tau);
             }
             if (fabs(tau - 1.5) < 1e-8) {
-                grid_info->Gubser_flow_check_file(arena, tau);
+                grid_info->Gubser_flow_check_file(arena, eos, tau);
             }
             if (fabs(tau - 2.0) < 1e-8) {
-                grid_info->Gubser_flow_check_file(arena, tau);
+                grid_info->Gubser_flow_check_file(arena, eos, tau);
             }
         }
 
         // output evolution information for debug
-        //if (output_hydro_debug_flag == 1) {
-        //    if ((it%Nskip_timestep) == 0) {
-        //        grid_info->PrintEtaEpsilon(arena, DATA, tau);
-        //        grid_info->PrintxEpsilon(arena, DATA, tau);
-        //        //grid_info->ComputeEccentricity(DATA, arena, tau);
-        //        grid_info->ComputeAnisotropy(DATA, arena, tau);
-        //        if (turn_on_rhob == 1) {
-        //            grid_info->print_rhob_evolution(DATA, arena, tau, eos);
-        //            grid_info->print_rhob_evolution_3d(DATA, arena, tau, eos);
-        //            grid_info->print_fireball_evolution_on_phasediagram(
-        //                DATA, arena, tau, eos);
+        if (output_hydro_debug_flag == 1) {
+            if ((it%Nskip_timestep) == 0) {
+                grid_info->check_velocity_shear_tensor(arena, tau);
+            }
+        }
 
-        //            if (turn_on_diff == 1) {
-        //                grid_info->print_qmu_evolution(DATA, arena, tau, eos);
-        //            }
-        //        }
-        //    }
-        //    grid_info->getAverageTandPlasmaEvolution(arena, DATA, eos, tau); 
-        //    //grid_info->Tmax_profile(arena, DATA, eos, tau);
-        //}
-        //if ((it%Nskip_timestep) == 0 && outputEvo_flag == 1) {
-        //    if (turn_on_rhob == 0)
-        //        grid_info->OutputEvolutionDataXYEta(arena, DATA, eos, tau);
-        //    else
-        //        grid_info->OutputEvolutionDataXYEta_finite_muB(
-        //                                            arena, DATA, eos, tau);
-        //}
         /* execute rk steps */
         // all the evolution are at here !!!
         AdvanceRK(tau, DATA, arena);

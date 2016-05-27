@@ -218,7 +218,40 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
     cout << "check: total energy T^{taut} = " << T_tau_t << " GeV" << endl;
 }
 
-void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
+void Grid_info::check_velocity_shear_tensor(Grid ***arena, double tau) {
+    ostringstream filename;
+    filename << "Check_velocity_shear_tensor_tau_" << tau << ".dat";
+    ofstream output_file(filename.str().c_str());
+
+    double unit_convert = 0.19733;  // hbarC
+    double dx = DATA_ptr->delta_x;
+    double x_min = - DATA_ptr->nx/2.*dx;
+    for (int ix = 0; ix <= DATA_ptr->nx; ix++) {
+        double x_local = x_min + ix*dx;
+        double e_local = arena[0][ix][ix].epsilon;
+        output_file << scientific << setprecision(8) << setw(18)
+                    << x_local << "  "
+                    << e_local*unit_convert << "  "
+                    << arena[0][ix][ix].prev_u[0][0] << "  "
+                    << arena[0][ix][ix].prev_u[0][1] << "  "
+                    << arena[0][ix][ix].prev_u[0][2] << "  "
+                    << arena[0][ix][ix].prev_u[0][3] << "  "
+                    << arena[0][ix][ix].sigma[0][0][0] << "  "
+                    << arena[0][ix][ix].sigma[0][0][1] << "  "
+                    << arena[0][ix][ix].sigma[0][0][2] << "  "
+                    << arena[0][ix][ix].sigma[0][0][3] << "  "
+                    << arena[0][ix][ix].sigma[0][1][1] << "  "
+                    << arena[0][ix][ix].sigma[0][1][2] << "  "
+                    << arena[0][ix][ix].sigma[0][1][3] << "  "
+                    << arena[0][ix][ix].sigma[0][2][2] << "  "
+                    << arena[0][ix][ix].sigma[0][2][3] << "  "
+                    << arena[0][ix][ix].sigma[0][3][3]
+                    << endl;
+    }
+    output_file.close();
+}
+
+void Grid_info::Gubser_flow_check_file(Grid ***arena, EOS *eos, double tau) {
     ostringstream filename;
     filename << "Gubser_flow_check_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
@@ -232,16 +265,18 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
         double x_local = x_min + ix*dx;
         for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
             double y_local = y_min + iy*dy;
+            double e_local = arena[0][ix][iy].epsilon;
+            double T_local = eos->get_temperature(e_local, 0.0);
             output_file << scientific << setprecision(8) << setw(18)
                         << x_local << "  " << y_local << "  "
-                        << arena[0][ix][iy].epsilon*unit_convert << "  "
-                        << arena[0][ix][iy].T*unit_convert << "  "
+                        << e_local*unit_convert << "  "
+                        << T_local*unit_convert << "  "
                         << arena[0][ix][iy].u[0][1] << "  "
                         << arena[0][ix][iy].u[0][2] << "  "
                         << arena[0][ix][iy].Wmunu[0][1][1]*unit_convert << "  "
                         << arena[0][ix][iy].Wmunu[0][2][2]*unit_convert << "  "
                         << arena[0][ix][iy].Wmunu[0][1][2]*unit_convert << "  "
-                        << arena[0][ix][iy].Wmunu[0][3][3]*unit_convert
+                        << arena[0][ix][iy].Wmunu[0][3][3]*unit_convert << "  "
                         << endl;
         }
     }

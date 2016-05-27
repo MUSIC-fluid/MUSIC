@@ -43,7 +43,7 @@ Viscosity_Flag_Yes_1_No_0  1
 reconst_type  1 
 Runge_Kutta_order  2 
 Include_Bulk_Visc_Yes_1_No_0  0 
-output_hydro_debug_info  0 
+output_hydro_debug_info  1
 Vicous_Trouble_Zero=0_or_Stop=1  2 
 outputBinaryEvolution  1 
 Minmod_Theta  1.8 
@@ -73,7 +73,7 @@ output_evolution_every_N_y  2
 output_evolution_every_N_x  2 
 Initial_time_tau_0  1.0 
 output_hydro_params_header  1 
-output_evolution_every_N_timesteps  1 
+output_evolution_every_N_timesteps  1
 Grid_size_in_y  201 
 Grid_size_in_x  201 
 output_evolution_data  0 

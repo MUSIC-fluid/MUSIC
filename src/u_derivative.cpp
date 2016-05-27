@@ -102,8 +102,8 @@ int U_derivative::MakedU(double tau, InitData *DATA,
                                     arena[ieta][ix][iy].dUsup[rk_flag][i][j]);
                     }
                 }
-                for (int a=0; a<4; a++) {
-                    for (int b=0; b<4; b++) {
+                for (int a = 1; a < 4; a++) {
+                    for (int b = a; b < 4; b++) {
                         sigma_local[a][b] = (
                             (dUsup_local[a][b] + dUsup_local[b][a])/2.
                             - (DATA->gmunu[a][b] + u_local[a]*u_local[b])
@@ -120,8 +120,50 @@ int U_derivative::MakedU(double tau, InitData *DATA,
                                 + DATA->gmunu[b][0]*u_local[a])
                             + (u_local[a]*a_local[b]
                                + u_local[b]*a_local[a])/2.);
+                        sigma_local[b][a] = sigma_local[a][b];
+                    }
+                }
+                // make sigma[3][3] using traceless condition
+                sigma_local[3][3] = (
+                    (  2.*(  u_local[1]*u_local[2]*sigma_local[1][2]
+                           + u_local[1]*u_local[3]*sigma_local[1][3]
+                           + u_local[2]*u_local[3]*sigma_local[2][3])
+                     - (u_local[0]*u_local[0] - u_local[1]*u_local[1])
+                       *sigma_local[1][1]
+                     - (u_local[0]*u_local[0] - u_local[2]*u_local[2])
+                       *sigma_local[2][2])
+                    /(u_local[0]*u_local[0] - u_local[3]*u_local[3]));
+                // make sigma[0][i] using transversality
+                for (int a = 1; a < 4; a++) {
+                    double temp = 0.0;
+                    for (int b = 1; b < 4; b++) {
+                        temp += sigma_local[a][b]*u_local[b];
+                    }
+                    sigma_local[0][a] = temp/u_local[0];
+                    sigma_local[a][0] = sigma_local[0][a];
+                }
+                // make sigma[0][0]
+                double temp = 0.0;
+                for (int a = 1; a < 4; a++) {
+                    temp += sigma_local[0][a]*u_local[a];
+                }
+                sigma_local[0][0] = temp/u_local[0];
+                for (int a = 0; a < 4; a++) {
+                    for (int b = 0; b < 4; b++) {
                         arena[ieta][ix][iy].sigma[rk_flag][a][b] = (
                                                             sigma_local[a][b]);
+                    }
+                }
+
+                double trans = 0.0;
+                for (int ii = 0; ii < 4; ii++) {
+                    trans = (u_local[0]*sigma_local[ii][0]
+                             - u_local[1]*sigma_local[ii][1]
+                             - u_local[2]*sigma_local[ii][2]
+                             - u_local[3]*sigma_local[ii][3]);
+                    if (fabs(trans) > 1e-10) {
+                        cout << "MakedU::sigma is not transverse to u" << endl;
+                        cout << "trans = " << trans << ", i = " << ii << endl;
                     }
                 }
             }/*iy */
@@ -238,18 +280,15 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Grid *grid_pt,
     if (rk_flag == 0) {
         for (m=1; m<=3; m++) {
             /* first order is more stable */
-            f = (grid_pt->u[rk_flag][m]);
-            f -= (grid_pt->prev_u[0][m]);
-            f /= (DATA->delta_tau);
+            f = ((grid_pt->u[rk_flag][m] - grid_pt->prev_u[0][m])
+                 /DATA->delta_tau);
             grid_pt->dUsup[rk_flag][m][0] = -f; /* g00 = -1 */
         }/* m */
     } else if (rk_flag > 0) {
         for (m=1; m<=3; m++) {
             /* first order */
             // this is from the prev full RK step 
-            f = (grid_pt->u[rk_flag][m]);
-            f -= (grid_pt->u[0][m]);
-            f /= (DATA->delta_tau);
+            f = (grid_pt->u[rk_flag][m] - grid_pt->u[0][m])/(DATA->delta_tau);
             grid_pt->dUsup[rk_flag][m][0] = -f; /* g00 = -1 */
         }/* m */
     }

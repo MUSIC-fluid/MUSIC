@@ -32,12 +32,13 @@ class Grid_info
 
         void OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                                       EOS *eos, double tau);
-        void Gubser_flow_check_file(Grid ***arena, double tau);
+        void Gubser_flow_check_file(Grid ***arena, EOS *eos, double tau);
         void load_deltaf_qmu_coeff_table(string filename);
         void load_deltaf_qmu_coeff_table_14mom(string filename);
         double get_deltaf_qmu_coeff(double T, double muB);
         double get_deltaf_coeff_14moments(double T, double muB, double type);
         void check_conservation_law(Grid ***arena, InitData *DATA, double tau);
+        void check_velocity_shear_tensor(Grid ***arena, double tau);
 };
 
 #endif  // SRC_GRID_INFO_H_
