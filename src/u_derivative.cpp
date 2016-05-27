@@ -153,18 +153,6 @@ int U_derivative::MakedU(double tau, InitData *DATA,
                                                             sigma_local[a][b]);
                     }
                 }
-
-                double trans = 0.0;
-                for (int ii = 0; ii < 4; ii++) {
-                    trans = (u_local[0]*sigma_local[ii][0]
-                             - u_local[1]*sigma_local[ii][1]
-                             - u_local[2]*sigma_local[ii][2]
-                             - u_local[3]*sigma_local[ii][3]);
-                    if (fabs(trans) > 1e-10) {
-                        cout << "MakedU::sigma is not transverse to u" << endl;
-                        cout << "trans = " << trans << ", i = " << ii << endl;
-                    }
-                }
             }/*iy */
         }/* ix */
     }/* ieta */
