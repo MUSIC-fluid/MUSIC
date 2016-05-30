@@ -1120,7 +1120,7 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag)
     }
     if (direc == 3)
         f /= tau;
- 
+
     return f;
 }/* MaxSpeed */
 
