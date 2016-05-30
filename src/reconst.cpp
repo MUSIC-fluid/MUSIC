@@ -494,6 +494,8 @@ int Reconst::ReconstIt_velocity(
                     u[0], u[1], u[2], u[3]);
             fprintf(stderr, "e=%.6e, rhob=%.6e, p=%.6e\n",
                     epsilon, rhob, pressure);
+            fprintf(stderr, "q[0]=%.6e, q[1]=%.6e, q[2]=%.6e, q[3]=%.6e q[4]=%.6e\n",
+                    q[0], q[1], q[2], q[3], q[4]);
             exit(0);
         } else if (fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0] && echo_level > 5) {
             // Warn only when the deviation from 1 is relatively large
