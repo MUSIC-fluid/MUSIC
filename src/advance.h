@@ -14,6 +14,7 @@ class Advance {
     Util *util;
     Diss *diss;        // dissipative object
     Grid *grid;
+    Reconst *reconst_ptr;
     EOS *eos;
     Minmod *minmod;
     U_derivative *u_derivative;
@@ -58,8 +59,7 @@ class Advance {
     int FirstRKStepT(double tau_it, InitData *DATA, Grid *grid_pt, 
                      int rk_flag, double *qi, double *rhs,
                      double **w_rhs, double **qirk, Grid *grid_rk,
-                     NbrQs *NbrCells, BdryCells *HalfwayCells,
-                     Reconst *reconst_ptr);
+                     NbrQs *NbrCells, BdryCells *HalfwayCells);
   
     int FirstRKStepW(double tau_it, InitData *DATA, Grid *grid_pt, 
                      int rk_flag, double *qi, double *rhs,
@@ -76,14 +76,13 @@ class Advance {
   
     void MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs,
 		             InitData *DATA, int rk_flag, NbrQs *NbrCells,
-                     BdryCells *HalfwayCells, Reconst *reconst_ptr);
+                     BdryCells *HalfwayCells);
     void GetQIs(double tau, Grid *grid_pt, double *qi,
                 NbrQs *NbrCells, int rk_flag, InitData *DATA);
     int MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells,
 		            Grid *grid_pt, InitData *DATA);
     int ConstHalfwayCells(double tau, BdryCells *HalfwayCells, double *qi,
-                          Grid *grid_pt, InitData *DATA, int rk_flag,
-                          Reconst *reconst_ptr);
+                          Grid *grid_pt, InitData *DATA, int rk_flag);
     void MakeKTCurrents(double tau, double **DFmmp, Grid *grid_pt,
 		                BdryCells *HalfwayCells, int rk_flag);
     void MakeMaxSpeedAs(double tau, BdryCells *HalfwayCells, double aiph[],

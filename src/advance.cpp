@@ -14,6 +14,7 @@ Advance::Advance(EOS *eosIn, InitData* DATA_in) {
     eos = eosIn;
     grid = new Grid();
     util = new Util;
+    reconst_ptr = new Reconst(eos);
     diss = new Diss(eosIn, DATA_in);
     minmod = new Minmod(DATA_in);
     u_derivative = new U_derivative(eosIn, DATA_in);
@@ -78,13 +79,11 @@ int Advance::AdvanceLocalT(double tau, InitData *DATA, int ieta, Grid ***arena,
     InitNbrQs(&NbrCells);
     BdryCells HalfwayCells;
     InitTempGrids(&HalfwayCells, rk_order); 
-    Reconst *reconst_ptr = new Reconst(eos);
  
     for (int ix=0; ix <= grid_nx; ix++) {
         for (int iy=0; iy <= grid_ny; iy++) {
             FirstRKStepT(tau, DATA, &(arena[ieta][ix][iy]), rk_flag, qi, rhs, 
-                         w_rhs, qirk, &grid_rk, &NbrCells, &HalfwayCells,
-                         reconst_ptr);
+                         w_rhs, qirk, &grid_rk, &NbrCells, &HalfwayCells);
         }
     }
 
@@ -136,7 +135,7 @@ int Advance::AdvanceLocalW(double tau, InitData *DATA, int ieta, Grid ***arena,
 int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt,
                           int rk_flag, double *qi, double *rhs, double **w_rhs,
                           double **qirk, Grid *grid_rk, NbrQs *NbrCells,
-                          BdryCells *HalfwayCells, Reconst *reconst_ptr) { 
+                          BdryCells *HalfwayCells) { 
     // this advances the ideal part
     double tau_now = tau;
     double tau_next = tau + (DATA->delta_tau);
@@ -160,7 +159,7 @@ int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt,
     // It is the spatial derivative part of partial_a T^{a mu}
     // (including geometric terms)
     MakeDeltaQI(tau_rk, grid_pt, qi, rhs, DATA, rk_flag,
-                NbrCells, HalfwayCells, reconst_ptr);
+                NbrCells, HalfwayCells);
 
     for (int alpha=0; alpha<5; alpha++) {
         qirk[alpha][0] = qi[alpha] + rhs[alpha];
@@ -199,7 +198,10 @@ int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt,
                                       grid_pt->epsilon, grid_pt->rhob, DATA,
                                       rk_flag); 
     } else {
-        flag = reconst_ptr->ReconstIt_velocity(
+        //flag = reconst_ptr->ReconstIt_velocity(
+        //                grid_rk, 0, tau_next, qirk, grid_pt,
+        //                grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
+        flag = reconst_ptr->ReconstIt_velocity_iteration(
                         grid_rk, 0, tau_next, qirk, grid_pt,
                         grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
     }
@@ -779,7 +781,7 @@ void Advance::ProjectSpin2W(double tau, Grid *grid_pt, int rk_flag,
 
 void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs, 
 			              InitData *DATA, int rk_flag, NbrQs *NbrCells,
-                          BdryCells *HalfwayCells, Reconst *reconst_ptr) {
+                          BdryCells *HalfwayCells) {
     double delta[4];
     delta[1] = DATA->delta_x;
     delta[2] = DATA->delta_y;
@@ -805,8 +807,7 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs,
  
     MakeQIHalfs(qi, NbrCells, HalfwayCells, grid_pt, DATA);
  
-    ConstHalfwayCells(tau, HalfwayCells, qi, grid_pt, DATA, rk_flag,
-                      reconst_ptr);
+    ConstHalfwayCells(tau, HalfwayCells, qi, grid_pt, DATA, rk_flag);
  
     MakeKTCurrents(tau, DFmmp, grid_pt, HalfwayCells, rk_flag);
  
@@ -924,7 +925,7 @@ int Advance::MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells,
 
 int Advance::ConstHalfwayCells(
         double tau, BdryCells *HalfwayCells, double *qi, Grid *grid_pt,
-        InitData *DATA, int rk_flag, Reconst *reconst_ptr) {
+        InitData *DATA, int rk_flag) {
     // this function reconstruct e, rhob, and u[4] for half way cells
     int direc, flag;
     double epsilon_init, rhob_init;
@@ -952,19 +953,35 @@ int Advance::ConstHalfwayCells(
                         HalfwayCells->qimhR, grid_pt, epsilon_init, rhob_init,
                         DATA, rk_flag); 
         } else {
-            flag = reconst_ptr->ReconstIt_velocity(
+            //flag = reconst_ptr->ReconstIt_velocity(
+            //            &(HalfwayCells->grid_p_h_L[direc]), direc, tau,
+            //            HalfwayCells->qiphL, grid_pt, epsilon_init, rhob_init,
+            //            DATA, rk_flag); 
+            //flag = reconst_ptr->ReconstIt_velocity(
+            //            &(HalfwayCells->grid_p_h_R[direc]), direc, tau,
+            //            HalfwayCells->qiphR, grid_pt, epsilon_init, rhob_init,
+            //            DATA, rk_flag); 
+            //flag = reconst_ptr->ReconstIt_velocity(
+            //            &(HalfwayCells->grid_m_h_L[direc]), direc, tau,
+            //            HalfwayCells->qimhL, grid_pt, epsilon_init, rhob_init,
+            //            DATA, rk_flag); 
+            //flag = reconst_ptr->ReconstIt_velocity(
+            //            &(HalfwayCells->grid_m_h_R[direc]), direc, tau,
+            //            HalfwayCells->qimhR, grid_pt, epsilon_init, rhob_init,
+            //            DATA, rk_flag); 
+            flag = reconst_ptr->ReconstIt_velocity_iteration(
                         &(HalfwayCells->grid_p_h_L[direc]), direc, tau,
                         HalfwayCells->qiphL, grid_pt, epsilon_init, rhob_init,
                         DATA, rk_flag); 
-            flag = reconst_ptr->ReconstIt_velocity(
+            flag = reconst_ptr->ReconstIt_velocity_iteration(
                         &(HalfwayCells->grid_p_h_R[direc]), direc, tau,
                         HalfwayCells->qiphR, grid_pt, epsilon_init, rhob_init,
                         DATA, rk_flag); 
-            flag = reconst_ptr->ReconstIt_velocity(
+            flag = reconst_ptr->ReconstIt_velocity_iteration(
                         &(HalfwayCells->grid_m_h_L[direc]), direc, tau,
                         HalfwayCells->qimhL, grid_pt, epsilon_init, rhob_init,
                         DATA, rk_flag); 
-            flag = reconst_ptr->ReconstIt_velocity(
+            flag = reconst_ptr->ReconstIt_velocity_iteration(
                         &(HalfwayCells->grid_m_h_R[direc]), direc, tau,
                         HalfwayCells->qimhR, grid_pt, epsilon_init, rhob_init,
                         DATA, rk_flag); 

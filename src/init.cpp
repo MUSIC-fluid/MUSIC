@@ -222,9 +222,9 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
     } else {
         input_filename = "tests/Gubser_flow/y=0_tau=1.0_ideal.dat";
     }
-    if (omp_get_thread_num() == 0) {
-        cout << "file name used: " << input_filename << endl;
-    }
+    //if (omp_get_thread_num() == 0) {
+    //    cout << "file name used: " << input_filename << endl;
+    //}
     
     ifstream profile(input_filename.c_str());
     if (! profile.good()) {

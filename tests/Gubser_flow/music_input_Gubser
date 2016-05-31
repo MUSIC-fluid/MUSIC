@@ -1,4 +1,4 @@
-echo_level  1 
+echo_level  9
 mode  2 
 SigmaNN  42.1 
 Initial_radial_fall_off_in_fm  0.5 

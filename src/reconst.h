@@ -30,6 +30,8 @@ class Reconst {
     EOS *eos;
     Util *util;
 
+    int max_iter;
+    double rel_err, abs_err;
     // initialize gsl root finding solver
     int gsl_rootfinding_max_iter;
     double gsl_rootfinding_abserr, gsl_rootfinding_relerr;
@@ -53,13 +55,18 @@ class Reconst {
     int ReconstIt_velocity(Grid *grid_p, int direc, double tau, double **uq,
                            Grid *grid_pt, double eps_init, double rhob_init,
                            InitData *DATA, int rk_flag);
+    int ReconstIt_velocity_iteration(
+            Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
+            double eps_init, double rhob_init, InitData *DATA, int rk_flag);
     double reconst_velocity_function(double v, void *params);
+    double reconst_velocity_f(double v, double T00, double K00, double J0);
     static double CCallback_reconst_v(double x, void* params) {
         CCallbackHolder* h = static_cast<CCallbackHolder*>(params);
         return h->cls->reconst_velocity_function(x, h->params);
     }
     
     double reconst_u0_function(double u0, void *params);
+    double reconst_u0_f(double u0, double T00, double K00, double J0);
     static double CCallback_reconst_u0(double x, void* params) {
         CCallbackHolder* h = static_cast<CCallbackHolder*>(params);
         return h->cls->reconst_u0_function(x, h->params);
