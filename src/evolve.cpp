@@ -6255,8 +6255,8 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau, InitData *DATA,
 
                     // judge intersection
                     intersect = 0;
-                    if (arena[ix][iy][ieta].epsilon < epsFO
-                        && arena[ix][iy][ieta].epsilon > epsFO_low)
+                    if (arena[ieta][ix][iy].epsilon < epsFO
+                        && arena[ieta][ix][iy].epsilon > epsFO_low)
                         intersect = 1;
 
                     if (intersect == 0) {
