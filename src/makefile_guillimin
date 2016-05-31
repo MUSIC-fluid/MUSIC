@@ -11,7 +11,7 @@
 ##  
 
 CC := icpc
-CFLAGS= -Wall -O3 $(shell gsl-config --cflags)
+CFLAGS= -Wall -O3 $(shell gsl-config --cflags) -openmp
 
 RM		=	rm -f
 O               =       .o
