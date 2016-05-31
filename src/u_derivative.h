@@ -14,11 +14,17 @@ class U_derivative {
      EOS *eos;
   
  public:
-     // Sangyong Nov 18 2014: added EOS *eos in the argument
-     U_derivative(EOS *eosIn, InitData* DATA_in);  // constructor
-     ~U_derivative();
-     int MakedU(double tau, InitData *DATA, Grid ***arena, int rk_flag);
-     int MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, int rk_flag);
-     int MakeDTau(double tau, InitData *DATA, Grid *grid_pt, int rk_flag);
+    // Sangyong Nov 18 2014: added EOS *eos in the argument
+    U_derivative(EOS *eosIn, InitData* DATA_in);  // constructor
+    ~U_derivative();
+    int MakedU(double tau, InitData *DATA, Grid ***arena, int rk_flag);
+    void MakedUXY(double tau, int ieta, InitData *DATA,
+                  Grid ***arena, int rk_flag);
+    void Make_expansion_rate_XY(double tau, int ieta, InitData *DATA,
+                                Grid ***arena, int rk_flag);
+    void Make_sigma_XY(double tau, int ieta, InitData *DATA,
+                       Grid ***arena, int rk_flag);
+    int MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt, int rk_flag);
+    int MakeDTau(double tau, InitData *DATA, Grid *grid_pt, int rk_flag);
 };
 #endif

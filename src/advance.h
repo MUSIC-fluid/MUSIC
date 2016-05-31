@@ -4,7 +4,6 @@
 
 #include "data.h"
 #include "grid.h"
-#include "reconst.h"
 #include "dissipative.h"
 #include "minmod.h"
 #include "u_derivative.h"
@@ -13,9 +12,9 @@
 class Advance {
  private:
     Util *util;
-    Reconst *reconst;  // declare Reconst object
     Diss *diss;        // dissipative object
     Grid *grid;
+    Reconst *reconst_ptr;
     EOS *eos;
     Minmod *minmod;
     U_derivative *u_derivative;
@@ -52,18 +51,19 @@ class Advance {
     //T^{0 nu} with W source (TS)
     //W with source (WS)
 
-    int AdvanceLocalT(double tau_init, InitData *DATA, Grid *grid_pt,
+    int AdvanceLocalT(double tau_init, InitData *DATA, int ieta, Grid ***arena,
                       int rk_flag);
-    int AdvanceLocalW(double tau_init, InitData *DATA, Grid *grid_pt,
+    int AdvanceLocalW(double tau_init, InitData *DATA, int ieta, Grid ***arena,
 		              int rk_flag);
  
     int FirstRKStepT(double tau_it, InitData *DATA, Grid *grid_pt, 
-                     int rk_flag, double *qi, double *rhs, double **w_rhs, 
-                     double **qirk, Grid *grid_rk);
+                     int rk_flag, double *qi, double *rhs,
+                     double **w_rhs, double **qirk, Grid *grid_rk,
+                     NbrQs *NbrCells, BdryCells *HalfwayCells);
   
     int FirstRKStepW(double tau_it, InitData *DATA, Grid *grid_pt, 
-                     int rk_flag, double *qi, double *rhs, double **w_rhs, 
-                     double **qirk, Grid *grid_rk);
+                     int rk_flag, double *qi, double *rhs,
+                     double **w_rhs, double **qirk, Grid *grid_rk);
 
     void UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag);
     int QuestRevert(double tau, Grid *grid_pt, int rk_flag, InitData *DATA);
@@ -75,7 +75,8 @@ class Advance {
                         InitData *DATA);
   
     void MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs,
-		             InitData *DATA, int rk_flag);
+		             InitData *DATA, int rk_flag, NbrQs *NbrCells,
+                     BdryCells *HalfwayCells);
     void GetQIs(double tau, Grid *grid_pt, double *qi,
                 NbrQs *NbrCells, int rk_flag, InitData *DATA);
     int MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells,
@@ -88,7 +89,9 @@ class Advance {
                         double aimh[], int rk_flag);
     double MaxSpeed (double tau, int direc, Grid *grid_p, int rk_flag);
     void InitNbrQs(NbrQs *NbrCells);
+    void clean_Nbr_Qs(NbrQs *NbrCells);
     void InitTempGrids(BdryCells *HalfwayCells, int rk_order);
+    void clean_temp_grids(BdryCells *HalfwayCells, int rk_order);
 };
 
 #endif  // SRC_ADVANCE_H_

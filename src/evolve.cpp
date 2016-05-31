@@ -111,7 +111,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
             }
         }
 
-        UpdateArena(tau, arena);
+        UpdateArena(arena);
    
         // check energy conservation
         //grid_info->check_conservation_law(arena, DATA, tau);
@@ -240,69 +240,70 @@ void Evolve::store_previous_step_for_freezeout(Grid ***arena) {
 }
 
 // update grid information after the tau RK evolution 
-int Evolve::UpdateArena(double tau, Grid ***arena) {
-    int nx = grid_nx;
-    int ny = grid_ny;
+int Evolve::UpdateArena(Grid ***arena) {
     int neta = grid_neta;
     int ieta;
-    //#pragma omp parallel private(ieta)
-    //{
-    //    #pragma omp for
+    #pragma omp parallel private(ieta)
+    {
+        #pragma omp for
         for (ieta = 0; ieta < neta; ieta++) {
             //printf("Evolve::UpdateArena:");
             //printf("Thread %d executes loop iteraction %d\n",
             //       omp_get_thread_num(), ieta);
-            for (int ix = 0; ix <= nx; ix++) {
-                for (int iy = 0; iy <= ny; iy++) {
-                    arena[ieta][ix][iy].prev_epsilon =
-                                                arena[ieta][ix][iy].epsilon;
-                    arena[ieta][ix][iy].prev_rhob = arena[ieta][ix][iy].rhob;
-                    arena[ieta][ix][iy].p = arena[ieta][ix][iy].p_t;
-                    arena[ieta][ix][iy].epsilon =
-                                                arena[ieta][ix][iy].epsilon_t;
-                    arena[ieta][ix][iy].rhob = arena[ieta][ix][iy].rhob_t;
-             
-                    // previous pi_b is stored in prevPimunu
-                    arena[ieta][ix][iy].pi_b[0] = (
-                                        arena[ieta][ix][iy].pi_b[rk_order]);
-                    for (int mu = 0; mu < 4; mu++) {
-                        /* this was the previous value */
-                        arena[ieta][ix][iy].prev_u[0][mu] = (
-                                                arena[ieta][ix][iy].u[0][mu]); 
-                        /* this is the new value */
-                        arena[ieta][ix][iy].u[0][mu] = (
-                                        arena[ieta][ix][iy].u[rk_order][mu]); 
-
-                        for (int alpha = 0; alpha < 5; alpha++) {
-                            /* this is the new value */
-                            arena[ieta][ix][iy].TJb[0][alpha][mu] = (
-                                arena[ieta][ix][iy].TJb[rk_order][alpha][mu]);
-                            
-                            /* this was the previous value */
-                            arena[ieta][ix][iy].prevWmunu[0][alpha][mu] = (
-                                    arena[ieta][ix][iy].Wmunu[0][alpha][mu]); 
-                            arena[ieta][ix][iy].prevWmunu[1][alpha][mu] = (
-                                    arena[ieta][ix][iy].Wmunu[1][alpha][mu]); 
-                            /* this is the new value */
-                            arena[ieta][ix][iy].Wmunu[0][alpha][mu] = (
-                                arena[ieta][ix][iy].Wmunu[rk_order][alpha][mu]); 
-                               
-                            /* this was the previous value */
-                            arena[ieta][ix][iy].prevPimunu[0][alpha][mu] = 
-                                    arena[ieta][ix][iy].Pimunu[0][alpha][mu]; 
-                            arena[ieta][ix][iy].prevPimunu[1][alpha][mu] = 
-                                    arena[ieta][ix][iy].Pimunu[1][alpha][mu]; 
-                            /* this is the new value */
-                            arena[ieta][ix][iy].Pimunu[0][alpha][mu] = 
-                                arena[ieta][ix][iy].Pimunu[rk_order][alpha][mu]; 
-                        }
-                    }/* mu, alpha */
-                }
-            }
-        }/* ix, iy, ieta */
-    //}
+            UpdateArena_XY(ieta, arena);
+        } /* ieta */
+    }
     return 1;
 }/* UpdateArena */
+
+void Evolve::UpdateArena_XY(int ieta, Grid ***arena) {
+    int nx = grid_nx;
+    int ny = grid_ny;
+    for (int ix = 0; ix <= nx; ix++) {
+        for (int iy = 0; iy <= ny; iy++) {
+            arena[ieta][ix][iy].prev_epsilon = arena[ieta][ix][iy].epsilon;
+            arena[ieta][ix][iy].prev_rhob = arena[ieta][ix][iy].rhob;
+            arena[ieta][ix][iy].p = arena[ieta][ix][iy].p_t;
+            arena[ieta][ix][iy].epsilon = arena[ieta][ix][iy].epsilon_t;
+            arena[ieta][ix][iy].rhob = arena[ieta][ix][iy].rhob_t;
+     
+            // previous pi_b is stored in prevPimunu
+            arena[ieta][ix][iy].pi_b[0] = arena[ieta][ix][iy].pi_b[rk_order];
+            for (int mu = 0; mu < 4; mu++) {
+                /* this was the previous value */
+                arena[ieta][ix][iy].prev_u[0][mu] = (
+                                        arena[ieta][ix][iy].u[0][mu]); 
+                /* this is the new value */
+                arena[ieta][ix][iy].u[0][mu] = (
+                                arena[ieta][ix][iy].u[rk_order][mu]); 
+
+                for (int alpha = 0; alpha < 5; alpha++) {
+                    /* this is the new value */
+                    arena[ieta][ix][iy].TJb[0][alpha][mu] = (
+                        arena[ieta][ix][iy].TJb[rk_order][alpha][mu]);
+                    
+                    /* this was the previous value */
+                    arena[ieta][ix][iy].prevWmunu[0][alpha][mu] = (
+                            arena[ieta][ix][iy].Wmunu[0][alpha][mu]); 
+                    arena[ieta][ix][iy].prevWmunu[1][alpha][mu] = (
+                            arena[ieta][ix][iy].Wmunu[1][alpha][mu]); 
+                    /* this is the new value */
+                    arena[ieta][ix][iy].Wmunu[0][alpha][mu] = (
+                        arena[ieta][ix][iy].Wmunu[rk_order][alpha][mu]); 
+                       
+                    /* this was the previous value */
+                    arena[ieta][ix][iy].prevPimunu[0][alpha][mu] = 
+                            arena[ieta][ix][iy].Pimunu[0][alpha][mu]; 
+                    arena[ieta][ix][iy].prevPimunu[1][alpha][mu] = 
+                            arena[ieta][ix][iy].Pimunu[1][alpha][mu]; 
+                    /* this is the new value */
+                    arena[ieta][ix][iy].Pimunu[0][alpha][mu] = 
+                        arena[ieta][ix][iy].Pimunu[rk_order][alpha][mu]; 
+                }
+            }/* mu, alpha */
+        }
+    }
+}
 
 
 int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena) {
