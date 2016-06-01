@@ -201,12 +201,12 @@ int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt,
         //flag = reconst_ptr->ReconstIt_velocity(
         //                grid_rk, 0, tau_next, qirk, grid_pt,
         //                grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
-        //flag = reconst_ptr->ReconstIt_velocity_iteration(
-        //                grid_rk, 0, tau_next, qirk, grid_pt,
-        //                grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
-        flag = reconst_ptr->ReconstIt_velocity_Newton(
+        flag = reconst_ptr->ReconstIt_velocity_iteration(
                         grid_rk, 0, tau_next, qirk, grid_pt,
                         grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
+        //flag = reconst_ptr->ReconstIt_velocity_Newton(
+        //                grid_rk, 0, tau_next, qirk, grid_pt,
+        //                grid_pt->epsilon, grid_pt->rhob, DATA, rk_flag); 
     }
 
     if (flag==0) {
@@ -972,19 +972,19 @@ int Advance::ConstHalfwayCells(
             //            &(HalfwayCells->grid_m_h_R[direc]), direc, tau,
             //            HalfwayCells->qimhR, grid_pt, epsilon_init, rhob_init,
             //            DATA, rk_flag); 
-            flag = reconst_ptr->ReconstIt_velocity_Newton(
+            flag = reconst_ptr->ReconstIt_velocity_iteration(
                         &(HalfwayCells->grid_p_h_L[direc]), direc, tau,
                         HalfwayCells->qiphL, grid_pt, epsilon_init, rhob_init,
                         DATA, rk_flag); 
-            flag = reconst_ptr->ReconstIt_velocity_Newton(
+            flag = reconst_ptr->ReconstIt_velocity_iteration(
                         &(HalfwayCells->grid_p_h_R[direc]), direc, tau,
                         HalfwayCells->qiphR, grid_pt, epsilon_init, rhob_init,
                         DATA, rk_flag); 
-            flag = reconst_ptr->ReconstIt_velocity_Newton(
+            flag = reconst_ptr->ReconstIt_velocity_iteration(
                         &(HalfwayCells->grid_m_h_L[direc]), direc, tau,
                         HalfwayCells->qimhL, grid_pt, epsilon_init, rhob_init,
                         DATA, rk_flag); 
-            flag = reconst_ptr->ReconstIt_velocity_Newton(
+            flag = reconst_ptr->ReconstIt_velocity_iteration(
                         &(HalfwayCells->grid_m_h_R[direc]), direc, tau,
                         HalfwayCells->qimhR, grid_pt, epsilon_init, rhob_init,
                         DATA, rk_flag); 

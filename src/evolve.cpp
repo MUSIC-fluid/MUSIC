@@ -5422,10 +5422,16 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
         double epsFO = epsFO_list[i_freezesurf]/hbarc;
         
         int intersections = 0;
-        for (int ieta=0; ieta < (neta-fac_eta); ieta += fac_eta) {
-            int thread_id = omp_get_thread_num();
-            intersections += FindFreezeOutSurface_Cornelius_XY(
+        int ieta;
+        #pragma omp parallel private(ieta)
+        {
+            #pragma omp for
+            for (ieta = 0; ieta < (neta-fac_eta); ieta += fac_eta) {
+                int thread_id = omp_get_thread_num();
+                intersections += FindFreezeOutSurface_Cornelius_XY(
                                     tau, DATA, ieta, arena, thread_id, epsFO);
+            }
+            #pragma omp barrier
         }
 
         if (intersections == 0)
@@ -6224,10 +6230,16 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau, InitData *DATA,
    
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
         double epsFO = epsFO_list[i_freezesurf]/hbarc;
-        for (int ieta=0; ieta < neta - fac_eta; ieta += fac_eta) {
-            int thread_id = omp_get_thread_num();
-            FreezeOut_equal_tau_Surface_XY(tau, DATA, ieta, arena, thread_id,
-                                           epsFO);
+        int ieta;
+        #pragma omp parallel private(ieta)
+        {
+            #pragma omp for
+            for (ieta = 0; ieta < neta - fac_eta; ieta += fac_eta) {
+                int thread_id = omp_get_thread_num();
+                FreezeOut_equal_tau_Surface_XY(tau, DATA, ieta, arena,
+                                               thread_id, epsFO);
+            }
+            #pragma omp barrier
         }
     }
     return(0);
