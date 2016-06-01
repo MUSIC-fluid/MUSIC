@@ -88,15 +88,15 @@ void Init::LinkNeighbors(InitData *DATA, Grid ****arena) {
     }
 
     int ieta;
-    //#pragma omp parallel private(ieta)
-    //{
-    //    #pragma omp for
+    #pragma omp parallel private(ieta)
+    {
+        #pragma omp for
         for (ieta = 0; ieta < neta; ieta++) {
             //printf("Thread %d executes loop iteraction %d\n",
             //       omp_get_thread_num(), ieta);
             LinkNeighbors_XY(DATA, ieta, (*arena));
         }
-    //}
+    }
 }  /* LinkNeighbors */
 
 void Init::LinkNeighbors_XY(InitData *DATA, int ieta, Grid ***arena) {
@@ -171,6 +171,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
+                printf("Thread %d executes loop iteraction ieta = %d\n",
+                       omp_get_thread_num(), ieta);
                 initial_Gubser_XY(DATA, ieta, (*arena));
             }/* ieta */
             #pragma omp barrier
@@ -186,6 +188,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
+                printf("Thread %d executes loop iteraction ieta = %d\n",
+                       omp_get_thread_num(), ieta);
                 initial_IPGlasma_XY(DATA, ieta, (*arena));
             } /* ieta */
             #pragma omp barrier
@@ -201,15 +205,15 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
              << DATA->initName_TB << endl;
 
         int ieta;
-        //#pragma omp parallel private(ieta)
-        //{
-        //    #pragma omp for
+        #pragma omp parallel private(ieta)
+        {
+            #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                //printf("Thread %d executes loop iteraction %d\n",
-                //       omp_get_thread_num(), ieta);
+                printf("Thread %d executes loop iteraction ieta = %d\n",
+                       omp_get_thread_num(), ieta);
                 initial_MCGlb_with_rhob_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
-        //}
+        }
     }
     cout << "initial distribution done." << endl;
     return 1;
@@ -430,9 +434,11 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             >> dummy >> nx >> dummy >> ny
             >> dummy >> deta >> dummy >> dx >> dummy >> dy;
 
-    cout << "neta=" << DATA->neta << ", nx=" << nx << ", ny=" << ny
-         << ", deta=" << DATA->delta_eta << ", dx=" << dx << ", dy=" << dy
-         << endl;
+    if (omp_get_thread_num() == 0) {
+        cout << "neta=" << DATA->neta << ", nx=" << nx << ", ny=" << ny
+             << ", deta=" << DATA->delta_eta << ", dx=" << dx << ", dy=" << dy
+             << endl;
+    }
 
     double density, dummy1, dummy2, dummy3;
     double ux, uy, utau;
@@ -461,9 +467,11 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             if (ix == 0 && iy == 0) {
                 DATA->x_size = -dummy2*2;
                 DATA->y_size = -dummy3*2;
-                cout << "eta_size=" << DATA->eta_size
-                     << ", x_size=" << DATA->x_size
-                     << ", y_size=" << DATA->y_size << endl;
+                if (omp_get_thread_num() == 0) {
+                    cout << "eta_size=" << DATA->eta_size
+                         << ", x_size=" << DATA->x_size
+                         << ", y_size=" << DATA->y_size << endl;
+                }
             }
         }
     }

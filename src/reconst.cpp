@@ -8,19 +8,22 @@
 
 using namespace std;
 
-Reconst::Reconst(EOS *eosIn) {
+Reconst::Reconst(EOS *eosIn, int reconst_type_in) {
+    reconst_type = reconst_type_in;
     eos = eosIn;
     util = new Util;
     
     max_iter = 100;
     rel_err = 1e-9;
     abs_err = 1e-10;
-    // initialize gsl root finding solver
-    gsl_rootfinding_max_iter = max_iter;
-    gsl_rootfinding_relerr = rel_err;
-    gsl_rootfinding_abserr = abs_err;
-    gsl_solverType = gsl_root_fsolver_brent;   // Brent-Dekker method
-    gsl_rootfinding_solver = gsl_root_fsolver_alloc (gsl_solverType);
+    if (reconst_type == 99) {
+        // initialize gsl root finding solver
+        gsl_rootfinding_max_iter = max_iter;
+        gsl_rootfinding_relerr = rel_err;
+        gsl_rootfinding_abserr = abs_err;
+        gsl_solverType = gsl_root_fsolver_brent;   // Brent-Dekker method
+        gsl_rootfinding_solver = gsl_root_fsolver_alloc (gsl_solverType);
+    }
 
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
@@ -41,12 +44,40 @@ Reconst::Reconst(EOS *eosIn) {
 // destructor
 Reconst::~Reconst() {
     delete util;
-    gsl_root_fsolver_free (gsl_rootfinding_solver);
+    if (reconst_type == 99) {
+        gsl_root_fsolver_free(gsl_rootfinding_solver);
+    }
+}
+
+int Reconst::ReconstIt_shell(Grid *grid_p, int direc, double tau, double **uq,
+                             Grid *grid_pt, InitData *DATA, int rk_flag) {
+    int flag = 0;
+    if (reconst_type == 0) {
+        // reconst e and rhob through iterations
+        flag = ReconstIt(grid_p, direc, tau, uq, grid_pt, DATA, rk_flag);
+    } else if (reconst_type == 1) {
+        // reconst v and u0 through iteractions
+        flag = ReconstIt_velocity_iteration(grid_p, direc, tau, uq, grid_pt,
+                                            DATA, rk_flag);
+    } else if (reconst_type == 2) {
+        // reconst v and u0 using Newton's method
+        flag = ReconstIt_velocity_Newton(grid_p, direc, tau, uq, grid_pt, DATA,
+                                         rk_flag);
+    } else if (reconst_type == 99) {
+        // reconst v and u0 using gsl routines for hybrid binary search
+        flag = ReconstIt_velocity_gsl(grid_p, direc, tau, uq, grid_pt, DATA,
+                                      rk_flag);
+    } else {
+        fprintf(stderr,
+                "Reconst::ReconstIt_shell: unrecognized reconst_type = %d \n",
+                reconst_type);
+        exit(1);
+    }
+    return(flag);
 }
 
 int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
-                       Grid *grid_pt, double eps_init, double rhob_init,
-                       InitData *DATA, int rk_flag) {
+                       Grid *grid_pt, InitData *DATA, int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
     double K00, T00, J0, u[4], epsilon, p, h, rhob;
     double epsilon_prev, rhob_prev, p_prev, p_guess, temperr;
@@ -105,6 +136,8 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
 
     /* Iteration scheme */
  
+    double eps_init = grid_pt->epsilon;
+    double rhob_init = grid_pt->rhob;
     cs2 = eos->p_e_func(eps_init, rhob_init);
     eps_guess = GuessEps(T00, K00, cs2);
     epsilon_next = eps_guess;
@@ -279,9 +312,9 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     return 1; /* on successful execution */
 }/* Reconst */
 
-int Reconst::ReconstIt_velocity(
-    Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
-    double eps_init, double rhob_init, InitData *DATA, int rk_flag) {
+int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
+                                    double **uq, Grid *grid_pt,
+                                    InitData *DATA, int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
     /* reconstruct velocity first for finite mu_B case
      * (add by C. Shen Nov. 2014) */
@@ -571,7 +604,7 @@ int Reconst::ReconstIt_velocity(
 
 int Reconst::ReconstIt_velocity_iteration(
     Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
-    double eps_init, double rhob_init, InitData *DATA, int rk_flag) {
+    InitData *DATA, int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
     /* reconstruct velocity first for finite mu_B case */
     /* use iteration to solve v and u0 */
@@ -848,7 +881,7 @@ int Reconst::ReconstIt_velocity_iteration(
 
 int Reconst::ReconstIt_velocity_Newton(
     Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
-    double eps_init, double rhob_init, InitData *DATA, int rk_flag) {
+    InitData *DATA, int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
     /* reconstruct velocity first for finite mu_B case */
     /* use Newton's method to solve v and u0 */
@@ -902,7 +935,9 @@ int Reconst::ReconstIt_velocity_Newton(
     double u[4], epsilon, pressure, rhob;
 
     double u0_guess = grid_pt->u[rk_flag][0];
-    double v_guess = sqrt(1. - 1./(u0_guess*u0_guess));
+    double v_guess = sqrt(1. - 1./(u0_guess*u0_guess + 1e-15));
+    if (isnan(v_guess))
+        v_guess = 0.0;
     int v_status = 1;
     int iter = 0;
     double rel_error_v = 10.0;
@@ -913,6 +948,10 @@ int Reconst::ReconstIt_velocity_Newton(
         iter++;
         v_next = (v_prev
                   - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0)));
+        if (v_next < 0.0)
+            v_next = 0.0 + 1e-10;
+        else if (v_next > 1.0)
+            v_next = 1.0 - 1e-10;
         abs_error_v = reconst_velocity_f_Newton(v_next, T00, M, J0);
         v_prev = v_next;
         if (iter > max_iter) {

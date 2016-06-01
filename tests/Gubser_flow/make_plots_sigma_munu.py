@@ -37,7 +37,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 #plt.yticks(linspace(-2.0, 2.0, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$\sigma^{00}$', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/check_sigma00_x=y.pdf', format='pdf')
+plt.savefig('check_sigma00_x=y.pdf', format='pdf')
 plt.close()
 
 # plot sigma^{12}
@@ -59,7 +59,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 #plt.yticks(linspace(-2.0, 2.0, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$\sigma^{12}$', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/check_sigma12_x=y.pdf', format='pdf')
+plt.savefig('check_sigma12_x=y.pdf', format='pdf')
 plt.close()
 
 # plot sigma^{12}
@@ -81,7 +81,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 #plt.yticks(linspace(-2.0, 2.0, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$\sigma^{12}$', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/check_ux_x=y.pdf', format='pdf')
+plt.savefig('check_ux_x=y.pdf', format='pdf')
 plt.show()
 plt.close()
 
@@ -105,7 +105,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 #plt.yticks(linspace(-2.0, 2.0, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'trace', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/check_usq_x=y.pdf', format='pdf')
+plt.savefig('check_usq_x=y.pdf', format='pdf')
 plt.close()
 
 
@@ -129,7 +129,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 #plt.yticks(linspace(-2.0, 2.0, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'trace', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/check_sigma_trace_x=y.pdf', format='pdf')
+plt.savefig('check_sigma_trace_x=y.pdf', format='pdf')
 plt.close()
 
 # plot u_mu sigma^{mu i}
@@ -162,6 +162,5 @@ for i in range(4):
     #plt.yticks(linspace(-2.0, 2.0, 5), color = 'k', size = plotfontsize)
     plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
     plt.ylabel(r'$u^\mu \sigma_{\mu\nu}$', fontsize = plotfontsize)
-    plt.savefig('/Users/chunshen/Desktop/check_sigma_transversality_%d.pdf'
-                % i, format='pdf')
+    plt.savefig('check_sigma_transversality_%d.pdf' % i, format='pdf')
     plt.close()
