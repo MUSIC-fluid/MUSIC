@@ -69,7 +69,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 plt.yticks(linspace(0.0, 0.2, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$e$ (GeV/fm$^{4}$)', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/Gubser_e.pdf', format='pdf')
+plt.savefig('Gubser_e.pdf', format='pdf')
 
 
 # plot ux
@@ -110,5 +110,5 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 plt.yticks(linspace(-2.0, 2.0, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$u^x$', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/Gubser_ux.pdf', format='pdf')
+plt.savefig('Gubser_ux.pdf', format='pdf')
 

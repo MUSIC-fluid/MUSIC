@@ -62,7 +62,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 plt.yticks(linspace(-2.0, 2.0, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$u^x$', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/Gubser_ux_y=0.pdf', format='pdf')
+plt.savefig('Gubser_ux_y=0.pdf', format='pdf')
 
 # plot pixx
 fig = plt.figure()
@@ -100,7 +100,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 plt.yticks(linspace(-0.4, 0.0, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$\pi^{xx}$ (GeV/fm$^3$)', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/Gubser_pixx_y=0.pdf', format='pdf')
+plt.savefig('Gubser_pixx_y=0.pdf', format='pdf')
 
 
 # analytic resutls
@@ -147,7 +147,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 plt.yticks(linspace(0.0, 0.25, 6), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$T$ (GeV)', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/Gubser_T_y=x.pdf', format='pdf')
+plt.savefig('Gubser_T_y=x.pdf', format='pdf')
 
 
 # plot ux
@@ -187,7 +187,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 plt.yticks(linspace(-2.0, 2.0, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$u^x$', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/Gubser_ux_y=x.pdf', format='pdf')
+plt.savefig('Gubser_ux_y=x.pdf', format='pdf')
 
 # plot pixx
 fig = plt.figure()
@@ -225,7 +225,7 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 plt.yticks(linspace(-0.3, 0.0, 4), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$\pi^{xx}$ (GeV/fm$^3$)', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/Gubser_pixx_y=x.pdf', format='pdf')
+plt.savefig('Gubser_pixx_y=x.pdf', format='pdf')
 
 # plot pixy
 fig = plt.figure()
@@ -263,4 +263,4 @@ plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
 plt.yticks(linspace(-0.1, 0.0, 6), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$\pi^{xx}$ (GeV/fm$^3$)', fontsize = plotfontsize)
-plt.savefig('/Users/chunshen/Desktop/Gubser_pixy_y=x.pdf', format='pdf')
+plt.savefig('Gubser_pixy_y=x.pdf', format='pdf')
