@@ -10,13 +10,6 @@
 
 using namespace std;
 
-struct ReturnValue  {
-    double x;
-    double y;
-    int collided;
-    int acceptances;
-};
-
 typedef struct init_data {
     double **gmunu; /* metric */
     string Target;
@@ -57,10 +50,6 @@ typedef struct init_data {
     double eta_flat;
     double ecm;
     double beam_rapidity;
-    double R_A;
-    double a_A;
-    double a_short;
-    double a_long;
     int rk_order;
     int reconst_type;
     int taufac;
@@ -120,9 +109,6 @@ typedef struct init_data {
                             // 4: do resonance decays only
     // fraction of binary collisons scaling in initial distribution
     double hard;
-    // if 1: rotate the initial configuration in the x-y plane by 45 degrees
-    // (to test dependence of v_4 on lattice)
-    int rotateBy45degrees;
 
     // decide whether to output the evolution data (1) or not (0)
     int outputEvolutionData;
@@ -151,20 +137,7 @@ typedef struct init_data {
     int turn_on_bulk;
     int turn_on_diff;
 
-    int zero_or_stop;
-
-    double eps_limit;
-
     double local_y_max;
-
-    // eccentricities and axes with respect to which we have to compute
-    // v_2 or v_3
-    double ecc2;
-    double ecc3;
-    double ecc3r3;
-    double Psi2;
-    double Psi3;
-    double Psi3r3;
 
     // minimal and maximal impact parameter when using Initial_Distribution 3,
     // for sampling
@@ -184,12 +157,6 @@ typedef struct init_data {
 
     int size;
     int rank;
-    double avgT;
-    int nSteps;
-    double avgT2;
-    int nSteps2;
-    double plasmaEvolutionTime;
-    double plasmaEvolutionTime2;
     double sFactor;
     // For use with freeze_out_method=3.
     // Maximum size of freeze out hypersurface in eta,

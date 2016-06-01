@@ -480,13 +480,6 @@ void ReadInData3(InitData *DATA, string file) {
   }
   cerr << " DeltaTau=" << DATA->delta_tau << endl;
   
-  // rotate_by_45_degrees: rotates initial condition by Pi/4
-  // only used if Initial_profile==1
-  int temprotateBy45degrees = 0;
-  tempinput = util->StringFind4(file, "rotate_by_45_degrees");
-  if(tempinput != "empty") istringstream ( tempinput ) >> temprotateBy45degrees;
-  DATA->rotateBy45degrees = temprotateBy45degrees;
-  
   // output_evolution_data:  
   // 1:  output bulk information at every grid point at every time step
   int tempoutputEvolutionData = 0;
@@ -548,41 +541,7 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_width_2;
   DATA->eta_rhob_width_2   = temp_eta_width_2;
 
-  
-  // Initial_radius_size_in_fm
-  // initial radial size in [fm] for Initial_profile = 0
-  double tempR_A   = 2.6;
-  tempinput = util->StringFind4(file, "Initial_radius_size_in_fm");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempR_A  ;
-  DATA->R_A   = tempR_A;
-  if(tempinput != "empty" && DATA->Initial_profile != 0) cerr << "Initial_radius_size_in_fm unused when Initial_profile != 0\n";
-
-  // Initial_radial_fall_off_in_fm:
-  // radial fall-off in [fm] for Initial_profile = 0
-  double tempa_A   = 0.5;
-  tempinput = util->StringFind4(file, "Initial_radial_fall_off_in_fm");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempa_A  ;
-  DATA->a_A   = tempa_A  ;
-  if(tempinput != "empty" && DATA->Initial_profile != 0) cerr << "Initial_radial_fall_off_in_fm unused when Initial_profile != 0\n";
-
-  // Initial_asym_long_axis_in_fm:
-  // length of the long axis for Initial_profile = 0 in [fm]
-  double tempa_long   = 2.;
-  tempinput = util->StringFind4(file, "Initial_asym_long_axis_in_fm");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempa_long  ;
-  DATA->a_long   = tempa_long;
-  if(tempinput != "empty" && DATA->Initial_profile != 0) cerr << "Initial_asym_long_axis_in_fm unused when Initial_profile != 0\n";
-
-  // Initial_asym_short_axis_in_fm:
-  // length of the short axis for Initial_profile = 0 in [fm]
-  double tempa_short   = 2.;
-  tempinput = util->StringFind4(file, "Initial_asym_short_axis_in_fm");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempa_short  ;
-  DATA->a_short   = tempa_short;
-  if(tempinput != "empty" && DATA->Initial_profile != 0) cerr << "Initial_asym_short_axis_in_fm unused when Initial_profile != 0\n";
-
   // s_factor:  for use with IP-Glasma initial conditions
-//   DATA->sFactor = util->DFind(file, "s_factor");
   double tempsFactor   = 20.;
   tempinput = util->StringFind4(file, "s_factor");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempsFactor  ;
@@ -688,11 +647,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind4(file, "reconst_type");
   if(tempinput != "empty") istringstream (tempinput) >> tempreconst_type;
   DATA->reconst_type = tempreconst_type;
-  if(DATA->reconst_type != 1 &&  DATA->reconst_type !=0)
-  {
-    cerr << "unrecognized reconst_type: " << DATA->reconst_type << endl;
-    exit(1);
-  }
   
   // in case of using Initial_Distribution 3, these are the limits between which to sample the impact parameter
   double tempbmin   = 0.;
@@ -751,13 +705,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   if(tempinput != "empty") istringstream ( tempinput ) >> tempverbose_flag;
   DATA->verbose_flag = tempverbose_flag;
   
-  
-  // Minimum_Epsilon_Frac_For_Visc:  unused
-  double tempeps_limit   = 0.00001;
-  tempinput = util->StringFind4(file, "Minimum_Epsilon_Frac_For_Visc");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempeps_limit  ;
-  DATA->eps_limit   = tempeps_limit;
-  
   // Bulk_to_S_ratio:  constant zeta/s
   double tempbulk_to_s   = 0.0;
   tempinput = util->StringFind4(file, "Bulk_to_S_ratio");
@@ -769,15 +716,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
   tempinput = util->StringFind4(file, "Include_Bulk_Visc_Yes_1_No_0");
   if(tempinput != "empty") istringstream ( tempinput ) >> tempturn_on_bulk;
   DATA->turn_on_bulk = tempturn_on_bulk;
-  
-  //Vicous_Trouble_Zero=0_or_Stop=1: unused
-  int tempzero_or_stop = 2;
-  tempinput = util->StringFind4(file, "Vicous_Trouble_Zero=0_or_Stop=1");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempzero_or_stop;
-  tempinput = util->StringFind4(file, "Viscous_Trouble_Zero=0_or_Stop=1");//correctly spelled version should work as well
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempzero_or_stop;
-  DATA->zero_or_stop = tempzero_or_stop;
-  
   
   // Shear_relaxation_time_tau_pi:  in fm?
   double temptau_pi   = 0.01;
@@ -892,12 +830,6 @@ or the maximum entropy density at zero impact parameter given in [1/fm3]
     DATA->beam_rapidity = y_beam;
 
     /* initialize the metric, mostly plus */
-    DATA->avgT = 0.;
-    DATA->nSteps = 0;
-    DATA->avgT2 = 0.;
-    DATA->nSteps2 = 0;
-    DATA->plasmaEvolutionTime = 0.;
-    DATA->plasmaEvolutionTime2 = 0.;
     DATA->gmunu = util->mtx_malloc(4, 4);
     for (m = 0; m < 4; m++) {
         for (n = 0; n < 4; n++) {

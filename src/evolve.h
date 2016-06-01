@@ -13,8 +13,6 @@
 #include "grid.h"
 #include "grid_info.h"
 #include "eos.h"
-#include "reconst.h"
-#include "reconst.h"
 #include "advance.h"
 #include "u_derivative.h"
 
@@ -22,7 +20,6 @@
 class Evolve {
  private:
     EOS *eos; // declare EOS object
-    Reconst *reconst; // declare Reconst object
     Grid *grid; // declare Grid object
     Grid_info *grid_info;
     Util *util;
