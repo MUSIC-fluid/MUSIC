@@ -56,6 +56,9 @@ class Evolve {
     void UpdateArena_XY(int ieta, Grid ***arena);
     
     int FreezeOut_equal_tau_Surface(double tau, InitData *DATA, Grid ***arena);
+    void FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
+                                        int ieta, Grid ***arena,
+                                        int thread_id, double epsFO);
     //void FindFreezeOutSurface(double tau, InitData *DATA,
     //                          Grid ***arena, int size, int rank);
     //void FindFreezeOutSurface2(double tau, InitData *DATA,
@@ -64,6 +67,9 @@ class Evolve {
     //                          Grid ***arena, int size, int rank);
     int FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
                                        Grid ***arena);
+    int FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
+                                          int ieta, Grid ***arena,
+                                          int thread_id, double epsFO);
     int FindFreezeOutSurface_boostinvariant_Cornelius(
                                     double tau, InitData *DATA, Grid ***arena);
 
