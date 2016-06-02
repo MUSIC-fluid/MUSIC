@@ -243,7 +243,8 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
         u[3] = q[3]/tau/h/u[0]; 
     }
 
-    if (u[0] > cosh(DATA->local_y_max)) {
+    double u_max = 242582597.70489514; // cosh(20)
+    if (u[0] > u_max) {
         fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
         if(grid_pt->epsilon > 0.3) {
 	        fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
