@@ -162,9 +162,10 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                                 rk_order, 5, 4);
                 util->mtx_free(arena[ieta][ix][iy].u, rk_order+1, 4);
                 util->mtx_free(arena[ieta][ix][iy].a, 1, 5);
-                util->mtx_free(arena[ieta][ix][iy].prev_u, 1, 4);
+                util->mtx_free(arena[ieta][ix][iy].prev_u, rk_order, 4);
                 util->vector_free(arena[ieta][ix][iy].theta_u);
                 util->vector_free(arena[ieta][ix][iy].pi_b);
+                util->vector_free(arena[ieta][ix][iy].prev_pi_b);
                 
                 util->mtx_free(arena[ieta][ix][iy].W_prev, 5, 4);
                 delete[] arena[ieta][ix][iy].nbr_p_1;
@@ -265,11 +266,15 @@ void Evolve::UpdateArena_XY(int ieta, Grid ***arena) {
             arena[ieta][ix][iy].rhob = arena[ieta][ix][iy].rhob_t;
      
             // previous pi_b is stored in prevPimunu
+            arena[ieta][ix][iy].prev_pi_b[0] = arena[ieta][ix][iy].pi_b[0];
+            arena[ieta][ix][iy].prev_pi_b[1] = arena[ieta][ix][iy].pi_b[1];
             arena[ieta][ix][iy].pi_b[0] = arena[ieta][ix][iy].pi_b[rk_order];
             for (int mu = 0; mu < 4; mu++) {
                 /* this was the previous value */
                 arena[ieta][ix][iy].prev_u[0][mu] = (
                                         arena[ieta][ix][iy].u[0][mu]); 
+                arena[ieta][ix][iy].prev_u[1][mu] = (
+                                        arena[ieta][ix][iy].u[1][mu]); 
                 /* this is the new value */
                 arena[ieta][ix][iy].u[0][mu] = (
                                 arena[ieta][ix][iy].u[rk_order][mu]); 

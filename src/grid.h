@@ -67,7 +67,7 @@ class Grid {
     //double ***pprevPimunu; 
         
     double *pi_b; /* bulk pressure */
-    //double *prev_pi_b; /* bulk pressure */
+    double *prev_pi_b; /* bulk pressure */
     //double *pprev_pi_b; /* bulk pressure */
 
     int revert_flag;

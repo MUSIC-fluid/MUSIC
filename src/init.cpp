@@ -318,7 +318,8 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
             arena[ieta][ix][iy].sigma = util->cube_malloc(1, 4, 4);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
+            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);
             arena[ieta][ix][iy].Wmunu = util->cube_malloc(rk_order+1, 5, 4);
             arena[ieta][ix][iy].prevWmunu = util->cube_malloc(rk_order, 5, 4);
             arena[ieta][ix][iy].Pimunu = util->cube_malloc(rk_order+1, 5, 4);
@@ -339,11 +340,13 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             u[2] = temp_profile_uy[ix][iy];
             u[3] = 0.0;
 
-            arena[ieta][ix][iy].prev_u[0][0] = u[0];
-            arena[ieta][ix][iy].prev_u[0][1] = u[1];
-            arena[ieta][ix][iy].prev_u[0][2] = u[2];
-            arena[ieta][ix][iy].prev_u[0][3] = u[3];
-
+            for (int rk_i = 0; rk_i < rk_order; rk_i++) {
+                arena[ieta][ix][iy].prev_u[rk_i][0] = u[0];
+                arena[ieta][ix][iy].prev_u[rk_i][1] = u[1];
+                arena[ieta][ix][iy].prev_u[rk_i][2] = u[2];
+                arena[ieta][ix][iy].prev_u[rk_i][3] = u[3];
+                arena[ieta][ix][iy].prev_pi_b[rk_i] = 0.0;
+            }
             arena[ieta][ix][iy].pi_b[0] = 0.0;
 
             if (DATA->turn_on_shear == 1) {
@@ -520,7 +523,8 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
             arena[ieta][ix][iy].sigma = util->cube_malloc(1, 4, 4);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
+            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);
             arena[ieta][ix][iy].Wmunu = util->cube_malloc(rk_order+1, 5, 4);
             arena[ieta][ix][iy].prevWmunu = util->cube_malloc(rk_order, 5, 4);
             arena[ieta][ix][iy].Pimunu = util->cube_malloc(rk_order+1, 5, 4);
@@ -538,10 +542,13 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             u[2] = temp_profile_uy[ix][iy];
             u[3] = 0.0;
 
-            arena[ieta][ix][iy].prev_u[0][0] = u[0];
-            arena[ieta][ix][iy].prev_u[0][1] = u[1];
-            arena[ieta][ix][iy].prev_u[0][2] = u[2];
-            arena[ieta][ix][iy].prev_u[0][3] = u[3];
+            for (int ii = 0; ii < rk_order; ii++) {
+                arena[ieta][ix][iy].prev_u[ii][0] = u[0];
+                arena[ieta][ix][iy].prev_u[ii][1] = u[1];
+                arena[ieta][ix][iy].prev_u[ii][2] = u[2];
+                arena[ieta][ix][iy].prev_u[ii][3] = u[3];
+                arena[ieta][ix][iy].prev_pi_b[ii] = 0.0;
+            }
 
             arena[ieta][ix][iy].pi_b[0] = 0.0;
 
@@ -660,7 +667,8 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
             arena[ieta][ix][iy].sigma = util->cube_malloc(1, 4, 4);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
+            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);
             arena[ieta][ix][iy].Wmunu = util->cube_malloc(rk_order+1, 5, 4);
             arena[ieta][ix][iy].prevWmunu = util->cube_malloc(rk_order, 5, 4);
             arena[ieta][ix][iy].Pimunu = util->cube_malloc(rk_order+1, 5, 4);
@@ -672,10 +680,14 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             u[3] = arena[ieta][ix][iy].u[0][3] = 0.0;
             u[1] = arena[ieta][ix][iy].u[0][1] = 0.0;
             u[2] = arena[ieta][ix][iy].u[0][2] = 0.0;
-            arena[ieta][ix][iy].prev_u[0][0] = 1.0;
-            arena[ieta][ix][iy].prev_u[0][3] = 0.0;
-            arena[ieta][ix][iy].prev_u[0][1] = 0.0;
-            arena[ieta][ix][iy].prev_u[0][2] = 0.0;
+            
+            for (int ii = 0; ii < rk_order; ii++) {
+                arena[ieta][ix][iy].prev_u[ii][0] = 1.0;
+                arena[ieta][ix][iy].prev_u[ii][3] = 0.0;
+                arena[ieta][ix][iy].prev_u[ii][1] = 0.0;
+                arena[ieta][ix][iy].prev_u[ii][2] = 0.0;
+                arena[ieta][ix][iy].prev_pi_b[ii] = 0.0;
+            }
 
             arena[ieta][ix][iy].pi_b[0] = 0.0;
 

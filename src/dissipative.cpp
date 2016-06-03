@@ -65,12 +65,19 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     // backward time derivative (first order is more stable)
     double dWdtau;
     dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
-                     - grid_pt->prevWmunu[rk_flag][alpha][0])/DATA->delta_tau;
+              - grid_pt->prevWmunu[rk_flag][alpha][0])/DATA->delta_tau;
 
     /* bulk pressure term */
     double dPidtau;
-    dPidtau = (grid_pt->Pimunu[rk_flag][alpha][0]
-               - grid_pt->prevPimunu[rk_flag][alpha][0])/DATA->delta_tau;
+    //dPidtau = (grid_pt->Pimunu[rk_flag][alpha][0]
+    //           - grid_pt->prevPimunu[rk_flag][alpha][0])/DATA->delta_tau;
+    double gfac = (alpha == 0 ? -1.0 : 0.0);
+    double Pi_alpha0 = (
+        grid_pt->pi_b[rk_flag]*(gfac + grid_pt->u[rk_flag][alpha]
+                                       *grid_pt->u[rk_flag][0]));
+    dPidtau = (Pi_alpha0 - grid_pt->prev_pi_b[rk_flag]
+                           *(gfac + grid_pt->prev_u[rk_flag][alpha]
+                                    *grid_pt->prev_u[rk_flag][0]));
 
     // use central difference to preserve conservation law exactly
     double dWdx_perp = 0.0;
@@ -80,8 +87,15 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
         //double bg = grid_pt->Pimunu[rk_flag][alpha][i];
         double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
         double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-        double bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
-        double bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
+        //double bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
+        //double bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
+        double gfac1 = (alpha == i ? 1.0 : 0.0);
+        double bgp1 = (grid_pt->nbr_p_1[i]->pi_b[rk_flag]
+                       *(gfac1 + grid_pt->nbr_p_1[i]->u[rk_flag][alpha]
+                                 *grid_pt->nbr_p_1[i]->u[rk_flag][i]));
+        double bgm1 = (grid_pt->nbr_m_1[i]->pi_b[rk_flag]
+                       *(gfac1 + grid_pt->nbr_m_1[i]->u[rk_flag][alpha]
+                                 *grid_pt->nbr_m_1[i]->u[rk_flag][i]));
         //dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
         //dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i];
         dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
@@ -95,9 +109,16 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     //double sg = grid_pt->Wmunu[rk_flag][alpha][i];
     //double bg = grid_pt->Pimunu[rk_flag][alpha][i];
     double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
-    double bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
     double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-    double bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
+    //double bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
+    //double bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
+    double gfac3 = (alpha == i ? 1.0 : 0.0);
+    double bgp1 = (grid_pt->nbr_p_1[i]->pi_b[rk_flag]
+                   *(gfac3 + grid_pt->nbr_p_1[i]->u[rk_flag][alpha]
+                             *grid_pt->nbr_p_1[i]->u[rk_flag][i]));
+    double bgm1 = (grid_pt->nbr_m_1[i]->pi_b[rk_flag]
+                   *(gfac3 + grid_pt->nbr_m_1[i]->u[rk_flag][alpha]
+                             *grid_pt->nbr_m_1[i]->u[rk_flag][i]));
     //dWdeta = minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
     //dPideta = minmod->minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor;
     dWdeta = (sgp1 - sgm1)/(2.*delta[i]*taufactor);
@@ -106,17 +127,23 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     /* partial_m (tau W^mn) = W^0n + tau partial_m W^mn */
     double sf = (tau*(dWdtau + dWdx_perp + dWdeta)
                  + grid_pt->Wmunu[rk_flag][alpha][0]);
+    //double bf = (tau*(dPidtau + dPidx_perp + dPideta)
+    //             + grid_pt->Pimunu[rk_flag][alpha][0]);
     double bf = (tau*(dPidtau + dPidx_perp + dPideta)
-                 + grid_pt->Pimunu[rk_flag][alpha][0]);
+                 + Pi_alpha0);
 
     /* sources due to coordinate transform this is added to partial_m W^mn */
     if (alpha == 0) {
         sf += grid_pt->Wmunu[rk_flag][3][3];
-        bf += grid_pt->Pimunu[rk_flag][3][3];
+        //bf += grid_pt->Pimunu[rk_flag][3][3];
+        bf += grid_pt->pi_b[rk_flag]*(1.0 + grid_pt->u[rk_flag][3]
+                                            *grid_pt->u[rk_flag][3]);
     }
     if (alpha == 3) {
         sf += grid_pt->Wmunu[rk_flag][0][3];
-        bf += grid_pt->Pimunu[rk_flag][0][3];
+        //bf += grid_pt->Pimunu[rk_flag][0][3];
+        bf += grid_pt->pi_b[rk_flag]*(grid_pt->u[rk_flag][0]
+                                      *grid_pt->u[rk_flag][3]);
     }
 
     // final result
@@ -132,9 +159,9 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
         cout << "sf=" << sf << " bf=" << bf
              << " Wmunu[" << rk_flag << "]="
              << grid_pt->Wmunu[rk_flag][alpha][0]
-             << " Pimunu[" << rk_flag << "]="
-             << grid_pt->Pimunu[rk_flag][alpha][0]
-             << " prevWmunu=" << grid_pt->prevWmunu[0][alpha][0] << endl;
+             << " pi_b[" << rk_flag << "]="
+             << grid_pt->pi_b[rk_flag]
+             << " prev_pi_b=" << grid_pt->prev_pi_b[rk_flag] << endl;
     }
     return result;
 }/* MakeWSource */
