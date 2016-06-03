@@ -11,6 +11,7 @@ class Grid_info
 {
     private:
         InitData* DATA_ptr;
+        EOS* eos_ptr;
         
         int deltaf_qmu_coeff_table_length_T;
         int deltaf_qmu_coeff_table_length_mu;
@@ -27,12 +28,12 @@ class Grid_info
         double **deltaf_coeff_tb_14mom_Bpi_shear;
 
     public:
-        Grid_info(InitData* DATA_in);
+        Grid_info(InitData* DATA_in, EOS *eos_ptr_in);
         ~Grid_info();
 
         void OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
-                                      EOS *eos, double tau);
-        void Gubser_flow_check_file(Grid ***arena, EOS *eos, double tau);
+                                      double tau);
+        void Gubser_flow_check_file(Grid ***arena, double tau);
         void load_deltaf_qmu_coeff_table(string filename);
         void load_deltaf_qmu_coeff_table_14mom(string filename);
         double get_deltaf_qmu_coeff(double T, double muB);

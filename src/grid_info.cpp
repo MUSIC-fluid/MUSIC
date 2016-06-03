@@ -3,8 +3,9 @@
 
 using namespace std;
 
-Grid_info::Grid_info(InitData* DATA_in) {
+Grid_info::Grid_info(InitData* DATA_in, EOS *eos_ptr_in) {
     DATA_ptr = DATA_in;
+    eos_ptr = eos_ptr_in;
 
     // read in tables for delta f coefficients
     if (DATA_ptr->turn_on_diff == 1) {
@@ -53,7 +54,7 @@ Grid_info::~Grid_info() {
 // the interpolation in MARTINI must match properly with the output generated
 // here. -CFY 11/12/2010
 void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
-                                         EOS *eos, double tau) {
+                                         double tau) {
     const string out_name_xyeta = "evolution_xyeta.dat";
     const string out_name_W_xyeta = 
                         "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
@@ -106,8 +107,8 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                 double uz = ueta*cosh_eta + utau*sinh_eta;
                 double vz = uz/ut;
                 
-                double T_local = arena[ieta][ix][iy].T;  // 1/fm
-                double muB_local = arena[ieta][ix][iy].mu;  // 1/fm
+                double T_local = eos_ptr->get_temperature(e_local, rhob_local);
+                double muB_local = eos_ptr->get_mu(e_local, rhob_local);
                 double div_factor = e_local + p_local;  // 1/fm^4
 
                 double Wtautau, Wtaux, Wtauy, Wtaueta;
@@ -180,35 +181,58 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
 }/* OutputEvolutionDataXYEta */
 
 void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
-                                       double tau) {
-    int nx = DATA->nx;
-    int ny = DATA->ny;
-    int neta = DATA->neta;
-    double dx = DATA->delta_x;
-    double dy = DATA->delta_y;
-    double deta = DATA->delta_eta;
-
+                                      double tau) {
     double N_B = 0.0;
     double T_tau_t = 0.0;
-    for (int ieta = 0; ieta < neta; ieta++) {
-        double eta_s = deta*ieta - (DATA->eta_size)/2.0;
-        for (int ix = 0; ix <= nx; ix++) {
-            for (int iy = 0; iy <= ny; iy++) {
-                double cosh_eta = cosh(eta_s);
-                double sinh_eta = sinh(eta_s);
-                N_B += (arena[ix][iy][ieta].rhob
-                        *arena[ix][iy][ieta].u[0][0]
-                        + (arena[ix][iy][ieta].prevWmunu[0][4][0]
-                           + arena[ix][iy][ieta].prevWmunu[1][4][0])*0.5);
-                double T_tau_tau = (
-                    arena[ix][iy][ieta].TJb[0][0][0]
-                    + (arena[ix][iy][ieta].prevWmunu[0][0][0]
-                       + arena[ix][iy][ieta].prevWmunu[1][0][0])*0.5);
-                double T_tau_eta = (
-                    arena[ix][iy][ieta].TJb[0][0][3]
-                    + (arena[ix][iy][ieta].prevWmunu[0][0][3]
-                       + arena[ix][iy][ieta].prevWmunu[1][0][3])*0.5);
-                T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
+    int neta = DATA->neta;
+    double deta = DATA->delta_eta;
+    int nx = DATA->nx;
+    double dx = DATA->delta_x;
+    int ny = DATA->ny;
+    double dy = DATA->delta_y;
+    int ieta;
+    #pragma omp parallel private(ieta)
+    {
+        #pragma omp for
+        for (ieta = 0; ieta < neta; ieta++) {
+            double eta_s = deta*ieta - (DATA->eta_size)/2.0;
+            for (int ix = 0; ix <= nx; ix++) {
+                for (int iy = 0; iy <= ny; iy++) {
+                    double cosh_eta = cosh(eta_s);
+                    double sinh_eta = sinh(eta_s);
+                    N_B += (arena[ieta][ix][iy].rhob
+                            *arena[ieta][ix][iy].u[0][0]
+                            + (arena[ieta][ix][iy].prevWmunu[0][4][0]
+                               + arena[ieta][ix][iy].prevWmunu[1][4][0])*0.5);
+                    double Pi00_rk_0 = (
+                        arena[ieta][ix][iy].prev_pi_b[0]
+                        *(-1.0 + arena[ieta][ix][iy].prev_u[0][0]
+                                 *(arena[ieta][ix][iy].prev_u[0][0])));
+                    double Pi00_rk_1 = (
+                        arena[ieta][ix][iy].prev_pi_b[1]
+                        *(-1.0 + arena[ieta][ix][iy].prev_u[1][0]
+                                 *(arena[ieta][ix][iy].prev_u[1][0])));
+                    double T_tau_tau = (
+                        arena[ieta][ix][iy].TJb[0][0][0]
+                        + (arena[ieta][ix][iy].prevWmunu[0][0][0]
+                           + arena[ieta][ix][iy].prevWmunu[1][0][0]
+                           + Pi00_rk_0 + Pi00_rk_1)*0.5);
+
+                    double Pi03_rk_0 = (
+                        arena[ieta][ix][iy].prev_pi_b[0]
+                        *(arena[ieta][ix][iy].prev_u[0][0]
+                          *(arena[ieta][ix][iy].prev_u[0][3])));
+                    double Pi03_rk_1 = (
+                        arena[ieta][ix][iy].prev_pi_b[1]
+                        *(arena[ieta][ix][iy].prev_u[1][0]
+                          *(arena[ieta][ix][iy].prev_u[1][3])));
+                    double T_tau_eta = (
+                        arena[ieta][ix][iy].TJb[0][0][3]
+                        + (arena[ieta][ix][iy].prevWmunu[0][0][3]
+                           + arena[ieta][ix][iy].prevWmunu[1][0][3]
+                           + Pi03_rk_0 + Pi03_rk_1)*0.5);
+                    T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
+                }
             }
         }
     }
@@ -255,7 +279,7 @@ void Grid_info::check_velocity_shear_tensor(Grid ***arena, double tau) {
     output_file.close();
 }
 
-void Grid_info::Gubser_flow_check_file(Grid ***arena, EOS *eos, double tau) {
+void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
     ostringstream filename;
     filename << "Gubser_flow_check_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
@@ -270,7 +294,7 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, EOS *eos, double tau) {
         for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
             double y_local = y_min + iy*dy;
             double e_local = arena[0][ix][iy].epsilon;
-            double T_local = eos->get_temperature(e_local, 0.0);
+            double T_local = eos_ptr->get_temperature(e_local, 0.0);
             output_file << scientific << setprecision(8) << setw(18)
                         << x_local << "  " << y_local << "  "
                         << e_local*unit_convert << "  "

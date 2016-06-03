@@ -69,8 +69,6 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
 
     /* bulk pressure term */
     double dPidtau;
-    //dPidtau = (grid_pt->Pimunu[rk_flag][alpha][0]
-    //           - grid_pt->prevPimunu[rk_flag][alpha][0])/DATA->delta_tau;
     double gfac = (alpha == 0 ? -1.0 : 0.0);
     double Pi_alpha0 = (
         grid_pt->pi_b[rk_flag]*(gfac + grid_pt->u[rk_flag][alpha]
@@ -84,11 +82,8 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     double dPidx_perp = 0.0;
     for (i = 1; i <= 2; i++) {  // x and y
         //double sg = grid_pt->Wmunu[rk_flag][alpha][i];
-        //double bg = grid_pt->Pimunu[rk_flag][alpha][i];
         double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
         double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-        //double bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
-        //double bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
         double gfac1 = (alpha == i ? 1.0 : 0.0);
         double bgp1 = (grid_pt->nbr_p_1[i]->pi_b[rk_flag]
                        *(gfac1 + grid_pt->nbr_p_1[i]->u[rk_flag][alpha]
@@ -110,8 +105,6 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     //double bg = grid_pt->Pimunu[rk_flag][alpha][i];
     double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][alpha][i];
     double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][alpha][i];
-    //double bgp1 = grid_pt->nbr_p_1[i]->Pimunu[rk_flag][alpha][i];
-    //double bgm1 = grid_pt->nbr_m_1[i]->Pimunu[rk_flag][alpha][i];
     double gfac3 = (alpha == i ? 1.0 : 0.0);
     double bgp1 = (grid_pt->nbr_p_1[i]->pi_b[rk_flag]
                    *(gfac3 + grid_pt->nbr_p_1[i]->u[rk_flag][alpha]
@@ -127,21 +120,17 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     /* partial_m (tau W^mn) = W^0n + tau partial_m W^mn */
     double sf = (tau*(dWdtau + dWdx_perp + dWdeta)
                  + grid_pt->Wmunu[rk_flag][alpha][0]);
-    //double bf = (tau*(dPidtau + dPidx_perp + dPideta)
-    //             + grid_pt->Pimunu[rk_flag][alpha][0]);
     double bf = (tau*(dPidtau + dPidx_perp + dPideta)
                  + Pi_alpha0);
 
     /* sources due to coordinate transform this is added to partial_m W^mn */
     if (alpha == 0) {
         sf += grid_pt->Wmunu[rk_flag][3][3];
-        //bf += grid_pt->Pimunu[rk_flag][3][3];
         bf += grid_pt->pi_b[rk_flag]*(1.0 + grid_pt->u[rk_flag][3]
                                             *grid_pt->u[rk_flag][3]);
     }
     if (alpha == 3) {
         sf += grid_pt->Wmunu[rk_flag][0][3];
-        //bf += grid_pt->Pimunu[rk_flag][0][3];
         bf += grid_pt->pi_b[rk_flag]*(grid_pt->u[rk_flag][0]
                                       *grid_pt->u[rk_flag][3]);
     }

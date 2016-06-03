@@ -13,7 +13,7 @@ using namespace std;
 Evolve::Evolve(EOS *eosIn, InitData *DATA_in) {
     eos = eosIn;
     grid = new Grid;
-    grid_info = new Grid_info(DATA_in);
+    grid_info = new Grid_info(DATA_in, eosIn);
     util = new Util;
     advance = new Advance(eosIn, DATA_in);
     u_derivative = new U_derivative(eosIn, DATA_in);
@@ -84,18 +84,22 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         
         if (DATA->Initial_profile == 0) {
             if (fabs(tau - 1.0) < 1e-8) {
-                grid_info->Gubser_flow_check_file(arena, eos, tau);
+                grid_info->Gubser_flow_check_file(arena, tau);
             }
             if (fabs(tau - 1.2) < 1e-8) {
-                grid_info->Gubser_flow_check_file(arena, eos, tau);
+                grid_info->Gubser_flow_check_file(arena, tau);
             }
             if (fabs(tau - 1.5) < 1e-8) {
-                grid_info->Gubser_flow_check_file(arena, eos, tau);
+                grid_info->Gubser_flow_check_file(arena, tau);
             }
             if (fabs(tau - 2.0) < 1e-8) {
-                grid_info->Gubser_flow_check_file(arena, eos, tau);
+                grid_info->Gubser_flow_check_file(arena, tau);
             }
         }
+
+        // check energy conservation
+        if (boost_invariant_flag == 0)
+            grid_info->check_conservation_law(arena,DATA, tau);
 
         /* execute rk steps */
         // all the evolution are at here !!!
@@ -107,13 +111,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                 grid_info->check_velocity_shear_tensor(arena, tau);
             }
         }
-
         UpdateArena(arena);
    
-        // check energy conservation
-        //grid_info->check_conservation_law(arena, DATA, tau);
-        //grid_info->ComputeEnergyConservation(DATA, arena, tau);
-
         //determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
@@ -157,9 +156,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                 util->cube_free(arena[ieta][ix][iy].sigma, 1, 4, 4);
                 util->cube_free(arena[ieta][ix][iy].Wmunu, rk_order+1, 5, 4);
                 util->cube_free(arena[ieta][ix][iy].prevWmunu, rk_order, 5, 4);
-                util->cube_free(arena[ieta][ix][iy].Pimunu, rk_order+1, 5, 4);
-                util->cube_free(arena[ieta][ix][iy].prevPimunu,
-                                rk_order, 5, 4);
                 util->mtx_free(arena[ieta][ix][iy].u, rk_order+1, 4);
                 util->mtx_free(arena[ieta][ix][iy].a, 1, 5);
                 util->mtx_free(arena[ieta][ix][iy].prev_u, rk_order, 4);
@@ -292,15 +288,6 @@ void Evolve::UpdateArena_XY(int ieta, Grid ***arena) {
                     /* this is the new value */
                     arena[ieta][ix][iy].Wmunu[0][alpha][mu] = (
                         arena[ieta][ix][iy].Wmunu[rk_order][alpha][mu]); 
-                       
-                    /* this was the previous value */
-                    arena[ieta][ix][iy].prevPimunu[0][alpha][mu] = 
-                            arena[ieta][ix][iy].Pimunu[0][alpha][mu]; 
-                    arena[ieta][ix][iy].prevPimunu[1][alpha][mu] = 
-                            arena[ieta][ix][iy].Pimunu[1][alpha][mu]; 
-                    /* this is the new value */
-                    arena[ieta][ix][iy].Pimunu[0][alpha][mu] = 
-                        arena[ieta][ix][iy].Pimunu[rk_order][alpha][mu]; 
                 }
             }/* mu, alpha */
         }

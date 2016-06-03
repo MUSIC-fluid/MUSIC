@@ -395,24 +395,6 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
         tempf += grid_pt->Wmunu[rk_flag+1][0][nu]*grid_pt->u[rk_flag+1][nu]; 
     grid_pt->Wmunu[rk_flag+1][0][0] = tempf/(grid_pt->u[rk_flag+1][0]);
  
-    if (DATA->turn_on_bulk == 1) {
-        // update Pimunu
-        for (int mu=0; mu<4; mu++) {
-            for (int nu=0; nu<4; nu++) {
-                grid_pt->Pimunu[rk_flag+1][mu][nu]  = (grid_pt->u[rk_flag+1][mu]);
-                grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->u[rk_flag+1][nu]);
-                grid_pt->Pimunu[rk_flag+1][mu][nu] += DATA->gmunu[mu][nu];
-                grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->pi_b[rk_flag+1]);
-            } /* nu */
-        } /* mu */
-    } else {
-        for (int mu=0; mu<4; mu++) {
-            for (int nu=0; nu<4; nu++) {
-                grid_pt->Pimunu[rk_flag+1][mu][nu]  = 0.0;
-            }
-        }
-    }
-
     if (DATA->turn_on_diff == 1) {
         // make qmu[0] using transversality
         for (int mu=4; mu<mu_max+1; mu++) {
@@ -517,13 +499,6 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     if (rho_bulk > rho_bulk_max) {
         grid_pt->pi_b[rk_flag+1] = (
                 (rho_bulk_max/rho_bulk)*grid_pt->pi_b[rk_flag+1]);
-        for (int mu=0; mu<4; mu++) {
-            for (int nu=0; nu<4; nu++) {   	       
-                grid_pt->Pimunu[rk_flag+1][mu][nu] = (
-                        (rho_bulk_max/rho_bulk)
-                        *grid_pt->Pimunu[rk_flag+1][mu][nu]);
-            }
-        }
         revert_flag = 1;
     }
 

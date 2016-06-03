@@ -62,10 +62,6 @@ class Grid {
     double ***prevWmunu; 
     //double ***pprevWmunu; 
         
-    double ***Pimunu; /* bulk part of the TJb with the rk_flag */
-    double ***prevPimunu; 
-    //double ***pprevPimunu; 
-        
     double *pi_b; /* bulk pressure */
     double *prev_pi_b; /* bulk pressure */
     //double *pprev_pi_b; /* bulk pressure */
