@@ -25,20 +25,6 @@ Reconst::Reconst(EOS *eosIn, int reconst_type_in) {
         gsl_rootfinding_solver = gsl_root_fsolver_alloc (gsl_solverType);
     }
 
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            if (i == j) {
-                if (i == 0) {
-                    gmunu[i][j] = -1.0;
-                } else {
-                    gmunu[i][j] = 1.0;
-                }
-            } else {
-                gmunu[i][j] = 0.0;
-            }
-        }
-    }
-
 }
 
 // destructor
@@ -578,7 +564,7 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
         u[3] *= scalef;
     }// if u^mu u_\mu != 1 
     // End: Correcting normalization of 4-velocity
-   
+    
     for (mu=0; mu<4; mu++) {
         double tempf;
         grid_p->TJb[0][4][mu] = rhob*u[mu];
@@ -596,7 +582,7 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
             grid_p->TJb[0][nu][mu] = tempf;
         }/* nu */
     }/* mu */
-
+   
     // clean up
     delete Callback_params;
 
@@ -859,23 +845,21 @@ int Reconst::ReconstIt_velocity_iteration(
     }// if u^mu u_\mu != 1 
     // End: Correcting normalization of 4-velocity
    
-    for (mu=0; mu<4; mu++) {
-        double tempf;
+    for (mu = 0; mu < 4; mu++) {
         grid_p->TJb[0][4][mu] = rhob*u[mu];
         grid_p->u[0][mu] = u[mu];
-        for (nu=0; nu<4; nu++) {
-            tempf = grid_p->TJb[0][nu][mu]
-                  = ((epsilon + pressure)*u[nu]*u[mu]
-                          + pressure*(DATA->gmunu)[nu][mu]);
-            if (!isfinite(tempf)) {
-                fprintf(stderr, "Update: TJb[0][%d][%d] is %e.\n",
-                        nu, mu, grid_p->TJb[0][nu][mu]);
-                fprintf(stderr, "Update: epsilon is %e.\n", epsilon);
-                exit(0);
-            }
-            grid_p->TJb[0][nu][mu] = tempf;
-        }/* nu */
-    }/* mu */
+        double gfac = (mu == 0 ? -1.0 : 1.0);
+        double tempf = (epsilon + pressure)*u[mu]*u[mu] + pressure*gfac;
+       grid_p->TJb[0][mu][mu] = tempf;
+    }
+    for (mu = 0; mu < 4; mu++) {
+        double tempf = (epsilon + pressure)*u[mu];
+        for (nu = mu+1; nu < 4; nu++) {
+            double Tmunu = tempf*u[nu];
+            grid_p->TJb[0][mu][nu] = Tmunu;
+            grid_p->TJb[0][nu][mu] = Tmunu;
+        }
+    }
 
     return 1;  /* on successful execution */
 }/* Reconst */
@@ -1142,16 +1126,20 @@ int Reconst::ReconstIt_velocity_Newton(
     // End: Correcting normalization of 4-velocity
    
     for (mu = 0; mu < 4; mu++) {
-        double tempf;
         grid_p->TJb[0][4][mu] = rhob*u[mu];
         grid_p->u[0][mu] = u[mu];
-        for (nu = mu; nu < 4; nu++) {
-            tempf = (epsilon + pressure)*u[mu]*u[nu] + pressure*gmunu[mu][nu];
-            grid_p->TJb[0][mu][nu] = tempf;
-            if (nu != mu)
-                grid_p->TJb[0][nu][mu] = tempf;
-        }/* nu */
-    }/* mu */
+        double gfac = (mu == 0 ? -1.0 : 1.0);
+        double tempf = (epsilon + pressure)*u[mu]*u[mu] + pressure*gfac;
+       grid_p->TJb[0][mu][mu] = tempf;
+    }
+    for (mu = 0; mu < 4; mu++) {
+        double tempf = (epsilon + pressure)*u[mu];
+        for (nu = mu+1; nu < 4; nu++) {
+            double Tmunu = tempf*u[nu];
+            grid_p->TJb[0][mu][nu] = Tmunu;
+            grid_p->TJb[0][nu][mu] = Tmunu;
+        }
+    }
 
     return 1;  /* on successful execution */
 }/* Reconst */

@@ -40,8 +40,6 @@ class Reconst {
     gsl_root_fsolver *gsl_rootfinding_solver;
     gsl_function gslFunc;
 
-    double gmunu[4][4];
-
  public:
     Reconst(EOS *eos, int reconst_type_in);
     ~Reconst();
