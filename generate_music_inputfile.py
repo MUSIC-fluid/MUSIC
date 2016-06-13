@@ -304,13 +304,13 @@ def generate_submit_script(include_nodeltaf, include_y):
     print(color.purple + "\n" + "-"*80 
           + "\n>>>>> generating submission script! <<<<<\n" + "-"*80 
           + color.end)
-    decoupling_energy_density = ['0.1']
-    queue_name = 'sw'
+    #decoupling_energy_density = ['0.1']
+    decoupling_energy_density = []
+    queue_name = 'sw2'
     ppn = 16
     walltime = '12:00:00'
     working_folder = path.abspath('./') 
     hydro_results_folder = 'results'
-    spectra_results_folder = 'particle_spectra'
     folder_name = working_folder.split('/')[-1]
     script = open("submit_full_job.pbs", "w")
     script.write(
@@ -325,16 +325,14 @@ def generate_submit_script(include_nodeltaf, include_y):
 #PBS -q %s
 #PBS -d %s
 
-module add ifort_icc/14.0.4
-
 results_folder=%s
-spectra_folder=%s
 
+export OMP_NUM_THREADS=%d
 # hydro evolution
-mpirun -np %d ./mpihydro music_input_2 1>mode_2.log 2>mode_2.err
+./mpihydro music_input_2 1>mode_2.log 2>mode_2.err
 ./sweeper.sh $results_folder
 """ % (folder_name, walltime, ppn, queue_name, working_folder, 
-       hydro_results_folder, spectra_results_folder, ppn))
+       hydro_results_folder, ppn))
 
     # multiple Cooper-Frye in sequence
     script.write("# multiple Cooper-Frye in sequence ... \n")
