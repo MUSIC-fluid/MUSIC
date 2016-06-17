@@ -54,6 +54,8 @@ using namespace std;
 /* added gmn = Minkowski metric to be used in sums */
 #define gmn(a) ((a) == 0 ? (-1.0) : (1.0))
 
+#define BT_BUF_SIZE 500
+
 class Util{
  public:
 double ***cube_malloc(int , int , int ); 
@@ -141,6 +143,7 @@ bool fileExists(const std::string& filename);
 double four_dimension_linear_interpolation(double* lattice_spacing, double** fraction, double**** cube);
 double three_dimension_linear_interpolation(double* lattice_spacing, double** fraction, double*** cube);
 int binary_search(double* array, int length, double x);
+void print_backtrace_errors();
 
 };
 

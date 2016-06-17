@@ -1052,7 +1052,7 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag)
             fprintf(stderr,"at value dpdrhob=%lf. \n",
                     eos->p_rho_func(eps, rhob));
             fprintf(stderr, "MaxSpeed: exiting.\n");
-            exit(0);
+            exit(1);
         }
     }
     
@@ -1079,7 +1079,7 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag)
         fprintf(stderr, "SpeedMax = num/den, num = %e, den = %e \n", num, den);
         fprintf(stderr, "cs2 = %e \n", vs2);
         f =1.;
-        exit(0);
+        exit(1);
     }
     if (direc == 3)
         f /= tau;

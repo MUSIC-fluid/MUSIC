@@ -191,7 +191,7 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
     int ny = DATA->ny;
     double dy = DATA->delta_y;
     int ieta;
-    #pragma omp parallel private(ieta)
+    #pragma omp parallel private(ieta) reduction(+:N_B, T_tau_t)
     {
         #pragma omp for
         for (ieta = 0; ieta < neta; ieta++) {
@@ -235,9 +235,11 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                 }
             }
         }
+        #pragma omp barrier
     }
-    N_B *= tau*dx*dy*deta;
-    T_tau_t *= tau*dx*dy*deta*0.19733;
+    double factor = tau*dx*dy*deta;
+    N_B *= factor;
+    T_tau_t *= factor*0.19733;  // GeV
     cout << "check: net baryon number N_B = " << N_B << endl;
     cout << "check: total energy T^{taut} = " << T_tau_t << " GeV" << endl;
 }

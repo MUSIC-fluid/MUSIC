@@ -1,6 +1,7 @@
 #include "util.h"
 #include <iostream>
 #include <string>
+#include <execinfo.h>
 
 using namespace std;
 
@@ -1529,4 +1530,23 @@ int Util::binary_search(double* array, int length, double x)
            high_idx = mid_idx;
    }
    return(low_idx);
+}
+
+void Util::print_backtrace_errors() {
+    int nptrs;
+    void *buffer[BT_BUF_SIZE];
+    char **strings;
+
+    nptrs = backtrace(buffer, BT_BUF_SIZE);
+    fprintf(stderr, "backtrace() return %d addresses\n", nptrs);
+    strings = backtrace_symbols(buffer, nptrs);
+    if (strings == NULL) {
+        fprintf(stderr, "error in backtrace_symbols!");
+        exit(1);
+    }
+    for (int j = 0; j < nptrs; j++) {
+        fprintf(stderr, "%s\n", strings[j]);
+    }
+    free(strings);
+    exit(1);
 }
