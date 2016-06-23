@@ -38,8 +38,6 @@ int main(int argc, char *argv[]) {
         input_file = "";
 
     ReadInData3(&DATA, input_file);
-    //cout << sizeof(Grid *) << endl;
-    //exit(1);
 
     EOS *eos = new EOS(&DATA);
 

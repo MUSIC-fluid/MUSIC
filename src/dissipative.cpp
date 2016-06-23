@@ -64,8 +64,12 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     // dW/dtau
     // backward time derivative (first order is more stable)
     double dWdtau;
-    dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
-              - grid_pt->prevWmunu[rk_flag][alpha][0])/DATA->delta_tau;
+    if (alpha != 4) 
+        dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
+                  - grid_pt->prevWmunu[rk_flag][alpha])/DATA->delta_tau;
+    else
+        dWdtau = (grid_pt->Wmunu[rk_flag][alpha][0]
+                  - grid_pt->prevWmunu[rk_flag][10])/DATA->delta_tau;
 
     /* bulk pressure term */
     double dPidtau;

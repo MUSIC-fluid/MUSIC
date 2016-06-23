@@ -155,7 +155,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                 util->cube_free(arena[ieta][ix][iy].dUsup, 1, 5, 4);
                 util->mtx_free(arena[ieta][ix][iy].sigma, 1, 10);
                 util->cube_free(arena[ieta][ix][iy].Wmunu, rk_order+1, 5, 4);
-                util->cube_free(arena[ieta][ix][iy].prevWmunu, rk_order, 5, 4);
+                util->mtx_free(arena[ieta][ix][iy].prevWmunu, rk_order, 14);
                 util->mtx_free(arena[ieta][ix][iy].u, rk_order+1, 4);
                 util->mtx_free(arena[ieta][ix][iy].a, 1, 5);
                 util->mtx_free(arena[ieta][ix][iy].prev_u, rk_order, 4);
@@ -163,7 +163,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                 util->vector_free(arena[ieta][ix][iy].pi_b);
                 util->vector_free(arena[ieta][ix][iy].prev_pi_b);
                 
-                util->mtx_free(arena[ieta][ix][iy].W_prev, 5, 4);
+                util->vector_free(arena[ieta][ix][iy].W_prev);
                 delete[] arena[ieta][ix][iy].nbr_p_1;
                 delete[] arena[ieta][ix][iy].nbr_p_2;
                 delete[] arena[ieta][ix][iy].nbr_m_1;
@@ -192,41 +192,41 @@ void Evolve::store_previous_step_for_freezeout(Grid ***arena) {
 
                 arena[ieta][ix][iy].pi_b_prev = arena[ieta][ix][iy].pi_b[0];
 
-                arena[ieta][ix][iy].W_prev[0][0] =
+                arena[ieta][ix][iy].W_prev[0] =
                                         arena[ieta][ix][iy].Wmunu[0][0][0];
-                arena[ieta][ix][iy].W_prev[0][1] =
+                arena[ieta][ix][iy].W_prev[1] =
                                         arena[ieta][ix][iy].Wmunu[0][0][1];
-                arena[ieta][ix][iy].W_prev[0][2] =
+                arena[ieta][ix][iy].W_prev[2] =
                                         arena[ieta][ix][iy].Wmunu[0][0][2];
-                arena[ieta][ix][iy].W_prev[0][3] =
+                arena[ieta][ix][iy].W_prev[3] =
                                         arena[ieta][ix][iy].Wmunu[0][0][3];
-                arena[ieta][ix][iy].W_prev[1][1] =
+                arena[ieta][ix][iy].W_prev[4] =
                                         arena[ieta][ix][iy].Wmunu[0][1][1];
-                arena[ieta][ix][iy].W_prev[1][2] =
+                arena[ieta][ix][iy].W_prev[5] =
                                         arena[ieta][ix][iy].Wmunu[0][1][2];
-                arena[ieta][ix][iy].W_prev[1][3] =
+                arena[ieta][ix][iy].W_prev[6] =
                                         arena[ieta][ix][iy].Wmunu[0][1][3];
-                arena[ieta][ix][iy].W_prev[2][2] =
+                arena[ieta][ix][iy].W_prev[7] =
                                         arena[ieta][ix][iy].Wmunu[0][2][2];
-                arena[ieta][ix][iy].W_prev[2][3] =
+                arena[ieta][ix][iy].W_prev[8] =
                                         arena[ieta][ix][iy].Wmunu[0][2][3];
-                arena[ieta][ix][iy].W_prev[3][3] =
+                arena[ieta][ix][iy].W_prev[9] =
                                         arena[ieta][ix][iy].Wmunu[0][3][3];
 
                 if (DATA_ptr->turn_on_diff == 1) {
-                    arena[ieta][ix][iy].W_prev[4][0] =
+                    arena[ieta][ix][iy].W_prev[10] =
                                             arena[ieta][ix][iy].Wmunu[0][4][0];
-                    arena[ieta][ix][iy].W_prev[4][1] =
+                    arena[ieta][ix][iy].W_prev[11] =
                                             arena[ieta][ix][iy].Wmunu[0][4][1];
-                    arena[ieta][ix][iy].W_prev[4][2] =
+                    arena[ieta][ix][iy].W_prev[12] =
                                             arena[ieta][ix][iy].Wmunu[0][4][2];
-                    arena[ieta][ix][iy].W_prev[4][3] =
+                    arena[ieta][ix][iy].W_prev[13] =
                                             arena[ieta][ix][iy].Wmunu[0][4][3];
                 } else {
-                    arena[ieta][ix][iy].W_prev[4][0] = 0.0;
-                    arena[ieta][ix][iy].W_prev[4][1] = 0.0;
-                    arena[ieta][ix][iy].W_prev[4][2] = 0.0;
-                    arena[ieta][ix][iy].W_prev[4][3] = 0.0;
+                    arena[ieta][ix][iy].W_prev[10] = 0.0;
+                    arena[ieta][ix][iy].W_prev[11] = 0.0;
+                    arena[ieta][ix][iy].W_prev[12] = 0.0;
+                    arena[ieta][ix][iy].W_prev[13] = 0.0;
                 }
             }
         }
@@ -265,6 +265,37 @@ void Evolve::UpdateArena_XY(int ieta, Grid ***arena) {
             arena[ieta][ix][iy].prev_pi_b[0] = arena[ieta][ix][iy].pi_b[0];
             arena[ieta][ix][iy].prev_pi_b[1] = arena[ieta][ix][iy].pi_b[1];
             arena[ieta][ix][iy].pi_b[0] = arena[ieta][ix][iy].pi_b[rk_order];
+            /* this was the previous value */
+            for (int rkstep = 0; rkstep < 2; rkstep++) {
+                arena[ieta][ix][iy].prevWmunu[rkstep][0] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][0][0]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][1] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][0][1]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][2] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][0][2]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][3] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][0][3]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][4] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][1][1]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][5] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][1][2]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][6] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][1][3]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][7] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][2][2]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][8] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][2][3]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][9] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][3][3]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][10] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][4][0]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][11] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][4][1]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][12] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][4][2]); 
+                arena[ieta][ix][iy].prevWmunu[rkstep][13] = (
+                            arena[ieta][ix][iy].Wmunu[rkstep][4][3]); 
+            }
             for (int mu = 0; mu < 4; mu++) {
                 /* this was the previous value */
                 arena[ieta][ix][iy].prev_u[0][mu] = (
@@ -280,11 +311,6 @@ void Evolve::UpdateArena_XY(int ieta, Grid ***arena) {
                     arena[ieta][ix][iy].TJb[0][alpha][mu] = (
                         arena[ieta][ix][iy].TJb[rk_order][alpha][mu]);
                     
-                    /* this was the previous value */
-                    arena[ieta][ix][iy].prevWmunu[0][alpha][mu] = (
-                            arena[ieta][ix][iy].Wmunu[0][alpha][mu]); 
-                    arena[ieta][ix][iy].prevWmunu[1][alpha][mu] = (
-                            arena[ieta][ix][iy].Wmunu[1][alpha][mu]); 
                     /* this is the new value */
                     arena[ieta][ix][iy].Wmunu[0][alpha][mu] = (
                         arena[ieta][ix][iy].Wmunu[rk_order][alpha][mu]); 
@@ -5740,18 +5766,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // baryon diffusion current q^tau
                 int idx0 = 4;
                 int idx1 = 0;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[10];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[10];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[10];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[10];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[10];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[10];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[10];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[10];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -5763,18 +5789,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // baryon diffusion current q^x
                 idx0 = 4;
                 idx1 = 1;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[11];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[11];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[11];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[11];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[11];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[11];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[11];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[11];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -5786,18 +5812,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // baryon diffusion current q^y
                 idx0 = 4;
                 idx1 = 2;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[12];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[12];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[12];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[12];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[12];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[12];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[12];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[12];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -5809,18 +5835,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // baryon diffusion current q^eta
                 idx0 = 4;
                 idx1 = 3;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[13];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[13];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[13];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[13];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[13];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[13];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[13];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[13];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -5881,18 +5907,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // shear viscous tensor W^\tau\tau
                 idx0 = 0;
                 idx1 = 0;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[0];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[0];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[0];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[0];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[0];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[0];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[0];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[0];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -5904,18 +5930,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // shear viscous tensor W^{\tau x}
                 idx0 = 0;
                 idx1 = 1;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[1];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[1];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[1];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[1];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[1];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[1];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[1];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[1];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -5927,18 +5953,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // shear viscous tensor W^{\tau y}
                 idx0 = 0;
                 idx1 = 2;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[2];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[2];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[2];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[2];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[2];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[2];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[2];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[2];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -5950,18 +5976,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // shear viscous tensor W^{\tau \eta}
                 idx0 = 0;
                 idx1 = 3;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[3];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[3];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[3];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[3];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[3];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[3];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[3];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[3];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -5973,18 +5999,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // shear viscous tensor W^{xx}
                 idx0 = 1;
                 idx1 = 1;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[4];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[4];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[4];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[4];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[4];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[4];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[4];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[4];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -5996,18 +6022,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // shear viscous tensor W^{xy}
                 idx0 = 1;
                 idx1 = 2;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[5];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[5];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[5];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[5];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[5];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[5];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[5];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[5];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6019,18 +6045,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // shear viscous tensor W^{x\eta}
                 idx0 = 1;
                 idx1 = 3;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[6];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[6];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[6];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[6];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[6];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[6];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[6];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[6];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6042,18 +6068,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // shear viscous tensor W^{yy}
                 idx0 = 2;
                 idx1 = 2;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[7];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[7];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[7];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[7];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[7];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[7];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[7];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[7];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6065,18 +6091,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // shear viscous tensor W^{y\eta}
                 idx0 = 2;
                 idx1 = 3;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[8];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[8];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[8];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[8];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[8];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[8];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[8];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[8];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6088,18 +6114,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 // shear viscous tensor W^{\eta\eta}
                 idx0 = 3;
                 idx1 = 3;
-                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[9];
+                cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[9];
+                cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[9];
+                cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[9];
                 cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
                 cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[idx0][idx1];
-                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[idx0][idx1];
-                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[idx0][idx1];
-                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[9];
+                cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[9];
+                cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[9];
+                cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[9];
                 cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
                 cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                 cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6685,10 +6711,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // baryon diffusion current q^\tau
                     int idx0 = 4;
                     int idx1 = 0;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[10];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[10];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[10];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[10];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6699,10 +6725,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // baryon diffusion current q^x
                     idx0 = 4;
                     idx1 = 1;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[11];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[11];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[11];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[11];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6713,10 +6739,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // baryon diffusion current q^y
                     idx0 = 4;
                     idx1 = 2;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[12];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[12];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[12];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[12];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6727,10 +6753,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // baryon diffusion current q^eta
                     idx0 = 4;
                     idx1 = 3;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[13];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[13];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[13];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[13];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6769,10 +6795,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // shear viscous tensor W^\tau\tau
                     idx0 = 0;
                     idx1 = 0;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[0];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[0];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[0];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[0];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6784,10 +6810,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // shear viscous tensor W^{\tau x}
                     idx0 = 0;
                     idx1 = 1;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[1];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[1];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[1];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[1];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6799,10 +6825,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // shear viscous tensor W^{\tau y}
                     idx0 = 0;
                     idx1 = 2;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[2];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[2];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[2];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[2];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6814,10 +6840,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // shear viscous tensor W^{\tau \eta}
                     idx0 = 0;
                     idx1 = 3;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[3];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[3];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[3];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[3];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6829,10 +6855,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // shear viscous tensor W^{xx}
                     idx0 = 1;
                     idx1 = 1;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[4];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[4];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[4];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[4];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6844,10 +6870,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // shear viscous tensor W^{xy}
                     idx0 = 1;
                     idx1 = 2;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[5];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[5];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[5];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[5];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6859,10 +6885,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // shear viscous tensor W^{x \eta}
                     idx0 = 1;
                     idx1 = 3;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[6];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[6];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[6];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[6];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6874,10 +6900,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // shear viscous tensor W^{yy}
                     idx0 = 2;
                     idx1 = 2;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[7];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[7];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[7];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[7];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6889,10 +6915,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // shear viscous tensor W^{yeta}
                     idx0 = 2;
                     idx1 = 3;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[8];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[8];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[8];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[8];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
@@ -6904,10 +6930,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // shear viscous tensor W^{\eta\eta}
                     idx0 = 3;
                     idx1 = 3;
-                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[idx0][idx1];
-                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[idx0][idx1];
-                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[idx0][idx1];
-                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[idx0][idx1];
+                    cube[0][0][0] = arena[ieta][ix][iy].W_prev[9];
+                    cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[9];
+                    cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[9];
+                    cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[9];
                     cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
                     cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
                     cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];

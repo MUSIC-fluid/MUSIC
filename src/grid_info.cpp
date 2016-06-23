@@ -202,8 +202,8 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                     double sinh_eta = sinh(eta_s);
                     N_B += (arena[ieta][ix][iy].rhob
                             *arena[ieta][ix][iy].u[0][0]
-                            + (arena[ieta][ix][iy].prevWmunu[0][4][0]
-                               + arena[ieta][ix][iy].prevWmunu[1][4][0])*0.5);
+                            + (arena[ieta][ix][iy].prevWmunu[0][10]
+                               + arena[ieta][ix][iy].prevWmunu[1][10])*0.5);
                     double Pi00_rk_0 = (
                         arena[ieta][ix][iy].prev_pi_b[0]
                         *(-1.0 + arena[ieta][ix][iy].prev_u[0][0]
@@ -214,8 +214,8 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                                  *(arena[ieta][ix][iy].prev_u[1][0])));
                     double T_tau_tau = (
                         arena[ieta][ix][iy].TJb[0][0][0]
-                        + (arena[ieta][ix][iy].prevWmunu[0][0][0]
-                           + arena[ieta][ix][iy].prevWmunu[1][0][0]
+                        + (arena[ieta][ix][iy].prevWmunu[0][0]
+                           + arena[ieta][ix][iy].prevWmunu[1][0]
                            + Pi00_rk_0 + Pi00_rk_1)*0.5);
 
                     double Pi03_rk_0 = (
@@ -228,8 +228,8 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                           *(arena[ieta][ix][iy].prev_u[1][3])));
                     double T_tau_eta = (
                         arena[ieta][ix][iy].TJb[0][0][3]
-                        + (arena[ieta][ix][iy].prevWmunu[0][0][3]
-                           + arena[ieta][ix][iy].prevWmunu[1][0][3]
+                        + (arena[ieta][ix][iy].prevWmunu[0][3]
+                           + arena[ieta][ix][iy].prevWmunu[1][3]
                            + Pi03_rk_0 + Pi03_rk_1)*0.5);
                     T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
                 }

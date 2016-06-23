@@ -59,13 +59,13 @@ class Grid {
     /* note that they are superscripted. So partial^t = -partial_t */
     double ***dUsup; 
 
-    double ***Wmunu; /* shear part of the TJb with the rk_flag */
-    double ***prevWmunu; 
-    //double ***pprevWmunu; 
+    /* shear part of the TJb with the rk_flag */
+    double ***Wmunu;
+    double **prevWmunu; 
         
-    double *pi_b; /* bulk pressure */
-    double *prev_pi_b; /* bulk pressure */
-    //double *pprev_pi_b; /* bulk pressure */
+    /* bulk pressure */
+    double *pi_b;
+    double *prev_pi_b;
 
     // the following variables are for hyper-surface finder 
     // to determine freeze-out surface
@@ -76,7 +76,7 @@ class Grid {
     double rhob_prev;
     double u_prev[4];
     double pi_b_prev;
-    double **W_prev;
+    double *W_prev;
         
     Grid();//constructor
     ~Grid();//destructor
