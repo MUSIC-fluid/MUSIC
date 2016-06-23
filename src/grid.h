@@ -60,7 +60,7 @@ class Grid {
     double ***dUsup; 
 
     /* shear part of the TJb with the rk_flag */
-    double ***Wmunu;
+    double **Wmunu;
     double **prevWmunu; 
         
     /* bulk pressure */

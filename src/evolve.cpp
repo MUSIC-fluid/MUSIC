@@ -154,7 +154,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                 util->cube_free(arena[ieta][ix][iy].TJb, rk_order+1, 5, 4);
                 util->cube_free(arena[ieta][ix][iy].dUsup, 1, 5, 4);
                 util->mtx_free(arena[ieta][ix][iy].sigma, 1, 10);
-                util->cube_free(arena[ieta][ix][iy].Wmunu, rk_order+1, 5, 4);
+                util->mtx_free(arena[ieta][ix][iy].Wmunu, rk_order+1, 14);
                 util->mtx_free(arena[ieta][ix][iy].prevWmunu, rk_order, 14);
                 util->mtx_free(arena[ieta][ix][iy].u, rk_order+1, 4);
                 util->mtx_free(arena[ieta][ix][iy].a, 1, 5);
@@ -191,42 +191,20 @@ void Evolve::store_previous_step_for_freezeout(Grid ***arena) {
                 arena[ieta][ix][iy].rhob_prev = arena[ieta][ix][iy].rhob;
 
                 arena[ieta][ix][iy].pi_b_prev = arena[ieta][ix][iy].pi_b[0];
-
-                arena[ieta][ix][iy].W_prev[0] =
-                                        arena[ieta][ix][iy].Wmunu[0][0][0];
-                arena[ieta][ix][iy].W_prev[1] =
-                                        arena[ieta][ix][iy].Wmunu[0][0][1];
-                arena[ieta][ix][iy].W_prev[2] =
-                                        arena[ieta][ix][iy].Wmunu[0][0][2];
-                arena[ieta][ix][iy].W_prev[3] =
-                                        arena[ieta][ix][iy].Wmunu[0][0][3];
-                arena[ieta][ix][iy].W_prev[4] =
-                                        arena[ieta][ix][iy].Wmunu[0][1][1];
-                arena[ieta][ix][iy].W_prev[5] =
-                                        arena[ieta][ix][iy].Wmunu[0][1][2];
-                arena[ieta][ix][iy].W_prev[6] =
-                                        arena[ieta][ix][iy].Wmunu[0][1][3];
-                arena[ieta][ix][iy].W_prev[7] =
-                                        arena[ieta][ix][iy].Wmunu[0][2][2];
-                arena[ieta][ix][iy].W_prev[8] =
-                                        arena[ieta][ix][iy].Wmunu[0][2][3];
-                arena[ieta][ix][iy].W_prev[9] =
-                                        arena[ieta][ix][iy].Wmunu[0][3][3];
-
+                
+                for (int ii = 0; ii < 10; ii++) {
+                    arena[ieta][ix][iy].W_prev[ii] =
+                                            arena[ieta][ix][iy].Wmunu[0][ii];
+                }
                 if (DATA_ptr->turn_on_diff == 1) {
-                    arena[ieta][ix][iy].W_prev[10] =
-                                            arena[ieta][ix][iy].Wmunu[0][4][0];
-                    arena[ieta][ix][iy].W_prev[11] =
-                                            arena[ieta][ix][iy].Wmunu[0][4][1];
-                    arena[ieta][ix][iy].W_prev[12] =
-                                            arena[ieta][ix][iy].Wmunu[0][4][2];
-                    arena[ieta][ix][iy].W_prev[13] =
-                                            arena[ieta][ix][iy].Wmunu[0][4][3];
+                    for (int ii = 10; ii < 14; ii++) {
+                        arena[ieta][ix][iy].W_prev[ii] =
+                                            arena[ieta][ix][iy].Wmunu[0][ii];
+                    }
                 } else {
-                    arena[ieta][ix][iy].W_prev[10] = 0.0;
-                    arena[ieta][ix][iy].W_prev[11] = 0.0;
-                    arena[ieta][ix][iy].W_prev[12] = 0.0;
-                    arena[ieta][ix][iy].W_prev[13] = 0.0;
+                    for (int ii = 10; ii < 14; ii++) {
+                        arena[ieta][ix][iy].W_prev[ii] = 0.0;
+                    }
                 }
             }
         }
@@ -265,36 +243,15 @@ void Evolve::UpdateArena_XY(int ieta, Grid ***arena) {
             arena[ieta][ix][iy].prev_pi_b[0] = arena[ieta][ix][iy].pi_b[0];
             arena[ieta][ix][iy].prev_pi_b[1] = arena[ieta][ix][iy].pi_b[1];
             arena[ieta][ix][iy].pi_b[0] = arena[ieta][ix][iy].pi_b[rk_order];
-            /* this was the previous value */
-            for (int rkstep = 0; rkstep < 2; rkstep++) {
-                arena[ieta][ix][iy].prevWmunu[rkstep][0] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][0][0]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][1] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][0][1]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][2] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][0][2]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][3] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][0][3]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][4] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][1][1]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][5] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][1][2]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][6] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][1][3]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][7] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][2][2]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][8] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][2][3]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][9] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][3][3]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][10] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][4][0]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][11] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][4][1]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][12] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][4][2]); 
-                arena[ieta][ix][iy].prevWmunu[rkstep][13] = (
-                            arena[ieta][ix][iy].Wmunu[rkstep][4][3]); 
+            for (int ii = 0; ii < 14; ii++) {
+                for (int rkstep = 0; rkstep < 2; rkstep++) {
+                    /* this was the previous value */
+                    arena[ieta][ix][iy].prevWmunu[rkstep][ii] = (
+                                    arena[ieta][ix][iy].Wmunu[rkstep][ii]); 
+                }
+                /* this is the new value */
+                arena[ieta][ix][iy].Wmunu[0][ii] = (
+                                arena[ieta][ix][iy].Wmunu[rk_order][ii]); 
             }
             for (int mu = 0; mu < 4; mu++) {
                 /* this was the previous value */
@@ -311,9 +268,6 @@ void Evolve::UpdateArena_XY(int ieta, Grid ***arena) {
                     arena[ieta][ix][iy].TJb[0][alpha][mu] = (
                         arena[ieta][ix][iy].TJb[rk_order][alpha][mu]);
                     
-                    /* this is the new value */
-                    arena[ieta][ix][iy].Wmunu[0][alpha][mu] = (
-                        arena[ieta][ix][iy].Wmunu[rk_order][alpha][mu]); 
                 }
             }/* mu, alpha */
         }
@@ -5764,93 +5718,85 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                                 lattice_spacing_ptr, x_fraction, cube);
           
                 // baryon diffusion current q^tau
-                int idx0 = 4;
-                int idx1 = 0;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[10];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[10];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[10];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[10];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][10];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][10];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][10];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][10];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[10];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[10];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[10];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[10];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][10];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][10];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][10];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][10];
                 qtau_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
           
                 // baryon diffusion current q^x
-                idx0 = 4;
-                idx1 = 1;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[11];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[11];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[11];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[11];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][11];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][11];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][11];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][11];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[11];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[11];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[11];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[11];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][11];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][11];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][11];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][11];
                 qx_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // baryon diffusion current q^y
-                idx0 = 4;
-                idx1 = 2;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[12];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[12];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[12];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[12];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][12];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][12];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][12];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][12];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[12];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[12];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[12];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[12];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][12];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][12];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][12];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][12];
                 qy_center = 
                     util->four_dimension_linear_interpolation(
                             lattice_spacing_ptr, x_fraction, cube);
           
                 // baryon diffusion current q^eta
-                idx0 = 4;
-                idx1 = 3;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[13];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[13];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[13];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[13];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][13];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][13];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][13];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][13];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[13];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[13];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[13];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[13];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][13];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][13];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][13];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][13];
                 qeta_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
@@ -5905,231 +5851,211 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // shear viscous tensor W^\tau\tau
-                idx0 = 0;
-                idx1 = 0;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[0];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[0];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[0];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[0];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][0];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][0];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][0];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][0];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[0];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[0];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[0];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[0];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][0];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][0];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][0];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][0];
                 Wtautau_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{\tau x}
-                idx0 = 0;
-                idx1 = 1;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[1];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[1];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[1];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[1];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][1];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][1];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][1];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][1];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[1];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[1];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[1];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[1];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][1];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][1];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][1];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][1];
                 Wtaux_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // shear viscous tensor W^{\tau y}
-                idx0 = 0;
-                idx1 = 2;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[2];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[2];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[2];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[2];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][2];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][2];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][2];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][2];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[2];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[2];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[2];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[2];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][2];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][2];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][2];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][2];
                 Wtauy_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{\tau \eta}
-                idx0 = 0;
-                idx1 = 3;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[3];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[3];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[3];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[3];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][3];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][3];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][3];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][3];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[3];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[3];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[3];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[3];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][3];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][3];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][3];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][3];
                 Wtaueta_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{xx}
-                idx0 = 1;
-                idx1 = 1;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[4];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[4];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[4];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[4];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][4];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][4];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][4];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][4];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[4];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[4];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[4];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[4];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][4];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][4];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][4];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][4];
                 Wxx_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // shear viscous tensor W^{xy}
-                idx0 = 1;
-                idx1 = 2;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[5];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[5];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[5];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[5];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][5];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][5];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][5];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][5];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[5];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[5];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[5];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[5];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][5];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][5];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][5];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][5];
                 Wxy_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // shear viscous tensor W^{x\eta}
-                idx0 = 1;
-                idx1 = 3;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[6];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[6];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[6];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[6];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][6];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][6];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][6];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][6];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[6];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[6];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[6];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[6];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][6];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][6];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][6];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][6];
                 Wxeta_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{yy}
-                idx0 = 2;
-                idx1 = 2;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[7];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[7];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[7];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[7];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][7];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][7];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][7];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][7];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[7];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[7];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[7];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[7];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][7];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][7];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][7];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][7];
                 Wyy_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{y\eta}
-                idx0 = 2;
-                idx1 = 3;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[8];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[8];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[8];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[8];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][8];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][8];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][8];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][8];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[8];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[8];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[8];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[8];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][8];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][8];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][8];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][8];
                 Wyeta_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{\eta\eta}
-                idx0 = 3;
-                idx1 = 3;
                 cube[0][0][0][0] = arena[ieta][ix][iy].W_prev[9];
                 cube[0][0][1][0] = arena[ieta][ix][iy+fac_y].W_prev[9];
                 cube[0][1][0][0] = arena[ieta][ix+fac_x][iy].W_prev[9];
                 cube[0][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[9];
-                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][0] = arena[ieta][ix][iy].Wmunu[0][9];
+                cube[1][0][1][0] = arena[ieta][ix][iy+fac_y].Wmunu[0][9];
+                cube[1][1][0][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][9];
+                cube[1][1][1][0] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][9];
                 cube[0][0][0][1] = arena[ieta+fac_eta][ix][iy].W_prev[9];
                 cube[0][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].W_prev[9];
                 cube[0][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].W_prev[9];
                 cube[0][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].W_prev[9];
-                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][idx0][idx1];
-                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                cube[1][0][0][1] = arena[ieta+fac_eta][ix][iy].Wmunu[0][9];
+                cube[1][0][1][1] = arena[ieta+fac_eta][ix][iy+fac_y].Wmunu[0][9];
+                cube[1][1][0][1] = arena[ieta+fac_eta][ix+fac_x][iy].Wmunu[0][9];
+                cube[1][1][1][1] = arena[ieta+fac_eta][ix+fac_x][iy+fac_y].Wmunu[0][9];
                 Wetaeta_center = 
                     util->four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
@@ -6341,10 +6267,10 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
             rhob_center = arena[ieta][ix][iy].rhob;
 
             // baryon diffusion current
-            qtau_center = arena[ieta][ix][iy].Wmunu[0][4][0];
-            qx_center = arena[ieta][ix][iy].Wmunu[0][4][1];
-            qy_center = arena[ieta][ix][iy].Wmunu[0][4][2];
-            qeta_center = arena[ieta][ix][iy].Wmunu[0][4][3];
+            qtau_center = arena[ieta][ix][iy].Wmunu[0][10];
+            qx_center = arena[ieta][ix][iy].Wmunu[0][11];
+            qy_center = arena[ieta][ix][iy].Wmunu[0][12];
+            qeta_center = arena[ieta][ix][iy].Wmunu[0][13];
             // reconstruct q^\tau from the transverality criteria
             double *u_flow = new double [4];
             u_flow[0] = utau_center;
@@ -6372,16 +6298,16 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
             pi_b_center = arena[ieta][ix][iy].pi_b[0];
 
             // shear viscous tensor
-            Wtautau_center = arena[ieta][ix][iy].Wmunu[0][0][0];
-            Wtaux_center = arena[ieta][ix][iy].Wmunu[0][0][1];
-            Wtauy_center = arena[ieta][ix][iy].Wmunu[0][0][2];
-            Wtaueta_center = arena[ieta][ix][iy].Wmunu[0][0][3];
-            Wxx_center = arena[ieta][ix][iy].Wmunu[0][1][1];
-            Wxy_center = arena[ieta][ix][iy].Wmunu[0][1][2];
-            Wxeta_center = arena[ieta][ix][iy].Wmunu[0][1][3];
-            Wyy_center = arena[ieta][ix][iy].Wmunu[0][2][2];
-            Wyeta_center = arena[ieta][ix][iy].Wmunu[0][2][3];
-            Wetaeta_center = arena[ieta][ix][iy].Wmunu[0][3][3];
+            Wtautau_center = arena[ieta][ix][iy].Wmunu[0][0];
+            Wtaux_center = arena[ieta][ix][iy].Wmunu[0][1];
+            Wtauy_center = arena[ieta][ix][iy].Wmunu[0][2];
+            Wtaueta_center = arena[ieta][ix][iy].Wmunu[0][3];
+            Wxx_center = arena[ieta][ix][iy].Wmunu[0][4];
+            Wxy_center = arena[ieta][ix][iy].Wmunu[0][5];
+            Wxeta_center = arena[ieta][ix][iy].Wmunu[0][6];
+            Wyy_center = arena[ieta][ix][iy].Wmunu[0][7];
+            Wyeta_center = arena[ieta][ix][iy].Wmunu[0][8];
+            Wetaeta_center = arena[ieta][ix][iy].Wmunu[0][9];
             // regulate Wmunu according to transversality and traceless
             double **Wmunu_input = new double* [4];
             double **Wmunu_regulated = new double* [4];
@@ -6709,58 +6635,50 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                         lattice_spacing_ptr, x_fraction, cube);
                
                     // baryon diffusion current q^\tau
-                    int idx0 = 4;
-                    int idx1 = 0;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[10];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[10];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[10];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[10];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][10];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][10];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][10];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][10];
                     qtau_center = util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                
                     // baryon diffusion current q^x
-                    idx0 = 4;
-                    idx1 = 1;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[11];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[11];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[11];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[11];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][11];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][11];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][11];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][11];
                     qx_center = util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                
                     // baryon diffusion current q^y
-                    idx0 = 4;
-                    idx1 = 2;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[12];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[12];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[12];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[12];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][12];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][12];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][12];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][12];
                     qy_center = util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                
                     // baryon diffusion current q^eta
-                    idx0 = 4;
-                    idx1 = 3;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[13];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[13];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[13];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[13];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][13];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][13];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][13];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][13];
                     qeta_center = util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
@@ -6793,151 +6711,131 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     delete [] q_regulated;
 
                     // shear viscous tensor W^\tau\tau
-                    idx0 = 0;
-                    idx1 = 0;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[0];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[0];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[0];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[0];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][0];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][0];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][0];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][0];
                     Wtautau_center = 
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{\tau x}
-                    idx0 = 0;
-                    idx1 = 1;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[1];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[1];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[1];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[1];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][1];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][1];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][1];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][1];
                     Wtaux_center = 
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // shear viscous tensor W^{\tau y}
-                    idx0 = 0;
-                    idx1 = 2;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[2];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[2];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[2];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[2];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][2];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][2];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][2];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][2];
                     Wtauy_center = 
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{\tau \eta}
-                    idx0 = 0;
-                    idx1 = 3;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[3];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[3];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[3];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[3];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][3];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][3];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][3];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][3];
                     Wtaueta_center = 
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{xx}
-                    idx0 = 1;
-                    idx1 = 1;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[4];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[4];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[4];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[4];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][4];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][4];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][4];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][4];
                     Wxx_center = 
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // shear viscous tensor W^{xy}
-                    idx0 = 1;
-                    idx1 = 2;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[5];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[5];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[5];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[5];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][5];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][5];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][5];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][5];
                     Wxy_center = 
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // shear viscous tensor W^{x \eta}
-                    idx0 = 1;
-                    idx1 = 3;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[6];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[6];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[6];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[6];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][6];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][6];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][6];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][6];
                     Wxeta_center = 
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{yy}
-                    idx0 = 2;
-                    idx1 = 2;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[7];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[7];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[7];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[7];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][7];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][7];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][7];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][7];
                     Wyy_center = 
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{yeta}
-                    idx0 = 2;
-                    idx1 = 3;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[8];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[8];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[8];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[8];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][8];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][8];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][8];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][8];
                     Wyeta_center = 
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{\eta\eta}
-                    idx0 = 3;
-                    idx1 = 3;
                     cube[0][0][0] = arena[ieta][ix][iy].W_prev[9];
                     cube[0][0][1] = arena[ieta][ix][iy+fac_y].W_prev[9];
                     cube[0][1][0] = arena[ieta][ix+fac_x][iy].W_prev[9];
                     cube[0][1][1] = arena[ieta][ix+fac_x][iy+fac_y].W_prev[9];
-                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][idx0][idx1];
-                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][idx0][idx1];
-                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][idx0][idx1];
-                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][idx0][idx1];
+                    cube[1][0][0] = arena[ieta][ix][iy].Wmunu[0][9];
+                    cube[1][0][1] = arena[ieta][ix][iy+fac_y].Wmunu[0][9];
+                    cube[1][1][0] = arena[ieta][ix+fac_x][iy].Wmunu[0][9];
+                    cube[1][1][1] = arena[ieta][ix+fac_x][iy+fac_y].Wmunu[0][9];
                     Wetaeta_center = 
                         util->three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);

@@ -144,6 +144,7 @@ double four_dimension_linear_interpolation(double* lattice_spacing, double** fra
 double three_dimension_linear_interpolation(double* lattice_spacing, double** fraction, double*** cube);
 int binary_search(double* array, int length, double x);
 void print_backtrace_errors();
+int map_2d_idx_to_1d(int a, int b);
 
 };
 

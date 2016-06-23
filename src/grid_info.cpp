@@ -116,16 +116,16 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                 double Wyy, Wyeta;
                 double Wetaeta;
                 if (DATA->turn_on_shear == 1) {
-                    Wtautau = arena[ieta][ix][iy].Wmunu[0][0][0]/div_factor;
-                    Wtaux = arena[ieta][ix][iy].Wmunu[0][0][1]/div_factor;
-                    Wtauy = arena[ieta][ix][iy].Wmunu[0][0][2]/div_factor;
-                    Wtaueta = arena[ieta][ix][iy].Wmunu[0][0][3]/div_factor;
-                    Wxx = arena[ieta][ix][iy].Wmunu[0][1][1]/div_factor;
-                    Wxy = arena[ieta][ix][iy].Wmunu[0][1][2]/div_factor;
-                    Wxeta = arena[ieta][ix][iy].Wmunu[0][1][3]/div_factor;
-                    Wyy = arena[ieta][ix][iy].Wmunu[0][2][2]/div_factor;
-                    Wyeta = arena[ieta][ix][iy].Wmunu[0][2][3]/div_factor;
-                    Wetaeta = arena[ieta][ix][iy].Wmunu[0][3][3]/div_factor;
+                    Wtautau = arena[ieta][ix][iy].Wmunu[0][0]/div_factor;
+                    Wtaux = arena[ieta][ix][iy].Wmunu[0][1]/div_factor;
+                    Wtauy = arena[ieta][ix][iy].Wmunu[0][2]/div_factor;
+                    Wtaueta = arena[ieta][ix][iy].Wmunu[0][3]/div_factor;
+                    Wxx = arena[ieta][ix][iy].Wmunu[0][4]/div_factor;
+                    Wxy = arena[ieta][ix][iy].Wmunu[0][5]/div_factor;
+                    Wxeta = arena[ieta][ix][iy].Wmunu[0][6]/div_factor;
+                    Wyy = arena[ieta][ix][iy].Wmunu[0][7]/div_factor;
+                    Wyeta = arena[ieta][ix][iy].Wmunu[0][8]/div_factor;
+                    Wetaeta = arena[ieta][ix][iy].Wmunu[0][9]/div_factor;
                 }
                 
                 // outputs for baryon diffusion part
@@ -135,10 +135,10 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                     common_term_q = rhob_local*T_local/div_factor;
                     double kappa_hat = get_deltaf_qmu_coeff(T_local,
                                                             muB_local);
-                    qtau = arena[ieta][ix][iy].Wmunu[0][4][0]/kappa_hat;
-                    qx = arena[ieta][ix][iy].Wmunu[0][4][1]/kappa_hat;
-                    qy = arena[ieta][ix][iy].Wmunu[0][4][2]/kappa_hat;
-                    qeta = arena[ieta][ix][iy].Wmunu[0][4][3]/kappa_hat;
+                    qtau = arena[ieta][ix][iy].Wmunu[0][10]/kappa_hat;
+                    qx = arena[ieta][ix][iy].Wmunu[0][11]/kappa_hat;
+                    qy = arena[ieta][ix][iy].Wmunu[0][12]/kappa_hat;
+                    qeta = arena[ieta][ix][iy].Wmunu[0][13]/kappa_hat;
                 }
 
                 // exclude the actual coordinates from the output to save space:
@@ -303,10 +303,10 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
                         << T_local*unit_convert << "  "
                         << arena[0][ix][iy].u[0][1] << "  "
                         << arena[0][ix][iy].u[0][2] << "  "
-                        << arena[0][ix][iy].Wmunu[0][1][1]*unit_convert << "  "
-                        << arena[0][ix][iy].Wmunu[0][2][2]*unit_convert << "  "
-                        << arena[0][ix][iy].Wmunu[0][1][2]*unit_convert << "  "
-                        << arena[0][ix][iy].Wmunu[0][3][3]*unit_convert << "  "
+                        << arena[0][ix][iy].Wmunu[0][4]*unit_convert << "  "
+                        << arena[0][ix][iy].Wmunu[0][7]*unit_convert << "  "
+                        << arena[0][ix][iy].Wmunu[0][5]*unit_convert << "  "
+                        << arena[0][ix][iy].Wmunu[0][9]*unit_convert << "  "
                         << endl;
         }
     }
