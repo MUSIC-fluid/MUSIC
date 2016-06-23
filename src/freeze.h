@@ -2,7 +2,7 @@
 #define FREEZE_H
 
 #define NUMDECAY 2000
-#define MAXINTV         2000000 /* size of arry for Montecarlo numbers note that I modified pdg05.dat by replacing 90...... 9......*/
+#define MAXINTV 2000000 /* size of arry for Montecarlo numbers note that I modified pdg05.dat by replacing 90...... 9......*/
 #define MHALF           (MAXINTV/2)
 #define NY		200 /* size of arry for storage of the y-spectrum */
 #define NPT		100 /* size of arry for storage of the pt-spectrum */
@@ -22,7 +22,6 @@
 #include <mpi.h>
 #include "data.h"
 #include "util.h"
-// #include "int.h"
 #include "eos.h"
 #include <iterator>
 #include <algorithm>

@@ -4,8 +4,7 @@ Int *integral;
 
 using namespace std;
 
-Freeze::Freeze(InitData* DATA_in)
-{
+Freeze::Freeze(InitData* DATA_in) {
     integral = new Int;
     util = new Util;
 
@@ -34,48 +33,40 @@ Freeze::Freeze(InitData* DATA_in)
 }
 
 // destructors
-Freeze::~Freeze()
-{
-  delete integral;
-  delete util;
-  delete [] charged_hadron_list;
+Freeze::~Freeze() {
+    delete integral;
+    delete util;
+    delete [] charged_hadron_list;
 
-  if(DATA_ptr->deltaf_14moments == 1)
-  {
-      for(int i = 0; i < deltaf_coeff_table_14mom_length_T; i++)
-      {
-         delete [] deltaf_coeff_tb_14mom_DPi[i];
-         delete [] deltaf_coeff_tb_14mom_BPi[i];
-         delete [] deltaf_coeff_tb_14mom_BPitilde[i];
-         delete [] deltaf_coeff_tb_14mom_DV[i];
-         delete [] deltaf_coeff_tb_14mom_BV[i];
-         delete [] deltaf_coeff_tb_14mom_Bpi_shear[i];
-      }
-      delete [] deltaf_coeff_tb_14mom_DPi;
-      delete [] deltaf_coeff_tb_14mom_BPi;
-      delete [] deltaf_coeff_tb_14mom_BPitilde;
-      delete [] deltaf_coeff_tb_14mom_DV;
-      delete [] deltaf_coeff_tb_14mom_BV;
-      delete [] deltaf_coeff_tb_14mom_Bpi_shear;
-  }
-  else
-  {
-      if(DATA_ptr->include_deltaf_qmu == 1)
-      {
-         for(int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
-            delete [] deltaf_qmu_coeff_tb[i];
-         delete [] deltaf_qmu_coeff_tb;
-      }
-  }
+    if (DATA_ptr->deltaf_14moments == 1) {
+        for (int i = 0; i < deltaf_coeff_table_14mom_length_T; i++) {
+            delete [] deltaf_coeff_tb_14mom_DPi[i];
+            delete [] deltaf_coeff_tb_14mom_BPi[i];
+            delete [] deltaf_coeff_tb_14mom_BPitilde[i];
+            delete [] deltaf_coeff_tb_14mom_DV[i];
+            delete [] deltaf_coeff_tb_14mom_BV[i];
+            delete [] deltaf_coeff_tb_14mom_Bpi_shear[i];
+        }
+        delete [] deltaf_coeff_tb_14mom_DPi;
+        delete [] deltaf_coeff_tb_14mom_BPi;
+        delete [] deltaf_coeff_tb_14mom_BPitilde;
+        delete [] deltaf_coeff_tb_14mom_DV;
+        delete [] deltaf_coeff_tb_14mom_BV;
+        delete [] deltaf_coeff_tb_14mom_Bpi_shear;
+    } else {
+        if (DATA_ptr->include_deltaf_qmu == 1) {
+            for (int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
+                delete [] deltaf_qmu_coeff_tb[i];
+            delete [] deltaf_qmu_coeff_tb;
+        }
+    }
 }
 
-void Freeze::checkForReadError(FILE *file, const char* name)
-{
-  if(!(file))
-    {
-      fprintf(stderr, "file %s not found.\n", name);
-      fprintf(stderr, "Exiting...\n");
-      exit(0);
+void Freeze::checkForReadError(FILE *file, const char* name) {
+    if (!(file)) {
+        fprintf(stderr, "file %s not found.\n", name);
+        fprintf(stderr, "Exiting...\n");
+        exit(0);
     }
 }
 

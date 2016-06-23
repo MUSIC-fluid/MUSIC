@@ -26,13 +26,6 @@ typedef struct init_data {
     int neta;
     int nt;
 
-    int input_grid_nx;
-    int input_grid_ny;
-    int input_grid_neta;
-    double input_grid_dx;
-    double input_grid_dy;
-    double input_grid_deta;
-
     double x_size; /* in fermi -x_size/2 < x < x_size/2 */
     double y_size; /* in fermi, ditto */
     double eta_size; /* ditto */
@@ -44,8 +37,6 @@ typedef struct init_data {
     double delta_eta;
     double delta_tau;
 
-    double epsilon0;
-    double rhoB0;
     double eta_fall_off;
     double eta_flat;
     double ecm;
@@ -65,8 +56,6 @@ typedef struct init_data {
     double eta_rhob_plateau_height;  // central plateau height profile == 2
     double eta_rhob_width_1;         // outside tail Gaussian width profile == 2
     double eta_rhob_width_2;         // inside Gaussian width profile == 2
-
-    int LexusImax;
 
     // skip step for freeze out surface finder
     int facTau;
@@ -107,8 +96,6 @@ typedef struct init_data {
                             // 2: do hydro evolution only;
                             // 3: do calculation of thermal spectra only;
                             // 4: do resonance decays only
-    // fraction of binary collisons scaling in initial distribution
-    double hard;
 
     // decide whether to output the evolution data (1) or not (0)
     int outputEvolutionData;
@@ -116,8 +103,6 @@ typedef struct init_data {
     // "evolution_Wmunu_over_shear_xyeta.dat" in binary format (1)
     // or in text format (0)
     int outputBinaryEvolution;
-    int includeJet;
-    int includeTrigger;
     int include_deltaf;
     int include_deltaf_qmu;
     int include_deltaf_bulk;
@@ -128,7 +113,6 @@ typedef struct init_data {
     double shear_to_s;
     double bulk_to_s;
     int viscosity_flag;
-    int verbose_flag;
     int turn_on_rhob;
     int alpha_max;
     int T_dependent_shear_to_s;
@@ -137,39 +121,22 @@ typedef struct init_data {
     int turn_on_bulk;
     int turn_on_diff;
 
-    double local_y_max;
-
-    // minimal and maximal impact parameter when using Initial_Distribution 3,
-    // for sampling
-    double bmin;
-    double bmax;
     int doFreezeOut;
     int doFreezeOut_lowtemp;
     int seed;
 
-    int Nbin_to_file;
-
-    double sigma0;
     double TFO;      // freeze-out temperature. Used if useEpsFO=0
-    // if 1, use energy density value to define freeze out condition
-    // if 0 use temperature in TFO
-    int useEpsFO;
+
+    int useEpsFO;    // if 1, use energy density value
+                     //       to define freeze out condition
+                     // if 0 use temperature in TFO
 
     int size;
     int rank;
     double sFactor;
-    // For use with freeze_out_method=3.
-    // Maximum size of freeze out hypersurface in eta,
-    // implemented in freeze out finder.
-    double max_delta_eta;
-    // For use with freeze_out_method=3.
-    // Maximum size of freeze out hypersurface in eta,
-    // implemented in Cooper-Frye.
-    double max_delta_eta2;
 
     int boost_invariant;    // set to 1 for rapidity-indendent solution.
     int boostInvariant;     // alias for boost_invariant
-    int check_FO3_at_boundary_eta, check_FO3_at_boundary_xy;
     bool output_hydro_debug_info;
     int output_evolution_every_N_timesteps;
     int output_evolution_every_N_x;

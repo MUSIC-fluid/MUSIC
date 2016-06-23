@@ -51,31 +51,21 @@ class Grid {
     double *theta_u;
 
     // the velocity shear tensor
-    double ***sigma;
+    // only record 10 essential components in a 1-d array
+    double **sigma;
         
     /* we need to calculate partial_tau u[mu] */
     /* dU[flag][m][n] = u^{m,n} = partial^n u^m with the rk flag */
     /* note that they are superscripted. So partial^t = -partial_t */
     double ***dUsup; 
 
-    double ***Wmunu; /* shear part of the TJb with the rk_flag */
-    double ***prevWmunu; 
-    //double ***pprevWmunu; 
+    /* shear part of the TJb with the rk_flag */
+    double **Wmunu;
+    double **prevWmunu; 
         
-    double ***Pimunu; /* bulk part of the TJb with the rk_flag */
-    double ***prevPimunu; 
-    //double ***pprevPimunu; 
-        
-    double *pi_b; /* bulk pressure */
-    //double *prev_pi_b; /* bulk pressure */
-    //double *pprev_pi_b; /* bulk pressure */
-
-    int revert_flag;
-    int trouble;
-    double T;  //added
-    double mu; //added
-        
-    int position[4];
+    /* bulk pressure */
+    double *pi_b;
+    double *prev_pi_b;
 
     // the following variables are for hyper-surface finder 
     // to determine freeze-out surface
@@ -86,7 +76,7 @@ class Grid {
     double rhob_prev;
     double u_prev[4];
     double pi_b_prev;
-    double **W_prev;
+    double *W_prev;
         
     Grid();//constructor
     ~Grid();//destructor

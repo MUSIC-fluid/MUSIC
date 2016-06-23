@@ -243,46 +243,48 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
         diss->Make_uWRHS(tau_now, grid_pt, w_rhs, DATA, rk_flag);
         for (int mu = 1; mu < 4; mu++) {
             for (int nu = mu; nu < 4; nu++) {
-                tempf = ((grid_pt->Wmunu[rk_flag][mu][nu])
+                int idx_1d = util->map_2d_idx_to_1d(mu, nu);
+                tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
                          *(grid_pt->u[rk_flag][0]));
                 temps = diss->Make_uWSource(tau_now, grid_pt, mu, nu, DATA,
                                             rk_flag); 
                 tempf += temps*(DATA->delta_tau);
                 tempf += w_rhs[mu][nu];
-                grid_pt->Wmunu[rk_flag+1][mu][nu] = (
+                grid_pt->Wmunu[rk_flag+1][idx_1d] = (
                                     tempf/(grid_pt->u[rk_flag+1][0]));
             }
         }
-        for (int mu = 1; mu < 4; mu++) {
-            for (int nu = mu+1; nu < 4; nu++) {
-                grid_pt->Wmunu[rk_flag+1][nu][mu] =
-                            grid_pt->Wmunu[rk_flag+1][mu][nu];
-            }
-        }
+        //for (int mu = 1; mu < 4; mu++) {
+        //    for (int nu = mu+1; nu < 4; nu++) {
+        //        grid_pt->Wmunu[rk_flag+1][nu][mu] =
+        //                    grid_pt->Wmunu[rk_flag+1][mu][nu];
+        //    }
+        //}
     } else if (rk_flag > 0) {
         diss->Make_uWRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag);
         for (int mu = 1; mu < 4; mu++) {
             for (int nu = mu; nu < 4; nu++) {
-                tempf = (grid_pt->Wmunu[0][mu][nu])*(grid_pt->u[0][0]);
+                int idx_1d = util->map_2d_idx_to_1d(mu, nu);
+                tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->u[0][0]);
                 temps = diss->Make_uWSource(tau_next, grid_pt, mu, nu, DATA,
                                             rk_flag); 
                 tempf += temps*(DATA->delta_tau);
                 tempf += w_rhs[mu][nu];
 
-                tempf += ((grid_pt->Wmunu[rk_flag][mu][nu])
+                tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
                           *(grid_pt->u[rk_flag][0]));
                 tempf *= 0.5;
        
-                grid_pt->Wmunu[rk_flag+1][mu][nu] = (
+                grid_pt->Wmunu[rk_flag+1][idx_1d] = (
                                             tempf/(grid_pt->u[rk_flag+1][0]));
             }
         }
-        for (int mu = 1; mu < 4; mu++) {
-            for (int nu = mu+1; nu < 4; nu++) {
-                grid_pt->Wmunu[rk_flag+1][nu][mu] =
-                            grid_pt->Wmunu[rk_flag+1][mu][nu];
-            }
-        }
+        //for (int mu = 1; mu < 4; mu++) {
+        //    for (int nu = mu+1; nu < 4; nu++) {
+        //        grid_pt->Wmunu[rk_flag+1][nu][mu] =
+        //                    grid_pt->Wmunu[rk_flag+1][mu][nu];
+        //    }
+        //}
     } /* rk_flag > 0 */
 
     if (DATA->turn_on_bulk == 1) {
@@ -321,110 +323,101 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
         if (rk_flag == 0) {
             diss->Make_uqRHS(tau_now, grid_pt, w_rhs, DATA, rk_flag);
             int mu = 4;
-            for (int nu=1; nu<=3; nu++) {
-                tempf = ((grid_pt->Wmunu[rk_flag][mu][nu])
+            for (int nu = 1; nu < 4; nu++) {
+                int idx_1d = util->map_2d_idx_to_1d(mu, nu);
+                tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
                          *(grid_pt->u[rk_flag][0]));
                 temps = diss->Make_uqSource(tau_now, grid_pt, nu, DATA,
                                             rk_flag); 
                 tempf += temps*(DATA->delta_tau);
                 tempf += w_rhs[mu][nu];
 
-                grid_pt->Wmunu[rk_flag+1][mu][nu] = (
+                grid_pt->Wmunu[rk_flag+1][idx_1d] = (
                                             tempf/(grid_pt->u[rk_flag+1][0]));
             }
         } else if (rk_flag > 0) {
             diss->Make_uqRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag);
             int mu = 4;
-            for (int nu=1; nu<=3; nu++) {
-                tempf = (grid_pt->Wmunu[0][mu][nu])*(grid_pt->u[0][0]);
+            for (int nu = 1; nu < 4; nu++) {
+                int idx_1d = util->map_2d_idx_to_1d(mu, nu);
+                tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->u[0][0]);
                 temps = diss->Make_uqSource(tau_next, grid_pt, nu, DATA,
                                             rk_flag); 
                 tempf += temps*(DATA->delta_tau);
                 tempf += w_rhs[mu][nu];
 
-                tempf += ((grid_pt->Wmunu[rk_flag][mu][nu])
+                tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
                           *(grid_pt->u[rk_flag][0]));
                 tempf *= 0.5;
        
-                grid_pt->Wmunu[rk_flag+1][mu][nu] = (
+                grid_pt->Wmunu[rk_flag+1][idx_1d] = (
                                         tempf/(grid_pt->u[rk_flag+1][0]));
             }
         } /* rk_flag > 0 */
     } else {
-        for (int nu = 0; nu < 4; nu++)
-            grid_pt->Wmunu[rk_flag+1][4][nu] = 0.0;
+        for (int nu = 0; nu < 4; nu++) {
+            int idx_1d = util->map_2d_idx_to_1d(4, nu);
+            grid_pt->Wmunu[rk_flag+1][idx_1d] = 0.0;
+        }
     }
    
     // re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless
-    grid_pt->Wmunu[rk_flag+1][3][3] = (
+    grid_pt->Wmunu[rk_flag+1][9] = (
             (2.*(grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][2]
-                *grid_pt->Wmunu[rk_flag+1][1][2] 
+                *grid_pt->Wmunu[rk_flag+1][5]
                 + grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][3]
-                  *grid_pt->Wmunu[rk_flag+1][1][3]
+                  *grid_pt->Wmunu[rk_flag+1][6]
                 + grid_pt->u[rk_flag+1][2]*grid_pt->u[rk_flag+1][3]
-                  *grid_pt->Wmunu[rk_flag+1][2][3])
+                  *grid_pt->Wmunu[rk_flag+1][8])
                 - (grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] 
                    - grid_pt->u[rk_flag+1][1]*grid_pt->u[rk_flag+1][1])
-                   *grid_pt->Wmunu[rk_flag+1][1][1] 
+                   *grid_pt->Wmunu[rk_flag+1][4] 
                 - (grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] 
                    - grid_pt->u[rk_flag+1][2]*grid_pt->u[rk_flag+1][2])
-                  *grid_pt->Wmunu[rk_flag+1][2][2])
+                  *grid_pt->Wmunu[rk_flag+1][7])
             /(grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0] 
               - grid_pt->u[rk_flag+1][3]*grid_pt->u[rk_flag+1][3]));
 
     // make Wmunu[i][0] using the transversality
-    for (int mu=1; mu<4; mu++) {
-        tempf = 0.0;
-        for (int nu=1; nu<4; nu++)
-            tempf += (
-                grid_pt->Wmunu[rk_flag+1][mu][nu]*grid_pt->u[rk_flag+1][nu]);
-        grid_pt->Wmunu[rk_flag+1][mu][0] = tempf/(grid_pt->u[rk_flag+1][0]);
-    }
+    //for (int mu=1; mu<4; mu++) {
+    //    tempf = 0.0;
+    //    for (int nu=1; nu<4; nu++)
+    //        int idx_1d = util->map_2d_idx_to_1d(mu, nu);
+    //        tempf += (
+    //            grid_pt->Wmunu[rk_flag+1][mu][nu]*grid_pt->u[rk_flag+1][nu]);
+    //    grid_pt->Wmunu[rk_flag+1][mu][0] = tempf/(grid_pt->u[rk_flag+1][0]);
+    //}
    
-    for (int mu=1; mu<4; mu++) {
+    for (int mu = 1; mu < 4; mu++) {
         tempf = 0.0;
-        for (int nu=1; nu<4; nu++)
+        for (int nu = 1; nu < 4; nu++) {
+            int idx_1d = util->map_2d_idx_to_1d(mu, nu);
             tempf += (
-                grid_pt->Wmunu[rk_flag+1][nu][mu]*grid_pt->u[rk_flag+1][nu]);
-        grid_pt->Wmunu[rk_flag+1][0][mu] = tempf/(grid_pt->u[rk_flag+1][0]);
+                grid_pt->Wmunu[rk_flag+1][idx_1d]*grid_pt->u[rk_flag+1][nu]);
+        }
+        grid_pt->Wmunu[rk_flag+1][mu] = tempf/(grid_pt->u[rk_flag+1][0]);
     }
 
     // make Wmunu[0][0]
     tempf = 0.0;
     for (int nu=1; nu<4; nu++)
-        tempf += grid_pt->Wmunu[rk_flag+1][0][nu]*grid_pt->u[rk_flag+1][nu]; 
-    grid_pt->Wmunu[rk_flag+1][0][0] = tempf/(grid_pt->u[rk_flag+1][0]);
+        tempf += grid_pt->Wmunu[rk_flag+1][nu]*grid_pt->u[rk_flag+1][nu]; 
+    grid_pt->Wmunu[rk_flag+1][0] = tempf/(grid_pt->u[rk_flag+1][0]);
  
-    if (DATA->turn_on_bulk == 1) {
-        // update Pimunu
-        for (int mu=0; mu<4; mu++) {
-            for (int nu=0; nu<4; nu++) {
-                grid_pt->Pimunu[rk_flag+1][mu][nu]  = (grid_pt->u[rk_flag+1][mu]);
-                grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->u[rk_flag+1][nu]);
-                grid_pt->Pimunu[rk_flag+1][mu][nu] += DATA->gmunu[mu][nu];
-                grid_pt->Pimunu[rk_flag+1][mu][nu] *= (grid_pt->pi_b[rk_flag+1]);
-            } /* nu */
-        } /* mu */
-    } else {
-        for (int mu=0; mu<4; mu++) {
-            for (int nu=0; nu<4; nu++) {
-                grid_pt->Pimunu[rk_flag+1][mu][nu]  = 0.0;
-            }
-        }
-    }
-
     if (DATA->turn_on_diff == 1) {
         // make qmu[0] using transversality
-        for (int mu=4; mu<mu_max+1; mu++) {
+        for (int mu = 4; mu < mu_max + 1; mu++) {
             tempf = 0.0;
-            for (int nu=1; nu<4; nu++)
-                tempf += (grid_pt->Wmunu[rk_flag+1][mu][nu]
+            for (int nu = 1; nu < 4; nu++) {
+                int idx_1d = util->map_2d_idx_to_1d(mu, nu);
+                tempf += (grid_pt->Wmunu[rk_flag+1][idx_1d]
                           *grid_pt->u[rk_flag+1][nu]);
-            grid_pt->Wmunu[rk_flag+1][mu][0] = (
+            }
+            grid_pt->Wmunu[rk_flag+1][10] = (
                                         tempf/(grid_pt->u[rk_flag+1][0]));
         }
     } else {
-        grid_pt->Wmunu[rk_flag+1][4][0] = 0.0;
+        grid_pt->Wmunu[rk_flag+1][10] = 0.0;
     }
 
     // If the energy density of the fluid element is smaller than 0.01GeV
@@ -438,7 +431,6 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
                 revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA);
             }
         }
-        grid_pt->revert_flag = revert_flag + revert_q_flag;
     }
 
     if (revert_flag == 1)
@@ -474,16 +466,16 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     else
  	    factor = DATA->QuestRevert_factor;
 
-    double pi_00 = grid_pt->Wmunu[rk_flag+1][0][0];
-    double pi_11 = grid_pt->Wmunu[rk_flag+1][1][1];
-    double pi_22 = grid_pt->Wmunu[rk_flag+1][2][2];
-    double pi_33 = grid_pt->Wmunu[rk_flag+1][3][3];
-    double pi_01 = grid_pt->Wmunu[rk_flag+1][0][1];
-    double pi_02 = grid_pt->Wmunu[rk_flag+1][0][2];
-    double pi_03 = grid_pt->Wmunu[rk_flag+1][0][3];
-    double pi_12 = grid_pt->Wmunu[rk_flag+1][1][2];
-    double pi_13 = grid_pt->Wmunu[rk_flag+1][1][3];
-    double pi_23 = grid_pt->Wmunu[rk_flag+1][2][3];
+    double pi_00 = grid_pt->Wmunu[rk_flag+1][0];
+    double pi_01 = grid_pt->Wmunu[rk_flag+1][1];
+    double pi_02 = grid_pt->Wmunu[rk_flag+1][2];
+    double pi_03 = grid_pt->Wmunu[rk_flag+1][3];
+    double pi_11 = grid_pt->Wmunu[rk_flag+1][4];
+    double pi_12 = grid_pt->Wmunu[rk_flag+1][5];
+    double pi_13 = grid_pt->Wmunu[rk_flag+1][6];
+    double pi_22 = grid_pt->Wmunu[rk_flag+1][7];
+    double pi_23 = grid_pt->Wmunu[rk_flag+1][8];
+    double pi_33 = grid_pt->Wmunu[rk_flag+1][9];
 
     double pisize = (pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
                      - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
@@ -502,11 +494,12 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     // Reducing the shear stress tensor 
     double rho_shear_max = DATA->QuestRevert_rho_shear_max;
     if (rho_shear > rho_shear_max) {
-        for (int mu=0; mu<4; mu++) {
-            for (int nu=0; nu<4; nu++) {
-                grid_pt->Wmunu[rk_flag+1][mu][nu] = (
+        for (int mu = 0; mu < 4; mu++) {
+            for (int nu = mu; nu < 4; nu++) {
+                int idx_1d = util->map_2d_idx_to_1d(mu, nu);
+                grid_pt->Wmunu[rk_flag+1][idx_1d] = (
                     (rho_shear_max/rho_shear)
-                    *grid_pt->Wmunu[rk_flag+1][mu][nu]);
+                    *grid_pt->Wmunu[rk_flag+1][idx_1d]);
             }
         }
         revert_flag = 1;
@@ -517,13 +510,6 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     if (rho_bulk > rho_bulk_max) {
         grid_pt->pi_b[rk_flag+1] = (
                 (rho_bulk_max/rho_bulk)*grid_pt->pi_b[rk_flag+1]);
-        for (int mu=0; mu<4; mu++) {
-            for (int nu=0; nu<4; nu++) {   	       
-                grid_pt->Pimunu[rk_flag+1][mu][nu] = (
-                        (rho_bulk_max/rho_bulk)
-                        *grid_pt->Pimunu[rk_flag+1][mu][nu]);
-            }
-        }
         revert_flag = 1;
     }
 
@@ -542,8 +528,11 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
  	    factor = DATA->QuestRevert_factor;
 
     double q_mu_local[4];
-    for (int i = 0; i < 4; i++)  // copy the value from the grid
-        q_mu_local[i] = grid_pt->Wmunu[rk_flag+1][4][i];
+    for (int i = 0; i < 4; i++) {
+        // copy the value from the grid
+        int idx_1d = util->map_2d_idx_to_1d(4, i);
+        q_mu_local[i] = grid_pt->Wmunu[rk_flag+1][idx_1d];
+    }
 
     // calculate the size of q^\mu
     double q_size = 0.0;
@@ -559,7 +548,8 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
              << endl;
         cout << "Reset it to zero!!!!" << endl;
         for (int i = 0; i < 4; i++) {
-            grid_pt->Wmunu[rk_flag+1][4][i] = 0.0;
+            int idx_1d = util->map_2d_idx_to_1d(4, i);
+            grid_pt->Wmunu[rk_flag+1][idx_1d] = 0.0;
         }
         revert_flag = 1;
     }
@@ -569,206 +559,14 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
     double rho_q = sqrt(q_size/(rhob_local*rhob_local))/factor;
     double rho_q_max = DATA->QuestRevert_rho_q_max;
     if (rho_q > rho_q_max) {
-        for (int i = 0; i < 4; i++)
-            grid_pt->Wmunu[rk_flag+1][4][i] = (rho_q_max/rho_q)*q_mu_local[i];
+        for (int i = 0; i < 4; i++) {
+            int idx_1d = util->map_2d_idx_to_1d(4, i);
+            grid_pt->Wmunu[rk_flag+1][idx_1d] = (rho_q_max/rho_q)*q_mu_local[i];
+        }
         revert_flag = 1;
     }
     return(revert_flag);
 }
-
-// test the traceless and transversality of shear stress tensor
-void Advance::TestW(double tau, Grid *grid_pt, int rk_flag) {
-    int mu, nu;
-    double trace, transv, nufac;
-
-    trace = -grid_pt->Wmunu[rk_flag+1][0][0];
-    for (mu=1; mu<=3; mu++) {
-        trace += grid_pt->Wmunu[rk_flag+1][mu][mu];
-    }
- 
-    transv = 0.0;
-    for (mu=0; mu<=3; mu++) {
-        for (nu=0; nu<=3; nu++) {
-            nufac = (nu == 0 ? -1.0 : 1.0);
-            transv += ((grid_pt->Wmunu[rk_flag+1][mu][nu])
-                       *(grid_pt->u[rk_flag+1][nu])*nufac);
-        }
-    }
-
-    if( (fabs(trace) > 1.0e-10 || fabs(transv) > 1.0e-10)
-        && (grid_pt->epsilon > 0.3)) {
-        fprintf(stderr, "TestW: trace = %e\n", trace);
-        fprintf(stderr, "transv = %e\n", transv);
-        fprintf(stderr, "at (%d, %d, %d) and tau = %e.\n", 
-        grid_pt->position[1], grid_pt->position[2], grid_pt->position[3], tau);
-        fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
-        fprintf(stderr, "W[0][0] = %e\n", grid_pt->Wmunu[rk_flag+1][0][0]);
-        fprintf(stderr, "W[1][1] = %e\n", grid_pt->Wmunu[rk_flag+1][1][1]);
-        fprintf(stderr, "W[2][2] = %e\n", grid_pt->Wmunu[rk_flag+1][2][2]);
-        fprintf(stderr, "W[3][3] = %e\n", grid_pt->Wmunu[rk_flag+1][3][3]);
-        fprintf(stderr, "u[0] = %e\n", grid_pt->u[rk_flag+1][0]);
-        fprintf(stderr, "u[1] = %e\n", grid_pt->u[rk_flag+1][1]);
-        fprintf(stderr, "u[2] = %e\n", grid_pt->u[rk_flag+1][2]);
-        fprintf(stderr, "u[3] = %e\n", grid_pt->u[rk_flag+1][3]);
-        fprintf(stderr, "\n");
-    }
-}/* TestW */
-
-
-void Advance::ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag,
-                             InitData *DATA) {
-    double Delta[4][4], tD[4][4], trace, norm, mfac, nfac, sum;
-    int m, n, a, b;
-
-    /* projecting the spin 2 part for W[rk_flag+1] */
-    for (m=0; m<4; m++) {
-        for (n=0; n<4; n++) {
-            Delta[m][n] = (DATA->gmunu[m][n]
-                           + (grid_pt->u[rk_flag][m])*(grid_pt->u[rk_flag][n]));
-        }
-    }
- 
-    for (a=0; a<4; a++) {
-        for (b=0; b<4; b++) {
-            tD[a][b] = 0.0;
-            for (n=0; n<4; n++) {
-                nfac = (n==0 ? -1.0 : 1.0);
-                tD[a][b] += Delta[a][n]*Delta[n][b]*nfac;
-	        }
-        }
-    }
- 
-    sum = 0.0; 
-    for (a=0; a<4; a++) {
-        for (b=0; b<4; b++) {
-            sum += fabs(tD[a][b] - Delta[a][b]);
-        }
-    }
-    if (sum > 1.0e-6 && grid_pt->epsilon > 0.3) {
-        fprintf(stderr, "delta d check = %3.16e\n", sum);
-    }
- 
-    sum = 0.0; 
-    for (m=0; m<4; m++) {
-        mfac = (m==0 ? -1.0: 1.0);
-        for (n=0; n<4; n++) {
-            nfac = (n==0 ? -1.0: 1.0);
-            sum += Delta[m][n]*Delta[n][m]*mfac*nfac;
-        }
-    }
-    if (fabs(sum-3.0) >  1.0e-6 && grid_pt->epsilon > 0.3) {
-        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-      
-        fprintf(stderr, "d trace check = %3.16e\n", sum);
-        fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
-        fprintf(stderr, "u[0] = %e\n", grid_pt->u[rk_flag][0]);
-        fprintf(stderr, "u[1] = %e\n", grid_pt->u[rk_flag][1]);
-        fprintf(stderr, "u[2] = %e\n", grid_pt->u[rk_flag][2]);
-        fprintf(stderr, "u[3] = %e\n", grid_pt->u[rk_flag][3]);
-        fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",
-                tau, x, y, eta);
-        fprintf(stderr, "\n");
-      
-    }
-
-    trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
-    norm = grid_pt->u[rk_flag][0]*grid_pt->u[rk_flag][0];
-    for (a=1; a<=3; a++) {
-        trace += grid_pt->Wmunu[rk_flag+1][a][a];
-        norm -= grid_pt->u[rk_flag][a]*grid_pt->u[rk_flag][a];
-    }
-
-    if (fabs(norm -1.0) > 1.0e-6 && grid_pt->epsilon > 0.3) {
-        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-        fprintf(stderr, "ProjectSpin2: norm = %3.16e\n", norm);
-        fprintf(stderr, "ProjectSpin2: epsilon = %e\n", grid_pt->epsilon);
-        fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",
-                tau, x, y, eta);
-    }
-
-    for (a=0; a<4; a++) {
-        for (b=0; b<4; b++) {
-            grid_pt->Wmunu[rk_flag+1][a][b] -= Delta[a][b]*trace/3.0; 
-        }
-    }
- 
-    trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
-    for (a=1; a<=3; a++) {
-        trace += grid_pt->Wmunu[rk_flag+1][a][a];
-    }
-    if (fabs(trace) > 1.0e-6 && grid_pt->epsilon > 0.3) {
-        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-	    double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-        fprintf(stderr, "ProjectSpin2WS: final trace = 3.16%e\n", trace);
-        fprintf(stderr, "u0 = %e\n", grid_pt->u[rk_flag][0]);
-        fprintf(stderr, "u1 = %e\n", grid_pt->u[rk_flag][1]);
-        fprintf(stderr, "u2 = %e\n", grid_pt->u[rk_flag][2]);
-        fprintf(stderr, "u3 = %e\n", grid_pt->u[rk_flag][3]);
-        fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",
-                tau, x, y, eta);
-    }
-}/* ProjectSpin2WS */
-
-
-
-void Advance::ProjectSpin2W(double tau, Grid *grid_pt, int rk_flag,
-                            InitData *DATA) {
-    double Delta[4][4], trace, norm;
-    int m, n, a, b;
-
-    for (m=0; m<4; m++) {
-        for (n=0; n<4; n++) {
-            Delta[m][n] = (DATA->gmunu[m][n]
-                    + (grid_pt->u[rk_flag+1][m])*(grid_pt->u[rk_flag+1][n]));
-        }
-    }
-
-    trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
-    norm = grid_pt->u[rk_flag+1][0]*grid_pt->u[rk_flag+1][0];
-    for (a=1; a<=3; a++) {
-        trace += grid_pt->Wmunu[rk_flag+1][a][a];
-        norm -= grid_pt->u[rk_flag+1][a]*grid_pt->u[rk_flag+1][a];
-    }
-    if (fabs(norm -1.0) > 1.0e-6 && grid_pt->epsilon > 0.3) {
-        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-        fprintf(stderr, "ProjectSpin2W: norm = %3.16e\n", norm);
-        fprintf(stderr, "ProjectSpin2W: epsilon = %e\n", grid_pt->epsilon);
-        fprintf(stderr, "ProjectSpin2W at %f %f %f %f: exiting.\n",
-                tau, x, y, eta);
-    }
-
-    for (a=0; a<4; a++) {
-        for (b=0; b<4; b++) {
-            grid_pt->Wmunu[rk_flag+1][a][b] -= Delta[a][b]*trace/3.0; 
-        }
-    }
- 
-    trace = -(grid_pt->Wmunu[rk_flag+1][0][0]);
-    for (a=1; a<=3; a++) {
-        trace += grid_pt->Wmunu[rk_flag+1][a][a];
-    }
-    if (fabs(trace) > 1.0e-6 && grid_pt->epsilon > 0.3) {
-        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-        fprintf(stderr, "ProjectSpin2W: final trace = %e\n", trace);
-        fprintf(stderr, "u0 = %e\n", grid_pt->u[rk_flag+1][0]);
-        fprintf(stderr, "u1 = %e\n", grid_pt->u[rk_flag+1][1]);
-        fprintf(stderr, "u2 = %e\n", grid_pt->u[rk_flag+1][2]);
-        fprintf(stderr, "u3 = %e\n", grid_pt->u[rk_flag+1][3]);
-        fprintf(stderr, "ProjectSpin2W at %f %f %f %f: exiting.\n",
-                tau, x, y, eta);
-    }
-}/* ProjectSpin2W */
-
-
 
 void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs, 
 			              InitData *DATA, int rk_flag, NbrQs *NbrCells,
@@ -1077,7 +875,7 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag)
             fprintf(stderr,"at value dpdrhob=%lf. \n",
                     eos->p_rho_func(eps, rhob));
             fprintf(stderr, "MaxSpeed: exiting.\n");
-            exit(0);
+            exit(1);
         }
     }
     
@@ -1104,7 +902,7 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag)
         fprintf(stderr, "SpeedMax = num/den, num = %e, den = %e \n", num, den);
         fprintf(stderr, "cs2 = %e \n", vs2);
         f =1.;
-        exit(0);
+        exit(1);
     }
     if (direc == 3)
         f /= tau;

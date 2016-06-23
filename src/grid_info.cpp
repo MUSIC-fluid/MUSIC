@@ -3,8 +3,9 @@
 
 using namespace std;
 
-Grid_info::Grid_info(InitData* DATA_in) {
+Grid_info::Grid_info(InitData* DATA_in, EOS *eos_ptr_in) {
     DATA_ptr = DATA_in;
+    eos_ptr = eos_ptr_in;
 
     // read in tables for delta f coefficients
     if (DATA_ptr->turn_on_diff == 1) {
@@ -53,7 +54,7 @@ Grid_info::~Grid_info() {
 // the interpolation in MARTINI must match properly with the output generated
 // here. -CFY 11/12/2010
 void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
-                                         EOS *eos, double tau) {
+                                         double tau) {
     const string out_name_xyeta = "evolution_xyeta.dat";
     const string out_name_W_xyeta = 
                         "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
@@ -106,8 +107,8 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                 double uz = ueta*cosh_eta + utau*sinh_eta;
                 double vz = uz/ut;
                 
-                double T_local = arena[ieta][ix][iy].T;  // 1/fm
-                double muB_local = arena[ieta][ix][iy].mu;  // 1/fm
+                double T_local = eos_ptr->get_temperature(e_local, rhob_local);
+                double muB_local = eos_ptr->get_mu(e_local, rhob_local);
                 double div_factor = e_local + p_local;  // 1/fm^4
 
                 double Wtautau, Wtaux, Wtauy, Wtaueta;
@@ -115,16 +116,16 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                 double Wyy, Wyeta;
                 double Wetaeta;
                 if (DATA->turn_on_shear == 1) {
-                    Wtautau = arena[ieta][ix][iy].Wmunu[0][0][0]/div_factor;
-                    Wtaux = arena[ieta][ix][iy].Wmunu[0][0][1]/div_factor;
-                    Wtauy = arena[ieta][ix][iy].Wmunu[0][0][2]/div_factor;
-                    Wtaueta = arena[ieta][ix][iy].Wmunu[0][0][3]/div_factor;
-                    Wxx = arena[ieta][ix][iy].Wmunu[0][1][1]/div_factor;
-                    Wxy = arena[ieta][ix][iy].Wmunu[0][1][2]/div_factor;
-                    Wxeta = arena[ieta][ix][iy].Wmunu[0][1][3]/div_factor;
-                    Wyy = arena[ieta][ix][iy].Wmunu[0][2][2]/div_factor;
-                    Wyeta = arena[ieta][ix][iy].Wmunu[0][2][3]/div_factor;
-                    Wetaeta = arena[ieta][ix][iy].Wmunu[0][3][3]/div_factor;
+                    Wtautau = arena[ieta][ix][iy].Wmunu[0][0]/div_factor;
+                    Wtaux = arena[ieta][ix][iy].Wmunu[0][1]/div_factor;
+                    Wtauy = arena[ieta][ix][iy].Wmunu[0][2]/div_factor;
+                    Wtaueta = arena[ieta][ix][iy].Wmunu[0][3]/div_factor;
+                    Wxx = arena[ieta][ix][iy].Wmunu[0][4]/div_factor;
+                    Wxy = arena[ieta][ix][iy].Wmunu[0][5]/div_factor;
+                    Wxeta = arena[ieta][ix][iy].Wmunu[0][6]/div_factor;
+                    Wyy = arena[ieta][ix][iy].Wmunu[0][7]/div_factor;
+                    Wyeta = arena[ieta][ix][iy].Wmunu[0][8]/div_factor;
+                    Wetaeta = arena[ieta][ix][iy].Wmunu[0][9]/div_factor;
                 }
                 
                 // outputs for baryon diffusion part
@@ -134,10 +135,10 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                     common_term_q = rhob_local*T_local/div_factor;
                     double kappa_hat = get_deltaf_qmu_coeff(T_local,
                                                             muB_local);
-                    qtau = arena[ieta][ix][iy].Wmunu[0][4][0]/kappa_hat;
-                    qx = arena[ieta][ix][iy].Wmunu[0][4][1]/kappa_hat;
-                    qy = arena[ieta][ix][iy].Wmunu[0][4][2]/kappa_hat;
-                    qeta = arena[ieta][ix][iy].Wmunu[0][4][3]/kappa_hat;
+                    qtau = arena[ieta][ix][iy].Wmunu[0][10]/kappa_hat;
+                    qx = arena[ieta][ix][iy].Wmunu[0][11]/kappa_hat;
+                    qy = arena[ieta][ix][iy].Wmunu[0][12]/kappa_hat;
+                    qeta = arena[ieta][ix][iy].Wmunu[0][13]/kappa_hat;
                 }
 
                 // exclude the actual coordinates from the output to save space:
@@ -180,40 +181,65 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
 }/* OutputEvolutionDataXYEta */
 
 void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
-                                       double tau) {
-    int nx = DATA->nx;
-    int ny = DATA->ny;
-    int neta = DATA->neta;
-    double dx = DATA->delta_x;
-    double dy = DATA->delta_y;
-    double deta = DATA->delta_eta;
-
+                                      double tau) {
     double N_B = 0.0;
     double T_tau_t = 0.0;
-    for (int ieta = 0; ieta < neta; ieta++) {
-        double eta_s = deta*ieta - (DATA->eta_size)/2.0;
-        for (int ix = 0; ix <= nx; ix++) {
-            for (int iy = 0; iy <= ny; iy++) {
-                double cosh_eta = cosh(eta_s);
-                double sinh_eta = sinh(eta_s);
-                N_B += (arena[ix][iy][ieta].rhob
-                        *arena[ix][iy][ieta].u[0][0]
-                        + (arena[ix][iy][ieta].prevWmunu[0][4][0]
-                           + arena[ix][iy][ieta].prevWmunu[1][4][0])*0.5);
-                double T_tau_tau = (
-                    arena[ix][iy][ieta].TJb[0][0][0]
-                    + (arena[ix][iy][ieta].prevWmunu[0][0][0]
-                       + arena[ix][iy][ieta].prevWmunu[1][0][0])*0.5);
-                double T_tau_eta = (
-                    arena[ix][iy][ieta].TJb[0][0][3]
-                    + (arena[ix][iy][ieta].prevWmunu[0][0][3]
-                       + arena[ix][iy][ieta].prevWmunu[1][0][3])*0.5);
-                T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
+    int neta = DATA->neta;
+    double deta = DATA->delta_eta;
+    int nx = DATA->nx;
+    double dx = DATA->delta_x;
+    int ny = DATA->ny;
+    double dy = DATA->delta_y;
+    int ieta;
+    #pragma omp parallel private(ieta) reduction(+:N_B, T_tau_t)
+    {
+        #pragma omp for
+        for (ieta = 0; ieta < neta; ieta++) {
+            double eta_s = deta*ieta - (DATA->eta_size)/2.0;
+            for (int ix = 0; ix <= nx; ix++) {
+                for (int iy = 0; iy <= ny; iy++) {
+                    double cosh_eta = cosh(eta_s);
+                    double sinh_eta = sinh(eta_s);
+                    N_B += (arena[ieta][ix][iy].rhob
+                            *arena[ieta][ix][iy].u[0][0]
+                            + (arena[ieta][ix][iy].prevWmunu[0][10]
+                               + arena[ieta][ix][iy].prevWmunu[1][10])*0.5);
+                    double Pi00_rk_0 = (
+                        arena[ieta][ix][iy].prev_pi_b[0]
+                        *(-1.0 + arena[ieta][ix][iy].prev_u[0][0]
+                                 *(arena[ieta][ix][iy].prev_u[0][0])));
+                    double Pi00_rk_1 = (
+                        arena[ieta][ix][iy].prev_pi_b[1]
+                        *(-1.0 + arena[ieta][ix][iy].prev_u[1][0]
+                                 *(arena[ieta][ix][iy].prev_u[1][0])));
+                    double T_tau_tau = (
+                        arena[ieta][ix][iy].TJb[0][0][0]
+                        + (arena[ieta][ix][iy].prevWmunu[0][0]
+                           + arena[ieta][ix][iy].prevWmunu[1][0]
+                           + Pi00_rk_0 + Pi00_rk_1)*0.5);
+
+                    double Pi03_rk_0 = (
+                        arena[ieta][ix][iy].prev_pi_b[0]
+                        *(arena[ieta][ix][iy].prev_u[0][0]
+                          *(arena[ieta][ix][iy].prev_u[0][3])));
+                    double Pi03_rk_1 = (
+                        arena[ieta][ix][iy].prev_pi_b[1]
+                        *(arena[ieta][ix][iy].prev_u[1][0]
+                          *(arena[ieta][ix][iy].prev_u[1][3])));
+                    double T_tau_eta = (
+                        arena[ieta][ix][iy].TJb[0][0][3]
+                        + (arena[ieta][ix][iy].prevWmunu[0][3]
+                           + arena[ieta][ix][iy].prevWmunu[1][3]
+                           + Pi03_rk_0 + Pi03_rk_1)*0.5);
+                    T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
+                }
             }
         }
+        #pragma omp barrier
     }
-    N_B *= tau*dx*dy*deta;
-    T_tau_t *= tau*dx*dy*deta*0.19733;
+    double factor = tau*dx*dy*deta;
+    N_B *= factor;
+    T_tau_t *= factor*0.19733;  // GeV
     cout << "check: net baryon number N_B = " << N_B << endl;
     cout << "check: total energy T^{taut} = " << T_tau_t << " GeV" << endl;
 }
@@ -236,16 +262,16 @@ void Grid_info::check_velocity_shear_tensor(Grid ***arena, double tau) {
                     << arena[0][ix][ix].u[0][1] << "  "
                     << arena[0][ix][ix].u[0][2] << "  "
                     << arena[0][ix][ix].u[0][3] << "  "
-                    << arena[0][ix][ix].sigma[0][0][0] << "  "
-                    << arena[0][ix][ix].sigma[0][0][1] << "  "
-                    << arena[0][ix][ix].sigma[0][0][2] << "  "
-                    << arena[0][ix][ix].sigma[0][0][3] << "  "
-                    << arena[0][ix][ix].sigma[0][1][1] << "  "
-                    << arena[0][ix][ix].sigma[0][1][2] << "  "
-                    << arena[0][ix][ix].sigma[0][1][3] << "  "
-                    << arena[0][ix][ix].sigma[0][2][2] << "  "
-                    << arena[0][ix][ix].sigma[0][2][3] << "  "
-                    << arena[0][ix][ix].sigma[0][3][3] << "  "
+                    << arena[0][ix][ix].sigma[0][0] << "  "
+                    << arena[0][ix][ix].sigma[0][1] << "  "
+                    << arena[0][ix][ix].sigma[0][2] << "  "
+                    << arena[0][ix][ix].sigma[0][3] << "  "
+                    << arena[0][ix][ix].sigma[0][4] << "  "
+                    << arena[0][ix][ix].sigma[0][5] << "  "
+                    << arena[0][ix][ix].sigma[0][6] << "  "
+                    << arena[0][ix][ix].sigma[0][7] << "  "
+                    << arena[0][ix][ix].sigma[0][8] << "  "
+                    << arena[0][ix][ix].sigma[0][9] << "  "
                     << arena[0][ix][ix].prev_u[0][0] << "  "
                     << arena[0][ix][ix].prev_u[0][1] << "  "
                     << arena[0][ix][ix].prev_u[0][2] << "  "
@@ -255,7 +281,7 @@ void Grid_info::check_velocity_shear_tensor(Grid ***arena, double tau) {
     output_file.close();
 }
 
-void Grid_info::Gubser_flow_check_file(Grid ***arena, EOS *eos, double tau) {
+void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
     ostringstream filename;
     filename << "Gubser_flow_check_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
@@ -270,17 +296,17 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, EOS *eos, double tau) {
         for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
             double y_local = y_min + iy*dy;
             double e_local = arena[0][ix][iy].epsilon;
-            double T_local = eos->get_temperature(e_local, 0.0);
+            double T_local = eos_ptr->get_temperature(e_local, 0.0);
             output_file << scientific << setprecision(8) << setw(18)
                         << x_local << "  " << y_local << "  "
                         << e_local*unit_convert << "  "
                         << T_local*unit_convert << "  "
                         << arena[0][ix][iy].u[0][1] << "  "
                         << arena[0][ix][iy].u[0][2] << "  "
-                        << arena[0][ix][iy].Wmunu[0][1][1]*unit_convert << "  "
-                        << arena[0][ix][iy].Wmunu[0][2][2]*unit_convert << "  "
-                        << arena[0][ix][iy].Wmunu[0][1][2]*unit_convert << "  "
-                        << arena[0][ix][iy].Wmunu[0][3][3]*unit_convert << "  "
+                        << arena[0][ix][iy].Wmunu[0][4]*unit_convert << "  "
+                        << arena[0][ix][iy].Wmunu[0][7]*unit_convert << "  "
+                        << arena[0][ix][iy].Wmunu[0][5]*unit_convert << "  "
+                        << arena[0][ix][iy].Wmunu[0][9]*unit_convert << "  "
                         << endl;
         }
     }

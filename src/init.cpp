@@ -45,14 +45,17 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
         cout << "Using Initial_profile=" << DATA->Initial_profile
              << ". Overwriting lattice dimensions:" << endl;
 
-        DATA->nx = nx-1;
-        DATA->ny = ny-1;
+        DATA->nx = nx - 1;
+        DATA->ny = ny - 1;
         DATA->delta_x = dx;
         DATA->delta_y = dy;
 
         cout << "neta=" << neta << ", nx=" << nx << ", ny=" << ny << endl;
         cout << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x
              << ", dy=" << DATA->delta_y << endl;
+    } else if (DATA->Initial_profile == 11) {
+        DATA->nx = DATA->nx - 1;
+        DATA->ny = DATA->ny - 1;
     }
 
     // initialize arena
@@ -79,10 +82,6 @@ void Init::LinkNeighbors(InitData *DATA, Grid ****arena) {
                 (*arena)[ieta][ix][iy].nbr_m_1 = new Grid *[4];
                 (*arena)[ieta][ix][iy].nbr_p_2 = new Grid *[4];
                 (*arena)[ieta][ix][iy].nbr_m_2 = new Grid *[4];
-
-                (*arena)[ieta][ix][iy].position[1] = ix;
-                (*arena)[ieta][ix][iy].position[2] = iy;
-                (*arena)[ieta][ix][iy].position[3] = ieta;
             }
         }
     }
@@ -306,24 +305,19 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].prev_rhob = rhob;
             arena[ieta][ix][iy].p = p;
             arena[ieta][ix][iy].p_t = p;
-            arena[ieta][ix][iy].trouble = 0;
             
-            arena[ieta][ix][iy].T = eos->get_temperature(epsilon, rhob);
-            arena[ieta][ix][iy].mu = eos->get_mu(epsilon, rhob);
-        
             arena[ieta][ix][iy].TJb = util->cube_malloc(rk_order+1, 5, 4);
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
             arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
             arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->cube_malloc(1, 4, 4);
+            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-            arena[ieta][ix][iy].Wmunu = util->cube_malloc(rk_order+1, 5, 4);
-            arena[ieta][ix][iy].prevWmunu = util->cube_malloc(rk_order, 5, 4);
-            arena[ieta][ix][iy].Pimunu = util->cube_malloc(rk_order+1, 5, 4);
-            arena[ieta][ix][iy].prevPimunu = util->cube_malloc(rk_order, 5, 4);
-            arena[ieta][ix][iy].W_prev = util->mtx_malloc(5, 4);
+            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order+1, 14);
+            arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
             
             /* for HIC */
             double utau_local = sqrt(1.
@@ -339,59 +333,49 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             u[2] = temp_profile_uy[ix][iy];
             u[3] = 0.0;
 
-            arena[ieta][ix][iy].prev_u[0][0] = u[0];
-            arena[ieta][ix][iy].prev_u[0][1] = u[1];
-            arena[ieta][ix][iy].prev_u[0][2] = u[2];
-            arena[ieta][ix][iy].prev_u[0][3] = u[3];
-
+            for (int rk_i = 0; rk_i < rk_order; rk_i++) {
+                arena[ieta][ix][iy].prev_u[rk_i][0] = u[0];
+                arena[ieta][ix][iy].prev_u[rk_i][1] = u[1];
+                arena[ieta][ix][iy].prev_u[rk_i][2] = u[2];
+                arena[ieta][ix][iy].prev_u[rk_i][3] = u[3];
+                arena[ieta][ix][iy].prev_pi_b[rk_i] = 0.0;
+            }
             arena[ieta][ix][iy].pi_b[0] = 0.0;
 
             if (DATA->turn_on_shear == 1) {
-                arena[ieta][ix][iy].Wmunu[0][0][0] = temp_profile_pi00[ix][iy];
-                arena[ieta][ix][iy].Wmunu[0][0][1] = temp_profile_pi0x[ix][iy];
-                arena[ieta][ix][iy].Wmunu[0][0][2] = temp_profile_pi0y[ix][iy];
-                arena[ieta][ix][iy].Wmunu[0][0][3] = 0.0;
-                arena[ieta][ix][iy].Wmunu[0][1][0] = temp_profile_pi0x[ix][iy];
-                arena[ieta][ix][iy].Wmunu[0][1][1] = temp_profile_pixx[ix][iy];
-                arena[ieta][ix][iy].Wmunu[0][1][2] = temp_profile_pixy[ix][iy];
-                arena[ieta][ix][iy].Wmunu[0][1][3] = 0.0;
-                arena[ieta][ix][iy].Wmunu[0][2][0] = temp_profile_pi0y[ix][iy];
-                arena[ieta][ix][iy].Wmunu[0][2][1] = temp_profile_pixy[ix][iy];
-                arena[ieta][ix][iy].Wmunu[0][2][2] = temp_profile_piyy[ix][iy];
-                arena[ieta][ix][iy].Wmunu[0][2][3] = 0.0;
-                arena[ieta][ix][iy].Wmunu[0][3][0] = 0.0;
-                arena[ieta][ix][iy].Wmunu[0][3][1] = 0.0;
-                arena[ieta][ix][iy].Wmunu[0][3][2] = 0.0;
-                arena[ieta][ix][iy].Wmunu[0][3][3] = temp_profile_pi33[ix][iy];
+                arena[ieta][ix][iy].Wmunu[0][0] = temp_profile_pi00[ix][iy];
+                arena[ieta][ix][iy].Wmunu[0][1] = temp_profile_pi0x[ix][iy];
+                arena[ieta][ix][iy].Wmunu[0][2] = temp_profile_pi0y[ix][iy];
+                arena[ieta][ix][iy].Wmunu[0][3] = 0.0;
+                arena[ieta][ix][iy].Wmunu[0][4] = temp_profile_pixx[ix][iy];
+                arena[ieta][ix][iy].Wmunu[0][5] = temp_profile_pixy[ix][iy];
+                arena[ieta][ix][iy].Wmunu[0][6] = 0.0;
+                arena[ieta][ix][iy].Wmunu[0][7] = temp_profile_piyy[ix][iy];
+                arena[ieta][ix][iy].Wmunu[0][8] = 0.0;
+                arena[ieta][ix][iy].Wmunu[0][9] = temp_profile_pi33[ix][iy];
+                for (int mu = 10; mu < 14; mu++) {
+                        arena[ieta][ix][iy].Wmunu[0][mu] = 0.0;
+                }
             } else {
-                for (int mu = 0; mu < 4; mu++) {
-                    for (int nu = 0; nu < 4; nu++) {
-                        arena[ieta][ix][iy].Wmunu[0][mu][nu] = 0.0;
-                    }
+                for (int mu = 0; mu < 14; mu++) {
+                        arena[ieta][ix][iy].Wmunu[0][mu] = 0.0;
                 }
             }
             for (int mu = 0; mu < 4; mu++) {
                 /* baryon density */
                 arena[ieta][ix][iy].TJb[0][4][mu] = rhob*u[mu];
-
-                // diffusion current
-                arena[ieta][ix][iy].Wmunu[0][4][mu] = 0.0;
-                arena[ieta][ix][iy].prevWmunu[0][4][mu] = 0.0;
-            
                 for (int nu = 0; nu < 4; nu++) {
                     arena[ieta][ix][iy].TJb[0][mu][nu] = (
                                                 (epsilon + p)*u[mu]*u[nu]
                                                 + p*(DATA->gmunu)[mu][nu]);
-
-                    arena[ieta][ix][iy].prevWmunu[0][mu][nu] =
-                                    arena[ieta][ix][iy].Wmunu[0][mu][nu];
-                    arena[ieta][ix][iy].prevWmunu[1][mu][nu] =
-                                    arena[ieta][ix][iy].Wmunu[0][mu][nu];
-                    arena[ieta][ix][iy].Pimunu[0][mu][nu] = 0.0;
-                    arena[ieta][ix][iy].prevPimunu[0][mu][nu] = 0.0;
-                    arena[ieta][ix][iy].prevPimunu[1][mu][nu] = 0.0;
                 }/* nu */
             }/* mu */
+            for (int rkstep = 0; rkstep < 2; rkstep++) {
+                for (int ii = 0; ii < 14; ii++) {
+                    arena[ieta][ix][iy].prevWmunu[rkstep][ii] = 
+                                        arena[ieta][ix][iy].Wmunu[0][ii];
+                }
+            }
         }
     }
     // clean up
@@ -508,24 +492,19 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].prev_rhob = rhob;
             arena[ieta][ix][iy].p = p;
             arena[ieta][ix][iy].p_t = p;
-            arena[ieta][ix][iy].trouble = 0;
 
-            arena[ieta][ix][iy].T = eos->get_temperature(epsilon, rhob);
-            arena[ieta][ix][iy].mu = eos->get_mu(epsilon, rhob);
-        
             arena[ieta][ix][iy].TJb = util->cube_malloc(rk_order+1, 5, 4);
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
             arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
             arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->cube_malloc(1, 4, 4);
+            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-            arena[ieta][ix][iy].Wmunu = util->cube_malloc(rk_order+1, 5, 4);
-            arena[ieta][ix][iy].prevWmunu = util->cube_malloc(rk_order, 5, 4);
-            arena[ieta][ix][iy].Pimunu = util->cube_malloc(rk_order+1, 5, 4);
-            arena[ieta][ix][iy].prevPimunu = util->cube_malloc(rk_order, 5, 4);
-            arena[ieta][ix][iy].W_prev = util->mtx_malloc(5, 4);
+            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order+1, 14);
+            arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
 
             /* for HIC */
             arena[ieta][ix][iy].u[0][0] = temp_profile_utau[ix][iy];
@@ -538,34 +517,30 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             u[2] = temp_profile_uy[ix][iy];
             u[3] = 0.0;
 
-            arena[ieta][ix][iy].prev_u[0][0] = u[0];
-            arena[ieta][ix][iy].prev_u[0][1] = u[1];
-            arena[ieta][ix][iy].prev_u[0][2] = u[2];
-            arena[ieta][ix][iy].prev_u[0][3] = u[3];
+            for (int ii = 0; ii < rk_order; ii++) {
+                arena[ieta][ix][iy].prev_u[ii][0] = u[0];
+                arena[ieta][ix][iy].prev_u[ii][1] = u[1];
+                arena[ieta][ix][iy].prev_u[ii][2] = u[2];
+                arena[ieta][ix][iy].prev_u[ii][3] = u[3];
+                arena[ieta][ix][iy].prev_pi_b[ii] = 0.0;
+            }
 
             arena[ieta][ix][iy].pi_b[0] = 0.0;
 
             for (int mu = 0; mu < 4; mu++) {
                 /* baryon density */
                 arena[ieta][ix][iy].TJb[0][4][mu] = rhob*u[mu];
-
-                // diffusion current
-                arena[ieta][ix][iy].Wmunu[0][4][mu] = 0.0;
-                arena[ieta][ix][iy].prevWmunu[0][4][mu] = 0.0;
-            
                 for (int nu = 0; nu < 4; nu++) {
                     arena[ieta][ix][iy].TJb[0][nu][mu] = (
                                             (epsilon + p)*u[mu]*u[nu]
                                             + p*(DATA->gmunu)[mu][nu]);
-                    arena[ieta][ix][iy].Wmunu[0][nu][mu] = 0.0;
-                    arena[ieta][ix][iy].prevWmunu[0][nu][mu] = 0.0;
-                    arena[ieta][ix][iy].prevWmunu[1][nu][mu] = 0.0;
-
-                    arena[ieta][ix][iy].Pimunu[0][nu][mu] = 0.0;
-                    arena[ieta][ix][iy].prevPimunu[0][nu][mu] = 0.0;
-                    arena[ieta][ix][iy].prevPimunu[1][nu][mu] = 0.0;
                 }/* nu */
             }/* mu */
+            for (int ii = 0; ii < 14; ii++) {
+                arena[ieta][ix][iy].prevWmunu[0][ii] = 0.0;
+                arena[ieta][ix][iy].prevWmunu[1][ii] = 0.0;
+                arena[ieta][ix][iy].Wmunu[0][ii] = 0.0;
+            }
         }
     }
     // clean up
@@ -650,55 +625,49 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             arena[ieta][ix][iy].prev_rhob = rhob;
             arena[ieta][ix][iy].p = p;
             arena[ieta][ix][iy].p_t = p;
-            arena[ieta][ix][iy].trouble = 0;
-            arena[ieta][ix][iy].T = eos->get_temperature(epsilon, rhob);
-            arena[ieta][ix][iy].mu = eos->get_mu(epsilon, rhob);
             arena[ieta][ix][iy].TJb = util->cube_malloc(rk_order+1, 5, 4);
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
             arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
             arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->cube_malloc(1, 4, 4);
+            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-            arena[ieta][ix][iy].Wmunu = util->cube_malloc(rk_order+1, 5, 4);
-            arena[ieta][ix][iy].prevWmunu = util->cube_malloc(rk_order, 5, 4);
-            arena[ieta][ix][iy].Pimunu = util->cube_malloc(rk_order+1, 5, 4);
-            arena[ieta][ix][iy].prevPimunu = util->cube_malloc(rk_order, 5, 4);
-            arena[ieta][ix][iy].W_prev = util->mtx_malloc(5, 4);
+            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order+1, 14);
+            arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
 
             /* for HIC */
             u[0] = arena[ieta][ix][iy].u[0][0] = 1.0;
             u[3] = arena[ieta][ix][iy].u[0][3] = 0.0;
             u[1] = arena[ieta][ix][iy].u[0][1] = 0.0;
             u[2] = arena[ieta][ix][iy].u[0][2] = 0.0;
-            arena[ieta][ix][iy].prev_u[0][0] = 1.0;
-            arena[ieta][ix][iy].prev_u[0][3] = 0.0;
-            arena[ieta][ix][iy].prev_u[0][1] = 0.0;
-            arena[ieta][ix][iy].prev_u[0][2] = 0.0;
+            
+            for (int ii = 0; ii < rk_order; ii++) {
+                arena[ieta][ix][iy].prev_u[ii][0] = 1.0;
+                arena[ieta][ix][iy].prev_u[ii][3] = 0.0;
+                arena[ieta][ix][iy].prev_u[ii][1] = 0.0;
+                arena[ieta][ix][iy].prev_u[ii][2] = 0.0;
+                arena[ieta][ix][iy].prev_pi_b[ii] = 0.0;
+            }
 
             arena[ieta][ix][iy].pi_b[0] = 0.0;
 
             for (int mu = 0; mu < 4; mu++) {
                 /* baryon density */
                 arena[ieta][ix][iy].TJb[0][4][mu] = rhob*u[mu];
-
-                // diffusion current
-                arena[ieta][ix][iy].Wmunu[0][4][mu] = 0.0;
-                arena[ieta][ix][iy].prevWmunu[0][4][mu] = 0.0;
                 for (int nu = 0; nu < 4; nu++) {
                     arena[ieta][ix][iy].TJb[0][nu][mu] = (
                                                 (epsilon + p)*u[mu]*u[nu]
                                                 + p*(DATA->gmunu)[mu][nu]);
-                    arena[ieta][ix][iy].Wmunu[0][nu][mu] = 0.0;
-                    arena[ieta][ix][iy].prevWmunu[0][nu][mu] = 0.0;
-                    arena[ieta][ix][iy].prevWmunu[1][nu][mu] = 0.0;
-
-                    arena[ieta][ix][iy].Pimunu[0][nu][mu] = 0.0;
-                    arena[ieta][ix][iy].prevPimunu[0][nu][mu] = 0.0;
-                    arena[ieta][ix][iy].prevPimunu[1][nu][mu] = 0.0;
                 }/* nu */
             }/* mu */
+            for (int ii = 0; ii < 14; ii++) {
+                arena[ieta][ix][iy].prevWmunu[0][ii] = 0.0;
+                arena[ieta][ix][iy].prevWmunu[1][ii] = 0.0;
+                arena[ieta][ix][iy].Wmunu[0][ii] = 0.0;
+            }
         }
     }
     // clean up
