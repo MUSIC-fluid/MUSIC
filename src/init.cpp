@@ -309,11 +309,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].prev_rhob = rhob;
             arena[ieta][ix][iy].p = p;
             arena[ieta][ix][iy].p_t = p;
-            arena[ieta][ix][iy].trouble = 0;
             
-            arena[ieta][ix][iy].T = eos->get_temperature(epsilon, rhob);
-            arena[ieta][ix][iy].mu = eos->get_mu(epsilon, rhob);
-        
             arena[ieta][ix][iy].TJb = util->cube_malloc(rk_order+1, 5, 4);
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
@@ -509,11 +505,7 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].prev_rhob = rhob;
             arena[ieta][ix][iy].p = p;
             arena[ieta][ix][iy].p_t = p;
-            arena[ieta][ix][iy].trouble = 0;
 
-            arena[ieta][ix][iy].T = eos->get_temperature(epsilon, rhob);
-            arena[ieta][ix][iy].mu = eos->get_mu(epsilon, rhob);
-        
             arena[ieta][ix][iy].TJb = util->cube_malloc(rk_order+1, 5, 4);
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
@@ -650,9 +642,6 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             arena[ieta][ix][iy].prev_rhob = rhob;
             arena[ieta][ix][iy].p = p;
             arena[ieta][ix][iy].p_t = p;
-            arena[ieta][ix][iy].trouble = 0;
-            arena[ieta][ix][iy].T = eos->get_temperature(epsilon, rhob);
-            arena[ieta][ix][iy].mu = eos->get_mu(epsilon, rhob);
             arena[ieta][ix][iy].TJb = util->cube_malloc(rk_order+1, 5, 4);
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);

@@ -420,7 +420,6 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
                 revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA);
             }
         }
-        grid_pt->revert_flag = revert_flag + revert_q_flag;
     }
 
     if (revert_flag == 1)

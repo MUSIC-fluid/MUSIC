@@ -66,11 +66,6 @@ class Grid {
     double *prev_pi_b; /* bulk pressure */
     //double *pprev_pi_b; /* bulk pressure */
 
-    int revert_flag;
-    int trouble;
-    double T;  //added
-    double mu; //added
-        
     int position[4];
 
     // the following variables are for hyper-surface finder 
