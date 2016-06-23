@@ -187,12 +187,18 @@ void U_derivative::Make_sigma_XY(double tau, int ieta, InitData *DATA,
                 temp += sigma_local[0][a]*u_local[a];
             }
             sigma_local[0][0] = temp/u_local[0];
-            for (int a = 0; a < 4; a++) {
-                for (int b = 0; b < 4; b++) {
-                    arena[ieta][ix][iy].sigma[0][a][b] = (
-                                                        sigma_local[a][b]);
-                }
-            }
+
+            // store the 10 essential components in memory
+            arena[ieta][ix][iy].sigma[0][0] = sigma_local[0][0];
+            arena[ieta][ix][iy].sigma[0][1] = sigma_local[0][1];
+            arena[ieta][ix][iy].sigma[0][2] = sigma_local[0][2];
+            arena[ieta][ix][iy].sigma[0][3] = sigma_local[0][3];
+            arena[ieta][ix][iy].sigma[0][4] = sigma_local[1][1];
+            arena[ieta][ix][iy].sigma[0][5] = sigma_local[1][2];
+            arena[ieta][ix][iy].sigma[0][6] = sigma_local[1][3];
+            arena[ieta][ix][iy].sigma[0][7] = sigma_local[2][2];
+            arena[ieta][ix][iy].sigma[0][8] = sigma_local[2][3];
+            arena[ieta][ix][iy].sigma[0][9] = sigma_local[3][3];
         }/*iy */
     }/* ix */
 }

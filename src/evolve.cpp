@@ -153,7 +153,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
             for (int iy=0; iy <= DATA->ny; iy++) {
                 util->cube_free(arena[ieta][ix][iy].TJb, rk_order+1, 5, 4);
                 util->cube_free(arena[ieta][ix][iy].dUsup, 1, 5, 4);
-                util->cube_free(arena[ieta][ix][iy].sigma, 1, 4, 4);
+                util->mtx_free(arena[ieta][ix][iy].sigma, 1, 10);
                 util->cube_free(arena[ieta][ix][iy].Wmunu, rk_order+1, 5, 4);
                 util->cube_free(arena[ieta][ix][iy].prevWmunu, rk_order, 5, 4);
                 util->mtx_free(arena[ieta][ix][iy].u, rk_order+1, 4);

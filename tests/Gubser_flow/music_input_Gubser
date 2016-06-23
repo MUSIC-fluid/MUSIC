@@ -40,7 +40,7 @@ Bulk_relaxation_time_tau_b_pi  0.6
 UseCFL_condition  0 
 rotate_by_45_degrees  0 
 Viscosity_Flag_Yes_1_No_0  1 
-reconst_type  99
+reconst_type  1
 Runge_Kutta_order  2 
 Include_Bulk_Visc_Yes_1_No_0  0 
 output_hydro_debug_info  0

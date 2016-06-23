@@ -138,21 +138,21 @@ void Init::LinkNeighbors_XY(InitData *DATA, int ieta, Grid ***arena) {
                 arena[ieta][ix][iy].nbr_m_2[2] = &arena[ieta][ix][0];
 
             if (ieta != neta-1)
-                arena[ieta][ix][iy].nbr_p_1[0] = &arena[ieta+1][ix][iy];
+                arena[ieta][ix][iy].nbr_p_1[3] = &arena[ieta+1][ix][iy];
             else
-                arena[ieta][ix][iy].nbr_p_1[0] = &arena[neta-1][ix][iy];
+                arena[ieta][ix][iy].nbr_p_1[3] = &arena[neta-1][ix][iy];
             if (ieta < neta-2)
-                arena[ieta][ix][iy].nbr_p_2[0] = &arena[ieta+2][ix][iy];
+                arena[ieta][ix][iy].nbr_p_2[3] = &arena[ieta+2][ix][iy];
             else
-                arena[ieta][ix][iy].nbr_p_2[0] = &arena[neta-1][ix][iy];
+                arena[ieta][ix][iy].nbr_p_2[3] = &arena[neta-1][ix][iy];
             if (ieta != 0)
-                arena[ieta][ix][iy].nbr_m_1[0] = &arena[ieta-1][ix][iy];
+                arena[ieta][ix][iy].nbr_m_1[3] = &arena[ieta-1][ix][iy];
             else
-                arena[ieta][ix][iy].nbr_m_1[0] = &arena[0][ix][iy];
+                arena[ieta][ix][iy].nbr_m_1[3] = &arena[0][ix][iy];
             if (ieta > 1)
-                arena[ieta][ix][iy].nbr_m_2[0] = &arena[ieta-2][ix][iy];
+                arena[ieta][ix][iy].nbr_m_2[3] = &arena[ieta-2][ix][iy];
             else
-                arena[ieta][ix][iy].nbr_m_2[0] = &arena[0][ix][iy];
+                arena[ieta][ix][iy].nbr_m_2[3] = &arena[0][ix][iy];
         }
     }
 }
@@ -311,7 +311,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
             arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
             arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->cube_malloc(1, 4, 4);
+            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);
@@ -507,7 +507,7 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
             arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
             arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->cube_malloc(1, 4, 4);
+            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);
@@ -643,7 +643,7 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
             arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
             arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->cube_malloc(1, 4, 4);
+            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);

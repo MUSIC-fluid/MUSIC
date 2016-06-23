@@ -51,7 +51,8 @@ class Grid {
     double *theta_u;
 
     // the velocity shear tensor
-    double ***sigma;
+    // only record 10 essential components in a 1-d array
+    double **sigma;
         
     /* we need to calculate partial_tau u[mu] */
     /* dU[flag][m][n] = u^{m,n} = partial^n u^m with the rk flag */

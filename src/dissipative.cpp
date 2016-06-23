@@ -253,11 +253,16 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 
     // full Navier-Stokes term is
     // sign changes according to metric sign convention
-    for (int ii = 0; ii < 4; ii++) {
-        for (int jj = ii; jj < 4; jj++) {
-            sigma[ii][jj] = grid_pt->sigma[0][ii][jj];
-        }
-    }
+    sigma[0][0] = grid_pt->sigma[0][0];
+    sigma[0][1] = grid_pt->sigma[0][1];
+    sigma[0][2] = grid_pt->sigma[0][2];
+    sigma[0][3] = grid_pt->sigma[0][3];
+    sigma[1][1] = grid_pt->sigma[0][4];
+    sigma[1][2] = grid_pt->sigma[0][5];
+    sigma[1][3] = grid_pt->sigma[0][6];
+    sigma[2][2] = grid_pt->sigma[0][7];
+    sigma[2][3] = grid_pt->sigma[0][8];
+    sigma[3][3] = grid_pt->sigma[0][9];
     for (int ii = 0; ii < 4; ii++) {
         for (int jj = ii+1; jj < 4; jj++) {
             sigma[jj][ii] = sigma[ii][jj];
@@ -824,9 +829,23 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
     if (include_coupling_to_shear == 1) {
         // Computing sigma^mu^nu
         double sigma[4][4], Wmunu[4][4];
+        sigma[0][0] = grid_pt->sigma[0][0];
+        sigma[0][1] = grid_pt->sigma[0][1];
+        sigma[0][2] = grid_pt->sigma[0][2];
+        sigma[0][3] = grid_pt->sigma[0][3];
+        sigma[1][1] = grid_pt->sigma[0][4];
+        sigma[1][2] = grid_pt->sigma[0][5];
+        sigma[1][3] = grid_pt->sigma[0][6];
+        sigma[2][2] = grid_pt->sigma[0][7];
+        sigma[2][3] = grid_pt->sigma[0][8];
+        sigma[3][3] = grid_pt->sigma[0][9];
+        for (int ii = 0; ii < 4; ii++) {
+            for (int jj = ii+1; jj < 4; jj++) {
+                sigma[jj][ii] = sigma[ii][jj];
+            }
+        }
         for (int a = 0; a < 4 ; a++) {
             for (int b = a; b < 4; b++) {
-                sigma[a][b] = grid_pt->sigma[0][a][b];
                 Wmunu[a][b] = grid_pt->Wmunu[rk_flag][a][b];
             }
         }
@@ -961,8 +980,24 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
     // add a new non-linear term (-q^\mu \sigma_\mu\nu)
     double transport_coeff_2 = 3./5.*tau_rho;   // from 14-momentum massless
     double temptemp = 0.0;
+    double sigma[4][4];
+    sigma[0][0] = grid_pt->sigma[0][0];
+    sigma[0][1] = grid_pt->sigma[0][1];
+    sigma[0][2] = grid_pt->sigma[0][2];
+    sigma[0][3] = grid_pt->sigma[0][3];
+    sigma[1][1] = grid_pt->sigma[0][4];
+    sigma[1][2] = grid_pt->sigma[0][5];
+    sigma[1][3] = grid_pt->sigma[0][6];
+    sigma[2][2] = grid_pt->sigma[0][7];
+    sigma[2][3] = grid_pt->sigma[0][8];
+    sigma[3][3] = grid_pt->sigma[0][9];
+    for (int ii = 0; ii < 4; ii++) {
+        for (int jj = ii+1; jj < 4; jj++) {
+            sigma[jj][ii] = sigma[ii][jj];
+        }
+    }
     for (int i = 0 ; i < 4; i++) {
-        temptemp += q[i]*grid_pt->sigma[0][i][nu]*DATA->gmunu[i][i]; 
+        temptemp += q[i]*sigma[i][nu]*DATA->gmunu[i][i]; 
     }
     double Nonlinear2 = - transport_coeff_2*temptemp;
 
