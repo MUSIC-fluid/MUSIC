@@ -66,8 +66,6 @@ class Grid {
     double *prev_pi_b; /* bulk pressure */
     //double *pprev_pi_b; /* bulk pressure */
 
-    int position[4];
-
     // the following variables are for hyper-surface finder 
     // to determine freeze-out surface
     // they are only updated every freeze-out step not every evolution

@@ -1149,8 +1149,6 @@ void Reconst::ReconstError(const char *str, int i, int rk_flag, double *qi,
     int alpha;
     fprintf(stderr, "Reconst %s in the direction = %d reports an error.\n", 
             str, i); 
-    fprintf(stderr, "grid_pt position = (%d, %d, %d).\n", 
-            grid_pt->position[1], grid_pt->position[2], grid_pt->position[3]);
     fprintf(stderr, "rk_flag = %d\n", rk_flag); 
  
     for (alpha=0; alpha<5; alpha++) {

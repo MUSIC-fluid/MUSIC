@@ -82,10 +82,6 @@ void Init::LinkNeighbors(InitData *DATA, Grid ****arena) {
                 (*arena)[ieta][ix][iy].nbr_m_1 = new Grid *[4];
                 (*arena)[ieta][ix][iy].nbr_p_2 = new Grid *[4];
                 (*arena)[ieta][ix][iy].nbr_m_2 = new Grid *[4];
-
-                (*arena)[ieta][ix][iy].position[1] = ix;
-                (*arena)[ieta][ix][iy].position[2] = iy;
-                (*arena)[ieta][ix][iy].position[3] = ieta;
             }
         }
     }
@@ -142,21 +138,21 @@ void Init::LinkNeighbors_XY(InitData *DATA, int ieta, Grid ***arena) {
                 arena[ieta][ix][iy].nbr_m_2[2] = &arena[ieta][ix][0];
 
             if (ieta != neta-1)
-                arena[ieta][ix][iy].nbr_p_1[3] = &arena[ieta+1][ix][iy];
+                arena[ieta][ix][iy].nbr_p_1[0] = &arena[ieta+1][ix][iy];
             else
-                arena[ieta][ix][iy].nbr_p_1[3] = &arena[neta-1][ix][iy];
+                arena[ieta][ix][iy].nbr_p_1[0] = &arena[neta-1][ix][iy];
             if (ieta < neta-2)
-                arena[ieta][ix][iy].nbr_p_2[3] = &arena[ieta+2][ix][iy];
+                arena[ieta][ix][iy].nbr_p_2[0] = &arena[ieta+2][ix][iy];
             else
-                arena[ieta][ix][iy].nbr_p_2[3] = &arena[neta-1][ix][iy];
+                arena[ieta][ix][iy].nbr_p_2[0] = &arena[neta-1][ix][iy];
             if (ieta != 0)
-                arena[ieta][ix][iy].nbr_m_1[3] = &arena[ieta-1][ix][iy];
+                arena[ieta][ix][iy].nbr_m_1[0] = &arena[ieta-1][ix][iy];
             else
-                arena[ieta][ix][iy].nbr_m_1[3] = &arena[0][ix][iy];
+                arena[ieta][ix][iy].nbr_m_1[0] = &arena[0][ix][iy];
             if (ieta > 1)
-                arena[ieta][ix][iy].nbr_m_2[3] = &arena[ieta-2][ix][iy];
+                arena[ieta][ix][iy].nbr_m_2[0] = &arena[ieta-2][ix][iy];
             else
-                arena[ieta][ix][iy].nbr_m_2[3] = &arena[0][ix][iy];
+                arena[ieta][ix][iy].nbr_m_2[0] = &arena[0][ix][iy];
         }
     }
 }

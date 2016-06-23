@@ -573,8 +573,6 @@ void Advance::TestW(double tau, Grid *grid_pt, int rk_flag) {
         && (grid_pt->epsilon > 0.3)) {
         fprintf(stderr, "TestW: trace = %e\n", trace);
         fprintf(stderr, "transv = %e\n", transv);
-        fprintf(stderr, "at (%d, %d, %d) and tau = %e.\n", 
-        grid_pt->position[1], grid_pt->position[2], grid_pt->position[3], tau);
         fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
         fprintf(stderr, "W[0][0] = %e\n", grid_pt->Wmunu[rk_flag+1][0][0]);
         fprintf(stderr, "W[1][1] = %e\n", grid_pt->Wmunu[rk_flag+1][1][1]);
@@ -631,18 +629,12 @@ void Advance::ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag,
         }
     }
     if (fabs(sum-3.0) >  1.0e-6 && grid_pt->epsilon > 0.3) {
-        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
-      
         fprintf(stderr, "d trace check = %3.16e\n", sum);
         fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
         fprintf(stderr, "u[0] = %e\n", grid_pt->u[rk_flag][0]);
         fprintf(stderr, "u[1] = %e\n", grid_pt->u[rk_flag][1]);
         fprintf(stderr, "u[2] = %e\n", grid_pt->u[rk_flag][2]);
         fprintf(stderr, "u[3] = %e\n", grid_pt->u[rk_flag][3]);
-        fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",
-                tau, x, y, eta);
         fprintf(stderr, "\n");
       
     }
@@ -655,13 +647,8 @@ void Advance::ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag,
     }
 
     if (fabs(norm -1.0) > 1.0e-6 && grid_pt->epsilon > 0.3) {
-        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
         fprintf(stderr, "ProjectSpin2: norm = %3.16e\n", norm);
         fprintf(stderr, "ProjectSpin2: epsilon = %e\n", grid_pt->epsilon);
-        fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",
-                tau, x, y, eta);
     }
 
     for (a=0; a<4; a++) {
@@ -675,16 +662,11 @@ void Advance::ProjectSpin2WS(double tau, Grid *grid_pt, int rk_flag,
         trace += grid_pt->Wmunu[rk_flag+1][a][a];
     }
     if (fabs(trace) > 1.0e-6 && grid_pt->epsilon > 0.3) {
-        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-	    double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
         fprintf(stderr, "ProjectSpin2WS: final trace = 3.16%e\n", trace);
         fprintf(stderr, "u0 = %e\n", grid_pt->u[rk_flag][0]);
         fprintf(stderr, "u1 = %e\n", grid_pt->u[rk_flag][1]);
         fprintf(stderr, "u2 = %e\n", grid_pt->u[rk_flag][2]);
         fprintf(stderr, "u3 = %e\n", grid_pt->u[rk_flag][3]);
-        fprintf(stderr, "ProjectSpin2WS at %f %f %f %f: exiting.\n",
-                tau, x, y, eta);
     }
 }/* ProjectSpin2WS */
 
@@ -709,13 +691,8 @@ void Advance::ProjectSpin2W(double tau, Grid *grid_pt, int rk_flag,
         norm -= grid_pt->u[rk_flag+1][a]*grid_pt->u[rk_flag+1][a];
     }
     if (fabs(norm -1.0) > 1.0e-6 && grid_pt->epsilon > 0.3) {
-        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
         fprintf(stderr, "ProjectSpin2W: norm = %3.16e\n", norm);
         fprintf(stderr, "ProjectSpin2W: epsilon = %e\n", grid_pt->epsilon);
-        fprintf(stderr, "ProjectSpin2W at %f %f %f %f: exiting.\n",
-                tau, x, y, eta);
     }
 
     for (a=0; a<4; a++) {
@@ -729,16 +706,11 @@ void Advance::ProjectSpin2W(double tau, Grid *grid_pt, int rk_flag,
         trace += grid_pt->Wmunu[rk_flag+1][a][a];
     }
     if (fabs(trace) > 1.0e-6 && grid_pt->epsilon > 0.3) {
-        double x = grid_pt->position[1]*DATA->delta_x-DATA->x_size/2;
-        double y = grid_pt->position[2]*DATA->delta_y-DATA->y_size/2;
-        double eta = grid_pt->position[3]*DATA->delta_eta-DATA->eta_size/2;
         fprintf(stderr, "ProjectSpin2W: final trace = %e\n", trace);
         fprintf(stderr, "u0 = %e\n", grid_pt->u[rk_flag+1][0]);
         fprintf(stderr, "u1 = %e\n", grid_pt->u[rk_flag+1][1]);
         fprintf(stderr, "u2 = %e\n", grid_pt->u[rk_flag+1][2]);
         fprintf(stderr, "u3 = %e\n", grid_pt->u[rk_flag+1][3]);
-        fprintf(stderr, "ProjectSpin2W at %f %f %f %f: exiting.\n",
-                tau, x, y, eta);
     }
 }/* ProjectSpin2W */
 
