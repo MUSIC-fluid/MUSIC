@@ -45,14 +45,17 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
         cout << "Using Initial_profile=" << DATA->Initial_profile
              << ". Overwriting lattice dimensions:" << endl;
 
-        DATA->nx = nx-1;
-        DATA->ny = ny-1;
+        DATA->nx = nx - 1;
+        DATA->ny = ny - 1;
         DATA->delta_x = dx;
         DATA->delta_y = dy;
 
         cout << "neta=" << neta << ", nx=" << nx << ", ny=" << ny << endl;
         cout << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x
              << ", dy=" << DATA->delta_y << endl;
+    } else if (DATA->Initial_profile == 11) {
+        DATA->nx = DATA->nx - 1;
+        DATA->ny = DATA->ny - 1;
     }
 
     // initialize arena

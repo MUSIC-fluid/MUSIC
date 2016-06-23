@@ -2,9 +2,10 @@
 #ifndef SRC_EOS_H_
 #define SRC_EOS_H_
 
-#include "util.h"
-#include "data.h"
 #include <iostream>
+
+#include "./util.h"
+#include "./data.h"
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
 #include "gsl/gsl_errno.h"
@@ -36,7 +37,7 @@ class EOS {
     int NBNP5, NEPP5;             // number of entries for \mu_B and epsilon
     int NBNP6, NEPP6;             // number of entries for \mu_B and epsilon
     int NBNP7, NEPP7;             // number of entries for \mu_B and epsilon
-    
+
     double **pressure1;
     double **pressure2;
     double **pressure3;
@@ -94,17 +95,17 @@ class EOS {
     int whichEOS;
 
     Util *util;
-  
+
  public:
-    EOS(InitData *para_in);//constructor
-    ~EOS();//destructor
+    EOS(InitData *para_in);  // constructor
+    ~EOS();  // destructor
     void initialize_eos();
     void init_eos0();               // for whichEOS=0
     void init_eos();                // for whichEOS=1
     void init_eos2();               // for whichEOS=2
-    void init_eos3(int selector);   // for whichEOS=3 (PCE 150 MeV), 
-                                    // whichEOS=4 (PCE 155 MeV), 
-                                    // whichEOS=5 (PCE 160 MeV), 
+    void init_eos3(int selector);   // for whichEOS=3 (PCE 150 MeV),
+                                    // whichEOS=4 (PCE 155 MeV),
+                                    // whichEOS=5 (PCE 160 MeV),
                                     // whichEOS=6 (PCE 165 MeV)
     void init_eos7();               // for whichEOS=7 s95p-v1.2 (for UrQMD)
     void init_eos10(int selector);  // for EOS at finite mu_B
@@ -113,15 +114,15 @@ class EOS {
     double interpolate_pressure(double e, double rhob);  // for whichEOS=1
     double interpolate(double e, double rhob, int selector);
     // for whichEOS=2
-    double interpolate2(double e, double rhob, int selector); 
-    
+    double interpolate2(double e, double rhob, int selector);
+
     // for EOS at finite mu_B
     double interpolate2D(double e, double rhob, int selector);
 
     double get_cs2(double e, double rhob);
     double calculate_velocity_of_sound_sq(double e, double rhob);
-    void fill_cs2_matrix(double e0, double de, int ne, 
-                         double rhob0, double drhob, int nrhob, 
+    void fill_cs2_matrix(double e0, double de, int ne,
+                         double rhob0, double drhob, int nrhob,
                          double** cs2_ptr);
     void build_velocity_of_sound_sq_matrix();
     double get_rhob_from_mub(double e, double mub);
@@ -141,8 +142,8 @@ class EOS {
     double get_pressure(double epsilon, double rhob);
     double ssolve(double e, double rhob, double s);
     double Tsolve(double e, double rhob, double T);
-    double findRoot(double (EOS::*function)(double, double, double), 
-                   double rhob, double s, double e1, double e2, double eacc);
+    double findRoot(double (EOS::*function)(double, double, double),
+                    double rhob, double s, double e1, double e2, double eacc);
     double s2e_ideal_gas(double s);
     double get_s2e(double s, double rhob);
     double get_s2e_finite_rhob(double s, double rhob);
@@ -150,4 +151,3 @@ class EOS {
 };
 
 #endif  // SRC_EOS_H_
-  
