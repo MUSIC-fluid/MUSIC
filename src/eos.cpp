@@ -2227,89 +2227,74 @@ double EOS::interpolate2(double e, double rhob, int selector) {
 }
 
 
-double EOS::get_dpOverde(double e, double rhob)
-{
-  double dp, pL, pR;
-  //use linear interpolation
-  double eLeft, eRight;
+double EOS::get_dpOverde(double e, double rhob) {
+    double dp, pL, pR;
+    //use linear interpolation
+    double eLeft, eRight;
   
-  e*=hbarc;
+    e*=hbarc;
 
-  //fprintf(stderr,"EPP2=%lf\n", EPP2);
-  if(e<EPP2) //use first file for small epsilon values
-    {
-      eLeft=e-deltaEPP1/2.;
-      eRight=e+deltaEPP1/2.;
-      if(eLeft<EPP1)
-    {
-      eLeft=EPP1;
-      eRight=EPP1+deltaEPP1;
-    }
+    if (e < EPP2) {
+        //use first file for small epsilon values
+        eLeft = e - deltaEPP1/2.;
+        eRight = e + deltaEPP1/2.;
+        if (eLeft < EPP1) {
+            eLeft = EPP1;
+            eRight = EPP1+deltaEPP1;
+        }
       
-      if(eRight>EPP1+NEPP1*deltaEPP1)
-    {
-      //eLeft=EPP1+(NEPP1-1)*deltaEPP1;
-      eRight=EPP1+NEPP1*deltaEPP1;
-      //fprintf(stderr,"e=%lf, EPP2=%lf\n", e, EPP2); 
-      //fprintf(stderr,"eLeft=%lf\n", eLeft); 
-      //fprintf(stderr,"eRight=%lf\n", eRight); 
-      //if(eRight-eLeft<deltaEPP1) fprintf(stderr,"delta=%lf, EPP1=%lf\n", eRight-eLeft, deltaEPP1); 
-    }
+        if (eRight > EPP1 + NEPP1*deltaEPP1) {
+            eLeft = EPP1 + (NEPP1-1)*deltaEPP1;
+            eRight = EPP1 + NEPP1*deltaEPP1;
+        }
 
-      pL = get_pressure(eLeft/hbarc, rhob);
-      pR = get_pressure(eRight/hbarc,  rhob);
+        pL = get_pressure(eLeft/hbarc, rhob);
+        pR = get_pressure(eRight/hbarc,  rhob);
       
-      dp = pR-pL;
+        dp = pR - pL;
       
-       if(dp<0) 
-       { 
-      fprintf(stderr,"1dp/de=%lf\n", dp/((eRight-eLeft)/hbarc)); 
-      fprintf(stderr,"1pL=%lf\n", pL); 
-      fprintf(stderr,"1pR=%lf\n", pR); 
-      fprintf(stderr,"1e=%lf\n", e);  
-      fprintf(stderr,"1eLeft=%lf\n", eLeft/hbarc);  
-      fprintf(stderr,"1eRight=%lf\n", eRight/hbarc);  
-       } 
-      //if(dp<0) dp=0.;
+        if (dp<0) { 
+            fprintf(stderr,"1dp/de=%lf\n", dp/((eRight-eLeft)/hbarc)); 
+            fprintf(stderr,"1pL=%lf\n", pL); 
+            fprintf(stderr,"1pR=%lf\n", pR); 
+            fprintf(stderr,"1e=%lf\n", e);  
+            fprintf(stderr,"1eLeft=%lf\n", eLeft/hbarc);  
+            fprintf(stderr,"1eRight=%lf\n", eRight/hbarc);  
+        } 
     
-      return dp/((eRight-eLeft)/hbarc);
-    } 
-  else
-    {
-      eLeft=e-deltaEPP2;
-      eRight=e+deltaEPP2;
-      if(eLeft<EPP2)
-    {
-      eLeft=EPP2;
-      eRight=EPP2+deltaEPP2;
-    }
+        return dp/((eRight-eLeft)/hbarc);
+    } else {
+        eLeft = e - deltaEPP2;
+        eRight = e + deltaEPP2;
+        if (eLeft < EPP2) {
+            eLeft = EPP2;
+            eRight = EPP2 + deltaEPP2;
+        }
+        if (eRight > EPP2 + NEPP2*deltaEPP2) {
+            eLeft = EPP2 + (NEPP2 - 1.)*deltaEPP2;
+            eRight = EPP2 + NEPP2*deltaEPP2;
+        }
       
-      if(eRight>EPP2+NEPP2*deltaEPP2)
-    {
-      eRight=EPP2+NEPP2*deltaEPP2;
-    }
-      
-      pL = get_pressure(eLeft/hbarc, rhob);
-      pR = get_pressure(eRight/hbarc, rhob);
-      
-      dp = pR-pL;
-      
-      if(dp<0 && pL*hbarc>0.1 && eLeft<24.)
-    {
-      fprintf(stderr,"*2dp=%lf\n", dp/hbarc);
-      fprintf(stderr,"2dp/de=%lf\n", dp/((eRight-eLeft)/hbarc));
-      fprintf(stderr,"2pL=%lf\n", pL*hbarc);
-      fprintf(stderr,"2pR=%lf\n", pR*hbarc);
-      fprintf(stderr,"2rhob=%lf\n", rhob);
-      fprintf(stderr,"2e=%lf\n", e);
-      fprintf(stderr,"EPP2=%lf\n", EPP2);
-      fprintf(stderr,"2eLeft=%lf\n", eLeft);
-      fprintf(stderr,"2eRight=%lf\n", eRight);
-    }  
-      //fprintf(stderr,"dp/de=%lf\n", dp/((eRight-eLeft)/hbarc));  
-      if(dp<0) dp=0.;
+        pL = get_pressure(eLeft/hbarc, rhob);
+        pR = get_pressure(eRight/hbarc, rhob);
+          
+        dp = pR - pL;
+          
+        if (dp < 0. && pL*hbarc > 0.1 && eLeft < 24.) {
+            fprintf(stderr, "*2dp=%lf\n", dp/hbarc);
+            fprintf(stderr, "2dp/de=%lf\n", dp/((eRight-eLeft)/hbarc));
+            fprintf(stderr, "2pL=%lf\n", pL*hbarc);
+            fprintf(stderr, "2pR=%lf\n", pR*hbarc);
+            fprintf(stderr, "2rhob=%lf\n", rhob);
+            fprintf(stderr, "2e=%lf\n", e);
+            fprintf(stderr, "EPP2=%lf\n", EPP2);
+            fprintf(stderr, "2eLeft=%lf\n", eLeft);
+            fprintf(stderr, "2eRight=%lf\n", eRight);
+        }  
+        if (dp < 0)
+            dp = 0.;
 
-      return dp/((eRight-eLeft)/hbarc);
+        return dp/((eRight-eLeft)/hbarc);
     }
 }
 
