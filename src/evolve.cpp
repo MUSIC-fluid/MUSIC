@@ -42,8 +42,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     // first pass some control parameters
     facTau = DATA->facTau;
     int output_hydro_debug_flag = DATA->output_hydro_debug_info;
-    int turn_on_rhob = DATA->turn_on_rhob;
-    int turn_on_diff = DATA->turn_on_diff;
     int Nskip_timestep = DATA->output_evolution_every_N_timesteps;
     int outputEvo_flag = DATA->outputEvolutionData;
     int freezeout_flag = DATA->doFreezeOut;
@@ -93,6 +91,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                 grid_info->Gubser_flow_check_file(arena, tau);
             }
             if (fabs(tau - 2.0) < 1e-8) {
+                grid_info->Gubser_flow_check_file(arena, tau);
+            }
+            if (fabs(tau - 3.0) < 1e-8) {
                 grid_info->Gubser_flow_check_file(arena, tau);
             }
         }

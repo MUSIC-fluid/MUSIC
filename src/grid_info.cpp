@@ -287,10 +287,10 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
     ofstream output_file(filename.str().c_str());
 
     double unit_convert = 0.19733;  // hbarC
-    double dx = 0.05;
-    double x_min = -5.0;
-    double dy = 0.05;
-    double y_min = -5.0;
+    double dx = DATA_ptr->delta_x;
+    double x_min = -DATA_ptr->x_size/2.;
+    double dy = DATA_ptr->delta_y;
+    double y_min = -DATA_ptr->y_size/2.;
     for (int ix = 0; ix <= DATA_ptr->nx; ix++) {
         double x_local = x_min + ix*dx;
         for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
