@@ -143,6 +143,7 @@ typedef struct init_data {
     int output_evolution_every_N_y;
     int output_evolution_every_N_eta;
     bool output_hydro_params_header;
+    double output_evolution_T_cut;
     int initial_eta_profile;
     int initial_eta_rhob_profile;
 

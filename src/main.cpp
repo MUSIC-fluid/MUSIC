@@ -791,6 +791,12 @@ void ReadInData3(InitData *DATA, string file) {
         istringstream(tempinput) >> temp_evo_N_eta;
     DATA->output_evolution_every_N_eta = temp_evo_N_eta;
 
+    double temp_evo_T_cut = 0.105;
+    tempinput = util->StringFind4(file, "output_evolution_T_cut");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_evo_T_cut;
+    DATA->output_evolution_T_cut = temp_evo_T_cut;
+
     // Make MUSIC output a C header file containing informations about
     // the hydro parameters used
     // 0 for false (do not output), 1 for true
