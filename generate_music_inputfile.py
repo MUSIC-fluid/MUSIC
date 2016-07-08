@@ -74,6 +74,7 @@ hydro_dict.update({
 
     'output_hydro_debug_info': 0,           # flag to output additional evolution information for debuging
     'output_evolution_data': 0,             # flag to output evolution history to file
+    'output_evolution_T_cut': 0.145,        # minimum temperature for outputing fluid cells [GeV]
     'output_hydro_params_header' : 1,       # flag to output hydro evolution information header
     'outputBinaryEvolution': 1,             # flag to output evolution history in binary format
     'output_evolution_every_N_timesteps' : 1,     # number of points to skip in tau direction for hydro evolution
