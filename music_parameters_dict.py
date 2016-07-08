@@ -49,18 +49,6 @@ initial_condition_dict = {
     'ecm'     : 200.0,       # center of mass collision energy
     's_factor': 28.0,        # normalization factor read in initial data file
 
-    # parameters for Glauber model
-    'binary_collision_scaling_fraction': 0.,      # for wounded nucleon/binary collision mixing ratio in the Glauber model
-    'Maximum_energy_density': 54.,                # maximum energy density for Glauber initial condition
-    'SigmaNN': 42.1,                              # NN inelastic cross section for Glauber model
-    'Impact_parameter': 3.,                       # impact parameter for optical Glauber model
-    'bmin': 9.,                                   # minimum sampling range for impact parameter in MC-Glauber model (fm)
-    'bmax': 9.,                                   # maximum sampling range for impact parameter in MC-Glauber model (fm)
-    'sigma_0': 0.4,                               # Gaussian width for individual nucleon (fm)
-    'Target': 'Au',                               # type of target nucleus
-    'Projectile': 'Au',                           # type of projectile nucleus
-    'Lexus_Imax': 100,                            # ???
-
     # envelope function in eta_s direction
     'Eta_plateau_size': 20.,                      # size of the plateau in eta_s direction
     'Eta_fall_off': 0.7,                          # the scale of the fall off of the plateau in eta_s direction
@@ -73,11 +61,6 @@ initial_condition_dict = {
     'eta_rhob_width_1': 1.0,                      # the width of the Gaussian for the outside tail (for initial_eta_rhob_profile == 2)
     'eta_rhob_width_2': 0.5,                      # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
 
-    # parameter for Initial_profile = 0
-    'Initial_asym_long_axis_in_fm': 4,
-    'Initial_asym_short_axis_in_fm': 2,
-    'Initial_radial_fall_off_in_fm': 0.5,
-    'Initial_radius_size_in_fm': 2.6,
 }
 
 
@@ -90,7 +73,6 @@ hydro_dict = {
     'Total_evolution_time_tau': 30.,    # the maximum allowed running evolution time (fm/c)
                                         # need to be set to some large enough number
     'Delta_Tau': 0.04,                  # time step to use in the evolution [fm/c]
-    'UseCFL_condition': 0,              # Use the CFL condition for tau
     'Eta_grid_size': 14.0,              # spatial rapidity range
                                         # [-Eta_grid_size/2, Eta_grid_size/2 - delta_eta]
     'Grid_size_in_eta': 4,              # number of the grid points in spatial rapidity direction
@@ -105,15 +87,6 @@ hydro_dict = {
                                         # [-Y_grid_size_in_fm/2, Y_grid_size_in_fm/2]
     'Grid_size_in_y': 260,              # number of the grid points in y direction
     'Grid_size_in_x': 260,              # number of the grid points in x direction
-
-    # input grid information only works for initial_profile == 12
-    'input_grid_size_in_y': 261,        # number of the grid points in y direction
-    'input_grid_size_in_x': 261,        # number of the grid points in x direction
-    'input_grid_size_in_eta': 101,      # number of the grid points in eta direction
-    'input_grid_dy': 0.1,               # lattice spacing in y direction
-    'input_grid_dx': 0.1,               # lattice spacing in x direction
-    'input_grid_deta': 0.1,             # lattice spacing in eta direction
-
 
     'EOS_to_use': 3,  # type of the equation of state
                       # 0: ideal gas
@@ -132,7 +105,6 @@ hydro_dict = {
                              # 0: energy density and rho_baryon
                              # 1: flow velocity
     'boost_invariant': 0,    # initial condition is boost invariant
-    'Vicous_Trouble_Zero=0_or_Stop=1': 2,  # ??? (unused)
 
     #viscosity and diffusion options
     'Viscosity_Flag_Yes_1_No_0': 1,               # turn on viscosity in the evolution
@@ -150,11 +122,6 @@ hydro_dict = {
     'QuestRevert_rho_shear_max': 0.1,             # quest revert for shear
     'QuestRevert_rho_q_max': 0.1,                 # quest revert for diffusion
     'QuestRevert_rho_bulk_max': 0.1,              # quest revert for bulk
-
-    'Verbose_Flag_Yes_1_No_0': 0,                 # parameter control the mount of output warning messages (unused)
-    'Minimum_Epsilon_Frac_For_Visc': 0.00001,     # ??? (unused)
-    'Maximum_Local_Rapidity': 20.0,               # the maximum allowed flow rapidity in reconst.cpp
-    'rotate_by_45_degrees': 0,                    # rotate the grid by 45 degree for test
 
     'output_hydro_debug_info': 1,                 # flag to output additional evolution information for debuging
     'output_evolution_data': 0,                   # flag to output evolution history to file
@@ -226,8 +193,3 @@ collect_dict = {
     'dNdyptdpt_eta_max': 0.5,
 }
 
-# other parameters
-other_parameters_dict = {
-    'Include_Jet': 0,
-    'Include_Trigger': 0,
-}

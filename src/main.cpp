@@ -473,8 +473,8 @@ void ReadInData3(InitData *DATA, string file) {
         istringstream(tempinput) >> temp_eta_width_2;
     DATA->eta_rhob_width_2 = temp_eta_width_2;
 
-  // s_factor
-  double tempsFactor = 20.;
+    // s_factor
+    double tempsFactor = 20.;
     tempinput = util->StringFind4(file, "s_factor");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempsFactor  ;
@@ -688,36 +688,48 @@ void ReadInData3(InitData *DATA, string file) {
       istringstream(tempinput) >> tempdoFreezeOut_lowtemp;
   DATA->doFreezeOut_lowtemp = tempdoFreezeOut_lowtemp;
   
-  // Initial_Distribution_Filename
-  string tempinitName = "initial/initial_ed.dat";
-  tempinput = util->StringFind4(file, "Initial_Distribution_Filename");
-  if(tempinput != "empty") tempinitName.assign(tempinput);
-  DATA->initName.assign(tempinitName);
-  // Initial_Distribution_Filename for rhob
-  string tempinitName_rhob = "initial/initial_rhob.dat";
-  tempinput = util->StringFind4(file, "Initial_Rhob_Distribution_Filename");
-  if(tempinput != "empty") tempinitName_rhob.assign(tempinput);
-  DATA->initName_rhob.assign(tempinitName_rhob);
-  // Initial_Distribution_Filename for ux
-  string tempinitName_ux = "initial/initial_ux.dat";
-  tempinput = util->StringFind4(file, "Initial_ux_Distribution_Filename");
-  if(tempinput != "empty") tempinitName_ux.assign(tempinput);
-  DATA->initName_ux.assign(tempinitName_ux);
-  // Initial_Distribution_Filename for uy
-  string tempinitName_uy = "initial/initial_uy.dat";
-  tempinput = util->StringFind4(file, "Initial_uy_Distribution_Filename");
-  if(tempinput != "empty") tempinitName_uy.assign(tempinput);
-  DATA->initName_uy.assign(tempinitName_uy);
-  // Initial_Distribution_Filename for TA
-  string tempinitName_TA = "initial/initial_TA.dat";
-  tempinput = util->StringFind4(file, "Initial_TA_Distribution_Filename");
-  if(tempinput != "empty") tempinitName_TA.assign(tempinput);
-  DATA->initName_TA.assign(tempinitName_TA);
-  // Initial_Distribution_Filename for TB
-  string tempinitName_TB = "initial/initial_TB.dat";
-  tempinput = util->StringFind4(file, "Initial_TB_Distribution_Filename");
-  if(tempinput != "empty") tempinitName_TB.assign(tempinput);
-  DATA->initName_TB.assign(tempinitName_TB);
+    // Initial_Distribution_Filename
+    string tempinitName = "initial/initial_ed.dat";
+    tempinput = util->StringFind4(file, "Initial_Distribution_Filename");
+    if(tempinput != "empty") tempinitName.assign(tempinput);
+    DATA->initName.assign(tempinitName);
+    // Initial_Distribution_Filename for rhob
+    string tempinitName_rhob = "initial/initial_rhob.dat";
+    tempinput = util->StringFind4(file, "Initial_Rhob_Distribution_Filename");
+    if(tempinput != "empty") tempinitName_rhob.assign(tempinput);
+    DATA->initName_rhob.assign(tempinitName_rhob);
+    // Initial_Distribution_Filename for ux
+    string tempinitName_ux = "initial/initial_ux.dat";
+    tempinput = util->StringFind4(file, "Initial_ux_Distribution_Filename");
+    if(tempinput != "empty") tempinitName_ux.assign(tempinput);
+    DATA->initName_ux.assign(tempinitName_ux);
+    // Initial_Distribution_Filename for uy
+    string tempinitName_uy = "initial/initial_uy.dat";
+    tempinput = util->StringFind4(file, "Initial_uy_Distribution_Filename");
+    if(tempinput != "empty") tempinitName_uy.assign(tempinput);
+    DATA->initName_uy.assign(tempinitName_uy);
+    // Initial_Distribution_Filename for TA
+    string tempinitName_TA = "initial/initial_TA.dat";
+    tempinput = util->StringFind4(file, "Initial_TA_Distribution_Filename");
+    if(tempinput != "empty") tempinitName_TA.assign(tempinput);
+    DATA->initName_TA.assign(tempinitName_TA);
+    // Initial_Distribution_Filename for TB
+    string tempinitName_TB = "initial/initial_TB.dat";
+    tempinput = util->StringFind4(file, "Initial_TB_Distribution_Filename");
+    if(tempinput != "empty") tempinitName_TB.assign(tempinput);
+    DATA->initName_TB.assign(tempinitName_TB);
+    // Initial_Distribution_Filename for rhob TA
+    string tempinitName_rhob_TA = "initial/initial_rhob_TA.dat";
+    tempinput = util->StringFind4(
+                            file, "Initial_rhob_TA_Distribution_Filename");
+    if(tempinput != "empty") tempinitName_rhob_TA.assign(tempinput);
+    DATA->initName_rhob_TA.assign(tempinitName_rhob_TA);
+    // Initial_Distribution_Filename for rhob TB
+    string tempinitName_rhob_TB = "initial/initial_TB.dat";
+    tempinput = util->StringFind4(
+                            file, "Initial_rhob_TB_Distribution_Filename");
+    if(tempinput != "empty") tempinitName_rhob_TB.assign(tempinput);
+    DATA->initName_rhob_TB.assign(tempinitName_rhob_TB);
   
     // compute beam rapidity according to the collision energy
     double temp_ecm = 200;

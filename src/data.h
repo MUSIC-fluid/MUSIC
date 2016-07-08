@@ -20,6 +20,8 @@ typedef struct init_data {
     string initName_uy;
     string initName_TA;
     string initName_TB;
+    string initName_rhob_TA;
+    string initName_rhob_TB;
 
     int nx;
     int ny;

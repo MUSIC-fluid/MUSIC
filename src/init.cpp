@@ -608,22 +608,32 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
     // first load in the transverse profile
     ifstream profile_TA(DATA->initName_TA.c_str());
     ifstream profile_TB(DATA->initName_TB.c_str());
+    ifstream profile_rhob_TA(DATA->initName_rhob_TA.c_str());
+    ifstream profile_rhob_TB(DATA->initName_rhob_TB.c_str());
     int nx = DATA->nx;
     int ny = DATA->ny;
     double** temp_profile_TA = new double* [nx+1];
     double** temp_profile_TB = new double* [nx+1];
+    double** temp_profile_rhob_TA = new double* [nx+1];
+    double** temp_profile_rhob_TB = new double* [nx+1];
     for (int i = 0; i < nx+1; i++) {
         temp_profile_TA[i] = new double[ny+1];
         temp_profile_TB[i] = new double[ny+1];
+        temp_profile_rhob_TA[i] = new double[ny+1];
+        temp_profile_rhob_TB[i] = new double[ny+1];
     }
     for (int i = 0; i < nx+1; i++) {
         for (int j = 0; j < ny+1; j++) {
             profile_TA >> temp_profile_TA[i][j];
             profile_TB >> temp_profile_TB[i][j];
+            profile_rhob_TA >> temp_profile_rhob_TA[i][j];
+            profile_rhob_TB >> temp_profile_rhob_TB[i][j];
         }
     }
     profile_TA.close();
     profile_TB.close();
+    profile_rhob_TA.close();
+    profile_rhob_TB.close();
 
     double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
     double eta_envelop_left = eta_profile_left_factor(DATA, eta);
@@ -640,8 +650,8 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             double epsilon = 0.0;
             if (DATA->turn_on_rhob == 1) {
                 rhob = (
-                    (temp_profile_TA[ix][iy]*eta_rhob_left
-                     + temp_profile_TB[ix][iy]*eta_rhob_right));
+                    (temp_profile_rhob_TA[ix][iy]*eta_rhob_left
+                     + temp_profile_rhob_TB[ix][iy]*eta_rhob_right));
             } else {
                 rhob = 0.0;
             }
@@ -721,9 +731,13 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
     for (int i = 0; i < nx+1; i++) {
         delete[] temp_profile_TA[i];
         delete[] temp_profile_TB[i];
+        delete[] temp_profile_rhob_TA[i];
+        delete[] temp_profile_rhob_TB[i];
     }
     delete[] temp_profile_TA;
     delete[] temp_profile_TB;
+    delete[] temp_profile_rhob_TA;
+    delete[] temp_profile_rhob_TB;
 }
 
 double Init::eta_profile_normalisation(InitData *DATA, double eta) {
