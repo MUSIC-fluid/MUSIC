@@ -138,7 +138,6 @@ class EOS {
     double get_temperature(double epsilon, double rhob);
     double get_mu(double epsilon, double rhob);
     double get_muS(double epsilon, double rhob);
-    double get_qgp_frac(double epsilon, double rhob);
     double get_pressure(double epsilon, double rhob);
     double ssolve(double e, double rhob, double s);
     double Tsolve(double e, double rhob, double T);
