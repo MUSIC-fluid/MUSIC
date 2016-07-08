@@ -107,10 +107,12 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
     const string out_name_xyeta = "evolution_xyeta.dat";
     const string out_name_W_xyeta =
                         "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
+    const string out_name_bulkpi_xyeta = "evolution_bulk_pressure_xyeta.dat";
     const string out_name_q_xyeta = "evolution_qmu_xyeta.dat";
     string out_open_mode;
     FILE *out_file_xyeta;
     FILE *out_file_W_xyeta;
+    FILE *out_file_bulkpi_xyeta;
     FILE *out_file_q_xyeta;
 
     // If it's the first timestep, overwrite the previous file
@@ -128,6 +130,10 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
         out_file_W_xyeta = fopen(out_name_W_xyeta.c_str(),
                                  out_open_mode.c_str());
     }
+    if (DATA->turn_on_bulk == 1) {
+        out_file_bulkpi_xyeta = fopen(out_name_bulkpi_xyeta.c_str(),
+                                      out_open_mode.c_str());
+    }
     if (DATA->turn_on_diff == 1) {
         out_file_q_xyeta = fopen(out_name_q_xyeta.c_str(),
                                  out_open_mode.c_str());
@@ -136,7 +142,7 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
     int n_skip_x = DATA->output_evolution_every_N_x;
     int n_skip_y = DATA->output_evolution_every_N_y;
     int n_skip_eta = DATA->output_evolution_every_N_eta;
-    for (ieta = 0; ieta < DATA->neta; ieta+=n_skip_eta) {
+    for (ieta = 0; ieta < DATA->neta; ieta += n_skip_eta) {
         double eta = ((static_cast<double>(ieta))*(DATA->delta_eta)
                       - (DATA->eta_size)/2.0);
         double cosh_eta = cosh(eta);
@@ -157,8 +163,9 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                 double vz = uz/ut;
 
                 double T_local = eos_ptr->get_temperature(e_local, rhob_local);
+                double cs2_local = eos_ptr->get_cs2(e_local, rhob_local);
                 double muB_local = eos_ptr->get_mu(e_local, rhob_local);
-                double div_factor = e_local + p_local;  // 1/fm^4
+                double entropy = e_local + p_local;  // [1/fm^4]
 
                 double Wtautau = 0.0;
                 double Wtaux = 0.0;
@@ -171,16 +178,21 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                 double Wyeta = 0.0;
                 double Wetaeta = 0.0;
                 if (DATA->turn_on_shear == 1) {
-                    Wtautau = arena[ieta][ix][iy].Wmunu[0][0]/div_factor;
-                    Wtaux = arena[ieta][ix][iy].Wmunu[0][1]/div_factor;
-                    Wtauy = arena[ieta][ix][iy].Wmunu[0][2]/div_factor;
-                    Wtaueta = arena[ieta][ix][iy].Wmunu[0][3]/div_factor;
-                    Wxx = arena[ieta][ix][iy].Wmunu[0][4]/div_factor;
-                    Wxy = arena[ieta][ix][iy].Wmunu[0][5]/div_factor;
-                    Wxeta = arena[ieta][ix][iy].Wmunu[0][6]/div_factor;
-                    Wyy = arena[ieta][ix][iy].Wmunu[0][7]/div_factor;
-                    Wyeta = arena[ieta][ix][iy].Wmunu[0][8]/div_factor;
-                    Wetaeta = arena[ieta][ix][iy].Wmunu[0][9]/div_factor;
+                    Wtautau = arena[ieta][ix][iy].Wmunu[0][0]/entropy;
+                    Wtaux = arena[ieta][ix][iy].Wmunu[0][1]/entropy;
+                    Wtauy = arena[ieta][ix][iy].Wmunu[0][2]/entropy;
+                    Wtaueta = arena[ieta][ix][iy].Wmunu[0][3]/entropy;
+                    Wxx = arena[ieta][ix][iy].Wmunu[0][4]/entropy;
+                    Wxy = arena[ieta][ix][iy].Wmunu[0][5]/entropy;
+                    Wxeta = arena[ieta][ix][iy].Wmunu[0][6]/entropy;
+                    Wyy = arena[ieta][ix][iy].Wmunu[0][7]/entropy;
+                    Wyeta = arena[ieta][ix][iy].Wmunu[0][8]/entropy;
+                    Wetaeta = arena[ieta][ix][iy].Wmunu[0][9]/entropy;
+                }
+
+                double bulk_Pi = 0.0;
+                if (DATA->turn_on_bulk == 1) {
+                    bulk_Pi = arena[ieta][ix][iy].pi_b[0];  // [1/fm^4]
                 }
 
                 // outputs for baryon diffusion part
@@ -190,7 +202,7 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                 double qy = 0.0;
                 double qeta = 0.0;
                 if (DATA->turn_on_diff == 1) {
-                    common_term_q = rhob_local*T_local/div_factor;
+                    common_term_q = rhob_local*T_local/entropy;
                     double kappa_hat = get_deltaf_qmu_coeff(T_local,
                                                             muB_local);
                     qtau = arena[ieta][ix][iy].Wmunu[0][10]/kappa_hat;
@@ -200,10 +212,10 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                 }
 
                 // exclude the actual coordinates from the output to save space:
-                if (0 == DATA->outputBinaryEvolution) {
+                if (DATA->outputBinaryEvolution == 0) {
                     fprintf(out_file_xyeta, "%e %e %e %e %e\n",
                             T_local*hbarc, muB_local*hbarc, vx, vy, vz);
-                    if (1 == DATA->viscosity_flag) {
+                    if (DATA->viscosity_flag == 1) {
                         fprintf(out_file_W_xyeta,
                                 "%e %e %e %e %e %e %e %e %e %e\n",
                                 Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy,
@@ -213,14 +225,22 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                     double array[] = {T_local*hbarc, muB_local*hbarc,
                                       vx, vy, vz};
                     fwrite(array, sizeof(double), 5, out_file_xyeta);
-                    if (1 == DATA->viscosity_flag) {
-                        double array2[] = {
-                            Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta,
-                            Wyy, Wyeta, Wetaeta};
-                        fwrite(array2, sizeof(double), 10, out_file_W_xyeta);
+                    if (DATA->viscosity_flag == 1) {
+                        if (DATA->turn_on_shear == 1) {
+                            double array2[] = {Wtautau, Wtaux, Wtauy, Wtaueta,
+                                               Wxx, Wxy, Wxeta, Wyy, Wyeta,
+                                               Wetaeta};
+                            fwrite(array2, sizeof(double), 10,
+                                   out_file_W_xyeta);
+                        }
+                        if (DATA->turn_on_bulk == 1) {
+                            double array1[] = {bulk_Pi, entropy, cs2_local};
+                            fwrite(array1, sizeof(double), 3,
+                                   out_file_bulkpi_xyeta);
+                        }
                         if (DATA->turn_on_diff == 1) {
                             double array3[] = {common_term_q,
-                                              qtau, qx, qy, qeta};
+                                               qtau, qx, qy, qeta};
                             fwrite(array3, sizeof(double), 5,
                                    out_file_q_xyeta);
                         }
@@ -232,6 +252,9 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
     fclose(out_file_xyeta);
     if (DATA->turn_on_shear == 1) {
         fclose(out_file_W_xyeta);
+    }
+    if (DATA->turn_on_bulk == 1) {
+        fclose(out_file_bulkpi_xyeta);
     }
     if (DATA->turn_on_diff == 1) {
         fclose(out_file_q_xyeta);

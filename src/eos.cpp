@@ -2550,20 +2550,19 @@ double EOS::get_dpOverdrhob2(double e, double rhob)
     return dpdrho;   // in 1/fm
 }
 
-double EOS::get_cs2(double e, double rhob)
-{
+double EOS::get_cs2(double e, double rhob) {
     double f;
-    if (whichEOS==0)
+    if (whichEOS == 0) {
         f = cs2;
-    else if (whichEOS==1)
+    } else if (whichEOS == 1) {
         f = interpolate(e, rhob, 2);
-    else if (whichEOS>=2 && whichEOS < 10)
+    } else if (whichEOS < 10) {
         f = interpolate2(e, rhob, 4);
-    else if (whichEOS >= 10)
+    } else if (whichEOS >= 10) {
         f = interpolate2D(e, fabs(rhob), 4);
-    else
-    {
-        fprintf(stderr,"EOS::get_cs2: whichEOS = %d is out of range!\n", whichEOS);
+    } else {
+        fprintf(stderr,"EOS::get_cs2: whichEOS = %d is out of range!\n",
+                whichEOS);
         exit(0);
     }
     return f;
