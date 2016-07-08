@@ -2,13 +2,14 @@
 
 from numpy import *
 
-tau_list = [1.0, 1.2, 1.5, 2.0]
+dim = 201
+tau_list = [0.98, 1.0, 1.2, 1.5, 2.0, 3.0]
 for tau in tau_list:
     q = 1.0
     e_0 = 1.0
     eps = 1e-10
-    x = linspace(-5., 5., 201)
-    y = linspace(-5., 5., 201)
+    x = linspace(-5., 5., dim)
+    y = linspace(-5., 5., dim)
     X, Y = meshgrid(x, y)
     
     r = sqrt(X**2. + Y**2.)
@@ -19,10 +20,10 @@ for tau in tau_list:
     ux = sinh(kappa)*X/(r + eps)
     uy = sinh(kappa)*Y/(r + eps)
     
-    filename = "y=0_tau=%3.1f_ideal.dat" % tau
+    filename = "y=0_tau=%4.2f_ideal.dat" % tau
     f = open(filename, "w")
-    for i in range(201):
-        for j in range(201):
+    for i in range(dim):
+        for j in range(dim):
             f.write("%.8e  %.8e  %.8e  %.8e  %.8e\n"
                     % (x[i], y[j], e[j, i], ux[j, i], uy[j, i]))
     f.close()

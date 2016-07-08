@@ -254,12 +254,6 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
                                     tempf/(grid_pt->u[rk_flag+1][0]));
             }
         }
-        //for (int mu = 1; mu < 4; mu++) {
-        //    for (int nu = mu+1; nu < 4; nu++) {
-        //        grid_pt->Wmunu[rk_flag+1][nu][mu] =
-        //                    grid_pt->Wmunu[rk_flag+1][mu][nu];
-        //    }
-        //}
     } else if (rk_flag > 0) {
         diss->Make_uWRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag);
         for (int mu = 1; mu < 4; mu++) {
@@ -279,12 +273,6 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
                                             tempf/(grid_pt->u[rk_flag+1][0]));
             }
         }
-        //for (int mu = 1; mu < 4; mu++) {
-        //    for (int nu = mu+1; nu < 4; nu++) {
-        //        grid_pt->Wmunu[rk_flag+1][nu][mu] =
-        //                    grid_pt->Wmunu[rk_flag+1][mu][nu];
-        //    }
-        //}
     } /* rk_flag > 0 */
 
     if (DATA->turn_on_bulk == 1) {
@@ -379,15 +367,6 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
               - grid_pt->u[rk_flag+1][3]*grid_pt->u[rk_flag+1][3]));
 
     // make Wmunu[i][0] using the transversality
-    //for (int mu=1; mu<4; mu++) {
-    //    tempf = 0.0;
-    //    for (int nu=1; nu<4; nu++)
-    //        int idx_1d = util->map_2d_idx_to_1d(mu, nu);
-    //        tempf += (
-    //            grid_pt->Wmunu[rk_flag+1][mu][nu]*grid_pt->u[rk_flag+1][nu]);
-    //    grid_pt->Wmunu[rk_flag+1][mu][0] = tempf/(grid_pt->u[rk_flag+1][0]);
-    //}
-   
     for (int mu = 1; mu < 4; mu++) {
         tempf = 0.0;
         for (int nu = 1; nu < 4; nu++) {

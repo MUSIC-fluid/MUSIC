@@ -22,13 +22,9 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
     helperGrid = new Grid;
     cout << "initArena" << endl;
     if (DATA->Initial_profile == 0) {
-        cout << "Using Initial_profile=" << DATA->Initial_profile
-             << ". Overwriting lattice dimensions:" << endl;
-        DATA->nx = 200;
-        DATA->ny = 200;
-        DATA->delta_x = 0.05;
-        DATA->delta_y = 0.05;
-        
+        cout << "Using Initial_profile=" << DATA->Initial_profile << endl;
+        DATA->nx = DATA->nx - 1;
+        DATA->ny = DATA->ny - 1;
         cout << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1 << endl;
         cout << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y << endl;
     } else if (DATA->Initial_profile == 8) {
@@ -220,21 +216,33 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
 
 void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
     string input_filename;
+    string input_filename_prev;
     if (DATA->turn_on_shear == 1) {
         input_filename = "tests/Gubser_flow/Initial_Profile.dat";
     } else {
-        input_filename = "tests/Gubser_flow/y=0_tau=1.0_ideal.dat";
+        input_filename = "tests/Gubser_flow/y=0_tau=1.00_ideal.dat";
+        input_filename_prev = "tests/Gubser_flow/y=0_tau=0.98_ideal.dat";
     }
     //if (omp_get_thread_num() == 0) {
     //    cout << "file name used: " << input_filename << endl;
     //}
     
     ifstream profile(input_filename.c_str());
-    if (! profile.good()) {
+    if (!profile.good()) {
         cout << "Init::InitTJb: "
              << "Can not open the initial file: " << input_filename
              << endl;
         exit(1);
+    }
+    ifstream profile_prev;
+    if (DATA->turn_on_shear == 0) {
+        profile_prev.open(input_filename_prev.c_str());
+        if (!profile_prev.good()) {
+            cout << "Init::InitTJb: "
+                 << "Can not open the initial file: " << input_filename_prev
+                 << endl;
+            exit(1);
+        }
     }
 
     int nx = DATA->nx + 1;
@@ -242,6 +250,8 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
     double** temp_profile_ed = new double* [nx];
     double** temp_profile_ux = new double* [nx];
     double** temp_profile_uy = new double* [nx];
+    double **temp_profile_ed_prev;
+    double **temp_profile_ux_prev, **temp_profile_uy_prev;
     double **temp_profile_pixx, **temp_profile_piyy, **temp_profile_pixy;
     double **temp_profile_pi00, **temp_profile_pi0x, **temp_profile_pi0y;
     double **temp_profile_pi33;
@@ -253,6 +263,10 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
         temp_profile_pi0x = new double* [nx];
         temp_profile_pi0y = new double* [nx];
         temp_profile_pi33 = new double* [nx];
+    } else {
+        temp_profile_ed_prev = new double* [nx];
+        temp_profile_ux_prev = new double* [nx];
+        temp_profile_uy_prev = new double* [nx];
     }
     for (int i = 0; i < nx; i++) {
         temp_profile_ed[i] = new double[ny];
@@ -266,6 +280,10 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             temp_profile_pi0x[i] = new double[ny];
             temp_profile_pi0y[i] = new double[ny];
             temp_profile_pi33[i] = new double[ny];
+        } else {
+            temp_profile_ed_prev[i] = new double[ny];
+            temp_profile_ux_prev[i] = new double[ny];
+            temp_profile_uy_prev[i] = new double[ny];
         }
     }
 
@@ -284,10 +302,17 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
                         >> temp_profile_pi0x[ix][iy]
                         >> temp_profile_pi0y[ix][iy]
                         >> temp_profile_pi33[ix][iy];
+            } else {
+                profile_prev >> dummy >> dummy >> temp_profile_ed_prev[ix][iy]
+                             >> temp_profile_ux_prev[ix][iy]
+                             >> temp_profile_uy_prev[ix][iy];
             }
         }
     }
     profile.close();
+    if (DATA->turn_on_shear == 0) {
+        profile_prev.close();
+    }
 
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
@@ -332,13 +357,27 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             u[1] = temp_profile_ux[ix][iy];
             u[2] = temp_profile_uy[ix][iy];
             u[3] = 0.0;
-
             for (int rk_i = 0; rk_i < rk_order; rk_i++) {
                 arena[ieta][ix][iy].prev_u[rk_i][0] = u[0];
                 arena[ieta][ix][iy].prev_u[rk_i][1] = u[1];
                 arena[ieta][ix][iy].prev_u[rk_i][2] = u[2];
                 arena[ieta][ix][iy].prev_u[rk_i][3] = u[3];
                 arena[ieta][ix][iy].prev_pi_b[rk_i] = 0.0;
+            }
+
+            if (DATA->turn_on_shear == 0) {
+                double utau_prev = sqrt(1.
+                    + temp_profile_ux_prev[ix][iy]*temp_profile_ux_prev[ix][iy]
+                    + temp_profile_uy_prev[ix][iy]*temp_profile_uy_prev[ix][iy]
+                );
+                for (int rk_i = 0; rk_i < rk_order; rk_i++) {
+                    arena[ieta][ix][iy].prev_u[rk_i][0] = utau_prev;
+                    arena[ieta][ix][iy].prev_u[rk_i][1] =
+                                                temp_profile_ux_prev[ix][iy];
+                    arena[ieta][ix][iy].prev_u[rk_i][2] =
+                                                temp_profile_uy_prev[ix][iy];
+                    arena[ieta][ix][iy].prev_u[rk_i][3] = 0.0;
+                }
             }
             arena[ieta][ix][iy].pi_b[0] = 0.0;
 
@@ -391,6 +430,10 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             delete[] temp_profile_pi0x[i];
             delete[] temp_profile_pi0y[i];
             delete[] temp_profile_pi33[i];
+        } else {
+            delete[] temp_profile_ed_prev[i];
+            delete[] temp_profile_ux_prev[i];
+            delete[] temp_profile_uy_prev[i];
         }
     }
     delete[] temp_profile_ed;
@@ -404,6 +447,10 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
         delete[] temp_profile_pi0x;
         delete[] temp_profile_pi0y;
         delete[] temp_profile_pi33;
+    } else {
+        delete[] temp_profile_ed_prev;
+        delete[] temp_profile_ux_prev;
+        delete[] temp_profile_uy_prev;
     }
 }
 
@@ -561,22 +608,32 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
     // first load in the transverse profile
     ifstream profile_TA(DATA->initName_TA.c_str());
     ifstream profile_TB(DATA->initName_TB.c_str());
+    ifstream profile_rhob_TA(DATA->initName_rhob_TA.c_str());
+    ifstream profile_rhob_TB(DATA->initName_rhob_TB.c_str());
     int nx = DATA->nx;
     int ny = DATA->ny;
     double** temp_profile_TA = new double* [nx+1];
     double** temp_profile_TB = new double* [nx+1];
+    double** temp_profile_rhob_TA = new double* [nx+1];
+    double** temp_profile_rhob_TB = new double* [nx+1];
     for (int i = 0; i < nx+1; i++) {
         temp_profile_TA[i] = new double[ny+1];
         temp_profile_TB[i] = new double[ny+1];
+        temp_profile_rhob_TA[i] = new double[ny+1];
+        temp_profile_rhob_TB[i] = new double[ny+1];
     }
     for (int i = 0; i < nx+1; i++) {
         for (int j = 0; j < ny+1; j++) {
             profile_TA >> temp_profile_TA[i][j];
             profile_TB >> temp_profile_TB[i][j];
+            profile_rhob_TA >> temp_profile_rhob_TA[i][j];
+            profile_rhob_TB >> temp_profile_rhob_TB[i][j];
         }
     }
     profile_TA.close();
     profile_TB.close();
+    profile_rhob_TA.close();
+    profile_rhob_TB.close();
 
     double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
     double eta_envelop_left = eta_profile_left_factor(DATA, eta);
@@ -593,8 +650,8 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             double epsilon = 0.0;
             if (DATA->turn_on_rhob == 1) {
                 rhob = (
-                    (temp_profile_TA[ix][iy]*eta_rhob_left
-                     + temp_profile_TB[ix][iy]*eta_rhob_right));
+                    (temp_profile_rhob_TA[ix][iy]*eta_rhob_left
+                     + temp_profile_rhob_TB[ix][iy]*eta_rhob_right));
             } else {
                 rhob = 0.0;
             }
@@ -674,9 +731,13 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
     for (int i = 0; i < nx+1; i++) {
         delete[] temp_profile_TA[i];
         delete[] temp_profile_TB[i];
+        delete[] temp_profile_rhob_TA[i];
+        delete[] temp_profile_rhob_TB[i];
     }
     delete[] temp_profile_TA;
     delete[] temp_profile_TB;
+    delete[] temp_profile_rhob_TA;
+    delete[] temp_profile_rhob_TB;
 }
 
 double Init::eta_profile_normalisation(InitData *DATA, double eta) {

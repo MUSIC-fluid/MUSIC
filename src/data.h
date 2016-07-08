@@ -20,6 +20,8 @@ typedef struct init_data {
     string initName_uy;
     string initName_TA;
     string initName_TB;
+    string initName_rhob_TA;
+    string initName_rhob_TB;
 
     int nx;
     int ny;
@@ -143,6 +145,7 @@ typedef struct init_data {
     int output_evolution_every_N_y;
     int output_evolution_every_N_eta;
     bool output_hydro_params_header;
+    double output_evolution_T_cut;
     int initial_eta_profile;
     int initial_eta_rhob_profile;
 

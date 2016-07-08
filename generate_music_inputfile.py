@@ -20,15 +20,16 @@ class color:
     end = '\033[0m'
 
 initial_condition_dict.update({
-    'Initial_profile': 8,          # type of initial condition
-    'initialize_with_entropy': 0,   # 0: with energy density, 1: with entropy density
+    'Initial_profile': 8,           # type of initial condition
+    'initialize_with_entropy': 0,   # 0: with energy density
+                                    # 1: with entropy density
     'Initial_Distribution_Filename': 'initial/u_field_1_enlarged.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_event_1_block.dat',
     'Initial_ux_Distribution_Filename': 'initial/ux_event_1_block.dat',
     'Initial_uy_Distribution_Filename': 'initial/uy_event_1_block.dat',
-    'Initial_TA_Distribution_Filename': 'initial/TA_event_1_block.dat',
-    'Initial_TB_Distribution_Filename': 'initial/TB_event_1_block.dat',
+    'Initial_TA_Distribution_Filename': 'initial/sd_TA_event_1_block.dat',
+    'Initial_TB_Distribution_Filename': 'initial/sd_TB_event_1_block.dat',
     'ecm' : 5020,       # center of mass collision energy
     's_factor': 0.89,   # normalization factor read in initial data file
 
@@ -55,14 +56,6 @@ hydro_dict.update({
     'Grid_size_in_y': 201,       # number of the grid points in y direction
     'Grid_size_in_x': 201,       # number of the grid points in x direction
     
-    # input grid information only works for initial_profile == 12
-    'input_grid_size_in_y': 261,        # number of the grid points in y direction
-    'input_grid_size_in_x': 261,        # number of the grid points in x direction
-    'input_grid_size_in_eta': 101,      # number of the grid points in eta direction
-    'input_grid_dy': 0.1,               # lattice spacing in y direction
-    'input_grid_dx': 0.1,               # lattice spacing in x direction
-    'input_grid_deta': 0.1,             # lattice spacing in eta direction
-
     'EOS_to_use': 7,         # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
     'boost_invariant': 0,    # initial condition is boost invariant
@@ -477,7 +470,7 @@ def read_in_parameters_from_command_line():
             del sys.argv[1]
             initial_condition_dict.update({
                 'Initial_Distribution_Filename':
-                    '/gs/project/cqn-654-ad/cshen/IP-Glasma/ipglasma-2015-12-02/Event_PbPb/RESULTS/epsilon-u-Hydro%d.dat' % iev,
+                    'initial/epsilon-u-Hydro%d.dat' % iev,
                 'Initial_Rhob_Distribution_Filename':
                     'initial/rhob_event_%d_block.dat' % iev,
                 'Initial_ux_Distribution_Filename':
@@ -485,9 +478,13 @@ def read_in_parameters_from_command_line():
                 'Initial_uy_Distribution_Filename':
                     'initial/uy_event_%d_block.dat' % iev,
                 'Initial_TA_Distribution_Filename':
-                    'initial/TA_event_%d_block.dat' % iev,
+                    'initial/sd_TA_event_%d_block.dat' % iev,
                 'Initial_TB_Distribution_Filename':
-                    'initial/TB_event_%d_block.dat' % iev,
+                    'initial/sd_TB_event_%d_block.dat' % iev,
+                'Initial_rhob_TA_Distribution_Filename':
+                    'initial/nuclear_thickness_TA_event_%d_block.dat' % iev,
+                'Initial_rhob_TB_Distribution_Filename':
+                    'initial/nuclear_thickness_TB_event_%d_block.dat' % iev,
             })
         elif option == '-shear_vis':    # shear viscosity
             vis = float(sys.argv[1])

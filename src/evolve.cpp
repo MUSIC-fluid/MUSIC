@@ -42,8 +42,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     // first pass some control parameters
     facTau = DATA->facTau;
     int output_hydro_debug_flag = DATA->output_hydro_debug_info;
-    int turn_on_rhob = DATA->turn_on_rhob;
-    int turn_on_diff = DATA->turn_on_diff;
     int Nskip_timestep = DATA->output_evolution_every_N_timesteps;
     int outputEvo_flag = DATA->outputEvolutionData;
     int freezeout_flag = DATA->doFreezeOut;
@@ -51,18 +49,10 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     int freezeout_method = DATA->freezeOutMethod;
     int boost_invariant_flag = DATA->boost_invariant;
 
-    // create evolution files for checking and debugging
-    if (outputEvo_flag == 1) {
-        ofstream out_file("evolution.dat");
-        out_file.close();
-        ofstream oout_file("OSCAR.dat");
-        oout_file.close();
-    }
-  
     // Output information about the hydro parameters 
     // in the format of a C header file
-    //if (DATA->output_hydro_params_header)
-    //    grid_info->Output_hydro_information_header(DATA, eos);
+    if (DATA->output_hydro_params_header || outputEvo_flag == 1)
+        grid_info->Output_hydro_information_header(DATA);
 
     // main loop starts ...
     int itmax = DATA->nt;
@@ -94,6 +84,17 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
             }
             if (fabs(tau - 2.0) < 1e-8) {
                 grid_info->Gubser_flow_check_file(arena, tau);
+            }
+            if (fabs(tau - 3.0) < 1e-8) {
+                grid_info->Gubser_flow_check_file(arena, tau);
+            }
+        }
+
+        if (it % Nskip_timestep == 0) {
+            if (outputEvo_flag == 1) {
+                grid_info->OutputEvolutionDataXYEta(arena, DATA, tau);
+            } else if (outputEvo_flag == 2) {
+                grid_info->OutputEvolutionDataXYEta_chun(arena, DATA, tau);
             }
         }
 
