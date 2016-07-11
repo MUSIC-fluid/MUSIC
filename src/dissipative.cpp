@@ -912,7 +912,7 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
     epsilon = grid_pt->epsilon;
     rhob = grid_pt->rhob;
 
-    T = eos->get_temperature(epsilon,rhob);
+    T = eos->get_temperature(epsilon, rhob);
     if (DATA->T_dependent_shear_to_s == 1) {
         shear_to_s = get_temperature_dependent_eta_s(DATA, T);
     } else {
@@ -980,23 +980,19 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
 
     // add a new non-linear term (-q^\mu \sigma_\mu\nu)
     double transport_coeff_2 = 3./5.*tau_rho;   // from 14-momentum massless
-    double temptemp = 0.0;
     double sigma[4][4];
-    sigma[0][0] = grid_pt->sigma[0][0];
-    sigma[0][1] = grid_pt->sigma[0][1];
-    sigma[0][2] = grid_pt->sigma[0][2];
-    sigma[0][3] = grid_pt->sigma[0][3];
-    sigma[1][1] = grid_pt->sigma[0][4];
-    sigma[1][2] = grid_pt->sigma[0][5];
-    sigma[1][3] = grid_pt->sigma[0][6];
-    sigma[2][2] = grid_pt->sigma[0][7];
-    sigma[2][3] = grid_pt->sigma[0][8];
-    sigma[3][3] = grid_pt->sigma[0][9];
+    for (int ii = 0; ii < 4; ii++) {
+        for (int jj = ii; jj < 4; jj++) {
+            int idx_1d = util->map_2d_idx_to_1d(ii, jj);
+            sigma[ii][jj] = grid_pt->sigma[0][idx_1d];
+        }
+    }
     for (int ii = 0; ii < 4; ii++) {
         for (int jj = ii+1; jj < 4; jj++) {
             sigma[jj][ii] = sigma[ii][jj];
         }
     }
+    double temptemp = 0.0;
     for (int i = 0 ; i < 4; i++) {
         temptemp += q[i]*sigma[i][nu]*DATA->gmunu[i][i]; 
     }
