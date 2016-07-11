@@ -844,7 +844,7 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
         for (int a = 0; a < 4 ; a++) {
             for (int b = a; b < 4; b++) {
                 int idx_1d = util->map_2d_idx_to_1d(a, b);
-                sigma[a][b] = grid_pt->sigma[rk_flag][idx_1d];
+                sigma[a][b] = grid_pt->sigma[0][idx_1d];
                 Wmunu[a][b] = grid_pt->Wmunu[rk_flag][idx_1d];
             }
         }
