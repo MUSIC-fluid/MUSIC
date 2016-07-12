@@ -65,19 +65,23 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
                to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
     // dW/dtau
     // backward time derivative (first order is more stable)
+    int idx_1d_alpha0 = util->map_2d_idx_to_1d(alpha, 0);
     double dWdtau;
-    dWdtau = (grid_pt->Wmunu[rk_flag][alpha]
-              - grid_pt->prevWmunu[rk_flag][alpha])/DATA->delta_tau;
+    dWdtau = (grid_pt->Wmunu[rk_flag][idx_1d_alpha0]
+              - grid_pt->prevWmunu[rk_flag][idx_1d_alpha0])/DATA->delta_tau;
 
     /* bulk pressure term */
-    double dPidtau;
-    double gfac = (alpha == 0 ? -1.0 : 0.0);
-    double Pi_alpha0 = (
-        grid_pt->pi_b[rk_flag]*(gfac + grid_pt->u[rk_flag][alpha]
-                                       *grid_pt->u[rk_flag][0]));
-    dPidtau = (Pi_alpha0 - grid_pt->prev_pi_b[rk_flag]
-                           *(gfac + grid_pt->prev_u[rk_flag][alpha]
-                                    *grid_pt->prev_u[rk_flag][0]));
+    double dPidtau = 0.0;
+    double Pi_alpha0 = 0.0;
+    if (alpha < 4 && DATA->turn_on_bulk == 1) {
+        double gfac = (alpha == 0 ? -1.0 : 0.0);
+        Pi_alpha0 = (
+            grid_pt->pi_b[rk_flag]*(gfac + grid_pt->u[rk_flag][alpha]
+                                           *grid_pt->u[rk_flag][0]));
+        dPidtau = (Pi_alpha0 - grid_pt->prev_pi_b[rk_flag]
+                               *(gfac + grid_pt->prev_u[rk_flag][alpha]
+                                        *grid_pt->prev_u[rk_flag][0]));
+    }
 
     // use central difference to preserve conservation law exactly
     int idx_1d;
@@ -85,46 +89,51 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     double dPidx_perp = 0.0;
     for (i = 1; i <= 2; i++) {  // x and y
         idx_1d = util->map_2d_idx_to_1d(alpha, i);
-        //double sg = grid_pt->Wmunu[rk_flag][alpha][i];
+        // double sg = grid_pt->Wmunu[rk_flag][alpha][i];
         double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][idx_1d];
         double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][idx_1d];
-        double gfac1 = (alpha == i ? 1.0 : 0.0);
-        double bgp1 = (grid_pt->nbr_p_1[i]->pi_b[rk_flag]
-                       *(gfac1 + grid_pt->nbr_p_1[i]->u[rk_flag][alpha]
-                                 *grid_pt->nbr_p_1[i]->u[rk_flag][i]));
-        double bgm1 = (grid_pt->nbr_m_1[i]->pi_b[rk_flag]
-                       *(gfac1 + grid_pt->nbr_m_1[i]->u[rk_flag][alpha]
-                                 *grid_pt->nbr_m_1[i]->u[rk_flag][i]));
-        //dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
-        //dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i];
+        // dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
         dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
-        dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
+        if (alpha < 4 && DATA->turn_on_bulk == 1) {
+            double gfac1 = (alpha == i ? 1.0 : 0.0);
+            double bgp1 = (grid_pt->nbr_p_1[i]->pi_b[rk_flag]
+                           *(gfac1 + grid_pt->nbr_p_1[i]->u[rk_flag][alpha]
+                                     *grid_pt->nbr_p_1[i]->u[rk_flag][i]));
+            double bgm1 = (grid_pt->nbr_m_1[i]->pi_b[rk_flag]
+                           *(gfac1 + grid_pt->nbr_m_1[i]->u[rk_flag][alpha]
+                                     *grid_pt->nbr_m_1[i]->u[rk_flag][i]));
+            // dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i];
+            dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
+        }
     }  /* i */
 
     // eta
     i = 3;
     taufactor = tau;
-    double dWdeta, dPideta;
-    //double sg = grid_pt->Wmunu[rk_flag][alpha][i];
-    //double bg = grid_pt->Pimunu[rk_flag][alpha][i];
+    double dWdeta = 0.0;
+    double dPideta = 0.0;
+    // double sg = grid_pt->Wmunu[rk_flag][alpha][i];
     idx_1d = util->map_2d_idx_to_1d(alpha, i);
     double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][idx_1d];
     double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][idx_1d];
-    double gfac3 = (alpha == i ? 1.0 : 0.0);
-    double bgp1 = (grid_pt->nbr_p_1[i]->pi_b[rk_flag]
-                   *(gfac3 + grid_pt->nbr_p_1[i]->u[rk_flag][alpha]
-                             *grid_pt->nbr_p_1[i]->u[rk_flag][i]));
-    double bgm1 = (grid_pt->nbr_m_1[i]->pi_b[rk_flag]
-                   *(gfac3 + grid_pt->nbr_m_1[i]->u[rk_flag][alpha]
-                             *grid_pt->nbr_m_1[i]->u[rk_flag][i]));
-    //dWdeta = minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
-    //dPideta = minmod->minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor;
+    // dWdeta = minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
     dWdeta = (sgp1 - sgm1)/(2.*delta[i]*taufactor);
-    dPideta = (bgp1 - bgm1)/(2.*delta[i]*taufactor);
+    if (alpha < 4 && DATA->turn_on_bulk == 1) {
+        // double bg = grid_pt->Pimunu[rk_flag][alpha][i];
+        double gfac3 = (alpha == i ? 1.0 : 0.0);
+        double bgp1 = (grid_pt->nbr_p_1[i]->pi_b[rk_flag]
+                       *(gfac3 + grid_pt->nbr_p_1[i]->u[rk_flag][alpha]
+                                 *grid_pt->nbr_p_1[i]->u[rk_flag][i]));
+        double bgm1 = (grid_pt->nbr_m_1[i]->pi_b[rk_flag]
+                       *(gfac3 + grid_pt->nbr_m_1[i]->u[rk_flag][alpha]
+                                 *grid_pt->nbr_m_1[i]->u[rk_flag][i]));
+        // dPideta = minmod->minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor;
+        dPideta = (bgp1 - bgm1)/(2.*delta[i]*taufactor);
+    }
 
     /* partial_m (tau W^mn) = W^0n + tau partial_m W^mn */
     double sf = (tau*(dWdtau + dWdx_perp + dWdeta)
-                 + grid_pt->Wmunu[rk_flag][alpha]);
+                 + grid_pt->Wmunu[rk_flag][idx_1d_alpha0]);
     double bf = (tau*(dPidtau + dPidx_perp + dPideta)
                  + Pi_alpha0);
 

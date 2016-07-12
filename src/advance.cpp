@@ -162,7 +162,7 @@ int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt,
     MakeDeltaQI(tau_rk, grid_pt, qi, rhs, DATA, rk_flag,
                 NbrCells, HalfwayCells);
 
-    for (int alpha=0; alpha<5; alpha++) {
+    for (int alpha = 0; alpha < 5; alpha++) {
         qirk[alpha][0] = qi[alpha] + rhs[alpha];
         if (!isfinite(qirk[alpha][0])) {
 	        fprintf(stderr, "qirk[%d][0] = %e is a nan.\n", alpha,
@@ -181,8 +181,8 @@ int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt,
         // - this is only to remove the viscous correction that 
         // can make rho_b negative which we do not want.
         if (DATA->turn_on_rhob == 0) {
-            if (alpha==4 && qirk[alpha][0]!=0)
-                qirk[alpha][0]=0.;
+            if (alpha == 4 && fabs(qirk[alpha][0]) > 1e-12)
+                qirk[alpha][0] = 0.;
         }
 
         /* if rk_flag > 0, we now have q0 + k1 + k2. 
