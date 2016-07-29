@@ -80,6 +80,7 @@ typedef struct init_data {
     // # of resonances to include. maximum=319 (all up to 2 GeV)
     int NumberOfParticlesToInclude;
     int whichEOS;
+    int check_eos;
     int Initial_profile;
     int initializeEntropy;
     double epsilonFreeze;       // freeze-out energy density in GeV/fm^3

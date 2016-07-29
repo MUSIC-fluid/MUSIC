@@ -147,6 +147,7 @@ class EOS {
     double get_s2e(double s, double rhob);
     double get_s2e_finite_rhob(double s, double rhob);
     void check_eos();
+    void check_eos_with_finite_muB();
 };
 
 #endif  // SRC_EOS_H_
