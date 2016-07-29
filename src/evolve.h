@@ -8,19 +8,19 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include "util.h"
-#include "data.h"
-#include "grid.h"
-#include "grid_info.h"
-#include "eos.h"
-#include "advance.h"
-#include "u_derivative.h"
+#include "./util.h"
+#include "./data.h"
+#include "./grid.h"
+#include "./grid_info.h"
+#include "./eos.h"
+#include "./advance.h"
+#include "./u_derivative.h"
 
 // this is a control class for the hydrodynamic evolution
 class Evolve {
  private:
-    EOS *eos; // declare EOS object
-    Grid *grid; // declare Grid object
+    EOS *eos;        // declare EOS object
+    Grid *grid;      // declare Grid object
     Grid_info *grid_info;
     Util *util;
     Advance *advance;
@@ -42,25 +42,25 @@ class Evolve {
     // (only used when freezeout_method == 4)
     int n_freeze_surf;
     vector<double> epsFO_list;
-  
+
  public:
     Evolve(EOS *eos, InitData *DATA_in);
     ~Evolve();
     int EvolveIt(InitData *DATA, Grid ***arena);
-    
+
     int AdvanceRK(double tau, InitData *DATA, Grid ***arena);
     int UpdateArena(Grid ***arena);
     void UpdateArena_XY(int ieta, Grid ***arena);
-    
+
     int FreezeOut_equal_tau_Surface(double tau, InitData *DATA, Grid ***arena);
     void FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
                                         int ieta, Grid ***arena,
                                         int thread_id, double epsFO);
-    //void FindFreezeOutSurface(double tau, InitData *DATA,
+    // void FindFreezeOutSurface(double tau, InitData *DATA,
     //                          Grid ***arena, int size, int rank);
-    //void FindFreezeOutSurface2(double tau, InitData *DATA,
+    // void FindFreezeOutSurface2(double tau, InitData *DATA,
     //                           Grid ***arena, int size, int rank);
-    //int FindFreezeOutSurface3(double tau, InitData *DATA,
+    // int FindFreezeOutSurface3(double tau, InitData *DATA,
     //                          Grid ***arena, int size, int rank);
     int FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
                                        Grid ***arena);
@@ -79,4 +79,4 @@ class Evolve {
 };
 
 #endif  // SRC_EVOLVE_H_
-  
+
