@@ -3647,6 +3647,28 @@ void EOS::check_eos_with_finite_muB() {
     }
     check_file1.close();
     check_file2.close();
+    
+    double sovernB[6] = {1.0, 2.0, 5.0, 10.0, 40.0, 400.0};
+    double s_0 = 0.0;          // 1/fm^3
+    double s_max = 100.0;      // 1/fm^3
+    double ds = 0.1;           // 1/fm^3
+    int ns = static_cast<int>((s_max - s_0)/ds) + 1;
+    for (int i = 0; i < 6; i++) {
+        ostringstream file_name;
+        file_name << "check_EoS_cs2_vs_e_sovernB_" << sovernB[i] << ".dat";
+        ofstream check_file3(file_name.str().c_str());
+        for (int j = 0; j < ns; j++) {
+            double s_local = s_0 + j*ds;
+            double nB_local = s_local/sovernB[i];
+            double e_local = get_s2e_finite_rhob(s_local, nB_local);
+            double cs2_local = get_cs2(e_local, nB_local);
+            double pressure = get_pressure(e_local, nB_local);
+            check_file3 << scientific << setw(18) << setprecision(8)
+                        << e_local << "  " << pressure << "  "
+                        << cs2_local << endl;
+        }
+        check_file3.close();
+    }
 
     return;
 }
