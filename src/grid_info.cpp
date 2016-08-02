@@ -498,10 +498,11 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
         for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
             double y_local = y_min + iy*dy;
             double e_local = arena[0][ix][iy].epsilon;
+            double rhob_local = arena[0][ix][iy].rhob;
             double T_local = eos_ptr->get_temperature(e_local, 0.0);
             output_file << scientific << setprecision(8) << setw(18)
                         << x_local << "  " << y_local << "  "
-                        << e_local*unit_convert << "  "
+                        << e_local*unit_convert << "  " << rhob_local << "  "
                         << T_local*unit_convert << "  "
                         << arena[0][ix][iy].u[0][1] << "  "
                         << arena[0][ix][iy].u[0][2] << "  "
