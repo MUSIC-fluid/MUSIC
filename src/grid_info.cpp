@@ -516,6 +516,26 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
     output_file.close();
 }
 
+void Grid_info::output_1p1D_check_file(Grid ***arena, double tau) {
+    ostringstream filename;
+    filename << "1+1D_check_tau_" << tau << ".dat";
+    ofstream output_file(filename.str().c_str());
+
+    double unit_convert = 0.19733;  // hbarC
+    double deta = DATA_ptr->delta_eta;
+    double eta_min = -6.94;
+    for (int ieta = 0; ieta < DATA_ptr->neta; ieta++) {
+        double eta_local = eta_min + ieta*deta;
+        double e_local = arena[ieta][1][1].epsilon;
+        double rhob_local = arena[ieta][1][1].rhob;
+        output_file << scientific << setprecision(8) << setw(18)
+                    << eta_local << "  "
+                    << e_local*unit_convert << "  " << rhob_local
+                    << endl;
+    }
+    output_file.close();
+}
+
 void Grid_info::load_deltaf_qmu_coeff_table(string filename) {
     ifstream table(filename.c_str());
     deltaf_qmu_coeff_table_length_T = 150;

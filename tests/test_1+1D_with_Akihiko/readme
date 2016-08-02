@@ -1,0 +1,10 @@
+This folder contains test files for 1+1D simulation with baryon diffusion
+In MUSIC simulation, one needs to solve the equation,
+   \Delta^{\mu\nu} D q_\nu = - \frac{1}{\tau_q} (q^\mu
+                                                 - \kappa \nabla^\mu \frac{\mu_B}{T})
+Please note that there is no second order non-linear terms in this equautions.
+In MUSIC code, one needs to turn off all the non-linear terms in the evolution
+equations.
+
+For the transport coefficients, \kappa = 0.2 \rho_B/\mu_B and \tau_q = 0.2/T.
+With all these setup, one can perform the tests with MUSIC code

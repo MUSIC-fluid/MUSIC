@@ -27,6 +27,17 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
         DATA->ny = DATA->ny - 1;
         cout << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1 << endl;
         cout << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y << endl;
+    } else if (DATA->Initial_profile == 1) {
+        cout << "Using Initial_profile=" << DATA->Initial_profile << endl;
+        DATA->nx = 2;
+        DATA->ny = 2;
+        DATA->neta = 695;
+        DATA->delta_x = 0.1;
+        DATA->delta_y = 0.1;
+        DATA->delta_eta = 0.02;
+        cout << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1 << endl;
+        cout << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y << endl;
+        cout << "neta=" << DATA->neta << ", deta=" << DATA->delta_eta << endl;
     } else if (DATA->Initial_profile == 8) {
         cout << DATA->initName <<endl;
         ifstream profile(DATA->initName.c_str());
@@ -172,6 +183,10 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
             }/* ieta */
             #pragma omp barrier
         }
+    } else if (DATA->Initial_profile == 1) {
+        // code test in 1+1 D vs Monnai's results
+        cout << " Perform 1+1D test vs Monnai's results... " << endl;
+        initial_1p1D_eta(DATA, (*arena));
     } else if (DATA->Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
@@ -471,6 +486,120 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
         delete[] temp_profile_ux_prev;
         delete[] temp_profile_uy_prev;
     }
+}
+
+void Init::initial_1p1D_eta(InitData *DATA, Grid ***arena) {
+    string input_ed_filename;
+    string input_rhob_filename;
+    input_ed_filename = "tests/test_1+1D_with_Akihiko/e_baryon_init.dat";
+    input_rhob_filename = "tests/test_1+1D_with_Akihiko/rhoB_baryon_init.dat";
+
+    ifstream profile_ed(input_ed_filename.c_str());
+    if (!profile_ed.good()) {
+        cout << "Init::InitTJb: "
+             << "Can not open the initial file: " << input_ed_filename
+             << endl;
+        exit(1);
+    }
+    ifstream profile_rhob;
+    profile_rhob.open(input_rhob_filename.c_str());
+    if (!profile_rhob.good()) {
+        cout << "Init::InitTJb: "
+             << "Can not open the initial file: " << input_rhob_filename
+             << endl;
+        exit(1);
+    }
+
+    int neta = DATA->neta;
+    double *temp_profile_ed = new double[neta];
+    double *temp_profile_rhob = new double[neta];
+
+    double dummy;
+    double u[4];
+    int rk_order = DATA->rk_order;
+    for (int ieta = 0; ieta < neta; ieta++) {
+        profile_ed >> dummy >> temp_profile_ed[ieta];
+        profile_rhob >> dummy >> temp_profile_rhob[ieta];
+    }
+    profile_ed.close();
+    profile_rhob.close();
+
+    int nx = DATA->nx + 1;
+    int ny = DATA->ny + 1;
+    for (int ieta = 0; ieta < neta; ieta++) {
+        double rhob = temp_profile_rhob[ieta];
+        double epsilon = temp_profile_ed[ieta]/hbarc;   // fm^-4
+        // initial pressure distribution
+        double p = eos->get_pressure(epsilon, rhob);
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy< ny; iy++) {
+                // set all values in the grid element:
+                arena[ieta][ix][iy].epsilon = epsilon;
+                arena[ieta][ix][iy].epsilon_t = epsilon;
+                arena[ieta][ix][iy].prev_epsilon = epsilon;
+                arena[ieta][ix][iy].rhob = rhob;
+                arena[ieta][ix][iy].rhob_t = rhob;
+                arena[ieta][ix][iy].prev_rhob = rhob;
+                arena[ieta][ix][iy].p = p;
+                arena[ieta][ix][iy].p_t = p;
+            
+                arena[ieta][ix][iy].TJb = util->cube_malloc(rk_order+1, 5, 4);
+                arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
+                arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
+                arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
+                arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
+                arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
+                arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
+                arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
+                arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);
+                arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order+1, 14);
+                arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(rk_order, 14);
+                arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+            
+                /* for HIC */
+                arena[ieta][ix][iy].u[0][0] = 1.0;
+                arena[ieta][ix][iy].u[0][1] = 0.0;
+                arena[ieta][ix][iy].u[0][2] = 0.0;
+                arena[ieta][ix][iy].u[0][3] = 0.0;
+
+                u[0] = 1.0;
+                u[1] = 0.0;
+                u[2] = 0.0;
+                u[3] = 0.0;
+                for (int rk_i = 0; rk_i < rk_order; rk_i++) {
+                    arena[ieta][ix][iy].prev_u[rk_i][0] = u[0];
+                    arena[ieta][ix][iy].prev_u[rk_i][1] = u[1];
+                    arena[ieta][ix][iy].prev_u[rk_i][2] = u[2];
+                    arena[ieta][ix][iy].prev_u[rk_i][3] = u[3];
+                    arena[ieta][ix][iy].prev_pi_b[rk_i] = 0.0;
+                }
+                arena[ieta][ix][iy].pi_b[0] = 0.0;
+
+                for (int mu = 0; mu < 14; mu++) {
+                    arena[ieta][ix][iy].Wmunu[0][mu] = 0.0;
+                }
+            
+                for (int mu = 0; mu < 4; mu++) {
+                    /* baryon density */
+                    arena[ieta][ix][iy].TJb[0][4][mu] = rhob*u[mu];
+                    for (int nu = 0; nu < 4; nu++) {
+                        arena[ieta][ix][iy].TJb[0][mu][nu] = (
+                                                    (epsilon + p)*u[mu]*u[nu]
+                                                    + p*(DATA->gmunu)[mu][nu]);
+                    }/* nu */
+                }/* mu */
+                for (int rkstep = 0; rkstep < 2; rkstep++) {
+                    for (int ii = 0; ii < 14; ii++) {
+                        arena[ieta][ix][iy].prevWmunu[rkstep][ii] = 
+                                        arena[ieta][ix][iy].Wmunu[0][ii];
+                    }
+                }
+            }
+        }
+    }
+    // clean up
+    delete[] temp_profile_ed;
+    delete[] temp_profile_rhob;
 }
 
 void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {

@@ -90,6 +90,24 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
             }
         }
 
+        if (DATA->Initial_profile == 1) {
+            if (fabs(tau - 1.0) < 1e-8) {
+                grid_info->output_1p1D_check_file(arena, tau);
+            }
+            if (fabs(tau - 2.0) < 1e-8) {
+                grid_info->output_1p1D_check_file(arena, tau);
+            }
+            if (fabs(tau - 5.0) < 1e-8) {
+                grid_info->output_1p1D_check_file(arena, tau);
+            }
+            if (fabs(tau - 10.) < 1e-8) {
+                grid_info->output_1p1D_check_file(arena, tau);
+            }
+            if (fabs(tau - 20.) < 1e-8) {
+                grid_info->output_1p1D_check_file(arena, tau);
+            }
+        }
+
         if (it % Nskip_timestep == 0) {
             if (outputEvo_flag == 1) {
                 grid_info->OutputEvolutionDataXYEta(arena, DATA, tau);
