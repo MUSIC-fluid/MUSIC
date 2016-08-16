@@ -1,6 +1,9 @@
-#include "freeze.h"
-#include<iomanip>
-#include<sys/stat.h>
+// Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
+#include <sys/stat.h>
+#include <iomanip>
+#include <string>
+
+#include "./freeze.h"
 
 // read in thermal spectra from file to then perform resonance decays with them
 // Must set verbose to 1 if you want particleMax to be set by this routine.
@@ -2271,8 +2274,7 @@ void Freeze::Output_midrapidity_hadrons_spectra(InitData *DATA, int full, const 
 
 }
 
-void Freeze::load_deltaf_qmu_coeff_table(string filename)
-{
+void Freeze::load_deltaf_qmu_coeff_table(string filename) {
     ifstream table(filename.c_str());
     deltaf_qmu_coeff_table_length_T = 150;
     deltaf_qmu_coeff_table_length_mu = 100;
@@ -2281,18 +2283,20 @@ void Freeze::load_deltaf_qmu_coeff_table(string filename)
     delta_qmu_coeff_table_dT = 0.001;
     delta_qmu_coeff_table_dmu = 0.007892;
     deltaf_qmu_coeff_tb = new double* [deltaf_qmu_coeff_table_length_T];
-    for(int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
-       deltaf_qmu_coeff_tb[i] = new double [deltaf_qmu_coeff_table_length_mu];
+    for (int i = 0; i < deltaf_qmu_coeff_table_length_T; i++) {
+        deltaf_qmu_coeff_tb[i] = new double[deltaf_qmu_coeff_table_length_mu];
+    }
 
     double dummy;
-    for(int j = 0; j < deltaf_qmu_coeff_table_length_mu; j++)
-       for(int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
-          table >> dummy >> dummy >> deltaf_qmu_coeff_tb[i][j];
+    for (int j = 0; j < deltaf_qmu_coeff_table_length_mu; j++) {
+        for (int i = 0; i < deltaf_qmu_coeff_table_length_T; i++) {
+            table >> dummy >> dummy >> deltaf_qmu_coeff_tb[i][j];
+        }
+    }
     table.close();
 }
 
-void Freeze::load_deltaf_qmu_coeff_table_14mom(string filename)
-{
+void Freeze::load_deltaf_qmu_coeff_table_14mom(string filename) {
     ifstream table(filename.c_str());
     deltaf_coeff_table_14mom_length_T = 190;
     deltaf_coeff_table_14mom_length_mu = 160;
@@ -2301,122 +2305,130 @@ void Freeze::load_deltaf_qmu_coeff_table_14mom(string filename)
     delta_coeff_table_14mom_dT = 0.001;
     delta_coeff_table_14mom_dmu = 0.005;
 
-    deltaf_coeff_tb_14mom_DPi = new double* [deltaf_coeff_table_14mom_length_T];
-    deltaf_coeff_tb_14mom_BPi = new double* [deltaf_coeff_table_14mom_length_T];
-    deltaf_coeff_tb_14mom_BPitilde = new double* [deltaf_coeff_table_14mom_length_T];
-    deltaf_coeff_tb_14mom_DV = new double* [deltaf_coeff_table_14mom_length_T];
-    deltaf_coeff_tb_14mom_BV = new double* [deltaf_coeff_table_14mom_length_T];
-    deltaf_coeff_tb_14mom_Bpi_shear = new double* [deltaf_coeff_table_14mom_length_T];
-    for(int i = 0; i < deltaf_coeff_table_14mom_length_T; i++)
-    {
-       deltaf_coeff_tb_14mom_DPi[i] = new double [deltaf_coeff_table_14mom_length_mu];
-       deltaf_coeff_tb_14mom_BPi[i] = new double [deltaf_coeff_table_14mom_length_mu];
-       deltaf_coeff_tb_14mom_BPitilde[i] = new double [deltaf_coeff_table_14mom_length_mu];
-       deltaf_coeff_tb_14mom_DV[i] = new double [deltaf_coeff_table_14mom_length_mu];
-       deltaf_coeff_tb_14mom_BV[i] = new double [deltaf_coeff_table_14mom_length_mu];
-       deltaf_coeff_tb_14mom_Bpi_shear[i] = new double [deltaf_coeff_table_14mom_length_mu];
+    deltaf_coeff_tb_14mom_DPi =
+                            new double* [deltaf_coeff_table_14mom_length_T];
+    deltaf_coeff_tb_14mom_BPi =
+                            new double* [deltaf_coeff_table_14mom_length_T];
+    deltaf_coeff_tb_14mom_BPitilde =
+                            new double* [deltaf_coeff_table_14mom_length_T];
+    deltaf_coeff_tb_14mom_DV =
+                            new double* [deltaf_coeff_table_14mom_length_T];
+    deltaf_coeff_tb_14mom_BV =
+                            new double* [deltaf_coeff_table_14mom_length_T];
+    deltaf_coeff_tb_14mom_Bpi_shear =
+                            new double* [deltaf_coeff_table_14mom_length_T];
+    for (int i = 0; i < deltaf_coeff_table_14mom_length_T; i++) {
+        deltaf_coeff_tb_14mom_DPi[i] =
+                            new double[deltaf_coeff_table_14mom_length_mu];
+       deltaf_coeff_tb_14mom_BPi[i] =
+                            new double[deltaf_coeff_table_14mom_length_mu];
+       deltaf_coeff_tb_14mom_BPitilde[i] =
+                            new double[deltaf_coeff_table_14mom_length_mu];
+       deltaf_coeff_tb_14mom_DV[i] =
+                            new double[deltaf_coeff_table_14mom_length_mu];
+       deltaf_coeff_tb_14mom_BV[i] =
+                            new double[deltaf_coeff_table_14mom_length_mu];
+       deltaf_coeff_tb_14mom_Bpi_shear[i] =
+                            new double[deltaf_coeff_table_14mom_length_mu];
     }
 
     double dummy;
-    for(int i = 0; i < deltaf_coeff_table_14mom_length_T; i++)
-       for(int j = 0; j < deltaf_coeff_table_14mom_length_mu; j++)
-          table >> dummy >> dummy >> deltaf_coeff_tb_14mom_DPi[i][j]
-                >> deltaf_coeff_tb_14mom_BPi[i][j] 
-                >> deltaf_coeff_tb_14mom_BPitilde[i][j]
-                >> deltaf_coeff_tb_14mom_DV[i][j] 
-                >> deltaf_coeff_tb_14mom_BV[i][j]
-                >> deltaf_coeff_tb_14mom_Bpi_shear[i][j];
+    for (int i = 0; i < deltaf_coeff_table_14mom_length_T; i++) {
+        for (int j = 0; j < deltaf_coeff_table_14mom_length_mu; j++) {
+            table >> dummy >> dummy >> deltaf_coeff_tb_14mom_DPi[i][j]
+                  >> deltaf_coeff_tb_14mom_BPi[i][j]
+                  >> deltaf_coeff_tb_14mom_BPitilde[i][j]
+                  >> deltaf_coeff_tb_14mom_DV[i][j]
+                  >> deltaf_coeff_tb_14mom_BV[i][j]
+                  >> deltaf_coeff_tb_14mom_Bpi_shear[i][j];
+        }
+    }
     table.close();
 
     // convert units
     double hbarc3 = hbarc*hbarc*hbarc;
     double hbarc4 = hbarc3*hbarc;
-    for(int i = 0; i < deltaf_coeff_table_14mom_length_T; i++)
-    {
-       for(int j = 0; j < deltaf_coeff_table_14mom_length_mu; j++)
-       {
-          deltaf_coeff_tb_14mom_DPi[i][j] *= hbarc4;          // fm^4/GeV
-          deltaf_coeff_tb_14mom_BPi[i][j] *= hbarc4;          // fm^4/(GeV^2)
-          deltaf_coeff_tb_14mom_BPitilde[i][j] *= hbarc4;     // fm^4/(GeV^2)
-          deltaf_coeff_tb_14mom_DV[i][j] *= hbarc3;           // fm^3/GeV
-          deltaf_coeff_tb_14mom_BV[i][j] *= hbarc3;           // fm^3/(GeV^2)
-          deltaf_coeff_tb_14mom_Bpi_shear[i][j] *= hbarc4;    // fm^4/(GeV^2)
-       }
+    for (int i = 0; i < deltaf_coeff_table_14mom_length_T; i++) {
+        for (int j = 0; j < deltaf_coeff_table_14mom_length_mu; j++) {
+            deltaf_coeff_tb_14mom_DPi[i][j] *= hbarc4;          // fm^4/GeV
+            deltaf_coeff_tb_14mom_BPi[i][j] *= hbarc4;          // fm^4/(GeV^2)
+            deltaf_coeff_tb_14mom_BPitilde[i][j] *= hbarc4;     // fm^4/(GeV^2)
+            deltaf_coeff_tb_14mom_DV[i][j] *= hbarc3;           // fm^3/GeV
+            deltaf_coeff_tb_14mom_BV[i][j] *= hbarc3;           // fm^3/(GeV^2)
+            deltaf_coeff_tb_14mom_Bpi_shear[i][j] *= hbarc4;    // fm^4/(GeV^2)
+        }
     }
 }
 
-double Freeze::get_deltaf_qmu_coeff(double T, double muB)
-{
-    int idx_T = (int)((T - delta_qmu_coeff_table_T0)
-                      /delta_qmu_coeff_table_dT);
-    int idx_mu = (int)((muB - delta_qmu_coeff_table_mu0)
-                       /delta_qmu_coeff_table_dmu);
+double Freeze::get_deltaf_qmu_coeff(double T, double muB) {
+    int idx_T = static_cast<int>((T - delta_qmu_coeff_table_T0)
+                                 /delta_qmu_coeff_table_dT);
+    int idx_mu = static_cast<int>((muB - delta_qmu_coeff_table_mu0)
+                                  /delta_qmu_coeff_table_dmu);
     double x_fraction = ((T - delta_qmu_coeff_table_T0)
                          /delta_qmu_coeff_table_dT - idx_T);
     double y_fraction = ((muB - delta_qmu_coeff_table_mu0)
                          /delta_qmu_coeff_table_dmu - idx_mu);
 
-    //avoid overflow
-    if(idx_mu > deltaf_qmu_coeff_table_length_mu - 2)
+    // avoid overflow
+    if (idx_mu > deltaf_qmu_coeff_table_length_mu - 2)
         return(1e30);
-    if(idx_T > deltaf_qmu_coeff_table_length_T - 2)
+    if (idx_T > deltaf_qmu_coeff_table_length_T - 2)
         return(1e30);
-    
+
     // avoid underflow
-    if(idx_mu < 0)
+    if (idx_mu < 0)
         return(1e30);
-    if(idx_T < 0)
+    if (idx_T < 0)
         return(1e30);
-    
+
     double f1 = deltaf_qmu_coeff_tb[idx_T][idx_mu];
     double f2 = deltaf_qmu_coeff_tb[idx_T][idx_mu+1];
     double f3 = deltaf_qmu_coeff_tb[idx_T+1][idx_mu+1];
     double f4 = deltaf_qmu_coeff_tb[idx_T+1][idx_mu];
 
-    double coeff = f1*(1. - x_fraction)*(1. - y_fraction) 
+    double coeff = f1*(1. - x_fraction)*(1. - y_fraction)
                    + f2*(1. - x_fraction)*y_fraction
                    + f3*x_fraction*y_fraction
                    + f4*x_fraction*(1. - y_fraction);
     return(coeff);
 }
 
-double Freeze::get_deltaf_coeff_14moments(double T, double muB, double type)
-{
-    int idx_T = (int)((T - delta_coeff_table_14mom_T0)
-                      /delta_coeff_table_14mom_dT);
-    int idx_mu = (int)((muB - delta_coeff_table_14mom_mu0)
-                       /delta_coeff_table_14mom_dmu);
+double Freeze::get_deltaf_coeff_14moments(double T, double muB, double type) {
+    int idx_T = static_cast<int>((T - delta_coeff_table_14mom_T0)
+                                 /delta_coeff_table_14mom_dT);
+    int idx_mu = static_cast<int>((muB - delta_coeff_table_14mom_mu0)
+                                  /delta_coeff_table_14mom_dmu);
     double x_fraction = ((T - delta_coeff_table_14mom_T0)
                          /delta_coeff_table_14mom_dT - idx_T);
     double y_fraction = ((muB - delta_coeff_table_14mom_mu0)
                          /delta_coeff_table_14mom_dmu - idx_mu);
 
     double **deltaf_table = NULL;
-    if (type == 0)
+    if (type == 0) {
        deltaf_table = deltaf_coeff_tb_14mom_DPi;
-    else if (type == 1)
+    } else if (type == 1) {
        deltaf_table = deltaf_coeff_tb_14mom_BPi;
-    else if (type == 2)
+    } else if (type == 2) {
        deltaf_table = deltaf_coeff_tb_14mom_BPitilde;
-    else if (type == 3)
+    } else if (type == 3) {
        deltaf_table = deltaf_coeff_tb_14mom_DV;
-    else if (type == 4)
+    } else if (type == 4) {
        deltaf_table = deltaf_coeff_tb_14mom_BV;
-    else if (type == 5)
+    } else if (type == 5) {
        deltaf_table = deltaf_coeff_tb_14mom_Bpi_shear;
-    else
-    {
-       cout << "Freeze::get_deltaf_coeff_14moments: unknown type: " 
-            << type << endl;
-       exit(-1);
+    } else {
+        cout << "Freeze::get_deltaf_coeff_14moments: unknown type: "
+             << type << endl;
+        exit(-1);
     }
-    
+
     double f1 = deltaf_table[idx_T][idx_mu];
     double f2 = deltaf_table[idx_T][idx_mu+1];
     double f3 = deltaf_table[idx_T+1][idx_mu+1];
     double f4 = deltaf_table[idx_T+1][idx_mu];
 
-    double coeff = f1*(1. - x_fraction)*(1. - y_fraction) 
+    double coeff = f1*(1. - x_fraction)*(1. - y_fraction)
                    + f2*(1. - x_fraction)*y_fraction
                    + f3*x_fraction*y_fraction
                    + f4*x_fraction*(1. - y_fraction);
@@ -2424,124 +2436,128 @@ double Freeze::get_deltaf_coeff_14moments(double T, double muB, double type)
 }
 
 void Freeze::getbulkvisCoefficients(double Tdec, double* bulkvisCoefficients) {
-   double Tdec_fm = Tdec/hbarc;  // [1/fm]
-   double Tdec_fm_power[11];     // cache the polynomial power of Tdec_fm
-   Tdec_fm_power[1] = Tdec_fm;
-   for(int ipower = 2; ipower < 11; ipower++)
-       Tdec_fm_power[ipower] = Tdec_fm_power[ipower-1]*Tdec_fm;
-   if(bulk_deltaf_kind == 0) {       // 14 moment expansion
+    double Tdec_fm = Tdec/hbarc;  // [1/fm]
+    double Tdec_fm_power[11];     // cache the polynomial power of Tdec_fm
+    Tdec_fm_power[1] = Tdec_fm;
+    for (int ipower = 2; ipower < 11; ipower++)
+        Tdec_fm_power[ipower] = Tdec_fm_power[ipower-1]*Tdec_fm;
+    if (bulk_deltaf_kind == 0) {
+        // 14 moment expansion
         // parameterization for mu = 0
-        
         // B0[fm^3/GeV^3]
         bulkvisCoefficients[0] = (
-                exp(-15.04512474*Tdec_fm + 11.76194266)/pow(hbarc, 3)); 
+                exp(-15.04512474*Tdec_fm + 11.76194266)/pow(hbarc, 3));
         // D0 [fm^3/GeV^2]
         bulkvisCoefficients[1] = (
-                exp( -12.45699277*Tdec_fm + 11.4949293)/hbarc/hbarc);  
+                exp(-12.45699277*Tdec_fm + 11.4949293)/hbarc/hbarc);
         // E0 [fm^3/GeV^3]
         bulkvisCoefficients[2] = (
-                -exp(-14.45087586*Tdec_fm + 11.62716548)/pow(hbarc, 3));  
-   } else if(bulk_deltaf_kind == 1) {     // relaxation type 1
-       // parameterization from JF
-       // A Polynomial fit to each coefficient -- temperature in fm^-1
-       // Both fits are reliable between T=100 -- 180 MeV
-       // do not trust it beyond
-       bulkvisCoefficients[0] = (  642096.624265727 
-                                 - 8163329.49562861*Tdec_fm_power[1] 
-                                 + 47162768.4292073*Tdec_fm_power[2] 
-                                 - 162590040.002683*Tdec_fm_power[3] 
-                                 + 369637951.096896*Tdec_fm_power[4] 
-                                 - 578181331.809836*Tdec_fm_power[5] 
-                                 + 629434830.225675*Tdec_fm_power[6] 
-                                 - 470493661.096657*Tdec_fm_power[7] 
-                                 + 230936465.421*Tdec_fm_power[8] 
-                                 - 67175218.4629078*Tdec_fm_power[9] 
-                                 + 8789472.32652964*Tdec_fm_power[10]);
+                -exp(-14.45087586*Tdec_fm + 11.62716548)/pow(hbarc, 3));
+    } else if (bulk_deltaf_kind == 1) {
+        // relaxation type 1
+        // parameterization from JF
+        // A Polynomial fit to each coefficient -- temperature in fm^-1
+        // Both fits are reliable between T=100 -- 180 MeV
+        // do not trust it beyond
+        bulkvisCoefficients[0] = (642096.624265727
+                                  - 8163329.49562861*Tdec_fm_power[1]
+                                  + 47162768.4292073*Tdec_fm_power[2]
+                                  - 162590040.002683*Tdec_fm_power[3]
+                                  + 369637951.096896*Tdec_fm_power[4]
+                                  - 578181331.809836*Tdec_fm_power[5]
+                                  + 629434830.225675*Tdec_fm_power[6]
+                                  - 470493661.096657*Tdec_fm_power[7]
+                                  + 230936465.421*Tdec_fm_power[8]
+                                  - 67175218.4629078*Tdec_fm_power[9]
+                                  + 8789472.32652964*Tdec_fm_power[10]);
 
-       bulkvisCoefficients[1] = (  1.18171174036192 
-                                 - 17.6740645873717*Tdec_fm_power[1]
-                                 + 136.298469057177*Tdec_fm_power[2] 
-                                 - 635.999435106846*Tdec_fm_power[3] 
-                                 + 1918.77100633321*Tdec_fm_power[4] 
-                                 - 3836.32258307711*Tdec_fm_power[5] 
-                                 + 5136.35746882372*Tdec_fm_power[6] 
-                                 - 4566.22991441914*Tdec_fm_power[7] 
-                                 + 2593.45375240886*Tdec_fm_power[8] 
-                                 - 853.908199724349*Tdec_fm_power[9]
-                                 + 124.260460450113*Tdec_fm_power[10]);
-   } else if (bulk_deltaf_kind == 2) {     // relaxation type 2
-       // A Polynomial fit to each coefficient -- temperature in fm^-1
-       // Both fits are reliable between T=100 -- 180 MeV
-       // do not trust it beyond
-       bulkvisCoefficients[0] = (  
-               21091365.1182649 - 290482229.281782*Tdec_fm_power[1] 
-             + 1800423055.01882*Tdec_fm_power[2] 
-             - 6608608560.99887*Tdec_fm_power[3] 
-             + 15900800422.7138*Tdec_fm_power[4] 
-             - 26194517161.8205*Tdec_fm_power[5] 
-             + 29912485360.2916*Tdec_fm_power[6] 
-             - 23375101221.2855*Tdec_fm_power[7] 
-             + 11960898238.0134*Tdec_fm_power[8] 
-             - 3618358144.18576*Tdec_fm_power[9] 
-             + 491369134.205902*Tdec_fm_power[10]);
+        bulkvisCoefficients[1] = (1.18171174036192
+                                  - 17.6740645873717*Tdec_fm_power[1]
+                                  + 136.298469057177*Tdec_fm_power[2]
+                                  - 635.999435106846*Tdec_fm_power[3]
+                                  + 1918.77100633321*Tdec_fm_power[4]
+                                  - 3836.32258307711*Tdec_fm_power[5]
+                                  + 5136.35746882372*Tdec_fm_power[6]
+                                  - 4566.22991441914*Tdec_fm_power[7]
+                                  + 2593.45375240886*Tdec_fm_power[8]
+                                  - 853.908199724349*Tdec_fm_power[9]
+                                  + 124.260460450113*Tdec_fm_power[10]);
+    } else if (bulk_deltaf_kind == 2) {
+        // relaxation type 2
+        // A Polynomial fit to each coefficient -- temperature in fm^-1
+        // Both fits are reliable between T=100 -- 180 MeV
+        // do not trust it beyond
+        bulkvisCoefficients[0] = (
+                21091365.1182649 - 290482229.281782*Tdec_fm_power[1]
+                + 1800423055.01882*Tdec_fm_power[2]
+                - 6608608560.99887*Tdec_fm_power[3]
+                + 15900800422.7138*Tdec_fm_power[4]
+                - 26194517161.8205*Tdec_fm_power[5]
+                + 29912485360.2916*Tdec_fm_power[6]
+                - 23375101221.2855*Tdec_fm_power[7]
+                + 11960898238.0134*Tdec_fm_power[8]
+                - 3618358144.18576*Tdec_fm_power[9]
+                + 491369134.205902*Tdec_fm_power[10]);
 
-       bulkvisCoefficients[1] = (  
-               4007863.29316896 - 55199395.3534188*Tdec_fm_power[1] 
-             + 342115196.396492*Tdec_fm_power[2] 
-             - 1255681487.77798*Tdec_fm_power[3] 
-             + 3021026280.08401*Tdec_fm_power[4] 
-             - 4976331606.85766*Tdec_fm_power[5] 
-             + 5682163732.74188*Tdec_fm_power[6] 
-             - 4439937810.57449*Tdec_fm_power[7] 
-             + 2271692965.05568*Tdec_fm_power[8] 
-             - 687164038.128814*Tdec_fm_power[9] 
-             + 93308348.3137008*Tdec_fm_power[10]);
-   } else if (bulk_deltaf_kind == 3) {    // relaxation type 3
-       bulkvisCoefficients[0] = (
-               160421664.93603 - 2212807124.97991*Tdec_fm_power[1] 
-             + 13707913981.1425*Tdec_fm_power[2] 
-             - 50204536518.1767*Tdec_fm_power[3] 
-             + 120354649094.362*Tdec_fm_power[4] 
-             - 197298426823.223*Tdec_fm_power[5] 
-             + 223953760788.288*Tdec_fm_power[6] 
-             - 173790947240.829*Tdec_fm_power[7] 
-             + 88231322888.0423*Tdec_fm_power[8] 
-             - 26461154892.6963*Tdec_fm_power[9] 
-             + 3559805050.19592*Tdec_fm_power[10]);
-       bulkvisCoefficients[1] = (
-               33369186.2536556 - 460293490.420478*Tdec_fm_power[1] 
-             + 2851449676.09981*Tdec_fm_power[2] 
-             - 10443297927.601*Tdec_fm_power[3] 
-             + 25035517099.7809*Tdec_fm_power[4] 
-             - 41040777943.4963*Tdec_fm_power[5] 
-             + 46585225878.8723*Tdec_fm_power[6] 
-             - 36150531001.3718*Tdec_fm_power[7] 
-             + 18353035766.9323*Tdec_fm_power[8] 
-             - 5504165325.05431*Tdec_fm_power[9] 
-             + 740468257.784873*Tdec_fm_power[10]);
-   } else if (bulk_deltaf_kind == 4)  {    // relaxation type 4
-       bulkvisCoefficients[0] = (  
-               1167272041.90731 - 16378866444.6842*Tdec_fm_power[1] 
-             + 103037615761.617*Tdec_fm_power[2] 
-             - 382670727905.111*Tdec_fm_power[3] 
-             + 929111866739.436*Tdec_fm_power[4] 
-             - 1540948583116.54*Tdec_fm_power[5] 
-             + 1767975890298.1*Tdec_fm_power[6] 
-             - 1385606389545*Tdec_fm_power[7] 
-             + 709922576963.213*Tdec_fm_power[8] 
-             - 214726945096.326*Tdec_fm_power[9] 
-             + 29116298091.9219*Tdec_fm_power[10]);
-       bulkvisCoefficients[1] = (
-               5103633637.7213 - 71612903872.8163*Tdec_fm_power[1] 
-             + 450509014334.964*Tdec_fm_power[2] 
-             - 1673143669281.46*Tdec_fm_power[3] 
-             + 4062340452589.89*Tdec_fm_power[4] 
-             - 6737468792456.4*Tdec_fm_power[5] 
-             + 7730102407679.65*Tdec_fm_power[6] 
-             - 6058276038129.83*Tdec_fm_power[7] 
-             + 3103990764357.81*Tdec_fm_power[8] 
-             - 938850005883.612*Tdec_fm_power[9] 
-             + 127305171097.249*Tdec_fm_power[10]);
-   }
-   return;
+        bulkvisCoefficients[1] = (
+                4007863.29316896 - 55199395.3534188*Tdec_fm_power[1]
+                + 342115196.396492*Tdec_fm_power[2]
+                - 1255681487.77798*Tdec_fm_power[3]
+                + 3021026280.08401*Tdec_fm_power[4]
+                - 4976331606.85766*Tdec_fm_power[5]
+                + 5682163732.74188*Tdec_fm_power[6]
+                - 4439937810.57449*Tdec_fm_power[7]
+                + 2271692965.05568*Tdec_fm_power[8]
+                - 687164038.128814*Tdec_fm_power[9]
+                + 93308348.3137008*Tdec_fm_power[10]);
+    } else if (bulk_deltaf_kind == 3) {
+        // relaxation type 3
+        bulkvisCoefficients[0] = (
+                160421664.93603 - 2212807124.97991*Tdec_fm_power[1]
+                + 13707913981.1425*Tdec_fm_power[2]
+                - 50204536518.1767*Tdec_fm_power[3]
+                + 120354649094.362*Tdec_fm_power[4]
+                - 197298426823.223*Tdec_fm_power[5]
+                + 223953760788.288*Tdec_fm_power[6]
+                - 173790947240.829*Tdec_fm_power[7]
+                + 88231322888.0423*Tdec_fm_power[8]
+                - 26461154892.6963*Tdec_fm_power[9]
+                + 3559805050.19592*Tdec_fm_power[10]);
+        bulkvisCoefficients[1] = (
+                33369186.2536556 - 460293490.420478*Tdec_fm_power[1]
+                + 2851449676.09981*Tdec_fm_power[2]
+                - 10443297927.601*Tdec_fm_power[3]
+                + 25035517099.7809*Tdec_fm_power[4]
+                - 41040777943.4963*Tdec_fm_power[5]
+                + 46585225878.8723*Tdec_fm_power[6]
+                - 36150531001.3718*Tdec_fm_power[7]
+                + 18353035766.9323*Tdec_fm_power[8]
+                - 5504165325.05431*Tdec_fm_power[9]
+                + 740468257.784873*Tdec_fm_power[10]);
+    } else if (bulk_deltaf_kind == 4)  {
+        // relaxation type 4
+        bulkvisCoefficients[0] = (
+                1167272041.90731 - 16378866444.6842*Tdec_fm_power[1]
+                + 103037615761.617*Tdec_fm_power[2]
+                - 382670727905.111*Tdec_fm_power[3]
+                + 929111866739.436*Tdec_fm_power[4]
+                - 1540948583116.54*Tdec_fm_power[5]
+                + 1767975890298.1*Tdec_fm_power[6]
+                - 1385606389545*Tdec_fm_power[7]
+                + 709922576963.213*Tdec_fm_power[8]
+                - 214726945096.326*Tdec_fm_power[9]
+                + 29116298091.9219*Tdec_fm_power[10]);
+        bulkvisCoefficients[1] = (
+                5103633637.7213 - 71612903872.8163*Tdec_fm_power[1]
+                + 450509014334.964*Tdec_fm_power[2]
+                - 1673143669281.46*Tdec_fm_power[3]
+                + 4062340452589.89*Tdec_fm_power[4]
+                - 6737468792456.4*Tdec_fm_power[5]
+                + 7730102407679.65*Tdec_fm_power[6]
+                - 6058276038129.83*Tdec_fm_power[7]
+                + 3103990764357.81*Tdec_fm_power[8]
+                - 938850005883.612*Tdec_fm_power[9]
+                + 127305171097.249*Tdec_fm_power[10]);
+    }
+    return;
 }

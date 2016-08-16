@@ -91,13 +91,13 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     j = 0;
     cout << "before" << endl;
     cout << "sizeofParticle = " << sizeof(Particle)/1000000 << endl;
-    particleList = (Particle *)malloc(
+    particleList = reinterpret_cast<Particle *>malloc(
                     (DATA->NumberOfParticlesToInclude + 2)*sizeof(Particle));
     cout << "after first (check if there is enough memory... "
          << "seg fault may be due to lack of memory)" << endl;
 
     // read particle data:
-    while (i<DATA->NumberOfParticlesToInclude + 1) {
+    while (i < DATA->NumberOfParticlesToInclude + 1) {
         particleList[i].name = util->char_malloc(50);
         fscanf(p_file, "%d", &particleList[i].number);
         fscanf(p_file, "%s", particleList[i].name);
@@ -124,7 +124,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
                 exit(0);
             }
             if (decay[j].numpart == 1) {
-                //"decays" into one particle, i.e. is stable
+                // "decays" into one particle, i.e. is stable
                 particleList[i].stable = 1;
             }
             j++;  // increase the decay counting variable "j" by 1
@@ -170,297 +170,242 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
         }
         cout << "Determining chemical potentials at freeze out energy density "
              << ef << " GeV/fm^3." << endl;
-      
-        const char* EOSPATH = "HYDROPROGRAMPATH";
-        char* envPath = getenv(EOSPATH);
-        char* mu_name;
-        mu_name = util->char_malloc(100);
-        if (envPath != 0 && *envPath != '\0') {
-            strcpy(mu_name, envPath);
-            if (DATA->whichEOS == 3)
-                strcat(mu_name,"/EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat");
-            else if (DATA->whichEOS == 4)
-                strcat(mu_name,"/EOS/s95p-PCE155/pichem1.dat");
-            else if (DATA->whichEOS == 5)
-                strcat(mu_name,"/EOS/s95p-PCE160/pichem1.dat");
-            else if (DATA->whichEOS == 6)
-                strcat(mu_name,"/EOS/s95p-PCE165-v0/s95p-PCE165-v0_pichem1.dat");
-        } else {
-            strcpy(mu_name, ".");
-            if (DATA->whichEOS==3)
-                strcat(mu_name,"/EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat");
-            else if (DATA->whichEOS==4)
-                strcat(mu_name,"/EOS/s95p-PCE155/pichem1.dat");
-            else if (DATA->whichEOS==5)
-                strcat(mu_name,"/EOS/s95p-PCE160/pichem1.dat");
-            else if (DATA->whichEOS==6)
-                strcat(mu_name,"/EOS/s95p-PCE165-v0/s95p-PCE165-v0_pichem1.dat");
-        }
-        cout << "Reading chemical potentials from file\n " << mu_name << endl; 
+
+        sting mu_name;
+        if (DATA->whichEOS == 3)
+            mu_name = "./EOS/s95p-PCE-v1/s95p-PCE-v1_pichem1.dat";
+        else if (DATA->whichEOS == 4)
+            mu_name = "./EOS/s95p-PCE155/pichem1.dat";
+        else if (DATA->whichEOS == 5)
+            mu_name = "./EOS/s95p-PCE160/pichem1.dat";
+        else if (DATA->whichEOS == 6)
+            mu_name = "./EOS/s95p-PCE165-v0/s95p-PCE165-v0_pichem1.dat";
+        cout << "Reading chemical potentials from file: " << mu_name << endl;
         FILE *mu_file;
-        mu_file = fopen(mu_name, "r");
-        checkForReadError(mu_file,mu_name);
+        mu_file = fopen(mu_name.c_str(), "r");
+        checkForReadError(mu_file, mu_name.c_str());
 
-      double EPP1;            // start value for \mu_B and epsilon
-      double deltaEPP1;  // step size for \mu_B and epsilon
-      int NEPP1;             // number of entries for \mu_B and epsilon
-      int numStable;                // number of stable particles (number of columns in the file)
-      double **chemPot;
+        double EPP1;            // start value for \mu_B and epsilon
+        double deltaEPP1;       // step size for \mu_B and epsilon
+        int NEPP1;              // number of entries for \mu_B and epsilon
+        int numStable;          // number of stable particles
+        double **chemPot;
 
-      fscanf(mu_file,"%lf",&EPP1);
-      fscanf(mu_file,"%lf %d",&deltaEPP1,&NEPP1);
-      fscanf(mu_file,"%d",&numStable);
-      
-      //      cout << "EPP1=" << EPP1 << ", deltaEPP1=" << deltaEPP1 << ", NEPP1=" << NEPP1 << ", numStable=" << numStable << endl;
-      
-      chemPot=util->mtx_malloc(numStable+1,NEPP1+1); // chemical potential for every stable particle 
+        fscanf(mu_file, "%lf", &EPP1);
+        fscanf(mu_file, "%lf %d", &deltaEPP1, &NEPP1);
+        fscanf(mu_file, "%d", &numStable);
+        // chemical potential for every stable particle
+        chemPot = util->mtx_malloc(numStable+1, NEPP1+1);
 
-      for(j=NEPP1-1; j>=0; j--)
-    {
-      for(i=0; i<numStable; i++)
-        {
-          fscanf(mu_file,"%lf",&chemPot[i][j]);
-          //      cout << chemPot[i][j] << " ";
-        }
-      //      cout << endl;
-    }
-
-      fclose(mu_file);
-      util->char_free(mu_name);
-      double frace;
-      int ie1, ie2;
-      if(ef<EPP1) 
-    {
-      ie1 = 0;
-      ie2 = 1;
-      frace = ef/(EPP1);
-    }
-      else
-    {
-      ie1 = floor((ef-EPP1)/deltaEPP1);
-      ie2 = floor((ef-EPP1)/deltaEPP1+1);
-      frace = (ef-(ie1*deltaEPP1+EPP1))/deltaEPP1; 
-    }
-      
-      if(ie1>NEPP1)
-    {
-      fprintf(stderr,"ERROR in ReadParticleData. out of range.\n");
-      fprintf(stderr,"ie1=%d,NEPP1=%d\n", ie1, NEPP1);
-      exit(0);
-    }
-      if(ie2>NEPP1)
-    {
-      fprintf(stderr,"ERROR in ReadParticleData. out of range.\n");
-      fprintf(stderr,"ie2=%d,NEPP1=%d\n", ie2, NEPP1);
-      exit(0);
-    }
-
-      double pa, pb;
-      double mu[numStable+1];
-      cout << "numStable=" << numStable << endl;
-      
-      for(i=1; i<=numStable; i++)
-    {
-      pa = chemPot[i-1][ie1];
-      pb = chemPot[i-1][ie2];
-      
-      if(ef<EPP1) 
-        {
-          mu[i] = pa*(frace);
-          //if (p<0) fprintf(stderr,"pa=%lf\n", pa);
-          //if (p<0) fprintf(stderr,"p=%lf\n", p);
-        }
-      else
-        {
-          mu[i] = pa*(1-frace) + pb*frace;
-        }
-      //      cout << "mu of stable particle " << i << "=" << mu[i] << endl;
-    }
-     
-      for(i=0; i<DATA->NumberOfParticlesToInclude; i++)
-        {
-          particleList[i].muAtFreezeOut = 0.;      
-        }
-      
-      if (DATA->NumberOfParticlesToInclude>=8)
-        {
-          for(i=1; i<=8; i++)
-            {
-              particleList[i].muAtFreezeOut = mu[i];
+        for (j = NEPP1-1; j >= 0; j--) {
+            for (i = 0; i < numStable; i++) {
+                fscanf(mu_file, "%lf", &chemPot[i][j]);
             }
         }
-      else
-        {
-          cout << "Need at least 8 particles. Increase number of particles to include. Exiting." << endl;
-          exit(1);
+        fclose(mu_file);
+
+        double frace;
+        int ie1, ie2;
+        if (ef < EPP1) {
+            ie1 = 0;
+            ie2 = 1;
+            frace = ef/(EPP1);
+        } else {
+            ie1 = floor((ef-EPP1)/deltaEPP1);
+            ie2 = floor((ef-EPP1)/deltaEPP1+1);
+            frace = (ef-(ie1*deltaEPP1+EPP1))/deltaEPP1;
+        }
+      
+        if (ie1 > NEPP1) {
+            fprintf(stderr, "ERROR in ReadParticleData. out of range.\n");
+            fprintf(stderr, "ie1=%d, NEPP1=%d\n", ie1, NEPP1);
+            exit(0);
+        }
+        if (ie2 > NEPP1) {
+            fprintf(stderr, "ERROR in ReadParticleData. out of range.\n");
+            fprintf(stderr, "ie2=%d, NEPP1=%d\n", ie2, NEPP1);
+            exit(0);
+        }
+
+        double pa, pb;
+        double mu[numStable+1];
+        cout << "numStable=" << numStable << endl;
+      
+        for (i = 1; i <= numStable; i++) {
+            pa = chemPot[i-1][ie1];
+            pb = chemPot[i-1][ie2];
+      
+            if (ef < EPP1) {
+                mu[i] = pa*(frace);
+                // if (p<0) fprintf(stderr,"pa=%lf\n", pa);
+                // if (p<0) fprintf(stderr,"p=%lf\n", p);
+            } else {
+                mu[i] = pa*(1-frace) + pb*frace;
+            }
+            // cout << "mu of stable particle " << i << "=" << mu[i] << endl;
+        }
+        for (i = 0; i < DATA->NumberOfParticlesToInclude; i++) {
+            particleList[i].muAtFreezeOut = 0.;
+        }
+
+        if (DATA->NumberOfParticlesToInclude >= 8) {
+            for (i = 1; i <= 8; i++) {
+                particleList[i].muAtFreezeOut = mu[i];
+            }
+        } else {
+            cout << "Need at least 8 particles. "
+                 << "Increase number of particles to include. Exiting." << endl;
+            exit(1);
         }
 
 
-      if(DATA->whichEOS!=6)
-    {
-      if (DATA->NumberOfParticlesToInclude>=12)
-      particleList[12].muAtFreezeOut = mu[9];
-      if (DATA->NumberOfParticlesToInclude>=17)
-      particleList[17].muAtFreezeOut = mu[10];
-      if (DATA->NumberOfParticlesToInclude>=18)
-      particleList[18].muAtFreezeOut = mu[11];
-      if (DATA->NumberOfParticlesToInclude>=19)
-      particleList[19].muAtFreezeOut = mu[12];
-      if (DATA->NumberOfParticlesToInclude>=20)
-      particleList[20].muAtFreezeOut = mu[13];
-      if (DATA->NumberOfParticlesToInclude>=21)
-      particleList[21].muAtFreezeOut = mu[14];
+        if (DATA->whichEOS != 6) {
+            if (DATA->NumberOfParticlesToInclude>=12)
+                particleList[12].muAtFreezeOut = mu[9];
+            if (DATA->NumberOfParticlesToInclude>=17)
+                particleList[17].muAtFreezeOut = mu[10];
+            if (DATA->NumberOfParticlesToInclude>=18)
+                particleList[18].muAtFreezeOut = mu[11];
+            if (DATA->NumberOfParticlesToInclude>=19)
+                particleList[19].muAtFreezeOut = mu[12];
+            if (DATA->NumberOfParticlesToInclude>=20)
+                particleList[20].muAtFreezeOut = mu[13];
+            if (DATA->NumberOfParticlesToInclude>=21)
+                particleList[21].muAtFreezeOut = mu[14];
 
-      if (DATA->NumberOfParticlesToInclude>=26)
-      particleList[26].muAtFreezeOut = mu[15];
-      if (DATA->NumberOfParticlesToInclude>=27)
-      particleList[27].muAtFreezeOut = mu[16];
-      if (DATA->NumberOfParticlesToInclude>=28)
-      particleList[28].muAtFreezeOut = mu[17];
+            if (DATA->NumberOfParticlesToInclude>=26)
+                particleList[26].muAtFreezeOut = mu[15];
+            if (DATA->NumberOfParticlesToInclude>=27)
+                particleList[27].muAtFreezeOut = mu[16];
+            if (DATA->NumberOfParticlesToInclude>=28)
+                particleList[28].muAtFreezeOut = mu[17];
 
-      if (DATA->NumberOfParticlesToInclude>=30)
-      particleList[30].muAtFreezeOut = mu[18];
-      if (DATA->NumberOfParticlesToInclude>=31)
-      particleList[31].muAtFreezeOut = mu[19];
-      if (DATA->NumberOfParticlesToInclude>=32)
-      particleList[32].muAtFreezeOut = mu[20];
-      if (DATA->NumberOfParticlesToInclude>=33)
-      particleList[33].muAtFreezeOut = mu[21];
-      if (DATA->NumberOfParticlesToInclude>=34)
-      particleList[34].muAtFreezeOut = mu[22];
-      if (DATA->NumberOfParticlesToInclude>=35)
-      particleList[35].muAtFreezeOut = mu[23];
+            if (DATA->NumberOfParticlesToInclude>=30)
+                particleList[30].muAtFreezeOut = mu[18];
+            if (DATA->NumberOfParticlesToInclude>=31)
+                particleList[31].muAtFreezeOut = mu[19];
+            if (DATA->NumberOfParticlesToInclude>=32)
+                particleList[32].muAtFreezeOut = mu[20];
+            if (DATA->NumberOfParticlesToInclude>=33)
+                particleList[33].muAtFreezeOut = mu[21];
+            if (DATA->NumberOfParticlesToInclude>=34)
+                particleList[34].muAtFreezeOut = mu[22];
+            if (DATA->NumberOfParticlesToInclude>=35)
+                particleList[35].muAtFreezeOut = mu[23];
 
-      if (DATA->NumberOfParticlesToInclude>=60)
-      particleList[60].muAtFreezeOut = mu[24];
-      if (DATA->NumberOfParticlesToInclude>=61)
-      particleList[61].muAtFreezeOut = mu[25];
-      if (DATA->NumberOfParticlesToInclude>=62)
-      particleList[62].muAtFreezeOut = mu[26];
-      if (DATA->NumberOfParticlesToInclude>=63)
-      particleList[63].muAtFreezeOut = mu[27];
+            if (DATA->NumberOfParticlesToInclude>=60)
+                particleList[60].muAtFreezeOut = mu[24];
+            if (DATA->NumberOfParticlesToInclude>=61)
+                particleList[61].muAtFreezeOut = mu[25];
+            if (DATA->NumberOfParticlesToInclude>=62)
+                particleList[62].muAtFreezeOut = mu[26];
+            if (DATA->NumberOfParticlesToInclude>=63)
+                particleList[63].muAtFreezeOut = mu[27];
 
-      if (DATA->NumberOfParticlesToInclude>=110)
-      particleList[110].muAtFreezeOut = mu[28];
+            if (DATA->NumberOfParticlesToInclude>=110)
+                particleList[110].muAtFreezeOut = mu[28];
       
-      if (DATA->NumberOfParticlesToInclude>=111)
-      particleList[111].muAtFreezeOut = mu[29];
+            if (DATA->NumberOfParticlesToInclude>=111)
+                particleList[111].muAtFreezeOut = mu[29];
 
-      if (DATA->NumberOfParticlesToInclude>=117)
-      particleList[117].muAtFreezeOut = mu[30];
-      if (DATA->NumberOfParticlesToInclude>=118)
-      particleList[118].muAtFreezeOut = mu[31];
-      if (DATA->NumberOfParticlesToInclude>=119)
-      particleList[119].muAtFreezeOut = mu[32];
-      if (DATA->NumberOfParticlesToInclude>=120)
-      particleList[120].muAtFreezeOut = mu[33];
+            if (DATA->NumberOfParticlesToInclude>=117)
+                particleList[117].muAtFreezeOut = mu[30];
+            if (DATA->NumberOfParticlesToInclude>=118)
+                particleList[118].muAtFreezeOut = mu[31];
+            if (DATA->NumberOfParticlesToInclude>=119)
+                particleList[119].muAtFreezeOut = mu[32];
+            if (DATA->NumberOfParticlesToInclude>=120)
+                particleList[120].muAtFreezeOut = mu[33];
 
-      if (DATA->NumberOfParticlesToInclude>=170)
-      particleList[170].muAtFreezeOut = mu[34];
-      if (DATA->NumberOfParticlesToInclude>=171)
-      particleList[171].muAtFreezeOut = mu[35];
+            if (DATA->NumberOfParticlesToInclude>=170)
+                particleList[170].muAtFreezeOut = mu[34];
+            if (DATA->NumberOfParticlesToInclude>=171)
+                particleList[171].muAtFreezeOut = mu[35];
+        } else {   
+            if (DATA->NumberOfParticlesToInclude>=17)
+                particleList[17].muAtFreezeOut = mu[9];
+            if (DATA->NumberOfParticlesToInclude>=18)
+                particleList[18].muAtFreezeOut = mu[10];
+            if (DATA->NumberOfParticlesToInclude>=19)
+                particleList[19].muAtFreezeOut = mu[11];
+            if (DATA->NumberOfParticlesToInclude>=20)
+                particleList[20].muAtFreezeOut = mu[12];
+            if (DATA->NumberOfParticlesToInclude>=21)
+                particleList[21].muAtFreezeOut = mu[13];
+      
+            if (DATA->NumberOfParticlesToInclude>=26)
+                particleList[26].muAtFreezeOut = mu[14];
+            if (DATA->NumberOfParticlesToInclude>=27)
+                particleList[27].muAtFreezeOut = mu[15];
+            if (DATA->NumberOfParticlesToInclude>=28)
+                particleList[28].muAtFreezeOut = mu[16];
+      
+            if (DATA->NumberOfParticlesToInclude>=30)
+                particleList[30].muAtFreezeOut = mu[17];
+            if (DATA->NumberOfParticlesToInclude>=31)
+                particleList[31].muAtFreezeOut = mu[18];
+            if (DATA->NumberOfParticlesToInclude>=32)
+                particleList[32].muAtFreezeOut = mu[19];
+            if (DATA->NumberOfParticlesToInclude>=33)
+                particleList[33].muAtFreezeOut = mu[20];
+            if (DATA->NumberOfParticlesToInclude>=34)
+                particleList[34].muAtFreezeOut = mu[21];
+            if (DATA->NumberOfParticlesToInclude>=35)
+                particleList[35].muAtFreezeOut = mu[22];
+
+            if (DATA->NumberOfParticlesToInclude>=60)
+                particleList[60].muAtFreezeOut = mu[23];
+            if (DATA->NumberOfParticlesToInclude>=61)
+                particleList[61].muAtFreezeOut = mu[24];
+            if (DATA->NumberOfParticlesToInclude>=62)
+                particleList[62].muAtFreezeOut = mu[25];
+            if (DATA->NumberOfParticlesToInclude>=63)
+                particleList[63].muAtFreezeOut = mu[26];
+
+            if (DATA->NumberOfParticlesToInclude>=170)
+                particleList[170].muAtFreezeOut = mu[27];
+            if (DATA->NumberOfParticlesToInclude>=171)
+                particleList[171].muAtFreezeOut = mu[28];
         }
-      else
-    {   
-      if (DATA->NumberOfParticlesToInclude>=17)
-        particleList[17].muAtFreezeOut = mu[9];
-      if (DATA->NumberOfParticlesToInclude>=18)
-        particleList[18].muAtFreezeOut = mu[10];
-      if (DATA->NumberOfParticlesToInclude>=19)
-        particleList[19].muAtFreezeOut = mu[11];
-      if (DATA->NumberOfParticlesToInclude>=20)
-        particleList[20].muAtFreezeOut = mu[12];
-      if (DATA->NumberOfParticlesToInclude>=21)
-        particleList[21].muAtFreezeOut = mu[13];
       
-      if (DATA->NumberOfParticlesToInclude>=26)
-        particleList[26].muAtFreezeOut = mu[14];
-      if (DATA->NumberOfParticlesToInclude>=27)
-        particleList[27].muAtFreezeOut = mu[15];
-      if (DATA->NumberOfParticlesToInclude>=28)
-        particleList[28].muAtFreezeOut = mu[16];
-      
-      if (DATA->NumberOfParticlesToInclude>=30)
-        particleList[30].muAtFreezeOut = mu[17];
-      if (DATA->NumberOfParticlesToInclude>=31)
-        particleList[31].muAtFreezeOut = mu[18];
-      if (DATA->NumberOfParticlesToInclude>=32)
-        particleList[32].muAtFreezeOut = mu[19];
-      if (DATA->NumberOfParticlesToInclude>=33)
-        particleList[33].muAtFreezeOut = mu[20];
-      if (DATA->NumberOfParticlesToInclude>=34)
-        particleList[34].muAtFreezeOut = mu[21];
-      if (DATA->NumberOfParticlesToInclude>=35)
-        particleList[35].muAtFreezeOut = mu[22];
-      
-      if (DATA->NumberOfParticlesToInclude>=60)
-        particleList[60].muAtFreezeOut = mu[23];
-      if (DATA->NumberOfParticlesToInclude>=61)
-        particleList[61].muAtFreezeOut = mu[24];
-      if (DATA->NumberOfParticlesToInclude>=62)
-        particleList[62].muAtFreezeOut = mu[25];
-      if (DATA->NumberOfParticlesToInclude>=63)
-        particleList[63].muAtFreezeOut = mu[26];
-      
-      if (DATA->NumberOfParticlesToInclude>=170)
-        particleList[170].muAtFreezeOut = mu[27];
-      if (DATA->NumberOfParticlesToInclude>=171)
-        particleList[171].muAtFreezeOut = mu[28];
-
-    }
-      
-      cout << "Got the chemical potentials at freeze out for stable particles." << endl;
+        cout << "Got the chemical potentials at freeze out "
+             << "for stable particles." << endl;
  
-      k=0;
-      for(i=1; i<DATA->NumberOfParticlesToInclude; i++) //skip the photon (i=0)
-    {
-      if (particleList[i].muAtFreezeOut==0)
-        {
-          if (particleList[i].baryon == -1)
-        k -= particleList[i].decays;
-          for(j=1; j<=particleList[i].decays; j++)
-        {
-          k++;
+        k = 0;
+        for (i = 1; i < DATA->NumberOfParticlesToInclude; i++) {
+            //  skip the photon (i=0)
+            if (particleList[i].muAtFreezeOut == 0) {
+                if (particleList[i].baryon == -1)
+                    k -= particleList[i].decays;
+                for (j = 1; j <= particleList[i].decays; j++) {
+                    k++;
     
-          for (int m=0; m<abs(decay[k].numpart); m++)
-            {
-              if (particleList[i].baryon == -1 && particleList[partid[MHALF+decay[k].part[m]]].baryon!=0)
-            {
-              particleList[i].muAtFreezeOut += decay[k].branch*particleList[partid[MHALF-decay[k].part[m]]].muAtFreezeOut;
+                for (int m=0; m<abs(decay[k].numpart); m++) {
+                    if (particleList[i].baryon == -1
+                        && particleList[partid[MHALF + decay[k].part[m]]].baryon
+                           != 0) {
+                        particleList[i].muAtFreezeOut +=
+                            decay[k].branch*particleList[partid[MHALF-decay[k].part[m]]].muAtFreezeOut;
+                } else {
+                    particleList[i].muAtFreezeOut +=
+                            decay[k].branch*particleList[partid[MHALF+decay[k].part[m]]].muAtFreezeOut;
+                        }      
+                    }
+                }
+            } else {
+                for (j=1; j<=particleList[i].decays; j++) {
+                    if (particleList[i].baryon > -1)
+                        k++;
+                }
             }
-              else
-            {
-              particleList[i].muAtFreezeOut += decay[k].branch*particleList[partid[MHALF+decay[k].part[m]]].muAtFreezeOut;
-            }      
-            }
         }
-        }
-      else
-        {
-          for(j=1; j<=particleList[i].decays; j++)
-        {
-          if (particleList[i].baryon > -1)
-            k++;
-          //cout << "k=" << k << " " << particleList[partid[MHALF+decay[k].reso]].name << "=" << decay[k].reso << endl;
-          //cout << particleList[i].name << endl;         
-        }
-        }
+
+    
+        cout << "Got the chemical potentials at freeze-out for the resonances."
+             << endl;
+        util->mtx_free(chemPot,numStable+1,NEPP1+1);
     }
-
-//       for(i=1; i<DATA->NumberOfParticlesToInclude; i++)
-//  {
-//    cout << particleList[i].name << " " << particleList[i].muAtFreezeOut << endl;
-//  }
-      
-      cout << "Got the chemical potentials at freeze-out for the resonances." << endl;
-      util->mtx_free(chemPot,numStable+1,NEPP1+1);
-    }
-
-  
-
-  cout << "Done reading particle data." << endl;
-  // fprintf(stderr,"decayMax=%d\n",decayMax);
-  // fprintf(stderr,"particleMax=%d\n",particleMax);
+    cout << "Done reading particle data." << endl;
 }
 
 
@@ -471,161 +416,88 @@ int Freeze::countLines(std::istream& in) {
 }
 
 void Freeze::ReadFreezeOutSurface(InitData *DATA) {
-//   size_t nbytes=100;
-  int i=0;
-//   int bytes_read;
-//   char * dummy;
-//   double test;
-  fprintf(stderr,"reading freeze-out surface\n");
-  // open particle data file:
-  FILE *s_file;
-//   char* line;
-  const char* s_name = "./surface.dat";
-  s_file = fopen(s_name, "r");
-  checkForReadError(s_file,s_name);
-//   // open geometry data file:
-//   FILE *g_file;
-//   char* g_name = "./geometry.dat"; 
-//   g_file = fopen(g_name, "r");
-//   double tecc2, tecc3, tecc3r3, tPsi2, tPsi3, tPsi3r3;
-//   
-//   if(!(g_file))
-//      {
-//        cout << "file " << g_name << " not found." << endl;
-//        tecc2 = 1.; 
-//        tecc3 = 1.; 
-//        tecc3r3 = 1.; 
-//        tPsi2 = 0.;
-//        tPsi3 = 0.; 
-//        tPsi3r3 = 0.; 
-//      }
-//    else
-//      {
-//        fscanf(g_file, "%lf", &tecc2);
-//        fscanf(g_file, "%lf", &tPsi2);
-//        fscanf(g_file, "%lf", &tecc3);
-//        fscanf(g_file, "%lf", &tPsi3);
-//        //fscanf(g_file, "%lf", &tecc3r3);
-//        //fscanf(g_file, "%lf", &tPsi3r3);
-//        fclose(g_file);
-//    }
-//   
-//    DATA->ecc2 = tecc2;
-//    DATA->ecc3 = tecc3;
-//    DATA->ecc3r3 = tecc3r3;
-//    DATA->Psi2 = tPsi2;
-//    //DATA->Psi3 = tPsi3;
-//    //DATA->Psi3r3 = tPsi3r3;
-//    
-//    cout << "e2=" << DATA->ecc2 << ", Psi2=" << DATA->Psi2 << ", e3=" << DATA->ecc3 << ", Psi3=" << DATA->Psi3 << endl;
-//    //    << ", e3r3=" << DATA->ecc3 << ", Psi3r3=" << DATA->Psi3r3 << endl;
-//    
-  NCells=0;
-  /*   int bytes_read; */
-  //  fprintf(s_file,"%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf \n",
-  //  tauf, xf, yf, etaf, FULLSU[0],FULLSU[1],FULLSU[2],FULLSU[3],
-  //  utau, ux, uy, ueta, epsFO, TFO, muB);
-  //  line = (char *) malloc(nbytes + 1);
-  //   while( getline(&line, &nbytes, s_file)!=-1 )
-  //     {
-  //       NCells++;
-  //     }
+    int i=0;
+    fprintf(stderr, "reading freeze-out surface\n");
+    // open particle data file:
+    FILE *s_file;
+    const char* s_name = "./surface.dat";
+    s_file = fopen(s_name, "r");
+    checkForReadError(s_file, s_name);
 
-  // new counting, mac compatible ...
-  ifstream in;
-  in.open(s_name);
-  NCells = 0;
-  NCells += countLines(in);
-  fprintf(stderr,"NCells=%d\n",NCells);
-  fclose(s_file);
+    NCells = 0;
 
-  s_file = fopen(s_name, "r");
-  checkForReadError(s_file,s_name);
+    // new counting, mac compatible ...
+    ifstream in;
+    in.open(s_name);
+    NCells = 0;
+    NCells += countLines(in);
+    fprintf(stderr, "NCells=%d\n", NCells);
+    fclose(s_file);
 
-  // Now allocate memory: array of surfaceElements with length NCells
-  surface = (SurfaceElement *) malloc((NCells)*sizeof(SurfaceElement));
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
-//   fscanf(s_file, "%s", dummy);
- 
-  while(i<NCells)
-    {
-      // position in (tau, x, y, eta)
-      fscanf(s_file, "%lf", &surface[i].x[0]);
-      fscanf(s_file, "%lf", &surface[i].x[1]);
-      fscanf(s_file, "%lf", &surface[i].x[2]);
-      fscanf(s_file, "%lf", &surface[i].x[3]);
-      surface[i].sinh_eta_s = sinh(surface[i].x[3]);
-      surface[i].cosh_eta_s = cosh(surface[i].x[3]);
-      // hypersurface vector in (tau, x, y, eta)
-      fscanf(s_file, "%lf", &surface[i].s[0]);
-      fscanf(s_file, "%lf", &surface[i].s[1]);
-      fscanf(s_file, "%lf", &surface[i].s[2]);
-      fscanf(s_file, "%lf", &surface[i].s[3]);
-      // flow velocity in (tau, x, y, eta)
-      fscanf(s_file, "%lf", &surface[i].u[0]);
-      fscanf(s_file, "%lf", &surface[i].u[1]);
-      fscanf(s_file, "%lf", &surface[i].u[2]);
-      fscanf(s_file, "%lf", &surface[i].u[3]);
-      // freeze-out energy density
-      fscanf(s_file, "%lf", &surface[i].epsilon_f);
-      if(surface[i].epsilon_f<0) 
-    cout << "WARNING: epsilon-f<0." << endl;
-      // freeze-out temperature
-      fscanf(s_file, "%lf", &surface[i].T_f);
-      if(surface[i].T_f<0) 
-    cout << "WARNING: T_f<0." << endl;
-      // freeze-out baryon chemical potential
-      fscanf(s_file, "%lf", &surface[i].mu_B);
-      // freeze-out entropy density s
-      fscanf(s_file, "%lf", &surface[i].eps_plus_p_over_T_FO);
-      // freeze-out Wmunu
-      fscanf(s_file, "%lf", &surface[i].W[0][0]);
-      fscanf(s_file, "%lf", &surface[i].W[0][1]);
-      fscanf(s_file, "%lf", &surface[i].W[0][2]);
-      fscanf(s_file, "%lf", &surface[i].W[0][3]);
-      fscanf(s_file, "%lf", &surface[i].W[1][1]);
-      fscanf(s_file, "%lf", &surface[i].W[1][2]);
-      fscanf(s_file, "%lf", &surface[i].W[1][3]);
-      fscanf(s_file, "%lf", &surface[i].W[2][2]);
-      fscanf(s_file, "%lf", &surface[i].W[2][3]);
-      fscanf(s_file, "%lf", &surface[i].W[3][3]);
-      if(DATA->turn_on_bulk)
-          fscanf(s_file, "%lf", &surface[i].pi_b);
-      if(DATA->turn_on_rhob)
-          fscanf(s_file, "%lf", &surface[i].rho_B);
-      if(DATA->turn_on_diff)
-      {
-          fscanf(s_file, "%lf", &surface[i].q[0]);
-          fscanf(s_file, "%lf", &surface[i].q[1]);
-          fscanf(s_file, "%lf", &surface[i].q[2]);
-          fscanf(s_file, "%lf", &surface[i].q[3]);
-      }
-      i++;
-    }               
-  fclose(s_file);
- 
-//  for(i=0; i<NCells; i++) 
-//     { 
-//       fprintf(stderr,"%lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf\n", 
-//        surface[i].x[0],surface[i].x[1],surface[i].x[2],surface[i].x[3],surface[i].s[0],surface[i].s[1],surface[i].s[2],surface[i].s[3], 
-//            surface[i].u[0],surface[i].u[1],surface[i].u[2],surface[i].u[3],surface[i].epsilon_f,surface[i].T_f,surface[i].mu_B,surface[i].sFO,
-//        surface[i].W[0][0],surface[i].W[0][1],surface[i].W[0][2],surface[i].W[0][3],surface[i].W[1][1],
-//        surface[i].W[1][2],surface[i].W[1][3],surface[i].W[2][2],surface[i].W[2][3],surface[i].W[3][3]); 
-//       sleep(2);
-//     }
+    s_file = fopen(s_name, "r");
+    checkForReadError(s_file, s_name);
+
+    // Now allocate memory: array of surfaceElements with length NCells
+    surface = (SurfaceElement *) malloc((NCells)*sizeof(SurfaceElement));
+
+    while (i < NCells) {
+        // position in (tau, x, y, eta)
+        fscanf(s_file, "%lf", &surface[i].x[0]);
+        fscanf(s_file, "%lf", &surface[i].x[1]);
+        fscanf(s_file, "%lf", &surface[i].x[2]);
+        fscanf(s_file, "%lf", &surface[i].x[3]);
+        surface[i].sinh_eta_s = sinh(surface[i].x[3]);
+        surface[i].cosh_eta_s = cosh(surface[i].x[3]);
+        // hypersurface vector in (tau, x, y, eta)
+        fscanf(s_file, "%lf", &surface[i].s[0]);
+        fscanf(s_file, "%lf", &surface[i].s[1]);
+        fscanf(s_file, "%lf", &surface[i].s[2]);
+        fscanf(s_file, "%lf", &surface[i].s[3]);
+        // flow velocity in (tau, x, y, eta)
+        fscanf(s_file, "%lf", &surface[i].u[0]);
+        fscanf(s_file, "%lf", &surface[i].u[1]);
+        fscanf(s_file, "%lf", &surface[i].u[2]);
+        fscanf(s_file, "%lf", &surface[i].u[3]);
+        // freeze-out energy density
+        scanf(s_file, "%lf", &surface[i].epsilon_f);
+        if (surface[i].epsilon_f < 0) {
+            cout << "WARNING: epsilon_f < 0." << endl;
+            exit(0);
+        }
+        // freeze-out temperature
+        fscanf(s_file, "%lf", &surface[i].T_f);
+        if (surface[i].T_f < 0) {
+            cout << "WARNING: T_f < 0." << endl;
+            exit(0);
+        }
+        // freeze-out baryon chemical potential
+        fscanf(s_file, "%lf", &surface[i].mu_B);
+        // freeze-out entropy density s
+        fscanf(s_file, "%lf", &surface[i].eps_plus_p_over_T_FO);
+        // freeze-out Wmunu
+        fscanf(s_file, "%lf", &surface[i].W[0][0]);
+        fscanf(s_file, "%lf", &surface[i].W[0][1]);
+        fscanf(s_file, "%lf", &surface[i].W[0][2]);
+        fscanf(s_file, "%lf", &surface[i].W[0][3]);
+        fscanf(s_file, "%lf", &surface[i].W[1][1]);
+        fscanf(s_file, "%lf", &surface[i].W[1][2]);
+        fscanf(s_file, "%lf", &surface[i].W[1][3]);
+        fscanf(s_file, "%lf", &surface[i].W[2][2]);
+        fscanf(s_file, "%lf", &surface[i].W[2][3]);
+        fscanf(s_file, "%lf", &surface[i].W[3][3]);
+        if (DATA->turn_on_bulk)
+            fscanf(s_file, "%lf", &surface[i].pi_b);
+        if (DATA->turn_on_rhob)
+            fscanf(s_file, "%lf", &surface[i].rho_B);
+        if (DATA->turn_on_diff) {
+            fscanf(s_file, "%lf", &surface[i].q[0]);
+            fscanf(s_file, "%lf", &surface[i].q[1]);
+            fscanf(s_file, "%lf", &surface[i].q[2]);
+            fscanf(s_file, "%lf", &surface[i].q[3]);
+        }
+        i++;
+    }
+    fclose(s_file);
 }
 
 // read in thermal spectra from file to then perform resonance decays with them
