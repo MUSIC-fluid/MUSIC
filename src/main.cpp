@@ -188,10 +188,6 @@ void ReadInData3(InitData *DATA, string file) {
              << DATA->useEpsFO << endl;
         exit(1);
     }
-    if (tfoset == 1 && DATA->useEpsFO == 1)
-        cerr << "T_freeze set but overridden -- "
-             << "freezing out by energy density at "
-             << DATA->epsilonFreeze << " GeV/fm^3\n";
 
     //particle_spectrum_to_compute:
     // 0: Do all up to number_of_particles_to_include
