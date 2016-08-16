@@ -148,6 +148,8 @@ class EOS {
     double get_s2e_finite_rhob(double s, double rhob);
     void check_eos();
     void check_eos_with_finite_muB();
+    void output_eos_matrix(int ne, int nrhob, double** matrix_ptr,
+                           string filename);
 };
 
 #endif  // SRC_EOS_H_
