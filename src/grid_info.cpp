@@ -143,8 +143,13 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
     int n_skip_y = DATA->output_evolution_every_N_y;
     int n_skip_eta = DATA->output_evolution_every_N_eta;
     for (ieta = 0; ieta < DATA->neta; ieta += n_skip_eta) {
-        double eta = ((static_cast<double>(ieta))*(DATA->delta_eta)
-                      - (DATA->eta_size)/2.0);
+        double eta;
+        if (DATA->boost_invariant == 1) {
+            eta = 0.0;
+        } else {
+            eta = ((static_cast<double>(ieta))*(DATA->delta_eta)
+                    - (DATA->eta_size)/2.0);
+        }
         double cosh_eta = cosh(eta);
         double sinh_eta = sinh(eta);
         for (iy = 0; iy <= DATA->ny; iy += n_skip_y) {
@@ -498,10 +503,11 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
         for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
             double y_local = y_min + iy*dy;
             double e_local = arena[0][ix][iy].epsilon;
+            double rhob_local = arena[0][ix][iy].rhob;
             double T_local = eos_ptr->get_temperature(e_local, 0.0);
             output_file << scientific << setprecision(8) << setw(18)
                         << x_local << "  " << y_local << "  "
-                        << e_local*unit_convert << "  "
+                        << e_local*unit_convert << "  " << rhob_local << "  "
                         << T_local*unit_convert << "  "
                         << arena[0][ix][iy].u[0][1] << "  "
                         << arena[0][ix][iy].u[0][2] << "  "
@@ -511,6 +517,26 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
                         << arena[0][ix][iy].Wmunu[0][9]*unit_convert << "  "
                         << endl;
         }
+    }
+    output_file.close();
+}
+
+void Grid_info::output_1p1D_check_file(Grid ***arena, double tau) {
+    ostringstream filename;
+    filename << "1+1D_check_tau_" << tau << ".dat";
+    ofstream output_file(filename.str().c_str());
+
+    double unit_convert = 0.19733;  // hbarC
+    double deta = DATA_ptr->delta_eta;
+    double eta_min = -6.94;
+    for (int ieta = 0; ieta < DATA_ptr->neta; ieta++) {
+        double eta_local = eta_min + ieta*deta;
+        double e_local = arena[ieta][1][1].epsilon;
+        double rhob_local = arena[ieta][1][1].rhob;
+        output_file << scientific << setprecision(8) << setw(18)
+                    << eta_local << "  "
+                    << e_local*unit_convert << "  " << rhob_local
+                    << endl;
     }
     output_file.close();
 }

@@ -188,10 +188,6 @@ void ReadInData3(InitData *DATA, string file) {
              << DATA->useEpsFO << endl;
         exit(1);
     }
-    if (tfoset == 1 && DATA->useEpsFO == 1)
-        cerr << "T_freeze set but overridden -- "
-             << "freezing out by energy density at "
-             << DATA->epsilonFreeze << " GeV/fm^3\n";
 
     //particle_spectrum_to_compute:
     // 0: Do all up to number_of_particles_to_include
@@ -246,6 +242,12 @@ void ReadInData3(InitData *DATA, string file) {
            << DATA->whichEOS << endl;
       exit(1);
     }
+    
+    int temp_check_eos = 0;
+    tempinput = util->StringFind4(file, "check_eos");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_check_eos;
+    DATA->check_eos = temp_check_eos;
   
     // number_of_particles_to_include:
     // This determines up to which particle in the list spectra 
@@ -414,7 +416,7 @@ void ReadInData3(InitData *DATA, string file) {
         if (tempf < DATA->delta_tau)
             DATA->delta_tau = tempf;
     }
-    cout << " DeltaTau = " << DATA->delta_tau << " fm." << endl;
+    cout << "DeltaTau = " << DATA->delta_tau << " fm." << endl;
     
     DATA->nt = (int) (floor(DATA->tau_size/(DATA->delta_tau) + 0.5));
     cout << "ReadInData: Time step size = " << DATA->delta_tau << endl;

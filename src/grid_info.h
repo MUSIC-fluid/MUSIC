@@ -37,6 +37,7 @@ class Grid_info {
     void OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
                                        double tau);
     void Gubser_flow_check_file(Grid ***arena, double tau);
+    void output_1p1D_check_file(Grid ***arena, double tau);
     void load_deltaf_qmu_coeff_table(string filename);
     void load_deltaf_qmu_coeff_table_14mom(string filename);
     double get_deltaf_qmu_coeff(double T, double muB);

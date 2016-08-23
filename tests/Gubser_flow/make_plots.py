@@ -31,25 +31,25 @@ ax = plt.axes([0.14, 0.12, 0.81, 0.83])
 iplot = 0
 
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
-plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 4], color = plotColor,
+plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 5], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth,
          label = r'$\tau = 1.0$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(1)
 plt.plot(Analytic_tau1p2[:, 0], Analytic_tau1p2[:, 3], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 4], color = plotColor,
+plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 5], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.2$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(2)
 plt.plot(Analytic_tau1p5[:, 0], Analytic_tau1p5[:, 3], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 4], color = plotColor,
+plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 5], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.5$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(3)
 plt.plot(Analytic_tau2p0[:, 0], Analytic_tau2p0[:, 3], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 4], color = plotColor,
+plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 5], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 2.0$ fm')
          
@@ -70,25 +70,25 @@ ax = plt.axes([0.14, 0.12, 0.81, 0.83])
 iplot = 0
 
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
-plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 6], color = plotColor,
+plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 7], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth,
          label = r'$\tau = 1.0$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(1)
 plt.plot(Analytic_tau1p2[:, 0], Analytic_tau1p2[:, 5], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 6], color = plotColor,
+plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 7], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.2$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(2)
 plt.plot(Analytic_tau1p5[:, 0], Analytic_tau1p5[:, 5], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 6], color = plotColor,
+plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 7], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.5$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(3)
 plt.plot(Analytic_tau2p0[:, 0], Analytic_tau2p0[:, 5], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 6], color = plotColor,
+plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 7], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 2.0$ fm')
          
@@ -116,25 +116,25 @@ ax = plt.axes([0.14, 0.12, 0.81, 0.83])
 iplot = 0
 
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
-plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 3], color = plotColor,
+plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 4], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth,
          label = r'$\tau = 1.0$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(1)
 plt.plot(Analytic_tau1p2[:, 0], Analytic_tau1p2[:, 2], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 3], color = plotColor,
+plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 4], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.2$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(2)
 plt.plot(Analytic_tau1p5[:, 0], Analytic_tau1p5[:, 2], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 3], color = plotColor,
+plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 4], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.5$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(3)
 plt.plot(Analytic_tau2p0[:, 0], Analytic_tau2p0[:, 2], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 3], color = plotColor,
+plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 4], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 2.0$ fm')
          
@@ -156,25 +156,25 @@ ax = plt.axes([0.14, 0.12, 0.81, 0.83])
 iplot = 0
 
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
-plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 4], color = plotColor,
+plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 5], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth,
          label = r'$\tau = 1.0$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(1)
 plt.plot(Analytic_tau1p2[:, 0], Analytic_tau1p2[:, 3], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 4], color = plotColor,
+plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 5], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.2$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(2)
 plt.plot(Analytic_tau1p5[:, 0], Analytic_tau1p5[:, 3], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 4], color = plotColor,
+plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 5], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.5$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(3)
 plt.plot(Analytic_tau2p0[:, 0], Analytic_tau2p0[:, 3], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 4], color = plotColor,
+plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 5], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 2.0$ fm')
          
@@ -195,25 +195,25 @@ ax = plt.axes([0.14, 0.12, 0.81, 0.83])
 iplot = 0
 
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
-plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 6], color = plotColor,
+plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 7], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth,
          label = r'$\tau = 1.0$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(1)
 plt.plot(Analytic_tau1p2[:, 0], Analytic_tau1p2[:, 5], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 6], color = plotColor,
+plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 7], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.2$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(2)
 plt.plot(Analytic_tau1p5[:, 0], Analytic_tau1p5[:, 5], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 6], color = plotColor,
+plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 7], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.5$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(3)
 plt.plot(Analytic_tau2p0[:, 0], Analytic_tau2p0[:, 5], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 6], color = plotColor,
+plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 7], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 2.0$ fm')
          
@@ -233,25 +233,25 @@ ax = plt.axes([0.14, 0.12, 0.81, 0.83])
 iplot = 0
 
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
-plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 8], color = plotColor,
+plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, 9], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth,
          label = r'$\tau = 1.0$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(1)
 plt.plot(Analytic_tau1p2[:, 0], Analytic_tau1p2[:, 7], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 8], color = plotColor,
+plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, 9], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.2$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(2)
 plt.plot(Analytic_tau1p5[:, 0], Analytic_tau1p5[:, 7], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 8], color = plotColor,
+plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, 9], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 1.5$ fm')
 plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(3)
 plt.plot(Analytic_tau2p0[:, 0], Analytic_tau2p0[:, 7], color = plotColor,
          linestyle = '-', linewidth = plotLinewidth, alpha = 0.2)
-plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 8], color = plotColor,
+plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, 9], color = plotColor,
          linestyle = '--', linewidth = plotLinewidth,
          label = r'$\tau = 2.0$ fm')
          

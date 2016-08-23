@@ -15,6 +15,9 @@ EOS::EOS(InitData *para_in) {
     util = new Util;
     initialize_eos();
     whichEOS = parameters_ptr->whichEOS;
+    if (parameters_ptr->check_eos == 1) {
+        check_eos();
+    }
 }
 
 // destructor
@@ -36,9 +39,6 @@ void EOS::checkForReadError(FILE *file, const char* name) {
 
 void EOS::initialize_eos() {
     if (parameters_ptr->Initial_profile == 0) {
-        cout << "Using the ideal gas EOS" << endl;
-        init_eos0();
-    } else if (parameters_ptr->whichEOS == 0) {
         cout << "Using the ideal gas EOS" << endl;
         init_eos0();
     } else if (parameters_ptr->whichEOS == 1) {
@@ -2106,7 +2106,8 @@ double EOS::interpolate2(double e, double rhob, int selector) {
             case 2: array = entropyDensity1; break;
             case 3: array = QGPfraction1; break;
             case 4: array = cs2_1; break;
-            default: fprintf(stderr, "ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+            default: fprintf(stderr, "ERROR in interpolate2 - "
+                             "selector must be 0,1,2,3, or 4\n"); exit(1);
         }
 
         pa = array[0][ie1];
@@ -2128,7 +2129,8 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 2: array = entropyDensity2; break;
                 case 3: array = QGPfraction2; break;
                 case 4: array = cs2_2; break;
-                default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+                default: fprintf(stderr, "ERROR in interpolate2 - "
+                                 "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
         } else if (e < EPP4) {
             eps0 = EPP3;
@@ -2140,7 +2142,8 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 2: array = entropyDensity3; break;
                 case 3: array = QGPfraction3; break;
                 case 4: array = cs2_3; break;
-                default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+                default: fprintf(stderr, "ERROR in interpolate2 - "
+                                 "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
         } else if (e < EPP5) {
             eps0 = EPP4;
@@ -2152,7 +2155,8 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 2: array = entropyDensity4; break;
                 case 3: array = QGPfraction4; break;
                 case 4: array = cs2_4; break;
-                default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+                default: fprintf(stderr, "ERROR in interpolate2 - "
+                                 "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
         } else if (e < EPP6) {
             eps0 = EPP5;
@@ -2164,7 +2168,8 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 2: array = entropyDensity5; break;
                 case 3: array = QGPfraction5; break;
                 case 4: array = cs2_5; break;
-                default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+                default: fprintf(stderr, "ERROR in interpolate2 - "
+                                 "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
         } else if (e < EPP7) {
             eps0 = EPP6;
@@ -2176,7 +2181,8 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 2: array = entropyDensity6; break;
                 case 3: array = QGPfraction6; break;
                 case 4: array = cs2_6; break;
-                default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+                default: fprintf(stderr, "ERROR in interpolate2 - "
+                                 "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
         } else {
             eps0 = EPP7;
@@ -2188,7 +2194,8 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 2: array = entropyDensity7; break;
                 case 3: array = QGPfraction7; break;
                 case 4: array = cs2_7; break;
-                default: fprintf(stderr,"ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+                default: fprintf(stderr, "ERROR in interpolate2 - "
+                                 "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
         }
         ie1 = floor((e-eps0)/deltaEps);
@@ -2196,8 +2203,8 @@ double EOS::interpolate2(double e, double rhob, int selector) {
 
         if (ie1 > NEps) {
             fprintf(stderr, "ERROR in inperpolate2. out of range.\n");
-            fprintf(stderr, "ie1=%d,NEPP2=%d\n", ie1, NEps);
-            fprintf(stderr, "e=%f,eps0=%f; maxe=%f, deltaEps=%f\n",
+            fprintf(stderr, "ie1=%d, NEPP2=%d\n", ie1, NEps);
+            fprintf(stderr, "e=%f, eps0=%f; maxe=%f, deltaEps=%f\n",
                     e, eps0, NEps*deltaEps+eps0, deltaEps);
             util->print_backtrace_errors();
             exit(1);
@@ -2220,7 +2227,8 @@ double EOS::interpolate2(double e, double rhob, int selector) {
         case 2: break;
         case 3: break;
         case 4: break;
-        default: fprintf(stderr, "ERROR in interpolate2 - selector must be 0,1,2,3, or 4\n"); exit(1);
+        default: fprintf(stderr, "ERROR in interpolate2 - "
+                         "selector must be 0,1,2,3, or 4\n"); exit(1);
     }
 
     return p;
@@ -2367,98 +2375,80 @@ double EOS::get_dpOverdrhob(double e, double rhob)
     }
 }
 
-double EOS::get_dpOverde2(double e, double rhob)
-{
+double EOS::get_dpOverde2(double e, double rhob) {
+    //The energy has to be in GeV in what follows
+    e = e*hbarc;
 
-   //The energy has to be in GeV in what follows
-   e=e*hbarc;
+    double eps0, deltaEps;
+    int Neps;
 
-   double eps0, deltaEps;
-   int Neps;
+    if (e < EPP1) {
+        eps0 = 0.0;
+        deltaEps = EPP1;
+        Neps = 2;
+    } else if (e < EPP2) {
+        eps0 = EPP1;
+        deltaEps = deltaEPP1;
+        Neps = NEPP1;
+    } else if (e < EPP3) {
+        eps0 = EPP2;
+        deltaEps = deltaEPP2;
+        Neps = NEPP2;
+    } else if (e < EPP4) {
+        eps0 = EPP3;
+        deltaEps = deltaEPP3;
+        Neps = NEPP3;
+    } else if (e < EPP5) {
+        eps0 = EPP4;
+        deltaEps = deltaEPP4;
+        Neps = NEPP4;
+    } else if (e < EPP6) {
+        eps0 = EPP5;
+        deltaEps = deltaEPP5;
+        Neps = NEPP5;
+    } else if (e < EPP7) {
+        eps0 = EPP6;
+        deltaEps = deltaEPP6;
+        Neps = NEPP6;
+    } else {
+        eps0 = EPP7;
+        deltaEps = deltaEPP7;
+        Neps = NEPP7;
+    }
+    double eps_end = eps0 + (Neps - 1)*deltaEps;
 
-   if(e < EPP1)
-   {
-       eps0 = 0.0;
-       deltaEps = EPP1;
-       Neps = 2;
-   }
-   if(e<EPP2)
-   {
-       eps0 = EPP1;
-       deltaEps = deltaEPP1;
-       Neps = NEPP1;
-   }
-   else if (e<EPP3)
-   {
-       eps0 = EPP2;
-       deltaEps = deltaEPP2;
-       Neps = NEPP2;
-   }
-   else if (e<EPP4)
-   {
-       eps0 = EPP3;
-       deltaEps = deltaEPP3;
-       Neps = NEPP3;
-   }
-   else if (e<EPP5)
-   {
-       eps0 = EPP4;
-       deltaEps = deltaEPP4;
-       Neps = NEPP4;
-   }
-   else if (e<EPP6)
-   {
-       eps0 = EPP5;
-       deltaEps = deltaEPP5;
-       Neps = NEPP5;
-   }
-   else if (e<EPP7)
-   {
-       eps0 = EPP6;
-       deltaEps = deltaEPP6;
-       Neps = NEPP6;
-   }
-   else 
-   {
-       eps0 = EPP7;
-       deltaEps = deltaEPP7;
-       Neps = NEPP7;
-   }
-   double eps_end = eps0 + (Neps - 1)*deltaEps;
-
-   double eLeft = e - deltaEps*0.1;    // GeV/fm^3
-   double eRight = e + deltaEps*0.1;   // GeV/fm^3
+    double eLeft = e - deltaEps*0.1;    // GeV/fm^3
+    double eRight = e + deltaEps*0.1;   // GeV/fm^3
   
-   // deal with boundary, avoid to exceed the table
-   if(eLeft < (eps0 + 1e-6))
-       eLeft = eps0;
-   if(eRight > (eps_end - 1e-6))
-       eRight = eps_end;
+    // deal with boundary, avoid to exceed the table
+    if (eLeft < (eps0 + 1e-6))
+        eLeft = eps0;
+    if (eRight > (eps_end - 1e-6))
+        eRight = eps_end;
 
-   double pL = get_pressure(eLeft/hbarc, rhob);  // 1/fm^4
-   double pR = get_pressure(eRight/hbarc, rhob); // 1/fm^4
-      
-   double dpde = (pR - pL)*hbarc/(eRight - eLeft);
-      
-   //if(dpde > 1./3.) 
-   //{ 
-   //    fprintf(stderr, "dp/de=%lf\n", dpde); 
-   //    fprintf(stderr, "pL=%lf\n", pL); 
-   //    fprintf(stderr, "pR=%lf\n", pR); 
-   //    fprintf(stderr, "e=%lf\n", e/hbarc);  
-   //    fprintf(stderr, "eLeft=%lf\n", eLeft/hbarc);  
-   //    fprintf(stderr, "eRight=%lf\n", eRight/hbarc);  
-   //} 
-   //if(dpde < 0) 
-   //{ 
-   //    fprintf(stderr, "dp/de=%lf\n", dpde); 
-   //    fprintf(stderr, "pL=%lf\n", pL); 
-   //    fprintf(stderr, "pR=%lf\n", pR); 
-   //    fprintf(stderr, "e=%lf\n", e);  
-   //    fprintf(stderr, "eLeft=%lf\n", eLeft/hbarc);  
-   //    fprintf(stderr, "eRight=%lf\n", eRight/hbarc);  
-   //} 
-   return dpde;
+    double pL = get_pressure(eLeft/hbarc, rhob);  // 1/fm^4
+    double pR = get_pressure(eRight/hbarc, rhob); // 1/fm^4
+       
+    double dpde = (pR - pL)*hbarc/(eRight - eLeft);
+    //if(dpde > 1./3.) 
+    //{ 
+    //    fprintf(stderr, "dp/de=%lf\n", dpde); 
+    //    fprintf(stderr, "pL=%lf\n", pL); 
+    //    fprintf(stderr, "pR=%lf\n", pR); 
+    //    fprintf(stderr, "e=%lf\n", e/hbarc);  
+    //    fprintf(stderr, "eLeft=%lf\n", eLeft/hbarc);  
+    //    fprintf(stderr, "eRight=%lf\n", eRight/hbarc);  
+    //} 
+    //if(dpde < 0) 
+    //{ 
+    //    fprintf(stderr, "dp/de=%lf\n", dpde); 
+    //    fprintf(stderr, "pL=%lf\n", pL); 
+    //    fprintf(stderr, "pR=%lf\n", pR); 
+    //    fprintf(stderr, "e=%lf\n", e);  
+    //    fprintf(stderr, "eLeft=%lf\n", eLeft/hbarc);  
+    //    fprintf(stderr, "eRight=%lf\n", eRight/hbarc);  
+    //} 
+    return dpde;
 }
 
 double EOS::get_dpOverde3(double e, double rhob)
@@ -2570,7 +2560,7 @@ double EOS::get_cs2(double e, double rhob) {
 
 void EOS::build_velocity_of_sound_sq_matrix() {
     // This function builds up cs^2 tables
-    // whiichEOS == 0 : ideal gas EoS, cs^2 = 1/3 always
+    // whichEOS == 0 : ideal gas EoS, cs^2 = 1/3 always
     if (whichEOS == 1) {  // 2 tables
         fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, BNP1, deltaBNP1, NBNP1, cs2_1);
         fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
@@ -2594,7 +2584,8 @@ void EOS::build_velocity_of_sound_sq_matrix() {
         fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, BNP3, deltaBNP3, NBNP3, cs2_3);
         fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, BNP4, deltaBNP4, NBNP4, cs2_4);
     } else {
-        fprintf(stderr,"EOS::build_velocity_of_sound_sq_matrix: whichEOS = %d is out of range!\n", whichEOS);
+        fprintf(stderr, "EOS::build_velocity_of_sound_sq_matrix: "
+                "whichEOS = %d is out of range!\n", whichEOS);
         exit(0);
     }
 }
@@ -2612,6 +2603,22 @@ void EOS::fill_cs2_matrix(double e0, double de, int ne, double rhob0,
     }
 }
 
+void EOS::output_eos_matrix(int ne, int nrhob, double** matrix_ptr,
+                            string filename) {
+    // this function output the EoS matrix on the grid to files for checking
+    // purpose
+
+    ofstream output_file(filename.c_str());
+    for (int i = 0; i < nrhob; i++) {
+        for (int j = 0; j < ne; j++) {
+            output_file << scientific << setw(18) << setprecision(8)
+                        << matrix_ptr[i][j] << "  ";
+        }
+        output_file << endl;
+    }
+    output_file.close();
+}
+
 double EOS::calculate_velocity_of_sound_sq(double e, double rhob) {
     double v_min = 0.01;
     double v_max = 1./3;
@@ -2622,15 +2629,14 @@ double EOS::calculate_velocity_of_sound_sq(double e, double rhob) {
 
     if (v_sound < v_min) {
         v_sound = v_min;
-
-        fprintf(stderr, "EOS::get_velocity_of_sound: "
-                        "velocity of sound is negative!\n");
-        fprintf(stderr, "v_sound = %lf \n", v_sound);
-        fprintf(stderr, "e = %lf \n", e*hbarc);
-        fprintf(stderr, "rhob = %lf \n", rhob);
-        fprintf(stderr, "pressure = %lf \n", pressure);
-        fprintf(stderr, "dP/de = %lf \n", dpde);
-        fprintf(stderr, "dP/drho = %lf \n", dpdrho);
+        // fprintf(stderr, "EOS::get_velocity_of_sound: "
+        //                 "velocity of sound is negative!\n");
+        // fprintf(stderr, "v_sound = %lf \n", v_sound);
+        // fprintf(stderr, "e = %lf GeV/fm^3\n", e*hbarc);
+        // fprintf(stderr, "rhob = %lf \n", rhob);
+        // fprintf(stderr, "pressure = %lf GeV/fm^3\n", pressure*hbarc);
+        // fprintf(stderr, "dP/de = %lf \n", dpde);
+        // fprintf(stderr, "dP/drho = %lf \n", dpdrho);
     }
     if (v_sound > v_max) {
         // fprintf(stderr, "EOS::get_velocity_of_sound:"
@@ -3096,8 +3102,8 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
     }
 
     // compute the indices
-    int idx_e = (int)((local_ed - eps0)/deltaEps);
-    int idx_nb = (int)((local_rhob - rhob0)/deltaRhob);
+    int idx_e = static_cast<int>((local_ed - eps0)/deltaEps);
+    int idx_nb = static_cast<int>((local_rhob - rhob0)/deltaRhob);
 
     // treatment for overflow, use the last two points to do extrapolation
     if (idx_e > (NEps - 2)) {
@@ -3105,6 +3111,10 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
     }
     if (idx_nb > (Nrhob - 2)) {
         idx_nb = Nrhob - 2;
+        // if (selector == 4) {
+        //     fprintf(stderr, "Warning: interpolate2D: rhob overflow "
+        //             "e = %e, rhob = %e\n", local_ed, local_rhob);
+        // }
     }
 
     // check underflow
@@ -3140,9 +3150,22 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
 
     double result;
     if (local_ed < EPP1) {
-        double temp11 = max(array[idx_nb][idx_e], 0.0);
-        double temp22 = max(array[idx_nb+1][idx_e], 0.0);
-        result = (temp11*(1. - frac_rhob) + temp22*frac_rhob)*local_ed/EPP1;
+        if (selector == 4) {
+            // c_s^2 = P_0/e_0 because P scale linearlly with e below EPP1
+            double temp11 = max(pressure1[idx_nb][idx_e], 0.0);
+            double temp22 = max(pressure1[idx_nb+1][idx_e], 0.0);
+            double result_nb = (temp11*(1. - frac_rhob) + temp22*frac_rhob);
+            result = result_nb/EPP1;
+            if (result > 1./3.) {
+                // make sure cs^2 is smaller than 1./3.
+                result = 1./3.;
+            }
+        } else {
+            double temp11 = max(array[idx_nb][idx_e], 0.0);
+            double temp22 = max(array[idx_nb+1][idx_e], 0.0);
+            double result_nb = (temp11*(1. - frac_rhob) + temp22*frac_rhob);
+            result = result_nb*local_ed/EPP1;
+        }
     } else {
         double temp1 = max(array[idx_nb][idx_e], 0.0);
         double temp2 = max(array[idx_nb][idx_e+1], 0.0);
@@ -3195,25 +3218,19 @@ double EOS::get_entropy(double epsilon, double rhob) {
     // return entropy density in [1/fm^3]
     double f;
     double P, T, mu;
-
-    if (whichEOS >= 0 && whichEOS <= 1) {
-        P = get_pressure(epsilon, rhob);
-        T = get_temperature(epsilon, rhob);
-        mu = get_mu(epsilon, rhob);
-
-        if (T > 0)
-            f = (epsilon + P - mu*rhob)/(T + 1e-15);
-        else
-            f = 0.;
-    } else if (whichEOS >= 2 && whichEOS < 10) {
-        f = interpolate2(epsilon, rhob, 2);
-    } else if (whichEOS >= 10) {
-        // EOS is symmetric in rho_b
-        f = interpolate2D(epsilon, fabs(rhob), 2);
-    } else {
-        fprintf(stderr, "EOS::get_entropy: whichEOS = %d is out of range!\n",
-                whichEOS);
-        exit(1);
+    P = get_pressure(epsilon, rhob);
+    T = get_temperature(epsilon, rhob);
+    mu = get_mu(epsilon, rhob);
+    if (T > 0)
+        f = (epsilon + P - mu*rhob)/(T + 1e-15);
+    else
+        f = 0.;
+    if (f < 0.) {
+        f = 1e-16;
+        // cout << "[Warning]EOS::get_entropy: s < 0!" << endl;
+        // cout << "s = " << f << ", e = " << epsilon << ", P = " << P
+        //      << ", mu = " << mu << ", rhob = " << rhob << ", T = " << T
+        //      << endl;
     }
     return f;
 }/* get_entropy */
@@ -3575,23 +3592,11 @@ double EOS::get_rhob_from_mub(double e, double mub) {
 }
 
 void EOS::check_eos() {
-    ofstream checktable("check_EoS_table.dat");
-    for (int i = 0; i < NEPP1; i++) {
-        double elocal = EPP1 + i*deltaEPP1;
-        checktable << scientific << setprecision(8)
-             << elocal << "   " << cs2_1[0][i] << "   " << cs2_1[1][i] << endl;
-    }
-    for (int i = 0; i < NEPP2; i++) {
-        double elocal = EPP2 + i*deltaEPP2;
-        checktable << scientific << setprecision(8)
-             << elocal << "   " << cs2_2[0][i] << "   " << cs2_2[1][i] << endl;
-    }
-    for (int i = 0; i < NEPP3; i++) {
-        double elocal = EPP3 + i*deltaEPP3;
-        checktable << scientific << setprecision(8)
-             << elocal << "   " << cs2_3[0][i] << "   " << cs2_3[1][i] << endl;
-    }
-    checktable.close();
+    if (whichEOS == 10)
+        check_eos_with_finite_muB();
+}
+
+void EOS::check_eos_with_finite_muB() {
     // output EoS as function of e for several rhob
     double rhob_pick[6] = {0.0, 0.02, 0.05, 0.1, 0.2, 0.5};
     for (int i = 0; i < 6; i++) {
@@ -3648,5 +3653,67 @@ void EOS::check_eos() {
         check_file.close();
     }
 
+    // output EoS as a 2D function of e and rho_B
+    string file_name1 = "check_EoS_pressure_2D.dat";
+    string file_name2 = "check_EoS_cs2_2D.dat";
+    ofstream check_file1(file_name1.c_str());
+    ofstream check_file2(file_name2.c_str());
+    double e_0 = 0.0;           // GeV/fm^3
+    double e_max = 100.0;       // GeV/fm^3
+    double de = 0.1;            // GeV/fm^3
+    int ne = static_cast<int>((e_max - e_0)/de) + 1;
+    double rhob_0 = 0.0;        // 1/fm^3
+    double rhob_max = 1.0;      // 1/fm^3
+    double drhob = 0.01;        // 1/fm^3
+    int nrhob = static_cast<int>((rhob_max - rhob_0)/drhob) + 1;
+    for (int i = 0; i < ne; i++) {
+        double e_local = e_0 + i*de;
+        for (int j = 0; j < nrhob; j++) {
+            double rhob_local = rhob_0 + j*drhob;
+            double p_local = get_pressure(e_local, rhob_local);
+            double cs2_local = get_cs2(e_local, rhob_local);
+            check_file1 << scientific << setw(18) << setprecision(8)
+                        << p_local << "  ";
+            check_file2 << scientific << setw(18) << setprecision(8)
+                        << cs2_local << "  ";
+        }
+        check_file1 << endl;
+        check_file2 << endl;
+    }
+    check_file1.close();
+    check_file2.close();
+
+    // output cs2 on the grid
+    output_eos_matrix(NEPP1, NBNP1, cs2_1, "check_EoS_cs2_table1.dat");
+    output_eos_matrix(NEPP2, NBNP2, cs2_2, "check_EoS_cs2_table2.dat");
+    output_eos_matrix(NEPP3, NBNP3, cs2_3, "check_EoS_cs2_table3.dat");
+    output_eos_matrix(NEPP4, NBNP4, cs2_4, "check_EoS_cs2_table4.dat");
+    output_eos_matrix(NEPP5, NBNP5, cs2_5, "check_EoS_cs2_table5.dat");
+    
+    double sovernB[] = {10.0, 20.0, 30.0, 51.0, 70.0, 94.0, 144.0, 420.0};
+    int array_length = sizeof(sovernB)/sizeof(double);
+    double s_0 = 0.00;         // 1/fm^3
+    double s_max = 100.0;      // 1/fm^3
+    double ds = 0.005;         // 1/fm^3
+    int ns = static_cast<int>((s_max - s_0)/ds) + 1;
+    for (int i = 0; i < array_length; i++) {
+        ostringstream file_name;
+        file_name << "check_EoS_cs2_vs_e_sovernB_" << sovernB[i] << ".dat";
+        ofstream check_file9(file_name.str().c_str());
+        for (int j = 0; j < ns; j++) {
+            double s_local = s_0 + j*ds;
+            double nB_local = s_local/sovernB[i];
+            double e_local = get_s2e_finite_rhob(s_local, nB_local);
+            double cs2_local = get_cs2(e_local, nB_local);
+            double temperature = get_temperature(e_local, nB_local)*hbarc;
+            double mu_B = get_mu(e_local, nB_local)*hbarc;
+            check_file9 << scientific << setw(18) << setprecision(8)
+                        << e_local*hbarc << "  " << temperature << "  "
+                        << cs2_local << "  " << mu_B << endl;
+        }
+        check_file9.close();
+    }
+
     return;
 }
+
