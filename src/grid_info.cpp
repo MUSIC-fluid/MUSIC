@@ -143,8 +143,13 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
     int n_skip_y = DATA->output_evolution_every_N_y;
     int n_skip_eta = DATA->output_evolution_every_N_eta;
     for (ieta = 0; ieta < DATA->neta; ieta += n_skip_eta) {
-        double eta = ((static_cast<double>(ieta))*(DATA->delta_eta)
-                      - (DATA->eta_size)/2.0);
+        double eta;
+        if (DATA->boost_invariant == 1) {
+            eta = 0.0;
+        } else {
+            eta = ((static_cast<double>(ieta))*(DATA->delta_eta)
+                    - (DATA->eta_size)/2.0);
+        }
         double cosh_eta = cosh(eta);
         double sinh_eta = sinh(eta);
         for (iy = 0; iy <= DATA->ny; iy += n_skip_y) {
