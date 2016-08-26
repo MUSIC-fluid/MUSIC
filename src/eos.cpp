@@ -3172,7 +3172,7 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
         double temp3 = max(array[idx_nb+1][idx_e+1], 0.0);
         double temp4 = max(array[idx_nb+1][idx_e], 0.0);
 
-        result = (  (temp1*(1. - frac_e) + temp2*frac_e)*(1. - frac_rhob)
+        result = ((temp1*(1. - frac_e) + temp2*frac_e)*(1. - frac_rhob)
                   + (temp3*frac_e + temp4*(1. - frac_e))*frac_rhob);
     }
     result = max(result, 1e-15);
@@ -3700,16 +3700,20 @@ void EOS::check_eos_with_finite_muB() {
         ostringstream file_name;
         file_name << "check_EoS_cs2_vs_e_sovernB_" << sovernB[i] << ".dat";
         ofstream check_file9(file_name.str().c_str());
+        check_file9 << "# e(GeV/fm^3)  T(GeV)  cs^2  mu_B(GeV)  "
+                    << "s(1/fm^3)  rho_B(1/fm^3)" << endl;
         for (int j = 0; j < ns; j++) {
             double s_local = s_0 + j*ds;
             double nB_local = s_local/sovernB[i];
             double e_local = get_s2e_finite_rhob(s_local, nB_local);
+            double s_check = get_entropy(e_local, nB_local);
             double cs2_local = get_cs2(e_local, nB_local);
             double temperature = get_temperature(e_local, nB_local)*hbarc;
             double mu_B = get_mu(e_local, nB_local)*hbarc;
             check_file9 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "  " << temperature << "  "
-                        << cs2_local << "  " << mu_B << endl;
+                        << cs2_local << "  " << mu_B << "  " 
+                        << s_check << "  " << nB_local << endl;
         }
         check_file9.close();
     }

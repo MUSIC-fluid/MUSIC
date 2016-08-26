@@ -156,9 +156,6 @@ void ReadInData3(InitData *DATA, string file) {
     // if only freeze out temperature is set, freeze out by temperature
     if (tempinput != "empty")
         DATA->useEpsFO = 0;
-    int tfoset = 0;
-    if (tempinput != "empty")
-        tfoset = 1;
     // epsilon_freeze: freeze-out energy density in GeV/fm^3
     // only used with use_eps_for_freeze_out = 1
     double tempepsilonFreeze = 0.12;
