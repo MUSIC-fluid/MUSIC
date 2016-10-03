@@ -3478,7 +3478,6 @@ double EOS::get_s2e(double s, double rhob) {
 }
 
 double EOS::get_s2e_finite_rhob(double s, double rhob) {
-    if (s < 1e-14) return(1e-15);
     // get energy density using binary search
     double eps_max = 1e4;  // [1/fm^4]
     if (whichEOS < 10) {
@@ -3495,12 +3494,14 @@ double EOS::get_s2e_finite_rhob(double s, double rhob) {
     double s_lower = get_entropy(eps_lower, rhob);
     double s_upper = get_entropy(eps_upper, rhob);
     int ntol = 1000;
-    if (s < s_lower || s > s_upper) {
+    if (s < 0.0 || s > s_upper) {
         fprintf(stderr, "get_s2e_finite_rhob:: s is out of bound, "
                         "s = %.5e, s_upper = %.5e, s_lower = %.5e \n",
                         s, s_upper, s_lower);
         exit(1);
     }
+    if (s < s_lower) return(eps_lower);
+
     double rel_accuracy = 1e-8;
     double abs_accuracy = 1e-15;
     double s_mid;
