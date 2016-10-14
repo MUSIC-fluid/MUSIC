@@ -115,6 +115,7 @@ typedef struct init_data {
     double tau_b_pi;
     double shear_to_s;
     double bulk_to_s;
+    double kappa_coefficient;
     int viscosity_flag;
     int turn_on_rhob;
     int alpha_max;

@@ -69,8 +69,9 @@ hydro_dict.update({
     'Bulk_to_S_ratio': 0.1,                 # value of \zeta/s
     'Include_Rhob_Yes_1_No_0': 0,           # turn on propagation of baryon current
     'turn_on_baryon_diffusion': 0,          # turn on baryon current diffusion
-    'Bulk_relaxation_time_tau_b_pi': 0.6,   # bulk relation time
-    'Shear_relaxation_time_tau_pi': 0.01,   # shear relation time
+    'kappa_coefficient': 0.0,               # coefficients for baryon diffusion kappa_B
+    'Bulk_relaxation_time_tau_b_pi': 0.6,   # bulk relaxtion time
+    'Shear_relaxation_time_tau_pi': 0.01,   # shear relaxtion time
 
     'output_hydro_debug_info': 0,           # flag to output additional evolution information for debuging
     'output_evolution_data': 0,             # flag to output evolution history to file

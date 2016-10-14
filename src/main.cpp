@@ -560,11 +560,19 @@ void ReadInData3(InitData *DATA, string file) {
        DATA->alpha_max = 5;
     else
        DATA->alpha_max = 4;
+
     int tempturn_on_diff = 0;
     tempinput = util->StringFind4(file, "turn_on_baryon_diffusion");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_diff;
     DATA->turn_on_diff = tempturn_on_diff;
+    
+    // kappa coefficient
+    double temp_kappa_coefficient = 0.0;
+    tempinput = util->StringFind4(file, "kappa_coefficient");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_kappa_coefficient;
+    DATA->kappa_coefficient = temp_kappa_coefficient;
   
     // Runge_Kutta_order:  must be 1 or 2
     int temprk_order = 1;
@@ -583,7 +591,7 @@ void ReadInData3(InitData *DATA, string file) {
     int tempreconst_type = 0;
     tempinput = util->StringFind4(file, "reconst_type");
     if (tempinput != "empty")
-        istringstream (tempinput) >> tempreconst_type;
+        istringstream(tempinput) >> tempreconst_type;
     DATA->reconst_type = tempreconst_type;
     cout << "reconst type = " << DATA->reconst_type << endl;
   
@@ -625,24 +633,26 @@ void ReadInData3(InitData *DATA, string file) {
         istringstream(tempinput) >> temptau_pi  ;
     DATA->tau_pi = temptau_pi;
   
-  
-  // Bulk_relaxation_time_tau_b_pi:  in fm?
-  double temptau_b_pi = 0.6;
-  tempinput = util->StringFind4(file, "Bulk_relaxation_time_tau_b_pi");
-  if(tempinput != "empty") istringstream ( tempinput ) >> temptau_b_pi  ;
-  DATA->tau_b_pi = temptau_b_pi;
-  
-  //Shear_to_S_ratio:  constant eta/s
-  double tempshear_to_s = 0.6;
-  tempinput = util->StringFind4(file, "Shear_to_S_ratio");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempshear_to_s  ;
-  DATA->shear_to_s   = tempshear_to_s;
+    // Bulk_relaxation_time_tau_b_pi:  in fm?
+    double temptau_b_pi = 0.6;
+    tempinput = util->StringFind4(file, "Bulk_relaxation_time_tau_b_pi");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temptau_b_pi  ;
+    DATA->tau_b_pi = temptau_b_pi;
     
-  // Include_Shear_Visc_Yes_1_No_0
-  int tempturn_on_shear = 0;
-  tempinput = util->StringFind4(file, "Include_Shear_Visc_Yes_1_No_0");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempturn_on_shear;
-  DATA->turn_on_shear = tempturn_on_shear;
+    //Shear_to_S_ratio:  constant eta/s
+    double tempshear_to_s = 0.6;
+    tempinput = util->StringFind4(file, "Shear_to_S_ratio");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempshear_to_s  ;
+    DATA->shear_to_s = tempshear_to_s;
+      
+    // Include_Shear_Visc_Yes_1_No_0
+    int tempturn_on_shear = 0;
+    tempinput = util->StringFind4(file, "Include_Shear_Visc_Yes_1_No_0");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempturn_on_shear;
+    DATA->turn_on_shear = tempturn_on_shear;
   
     // T_dependent_Shear_to_S_ratio:
     // if 1, use hard-coded T-dependent shear viscosity
@@ -651,83 +661,95 @@ void ReadInData3(InitData *DATA, string file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempT_dependent_shear_to_s;
     DATA->T_dependent_shear_to_s = tempT_dependent_shear_to_s;
-  
-  // Include_deltaf:  
-  // Looks like 0 sets delta_f=0, 1 uses standard quadratic ansatz,
-  // and 2 is supposed to use p^(2-alpha)
-  int tempinclude_deltaf = 1;
-  tempinput = util->StringFind4(file, "Include_deltaf");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempinclude_deltaf;
-  DATA->include_deltaf = tempinclude_deltaf;
-  
-  int tempinclude_deltaf_qmu = 0;
-  tempinput = util->StringFind4(file, "Include_deltaf_qmu");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempinclude_deltaf_qmu;
-  DATA->include_deltaf_qmu = tempinclude_deltaf_qmu;
-  
-  int temp_deltaf_14moments = 0;
-  tempinput = util->StringFind4(file, "deltaf_14moments");
-  if(tempinput != "empty") istringstream ( tempinput ) >> temp_deltaf_14moments;
-  DATA->deltaf_14moments = temp_deltaf_14moments;
-  
-  int tempinclude_deltaf_bulk = 0;
-  tempinput = util->StringFind4(file, "Include_deltaf_bulk");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempinclude_deltaf_bulk;
-  DATA->include_deltaf_bulk = tempinclude_deltaf_bulk;
-  
-  // Do_FreezeOut_Yes_1_No_0
-  // set to 0 to bypass freeze out surface finder
-  int tempdoFreezeOut = 1;
-  tempinput = util->StringFind4(file, "Do_FreezeOut_Yes_1_No_0");
-  if(tempinput != "empty") istringstream ( tempinput ) >> tempdoFreezeOut;
-  DATA->doFreezeOut = tempdoFreezeOut;
-  int tempdoFreezeOut_lowtemp = 1;
-  tempinput = util->StringFind4(file, "Do_FreezeOut_lowtemp");
-  if (tempinput != "empty")
-      istringstream(tempinput) >> tempdoFreezeOut_lowtemp;
-  DATA->doFreezeOut_lowtemp = tempdoFreezeOut_lowtemp;
+
+    // Include_deltaf:  
+    // Looks like 0 sets delta_f=0, 1 uses standard quadratic ansatz,
+    // and 2 is supposed to use p^(2-alpha)
+    int tempinclude_deltaf = 1;
+    tempinput = util->StringFind4(file, "Include_deltaf");
+    if(tempinput != "empty") istringstream ( tempinput ) >> tempinclude_deltaf;
+    DATA->include_deltaf = tempinclude_deltaf;
+    
+    int tempinclude_deltaf_qmu = 0;
+    tempinput = util->StringFind4(file, "Include_deltaf_qmu");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempinclude_deltaf_qmu;
+    DATA->include_deltaf_qmu = tempinclude_deltaf_qmu;
+    
+    int temp_deltaf_14moments = 0;
+    tempinput = util->StringFind4(file, "deltaf_14moments");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_deltaf_14moments;
+    DATA->deltaf_14moments = temp_deltaf_14moments;
+    
+    int tempinclude_deltaf_bulk = 0;
+    tempinput = util->StringFind4(file, "Include_deltaf_bulk");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempinclude_deltaf_bulk;
+    DATA->include_deltaf_bulk = tempinclude_deltaf_bulk;
+    
+    // Do_FreezeOut_Yes_1_No_0
+    // set to 0 to bypass freeze out surface finder
+    int tempdoFreezeOut = 1;
+    tempinput = util->StringFind4(file, "Do_FreezeOut_Yes_1_No_0");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempdoFreezeOut;
+    DATA->doFreezeOut = tempdoFreezeOut;
+    int tempdoFreezeOut_lowtemp = 1;
+    tempinput = util->StringFind4(file, "Do_FreezeOut_lowtemp");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempdoFreezeOut_lowtemp;
+    DATA->doFreezeOut_lowtemp = tempdoFreezeOut_lowtemp;
   
     // Initial_Distribution_Filename
     string tempinitName = "initial/initial_ed.dat";
     tempinput = util->StringFind4(file, "Initial_Distribution_Filename");
-    if(tempinput != "empty") tempinitName.assign(tempinput);
+    if (tempinput != "empty")
+        tempinitName.assign(tempinput);
     DATA->initName.assign(tempinitName);
     // Initial_Distribution_Filename for rhob
     string tempinitName_rhob = "initial/initial_rhob.dat";
     tempinput = util->StringFind4(file, "Initial_Rhob_Distribution_Filename");
-    if(tempinput != "empty") tempinitName_rhob.assign(tempinput);
+    if (tempinput != "empty")
+        tempinitName_rhob.assign(tempinput);
     DATA->initName_rhob.assign(tempinitName_rhob);
     // Initial_Distribution_Filename for ux
     string tempinitName_ux = "initial/initial_ux.dat";
     tempinput = util->StringFind4(file, "Initial_ux_Distribution_Filename");
-    if(tempinput != "empty") tempinitName_ux.assign(tempinput);
+    if (tempinput != "empty")
+        tempinitName_ux.assign(tempinput);
     DATA->initName_ux.assign(tempinitName_ux);
     // Initial_Distribution_Filename for uy
     string tempinitName_uy = "initial/initial_uy.dat";
     tempinput = util->StringFind4(file, "Initial_uy_Distribution_Filename");
-    if(tempinput != "empty") tempinitName_uy.assign(tempinput);
+    if (tempinput != "empty")
+        tempinitName_uy.assign(tempinput);
     DATA->initName_uy.assign(tempinitName_uy);
     // Initial_Distribution_Filename for TA
     string tempinitName_TA = "initial/initial_TA.dat";
     tempinput = util->StringFind4(file, "Initial_TA_Distribution_Filename");
-    if(tempinput != "empty") tempinitName_TA.assign(tempinput);
+    if (tempinput != "empty")
+        tempinitName_TA.assign(tempinput);
     DATA->initName_TA.assign(tempinitName_TA);
     // Initial_Distribution_Filename for TB
     string tempinitName_TB = "initial/initial_TB.dat";
     tempinput = util->StringFind4(file, "Initial_TB_Distribution_Filename");
-    if(tempinput != "empty") tempinitName_TB.assign(tempinput);
+    if (tempinput != "empty")
+        tempinitName_TB.assign(tempinput);
     DATA->initName_TB.assign(tempinitName_TB);
     // Initial_Distribution_Filename for rhob TA
     string tempinitName_rhob_TA = "initial/initial_rhob_TA.dat";
     tempinput = util->StringFind4(
                             file, "Initial_rhob_TA_Distribution_Filename");
-    if(tempinput != "empty") tempinitName_rhob_TA.assign(tempinput);
+    if (tempinput != "empty")
+        tempinitName_rhob_TA.assign(tempinput);
     DATA->initName_rhob_TA.assign(tempinitName_rhob_TA);
     // Initial_Distribution_Filename for rhob TB
     string tempinitName_rhob_TB = "initial/initial_TB.dat";
     tempinput = util->StringFind4(
                             file, "Initial_rhob_TB_Distribution_Filename");
-    if(tempinput != "empty") tempinitName_rhob_TB.assign(tempinput);
+    if (tempinput != "empty")
+        tempinitName_rhob_TB.assign(tempinput);
     DATA->initName_rhob_TB.assign(tempinitName_rhob_TB);
   
     // compute beam rapidity according to the collision energy

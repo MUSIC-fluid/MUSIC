@@ -910,46 +910,25 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
 */
 double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
                            int rk_flag) {
-    double tempf, tau_rho, tau_pi, shear, shear_to_s;
-    double SW, kappa, T, epsilon, rhob;
-    int i;
     double q[4];
   
     if (DATA->turn_on_diff == 0) return 0.0;
  
     // Useful variables to define
-    epsilon = grid_pt->epsilon;
-    rhob = grid_pt->rhob;
+    double epsilon = grid_pt->epsilon;
+    double rhob = grid_pt->rhob;
+    double pressure = grid_pt->p;
+    double T = eos->get_temperature(epsilon, rhob);
 
-    T = eos->get_temperature(epsilon, rhob);
-    if (DATA->T_dependent_shear_to_s == 1) {
-        shear_to_s = get_temperature_dependent_eta_s(DATA, T);
-    } else {
-        shear_to_s = DATA->shear_to_s;
-    }
-
-    //double s_den = eos->get_entropy(epsilon, rhob);
-    shear = (shear_to_s)*(epsilon + grid_pt->p)/(T + 1e-15);
-    tau_pi = 5.0*shear/(epsilon + grid_pt->p + 1e-15);
- 
-    if (!isfinite(tau_pi)) {
-        tau_pi = DATA->delta_tau; 
-        cout << "tau_pi was infinite ..." << endl;
-    }
-    if (tau_pi < DATA->delta_tau)  // avoid tau_pi to be too small
-        tau_pi = DATA->delta_tau;
-
-    // Sangyong Nov 18 2014: From Gabriel
-    // tau_rho = 27/20 * tau_shear
-    // D = 9/64 * eta/T
-    // tau_rho = (27.0/20.0)*tau_pi;
-    // kappa = (9.0/64.0)*shear/T;
-    tau_rho = 0.2/(T + 1e-15);
+    double kappa_coefficient = DATA->kappa_coefficient;
+    double tau_rho = kappa_coefficient/(T + 1e-15);
     double mub = eos->get_mu(epsilon, rhob);
-    kappa = 0.2*rhob/(mub + 1e-15);
+    double alpha = mub/T;
+    double kappa = kappa_coefficient*(rhob/(3.*T*tanh(alpha) + 1e-15)
+                                      - rhob*rhob/(epsilon + pressure));
 
     // copy the value of \tilde{q^\mu}
-    for (i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         int idx_1d = util->map_2d_idx_to_1d(4, i);
         q[i] = (grid_pt->Wmunu[rk_flag][idx_1d]);
     }
@@ -961,7 +940,6 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
      * - Delta[a][eta] u[eta] q[tau]/tau
      * - u[a] u[b]g[b][e] Dq[e] -> u[a] q[e] g[e][b] Du[b]
     */    
-    SW = 0;  // record the final result
  
     // first: (1/tau_rho) part
     // recall that dUsup[4][i] = partial_i (muB/T) 
@@ -1007,7 +985,7 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
     }
     double Nonlinear2 = - transport_coeff_2*temptemp;
 
-    SW = (-q[nu] - NS + Nonlinear1 + Nonlinear2)/(tau_rho + 1e-15);
+    double SW = (-q[nu] - NS + Nonlinear1 + Nonlinear2)/(tau_rho + 1e-15);
     // SW = (-q[nu] - NS)/(tau_rho + 1e-15);  // for 1+1D numerical test
 
     // all other geometric terms....
@@ -1019,12 +997,12 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
     }
 
     // +Delta[a][tau] u[eta] q[eta]/tau 
-    tempf = ((DATA->gmunu[nu][0] 
-              + grid_pt->u[rk_flag][nu]*grid_pt->u[rk_flag][0])
-             *grid_pt->u[rk_flag][3]*q[3]/tau
-             - (DATA->gmunu[nu][3]
-                + grid_pt->u[rk_flag][nu]*grid_pt->u[rk_flag][3])
-             *grid_pt->u[rk_flag][3]*q[0]/tau);
+    double tempf = ((DATA->gmunu[nu][0] 
+                    + grid_pt->u[rk_flag][nu]*grid_pt->u[rk_flag][0])
+                      *grid_pt->u[rk_flag][3]*q[3]/tau
+                    - (DATA->gmunu[nu][3]
+                       + grid_pt->u[rk_flag][nu]*grid_pt->u[rk_flag][3])
+                      *grid_pt->u[rk_flag][3]*q[0]/tau);
     SW += tempf;
  
     if (isnan(tempf)) {
@@ -1033,8 +1011,8 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
 
     //-u[a] u[b]g[b][e] Dq[e] -> u[a] (q[e] g[e][b] Du[b])
     tempf = 0.0;
-    for (i=0; i<4; i++) {
-      tempf += q[i]*gmn(i)*(grid_pt->a[0][i]);
+    for (int i = 0; i < 4; i++) {
+        tempf += q[i]*gmn(i)*(grid_pt->a[0][i]);
     }
     SW += (grid_pt->u[rk_flag][nu])*tempf;
     
