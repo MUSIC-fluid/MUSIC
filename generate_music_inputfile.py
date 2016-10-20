@@ -56,7 +56,7 @@ hydro_dict.update({
     'Grid_size_in_y': 201,       # number of the grid points in y direction
     'Grid_size_in_x': 201,       # number of the grid points in x direction
     
-    'EOS_to_use': 7,         # type of the equation of state
+    'EOS_to_use': 10,         # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
     'boost_invariant': 0,    # initial condition is boost invariant
 
@@ -67,9 +67,9 @@ hydro_dict.update({
     'T_dependent_Shear_to_S_ratio': 0,      # switch to turn on temperature dependent eta/s(T)
     'Include_Bulk_Visc_Yes_1_No_0': 1,      # include bulk viscous effect
     'Bulk_to_S_ratio': 0.1,                 # value of \zeta/s
-    'Include_Rhob_Yes_1_No_0': 0,           # turn on propagation of baryon current
-    'turn_on_baryon_diffusion': 0,          # turn on baryon current diffusion
-    'kappa_coefficient': 0.0,               # coefficients for baryon diffusion kappa_B
+    'Include_Rhob_Yes_1_No_0': 1,           # turn on propagation of baryon current
+    'turn_on_baryon_diffusion': 1,          # turn on baryon current diffusion
+    'kappa_coefficient': 0.2,               # coefficients for baryon diffusion kappa_B
     'Bulk_relaxation_time_tau_b_pi': 0.6,   # bulk relaxtion time
     'Shear_relaxation_time_tau_pi': 0.01,   # shear relaxtion time
 

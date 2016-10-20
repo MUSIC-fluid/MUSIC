@@ -1204,3 +1204,47 @@ double Diss::get_temperature_dependent_zeta_s(double temperature) {
 
     return(bulk);
 }
+
+void Diss::output_kappa_T_and_muB_dependence(InitData *DATA) {
+    // this function outputs the T and muB dependence of the baryon diffusion
+    // coefficient, kappa
+
+    ofstream of("kappa_B_T_and_muB_dependence.dat");
+    // write out the header of the file
+    of << "# e (GeV/fm^3)  rhob (1/fm^3) T (GeV)  mu_B (GeV)  kappa (1/fm^2)"
+       << endl;
+
+    // define the grid
+    double e_min = 1e-5;     // fm^-4
+    double e_max = 100.0;    // fm^-4
+    int ne = 1000;
+    double de = (e_max - e_min)/(ne - 1.);
+    double rhob_min = 0.0;   // fm^-3
+    double rhob_max = sqrt(10.0);  // fm^-3
+    int nrhob = 1000;
+    double drhob = (rhob_max - rhob_min)/(nrhob - 1.);
+
+    for (int i = 0; i < ne; i++) {
+        double e_local = e_min + i*de;
+        for (int j = 0; j < nrhob; j++) {
+            double rhob_local = rhob_min + j*drhob;
+            rhob_local *= rhob_local;
+            double mu_B_local = eos->get_mu(e_local, rhob_local);
+            if (mu_B_local*hbarc > 0.78)
+                continue;  // discard points out of the table
+            double p_local = eos->get_pressure(e_local, rhob_local);
+            double T_local = eos->get_temperature(e_local, rhob_local);
+            double alpha_local = mu_B_local/T_local;
+
+            double kappa_local = (DATA->kappa_coefficient
+                    *(rhob_local/(3.*T_local*tanh(alpha_local) + 1e-15)
+                      - rhob_local*rhob_local/(e_local + p_local)));
+            // output
+            of << scientific << setw(18) << setprecision(8)
+               << e_local*hbarc << "   " << rhob_local << "   "
+               << T_local*hbarc << "   " << mu_B_local*hbarc << "   "
+               << kappa_local << endl;
+        }
+    }
+    of.close();  // close the file
+}
