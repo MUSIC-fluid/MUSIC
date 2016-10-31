@@ -20,7 +20,7 @@ class color:
     end = '\033[0m'
 
 initial_condition_dict.update({
-    'Initial_profile': 8,           # type of initial condition
+    'Initial_profile': 11,          # type of initial condition
     'initialize_with_entropy': 0,   # 0: with energy density
                                     # 1: with entropy density
     'Initial_Distribution_Filename': 'initial/u_field_1_enlarged.dat',
@@ -30,31 +30,32 @@ initial_condition_dict.update({
     'Initial_uy_Distribution_Filename': 'initial/uy_event_1_block.dat',
     'Initial_TA_Distribution_Filename': 'initial/sd_TA_event_1_block.dat',
     'Initial_TB_Distribution_Filename': 'initial/sd_TB_event_1_block.dat',
-    'ecm' : 5020,       # center of mass collision energy
-    's_factor': 0.89,   # normalization factor read in initial data file
+    'ecm' : 19.6,       # center of mass collision energy
+    's_factor': 6.3,    # normalization factor read in initial data file
 
     #  envelope function in eta_s direction
-    'Eta_plateau_size': 20.0,          # size of the plateau in eta_s direction
+    'Eta_plateau_size': 2.7,          # size of the plateau in eta_s direction
     'Eta_fall_off': 0.3,              # the scale of the fall off of the plateau in eta_s direction
     'initial_eta_rhob_profile': 2,    # type of the envelope profile for rho_B's eta_s distribution
     'eta_rhob_0': 1.5,                # peak position of rho_B in eta_s direction
     'eta_rhob_width': 1.0,            # the width of the Gaussian (for initial_eta_rhob_profile == 1)
     'eta_rhob_plateau_height': 0.3,   # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
     'eta_rhob_width_1': 0.2,          # the width of the Gaussian for the outside tail (for initial_eta_rhob_profile == 2)
-    'eta_rhob_width_2': 0.8,          # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
+    'eta_rhob_width_2': 1.0,          # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
+    'output_initial_density_profiles': 1,  # output the initial density profiles in 3d
 })
 
 hydro_dict.update({
     # grid information
-    'Initial_time_tau_0': 0.4,   # starting time of the hydrodynamic evolution (fm/c)
+    'Initial_time_tau_0': 1.5,   # starting time of the hydrodynamic evolution (fm/c)
     'Delta_Tau': 0.02,           # time step to use in the evolution [fm/c]
 
-    'Eta_grid_size': 10.0,        # spatial rapidity range
-    'Grid_size_in_eta': 4,       # number of the grid points in spatial rapidity direction
-    'X_grid_size_in_fm': 10.0,   # spatial range along x direction in the transverse plane
-    'Y_grid_size_in_fm': 10.0,   # spatial range along y direction in the transverse plane
-    'Grid_size_in_y': 201,       # number of the grid points in y direction
-    'Grid_size_in_x': 201,       # number of the grid points in x direction
+    'Eta_grid_size': 12.8,        # spatial rapidity range
+    'Grid_size_in_eta': 64,       # number of the grid points in spatial rapidity direction
+    'X_grid_size_in_fm': 26.0,   # spatial range along x direction in the transverse plane
+    'Y_grid_size_in_fm': 26.0,   # spatial range along y direction in the transverse plane
+    'Grid_size_in_y': 261,       # number of the grid points in y direction
+    'Grid_size_in_x': 261,       # number of the grid points in x direction
     
     'EOS_to_use': 10,         # type of the equation of state
     'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
@@ -63,18 +64,19 @@ hydro_dict.update({
     #viscosity and diffusion options
     'Viscosity_Flag_Yes_1_No_0': 1,         # turn on viscosity in the evolution
     'Include_Shear_Visc_Yes_1_No_0': 1,     # include shear viscous effect
-    'Shear_to_S_ratio': 0.095,              # value of \eta/s
+    'Shear_to_S_ratio': 0.080,              # value of \eta/s
     'T_dependent_Shear_to_S_ratio': 0,      # switch to turn on temperature dependent eta/s(T)
-    'Include_Bulk_Visc_Yes_1_No_0': 1,      # include bulk viscous effect
+    'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect
     'Bulk_to_S_ratio': 0.1,                 # value of \zeta/s
     'Include_Rhob_Yes_1_No_0': 1,           # turn on propagation of baryon current
     'turn_on_baryon_diffusion': 1,          # turn on baryon current diffusion
-    'kappa_coefficient': 0.2,               # coefficients for baryon diffusion kappa_B
+    'kappa_coefficient': 0.4,               # coefficients for baryon diffusion kappa_B
     'Bulk_relaxation_time_tau_b_pi': 0.6,   # bulk relaxtion time
     'Shear_relaxation_time_tau_pi': 0.01,   # shear relaxtion time
 
     'output_hydro_debug_info': 0,           # flag to output additional evolution information for debuging
     'output_evolution_data': 0,             # flag to output evolution history to file
+    'output_movie_flag': 0,                 # flag to output evolution file for making movie
     'output_evolution_T_cut': 0.145,        # minimum temperature for outputing fluid cells [GeV]
     'output_hydro_params_header' : 1,       # flag to output hydro evolution information header
     'outputBinaryEvolution': 1,             # flag to output evolution history in binary format

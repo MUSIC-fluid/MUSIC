@@ -34,6 +34,8 @@ int main(int argc, char *argv[]) {
 
     if (DATA.mode == 1 || DATA.mode == 2) {
         music_ptr->run_hydro();
+    } else if (DATA.mode == 73) {
+        music_ptr->output_transport_coefficients();
     }
 }  /* main */
 

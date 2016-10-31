@@ -13,24 +13,25 @@ class MUSIC {
     // this is wrapper class for MUSIC so that it can be used as a external
     // library for integrated framework, such as JETSCAPE
  private:
-     int mode;            // records running mode
+    int mode;            // records running mode
 
-     InitData *DATA;
+    InitData *DATA;
 
-     Util *util;
-     EOS *eos;
+    Util *util;
+    EOS *eos;
 
-     Grid ***arena;
+    Grid ***arena;
 
-     Init *init;
-     Evolve *evolve;
+    Init *init;
+    Evolve *evolve;
 
  public:
-     MUSIC(InitData *DATA_in, string input_file);
-     ~MUSIC();
+    MUSIC(InitData *DATA_in, string input_file);
+    ~MUSIC();
 
-     int run_hydro();
-     void ReadInData3(string file);
+    int run_hydro();
+    void output_transport_coefficients();
+    void ReadInData3(string file);
 };
 
 #endif  // SRC_MUSIC_H_

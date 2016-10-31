@@ -71,6 +71,10 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
     cout << "Grid allocated." << endl;
     InitTJb(DATA, arena);
 
+    if (DATA->output_initial_density_profiles == 1) {
+        output_initial_density_profiles(DATA, *arena);
+    }
+
     LinkNeighbors(DATA, arena);
     delete helperGrid;
 }/* InitArena */
@@ -999,4 +1003,33 @@ double Init::eta_rhob_right_factor(InitData *DATA, double eta) {
     }
     double res = norm*exp(-exp_arg*exp_arg);
     return(res);
+}
+
+void Init::output_initial_density_profiles(InitData *DATA, Grid ***arena) {
+    // this function outputs the 3d initial energy density profile
+    // and net baryon density profile (if turn_on_rhob == 1)
+    // for checking purpose
+    cout << "output initial density profiles into a file... " << flush;
+    ofstream of("check_initial_density_profiles.dat");
+    of << "# x(fm)  y(fm)  eta  ed(GeV/fm^3)";
+    if (DATA->turn_on_rhob == 1)
+        of << "  rhob(1/fm^3)";
+    of << endl;
+    for (int ieta = 0; ieta < DATA->neta; ieta++) {
+        double eta_local = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
+        for(int ix = 0; ix < (DATA->nx+1); ix++) {
+            double x_local = -DATA->x_size/2. + ix*DATA->delta_x;
+            for(int iy = 0; iy < (DATA->ny+1); iy++) {
+                double y_local = -DATA->y_size/2. + iy*DATA->delta_y;
+                of << scientific << setw(18) << setprecision(8)
+                   << x_local << "   " << y_local << "   "
+                   << eta_local << "   " << arena[ieta][ix][iy].epsilon*hbarc;
+                if (DATA->turn_on_rhob == 1) {
+                    of << "   " << arena[ieta][ix][iy].rhob;
+                }
+                of << endl;
+            }
+        }
+    }
+    cout << "done!" << endl;
 }

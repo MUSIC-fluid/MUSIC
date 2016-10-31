@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include "./music.h"
+#include "./dissipative.h"
 
 using namespace std;
 
@@ -38,6 +39,19 @@ int MUSIC::run_hydro() {
     evolve = new Evolve(eos, DATA);
     evolve->EvolveIt(DATA, arena);
     return(1);
+}
+
+
+void MUSIC::output_transport_coefficients() {
+    // this is a test function to output the transport coefficients as
+    // function of T and mu_B
+    cout << "output transport coefficients as functions of T and mu_B" << endl;
+    Diss *temp_dissipative_ptr = new Diss(eos, DATA);
+    temp_dissipative_ptr->output_eta_over_s_T_and_muB_dependence(DATA);
+    temp_dissipative_ptr->output_eta_over_s_along_const_sovernB(DATA);
+    temp_dissipative_ptr->output_kappa_T_and_muB_dependence(DATA);
+    temp_dissipative_ptr->output_kappa_along_const_sovernB(DATA);
+    delete temp_dissipative_ptr;
 }
 
 
@@ -128,6 +142,12 @@ void MUSIC::ReadInData3(string file) {
              << "or energy (0)\n";
         exit(1);
     }
+
+    int temp_output_initial_profile = 0;
+    tempinput = util->StringFind4(file, "output_initial_density_profiles");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_output_initial_profile;
+    DATA->output_initial_density_profiles = temp_output_initial_profile;
 
     // Must set either freeze out energy density or temperature,
     // otherwise generate error message below.
@@ -412,6 +432,11 @@ void MUSIC::ReadInData3(string file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempoutputEvolutionData;
     DATA->outputEvolutionData = tempoutputEvolutionData;
+    int temp_output_movie_flag = 0;
+    tempinput = util->StringFind4(file, "output_movie_flag");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_output_movie_flag;
+    DATA->output_movie_flag = temp_output_movie_flag;
     
     // Eta_fall_off:
     // width of half-Gaussian on each side of a central pleateau in eta

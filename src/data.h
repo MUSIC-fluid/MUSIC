@@ -59,6 +59,8 @@ typedef struct init_data {
     double eta_rhob_width_1;         // outside tail Gaussian width profile == 2
     double eta_rhob_width_2;         // inside Gaussian width profile == 2
 
+    int output_initial_density_profiles;
+
     // skip step for freeze out surface finder
     int facTau;
     int fac_x;
@@ -102,6 +104,7 @@ typedef struct init_data {
 
     // decide whether to output the evolution data (1) or not (0)
     int outputEvolutionData;
+    int output_movie_flag;
     // decide whether to output "evolution_xyeta.dat" and
     // "evolution_Wmunu_over_shear_xyeta.dat" in binary format (1)
     // or in text format (0)

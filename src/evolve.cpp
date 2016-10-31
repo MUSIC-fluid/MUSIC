@@ -44,6 +44,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     int output_hydro_debug_flag = DATA->output_hydro_debug_info;
     int Nskip_timestep = DATA->output_evolution_every_N_timesteps;
     int outputEvo_flag = DATA->outputEvolutionData;
+    int output_movie_flag = DATA->output_movie_flag;
     int freezeout_flag = DATA->doFreezeOut;
     int freezeout_lowtemp_flag = DATA->doFreezeOut_lowtemp;
     int freezeout_method = DATA->freezeOutMethod;
@@ -113,6 +114,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                 grid_info->OutputEvolutionDataXYEta(arena, DATA, tau);
             } else if (outputEvo_flag == 2) {
                 grid_info->OutputEvolutionDataXYEta_chun(arena, DATA, tau);
+            }
+            if (output_movie_flag == 1) {
+                grid_info->output_evolution_for_movie(arena, tau);
             }
         }
 

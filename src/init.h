@@ -35,6 +35,7 @@ class Init {
     double eta_profile_right_factor(InitData *Data, double eta);
     double eta_rhob_left_factor(InitData *Data, double eta);
     double eta_rhob_right_factor(InitData *Data, double eta);
+    void output_initial_density_profiles(InitData *DATA, Grid ***arena);
 };
 
 #endif  // SRC_INIT_H_
