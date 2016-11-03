@@ -1,8 +1,7 @@
 #! /usr/bin/env python
 
 import sys
-sys.path.insert(
-        0, '/Users/chunshen/Dropbox/work_python_scripts/pythonPlotUtilities')
+sys.path.insert(0, '../../utilities')
 
 from numpy import *
 import matplotlib.pyplot as plt
