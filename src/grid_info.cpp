@@ -725,7 +725,7 @@ void Grid_info::output_average_phase_diagram_trajectory(
     // within a given space-time rapidity range
     ostringstream filename;
     filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
-             << "_" << eta_max;
+             << "_" << eta_max << ".dat";
     fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
     of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)"
        << endl;
@@ -764,14 +764,14 @@ void Grid_info::output_average_phase_diagram_trajectory(
                 }
             }
         }
-        avg_T = avg_T/(weight + 1e-15)*hbarc;
-        avg_mu = avg_mu/(weight + 1e-15)*hbarc;
-        std_T = sqrt(std_T/(weight + 1e-15)*hbarc*hbarc - avg_T*avg_T);
-        std_mu = sqrt(std_mu/(weight + 1e-15)*hbarc*hbarc - avg_mu*avg_mu);
-        of << scientific << setw(18) << setprecision(8)
-           << tau << "  " << avg_T << "  " << std_T << "  "
-           << avg_mu << "  " << std_mu << endl;
     }
+    avg_T = avg_T/(weight + 1e-15)*hbarc;
+    avg_mu = avg_mu/(weight + 1e-15)*hbarc;
+    std_T = sqrt(std_T/(weight + 1e-15)*hbarc*hbarc - avg_T*avg_T);
+    std_mu = sqrt(std_mu/(weight + 1e-15)*hbarc*hbarc - avg_mu*avg_mu);
+    of << scientific << setw(18) << setprecision(8)
+       << tau << "  " << avg_T << "  " << std_T << "  "
+       << avg_mu << "  " << std_mu << endl;
     of.close();
 }
 
