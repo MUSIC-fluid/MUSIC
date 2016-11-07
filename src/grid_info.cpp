@@ -718,3 +718,58 @@ double Grid_info::get_deltaf_coeff_14moments(double T, double muB,
                     + f4*x_fraction*(1. - y_fraction));
     return(coeff);
 }
+
+void Grid_info::output_average_phase_diagram_trajectory(
+                double tau, double eta_min, double eta_max, Grid ***arena) {
+    // this function outputs average T and mu_B as a function of proper tau
+    // within a given space-time rapidity range
+    ostringstream filename;
+    filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
+             << "_" << eta_max;
+    fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
+    double avg_T = 0.0;
+    double avg_mu = 0.0;
+    double std_T = 0.0;
+    double std_mu = 0.0;
+    double weight = 0.0;
+    for (int ieta = 0; ieta < DATA_ptr->neta; ieta++) {
+        double eta;
+        if (DATA_ptr->boost_invariant == 1) {
+            eta = 0.0;
+        } else {
+            eta = ((static_cast<double>(ieta))*(DATA_ptr->delta_eta)
+                    - (DATA_ptr->eta_size)/2.0);
+        }
+        if (eta < eta_max && eta > eta_min) {
+            double cosh_eta = cosh(eta);
+            double sinh_eta = sinh(eta);
+            for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
+                for (int ix = 0; ix <= DATA_ptr->nx; ix++) {
+                    double e_local = arena[ieta][ix][iy].epsilon;  // 1/fm^4
+                    double rhob_local = arena[ieta][ix][iy].rhob;  // 1/fm^3
+                    double utau = arena[ieta][ix][iy].u[0][0];
+                    double ueta = arena[ieta][ix][iy].u[0][3];
+                    double ut = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
+                    double T_local = eos_ptr->get_temperature(e_local,
+                                                              rhob_local);
+                    double muB_local = eos_ptr->get_mu(e_local, rhob_local);
+                    double weight_local = e_local*ut;
+                    avg_T += T_local*weight_local;
+                    avg_mu += muB_local*weight_local;
+                    std_T += T_local*T_local*weight_local;
+                    std_mu += muB_local*muB_local*weight_local;
+                    weight += weight_local;
+                }
+            }
+        }
+        avg_T = avg_T/(weight + 1e-15)*hbarc;
+        avg_mu = avg_mu/(weight + 1e-15)*hbarc;
+        std_T = sqrt(std_T/(weight + 1e-15)*hbarc*hbarc - avg_T*avg_T);
+        std_mu = sqrt(std_mu/(weight + 1e-15)*hbarc*hbarc - avg_mu*avg_mu);
+        of << scientific << setw(18) << setprecision(8)
+           << tau << "  " << avg_T << "  " << std_T << "  "
+           << avg_mu << "  " << std_mu << endl;
+    }
+    of.close();
+}
+
