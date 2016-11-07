@@ -727,6 +727,8 @@ void Grid_info::output_average_phase_diagram_trajectory(
     filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
              << "_" << eta_max;
     fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
+    of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)"
+       << endl;
     double avg_T = 0.0;
     double avg_mu = 0.0;
     double std_T = 0.0;
