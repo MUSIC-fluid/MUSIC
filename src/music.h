@@ -8,16 +8,19 @@
 #include "./init.h"
 #include "./eos.h"
 #include "./evolve.h"
+#include "./read_in_parameters.h"
 
+//! This is a wrapper class for the MUSIC hydro
 class MUSIC {
-    // this is wrapper class for MUSIC so that it can be used as a external
-    // library for integrated framework, such as JETSCAPE
  private:
-    int mode;            // records running mode
+    //! records running mode
+    int mode;
 
     InitData *DATA;
 
     Util *util;
+    ReadInParameters reader;
+
     EOS *eos;
 
     Grid ***arena;
@@ -29,9 +32,18 @@ class MUSIC {
     MUSIC(InitData *DATA_in, string input_file);
     ~MUSIC();
 
+    //! this function returns the running mode
+    int get_running_mode() {return(mode);}
+
+    //! This function initialize hydro
+    int initialize_hydro();
+
+    //! this is a shell function to run hydro
     int run_hydro();
+
+    //! this is a test function to output the transport coefficients as
+    //! function of T and mu_B
     void output_transport_coefficients();
-    void ReadInData3(string file);
 };
 
 #endif  // SRC_MUSIC_H_

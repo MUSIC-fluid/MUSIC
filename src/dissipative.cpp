@@ -806,10 +806,6 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
     // cs2 is the velocity of sound squared
     double cs2 = eos->get_cs2(grid_pt->epsilon, grid_pt->rhob);  
 
-    // bulk viscosity = constant * shear viscosity * (1/3-cs2)**2
-    // parameter DATA->bulk_to_s should be between 15 -- 75
-    //bulk = (DATA->bulk_to_s)*shear*(1./3.-cs2)*(1./3.-cs2);  
-    
     // T dependent bulk viscosity from Gabriel
     bulk = get_temperature_dependent_zeta_s(temperature);
     bulk = bulk*(grid_pt->epsilon + grid_pt->p)/temperature;

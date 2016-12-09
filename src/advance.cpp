@@ -404,15 +404,13 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
     int revert_flag = 0;
     int revert_q_flag = 0;
     if (DATA->Initial_profile != 0) {
-        if (grid_pt->epsilon < DATA->QuestRevert_epsilon_min/hbarc) {
-            revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA);
-            if (DATA->turn_on_diff == 1) {
-                revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA);
-            }
+        revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA);
+        if (DATA->turn_on_diff == 1) {
+            revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA);
         }
     }
 
-    if (revert_flag == 1)
+    if (revert_flag == 1 || revert_q_flag == 1)
         return -1;
     else
         return 1;
@@ -434,16 +432,15 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag) {
     }/* mu */
 }/* UpdateTJbRK */
 
-// reduce the size of shear stress tensor and bulk pressure in the dilute region
+//! this function reduce the size of shear stress tensor and bulk pressure
+//! in the dilute region to stablize numerical simulations
 int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
                          InitData *DATA) {
     int revert_flag = 0;
+    const double energy_density_warning = 0.01;  // GeV/fm^3, T~100 MeV
+
     double eps_scale = 1.0;  // 1/fm^4
-    double factor;
-    if (fabs(DATA->QuestRevert_factor) < 1e-15)
-	    factor = DATA->QuestRevert_prefactor*tanh(grid_pt->epsilon/eps_scale);
-    else
- 	    factor = DATA->QuestRevert_factor;
+    double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
 
     double pi_00 = grid_pt->Wmunu[rk_flag+1][0];
     double pi_01 = grid_pt->Wmunu[rk_flag+1][1];
@@ -471,8 +468,12 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     double rho_bulk  = sqrt(bulksize/eq_size)/factor;
  
     // Reducing the shear stress tensor 
-    double rho_shear_max = DATA->QuestRevert_rho_shear_max;
+    double rho_shear_max = 0.1;
     if (rho_shear > rho_shear_max) {
+        if (e_local*hbarc > energy_density_warning) {
+            printf("energy density = %lf -- |pi/(epsilon+3*P)| = %lf\n",
+                   e_local*hbarc, rho_shear);
+        }
         for (int mu = 0; mu < 4; mu++) {
             for (int nu = mu; nu < 4; nu++) {
                 int idx_1d = util->map_2d_idx_to_1d(mu, nu);
@@ -485,8 +486,12 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     }
    
     // Reducing bulk viscous pressure 
-    double rho_bulk_max = DATA->QuestRevert_rho_bulk_max;
+    double rho_bulk_max = 0.1;
     if (rho_bulk > rho_bulk_max) {
+        if (e_local*hbarc > energy_density_warning) {
+            printf("energy density = %lf --  |Pi/(epsilon+3*P)| = %lf\n",
+                   e_local*hbarc, rho_bulk);
+        }
         grid_pt->pi_b[rk_flag+1] = (
                 (rho_bulk_max/rho_bulk)*grid_pt->pi_b[rk_flag+1]);
         revert_flag = 1;
@@ -496,15 +501,14 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
 }/* QuestRevert */
 
 
+//! this function reduce the size of net baryon diffusion current
+//! in the dilute region to stablize numerical simulations
 int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
                              InitData *DATA) {
     int revert_flag = 0;
+    const double energy_density_warning = 0.01;  // GeV/fm^3, T~100 MeV
     double eps_scale = 1.0;   // in 1/fm^4
-    double factor;
-    if (fabs(DATA->QuestRevert_factor) < 1e-15)
-	    factor = DATA->QuestRevert_prefactor*tanh(grid_pt->epsilon/eps_scale);
-    else
- 	    factor = DATA->QuestRevert_factor;
+    double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
 
     double q_mu_local[4];
     for (int i = 0; i < 4; i++) {
@@ -534,13 +538,19 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
     }
 
     // reduce the size of q^mu according to rhoB
+    double e_local = grid_pt->epsilon;
     double rhob_local = grid_pt->rhob;
     double rho_q = sqrt(q_size/(rhob_local*rhob_local))/factor;
-    double rho_q_max = DATA->QuestRevert_rho_q_max;
+    double rho_q_max = 0.1;
     if (rho_q > rho_q_max) {
+        if (e_local*hbarc > energy_density_warning) {
+            printf("energy density = %lf, rhob = %lf -- |q/rhob| = %lf\n",
+                   e_local*hbarc, rhob_local, rho_q);
+        }
         for (int i = 0; i < 4; i++) {
             int idx_1d = util->map_2d_idx_to_1d(4, i);
-            grid_pt->Wmunu[rk_flag+1][idx_1d] = (rho_q_max/rho_q)*q_mu_local[i];
+            grid_pt->Wmunu[rk_flag+1][idx_1d] =
+                                (rho_q_max/rho_q)*q_mu_local[i];
         }
         revert_flag = 1;
     }
