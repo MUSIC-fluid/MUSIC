@@ -29,7 +29,6 @@ Projectile  Au
 s_factor  1.0 
 initialize_with_entropy  0 
 sigma_0  0.4 
-Lexus_Imax  100 
 Initial_TA_Distribution_Filename  initial/nuclear_thickness_TA_fromSd_order_2_C0-5.dat 
 Initial_radius_size_in_fm  2.6 
 X_grid_size_in_fm  10.0 
