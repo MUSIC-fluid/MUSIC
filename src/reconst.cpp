@@ -950,9 +950,8 @@ int Reconst::ReconstIt_velocity_Newton(
         v_solution = v_next;
     } else {
         if (echo_level > 5) {
-           fprintf(
-                stderr, 
-                "***Warning: Reconst velocity:: can not find solution!!!\n");
+           fprintf(stderr, 
+               "***Warning: Reconst velocity:: can not find solution!!!\n");
            fprintf(stderr, "***output the results at the last iteration: \n");
            fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
                    "iter", "lower", "upper", "root", "err(est)");
@@ -1122,7 +1121,7 @@ int Reconst::ReconstIt_velocity_Newton(
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;
-    }// if u^mu u_\mu != 1 
+    }  // if u^mu u_\mu != 1 
     // End: Correcting normalization of 4-velocity
    
     for (mu = 0; mu < 4; mu++) {

@@ -14,6 +14,7 @@ add_executable (mpihydro
     read_in_parameters.cpp
     music.cpp
     cornelius.cpp
+    hydro_source.cpp
     )
 
 target_link_libraries (mpihydro ${GSL_LIBRARIES})

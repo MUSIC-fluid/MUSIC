@@ -7,14 +7,21 @@
 
 using namespace std;
 
-Init::Init(EOS *eosIn) {
+Init::Init(EOS *eosIn, InitData *DATA_in) {
     eos = eosIn;
     util = new Util;
+    DATA_ptr = DATA_in;
+    if (DATA_ptr->Initial_profile == 12) {
+        hydro_source_ptr = new hydro_source(DATA_ptr);
+    }
 }
 
 // destructor
 Init::~Init() {
     delete util;
+    if (DATA_ptr->Initial_profile == 12) {
+        delete hydro_source_ptr;
+    }
 }
 
 void Init::InitArena(InitData *DATA, Grid ****arena) {
@@ -63,12 +70,15 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
     } else if (DATA->Initial_profile == 11) {
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
+    } else if (DATA->Initial_profile == 12) {
+        DATA->nx = DATA->nx - 1;
+        DATA->ny = DATA->ny - 1;
     }
 
     // initialize arena
-    *arena = helperGrid->grid_c_malloc(DATA->neta, DATA->nx+1, DATA->ny+1);
-
+    *arena = helperGrid->grid_c_malloc(DATA->neta, DATA->nx + 1, DATA->ny + 1);
     cout << "Grid allocated." << endl;
+
     InitTJb(DATA, arena);
 
     if (DATA->output_initial_density_profiles == 1) {
@@ -226,6 +236,17 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
                 printf("Thread %d executes loop iteraction ieta = %d\n",
                        omp_get_thread_num(), ieta);
                 initial_MCGlb_with_rhob_XY(DATA, ieta, (*arena));
+            } /* ix, iy, ieta */
+        }
+    } else if (DATA->Initial_profile == 12) {
+        int ieta;
+        #pragma omp parallel private(ieta)
+        {
+            #pragma omp for
+            for (ieta = 0; ieta < DATA->neta; ieta++) {
+                printf("Thread %d executes loop iteraction ieta = %d\n",
+                       omp_get_thread_num(), ieta);
+                initial_MCGlbLEXUS_with_rhob_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
     }
@@ -890,6 +911,110 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
     delete[] temp_profile_TB;
     delete[] temp_profile_rhob_TA;
     delete[] temp_profile_rhob_TB;
+}
+
+void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
+                                           Grid ***arena) {
+    int nx = DATA->nx;
+    int ny = DATA->ny;
+    double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
+    double tau0 = DATA->tau0;
+    double *u = new double[4];
+    u[0] = 1.0;
+    u[1] = 0.0;
+    u[2] = 0.0;
+    u[3] = 0.0;
+    double *j_mu = new double[4];
+    for (int i = 0; i < 3; i++) {
+        j_mu[i] = 0.0;
+    }
+    int entropy_flag = DATA->initializeEntropy;
+    int rk_order = DATA->rk_order;
+    for (int ix = 0; ix < nx + 1; ix++) {
+        double x_local = - DATA->x_size/2. + ix*DATA->delta_x;
+        for (int iy = 0; iy < ny + 1; iy++) {
+            double y_local = - DATA->y_size/2. + iy*DATA->delta_y;
+            double rhob = 0.0;
+            double epsilon = 0.0;
+            if (DATA->turn_on_rhob == 1) {
+                rhob = hydro_source_ptr->get_hydro_rhob_source_before_tau(
+                                                tau0, x_local, y_local, eta);
+            } else {
+                rhob = 0.0;
+            }
+
+            hydro_source_ptr->get_hydro_energy_source_before_tau(
+                                    tau0, x_local, y_local, eta, j_mu);
+
+            if (entropy_flag == 0) {
+                epsilon = j_mu[0]*DATA->sFactor/hbarc;           // 1/fm^4
+            } else {
+                double local_sd = j_mu[0]*DATA->sFactor;         // 1/fm^3
+                epsilon = eos->get_s2e(local_sd, rhob);
+            }
+
+            if (epsilon < 0.00000000001)
+                epsilon = 0.00000000001;
+
+            // initial pressure distribution
+            double p = eos->get_pressure(epsilon, rhob);
+
+            // set all values in the grid element:
+            arena[ieta][ix][iy].epsilon = epsilon;
+            arena[ieta][ix][iy].epsilon_t = epsilon;
+            arena[ieta][ix][iy].prev_epsilon = epsilon;
+            arena[ieta][ix][iy].rhob = rhob;
+            arena[ieta][ix][iy].rhob_t = rhob;
+            arena[ieta][ix][iy].prev_rhob = rhob;
+            arena[ieta][ix][iy].p = p;
+            arena[ieta][ix][iy].p_t = p;
+            arena[ieta][ix][iy].TJb = util->cube_malloc(rk_order+1, 5, 4);
+            arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
+            arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
+            arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
+            arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
+            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
+            arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order+1);
+            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_u = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order+1, 14);
+            arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+
+            /* for HIC */
+            arena[ieta][ix][iy].u[0][0] = u[0];
+            arena[ieta][ix][iy].u[0][3] = u[3];
+            arena[ieta][ix][iy].u[0][1] = u[1];
+            arena[ieta][ix][iy].u[0][2] = u[2];
+            
+            for (int ii = 0; ii < rk_order; ii++) {
+                arena[ieta][ix][iy].prev_u[ii][0] = 1.0;
+                arena[ieta][ix][iy].prev_u[ii][3] = 0.0;
+                arena[ieta][ix][iy].prev_u[ii][1] = 0.0;
+                arena[ieta][ix][iy].prev_u[ii][2] = 0.0;
+                arena[ieta][ix][iy].prev_pi_b[ii] = 0.0;
+            }
+
+            arena[ieta][ix][iy].pi_b[0] = 0.0;
+
+            for (int mu = 0; mu < 4; mu++) {
+                /* baryon density */
+                arena[ieta][ix][iy].TJb[0][4][mu] = rhob*u[mu];
+                for (int nu = 0; nu < 4; nu++) {
+                    arena[ieta][ix][iy].TJb[0][nu][mu] = (
+                                                (epsilon + p)*u[mu]*u[nu]
+                                                + p*(DATA->gmunu)[mu][nu]);
+                }/* nu */
+            }/* mu */
+            for (int ii = 0; ii < 14; ii++) {
+                arena[ieta][ix][iy].prevWmunu[0][ii] = 0.0;
+                arena[ieta][ix][iy].prevWmunu[1][ii] = 0.0;
+                arena[ieta][ix][iy].Wmunu[0][ii] = 0.0;
+            }
+        }
+    }
+    delete[] u;
+    delete[] j_mu;
 }
 
 double Init::eta_profile_normalisation(InitData *DATA, double eta) {

@@ -31,7 +31,7 @@ int MUSIC::initialize_hydro() {
     // clean all the surface files
     system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 
-    init = new Init(eos);
+    init = new Init(eos, DATA);
     init->InitArena(DATA, &arena);
     return(0);
 }
