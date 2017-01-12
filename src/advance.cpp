@@ -745,8 +745,9 @@ void Advance::MakeKTCurrents(double tau, double **DFmmp, Grid *grid_pt,
 
     for (alpha=0; alpha<5; alpha++) {
         for (i=1; i<=3; i++) {
-            /* x_i current for TJb[0][alpha][0] from reconstructed halfway cells.
-               Reconst only uses TJb[0] */
+            // x_i current for TJb[0][alpha][0] 
+            // from reconstructed halfway cells.
+            // Reconst only uses TJb[0]
             FiphL[alpha][i] = 
                 HalfwayCells->grid_p_h_L[i].TJb[0][alpha][i]*tau_fac[i];
             FiphR[alpha][i] = 
@@ -755,8 +756,8 @@ void Advance::MakeKTCurrents(double tau, double **DFmmp, Grid *grid_pt,
                 HalfwayCells->grid_m_h_L[i].TJb[0][alpha][i]*tau_fac[i]; 
             FimhR[alpha][i] = 
                 HalfwayCells->grid_m_h_R[i].TJb[0][alpha][i]*tau_fac[i];
-            /* KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2 
-                   - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2 */
+            // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2
+            //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
 
             Fiph[alpha][i] = 0.5*(FiphL[alpha][i] + FiphR[alpha][i]);
             Fiph[alpha][i] -= 0.5*aiph[i]*(HalfwayCells->qiphR[alpha][i] 
@@ -784,9 +785,9 @@ void Advance::MakeKTCurrents(double tau, double **DFmmp, Grid *grid_pt,
                 fprintf(stderr, "aiph[%d] = %e\n", i, aiph[i]);
                 fprintf(stderr, "MakeKTCurrents: exiting.\n");
             }
-        }/* i - loop over directions */
-    }/* alpha */
-}/* MakeKTCurrents */
+        } /* i - loop over directions */
+    } /* alpha */
+} /* MakeKTCurrents */
 
 
 /* Calculate the right-hand-side */
@@ -803,8 +804,6 @@ void Advance::MakeKTCurrents(double tau, double **DFmmp, Grid *grid_pt,
  u_next = u + (1/2)(k1+k2)*h
         = (1/2)(u + u2);
 */
-
-
 void Advance::MakeMaxSpeedAs(double tau, BdryCells *HalfwayCells,
                              double aiph[], double aimh[], int rk_flag) {
     /* Implement Kurganov-Tadmor */
@@ -822,8 +821,7 @@ void Advance::MakeMaxSpeedAs(double tau, BdryCells *HalfwayCells,
 }/* MakeMaxSpeedAs */
 
 // determine the maximum signal propagation speed at the given direction
-double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag)
-{
+double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag) {
     //grid_p = grid_p_h_L, grid_p_h_R, grid_m_h_L, grid_m_h_R
     //these are reconstructed by Reconst which only uses u[0] and TJb[0]
     double utau = (grid_p->u[0][0]);
