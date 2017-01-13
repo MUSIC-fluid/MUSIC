@@ -11,6 +11,7 @@
 using namespace std;
 
 Advance::Advance(EOS *eosIn, InitData* DATA_in) {
+    DATA_ptr = DATA_in;
     eos = eosIn;
     grid = new Grid();
     util = new Util;
@@ -18,6 +19,12 @@ Advance::Advance(EOS *eosIn, InitData* DATA_in) {
     diss = new Diss(eosIn, DATA_in);
     minmod = new Minmod(DATA_in);
     u_derivative = new U_derivative(eosIn, DATA_in);
+    hydro_source_ptr = new hydro_source(DATA_in);
+    if (DATA_in->Initial_profile == 12) {
+        flag_add_hydro_source = true;
+    } else {
+        flag_add_hydro_source = false;
+    }
 
     grid_nx = DATA_in->nx;
     grid_ny = DATA_in->ny;
@@ -33,6 +40,7 @@ Advance::~Advance() {
     delete reconst_ptr;
     delete minmod;
     delete u_derivative;
+    delete hydro_source_ptr;
 }
 
 
@@ -81,9 +89,13 @@ int Advance::AdvanceLocalT(double tau, InitData *DATA, int ieta, Grid ***arena,
     BdryCells HalfwayCells;
     InitTempGrids(&HalfwayCells, rk_order); 
  
+    double eta_s_local = -DATA_ptr->eta_size/2. + ieta*DATA_ptr->delta_eta;
     for (int ix=0; ix <= grid_nx; ix++) {
+        double x_local = -DATA_ptr->x_size/2. + ix*DATA_ptr->delta_x;
         for (int iy=0; iy <= grid_ny; iy++) {
-            FirstRKStepT(tau, DATA, &(arena[ieta][ix][iy]), rk_flag, qi, rhs, 
+            double y_local = -DATA_ptr->y_size/2. + ix*DATA_ptr->delta_y;
+            FirstRKStepT(tau, x_local, y_local, eta_s_local,
+                         DATA, &(arena[ieta][ix][iy]), rk_flag, qi, rhs, 
                          w_rhs, qirk, &grid_rk, &NbrCells, &HalfwayCells);
         }
     }
@@ -133,7 +145,9 @@ int Advance::AdvanceLocalW(double tau, InitData *DATA, int ieta, Grid ***arena,
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
-int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt,
+int Advance::FirstRKStepT(double tau, double x_local, double y_local,
+                          double eta_s_local,
+                          InitData *DATA, Grid *grid_pt,
                           int rk_flag, double *qi, double *rhs, double **w_rhs,
                           double **qirk, Grid *grid_rk, NbrQs *NbrCells,
                           BdryCells *HalfwayCells) { 
@@ -162,6 +176,25 @@ int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt,
     MakeDeltaQI(tau_rk, grid_pt, qi, rhs, DATA, rk_flag,
                 NbrCells, HalfwayCells);
 
+    double *j_mu = new double[4];
+    for (int ii = 0; ii < 4; ii++) {
+        j_mu[ii] = 0.0;
+    }
+    double rhob_source = 0.0;
+    if (flag_add_hydro_source) {
+        double *u_local = new double[4];
+        for (int ii = 0; ii < 4; ii++) {
+            u_local[ii] = grid_pt->u[rk_flag][ii];
+        }
+        hydro_source_ptr->get_hydro_energy_source(
+                tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
+        if (DATA->turn_on_rhob == 1) {
+            rhob_source = hydro_source_ptr->get_hydro_rhob_source(
+                    tau_rk, x_local, y_local, eta_s_local);
+        }
+        delete[] u_local;
+    }
+
     for (int alpha = 0; alpha < 5; alpha++) {
         qirk[alpha][0] = qi[alpha] + rhs[alpha];
         if (!isfinite(qirk[alpha][0])) {
@@ -175,6 +208,15 @@ int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt,
         double dwmn = diss->MakeWSource(tau_rk, alpha, grid_pt, DATA, rk_flag);
         /* dwmn is the only one with the minus sign */
         qirk[alpha][0] -= dwmn*(DATA->delta_tau);
+
+        if (flag_add_hydro_source) {
+            // adding hydro_source terms
+            if (alpha < 4) {
+                qirk[alpha][0] += j_mu[alpha];
+            } else {
+                qirk[alpha][0] += rhob_source;
+            }
+        }
      
         // set baryon density back to zero if viscous correction made it
         // non-zero remove/modify if rho_b!=0 
@@ -192,6 +234,7 @@ int Advance::FirstRKStepT(double tau, InitData *DATA, Grid *grid_pt,
             qirk[alpha][0] *= 0.5;
         }
     }
+    delete[] j_mu;
 
     int flag = 0;
     flag = reconst_ptr->ReconstIt_shell(grid_rk, 0, tau_next, qirk, grid_pt,

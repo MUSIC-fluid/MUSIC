@@ -9,9 +9,11 @@
 #include "./minmod.h"
 #include "./u_derivative.h"
 #include "./reconst.h"
+#include "./hydro_source.h"
 
 class Advance {
  private:
+    InitData* DATA_ptr;
     Util *util;
     Diss *diss;        // dissipative object
     Grid *grid;
@@ -19,9 +21,11 @@ class Advance {
     EOS *eos;
     Minmod *minmod;
     U_derivative *u_derivative;
+    hydro_source *hydro_source_ptr;
 
     int grid_nx, grid_ny, grid_neta;
     int rk_order;
+    bool flag_add_hydro_source;
 
     typedef struct bdry_cells {
         Grid *grid_p_h_L;
@@ -57,10 +61,12 @@ class Advance {
     int AdvanceLocalW(double tau_init, InitData *DATA, int ieta, Grid ***arena,
                       int rk_flag);
 
-    int FirstRKStepT(double tau_it, InitData *DATA, Grid *grid_pt,
-                     int rk_flag, double *qi, double *rhs,
-                     double **w_rhs, double **qirk, Grid *grid_rk,
-                     NbrQs *NbrCells, BdryCells *HalfwayCells);
+    int FirstRKStepT(double tau, double x_local, double y_local,
+                     double eta_s_local,
+                     InitData *DATA, Grid *grid_pt,
+                     int rk_flag, double *qi, double *rhs, double **w_rhs,
+                     double **qirk, Grid *grid_rk, NbrQs *NbrCells,
+                     BdryCells *HalfwayCells);
 
     int FirstRKStepW(double tau_it, InitData *DATA, Grid *grid_pt,
                      int rk_flag, double *qi, double *rhs,
