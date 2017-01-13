@@ -15,8 +15,7 @@ hydro_source::hydro_source(InitData *DATA_in) {
         sigma_tau = 0.2;
         sigma_x = 0.5;
         sigma_eta = 0.5;
-        volume = (DATA_ptr->delta_tau*DATA_ptr->delta_x*DATA_ptr->delta_y
-                  *DATA_ptr->delta_eta);
+        volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
         read_in_QCD_strings_and_partons();
     }
 
@@ -192,7 +191,7 @@ void hydro_source::get_hydro_energy_source_before_tau(
         double tau_local = tau0 + i*dtau;
         get_hydro_energy_source(tau_local, x, y, eta_s, u, j_mu_one_step);
         for (int j = 0; j < 3; j++) {
-            j_mu[j] += j_mu_one_step[j];
+            j_mu[j] += j_mu_one_step[j]*dtau;
         }
     }
     delete[] u;
@@ -209,7 +208,7 @@ double hydro_source::get_hydro_rhob_source_before_tau(
         double res_local = 0.0;
         double tau_local = tau0 + i*dtau;
         res_local = get_hydro_rhob_source(tau_local, x, y, eta_s);
-        res += res_local;
+        res += res_local*dtau;
     }
     return(res);
 }

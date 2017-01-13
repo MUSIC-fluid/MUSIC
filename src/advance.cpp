@@ -188,8 +188,11 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
         }
         hydro_source_ptr->get_hydro_energy_source(
                 tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
+        for (int ii = 0; ii < 4; ii++) {
+            j_mu[ii] *= tau_rk;
+        }
         if (DATA->turn_on_rhob == 1) {
-            rhob_source = hydro_source_ptr->get_hydro_rhob_source(
+            rhob_source = tau_rk*hydro_source_ptr->get_hydro_rhob_source(
                     tau_rk, x_local, y_local, eta_s_local);
         }
         delete[] u_local;
@@ -212,9 +215,9 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
         if (flag_add_hydro_source) {
             // adding hydro_source terms
             if (alpha < 4) {
-                qirk[alpha][0] += j_mu[alpha];
+                qirk[alpha][0] += j_mu[alpha]*DATA->delta_tau;
             } else {
-                qirk[alpha][0] += rhob_source;
+                qirk[alpha][0] += rhob_source*DATA->delta_tau;
             }
         }
      
