@@ -87,6 +87,7 @@ void hydro_source::get_hydro_energy_source(
         j_mu[i] = 0.0;
     }
     double ed = 0.;
+    double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
     if (DATA_ptr->Initial_profile == 12) {
         double n_sigma_skip = 5.;
         for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
@@ -109,6 +110,9 @@ void hydro_source::get_hydro_energy_source(
                  || eta_s > (*it).eta_s_right + n_sigma_skip*sigma_eta) {
                 continue;
             }
+            double prefactor_tau = (
+                     1./(sigma_tau*sigma_tau/2.
+                         + (*it).tau_form*sqrt(M_PI)*sigma_tau));
             double exp_tau = exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau));
             double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                     /(sigma_x*sigma_x));
@@ -122,23 +126,24 @@ void hydro_source::get_hydro_energy_source(
                 double eta_s_dis = eta_s - (*it).eta_s_right;
                 exp_eta_s = exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta));
             }
-            double e_local = exp_tau*exp_xperp*exp_eta_s;
+            double e_local = prefactor_tau*exp_tau*exp_xperp*exp_eta_s;
             // double y_interp = (
             //         (*it).y_l + ((*it).y_r - (*it).y_l)
             //                     /((*it).eta_s_right - (*it).eta_s_left)
             //                     *(eta_s - (*it).eta_s_left));
             ed += e_local;
         }
-        j_mu[0] = ed*u_mu[0]*volume;
-        j_mu[1] = ed*u_mu[1]*volume;
-        j_mu[2] = ed*u_mu[2]*volume;
-        j_mu[3] = ed*u_mu[3]*volume;
+        j_mu[0] = tau*ed*u_mu[0]*prefactor_prep*volume;
+        j_mu[1] = tau*ed*u_mu[1]*prefactor_prep*volume;
+        j_mu[2] = tau*ed*u_mu[2]*prefactor_prep*volume;
+        j_mu[3] = tau*ed*u_mu[3]*prefactor_prep*volume;
     }
 }
 
 double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                                            double eta_s) {
     double res = 0.;
+    double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
     if (DATA_ptr->Initial_profile == 12) {
         double n_sigma_skip = 5.;
         for (vector<parton>::iterator it = parton_list.begin();
@@ -161,14 +166,17 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
                 continue;
             }
+            double prefactor_tau = (
+                     1./(sigma_tau*sigma_tau/2.
+                         + (*it).tau_form*sqrt(M_PI)*sigma_tau));
             double exp_tau = exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau));
             double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                     /(sigma_x*sigma_x));
             double exp_eta_s = exp(-eta_s_dis*eta_s_dis/(sigma_eta*sigma_eta));
-            res += exp_tau*exp_xperp*exp_eta_s;
+            res += prefactor_tau*exp_tau*exp_xperp*exp_eta_s;
         }
     }
-    res *= volume;
+    res *= tau*prefactor_prep*volume;
     return(res);
 }
 

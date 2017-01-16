@@ -923,8 +923,8 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
         cout << "Runge-Kutta order = " << parameter_list->rk_order << endl;
     }
     
-    if (parameter_list->reconst_type != 1
-            && parameter_list->reconst_type != 0) {
+    if (parameter_list->reconst_type > 2
+            && parameter_list->reconst_type != 99) {
         cerr << "unrecognized reconst_type: "
              << parameter_list->reconst_type << endl;
         exit(1);

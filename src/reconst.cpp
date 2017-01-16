@@ -615,16 +615,17 @@ int Reconst::ReconstIt_velocity_iteration(
     /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
 
     double q[5];
-    int mu, nu, alpha;
-    for (alpha=0; alpha<5; alpha++)
+    int mu, nu;
+    for (int alpha = 0; alpha < 5; alpha++) {
         q[alpha] = uq[alpha][direc]/tau;
+    }
 
     double K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
     double M = sqrt(K00);
     double T00 = q[0];
     double J0 = q[4];
 
-    if ( (T00 < SMALL) || ((T00 - K00/T00) < 0.0) ) {
+    if ((T00 < SMALL) || ((T00 - K00/T00) < 0.0)) {
         // can't make Tmunu with this. restore the previous value 
         // remember that uq are eigher halfway cells or the final q_next 
         // at this point, the original values in grid_pt->TJb are not touched. 
@@ -890,16 +891,17 @@ int Reconst::ReconstIt_velocity_Newton(
     /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
 
     double q[5];
-    int mu, nu, alpha;
-    for (alpha=0; alpha<5; alpha++)
+    int mu, nu;
+    for (int alpha = 0; alpha < 5; alpha++) {
         q[alpha] = uq[alpha][direc]/tau;
+    }
 
     double K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
     double M = sqrt(K00);
     double T00 = q[0];
     double J0 = q[4];
 
-    if ( (T00 < SMALL) || ((T00 - K00/T00) < 0.0) ) {
+    if ((T00 < SMALL) || ((T00 - K00/T00) < 0.0)) {
         // can't make Tmunu with this. restore the previous value 
         // remember that uq are eigher halfway cells or the final q_next 
         // at this point, the original values in grid_pt->TJb are not touched. 
@@ -921,8 +923,9 @@ int Reconst::ReconstIt_velocity_Newton(
 
     double u0_guess = grid_pt->u[rk_flag][0];
     double v_guess = sqrt(1. - 1./(u0_guess*u0_guess + 1e-15));
-    if (isnan(v_guess))
+    if (isnan(v_guess)) {
         v_guess = 0.0;
+    }
     int v_status = 1;
     int iter = 0;
     double rel_error_v = 10.0;
@@ -933,10 +936,11 @@ int Reconst::ReconstIt_velocity_Newton(
         iter++;
         v_next = (v_prev
                   - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0)));
-        if (v_next < 0.0)
+        if (v_next < 0.0) {
             v_next = 0.0 + 1e-10;
-        else if (v_next > 1.0)
+        } else if (v_next > 1.0) {
             v_next = 1.0 - 1e-10;
+        }
         abs_error_v = reconst_velocity_f_Newton(v_next, T00, M, J0);
         v_prev = v_next;
         if (iter > max_iter) {
