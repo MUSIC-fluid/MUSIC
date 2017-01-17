@@ -407,8 +407,11 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                 for (int iy = 0; iy <= ny; iy++) {
                     double cosh_eta = cosh(eta_s);
                     double sinh_eta = sinh(eta_s);
-                    N_B += (arena[ieta][ix][iy].rhob
-                            *arena[ieta][ix][iy].u[0][0]
+                    //N_B += (arena[ieta][ix][iy].rhob
+                    //        *arena[ieta][ix][iy].u[0][0]
+                    //        + (arena[ieta][ix][iy].prevWmunu[0][10]
+                    //           + arena[ieta][ix][iy].prevWmunu[1][10])*0.5);
+                    N_B += (arena[ieta][ix][iy].TJb[0][4][0]
                             + (arena[ieta][ix][iy].prevWmunu[0][10]
                                + arena[ieta][ix][iy].prevWmunu[1][10])*0.5);
                     double Pi00_rk_0 = (

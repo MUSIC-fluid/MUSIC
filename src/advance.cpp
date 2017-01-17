@@ -93,7 +93,7 @@ int Advance::AdvanceLocalT(double tau, InitData *DATA, int ieta, Grid ***arena,
     for (int ix=0; ix <= grid_nx; ix++) {
         double x_local = -DATA_ptr->x_size/2. + ix*DATA_ptr->delta_x;
         for (int iy=0; iy <= grid_ny; iy++) {
-            double y_local = -DATA_ptr->y_size/2. + ix*DATA_ptr->delta_y;
+            double y_local = -DATA_ptr->y_size/2. + iy*DATA_ptr->delta_y;
             FirstRKStepT(tau, x_local, y_local, eta_s_local,
                          DATA, &(arena[ieta][ix][iy]), rk_flag, qi, rhs, 
                          w_rhs, qirk, &grid_rk, &NbrCells, &HalfwayCells);
