@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include "./hydro_source.h"
+#include "./util.h"
 
 using namespace std;
 
@@ -118,12 +119,11 @@ void hydro_source::get_hydro_energy_source(
             double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                     /(sigma_x*sigma_x));
             double exp_eta_s = 1.;
-            if (eta_s > (*it).eta_s_left && eta_s < (*it).eta_s_right) {
-                exp_eta_s = 1.;
-            } else if (eta_s < (*it).eta_s_left) {
+            if (eta_s < (*it).eta_s_left) {
                 double eta_s_dis = eta_s - (*it).eta_s_left;
                 exp_eta_s = exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta));
-            } else {
+            }
+            if (eta_s > (*it).eta_s_right) {
                 double eta_s_dis = eta_s - (*it).eta_s_right;
                 exp_eta_s = exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta));
             }
@@ -134,6 +134,7 @@ void hydro_source::get_hydro_energy_source(
             //                     *(eta_s - (*it).eta_s_left));
             ed += e_local;
         }
+        ed = ed*DATA_ptr->sFactor/hbarc;   // 1/fm^4
         j_mu[0] = ed*u_mu[0]*prefactor_tau*prefactor_prep;
         j_mu[1] = ed*u_mu[1]*prefactor_tau*prefactor_prep;
         j_mu[2] = ed*u_mu[2]*prefactor_tau*prefactor_prep;

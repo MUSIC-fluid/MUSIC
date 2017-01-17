@@ -947,7 +947,7 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
                                     tau0, x_local, y_local, eta, j_mu);
 
             if (entropy_flag == 0) {
-                epsilon = j_mu[0]*DATA->sFactor/hbarc;           // 1/fm^4
+                epsilon = j_mu[0];           // 1/fm^4
             } else {
                 double local_sd = j_mu[0]*DATA->sFactor;         // 1/fm^3
                 epsilon = eos->get_s2e(local_sd, rhob);
