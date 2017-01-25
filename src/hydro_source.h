@@ -32,6 +32,7 @@ class hydro_source {
     InitData *DATA_ptr;
     double volume;
     double sigma_tau, sigma_x, sigma_eta;
+    double source_tau_max;
     std::vector<QCD_string> QCD_strings_list;
     std::vector<parton> parton_list;
 
@@ -55,6 +56,9 @@ class hydro_source {
     //! This function reads in the spatial positions of the QCD strings
     //! and partons
     void read_in_QCD_strings_and_partons();
+
+    //! Get the maximum tau for the source term
+    double get_source_tau_max() {return(source_tau_max);}
 };
 
 #endif  // SRC_HYDRO_SOURCE_H_

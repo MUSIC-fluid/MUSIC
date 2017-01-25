@@ -8,6 +8,7 @@
 #include "./init.h"
 #include "./eos.h"
 #include "./evolve.h"
+#include "./hydro_source.h"
 #include "./read_in_parameters.h"
 
 //! This is a wrapper class for the MUSIC hydro
@@ -15,6 +16,12 @@ class MUSIC {
  private:
     //! records running mode
     int mode;
+
+    //! flag to tell whether hydro is initialized
+    int flag_hydro_initialized;
+    
+    //! flag to tell whether hydro is run
+    int flag_hydro_run;
 
     InitData *DATA;
 
@@ -27,6 +34,8 @@ class MUSIC {
 
     Init *init;
     Evolve *evolve;
+
+    hydro_source *hydro_source_ptr;
 
  public:
     MUSIC(InitData *DATA_in, string input_file);

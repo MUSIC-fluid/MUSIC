@@ -19,7 +19,7 @@ class Init {
     hydro_source *hydro_source_ptr;
 
  public:
-    Init(EOS *eos, InitData *DATA_in);  // constructor
+    Init(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
     ~Init();  // destructor
 
     void InitArena(InitData *DATA, Grid ****arena);

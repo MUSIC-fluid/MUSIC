@@ -10,7 +10,8 @@
 
 using namespace std;
 
-Advance::Advance(EOS *eosIn, InitData* DATA_in) {
+Advance::Advance(EOS *eosIn, InitData *DATA_in,
+                 hydro_source *hydro_source_in) {
     DATA_ptr = DATA_in;
     eos = eosIn;
     grid = new Grid();
@@ -19,9 +20,9 @@ Advance::Advance(EOS *eosIn, InitData* DATA_in) {
     diss = new Diss(eosIn, DATA_in);
     minmod = new Minmod(DATA_in);
     u_derivative = new U_derivative(eosIn, DATA_in);
-    hydro_source_ptr = new hydro_source(DATA_in);
     if (DATA_in->Initial_profile == 12) {
         flag_add_hydro_source = true;
+        hydro_source_ptr = hydro_source_in;
     } else {
         flag_add_hydro_source = false;
     }
@@ -40,7 +41,6 @@ Advance::~Advance() {
     delete reconst_ptr;
     delete minmod;
     delete u_derivative;
-    delete hydro_source_ptr;
 }
 
 

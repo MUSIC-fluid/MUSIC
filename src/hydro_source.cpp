@@ -13,6 +13,7 @@ using namespace std;
 
 hydro_source::hydro_source(InitData *DATA_in) {
     DATA_ptr = DATA_in;
+    source_tau_max = 0.0;
     if (DATA_ptr->Initial_profile == 12) {
         sigma_tau = 0.1;
         sigma_x = 0.5;
@@ -20,7 +21,6 @@ hydro_source::hydro_source(InitData *DATA_in) {
         volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
         read_in_QCD_strings_and_partons();
     }
-
 }
 
 hydro_source::~hydro_source() {
@@ -56,9 +56,13 @@ void hydro_source::read_in_QCD_strings_and_partons() {
                     >> new_string.eta_s_left >> new_string.eta_s_right
                     >> new_string.y_l >> new_string.y_r;
         QCD_strings_list.push_back(new_string);
+        if (source_tau_max < new_string.tau_form) {
+            source_tau_max = new_string.tau_form;
+        }
         getline(QCD_strings_file, text_string);
     }
     QCD_strings_file.close();
+    cout << "hydro_source: tau_max = " << source_tau_max << endl;
     
     ifstream partons_file(partons_filename.c_str());
     if (!partons_file) {
@@ -90,55 +94,60 @@ void hydro_source::get_hydro_energy_source(
     }
     if (DATA_ptr->Initial_profile == 12) {
         double ed = 0.;
-        double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
-        double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
         double n_sigma_skip = 5.;
-        for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
-             it != QCD_strings_list.end(); it++) {
-            // skip the evaluation if the strings is too far away in the
-            // space-time grid
-            double tau_dis = tau - (*it).tau_form;
-            if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
-                continue;
+        double tau_dis_max = tau - source_tau_max;
+        if (tau_dis_max < n_sigma_skip*sigma_tau) {
+            double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
+            double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+            for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
+                 it != QCD_strings_list.end(); it++) {
+                // skip the evaluation if the strings is too far away in the
+                // space-time grid
+                double tau_dis = tau - (*it).tau_form;
+                if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
+                    continue;
+                }
+                double x_dis = x - (*it).x_perp;
+                if (fabs(x_dis) > n_sigma_skip*sigma_x) {
+                    continue;
+                }
+                double y_dis = y - (*it).y_perp;
+                if (fabs(y_dis) > n_sigma_skip*sigma_x) {
+                    continue;
+                }
+                if (eta_s < (*it).eta_s_left - n_sigma_skip*sigma_eta
+                     || eta_s > (*it).eta_s_right + n_sigma_skip*sigma_eta) {
+                    continue;
+                }
+                double exp_tau = (
+                        1./((*it).tau_form)
+                        *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
+                double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
+                                        /(sigma_x*sigma_x));
+                double exp_eta_s = 1.;
+                if (eta_s < (*it).eta_s_left) {
+                    double eta_s_dis = eta_s - (*it).eta_s_left;
+                    exp_eta_s = (
+                            exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta)));
+                }
+                if (eta_s > (*it).eta_s_right) {
+                    double eta_s_dis = eta_s - (*it).eta_s_right;
+                    exp_eta_s = (
+                            exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta)));
+                }
+                double e_local = exp_tau*exp_xperp*exp_eta_s;
+                // double y_interp = (
+                //         (*it).y_l + ((*it).y_r - (*it).y_l)
+                //                     /((*it).eta_s_right - (*it).eta_s_left)
+                //                     *(eta_s - (*it).eta_s_left));
+                ed += e_local;
             }
-            double x_dis = x - (*it).x_perp;
-            if (fabs(x_dis) > n_sigma_skip*sigma_x) {
-                continue;
-            }
-            double y_dis = y - (*it).y_perp;
-            if (fabs(y_dis) > n_sigma_skip*sigma_x) {
-                continue;
-            }
-            if (eta_s < (*it).eta_s_left - n_sigma_skip*sigma_eta
-                 || eta_s > (*it).eta_s_right + n_sigma_skip*sigma_eta) {
-                continue;
-            }
-            double exp_tau = (
-                    1./((*it).tau_form)
-                    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
-            double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
-                                    /(sigma_x*sigma_x));
-            double exp_eta_s = 1.;
-            if (eta_s < (*it).eta_s_left) {
-                double eta_s_dis = eta_s - (*it).eta_s_left;
-                exp_eta_s = exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta));
-            }
-            if (eta_s > (*it).eta_s_right) {
-                double eta_s_dis = eta_s - (*it).eta_s_right;
-                exp_eta_s = exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta));
-            }
-            double e_local = exp_tau*exp_xperp*exp_eta_s;
-            // double y_interp = (
-            //         (*it).y_l + ((*it).y_r - (*it).y_l)
-            //                     /((*it).eta_s_right - (*it).eta_s_left)
-            //                     *(eta_s - (*it).eta_s_left));
-            ed += e_local;
+            ed = ed*DATA_ptr->sFactor/hbarc;   // 1/fm^4
+            j_mu[0] = ed*u_mu[0]*prefactor_tau*prefactor_prep;
+            j_mu[1] = ed*u_mu[1]*prefactor_tau*prefactor_prep;
+            j_mu[2] = ed*u_mu[2]*prefactor_tau*prefactor_prep;
+            j_mu[3] = ed*u_mu[3]*prefactor_tau*prefactor_prep;
         }
-        ed = ed*DATA_ptr->sFactor/hbarc;   // 1/fm^4
-        j_mu[0] = ed*u_mu[0]*prefactor_tau*prefactor_prep;
-        j_mu[1] = ed*u_mu[1]*prefactor_tau*prefactor_prep;
-        j_mu[2] = ed*u_mu[2]*prefactor_tau*prefactor_prep;
-        j_mu[3] = ed*u_mu[3]*prefactor_tau*prefactor_prep;
     }
 }
 
@@ -146,38 +155,43 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                                            double eta_s) {
     double res = 0.;
     if (DATA_ptr->Initial_profile == 12) {
-        double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
-        double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
-        double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
         double n_sigma_skip = 5.;
-        for (vector<parton>::iterator it = parton_list.begin();
-             it != parton_list.end(); it++) {
-            // skip the evaluation if the strings is too far away in the
-            // space-time grid
-            double tau_dis = tau - (*it).tau;
-            if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
-                continue;
+        double tau_dis_max = tau - source_tau_max;
+        if (tau_dis_max < n_sigma_skip*sigma_tau) {
+            double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
+            double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+            double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+            for (vector<parton>::iterator it = parton_list.begin();
+                 it != parton_list.end(); it++) {
+                // skip the evaluation if the strings is too far away in the
+                // space-time grid
+                double tau_dis = tau - (*it).tau;
+                if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
+                    continue;
+                }
+                double x_dis = x - (*it).x;
+                if (fabs(x_dis) > n_sigma_skip*sigma_x) {
+                    continue;
+                }
+                double y_dis = y - (*it).y;
+                if (fabs(y_dis) > n_sigma_skip*sigma_x) {
+                    continue;
+                }
+                double eta_s_dis = eta_s - (*it).eta_s;
+                if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
+                    continue;
+                }
+                double exp_tau = (
+                    1./((*it).tau)
+                    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
+                double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
+                                        /(sigma_x*sigma_x));
+                double exp_eta_s = (
+                        exp(-eta_s_dis*eta_s_dis/(sigma_eta*sigma_eta)));
+                res += exp_tau*exp_xperp*exp_eta_s;
             }
-            double x_dis = x - (*it).x;
-            if (fabs(x_dis) > n_sigma_skip*sigma_x) {
-                continue;
-            }
-            double y_dis = y - (*it).y;
-            if (fabs(y_dis) > n_sigma_skip*sigma_x) {
-                continue;
-            }
-            double eta_s_dis = eta_s - (*it).eta_s;
-            if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
-                continue;
-            }
-            double exp_tau = (
-                1./((*it).tau)*exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
-            double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
-                                    /(sigma_x*sigma_x));
-            double exp_eta_s = exp(-eta_s_dis*eta_s_dis/(sigma_eta*sigma_eta));
-            res += exp_tau*exp_xperp*exp_eta_s;
+            res *= prefactor_tau*prefactor_prep*prefactor_etas;
         }
-        res *= prefactor_tau*prefactor_prep*prefactor_etas;
     }
     return(res);
 }

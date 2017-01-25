@@ -15,32 +15,44 @@ MUSIC::MUSIC(InitData *DATA_in, string input_file) {
     mode = DATA->mode;
     eos = new EOS(DATA);
     util = new Util();
+    if (DATA->Initial_profile == 12) {
+        hydro_source_ptr = new hydro_source(DATA_in);
+    }
+    flag_hydro_run = 0;
+    flag_hydro_initialized = 0;
 }
 
 
 MUSIC::~MUSIC() {
-    if (mode == 1 && mode == 2) {
+    if (flag_hydro_initialized == 1) {
         delete init;
+    }
+    if (flag_hydro_run == 1) {
         delete evolve;
     }
     delete eos;
     delete util;
+    if (DATA->Initial_profile == 12) {
+        delete hydro_source_ptr;
+    }
 }
 
 int MUSIC::initialize_hydro() {
     // clean all the surface files
     system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 
-    init = new Init(eos, DATA);
+    init = new Init(eos, DATA, hydro_source_ptr);
     init->InitArena(DATA, &arena);
+    flag_hydro_initialized = 1;
     return(0);
 }
 
 
 int MUSIC::run_hydro() {
     // this is a shell function to run hydro
-    evolve = new Evolve(eos, DATA);
+    evolve = new Evolve(eos, DATA, hydro_source_ptr);
     evolve->EvolveIt(DATA, arena);
+    flag_hydro_run = 1;
     return(0);
 }
 
