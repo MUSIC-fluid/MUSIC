@@ -24,8 +24,12 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) {
     grid_ny = DATA_in->ny;
     grid_neta = DATA_in->neta;
   
-    if (DATA_ptr->freezeOutMethod == 4)
+    if (DATA_ptr->freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
+    }
+    if (DATA_ptr->Initial_profile == 12) {
+        hydro_source_ptr = hydro_source_in;
+    }
 }
 
 // destructor
