@@ -77,13 +77,18 @@ void EOS::initialize_eos() {
     } else if (parameters_ptr->whichEOS == 11) {
         cout << "Using lattice EOS from Pasi" << endl;
         init_eos11(0);
+    } else if (parameters_ptr->whichEOS == 12) {
+        cout << "Using lattice EOS from A. Monnai (up to mu_B^6)" << endl;
+        init_eos12(0);
     } else {
         cout << "No EOS for whichEOS = " << parameters_ptr->whichEOS
              << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
              << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
              << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1), "
              << "10(lattice EOS at finite muB), "
-             << "11(lattice EoS at finite muB from Pasi)" << endl;
+             << "11(lattice EoS at finite muB from Pasi), "
+             << "12(lattice EOS at finite muB from A. Monnai up to mu_B^6)"
+             << endl;
         exit(1);
     }
 }
@@ -1992,6 +1997,306 @@ void EOS::init_eos11(int selector) {
     build_velocity_of_sound_sq_matrix();
 }
 
+void EOS::init_eos12(int selector) {
+    // read the lattice EOS at finite muB
+    // pressure, temperature, and baryon chemical potential from file
+    cout << "reading EOS ..." << endl;
+    whichEOS = 12;
+
+    stringstream slocalpath;
+
+    if (selector == 0) {
+        // lattice EOS from A. Monnai
+        slocalpath << "./EOS/neos_3/";
+    } else {
+        fprintf(stderr, "EOS::init_eos12: unrecognized selector = %d \n",
+                selector);
+        exit(-1);
+    }
+
+    string path = slocalpath.str();
+
+    stringstream streos_p1_name;
+    stringstream streos_p2_name;
+    stringstream streos_p3_name;
+    stringstream streos_p4_name;
+    stringstream streos_p5_name;
+    stringstream streos_p6_name;
+    stringstream streos_p7_name;
+    stringstream streos_T1_name;
+    stringstream streos_T2_name;
+    stringstream streos_T3_name;
+    stringstream streos_T4_name;
+    stringstream streos_T5_name;
+    stringstream streos_T6_name;
+    stringstream streos_T7_name;
+    stringstream streos_mub1_name;
+    stringstream streos_mub2_name;
+    stringstream streos_mub3_name;
+    stringstream streos_mub4_name;
+    stringstream streos_mub5_name;
+    stringstream streos_mub6_name;
+    stringstream streos_mub7_name;
+
+    streos_p1_name << path << "neos1_p.dat";
+    streos_p2_name << path << "neos2_p.dat";
+    streos_p3_name << path << "neos3_p.dat";
+    streos_p4_name << path << "neos4_p.dat";
+    streos_p5_name << path << "neos5_p.dat";
+    streos_p6_name << path << "neos6_p.dat";
+    streos_p7_name << path << "neos7_p.dat";
+
+    streos_T1_name << path << "neos1_t.dat";
+    streos_T2_name << path << "neos2_t.dat";
+    streos_T3_name << path << "neos3_t.dat";
+    streos_T4_name << path << "neos4_t.dat";
+    streos_T5_name << path << "neos5_t.dat";
+    streos_T6_name << path << "neos6_t.dat";
+    streos_T7_name << path << "neos7_t.dat";
+
+    streos_mub1_name << path << "neos1_mub.dat";
+    streos_mub2_name << path << "neos2_mub.dat";
+    streos_mub3_name << path << "neos3_mub.dat";
+    streos_mub4_name << path << "neos4_mub.dat";
+    streos_mub5_name << path << "neos5_mub.dat";
+    streos_mub6_name << path << "neos6_mub.dat";
+    streos_mub7_name << path << "neos7_mub.dat";
+
+    cout << "from path " << path << endl;
+
+    ifstream eos_p1(streos_p1_name.str().c_str());
+    ifstream eos_p2(streos_p2_name.str().c_str());
+    ifstream eos_p3(streos_p3_name.str().c_str());
+    ifstream eos_p4(streos_p4_name.str().c_str());
+    ifstream eos_p5(streos_p5_name.str().c_str());
+    ifstream eos_p6(streos_p6_name.str().c_str());
+    ifstream eos_p7(streos_p7_name.str().c_str());
+    ifstream eos_T1(streos_T1_name.str().c_str());
+    ifstream eos_T2(streos_T2_name.str().c_str());
+    ifstream eos_T3(streos_T3_name.str().c_str());
+    ifstream eos_T4(streos_T4_name.str().c_str());
+    ifstream eos_T5(streos_T5_name.str().c_str());
+    ifstream eos_T6(streos_T6_name.str().c_str());
+    ifstream eos_T7(streos_T7_name.str().c_str());
+    ifstream eos_mub1(streos_mub1_name.str().c_str());
+    ifstream eos_mub2(streos_mub2_name.str().c_str());
+    ifstream eos_mub3(streos_mub3_name.str().c_str());
+    ifstream eos_mub4(streos_mub4_name.str().c_str());
+    ifstream eos_mub5(streos_mub5_name.str().c_str());
+    ifstream eos_mub6(streos_mub6_name.str().c_str());
+    ifstream eos_mub7(streos_mub7_name.str().c_str());
+
+    // read the first two lines with general info:
+    // first value of rhob, first value of epsilon
+    // deltaRhob, deltaEpsilon, number of rhob points, number of epsilon points
+    // the table size is
+    // (number of rhob points + 1, number of epsilon points + 1)
+    eos_p1 >> BNP1 >> EPP1;
+    eos_p1 >> deltaBNP1 >> deltaEPP1 >> NBNP1 >> NEPP1;
+    eos_p2 >> BNP2 >> EPP2;
+    eos_p2 >> deltaBNP2 >> deltaEPP2 >> NBNP2 >> NEPP2;
+    eos_p3 >> BNP3 >> EPP3;
+    eos_p3 >> deltaBNP3 >> deltaEPP3 >> NBNP3 >> NEPP3;
+    eos_p4 >> BNP4 >> EPP4;
+    eos_p4 >> deltaBNP4 >> deltaEPP4 >> NBNP4 >> NEPP4;
+    eos_p5 >> BNP5 >> EPP5;
+    eos_p5 >> deltaBNP5 >> deltaEPP5 >> NBNP5 >> NEPP5;
+    eos_p6 >> BNP6 >> EPP6;
+    eos_p6 >> deltaBNP6 >> deltaEPP6 >> NBNP6 >> NEPP6;
+    eos_p7 >> BNP7 >> EPP7;
+    eos_p7 >> deltaBNP7 >> deltaEPP7 >> NBNP7 >> NEPP7;
+    eos_T1 >> BNP1 >> EPP1;
+    eos_T1 >> deltaBNP1 >> deltaEPP1 >> NBNP1 >> NEPP1;
+    eos_T2 >> BNP2 >> EPP2;
+    eos_T2 >> deltaBNP2 >> deltaEPP2 >> NBNP2 >> NEPP2;
+    eos_T3 >> BNP3 >> EPP3;
+    eos_T3 >> deltaBNP3 >> deltaEPP3 >> NBNP3 >> NEPP3;
+    eos_T4 >> BNP4 >> EPP4;
+    eos_T4 >> deltaBNP4 >> deltaEPP4 >> NBNP4 >> NEPP4;
+    eos_T5 >> BNP5 >> EPP5;
+    eos_T5 >> deltaBNP5 >> deltaEPP5 >> NBNP5 >> NEPP5;
+    eos_T6 >> BNP6 >> EPP6;
+    eos_T6 >> deltaBNP6 >> deltaEPP6 >> NBNP6 >> NEPP6;
+    eos_T7 >> BNP7 >> EPP7;
+    eos_T7 >> deltaBNP7 >> deltaEPP7 >> NBNP7 >> NEPP7;
+    eos_mub1 >> BNP1 >> EPP1;
+    eos_mub1 >> deltaBNP1 >> deltaEPP1 >> NBNP1 >> NEPP1;
+    eos_mub2 >> BNP2 >> EPP2;
+    eos_mub2 >> deltaBNP2 >> deltaEPP2 >> NBNP2 >> NEPP2;
+    eos_mub3 >> BNP3 >> EPP3;
+    eos_mub3 >> deltaBNP3 >> deltaEPP3 >> NBNP3 >> NEPP3;
+    eos_mub4 >> BNP4 >> EPP4;
+    eos_mub4 >> deltaBNP4 >> deltaEPP4 >> NBNP4 >> NEPP4;
+    eos_mub5 >> BNP5 >> EPP5;
+    eos_mub5 >> deltaBNP5 >> deltaEPP5 >> NBNP5 >> NEPP5;
+    eos_mub6 >> BNP6 >> EPP6;
+    eos_mub6 >> deltaBNP6 >> deltaEPP6 >> NBNP6 >> NEPP6;
+    eos_mub7 >> BNP7 >> EPP7;
+    eos_mub7 >> deltaBNP7 >> deltaEPP7 >> NBNP7 >> NEPP7;
+
+    // take a large enough value to make sure
+    // only the first 5 tables will be used
+    double eps = 1e-15;
+
+    // allocate memory for pressure arrays
+    pressure1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
+    pressure2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
+    pressure3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
+    pressure4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+    pressure5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
+    pressure6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
+    pressure7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    // allocate memory for entropy density arrays
+    entropyDensity1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
+    entropyDensity2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
+    entropyDensity3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
+    entropyDensity4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+    entropyDensity5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
+    entropyDensity6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
+    entropyDensity7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    // allocate memory for temperature arrays
+    temperature1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
+    temperature2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
+    temperature3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
+    temperature4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+    temperature5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
+    temperature6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
+    temperature7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    // allocate memory for mu_B arrays
+    mu1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
+    mu2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
+    mu3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
+    mu4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+    mu5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
+    mu6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
+    mu7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    // allocate memory for velocity of sound squared arrays
+    cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
+    cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
+    cs2_3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
+    cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+    cs2_5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
+    cs2_6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
+    cs2_7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+
+    // read pressure, temperature and chemical potential values
+    for (int j = 0; j < NEPP1 + 1; j++) {
+        double ed = EPP1 + j*deltaEPP1;
+        for (int i = 0; i < NBNP1 + 1; i++) {
+            double rhob = BNP1 + i*deltaBNP1;
+            eos_p1 >> pressure1[i][j];
+            eos_T1 >> temperature1[i][j];
+            eos_mub1 >> mu1[i][j];
+            double sd = ((ed + pressure1[i][j] - mu1[i][j]*rhob)
+                         /temperature1[i][j]);
+            entropyDensity1[i][j] = max(sd, eps);
+        }
+    }
+
+    for (int j = 0; j < NEPP2 + 1; j++) {
+        double ed = EPP2 + j*deltaEPP2;
+        for (int i = 0; i < NBNP2 + 1; i++) {
+            double rhob = BNP2 + i*deltaBNP2;
+            eos_p2 >> pressure2[i][j];
+            eos_T2 >> temperature2[i][j];
+            eos_mub2 >> mu2[i][j];
+            double sd = ((ed + pressure2[i][j] - mu2[i][j]*rhob)
+                         /temperature2[i][j]);
+            entropyDensity2[i][j] = max(sd, eps);
+        }
+    }
+
+    for (int j = 0; j < NEPP3 + 1; j++) {
+        double ed = EPP3 + j*deltaEPP3;
+        for (int i = 0; i < NBNP3 + 1; i++) {
+            double rhob = BNP3 + i*deltaBNP3;
+            eos_p3 >> pressure3[i][j];
+            eos_T3 >> temperature3[i][j];
+            eos_mub3 >> mu3[i][j];
+            double sd = ((ed + pressure3[i][j] - mu3[i][j]*rhob)
+                         /temperature3[i][j]);
+            entropyDensity3[i][j] = max(sd, eps);
+        }
+    }
+  
+    for (int j = 0; j < NEPP4 + 1; j++) {
+        double ed = EPP4 + j*deltaEPP4;
+        for (int i = 0; i < NBNP4 + 1; i++) {
+            double rhob = BNP4 + i*deltaBNP4;
+            eos_p4 >> pressure4[i][j];
+            eos_T4 >> temperature4[i][j];
+            eos_mub4 >> mu4[i][j];
+            double sd = ((ed + pressure4[i][j] - mu4[i][j]*rhob)
+                         /temperature4[i][j]);
+            entropyDensity4[i][j] = max(sd, eps);
+        }
+    }
+
+    for (int j = 0; j < NEPP5 + 1; j++) {
+        double ed = EPP5 + j*deltaEPP5;
+        for (int i = 0; i < NBNP5 + 1; i++) {
+            double rhob = BNP5 + i*deltaBNP5;
+            eos_p5 >> pressure5[i][j];
+            eos_T5 >> temperature5[i][j];
+            eos_mub5 >> mu5[i][j];
+            double sd = ((ed + pressure5[i][j] - mu5[i][j]*rhob)
+                         /temperature5[i][j]);
+            entropyDensity5[i][j] = max(sd, eps);
+        }
+    }
+    
+    for (int j = 0; j < NEPP6 + 1; j++) {
+        double ed = EPP6 + j*deltaEPP6;
+        for (int i = 0; i < NBNP6 + 1; i++) {
+            double rhob = BNP6 + i*deltaBNP6;
+            eos_p6 >> pressure6[i][j];
+            eos_T6 >> temperature6[i][j];
+            eos_mub6 >> mu6[i][j];
+            double sd = ((ed + pressure6[i][j] - mu6[i][j]*rhob)
+                         /temperature6[i][j]);
+            entropyDensity6[i][j] = max(sd, eps);
+        }
+    }
+
+    for (int j = 0; j < NEPP7 + 1; j++) {
+        double ed = EPP7 + j*deltaEPP7;
+        for (int i = 0; i < NBNP7 + 1; i++) {
+            double rhob = BNP7 + i*deltaBNP7;
+            eos_p7 >> pressure7[i][j];
+            eos_T7 >> temperature7[i][j];
+            eos_mub7 >> mu7[i][j];
+            double sd = ((ed + pressure7[i][j] - mu7[i][j]*rhob)
+                         /temperature7[i][j]);
+            entropyDensity7[i][j] = max(sd, eps);
+        }
+    }
+
+    eos_p1.close();
+    eos_p2.close();
+    eos_p3.close();
+    eos_p4.close();
+    eos_p5.close();
+    eos_p6.close();
+    eos_p7.close();
+    eos_T1.close();
+    eos_T2.close();
+    eos_T3.close();
+    eos_T4.close();
+    eos_T5.close();
+    eos_T6.close();
+    eos_T7.close();
+    eos_mub1.close();
+    eos_mub2.close();
+    eos_mub3.close();
+    eos_mub4.close();
+    eos_mub5.close();
+    eos_mub6.close();
+    eos_mub7.close();
+
+    cout << "Done reading EOS." << endl;
+    build_velocity_of_sound_sq_matrix();
+}
+
 
 double EOS::interpolate_pressure(double e, double rhob)
 {
@@ -2653,6 +2958,14 @@ void EOS::build_velocity_of_sound_sq_matrix() {
         fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
         fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, BNP3, deltaBNP3, NBNP3, cs2_3);
         fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, BNP4, deltaBNP4, NBNP4, cs2_4);
+    } else if (whichEOS == 12) {  // 7 tables
+        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, BNP1, deltaBNP1, NBNP1, cs2_1);
+        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
+        fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, BNP3, deltaBNP3, NBNP3, cs2_3);
+        fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, BNP4, deltaBNP4, NBNP4, cs2_4);
+        fill_cs2_matrix(EPP5, deltaEPP5, NEPP5, BNP5, deltaBNP5, NBNP5, cs2_5);
+        fill_cs2_matrix(EPP6, deltaEPP6, NEPP6, BNP6, deltaBNP6, NBNP6, cs2_6);
+        fill_cs2_matrix(EPP7, deltaEPP7, NEPP7, BNP7, deltaBNP7, NBNP7, cs2_7);
     } else {
         fprintf(stderr, "EOS::build_velocity_of_sound_sq_matrix: "
                 "whichEOS = %d is out of range!\n", whichEOS);
@@ -3437,6 +3750,8 @@ double EOS::get_muS(double eps, double rhob) {
             mu = -interpolate2D(eps, -rhob, 5);
         else
             mu = interpolate2D(eps, rhob, 5);
+    } else if (whichEOS == 12) {
+        mu = 0.0;
     } else {
         fprintf(stderr, "EOS::get_mu: whichEOS = %d is out of range!\n",
                 whichEOS);
@@ -3470,6 +3785,8 @@ double EOS::get_s2e(double s, double rhob) {
         e = get_s2e_finite_rhob(s, rhob);
     } else if (whichEOS == 11) {
         e = get_s2e_finite_rhob(s, rhob);
+    } else if (whichEOS == 12) {
+        e = get_s2e_finite_rhob(s, rhob);
     } else {
         fprintf(stderr, "get_s2e:: whichEOS = %d out of range.\n", whichEOS);
         exit(0);
@@ -3486,6 +3803,8 @@ double EOS::get_s2e_finite_rhob(double s, double rhob) {
         eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
     } else if (whichEOS == 11) {
         eps_max = (EPP4 + deltaEPP4*(NEPP4-1))/hbarc;  // [1/fm^4]
+    } else if (whichEOS == 12) {
+        eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
     }
 
     double eps_lower = 1e-15;
@@ -3663,8 +3982,11 @@ double EOS::get_rhob_from_mub(double e, double mub) {
 }
 
 void EOS::check_eos() {
-    if (whichEOS == 10)
+    if (whichEOS == 10) {
         check_eos_with_finite_muB();
+    } else if (whichEOS == 12) {
+        check_eos_with_finite_muB();
+    }
 }
 
 void EOS::check_eos_with_finite_muB() {

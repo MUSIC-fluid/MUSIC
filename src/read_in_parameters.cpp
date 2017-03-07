@@ -192,7 +192,11 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     // 4: PCE EOS with chemical freeze out at 155 MeV
     // 5: PCE EOS at 160 MeV
     // 6: PCE EOS at 165 MeV
-    int tempwhichEOS = 9;
+    // 7: lattice EOS with CE match with UrQMD
+    // 10: finite muB EOS from A. Monnai (up to mu_B^4)
+    // 11: finite muB EOS from Pasi
+    // 12: finite muB EOS from A. Monnai (up to mu_B^6)
+    int tempwhichEOS = 2;
     tempinput = util->StringFind4(input_file, "EOS_to_use");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempwhichEOS;
@@ -804,7 +808,7 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
         exit(1);
     }
 
-    if (parameter_list->whichEOS > 10 || parameter_list->whichEOS < 0) {
+    if (parameter_list->whichEOS > 12 || parameter_list->whichEOS < 0) {
         cerr << "EOS_to_use unspecified or invalid option: "
              << parameter_list->whichEOS << endl;
         exit(1);
