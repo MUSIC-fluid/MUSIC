@@ -48,6 +48,8 @@ typedef struct init_data {
     int Initial_profile;    //! type of initial condition
     int initializeEntropy;  //! flag to initial entropy or energy density
 
+    int string_dump_mode;
+
     int nx;
     int ny;
     int neta;

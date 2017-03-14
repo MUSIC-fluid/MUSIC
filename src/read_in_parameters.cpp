@@ -34,8 +34,15 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     // Initial_profile: 
     int tempInitial_profile = 1;
     tempinput = util->StringFind4(input_file, "Initial_profile");
-    if(tempinput != "empty") istringstream(tempinput) >> tempInitial_profile;
+    if (tempinput != "empty") istringstream(tempinput) >> tempInitial_profile;
     parameter_list->Initial_profile = tempInitial_profile;
+
+    // Initial_profile: 
+    int temp_string_dump_mode = 1;
+    tempinput = util->StringFind4(input_file, "string_dump_mode");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_string_dump_mode;
+    parameter_list->string_dump_mode = temp_string_dump_mode;
 
     // boost-invariant
     int temp_boost_invariant = 0;
@@ -597,32 +604,37 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     
     // Initial_Distribution_Filename for rhob
     string tempinitName_rhob = "initial/initial_rhob.dat";
-    tempinput = util->StringFind4(input_file, "Initial_Rhob_Distribution_Filename");
+    tempinput = util->StringFind4(input_file,
+                                  "Initial_Rhob_Distribution_Filename");
     if (tempinput != "empty")
         tempinitName_rhob.assign(tempinput);
     parameter_list->initName_rhob.assign(tempinitName_rhob);
 
     // Initial_Distribution_Filename for ux
     string tempinitName_ux = "initial/initial_ux.dat";
-    tempinput = util->StringFind4(input_file, "Initial_ux_Distribution_Filename");
+    tempinput = util->StringFind4(input_file,
+                                  "Initial_ux_Distribution_Filename");
     if (tempinput != "empty")
         tempinitName_ux.assign(tempinput);
     parameter_list->initName_ux.assign(tempinitName_ux);
     // Initial_Distribution_Filename for uy
     string tempinitName_uy = "initial/initial_uy.dat";
-    tempinput = util->StringFind4(input_file, "Initial_uy_Distribution_Filename");
+    tempinput = util->StringFind4(input_file,
+                                  "Initial_uy_Distribution_Filename");
     if (tempinput != "empty")
         tempinitName_uy.assign(tempinput);
     parameter_list->initName_uy.assign(tempinitName_uy);
     // Initial_Distribution_Filename for TA
     string tempinitName_TA = "initial/initial_TA.dat";
-    tempinput = util->StringFind4(input_file, "Initial_TA_Distribution_Filename");
+    tempinput = util->StringFind4(input_file,
+                                  "Initial_TA_Distribution_Filename");
     if (tempinput != "empty")
         tempinitName_TA.assign(tempinput);
     parameter_list->initName_TA.assign(tempinitName_TA);
     // Initial_Distribution_Filename for TB
     string tempinitName_TB = "initial/initial_TB.dat";
-    tempinput = util->StringFind4(input_file, "Initial_TB_Distribution_Filename");
+    tempinput = util->StringFind4(input_file,
+                                  "Initial_TB_Distribution_Filename");
     if (tempinput != "empty")
         tempinitName_TB.assign(tempinput);
     parameter_list->initName_TB.assign(tempinitName_TB);

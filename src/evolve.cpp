@@ -166,9 +166,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                 }
             }
             // avoid freeze-out at the first time step
-            int freeze_out_time_step = static_cast<int>(it/facTau);
-            if ((it - it_start)%facTau == 0
-                    && freeze_out_time_step > it_start) {
+            if ((it - it_start)%facTau == 0 && it > it_start) {
                //if (freezeout_method == 1)
                //    FindFreezeOutSurface(tau, DATA, arena);
                //else if (freezeout_method == 2)

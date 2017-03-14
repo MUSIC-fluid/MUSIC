@@ -19,6 +19,7 @@ hydro_source::hydro_source(InitData *DATA_in) {
         sigma_x = 0.5;
         sigma_eta = 0.5;
         volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
+        string_dump_mode = DATA_ptr->string_dump_mode;
         read_in_QCD_strings_and_partons();
     }
 }
@@ -115,8 +116,14 @@ void hydro_source::get_hydro_energy_source(
                 if (fabs(y_dis) > n_sigma_skip*sigma_x) {
                     continue;
                 }
-                if (eta_s < (*it).eta_s_left - n_sigma_skip*sigma_eta
-                     || eta_s > (*it).eta_s_right + n_sigma_skip*sigma_eta) {
+                double eta_s_left = (*it).eta_s_left;
+                double eta_s_right = (*it).eta_s_right;
+                if (string_dump_mode == 2) {
+                    eta_s_left = (*it).y_l;
+                    eta_s_right = (*it).y_r;
+                }
+                if (eta_s < eta_s_left - n_sigma_skip*sigma_eta
+                     || eta_s > eta_s_right + n_sigma_skip*sigma_eta) {
                     continue;
                 }
                 double exp_tau = (
@@ -125,13 +132,13 @@ void hydro_source::get_hydro_energy_source(
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                         /(sigma_x*sigma_x));
                 double exp_eta_s = 1.;
-                if (eta_s < (*it).eta_s_left) {
-                    double eta_s_dis = eta_s - (*it).eta_s_left;
+                if (eta_s < eta_s_left) {
+                    double eta_s_dis = eta_s - eta_s_left;
                     exp_eta_s = (
                             exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta)));
                 }
-                if (eta_s > (*it).eta_s_right) {
-                    double eta_s_dis = eta_s - (*it).eta_s_right;
+                if (eta_s > eta_s_right) {
+                    double eta_s_dis = eta_s - eta_s_right;
                     exp_eta_s = (
                             exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta)));
                 }
@@ -177,7 +184,11 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 if (fabs(y_dis) > n_sigma_skip*sigma_x) {
                     continue;
                 }
-                double eta_s_dis = eta_s - (*it).eta_s;
+                double eta_s_0 = (*it).eta_s;
+                if (string_dump_mode == 2) {
+                    eta_s_0 = (*it).rapidity;
+                }
+                double eta_s_dis = eta_s - eta_s_0;
                 if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
                     continue;
                 }

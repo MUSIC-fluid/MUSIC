@@ -32,6 +32,7 @@ class hydro_source {
     InitData *DATA_ptr;
     double volume;
     double sigma_tau, sigma_x, sigma_eta;
+    int string_dump_mode;
     double source_tau_max;
     std::vector<QCD_string> QCD_strings_list;
     std::vector<parton> parton_list;

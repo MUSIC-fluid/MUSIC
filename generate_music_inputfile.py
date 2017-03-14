@@ -20,10 +20,11 @@ class color:
     end = '\033[0m'
 
 initial_condition_dict.update({
-    'Initial_profile': 11,          # type of initial condition
+    'Initial_profile': 12,          # type of initial condition
+    'string_dump_mode': 1,          # only effecitive for Initial_profile == 12
     'initialize_with_entropy': 0,   # 0: with energy density
                                     # 1: with entropy density
-    'Initial_Distribution_Filename': 'initial/u_field_1_enlarged.dat',
+    'Initial_Distribution_input_filename': 'initial/u_field_1_enlarged.dat',
     'Initial_Rhob_Distribution_Filename':
         'initial/rhob_event_1_block.dat',
     'Initial_ux_Distribution_Filename': 'initial/ux_event_1_block.dat',
@@ -47,7 +48,7 @@ initial_condition_dict.update({
 
 hydro_dict.update({
     # grid information
-    'Initial_time_tau_0': 1.5,   # starting time of the hydrodynamic evolution (fm/c)
+    'Initial_time_tau_0': 0.5,   # starting time of the hydrodynamic evolution (fm/c)
     'Delta_Tau': 0.02,           # time step to use in the evolution [fm/c]
 
     'Eta_grid_size': 12.8,        # spatial rapidity range
@@ -69,14 +70,14 @@ hydro_dict.update({
     'Include_Bulk_Visc_Yes_1_No_0': 0,      # include bulk viscous effect
     'Include_second_order_terms': 1,              # include second order coupling terms
     'Include_Rhob_Yes_1_No_0': 1,           # turn on propagation of baryon current
-    'turn_on_baryon_diffusion': 1,          # turn on baryon current diffusion
+    'turn_on_baryon_diffusion': 0,          # turn on baryon current diffusion
     'kappa_coefficient': 0.4,               # coefficients for baryon diffusion kappa_B
 
     'output_hydro_debug_info': 0,           # flag to output additional evolution information for debuging
     'output_evolution_data': 0,             # flag to output evolution history to file
     'output_movie_flag': 0,                 # flag to output evolution file for making movie
     'output_evolution_T_cut': 0.145,        # minimum temperature for outputing fluid cells [GeV]
-    'output_hydro_params_header' : 1,       # flag to output hydro evolution information header
+    'output_hydro_params_header' : 0,       # flag to output hydro evolution information header
     'outputBinaryEvolution': 1,             # flag to output evolution history in binary format
     'output_evolution_every_N_timesteps' : 1,     # number of points to skip in tau direction for hydro evolution
     'output_evolution_every_N_x' : 2,             # number of points to skip in x direction for hydro evolution
@@ -92,9 +93,9 @@ freeze_out_dict.update({
     'freeze_out_method': 4,         # method for hyper-surface finder
 
     'average_surface_over_this_many_time_steps': 5,   # the step skipped in the tau direction
-    'Ncell_skip_x': 3,              # the step skipped in x direction
-    'Ncell_skip_y': 3,              # the step skipped in y direction
-    'freeze_eps_flag': 1,           # flag for defining freeze out energy density
+    'freeze_Ncell_x_step': 3,              # the step skipped in x direction
+    'freeze_Ncell_y_step': 3,              # the step skipped in y direction
+    'freeze_eps_flag': 0,           # flag for defining freeze out energy density
                                     # 0: freeze out energy densities are equally spaced between 
                                     #    eps_freeze_min and eps_freeze_max for N_freeze_out surfaces
                                     # 1: freeze out energy densities are read in from file freeze_list_filename
