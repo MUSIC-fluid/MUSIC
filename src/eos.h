@@ -110,6 +110,7 @@ class EOS {
     void init_eos7();               // for whichEOS=7 s95p-v1.2 (for UrQMD)
     void init_eos10(int selector);  // for EOS at finite mu_B
     void init_eos11(int selector);
+    void init_eos12(int selector);
     void checkForReadError(FILE *file, const char* name);
     double interpolate_pressure(double e, double rhob);  // for whichEOS=1
     double interpolate(double e, double rhob, int selector);

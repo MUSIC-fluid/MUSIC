@@ -10,12 +10,12 @@
 
 using namespace std;
 
-Evolve::Evolve(EOS *eosIn, InitData *DATA_in) {
+Evolve::Evolve(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) {
     eos = eosIn;
     grid = new Grid;
     grid_info = new Grid_info(DATA_in, eosIn);
     util = new Util;
-    advance = new Advance(eosIn, DATA_in);
+    advance = new Advance(eosIn, DATA_in, hydro_source_in);
     u_derivative = new U_derivative(eosIn, DATA_in);
    
     DATA_ptr = DATA_in;
@@ -24,8 +24,12 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in) {
     grid_ny = DATA_in->ny;
     grid_neta = DATA_in->neta;
   
-    if (DATA_ptr->freezeOutMethod == 4)
+    if (DATA_ptr->freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
+    }
+    if (DATA_ptr->Initial_profile == 12) {
+        hydro_source_ptr = hydro_source_in;
+    }
 }
 
 // destructor
@@ -44,6 +48,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     int output_hydro_debug_flag = DATA->output_hydro_debug_info;
     int Nskip_timestep = DATA->output_evolution_every_N_timesteps;
     int outputEvo_flag = DATA->outputEvolutionData;
+    int output_movie_flag = DATA->output_movie_flag;
     int freezeout_flag = DATA->doFreezeOut;
     int freezeout_lowtemp_flag = DATA->doFreezeOut_lowtemp;
     int freezeout_method = DATA->freezeOutMethod;
@@ -65,10 +70,16 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     cells = 0;
       
     double tau;
+    int it_start = 0;
+    if (DATA->Initial_profile == 12) {
+        double source_tau_max = hydro_source_ptr->get_source_tau_max();
+        it_start = static_cast<int>((source_tau_max - tau0)/dt);
+        if (it_start < 0) it_start = 0;
+    }
     for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
         // store initial conditions
-        if (it == 0) {
+        if (it == it_start) {
             store_previous_step_for_freezeout(arena);
         }
         
@@ -114,7 +125,21 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
             } else if (outputEvo_flag == 2) {
                 grid_info->OutputEvolutionDataXYEta_chun(arena, DATA, tau);
             }
+            if (output_movie_flag == 1) {
+                grid_info->output_evolution_for_movie(arena, tau);
+            }
         }
+
+        // grid_info->output_average_phase_diagram_trajectory(tau, -0.5, 0.5,
+        //                                                    arena);
+        // grid_info->output_average_phase_diagram_trajectory(tau, 0.5, 1.5,
+        //                                                    arena);
+        // grid_info->output_average_phase_diagram_trajectory(tau, -1.5, -0.5,
+        //                                                    arena);
+        // grid_info->output_average_phase_diagram_trajectory(tau, 1.5, 2.5,
+        //                                                    arena);
+        // grid_info->output_average_phase_diagram_trajectory(tau, -2.5, -1.5,
+        //                                                    arena);
 
         // check energy conservation
         if (boost_invariant_flag == 0)
@@ -136,29 +161,29 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         int frozen = 0;
         if (freezeout_flag == 1) {
             if (freezeout_lowtemp_flag == 1) {
-                if (it == 0) {
+                if (it == it_start) {
                     frozen = FreezeOut_equal_tau_Surface(tau, DATA, arena);
                 }
             }
             // avoid freeze-out at the first time step
-            int freeze_out_time_step = static_cast<int>(it/facTau);
-            if (it%facTau == 0 && freeze_out_time_step > 0) {
-                //if (freezeout_method == 1)
-                //    FindFreezeOutSurface(tau, DATA, arena);
-                //else if (freezeout_method == 2)
-                //    FindFreezeOutSurface2(tau, DATA, arena);
-                //else if (freezeout_method == 3)
-                //    frozen = FindFreezeOutSurface3(tau, DATA, arena);
-                if (freezeout_method == 4) {
-                    if (boost_invariant_flag == 0)
-                        frozen = FindFreezeOutSurface_Cornelius(tau, DATA,
-                                                                arena);
-                    else
-                        frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
+            if ((it - it_start)%facTau == 0 && it > it_start) {
+               //if (freezeout_method == 1)
+               //    FindFreezeOutSurface(tau, DATA, arena);
+               //else if (freezeout_method == 2)
+               //    FindFreezeOutSurface2(tau, DATA, arena);
+               //else if (freezeout_method == 3)
+               //    frozen = FindFreezeOutSurface3(tau, DATA, arena);
+               if (freezeout_method == 4) {
+                   if (boost_invariant_flag == 0) {
+                       frozen = FindFreezeOutSurface_Cornelius(tau, DATA,
+                                                               arena);
+                   } else {
+                       frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
                                                             tau, DATA, arena);
-                }
-                store_previous_step_for_freezeout(arena);
-            } 
+                   }
+               }
+               store_previous_step_for_freezeout(arena);
+            }
         }/* do freeze-out determination */
     
         fprintf(stderr, "Done time step %d/%d. tau = %6.3f fm/c \n", 

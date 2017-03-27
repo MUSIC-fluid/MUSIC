@@ -44,6 +44,9 @@ class Grid_info {
     double get_deltaf_coeff_14moments(double T, double muB, double type);
     void check_conservation_law(Grid ***arena, InitData *DATA, double tau);
     void check_velocity_shear_tensor(Grid ***arena, double tau);
+    void output_evolution_for_movie(Grid ***arena, double tau);
+    void output_average_phase_diagram_trajectory(
+                double tau, double eta_min, double eta_max, Grid ***arena);
 };
 
 #endif  // SRC_GRID_INFO_H_

@@ -44,6 +44,11 @@ class Diss {
                          int rk_flag); 
     double get_temperature_dependent_eta_s(InitData *DATA, double T);
     double get_temperature_dependent_zeta_s(double temperature);
+
+    void output_kappa_T_and_muB_dependence(InitData *DATA);
+    void output_kappa_along_const_sovernB(InitData *DATA);
+    void output_eta_over_s_T_and_muB_dependence(InitData *DATA);
+    void output_eta_over_s_along_const_sovernB(InitData *DATA);
 };
 
 #endif  // SRC_DISSIPATIVE_H_

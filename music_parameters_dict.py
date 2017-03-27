@@ -46,6 +46,10 @@ initial_condition_dict = {
     'Initial_Rhob_Distribution_Filename': 'initial/initial_rhob.dat',
     'Initial_ux_Distribution_Filename': 'initial/initial_ux.dat',
     'Initial_uy_Distribution_Filename': 'initial/initial_uy.dat',
+    'Initial_TA_Distribution_Filename': 'initial/sd_TA_event_1_block.dat',
+    'Initial_TB_Distribution_Filename': 'initial/sd_TB_event_1_block.dat',
+    'Initial_rhob_TA_Distribution_Filename': 'initial/rhob_TA_event_1_block.dat',
+    'Initial_rhob_TB_Distribution_Filename': 'initial/rhob_TB_event_1_block.dat',
     'ecm'     : 200.0,       # center of mass collision energy
     's_factor': 28.0,        # normalization factor read in initial data file
 
@@ -60,7 +64,7 @@ initial_condition_dict = {
     'eta_rhob_plateau_height': 1.0,               # the relative height of the central plateau (for initial_eta_rhob_profile == 2)
     'eta_rhob_width_1': 1.0,                      # the width of the Gaussian for the outside tail (for initial_eta_rhob_profile == 2)
     'eta_rhob_width_2': 0.5,                      # the width of the Gaussian for the inside (for initial_eta_rhob_profile == 2)
-
+    'output_initial_density_profiles': 1,  # output the initial density profiles in 3d
 }
 
 
@@ -70,7 +74,7 @@ initial_condition_dict = {
 hydro_dict = {
     # grid information
     'Initial_time_tau_0': 0.6,          # starting time of the hydrodynamic evolution (fm/c)
-    'Total_evolution_time_tau': 30.,    # the maximum allowed running evolution time (fm/c)
+    'Total_evolution_time_tau': 50.,    # the maximum allowed running evolution time (fm/c)
                                         # need to be set to some large enough number
     'Delta_Tau': 0.04,                  # time step to use in the evolution [fm/c]
     'Eta_grid_size': 14.0,              # spatial rapidity range
@@ -113,19 +117,14 @@ hydro_dict = {
     'Shear_to_S_ratio': 0.08,                     # value of \eta/s
     'T_dependent_Shear_to_S_ratio': 0,            # switch to turn on temperature dependent eta/s(T)
     'Include_Bulk_Visc_Yes_1_No_0': 0,            # include bulk viscous effect
-    'Bulk_to_S_ratio': 0.1,                       # value of \zeta/s
+    'Include_second_order_terms': 0,              # include second order coupling terms
     'Include_Rhob_Yes_1_No_0': 0,                 # turn on propagation of baryon current
     'turn_on_baryon_diffusion': 0,                # turn on baryon current diffusion
-    'Bulk_relaxation_time_tau_b_pi': 0.6,         # bulk relation time
-    'Shear_relaxation_time_tau_pi': 0.01,         # shear relation time
-
-    # quest revert parameters to stablize the hydro
-    'QuestRevert_rho_shear_max': 0.1,             # quest revert for shear
-    'QuestRevert_rho_q_max': 0.1,                 # quest revert for diffusion
-    'QuestRevert_rho_bulk_max': 0.1,              # quest revert for bulk
+    'kappa_coefficient': 0.0,                     # constant in the baryon diffusion coefficient
 
     'output_hydro_debug_info': 1,                 # flag to output additional evolution information for debuging
     'output_evolution_data': 0,                   # flag to output evolution history to file
+    'output_movie_flag': 0,                       # flag to output evolution file for making movie
     'output_evolution_T_cut': 0.145,              # minimum temperature for outputing fluid cells [GeV]
     'output_hydro_params_header' : 1,             # flag to output hydro evolution information header
     'outputBinaryEvolution': 1,                   # flag to output evolution history in binary format
@@ -145,12 +144,15 @@ freeze_out_dict = {
                                           # 2: Schenke's more complex method
                                           # 3: Luzum's simple lego  method
                                           # 4: Cornelius (added by Shen)
+    'Do_FreezeOut_lowtemp'   : 1,   # flag to freeze out low temperature fluid
+                                    # cells outside the freeze-out surface
+                                    # at the first time step
     'average_surface_over_this_many_time_steps': 5,   # the step skipped in the tau direction
-    'Ncell_skip_x': 5,                            # the step skipped in x direction
-    'Ncell_skip_y': 5,                            # the step skipped in y direction
+    'Ncell_skip_x': 3,                            # the step skipped in x direction
+    'Ncell_skip_y': 3,                            # the step skipped in y direction
     'epsilon_freeze': 0.18,                       # the freeze out energy density (GeV/fm^3)
     'use_eps_for_freeze_out': 1,                  # flag to use energy density as criteria to find freeze-out surface 0: use temperature, 1: use energy density
-    'T_freeze': 0.135,                            # freeze-out temperature (GeV)
+    'T_freeze': 0.12,                             # freeze-out temperature (GeV)
 
     'freeze_eps_flag': 0,           # flag for defining freeze out energy density (only for freezeoutMethod = 4)
                                     # 0: freeze out energy densities are equally spaced between 

@@ -300,7 +300,7 @@ void Grid_info::OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
     int n_skip_x = DATA->output_evolution_every_N_x;
     int n_skip_y = DATA->output_evolution_every_N_y;
     int n_skip_eta = DATA->output_evolution_every_N_eta;
-    for (int ieta = 0; ieta < DATA->neta; ieta+=n_skip_eta) {
+    for (int ieta = 0; ieta < DATA->neta; ieta += n_skip_eta) {
         for (int iy = 0; iy <= DATA->ny; iy += n_skip_y) {
             for (int ix = 0; ix <= DATA->nx; ix += n_skip_x) {
                 double e_local = arena[ieta][ix][iy].epsilon;  // 1/fm^4
@@ -407,8 +407,11 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                 for (int iy = 0; iy <= ny; iy++) {
                     double cosh_eta = cosh(eta_s);
                     double sinh_eta = sinh(eta_s);
-                    N_B += (arena[ieta][ix][iy].rhob
-                            *arena[ieta][ix][iy].u[0][0]
+                    //N_B += (arena[ieta][ix][iy].rhob
+                    //        *arena[ieta][ix][iy].u[0][0]
+                    //        + (arena[ieta][ix][iy].prevWmunu[0][10]
+                    //           + arena[ieta][ix][iy].prevWmunu[1][10])*0.5);
+                    N_B += (arena[ieta][ix][iy].TJb[0][4][0]
                             + (arena[ieta][ix][iy].prevWmunu[0][10]
                                + arena[ieta][ix][iy].prevWmunu[1][10])*0.5);
                     double Pi00_rk_0 = (
@@ -541,6 +544,28 @@ void Grid_info::output_1p1D_check_file(Grid ***arena, double tau) {
     output_file.close();
 }
 
+void Grid_info::output_evolution_for_movie(Grid ***arena, double tau) {
+    ostringstream filename;
+    filename << "movie_tau_" << tau << ".dat";
+    ofstream output_file(filename.str().c_str());
+
+    double unit_convert = 0.19733;  // hbarC [GeV*fm]
+    int n_skip_x = DATA_ptr->output_evolution_every_N_x;
+    int n_skip_y = DATA_ptr->output_evolution_every_N_y;
+    int n_skip_eta = DATA_ptr->output_evolution_every_N_eta;
+    for (int ieta = 0; ieta < DATA_ptr->neta; ieta += n_skip_eta) {
+        for (int ix = 0; ix <= DATA_ptr->nx; ix += n_skip_x) {
+            for (int iy = 0; iy <= DATA_ptr->ny; iy += n_skip_y) {
+                double e_local = arena[ieta][ix][iy].epsilon*unit_convert;
+                double rhob_local = arena[ieta][ix][iy].rhob;
+                output_file << scientific << setprecision(5) << setw(18)
+                            << e_local << "  " << rhob_local << endl;
+            }
+        }
+    }
+    output_file.close();
+}
+
 void Grid_info::load_deltaf_qmu_coeff_table(string filename) {
     ifstream table(filename.c_str());
     deltaf_qmu_coeff_table_length_T = 150;
@@ -638,8 +663,8 @@ double Grid_info::get_deltaf_qmu_coeff(double T, double muB) {
     if (idx_mu > deltaf_qmu_coeff_table_length_mu - 2)
         return(1.0);
 
-    double x_fraction = ((T - delta_qmu_coeff_table_T0)/delta_qmu_coeff_table_dT
-                         - idx_T);
+    double x_fraction = ((T - delta_qmu_coeff_table_T0)
+                         /delta_qmu_coeff_table_dT - idx_T);
     double y_fraction = ((muB - delta_qmu_coeff_table_mu0)
                          /delta_qmu_coeff_table_dmu - idx_mu);
 
@@ -696,3 +721,62 @@ double Grid_info::get_deltaf_coeff_14moments(double T, double muB,
                     + f4*x_fraction*(1. - y_fraction));
     return(coeff);
 }
+
+void Grid_info::output_average_phase_diagram_trajectory(
+                double tau, double eta_min, double eta_max, Grid ***arena) {
+    // this function outputs average T and mu_B as a function of proper tau
+    // within a given space-time rapidity range
+    ostringstream filename;
+    filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
+             << "_" << eta_max << ".dat";
+    fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
+    if (fabs(tau - DATA_ptr->tau0) < 1e-10) {
+        of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)"
+           << endl;
+    }
+    double avg_T = 0.0;
+    double avg_mu = 0.0;
+    double std_T = 0.0;
+    double std_mu = 0.0;
+    double weight = 0.0;
+    for (int ieta = 0; ieta < DATA_ptr->neta; ieta++) {
+        double eta;
+        if (DATA_ptr->boost_invariant == 1) {
+            eta = 0.0;
+        } else {
+            eta = ((static_cast<double>(ieta))*(DATA_ptr->delta_eta)
+                    - (DATA_ptr->eta_size)/2.0);
+        }
+        if (eta < eta_max && eta > eta_min) {
+            double cosh_eta = cosh(eta);
+            double sinh_eta = sinh(eta);
+            for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
+                for (int ix = 0; ix <= DATA_ptr->nx; ix++) {
+                    double e_local = arena[ieta][ix][iy].epsilon;  // 1/fm^4
+                    double rhob_local = arena[ieta][ix][iy].rhob;  // 1/fm^3
+                    double utau = arena[ieta][ix][iy].u[0][0];
+                    double ueta = arena[ieta][ix][iy].u[0][3];
+                    double ut = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
+                    double T_local = eos_ptr->get_temperature(e_local,
+                                                              rhob_local);
+                    double muB_local = eos_ptr->get_mu(e_local, rhob_local);
+                    double weight_local = e_local*ut;
+                    avg_T += T_local*weight_local;
+                    avg_mu += muB_local*weight_local;
+                    std_T += T_local*T_local*weight_local;
+                    std_mu += muB_local*muB_local*weight_local;
+                    weight += weight_local;
+                }
+            }
+        }
+    }
+    avg_T = avg_T/(weight + 1e-15)*hbarc;
+    avg_mu = avg_mu/(weight + 1e-15)*hbarc;
+    std_T = sqrt(std_T/(weight + 1e-15)*hbarc*hbarc - avg_T*avg_T);
+    std_mu = sqrt(std_mu/(weight + 1e-15)*hbarc*hbarc - avg_mu*avg_mu);
+    of << scientific << setw(18) << setprecision(8)
+       << tau << "  " << avg_T << "  " << std_T << "  "
+       << avg_mu << "  " << std_mu << endl;
+    of.close();
+}
+
