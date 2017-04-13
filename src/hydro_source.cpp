@@ -143,17 +143,26 @@ void hydro_source::get_hydro_energy_source(
                             exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta)));
                 }
                 double e_local = exp_tau*exp_xperp*exp_eta_s;
-                // double y_interp = (
-                //         (*it).y_l + ((*it).y_r - (*it).y_l)
-                //                     /((*it).eta_s_right - (*it).eta_s_left)
-                //                     *(eta_s - (*it).eta_s_left));
-                ed += e_local;
+                e_local *= DATA_ptr->sFactor/hbarc;  // 1/fm^4
+                double y_interp = (
+                        (*it).y_l + ((*it).y_r - (*it).y_l)
+                                    /(eta_s_right - eta_s_left)
+                                    *(eta_s - eta_s_left));
+                j_mu[0] += cosh(y_interp - eta_s)*e_local;
+                j_mu[1] += 0.0;
+                j_mu[2] += 0.0;
+                j_mu[3] += sinh(y_interp - eta_s)*e_local;
+                // ed += e_local;
             }
-            ed = ed*DATA_ptr->sFactor/hbarc;   // 1/fm^4
-            j_mu[0] = ed*u_mu[0]*prefactor_tau*prefactor_prep;
-            j_mu[1] = ed*u_mu[1]*prefactor_tau*prefactor_prep;
-            j_mu[2] = ed*u_mu[2]*prefactor_tau*prefactor_prep;
-            j_mu[3] = ed*u_mu[3]*prefactor_tau*prefactor_prep;
+            j_mu[0] *= prefactor_tau*prefactor_prep;
+            j_mu[1] *= prefactor_tau*prefactor_prep;
+            j_mu[2] *= prefactor_tau*prefactor_prep;
+            j_mu[3] *= prefactor_tau*prefactor_prep;
+            // ed = ed*DATA_ptr->sFactor/hbarc;   // 1/fm^4
+            // j_mu[0] = ed*u_mu[0]*prefactor_tau*prefactor_prep;
+            // j_mu[1] = ed*u_mu[1]*prefactor_tau*prefactor_prep;
+            // j_mu[2] = ed*u_mu[2]*prefactor_tau*prefactor_prep;
+            // j_mu[3] = ed*u_mu[3]*prefactor_tau*prefactor_prep;
         }
     }
 }
