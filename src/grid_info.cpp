@@ -110,10 +110,10 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
     const string out_name_bulkpi_xyeta = "evolution_bulk_pressure_xyeta.dat";
     const string out_name_q_xyeta = "evolution_qmu_xyeta.dat";
     string out_open_mode;
-    FILE *out_file_xyeta;
-    FILE *out_file_W_xyeta;
-    FILE *out_file_bulkpi_xyeta;
-    FILE *out_file_q_xyeta;
+    FILE *out_file_xyeta = NULL;
+    FILE *out_file_W_xyeta = NULL;
+    FILE *out_file_bulkpi_xyeta = NULL;
+    FILE *out_file_q_xyeta = NULL;
 
     // If it's the first timestep, overwrite the previous file
     if (tau == DATA->tau0) {

@@ -287,12 +287,18 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
     double** temp_profile_ed = new double* [nx];
     double** temp_profile_ux = new double* [nx];
     double** temp_profile_uy = new double* [nx];
-    double **temp_profile_ed_prev;
-    double **temp_profile_rhob, **temp_profile_rhob_prev;
-    double **temp_profile_ux_prev, **temp_profile_uy_prev;
-    double **temp_profile_pixx, **temp_profile_piyy, **temp_profile_pixy;
-    double **temp_profile_pi00, **temp_profile_pi0x, **temp_profile_pi0y;
-    double **temp_profile_pi33;
+    double **temp_profile_ed_prev = NULL;
+    double **temp_profile_rhob = NULL;
+    double **temp_profile_rhob_prev = NULL;
+    double **temp_profile_ux_prev = NULL;
+    double **temp_profile_uy_prev = NULL;
+    double **temp_profile_pixx = NULL;
+    double **temp_profile_piyy = NULL;
+    double **temp_profile_pixy = NULL;
+    double **temp_profile_pi00 = NULL;
+    double **temp_profile_pi0x = NULL;
+    double **temp_profile_pi0y = NULL;
+    double **temp_profile_pi33 = NULL;
     if (DATA->turn_on_shear == 1) {
         temp_profile_pixx = new double* [nx];
         temp_profile_piyy = new double* [nx];

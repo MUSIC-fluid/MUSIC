@@ -94,7 +94,7 @@ void hydro_source::get_hydro_energy_source(
         j_mu[i] = 0.0;
     }
     if (DATA_ptr->Initial_profile == 12) {
-        double ed = 0.;
+        // double ed = 0.;
         double n_sigma_skip = 5.;
         double tau_dis_max = tau - source_tau_max;
         if (tau_dis_max < n_sigma_skip*sigma_tau) {
