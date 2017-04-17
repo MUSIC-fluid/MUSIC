@@ -428,7 +428,7 @@ void Grid_info::get_maximum_energy_density(Grid ***arena) {
     T_max *= 0.19733;     // GeV
     cout << "check: eps_max = " << eps_max << " GeV/fm^3, "
          << "rhob_max = " << rhob_max << " 1/fm^3, "
-         << "T_max = " << T_max << "GeV." << endl;
+         << "T_max = " << T_max << " GeV." << endl;
 }
 
 void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
