@@ -18,6 +18,7 @@ EOS::EOS(InitData *para_in) {
     if (parameters_ptr->check_eos == 1) {
         check_eos();
     }
+    eps_max = 1e5;  // [1/fm^4]
 }
 
 // destructor
@@ -90,6 +91,16 @@ void EOS::initialize_eos() {
              << "12(lattice EOS at finite muB from A. Monnai up to mu_B^6)"
              << endl;
         exit(1);
+    }
+
+    if (whichEOS >= 2 && whichEOS < 10) {
+        eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
+    } else if (whichEOS == 10) {
+        eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
+    } else if (whichEOS == 11) {
+        eps_max = (EPP4 + deltaEPP4*(NEPP4-1))/hbarc;  // [1/fm^4]
+    } else if (whichEOS == 12) {
+        eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
     }
 }
 
@@ -3036,8 +3047,10 @@ double EOS::calculate_velocity_of_sound_sq(double e, double rhob) {
     return(v_sound);
 }
 
+    
+//! This function returns the local pressure in [1/fm^4]
+//! the input local energy density [1/fm^4], rhob [1/fm^3]
 double EOS::get_pressure(double e, double rhob) {
-    // return pressure in [1/fm^4]
     double f;
     if (whichEOS == 0) {
         f = cs2*e;
@@ -3597,8 +3610,9 @@ double EOS::s2e_ideal_gas(double s) {
 
 }
 
+//! This function returns entropy density in [1/fm^3]
+//! The input local energy density e [1/fm^4], rhob[1/fm^3]
 double EOS::get_entropy(double epsilon, double rhob) {
-    // return entropy density in [1/fm^3]
     double f;
     double P, T, mu;
     P = get_pressure(epsilon, rhob);
@@ -3691,8 +3705,9 @@ double EOS::findRoot(double (EOS::*func)(double, double, double), double rhob, d
 }
 
 
+//! This function returns the local temperature in [1/fm]
+//! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS::get_temperature(double eps, double rhob) {
-    // return temperature in [1/fm]
     double T;
     if (whichEOS == 0) {
         T = T_from_eps_ideal_gas(eps);
@@ -3711,8 +3726,9 @@ double EOS::get_temperature(double eps, double rhob) {
 }
 
 
+//! This function returns the local baryon chemical potential  mu_B in [1/fm]
+//! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS::get_mu(double eps, double rhob) {
-    // return mu_B in [1/fm]
     double mu;
     if (whichEOS == 0) {
         mu = 0.0;
@@ -3794,19 +3810,10 @@ double EOS::get_s2e(double s, double rhob) {
     return e;  // in 1/fm^4
 }
 
+//! This function returns local energy density [1/fm^4] from
+//! a given entropy density [1/fm^3] and rhob [1/fm^3]
+//! using binary search
 double EOS::get_s2e_finite_rhob(double s, double rhob) {
-    // get energy density using binary search
-    double eps_max = 1e4;  // [1/fm^4]
-    if (whichEOS < 10) {
-        eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
-    } else if (whichEOS == 10) {
-        eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
-    } else if (whichEOS == 11) {
-        eps_max = (EPP4 + deltaEPP4*(NEPP4-1))/hbarc;  // [1/fm^4]
-    } else if (whichEOS == 12) {
-        eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
-    }
-
     double eps_lower = 1e-15;
     double eps_upper = eps_max;
     double eps_mid = (eps_upper + eps_lower)/2.;
@@ -3847,6 +3854,8 @@ double EOS::get_s2e_finite_rhob(double s, double rhob) {
     return (eps_mid);
 }
 
+//! This function returns local net baryon density rhob [1/fm^3]
+//! from given local energy density e [1/fm^4] and mu_b [1/fm]
 double EOS::get_rhob_from_mub(double e, double mub) {
     double local_ed = e*hbarc;      // GeV/fm^3
     double local_mub = mub*hbarc;   // GeV
@@ -3981,6 +3990,8 @@ double EOS::get_rhob_from_mub(double e, double mub) {
     return(rhob);
 }
 
+
+//! This is a shell function to check EoS
 void EOS::check_eos() {
     if (whichEOS == 10) {
         check_eos_with_finite_muB();

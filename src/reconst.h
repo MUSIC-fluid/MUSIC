@@ -29,7 +29,9 @@ class Reconst {
  private:
     int reconst_type;
     EOS *eos;
+    double eos_eps_max;
     Util *util;
+
 
     int max_iter;
     double rel_err, abs_err;

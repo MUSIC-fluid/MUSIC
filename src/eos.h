@@ -93,6 +93,7 @@ class EOS {
     gsl_interp * interp_s2e;
     gsl_interp_accel * accel_s2e;
     int whichEOS;
+    double eps_max;
 
     Util *util;
 
@@ -100,21 +101,27 @@ class EOS {
     EOS(InitData *para_in);  // constructor
     ~EOS();  // destructor
     void initialize_eos();
-    void init_eos0();               // for whichEOS=0
-    void init_eos();                // for whichEOS=1
-    void init_eos2();               // for whichEOS=2
-    void init_eos3(int selector);   // for whichEOS=3 (PCE 150 MeV),
-                                    // whichEOS=4 (PCE 155 MeV),
-                                    // whichEOS=5 (PCE 160 MeV),
-                                    // whichEOS=6 (PCE 165 MeV)
-    void init_eos7();               // for whichEOS=7 s95p-v1.2 (for UrQMD)
-    void init_eos10(int selector);  // for EOS at finite mu_B
-    void init_eos11(int selector);
-    void init_eos12(int selector);
+    void init_eos0();                // for whichEOS=0
+    void init_eos();                 // for whichEOS=1
+    void init_eos2();                // for whichEOS=2
+    void init_eos3(int selector);    // for whichEOS=3 (PCE 150 MeV),
+                                     // whichEOS=4 (PCE 155 MeV),
+                                     // whichEOS=5 (PCE 160 MeV),
+                                     // whichEOS=6 (PCE 165 MeV)
+    void init_eos7();                // for whichEOS=7 s95p-v1.2 (for UrQMD)
+    void init_eos10(int selector);   // for EOS at finite mu_B from A. M.
+    void init_eos11(int selector);   // foe EoS at finite mu_B from Pasi
+    void init_eos12(int selector);   // for EOS at finite mu_B from A. M.
+
+    // returns maximum local energy density of the EoS table
+    // in the unit of [1/fm^4]
+    double get_eps_max() {return(eps_max);}
+
     void checkForReadError(FILE *file, const char* name);
-    double interpolate_pressure(double e, double rhob);  // for whichEOS=1
+    double interpolate_pressure(double e, double rhob);  // for whichEOS == 1
     double interpolate(double e, double rhob, int selector);
-    // for whichEOS=2
+
+    // for whichEOS == 2
     double interpolate2(double e, double rhob, int selector);
 
     // for EOS at finite mu_B

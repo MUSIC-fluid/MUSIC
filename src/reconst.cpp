@@ -11,8 +11,9 @@ using namespace std;
 Reconst::Reconst(EOS *eosIn, int reconst_type_in) {
     reconst_type = reconst_type_in;
     eos = eosIn;
+    eos_eps_max = eos->get_eps_max();
+
     util = new Util;
-    
     max_iter = 100;
     rel_err = 1e-9;
     abs_err = 1e-10;
@@ -24,7 +25,6 @@ Reconst::Reconst(EOS *eosIn, int reconst_type_in) {
         gsl_solverType = gsl_root_fsolver_brent;   // Brent-Dekker method
         gsl_rootfinding_solver = gsl_root_fsolver_alloc (gsl_solverType);
     }
-
 }
 
 // destructor
@@ -577,7 +577,7 @@ int Reconst::ReconstIt_velocity_iteration(
         // remember that uq are eigher halfway cells or the final q_next 
         // at this point, the original values in grid_pt->TJb are not touched. 
         revert_grid(grid_p, grid_pt, rk_flag);
-        return -1;
+        return(-1);
     }/* if t00-k00/t00 < 0.0 */
 
     double u[4], epsilon, pressure, rhob;
@@ -605,18 +605,17 @@ int Reconst::ReconstIt_velocity_iteration(
         v_solution = v_next;
     } else {
         if (echo_level > 5) {
-           fprintf(
-                stderr, 
+            fprintf(stderr, 
                 "***Warning: Reconst velocity:: can not find solution!!!\n");
-           fprintf(stderr, "***output the results at the last iteration: \n");
-           fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
-                   "iter", "lower", "upper", "root", "err(est)");
-           fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
-                   iter, v_prev, v_next, abs_error_v, rel_error_v);
-           fprintf(stderr, "Reverting to the previous TJb...\n"); 
+            fprintf(stderr, "***output the results at the last iteration: \n");
+            fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
+                    "iter", "lower", "upper", "root", "err(est)");
+            fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
+                    iter, v_prev, v_next, abs_error_v, rel_error_v);
+            fprintf(stderr, "Reverting to the previous TJb...\n"); 
         }
         revert_grid(grid_p, grid_pt, rk_flag);
-        return -2;
+        return(-2);
     }/* if iteration is unsuccessful, revert */
    
     // for large velocity, solve u0
@@ -644,8 +643,7 @@ int Reconst::ReconstIt_velocity_iteration(
             u0_solution = u0_next;
         } else {
             if (echo_level > 5) {
-                fprintf(
-                    stderr,
+                fprintf(stderr,
                     "***Warning: Reconst velocity:: can not find solution!\n");
                 fprintf(stderr,
                         "***output the results at the last iteration:\n");
@@ -656,8 +654,8 @@ int Reconst::ReconstIt_velocity_iteration(
                 fprintf(stderr, "Reverting to the previous TJb...\n"); 
             }
             revert_grid(grid_p, grid_pt, rk_flag);
-            return -2;
-        }/* if iteration is unsuccessful, revert */
+            return(-2);
+        } /* if iteration is unsuccessful, revert */
     }
 
     // successfully found velocity, now update everything else
@@ -670,37 +668,54 @@ int Reconst::ReconstIt_velocity_iteration(
         epsilon = T00 - sqrt((1. - 1./(u0_solution*u0_solution))*K00);
         rhob = J0/u0_solution;
     }
+
+    if (epsilon > eos_eps_max) {
+        if (echo_level > 5) {
+            fprintf(stderr,
+                    "Reconst velocity: e = %e > e_max in the EoS table.\n",
+                    epsilon);
+	        fprintf(stderr, "e_max = %e [1/fm^4]\n", eos_eps_max);
+	        fprintf(stderr, "previous epsilon = %e [1/fm^4]\n",
+                    grid_pt->epsilon);
+	        fprintf(stderr, "Reverting to the previous TJb...\n"); 
+        }
+        revert_grid(grid_p, grid_pt, rk_flag);
+        return(-2);
+    }
+
     grid_p->epsilon = epsilon;
     grid_p->rhob = rhob;
 
     pressure = eos->get_pressure(epsilon, rhob);
     grid_p->p = pressure;
 
-    // individual components of velocity
-    double velocity_inverse_factor = u[0]/(T00 + pressure);
-
     double u_max = 242582597.70489514; // cosh(20)
     //remove if for speed
     if (!isfinite(u[0])) {
-        u[0] = 1.0;
-        u[1] = 0.0;
-        u[2] = 0.0;
-        u[3] = 0.0;
+        // check whether velocity is too large
+        if (echo_level > 5) {
+            fprintf(stderr, "Reconst velocity: u[0] = %e is infinite.\n",
+                    u[0]);
+	        fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
+	        fprintf(stderr, "Reverting to the previous TJb...\n"); 
+        }
+        revert_grid(grid_p, grid_pt, rk_flag);
+        return(-2);
     } else if(u[0] > u_max) {
         // check whether velocity is too large
         if (echo_level > 5) {
             fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n",
                     u[0]);
             if (grid_pt->epsilon > 0.3) {
-	            fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n",
-                        u[0]);
 	            fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
 	            fprintf(stderr, "Reverting to the previous TJb...\n"); 
 	        }
         }
         revert_grid(grid_p, grid_pt, rk_flag);
-        return -2;
+        return(-2);
     } else {
+        // individual components of velocity
+        double velocity_inverse_factor = u[0]/(T00 + pressure);
         u[1] = q[1]*velocity_inverse_factor; 
         u[2] = q[2]*velocity_inverse_factor; 
         u[3] = q[3]*velocity_inverse_factor; 
