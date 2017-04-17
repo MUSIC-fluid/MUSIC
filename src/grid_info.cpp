@@ -387,6 +387,50 @@ void Grid_info::OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
 }/* OutputEvolutionDataXYEta */
 
 
+//! This function prints to the screen the maximum local energy density,
+//! the maximum temperature in the current grid
+void Grid_info::get_maximum_energy_density(Grid ***arena) {
+    double eps_max = 0.0;
+    double rhob_max = 0.0;
+    double T_max = 0.0;
+
+    // get the grid information
+    int neta = DATA_ptr->neta;
+    int nx = DATA_ptr->nx;
+    int ny = DATA_ptr->ny;
+
+    int ieta;
+    #pragma omp parallel private(ieta) reduction(max:eps_max, rhob_max, T_max)
+    {
+        #pragma omp for
+        for (ieta = 0; ieta < neta; ieta++) {
+            for (int ix = 0; ix <= nx; ix++) {
+                for (int iy = 0; iy <= ny; iy++) {
+                    double eps_local = arena[ieta][ix][iy].epsilon;
+                    if (eps_max < eps_local) {
+                        eps_max = eps_local;
+                    }
+                    double rhob_local = arena[ieta][ix][iy].rhob;
+                    if (rhob_max < rhob_local) {
+                        rhob_max = rhob_local;
+                    }
+                    double T_local =
+                            eos_ptr->get_temperature(eps_local, rhob_local);
+                    if (T_max < T_local) {
+                        T_max = T_local;
+                    }
+                }
+            }
+        }
+        #pragma omp barrier
+    }
+    eps_max *= 0.19733;   // GeV/fm^3
+    T_max *= 0.19733;     // GeV
+    cout << "check: eps_max = " << eps_max << " GeV/fm^3, "
+         << "rhob_max = " << rhob_max << " 1/fm^3, "
+         << "T_max = " << T_max << "GeV." << endl;
+}
+
 void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                                       double tau) {
     double N_B = 0.0;

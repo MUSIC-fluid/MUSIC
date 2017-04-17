@@ -143,7 +143,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
 
         // check energy conservation
         if (boost_invariant_flag == 0)
-            grid_info->check_conservation_law(arena,DATA, tau);
+            grid_info->check_conservation_law(arena, DATA, tau);
+        grid_info->get_maximum_energy_density(arena);
 
         /* execute rk steps */
         // all the evolution are at here !!!

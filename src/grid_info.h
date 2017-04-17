@@ -42,6 +42,11 @@ class Grid_info {
     void load_deltaf_qmu_coeff_table_14mom(string filename);
     double get_deltaf_qmu_coeff(double T, double muB);
     double get_deltaf_coeff_14moments(double T, double muB, double type);
+
+    //! This function prints to the screen the maximum local energy density,
+    //! the maximum temperature in the current grid
+    void get_maximum_energy_density(Grid ***arena);
+
     void check_conservation_law(Grid ***arena, InitData *DATA, double tau);
     void check_velocity_shear_tensor(Grid ***arena, double tau);
     void output_evolution_for_movie(Grid ***arena, double tau);
