@@ -54,6 +54,8 @@ class Reconst {
     int ReconstIt(Grid *grid_p, int i, double tau, double **uq, Grid *grid_pt,
                   InitData *DATA, int rk_flag);
     double GuessEps(double T00, double K00, double cs2);
+    
+    void revert_grid(Grid *grid_current, Grid *grid_prev, int rk_flag);
 
     // reconst_type == 1
     int ReconstIt_velocity_iteration(Grid *grid_p, int direc, double tau,

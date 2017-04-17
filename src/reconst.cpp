@@ -69,7 +69,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     double epsilon_prev, rhob_prev, p_prev, p_guess, temperr;
     double epsilon_next, rhob_next, p_next, err, tempf, temph, cs2;
     double eps_guess, scalef;
-    int iter, mu, nu, alpha;
+    int iter, alpha;
     double q[5];
     const double RECONST_PRECISION = 1e-8;
 
@@ -105,18 +105,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
         // can't make Tmunu with this. restore the previous value
         // remember that uq are eigher halfway cells or the final q_next
         // at this point, the original values in grid_pt->TJb are not touched.
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->rhob = grid_pt->rhob;
-     
-        grid_p->p = grid_pt->p;
-        for (mu=0; mu<4; mu++) {
-            grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-            grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
- 
-            for (nu=0; nu<4; nu++) {
-                grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-            }/* nu */
-        }/* mu */
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -1;
     } /* if t00-k00/t00 < 0.0 */
 
@@ -191,18 +180,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
         fprintf(stderr, "Reconst didn't converge.\n");
         cout << grid_p->epsilon << endl;
         fprintf(stderr, "Reverting to the previous TJb...\n"); 
-        for (mu=0; mu<4; mu++) {
-            grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-            grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-        
-            for (nu=0; nu<4; nu++) {
-                grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-            }/* nu */
-        }/* mu */
-     
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->p = grid_pt->p;
-        grid_p->rhob = grid_pt->rhob;
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -2;
     } /* if iteration is unsuccessful, revert */
 
@@ -237,18 +215,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
 	        fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
 	        fprintf(stderr, "Reverting to the previous TJb...\n"); 
 	    }
-        for (mu=0; mu<4; mu++) {
-	        grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-	        grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-	  
-	        for(nu=0; nu<4; nu++) {
-	            grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-	        }/* nu */
-	    }/* mu */
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->p = grid_pt->p;
-        grid_p->rhob = grid_pt->rhob;
-      
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -2;
     }/* if u[0] is too large, revert */
 
@@ -281,11 +248,11 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     }/* if u^mu u_\mu != 1 */
     /* End: Correcting normalization of 4-velocity */
 
-    for (mu=0; mu<4; mu++) {
+    for (int mu=0; mu<4; mu++) {
         tempf = grid_p->TJb[0][4][mu] = rhob*u[mu];
         tempf = grid_p->u[0][mu] = u[mu];
    
-        for (nu=0; nu<4; nu++) {
+        for (int nu=0; nu<4; nu++) {
             tempf = grid_p->TJb[0][nu][mu] 
                   = ((epsilon + p)*u[nu]*u[mu] + p*(DATA->gmunu)[nu][mu]);
             if (!isfinite(tempf)) {
@@ -306,7 +273,7 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
     /* reconstruct velocity first for finite mu_B case
      * (add by C. Shen Nov. 2014) */
     double K00, T00, J0, u[4], epsilon, pressure, rhob;
-    int iter, mu, nu, alpha;
+    int iter, alpha;
     double q[5];
 
     double v_critical = 0.563624;
@@ -339,17 +306,7 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
         // can't make Tmunu with this. restore the previous value 
         // remember that uq are eigher halfway cells or the final q_next 
         // at this point, the original values in grid_pt->TJb are not touched. 
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->rhob = grid_pt->rhob;
-        grid_p->p = grid_pt->p;
-        for (mu=0; mu<4; mu++) {
-            grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-            grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
- 
-            for (nu=0; nu<4; nu++) {
-                grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-            }/* nu */
-        }/* mu */
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -1;
     }/* if t00-k00/t00 < 0.0 */
 
@@ -397,15 +354,7 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
                    iter, x_lo, x_hi, result, x_hi - x_lo);
            fprintf(stderr, "Reverting to the previous TJb...\n"); 
         }
-        for (mu=0; mu<4; mu++) {
-            grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-            grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-            for (nu=0; nu<4; nu++)
-                grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-        }
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->p = grid_pt->p;
-        grid_p->rhob = grid_pt->rhob;
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -2;
     }/* if iteration is unsuccessful, revert */
    
@@ -447,15 +396,7 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
                         iter, x_lo, x_hi, result, x_hi - x_lo);
                 fprintf(stderr, "Reverting to the previous TJb...\n"); 
             }
-            for (mu=0; mu<4; mu++) {
-                grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-                grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-                for (nu=0; nu<4; nu++)
-                    grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-            }
-            grid_p->epsilon = grid_pt->epsilon;
-            grid_p->p = grid_pt->p;
-            grid_p->rhob = grid_pt->rhob;
+            revert_grid(grid_p, grid_pt, rk_flag);
             return -2;
         }/* if iteration is unsuccessful, revert */
         v_solution = sqrt(1. - 1./(u0_solution*u0_solution));
@@ -499,18 +440,7 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
 	            fprintf(stderr, "Reverting to the previous TJb...\n"); 
 	        }
         }
-        for (mu=0; mu<4; mu++) {
-	        grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-	        grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-	  
-	        for (nu=0; nu<4; nu++) {
-	            grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-	        }/* nu */
-	    }/* mu */
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->p = grid_pt->p;
-        grid_p->rhob = grid_pt->rhob;
-
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -2;
     } else {
         u[1] = q[1]*velocity_inverse_factor; 
@@ -532,7 +462,8 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
                     u[0], u[1], u[2], u[3]);
             fprintf(stderr, "e=%.6e, rhob=%.6e, p=%.6e\n",
                     epsilon, rhob, pressure);
-            fprintf(stderr, "q[0]=%.6e, q[1]=%.6e, q[2]=%.6e, q[3]=%.6e q[4]=%.6e\n",
+            fprintf(stderr,
+                    "q[0]=%.6e, q[1]=%.6e, q[2]=%.6e, q[3]=%.6e q[4]=%.6e\n",
                     q[0], q[1], q[2], q[3], q[4]);
             exit(0);
         } else if (fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0] && echo_level > 5) {
@@ -565,11 +496,11 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
     }// if u^mu u_\mu != 1 
     // End: Correcting normalization of 4-velocity
     
-    for (mu=0; mu<4; mu++) {
+    for (int mu=0; mu<4; mu++) {
         double tempf;
         grid_p->TJb[0][4][mu] = rhob*u[mu];
         grid_p->u[0][mu] = u[mu];
-        for (nu=0; nu<4; nu++) {
+        for (int nu=0; nu<4; nu++) {
             tempf = grid_p->TJb[0][nu][mu]
                   = ((epsilon + pressure)*u[nu]*u[mu]
                           + pressure*(DATA->gmunu)[nu][mu]);
@@ -588,6 +519,23 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
 
     return 1;  /* on successful execution */
 }/* Reconst */
+
+
+//! This function reverts the grid information back its values
+//! at the previous time step
+void Reconst::revert_grid(Grid *grid_current, Grid *grid_prev, int rk_flag) {
+    grid_current->epsilon = grid_prev->epsilon;
+    grid_current->rhob = grid_prev->rhob;
+    grid_current->p = grid_prev->p;
+    for (int mu = 0; mu < 4; mu++) {
+        grid_current->TJb[0][4][mu] = grid_prev->TJb[rk_flag][4][mu];
+        grid_current->u[0][mu] = grid_prev->u[rk_flag][mu];
+ 
+        for (int nu = 0; nu < 4; nu++) {
+            grid_current->TJb[0][nu][mu] = grid_prev->TJb[rk_flag][nu][mu];
+        }
+    }
+}
 
 int Reconst::ReconstIt_velocity_iteration(
     Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
@@ -615,7 +563,6 @@ int Reconst::ReconstIt_velocity_iteration(
     /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
 
     double q[5];
-    int mu, nu;
     for (int alpha = 0; alpha < 5; alpha++) {
         q[alpha] = uq[alpha][direc]/tau;
     }
@@ -629,17 +576,7 @@ int Reconst::ReconstIt_velocity_iteration(
         // can't make Tmunu with this. restore the previous value 
         // remember that uq are eigher halfway cells or the final q_next 
         // at this point, the original values in grid_pt->TJb are not touched. 
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->rhob = grid_pt->rhob;
-        grid_p->p = grid_pt->p;
-        for (mu=0; mu<4; mu++) {
-            grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-            grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
- 
-            for (nu=0; nu<4; nu++) {
-                grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-            }/* nu */
-        }/* mu */
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -1;
     }/* if t00-k00/t00 < 0.0 */
 
@@ -678,15 +615,7 @@ int Reconst::ReconstIt_velocity_iteration(
                    iter, v_prev, v_next, abs_error_v, rel_error_v);
            fprintf(stderr, "Reverting to the previous TJb...\n"); 
         }
-        for (mu=0; mu<4; mu++) {
-            grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-            grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-            for (nu=0; nu<4; nu++)
-                grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-        }
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->p = grid_pt->p;
-        grid_p->rhob = grid_pt->rhob;
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -2;
     }/* if iteration is unsuccessful, revert */
    
@@ -726,15 +655,7 @@ int Reconst::ReconstIt_velocity_iteration(
                         iter, u0_prev, u0_next, abs_error_u0, rel_error_u0);
                 fprintf(stderr, "Reverting to the previous TJb...\n"); 
             }
-            for (mu=0; mu<4; mu++) {
-                grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-                grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-                for (nu=0; nu<4; nu++)
-                    grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-            }
-            grid_p->epsilon = grid_pt->epsilon;
-            grid_p->p = grid_pt->p;
-            grid_p->rhob = grid_pt->rhob;
+            revert_grid(grid_p, grid_pt, rk_flag);
             return -2;
         }/* if iteration is unsuccessful, revert */
     }
@@ -777,18 +698,7 @@ int Reconst::ReconstIt_velocity_iteration(
 	            fprintf(stderr, "Reverting to the previous TJb...\n"); 
 	        }
         }
-        for (mu=0; mu<4; mu++) {
-	        grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-	        grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-	  
-	        for (nu=0; nu<4; nu++) {
-	            grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-	        }/* nu */
-	    }/* mu */
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->p = grid_pt->p;
-        grid_p->rhob = grid_pt->rhob;
-
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -2;
     } else {
         u[1] = q[1]*velocity_inverse_factor; 
@@ -846,16 +756,16 @@ int Reconst::ReconstIt_velocity_iteration(
     }// if u^mu u_\mu != 1 
     // End: Correcting normalization of 4-velocity
    
-    for (mu = 0; mu < 4; mu++) {
+    for (int mu = 0; mu < 4; mu++) {
         grid_p->TJb[0][4][mu] = rhob*u[mu];
         grid_p->u[0][mu] = u[mu];
         double gfac = (mu == 0 ? -1.0 : 1.0);
         double tempf = (epsilon + pressure)*u[mu]*u[mu] + pressure*gfac;
-       grid_p->TJb[0][mu][mu] = tempf;
+        grid_p->TJb[0][mu][mu] = tempf;
     }
-    for (mu = 0; mu < 4; mu++) {
+    for (int mu = 0; mu < 4; mu++) {
         double tempf = (epsilon + pressure)*u[mu];
-        for (nu = mu+1; nu < 4; nu++) {
+        for (int nu = mu+1; nu < 4; nu++) {
             double Tmunu = tempf*u[nu];
             grid_p->TJb[0][mu][nu] = Tmunu;
             grid_p->TJb[0][nu][mu] = Tmunu;
@@ -891,7 +801,6 @@ int Reconst::ReconstIt_velocity_Newton(
     /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
 
     double q[5];
-    int mu, nu;
     for (int alpha = 0; alpha < 5; alpha++) {
         q[alpha] = uq[alpha][direc]/tau;
     }
@@ -905,17 +814,7 @@ int Reconst::ReconstIt_velocity_Newton(
         // can't make Tmunu with this. restore the previous value 
         // remember that uq are eigher halfway cells or the final q_next 
         // at this point, the original values in grid_pt->TJb are not touched. 
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->rhob = grid_pt->rhob;
-        grid_p->p = grid_pt->p;
-        for (mu=0; mu<4; mu++) {
-            grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-            grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
- 
-            for (nu=0; nu<4; nu++) {
-                grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-            }/* nu */
-        }/* mu */
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -1;
     }/* if t00-k00/t00 < 0.0 */
 
@@ -963,15 +862,7 @@ int Reconst::ReconstIt_velocity_Newton(
                    iter, v_prev, v_next, abs_error_v, rel_error_v);
            fprintf(stderr, "Reverting to the previous TJb...\n"); 
         }
-        for (mu=0; mu<4; mu++) {
-            grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-            grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-            for (nu=0; nu<4; nu++)
-                grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-        }
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->p = grid_pt->p;
-        grid_p->rhob = grid_pt->rhob;
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -2;
     }/* if iteration is unsuccessful, revert */
    
@@ -1010,15 +901,7 @@ int Reconst::ReconstIt_velocity_Newton(
                         iter, u0_prev, u0_next, abs_error_u0);
                 fprintf(stderr, "Reverting to the previous TJb...\n"); 
             }
-            for (mu=0; mu<4; mu++) {
-                grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-                grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-                for (nu=0; nu<4; nu++)
-                    grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-            }
-            grid_p->epsilon = grid_pt->epsilon;
-            grid_p->p = grid_pt->p;
-            grid_p->rhob = grid_pt->rhob;
+            revert_grid(grid_p, grid_pt, rk_flag);
             return -2;
         }/* if iteration is unsuccessful, revert */
     }
@@ -1061,18 +944,7 @@ int Reconst::ReconstIt_velocity_Newton(
 	            fprintf(stderr, "Reverting to the previous TJb...\n"); 
 	        }
         }
-        for (mu=0; mu<4; mu++) {
-	        grid_p->TJb[0][4][mu] = grid_pt->TJb[rk_flag][4][mu];
-	        grid_p->u[0][mu] = grid_pt->u[rk_flag][mu];
-	  
-	        for (nu=0; nu<4; nu++) {
-	            grid_p->TJb[0][nu][mu] = grid_pt->TJb[rk_flag][nu][mu];
-	        }/* nu */
-	    }/* mu */
-        grid_p->epsilon = grid_pt->epsilon;
-        grid_p->p = grid_pt->p;
-        grid_p->rhob = grid_pt->rhob;
-
+        revert_grid(grid_p, grid_pt, rk_flag);
         return -2;
     } else {
         u[1] = q[1]*velocity_inverse_factor; 
@@ -1128,16 +1000,16 @@ int Reconst::ReconstIt_velocity_Newton(
     }  // if u^mu u_\mu != 1 
     // End: Correcting normalization of 4-velocity
    
-    for (mu = 0; mu < 4; mu++) {
+    for (int mu = 0; mu < 4; mu++) {
         grid_p->TJb[0][4][mu] = rhob*u[mu];
         grid_p->u[0][mu] = u[mu];
         double gfac = (mu == 0 ? -1.0 : 1.0);
         double tempf = (epsilon + pressure)*u[mu]*u[mu] + pressure*gfac;
-       grid_p->TJb[0][mu][mu] = tempf;
+        grid_p->TJb[0][mu][mu] = tempf;
     }
-    for (mu = 0; mu < 4; mu++) {
+    for (int mu = 0; mu < 4; mu++) {
         double tempf = (epsilon + pressure)*u[mu];
-        for (nu = mu+1; nu < 4; nu++) {
+        for (int nu = mu+1; nu < 4; nu++) {
             double Tmunu = tempf*u[nu];
             grid_p->TJb[0][mu][nu] = Tmunu;
             grid_p->TJb[0][nu][mu] = Tmunu;
