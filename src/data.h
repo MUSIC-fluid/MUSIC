@@ -27,6 +27,7 @@ typedef struct init_data {
     string initName_TB;
     string initName_rhob_TA;
     string initName_rhob_TB;
+    string initName_AMPT;
     
     //! random seed
     int seed;

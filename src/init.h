@@ -32,6 +32,7 @@ class Init {
     void initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta, Grid ***arena);
     void initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
                                          Grid ***arena);
+    void initial_AMPT_XY(InitData *DATA, int ieta, Grid ***arena);
 
     double eta_profile_normalisation(InitData *DATA, double eta);
     double eta_rhob_profile_normalisation(InitData *DATA, double eta);

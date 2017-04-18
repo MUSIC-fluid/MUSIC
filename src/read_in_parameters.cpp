@@ -653,6 +653,14 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
         tempinitName_rhob_TB.assign(tempinput);
     parameter_list->initName_rhob_TB.assign(tempinitName_rhob_TB);
     
+    // Initial_Distribution_AMPT_filename for AMPT
+    string tempinitName_AMPT = "initial/initial_AMPT.dat";
+    tempinput = util->StringFind4(input_file,
+                                  "Initial_Distribution_AMPT_filename");
+    if (tempinput != "empty")
+        tempinitName_AMPT.assign(tempinput);
+    parameter_list->initName_AMPT.assign(tempinitName_AMPT);
+    
     // compute beam rapidity according to the collision energy
     double temp_ecm = 200;
     tempinput = util->StringFind4(input_file, "ecm");

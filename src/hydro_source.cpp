@@ -14,13 +14,20 @@ using namespace std;
 hydro_source::hydro_source(InitData *DATA_in) {
     DATA_ptr = DATA_in;
     source_tau_max = 0.0;
-    if (DATA_ptr->Initial_profile == 12) {
+    if (DATA_ptr->Initial_profile == 12) {  // MC-Glauber-LEXUS
         sigma_tau = 0.1;
         sigma_x = 0.5;
         sigma_eta = 0.5;
         volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
         string_dump_mode = DATA_ptr->string_dump_mode;
         read_in_QCD_strings_and_partons();
+    }
+    if (DATA_ptr->Initial_profile == 30) {  // AMPT
+        sigma_tau = 0.1;
+        sigma_x = 0.5;
+        sigma_eta = 0.5;
+        volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
+        read_in_AMPT_partons();
     }
 }
 
@@ -29,8 +36,13 @@ hydro_source::~hydro_source() {
         QCD_strings_list.clear();
         parton_list.clear();
     }
+    if (DATA_ptr->Initial_profile == 30) {
+        parton_list.clear();
+    }
 }
 
+//! This function reads in the spatal information of the strings and partons
+//! which are produced from the MC-Glauber-LEXUS model
 void hydro_source::read_in_QCD_strings_and_partons() {
     string QCD_strings_filename = DATA_ptr->initName;
     string partons_filename = DATA_ptr->initName_rhob;
@@ -63,7 +75,7 @@ void hydro_source::read_in_QCD_strings_and_partons() {
         getline(QCD_strings_file, text_string);
     }
     QCD_strings_file.close();
-    cout << "hydro_source: tau_max = " << source_tau_max << endl;
+    cout << "hydro_source: tau_max = " << source_tau_max << " fm." << endl;
     
     ifstream partons_file(partons_filename.c_str());
     if (!partons_file) {
@@ -85,6 +97,61 @@ void hydro_source::read_in_QCD_strings_and_partons() {
         getline(partons_file, text_string);
     }
     partons_file.close();
+}
+
+
+//! This function reads in the partons information from the AMPT model
+void hydro_source::read_in_AMPT_partons() {
+    string AMPT_filename = DATA_ptr->initName_AMPT;
+    cout << "[Info] hydro_source: "
+         << "read in AMPT parton list from " << AMPT_filename << endl;
+
+    string text_string;
+    ifstream AMPT_file(AMPT_filename.c_str());
+    if (!AMPT_file) {
+        cerr << "Error:hydro_source::read_in_AMPT_partons: "
+             << "can not open the AMPT file: " << AMPT_filename
+             << endl;
+        exit(1);
+    }
+
+    int n_partons = 0;
+    AMPT_file >> n_partons;
+
+    // now we read in data
+    getline(AMPT_file, text_string);
+    while (!AMPT_file.eof()) {
+        stringstream text_stream(text_string);
+        parton new_parton;
+        double t_local, z_local, pz_local;
+        text_stream >> t_local >> new_parton.x >> new_parton.y >> z_local
+                    >> new_parton.E >> new_parton.px >> new_parton.py
+                    >> pz_local;
+        if (t_local > z_local) {
+            // the parton is inside the light cone
+            double mass_sq = (
+                new_parton.E*new_parton.E - new_parton.px*new_parton.px
+                - new_parton.py*new_parton.py - pz_local*pz_local);
+            if (mass_sq > 0.) {
+                new_parton.mass = sqrt(mass_sq);
+                new_parton.tau = sqrt(t_local*t_local - z_local*z_local);
+                new_parton.eta_s = 0.5*log((t_local + z_local)
+                                           /(t_local - z_local + 1e-15));
+                new_parton.rapidity = 0.5*log((new_parton.E + pz_local)
+                                              /(new_parton.E - pz_local));
+                parton_list.push_back(new_parton);
+                if (source_tau_max < new_parton.tau) {
+                    source_tau_max = new_parton.tau;
+                }
+            }
+        }
+        getline(AMPT_file, text_string);
+    }
+    AMPT_file.close();
+    cout << "[Info] hydro_source:: read in " << parton_list.size() << "/"
+         << n_partons << " partons." << endl;
+    cout << "[Info] hydro_source:: tau_max = " << source_tau_max << " fm."
+         << endl;
 }
 
 void hydro_source::get_hydro_energy_source(
@@ -164,6 +231,54 @@ void hydro_source::get_hydro_energy_source(
             // j_mu[2] = ed*u_mu[2]*prefactor_tau*prefactor_prep;
             // j_mu[3] = ed*u_mu[3]*prefactor_tau*prefactor_prep;
         }
+    } else if (DATA_ptr->Initial_profile == 30) {
+        // AMPT parton sources
+        double n_sigma_skip = 5.;
+        double tau_dis_max = tau - source_tau_max;
+        if (tau_dis_max < n_sigma_skip*sigma_tau) {
+            double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
+            double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+            double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+            for (vector<parton>::iterator it = parton_list.begin();
+                 it != parton_list.end(); it++) {
+                double tau_dis = tau - (*it).tau;
+                if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
+                    continue;
+                }
+                double x_dis = x - (*it).x;
+                if (fabs(x_dis) > n_sigma_skip*sigma_x) {
+                    continue;
+                }
+                double y_dis = y - (*it).y;
+                if (fabs(y_dis) > n_sigma_skip*sigma_x) {
+                    continue;
+                }
+                double eta_s_dis = eta_s - (*it).eta_s;
+                if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
+                    continue;
+                }
+                double exp_tau = (
+                    1./((*it).tau)
+                    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
+                double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
+                                        /(sigma_x*sigma_x));
+                double exp_eta_s = (
+                        exp(-eta_s_dis*eta_s_dis/(sigma_eta*sigma_eta)));
+
+                double f_smear = exp_tau*exp_xperp*exp_eta_s;
+                double p_perp_sq = (*it).px*(*it).px + (*it).py*(*it).py;
+                double m_perp = sqrt((*it).mass*(*it).mass + p_perp_sq);
+                j_mu[0] += m_perp*cosh((*it).rapidity - eta_s)*f_smear;
+                j_mu[1] += (*it).px*f_smear;
+                j_mu[2] += (*it).py*f_smear;
+                j_mu[3] += m_perp*sinh((*it).rapidity - eta_s)*f_smear;
+            }
+            double norm = DATA_ptr->sFactor/hbarc;     // 1/fm^4
+            j_mu[0] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
+            j_mu[1] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
+            j_mu[2] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
+            j_mu[3] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
+        }
     }
 }
 
@@ -209,6 +324,46 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 double exp_eta_s = (
                         exp(-eta_s_dis*eta_s_dis/(sigma_eta*sigma_eta)));
                 res += exp_tau*exp_xperp*exp_eta_s;
+            }
+            res *= prefactor_tau*prefactor_prep*prefactor_etas;
+        }
+    } else if (DATA_ptr->Initial_profile == 30) {
+        double n_sigma_skip = 5.;
+        double tau_dis_max = tau - source_tau_max;
+        if (tau_dis_max < n_sigma_skip*sigma_tau) {
+            double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
+            double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+            double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+            for (vector<parton>::iterator it = parton_list.begin();
+                 it != parton_list.end(); it++) {
+                // skip the evaluation if the strings is too far away in the
+                // space-time grid
+                double tau_dis = tau - (*it).tau;
+                if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
+                    continue;
+                }
+                double x_dis = x - (*it).x;
+                if (fabs(x_dis) > n_sigma_skip*sigma_x) {
+                    continue;
+                }
+                double y_dis = y - (*it).y;
+                if (fabs(y_dis) > n_sigma_skip*sigma_x) {
+                    continue;
+                }
+                double eta_s_dis = eta_s - (*it).eta_s;
+                if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
+                    continue;
+                }
+                double exp_tau = (
+                    1./((*it).tau)
+                    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
+                double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
+                                        /(sigma_x*sigma_x));
+                double exp_eta_s = (
+                        exp(-eta_s_dis*eta_s_dis/(sigma_eta*sigma_eta)));
+                double f_smear = exp_tau*exp_xperp*exp_eta_s;
+                res += f_smear;
+
             }
             res *= prefactor_tau*prefactor_prep*prefactor_etas;
         }
