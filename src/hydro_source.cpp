@@ -20,6 +20,8 @@ hydro_source::hydro_source(InitData *DATA_in) {
         sigma_eta = 0.5;
         volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
         string_dump_mode = DATA_ptr->string_dump_mode;
+        string_quench_factor = DATA_ptr->string_quench_factor;
+        parton_quench_factor = 1.0;
         read_in_QCD_strings_and_partons();
     }
     if (DATA_ptr->Initial_profile == 30) {  // AMPT
@@ -27,6 +29,7 @@ hydro_source::hydro_source(InitData *DATA_in) {
         sigma_x = 0.5;
         sigma_eta = 0.5;
         volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
+        parton_quench_factor = 1.0;
         read_in_AMPT_partons();
     }
 }
@@ -129,11 +132,13 @@ void hydro_source::read_in_AMPT_partons() {
                     >> pz_local;
         if (t_local > z_local) {
             // the parton is inside the light cone
-            double mass_sq = (
-                new_parton.E*new_parton.E - new_parton.px*new_parton.px
-                - new_parton.py*new_parton.py - pz_local*pz_local);
+            double p_perp_sq = (new_parton.px*new_parton.px
+                                + new_parton.py*new_parton.py);
+            double mass_sq = (new_parton.E*new_parton.E
+                              - p_perp_sq - pz_local*pz_local);
             if (mass_sq > 0.) {
                 new_parton.mass = sqrt(mass_sq);
+                new_parton.y_perp = asinh(sqrt(p_perp_sq)/new_parton.mass);
                 new_parton.tau = sqrt(t_local*t_local - z_local*z_local);
                 new_parton.eta_s = 0.5*log((t_local + z_local)
                                            /(t_local - z_local + 1e-15));
@@ -160,8 +165,15 @@ void hydro_source::get_hydro_energy_source(
     for (int i = 0; i < 4; i++) {
         j_mu[i] = 0.0;
     }
+    // flow velocity
+    double gamma_perp_flow = sqrt(u_mu[0]*u_mu[0] - u_mu[3]*u_mu[3]);
+    double y_perp_flow = acosh(gamma_perp_flow);
+    double y_long_flow = acosh(u_mu[0]/gamma_perp_flow) + eta_s;
+    double sin_phi_flow = u_mu[1]/gamma_perp_flow;
+    double cos_phi_flow = u_mu[2]/gamma_perp_flow;
+
     if (DATA_ptr->Initial_profile == 12) {
-        // double ed = 0.;
+        // energy source from strings
         double n_sigma_skip = 5.;
         double tau_dis_max = tau - source_tau_max;
         if (tau_dis_max < n_sigma_skip*sigma_tau) {
@@ -201,35 +213,36 @@ void hydro_source::get_hydro_energy_source(
                 double exp_eta_s = 1.;
                 if (eta_s < eta_s_left) {
                     double eta_s_dis = eta_s - eta_s_left;
-                    exp_eta_s = (
-                            exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta)));
+                    exp_eta_s = (exp(-(eta_s_dis*eta_s_dis)
+                                 /(sigma_eta*sigma_eta)));
                 }
                 if (eta_s > eta_s_right) {
                     double eta_s_dis = eta_s - eta_s_right;
-                    exp_eta_s = (
-                            exp(-(eta_s_dis*eta_s_dis)/(sigma_eta*sigma_eta)));
+                    exp_eta_s = (exp(-(eta_s_dis*eta_s_dis)
+                                 /(sigma_eta*sigma_eta)));
                 }
                 double e_local = exp_tau*exp_xperp*exp_eta_s;
                 e_local *= DATA_ptr->sFactor/hbarc;  // 1/fm^4
-                double y_interp = (
+                double y_string = (
                         (*it).y_l + ((*it).y_r - (*it).y_l)
                                     /(eta_s_right - eta_s_left)
                                     *(eta_s - eta_s_left));
-                j_mu[0] += cosh(y_interp - eta_s)*e_local;
-                j_mu[1] += 0.0;
-                j_mu[2] += 0.0;
-                j_mu[3] += sinh(y_interp - eta_s)*e_local;
-                // ed += e_local;
+                double y_dump = ((1. - string_quench_factor)*y_string
+                                 + string_quench_factor*y_long_flow);
+                double y_dump_perp = string_quench_factor*y_perp_flow;
+                double cosh_long = cosh(y_dump - eta_s);
+                double sinh_long = sinh(y_dump - eta_s);
+                double cosh_perp = cosh(y_dump_perp);
+                double sinh_perp = sinh(y_dump_perp);
+                j_mu[0] += e_local*cosh_long*cosh_perp;
+                j_mu[1] += e_local*sinh_perp*cos_phi_flow;
+                j_mu[2] += e_local*sinh_perp*sin_phi_flow;
+                j_mu[3] += e_local*sinh_long*cosh_perp;
             }
             j_mu[0] *= prefactor_tau*prefactor_prep;
             j_mu[1] *= prefactor_tau*prefactor_prep;
             j_mu[2] *= prefactor_tau*prefactor_prep;
             j_mu[3] *= prefactor_tau*prefactor_prep;
-            // ed = ed*DATA_ptr->sFactor/hbarc;   // 1/fm^4
-            // j_mu[0] = ed*u_mu[0]*prefactor_tau*prefactor_prep;
-            // j_mu[1] = ed*u_mu[1]*prefactor_tau*prefactor_prep;
-            // j_mu[2] = ed*u_mu[2]*prefactor_tau*prefactor_prep;
-            // j_mu[3] = ed*u_mu[3]*prefactor_tau*prefactor_prep;
         }
     } else if (DATA_ptr->Initial_profile == 30) {
         // AMPT parton sources
@@ -283,8 +296,15 @@ void hydro_source::get_hydro_energy_source(
 }
 
 double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
-                                           double eta_s) {
+                                           double eta_s, double *u_mu) {
     double res = 0.;
+
+    // flow velocity
+    double gamma_perp_flow = sqrt(u_mu[0]*u_mu[0] - u_mu[3]*u_mu[3]);
+    double y_perp_flow = acosh(gamma_perp_flow);
+    double y_long_flow = acosh(u_mu[0]/gamma_perp_flow) + eta_s;
+    double sinh_y_perp_flow = sinh(y_perp_flow);
+
     if (DATA_ptr->Initial_profile == 12) {
         double n_sigma_skip = 5.;
         double tau_dis_max = tau - source_tau_max;
@@ -323,7 +343,15 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                                         /(sigma_x*sigma_x));
                 double exp_eta_s = (
                         exp(-eta_s_dis*eta_s_dis/(sigma_eta*sigma_eta)));
-                res += exp_tau*exp_xperp*exp_eta_s;
+                double fsmear = exp_tau*exp_xperp*exp_eta_s;
+                double y_dump = ((1. - parton_quench_factor)*(*it).rapidity
+                                 + parton_quench_factor*y_long_flow);
+                double y_dump_perp = parton_quench_factor*y_perp_flow;
+                double p_dot_u = (u_mu[0]
+                    - tanh(y_dump_perp)*sinh_y_perp_flow/cosh(y_dump - eta_s)
+                    - tanh(y_dump - eta_s)*u_mu[3]);
+                res += p_dot_u*fsmear;
+
             }
             res *= prefactor_tau*prefactor_prep*prefactor_etas;
         }
@@ -362,7 +390,14 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 double exp_eta_s = (
                         exp(-eta_s_dis*eta_s_dis/(sigma_eta*sigma_eta)));
                 double f_smear = exp_tau*exp_xperp*exp_eta_s;
-                res += f_smear;
+                double y_dump = ((1. - parton_quench_factor)*(*it).rapidity
+                                 + parton_quench_factor*y_long_flow);
+                double y_dump_perp = ((1. - parton_quench_factor)*(*it).y_perp
+                                      + parton_quench_factor*y_perp_flow);
+                double p_dot_u = (u_mu[0]
+                    - tanh(y_dump_perp)*sinh_y_perp_flow/cosh(y_dump - eta_s)
+                    - tanh(y_dump - eta_s)*u_mu[3]);
+                res += p_dot_u*f_smear;
 
             }
             res *= prefactor_tau*prefactor_prep*prefactor_etas;
@@ -401,6 +436,11 @@ void hydro_source::get_hydro_energy_source_before_tau(
 
 double hydro_source::get_hydro_rhob_source_before_tau(
         double tau, double x, double y, double eta_s) {
+    double *u = new double[4];
+    for (int i = 1; i < 4; i++) {
+        u[i] = 0.0;
+    }
+    u[0] = 1.0;
     double res = 0.;
     double tau0 = 0.0;
     double dtau = DATA_ptr->delta_tau;
@@ -408,9 +448,10 @@ double hydro_source::get_hydro_rhob_source_before_tau(
     for (int i = 0; i < n_tau_steps; i++) {
         double res_local = 0.0;
         double tau_local = tau0 + (i + 0.5)*dtau;
-        res_local = get_hydro_rhob_source(tau_local, x, y, eta_s);
+        res_local = get_hydro_rhob_source(tau_local, x, y, eta_s, u);
         res += tau_local*res_local*dtau;
     }
+    delete[] u;
     res /= tau;
     return(res);
 }

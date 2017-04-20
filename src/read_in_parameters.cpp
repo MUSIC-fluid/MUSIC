@@ -43,6 +43,20 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_string_dump_mode;
     parameter_list->string_dump_mode = temp_string_dump_mode;
+    
+    // hydro source
+    double temp_string_quench_factor = 1.;
+    tempinput = util->StringFind4(input_file, "string_quench_factor");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_string_quench_factor;
+    parameter_list->string_quench_factor = temp_string_quench_factor;
+    
+    // hydro source
+    double temp_parton_quench_factor = 1.;
+    tempinput = util->StringFind4(input_file, "parton_quench_factor");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_parton_quench_factor;
+    parameter_list->parton_quench_factor = temp_parton_quench_factor;
 
     // boost-invariant
     int temp_boost_invariant = 0;

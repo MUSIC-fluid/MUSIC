@@ -22,6 +22,7 @@ struct QCD_string {
 struct parton {
     double tau, x, y, eta_s;
     double rapidity;
+    double y_perp;
     double E, px, py;
     double mass;
     double baryon_number;     //!< nucleon = 1, quark = 1/3
@@ -35,6 +36,8 @@ class hydro_source {
  private:
     InitData *DATA_ptr;
     double volume;
+    double string_quench_factor;
+    double parton_quench_factor;
     double sigma_tau, sigma_x, sigma_eta;
     int string_dump_mode;
     double source_tau_max;
@@ -49,12 +52,19 @@ class hydro_source {
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(double tau, double x, double y, double eta_s,
                                  double *u_mu, double *j_mu);
+
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
-    double get_hydro_rhob_source(double tau, double x, double y, double eta_s);
+    double get_hydro_rhob_source(double tau, double x, double y, double eta_s,
+                                 double *mu);
 
+    //! this function returns the energy source term J^\mu up to a given point
+    //! (tau, x, y, eta_s)
     void get_hydro_energy_source_before_tau(
         double tau, double x, double y, double eta_s, double *j_mu);
+    
+    //! this function returns the net baryon density source term rho
+    //! up to a given point (tau, x, y, eta_s)
     double get_hydro_rhob_source_before_tau(double tau, double x, double y,
                                             double eta_s);
 

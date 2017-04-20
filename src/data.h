@@ -50,6 +50,8 @@ typedef struct init_data {
     int initializeEntropy;  //! flag to initial entropy or energy density
 
     int string_dump_mode;
+    double string_quench_factor;
+    double parton_quench_factor;
 
     int nx;
     int ny;
