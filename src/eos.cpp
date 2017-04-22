@@ -4030,8 +4030,9 @@ void EOS::check_eos_with_finite_muB() {
     }
 
     // output EoS as a function of rho_b for several energy density
-    double e_pick[6] = {0.05, 0.1, 0.5, 1.0, 3.0, 5.0};
-    for (int i = 0; i < 6; i++) {
+    double e_pick[12] = {0.05, 0.1, 0.2, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7,
+                         1.0, 3.0, 5.0};
+    for (int i = 0; i < 12; i++) {
         double e_local = e_pick[i]/hbarc;
         ostringstream file_name;
         file_name << "check_EoS_PST_e_" << e_pick[i] << ".dat";

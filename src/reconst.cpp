@@ -131,7 +131,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
         rhob_next = 0.0;
     } else {
         rhob_next = J0*sqrt((eps_guess + p_guess)/(T00 + p_guess));
-        if (!isfinite(rhob_next) || rhob_next < 0) {
+        if (rhob_next > LARGE || rhob_next < 0) {
             rhob_next = 0.0;
         }
     }
@@ -157,9 +157,9 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
         if (DATA->turn_on_rhob == 1) {
             rhob_next = J0*sqrt((epsilon_prev + p_prev)/(T00 + p_prev));
             temperr = fabs((rhob_next-rhob_prev)/(rhob_prev+SMALL));
-            if (isfinite(temperr))
+            if (temperr > LARGE)
                 err += temperr;
-            else if (isinf(temperr))
+            else if (temperr > LARGE)
                 err += 1000.0; /* big enough */
             else if (isnan(temperr))
                 err += 1000.0;
@@ -168,9 +168,9 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
         }
    
         temperr = fabs((epsilon_next-epsilon_prev)/(epsilon_prev+SMALL));
-        if (isfinite(temperr))
+        if (temperr > LARGE)
             err += temperr;
-        else if (isinf(temperr))
+        else if (temperr > LARGE)
             err += 1000.0; /* big enough */
         else if (isnan(temperr))
             err += 1000.0;
@@ -196,7 +196,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
 
     u[0] = sqrt((q[0]/tau + p)/h);
     //remove if for speed
-    if (!isfinite(u[0])) {
+    if (u[0] > LARGE) {
         u[0] = 1.0;
         u[1] = 0.0;
         u[2] = 0.0;
@@ -255,7 +255,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
         for (int nu=0; nu<4; nu++) {
             tempf = grid_p->TJb[0][nu][mu] 
                   = ((epsilon + p)*u[nu]*u[mu] + p*(DATA->gmunu)[nu][mu]);
-            if (!isfinite(tempf)) {
+            if (tempf > LARGE) {
                 fprintf(stderr, "Update: TJb[0][%d][%d] is %e.\n",
                         nu, mu, grid_p->TJb[0][nu][mu]);
                 fprintf(stderr, "Update: epsilon is %e.\n", epsilon);
@@ -423,7 +423,7 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
 
     double u_max = 242582597.70489514; // cosh(20)
     //remove if for speed
-    if (!isfinite(u[0])) {
+    if (u[0] > LARGE) {
         u[0] = 1.0;
         u[1] = 0.0;
         u[2] = 0.0;
@@ -504,7 +504,7 @@ int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
             tempf = grid_p->TJb[0][nu][mu]
                   = ((epsilon + pressure)*u[nu]*u[mu]
                           + pressure*(DATA->gmunu)[nu][mu]);
-            if (!isfinite(tempf)) {
+            if (tempf > LARGE) {
                 fprintf(stderr, "Update: TJb[0][%d][%d] is %e.\n",
                         nu, mu, grid_p->TJb[0][nu][mu]);
                 fprintf(stderr, "Update: epsilon is %e.\n", epsilon);
@@ -691,7 +691,7 @@ int Reconst::ReconstIt_velocity_iteration(
 
     double u_max = 242582597.70489514; // cosh(20)
     //remove if for speed
-    if (!isfinite(u[0])) {
+    if (u[0] > LARGE) {
         // check whether velocity is too large
         if (echo_level > 5) {
             fprintf(stderr, "Reconst velocity: u[0] = %e is infinite.\n",
@@ -942,7 +942,7 @@ int Reconst::ReconstIt_velocity_Newton(
 
     double u_max = 242582597.70489514; // cosh(20)
     //remove if for speed
-    if (!isfinite(u[0])) {
+    if (u[0] > LARGE) {
         u[0] = 1.0;
         u[1] = 0.0;
         u[2] = 0.0;
