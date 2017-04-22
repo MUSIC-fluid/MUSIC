@@ -29,6 +29,8 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) {
     }
     if (DATA_ptr->Initial_profile == 12) {
         hydro_source_ptr = hydro_source_in;
+    } else if (DATA_ptr->Initial_profile == 30) {
+        hydro_source_ptr = hydro_source_in;
     }
 }
 
@@ -72,6 +74,10 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     double tau;
     int it_start = 0;
     if (DATA->Initial_profile == 12) {
+        double source_tau_max = hydro_source_ptr->get_source_tau_max();
+        it_start = static_cast<int>((source_tau_max - tau0)/dt);
+        if (it_start < 0) it_start = 0;
+    } else if (DATA->Initial_profile == 30) {
         double source_tau_max = hydro_source_ptr->get_source_tau_max();
         it_start = static_cast<int>((source_tau_max - tau0)/dt);
         if (it_start < 0) it_start = 0;
@@ -143,7 +149,8 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
 
         // check energy conservation
         if (boost_invariant_flag == 0)
-            grid_info->check_conservation_law(arena,DATA, tau);
+            grid_info->check_conservation_law(arena, DATA, tau);
+        grid_info->get_maximum_energy_density(arena);
 
         /* execute rk steps */
         // all the evolution are at here !!!
@@ -186,7 +193,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
             }
         }/* do freeze-out determination */
     
-        fprintf(stderr, "Done time step %d/%d. tau = %6.3f fm/c \n", 
+        fprintf(stdout, "Done time step %d/%d. tau = %6.3f fm/c \n", 
                 it, itmax, tau);
         if (frozen) break;
     }/* it */ 

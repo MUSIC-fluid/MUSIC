@@ -19,6 +19,10 @@ using namespace std;
 #define hbarc (0.1973)
 #endif
 
+#ifndef LARGE
+#define LARGE (1e20)
+#endif
+
 #ifndef yes
 #define yes 1
 #endif

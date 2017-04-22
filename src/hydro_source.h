@@ -5,6 +5,7 @@
 #include <vector>
 #include "./data.h"
 
+
 //! This data structure contains a QCD string object
 struct QCD_string {
     double norm;              // normalization for the string energy
@@ -21,16 +22,22 @@ struct QCD_string {
 struct parton {
     double tau, x, y, eta_s;
     double rapidity;
+    double y_perp;
+    double E, px, py;
+    double mass;
     double baryon_number;     //!< nucleon = 1, quark = 1/3
     // this data structure can be extended to include charge and strangeness
     // quantum number
 };
+
 
 //! This is a class that feeds source currents to hydrodynamics
 class hydro_source {
  private:
     InitData *DATA_ptr;
     double volume;
+    double string_quench_factor;
+    double parton_quench_factor;
     double sigma_tau, sigma_x, sigma_eta;
     int string_dump_mode;
     double source_tau_max;
@@ -45,18 +52,28 @@ class hydro_source {
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(double tau, double x, double y, double eta_s,
                                  double *u_mu, double *j_mu);
+
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
-    double get_hydro_rhob_source(double tau, double x, double y, double eta_s);
+    double get_hydro_rhob_source(double tau, double x, double y, double eta_s,
+                                 double *mu);
 
+    //! this function returns the energy source term J^\mu up to a given point
+    //! (tau, x, y, eta_s)
     void get_hydro_energy_source_before_tau(
         double tau, double x, double y, double eta_s, double *j_mu);
+    
+    //! this function returns the net baryon density source term rho
+    //! up to a given point (tau, x, y, eta_s)
     double get_hydro_rhob_source_before_tau(double tau, double x, double y,
                                             double eta_s);
 
-    //! This function reads in the spatial positions of the QCD strings
-    //! and partons
+    //! This function reads in the spatal information of the strings
+    //! and partons which are produced from the MC-Glauber-LEXUS model
     void read_in_QCD_strings_and_partons();
+
+    //! This function reads in the partons information from the AMPT model
+    void read_in_AMPT_partons();
 
     //! Get the maximum tau for the source term
     double get_source_tau_max() {return(source_tau_max);}
