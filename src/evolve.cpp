@@ -27,7 +27,8 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) {
     if (DATA_ptr->freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
     }
-    if (DATA_ptr->Initial_profile == 12) {
+
+    if (DATA_ptr->Initial_profile == 12 || DATA_ptr->Initial_profile == 13) {
         hydro_source_ptr = hydro_source_in;
     } else if (DATA_ptr->Initial_profile == 30) {
         hydro_source_ptr = hydro_source_in;
@@ -73,7 +74,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
       
     double tau;
     int it_start = 0;
-    if (DATA->Initial_profile == 12) {
+    if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
         double source_tau_max = hydro_source_ptr->get_source_tau_max();
         it_start = static_cast<int>((source_tau_max - tau0)/dt);
         if (it_start < 0) it_start = 0;

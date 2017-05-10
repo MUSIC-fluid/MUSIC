@@ -11,7 +11,7 @@ Init::Init(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) {
     eos = eosIn;
     util = new Util;
     DATA_ptr = DATA_in;
-    if (DATA_ptr->Initial_profile == 12) {
+    if (DATA_ptr->Initial_profile == 12 || DATA_ptr->Initial_profile == 13) {
         hydro_source_ptr = hydro_source_in;
     } else if (DATA_ptr->Initial_profile == 30) {
         hydro_source_ptr = hydro_source_in;
@@ -69,7 +69,7 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
     } else if (DATA->Initial_profile == 11) {
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
-    } else if (DATA->Initial_profile == 12) {
+    } else if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
     } else if (DATA->Initial_profile == 30) {
@@ -240,7 +240,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
                 initial_MCGlb_with_rhob_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
-    } else if (DATA->Initial_profile == 12) {
+    } else if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
         int ieta;
         #pragma omp parallel private(ieta)
         {

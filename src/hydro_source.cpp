@@ -92,6 +92,23 @@ void hydro_source::read_in_QCD_strings_and_partons() {
         }
 
         new_string.status = 0;
+        if (DATA_ptr->Initial_profile == 12) {
+            new_string.tau_end_left = new_string.tau_form;
+            new_string.tau_end_right = new_string.tau_form;
+        } else if (DATA_ptr->Initial_profile == 13) {
+            double temp_factor1 = (new_string.tau_0*new_string.tau_0
+                                   - new_string.tau_form*new_string.tau_form);
+            double temp_factor2 = (new_string.tau_0
+                            *cosh(new_string.eta_s_left - new_string.eta_s_0));
+            double temp_factor3 = (new_string.tau_0
+                        *cosh(new_string.eta_s_right - new_string.eta_s_0));
+            double tau_end_left_local = (
+                temp_factor2 + sqrt(temp_factor2*temp_factor2 - temp_factor1));
+            double tau_end_right_local = (
+                temp_factor3 + sqrt(temp_factor3*temp_factor3 - temp_factor1));
+            new_string.tau_end_left = tau_end_left_local;
+            new_string.tau_end_right = tau_end_right_local;
+        }
         // read in one string properly
         QCD_strings_list.push_back(new_string);
 
@@ -108,26 +125,28 @@ void hydro_source::read_in_QCD_strings_and_partons() {
     QCD_strings_file.close();
     cout << "hydro_source: tau_max = " << source_tau_max << " fm/c." << endl;
     
-    ifstream partons_file(partons_filename.c_str());
-    if (!partons_file) {
-        cerr << "Error:hydro_source::read_in_QCD_strings_and_partons: "
-             << "can not open parton list file: " << partons_filename
-             << endl;
-        exit(1);
-    }
-    getline(partons_file, text_string);      // read the header
-    // now we read in data
-    getline(partons_file, text_string);
-    while (!partons_file.eof()) {
-        stringstream text_stream(text_string);
-        parton new_parton;
-        text_stream >> new_parton.tau >> new_parton.x >> new_parton.y
-                    >> new_parton.eta_s >> new_parton.rapidity;
-        new_parton.baryon_number = 1.0;
-        parton_list.push_back(new_parton);
+    if (DATA_ptr->Initial_profile == 12) {
+        ifstream partons_file(partons_filename.c_str());
+        if (!partons_file) {
+            cerr << "Error:hydro_source::read_in_QCD_strings_and_partons: "
+                 << "can not open parton list file: " << partons_filename
+                 << endl;
+            exit(1);
+        }
+        getline(partons_file, text_string);      // read the header
+        // now we read in data
         getline(partons_file, text_string);
+        while (!partons_file.eof()) {
+            stringstream text_stream(text_string);
+            parton new_parton;
+            text_stream >> new_parton.tau >> new_parton.x >> new_parton.y
+                        >> new_parton.eta_s >> new_parton.rapidity;
+            new_parton.baryon_number = 1.0;
+            parton_list.push_back(new_parton);
+            getline(partons_file, text_string);
+        }
+        partons_file.close();
     }
-    partons_file.close();
 }
 
 
@@ -289,6 +308,10 @@ void hydro_source::get_hydro_energy_source(
             }
             if ((*it).status == 1) {
                 // dumping energy into the medium from the active strings
+                if (tau > (*it).tau_end_left && tau > (*it).tau_end_right) {
+                    (*it).status = 2;
+                    continue;
+                }
                 double x_dis = x - (*it).x_perp;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {
                     continue;
@@ -301,14 +324,7 @@ void hydro_source::get_hydro_energy_source(
                                             - delta_tau*delta_tau)
                                            /(2.*tau*tau_0));
                 double eta_s_left = (*it).eta_s_0 - eta_s_shift;
-                double eta_s_right = (*it).eta_s_0 - eta_s_shift;
-                if (eta_s_left < (*it).eta_s_left
-                        && eta_s_right > (*it).eta_s_right) {
-                    // the constant tau hypersurface has passed the string
-                    // set string to be dead
-                    (*it).status = 2;
-                    continue;
-                }
+                double eta_s_right = (*it).eta_s_0 + eta_s_shift;
                 double eta_s_left_dis = fabs(eta_s - eta_s_left);
                 double eta_s_right_dis = fabs(eta_s - eta_s_right);
                 if (eta_s_left_dis > n_sigma_skip*sigma_eta
@@ -475,13 +491,75 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
         double n_sigma_skip = 5.;
         double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
         double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
-        // double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+        double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
         for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
              it != QCD_strings_list.end(); it++) {
-                // skip the evaluation if the strings is too far away in the
-                // space-time grid
+            // skip the evaluation if the strings is too far away in the
+            // space-time grid
+            // dumping energy into the medium from the active strings
+            double tau_dis_left = fabs(tau - (*it).tau_end_left);
+            double tau_dis_right = fabs(tau - (*it).tau_end_right);
+            if (tau_dis_left > n_sigma_skip*sigma_tau
+                    && tau_dis_right > n_sigma_skip*sigma_tau) {
+                continue;
+            }
+            double x_dis = x - (*it).x_perp;
+            if (fabs(x_dis) > n_sigma_skip*sigma_x) {
+                continue;
+            }
+            double y_dis = y - (*it).y_perp;
+            if (fabs(y_dis) > n_sigma_skip*sigma_x) {
+                continue;
+            }
+            double exp_tau_left = 0.0;
+            double exp_eta_s_left = 0.0;
+            if (tau_dis_left < n_sigma_skip*sigma_tau) {
+                double eta_dis_left = fabs(eta_s - (*it).eta_s_left);
+                if (eta_dis_left < n_sigma_skip*sigma_eta) {
+                    exp_tau_left = (
+                        1./((*it).tau_end_left)
+                        *exp(-tau_dis_left*tau_dis_left
+                             /(sigma_tau*sigma_tau)));
+                    exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
+                                          /(sigma_eta*sigma_eta)));
+                }
+            }
+
+            double exp_tau_right = 0.0;
+            double exp_eta_s_right = 0.0;
+            if (tau_dis_right < n_sigma_skip*sigma_tau) {
+                double eta_dis_right = fabs(eta_s - (*it).eta_s_right);
+                if (eta_dis_right < n_sigma_skip*sigma_eta) {
+                    exp_tau_right = (
+                        1./((*it).tau_end_right)
+                        *exp(-tau_dis_right*tau_dis_right
+                             /(sigma_tau*sigma_tau)));
+                    exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
+                                           /(sigma_eta*sigma_eta)));
+                }
+            }
+
+            double exp_factors = (exp_tau_left*exp_eta_s_left*(*it).frac_l
+                                + exp_tau_right*exp_eta_s_right*(*it).frac_r);
+            if (exp_factors > 0) {
+                double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
+                                        /(sigma_x*sigma_x));
+                double fsmear = exp_xperp*exp_factors;
+                double rapidity_local = (
+                    (exp_tau_left*exp_eta_s_left*(*it).frac_l*(*it).y_l
+                     + exp_tau_right*exp_eta_s_right*(*it).frac_r*(*it).y_r)
+                    /(exp_tau_left*exp_eta_s_left*(*it).frac_l
+                      + exp_tau_right*exp_eta_s_right*(*it).frac_r));
+                double y_dump = ((1. - parton_quench_factor)*rapidity_local
+                                 + parton_quench_factor*y_long_flow);
+                double y_dump_perp = parton_quench_factor*y_perp_flow;
+                double p_dot_u = (u_mu[0]
+                    - tanh(y_dump_perp)*sinh_y_perp_flow/cosh(y_dump - eta_s)
+                    - tanh(y_dump - eta_s)*u_mu[3]);
+                res += p_dot_u*fsmear;
+            }
         }
-        //res *= prefactor_tau*prefactor_prep*prefactor_etas;
+        res *= prefactor_tau*prefactor_prep*prefactor_etas;
     } else if (DATA_ptr->Initial_profile == 30) {
         double n_sigma_skip = 5.;
         double tau_dis_max = tau - source_tau_max;

@@ -15,6 +15,7 @@ struct QCD_string {
     double tau_form;
     double tau_0, eta_s_0;
     double x_perp, y_perp;    // transverse position of the string
+    double tau_end_left, tau_end_right;
     double eta_s_left, eta_s_right;
     double y_l, y_r;          // rapidity of the two ends of the string
     double frac_l, frac_r;

@@ -812,7 +812,7 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
 
     if (parameter_list->initial_eta_profile > 2
             || parameter_list->initial_eta_profile < 0) {
-        cerr << "Initial eta profile" << parameter_list->Initial_profile
+        cerr << "Initial eta profile" << parameter_list->initial_eta_profile
              << "not defined\n";
         exit(1);
     }
