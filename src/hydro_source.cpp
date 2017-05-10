@@ -14,7 +14,8 @@ using namespace std;
 hydro_source::hydro_source(InitData *DATA_in) {
     DATA_ptr = DATA_in;
     source_tau_max = 0.0;
-    if (DATA_ptr->Initial_profile == 12) {  // MC-Glauber-LEXUS
+    if (DATA_ptr->Initial_profile == 12
+            || DATA_ptr->Initial_profile == 13) {  // MC-Glauber-LEXUS
         sigma_tau = 0.1;
         sigma_x = 0.5;
         sigma_eta = 0.5;
@@ -35,7 +36,8 @@ hydro_source::hydro_source(InitData *DATA_in) {
 }
 
 hydro_source::~hydro_source() {
-    if (DATA_ptr->Initial_profile == 12) {
+    if (DATA_ptr->Initial_profile == 12
+            || DATA_ptr->Initial_profile == 13) {
         QCD_strings_list.clear();
         parton_list.clear();
     }
@@ -68,17 +70,43 @@ void hydro_source::read_in_QCD_strings_and_partons() {
         QCD_string new_string;
         text_stream >> new_string.norm >> new_string.delta_E
                     >> new_string.tau_form
+                    >> new_string.tau_0 >> new_string.eta_s_0
                     >> new_string.x_perp >> new_string.y_perp
                     >> new_string.eta_s_left >> new_string.eta_s_right
-                    >> new_string.y_l >> new_string.y_r;
+                    >> new_string.y_l >> new_string.y_r
+                    >> new_string.frac_l;
+        if (!text_stream.eof()) {
+            // read in the last element
+            text_stream >> new_string.frac_r;
+        } else {
+            // the string is too short
+            cerr << "Error:read_in_QCD_strings_and_partons: the format of file"
+                 << QCD_strings_filename << "is wrong~" << endl;
+            exit(1);
+        }
+        if (!text_stream.eof()) {
+            // the string is too long
+            cerr << "Error:read_in_QCD_strings_and_partons: the format of file"
+                 << QCD_strings_filename << "is wrong~" << endl;
+            exit(1);
+        }
+
+        new_string.status = 0;
+        // read in one string properly
         QCD_strings_list.push_back(new_string);
-        if (source_tau_max < new_string.tau_form) {
-            source_tau_max = new_string.tau_form;
+
+        // record the last string source
+        double source_tau = new_string.tau_form;
+        if (DATA_ptr->Initial_profile == 13) {
+            source_tau += new_string.tau_0;
+        }
+        if (source_tau_max < source_tau) {
+            source_tau_max = source_tau;
         }
         getline(QCD_strings_file, text_string);
     }
     QCD_strings_file.close();
-    cout << "hydro_source: tau_max = " << source_tau_max << " fm." << endl;
+    cout << "hydro_source: tau_max = " << source_tau_max << " fm/c." << endl;
     
     ifstream partons_file(partons_filename.c_str());
     if (!partons_file) {
@@ -244,6 +272,94 @@ void hydro_source::get_hydro_energy_source(
             j_mu[2] *= prefactor_tau*prefactor_prep;
             j_mu[3] *= prefactor_tau*prefactor_prep;
         }
+    } else if (DATA_ptr->Initial_profile == 13) {
+        // energy source from strings
+        double n_sigma_skip = 5.;
+        double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
+        double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+        // double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+        for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
+             it != QCD_strings_list.end(); it++) {
+            double tau_0 = (*it).tau_0;
+            double delta_tau = (*it).tau_form;
+            if (tau > (tau_0 + delta_tau) && (*it).status == 0) {
+                // activiate the string when the constant tau hypersurface
+                // starts to cross it
+                (*it).status = 1;
+            }
+            if ((*it).status == 1) {
+                // dumping energy into the medium from the active strings
+                double x_dis = x - (*it).x_perp;
+                if (fabs(x_dis) > n_sigma_skip*sigma_x) {
+                    continue;
+                }
+                double y_dis = y - (*it).y_perp;
+                if (fabs(y_dis) > n_sigma_skip*sigma_x) {
+                    continue;
+                }
+                double eta_s_shift = acosh((tau*tau + tau_0*tau_0
+                                            - delta_tau*delta_tau)
+                                           /(2.*tau*tau_0));
+                double eta_s_left = (*it).eta_s_0 - eta_s_shift;
+                double eta_s_right = (*it).eta_s_0 - eta_s_shift;
+                if (eta_s_left < (*it).eta_s_left
+                        && eta_s_right > (*it).eta_s_right) {
+                    // the constant tau hypersurface has passed the string
+                    // set string to be dead
+                    (*it).status = 2;
+                    continue;
+                }
+                double eta_s_left_dis = fabs(eta_s - eta_s_left);
+                double eta_s_right_dis = fabs(eta_s - eta_s_right);
+                if (eta_s_left_dis > n_sigma_skip*sigma_eta
+                     && eta_s_right_dis > n_sigma_skip*sigma_eta) {
+                    continue;
+                }
+                double exp_eta_s = 0.;
+                if (eta_s_left_dis < n_sigma_skip*sigma_eta) {
+                    exp_eta_s += (exp(-(eta_s_left_dis*eta_s_left_dis)
+                                      /(sigma_eta*sigma_eta)));
+                } else if (eta_s_right_dis < n_sigma_skip*sigma_eta) {
+                    exp_eta_s += (exp(-(eta_s_right_dis*eta_s_right_dis)
+                                      /(sigma_eta*sigma_eta)));
+                }
+                double temp_factor = tau_0*tau_0 - delta_tau*delta_tau;
+                double tau_sq = tau*tau;
+                double Jacobian = (
+                    1./tau*(tau_sq - temp_factor)
+                           /(sqrt((tau_sq + temp_factor)*(tau_sq + temp_factor)
+                                  - 4.*tau_sq*tau_0*tau_0)));
+                double exp_tau = 1./tau;
+                double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
+                                        /(sigma_x*sigma_x));
+                double e_frac = (
+                        (*it).frac_l + ((*it).frac_r - (*it).frac_l)
+                                    /((*it).eta_s_right - (*it).eta_s_left)
+                                    *(eta_s - (*it).eta_s_left));
+                double e_local = e_frac*exp_tau*exp_xperp*exp_eta_s*Jacobian;
+                e_local *= DATA_ptr->sFactor/hbarc;  // 1/fm^4
+                double y_string = (
+                        (*it).y_l + ((*it).y_r - (*it).y_l)
+                                    /((*it).eta_s_right - (*it).eta_s_left)
+                                    *(eta_s - (*it).eta_s_left));
+                double y_dump = ((1. - string_quench_factor)*y_string
+                                 + string_quench_factor*y_long_flow);
+                double y_dump_perp = string_quench_factor*y_perp_flow;
+                double cosh_long = cosh(y_dump - eta_s);
+                double sinh_long = sinh(y_dump - eta_s);
+                double cosh_perp = cosh(y_dump_perp);
+                double sinh_perp = sinh(y_dump_perp);
+                j_mu[0] += e_local*cosh_long*cosh_perp;
+                j_mu[1] += e_local*sinh_perp*cos_phi_flow;
+                j_mu[2] += e_local*sinh_perp*sin_phi_flow;
+                j_mu[3] += e_local*sinh_long*cosh_perp;
+            }
+        }
+        double prefactors = prefactor_prep*prefactor_etas;
+        j_mu[0] *= prefactors;
+        j_mu[1] *= prefactors;
+        j_mu[2] *= prefactors;
+        j_mu[3] *= prefactors;
     } else if (DATA_ptr->Initial_profile == 30) {
         // AMPT parton sources
         double n_sigma_skip = 5.;
@@ -355,6 +471,17 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             }
             res *= prefactor_tau*prefactor_prep*prefactor_etas;
         }
+    } else if (DATA_ptr->Initial_profile == 13) {
+        double n_sigma_skip = 5.;
+        double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
+        double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+        // double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+        for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
+             it != QCD_strings_list.end(); it++) {
+                // skip the evaluation if the strings is too far away in the
+                // space-time grid
+        }
+        //res *= prefactor_tau*prefactor_prep*prefactor_etas;
     } else if (DATA_ptr->Initial_profile == 30) {
         double n_sigma_skip = 5.;
         double tau_dis_max = tau - source_tau_max;

@@ -8,13 +8,16 @@
 
 //! This data structure contains a QCD string object
 struct QCD_string {
+    int status;
     double norm;              // normalization for the string energy
     double delta_E;           // the energy difference between
                               // before and after the collisions [GeV]
     double tau_form;
+    double tau_0, eta_s_0;
     double x_perp, y_perp;    // transverse position of the string
     double eta_s_left, eta_s_right;
     double y_l, y_r;          // rapidity of the two ends of the string
+    double frac_l, frac_r;
 };
 
 

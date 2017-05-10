@@ -20,11 +20,13 @@ Advance::Advance(EOS *eosIn, InitData *DATA_in,
     diss = new Diss(eosIn, DATA_in);
     minmod = new Minmod(DATA_in);
     u_derivative = new U_derivative(eosIn, DATA_in);
-    if (DATA_in->Initial_profile == 12) {
+    if (DATA_in->Initial_profile == 12 || DATA_in->Initial_profile == 13
+            || DATA_in->Initial_profile == 30) {
         flag_add_hydro_source = true;
         hydro_source_ptr = hydro_source_in;
     } else {
         flag_add_hydro_source = false;
+        hydro_source_ptr = NULL;
     }
 
     grid_nx = DATA_in->nx;
