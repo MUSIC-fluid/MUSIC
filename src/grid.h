@@ -4,7 +4,6 @@
 #include <iostream>
 #include <iomanip>
 #include "./data.h"
-#include "./eos.h"
 
 class Grid {
  public:

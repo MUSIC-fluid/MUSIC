@@ -345,9 +345,12 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     parameter_list->delta_eta =
             parameter_list->eta_size/static_cast<double>(parameter_list->neta); 
     
-    cerr << " DeltaX = " << parameter_list->delta_x << " fm" << endl;
-    cerr << " DeltaY = " << parameter_list->delta_y << " fm" << endl;
-    cerr << " DeltaETA = " << parameter_list->delta_eta << endl;
+    music_message << " DeltaX = " << parameter_list->delta_x << " fm";
+    music_message.flush("info");
+    music_message << " DeltaY = " << parameter_list->delta_y << " fm";
+    music_message.flush("info");
+    music_message << " DeltaETA = " << parameter_list->delta_eta;
+    music_message.flush("info");
     
     // Delta_Tau: 
     // time step to use in [fm].
@@ -356,7 +359,8 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     if (tempinput != "empty")
         istringstream(tempinput) >> tempdelta_tau;
     parameter_list->delta_tau = tempdelta_tau;
-    cerr << " DeltaTau = " << parameter_list->delta_tau << " fm" << endl;
+    music_message << " DeltaTau = " << parameter_list->delta_tau << " fm";
+    music_message.flush("info");
     
     // output_evolution_data:  
     // 1: output bulk information at every grid point at every time step
@@ -374,10 +378,12 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     
     parameter_list->nt = static_cast<int>(
             parameter_list->tau_size/(parameter_list->delta_tau) + 0.5);
-    cout << "read_in_parameters: Time step size = "
-         << parameter_list->delta_tau << endl;
-    cout << "read_in_parameters: Number of time steps required = "
-         << parameter_list->nt << endl;
+    music_message << "read_in_parameters: Time step size = "
+                  << parameter_list->delta_tau;
+    music_message.flush("info");
+    music_message << "read_in_parameters: Number of time steps required = "
+                  << parameter_list->nt;
+    music_message.flush("info");
     
     double temp_eta_0 = 3.0;
     tempinput = util->StringFind4(input_file, "eta_rhob_0");
@@ -797,12 +803,12 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
         istringstream(tempinput) >> temp_dNdyptdpt_eta_max;
     parameter_list->dNdyptdpt_eta_max = temp_dNdyptdpt_eta_max;
 
-    cout << "Done read_in_parameters." << endl;
+    music_message.info("Done read_in_parameters.");
     check_parameters(parameter_list);
 }
 
 void ReadInParameters::check_parameters(InitData *parameter_list) {
-    cout << "Checking input parameter list ... " << endl;
+    music_message.info("Checking input parameter list ... ");
 
     if (parameter_list->Initial_profile < 0) {
         cerr << "Initial profile" << parameter_list->Initial_profile
@@ -868,11 +874,12 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
 
     double freeze_dtau = parameter_list->facTau*parameter_list->delta_tau;
     if (freeze_dtau > 1.) {
-        cout << "[Warning]: freeze-out time setp is too large! "
-             << "freeze_dtau = " << freeze_dtau
-             << ", hydro_dtau = " << parameter_list->delta_tau
-             << ", average_surface_over_this_many_time_steps = "
-             << parameter_list->facTau << endl;
+        music_message << "freeze-out time setp is too large! "
+                      << "freeze_dtau = " << freeze_dtau
+                      << ", hydro_dtau = " << parameter_list->delta_tau
+                      << ", average_surface_over_this_many_time_steps = "
+                      << parameter_list->facTau;
+        music_message.flush("warning");
     }
     
     if (parameter_list->fac_x <= 0) {
@@ -888,8 +895,8 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
     }
 
     if (parameter_list->nx != parameter_list->ny) {
-        cout << "[Warning]: Grid size in x is not equal to grid size in y!"
-             << endl;
+        music_message << "Grid size in x is not equal to grid size in y!";
+        music_message.flush("warning");
     }
 
     if (parameter_list->neta < 32 && !parameter_list->boost_invariant) {
@@ -901,17 +908,18 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
     }
 
     if (parameter_list->boost_invariant && parameter_list->neta > 1) {
-        cout << "[Warning]: Grid size in eta is set to "
-             << parameter_list->neta << " for a (2+1)-d simulation! "
-             << "This is redundant! Reset neta to 1!"
-             << endl;
+        music_message << "Grid size in eta is set to "
+                      << parameter_list->neta << " for a (2+1)-d simulation! "
+                      << "This is redundant! Reset neta to 1!";
+        music_message.flush("warning");
         parameter_list->neta = 1;
     }
     
     if (parameter_list->delta_tau > 0.1) {
-        cout << "Warning: Delta_Tau = " << parameter_list->delta_tau
-             << " maybe too large! "
-             << "Please choose a dtau < 0.1 fm." << endl;
+        music_message << "Warning: Delta_Tau = " << parameter_list->delta_tau
+                      << " maybe too large! "
+                      << "Please choose a dtau < 0.1 fm.";
+        music_message.flush("warning");
 
         bool reset_dtau_use_CFL_condition = true;
         int temp_CFL_condition = 1;
@@ -923,17 +931,19 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
             reset_dtau_use_CFL_condition = false;
 
         if (reset_dtau_use_CFL_condition) {
-            cout << "reset dtau using CFL condition." << endl;
+            music_message.info("reset dtau using CFL condition.");
             double dtau_CFL = mini(
                     parameter_list->delta_x/10.0,
                     parameter_list->tau0*parameter_list->delta_eta/10.0);
             parameter_list->delta_tau = dtau_CFL;
             parameter_list->nt = static_cast<int>(
                 parameter_list->tau_size/(parameter_list->delta_tau) + 0.5);
-            cout << "read_in_parameters: Time step size = "
-                 << parameter_list->delta_tau << endl;
-            cout << "read_in_parameters: Number of time steps required = "
-                 << parameter_list->nt << endl;
+            music_message << "read_in_parameters: Time step size = "
+                          << parameter_list->delta_tau;
+            music_message.flush("info");
+            music_message << "read_in_parameters: Number of time steps required = "
+                          << parameter_list->nt;
+            music_message.flush("info");
         } else {
             exit(1);
         }
@@ -958,7 +968,8 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
         exit(1);
     }
     if (parameter_list->rk_order != 2) {
-        cout << "Runge-Kutta order = " << parameter_list->rk_order << endl;
+        music_message << "Runge-Kutta order = " << parameter_list->rk_order;
+        music_message.flush("info");
     }
     
     if (parameter_list->reconst_type > 2

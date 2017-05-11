@@ -12,7 +12,7 @@ using namespace std;
 int main(int argc, char *argv[]) {
     string input_file;
     InitData DATA;
-    
+
     if (argc > 1)
         input_file = *(argv+1);
     else

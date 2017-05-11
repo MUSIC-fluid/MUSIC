@@ -6,6 +6,7 @@
 #include "./data.h"
 #include "./util.h"
 #include "./emoji.h"
+#include "./pretty_ostream.h"
 
 //! This class handles read in parameters
 class ReadInParameters {
@@ -13,6 +14,7 @@ class ReadInParameters {
     Util *util;
     emoji *emoji_face;
     string input_file;
+    pretty_ostream music_message;
 
  public:
      ReadInParameters();
