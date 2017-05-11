@@ -426,9 +426,10 @@ void Grid_info::get_maximum_energy_density(Grid ***arena) {
     }
     eps_max *= 0.19733;   // GeV/fm^3
     T_max *= 0.19733;     // GeV
-    cout << "check: eps_max = " << eps_max << " GeV/fm^3, "
-         << "rhob_max = " << rhob_max << " 1/fm^3, "
-         << "T_max = " << T_max << " GeV." << endl;
+    music_message << "check: eps_max = " << eps_max << " GeV/fm^3, "
+                  << "rhob_max = " << rhob_max << " 1/fm^3, "
+                  << "T_max = " << T_max << " GeV.";
+    music_message.flush("info");
 }
 
 void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
@@ -494,8 +495,9 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
     double factor = tau*dx*dy*deta;
     N_B *= factor;
     T_tau_t *= factor*0.19733;  // GeV
-    cout << "check: net baryon number N_B = " << N_B << endl;
-    cout << "check: total energy T^{taut} = " << T_tau_t << " GeV" << endl;
+    music_message << "check: net baryon number N_B = " << N_B;
+    music_message << "check: total energy T^{taut} = " << T_tau_t << " GeV";
+    music_message.flush("info");
 }
 
 void Grid_info::check_velocity_shear_tensor(Grid ***arena, double tau) {
@@ -749,8 +751,9 @@ double Grid_info::get_deltaf_coeff_14moments(double T, double muB,
     } else if (type == 5) {
        deltaf_table = deltaf_coeff_tb_14mom_Bpi_shear;
     } else {
-       cout << "Grid_info::get_deltaf_coeff_14moments: unknown type: "
-            << type << endl;
+       music_message << "Grid_info::get_deltaf_coeff_14moments: unknown type: "
+                     << type;
+       music_message.flush("error");
        exit(-1);
     }
 

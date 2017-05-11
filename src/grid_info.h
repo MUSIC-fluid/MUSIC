@@ -2,16 +2,19 @@
 // Copyright 2014-2016 Chun Shen
 #ifndef SRC_GRID_INFO_H_
 #define SRC_GRID_INFO_H_
+
 #include <iostream>
 #include <iomanip>
 #include "./data.h"
 #include "./eos.h"
 #include "./grid.h"
+#include "./pretty_ostream.h"
 
 class Grid_info {
  private:
     InitData* DATA_ptr;
     EOS* eos_ptr;
+    pretty_ostream music_message;
     
     int deltaf_qmu_coeff_table_length_T;
     int deltaf_qmu_coeff_table_length_mu;
