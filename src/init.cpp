@@ -26,26 +26,28 @@ Init::~Init() {
 void Init::InitArena(InitData *DATA, Grid ****arena) {
     Grid *helperGrid;
     helperGrid = new Grid;
-    cout << "initArena" << endl;
+    music_message.info("initArena");
     if (DATA->Initial_profile == 0) {
-        cout << "Using Initial_profile=" << DATA->Initial_profile << endl;
+        music_message << "Using Initial_profile=" << DATA->Initial_profile;
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
-        cout << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1 << endl;
-        cout << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y << endl;
+        music_message << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1;
+        music_message << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y;
+        music_message.flush("info");
     } else if (DATA->Initial_profile == 1) {
-        cout << "Using Initial_profile=" << DATA->Initial_profile << endl;
+        music_message << "Using Initial_profile=" << DATA->Initial_profile;
         DATA->nx = 2;
         DATA->ny = 2;
         DATA->neta = 695;
         DATA->delta_x = 0.1;
         DATA->delta_y = 0.1;
         DATA->delta_eta = 0.02;
-        cout << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1 << endl;
-        cout << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y << endl;
-        cout << "neta=" << DATA->neta << ", deta=" << DATA->delta_eta << endl;
+        music_message << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1;
+        music_message << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y;
+        music_message << "neta=" << DATA->neta << ", deta=" << DATA->delta_eta;
+        music_message.flush("info");
     } else if (DATA->Initial_profile == 8) {
-        cout << DATA->initName <<endl;
+        music_message.info(DATA->initName);
         ifstream profile(DATA->initName.c_str());
         string dummy;
         int nx, ny, neta;
@@ -55,17 +57,18 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
                 >> dummy >> neta >> dummy >> nx >> dummy >> ny
                 >> dummy >> deta >> dummy >> dx >> dummy >> dy;
         profile.close();
-        cout << "Using Initial_profile=" << DATA->Initial_profile
-             << ". Overwriting lattice dimensions:" << endl;
+        music_message << "Using Initial_profile=" << DATA->Initial_profile
+                      << ". Overwriting lattice dimensions:";
 
         DATA->nx = nx - 1;
         DATA->ny = ny - 1;
         DATA->delta_x = dx;
         DATA->delta_y = dy;
 
-        cout << "neta=" << neta << ", nx=" << nx << ", ny=" << ny << endl;
-        cout << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x
-             << ", dy=" << DATA->delta_y << endl;
+        music_message << "neta=" << neta << ", nx=" << nx << ", ny=" << ny;
+        music_message << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x
+                      << ", dy=" << DATA->delta_y;
+        music_message.flush("info");
     } else if (DATA->Initial_profile == 11) {
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
@@ -80,7 +83,7 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
 
     // initialize arena
     *arena = helperGrid->grid_c_malloc(DATA->neta, DATA->nx + 1, DATA->ny + 1);
-    cout << "Grid allocated." << endl;
+    music_message.info("Grid allocated.");
 
     InitTJb(DATA, arena);
 
@@ -115,8 +118,6 @@ void Init::LinkNeighbors(InitData *DATA, Grid ****arena) {
     {
         #pragma omp for
         for (ieta = 0; ieta < neta; ieta++) {
-            //printf("Thread %d executes loop iteraction %d\n",
-            //       omp_get_thread_num(), ieta);
             LinkNeighbors_XY(DATA, ieta, (*arena));
         }
     }
@@ -183,40 +184,44 @@ void Init::LinkNeighbors_XY(InitData *DATA, int ieta, Grid ***arena) {
 
 int Init::InitTJb(InitData *DATA, Grid ****arena) {
     int rk_order = DATA->rk_order;
-    cout << "rk_order=" << rk_order << endl;
+    music_message << "rk_order=" << rk_order;
+    music_message.flush("info");
     if (DATA->Initial_profile == 0) {
         // Gubser flow test
-        cout << " Perform Gubser flow test ... " << endl;
-        cout << " ----- information on initial distribution -----" << endl;
+        music_message.info(" Perform Gubser flow test ... ");
+        music_message.info(" ----- information on initial distribution -----");
         
         int ieta;
         #pragma omp parallel private(ieta)
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                printf("Thread %d executes loop iteraction ieta = %d\n",
-                       omp_get_thread_num(), ieta);
+                music_message << "Thread " << omp_get_thread_num()
+                              << " executes loop iteraction ieta = " << ieta;
+                music_message.flush("info");
                 initial_Gubser_XY(DATA, ieta, (*arena));
             }/* ieta */
             #pragma omp barrier
         }
     } else if (DATA->Initial_profile == 1) {
         // code test in 1+1 D vs Monnai's results
-        cout << " Perform 1+1D test vs Monnai's results... " << endl;
+        music_message.info(" Perform 1+1D test vs Monnai's results... ");
         initial_1p1D_eta(DATA, (*arena));
     } else if (DATA->Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
-        cout << " ----- information on initial distribution -----" << endl;
-        cout << "file name used: " << DATA->initName << endl;
+        music_message.info(" ----- information on initial distribution -----");
+        music_message << "file name used: " << DATA->initName;
+        music_message.flush("info");
   
         int ieta;
         #pragma omp parallel private(ieta)
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                printf("Thread %d executes loop iteraction ieta = %d\n",
-                       omp_get_thread_num(), ieta);
+                music_message << "Thread " << omp_get_thread_num()
+                              << " executes loop iteraction ieta = " << ieta;
+                music_message.flush("info");
                 initial_IPGlasma_XY(DATA, ieta, (*arena));
             } /* ieta */
             #pragma omp barrier
@@ -227,17 +232,19 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         // constructed by nuclear thickness function TA and TB.
         // Along the longitudinal direction an asymmetric contribution from
         // target and projectile thickness function is allowed
-        cout << " ----- information on initial distribution -----" << endl;
-        cout << "file name used: " << DATA->initName_TA << " and "
-             << DATA->initName_TB << endl;
+        music_message.info(" ----- information on initial distribution -----");
+        music_message << "file name used: " << DATA->initName_TA << " and "
+                      << DATA->initName_TB;
+        music_message.flush("info");
 
         int ieta;
         #pragma omp parallel private(ieta)
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                printf("Thread %d executes loop iteraction ieta = %d\n",
-                       omp_get_thread_num(), ieta);
+                music_message << "Thread " << omp_get_thread_num()
+                              << " executes loop iteraction ieta = " << ieta;
+                music_message.flush("info");
                 initial_MCGlb_with_rhob_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
@@ -247,8 +254,9 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                printf("Thread %d executes loop iteraction ieta = %d\n",
-                       omp_get_thread_num(), ieta);
+                music_message << "Thread " << omp_get_thread_num()
+                              << " executes loop iteraction ieta = " << ieta;
+                music_message.flush("info");
                 initial_MCGlbLEXUS_with_rhob_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
@@ -258,13 +266,14 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                printf("Thread %d executes loop iteraction ieta = %d\n",
-                       omp_get_thread_num(), ieta);
+                music_message << "Thread " << omp_get_thread_num()
+                              << " executes loop iteraction ieta = " << ieta;
+                music_message.flush("info");
                 initial_AMPT_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
     }
-    cout << "initial distribution done." << endl;
+    music_message.info("initial distribution done.");
     return 1;
 }  /* InitTJb*/
 
@@ -277,24 +286,22 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
         input_filename = "tests/Gubser_flow/y=0_tau=1.00_ideal.dat";
         input_filename_prev = "tests/Gubser_flow/y=0_tau=0.98_ideal.dat";
     }
-    //if (omp_get_thread_num() == 0) {
-    //    cout << "file name used: " << input_filename << endl;
-    //}
     
     ifstream profile(input_filename.c_str());
     if (!profile.good()) {
-        cout << "Init::InitTJb: "
-             << "Can not open the initial file: " << input_filename
-             << endl;
+        music_message << "Init::InitTJb: "
+                      << "Can not open the initial file: " << input_filename;
+        music_message.flush("error");
         exit(1);
     }
     ifstream profile_prev;
     if (DATA->turn_on_shear == 0) {
         profile_prev.open(input_filename_prev.c_str());
         if (!profile_prev.good()) {
-            cout << "Init::InitTJb: "
-                 << "Can not open the initial file: " << input_filename_prev
-                 << endl;
+            music_message << "Init::InitTJb: "
+                          << "Can not open the initial file: "
+                          << input_filename_prev;
+            music_message.flush("error");
             exit(1);
         }
     }
@@ -541,17 +548,19 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid ***arena) {
 
     ifstream profile_ed(input_ed_filename.c_str());
     if (!profile_ed.good()) {
-        cout << "Init::InitTJb: "
-             << "Can not open the initial file: " << input_ed_filename
-             << endl;
+        music_message << "Init::InitTJb: "
+                      << "Can not open the initial file: "
+                      << input_ed_filename;
+        music_message.flush("error");
         exit(1);
     }
     ifstream profile_rhob;
     profile_rhob.open(input_rhob_filename.c_str());
     if (!profile_rhob.good()) {
-        cout << "Init::InitTJb: "
-             << "Can not open the initial file: " << input_rhob_filename
-             << endl;
+        music_message << "Init::InitTJb: "
+                      << "Can not open the initial file: "
+                      << input_rhob_filename;
+        music_message.flush("error");
         exit(1);
     }
 
@@ -659,9 +668,10 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             >> dummy >> deta >> dummy >> dx >> dummy >> dy;
 
     if (omp_get_thread_num() == 0) {
-        cout << "neta=" << DATA->neta << ", nx=" << nx << ", ny=" << ny
-             << ", deta=" << DATA->delta_eta << ", dx=" << dx << ", dy=" << dy
-             << endl;
+        music_message << "neta=" << DATA->neta << ", nx=" << nx
+                      << ", ny=" << ny << ", deta=" << DATA->delta_eta
+                      << ", dx=" << dx << ", dy=" << dy;
+        music_message.flush("info");
     }
 
     double density, dummy1, dummy2, dummy3;
@@ -692,9 +702,10 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
                 DATA->x_size = -dummy2*2;
                 DATA->y_size = -dummy3*2;
                 if (omp_get_thread_num() == 0) {
-                    cout << "eta_size=" << DATA->eta_size
-                         << ", x_size=" << DATA->x_size
-                         << ", y_size=" << DATA->y_size << endl;
+                    music_message << "eta_size=" << DATA->eta_size
+                                  << ", x_size=" << DATA->x_size
+                                  << ", y_size=" << DATA->y_size;
+                    music_message.flush("info");
                 }
             }
         }
@@ -1154,8 +1165,8 @@ double Init::eta_profile_normalisation(InitData *DATA, double eta) {
         double ws_a = DATA->eta_fall_off;
         res = (1.0 + exp(-ws_R/ws_a))/(1.0 + exp((abs(eta) - ws_R)/ws_a));
     } else {
-        fprintf(stderr, "initial_eta_profile out of range.\n");
-        exit(0);
+        music_message.error("initial_eta_profile out of range.");
+        exit(1);
     }
     return res;
 }
@@ -1211,9 +1222,10 @@ double Init::eta_rhob_profile_normalisation(InitData *DATA, double eta) {
         res = norm*(theta*exp(-exparg1*exparg1/2.)
                     + (1. - theta)*(A + (1. - A)*exp(-exparg2*exparg2/2.)));
     } else {
-        fprintf(stderr, "initial_eta_rhob_profile = %d out of range.\n",
-                profile_flag);
-        exit(0);
+        music_message << "initial_eta_rhob_profile = " << profile_flag
+                      << " out of range.";
+        music_message.flush("error");
+        exit(1);
     }
     return res;
 }
@@ -1254,7 +1266,7 @@ void Init::output_initial_density_profiles(InitData *DATA, Grid ***arena) {
     // this function outputs the 3d initial energy density profile
     // and net baryon density profile (if turn_on_rhob == 1)
     // for checking purpose
-    cout << "output initial density profiles into a file... " << flush;
+    music_message.info("output initial density profiles into a file... ");
     ofstream of("check_initial_density_profiles.dat");
     of << "# x(fm)  y(fm)  eta  ed(GeV/fm^3)";
     if (DATA->turn_on_rhob == 1)
@@ -1276,5 +1288,5 @@ void Init::output_initial_density_profiles(InitData *DATA, Grid ***arena) {
             }
         }
     }
-    cout << "done!" << endl;
+    music_message.info("done!");
 }

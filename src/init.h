@@ -10,6 +10,7 @@
 #include "./data.h"
 #include "./grid.h"
 #include "./hydro_source.h"
+#include "./pretty_ostream.h"
 
 class Init {
  private:
@@ -17,6 +18,7 @@ class Init {
     EOS *eos;
     Util *util;
     hydro_source *hydro_source_ptr;
+    pretty_ostream music_message;
 
  public:
     Init(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
