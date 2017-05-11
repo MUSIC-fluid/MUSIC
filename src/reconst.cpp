@@ -117,11 +117,13 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     eps_guess = GuessEps(T00, K00, cs2);
     epsilon_next = eps_guess;
      
-    if(isnan(epsilon_next))
-        cout << "problem " << eps_guess << " T00=" << T00 << " K00=" << K00
-             << " cs2=" << cs2 << " q[0]=" << q[0] << " uq[0][" 
-             << direc << "]=" << uq[0][direc] 
-			 << " q[1]=" << q[1] << " q[2]=" << q[2] << endl;
+    if (isnan(epsilon_next)) {
+        music_message << "problem " << eps_guess << " T00=" << T00
+                      << " K00=" << K00 << " cs2=" << cs2
+                      << " q[0]=" << q[0] << " uq[0][" << direc << "]="
+                      << uq[0][direc] << " q[1]=" << q[1] << " q[2]=" << q[2];
+        music_message.flush("warning");
+    }
     p_guess = eos->get_pressure(epsilon_next, rhob_init);
     p_next = p_guess;
 

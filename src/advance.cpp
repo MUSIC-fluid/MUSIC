@@ -519,8 +519,9 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     double rho_shear_max = 0.1;
     if (rho_shear > rho_shear_max) {
         if (e_local*hbarc > energy_density_warning) {
-            printf("energy density = %lf -- |pi/(epsilon+3*P)| = %lf\n",
-                   e_local*hbarc, rho_shear);
+            music_message << "energy density = " << e_local*hbarc
+                          << " GeV/fm^3, |pi/(epsilon+3*P)| = " << rho_shear;
+            music_message.flush("warning");
         }
         for (int mu = 0; mu < 4; mu++) {
             for (int nu = mu; nu < 4; nu++) {
@@ -537,8 +538,9 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     double rho_bulk_max = 0.1;
     if (rho_bulk > rho_bulk_max) {
         if (e_local*hbarc > energy_density_warning) {
-            printf("energy density = %lf --  |Pi/(epsilon+3*P)| = %lf\n",
-                   e_local*hbarc, rho_bulk);
+            music_message << "energy density = " << e_local*hbarc
+                          << " GeV/fm^3, |Pi/(epsilon+3*P)| = " << rho_bulk;
+            music_message.flush("warning");
         }
         grid_pt->pi_b[rk_flag+1] = (
                 (rho_bulk_max/rho_bulk)*grid_pt->pi_b[rk_flag+1]);
@@ -575,9 +577,11 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
     // first check the positivity of q^mu q_mu 
     // (in the conversion of gmn = diag(-+++))
     if (q_size < 0.0) {
-        cout << "Advance::QuestRevert_qmu: q^mu q_mu = " << q_size << " < 0!"
-             << endl;
-        cout << "Reset it to zero!!!!" << endl;
+        music_message << "Advance::QuestRevert_qmu: q^mu q_mu = " << q_size
+                      << " < 0!";
+        music_message.flush("warning");
+        music_message << "Reset it to zero!!!!";
+        music_message.flush("warning");
         for (int i = 0; i < 4; i++) {
             int idx_1d = util->map_2d_idx_to_1d(4, i);
             grid_pt->Wmunu[rk_flag+1][idx_1d] = 0.0;
@@ -592,8 +596,10 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
     double rho_q_max = 0.1;
     if (rho_q > rho_q_max) {
         if (e_local*hbarc > energy_density_warning) {
-            printf("energy density = %lf, rhob = %lf -- |q/rhob| = %lf\n",
-                   e_local*hbarc, rhob_local, rho_q);
+            music_message << "energy density = " << e_local*hbarc << "GeV/fm^3"
+                          << ", rhob = " << rhob_local << "1/fm^3"
+                          << "-- |q/rhob| = " << rho_q;
+            music_message.flush("warning");
         }
         for (int i = 0; i < 4; i++) {
             int idx_1d = util->map_2d_idx_to_1d(4, i);

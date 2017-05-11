@@ -10,6 +10,7 @@
 #include "./u_derivative.h"
 #include "./reconst.h"
 #include "./hydro_source.h"
+#include "./pretty_ostream.h"
 
 class Advance {
  private:
@@ -22,6 +23,7 @@ class Advance {
     Minmod *minmod;
     U_derivative *u_derivative;
     hydro_source *hydro_source_ptr;
+    pretty_ostream music_message;
 
     int grid_nx, grid_ny, grid_neta;
     int rk_order;

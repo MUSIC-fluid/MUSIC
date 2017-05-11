@@ -3,10 +3,11 @@
 #define SRC_RECONST_H_
 
 #include <iostream>
-#include "util.h"
-#include "data.h"
-#include "grid.h"
-#include "eos.h"
+#include "./util.h"
+#include "./data.h"
+#include "./grid.h"
+#include "./eos.h"
+#include "./pretty_ostream.h"
 
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_math.h>
@@ -31,6 +32,7 @@ class Reconst {
     EOS *eos;
     double eos_eps_max;
     Util *util;
+    pretty_ostream music_message;
 
 
     int max_iter;
