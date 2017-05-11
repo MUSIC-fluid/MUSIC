@@ -14,6 +14,7 @@ using namespace std;
 hydro_source::hydro_source(InitData *DATA_in) {
     DATA_ptr = DATA_in;
     source_tau_max = 0.0;
+    source_tau_min = 100.0;
     if (DATA_ptr->Initial_profile == 12
             || DATA_ptr->Initial_profile == 13) {  // MC-Glauber-LEXUS
         sigma_tau = 0.1;
@@ -112,17 +113,32 @@ void hydro_source::read_in_QCD_strings_and_partons() {
         // read in one string properly
         QCD_strings_list.push_back(new_string);
 
-        // record the last string source
+        // record the proper time of the first and last string sources
         double source_tau = new_string.tau_form;
         if (DATA_ptr->Initial_profile == 13) {
-            source_tau += new_string.tau_0;
+            if (new_string.tau_end_left > new_string.tau_end_right) {
+                source_tau = new_string.tau_end_left;
+            } else {
+                source_tau = new_string.tau_end_right;
+            }
         }
         if (source_tau_max < source_tau) {
             source_tau_max = source_tau;
         }
+
+        if (DATA_ptr->Initial_profile == 12) {
+            if (source_tau_min > source_tau) {
+                source_tau_min = source_tau;
+            }
+        } else if (DATA_ptr->Initial_profile == 13) {
+            if (source_tau_min > (new_string.tau_0 + new_string.tau_form)) {
+                source_tau_min = new_string.tau_0 + new_string.tau_form;
+            }
+        }
         getline(QCD_strings_file, text_string);
     }
     QCD_strings_file.close();
+    cout << "hydro_source: tau_min = " << source_tau_min << " fm/c." << endl;
     cout << "hydro_source: tau_max = " << source_tau_max << " fm/c." << endl;
     
     if (DATA_ptr->Initial_profile == 12) {

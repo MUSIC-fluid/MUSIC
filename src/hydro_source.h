@@ -45,6 +45,7 @@ class hydro_source {
     double sigma_tau, sigma_x, sigma_eta;
     int string_dump_mode;
     double source_tau_max;
+    double source_tau_min;
     std::vector<QCD_string> QCD_strings_list;
     std::vector<parton> parton_list;
 
@@ -79,7 +80,8 @@ class hydro_source {
     //! This function reads in the partons information from the AMPT model
     void read_in_AMPT_partons();
 
-    //! Get the maximum tau for the source term
+    //! Get the minimum and maximum tau for the source term
+    double get_source_tau_min() {return(source_tau_min);}
     double get_source_tau_max() {return(source_tau_max);}
 };
 

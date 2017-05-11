@@ -70,6 +70,7 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
     } else if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
+        DATA->tau0 = hydro_source_ptr->get_source_tau_min();
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
     } else if (DATA->Initial_profile == 30) {
@@ -937,7 +938,7 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
     int nx = DATA->nx;
     int ny = DATA->ny;
     double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
-    double tau0 = DATA->tau0;
+    //double tau0 = DATA->tau0;
     double *u = new double[4];
     u[0] = 1.0;
     u[1] = 0.0;
@@ -956,20 +957,23 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
             double rhob = 0.0;
             double epsilon = 0.0;
             if (DATA->turn_on_rhob == 1) {
-                rhob = hydro_source_ptr->get_hydro_rhob_source_before_tau(
-                                                tau0, x_local, y_local, eta);
+                //rhob = hydro_source_ptr->get_hydro_rhob_source(
+                //                            tau0, x_local, y_local, eta, u);
+                rhob = 0.0;
             } else {
                 rhob = 0.0;
             }
 
-            hydro_source_ptr->get_hydro_energy_source_before_tau(
-                                    tau0, x_local, y_local, eta, j_mu);
+            //hydro_source_ptr->get_hydro_energy_source(
+            //                        tau0, x_local, y_local, eta, u, j_mu);
 
             if (entropy_flag == 0) {
-                epsilon = j_mu[0];           // 1/fm^4
+                // epsilon = j_mu[0];           // 1/fm^4
+                epsilon = 0.0;           // 1/fm^4
             } else {
-                double local_sd = j_mu[0]*DATA->sFactor;         // 1/fm^3
-                epsilon = eos->get_s2e(local_sd, rhob);
+                //double local_sd = j_mu[0]*DATA->sFactor;         // 1/fm^3
+                //epsilon = eos->get_s2e(local_sd, rhob);
+                epsilon = 0.0;           // 1/fm^4
             }
 
             if (epsilon < 0.00000000001)
