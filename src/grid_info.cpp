@@ -496,6 +496,7 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
     N_B *= factor;
     T_tau_t *= factor*0.19733;  // GeV
     music_message << "check: net baryon number N_B = " << N_B;
+    music_message.flush("info");
     music_message << "check: total energy T^{taut} = " << T_tau_t << " GeV";
     music_message.flush("info");
 }

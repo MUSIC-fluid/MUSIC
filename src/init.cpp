@@ -196,9 +196,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                music_message << "Thread " << omp_get_thread_num()
-                              << " executes loop iteraction ieta = " << ieta;
-                music_message.flush("info");
+                cout << "[Info] Thread " << omp_get_thread_num()
+                     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_Gubser_XY(DATA, ieta, (*arena));
             }/* ieta */
             #pragma omp barrier
@@ -219,9 +218,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                music_message << "Thread " << omp_get_thread_num()
-                              << " executes loop iteraction ieta = " << ieta;
-                music_message.flush("info");
+                cout << "[Info] Thread " << omp_get_thread_num()
+                     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_IPGlasma_XY(DATA, ieta, (*arena));
             } /* ieta */
             #pragma omp barrier
@@ -242,9 +240,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                music_message << "Thread " << omp_get_thread_num()
-                              << " executes loop iteraction ieta = " << ieta;
-                music_message.flush("info");
+                cout << "[Info] Thread " << omp_get_thread_num()
+                     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_MCGlb_with_rhob_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
@@ -254,9 +251,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                music_message << "Thread " << omp_get_thread_num()
-                              << " executes loop iteraction ieta = " << ieta;
-                music_message.flush("info");
+                cout << "[Info] Thread " << omp_get_thread_num()
+                     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_MCGlbLEXUS_with_rhob_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
@@ -266,9 +262,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                music_message << "Thread " << omp_get_thread_num()
-                              << " executes loop iteraction ieta = " << ieta;
-                music_message.flush("info");
+                cout << "[Info] Thread " << omp_get_thread_num()
+                     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_AMPT_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
@@ -948,7 +943,7 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
                                            Grid ***arena) {
     int nx = DATA->nx;
     int ny = DATA->ny;
-    double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
+    //double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
     //double tau0 = DATA->tau0;
     double *u = new double[4];
     u[0] = 1.0;
@@ -962,9 +957,9 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
     int entropy_flag = DATA->initializeEntropy;
     int rk_order = DATA->rk_order;
     for (int ix = 0; ix < nx + 1; ix++) {
-        double x_local = - DATA->x_size/2. + ix*DATA->delta_x;
+        // double x_local = - DATA->x_size/2. + ix*DATA->delta_x;
         for (int iy = 0; iy < ny + 1; iy++) {
-            double y_local = - DATA->y_size/2. + iy*DATA->delta_y;
+            // double y_local = - DATA->y_size/2. + iy*DATA->delta_y;
             double rhob = 0.0;
             double epsilon = 0.0;
             if (DATA->turn_on_rhob == 1) {
