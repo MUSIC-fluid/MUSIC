@@ -15,8 +15,12 @@ add_executable (mpihydro
     music.cpp
     cornelius.cpp
     hydro_source.cpp
+    pretty_ostream.cpp
     )
 
 target_link_libraries (mpihydro ${GSL_LIBRARIES})
+if (APPLE)
+    set_target_properties (mpihydro PROPERTIES COMPILE_FLAGS "-DAPPLE")
+endif (APPLE)
 
 install(TARGETS mpihydro DESTINATION ${CMAKE_HOME_DIRECTORY})

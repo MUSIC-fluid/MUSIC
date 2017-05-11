@@ -10,6 +10,7 @@
 #include "./evolve.h"
 #include "./hydro_source.h"
 #include "./read_in_parameters.h"
+#include "./pretty_ostream.h"
 
 //! This is a wrapper class for the MUSIC hydro
 class MUSIC {
@@ -36,6 +37,8 @@ class MUSIC {
     Evolve *evolve;
 
     hydro_source *hydro_source_ptr;
+
+    pretty_ostream music_message;
 
  public:
     MUSIC(InitData *DATA_in, string input_file);
