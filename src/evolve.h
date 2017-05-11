@@ -16,6 +16,7 @@
 #include "./advance.h"
 #include "./hydro_source.h"
 #include "./u_derivative.h"
+#include "./pretty_ostream.h"
 
 // this is a control class for the hydrodynamic evolution
 class Evolve {
@@ -27,6 +28,7 @@ class Evolve {
     Advance *advance;
     U_derivative *u_derivative;
     hydro_source *hydro_source_ptr;
+    pretty_ostream music_message;
 
     InitData *DATA_ptr;
 

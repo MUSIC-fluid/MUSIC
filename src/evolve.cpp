@@ -194,8 +194,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
             }
         }/* do freeze-out determination */
     
-        fprintf(stdout, "Done time step %d/%d. tau = %6.3f fm/c \n", 
-                it, itmax, tau);
+        music_message << "Done time step " << it << "/" << itmax
+                      << " tau = " << tau << " fm/c";
+        music_message.flush("info");
         if (frozen) break;
     }/* it */ 
 
@@ -224,7 +225,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         }
     }
 
-    fprintf(stderr,"SUM=%f\n", SUM);
+    music_message.info("Finished.");
     return 1; /* successful */
 }/* Evolve */
 
@@ -6156,8 +6157,9 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 TFO = eos->get_temperature(epsFO, rhob_center);
                 muB = eos->get_mu(epsFO, rhob_center);
                 if (TFO < 0) {
-                    cout << "TFO=" << TFO 
-                         << "<0. ERROR. exiting." << endl;
+                    music_message << "TFO=" << TFO
+                                  << "<0. ERROR. exiting.";
+                    music_message.flush("error");
                     exit(1);
                 }
 
@@ -6404,9 +6406,10 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
             double T_local = eos->get_temperature(e_local, rhob_center);
             double muB_local = eos->get_mu(e_local, rhob_center);
             if (T_local < 0) {
-                cout << "Error:Evolve::FreezeOut_equal_tau_Surface: "
-                     << "T_local = " << T_local
-                     << " <0. ERROR. exiting." << endl;
+                music_message << "Evolve::FreezeOut_equal_tau_Surface: "
+                              << "T_local = " << T_local
+                              << " <0. ERROR. exiting.";
+                music_message.flush("error");
                 exit(1);
             }
 
@@ -6942,7 +6945,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     muB = eos->get_mu(epsFO, rhob_center);
                     if (TFO < 0)
                     {
-                        cout << "TFO=" << TFO << "<0. ERROR. exiting." << endl;
+                        music_message << "TFO=" << TFO
+                                      << "<0. ERROR. exiting.";
+                        music_message.flush("error");
                         exit(1);
                     }
 
@@ -6998,10 +7003,12 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
     }
    
     int all_frozen_flag = 1;
-    for (int ii = 0; ii < n_freeze_surf; ii++)
+    for (int ii = 0; ii < n_freeze_surf; ii++) {
         all_frozen_flag *= all_frozen[ii];
-    if (all_frozen_flag == 1)
-        cout << "All cells frozen out. Exiting." << endl;
+    }
+    if (all_frozen_flag == 1) {
+        music_message.info("All cells frozen out. Exiting.");
+    }
 
     delete [] all_frozen;
     return(all_frozen_flag);
@@ -7064,13 +7071,15 @@ void Evolve::initialize_freezeout_surface_info() {
     } else if(freeze_eps_flag == 1) {
         // read in from a file
         string eps_freeze_list_filename = DATA_ptr->freeze_list_filename;
-        cout << "read in freeze out surface information from " 
-             << eps_freeze_list_filename << endl;
+        music_message << "read in freeze out surface information from " 
+                      << eps_freeze_list_filename;
+        music_message.flush("info");
         ifstream freeze_list_file(eps_freeze_list_filename.c_str());
         if (!freeze_list_file) {
-            cout << "Evolve::initialize_freezeout_surface_info: "
-                 << "can not open freeze-out list file: " 
-                 << eps_freeze_list_filename << endl;
+            music_message << "Evolve::initialize_freezeout_surface_info: "
+                          << "can not open freeze-out list file: " 
+                          << eps_freeze_list_filename;
+            music_message.flush("error");
             exit(1);
         }
         int temp_n_surf = 0;
@@ -7089,11 +7098,13 @@ void Evolve::initialize_freezeout_surface_info() {
         }
         freeze_list_file.close();
         n_freeze_surf = temp_n_surf;
-        cout << "totally " << n_freeze_surf 
-             << " freeze-out surface will be generated ..." << endl;
+        music_message << "totally " << n_freeze_surf 
+                      << " freeze-out surface will be generated ...";
+        music_message.flush("info");
     } else {
-        cout << "Evolve::initialize_freezeout_surface_info: "
-             << "unrecoginze freeze_eps_flag = " << freeze_eps_flag << endl;
+        music_message << "Evolve::initialize_freezeout_surface_info: "
+                      << "unrecoginze freeze_eps_flag = " << freeze_eps_flag;
+        music_message.flush("error");
         exit(1);
     }
 }
