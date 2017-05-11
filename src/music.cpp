@@ -41,6 +41,8 @@ MUSIC::~MUSIC() {
     }
 }
 
+
+//! This function initialize hydro
 int MUSIC::initialize_hydro() {
     // clean all the surface files
     system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
@@ -52,8 +54,8 @@ int MUSIC::initialize_hydro() {
 }
 
 
+//! this is a shell function to run hydro
 int MUSIC::run_hydro() {
-    // this is a shell function to run hydro
     evolve = new Evolve(eos, DATA, hydro_source_ptr);
     evolve->EvolveIt(DATA, arena);
     flag_hydro_run = 1;
@@ -61,9 +63,9 @@ int MUSIC::run_hydro() {
 }
 
 
+//! this is a test function to output the transport coefficients as
+//! function of T and mu_B
 void MUSIC::output_transport_coefficients() {
-    // this is a test function to output the transport coefficients as
-    // function of T and mu_B
     music_message << "output transport coefficients as functions of T and muB";
     music_message.flush("info");
     Diss *temp_dissipative_ptr = new Diss(eos, DATA);

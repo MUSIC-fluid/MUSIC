@@ -1,5 +1,6 @@
 // Copyright Chun Shen @ 2014-2016
 #include <string>
+#include <iomanip>
 
 #include "./util.h"
 #include "./grid_info.h"
@@ -593,7 +594,8 @@ void Grid_info::output_1p1D_check_file(Grid ***arena, double tau) {
 
 void Grid_info::output_evolution_for_movie(Grid ***arena, double tau) {
     ostringstream filename;
-    filename << "movie_tau_" << tau << ".dat";
+    filename << "movie_tau_"
+             << setprecision(2) << fixed << tau << ".dat";
     ofstream output_file(filename.str().c_str());
 
     double unit_convert = 0.19733;  // hbarC [GeV*fm]

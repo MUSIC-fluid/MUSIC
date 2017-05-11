@@ -182,10 +182,9 @@ void Init::LinkNeighbors_XY(InitData *DATA, int ieta, Grid ***arena) {
     }
 }
 
+
+//! This is a shell function to initial hydrodynamic fields
 int Init::InitTJb(InitData *DATA, Grid ****arena) {
-    int rk_order = DATA->rk_order;
-    music_message << "rk_order=" << rk_order;
-    music_message.flush("info");
     if (DATA->Initial_profile == 0) {
         // Gubser flow test
         music_message.info(" Perform Gubser flow test ... ");
@@ -196,8 +195,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                cout << "[Info] Thread " << omp_get_thread_num()
-                     << " executes loop iteraction ieta = " << ieta << endl;
+                //cout << "[Info] Thread " << omp_get_thread_num()
+                //     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_Gubser_XY(DATA, ieta, (*arena));
             }/* ieta */
             #pragma omp barrier
@@ -218,8 +217,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                cout << "[Info] Thread " << omp_get_thread_num()
-                     << " executes loop iteraction ieta = " << ieta << endl;
+                //cout << "[Info] Thread " << omp_get_thread_num()
+                //     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_IPGlasma_XY(DATA, ieta, (*arena));
             } /* ieta */
             #pragma omp barrier
@@ -240,19 +239,20 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                cout << "[Info] Thread " << omp_get_thread_num()
-                     << " executes loop iteraction ieta = " << ieta << endl;
+                //cout << "[Info] Thread " << omp_get_thread_num()
+                //     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_MCGlb_with_rhob_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
     } else if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
         int ieta;
+        music_message.info("Initialize hydro with source terms");
         #pragma omp parallel private(ieta)
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                cout << "[Info] Thread " << omp_get_thread_num()
-                     << " executes loop iteraction ieta = " << ieta << endl;
+                //cout << "[Info] Thread " << omp_get_thread_num()
+                //     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_MCGlbLEXUS_with_rhob_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
@@ -262,8 +262,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
         {
             #pragma omp for
             for (ieta = 0; ieta < DATA->neta; ieta++) {
-                cout << "[Info] Thread " << omp_get_thread_num()
-                     << " executes loop iteraction ieta = " << ieta << endl;
+                //cout << "[Info] Thread " << omp_get_thread_num()
+                //     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_AMPT_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
