@@ -52,15 +52,17 @@ hydro_source::~hydro_source() {
 void hydro_source::read_in_QCD_strings_and_partons() {
     string QCD_strings_filename = DATA_ptr->initName;
     string partons_filename = DATA_ptr->initName_rhob;
-    cout << "read in QCD strings list from " << QCD_strings_filename
-         << " and partons list from " << partons_filename << endl;
+    music_message << "read in QCD strings list from " << QCD_strings_filename
+                  << " and partons list from " << partons_filename;
+    music_message.flush("info");
     string text_string;
 
     ifstream QCD_strings_file(QCD_strings_filename.c_str());
     if (!QCD_strings_file) {
-        cerr << "Error:hydro_source::read_in_QCD_strings_and_partons: "
-             << "can not open QCD strings file: " << QCD_strings_filename
-             << endl;
+        music_message << "hydro_source::read_in_QCD_strings_and_partons: "
+                      << "can not open QCD strings file: "
+                      << QCD_strings_filename;
+        music_message.flush("error");
         exit(1);
     }
     getline(QCD_strings_file, text_string);  // read the header
@@ -81,14 +83,18 @@ void hydro_source::read_in_QCD_strings_and_partons() {
             text_stream >> new_string.frac_r;
         } else {
             // the string is too short
-            cerr << "Error:read_in_QCD_strings_and_partons: the format of file"
-                 << QCD_strings_filename << "is wrong~" << endl;
+            music_message << "read_in_QCD_strings_and_partons: "
+                          << "the format of file"
+                          << QCD_strings_filename << "is wrong~";
+            music_message.flush("error");
             exit(1);
         }
         if (!text_stream.eof()) {
             // the string is too long
-            cerr << "Error:read_in_QCD_strings_and_partons: the format of file"
-                 << QCD_strings_filename << "is wrong~" << endl;
+            music_message << "read_in_QCD_strings_and_partons: "
+                          << "the format of file"
+                          << QCD_strings_filename << "is wrong~";
+            music_message.flush("error");
             exit(1);
         }
 
@@ -138,15 +144,18 @@ void hydro_source::read_in_QCD_strings_and_partons() {
         getline(QCD_strings_file, text_string);
     }
     QCD_strings_file.close();
-    cout << "hydro_source: tau_min = " << source_tau_min << " fm/c." << endl;
-    cout << "hydro_source: tau_max = " << source_tau_max << " fm/c." << endl;
+    music_message << "hydro_source: tau_min = " << source_tau_min << " fm/c.";
+    music_message.flush("info");
+    music_message << "hydro_source: tau_max = " << source_tau_max << " fm/c.";
+    music_message.flush("info");
     
     if (DATA_ptr->Initial_profile == 12) {
         ifstream partons_file(partons_filename.c_str());
         if (!partons_file) {
-            cerr << "Error:hydro_source::read_in_QCD_strings_and_partons: "
-                 << "can not open parton list file: " << partons_filename
-                 << endl;
+            music_message << "hydro_source::read_in_QCD_strings_and_partons: "
+                          << "can not open parton list file: "
+                          << partons_filename;
+            music_message.flush("error");
             exit(1);
         }
         getline(partons_file, text_string);      // read the header
@@ -163,21 +172,34 @@ void hydro_source::read_in_QCD_strings_and_partons() {
         }
         partons_file.close();
     }
+
+    double total_baryon_number = 0;
+    if (DATA_ptr->Initial_profile == 12) {
+        total_baryon_number = parton_list.size();
+    } else if (DATA_ptr->Initial_profile == 13) {
+        for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
+             it != QCD_strings_list.end(); it++) {
+            total_baryon_number += ((*it).frac_l + (*it).frac_r);
+        }
+    }
+    music_message << "total baryon number = " << total_baryon_number;
+    music_message.flush("info");
 }
 
 
 //! This function reads in the partons information from the AMPT model
 void hydro_source::read_in_AMPT_partons() {
     string AMPT_filename = DATA_ptr->initName_AMPT;
-    cout << "[Info] hydro_source: "
-         << "read in AMPT parton list from " << AMPT_filename << endl;
+    music_message << "hydro_source: "
+                  << "read in AMPT parton list from " << AMPT_filename;
+    music_message.flush("info");
 
     string text_string;
     ifstream AMPT_file(AMPT_filename.c_str());
     if (!AMPT_file) {
-        cerr << "Error:hydro_source::read_in_AMPT_partons: "
-             << "can not open the AMPT file: " << AMPT_filename
-             << endl;
+        music_message << "hydro_source::read_in_AMPT_partons: "
+                      << "can not open the AMPT file: " << AMPT_filename;
+        music_message.flush("error");
         exit(1);
     }
 
@@ -216,10 +238,11 @@ void hydro_source::read_in_AMPT_partons() {
         getline(AMPT_file, text_string);
     }
     AMPT_file.close();
-    cout << "[Info] hydro_source:: read in " << parton_list.size() << "/"
-         << n_partons << " partons." << endl;
-    cout << "[Info] hydro_source:: tau_max = " << source_tau_max << " fm."
-         << endl;
+    music_message << "hydro_source:: read in " << parton_list.size() << "/"
+                  << n_partons << " partons.";
+    music_message.flush("info");
+    music_message << "hydro_source:: tau_max = " << source_tau_max << " fm.";
+    music_message.flush("info");
 }
 
 void hydro_source::get_hydro_energy_source(

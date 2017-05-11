@@ -4,6 +4,7 @@
 
 #include <vector>
 #include "./data.h"
+#include "./pretty_ostream.h"
 
 
 //! This data structure contains a QCD string object
@@ -39,6 +40,7 @@ struct parton {
 class hydro_source {
  private:
     InitData *DATA_ptr;
+    pretty_ostream music_message;
     double volume;
     double string_quench_factor;
     double parton_quench_factor;
