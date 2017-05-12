@@ -125,6 +125,13 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                 grid_info->output_1p1D_check_file(arena, tau);
             }
         }
+        
+        if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
+            if (it == it_start) {
+                grid_info->output_energy_density_and_rhob_disitrubtion(
+                    arena, "energy_density_and_rhob_from_source_terms.dat");
+            }
+        }
 
         if (it % Nskip_timestep == 0) {
             if (outputEvo_flag == 1) {
@@ -136,7 +143,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
                 grid_info->output_evolution_for_movie(arena, tau);
             }
         }
-
+        
         // grid_info->output_average_phase_diagram_trajectory(tau, -0.5, 0.5,
         //                                                    arena);
         // grid_info->output_average_phase_diagram_trajectory(tau, 0.5, 1.5,

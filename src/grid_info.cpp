@@ -51,6 +51,8 @@ Grid_info::~Grid_info() {
     }
 }
 
+
+//! This function outputs a header files for JF and Gojko's EM program
 void Grid_info::Output_hydro_information_header(InitData *DATA) {
     string fname = "hydro_info_header_h";
 
@@ -97,12 +99,7 @@ void Grid_info::Output_hydro_information_header(InitData *DATA) {
 }
 
 
-// Output for MARTINI when the option Coordinates is set to "taueta".
-// Because fluctuations in initial conditions are taken into account here,
-// the range is now all x, y, and eta, not restricted to positive values.
-// However, to save space, x, y, and eta are not written into the output, and
-// the interpolation in MARTINI must match properly with the output generated
-// here. -CFY 11/12/2010
+//! This function outputs hydro evolution file in binary format
 void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                                          double tau) {
     const string out_name_xyeta = "evolution_xyeta.dat";
@@ -267,9 +264,10 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
     }
 }/* OutputEvolutionDataXYEta */
 
+    
+//! This function outputs hydro evolution file in binary format
 void Grid_info::OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
                                               double tau) {
-    // this function output hydro evolution file in binary format
     // the format of the file is as follows,
     //    itau ix iy ieta T ux uy ueta
     // if turn_on_shear == 1:
@@ -427,12 +425,15 @@ void Grid_info::get_maximum_energy_density(Grid ***arena) {
     }
     eps_max *= 0.19733;   // GeV/fm^3
     T_max *= 0.19733;     // GeV
-    music_message << "check: eps_max = " << eps_max << " GeV/fm^3, "
+    music_message << "eps_max = " << eps_max << " GeV/fm^3, "
                   << "rhob_max = " << rhob_max << " 1/fm^3, "
                   << "T_max = " << T_max << " GeV.";
     music_message.flush("info");
 }
 
+
+//! This function checks the total energy and total net baryon number
+//! at a give proper time
 void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                                       double tau) {
     double N_B = 0.0;
@@ -453,10 +454,6 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                 for (int iy = 0; iy <= ny; iy++) {
                     double cosh_eta = cosh(eta_s);
                     double sinh_eta = sinh(eta_s);
-                    //N_B += (arena[ieta][ix][iy].rhob
-                    //        *arena[ieta][ix][iy].u[0][0]
-                    //        + (arena[ieta][ix][iy].prevWmunu[0][10]
-                    //           + arena[ieta][ix][iy].prevWmunu[1][10])*0.5);
                     N_B += (arena[ieta][ix][iy].TJb[0][4][0]
                             + (arena[ieta][ix][iy].prevWmunu[0][10]
                                + arena[ieta][ix][iy].prevWmunu[1][10])*0.5);
@@ -496,12 +493,14 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
     double factor = tau*dx*dy*deta;
     N_B *= factor;
     T_tau_t *= factor*0.19733;  // GeV
-    music_message << "check: net baryon number N_B = " << N_B;
+    music_message << "net baryon number N_B = " << N_B;
     music_message.flush("info");
-    music_message << "check: total energy T^{taut} = " << T_tau_t << " GeV";
+    music_message << "total energy T^{taut} = " << T_tau_t << " GeV";
     music_message.flush("info");
 }
 
+
+//! This function outputs the velocity shear tensor for checking purpose
 void Grid_info::check_velocity_shear_tensor(Grid ***arena, double tau) {
     ostringstream filename;
     filename << "Check_velocity_shear_tensor_tau_" << tau << ".dat";
@@ -539,6 +538,8 @@ void Grid_info::check_velocity_shear_tensor(Grid ***arena, double tau) {
     output_file.close();
 }
 
+
+//! This function putputs files to check with Gubser flow solution
 void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
     ostringstream filename;
     filename << "Gubser_flow_check_tau_" << tau << ".dat";
@@ -572,6 +573,8 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
     output_file.close();
 }
 
+
+//! This function outputs files to cross check with 1+1D simulation
 void Grid_info::output_1p1D_check_file(Grid ***arena, double tau) {
     ostringstream filename;
     filename << "1+1D_check_tau_" << tau << ".dat";
@@ -592,12 +595,20 @@ void Grid_info::output_1p1D_check_file(Grid ***arena, double tau) {
     output_file.close();
 }
 
+
+//! This function outputs energy density and n_b for making movies
 void Grid_info::output_evolution_for_movie(Grid ***arena, double tau) {
     ostringstream filename;
     filename << "movie_tau_"
              << setprecision(2) << fixed << tau << ".dat";
-    ofstream output_file(filename.str().c_str());
+    output_energy_density_and_rhob_disitrubtion(arena, filename.str());
+}
 
+
+//! This function dumps the energy density and net baryon density
+void Grid_info::output_energy_density_and_rhob_disitrubtion(Grid ***arena,
+                                                            string filename) {
+    ofstream output_file(filename.c_str());
     double unit_convert = 0.19733;  // hbarC [GeV*fm]
     int n_skip_x = DATA_ptr->output_evolution_every_N_x;
     int n_skip_y = DATA_ptr->output_evolution_every_N_y;
@@ -772,10 +783,11 @@ double Grid_info::get_deltaf_coeff_14moments(double T, double muB,
     return(coeff);
 }
 
+
+//! This function outputs average T and mu_B as a function of proper tau
+//! within a given space-time rapidity range
 void Grid_info::output_average_phase_diagram_trajectory(
                 double tau, double eta_min, double eta_max, Grid ***arena) {
-    // this function outputs average T and mu_B as a function of proper tau
-    // within a given space-time rapidity range
     ostringstream filename;
     filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
              << "_" << eta_max << ".dat";
