@@ -1,4 +1,5 @@
 // Copyright Chun Shen @ 2017
+// This class is inspired by the JetScapeLogger class written by Joern Putschke
 
 #define BOLD    "\033[1m"       // Bold
 #define BLACK   "\033[30m"      // Black

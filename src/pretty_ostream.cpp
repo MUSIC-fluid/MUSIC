@@ -1,4 +1,6 @@
 // Copyright Chun Shen @ 2017
+// This class is inspired by the JetScapeLogger class written by Joern Putschke
+
 #include <iomanip>
 #include <sys/time.h>
 #include <sys/resource.h>
