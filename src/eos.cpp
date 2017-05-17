@@ -643,7 +643,7 @@ void EOS::init_eos2()
   fclose(eos_T6);
   fclose(eos_T7);
 
-  cout << "Done reading EOS." << endl;
+  music_message.info("Done reading EOS.");
 
   build_velocity_of_sound_sq_matrix();
 
@@ -685,7 +685,7 @@ void EOS::init_eos3(int selector)
 {
   // read the lattice EOS pressure, temperature, and 
   // baryon chemical potential from file
-  cout << "reading EOS..." << endl;
+  music_message.info("reading EOS...");
   whichEOS = 3; 
   int i, j;
   string envPath;
@@ -786,7 +786,8 @@ void EOS::init_eos3(int selector)
       streos_T7_name << path << "par7.dat";
       eos_T7_name = streos_T7_name.str();
       
-      cout << "from path " << path << endl;
+      music_message << "from path " << path;
+      music_message.flush("info");
     }
   else //if path is not set in the environment use current folder and then /EOS/s95p-PCE160 subfolder
     {
@@ -820,7 +821,8 @@ void EOS::init_eos3(int selector)
       streos_T7_name << localpath << "par7.dat";
       eos_T7_name = streos_T7_name.str();
        
-      cout << "from path " << localpath << endl;
+      music_message << "from path " << localpath;
+      music_message.flush("info");
     
     }
  
@@ -1102,7 +1104,7 @@ void EOS::init_eos3(int selector)
   eos_T6.close();
   eos_T7.close();
 
-  cout << "Done reading EOS." << endl;
+  music_message.info("Done reading EOS.");
 
   build_velocity_of_sound_sq_matrix();
 
@@ -1405,7 +1407,7 @@ void EOS::init_eos7() {
     fclose(eos_T6);
     fclose(eos_T7);
 
-    cout << "Done reading EOS." << endl;
+    music_message.info("Done reading EOS.");
 
     build_velocity_of_sound_sq_matrix();
 }
@@ -1413,7 +1415,7 @@ void EOS::init_eos7() {
 void EOS::init_eos10(int selector) {
     // read the lattice EOS at finite muB
     // pressure, temperature, and baryon chemical potential from file
-    cout << "reading EOS..." << endl;
+    music_message.info("reading EOS...");
     whichEOS = 10;
 
     stringstream slocalpath;
@@ -1475,7 +1477,8 @@ void EOS::init_eos10(int selector) {
     streos_mub6_name << path << "neos3_mb.dat";
     streos_mub7_name << path << "neos4_mb.dat";
 
-    cout << "from path " << path << endl;
+    music_message << "from path " << path;
+    music_message.flush("info");
 
     ifstream eos_p1(streos_p1_name.str().c_str());
     ifstream eos_p2(streos_p2_name.str().c_str());
@@ -1706,14 +1709,14 @@ void EOS::init_eos10(int selector) {
     eos_mub6.close();
     eos_mub7.close();
 
-    cout << "Done reading EOS." << endl;
+    music_message.info("Done reading EOS.");
     build_velocity_of_sound_sq_matrix();
 }
 
 void EOS::init_eos11(int selector) {
     // read Pasi's lattice EOS at finite muB
     // pressure, temperature, and baryon chemical potential from file
-    cout << "reading EOS (Pasi) at finite mu_B ..." << endl;
+    music_message.info("reading EOS (Pasi) at finite mu_B ...");
     whichEOS = 11;
 
     stringstream slocalpath;
@@ -1774,7 +1777,8 @@ void EOS::init_eos11(int selector) {
     streos_mus3_name << path << "ms3.dat";
     streos_mus4_name << path << "ms4.dat";
 
-    cout << "from path " << path << endl;
+    music_message << "from path " << path;
+    music_message.flush("info");
 
     ifstream eos_p1(streos_p1_name.str().c_str());
     ifstream eos_p2(streos_p2_name.str().c_str());
@@ -1970,14 +1974,14 @@ void EOS::init_eos11(int selector) {
     eos_mus3.close();
     eos_mus4.close();
 
-    cout << "Done reading EOS." << endl;
+    music_message.info("Done reading EOS.");
     build_velocity_of_sound_sq_matrix();
 }
 
 void EOS::init_eos12(int selector) {
     // read the lattice EOS at finite muB
     // pressure, temperature, and baryon chemical potential from file
-    cout << "reading EOS ..." << endl;
+    music_message.info("reading EOS ...");
     whichEOS = 12;
 
     stringstream slocalpath;
@@ -2039,7 +2043,8 @@ void EOS::init_eos12(int selector) {
     streos_mub6_name << path << "neos6_mub.dat";
     streos_mub7_name << path << "neos7_mub.dat";
 
-    cout << "from path " << path << endl;
+    music_message << "from path " << path;
+    music_message.flush("info");
 
     ifstream eos_p1(streos_p1_name.str().c_str());
     ifstream eos_p2(streos_p2_name.str().c_str());
@@ -2270,7 +2275,7 @@ void EOS::init_eos12(int selector) {
     eos_mub6.close();
     eos_mub7.close();
 
-    cout << "Done reading EOS." << endl;
+    music_message.info("Done reading EOS.");
     build_velocity_of_sound_sq_matrix();
 }
 
