@@ -66,13 +66,12 @@ class Advance {
     int FirstRKStepT(double tau, double x_local, double y_local,
                      double eta_s_local,
                      InitData *DATA, Grid *grid_pt,
-                     int rk_flag, double *qi, double *rhs, double **w_rhs,
+                     int rk_flag, double *qi, double *rhs,
                      double **qirk, Grid *grid_rk, NbrQs *NbrCells,
                      BdryCells *HalfwayCells);
 
     int FirstRKStepW(double tau_it, InitData *DATA, Grid *grid_pt,
-                     int rk_flag, double *qi, double *rhs,
-                     double **w_rhs, double **qirk, Grid *grid_rk);
+                     int rk_flag);
 
     void UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag);
     int QuestRevert(double tau, Grid *grid_pt, int rk_flag, InitData *DATA);

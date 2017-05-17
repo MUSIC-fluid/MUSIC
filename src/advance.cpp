@@ -77,12 +77,11 @@ int Advance::AdvanceLocalT(double tau, InitData *DATA, int ieta, Grid ***arena,
                            int rk_flag) {
     // this function advances the ideal part in the transverse plane
     Grid grid_rk;
-    double **qirk, *qi, *rhs, **w_rhs;
+    double **qirk, *qi, *rhs;
 
     qi = util->vector_malloc(5);
     rhs = util->vector_malloc(5);
     qirk = util->mtx_malloc(5, 4);
-    w_rhs = util->mtx_malloc(5, 4);
     grid_rk.TJb = util->cube_malloc(rk_order, 5, 4);
     grid_rk.u = util->mtx_malloc(rk_order, 4);
     
@@ -98,14 +97,13 @@ int Advance::AdvanceLocalT(double tau, InitData *DATA, int ieta, Grid ***arena,
             double y_local = -DATA_ptr->y_size/2. + iy*DATA_ptr->delta_y;
             FirstRKStepT(tau, x_local, y_local, eta_s_local,
                          DATA, &(arena[ieta][ix][iy]), rk_flag, qi, rhs, 
-                         w_rhs, qirk, &grid_rk, &NbrCells, &HalfwayCells);
+                         qirk, &grid_rk, &NbrCells, &HalfwayCells);
         }
     }
 
     util->cube_free(grid_rk.TJb, rk_order, 5, 4);
     util->mtx_free(grid_rk.u, rk_order, 4);
     util->mtx_free(qirk, 5, 4);
-    util->mtx_free(w_rhs, 5, 4);
     util->vector_free(qi);
     util->vector_free(rhs);
 
@@ -118,31 +116,15 @@ int Advance::AdvanceLocalT(double tau, InitData *DATA, int ieta, Grid ***arena,
 /* %%%%%%%%%%%%%%%%% Advance Local W %%%%%%%%%% */
 int Advance::AdvanceLocalW(double tau, InitData *DATA, int ieta, Grid ***arena,
                            int rk_flag) {
-    Grid grid_rk;
     int flag = 0;
-    double **qirk, *qi, *rhs, **w_rhs;
-
-    qi = util->vector_malloc(5);
-    rhs = util->vector_malloc(5);
-    qirk = util->mtx_malloc(5, 4);
-    w_rhs = util->mtx_malloc(5, 4);
-    grid_rk.TJb = util->cube_malloc(rk_order, 5, 4);
-    grid_rk.u = util->mtx_malloc(rk_order, 4);
 
     for (int ix=0; ix <= grid_nx; ix++) {
 	    for (int iy=0; iy <= grid_ny; iy++) {
-            flag = FirstRKStepW(tau, DATA, &(arena[ieta][ix][iy]), rk_flag, qi,
-                                rhs, w_rhs, qirk, &grid_rk);
+            flag = FirstRKStepW(tau, DATA, &(arena[ieta][ix][iy]), rk_flag);
 	    } /*iy */
 	} /* ix */
 
-    util->cube_free(grid_rk.TJb, rk_order, 5, 4);
-    util->mtx_free(grid_rk.u, rk_order, 4);
-    util->mtx_free(qirk, 5, 4);
-    util->mtx_free(w_rhs, 5, 4);
-    util->vector_free(qi);
-    util->vector_free(rhs);
-    return flag; 
+    return(flag);
 }/* AdvanceLocalW */
 
 
@@ -150,7 +132,7 @@ int Advance::AdvanceLocalW(double tau, InitData *DATA, int ieta, Grid ***arena,
 int Advance::FirstRKStepT(double tau, double x_local, double y_local,
                           double eta_s_local,
                           InitData *DATA, Grid *grid_pt,
-                          int rk_flag, double *qi, double *rhs, double **w_rhs,
+                          int rk_flag, double *qi, double *rhs,
                           double **qirk, Grid *grid_rk, NbrQs *NbrCells,
                           BdryCells *HalfwayCells) { 
     // this advances the ideal part
@@ -264,11 +246,19 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
 int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
-                          int rk_flag, double *qi, double *rhs, double **w_rhs,
-                          double **qirk, Grid *grid_rk) { 
+                          int rk_flag) {
     double tau_now = tau;
     double tau_next = tau + (DATA->delta_tau);
   
+    double **w_rhs;
+    w_rhs = new double* [5];
+    for (int i = 0; i < 5; i++) {
+        w_rhs[i] = new double[4];
+        for (int j = 0; j < 4; j++) {
+            w_rhs[i][j] = 0.;
+        }
+    }
+
     // Sangyong Nov 18 2014 implemented mu_max
     int mu_max;
     if (DATA->turn_on_rhob == 1)
@@ -458,10 +448,15 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
         }
     }
 
+    for (int i = 0; i < 5; i++) {
+        delete[] w_rhs[i];
+    }
+    delete[] w_rhs;
+
     if (revert_flag == 1 || revert_q_flag == 1)
-        return -1;
+        return(-1);
     else
-        return 1;
+        return(1);
 }/* FirstRKStepW */
 
 // update results after RK evolution to grid_pt
