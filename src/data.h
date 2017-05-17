@@ -91,26 +91,35 @@ typedef struct init_data {
     //! skip step for freeze out surface finder
     int fac_eta;
 
-    
     int alpha_max;          //!< dimension of TJb
     int turn_on_rhob;       //!< flag to include baryon current
+
     int viscosity_flag;     //!< flag to include viscosity in the simulation
     int turn_on_shear;      //!< flag to include shear viscosity
     int turn_on_bulk;       //!< flag to include bulk viscosity
     int turn_on_diff;       //!< flag to include net baryon diffusion
     double shear_to_s;      //!< value of specific shear viscosity
+
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;
+
+    //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
-    double kappa_coefficient;  //!< coefficient related to the net baryon diff.
+
+    //! coefficient related to the net baryon diff.
+    double kappa_coefficient;
 
     //! decide whether to output the evolution data (1) or not (0)
     int outputEvolutionData;
+
+    //! decide whether to output files for movie
     int output_movie_flag;
+
     //! decide whether to output "evolution_xyeta.dat" and
     //! "evolution_Wmunu_over_shear_xyeta.dat" in binary format (1)
     //! or in text format (0)
     int outputBinaryEvolution;
+
     bool output_hydro_debug_info;
     int output_evolution_every_N_timesteps;
     int output_evolution_every_N_x;
@@ -120,14 +129,18 @@ typedef struct init_data {
     double output_evolution_T_cut;
 
     int doFreezeOut;            //!< flag to output freeze-out surface
+
     //! flag to include low temperature cell at the initial time
     int doFreezeOut_lowtemp;
+
     int freezeOutMethod;        //!< freeze-out method
+
     double TFO;      //!< freeze-out temperature. Used if useEpsFO=0
 
     int useEpsFO;    //!< if 1, use energy density value
                      //!<       to define freeze out condition
                      //!< if 0 use temperature in TFO
+
     double epsilonFreeze;       //!< freeze-out energy density in GeV/fm^3
     int N_freeze_out;
     double eps_freeze_min;

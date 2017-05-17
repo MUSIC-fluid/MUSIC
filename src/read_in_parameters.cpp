@@ -104,7 +104,8 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     //1: scale with entropy density
     int tempinitializeEntropy = 0;
     tempinput = util->StringFind4(input_file, "initialize_with_entropy");
-    if(tempinput != "empty") istringstream ( tempinput ) >> tempinitializeEntropy;
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempinitializeEntropy;
     parameter_list->initializeEntropy = tempinitializeEntropy;
     
     // T_freeze: freeze out temperature
@@ -147,9 +148,10 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
         istringstream(tempinput) >> tempuseEpsFO;
     parameter_list->useEpsFO = tempuseEpsFO;
     if (tfoset == 1 && parameter_list->useEpsFO == 1) {
-        cerr << "T_freeze set but overridden"
-             << " -- freezing out by energy density at " 
-             << parameter_list->epsilonFreeze << " GeV/fm^3\n";
+        music_message << "T_freeze set but overridden"
+                      << " -- freezing out by energy density at " 
+                      << parameter_list->epsilonFreeze << " GeV/fm^3";
+        music_message.flush("warning");
     }
     
     string temp_freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
@@ -198,7 +200,7 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     if (tempinput != "empty") {
         istringstream(tempinput) >> tempmode;
     } else {
-        cerr << "Must specify mode. Exiting.\n";
+        music_message.error("Must specify mode. Exiting.");
         exit(1);
     }
     parameter_list->mode = tempmode;
@@ -811,64 +813,73 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
     music_message.info("Checking input parameter list ... ");
 
     if (parameter_list->Initial_profile < 0) {
-        cerr << "Initial profile" << parameter_list->Initial_profile
-             << "not defined\n";
+        music_message << "Initial profile" << parameter_list->Initial_profile
+                      << "not defined";
+        music_message.flush("error");
         exit(1);
     }
 
     if (parameter_list->initial_eta_profile > 2
             || parameter_list->initial_eta_profile < 0) {
-        cerr << "Initial eta profile" << parameter_list->initial_eta_profile
-             << "not defined\n";
+        music_message << "Initial eta profile"
+                      << parameter_list->Initial_profile
+                      << "not defined";
+        music_message.flush("error");
         exit(1);
     }
 
     if (parameter_list->initializeEntropy > 1
             || parameter_list->initializeEntropy < 0) {
-        cerr << "Must initialize with entropy (initialize_with_entropy=1) "
-              << "or energy (0)\n";
+        music_message.error("Must initialize with entropy or energy");
         exit(1);
     }
 
     if (parameter_list->TFO < 0.0 || parameter_list->TFO > 0.2) {
-        cerr << "T_freeze = " << parameter_list->TFO << " is not physical!"
-             << endl;
+        music_message << "T_freeze = " << parameter_list->TFO
+                      << " is not physical!";
+        music_message.flush("error");
         exit(1);
     }
     
     if (parameter_list->epsilonFreeze <= 0) {
-        cerr << "Freeze out energy density must be greater than zero\n";
+        music_message.error(
+                "Freeze out energy density must be greater than zero");
         exit(1);
     }
     
     if (parameter_list->useEpsFO > 1 || parameter_list->useEpsFO < 0) {
-        cerr << "Error: did not set either freeze out energy density "
-             << "or temperature, or invalid option for use_eps_for_freeze_out:"
-             << parameter_list->useEpsFO << endl;
+        music_message << "Error: did not set either freeze out energy density "
+                      << "or temperature, or invalid option for "
+                      << "use_eps_for_freeze_out:"
+                      << parameter_list->useEpsFO;
         exit(1);
     }
 
     if (parameter_list->whichEOS > 12 || parameter_list->whichEOS < 0) {
-        cerr << "EOS_to_use unspecified or invalid option: "
-             << parameter_list->whichEOS << endl;
+        music_message << "EOS_to_use unspecified or invalid option: "
+                      << parameter_list->whichEOS;
+        music_message.flush("error");
         exit(1);
     }
 
-    if (parameter_list->NumberOfParticlesToInclude > 320) {
-        cerr << "Invalid option for number_of_particles_to_include:"
-             << parameter_list->NumberOfParticlesToInclude << endl;
+    if (parameter_list->whichEOS > 1 && parameter_list->whichEOS < 7
+            && parameter_list->NumberOfParticlesToInclude > 320) {
+        music_message << "Invalid option for number_of_particles_to_include:"
+                      << parameter_list->NumberOfParticlesToInclude;
+        music_message.flush("error");
         exit(1);
     }
     
-    if (parameter_list->freezeOutMethod > 4) {
-        cerr << "Invalid option for freeze_out_method: "
-             << parameter_list->freezeOutMethod << endl;
+    if (parameter_list->freezeOutMethod != 4) {
+        music_message << "Invalid option for freeze_out_method: "
+                      << parameter_list->freezeOutMethod;
+        music_message.flush("error");
         exit(1);
     }
 
     if (parameter_list->facTau <= 0) {
-        cerr << "average_surface_over_this_many_time_steps <= 0: "
-             << parameter_list->facTau << endl;
+        music_message << "average_surface_over_this_many_time_steps <= 0: "
+                      << parameter_list->facTau;
         exit(1);
     }
 
@@ -883,14 +894,16 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
     }
     
     if (parameter_list->fac_x <= 0) {
-        cerr << "freeze out every x step <= 0: "
-             << parameter_list->fac_x << endl;
+        music_message << "freeze out every x step <= 0: "
+                      << parameter_list->fac_x;
+        music_message.flush("error");
         exit(1);
     }
     
     if (parameter_list->fac_eta <= 0) {
-        cerr << "freeze out every eta step <= 0: "
-             << parameter_list->fac_eta << endl;
+        music_message << "freeze out every eta step <= 0: "
+                      << parameter_list->fac_eta;
+        music_message.flush("error");
         exit(1);
     }
 
@@ -900,10 +913,11 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
     }
 
     if (parameter_list->neta < 32 && !parameter_list->boost_invariant) {
-        cerr << "Grid size in eta = " << parameter_list->neta 
-             << "is too small for a (3+1)-d run! "
-             << "Please increase Grid_size_in_eta to be larger than 32 "
-             << "at least!" << endl;
+        music_message << "Grid size in eta = " << parameter_list->neta 
+                      << "is too small for a (3+1)-d run! "
+                      << "Please increase Grid_size_in_eta to be "
+                      << "larger than 32 at least!";
+        music_message.flush("error");
         exit(1);
     }
 
@@ -941,7 +955,8 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
             music_message << "read_in_parameters: Time step size = "
                           << parameter_list->delta_tau;
             music_message.flush("info");
-            music_message << "read_in_parameters: Number of time steps required = "
+            music_message << "read_in_parameters: "
+                          << "Number of time steps required = "
                           << parameter_list->nt;
             music_message.flush("info");
         } else {
@@ -950,21 +965,24 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
     }
 
     if (parameter_list->min_pt > parameter_list->max_pt) {
-        cerr << "min_pt = " << parameter_list->min_pt << " > "
-             << "max_pt = " << parameter_list->max_pt << endl;
+        music_message << "min_pt = " << parameter_list->min_pt << " > "
+                      << "max_pt = " << parameter_list->max_pt;
+        music_message.flush("error");
         exit(1);
     }
 
     if (parameter_list->phi_steps < 20) {
-        cerr << "phi_steps = " << parameter_list->phi_steps
-             << " is too small for computing vn, please increase to at least "
-             << " 40!" << endl;
+        music_message << "phi_steps = " << parameter_list->phi_steps
+                      << " is too small for computing vn, "
+                      << "please increase to at least 40!";
+        music_message.flush("error");
         exit(1);
     }
     
     if (parameter_list->rk_order > 2 || parameter_list->rk_order < 0) {
-        cerr << "Invalid option for Runge_Kutta_order: "
-             << parameter_list->rk_order << endl;
+        music_message << "Invalid option for Runge_Kutta_order: "
+                      << parameter_list->rk_order;
+        music_message.flush("error");
         exit(1);
     }
     if (parameter_list->rk_order != 2) {
@@ -974,95 +992,108 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
     
     if (parameter_list->reconst_type > 2
             && parameter_list->reconst_type != 99) {
-        cerr << "unrecognized reconst_type: "
-             << parameter_list->reconst_type << endl;
+        music_message << "unrecognized reconst_type: "
+                      << parameter_list->reconst_type;
+        music_message.flush("error");
         exit(1);
     }
 
     if (parameter_list->minmod_theta < 1.
             || parameter_list->minmod_theta > 2.) {
-        cerr << "minmod = " << parameter_list->minmod_theta << " is out of "
-             << "allowed range [1., 2]" << endl;
+        music_message << "minmod = " << parameter_list->minmod_theta
+                      << " is out of allowed range [1., 2]";
+        music_message.flush("error");
         exit(1);
     }
 
     if (parameter_list->turn_on_shear == 0 && parameter_list->shear_to_s > 0) {
-        cout << "[Warning]: non-zero eta/s = " << parameter_list->shear_to_s
-             << " is set with "
-             << "Include_Shear_Visc = " << parameter_list->turn_on_shear
-             << ". Please check you want to run ideal hydro!" << endl;
+        music_message << "non-zero eta/s = " << parameter_list->shear_to_s
+                      << " is set with "
+                      << "Include_Shear_Visc = "
+                      << parameter_list->turn_on_shear
+                      << ". Please check you want to run ideal hydro!";
+        music_message.flush("warning");
     }
 
     if (parameter_list->turn_on_shear == 0
             && parameter_list->include_deltaf == 1) {
-        cout << "[Warning]: hydro with zero shear viscosity does not need "
-             << "shear delta f in Cooper-Fyre!" << endl;
-        cout << "input Include_deltaf = " << parameter_list->include_deltaf
-             << ". Now rewrite it to 0!" << endl;
+        music_message << "hydro with zero shear viscosity does not need "
+                      << "shear delta f in Cooper-Frye! ";
+        music_message << "input Include_deltaf = "
+                      << parameter_list->include_deltaf
+                      << ". Now rewrite it to 0!";
+        music_message.flush("warning");
         parameter_list->include_deltaf = 0;
     }
 
     if (parameter_list->turn_on_bulk == 0
             && parameter_list->include_deltaf_bulk == 1) {
-        cout << "[Warning]: hydro with zero bulk viscosity does not need "
-             << "bulk delta f in Cooper-Fyre!" << endl;
-        cout << "input Include_deltaf_bulk = "
-             << parameter_list->include_deltaf_bulk
-             << ". Now rewrite it to 0!" << endl;
+        music_message << "hydro with zero bulk viscosity does not need "
+                      << "bulk delta f in Cooper-Frye!";
+        music_message << "input Include_deltaf_bulk = "
+                      << parameter_list->include_deltaf_bulk
+                      << ". Now rewrite it to 0!";
+        music_message.flush("warning");
         parameter_list->include_deltaf_bulk = 0;
     }
 
     if (parameter_list->output_evolution_every_N_timesteps <= 0) {
-        cerr << "output_evolution_every_N_timesteps < 0!" << endl;
+        music_message.error("output_evolution_every_N_timesteps < 0!");
         exit(1);
     }
     
     if (parameter_list->output_evolution_every_N_x <= 0) {
-        cerr << "output_evolution_every_N_x < 0!" << endl;
+        music_message.error("output_evolution_every_N_x < 0!");
         exit(1);
     }
     
     if (parameter_list->output_evolution_every_N_y <= 0) {
-        cerr << "output_evolution_every_N_y < 0!" << endl;
+        music_message.error("output_evolution_every_N_y < 0!");
         exit(1);
     }
     
     if (parameter_list->output_evolution_every_N_eta <= 0) {
-        cerr << "output_evolution_every_N_eta < 0!" << endl;
+        music_message.error("output_evolution_every_N_eta < 0!");
         exit(1);
     }
 
     if (parameter_list->dNdy_y_min > parameter_list->dNdy_y_max) {
-        cerr << "dNdy_y_min = " << parameter_list->dNdy_y_min << " < " 
-             << "dNdy_y_max = " << parameter_list->dNdy_y_max << "!" << endl;
+        music_message << "dNdy_y_min = " << parameter_list->dNdy_y_min << " < " 
+                      << "dNdy_y_max = " << parameter_list->dNdy_y_max << "!";
+        music_message.flush("error");
         exit(1);
     }
     
     if (parameter_list->dNdy_eta_min > parameter_list->dNdy_eta_max) {
-        cerr << "dNdy_eta_min = " << parameter_list->dNdy_eta_min << " < " 
-             << "dNdy_eta_max = " << parameter_list->dNdy_eta_max << "!"
-             << endl;
+        music_message << "dNdy_eta_min = " << parameter_list->dNdy_eta_min
+                      << " < " 
+                      << "dNdy_eta_max = " << parameter_list->dNdy_eta_max
+                      << "!";
+        music_message.flush("error");
         exit(1);
     }
     
     if (parameter_list->dNdyptdpt_y_min > parameter_list->dNdyptdpt_y_max) {
-        cerr << "dNdyptdpt_y_min = " << parameter_list->dNdyptdpt_y_min
-             << " < " 
-             << "dNdyptdpt_y_max = " << parameter_list->dNdyptdpt_y_max
-             << "!" << endl;
+        music_message << "dNdyptdpt_y_min = "
+                      << parameter_list->dNdyptdpt_y_min << " < " 
+                      << "dNdyptdpt_y_max = "
+                      << parameter_list->dNdyptdpt_y_max << "!";
+        music_message.flush("error");
         exit(1);
     }
     
     if (parameter_list->dNdyptdpt_eta_min
             > parameter_list->dNdyptdpt_eta_max) {
-        cerr << "dNdyptdpt_eta_min = " << parameter_list->dNdyptdpt_eta_min
-             << " < " 
-             << "dNdyptdpt_eta_max = " << parameter_list->dNdyptdpt_eta_max
-             << "!" << endl;
+        music_message << "dNdyptdpt_eta_min = "
+                      << parameter_list->dNdyptdpt_eta_min << " < " 
+                      << "dNdyptdpt_eta_max = "
+                      << parameter_list->dNdyptdpt_eta_max << "!";
+        music_message.flush("error");
         exit(1);
     }
 
-    cout << "Finished checking input parameter list. "
-         << "Everything looks reasonable so far " << emoji_face->success()
-         << endl;
+    music_message << "Finished checking input parameter list. "
+                  << "Everything looks reasonable so far "
+                  << emoji_face->success();
+    music_message.flush("info");
 }
