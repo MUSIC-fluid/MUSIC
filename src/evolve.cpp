@@ -146,14 +146,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         
         // grid_info->output_average_phase_diagram_trajectory(tau, -0.5, 0.5,
         //                                                    arena);
-        // grid_info->output_average_phase_diagram_trajectory(tau, 0.5, 1.5,
-        //                                                    arena);
-        // grid_info->output_average_phase_diagram_trajectory(tau, -1.5, -0.5,
-        //                                                    arena);
-        // grid_info->output_average_phase_diagram_trajectory(tau, 1.5, 2.5,
-        //                                                    arena);
-        // grid_info->output_average_phase_diagram_trajectory(tau, -2.5, -1.5,
-        //                                                    arena);
 
         // check energy conservation
         if (boost_invariant_flag == 0)

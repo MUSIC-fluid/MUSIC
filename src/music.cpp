@@ -10,6 +10,7 @@
 using namespace std;
 
 MUSIC::MUSIC(InitData *DATA_in, string input_file) {
+    welcome_message();
     DATA = DATA_in;
     reader.read_in_parameters(DATA, input_file);
     mode = DATA->mode;
@@ -74,4 +75,82 @@ void MUSIC::output_transport_coefficients() {
     temp_dissipative_ptr->output_kappa_T_and_muB_dependence(DATA);
     temp_dissipative_ptr->output_kappa_along_const_sovernB(DATA);
     delete temp_dissipative_ptr;
+}
+
+
+//! This function prints out the program logo
+void MUSIC::display_logo(int selector) {
+    switch (selector) {
+        case 0:  // 3D Diagonal
+            cout << "================================================================" << endl;
+            cout << "|           ____                                               |" << endl;
+            cout << "|         ,'  , `.               .--.--.      ,---,  ,----..   |" << endl;
+            cout << "|      ,-+-,.' _ |         ,--, /  /    '. ,`--.' | /   /   \\  |" << endl;
+            cout << "|   ,-+-. ;   , ||       ,'_ /||  :  /`. / |   :  :|   :     : |" << endl;
+            cout << "|  ,--.'|'   |  ;|  .--. |  | :;  |  |--`  :   |  '.   |  ;. / |" << endl;
+            cout << "| |   |  ,', |  ':,'_ /| :  . ||  :  ;_    |   :  |.   ; /--`  |" << endl;
+            cout << "| |   | /  | |  |||  ' | |  . . \\  \\    `. '   '  ;;   | ;     |" << endl;
+            cout << "| '   | :  | :  |,|  | ' |  | |  `----.   \\|   |  ||   : |     |" << endl;
+            cout << "| ;   . |  ; |--' :  | | :  ' ;  __ \\  \\  |'   :  ;.   | '___  |" << endl;
+            cout << "| |   : |  | ,    |  ; ' |  | ' /  /`--'  /|   |  ''   ; : .'| |" << endl;
+            cout << "| |   : '  |/     :  | : ;  ; |'--'.     / '   :  |'   | '/  : |" << endl;
+            cout << "| ;   | |`-'      '  :  `--'   \\ `--'---'  ;   |.' |   :    /  |" << endl;
+            cout << "| |   ;/          :  ,      .-./           '---'    \\   \\ .'   |" << endl;
+            cout << "| '---'            `--`----'                         `---`     |" << endl;
+            cout << "================================================================" << endl;
+            break;
+        case 1:  // bloody
+            cout << "==============================================" << endl;
+            cout << "|  ███▄ ▄███▓ █    ██   ██████  ██▓ ▄████▄   |" << endl;
+            cout << "| ▓██▒▀█▀ ██▒ ██  ▓██▒▒██    ▒ ▓██▒▒██▀ ▀█   |" << endl;
+            cout << "| ▓██    ▓██░▓██  ▒██░░ ▓██▄   ▒██▒▒▓█    ▄  |" << endl;
+            cout << "| ▒██    ▒██ ▓▓█  ░██░  ▒   ██▒░██░▒▓▓▄ ▄██▒ |" << endl;
+            cout << "| ▒██▒   ░██▒▒▒█████▓ ▒██████▒▒░██░▒ ▓███▀ ░ |" << endl;
+            cout << "| ░ ▒░   ░  ░░▒▓▒ ▒ ▒ ▒ ▒▓▒ ▒ ░░▓  ░ ░▒ ▒  ░ |" << endl;
+            cout << "| ░  ░      ░░░▒░ ░ ░ ░ ░▒  ░ ░ ▒ ░  ░  ▒    |" << endl;
+            cout << "| ░      ░    ░░░ ░ ░ ░  ░  ░   ▒ ░░         |" << endl;
+            cout << "|        ░      ░           ░   ░  ░ ░       |" << endl;
+            cout << "|                                  ░         |" << endl;
+            cout << "==============================================" << endl;
+            break;
+        case 2:  // Dancing font
+            cout << "====================================================" << endl;
+            cout << "|   __  __     _   _   ____                   ____  |" << endl;
+            cout << "| U|' \\/ '|uU |\"|u| | / __\"| u      ___    U /\"___| |" << endl;
+            cout << "| \\| |\\/| |/ \\| |\\| |<\\___ \\/      |_\"_|   \\| | u   |" << endl;
+            cout << "|  | |  | |   | |_| | u___) |       | |     | |/__  |" << endl;
+            cout << "|  |_|  |_|  <<\\___/  |____/>>    U/| |\\u    \\____| |" << endl;
+            cout << "| <<,-,,-.  (__) )(    )(  (__).-,_|___|_,-._// \\\\  |" << endl;
+            cout << "|  (./  \\.)     (__)  (__)      \\_)-' '-(_/(__)(__) |" << endl;
+            cout << "====================================================" << endl;
+            break;
+        case 3:  // STAR Wars
+            cout << "=====================================================" << endl;
+            cout << "| .___  ___.  __    __       _______. __    ______  |" << endl;
+            cout << "| |   \\/   | |  |  |  |     /       ||  |  /      | |" << endl;
+            cout << "| |  \\  /  | |  |  |  |    |   (----`|  | |  ,----' |" << endl;
+            cout << "| |  |\\/|  | |  |  |  |     \\   \\    |  | |  |      |" << endl;
+            cout << "| |  |  |  | |  `--'  | .----)   |   |  | |  `----. |" << endl;
+            cout << "| |__|  |__|  \\______/  |_______/    |__|  \\______| |" << endl;
+            cout << "=====================================================" << endl;
+            break;
+    }
+
+}
+
+
+//! This function prints out code desciprtion and copyright information
+void MUSIC::display_code_description_and_copyright() {
+    cout << "MUSIC - a 3+1D viscous relativistic hydrodynamic code for "
+         << "heavy ion collisions" << endl;
+    cout << "Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, "
+         << "Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen"
+         << endl;
+}
+
+//! This function prints out the welcome message
+void MUSIC::welcome_message() {
+    srand (time(NULL));
+    display_logo(rand()%4);
+    display_code_description_and_copyright();
 }
