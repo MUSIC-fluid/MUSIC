@@ -23,8 +23,124 @@ EOS::EOS(InitData *para_in) {
 
 // destructor
 EOS::~EOS() {
+    if (parameters_ptr->whichEOS == 1) {
+        util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(mu1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(mu2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(cs2_1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(cs2_2, NBNP2 + 1, NEPP2 + 1);
+    } else if (parameters_ptr->whichEOS >= 2
+                    && parameters_ptr->whichEOS <= 7) {
+        util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(pressure3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(pressure4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(pressure5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(pressure6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(pressure7, NBNP7 + 1, NEPP7 + 1);
+        util->mtx_free(entropyDensity1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(entropyDensity2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(entropyDensity3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(entropyDensity4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(entropyDensity5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(entropyDensity6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(entropyDensity7, NBNP7 + 1, NEPP7 + 1);
+        util->mtx_free(QGPfraction1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(QGPfraction2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(QGPfraction3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(QGPfraction4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(QGPfraction5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(QGPfraction6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(QGPfraction7, NBNP7 + 1, NEPP7 + 1);
+        util->mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(temperature5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(temperature6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(temperature7, NBNP7 + 1, NEPP7 + 1);
+        util->mtx_free(cs2_1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(cs2_2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(cs2_3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(cs2_4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(cs2_5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(cs2_6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(cs2_7, NBNP7 + 1, NEPP7 + 1);
+    } else if (parameters_ptr->whichEOS == 10
+                || parameters_ptr->whichEOS == 12) {
+        util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(pressure3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(pressure4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(pressure5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(pressure6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(pressure7, NBNP7 + 1, NEPP7 + 1);
+        util->mtx_free(entropyDensity1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(entropyDensity2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(entropyDensity3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(entropyDensity4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(entropyDensity5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(entropyDensity6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(entropyDensity7, NBNP7 + 1, NEPP7 + 1);
+        util->mtx_free(QGPfraction1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(QGPfraction2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(QGPfraction3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(QGPfraction4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(QGPfraction5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(QGPfraction6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(QGPfraction7, NBNP7 + 1, NEPP7 + 1);
+        util->mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(temperature5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(temperature6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(temperature7, NBNP7 + 1, NEPP7 + 1);
+        util->mtx_free(cs2_1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(cs2_2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(cs2_3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(cs2_4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(cs2_5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(cs2_6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(cs2_7, NBNP7 + 1, NEPP7 + 1);
+    } else if (parameters_ptr->whichEOS == 11) {
+        util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(pressure3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(pressure4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(entropyDensity1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(entropyDensity2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(entropyDensity3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(entropyDensity4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(QGPfraction1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(QGPfraction2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(QGPfraction3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(QGPfraction4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(cs2_1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(cs2_2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(cs2_3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(cs2_4, NBNP4 + 1, NEPP4 + 1);
+    } else {
+        music_message << "No EOS for whichEOS = " << parameters_ptr->whichEOS
+             << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
+             << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
+             << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1),"
+             << "7 (s95p-v1.2)"
+             << "10(lattice EOS at finite muB), "
+             << "11(lattice EoS at finite muB from Pasi), "
+             << "12(lattice EOS at finite muB from A. Monnai up to mu_B^6)";
+        music_message.flush("error");
+        exit(1);
+    }
     delete util;
-    if (whichEOS >= 2 && whichEOS <= 6) {
+    if (whichEOS >= 2 && whichEOS <= 7) {
         gsl_interp_free(interp_s2e);
         gsl_interp_accel_free(accel_s2e);
     }
@@ -40,56 +156,61 @@ void EOS::checkForReadError(FILE *file, const char* name) {
 
 void EOS::initialize_eos() {
     if (parameters_ptr->Initial_profile == 0) {
-        cout << "Using the ideal gas EOS" << endl;
+        music_message.info("Using the ideal gas EOS");
         init_eos0();
     } else if (parameters_ptr->whichEOS == 1) {
-        cout << "Using EOS-Q from AZHYDRO" << endl;
+        music_message.info("Using EOS-Q from AZHYDRO");
         init_eos();
     } else if (parameters_ptr->whichEOS == 2) {
-        cout << "Using lattice EOS from Huovinen/Petreczky" << endl;
+        music_message.info("Using lattice EOS from Huovinen/Petreczky");
         init_eos2();
     } else if (parameters_ptr->whichEOS == 3) {
-        cout << "Using lattice EOS from Huovinen/Petreczky with "
-             << "partial chemical equilibrium (PCE) chem. f.o. at 150 MeV"
-             << endl;
+        music_message << "Using lattice EOS from Huovinen/Petreczky with "
+                      << "partial chemical equilibrium (PCE) "
+                      << "chem. f.o. at 150 MeV";
+        music_message.flush("info");
         init_eos3(1);
     } else if (parameters_ptr->whichEOS == 4) {
-        cout << "Using lattice EOS from Huovinen/Petreczky with "
-             << "partial chemical equilibrium (PCE) chem. f.o. at 155 MeV"
-             << endl;
+        music_message << "Using lattice EOS from Huovinen/Petreczky with "
+                      << "partial chemical equilibrium (PCE) "
+                      << "chem. f.o. at 155 MeV";
+        music_message.flush("info");
         init_eos3(2);
     } else if (parameters_ptr->whichEOS == 5) {
-        cout << "Using lattice EOS from Huovinen/Petreczky with "
-             << "partial chemical equilibrium (PCE) chem. f.o. at 160 MeV"
-             << endl;
+        music_message << "Using lattice EOS from Huovinen/Petreczky with "
+                      << "partial chemical equilibrium (PCE) "
+                      << "chem. f.o. at 160 MeV";
+        music_message.flush("info");
         init_eos3(3);
     } else if (parameters_ptr->whichEOS == 6) {
-        cout << "Using lattice EOS from Huovinen/Petreczky with "
-             << "partial chemical equilibrium (PCE) chem. f.o. at 165 MeV"
-             << endl;
+        music_message << "Using lattice EOS from Huovinen/Petreczky with "
+                      << "partial chemical equilibrium (PCE) chem. f.o. "
+                       << "at 165 MeV";
+        music_message.flush("info");
         init_eos3(4);
     } else if (parameters_ptr->whichEOS == 7) {
-        cout << "Using lattice EOS from Huovinen/Petreczky s95p-v1.2"
-             << "(for UrQMD)" << endl;
+        music_message.info(
+            "Using lattice EOS from Huovinen/Petreczky s95p-v1.2 (for UrQMD)");
         init_eos7();
     } else if (parameters_ptr->whichEOS == 10) {
-        cout << "Using lattice EOS from A. Monnai" << endl;
+        music_message.info("Using lattice EOS from A. Monnai");
         init_eos10(0);
     } else if (parameters_ptr->whichEOS == 11) {
-        cout << "Using lattice EOS from Pasi" << endl;
+        music_message.info("Using lattice EOS from Pasi");
         init_eos11(0);
     } else if (parameters_ptr->whichEOS == 12) {
-        cout << "Using lattice EOS from A. Monnai (up to mu_B^6)" << endl;
+        music_message.info("Using lattice EOS from A. Monnai (up to mu_B^6)");
         init_eos12(0);
     } else {
-        cout << "No EOS for whichEOS = " << parameters_ptr->whichEOS
+        music_message << "No EOS for whichEOS = " << parameters_ptr->whichEOS
              << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
              << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
-             << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1), "
+             << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1),"
+             << "7 (s95p-v1.2)"
              << "10(lattice EOS at finite muB), "
              << "11(lattice EoS at finite muB from Pasi), "
-             << "12(lattice EOS at finite muB from A. Monnai up to mu_B^6)"
-             << endl;
+             << "12(lattice EOS at finite muB from A. Monnai up to mu_B^6)";
+        music_message.flush("error");
         exit(1);
     }
 
@@ -112,88 +233,49 @@ void EOS::init_eos() {
 // read the azhydro pressure, temperature, and 
 // baryon chemical potential from file
     whichEOS = 1;
-    fprintf(stderr, "reading EOS... \n");
+    music_message.info("reading EOS...");
     int i, j;
     FILE *eos_p1, *eos_p2;
     FILE *eos_T1, *eos_T2;
     FILE *eos_mu1, *eos_mu2;
     const char* EOSPATH = "HYDROPROGRAMPATH";
-    char* envPath;
-    envPath = util->char_malloc(100);
-    envPath = getenv(EOSPATH);
-    char* eos_p1_name;
-    char* eos_p2_name;
-    char* eos_T1_name;
-    char* eos_T2_name;
-    char* eos_mu1_name;
-    char* eos_mu2_name;
+    char * pre_envPath= getenv(EOSPATH);
+    std::string envPath;
+    std::string eos_p1_name;
+    std::string eos_p2_name;
+    std::string eos_T1_name;
+    std::string eos_T2_name;
+    std::string eos_mu1_name;
+    std::string eos_mu2_name;
+    if (pre_envPath == 0) {
+	    envPath=".";
+    }
+    else {
+	    envPath=pre_envPath;
+    }
+    
+    music_message << "from path " << envPath.c_str() << "/EOS";
+    music_message.flush("info");
+    eos_p1_name=envPath+"/EOS/EOS-Q/aa1_p.dat";
+    eos_p2_name=envPath+"/EOS/EOS-Q/aa2_p.dat";
+    eos_T1_name=envPath+"/EOS/EOS-Q/aa1_t.dat";
+    eos_T2_name=envPath+"/EOS/EOS-Q/aa2_t.dat";
+    eos_mu1_name=envPath+"/EOS/EOS-Q/aa1_mb.dat";
+    eos_mu2_name=envPath+"/EOS/EOS-Q/aa2_mb.dat";
       
-    if (envPath != 0 && *envPath != '\0') {
-        fprintf(stderr, "from path %s/EOS \n", envPath);
-        eos_p1_name = util->char_malloc(100);
-        strcat(eos_p1_name, envPath);
-        strcat(eos_p1_name, "/EOS/EOS-Q/aa1_p.dat");
-
-      eos_p2_name = util->char_malloc(100);
-      strcat(eos_p2_name,envPath);
-      strcat(eos_p2_name,"/EOS/EOS-Q/aa2_p.dat");
-
-      eos_T1_name = util->char_malloc(100);
-      strcat(eos_T1_name,envPath);
-      strcat(eos_T1_name,"/EOS/EOS-Q/aa1_t.dat");
-
-      eos_T2_name = util->char_malloc(100);
-      strcat(eos_T2_name,envPath);
-      strcat(eos_T2_name,"/EOS/EOS-Q/aa2_t.dat");
-
-      eos_mu1_name = util->char_malloc(100);
-      strcat(eos_mu1_name,envPath);
-      strcat(eos_mu1_name,"/EOS/EOS-Q/aa1_mb.dat");
- 
-      eos_mu2_name = util->char_malloc(100);
-      strcat(eos_mu2_name,envPath);
-      strcat(eos_mu2_name,"/EOS/EOS-Q/aa2_mb.dat");
-    }
-  else
-    {
-      eos_p1_name = util->char_malloc(100);
-      strcat(eos_p1_name,".");
-      strcat(eos_p1_name,"/EOS/EOS-Q/aa1_p.dat");
-
-      eos_p2_name = util->char_malloc(100);
-      strcat(eos_p2_name,".");
-      strcat(eos_p2_name,"/EOS/EOS-Q/aa2_p.dat");
-
-      eos_T1_name = util->char_malloc(100);
-      strcat(eos_T1_name,".");
-      strcat(eos_T1_name,"/EOS/EOS-Q/aa1_t.dat");
-
-      eos_T2_name = util->char_malloc(100);
-      strcat(eos_T2_name,".");
-      strcat(eos_T2_name,"/EOS/EOS-Q/aa2_t.dat");
-
-      eos_mu1_name = util->char_malloc(100);
-      strcat(eos_mu1_name,".");
-      strcat(eos_mu1_name,"/EOS/EOS-Q/aa1_mb.dat");
- 
-      eos_mu2_name = util->char_malloc(100);
-      strcat(eos_mu2_name,".");
-      strcat(eos_mu2_name,"/EOS/EOS-Q/aa2_mb.dat");
-    }
+  eos_p1 = fopen(eos_p1_name.c_str(), "r");
+  eos_p2 = fopen(eos_p2_name.c_str(), "r");
+  eos_T1 = fopen(eos_T1_name.c_str(), "r");
+  eos_T2 = fopen(eos_T2_name.c_str(), "r");
+  eos_mu1 = fopen(eos_mu1_name.c_str(), "r");
+  eos_mu2 = fopen(eos_mu2_name.c_str(), "r");
   
-  eos_p1 = fopen(eos_p1_name, "r");
-  eos_p2 = fopen(eos_p2_name, "r");
-  eos_T1 = fopen(eos_T1_name, "r");
-  eos_T2 = fopen(eos_T2_name, "r");
-  eos_mu1 = fopen(eos_mu1_name, "r");
-  eos_mu2 = fopen(eos_mu2_name, "r");
-  
-  checkForReadError(eos_p1,eos_p1_name);
-  checkForReadError(eos_p2,eos_p2_name);
-  checkForReadError(eos_T1,eos_T1_name);
-  checkForReadError(eos_T2,eos_T2_name);
-  checkForReadError(eos_mu1,eos_mu1_name);
-  checkForReadError(eos_mu2,eos_mu2_name);
+  checkForReadError(eos_p1,eos_p1_name.c_str());
+  checkForReadError(eos_p2,eos_p2_name.c_str());
+  checkForReadError(eos_T1,eos_T1_name.c_str());
+  checkForReadError(eos_T2,eos_T2_name.c_str());
+  checkForReadError(eos_mu1,eos_mu1_name.c_str());
+  checkForReadError(eos_mu2,eos_mu2_name.c_str());
  
   //read the first two lines:
   // first value of rhob, first value of epsilon
@@ -259,200 +341,86 @@ void EOS::init_eos2()
 {
   // read the lattice EOS pressure, temperature, and 
   // baryon chemical potential from file
-  fprintf(stderr,"reading EOS... \n");
+  music_message.info("reading EOS...");
   whichEOS = 2; 
 //   int bytes_read;
   int i, j;
   FILE *eos_d1, *eos_d2, *eos_d3, *eos_d4, *eos_d5, *eos_d6, *eos_d7;
   FILE *eos_T1, *eos_T2, *eos_T3, *eos_T4, *eos_T5, *eos_T6, *eos_T7;
   const char* EOSPATH = "HYDROPROGRAMPATH";
-  char* envPath;
-  envPath = util->char_malloc(100);
-  envPath = getenv(EOSPATH);
-  char* eos_d1_name;
-  char* eos_d2_name;
-  char* eos_d3_name;
-  char* eos_d4_name;
-  char* eos_d5_name;
-  char* eos_d6_name;
-  char* eos_d7_name;
-  char* eos_T1_name;
-  char* eos_T2_name;
-  char* eos_T3_name;
-  char* eos_T4_name;
-  char* eos_T5_name;
-  char* eos_T6_name;
-  char* eos_T7_name;
+  char * pre_envPath= getenv(EOSPATH);
+  std::string envPath;
+  std::string eos_d1_name;
+  std::string eos_d2_name;
+  std::string eos_d3_name;
+  std::string eos_d4_name;
+  std::string eos_d5_name;
+  std::string eos_d6_name;
+  std::string eos_d7_name;
+  std::string eos_T1_name;
+  std::string eos_T2_name;
+  std::string eos_T3_name;
+  std::string eos_T4_name;
+  std::string eos_T5_name;
+  std::string eos_T6_name;
+  std::string eos_T7_name;
   double eps, baryonDensity; //dummies for now
-  char* temp;
-  temp = new char[80];//util->char_malloc(100);
 
-    
- if (envPath != 0 && *envPath != '\0') // if path is set in the environment
-    {
-      envPath[strlen(envPath)]='\0';
-      fprintf(stderr,"from path %s/EOS/s95p-v1 \n", envPath);
-      
-      eos_d1_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_dens1.dat")+1];//util->char_malloc(100);
-      eos_d1_name[0] = '\0';
-      strcat(eos_d1_name,envPath);
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_dens1.dat");
-      strcat(eos_d1_name,temp);
- 
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_dens2.dat");
-      eos_d2_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_dens2.dat")+1];//util->char_malloc(100);
-      eos_d2_name[0] = '\0';
-      strcat(eos_d2_name,envPath);
-      strcat(eos_d2_name,temp);
+  if (pre_envPath == 0) {
+          envPath=".";
+  }
+  else {
+	envPath=pre_envPath;
+  }
   
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_dens3.dat");
-      eos_d3_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_dens3.dat")+1];//util->char_malloc(100);
-      eos_d3_name[0] = '\0';
-      strcat(eos_d3_name,envPath);
-      strcat(eos_d3_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_dens4.dat");
-      eos_d4_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_dens4.dat")+1];//util->char_malloc(100);
-      eos_d4_name[0] = '\0';
-      strcat(eos_d4_name,envPath);
-      strcat(eos_d4_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_dens5.dat");
-      eos_d5_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_dens5.dat")+1];//util->char_malloc(100);
-      eos_d5_name[0] = '\0';
-      strcat(eos_d5_name,envPath);
-      strcat(eos_d5_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_dens6.dat");
-      eos_d6_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_dens6.dat")+1];//util->char_malloc(100);
-      eos_d6_name[0] = '\0';
-      strcat(eos_d6_name,envPath);
-      strcat(eos_d6_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_dens7.dat");
-      eos_d7_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_dens7.dat")+1];//util->char_malloc(100);
-      eos_d7_name[0] = '\0';
-      strcat(eos_d7_name,envPath);
-      strcat(eos_d7_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_par1.dat");
-      eos_T1_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par1.dat")+1];//util->char_malloc(100);
-      eos_T1_name[0] = '\0';
-      strcat(eos_T1_name,envPath);
-      strcat(eos_T1_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_par2.dat");
-      eos_T2_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par2.dat")+1];//util->char_malloc(100);
-      eos_T2_name[0] = '\0';
-      strcat(eos_T2_name,envPath);
-      strcat(eos_T2_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_par3.dat");
-      eos_T3_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par3.dat")+1];//util->char_malloc(100);
-      eos_T3_name[0] = '\0';
-      strcat(eos_T3_name,envPath);
-      strcat(eos_T3_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_par4.dat");
-      eos_T4_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par4.dat")+1];//util->char_malloc(100);
-      eos_T4_name[0] = '\0';
-      strcat(eos_T4_name,envPath);
-      strcat(eos_T4_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_par5.dat");
-      eos_T5_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par5.dat")+1];//util->char_malloc(100);
-      eos_T5_name[0] = '\0';
-      strcat(eos_T5_name,envPath);
-      strcat(eos_T5_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_par6.dat");
-      eos_T6_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par6.dat")+1];//util->char_malloc(100);
-      eos_T6_name[0] = '\0';
-      strcat(eos_T6_name,envPath);
-      strcat(eos_T6_name,temp);
-      
-      strcpy(temp,"/EOS/s95p-v1/s95p-v1_par7.dat");
-      eos_T7_name = new char[strlen(envPath)+strlen("/EOS/s95p-v1/s95p-v1_par7.dat")+1];//util->char_malloc(100);
-      eos_T7_name[0] = '\0';
-      strcat(eos_T7_name,envPath);
-      strcat(eos_T7_name,temp);
-    }
- else //if path is not set in the environment use current folder and then /EOS/s95p-v1 subfolder
-    {
-      eos_d1_name = util->char_malloc(300);
-      strcat(eos_d1_name,".");
-      strcat(eos_d1_name,"/EOS/s95p-v1/s95p-v1_dens1.dat");
-      eos_d2_name = util->char_malloc(300);
-      strcat(eos_d2_name,".");
-      strcat(eos_d2_name,"/EOS/s95p-v1/s95p-v1_dens2.dat");
-      eos_d3_name = util->char_malloc(300);
-      strcat(eos_d3_name,".");
-      strcat(eos_d3_name,"/EOS/s95p-v1/s95p-v1_dens3.dat");
-      eos_d4_name = util->char_malloc(300);
-      strcat(eos_d4_name,".");
-      strcat(eos_d4_name,"/EOS/s95p-v1/s95p-v1_dens4.dat");
-      eos_d5_name = util->char_malloc(300);
-      strcat(eos_d5_name,".");
-      strcat(eos_d5_name,"/EOS/s95p-v1/s95p-v1_dens5.dat");
-      eos_d6_name = util->char_malloc(300);
-      strcat(eos_d6_name,".");
-      strcat(eos_d6_name,"/EOS/s95p-v1/s95p-v1_dens6.dat");
-      eos_d7_name = util->char_malloc(300);
-      strcat(eos_d7_name,".");
-      strcat(eos_d7_name,"/EOS/s95p-v1/s95p-v1_dens7.dat");
-      eos_T1_name = util->char_malloc(300);
-      strcat(eos_T1_name,".");
-      strcat(eos_T1_name,"/EOS/s95p-v1/s95p-v1_par1.dat");
-      eos_T2_name = util->char_malloc(300);
-      strcat(eos_T2_name,".");
-      strcat(eos_T2_name,"/EOS/s95p-v1/s95p-v1_par2.dat");
-      eos_T3_name = util->char_malloc(300);
-      strcat(eos_T3_name,".");
-      strcat(eos_T3_name,"/EOS/s95p-v1/s95p-v1_par3.dat");
-      eos_T4_name = util->char_malloc(300);
-      strcat(eos_T4_name,".");
-      strcat(eos_T4_name,"/EOS/s95p-v1/s95p-v1_par4.dat");
-      eos_T5_name = util->char_malloc(300);
-      strcat(eos_T5_name,".");
-      strcat(eos_T5_name,"/EOS/s95p-v1/s95p-v1_par5.dat");
-      eos_T6_name = util->char_malloc(300);
-      strcat(eos_T6_name,".");
-      strcat(eos_T6_name,"/EOS/s95p-v1/s95p-v1_par6.dat");
-      eos_T7_name = util->char_malloc(300);
-      strcat(eos_T7_name,".");
-      strcat(eos_T7_name,"/EOS/s95p-v1/s95p-v1_par7.dat");
-    }
+  music_message << "from path " << envPath.c_str() << "/EOS/s95p-v1";
+  music_message.flush("info");
   
-  eos_d1 = fopen(eos_d1_name, "r");
-  eos_d2 = fopen(eos_d2_name, "r");
-  eos_d3 = fopen(eos_d3_name, "r");
-  eos_d4 = fopen(eos_d4_name, "r");
-  eos_d5 = fopen(eos_d5_name, "r");
-  eos_d6 = fopen(eos_d6_name, "r");
-  eos_d7 = fopen(eos_d7_name, "r");
-  eos_T1 = fopen(eos_T1_name, "r");
-  eos_T2 = fopen(eos_T2_name, "r");
-  eos_T3 = fopen(eos_T3_name, "r");
-  eos_T4 = fopen(eos_T4_name, "r");
-  eos_T5 = fopen(eos_T5_name, "r");
-  eos_T6 = fopen(eos_T6_name, "r");
-  eos_T7 = fopen(eos_T7_name, "r");
+  eos_d1_name=envPath+"/EOS/s95p-v1/s95p-v1_dens1.dat";
+  eos_d2_name=envPath+"/EOS/s95p-v1/s95p-v1_dens2.dat";
+  eos_d3_name=envPath+"/EOS/s95p-v1/s95p-v1_dens3.dat";
+  eos_d4_name=envPath+"/EOS/s95p-v1/s95p-v1_dens4.dat";
+  eos_d5_name=envPath+"/EOS/s95p-v1/s95p-v1_dens5.dat";
+  eos_d6_name=envPath+"/EOS/s95p-v1/s95p-v1_dens6.dat";
+  eos_d7_name=envPath+"/EOS/s95p-v1/s95p-v1_dens7.dat";
+
+  eos_T1_name=envPath+"/EOS/s95p-v1/s95p-v1_par1.dat";
+  eos_T2_name=envPath+"/EOS/s95p-v1/s95p-v1_par2.dat";
+  eos_T3_name=envPath+"/EOS/s95p-v1/s95p-v1_par3.dat";
+  eos_T4_name=envPath+"/EOS/s95p-v1/s95p-v1_par4.dat";
+  eos_T5_name=envPath+"/EOS/s95p-v1/s95p-v1_par5.dat";
+  eos_T6_name=envPath+"/EOS/s95p-v1/s95p-v1_par6.dat";
+  eos_T7_name=envPath+"/EOS/s95p-v1/s95p-v1_par7.dat";
+
+  eos_d1 = fopen(eos_d1_name.c_str(), "r");
+  eos_d2 = fopen(eos_d2_name.c_str(), "r");
+  eos_d3 = fopen(eos_d3_name.c_str(), "r");
+  eos_d4 = fopen(eos_d4_name.c_str(), "r");
+  eos_d5 = fopen(eos_d5_name.c_str(), "r");
+  eos_d6 = fopen(eos_d6_name.c_str(), "r");
+  eos_d7 = fopen(eos_d7_name.c_str(), "r");
+  eos_T1 = fopen(eos_T1_name.c_str(), "r");
+  eos_T2 = fopen(eos_T2_name.c_str(), "r");
+  eos_T3 = fopen(eos_T3_name.c_str(), "r");
+  eos_T4 = fopen(eos_T4_name.c_str(), "r");
+  eos_T5 = fopen(eos_T5_name.c_str(), "r");
+  eos_T6 = fopen(eos_T6_name.c_str(), "r");
+  eos_T7 = fopen(eos_T7_name.c_str(), "r");
   
-  checkForReadError(eos_d1,eos_d1_name);
-  checkForReadError(eos_d2,eos_d2_name);
-  checkForReadError(eos_d3,eos_d3_name);
-  checkForReadError(eos_d4,eos_d4_name);
-  checkForReadError(eos_d5,eos_d5_name);
-  checkForReadError(eos_d6,eos_d6_name);
-  checkForReadError(eos_d7,eos_d7_name);
-  checkForReadError(eos_T1,eos_T1_name);
-  checkForReadError(eos_T2,eos_T2_name);
-  checkForReadError(eos_T3,eos_T3_name);
-  checkForReadError(eos_T4,eos_T4_name);
-  checkForReadError(eos_T5,eos_T5_name);
-  checkForReadError(eos_T6,eos_T6_name);
-  checkForReadError(eos_T7,eos_T7_name);
+  checkForReadError(eos_d1,eos_d1_name.c_str());
+  checkForReadError(eos_d2,eos_d2_name.c_str());
+  checkForReadError(eos_d3,eos_d3_name.c_str());
+  checkForReadError(eos_d4,eos_d4_name.c_str());
+  checkForReadError(eos_d5,eos_d5_name.c_str());
+  checkForReadError(eos_d6,eos_d6_name.c_str());
+  checkForReadError(eos_d7,eos_d7_name.c_str());
+  checkForReadError(eos_T1,eos_T1_name.c_str());
+  checkForReadError(eos_T2,eos_T2_name.c_str());
+  checkForReadError(eos_T3,eos_T3_name.c_str());
+  checkForReadError(eos_T4,eos_T4_name.c_str());
+  checkForReadError(eos_T5,eos_T5_name.c_str());
+  checkForReadError(eos_T6,eos_T6_name.c_str());
+  checkForReadError(eos_T7,eos_T7_name.c_str());
  
   //read the first two lines with general info:
   // lowest value of epsilon
@@ -1175,88 +1143,86 @@ void EOS::init_eos3(int selector)
 void EOS::init_eos7() {
     // read the lattice EOS pressure, temperature, and
     // baryon chemical potential from file
-    fprintf(stderr, "reading EOS s95p-v1.2 (for UrQMD) ... \n");
+    music_message.info("reading EOS s95p-v1.2 (for UrQMD) ...");
     whichEOS = 7;
     int i, j;
     FILE *eos_d1, *eos_d2, *eos_d3, *eos_d4, *eos_d5, *eos_d6, *eos_d7;
     FILE *eos_T1, *eos_T2, *eos_T3, *eos_T4, *eos_T5, *eos_T6, *eos_T7;
-
-    char* folder_name = util->char_malloc(300);
-    strcat(folder_name, "./EOS/s95p-v1.2/");
-    char* eos_d1_name = util->char_malloc(300);
-    char* eos_d2_name = util->char_malloc(300);
-    char* eos_d3_name = util->char_malloc(300);
-    char* eos_d4_name = util->char_malloc(300);
-    char* eos_d5_name = util->char_malloc(300);
-    char* eos_d6_name = util->char_malloc(300);
-    char* eos_d7_name = util->char_malloc(300);
-    char* eos_T1_name = util->char_malloc(300);
-    char* eos_T2_name = util->char_malloc(300);
-    char* eos_T3_name = util->char_malloc(300);
-    char* eos_T4_name = util->char_malloc(300);
-    char* eos_T5_name = util->char_malloc(300);
-    char* eos_T6_name = util->char_malloc(300);
-    char* eos_T7_name = util->char_malloc(300);
+    const char* EOSPATH = "HYDROPROGRAMPATH";
+    char * pre_envPath= getenv(EOSPATH);
+    std::string envPath;
+    std::string eos_d1_name;
+    std::string eos_d2_name;
+    std::string eos_d3_name;
+    std::string eos_d4_name;
+    std::string eos_d5_name;
+    std::string eos_d6_name;
+    std::string eos_d7_name;
+    std::string eos_T1_name;
+    std::string eos_T2_name;
+    std::string eos_T3_name;
+    std::string eos_T4_name;
+    std::string eos_T5_name;
+    std::string eos_T6_name;
+    std::string eos_T7_name;
     double eps, baryonDensity;  // dummies for now
+  
+    if (pre_envPath == 0) {
+        envPath=".";
+    }
+    else {
+        envPath=pre_envPath;
+    }
 
-    strcat(eos_d1_name, folder_name);
-    strcat(eos_d1_name, "s95p-v1.2_dens1.dat");
-    strcat(eos_d2_name, folder_name);
-    strcat(eos_d2_name, "s95p-v1.2_dens2.dat");
-    strcat(eos_d3_name, folder_name);
-    strcat(eos_d3_name, "s95p-v1.2_dens3.dat");
-    strcat(eos_d4_name, folder_name);
-    strcat(eos_d4_name, "s95p-v1.2_dens4.dat");
-    strcat(eos_d5_name, folder_name);
-    strcat(eos_d5_name, "s95p-v1.2_dens5.dat");
-    strcat(eos_d6_name, folder_name);
-    strcat(eos_d6_name, "s95p-v1.2_dens6.dat");
-    strcat(eos_d7_name, folder_name);
-    strcat(eos_d7_name, "s95p-v1.2_dens7.dat");
-    strcat(eos_T1_name, folder_name);
-    strcat(eos_T1_name, "s95p-v1.2_par1.dat");
-    strcat(eos_T2_name, folder_name);
-    strcat(eos_T2_name, "s95p-v1.2_par2.dat");
-    strcat(eos_T3_name, folder_name);
-    strcat(eos_T3_name, "s95p-v1.2_par3.dat");
-    strcat(eos_T4_name, folder_name);
-    strcat(eos_T4_name, "s95p-v1.2_par4.dat");
-    strcat(eos_T5_name, folder_name);
-    strcat(eos_T5_name, "s95p-v1.2_par5.dat");
-    strcat(eos_T6_name, folder_name);
-    strcat(eos_T6_name, "s95p-v1.2_par6.dat");
-    strcat(eos_T7_name, folder_name);
-    strcat(eos_T7_name, "s95p-v1.2_par7.dat");
+    music_message << "from path " << envPath.c_str() << "/EOS/s95p-v1.2";
+    music_message.flush("info");
 
-    eos_d1 = fopen(eos_d1_name, "r");
-    eos_d2 = fopen(eos_d2_name, "r");
-    eos_d3 = fopen(eos_d3_name, "r");
-    eos_d4 = fopen(eos_d4_name, "r");
-    eos_d5 = fopen(eos_d5_name, "r");
-    eos_d6 = fopen(eos_d6_name, "r");
-    eos_d7 = fopen(eos_d7_name, "r");
-    eos_T1 = fopen(eos_T1_name, "r");
-    eos_T2 = fopen(eos_T2_name, "r");
-    eos_T3 = fopen(eos_T3_name, "r");
-    eos_T4 = fopen(eos_T4_name, "r");
-    eos_T5 = fopen(eos_T5_name, "r");
-    eos_T6 = fopen(eos_T6_name, "r");
-    eos_T7 = fopen(eos_T7_name, "r");
+    eos_d1_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens1.dat";
+    eos_d2_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens2.dat";
+    eos_d3_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens3.dat";
+    eos_d4_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens4.dat";
+    eos_d5_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens5.dat";
+    eos_d6_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens6.dat";
+    eos_d7_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens7.dat";
 
-    checkForReadError(eos_d1, eos_d1_name);
-    checkForReadError(eos_d2, eos_d2_name);
-    checkForReadError(eos_d3, eos_d3_name);
-    checkForReadError(eos_d4, eos_d4_name);
-    checkForReadError(eos_d5, eos_d5_name);
-    checkForReadError(eos_d6, eos_d6_name);
-    checkForReadError(eos_d7, eos_d7_name);
-    checkForReadError(eos_T1, eos_T1_name);
-    checkForReadError(eos_T2, eos_T2_name);
-    checkForReadError(eos_T3, eos_T3_name);
-    checkForReadError(eos_T4, eos_T4_name);
-    checkForReadError(eos_T5, eos_T5_name);
-    checkForReadError(eos_T6, eos_T6_name);
-    checkForReadError(eos_T7, eos_T7_name);
+    eos_T1_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par1.dat";
+    eos_T2_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par2.dat";
+    eos_T3_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par3.dat";
+    eos_T4_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par4.dat";
+    eos_T5_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par5.dat";
+    eos_T6_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par6.dat";
+    eos_T7_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par7.dat";
+
+    eos_d1 = fopen(eos_d1_name.c_str(), "r");
+    eos_d2 = fopen(eos_d2_name.c_str(), "r");
+    eos_d3 = fopen(eos_d3_name.c_str(), "r");
+    eos_d4 = fopen(eos_d4_name.c_str(), "r");
+    eos_d5 = fopen(eos_d5_name.c_str(), "r");
+    eos_d6 = fopen(eos_d6_name.c_str(), "r");
+    eos_d7 = fopen(eos_d7_name.c_str(), "r");
+    eos_T1 = fopen(eos_T1_name.c_str(), "r");
+    eos_T2 = fopen(eos_T2_name.c_str(), "r");
+    eos_T3 = fopen(eos_T3_name.c_str(), "r");
+    eos_T4 = fopen(eos_T4_name.c_str(), "r");
+    eos_T5 = fopen(eos_T5_name.c_str(), "r");
+    eos_T6 = fopen(eos_T6_name.c_str(), "r");
+    eos_T7 = fopen(eos_T7_name.c_str(), "r");
+
+    checkForReadError(eos_d1,eos_d1_name.c_str());
+    checkForReadError(eos_d2,eos_d2_name.c_str());
+    checkForReadError(eos_d3,eos_d3_name.c_str());
+    checkForReadError(eos_d4,eos_d4_name.c_str());
+    checkForReadError(eos_d5,eos_d5_name.c_str());
+    checkForReadError(eos_d6,eos_d6_name.c_str());
+    checkForReadError(eos_d7,eos_d7_name.c_str());
+    checkForReadError(eos_T1,eos_T1_name.c_str());
+    checkForReadError(eos_T2,eos_T2_name.c_str());
+    checkForReadError(eos_T3,eos_T3_name.c_str());
+    checkForReadError(eos_T4,eos_T4_name.c_str());
+    checkForReadError(eos_T5,eos_T5_name.c_str());
+    checkForReadError(eos_T6,eos_T6_name.c_str());
+    checkForReadError(eos_T7,eos_T7_name.c_str());
+
     // read the first two lines with general info:
     // lowest value of epsilon
     // deltaEpsilon, number of epsilon steps (i.e. # of lines)

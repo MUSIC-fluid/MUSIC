@@ -6,6 +6,7 @@
 
 #include "./util.h"
 #include "./data.h"
+#include "./pretty_ostream.h"
 #include "gsl/gsl_interp.h"
 #include "gsl/gsl_spline.h"
 #include "gsl/gsl_errno.h"
@@ -13,6 +14,7 @@
 class EOS {
  private:
     InitData *parameters_ptr;
+    pretty_ostream music_message;
 
     double BNP1, EPP1;            // start value for \mu_B and epsilon
     double BNP2, EPP2;            // start value for \mu_B and epsilon

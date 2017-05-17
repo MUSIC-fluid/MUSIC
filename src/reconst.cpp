@@ -1056,15 +1056,15 @@ double Reconst::GuessEps(double T00, double K00, double cs2) {
     double f;
  
     if (cs2 < SMALL) {
-        f = ((-K00 + util->Power(T00,2))
-             *(cs2*K00*util->Power(T00,2) + util->Power(T00,4) 
-               + util->Power(cs2,2)*K00*(2*K00 - util->Power(T00,2))))
-            /util->Power(T00,5);
+        f = ((-K00 + T00*T00)
+             *(cs2*K00*T00*T00 + pow(T00, 4) 
+               + cs2*cs2*K00*(2*K00 - T00*T00)))
+            /pow(T00, 5);
     } else {
         f = ((-1.0 + cs2)*T00 
-            + sqrt(-4.0*cs2*K00 + util->Power(T00,2)
-                   + 2.0*cs2*util->Power(T00,2)
-                   + util->Power(cs2,2)*util->Power(T00,2)))/(2.0*cs2);
+            + sqrt(-4.0*cs2*K00 + T00*T00
+                   + 2.0*cs2*T00*T00
+                   + cs2*cs2*T00*T00))/(2.0*cs2);
     }
     return f;
 }/*  GuessEps */

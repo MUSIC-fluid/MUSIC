@@ -428,7 +428,6 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     parameter_list->eta_flat = tempeta_flat;
 
     // s_factor:  for use with IP-Glasma initial conditions
-    //   parameter_list->sFactor = util->DFind(input_file, "s_factor");
     double tempsFactor   = 20.;
     tempinput = util->StringFind4(input_file, "s_factor");
     if (tempinput != "empty") istringstream ( tempinput ) >> tempsFactor  ;
