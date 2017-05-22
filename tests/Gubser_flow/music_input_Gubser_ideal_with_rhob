@@ -85,7 +85,7 @@ pseudofreeze  1
 epsilon_freeze  0.18 
 N_freeze_out  14 
 use_eps_for_freeze_out  1 
-freeze_eps_flag  1 
+freeze_eps_flag  0
 deltaf_14moments  0 
 freeze_list_filename  eps_freeze_list_s95p-v1.dat 
 freeze_out_method  4 

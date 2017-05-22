@@ -1,6 +1,5 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include <iostream>
-#include "util.h"
 #include "data.h"
 #include "grid.h"
 #include "eos.h"
@@ -13,7 +12,6 @@ Reconst::Reconst(EOS *eosIn, int reconst_type_in) {
     eos = eosIn;
     eos_eps_max = eos->get_eps_max();
 
-    util = new Util;
     max_iter = 100;
     rel_err = 1e-9;
     abs_err = 1e-10;
@@ -29,7 +27,6 @@ Reconst::Reconst(EOS *eosIn, int reconst_type_in) {
 
 // destructor
 Reconst::~Reconst() {
-    delete util;
     if (reconst_type == 99) {
         gsl_root_fsolver_free(gsl_rootfinding_solver);
     }
