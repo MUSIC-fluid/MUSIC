@@ -7,15 +7,18 @@
 
 using namespace std;
 
-Reconst::Reconst(EOS *eosIn, int reconst_type_in, InitData *DATA_in) {
-    reconst_type = reconst_type_in;
+Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
     eos = eosIn;
     eos_eps_max = eos->get_eps_max();
     DATA_ptr = DATA_in;
 
+    echo_level = DATA_ptr->echo_level;
+    v_critical = 0.563624;
+    LARGE = 1e20;
+
     max_iter = 100;
-    rel_err = 1e-9;
-    abs_err = 1e-10;
+    rel_err = 1e-8;
+    abs_err = 1e-16;
 }
 
 // destructor
@@ -25,11 +28,11 @@ Reconst::~Reconst() {
 int Reconst::ReconstIt_shell(Grid *grid_p, int direc, double tau, double **uq,
                              Grid *grid_pt, InitData *DATA, int rk_flag) {
     int flag = 0;
-    flag = ReconstIt_velocity_Newton(grid_p, direc, tau, uq, grid_pt, DATA,
+    flag = ReconstIt_velocity_Newton(grid_p, direc, tau, uq, grid_pt,
                                      rk_flag);
     if (flag < 0) {
         flag = ReconstIt_velocity_iteration(grid_p, direc, tau, uq, grid_pt,
-                                            DATA, rk_flag);
+                                            rk_flag);
     }
 
     if (flag < 0) {
@@ -42,9 +45,9 @@ int Reconst::ReconstIt_shell(Grid *grid_p, int direc, double tau, double **uq,
     return(flag);
 }
 
+//! reconstruct TJb from q[0] - q[4] solve energy density first
 int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
                        Grid *grid_pt, InitData *DATA, int rk_flag) {
-    /* reconstruct TJb from q[0] - q[4] */
     double K00, T00, J0, u[4], epsilon, p, h, rhob;
     double epsilon_prev, rhob_prev, p_prev, p_guess, temperr;
     double epsilon_next, rhob_next, p_next, err, tempf, temph, cs2;
@@ -70,7 +73,6 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
        q[4] = Jtau */
     /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
 
-
     for (alpha=0; alpha<5; alpha++) {
         q[alpha] = uq[alpha][direc];
     }
@@ -81,16 +83,14 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     T00 = q[0]/tau;
     J0 = q[4]/tau;
  
-    if ( (T00 < 0.0) || ((T00 - K00/T00) < 0.0) || (T00 < (SMALL)) ) {
+    if ((T00 - K00/T00) < 0.0 || (T00 < (abs_err))) {
         // can't make Tmunu with this. restore the previous value
         // remember that uq are eigher halfway cells or the final q_next
         // at this point, the original values in grid_pt->TJb are not touched.
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return -1;
-    } /* if t00-k00/t00 < 0.0 */
+        return(-2);
+    }
 
     /* Iteration scheme */
- 
     double eps_init = grid_pt->epsilon;
     double rhob_init = grid_pt->rhob;
     cs2 = eos->p_e_func(eps_init, rhob_init);
@@ -107,21 +107,25 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     p_guess = eos->get_pressure(epsilon_next, rhob_init);
     p_next = p_guess;
 
-    /* rhob = J0*sqrt( (eps + p)/(T00 + p) ) */
-
     if (J0 == 0.0) {
         rhob_next = 0.0;
     } else {
         rhob_next = J0*sqrt((eps_guess + p_guess)/(T00 + p_guess));
-        if (rhob_next > LARGE || rhob_next < 0) {
+        if (rhob_next < 0) {
             rhob_next = 0.0;
+        }
+        if (rhob_next > LARGE) {
+            music_message << "rhob_next is crazy! rhob = " << rhob_next;
+            music_message.flush("error");
         }
     }
     err = 1.0;
     for (iter=0; iter<100; iter++) {
         if (err < (RECONST_PRECISION)*0.01) {
-            if (isnan(epsilon_next))
-                cout << "problem2" << endl;
+            if (isnan(epsilon_next)) {
+                music_message.error("epsilon is nan");
+                exit(-1);
+            }
             p_next = eos->get_pressure(epsilon_next, rhob_next);
             break;
         } else {
@@ -129,8 +133,10 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
             rhob_prev = rhob_next;
         }
    
-        if (isnan(epsilon_prev))
-            cout << "problem3" << endl;
+        if (isnan(epsilon_prev)) {
+            music_message.error("epsilon is nan");
+            exit(-1);
+        }
 
         p_prev = eos->get_pressure(epsilon_prev, rhob_prev);
         epsilon_next = T00 - K00/(T00 + p_prev);
@@ -138,80 +144,68 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
    
         if (DATA->turn_on_rhob == 1) {
             rhob_next = J0*sqrt((epsilon_prev + p_prev)/(T00 + p_prev));
-            temperr = fabs((rhob_next-rhob_prev)/(rhob_prev+SMALL));
+            temperr = fabs((rhob_next-rhob_prev)/(rhob_prev+abs_err));
             if (temperr > LARGE)
                 err += temperr;
             else if (temperr > LARGE)
-                err += 1000.0; /* big enough */
+                err += 1000.0;  //big enough
             else if (isnan(temperr))
                 err += 1000.0;
         } else {
             rhob_next = 0.0;
         }
    
-        temperr = fabs((epsilon_next-epsilon_prev)/(epsilon_prev+SMALL));
+        temperr = fabs((epsilon_next-epsilon_prev)/(epsilon_prev+abs_err));
         if (temperr > LARGE)
             err += temperr;
         else if (temperr > LARGE)
-            err += 1000.0; /* big enough */
+            err += 1000.0;  // big enough
         else if (isnan(temperr))
             err += 1000.0;
-    }/* iter */ 
+    }
 
     if (iter == 100) {
         fprintf(stderr, "Reconst didn't converge.\n");
         cout << grid_p->epsilon << endl;
-        fprintf(stderr, "Reverting to the previous TJb...\n"); 
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return -2;
-    } /* if iteration is unsuccessful, revert */
+        return(-1);
+    }  // if iteration is unsuccessful, revert
 
-    /* update */
- 
+    // update
     epsilon = grid_p->epsilon = epsilon_next;
     p = grid_p->p = p_next;
     rhob = grid_p->rhob = rhob_next;
     h = p+epsilon;
+    double pressure = p_next;
 
     /* q[0] = Ttautau/tau, q[1] = Ttaux, q[2] = Ttauy, q[3] = Ttaueta,
        q[4] = Jtau */
 
     u[0] = sqrt((q[0]/tau + p)/h);
-    //remove if for speed
-    if (u[0] > LARGE) {
-        u[0] = 1.0;
-        u[1] = 0.0;
-        u[2] = 0.0;
-        u[3] = 0.0;
+    double u_max = 242582597.70489514; // cosh(20)
+    if (u[0] > u_max) {
+        fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
+        if (grid_pt->epsilon > 0.3) {
+	        fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
+	        fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
+	        fprintf(stderr, "Reverting to the previous TJb...\n"); 
+	    }
+        return(-1);
     } else {
         u[1] = q[1]/tau/h/u[0]; 
         u[2] = q[2]/tau/h/u[0]; 
         u[3] = q[3]/tau/h/u[0]; 
     }
 
-    double u_max = 242582597.70489514; // cosh(20)
-    if (u[0] > u_max) {
-        fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
-        if(grid_pt->epsilon > 0.3) {
-	        fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
-	        fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
-	        fprintf(stderr, "Reverting to the previous TJb...\n"); 
-	    }
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return -2;
-    }/* if u[0] is too large, revert */
-
     /* Correcting normalization of 4-velocity */
     temph = u[0]*u[0] - u[1]*u[1] - u[2]*u[2] - u[3]*u[3];
     // Correct velocity when unitarity is not satisfied to numerical accuracy
-    // (constant "SMALL")
-    if (fabs(temph - 1.0) > SMALL) {
+    if (fabs(temph - 1.0) > abs_err) {
         // If the deviation is too large, exit MUSIC
         if (fabs(temph - 1.0) > 0.1) {
             fprintf(stderr, "In Reconst, reconstructed : u2 = %e\n", temph);
             fprintf(stderr, "Can't happen.\n");
             exit(0);
-        } else if(fabs(temph - 1.0) > sqrt(SMALL)) {
+        } else if(fabs(temph - 1.0) > sqrt(abs_err)) {
             // Warn only when the deviation from 1 is relatively large
             fprintf(stderr, "In Reconst, reconstructed : u2 = %e\n", temph);
             fprintf(stderr, "with u[0] = %e\n", u[0]);
@@ -220,33 +214,31 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
 
         // Rescaling spatial components of velocity so that unitarity 
         // is exactly satisfied (u[0] is not modified)
-        scalef = (u[0]-1.0);
-        scalef *= (u[0]+1.0);
-        scalef /= (u[1]*u[1]+u[2]*u[2]+u[3]*u[3]);
-        scalef = sqrt(scalef);
+        scalef = sqrt((u[0]*u[0]-1.0)/(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]));
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;
     }/* if u^mu u_\mu != 1 */
     /* End: Correcting normalization of 4-velocity */
 
-    for (int mu=0; mu<4; mu++) {
-        tempf = grid_p->TJb[0][4][mu] = rhob*u[mu];
-        tempf = grid_p->u[0][mu] = u[mu];
-   
-        for (int nu=0; nu<4; nu++) {
-            tempf = grid_p->TJb[0][nu][mu] 
-                  = ((epsilon + p)*u[nu]*u[mu] + p*(DATA->gmunu)[nu][mu]);
-            if (tempf > LARGE) {
-                fprintf(stderr, "Update: TJb[0][%d][%d] is %e.\n",
-                        nu, mu, grid_p->TJb[0][nu][mu]);
-                fprintf(stderr, "Update: epsilon is %e.\n", epsilon);
-                exit(0);
-            }
-        }/* nu */
-    }/* mu */
-    return 1; /* on successful execution */
-}/* Reconst */
+    for (int mu = 0; mu < 4; mu++) {
+        grid_p->TJb[0][4][mu] = rhob*u[mu];
+        grid_p->u[0][mu] = u[mu];
+        double gfac = (mu == 0 ? -1.0 : 1.0);
+        double tempf = (epsilon + pressure)*u[mu]*u[mu] + pressure*gfac;
+        grid_p->TJb[0][mu][mu] = tempf;
+    }
+    for (int mu = 0; mu < 4; mu++) {
+        double tempf = (epsilon + pressure)*u[mu];
+        for (int nu = mu+1; nu < 4; nu++) {
+            double Tmunu = tempf*u[nu];
+            grid_p->TJb[0][mu][nu] = Tmunu;
+            grid_p->TJb[0][nu][mu] = Tmunu;
+        }
+    }
+
+    return(1);  // on successful execution
+}
 
 //! This function reverts the grid information back its values
 //! at the previous time step
@@ -266,13 +258,10 @@ void Reconst::revert_grid(Grid *grid_current, Grid *grid_prev, int rk_flag) {
 
 int Reconst::ReconstIt_velocity_iteration(
     Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
-    InitData *DATA, int rk_flag) {
+    int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
     /* reconstruct velocity first for finite mu_B case */
     /* use iteration to solve v and u0 */
-
-    int echo_level = DATA->echo_level;
-    double v_critical = 0.563624;
 
     /* prepare for the iteration */
     /* uq = qiphL, qiphR, etc 
@@ -299,12 +288,11 @@ int Reconst::ReconstIt_velocity_iteration(
     double T00 = q[0];
     double J0 = q[4];
 
-    if ((T00 < SMALL) || ((T00 - K00/T00) < 0.0)) {
+    if ((T00 < abs_err) || ((T00 - K00/T00) < 0.0)) {
         // can't make Tmunu with this. restore the previous value 
         // remember that uq are eigher halfway cells or the final q_next 
         // at this point, the original values in grid_pt->TJb are not touched. 
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return(-1);
+        return(-2);
     }/* if t00-k00/t00 < 0.0 */
 
     double u[4], epsilon, pressure, rhob;
@@ -339,10 +327,8 @@ int Reconst::ReconstIt_velocity_iteration(
                     "iter", "lower", "upper", "root", "err(est)");
             fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
                     iter, v_prev, v_next, abs_error_v, rel_error_v);
-            fprintf(stderr, "Reverting to the previous TJb...\n"); 
         }
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return(-2);
+        return(-1);
     }/* if iteration is unsuccessful, revert */
    
     // for large velocity, solve u0
@@ -378,16 +364,14 @@ int Reconst::ReconstIt_velocity_iteration(
                         "iter", "lower", "upper", "root", "err(est)");
                 fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
                         iter, u0_prev, u0_next, abs_error_u0, rel_error_u0);
-                fprintf(stderr, "Reverting to the previous TJb...\n"); 
             }
-            revert_grid(grid_p, grid_pt, rk_flag);
-            return(-2);
+            return(-1);
         } /* if iteration is unsuccessful, revert */
     }
 
     // successfully found velocity, now update everything else
     if (v_solution < v_critical) {
-        u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*SMALL);
+        u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*abs_err);
         epsilon = T00 - v_solution*sqrt(K00);
         rhob = J0/u[0];
     } else {
@@ -404,10 +388,8 @@ int Reconst::ReconstIt_velocity_iteration(
 	        fprintf(stderr, "e_max = %e [1/fm^4]\n", eos_eps_max);
 	        fprintf(stderr, "previous epsilon = %e [1/fm^4]\n",
                     grid_pt->epsilon);
-	        fprintf(stderr, "Reverting to the previous TJb...\n"); 
         }
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return(-2);
+        return(-1);
     }
 
     grid_p->epsilon = epsilon;
@@ -418,28 +400,16 @@ int Reconst::ReconstIt_velocity_iteration(
 
     double u_max = 242582597.70489514; // cosh(20)
     //remove if for speed
-    if (u[0] > LARGE) {
-        // check whether velocity is too large
-        if (echo_level > 5) {
-            fprintf(stderr, "Reconst velocity: u[0] = %e is infinite.\n",
-                    u[0]);
-	        fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
-	        fprintf(stderr, "Reverting to the previous TJb...\n"); 
-        }
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return(-2);
-    } else if(u[0] > u_max) {
+    if(u[0] > u_max) {
         // check whether velocity is too large
         if (echo_level > 5) {
             fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n",
                     u[0]);
             if (grid_pt->epsilon > 0.3) {
 	            fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
-	            fprintf(stderr, "Reverting to the previous TJb...\n"); 
 	        }
         }
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return(-2);
+        return(-1);
     } else {
         // individual components of velocity
         double velocity_inverse_factor = u[0]/(T00 + pressure);
@@ -451,7 +421,7 @@ int Reconst::ReconstIt_velocity_iteration(
     // Correcting normalization of 4-velocity
     double temp_usq = u[0]*u[0] - u[1]*u[1] - u[2]*u[2] - u[3]*u[3];
     // Correct velocity when unitarity is not satisfied to numerical accuracy
-    if (fabs(temp_usq - 1.0) > SMALL) {
+    if (fabs(temp_usq - 1.0) > abs_err) {
         // If the deviation is too large, exit MUSIC
         if (fabs(temp_usq - 1.0) > 0.1*u[0]) {
             fprintf(stderr,
@@ -466,7 +436,7 @@ int Reconst::ReconstIt_velocity_iteration(
                     "q[0]=%.6e, q[1]=%.6e, q[2]=%.6e, q[3]=%.6e q[4]=%.6e\n",
                     q[0], q[1], q[2], q[3], q[4]);
             exit(0);
-        } else if (fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0] && echo_level > 5) {
+        } else if (fabs(temp_usq - 1.0) > sqrt(abs_err)*u[0] && echo_level > 5) {
             // Warn only when the deviation from 1 is relatively large
             fprintf(stderr,
                     "In Reconst velocity, reconstructed: u^2 - 1 = %.8e \n",
@@ -491,7 +461,7 @@ int Reconst::ReconstIt_velocity_iteration(
         // Rescaling spatial components of velocity so that unitarity 
         // is exactly satisfied (u[0] is not modified)
         double scalef = sqrt(
-                (u[0]*u[0] - 1.0)/(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + SMALL));
+                (u[0]*u[0] - 1.0)/(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err));
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;
@@ -517,16 +487,13 @@ int Reconst::ReconstIt_velocity_iteration(
     return 1;  /* on successful execution */
 }/* Reconst */
 
+
+//! reconstruct TJb from q[0] - q[4]
+//! reconstruct velocity first for finite mu_B case
+//! use Newton's method to solve v and u0
 int Reconst::ReconstIt_velocity_Newton(
     Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
-    InitData *DATA, int rk_flag) {
-    /* reconstruct TJb from q[0] - q[4] */
-    /* reconstruct velocity first for finite mu_B case */
-    /* use Newton's method to solve v and u0 */
-
-    int echo_level = DATA->echo_level;
-    double v_critical = 0.563624;
-
+    int rk_flag) {
     /* prepare for the iteration */
     /* uq = qiphL, qiphR, etc 
        qiphL[alpha][direc] means, for instance, TJ[alpha][0] 
@@ -552,12 +519,11 @@ int Reconst::ReconstIt_velocity_Newton(
     double T00 = q[0];
     double J0 = q[4];
 
-    if ((T00 < SMALL) || ((T00 - K00/T00) < 0.0)) {
+    if ((T00 < abs_err) || ((T00 - K00/T00) < 0.0)) {
         // can't make Tmunu with this. restore the previous value 
         // remember that uq are eigher halfway cells or the final q_next 
         // at this point, the original values in grid_pt->TJb are not touched. 
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return -1;
+        return(-2);
     }/* if t00-k00/t00 < 0.0 */
 
     double u[4], epsilon, pressure, rhob;
@@ -602,10 +568,8 @@ int Reconst::ReconstIt_velocity_Newton(
                    "iter", "lower", "upper", "root", "err(est)");
            fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
                    iter, v_prev, v_next, abs_error_v, rel_error_v);
-           fprintf(stderr, "Reverting to the previous TJb...\n"); 
         }
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return -2;
+        return(-1);
     }/* if iteration is unsuccessful, revert */
    
     // for large velocity, solve u0
@@ -641,16 +605,14 @@ int Reconst::ReconstIt_velocity_Newton(
                         "iter", "lower", "upper", "root", "err(est)");
                 fprintf(stderr, "%5d [%.7f, %.7f] %.7f\n", 
                         iter, u0_prev, u0_next, abs_error_u0);
-                fprintf(stderr, "Reverting to the previous TJb...\n"); 
             }
-            revert_grid(grid_p, grid_pt, rk_flag);
-            return -2;
+            return(-1);
         }/* if iteration is unsuccessful, revert */
     }
 
     // successfully found velocity, now update everything else
     if (v_solution < v_critical) {
-        u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*SMALL);
+        u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*abs_err);
         epsilon = T00 - v_solution*sqrt(K00);
         rhob = J0/u[0];
     } else {
@@ -669,12 +631,7 @@ int Reconst::ReconstIt_velocity_Newton(
 
     double u_max = 242582597.70489514; // cosh(20)
     //remove if for speed
-    if (u[0] > LARGE) {
-        u[0] = 1.0;
-        u[1] = 0.0;
-        u[2] = 0.0;
-        u[3] = 0.0;
-    } else if(u[0] > u_max) {
+    if(u[0] > u_max) {
         // check whether velocity is too large
         if (echo_level > 5) {
             fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n",
@@ -683,11 +640,9 @@ int Reconst::ReconstIt_velocity_Newton(
 	            fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n",
                         u[0]);
 	            fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
-	            fprintf(stderr, "Reverting to the previous TJb...\n"); 
 	        }
         }
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return -2;
+        return(-1);
     } else {
         u[1] = q[1]*velocity_inverse_factor; 
         u[2] = q[2]*velocity_inverse_factor; 
@@ -697,7 +652,7 @@ int Reconst::ReconstIt_velocity_Newton(
     // Correcting normalization of 4-velocity
     double temp_usq = u[0]*u[0] - u[1]*u[1] - u[2]*u[2] - u[3]*u[3];
     // Correct velocity when unitarity is not satisfied to numerical accuracy
-    if (fabs(temp_usq - 1.0) > SMALL) {
+    if (fabs(temp_usq - 1.0) > abs_err) {
         // If the deviation is too large, exit MUSIC
         if (fabs(temp_usq - 1.0) > 0.1*u[0]) {
             fprintf(stderr,
@@ -712,7 +667,7 @@ int Reconst::ReconstIt_velocity_Newton(
                     "q[0]=%.6e, q[1]=%.6e, q[2]=%.6e, q[3]=%.6e q[4]=%.6e\n",
                     q[0], q[1], q[2], q[3], q[4]);
             exit(0);
-        } else if (fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0] && echo_level > 5) {
+        } else if (fabs(temp_usq - 1.0) > sqrt(abs_err)*u[0] && echo_level > 5) {
             // Warn only when the deviation from 1 is relatively large
             fprintf(stderr,
                     "In Reconst velocity, reconstructed: u^2 - 1 = %.8e \n",
@@ -734,8 +689,8 @@ int Reconst::ReconstIt_velocity_Newton(
         }
         // Rescaling spatial components of velocity so that unitarity 
         // is exactly satisfied (u[0] is not modified)
-        double scalef = sqrt(
-                (u[0]*u[0] - 1.0)/(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + SMALL));
+        double scalef = sqrt((u[0]*u[0] - 1.0)
+                             /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err));
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;
@@ -780,7 +735,7 @@ void Reconst::ReconstError(const char *str, int i, int rk_flag, double *qi,
 double Reconst::GuessEps(double T00, double K00, double cs2) {
     double f;
  
-    if (cs2 < SMALL) {
+    if (cs2 < abs_err) {
         f = ((-K00 + T00*T00)
              *(cs2*K00*T00*T00 + pow(T00, 4) 
                + cs2*cs2*K00*(2*K00 - T00*T00)))
@@ -791,7 +746,7 @@ double Reconst::GuessEps(double T00, double K00, double cs2) {
                    + 2.0*cs2*T00*T00
                    + cs2*cs2*T00*T00))/(2.0*cs2);
     }
-    return f;
+    return(f);
 }/*  GuessEps */
 
 double Reconst::reconst_velocity_f(double v, double T00, double M,

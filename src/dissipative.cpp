@@ -224,7 +224,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
     tau_pi = 5.0*shear/(grid_pt->epsilon + grid_pt->p + 1e-15);
 
     // tau_pi = maxi(tau_pi, DATA->tau_pi);
-    if (tau_pi > LARGE) {
+    if (tau_pi > 1e20) {
         tau_pi = DATA->delta_tau;
         cout << "tau_pi was infinite ..." << endl;
     }

@@ -22,10 +22,6 @@ using namespace std;
 #define hbarc (0.1973)
 #endif
 
-#ifndef LARGE
-#define LARGE (1e20)
-#endif
-
 #ifndef default_tol
 #define default_tol (1.0e-8)
 #endif
@@ -41,7 +37,6 @@ using namespace std;
 #define DMAX(a,b) ((a) > (b) ? (a) : (b))
 #define DMIN(a,b) ((a) < (b) ? (a) : (b))
 #define SIGN(a,b) ((b) >= 0.0 ? absol(a): -absol(a)) 
-/* Sangyong Nov 18 2014 */
 /* added gmn = Minkowski metric to be used in sums */
 #define gmn(a) ((a) == 0 ? (-1.0) : (1.0))
 

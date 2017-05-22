@@ -11,7 +11,6 @@
 
 class Reconst {
  private:
-    int reconst_type;
     EOS *eos;
     double eos_eps_max;
     Util *util;
@@ -21,8 +20,13 @@ class Reconst {
     int max_iter;
     double rel_err, abs_err;
 
+    double LARGE;
+
+    int echo_level;
+    double v_critical;
+
  public:
-    Reconst(EOS *eos, int reconst_type_in);
+    Reconst(EOS *eos, InitData *DATA_in);
     ~Reconst();
       
     void ReconstError(const char *str, int i, int rk_flag, double *qi,
@@ -40,16 +44,14 @@ class Reconst {
 
     // reconst_type == 1
     int ReconstIt_velocity_iteration(Grid *grid_p, int direc, double tau,
-                                     double **uq, Grid *grid_pt,
-                                     InitData *DATA, int rk_flag);
+                                     double **uq, Grid *grid_pt, int rk_flag);
     double reconst_velocity_f(double v, double T00, double M, double J0);
     double reconst_u0_f(double u0, double T00, double K00, double M,
                         double J0);
 
     // reconst_type == 2
     int ReconstIt_velocity_Newton(Grid *grid_p, int direc, double tau,
-                                  double **uq, Grid *grid_pt,
-                                  InitData *DATA, int rk_flag);
+                                  double **uq, Grid *grid_pt, int rk_flag);
     double reconst_velocity_f_Newton(double v, double T00, double M,
                                      double J0);
     double reconst_u0_f_Newton(double u0, double T00, double K00,
