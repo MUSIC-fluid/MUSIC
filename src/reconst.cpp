@@ -7,54 +7,37 @@
 
 using namespace std;
 
-Reconst::Reconst(EOS *eosIn, int reconst_type_in) {
+Reconst::Reconst(EOS *eosIn, int reconst_type_in, InitData *DATA_in) {
     reconst_type = reconst_type_in;
     eos = eosIn;
     eos_eps_max = eos->get_eps_max();
+    DATA_ptr = DATA_in;
 
     max_iter = 100;
     rel_err = 1e-9;
     abs_err = 1e-10;
-    if (reconst_type == 99) {
-        // initialize gsl root finding solver
-        gsl_rootfinding_max_iter = max_iter;
-        gsl_rootfinding_relerr = rel_err;
-        gsl_rootfinding_abserr = abs_err;
-        gsl_solverType = gsl_root_fsolver_brent;   // Brent-Dekker method
-        gsl_rootfinding_solver = gsl_root_fsolver_alloc (gsl_solverType);
-    }
 }
 
 // destructor
 Reconst::~Reconst() {
-    if (reconst_type == 99) {
-        gsl_root_fsolver_free(gsl_rootfinding_solver);
-    }
 }
 
 int Reconst::ReconstIt_shell(Grid *grid_p, int direc, double tau, double **uq,
                              Grid *grid_pt, InitData *DATA, int rk_flag) {
     int flag = 0;
-    if (reconst_type == 0) {
-        // reconst e and rhob through iterations
-        flag = ReconstIt(grid_p, direc, tau, uq, grid_pt, DATA, rk_flag);
-    } else if (reconst_type == 1) {
-        // reconst v and u0 through iteractions
+    flag = ReconstIt_velocity_Newton(grid_p, direc, tau, uq, grid_pt, DATA,
+                                     rk_flag);
+    if (flag < 0) {
         flag = ReconstIt_velocity_iteration(grid_p, direc, tau, uq, grid_pt,
                                             DATA, rk_flag);
-    } else if (reconst_type == 2) {
-        // reconst v and u0 using Newton's method
-        flag = ReconstIt_velocity_Newton(grid_p, direc, tau, uq, grid_pt, DATA,
-                                         rk_flag);
-    } else if (reconst_type == 99) {
-        // reconst v and u0 using gsl routines for hybrid binary search
-        flag = ReconstIt_velocity_gsl(grid_p, direc, tau, uq, grid_pt, DATA,
-                                      rk_flag);
-    } else {
-        fprintf(stderr,
-                "Reconst::ReconstIt_shell: unrecognized reconst_type = %d \n",
-                reconst_type);
-        exit(1);
+    }
+
+    if (flag < 0) {
+        flag = ReconstIt(grid_p, direc, tau, uq, grid_pt, DATA, rk_flag);
+    }
+
+    if (flag < 0) {
+        revert_grid(grid_p, grid_pt, rk_flag);
     }
     return(flag);
 }
@@ -264,261 +247,6 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     }/* mu */
     return 1; /* on successful execution */
 }/* Reconst */
-
-int Reconst::ReconstIt_velocity_gsl(Grid *grid_p, int direc, double tau,
-                                    double **uq, Grid *grid_pt,
-                                    InitData *DATA, int rk_flag) {
-    /* reconstruct TJb from q[0] - q[4] */
-    /* reconstruct velocity first for finite mu_B case
-     * (add by C. Shen Nov. 2014) */
-    double K00, T00, J0, u[4], epsilon, pressure, rhob;
-    int iter, alpha;
-    double q[5];
-
-    double v_critical = 0.563624;
-    int echo_level = DATA->echo_level;
-
-    /* prepare for the iteration */
-    /* uq = qiphL, qiphR, etc 
-       qiphL[alpha][direc] means, for instance, TJ[alpha][0] 
-       in the cell at x+dx/2 calculated from the left */
-    
-    /* uq are the conserved charges. That is, the ones appearing in
-       d_tau (Ttautau/tau) + d_eta(Ttaueta/tau) + d_perp(Tperptau) = -Tetaeta
-       d_tau (Ttaueta) + d_eta(Tetaeta) + d_v(tau Tveta) = -Ttaueta/tau 
-       d_tau (Ttauv) + d_eta(Tetav) + d_w(tau Twv) = 0
-       d_tau (Jtau) + d_eta Jeta + d_perp(tau Jperp) = 0 */
-    
-    /* q[0] = Ttautau/tau, q[1] = Ttaux, q[2] = Ttauy, q[3] = Ttaueta
-       q[4] = Jtau */
-    /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
-
-
-    for (alpha=0; alpha<5; alpha++)
-        q[alpha] = uq[alpha][direc]/tau;
-
-    K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
-    T00 = q[0];
-    J0 = q[4];
- 
-    if ( (T00 < SMALL) || ((T00 - K00/T00) < 0.0) ) {
-        // can't make Tmunu with this. restore the previous value 
-        // remember that uq are eigher halfway cells or the final q_next 
-        // at this point, the original values in grid_pt->TJb are not touched. 
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return -1;
-    }/* if t00-k00/t00 < 0.0 */
-
-    // solving velocity with gsl
-    reconst_v_params params;
-    params.T00 = T00;
-    params.K00 = K00;
-    params.J0 = J0;
-
-    CCallbackHolder *Callback_params = new CCallbackHolder;
-    Callback_params->cls = this;
-    Callback_params->params = &params;
-
-    // solve velocity first
-    gslFunc.function = this->CCallback_reconst_v;
-    gslFunc.params = Callback_params;
-    gsl_root_fsolver_set (gsl_rootfinding_solver, &gslFunc, 0.0, 1.0);
- 
-    int status;
-    iter = 0;
-    do {
-       iter++;
-       status = gsl_root_fsolver_iterate (gsl_rootfinding_solver);
-       double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
-       double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
-       status = gsl_root_test_interval(x_lo, x_hi, gsl_rootfinding_abserr,
-                                       gsl_rootfinding_relerr);
-    } while (status == GSL_CONTINUE && iter < gsl_rootfinding_max_iter);
-
-    double v_solution;
-    if (status == GSL_SUCCESS) {
-        v_solution = gsl_root_fsolver_root(gsl_rootfinding_solver);
-    } else {
-        if (echo_level > 5) {
-           double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
-           double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
-           double result = gsl_root_fsolver_root (gsl_rootfinding_solver);
-           fprintf(
-                stderr, 
-                "***Warning: Reconst velocity:: can not find solution!!!\n");
-           fprintf(stderr, "***output the results at the last iteration: \n");
-           fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
-                   "iter", "lower", "upper", "root", "err(est)");
-           fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
-                   iter, x_lo, x_hi, result, x_hi - x_lo);
-           fprintf(stderr, "Reverting to the previous TJb...\n"); 
-        }
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return -2;
-    }/* if iteration is unsuccessful, revert */
-   
-    // for large velocity, solve u0
-    double u0_solution = 1.0;
-    if (v_solution > v_critical) {
-        double u0_max_guess = max(5e3, 2*T00/(T00*T00 - K00));
-        gslFunc.function = this->CCallback_reconst_u0;
-        gslFunc.params = Callback_params;
-        gsl_root_fsolver_set (gsl_rootfinding_solver, &gslFunc, 1.0,
-                              u0_max_guess);
- 
-        int status;
-        iter = 0;
-        do {
-            iter++;
-            status = gsl_root_fsolver_iterate (gsl_rootfinding_solver);
-            double x_lo = gsl_root_fsolver_x_lower (gsl_rootfinding_solver);
-            double x_hi = gsl_root_fsolver_x_upper (gsl_rootfinding_solver);
-            status = gsl_root_test_interval(x_lo, x_hi, gsl_rootfinding_abserr,
-                                            gsl_rootfinding_relerr);
-        } while (status == GSL_CONTINUE && iter < gsl_rootfinding_max_iter);
-
-        if (status == GSL_SUCCESS) {
-            u0_solution = gsl_root_fsolver_root(gsl_rootfinding_solver);
-        } else {
-            if (echo_level > 5) {
-                double x_lo = gsl_root_fsolver_x_lower(gsl_rootfinding_solver);
-                double x_hi = gsl_root_fsolver_x_upper(gsl_rootfinding_solver);
-                double result = gsl_root_fsolver_root(gsl_rootfinding_solver);
-                fprintf(
-                    stderr,
-                    "***Warning: Reconst velocity:: can not find solution!\n");
-                fprintf(stderr,
-                        "***output the results at the last iteration:\n");
-                fprintf(stderr, "%5s [%9s, %9s] %9s %10s \n",
-                        "iter", "lower", "upper", "root", "err(est)");
-                fprintf(stderr, "%5d [%.7f, %.7f] %.7f %.7f\n", 
-                        iter, x_lo, x_hi, result, x_hi - x_lo);
-                fprintf(stderr, "Reverting to the previous TJb...\n"); 
-            }
-            revert_grid(grid_p, grid_pt, rk_flag);
-            return -2;
-        }/* if iteration is unsuccessful, revert */
-        v_solution = sqrt(1. - 1./(u0_solution*u0_solution));
-    }
-
-    // successfully found velocity, now update everything else
-    if (v_solution < v_critical) {
-        u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*SMALL);
-        epsilon = T00 - v_solution*sqrt(K00);
-        rhob = J0/u[0];
-    } else {
-        u[0] = u0_solution;
-        epsilon = T00 - sqrt((1. - 1./(u0_solution*u0_solution))*K00);
-        rhob = J0/u0_solution;
-    }
-    grid_p->epsilon = epsilon;
-    grid_p->rhob = rhob;
-
-    pressure = eos->get_pressure(epsilon, rhob);
-    grid_p->p = pressure;
-
-    // individual components of velocity
-    double velocity_inverse_factor = u[0]/(T00 + pressure);
-
-    double u_max = 242582597.70489514; // cosh(20)
-    //remove if for speed
-    if (u[0] > LARGE) {
-        u[0] = 1.0;
-        u[1] = 0.0;
-        u[2] = 0.0;
-        u[3] = 0.0;
-    } else if(u[0] > u_max) {
-        // check whether velocity is too large
-        if (echo_level > 5) {
-            fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n",
-                    u[0]);
-            if (grid_pt->epsilon > 0.3) {
-	            fprintf(stderr, "Reconst velocity: u[0] = %e is too large.\n",
-                        u[0]);
-	            fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
-	            fprintf(stderr, "Reverting to the previous TJb...\n"); 
-	        }
-        }
-        revert_grid(grid_p, grid_pt, rk_flag);
-        return -2;
-    } else {
-        u[1] = q[1]*velocity_inverse_factor; 
-        u[2] = q[2]*velocity_inverse_factor; 
-        u[3] = q[3]*velocity_inverse_factor; 
-    }
-
-    // Correcting normalization of 4-velocity
-    double temp_usq = u[0]*u[0] - u[1]*u[1] - u[2]*u[2] - u[3]*u[3];
-    // Correct velocity when unitarity is not satisfied to numerical accuracy
-    if (fabs(temp_usq - 1.0) > SMALL) {
-        // If the deviation is too large, exit MUSIC
-        if (fabs(temp_usq - 1.0) > 0.1*u[0]) {
-            fprintf(stderr,
-                    "In Reconst velocity, reconstructed: u^2 - 1= %e\n",
-                    temp_usq - 1.0);
-            fprintf(stderr, "Can't happen.\n");
-            fprintf(stderr, "u[0]=%.6e, u[1]=%.6e, u[2]=%.6e, u[3]=%.6e\n",
-                    u[0], u[1], u[2], u[3]);
-            fprintf(stderr, "e=%.6e, rhob=%.6e, p=%.6e\n",
-                    epsilon, rhob, pressure);
-            fprintf(stderr,
-                    "q[0]=%.6e, q[1]=%.6e, q[2]=%.6e, q[3]=%.6e q[4]=%.6e\n",
-                    q[0], q[1], q[2], q[3], q[4]);
-            exit(0);
-        } else if (fabs(temp_usq - 1.0) > sqrt(SMALL)*u[0] && echo_level > 5) {
-            // Warn only when the deviation from 1 is relatively large
-            fprintf(stderr,
-                    "In Reconst velocity, reconstructed: u^2 - 1 = %.8e \n",
-                    temp_usq - 1.0);
-            double f_res;
-            if (v_solution < v_critical)
-                f_res = fabs(reconst_velocity_function(v_solution, &params));
-            else
-                f_res = fabs(reconst_u0_function(u0_solution, &params));
-            fprintf(stderr, "with v = %.8e, u[0] = %.8e, res = %.8e \n",
-                    v_solution, u[0], f_res);
-            fprintf(stderr, "with u[1] = %e\n", u[1]);
-            fprintf(stderr, "with u[2] = %e\n", u[2]);
-            fprintf(stderr, "with u[3] = %e\n", u[3]);
-            fprintf(stderr, "with T00 = %e, K = %e \n", T00, K00);
-            fprintf(stderr, "with q1 = %e, q2 = %e, q3 = %e \n",
-                    q[1], q[2], q[3]);
-            fprintf(stderr, "Correcting it...\n");
-        }
-        // Rescaling spatial components of velocity so that unitarity 
-        // is exactly satisfied (u[0] is not modified)
-        double scalef = sqrt(
-                (u[0]*u[0] - 1.0)/(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + SMALL));
-        u[1] *= scalef;
-        u[2] *= scalef;
-        u[3] *= scalef;
-    }// if u^mu u_\mu != 1 
-    // End: Correcting normalization of 4-velocity
-    
-    for (int mu=0; mu<4; mu++) {
-        double tempf;
-        grid_p->TJb[0][4][mu] = rhob*u[mu];
-        grid_p->u[0][mu] = u[mu];
-        for (int nu=0; nu<4; nu++) {
-            tempf = grid_p->TJb[0][nu][mu]
-                  = ((epsilon + pressure)*u[nu]*u[mu]
-                          + pressure*(DATA->gmunu)[nu][mu]);
-            if (tempf > LARGE) {
-                fprintf(stderr, "Update: TJb[0][%d][%d] is %e.\n",
-                        nu, mu, grid_p->TJb[0][nu][mu]);
-                fprintf(stderr, "Update: epsilon is %e.\n", epsilon);
-                exit(0);
-            }
-            grid_p->TJb[0][nu][mu] = tempf;
-        }/* nu */
-    }/* mu */
-   
-    // clean up
-    delete Callback_params;
-
-    return 1;  /* on successful execution */
-}/* Reconst */
-
 
 //! This function reverts the grid information back its values
 //! at the previous time step
@@ -1066,19 +794,6 @@ double Reconst::GuessEps(double T00, double K00, double cs2) {
     return f;
 }/*  GuessEps */
 
-double Reconst::reconst_velocity_function(double v, void *params) {
-    reconst_v_params *params_ptr = (reconst_v_params *) params;
-
-    double T00 = params_ptr->T00;
-    double K00 = params_ptr->K00;
-    double M = sqrt(K00);
-    double J0 = params_ptr->J0;
-
-    double fv = reconst_velocity_f(v, T00, M, J0);
-    double f = v - fv;
-    return(f);
-}
-
 double Reconst::reconst_velocity_f(double v, double T00, double M,
                                    double J0) {
     // this function returns f(v) = M/(M0 + P)
@@ -1112,19 +827,6 @@ double Reconst::reconst_velocity_df(double v, double T00, double M,
 
     double dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0*temp2*dPdrho);
     return(dfdv);
-}
-
-double Reconst::reconst_u0_function(double u0, void *params) {
-    reconst_v_params *params_ptr = (reconst_v_params *) params;
-
-    double T00 = params_ptr->T00;
-    double K00 = params_ptr->K00;
-    double M = sqrt(K00);
-    double J0 = params_ptr->J0;
-
-    double fu = reconst_u0_f(u0, T00, K00, M, J0);
-    double f = u0 - fu;
-    return(f);
 }
 
 double Reconst::reconst_u0_f(double u0, double T00, double K00, double M,
