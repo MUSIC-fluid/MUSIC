@@ -59,6 +59,8 @@ class Reconst {
     double reconst_velocity_df(double v, double T00, double M, double J0);
     double reconst_u0_df(double u0, double T00, double K00, double M,
                          double J0);
+
+    void regulate_grid(Grid *grid_cell, double elocal, int rk_flag);
 };
 
 #endif  // SRC_RECONST_H_
