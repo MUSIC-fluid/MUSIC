@@ -7,9 +7,6 @@
 #include "./util.h"
 #include "./data.h"
 #include "./pretty_ostream.h"
-#include "gsl/gsl_interp.h"
-#include "gsl/gsl_spline.h"
-#include "gsl/gsl_errno.h"
 
 class EOS {
  private:
@@ -92,8 +89,6 @@ class EOS {
 
     double * eps_list_rho0, * s_list_rho0;
     int s_list_rho0_length;
-    gsl_interp * interp_s2e;
-    gsl_interp_accel * accel_s2e;
     int whichEOS;
     double eps_max;
 

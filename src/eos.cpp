@@ -140,10 +140,6 @@ EOS::~EOS() {
         exit(1);
     }
     delete util;
-    if (whichEOS >= 2 && whichEOS <= 7) {
-        gsl_interp_free(interp_s2e);
-        gsl_interp_accel_free(accel_s2e);
-    }
 }
 
 void EOS::checkForReadError(FILE *file, const char* name) {
@@ -675,10 +671,6 @@ void EOS::init_eos2()
         last=tmp_s;
       }
   }
-  //Initialise the gsl interpolator
-  interp_s2e = gsl_interp_alloc(gsl_interp_cspline, s_list_rho0_length);
-  gsl_interp_init(interp_s2e, s_list_rho0, eps_list_rho0, s_list_rho0_length);
-  accel_s2e = gsl_interp_accel_alloc();
 }
 
 void EOS::init_eos3(int selector)
@@ -1136,10 +1128,6 @@ void EOS::init_eos3(int selector)
         last=tmp_s;
       }
   }
-  //Initialise the gsl interpolator
-  interp_s2e = gsl_interp_alloc(gsl_interp_cspline, s_list_rho0_length);
-  gsl_interp_init(interp_s2e, s_list_rho0, eps_list_rho0, s_list_rho0_length);
-  accel_s2e = gsl_interp_accel_alloc();
 }
 
 void EOS::init_eos7() {
@@ -3750,22 +3738,10 @@ double EOS::get_muS(double eps, double rhob) {
 double EOS::get_s2e(double s, double rhob) {
     // s - entropy density in 1/fm^3
     double e;  // epsilon - energy density
-    int status;
     if (whichEOS == 0) {
         e = s2e_ideal_gas(s);
     } else if (whichEOS >= 2 && whichEOS <= 6) {
-        if (s < entropyDensity1[0][0]) {
-            double frac = s/entropyDensity1[0][0];
-            e = frac*EPP1;
-        } else {
-            status = gsl_interp_eval_e(interp_s2e, s_list_rho0, eps_list_rho0,
-                                       s, accel_s2e, &e);
-            if (status == GSL_EDOM) {
-                cerr << "Error: can't get energy from entropy, entropy s= "<< s
-                     << " fm^-3 is outside the current tabulation of the EOS\n";
-            exit(1);
-            }
-        }
+        e = get_s2e_finite_rhob(s, 0.0);
     } else if (whichEOS == 7) {
         e = get_s2e_finite_rhob(s, 0.0);
     } else if (whichEOS == 10) {
