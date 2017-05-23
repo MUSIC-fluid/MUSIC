@@ -11,11 +11,11 @@
 ##  
 
 CC := pgc++
-CFLAGS= -O3 $(shell gsl-config --cflags) -mp
+CFLAGS= -O3 -mp
 
 RM		=	rm -f
 O               =       .o
-LDFLAGS         =       $(CFLAGS) $(shell gsl-config --libs)
+LDFLAGS         =       $(CFLAGS)
 SYSTEMFILES     =       $(SRCGNU)
 
 # --------------- Files involved ------------------

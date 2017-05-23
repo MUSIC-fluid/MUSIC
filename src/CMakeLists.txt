@@ -18,7 +18,7 @@ add_executable (mpihydro
     pretty_ostream.cpp
     )
 
-target_link_libraries (mpihydro ${GSL_LIBRARIES})
+target_link_libraries (mpihydro)
 if (APPLE)
     set_target_properties (mpihydro PROPERTIES COMPILE_FLAGS "-DAPPLE")
 endif (APPLE)

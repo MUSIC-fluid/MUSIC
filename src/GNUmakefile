@@ -11,12 +11,12 @@
 ##  
 
 CC := g++-mp-5
-CFLAGS= -Wall -O3 $(shell gsl-config --cflags) -fopenmp
-#CFLAGS= -Wall -g $(shell gsl-config --cflags) -fopenmp
+CFLAGS= -Wall -O3 -fopenmp
+#CFLAGS= -Wall -g -fopenmp
 
 RM		=	rm -f
 O               =       .o
-LDFLAGS         =       $(CFLAGS) $(shell gsl-config --libs)
+LDFLAGS         =       $(CFLAGS)
 SYSTEMFILES     =       $(SRCGNU)
 
 # --------------- Files involved ------------------
