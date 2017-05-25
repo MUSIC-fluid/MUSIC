@@ -25,36 +25,36 @@ Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
 Reconst::~Reconst() {
 }
 
-int Reconst::ReconstIt_shell(Grid *grid_p, int direc, double tau, double **uq,
-                             Grid *grid_pt, InitData *DATA, int rk_flag) {
+int Reconst::ReconstIt_shell(Grid *grid_p, double tau, double *uq,
+                             Grid *grid_pt, int rk_flag) {
     int flag = 0;
-    flag = ReconstIt_velocity_Newton(grid_p, direc, tau, uq, grid_pt,
+    flag = ReconstIt_velocity_Newton(grid_p, tau, uq, grid_pt,
                                      rk_flag);
     if (flag < 0) {
-        flag = ReconstIt_velocity_iteration(grid_p, direc, tau, uq, grid_pt,
+        flag = ReconstIt_velocity_iteration(grid_p, tau, uq, grid_pt,
                                             rk_flag);
     }
 
     if (flag < 0) {
-        flag = ReconstIt(grid_p, direc, tau, uq, grid_pt, DATA, rk_flag);
+        flag = ReconstIt(grid_p, tau, uq, grid_pt, rk_flag);
     }
 
     if (flag == -1) {
         revert_grid(grid_p, grid_pt, rk_flag);
     } else if (flag == -2) {
-        if (uq[0][direc]/tau < abs_err) {
+        if (uq[0]/tau < abs_err) {
             regulate_grid(grid_p, abs_err, 0);
         } else {
-            regulate_grid(grid_p, uq[0][direc]/tau, 0);
+            regulate_grid(grid_p, uq[0]/tau, 0);
         }
     }
     return(flag);
 }
 
 //! reconstruct TJb from q[0] - q[4] solve energy density first
-int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
-                       Grid *grid_pt, InitData *DATA, int rk_flag) {
-    double K00, T00, J0, u[4], epsilon, p, h, rhob;
+int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
+                       Grid *grid_pt, int rk_flag) {
+    double K00, T00, J0, u[4], epsilon, p, h;
     double epsilon_prev, rhob_prev, p_prev, p_guess, temperr;
     double epsilon_next, rhob_next, p_next, err, temph, cs2;
     double eps_guess, scalef;
@@ -64,7 +64,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
 
     /* prepare for the iteration */
     /* uq = qiphL, qiphR, etc 
-       qiphL[alpha][direc] means, for instance, TJ[alpha][0] 
+       qiphL[alpha] means, for instance, TJ[alpha][0] 
        in the cell at x+dx/2 calculated from the left 
        */
 
@@ -80,7 +80,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
 
     for (alpha=0; alpha<5; alpha++) {
-        q[alpha] = uq[alpha][direc];
+        q[alpha] = uq[alpha];
     }
 
     K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
@@ -106,8 +106,8 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     if (isnan(epsilon_next)) {
         music_message << "problem " << eps_guess << " T00=" << T00
                       << " K00=" << K00 << " cs2=" << cs2
-                      << " q[0]=" << q[0] << " uq[0][" << direc << "]="
-                      << uq[0][direc] << " q[1]=" << q[1] << " q[2]=" << q[2];
+                      << " q[0]=" << q[0] << " uq[0] ="
+                      << uq[0] << " q[1]=" << q[1] << " q[2]=" << q[2];
         music_message.flush("warning");
     }
     p_guess = eos->get_pressure(epsilon_next, rhob_init);
@@ -148,7 +148,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
         epsilon_next = T00 - K00/(T00 + p_prev);
         err = 0.0;
    
-        if (DATA->turn_on_rhob == 1) {
+        if (DATA_ptr->turn_on_rhob == 1) {
             rhob_next = J0*sqrt((epsilon_prev + p_prev)/(T00 + p_prev));
             temperr = fabs((rhob_next-rhob_prev)/(rhob_prev+abs_err));
             if (temperr > LARGE)
@@ -178,9 +178,8 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     // update
     epsilon = grid_p->epsilon = epsilon_next;
     p = grid_p->p = p_next;
-    rhob = grid_p->rhob = rhob_next;
+    grid_p->rhob = rhob_next;
     h = p+epsilon;
-    double pressure = p_next;
 
     /* q[0] = Ttautau/tau, q[1] = Ttaux, q[2] = Ttauy, q[3] = Ttaueta,
        q[4] = Jtau */
@@ -256,19 +255,7 @@ int Reconst::ReconstIt(Grid *grid_p, int direc, double tau, double **uq,
     /* End: Correcting normalization of 4-velocity */
 
     for (int mu = 0; mu < 4; mu++) {
-        grid_p->TJb[0][4][mu] = rhob*u[mu];
         grid_p->u[0][mu] = u[mu];
-        double gfac = (mu == 0 ? -1.0 : 1.0);
-        double tempf = (epsilon + pressure)*u[mu]*u[mu] + pressure*gfac;
-        grid_p->TJb[0][mu][mu] = tempf;
-    }
-    for (int mu = 0; mu < 4; mu++) {
-        double tempf = (epsilon + pressure)*u[mu];
-        for (int nu = mu+1; nu < 4; nu++) {
-            double Tmunu = tempf*u[nu];
-            grid_p->TJb[0][mu][nu] = Tmunu;
-            grid_p->TJb[0][nu][mu] = Tmunu;
-        }
     }
 
     return(1);  // on successful execution
@@ -284,25 +271,19 @@ void Reconst::revert_grid(Grid *grid_current, Grid *grid_prev, int rk_flag) {
     grid_current->rhob = grid_prev->rhob;
     grid_current->p = grid_prev->p;
     for (int mu = 0; mu < 4; mu++) {
-        grid_current->TJb[0][4][mu] = grid_prev->TJb[rk_flag][4][mu];
         grid_current->u[0][mu] = grid_prev->u[rk_flag][mu];
- 
-        for (int nu = 0; nu < 4; nu++) {
-            grid_current->TJb[0][nu][mu] = grid_prev->TJb[rk_flag][nu][mu];
-        }
     }
 }
 
 int Reconst::ReconstIt_velocity_iteration(
-    Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
-    int rk_flag) {
+    Grid *grid_p, double tau, double *uq, Grid *grid_pt, int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
     /* reconstruct velocity first for finite mu_B case */
     /* use iteration to solve v and u0 */
 
     /* prepare for the iteration */
     /* uq = qiphL, qiphR, etc 
-       qiphL[alpha][direc] means, for instance, TJ[alpha][0] 
+       qiphL[alpha] means, for instance, TJ[alpha][0] 
        in the cell at x+dx/2 calculated from the left */
     
     /* uq are the conserved charges. That is, the ones appearing in
@@ -317,7 +298,7 @@ int Reconst::ReconstIt_velocity_iteration(
 
     double q[5];
     for (int alpha = 0; alpha < 5; alpha++) {
-        q[alpha] = uq[alpha][direc]/tau;
+        q[alpha] = uq[alpha]/tau;
     }
 
     double K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
@@ -532,19 +513,7 @@ int Reconst::ReconstIt_velocity_iteration(
     // End: Correcting normalization of 4-velocity
    
     for (int mu = 0; mu < 4; mu++) {
-        grid_p->TJb[0][4][mu] = rhob*u[mu];
         grid_p->u[0][mu] = u[mu];
-        double gfac = (mu == 0 ? -1.0 : 1.0);
-        double tempf = (epsilon + pressure)*u[mu]*u[mu] + pressure*gfac;
-        grid_p->TJb[0][mu][mu] = tempf;
-    }
-    for (int mu = 0; mu < 4; mu++) {
-        double tempf = (epsilon + pressure)*u[mu];
-        for (int nu = mu+1; nu < 4; nu++) {
-            double Tmunu = tempf*u[nu];
-            grid_p->TJb[0][mu][nu] = Tmunu;
-            grid_p->TJb[0][nu][mu] = Tmunu;
-        }
     }
 
     return 1;  /* on successful execution */
@@ -555,11 +524,10 @@ int Reconst::ReconstIt_velocity_iteration(
 //! reconstruct velocity first for finite mu_B case
 //! use Newton's method to solve v and u0
 int Reconst::ReconstIt_velocity_Newton(
-    Grid *grid_p, int direc, double tau, double **uq, Grid *grid_pt,
-    int rk_flag) {
+    Grid *grid_p, double tau, double *uq, Grid *grid_pt, int rk_flag) {
     /* prepare for the iteration */
     /* uq = qiphL, qiphR, etc 
-       qiphL[alpha][direc] means, for instance, TJ[alpha][0] 
+       qiphL[alpha] means, for instance, TJ[alpha][0] 
        in the cell at x+dx/2 calculated from the left */
     
     /* uq are the conserved charges. That is, the ones appearing in
@@ -574,7 +542,7 @@ int Reconst::ReconstIt_velocity_Newton(
 
     double q[5];
     for (int alpha = 0; alpha < 5; alpha++) {
-        q[alpha] = uq[alpha][direc]/tau;
+        q[alpha] = uq[alpha]/tau;
     }
 
     double K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
@@ -800,39 +768,12 @@ int Reconst::ReconstIt_velocity_Newton(
     // End: Correcting normalization of 4-velocity
    
     for (int mu = 0; mu < 4; mu++) {
-        grid_p->TJb[0][4][mu] = rhob*u[mu];
         grid_p->u[0][mu] = u[mu];
-        double gfac = (mu == 0 ? -1.0 : 1.0);
-        double tempf = (epsilon + pressure)*u[mu]*u[mu] + pressure*gfac;
-        grid_p->TJb[0][mu][mu] = tempf;
-    }
-    for (int mu = 0; mu < 4; mu++) {
-        double tempf = (epsilon + pressure)*u[mu];
-        for (int nu = mu+1; nu < 4; nu++) {
-            double Tmunu = tempf*u[nu];
-            grid_p->TJb[0][mu][nu] = Tmunu;
-            grid_p->TJb[0][nu][mu] = Tmunu;
-        }
     }
 
     return 1;  /* on successful execution */
 }/* Reconst */
 
-void Reconst::ReconstError(const char *str, int i, int rk_flag, double *qi,
-                           double **qi2, Grid *grid_pt) {
-    int alpha;
-    fprintf(stderr, "Reconst %s in the direction = %d reports an error.\n", 
-            str, i); 
-    fprintf(stderr, "rk_flag = %d\n", rk_flag); 
- 
-    for (alpha=0; alpha<5; alpha++) {
-        fprintf(stderr, "qi[%d] = %e\n", alpha, qi[alpha]);
-    }
-    for (alpha=0; alpha<5; alpha++) {
-        fprintf(stderr, "qi2[%d][%d] = %e\n", alpha, i, qi2[alpha][i]);
-    }
-    return;
-}/* ReconstErr */
 
 double Reconst::GuessEps(double T00, double K00, double cs2) {
     double f;
@@ -938,16 +879,4 @@ void Reconst::regulate_grid(Grid *grid_cell, double elocal, int rk_flag) {
     grid_cell->u[rk_flag][2] = 0.0;
     grid_cell->u[rk_flag][3] = 0.0;
     
-    grid_cell->TJb[rk_flag][0][0] = elocal;
-    grid_cell->TJb[rk_flag][1][1] = plocal;
-    grid_cell->TJb[rk_flag][2][2] = plocal;
-    grid_cell->TJb[rk_flag][3][3] = plocal;
-
-    for (int mu = 0; mu < 4; mu++) {
-        grid_cell->TJb[rk_flag][4][mu] = 0.0;
-        for (int nu = mu+1; nu < 4; nu++) {
-            grid_cell->TJb[rk_flag][mu][nu] = 0.0;
-            grid_cell->TJb[rk_flag][nu][mu] = 0.0;
-        }
-    }
 }

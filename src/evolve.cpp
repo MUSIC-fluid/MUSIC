@@ -203,7 +203,6 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     for (int ieta=0; ieta < DATA->neta; ieta++) {
         for (int ix=0; ix <= DATA->nx; ix++) {
             for (int iy=0; iy <= DATA->ny; iy++) {
-                util->cube_free(arena[ieta][ix][iy].TJb, rk_order+1, 5, 4);
                 util->cube_free(arena[ieta][ix][iy].dUsup, 1, 5, 4);
                 util->mtx_free(arena[ieta][ix][iy].sigma, 1, 10);
                 util->mtx_free(arena[ieta][ix][iy].Wmunu, rk_order+1, 14);
@@ -314,13 +313,6 @@ void Evolve::UpdateArena_XY(int ieta, Grid ***arena) {
                 /* this is the new value */
                 arena[ieta][ix][iy].u[0][mu] = (
                                 arena[ieta][ix][iy].u[rk_order][mu]); 
-
-                for (int alpha = 0; alpha < 5; alpha++) {
-                    /* this is the new value */
-                    arena[ieta][ix][iy].TJb[0][alpha][mu] = (
-                        arena[ieta][ix][iy].TJb[rk_order][alpha][mu]);
-                    
-                }
             }/* mu, alpha */
         }
     }

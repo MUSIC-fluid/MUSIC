@@ -454,7 +454,8 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                 for (int iy = 0; iy <= ny; iy++) {
                     double cosh_eta = cosh(eta_s);
                     double sinh_eta = sinh(eta_s);
-                    N_B += (arena[ieta][ix][iy].TJb[0][4][0]
+                    N_B += (arena[ieta][ix][iy].rhob
+                            *arena[ieta][ix][iy].u[0][0]
                             + (arena[ieta][ix][iy].prevWmunu[0][10]
                                + arena[ieta][ix][iy].prevWmunu[1][10])*0.5);
                     double Pi00_rk_0 = (
@@ -465,8 +466,15 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                         arena[ieta][ix][iy].prev_pi_b[1]
                         *(-1.0 + arena[ieta][ix][iy].prev_u[1][0]
                                  *(arena[ieta][ix][iy].prev_u[1][0])));
+                    double e_local = arena[ieta][ix][iy].epsilon;
+                    double rhob = arena[ieta][ix][iy].rhob;
+                    double pressure = eos_ptr->get_pressure(e_local, rhob);
+                    double u0 = arena[ieta][ix][iy].u[0][0];
+                    double u3 = arena[ieta][ix][iy].u[0][3];
+                    double T00_local = (e_local + pressure)*u0*u0 - pressure;
+                    double T03_local = (e_local + pressure)*u0*u3;
                     double T_tau_tau = (
-                        arena[ieta][ix][iy].TJb[0][0][0]
+                        T00_local
                         + (arena[ieta][ix][iy].prevWmunu[0][0]
                            + arena[ieta][ix][iy].prevWmunu[1][0]
                            + Pi00_rk_0 + Pi00_rk_1)*0.5);
@@ -480,7 +488,7 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                         *(arena[ieta][ix][iy].prev_u[1][0]
                           *(arena[ieta][ix][iy].prev_u[1][3])));
                     double T_tau_eta = (
-                        arena[ieta][ix][iy].TJb[0][0][3]
+                        T03_local
                         + (arena[ieta][ix][iy].prevWmunu[0][3]
                            + arena[ieta][ix][iy].prevWmunu[1][3]
                            + Pi03_rk_0 + Pi03_rk_1)*0.5);

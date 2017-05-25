@@ -147,12 +147,6 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     if (tempinput != "empty")
         istringstream(tempinput) >> tempuseEpsFO;
     parameter_list->useEpsFO = tempuseEpsFO;
-    if (tfoset == 1 && parameter_list->useEpsFO == 1) {
-        music_message << "T_freeze set but overridden"
-                      << " -- freezing out by energy density at " 
-                      << parameter_list->epsilonFreeze << " GeV/fm^3";
-        music_message.flush("warning");
-    }
     
     string temp_freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
     tempinput = util->StringFind4(input_file, "freeze_list_filename");

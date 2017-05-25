@@ -14,12 +14,10 @@ Advance::Advance(EOS *eosIn, InitData *DATA_in,
                  hydro_source *hydro_source_in) {
     DATA_ptr = DATA_in;
     eos = eosIn;
-    grid = new Grid();
     util = new Util;
     reconst_ptr = new Reconst(eos, DATA_in);
     diss = new Diss(eosIn, DATA_in);
     minmod = new Minmod(DATA_in);
-    u_derivative = new U_derivative(eosIn, DATA_in);
     if (DATA_in->Initial_profile == 12 || DATA_in->Initial_profile == 13
             || DATA_in->Initial_profile == 30) {
         flag_add_hydro_source = true;
@@ -37,12 +35,10 @@ Advance::Advance(EOS *eosIn, InitData *DATA_in,
 
 // destructor
 Advance::~Advance() {
-    delete grid;
     delete util;
     delete diss;
     delete reconst_ptr;
     delete minmod;
-    delete u_derivative;
 }
 
 
@@ -73,43 +69,19 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
 }/* AdvanceIt */
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%  Advance Local T %%%%%%%%%%%%%%%%%% */
+//! this function advances the ideal part in the transverse plane
 int Advance::AdvanceLocalT(double tau, InitData *DATA, int ieta, Grid ***arena, 
                            int rk_flag) {
-    // this function advances the ideal part in the transverse plane
-    Grid grid_rk;
-    double **qirk, *qi, *rhs;
-
-    qi = util->vector_malloc(5);
-    rhs = util->vector_malloc(5);
-    qirk = util->mtx_malloc(5, 4);
-    grid_rk.TJb = util->cube_malloc(rk_order, 5, 4);
-    grid_rk.u = util->mtx_malloc(rk_order, 4);
-    
-    NbrQs NbrCells;
-    InitNbrQs(&NbrCells);
-    BdryCells HalfwayCells;
-    InitTempGrids(&HalfwayCells, rk_order); 
- 
     double eta_s_local = -DATA_ptr->eta_size/2. + ieta*DATA_ptr->delta_eta;
     for (int ix=0; ix <= grid_nx; ix++) {
         double x_local = -DATA_ptr->x_size/2. + ix*DATA_ptr->delta_x;
         for (int iy=0; iy <= grid_ny; iy++) {
             double y_local = -DATA_ptr->y_size/2. + iy*DATA_ptr->delta_y;
             FirstRKStepT(tau, x_local, y_local, eta_s_local,
-                         DATA, &(arena[ieta][ix][iy]), rk_flag, qi, rhs, 
-                         qirk, &grid_rk, &NbrCells, &HalfwayCells);
+                         DATA, &(arena[ieta][ix][iy]), rk_flag);
         }
     }
-
-    util->cube_free(grid_rk.TJb, rk_order, 5, 4);
-    util->mtx_free(grid_rk.u, rk_order, 4);
-    util->mtx_free(qirk, 5, 4);
-    util->vector_free(qi);
-    util->vector_free(rhs);
-
-    clean_Nbr_Qs(&NbrCells);
-    clean_temp_grids(&HalfwayCells, rk_order);
-    return 1; /* if successful */
+    return(1); /* if successful */
 }/* AdvanceLocalT */
 
 
@@ -117,7 +89,6 @@ int Advance::AdvanceLocalT(double tau, InitData *DATA, int ieta, Grid ***arena,
 int Advance::AdvanceLocalW(double tau, InitData *DATA, int ieta, Grid ***arena,
                            int rk_flag) {
     int flag = 0;
-
     for (int ix=0; ix <= grid_nx; ix++) {
 	    for (int iy=0; iy <= grid_ny; iy++) {
             flag = FirstRKStepW(tau, DATA, &(arena[ieta][ix][iy]), rk_flag);
@@ -130,14 +101,11 @@ int Advance::AdvanceLocalW(double tau, InitData *DATA, int ieta, Grid ***arena,
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 int Advance::FirstRKStepT(double tau, double x_local, double y_local,
-                          double eta_s_local,
-                          InitData *DATA, Grid *grid_pt,
-                          int rk_flag, double *qi, double *rhs,
-                          double **qirk, Grid *grid_rk, NbrQs *NbrCells,
-                          BdryCells *HalfwayCells) { 
+                          double eta_s_local, InitData *DATA, Grid *grid_pt,
+                          int rk_flag) {
     // this advances the ideal part
     double tau_now = tau;
-    double tau_next = tau + (DATA->delta_tau);
+    double tau_next = tau + (DATA_ptr->delta_tau);
     double tau_rk;
     if (rk_flag == 0) {
         tau_rk = tau_now;
@@ -148,6 +116,9 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
         exit(0);
     }
 
+    double *qirk = new double[5];
+    double *rhs = new double[5];
+    
     // Solve partial_a T^{a mu} = -partial_a W^{a mu}
     // Update T^{mu nu}
 
@@ -157,9 +128,8 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
     // rhs[alpha] is what MakeDeltaQI outputs. 
     // It is the spatial derivative part of partial_a T^{a mu}
     // (including geometric terms)
-    MakeDeltaQI(tau_rk, grid_pt, qi, rhs, DATA, rk_flag,
-                NbrCells, HalfwayCells);
-
+    double *qi = new double[5];
+    MakeDeltaQI(tau_rk, grid_pt, qi, rhs, rk_flag);
     double *j_mu = new double[4];
     for (int ii = 0; ii < 4; ii++) {
         j_mu[ii] = 0.0;
@@ -183,25 +153,19 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
     }
 
     for (int alpha = 0; alpha < 5; alpha++) {
-        qirk[alpha][0] = qi[alpha] + rhs[alpha];
-        if (qirk[alpha][0] > 1e20) {
-	        fprintf(stderr, "qirk[%d][0] = %e is a nan.\n", alpha,
-                    qirk[alpha][0]);
-	        fprintf(stderr, "qi[%d] = %e\n", alpha, qi[alpha]);
-	        fprintf(stderr, "rhs[%d] = %e\n", alpha, rhs[alpha]);
-        }
+        qirk[alpha] = qi[alpha] + rhs[alpha];
         // now MakeWSource returns partial_a W^{a mu}
         // (including geometric terms) 
         double dwmn = diss->MakeWSource(tau_rk, alpha, grid_pt, DATA, rk_flag);
         /* dwmn is the only one with the minus sign */
-        qirk[alpha][0] -= dwmn*(DATA->delta_tau);
+        qirk[alpha] -= dwmn*(DATA->delta_tau);
 
         if (flag_add_hydro_source) {
             // adding hydro_source terms
             if (alpha < 4) {
-                qirk[alpha][0] += j_mu[alpha]*DATA->delta_tau;
+                qirk[alpha] += j_mu[alpha]*DATA->delta_tau;
             } else {
-                qirk[alpha][0] += rhob_source*DATA->delta_tau;
+                qirk[alpha] += rhob_source*DATA->delta_tau;
             }
         }
      
@@ -210,32 +174,36 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
         // - this is only to remove the viscous correction that 
         // can make rho_b negative which we do not want.
         if (DATA->turn_on_rhob == 0) {
-            if (alpha == 4 && fabs(qirk[alpha][0]) > 1e-12)
-                qirk[alpha][0] = 0.;
+            if (alpha == 4 && fabs(qirk[alpha]) > 1e-12)
+                qirk[alpha] = 0.;
         }
 
         /* if rk_flag > 0, we now have q0 + k1 + k2. 
          * So add q0 and multiply by 1/2 */
         if (rk_flag > 0) {
-            qirk[alpha][0] += (grid_pt->TJb[0][alpha][0])*tau_now;
-            qirk[alpha][0] *= 0.5;
+            qirk[alpha] += get_TJb(grid_pt, 0, alpha, 0)*tau_now;
+            qirk[alpha] *= 0.5;
         }
     }
     delete[] j_mu;
 
     int flag = 0;
-    flag = reconst_ptr->ReconstIt_shell(grid_rk, 0, tau_next, qirk, grid_pt,
-                                        DATA, rk_flag); 
+    Grid grid_rk_t;
+    grid_rk_t.u = util->mtx_malloc(rk_order, 4);
+    flag = reconst_ptr->ReconstIt_shell(&grid_rk_t, tau_next, qirk, grid_pt,
+                                        rk_flag); 
 
-    if (flag == 0) {
-        reconst_ptr->ReconstError("grid_rk", 0, rk_flag+1, qi, qirk, grid_pt);
-        return 0;
-    } else {
-        UpdateTJbRK(grid_rk, grid_pt, rk_flag); 
+    delete[] qi;
+    delete[] qirk;
+    delete[] rhs;
+
+    if (flag != 0) {
+        UpdateTJbRK(&grid_rk_t, grid_pt, rk_flag); 
         /* TJb[rk_flag+1] is filled */
     }
-    return 1;
-}/* FirstRKStepT */
+    util->mtx_free(grid_rk_t.u, rk_order, 4);
+    return(flag);
+}
 
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
@@ -470,9 +438,7 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag) {
     // reconstructed grid_rk uses rk_flag 0 only
     for (int mu=0; mu<4; mu++) {
         grid_pt->u[trk_flag][mu] = grid_rk->u[0][mu];
-        for (int alpha=0; alpha<5; alpha++)  // alpha = 4 is the baryon current
-            grid_pt->TJb[trk_flag][alpha][mu] = grid_rk->TJb[0][alpha][mu];
-    }/* mu */
+    }
 }/* UpdateTJbRK */
 
 //! this function reduce the size of shear stress tensor and bulk pressure
@@ -606,13 +572,15 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
     return(revert_flag);
 }
 
-void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs, 
-			              InitData *DATA, int rk_flag, NbrQs *NbrCells,
-                          BdryCells *HalfwayCells) {
+
+//! This function computes the rhs array. It computes the spatial
+//! derivatives of T^\mu\nu using the KT algorithm
+void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs,
+                          int rk_flag) {
     double delta[4];
-    delta[1] = DATA->delta_x;
-    delta[2] = DATA->delta_y;
-    delta[3] = DATA->delta_eta;
+    delta[1] = DATA_ptr->delta_x;
+    delta[2] = DATA_ptr->delta_y;
+    delta[3] = DATA_ptr->delta_eta;
 
     /* \partial_tau (tau Ttautau) + \partial_eta Tetatau 
             + \partial_x (tau Txtau) + \partial_y (tau Tytau) + Tetaeta = 0 */
@@ -623,220 +591,111 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs,
 
     // tau*Tmu0
     for (int alpha = 0; alpha < 5; alpha++) {
-        qi[alpha] = grid_pt->TJb[rk_flag][alpha][0]*tau;
+        qi[alpha] = get_TJb(grid_pt, rk_flag, alpha, 0)*tau;
     }/* get qi first */
 
-    double **DFmmp;
-    DFmmp = util->mtx_malloc(5,4);
-  
-    /* implement Kurganov-Tadmor scheme */
-    GetQIs(tau, grid_pt, qi, NbrCells, rk_flag, DATA);
- 
-    MakeQIHalfs(qi, NbrCells, HalfwayCells, grid_pt, DATA);
- 
-    ConstHalfwayCells(tau, HalfwayCells, qi, grid_pt, DATA, rk_flag);
- 
-    MakeKTCurrents(tau, DFmmp, grid_pt, HalfwayCells, rk_flag);
- 
+    double *qiphL = new double[5];
+    double *qiphR = new double[5];
+    double *qimhL = new double[5];
+    double *qimhR = new double[5];
+    double **DFmmp = util->mtx_malloc(5, 4);
+    
+    Grid grid_phL, grid_phR, grid_mhL, grid_mhR;
+    grid_phL.u = util->mtx_malloc(1, 4);
+    grid_phR.u = util->mtx_malloc(1, 4);
+    grid_mhL.u = util->mtx_malloc(1, 4);
+    grid_mhR.u = util->mtx_malloc(1, 4);
+
+    // implement Kurganov-Tadmor scheme
+    // here computes the half way T^\tau\mu currents
+    for (int direc = 1; direc < 4; direc++) {
+        double tau_fac = tau;
+        if (direc == 3) {
+            tau_fac = 1.0;
+        }
+        for (int alpha = 0; alpha < 5; alpha++) {
+            double gphL = qi[alpha];
+            double gphR = (
+                    tau*get_TJb(grid_pt->nbr_p_1[direc], rk_flag, alpha, 0));
+            double gmhL = (
+                    tau*get_TJb(grid_pt->nbr_m_1[direc], rk_flag, alpha, 0));
+            double gmhR = qi[alpha];
+            double fphL = 0.5*minmod->minmod_dx(gphR, qi[alpha], gmhL);
+            double fphR = -0.5*minmod->minmod_dx(
+                    tau*get_TJb(grid_pt->nbr_p_2[direc], rk_flag, alpha, 0),
+                    gphR, qi[alpha]);
+            double fmhL = 0.5*minmod->minmod_dx(qi[alpha], gmhL,
+                    tau*get_TJb(grid_pt->nbr_m_2[direc], rk_flag, alpha, 0));
+            double fmhR = -0.5*minmod->minmod_dx(gphR, qi[alpha], gmhL);
+            qiphL[alpha] = gphL + fphL;
+            qiphR[alpha] = gphR + fphR;
+            qimhL[alpha] = gmhL + fmhL;
+            qimhR[alpha] = gmhR + fmhR;
+        }
+        // for each direction, reconstruct half-way cells
+        // reconstruct e, rhob, and u[4] for half way cells
+        int flag = reconst_ptr->ReconstIt_shell(
+                                    &grid_phL, tau, qiphL, grid_pt, 0);
+        flag *= reconst_ptr->ReconstIt_shell(
+                                    &grid_phR, tau, qiphR, grid_pt, 0); 
+        flag *= reconst_ptr->ReconstIt_shell(
+                                    &grid_mhL, tau, qimhL, grid_pt, 0);
+        flag *= reconst_ptr->ReconstIt_shell(
+                                    &grid_mhR, tau, qimhR, grid_pt, 0);
+        double aiphL = MaxSpeed(tau, direc, &grid_phL);
+        double aiphR = MaxSpeed(tau, direc, &grid_phR);
+        double aimhL = MaxSpeed(tau, direc, &grid_mhL);
+        double aimhR = MaxSpeed(tau, direc, &grid_mhR);
+        
+        double aiph = maxi(aiphL, aiphR);
+        double aimh = maxi(aimhL, aimhR);
+
+        double FiphL[5], FiphR[5], FimhL[5], FimhR[5];
+        double Fiph[5], Fimh[5];
+        for (int alpha = 0; alpha < 5; alpha++) {
+            FiphL[alpha] = get_TJb(&grid_phL, 0, alpha, direc)*tau_fac;
+            FiphR[alpha] = get_TJb(&grid_phR, 0, alpha, direc)*tau_fac;
+            FimhL[alpha] = get_TJb(&grid_mhL, 0, alpha, direc)*tau_fac;
+            FimhR[alpha] = get_TJb(&grid_mhR, 0, alpha, direc)*tau_fac;
+            
+            // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2
+            //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
+            Fiph[alpha] = 0.5*(FiphL[alpha] + FiphR[alpha]);
+            Fiph[alpha] -= 0.5*aiph*(qiphR[alpha] - qiphL[alpha]);
+            Fimh[alpha] = 0.5*(FimhL[alpha] + FimhR[alpha]);
+            Fimh[alpha] -= 0.5*aimh*(qimhR[alpha] - qimhL[alpha]);
+            
+            DFmmp[alpha][direc] = Fimh[alpha] - Fiph[alpha];
+        }
+    }
+    
+    delete[] qiphL;
+    delete[] qiphR;
+    delete[] qimhL;
+    delete[] qimhR;
+    
+    util->mtx_free(grid_phL.u, 1, 4);
+    util->mtx_free(grid_phR.u, 1, 4);
+    util->mtx_free(grid_mhL.u, 1, 4);
+    util->mtx_free(grid_mhR.u, 1, 4);
+   
     for (int alpha = 0; alpha < 5; alpha++) {
         double sumf = 0.0; 
         for (int i = 1; i <= 3; i++) {
             sumf += DFmmp[alpha][i]/delta[i];
         } /* i */
         if (alpha == 0) {
-            sumf -= grid_pt->TJb[rk_flag][3][3];
+            sumf -= get_TJb(grid_pt, rk_flag, 3, 3);
         } else if(alpha==3) {
-            sumf -= grid_pt->TJb[rk_flag][3][0];
+            sumf -= get_TJb(grid_pt, rk_flag, 3, 0);
         }
-        rhs[alpha] = sumf*(DATA->delta_tau);
+        rhs[alpha] = sumf*(DATA_ptr->delta_tau);
     }/* alpha */
-
+    
     util->mtx_free(DFmmp, 5, 4);
- 
+
     return;
 }/* MakeDeltaQI */
-
-
-void Advance::GetQIs(double tau, Grid *grid_pt, double *qi, NbrQs *NbrCells,
-                     int rk_flag, InitData *DATA) {
-    double tempg = tau;
-    for (int alpha = 0; alpha < 5; alpha++) {
-        /* qs from the neighbors */
-        /* implement outflow boundary condition - simply set the two outside
-         * values the same as at the boundary */
-        for (int i = 1; i <= 3; i++) {
-            NbrCells->qip1[alpha][i] = (
-                    tempg*grid_pt->nbr_p_1[i]->TJb[rk_flag][alpha][0]);
-            
-            NbrCells->qip2[alpha][i] = (
-                    tempg*grid_pt->nbr_p_2[i]->TJb[rk_flag][alpha][0]);
-            
-            NbrCells->qim1[alpha][i] = (
-                    tempg*grid_pt->nbr_m_1[i]->TJb[rk_flag][alpha][0]);
-            
-            NbrCells->qim2[alpha][i] = (
-                    tempg*grid_pt->nbr_m_2[i]->TJb[rk_flag][alpha][0]);
-        }/* i */    
-    }/* alpha */
- 
-    return; 
-}/* GetQIs */     
-
-
-int Advance::MakeQIHalfs(double *qi, NbrQs *NbrCells, BdryCells *HalfwayCells,
-			             Grid *grid_pt, InitData *DATA) {
-    int alpha, direc;
-    double fphL, fphR, fmhL, fmhR;
-    double gphL, gphR, gmhL, gmhR;
-    double tempf;
-
-    for (alpha=0; alpha<5; alpha++) {
-        for (direc=1; direc<=3; direc++) {
-            gphL = qi[alpha];
-            fphL = 0.5*minmod->minmod_dx(NbrCells->qip1[alpha][direc],
-                                         qi[alpha],
-                                         NbrCells->qim1[alpha][direc]);
-      
-            gphR = NbrCells->qip1[alpha][direc];
-            fphR = -0.5*minmod->minmod_dx(NbrCells->qip2[alpha][direc],
-                                          NbrCells->qip1[alpha][direc],
-                                          qi[alpha]);
-      
-            gmhL = NbrCells->qim1[alpha][direc];
-            fmhL = 0.5*minmod->minmod_dx(qi[alpha],
-                                         NbrCells->qim1[alpha][direc],
-                                         NbrCells->qim2[alpha][direc]);
-      
-            gmhR = qi[alpha];
-            fmhR = -0.5*minmod->minmod_dx(NbrCells->qip1[alpha][direc],
-                                          qi[alpha],
-                                          NbrCells->qim1[alpha][direc]);
-
-            tempf = HalfwayCells->qiphL[alpha][direc] = gphL + fphL;
-            if (tempf > 1e20) {
-                fprintf(stderr, "qiphL is not finite with g = %e, f = %e\n",
-                        gphL, fphL);
-                fprintf(stderr, "alpha = %d\n", alpha);
-                fprintf(stderr, "direc = %d\n", direc);
-                exit(0);
-            }
-            tempf = HalfwayCells->qiphR[alpha][direc] = gphR + fphR;
-            if (tempf > 1e20) {
-                fprintf(stderr, "qiphR is not finite with g = %e, f = %e\n",
-                        gphR, fphR);
-                fprintf(stderr, "alpha = %d\n", alpha);
-                fprintf(stderr, "direc = %d\n", direc);
-                exit(0);
-            }
-            tempf = HalfwayCells->qimhL[alpha][direc] = gmhL + fmhL;
-            if (tempf > 1e20) {
-                fprintf(stderr, "qimhL is not finite with g = %e, f = %e\n",
-                        gmhL, fmhL);
-                fprintf(stderr, "alpha = %d\n", alpha);
-                fprintf(stderr, "direc = %d\n", direc);
-                exit(0);
-            }
-            tempf = HalfwayCells->qimhR[alpha][direc] = gmhR + fmhR;
-            if (tempf > 1e20) {
-                fprintf(stderr, "qimhR is not finite with g = %e, f = %e\n",
-                        gmhR, fmhR);
-                fprintf(stderr, "alpha = %d\n", alpha);
-                fprintf(stderr, "direc = %d\n", direc);
-                exit(0);
-            }
-        }/* direc */
-    }/* alpha */
-    return 1; /* if successful */
-}/* MakeQIHalfs */
-
-
-int Advance::ConstHalfwayCells(
-        double tau, BdryCells *HalfwayCells, double *qi, Grid *grid_pt,
-        InitData *DATA, int rk_flag) {
-    // this function reconstruct e, rhob, and u[4] for half way cells
-    int flag = 0;
-    for (int direc = 1; direc <= 3; direc++) {
-        /* for each direction, reconstruct half-way cells */
-        flag = reconst_ptr->ReconstIt_shell(
-                    &(HalfwayCells->grid_p_h_L[direc]), direc, tau,
-                    HalfwayCells->qiphL, grid_pt, DATA, rk_flag); 
-        flag *= reconst_ptr->ReconstIt_shell(
-                    &(HalfwayCells->grid_p_h_R[direc]), direc, tau,
-                    HalfwayCells->qiphR, grid_pt, DATA, rk_flag); 
-        flag *= reconst_ptr->ReconstIt_shell(
-                    &(HalfwayCells->grid_m_h_L[direc]), direc, tau,
-                    HalfwayCells->qimhL, grid_pt, DATA, rk_flag); 
-        flag *= reconst_ptr->ReconstIt_shell(
-                    &(HalfwayCells->grid_m_h_R[direc]), direc, tau,
-                    HalfwayCells->qimhR, grid_pt, DATA, rk_flag); 
-    } /* direc */
-
-    return (flag);  /* upon successful execution */
-}/* ConstHalfwayCells */
-
-
-void Advance::MakeKTCurrents(double tau, double **DFmmp, Grid *grid_pt, 
-			                 BdryCells *HalfwayCells, int rk_flag) {
-    int i, alpha;
-    double FiphL[5][4], FiphR[5][4], FimhL[5][4], FimhR[5][4];
-    double Fiph[5][4], Fimh[5][4];
-    double aiph[4], aimh[4], tau_fac[4], tempf;
-
-    MakeMaxSpeedAs(tau, HalfwayCells, aiph, aimh, rk_flag);
-
-    /* Current J^i is calculated from the halfway cells in the same
-     * direction because what we need is the divergence d_i J^i */
-    /* d_tau tau Jtau + d_x (tau Jx) + d_y (tau Jy) + d_eta Jeta */
-
-    tau_fac[1] = tau;
-    tau_fac[2] = tau;
-    tau_fac[3] = 1.0;
-
-    for (alpha=0; alpha<5; alpha++) {
-        for (i=1; i<=3; i++) {
-            // x_i current for TJb[0][alpha][0] 
-            // from reconstructed halfway cells.
-            // Reconst only uses TJb[0]
-            FiphL[alpha][i] = 
-                HalfwayCells->grid_p_h_L[i].TJb[0][alpha][i]*tau_fac[i];
-            FiphR[alpha][i] = 
-                HalfwayCells->grid_p_h_R[i].TJb[0][alpha][i]*tau_fac[i];
-            FimhL[alpha][i] = 
-                HalfwayCells->grid_m_h_L[i].TJb[0][alpha][i]*tau_fac[i]; 
-            FimhR[alpha][i] = 
-                HalfwayCells->grid_m_h_R[i].TJb[0][alpha][i]*tau_fac[i];
-            // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2
-            //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
-
-            Fiph[alpha][i] = 0.5*(FiphL[alpha][i] + FiphR[alpha][i]);
-            Fiph[alpha][i] -= 0.5*aiph[i]*(HalfwayCells->qiphR[alpha][i] 
-                                           - HalfwayCells->qiphL[alpha][i]);
-            Fimh[alpha][i] = 0.5*(FimhL[alpha][i] + FimhR[alpha][i]);
-            Fimh[alpha][i] -= 0.5*aimh[i]*(HalfwayCells->qimhR[alpha][i] 
-                                           - HalfwayCells->qimhL[alpha][i]);
-    
-            tempf= DFmmp[alpha][i] = (Fimh[alpha][i] - Fiph[alpha][i]);
-            if (tempf > 1e20) {
-                fprintf(stderr, "DFmmp[%d][%d] is not finite.\n", alpha, i);
-                fprintf(stderr, "FimhL[%d][%d] is %e.\n",
-                        alpha, i, FimhL[alpha][i]);
-                fprintf(stderr, "FiphL[%d][%d] is %e.\n",
-                        alpha, i, FiphL[alpha][i]);
-                fprintf(stderr, "FimhR[%d][%d] is %e.\n",
-                        alpha, i, FimhR[alpha][i]);
-                fprintf(stderr, "FiphR[%d][%d] is %e.\n",
-                        alpha, i, FiphR[alpha][i]);
-                fprintf(stderr, "Fimh[%d][%d] is %e.\n",
-                        alpha, i, Fimh[alpha][i]);
-                fprintf(stderr, "Fiph[%d][%d] is %e.\n",
-                        alpha, i, Fiph[alpha][i]);
-                fprintf(stderr, "aimh[%d] = %e\n", i, aimh[i]);
-                fprintf(stderr, "aiph[%d] = %e\n", i, aiph[i]);
-                fprintf(stderr, "MakeKTCurrents: exiting.\n");
-            }
-        } /* i - loop over directions */
-    } /* alpha */
-} /* MakeKTCurrents */
 
 
 /* Calculate the right-hand-side */
@@ -853,24 +712,9 @@ void Advance::MakeKTCurrents(double tau, double **DFmmp, Grid *grid_pt,
  u_next = u + (1/2)(k1+k2)*h
         = (1/2)(u + u2);
 */
-void Advance::MakeMaxSpeedAs(double tau, BdryCells *HalfwayCells,
-                             double aiph[], double aimh[], int rk_flag) {
-    /* Implement Kurganov-Tadmor */
-    double aiphL[4], aiphR[4], aimhL[4], aimhR[4];
-    for (int i = 1; i <= 3; i++) {
-        aiphL[i] = MaxSpeed(tau, i, &(HalfwayCells->grid_p_h_L[i]), rk_flag);
-        aiphR[i] = MaxSpeed(tau, i, &(HalfwayCells->grid_p_h_R[i]), rk_flag);
-        aimhL[i] = MaxSpeed(tau, i, &(HalfwayCells->grid_m_h_L[i]), rk_flag);
-        aimhR[i] = MaxSpeed(tau, i, &(HalfwayCells->grid_m_h_R[i]), rk_flag);
-        
-        aiph[i] = maxi(aiphL[i], aiphR[i]);
-        aimh[i] = maxi(aimhL[i], aimhR[i]);
-    }
-    return;
-}/* MakeMaxSpeedAs */
 
 // determine the maximum signal propagation speed at the given direction
-double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag) {
+double Advance::MaxSpeed(double tau, int direc, Grid *grid_p) {
     //grid_p = grid_p_h_L, grid_p_h_R, grid_m_h_L, grid_m_h_R
     //these are reconstructed by Reconst which only uses u[0] and TJb[0]
     double utau = (grid_p->u[0][0]);
@@ -946,73 +790,36 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p, int rk_flag) {
     return f;
 }/* MaxSpeed */
 
-
-void Advance::InitNbrQs(NbrQs *NbrCells) {
-    (NbrCells->qip1) = util->mtx_malloc(5, 4);
-    (NbrCells->qip2) = util->mtx_malloc(5, 4);
-    (NbrCells->qim1) = util->mtx_malloc(5, 4);
-    (NbrCells->qim2) = util->mtx_malloc(5, 4);
-}/* InitNbrQs */
-
-void Advance::clean_Nbr_Qs(NbrQs *NbrCells) {
-    util->mtx_free((NbrCells->qip1), 5, 4);
-    util->mtx_free((NbrCells->qip2), 5, 4);
-    util->mtx_free((NbrCells->qim1), 5, 4);
-    util->mtx_free((NbrCells->qim2), 5, 4);
-}
-
-void Advance::InitTempGrids(BdryCells *HalfwayCells, int rk_order) {
-    int direc;
-
-    (HalfwayCells->grid_p_h_L) = grid->grid_v_malloc(4);
-    (HalfwayCells->grid_p_h_R) = grid->grid_v_malloc(4);
-    (HalfwayCells->grid_m_h_L) = grid->grid_v_malloc(4);
-    (HalfwayCells->grid_m_h_R) = grid->grid_v_malloc(4);
-
-    HalfwayCells->qiphL = util->mtx_malloc(5, 4);
-    HalfwayCells->qiphR = util->mtx_malloc(5, 4);
-    HalfwayCells->qimhL = util->mtx_malloc(5, 4);
-    HalfwayCells->qimhR = util->mtx_malloc(5, 4);
- 
-    for (direc=0; direc<4; direc++) {
-        (HalfwayCells->grid_p_h_L)[direc].TJb =
-                                            util->cube_malloc(rk_order, 5, 4);
-        (HalfwayCells->grid_p_h_R)[direc].TJb =
-                                            util->cube_malloc(rk_order, 5, 4);
-        (HalfwayCells->grid_m_h_L)[direc].TJb =
-                                            util->cube_malloc(rk_order, 5, 4);
-        (HalfwayCells->grid_m_h_R)[direc].TJb =
-                                            util->cube_malloc(rk_order, 5, 4);
-    
-        (HalfwayCells->grid_p_h_L)[direc].u = util->mtx_malloc(rk_order, 4);
-        (HalfwayCells->grid_p_h_R)[direc].u = util->mtx_malloc(rk_order, 4);
-        (HalfwayCells->grid_m_h_L)[direc].u = util->mtx_malloc(rk_order, 4);
-        (HalfwayCells->grid_m_h_R)[direc].u = util->mtx_malloc(rk_order, 4);
+double Advance::get_TJb(Grid *grid_p, int rk_flag, int mu, int nu) {
+    double rhob = grid_p->rhob;
+    if (rk_flag == 1) {
+        rhob = grid_p->rhob_t;
     }
-    return;
-}/* InitTempGrids */
-
-void Advance::clean_temp_grids(BdryCells *HalfwayCells, int rk_order) {
-    for (int direc = 0; direc < 4; direc++) {
-        util->cube_free((HalfwayCells->grid_p_h_L)[direc].TJb, rk_order, 5, 4);
-        util->cube_free((HalfwayCells->grid_p_h_R)[direc].TJb, rk_order, 5, 4);
-        util->cube_free((HalfwayCells->grid_m_h_L)[direc].TJb, rk_order, 5, 4);
-        util->cube_free((HalfwayCells->grid_m_h_R)[direc].TJb, rk_order, 5, 4);
-    
-        util->mtx_free((HalfwayCells->grid_p_h_L)[direc].u, rk_order, 4);
-        util->mtx_free((HalfwayCells->grid_p_h_R)[direc].u, rk_order, 4);
-        util->mtx_free((HalfwayCells->grid_m_h_L)[direc].u, rk_order, 4);
-        util->mtx_free((HalfwayCells->grid_m_h_R)[direc].u, rk_order, 4);
+    double u_nu = grid_p->u[rk_flag][nu];
+    if (mu == 4) {
+        double J_nu = rhob*u_nu;
+        return(J_nu);
+    } else if (mu < 4) {
+        double e = grid_p->epsilon;
+        if (rk_flag == 1) {
+            e = grid_p->epsilon_t;
+        }
+        double gfac = 0.0;
+        double u_mu = 0.0;
+        if (mu == nu) {
+            u_mu = u_nu;
+            if (mu == 0) {
+                gfac = -1.0;
+            } else {
+                gfac = 1.0;
+            }
+        } else {
+            u_mu = grid_p->u[rk_flag][mu];
+        }
+        double pressure = eos->get_pressure(e, rhob);
+        double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
+        return(T_munu);
+    } else {
+        return(0.0);
     }
-
-    delete[] HalfwayCells->grid_p_h_L;
-    delete[] HalfwayCells->grid_p_h_R;
-    delete[] HalfwayCells->grid_m_h_L;
-    delete[] HalfwayCells->grid_m_h_R;
-
-    util->mtx_free(HalfwayCells->qiphL, 5, 4);
-    util->mtx_free(HalfwayCells->qiphR, 5, 4);
-    util->mtx_free(HalfwayCells->qimhL, 5, 4);
-    util->mtx_free(HalfwayCells->qimhR, 5, 4);
-    return;
 }

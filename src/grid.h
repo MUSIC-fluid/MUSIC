@@ -10,7 +10,6 @@ class Grid {
     double epsilon;
     double p;
     double rhob;
-    double ***TJb; 
     /* stress energy tensor plus baryon current  */
     /* TJb[flag][alpha][mu] */
     /* flag = 0 is the actual values. flag != 0 are the intermediate values
