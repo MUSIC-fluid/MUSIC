@@ -45,58 +45,32 @@ Advance::~Advance() {
 // evolve Runge-Kutta step in tau
 int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
                        int rk_flag) {
-    int ieta;
-    #pragma omp parallel private(ieta)
-    {
-        #pragma omp for
-        for (ieta=0; ieta < grid_neta; ieta++) {
-	        AdvanceLocalT(tau, DATA, ieta, arena, rk_flag);
-	    }/* ieta */
-        #pragma omp barrier
-    }
-  
-    if (DATA->viscosity_flag == 1) {
-        #pragma omp parallel private(ieta)
-        {
-            #pragma omp for
-	        for (ieta = 0; ieta < grid_neta; ieta++) {
-		        AdvanceLocalW(tau, DATA, ieta, arena, rk_flag);
-		    } /* ieta */
+    int ieta, ix, iy;
+    for (ieta = 0; ieta < grid_neta; ieta++) {
+        double eta_s_local = (- DATA_ptr->eta_size/2.
+                              + ieta*DATA_ptr->delta_eta);
+        for (ix = 0; ix <= grid_nx; ix++) {
+            double x_local = - DATA_ptr->x_size/2. + ix*DATA_ptr->delta_x;
+            #pragma omp parallel private(iy)
+            {
+                #pragma omp for
+                for (iy = 0; iy <= grid_ny; iy++) {
+                    double y_local = (- DATA_ptr->y_size/2.
+                                      + iy*DATA_ptr->delta_y);
+                    FirstRKStepT(tau, x_local, y_local, eta_s_local,
+                                 DATA, &(arena[ieta][ix][iy]), rk_flag);
+                    if (DATA->viscosity_flag == 1) {
+                        FirstRKStepW(tau, DATA, &(arena[ieta][ix][iy]),
+                                     rk_flag);
+                    }
+                }
+            }
             #pragma omp barrier
         }
-    }/* if viscosity flag is set */
+    }
+  
     return 1;
 }/* AdvanceIt */
-
-/* %%%%%%%%%%%%%%%%%%%%%%%%%%%  Advance Local T %%%%%%%%%%%%%%%%%% */
-//! this function advances the ideal part in the transverse plane
-int Advance::AdvanceLocalT(double tau, InitData *DATA, int ieta, Grid ***arena, 
-                           int rk_flag) {
-    double eta_s_local = -DATA_ptr->eta_size/2. + ieta*DATA_ptr->delta_eta;
-    for (int ix=0; ix <= grid_nx; ix++) {
-        double x_local = -DATA_ptr->x_size/2. + ix*DATA_ptr->delta_x;
-        for (int iy=0; iy <= grid_ny; iy++) {
-            double y_local = -DATA_ptr->y_size/2. + iy*DATA_ptr->delta_y;
-            FirstRKStepT(tau, x_local, y_local, eta_s_local,
-                         DATA, &(arena[ieta][ix][iy]), rk_flag);
-        }
-    }
-    return(1); /* if successful */
-}/* AdvanceLocalT */
-
-
-/* %%%%%%%%%%%%%%%%% Advance Local W %%%%%%%%%% */
-int Advance::AdvanceLocalW(double tau, InitData *DATA, int ieta, Grid ***arena,
-                           int rk_flag) {
-    int flag = 0;
-    for (int ix=0; ix <= grid_nx; ix++) {
-	    for (int iy=0; iy <= grid_ny; iy++) {
-            flag = FirstRKStepW(tau, DATA, &(arena[ieta][ix][iy]), rk_flag);
-	    } /*iy */
-	} /* ix */
-
-    return(flag);
-}/* AdvanceLocalW */
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
