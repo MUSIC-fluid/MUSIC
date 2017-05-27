@@ -67,8 +67,13 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     // backward time derivative (first order is more stable)
     int idx_1d_alpha0 = util->map_2d_idx_to_1d(alpha, 0);
     double dWdtau;
-    dWdtau = (grid_pt->Wmunu[rk_flag][idx_1d_alpha0]
-              - grid_pt->prevWmunu[rk_flag][idx_1d_alpha0])/DATA->delta_tau;
+    if (rk_flag == 0) {
+        dWdtau = (grid_pt->Wmunu[rk_flag][idx_1d_alpha0]
+                  - grid_pt->prevWmunu[0][idx_1d_alpha0])/DATA->delta_tau;
+    } else {
+        dWdtau = (grid_pt->Wmunu[rk_flag][idx_1d_alpha0]
+                  - grid_pt->Wmunu[0][idx_1d_alpha0])/DATA->delta_tau;
+    }
 
     /* bulk pressure term */
     double dPidtau = 0.0;
@@ -78,9 +83,15 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
         Pi_alpha0 = (
             grid_pt->pi_b[rk_flag]*(gfac + grid_pt->u[rk_flag][alpha]
                                            *grid_pt->u[rk_flag][0]));
-        dPidtau = (Pi_alpha0 - grid_pt->prev_pi_b[rk_flag]
-                               *(gfac + grid_pt->prev_u[rk_flag][alpha]
-                                        *grid_pt->prev_u[rk_flag][0]));
+        if (rk_flag == 0) {
+            dPidtau = (Pi_alpha0 - grid_pt->prev_pi_b[0]
+                                   *(gfac + grid_pt->prev_u[0][alpha]
+                                            *grid_pt->prev_u[0][0]));
+        } else {
+            dPidtau = (Pi_alpha0 - grid_pt->pi_b[0]
+                                   *(gfac + grid_pt->u[0][alpha]
+                                            *grid_pt->u[0][0]));
+        }
     }
 
     // use central difference to preserve conservation law exactly
