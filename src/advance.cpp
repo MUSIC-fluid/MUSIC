@@ -161,7 +161,7 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
 
     int flag = 0;
     Grid grid_rk_t;
-    grid_rk_t.u = util->mtx_malloc(rk_order, 4);
+    grid_rk_t.u = util->mtx_malloc(1, 4);
     flag = reconst_ptr->ReconstIt_shell(&grid_rk_t, tau_next, qi, grid_pt,
                                         rk_flag); 
 
@@ -171,7 +171,7 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
         UpdateTJbRK(&grid_rk_t, grid_pt, rk_flag); 
         /* TJb[rk_flag+1] is filled */
     }
-    util->mtx_free(grid_rk_t.u, rk_order, 4);
+    util->mtx_free(grid_rk_t.u, 1, 4);
     return(flag);
 }
 
@@ -402,7 +402,6 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag) {
     int trk_flag = rk_flag+1;
 
     grid_pt->epsilon_t = grid_rk->epsilon;
-    grid_pt->p_t = grid_rk->p;
     grid_pt->rhob_t = grid_rk->rhob;
     
     // reconstructed grid_rk uses rk_flag 0 only
@@ -440,7 +439,8 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     double bulksize = 3.*pi_local*pi_local;
 
     double e_local = grid_pt->epsilon;
-    double p_local = grid_pt->p;
+    double rhob = grid_pt->rhob;
+    double p_local = eos->get_pressure(e_local, rhob);
     double eq_size = e_local*e_local + 3.*p_local*p_local;
        
     double rho_shear = sqrt(pisize/eq_size)/factor; 
@@ -695,7 +695,7 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p) {
         num = utau*ux*(1. - vs2) + sqrt(num_temp_sqrt);
     } else {
         double dpde = eos->p_e_func(eps, rhob);
-        double p = grid_p->p;
+        double p = eos->get_pressure(eps, rhob);
         double h = p+eps;
         if (dpde < 0.001) {
             num = (sqrt(-(h*dpde*h*(dpde*(-1.0 + ut2mux2) - ut2mux2))) 

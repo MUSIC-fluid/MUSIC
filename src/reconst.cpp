@@ -177,7 +177,7 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
 
     // update
     epsilon = grid_p->epsilon = epsilon_next;
-    p = grid_p->p = p_next;
+    p = p_next;
     grid_p->rhob = rhob_next;
     h = p+epsilon;
 
@@ -269,7 +269,6 @@ void Reconst::revert_grid(Grid *grid_current, Grid *grid_prev, int rk_flag) {
     }
     grid_current->epsilon = grid_prev->epsilon;
     grid_current->rhob = grid_prev->rhob;
-    grid_current->p = grid_prev->p;
     for (int mu = 0; mu < 4; mu++) {
         grid_current->u[0][mu] = grid_prev->u[rk_flag][mu];
     }
@@ -435,7 +434,6 @@ int Reconst::ReconstIt_velocity_iteration(
     grid_p->rhob = rhob;
 
     pressure = eos->get_pressure(epsilon, rhob);
-    grid_p->p = pressure;
 
     double u_max = 242582597.70489514; // cosh(20)
     //remove if for speed
@@ -691,7 +689,6 @@ int Reconst::ReconstIt_velocity_Newton(
     grid_p->rhob = rhob;
 
     pressure = eos->get_pressure(epsilon, rhob);
-    grid_p->p = pressure;
 
     // individual components of velocity
     double velocity_inverse_factor = u[0]/(T00 + pressure);
@@ -871,8 +868,6 @@ void Reconst::regulate_grid(Grid *grid_cell, double elocal, int rk_flag) {
     }
     grid_cell->epsilon = elocal;
     grid_cell->rhob = 0.0;
-    double plocal = eos->get_pressure(elocal, 0.0);
-    grid_cell->p = plocal;
 
     grid_cell->u[rk_flag][0] = 1.0;
     grid_cell->u[rk_flag][1] = 0.0;

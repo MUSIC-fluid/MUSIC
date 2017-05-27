@@ -220,8 +220,9 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 ///                 Defining transport coefficients                        ///
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
-    shear = (shear_to_s)*(grid_pt->epsilon + grid_pt->p)/(T + 1e-15);
-    tau_pi = 5.0*shear/(grid_pt->epsilon + grid_pt->p + 1e-15);
+    double pressure = eos->get_pressure(grid_pt->epsilon, grid_pt->rhob);
+    shear = (shear_to_s)*(grid_pt->epsilon + pressure)/(T + 1e-15);
+    tau_pi = 5.0*shear/(grid_pt->epsilon + pressure + 1e-15);
 
     // tau_pi = maxi(tau_pi, DATA->tau_pi);
     if (tau_pi > 1e20) {
@@ -808,12 +809,13 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
 
     // T dependent bulk viscosity from Gabriel
     bulk = get_temperature_dependent_zeta_s(temperature);
-    bulk = bulk*(grid_pt->epsilon + grid_pt->p)/temperature;
+    double pressure = eos->get_pressure(grid_pt->epsilon, grid_pt->rhob);
+    bulk = bulk*(grid_pt->epsilon + pressure)/temperature;
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
     Bulk_Relax_time = (
-        1./14.55/(1./3.-cs2)/(1./3.-cs2)/(grid_pt->epsilon + grid_pt->p)*bulk);
+        1./14.55/(1./3.-cs2)/(1./3.-cs2)/(grid_pt->epsilon + pressure)*bulk);
 
     // from kinetic theory, small mass limit
     transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);
@@ -913,7 +915,7 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
     // Useful variables to define
     double epsilon = grid_pt->epsilon;
     double rhob = grid_pt->rhob;
-    double pressure = grid_pt->p;
+    double pressure = eos->get_pressure(epsilon, rhob);
     double T = eos->get_temperature(epsilon, rhob);
 
     double kappa_coefficient = DATA->kappa_coefficient;

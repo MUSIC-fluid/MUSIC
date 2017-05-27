@@ -8,7 +8,7 @@
 class Grid {
  public:
     double epsilon;
-    double p;
+    //double p;
     double rhob;
     /* stress energy tensor plus baryon current  */
     /* TJb[flag][alpha][mu] */
@@ -19,7 +19,7 @@ class Grid {
         
     /* temporary values for the final RK update */
     double epsilon_t;
-    double p_t;
+    //double p_t;
     double rhob_t;
         
     // store the epsilon and rhob at previous time step

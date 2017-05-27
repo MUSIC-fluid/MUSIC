@@ -153,8 +153,8 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
         for (iy = 0; iy <= DATA->ny; iy += n_skip_y) {
             for (ix = 0; ix <= DATA->nx; ix += n_skip_x) {
                 double e_local = arena[ieta][ix][iy].epsilon;  // 1/fm^4
-                double p_local = arena[ieta][ix][iy].p;        // 1/fm^4
                 double rhob_local = arena[ieta][ix][iy].rhob;  // 1/fm^3
+                double p_local = eos_ptr->get_pressure(e_local, rhob_local);
                 double utau = arena[ieta][ix][iy].u[0][0];
                 double ux = arena[ieta][ix][iy].u[0][1];
                 double uy = arena[ieta][ix][iy].u[0][2];
@@ -303,8 +303,8 @@ void Grid_info::OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
         for (int iy = 0; iy <= DATA->ny; iy += n_skip_y) {
             for (int ix = 0; ix <= DATA->nx; ix += n_skip_x) {
                 double e_local = arena[ieta][ix][iy].epsilon;  // 1/fm^4
-                double p_local = arena[ieta][ix][iy].p;        // 1/fm^4
                 double rhob_local = arena[ieta][ix][iy].rhob;  // 1/fm^3
+                double p_local = eos_ptr->get_pressure(e_local, rhob_local);
 
                 double ux = arena[ieta][ix][iy].u[0][1];
                 double uy = arena[ieta][ix][iy].u[0][2];

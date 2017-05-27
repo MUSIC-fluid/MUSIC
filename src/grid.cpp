@@ -12,9 +12,6 @@ Grid::Grid() {
    prev_rhob = 0.0;
    rhob_t = 0.0;
    rhob = 0.0;
-
-   p = 0.0;
-   p_t = 0.0;
 }
 
 Grid::~Grid() {

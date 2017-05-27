@@ -286,7 +286,6 @@ void Evolve::UpdateArena_XY(int ieta, Grid ***arena) {
         for (int iy = 0; iy <= ny; iy++) {
             arena[ieta][ix][iy].prev_epsilon = arena[ieta][ix][iy].epsilon;
             arena[ieta][ix][iy].prev_rhob = arena[ieta][ix][iy].rhob;
-            arena[ieta][ix][iy].p = arena[ieta][ix][iy].p_t;
             arena[ieta][ix][iy].epsilon = arena[ieta][ix][iy].epsilon_t;
             arena[ieta][ix][iy].rhob = arena[ieta][ix][iy].rhob_t;
      

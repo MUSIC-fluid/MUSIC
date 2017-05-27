@@ -396,8 +396,6 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
 
             double epsilon = temp_profile_ed[ix][iy];
             
-            // initial pressure distribution
-            double p = eos->get_pressure(epsilon, rhob);
             // set all values in the grid element:
             arena[ieta][ix][iy].epsilon = epsilon;
             arena[ieta][ix][iy].epsilon_t = epsilon;
@@ -405,8 +403,6 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].rhob = rhob;
             arena[ieta][ix][iy].rhob_t = rhob;
             arena[ieta][ix][iy].prev_rhob = rhob;
-            arena[ieta][ix][iy].p = p;
-            arena[ieta][ix][iy].p_t = p;
             
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
@@ -568,8 +564,6 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid ***arena) {
     for (int ieta = 0; ieta < neta; ieta++) {
         double rhob = temp_profile_rhob[ieta];
         double epsilon = temp_profile_ed[ieta]/hbarc;   // fm^-4
-        // initial pressure distribution
-        double p = eos->get_pressure(epsilon, rhob);
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
                 // set all values in the grid element:
@@ -579,8 +573,6 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid ***arena) {
                 arena[ieta][ix][iy].rhob = rhob;
                 arena[ieta][ix][iy].rhob_t = rhob;
                 arena[ieta][ix][iy].prev_rhob = rhob;
-                arena[ieta][ix][iy].p = p;
-                arena[ieta][ix][iy].p_t = p;
             
                 arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
                 arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
@@ -707,8 +699,6 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
 
-            // initial pressure distribution
-            double p = eos->get_pressure(epsilon, rhob);
             // set all values in the grid element:
             arena[ieta][ix][iy].epsilon = epsilon;
             arena[ieta][ix][iy].epsilon_t = epsilon;
@@ -716,8 +706,6 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].rhob = rhob;
             arena[ieta][ix][iy].rhob_t = rhob;
             arena[ieta][ix][iy].prev_rhob = rhob;
-            arena[ieta][ix][iy].p = p;
-            arena[ieta][ix][iy].p_t = p;
 
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
@@ -810,7 +798,6 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
     double eta_rhob_left = eta_rhob_left_factor(DATA, eta);
     double eta_rhob_right = eta_rhob_right_factor(DATA, eta);
 
-    double u[4];
     int entropy_flag = DATA->initializeEntropy;
     int rk_order = DATA->rk_order;
     for (int ix = 0; ix < (DATA->nx+1); ix++) {
@@ -839,9 +826,6 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
 
-            // initial pressure distribution
-            double p = eos->get_pressure(epsilon, rhob);
-
             // set all values in the grid element:
             arena[ieta][ix][iy].epsilon = epsilon;
             arena[ieta][ix][iy].epsilon_t = epsilon;
@@ -849,8 +833,6 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             arena[ieta][ix][iy].rhob = rhob;
             arena[ieta][ix][iy].rhob_t = rhob;
             arena[ieta][ix][iy].prev_rhob = rhob;
-            arena[ieta][ix][iy].p = p;
-            arena[ieta][ix][iy].p_t = p;
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
             arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
@@ -864,10 +846,10 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
 
             /* for HIC */
-            u[0] = arena[ieta][ix][iy].u[0][0] = 1.0;
-            u[3] = arena[ieta][ix][iy].u[0][3] = 0.0;
-            u[1] = arena[ieta][ix][iy].u[0][1] = 0.0;
-            u[2] = arena[ieta][ix][iy].u[0][2] = 0.0;
+            arena[ieta][ix][iy].u[0][0] = 1.0;
+            arena[ieta][ix][iy].u[0][3] = 0.0;
+            arena[ieta][ix][iy].u[0][1] = 0.0;
+            arena[ieta][ix][iy].u[0][2] = 0.0;
             
             for (int ii = 0; ii < rk_order; ii++) {
                 arena[ieta][ix][iy].prev_u[ii][0] = 1.0;
@@ -945,9 +927,6 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
 
-            // initial pressure distribution
-            double p = eos->get_pressure(epsilon, rhob);
-
             // set all values in the grid element:
             arena[ieta][ix][iy].epsilon = epsilon;
             arena[ieta][ix][iy].epsilon_t = epsilon;
@@ -955,8 +934,6 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
             arena[ieta][ix][iy].rhob = rhob;
             arena[ieta][ix][iy].rhob_t = rhob;
             arena[ieta][ix][iy].prev_rhob = rhob;
-            arena[ieta][ix][iy].p = p;
-            arena[ieta][ix][iy].p_t = p;
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
             arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
@@ -1032,9 +1009,6 @@ void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid ***arena) {
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
 
-            // initial pressure distribution
-            double p = eos->get_pressure(epsilon, rhob);
-
             // set all values in the grid element:
             arena[ieta][ix][iy].epsilon = epsilon;
             arena[ieta][ix][iy].epsilon_t = epsilon;
@@ -1042,8 +1016,6 @@ void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].rhob = rhob;
             arena[ieta][ix][iy].rhob_t = rhob;
             arena[ieta][ix][iy].prev_rhob = rhob;
-            arena[ieta][ix][iy].p = p;
-            arena[ieta][ix][iy].p_t = p;
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order+1, 4);
             arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);

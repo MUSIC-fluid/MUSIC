@@ -111,13 +111,11 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
     // T_freeze: freeze out temperature
     // only used with use_eps_for_freeze_out = 0
     double tempTFO = 0.12;
-    int tfoset = 0;
     tempinput = util->StringFind4(input_file, "T_freeze");
     if (tempinput != "empty") {
         istringstream(tempinput) >> tempTFO;
         // if only freeze out temperature is set, freeze out by temperature
         parameter_list->useEpsFO = 0;
-        tfoset = 1;
     }
     parameter_list->TFO = tempTFO;
     
