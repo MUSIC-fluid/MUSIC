@@ -57,8 +57,7 @@ class Advance {
     int QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
                         InitData *DATA);
 
-    void MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs,
-                     int rk_flag);
+    void MakeDeltaQI(double tau, Grid *grid_pt, double *qi, int rk_flag);
     double MaxSpeed(double tau, int direc, Grid *grid_p);
     double get_TJb(Grid *grid_p, int rk_flag, int mu, int nu);
 };

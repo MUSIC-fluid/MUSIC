@@ -116,8 +116,6 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
         exit(0);
     }
 
-    double *qirk = new double[5];
-    double *rhs = new double[5];
     
     // Solve partial_a T^{a mu} = -partial_a W^{a mu}
     // Update T^{mu nu}
@@ -129,7 +127,8 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
     // It is the spatial derivative part of partial_a T^{a mu}
     // (including geometric terms)
     double *qi = new double[5];
-    MakeDeltaQI(tau_rk, grid_pt, qi, rhs, rk_flag);
+    MakeDeltaQI(tau_rk, grid_pt, qi, rk_flag);
+
     double *j_mu = new double[4];
     for (int ii = 0; ii < 4; ii++) {
         j_mu[ii] = 0.0;
@@ -153,19 +152,18 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
     }
 
     for (int alpha = 0; alpha < 5; alpha++) {
-        qirk[alpha] = qi[alpha] + rhs[alpha];
         // now MakeWSource returns partial_a W^{a mu}
         // (including geometric terms) 
         double dwmn = diss->MakeWSource(tau_rk, alpha, grid_pt, DATA, rk_flag);
         /* dwmn is the only one with the minus sign */
-        qirk[alpha] -= dwmn*(DATA->delta_tau);
+        qi[alpha] -= dwmn*(DATA->delta_tau);
 
         if (flag_add_hydro_source) {
             // adding hydro_source terms
             if (alpha < 4) {
-                qirk[alpha] += j_mu[alpha]*DATA->delta_tau;
+                qi[alpha] += j_mu[alpha]*DATA->delta_tau;
             } else {
-                qirk[alpha] += rhob_source*DATA->delta_tau;
+                qi[alpha] += rhob_source*DATA->delta_tau;
             }
         }
      
@@ -174,15 +172,15 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
         // - this is only to remove the viscous correction that 
         // can make rho_b negative which we do not want.
         if (DATA->turn_on_rhob == 0) {
-            if (alpha == 4 && fabs(qirk[alpha]) > 1e-12)
-                qirk[alpha] = 0.;
+            if (alpha == 4 && fabs(qi[alpha]) > 1e-12)
+                qi[alpha] = 0.;
         }
 
         /* if rk_flag > 0, we now have q0 + k1 + k2. 
          * So add q0 and multiply by 1/2 */
         if (rk_flag > 0) {
-            qirk[alpha] += get_TJb(grid_pt, 0, alpha, 0)*tau_now;
-            qirk[alpha] *= 0.5;
+            qi[alpha] += get_TJb(grid_pt, 0, alpha, 0)*tau_now;
+            qi[alpha] *= 0.5;
         }
     }
     delete[] j_mu;
@@ -190,12 +188,10 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
     int flag = 0;
     Grid grid_rk_t;
     grid_rk_t.u = util->mtx_malloc(rk_order, 4);
-    flag = reconst_ptr->ReconstIt_shell(&grid_rk_t, tau_next, qirk, grid_pt,
+    flag = reconst_ptr->ReconstIt_shell(&grid_rk_t, tau_next, qi, grid_pt,
                                         rk_flag); 
 
     delete[] qi;
-    delete[] qirk;
-    delete[] rhs;
 
     if (flag != 0) {
         UpdateTJbRK(&grid_rk_t, grid_pt, rk_flag); 
@@ -575,7 +571,7 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
 
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs,
+void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi,
                           int rk_flag) {
     double delta[4];
     delta[1] = DATA_ptr->delta_x;
@@ -590,15 +586,16 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs,
             + \partial_y tau Tyx = 0 */
 
     // tau*Tmu0
+    double rhs[5];
     for (int alpha = 0; alpha < 5; alpha++) {
         qi[alpha] = get_TJb(grid_pt, rk_flag, alpha, 0)*tau;
+        rhs[alpha] = 0.0;
     }/* get qi first */
 
     double *qiphL = new double[5];
     double *qiphR = new double[5];
     double *qimhL = new double[5];
     double *qimhR = new double[5];
-    double **DFmmp = util->mtx_malloc(5, 4);
     
     Grid grid_phL, grid_phR, grid_mhL, grid_mhR;
     grid_phL.u = util->mtx_malloc(1, 4);
@@ -650,25 +647,31 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs,
         double aiph = maxi(aiphL, aiphR);
         double aimh = maxi(aimhL, aimhR);
 
-        double FiphL[5], FiphR[5], FimhL[5], FimhR[5];
-        double Fiph[5], Fimh[5];
         for (int alpha = 0; alpha < 5; alpha++) {
-            FiphL[alpha] = get_TJb(&grid_phL, 0, alpha, direc)*tau_fac;
-            FiphR[alpha] = get_TJb(&grid_phR, 0, alpha, direc)*tau_fac;
-            FimhL[alpha] = get_TJb(&grid_mhL, 0, alpha, direc)*tau_fac;
-            FimhR[alpha] = get_TJb(&grid_mhR, 0, alpha, direc)*tau_fac;
+            double FiphL = get_TJb(&grid_phL, 0, alpha, direc)*tau_fac;
+            double FiphR = get_TJb(&grid_phR, 0, alpha, direc)*tau_fac;
+            double FimhL = get_TJb(&grid_mhL, 0, alpha, direc)*tau_fac;
+            double FimhR = get_TJb(&grid_mhR, 0, alpha, direc)*tau_fac;
             
             // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2
             //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
-            Fiph[alpha] = 0.5*(FiphL[alpha] + FiphR[alpha]);
-            Fiph[alpha] -= 0.5*aiph*(qiphR[alpha] - qiphL[alpha]);
-            Fimh[alpha] = 0.5*(FimhL[alpha] + FimhR[alpha]);
-            Fimh[alpha] -= 0.5*aimh*(qimhR[alpha] - qimhL[alpha]);
-            
-            DFmmp[alpha][direc] = Fimh[alpha] - Fiph[alpha];
+            double Fiph = 0.5*((FiphL + FiphR)
+                               - aiph*(qiphR[alpha] - qiphL[alpha]));
+            double Fimh = 0.5*((FimhL + FimhR)
+                               - aimh*(qimhR[alpha] - qimhL[alpha]));
+            double DFmmp = (Fimh - Fiph)/delta[direc];
+        
+            rhs[alpha] += DFmmp*(DATA_ptr->delta_tau);
         }
     }
+
+    // geometric terms
+    rhs[0] -= get_TJb(grid_pt, rk_flag, 3, 3)*DATA_ptr->delta_tau;
+    rhs[3] -= get_TJb(grid_pt, rk_flag, 3, 0)*DATA_ptr->delta_tau;
     
+    for (int i = 0; i < 5; i++) {
+        qi[i] += rhs[i];
+    }
     delete[] qiphL;
     delete[] qiphR;
     delete[] qimhL;
@@ -678,23 +681,6 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi, double *rhs,
     util->mtx_free(grid_phR.u, 1, 4);
     util->mtx_free(grid_mhL.u, 1, 4);
     util->mtx_free(grid_mhR.u, 1, 4);
-   
-    for (int alpha = 0; alpha < 5; alpha++) {
-        double sumf = 0.0; 
-        for (int i = 1; i <= 3; i++) {
-            sumf += DFmmp[alpha][i]/delta[i];
-        } /* i */
-        if (alpha == 0) {
-            sumf -= get_TJb(grid_pt, rk_flag, 3, 3);
-        } else if(alpha==3) {
-            sumf -= get_TJb(grid_pt, rk_flag, 3, 0);
-        }
-        rhs[alpha] = sumf*(DATA_ptr->delta_tau);
-    }/* alpha */
-    
-    util->mtx_free(DFmmp, 5, 4);
-
-    return;
 }/* MakeDeltaQI */
 
 
