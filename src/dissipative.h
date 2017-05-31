@@ -28,10 +28,6 @@ class Diss {
     
     int Make_uPRHS(double tau, Grid *grid_pt, double *p_rhs, InitData *DATA,
                    int rk_flag, double theta_local);
-    void Get_uPis(double tau, Grid *grid_pt, int direc, double *g, double *f,
-                  double *gp1, double *fp1, double *gp2, double *fp2,
-                  double *gm1, double *fm1, double *gm2, double *fm2,
-                  InitData *DATA, int rk_flag); 
 
     double Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
                           int rk_flag, double theta_local, double *sigma_1d);

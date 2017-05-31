@@ -650,8 +650,25 @@ int Diss::Make_uPRHS(double tau, Grid *grid_pt, double *p_rhs, InitData *DATA,
             taufactor = 1.0;
 
         /* Get_uPis */
-        Get_uPis(tau, grid_pt, direc, &g, &f, &gp1, &fp1, &gp2, &fp2, 
-                 &gm1, &fm1, &gm2, &fm2, DATA, rk_flag);
+        g = grid_pt->pi_b[rk_flag];
+        f = g*grid_pt->u[rk_flag][direc];
+        g *= grid_pt->u[rk_flag][0];
+
+        gp2 = grid_pt->nbr_p_2[direc]->pi_b[rk_flag];
+        fp2 = gp2*grid_pt->nbr_p_2[direc]->u[rk_flag][direc];
+        gp2 *= grid_pt->nbr_p_2[direc]->u[rk_flag][0];
+        
+        gp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
+        fp1 = gp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
+        gp1 *= grid_pt->nbr_p_1[direc]->u[rk_flag][0];
+        
+        gm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
+        fm1 = gm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
+        gm1 *= grid_pt->nbr_m_1[direc]->u[rk_flag][0];
+        
+        gm2 = grid_pt->nbr_m_2[direc]->pi_b[rk_flag];
+        fm2 = gm2*grid_pt->nbr_m_2[direc]->u[rk_flag][direc];
+        gm2 *= grid_pt->nbr_m_2[direc]->u[rk_flag][0];
 
         /*  Make upi Halfs */
         /* uPi */
@@ -697,45 +714,6 @@ int Diss::Make_uPRHS(double tau, Grid *grid_pt, double *p_rhs, InitData *DATA,
      return 1; /* if successful */
 }/* Make_uPRHS */
 
-
-void Diss::Get_uPis(double tau, Grid *grid_pt, int direc, double *g, double *f,
-                    double *gp1, double *fp1, double *gp2, double *fp2, 
-                    double *gm1, double *fm1, double *gm2, double *fm2, 
-                    InitData *DATA, int rk_flag) {
-    double tf, tg, tgp1, tfp1, tgp2, tfp2, tgm1, tfm1, tgm2, tfm2;
-    /* Get_uPis */
-
-    tg = grid_pt->pi_b[rk_flag];
-    tf = tg*grid_pt->u[rk_flag][direc];
-    tg *=   grid_pt->u[rk_flag][0];
-
-    tgp2 = grid_pt->nbr_p_2[direc]->pi_b[rk_flag];
-    tfp2 = tgp2*grid_pt->nbr_p_2[direc]->u[rk_flag][direc];
-    tgp2 *=     grid_pt->nbr_p_2[direc]->u[rk_flag][0];
-    
-    tgp1 = grid_pt->nbr_p_1[direc]->pi_b[rk_flag];
-    tfp1 = tgp1*grid_pt->nbr_p_1[direc]->u[rk_flag][direc];
-    tgp1 *=     grid_pt->nbr_p_1[direc]->u[rk_flag][0];
-    
-    tgm1 = grid_pt->nbr_m_1[direc]->pi_b[rk_flag];
-    tfm1 = tgm1*grid_pt->nbr_m_1[direc]->u[rk_flag][direc];
-    tgm1 *=     grid_pt->nbr_m_1[direc]->u[rk_flag][0];
-    
-    tgm2 = grid_pt->nbr_m_2[direc]->pi_b[rk_flag];
-    tfm2 = tgm2*grid_pt->nbr_m_2[direc]->u[rk_flag][direc];
-    tgm2 *=     grid_pt->nbr_m_2[direc]->u[rk_flag][0];
-
-    *g = tg;
-    *f = tf;
-    *gp1 = tgp1;
-    *fp1 = tfp1;
-    *gm1 = tgm1;
-    *fm1 = tfm1;
-    *gp2 = tgp2;
-    *fp2 = tfp2;
-    *gm2 = tgm2;
-    *fm2 = tfm2;
-}/* Get_uPis */
 
 
 double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
