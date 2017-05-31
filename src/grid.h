@@ -8,7 +8,6 @@
 class Grid {
  public:
     double epsilon;
-    //double p;
     double rhob;
     /* stress energy tensor plus baryon current  */
     /* TJb[flag][alpha][mu] */
@@ -19,7 +18,6 @@ class Grid {
         
     /* temporary values for the final RK update */
     double epsilon_t;
-    //double p_t;
     double rhob_t;
         
     // store the epsilon and rhob at previous time step
@@ -41,16 +39,6 @@ class Grid {
     Grid **nbr_m_1; 
     Grid **nbr_p_2; 
     Grid **nbr_m_2; 
-        
-    /* This is u^mu partial_mu u^nu */
-    double **a;
-        
-    /* this is the expansion rate partial_mu u^mu */
-    double *theta_u;
-
-    // the velocity shear tensor
-    // only record 10 essential components in a 1-d array
-    double **sigma;
         
     /* we need to calculate partial_tau u[mu] */
     /* dU[flag][m][n] = u^{m,n} = partial^n u^m with the rk flag */

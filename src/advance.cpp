@@ -18,6 +18,7 @@ Advance::Advance(EOS *eosIn, InitData *DATA_in,
     reconst_ptr = new Reconst(eos, DATA_in);
     diss = new Diss(eosIn, DATA_in);
     minmod = new Minmod(DATA_in);
+    u_derivative_ptr = new U_derivative(eosIn, DATA_in);
     if (DATA_in->Initial_profile == 12 || DATA_in->Initial_profile == 13
             || DATA_in->Initial_profile == 30) {
         flag_add_hydro_source = true;
@@ -39,6 +40,7 @@ Advance::~Advance() {
     delete diss;
     delete reconst_ptr;
     delete minmod;
+    delete u_derivative_ptr;
 }
 
 
@@ -60,8 +62,27 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
                     FirstRKStepT(tau, x_local, y_local, eta_s_local,
                                  DATA, &(arena[ieta][ix][iy]), rk_flag);
                     if (DATA->viscosity_flag == 1) {
+                        double tau_rk = tau;
+                        if (rk_flag == 1) {
+                            tau_rk = tau + DATA_ptr->delta_tau;
+                        }
+                        double theta_local = (
+                                u_derivative_ptr->calculate_expansion_rate(
+                                    tau, arena, ieta, ix, iy, rk_flag));
+                        double *a_local = new double[5];
+                        double *sigma_local = new double[10];
+                        u_derivative_ptr->calculate_Du_supmu(
+                                tau_rk, arena, ieta, ix, iy, rk_flag, a_local);
+                        u_derivative_ptr->calculate_velocity_shear_tensor(
+                                tau_rk, arena, ieta, ix, iy, rk_flag, a_local,
+                                sigma_local);
+
                         FirstRKStepW(tau, DATA, &(arena[ieta][ix][iy]),
-                                     rk_flag);
+                                     rk_flag, theta_local, a_local,
+                                     sigma_local);
+
+                        delete[] a_local;
+                        delete[] sigma_local;
                     }
                 }
             }
@@ -183,7 +204,8 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
 int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
-                          int rk_flag) {
+                          int rk_flag, double theta_local, double* a_local,
+                          double *sigma_local) {
     double tau_now = tau;
     double tau_next = tau + (DATA->delta_tau);
 
@@ -220,14 +242,16 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
     /* Advance uWmunu */
     double tempf, temps;
     if (rk_flag == 0) {
-        diss->Make_uWRHS(tau_now, grid_pt, w_rhs, DATA, rk_flag);
+        diss->Make_uWRHS(tau_now, grid_pt, w_rhs, DATA, rk_flag,
+                         theta_local, a_local);
         for (int mu = 1; mu < 4; mu++) {
             for (int nu = mu; nu < 4; nu++) {
                 int idx_1d = util->map_2d_idx_to_1d(mu, nu);
                 tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
                          *(grid_pt->u[rk_flag][0]));
                 temps = diss->Make_uWSource(tau_now, grid_pt, mu, nu, DATA,
-                                            rk_flag); 
+                                            rk_flag, theta_local, a_local,
+                                            sigma_local); 
                 tempf += temps*(DATA->delta_tau);
                 tempf += w_rhs[mu][nu];
                 grid_pt->Wmunu[trk_flag][idx_1d] = (
@@ -235,13 +259,15 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
             }
         }
     } else if (rk_flag > 0) {
-        diss->Make_uWRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag);
+        diss->Make_uWRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag,
+                         theta_local, a_local);
         for (int mu = 1; mu < 4; mu++) {
             for (int nu = mu; nu < 4; nu++) {
                 int idx_1d = util->map_2d_idx_to_1d(mu, nu);
                 tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->prev_u[0][0]);
                 temps = diss->Make_uWSource(tau_next, grid_pt, mu, nu, DATA,
-                                            rk_flag); 
+                                            rk_flag, theta_local, a_local,
+                                            sigma_local); 
                 tempf += temps*(DATA->delta_tau);
                 tempf += w_rhs[mu][nu];
 
@@ -260,20 +286,24 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
         double p_rhs;
         if (rk_flag == 0) {
             /* calculate delta u^0 pi */
-            diss->Make_uPRHS(tau_now, grid_pt, &p_rhs, DATA, rk_flag);
+            diss->Make_uPRHS(tau_now, grid_pt, &p_rhs, DATA, rk_flag,
+                             theta_local);
    
             tempf = (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
-            temps = diss->Make_uPiSource(tau_now, grid_pt, DATA, rk_flag);
+            temps = diss->Make_uPiSource(tau_now, grid_pt, DATA, rk_flag,
+                                         theta_local, sigma_local);
             tempf += temps*(DATA->delta_tau);
             tempf += p_rhs;
    
             grid_pt->pi_b[trk_flag] = tempf/(grid_pt->u[trk_flag][0]);
         } else if (rk_flag > 0) {
             /* calculate delta u^0 pi */
-            diss->Make_uPRHS(tau_next, grid_pt, &p_rhs, DATA, rk_flag);
+            diss->Make_uPRHS(tau_next, grid_pt, &p_rhs, DATA, rk_flag,
+                             theta_local);
    
             tempf = (grid_pt->pi_b[0])*(grid_pt->prev_u[0][0]);
-            temps = diss->Make_uPiSource(tau_next, grid_pt, DATA, rk_flag);
+            temps = diss->Make_uPiSource(tau_next, grid_pt, DATA, rk_flag,
+                                         theta_local, sigma_local);
             tempf += temps*(DATA->delta_tau);
             tempf += p_rhs;
   
@@ -296,7 +326,8 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
                 tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
                          *(grid_pt->u[rk_flag][0]));
                 temps = diss->Make_uqSource(tau_now, grid_pt, nu, DATA,
-                                            rk_flag); 
+                                            rk_flag, theta_local, a_local,
+                                            sigma_local); 
                 tempf += temps*(DATA->delta_tau);
                 tempf += w_rhs[mu][nu];
 
@@ -310,7 +341,8 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
                 int idx_1d = util->map_2d_idx_to_1d(mu, nu);
                 tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->prev_u[0][0]);
                 temps = diss->Make_uqSource(tau_next, grid_pt, nu, DATA,
-                                            rk_flag); 
+                                            rk_flag, theta_local, a_local,
+                                            sigma_local); 
                 tempf += temps*(DATA->delta_tau);
                 tempf += w_rhs[mu][nu];
 
@@ -664,10 +696,11 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi,
     // geometric terms
     rhs[0] -= get_TJb(grid_pt, rk_flag, 3, 3)*DATA_ptr->delta_tau;
     rhs[3] -= get_TJb(grid_pt, rk_flag, 3, 0)*DATA_ptr->delta_tau;
-    
+
     for (int i = 0; i < 5; i++) {
         qi[i] += rhs[i];
     }
+    
     delete[] qiphL;
     delete[] qiphR;
     delete[] qimhL;

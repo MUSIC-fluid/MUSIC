@@ -75,9 +75,6 @@ class Grid_info {
     //! This function checks the total energy and total net baryon number
     //! at a give proper time
     void check_conservation_law(Grid ***arena, InitData *DATA, double tau);
-
-    //! This function outputs the velocity shear tensor for checking purpose
-    void check_velocity_shear_tensor(Grid ***arena, double tau);
 };
 
 #endif  // SRC_GRID_INFO_H_

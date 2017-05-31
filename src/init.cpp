@@ -406,9 +406,6 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
-            arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
             arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
@@ -576,9 +573,6 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid ***arena) {
             
                 arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
                 arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-                arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
-                arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-                arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
                 arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
                 arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
                 arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
@@ -709,9 +703,6 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
 
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
-            arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
             arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
@@ -834,9 +825,6 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             arena[ieta][ix][iy].prev_rhob = rhob;
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
-            arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
             arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
@@ -934,9 +922,6 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
             arena[ieta][ix][iy].prev_rhob = rhob;
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
-            arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
@@ -1015,9 +1000,6 @@ void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid ***arena) {
             arena[ieta][ix][iy].prev_rhob = rhob;
             arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
             arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].a = util->mtx_malloc(1, 5);
-            arena[ieta][ix][iy].theta_u = util->vector_malloc(1);
-            arena[ieta][ix][iy].sigma = util->mtx_malloc(1, 10);
             arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
             arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);

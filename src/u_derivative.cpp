@@ -11,6 +11,7 @@ using namespace std;
 U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in) {
    eos = eosIn;
    minmod = new Minmod(DATA_in);
+   DATA_ptr = DATA_in;
 }
 
 // destructor
@@ -34,19 +35,6 @@ int U_derivative::MakedU(double tau, InitData *DATA,
             MakedUXY(tau, ieta, DATA, arena, rk_flag);
         }/* ieta */
         #pragma omp barrier
-
-        #pragma omp for
-        for (ieta = 0; ieta <= neta; ieta++) {
-            Make_expansion_rate_XY(tau, ieta, DATA, arena, rk_flag);
-        }/* ieta */
-
-        // calculate the velocity shear tensor sigma^{\mu\nu}
-        // immigrate the code from dissipative.cpp
-        #pragma omp for
-        for (ieta = 0; ieta <= neta; ieta++) {
-            Make_sigma_XY(tau, ieta, DATA, arena, rk_flag);
-        }/* ieta */
-        #pragma omp barrier
     }
 
    return 1; /* successful */
@@ -67,140 +55,101 @@ void U_derivative::MakedUXY(double tau, int ieta, InitData *DATA,
     }/*iy */
 }
 
-void U_derivative::Make_expansion_rate_XY(double tau, int ieta, InitData *DATA,
-                                          Grid ***arena, int rk_flag) {
-    // this function calculates the local expansion rate in the transverse
-    // plane
-    int nx = DATA->nx;
-    int ny = DATA->ny;
-    for (int ix = 0; ix <= nx; ix++) {
-        for (int iy = 0; iy <= ny; iy++) {
-            double u_local[4];
-            for(int i = 0; i < 4; i++)
-                u_local[i] = arena[ieta][ix][iy].u[rk_flag][i];
-            double dUsup_local[5][4];   // dUsup[m][n] = partial^n u^m
-            for (int i = 0; i < 5; i++) {
-                for (int j = 0; j < 4; j++) {
-                    dUsup_local[i][j] = (
-                            arena[ieta][ix][iy].dUsup[0][i][j]);
-                }
-            }
-            double partial_mu_u_supmu = 0.0;
-            for (int mu=0; mu<4; mu++) {
-                double gfac = (mu==0 ? -1.0 : 1.0);
-                // for expansion rate: theta
-                partial_mu_u_supmu += dUsup_local[mu][mu]*gfac;
-
-                double u_supnu_partial_nu_u_supmu = 0.0;
-	            for (int nu=0; nu<4; nu++) {
-                    double tfac = (nu==0 ? -1.0 : 1.0);
-                    u_supnu_partial_nu_u_supmu += (
-                            tfac*u_local[nu]*dUsup_local[mu][nu]);
-                }
-                arena[ieta][ix][iy].a[0][mu] = (
-                                            u_supnu_partial_nu_u_supmu);
-	        }/* mu */
-
-            int mu = 4;
-            if (DATA->turn_on_diff == 1) {
-                // derivatives of chemical potentials for diffusion
-                double u_supnu_partial_nu_muoverT = 0.0;
-	            for (int nu = 0; nu < 4; nu++) {
-                    double tfac = (nu==0 ? -1.0 : 1.0);
-                    u_supnu_partial_nu_muoverT += (
-                                    tfac*u_local[nu]*dUsup_local[mu][nu]);
-                }
-                arena[ieta][ix][iy].a[0][mu] = u_supnu_partial_nu_muoverT;
-            } else {
-                arena[ieta][ix][iy].a[0][mu] = 0.0;
-            }
-
-            // expansion rate need to add the tau-eta coordinate source term
-            arena[ieta][ix][iy].theta_u[0] = (
-                                    partial_mu_u_supmu + u_local[0]/tau);
-        }/*iy */
-    }/* ix */
+//! this function returns the expansion rate on the grid
+double U_derivative::calculate_expansion_rate(
+        double tau, Grid ***arena, int ieta, int ix, int iy, int rk_flag) {
+    double partial_mu_u_supmu = 0.0;
+    for (int mu = 0; mu < 4; mu++) {
+        double gfac = (mu == 0 ? -1.0 : 1.0);
+        // for expansion rate: theta
+        partial_mu_u_supmu += arena[ieta][ix][iy].dUsup[0][mu][mu]*gfac;
+    }
+    double theta = partial_mu_u_supmu + arena[ieta][ix][iy].u[rk_flag][0]/tau;
+    return(theta);
 }
 
-void U_derivative::Make_sigma_XY(double tau, int ieta, InitData *DATA,
-                                 Grid ***arena, int rk_flag) {
-    int nx = DATA->nx;
-    int ny = DATA->ny;
-    for (int ix=0; ix <= nx; ix++) {
-        for (int iy=0; iy <= ny; iy++) {
-            double dUsup_local[4][4];
-            double u_local[4];
-            double a_local[4];
-            double theta_u_local = arena[ieta][ix][iy].theta_u[0];
-            double sigma_local[4][4];
-            for (int i = 0; i < 4; i++) {
-                u_local[i] = arena[ieta][ix][iy].u[rk_flag][i];
-                a_local[i] = arena[ieta][ix][iy].a[0][i];
-                for (int j = 0; j < 4; j++) {
-                    dUsup_local[i][j] = (
-                                arena[ieta][ix][iy].dUsup[0][i][j]);
-                }
-            }
-            for (int a = 1; a < 4; a++) {
-                for (int b = a; b < 4; b++) {
-                    sigma_local[a][b] = (
-                        (dUsup_local[a][b] + dUsup_local[b][a])/2.
-                        - (DATA->gmunu[a][b] + u_local[a]*u_local[b])
-                          *theta_u_local/3.
-                        + u_local[0]/tau*DATA->gmunu[a][3]*DATA->gmunu[b][3]
-                        - u_local[3]/tau/2.
-                          *(DATA->gmunu[a][3]*DATA->gmunu[b][0] 
-                            + DATA->gmunu[b][3]*DATA->gmunu[a][0])
-                        + u_local[3]*u_local[0]/tau/2.
-                          *(DATA->gmunu[a][3]*u_local[b] 
-                            + DATA->gmunu[b][3]*u_local[a])
-                        - u_local[3]*u_local[3]/tau/2.
-                          *(DATA->gmunu[a][0]*u_local[b] 
-                            + DATA->gmunu[b][0]*u_local[a])
-                        + (u_local[a]*a_local[b]
-                           + u_local[b]*a_local[a])/2.);
-                    sigma_local[b][a] = sigma_local[a][b];
-                }
-            }
-            // make sigma[3][3] using traceless condition
-            sigma_local[3][3] = (
-                (  2.*(  u_local[1]*u_local[2]*sigma_local[1][2]
-                       + u_local[1]*u_local[3]*sigma_local[1][3]
-                       + u_local[2]*u_local[3]*sigma_local[2][3])
-                 - (u_local[0]*u_local[0] - u_local[1]*u_local[1])
-                   *sigma_local[1][1]
-                 - (u_local[0]*u_local[0] - u_local[2]*u_local[2])
-                   *sigma_local[2][2])
-                /(u_local[0]*u_local[0] - u_local[3]*u_local[3]));
-            // make sigma[0][i] using transversality
-            for (int a = 1; a < 4; a++) {
-                double temp = 0.0;
-                for (int b = 1; b < 4; b++) {
-                    temp += sigma_local[a][b]*u_local[b];
-                }
-                sigma_local[0][a] = temp/u_local[0];
-                sigma_local[a][0] = sigma_local[0][a];
-            }
-            // make sigma[0][0]
-            double temp = 0.0;
-            for (int a = 1; a < 4; a++) {
-                temp += sigma_local[0][a]*u_local[a];
-            }
-            sigma_local[0][0] = temp/u_local[0];
 
-            // store the 10 essential components in memory
-            arena[ieta][ix][iy].sigma[0][0] = sigma_local[0][0];
-            arena[ieta][ix][iy].sigma[0][1] = sigma_local[0][1];
-            arena[ieta][ix][iy].sigma[0][2] = sigma_local[0][2];
-            arena[ieta][ix][iy].sigma[0][3] = sigma_local[0][3];
-            arena[ieta][ix][iy].sigma[0][4] = sigma_local[1][1];
-            arena[ieta][ix][iy].sigma[0][5] = sigma_local[1][2];
-            arena[ieta][ix][iy].sigma[0][6] = sigma_local[1][3];
-            arena[ieta][ix][iy].sigma[0][7] = sigma_local[2][2];
-            arena[ieta][ix][iy].sigma[0][8] = sigma_local[2][3];
-            arena[ieta][ix][iy].sigma[0][9] = sigma_local[3][3];
-        }/*iy */
-    }/* ix */
+//! this function returns Du^\mu
+void U_derivative::calculate_Du_supmu(double tau, Grid ***arena, int ieta,
+                                      int ix, int iy, int rk_flag, double *a) {
+    for (int mu = 0; mu <= 4; mu++) {
+        double u_supnu_partial_nu_u_supmu = 0.0;
+	    for (int nu = 0; nu < 4; nu++) {
+            double tfac = (nu==0 ? -1.0 : 1.0);
+            u_supnu_partial_nu_u_supmu += (
+                tfac*arena[ieta][ix][iy].u[rk_flag][nu]
+                *arena[ieta][ix][iy].dUsup[0][mu][nu]);
+        }
+        a[mu] = u_supnu_partial_nu_u_supmu;
+    }
+}
+
+
+//! This funciton returns the velocity shear tensor sigma^\mu\nu
+void U_derivative::calculate_velocity_shear_tensor(double tau, Grid ***arena,
+    int ieta, int ix, int iy, int rk_flag, double *a_local, double *sigma) {
+    double dUsup_local[4][4];
+    double u_local[4];
+    double sigma_local[4][4];
+    for (int i = 0; i < 4; i++) {
+        u_local[i] = arena[ieta][ix][iy].u[rk_flag][i];
+        for (int j = 0; j < 4; j++) {
+            dUsup_local[i][j] = arena[ieta][ix][iy].dUsup[0][i][j];
+        }
+    }
+    double theta_u_local = calculate_expansion_rate(tau, arena, ieta, ix,
+                                                    iy, rk_flag);
+    double gfac = 0.0;
+    for (int a = 1; a < 4; a++) {
+        for (int b = a; b < 4; b++) {
+            if (b == a) {
+                gfac = 1.0;
+            } else {
+                gfac = 0.0;
+            }
+            sigma_local[a][b] = ((dUsup_local[a][b] + dUsup_local[b][a])/2.
+                - (gfac + u_local[a]*u_local[b])*theta_u_local/3.
+                + u_local[0]/tau*DATA_ptr->gmunu[a][3]*DATA_ptr->gmunu[b][3]
+                + u_local[3]*u_local[0]/tau/2.
+                  *(DATA_ptr->gmunu[a][3]*u_local[b] 
+                    + DATA_ptr->gmunu[b][3]*u_local[a])
+                + (u_local[a]*a_local[b] + u_local[b]*a_local[a])/2.);
+            sigma_local[b][a] = sigma_local[a][b];
+        }
+    }
+    // make sigma[3][3] using traceless condition
+    sigma_local[3][3] = (
+        (  2.*(  u_local[1]*u_local[2]*sigma_local[1][2]
+               + u_local[1]*u_local[3]*sigma_local[1][3]
+               + u_local[2]*u_local[3]*sigma_local[2][3])
+         - (u_local[0]*u_local[0] - u_local[1]*u_local[1])*sigma_local[1][1]
+         - (u_local[0]*u_local[0] - u_local[2]*u_local[2])*sigma_local[2][2])
+        /(u_local[0]*u_local[0] - u_local[3]*u_local[3]));
+    // make sigma[0][i] using transversality
+    for (int a = 1; a < 4; a++) {
+        double temp = 0.0;
+        for (int b = 1; b < 4; b++) {
+            temp += sigma_local[a][b]*u_local[b];
+        }
+        sigma_local[0][a] = temp/u_local[0];
+    }
+    // make sigma[0][0]
+    double temp = 0.0;
+    for (int a = 1; a < 4; a++) {
+        temp += sigma_local[0][a]*u_local[a];
+    }
+    sigma_local[0][0] = temp/u_local[0];
+
+    sigma[0] = sigma_local[0][0];
+    sigma[1] = sigma_local[0][1];
+    sigma[2] = sigma_local[0][2];
+    sigma[3] = sigma_local[0][3];
+    sigma[4] = sigma_local[1][1];
+    sigma[5] = sigma_local[1][2];
+    sigma[6] = sigma_local[1][3];
+    sigma[7] = sigma_local[2][2];
+    sigma[8] = sigma_local[2][3];
+    sigma[9] = sigma_local[3][3];
 }
 
 
