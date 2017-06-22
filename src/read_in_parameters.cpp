@@ -915,9 +915,12 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
     if (parameter_list->boost_invariant && parameter_list->neta > 1) {
         music_message << "Grid size in eta is set to "
                       << parameter_list->neta << " for a (2+1)-d simulation! "
-                      << "This is redundant! Reset neta to 1!";
+                      << "This is redundant! Reset neta to 1! "
+                      << "Reset deta = 0.1 and eta_size = 0.0";
         music_message.flush("warning");
         parameter_list->neta = 1;
+        parameter_list->delta_eta = 0.1;
+        parameter_list->eta_size = 0.0;
     }
     
     if (parameter_list->delta_tau > 0.1) {
