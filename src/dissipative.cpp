@@ -84,13 +84,15 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
             grid_pt->pi_b[rk_flag]*(gfac + grid_pt->u[rk_flag][alpha]
                                            *grid_pt->u[rk_flag][0]));
         if (rk_flag == 0) {
-            dPidtau = (Pi_alpha0 - grid_pt->prev_pi_b[0]
-                                   *(gfac + grid_pt->prev_u[0][alpha]
-                                            *grid_pt->prev_u[0][0]));
+            dPidtau = ((Pi_alpha0 - grid_pt->prev_pi_b[0]
+                                    *(gfac + grid_pt->prev_u[0][alpha]
+                                             *grid_pt->prev_u[0][0]))
+                       /DATA->delta_tau);
         } else {
-            dPidtau = (Pi_alpha0 - grid_pt->pi_b[0]
-                                   *(gfac + grid_pt->u[0][alpha]
-                                            *grid_pt->u[0][0]));
+            dPidtau = ((Pi_alpha0 - grid_pt->pi_b[0]
+                                    *(gfac + grid_pt->u[0][alpha]
+                                             *grid_pt->u[0][0]))
+                       /DATA->delta_tau);
         }
     }
 
