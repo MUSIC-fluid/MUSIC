@@ -252,7 +252,7 @@ void hydro_source::get_hydro_energy_source(
         j_mu[i] = 0.0;
     }
     // flow velocity
-    double gamma_perp_flow = sqrt(u_mu[0]*u_mu[0] - u_mu[3]*u_mu[3]);
+    double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
     double y_perp_flow = acosh(gamma_perp_flow);
     double y_long_flow = acosh(u_mu[0]/gamma_perp_flow) + eta_s;
     double sin_phi_flow = u_mu[1]/gamma_perp_flow;
@@ -471,7 +471,7 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
     double res = 0.;
 
     // flow velocity
-    double gamma_perp_flow = sqrt(u_mu[0]*u_mu[0] - u_mu[3]*u_mu[3]);
+    double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
     double y_perp_flow = acosh(gamma_perp_flow);
     double y_long_flow = acosh(u_mu[0]/gamma_perp_flow) + eta_s;
     double sinh_y_perp_flow = sinh(y_perp_flow);
