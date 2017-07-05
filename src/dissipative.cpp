@@ -80,7 +80,8 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
                                            *grid_pt->u[rk_flag][0]));
         dPidtau = (Pi_alpha0 - grid_pt->prev_pi_b[rk_flag]
                                *(gfac + grid_pt->prev_u[rk_flag][alpha]
-                                        *grid_pt->prev_u[rk_flag][0]));
+                                        *grid_pt->prev_u[rk_flag][0])
+                   /DATA->delta_tau);
     }
 
     // use central difference to preserve conservation law exactly
