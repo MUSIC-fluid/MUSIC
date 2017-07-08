@@ -185,6 +185,16 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
        q[4] = Jtau */
 
     u[0] = sqrt((q[0]/tau + p)/h);
+    if (u[0] != u[0]) {
+        music_message << "Reconst e: u[0] is nan!";
+        music_message.flush("error");
+        return(-1);
+    }
+    if (u[0] < 1.) {
+        music_message << "Reconst e: u[0] < 1.!";
+        music_message.flush("error");
+        return(-1);
+    }
     double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
                            /(grid_pt->u[rk_flag][0]));
     if (check_u0_var > 100.) {
@@ -202,7 +212,7 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
     
     if (epsilon > eos_eps_max) {
         if (echo_level > 5) {
-            music_message << "Reconst velocity: e = " << epsilon
+            music_message << "Reconst e: e = " << epsilon
                           << " > e_max in the EoS table.";
             music_message.flush("warning");
 	        music_message << "e_max = " << eos_eps_max << " [1/fm^4]";
@@ -216,7 +226,7 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
 
     double u_max = 242582597.70489514; // cosh(20)
     if (u[0] > u_max) {
-        fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
+        fprintf(stderr, "Reconst e: u[0] = %e is too large.\n", u[0]);
         if (grid_pt->epsilon > 0.3) {
 	        fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
 	        fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
@@ -310,7 +320,8 @@ int Reconst::ReconstIt_velocity_iteration(
         // remember that uq are eigher halfway cells or the final q_next 
         // at this point, the original values in grid_pt->TJb are not touched. 
         if (echo_level > 9) {
-            music_message.warning("Reconst velocity:: can not find solution!");
+            music_message.warning(
+                    "Reconst velocity iteration:: can not find solution!");
             music_message << "T00 = " << T00 << ", K00 = " << K00;
             music_message.flush("warning");
         }
@@ -342,7 +353,8 @@ int Reconst::ReconstIt_velocity_iteration(
         v_solution = v_next;
     } else {
         if (echo_level > 5) {
-            music_message.warning("Reconst velocity:: can not find solution!");
+            music_message.warning(
+                    "Reconst velocity iteraction:: can not find solution!");
             music_message.warning("output the results at the last iteration:");
             music_message.warning("iter  [lower, upper]  root  err(est)");
             music_message << iter << "   [" << v_prev << ",  " << v_next
@@ -354,20 +366,20 @@ int Reconst::ReconstIt_velocity_iteration(
    
     // for large velocity, solve u0
     double u0_solution = 1.0;
+    int iter_u0 = 0;
     if (v_solution > v_critical) {
         double u0_prev = 1./sqrt(1. - v_solution*v_solution);
         int u0_status = 1;
-        iter = 0;
         double u0_next;
         double abs_error_u0 = 1.0;
         double rel_error_u0 = 1.0;
         do {
-            iter++;
+            iter_u0++;
             u0_next = reconst_u0_f(u0_prev, T00, K00, M, J0);
             abs_error_u0 = fabs(u0_next - u0_prev);
             rel_error_u0 = 2.*abs_error_u0/(u0_next + u0_prev + 1e-15);
             u0_prev = u0_next;
-            if (iter > max_iter) {
+            if (iter_u0 > max_iter) {
                 u0_status = 0;
                 break;
             }
@@ -378,12 +390,13 @@ int Reconst::ReconstIt_velocity_iteration(
         } else {
             if (echo_level > 5) {
                 music_message.warning(
-                        "Reconst velocity:: can not find solution!");
+                        "Reconst velocity iteration:: can not find solution!");
                 music_message.warning(
                         "output the results at the last iteration:");
                 music_message.warning("iter  [lower, upper]  root  err(est)");
-                music_message << iter << "   [" << u0_prev << ",  " << u0_next
-                              << "]  " << abs_error_u0 << "  " << rel_error_u0;
+                music_message << iter_u0 << "   [" << u0_prev << ",  "
+                              << u0_next << "]  "
+                              << abs_error_u0 << "  " << rel_error_u0;
                 music_message.flush("warning");
             }
             return(-1);
@@ -405,7 +418,8 @@ int Reconst::ReconstIt_velocity_iteration(
                            /(grid_pt->u[rk_flag][0]));
     if (check_u0_var > 100.) {
         if (grid_pt->epsilon > 1e-6 || echo_level > 5) {
-            music_message << "u0 varies more than 100 times compared to "
+            music_message << "Reconst velocity iteration::"
+                          << "u0 varies more than 100 times compared to "
                           << "its value at previous time step";
             music_message.flush("warning");
             music_message << "e = " << grid_pt->epsilon
@@ -418,7 +432,7 @@ int Reconst::ReconstIt_velocity_iteration(
 
     if (epsilon > eos_eps_max) {
         if (echo_level > 5) {
-            music_message << "Reconst velocity: e = " << epsilon
+            music_message << "Reconst velocity iteration: e = " << epsilon
                           << " > e_max in the EoS table.";
             music_message.flush("warning");
 	        music_message << "e_max = " << eos_eps_max << " [1/fm^4]";
@@ -440,7 +454,7 @@ int Reconst::ReconstIt_velocity_iteration(
     if(u[0] > u_max) {
         // check whether velocity is too large
         if (echo_level > 5) {
-            music_message << "Reconst velocity: u[0] = " << u[0]
+            music_message << "Reconst velocity iteration: u[0] = " << u[0]
                           << " is too large!"
                           << "epsilon = " << grid_pt->epsilon;
             music_message.flush("warning");
@@ -460,8 +474,8 @@ int Reconst::ReconstIt_velocity_iteration(
     if (fabs(temp_usq - 1.0) > abs_err) {
         // If the deviation is too large, exit MUSIC
         if (fabs(temp_usq - 1.0) > 0.1*u[0]) {
-            music_message << "In Reconst velocity, reconstructed: u^2 - 1 = "
-                          << temp_usq - 1.0;
+            music_message << "In Reconst velocity iteration, "
+                          << "reconstructed: u^2 - 1 = " << temp_usq - 1.0;
             music_message.flush("error");
             music_message << "u[0]=" << u[0] << ", u[1]=" << u[1]
                           << ", u[2]=" << u[2] << ", u[3]=" << u[3];
@@ -469,15 +483,29 @@ int Reconst::ReconstIt_velocity_iteration(
             music_message << "e=" << epsilon << ", rhob=" << rhob
                           << ", p=" << pressure;
             music_message.flush("error");
-            music_message << "with q1 = " << q[1] << ", q2 = " << q[2]
+            music_message << "with q0 = " << q[0]
+                          << ", q1 = " << q[1] << ", q2 = " << q[2]
                           << ", q3 = " << q[3];
+            music_message.flush("error");
+            double f_res_v = (
+                    fabs(v_solution
+                         - reconst_velocity_f(v_solution, T00, M, J0)));
+            double f_res_u = (
+                    fabs(u0_solution
+                         - reconst_u0_f(u0_solution, T00, K00, M, J0)));
+            music_message << "u0_solution = " << u0_solution
+                          << ", v_solution = " << v_solution
+                          << ", iter_v = " << iter
+                          << ", iter_u0 = " << iter_u0
+                          << ", f_res_v = " << f_res_v
+                          << ", f_res_u = " << f_res_u;
             music_message.flush("error");
             exit(0);
         } else if (fabs(temp_usq - 1.0) > sqrt(abs_err)*u[0]
                                                 && echo_level > 5) {
             // Warn only when the deviation from 1 is relatively large
-            music_message << "In Reconst velocity, reconstructed: u^2 - 1 = "
-                          << temp_usq - 1.0;
+            music_message << "In Reconst velocity iteration, "
+                          << "reconstructed: u^2 - 1 = " << temp_usq - 1.0;
             music_message.flush("warning");
             double f_res;
             if (v_solution < v_critical)
@@ -553,7 +581,8 @@ int Reconst::ReconstIt_velocity_Newton(
         // remember that uq are eigher halfway cells or the final q_next 
         // at this point, the original values in grid_pt->TJb are not touched. 
         if (echo_level > 9) {
-            music_message.warning("Reconst velocity:: can not find solution!");
+            music_message.warning(
+                    "Reconst velocity Newton:: can not find solution!");
             music_message << "T00 = " << T00 << ", K00 = " << K00;
             music_message.flush("warning");
         }
@@ -564,7 +593,7 @@ int Reconst::ReconstIt_velocity_Newton(
 
     double u0_guess = grid_pt->u[rk_flag][0];
     double v_guess = sqrt(1. - 1./(u0_guess*u0_guess + 1e-15));
-    if (isnan(v_guess)) {
+    if (v_guess != v_guess) {
         v_guess = 0.0;
     }
     int v_status = 1;
@@ -589,14 +618,15 @@ int Reconst::ReconstIt_velocity_Newton(
             v_status = 0;
             break;
         }
-    } while (abs_error_v > abs_err && rel_error_v > rel_err);
+    } while (fabs(abs_error_v) > abs_err && fabs(rel_error_v) > rel_err);
 
     double v_solution;
     if (v_status == 1) {
         v_solution = v_next;
     } else {
         if (echo_level > 5) {
-            music_message.warning("Reconst velocity:: can not find solution!");
+            music_message.warning(
+                    "Reconst velocity Newton:: can not find solution!");
             music_message.warning("output the results at the last iteration:");
             music_message.warning("iter  [lower, upper]  root  err(est)");
             music_message << iter << "   [" << v_prev << ",  " << v_next
@@ -607,38 +637,39 @@ int Reconst::ReconstIt_velocity_Newton(
     }/* if iteration is unsuccessful, revert */
    
     // for large velocity, solve u0
+    int iter_u0 = 0;
     double u0_solution = 1.0;
     if (v_solution > v_critical) {
         double u0_prev = 1./sqrt(1. - v_solution*v_solution);
         int u0_status = 1;
-        iter = 0;
         double u0_next;
         double abs_error_u0 = reconst_u0_f_Newton(u0_prev, T00, K00, M, J0);
         double rel_error_u0 = 1.0;
         do {
-            iter++;
+            iter_u0++;
             u0_next = (u0_prev
                        - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0));
             abs_error_u0 = reconst_u0_f_Newton(u0_next, T00, K00, M, J0);
             rel_error_u0 = 2.*abs_error_u0/(u0_next + u0_prev + 1e-15);
             u0_prev = u0_next;
-            if (iter > max_iter) {
+            if (iter_u0 > max_iter) {
                 u0_status = 0;
                 break;
             }
-        } while (abs_error_u0 > abs_err && rel_error_u0 > rel_err);
+        } while (fabs(abs_error_u0) > abs_err && fabs(rel_error_u0) > rel_err);
 
         if (u0_status == 1) {
             u0_solution = u0_next;
         } else {
             if (echo_level > 5) {
                 music_message.warning(
-                        "Reconst velocity:: can not find solution!");
+                        "Reconst velocity Newton:: can not find solution!");
                 music_message.warning(
                         "output the results at the last iteration:");
                 music_message.warning("iter  [lower, upper]  root  err(est)");
-                music_message << iter << "   [" << u0_prev << ",  " << u0_next
-                              << "]  " << abs_error_u0 << "  " << rel_error_u0;
+                music_message << iter_u0 << "   [" << u0_prev << ",  "
+                              << u0_next << "]  " << abs_error_u0 << "  "
+                              << rel_error_u0;
                 music_message.flush("warning");
             }
             return(-1);
@@ -660,7 +691,8 @@ int Reconst::ReconstIt_velocity_Newton(
                            /(grid_pt->u[rk_flag][0]));
     if (check_u0_var > 100.) {
         if (grid_pt->epsilon > 1e-6 || echo_level > 5) {
-            music_message << "u0 varies more than 100 times compared to "
+            music_message << "Reconst velocity Newton:: "
+                          << "u0 varies more than 100 times compared to "
                           << "its value at previous time step";
             music_message.flush("warning");
             music_message << "e = " << grid_pt->epsilon
@@ -673,7 +705,8 @@ int Reconst::ReconstIt_velocity_Newton(
 
     if (epsilon > eos_eps_max) {
         if (echo_level > 5) {
-            music_message << "Reconst velocity: e = " << epsilon
+            music_message << "Reconst velocity Newton:: "
+                          << "Reconst velocity: e = " << epsilon
                           << " > e_max in the EoS table.";
             music_message.flush("warning");
 	        music_message << "e_max = " << eos_eps_max << " [1/fm^4]";
@@ -698,7 +731,8 @@ int Reconst::ReconstIt_velocity_Newton(
     if(u[0] > u_max) {
         // check whether velocity is too large
         if (echo_level > 5) {
-            music_message << "Reconst velocity: u[0] = " << u[0]
+            music_message << "Reconst velocity Newton:: "
+                          << "Reconst velocity: u[0] = " << u[0]
                           << " is too large!"
                           << "epsilon = " << grid_pt->epsilon;
             music_message.flush("warning");
@@ -716,8 +750,8 @@ int Reconst::ReconstIt_velocity_Newton(
     if (fabs(temp_usq - 1.0) > abs_err) {
         // If the deviation is too large, exit MUSIC
         if (fabs(temp_usq - 1.0) > 0.1*u[0]) {
-            music_message << "In Reconst velocity, reconstructed: u^2 - 1 = "
-                          << temp_usq - 1.0;
+            music_message << "In Reconst velocity Newton, "
+                          << "reconstructed: u^2 - 1 = " << temp_usq - 1.0;
             music_message.flush("error");
             music_message << "u[0]=" << u[0] << ", u[1]=" << u[1]
                           << ", u[2]=" << u[2] << ", u[3]=" << u[3];
@@ -725,15 +759,25 @@ int Reconst::ReconstIt_velocity_Newton(
             music_message << "e=" << epsilon << ", rhob=" << rhob
                           << ", p=" << pressure;
             music_message.flush("error");
-            music_message << "with q1 = " << q[1] << ", q2 = " << q[2]
+            music_message << "with q0 = " << q[0]
+                          << ", q1 = " << q[1] << ", q2 = " << q[2]
                           << ", q3 = " << q[3];
+            music_message.flush("error");
+            double f_res_v = reconst_velocity_f_Newton(v_solution, T00, M, J0);
+            double f_res_u = reconst_u0_f_Newton(u0_solution, T00, K00, M, J0);
+            music_message << "u0_solution = " << u0_solution
+                          << ", v_solution = " << v_solution
+                          << ", iter_v = " << iter
+                          << ", iter_u0 = " << iter_u0
+                          << ", f_res_v = " << f_res_v
+                          << ", f_res_u = " << f_res_u;
             music_message.flush("error");
             exit(0);
         } else if (fabs(temp_usq - 1.0) > sqrt(abs_err)*u[0]
                                                 && echo_level > 5) {
             // Warn only when the deviation from 1 is relatively large
-            music_message << "In Reconst velocity, reconstructed: u^2 - 1 = "
-                          << temp_usq - 1.0;
+            music_message << "In Reconst velocity Newton, "
+                          << "reconstructed: u^2 - 1 = " << temp_usq - 1.0;
             music_message.flush("warning");
             double f_res;
             if (v_solution < v_critical)
@@ -749,8 +793,8 @@ int Reconst::ReconstIt_velocity_Newton(
             music_message.flush("warning");
             music_message << "with T00 = " << T00 << ", K = " << K00;
             music_message.flush("warning");
-            music_message << "with q1 = " << q[1] << ", q2 = " << q[2]
-                          << ", q3 = " << q[3];
+            music_message << "with q0 = " << q[0] << ", q1 = " << q[1]
+                          << ", q2 = " << q[2] << ", q3 = " << q[3];
             music_message.flush("warning");
             music_message.warning("Correcting it...");
         }

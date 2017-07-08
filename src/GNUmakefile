@@ -11,8 +11,8 @@
 ##  
 
 CC := g++-mp-5
-CFLAGS= -Wall -O3 -fopenmp
-#CFLAGS= -Wall -g -fopenmp
+#CFLAGS= -Wall -O3 -fopenmp
+CFLAGS= -Wall -g -fopenmp
 
 RM		=	rm -f
 O               =       .o
