@@ -171,7 +171,9 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
     }
 
     if (iter == 100) {
-        music_message.warning("Reconst didn't converge.");
+        if (echo_level > 5) {
+            music_message.warning("Reconst didn't converge.");
+        }
         return(-1);
     }  // if iteration is unsuccessful, revert
 
@@ -186,20 +188,25 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
 
     u[0] = sqrt((q[0]/tau + p)/h);
     if (u[0] != u[0]) {
-        music_message << "Reconst e: u[0] is nan!";
-        music_message.flush("error");
+        if (echo_level > 5) {
+            music_message << "Reconst e: u[0] is nan!";
+            music_message.flush("error");
+        }
         return(-1);
     }
     if (u[0] < 1.) {
-        music_message << "Reconst e: u[0] < 1.!";
-        music_message.flush("error");
+        if (echo_level > 5) {
+            music_message << "Reconst e: u[0] < 1.!";
+            music_message.flush("error");
+        }
         return(-1);
     }
     double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
                            /(grid_pt->u[rk_flag][0]));
     if (check_u0_var > 100.) {
         if (grid_pt->epsilon > 1e-6 || echo_level > 5) {
-            music_message << "u0 varies more than 100 times compared to "
+            music_message << "Reconst e:: "
+                          << "u0 varies more than 100 times compared to "
                           << "its value at previous time step";
             music_message.flush("warning");
             music_message << "e = " << grid_pt->epsilon
@@ -226,13 +233,18 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
 
     double u_max = 242582597.70489514; // cosh(20)
     if (u[0] > u_max) {
-        fprintf(stderr, "Reconst e: u[0] = %e is too large.\n", u[0]);
-        if (grid_pt->epsilon > 0.3) {
-	        fprintf(stderr, "Reconst: u[0] = %e is too large.\n", u[0]);
-	        fprintf(stderr, "epsilon = %e\n", grid_pt->epsilon);
-	        fprintf(stderr, "Reverting to the previous TJb...\n"); 
+        if (echo_level > 5 && grid_pt->epsilon > 0.3) {
+            music_message << "Reconst e: u[0] = " << u[0] << " is too large.";
+	        music_message << "epsilon = " << grid_pt->epsilon;
+            music_message.flush("warning");
 	    }
         return(-1);
+    } else if (u[0] < 1.) {
+        if (echo_level > 5) {
+            music_message << "Reconst e: u[0] = " << u[0] << " < 1.";
+	        music_message << " epsilon = " << grid_pt->epsilon;
+            music_message.flush("warning");
+	    }
     } else {
         u[1] = q[1]/tau/h/u[0]; 
         u[2] = q[2]/tau/h/u[0]; 
@@ -245,19 +257,21 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
     if (fabs(temph - 1.0) > abs_err) {
         // If the deviation is too large, exit MUSIC
         if (fabs(temph - 1.0) > 0.1) {
-            fprintf(stderr, "In Reconst, reconstructed : u2 = %e\n", temph);
-            fprintf(stderr, "Can't happen.\n");
+            music_message << "In Reconst, reconstructed : u2 = " << temph;
+            music_message.flush("error");
             exit(0);
         } else if(fabs(temph - 1.0) > sqrt(abs_err)) {
-            // Warn only when the deviation from 1 is relatively large
-            fprintf(stderr, "In Reconst, reconstructed : u2 = %e\n", temph);
-            fprintf(stderr, "with u[0] = %e\n", u[0]);
-            fprintf(stderr, "Correcting it...\n");
+            if (echo_level > 5) {
+                // Warn only when the deviation from 1 is relatively large
+                music_message << "In Reconst, reconstructed : u2 =" << temph;
+                music_message.flush("warning");
+            }
         }   
-
         // Rescaling spatial components of velocity so that unitarity 
         // is exactly satisfied (u[0] is not modified)
-        scalef = sqrt((u[0]*u[0]-1.0)/(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]));
+        scalef = (sqrt(
+                1.0 + (temph - 1.)
+                      /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err)));
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;
@@ -460,6 +474,14 @@ int Reconst::ReconstIt_velocity_iteration(
             music_message.flush("warning");
         }
         return(-1);
+    } else if (u[0] < 1.) {
+        // check whether velocity is too large
+        if (echo_level > 5) {
+            music_message << "Reconst velocity iteration: u[0] = " << u[0]
+                          << " is < 1.! " << "epsilon = " << grid_pt->epsilon;
+            music_message.flush("warning");
+        }
+        return(-1);
     } else {
         // individual components of velocity
         double velocity_inverse_factor = u[0]/(T00 + pressure);
@@ -530,8 +552,9 @@ int Reconst::ReconstIt_velocity_iteration(
         }
         // Rescaling spatial components of velocity so that unitarity 
         // is exactly satisfied (u[0] is not modified)
-        double scalef = sqrt((u[0]*u[0] - 1.0)
-                             /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err));
+        double scalef = (sqrt(
+                1.0 + (temp_usq - 1.)
+                      /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err)));
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;
@@ -542,8 +565,8 @@ int Reconst::ReconstIt_velocity_iteration(
         grid_p->u[0][mu] = u[mu];
     }
 
-    return 1;  /* on successful execution */
-}/* Reconst */
+    return(1);
+}
 
 
 //! reconstruct TJb from q[0] - q[4]
@@ -649,6 +672,9 @@ int Reconst::ReconstIt_velocity_Newton(
             iter_u0++;
             u0_next = (u0_prev
                        - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0));
+            if (u0_next < 1.0) {
+                u0_next = 1.0 + 1e-10;
+            }
             abs_error_u0 = reconst_u0_f_Newton(u0_next, T00, K00, M, J0);
             rel_error_u0 = 2.*abs_error_u0/(u0_next + u0_prev + 1e-15);
             u0_prev = u0_next;
@@ -728,12 +754,21 @@ int Reconst::ReconstIt_velocity_Newton(
 
     double u_max = 242582597.70489514; // cosh(20)
     //remove if for speed
-    if(u[0] > u_max) {
+    if (u[0] > u_max) {
         // check whether velocity is too large
         if (echo_level > 5) {
             music_message << "Reconst velocity Newton:: "
                           << "Reconst velocity: u[0] = " << u[0]
                           << " is too large!"
+                          << "epsilon = " << grid_pt->epsilon;
+            music_message.flush("warning");
+        }
+        return(-1);
+    } if (u[0] < 1.) {
+        // unphysical solution u^0 < 1.
+        if (echo_level > 5) {
+            music_message << "Reconst velocity Newton:: "
+                          << "Reconst velocity: u[0] = " << u[0] << " < 1! "
                           << "epsilon = " << grid_pt->epsilon;
             music_message.flush("warning");
         }
@@ -800,8 +835,9 @@ int Reconst::ReconstIt_velocity_Newton(
         }
         // Rescaling spatial components of velocity so that unitarity 
         // is exactly satisfied (u[0] is not modified)
-        double scalef = sqrt((u[0]*u[0] - 1.0)
-                             /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err));
+        double scalef = (sqrt(
+                1.0 + (temp_usq - 1.)
+                      /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err)));
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;
@@ -812,8 +848,8 @@ int Reconst::ReconstIt_velocity_Newton(
         grid_p->u[0][mu] = u[mu];
     }
 
-    return 1;  /* on successful execution */
-}/* Reconst */
+    return(1);
+}
 
 
 double Reconst::GuessEps(double T00, double K00, double cs2) {
