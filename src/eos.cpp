@@ -2760,8 +2760,8 @@ double EOS::get_dpOverde2(double e, double rhob) {
     }
     double eps_end = eps0 + (Neps - 1)*deltaEps;
 
-    double eLeft = e - deltaEps*0.1;    // GeV/fm^3
-    double eRight = e + deltaEps*0.1;   // GeV/fm^3
+    double eLeft = e - deltaEps*0.5;    // GeV/fm^3
+    double eRight = e + deltaEps*0.5;   // GeV/fm^3
   
     // deal with boundary, avoid to exceed the table
     if (eLeft < (eps0 + 1e-6))
