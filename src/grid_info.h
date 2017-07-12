@@ -75,6 +75,11 @@ class Grid_info {
     //! This function checks the total energy and total net baryon number
     //! at a give proper time
     void check_conservation_law(Grid ***arena, InitData *DATA, double tau);
+
+    //! This function outputs the evolution of hydrodynamic variables at a
+    //! give fluid cell
+    void monitor_fluid_cell(Grid ***arena, int ix, int iy, int ieta,
+                            double tau);
 };
 
 #endif  // SRC_GRID_INFO_H_

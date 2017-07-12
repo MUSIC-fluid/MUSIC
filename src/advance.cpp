@@ -69,12 +69,20 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
                         double theta_local = (
                                 u_derivative_ptr->calculate_expansion_rate(
                                     tau, arena, ieta, ix, iy, rk_flag));
+                        //double theta_local = (
+                        //        u_derivative_ptr->calculate_expansion_rate(
+                        //            tau_rk, arena, ieta, ix, iy, rk_flag));
                         double *a_local = new double[5];
                         double *sigma_local = new double[10];
+                        //u_derivative_ptr->calculate_Du_supmu(
+                        //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local);
+                        //u_derivative_ptr->calculate_velocity_shear_tensor(
+                        //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local,
+                        //        sigma_local);
                         u_derivative_ptr->calculate_Du_supmu(
-                                tau_rk, arena, ieta, ix, iy, rk_flag, a_local);
+                                tau, arena, ieta, ix, iy, rk_flag, a_local);
                         u_derivative_ptr->calculate_velocity_shear_tensor(
-                                tau_rk, arena, ieta, ix, iy, rk_flag, a_local,
+                                tau, arena, ieta, ix, iy, rk_flag, a_local,
                                 sigma_local);
 
                         FirstRKStepW(tau, DATA, &(arena[ieta][ix][iy]),

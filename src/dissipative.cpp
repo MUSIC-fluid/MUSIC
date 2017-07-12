@@ -102,21 +102,24 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     double dPidx_perp = 0.0;
     for (i = 1; i <= 2; i++) {  // x and y
         idx_1d = util->map_2d_idx_to_1d(alpha, i);
-        // double sg = grid_pt->Wmunu[rk_flag][alpha][i];
+        double sg = grid_pt->Wmunu[rk_flag][idx_1d];
         double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][idx_1d];
         double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][idx_1d];
-        // dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
-        dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
+        dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
+        //dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
         if (alpha < 4 && DATA->turn_on_bulk == 1) {
             double gfac1 = (alpha == i ? 1.0 : 0.0);
             double bgp1 = (grid_pt->nbr_p_1[i]->pi_b[rk_flag]
                            *(gfac1 + grid_pt->nbr_p_1[i]->u[rk_flag][alpha]
                                      *grid_pt->nbr_p_1[i]->u[rk_flag][i]));
+            double bg = (grid_pt->pi_b[rk_flag]
+                           *(gfac1 + grid_pt->u[rk_flag][alpha]
+                                     *grid_pt->u[rk_flag][i]));
             double bgm1 = (grid_pt->nbr_m_1[i]->pi_b[rk_flag]
                            *(gfac1 + grid_pt->nbr_m_1[i]->u[rk_flag][alpha]
                                      *grid_pt->nbr_m_1[i]->u[rk_flag][i]));
-            // dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i];
-            dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
+            dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i];
+            //dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
         }
     }  /* i */
 
@@ -125,23 +128,25 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     taufactor = tau;
     double dWdeta = 0.0;
     double dPideta = 0.0;
-    // double sg = grid_pt->Wmunu[rk_flag][alpha][i];
     idx_1d = util->map_2d_idx_to_1d(alpha, i);
+    double sg = grid_pt->Wmunu[rk_flag][idx_1d];
     double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][idx_1d];
     double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][idx_1d];
-    // dWdeta = minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
-    dWdeta = (sgp1 - sgm1)/(2.*delta[i]*taufactor);
+    dWdeta = minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
+    //dWdeta = (sgp1 - sgm1)/(2.*delta[i]*taufactor);
     if (alpha < 4 && DATA->turn_on_bulk == 1) {
-        // double bg = grid_pt->Pimunu[rk_flag][alpha][i];
         double gfac3 = (alpha == i ? 1.0 : 0.0);
         double bgp1 = (grid_pt->nbr_p_1[i]->pi_b[rk_flag]
                        *(gfac3 + grid_pt->nbr_p_1[i]->u[rk_flag][alpha]
                                  *grid_pt->nbr_p_1[i]->u[rk_flag][i]));
+        double bg = (grid_pt->pi_b[rk_flag]
+                       *(gfac3 + grid_pt->u[rk_flag][alpha]
+                                 *grid_pt->u[rk_flag][i]));
         double bgm1 = (grid_pt->nbr_m_1[i]->pi_b[rk_flag]
                        *(gfac3 + grid_pt->nbr_m_1[i]->u[rk_flag][alpha]
                                  *grid_pt->nbr_m_1[i]->u[rk_flag][i]));
-        // dPideta = minmod->minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor;
-        dPideta = (bgp1 - bgm1)/(2.*delta[i]*taufactor);
+        dPideta = minmod->minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor;
+        //dPideta = (bgp1 - bgm1)/(2.*delta[i]*taufactor);
     }
 
     /* partial_m (tau W^mn) = W^0n + tau partial_m W^mn */
@@ -179,7 +184,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
              << grid_pt->pi_b[rk_flag]
              << " prev_pi_b=" << grid_pt->prev_pi_b[rk_flag] << endl;
     }
-    return result;
+    return(result);
 }/* MakeWSource */
 /* MakeWSource is for Tmunu */
 
@@ -213,8 +218,13 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
     // Useful variables to define
     gamma = grid_pt->u[rk_flag][0];
     ueta  = grid_pt->u[rk_flag][3];
-    epsilon = grid_pt->epsilon;
-    rhob = grid_pt->rhob;
+    if (rk_flag == 0) {
+        epsilon = grid_pt->epsilon;
+        rhob = grid_pt->rhob;
+    } else {
+        epsilon = grid_pt->prev_epsilon;
+        rhob = grid_pt->prev_rhob;
+    }
     T = eos->get_temperature(epsilon, rhob);
 
     if (DATA->T_dependent_shear_to_s == 1) {
@@ -223,9 +233,13 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
         shear_to_s = DATA->shear_to_s;
     }
 
-    int include_WWterm = 1;
+    int include_WWterm = 0;
     int include_Vorticity_term = 0;
-    int include_Wsigma_term = 1;
+    int include_Wsigma_term = 0;
+    if (DATA->include_second_order_terms == 1) {
+        include_WWterm = 1;
+        include_Wsigma_term = 1;
+    }
     if (DATA->Initial_profile == 0) {
         include_WWterm = 0;
         include_Wsigma_term = 0;
@@ -237,9 +251,9 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 ///                 Defining transport coefficients                        ///
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
-    double pressure = eos->get_pressure(grid_pt->epsilon, grid_pt->rhob);
-    shear = (shear_to_s)*(grid_pt->epsilon + pressure)/(T + 1e-15);
-    tau_pi = 5.0*shear/(grid_pt->epsilon + pressure + 1e-15);
+    double pressure = eos->get_pressure(epsilon, rhob);
+    shear = (shear_to_s)*(epsilon + pressure)/(T + 1e-15);
+    tau_pi = 5.0*shear/(epsilon + pressure + 1e-15);
 
     // tau_pi = maxi(tau_pi, DATA->tau_pi);
     if (tau_pi > 1e20) {
@@ -274,9 +288,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 /// ////////////////////////////////////////////////////////////////////// ///
 
     // full term is
-    tempf = (
-        - (1.0 + transport_coefficient2*theta_local)
-        *(Wmunu[mu][nu]));
+    tempf = (-(1.0 + transport_coefficient2*theta_local)*(Wmunu[mu][nu]));
 
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
@@ -422,20 +434,21 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 ///               transport_coefficient2_b*Bulk*W^mu nu                    ///
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
-    double Bulk_Sigma, Bulk_Sigma_term;
-    double Bulk_W, Bulk_W_term;
     double Coupling_to_Bulk;
+    if (DATA->include_second_order_terms == 1) {
+        double Bulk_Sigma = grid_pt->pi_b[rk_flag]*sigma[mu][nu];
+        double Bulk_W = grid_pt->pi_b[rk_flag]*Wmunu[mu][nu];
 
-    Bulk_Sigma = grid_pt->pi_b[rk_flag]*sigma[mu][nu];
-    Bulk_W = grid_pt->pi_b[rk_flag]*Wmunu[mu][nu];
+        // multiply term by its respective transport coefficient
+        double Bulk_Sigma_term = Bulk_Sigma*transport_coefficient_b;
+        double Bulk_W_term = Bulk_W*transport_coefficient2_b;
 
-    // multiply term by its respective transport coefficient
-    Bulk_Sigma_term = Bulk_Sigma*transport_coefficient_b;
-    Bulk_W_term = Bulk_W*transport_coefficient2_b;
-
-    // full term is
-    // first term: sign changes according to metric sign convention
-    Coupling_to_Bulk = -Bulk_Sigma_term + Bulk_W_term;
+        // full term is
+        // first term: sign changes according to metric sign convention
+        Coupling_to_Bulk = -Bulk_Sigma_term + Bulk_W_term;
+    } else {
+        Coupling_to_Bulk = 0.0;
+    }
 
     // final answer is
     SW = (NS_term + tempf + Vorticity_term + Wsigma_term + WW_term

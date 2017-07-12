@@ -581,6 +581,39 @@ void Grid_info::output_energy_density_and_rhob_disitrubtion(Grid ***arena,
     output_file.close();
 }
 
+
+//! This function outputs the evolution of hydrodynamic variables at a
+//! give fluid cell
+void Grid_info::monitor_fluid_cell(Grid ***arena, int ix, int iy, int ieta,
+                                   double tau) {
+    ostringstream filename;
+    filename << "monitor_fluid_cell_ix_" << ix << "_iy_" << iy
+             << "_ieta_" << ieta << ".dat";
+    ofstream output_file(filename.str().c_str(),
+                         std::ofstream::out | std::ofstream::app);
+    output_file << scientific << setprecision(8)
+                << tau << "  " << arena[ieta][ix][iy].epsilon << "  "
+                << arena[ieta][ix][iy].rhob << "  ";
+    for (int i = 0; i < 4; i++) {
+        output_file << scientific << setprecision(8)
+                    << arena[ieta][ix][iy].u[0][i] << "  ";
+    }
+    for (int i = 0; i < 10; i++) {
+        output_file << scientific << setprecision(8)
+                    << arena[ieta][ix][iy].Wmunu[0][i] << "  ";
+    }
+    output_file << scientific << setprecision(8)
+                << arena[ieta][ix][iy].pi_b[0] << "  ";
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            output_file << scientific << setprecision(8)
+                        << arena[ieta][ix][iy].dUsup[0][i][j] << "  ";
+        }
+    }
+    output_file << endl;
+    output_file.close();
+}
+
 void Grid_info::load_deltaf_qmu_coeff_table(string filename) {
     ifstream table(filename.c_str());
     deltaf_qmu_coeff_table_length_T = 150;

@@ -656,9 +656,9 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
                     >> density >> utau >> ux >> uy
                     >> dummy  >> dummy  >> dummy  >> dummy;
             temp_profile_ed[ix][iy] = density;
-            temp_profile_utau[ix][iy] = utau;
             temp_profile_ux[ix][iy] = ux;
             temp_profile_uy[ix][iy] = uy;
+            temp_profile_utau[ix][iy] = sqrt(1. + ux*ux + uy*uy);
             if (ix == 0 && iy == 0) {
                 DATA->x_size = -dummy2*2;
                 DATA->y_size = -dummy3*2;
