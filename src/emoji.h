@@ -1,7 +1,8 @@
 #ifndef SRC_EMOJI_H_
 #define SRC_EMOJI_H_
 
-#include <cstring>
+#include <string>
+using namespace std;
 
 //! this is a class that includes ascii-emoji strings.
 
