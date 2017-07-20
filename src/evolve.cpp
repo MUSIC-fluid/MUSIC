@@ -151,7 +151,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
             grid_info->check_conservation_law(arena, DATA, tau);
         grid_info->get_maximum_energy_density(arena);
 
-        //grid_info->monitor_fluid_cell(arena, 100, 100, 0, tau);
+        if (output_hydro_debug_flag == 1) {
+            // grid_info->monitor_fluid_cell(arena, 100, 100, 0, tau);
+        }
 
         /* execute rk steps */
         // all the evolution are at here !!!
@@ -255,40 +257,39 @@ void Evolve::store_previous_step_for_freezeout(Grid ***arena) {
 //! update grid information after the tau RK evolution 
 int Evolve::Update_prev_Arena(Grid ***arena) {
     int neta = grid_neta;
-    int ieta;
-    #pragma omp parallel private(ieta)
-    {
-        #pragma omp for
-        for (ieta = 0; ieta < neta; ieta++) {
-            Update_prev_Arena_XY(ieta, arena);
-        } /* ieta */
-    }
-    return 1;
-}
-
-void Evolve::Update_prev_Arena_XY(int ieta, Grid ***arena) {
     int nx = grid_nx;
     int ny = grid_ny;
-    for (int ix = 0; ix <= nx; ix++) {
-        for (int iy = 0; iy <= ny; iy++) {
-            arena[ieta][ix][iy].prev_epsilon = arena[ieta][ix][iy].epsilon;
-            arena[ieta][ix][iy].prev_rhob = arena[ieta][ix][iy].rhob;
+    int ieta, ix, iy;
+    #pragma omp parallel private(ieta, ix, iy)
+    {
+        #pragma omp for collapse(3)
+        for (ieta = 0; ieta < neta; ieta++) {
+            for (ix = 0; ix <= nx; ix++) {
+                for (iy = 0; iy <= ny; iy++) {
+                    arena[ieta][ix][iy].prev_epsilon = (
+                                                arena[ieta][ix][iy].epsilon);
+                    arena[ieta][ix][iy].prev_rhob = arena[ieta][ix][iy].rhob;
      
-            // previous pi_b is stored in prevPimunu
-            arena[ieta][ix][iy].prev_pi_b[0] = arena[ieta][ix][iy].pi_b[0];
-            for (int ii = 0; ii < 14; ii++) {
-                /* this was the previous value */
-                arena[ieta][ix][iy].prevWmunu[0][ii] = (
-                                arena[ieta][ix][iy].Wmunu[0][ii]); 
-            }
-            for (int mu = 0; mu < 4; mu++) {
-                /* this was the previous value */
-                arena[ieta][ix][iy].prev_u[0][mu] = (
-                                        arena[ieta][ix][iy].u[0][mu]); 
+                    // previous pi_b is stored in prevPimunu
+                    arena[ieta][ix][iy].prev_pi_b[0] = (
+                                                arena[ieta][ix][iy].pi_b[0]);
+                    for (int ii = 0; ii < 14; ii++) {
+                        /* this was the previous value */
+                        arena[ieta][ix][iy].prevWmunu[0][ii] = (
+                                        arena[ieta][ix][iy].Wmunu[0][ii]); 
+                    }
+                    for (int mu = 0; mu < 4; mu++) {
+                        /* this was the previous value */
+                        arena[ieta][ix][iy].prev_u[0][mu] = (
+                                                arena[ieta][ix][iy].u[0][mu]); 
+                    }
+                }
             }
         }
     }
+    return(1);
 }
+
 
 int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena) {
     // control function for Runge-Kutta evolution in tau

@@ -14,46 +14,43 @@ U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in) {
    DATA_ptr = DATA_in;
 }
 
-// destructor
 U_derivative::~U_derivative() {
    delete minmod;
 }
 
+
+//! This function is a shell function to calculate parital^\nu u^\mu
 int U_derivative::MakedU(double tau, InitData *DATA,
                          Grid ***arena, int rk_flag) {
     // ideal hydro: no need to evaluate any flow derivatives
-    if (DATA->viscosity_flag == 0)
-        return 1;  
+    if (DATA->viscosity_flag == 0) {
+        return(1);
+    }
 
     int neta = DATA->neta-1;
+    int nx = DATA->nx;
+    int ny = DATA->ny;
 
-    int ieta;
-    #pragma omp parallel private(ieta)
+    int ieta, ix, iy;
+    #pragma omp parallel private(ieta, ix, iy)
     {
-        #pragma omp for
+        #pragma omp for collapse(3)
         for (ieta = 0; ieta <= neta; ieta++) {
-            MakedUXY(tau, ieta, DATA, arena, rk_flag);
-        }/* ieta */
+            for (ix = 0; ix <= nx; ix++) {
+                for (iy = 0; iy <= ny; iy++) {
+	                // this calculates du/dx, du/dy, (du/deta)/tau
+                    MakeDSpatial(tau, DATA, &(arena[ieta][ix][iy]), rk_flag);
+                    // this calculates du/dtau
+                    MakeDTau(tau, DATA, &(arena[ieta][ix][iy]), rk_flag); 
+                }
+            }
+        }
         #pragma omp barrier
     }
 
-   return 1; /* successful */
-}/* MakedU */
-
-void U_derivative::MakedUXY(double tau, int ieta, InitData *DATA,
-                            Grid ***arena, int rk_flag) {
-    // This function is a shell function to calculate parital^\nu u^\mu
-    int nx = DATA->nx;
-    int ny = DATA->ny;
-    for (int ix = 0; ix <= nx; ix++) {
-        for (int iy = 0; iy <= ny; iy++) {
-	       /* this calculates du/dx, du/dy, (du/deta)/tau */
-           MakeDSpatial(tau, DATA, &(arena[ieta][ix][iy]), rk_flag);
-           /* this calculates du/dtau */
-           MakeDTau(tau, DATA, &(arena[ieta][ix][iy]), rk_flag); 
-        }/* ieta */
-    }/*iy */
+   return(1);
 }
+
 
 //! this function returns the expansion rate on the grid
 double U_derivative::calculate_expansion_rate(

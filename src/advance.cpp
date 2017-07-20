@@ -44,19 +44,20 @@ Advance::~Advance() {
 }
 
 
-// evolve Runge-Kutta step in tau
+//! this function evolves one Runge-Kutta step in tau
 int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
                        int rk_flag) {
     int ieta, ix, iy;
-    for (ieta = 0; ieta < grid_neta; ieta++) {
-        double eta_s_local = (- DATA_ptr->eta_size/2.
-                              + ieta*DATA_ptr->delta_eta);
-        for (ix = 0; ix <= grid_nx; ix++) {
-            double x_local = - DATA_ptr->x_size/2. + ix*DATA_ptr->delta_x;
-            #pragma omp parallel private(iy)
-            {
-                #pragma omp for
+    #pragma omp parallel private(ieta, ix, iy)
+    {
+        #pragma omp for collapse(3)
+        for (ieta = 0; ieta < grid_neta; ieta++) {
+            for (ix = 0; ix <= grid_nx; ix++) {
                 for (iy = 0; iy <= grid_ny; iy++) {
+                    double eta_s_local = (- DATA_ptr->eta_size/2.
+                                          + ieta*DATA_ptr->delta_eta);
+                    double x_local = (- DATA_ptr->x_size/2.
+                                      + ix*DATA_ptr->delta_x);
                     double y_local = (- DATA_ptr->y_size/2.
                                       + iy*DATA_ptr->delta_y);
                     FirstRKStepT(tau, x_local, y_local, eta_s_local,
@@ -94,12 +95,11 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
                     }
                 }
             }
-            #pragma omp barrier
         }
+        #pragma omp barrier
     }
-  
-    return 1;
-}/* AdvanceIt */
+    return(1);
+}
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */

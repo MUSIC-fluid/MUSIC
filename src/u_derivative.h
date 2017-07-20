@@ -19,8 +19,6 @@ class U_derivative {
     U_derivative(EOS *eosIn, InitData* DATA_in);  // constructor
     ~U_derivative();
     int MakedU(double tau, InitData *DATA, Grid ***arena, int rk_flag);
-    void MakedUXY(double tau, int ieta, InitData *DATA,
-                  Grid ***arena, int rk_flag);
 
     //! this function returns the expansion rate on the grid
     double calculate_expansion_rate(double tau, Grid ***arena,

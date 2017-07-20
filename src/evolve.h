@@ -54,7 +54,6 @@ class Evolve {
 
     int AdvanceRK(double tau, InitData *DATA, Grid ***arena);
     int Update_prev_Arena(Grid ***arena);
-    void Update_prev_Arena_XY(int ieta, Grid ***arena);
 
     int FreezeOut_equal_tau_Surface(double tau, InitData *DATA, Grid ***arena);
     void FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
