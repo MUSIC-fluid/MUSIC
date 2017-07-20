@@ -99,7 +99,7 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
     /* Iteration scheme */
     double eps_init = grid_pt->epsilon;
     double rhob_init = grid_pt->rhob;
-    cs2 = eos->p_e_func(eps_init, rhob_init);
+    cs2 = eos->get_cs2(eps_init, rhob_init);
     eps_guess = GuessEps(T00, K00, cs2);
     epsilon_next = eps_guess;
      

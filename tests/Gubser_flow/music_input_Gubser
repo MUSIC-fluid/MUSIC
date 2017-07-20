@@ -71,7 +71,7 @@ input_grid_deta  0.1
 output_evolution_every_N_y  2 
 output_evolution_every_N_x  2 
 Initial_time_tau_0  1.0 
-output_hydro_params_header  1 
+output_hydro_params_header  0
 output_evolution_every_N_timesteps  1
 Grid_size_in_y  201 
 Grid_size_in_x  201 

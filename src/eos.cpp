@@ -30,8 +30,6 @@ EOS::~EOS() {
         util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
         util->mtx_free(mu1, NBNP1 + 1, NEPP1 + 1);
         util->mtx_free(mu2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(cs2_1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(cs2_2, NBNP2 + 1, NEPP2 + 1);
     } else if (parameters_ptr->whichEOS >= 2
                     && parameters_ptr->whichEOS <= 7) {
         util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
@@ -62,13 +60,6 @@ EOS::~EOS() {
         util->mtx_free(temperature5, NBNP5 + 1, NEPP5 + 1);
         util->mtx_free(temperature6, NBNP6 + 1, NEPP6 + 1);
         util->mtx_free(temperature7, NBNP7 + 1, NEPP7 + 1);
-        util->mtx_free(cs2_1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(cs2_2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(cs2_3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(cs2_4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(cs2_5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(cs2_6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(cs2_7, NBNP7 + 1, NEPP7 + 1);
     } else if (parameters_ptr->whichEOS == 10
                 || parameters_ptr->whichEOS == 12) {
         util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
@@ -99,13 +90,6 @@ EOS::~EOS() {
         util->mtx_free(temperature5, NBNP5 + 1, NEPP5 + 1);
         util->mtx_free(temperature6, NBNP6 + 1, NEPP6 + 1);
         util->mtx_free(temperature7, NBNP7 + 1, NEPP7 + 1);
-        util->mtx_free(cs2_1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(cs2_2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(cs2_3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(cs2_4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(cs2_5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(cs2_6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(cs2_7, NBNP7 + 1, NEPP7 + 1);
     } else if (parameters_ptr->whichEOS == 11) {
         util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
         util->mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
@@ -123,10 +107,6 @@ EOS::~EOS() {
         util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
         util->mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
         util->mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(cs2_1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(cs2_2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(cs2_3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(cs2_4, NBNP4 + 1, NEPP4 + 1);
     } else {
         music_message << "No EOS for whichEOS = " << parameters_ptr->whichEOS
              << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
@@ -302,10 +282,6 @@ void EOS::init_eos() {
   mu1=util->mtx_malloc(NBNP1+1,NEPP1+1);
   mu2=util->mtx_malloc(NBNP2+1,NEPP2+1);
   
-  // allocate memory for baryon chemical potential arrays
-  cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-  cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-
   // read pressure, temperature and chemical potential values
   for(j=0;j<=NEPP1;j++)
     for(i=0;i<=NBNP1;i++)
@@ -323,7 +299,6 @@ void EOS::init_eos() {
     fscanf(eos_mu2,"%lf",&mu2[i][j]);
       }
 
-  build_velocity_of_sound_sq_matrix();
   fclose(eos_p1);
   fclose(eos_p2);
   fclose(eos_T1);
@@ -503,15 +478,6 @@ void EOS::init_eos2()
   temperature6=util->mtx_malloc(NBNP6+1,NEPP6+1);
   temperature7=util->mtx_malloc(NBNP7+1,NEPP7+1);
   
-  // allocate memory for velocity of sound squared arrays
-  cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-  cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-  cs2_3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-  cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-  cs2_5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-  cs2_6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-  cs2_7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
-
   // allocate memory for baryon chemical potential arrays
   // currently always zero
   /*   mu1=mtx_malloc(NBNP1+1,NEPP1+1); */
@@ -640,8 +606,6 @@ void EOS::init_eos2()
   fclose(eos_T7);
 
   music_message.info("Done reading EOS.");
-
-  build_velocity_of_sound_sq_matrix();
 
   //Allocate and fill arrays for get_s2e()
   //First, create new arrays that will permit to extract information we need from each EOS table in a unified way
@@ -938,15 +902,6 @@ void EOS::init_eos3(int selector)
   temperature6=util->mtx_malloc(NBNP6+1,NEPP6+1);
   temperature7=util->mtx_malloc(NBNP7+1,NEPP7+1);
   
-  // allocate memory for velocity of sound squared arrays
-  cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-  cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-  cs2_3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-  cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-  cs2_5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-  cs2_6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-  cs2_7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
-
   // allocate memory for baryon chemical potential arrays
   // currently always zero
   /*   mu1=mtx_malloc(NBNP1+1,NEPP1+1); */
@@ -1097,8 +1052,6 @@ void EOS::init_eos3(int selector)
   eos_T7.close();
 
   music_message.info("Done reading EOS.");
-
-  build_velocity_of_sound_sq_matrix();
 
   //Allocate and fill arrays for get_s2e()
   //First, create new arrays that will permit to extract information we need from each EOS table in a unified way
@@ -1290,16 +1243,6 @@ void EOS::init_eos7() {
     temperature6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
     temperature7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
 
-    // allocate memory for velocity of sound squared arrays
-    cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    cs2_3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    cs2_5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    cs2_6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    cs2_7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
-
-
     // read pressure, temperature and chemical potential values
     // files have it backwards, so I start with maximum j and count down
     i = 0;
@@ -1397,7 +1340,6 @@ void EOS::init_eos7() {
 
     music_message.info("Done reading EOS.");
 
-    build_velocity_of_sound_sq_matrix();
 }
 
 void EOS::init_eos10(int selector) {
@@ -1574,14 +1516,6 @@ void EOS::init_eos10(int selector) {
     mu5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
     mu6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
     mu7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
-    // allocate memory for velocity of sound squared arrays
-    cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    cs2_3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    cs2_5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    cs2_6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    cs2_7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
 
     // read pressure, temperature and chemical potential values
     for (int j = 0; j < NEPP1 + 1; j++) {
@@ -1698,7 +1632,6 @@ void EOS::init_eos10(int selector) {
     eos_mub7.close();
 
     music_message.info("Done reading EOS.");
-    build_velocity_of_sound_sq_matrix();
 }
 
 void EOS::init_eos11(int selector) {
@@ -1886,12 +1819,6 @@ void EOS::init_eos11(int selector) {
     mus3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
     mus4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
 
-    // allocate memory for velocity of sound squared arrays
-    cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    cs2_3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-
     // read pressure, temperature and chemical potential values
     for (int j = NEPP1; j >= 0; j--) {
         for (int i = 0; i < NBNP1+1; i++) {
@@ -1963,7 +1890,6 @@ void EOS::init_eos11(int selector) {
     eos_mus4.close();
 
     music_message.info("Done reading EOS.");
-    build_velocity_of_sound_sq_matrix();
 }
 
 void EOS::init_eos12(int selector) {
@@ -2140,14 +2066,6 @@ void EOS::init_eos12(int selector) {
     mu5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
     mu6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
     mu7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
-    // allocate memory for velocity of sound squared arrays
-    cs2_1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    cs2_2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    cs2_3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    cs2_4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    cs2_5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    cs2_6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    cs2_7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
 
     // read pressure, temperature and chemical potential values
     for (int j = 0; j < NEPP1 + 1; j++) {
@@ -2264,7 +2182,6 @@ void EOS::init_eos12(int selector) {
     eos_mub7.close();
 
     music_message.info("Done reading EOS.");
-    build_velocity_of_sound_sq_matrix();
 }
 
 
@@ -2448,7 +2365,6 @@ double EOS::interpolate2(double e, double rhob, int selector) {
             case 1: array = temperature1; break;
             case 2: array = entropyDensity1; break;
             case 3: array = QGPfraction1; break;
-            case 4: array = cs2_1; break;
             default: fprintf(stderr, "ERROR in interpolate2 - "
                              "selector must be 0,1,2,3, or 4\n"); exit(1);
         }
@@ -2471,7 +2387,6 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 1: array = temperature2; break;
                 case 2: array = entropyDensity2; break;
                 case 3: array = QGPfraction2; break;
-                case 4: array = cs2_2; break;
                 default: fprintf(stderr, "ERROR in interpolate2 - "
                                  "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
@@ -2484,7 +2399,6 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 1: array = temperature3; break;
                 case 2: array = entropyDensity3; break;
                 case 3: array = QGPfraction3; break;
-                case 4: array = cs2_3; break;
                 default: fprintf(stderr, "ERROR in interpolate2 - "
                                  "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
@@ -2497,7 +2411,6 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 1: array = temperature4; break;
                 case 2: array = entropyDensity4; break;
                 case 3: array = QGPfraction4; break;
-                case 4: array = cs2_4; break;
                 default: fprintf(stderr, "ERROR in interpolate2 - "
                                  "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
@@ -2510,7 +2423,6 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 1: array = temperature5; break;
                 case 2: array = entropyDensity5; break;
                 case 3: array = QGPfraction5; break;
-                case 4: array = cs2_5; break;
                 default: fprintf(stderr, "ERROR in interpolate2 - "
                                  "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
@@ -2523,7 +2435,6 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 1: array = temperature6; break;
                 case 2: array = entropyDensity6; break;
                 case 3: array = QGPfraction6; break;
-                case 4: array = cs2_6; break;
                 default: fprintf(stderr, "ERROR in interpolate2 - "
                                  "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
@@ -2536,7 +2447,6 @@ double EOS::interpolate2(double e, double rhob, int selector) {
                 case 1: array = temperature7; break;
                 case 2: array = entropyDensity7; break;
                 case 3: array = QGPfraction7; break;
-                case 4: array = cs2_7; break;
                 default: fprintf(stderr, "ERROR in interpolate2 - "
                                  "selector must be 0,1,2,3, or 4\n"); exit(1);
             }
@@ -2888,72 +2798,17 @@ double EOS::get_cs2(double e, double rhob) {
     if (whichEOS == 0) {
         f = cs2;
     } else if (whichEOS == 1) {
-        f = interpolate(e, rhob, 2);
+        f = calculate_velocity_of_sound_sq(e, rhob);
     } else if (whichEOS < 10) {
-        f = interpolate2(e, rhob, 4);
+        f = calculate_velocity_of_sound_sq(e, rhob);
     } else if (whichEOS >= 10) {
-        f = interpolate2D(e, fabs(rhob), 4);
+        f = calculate_velocity_of_sound_sq(e, rhob);
     } else {
         fprintf(stderr,"EOS::get_cs2: whichEOS = %d is out of range!\n",
                 whichEOS);
         exit(0);
     }
     return f;
-}
-
-void EOS::build_velocity_of_sound_sq_matrix() {
-    // This function builds up cs^2 tables
-    // whichEOS == 0 : ideal gas EoS, cs^2 = 1/3 always
-    if (whichEOS == 1) {  // 2 tables
-        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, BNP1, deltaBNP1, NBNP1, cs2_1);
-        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
-    } else if (whichEOS >= 2 && whichEOS < 10) {  // 7 tables
-        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, 0.0, 0.0, 1, cs2_1);
-        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, 0.0, 0.0, 1, cs2_2);
-        fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, 0.0, 0.0, 1, cs2_3);
-        fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, 0.0, 0.0, 1, cs2_4);
-        fill_cs2_matrix(EPP5, deltaEPP5, NEPP5, 0.0, 0.0, 1, cs2_5);
-        fill_cs2_matrix(EPP6, deltaEPP6, NEPP6, 0.0, 0.0, 1, cs2_6);
-        fill_cs2_matrix(EPP7, deltaEPP7, NEPP7, 0.0, 0.0, 1, cs2_7);
-    } else if (whichEOS == 10) {  // 7 tables
-        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, BNP1, deltaBNP1, NBNP1, cs2_1);
-        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
-        fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, BNP3, deltaBNP3, NBNP3, cs2_3);
-        fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, BNP4, deltaBNP4, NBNP4, cs2_4);
-        fill_cs2_matrix(EPP5, deltaEPP5, NEPP5, BNP5, deltaBNP5, NBNP5, cs2_5);
-        fill_cs2_matrix(EPP6, deltaEPP6, NEPP6, BNP6, deltaBNP6, NBNP6, cs2_6);
-        fill_cs2_matrix(EPP7, deltaEPP7, NEPP7, BNP7, deltaBNP7, NBNP7, cs2_7);
-    } else if (whichEOS == 11) {  // 4 tables
-        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, BNP1, deltaBNP1, NBNP1, cs2_1);
-        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
-        fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, BNP3, deltaBNP3, NBNP3, cs2_3);
-        fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, BNP4, deltaBNP4, NBNP4, cs2_4);
-    } else if (whichEOS == 12) {  // 7 tables
-        fill_cs2_matrix(EPP1, deltaEPP1, NEPP1, BNP1, deltaBNP1, NBNP1, cs2_1);
-        fill_cs2_matrix(EPP2, deltaEPP2, NEPP2, BNP2, deltaBNP2, NBNP2, cs2_2);
-        fill_cs2_matrix(EPP3, deltaEPP3, NEPP3, BNP3, deltaBNP3, NBNP3, cs2_3);
-        fill_cs2_matrix(EPP4, deltaEPP4, NEPP4, BNP4, deltaBNP4, NBNP4, cs2_4);
-        fill_cs2_matrix(EPP5, deltaEPP5, NEPP5, BNP5, deltaBNP5, NBNP5, cs2_5);
-        fill_cs2_matrix(EPP6, deltaEPP6, NEPP6, BNP6, deltaBNP6, NBNP6, cs2_6);
-        fill_cs2_matrix(EPP7, deltaEPP7, NEPP7, BNP7, deltaBNP7, NBNP7, cs2_7);
-    } else {
-        fprintf(stderr, "EOS::build_velocity_of_sound_sq_matrix: "
-                "whichEOS = %d is out of range!\n", whichEOS);
-        exit(0);
-    }
-}
-
-void EOS::fill_cs2_matrix(double e0, double de, int ne, double rhob0,
-                          double drhob, int nrhob, double** cs2_ptr) {
-    for (int i = 0; i < nrhob; i++) {
-        double rhob_local = rhob0 + i*drhob;
-        for (int j = 0; j < ne; j++) {
-            double epsilon_local = (e0 + j*de)/hbarc;
-            double cs2_local = calculate_velocity_of_sound_sq(epsilon_local,
-                                                              rhob_local);
-            cs2_ptr[i][j] = cs2_local;
-        }
-    }
 }
 
 void EOS::output_eos_matrix(int ne, int nrhob, double** matrix_ptr,
@@ -3133,11 +2988,6 @@ double EOS::interpolate(double e, double rhob, int selector)
       pa1 = mu1[inb1][ie1];
       pa2 = mu1[inb2][ie1];
     }
-      else if (selector == 2)
-      {
-      pa1 = cs2_1[inb1][ie1];
-      pa2 = cs2_1[inb2][ie1];
-      }
     else
       {
         fprintf(stderr,"selector = %d is out of range.\n", selector); 
@@ -3161,11 +3011,6 @@ double EOS::interpolate(double e, double rhob, int selector)
       pb1 = mu1[inb1][ie2];
       pb2 = mu1[inb2][ie2];
     }
-      else if (selector == 2)
-      {
-      pb1 = cs2_1[inb1][ie2];
-      pb2 = cs2_1[inb2][ie2];
-      }
     else
       {
         fprintf(stderr,"selector = %d is out of range.\n", selector); 
@@ -3221,11 +3066,6 @@ double EOS::interpolate(double e, double rhob, int selector)
       pa1 = mu2[inb1][ie1];
       pa2 = mu2[inb2][ie1];
     }
-      else if (selector == 2)
-      {
-      pa1 = cs2_1[inb1][ie1];
-      pa2 = cs2_1[inb2][ie1];
-      }
     else
       {
         fprintf(stderr,"selector = %d is out of range.\n", selector); 
@@ -3250,11 +3090,6 @@ double EOS::interpolate(double e, double rhob, int selector)
       pb1 = mu2[inb1][ie2];
       pb2 = mu2[inb2][ie2];
     }
-      else if (selector == 2)
-      {
-      pb1 = cs2_1[inb1][ie2];
-      pb2 = cs2_1[inb2][ie2];
-      }
     else
       {
         fprintf(stderr,"selector = %d is out of range.\n", selector); 
@@ -3306,7 +3141,6 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
             case 1: array = temperature1; break;
             case 2: array = entropyDensity1; break;
             case 3: array = mu1; break;
-            case 4: array = cs2_1; break;
             case 5: array = mus1; break;
             default:
                 fprintf(stderr, "ERROR in interpolate2D "
@@ -3326,7 +3160,6 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
             case 1: array = temperature1; break;
             case 2: array = entropyDensity1; break;
             case 3: array = mu1; break;
-            case 4: array = cs2_1; break;
             case 5: array = mus1; break;
             default:
                 fprintf(stderr, "ERROR in interpolate2D "
@@ -3346,7 +3179,6 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
             case 1: array = temperature2; break;
             case 2: array = entropyDensity2; break;
             case 3: array = mu2; break;
-            case 4: array = cs2_2; break;
             case 5: array = mus2; break;
             default:
                 fprintf(stderr, "ERROR in interpolate2D "
@@ -3366,7 +3198,6 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
             case 1: array = temperature3; break;
             case 2: array = entropyDensity3; break;
             case 3: array = mu3; break;
-            case 4: array = cs2_3; break;
             case 5: array = mus3; break;
             default:
                 fprintf(stderr, "ERROR in interpolate2D "
@@ -3386,7 +3217,6 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
             case 1: array = temperature4; break;
             case 2: array = entropyDensity4; break;
             case 3: array = mu4; break;
-            case 4: array = cs2_4; break;
             case 5: array = mus4; break;
             default:
                 fprintf(stderr, "ERROR in interpolate2D "
@@ -3406,7 +3236,6 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
             case 1: array = temperature5; break;
             case 2: array = entropyDensity5; break;
             case 3: array = mu5; break;
-            case 4: array = cs2_5; break;
             case 5: array = mus5; break;
             default:
                 fprintf(stderr, "ERROR in interpolate2D "
@@ -3426,7 +3255,6 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
             case 1: array = temperature6; break;
             case 2: array = entropyDensity6; break;
             case 3: array = mu6; break;
-            case 4: array = cs2_6; break;
             case 5: array = mus6; break;
             default:
                 fprintf(stderr, "ERROR in interpolate2D "
@@ -3446,7 +3274,6 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
             case 1: array = temperature7; break;
             case 2: array = entropyDensity7; break;
             case 3: array = mu7; break;
-            case 4: array = cs2_7; break;
             case 5: array = mus7; break;
             default:
                 fprintf(stderr, "ERROR in interpolate2D "
@@ -4035,12 +3862,6 @@ void EOS::check_eos_with_finite_muB() {
     check_file1.close();
     check_file2.close();
 
-    // output cs2 on the grid
-    output_eos_matrix(NEPP1, NBNP1, cs2_1, "check_EoS_cs2_table1.dat");
-    output_eos_matrix(NEPP2, NBNP2, cs2_2, "check_EoS_cs2_table2.dat");
-    output_eos_matrix(NEPP3, NBNP3, cs2_3, "check_EoS_cs2_table3.dat");
-    output_eos_matrix(NEPP4, NBNP4, cs2_4, "check_EoS_cs2_table4.dat");
-    output_eos_matrix(NEPP5, NBNP5, cs2_5, "check_EoS_cs2_table5.dat");
     output_eos_matrix(NEPP1, NBNP1, temperature1, "check_EoS_T_table1.dat");
     output_eos_matrix(NEPP1, NBNP1, mu1, "check_EoS_muB_table1.dat");
     
