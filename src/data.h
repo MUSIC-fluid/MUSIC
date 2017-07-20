@@ -120,7 +120,7 @@ typedef struct init_data {
     //! or in text format (0)
     int outputBinaryEvolution;
 
-    bool output_hydro_debug_info;
+    int output_hydro_debug_info;
     int output_evolution_every_N_timesteps;
     int output_evolution_every_N_x;
     int output_evolution_every_N_y;

@@ -704,7 +704,7 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
 
     //  Make MUSIC output additionnal hydro information
     //  0 for false (do not output), 1 for true
-    bool tempoutput_hydro_debug_info = false;
+    int tempoutput_hydro_debug_info = 0;
     tempinput = util->StringFind4(input_file, "output_hydro_debug_info");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempoutput_hydro_debug_info;
