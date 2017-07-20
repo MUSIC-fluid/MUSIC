@@ -879,6 +879,11 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
     double kappa = kappa_coefficient*(rhob/(3.*T*tanh(alpha) + 1e-15)
                                       - rhob*rhob/(epsilon + pressure));
 
+    if (DATA->Initial_profile == 1) {
+        // for 1+1D numerical test
+        kappa = kappa_coefficient*(rhob/mub);
+    }
+
     // copy the value of \tilde{q^\mu}
     for (int i = 0; i < 4; i++) {
         int idx_1d = util->map_2d_idx_to_1d(4, i);
@@ -938,7 +943,10 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
     double Nonlinear2 = - transport_coeff_2*temptemp;
 
     double SW = (-q[nu] - NS + Nonlinear1 + Nonlinear2)/(tau_rho + 1e-15);
-    // SW = (-q[nu] - NS)/(tau_rho + 1e-15);  // for 1+1D numerical test
+    if (DATA->Initial_profile == 1) {
+        // for 1+1D numerical test
+        SW = (-q[nu] - NS)/(tau_rho + 1e-15);
+    }
 
     // all other geometric terms....
     // + theta q[a] - q[a] u^\tau/tau
@@ -1157,10 +1165,10 @@ double Diss::get_temperature_dependent_zeta_s(double temperature) {
     return(bulk);
 }
 
-void Diss::output_kappa_T_and_muB_dependence(InitData *DATA) {
-    // this function outputs the T and muB dependence of the baryon diffusion
-    // coefficient, kappa
 
+//! this function outputs the T and muB dependence of the baryon diffusion
+//! coefficient, kappa
+void Diss::output_kappa_T_and_muB_dependence(InitData *DATA) {
     cout << "output kappa_B(T, mu_B) ..." << endl;
     ofstream of("kappa_B_T_and_muB_dependence.dat");
     // write out the header of the file
@@ -1203,10 +1211,9 @@ void Diss::output_kappa_T_and_muB_dependence(InitData *DATA) {
 }
 
 
+//! this function outputs the T and muB dependence of the baryon diffusion
+//! coefficient, kappa_B, along constant s/n_B trajectories
 void Diss::output_kappa_along_const_sovernB(InitData *DATA) {
-    // this function outputs the T and muB dependence of the baryon diffusion
-    // coefficient, kappa_B, along constant s/n_B trajectories
-
     cout << "output kappa_B(T, mu_B) along constant s/n_B trajectories..."
          << endl;
     
@@ -1250,10 +1257,9 @@ void Diss::output_kappa_along_const_sovernB(InitData *DATA) {
 }
 
 
+//! this function outputs the T and muB dependence of the specific shear
+//! viscosity eta/s
 void Diss::output_eta_over_s_T_and_muB_dependence(InitData *DATA) {
-    // this function outputs the T and muB dependence of the specific shear
-    // viscosity eta/s
-
     cout << "output eta/s(T, mu_B) ..." << endl;
     ofstream of("eta_over_s_T_and_muB_dependence.dat");
     // write out the header of the file
@@ -1297,10 +1303,9 @@ void Diss::output_eta_over_s_T_and_muB_dependence(InitData *DATA) {
 }
 
 
+//! this function outputs the T and muB dependence of the specific shear
+//! viscosity eta/s along constant s/n_B trajectories
 void Diss::output_eta_over_s_along_const_sovernB(InitData *DATA) {
-    // this function outputs the T and muB dependence of the specific shear
-    // viscosity eta/s along constant s/n_B trajectories
-
     cout << "output eta/s(T, mu_B) along constant s/n_B trajectories..."
          << endl;
     

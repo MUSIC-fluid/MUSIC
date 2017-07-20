@@ -7,4 +7,5 @@ In MUSIC code, one needs to turn off all the non-linear terms in the evolution
 equations.
 
 For the transport coefficients, \kappa = 0.2 \rho_B/\mu_B and \tau_q = 0.2/T.
+Both shear and bulk viscosities are set to zero.
 With all these setup, one can perform the tests with MUSIC code
