@@ -62,16 +62,16 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
                     FirstRKStepT(tau, x_local, y_local, eta_s_local,
                                  DATA, &(arena[ieta][ix][iy]), rk_flag);
                     if (DATA->viscosity_flag == 1) {
-                        double tau_rk = tau;
-                        if (rk_flag == 1) {
-                            tau_rk = tau + DATA_ptr->delta_tau;
-                        }
-                        double theta_local = (
-                                u_derivative_ptr->calculate_expansion_rate(
-                                    tau, arena, ieta, ix, iy, rk_flag));
+                        //double tau_rk = tau;
+                        //if (rk_flag == 1) {
+                        //    tau_rk = tau + DATA_ptr->delta_tau;
+                        //}
                         //double theta_local = (
                         //        u_derivative_ptr->calculate_expansion_rate(
                         //            tau_rk, arena, ieta, ix, iy, rk_flag));
+                        double theta_local = (
+                                u_derivative_ptr->calculate_expansion_rate(
+                                    tau, arena, ieta, ix, iy, rk_flag));
                         double *a_local = new double[5];
                         double *sigma_local = new double[10];
                         //u_derivative_ptr->calculate_Du_supmu(
@@ -196,9 +196,7 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
 
     delete[] qi;
 
-    if (flag != 0) {
-        UpdateTJbRK(&grid_rk_t, grid_pt, rk_flag); 
-    }
+    UpdateTJbRK(&grid_rk_t, grid_pt, rk_flag); 
     util->mtx_free(grid_rk_t.u, 1, 4);
     return(flag);
 }
@@ -508,16 +506,13 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     if (rho_shear > rho_shear_max) {
         if (e_local*hbarc > energy_density_warning) {
             music_message << "energy density = " << e_local*hbarc
-                          << " GeV/fm^3, |pi/(epsilon+3*P)| = " << rho_shear;
+                          << " GeV/fm^3, shear |pi/(epsilon+3*P)| = "
+                          << rho_shear;
             music_message.flush("warning");
         }
-        for (int mu = 0; mu < 4; mu++) {
-            for (int nu = mu; nu < 4; nu++) {
-                int idx_1d = util->map_2d_idx_to_1d(mu, nu);
-                grid_pt->Wmunu[trk_flag][idx_1d] = (
-                    (rho_shear_max/rho_shear)
-                    *grid_pt->Wmunu[trk_flag][idx_1d]);
-            }
+        for (int mu = 0; mu < 10; mu++) {
+            grid_pt->Wmunu[trk_flag][mu] = (
+                (rho_shear_max/rho_shear)*grid_pt->Wmunu[trk_flag][mu]);
         }
         revert_flag = 1;
     }
@@ -527,7 +522,8 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     if (rho_bulk > rho_bulk_max) {
         if (e_local*hbarc > energy_density_warning) {
             music_message << "energy density = " << e_local*hbarc
-                          << " GeV/fm^3, |Pi/(epsilon+3*P)| = " << rho_bulk;
+                          << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
+                          << rho_bulk;
             music_message.flush("warning");
         }
         grid_pt->pi_b[trk_flag] = (
@@ -556,8 +552,7 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
     double q_mu_local[4];
     for (int i = 0; i < 4; i++) {
         // copy the value from the grid
-        int idx_1d = util->map_2d_idx_to_1d(4, i);
-        q_mu_local[i] = grid_pt->Wmunu[trk_flag][idx_1d];
+        q_mu_local[i] = grid_pt->Wmunu[trk_flag][10+i];
     }
 
     // calculate the size of q^\mu
@@ -595,9 +590,8 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
             music_message.flush("warning");
         }
         for (int i = 0; i < 4; i++) {
-            int idx_1d = util->map_2d_idx_to_1d(4, i);
-            grid_pt->Wmunu[trk_flag][idx_1d] =
-                                (rho_q_max/rho_q)*q_mu_local[i];
+            grid_pt->Wmunu[trk_flag][10+i] = (
+                                (rho_q_max/rho_q)*q_mu_local[i]);
         }
         revert_flag = 1;
     }
