@@ -88,7 +88,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
 
                         FirstRKStepW(tau, DATA, &(arena[ieta][ix][iy]),
                                      rk_flag, theta_local, a_local,
-                                     sigma_local);
+                                     sigma_local, ieta, ix, iy);
 
                         delete[] a_local;
                         delete[] sigma_local;
@@ -211,7 +211,7 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
 
 int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
                           int rk_flag, double theta_local, double* a_local,
-                          double *sigma_local) {
+                          double *sigma_local, int ieta, int ix, int iy) {
     double tau_now = tau;
     double tau_next = tau + (DATA->delta_tau);
 
@@ -422,9 +422,10 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
     int revert_flag = 0;
     int revert_q_flag = 0;
     if (DATA->Initial_profile != 0) {
-        revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA);
+        revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA, ieta, ix, iy);
         if (DATA->turn_on_diff == 1) {
-            revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA);
+            revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA,
+                                            ieta, ix, iy);
         }
     }
 
@@ -463,7 +464,7 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag) {
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
 int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
-                         InitData *DATA) {
+                         InitData *DATA, int ieta, int ix, int iy) {
     int revert_flag = 0;
     const double energy_density_warning = 0.01;  // GeV/fm^3, T~100 MeV
 
@@ -505,7 +506,9 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     double rho_shear_max = 0.1;
     if (rho_shear > rho_shear_max) {
         if (e_local*hbarc > energy_density_warning) {
-            music_message << "energy density = " << e_local*hbarc
+            music_message << "ieta = " << ieta << ", ix = " << ix
+                          << ", iy = " << iy
+                          << ", energy density = " << e_local*hbarc
                           << " GeV/fm^3, shear |pi/(epsilon+3*P)| = "
                           << rho_shear;
             music_message.flush("warning");
@@ -521,7 +524,9 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     double rho_bulk_max = 0.1;
     if (rho_bulk > rho_bulk_max) {
         if (e_local*hbarc > energy_density_warning) {
-            music_message << "energy density = " << e_local*hbarc
+            music_message << "ieta = " << ieta << ", ix = " << ix
+                          << ", iy = " << iy
+                          << ", energy density = " << e_local*hbarc
                           << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
                           << rho_bulk;
             music_message.flush("warning");
@@ -538,7 +543,7 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
 //! this function reduce the size of net baryon diffusion current
 //! in the dilute region to stablize numerical simulations
 int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
-                             InitData *DATA) {
+                             InitData *DATA, int ieta, int ix, int iy) {
 
     int trk_flag = rk_flag + 1;
     if (rk_flag == 1) {
@@ -584,9 +589,12 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
     double rho_q_max = 0.1;
     if (rho_q > rho_q_max) {
         if (e_local*hbarc > energy_density_warning) {
-            music_message << "energy density = " << e_local*hbarc << "GeV/fm^3"
+            music_message << "ieta = " << ieta << ", ix = " << ix
+                          << ", iy = " << iy
+                          << ", energy density = " << e_local*hbarc
+                          << "GeV/fm^3"
                           << ", rhob = " << rhob_local << "1/fm^3"
-                          << "-- |q/rhob| = " << rho_q;
+                          << "-- diffusion |q/rhob| = " << rho_q;
             music_message.flush("warning");
         }
         for (int i = 0; i < 4; i++) {

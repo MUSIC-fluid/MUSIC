@@ -46,12 +46,13 @@ class Advance {
 
     int FirstRKStepW(double tau_it, InitData *DATA, Grid *grid_pt,
                      int rk_flag, double theta_local, double* a_local,
-                     double *sigma_local);
+                     double *sigma_local, int ieta, int ix, int iy);
 
     void UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag);
-    int QuestRevert(double tau, Grid *grid_pt, int rk_flag, InitData *DATA);
+    int QuestRevert(double tau, Grid *grid_pt, int rk_flag, InitData *DATA,
+                    int ieta, int ix, int iy);
     int QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
-                        InitData *DATA);
+                        InitData *DATA, int ieta, int ix, int iy);
 
     void MakeDeltaQI(double tau, Grid *grid_pt, double *qi, int rk_flag);
     double MaxSpeed(double tau, int direc, Grid *grid_p);
