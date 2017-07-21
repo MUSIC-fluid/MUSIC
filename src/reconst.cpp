@@ -269,9 +269,8 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
         }   
         // Rescaling spatial components of velocity so that unitarity 
         // is exactly satisfied (u[0] is not modified)
-        scalef = (sqrt(
-                1.0 + (temph - 1.)
-                      /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err)));
+        scalef = (sqrt((u[0]*u[0] - 1.)
+                       /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err)));
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;
@@ -552,9 +551,8 @@ int Reconst::ReconstIt_velocity_iteration(
         }
         // Rescaling spatial components of velocity so that unitarity 
         // is exactly satisfied (u[0] is not modified)
-        double scalef = (sqrt(
-                1.0 + (temp_usq - 1.)
-                      /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err)));
+        double scalef = (sqrt((u[0]*u[0] - 1.)
+                              /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err)));
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;
@@ -835,9 +833,8 @@ int Reconst::ReconstIt_velocity_Newton(
         }
         // Rescaling spatial components of velocity so that unitarity 
         // is exactly satisfied (u[0] is not modified)
-        double scalef = (sqrt(
-                1.0 + (temp_usq - 1.)
-                      /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err)));
+        double scalef = (sqrt((u[0]*u[0] - 1.)
+                              /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err)));
         u[1] *= scalef;
         u[2] *= scalef;
         u[3] *= scalef;
