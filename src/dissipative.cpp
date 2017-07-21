@@ -733,6 +733,8 @@ int Diss::Make_uPRHS(double tau, Grid *grid_pt, double *p_rhs, InitData *DATA,
 
 double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
                         int rk_flag, double theta_local, double *sigma_1d) {
+    if (DATA->turn_on_bulk == 0) return 0.0;
+
     double tempf;
     double bulk;
     double Bulk_Relax_time;
@@ -742,33 +744,42 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
     double Final_Answer;
 
     // switch to include non-linear coupling terms in the bulk pi evolution
-    int include_BBterm = 1;
-    int include_coupling_to_shear = 1;
+    int include_BBterm = 0;
+    int include_coupling_to_shear = 0;
+    if (DATA->include_second_order_terms == 1) {
+        include_BBterm = 1;
+        include_coupling_to_shear = 1;
+    }
  
-    if (DATA->turn_on_bulk == 0) return 0.0;
+    double epsilon, rhob;
+    if (rk_flag == 0) {
+        epsilon = grid_pt->epsilon;
+        rhob = grid_pt->rhob;
+    } else {
+        epsilon = grid_pt->prev_epsilon;
+        rhob = grid_pt->prev_rhob;
+    }
 
     // defining bulk viscosity coefficient
 
     // shear viscosity = constant * entropy density
-    //s_den = eos->get_entropy(grid_pt->epsilon, grid_pt->rhob);
+    //s_den = eos->get_entropy(epsilon, rhob);
     //shear = (DATA->shear_to_s)*s_den;   
     // shear viscosity = constant * (e + P)/T
-    double temperature = eos->get_temperature(grid_pt->epsilon, grid_pt->rhob);
-    //double shear = ((DATA->shear_to_s)*(grid_pt->epsilon + grid_pt->p)
-    //                /temperature);  
+    double temperature = eos->get_temperature(epsilon, rhob);
 
     // cs2 is the velocity of sound squared
-    double cs2 = eos->get_cs2(grid_pt->epsilon, grid_pt->rhob);  
-    double pressure = eos->get_pressure(grid_pt->epsilon, grid_pt->rhob);
+    double cs2 = eos->get_cs2(epsilon, rhob);  
+    double pressure = eos->get_pressure(epsilon, rhob);
 
     // T dependent bulk viscosity from Gabriel
     bulk = get_temperature_dependent_zeta_s(temperature);
-    bulk = bulk*(grid_pt->epsilon + pressure)/temperature;
+    bulk = bulk*(epsilon + pressure)/temperature;
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
-    Bulk_Relax_time = (
-        1./14.55/(1./3.-cs2)/(1./3.-cs2)/(grid_pt->epsilon + pressure)*bulk);
+    Bulk_Relax_time = (1./(14.55*(1./3. - cs2)*(1./3. - cs2))
+                       /(epsilon + pressure)*bulk);
 
     // from kinetic theory, small mass limit
     transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);
@@ -784,8 +795,7 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
     // Computing relaxation term and nonlinear term:
     // - Bulk - transport_coeff1*Bulk*theta
     tempf = (-(grid_pt->pi_b[rk_flag])
-             - transport_coeff1*theta_local
-               *(grid_pt->pi_b[rk_flag]));
+             - transport_coeff1*theta_local*(grid_pt->pi_b[rk_flag]));
 
     // Computing nonlinear term: + transport_coeff2*Bulk*Bulk
     if (include_BBterm == 1) {
@@ -867,8 +877,14 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
     if (DATA->turn_on_diff == 0) return 0.0;
  
     // Useful variables to define
-    double epsilon = grid_pt->epsilon;
-    double rhob = grid_pt->rhob;
+    double epsilon, rhob;
+    if (rk_flag == 0) {
+        epsilon = grid_pt->epsilon;
+        rhob = grid_pt->rhob;
+    } else {
+        epsilon = grid_pt->prev_epsilon;
+        rhob = grid_pt->prev_rhob;
+    }
     double pressure = eos->get_pressure(epsilon, rhob);
     double T = eos->get_temperature(epsilon, rhob);
 

@@ -313,7 +313,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
             tempf += temps*(DATA->delta_tau);
             tempf += p_rhs;
   
-            tempf += (grid_pt->pi_b[1])*(grid_pt->u[0][0]);
+            tempf += (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
             tempf *= 0.5;
 
             grid_pt->pi_b[trk_flag] = tempf/(grid_pt->u[trk_flag][0]);

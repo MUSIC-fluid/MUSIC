@@ -152,7 +152,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         grid_info->get_maximum_energy_density(arena);
 
         if (output_hydro_debug_flag == 1) {
-            // grid_info->monitor_fluid_cell(arena, 100, 100, 0, tau);
+            grid_info->monitor_fluid_cell(arena, 100, 100, 0, tau);
         }
 
         /* execute rk steps */
