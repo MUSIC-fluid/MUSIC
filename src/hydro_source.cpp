@@ -76,10 +76,11 @@ void hydro_source::read_in_QCD_strings_and_partons() {
                     >> new_string.x_perp >> new_string.y_perp
                     >> new_string.eta_s_left >> new_string.eta_s_right
                     >> new_string.y_l >> new_string.y_r
-                    >> new_string.frac_l;
+                    >> new_string.frac_l >> new_string.frac_r
+                    >> new_string.y_l_i;
         if (!text_stream.eof()) {
             // read in the last element
-            text_stream >> new_string.frac_r;
+            text_stream >> new_string.y_r_i;
         } else {
             // the string is too short
             music_message << "read_in_QCD_strings_and_partons: "

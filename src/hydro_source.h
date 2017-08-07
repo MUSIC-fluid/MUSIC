@@ -20,6 +20,7 @@ struct QCD_string {
     double eta_s_left, eta_s_right;
     double y_l, y_r;          // rapidity of the two ends of the string
     double frac_l, frac_r;
+    double y_l_i, y_r_i;
 };
 
 
