@@ -8,6 +8,6 @@ find_package(OpenMP REQUIRED)
 
 set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS})
 set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${OpenMP_EXE_LINKER_FLAGS})
-set(CMAKE_CXX_FLAGS "-O3 -Wall ${OpenMP_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-Ofast -Wall ${OpenMP_CXX_FLAGS}")
 
 add_subdirectory (src)  

@@ -61,11 +61,11 @@ string pretty_ostream::get_memory_usage() {
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) == 0) {
         double memory_usage_in_MB = 0.0;
-//#ifdef APPLE
+#ifdef APPLE
         memory_usage_in_MB = usage.ru_maxrss/1024./1024.;  // MB in Apple
-//#else
-//        memory_usage_in_MB = usage.ru_maxrss/1024.;   // MB in linux
-//#endif
+#else
+        memory_usage_in_MB = usage.ru_maxrss/1024.;   // MB in linux
+#endif
         ostringstream memory_usage;
         memory_usage << setprecision(4)
                      << memory_usage_in_MB << " MB";
