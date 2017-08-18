@@ -496,11 +496,76 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
 
 //! This function putputs files to check with Gubser flow solution
 void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
+    double unit_convert = 0.19733;  // hbarC
+    if (tau > 1.) {
+        ostringstream filename_analytic;
+        filename_analytic << "tests/Gubser_flow/y=x_tau="
+                          << tau << "_SemiAnalytic.dat";
+
+        double T_analytic[201], ux_analytic[201], uy_analytic[201];
+        double pixx_analytic[201], pixy_analytic[201];
+        double piyy_analytic[201], pizz_analytic[201];
+        double dummy;
+        ifstream input_file(filename_analytic.str().c_str());
+        for (int i = 0; i < 201; i++) {
+            input_file >> dummy >> dummy >> T_analytic[i] >> ux_analytic[i]
+                       >> uy_analytic[i] >> pixx_analytic[i]
+                       >> piyy_analytic[i] >> pixy_analytic[i]
+                       >> pizz_analytic[i];
+        }
+        input_file.close();
+
+        double T_diff = 0.0;
+        double ux_diff = 0.0;
+        double uy_diff = 0.0;
+        double pixx_diff = 0.0;
+        double pixy_diff = 0.0;
+        double piyy_diff = 0.0;
+        double pizz_diff = 0.0;
+        double T_sum = 0.0;
+        double ux_sum = 0.0;
+        double uy_sum = 0.0;
+        double pixx_sum = 0.0;
+        double pixy_sum = 0.0;
+        double piyy_sum = 0.0;
+        double pizz_sum = 0.0;
+        for (int i = 0; i < 201; i++) {
+            double e_local = arena[0][i][i].epsilon;
+            double T_local = (
+                    eos_ptr->get_temperature(e_local, 0.0)*unit_convert);
+            T_diff += fabs(T_analytic[i] - T_local);
+            T_sum += fabs(T_analytic[i]);
+            ux_diff += fabs(ux_analytic[i] - arena[0][i][i].u[0][1]);
+            ux_sum += fabs(ux_analytic[i]);
+            uy_diff += fabs(uy_analytic[i] - arena[0][i][i].u[0][2]);
+            uy_sum += fabs(uy_analytic[i]);
+            pixx_diff += (fabs(pixx_analytic[i]
+                               - arena[0][i][i].Wmunu[0][4]*unit_convert));
+            pixx_sum += fabs(pixx_analytic[i]);
+            pixy_diff += (fabs(pixx_analytic[i]
+                               - arena[0][i][i].Wmunu[0][5]*unit_convert));
+            pixy_sum += fabs(pixx_analytic[i]);
+            piyy_diff += (fabs(piyy_analytic[i]
+                               - arena[0][i][i].Wmunu[0][7]*unit_convert));
+            piyy_sum += fabs(piyy_analytic[i]);
+            pizz_diff += (fabs(pizz_analytic[i]
+                               - arena[0][i][i].Wmunu[0][9]*unit_convert));
+            pizz_sum += fabs(pizz_analytic[i]);
+        }
+        music_message << "Autocheck: T_diff = " << T_diff/T_sum
+                      << ", ux_diff = " << ux_diff/ux_sum
+                      << ", uy_diff = " << uy_diff/uy_sum
+                      << ", pixx_diff = " << pixx_diff/pixx_sum
+                      << ", pixy_diff = " << pixy_diff/pixy_sum
+                      << ", piyy_diff = " << piyy_diff/piyy_sum
+                      << ", pizz_diff = " << pizz_diff/pizz_sum;
+        music_message.flush("info");
+    }
+
     ostringstream filename;
     filename << "Gubser_flow_check_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
 
-    double unit_convert = 0.19733;  // hbarC
     double dx = DATA_ptr->delta_x;
     double x_min = -DATA_ptr->x_size/2.;
     double dy = DATA_ptr->delta_y;
