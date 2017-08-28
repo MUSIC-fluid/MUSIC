@@ -15,7 +15,7 @@ plotMarkerSize = 5
 # analytic resutls
 Analytic_tau1p2 = loadtxt('y=0_tau=1.2_SemiAnalytic.dat')
 Analytic_tau1p5 = loadtxt('y=0_tau=1.5_SemiAnalytic.dat')
-Analytic_tau2p0 = loadtxt('y=0_tau=2.0_SemiAnalytic.dat')
+Analytic_tau2p0 = loadtxt('y=0_tau=2_SemiAnalytic.dat')
 
 # numerical simulation resutls
 numeric_tau_1p0 = loadtxt('../../Gubser_flow_check_tau_1.dat')
@@ -111,7 +111,7 @@ plt.savefig('Gubser_pixx_y=0.pdf', format='pdf')
 # analytic resutls
 Analytic_tau1p2 = loadtxt('y=x_tau=1.2_SemiAnalytic.dat')
 Analytic_tau1p5 = loadtxt('y=x_tau=1.5_SemiAnalytic.dat')
-Analytic_tau2p0 = loadtxt('y=x_tau=2.0_SemiAnalytic.dat')
+Analytic_tau2p0 = loadtxt('y=x_tau=2_SemiAnalytic.dat')
 
 idx = fabs(numeric_tau_1p0[:, 0] - numeric_tau_1p0[:, 1]) < 1e-6
 
