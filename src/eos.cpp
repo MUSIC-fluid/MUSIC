@@ -107,12 +107,13 @@ EOS::~EOS() {
         util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
         util->mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
         util->mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
-    } else {
+    } else if (parameters_ptr->whichEOS != 8) {
         music_message << "No EOS for whichEOS = " << parameters_ptr->whichEOS
              << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
              << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
              << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1),"
-             << "7 (s95p-v1.2)"
+             << "7 (s95p-v1.2), "
+             << "8 (WB), "
              << "10(lattice EOS at finite muB), "
              << "11(lattice EoS at finite muB from Pasi), "
              << "12(lattice EOS at finite muB from A. Monnai up to mu_B^6)";
@@ -168,6 +169,9 @@ void EOS::initialize_eos() {
         music_message.info(
             "Using lattice EOS from Huovinen/Petreczky s95p-v1.2 (for UrQMD)");
         init_eos7();
+    } else if (parameters_ptr->whichEOS == 8) {
+        music_message.info("Using lattice EOS parameterization from WB");
+        whichEOS = 8;
     } else if (parameters_ptr->whichEOS == 10) {
         music_message.info("Using lattice EOS from A. Monnai");
         init_eos10(0);
@@ -182,7 +186,8 @@ void EOS::initialize_eos() {
              << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
              << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
              << "5 (s95p-PCE160-v1), 6 (s95p-PCE165-v1),"
-             << "7 (s95p-v1.2)"
+             << "7 (s95p-v1.2), "
+             << "8 (WB), "
              << "10(lattice EOS at finite muB), "
              << "11(lattice EoS at finite muB from Pasi), "
              << "12(lattice EOS at finite muB from A. Monnai up to mu_B^6)";
@@ -190,7 +195,7 @@ void EOS::initialize_eos() {
         exit(1);
     }
 
-    if (whichEOS >= 2 && whichEOS < 10) {
+    if (whichEOS >= 2 && whichEOS < 8) {
         eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
     } else if (whichEOS == 10) {
         eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
@@ -2870,8 +2875,11 @@ double EOS::get_pressure(double e, double rhob) {
         f = cs2*e;
     } else if (whichEOS == 1) {
         f = interpolate_pressure(e, rhob);
-    } else if (whichEOS >= 2 && whichEOS < 10) {
+    } else if (whichEOS >= 2 && whichEOS < 8) {
         f = interpolate2(e, rhob, 0);    // selector 0 means get pressure
+    } else if (whichEOS == 8) {
+        f = get_pressure_WB(e);
+        //cout << "e = " << e << ", p = " << f << endl;
     } else if (whichEOS >= 10) {
         // EOS is symmetric in rho_b for pressure
         f = interpolate2D(e, fabs(rhob), 0);
@@ -2910,8 +2918,10 @@ double EOS::p_e_func(double e, double rhob) {
         f = cs2;
     } else if (whichEOS == 1) {
         f = get_dpOverde(e, rhob);
-    } else if (whichEOS >= 2 && whichEOS < 10) {
+    } else if (whichEOS >= 2 && whichEOS < 8) {
         f = get_dpOverde2(e, rhob);
+    } else if (whichEOS == 8) {
+        f = get_dpOverde_WB(e);
     } else if (whichEOS >= 10) {
         f = get_dpOverde2(e, rhob);
     } else {
@@ -2922,6 +2932,101 @@ double EOS::p_e_func(double e, double rhob) {
     return f;
 }/* p_e_func */
 
+
+double EOS::get_dpOverde_WB(double e_local) {
+    double cs2_local;
+    double e1 = e_local;
+	double e2 = e1*e1;
+	double e3 = e2*e1;
+	double e4 = e3*e1;
+	double e5 = e4*e1;
+	double e6 = e5*e1;
+	double e7 = e6*e1;
+	double e8 = e7*e1;
+	double e9 = e8*e1;
+	double e10 = e9*e1;
+	double e11 = e10*e1;
+	double e12 = e11*e1;
+	double e13 = e12*e1;
+	cs2_local = ((5.191934309650155e-32 + 4.123605749683891e-23*e1
+                 + 3.1955868410879504e-16*e2 + 1.4170364808063119e-10*e3
+                 + 6.087136671592452e-6*e4 + 0.02969737949090831*e5
+                 + 15.382615282179595*e6 + 460.6487249985994*e7
+                 + 1612.4245252438795*e8 + 275.0492627924299*e9
+                 + 58.60283714484669*e10 + 6.504847576502024*e11
+                 + 0.03009027913262399*e12 + 8.189430244031285e-6*e13)
+		        /(1.4637868900982493e-30 + 6.716598285341542e-22*e1
+                  + 3.5477700458515908e-15*e2 + 1.1225580509306008e-9*e3
+                  + 0.00003551782901018317*e4 + 0.13653226327408863*e5
+                  + 60.85769171450653*e6 + 1800.5461219450308*e7
+                  + 15190.225535036281*e8 + 590.2572000057821*e9
+                  + 293.99144775704605*e10 + 21.461303090563028*e11
+                  + 0.09301685073435291*e12 + 0.000024810902623582917*e13));
+    return(cs2_local);
+}
+
+double EOS::get_pressure_WB(double e_local) {
+    double p;
+    double e1 = e_local;
+    double e2 = e1*e_local;
+    double e3 = e2*e_local;
+    double e4 = e3*e_local;
+    double e5 = e4*e_local;
+    double e6 = e5*e_local;
+    double e7 = e6*e_local;
+    double e8 = e7*e_local;
+    double e9 = e8*e_local;
+    double e10 = e9*e_local;
+    double e11 = e10*e_local;
+    double e12 = e11*e_local;
+	
+	p = ((  1.9531729608963267e-11*e12 + 3.1188455176941583e-7*e11
+          + 0.0009417586777847889*e10 + 0.7158279081255019*e9
+          + 141.5073484468774*e8 + 6340.448389300905*e7
+          + 41913.439282708554*e6 + 334334.4309240126*e5
+          + 1.6357487344679043e6*e4 + 3.1729694865420084e6*e3
+          + 1.077580993288114e6*e2 + 9737.845799644809*e1
+          - 0.25181736420168666)
+         /(  3.2581066229887368e-18*e12 + 5.928138360995685e-11*e11
+           + 9.601103399348206e-7*e10 + 0.002962497695527404*e9
+           + 2.3405487982094204*e8 + 499.04919730607065*e7
+           + 26452.34905933697*e6 + 278581.2989342773*e5
+           + 1.7851642641834426e6*e4 + 1.3512402226067686e7*e3
+           + 2.0931169138134286e7*e2 + 4.0574329080826794e6*e1
+           + 45829.44617893836));
+    if (p < 1e-16) {
+        p = 1e-16;
+    }
+    return(p);
+}
+
+double EOS::get_temperature_WB(double e_local) {
+    double temperature;
+    double e1 = e_local;
+	double e2 = e1*e1;
+	double e3 = e2*e1;
+	double e4 = e3*e1;
+	double e5 = e4*e1;
+	double e6 = e5*e1;
+	double e7 = e6*e1;
+	double e8 = e7*e1;
+	double e9 = e8*e1;
+	double e10 = e9*e1;
+	double e11 = e10*e1;
+	temperature = ((1.510073201405604e-29 + 8.014062800678687e-18*e1
+                    + 2.4954778310451065e-10*e2 + 0.000063810382643387*e3
+                    + 0.4873490574161924*e4 + 207.48582344326206*e5
+                    + 6686.07424325115*e6 + 14109.766109389702*e7
+                    + 1471.6180520527757*e8 + 14.055788949565482*e9
+                    + 0.015421252394182246*e10 + 1.5780479034557783e-6*e11)
+                   /(7.558667139355393e-28 + 1.3686372302041508e-16*e1
+                     + 2.998130743142826e-9*e2 + 0.0005036835870305458*e3
+                     + 2.316902328874072*e4 + 578.0778724946719*e5
+                     + 11179.193315394154*e6 + 17965.67607192861*e7
+                     + 1051.0730543534657*e8 + 5.916312075925817*e9
+                     + 0.003778342768228011*e10 + 1.8472801679382593e-7*e11));
+    return(temperature);
+}
 
 double EOS::interpolate(double e, double rhob, int selector)
 {
@@ -3499,8 +3604,10 @@ double EOS::get_temperature(double eps, double rhob) {
         T = T_from_eps_ideal_gas(eps);
     } else if (whichEOS == 1) {
         T = interpolate(eps, rhob, 0);
-    } else if (whichEOS < 10) {
+    } else if (whichEOS < 8) {
         T = interpolate2(eps, rhob, 1);
+    } else if (whichEOS == 8) {
+        T = get_temperature_WB(eps);
     } else if (whichEOS >= 10) {
         T = interpolate2D(eps, fabs(rhob), 1);  // EOS is symmetric in rho_b
     } else {
@@ -3570,6 +3677,8 @@ double EOS::get_s2e(double s, double rhob) {
     } else if (whichEOS >= 2 && whichEOS <= 6) {
         e = get_s2e_finite_rhob(s, 0.0);
     } else if (whichEOS == 7) {
+        e = get_s2e_finite_rhob(s, 0.0);
+    } else if (whichEOS == 8) {
         e = get_s2e_finite_rhob(s, 0.0);
     } else if (whichEOS == 10) {
         e = get_s2e_finite_rhob(s, rhob);
