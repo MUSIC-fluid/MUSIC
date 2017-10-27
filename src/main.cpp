@@ -24,9 +24,18 @@ int main(int argc, char *argv[]) {
     if (running_mode == 1 || running_mode == 2) {
         music_hydro->initialize_hydro();
         music_hydro->run_hydro();
-    } else if (running_mode == 73) {
+    }
+
+    if (running_mode == 1 || running_mode == 3
+            || running_mode == 4 || running_mode >= 5) {
+        music_hydro->run_Cooper_Frye();
+    }
+
+    if (running_mode == 73) {
         music_hydro->output_transport_coefficients();
     }
+
+    delete music_hydro;
     return(0);
 }  /* main */
 

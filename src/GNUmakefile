@@ -10,13 +10,13 @@
 ##			distclean	remove all objectsfiles and binaries
 ##  
 
-CC := g++-mp-6
+CC := g++
 #CFLAGS= -Wall -g -O2 -qopenmp
-CFLAGS= -Wall -O3 -fopenmp
+CFLAGS= -Wall -O3 -fopenmp $(shell gsl-config --cflags)
 
 RM		=	rm -f
 O               =       .o
-LDFLAGS         =       $(CFLAGS)
+LDFLAGS         =       $(CFLAGS) $(shell gsl-config --libs)
 SYSTEMFILES     =       $(SRCGNU)
 
 # --------------- Files involved ------------------
@@ -29,12 +29,12 @@ SRC		=	main.cpp music.cpp grid.cpp eos.cpp init.cpp \
             util.cpp evolve.cpp advance.cpp u_derivative.cpp \
 			reconst.cpp dissipative.cpp minmod.cpp grid_info.cpp \
 			cornelius.cpp read_in_parameters.cpp hydro_source.cpp \
-			pretty_ostream.cpp
+			pretty_ostream.cpp freeze.cpp freeze_pseudo.cpp reso_decay.cpp
 
 INC		= 	music.h grid.h eos.h init.h util.h data.h \
 			evolve.h advance.h u_derivative.h reconst.h dissipative.h \
 			minmod.h grid_info.h cornelius.h read_in_parameters.h emoji.h \
-			hydro_source.h pretty_ostream.h
+			hydro_source.h pretty_ostream.h freeze.h int.h
 
 # -------------------------------------------------
 

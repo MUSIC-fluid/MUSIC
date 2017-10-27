@@ -16,6 +16,9 @@ add_executable (mpihydro
     cornelius.cpp
     hydro_source.cpp
     pretty_ostream.cpp
+    freeze.cpp
+    freeze_pseudo.cpp
+    reso_decay.cpp
     )
 
 target_link_libraries (mpihydro)
