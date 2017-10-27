@@ -131,8 +131,9 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
                                            // Including edges
                                            // number of points is steps + 1
     double deltaeta = 0;
-    if (ietamax > 1)
+    if (ietamax > 1) {
         deltaeta = 2.*etamax/DATA->pseudo_steps;
+    }
     double ptmax = DATA->max_pt;
     double ptmin = DATA->min_pt;
     int iptmax = DATA->pt_steps+1;  // Number of points is iptmax + 1
@@ -224,7 +225,8 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
     // main loop begins ...
     // store E dN/d^3p as function of phi,
     // pt and eta (pseudorapidity) in sumPtPhi:
-    for (int ieta = 0; ieta < ietamax; ieta++) {
+    int ieta;
+    for (ieta = 0; ieta < ietamax; ieta++) {
         double eta = -etamax + ieta*deltaeta;
 
         // Use this variable to store pseudorapidity instead of rapidity
@@ -257,234 +259,259 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
                 temp_sum[ii][jj] = 0.0;
             }
         }
-       
-        for (int icell = 0; icell < NCells; icell++) {
-            double tau = surface[icell].x[0];
-            double eta_s = surface[icell].x[3];
-            double cosh_eta_s = surface[icell].cosh_eta_s;
-            double sinh_eta_s = surface[icell].sinh_eta_s;
 
-            double T = surface[icell].T_f*hbarc;  // GeV
-            double muB = surface[icell].mu_B*hbarc;  // GeV
-            double mu = baryon*muB;  // GeV
-            if (DATA->whichEOS>=3 && DATA->whichEOS < 10) {
-                // for PCE use the previously computed mu
-                // at the freeze-out energy density
-                mu += mu_PCE;  // GeV
-            }
-
-            double sigma_mu[4];
-            double u_flow[4];
-            for (int ii = 0; ii < 4; ii++) {
-                sigma_mu[ii] = surface[icell].s[ii];
-                u_flow[ii] = surface[icell].u[ii];
-            }
-
-            double W00 = 0.0;
-            double W01 = 0.0;
-            double W02 = 0.0;
-            double W03 = 0.0;
-            double W11 = 0.0;
-            double W12 = 0.0;
-            double W13 = 0.0;
-            double W22 = 0.0;
-            double W23 = 0.0;
-            double W33 = 0.0;
-            int flag_shear_deltaf = 0;
-            if (DATA->turn_on_shear == 1 && DATA->include_deltaf == 1) {
-                flag_shear_deltaf = 1;
-                W00 = surface[icell].W[0][0];
-                W01 = surface[icell].W[0][1];
-                W02 = surface[icell].W[0][2];
-                W03 = surface[icell].W[0][3];
-                W11 = surface[icell].W[1][1];
-                W12 = surface[icell].W[1][2];
-                W13 = surface[icell].W[1][3];
-                W22 = surface[icell].W[2][2];
-                W23 = surface[icell].W[2][3];
-                W33 = surface[icell].W[3][3];
-            }
-
-            double Pi_bulk = 0.0;
-            int flag_bulk_deltaf = 0;
-            if (DATA->turn_on_bulk == 1 && DATA->include_deltaf_bulk == 1) {
-                flag_bulk_deltaf = 1;
-                Pi_bulk = surface[icell].pi_b;
-                getbulkvisCoefficients(T, bulk_deltaf_coeffs);
-            }
-            
-            double qmu_0 = 0.0;
-            double qmu_1 = 0.0;
-            double qmu_2 = 0.0;
-            double qmu_3 = 0.0;
-            double deltaf_qmu_coeff = 1.0;
-            double deltaf_qmu_coeff_14mom_DV = 0.0;
-            double deltaf_qmu_coeff_14mom_BV = 0.0;
-            int flag_qmu_deltaf = 0;
-            if (DATA->turn_on_diff == 1 && DATA->include_deltaf_qmu == 1) {
-                flag_qmu_deltaf = 1;
-                qmu_0 = surface[icell].q[0];
-                qmu_1 = surface[icell].q[1];
-                qmu_2 = surface[icell].q[2];
-                qmu_3 = surface[icell].q[3];
-                if (DATA->deltaf_14moments == 0) {
-                    deltaf_qmu_coeff = get_deltaf_qmu_coeff(T, muB);
-                } else {
-                    deltaf_qmu_coeff_14mom_DV =
-                                    get_deltaf_coeff_14moments(T, muB, 3);
-                    deltaf_qmu_coeff_14mom_BV =
-                                    get_deltaf_coeff_14moments(T, muB, 4);
+        #pragma omp parallel
+        {
+            // need to perform reduction on a 2d array
+            // first create a private copy for every omp_thread
+            // use critical clause at the end to add the private 2d arrays
+            // together from individual omp_thread
+            double temp_sum_private[iptmax][iphimax];
+            for (int ii = 0; ii < iptmax; ii++) {
+                for (int jj = 0; jj < iphimax; jj++) {
+                    temp_sum_private[ii][jj] = 0.0;
                 }
             }
-            double rhoB = 0.0;
-            if (DATA->turn_on_rhob == 1) {
-                rhoB = surface[icell].rho_B;
-            }
 
-            double eps_plus_P_over_T = surface[icell].eps_plus_p_over_T_FO;
-            double prefactor_shear = 1./(2.*eps_plus_P_over_T*T*T*T)*hbarc; 
+            #pragma omp for
+            for (int icell = 0; icell < NCells; icell++) {
+                double tau = surface[icell].x[0];
+                double eta_s = surface[icell].x[3];
+                double cosh_eta_s = surface[icell].cosh_eta_s;
+                double sinh_eta_s = surface[icell].sinh_eta_s;
+
+                double T = surface[icell].T_f*hbarc;  // GeV
+                double muB = surface[icell].mu_B*hbarc;  // GeV
+                double mu = baryon*muB;  // GeV
+                if (DATA->whichEOS>=3 && DATA->whichEOS < 10) {
+                    // for PCE use the previously computed mu
+                    // at the freeze-out energy density
+                    mu += mu_PCE;  // GeV
+                }
+
+                double sigma_mu[4];
+                double u_flow[4];
+                for (int ii = 0; ii < 4; ii++) {
+                    sigma_mu[ii] = surface[icell].s[ii];
+                    u_flow[ii] = surface[icell].u[ii];
+                }
+
+                double W00 = 0.0;
+                double W01 = 0.0;
+                double W02 = 0.0;
+                double W03 = 0.0;
+                double W11 = 0.0;
+                double W12 = 0.0;
+                double W13 = 0.0;
+                double W22 = 0.0;
+                double W23 = 0.0;
+                double W33 = 0.0;
+                int flag_shear_deltaf = 0;
+                if (DATA->turn_on_shear == 1 && DATA->include_deltaf == 1) {
+                    flag_shear_deltaf = 1;
+                    W00 = surface[icell].W[0][0];
+                    W01 = surface[icell].W[0][1];
+                    W02 = surface[icell].W[0][2];
+                    W03 = surface[icell].W[0][3];
+                    W11 = surface[icell].W[1][1];
+                    W12 = surface[icell].W[1][2];
+                    W13 = surface[icell].W[1][3];
+                    W22 = surface[icell].W[2][2];
+                    W23 = surface[icell].W[2][3];
+                    W33 = surface[icell].W[3][3];
+                }
+
+                double Pi_bulk = 0.0;
+                int flag_bulk_deltaf = 0;
+                if (DATA->turn_on_bulk == 1 && DATA->include_deltaf_bulk == 1) {
+                    flag_bulk_deltaf = 1;
+                    Pi_bulk = surface[icell].pi_b;
+                    getbulkvisCoefficients(T, bulk_deltaf_coeffs);
+                }
+                
+                double qmu_0 = 0.0;
+                double qmu_1 = 0.0;
+                double qmu_2 = 0.0;
+                double qmu_3 = 0.0;
+                double deltaf_qmu_coeff = 1.0;
+                double deltaf_qmu_coeff_14mom_DV = 0.0;
+                double deltaf_qmu_coeff_14mom_BV = 0.0;
+                int flag_qmu_deltaf = 0;
+                if (DATA->turn_on_diff == 1 && DATA->include_deltaf_qmu == 1) {
+                    flag_qmu_deltaf = 1;
+                    qmu_0 = surface[icell].q[0];
+                    qmu_1 = surface[icell].q[1];
+                    qmu_2 = surface[icell].q[2];
+                    qmu_3 = surface[icell].q[3];
+                    if (DATA->deltaf_14moments == 0) {
+                        deltaf_qmu_coeff = get_deltaf_qmu_coeff(T, muB);
+                    } else {
+                        deltaf_qmu_coeff_14mom_DV =
+                                        get_deltaf_coeff_14moments(T, muB, 3);
+                        deltaf_qmu_coeff_14mom_BV =
+                                        get_deltaf_coeff_14moments(T, muB, 4);
+                    }
+                }
+                double rhoB = 0.0;
+                if (DATA->turn_on_rhob == 1) {
+                    rhoB = surface[icell].rho_B;
+                }
+
+                double eps_plus_P_over_T = surface[icell].eps_plus_p_over_T_FO;
+                double prefactor_shear = 1./(2.*eps_plus_P_over_T*T*T*T)*hbarc; 
                                                                 // fm^4/GeV^2
-            double prefactor_qmu = rhoB/(eps_plus_P_over_T*T);   // 1/GeV
+                double prefactor_qmu = rhoB/(eps_plus_P_over_T*T);   // 1/GeV
 
-            for (int ipt=0; ipt<iptmax; ipt++) {
-                double pt = pt_array[ipt];
-                double cosh_y_local = cosh_y[ipt];
-                double sinh_y_local = sinh_y[ipt];
-                double mt = sqrt(m*m + pt*pt);     // all in GeV
-                double y = rapidity[ipt];
-                if (fabs(y - eta_s) < y_minus_eta_cut) {
-                    double ptau = mt*(cosh_y_local*cosh_eta_s
-                                      - sinh_y_local*sinh_eta_s); 
-                    double peta = mt/tau*(sinh_y_local*cosh_eta_s
+                for (int ipt = 0; ipt < iptmax; ipt++) {
+                    double y = rapidity[ipt];
+                    if (fabs(y - eta_s) < y_minus_eta_cut) {
+                        double pt = pt_array[ipt];
+                        double cosh_y_local = cosh_y[ipt];
+                        double sinh_y_local = sinh_y[ipt];
+                        double mt = sqrt(m*m + pt*pt);     // all in GeV
+                        double ptau = mt*(cosh_y_local*cosh_eta_s
+                                          - sinh_y_local*sinh_eta_s); 
+                        double peta = mt*(sinh_y_local*cosh_eta_s
                                           - cosh_y_local*sinh_eta_s); 
-                    for (int iphi = 0; iphi < iphimax; iphi++) {
-                        double px = pt*cos_phi[iphi];
-                        double py = pt*sin_phi[iphi];
-              
-                        double sum;
-                        // compute p^mu*dSigma_mu
-                        double pdSigma = tau*(ptau*sigma_mu[0]
-                                              + px*sigma_mu[1]
-                                              + py*sigma_mu[2]
-                                              + peta*sigma_mu[3]);  // fm^3*GeV
-                        double E = (ptau*u_flow[0] - px*u_flow[1]
-                                    - py*u_flow[2]- tau*peta*u_flow[3]);
-                        // this is the equilibrium f, f_0:
-                        double f = 1./(exp(1./T*(E - mu)) + sign);
-                 
-                        // now comes the delta_f: check if still correct
-                        // at finite mu_b 
-                        // we assume here the same C=eta/s for
-                        // all particle species because
-                        // it is the simplest way to do it.
-                        // also we assume Xi(p)=p^2, the quadratic Ansatz
-                        double Wfactor = 0.0;
-                        double delta_f_shear = 0.0;
-                        if (flag_shear_deltaf == 1) {
-                            Wfactor = (ptau*W00*ptau - 2.*ptau*W01*px
-                                       - 2.*ptau*W02*py
-                                       - 2.*tau*tau*ptau*W03/tau*peta
-                                       + px*W11*px + 2.*px*W12*py
-                                       + 2.*tau*tau*px*W13/tau*peta
-                                       + py*W22*py + 2.*tau*tau*py*W23/tau*peta
-                                       +tau*tau*tau*tau*peta*W33/tau/tau*peta);
-                            delta_f_shear = (f*(1. - sign*f)
-                                             *prefactor_shear*Wfactor);
-                            if (DATA->include_deltaf==2) {
-                                // if delta f is supposed to be proportional
-                                // to p^(2-alpha):
-                                delta_f_shear = (delta_f_shear
-                                                 *pow((T/E), 1.*alpha)
-                                                 *120./(tgamma(6.-alpha))); 
+                        for (int iphi = 0; iphi < iphimax; iphi++) {
+                            double px = pt*cos_phi[iphi];
+                            double py = pt*sin_phi[iphi];
+                  
+                            double sum;
+                            // compute p^mu*dSigma_mu [fm^3*GeV]
+                            double pdSigma = tau*(ptau*sigma_mu[0]
+                                                  + px*sigma_mu[1]
+                                                  + py*sigma_mu[2]
+                                                  + peta/tau*sigma_mu[3]);
+                            double E = (ptau*u_flow[0] - px*u_flow[1]
+                                        - py*u_flow[2] - peta*u_flow[3]);
+                            // this is the equilibrium f, f_0:
+                            double f = 1./(exp(1./T*(E - mu)) + sign);
+                     
+                            // now comes the delta_f: check if still correct
+                            // at finite mu_b 
+                            // we assume here the same C=eta/s for
+                            // all particle species because
+                            // it is the simplest way to do it.
+                            // also we assume Xi(p)=p^2, the quadratic Ansatz
+                            double Wfactor = 0.0;
+                            double delta_f_shear = 0.0;
+                            if (flag_shear_deltaf == 1) {
+                                Wfactor = (ptau*W00*ptau - 2.*ptau*W01*px
+                                           - 2.*ptau*W02*py
+                                           - 2.*ptau*W03*peta
+                                           + px*W11*px + 2.*px*W12*py
+                                           + 2.*px*W13*peta
+                                           + py*W22*py + 2.*py*W23*peta
+                                           + peta*W33*peta);
+                                delta_f_shear = (f*(1. - sign*f)
+                                                 *prefactor_shear*Wfactor);
+                                if (DATA->include_deltaf==2) {
+                                    // if delta f is proportional
+                                    // to p^(2-alpha):
+                                    delta_f_shear = (delta_f_shear
+                                                     *pow((T/E), 1.*alpha)
+                                                     *120./(tgamma(6.-alpha))); 
+                                }
                             }
-                        }
-                        double delta_f_bulk = 0.0;
-                        if (flag_bulk_deltaf == 1) {
-                            if (bulk_deltaf_kind == 0) {
-                                delta_f_bulk = (
-                                    - f*(1. - sign*f)*Pi_bulk
-                                    *(bulk_deltaf_coeffs[0]*m*m
-                                      + bulk_deltaf_coeffs[1]*E
-                                      + bulk_deltaf_coeffs[2]*E*E));
-                            } else if (bulk_deltaf_kind == 1) {
-                                double E_over_T = E/T;
-                                double mass_over_T = m/T;
-                                delta_f_bulk = (
-                                    - f*(1. - sign*f)/E_over_T
-                                    *bulk_deltaf_coeffs[0]
-                                    *(mass_over_T*mass_over_T/3.
-                                      - bulk_deltaf_coeffs[1]
-                                        *E_over_T*E_over_T)
-                                    *Pi_bulk);
-                            } else if (bulk_deltaf_kind == 2) {
-                                double E_over_T = E/T;
-                                delta_f_bulk = (
-                                    - f*(1. - sign*f)
-                                    *(-bulk_deltaf_coeffs[0]
-                                      + bulk_deltaf_coeffs[1]*E_over_T)
-                                    *Pi_bulk);
-                            } else if (bulk_deltaf_kind == 3) {
-                                double E_over_T = E/T;
-                                delta_f_bulk = (
-                                    - f*(1.-sign*f)/sqrt(E_over_T)
-                                        *(- bulk_deltaf_coeffs[0]
+                            double delta_f_bulk = 0.0;
+                            if (flag_bulk_deltaf == 1) {
+                                if (bulk_deltaf_kind == 0) {
+                                    delta_f_bulk = (
+                                        - f*(1. - sign*f)*Pi_bulk
+                                        *(bulk_deltaf_coeffs[0]*m*m
+                                          + bulk_deltaf_coeffs[1]*E
+                                          + bulk_deltaf_coeffs[2]*E*E));
+                                } else if (bulk_deltaf_kind == 1) {
+                                    double E_over_T = E/T;
+                                    double mass_over_T = m/T;
+                                    delta_f_bulk = (
+                                        - f*(1. - sign*f)/E_over_T
+                                        *bulk_deltaf_coeffs[0]
+                                        *(mass_over_T*mass_over_T/3.
+                                          - bulk_deltaf_coeffs[1]
+                                            *E_over_T*E_over_T)
+                                        *Pi_bulk);
+                                } else if (bulk_deltaf_kind == 2) {
+                                    double E_over_T = E/T;
+                                    delta_f_bulk = (
+                                        - f*(1. - sign*f)
+                                        *(-bulk_deltaf_coeffs[0]
                                           + bulk_deltaf_coeffs[1]*E_over_T)
                                         *Pi_bulk);
-                            } else if (bulk_deltaf_kind == 4) {
-                                double E_over_T = E/T;
-                                delta_f_bulk = (
-                                    - f*(1.-sign*f)
-                                        *(bulk_deltaf_coeffs[0]
-                                          - bulk_deltaf_coeffs[1]/E_over_T)
-                                        *Pi_bulk);
+                                } else if (bulk_deltaf_kind == 3) {
+                                    double E_over_T = E/T;
+                                    delta_f_bulk = (
+                                        - f*(1.-sign*f)/sqrt(E_over_T)
+                                            *(- bulk_deltaf_coeffs[0]
+                                              + bulk_deltaf_coeffs[1]*E_over_T)
+                                            *Pi_bulk);
+                                } else if (bulk_deltaf_kind == 4) {
+                                    double E_over_T = E/T;
+                                    delta_f_bulk = (
+                                        - f*(1.-sign*f)
+                                            *(bulk_deltaf_coeffs[0]
+                                              - bulk_deltaf_coeffs[1]/E_over_T)
+                                            *Pi_bulk);
+                                }
                             }
-                        }
-                        
-                        // delta f for qmu
-                        double qmufactor = 0.0;
-                        double delta_f_qmu = 0.0;
-                        if (flag_qmu_deltaf == 1) {
-                            // p^\mu q_\mu
-                            qmufactor = (ptau*qmu_0 - px*qmu_1 - py*qmu_2
-                                         - tau*tau*peta*qmu_3/tau);
-                            if (DATA->deltaf_14moments == 0) {
-                                delta_f_qmu = (
-                                    f*(1. - sign*f)
-                                     *(prefactor_qmu - baryon/E)*qmufactor
-                                     /deltaf_qmu_coeff);
-                            } else {
-                                delta_f_qmu = (
-                                    f*(1. - sign*f)
-                                     *(baryon*deltaf_qmu_coeff_14mom_DV
-                                       + 2.*deltaf_qmu_coeff_14mom_BV*E)
-                                     *qmufactor);
+                            
+                            // delta f for qmu
+                            double qmufactor = 0.0;
+                            double delta_f_qmu = 0.0;
+                            if (flag_qmu_deltaf == 1) {
+                                // p^\mu q_\mu
+                                qmufactor = (ptau*qmu_0 - px*qmu_1 - py*qmu_2
+                                             - peta*qmu_3);
+                                if (DATA->deltaf_14moments == 0) {
+                                    delta_f_qmu = (
+                                        f*(1. - sign*f)
+                                         *(prefactor_qmu - baryon/E)*qmufactor
+                                         /deltaf_qmu_coeff);
+                                } else {
+                                    delta_f_qmu = (
+                                        f*(1. - sign*f)
+                                         *(baryon*deltaf_qmu_coeff_14mom_DV
+                                           + 2.*deltaf_qmu_coeff_14mom_BV*E)
+                                         *qmufactor);
+                                }
                             }
-                        }
 
-                        double max_ratio = 1.0;
-                        double total_deltaf = (
-                                delta_f_shear + delta_f_bulk + delta_f_qmu);
+                            double max_ratio = 1.0;
+                            double total_deltaf = (
+                                    delta_f_shear + delta_f_bulk + delta_f_qmu);
 
-                        if (fabs(total_deltaf)/f > max_ratio) {
-                            total_deltaf *= f/fabs(total_deltaf);
+                            if (fabs(total_deltaf)/f > max_ratio) {
+                                total_deltaf *= f/fabs(total_deltaf);
+                            }
+                            sum = (f + total_deltaf)*pdSigma;
+                     
+                            if (sum > 10000) {
+                                music_message << "sum>10000 in summation. sum = "
+                                     << sum 
+                                     << ", f=" << f << ", deltaf="
+                                     << delta_f_shear
+                                     << ", pdSigma=" << pdSigma << ", T=" << T 
+                                     << ", E=" << E << ", mu=" << mu;
+                                music_message.flush("warning");
+                            }
+                            if (f < 0.) {
+                                music_message << " f_eq < 0.! f_eq = " << f
+                                              << ", T = " << T << " GeV, mu = "
+                                              << mu << " GeV, E = "
+                                              << E << " GeV";
+                                music_message.flush("error");
+                            }
+                            temp_sum_private[ipt][iphi] += sum;
                         }
-                        sum = (f + total_deltaf)*pdSigma;
-                 
-                        if (sum > 10000) {
-                            music_message << "sum>10000 in summation. sum = "
-                                 << sum 
-                                 << ", f=" << f << ", deltaf=" << delta_f_shear
-                                 << ", pdSigma=" << pdSigma << ", T=" << T 
-                                 << ", E=" << E << ", mu=" << mu;
-                            music_message.flush("warning");
-                        }
-                        if (f < 0.) {
-                            music_message << " f_eq < 0.! f_eq = " << f
-                                          << ", T = " << T << " GeV, mu = "
-                                          << mu << " GeV, E = " << E << " GeV";
-                            music_message.flush("error");
-                        }
-                        temp_sum[ipt][iphi] += sum;
+                    }
+                }
+            }
+            #pragma omp critical
+            {
+                for (int ipt = 0; ipt < iptmax; ipt++) {
+                    for (int iphi = 0; iphi < iphimax; iphi++) {
+                        temp_sum[ipt][iphi] += temp_sum_private[ipt][iphi];
                     }
                 }
             }
@@ -492,7 +519,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
         double prefactor = deg/(pow(2.*PI,3.)*pow(hbarc,3.));
         // store the final results
         for (int ipt = 0; ipt < iptmax; ipt++) {
-            for(int iphi = 0; iphi < iphimax; iphi++) {
+            for (int iphi = 0; iphi < iphimax; iphi++) {
                 double sum = temp_sum[ipt][iphi]*prefactor;   // in GeV^(-2)
                 particleList[j].dNdydptdphi[ieta][ipt][iphi] = sum;
                 fprintf(s_file,"%e ", sum);
