@@ -79,6 +79,12 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
     } else if (DATA->Initial_profile == 30) {
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
+    } else if (DATA->Initial_profile == 101) {
+        cout << "Using Initial_profile=" << DATA->Initial_profile << endl;
+        DATA->nx = DATA->nx - 1;
+        DATA->ny = DATA->ny - 1;
+        cout << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1 << endl;
+        cout << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y << endl;
     }
 
     // initialize arena
@@ -267,6 +273,8 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
                 initial_AMPT_XY(DATA, ieta, (*arena));
             } /* ix, iy, ieta */
         }
+    } else if (DATA->Initial_profile == 101) {
+        initial_UMN_with_rhob(DATA, (*arena));
     }
     music_message.info("initial distribution done.");
     return 1;
@@ -953,6 +961,99 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
     }
     delete[] u;
     delete[] j_mu;
+}
+
+
+void Init::initial_UMN_with_rhob(InitData *DATA, Grid ***arena) {
+    // first load in the transverse profile
+    ifstream profile(DATA->initName.c_str());
+    ifstream profile_TA(DATA->initName_TA.c_str());
+    ifstream profile_TB(DATA->initName_TB.c_str());
+    int nx = DATA->nx;
+    int ny = DATA->ny;
+
+    double** temp_profile_TA = new double* [nx+1];
+    double** temp_profile_TB = new double* [nx+1];
+    for (int i = 0; i < nx+1; i++) {
+        temp_profile_TA[i] = new double[ny+1];
+        temp_profile_TB[i] = new double[ny+1];
+    }
+    for (int i = 0; i < nx+1; i++) {
+        for (int j = 0; j < ny+1; j++) {
+            profile_TA >> temp_profile_TA[i][j];
+            profile_TB >> temp_profile_TB[i][j];
+        }
+    }
+    profile_TA.close();
+    profile_TB.close();
+
+    double dummy;
+    double ed_local, rhob_local;
+    for (int ieta = 0; ieta < DATA->neta; ieta++) {
+        double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
+        double eta_envelop_left = eta_profile_left_factor(DATA, eta);
+        double eta_envelop_right = eta_profile_right_factor(DATA, eta);
+        int rk_order = DATA->rk_order;
+        for (int ix = 0; ix < (DATA->nx+1); ix++) {
+            for (int iy = 0; iy< (DATA->ny+1); iy++) {
+                double rhob = 0.0;
+                double epsilon = 0.0;
+                profile >> dummy >> dummy >> dummy >> ed_local >> rhob_local;
+                rhob = rhob_local;
+                double sd_bg = (temp_profile_TA[ix][iy]*eta_envelop_left
+                    + temp_profile_TB[ix][iy]*eta_envelop_right)*DATA->sFactor;
+                double ed_bg = eos->get_s2e(sd_bg, 0.0);
+                epsilon = ed_bg + ed_local/hbarc;    // 1/fm^4
+                if (epsilon < 0.00000000001) {
+                    epsilon = 0.00000000001;
+                }
+
+                // set all values in the grid element:
+                arena[ieta][ix][iy].epsilon = epsilon;
+                arena[ieta][ix][iy].epsilon_t = epsilon;
+                arena[ieta][ix][iy].prev_epsilon = epsilon;
+                arena[ieta][ix][iy].rhob = rhob;
+                arena[ieta][ix][iy].rhob_t = rhob;
+                arena[ieta][ix][iy].prev_rhob = rhob;
+                arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
+                arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
+                arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
+                arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
+                arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
+                arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order, 14);
+                arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(1, 14);
+                arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+
+                arena[ieta][ix][iy].u[0][0] = 1.0;
+                arena[ieta][ix][iy].u[0][3] = 0.0;
+                arena[ieta][ix][iy].u[0][1] = 0.0;
+                arena[ieta][ix][iy].u[0][2] = 0.0;
+            
+                for (int ii = 0; ii < 1; ii++) {
+                    arena[ieta][ix][iy].prev_u[ii][0] = 1.0;
+                    arena[ieta][ix][iy].prev_u[ii][3] = 0.0;
+                    arena[ieta][ix][iy].prev_u[ii][1] = 0.0;
+                    arena[ieta][ix][iy].prev_u[ii][2] = 0.0;
+                    arena[ieta][ix][iy].prev_pi_b[ii] = 0.0;
+                }
+
+                arena[ieta][ix][iy].pi_b[0] = 0.0;
+
+                for (int ii = 0; ii < 14; ii++) {
+                    arena[ieta][ix][iy].prevWmunu[0][ii] = 0.0;
+                    arena[ieta][ix][iy].Wmunu[0][ii] = 0.0;
+                }
+            }
+        }
+    }
+    profile.close();
+    // clean up
+    for (int i = 0; i < nx+1; i++) {
+        delete[] temp_profile_TA[i];
+        delete[] temp_profile_TB[i];
+    }
+    delete[] temp_profile_TA;
+    delete[] temp_profile_TB;
 }
 
 void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid ***arena) {

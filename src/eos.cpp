@@ -76,13 +76,6 @@ EOS::~EOS() {
         util->mtx_free(entropyDensity5, NBNP5 + 1, NEPP5 + 1);
         util->mtx_free(entropyDensity6, NBNP6 + 1, NEPP6 + 1);
         util->mtx_free(entropyDensity7, NBNP7 + 1, NEPP7 + 1);
-        util->mtx_free(QGPfraction1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(QGPfraction2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(QGPfraction3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(QGPfraction4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(QGPfraction5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(QGPfraction6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(QGPfraction7, NBNP7 + 1, NEPP7 + 1);
         util->mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
         util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
         util->mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
@@ -90,6 +83,13 @@ EOS::~EOS() {
         util->mtx_free(temperature5, NBNP5 + 1, NEPP5 + 1);
         util->mtx_free(temperature6, NBNP6 + 1, NEPP6 + 1);
         util->mtx_free(temperature7, NBNP7 + 1, NEPP7 + 1);
+        util->mtx_free(mu1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(mu2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(mu3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(mu4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(mu5, NBNP5 + 1, NEPP5 + 1);
+        util->mtx_free(mu6, NBNP6 + 1, NEPP6 + 1);
+        util->mtx_free(mu7, NBNP7 + 1, NEPP7 + 1);
     } else if (parameters_ptr->whichEOS == 11) {
         util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
         util->mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
@@ -99,14 +99,18 @@ EOS::~EOS() {
         util->mtx_free(entropyDensity2, NBNP2 + 1, NEPP2 + 1);
         util->mtx_free(entropyDensity3, NBNP3 + 1, NEPP3 + 1);
         util->mtx_free(entropyDensity4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(QGPfraction1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(QGPfraction2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(QGPfraction3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(QGPfraction4, NBNP4 + 1, NEPP4 + 1);
         util->mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
         util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
         util->mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
         util->mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(mu1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(mu2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(mu3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(mu4, NBNP4 + 1, NEPP4 + 1);
+        util->mtx_free(mus1, NBNP1 + 1, NEPP1 + 1);
+        util->mtx_free(mus2, NBNP2 + 1, NEPP2 + 1);
+        util->mtx_free(mus3, NBNP3 + 1, NEPP3 + 1);
+        util->mtx_free(mus4, NBNP4 + 1, NEPP4 + 1);
     } else if (parameters_ptr->whichEOS != 8) {
         music_message << "No EOS for whichEOS = " << parameters_ptr->whichEOS
              << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "

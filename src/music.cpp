@@ -57,9 +57,25 @@ int MUSIC::initialize_hydro() {
 
 //! this is a shell function to run hydro
 int MUSIC::run_hydro() {
+    if (evolve != NULL) {
+        delete evolve;
+    }
+
     evolve = new Evolve(eos, DATA, hydro_source_ptr);
     evolve->EvolveIt(DATA, arena);
     flag_hydro_run = 1;
+    return(0);
+}
+
+
+//! this is a shell function to run Cooper-Frye
+int MUSIC::run_Cooper_Frye() {
+    if (freeze != NULL) {
+        delete freeze;
+    }
+    freeze = new Freeze(DATA);
+    freeze->CooperFrye_pseudo(DATA->particleSpectrumNumber, mode,
+                              DATA, eos);
     return(0);
 }
 

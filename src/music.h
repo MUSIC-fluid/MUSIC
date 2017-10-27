@@ -5,6 +5,7 @@
 #include "./util.h"
 #include "./grid.h"
 #include "./data.h"
+#include "./freeze.h"
 #include "./init.h"
 #include "./eos.h"
 #include "./evolve.h"
@@ -35,6 +36,7 @@ class MUSIC {
 
     Init *init;
     Evolve *evolve;
+    Freeze *freeze;
 
     hydro_source *hydro_source_ptr;
 
@@ -52,6 +54,9 @@ class MUSIC {
 
     //! this is a shell function to run hydro
     int run_hydro();
+
+    //! this is a shell function to run Cooper-Frye
+    int run_Cooper_Frye();
 
     //! this is a test function to output the transport coefficients as
     //! function of T and mu_B
