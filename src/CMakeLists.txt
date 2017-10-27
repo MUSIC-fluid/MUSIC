@@ -21,7 +21,7 @@ add_executable (mpihydro
     reso_decay.cpp
     )
 
-target_link_libraries (mpihydro)
+target_link_libraries (mpihydro ${GSL_LIBRARIES})
 if (APPLE)
     set_target_properties (mpihydro PROPERTIES COMPILE_FLAGS "-DAPPLE")
 endif (APPLE)
