@@ -440,10 +440,11 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
 
         case 2:  // 2-body decay 
         {
-            if (k == 0)
+            if (k == 0) {
                 pn2 = partid[MHALF + decay[j].part[1]];
-            else
+            } else {
                 pn2 = partid[MHALF + decay[j].part[0]];
+            }
             // printf ("case 2:  i %3i j %3i k %3i \n", pn, j, k);
             m1 = particleList[pn].mass;
             m2 = particleList[pn2].mass;
@@ -460,11 +461,12 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
 
             if (boost_invariant) {
                 y = 0.0;
+                #pragma omp parallel for collapse(2)
                 for (int l = 0; l < npt; l++) {
-                    if (pseudofreeze) {
-                        y = Rap(y, particleList[pn].pt[l], m1);
-                    }
                     for (int i = 0; i < nphi; i++) {
+                        if (pseudofreeze) {
+                            y = Rap(y, particleList[pn].pt[l], m1);
+                        }
                         double phi = 0.0;
                         if (pseudofreeze) {
                             phi = i*deltaphi;
@@ -488,23 +490,24 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                             for (int n = 0; n < ny; n++) {
                                 particleList[pn].dNdydptdphi[n][l][i] += (
                                                 decay[j].branch*spectrum);
-                                if (n == ny/2 && i==0) {
-                                    particleList[pn].resCont[n][l][i] += (
-                                                decay[j].branch*spectrum);
-                                }
+                                //if (n == ny/2 && i==0) {
+                                //    particleList[pn].resCont[n][l][i] += (
+                                //                decay[j].branch*spectrum);
+                                //}
                             }
                         }
                     }
                 }
             } else {
+                #pragma omp parallel for collapse(3)
                 for (int n = 0; n < ny; n++) {
-                    y = particleList[pn].y[n];
                     for (int l = 0; l < npt; l++) {
-                        if (pseudofreeze) {
-                            y = Rap(particleList[pn].y[n],
-                                    particleList[pn].pt[l], m1);
-                        }
                         for (int i = 0; i < nphi; i++) {
+                            y = particleList[pn].y[n];
+                            if (pseudofreeze) {
+                                y = Rap(particleList[pn].y[n],
+                                        particleList[pn].pt[l], m1);
+                            }
                             double phi = 0.0;
                             if (pseudofreeze) {
                                 phi = i*deltaphi;
@@ -527,10 +530,10 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                                 // particle of interest
                                 particleList[pn].dNdydptdphi[n][l][i] += (
                                                     decay[j].branch*spectrum);
-                                if (n == ny/2 && i==0) {
-                                    particleList[pn].resCont[n][l][i] += (
-                                                    decay[j].branch*spectrum);
-                                }
+                                //if (n == ny/2 && i==0) {
+                                //    particleList[pn].resCont[n][l][i] += (
+                                //                    decay[j].branch*spectrum);
+                                //}
                             }
                         }
                     }
@@ -567,11 +570,12 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
     
             if (boost_invariant) {
                 y = 0.0;
+                #pragma omp parallel for collapse(2)
                 for (int l = 0; l < npt; l++) {
-                    if (pseudofreeze) {
-                        y = Rap(y, particleList[pn].pt[l], m1);
-                    }
                     for (int i = 0; i < nphi; i++) {
+                        if (pseudofreeze) {
+                            y = Rap(y, particleList[pn].pt[l], m1);
+                        }
                         double phi;
                         if (pseudofreeze) {
                             phi = i*deltaphi;
@@ -593,24 +597,25 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                             for (int n = 0; n < ny; n++) {
                                 particleList[pn].dNdydptdphi[n][l][i] += (
                                                 decay[j].branch*spectrum);
-                                if (n == ny/2 && i==0) {
-                                    particleList[pn].resCont[n][l][i]+= (
-                                                    decay[j].branch*spectrum);
+                                //if (n == ny/2 && i==0) {
+                                //    particleList[pn].resCont[n][l][i]+= (
+                                //                    decay[j].branch*spectrum);
                    
-                                }
+                                //}
                             }
                         }
                     }
                 }
             } else {
+                #pragma omp parallel for collapse(3)
                 for (int n = 0; n < ny; n++) {
-                    y = particleList[pn].y[n];
                     for (int l = 0; l < npt; l++) {
-                        if (pseudofreeze) {
-                            y = Rap(particleList[pn].y[n],
-                                    particleList[pn].pt[l], m1);
-                        }
                         for (int i = 0; i < nphi; i++) {
+                            y = particleList[pn].y[n];
+                            if (pseudofreeze) {
+                                y = Rap(particleList[pn].y[n],
+                                        particleList[pn].pt[l], m1);
+                            }
                             double phi;
                             if (pseudofreeze) {
                                 phi = i*deltaphi;
@@ -633,11 +638,11 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                                                     decay[j].branch*spectrum);
                             }
                 
-                            if (n == ny/2 && i==0) {
-                                particleList[pn].resCont[n][l][i]+= (
-                                                    decay[j].branch*spectrum);
+                            //if (n == ny/2 && i==0) {
+                            //    particleList[pn].resCont[n][l][i]+= (
+                            //                        decay[j].branch*spectrum);
                    
-                            }
+                            //}
                         }
                     }
                 }
@@ -680,14 +685,15 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
     
             if (boost_invariant) {
                 y = 0.0;
+                #pragma omp parallel for collapse(2)
                 for (int i = 0; i < nphi; i++) {
-                    double phi;
-                    if (pseudofreeze) {
-                        phi = i*deltaphi;
-                    } else {
-                        phi = phiArray[i];
-                    }
                     for (int l = 0; l < npt; l++) {
+                        double phi;
+                        if (pseudofreeze) {
+                            phi = i*deltaphi;
+                        } else {
+                            phi = phiArray[i];
+                        }
                         if (pseudofreeze) {
                             y = Rap(y, particleList[pn].pt[l], m1);
                         }
@@ -707,16 +713,17 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                     }
                 }
             } else {
+                #pragma omp parallel for collapse(3)
                 for (int n = 0; n < ny; n++) {
-                    y = particleList[pn].y[n];
                     for (int i = 0; i < nphi; i++) {
-                        double phi;
-                        if (pseudofreeze) {
-                            phi = i*deltaphi;
-                        } else {
-                            phi = phiArray[i];
-                        }
                         for (int l = 0; l < npt; l++) {
+                            y = particleList[pn].y[n];
+                            double phi;
+                            if (pseudofreeze) {
+                                phi = i*deltaphi;
+                            } else {
+                                phi = phiArray[i];
+                            }
                             if (pseudofreeze) {
                                 y = Rap(particleList[pn].y[n],
                                         particleList[pn].pt[l], m1);
@@ -748,7 +755,7 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
     }
 }
 
-void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound, int mode) {
+void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound) {
     music_message << "CALCULATE RESONANCE DECAYS (as fast as I can) ...";
     music_message.flush("info");
     int pn = partid[MHALF + bound];
@@ -758,13 +765,13 @@ void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound, int mode) {
   
     for (int i = maxpart-1; i > pn - 1; i--) {
         // Cycle the particles known from the particle.dat input
-        for (int n1 = 0; n1 < ny; n1++) {
-            for (int n2 = 0; n2 < npt; n2++) {
-                for (int n3 = 0; n3 < nphi; n3++) {
-                    particleList[pn].resCont[n1][n2][n3] =0.;
-                }
-            }
-        }
+        //for (int n1 = 0; n1 < ny; n1++) {
+        //    for (int n2 = 0; n2 < npt; n2++) {
+        //        for (int n3 = 0; n3 < nphi; n3++) {
+        //            particleList[pn].resCont[n1][n2][n3] =0.;
+        //        }
+        //    }
+        //}
 
         int part = particleList[i].number;
         music_message << "Calculating the decays with "
@@ -779,7 +786,7 @@ void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound, int mode) {
                     // to see if the particle was a daughter particle
                     // in a decay channel
                     int pnR = partid[MHALF + decay[j].reso];
-                    for (int k = 0; k < abs (decay[j].numpart); k++) {
+                    for (int k = 0; k < abs(decay[j].numpart); k++) {
                         if ((part == decay[j].part[k])
                                 && (decay[j].numpart != 1)) {
                             // Make sure that the decay channel isn't trivial
@@ -802,7 +809,7 @@ void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound, int mode) {
                     // to see if the particle was a daughter particle
                     // in a decay channel
                     int pnaR = partid[MHALF - decay[j].reso];
-                    for (int k = 0; k < abs (decay[j].numpart); k++) {
+                    for (int k = 0; k < abs(decay[j].numpart); k++) {
                         if ((-part == decay[j].part[k])
                                 && (decay[j].numpart != 1)) {
                             // Make sure that the decay channel isn't trivial
