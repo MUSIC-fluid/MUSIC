@@ -478,8 +478,9 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
                             }
 
                             double max_ratio = 1.0;
-                            double total_deltaf = (
-                                    delta_f_shear + delta_f_bulk + delta_f_qmu);
+                            double total_deltaf = (delta_f_shear
+                                                   + delta_f_bulk
+                                                   + delta_f_qmu);
 
                             if (fabs(total_deltaf)/f > max_ratio) {
                                 total_deltaf *= f/fabs(total_deltaf);
@@ -536,7 +537,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
     }
     
     if (DATA_ptr->turn_on_bulk == 1 && DATA_ptr->include_deltaf_bulk == 1) {
-        delete [] bulk_deltaf_coeffs;
+        delete[] bulk_deltaf_coeffs;
     }
 
     // clean up

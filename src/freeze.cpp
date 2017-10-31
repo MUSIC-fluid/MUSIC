@@ -384,7 +384,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
 	    envPath=pre_envPath;
     }
     string p_name = envPath + "/EOS/pdg05.dat";
-    if (DATA->whichEOS == 7) {
+    if (DATA->whichEOS == 7 || DATA->whichEOS == 10) {
         p_name = envPath + "/EOS/pdg-urqmd_v3.3+.dat";
     }
 

@@ -440,10 +440,11 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
 
         case 2:  // 2-body decay 
         {
-            if (k == 0)
+            if (k == 0) {
                 pn2 = partid[MHALF + decay[j].part[1]];
-            else
+            } else {
                 pn2 = partid[MHALF + decay[j].part[0]];
+            }
             // printf ("case 2:  i %3i j %3i k %3i \n", pn, j, k);
             m1 = particleList[pn].mass;
             m2 = particleList[pn2].mass;
@@ -460,11 +461,12 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
 
             if (boost_invariant) {
                 y = 0.0;
+                #pragma omp parallel for collapse(2)
                 for (int l = 0; l < npt; l++) {
-                    if (pseudofreeze) {
-                        y = Rap(y, particleList[pn].pt[l], m1);
-                    }
                     for (int i = 0; i < nphi; i++) {
+                        if (pseudofreeze) {
+                            y = Rap(y, particleList[pn].pt[l], m1);
+                        }
                         double phi = 0.0;
                         if (pseudofreeze) {
                             phi = i*deltaphi;
@@ -497,14 +499,15 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                     }
                 }
             } else {
+                #pragma omp parallel for collapse(3)
                 for (int n = 0; n < ny; n++) {
-                    y = particleList[pn].y[n];
                     for (int l = 0; l < npt; l++) {
-                        if (pseudofreeze) {
-                            y = Rap(particleList[pn].y[n],
-                                    particleList[pn].pt[l], m1);
-                        }
                         for (int i = 0; i < nphi; i++) {
+                            y = particleList[pn].y[n];
+                            if (pseudofreeze) {
+                                y = Rap(particleList[pn].y[n],
+                                        particleList[pn].pt[l], m1);
+                            }
                             double phi = 0.0;
                             if (pseudofreeze) {
                                 phi = i*deltaphi;
@@ -567,11 +570,12 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
     
             if (boost_invariant) {
                 y = 0.0;
+                #pragma omp parallel for collapse(2)
                 for (int l = 0; l < npt; l++) {
-                    if (pseudofreeze) {
-                        y = Rap(y, particleList[pn].pt[l], m1);
-                    }
                     for (int i = 0; i < nphi; i++) {
+                        if (pseudofreeze) {
+                            y = Rap(y, particleList[pn].pt[l], m1);
+                        }
                         double phi;
                         if (pseudofreeze) {
                             phi = i*deltaphi;
@@ -603,14 +607,15 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                     }
                 }
             } else {
+                #pragma omp parallel for collapse(3)
                 for (int n = 0; n < ny; n++) {
-                    y = particleList[pn].y[n];
                     for (int l = 0; l < npt; l++) {
-                        if (pseudofreeze) {
-                            y = Rap(particleList[pn].y[n],
-                                    particleList[pn].pt[l], m1);
-                        }
                         for (int i = 0; i < nphi; i++) {
+                            y = particleList[pn].y[n];
+                            if (pseudofreeze) {
+                                y = Rap(particleList[pn].y[n],
+                                        particleList[pn].pt[l], m1);
+                            }
                             double phi;
                             if (pseudofreeze) {
                                 phi = i*deltaphi;
@@ -680,14 +685,15 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
     
             if (boost_invariant) {
                 y = 0.0;
+                #pragma omp parallel for collapse(2)
                 for (int i = 0; i < nphi; i++) {
-                    double phi;
-                    if (pseudofreeze) {
-                        phi = i*deltaphi;
-                    } else {
-                        phi = phiArray[i];
-                    }
                     for (int l = 0; l < npt; l++) {
+                        double phi;
+                        if (pseudofreeze) {
+                            phi = i*deltaphi;
+                        } else {
+                            phi = phiArray[i];
+                        }
                         if (pseudofreeze) {
                             y = Rap(y, particleList[pn].pt[l], m1);
                         }
@@ -707,16 +713,17 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                     }
                 }
             } else {
+                #pragma omp parallel for collapse(3)
                 for (int n = 0; n < ny; n++) {
-                    y = particleList[pn].y[n];
                     for (int i = 0; i < nphi; i++) {
-                        double phi;
-                        if (pseudofreeze) {
-                            phi = i*deltaphi;
-                        } else {
-                            phi = phiArray[i];
-                        }
                         for (int l = 0; l < npt; l++) {
+                            y = particleList[pn].y[n];
+                            double phi;
+                            if (pseudofreeze) {
+                                phi = i*deltaphi;
+                            } else {
+                                phi = phiArray[i];
+                            }
                             if (pseudofreeze) {
                                 y = Rap(particleList[pn].y[n],
                                         particleList[pn].pt[l], m1);
