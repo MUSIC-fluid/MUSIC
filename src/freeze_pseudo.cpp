@@ -1040,7 +1040,7 @@ void Freeze::compute_thermal_spectra(int particleSpectrumNumber,
     free(surface);
 }
 
-void Freeze::perform_resonance_decays(int mode, InitData *DATA) {
+void Freeze::perform_resonance_decays(InitData *DATA) {
     ReadSpectra_pseudo(DATA, 0, 1);
     int bound = 211; //number of lightest particle to calculate. 
     music_message << "particleMax = " << particleMax;
@@ -1051,7 +1051,7 @@ void Freeze::perform_resonance_decays(int mode, InitData *DATA) {
                   << particleList[partid[MHALF+bound]].name;
     music_message.flush("info");
 
-    cal_reso_decays(particleMax, decayMax, bound, mode);
+    cal_reso_decays(particleMax, decayMax, bound);
 
     system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
     for (int i = 1; i < particleMax; i++) {
@@ -1157,7 +1157,7 @@ void Freeze::CooperFrye_pseudo(int particleSpectrumNumber, int mode,
         compute_thermal_spectra(particleSpectrumNumber, DATA);
     }
     if (mode==4 || mode==1) { //  do resonance decays
-        perform_resonance_decays(mode, DATA);
+        perform_resonance_decays(DATA);
     } 
     if (mode==13 || mode == 3 || mode == 1) {
         compute_thermal_particle_spectra_and_vn(DATA);

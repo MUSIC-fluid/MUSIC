@@ -490,10 +490,10 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                             for (int n = 0; n < ny; n++) {
                                 particleList[pn].dNdydptdphi[n][l][i] += (
                                                 decay[j].branch*spectrum);
-                                if (n == ny/2 && i==0) {
-                                    particleList[pn].resCont[n][l][i] += (
-                                                decay[j].branch*spectrum);
-                                }
+                                //if (n == ny/2 && i==0) {
+                                //    particleList[pn].resCont[n][l][i] += (
+                                //                decay[j].branch*spectrum);
+                                //}
                             }
                         }
                     }
@@ -530,10 +530,10 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                                 // particle of interest
                                 particleList[pn].dNdydptdphi[n][l][i] += (
                                                     decay[j].branch*spectrum);
-                                if (n == ny/2 && i==0) {
-                                    particleList[pn].resCont[n][l][i] += (
-                                                    decay[j].branch*spectrum);
-                                }
+                                //if (n == ny/2 && i==0) {
+                                //    particleList[pn].resCont[n][l][i] += (
+                                //                    decay[j].branch*spectrum);
+                                //}
                             }
                         }
                     }
@@ -597,11 +597,11 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                             for (int n = 0; n < ny; n++) {
                                 particleList[pn].dNdydptdphi[n][l][i] += (
                                                 decay[j].branch*spectrum);
-                                if (n == ny/2 && i==0) {
-                                    particleList[pn].resCont[n][l][i]+= (
-                                                    decay[j].branch*spectrum);
+                                //if (n == ny/2 && i==0) {
+                                //    particleList[pn].resCont[n][l][i]+= (
+                                //                    decay[j].branch*spectrum);
                    
-                                }
+                                //}
                             }
                         }
                     }
@@ -638,11 +638,11 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
                                                     decay[j].branch*spectrum);
                             }
                 
-                            if (n == ny/2 && i==0) {
-                                particleList[pn].resCont[n][l][i]+= (
-                                                    decay[j].branch*spectrum);
+                            //if (n == ny/2 && i==0) {
+                            //    particleList[pn].resCont[n][l][i]+= (
+                            //                        decay[j].branch*spectrum);
                    
-                            }
+                            //}
                         }
                     }
                 }
@@ -755,7 +755,7 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
     }
 }
 
-void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound, int mode) {
+void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound) {
     music_message << "CALCULATE RESONANCE DECAYS (as fast as I can) ...";
     music_message.flush("info");
     int pn = partid[MHALF + bound];
@@ -765,13 +765,13 @@ void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound, int mode) {
   
     for (int i = maxpart-1; i > pn - 1; i--) {
         // Cycle the particles known from the particle.dat input
-        for (int n1 = 0; n1 < ny; n1++) {
-            for (int n2 = 0; n2 < npt; n2++) {
-                for (int n3 = 0; n3 < nphi; n3++) {
-                    particleList[pn].resCont[n1][n2][n3] =0.;
-                }
-            }
-        }
+        //for (int n1 = 0; n1 < ny; n1++) {
+        //    for (int n2 = 0; n2 < npt; n2++) {
+        //        for (int n3 = 0; n3 < nphi; n3++) {
+        //            particleList[pn].resCont[n1][n2][n3] =0.;
+        //        }
+        //    }
+        //}
 
         int part = particleList[i].number;
         music_message << "Calculating the decays with "
@@ -786,7 +786,7 @@ void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound, int mode) {
                     // to see if the particle was a daughter particle
                     // in a decay channel
                     int pnR = partid[MHALF + decay[j].reso];
-                    for (int k = 0; k < abs (decay[j].numpart); k++) {
+                    for (int k = 0; k < abs(decay[j].numpart); k++) {
                         if ((part == decay[j].part[k])
                                 && (decay[j].numpart != 1)) {
                             // Make sure that the decay channel isn't trivial
@@ -809,7 +809,7 @@ void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound, int mode) {
                     // to see if the particle was a daughter particle
                     // in a decay channel
                     int pnaR = partid[MHALF - decay[j].reso];
-                    for (int k = 0; k < abs (decay[j].numpart); k++) {
+                    for (int k = 0; k < abs(decay[j].numpart); k++) {
                         if ((-part == decay[j].part[k])
                                 && (decay[j].numpart != 1)) {
                             // Make sure that the decay channel isn't trivial
