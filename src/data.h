@@ -70,7 +70,6 @@ typedef struct init_data {
     double delta_tau;
 
     int rk_order;
-    int reconst_type;
     double minmod_theta;
     
     double sFactor;     //!< overall normalization on energy density profile
