@@ -490,13 +490,6 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
         istringstream(tempinput) >> temprk_order;
     parameter_list->rk_order = temprk_order;
     
-    // reconstruction type
-    int tempreconst_type = 0;
-    tempinput = util->StringFind4(input_file, "reconst_type");
-    if (tempinput != "empty")
-        istringstream (tempinput) >> tempreconst_type;
-    parameter_list->reconst_type = tempreconst_type;
-    
 
     // Minmod_Theta: theta parameter in the min-mod like limiter
     double tempminmod_theta   = 1.8;
@@ -988,14 +981,6 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
         music_message.flush("info");
     }
     
-    if (parameter_list->reconst_type > 2
-            && parameter_list->reconst_type != 99) {
-        music_message << "unrecognized reconst_type: "
-                      << parameter_list->reconst_type;
-        music_message.flush("error");
-        exit(1);
-    }
-
     if (parameter_list->minmod_theta < 1.
             || parameter_list->minmod_theta > 2.) {
         music_message << "minmod = " << parameter_list->minmod_theta
