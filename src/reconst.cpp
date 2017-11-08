@@ -204,7 +204,7 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
     double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
                            /(grid_pt->u[rk_flag][0]));
     if (check_u0_var > 100.) {
-        if (grid_pt->epsilon > 1e-6 || echo_level > 5) {
+        if (grid_pt->epsilon > 1e-6 && echo_level > 5) {
             music_message << "Reconst e:: "
                           << "u0 varies more than 100 times compared to "
                           << "its value at previous time step";
@@ -430,7 +430,7 @@ int Reconst::ReconstIt_velocity_iteration(
     double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
                            /(grid_pt->u[rk_flag][0]));
     if (check_u0_var > 100.) {
-        if (grid_pt->epsilon > 1e-6 || echo_level > 5) {
+        if (grid_pt->epsilon > 1e-6 && echo_level > 5) {
             music_message << "Reconst velocity iteration::"
                           << "u0 varies more than 100 times compared to "
                           << "its value at previous time step";
@@ -714,7 +714,7 @@ int Reconst::ReconstIt_velocity_Newton(
     double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
                            /(grid_pt->u[rk_flag][0]));
     if (check_u0_var > 100.) {
-        if (grid_pt->epsilon > 1e-6 || echo_level > 5) {
+        if (grid_pt->epsilon > 1e-6 && echo_level > 2) {
             music_message << "Reconst velocity Newton:: "
                           << "u0 varies more than 100 times compared to "
                           << "its value at previous time step";
