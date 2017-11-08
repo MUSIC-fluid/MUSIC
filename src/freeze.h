@@ -70,7 +70,7 @@ class Freeze{
         double phimax;
         double ymax;
         double deltaY;
-        double resCont[NY][NPT][NPHI];
+        //double resCont[NY][NPT][NPHI];
         double dNdydptdphi[NY][NPT][NPHI+1];
         double pt[NPT];         // pt values for spectrum
         double y[NY];           // y values for spectrum
@@ -171,7 +171,7 @@ class Freeze{
     void ReadFreezeOutSurface(InitData *DATA);
     void ReadSpectra_pseudo(InitData* DATA, int full, int verbose);
     void compute_thermal_spectra(int particleSpectrumNumber, InitData* DATA);
-    void perform_resonance_decays(int mode, InitData *DATA);
+    void perform_resonance_decays(InitData *DATA);
     void compute_thermal_particle_spectra_and_vn(InitData* DATA);
     void compute_final_particle_spectra_and_vn(InitData* DATA);
     void ComputeParticleSpectrum_pseudo_improved(InitData *DATA, int number);
@@ -210,7 +210,7 @@ class Freeze{
     double Edndp3_3bodyN(double y, double pt, double phi, double m1, double m2,
                          double m3, double mr, double norm3, int res_num);
     void add_reso(int pn, int pnR, int k, int j);
-    void cal_reso_decays(int maxpart, int maxdecay, int bound, int mode);
+    void cal_reso_decays(int maxpart, int maxdecay, int bound);
     // -----------------------------------------------------------------------
     
     int countLines(std::istream& in);
