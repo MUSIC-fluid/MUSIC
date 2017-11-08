@@ -69,6 +69,31 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
         music_message << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x
                       << ", dy=" << DATA->delta_y;
         music_message.flush("info");
+    } else if (DATA->Initial_profile == 9) {
+        music_message.info(DATA->initName);
+        ifstream profile(DATA->initName.c_str());
+        string dummy;
+        int nx, ny, neta;
+        double deta, dx, dy, dummy2;
+        // read the first line with general info
+        profile >> dummy >> dummy >> dummy2
+                >> dummy >> neta >> dummy >> nx >> dummy >> ny
+                >> dummy >> deta >> dummy >> dx >> dummy >> dy;
+        profile.close();
+        music_message << "Using Initial_profile=" << DATA->Initial_profile
+                      << ". Overwriting lattice dimensions:";
+
+        DATA->nx = nx - 1;
+        DATA->ny = ny - 1;
+        DATA->neta = neta;
+        DATA->delta_x = dx;
+        DATA->delta_y = dy;
+        DATA->delta_eta = 0.1;
+
+        music_message << "neta=" << neta << ", nx=" << nx << ", ny=" << ny;
+        music_message << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x
+                      << ", dy=" << DATA->delta_y;
+        music_message.flush("info");
     } else if (DATA->Initial_profile == 11) {
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
@@ -226,6 +251,25 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
                 //cout << "[Info] Thread " << omp_get_thread_num()
                 //     << " executes loop iteraction ieta = " << ieta << endl;
                 initial_IPGlasma_XY(DATA, ieta, (*arena));
+            } /* ieta */
+            #pragma omp barrier
+        }
+    } else if (DATA->Initial_profile == 9) {
+        // read in the profile from file
+        // - IPGlasma initial conditions with initial flow
+        // and initial shear viscous tensor
+        music_message.info(" ----- information on initial distribution -----");
+        music_message << "file name used: " << DATA->initName;
+        music_message.flush("info");
+  
+        int ieta;
+        #pragma omp parallel private(ieta)
+        {
+            #pragma omp for
+            for (ieta = 0; ieta < DATA->neta; ieta++) {
+                //cout << "[Info] Thread " << omp_get_thread_num()
+                //     << " executes loop iteraction ieta = " << ieta << endl;
+                initial_IPGlasma_XY_with_pi(DATA, ieta, (*arena));
             } /* ieta */
             #pragma omp barrier
         }
@@ -756,6 +800,217 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
     delete[] temp_profile_utau;
     delete[] temp_profile_ux;
     delete[] temp_profile_uy;
+}
+
+void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
+                                       Grid ***arena) {
+    double tau0 = DATA->tau0;
+    ifstream profile(DATA->initName.c_str());
+
+    string dummy;
+    int nx, ny, neta;
+    double dx, dy, deta;
+    // read the information line
+    profile >> dummy >> dummy >> dummy >> dummy >> neta
+            >> dummy >> nx >> dummy >> ny
+            >> dummy >> deta >> dummy >> dx >> dummy >> dy;
+
+    if (omp_get_thread_num() == 0) {
+        music_message << "neta=" << DATA->neta << ", nx=" << nx
+                      << ", ny=" << ny << ", deta=" << DATA->delta_eta
+                      << ", dx=" << dx << ", dy=" << dy;
+        music_message.flush("info");
+    }
+
+    double density, dummy1, dummy2, dummy3;
+    double ux, uy, utau, ueta;
+    double pitautau, pitaux, pitauy, pitaueta;
+    double pixx, pixy, pixeta, piyy, piyeta, pietaeta;
+
+    double** temp_profile_ed = new double* [nx];
+    double** temp_profile_utau = new double* [nx];
+    double** temp_profile_ux = new double* [nx];
+    double** temp_profile_uy = new double* [nx];
+    double** temp_profile_ueta = new double* [nx];
+    double** temp_profile_pitautau = new double* [nx];
+    double** temp_profile_pitaux = new double* [nx];
+    double** temp_profile_pitauy = new double* [nx];
+    double** temp_profile_pitaueta = new double* [nx];
+    double** temp_profile_pixx = new double* [nx];
+    double** temp_profile_pixy = new double* [nx];
+    double** temp_profile_pixeta = new double* [nx];
+    double** temp_profile_piyy = new double* [nx];
+    double** temp_profile_piyeta = new double* [nx];
+    double** temp_profile_pietaeta = new double* [nx];
+    for (int i = 0; i < nx; i++) {
+        temp_profile_ed[i] = new double[ny];
+        temp_profile_utau[i] = new double[ny];
+        temp_profile_ux[i] = new double[ny];
+        temp_profile_uy[i] = new double[ny];
+        temp_profile_ueta[i] = new double[ny];
+        temp_profile_pitautau[i] = new double[ny];
+        temp_profile_pitaux[i] = new double[ny];
+        temp_profile_pitauy[i] = new double[ny];
+        temp_profile_pitaueta[i] = new double[ny];
+        temp_profile_pixx[i] = new double[ny];
+        temp_profile_pixy[i] = new double[ny];
+        temp_profile_pixeta[i] = new double[ny];
+        temp_profile_piyy[i] = new double[ny];
+        temp_profile_piyeta[i] = new double[ny];
+        temp_profile_pietaeta[i] = new double[ny];
+    }
+
+    // read the one slice
+    for (int ix = 0; ix <= DATA->nx; ix++) {
+        for (int iy = 0; iy <= DATA->ny; iy++) {
+            profile >> dummy1 >> dummy2 >> dummy3
+                    >> density >> utau >> ux >> uy >> ueta
+                    >> pitautau >> pitaux >> pitauy >> pitaueta
+                    >> pixx >> pixy >> pixeta >> piyy >> piyeta >> pietaeta;
+            temp_profile_ed[ix][iy] = density;
+            temp_profile_ux[ix][iy] = ux;
+            temp_profile_uy[ix][iy] = uy;
+            temp_profile_ueta[ix][iy] = ueta*tau0;
+            temp_profile_utau[ix][iy] = sqrt(1. + ux*ux + uy*uy + ueta*ueta);
+            temp_profile_pitautau[ix][iy] = pitautau*DATA->sFactor;
+            temp_profile_pitaux[ix][iy] = pitaux*DATA->sFactor;
+            temp_profile_pitauy[ix][iy] = pitauy*DATA->sFactor;
+            temp_profile_pitaueta[ix][iy] = pitaueta*tau0*DATA->sFactor;
+            temp_profile_pixx[ix][iy] = pixx*DATA->sFactor;
+            temp_profile_pixy[ix][iy] = pixy*DATA->sFactor;
+            temp_profile_pixeta[ix][iy] = pixeta*tau0*DATA->sFactor;
+            temp_profile_piyy[ix][iy] = piyy*DATA->sFactor;
+            temp_profile_piyeta[ix][iy] = piyeta*tau0*DATA->sFactor;
+            temp_profile_pietaeta[ix][iy] = piyeta*tau0*tau0*DATA->sFactor;
+            if (ix == 0 && iy == 0) {
+                DATA->x_size = -dummy2*2;
+                DATA->y_size = -dummy3*2;
+                if (omp_get_thread_num() == 0) {
+                    music_message << "eta_size=" << DATA->eta_size
+                                  << ", x_size=" << DATA->x_size
+                                  << ", y_size=" << DATA->y_size;
+                    music_message.flush("info");
+                }
+            }
+        }
+    }
+    profile.close();
+
+    double eta = (DATA->delta_eta)*(ieta) - (DATA->eta_size)/2.0;
+    double eta_envelop_ed = eta_profile_normalisation(DATA, eta);
+    int entropy_flag = DATA->initializeEntropy;
+    int rk_order = DATA->rk_order;
+    double u[4];
+    for (int ix = 0; ix <= DATA->nx; ix++) {
+        for (int iy = 0; iy<= DATA->ny; iy++) {
+            double rhob = 0.0;
+            double epsilon = 0.0;
+            if (entropy_flag == 0) {
+                epsilon = (temp_profile_ed[ix][iy]*eta_envelop_ed
+                           *DATA->sFactor/hbarc);  // 1/fm^4
+            } else {
+                double local_sd = (temp_profile_ed[ix][iy]*DATA->sFactor
+                                   *eta_envelop_ed);
+                epsilon = eos->get_s2e(local_sd, rhob);
+            }
+            if (epsilon < 0.00000000001)
+                epsilon = 0.00000000001;
+
+            double pressure = eos->get_pressure(epsilon, rhob);
+
+            // set all values in the grid element:
+            arena[ieta][ix][iy].epsilon = epsilon;
+            arena[ieta][ix][iy].epsilon_t = epsilon;
+            arena[ieta][ix][iy].prev_epsilon = epsilon;
+            arena[ieta][ix][iy].rhob = rhob;
+            arena[ieta][ix][iy].rhob_t = rhob;
+            arena[ieta][ix][iy].prev_rhob = rhob;
+
+            arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
+            arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
+            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
+            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(1, 14);
+            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+
+            /* for HIC */
+            arena[ieta][ix][iy].u[0][0] = temp_profile_utau[ix][iy];
+            arena[ieta][ix][iy].u[0][1] = temp_profile_ux[ix][iy];
+            arena[ieta][ix][iy].u[0][2] = temp_profile_uy[ix][iy];
+            arena[ieta][ix][iy].u[0][3] = temp_profile_ueta[ix][iy];
+
+            u[0] = temp_profile_utau[ix][iy];
+            u[1] = temp_profile_ux[ix][iy];
+            u[2] = temp_profile_uy[ix][iy];
+            u[3] = temp_profile_ueta[ix][iy];
+
+            for (int ii = 0; ii < 1; ii++) {
+                arena[ieta][ix][iy].prev_u[ii][0] = u[0];
+                arena[ieta][ix][iy].prev_u[ii][1] = u[1];
+                arena[ieta][ix][iy].prev_u[ii][2] = u[2];
+                arena[ieta][ix][iy].prev_u[ii][3] = u[3];
+                arena[ieta][ix][iy].prev_pi_b[ii] = epsilon/3. - pressure;
+            }
+
+            arena[ieta][ix][iy].pi_b[0] = epsilon/3. - pressure;
+
+            arena[ieta][ix][iy].prevWmunu[0][0] = temp_profile_pitautau[ix][iy];
+            arena[ieta][ix][iy].Wmunu[0][0] = temp_profile_pitautau[ix][iy];
+            arena[ieta][ix][iy].prevWmunu[0][1] = temp_profile_pitaux[ix][iy];
+            arena[ieta][ix][iy].Wmunu[0][1] = temp_profile_pitaux[ix][iy];
+            arena[ieta][ix][iy].prevWmunu[0][2] = temp_profile_pitauy[ix][iy];
+            arena[ieta][ix][iy].Wmunu[0][2] = temp_profile_pitauy[ix][iy];
+            arena[ieta][ix][iy].prevWmunu[0][3] = temp_profile_pitaueta[ix][iy];
+            arena[ieta][ix][iy].Wmunu[0][3] = temp_profile_pitaueta[ix][iy];
+            arena[ieta][ix][iy].prevWmunu[0][4] = temp_profile_pixx[ix][iy];
+            arena[ieta][ix][iy].Wmunu[0][4] = temp_profile_pixx[ix][iy];
+            arena[ieta][ix][iy].prevWmunu[0][5] = temp_profile_pixy[ix][iy];
+            arena[ieta][ix][iy].Wmunu[0][5] = temp_profile_pixy[ix][iy];
+            arena[ieta][ix][iy].prevWmunu[0][6] = temp_profile_pixeta[ix][iy];
+            arena[ieta][ix][iy].Wmunu[0][6] = temp_profile_pixeta[ix][iy];
+            arena[ieta][ix][iy].prevWmunu[0][7] = temp_profile_piyy[ix][iy];
+            arena[ieta][ix][iy].Wmunu[0][7] = temp_profile_piyy[ix][iy];
+            arena[ieta][ix][iy].prevWmunu[0][8] = temp_profile_piyeta[ix][iy];
+            arena[ieta][ix][iy].Wmunu[0][8] = temp_profile_piyeta[ix][iy];
+            arena[ieta][ix][iy].prevWmunu[0][9] = temp_profile_pietaeta[ix][iy];
+            arena[ieta][ix][iy].Wmunu[0][9] = temp_profile_pietaeta[ix][iy];
+        }
+    }
+    // clean up
+    for (int i = 0; i < nx; i++) {
+        delete[] temp_profile_ed[i];
+        delete[] temp_profile_utau[i];
+        delete[] temp_profile_ux[i];
+        delete[] temp_profile_uy[i];
+        delete[] temp_profile_ueta[i];
+        delete[] temp_profile_pitautau[i];
+        delete[] temp_profile_pitaux[i];
+        delete[] temp_profile_pitauy[i];
+        delete[] temp_profile_pitaueta[i];
+        delete[] temp_profile_pixx[i];
+        delete[] temp_profile_pixy[i];
+        delete[] temp_profile_pixeta[i];
+        delete[] temp_profile_piyy[i];
+        delete[] temp_profile_piyeta[i];
+        delete[] temp_profile_pietaeta[i];
+    }
+    delete[] temp_profile_ed;
+    delete[] temp_profile_utau;
+    delete[] temp_profile_ux;
+    delete[] temp_profile_uy;
+    delete[] temp_profile_ueta;
+    delete[] temp_profile_pitautau;
+    delete[] temp_profile_pitaux;
+    delete[] temp_profile_pitauy;
+    delete[] temp_profile_pitaueta;
+    delete[] temp_profile_pixx;
+    delete[] temp_profile_pixy;
+    delete[] temp_profile_pixeta;
+    delete[] temp_profile_piyy;
+    delete[] temp_profile_piyeta;
+    delete[] temp_profile_pietaeta;
 }
 
 void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
