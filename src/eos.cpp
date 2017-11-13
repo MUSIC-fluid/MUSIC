@@ -2808,8 +2808,8 @@ double EOS::get_cs2(double e, double rhob) {
         f = cs2;
     } else if (whichEOS == 1) {
         f = calculate_velocity_of_sound_sq(e, rhob);
-    } else if (whichEOS < 10) {
-        f = calculate_velocity_of_sound_sq(e, rhob);
+    } else if (whichEOS >= 2 && whichEOS < 10) {
+        f = calculate_velocity_of_sound_sq(e, 0);
     } else if (whichEOS >= 10) {
         f = calculate_velocity_of_sound_sq(e, rhob);
     } else {
@@ -3880,11 +3880,38 @@ double EOS::get_rhob_from_mub(double e, double mub) {
 
 //! This is a shell function to check EoS
 void EOS::check_eos() {
-    if (whichEOS == 10) {
+    if (whichEOS >= 2 && whichEOS < 10) {
+        check_eos_no_muB();
+    } else if (whichEOS == 10) {
         check_eos_with_finite_muB();
     } else if (whichEOS == 12) {
         check_eos_with_finite_muB();
     }
+}
+
+
+void EOS::check_eos_no_muB() {
+    // output EoS as function of e
+    ostringstream file_name;
+    file_name << "check_EoS_PST.dat";
+    ofstream check_file(file_name.str().c_str());
+    check_file << "#e(GeV/fm^3) P(GeV/fm^3) s(1/fm^3) T(GeV) cs^2" << endl;
+    double e0 = 1e-3;
+    double emax = 100;
+    double de = 0.01;
+    int ne = (emax - e0)/de + 1;
+    for (int i = 0; i < ne; i++) {
+        double e_local = (e0 + i*de)/hbarc;
+        double p_local = get_pressure(e_local, 0.0);
+        double s_local = get_entropy(e_local, 0.0);
+        double T_local = get_temperature(e_local, 0.0);
+        double cs2_local = get_cs2(e_local, 0.0);
+        check_file << scientific << setw(18) << setprecision(8)
+                   << e_local*hbarc << "   " << p_local*hbarc << "   " 
+                   << s_local << "   " << T_local*hbarc << "   "
+                   << cs2_local << endl;
+    }
+    check_file.close();
 }
 
 void EOS::check_eos_with_finite_muB() {
@@ -3895,6 +3922,8 @@ void EOS::check_eos_with_finite_muB() {
         ostringstream file_name;
         file_name << "check_EoS_PST_rhob_" << rhob_pick[i] << ".dat";
         ofstream check_file(file_name.str().c_str());
+        check_file << "#e(GeV/fm^3)  P(GeV/fm^3)  s(1/fm^3)  T(GeV)  cs^2  "
+                   << "mu_B(GeV)  mu_S(GeV)" << endl;
         double e0 = 1e-3;
         double emax = 100;
         double de = 0.01;
@@ -3924,6 +3953,8 @@ void EOS::check_eos_with_finite_muB() {
         ostringstream file_name;
         file_name << "check_EoS_PST_e_" << e_pick[i] << ".dat";
         ofstream check_file(file_name.str().c_str());
+        check_file << "#rho_B(1/fm^3)  P(GeV/fm^3)  s(1/fm^3)  T(GeV)  cs^2  "
+                   << "mu_B(GeV)  mu_S(GeV)" << endl;
         double rhob_0 = 0.0;
         double rhob_max = 1.0;
         double drhob = 0.01;
