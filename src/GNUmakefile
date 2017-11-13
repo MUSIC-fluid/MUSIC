@@ -11,7 +11,7 @@
 ##  
 
 CC := g++-mp-6
-#CFLAGS= -Wall -g -O2 -qopenmp
+#CFLAGS= -Wall -g -O2 -qopenmp $(shell gsl-config --cflags)
 CFLAGS= -Wall -O3 -fopenmp $(shell gsl-config --cflags)
 
 RM		=	rm -f

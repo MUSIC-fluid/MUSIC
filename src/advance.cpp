@@ -473,8 +473,14 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
         trk_flag = 0;
     }
 
-    double eps_scale = 1.0;  // 1/fm^4
-    double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
+    // regulation factor in the default MUSIC
+    // double eps_scale = 1.0;  // 1/fm^4
+    // double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
+    // regulation factor from Bjoern
+    double eps_scale = 0.1;  // GeV/fm^3
+    double factor = max(
+        1e-15, 4.*(1. + tanh(3.*(grid_pt->epsilon - eps_scale/hbarc - 0.5))));
+    double factor_bulk = 2.*factor;
 
     double pi_00 = grid_pt->Wmunu[trk_flag][0];
     double pi_01 = grid_pt->Wmunu[trk_flag][1];
@@ -498,9 +504,14 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     double rhob = grid_pt->rhob;
     double p_local = eos->get_pressure(e_local, rhob);
     double eq_size = e_local*e_local + 3.*p_local*p_local;
-       
-    double rho_shear = sqrt(pisize/eq_size)/factor; 
-    double rho_bulk  = sqrt(bulksize/eq_size)/factor;
+
+    // In default MUSIC
+    //double rho_shear = sqrt(pisize/eq_size)/factor; 
+    //double rho_bulk  = sqrt(bulksize/eq_size)/factor;
+
+    // Bjoern's quest_revert
+    double rho_shear = pisize/eq_size/factor; 
+    double rho_bulk  = bulksize/eq_size/factor_bulk;
  
     // Reducing the shear stress tensor 
     double rho_shear_max = 0.1;
