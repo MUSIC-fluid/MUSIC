@@ -434,10 +434,11 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
     }
     delete[] w_rhs;
 
-    if (revert_flag == 1 || revert_q_flag == 1)
+    if (revert_flag == 1 || revert_q_flag == 1) {
         return(-1);
-    else
+    } else {
         return(1);
+    }
 }/* FirstRKStepW */
 
 // update results after RK evolution to grid_pt
@@ -461,12 +462,15 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag) {
     }
 }/* UpdateTJbRK */
 
+
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
 int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
                          InitData *DATA, int ieta, int ix, int iy) {
     int revert_flag = 0;
-    const double energy_density_warning = 0.01;  // GeV/fm^3, T~100 MeV
+    double eps_scale = 0.5;   // 1/fm^4
+    double e_local = grid_pt->epsilon;
+    double rhob = grid_pt->rhob;
 
     int trk_flag = rk_flag + 1;
     if (rk_flag == 1) {
@@ -474,13 +478,17 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     }
 
     // regulation factor in the default MUSIC
-    // double eps_scale = 1.0;  // 1/fm^4
-    // double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
+    //double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
+    double xi = 0.05;
+    double factor = 100.*(1./(exp(-(e_local - eps_scale)/xi) + 1.)
+                          - 1./(exp(eps_scale/xi) + 1.));
+    double factor_bulk = factor;
+
     // regulation factor from Bjoern
-    double eps_scale = 0.1;  // GeV/fm^3
-    double factor = max(
-        1e-15, 4.*(1. + tanh(3.*(grid_pt->epsilon - eps_scale/hbarc - 0.5))));
-    double factor_bulk = 2.*factor;
+    //double eps_scale = 0.1;  // GeV/fm^3
+    //double factor = max(
+    //    1e-15, 4.*(1. + tanh(3.*(grid_pt->epsilon - eps_scale/hbarc - 0.5))));
+    //double factor_bulk = 2.*factor;
 
     double pi_00 = grid_pt->Wmunu[trk_flag][0];
     double pi_01 = grid_pt->Wmunu[trk_flag][1];
@@ -500,23 +508,21 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     double pi_local = grid_pt->pi_b[trk_flag];
     double bulksize = 3.*pi_local*pi_local;
 
-    double e_local = grid_pt->epsilon;
-    double rhob = grid_pt->rhob;
     double p_local = eos->get_pressure(e_local, rhob);
     double eq_size = e_local*e_local + 3.*p_local*p_local;
 
     // In default MUSIC
-    //double rho_shear = sqrt(pisize/eq_size)/factor; 
-    //double rho_bulk  = sqrt(bulksize/eq_size)/factor;
+    double rho_shear = sqrt(pisize/eq_size)/factor; 
+    double rho_bulk  = sqrt(bulksize/eq_size)/factor_bulk;
 
     // Bjoern's quest_revert
-    double rho_shear = pisize/eq_size/factor; 
-    double rho_bulk  = bulksize/eq_size/factor_bulk;
+    //double rho_shear = pisize/eq_size/factor; 
+    //double rho_bulk  = bulksize/eq_size/factor_bulk;
  
     // Reducing the shear stress tensor 
     double rho_shear_max = 0.1;
     if (rho_shear > rho_shear_max) {
-        if (e_local*hbarc > energy_density_warning) {
+        if (e_local > eps_scale && DATA_ptr->echo_level > 5) {
             music_message << "ieta = " << ieta << ", ix = " << ix
                           << ", iy = " << iy
                           << ", energy density = " << e_local*hbarc
@@ -534,7 +540,7 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
     // Reducing bulk viscous pressure 
     double rho_bulk_max = 0.1;
     if (rho_bulk > rho_bulk_max) {
-        if (e_local*hbarc > energy_density_warning) {
+        if (e_local > eps_scale && DATA_ptr->echo_level > 5) {
             music_message << "ieta = " << ieta << ", ix = " << ix
                           << ", iy = " << iy
                           << ", energy density = " << e_local*hbarc
@@ -546,9 +552,8 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
                 (rho_bulk_max/rho_bulk)*grid_pt->pi_b[trk_flag]);
         revert_flag = 1;
     }
-
     return(revert_flag);
-}/* QuestRevert */
+}
 
 
 //! this function reduce the size of net baryon diffusion current
@@ -561,9 +566,11 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
         trk_flag = 0;
     }
     int revert_flag = 0;
-    const double energy_density_warning = 0.01;  // GeV/fm^3, T~100 MeV
-    double eps_scale = 1.0;   // in 1/fm^4
-    double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
+    double eps_scale = 0.5;   // in 1/fm^4
+
+    double xi = 0.05;
+    double factor = 100.*(1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
+                          - 1./(exp(eps_scale/xi) + 1.));
 
     double q_mu_local[4];
     for (int i = 0; i < 4; i++) {
@@ -599,7 +606,7 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
     double rho_q = sqrt(q_size/(rhob_local*rhob_local))/factor;
     double rho_q_max = 0.1;
     if (rho_q > rho_q_max) {
-        if (e_local*hbarc > energy_density_warning) {
+        if (e_local > eps_scale && DATA_ptr->echo_level > 5) {
             music_message << "ieta = " << ieta << ", ix = " << ix
                           << ", iy = " << iy
                           << ", energy density = " << e_local*hbarc
