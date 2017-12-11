@@ -759,9 +759,9 @@ void Freeze::cal_reso_decays(int maxpart, int maxdecay, int bound) {
     music_message << "CALCULATE RESONANCE DECAYS (as fast as I can) ...";
     music_message.flush("info");
     int pn = partid[MHALF + bound];
-    int ny = particleList[pn].ny;
-    int npt = particleList[pn].npt;
-    int nphi = particleList[pn].nphi;
+    //int ny = particleList[pn].ny;
+    //int npt = particleList[pn].npt;
+    //int nphi = particleList[pn].nphi;
   
     for (int i = maxpart-1; i > pn - 1; i--) {
         // Cycle the particles known from the particle.dat input
