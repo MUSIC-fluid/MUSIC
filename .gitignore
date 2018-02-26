@@ -9,3 +9,4 @@ tests/
 *.pyc
 *.txt
 mpihydro
+perf.data*
