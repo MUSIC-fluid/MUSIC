@@ -22,15 +22,17 @@ Cell& Grid::operator()(int x, int y, int eta)
   return grid[Nx*(Ny*eta+y)+x];
 }
 
+Cell& Grid::get(int x, int y, int eta){
+  return grid[Nx*(Ny*eta+y)+x];
+}
+
 void Grid::updateHalo()
 {
-  auto self = *this;
-
   //x-y planes
   auto xycopy = [&](int from,int to){
     for(int y=0;y<Ny;y++)
     for(int x=0;x<Nx;x++)
-      self(x,y,to)=self(x,y,from);
+      get(x,y,to)=get(x,y,from);
   };
   
   xycopy(2,1);
@@ -42,7 +44,7 @@ void Grid::updateHalo()
   auto xetacopy = [&](int from,int to){
     for(int eta=0;eta<Neta;eta++)
     for(int x  =0;x  <Nx;  x++  )
-      self(x,to,eta)=self(x,from,eta);
+      get(x,to,eta)=get(x,from,eta);
   };
   
   xetacopy(2,1);
@@ -54,7 +56,7 @@ void Grid::updateHalo()
   auto yetacopy = [&](int from,int to){
     for(int eta=0;eta<Neta;eta++)
     for(int y  =0;y  <Ny;  y++  )
-      self(to,y,eta)=self(from,y,eta);
+      get(to,y,eta)=get(from,y,eta);
   };
   
   yetacopy(2,1);
@@ -76,12 +78,15 @@ TEST_CASE("Does grid copy work"){
 }
 
 TEST_CASE("Check halo"){
-  Grid grid(3,3,3);
+  Grid grid(1,1,1);
 
   grid(0,0,0).epsilon = 3;
   grid.updateHalo();
 
-  CHECK(grid(-1,0,0).epsilon == grid(0,0,0).epsilon);
-  CHECK(grid(0,-1,0).epsilon == grid(0,0,0).epsilon);
-  CHECK(grid(0,0,-2).epsilon == grid(0,0,0).epsilon);
+  for(int i=-2; i<3; i++)
+    for(int j=-2; j<3; j++)
+      for(int k=-2; k<3; k++)
+	{
+	  CHECK(grid(i,j,k).epsilon == grid(0,0,0).epsilon);
+	}
 }

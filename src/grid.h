@@ -11,6 +11,8 @@ class Grid {
   int Ny;
   int Neta;
   
+  Cell& get(int x, int y, int eta);
+  
  public:
   Grid(int Nx0, int Ny0, int Neta0);
 
