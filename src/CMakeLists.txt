@@ -1,6 +1,6 @@
 add_executable (mpihydro
     main.cpp
-    grid.cpp
+    cell.cpp
     eos.cpp
     evolve.cpp
     init.cpp

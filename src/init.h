@@ -8,7 +8,7 @@
 #include <vector>
 #include <cmath>
 #include "./data.h"
-#include "./grid.h"
+#include "./cell.h"
 #include "./eos.h"
 #include "./hydro_source.h"
 #include "./pretty_ostream.h"

@@ -3,7 +3,7 @@
 #define SRC_MUSIC_H_
 
 #include "./util.h"
-#include "./grid.h"
+#include "./cell.h"
 #include "./data.h"
 #include "./freeze.h"
 #include "./init.h"

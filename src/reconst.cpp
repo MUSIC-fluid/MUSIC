@@ -1,7 +1,7 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include <iostream>
 #include "data.h"
-#include "grid.h"
+#include "cell.h"
 #include "eos.h"
 #include "reconst.h"
 

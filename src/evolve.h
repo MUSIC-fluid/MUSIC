@@ -10,7 +10,7 @@
 #include <iomanip>
 #include "./util.h"
 #include "./data.h"
-#include "./grid.h"
+#include "./cell.h"
 #include "./grid_info.h"
 #include "./eos.h"
 #include "./advance.h"

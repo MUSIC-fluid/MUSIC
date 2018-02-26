@@ -1,7 +1,7 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include <omp.h>
 #include "./util.h"
-#include "./grid.h"
+#include "./cell.h"
 #include "./init.h"
 #include "./eos.h"
 

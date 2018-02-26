@@ -1,6 +1,6 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include "./util.h"
-#include "./grid.h"
+#include "./cell.h"
 #include "./data.h"
 #include "./eos.h"
 #include "./dissipative.h"

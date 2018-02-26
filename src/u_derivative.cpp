@@ -1,7 +1,7 @@
 #include <omp.h>
 #include "./util.h"
 #include "./data.h"
-#include "./grid.h"
+#include "./cell.h"
 #include "./minmod.h"
 #include "./eos.h"
 #include "./u_derivative.h"

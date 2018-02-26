@@ -3,7 +3,7 @@
 #include "./evolve.h"
 #include "./util.h"
 #include "./data.h"
-#include "./grid.h"
+#include "./cell.h"
 #include "./eos.h"
 #include "./advance.h"
 #include "./cornelius.h"

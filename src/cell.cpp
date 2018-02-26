@@ -1,6 +1,6 @@
 // Copyright 2012 Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include "./util.h"
-#include "./grid.h"
+#include "./cell.h"
 
 using namespace std;
 

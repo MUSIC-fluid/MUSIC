@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include "./util.h"
-#include "./grid.h"
+#include "./cell.h"
 #include "./data.h"
 #include "./minmod.h"
 

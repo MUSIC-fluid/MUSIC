@@ -3,7 +3,7 @@
 
 #include "util.h"
 #include "data.h"
-#include "grid.h"
+#include "cell.h"
 #include <string.h>
 #include <iostream>
 

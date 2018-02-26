@@ -7,7 +7,7 @@
 #include <iomanip>
 #include "./data.h"
 #include "./eos.h"
-#include "./grid.h"
+#include "./cell.h"
 #include "./pretty_ostream.h"
 
 class Cell_info {
