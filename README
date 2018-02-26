@@ -1,11 +1,29 @@
-MUSIC requires GSL libraries to be installed
-https://www.gnu.org/software/gsl/
-as well as MPI (e.g. MPICH or OpenMPI) and a C++ compiler.  
-It only runs properly on POSIX operating systems 
-(tested on LINUX and Mac OS X).
+MUSIC
+======================================
 
-You can compile MUSIC by typing "make", which will 
-create an executable called "mpihydro".
+Compilation
+--------------------------------------
+
+MUSIC requires [GSL libraries](https://www.gnu.org/software/gsl/) to be
+installed as well as MPI (e.g. MPICH or OpenMPI) and a C++ compiler. It only
+runs properly on POSIX operating systems (tested on LINUX and Mac OS X).
+
+The following command installs the necessary packages on Ubuntu 17.10, and
+possible other systems:
+
+    sudo apt install libopenmpi-dev libgsl-dev
+
+Once the prerequisites are installed, you can build the package using:
+
+    make -j 10 #Adjust 10 to the number of cores available.
+
+The result will be an executable named `mpihydro`.
+
+
+
+Input
+--------------------------------------
+
 
 An input file is required that contains the line "EndOfData", 
 preceded by a list of parameter names and values, one per line,
@@ -20,5 +38,6 @@ that the code compiles and runs without errors.
 
 MUSIC can be invoked by MPI.  For example, to run on two processors 
 and use the sample input file, type:
-mpiexec -n 2 ./mpihydro input_sample
+
+    mpiexec -n 2 ./mpihydro input_sample
 
