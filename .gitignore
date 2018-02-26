@@ -10,3 +10,4 @@ tests/
 *.txt
 mpihydro
 perf.data*
+a.out
