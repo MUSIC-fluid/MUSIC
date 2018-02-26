@@ -26,11 +26,11 @@
 # init.cpp reconst.cpp freeze.cpp freeze_pseudo.cpp minmod.cpp\
 # random.cpp glauber.cpp util.cpp advance.cpp u_derivative.cpp dissipative.cpp
   
-OBJS= \
-grid.o  eos.o    evolve.o     \
+OBJS=                                   \
+grid.o  eos.o    evolve.o               \
 init.o    reconst.o  freeze.o minmod.o  \
-glauber.o advance.o u_derivative.o \
-dissipative.o random.o\
+glauber.o advance.o u_derivative.o      \
+dissipative.o random.o                  \
 util.o main.o freeze_pseudo.o
 
  
