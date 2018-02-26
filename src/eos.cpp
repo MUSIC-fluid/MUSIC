@@ -111,7 +111,8 @@ EOS::~EOS() {
         util->mtx_free(mus2, NBNP2 + 1, NEPP2 + 1);
         util->mtx_free(mus3, NBNP3 + 1, NEPP3 + 1);
         util->mtx_free(mus4, NBNP4 + 1, NEPP4 + 1);
-    } else if (parameters_ptr->whichEOS != 8) {
+    } else if (parameters_ptr->whichEOS != 8
+               && parameters_ptr->whichEOS != 0) {
         music_message << "No EOS for whichEOS = " << parameters_ptr->whichEOS
              << ". Use EOS_to_use = 0 (ideal gas) 1 (AZHYDRO EOS-Q), "
              << "2 (s95p-v1), 3 (s95p-PCE150-v1), 4 (s95p-PCE155-v1), "
