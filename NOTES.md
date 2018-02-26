@@ -44,7 +44,7 @@ Load VTune:
 
 Do a general exploration:
 
-    amplxe-cl -finalization-mode=deferred -collect general-exploration ./mpihydro benchmark/music_input_Gubser_small
+    amplxe-cl -finalization-mode=deferred -collect advanced-hotspots -r $SCRATCH/201802-knl-profiling ./mpihydro benchmark/music_input_Gubser_small
 
 Things to collect:
 
