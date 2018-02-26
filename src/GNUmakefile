@@ -10,7 +10,7 @@
 ##			distclean	remove all objectsfiles and binaries
 ##  
 
-CC := g++-mp-6
+#CXX := g++-mp-6
 #CFLAGS= -Wall -g -O2 -qopenmp $(shell gsl-config --cflags)
 CFLAGS= -Wall -O3 -fopenmp $(shell gsl-config --cflags)
 
@@ -48,7 +48,7 @@ INSTPATH	=	../
 # --------------- Pattern rules -------------------
 
 $(OBJDIR)/%.o: %.cpp
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CFLAGS) -c $< -o $@
 
 %.cpp:
 	if [ -f $@ ] ; then touch $@ ; else false ; fi
@@ -66,7 +66,7 @@ mkobjdir:
 		-@mkdir -p $(OBJDIR)
 
 $(TARGET):	$(OBJECTS)	
-		$(CC) $(OBJECTS) -o $(TARGET) $(LDFLAGS) 
+		$(CXX) $(OBJECTS) -o $(TARGET) $(LDFLAGS) 
 #		strip $(TARGET)
 
 clean:		
