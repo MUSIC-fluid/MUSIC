@@ -6,8 +6,8 @@
 
 class Cell {
  public:
-    double epsilon;
-    double rhob;
+    double epsilon = 0;
+    double rhob    = 0;
     /* stress energy tensor plus baryon current  */
     /* TJb[flag][alpha][mu] */
     /* flag = 0 is the actual values. flag != 0 are the intermediate values
@@ -16,12 +16,12 @@ class Cell {
     // double correction;
         
     /* temporary values for the final RK update */
-    double epsilon_t;
-    double rhob_t;
+    double epsilon_t = 0;
+    double rhob_t    = 0;
         
     // store the epsilon and rhob at previous time step
-    double prev_epsilon;
-    double prev_rhob;
+    double prev_epsilon = 0;
+    double prev_rhob    = 0;
 
     /* u[flag][mu]: flag=0 is the actual values. flag != are for RK steps */
     std::array<double, 4> u_rk0;
@@ -60,8 +60,6 @@ class Cell {
     std::array<double, 4> u_prev;
     double pi_b_prev;
     std::array<double, 4> W_prev;
-        
-    Cell();  // constructor
 };
 
 #endif  // SRC_GRID_H_
