@@ -34,7 +34,7 @@ Initial_radius_size_in_fm  2.6
 X_grid_size_in_fm  10.0 
 input_grid_size_in_x  261 
 input_grid_size_in_y  261 
-Grid_size_in_eta  8
+Grid_size_in_eta  4
 Bulk_relaxation_time_tau_b_pi  0.6 
 UseCFL_condition  0 
 rotate_by_45_degrees  0 
