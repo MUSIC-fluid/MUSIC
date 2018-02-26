@@ -1,5 +1,6 @@
 #include "grid.h"
 #include "doctest.h"
+#include <cassert>
 
 Grid::Grid(int Nx0, int Ny0, int Neta0){
   Nx   = Nx0  +4;
@@ -8,19 +9,16 @@ Grid::Grid(int Nx0, int Ny0, int Neta0){
   grid.resize(Nx*Ny*Neta);
 }
 
-Cell& Grid::operator()(int x, int y, int eta)
-{
-  x   += 2;
-  y   += 2;
-  eta += 2;
-  return grid[Nx*(Ny*eta+y)+x];
-}
-
 const Cell& Grid::operator()(int x, int y, int eta) const
 {
-  x   += 2;
-  y   += 2;
-  eta += 2;
+  return const_cast<Cell&>(static_cast<const Cell &>((*this)(x,y,eta)));
+}
+
+Cell& Grid::operator()(int x, int y, int eta)
+{
+  x   += 2;  assert(x>=0);   assert(x<Nx);
+  y   += 2;  assert(y>=0);   assert(y<Ny);
+  eta += 2;  assert(eta>=0); assert(eta<Neta);
   return grid[Nx*(Ny*eta+y)+x];
 }
 
@@ -72,7 +70,18 @@ TEST_CASE("Does grid copy work"){
 
   grid(0,0,0).epsilon = 3;
 
-  auto grid2 = grid;
+   auto grid2 = grid;
 
   CHECK(grid2(0,0,0).epsilon == grid(0,0,0).epsilon);
+}
+
+TEST_CASE("Check halo"){
+  Grid grid(3,3,3);
+
+  grid(0,0,0).epsilon = 3;
+  grid.updateHalo();
+
+  CHECK(grid(-1,0,0).epsilon == grid(0,0,0).epsilon);
+  CHECK(grid(0,-1,0).epsilon == grid(0,0,0).epsilon);
+  CHECK(grid(0,0,-2).epsilon == grid(0,0,0).epsilon);
 }
