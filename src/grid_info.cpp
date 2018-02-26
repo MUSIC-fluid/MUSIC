@@ -171,25 +171,25 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
                 double entropy = e_local + p_local;  // [1/fm^4]
 
                 double Wtautau = 0.0;
-                double Wtaux = 0.0;
-                double Wtauy = 0.0;
+                double Wtaux   = 0.0;
+                double Wtauy   = 0.0;
                 double Wtaueta = 0.0;
-                double Wxx = 0.0;
-                double Wxy = 0.0;
-                double Wxeta = 0.0;
-                double Wyy = 0.0;
-                double Wyeta = 0.0;
+                double Wxx     = 0.0;
+                double Wxy     = 0.0;
+                double Wxeta   = 0.0;
+                double Wyy     = 0.0;
+                double Wyeta   = 0.0;
                 double Wetaeta = 0.0;
                 if (DATA->turn_on_shear == 1) {
                     Wtautau = arena[ieta][ix][iy].Wmunu[0][0]/entropy;
-                    Wtaux = arena[ieta][ix][iy].Wmunu[0][1]/entropy;
-                    Wtauy = arena[ieta][ix][iy].Wmunu[0][2]/entropy;
+                    Wtaux   = arena[ieta][ix][iy].Wmunu[0][1]/entropy;
+                    Wtauy   = arena[ieta][ix][iy].Wmunu[0][2]/entropy;
                     Wtaueta = arena[ieta][ix][iy].Wmunu[0][3]/entropy;
-                    Wxx = arena[ieta][ix][iy].Wmunu[0][4]/entropy;
-                    Wxy = arena[ieta][ix][iy].Wmunu[0][5]/entropy;
-                    Wxeta = arena[ieta][ix][iy].Wmunu[0][6]/entropy;
-                    Wyy = arena[ieta][ix][iy].Wmunu[0][7]/entropy;
-                    Wyeta = arena[ieta][ix][iy].Wmunu[0][8]/entropy;
+                    Wxx     = arena[ieta][ix][iy].Wmunu[0][4]/entropy;
+                    Wxy     = arena[ieta][ix][iy].Wmunu[0][5]/entropy;
+                    Wxeta   = arena[ieta][ix][iy].Wmunu[0][6]/entropy;
+                    Wyy     = arena[ieta][ix][iy].Wmunu[0][7]/entropy;
+                    Wyeta   = arena[ieta][ix][iy].Wmunu[0][8]/entropy;
                     Wetaeta = arena[ieta][ix][iy].Wmunu[0][9]/entropy;
                 }
 
@@ -200,17 +200,17 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
 
                 // outputs for baryon diffusion part
                 double common_term_q = 0.0;
-                double qtau = 0.0;
-                double qx = 0.0;
-                double qy = 0.0;
-                double qeta = 0.0;
+                double qtau          = 0.0;
+                double qx            = 0.0;
+                double qy            = 0.0;
+                double qeta          = 0.0;
                 if (DATA->turn_on_diff == 1) {
                     common_term_q = rhob_local*T_local/entropy;
                     double kappa_hat = get_deltaf_qmu_coeff(T_local,
                                                             muB_local);
                     qtau = arena[ieta][ix][iy].Wmunu[0][10]/kappa_hat;
-                    qx = arena[ieta][ix][iy].Wmunu[0][11]/kappa_hat;
-                    qy = arena[ieta][ix][iy].Wmunu[0][12]/kappa_hat;
+                    qx   = arena[ieta][ix][iy].Wmunu[0][11]/kappa_hat;
+                    qy   = arena[ieta][ix][iy].Wmunu[0][12]/kappa_hat;
                     qeta = arena[ieta][ix][iy].Wmunu[0][13]/kappa_hat;
                 }
 
@@ -296,8 +296,8 @@ void Grid_info::OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
 
     int itau = static_cast<int>((tau - DATA->tau0)/DATA->delta_tau);
 
-    int n_skip_x = DATA->output_evolution_every_N_x;
-    int n_skip_y = DATA->output_evolution_every_N_y;
+    int n_skip_x   = DATA->output_evolution_every_N_x;
+    int n_skip_y   = DATA->output_evolution_every_N_y;
     int n_skip_eta = DATA->output_evolution_every_N_eta;
     for (int ieta = 0; ieta < DATA->neta; ieta += n_skip_eta) {
         for (int iy = 0; iy <= DATA->ny; iy += n_skip_y) {
@@ -306,8 +306,8 @@ void Grid_info::OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
                 double rhob_local = arena[ieta][ix][iy].rhob;  // 1/fm^3
                 double p_local = eos_ptr->get_pressure(e_local, rhob_local);
 
-                double ux = arena[ieta][ix][iy].u[0][1];
-                double uy = arena[ieta][ix][iy].u[0][2];
+                double ux   = arena[ieta][ix][iy].u[0][1];
+                double uy   = arena[ieta][ix][iy].u[0][2];
                 double ueta = arena[ieta][ix][iy].u[0][3];
 
                 // T_local is in 1/fm
@@ -328,10 +328,10 @@ void Grid_info::OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
                 double Wyy = 0.0;
                 double Wyeta = 0.0;
                 if (DATA->turn_on_shear == 1) {
-                    Wxx = arena[ieta][ix][iy].Wmunu[0][4]/div_factor;
-                    Wxy = arena[ieta][ix][iy].Wmunu[0][5]/div_factor;
+                    Wxx   = arena[ieta][ix][iy].Wmunu[0][4]/div_factor;
+                    Wxy   = arena[ieta][ix][iy].Wmunu[0][5]/div_factor;
                     Wxeta = arena[ieta][ix][iy].Wmunu[0][6]/div_factor;
-                    Wyy = arena[ieta][ix][iy].Wmunu[0][7]/div_factor;
+                    Wyy   = arena[ieta][ix][iy].Wmunu[0][7]/div_factor;
                     Wyeta = arena[ieta][ix][iy].Wmunu[0][8]/div_factor;
                 }
 
@@ -389,14 +389,14 @@ void Grid_info::OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
 //! This function prints to the screen the maximum local energy density,
 //! the maximum temperature in the current grid
 void Grid_info::get_maximum_energy_density(Grid ***arena) {
-    double eps_max = 0.0;
+    double eps_max  = 0.0;
     double rhob_max = 0.0;
-    double T_max = 0.0;
+    double T_max    = 0.0;
 
     // get the grid information
     int neta = DATA_ptr->neta;
-    int nx = DATA_ptr->nx;
-    int ny = DATA_ptr->ny;
+    int nx   = DATA_ptr->nx;
+    int ny   = DATA_ptr->ny;
 
     int ieta;
     #pragma omp parallel private(ieta) reduction(max:eps_max, rhob_max, T_max)
@@ -436,14 +436,14 @@ void Grid_info::get_maximum_energy_density(Grid ***arena) {
 //! at a give proper time
 void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                                       double tau) {
-    double N_B = 0.0;
+    double N_B     = 0.0;
     double T_tau_t = 0.0;
-    int neta = DATA->neta;
-    double deta = DATA->delta_eta;
-    int nx = DATA->nx;
-    double dx = DATA->delta_x;
-    int ny = DATA->ny;
-    double dy = DATA->delta_y;
+    int neta       = DATA->neta;
+    double deta    = DATA->delta_eta;
+    int    nx      = DATA->nx;
+    double dx      = DATA->delta_x;
+    int    ny      = DATA->ny;
+    double dy      = DATA->delta_y;
     int ieta;
     #pragma omp parallel private(ieta) reduction(+:N_B, T_tau_t)
     {
@@ -461,11 +461,11 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
                         arena[ieta][ix][iy].prev_pi_b[0]
                         *(-1.0 + arena[ieta][ix][iy].prev_u[0][0]
                                  *(arena[ieta][ix][iy].prev_u[0][0])));
-                    double e_local = arena[ieta][ix][iy].epsilon;
-                    double rhob = arena[ieta][ix][iy].rhob;
-                    double pressure = eos_ptr->get_pressure(e_local, rhob);
-                    double u0 = arena[ieta][ix][iy].u[0][0];
-                    double u3 = arena[ieta][ix][iy].u[0][3];
+                    double e_local   = arena[ieta][ix][iy].epsilon;
+                    double rhob      = arena[ieta][ix][iy].rhob;
+                    double pressure  = eos_ptr->get_pressure(e_local, rhob);
+                    double u0        = arena[ieta][ix][iy].u[0][0];
+                    double u3        = arena[ieta][ix][iy].u[0][3];
                     double T00_local = (e_local + pressure)*u0*u0 - pressure;
                     double T03_local = (e_local + pressure)*u0*u3;
                     double T_tau_tau = (T00_local
@@ -515,20 +515,20 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
         }
         input_file.close();
 
-        double T_diff = 0.0;
-        double ux_diff = 0.0;
-        double uy_diff = 0.0;
+        double T_diff    = 0.0;
+        double ux_diff   = 0.0;
+        double uy_diff   = 0.0;
         double pixx_diff = 0.0;
         double pixy_diff = 0.0;
         double piyy_diff = 0.0;
         double pizz_diff = 0.0;
-        double T_sum = 0.0;
-        double ux_sum = 0.0;
-        double uy_sum = 0.0;
-        double pixx_sum = 0.0;
-        double pixy_sum = 0.0;
-        double piyy_sum = 0.0;
-        double pizz_sum = 0.0;
+        double T_sum     = 0.0;
+        double ux_sum    = 0.0;
+        double uy_sum    = 0.0;
+        double pixx_sum  = 0.0;
+        double pixy_sum  = 0.0;
+        double piyy_sum  = 0.0;
+        double pizz_sum  = 0.0;
         for (int i = 0; i < 201; i++) {
             double e_local = arena[0][i][i].epsilon;
             double T_local = (
@@ -867,12 +867,12 @@ void Grid_info::output_average_phase_diagram_trajectory(
             double sinh_eta = sinh(eta);
             for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
                 for (int ix = 0; ix <= DATA_ptr->nx; ix++) {
-                    double e_local = arena[ieta][ix][iy].epsilon;  // 1/fm^4
+                    double e_local    = arena[ieta][ix][iy].epsilon;  // 1/fm^4
                     double rhob_local = arena[ieta][ix][iy].rhob;  // 1/fm^3
-                    double utau = arena[ieta][ix][iy].u[0][0];
-                    double ueta = arena[ieta][ix][iy].u[0][3];
-                    double ut = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
-                    double T_local = eos_ptr->get_temperature(e_local,
+                    double utau       = arena[ieta][ix][iy].u[0][0];
+                    double ueta       = arena[ieta][ix][iy].u[0][3];
+                    double ut         = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
+                    double T_local    = eos_ptr->get_temperature(e_local,
                                                               rhob_local);
                     double muB_local = eos_ptr->get_mu(e_local, rhob_local);
                     double weight_local = e_local*ut;

@@ -8,17 +8,17 @@
 using namespace std;
 
 Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
-    eos = eosIn;
+    eos         = eosIn;
     eos_eps_max = eos->get_eps_max();
-    DATA_ptr = DATA_in;
+    DATA_ptr    = DATA_in;
 
     echo_level = DATA_ptr->echo_level;
     v_critical = 0.563624;
-    LARGE = 1e20;
+    LARGE      = 1e20;
 
     max_iter = 100;
-    rel_err = 1e-9;
-    abs_err = 1e-10;
+    rel_err  = 1e-9;
+    abs_err  = 1e-10;
 }
 
 // destructor
@@ -97,11 +97,11 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
     }
 
     /* Iteration scheme */
-    double eps_init = grid_pt->epsilon;
+    double eps_init  = grid_pt->epsilon;
     double rhob_init = grid_pt->rhob;
-    cs2 = eos->get_cs2(eps_init, rhob_init);
-    eps_guess = GuessEps(T00, K00, cs2);
-    epsilon_next = eps_guess;
+    cs2              = eos->get_cs2(eps_init, rhob_init);
+    eps_guess        = GuessEps(T00, K00, cs2);
+    epsilon_next     = eps_guess;
      
     if (isnan(epsilon_next)) {
         music_message << "problem " << eps_guess << " T00=" << T00
@@ -388,10 +388,10 @@ int Reconst::ReconstIt_velocity_iteration(
         double rel_error_u0 = 1.0;
         do {
             iter_u0++;
-            u0_next = reconst_u0_f(u0_prev, T00, K00, M, J0);
+            u0_next      = reconst_u0_f(u0_prev, T00, K00, M, J0);
             abs_error_u0 = fabs(u0_next - u0_prev);
             rel_error_u0 = 2.*abs_error_u0/(u0_next + u0_prev + 1e-15);
-            u0_prev = u0_next;
+            u0_prev      = u0_next;
             if (iter_u0 > max_iter) {
                 u0_status = 0;
                 break;
@@ -593,9 +593,9 @@ int Reconst::ReconstIt_velocity_Newton(
     }
 
     double K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
-    double M = sqrt(K00);
+    double M   = sqrt(K00);
     double T00 = q[0];
-    double J0 = q[4];
+    double J0  = q[4];
 
     if ((T00 < abs_err) || ((T00 - K00/T00) < 0.0)) {
         // can't make Tmunu with this. restore the previous value 
@@ -617,11 +617,11 @@ int Reconst::ReconstIt_velocity_Newton(
     if (v_guess != v_guess) {
         v_guess = 0.0;
     }
-    int v_status = 1;
-    int iter = 0;
+    int v_status       = 1;
+    int iter           = 0;
     double rel_error_v = 10.0;
-    double v_next = 1.0;
-    double v_prev = v_guess;
+    double v_next      = 1.0;
+    double v_prev      = v_guess;
     double abs_error_v = reconst_velocity_f_Newton(v_prev, T00, M, J0);
     do {
         iter++;
@@ -887,13 +887,13 @@ double Reconst::reconst_velocity_df(double v, double T00, double M,
                                     double J0) {
     // this function returns df'(v)/dv where f' = v - f(v)
     double epsilon = T00 - v*M;
-    double temp = sqrt(1. - v*v);
-    double rho = J0*temp;
-    double temp2 = v/temp;
+    double temp    = sqrt(1. - v*v);
+    double rho     = J0*temp;
+    double temp2   = v/temp;
    
     double pressure = eos->get_pressure(epsilon, rho);
-    double dPde = eos->p_e_func(epsilon, rho);
-    double dPdrho = eos->p_rho_func(epsilon, rho);
+    double dPde     = eos->p_e_func(epsilon, rho);
+    double dPdrho   = eos->p_rho_func(epsilon, rho);
     
     double temp1 = T00 + pressure;
 
@@ -922,18 +922,18 @@ double Reconst::reconst_u0_f_Newton(double u0, double T00, double K00,
 double Reconst::reconst_u0_df(double u0, double T00, double K00, double M,
                               double J0) {
     // this function returns df'/du0 where f'(u0) = u0 - f(u0)
-    double v = sqrt(1. - 1./(u0*u0));
+    double v       = sqrt(1. - 1./(u0*u0));
     double epsilon = T00 - v*M;
-    double rho = J0/u0;
-    double dedu0 = - M/(u0*u0*u0*v);
+    double rho     = J0/u0;
+    double dedu0   = - M/(u0*u0*u0*v);
     double drhodu0 = - J0/(u0*u0);
     
     double pressure = eos->get_pressure(epsilon, rho);
-    double dPde = eos->p_e_func(epsilon, rho);
-    double dPdrho = eos->p_rho_func(epsilon, rho);
+    double dPde     = eos->p_e_func(epsilon, rho);
+    double dPdrho   = eos->p_rho_func(epsilon, rho);
 
     double denorm = pow(((T00 + pressure)*(T00 + pressure) - K00), 1.5);
-    double dfdu0 = 1. + (dedu0*dPde + drhodu0*dPdrho)*K00/denorm;
+    double dfdu0  = 1. + (dedu0*dPde + drhodu0*dPdrho)*K00/denorm;
     return(dfdu0);
 }
 

@@ -12,12 +12,12 @@ using namespace std;
 
 Advance::Advance(EOS *eosIn, InitData *DATA_in,
                  hydro_source *hydro_source_in) {
-    DATA_ptr = DATA_in;
-    eos = eosIn;
-    util = new Util;
-    reconst_ptr = new Reconst(eos, DATA_in);
-    diss = new Diss(eosIn, DATA_in);
-    minmod = new Minmod(DATA_in);
+    DATA_ptr         = DATA_in;
+    eos              = eosIn;
+    util             = new Util;
+    reconst_ptr      = new Reconst(eos, DATA_in);
+    diss             = new Diss(eosIn, DATA_in);
+    minmod           = new Minmod(DATA_in);
     u_derivative_ptr = new U_derivative(eosIn, DATA_in);
     if (DATA_in->Initial_profile == 12 || DATA_in->Initial_profile == 13
             || DATA_in->Initial_profile == 30) {
@@ -28,10 +28,10 @@ Advance::Advance(EOS *eosIn, InitData *DATA_in,
         hydro_source_ptr = NULL;
     }
 
-    grid_nx = DATA_in->nx;
-    grid_ny = DATA_in->ny;
+    grid_nx   = DATA_in->nx;
+    grid_ny   = DATA_in->ny;
     grid_neta = DATA_in->neta;
-    rk_order = DATA_in->rk_order;
+    rk_order  = DATA_in->rk_order;
 }
 
 // destructor
@@ -107,7 +107,7 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
                           double eta_s_local, InitData *DATA, Grid *grid_pt,
                           int rk_flag) {
     // this advances the ideal part
-    double tau_now = tau;
+    double tau_now  = tau;
     double tau_next = tau + (DATA_ptr->delta_tau);
     double tau_rk;
     if (rk_flag == 0) {

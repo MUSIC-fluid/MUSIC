@@ -10,9 +10,9 @@ Minmod::~Minmod() {
 }
 
 double Minmod::minmod_dx(double up1, double u, double um1) {
-    double diffup = (up1 - u)*theta_flux;
+    double diffup   = (up1 - u)*theta_flux;
     double diffdown = (u - um1)*theta_flux;
-    double diffmid = (up1 - um1)*0.5;
+    double diffmid  = (up1 - um1)*0.5;
 
     double tempf;
     if ( (diffup > 0.0) && (diffdown > 0.0) && (diffmid > 0.0) ) {
@@ -28,9 +28,9 @@ double Minmod::minmod_dx(double up1, double u, double um1) {
 
 
 double Minmod::minmod_theta_dx(double up1, double u, double um1, double theta) {
-    double diffup = (up1 - u)*theta;
+    double diffup   = (up1 - u)*theta;
     double diffdown = (u - um1)*theta;
-    double diffmid = (up1 - um1)*0.5;
+    double diffmid  = (up1 - um1)*0.5;
 
     double tempf;
     if ( (diffup > 0.0) && (diffdown > 0.0) && (diffmid > 0.0) ) {
