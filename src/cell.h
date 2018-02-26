@@ -46,8 +46,7 @@ class Cell {
     std::array<double, 14> prevWmunu; 
         
     /* bulk pressure */
-    double pi_b_rk0;
-    double pi_b_rk1;
+    std::array<double, 2> pi_b;
     double prev_pi_b;
 
     // the following variables are for hyper-surface finder 

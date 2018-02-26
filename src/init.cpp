@@ -137,14 +137,14 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
             for (ieta = 0; ieta < DATA->neta; ieta++) {
                 //cout << "[Info] Thread " << omp_get_thread_num()
                 //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_Gubser_XY(DATA, ieta, (*arena));
+                initial_Gubser_XY(DATA, ieta, arena);
             }/* ieta */
             #pragma omp barrier
         }
     } else if (DATA->Initial_profile == 1) {
         // code test in 1+1 D vs Monnai's results
         music_message.info(" Perform 1+1D test vs Monnai's results... ");
-        initial_1p1D_eta(DATA, (*arena));
+        initial_1p1D_eta(DATA, arena);
     } else if (DATA->Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
@@ -159,7 +159,7 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
             for (ieta = 0; ieta < DATA->neta; ieta++) {
                 //cout << "[Info] Thread " << omp_get_thread_num()
                 //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_IPGlasma_XY(DATA, ieta, (*arena));
+                initial_IPGlasma_XY(DATA, ieta, arena);
             } /* ieta */
             #pragma omp barrier
         }
@@ -178,7 +178,7 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
             for (ieta = 0; ieta < DATA->neta; ieta++) {
                 //cout << "[Info] Thread " << omp_get_thread_num()
                 //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_IPGlasma_XY_with_pi(DATA, ieta, (*arena));
+                initial_IPGlasma_XY_with_pi(DATA, ieta, arena);
             } /* ieta */
             #pragma omp barrier
         }
@@ -200,7 +200,7 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
             for (ieta = 0; ieta < DATA->neta; ieta++) {
                 //cout << "[Info] Thread " << omp_get_thread_num()
                 //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_MCGlb_with_rhob_XY(DATA, ieta, (*arena));
+                initial_MCGlb_with_rhob_XY(DATA, ieta, arena);
             } /* ix, iy, ieta */
         }
     } else if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
@@ -212,7 +212,7 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
             for (ieta = 0; ieta < DATA->neta; ieta++) {
                 //cout << "[Info] Thread " << omp_get_thread_num()
                 //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_MCGlbLEXUS_with_rhob_XY(DATA, ieta, (*arena));
+                initial_MCGlbLEXUS_with_rhob_XY(DATA, ieta, arena);
             } /* ix, iy, ieta */
         }
     } else if (DATA->Initial_profile == 30) {
@@ -223,11 +223,11 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
             for (ieta = 0; ieta < DATA->neta; ieta++) {
                 //cout << "[Info] Thread " << omp_get_thread_num()
                 //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_AMPT_XY(DATA, ieta, (*arena));
+                initial_AMPT_XY(DATA, ieta, arena);
             } /* ix, iy, ieta */
         }
     } else if (DATA->Initial_profile == 101) {
-        initial_UMN_with_rhob(DATA, (*arena));
+        initial_UMN_with_rhob(DATA, arena);
     }
     music_message.info("initial distribution done.");
     return 1;
@@ -364,15 +364,6 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
             arena(ix,iy,ieta).rhob         = rhob;
             arena(ix,iy,ieta).rhob_t       = rhob;
             arena(ix,iy,ieta).prev_rhob    = rhob;
-            
-            arena(ix,iy,ieta).dUsup     = util->cube_malloc(1, 5, 4);
-            arena(ix,iy,ieta).u         = util->mtx_malloc(rk_order, 4);
-            arena(ix,iy,ieta).pi_b      = util->vector_malloc(rk_order);
-            arena(ix,iy,ieta).prev_pi_b = util->vector_malloc(1);
-            arena(ix,iy,ieta).prev_u    = util->mtx_malloc(1, 4);
-            arena(ix,iy,ieta).Wmunu     = util->mtx_malloc(rk_order, 14);
-            arena(ix,iy,ieta).prevWmunu = util->mtx_malloc(1, 14);
-            arena(ix,iy,ieta).W_prev    = util->vector_malloc(14);
             
             /* for HIC */
             double utau_local = sqrt(1.
@@ -532,15 +523,6 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid &arena) {
                 arena(ix,iy,ieta).rhob_t       = rhob;
                 arena(ix,iy,ieta).prev_rhob    = rhob;
             
-                arena(ix,iy,ieta).dUsup     = util->cube_malloc(1, 5, 4);
-                arena(ix,iy,ieta).u         = util->mtx_malloc(rk_order, 4);
-                arena(ix,iy,ieta).pi_b      = util->vector_malloc(rk_order);
-                arena(ix,iy,ieta).prev_pi_b = util->vector_malloc(1);
-                arena(ix,iy,ieta).prev_u    = util->mtx_malloc(1, 4);
-                arena(ix,iy,ieta).Wmunu     = util->mtx_malloc(rk_order, 14);
-                arena(ix,iy,ieta).prevWmunu = util->mtx_malloc(1, 14);
-                arena(ix,iy,ieta).W_prev    = util->vector_malloc(14);
-            
                 /* for HIC */
                 arena(ix,iy,ieta).u[0][0] = 1.0;
                 arena(ix,iy,ieta).u[0][1] = 0.0;
@@ -661,15 +643,6 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid &arena) {
             arena(ix,iy,ieta).rhob         = rhob;
             arena(ix,iy,ieta).rhob_t       = rhob;
             arena(ix,iy,ieta).prev_rhob    = rhob;
-
-            arena(ix,iy,ieta).dUsup     = util->cube_malloc(1, 5, 4);
-            arena(ix,iy,ieta).u         = util->mtx_malloc(rk_order, 4);
-            arena(ix,iy,ieta).pi_b      = util->vector_malloc(rk_order);
-            arena(ix,iy,ieta).prev_pi_b = util->vector_malloc(1);
-            arena(ix,iy,ieta).prev_u    = util->mtx_malloc(1, 4);
-            arena(ix,iy,ieta).Wmunu     = util->mtx_malloc(rk_order, 14);
-            arena(ix,iy,ieta).prevWmunu = util->mtx_malloc(1, 14);
-            arena(ix,iy,ieta).W_prev    = util->vector_malloc(14);
 
             /* for HIC */
             arena(ix,iy,ieta).u[0][0] = temp_profile_utau[ix][iy];
@@ -835,14 +808,6 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
             arena(ix,iy,ieta).rhob_t       = rhob;
             arena(ix,iy,ieta).prev_rhob    = rhob;
 
-            arena(ix,iy,ieta).dUsup     = util->cube_malloc(1, 5, 4);
-            arena(ix,iy,ieta).u         = util->mtx_malloc(rk_order, 4);
-            arena(ix,iy,ieta).pi_b      = util->vector_malloc(rk_order);
-            arena(ix,iy,ieta).prev_pi_b = util->vector_malloc(1);
-            arena(ix,iy,ieta).prev_u    = util->mtx_malloc(1, 4);
-            arena(ix,iy,ieta).Wmunu     = util->mtx_malloc(rk_order, 14);
-            arena(ix,iy,ieta).prevWmunu = util->mtx_malloc(1, 14);
-            arena(ix,iy,ieta).W_prev    = util->vector_malloc(14);
 
             /* for HIC */
             arena(ix,iy,ieta).u[0][0] = temp_profile_utau[ix][iy];
@@ -995,14 +960,6 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             arena(ix,iy,ieta).rhob         = rhob;
             arena(ix,iy,ieta).rhob_t       = rhob;
             arena(ix,iy,ieta).prev_rhob    = rhob;
-            arena(ix,iy,ieta).dUsup        = util->cube_malloc(1, 5, 4);
-            arena(ix,iy,ieta).u            = util->mtx_malloc(rk_order, 4);
-            arena(ix,iy,ieta).pi_b         = util->vector_malloc(rk_order);
-            arena(ix,iy,ieta).prev_pi_b    = util->vector_malloc(1);
-            arena(ix,iy,ieta).prev_u       = util->mtx_malloc(1, 4);
-            arena(ix,iy,ieta).Wmunu        = util->mtx_malloc(rk_order, 14);
-            arena(ix,iy,ieta).prevWmunu    = util->mtx_malloc(1, 14);
-            arena(ix,iy,ieta).W_prev       = util->vector_malloc(14);
 
             /* for HIC */
             arena(ix,iy,ieta).u[0][0] = 1.0;
@@ -1092,14 +1049,6 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
             arena(ix,iy,ieta).rhob         = rhob;
             arena(ix,iy,ieta).rhob_t       = rhob;
             arena(ix,iy,ieta).prev_rhob    = rhob;
-            arena(ix,iy,ieta).dUsup        = util->cube_malloc(1, 5, 4);
-            arena(ix,iy,ieta).u            = util->mtx_malloc(rk_order, 4);
-            arena(ix,iy,ieta).pi_b         = util->vector_malloc(rk_order);
-            arena(ix,iy,ieta).prev_pi_b    = util->vector_malloc(rk_order);
-            arena(ix,iy,ieta).prev_u       = util->mtx_malloc(1, 4);
-            arena(ix,iy,ieta).Wmunu        = util->mtx_malloc(rk_order, 14);
-            arena(ix,iy,ieta).prevWmunu    = util->mtx_malloc(1, 14);
-            arena(ix,iy,ieta).W_prev       = util->vector_malloc(14);
 
             /* for HIC */
             arena(ix,iy,ieta).u[0][0] = u[0];
@@ -1179,14 +1128,6 @@ void Init::initial_UMN_with_rhob(InitData *DATA, Grid &arena) {
                 arena(ix,iy,ieta).rhob         = rhob;
                 arena(ix,iy,ieta).rhob_t       = rhob;
                 arena(ix,iy,ieta).prev_rhob    = rhob;
-                arena(ix,iy,ieta).dUsup        = util->cube_malloc(1, 5, 4);
-                arena(ix,iy,ieta).u            = util->mtx_malloc(rk_order, 4);
-                arena(ix,iy,ieta).pi_b         = util->vector_malloc(rk_order);
-                arena(ix,iy,ieta).prev_pi_b    = util->vector_malloc(rk_order);
-                arena(ix,iy,ieta).prev_u       = util->mtx_malloc(1, 4);
-                arena(ix,iy,ieta).Wmunu        = util->mtx_malloc(rk_order, 14);
-                arena(ix,iy,ieta).prevWmunu    = util->mtx_malloc(1, 14);
-                arena(ix,iy,ieta).W_prev       = util->vector_malloc(14);
 
                 arena(ix,iy,ieta).u[0][0] = 1.0;
                 arena(ix,iy,ieta).u[0][3] = 0.0;
@@ -1263,14 +1204,6 @@ void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid &arena) {
             arena(ix,iy,ieta).rhob         = rhob;
             arena(ix,iy,ieta).rhob_t       = rhob;
             arena(ix,iy,ieta).prev_rhob    = rhob;
-            arena(ix,iy,ieta).dUsup        = util->cube_malloc(1, 5, 4);
-            arena(ix,iy,ieta).u            = util->mtx_malloc(rk_order, 4);
-            arena(ix,iy,ieta).pi_b         = util->vector_malloc(rk_order);
-            arena(ix,iy,ieta).prev_pi_b    = util->vector_malloc(1);
-            arena(ix,iy,ieta).prev_u       = util->mtx_malloc(1, 4);
-            arena(ix,iy,ieta).Wmunu        = util->mtx_malloc(rk_order, 14);
-            arena(ix,iy,ieta).prevWmunu    = util->mtx_malloc(1, 14);
-            arena(ix,iy,ieta).W_prev       = util->vector_malloc(14);
 
             /* for HIC */
             arena(ix,iy,ieta).u[0][0] = u[0];
