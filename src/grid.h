@@ -5,13 +5,13 @@
 #include "cell.h"
 
 class Grid {
-private:
+ private:
   std::vector<Cell> grid;
   int Nx;
   int Ny;
   int Neta;
   
-public:
+ public:
   Grid(int Nx0, int Ny0, int Neta0);
 
   Cell& operator()(int x, int y, int eta);
@@ -19,6 +19,6 @@ public:
 
   void updateHalo();
 
-}
+};
 
 #endif

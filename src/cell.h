@@ -63,4 +63,3 @@ class Cell {
 };
 
 #endif  // SRC_GRID_H_
-  
