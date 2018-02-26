@@ -15,6 +15,14 @@ Cell& Grid::operator()(int x, int y, int eta)
   return grid[Nx*(Ny*eta+y)+x];
 }
 
+const Cell& Grid::operator()(int x, int y, int eta) const
+{
+  x   += 2;
+  y   += 2;
+  eta += 2;
+  return grid[Nx*(Ny*eta+y)+x];
+}
+
 void Grid::updateHalo()
 {
   //x-y planes

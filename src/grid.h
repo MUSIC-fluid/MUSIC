@@ -15,6 +15,7 @@ public:
   Grid(int Nx0, int Ny0, int Neta0);
 
   Cell& operator()(int x, int y, int eta);
+  const Cell& operator()(int x, int y, int eta) const;
 
   void updateHalo();
 
