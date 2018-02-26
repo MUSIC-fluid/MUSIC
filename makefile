@@ -39,7 +39,7 @@ CXX= mpic++
 # -Wall shows all compiler warnings, and can help spot problems when developing code. 
 CXXFLAGS= -Wall -g3
 LIBS= -L/software/libraries/GSL/1.15/lib -lm -lgsl -lgslcblas
-COMMAND=  mpihydro
+COMMAND=  mpihydro.exe
  
  
 $(COMMAND): $(OBJS)

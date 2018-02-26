@@ -17,7 +17,7 @@ Once the prerequisites are installed, you can build the package using:
 
     make -j 10 #Adjust 10 to the number of cores available.
 
-The result will be an executable named `mpihydro`.
+The result will be an executable named **`mpihydro.exe`**.
 
 
 
