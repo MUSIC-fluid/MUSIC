@@ -18,22 +18,22 @@ class Diss {
     Diss(EOS *eosIn, InitData* DATA_in);
     ~Diss();
   
-    double MakeWSource(double tau, int alpha, Grid *grid_pt, InitData *DATA,
+    double MakeWSource(double tau, int alpha, Cell *grid_pt, InitData *DATA,
                        int rk_flag);
-    int Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs, InitData *DATA,
+    int Make_uWRHS(double tau, Cell *grid_pt, double **w_rhs, InitData *DATA,
                    int rk_flag, double theta_local, double *a_local);
-    double Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
+    double Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
                          InitData *DATA, int rk_flag, double theta_local,
                          double *a_local, double *sigma_1d);
     
-    int Make_uPRHS(double tau, Grid *grid_pt, double *p_rhs, InitData *DATA,
+    int Make_uPRHS(double tau, Cell *grid_pt, double *p_rhs, InitData *DATA,
                    int rk_flag, double theta_local);
 
-    double Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
+    double Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
                           int rk_flag, double theta_local, double *sigma_1d);
-    int Make_uqRHS(double tau, Grid *grid_pt, double **w_rhs, InitData *DATA,
+    int Make_uqRHS(double tau, Cell *grid_pt, double **w_rhs, InitData *DATA,
                    int rk_flag);
-    double Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
+    double Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
                          int rk_flag, double theta_local, double *a_local,
                          double *sigma_1d); 
     double get_temperature_dependent_eta_s(InitData *DATA, double T);

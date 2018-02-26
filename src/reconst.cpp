@@ -25,8 +25,8 @@ Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
 Reconst::~Reconst() {
 }
 
-int Reconst::ReconstIt_shell(Grid *grid_p, double tau, double *uq,
-                             Grid *grid_pt, int rk_flag) {
+int Reconst::ReconstIt_shell(Cell *grid_p, double tau, double *uq,
+                             Cell *grid_pt, int rk_flag) {
     int flag = 0;
     flag = ReconstIt_velocity_Newton(grid_p, tau, uq, grid_pt,
                                      rk_flag);
@@ -52,8 +52,8 @@ int Reconst::ReconstIt_shell(Grid *grid_p, double tau, double *uq,
 }
 
 //! reconstruct TJb from q[0] - q[4] solve energy density first
-int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
-                       Grid *grid_pt, int rk_flag) {
+int Reconst::ReconstIt(Cell *grid_p, double tau, double *uq,
+                       Cell *grid_pt, int rk_flag) {
     double K00, T00, J0, u[4], epsilon, p, h;
     double epsilon_prev, rhob_prev, p_prev, p_guess, temperr;
     double epsilon_next, rhob_next, p_next, err, temph, cs2;
@@ -286,7 +286,7 @@ int Reconst::ReconstIt(Grid *grid_p, double tau, double *uq,
 
 //! This function reverts the grid information back its values
 //! at the previous time step
-void Reconst::revert_grid(Grid *grid_current, Grid *grid_prev, int rk_flag) {
+void Reconst::revert_grid(Cell *grid_current, Cell *grid_prev, int rk_flag) {
     if (echo_level > 5) {
         music_message.warning("revert grid to its previous value ...");
     }
@@ -298,7 +298,7 @@ void Reconst::revert_grid(Grid *grid_current, Grid *grid_prev, int rk_flag) {
 }
 
 int Reconst::ReconstIt_velocity_iteration(
-    Grid *grid_p, double tau, double *uq, Grid *grid_pt, int rk_flag) {
+    Cell *grid_p, double tau, double *uq, Cell *grid_pt, int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
     /* reconstruct velocity first for finite mu_B case */
     /* use iteration to solve v and u0 */
@@ -571,7 +571,7 @@ int Reconst::ReconstIt_velocity_iteration(
 //! reconstruct velocity first for finite mu_B case
 //! use Newton's method to solve v and u0
 int Reconst::ReconstIt_velocity_Newton(
-    Grid *grid_p, double tau, double *uq, Grid *grid_pt, int rk_flag) {
+    Cell *grid_p, double tau, double *uq, Cell *grid_pt, int rk_flag) {
     /* prepare for the iteration */
     /* uq = qiphL, qiphR, etc 
        qiphL[alpha] means, for instance, TJ[alpha][0] 
@@ -939,7 +939,7 @@ double Reconst::reconst_u0_df(double u0, double T00, double K00, double M,
 
 
 //! This function regulate the grid information
-void Reconst::regulate_grid(Grid *grid_cell, double elocal, int rk_flag) {
+void Reconst::regulate_grid(Cell *grid_cell, double elocal, int rk_flag) {
     if (echo_level > 9) {
         music_message.warning("regulate grid to ideal form...");
     }

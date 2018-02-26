@@ -12,8 +12,8 @@ using namespace std;
 
 Evolve::Evolve(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) {
     eos          = eosIn;
-    grid         = new Grid;
-    grid_info    = new Grid_info(DATA_in, eosIn);
+    grid         = new Cell;
+    grid_info    = new Cell_info(DATA_in, eosIn);
     util         = new Util;
     advance      = new Advance(eosIn, DATA_in, hydro_source_in);
     u_derivative = new U_derivative(eosIn, DATA_in);
@@ -45,7 +45,7 @@ Evolve::~Evolve() {
 }
 
 // master control function for hydrodynamic evolution
-int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
+int Evolve::EvolveIt(InitData *DATA, Cell ***arena) {
     // first pass some control parameters
     facTau                      = DATA->facTau;
     int output_hydro_debug_flag = DATA->output_hydro_debug_info;
@@ -219,7 +219,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     return 1; /* successful */
 }/* Evolve */
 
-void Evolve::store_previous_step_for_freezeout(Grid ***arena) {
+void Evolve::store_previous_step_for_freezeout(Cell ***arena) {
     int nx = grid_nx;
     int ny = grid_ny;
     int neta = grid_neta;
@@ -255,7 +255,7 @@ void Evolve::store_previous_step_for_freezeout(Grid ***arena) {
 }
 
 //! update grid information after the tau RK evolution 
-int Evolve::Update_prev_Arena(Grid ***arena) {
+int Evolve::Update_prev_Arena(Cell ***arena) {
     int neta = grid_neta;
     int nx   = grid_nx;
     int ny   = grid_ny;
@@ -291,7 +291,7 @@ int Evolve::Update_prev_Arena(Grid ***arena) {
 }
 
 
-int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena) {
+int Evolve::AdvanceRK(double tau, InitData *DATA, Cell ***arena) {
     // control function for Runge-Kutta evolution in tau
     int flag = 0;
     // loop over Runge-Kutta steps
@@ -306,7 +306,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena) {
 }  /* AdvanceRK */
       
 
-//void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid ***arena, int size, int rank)
+//void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Cell ***arena, int size, int rank)
 //{   
 //  FILE *t_file;
 //  const char* t_name = "tauf.dat";
@@ -718,7 +718,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena) {
 //}
 //
 //
-//void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid ***arena, int size, int rank)
+//void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Cell ***arena, int size, int rank)
 //{   
 //  ofstream t_file;
 //  t_file.open("tauf.dat" , ios::out | ios::app );
@@ -4418,7 +4418,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena) {
 //// Modified version of simplified freeze out  (M. Luzum, 04/2013)
 //// Every element of the freezeout surface is a rectangular cuboid
 //// located mid-way between cells/grid points.
-//int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid ***arena, int size, int rank)
+//int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Cell ***arena, int size, int rank)
 //{   
 //  stringstream strs_name;
 //  strs_name << "surface" << rank << ".dat";
@@ -5397,7 +5397,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid ***arena) {
 //
 // Cornelius freeze out  (C. Shen, 11/2014)
 int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
-                                           Grid ***arena) {
+                                           Cell ***arena) {
     // output hyper-surfaces for Cooper-Frye
     int *all_frozen = new int [n_freeze_surf];
     for(int i = 0; i < n_freeze_surf; i++)
@@ -5437,7 +5437,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
 }
 
 int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
-                                              int ieta, Grid ***arena,
+                                              int ieta, Cell ***arena,
                                               int thread_id, double epsFO) {
     int nx = grid_nx;
     int ny = grid_ny;
@@ -6181,7 +6181,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
 
 // Cornelius freeze out (C. Shen, 11/2014)
 int Evolve::FreezeOut_equal_tau_Surface(double tau, InitData *DATA,
-                                        Grid ***arena) {
+                                        Cell ***arena) {
     // this function freeze-out fluid cells between epsFO and epsFO_low
     // on an equal time hyper-surface at the first time step
     // this function will be trigged if freezeout_lowtemp_flag == 1
@@ -6206,7 +6206,7 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau, InitData *DATA,
 }
 
 void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
-                                            int ieta, Grid ***arena,
+                                            int ieta, Cell ***arena,
                                             int thread_id, double epsFO) {
 
     double epsFO_low = 0.05/hbarc;        // 1/fm^4
@@ -6412,7 +6412,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
 }
 
 int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
-                                double tau, InitData *DATA, Grid ***arena) {
+                                double tau, InitData *DATA, Cell ***arena) {
     // find boost-invariant hyper-surfaces
     int *all_frozen = new int [n_freeze_surf];
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {

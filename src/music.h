@@ -32,7 +32,7 @@ class MUSIC {
 
     EOS *eos;
 
-    Grid ***arena;
+    Cell ***arena;
 
     Init *init;
     Evolve *evolve;

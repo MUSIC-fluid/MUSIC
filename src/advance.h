@@ -38,25 +38,25 @@ class Advance {
     Advance(EOS *eosIn, InitData* DATA_in, hydro_source *hydro_source_in);
     ~Advance();
 
-    int AdvanceIt(double tau_init, InitData *DATA, Grid ***arena, int rk_flag);
+    int AdvanceIt(double tau_init, InitData *DATA, Cell ***arena, int rk_flag);
 
     int FirstRKStepT(double tau, double x_local, double y_local,
-                     double eta_s_local, InitData *DATA, Grid *grid_pt,
+                     double eta_s_local, InitData *DATA, Cell *grid_pt,
                      int rk_flag);
 
-    int FirstRKStepW(double tau_it, InitData *DATA, Grid *grid_pt,
+    int FirstRKStepW(double tau_it, InitData *DATA, Cell *grid_pt,
                      int rk_flag, double theta_local, double* a_local,
                      double *sigma_local, int ieta, int ix, int iy);
 
-    void UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag);
-    int QuestRevert(double tau, Grid *grid_pt, int rk_flag, InitData *DATA,
+    void UpdateTJbRK(Cell *grid_rk, Cell *grid_pt, int rk_flag);
+    int QuestRevert(double tau, Cell *grid_pt, int rk_flag, InitData *DATA,
                     int ieta, int ix, int iy);
-    int QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
+    int QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
                         InitData *DATA, int ieta, int ix, int iy);
 
-    void MakeDeltaQI(double tau, Grid *grid_pt, double *qi, int rk_flag);
-    double MaxSpeed(double tau, int direc, Grid *grid_p);
-    double get_TJb(Grid *grid_p, int rk_flag, int mu, int nu);
+    void MakeDeltaQI(double tau, Cell *grid_pt, double *qi, int rk_flag);
+    double MaxSpeed(double tau, int direc, Cell *grid_p);
+    double get_TJb(Cell *grid_p, int rk_flag, int mu, int nu);
 };
 
 #endif  // SRC_ADVANCE_H_

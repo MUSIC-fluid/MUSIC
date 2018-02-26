@@ -7,7 +7,7 @@
 
 using namespace std;
 
-Grid_info::Grid_info(InitData* DATA_in, EOS *eos_ptr_in) {
+Cell_info::Cell_info(InitData* DATA_in, EOS *eos_ptr_in) {
     DATA_ptr = DATA_in;
     eos_ptr = eos_ptr_in;
 
@@ -24,7 +24,7 @@ Grid_info::Grid_info(InitData* DATA_in, EOS *eos_ptr_in) {
     }
 }
 
-Grid_info::~Grid_info() {
+Cell_info::~Cell_info() {
     if (DATA_ptr->turn_on_diff == 1) {
         if (DATA_ptr->deltaf_14moments == 1) {
             for (int i = 0; i < deltaf_coeff_table_14mom_length_T; i++) {
@@ -53,7 +53,7 @@ Grid_info::~Grid_info() {
 
 
 //! This function outputs a header files for JF and Gojko's EM program
-void Grid_info::Output_hydro_information_header(InitData *DATA) {
+void Cell_info::Output_hydro_information_header(InitData *DATA) {
     string fname = "hydro_info_header_h";
 
     // Open output file
@@ -100,7 +100,7 @@ void Grid_info::Output_hydro_information_header(InitData *DATA) {
 
 
 //! This function outputs hydro evolution file in binary format
-void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
+void Cell_info::OutputEvolutionDataXYEta(Cell ***arena, InitData *DATA,
                                          double tau) {
     const string out_name_xyeta = "evolution_xyeta.dat";
     const string out_name_W_xyeta =
@@ -266,7 +266,7 @@ void Grid_info::OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
 
     
 //! This function outputs hydro evolution file in binary format
-void Grid_info::OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
+void Cell_info::OutputEvolutionDataXYEta_chun(Cell ***arena, InitData *DATA,
                                               double tau) {
     // the format of the file is as follows,
     //    itau ix iy ieta T ux uy ueta
@@ -388,7 +388,7 @@ void Grid_info::OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
 
 //! This function prints to the screen the maximum local energy density,
 //! the maximum temperature in the current grid
-void Grid_info::get_maximum_energy_density(Grid ***arena) {
+void Cell_info::get_maximum_energy_density(Cell ***arena) {
     double eps_max  = 0.0;
     double rhob_max = 0.0;
     double T_max    = 0.0;
@@ -434,7 +434,7 @@ void Grid_info::get_maximum_energy_density(Grid ***arena) {
 
 //! This function checks the total energy and total net baryon number
 //! at a give proper time
-void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
+void Cell_info::check_conservation_law(Cell ***arena, InitData *DATA,
                                       double tau) {
     double N_B     = 0.0;
     double T_tau_t = 0.0;
@@ -495,7 +495,7 @@ void Grid_info::check_conservation_law(Grid ***arena, InitData *DATA,
 
 
 //! This function putputs files to check with Gubser flow solution
-void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
+void Cell_info::Gubser_flow_check_file(Cell ***arena, double tau) {
     double unit_convert = 0.19733;  // hbarC
     if (tau > 1.) {
         ostringstream filename_analytic;
@@ -595,7 +595,7 @@ void Grid_info::Gubser_flow_check_file(Grid ***arena, double tau) {
 
 
 //! This function outputs files to cross check with 1+1D simulation
-void Grid_info::output_1p1D_check_file(Grid ***arena, double tau) {
+void Cell_info::output_1p1D_check_file(Cell ***arena, double tau) {
     ostringstream filename;
     filename << "1+1D_check_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
@@ -617,7 +617,7 @@ void Grid_info::output_1p1D_check_file(Grid ***arena, double tau) {
 
 
 //! This function outputs energy density and n_b for making movies
-void Grid_info::output_evolution_for_movie(Grid ***arena, double tau) {
+void Cell_info::output_evolution_for_movie(Cell ***arena, double tau) {
     ostringstream filename;
     filename << "movie_tau_"
              << setprecision(2) << fixed << tau << ".dat";
@@ -626,7 +626,7 @@ void Grid_info::output_evolution_for_movie(Grid ***arena, double tau) {
 
 
 //! This function dumps the energy density and net baryon density
-void Grid_info::output_energy_density_and_rhob_disitrubtion(Grid ***arena,
+void Cell_info::output_energy_density_and_rhob_disitrubtion(Cell ***arena,
                                                             string filename) {
     ofstream output_file(filename.c_str());
     double unit_convert = 0.19733;  // hbarC [GeV*fm]
@@ -649,7 +649,7 @@ void Grid_info::output_energy_density_and_rhob_disitrubtion(Grid ***arena,
 
 //! This function outputs the evolution of hydrodynamic variables at a
 //! give fluid cell
-void Grid_info::monitor_fluid_cell(Grid ***arena, int ix, int iy, int ieta,
+void Cell_info::monitor_fluid_cell(Cell ***arena, int ix, int iy, int ieta,
                                    double tau) {
     ostringstream filename;
     filename << "monitor_fluid_cell_ix_" << ix << "_iy_" << iy
@@ -679,7 +679,7 @@ void Grid_info::monitor_fluid_cell(Grid ***arena, int ix, int iy, int ieta,
     output_file.close();
 }
 
-void Grid_info::load_deltaf_qmu_coeff_table(string filename) {
+void Cell_info::load_deltaf_qmu_coeff_table(string filename) {
     ifstream table(filename.c_str());
     deltaf_qmu_coeff_table_length_T = 150;
     deltaf_qmu_coeff_table_length_mu = 100;
@@ -698,7 +698,7 @@ void Grid_info::load_deltaf_qmu_coeff_table(string filename) {
     table.close();
 }
 
-void Grid_info::load_deltaf_qmu_coeff_table_14mom(string filename) {
+void Cell_info::load_deltaf_qmu_coeff_table_14mom(string filename) {
     ifstream table(filename.c_str());
     deltaf_coeff_table_14mom_length_T = 190;
     deltaf_coeff_table_14mom_length_mu = 160;
@@ -762,7 +762,7 @@ void Grid_info::load_deltaf_qmu_coeff_table_14mom(string filename) {
     }
 }
 
-double Grid_info::get_deltaf_qmu_coeff(double T, double muB) {
+double Cell_info::get_deltaf_qmu_coeff(double T, double muB) {
     if (muB < 0) {
        muB = -muB;
     }
@@ -793,7 +793,7 @@ double Grid_info::get_deltaf_qmu_coeff(double T, double muB) {
     return(coeff);
 }
 
-double Grid_info::get_deltaf_coeff_14moments(double T, double muB,
+double Cell_info::get_deltaf_coeff_14moments(double T, double muB,
                                              double type) {
     int idx_T = static_cast<int>(
                 (T - delta_coeff_table_14mom_T0)/delta_coeff_table_14mom_dT);
@@ -818,7 +818,7 @@ double Grid_info::get_deltaf_coeff_14moments(double T, double muB,
     } else if (type == 5) {
        deltaf_table = deltaf_coeff_tb_14mom_Bpi_shear;
     } else {
-       music_message << "Grid_info::get_deltaf_coeff_14moments: unknown type: "
+       music_message << "Cell_info::get_deltaf_coeff_14moments: unknown type: "
                      << type;
        music_message.flush("error");
        exit(-1);
@@ -839,8 +839,8 @@ double Grid_info::get_deltaf_coeff_14moments(double T, double muB,
 
 //! This function outputs average T and mu_B as a function of proper tau
 //! within a given space-time rapidity range
-void Grid_info::output_average_phase_diagram_trajectory(
-                double tau, double eta_min, double eta_max, Grid ***arena) {
+void Cell_info::output_average_phase_diagram_trajectory(
+                double tau, double eta_min, double eta_max, Cell ***arena) {
     ostringstream filename;
     filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
              << "_" << eta_max << ".dat";

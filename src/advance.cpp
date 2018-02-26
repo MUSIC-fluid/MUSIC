@@ -45,7 +45,7 @@ Advance::~Advance() {
 
 
 //! this function evolves one Runge-Kutta step in tau
-int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
+int Advance::AdvanceIt(double tau, InitData *DATA, Cell ***arena,
                        int rk_flag) {
     int ieta, ix, iy;
     #pragma omp parallel private(ieta, ix, iy)
@@ -104,7 +104,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid ***arena,
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 int Advance::FirstRKStepT(double tau, double x_local, double y_local,
-                          double eta_s_local, InitData *DATA, Grid *grid_pt,
+                          double eta_s_local, InitData *DATA, Cell *grid_pt,
                           int rk_flag) {
     // this advances the ideal part
     double tau_now  = tau;
@@ -189,7 +189,7 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
     delete[] j_mu;
 
     int flag = 0;
-    Grid grid_rk_t;
+    Cell grid_rk_t;
     grid_rk_t.u = util->mtx_malloc(1, 4);
     flag = reconst_ptr->ReconstIt_shell(&grid_rk_t, tau_next, qi, grid_pt,
                                         rk_flag); 
@@ -209,7 +209,7 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
 */
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
-int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
+int Advance::FirstRKStepW(double tau, InitData *DATA, Cell *grid_pt,
                           int rk_flag, double theta_local, double* a_local,
                           double *sigma_local, int ieta, int ix, int iy) {
     double tau_now = tau;
@@ -442,7 +442,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid *grid_pt,
 }/* FirstRKStepW */
 
 // update results after RK evolution to grid_pt
-void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag) {
+void Advance::UpdateTJbRK(Cell *grid_rk, Cell *grid_pt, int rk_flag) {
     int trk_flag = rk_flag + 1;
     if (rk_flag == 1) {
         trk_flag = 0;
@@ -465,7 +465,7 @@ void Advance::UpdateTJbRK(Grid *grid_rk, Grid *grid_pt, int rk_flag) {
 
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
-int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
+int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
                          InitData *DATA, int ieta, int ix, int iy) {
     int revert_flag = 0;
     double eps_scale = 0.5;   // 1/fm^4
@@ -558,7 +558,7 @@ int Advance::QuestRevert(double tau, Grid *grid_pt, int rk_flag,
 
 //! this function reduce the size of net baryon diffusion current
 //! in the dilute region to stablize numerical simulations
-int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
+int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
                              InitData *DATA, int ieta, int ix, int iy) {
 
     int trk_flag = rk_flag + 1;
@@ -627,7 +627,7 @@ int Advance::QuestRevert_qmu(double tau, Grid *grid_pt, int rk_flag,
 
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi,
+void Advance::MakeDeltaQI(double tau, Cell *grid_pt, double *qi,
                           int rk_flag) {
     double delta[4];
     delta[1] = DATA_ptr->delta_x;
@@ -653,7 +653,7 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi,
     double *qimhL = new double[5];
     double *qimhR = new double[5];
     
-    Grid grid_phL, grid_phR, grid_mhL, grid_mhR;
+    Cell grid_phL, grid_phR, grid_mhL, grid_mhR;
     grid_phL.u = util->mtx_malloc(1, 4);
     grid_phR.u = util->mtx_malloc(1, 4);
     grid_mhL.u = util->mtx_malloc(1, 4);
@@ -757,7 +757,7 @@ void Advance::MakeDeltaQI(double tau, Grid *grid_pt, double *qi,
 */
 
 // determine the maximum signal propagation speed at the given direction
-double Advance::MaxSpeed(double tau, int direc, Grid *grid_p) {
+double Advance::MaxSpeed(double tau, int direc, Cell *grid_p) {
     //grid_p = grid_p_h_L, grid_p_h_R, grid_m_h_L, grid_m_h_R
     //these are reconstructed by Reconst which only uses u[0] and TJb[0]
     double utau = (grid_p->u[0][0]);
@@ -833,7 +833,7 @@ double Advance::MaxSpeed(double tau, int direc, Grid *grid_p) {
     return f;
 }/* MaxSpeed */
 
-double Advance::get_TJb(Grid *grid_p, int rk_flag, int mu, int nu) {
+double Advance::get_TJb(Cell *grid_p, int rk_flag, int mu, int nu) {
     double rhob = grid_p->rhob;
     if (rk_flag == 1) {
         rhob = grid_p->rhob_t;

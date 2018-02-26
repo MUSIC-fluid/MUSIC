@@ -5,7 +5,7 @@
 #include <iomanip>
 #include "./data.h"
 
-class Grid {
+class Cell {
  public:
     double epsilon;
     double rhob;
@@ -35,10 +35,10 @@ class Grid {
     //double **dU; /* dU[m][n] = partial_m u_n at the current time */
     //double ***pimunu; /* Stress part of the TJb */
     
-    Grid **nbr_p_1; 
-    Grid **nbr_m_1; 
-    Grid **nbr_p_2; 
-    Grid **nbr_m_2; 
+    Cell **nbr_p_1; 
+    Cell **nbr_m_1; 
+    Cell **nbr_p_2; 
+    Cell **nbr_m_2; 
         
     /* we need to calculate partial_tau u[mu] */
     /* dU[flag][m][n] = u^{m,n} = partial^n u^m with the rk flag */
@@ -64,8 +64,8 @@ class Grid {
     double pi_b_prev;
     double *W_prev;
         
-    Grid();//constructor
-    Grid ***grid_c_malloc(int , int , int );
+    Cell();//constructor
+    Cell ***grid_c_malloc(int , int , int );
 };
 
 #endif  // SRC_GRID_H_

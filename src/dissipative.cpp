@@ -27,7 +27,7 @@ Diss::~Diss() {
 for everywhere else. also, this change is necessary
 to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
 /* this is the only one that is being subtracted in the rhs */
-double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
+double Diss::MakeWSource(double tau, int alpha, Cell *grid_pt,
                          InitData *DATA, int rk_flag) {
     double delta[4], taufactor;
     double shear_on, bulk_on, diff_on;
@@ -188,7 +188,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
 }/* MakeWSource */
 /* MakeWSource is for Tmunu */
 
-double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
+double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
                            InitData *DATA, int rk_flag, double theta_local,
                            double *a_local, double *sigma_1d) {
     if (DATA->turn_on_shear == 0)
@@ -457,7 +457,7 @@ double Diss::Make_uWSource(double tau, Grid *grid_pt, int mu, int nu,
 }/* Make_uWSource */
 
 
-int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
+int Diss::Make_uWRHS(double tau, Cell *grid_pt, double **w_rhs,
                      InitData *DATA, int rk_flag, double theta_local,
                      double *a_local) {
     for (int a = 0; a < 4; a++) {
@@ -620,7 +620,7 @@ int Diss::Make_uWRHS(double tau, Grid *grid_pt, double **w_rhs,
 
 
 
-int Diss::Make_uPRHS(double tau, Grid *grid_pt, double *p_rhs, InitData *DATA, 
+int Diss::Make_uPRHS(double tau, Cell *grid_pt, double *p_rhs, InitData *DATA, 
                      int rk_flag, double theta_local) {
     int direc;
     double f, fp1, fm1, fp2, fm2, delta[4];
@@ -731,7 +731,7 @@ int Diss::Make_uPRHS(double tau, Grid *grid_pt, double *p_rhs, InitData *DATA,
 
 
 
-double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
+double Diss::Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
                         int rk_flag, double theta_local, double *sigma_1d) {
     if (DATA->turn_on_bulk == 0) return 0.0;
 
@@ -869,7 +869,7 @@ double Diss::Make_uPiSource(double tau, Grid *grid_pt, InitData *DATA,
     -Delta[a][eta] u[eta] q[tau]/tau
     -u[a]u[b]g[b][e] Dq[e]
 */
-double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
+double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
                            int rk_flag, double theta_local, double *a_local,
                            double *sigma_1d) {
     double q[4];
@@ -1000,7 +1000,7 @@ double Diss::Make_uqSource(double tau, Grid *grid_pt, int nu, InitData *DATA,
 }/* Make_uqSource */
 
 
-int Diss::Make_uqRHS(double tau, Grid *grid_pt, double **w_rhs, InitData *DATA,
+int Diss::Make_uqRHS(double tau, Cell *grid_pt, double **w_rhs, InitData *DATA,
                      int rk_flag) {
     int mu, nu, direc;
     double f, fp1, fm1, fp2, fm2, delta[4];

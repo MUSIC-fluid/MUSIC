@@ -258,26 +258,26 @@ void ReadInParameters::read_in_parameters(InitData *parameter_list,
         istringstream(tempinput) >> tempfac_eta;
     parameter_list->fac_eta = tempfac_eta;
     
-    // Grid_size_in_*
+    // Cell_size_in_*
     // number of cells in x,y direction
     int tempnx = 10;
-    tempinput = util->StringFind4(input_file, "Grid_size_in_x");
+    tempinput = util->StringFind4(input_file, "Cell_size_in_x");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempnx;
     parameter_list->nx = tempnx;
     int tempny = 10;
-    tempinput = util->StringFind4(input_file, "Grid_size_in_y");
+    tempinput = util->StringFind4(input_file, "Cell_size_in_y");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempny;
     parameter_list->ny = tempny;
     
-    // Grid_size_in_eta
+    // Cell_size_in_eta
     // number of cells in eta direction.
     // One cell is positioned at eta=0, 
     // half the cells are at negative eta,
     // the rest (one fewer) are at positive eta
     int tempneta = 1;
-    tempinput = util->StringFind4(input_file, "Grid_size_in_eta");
+    tempinput = util->StringFind4(input_file, "Cell_size_in_eta");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempneta;
     parameter_list->neta = tempneta;
@@ -892,21 +892,21 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
     }
 
     if (parameter_list->nx != parameter_list->ny) {
-        music_message << "Grid size in x is not equal to grid size in y!";
+        music_message << "Cell size in x is not equal to grid size in y!";
         music_message.flush("warning");
     }
 
     if (parameter_list->neta < 2 && !parameter_list->boost_invariant) {
-        music_message << "Grid size in eta = " << parameter_list->neta 
+        music_message << "Cell size in eta = " << parameter_list->neta 
                       << "is too small for a (3+1)-d run! "
-                      << "Please increase Grid_size_in_eta to be "
+                      << "Please increase Cell_size_in_eta to be "
                       << "larger than 2 at least!";
         music_message.flush("error");
         exit(1);
     }
 
     if (parameter_list->boost_invariant && parameter_list->neta > 1) {
-        music_message << "Grid size in eta is set to "
+        music_message << "Cell size in eta is set to "
                       << parameter_list->neta << " for a (2+1)-d simulation! "
                       << "This is redundant! Reset neta to 1! ";
         music_message.flush("warning");

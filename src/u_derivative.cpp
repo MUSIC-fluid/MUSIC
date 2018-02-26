@@ -21,7 +21,7 @@ U_derivative::~U_derivative() {
 
 //! This function is a shell function to calculate parital^\nu u^\mu
 int U_derivative::MakedU(double tau, InitData *DATA,
-                         Grid ***arena, int rk_flag) {
+                         Cell ***arena, int rk_flag) {
     // ideal hydro: no need to evaluate any flow derivatives
     if (DATA->viscosity_flag == 0) {
         return(1);
@@ -54,7 +54,7 @@ int U_derivative::MakedU(double tau, InitData *DATA,
 
 //! this function returns the expansion rate on the grid
 double U_derivative::calculate_expansion_rate(
-        double tau, Grid ***arena, int ieta, int ix, int iy, int rk_flag) {
+        double tau, Cell ***arena, int ieta, int ix, int iy, int rk_flag) {
     double partial_mu_u_supmu = 0.0;
     for (int mu = 0; mu < 4; mu++) {
         double gfac = (mu == 0 ? -1.0 : 1.0);
@@ -67,7 +67,7 @@ double U_derivative::calculate_expansion_rate(
 
 
 //! this function returns Du^\mu
-void U_derivative::calculate_Du_supmu(double tau, Grid ***arena, int ieta,
+void U_derivative::calculate_Du_supmu(double tau, Cell ***arena, int ieta,
                                       int ix, int iy, int rk_flag, double *a) {
     for (int mu = 0; mu <= 4; mu++) {
         double u_supnu_partial_nu_u_supmu = 0.0;
@@ -83,7 +83,7 @@ void U_derivative::calculate_Du_supmu(double tau, Grid ***arena, int ieta,
 
 
 //! This funciton returns the velocity shear tensor sigma^\mu\nu
-void U_derivative::calculate_velocity_shear_tensor(double tau, Grid ***arena,
+void U_derivative::calculate_velocity_shear_tensor(double tau, Cell ***arena,
     int ieta, int ix, int iy, int rk_flag, double *a_local, double *sigma) {
     double dUsup_local[4][4];
     double u_local[4];
@@ -150,7 +150,7 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, Grid ***arena,
 }
 
 
-int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt,
+int U_derivative::MakeDSpatial(double tau, InitData *DATA, Cell *grid_pt,
                                int rk_flag) {
     double g, f, fp1, fm1, taufactor;
     double delta[4];
@@ -242,7 +242,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid *grid_pt,
     return 1;
 }/* MakeDSpatial */
 
-int U_derivative::MakeDTau(double tau, InitData *DATA, Grid *grid_pt,
+int U_derivative::MakeDTau(double tau, InitData *DATA, Cell *grid_pt,
                            int rk_flag) {
     int m;
     double f;

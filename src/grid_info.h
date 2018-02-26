@@ -10,7 +10,7 @@
 #include "./grid.h"
 #include "./pretty_ostream.h"
 
-class Grid_info {
+class Cell_info {
  private:
     InitData* DATA_ptr;
     EOS* eos_ptr;
@@ -31,18 +31,18 @@ class Grid_info {
     double **deltaf_coeff_tb_14mom_Bpi_shear;
 
  public:
-    Grid_info(InitData* DATA_in, EOS *eos_ptr_in);
-    ~Grid_info();
+    Cell_info(InitData* DATA_in, EOS *eos_ptr_in);
+    ~Cell_info();
 
     //! This function outputs a header files for JF and Gojko's EM programs
     void Output_hydro_information_header(InitData *DATA);
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta(Grid ***arena, InitData *DATA,
+    void OutputEvolutionDataXYEta(Cell ***arena, InitData *DATA,
                                   double tau);
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta_chun(Grid ***arena, InitData *DATA,
+    void OutputEvolutionDataXYEta_chun(Cell ***arena, InitData *DATA,
                                        double tau);
 
     void load_deltaf_qmu_coeff_table(string filename);
@@ -51,34 +51,34 @@ class Grid_info {
     double get_deltaf_coeff_14moments(double T, double muB, double type);
 
     //! This function putputs files to check with Gubser flow solution
-    void Gubser_flow_check_file(Grid ***arena, double tau);
+    void Gubser_flow_check_file(Cell ***arena, double tau);
 
     //! This function outputs files to cross check with 1+1D simulation
-    void output_1p1D_check_file(Grid ***arena, double tau);
+    void output_1p1D_check_file(Cell ***arena, double tau);
 
     //! This function prints to the screen the maximum local energy density,
     //! the maximum temperature in the current grid
-    void get_maximum_energy_density(Grid ***arena);
+    void get_maximum_energy_density(Cell ***arena);
 
     //! This function outputs energy density and n_b for making movies
-    void output_evolution_for_movie(Grid ***arena, double tau);
+    void output_evolution_for_movie(Cell ***arena, double tau);
 
     //! This function outputs average T and mu_B as a function of proper tau
     //! within a given space-time rapidity range
     void output_average_phase_diagram_trajectory(
-                double tau, double eta_min, double eta_max, Grid ***arena);
+                double tau, double eta_min, double eta_max, Cell ***arena);
 
     //! This function dumps the energy density and net baryon density
-    void output_energy_density_and_rhob_disitrubtion(Grid ***arena,
+    void output_energy_density_and_rhob_disitrubtion(Cell ***arena,
                                                      string filename);
     
     //! This function checks the total energy and total net baryon number
     //! at a give proper time
-    void check_conservation_law(Grid ***arena, InitData *DATA, double tau);
+    void check_conservation_law(Cell ***arena, InitData *DATA, double tau);
 
     //! This function outputs the evolution of hydrodynamic variables at a
     //! give fluid cell
-    void monitor_fluid_cell(Grid ***arena, int ix, int iy, int ieta,
+    void monitor_fluid_cell(Cell ***arena, int ix, int iy, int ieta,
                             double tau);
 };
 

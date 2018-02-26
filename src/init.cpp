@@ -23,9 +23,9 @@ Init::~Init() {
     delete util;
 }
 
-void Init::InitArena(InitData *DATA, Grid ****arena) {
-    Grid *helperGrid;
-    helperGrid = new Grid;
+void Init::InitArena(InitData *DATA, Cell ****arena) {
+    Cell *helperCell;
+    helperCell = new Cell;
     music_message.info("initArena");
     if (DATA->Initial_profile == 0) {
         music_message << "Using Initial_profile=" << DATA->Initial_profile;
@@ -113,8 +113,8 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
     }
 
     // initialize arena
-    *arena = helperGrid->grid_c_malloc(DATA->neta, DATA->nx + 1, DATA->ny + 1);
-    music_message.info("Grid allocated.");
+    *arena = helperCell->grid_c_malloc(DATA->neta, DATA->nx + 1, DATA->ny + 1);
+    music_message.info("Cell allocated.");
 
     InitTJb(DATA, arena);
 
@@ -123,11 +123,11 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
     }
 
     LinkNeighbors(DATA, arena);
-    delete helperGrid;
+    delete helperCell;
 }/* InitArena */
 
 
-void Init::LinkNeighbors(InitData *DATA, Grid ****arena) {
+void Init::LinkNeighbors(InitData *DATA, Cell ****arena) {
     int nx = DATA->nx;
     int ny = DATA->ny;
     int neta = DATA->neta;
@@ -136,10 +136,10 @@ void Init::LinkNeighbors(InitData *DATA, Grid ****arena) {
     for (int ieta = 0; ieta < neta; ieta++) {
         for (int ix = 0; ix <= nx; ix++) {
             for (int iy = 0; iy <= ny; iy++) {
-                (*arena)[ieta][ix][iy].nbr_p_1 = new Grid *[4];
-                (*arena)[ieta][ix][iy].nbr_m_1 = new Grid *[4];
-                (*arena)[ieta][ix][iy].nbr_p_2 = new Grid *[4];
-                (*arena)[ieta][ix][iy].nbr_m_2 = new Grid *[4];
+                (*arena)[ieta][ix][iy].nbr_p_1 = new Cell *[4];
+                (*arena)[ieta][ix][iy].nbr_m_1 = new Cell *[4];
+                (*arena)[ieta][ix][iy].nbr_p_2 = new Cell *[4];
+                (*arena)[ieta][ix][iy].nbr_m_2 = new Cell *[4];
             }
         }
     }
@@ -154,7 +154,7 @@ void Init::LinkNeighbors(InitData *DATA, Grid ****arena) {
     }
 }  /* LinkNeighbors */
 
-void Init::LinkNeighbors_XY(InitData *DATA, int ieta, Grid ***arena) {
+void Init::LinkNeighbors_XY(InitData *DATA, int ieta, Cell ***arena) {
     int nx = DATA->nx;
     int ny = DATA->ny;
     int neta = DATA->neta;
@@ -215,7 +215,7 @@ void Init::LinkNeighbors_XY(InitData *DATA, int ieta, Grid ***arena) {
 
 
 //! This is a shell function to initial hydrodynamic fields
-int Init::InitTJb(InitData *DATA, Grid ****arena) {
+int Init::InitTJb(InitData *DATA, Cell ****arena) {
     if (DATA->Initial_profile == 0) {
         // Gubser flow test
         music_message.info(" Perform Gubser flow test ... ");
@@ -324,7 +324,7 @@ int Init::InitTJb(InitData *DATA, Grid ****arena) {
     return 1;
 }  /* InitTJb*/
 
-void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
+void Init::initial_Gubser_XY(InitData *DATA, int ieta, Cell ***arena) {
     string input_filename;
     string input_filename_prev;
     if (DATA->turn_on_shear == 1) {
@@ -570,7 +570,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
     }
 }
 
-void Init::initial_1p1D_eta(InitData *DATA, Grid ***arena) {
+void Init::initial_1p1D_eta(InitData *DATA, Cell ***arena) {
     string input_ed_filename;
     string input_rhob_filename;
     input_ed_filename = "tests/test_1+1D_with_Akihiko/e_baryon_init.dat";
@@ -669,7 +669,7 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid ***arena) {
     delete[] temp_profile_rhob;
 }
 
-void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
+void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Cell ***arena) {
     ifstream profile(DATA->initName.c_str());
 
     string dummy;
@@ -803,7 +803,7 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
 }
 
 void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
-                                       Grid ***arena) {
+                                       Cell ***arena) {
     double tau0 = DATA->tau0;
     ifstream profile(DATA->initName.c_str());
 
@@ -1014,7 +1014,7 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
 }
 
 void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
-                                      Grid ***arena) {
+                                      Cell ***arena) {
     // first load in the transverse profile
     ifstream profile_TA(DATA->initName_TA.c_str());
     ifstream profile_TB(DATA->initName_TB.c_str());
@@ -1131,7 +1131,7 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
 }
 
 void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
-                                           Grid ***arena) {
+                                           Cell ***arena) {
     int nx = DATA->nx;
     int ny = DATA->ny;
     //double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
@@ -1219,7 +1219,7 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
 }
 
 
-void Init::initial_UMN_with_rhob(InitData *DATA, Grid ***arena) {
+void Init::initial_UMN_with_rhob(InitData *DATA, Cell ***arena) {
     // first load in the transverse profile
     ifstream profile(DATA->initName.c_str());
     ifstream profile_TA(DATA->initName_TA.c_str());
@@ -1311,7 +1311,7 @@ void Init::initial_UMN_with_rhob(InitData *DATA, Grid ***arena) {
     delete[] temp_profile_TB;
 }
 
-void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid ***arena) {
+void Init::initial_AMPT_XY(InitData *DATA, int ieta, Cell ***arena) {
     int nx = DATA->nx;
     int ny = DATA->ny;
     double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
@@ -1503,7 +1503,7 @@ double Init::eta_rhob_right_factor(InitData *DATA, double eta) {
     return(res);
 }
 
-void Init::output_initial_density_profiles(InitData *DATA, Grid ***arena) {
+void Init::output_initial_density_profiles(InitData *DATA, Cell ***arena) {
     // this function outputs the 3d initial energy density profile
     // and net baryon density profile (if turn_on_rhob == 1)
     // for checking purpose
