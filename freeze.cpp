@@ -139,22 +139,22 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos)
 // 	  anti = util->char_malloc(30);
 // 	  strcat(anti,"Anti-");
 // 	  strcat(anti,particleList[i-1].name);
-	  particleList[i].width    =  particleList[i-1].width;
-	  particleList[i].charm    = -particleList[i-1].charm;
-	  particleList[i].bottom   = -particleList[i-1].bottom;
-	  particleList[i].isospin =  particleList[i-1].isospin;
-	  particleList[i].charge   = -particleList[i-1].charge;
-	  particleList[i].decays   = particleList[i-1].decays;
-	  particleList[i].stable =  particleList[i-1].stable;
-	  particleList[i].number = -particleList[i-1].number;
+	  particleList[i].width   = particleList[i-1].width;
+	  particleList[i].charm   = -particleList[i-1].charm;
+	  particleList[i].bottom  = -particleList[i-1].bottom;
+	  particleList[i].isospin = particleList[i-1].isospin;
+	  particleList[i].charge  = -particleList[i-1].charge;
+	  particleList[i].decays  = particleList[i-1].decays;
+	  particleList[i].stable  = particleList[i-1].stable;
+	  particleList[i].number  = -particleList[i-1].number;
 // 	  particleList[i].name = anti; 
 	  strcpy(particleList[i].name, "Anti-");
 	  strcat(particleList[i].name,particleList[i-1].name);
-	  particleList[i].mass = particleList[i-1].mass;
+	  particleList[i].mass       = particleList[i-1].mass;
 	  particleList[i].degeneracy = particleList[i-1].degeneracy;
-	  particleList[i].baryon = -particleList[i-1].baryon;
-	  particleList[i].strange = -particleList[i-1].strange;
-	  particleList[i].charge = -particleList[i-1].charge;
+	  particleList[i].baryon     = -particleList[i-1].baryon;
+	  particleList[i].strange    = -particleList[i-1].strange;
+	  particleList[i].charge     = -particleList[i-1].charge;
 	  partid[MHALF + particleList[i].number] = i;
 // 	  util->char_free(anti);
 	  
@@ -669,13 +669,13 @@ void Freeze::ReadSpectra(InitData* DATA)
       if (count>DATA->NumberOfParticlesToInclude) break;
       fprintf(stderr,"%d %e %e %e %e %d %d %d \n", number, deltaY, ymax, slope, phimax, iymax, iptmax, iphimax);
       ip = partid[MHALF+number];
-      particleList[ip].ny = iymax;
-      particleList[ip].npt = iptmax;
-      particleList[ip].nphi = iphimax;
+      particleList[ip].ny     = iymax;
+      particleList[ip].npt    = iptmax;
+      particleList[ip].nphi   = iphimax;
       particleList[ip].phimax = phimax;
       particleList[ip].phimin = phimin;
-      particleList[ip].slope = slope;
-      particleList[ip].ymax = ymax;
+      particleList[ip].slope  = slope;
+      particleList[ip].ymax   = ymax;
       particleList[ip].deltaY = deltaY;
       for ( i=0; i<iptmax; i++ )
 	{
@@ -689,13 +689,13 @@ void Freeze::ReadSpectra(InitData* DATA)
  
 	  switch (iphimax) 
 	    {
-	    case 4: p= gaulep4; break;
-	    case 8: p= gaulep8; break;
-	    case 10: p= gaulep10; break;
-	    case 12: p= gaulep12; break;
-	    case 16: p= gaulep16; break;
-	    case 20: p= gaulep20; break;
-	    case 48: p= gaulep48; break;
+	    case 4:  p = gaulep4; break;
+	    case 8:  p = gaulep8; break;
+	    case 10: p = gaulep10; break;
+	    case 12: p = gaulep12; break;
+	    case 16: p = gaulep16; break;
+	    case 20: p = gaulep20; break;
+	    case 48: p = gaulep48; break;
 	    default: fprintf(stderr,"specified number of phi-points not available\n"); exit(1);
 	    }
 	  

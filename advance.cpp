@@ -9,14 +9,14 @@ using namespace std;
 
 Advance::Advance(EOS *eosIn, Grid *gridIn)
 {
-  eos = new EOS;
-  eos = eosIn;
-  grid = new Grid;
-  grid = gridIn;
-  reconst = new Reconst(eosIn, grid);
-  util = new Util;
-  diss = new Diss(eosIn);
-  minmod = new Minmod;
+  eos          = new EOS;
+  eos          = eosIn;
+  grid         = new Grid;
+  grid         = gridIn;
+  reconst      = new Reconst(eosIn, grid);
+  util         = new Util;
+  diss         = new Diss(eosIn);
+  minmod       = new Minmod;
   u_derivative = new U_derivative;
 }
 
@@ -229,13 +229,13 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
   double *packagePi_b;
   double *packagePi_b2;
   
-  packageW = new double[sizeOfDataDis];
-  packageW2 = new double[sizeOfDataDis];
-  packagePi = new double[sizeOfDataDis];
-  packagePi2 = new double[sizeOfDataDis];
-  packageU = new double[sizeOfDataU];
-  packageU2 = new double[sizeOfDataU];
-  packagePi_b = new double[sizeOfDataPi_b];
+  packageW     = new double[sizeOfDataDis];
+  packageW2    = new double[sizeOfDataDis];
+  packagePi    = new double[sizeOfDataDis];
+  packagePi2   = new double[sizeOfDataDis];
+  packageU     = new double[sizeOfDataU];
+  packageU2    = new double[sizeOfDataU];
+  packagePi_b  = new double[sizeOfDataPi_b];
   packagePi_b2 = new double[sizeOfDataPi_b];
   
   // receive from the right / send to the left
@@ -260,10 +260,10 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 		    {
 		      for(alpha=0; alpha<5; alpha++)
 			{
-			  positionDis = beta+4*(i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
-			  packageW[positionDis] = arena[ix][iy][0].Wmunu[i][alpha][beta];
-			  packageW2[positionDis] = arena[ix][iy][1].Wmunu[i][alpha][beta];
-			  packagePi[positionDis] = arena[ix][iy][0].Pimunu[i][alpha][beta];
+			  positionDis             = beta+4*(i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
+			  packageW[positionDis]   = arena[ix][iy][0].Wmunu[i][alpha][beta];
+			  packageW2[positionDis]  = arena[ix][iy][1].Wmunu[i][alpha][beta];
+			  packagePi[positionDis]  = arena[ix][iy][0].Pimunu[i][alpha][beta];
 			  packagePi2[positionDis] = arena[ix][iy][1].Pimunu[i][alpha][beta];
 			}	  
 		      positionU = (i+3*(beta+(4*(ix + ((nx+1)*iy)))));
@@ -347,14 +347,14 @@ void Advance::MPISendReceiveW(InitData *DATA, Grid ***arena, Grid ***Lneighbor, 
 		    {
 		      for(alpha=0; alpha<5; alpha++)
 			{
-			  positionDis = beta+4*(i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
-			  packageW[positionDis] = arena[ix][iy][neta-1].Wmunu[i][alpha][beta];
-			  packageW2[positionDis] = arena[ix][iy][neta-2].Wmunu[i][alpha][beta];
-			  packagePi[positionDis] = arena[ix][iy][neta-1].Pimunu[i][alpha][beta];
+			  positionDis             = beta+4*(i+3*(alpha+(5*(ix + ((nx+1)*iy)))));
+			  packageW[positionDis]   = arena[ix][iy][neta-1].Wmunu[i][alpha][beta];
+			  packageW2[positionDis]  = arena[ix][iy][neta-2].Wmunu[i][alpha][beta];
+			  packagePi[positionDis]  = arena[ix][iy][neta-1].Pimunu[i][alpha][beta];
 			  packagePi2[positionDis] = arena[ix][iy][neta-2].Pimunu[i][alpha][beta];
 			}
-		      positionU = (i+3*(beta+(4*(ix + ((nx+1)*iy)))));
-		      packageU[positionU] = arena[ix][iy][neta-1].u[i][beta];
+		      positionU            = (i+3*(beta+(4*(ix + ((nx+1)*iy)))));
+		      packageU[positionU]  = arena[ix][iy][neta-1].u[i][beta];
 		      packageU2[positionU] = arena[ix][iy][neta-2].u[i][beta];
 		    }
 		}
@@ -476,12 +476,12 @@ int Advance::AdvanceLocalW(double tau, InitData *DATA, Grid *grid_pt, Grid *Lnei
  ind++;
  if(ind == 1)
  {
-  qirk = util->mtx_malloc(5,4);
-  qi = util->vector_malloc(5);
-  rhs = util->vector_malloc(5);
-  w_rhs = util->mtx_malloc(4,4);
+  qirk        = util->mtx_malloc(5,4);
+  qi          = util->vector_malloc(5);
+  rhs         = util->vector_malloc(5);
+  w_rhs       = util->mtx_malloc(4,4);
   grid_rk.TJb = util->cube_malloc(DATA->rk_order,5,4);
-  grid_rk.u = util->mtx_malloc(DATA->rk_order,4);
+  grid_rk.u   = util->mtx_malloc(DATA->rk_order,4);
  } 
 
  flag = FirstRKStepW(tau, DATA, grid_pt, Lneighbor, Rneighbor, Lneighbor2, Rneighbor2, rk_flag, qi, rhs, w_rhs, qirk, &grid_rk, size, rank);
