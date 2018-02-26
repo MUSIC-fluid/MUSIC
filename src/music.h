@@ -4,6 +4,7 @@
 
 #include "./util.h"
 #include "./cell.h"
+#include "./grid.h"
 #include "./data.h"
 #include "./freeze.h"
 #include "./init.h"

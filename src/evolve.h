@@ -11,6 +11,7 @@
 #include "./util.h"
 #include "./data.h"
 #include "./cell.h"
+#include "./grid.h"
 #include "./grid_info.h"
 #include "./eos.h"
 #include "./advance.h"

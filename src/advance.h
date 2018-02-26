@@ -5,6 +5,7 @@
 #include <iostream>
 #include "./data.h"
 #include "./cell.h"
+#include "./grid.h"
 #include "./dissipative.h"
 #include "./minmod.h"
 #include "./u_derivative.h"

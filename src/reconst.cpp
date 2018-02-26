@@ -2,6 +2,7 @@
 #include <iostream>
 #include "data.h"
 #include "cell.h"
+#include "./grid.h"
 #include "eos.h"
 #include "reconst.h"
 

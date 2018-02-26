@@ -8,6 +8,7 @@
 #include "./data.h"
 #include "./eos.h"
 #include "./cell.h"
+#include "./grid.h"
 #include "./pretty_ostream.h"
 
 class Cell_info {

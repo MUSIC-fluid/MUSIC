@@ -1,6 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 #include "cell.h"
+#include "./grid.h"
 
 TEST_CASE("Test constructor and copy"){
   Cell cell_a;

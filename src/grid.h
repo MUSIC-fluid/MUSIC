@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "cell.h"
+#include "./grid.h"
 
 class Grid {
  private:

@@ -2,6 +2,7 @@
 #include <omp.h>
 #include "./util.h"
 #include "./cell.h"
+#include "./grid.h"
 #include "./init.h"
 #include "./eos.h"
 
