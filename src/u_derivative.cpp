@@ -39,9 +39,9 @@ int U_derivative::MakedU(double tau, InitData *DATA,
             for (ix = 0; ix <= nx; ix++) {
                 for (iy = 0; iy <= ny; iy++) {
 	                // this calculates du/dx, du/dy, (du/deta)/tau
-                    MakeDSpatial(tau, DATA, &(arena[ieta][ix][iy]), rk_flag);
+                    MakeDSpatial(tau, DATA, &(arena(ix,iy,ieta)), rk_flag);
                     // this calculates du/dtau
-                    MakeDTau(tau, DATA, &(arena[ieta][ix][iy]), rk_flag); 
+                    MakeDTau(tau, DATA, &(arena(ix,iy,ieta)), rk_flag); 
                 }
             }
         }
@@ -59,9 +59,9 @@ double U_derivative::calculate_expansion_rate(
     for (int mu = 0; mu < 4; mu++) {
         double gfac = (mu == 0 ? -1.0 : 1.0);
         // for expansion rate: theta
-        partial_mu_u_supmu += arena[ieta][ix][iy].dUsup[0][mu][mu]*gfac;
+        partial_mu_u_supmu += arena(ix,iy,ieta).dUsup[0][mu][mu]*gfac;
     }
-    double theta = partial_mu_u_supmu + arena[ieta][ix][iy].u[rk_flag][0]/tau;
+    double theta = partial_mu_u_supmu + arena(ix,iy,ieta).u[rk_flag][0]/tau;
     return(theta);
 }
 
@@ -74,8 +74,8 @@ void U_derivative::calculate_Du_supmu(double tau, Cell ***arena, int ieta,
 	    for (int nu = 0; nu < 4; nu++) {
             double tfac = (nu==0 ? -1.0 : 1.0);
             u_supnu_partial_nu_u_supmu += (
-                tfac*arena[ieta][ix][iy].u[rk_flag][nu]
-                *arena[ieta][ix][iy].dUsup[0][mu][nu]);
+                tfac*arena(ix,iy,ieta).u[rk_flag][nu]
+                *arena(ix,iy,ieta).dUsup[0][mu][nu]);
         }
         a[mu] = u_supnu_partial_nu_u_supmu;
     }
@@ -89,9 +89,9 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, Cell ***arena,
     double u_local[4];
     double sigma_local[4][4];
     for (int i = 0; i < 4; i++) {
-        u_local[i] = arena[ieta][ix][iy].u[rk_flag][i];
+        u_local[i] = arena(ix,iy,ieta).u[rk_flag][i];
         for (int j = 0; j < 4; j++) {
-            dUsup_local[i][j] = arena[ieta][ix][iy].dUsup[0][i][j];
+            dUsup_local[i][j] = arena(ix,iy,ieta).dUsup[0][i][j];
         }
     }
     double theta_u_local = calculate_expansion_rate(tau, arena, ieta, ix,

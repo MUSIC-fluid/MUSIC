@@ -61,7 +61,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Cell ***arena,
                     double y_local = (- DATA_ptr->y_size/2.
                                       + iy*DATA_ptr->delta_y);
                     FirstRKStepT(tau, x_local, y_local, eta_s_local,
-                                 DATA, &(arena[ieta][ix][iy]), rk_flag);
+                                 DATA, &(arena(ix,iy,ieta)), rk_flag);
                     if (DATA->viscosity_flag == 1) {
                         //double tau_rk = tau;
                         //if (rk_flag == 1) {
@@ -86,7 +86,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Cell ***arena,
                                 tau, arena, ieta, ix, iy, rk_flag, a_local,
                                 sigma_local);
 
-                        FirstRKStepW(tau, DATA, &(arena[ieta][ix][iy]),
+                        FirstRKStepW(tau, DATA, &(arena(ix,iy,ieta)),
                                      rk_flag, theta_local, a_local,
                                      sigma_local, ieta, ix, iy);
 

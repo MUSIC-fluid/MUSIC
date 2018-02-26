@@ -73,3 +73,11 @@ For getting vectorization advice
 
     advixe-cl -c survey
     advixe-cl -c tripcounts -flop 
+
+
+Regular Expressions
+===================
+
+Change the phrase `arena[asdf][bob][ted]` into `arena(bob,ted,asdf)` in all files:
+
+    ls *cpp *h | xargs -n 1 sed -i -E 's/arena\[([^]]*)\]\[([^]]*)\]\[([^]]*)\]/arena(\2,\3,\1)/g'
