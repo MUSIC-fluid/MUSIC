@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+export OMP_NUM_THREADS=16
+export OMP_PROC_BIND=true
+export OMP_PLACES=threads
+
+
 echo "doing benchmark small ..."
 time ./mpihydro benchmark/music_input_Gubser_small > benchmark/small.log
 echo "doing benchmark middle ..."
