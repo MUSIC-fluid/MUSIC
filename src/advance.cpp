@@ -45,7 +45,7 @@ Advance::~Advance() {
 
 
 //! this function evolves one Runge-Kutta step in tau
-int Advance::AdvanceIt(double tau, InitData *DATA, Cell ***arena,
+int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
                        int rk_flag) {
     int ieta, ix, iy;
     #pragma omp parallel private(ieta, ix, iy)

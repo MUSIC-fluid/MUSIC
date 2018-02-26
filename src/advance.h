@@ -38,7 +38,7 @@ class Advance {
     Advance(EOS *eosIn, InitData* DATA_in, hydro_source *hydro_source_in);
     ~Advance();
 
-    int AdvanceIt(double tau_init, InitData *DATA, Cell ***arena, int rk_flag);
+    int AdvanceIt(double tau_init, InitData *DATA, Grid &arena, int rk_flag);
 
     int FirstRKStepT(double tau, double x_local, double y_local,
                      double eta_s_local, InitData *DATA, Cell *grid_pt,

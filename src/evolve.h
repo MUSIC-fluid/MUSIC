@@ -50,30 +50,30 @@ class Evolve {
  public:
     Evolve(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
     ~Evolve();
-    int EvolveIt(InitData *DATA, Cell ***arena);
+    int EvolveIt(InitData *DATA, Grid &arena);
 
-    int AdvanceRK(double tau, InitData *DATA, Cell ***arena);
-    int Update_prev_Arena(Cell ***arena);
+    int AdvanceRK(double tau, InitData *DATA, Grid &arena);
+    int Update_prev_Arena(Grid &arena);
 
-    int FreezeOut_equal_tau_Surface(double tau, InitData *DATA, Cell ***arena);
+    int FreezeOut_equal_tau_Surface(double tau, InitData *DATA, Grid &arena);
     void FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
-                                        int ieta, Cell ***arena,
+                                        int ieta, Grid &arena,
                                         int thread_id, double epsFO);
     // void FindFreezeOutSurface(double tau, InitData *DATA,
-    //                          Cell ***arena, int size, int rank);
+    //                          Grid &arena, int size, int rank);
     // void FindFreezeOutSurface2(double tau, InitData *DATA,
-    //                           Cell ***arena, int size, int rank);
+    //                           Grid &arena, int size, int rank);
     // int FindFreezeOutSurface3(double tau, InitData *DATA,
-    //                          Cell ***arena, int size, int rank);
+    //                          Grid &arena, int size, int rank);
     int FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
-                                       Cell ***arena);
+                                       Grid &arena);
     int FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
-                                          int ieta, Cell ***arena,
+                                          int ieta, Grid &arena,
                                           int thread_id, double epsFO);
     int FindFreezeOutSurface_boostinvariant_Cornelius(
-                                    double tau, InitData *DATA, Cell ***arena);
+                                    double tau, InitData *DATA, Grid &arena);
 
-    void store_previous_step_for_freezeout(Cell ***arena);
+    void store_previous_step_for_freezeout(Grid &arena);
 
     void regulate_qmu(double* u, double* q, double* q_regulated);
     void regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated);
