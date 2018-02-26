@@ -101,8 +101,8 @@ double Diss::MakeWSource(double tau, int alpha, Grid *grid_pt,
     double dWdx_perp = 0.0;
     double dPidx_perp = 0.0;
     for (i = 1; i <= 2; i++) {  // x and y
-        idx_1d = util->map_2d_idx_to_1d(alpha, i);
-        double sg = grid_pt->Wmunu[rk_flag][idx_1d];
+        idx_1d      = util->map_2d_idx_to_1d(alpha, i);
+        double sg   = grid_pt->Wmunu[rk_flag][idx_1d];
         double sgp1 = grid_pt->nbr_p_1[i]->Wmunu[rk_flag][idx_1d];
         double sgm1 = grid_pt->nbr_m_1[i]->Wmunu[rk_flag][idx_1d];
         dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
@@ -1283,14 +1283,14 @@ void Diss::output_eta_over_s_T_and_muB_dependence(InitData *DATA) {
        << endl;
 
     // define the grid
-    double e_min = 1e-5;     // fm^-4
-    double e_max = 100.0;    // fm^-4
-    int ne = 1000;
-    double de = (e_max - e_min)/(ne - 1.);
+    double e_min    = 1e-5;     // fm^-4
+    double e_max    = 100.0;    // fm^-4
+    int ne          = 1000;
+    double de       = (e_max - e_min)/(ne - 1.);
     double rhob_min = 0.0;   // fm^-3
     double rhob_max = sqrt(10.0);  // fm^-3
-    int nrhob = 1000;
-    double drhob = (rhob_max - rhob_min)/(nrhob - 1.);
+    int nrhob       = 1000;
+    double drhob    = (rhob_max - rhob_min)/(nrhob - 1.);
 
     double etaT_over_enthropy = DATA->shear_to_s;
     for (int i = 0; i < ne; i++) {

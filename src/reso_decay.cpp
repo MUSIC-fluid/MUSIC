@@ -390,11 +390,11 @@ double Freeze::Edndp3_3bodyN (double y, double pt, double phi, double m1, double
 //   double slope;          /* slope of resonance for high mt */
 //   int pn;
 
-  para.pt = pt;
-  para.mt = mt;
-  para.y = y;
-  para.e = mt * cosh (y);
-  para.pl = mt * sinh (y);
+  para.pt  = pt;
+  para.mt  = mt;
+  para.y   = y;
+  para.e   = mt * cosh (y);
+  para.pl  = mt * sinh (y);
   para.phi = phi;
 
   para.m1 = m1;

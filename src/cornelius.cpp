@@ -861,12 +861,12 @@ void Polyhedron::calculate_centroid()
     mean[j] = mean[j]/double(2.0*Ntetrahedra);
   }
   //Some memory allocated for temporary variables
-  double *a = new double[DIM];
-  double *b = new double[DIM];
-  double *c = new double[DIM];
-  double *n = new double[DIM];
-  double *cm_i = new double[DIM];
-  double *sum_up = new double[DIM];
+  double *a       = new double[DIM];
+  double *b       = new double[DIM];
+  double *c       = new double[DIM];
+  double *n       = new double[DIM];
+  double *cm_i    = new double[DIM];
+  double *sum_up  = new double[DIM];
   double sum_down = 0;
   for (int i=0; i < DIM; i++) {
     sum_up[i] = 0;
@@ -933,9 +933,9 @@ void Polyhedron::calculate_normal()
     calculate_centroid();
   //First we allocate memory for temporary variables
   double *Vout = new double[DIM];
-  double *a = new double[DIM];
-  double *b = new double[DIM];
-  double *c = new double[DIM];
+  double *a    = new double[DIM];
+  double *b    = new double[DIM];
+  double *c    = new double[DIM];
   double **normals = new double*[Ntetrahedra];
   for (int i=0; i < Ntetrahedra; i++) {
     normals[i] = new double[DIM];
@@ -1033,22 +1033,22 @@ class Square
  */
 Square::Square()
 {
-  cuts = new double*[MAX_POINTS];
-  out = new double*[MAX_POINTS];
-  points = new double*[SQUARE_DIM];
-  const_i = new int[DIM-SQUARE_DIM];
+  cuts        = new double*[MAX_POINTS];
+  out         = new double*[MAX_POINTS];
+  points      = new double*[SQUARE_DIM];
+  const_i     = new int[DIM-SQUARE_DIM];
   const_value = new double[DIM-SQUARE_DIM];
-  lines = new Line[MAX_LINES];
+  lines       = new Line[MAX_LINES];
   for (int i=0; i < SQUARE_DIM; i++) {
     points[i] = new double[SQUARE_DIM];
   }
   for (int i=0; i < MAX_POINTS; i++) {
     cuts[i] = new double[SQUARE_DIM];
-    out[i] = new double[SQUARE_DIM];
+    out[i]  = new double[SQUARE_DIM];
   }
   int Npoints = 2;
   points_temp = new double*[SQUARE_DIM];
-  out_temp = new double[DIM];
+  out_temp    = new double[DIM];
   for (int j=0; j < Npoints; j++) {
     points_temp[j] = new double[DIM];
   }
@@ -1425,9 +1425,9 @@ Cube::Cube()
       cube[i][j] = new double[STEPS];
     }
   }
-  lines = new Line*[NSQUARES*2]; //Each square may have max. 2 lines
+  lines    = new Line*[NSQUARES*2]; //Each square may have max. 2 lines
   polygons = new Polygon[MAX_POLY];
-  squares = new Square[NSQUARES];
+  squares  = new Square[NSQUARES];
 }
 
 /**
@@ -1489,7 +1489,7 @@ void Cube::init(double ***&c, int c_i, double c_v, double *&dex)
   }
   //We need to set these to zero so when this function is called
   //again we know that nothing has been done for this cube
-  Nlines = 0;
+  Nlines    = 0;
   Npolygons = 0;
   ambiguous = 0;
 }
@@ -2255,16 +2255,13 @@ void Cornelius::find_surface_4d(double ****cube)
   //If all or none of the elements are below the criterion, no surface
   //elements exist.
   int above = 0;
-  for (int i=0; i < STEPS; i++) {
-    for (int j=0; j < STEPS; j++) { 
-      for (int k=0; k < STEPS; k++) {
-        for (int l=0; l < STEPS; l++) {
-          if ( cube[i][j][k][l] >= value0 )
-            above++;
-        }
-      }
-    }
-  }
+  for (int i=0; i < STEPS; i++)
+  for (int j=0; j < STEPS; j++) 
+  for (int k=0; k < STEPS; k++)
+  for (int l=0; l < STEPS; l++)
+    if ( cube[i][j][k][l] >= value0 )
+      above++;
+
   if ( above == 0 || above == 16 ) {
     //No elements in this cube
     Nelements = 0;

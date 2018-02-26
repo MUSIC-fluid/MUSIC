@@ -16,18 +16,18 @@ hydro_source::hydro_source(InitData *DATA_in) {
     source_tau_min = 100.0;
     if (DATA_ptr->Initial_profile == 12
             || DATA_ptr->Initial_profile == 13) {  // MC-Glauber-LEXUS
-        sigma_tau = 0.1;
-        sigma_x = 0.5;
-        sigma_eta = 0.5;
-        volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
-        string_dump_mode = DATA_ptr->string_dump_mode;
+        sigma_tau            = 0.1;
+        sigma_x              = 0.5;
+        sigma_eta            = 0.5;
+        volume               = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
+        string_dump_mode     = DATA_ptr->string_dump_mode;
         string_quench_factor = DATA_ptr->string_quench_factor;
         parton_quench_factor = 1.0;
         read_in_QCD_strings_and_partons();
     }
     if (DATA_ptr->Initial_profile == 30) {  // AMPT
         sigma_tau = 0.1;
-        sigma_x = 0.5;
+        sigma_x   = 0.5;
         sigma_eta = 0.5;
         volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
         parton_quench_factor = 1.0;
@@ -253,10 +253,10 @@ void hydro_source::get_hydro_energy_source(
     }
     // flow velocity
     double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
-    double y_perp_flow = acosh(gamma_perp_flow);
-    double y_long_flow = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
-    double sin_phi_flow = u_mu[1]/gamma_perp_flow;
-    double cos_phi_flow = u_mu[2]/gamma_perp_flow;
+    double y_perp_flow     = acosh(gamma_perp_flow);
+    double y_long_flow     = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
+    double sin_phi_flow    = u_mu[1]/gamma_perp_flow;
+    double cos_phi_flow    = u_mu[2]/gamma_perp_flow;
 
     if (DATA_ptr->Initial_profile == 12) {
         // energy source from strings

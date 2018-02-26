@@ -11,17 +11,17 @@
 using namespace std;
 
 Evolve::Evolve(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) {
-    eos = eosIn;
-    grid = new Grid;
-    grid_info = new Grid_info(DATA_in, eosIn);
-    util = new Util;
-    advance = new Advance(eosIn, DATA_in, hydro_source_in);
+    eos          = eosIn;
+    grid         = new Grid;
+    grid_info    = new Grid_info(DATA_in, eosIn);
+    util         = new Util;
+    advance      = new Advance(eosIn, DATA_in, hydro_source_in);
     u_derivative = new U_derivative(eosIn, DATA_in);
    
-    DATA_ptr = DATA_in;
-    rk_order = DATA_in->rk_order;
-    grid_nx = DATA_in->nx;
-    grid_ny = DATA_in->ny;
+    DATA_ptr  = DATA_in;
+    rk_order  = DATA_in->rk_order;
+    grid_nx   = DATA_in->nx;
+    grid_ny   = DATA_in->ny;
     grid_neta = DATA_in->neta;
   
     if (DATA_ptr->freezeOutMethod == 4) {
@@ -47,15 +47,15 @@ Evolve::~Evolve() {
 // master control function for hydrodynamic evolution
 int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     // first pass some control parameters
-    facTau = DATA->facTau;
+    facTau                      = DATA->facTau;
     int output_hydro_debug_flag = DATA->output_hydro_debug_info;
-    int Nskip_timestep = DATA->output_evolution_every_N_timesteps;
-    int outputEvo_flag = DATA->outputEvolutionData;
-    int output_movie_flag = DATA->output_movie_flag;
-    int freezeout_flag = DATA->doFreezeOut;
-    int freezeout_lowtemp_flag = DATA->doFreezeOut_lowtemp;
-    int freezeout_method = DATA->freezeOutMethod;
-    int boost_invariant_flag = DATA->boost_invariant;
+    int Nskip_timestep          = DATA->output_evolution_every_N_timesteps;
+    int outputEvo_flag          = DATA->outputEvolutionData;
+    int output_movie_flag       = DATA->output_movie_flag;
+    int freezeout_flag          = DATA->doFreezeOut;
+    int freezeout_lowtemp_flag  = DATA->doFreezeOut_lowtemp;
+    int freezeout_method        = DATA->freezeOutMethod;
+    int boost_invariant_flag    = DATA->boost_invariant;
 
     // Output information about the hydro parameters 
     // in the format of a C header file
@@ -63,14 +63,14 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
         grid_info->Output_hydro_information_header(DATA);
 
     // main loop starts ...
-    int itmax = DATA->nt;
-    double tau0 = DATA->tau0;
-    double dt = DATA->delta_tau;
+    int    itmax = DATA->nt;
+    double tau0  = DATA->tau0;
+    double dt    = DATA->delta_tau;
 
-    weirdCases=0;
-    SUM = 0.;
-    warnings = 0;
-    cells = 0;
+    weirdCases = 0;
+    SUM        = 0.;
+    warnings   = 0;
+    cells      = 0;
       
     double tau;
     int it_start = 0;
@@ -257,8 +257,8 @@ void Evolve::store_previous_step_for_freezeout(Grid ***arena) {
 //! update grid information after the tau RK evolution 
 int Evolve::Update_prev_Arena(Grid ***arena) {
     int neta = grid_neta;
-    int nx = grid_nx;
-    int ny = grid_ny;
+    int nx   = grid_nx;
+    int ny   = grid_ny;
     int ieta, ix, iy;
     #pragma omp parallel private(ieta, ix, iy)
     {
@@ -5472,15 +5472,15 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
     int intersect;
     int intersections = 0;
 
-    facTau = DATA->facTau;   // step to skip in tau direction
-    int fac_x = DATA->fac_x;
-    int fac_y = DATA->fac_y;
+    facTau      = DATA->facTau;   // step to skip in tau direction
+    int fac_x   = DATA->fac_x;
+    int fac_y   = DATA->fac_y;
     int fac_eta = 1;
     
-    double DTAU=facTau*DATA->delta_tau;
-    double DX=fac_x*DATA->delta_x;
-    double DY=fac_y*DATA->delta_y;
-    double DETA=fac_eta*DATA->delta_eta;
+    double DTAU = facTau*DATA->delta_tau;
+    double DX   = fac_x*DATA->delta_x;
+    double DY   = fac_y*DATA->delta_y;
+    double DETA = fac_eta*DATA->delta_eta;
 
     lattice_spacing[0] = DTAU;
     lattice_spacing[1] = DX;
@@ -6099,14 +6099,14 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 Wmunu_input[3][3] = Wetaeta_center;
                 regulate_Wmunu(u_flow, Wmunu_input, Wmunu_regulated);
                 Wtautau_center = Wmunu_regulated[0][0];
-                Wtaux_center = Wmunu_regulated[0][1];
-                Wtauy_center = Wmunu_regulated[0][2];
+                Wtaux_center   = Wmunu_regulated[0][1];
+                Wtauy_center   = Wmunu_regulated[0][2];
                 Wtaueta_center = Wmunu_regulated[0][3];
-                Wxx_center = Wmunu_regulated[1][1];
-                Wxy_center = Wmunu_regulated[1][2];
-                Wxeta_center = Wmunu_regulated[1][3];
-                Wyy_center = Wmunu_regulated[2][2];
-                Wyeta_center = Wmunu_regulated[2][3];
+                Wxx_center     = Wmunu_regulated[1][1];
+                Wxy_center     = Wmunu_regulated[1][2];
+                Wxeta_center   = Wmunu_regulated[1][3];
+                Wyy_center     = Wmunu_regulated[2][2];
+                Wyeta_center   = Wmunu_regulated[2][3];
                 Wetaeta_center = Wmunu_regulated[3][3];
 
                 // clean up
@@ -6318,14 +6318,14 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
 
             // shear viscous tensor
             Wtautau_center = arena[ieta][ix][iy].Wmunu[0][0];
-            Wtaux_center = arena[ieta][ix][iy].Wmunu[0][1];
-            Wtauy_center = arena[ieta][ix][iy].Wmunu[0][2];
+            Wtaux_center   = arena[ieta][ix][iy].Wmunu[0][1];
+            Wtauy_center   = arena[ieta][ix][iy].Wmunu[0][2];
             Wtaueta_center = arena[ieta][ix][iy].Wmunu[0][3];
-            Wxx_center = arena[ieta][ix][iy].Wmunu[0][4];
-            Wxy_center = arena[ieta][ix][iy].Wmunu[0][5];
-            Wxeta_center = arena[ieta][ix][iy].Wmunu[0][6];
-            Wyy_center = arena[ieta][ix][iy].Wmunu[0][7];
-            Wyeta_center = arena[ieta][ix][iy].Wmunu[0][8];
+            Wxx_center     = arena[ieta][ix][iy].Wmunu[0][4];
+            Wxy_center     = arena[ieta][ix][iy].Wmunu[0][5];
+            Wxeta_center   = arena[ieta][ix][iy].Wmunu[0][6];
+            Wyy_center     = arena[ieta][ix][iy].Wmunu[0][7];
+            Wyeta_center   = arena[ieta][ix][iy].Wmunu[0][8];
             Wetaeta_center = arena[ieta][ix][iy].Wmunu[0][9];
             // regulate Wmunu according to transversality and traceless
             double **Wmunu_input = new double* [4];
@@ -6348,14 +6348,14 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
             Wmunu_input[3][3] = Wetaeta_center;
             regulate_Wmunu(u_flow, Wmunu_input, Wmunu_regulated);
             Wtautau_center = Wmunu_regulated[0][0];
-            Wtaux_center = Wmunu_regulated[0][1];
-            Wtauy_center = Wmunu_regulated[0][2];
+            Wtaux_center   = Wmunu_regulated[0][1];
+            Wtauy_center   = Wmunu_regulated[0][2];
             Wtaueta_center = Wmunu_regulated[0][3];
-            Wxx_center = Wmunu_regulated[1][1];
-            Wxy_center = Wmunu_regulated[1][2];
-            Wxeta_center = Wmunu_regulated[1][3];
-            Wyy_center = Wmunu_regulated[2][2];
-            Wyeta_center = Wmunu_regulated[2][3];
+            Wxx_center     = Wmunu_regulated[1][1];
+            Wxy_center     = Wmunu_regulated[1][2];
+            Wxeta_center   = Wmunu_regulated[1][3];
+            Wyy_center     = Wmunu_regulated[2][2];
+            Wyeta_center   = Wmunu_regulated[2][3];
             Wetaeta_center = Wmunu_regulated[3][3];
             // clean up
             delete [] u_flow;
@@ -6722,8 +6722,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     regulate_qmu(u_flow, q_mu, q_regulated);
 
                     qtau_center = q_regulated[0];
-                    qx_center = q_regulated[1];
-                    qy_center = q_regulated[2];
+                    qx_center   = q_regulated[1];
+                    qy_center   = q_regulated[2];
                     qeta_center = q_regulated[3];
 
                     // clean up

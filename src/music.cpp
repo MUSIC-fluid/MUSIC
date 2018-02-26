@@ -14,7 +14,7 @@ MUSIC::MUSIC(InitData *DATA_in, string input_file) {
     DATA = DATA_in;
     reader.read_in_parameters(DATA, input_file);
     mode = DATA->mode;
-    eos = new EOS(DATA);
+    eos  = new EOS(DATA);
     util = new Util();
     if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
         hydro_source_ptr = new hydro_source(DATA_in);
