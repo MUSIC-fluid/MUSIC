@@ -38,7 +38,7 @@ class Cell {
     /* we need to calculate partial_tau u[mu] */
     /* dU[flag][m][n] = u^{m,n} = partial^n u^m with the rk flag */
     /* note that they are superscripted. So partial^t = -partial_t */
-    double dUsup[5][4]; 
+    std::array<std::array<double, 5>, 4> dUsup;
 
     /* shear part of the TJb with the rk_flag */
     std::array<double, 14> Wmunu_rk0;
