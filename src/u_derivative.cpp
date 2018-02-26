@@ -28,8 +28,8 @@ int U_derivative::MakedU(double tau, InitData *DATA,
     }
 
     int neta = DATA->neta-1;
-    int nx = DATA->nx;
-    int ny = DATA->ny;
+    int nx   = DATA->nx;
+    int ny   = DATA->ny;
 
     int ieta, ix, iy;
     #pragma omp parallel private(ieta, ix, iy)
@@ -290,39 +290,39 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Grid *grid_pt,
         // first order is more stable 
         // backward derivative
         // current values
-        // f = (grid_pt->rhob);
-        rhob = grid_pt->rhob;
-        eps = grid_pt->epsilon;
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
-        tildemu = muB/T;
-        // f -= (grid_pt->rhob_prev);
-        rhob = grid_pt->prev_rhob;
-        eps = grid_pt->prev_epsilon;
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
+        // f         = (grid_pt->rhob);
+        rhob         = grid_pt->rhob;
+        eps          = grid_pt->epsilon;
+        muB          = eos->get_mu(eps, rhob);
+        T            = eos->get_temperature(eps, rhob);
+        tildemu      = muB/T;
+        // f        -= (grid_pt->rhob_prev);
+        rhob         = grid_pt->prev_rhob;
+        eps          = grid_pt->prev_epsilon;
+        muB          = eos->get_mu(eps, rhob);
+        T            = eos->get_temperature(eps, rhob);
         tildemu_prev = muB/T;
-        f = (tildemu - tildemu_prev)/(DATA->delta_tau);
+        f            = (tildemu - tildemu_prev)/(DATA->delta_tau);
         grid_pt->dUsup[0][m][0] = -f; /* g00 = -1 */
     } else if (rk_flag > 0) {
         m = 4;  
         // first order 
         // forward derivative
-        // f = (grid_pt->rhob_t); // this is from the prev full RK step 
-        // f -= (grid_pt->rhob_prev);
-        // f /= (DATA->delta_tau);
-        rhob = grid_pt->rhob_t;
-        eps = grid_pt->epsilon_t;
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
-        tildemu = muB/T;
-        // f -= (grid_pt->rhob_prev);
-        rhob = grid_pt->rhob;
-        eps = grid_pt->epsilon;
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
+        // f         = (grid_pt->rhob_t); // this is from the prev full RK step 
+        // f        -= (grid_pt->rhob_prev);
+        // f        /= (DATA->delta_tau);
+        rhob         = grid_pt->rhob_t;
+        eps          = grid_pt->epsilon_t;
+        muB          = eos->get_mu(eps, rhob);
+        T            = eos->get_temperature(eps, rhob);
+        tildemu      = muB/T;
+        // f        -= (grid_pt->rhob_prev);
+        rhob         = grid_pt->rhob;
+        eps          = grid_pt->epsilon;
+        muB          = eos->get_mu(eps, rhob);
+        T            = eos->get_temperature(eps, rhob);
         tildemu_prev = muB/T;
-        f = (tildemu - tildemu_prev)/(DATA->delta_tau);
+        f            = (tildemu - tildemu_prev)/(DATA->delta_tau);
         grid_pt->dUsup[0][m][0] = -f; /* g00 = -1 */
     }
     // Ends Sangyong's addition Nov 18 2014

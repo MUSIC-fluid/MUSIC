@@ -242,17 +242,17 @@ void EOS::init_eos() {
     
     music_message << "from path " << envPath.c_str() << "/EOS";
     music_message.flush("info");
-    eos_p1_name=envPath+"/EOS/EOS-Q/aa1_p.dat";
-    eos_p2_name=envPath+"/EOS/EOS-Q/aa2_p.dat";
-    eos_T1_name=envPath+"/EOS/EOS-Q/aa1_t.dat";
-    eos_T2_name=envPath+"/EOS/EOS-Q/aa2_t.dat";
-    eos_mu1_name=envPath+"/EOS/EOS-Q/aa1_mb.dat";
-    eos_mu2_name=envPath+"/EOS/EOS-Q/aa2_mb.dat";
+    eos_p1_name  = envPath+"/EOS/EOS-Q/aa1_p.dat";
+    eos_p2_name  = envPath+"/EOS/EOS-Q/aa2_p.dat";
+    eos_T1_name  = envPath+"/EOS/EOS-Q/aa1_t.dat";
+    eos_T2_name  = envPath+"/EOS/EOS-Q/aa2_t.dat";
+    eos_mu1_name = envPath+"/EOS/EOS-Q/aa1_mb.dat";
+    eos_mu2_name = envPath+"/EOS/EOS-Q/aa2_mb.dat";
       
-  eos_p1 = fopen(eos_p1_name.c_str(), "r");
-  eos_p2 = fopen(eos_p2_name.c_str(), "r");
-  eos_T1 = fopen(eos_T1_name.c_str(), "r");
-  eos_T2 = fopen(eos_T2_name.c_str(), "r");
+  eos_p1  = fopen(eos_p1_name.c_str(), "r");
+  eos_p2  = fopen(eos_p2_name.c_str(), "r");
+  eos_T1  = fopen(eos_T1_name.c_str(), "r");
+  eos_T2  = fopen(eos_T2_name.c_str(), "r");
   eos_mu1 = fopen(eos_mu1_name.c_str(), "r");
   eos_mu2 = fopen(eos_mu2_name.c_str(), "r");
   
@@ -3240,11 +3240,11 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
     if (local_ed < EPP1) {
         // energy density is smaller than the smallest value in the table 
         // use linear extrapolation
-        eps0 = EPP1;
-        NEps = NEPP1;
-        deltaEps = deltaEPP1;
-        rhob0 = BNP1;
-        Nrhob = NBNP1;
+        eps0      = EPP1;
+        NEps      = NEPP1;
+        deltaEps  = deltaEPP1;
+        rhob0     = BNP1;
+        Nrhob     = NBNP1;
         deltaRhob = deltaBNP1;
         switch (selector) {
             case 0: array = pressure1; break;
@@ -3259,11 +3259,11 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
                 exit(1);
         }
     } else if (local_ed < EPP2) {
-        eps0 = EPP1;
-        NEps = NEPP1;
-        deltaEps = deltaEPP1;
-        rhob0 = BNP1;
-        Nrhob = NBNP1;
+        eps0      = EPP1;
+        NEps      = NEPP1;
+        deltaEps  = deltaEPP1;
+        rhob0     = BNP1;
+        Nrhob     = NBNP1;
         deltaRhob = deltaBNP1;
         switch (selector) {
             case 0: array = pressure1; break;
@@ -3278,11 +3278,11 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
                 exit(1);
         }
     } else if (local_ed < EPP3) {
-        eps0 = EPP2;
-        NEps = NEPP2;
-        deltaEps = deltaEPP2;
-        rhob0 = BNP2;
-        Nrhob = NBNP2;
+        eps0      = EPP2;
+        NEps      = NEPP2;
+        deltaEps  = deltaEPP2;
+        rhob0     = BNP2;
+        Nrhob     = NBNP2;
         deltaRhob = deltaBNP2;
         switch (selector) {
             case 0: array = pressure2; break;
@@ -3297,11 +3297,11 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
                 exit(1);
         }
     } else if (local_ed < EPP4) {
-        eps0 = EPP3;
-        NEps = NEPP3;
-        deltaEps = deltaEPP3;
-        rhob0 = BNP3;
-        Nrhob = NBNP3;
+        eps0      = EPP3;
+        NEps      = NEPP3;
+        deltaEps  = deltaEPP3;
+        rhob0     = BNP3;
+        Nrhob     = NBNP3;
         deltaRhob = deltaBNP3;
         switch (selector) {
             case 0: array = pressure3; break;
@@ -3316,11 +3316,11 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
                 exit(1);
         }
     } else if (local_ed < EPP5) {
-        eps0 = EPP4;
-        NEps = NEPP4;
-        deltaEps = deltaEPP4;
-        rhob0 = BNP4;
-        Nrhob = NBNP4;
+        eps0      = EPP4;
+        NEps      = NEPP4;
+        deltaEps  = deltaEPP4;
+        rhob0     = BNP4;
+        Nrhob     = NBNP4;
         deltaRhob = deltaBNP4;
         switch (selector) {
             case 0: array = pressure4; break;
@@ -3335,11 +3335,11 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
                 exit(1);
         }
     } else if (local_ed < EPP6) {
-        eps0 = EPP5;
-        NEps = NEPP5;
-        deltaEps = deltaEPP5;
-        rhob0 = BNP5;
-        Nrhob = NBNP5;
+        eps0      = EPP5;
+        NEps      = NEPP5;
+        deltaEps  = deltaEPP5;
+        rhob0     = BNP5;
+        Nrhob     = NBNP5;
         deltaRhob = deltaBNP5;
         switch (selector) {
             case 0: array = pressure5; break;
@@ -3354,11 +3354,11 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
                 exit(1);
         }
     } else if (local_ed < EPP7) {
-        eps0 = EPP6;
-        NEps = NEPP6;
-        deltaEps = deltaEPP6;
-        rhob0 = BNP6;
-        Nrhob = NBNP6;
+        eps0      = EPP6;
+        NEps      = NEPP6;
+        deltaEps  = deltaEPP6;
+        rhob0     = BNP6;
+        Nrhob     = NBNP6;
         deltaRhob = deltaBNP6;
         switch (selector) {
             case 0: array = pressure6; break;
@@ -3373,11 +3373,11 @@ double EOS::interpolate2D(double e, double rhob, int selector) {
                 exit(1);
         }
     } else {
-        eps0 = EPP7;
-        NEps = NEPP7;
-        deltaEps = deltaEPP7;
-        rhob0 = BNP7;
-        Nrhob = NBNP7;
+        eps0      = EPP7;
+        NEps      = NEPP7;
+        deltaEps  = deltaEPP7;
+        rhob0     = BNP7;
+        Nrhob     = NBNP7;
         deltaRhob = deltaBNP7;
         switch (selector) {
             case 0: array = pressure7; break;
@@ -3704,10 +3704,10 @@ double EOS::get_s2e(double s, double rhob) {
 double EOS::get_s2e_finite_rhob(double s, double rhob) {
     double eps_lower = 1e-15;
     double eps_upper = eps_max;
-    double eps_mid = (eps_upper + eps_lower)/2.;
-    double s_lower = get_entropy(eps_lower, rhob);
-    double s_upper = get_entropy(eps_upper, rhob);
-    int ntol = 1000;
+    double eps_mid   = (eps_upper + eps_lower)/2.;
+    double s_lower   = get_entropy(eps_lower, rhob);
+    double s_upper   = get_entropy(eps_upper, rhob);
+    int ntol         = 1000;
     if (s < 0.0 || s > s_upper) {
         fprintf(stderr, "get_s2e_finite_rhob:: s is out of bound, "
                         "s = %.5e, s_upper = %.5e, s_lower = %.5e \n",
@@ -3754,69 +3754,69 @@ double EOS::get_rhob_from_mub(double e, double mub) {
     if (local_ed < EPP1) {
         // energy density is smaller than the smallest value
         // in the table use linear extrapolation
-        eps0 = EPP1;
-        NEps = NEPP1;
-        deltaEps = deltaEPP1;
-        rhob0 = BNP1;
-        Nrhob = NBNP1;
+        eps0      = EPP1;
+        NEps      = NEPP1;
+        deltaEps  = deltaEPP1;
+        rhob0     = BNP1;
+        Nrhob     = NBNP1;
         deltaRhob = deltaBNP1;
-        array = mu1;
+        array     = mu1;
     } else if (local_ed < EPP2) {
-        eps0 = EPP1;
-        NEps = NEPP1;
-        deltaEps = deltaEPP1;
-        rhob0 = BNP1;
-        Nrhob = NBNP1;
+        eps0      = EPP1;
+        NEps      = NEPP1;
+        deltaEps  = deltaEPP1;
+        rhob0     = BNP1;
+        Nrhob     = NBNP1;
         deltaRhob = deltaBNP1;
-        array = mu1;
+        array     = mu1;
     } else if (local_ed < EPP3) {
-        eps0 = EPP2;
-        NEps = NEPP2;
-        deltaEps = deltaEPP2;
-        rhob0 = BNP2;
-        Nrhob = NBNP2;
+        eps0      = EPP2;
+        NEps      = NEPP2;
+        deltaEps  = deltaEPP2;
+        rhob0     = BNP2;
+        Nrhob     = NBNP2;
         deltaRhob = deltaBNP2;
-        array = mu2;
+        array     = mu2;
     } else if (local_ed < EPP4) {
-        eps0 = EPP3;
-        NEps = NEPP3;
-        deltaEps = deltaEPP3;
-        rhob0 = BNP3;
-        Nrhob = NBNP3;
+        eps0      = EPP3;
+        NEps      = NEPP3;
+        deltaEps  = deltaEPP3;
+        rhob0     = BNP3;
+        Nrhob     = NBNP3;
         deltaRhob = deltaBNP3;
-        array = mu3;
+        array     = mu3;
     } else if (local_ed < EPP5) {
-        eps0 = EPP4;
-        NEps = NEPP4;
-        deltaEps = deltaEPP4;
-        rhob0 = BNP4;
-        Nrhob = NBNP4;
+        eps0      = EPP4;
+        NEps      = NEPP4;
+        deltaEps  = deltaEPP4;
+        rhob0     = BNP4;
+        Nrhob     = NBNP4;
         deltaRhob = deltaBNP4;
-        array = mu4;
+        array     = mu4;
     } else if (local_ed < EPP6) {
-        eps0 = EPP5;
-        NEps = NEPP5;
-        deltaEps = deltaEPP5;
-        rhob0 = BNP5;
-        Nrhob = NBNP5;
+        eps0      = EPP5;
+        NEps      = NEPP5;
+        deltaEps  = deltaEPP5;
+        rhob0     = BNP5;
+        Nrhob     = NBNP5;
         deltaRhob = deltaBNP5;
-        array = mu5;
+        array     = mu5;
     } else if (local_ed < EPP7) {
-        eps0 = EPP6;
-        NEps = NEPP6;
-        deltaEps = deltaEPP6;
-        rhob0 = BNP6;
-        Nrhob = NBNP6;
+        eps0      = EPP6;
+        NEps      = NEPP6;
+        deltaEps  = deltaEPP6;
+        rhob0     = BNP6;
+        Nrhob     = NBNP6;
         deltaRhob = deltaBNP6;
-        array = mu6;
+        array     = mu6;
     } else {
-        eps0 = EPP7;
-        NEps = NEPP7;
-        deltaEps = deltaEPP7;
-        rhob0 = BNP7;
-        Nrhob = NBNP7;
+        eps0      = EPP7;
+        NEps      = NEPP7;
+        deltaEps  = deltaEPP7;
+        rhob0     = BNP7;
+        Nrhob     = NBNP7;
         deltaRhob = deltaBNP7;
-        array = mu7;
+        array     = mu7;
     }
 
     // compute the indices
@@ -3847,7 +3847,7 @@ double EOS::get_rhob_from_mub(double e, double mub) {
         }
     }
 
-    double *array_left = new double [Nrhob+1];
+    double *array_left  = new double [Nrhob+1];
     double *array_right = new double [Nrhob+1];
 
     for (int i = 0; i < Nrhob+1; i++) {
@@ -3855,21 +3855,21 @@ double EOS::get_rhob_from_mub(double e, double mub) {
        array_right[i] = array[i][idx_e+1];
     }
 
-    int idx_rhob_left = util->binary_search(array_left, Nrhob+1, local_mub);
-    int idx_rhob_right = util->binary_search(array_right, Nrhob+1, local_mub);
-    double rhob_left_1 = rhob0 + idx_rhob_left*deltaRhob;
-    double rhob_left_2 = rhob0 + (idx_rhob_left+1)*deltaRhob;
-    double mub_left_1 = array_left[idx_rhob_left];
-    double mub_left_2 = array_left[idx_rhob_left+1];
+    int idx_rhob_left    = util->binary_search(array_left, Nrhob+1, local_mub);
+    int idx_rhob_right   = util->binary_search(array_right, Nrhob+1, local_mub);
+    double rhob_left_1   = rhob0 + idx_rhob_left*deltaRhob;
+    double rhob_left_2   = rhob0 + (idx_rhob_left+1)*deltaRhob;
+    double mub_left_1    = array_left[idx_rhob_left];
+    double mub_left_2    = array_left[idx_rhob_left+1];
     double frac_mub_left = (local_mub - mub_left_1)/(mub_left_2 - mub_left_1);
-    double rhob_left = (rhob_left_1*(1. - frac_mub_left)
+    double rhob_left     = (rhob_left_1*(1. - frac_mub_left)
                         + rhob_left_2*frac_mub_left);
 
-    double rhob_right_1 = rhob0 + idx_rhob_right*deltaRhob;
-    double rhob_right_2 = rhob0 + (idx_rhob_right+1)*deltaRhob;
-    double mub_right_1 = array_right[idx_rhob_right];
-    double mub_right_2 = array_right[idx_rhob_right+1];
-    double frac_mub_right =
+    double rhob_right_1   = rhob0 + idx_rhob_right*deltaRhob;
+    double rhob_right_2   = rhob0 + (idx_rhob_right+1)*deltaRhob;
+    double mub_right_1    = array_right[idx_rhob_right];
+    double mub_right_2    = array_right[idx_rhob_right+1];
+    double frac_mub_right = 
                     (local_mub - mub_right_1)/(mub_right_2 - mub_right_1);
     double rhob_right = (rhob_right_1*(1. - frac_mub_right)
                          + rhob_right_2*frac_mub_right);
@@ -3930,11 +3930,11 @@ void EOS::check_eos_with_finite_muB() {
         double de = 0.01;
         int ne = (emax - e0)/de + 1;
         for (int i = 0; i < ne; i++) {
-            double e_local = (e0 + i*de)/hbarc;
-            double p_local = get_pressure(e_local, rhob_local);
-            double s_local = get_entropy(e_local, rhob_local);
-            double T_local = get_temperature(e_local, rhob_local);
-            double cs2_local = get_cs2(e_local, rhob_local);
+            double e_local    = (e0 + i*de)/hbarc;
+            double p_local    = get_pressure(e_local, rhob_local);
+            double s_local    = get_entropy(e_local, rhob_local);
+            double T_local    = get_temperature(e_local, rhob_local);
+            double cs2_local  = get_cs2(e_local, rhob_local);
             double mu_b_local = get_mu(e_local, rhob_local);
             double mu_s_local = get_muS(e_local, rhob_local);
             check_file << scientific << setw(18) << setprecision(8)
@@ -3962,10 +3962,10 @@ void EOS::check_eos_with_finite_muB() {
         int nrhob = (rhob_max - rhob_0)/drhob + 1;
         for (int i = 0; i < nrhob; i++) {
             double rhob_local = rhob_0 + i*drhob;
-            double p_local = get_pressure(e_local, rhob_local);
-            double s_local = get_entropy(e_local, rhob_local);
-            double T_local = get_temperature(e_local, rhob_local);
-            double cs2_local = get_cs2(e_local, rhob_local);
+            double p_local    = get_pressure(e_local, rhob_local);
+            double s_local    = get_entropy(e_local, rhob_local);
+            double T_local    = get_temperature(e_local, rhob_local);
+            double cs2_local  = get_cs2(e_local, rhob_local);
             double mu_b_local = get_mu(e_local, rhob_local);
             double mu_s_local = get_muS(e_local, rhob_local);
             check_file << scientific << setw(18) << setprecision(8)
@@ -4023,13 +4023,13 @@ void EOS::check_eos_with_finite_muB() {
         check_file9 << "# e(GeV/fm^3)  T(GeV)  cs^2  mu_B(GeV)  "
                     << "s(1/fm^3)  rho_B(1/fm^3)" << endl;
         for (int j = 0; j < ns; j++) {
-            double s_local = s_0 + j*ds;
-            double nB_local = s_local/sovernB[i];
-            double e_local = get_s2e_finite_rhob(s_local, nB_local);
-            double s_check = get_entropy(e_local, nB_local);
-            double cs2_local = get_cs2(e_local, nB_local);
+            double s_local     = s_0 + j*ds;
+            double nB_local    = s_local/sovernB[i];
+            double e_local     = get_s2e_finite_rhob(s_local, nB_local);
+            double s_check     = get_entropy(e_local, nB_local);
+            double cs2_local   = get_cs2(e_local, nB_local);
             double temperature = get_temperature(e_local, nB_local)*hbarc;
-            double mu_B = get_mu(e_local, nB_local)*hbarc;
+            double mu_B        = get_mu(e_local, nB_local)*hbarc;
             check_file9 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "  " << temperature << "  "
                         << cs2_local << "  " << mu_B << "  " 

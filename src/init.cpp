@@ -355,21 +355,21 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
 
     int nx = DATA->nx + 1;
     int ny = DATA->ny + 1;
-    double** temp_profile_ed = new double* [nx];
-    double** temp_profile_ux = new double* [nx];
-    double** temp_profile_uy = new double* [nx];
-    double **temp_profile_ed_prev = NULL;
-    double **temp_profile_rhob = NULL;
+    double** temp_profile_ed        = new double* [nx];
+    double** temp_profile_ux        = new double* [nx];
+    double** temp_profile_uy        = new double* [nx];
+    double **temp_profile_ed_prev   = NULL;
+    double **temp_profile_rhob      = NULL;
     double **temp_profile_rhob_prev = NULL;
-    double **temp_profile_ux_prev = NULL;
-    double **temp_profile_uy_prev = NULL;
-    double **temp_profile_pixx = NULL;
-    double **temp_profile_piyy = NULL;
-    double **temp_profile_pixy = NULL;
-    double **temp_profile_pi00 = NULL;
-    double **temp_profile_pi0x = NULL;
-    double **temp_profile_pi0y = NULL;
-    double **temp_profile_pi33 = NULL;
+    double **temp_profile_ux_prev   = NULL;
+    double **temp_profile_uy_prev   = NULL;
+    double **temp_profile_pixx      = NULL;
+    double **temp_profile_piyy      = NULL;
+    double **temp_profile_pixy      = NULL;
+    double **temp_profile_pi00      = NULL;
+    double **temp_profile_pi0x      = NULL;
+    double **temp_profile_pi0y      = NULL;
+    double **temp_profile_pi33      = NULL;
     if (DATA->turn_on_shear == 1) {
         temp_profile_pixx = new double* [nx];
         temp_profile_piyy = new double* [nx];
@@ -379,11 +379,11 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
         temp_profile_pi0y = new double* [nx];
         temp_profile_pi33 = new double* [nx];
     } else {
-        temp_profile_ed_prev = new double* [nx];
-        temp_profile_rhob = new double* [nx];
+        temp_profile_ed_prev   = new double* [nx];
+        temp_profile_rhob      = new double* [nx];
         temp_profile_rhob_prev = new double* [nx];
-        temp_profile_ux_prev = new double* [nx];
-        temp_profile_uy_prev = new double* [nx];
+        temp_profile_ux_prev   = new double* [nx];
+        temp_profile_uy_prev   = new double* [nx];
     }
     for (int i = 0; i < nx; i++) {
         temp_profile_ed[i] = new double[ny];
@@ -398,11 +398,11 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             temp_profile_pi0y[i] = new double[ny];
             temp_profile_pi33[i] = new double[ny];
         } else {
-            temp_profile_ed_prev[i] = new double[ny];
-            temp_profile_rhob[i] = new double[ny];
+            temp_profile_ed_prev[i]   = new double[ny];
+            temp_profile_rhob[i]      = new double[ny];
             temp_profile_rhob_prev[i] = new double[ny];
-            temp_profile_ux_prev[i] = new double[ny];
-            temp_profile_uy_prev[i] = new double[ny];
+            temp_profile_ux_prev[i]   = new double[ny];
+            temp_profile_uy_prev[i]   = new double[ny];
         }
     }
 
@@ -449,21 +449,21 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid ***arena) {
             double epsilon = temp_profile_ed[ix][iy];
             
             // set all values in the grid element:
-            arena[ieta][ix][iy].epsilon = epsilon;
-            arena[ieta][ix][iy].epsilon_t = epsilon;
+            arena[ieta][ix][iy].epsilon      = epsilon;
+            arena[ieta][ix][iy].epsilon_t    = epsilon;
             arena[ieta][ix][iy].prev_epsilon = epsilon;
-            arena[ieta][ix][iy].rhob = rhob;
-            arena[ieta][ix][iy].rhob_t = rhob;
-            arena[ieta][ix][iy].prev_rhob = rhob;
+            arena[ieta][ix][iy].rhob         = rhob;
+            arena[ieta][ix][iy].rhob_t       = rhob;
+            arena[ieta][ix][iy].prev_rhob    = rhob;
             
-            arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
-            arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].dUsup     = util->cube_malloc(1, 5, 4);
+            arena[ieta][ix][iy].u         = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].pi_b      = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].prev_u    = util->mtx_malloc(1, 4);
+            arena[ieta][ix][iy].Wmunu     = util->mtx_malloc(rk_order, 14);
             arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(1, 14);
-            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+            arena[ieta][ix][iy].W_prev    = util->vector_malloc(14);
             
             /* for HIC */
             double utau_local = sqrt(1.
@@ -616,21 +616,21 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid ***arena) {
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
                 // set all values in the grid element:
-                arena[ieta][ix][iy].epsilon = epsilon;
-                arena[ieta][ix][iy].epsilon_t = epsilon;
+                arena[ieta][ix][iy].epsilon      = epsilon;
+                arena[ieta][ix][iy].epsilon_t    = epsilon;
                 arena[ieta][ix][iy].prev_epsilon = epsilon;
-                arena[ieta][ix][iy].rhob = rhob;
-                arena[ieta][ix][iy].rhob_t = rhob;
-                arena[ieta][ix][iy].prev_rhob = rhob;
+                arena[ieta][ix][iy].rhob         = rhob;
+                arena[ieta][ix][iy].rhob_t       = rhob;
+                arena[ieta][ix][iy].prev_rhob    = rhob;
             
-                arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
-                arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-                arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
+                arena[ieta][ix][iy].dUsup     = util->cube_malloc(1, 5, 4);
+                arena[ieta][ix][iy].u         = util->mtx_malloc(rk_order, 4);
+                arena[ieta][ix][iy].pi_b      = util->vector_malloc(rk_order);
                 arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
-                arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-                arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order, 14);
+                arena[ieta][ix][iy].prev_u    = util->mtx_malloc(1, 4);
+                arena[ieta][ix][iy].Wmunu     = util->mtx_malloc(rk_order, 14);
                 arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(1, 14);
-                arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+                arena[ieta][ix][iy].W_prev    = util->vector_malloc(14);
             
                 /* for HIC */
                 arena[ieta][ix][iy].u[0][0] = 1.0;
@@ -690,15 +690,15 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
     double density, dummy1, dummy2, dummy3;
     double ux, uy, utau;
 
-    double** temp_profile_ed = new double* [nx];
+    double** temp_profile_ed   = new double* [nx];
     double** temp_profile_utau = new double* [nx];
-    double** temp_profile_ux = new double* [nx];
-    double** temp_profile_uy = new double* [nx];
+    double** temp_profile_ux   = new double* [nx];
+    double** temp_profile_uy   = new double* [nx];
     for (int i = 0; i < nx; i++) {
-        temp_profile_ed[i] = new double[ny];
+        temp_profile_ed[i]   = new double[ny];
         temp_profile_utau[i] = new double[ny];
-        temp_profile_ux[i] = new double[ny];
-        temp_profile_uy[i] = new double[ny];
+        temp_profile_ux[i]   = new double[ny];
+        temp_profile_uy[i]   = new double[ny];
     }
 
     // read the one slice
@@ -746,21 +746,21 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid ***arena) {
                 epsilon = 0.00000000001;
 
             // set all values in the grid element:
-            arena[ieta][ix][iy].epsilon = epsilon;
-            arena[ieta][ix][iy].epsilon_t = epsilon;
+            arena[ieta][ix][iy].epsilon      = epsilon;
+            arena[ieta][ix][iy].epsilon_t    = epsilon;
             arena[ieta][ix][iy].prev_epsilon = epsilon;
-            arena[ieta][ix][iy].rhob = rhob;
-            arena[ieta][ix][iy].rhob_t = rhob;
-            arena[ieta][ix][iy].prev_rhob = rhob;
+            arena[ieta][ix][iy].rhob         = rhob;
+            arena[ieta][ix][iy].rhob_t       = rhob;
+            arena[ieta][ix][iy].prev_rhob    = rhob;
 
-            arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
-            arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].dUsup     = util->cube_malloc(1, 5, 4);
+            arena[ieta][ix][iy].u         = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].pi_b      = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].prev_u    = util->mtx_malloc(1, 4);
+            arena[ieta][ix][iy].Wmunu     = util->mtx_malloc(rk_order, 14);
             arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(1, 14);
-            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+            arena[ieta][ix][iy].W_prev    = util->vector_malloc(14);
 
             /* for HIC */
             arena[ieta][ix][iy].u[0][0] = temp_profile_utau[ix][iy];
@@ -827,36 +827,36 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
     double pitautau, pitaux, pitauy, pitaueta;
     double pixx, pixy, pixeta, piyy, piyeta, pietaeta;
 
-    double** temp_profile_ed = new double* [nx];
-    double** temp_profile_utau = new double* [nx];
-    double** temp_profile_ux = new double* [nx];
-    double** temp_profile_uy = new double* [nx];
-    double** temp_profile_ueta = new double* [nx];
+    double** temp_profile_ed       = new double* [nx];
+    double** temp_profile_utau     = new double* [nx];
+    double** temp_profile_ux       = new double* [nx];
+    double** temp_profile_uy       = new double* [nx];
+    double** temp_profile_ueta     = new double* [nx];
     double** temp_profile_pitautau = new double* [nx];
-    double** temp_profile_pitaux = new double* [nx];
-    double** temp_profile_pitauy = new double* [nx];
+    double** temp_profile_pitaux   = new double* [nx];
+    double** temp_profile_pitauy   = new double* [nx];
     double** temp_profile_pitaueta = new double* [nx];
-    double** temp_profile_pixx = new double* [nx];
-    double** temp_profile_pixy = new double* [nx];
-    double** temp_profile_pixeta = new double* [nx];
-    double** temp_profile_piyy = new double* [nx];
-    double** temp_profile_piyeta = new double* [nx];
+    double** temp_profile_pixx     = new double* [nx];
+    double** temp_profile_pixy     = new double* [nx];
+    double** temp_profile_pixeta   = new double* [nx];
+    double** temp_profile_piyy     = new double* [nx];
+    double** temp_profile_piyeta   = new double* [nx];
     double** temp_profile_pietaeta = new double* [nx];
     for (int i = 0; i < nx; i++) {
-        temp_profile_ed[i] = new double[ny];
-        temp_profile_utau[i] = new double[ny];
-        temp_profile_ux[i] = new double[ny];
-        temp_profile_uy[i] = new double[ny];
-        temp_profile_ueta[i] = new double[ny];
+        temp_profile_ed[i]       = new double[ny];
+        temp_profile_utau[i]     = new double[ny];
+        temp_profile_ux[i]       = new double[ny];
+        temp_profile_uy[i]       = new double[ny];
+        temp_profile_ueta[i]     = new double[ny];
         temp_profile_pitautau[i] = new double[ny];
-        temp_profile_pitaux[i] = new double[ny];
-        temp_profile_pitauy[i] = new double[ny];
+        temp_profile_pitaux[i]   = new double[ny];
+        temp_profile_pitauy[i]   = new double[ny];
         temp_profile_pitaueta[i] = new double[ny];
-        temp_profile_pixx[i] = new double[ny];
-        temp_profile_pixy[i] = new double[ny];
-        temp_profile_pixeta[i] = new double[ny];
-        temp_profile_piyy[i] = new double[ny];
-        temp_profile_piyeta[i] = new double[ny];
+        temp_profile_pixx[i]     = new double[ny];
+        temp_profile_pixy[i]     = new double[ny];
+        temp_profile_pixeta[i]   = new double[ny];
+        temp_profile_piyy[i]     = new double[ny];
+        temp_profile_piyeta[i]   = new double[ny];
         temp_profile_pietaeta[i] = new double[ny];
     }
 
@@ -867,20 +867,20 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
                     >> density >> utau >> ux >> uy >> ueta
                     >> pitautau >> pitaux >> pitauy >> pitaueta
                     >> pixx >> pixy >> pixeta >> piyy >> piyeta >> pietaeta;
-            temp_profile_ed[ix][iy] = density;
-            temp_profile_ux[ix][iy] = ux;
-            temp_profile_uy[ix][iy] = uy;
-            temp_profile_ueta[ix][iy] = ueta*tau0;
-            temp_profile_utau[ix][iy] = sqrt(1. + ux*ux + uy*uy + ueta*ueta);
+            temp_profile_ed      [ix][iy] = density;
+            temp_profile_ux      [ix][iy] = ux;
+            temp_profile_uy      [ix][iy] = uy;
+            temp_profile_ueta    [ix][iy] = ueta*tau0;
+            temp_profile_utau    [ix][iy] = sqrt(1. + ux*ux + uy*uy + ueta*ueta);
             temp_profile_pitautau[ix][iy] = pitautau*DATA->sFactor;
-            temp_profile_pitaux[ix][iy] = pitaux*DATA->sFactor;
-            temp_profile_pitauy[ix][iy] = pitauy*DATA->sFactor;
+            temp_profile_pitaux  [ix][iy] = pitaux*DATA->sFactor;
+            temp_profile_pitauy  [ix][iy] = pitauy*DATA->sFactor;
             temp_profile_pitaueta[ix][iy] = pitaueta*tau0*DATA->sFactor;
-            temp_profile_pixx[ix][iy] = pixx*DATA->sFactor;
-            temp_profile_pixy[ix][iy] = pixy*DATA->sFactor;
-            temp_profile_pixeta[ix][iy] = pixeta*tau0*DATA->sFactor;
-            temp_profile_piyy[ix][iy] = piyy*DATA->sFactor;
-            temp_profile_piyeta[ix][iy] = piyeta*tau0*DATA->sFactor;
+            temp_profile_pixx    [ix][iy] = pixx*DATA->sFactor;
+            temp_profile_pixy    [ix][iy] = pixy*DATA->sFactor;
+            temp_profile_pixeta  [ix][iy] = pixeta*tau0*DATA->sFactor;
+            temp_profile_piyy    [ix][iy] = piyy*DATA->sFactor;
+            temp_profile_piyeta  [ix][iy] = piyeta*tau0*DATA->sFactor;
             temp_profile_pietaeta[ix][iy] = piyeta*tau0*tau0*DATA->sFactor;
             if (ix == 0 && iy == 0) {
                 DATA->x_size = -dummy2*2;
@@ -919,21 +919,21 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
             double pressure = eos->get_pressure(epsilon, rhob);
 
             // set all values in the grid element:
-            arena[ieta][ix][iy].epsilon = epsilon;
-            arena[ieta][ix][iy].epsilon_t = epsilon;
+            arena[ieta][ix][iy].epsilon      = epsilon;
+            arena[ieta][ix][iy].epsilon_t    = epsilon;
             arena[ieta][ix][iy].prev_epsilon = epsilon;
-            arena[ieta][ix][iy].rhob = rhob;
-            arena[ieta][ix][iy].rhob_t = rhob;
-            arena[ieta][ix][iy].prev_rhob = rhob;
+            arena[ieta][ix][iy].rhob         = rhob;
+            arena[ieta][ix][iy].rhob_t       = rhob;
+            arena[ieta][ix][iy].prev_rhob    = rhob;
 
-            arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
-            arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].dUsup     = util->cube_malloc(1, 5, 4);
+            arena[ieta][ix][iy].u         = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].pi_b      = util->vector_malloc(rk_order);
             arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].prev_u    = util->mtx_malloc(1, 4);
+            arena[ieta][ix][iy].Wmunu     = util->mtx_malloc(rk_order, 14);
             arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(1, 14);
-            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+            arena[ieta][ix][iy].W_prev    = util->vector_malloc(14);
 
             /* for HIC */
             arena[ieta][ix][iy].u[0][0] = temp_profile_utau[ix][iy];
@@ -957,25 +957,25 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
             arena[ieta][ix][iy].pi_b[0] = epsilon/3. - pressure;
 
             arena[ieta][ix][iy].prevWmunu[0][0] = temp_profile_pitautau[ix][iy];
-            arena[ieta][ix][iy].Wmunu[0][0] = temp_profile_pitautau[ix][iy];
+            arena[ieta][ix][iy].Wmunu    [0][0] = temp_profile_pitautau[ix][iy];
             arena[ieta][ix][iy].prevWmunu[0][1] = temp_profile_pitaux[ix][iy];
-            arena[ieta][ix][iy].Wmunu[0][1] = temp_profile_pitaux[ix][iy];
+            arena[ieta][ix][iy].Wmunu    [0][1] = temp_profile_pitaux[ix][iy];
             arena[ieta][ix][iy].prevWmunu[0][2] = temp_profile_pitauy[ix][iy];
-            arena[ieta][ix][iy].Wmunu[0][2] = temp_profile_pitauy[ix][iy];
+            arena[ieta][ix][iy].Wmunu    [0][2] = temp_profile_pitauy[ix][iy];
             arena[ieta][ix][iy].prevWmunu[0][3] = temp_profile_pitaueta[ix][iy];
-            arena[ieta][ix][iy].Wmunu[0][3] = temp_profile_pitaueta[ix][iy];
+            arena[ieta][ix][iy].Wmunu    [0][3] = temp_profile_pitaueta[ix][iy];
             arena[ieta][ix][iy].prevWmunu[0][4] = temp_profile_pixx[ix][iy];
-            arena[ieta][ix][iy].Wmunu[0][4] = temp_profile_pixx[ix][iy];
+            arena[ieta][ix][iy].Wmunu    [0][4] = temp_profile_pixx[ix][iy];
             arena[ieta][ix][iy].prevWmunu[0][5] = temp_profile_pixy[ix][iy];
-            arena[ieta][ix][iy].Wmunu[0][5] = temp_profile_pixy[ix][iy];
+            arena[ieta][ix][iy].Wmunu    [0][5] = temp_profile_pixy[ix][iy];
             arena[ieta][ix][iy].prevWmunu[0][6] = temp_profile_pixeta[ix][iy];
-            arena[ieta][ix][iy].Wmunu[0][6] = temp_profile_pixeta[ix][iy];
+            arena[ieta][ix][iy].Wmunu    [0][6] = temp_profile_pixeta[ix][iy];
             arena[ieta][ix][iy].prevWmunu[0][7] = temp_profile_piyy[ix][iy];
-            arena[ieta][ix][iy].Wmunu[0][7] = temp_profile_piyy[ix][iy];
+            arena[ieta][ix][iy].Wmunu    [0][7] = temp_profile_piyy[ix][iy];
             arena[ieta][ix][iy].prevWmunu[0][8] = temp_profile_piyeta[ix][iy];
-            arena[ieta][ix][iy].Wmunu[0][8] = temp_profile_piyeta[ix][iy];
+            arena[ieta][ix][iy].Wmunu    [0][8] = temp_profile_piyeta[ix][iy];
             arena[ieta][ix][iy].prevWmunu[0][9] = temp_profile_pietaeta[ix][iy];
-            arena[ieta][ix][iy].Wmunu[0][9] = temp_profile_pietaeta[ix][iy];
+            arena[ieta][ix][iy].Wmunu    [0][9] = temp_profile_pietaeta[ix][iy];
         }
     }
     // clean up
@@ -1046,10 +1046,10 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
     profile_rhob_TB.close();
 
     double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
-    double eta_envelop_left = eta_profile_left_factor(DATA, eta);
+    double eta_envelop_left  = eta_profile_left_factor(DATA, eta);
     double eta_envelop_right = eta_profile_right_factor(DATA, eta);
-    double eta_rhob_left = eta_rhob_left_factor(DATA, eta);
-    double eta_rhob_right = eta_rhob_right_factor(DATA, eta);
+    double eta_rhob_left     = eta_rhob_left_factor(DATA, eta);
+    double eta_rhob_right    = eta_rhob_right_factor(DATA, eta);
 
     int entropy_flag = DATA->initializeEntropy;
     int rk_order = DATA->rk_order;
@@ -1080,20 +1080,20 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
                 epsilon = 0.00000000001;
 
             // set all values in the grid element:
-            arena[ieta][ix][iy].epsilon = epsilon;
-            arena[ieta][ix][iy].epsilon_t = epsilon;
+            arena[ieta][ix][iy].epsilon      = epsilon;
+            arena[ieta][ix][iy].epsilon_t    = epsilon;
             arena[ieta][ix][iy].prev_epsilon = epsilon;
-            arena[ieta][ix][iy].rhob = rhob;
-            arena[ieta][ix][iy].rhob_t = rhob;
-            arena[ieta][ix][iy].prev_rhob = rhob;
-            arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
-            arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
-            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order, 14);
-            arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(1, 14);
-            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+            arena[ieta][ix][iy].rhob         = rhob;
+            arena[ieta][ix][iy].rhob_t       = rhob;
+            arena[ieta][ix][iy].prev_rhob    = rhob;
+            arena[ieta][ix][iy].dUsup        = util->cube_malloc(1, 5, 4);
+            arena[ieta][ix][iy].u            = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].pi_b         = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_pi_b    = util->vector_malloc(1);
+            arena[ieta][ix][iy].prev_u       = util->mtx_malloc(1, 4);
+            arena[ieta][ix][iy].Wmunu        = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].prevWmunu    = util->mtx_malloc(1, 14);
+            arena[ieta][ix][iy].W_prev       = util->vector_malloc(14);
 
             /* for HIC */
             arena[ieta][ix][iy].u[0][0] = 1.0;
@@ -1177,20 +1177,20 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
                 epsilon = 0.00000000001;
 
             // set all values in the grid element:
-            arena[ieta][ix][iy].epsilon = epsilon;
-            arena[ieta][ix][iy].epsilon_t = epsilon;
+            arena[ieta][ix][iy].epsilon      = epsilon;
+            arena[ieta][ix][iy].epsilon_t    = epsilon;
             arena[ieta][ix][iy].prev_epsilon = epsilon;
-            arena[ieta][ix][iy].rhob = rhob;
-            arena[ieta][ix][iy].rhob_t = rhob;
-            arena[ieta][ix][iy].prev_rhob = rhob;
-            arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
-            arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
-            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order, 14);
-            arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(1, 14);
-            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+            arena[ieta][ix][iy].rhob         = rhob;
+            arena[ieta][ix][iy].rhob_t       = rhob;
+            arena[ieta][ix][iy].prev_rhob    = rhob;
+            arena[ieta][ix][iy].dUsup        = util->cube_malloc(1, 5, 4);
+            arena[ieta][ix][iy].u            = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].pi_b         = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_pi_b    = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_u       = util->mtx_malloc(1, 4);
+            arena[ieta][ix][iy].Wmunu        = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].prevWmunu    = util->mtx_malloc(1, 14);
+            arena[ieta][ix][iy].W_prev       = util->vector_malloc(14);
 
             /* for HIC */
             arena[ieta][ix][iy].u[0][0] = u[0];
@@ -1264,20 +1264,20 @@ void Init::initial_UMN_with_rhob(InitData *DATA, Grid ***arena) {
                 }
 
                 // set all values in the grid element:
-                arena[ieta][ix][iy].epsilon = epsilon;
-                arena[ieta][ix][iy].epsilon_t = epsilon;
+                arena[ieta][ix][iy].epsilon      = epsilon;
+                arena[ieta][ix][iy].epsilon_t    = epsilon;
                 arena[ieta][ix][iy].prev_epsilon = epsilon;
-                arena[ieta][ix][iy].rhob = rhob;
-                arena[ieta][ix][iy].rhob_t = rhob;
-                arena[ieta][ix][iy].prev_rhob = rhob;
-                arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
-                arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-                arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
-                arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(rk_order);
-                arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-                arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order, 14);
-                arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(1, 14);
-                arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+                arena[ieta][ix][iy].rhob         = rhob;
+                arena[ieta][ix][iy].rhob_t       = rhob;
+                arena[ieta][ix][iy].prev_rhob    = rhob;
+                arena[ieta][ix][iy].dUsup        = util->cube_malloc(1, 5, 4);
+                arena[ieta][ix][iy].u            = util->mtx_malloc(rk_order, 4);
+                arena[ieta][ix][iy].pi_b         = util->vector_malloc(rk_order);
+                arena[ieta][ix][iy].prev_pi_b    = util->vector_malloc(rk_order);
+                arena[ieta][ix][iy].prev_u       = util->mtx_malloc(1, 4);
+                arena[ieta][ix][iy].Wmunu        = util->mtx_malloc(rk_order, 14);
+                arena[ieta][ix][iy].prevWmunu    = util->mtx_malloc(1, 14);
+                arena[ieta][ix][iy].W_prev       = util->vector_malloc(14);
 
                 arena[ieta][ix][iy].u[0][0] = 1.0;
                 arena[ieta][ix][iy].u[0][3] = 0.0;
@@ -1348,20 +1348,20 @@ void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid ***arena) {
                 epsilon = 0.00000000001;
 
             // set all values in the grid element:
-            arena[ieta][ix][iy].epsilon = epsilon;
-            arena[ieta][ix][iy].epsilon_t = epsilon;
+            arena[ieta][ix][iy].epsilon      = epsilon;
+            arena[ieta][ix][iy].epsilon_t    = epsilon;
             arena[ieta][ix][iy].prev_epsilon = epsilon;
-            arena[ieta][ix][iy].rhob = rhob;
-            arena[ieta][ix][iy].rhob_t = rhob;
-            arena[ieta][ix][iy].prev_rhob = rhob;
-            arena[ieta][ix][iy].dUsup = util->cube_malloc(1, 5, 4);
-            arena[ieta][ix][iy].u = util->mtx_malloc(rk_order, 4);
-            arena[ieta][ix][iy].pi_b = util->vector_malloc(rk_order);
-            arena[ieta][ix][iy].prev_pi_b = util->vector_malloc(1);
-            arena[ieta][ix][iy].prev_u = util->mtx_malloc(1, 4);
-            arena[ieta][ix][iy].Wmunu = util->mtx_malloc(rk_order, 14);
-            arena[ieta][ix][iy].prevWmunu = util->mtx_malloc(1, 14);
-            arena[ieta][ix][iy].W_prev = util->vector_malloc(14);
+            arena[ieta][ix][iy].rhob         = rhob;
+            arena[ieta][ix][iy].rhob_t       = rhob;
+            arena[ieta][ix][iy].prev_rhob    = rhob;
+            arena[ieta][ix][iy].dUsup        = util->cube_malloc(1, 5, 4);
+            arena[ieta][ix][iy].u            = util->mtx_malloc(rk_order, 4);
+            arena[ieta][ix][iy].pi_b         = util->vector_malloc(rk_order);
+            arena[ieta][ix][iy].prev_pi_b    = util->vector_malloc(1);
+            arena[ieta][ix][iy].prev_u       = util->mtx_malloc(1, 4);
+            arena[ieta][ix][iy].Wmunu        = util->mtx_malloc(rk_order, 14);
+            arena[ieta][ix][iy].prevWmunu    = util->mtx_malloc(1, 14);
+            arena[ieta][ix][iy].W_prev       = util->vector_malloc(14);
 
             /* for HIC */
             arena[ieta][ix][iy].u[0][0] = u[0];
@@ -1441,18 +1441,18 @@ double Init::eta_rhob_profile_normalisation(InitData *DATA, double eta) {
     double eta_0 = DATA->eta_rhob_0;
     double tau0 = DATA->tau0;
     if (profile_flag == 1) {
-        double eta_width = DATA->eta_rhob_width;
-        double norm = 1./(2.*sqrt(2*M_PI)*eta_width*tau0);
-        double exparg1 = (eta - eta_0)/eta_width;
-        double exparg2 = (eta + eta_0)/eta_width;
+        const double eta_width = DATA->eta_rhob_width;
+        const double norm      = 1./(2.*sqrt(2*M_PI)*eta_width*tau0);
+        const double exparg1   = (eta - eta_0)/eta_width;
+        const double exparg2   = (eta + eta_0)/eta_width;
         res = norm*(exp(-exparg1*exparg1/2.0) + exp(-exparg2*exparg2/2.0));
     } else if (profile_flag == 2) {
-        double eta_abs = fabs(eta);
+        double eta_abs     = fabs(eta);
         double delta_eta_1 = DATA->eta_rhob_width_1;
         double delta_eta_2 = DATA->eta_rhob_width_2;
-        double A = DATA->eta_rhob_plateau_height;
-        double exparg1 = (eta_abs - eta_0)/delta_eta_1;
-        double exparg2 = (eta_abs - eta_0)/delta_eta_2;
+        double A           = DATA->eta_rhob_plateau_height;
+        double exparg1     = (eta_abs - eta_0)/delta_eta_1;
+        double exparg2     = (eta_abs - eta_0)/delta_eta_2;
         double theta;
         double norm = 1./(tau0*(sqrt(2.*M_PI)*delta_eta_1
                           + (1. - A)*sqrt(2.*M_PI)*delta_eta_2 + 2.*A*eta_0));
@@ -1472,12 +1472,12 @@ double Init::eta_rhob_profile_normalisation(InitData *DATA, double eta) {
 }
 
 double Init::eta_rhob_left_factor(InitData *DATA, double eta) {
-    double eta_0 = -fabs(DATA->eta_rhob_0);
-    double tau0 = DATA->tau0;
+    double eta_0       = -fabs(DATA->eta_rhob_0);
+    double tau0        = DATA->tau0;
     double delta_eta_1 = DATA->eta_rhob_width_1;
     double delta_eta_2 = DATA->eta_rhob_width_2;
-    double norm = 2./(sqrt(M_PI)*tau0*(delta_eta_1 + delta_eta_2));
-    double exp_arg = 0.0;
+    double norm        = 2./(sqrt(M_PI)*tau0*(delta_eta_1 + delta_eta_2));
+    double exp_arg     = 0.0;
     if (eta < eta_0) {
         exp_arg = (eta - eta_0)/delta_eta_1;
     } else {
@@ -1488,12 +1488,12 @@ double Init::eta_rhob_left_factor(InitData *DATA, double eta) {
 }
 
 double Init::eta_rhob_right_factor(InitData *DATA, double eta) {
-    double eta_0 = fabs(DATA->eta_rhob_0);
-    double tau0 = DATA->tau0;
+    double eta_0       = fabs(DATA->eta_rhob_0);
+    double tau0        = DATA->tau0;
     double delta_eta_1 = DATA->eta_rhob_width_1;
     double delta_eta_2 = DATA->eta_rhob_width_2;
-    double norm = 2./(sqrt(M_PI)*tau0*(delta_eta_1 + delta_eta_2));
-    double exp_arg = 0.0;
+    double norm        = 2./(sqrt(M_PI)*tau0*(delta_eta_1 + delta_eta_2));
+    double exp_arg     = 0.0;
     if (eta < eta_0) {
         exp_arg = (eta - eta_0)/delta_eta_2;
     } else {

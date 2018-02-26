@@ -415,18 +415,18 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     // read particle data:
     while (i < DATA->NumberOfParticlesToInclude) {
         //particleList[i].name = util->char_malloc(50);
-        fscanf(p_file, "%d", &particleList[i].number);
-        fscanf(p_file, "%s", particleList[i].name);
-        fscanf(p_file, "%lf", &particleList[i].mass);
-        fscanf(p_file, "%lf", &particleList[i].width);
-        fscanf(p_file, "%d", &particleList[i].degeneracy);
-        fscanf(p_file, "%d", &particleList[i].baryon);
-        fscanf(p_file, "%d", &particleList[i].strange);
-        fscanf(p_file, "%d", &particleList[i].charm);
-        fscanf(p_file, "%d", &particleList[i].bottom);
-        fscanf(p_file, "%d", &particleList[i].isospin);
-        fscanf(p_file, "%lf", &particleList[i].charge);
-        fscanf(p_file, "%d", &particleList[i].decays);   // number of decays
+        fscanf(p_file, "%d",  &particleList[i].number );
+        fscanf(p_file, "%s",   particleList[i].name   );
+        fscanf(p_file, "%lf", &particleList[i].mass   );
+        fscanf(p_file, "%lf", &particleList[i].width  );
+        fscanf(p_file, "%d",  &particleList[i].degeneracy);
+        fscanf(p_file, "%d",  &particleList[i].baryon );
+        fscanf(p_file, "%d",  &particleList[i].strange);
+        fscanf(p_file, "%d",  &particleList[i].charm  );
+        fscanf(p_file, "%d",  &particleList[i].bottom );
+        fscanf(p_file, "%d",  &particleList[i].isospin);
+        fscanf(p_file, "%lf", &particleList[i].charge );
+        fscanf(p_file, "%d",  &particleList[i].decays );   // number of decays
 
         partid[MHALF + particleList[i].number] = i;
         particleList[i].stable = 0;
@@ -451,22 +451,22 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
         // include anti-baryons (there are none in the file)
         if (particleList[i].baryon != 0) {
             i++;
-            //particleList[i].name = util->char_malloc(50);
-            particleList[i].width = particleList[i-1].width;
-            particleList[i].charm = -particleList[i-1].charm;
-            particleList[i].bottom = -particleList[i-1].bottom;
-            particleList[i].isospin = particleList[i-1].isospin;
-            particleList[i].charge = -particleList[i-1].charge;
-            particleList[i].decays = particleList[i-1].decays;
-            particleList[i].stable = particleList[i-1].stable;
-            particleList[i].number = -particleList[i-1].number;
+            //particleList[i].name  = util->char_malloc(50);
+            particleList[i].width   =  particleList[i-1].width;
+            particleList[i].charm   = -particleList[i-1].charm;
+            particleList[i].bottom  = -particleList[i-1].bottom;
+            particleList[i].isospin =  particleList[i-1].isospin;
+            particleList[i].charge  = -particleList[i-1].charge;
+            particleList[i].decays  =  particleList[i-1].decays;
+            particleList[i].stable  =  particleList[i-1].stable;
+            particleList[i].number  = -particleList[i-1].number;
             strcpy(particleList[i].name, "Anti-");
             strcat(particleList[i].name,particleList[i-1].name);
-            particleList[i].mass = particleList[i-1].mass;
-            particleList[i].degeneracy = particleList[i-1].degeneracy;
-            particleList[i].baryon = -particleList[i-1].baryon;
-            particleList[i].strange = -particleList[i-1].strange;
-            particleList[i].charge = -particleList[i-1].charge;
+            particleList[i].mass       =  particleList[i-1].mass;
+            particleList[i].degeneracy =  particleList[i-1].degeneracy;
+            particleList[i].baryon     = -particleList[i-1].baryon;
+            particleList[i].strange    = -particleList[i-1].strange;
+            particleList[i].charge     = -particleList[i-1].charge;
             partid[MHALF + particleList[i].number] = i;
         }
         i++;
