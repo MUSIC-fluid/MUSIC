@@ -1,6 +1,6 @@
 // Copyright 2012 Bjoern Schenke, Sangyong Jeon, and Charles Gale
-#ifndef SRC_GRID_H_
-#define SRC_GRID_H_
+#ifndef _SRC_CELL_H_
+#define _SRC_CELL_H_
 #include <iostream>
 #include <iomanip>
 #include "./data.h"
