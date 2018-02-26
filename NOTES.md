@@ -1,4 +1,4 @@
-Profiling
+Profiling with perf
 ==============================
 
 To get profiling access (on a local machine):
@@ -20,3 +20,52 @@ Quick stats:
 To see results:
 
     perf report
+
+
+
+Running on Cori
+==============================
+
+Starting an interactive job:
+
+    salloc -N1 -q debug --perf=vtune -C knl
+
+
+Profiling with VTune
+==============================
+
+Node-level counter based performance profiler
+
+Details [here](http://www.nersc.gov/users/software/performance-and-debugging-tools/vtune/)
+
+Load VTune:
+
+    module load vtune
+
+Do a general exploration:
+
+    amplxe-cl -finalization-mode=deferred -collect general-exploration ./mpihydro benchmark/music_input_Gubser_small
+
+Things to collect:
+
+ * advanced-hotspots
+ * memory-access
+ * general-exploration
+ * hpc-performance
+
+Other profiling tunes
+=====================
+
+aps #Application performing snapshot (included with VTune)
+--------------------------------
+
+    aps ./my_app
+
+
+Intel advisor
+-------------
+
+For getting vectorization advice
+
+    advixe-cl -c survey
+    advixe-cl -c tripcounts -flop 
