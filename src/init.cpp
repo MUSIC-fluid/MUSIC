@@ -1,4 +1,5 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
+#include <iomanip>
 #include <omp.h>
 #include "./util.h"
 #include "./cell.h"
@@ -24,9 +25,7 @@ Init::~Init() {
     delete util;
 }
 
-void Init::InitArena(InitData *DATA, Cell ****arena) {
-    Cell *helperCell;
-    helperCell = new Cell;
+void Init::InitArena(InitData *DATA, Grid &arena) {
     music_message.info("initArena");
     if (DATA->Initial_profile == 0) {
         music_message << "Using Initial_profile=" << DATA->Initial_profile;
@@ -114,109 +113,18 @@ void Init::InitArena(InitData *DATA, Cell ****arena) {
     }
 
     // initialize arena
-    *arena = helperCell->grid_c_malloc(DATA->neta, DATA->nx + 1, DATA->ny + 1);
+    arena = Grid(DATA->nx + 1, DATA->ny + 1,DATA->neta);
     music_message.info("Cell allocated.");
 
     InitTJb(DATA, arena);
 
     if (DATA->output_initial_density_profiles == 1) {
-        output_initial_density_profiles(DATA, *arena);
+        output_initial_density_profiles(DATA, arena);
     }
-
-    LinkNeighbors(DATA, arena);
-    delete helperCell;
 }/* InitArena */
 
-
-void Init::LinkNeighbors(InitData *DATA, Cell ****arena) {
-    int nx = DATA->nx;
-    int ny = DATA->ny;
-    int neta = DATA->neta;
-
-    /* allocate memory */
-    for (int ieta = 0; ieta < neta; ieta++) {
-        for (int ix = 0; ix <= nx; ix++) {
-            for (int iy = 0; iy <= ny; iy++) {
-                (*arena)[ieta][ix][iy].nbr_p_1 = new Cell *[4];
-                (*arena)[ieta][ix][iy].nbr_m_1 = new Cell *[4];
-                (*arena)[ieta][ix][iy].nbr_p_2 = new Cell *[4];
-                (*arena)[ieta][ix][iy].nbr_m_2 = new Cell *[4];
-            }
-        }
-    }
-
-    int ieta;
-    #pragma omp parallel private(ieta)
-    {
-        #pragma omp for
-        for (ieta = 0; ieta < neta; ieta++) {
-            LinkNeighbors_XY(DATA, ieta, (*arena));
-        }
-    }
-}  /* LinkNeighbors */
-
-void Init::LinkNeighbors_XY(InitData *DATA, int ieta, Grid &arena) {
-    int nx = DATA->nx;
-    int ny = DATA->ny;
-    int neta = DATA->neta;
-    for (int ix = 0; ix <= nx; ix++) {
-        for (int iy = 0; iy <= ny; iy++) {
-            if (ix != nx)
-                arena(ix,iy,ieta).nbr_p_1[1] = &arena(ix+1,iy,ieta);
-            else
-                arena(ix,iy,ieta).nbr_p_1[1] = &arena(nx,iy,ieta);
-            if (ix < nx - 1)
-                arena(ix,iy,ieta).nbr_p_2[1] = &arena(ix+2,iy,ieta);
-            else
-                arena(ix,iy,ieta).nbr_p_2[1] = &arena(nx,iy,ieta);
-            if (ix != 0)
-                arena(ix,iy,ieta).nbr_m_1[1] = &arena(ix-1,iy,ieta);
-            else
-                arena(ix,iy,ieta).nbr_m_1[1] = &arena(0,iy,ieta);
-            if (ix > 1)
-                arena(ix,iy,ieta).nbr_m_2[1] = &arena(ix-2,iy,ieta);
-            else
-                arena(ix,iy,ieta).nbr_m_2[1] = &arena(0,iy,ieta);
-            if (iy != ny)
-                arena(ix,iy,ieta).nbr_p_1[2] = &arena(ix,iy+1,ieta);
-            else
-                arena(ix,iy,ieta).nbr_p_1[2] = &arena(ix,ny,ieta);
-            if (iy < ny - 1)
-                arena(ix,iy,ieta).nbr_p_2[2] = &arena(ix,iy+2,ieta);
-            else
-                arena(ix,iy,ieta).nbr_p_2[2] = &arena(ix,ny,ieta);
-            if (iy != 0)
-                arena(ix,iy,ieta).nbr_m_1[2] = &arena(ix,iy-1,ieta);
-            else
-                arena(ix,iy,ieta).nbr_m_1[2] = &arena(ix,0,ieta);
-            if (iy > 1)
-                arena(ix,iy,ieta).nbr_m_2[2] = &arena(ix,iy-2,ieta);
-            else
-                arena(ix,iy,ieta).nbr_m_2[2] = &arena(ix,0,ieta);
-
-            if (ieta != neta-1)
-                arena(ix,iy,ieta).nbr_p_1[3] = &arena(ix,iy,ieta+1);
-            else
-                arena(ix,iy,ieta).nbr_p_1[3] = &arena(ix,iy,neta-1);
-            if (ieta < neta-2)
-                arena(ix,iy,ieta).nbr_p_2[3] = &arena(ix,iy,ieta+2);
-            else
-                arena(ix,iy,ieta).nbr_p_2[3] = &arena(ix,iy,neta-1);
-            if (ieta != 0)
-                arena(ix,iy,ieta).nbr_m_1[3] = &arena(ix,iy,ieta-1);
-            else
-                arena(ix,iy,ieta).nbr_m_1[3] = &arena(ix,iy,0);
-            if (ieta > 1)
-                arena(ix,iy,ieta).nbr_m_2[3] = &arena(ix,iy,ieta-2);
-            else
-                arena(ix,iy,ieta).nbr_m_2[3] = &arena(ix,iy,0);
-        }
-    }
-}
-
-
 //! This is a shell function to initial hydrodynamic fields
-int Init::InitTJb(InitData *DATA, Cell ****arena) {
+int Init::InitTJb(InitData *DATA, Grid &arena) {
     if (DATA->Initial_profile == 0) {
         // Gubser flow test
         music_message.info(" Perform Gubser flow test ... ");
@@ -1520,7 +1428,7 @@ void Init::output_initial_density_profiles(InitData *DATA, Grid &arena) {
             double x_local = -DATA->x_size/2. + ix*DATA->delta_x;
             for(int iy = 0; iy < (DATA->ny+1); iy++) {
                 double y_local = -DATA->y_size/2. + iy*DATA->delta_y;
-                of << scientific << setw(18) << setprecision(8)
+                of << scientific << setw(18) << std::setprecision(8)
                    << x_local << "   " << y_local << "   "
                    << eta_local << "   " << arena(ix,iy,ieta).epsilon*hbarc;
                 if (DATA->turn_on_rhob == 1) {

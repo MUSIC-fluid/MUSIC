@@ -49,7 +49,7 @@ int MUSIC::initialize_hydro() {
     system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 
     init = new Init(eos, DATA, hydro_source_ptr);
-    init->InitArena(DATA, &arena);
+    init->InitArena(DATA, arena);
     flag_hydro_initialized = 1;
     return(0);
 }

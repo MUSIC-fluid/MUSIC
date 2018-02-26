@@ -26,27 +26,24 @@ class Init {
     Init(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
     ~Init();  // destructor
 
-    void InitArena(InitData *DATA, Cell ****arena);
-    void LinkNeighbors(InitData *DATA, Cell ****arena);
-    void LinkNeighbors_XY(InitData *DATA, int ieta, Grid &arena);
-    int InitTJb(InitData *DATA, Cell ****arena);
-    void initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena);
-    void initial_1p1D_eta(InitData *DATA, Grid &arena);
-    void initial_IPGlasma_XY(InitData *DATA, int ieta, Grid &arena);
-    void initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta, Grid &arena);
-    void initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta, Grid &arena);
-    void initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
-                                         Grid &arena);
-    void initial_AMPT_XY(InitData *DATA, int ieta, Grid &arena);
-    void initial_UMN_with_rhob(InitData *DATA, Grid &arena);
-
-    double eta_profile_normalisation(InitData *DATA, double eta);
-    double eta_rhob_profile_normalisation(InitData *DATA, double eta);
-    double eta_profile_left_factor(InitData *Data, double eta);
-    double eta_profile_right_factor(InitData *Data, double eta);
-    double eta_rhob_left_factor(InitData *Data, double eta);
-    double eta_rhob_right_factor(InitData *Data, double eta);
-    void output_initial_density_profiles(InitData *DATA, Grid &arena);
+    void   InitArena                       (InitData *DATA, Grid &arena);
+    int    InitTJb                         (InitData *DATA, Grid &arena);
+    void   initial_Gubser_XY               (InitData *DATA, int ieta, Grid &arena);
+    void   initial_1p1D_eta                (InitData *DATA, Grid &arena);
+    void   initial_IPGlasma_XY             (InitData *DATA, int ieta, Grid &arena);
+    void   initial_IPGlasma_XY_with_pi     (InitData *DATA, int ieta, Grid &arena);
+    void   initial_MCGlb_with_rhob_XY      (InitData *DATA, int ieta, Grid &arena);
+    void   initial_MCGlbLEXUS_with_rhob_XY (InitData *DATA, int ieta, Grid &arena);
+    void   initial_AMPT_XY                 (InitData *DATA, int ieta, Grid &arena);
+    void   initial_UMN_with_rhob           (InitData *DATA, Grid &arena);
+    
+    double eta_profile_normalisation       (InitData *DATA, double eta);
+    double eta_rhob_profile_normalisation  (InitData *DATA, double eta);
+    double eta_profile_left_factor         (InitData *Data, double eta);
+    double eta_profile_right_factor        (InitData *Data, double eta);
+    double eta_rhob_left_factor            (InitData *Data, double eta);
+    double eta_rhob_right_factor           (InitData *Data, double eta);
+    void   output_initial_density_profiles (InitData *DATA, Grid &arena);
 };
 
 #endif  // SRC_INIT_H_

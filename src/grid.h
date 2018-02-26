@@ -15,6 +15,7 @@ class Grid {
   Cell& get(int x, int y, int eta);
   
  public:
+  Grid() = default;
   Grid(int Nx0, int Ny0, int Neta0);
 
   Cell& operator()(int x, int y, int eta);
