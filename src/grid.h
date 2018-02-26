@@ -65,9 +65,6 @@ class Grid {
     double *W_prev;
         
     Grid();//constructor
-    ~Grid();//destructor
-    Grid *grid_v_malloc(int );
-    Grid **grid_m_malloc(int , int );
     Grid ***grid_c_malloc(int , int , int );
 };
 

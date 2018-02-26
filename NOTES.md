@@ -53,6 +53,10 @@ Things to collect:
  * general-exploration
  * hpc-performance
 
+Generate a report ([details](https://software.intel.com/en-us/vtune-amplifier-help-report)):
+
+    amplxe-cl -report summary -r $SCRATCH/201802-knl-profiling
+
 Other profiling tunes
 =====================
 
