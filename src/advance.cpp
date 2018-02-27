@@ -736,11 +736,11 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
     qi[i] += rhs[i];
   }
   
-  delete qiphL[];
-  delete qiphR[];
-  delete qimhL[];
-  delete qimhR[];
-
+  delete[] qiphL;
+  delete[] qiphR;
+  delete[] qimhL;
+  delete[] qimhR;
+  
   // Util::mtx_free(grid_phL.u, 1, 4);
   // Util::mtx_free(grid_phR.u, 1, 4);
   // Util::mtx_free(grid_mhL.u, 1, 4);
@@ -840,19 +840,19 @@ double Advance::MaxSpeed(double tau, int direc, Cell *grid_p) {
     return f;
 }/* MaxSpeed */
 
-double Advance::get_TJb(const Cell &grid_p, int rk_flag, int mu, int nu) {
-    double rhob = grid_p.rhob;
+double Advance::get_TJb(Cell *grid_p, int rk_flag, int mu, int nu) {
+    double rhob = grid_p->rhob;
     if (rk_flag == 1) {
-        rhob = grid_p.rhob_t;
+        rhob = grid_p->rhob_t;
     }
-    double u_nu = grid_p.u[rk_flag][nu];
+    double u_nu = grid_p->u[rk_flag][nu];
     if (mu == 4) {
         double J_nu = rhob*u_nu;
         return(J_nu);
     } else if (mu < 4) {
-        double e = grid_p.epsilon;
+        double e = grid_p->epsilon;
         if (rk_flag == 1) {
-            e = grid_p.epsilon_t;
+            e = grid_p->epsilon_t;
         }
         double gfac = 0.0;
         double u_mu = 0.0;
@@ -864,7 +864,7 @@ double Advance::get_TJb(const Cell &grid_p, int rk_flag, int mu, int nu) {
                 gfac = 1.0;
             }
         } else {
-            u_mu = grid_p.u[rk_flag][mu];
+            u_mu = grid_p->u[rk_flag][mu];
         }
         double pressure = eos->get_pressure(e, rhob);
         double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
