@@ -24,12 +24,11 @@ class Cell {
     double prev_rhob    = 0;
 
     /* u[flag][mu]: flag=0 is the actual values. flag != are for RK steps */
-    std::array<double, 4> u_rk0;
-    std::array<double, 4> u_rk1;
+    std::array<std::array<double, 4>, 2> u;
         
     /* to include shear viscosity */
     /* we need to calculate partial_tau u[mu] */
-    std::array<double, 4> prev_u;
+    std::array<std::array<double, 4>, 1> prev_u;
     /* u[mu] from the previous time step including the rk flag */
     //double **pprev_u; /* u[mu] from 2 time step ago including the rk flag */
     //double **dU; /* dU[m][n] = partial_m u_n at the current time */
@@ -38,17 +37,15 @@ class Cell {
     /* we need to calculate partial_tau u[mu] */
     /* dU[flag][m][n] = u^{m,n} = partial^n u^m with the rk flag */
     /* note that they are superscripted. So partial^t = -partial_t */
-    std::array<std::array<double, 5>, 4> dUsup;
+    std::array<std::array<double, 4>, 5> dUsup;
 
     /* shear part of the TJb with the rk_flag */
-    std::array<double, 14> Wmunu_rk0;
-    std::array<double, 14> Wmunu_rk1;
-    std::array<double, 14> prevWmunu; 
+    std::array<std::array<double, 14>, 2> Wmunu;
+    std::array<std::array<double, 14>, 1> prevWmunu; 
         
     /* bulk pressure */
-    double pi_b_rk0  = 0.0;
-    double pi_b_rk1  = 0.0;
-    double prev_pi_b = 0.0;
+    std::array<double, 2> pi_b;
+    std::array<double, 1> prev_pi_b;
 
     // the following variables are for hyper-surface finder 
     // to determine freeze-out surface
@@ -59,7 +56,7 @@ class Cell {
     double rhob_prev;
     std::array<double, 4> u_prev;
     double pi_b_prev;
-    std::array<double, 4> W_prev;
+    std::array<double, 14> W_prev;
 };
 
 #endif  // SRC_GRID_H_
