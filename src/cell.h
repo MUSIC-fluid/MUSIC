@@ -46,9 +46,9 @@ class Cell {
     std::array<double, 14> prevWmunu; 
         
     /* bulk pressure */
-    double pi_b_rk0;
-    double pi_b_rk1;
-    double prev_pi_b;
+    double pi_b_rk0  = 0.0;
+    double pi_b_rk1  = 0.0;
+    double prev_pi_b = 0.0;
 
     // the following variables are for hyper-surface finder 
     // to determine freeze-out surface
