@@ -199,19 +199,15 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
     for (int ieta=0; ieta < DATA->neta; ieta++) {
         for (int ix=0; ix <= DATA->nx; ix++) {
             for (int iy=0; iy <= DATA->ny; iy++) {
-                util->cube_free(arena(ix,iy,ieta).dUsup, 1, 5, 4);
-                util->mtx_free(arena(ix,iy,ieta).Wmunu, rk_order, 14);
-                util->mtx_free(arena(ix,iy,ieta).prevWmunu, 1, 14);
-                util->mtx_free(arena(ix,iy,ieta).u, rk_order, 4);
-                util->mtx_free(arena(ix,iy,ieta).prev_u, 1, 4);
-                util->vector_free(arena(ix,iy,ieta).pi_b);
-                util->vector_free(arena(ix,iy,ieta).prev_pi_b);
-                
-                util->vector_free(arena(ix,iy,ieta).W_prev);
-                delete[] arena(ix,iy,ieta).nbr_p_1;
-                delete[] arena(ix,iy,ieta).nbr_p_2;
-                delete[] arena(ix,iy,ieta).nbr_m_1;
-                delete[] arena(ix,iy,ieta).nbr_m_2;
+//                util->cube_free(arena(ix,iy,ieta).dUsup, 5, 4);
+//                util->mtx_free(arena(ix,iy,ieta).Wmunu, rk_order, 14);
+//                util->mtx_free(arena(ix,iy,ieta).prevWmunu, 1, 14);
+//                util->mtx_free(arena(ix,iy,ieta).u, rk_order, 4);
+//                util->mtx_free(arena(ix,iy,ieta).prev_u, 1, 4);
+//                util->vector_free(arena(ix,iy,ieta).pi_b);
+//                util->vector_free(arena(ix,iy,ieta).prev_pi_b);
+//                
+//                util->vector_free(arena(ix,iy,ieta).W_prev);
             }
         }
     }

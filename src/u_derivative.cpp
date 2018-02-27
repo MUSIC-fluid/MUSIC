@@ -40,7 +40,7 @@ int U_derivative::MakedU(double tau, InitData *DATA,
             for (ix = 0; ix <= nx; ix++) {
                 for (iy = 0; iy <= ny; iy++) {
 	                // this calculates du/dx, du/dy, (du/deta)/tau
-                    MakeDSpatial(tau, DATA, &(arena(ix,iy,ieta)), rk_flag);
+                    MakeDSpatial(tau, DATA, arena, ix, iy, ieta, rk_flag);
                     // this calculates du/dtau
                     MakeDTau(tau, DATA, &(arena(ix,iy,ieta)), rk_flag); 
                 }
@@ -60,7 +60,7 @@ double U_derivative::calculate_expansion_rate(
     for (int mu = 0; mu < 4; mu++) {
         double gfac = (mu == 0 ? -1.0 : 1.0);
         // for expansion rate: theta
-        partial_mu_u_supmu += arena(ix,iy,ieta).dUsup[0][mu][mu]*gfac;
+        partial_mu_u_supmu += arena(ix,iy,ieta).dUsup[mu][mu]*gfac;
     }
     double theta = partial_mu_u_supmu + arena(ix,iy,ieta).u[rk_flag][0]/tau;
     return(theta);
@@ -76,7 +76,7 @@ void U_derivative::calculate_Du_supmu(double tau, Grid &arena, int ieta,
             double tfac = (nu==0 ? -1.0 : 1.0);
             u_supnu_partial_nu_u_supmu += (
                 tfac*arena(ix,iy,ieta).u[rk_flag][nu]
-                *arena(ix,iy,ieta).dUsup[0][mu][nu]);
+                *arena(ix,iy,ieta).dUsup[mu][nu]);
         }
         a[mu] = u_supnu_partial_nu_u_supmu;
     }
@@ -92,7 +92,7 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, Grid &arena,
     for (int i = 0; i < 4; i++) {
         u_local[i] = arena(ix,iy,ieta).u[rk_flag][i];
         for (int j = 0; j < 4; j++) {
-            dUsup_local[i][j] = arena(ix,iy,ieta).dUsup[0][i][j];
+            dUsup_local[i][j] = arena(ix,iy,ieta).dUsup[i][j];
         }
     }
     double theta_u_local = calculate_expansion_rate(tau, arena, ieta, ix,
@@ -151,7 +151,7 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, Grid &arena,
 }
 
 
-int U_derivative::MakeDSpatial(double tau, InitData *DATA, Cell *grid_pt,
+int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, int iy, int ieta,
                                int rk_flag) {
     double g, f, fp1, fm1, taufactor;
     double delta[4];
@@ -166,17 +166,31 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Cell *grid_pt,
     /* for u[i] */
     for (int m = 1; m <= 3; m++) {
         // partial_n u[m]
-        for (int n = 1; n <= 3; n++) {
-            taufactor = 1.0;
-            if (n == 3)
+//        for (int n = 1; n <= 3; n++) {
+//            taufactor = 1.0;
+//            if (n == 3)
                 taufactor = tau;
-            f = grid_pt->u[rk_flag][m];
-            fp1 = grid_pt->nbr_p_1[n]->u[rk_flag][m];
-            fm1 = grid_pt->nbr_m_1[n]->u[rk_flag][m];
-            g = minmod->minmod_dx(fp1, f, fm1);
-            g /= delta[n]*taufactor;
-            grid_pt->dUsup[0][m][n] = g;
-        }  // n = x, y, eta
+         f = arena(ix,iy,ieta).u[rk_flag][m];
+
+         fp1 = arena(ix+1,iy,ieta).u[rk_flag][m];
+         fm1 = arena(ix-1,iy,ieta).u[rk_flag][m];
+         g = minmod->minmod_dx(fp1, f, fm1);
+         g /= delta[1];
+         arena(ix,iy,ieta).dUsup[m][1] = g;
+
+         fp1 = arena(ix,iy+1,ieta).u[rk_flag][m];
+         fm1 = arena(ix,iy-1,ieta).u[rk_flag][m];
+         g = minmod->minmod_dx(fp1, f, fm1);
+         g /= delta[2];
+         arena(ix,iy,ieta).dUsup[m][2] = g;
+
+         fp1 = arena(ix,iy,ieta+1).u[rk_flag][m];
+         fm1 = arena(ix,iy,ieta-1).u[rk_flag][m];
+         g = minmod->minmod_dx(fp1, f, fm1);
+         g /= delta[3]*taufactor;
+         arena(ix,iy,ieta).dUsup[m][3] = g;
+
+//        }  // n = x, y, eta
     }  // m = x, y, eta
     /* for u[0], use u[0]u[0] = 1 + u[i]u[i] */
     /* u[0]_m = u[i]_m (u[i]/u[0]) */
@@ -185,40 +199,41 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Cell *grid_pt,
         f = 0.0;
         for (int m = 1; m <= 3; m++) {
 	        /* (partial_n u^m) u[m] */
-	        f += (grid_pt->dUsup[0][m][n])*(grid_pt->u[rk_flag][m]);
+	        f += (arena(ix,iy,ieta).dUsup[m][n])*(arena(ix,iy,ieta).u[rk_flag][m]);
         }
-        f /= grid_pt->u[rk_flag][0];
-        grid_pt->dUsup[0][0][n] = f;
+        f /= arena(ix,iy,ieta).u[rk_flag][0];
+        arena(ix,iy,ieta).dUsup[0][n] = f;
     }
     // Sangyong Nov 18 2014
     // Here we make derivatives of muB/T
     // dUsup[rk_flag][4][n] = partial_n (muB/T)
     // partial_x (muB/T) and partial_y (muB/T) first
     int m = 4; // means (muB/T)
-    for (int n = 1; n <= 3; n++) {
-        taufactor = 1.0;
-        if (n == 3)
+ //   for (int n = 1; n <= 3; n++) {
+ //       taufactor = 1.0;
+ //       if (n == 3)
             taufactor = tau;
 
         // f = grid_pt->rhob_t;
         if (rk_flag == 0) {
-            rhob = grid_pt->rhob;
-            eps = grid_pt->epsilon;
+            rhob = arena(ix,iy,ieta).rhob;
+            eps = arena(ix,iy,ieta).epsilon;
         } else {
-            rhob = grid_pt->rhob_t;
-            eps = grid_pt->epsilon_t;
+            rhob = arena(ix,iy,ieta).rhob_t;
+            eps = arena(ix,iy,ieta).epsilon_t;
         }
         muB = eos->get_mu(eps, rhob);
         T = eos->get_temperature(eps, rhob);
         f = muB/T; 
-    
+
+// in x-dir    
         //fp1 = grid_pt->nbr_p_1[n]->rhob;
         if (rk_flag == 0) {
-            rhob = grid_pt->nbr_p_1[n]->rhob;
-            eps = grid_pt->nbr_p_1[n]->epsilon;
+            rhob = arena(ix+1,iy,ieta).rhob;
+            eps = arena(ix+1,iy,ieta).epsilon;
         } else {
-            rhob = grid_pt->nbr_p_1[n]->rhob_t;
-            eps = grid_pt->nbr_p_1[n]->epsilon_t;
+            rhob = arena(ix+1,iy,ieta).rhob_t;
+            eps = arena(ix+1,iy,ieta).epsilon_t;
         }
         muB = eos->get_mu(eps, rhob);
         T = eos->get_temperature(eps, rhob);
@@ -226,20 +241,79 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Cell *grid_pt,
        
         // fm1 = grid_pt->nbr_m_1[n]->rhob;
         if (rk_flag == 0) {
-            rhob = grid_pt->nbr_m_1[n]->rhob;
-            eps = grid_pt->nbr_m_1[n]->epsilon;
+            rhob = arena(ix-1,iy,ieta).rhob;
+            eps = arena(ix-1,iy,ieta).epsilon;
         } else {
-            rhob = grid_pt->nbr_m_1[n]->rhob_t;
-            eps = grid_pt->nbr_m_1[n]->epsilon_t;
+            rhob = arena(ix-1,iy,ieta).rhob_t;
+            eps = arena(ix-1,iy,ieta).epsilon_t;
         }
         muB = eos->get_mu(eps, rhob);
         T = eos->get_temperature(eps, rhob);
         fm1 = muB/T; 
 
         g = minmod->minmod_dx(fp1, f, fm1);
-        g /= delta[n]*taufactor;
-        grid_pt->dUsup[0][m][n] = g;
-    }  // n = x, y, eta
+        g /= delta[1];
+        arena(ix,iy,ieta).dUsup[m][1] = g;
+
+// in y-dir    
+        //fp1 = grid_pt->nbr_p_1[n]->rhob;
+        if (rk_flag == 0) {
+            rhob = arena(ix,iy+1,ieta).rhob;
+            eps = arena(ix,iy+1,ieta).epsilon;
+        } else {
+            rhob = arena(ix,iy+1,ieta).rhob_t;
+            eps = arena(ix,iy+1,ieta).epsilon_t;
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fp1 = muB/T; 
+       
+        // fm1 = grid_pt->nbr_m_1[n]->rhob;
+        if (rk_flag == 0) {
+            rhob = arena(ix,iy-1,ieta).rhob;
+            eps = arena(ix,iy-1,ieta).epsilon;
+        } else {
+            rhob = arena(ix,iy-1,ieta).rhob_t;
+            eps = arena(ix,iy-1,ieta).epsilon_t;
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fm1 = muB/T; 
+
+        g = minmod->minmod_dx(fp1, f, fm1);
+        g /= delta[2];
+        arena(ix,iy,ieta).dUsup[m][2] = g;
+
+// in x-dir    
+        //fp1 = grid_pt->nbr_p_1[n]->rhob;
+        if (rk_flag == 0) {
+            rhob = arena(ix,iy,ieta+1).rhob;
+            eps = arena(ix,iy,ieta+1).epsilon;
+        } else {
+            rhob = arena(ix,iy,ieta+1).rhob_t;
+            eps = arena(ix,iy,ieta+1).epsilon_t;
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fp1 = muB/T; 
+       
+        // fm1 = grid_pt->nbr_m_1[n]->rhob;
+        if (rk_flag == 0) {
+            rhob = arena(ix,iy,ieta-1).rhob;
+            eps = arena(ix,iy,ieta-1).epsilon;
+        } else {
+            rhob = arena(ix,iy,ieta-1).rhob_t;
+            eps = arena(ix,iy,ieta-1).epsilon_t;
+        }
+        muB = eos->get_mu(eps, rhob);
+        T = eos->get_temperature(eps, rhob);
+        fm1 = muB/T; 
+
+        g = minmod->minmod_dx(fp1, f, fm1);
+        g /= delta[3]*taufactor;
+        arena(ix,iy,ieta).dUsup[m][3] = g;
+
+//    }  // n = x, y, eta
     return 1;
 }/* MakeDSpatial */
 
@@ -259,14 +333,14 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Cell *grid_pt,
             /* first order is more stable */
             f = ((grid_pt->u[rk_flag][m] - grid_pt->prev_u[0][m])
                  /DATA->delta_tau);
-            grid_pt->dUsup[0][m][0] = -f; /* g00 = -1 */
+            grid_pt->dUsup[m][0] = -f; /* g00 = -1 */
         }/* m */
     } else if (rk_flag > 0) {
         for (m=1; m<=3; m++) {
             /* first order */
             // this is from the prev full RK step 
             f = (grid_pt->u[rk_flag][m] - grid_pt->u[0][m])/(DATA->delta_tau);
-            grid_pt->dUsup[0][m][0] = -f; /* g00 = -1 */
+            grid_pt->dUsup[m][0] = -f; /* g00 = -1 */
         }/* m */
     }
 
@@ -279,10 +353,10 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Cell *grid_pt,
     f = 0.0;
     for (m=1; m<=3; m++) {
         /* (partial_0 u^m) u[m] */
-        f += (grid_pt->dUsup[0][m][0])*(grid_pt->u[rk_flag][m]);
+        f += (grid_pt->dUsup[m][0])*(grid_pt->u[rk_flag][m]);
     }
     f /= grid_pt->u[rk_flag][0];
-    grid_pt->dUsup[0][0][0] = f;
+    grid_pt->dUsup[0][0] = f;
 
     // Sangyong Nov 18 2014
     // Here we make the time derivative of (muB/T)
@@ -304,7 +378,7 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Cell *grid_pt,
         T            = eos->get_temperature(eps, rhob);
         tildemu_prev = muB/T;
         f            = (tildemu - tildemu_prev)/(DATA->delta_tau);
-        grid_pt->dUsup[0][m][0] = -f; /* g00 = -1 */
+        grid_pt->dUsup[m][0] = -f; /* g00 = -1 */
     } else if (rk_flag > 0) {
         m = 4;  
         // first order 
@@ -324,7 +398,7 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Cell *grid_pt,
         T            = eos->get_temperature(eps, rhob);
         tildemu_prev = muB/T;
         f            = (tildemu - tildemu_prev)/(DATA->delta_tau);
-        grid_pt->dUsup[0][m][0] = -f; /* g00 = -1 */
+        grid_pt->dUsup[m][0] = -f; /* g00 = -1 */
     }
     // Ends Sangyong's addition Nov 18 2014
     return 1;
