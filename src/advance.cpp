@@ -650,6 +650,7 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
   double *qimhR = new double[5];
   
   Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
+    #pragma omp critical
     std::cerr<<ix<<" "<<iy<<" "<<direction<<std::endl;
       double tau_fac = tau;
       if (direction == 3) {
@@ -703,9 +704,6 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
       }
     });
   
-  
-  std::cerr<<"Survived loop."<<std::endl;
-
   // geometric terms
   rhs[0] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 3)*DATA_ptr->delta_tau;
   rhs[3] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 0)*DATA_ptr->delta_tau;
