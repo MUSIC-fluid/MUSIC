@@ -12,7 +12,7 @@
 
 #CXX := g++-mp-6
 #CFLAGS= -Wall -g -O2 -qopenmp $(shell gsl-config --cflags)
-CFLAGS= -Wall -std=c++11 -O3 -fopenmp $(shell gsl-config --cflags)
+CFLAGS= -Wall -std=c++11 -O3 -fopenmp $(shell gsl-config --cflags) -DDOCTEST_CONFIG_DISABLE -DNDEBUG
 
 RM		=	rm -f
 O               =       .o
