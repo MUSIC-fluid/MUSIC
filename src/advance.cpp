@@ -184,7 +184,7 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
     /* if rk_flag > 0, we now have q0 + k1 + k2. 
      * So add q0 and multiply by 1/2 */
     if (rk_flag > 0) {
-      qi[alpha] += get_TJb(&arena(ix,iy,ieta), 0, alpha, 0)*tau_now;
+      qi[alpha] += get_TJb(arena(ix,iy,ieta), 0, alpha, 0)*tau_now;
       qi[alpha] *= 0.5;
     }
   }
@@ -639,7 +639,7 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
   double rhs[5];
   for (int alpha = 0; alpha < 5; alpha++) 
     {
-      qi[alpha] = get_TJb(&arena(ix,iy,ieta), rk_flag, alpha, 0)*tau;
+      qi[alpha] = get_TJb(arena(ix,iy,ieta), rk_flag, alpha, 0)*tau;
       rhs[alpha] = 0.0; 
      }/* get qi first */
   
@@ -675,19 +675,19 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
       flag *= reconst_ptr->ReconstIt_shell(&grid_mhL, tau, qimhL, c, 0);
       flag *= reconst_ptr->ReconstIt_shell(&grid_mhR, tau, qimhR, c, 0);
 
-      double aiphL = MaxSpeed(tau, direc, &grid_phL);
-      double aiphR = MaxSpeed(tau, direc, &grid_phR);
-      double aimhL = MaxSpeed(tau, direc, &grid_mhL);
-      double aimhR = MaxSpeed(tau, direc, &grid_mhR);
+      double aiphL = MaxSpeed(tau, direction, &grid_phL);
+      double aiphR = MaxSpeed(tau, direction, &grid_phR);
+      double aimhL = MaxSpeed(tau, direction, &grid_mhL);
+      double aimhR = MaxSpeed(tau, direction, &grid_mhR);
       
       double aiph = maxi(aiphL, aiphR);
       double aimh = maxi(aimhL, aimhR);
       
       for (int alpha = 0; alpha < 5; alpha++) {
-	double FiphL = get_TJb(&grid_phL, 0, alpha, direc)*tau_fac;
-	double FiphR = get_TJb(&grid_phR, 0, alpha, direc)*tau_fac;
-	double FimhL = get_TJb(&grid_mhL, 0, alpha, direc)*tau_fac;
-	double FimhR = get_TJb(&grid_mhR, 0, alpha, direc)*tau_fac;
+	double FiphL = get_TJb(grid_phL, 0, alpha, direction)*tau_fac;
+	double FiphR = get_TJb(grid_phR, 0, alpha, direction)*tau_fac;
+	double FimhL = get_TJb(grid_mhL, 0, alpha, direction)*tau_fac;
+	double FimhR = get_TJb(grid_mhR, 0, alpha, direction)*tau_fac;
         
 	// KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2
 	//                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
@@ -695,7 +695,7 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
 			   - aiph*(qiphR[alpha] - qiphL[alpha]));
 	double Fimh = 0.5*((FimhL + FimhR)
 			   - aimh*(qimhR[alpha] - qimhL[alpha]));
-	double DFmmp = (Fimh - Fiph)/delta[direc];
+	double DFmmp = (Fimh - Fiph)/delta[direction];
         
 	rhs[alpha] += DFmmp*(DATA_ptr->delta_tau);
       }
@@ -703,8 +703,8 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
   
   
   // geometric terms
-  rhs[0] -= get_TJb(&arena(ix,iy,ieta), rk_flag, 3, 3)*DATA_ptr->delta_tau;
-  rhs[3] -= get_TJb(&arena(ix,iy,ieta), rk_flag, 3, 0)*DATA_ptr->delta_tau;
+  rhs[0] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 3)*DATA_ptr->delta_tau;
+  rhs[3] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 0)*DATA_ptr->delta_tau;
   
   for (int i = 0; i < 5; i++) {
     qi[i] += rhs[i];
@@ -805,19 +805,19 @@ double Advance::MaxSpeed(double tau, int direc, Cell *grid_p) {
     return f;
 }/* MaxSpeed */
 
-double Advance::get_TJb(const Cell &grid_p, int rk_flag, int mu, int nu) {
-    double rhob = grid_p.rhob;
+double Advance::get_TJb(Cell *grid_p, int rk_flag, int mu, int nu) {
+    double rhob = grid_p->rhob;
     if (rk_flag == 1) {
-        rhob = grid_p.rhob_t;
+        rhob = grid_p->rhob_t;
     }
-    double u_nu = grid_p.u[rk_flag][nu];
+    double u_nu = grid_p->u[rk_flag][nu];
     if (mu == 4) {
         double J_nu = rhob*u_nu;
         return(J_nu);
     } else if (mu < 4) {
-        double e = grid_p.epsilon;
+        double e = grid_p->epsilon;
         if (rk_flag == 1) {
-            e = grid_p.epsilon_t;
+            e = grid_p->epsilon_t;
         }
         double gfac = 0.0;
         double u_mu = 0.0;
@@ -829,7 +829,7 @@ double Advance::get_TJb(const Cell &grid_p, int rk_flag, int mu, int nu) {
                 gfac = 1.0;
             }
         } else {
-            u_mu = grid_p.u[rk_flag][mu];
+            u_mu = grid_p->u[rk_flag][mu];
         }
         double pressure = eos->get_pressure(e, rhob);
         double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
