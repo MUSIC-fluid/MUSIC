@@ -60,7 +60,7 @@ Total_evolution_time_tau  1.0
 Minimum_Epsilon_Frac_For_Visc  1e-05 
 QuestRevert_rho_shear_max  0.1 
 Y_grid_size_in_fm  10.0 
-boost_invariant  0 
+boost_invariant  1
 T_dependent_Shear_to_S_ratio  0 
 input_grid_dy  0.1 
 input_grid_dx  0.1 

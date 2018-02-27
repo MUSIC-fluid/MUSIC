@@ -10,6 +10,7 @@ add_executable (mpihydro
     pretty_ostream.cpp
     freeze.cpp
     grid_info.cpp
+    grid.cpp
     util.cpp
     read_in_parameters.cpp
     freeze_pseudo.cpp

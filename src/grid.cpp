@@ -1,5 +1,5 @@
 #include "grid.h"
-#include "doctest.h"
+//#include "doctest.h"
 #include <cassert>
 
 Grid::Grid(int Nx0, int Ny0, int Neta0){
@@ -67,26 +67,26 @@ void Grid::updateHalo()
 
 
 
-TEST_CASE("Does grid copy work"){
-  Grid grid(3,3,3);
-
-  grid(0,0,0).epsilon = 3;
-
-   auto grid2 = grid;
-
-  CHECK(grid2(0,0,0).epsilon == grid(0,0,0).epsilon);
-}
-
-TEST_CASE("Check halo"){
-  Grid grid(1,1,1);
-
-  grid(0,0,0).epsilon = 3;
-  grid.updateHalo();
-
-  for(int i=-2; i<3; i++)
-    for(int j=-2; j<3; j++)
-      for(int k=-2; k<3; k++)
-	{
-	  CHECK(grid(i,j,k).epsilon == grid(0,0,0).epsilon);
-	}
-}
+//TEST_CASE("Does grid copy work"){
+//  Grid grid(3,3,3);
+//
+//  grid(0,0,0).epsilon = 3;
+//
+//   auto grid2 = grid;
+//
+//  CHECK(grid2(0,0,0).epsilon == grid(0,0,0).epsilon);
+//}
+//
+//TEST_CASE("Check halo"){
+//  Grid grid(1,1,1);
+//
+//  grid(0,0,0).epsilon = 3;
+//  grid.updateHalo();
+//
+//  for(int i=-2; i<3; i++)
+//    for(int j=-2; j<3; j++)
+//      for(int k=-2; k<3; k++)
+//	{
+//	  CHECK(grid(i,j,k).epsilon == grid(0,0,0).epsilon);
+//	}
+//}
