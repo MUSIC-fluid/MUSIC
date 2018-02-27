@@ -1,4 +1,5 @@
 add_executable (mpihydro
+    u_derivative.cpp
     main.cpp
     cell.cpp
     init.cpp
@@ -18,7 +19,6 @@ add_executable (mpihydro
     advance.cpp
     eos.cpp
     evolve.cpp
-    u_derivative.cpp
     dissipative.cpp
     emoji.cpp
     )
