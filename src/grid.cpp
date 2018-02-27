@@ -149,3 +149,19 @@ TEST_CASE("check neighbourloop3"){
 
   int a = 0;
 }
+
+TEST_CASE("check neighbourloop4"){
+  Grid grid(1,1,1);
+  grid(0,0,0).epsilon = 1;
+  grid.updateHalo();
+
+  int sum = 0;
+  Neighbourloop(grid, 0, 0, 0, NLAMBDA{
+    sum += c.epsilon;
+    sum += p1.epsilon;
+    sum += p2.epsilon;
+    sum += m1.epsilon;
+    sum += m2.epsilon;
+  });
+  CHECK(sum == 15);
+}
