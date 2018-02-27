@@ -643,10 +643,10 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
       rhs[alpha] = 0.0; 
      }/* get qi first */
   
-  double qiphL[5];
-  double qiphR[5];
-  double qimhL[5];
-  double qimhR[5];
+  double *qiphL = new double[5];
+  double *qiphR = new double[5];
+  double *qimhL = new double[5];
+  double *qimhR = new double[5];
   
   Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
       Cell grid_phL, grid_phR, grid_mhL, grid_mhR;
@@ -710,6 +710,15 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
     qi[i] += rhs[i];
   }
   
+  delete qiphL[];
+  delete qiphR[];
+  delete qimhL[];
+  delete qimhR[];
+
+  // Util::mtx_free(grid_phL.u, 1, 4);
+  // Util::mtx_free(grid_phR.u, 1, 4);
+  // Util::mtx_free(grid_mhL.u, 1, 4);
+  // Util::mtx_free(grid_mhR.u, 1, 4);
 }/* MakeDeltaQI */
 
 
