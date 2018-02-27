@@ -640,52 +640,28 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
   for (int alpha = 0; alpha < 5; alpha++) 
     {
       qi[alpha] = get_TJb(&arena(ix,iy,ieta), rk_flag, alpha, 0)*tau;
-      rhs[alpha] = 0.0; }/* get qi first */
+      rhs[alpha] = 0.0; 
+     }/* get qi first */
   
   double qiphL[5];
   double qiphR[5];
   double qimhL[5];
   double qimhR[5];
   
-  Cell grid_phL, grid_phR, grid_mhL, grid_mhR;
-  for (int direc = 1; direc < 4; direc++)
-    {
+  Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
+      Cell grid_phL, grid_phR, grid_mhL, grid_mhR;
       double tau_fac = tau;
-      int ixp, iyp, ietap, ixp2, iyp2, ietap2;
-      int ixm, iym, ietam, ixm2, iym2, ietam2;
-      // this could be made more elegant
-      if (direc == 1) {
-	ixp = ix+1; iyp = iy; ietap = ieta;
-	ixm = ix-1; iym = iy; ietam = ieta;
-	ixp2 = ix+2; iyp2 = iy; ietap2 = ieta;
-	ixm2 = ix-2; iym2 = iy; ietam2 = ieta;
-      }
-      if (direc == 2) {
-	ixp = ix; iyp = iy+1; ietap = ieta;
-	ixm = ix; iym = iy-1; ietam = ieta;
-	ixp2 = ix; iyp2 = iy+2; ietap2 = ieta;
-	ixm2 = ix; iym2 = iy-2; ietam2 = ieta;
-      }
-      if (direc == 3) {
+      if (direction == 3) {
 	tau_fac = 1.0;
-	ixp = ix; iyp = iy; ietap = ieta+1;
-	ixm = ix; iym = iy; ietam = ieta-1;
-	ixp2 = ix; iyp2 = iy; ietap2 = ieta+2;
-	ixm2 = ix; iym2 = iy; ietam2 = ieta-2;
-     }
+      }
       for (int alpha = 0; alpha < 5; alpha++) {
 	double gphL = qi[alpha];
-	double gphR = (
-		       tau*get_TJb(&arena(ixp,iyp,ietap), rk_flag, alpha, 0));
-	double gmhL = (
-		       tau*get_TJb(&arena(ixm,iym,ietam), rk_flag, alpha, 0));
+	double gphR = tau*get_TJb(p1, rk_flag, alpha, 0);
+	double gmhL = tau*get_TJb(m1, rk_flag, alpha, 0);
 	double gmhR = qi[alpha];
 	double fphL = 0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
-	double fphR = -0.5*minmod.minmod_dx(
-					     tau*get_TJb(&arena(ixp2,iyp2,ietap2), rk_flag, alpha, 0),
-					     gphR, qi[alpha]);
-	double fmhL = 0.5*minmod.minmod_dx(qi[alpha], gmhL,
-					    tau*get_TJb(&arena(ixm2,iym2,ietam2), rk_flag, alpha, 0));
+	double fphR = -0.5*minmod.minmod_dx(tau*get_TJb(p2, rk_flag, alpha, 0), gphR, qi[alpha]);
+	double fmhL = 0.5*minmod.minmod_dx(qi[alpha], gmhL, tau*get_TJb(m2, rk_flag, alpha, 0));
 	double fmhR = -0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
 	qiphL[alpha] = gphL + fphL;
 	qiphR[alpha] = gphR + fphR;
@@ -694,14 +670,11 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
       }
       // for each direction, reconstruct half-way cells
       // reconstruct e, rhob, and u[4] for half way cells
-      int flag = reconst_ptr->ReconstIt_shell(
-					      &grid_phL, tau, qiphL, &arena(ix,iy,ieta), 0);
-      flag *= reconst_ptr->ReconstIt_shell(
-					   &grid_phR, tau, qiphR, &arena(ix,iy,ieta), 0); 
-      flag *= reconst_ptr->ReconstIt_shell(
-					   &grid_mhL, tau, qimhL, &arena(ix,iy,ieta), 0);
-      flag *= reconst_ptr->ReconstIt_shell(
-					   &grid_mhR, tau, qimhR, &arena(ix,iy,ieta), 0);
+      int flag = reconst_ptr->ReconstIt_shell(&grid_phL, tau, qiphL, c, 0);
+      flag *= reconst_ptr->ReconstIt_shell(&grid_phR, tau, qiphR, c, 0); 
+      flag *= reconst_ptr->ReconstIt_shell(&grid_mhL, tau, qimhL, c, 0);
+      flag *= reconst_ptr->ReconstIt_shell(&grid_mhR, tau, qimhR, c, 0);
+
       double aiphL = MaxSpeed(tau, direc, &grid_phL);
       double aiphR = MaxSpeed(tau, direc, &grid_phR);
       double aimhL = MaxSpeed(tau, direc, &grid_mhL);
@@ -726,7 +699,8 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
         
 	rhs[alpha] += DFmmp*(DATA_ptr->delta_tau);
       }
-    }
+    });
+  
   
   // geometric terms
   rhs[0] -= get_TJb(&arena(ix,iy,ieta), rk_flag, 3, 3)*DATA_ptr->delta_tau;
@@ -736,10 +710,6 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
     qi[i] += rhs[i];
   }
   
-  // Util::mtx_free(grid_phL.u, 1, 4);
-  // Util::mtx_free(grid_phR.u, 1, 4);
-  // Util::mtx_free(grid_mhL.u, 1, 4);
-  // Util::mtx_free(grid_mhR.u, 1, 4);
 }/* MakeDeltaQI */
 
 
