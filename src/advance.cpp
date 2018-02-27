@@ -8,6 +8,7 @@
 #include "./eos.h"
 #include "./evolve.h"
 #include "./advance.h"
+#include <iostream>
 
 using namespace std;
 
@@ -190,17 +191,17 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
   }
   delete[] j_mu;
   
-  int flag = 0;
-  Cell grid_rk_t;
   //grid_rk_t.u = Util::mtx_malloc(1, 4);
-  flag = reconst_ptr->ReconstIt_shell(&grid_rk_t, tau_next, qi, &arena(ix,iy,ieta),
-              rk_flag); 
+  auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena(ix,iy,ieta), rk_flag); 
   
   delete[] qi;
   
   UpdateTJbRK(&grid_rk_t, &arena(ix,iy,ieta), rk_flag); 
   //    Util::mtx_free(grid_rk_t.u, 1, 4);
-  return(flag);
+
+  //TODO: CHeck for flag
+
+  return 0; //TODO
 }
 
 
@@ -649,7 +650,7 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
   double *qimhR = new double[5];
   
   Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
-      Cell grid_phL, grid_phR, grid_mhL, grid_mhR;
+    std::cerr<<ix<<" "<<iy<<" "<<direction<<std::endl;
       double tau_fac = tau;
       if (direction == 3) {
         tau_fac = 1.0;
@@ -670,10 +671,11 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
       }
       // for each direction, reconstruct half-way cells
       // reconstruct e, rhob, and u[4] for half way cells
-      int flag = reconst_ptr->ReconstIt_shell(&grid_phL, tau, qiphL, c, 0);
-      flag *= reconst_ptr->ReconstIt_shell(&grid_phR, tau, qiphR, c, 0); 
-      flag *= reconst_ptr->ReconstIt_shell(&grid_mhL, tau, qimhL, c, 0);
-      flag *= reconst_ptr->ReconstIt_shell(&grid_mhR, tau, qimhR, c, 0);
+
+      auto grid_phL = reconst_ptr->ReconstIt_shell(tau, qiphL, c, 0);
+      auto grid_phR = reconst_ptr->ReconstIt_shell(tau, qiphR, c, 0); 
+      auto grid_mhL = reconst_ptr->ReconstIt_shell(tau, qimhL, c, 0);
+      auto grid_mhR = reconst_ptr->ReconstIt_shell(tau, qimhR, c, 0);
 
       double aiphL = MaxSpeed(tau, direction, &grid_phL);
       double aiphR = MaxSpeed(tau, direction, &grid_phR);
@@ -702,6 +704,8 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
     });
   
   
+  std::cerr<<"Survived loop."<<std::endl;
+
   // geometric terms
   rhs[0] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 3)*DATA_ptr->delta_tau;
   rhs[3] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 0)*DATA_ptr->delta_tau;
@@ -710,10 +714,10 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
     qi[i] += rhs[i];
   }
   
-  delete qiphL[];
-  delete qiphR[];
-  delete qimhL[];
-  delete qimhR[];
+  delete[] qiphL;
+  delete[] qiphR;
+  delete[] qimhL;
+  delete[] qimhR;
 
   // Util::mtx_free(grid_phL.u, 1, 4);
   // Util::mtx_free(grid_phR.u, 1, 4);

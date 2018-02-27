@@ -44,7 +44,7 @@ void Neighbourloop(Grid &arena, int cx, int cy, int ceta, Func func){
     const int p2nx   = 2*p1nx;  
     const int p2ny   = 2*p1ny;  
     const int p2neta = 2*p1neta;
-    const auto&  c   = arena(cx,      cy,      ceta       );
+          auto&  c   = arena(cx,      cy,      ceta       );
     const auto& p1   = arena(cx+p1nx, cy+p1ny, ceta+p1neta);
     const auto& p2   = arena(cx+p2nx, cy+p2ny, ceta+p2neta);
     const auto& m1   = arena(cx+m1nx, cy+m1ny, ceta+m1neta);
@@ -53,6 +53,6 @@ void Neighbourloop(Grid &arena, int cx, int cy, int ceta, Func func){
   }
 }
 
-#define NLAMBDA [&](const Cell& c, const Cell& p1, const Cell& p2, const Cell& m1, const Cell& m2, const int direction)
+#define NLAMBDA [&](Cell& c, const Cell& p1, const Cell& p2, const Cell& m1, const Cell& m2, const int direction) 
 
 #endif

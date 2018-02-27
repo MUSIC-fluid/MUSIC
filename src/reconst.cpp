@@ -22,30 +22,25 @@ Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
     abs_err  = 1e-10;
 }
 
-int Reconst::ReconstIt_shell(Cell *grid_p, double tau, double *uq,
-                             Cell *grid_pt, int rk_flag) {
-    int flag = 0;
-    flag = ReconstIt_velocity_Newton(grid_p, tau, uq, grid_pt,
-                                     rk_flag);
-    if (flag < 0) {
-        flag = ReconstIt_velocity_iteration(grid_p, tau, uq, grid_pt,
-                                            rk_flag);
-    }
+Cell Reconst::ReconstIt_shell(double tau, double *uq, Cell &grid_pt, int rk_flag) {
 
-    if (flag < 0) {
-        flag = ReconstIt(grid_p, tau, uq, grid_pt, rk_flag);
-    }
+    Cell grid_p;
+
+    int           flag = ReconstIt_velocity_Newton   (&grid_p, tau, uq, &grid_pt, rk_flag);
+    if (flag < 0) flag = ReconstIt_velocity_iteration(&grid_p, tau, uq, &grid_pt, rk_flag);
+    if (flag < 0) flag = ReconstIt                   (&grid_p, tau, uq, &grid_pt, rk_flag);
 
     if (flag == -1) {
-        revert_grid(grid_p, grid_pt, rk_flag);
+        revert_grid(&grid_p, &grid_pt, rk_flag);
     } else if (flag == -2) {
         if (uq[0]/tau < abs_err) {
-            regulate_grid(grid_p, abs_err, 0);
+            regulate_grid(&grid_p, abs_err, 0);
         } else {
-            regulate_grid(grid_p, uq[0]/tau, 0);
+            regulate_grid(&grid_p, uq[0]/tau, 0);
         }
     }
-    return(flag);
+
+    return grid_p;
 }
 
 //! reconstruct TJb from q[0] - q[4] solve energy density first

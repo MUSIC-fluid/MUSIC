@@ -92,7 +92,7 @@ TEST_CASE("Check halo"){
 	}
 }
 
-TEST_CASE("check neighbourloop"){
+TEST_CASE("check neighbourloop1"){
  Grid grid(1,1,1);
 
  grid(0,0,0).epsilon = 3;
@@ -104,7 +104,9 @@ TEST_CASE("check neighbourloop"){
     CHECK(c.epsilon == m1.epsilon);
     CHECK(c.epsilon == m2.epsilon);
   });
+}
  
+TEST_CASE("check neighbourloop2"){
  Grid grid1(5,1,1);
  for (int i = 0; i < 5; i++) {
     grid1(i,0,0).epsilon = i + 1;
@@ -124,18 +126,18 @@ TEST_CASE("check neighbourloop"){
         CHECK(m2.epsilon == c.epsilon);
     }
  });
+}
  
- Grid grid2(3,3,3);
- for (int i = 0; i < 3; i++) {
- for (int j = 0; j < 3; j++) {
- for (int k = 0; k < 3; k++) {
+TEST_CASE("check neighbourloop3"){
+  Grid grid2(3,3,3);
+  for (int i = 0; i < 3; i++) 
+  for (int j = 0; j < 3; j++) 
+  for (int k = 0; k < 3; k++) {
     grid2(i,j,k).epsilon = 1;
- }
- }
- }
- grid2.updateHalo();
- 
- Neighbourloop(grid2, 1, 1, 1, NLAMBDA{
+  }
+  grid2.updateHalo();
+
+  Neighbourloop(grid2, 1, 1, 1, NLAMBDA{
     int sum = 0;
     sum += c.epsilon;
     sum += p1.epsilon;
@@ -143,6 +145,7 @@ TEST_CASE("check neighbourloop"){
     sum += m1.epsilon;
     sum += m2.epsilon;
     CHECK(sum == 5);
- });
+  });
 
+  int a = 0;
 }
