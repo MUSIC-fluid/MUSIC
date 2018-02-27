@@ -642,10 +642,10 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
       qi[alpha] = get_TJb(&arena(ix,iy,ieta), rk_flag, alpha, 0)*tau;
       rhs[alpha] = 0.0; }/* get qi first */
   
-  double *qiphL = new double[5];
-  double *qiphR = new double[5];
-  double *qimhL = new double[5];
-  double *qimhR = new double[5];
+  double qiphL[5];
+  double qiphR[5];
+  double qimhL[5];
+  double qimhR[5];
   
   Cell grid_phL, grid_phR, grid_mhL, grid_mhR;
   for (int direc = 1; direc < 4; direc++)
@@ -735,11 +735,6 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
   for (int i = 0; i < 5; i++) {
     qi[i] += rhs[i];
   }
-  
-  delete[] qiphL;
-  delete[] qiphR;
-  delete[] qimhL;
-  delete[] qimhR;
   
   // Util::mtx_free(grid_phL.u, 1, 4);
   // Util::mtx_free(grid_phR.u, 1, 4);
