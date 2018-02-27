@@ -28,21 +28,14 @@ int U_derivative::MakedU(double tau, InitData *DATA,
     int nx   = DATA->nx;
     int ny   = DATA->ny;
 
-    int ieta, ix, iy;
-    #pragma omp parallel private(ieta, ix, iy)
-    {
-        #pragma omp for collapse(3)
-        for (ieta = 0; ieta <= neta; ieta++) {
-            for (ix = 0; ix <= nx; ix++) {
-                for (iy = 0; iy <= ny; iy++) {
-	                // this calculates du/dx, du/dy, (du/deta)/tau
-                    MakeDSpatial(tau, DATA, arena, ix, iy, ieta, rk_flag);
-                    // this calculates du/dtau
-                    MakeDTau(tau, DATA, &(arena(ix,iy,ieta)), rk_flag); 
-                }
-            }
-        }
-        #pragma omp barrier
+    #pragma omp parallel for collapse(3)
+    for (int ieta = 0; ieta <= neta; ieta++)
+    for (int ix = 0; ix <= nx; ix++)
+    for (int iy = 0; iy <= ny; iy++) {
+	    // this calculates du/dx, du/dy, (du/deta)/tau
+        MakeDSpatial(tau, DATA, arena, ix, iy, ieta, rk_flag);
+        // this calculates du/dtau
+        MakeDTau(tau, DATA, &(arena(ix,iy,ieta)), rk_flag); 
     }
 
    return(1);
