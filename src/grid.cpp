@@ -105,20 +105,25 @@ TEST_CASE("check neighbourloop"){
     CHECK(c.epsilon == m2.epsilon);
   });
  
- Grid grid1(5,5,5);
+ Grid grid1(5,1,1);
  for (int i = 0; i < 5; i++) {
-    grid1(i,2,2).epsilon = i + 1;
-    grid1(2,i,2).epsilon = i + 1;
-    grid1(2,2,i).epsilon = i + 1;
+    grid1(i,0,0).epsilon = i + 1;
  }
  grid1.updateHalo();
  
- Neighbourloop(grid1, 2, 2, 2, NLAMBDA{
-    CHECK(p1.epsilon == 4);
-    CHECK(p2.epsilon == 5);
-    CHECK(m1.epsilon == 2);
-    CHECK(m2.epsilon == 1);
-  });
+ Neighbourloop(grid1, 2, 0, 0, NLAMBDA{
+    if (direction == 0) {
+        CHECK(p1.epsilon == 4);
+        CHECK(p2.epsilon == 5);
+        CHECK(m1.epsilon == 2);
+        CHECK(m2.epsilon == 1);
+    } else {
+        CHECK(p1.epsilon == c.epsilon);
+        CHECK(p2.epsilon == c.epsilon);
+        CHECK(m1.epsilon == c.epsilon);
+        CHECK(m2.epsilon == c.epsilon);
+    }
+ });
  
  Grid grid2(3,3,3);
  for (int i = 0; i < 3; i++) {
