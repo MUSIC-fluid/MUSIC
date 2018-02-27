@@ -1,9 +1,9 @@
 add_executable (mpihydro
     main.cpp
     cell.cpp
+    init.cpp
     eos.cpp
     evolve.cpp
-    init.cpp
     reconst.cpp
     minmod.cpp
     advance.cpp
