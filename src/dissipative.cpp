@@ -111,20 +111,20 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     double sg   = grid_pt->Wmunu[rk_flag][idx_1d];
     double sgp1 = grid_pt_p1->Wmunu[rk_flag][idx_1d];
     double sgm1 = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-    dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
+    dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[1];
     //dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
     if (alpha < 4 && DATA->turn_on_bulk == 1) {
-        double gfac1 = (alpha == i ? 1.0 : 0.0);
+        double gfac1 = (alpha == 1 ? 1.0 : 0.0);
         double bgp1 = (grid_pt_p1->pi_b[rk_flag]
                        *(gfac1 + grid_pt_p1->u[rk_flag][alpha]
-                                 *grid_pt_p1->u[rk_flag][i]));
+                                 *grid_pt_p1->u[rk_flag][1]));
         double bg = (grid_pt->pi_b[rk_flag]
                        *(gfac1 + grid_pt->u[rk_flag][alpha]
-                                 *grid_pt->u[rk_flag][i]));
+                                 *grid_pt->u[rk_flag][1]));
         double bgm1 = (grid_pt_m1->pi_b[rk_flag]
                        *(gfac1 + grid_pt_m1->u[rk_flag][alpha]
-                                 *grid_pt_m1->u[rk_flag][i]));
-        dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i];
+                                 *grid_pt_m1->u[rk_flag][1]));
+        dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[1];
         //dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
     }
     // y-direction
@@ -134,20 +134,20 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     sg         = grid_pt->Wmunu[rk_flag][idx_1d];
     sgp1       = grid_pt_p1->Wmunu[rk_flag][idx_1d];
     sgm1       = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-    dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[i];
+    dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[2];
     //dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
     if (alpha < 4 && DATA->turn_on_bulk == 1) {
-        double gfac1 = (alpha == i ? 1.0 : 0.0);
+        double gfac1 = (alpha == 2 ? 1.0 : 0.0);
         double bgp1 = (grid_pt_p1->pi_b[rk_flag]
                        *(gfac1 + grid_pt_p1->u[rk_flag][alpha]
-                                 *grid_pt_p1->u[rk_flag][i]));
+                                 *grid_pt_p1->u[rk_flag][2]));
         double bg = (grid_pt->pi_b[rk_flag]
                        *(gfac1 + grid_pt->u[rk_flag][alpha]
-                                 *grid_pt->u[rk_flag][i]));
+                                 *grid_pt->u[rk_flag][2]));
         double bgm1 = (grid_pt_m1->pi_b[rk_flag]
                        *(gfac1 + grid_pt_m1->u[rk_flag][alpha]
-                                 *grid_pt_m1->u[rk_flag][i]));
-        dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[i];
+                                 *grid_pt_m1->u[rk_flag][2]));
+        dPidx_perp += minmod->minmod_dx(bgp1, bg, bgm1)/delta[2];
         //dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
     }
 
