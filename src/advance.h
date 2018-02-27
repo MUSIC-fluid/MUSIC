@@ -56,7 +56,7 @@ class Advance {
 
     void MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, double *qi, int rk_flag);
     double MaxSpeed(double tau, int direc, Cell *grid_p);
-    double get_TJb(Cell *grid_p, int rk_flag, int mu, int nu);
+    double get_TJb(const Cell &grid_p, int rk_flag, int mu, int nu);
 };
 
 #endif  // SRC_ADVANCE_H_
