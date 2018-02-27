@@ -42,7 +42,7 @@ class Advance {
     int AdvanceIt(double tau_init, InitData *DATA, Grid &arena, int rk_flag);
 
     int FirstRKStepT(double tau, double x_local, double y_local,
-                     double eta_s_local, InitData *DATA, Cell *grid_pt,
+                     double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta,
                      int rk_flag);
 
     int FirstRKStepW(double tau_it, InitData *DATA, Cell *grid_pt,
@@ -55,7 +55,7 @@ class Advance {
     int QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
                         InitData *DATA, int ieta, int ix, int iy);
 
-    void MakeDeltaQI(double tau, Cell *grid_pt, double *qi, int rk_flag);
+    void MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, double *qi, int rk_flag);
     double MaxSpeed(double tau, int direc, Cell *grid_p);
     double get_TJb(Cell *grid_p, int rk_flag, int mu, int nu);
 };
