@@ -105,12 +105,12 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     double dPidx_perp = 0.0;
 
     // x-direction
-    idx_1d      = util->map_2d_idx_to_1d(alpha, 1);
+    idx_1d          = util->map_2d_idx_to_1d(alpha, 1);
     auto grid_pt_p1 = &(arena(ix + 1, iy, ieta));
     auto grid_pt_m1 = &(arena(ix - 1, iy, ieta));
-    double sg   = grid_pt->Wmunu[rk_flag][idx_1d];
-    double sgp1 = grid_pt_p1->Wmunu[rk_flag][idx_1d];
-    double sgm1 = grid_pt_m1->Wmunu[rk_flag][idx_1d];
+    double sg       = grid_pt->Wmunu[rk_flag][idx_1d];
+    double sgp1     = grid_pt_p1->Wmunu[rk_flag][idx_1d];
+    double sgm1     = grid_pt_m1->Wmunu[rk_flag][idx_1d];
     dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[1];
     //dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
     if (alpha < 4 && DATA->turn_on_bulk == 1) {
@@ -152,17 +152,17 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     }
 
     // eta-direction
-    i = 3;
-    taufactor = tau;
-    double dWdeta = 0.0;
+    i              = 3;
+    taufactor      = tau;
+    double dWdeta  = 0.0;
     double dPideta = 0.0;
-    idx_1d = util->map_2d_idx_to_1d(alpha, i);
-    grid_pt_p1 = &(arena(ix, iy, ieta + 1));
-    grid_pt_m1 = &(arena(ix, iy, ieta - 1));
-    sg = grid_pt->Wmunu[rk_flag][idx_1d];
-    sgp1 = grid_pt_p1->Wmunu[rk_flag][idx_1d];
-    sgm1 = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-    dWdeta = minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
+    idx_1d         = util->map_2d_idx_to_1d(alpha, i);
+    grid_pt_p1     = &(arena(ix, iy, ieta + 1));
+    grid_pt_m1     = &(arena(ix, iy, ieta - 1));
+    sg             = grid_pt->Wmunu[rk_flag][idx_1d];
+    sgp1           = grid_pt_p1->Wmunu[rk_flag][idx_1d];
+    sgm1           = grid_pt_m1->Wmunu[rk_flag][idx_1d];
+    dWdeta         = minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
     //dWdeta = (sgp1 - sgm1)/(2.*delta[i]*taufactor);
     if (alpha < 4 && DATA->turn_on_bulk == 1) {
         double gfac3 = (alpha == i ? 1.0 : 0.0);
@@ -955,13 +955,13 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
         rhob = grid_pt->prev_rhob;
     }
     double pressure = eos->get_pressure(epsilon, rhob);
-    double T = eos->get_temperature(epsilon, rhob);
+    double T        = eos->get_temperature(epsilon, rhob);
 
     double kappa_coefficient = DATA->kappa_coefficient;
     double tau_rho = kappa_coefficient/(T + 1e-15);
-    double mub = eos->get_mu(epsilon, rhob);
-    double alpha = mub/T;
-    double kappa = kappa_coefficient*(rhob/(3.*T*tanh(alpha) + 1e-15)
+    double mub     = eos->get_mu(epsilon, rhob);
+    double alpha   = mub/T;
+    double kappa   = kappa_coefficient*(rhob/(3.*T*tanh(alpha) + 1e-15)
                                       - rhob*rhob/(epsilon + pressure));
 
     if (DATA->Initial_profile == 1) {

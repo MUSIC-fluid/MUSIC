@@ -42,7 +42,7 @@ class Cell {
     /* shear part of the TJb with the rk_flag */
     std::array<std::array<double, 14>, 2> Wmunu;
     std::array<std::array<double, 14>, 1> prevWmunu; 
-        
+
     /* bulk pressure */
     std::array<double, 2> pi_b;
     std::array<double, 1> prev_pi_b;
