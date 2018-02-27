@@ -46,12 +46,13 @@ MUSIC::~MUSIC() {
 //! This function initialize hydro
 int MUSIC::initialize_hydro() {
     // clean all the surface files
-    system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+    int status = system(
+                    "rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 
     init = new Init(eos, DATA, hydro_source_ptr);
     init->InitArena(DATA, arena);
     flag_hydro_initialized = 1;
-    return(0);
+    return(status);
 }
 
 
