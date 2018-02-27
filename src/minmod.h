@@ -11,7 +11,6 @@ class Minmod {
  public:
     Minmod(InitData* DATA);
     double minmod_dx(double up1, double u, double um1);
-    double minmod_theta_dx(double up1, double u, double um1, double theta);
 };
 
 #endif  // SRC_MINMOD_H_
