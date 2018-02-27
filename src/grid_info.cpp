@@ -402,8 +402,8 @@ void Cell_info::get_maximum_energy_density(Grid &arena) {
     for (int ieta = 0; ieta < neta; ieta++)
     for (int ix = 0; ix <= nx; ix++) 
     for (int iy = 0; iy <= ny; iy++) {
-        const auto eps_local  = arena(ix,iy,ieta).epsilon
-        const auto rhob_local = arena(ix,iy,ieta).rhob   
+        const auto eps_local  = arena(ix,iy,ieta).epsilon;
+        const auto rhob_local = arena(ix,iy,ieta).rhob;
         eps_max  = std::max(eps_max,  eps_local );
         rhob_max = std::max(rhob_max, rhob_local);
         T_max    = std::max(T_max,    eos_ptr->get_temperature(eps_local, rhob_local) );
