@@ -8,9 +8,9 @@
 class Grid {
  private:
   std::vector<Cell> grid;
-  int Nx;
-  int Ny;
-  int Neta;
+  int Nx   = 0;
+  int Ny   = 0;
+  int Neta = 0;
   
   Cell& get(int x, int y, int eta);
   
