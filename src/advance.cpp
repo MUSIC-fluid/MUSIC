@@ -52,50 +52,50 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 #pragma omp for collapse(3)
     for (ieta = 0; ieta < grid_neta; ieta++) {
       for (ix = 0; ix <= grid_nx; ix++) {
-	for (iy = 0; iy <= grid_ny; iy++) {
-	  double eta_s_local = (- DATA_ptr->eta_size/2.
-				+ ieta*DATA_ptr->delta_eta);
-	  double x_local = (- DATA_ptr->x_size/2.
-			    + ix*DATA_ptr->delta_x);
-	  double y_local = (- DATA_ptr->y_size/2.
-			    + iy*DATA_ptr->delta_y);
-	  
-	  //		    FirstRKStepT(tau, x_local, y_local, eta_s_local,
-	  //             DATA, &(arena(ix,iy,ieta)), rk_flag);
-	  FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena, ix, iy, ieta, rk_flag);
+  for (iy = 0; iy <= grid_ny; iy++) {
+    double eta_s_local = (- DATA_ptr->eta_size/2.
+        + ieta*DATA_ptr->delta_eta);
+    double x_local = (- DATA_ptr->x_size/2.
+          + ix*DATA_ptr->delta_x);
+    double y_local = (- DATA_ptr->y_size/2.
+          + iy*DATA_ptr->delta_y);
+    
+    //        FirstRKStepT(tau, x_local, y_local, eta_s_local,
+    //             DATA, &(arena(ix,iy,ieta)), rk_flag);
+    FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena, ix, iy, ieta, rk_flag);
           
-	  if (DATA->viscosity_flag == 1) {
-	    //double tau_rk = tau;
-	    //if (rk_flag == 1) {
-	    //    tau_rk = tau + DATA_ptr->delta_tau;
-	    //}
-	    //double theta_local = (
-	    //        u_derivative_ptr->calculate_expansion_rate(
-	    //            tau_rk, arena, ieta, ix, iy, rk_flag));
-	    double theta_local = (
-				  u_derivative_ptr->calculate_expansion_rate(
-									     tau, arena, ieta, ix, iy, rk_flag));
-	    double *a_local = new double[5];
-	    double *sigma_local = new double[10];
-	    //u_derivative_ptr->calculate_Du_supmu(
-	    //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local);
-	    //u_derivative_ptr->calculate_velocity_shear_tensor(
-	    //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local,
-	    //        sigma_local);
-	    u_derivative_ptr->calculate_Du_supmu(
-						 tau, arena, ieta, ix, iy, rk_flag, a_local);
-	    u_derivative_ptr->calculate_velocity_shear_tensor(
-							      tau, arena, ieta, ix, iy, rk_flag, a_local,
-							      sigma_local);
-	    
-	    FirstRKStepW(tau, DATA, arena,
-			 rk_flag, theta_local, a_local,
-			 sigma_local, ieta, ix, iy);
-	    
-	    delete[] a_local;
-	    delete[] sigma_local;
-	  }
-	}
+    if (DATA->viscosity_flag == 1) {
+      //double tau_rk = tau;
+      //if (rk_flag == 1) {
+      //    tau_rk = tau + DATA_ptr->delta_tau;
+      //}
+      //double theta_local = (
+      //        u_derivative_ptr->calculate_expansion_rate(
+      //            tau_rk, arena, ieta, ix, iy, rk_flag));
+      double theta_local = (
+          u_derivative_ptr->calculate_expansion_rate(
+                       tau, arena, ieta, ix, iy, rk_flag));
+      double *a_local = new double[5];
+      double *sigma_local = new double[10];
+      //u_derivative_ptr->calculate_Du_supmu(
+      //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local);
+      //u_derivative_ptr->calculate_velocity_shear_tensor(
+      //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local,
+      //        sigma_local);
+      u_derivative_ptr->calculate_Du_supmu(
+             tau, arena, ieta, ix, iy, rk_flag, a_local);
+      u_derivative_ptr->calculate_velocity_shear_tensor(
+                    tau, arena, ieta, ix, iy, rk_flag, a_local,
+                    sigma_local);
+      
+      FirstRKStepW(tau, DATA, arena,
+       rk_flag, theta_local, a_local,
+       sigma_local, ieta, ix, iy);
+      
+      delete[] a_local;
+      delete[] sigma_local;
+    }
+  }
       }
     }
 #pragma omp barrier
