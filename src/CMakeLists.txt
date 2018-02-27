@@ -2,19 +2,19 @@ add_executable (mpihydro
     main.cpp
     cell.cpp
     init.cpp
-    eos.cpp
-    evolve.cpp
-    reconst.cpp
+    grid_info.cpp
+    hydro_source.cpp
     minmod.cpp
+    reconst.cpp
+    evolve.cpp
+    eos.cpp
     advance.cpp
     u_derivative.cpp
     dissipative.cpp
     util.cpp
-    grid_info.cpp
     read_in_parameters.cpp
     music.cpp
     cornelius.cpp
-    hydro_source.cpp
     pretty_ostream.cpp
     freeze.cpp
     freeze_pseudo.cpp
