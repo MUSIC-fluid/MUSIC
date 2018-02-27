@@ -196,9 +196,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
     }/* it */ 
 
     // clean up
-    for (int ieta=0; ieta < DATA->neta; ieta++) {
-        for (int ix=0; ix <= DATA->nx; ix++) {
-            for (int iy=0; iy <= DATA->ny; iy++) {
+//    for (int ieta=0; ieta < DATA->neta; ieta++) {
+//        for (int ix=0; ix <= DATA->nx; ix++) {
+//            for (int iy=0; iy <= DATA->ny; iy++) {
 //                util->cube_free(arena(ix,iy,ieta).dUsup, 5, 4);
 //                util->mtx_free(arena(ix,iy,ieta).Wmunu, rk_order, 14);
 //                util->mtx_free(arena(ix,iy,ieta).prevWmunu, 1, 14);
@@ -208,9 +208,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
 //                util->vector_free(arena(ix,iy,ieta).prev_pi_b);
 //                
 //                util->vector_free(arena(ix,iy,ieta).W_prev);
-            }
-        }
-    }
+//            }
+//        }
+//    }
 
     music_message.info("Finished.");
     return 1; /* successful */
@@ -293,6 +293,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
     int flag = 0;
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
+        arena.updateHalo();
         flag = u_derivative->MakedU(tau, DATA, arena, rk_flag);
         flag = advance->AdvanceIt(tau, DATA, arena, rk_flag);
         if (rk_flag == 0) {

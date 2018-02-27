@@ -128,7 +128,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
         //dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
     }
     // y-direction
-    idx_1d     = util->map_2d_idx_to_1d(alpha, 1);
+    idx_1d     = util->map_2d_idx_to_1d(alpha, 2);
     grid_pt_p1 = &(arena(ix, iy + 1, ieta));
     grid_pt_m1 = &(arena(ix, iy - 1, ieta));
     sg         = grid_pt->Wmunu[rk_flag][idx_1d];
