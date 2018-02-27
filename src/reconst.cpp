@@ -202,8 +202,8 @@ int Reconst::ReconstIt(Cell *grid_p, double tau, double *uq,
         }
         return(-1);
     }
-    double check_u0_var = (fabs(u[0] - grid_pt->u_rk0[0])
-                           /(grid_pt->u_rk0[0]));
+    double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
+                           /(grid_pt->u[rk_flag][0]));
     if (check_u0_var > 100.) {
         if (grid_pt->epsilon > 1e-6 && echo_level > 5) {
             music_message << "Reconst e:: "
@@ -212,7 +212,7 @@ int Reconst::ReconstIt(Cell *grid_p, double tau, double *uq,
             music_message.flush("warning");
             music_message << "e = " << grid_pt->epsilon
                           << ", u[0] = " << u[0]
-                          << ", prev_u[0] = " << grid_pt->u_rk0[0];
+                          << ", prev_u[0] = " << grid_pt->u[rk_flag][0];
             music_message.flush("warning");
         }
         return(-1);
@@ -279,7 +279,7 @@ int Reconst::ReconstIt(Cell *grid_p, double tau, double *uq,
     /* End: Correcting normalization of 4-velocity */
 
     for (int mu = 0; mu < 4; mu++) {
-        grid_p->u_rk0[mu] = u[mu];
+        grid_p->u[0][mu] = u[mu];
     }
 
     return(1);  // on successful execution
@@ -294,7 +294,7 @@ void Reconst::revert_grid(Cell *grid_current, Cell *grid_prev, int rk_flag) {
     grid_current->epsilon = grid_prev->epsilon;
     grid_current->rhob = grid_prev->rhob;
     for (int mu = 0; mu < 4; mu++) {
-        grid_current->u_rk0[mu] = grid_prev->u_rk0[mu];
+        grid_current->u[0][mu] = grid_prev->u[rk_flag][mu];
     }
 }
 
@@ -428,8 +428,8 @@ int Reconst::ReconstIt_velocity_iteration(
         rhob = J0/u0_solution;
     }
     
-    double check_u0_var = (fabs(u[0] - grid_pt->u_rk0[0])
-                           /(grid_pt->u_rk0[0]));
+    double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
+                           /(grid_pt->u[rk_flag][0]));
     if (check_u0_var > 100.) {
         if (grid_pt->epsilon > 1e-6 && echo_level > 5) {
             music_message << "Reconst velocity iteration::"
@@ -438,7 +438,7 @@ int Reconst::ReconstIt_velocity_iteration(
             music_message.flush("warning");
             music_message << "e = " << grid_pt->epsilon
                           << ", u[0] = " << u[0]
-                          << ", prev_u[0] = " << grid_pt->u_rk0[0];
+                          << ", prev_u[0] = " << grid_pt->u[rk_flag][0];
             music_message.flush("warning");
         }
         return(-1);
@@ -561,7 +561,7 @@ int Reconst::ReconstIt_velocity_iteration(
     // End: Correcting normalization of 4-velocity
    
     for (int mu = 0; mu < 4; mu++) {
-        grid_p->u_rk0[mu] = u[mu];
+        grid_p->u[0][mu] = u[mu];
     }
 
     return(1);
@@ -613,7 +613,7 @@ int Reconst::ReconstIt_velocity_Newton(
 
     double u[4], epsilon, pressure, rhob;
 
-    double u0_guess = grid_pt->u_rk0[0];
+    double u0_guess = grid_pt->u[rk_flag][0];
     double v_guess = sqrt(1. - 1./(u0_guess*u0_guess + 1e-15));
     if (v_guess != v_guess) {
         v_guess = 0.0;
@@ -712,8 +712,8 @@ int Reconst::ReconstIt_velocity_Newton(
         rhob = J0/u0_solution;
     }
 
-    double check_u0_var = (fabs(u[0] - grid_pt->u_rk0[0])
-                           /(grid_pt->u_rk0[0]));
+    double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
+                           /(grid_pt->u[rk_flag][0]));
     if (check_u0_var > 100.) {
         if (grid_pt->epsilon > 1e-6 && echo_level > 2) {
             music_message << "Reconst velocity Newton:: "
@@ -722,7 +722,7 @@ int Reconst::ReconstIt_velocity_Newton(
             music_message.flush("warning");
             music_message << "e = " << grid_pt->epsilon
                           << ", u[0] = " << u[0]
-                          << ", prev_u[0] = " << grid_pt->u_rk0[0];
+                          << ", prev_u[0] = " << grid_pt->u[rk_flag][0];
             music_message.flush("warning");
         }
         return(-1);
@@ -843,7 +843,7 @@ int Reconst::ReconstIt_velocity_Newton(
     // End: Correcting normalization of 4-velocity
    
     for (int mu = 0; mu < 4; mu++) {
-        grid_p->u_rk0[mu] = u[mu];
+        grid_p->u[0][mu] = u[mu];
     }
 
     return(1);
@@ -947,9 +947,9 @@ void Reconst::regulate_grid(Cell *grid_cell, double elocal, int rk_flag) {
     grid_cell->epsilon = elocal;
     grid_cell->rhob = 0.0;
 
-    grid_cell->u_rk0[0] = 1.0;
-    grid_cell->u_rk0[1] = 0.0;
-    grid_cell->u_rk0[2] = 0.0;
-    grid_cell->u_rk0[3] = 0.0;
+    grid_cell->u[rk_flag][0] = 1.0;
+    grid_cell->u[rk_flag][1] = 0.0;
+    grid_cell->u[rk_flag][2] = 0.0;
+    grid_cell->u[rk_flag][3] = 0.0;
     
 }

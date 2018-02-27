@@ -14,10 +14,10 @@ add_executable (mpihydro
     read_in_parameters.cpp
     freeze_pseudo.cpp
     reso_decay.cpp
+    advance.cpp
     dissipative.cpp
     evolve.cpp
     u_derivative.cpp
-    advance.cpp
     eos.cpp
     )
 

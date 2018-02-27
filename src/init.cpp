@@ -316,6 +316,8 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
     }
 
     double dummy;
+    double u[4];
+    int rk_order = DATA->rk_order;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
             if (DATA->turn_on_shear == 1) {
@@ -367,50 +369,62 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
             double utau_local = sqrt(1.
                           + temp_profile_ux[ix][iy]*temp_profile_ux[ix][iy]
                           + temp_profile_uy[ix][iy]*temp_profile_uy[ix][iy]);
-            arena(ix,iy,ieta).u_rk0[0] = utau_local;
-            arena(ix,iy,ieta).u_rk0[1] = temp_profile_ux[ix][iy];
-            arena(ix,iy,ieta).u_rk0[2] = temp_profile_uy[ix][iy];
-            arena(ix,iy,ieta).u_rk0[3] = 0.0;
+            arena(ix,iy,ieta).u[0][0] = utau_local;
+            arena(ix,iy,ieta).u[0][1] = temp_profile_ux[ix][iy];
+            arena(ix,iy,ieta).u[0][2] = temp_profile_uy[ix][iy];
+            arena(ix,iy,ieta).u[0][3] = 0.0;
 
-            arena(ix,iy,ieta).prev_u[0] = utau_local;
-            arena(ix,iy,ieta).prev_u[1] = temp_profile_ux[ix][iy];
-            arena(ix,iy,ieta).prev_u[2] = temp_profile_ux[ix][iy];
-            arena(ix,iy,ieta).prev_u[3] = 0.0;
+            u[0] = utau_local;
+            u[1] = temp_profile_ux[ix][iy];
+            u[2] = temp_profile_uy[ix][iy];
+            u[3] = 0.0;
+            for (int rk_i = 0; rk_i < 1; rk_i++) {
+                arena(ix,iy,ieta).prev_u[rk_i][0] = u[0];
+                arena(ix,iy,ieta).prev_u[rk_i][1] = u[1];
+                arena(ix,iy,ieta).prev_u[rk_i][2] = u[2];
+                arena(ix,iy,ieta).prev_u[rk_i][3] = u[3];
+                arena(ix,iy,ieta).prev_pi_b[rk_i] = 0.0;
+            }
 
             if (DATA->turn_on_shear == 0) {
                 double utau_prev = sqrt(1.
                     + temp_profile_ux_prev[ix][iy]*temp_profile_ux_prev[ix][iy]
                     + temp_profile_uy_prev[ix][iy]*temp_profile_uy_prev[ix][iy]
                 );
-                arena(ix,iy,ieta).prev_u[0] = utau_prev;
-                arena(ix,iy,ieta).prev_u[1] = temp_profile_ux_prev[ix][iy];
-                arena(ix,iy,ieta).prev_u[2] = temp_profile_uy_prev[ix][iy];
-                arena(ix,iy,ieta).prev_u[3] = 0.0;
+                for (int rk_i = 0; rk_i < 1; rk_i++) {
+                    arena(ix,iy,ieta).prev_u[rk_i][0] = utau_prev;
+                    arena(ix,iy,ieta).prev_u[rk_i][1] =
+                                                temp_profile_ux_prev[ix][iy];
+                    arena(ix,iy,ieta).prev_u[rk_i][2] =
+                                                temp_profile_uy_prev[ix][iy];
+                    arena(ix,iy,ieta).prev_u[rk_i][3] = 0.0;
+                }
             }
+            arena(ix,iy,ieta).pi_b[0] = 0.0;
 
             if (DATA->turn_on_shear == 1) {
-                arena(ix,iy,ieta).Wmunu_rk0[0] = temp_profile_pi00[ix][iy];
-                arena(ix,iy,ieta).Wmunu_rk0[1] = temp_profile_pi0x[ix][iy];
-                arena(ix,iy,ieta).Wmunu_rk0[2] = temp_profile_pi0y[ix][iy];
-                arena(ix,iy,ieta).Wmunu_rk0[3] = 0.0;
-                arena(ix,iy,ieta).Wmunu_rk0[4] = temp_profile_pixx[ix][iy];
-                arena(ix,iy,ieta).Wmunu_rk0[5] = temp_profile_pixy[ix][iy];
-                arena(ix,iy,ieta).Wmunu_rk0[6] = 0.0;
-                arena(ix,iy,ieta).Wmunu_rk0[7] = temp_profile_piyy[ix][iy];
-                arena(ix,iy,ieta).Wmunu_rk0[8] = 0.0;
-                arena(ix,iy,ieta).Wmunu_rk0[9] = temp_profile_pi33[ix][iy];
+                arena(ix,iy,ieta).Wmunu[0][0] = temp_profile_pi00[ix][iy];
+                arena(ix,iy,ieta).Wmunu[0][1] = temp_profile_pi0x[ix][iy];
+                arena(ix,iy,ieta).Wmunu[0][2] = temp_profile_pi0y[ix][iy];
+                arena(ix,iy,ieta).Wmunu[0][3] = 0.0;
+                arena(ix,iy,ieta).Wmunu[0][4] = temp_profile_pixx[ix][iy];
+                arena(ix,iy,ieta).Wmunu[0][5] = temp_profile_pixy[ix][iy];
+                arena(ix,iy,ieta).Wmunu[0][6] = 0.0;
+                arena(ix,iy,ieta).Wmunu[0][7] = temp_profile_piyy[ix][iy];
+                arena(ix,iy,ieta).Wmunu[0][8] = 0.0;
+                arena(ix,iy,ieta).Wmunu[0][9] = temp_profile_pi33[ix][iy];
                 for (int mu = 10; mu < 14; mu++) {
-                        arena(ix,iy,ieta).Wmunu_rk0[mu] = 0.0;
+                        arena(ix,iy,ieta).Wmunu[0][mu] = 0.0;
                 }
             } else {
                 for (int mu = 0; mu < 14; mu++) {
-                        arena(ix,iy,ieta).Wmunu_rk0[mu] = 0.0;
+                        arena(ix,iy,ieta).Wmunu[0][mu] = 0.0;
                 }
             }
             for (int rkstep = 0; rkstep < 1; rkstep++) {
                 for (int ii = 0; ii < 14; ii++) {
-                    arena(ix,iy,ieta).prevWmunu[ii] = 
-                                        arena(ix,iy,ieta).Wmunu_rk0[ii];
+                    arena(ix,iy,ieta).prevWmunu[rkstep][ii] = 
+                                        arena(ix,iy,ieta).Wmunu[0][ii];
                 }
             }
         }
@@ -485,6 +499,8 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid &arena) {
     double *temp_profile_rhob = new double[neta];
 
     double dummy;
+    double u[4];
+    int rk_order = DATA->rk_order;
     for (int ieta = 0; ieta < neta; ieta++) {
         profile_ed >> dummy >> temp_profile_ed[ieta];
         profile_rhob >> dummy >> temp_profile_rhob[ieta];
@@ -508,15 +524,34 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid &arena) {
                 arena(ix,iy,ieta).prev_rhob    = rhob;
             
                 /* for HIC */
-                arena(ix,iy,ieta).u_rk0[0] = 1.0;
-                arena(ix,iy,ieta).u_rk0[1] = 0.0;
-                arena(ix,iy,ieta).u_rk0[2] = 0.0;
-                arena(ix,iy,ieta).u_rk0[3] = 0.0;
+                arena(ix,iy,ieta).u[0][0] = 1.0;
+                arena(ix,iy,ieta).u[0][1] = 0.0;
+                arena(ix,iy,ieta).u[0][2] = 0.0;
+                arena(ix,iy,ieta).u[0][3] = 0.0;
 
-                arena(ix,iy,ieta).prev_u[0] = 1.0;
-                arena(ix,iy,ieta).prev_u[1] = 0.0;
-                arena(ix,iy,ieta).prev_u[2] = 0.0;
-                arena(ix,iy,ieta).prev_u[3] = 0.0;
+                u[0] = 1.0;
+                u[1] = 0.0;
+                u[2] = 0.0;
+                u[3] = 0.0;
+                for (int rk_i = 0; rk_i < 1; rk_i++) {
+                    arena(ix,iy,ieta).prev_u[rk_i][0] = u[0];
+                    arena(ix,iy,ieta).prev_u[rk_i][1] = u[1];
+                    arena(ix,iy,ieta).prev_u[rk_i][2] = u[2];
+                    arena(ix,iy,ieta).prev_u[rk_i][3] = u[3];
+                    arena(ix,iy,ieta).prev_pi_b[rk_i] = 0.0;
+                }
+                arena(ix,iy,ieta).pi_b[0] = 0.0;
+
+                for (int mu = 0; mu < 14; mu++) {
+                    arena(ix,iy,ieta).Wmunu[0][mu] = 0.0;
+                }
+            
+                for (int rkstep = 0; rkstep < 1; rkstep++) {
+                    for (int ii = 0; ii < 14; ii++) {
+                        arena(ix,iy,ieta).prevWmunu[rkstep][ii] = 
+                                        arena(ix,iy,ieta).Wmunu[0][ii];
+                    }
+                }
             }
         }
     }
@@ -584,6 +619,8 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid &arena) {
     double eta = (DATA->delta_eta)*(ieta) - (DATA->eta_size)/2.0;
     double eta_envelop_ed = eta_profile_normalisation(DATA, eta);
     int entropy_flag = DATA->initializeEntropy;
+    int rk_order = DATA->rk_order;
+    double u[4];
     for (int ix = 0; ix <= DATA->nx; ix++) {
         for (int iy = 0; iy<= DATA->ny; iy++) {
             double rhob = 0.0;
@@ -608,15 +645,30 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid &arena) {
             arena(ix,iy,ieta).prev_rhob    = rhob;
 
             /* for HIC */
-            arena(ix,iy,ieta).u_rk0[0] = temp_profile_utau[ix][iy];
-            arena(ix,iy,ieta).u_rk0[1] = temp_profile_ux[ix][iy];
-            arena(ix,iy,ieta).u_rk0[2] = temp_profile_uy[ix][iy];
-            arena(ix,iy,ieta).u_rk0[3] = 0.0;
+            arena(ix,iy,ieta).u[0][0] = temp_profile_utau[ix][iy];
+            arena(ix,iy,ieta).u[0][1] = temp_profile_ux[ix][iy];
+            arena(ix,iy,ieta).u[0][2] = temp_profile_uy[ix][iy];
+            arena(ix,iy,ieta).u[0][3] = 0.0;
 
-            arena(ix,iy,ieta).prev_u[0] = temp_profile_utau[ix][iy];
-            arena(ix,iy,ieta).prev_u[1] = temp_profile_ux[ix][iy];
-            arena(ix,iy,ieta).prev_u[2] = temp_profile_uy[ix][iy];
-            arena(ix,iy,ieta).prev_u[3] = 0.0;
+            u[0] = temp_profile_utau[ix][iy];
+            u[1] = temp_profile_ux[ix][iy];
+            u[2] = temp_profile_uy[ix][iy];
+            u[3] = 0.0;
+
+            for (int ii = 0; ii < 1; ii++) {
+                arena(ix,iy,ieta).prev_u[ii][0] = u[0];
+                arena(ix,iy,ieta).prev_u[ii][1] = u[1];
+                arena(ix,iy,ieta).prev_u[ii][2] = u[2];
+                arena(ix,iy,ieta).prev_u[ii][3] = u[3];
+                arena(ix,iy,ieta).prev_pi_b[ii] = 0.0;
+            }
+
+            arena(ix,iy,ieta).pi_b[0] = 0.0;
+
+            for (int ii = 0; ii < 14; ii++) {
+                arena(ix,iy,ieta).prevWmunu[0][ii] = 0.0;
+                arena(ix,iy,ieta).Wmunu[0][ii] = 0.0;
+            }
         }
     }
     // clean up
@@ -729,6 +781,8 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
     double eta = (DATA->delta_eta)*(ieta) - (DATA->eta_size)/2.0;
     double eta_envelop_ed = eta_profile_normalisation(DATA, eta);
     int entropy_flag = DATA->initializeEntropy;
+    int rk_order = DATA->rk_order;
+    double u[4];
     for (int ix = 0; ix <= DATA->nx; ix++) {
         for (int iy = 0; iy<= DATA->ny; iy++) {
             double rhob = 0.0;
@@ -755,39 +809,47 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
             arena(ix,iy,ieta).prev_rhob    = rhob;
 
 
-            arena(ix,iy,ieta).u_rk0[0] = temp_profile_utau[ix][iy];
-            arena(ix,iy,ieta).u_rk0[1] = temp_profile_ux[ix][iy];
-            arena(ix,iy,ieta).u_rk0[2] = temp_profile_uy[ix][iy];
-            arena(ix,iy,ieta).u_rk0[3] = temp_profile_ueta[ix][iy];
+            /* for HIC */
+            arena(ix,iy,ieta).u[0][0] = temp_profile_utau[ix][iy];
+            arena(ix,iy,ieta).u[0][1] = temp_profile_ux[ix][iy];
+            arena(ix,iy,ieta).u[0][2] = temp_profile_uy[ix][iy];
+            arena(ix,iy,ieta).u[0][3] = temp_profile_ueta[ix][iy];
 
-            arena(ix,iy,ieta).prev_u[0] = temp_profile_utau[ix][iy];
-            arena(ix,iy,ieta).prev_u[1] = temp_profile_ux[ix][iy];
-            arena(ix,iy,ieta).prev_u[2] = temp_profile_uy[ix][iy];
-            arena(ix,iy,ieta).prev_u[3] = temp_profile_ueta[ix][iy];
+            u[0] = temp_profile_utau[ix][iy];
+            u[1] = temp_profile_ux[ix][iy];
+            u[2] = temp_profile_uy[ix][iy];
+            u[3] = temp_profile_ueta[ix][iy];
 
-            arena(ix,iy,ieta).prev_pi_b = epsilon/3. - pressure;
-            arena(ix,iy,ieta).pi_b_rk0 = epsilon/3. - pressure;
+            for (int ii = 0; ii < 1; ii++) {
+                arena(ix,iy,ieta).prev_u[ii][0] = u[0];
+                arena(ix,iy,ieta).prev_u[ii][1] = u[1];
+                arena(ix,iy,ieta).prev_u[ii][2] = u[2];
+                arena(ix,iy,ieta).prev_u[ii][3] = u[3];
+                arena(ix,iy,ieta).prev_pi_b[ii] = epsilon/3. - pressure;
+            }
 
-            arena(ix,iy,ieta).prevWmunu[0] = temp_profile_pitautau[ix][iy];
-            arena(ix,iy,ieta).Wmunu_rk0[0] = temp_profile_pitautau[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[1] = temp_profile_pitaux[ix][iy];
-            arena(ix,iy,ieta).Wmunu_rk0[1] = temp_profile_pitaux[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[2] = temp_profile_pitauy[ix][iy];
-            arena(ix,iy,ieta).Wmunu_rk0[2] = temp_profile_pitauy[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[3] = temp_profile_pitaueta[ix][iy];
-            arena(ix,iy,ieta).Wmunu_rk0[3] = temp_profile_pitaueta[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[4] = temp_profile_pixx[ix][iy];
-            arena(ix,iy,ieta).Wmunu_rk0[4] = temp_profile_pixx[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[5] = temp_profile_pixy[ix][iy];
-            arena(ix,iy,ieta).Wmunu_rk0[5] = temp_profile_pixy[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[6] = temp_profile_pixeta[ix][iy];
-            arena(ix,iy,ieta).Wmunu_rk0[6] = temp_profile_pixeta[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[7] = temp_profile_piyy[ix][iy];
-            arena(ix,iy,ieta).Wmunu_rk0[7] = temp_profile_piyy[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[8] = temp_profile_piyeta[ix][iy];
-            arena(ix,iy,ieta).Wmunu_rk0[8] = temp_profile_piyeta[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[9] = temp_profile_pietaeta[ix][iy];
-            arena(ix,iy,ieta).Wmunu_rk0[9] = temp_profile_pietaeta[ix][iy];
+            arena(ix,iy,ieta).pi_b[0] = epsilon/3. - pressure;
+
+            arena(ix,iy,ieta).prevWmunu[0][0] = temp_profile_pitautau[ix][iy];
+            arena(ix,iy,ieta).Wmunu    [0][0] = temp_profile_pitautau[ix][iy];
+            arena(ix,iy,ieta).prevWmunu[0][1] = temp_profile_pitaux[ix][iy];
+            arena(ix,iy,ieta).Wmunu    [0][1] = temp_profile_pitaux[ix][iy];
+            arena(ix,iy,ieta).prevWmunu[0][2] = temp_profile_pitauy[ix][iy];
+            arena(ix,iy,ieta).Wmunu    [0][2] = temp_profile_pitauy[ix][iy];
+            arena(ix,iy,ieta).prevWmunu[0][3] = temp_profile_pitaueta[ix][iy];
+            arena(ix,iy,ieta).Wmunu    [0][3] = temp_profile_pitaueta[ix][iy];
+            arena(ix,iy,ieta).prevWmunu[0][4] = temp_profile_pixx[ix][iy];
+            arena(ix,iy,ieta).Wmunu    [0][4] = temp_profile_pixx[ix][iy];
+            arena(ix,iy,ieta).prevWmunu[0][5] = temp_profile_pixy[ix][iy];
+            arena(ix,iy,ieta).Wmunu    [0][5] = temp_profile_pixy[ix][iy];
+            arena(ix,iy,ieta).prevWmunu[0][6] = temp_profile_pixeta[ix][iy];
+            arena(ix,iy,ieta).Wmunu    [0][6] = temp_profile_pixeta[ix][iy];
+            arena(ix,iy,ieta).prevWmunu[0][7] = temp_profile_piyy[ix][iy];
+            arena(ix,iy,ieta).Wmunu    [0][7] = temp_profile_piyy[ix][iy];
+            arena(ix,iy,ieta).prevWmunu[0][8] = temp_profile_piyeta[ix][iy];
+            arena(ix,iy,ieta).Wmunu    [0][8] = temp_profile_piyeta[ix][iy];
+            arena(ix,iy,ieta).prevWmunu[0][9] = temp_profile_pietaeta[ix][iy];
+            arena(ix,iy,ieta).Wmunu    [0][9] = temp_profile_pietaeta[ix][iy];
         }
     }
     // clean up
@@ -864,6 +926,7 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
     double eta_rhob_right    = eta_rhob_right_factor(DATA, eta);
 
     int entropy_flag = DATA->initializeEntropy;
+    int rk_order = DATA->rk_order;
     for (int ix = 0; ix < (DATA->nx+1); ix++) {
         for (int iy = 0; iy< (DATA->ny+1); iy++) {
             double rhob = 0.0;
@@ -899,15 +962,25 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
             arena(ix,iy,ieta).prev_rhob    = rhob;
 
             /* for HIC */
-            arena(ix,iy,ieta).u_rk0[0] = 1.0;
-            arena(ix,iy,ieta).u_rk0[1] = 0.0;
-            arena(ix,iy,ieta).u_rk0[2] = 0.0;
-            arena(ix,iy,ieta).u_rk0[3] = 0.0;
+            arena(ix,iy,ieta).u[0][0] = 1.0;
+            arena(ix,iy,ieta).u[0][3] = 0.0;
+            arena(ix,iy,ieta).u[0][1] = 0.0;
+            arena(ix,iy,ieta).u[0][2] = 0.0;
             
-            arena(ix,iy,ieta).prev_u[0] = 1.0;
-            arena(ix,iy,ieta).prev_u[1] = 0.0;
-            arena(ix,iy,ieta).prev_u[2] = 0.0;
-            arena(ix,iy,ieta).prev_u[3] = 0.0;
+            for (int ii = 0; ii < 1; ii++) {
+                arena(ix,iy,ieta).prev_u[ii][0] = 1.0;
+                arena(ix,iy,ieta).prev_u[ii][3] = 0.0;
+                arena(ix,iy,ieta).prev_u[ii][1] = 0.0;
+                arena(ix,iy,ieta).prev_u[ii][2] = 0.0;
+                arena(ix,iy,ieta).prev_pi_b[ii] = 0.0;
+            }
+
+            arena(ix,iy,ieta).pi_b[0] = 0.0;
+
+            for (int ii = 0; ii < 14; ii++) {
+                arena(ix,iy,ieta).prevWmunu[0][ii] = 0.0;
+                arena(ix,iy,ieta).Wmunu[0][ii] = 0.0;
+            }
         }
     }
     // clean up
@@ -927,14 +1000,44 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
                                            Grid &arena) {
     int nx = DATA->nx;
     int ny = DATA->ny;
-    // double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
-    // double tau0 = DATA->tau0;
+    //double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
+    //double tau0 = DATA->tau0;
+    double *u = new double[4];
+    u[0] = 1.0;
+    u[1] = 0.0;
+    u[2] = 0.0;
+    u[3] = 0.0;
+    double *j_mu = new double[4];
+    for (int i = 0; i < 3; i++) {
+        j_mu[i] = 0.0;
+    }
+    int entropy_flag = DATA->initializeEntropy;
+    int rk_order = DATA->rk_order;
     for (int ix = 0; ix < nx + 1; ix++) {
         // double x_local = - DATA->x_size/2. + ix*DATA->delta_x;
         for (int iy = 0; iy < ny + 1; iy++) {
             // double y_local = - DATA->y_size/2. + iy*DATA->delta_y;
             double rhob = 0.0;
             double epsilon = 0.0;
+            if (DATA->turn_on_rhob == 1) {
+                //rhob = hydro_source_ptr->get_hydro_rhob_source(
+                //                            tau0, x_local, y_local, eta, u);
+                rhob = 0.0;
+            } else {
+                rhob = 0.0;
+            }
+
+            //hydro_source_ptr->get_hydro_energy_source(
+            //                        tau0, x_local, y_local, eta, u, j_mu);
+
+            if (entropy_flag == 0) {
+                // epsilon = j_mu[0];           // 1/fm^4
+                epsilon = 0.0;           // 1/fm^4
+            } else {
+                //double local_sd = j_mu[0]*DATA->sFactor;         // 1/fm^3
+                //epsilon = eos->get_s2e(local_sd, rhob);
+                epsilon = 0.0;           // 1/fm^4
+            }
 
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
@@ -948,18 +1051,29 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
             arena(ix,iy,ieta).prev_rhob    = rhob;
 
             /* for HIC */
-            arena(ix,iy,ieta).u_rk0[0] = 1.0;
-            arena(ix,iy,ieta).u_rk0[1] = 0.0;
-            arena(ix,iy,ieta).u_rk0[2] = 0.0;
-            arena(ix,iy,ieta).u_rk0[3] = 0.0;
+            arena(ix,iy,ieta).u[0][0] = u[0];
+            arena(ix,iy,ieta).u[0][3] = u[3];
+            arena(ix,iy,ieta).u[0][1] = u[1];
+            arena(ix,iy,ieta).u[0][2] = u[2];
             
-            arena(ix,iy,ieta).prev_u[0] = 1.0;
-            arena(ix,iy,ieta).prev_u[1] = 0.0;
-            arena(ix,iy,ieta).prev_u[2] = 0.0;
-            arena(ix,iy,ieta).prev_u[3] = 0.0;
+            for (int ii = 0; ii < 1; ii++) {
+                arena(ix,iy,ieta).prev_u[ii][0] = 1.0;
+                arena(ix,iy,ieta).prev_u[ii][3] = 0.0;
+                arena(ix,iy,ieta).prev_u[ii][1] = 0.0;
+                arena(ix,iy,ieta).prev_u[ii][2] = 0.0;
+                arena(ix,iy,ieta).prev_pi_b[ii] = 0.0;
+            }
 
+            arena(ix,iy,ieta).pi_b[0] = 0.0;
+
+            for (int ii = 0; ii < 14; ii++) {
+                arena(ix,iy,ieta).prevWmunu[0][ii] = 0.0;
+                arena(ix,iy,ieta).Wmunu[0][ii] = 0.0;
+            }
         }
     }
+    delete[] u;
+    delete[] j_mu;
 }
 
 
@@ -992,6 +1106,7 @@ void Init::initial_UMN_with_rhob(InitData *DATA, Grid &arena) {
         double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
         double eta_envelop_left = eta_profile_left_factor(DATA, eta);
         double eta_envelop_right = eta_profile_right_factor(DATA, eta);
+        int rk_order = DATA->rk_order;
         for (int ix = 0; ix < (DATA->nx+1); ix++) {
             for (int iy = 0; iy< (DATA->ny+1); iy++) {
                 double rhob = 0.0;
@@ -1014,15 +1129,25 @@ void Init::initial_UMN_with_rhob(InitData *DATA, Grid &arena) {
                 arena(ix,iy,ieta).rhob_t       = rhob;
                 arena(ix,iy,ieta).prev_rhob    = rhob;
 
-                arena(ix,iy,ieta).u_rk0[0] = 1.0;
-                arena(ix,iy,ieta).u_rk0[1] = 0.0;
-                arena(ix,iy,ieta).u_rk0[2] = 0.0;
-                arena(ix,iy,ieta).u_rk0[3] = 0.0;
+                arena(ix,iy,ieta).u[0][0] = 1.0;
+                arena(ix,iy,ieta).u[0][3] = 0.0;
+                arena(ix,iy,ieta).u[0][1] = 0.0;
+                arena(ix,iy,ieta).u[0][2] = 0.0;
             
-                arena(ix,iy,ieta).prev_u[0] = 1.0;
-                arena(ix,iy,ieta).prev_u[1] = 0.0;
-                arena(ix,iy,ieta).prev_u[2] = 0.0;
-                arena(ix,iy,ieta).prev_u[3] = 0.0;
+                for (int ii = 0; ii < 1; ii++) {
+                    arena(ix,iy,ieta).prev_u[ii][0] = 1.0;
+                    arena(ix,iy,ieta).prev_u[ii][3] = 0.0;
+                    arena(ix,iy,ieta).prev_u[ii][1] = 0.0;
+                    arena(ix,iy,ieta).prev_u[ii][2] = 0.0;
+                    arena(ix,iy,ieta).prev_pi_b[ii] = 0.0;
+                }
+
+                arena(ix,iy,ieta).pi_b[0] = 0.0;
+
+                for (int ii = 0; ii < 14; ii++) {
+                    arena(ix,iy,ieta).prevWmunu[0][ii] = 0.0;
+                    arena(ix,iy,ieta).Wmunu[0][ii] = 0.0;
+                }
             }
         }
     }
@@ -1050,6 +1175,7 @@ void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid &arena) {
     for (int i = 0; i < 3; i++) {
         j_mu[i] = 0.0;
     }
+    int rk_order = DATA->rk_order;
     for (int ix = 0; ix < nx + 1; ix++) {
         double x_local = - DATA->x_size/2. + ix*DATA->delta_x;
         for (int iy = 0; iy < ny + 1; iy++) {
@@ -1080,15 +1206,25 @@ void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid &arena) {
             arena(ix,iy,ieta).prev_rhob    = rhob;
 
             /* for HIC */
-            arena(ix,iy,ieta).u_rk0[0] = u[0];
-            arena(ix,iy,ieta).u_rk0[1] = u[1];
-            arena(ix,iy,ieta).u_rk0[2] = u[2];
-            arena(ix,iy,ieta).u_rk0[3] = u[3];
+            arena(ix,iy,ieta).u[0][0] = u[0];
+            arena(ix,iy,ieta).u[0][3] = u[3];
+            arena(ix,iy,ieta).u[0][1] = u[1];
+            arena(ix,iy,ieta).u[0][2] = u[2];
             
-            arena(ix,iy,ieta).prev_u[0] = 1.0;
-            arena(ix,iy,ieta).prev_u[1] = 0.0;
-            arena(ix,iy,ieta).prev_u[2] = 0.0;
-            arena(ix,iy,ieta).prev_u[3] = 0.0;
+            for (int ii = 0; ii < 1; ii++) {
+                arena(ix,iy,ieta).prev_u[ii][0] = 1.0;
+                arena(ix,iy,ieta).prev_u[ii][3] = 0.0;
+                arena(ix,iy,ieta).prev_u[ii][1] = 0.0;
+                arena(ix,iy,ieta).prev_u[ii][2] = 0.0;
+                arena(ix,iy,ieta).prev_pi_b[ii] = 0.0;
+            }
+
+            arena(ix,iy,ieta).pi_b[0] = 0.0;
+
+            for (int ii = 0; ii < 14; ii++) {
+                arena(ix,iy,ieta).prevWmunu[0][ii] = 0.0;
+                arena(ix,iy,ieta).Wmunu[0][ii] = 0.0;
+            }
         }
     }
     delete[] u;
