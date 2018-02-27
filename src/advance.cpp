@@ -106,7 +106,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 int Advance::FirstRKStepT(double tau, double x_local, double y_local,
-			  double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag) {
+        double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag) {
   // this advances the ideal part
   double tau_now  = tau;
   double tau_next = tau + (DATA_ptr->delta_tau);
@@ -481,7 +481,7 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
   //double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
   double xi = 0.05;
   double factor = 100.*(1./(exp(-(e_local - eps_scale)/xi) + 1.)
-			- 1./(exp(eps_scale/xi) + 1.));
+      - 1./(exp(eps_scale/xi) + 1.));
   double factor_bulk = factor;
   
   // regulation factor from Bjoern
@@ -502,8 +502,8 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
   double pi_33 = grid_pt->Wmunu[trk_flag][9];
   
   double pisize = (pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
-		   - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
-		   + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
+       - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
+       + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
   
   double pi_local = grid_pt->pi_b[trk_flag];
   double bulksize = 3.*pi_local*pi_local;
@@ -548,8 +548,7 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
 		    << rho_bulk;
       music_message.flush("warning");
     }
-    grid_pt->pi_b[trk_flag] = (
-			       (rho_bulk_max/rho_bulk)*grid_pt->pi_b[trk_flag]);
+    grid_pt->pi_b[trk_flag] = (rho_bulk_max/rho_bulk)*grid_pt->pi_b[trk_flag];
     revert_flag = 1;
   }
   return(revert_flag);
@@ -589,7 +588,7 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
   // (in the conversion of gmn = diag(-+++))
   if (q_size < 0.0) {
     music_message << "Advance::QuestRevert_qmu: q^mu q_mu = " << q_size
-		  << " < 0!";
+      << " < 0!";
     music_message.flush("warning");
     music_message << "Reset it to zero!!!!";
     music_message.flush("warning");
@@ -608,16 +607,15 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
   if (rho_q > rho_q_max) {
     if (e_local > eps_scale && DATA_ptr->echo_level > 5) {
       music_message << "ieta = " << ieta << ", ix = " << ix
-		    << ", iy = " << iy
-		    << ", energy density = " << e_local*hbarc
-		    << "GeV/fm^3"
-		    << ", rhob = " << rhob_local << "1/fm^3"
-		    << "-- diffusion |q/rhob| = " << rho_q;
+        << ", iy = " << iy
+        << ", energy density = " << e_local*hbarc
+        << "GeV/fm^3"
+        << ", rhob = " << rhob_local << "1/fm^3"
+        << "-- diffusion |q/rhob| = " << rho_q;
       music_message.flush("warning");
     }
     for (int i = 0; i < 4; i++) {
-      grid_pt->Wmunu[trk_flag][10+i] = (
-					(rho_q_max/rho_q)*q_mu_local[i]);
+      grid_pt->Wmunu[trk_flag][10+i] = (rho_q_max/rho_q)*q_mu_local[i];
     }
     revert_flag = 1;
   }
@@ -637,7 +635,8 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
   for (int alpha = 0; alpha < 5; alpha++) 
     {
       qi[alpha] = get_TJb(arena(ix,iy,ieta), rk_flag, alpha, 0)*tau;
-      rhs[alpha] = 0.0; }/* get qi first */
+      rhs[alpha] = 0.0; 
+    }/* get qi first */
   
   double *qiphL = new double[5];
   double *qiphR = new double[5];
@@ -812,11 +811,10 @@ double Advance::MaxSpeed(double tau, int direc, Cell *grid_p) {
             if (fabs(f-ux/utau)<0.0001) {
                 f = ux/utau;
             } else {
-	            fprintf(stderr, "SpeedMax-v = %lf\n", f-ux/utau);
-	            fprintf(stderr, "SpeedMax = %e\n is smaller than v = %e.\n",
-                        f, ux/utau);
-	            fprintf(stderr, "Can't happen.\n");
-	            exit(0);
+              fprintf(stderr, "SpeedMax-v = %lf\n", f-ux/utau);
+              fprintf(stderr, "SpeedMax = %e\n is smaller than v = %e.\n", f, ux/utau);
+              fprintf(stderr, "Can't happen.\n");
+              exit(0);
             }
         }
     } else if (f >  1.0) {
@@ -833,15 +831,15 @@ double Advance::MaxSpeed(double tau, int direc, Cell *grid_p) {
     return f;
 }/* MaxSpeed */
 
-double Advance::get_TJb(const Cell &grid_p, int rk_flag, int mu, int nu) {
+double Advance::get_TJb(const Cell &grid_p, const int rk_flag, const int mu, const int nu) {
     double rhob = grid_p.rhob;
     if (rk_flag == 1) {
         rhob = grid_p.rhob_t;
     }
-    double u_nu = grid_p.u[rk_flag][nu];
+
+    const double u_nu = grid_p.u[rk_flag][nu];
     if (mu == 4) {
-        double J_nu = rhob*u_nu;
-        return(J_nu);
+        return rhob*u_nu;
     } else if (mu < 4) {
         double e = grid_p.epsilon;
         if (rk_flag == 1) {
@@ -859,8 +857,8 @@ double Advance::get_TJb(const Cell &grid_p, int rk_flag, int mu, int nu) {
         } else {
             u_mu = grid_p.u[rk_flag][mu];
         }
-        double pressure = eos->get_pressure(e, rhob);
-        double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
+        const double pressure = eos->get_pressure(e, rhob);
+        const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
         return(T_munu);
     } else {
         return(0.0);
