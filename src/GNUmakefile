@@ -29,7 +29,8 @@ SRC		=	main.cpp music.cpp cell.cpp eos.cpp init.cpp \
             util.cpp evolve.cpp advance.cpp u_derivative.cpp \
 			reconst.cpp dissipative.cpp minmod.cpp grid_info.cpp \
 			cornelius.cpp read_in_parameters.cpp hydro_source.cpp \
-			pretty_ostream.cpp freeze.cpp freeze_pseudo.cpp reso_decay.cpp grid.cpp
+			pretty_ostream.cpp freeze.cpp freeze_pseudo.cpp reso_decay.cpp grid.cpp \
+			emoji.cpp
 
 INC		= 	music.h cell.h eos.h init.h util.h data.h \
 			evolve.h advance.h u_derivative.h reconst.h dissipative.h \

@@ -2,49 +2,38 @@
 #define SRC_EMOJI_H_
 
 #include <string>
-using namespace std;
 
 //! this is a class that includes ascii-emoji strings.
 
 //! I took the text from https://github.com/dysfunc/ascii-emoji
 //! and http://japaneseemoticons.me
-class emoji {
- public:
-    emoji() {};
-    ~emoji() {};
-
-    string excited(int id) {
-        if (id == 1) return("☜(⌒▽⌒)☞");
-        else return("Ｏ(≧▽≦)Ｏ");
-    }
-
-    string success() {return("(*•̀ᴗ•́*)و ̑̑");}
-    string angry() {return("(╬ ಠ益ಠ)");}
-    string very_angry() {return("┻━┻ ︵ヽ(`Д´)ﾉ︵┻━┻");}
-    string innocent() {return("ʘ‿ʘ");}
-    string cute() {return("(｡◕‿◕｡)");}
-    string surprise() {return("（　ﾟДﾟ）");}
-    string meh() {return("¯\\(°_o)/¯");}
-    string running() {return("ε=ε=ε=┌(;*´Д`)ﾉ");}
-    string happy() {return("ヽ(´▽`)/");}
-    string disagree() {return("٩◔̯◔۶");}
-    string discombobulated() {return("⊙﹏⊙");}
-    string sad() {return("¯\\_(⊙︿⊙)_/¯");}
-    string confused() {return("¿ⓧ_ⓧﮌ");}
-    string confused_scratch() {return("(⊙.☉)7");}
-    string dear_god_why() {return("щ（ﾟДﾟщ）");}
-    string trolling() {return("༼∵༽ ༼⍨༽ ༼⍢༽ ༼⍤༽");}
-    string fuck_it() {return("t(-_-t)");}
-    string dancing() {return("┌(ㆆ㉨ㆆ)ʃ");}
-    string argry_birds() {return("( ఠൠఠ )ﾉ");}
-    string not_support() {return("乁( ◔ ౪◔)「      ┑(￣Д ￣)┍");}
-    string pointing() {return("(☞ﾟヮﾟ)☞");}
-    string zombie() {return("[¬º-°]¬");}
-    string dislike() {return("(Ծ‸ Ծ)");}
-    string cry_troll() {return("༼ ༎ຶ ෴ ༎ຶ༽");}
-    string cat() {return("((ΦωΦ))");}
-    
-};
-
+namespace emoji {
+    std::string excited(int id);
+    std::string success          ();
+    std::string angry            ();
+    std::string very_angry       ();
+    std::string innocent         ();
+    std::string cute             ();
+    std::string surprise         ();
+    std::string meh              ();
+    std::string running          ();
+    std::string happy            ();
+    std::string disagree         ();
+    std::string discombobulated  ();
+    std::string sad              ();
+    std::string confused         ();
+    std::string confused_scratch ();
+    std::string dear_god_why     ();
+    std::string trolling         ();
+    std::string fuck_it          ();
+    std::string dancing          ();
+    std::string argry_birds      ();
+    std::string not_support      ();
+    std::string pointing         ();
+    std::string zombie           ();
+    std::string dislike          ();
+    std::string cry_troll        ();
+    std::string cat              ();
+}
 
 #endif  // SRC_EMOJI_H_

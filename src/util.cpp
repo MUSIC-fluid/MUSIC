@@ -8,7 +8,9 @@
 
 using namespace std;
 
-double ***Util::cube_malloc(int n1, int n2, int n3)
+namespace Util {
+
+double ***cube_malloc(int n1, int n2, int n3)
 {
     int i,j,k;
     double ***d1_ptr; 
@@ -48,7 +50,7 @@ double ***Util::cube_malloc(int n1, int n2, int n3)
 }/* cube_malloc */
 
 
-void Util::cube_free(double ***cube, int n1, int n2, int n3)
+void cube_free(double ***cube, int n1, int n2, int n3)
 {
   int i,j;
   n1+=1;
@@ -73,7 +75,7 @@ void Util::cube_free(double ***cube, int n1, int n2, int n3)
 }/* cube_free */
 
 
-double **Util::mtx_malloc(int n1, int n2)
+double **mtx_malloc(int n1, int n2)
 {
     int i, j;
     double **d1_ptr; 
@@ -96,7 +98,7 @@ return d1_ptr;
 }
 
 
-void Util::mtx_free(double **m, int n1, int n2)
+void mtx_free(double **m, int n1, int n2)
 {
   int j;
   
@@ -110,7 +112,7 @@ void Util::mtx_free(double **m, int n1, int n2)
 }
 
 
-double *Util::vector_malloc(int n1)
+double *vector_malloc(int n1)
 {
  double *d1_ptr;
  int i;
@@ -123,12 +125,12 @@ double *Util::vector_malloc(int n1)
 }
 
 
-void Util::vector_free(double *vec)
+void vector_free(double *vec)
 {
   delete [] vec;
 }
 
-int Util::IsFile(string file_name)
+int IsFile(string file_name)
 {
  FILE *temp;
 
@@ -142,7 +144,7 @@ int Util::IsFile(string file_name)
 
 // support comments in the parameters file
 // comments need to start with #
-string Util::StringFind4(string file_name, string str_in) {
+string StringFind4(string file_name, string str_in) {
     string inputname = file_name;
     string str = str_in;
 
@@ -199,12 +201,12 @@ string Util::StringFind4(string file_name, string str_in) {
         return("empty");
     }
     // should not cross here !!!
-    cout << "Error in Util::StringFind4 !!!\n";
+    cout << "Error in StringFind4 !!!\n";
     return("empty");
 }/* StringFind4 */
 
 
-double Util::lin_int(double x1,double x2,double f1,double f2,double x)
+double lin_int(double x1,double x2,double f1,double f2,double x)
 {
   double aa, bb;
   
@@ -217,7 +219,7 @@ double Util::lin_int(double x1,double x2,double f1,double f2,double x)
   return aa*x + bb;
 }
 
-double Util::four_dimension_linear_interpolation(
+double four_dimension_linear_interpolation(
             double* lattice_spacing, double** fraction, double**** cube) {
     double denorm = 1.0;
     double results = 0.0;
@@ -238,7 +240,7 @@ double Util::four_dimension_linear_interpolation(
     return (results);
 }
 
-double Util::three_dimension_linear_interpolation(
+double three_dimension_linear_interpolation(
             double* lattice_spacing, double** fraction, double*** cube) {
     double denorm = 1.0;
     double results = 0.0;
@@ -260,7 +262,7 @@ double Util::three_dimension_linear_interpolation(
 //! this function return the left index of the array where x sits in 
 //! between array[idx] and array[idx+1]
 //! this function assumes that the input array is monotonic 
-int Util::binary_search(double* array, int length, double x) {
+int binary_search(double* array, int length, double x) {
     if (length < 3)  // array is too short
         return(0);
 
@@ -287,7 +289,7 @@ int Util::binary_search(double* array, int length, double x) {
     return(low_idx);
 }
 
-void Util::print_backtrace_errors() {
+void print_backtrace_errors() {
     int nptrs;
     void *buffer[BT_BUF_SIZE];
     char **strings;
@@ -306,7 +308,7 @@ void Util::print_backtrace_errors() {
     exit(1);
 }
 
-int Util::map_2d_idx_to_1d(int a, int b) {
+int map_2d_idx_to_1d(int a, int b) {
     // this function maps the 2d indeices of a symmetric matrix to the index
     // in a 1-d array, which only stores the 10 independent components
     if (a == 4)
@@ -331,4 +333,6 @@ int Util::map_2d_idx_to_1d(int a, int b) {
              << "a = " << a << ", b = " << b << endl;
         exit(1);
     }
+}
+
 }

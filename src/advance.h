@@ -21,7 +21,6 @@
 class Advance {
  private:
     InitData* DATA_ptr;
-    Util *util;
     Diss *diss;
     Reconst *reconst_ptr;
     EOS *eos;

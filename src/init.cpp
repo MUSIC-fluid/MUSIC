@@ -11,18 +11,12 @@ using namespace std;
 
 Init::Init(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) {
     eos = eosIn;
-    util = new Util;
     DATA_ptr = DATA_in;
     if (DATA_ptr->Initial_profile == 12 || DATA_ptr->Initial_profile == 13) {
         hydro_source_ptr = hydro_source_in;
     } else if (DATA_ptr->Initial_profile == 30) {
         hydro_source_ptr = hydro_source_in;
     }
-}
-
-// destructor
-Init::~Init() {
-    delete util;
 }
 
 void Init::InitArena(InitData *DATA, Grid &arena) {

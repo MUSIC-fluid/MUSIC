@@ -24,7 +24,6 @@ class Evolve {
  private:
     EOS *eos;        // declare EOS object
     Cell_info grid_info;
-    Util util;
     Advance advance;
     U_derivative u_derivative;
     hydro_source *hydro_source_ptr;

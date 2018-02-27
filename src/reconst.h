@@ -14,7 +14,6 @@ class Reconst {
  private:
     EOS *eos;
     double eos_eps_max;
-    Util *util;
     pretty_ostream music_message;
     InitData *DATA_ptr;
 

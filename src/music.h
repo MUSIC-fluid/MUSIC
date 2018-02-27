@@ -28,9 +28,6 @@ class MUSIC {
 
     InitData *DATA;
 
-    Util *util;
-    ReadInParameters reader;
-
     EOS *eos;
 
     Grid arena;

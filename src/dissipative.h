@@ -13,7 +13,6 @@ class Diss {
  private:
     EOS *eos;
     Minmod *minmod;
-    Util *util;
 
  public:
     Diss(EOS *eosIn, InitData* DATA_in);

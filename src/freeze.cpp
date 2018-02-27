@@ -14,7 +14,6 @@ Freeze::Freeze(InitData* DATA_in) {
         music_message.flush("error");
         exit(1);
     }
-    util = new Util;
 
     DATA_ptr = DATA_in;
     // for final particle spectra and flow analysis, define the list
@@ -79,7 +78,6 @@ Freeze::Freeze(InitData* DATA_in) {
 
 // destructors
 Freeze::~Freeze() {
-    delete util;
     delete[] charged_hadron_list;
     if (phiArray != NULL) {
         delete[] phiArray;
@@ -157,7 +155,7 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     mu_file >> numStable;
       
     // chemical potential for every stable particle 
-    chemPot = util->mtx_malloc(numStable+1, NEPP1+1);
+    chemPot = Util::mtx_malloc(numStable+1, NEPP1+1);
 
     for (int j = NEPP1-1; j >= 0; j--) {
         for (int i = 0; i < numStable; i++) {
@@ -365,7 +363,7 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     music_message.flush("info");
 
     // clean up
-    util->mtx_free(chemPot, numStable+1, NEPP1+1);
+    Util::mtx_free(chemPot, numStable+1, NEPP1+1);
 }
 
 
@@ -414,7 +412,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     int j = 0;
     // read particle data:
     while (i < DATA->NumberOfParticlesToInclude) {
-        //particleList[i].name = util->char_malloc(50);
+        //particleList[i].name = Util::char_malloc(50);
         fscanf(p_file, "%d",  &particleList[i].number );
         fscanf(p_file, "%s",   particleList[i].name   );
         fscanf(p_file, "%lf", &particleList[i].mass   );
@@ -451,7 +449,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
         // include anti-baryons (there are none in the file)
         if (particleList[i].baryon != 0) {
             i++;
-            //particleList[i].name  = util->char_malloc(50);
+            //particleList[i].name  = Util::char_malloc(50);
             particleList[i].width   =  particleList[i-1].width;
             particleList[i].charm   = -particleList[i-1].charm;
             particleList[i].bottom  = -particleList[i-1].bottom;

@@ -64,11 +64,11 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num) {
     }
 
     /* phi interpolation */
-    double f1 = util->lin_int(
+    double f1 = Util::lin_int(
             phiArray[nphi-1], phiArray[nphi], 
             particleList[pn].dNdydptdphi[ny-1][npt-1][nphi-1], 
             particleList[pn].dNdydptdphi[ny-1][npt-1][nphi], phir);
-    double f2 = util->lin_int(
+    double f2 = Util::lin_int(
             phiArray[nphi-1], phiArray[nphi], 
             particleList[pn].dNdydptdphi[ny-1][npt][nphi-1], 
             particleList[pn].dNdydptdphi[ny-1][npt][nphi], phir);
@@ -87,7 +87,7 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num) {
         f1 = log(f1); 
         f2 = log(f2);
     }
-    double val1 = util->lin_int(particleList[pn].pt[npt-1],
+    double val1 = Util::lin_int(particleList[pn].pt[npt-1],
                                 particleList[pn].pt[npt], f1, f2, ptr);
 
     if (ptr > PTCHANGE && f1s > 0 && f2s > 0) {
@@ -122,10 +122,10 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num) {
         fprintf(stderr,"y2=%f\n",particleList[pn].y[ny]);
     }
 
-    f1 = util->lin_int(phiArray[nphi-1], phiArray[nphi], 
+    f1 = Util::lin_int(phiArray[nphi-1], phiArray[nphi], 
                        particleList[pn].dNdydptdphi[ny][npt-1][nphi-1], 
                        particleList[pn].dNdydptdphi[ny][npt-1][nphi], phir);
-    f2 = util->lin_int(phiArray[nphi-1], phiArray[nphi], 
+    f2 = Util::lin_int(phiArray[nphi-1], phiArray[nphi], 
                        particleList[pn].dNdydptdphi[ny][npt][nphi-1], 
                        particleList[pn].dNdydptdphi[ny][npt][nphi], phir);
   
@@ -143,14 +143,14 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num) {
         f1 = log(f1); 
         f2 = log(f2);
     }
-    double val2 = util->lin_int(particleList[pn].pt[npt-1],
+    double val2 = Util::lin_int(particleList[pn].pt[npt-1],
                                 particleList[pn].pt[npt], f1, f2, ptr);
 
     if (ptr > PTCHANGE && f1s > 0 && f2s > 0){
         val2 = exp(val2);
     }
   
-    double val = util->lin_int(particleList[pn].y[ny-1],
+    double val = Util::lin_int(particleList[pn].y[ny-1],
                                particleList[pn].y[ny], val1, val2, yr);
 
     if (std::isnan(val)) {

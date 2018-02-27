@@ -18,13 +18,11 @@ class Init {
  private:
     InitData *DATA_ptr;
     EOS *eos;
-    Util *util;
     hydro_source *hydro_source_ptr;
     pretty_ostream music_message;
 
  public:
     Init(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
-    ~Init();  // destructor
 
     void   InitArena                       (InitData *DATA, Grid &arena);
     int    InitTJb                         (InitData *DATA, Grid &arena);

@@ -12,7 +12,6 @@ using namespace std;
 
 EOS::EOS(InitData *para_in) {
     parameters_ptr = para_in;
-    util = new Util;
     initialize_eos();
     whichEOS = parameters_ptr->whichEOS;
     if (parameters_ptr->check_eos == 1) {
@@ -24,93 +23,93 @@ EOS::EOS(InitData *para_in) {
 // destructor
 EOS::~EOS() {
     if (parameters_ptr->whichEOS == 1) {
-        util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(mu1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(mu2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(mu1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(mu2, NBNP2 + 1, NEPP2 + 1);
     } else if (parameters_ptr->whichEOS >= 2
                     && parameters_ptr->whichEOS <= 7) {
-        util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(pressure3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(pressure4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(pressure5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(pressure6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(pressure7, NBNP7 + 1, NEPP7 + 1);
-        util->mtx_free(entropyDensity1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(entropyDensity2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(entropyDensity3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(entropyDensity4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(entropyDensity5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(entropyDensity6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(entropyDensity7, NBNP7 + 1, NEPP7 + 1);
-        util->mtx_free(QGPfraction1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(QGPfraction2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(QGPfraction3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(QGPfraction4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(QGPfraction5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(QGPfraction6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(QGPfraction7, NBNP7 + 1, NEPP7 + 1);
-        util->mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(temperature5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(temperature6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(temperature7, NBNP7 + 1, NEPP7 + 1);
+        Util::mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(pressure3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(pressure4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(pressure5, NBNP5 + 1, NEPP5 + 1);
+        Util::mtx_free(pressure6, NBNP6 + 1, NEPP6 + 1);
+        Util::mtx_free(pressure7, NBNP7 + 1, NEPP7 + 1);
+        Util::mtx_free(entropyDensity1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(entropyDensity2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(entropyDensity3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(entropyDensity4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(entropyDensity5, NBNP5 + 1, NEPP5 + 1);
+        Util::mtx_free(entropyDensity6, NBNP6 + 1, NEPP6 + 1);
+        Util::mtx_free(entropyDensity7, NBNP7 + 1, NEPP7 + 1);
+        Util::mtx_free(QGPfraction1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(QGPfraction2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(QGPfraction3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(QGPfraction4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(QGPfraction5, NBNP5 + 1, NEPP5 + 1);
+        Util::mtx_free(QGPfraction6, NBNP6 + 1, NEPP6 + 1);
+        Util::mtx_free(QGPfraction7, NBNP7 + 1, NEPP7 + 1);
+        Util::mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(temperature5, NBNP5 + 1, NEPP5 + 1);
+        Util::mtx_free(temperature6, NBNP6 + 1, NEPP6 + 1);
+        Util::mtx_free(temperature7, NBNP7 + 1, NEPP7 + 1);
     } else if (parameters_ptr->whichEOS == 10
                 || parameters_ptr->whichEOS == 12) {
-        util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(pressure3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(pressure4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(pressure5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(pressure6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(pressure7, NBNP7 + 1, NEPP7 + 1);
-        util->mtx_free(entropyDensity1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(entropyDensity2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(entropyDensity3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(entropyDensity4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(entropyDensity5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(entropyDensity6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(entropyDensity7, NBNP7 + 1, NEPP7 + 1);
-        util->mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(temperature5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(temperature6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(temperature7, NBNP7 + 1, NEPP7 + 1);
-        util->mtx_free(mu1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(mu2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(mu3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(mu4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(mu5, NBNP5 + 1, NEPP5 + 1);
-        util->mtx_free(mu6, NBNP6 + 1, NEPP6 + 1);
-        util->mtx_free(mu7, NBNP7 + 1, NEPP7 + 1);
+        Util::mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(pressure3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(pressure4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(pressure5, NBNP5 + 1, NEPP5 + 1);
+        Util::mtx_free(pressure6, NBNP6 + 1, NEPP6 + 1);
+        Util::mtx_free(pressure7, NBNP7 + 1, NEPP7 + 1);
+        Util::mtx_free(entropyDensity1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(entropyDensity2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(entropyDensity3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(entropyDensity4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(entropyDensity5, NBNP5 + 1, NEPP5 + 1);
+        Util::mtx_free(entropyDensity6, NBNP6 + 1, NEPP6 + 1);
+        Util::mtx_free(entropyDensity7, NBNP7 + 1, NEPP7 + 1);
+        Util::mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(temperature5, NBNP5 + 1, NEPP5 + 1);
+        Util::mtx_free(temperature6, NBNP6 + 1, NEPP6 + 1);
+        Util::mtx_free(temperature7, NBNP7 + 1, NEPP7 + 1);
+        Util::mtx_free(mu1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(mu2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(mu3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(mu4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(mu5, NBNP5 + 1, NEPP5 + 1);
+        Util::mtx_free(mu6, NBNP6 + 1, NEPP6 + 1);
+        Util::mtx_free(mu7, NBNP7 + 1, NEPP7 + 1);
     } else if (parameters_ptr->whichEOS == 11) {
-        util->mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(pressure3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(pressure4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(entropyDensity1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(entropyDensity2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(entropyDensity3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(entropyDensity4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(mu1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(mu2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(mu3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(mu4, NBNP4 + 1, NEPP4 + 1);
-        util->mtx_free(mus1, NBNP1 + 1, NEPP1 + 1);
-        util->mtx_free(mus2, NBNP2 + 1, NEPP2 + 1);
-        util->mtx_free(mus3, NBNP3 + 1, NEPP3 + 1);
-        util->mtx_free(mus4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(pressure1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(pressure2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(pressure3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(pressure4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(entropyDensity1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(entropyDensity2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(entropyDensity3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(entropyDensity4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(temperature1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(temperature2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(temperature3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(temperature4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(mu1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(mu2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(mu3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(mu4, NBNP4 + 1, NEPP4 + 1);
+        Util::mtx_free(mus1, NBNP1 + 1, NEPP1 + 1);
+        Util::mtx_free(mus2, NBNP2 + 1, NEPP2 + 1);
+        Util::mtx_free(mus3, NBNP3 + 1, NEPP3 + 1);
+        Util::mtx_free(mus4, NBNP4 + 1, NEPP4 + 1);
     } else if (parameters_ptr->whichEOS != 8
                && parameters_ptr->whichEOS != 0) {
         music_message << "No EOS for whichEOS = " << parameters_ptr->whichEOS
@@ -125,7 +124,6 @@ EOS::~EOS() {
         music_message.flush("error");
         exit(1);
     }
-    delete util;
 }
 
 void EOS::checkForReadError(FILE *file, const char* name) {
@@ -259,17 +257,17 @@ void EOS::init_eos() {
   eos_mu2  >> deltaBNP2>>deltaEPP2>>NBNP2>>NEPP2;
  
   // allocate memory for pressure arrays
-  pressure1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  pressure2=util->mtx_malloc(NBNP2+1,NEPP2+1);
+  pressure1=Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  pressure2=Util::mtx_malloc(NBNP2+1,NEPP2+1);
 
   // allocate memory for temperature arrays
   // we assume here that all files have the same structure (i.e., same EPP1, deltaEPP1, etc....)
-  temperature1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  temperature2=util->mtx_malloc(NBNP2+1,NEPP2+1);
+  temperature1=Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  temperature2=Util::mtx_malloc(NBNP2+1,NEPP2+1);
 
   // allocate memory for baryon chemical potential arrays
-  mu1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  mu2=util->mtx_malloc(NBNP2+1,NEPP2+1);
+  mu1=Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  mu2=Util::mtx_malloc(NBNP2+1,NEPP2+1);
   
   // read pressure, temperature and chemical potential values
   for(j=0;j<=NEPP1;j++)
@@ -379,40 +377,40 @@ void EOS::init_eos2()
   NBNP7 = 0;
 
   // allocate memory for pressure arrays
-  pressure1 = util->mtx_malloc(NBNP1+1,NEPP1+1);
-  pressure2 = util->mtx_malloc(NBNP2+1,NEPP2+1);
-  pressure3 = util->mtx_malloc(NBNP3+1,NEPP3+1);
-  pressure4 = util->mtx_malloc(NBNP4+1,NEPP4+1);
-  pressure5 = util->mtx_malloc(NBNP5+1,NEPP5+1);
-  pressure6 = util->mtx_malloc(NBNP6+1,NEPP6+1);
-  pressure7 = util->mtx_malloc(NBNP7+1,NEPP7+1);
+  pressure1 = Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  pressure2 = Util::mtx_malloc(NBNP2+1,NEPP2+1);
+  pressure3 = Util::mtx_malloc(NBNP3+1,NEPP3+1);
+  pressure4 = Util::mtx_malloc(NBNP4+1,NEPP4+1);
+  pressure5 = Util::mtx_malloc(NBNP5+1,NEPP5+1);
+  pressure6 = Util::mtx_malloc(NBNP6+1,NEPP6+1);
+  pressure7 = Util::mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for entropy density arrays
-  entropyDensity1 = util->mtx_malloc(NBNP1+1,NEPP1+1);
-  entropyDensity2 = util->mtx_malloc(NBNP2+1,NEPP2+1);
-  entropyDensity3 = util->mtx_malloc(NBNP3+1,NEPP3+1);
-  entropyDensity4 = util->mtx_malloc(NBNP4+1,NEPP4+1);
-  entropyDensity5 = util->mtx_malloc(NBNP5+1,NEPP5+1);
-  entropyDensity6 = util->mtx_malloc(NBNP6+1,NEPP6+1);
-  entropyDensity7 = util->mtx_malloc(NBNP7+1,NEPP7+1);
+  entropyDensity1 = Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  entropyDensity2 = Util::mtx_malloc(NBNP2+1,NEPP2+1);
+  entropyDensity3 = Util::mtx_malloc(NBNP3+1,NEPP3+1);
+  entropyDensity4 = Util::mtx_malloc(NBNP4+1,NEPP4+1);
+  entropyDensity5 = Util::mtx_malloc(NBNP5+1,NEPP5+1);
+  entropyDensity6 = Util::mtx_malloc(NBNP6+1,NEPP6+1);
+  entropyDensity7 = Util::mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for QGP fraction arrays
-  QGPfraction1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  QGPfraction2=util->mtx_malloc(NBNP2+1,NEPP2+1);
-  QGPfraction3=util->mtx_malloc(NBNP3+1,NEPP3+1);
-  QGPfraction4=util->mtx_malloc(NBNP4+1,NEPP4+1);
-  QGPfraction5=util->mtx_malloc(NBNP5+1,NEPP5+1);
-  QGPfraction6=util->mtx_malloc(NBNP6+1,NEPP6+1);
-  QGPfraction7=util->mtx_malloc(NBNP7+1,NEPP7+1);
+  QGPfraction1=Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  QGPfraction2=Util::mtx_malloc(NBNP2+1,NEPP2+1);
+  QGPfraction3=Util::mtx_malloc(NBNP3+1,NEPP3+1);
+  QGPfraction4=Util::mtx_malloc(NBNP4+1,NEPP4+1);
+  QGPfraction5=Util::mtx_malloc(NBNP5+1,NEPP5+1);
+  QGPfraction6=Util::mtx_malloc(NBNP6+1,NEPP6+1);
+  QGPfraction7=Util::mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for temperature arrays
-  temperature1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  temperature2=util->mtx_malloc(NBNP2+1,NEPP2+1);
-  temperature3=util->mtx_malloc(NBNP3+1,NEPP3+1);
-  temperature4=util->mtx_malloc(NBNP4+1,NEPP4+1);
-  temperature5=util->mtx_malloc(NBNP5+1,NEPP5+1);
-  temperature6=util->mtx_malloc(NBNP6+1,NEPP6+1);
-  temperature7=util->mtx_malloc(NBNP7+1,NEPP7+1);
+  temperature1=Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  temperature2=Util::mtx_malloc(NBNP2+1,NEPP2+1);
+  temperature3=Util::mtx_malloc(NBNP3+1,NEPP3+1);
+  temperature4=Util::mtx_malloc(NBNP4+1,NEPP4+1);
+  temperature5=Util::mtx_malloc(NBNP5+1,NEPP5+1);
+  temperature6=Util::mtx_malloc(NBNP6+1,NEPP6+1);
+  temperature7=Util::mtx_malloc(NBNP7+1,NEPP7+1);
   
   // allocate memory for baryon chemical potential arrays
   // currently always zero
@@ -746,40 +744,40 @@ void EOS::init_eos3(int selector)
   NBNP7=0;
 
   // allocate memory for pressure arrays
-  pressure1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  pressure2=util->mtx_malloc(NBNP2+1,NEPP2+1);
-  pressure3=util->mtx_malloc(NBNP3+1,NEPP3+1);
-  pressure4=util->mtx_malloc(NBNP4+1,NEPP4+1);
-  pressure5=util->mtx_malloc(NBNP5+1,NEPP5+1);
-  pressure6=util->mtx_malloc(NBNP6+1,NEPP6+1);
-  pressure7=util->mtx_malloc(NBNP7+1,NEPP7+1);
+  pressure1=Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  pressure2=Util::mtx_malloc(NBNP2+1,NEPP2+1);
+  pressure3=Util::mtx_malloc(NBNP3+1,NEPP3+1);
+  pressure4=Util::mtx_malloc(NBNP4+1,NEPP4+1);
+  pressure5=Util::mtx_malloc(NBNP5+1,NEPP5+1);
+  pressure6=Util::mtx_malloc(NBNP6+1,NEPP6+1);
+  pressure7=Util::mtx_malloc(NBNP7+1,NEPP7+1);
  
   // allocate memory for entropy density arrays
-  entropyDensity1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  entropyDensity2=util->mtx_malloc(NBNP2+1,NEPP2+1);
-  entropyDensity3=util->mtx_malloc(NBNP3+1,NEPP3+1);
-  entropyDensity4=util->mtx_malloc(NBNP4+1,NEPP4+1);
-  entropyDensity5=util->mtx_malloc(NBNP5+1,NEPP5+1);
-  entropyDensity6=util->mtx_malloc(NBNP6+1,NEPP6+1);
-  entropyDensity7=util->mtx_malloc(NBNP7+1,NEPP7+1);
+  entropyDensity1=Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  entropyDensity2=Util::mtx_malloc(NBNP2+1,NEPP2+1);
+  entropyDensity3=Util::mtx_malloc(NBNP3+1,NEPP3+1);
+  entropyDensity4=Util::mtx_malloc(NBNP4+1,NEPP4+1);
+  entropyDensity5=Util::mtx_malloc(NBNP5+1,NEPP5+1);
+  entropyDensity6=Util::mtx_malloc(NBNP6+1,NEPP6+1);
+  entropyDensity7=Util::mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for QGP fraction arrays
-  QGPfraction1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  QGPfraction2=util->mtx_malloc(NBNP2+1,NEPP2+1);
-  QGPfraction3=util->mtx_malloc(NBNP3+1,NEPP3+1);
-  QGPfraction4=util->mtx_malloc(NBNP4+1,NEPP4+1);
-  QGPfraction5=util->mtx_malloc(NBNP5+1,NEPP5+1);
-  QGPfraction6=util->mtx_malloc(NBNP6+1,NEPP6+1);
-  QGPfraction7=util->mtx_malloc(NBNP7+1,NEPP7+1);
+  QGPfraction1=Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  QGPfraction2=Util::mtx_malloc(NBNP2+1,NEPP2+1);
+  QGPfraction3=Util::mtx_malloc(NBNP3+1,NEPP3+1);
+  QGPfraction4=Util::mtx_malloc(NBNP4+1,NEPP4+1);
+  QGPfraction5=Util::mtx_malloc(NBNP5+1,NEPP5+1);
+  QGPfraction6=Util::mtx_malloc(NBNP6+1,NEPP6+1);
+  QGPfraction7=Util::mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for temperature arrays
-  temperature1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  temperature2=util->mtx_malloc(NBNP2+1,NEPP2+1);
-  temperature3=util->mtx_malloc(NBNP3+1,NEPP3+1);
-  temperature4=util->mtx_malloc(NBNP4+1,NEPP4+1);
-  temperature5=util->mtx_malloc(NBNP5+1,NEPP5+1);
-  temperature6=util->mtx_malloc(NBNP6+1,NEPP6+1);
-  temperature7=util->mtx_malloc(NBNP7+1,NEPP7+1);
+  temperature1=Util::mtx_malloc(NBNP1+1,NEPP1+1);
+  temperature2=Util::mtx_malloc(NBNP2+1,NEPP2+1);
+  temperature3=Util::mtx_malloc(NBNP3+1,NEPP3+1);
+  temperature4=Util::mtx_malloc(NBNP4+1,NEPP4+1);
+  temperature5=Util::mtx_malloc(NBNP5+1,NEPP5+1);
+  temperature6=Util::mtx_malloc(NBNP6+1,NEPP6+1);
+  temperature7=Util::mtx_malloc(NBNP7+1,NEPP7+1);
   
   // allocate memory for baryon chemical potential arrays
   // currently always zero
@@ -1024,40 +1022,40 @@ void EOS::init_eos7() {
     NBNP7 = 0;
 
     // allocate memory for pressure arrays
-    pressure1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    pressure2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    pressure3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    pressure4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    pressure5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    pressure6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    pressure7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    pressure1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    pressure2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    pressure3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    pressure4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    pressure5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    pressure6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    pressure7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
 
     // allocate memory for entropy density arrays
-    entropyDensity1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    entropyDensity2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    entropyDensity3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    entropyDensity4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    entropyDensity5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    entropyDensity6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    entropyDensity7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    entropyDensity1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    entropyDensity2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    entropyDensity3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    entropyDensity4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    entropyDensity5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    entropyDensity6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    entropyDensity7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
 
     // allocate memory for QGP fraction arrays
-    QGPfraction1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    QGPfraction2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    QGPfraction3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    QGPfraction4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    QGPfraction5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    QGPfraction6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    QGPfraction7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    QGPfraction1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    QGPfraction2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    QGPfraction3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    QGPfraction4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    QGPfraction5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    QGPfraction6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    QGPfraction7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
 
     // allocate memory for temperature arrays
-    temperature1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    temperature2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    temperature3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    temperature4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    temperature5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    temperature6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    temperature7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    temperature1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    temperature2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    temperature3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    temperature4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    temperature5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    temperature6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    temperature7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
 
     // read pressure, temperature and chemical potential values
     // files have it backwards, so I start with maximum j and count down
@@ -1240,37 +1238,37 @@ void EOS::init_eos10(int selector) {
     double eps = 1e-15;
 
     // allocate memory for pressure arrays
-    pressure1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    pressure2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    pressure3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    pressure4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    pressure5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    pressure6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    pressure7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    pressure1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    pressure2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    pressure3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    pressure4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    pressure5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    pressure6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    pressure7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
     // allocate memory for entropy density arrays
-    entropyDensity1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    entropyDensity2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    entropyDensity3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    entropyDensity4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    entropyDensity5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    entropyDensity6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    entropyDensity7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    entropyDensity1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    entropyDensity2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    entropyDensity3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    entropyDensity4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    entropyDensity5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    entropyDensity6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    entropyDensity7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
     // allocate memory for temperature arrays
-    temperature1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    temperature2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    temperature3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    temperature4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    temperature5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    temperature6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    temperature7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    temperature1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    temperature2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    temperature3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    temperature4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    temperature5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    temperature6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    temperature7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
     // allocate memory for mu_B arrays
-    mu1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    mu2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    mu3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    mu4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    mu5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    mu6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    mu7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    mu1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    mu2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    mu3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    mu4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    mu5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    mu6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    mu7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
 
     // read pressure, temperature and chemical potential values
     for (int j = 0; j < NEPP1 + 1; j++) {
@@ -1478,34 +1476,34 @@ void EOS::init_eos11(int selector) {
     double eps = 1e-15;
 
     // allocate memory for pressure arrays
-    pressure1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    pressure2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    pressure3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    pressure4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+    pressure1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    pressure2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    pressure3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    pressure4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
 
     // allocate memory for entropy density arrays
-    entropyDensity1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    entropyDensity2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    entropyDensity3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    entropyDensity4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+    entropyDensity1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    entropyDensity2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    entropyDensity3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    entropyDensity4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
 
     // allocate memory for temperature arrays
-    temperature1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    temperature2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    temperature3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    temperature4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+    temperature1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    temperature2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    temperature3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    temperature4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
 
     // allocate memory for mu_B arrays
-    mu1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    mu2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    mu3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    mu4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+    mu1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    mu2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    mu3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    mu4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
 
     // allocate memory for mu_s arrays
-    mus1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    mus2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    mus3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    mus4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
+    mus1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    mus2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    mus3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    mus4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
 
     // read pressure, temperature and chemical potential values
     for (int j = NEPP1; j >= 0; j--) {
@@ -1652,37 +1650,37 @@ void EOS::init_eos12(int selector) {
     double eps = 1e-15;
 
     // allocate memory for pressure arrays
-    pressure1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    pressure2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    pressure3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    pressure4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    pressure5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    pressure6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    pressure7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    pressure1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    pressure2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    pressure3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    pressure4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    pressure5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    pressure6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    pressure7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
     // allocate memory for entropy density arrays
-    entropyDensity1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    entropyDensity2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    entropyDensity3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    entropyDensity4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    entropyDensity5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    entropyDensity6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    entropyDensity7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    entropyDensity1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    entropyDensity2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    entropyDensity3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    entropyDensity4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    entropyDensity5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    entropyDensity6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    entropyDensity7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
     // allocate memory for temperature arrays
-    temperature1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    temperature2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    temperature3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    temperature4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    temperature5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    temperature6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    temperature7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    temperature1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    temperature2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    temperature3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    temperature4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    temperature5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    temperature6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    temperature7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
     // allocate memory for mu_B arrays
-    mu1 = util->mtx_malloc(NBNP1+1, NEPP1+1);
-    mu2 = util->mtx_malloc(NBNP2+1, NEPP2+1);
-    mu3 = util->mtx_malloc(NBNP3+1, NEPP3+1);
-    mu4 = util->mtx_malloc(NBNP4+1, NEPP4+1);
-    mu5 = util->mtx_malloc(NBNP5+1, NEPP5+1);
-    mu6 = util->mtx_malloc(NBNP6+1, NEPP6+1);
-    mu7 = util->mtx_malloc(NBNP7+1, NEPP7+1);
+    mu1 = Util::mtx_malloc(NBNP1+1, NEPP1+1);
+    mu2 = Util::mtx_malloc(NBNP2+1, NEPP2+1);
+    mu3 = Util::mtx_malloc(NBNP3+1, NEPP3+1);
+    mu4 = Util::mtx_malloc(NBNP4+1, NEPP4+1);
+    mu5 = Util::mtx_malloc(NBNP5+1, NEPP5+1);
+    mu6 = Util::mtx_malloc(NBNP6+1, NEPP6+1);
+    mu7 = Util::mtx_malloc(NBNP7+1, NEPP7+1);
 
     // read pressure, temperature and chemical potential values
     for (int j = 0; j < NEPP1 + 1; j++) {
@@ -2054,13 +2052,13 @@ double EOS::interpolate2(double e, double rhob, int selector) {
             fprintf(stderr, "ie1=%d, NEPP2=%d\n", ie1, NEps);
             fprintf(stderr, "e=%f, eps0=%f; maxe=%f, deltaEps=%f\n",
                     e, eps0, NEps*deltaEps+eps0, deltaEps);
-            util->print_backtrace_errors();
+            Util::print_backtrace_errors();
             exit(1);
         }
         if (ie2 > NEps) {
             fprintf(stderr, "ERROR in inperpolate2. out of range.\n");
             fprintf(stderr, "ie2=%d, NEPP2=%d\n", ie2, NEps);
-            util->print_backtrace_errors();
+            Util::print_backtrace_errors();
             exit(1);
         }
 
@@ -3440,8 +3438,8 @@ double EOS::get_rhob_from_mub(double e, double mub) {
        array_right[i] = array[i][idx_e+1];
     }
 
-    int idx_rhob_left    = util->binary_search(array_left, Nrhob+1, local_mub);
-    int idx_rhob_right   = util->binary_search(array_right, Nrhob+1, local_mub);
+    int idx_rhob_left    = Util::binary_search(array_left, Nrhob+1, local_mub);
+    int idx_rhob_right   = Util::binary_search(array_right, Nrhob+1, local_mub);
     double rhob_left_1   = rhob0 + idx_rhob_left*deltaRhob;
     double rhob_left_2   = rhob0 + (idx_rhob_left+1)*deltaRhob;
     double mub_left_1    = array_left[idx_rhob_left];

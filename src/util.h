@@ -44,9 +44,7 @@ using namespace std;
 
 //! This is a utility class which contains a collection of helper functions.
 
-class Util{
- public:
-
+namespace Util {
     double ***cube_malloc(int , int , int ); 
     double **mtx_malloc(int , int );
     double *vector_malloc(int );
@@ -68,7 +66,6 @@ class Util{
     int binary_search(double* array, int length, double x);
     void print_backtrace_errors();
     int map_2d_idx_to_1d(int a, int b);
-
-};
+}
 
 #endif

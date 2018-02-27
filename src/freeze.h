@@ -135,7 +135,6 @@ class Freeze{
     // array for converting Montecarlo numbers into
     // internal numbering of the resonances 
     double *phiArray;
-    Util *util;
     int pseudofreeze;
 
     InitData* DATA_ptr;

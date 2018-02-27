@@ -12,13 +12,11 @@ using namespace std;
 Diss::Diss(EOS *eosIn, InitData* DATA_in) {
     eos = eosIn;
     minmod = new Minmod(DATA_in);
-    util = new Util;
 }
 
 // destructor
 Diss::~Diss() {
     delete minmod;
-    delete util;
 }
 
 
@@ -55,7 +53,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
                to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
     // dW/dtau
     // backward time derivative (first order is more stable)
-    int idx_1d_alpha0 = util->map_2d_idx_to_1d(alpha, 0);
+    int idx_1d_alpha0 = Util::map_2d_idx_to_1d(alpha, 0);
     double dWdtau;
     if (rk_flag == 0) {
         dWdtau = (grid_pt.Wmunu[rk_flag][idx_1d_alpha0] - grid_pt.prevWmunu[0][idx_1d_alpha0])/DATA->delta_tau;
@@ -90,7 +88,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     double dPidx_perp = 0.0;
 
     // x-direction
-    idx_1d          = util->map_2d_idx_to_1d(alpha, 1);
+    idx_1d          = Util::map_2d_idx_to_1d(alpha, 1);
     auto grid_pt_p1 = &arena(ix + 1, iy, ieta);
     auto grid_pt_m1 = &arena(ix - 1, iy, ieta);
     double sg       = grid_pt.Wmunu[rk_flag][idx_1d];
@@ -108,7 +106,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     }
 
     // y-direction
-    idx_1d     = util->map_2d_idx_to_1d(alpha, 2);
+    idx_1d     = Util::map_2d_idx_to_1d(alpha, 2);
     grid_pt_p1 = &arena(ix, iy + 1, ieta);
     grid_pt_m1 = &arena(ix, iy - 1, ieta);
     sg         = grid_pt.Wmunu[rk_flag][idx_1d];
@@ -130,7 +128,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     taufactor      = tau;
     double dWdeta  = 0.0;
     double dPideta = 0.0;
-    idx_1d         = util->map_2d_idx_to_1d(alpha, i);
+    idx_1d         = Util::map_2d_idx_to_1d(alpha, i);
     grid_pt_p1     = &arena(ix, iy, ieta + 1);
     grid_pt_m1     = &arena(ix, iy, ieta - 1);
     sg             = grid_pt.Wmunu[rk_flag][idx_1d];
@@ -201,7 +199,7 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
     double Wmunu[4][4];
     for (int a = 0; a < 4; a++) {
         for (int b = a; b < 4; b++) {
-            int idx_1d = util->map_2d_idx_to_1d(a, b);
+            int idx_1d = Util::map_2d_idx_to_1d(a, b);
             Wmunu[a][b] = grid_pt->Wmunu[rk_flag][idx_1d];
             sigma[a][b] = sigma_1d[idx_1d];
         }
@@ -476,7 +474,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
     double Wmunu_local[4][4];
     for (int aa = 0; aa < 4; aa++) {
         for (int bb = aa; bb < 4; bb++) {
-            int idx_1d = util->map_2d_idx_to_1d(aa, bb);
+            int idx_1d = Util::map_2d_idx_to_1d(aa, bb);
             Wmunu_local[aa][bb] = grid_pt->Wmunu[rk_flag][idx_1d];
         }
     }
@@ -512,7 +510,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
     // pi^\mu\nu is symmetric
     for (mu = 1; mu < 4; mu++) {
         for (nu = mu; nu < 4; nu++) {
-            int idx_1d = util->map_2d_idx_to_1d(mu, nu);
+            int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
             sum = 0.0;
             for (direc = 1; direc <= 3; direc++) {
                 if (direc == 1) {
@@ -850,7 +848,7 @@ double Diss::Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
         double sigma[4][4], Wmunu[4][4];
         for (int a = 0; a < 4 ; a++) {
             for (int b = a; b < 4; b++) {
-                int idx_1d = util->map_2d_idx_to_1d(a, b);
+                int idx_1d = Util::map_2d_idx_to_1d(a, b);
                 sigma[a][b] = sigma_1d[idx_1d];
                 Wmunu[a][b] = grid_pt->Wmunu[rk_flag][idx_1d];
             }
@@ -939,7 +937,7 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
 
     // copy the value of \tilde{q^\mu}
     for (int i = 0; i < 4; i++) {
-        int idx_1d = util->map_2d_idx_to_1d(4, i);
+        int idx_1d = Util::map_2d_idx_to_1d(4, i);
         q[i] = (grid_pt->Wmunu[rk_flag][idx_1d]);
     }
 
@@ -980,7 +978,7 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
     double sigma[4][4];
     for (int ii = 0; ii < 4; ii++) {
         for (int jj = ii; jj < 4; jj++) {
-            int idx_1d = util->map_2d_idx_to_1d(ii, jj);
+            int idx_1d = Util::map_2d_idx_to_1d(ii, jj);
             sigma[ii][jj] = sigma_1d[idx_1d];
         }
     }
@@ -1072,7 +1070,7 @@ int Diss::Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
     mu = 4;
     Cell *grid_pt_p1, *grid_pt_p2, *grid_pt_m1, *grid_pt_m2;
     for (nu = 1; nu < 4; nu++) {
-        int idx_1d = util->map_2d_idx_to_1d(mu, nu);
+        int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
         double sum = 0.0;
         for (direc=1; direc<=3; direc++) {
             if (direc == 1) {

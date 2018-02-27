@@ -189,15 +189,15 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
 //    for (int ieta=0; ieta < DATA->neta; ieta++) {
 //        for (int ix=0; ix <= DATA->nx; ix++) {
 //            for (int iy=0; iy <= DATA->ny; iy++) {
-//                util.cube_free(arena(ix,iy,ieta).dUsup, 5, 4);
-//                util.mtx_free(arena(ix,iy,ieta).Wmunu, rk_order, 14);
-//                util.mtx_free(arena(ix,iy,ieta).prevWmunu, 1, 14);
-//                util.mtx_free(arena(ix,iy,ieta).u, rk_order, 4);
-//                util.mtx_free(arena(ix,iy,ieta).prev_u, 1, 4);
-//                util.vector_free(arena(ix,iy,ieta).pi_b);
-//                util.vector_free(arena(ix,iy,ieta).prev_pi_b);
+//                Util::cube_free(arena(ix,iy,ieta).dUsup, 5, 4);
+//                Util::mtx_free(arena(ix,iy,ieta).Wmunu, rk_order, 14);
+//                Util::mtx_free(arena(ix,iy,ieta).prevWmunu, 1, 14);
+//                Util::mtx_free(arena(ix,iy,ieta).u, rk_order, 4);
+//                Util::mtx_free(arena(ix,iy,ieta).prev_u, 1, 4);
+//                Util::vector_free(arena(ix,iy,ieta).pi_b);
+//                Util::vector_free(arena(ix,iy,ieta).prev_pi_b);
 //                
-//                util.vector_free(arena(ix,iy,ieta).W_prev);
+//                Util::vector_free(arena(ix,iy,ieta).W_prev);
 //            }
 //        }
 //    }
@@ -300,10 +300,10 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //  const char* t_name = "tauf.dat";
 //  t_file = fopen(t_name, "a");
 ////   char *buf;
-////   buf = util.char_malloc(40);
+////   buf = Util::char_malloc(40);
 ////   FILE *s_file;
 ////   char* s_name;
-////   s_name = util.char_malloc(100);
+////   s_name = Util::char_malloc(100);
 ////   sprintf (buf, "%d", rank);
 ////   strcat(s_name, "surface");
 ////   strcat(s_name,buf);
@@ -943,41 +943,41 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //  packageueta_prev = new double[sizeOfData];
 //  packagerhob_prev = new double[sizeOfData];
 //
-//  Rneighbor_eps = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_eps_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_utau = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_ux = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_uy = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_ueta = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_rhob = util.mtx_malloc(nx+1,ny+1);
+//  Rneighbor_eps = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_eps_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_utau = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_ux = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_uy = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_ueta = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_rhob = Util::mtx_malloc(nx+1,ny+1);
 // 
-//  Rneighbor_Wtautau = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wtaux = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wtauy = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wtaueta = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wxx = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wxy = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wxeta = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wyy = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wyeta = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wetaeta = util.mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wtautau = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wtaux = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wtauy = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wtaueta = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wxx = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wxy = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wxeta = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wyy = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wyeta = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wetaeta = Util::mtx_malloc(nx+1,ny+1);
 //
-//  Rneighbor_Wtautau_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wtaux_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wtauy_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wtaueta_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wxx_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wxy_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wxeta_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wyy_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wyeta_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wetaeta_prev = util.mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wtautau_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wtaux_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wtauy_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wtaueta_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wxx_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wxy_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wxeta_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wyy_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wyeta_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wetaeta_prev = Util::mtx_malloc(nx+1,ny+1);
 // 
-//  Rneighbor_utau_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_ux_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_uy_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_ueta_prev = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_rhob_prev = util.mtx_malloc(nx+1,ny+1);
+//  Rneighbor_utau_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_ux_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_uy_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_ueta_prev = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_rhob_prev = Util::mtx_malloc(nx+1,ny+1);
 //  
 //  // receive from the right / send to the left
 //  int from = rank+1;
@@ -4360,41 +4360,41 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //  delete[] packageueta_prev;
 //  delete[] packagerhob_prev;
 //
-//  util.mtx_free(Rneighbor_eps,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_eps_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_utau,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_ux,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_uy,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_ueta,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_rhob,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_eps,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_eps_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_utau,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_ux,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_uy,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_ueta,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_rhob,nx+1,ny+1);
 // 
-//  util.mtx_free(Rneighbor_utau_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_ux_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_uy_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_ueta_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_rhob_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_utau_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_ux_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_uy_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_ueta_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_rhob_prev,nx+1,ny+1);
 // 
-//  util.mtx_free(Rneighbor_Wtautau,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wtaux,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wtauy,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wtaueta,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wxx,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wxy,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wxeta,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wyy,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wyeta,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wetaeta,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wtautau,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wtaux,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wtauy,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wtaueta,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wxx,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wxy,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wxeta,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wyy,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wyeta,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wetaeta,nx+1,ny+1);
 //  
-//  util.mtx_free(Rneighbor_Wtautau_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wtaux_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wtauy_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wtaueta_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wxx_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wxy_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wxeta_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wyy_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wyeta_prev,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wetaeta_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wtautau_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wtaux_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wtauy_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wtaueta_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wxx_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wxy_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wxeta_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wyy_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wyeta_prev,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wetaeta_prev,nx+1,ny+1);
 // 
 //  t_file.close();
 //  t2_file.close();
@@ -4533,24 +4533,24 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //  packageWyeta = new double[sizeOfData];
 ////  packageWetaeta = new double[sizeOfData];
 //  
-//  Rneighbor_eps = util.mtx_malloc(nx+1,ny+1);
-////  Rneighbor_utau = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_ux = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_uy = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_ueta = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_rhob = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Pi_b = util.mtx_malloc(nx+1,ny+1);
+//  Rneighbor_eps = Util::mtx_malloc(nx+1,ny+1);
+////  Rneighbor_utau = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_ux = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_uy = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_ueta = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_rhob = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Pi_b = Util::mtx_malloc(nx+1,ny+1);
 // 
-////  Rneighbor_Wtautau = util.mtx_malloc(nx+1,ny+1);
-////  Rneighbor_Wtaux = util.mtx_malloc(nx+1,ny+1);
-////  Rneighbor_Wtauy = util.mtx_malloc(nx+1,ny+1);
-////  Rneighbor_Wtaueta = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wxx = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wxy = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wxeta = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wyy = util.mtx_malloc(nx+1,ny+1);
-//  Rneighbor_Wyeta = util.mtx_malloc(nx+1,ny+1);
-////  Rneighbor_Wetaeta = util.mtx_malloc(nx+1,ny+1);
+////  Rneighbor_Wtautau = Util::mtx_malloc(nx+1,ny+1);
+////  Rneighbor_Wtaux = Util::mtx_malloc(nx+1,ny+1);
+////  Rneighbor_Wtauy = Util::mtx_malloc(nx+1,ny+1);
+////  Rneighbor_Wtaueta = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wxx = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wxy = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wxeta = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wyy = Util::mtx_malloc(nx+1,ny+1);
+//  Rneighbor_Wyeta = Util::mtx_malloc(nx+1,ny+1);
+////  Rneighbor_Wetaeta = Util::mtx_malloc(nx+1,ny+1);
 //
 // 
 //  
@@ -5368,17 +5368,17 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //  delete[] packageueta;
 //  delete[] packagerhob;
 //
-//  util.mtx_free(Rneighbor_eps,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_ux,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_uy,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_ueta,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_rhob,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_eps,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_ux,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_uy,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_ueta,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_rhob,nx+1,ny+1);
 // 
-//  util.mtx_free(Rneighbor_Wxx,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wxy,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wxeta,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wyy,nx+1,ny+1);
-//  util.mtx_free(Rneighbor_Wyeta,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wxx,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wxy,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wxeta,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wyy,nx+1,ny+1);
+//  Util::mtx_free(Rneighbor_Wyeta,nx+1,ny+1);
 //  
 // return allfrozen;
 //}
@@ -5652,7 +5652,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).u[0][1];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).u[0][1];
                 ux_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // flow velocity u^y
@@ -5673,7 +5673,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).u[0][2];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).u[0][2];
                 uy_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // flow velocity u^eta
@@ -5694,7 +5694,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).u[0][3];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).u[0][3];
                 ueta_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // reconstruct u^tau from u^i
@@ -5720,7 +5720,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).rhob;
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).rhob;
                 rhob_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
           
                 // baryon diffusion current q^tau
@@ -5741,7 +5741,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][10];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][10];
                 qtau_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
           
                 // baryon diffusion current q^x
@@ -5762,7 +5762,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][11];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][11];
                 qx_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // baryon diffusion current q^y
@@ -5783,7 +5783,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][12];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][12];
                 qy_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                             lattice_spacing_ptr, x_fraction, cube);
           
                 // baryon diffusion current q^eta
@@ -5804,7 +5804,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][13];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][13];
                 qeta_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // reconstruct q^\tau from the transverality criteria
@@ -5853,7 +5853,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).pi_b[0];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).pi_b[0];
                 pi_b_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // shear viscous tensor W^\tau\tau
@@ -5874,7 +5874,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][0];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][0];
                 Wtautau_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{\tau x}
@@ -5895,7 +5895,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][1];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][1];
                 Wtaux_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // shear viscous tensor W^{\tau y}
@@ -5916,7 +5916,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][2];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][2];
                 Wtauy_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{\tau \eta}
@@ -5937,7 +5937,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][3];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][3];
                 Wtaueta_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{xx}
@@ -5958,7 +5958,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][4];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][4];
                 Wxx_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // shear viscous tensor W^{xy}
@@ -5979,7 +5979,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][5];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][5];
                 Wxy_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // shear viscous tensor W^{x\eta}
@@ -6000,7 +6000,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][6];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][6];
                 Wxeta_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{yy}
@@ -6021,7 +6021,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][7];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][7];
                 Wyy_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{y\eta}
@@ -6042,7 +6042,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][8];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][8];
                 Wyeta_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
       
                 // shear viscous tensor W^{\eta\eta}
@@ -6063,7 +6063,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                 cube[1][1][0][1] = arena(ix+fac_x,iy,ieta+fac_eta).Wmunu[0][9];
                 cube[1][1][1][1] = arena(ix+fac_x,iy+fac_y,ieta+fac_eta).Wmunu[0][9];
                 Wetaeta_center = 
-                    util.four_dimension_linear_interpolation(
+                    Util::four_dimension_linear_interpolation(
                                 lattice_spacing_ptr, x_fraction, cube);
 
                 // regulate Wmunu according to transversality and traceless
@@ -6579,7 +6579,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][0][1] = arena(ix,iy+fac_y,ieta).u[0][0];
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).u[0][0];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).u[0][0];
-                    utau_center = util.three_dimension_linear_interpolation(
+                    utau_center = Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // flow velocity u^x
@@ -6591,7 +6591,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][0][1] = arena(ix,iy+fac_y,ieta).u[0][1];
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).u[0][1];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).u[0][1];
-                    ux_center = util.three_dimension_linear_interpolation(
+                    ux_center = Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // flow velocity u^y
@@ -6603,7 +6603,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][0][1] = arena(ix,iy+fac_y,ieta).u[0][2];
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).u[0][2];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).u[0][2];
-                    uy_center = util.three_dimension_linear_interpolation(
+                    uy_center = Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // flow velocity u^eta
@@ -6615,7 +6615,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][0][1] = arena(ix,iy+fac_y,ieta).u[0][3];
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).u[0][3];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).u[0][3];
-                    ueta_center = util.three_dimension_linear_interpolation(
+                    ueta_center = Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // baryon density rho_b
@@ -6627,7 +6627,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][0][1] = arena(ix,iy+fac_y,ieta).rhob;
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).rhob;
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).rhob;
-                    rhob_center = util.three_dimension_linear_interpolation(
+                    rhob_center = Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // bulk viscous pressure pi_b
@@ -6639,7 +6639,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][0][1] = arena(ix,iy+fac_y,ieta).pi_b[0];
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).pi_b[0];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).pi_b[0];
-                    pi_b_center = util.three_dimension_linear_interpolation(
+                    pi_b_center = Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                
                     // baryon diffusion current q^\tau
@@ -6651,7 +6651,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][0][1] = arena(ix,iy+fac_y,ieta).Wmunu[0][10];
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][10];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][10];
-                    qtau_center = util.three_dimension_linear_interpolation(
+                    qtau_center = Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                
                     // baryon diffusion current q^x
@@ -6663,7 +6663,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][0][1] = arena(ix,iy+fac_y,ieta).Wmunu[0][11];
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][11];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][11];
-                    qx_center = util.three_dimension_linear_interpolation(
+                    qx_center = Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                
                     // baryon diffusion current q^y
@@ -6675,7 +6675,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][0][1] = arena(ix,iy+fac_y,ieta).Wmunu[0][12];
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][12];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][12];
-                    qy_center = util.three_dimension_linear_interpolation(
+                    qy_center = Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                
                     // baryon diffusion current q^eta
@@ -6687,7 +6687,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][0][1] = arena(ix,iy+fac_y,ieta).Wmunu[0][13];
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][13];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][13];
-                    qeta_center = util.three_dimension_linear_interpolation(
+                    qeta_center = Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // reconstruct q^\tau from the transverality criteria
@@ -6728,7 +6728,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][0];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][0];
                     Wtautau_center = 
-                        util.three_dimension_linear_interpolation(
+                        Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{\tau x}
@@ -6741,7 +6741,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][1];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][1];
                     Wtaux_center = 
-                        util.three_dimension_linear_interpolation(
+                        Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // shear viscous tensor W^{\tau y}
@@ -6754,7 +6754,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][2];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][2];
                     Wtauy_center = 
-                        util.three_dimension_linear_interpolation(
+                        Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{\tau \eta}
@@ -6767,7 +6767,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][3];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][3];
                     Wtaueta_center = 
-                        util.three_dimension_linear_interpolation(
+                        Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{xx}
@@ -6780,7 +6780,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][4];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][4];
                     Wxx_center = 
-                        util.three_dimension_linear_interpolation(
+                        Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // shear viscous tensor W^{xy}
@@ -6793,7 +6793,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][5];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][5];
                     Wxy_center = 
-                        util.three_dimension_linear_interpolation(
+                        Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // shear viscous tensor W^{x \eta}
@@ -6806,7 +6806,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][6];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][6];
                     Wxeta_center = 
-                        util.three_dimension_linear_interpolation(
+                        Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{yy}
@@ -6819,7 +6819,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][7];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][7];
                     Wyy_center = 
-                        util.three_dimension_linear_interpolation(
+                        Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{yeta}
@@ -6832,7 +6832,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][8];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][8];
                     Wyeta_center = 
-                        util.three_dimension_linear_interpolation(
+                        Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
                   
                     // shear viscous tensor W^{\eta\eta}
@@ -6845,7 +6845,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     cube[1][1][0] = arena(ix+fac_x,iy,ieta).Wmunu[0][9];
                     cube[1][1][1] = arena(ix+fac_x,iy+fac_y,ieta).Wmunu[0][9];
                     Wetaeta_center = 
-                        util.three_dimension_linear_interpolation(
+                        Util::three_dimension_linear_interpolation(
                                         lattice_spacing_ptr, x_fraction, cube);
 
                     // regulate Wmunu according to transversality and traceless

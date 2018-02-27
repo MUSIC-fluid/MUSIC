@@ -92,7 +92,6 @@ class EOS {
     int whichEOS;
     double eps_max;
 
-    Util *util;
 
  public:
     EOS(InitData *para_in);  // constructor
