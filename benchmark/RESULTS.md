@@ -11,6 +11,9 @@ Date        Time      Machine       Test      Wall-time
 2018-02-27  17:00     Cori KNL      Medium    03:57.133
 2018-02-27  17:00     Cori KNL      Large     06:52.356
 
+2018-02-27  17:40     Cori KNL      Small     02:08.459
+2018-02-27  17:40     Cori KNL      Medium    04:22.419
+2018-02-27  17:40     Cori KNL      Large     07:08.197
 
 
 
@@ -65,4 +68,26 @@ Performance counter stats for './mpihydro benchmark/music_input_Gubser_small':
 
       98.379163794 seconds time elapsed
 
+2018-02-27 17:40 (Cori KNL)
+----------------
+Performance counter stats for './mpihydro benchmark/music_input_Gubser_small':
+
+      195687337866      branches                                                      (30.01%)
+        2189188186      branch-misses             #    1.12% of all branches          (29.99%)
+        1410245681      cache-misses              #   29.923 % of all cache refs      (20.01%)
+        4712898527      cache-references                                              (20.01%)
+     1692102563645      cycles                                                        (30.01%)
+             44778      faults                                                      
+      959960802812      instructions              #    0.57  insns per cycle          (40.01%)
+        1948435735      L1-dcache-load-misses     #    0.00% of all L1-dcache hits    (39.99%)
+   <not supported>      L1-dcache-loads          
+   <not supported>      L1-dcache-stores         
+   <not supported>      LLC-load-misses          
+        4407360971      LLC-loads                                                     (40.00%)
+   <not supported>      LLC-store-misses         
+        2235303274      LLC-stores                                                    (20.02%)
+               291      migrations                                                  
+     1693595999563      cycles                                                        (30.02%)
+
+     102.181073494 seconds time elapsed
 
