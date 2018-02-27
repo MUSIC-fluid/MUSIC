@@ -29,12 +29,12 @@ SRC		=	main.cpp music.cpp cell.cpp eos.cpp init.cpp \
             util.cpp evolve.cpp advance.cpp u_derivative.cpp \
 			reconst.cpp dissipative.cpp minmod.cpp grid_info.cpp \
 			cornelius.cpp read_in_parameters.cpp hydro_source.cpp \
-			pretty_ostream.cpp freeze.cpp freeze_pseudo.cpp reso_decay.cpp
+			pretty_ostream.cpp freeze.cpp freeze_pseudo.cpp reso_decay.cpp grid.cpp
 
 INC		= 	music.h cell.h eos.h init.h util.h data.h \
 			evolve.h advance.h u_derivative.h reconst.h dissipative.h \
 			minmod.h grid_info.h cornelius.h read_in_parameters.h emoji.h \
-			hydro_source.h pretty_ostream.h freeze.h int.h
+			hydro_source.h pretty_ostream.h freeze.h int.h grid.h
 
 # -------------------------------------------------
 
