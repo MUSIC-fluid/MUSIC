@@ -124,17 +124,12 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
         music_message.info(" Perform Gubser flow test ... ");
         music_message.info(" ----- information on initial distribution -----");
         
-        int ieta;
-        #pragma omp parallel private(ieta)
-        {
-            #pragma omp for
-            for (ieta = 0; ieta < DATA->neta; ieta++) {
-                //cout << "[Info] Thread " << omp_get_thread_num()
-                //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_Gubser_XY(DATA, ieta, arena);
-            }/* ieta */
-            #pragma omp barrier
-        }
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < DATA->neta; ieta++) {
+            //cout << "[Info] Thread " << omp_get_thread_num()
+            //     << " executes loop iteraction ieta = " << ieta << endl;
+            initial_Gubser_XY(DATA, ieta, arena);
+        }/* ieta */
     } else if (DATA->Initial_profile == 1) {
         // code test in 1+1 D vs Monnai's results
         music_message.info(" Perform 1+1D test vs Monnai's results... ");
@@ -146,17 +141,12 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
         music_message << "file name used: " << DATA->initName;
         music_message.flush("info");
   
-        int ieta;
-        #pragma omp parallel private(ieta)
-        {
-            #pragma omp for
-            for (ieta = 0; ieta < DATA->neta; ieta++) {
-                //cout << "[Info] Thread " << omp_get_thread_num()
-                //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_IPGlasma_XY(DATA, ieta, arena);
-            } /* ieta */
-            #pragma omp barrier
-        }
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < DATA->neta; ieta++) {
+            //cout << "[Info] Thread " << omp_get_thread_num()
+            //     << " executes loop iteraction ieta = " << ieta << endl;
+            initial_IPGlasma_XY(DATA, ieta, arena);
+        } /* ieta */
     } else if (DATA->Initial_profile == 9) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
@@ -165,17 +155,12 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
         music_message << "file name used: " << DATA->initName;
         music_message.flush("info");
   
-        int ieta;
-        #pragma omp parallel private(ieta)
-        {
-            #pragma omp for
-            for (ieta = 0; ieta < DATA->neta; ieta++) {
-                //cout << "[Info] Thread " << omp_get_thread_num()
-                //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_IPGlasma_XY_with_pi(DATA, ieta, arena);
-            } /* ieta */
-            #pragma omp barrier
-        }
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < DATA->neta; ieta++) {
+            //cout << "[Info] Thread " << omp_get_thread_num()
+            //     << " executes loop iteraction ieta = " << ieta << endl;
+            initial_IPGlasma_XY_with_pi(DATA, ieta, arena);
+        } /* ieta */
     } else if (DATA->Initial_profile == 11) {
         // read in the transverse profile from file with finite rho_B
         // the initial entropy and net baryon density profile are
@@ -187,38 +172,26 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
                       << DATA->initName_TB;
         music_message.flush("info");
 
-        int ieta;
-        #pragma omp parallel private(ieta)
-        {
-            #pragma omp for
-            for (ieta = 0; ieta < DATA->neta; ieta++) {
-                //cout << "[Info] Thread " << omp_get_thread_num()
-                //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_MCGlb_with_rhob_XY(DATA, ieta, arena);
-            } /* ix, iy, ieta */
-        }
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < DATA->neta; ieta++) {
+            //cout << "[Info] Thread " << omp_get_thread_num()
+            //     << " executes loop iteraction ieta = " << ieta << endl;
+            initial_MCGlb_with_rhob_XY(DATA, ieta, arena);
+        } /* ix, iy, ieta */
     } else if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
-        int ieta;
         music_message.info("Initialize hydro with source terms");
-        #pragma omp parallel private(ieta)
-        {
-            #pragma omp for
-            for (ieta = 0; ieta < DATA->neta; ieta++) {
-                //cout << "[Info] Thread " << omp_get_thread_num()
-                //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_MCGlbLEXUS_with_rhob_XY(DATA, ieta, arena);
-            } /* ix, iy, ieta */
-        }
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < DATA->neta; ieta++) {
+            //cout << "[Info] Thread " << omp_get_thread_num()
+            //     << " executes loop iteraction ieta = " << ieta << endl;
+            initial_MCGlbLEXUS_with_rhob_XY(DATA, ieta, arena);
+        } /* ix, iy, ieta */
     } else if (DATA->Initial_profile == 30) {
-        int ieta;
-        #pragma omp parallel private(ieta)
-        {
-            #pragma omp for
-            for (ieta = 0; ieta < DATA->neta; ieta++) {
-                //cout << "[Info] Thread " << omp_get_thread_num()
-                //     << " executes loop iteraction ieta = " << ieta << endl;
-                initial_AMPT_XY(DATA, ieta, arena);
-            } /* ix, iy, ieta */
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < DATA->neta; ieta++) {
+            //cout << "[Info] Thread " << omp_get_thread_num()
+            //     << " executes loop iteraction ieta = " << ieta << endl;
+            initial_AMPT_XY(DATA, ieta, arena);
         }
     } else if (DATA->Initial_profile == 101) {
         initial_UMN_with_rhob(DATA, arena);

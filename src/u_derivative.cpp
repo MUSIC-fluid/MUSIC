@@ -28,21 +28,14 @@ int U_derivative::MakedU(double tau, InitData *DATA,
     int nx   = DATA->nx;
     int ny   = DATA->ny;
 
-    int ieta, ix, iy;
-    #pragma omp parallel private(ieta, ix, iy)
-    {
-        #pragma omp for collapse(3)
-        for (ieta = 0; ieta <= neta; ieta++) {
-            for (ix = 0; ix <= nx; ix++) {
-                for (iy = 0; iy <= ny; iy++) {
-	                // this calculates du/dx, du/dy, (du/deta)/tau
-                    MakeDSpatial(tau, DATA, arena, ix, iy, ieta, rk_flag);
-                    // this calculates du/dtau
-                    MakeDTau(tau, DATA, &(arena(ix,iy,ieta)), rk_flag); 
-                }
-            }
-        }
-        #pragma omp barrier
+    #pragma omp parallel for collapse(3)
+    for (int ieta = 0; ieta <= neta; ieta++)
+    for (int ix = 0; ix <= nx; ix++)
+    for (int iy = 0; iy <= ny; iy++) {
+	    // this calculates du/dx, du/dy, (du/deta)/tau
+        MakeDSpatial(tau, DATA, arena, ix, iy, ieta, rk_flag);
+        // this calculates du/dtau
+        MakeDTau(tau, DATA, &(arena(ix,iy,ieta)), rk_flag); 
     }
 
    return(1);
@@ -149,20 +142,20 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, Grid &arena,
 
 int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, int iy, int ieta,
                                int rk_flag) {
-    double delta[4];
-    delta[0] = 0.0;
-    delta[1] = DATA->delta_x;
-    delta[2] = DATA->delta_y;
-    delta[3] = DATA->delta_eta*tau;  // taken care of the tau factor
+    const double delta[4] = {
+      0.0,
+      DATA->delta_x,
+      DATA->delta_y,
+      DATA->delta_eta*tau
+    };  // taken care of the tau factor
 
     // calculate dUsup[m][n] = partial_n u_m
     Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
         for (int m = 1; m <= 3; m++) {
-            double f = c.u[rk_flag][m];
-            double fp1 = p1.u[rk_flag][m];
-            double fm1 = m1.u[rk_flag][m];
-            double g = minmod.minmod_dx(fp1, f, fm1);
-            g /= delta[direction];
+            const double f   = c.u[rk_flag][m];
+            const double fp1 = p1.u[rk_flag][m];
+            const double fm1 = m1.u[rk_flag][m];
+            const double g   = minmod.minmod_dx(fp1, f, fm1) / delta[direction];
             c.dUsup[m][direction] = g;
         }
     });

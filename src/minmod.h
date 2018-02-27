@@ -12,9 +12,9 @@ class Minmod {
     Minmod(InitData* DATA);
 
     double minmod_dx(double up1, double u, double um1) {
-        double diffup   = (up1 - u)*theta_flux;
-        double diffdown = (u - um1)*theta_flux;
-        double diffmid  = (up1 - um1)*0.5;
+        const double diffup   = (up1 - u)*theta_flux;
+        const double diffdown = (u - um1)*theta_flux;
+        const double diffmid  = (up1 - um1)*0.5;
 
         if ( (diffup > 0.0) && (diffdown > 0.0) && (diffmid > 0.0) ) {
             return std::min(std::min(diffdown, diffmid), diffup);

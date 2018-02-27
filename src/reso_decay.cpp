@@ -462,80 +462,77 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
             if (boost_invariant) {
                 y = 0.0;
                 #pragma omp parallel for collapse(2)
-                for (int l = 0; l < npt; l++) {
-                    for (int i = 0; i < nphi; i++) {
-                        if (pseudofreeze) {
-                            y = Rap(y, particleList[pn].pt[l], m1);
-                        }
-                        double phi = 0.0;
-                        if (pseudofreeze) {
-                            phi = i*deltaphi;
-                        } else {
-                            phi = phiArray[i];
-                        }
-                        double spectrum = Edndp3_2bodyN(
-                                y, particleList[pn].pt[l], phi,
-                                m1, m2, mr,
+                for (int l = 0; l < npt; l++)
+                for (int i = 0; i < nphi; i++) {
+                    if (pseudofreeze) {
+                        y = Rap(y, particleList[pn].pt[l], m1);
+                    }
+                    double phi = 0.0;
+                    if (pseudofreeze) {
+                        phi = i*deltaphi;
+                    } else {
+                        phi = phiArray[i];
+                    }
+                    double spectrum = Edndp3_2bodyN(
+                            y, particleList[pn].pt[l], phi,
+                            m1, m2, mr,
+                            particleList[pnR].number);
+                    if (std::isnan(spectrum)) {
+                        fprintf(stderr, "2 pt=%f\n",
+                                particleList[pn].pt[l]);
+                        fprintf(stderr, "2 number=%d\n",
                                 particleList[pnR].number);
-                        if (std::isnan(spectrum)) {
-                            fprintf(stderr, "2 pt=%f\n",
-                                    particleList[pn].pt[l]);
-                            fprintf(stderr, "2 number=%d\n",
-                                    particleList[pnR].number);
-                            fprintf(stderr, "2 Edn..=%f\n", spectrum);
-                        } else {
-                            // Call the 2-body decay integral and
-                            // add its contribution to the daughter
-                            // particle of interest
-                            for (int n = 0; n < ny; n++) {
-                                particleList[pn].dNdydptdphi[n][l][i] += (
-                                                decay[j].branch*spectrum);
-                                //if (n == ny/2 && i==0) {
-                                //    particleList[pn].resCont[n][l][i] += (
-                                //                decay[j].branch*spectrum);
-                                //}
-                            }
+                        fprintf(stderr, "2 Edn..=%f\n", spectrum);
+                    } else {
+                        // Call the 2-body decay integral and
+                        // add its contribution to the daughter
+                        // particle of interest
+                        for (int n = 0; n < ny; n++) {
+                            particleList[pn].dNdydptdphi[n][l][i] += (
+                                            decay[j].branch*spectrum);
+                            //if (n == ny/2 && i==0) {
+                            //    particleList[pn].resCont[n][l][i] += (
+                            //                decay[j].branch*spectrum);
+                            //}
                         }
                     }
                 }
             } else {
                 #pragma omp parallel for collapse(3)
-                for (int n = 0; n < ny; n++) {
-                    for (int l = 0; l < npt; l++) {
-                        for (int i = 0; i < nphi; i++) {
-                            y = particleList[pn].y[n];
-                            if (pseudofreeze) {
-                                y = Rap(particleList[pn].y[n],
-                                        particleList[pn].pt[l], m1);
-                            }
-                            double phi = 0.0;
-                            if (pseudofreeze) {
-                                phi = i*deltaphi;
-                            } else {
-                                phi = phiArray[i];
-                            }
-                            double spectrum = Edndp3_2bodyN(
-                                    y, particleList[pn].pt[l], phi,
-                                    m1, m2, mr,
-                                    particleList[pnR].number);
-                            if (std::isnan(spectrum)) {
-                                fprintf(stderr, "2 pt=%f\n",
-                                        particleList[pn].pt[l]);
-                                fprintf(stderr, "2 number=%d\n",
-                                        particleList[pnR].number);
-                                fprintf(stderr, "2 Edn..=%f\n", spectrum);
-                            } else {
-                                // Call the 2-body decay integral and
-                                // add its contribution to the daughter
-                                // particle of interest
-                                particleList[pn].dNdydptdphi[n][l][i] += (
-                                                    decay[j].branch*spectrum);
-                                //if (n == ny/2 && i==0) {
-                                //    particleList[pn].resCont[n][l][i] += (
-                                //                    decay[j].branch*spectrum);
-                                //}
-                            }
-                        }
+                for (int n = 0; n < ny; n++)
+                for (int l = 0; l < npt; l++)
+                for (int i = 0; i < nphi; i++) {
+                    y = particleList[pn].y[n];
+                    if (pseudofreeze) {
+                        y = Rap(particleList[pn].y[n],
+                                particleList[pn].pt[l], m1);
+                    }
+                    double phi = 0.0;
+                    if (pseudofreeze) {
+                        phi = i*deltaphi;
+                    } else {
+                        phi = phiArray[i];
+                    }
+                    double spectrum = Edndp3_2bodyN(
+                            y, particleList[pn].pt[l], phi,
+                            m1, m2, mr,
+                            particleList[pnR].number);
+                    if (std::isnan(spectrum)) {
+                        fprintf(stderr, "2 pt=%f\n",
+                                particleList[pn].pt[l]);
+                        fprintf(stderr, "2 number=%d\n",
+                                particleList[pnR].number);
+                        fprintf(stderr, "2 Edn..=%f\n", spectrum);
+                    } else {
+                        // Call the 2-body decay integral and
+                        // add its contribution to the daughter
+                        // particle of interest
+                        particleList[pn].dNdydptdphi[n][l][i] += (
+                                            decay[j].branch*spectrum);
+                        //if (n == ny/2 && i==0) {
+                        //    particleList[pn].resCont[n][l][i] += (
+                        //                    decay[j].branch*spectrum);
+                        //}
                     }
                 }
             }
@@ -571,80 +568,77 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
             if (boost_invariant) {
                 y = 0.0;
                 #pragma omp parallel for collapse(2)
-                for (int l = 0; l < npt; l++) {
-                    for (int i = 0; i < nphi; i++) {
-                        if (pseudofreeze) {
-                            y = Rap(y, particleList[pn].pt[l], m1);
-                        }
-                        double phi;
-                        if (pseudofreeze) {
-                            phi = i*deltaphi;
-                        } else {
-                            phi = phiArray[i];
-                        }
-                        double spectrum = Edndp3_3bodyN(
-                                y, particleList[pn].pt[l], phi,
-                                m1, m2, m3, mr, norm3, 
+                for (int l = 0; l < npt; l++)
+                for (int i = 0; i < nphi; i++) {
+                    if (pseudofreeze) {
+                        y = Rap(y, particleList[pn].pt[l], m1);
+                    }
+                    double phi;
+                    if (pseudofreeze) {
+                        phi = i*deltaphi;
+                    } else {
+                        phi = phiArray[i];
+                    }
+                    double spectrum = Edndp3_3bodyN(
+                            y, particleList[pn].pt[l], phi,
+                            m1, m2, m3, mr, norm3, 
+                            particleList[pnR].number);
+                    if (std::isnan(spectrum)) {
+                        fprintf(stderr,"3 number=%d\n",
                                 particleList[pnR].number);
-                        if (std::isnan(spectrum)) {
-                            fprintf(stderr,"3 number=%d\n",
-                                    particleList[pnR].number);
-                            fprintf(stderr,"3 Edn..=%f\n", spectrum);
-                        } else {
-                            // Call the 3-body decay integral and
-                            // add its contribution to the daughter
-                            // particle of interest 
-                            for (int n = 0; n < ny; n++) {
-                                particleList[pn].dNdydptdphi[n][l][i] += (
-                                                decay[j].branch*spectrum);
-                                //if (n == ny/2 && i==0) {
-                                //    particleList[pn].resCont[n][l][i]+= (
-                                //                    decay[j].branch*spectrum);
-                   
-                                //}
-                            }
+                        fprintf(stderr,"3 Edn..=%f\n", spectrum);
+                    } else {
+                        // Call the 3-body decay integral and
+                        // add its contribution to the daughter
+                        // particle of interest 
+                        for (int n = 0; n < ny; n++) {
+                            particleList[pn].dNdydptdphi[n][l][i] += (
+                                            decay[j].branch*spectrum);
+                            //if (n == ny/2 && i==0) {
+                            //    particleList[pn].resCont[n][l][i]+= (
+                            //                    decay[j].branch*spectrum);
+                
+                            //}
                         }
                     }
                 }
             } else {
                 #pragma omp parallel for collapse(3)
-                for (int n = 0; n < ny; n++) {
-                    for (int l = 0; l < npt; l++) {
-                        for (int i = 0; i < nphi; i++) {
-                            y = particleList[pn].y[n];
-                            if (pseudofreeze) {
-                                y = Rap(particleList[pn].y[n],
-                                        particleList[pn].pt[l], m1);
-                            }
-                            double phi;
-                            if (pseudofreeze) {
-                                phi = i*deltaphi;
-                            } else {
-                                phi = phiArray[i];
-                            }
-                            double spectrum = Edndp3_3bodyN(
-                                    y, particleList[pn].pt[l], phi,
-                                    m1, m2, m3, mr, norm3, 
-                                    particleList[pnR].number);
-                            if (std::isnan(spectrum)) {
-                                fprintf(stderr,"3 number=%d\n",
-                                        particleList[pnR].number);
-                                fprintf(stderr,"3 Edn..=%f\n", spectrum);
-                            } else {
-                                // Call the 3-body decay integral and
-                                // add its contribution to the daughter
-                                // particle of interest 
-                                particleList[pn].dNdydptdphi[n][l][i] += (
-                                                    decay[j].branch*spectrum);
-                            }
-                
-                            //if (n == ny/2 && i==0) {
-                            //    particleList[pn].resCont[n][l][i]+= (
-                            //                        decay[j].branch*spectrum);
-                   
-                            //}
-                        }
+                for (int n = 0; n < ny; n++)
+                for (int l = 0; l < npt; l++)
+                for (int i = 0; i < nphi; i++) {
+                    y = particleList[pn].y[n];
+                    if (pseudofreeze) {
+                        y = Rap(particleList[pn].y[n],
+                                particleList[pn].pt[l], m1);
                     }
+                    double phi;
+                    if (pseudofreeze) {
+                        phi = i*deltaphi;
+                    } else {
+                        phi = phiArray[i];
+                    }
+                    double spectrum = Edndp3_3bodyN(
+                            y, particleList[pn].pt[l], phi,
+                            m1, m2, m3, mr, norm3, 
+                            particleList[pnR].number);
+                    if (std::isnan(spectrum)) {
+                        fprintf(stderr,"3 number=%d\n",
+                                particleList[pnR].number);
+                        fprintf(stderr,"3 Edn..=%f\n", spectrum);
+                    } else {
+                        // Call the 3-body decay integral and
+                        // add its contribution to the daughter
+                        // particle of interest 
+                        particleList[pn].dNdydptdphi[n][l][i] += (
+                                            decay[j].branch*spectrum);
+                    }
+                
+                    //if (n == ny/2 && i==0) {
+                    //    particleList[pn].resCont[n][l][i]+= (
+                    //                        decay[j].branch*spectrum);
+                
+                    //}
                 }
             }
             break;
@@ -686,60 +680,57 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
             if (boost_invariant) {
                 y = 0.0;
                 #pragma omp parallel for collapse(2)
-                for (int i = 0; i < nphi; i++) {
-                    for (int l = 0; l < npt; l++) {
-                        double phi;
-                        if (pseudofreeze) {
-                            phi = i*deltaphi;
-                        } else {
-                            phi = phiArray[i];
-                        }
-                        if (pseudofreeze) {
-                            y = Rap(y, particleList[pn].pt[l], m1);
-                        }
-                        double spectrum = Edndp3_3bodyN(
-                                y, particleList[pn].pt[l], phi,
-                                m1, m2, m3, mr, norm3,
+                for (int i = 0; i < nphi; i++)
+                for (int l = 0; l < npt; l++) {
+                    double phi;
+                    if (pseudofreeze) {
+                        phi = i*deltaphi;
+                    } else {
+                        phi = phiArray[i];
+                    }
+                    if (pseudofreeze) {
+                        y = Rap(y, particleList[pn].pt[l], m1);
+                    }
+                    double spectrum = Edndp3_3bodyN(
+                            y, particleList[pn].pt[l], phi,
+                            m1, m2, m3, mr, norm3,
+                            particleList[pnR].number);
+                    if (std::isnan(spectrum)) {
+                        fprintf(stderr, "3 number=%d\n",
                                 particleList[pnR].number);
-                        if (std::isnan(spectrum)) {
-                            fprintf(stderr, "3 number=%d\n",
-                                    particleList[pnR].number);
-                        } else {
-                            for (int n = 0; n < ny; n++) {
-                                particleList[pn].dNdydptdphi[n][l][i] += (
-                                        decay[j].branch*spectrum);
-                            }
+                    } else {
+                        for (int n = 0; n < ny; n++) {
+                            particleList[pn].dNdydptdphi[n][l][i] += (
+                                    decay[j].branch*spectrum);
                         }
                     }
                 }
             } else {
                 #pragma omp parallel for collapse(3)
-                for (int n = 0; n < ny; n++) {
-                    for (int i = 0; i < nphi; i++) {
-                        for (int l = 0; l < npt; l++) {
-                            y = particleList[pn].y[n];
-                            double phi;
-                            if (pseudofreeze) {
-                                phi = i*deltaphi;
-                            } else {
-                                phi = phiArray[i];
-                            }
-                            if (pseudofreeze) {
-                                y = Rap(particleList[pn].y[n],
-                                        particleList[pn].pt[l], m1);
-                            }
-                            double spectrum = Edndp3_3bodyN(
-                                    y, particleList[pn].pt[l], phi,
-                                    m1, m2, m3, mr, norm3,
-                                    particleList[pnR].number);
-                            if (std::isnan(spectrum)) {
-                                fprintf(stderr, "3 number=%d\n",
-                                        particleList[pnR].number);
-                            } else {
-                                particleList[pn].dNdydptdphi[n][l][i] += (
-                                        decay[j].branch*spectrum);
-                            }
-                        }
+                for (int n = 0; n < ny; n++)
+                for (int i = 0; i < nphi; i++)
+                for (int l = 0; l < npt; l++) {
+                    y = particleList[pn].y[n];
+                    double phi;
+                    if (pseudofreeze) {
+                        phi = i*deltaphi;
+                    } else {
+                        phi = phiArray[i];
+                    }
+                    if (pseudofreeze) {
+                        y = Rap(particleList[pn].y[n],
+                                particleList[pn].pt[l], m1);
+                    }
+                    double spectrum = Edndp3_3bodyN(
+                            y, particleList[pn].pt[l], phi,
+                            m1, m2, m3, mr, norm3,
+                            particleList[pnR].number);
+                    if (std::isnan(spectrum)) {
+                        fprintf(stderr, "3 number=%d\n",
+                                particleList[pnR].number);
+                    } else {
+                        particleList[pn].dNdydptdphi[n][l][i] += (
+                                decay[j].branch*spectrum);
                     }
                 }
             }
