@@ -1,24 +1,24 @@
 add_executable (mpihydro
     main.cpp
     cell.cpp
-    eos.cpp
-    evolve.cpp
     init.cpp
     reconst.cpp
     minmod.cpp
-    advance.cpp
-    u_derivative.cpp
-    dissipative.cpp
-    util.cpp
-    grid_info.cpp
-    read_in_parameters.cpp
     music.cpp
     cornelius.cpp
     hydro_source.cpp
     pretty_ostream.cpp
     freeze.cpp
+    grid_info.cpp
+    util.cpp
+    read_in_parameters.cpp
     freeze_pseudo.cpp
     reso_decay.cpp
+    dissipative.cpp
+    evolve.cpp
+    u_derivative.cpp
+    advance.cpp
+    eos.cpp
     )
 
 target_link_libraries (mpihydro ${GSL_LIBRARIES})

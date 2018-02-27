@@ -672,7 +672,7 @@ void Cell_info::monitor_fluid_cell(Grid &arena, int ix, int iy, int ieta,
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             output_file << scientific << setprecision(8)
-                        << arena(ix,iy,ieta).dUsup[0][i][j] << "  ";
+                        << arena(ix,iy,ieta).dUsup[i][j] << "  ";
         }
     }
     output_file << endl;
