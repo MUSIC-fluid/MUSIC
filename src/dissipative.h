@@ -19,21 +19,23 @@ class Diss {
     Diss(EOS *eosIn, InitData* DATA_in);
     ~Diss();
   
-    double MakeWSource(double tau, int alpha, Cell *grid_pt, InitData *DATA,
-                       int rk_flag);
-    int Make_uWRHS(double tau, Cell *grid_pt, double **w_rhs, InitData *DATA,
+    double MakeWSource(double tau, int alpha, Grid &arena,
+                       int ix, int iy, int ieta, InitData *DATA, int rk_flag);
+    int Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
+                   double **w_rhs, InitData *DATA,
                    int rk_flag, double theta_local, double *a_local);
     double Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
                          InitData *DATA, int rk_flag, double theta_local,
                          double *a_local, double *sigma_1d);
     
-    int Make_uPRHS(double tau, Cell *grid_pt, double *p_rhs, InitData *DATA,
+    int Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
+                   double *p_rhs, InitData *DATA,
                    int rk_flag, double theta_local);
 
     double Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
                           int rk_flag, double theta_local, double *sigma_1d);
-    int Make_uqRHS(double tau, Cell *grid_pt, double **w_rhs, InitData *DATA,
-                   int rk_flag);
+    int Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
+                   double **w_rhs, InitData *DATA, int rk_flag);
     double Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
                          int rk_flag, double theta_local, double *a_local,
                          double *sigma_1d); 

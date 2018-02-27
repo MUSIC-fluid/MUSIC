@@ -45,7 +45,7 @@ class Advance {
                      double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta,
                      int rk_flag);
 
-    int FirstRKStepW(double tau_it, InitData *DATA, Cell *grid_pt,
+    int FirstRKStepW(double tau_it, InitData *DATA, Grid &arena,
                      int rk_flag, double theta_local, double* a_local,
                      double *sigma_local, int ieta, int ix, int iy);
 

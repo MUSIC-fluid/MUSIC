@@ -90,7 +90,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 							      tau, arena, ieta, ix, iy, rk_flag, a_local,
 							      sigma_local);
 	    
-	    FirstRKStepW(tau, DATA, &(arena(ix,iy,ieta)),
+	    FirstRKStepW(tau, DATA, arena,
 			 rk_flag, theta_local, a_local,
 			 sigma_local, ieta, ix, iy);
 	    
@@ -160,7 +160,8 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
   for (int alpha = 0; alpha < 5; alpha++) {
     // now MakeWSource returns partial_a W^{a mu}
     // (including geometric terms) 
-    double dwmn = diss->MakeWSource(tau_rk, alpha, &arena(ix,iy,ieta), DATA, rk_flag);
+    //double dwmn = diss->MakeWSource(tau_rk, alpha, &arena(ix,iy,ieta), DATA, rk_flag);
+    double dwmn = diss->MakeWSource(tau_rk, alpha, arena, ix, iy, ieta, DATA, rk_flag);
     /* dwmn is the only one with the minus sign */
     qi[alpha] -= dwmn*(DATA->delta_tau);
     
@@ -212,9 +213,10 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
 */
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
-int Advance::FirstRKStepW(double tau, InitData *DATA, Cell *grid_pt,
+int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
                           int rk_flag, double theta_local, double* a_local,
                           double *sigma_local, int ieta, int ix, int iy) {
+    auto grid_pt = &(arena(ix, iy, ieta));
   double tau_now = tau;
   double tau_next = tau + (DATA->delta_tau);
   
@@ -251,7 +253,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Cell *grid_pt,
   /* Advance uWmunu */
   double tempf, temps;
   if (rk_flag == 0) {
-    diss->Make_uWRHS(tau_now, grid_pt, w_rhs, DATA, rk_flag,
+    diss->Make_uWRHS(tau_now, arena, ix, iy, ieta, w_rhs, DATA, rk_flag,
 		     theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
@@ -268,7 +270,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Cell *grid_pt,
       }
     }
   } else if (rk_flag > 0) {
-    diss->Make_uWRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag,
+    diss->Make_uWRHS(tau_next, arena, ix, iy, ieta, w_rhs, DATA, rk_flag,
 		     theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
@@ -295,7 +297,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Cell *grid_pt,
     double p_rhs;
     if (rk_flag == 0) {
       /* calculate delta u^0 pi */
-      diss->Make_uPRHS(tau_now, grid_pt, &p_rhs, DATA, rk_flag,
+      diss->Make_uPRHS(tau_now, arena, ix, iy, ieta, &p_rhs, DATA, rk_flag,
 		       theta_local);
       
       tempf = (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
@@ -307,7 +309,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Cell *grid_pt,
       grid_pt->pi_b[trk_flag] = tempf/(grid_pt->u[trk_flag][0]);
     } else if (rk_flag > 0) {
       /* calculate delta u^0 pi */
-      diss->Make_uPRHS(tau_next, grid_pt, &p_rhs, DATA, rk_flag,
+      diss->Make_uPRHS(tau_next, arena, ix, iy, ieta, &p_rhs, DATA, rk_flag,
 		       theta_local);
       
       tempf = (grid_pt->pi_b[0])*(grid_pt->prev_u[0][0]);
@@ -328,7 +330,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Cell *grid_pt,
   // CShen: add source term for baryon diffusion
   if (DATA->turn_on_diff == 1) {
     if (rk_flag == 0) {
-      diss->Make_uqRHS(tau_now, grid_pt, w_rhs, DATA, rk_flag);
+      diss->Make_uqRHS(tau_now, arena, ix, iy, ieta, w_rhs, DATA, rk_flag);
       int mu = 4;
       for (int nu = 1; nu < 4; nu++) {
 	int idx_1d = util->map_2d_idx_to_1d(mu, nu);
@@ -344,7 +346,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Cell *grid_pt,
                                             tempf/(grid_pt->u[trk_flag][0]));
       }
     } else if (rk_flag > 0) {
-      diss->Make_uqRHS(tau_next, grid_pt, w_rhs, DATA, rk_flag);
+      diss->Make_uqRHS(tau_next, arena, ix, iy, ieta, w_rhs, DATA, rk_flag);
       int mu = 4;
       for (int nu = 1; nu < 4; nu++) {
 	int idx_1d = util->map_2d_idx_to_1d(mu, nu);

@@ -15,10 +15,10 @@ add_executable (mpihydro
     freeze_pseudo.cpp
     reso_decay.cpp
     advance.cpp
-    dissipative.cpp
+    eos.cpp
     evolve.cpp
     u_derivative.cpp
-    eos.cpp
+    dissipative.cpp
     )
 
 target_link_libraries (mpihydro ${GSL_LIBRARIES})
