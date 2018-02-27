@@ -19,33 +19,31 @@
 #include <sstream>
 #include <cstring>
 
-using namespace std;
-
 class pretty_ostream {
  private:
-    ostringstream message_stream;
+    std::ostringstream message_stream;
 
  public:
     pretty_ostream();
     ~pretty_ostream();
 
-    void flush(string type);
+    void flush(std::string type);
 
     //! This function output information message
-    void info(string message);
+    void info(std::string message);
 
     //! This function output debug message
-    void debug(string message);
+    void debug(std::string message);
 
     //! This function output warning message
-    void warning(string message);
+    void warning(std::string message);
 
     //! This function output error message
-    void error(string message);
+    void error(std::string message);
 
     //! This function returns a string for the memory usage
     //! of the current program in MB
-    string get_memory_usage();
+    std::string get_memory_usage();
 
     //! reload the << operator
     template <typename T> pretty_ostream& operator<<(T const& value) {

@@ -5,10 +5,6 @@ Minmod::Minmod(InitData *DATA) {
     theta_flux = DATA->minmod_theta;
 }
 
-// destructor
-Minmod::~Minmod() {
-}
-
 double Minmod::minmod_dx(double up1, double u, double um1) {
     double diffup   = (up1 - u)*theta_flux;
     double diffdown = (u - um1)*theta_flux;

@@ -10,7 +10,7 @@
 
 class U_derivative {
  private:
-     Minmod *minmod;
+     Minmod minmod;
      // Sangyong Nov 18 2014: added EOS *eos;
      EOS *eos;
      InitData *DATA_ptr;
@@ -18,7 +18,6 @@ class U_derivative {
  public:
     // Sangyong Nov 18 2014: added EOS *eos in the argument
     U_derivative(EOS *eosIn, InitData* DATA_in);  // constructor
-    ~U_derivative();
     int MakedU(double tau, InitData *DATA, Grid &arena, int rk_flag);
 
     //! this function returns the expansion rate on the grid

@@ -9,16 +9,11 @@
 
 using namespace std;
 
-Diss::Diss(EOS *eosIn, InitData* DATA_in) {
+Diss::Diss(EOS *eosIn, InitData* DATA_in) :
+    minmod(DATA_in)
+{
     eos = eosIn;
-    minmod = new Minmod(DATA_in);
 }
-
-// destructor
-Diss::~Diss() {
-    delete minmod;
-}
-
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 /* Dissipative parts */
@@ -94,14 +89,14 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     double sg       = grid_pt.Wmunu[rk_flag][idx_1d];
     double sgp1     = grid_pt_p1->Wmunu[rk_flag][idx_1d];
     double sgm1     = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-    dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[1];
+    dWdx_perp += minmod.minmod_dx(sgp1, sg, sgm1)/delta[1];
     //dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
     if (alpha < 4 && DATA->turn_on_bulk == 1) {
         double gfac1 = (alpha == 1 ? 1.0 : 0.0);
         double bgp1  = grid_pt_p1->pi_b[rk_flag]*(gfac1 + grid_pt_p1->u[rk_flag][alpha]*grid_pt_p1->u[rk_flag][1]);
         double bg    = grid_pt    .pi_b[rk_flag]*(gfac1 + grid_pt    .u[rk_flag][alpha]*grid_pt    .u[rk_flag][1]);
         double bgm1  = grid_pt_m1->pi_b[rk_flag]*(gfac1 + grid_pt_m1->u[rk_flag][alpha]*grid_pt_m1->u[rk_flag][1]);
-        dPidx_perp  += minmod->minmod_dx(bgp1, bg, bgm1)/delta[1];
+        dPidx_perp  += minmod.minmod_dx(bgp1, bg, bgm1)/delta[1];
         //dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
     }
 
@@ -112,14 +107,14 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     sg         = grid_pt.Wmunu[rk_flag][idx_1d];
     sgp1       = grid_pt_p1->Wmunu[rk_flag][idx_1d];
     sgm1       = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-    dWdx_perp += minmod->minmod_dx(sgp1, sg, sgm1)/delta[2];
+    dWdx_perp += minmod.minmod_dx(sgp1, sg, sgm1)/delta[2];
     //dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
     if (alpha < 4 && DATA->turn_on_bulk == 1) {
         double gfac1 = (alpha == 2 ? 1.0 : 0.0);
         double bgp1  = grid_pt_p1->pi_b[rk_flag]*(gfac1 + grid_pt_p1->u[rk_flag][alpha]*grid_pt_p1->u[rk_flag][2]);
         double bg    = grid_pt    .pi_b[rk_flag]*(gfac1 + grid_pt    .u[rk_flag][alpha]*grid_pt    .u[rk_flag][2]);
         double bgm1  = grid_pt_m1->pi_b[rk_flag]*(gfac1 + grid_pt_m1->u[rk_flag][alpha]*grid_pt_m1->u[rk_flag][2]);
-        dPidx_perp  += minmod->minmod_dx(bgp1, bg, bgm1)/delta[2];
+        dPidx_perp  += minmod.minmod_dx(bgp1, bg, bgm1)/delta[2];
         //dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
     }
 
@@ -134,14 +129,14 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     sg             = grid_pt.Wmunu[rk_flag][idx_1d];
     sgp1           = grid_pt_p1->Wmunu[rk_flag][idx_1d];
     sgm1           = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-    dWdeta         = minmod->minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
+    dWdeta         = minmod.minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
     //dWdeta = (sgp1 - sgm1)/(2.*delta[i]*taufactor);
     if (alpha < 4 && DATA->turn_on_bulk == 1) {
         double gfac3 = (alpha == i ? 1.0 : 0.0);
         double bgp1  = grid_pt_p1->pi_b[rk_flag]*(gfac3 + grid_pt_p1->u[rk_flag][alpha]*grid_pt_p1->u[rk_flag][i]);
         double bg    = grid_pt    .pi_b[rk_flag]*(gfac3 + grid_pt    .u[rk_flag][alpha]*grid_pt    .u[rk_flag][i]);
         double bgm1  = grid_pt_m1->pi_b[rk_flag]*(gfac3 + grid_pt_m1->u[rk_flag][alpha]*grid_pt_m1->u[rk_flag][i]);
-        dPideta      = minmod->minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor;
+        dPideta      = minmod.minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor;
         //dPideta    = (bgp1 - bgm1)/(2.*delta[i]*taufactor);
     }
 
@@ -559,16 +554,16 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
                 /* MakeuWmnHalfs */
                 /* uWmn */
-                uWphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f);
-                uWphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1);
-                uWmhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1);
-                uWmhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2);
+                uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f);
+                uWphL = f + 0.5*minmod.minmod_dx(fp1, f, fm1);
+                uWmhR = f - 0.5*minmod.minmod_dx(fp1, f, fm1);
+                uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
 
                 /* just Wmn */
-                WphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g);
-                WphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1);
-                WmhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1);
-                WmhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2);
+                WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g);
+                WphL = g + 0.5*minmod.minmod_dx(gp1, g, gm1);
+                WmhR = g - 0.5*minmod.minmod_dx(gp1, g, gm1);
+                WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
 
                 a = fabs(grid_pt->u[rk_flag][direc]);
                 a /= grid_pt->u[rk_flag][0];
@@ -722,16 +717,16 @@ int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
         /*  Make upi Halfs */
         /* uPi */
-        uPiphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f); 
-        uPiphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1);
-        uPimhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1);
-        uPimhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2);
+        uPiphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f); 
+        uPiphL = f + 0.5*minmod.minmod_dx(fp1, f, fm1);
+        uPimhR = f - 0.5*minmod.minmod_dx(fp1, f, fm1);
+        uPimhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
 
         /* just Pi */
-        PiphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g); 
-        PiphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1);
-        PimhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1);
-        PimhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2);
+        PiphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g); 
+        PiphL = g + 0.5*minmod.minmod_dx(gp1, g, gm1);
+        PimhR = g - 0.5*minmod.minmod_dx(gp1, g, gm1);
+        PimhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
 
         /* MakePimnCurrents following Kurganov-Tadmor */
     
@@ -1117,16 +1112,16 @@ int Diss::Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
  
             /*  MakeuWmnHalfs */
             /* uWmn */
-            uWphR = fp1 - 0.5*minmod->minmod_dx(fp2, fp1, f); 
-            uWphL = f + 0.5*minmod->minmod_dx(fp1, f, fm1);
-            uWmhR = f - 0.5*minmod->minmod_dx(fp1, f, fm1);
-            uWmhL = fm1 + 0.5*minmod->minmod_dx(f, fm1, fm2);
+            uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f); 
+            uWphL = f + 0.5*minmod.minmod_dx(fp1, f, fm1);
+            uWmhR = f - 0.5*minmod.minmod_dx(fp1, f, fm1);
+            uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
 
             /* just Wmn */
-            WphR = gp1 - 0.5*minmod->minmod_dx(gp2, gp1, g); 
-            WphL = g + 0.5*minmod->minmod_dx(gp1, g, gm1);
-            WmhR = g - 0.5*minmod->minmod_dx(gp1, g, gm1);
-            WmhL = gm1 + 0.5*minmod->minmod_dx(g, gm1, gm2);
+            WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g); 
+            WphL = g + 0.5*minmod.minmod_dx(gp1, g, gm1);
+            WmhR = g - 0.5*minmod.minmod_dx(gp1, g, gm1);
+            WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
 
             a = fabs(grid_pt->u[rk_flag][direc])/grid_pt->u[rk_flag][0];
 

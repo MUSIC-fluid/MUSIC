@@ -3,8 +3,8 @@
 #define SRC_HYDRO_SOURCE_H_
 
 #include <vector>
-#include "./data.h"
-#include "./pretty_ostream.h"
+#include "data.h"
+#include "pretty_ostream.h"
 
 
 //! This data structure contains a QCD string object

@@ -7,12 +7,12 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include "./data.h"
-#include "./cell.h"
-#include "./grid.h"
-#include "./eos.h"
-#include "./hydro_source.h"
-#include "./pretty_ostream.h"
+#include "data.h"
+#include "cell.h"
+#include "grid.h"
+#include "eos.h"
+#include "hydro_source.h"
+#include "pretty_ostream.h"
 
 class Init {
  private:

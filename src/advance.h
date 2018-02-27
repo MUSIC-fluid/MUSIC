@@ -24,7 +24,7 @@ class Advance {
     Diss *diss;
     Reconst *reconst_ptr;
     EOS *eos;
-    Minmod *minmod;
+    Minmod minmod;
     U_derivative *u_derivative_ptr;
     hydro_source *hydro_source_ptr;
     pretty_ostream music_message;

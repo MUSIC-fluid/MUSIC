@@ -12,12 +12,13 @@
 using namespace std;
 
 Advance::Advance(EOS *eosIn, InitData *DATA_in,
-                 hydro_source *hydro_source_in) {
+                 hydro_source *hydro_source_in) :
+  minmod(DATA_in)
+{
   DATA_ptr         = DATA_in;
   eos              = eosIn;
   reconst_ptr      = new Reconst(eos, DATA_in);
   diss             = new Diss(eosIn, DATA_in);
-  minmod           = new Minmod(DATA_in);
   u_derivative_ptr = new U_derivative(eosIn, DATA_in);
   if (DATA_in->Initial_profile == 12 || DATA_in->Initial_profile == 13
       || DATA_in->Initial_profile == 30) {
@@ -38,7 +39,6 @@ Advance::Advance(EOS *eosIn, InitData *DATA_in,
 Advance::~Advance() {
   delete diss;
   delete reconst_ptr;
-  delete minmod;
   delete u_derivative_ptr;
 }
 
@@ -680,13 +680,13 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
 	double gmhL = (
 		       tau*get_TJb(&arena(ixm,iym,ietam), rk_flag, alpha, 0));
 	double gmhR = qi[alpha];
-	double fphL = 0.5*minmod->minmod_dx(gphR, qi[alpha], gmhL);
-	double fphR = -0.5*minmod->minmod_dx(
+	double fphL = 0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
+	double fphR = -0.5*minmod.minmod_dx(
 					     tau*get_TJb(&arena(ixp2,iyp2,ietap2), rk_flag, alpha, 0),
 					     gphR, qi[alpha]);
-	double fmhL = 0.5*minmod->minmod_dx(qi[alpha], gmhL,
+	double fmhL = 0.5*minmod.minmod_dx(qi[alpha], gmhL,
 					    tau*get_TJb(&arena(ixm2,iym2,ietam2), rk_flag, alpha, 0));
-	double fmhR = -0.5*minmod->minmod_dx(gphR, qi[alpha], gmhL);
+	double fmhR = -0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
 	qiphL[alpha] = gphL + fphL;
 	qiphR[alpha] = gphR + fphR;
 	qimhL[alpha] = gmhL + fmhL;

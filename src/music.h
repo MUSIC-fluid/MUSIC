@@ -2,17 +2,17 @@
 #ifndef SRC_MUSIC_H_
 #define SRC_MUSIC_H_
 
-#include "./util.h"
-#include "./cell.h"
-#include "./grid.h"
-#include "./data.h"
-#include "./freeze.h"
-#include "./init.h"
-#include "./eos.h"
-#include "./evolve.h"
-#include "./hydro_source.h"
-#include "./read_in_parameters.h"
-#include "./pretty_ostream.h"
+#include "util.h"
+#include "cell.h"
+#include "grid.h"
+#include "data.h"
+#include "freeze.h"
+#include "init.h"
+#include "eos.h"
+#include "evolve.h"
+#include "hydro_source.h"
+#include "read_in_parameters.h"
+#include "pretty_ostream.h"
 
 //! This is a wrapper class for the MUSIC hydro
 class MUSIC {
@@ -26,13 +26,13 @@ class MUSIC {
     //! flag to tell whether hydro is run
     int flag_hydro_run;
 
-    InitData *DATA;
+    InitData *DATA = nullptr;
 
-    EOS *eos;
+    EOS *eos = nullptr;
 
     Grid arena;
 
-    Init *init;
+    Init *init     = nullptr;
     Evolve *evolve = nullptr;
     Freeze *freeze = nullptr;
 
@@ -41,7 +41,7 @@ class MUSIC {
     pretty_ostream music_message;
 
  public:
-    MUSIC(InitData *DATA_in, string input_file);
+    MUSIC(InitData *DATA_in, std::string input_file);
     ~MUSIC();
 
     //! this function returns the running mode

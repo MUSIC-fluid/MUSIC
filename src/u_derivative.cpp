@@ -9,16 +9,12 @@
 
 using namespace std;
 
-U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in) {
+U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in) :
+    minmod(DATA_in)
+{
    eos = eosIn;
-   minmod = new Minmod(DATA_in);
    DATA_ptr = DATA_in;
 }
-
-U_derivative::~U_derivative() {
-   delete minmod;
-}
-
 
 //! This function is a shell function to calculate parital^\nu u^\mu
 int U_derivative::MakedU(double tau, InitData *DATA,
@@ -174,19 +170,19 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, 
 
          fp1 = arena(ix+1,iy,ieta).u[rk_flag][m];
          fm1 = arena(ix-1,iy,ieta).u[rk_flag][m];
-         g = minmod->minmod_dx(fp1, f, fm1);
+         g = minmod.minmod_dx(fp1, f, fm1);
          g /= delta[1];
          arena(ix,iy,ieta).dUsup[m][1] = g;
 
          fp1 = arena(ix,iy+1,ieta).u[rk_flag][m];
          fm1 = arena(ix,iy-1,ieta).u[rk_flag][m];
-         g = minmod->minmod_dx(fp1, f, fm1);
+         g = minmod.minmod_dx(fp1, f, fm1);
          g /= delta[2];
          arena(ix,iy,ieta).dUsup[m][2] = g;
 
          fp1 = arena(ix,iy,ieta+1).u[rk_flag][m];
          fm1 = arena(ix,iy,ieta-1).u[rk_flag][m];
-         g = minmod->minmod_dx(fp1, f, fm1);
+         g = minmod.minmod_dx(fp1, f, fm1);
          g /= delta[3]*taufactor;
          arena(ix,iy,ieta).dUsup[m][3] = g;
 
@@ -251,7 +247,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, 
         T = eos->get_temperature(eps, rhob);
         fm1 = muB/T; 
 
-        g = minmod->minmod_dx(fp1, f, fm1);
+        g = minmod.minmod_dx(fp1, f, fm1);
         g /= delta[1];
         arena(ix,iy,ieta).dUsup[m][1] = g;
 
@@ -280,7 +276,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, 
         T = eos->get_temperature(eps, rhob);
         fm1 = muB/T; 
 
-        g = minmod->minmod_dx(fp1, f, fm1);
+        g = minmod.minmod_dx(fp1, f, fm1);
         g /= delta[2];
         arena(ix,iy,ieta).dUsup[m][2] = g;
 
@@ -309,7 +305,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, 
         T = eos->get_temperature(eps, rhob);
         fm1 = muB/T; 
 
-        g = minmod->minmod_dx(fp1, f, fm1);
+        g = minmod.minmod_dx(fp1, f, fm1);
         g /= delta[3]*taufactor;
         arena(ix,iy,ieta).dUsup[m][3] = g;
 

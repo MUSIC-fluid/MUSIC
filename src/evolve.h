@@ -22,14 +22,14 @@
 // this is a control class for the hydrodynamic evolution
 class Evolve {
  private:
-    EOS *eos;        // declare EOS object
+    EOS *eos = nullptr;        // declare EOS object
     Cell_info grid_info;
     Advance advance;
     U_derivative u_derivative;
-    hydro_source *hydro_source_ptr;
+    hydro_source *hydro_source_ptr = nullptr;
     pretty_ostream music_message;
 
-    InitData *DATA_ptr;
+    InitData *DATA_ptr = nullptr;
 
     // simulation information
     int rk_order;

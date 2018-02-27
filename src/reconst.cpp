@@ -22,10 +22,6 @@ Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
     abs_err  = 1e-10;
 }
 
-// destructor
-Reconst::~Reconst() {
-}
-
 int Reconst::ReconstIt_shell(Cell *grid_p, double tau, double *uq,
                              Cell *grid_pt, int rk_flag) {
     int flag = 0;

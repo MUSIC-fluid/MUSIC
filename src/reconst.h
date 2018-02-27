@@ -27,8 +27,7 @@ class Reconst {
 
  public:
     Reconst(EOS *eos, InitData *DATA_in);
-    ~Reconst();
-      
+
     int ReconstIt_shell(Cell *grid_p, double tau, double *uq,
                         Cell *grid_pt, int rk_flag);
 
