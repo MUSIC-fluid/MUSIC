@@ -149,50 +149,59 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, Grid &arena,
 
 int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, int iy, int ieta,
                                int rk_flag) {
-    double g, f, fp1, fm1, taufactor;
     double delta[4];
-    //Sangyong Nov 18 2014: added these doubles
-    double rhob, eps, muB, T;
- 
+    delta[0] = 0.0;
     delta[1] = DATA->delta_x;
     delta[2] = DATA->delta_y;
-    delta[3] = DATA->delta_eta;
+    delta[3] = DATA->delta_eta*tau;  // taken care of the tau factor
 
-    /* dUsup[m][n] = partial_n u_m */
+    // calculate dUsup[m][n] = partial_n u_m
+    Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
+        for (int m = 1; m <= 3; m++) {
+            double f = c.u[rk_flag][m];
+            double fp1 = p1.u[rk_flag][m];
+            double fm1 = m1.u[rk_flag][m];
+            double g = minmod.minmod_dx(fp1, f, fm1);
+            g /= delta[direction];
+            c.dUsup[m][direction] = g;
+        }
+    });
+
     /* for u[i] */
-    for (int m = 1; m <= 3; m++) {
-        // partial_n u[m]
-//        for (int n = 1; n <= 3; n++) {
-//            taufactor = 1.0;
-//            if (n == 3)
-                taufactor = tau;
-         f = arena(ix,iy,ieta).u[rk_flag][m];
-
-         fp1 = arena(ix+1,iy,ieta).u[rk_flag][m];
-         fm1 = arena(ix-1,iy,ieta).u[rk_flag][m];
-         g = minmod.minmod_dx(fp1, f, fm1);
-         g /= delta[1];
-         arena(ix,iy,ieta).dUsup[m][1] = g;
-
-         fp1 = arena(ix,iy+1,ieta).u[rk_flag][m];
-         fm1 = arena(ix,iy-1,ieta).u[rk_flag][m];
-         g = minmod.minmod_dx(fp1, f, fm1);
-         g /= delta[2];
-         arena(ix,iy,ieta).dUsup[m][2] = g;
-
-         fp1 = arena(ix,iy,ieta+1).u[rk_flag][m];
-         fm1 = arena(ix,iy,ieta-1).u[rk_flag][m];
-         g = minmod.minmod_dx(fp1, f, fm1);
-         g /= delta[3]*taufactor;
-         arena(ix,iy,ieta).dUsup[m][3] = g;
-
-//        }  // n = x, y, eta
-    }  // m = x, y, eta
+//    for (int m = 1; m <= 3; m++) {
+//        // partial_n u[m]
+////        for (int n = 1; n <= 3; n++) {
+////            taufactor = 1.0;
+////            if (n == 3)
+//                taufactor = tau;
+//         f = arena(ix,iy,ieta).u[rk_flag][m];
+//
+//         fp1 = arena(ix+1,iy,ieta).u[rk_flag][m];
+//         fm1 = arena(ix-1,iy,ieta).u[rk_flag][m];
+//         g = minmod.minmod_dx(fp1, f, fm1);
+//         g /= delta[1];
+//         arena(ix,iy,ieta).dUsup[m][1] = g;
+//
+//         fp1 = arena(ix,iy+1,ieta).u[rk_flag][m];
+//         fm1 = arena(ix,iy-1,ieta).u[rk_flag][m];
+//         g = minmod.minmod_dx(fp1, f, fm1);
+//         g /= delta[2];
+//         arena(ix,iy,ieta).dUsup[m][2] = g;
+//
+//         fp1 = arena(ix,iy,ieta+1).u[rk_flag][m];
+//         fm1 = arena(ix,iy,ieta-1).u[rk_flag][m];
+//         g = minmod.minmod_dx(fp1, f, fm1);
+//         g /= delta[3]*taufactor;
+//         arena(ix,iy,ieta).dUsup[m][3] = g;
+//
+////        }  // n = x, y, eta
+//    }  // m = x, y, eta
     /* for u[0], use u[0]u[0] = 1 + u[i]u[i] */
     /* u[0]_m = u[i]_m (u[i]/u[0]) */
     /* for u[0] */
+
     for (int n = 1; n <= 3; n++) {
-        f = 0.0;
+        double f = 0.0;
         for (int m = 1; m <= 3; m++) {
 	        /* (partial_n u^m) u[m] */
 	        f += (arena(ix,iy,ieta).dUsup[m][n])*(arena(ix,iy,ieta).u[rk_flag][m]);
@@ -205,111 +214,138 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, 
     // dUsup[rk_flag][4][n] = partial_n (muB/T)
     // partial_x (muB/T) and partial_y (muB/T) first
     int m = 4; // means (muB/T)
- //   for (int n = 1; n <= 3; n++) {
- //       taufactor = 1.0;
- //       if (n == 3)
-            taufactor = tau;
-
-        // f = grid_pt->rhob_t;
+    double rhob, eps, muB, T;
+    if (rk_flag == 0) {
+        rhob = arena(ix,iy,ieta).rhob;
+        eps = arena(ix,iy,ieta).epsilon;
+    } else {
+        rhob = arena(ix,iy,ieta).rhob_t;
+        eps = arena(ix,iy,ieta).epsilon_t;
+    }
+    muB = eos->get_mu(eps, rhob);
+    T = eos->get_temperature(eps, rhob);
+    double f = muB/T; 
+    Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
+        double fp1, fm1;
         if (rk_flag == 0) {
-            rhob = arena(ix,iy,ieta).rhob;
-            eps = arena(ix,iy,ieta).epsilon;
+            fp1 = ( eos->get_mu(p1.epsilon, p1.rhob)
+                   /eos->get_temperature(p1.epsilon, p1.rhob));
+            fm1 = ( eos->get_mu(m1.epsilon, m1.rhob)
+                   /eos->get_temperature(m1.epsilon, m1.rhob));
         } else {
-            rhob = arena(ix,iy,ieta).rhob_t;
-            eps = arena(ix,iy,ieta).epsilon_t;
+            fp1 = ( eos->get_mu(p1.epsilon_t, p1.rhob_t)
+                   /eos->get_temperature(p1.epsilon_t, p1.rhob_t));
+            fm1 = ( eos->get_mu(m1.epsilon_t, m1.rhob_t)
+                   /eos->get_temperature(m1.epsilon_t, m1.rhob_t));
         }
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
-        f = muB/T; 
-
-// in x-dir    
-        //fp1 = grid_pt->nbr_p_1[n]->rhob;
-        if (rk_flag == 0) {
-            rhob = arena(ix+1,iy,ieta).rhob;
-            eps = arena(ix+1,iy,ieta).epsilon;
-        } else {
-            rhob = arena(ix+1,iy,ieta).rhob_t;
-            eps = arena(ix+1,iy,ieta).epsilon_t;
-        }
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
-        fp1 = muB/T; 
-       
-        // fm1 = grid_pt->nbr_m_1[n]->rhob;
-        if (rk_flag == 0) {
-            rhob = arena(ix-1,iy,ieta).rhob;
-            eps = arena(ix-1,iy,ieta).epsilon;
-        } else {
-            rhob = arena(ix-1,iy,ieta).rhob_t;
-            eps = arena(ix-1,iy,ieta).epsilon_t;
-        }
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
-        fm1 = muB/T; 
-
-        g = minmod.minmod_dx(fp1, f, fm1);
-        g /= delta[1];
-        arena(ix,iy,ieta).dUsup[m][1] = g;
-
-// in y-dir    
-        //fp1 = grid_pt->nbr_p_1[n]->rhob;
-        if (rk_flag == 0) {
-            rhob = arena(ix,iy+1,ieta).rhob;
-            eps = arena(ix,iy+1,ieta).epsilon;
-        } else {
-            rhob = arena(ix,iy+1,ieta).rhob_t;
-            eps = arena(ix,iy+1,ieta).epsilon_t;
-        }
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
-        fp1 = muB/T; 
-       
-        // fm1 = grid_pt->nbr_m_1[n]->rhob;
-        if (rk_flag == 0) {
-            rhob = arena(ix,iy-1,ieta).rhob;
-            eps = arena(ix,iy-1,ieta).epsilon;
-        } else {
-            rhob = arena(ix,iy-1,ieta).rhob_t;
-            eps = arena(ix,iy-1,ieta).epsilon_t;
-        }
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
-        fm1 = muB/T; 
-
-        g = minmod.minmod_dx(fp1, f, fm1);
-        g /= delta[2];
-        arena(ix,iy,ieta).dUsup[m][2] = g;
-
-// in x-dir    
-        //fp1 = grid_pt->nbr_p_1[n]->rhob;
-        if (rk_flag == 0) {
-            rhob = arena(ix,iy,ieta+1).rhob;
-            eps = arena(ix,iy,ieta+1).epsilon;
-        } else {
-            rhob = arena(ix,iy,ieta+1).rhob_t;
-            eps = arena(ix,iy,ieta+1).epsilon_t;
-        }
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
-        fp1 = muB/T; 
-       
-        // fm1 = grid_pt->nbr_m_1[n]->rhob;
-        if (rk_flag == 0) {
-            rhob = arena(ix,iy,ieta-1).rhob;
-            eps = arena(ix,iy,ieta-1).epsilon;
-        } else {
-            rhob = arena(ix,iy,ieta-1).rhob_t;
-            eps = arena(ix,iy,ieta-1).epsilon_t;
-        }
-        muB = eos->get_mu(eps, rhob);
-        T = eos->get_temperature(eps, rhob);
-        fm1 = muB/T; 
-
-        g = minmod.minmod_dx(fp1, f, fm1);
-        g /= delta[3]*taufactor;
-        arena(ix,iy,ieta).dUsup[m][3] = g;
-
-//    }  // n = x, y, eta
+        double g = minmod.minmod_dx(fp1, f, fm1)/delta[direction];
+        c.dUsup[m][direction] = g;
+    });
+// //   for (int n = 1; n <= 3; n++) {
+// //       taufactor = 1.0;
+// //       if (n == 3)
+//            taufactor = tau;
+//
+//        // f = grid_pt->rhob_t;
+//        if (rk_flag == 0) {
+//            rhob = arena(ix,iy,ieta).rhob;
+//            eps = arena(ix,iy,ieta).epsilon;
+//        } else {
+//            rhob = arena(ix,iy,ieta).rhob_t;
+//            eps = arena(ix,iy,ieta).epsilon_t;
+//        }
+//        muB = eos->get_mu(eps, rhob);
+//        T = eos->get_temperature(eps, rhob);
+//        f = muB/T; 
+//
+//// in x-dir    
+//        //fp1 = grid_pt->nbr_p_1[n]->rhob;
+//        if (rk_flag == 0) {
+//            rhob = arena(ix+1,iy,ieta).rhob;
+//            eps = arena(ix+1,iy,ieta).epsilon;
+//        } else {
+//            rhob = arena(ix+1,iy,ieta).rhob_t;
+//            eps = arena(ix+1,iy,ieta).epsilon_t;
+//        }
+//        muB = eos->get_mu(eps, rhob);
+//        T = eos->get_temperature(eps, rhob);
+//        fp1 = muB/T; 
+//       
+//        // fm1 = grid_pt->nbr_m_1[n]->rhob;
+//        if (rk_flag == 0) {
+//            rhob = arena(ix-1,iy,ieta).rhob;
+//            eps = arena(ix-1,iy,ieta).epsilon;
+//        } else {
+//            rhob = arena(ix-1,iy,ieta).rhob_t;
+//            eps = arena(ix-1,iy,ieta).epsilon_t;
+//        }
+//        muB = eos->get_mu(eps, rhob);
+//        T = eos->get_temperature(eps, rhob);
+//        fm1 = muB/T; 
+//
+//        g = minmod.minmod_dx(fp1, f, fm1);
+//        g /= delta[1];
+//        arena(ix,iy,ieta).dUsup[m][1] = g;
+//
+//// in y-dir    
+//        //fp1 = grid_pt->nbr_p_1[n]->rhob;
+//        if (rk_flag == 0) {
+//            rhob = arena(ix,iy+1,ieta).rhob;
+//            eps = arena(ix,iy+1,ieta).epsilon;
+//        } else {
+//            rhob = arena(ix,iy+1,ieta).rhob_t;
+//            eps = arena(ix,iy+1,ieta).epsilon_t;
+//        }
+//        muB = eos->get_mu(eps, rhob);
+//        T = eos->get_temperature(eps, rhob);
+//        fp1 = muB/T; 
+//       
+//        // fm1 = grid_pt->nbr_m_1[n]->rhob;
+//        if (rk_flag == 0) {
+//            rhob = arena(ix,iy-1,ieta).rhob;
+//            eps = arena(ix,iy-1,ieta).epsilon;
+//        } else {
+//            rhob = arena(ix,iy-1,ieta).rhob_t;
+//            eps = arena(ix,iy-1,ieta).epsilon_t;
+//        }
+//        muB = eos->get_mu(eps, rhob);
+//        T = eos->get_temperature(eps, rhob);
+//        fm1 = muB/T; 
+//
+//        g = minmod.minmod_dx(fp1, f, fm1);
+//        g /= delta[2];
+//        arena(ix,iy,ieta).dUsup[m][2] = g;
+//
+//// in x-dir    
+//        //fp1 = grid_pt->nbr_p_1[n]->rhob;
+//        if (rk_flag == 0) {
+//            rhob = arena(ix,iy,ieta+1).rhob;
+//            eps = arena(ix,iy,ieta+1).epsilon;
+//        } else {
+//            rhob = arena(ix,iy,ieta+1).rhob_t;
+//            eps = arena(ix,iy,ieta+1).epsilon_t;
+//        }
+//        muB = eos->get_mu(eps, rhob);
+//        T = eos->get_temperature(eps, rhob);
+//        fp1 = muB/T; 
+//       
+//        // fm1 = grid_pt->nbr_m_1[n]->rhob;
+//        if (rk_flag == 0) {
+//            rhob = arena(ix,iy,ieta-1).rhob;
+//            eps = arena(ix,iy,ieta-1).epsilon;
+//        } else {
+//            rhob = arena(ix,iy,ieta-1).rhob_t;
+//            eps = arena(ix,iy,ieta-1).epsilon_t;
+//        }
+//        muB = eos->get_mu(eps, rhob);
+//        T = eos->get_temperature(eps, rhob);
+//        fm1 = muB/T; 
+//
+//        g = minmod.minmod_dx(fp1, f, fm1);
+//        g /= delta[3]*taufactor;
+//        arena(ix,iy,ieta).dUsup[m][3] = g;
+//
+////    }  // n = x, y, eta
     return 1;
 }/* MakeDSpatial */
 
