@@ -221,18 +221,9 @@ void EOS::init_eos() {
     whichEOS = 1;
     music_message.info("reading EOS...");
     int i, j;
-    FILE *eos_p1, *eos_p2;
-    FILE *eos_T1, *eos_T2;
-    FILE *eos_mu1, *eos_mu2;
     const char* EOSPATH = "HYDROPROGRAMPATH";
     char * pre_envPath= getenv(EOSPATH);
     std::string envPath;
-    std::string eos_p1_name;
-    std::string eos_p2_name;
-    std::string eos_T1_name;
-    std::string eos_T2_name;
-    std::string eos_mu1_name;
-    std::string eos_mu2_name;
     if (pre_envPath == 0) {
 	    envPath=".";
     }
@@ -242,42 +233,30 @@ void EOS::init_eos() {
     
     music_message << "from path " << envPath.c_str() << "/EOS";
     music_message.flush("info");
-    eos_p1_name  = envPath+"/EOS/EOS-Q/aa1_p.dat";
-    eos_p2_name  = envPath+"/EOS/EOS-Q/aa2_p.dat";
-    eos_T1_name  = envPath+"/EOS/EOS-Q/aa1_t.dat";
-    eos_T2_name  = envPath+"/EOS/EOS-Q/aa2_t.dat";
-    eos_mu1_name = envPath+"/EOS/EOS-Q/aa1_mb.dat";
-    eos_mu2_name = envPath+"/EOS/EOS-Q/aa2_mb.dat";
       
-  eos_p1  = fopen(eos_p1_name.c_str(), "r");
-  eos_p2  = fopen(eos_p2_name.c_str(), "r");
-  eos_T1  = fopen(eos_T1_name.c_str(), "r");
-  eos_T2  = fopen(eos_T2_name.c_str(), "r");
-  eos_mu1 = fopen(eos_mu1_name.c_str(), "r");
-  eos_mu2 = fopen(eos_mu2_name.c_str(), "r");
+    std::ifstream eos_p1 (envPath+"/EOS/EOS-Q/aa1_p.dat");
+    std::ifstream eos_p2 (envPath+"/EOS/EOS-Q/aa2_p.dat");
+    std::ifstream eos_T1 (envPath+"/EOS/EOS-Q/aa1_t.dat");
+    std::ifstream eos_T2 (envPath+"/EOS/EOS-Q/aa2_t.dat");
+    std::ifstream eos_mu1(envPath+"/EOS/EOS-Q/aa1_mb.dat");
+    std::ifstream eos_mu2(envPath+"/EOS/EOS-Q/aa2_mb.dat");
   
-  checkForReadError(eos_p1,eos_p1_name.c_str());
-  checkForReadError(eos_p2,eos_p2_name.c_str());
-  checkForReadError(eos_T1,eos_T1_name.c_str());
-  checkForReadError(eos_T2,eos_T2_name.c_str());
-  checkForReadError(eos_mu1,eos_mu1_name.c_str());
-  checkForReadError(eos_mu2,eos_mu2_name.c_str());
  
   //read the first two lines:
   // first value of rhob, first value of epsilon
   // deltaRhob, deltaEpsilon, number of rhob steps, number of epsilon steps
-  fscanf(eos_p1,"%lf %lf",&BNP1,&EPP1);
-  fscanf(eos_p1,"%lf %lf %d %d",&deltaBNP1,&deltaEPP1,&NBNP1,&NEPP1);
-  fscanf(eos_p2,"%lf %lf",&BNP2,&EPP2);
-  fscanf(eos_p2,"%lf %lf %d %d",&deltaBNP2,&deltaEPP2,&NBNP2,&NEPP2);
-  fscanf(eos_T1,"%lf %lf",&BNP1,&EPP1);
-  fscanf(eos_T1,"%lf %lf %d %d",&deltaBNP1,&deltaEPP1,&NBNP1,&NEPP1);
-  fscanf(eos_T2,"%lf %lf",&BNP2,&EPP2);
-  fscanf(eos_T2,"%lf %lf %d %d",&deltaBNP2,&deltaEPP2,&NBNP2,&NEPP2);
-  fscanf(eos_mu1,"%lf %lf",&BNP1,&EPP1);
-  fscanf(eos_mu1,"%lf %lf %d %d",&deltaBNP1,&deltaEPP1,&NBNP1,&NEPP1);
-  fscanf(eos_mu2,"%lf %lf",&BNP2,&EPP2);
-  fscanf(eos_mu2,"%lf %lf %d %d",&deltaBNP2,&deltaEPP2,&NBNP2,&NEPP2);
+  eos_p1   >> BNP1>>EPP1;
+  eos_p1   >> deltaBNP1>>deltaEPP1>>NBNP1>>NEPP1;
+  eos_p2   >> BNP2>>EPP2;
+  eos_p2   >> deltaBNP2>>deltaEPP2>>NBNP2>>NEPP2;
+  eos_T1   >> BNP1>>EPP1;
+  eos_T1   >> deltaBNP1>>deltaEPP1>>NBNP1>>NEPP1;
+  eos_T2   >> BNP2>>EPP2;
+  eos_T2   >> deltaBNP2>>deltaEPP2>>NBNP2>>NEPP2;
+  eos_mu1  >> BNP1>>EPP1;
+  eos_mu1  >> deltaBNP1>>deltaEPP1>>NBNP1>>NEPP1;
+  eos_mu2  >> BNP2>>EPP2;
+  eos_mu2  >> deltaBNP2>>deltaEPP2>>NBNP2>>NEPP2;
  
   // allocate memory for pressure arrays
   pressure1=util->mtx_malloc(NBNP1+1,NEPP1+1);
@@ -296,25 +275,19 @@ void EOS::init_eos() {
   for(j=0;j<=NEPP1;j++)
     for(i=0;i<=NBNP1;i++)
       {
-    fscanf(eos_p1,"%lf",&pressure1[i][j]);
-    fscanf(eos_T1,"%lf",&temperature1[i][j]);
-    fscanf(eos_mu1,"%lf",&mu1[i][j]);
+    eos_p1 >>pressure1[i][j];
+    eos_T1 >>temperature1[i][j];
+    eos_mu1>>mu1[i][j];
       }
 
   for(j=0;j<=NEPP2;j++)
     for(i=0;i<=NBNP2;i++)
       {
-    fscanf(eos_p2,"%lf",&pressure2[i][j]);
-    fscanf(eos_T2,"%lf",&temperature2[i][j]);
-    fscanf(eos_mu2,"%lf",&mu2[i][j]);
+    eos_p2 >>pressure2[i][j];
+    eos_T2 >>temperature2[i][j];
+    eos_mu2>>mu2[i][j];
       }
 
-  fclose(eos_p1);
-  fclose(eos_p2);
-  fclose(eos_T1);
-  fclose(eos_T2);
-  fclose(eos_mu1);
-  fclose(eos_mu2);
   fprintf(stderr,"done reading\n");
 }
 
@@ -326,25 +299,9 @@ void EOS::init_eos2()
   whichEOS = 2; 
 //   int bytes_read;
   int i, j;
-  FILE *eos_d1, *eos_d2, *eos_d3, *eos_d4, *eos_d5, *eos_d6, *eos_d7;
-  FILE *eos_T1, *eos_T2, *eos_T3, *eos_T4, *eos_T5, *eos_T6, *eos_T7;
   const char* EOSPATH = "HYDROPROGRAMPATH";
   char * pre_envPath= getenv(EOSPATH);
   std::string envPath;
-  std::string eos_d1_name;
-  std::string eos_d2_name;
-  std::string eos_d3_name;
-  std::string eos_d4_name;
-  std::string eos_d5_name;
-  std::string eos_d6_name;
-  std::string eos_d7_name;
-  std::string eos_T1_name;
-  std::string eos_T2_name;
-  std::string eos_T3_name;
-  std::string eos_T4_name;
-  std::string eos_T5_name;
-  std::string eos_T6_name;
-  std::string eos_T7_name;
   double eps, baryonDensity; //dummies for now
 
   if (pre_envPath == 0) {
@@ -357,83 +314,52 @@ void EOS::init_eos2()
   music_message << "from path " << envPath.c_str() << "/EOS/s95p-v1";
   music_message.flush("info");
   
-  eos_d1_name=envPath+"/EOS/s95p-v1/s95p-v1_dens1.dat";
-  eos_d2_name=envPath+"/EOS/s95p-v1/s95p-v1_dens2.dat";
-  eos_d3_name=envPath+"/EOS/s95p-v1/s95p-v1_dens3.dat";
-  eos_d4_name=envPath+"/EOS/s95p-v1/s95p-v1_dens4.dat";
-  eos_d5_name=envPath+"/EOS/s95p-v1/s95p-v1_dens5.dat";
-  eos_d6_name=envPath+"/EOS/s95p-v1/s95p-v1_dens6.dat";
-  eos_d7_name=envPath+"/EOS/s95p-v1/s95p-v1_dens7.dat";
-
-  eos_T1_name=envPath+"/EOS/s95p-v1/s95p-v1_par1.dat";
-  eos_T2_name=envPath+"/EOS/s95p-v1/s95p-v1_par2.dat";
-  eos_T3_name=envPath+"/EOS/s95p-v1/s95p-v1_par3.dat";
-  eos_T4_name=envPath+"/EOS/s95p-v1/s95p-v1_par4.dat";
-  eos_T5_name=envPath+"/EOS/s95p-v1/s95p-v1_par5.dat";
-  eos_T6_name=envPath+"/EOS/s95p-v1/s95p-v1_par6.dat";
-  eos_T7_name=envPath+"/EOS/s95p-v1/s95p-v1_par7.dat";
-
-  eos_d1 = fopen(eos_d1_name.c_str(), "r");
-  eos_d2 = fopen(eos_d2_name.c_str(), "r");
-  eos_d3 = fopen(eos_d3_name.c_str(), "r");
-  eos_d4 = fopen(eos_d4_name.c_str(), "r");
-  eos_d5 = fopen(eos_d5_name.c_str(), "r");
-  eos_d6 = fopen(eos_d6_name.c_str(), "r");
-  eos_d7 = fopen(eos_d7_name.c_str(), "r");
-  eos_T1 = fopen(eos_T1_name.c_str(), "r");
-  eos_T2 = fopen(eos_T2_name.c_str(), "r");
-  eos_T3 = fopen(eos_T3_name.c_str(), "r");
-  eos_T4 = fopen(eos_T4_name.c_str(), "r");
-  eos_T5 = fopen(eos_T5_name.c_str(), "r");
-  eos_T6 = fopen(eos_T6_name.c_str(), "r");
-  eos_T7 = fopen(eos_T7_name.c_str(), "r");
-  
-  checkForReadError(eos_d1,eos_d1_name.c_str());
-  checkForReadError(eos_d2,eos_d2_name.c_str());
-  checkForReadError(eos_d3,eos_d3_name.c_str());
-  checkForReadError(eos_d4,eos_d4_name.c_str());
-  checkForReadError(eos_d5,eos_d5_name.c_str());
-  checkForReadError(eos_d6,eos_d6_name.c_str());
-  checkForReadError(eos_d7,eos_d7_name.c_str());
-  checkForReadError(eos_T1,eos_T1_name.c_str());
-  checkForReadError(eos_T2,eos_T2_name.c_str());
-  checkForReadError(eos_T3,eos_T3_name.c_str());
-  checkForReadError(eos_T4,eos_T4_name.c_str());
-  checkForReadError(eos_T5,eos_T5_name.c_str());
-  checkForReadError(eos_T6,eos_T6_name.c_str());
-  checkForReadError(eos_T7,eos_T7_name.c_str());
+  std::ifstream eos_d1(envPath+"/EOS/s95p-v1/s95p-v1_dens1.dat");
+  std::ifstream eos_d2(envPath+"/EOS/s95p-v1/s95p-v1_dens2.dat");
+  std::ifstream eos_d3(envPath+"/EOS/s95p-v1/s95p-v1_dens3.dat");
+  std::ifstream eos_d4(envPath+"/EOS/s95p-v1/s95p-v1_dens4.dat");
+  std::ifstream eos_d5(envPath+"/EOS/s95p-v1/s95p-v1_dens5.dat");
+  std::ifstream eos_d6(envPath+"/EOS/s95p-v1/s95p-v1_dens6.dat");
+  std::ifstream eos_d7(envPath+"/EOS/s95p-v1/s95p-v1_dens7.dat");
+  std::ifstream eos_T1(envPath+"/EOS/s95p-v1/s95p-v1_par1.dat");
+  std::ifstream eos_T2(envPath+"/EOS/s95p-v1/s95p-v1_par2.dat");
+  std::ifstream eos_T3(envPath+"/EOS/s95p-v1/s95p-v1_par3.dat");
+  std::ifstream eos_T4(envPath+"/EOS/s95p-v1/s95p-v1_par4.dat");
+  std::ifstream eos_T5(envPath+"/EOS/s95p-v1/s95p-v1_par5.dat");
+  std::ifstream eos_T6(envPath+"/EOS/s95p-v1/s95p-v1_par6.dat");
+  std::ifstream eos_T7(envPath+"/EOS/s95p-v1/s95p-v1_par7.dat");
  
   //read the first two lines with general info:
   // lowest value of epsilon
   // deltaEpsilon, number of epsilon steps (i.e. # of lines)
-  fscanf(eos_T1,"%lf",&EPP1);
-  fscanf(eos_T1,"%lf %d",&deltaEPP1,&NEPP1);
-  fscanf(eos_T2,"%lf",&EPP2);
-  fscanf(eos_T2,"%lf %d",&deltaEPP2,&NEPP2);
-  fscanf(eos_T3,"%lf",&EPP3);
-  fscanf(eos_T3,"%lf %d",&deltaEPP3,&NEPP3);
-  fscanf(eos_T4,"%lf",&EPP4);
-  fscanf(eos_T4,"%lf %d",&deltaEPP4,&NEPP4);
-  fscanf(eos_T5,"%lf",&EPP5);
-  fscanf(eos_T5,"%lf %d",&deltaEPP5,&NEPP5);
-  fscanf(eos_T6,"%lf",&EPP6);
-  fscanf(eos_T6,"%lf %d",&deltaEPP6,&NEPP6);
-  fscanf(eos_T7,"%lf",&EPP7);
-  fscanf(eos_T7,"%lf %d",&deltaEPP7,&NEPP7);
-  fscanf(eos_d1,"%lf",&EPP1);
-  fscanf(eos_d1,"%lf %d",&deltaEPP1,&NEPP1);
-  fscanf(eos_d2,"%lf",&EPP2);
-  fscanf(eos_d2,"%lf %d",&deltaEPP2,&NEPP2);
-  fscanf(eos_d3,"%lf",&EPP3);
-  fscanf(eos_d3,"%lf %d",&deltaEPP3,&NEPP3);
-  fscanf(eos_d4,"%lf",&EPP4);
-  fscanf(eos_d4,"%lf %d",&deltaEPP4,&NEPP4);
-  fscanf(eos_d5,"%lf",&EPP5);
-  fscanf(eos_d5,"%lf %d",&deltaEPP5,&NEPP5);
-  fscanf(eos_d6,"%lf",&EPP6);
-  fscanf(eos_d6,"%lf %d",&deltaEPP6,&NEPP6);
-  fscanf(eos_d7,"%lf",&EPP7);
-  fscanf(eos_d7,"%lf %d",&deltaEPP7,&NEPP7);
+  eos_T1 >> EPP1;
+  eos_T1 >> deltaEPP1 >> NEPP1;
+  eos_T2 >> EPP2;
+  eos_T2 >> deltaEPP2 >> NEPP2;
+  eos_T3 >> EPP3;
+  eos_T3 >> deltaEPP3 >> NEPP3;
+  eos_T4 >> EPP4;
+  eos_T4 >> deltaEPP4 >> NEPP4;
+  eos_T5 >> EPP5;
+  eos_T5 >> deltaEPP5 >> NEPP5;
+  eos_T6 >> EPP6;
+  eos_T6 >> deltaEPP6 >> NEPP6;
+  eos_T7 >> EPP7;
+  eos_T7 >> deltaEPP7 >> NEPP7;
+  eos_d1 >> EPP1;
+  eos_d1 >> deltaEPP1 >> NEPP1;
+  eos_d2 >> EPP2;
+  eos_d2 >> deltaEPP2 >> NEPP2;
+  eos_d3 >> EPP3;
+  eos_d3 >> deltaEPP3 >> NEPP3;
+  eos_d4 >> EPP4;
+  eos_d4 >> deltaEPP4 >> NEPP4;
+  eos_d5 >> EPP5;
+  eos_d5 >> deltaEPP5 >> NEPP5;
+  eos_d6 >> EPP6;
+  eos_d6 >> deltaEPP6 >> NEPP6;
+  eos_d7 >> EPP7;
+  eos_d7 >> deltaEPP7 >> NEPP7;
   
   //NEPP1 -= 1;
   //NEPP2 -= 1;
@@ -444,31 +370,31 @@ void EOS::init_eos2()
   //NEPP7 -= 1;
  
   // no rho_b dependence at the moment
-  NBNP1=0; 
-  NBNP2=0;
-  NBNP3=0;
-  NBNP4=0;
-  NBNP5=0;
-  NBNP6=0;
-  NBNP7=0;
+  NBNP1 = 0; 
+  NBNP2 = 0;
+  NBNP3 = 0;
+  NBNP4 = 0;
+  NBNP5 = 0;
+  NBNP6 = 0;
+  NBNP7 = 0;
 
   // allocate memory for pressure arrays
-  pressure1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  pressure2=util->mtx_malloc(NBNP2+1,NEPP2+1);
-  pressure3=util->mtx_malloc(NBNP3+1,NEPP3+1);
-  pressure4=util->mtx_malloc(NBNP4+1,NEPP4+1);
-  pressure5=util->mtx_malloc(NBNP5+1,NEPP5+1);
-  pressure6=util->mtx_malloc(NBNP6+1,NEPP6+1);
-  pressure7=util->mtx_malloc(NBNP7+1,NEPP7+1);
+  pressure1 = util->mtx_malloc(NBNP1+1,NEPP1+1);
+  pressure2 = util->mtx_malloc(NBNP2+1,NEPP2+1);
+  pressure3 = util->mtx_malloc(NBNP3+1,NEPP3+1);
+  pressure4 = util->mtx_malloc(NBNP4+1,NEPP4+1);
+  pressure5 = util->mtx_malloc(NBNP5+1,NEPP5+1);
+  pressure6 = util->mtx_malloc(NBNP6+1,NEPP6+1);
+  pressure7 = util->mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for entropy density arrays
-  entropyDensity1=util->mtx_malloc(NBNP1+1,NEPP1+1);
-  entropyDensity2=util->mtx_malloc(NBNP2+1,NEPP2+1);
-  entropyDensity3=util->mtx_malloc(NBNP3+1,NEPP3+1);
-  entropyDensity4=util->mtx_malloc(NBNP4+1,NEPP4+1);
-  entropyDensity5=util->mtx_malloc(NBNP5+1,NEPP5+1);
-  entropyDensity6=util->mtx_malloc(NBNP6+1,NEPP6+1);
-  entropyDensity7=util->mtx_malloc(NBNP7+1,NEPP7+1);
+  entropyDensity1 = util->mtx_malloc(NBNP1+1,NEPP1+1);
+  entropyDensity2 = util->mtx_malloc(NBNP2+1,NEPP2+1);
+  entropyDensity3 = util->mtx_malloc(NBNP3+1,NEPP3+1);
+  entropyDensity4 = util->mtx_malloc(NBNP4+1,NEPP4+1);
+  entropyDensity5 = util->mtx_malloc(NBNP5+1,NEPP5+1);
+  entropyDensity6 = util->mtx_malloc(NBNP6+1,NEPP6+1);
+  entropyDensity7 = util->mtx_malloc(NBNP7+1,NEPP7+1);
 
   // allocate memory for QGP fraction arrays
   QGPfraction1=util->mtx_malloc(NBNP1+1,NEPP1+1);
@@ -500,86 +426,86 @@ void EOS::init_eos2()
   i=0;
   for(j=NEPP1-1; j>=0; j--)
     {
-      fscanf(eos_d1,"%lf",&eps);
-      fscanf(eos_d1,"%lf",&pressure1[i][j]);
-      fscanf(eos_d1,"%lf",&entropyDensity1[i][j]);
-      fscanf(eos_d1,"%lf",&baryonDensity);
-      fscanf(eos_d1,"%lf",&QGPfraction1[i][j]);
-      fscanf(eos_T1,"%lf",&temperature1[i][j]);
-      fscanf(eos_T1,"%lf",&eps); //dummy
-      fscanf(eos_T1,"%lf",&eps); //dummy
+      eos_d1>>eps;
+      eos_d1>>pressure1[i][j];
+      eos_d1>>entropyDensity1[i][j];
+      eos_d1>>baryonDensity;
+      eos_d1>>QGPfraction1[i][j];
+      eos_T1>>temperature1[i][j];
+      eos_T1>>eps; //dummy
+      eos_T1>>eps; //dummy
     }
 
   for(j=NEPP2-1; j>=0; j--)
     {
-      fscanf(eos_d2,"%lf",&eps);
-      fscanf(eos_d2,"%lf",&pressure2[i][j]);
-      fscanf(eos_d2,"%lf",&entropyDensity2[i][j]);
-      fscanf(eos_d2,"%lf",&baryonDensity);
-      fscanf(eos_d2,"%lf",&QGPfraction2[i][j]);
-      fscanf(eos_T2,"%lf",&temperature2[i][j]);
-      fscanf(eos_T2,"%lf",&eps); //dummy
-      fscanf(eos_T2,"%lf",&eps); //dummy
+      eos_d2>>eps;
+      eos_d2>>pressure2[i][j];
+      eos_d2>>entropyDensity2[i][j];
+      eos_d2>>baryonDensity;
+      eos_d2>>QGPfraction2[i][j];
+      eos_T2>>temperature2[i][j];
+      eos_T2>>eps; //dummy
+      eos_T2>>eps; //dummy
     }
 
   for(j=NEPP3-1; j>=0; j--)
     {
-      fscanf(eos_d3,"%lf",&eps);
-      fscanf(eos_d3,"%lf",&pressure3[i][j]);
-      fscanf(eos_d3,"%lf",&entropyDensity3[i][j]);
-      fscanf(eos_d3,"%lf",&baryonDensity);
-      fscanf(eos_d3,"%lf",&QGPfraction3[i][j]);
-      fscanf(eos_T3,"%lf",&temperature3[i][j]);
-      fscanf(eos_T3,"%lf",&eps); //dummy
-      fscanf(eos_T3,"%lf",&eps); //dummy
+      eos_d3>>eps;
+      eos_d3>>pressure3[i][j];
+      eos_d3>>entropyDensity3[i][j];
+      eos_d3>>baryonDensity;
+      eos_d3>>QGPfraction3[i][j];
+      eos_T3>>temperature3[i][j];
+      eos_T3>>eps; //dummy
+      eos_T3>>eps; //dummy
     }
 
   for(j=NEPP4-1; j>=0; j--)
     {
-      fscanf(eos_d4,"%lf",&eps);
-      fscanf(eos_d4,"%lf",&pressure4[i][j]);
-      fscanf(eos_d4,"%lf",&entropyDensity4[i][j]);
-      fscanf(eos_d4,"%lf",&baryonDensity);
-      fscanf(eos_d4,"%lf",&QGPfraction4[i][j]);
-      fscanf(eos_T4,"%lf",&temperature4[i][j]);
-      fscanf(eos_T4,"%lf",&eps); //dummy
-      fscanf(eos_T4,"%lf",&eps); //dummy
+      eos_d4>>eps;
+      eos_d4>>pressure4[i][j];
+      eos_d4>>entropyDensity4[i][j];
+      eos_d4>>baryonDensity;
+      eos_d4>>QGPfraction4[i][j];
+      eos_T4>>temperature4[i][j];
+      eos_T4>>eps; //dummy
+      eos_T4>>eps; //dummy
     }
 
   for(j=NEPP5-1; j>=0; j--)
     {
-      fscanf(eos_d5,"%lf",&eps);
-      fscanf(eos_d5,"%lf",&pressure5[i][j]);
-      fscanf(eos_d5,"%lf",&entropyDensity5[i][j]);
-      fscanf(eos_d5,"%lf",&baryonDensity);
-      fscanf(eos_d5,"%lf",&QGPfraction5[i][j]);
-      fscanf(eos_T5,"%lf",&temperature5[i][j]);
-      fscanf(eos_T5,"%lf",&eps); //dummy
-      fscanf(eos_T5,"%lf",&eps); //dummy
+      eos_d5>>eps;
+      eos_d5>>pressure5[i][j];
+      eos_d5>>entropyDensity5[i][j];
+      eos_d5>>baryonDensity;
+      eos_d5>>QGPfraction5[i][j];
+      eos_T5>>temperature5[i][j];
+      eos_T5>>eps; //dummy
+      eos_T5>>eps; //dummy
     } 
 
   for(j=NEPP6-1; j>=0; j--)
     {
-      fscanf(eos_d6,"%lf",&eps);
-      fscanf(eos_d6,"%lf",&pressure6[i][j]);
-      fscanf(eos_d6,"%lf",&entropyDensity6[i][j]);
-      fscanf(eos_d6,"%lf",&baryonDensity);
-      fscanf(eos_d6,"%lf",&QGPfraction6[i][j]);
-      fscanf(eos_T6,"%lf",&temperature6[i][j]);
-      fscanf(eos_T6,"%lf",&eps); //dummy
-      fscanf(eos_T6,"%lf",&eps); //dummy
+      eos_d6>>eps;
+      eos_d6>>pressure6[i][j];
+      eos_d6>>entropyDensity6[i][j];
+      eos_d6>>baryonDensity;
+      eos_d6>>QGPfraction6[i][j];
+      eos_T6>>temperature6[i][j];
+      eos_T6>>eps; //dummy
+      eos_T6>>eps; //dummy
     } 
 
   for(j=NEPP7-1; j>=0; j--)
     {
-      fscanf(eos_d7,"%lf",&eps);
-      fscanf(eos_d7,"%lf",&pressure7[i][j]);
-      fscanf(eos_d7,"%lf",&entropyDensity7[i][j]);
-      fscanf(eos_d7,"%lf",&baryonDensity);
-      fscanf(eos_d7,"%lf",&QGPfraction7[i][j]);
-      fscanf(eos_T7,"%lf",&temperature7[i][j]);
-      fscanf(eos_T7,"%lf",&eps); //dummy
-      fscanf(eos_T7,"%lf",&eps); //dummy
+      eos_d7>>eps;
+      eos_d7>>pressure7[i][j];
+      eos_d7>>entropyDensity7[i][j];
+      eos_d7>>baryonDensity;
+      eos_d7>>QGPfraction7[i][j];
+      eos_T7>>temperature7[i][j];
+      eos_T7>>eps; //dummy
+      eos_T7>>eps; //dummy
     } 
 
 //test if the reading worked:
@@ -599,21 +525,6 @@ void EOS::init_eos2()
 /*     { */
 /*       fprintf(stderr,"%lf %lf %lf %lf\n",pressure4[i][j],entropyDensity4[i][j],QGPfraction4[i][j],temperature4[i][j]); */
 /*     } */
-
-  fclose(eos_d1);
-  fclose(eos_d2);
-  fclose(eos_d3);
-  fclose(eos_d4);
-  fclose(eos_d5);
-  fclose(eos_d6);
-  fclose(eos_d7);
-  fclose(eos_T1);
-  fclose(eos_T2);
-  fclose(eos_T3);
-  fclose(eos_T4);
-  fclose(eos_T5);
-  fclose(eos_T6);
-  fclose(eos_T7);
 
   music_message.info("Done reading EOS.");
 
@@ -664,20 +575,6 @@ void EOS::init_eos3(int selector)
   
   stringstream spath;
   stringstream slocalpath;
-  stringstream streos_d1_name;
-  stringstream streos_d2_name;
-  stringstream streos_d3_name;
-  stringstream streos_d4_name;
-  stringstream streos_d5_name;
-  stringstream streos_d6_name;
-  stringstream streos_d7_name;
-  stringstream streos_T1_name;
-  stringstream streos_T2_name;
-  stringstream streos_T3_name;
-  stringstream streos_T4_name;
-  stringstream streos_T5_name;
-  stringstream streos_T6_name;
-  stringstream streos_T7_name;
   string eos_d1_name;
   string eos_d2_name;
   string eos_d3_name;
@@ -719,73 +616,45 @@ void EOS::init_eos3(int selector)
   string path = spath.str();
   string localpath = slocalpath.str();
 
-
+  //TODO
   if (envPath != "") // if path is set in the environment
     {
-      streos_d1_name << path << "dens1.dat";
-      eos_d1_name = streos_d1_name.str();
-      streos_d2_name << path << "dens2.dat";
-      eos_d2_name = streos_d2_name.str();
-      streos_d3_name << path << "dens3.dat";
-      eos_d3_name = streos_d3_name.str();
-      streos_d4_name << path << "dens4.dat";
-      eos_d4_name = streos_d4_name.str();
-      streos_d5_name << path << "dens5.dat";
-      eos_d5_name = streos_d5_name.str();
-      streos_d6_name << path << "dens6.dat";
-      eos_d6_name = streos_d6_name.str();
-      streos_d7_name << path << "dens7.dat";
-      eos_d7_name = streos_d7_name.str();
+      eos_d1_name = path + "dens1.dat";
+      eos_d2_name = path + "dens2.dat";
+      eos_d3_name = path + "dens3.dat";
+      eos_d4_name = path + "dens4.dat";
+      eos_d5_name = path + "dens5.dat";
+      eos_d6_name = path + "dens6.dat";
+      eos_d7_name = path + "dens7.dat";
 
-      streos_T1_name << path << "par1.dat";
-      eos_T1_name = streos_T1_name.str();
-      streos_T2_name << path << "par2.dat";
-      eos_T2_name = streos_T2_name.str();
-      streos_T3_name << path << "par3.dat";
-      eos_T3_name = streos_T3_name.str();
-      streos_T4_name << path << "par4.dat";
-      eos_T4_name = streos_T4_name.str();
-      streos_T5_name << path << "par5.dat";
-      eos_T5_name = streos_T5_name.str();
-      streos_T6_name << path << "par6.dat";
-      eos_T6_name = streos_T6_name.str();
-      streos_T7_name << path << "par7.dat";
-      eos_T7_name = streos_T7_name.str();
+      eos_T1_name = path + "par1.dat";
+      eos_T2_name = path + "par2.dat";
+      eos_T3_name = path + "par3.dat";
+      eos_T4_name = path + "par4.dat";
+      eos_T5_name = path + "par5.dat";
+      eos_T6_name = path + "par6.dat";
+      eos_T7_name = path + "par7.dat";
       
       music_message << "from path " << path;
       music_message.flush("info");
     }
   else //if path is not set in the environment use current folder and then /EOS/s95p-PCE160 subfolder
     {
-      streos_d1_name << localpath << "dens1.dat";
-      eos_d1_name = streos_d1_name.str();
-      streos_d2_name << localpath << "dens2.dat";
-      eos_d2_name = streos_d2_name.str();
-      streos_d3_name << localpath << "dens3.dat";
-      eos_d3_name = streos_d3_name.str();
-      streos_d4_name << localpath << "dens4.dat";
-      eos_d4_name = streos_d4_name.str();
-      streos_d5_name << localpath << "dens5.dat";
-      eos_d5_name = streos_d5_name.str();
-      streos_d6_name << localpath << "dens6.dat";
-      eos_d6_name = streos_d6_name.str();
-      streos_d7_name << localpath << "dens7.dat";
-      eos_d7_name = streos_d7_name.str();
+      eos_d1_name = localpath + "dens1.dat";
+      eos_d2_name = localpath + "dens2.dat";
+      eos_d3_name = localpath + "dens3.dat";
+      eos_d4_name = localpath + "dens4.dat";
+      eos_d5_name = localpath + "dens5.dat";
+      eos_d6_name = localpath + "dens6.dat";
+      eos_d7_name = localpath + "dens7.dat";
 
-      streos_T1_name << localpath << "par1.dat";
-      eos_T1_name = streos_T1_name.str();
-      streos_T2_name << localpath << "par2.dat";
-      eos_T2_name = streos_T2_name.str();
-      streos_T3_name << localpath << "par3.dat";
-      eos_T3_name = streos_T3_name.str();
-      streos_T4_name << localpath << "par4.dat";
-      eos_T4_name = streos_T4_name.str();
-      streos_T5_name << localpath << "par5.dat";
-      eos_T5_name = streos_T5_name.str();
-      streos_T6_name << localpath << "par6.dat";
-      eos_T6_name = streos_T6_name.str();
-      streos_T7_name << localpath << "par7.dat";
-      eos_T7_name = streos_T7_name.str();
+      eos_T1_name = localpath + "par1.dat";
+      eos_T2_name = localpath + "par2.dat";
+      eos_T3_name = localpath + "par3.dat";
+      eos_T4_name = localpath + "par4.dat";
+      eos_T5_name = localpath + "par5.dat";
+      eos_T6_name = localpath + "par6.dat";
+      eos_T7_name = localpath + "par7.dat";
        
       music_message << "from path " << localpath;
       music_message.flush("info");
@@ -793,20 +662,20 @@ void EOS::init_eos3(int selector)
     }
  
 
-  ifstream eos_d1(eos_d1_name.c_str());
-  ifstream eos_d2(eos_d2_name.c_str());
-  ifstream eos_d3(eos_d3_name.c_str());
-  ifstream eos_d4(eos_d4_name.c_str());
-  ifstream eos_d5(eos_d5_name.c_str());
-  ifstream eos_d6(eos_d6_name.c_str());
-  ifstream eos_d7(eos_d7_name.c_str());
-  ifstream eos_T1(eos_T1_name.c_str());
-  ifstream eos_T2(eos_T2_name.c_str());
-  ifstream eos_T3(eos_T3_name.c_str());
-  ifstream eos_T4(eos_T4_name.c_str());
-  ifstream eos_T5(eos_T5_name.c_str());
-  ifstream eos_T6(eos_T6_name.c_str());
-  ifstream eos_T7(eos_T7_name.c_str());
+  std::ifstream eos_d1(eos_d1_name);
+  std::ifstream eos_d2(eos_d2_name);
+  std::ifstream eos_d3(eos_d3_name);
+  std::ifstream eos_d4(eos_d4_name);
+  std::ifstream eos_d5(eos_d5_name);
+  std::ifstream eos_d6(eos_d6_name);
+  std::ifstream eos_d7(eos_d7_name);
+  std::ifstream eos_T1(eos_T1_name);
+  std::ifstream eos_T2(eos_T2_name);
+  std::ifstream eos_T3(eos_T3_name);
+  std::ifstream eos_T4(eos_T4_name);
+  std::ifstream eos_T5(eos_T5_name);
+  std::ifstream eos_T6(eos_T6_name);
+  std::ifstream eos_T7(eos_T7_name);
 
   //checkForReadError(eos_d1,eos_d1_name);
   //checkForReadError(eos_d2,eos_d2_name);
@@ -1045,31 +914,15 @@ void EOS::init_eos3(int selector)
 //       fprintf(stderr,"%lf %lf %lf %lf\n",pressure7[i][j],entropyDensity7[i][j],QGPfraction7[i][j],temperature7[i][j]); 
 //     } 
 
-  
-  eos_d1.close();
-  eos_d2.close();
-  eos_d3.close();
-  eos_d4.close();
-  eos_d5.close();
-  eos_d6.close();
-  eos_d7.close();
-  eos_T1.close();
-  eos_T2.close();
-  eos_T3.close();
-  eos_T4.close();
-  eos_T5.close();
-  eos_T6.close();
-  eos_T7.close();
-
   music_message.info("Done reading EOS.");
 
   //Allocate and fill arrays for get_s2e()
   //First, create new arrays that will permit to extract information we need from each EOS table in a unified way
-  const int number_of_EOS_tables = 7;
+  const int number_of_EOS_tables               = 7;
   double lowest_eps_list[number_of_EOS_tables] = {EPP1,EPP2,EPP3,EPP4,EPP5,EPP6,EPP7};
-  double delta_eps_list[number_of_EOS_tables] = {deltaEPP1,deltaEPP2,deltaEPP3,deltaEPP4,deltaEPP5,deltaEPP6,deltaEPP7};
-  int nb_elements_list[number_of_EOS_tables] = {NEPP1,NEPP2,NEPP3,NEPP4,NEPP5,NEPP6,NEPP7};
-  double ** s_list[number_of_EOS_tables] = {entropyDensity1,entropyDensity2,entropyDensity3,entropyDensity4,entropyDensity5,entropyDensity6,entropyDensity7};
+  double delta_eps_list[number_of_EOS_tables]  = {deltaEPP1,deltaEPP2,deltaEPP3,deltaEPP4,deltaEPP5,deltaEPP6,deltaEPP7};
+  int nb_elements_list[number_of_EOS_tables]   = {NEPP1,NEPP2,NEPP3,NEPP4,NEPP5,NEPP6,NEPP7};
+  double ** s_list[number_of_EOS_tables]       = {entropyDensity1,entropyDensity2,entropyDensity3,entropyDensity4,entropyDensity5,entropyDensity6,entropyDensity7};
   //Compute the maximum number of entropyDensity elements (the actual number of entropyDensity elements we will use 
   //will be smaller since we skip duplicate entropyDensities)
   int s_list_rho0_maximal_length=0;
@@ -1099,25 +952,9 @@ void EOS::init_eos7() {
     music_message.info("reading EOS s95p-v1.2 (for UrQMD) ...");
     whichEOS = 7;
     int i, j;
-    FILE *eos_d1, *eos_d2, *eos_d3, *eos_d4, *eos_d5, *eos_d6, *eos_d7;
-    FILE *eos_T1, *eos_T2, *eos_T3, *eos_T4, *eos_T5, *eos_T6, *eos_T7;
     const char* EOSPATH = "HYDROPROGRAMPATH";
     char * pre_envPath= getenv(EOSPATH);
     std::string envPath;
-    std::string eos_d1_name;
-    std::string eos_d2_name;
-    std::string eos_d3_name;
-    std::string eos_d4_name;
-    std::string eos_d5_name;
-    std::string eos_d6_name;
-    std::string eos_d7_name;
-    std::string eos_T1_name;
-    std::string eos_T2_name;
-    std::string eos_T3_name;
-    std::string eos_T4_name;
-    std::string eos_T5_name;
-    std::string eos_T6_name;
-    std::string eos_T7_name;
     double eps, baryonDensity;  // dummies for now
   
     if (pre_envPath == 0) {
@@ -1130,83 +967,52 @@ void EOS::init_eos7() {
     music_message << "from path " << envPath.c_str() << "/EOS/s95p-v1.2";
     music_message.flush("info");
 
-    eos_d1_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens1.dat";
-    eos_d2_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens2.dat";
-    eos_d3_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens3.dat";
-    eos_d4_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens4.dat";
-    eos_d5_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens5.dat";
-    eos_d6_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens6.dat";
-    eos_d7_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens7.dat";
-
-    eos_T1_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par1.dat";
-    eos_T2_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par2.dat";
-    eos_T3_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par3.dat";
-    eos_T4_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par4.dat";
-    eos_T5_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par5.dat";
-    eos_T6_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par6.dat";
-    eos_T7_name=envPath+"/EOS/s95p-v1.2/s95p-v1.2_par7.dat";
-
-    eos_d1 = fopen(eos_d1_name.c_str(), "r");
-    eos_d2 = fopen(eos_d2_name.c_str(), "r");
-    eos_d3 = fopen(eos_d3_name.c_str(), "r");
-    eos_d4 = fopen(eos_d4_name.c_str(), "r");
-    eos_d5 = fopen(eos_d5_name.c_str(), "r");
-    eos_d6 = fopen(eos_d6_name.c_str(), "r");
-    eos_d7 = fopen(eos_d7_name.c_str(), "r");
-    eos_T1 = fopen(eos_T1_name.c_str(), "r");
-    eos_T2 = fopen(eos_T2_name.c_str(), "r");
-    eos_T3 = fopen(eos_T3_name.c_str(), "r");
-    eos_T4 = fopen(eos_T4_name.c_str(), "r");
-    eos_T5 = fopen(eos_T5_name.c_str(), "r");
-    eos_T6 = fopen(eos_T6_name.c_str(), "r");
-    eos_T7 = fopen(eos_T7_name.c_str(), "r");
-
-    checkForReadError(eos_d1,eos_d1_name.c_str());
-    checkForReadError(eos_d2,eos_d2_name.c_str());
-    checkForReadError(eos_d3,eos_d3_name.c_str());
-    checkForReadError(eos_d4,eos_d4_name.c_str());
-    checkForReadError(eos_d5,eos_d5_name.c_str());
-    checkForReadError(eos_d6,eos_d6_name.c_str());
-    checkForReadError(eos_d7,eos_d7_name.c_str());
-    checkForReadError(eos_T1,eos_T1_name.c_str());
-    checkForReadError(eos_T2,eos_T2_name.c_str());
-    checkForReadError(eos_T3,eos_T3_name.c_str());
-    checkForReadError(eos_T4,eos_T4_name.c_str());
-    checkForReadError(eos_T5,eos_T5_name.c_str());
-    checkForReadError(eos_T6,eos_T6_name.c_str());
-    checkForReadError(eos_T7,eos_T7_name.c_str());
+    std::ifstream eos_d1(envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens1.dat");
+    std::ifstream eos_d2(envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens2.dat");
+    std::ifstream eos_d3(envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens3.dat");
+    std::ifstream eos_d4(envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens4.dat");
+    std::ifstream eos_d5(envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens5.dat");
+    std::ifstream eos_d6(envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens6.dat");
+    std::ifstream eos_d7(envPath+"/EOS/s95p-v1.2/s95p-v1.2_dens7.dat");
+    std::ifstream eos_T1(envPath+"/EOS/s95p-v1.2/s95p-v1.2_par1.dat");
+    std::ifstream eos_T2(envPath+"/EOS/s95p-v1.2/s95p-v1.2_par2.dat");
+    std::ifstream eos_T3(envPath+"/EOS/s95p-v1.2/s95p-v1.2_par3.dat");
+    std::ifstream eos_T4(envPath+"/EOS/s95p-v1.2/s95p-v1.2_par4.dat");
+    std::ifstream eos_T5(envPath+"/EOS/s95p-v1.2/s95p-v1.2_par5.dat");
+    std::ifstream eos_T6(envPath+"/EOS/s95p-v1.2/s95p-v1.2_par6.dat");
+    std::ifstream eos_T7(envPath+"/EOS/s95p-v1.2/s95p-v1.2_par7.dat");
 
     // read the first two lines with general info:
     // lowest value of epsilon
     // deltaEpsilon, number of epsilon steps (i.e. # of lines)
-    fscanf(eos_T1, "%lf", &EPP1);
-    fscanf(eos_T1, "%lf %d", &deltaEPP1, &NEPP1);
-    fscanf(eos_T2, "%lf", &EPP2);
-    fscanf(eos_T2, "%lf %d", &deltaEPP2, &NEPP2);
-    fscanf(eos_T3, "%lf", &EPP3);
-    fscanf(eos_T3, "%lf %d", &deltaEPP3, &NEPP3);
-    fscanf(eos_T4, "%lf", &EPP4);
-    fscanf(eos_T4, "%lf %d", &deltaEPP4, &NEPP4);
-    fscanf(eos_T5, "%lf", &EPP5);
-    fscanf(eos_T5, "%lf %d", &deltaEPP5, &NEPP5);
-    fscanf(eos_T6, "%lf", &EPP6);
-    fscanf(eos_T6, "%lf %d", &deltaEPP6, &NEPP6);
-    fscanf(eos_T7, "%lf", &EPP7);
-    fscanf(eos_T7, "%lf %d", &deltaEPP7, &NEPP7);
-    fscanf(eos_d1, "%lf", &EPP1);
-    fscanf(eos_d1, "%lf %d", &deltaEPP1, &NEPP1);
-    fscanf(eos_d2, "%lf", &EPP2);
-    fscanf(eos_d2, "%lf %d", &deltaEPP2, &NEPP2);
-    fscanf(eos_d3, "%lf", &EPP3);
-    fscanf(eos_d3, "%lf %d", &deltaEPP3, &NEPP3);
-    fscanf(eos_d4, "%lf", &EPP4);
-    fscanf(eos_d4, "%lf %d", &deltaEPP4, &NEPP4);
-    fscanf(eos_d5, "%lf", &EPP5);
-    fscanf(eos_d5, "%lf %d", &deltaEPP5, &NEPP5);
-    fscanf(eos_d6, "%lf", &EPP6);
-    fscanf(eos_d6, "%lf %d", &deltaEPP6, &NEPP6);
-    fscanf(eos_d7, "%lf", &EPP7);
-    fscanf(eos_d7, "%lf %d", &deltaEPP7, &NEPP7);
+    eos_T1 >> EPP1;
+    eos_T1 >> deltaEPP1>>NEPP1;
+    eos_T2 >> EPP2;
+    eos_T2 >> deltaEPP2>>NEPP2;
+    eos_T3 >> EPP3;
+    eos_T3 >> deltaEPP3>>NEPP3;
+    eos_T4 >> EPP4;
+    eos_T4 >> deltaEPP4>>NEPP4;
+    eos_T5 >> EPP5;
+    eos_T5 >> deltaEPP5>>NEPP5;
+    eos_T6 >> EPP6;
+    eos_T6 >> deltaEPP6>>NEPP6;
+    eos_T7 >> EPP7;
+    eos_T7 >> deltaEPP7>>NEPP7;
+    eos_d1 >> EPP1;
+    eos_d1 >> deltaEPP1>>NEPP1;
+    eos_d2 >> EPP2;
+    eos_d2 >> deltaEPP2>>NEPP2;
+    eos_d3 >> EPP3;
+    eos_d3 >> deltaEPP3>>NEPP3;
+    eos_d4 >> EPP4;
+    eos_d4 >> deltaEPP4>>NEPP4;
+    eos_d5 >> EPP5;
+    eos_d5 >> deltaEPP5>>NEPP5;
+    eos_d6 >> EPP6;
+    eos_d6 >> deltaEPP6>>NEPP6;
+    eos_d7 >> EPP7;
+    eos_d7 >> deltaEPP7>>NEPP7;
 
     // no rho_b dependence at the moment
     NBNP1 = 0;
@@ -1257,96 +1063,81 @@ void EOS::init_eos7() {
     // files have it backwards, so I start with maximum j and count down
     i = 0;
     for (j = NEPP1-1; j >= 0; j--) {
-        fscanf(eos_d1, "%lf", &eps);
-        fscanf(eos_d1, "%lf", &pressure1[i][j]);
-        fscanf(eos_d1, "%lf", &entropyDensity1[i][j]);
-        fscanf(eos_d1, "%lf", &baryonDensity);
-        fscanf(eos_d1, "%lf", &QGPfraction1[i][j]);
-        fscanf(eos_T1, "%lf", &temperature1[i][j]);
-        fscanf(eos_T1, "%lf", &eps);    // dummy
-        fscanf(eos_T1, "%lf", &eps);    // dummy
+        eos_d1 >> eps;
+        eos_d1 >> pressure1[i][j];
+        eos_d1 >> entropyDensity1[i][j];
+        eos_d1 >> baryonDensity;
+        eos_d1 >> QGPfraction1[i][j];
+        eos_T1 >> temperature1[i][j];
+        eos_T1 >> eps;    // dummy
+        eos_T1 >> eps;    // dummy
     }
 
     for (j = NEPP2 - 1; j >= 0; j--) {
-        fscanf(eos_d2, "%lf", &eps);
-        fscanf(eos_d2, "%lf", &pressure2[i][j]);
-        fscanf(eos_d2, "%lf", &entropyDensity2[i][j]);
-        fscanf(eos_d2, "%lf", &baryonDensity);
-        fscanf(eos_d2, "%lf", &QGPfraction2[i][j]);
-        fscanf(eos_T2, "%lf", &temperature2[i][j]);
-        fscanf(eos_T2, "%lf", &eps);    // dummy
-        fscanf(eos_T2, "%lf", &eps);    // dummy
+        eos_d2 >> eps;
+        eos_d2 >> pressure2[i][j];
+        eos_d2 >> entropyDensity2[i][j];
+        eos_d2 >> baryonDensity;
+        eos_d2 >> QGPfraction2[i][j];
+        eos_T2 >> temperature2[i][j];
+        eos_T2 >> eps;    // dummy
+        eos_T2 >> eps;    // dummy
     }
 
     for (j = NEPP3 - 1; j >= 0; j--) {
-        fscanf(eos_d3, "%lf", &eps);
-        fscanf(eos_d3, "%lf", &pressure3[i][j]);
-        fscanf(eos_d3, "%lf", &entropyDensity3[i][j]);
-        fscanf(eos_d3, "%lf", &baryonDensity);
-        fscanf(eos_d3, "%lf", &QGPfraction3[i][j]);
-        fscanf(eos_T3, "%lf", &temperature3[i][j]);
-        fscanf(eos_T3, "%lf", &eps);    // dummy
-        fscanf(eos_T3, "%lf", &eps);    // dummy
+        eos_d3 >> eps;
+        eos_d3 >> pressure3[i][j];
+        eos_d3 >> entropyDensity3[i][j];
+        eos_d3 >> baryonDensity;
+        eos_d3 >> QGPfraction3[i][j];
+        eos_T3 >> temperature3[i][j];
+        eos_T3 >> eps;    // dummy
+        eos_T3 >> eps;    // dummy
     }
 
     for (j = NEPP4 - 1; j >= 0; j--) {
-        fscanf(eos_d4, "%lf", &eps);
-        fscanf(eos_d4, "%lf", &pressure4[i][j]);
-        fscanf(eos_d4, "%lf", &entropyDensity4[i][j]);
-        fscanf(eos_d4, "%lf", &baryonDensity);
-        fscanf(eos_d4, "%lf", &QGPfraction4[i][j]);
-        fscanf(eos_T4, "%lf", &temperature4[i][j]);
-        fscanf(eos_T4, "%lf", &eps);    // dummy
-        fscanf(eos_T4, "%lf", &eps);    // dummy
+        eos_d4 >> eps;
+        eos_d4 >> pressure4[i][j];
+        eos_d4 >> entropyDensity4[i][j];
+        eos_d4 >> baryonDensity;
+        eos_d4 >> QGPfraction4[i][j];
+        eos_T4 >> temperature4[i][j];
+        eos_T4 >> eps;    // dummy
+        eos_T4 >> eps;    // dummy
     }
 
     for (j = NEPP5 - 1; j >= 0; j--) {
-        fscanf(eos_d5, "%lf", &eps);
-        fscanf(eos_d5, "%lf", &pressure5[i][j]);
-        fscanf(eos_d5, "%lf", &entropyDensity5[i][j]);
-        fscanf(eos_d5, "%lf", &baryonDensity);
-        fscanf(eos_d5, "%lf", &QGPfraction5[i][j]);
-        fscanf(eos_T5, "%lf", &temperature5[i][j]);
-        fscanf(eos_T5, "%lf", &eps);    // dummy
-        fscanf(eos_T5, "%lf", &eps);    // dummy
+        eos_d5 >> eps;
+        eos_d5 >> pressure5[i][j];
+        eos_d5 >> entropyDensity5[i][j];
+        eos_d5 >> baryonDensity;
+        eos_d5 >> QGPfraction5[i][j];
+        eos_T5 >> temperature5[i][j];
+        eos_T5 >> eps;    // dummy
+        eos_T5 >> eps;    // dummy
     } 
 
     for (j = NEPP6-1; j >= 0; j--) {
-        fscanf(eos_d6, "%lf", &eps);
-        fscanf(eos_d6, "%lf", &pressure6[i][j]);
-        fscanf(eos_d6, "%lf", &entropyDensity6[i][j]);
-        fscanf(eos_d6, "%lf", &baryonDensity);
-        fscanf(eos_d6, "%lf", &QGPfraction6[i][j]);
-        fscanf(eos_T6, "%lf", &temperature6[i][j]);
-        fscanf(eos_T6, "%lf", &eps);    // dummy
-        fscanf(eos_T6, "%lf", &eps);    // dummy
+        eos_d6 >> eps;
+        eos_d6 >> pressure6[i][j];
+        eos_d6 >> entropyDensity6[i][j];
+        eos_d6 >> baryonDensity;
+        eos_d6 >> QGPfraction6[i][j];
+        eos_T6 >> temperature6[i][j];
+        eos_T6 >> eps;    // dummy
+        eos_T6 >> eps;    // dummy
     } 
 
     for (j = NEPP7 - 1; j >= 0; j--) {
-        fscanf(eos_d7, "%lf", &eps);
-        fscanf(eos_d7, "%lf", &pressure7[i][j]);
-        fscanf(eos_d7, "%lf", &entropyDensity7[i][j]);
-        fscanf(eos_d7, "%lf", &baryonDensity);
-        fscanf(eos_d7, "%lf", &QGPfraction7[i][j]);
-        fscanf(eos_T7, "%lf", &temperature7[i][j]);
-        fscanf(eos_T7, "%lf", &eps);    // dummy
-        fscanf(eos_T7, "%lf", &eps);    // dummy
+        eos_d7 >> eps;
+        eos_d7 >> pressure7[i][j];
+        eos_d7 >> entropyDensity7[i][j];
+        eos_d7 >> baryonDensity;
+        eos_d7 >> QGPfraction7[i][j];
+        eos_T7 >> temperature7[i][j];
+        eos_T7 >> eps;    // dummy
+        eos_T7 >> eps;    // dummy
     } 
-
-    fclose(eos_d1);
-    fclose(eos_d2);
-    fclose(eos_d3);
-    fclose(eos_d4);
-    fclose(eos_d5);
-    fclose(eos_d6);
-    fclose(eos_d7);
-    fclose(eos_T1);
-    fclose(eos_T2);
-    fclose(eos_T3);
-    fclose(eos_T4);
-    fclose(eos_T5);
-    fclose(eos_T6);
-    fclose(eos_T7);
 
     music_message.info("Done reading EOS.");
 
@@ -1371,76 +1162,30 @@ void EOS::init_eos10(int selector) {
 
     string path = slocalpath.str();
 
-    stringstream streos_p1_name;
-    stringstream streos_p2_name;
-    stringstream streos_p3_name;
-    stringstream streos_p4_name;
-    stringstream streos_p5_name;
-    stringstream streos_p6_name;
-    stringstream streos_p7_name;
-    stringstream streos_T1_name;
-    stringstream streos_T2_name;
-    stringstream streos_T3_name;
-    stringstream streos_T4_name;
-    stringstream streos_T5_name;
-    stringstream streos_T6_name;
-    stringstream streos_T7_name;
-    stringstream streos_mub1_name;
-    stringstream streos_mub2_name;
-    stringstream streos_mub3_name;
-    stringstream streos_mub4_name;
-    stringstream streos_mub5_name;
-    stringstream streos_mub6_name;
-    stringstream streos_mub7_name;
-
-    streos_p1_name << path << "neos0a_p.dat";
-    streos_p2_name << path << "neos0b_p.dat";
-    streos_p3_name << path << "neos0c_p.dat";
-    streos_p4_name << path << "neos1a_p.dat";
-    streos_p5_name << path << "neos2_p.dat";
-    streos_p6_name << path << "neos3_p.dat";
-    streos_p7_name << path << "neos4_p.dat";
-
-    streos_T1_name << path << "neos0a_t.dat";
-    streos_T2_name << path << "neos0b_t.dat";
-    streos_T3_name << path << "neos0c_t.dat";
-    streos_T4_name << path << "neos1a_t.dat";
-    streos_T5_name << path << "neos2_t.dat";
-    streos_T6_name << path << "neos3_t.dat";
-    streos_T7_name << path << "neos4_t.dat";
-
-    streos_mub1_name << path << "neos0a_mb.dat";
-    streos_mub2_name << path << "neos0b_mb.dat";
-    streos_mub3_name << path << "neos0c_mb.dat";
-    streos_mub4_name << path << "neos1a_mb.dat";
-    streos_mub5_name << path << "neos2_mb.dat";
-    streos_mub6_name << path << "neos3_mb.dat";
-    streos_mub7_name << path << "neos4_mb.dat";
-
     music_message << "from path " << path;
     music_message.flush("info");
 
-    ifstream eos_p1(streos_p1_name.str().c_str());
-    ifstream eos_p2(streos_p2_name.str().c_str());
-    ifstream eos_p3(streos_p3_name.str().c_str());
-    ifstream eos_p4(streos_p4_name.str().c_str());
-    ifstream eos_p5(streos_p5_name.str().c_str());
-    ifstream eos_p6(streos_p6_name.str().c_str());
-    ifstream eos_p7(streos_p7_name.str().c_str());
-    ifstream eos_T1(streos_T1_name.str().c_str());
-    ifstream eos_T2(streos_T2_name.str().c_str());
-    ifstream eos_T3(streos_T3_name.str().c_str());
-    ifstream eos_T4(streos_T4_name.str().c_str());
-    ifstream eos_T5(streos_T5_name.str().c_str());
-    ifstream eos_T6(streos_T6_name.str().c_str());
-    ifstream eos_T7(streos_T7_name.str().c_str());
-    ifstream eos_mub1(streos_mub1_name.str().c_str());
-    ifstream eos_mub2(streos_mub2_name.str().c_str());
-    ifstream eos_mub3(streos_mub3_name.str().c_str());
-    ifstream eos_mub4(streos_mub4_name.str().c_str());
-    ifstream eos_mub5(streos_mub5_name.str().c_str());
-    ifstream eos_mub6(streos_mub6_name.str().c_str());
-    ifstream eos_mub7(streos_mub7_name.str().c_str());
+    std::ifstream eos_p1  (path + "neos0a_p.dat");
+    std::ifstream eos_p2  (path + "neos0b_p.dat");
+    std::ifstream eos_p3  (path + "neos0c_p.dat");
+    std::ifstream eos_p4  (path + "neos1a_p.dat");
+    std::ifstream eos_p5  (path + "neos2_p.dat");
+    std::ifstream eos_p6  (path + "neos3_p.dat");
+    std::ifstream eos_p7  (path + "neos4_p.dat");
+    std::ifstream eos_T1  (path + "neos0a_t.dat");
+    std::ifstream eos_T2  (path + "neos0b_t.dat");
+    std::ifstream eos_T3  (path + "neos0c_t.dat");
+    std::ifstream eos_T4  (path + "neos1a_t.dat");
+    std::ifstream eos_T5  (path + "neos2_t.dat");
+    std::ifstream eos_T6  (path + "neos3_t.dat");
+    std::ifstream eos_T7  (path + "neos4_t.dat");
+    std::ifstream eos_mub1(path + "neos0a_mb.dat");
+    std::ifstream eos_mub2(path + "neos0b_mb.dat");
+    std::ifstream eos_mub3(path + "neos0c_mb.dat");
+    std::ifstream eos_mub4(path + "neos1a_mb.dat");
+    std::ifstream eos_mub5(path + "neos2_mb.dat");
+    std::ifstream eos_mub6(path + "neos3_mb.dat");
+    std::ifstream eos_mub7(path + "neos4_mb.dat");
 
     // read the first two lines with general info:
     // first value of rhob, first value of epsilon
@@ -1619,28 +1364,6 @@ void EOS::init_eos10(int selector) {
         }
     }
 
-    eos_p1.close();
-    eos_p2.close();
-    eos_p3.close();
-    eos_p4.close();
-    eos_p5.close();
-    eos_p6.close();
-    eos_p7.close();
-    eos_T1.close();
-    eos_T2.close();
-    eos_T3.close();
-    eos_T4.close();
-    eos_T5.close();
-    eos_T6.close();
-    eos_T7.close();
-    eos_mub1.close();
-    eos_mub2.close();
-    eos_mub3.close();
-    eos_mub4.close();
-    eos_mub5.close();
-    eos_mub6.close();
-    eos_mub7.close();
-
     music_message.info("Done reading EOS.");
 }
 
@@ -1662,75 +1385,30 @@ void EOS::init_eos11(int selector) {
     }
 
     string path = slocalpath.str();
-    stringstream streos_p1_name;
-    stringstream streos_p2_name;
-    stringstream streos_p3_name;
-    stringstream streos_p4_name;
-    stringstream streos_T1_name;
-    stringstream streos_T2_name;
-    stringstream streos_T3_name;
-    stringstream streos_T4_name;
-    stringstream streos_s1_name;
-    stringstream streos_s2_name;
-    stringstream streos_s3_name;
-    stringstream streos_s4_name;
-    stringstream streos_mub1_name;
-    stringstream streos_mub2_name;
-    stringstream streos_mub3_name;
-    stringstream streos_mub4_name;
-    stringstream streos_mus1_name;
-    stringstream streos_mus2_name;
-    stringstream streos_mus3_name;
-    stringstream streos_mus4_name;
-
-    streos_p1_name << path << "p1.dat";
-    streos_p2_name << path << "p2.dat";
-    streos_p3_name << path << "p3.dat";
-    streos_p4_name << path << "p4.dat";
-
-    streos_T1_name << path << "t1.dat";
-    streos_T2_name << path << "t2.dat";
-    streos_T3_name << path << "t3.dat";
-    streos_T4_name << path << "t4.dat";
-
-    streos_s1_name << path << "s1.dat";
-    streos_s2_name << path << "s2.dat";
-    streos_s3_name << path << "s3.dat";
-    streos_s4_name << path << "s4.dat";
-
-    streos_mub1_name << path << "mb1.dat";
-    streos_mub2_name << path << "mb2.dat";
-    streos_mub3_name << path << "mb3.dat";
-    streos_mub4_name << path << "mb4.dat";
-
-    streos_mus1_name << path << "ms1.dat";
-    streos_mus2_name << path << "ms2.dat";
-    streos_mus3_name << path << "ms3.dat";
-    streos_mus4_name << path << "ms4.dat";
 
     music_message << "from path " << path;
     music_message.flush("info");
 
-    ifstream eos_p1(streos_p1_name.str().c_str());
-    ifstream eos_p2(streos_p2_name.str().c_str());
-    ifstream eos_p3(streos_p3_name.str().c_str());
-    ifstream eos_p4(streos_p4_name.str().c_str());
-    ifstream eos_T1(streos_T1_name.str().c_str());
-    ifstream eos_T2(streos_T2_name.str().c_str());
-    ifstream eos_T3(streos_T3_name.str().c_str());
-    ifstream eos_T4(streos_T4_name.str().c_str());
-    ifstream eos_s1(streos_s1_name.str().c_str());
-    ifstream eos_s2(streos_s2_name.str().c_str());
-    ifstream eos_s3(streos_s3_name.str().c_str());
-    ifstream eos_s4(streos_s4_name.str().c_str());
-    ifstream eos_mub1(streos_mub1_name.str().c_str());
-    ifstream eos_mub2(streos_mub2_name.str().c_str());
-    ifstream eos_mub3(streos_mub3_name.str().c_str());
-    ifstream eos_mub4(streos_mub4_name.str().c_str());
-    ifstream eos_mus1(streos_mus1_name.str().c_str());
-    ifstream eos_mus2(streos_mus2_name.str().c_str());
-    ifstream eos_mus3(streos_mus3_name.str().c_str());
-    ifstream eos_mus4(streos_mus4_name.str().c_str());
+    ifstream eos_p1(path + "p1.dat");
+    ifstream eos_p2(path + "p2.dat");
+    ifstream eos_p3(path + "p3.dat");
+    ifstream eos_p4(path + "p4.dat");
+    ifstream eos_T1(path + "t1.dat");
+    ifstream eos_T2(path + "t2.dat");
+    ifstream eos_T3(path + "t3.dat");
+    ifstream eos_T4(path + "t4.dat");
+    ifstream eos_s1(path + "s1.dat");
+    ifstream eos_s2(path + "s2.dat");
+    ifstream eos_s3(path + "s3.dat");
+    ifstream eos_s4(path + "s4.dat");
+    ifstream eos_mub1(path + "mb1.dat");
+    ifstream eos_mub2(path + "mb2.dat");
+    ifstream eos_mub3(path + "mb3.dat");
+    ifstream eos_mub4(path + "mb4.dat");
+    ifstream eos_mus1(path + "ms1.dat");
+    ifstream eos_mus2(path + "ms2.dat");
+    ifstream eos_mus3(path + "ms3.dat");
+    ifstream eos_mus4(path + "ms4.dat");
 
     // read the first two lines with general info:
     // first value of rhob, first value of epsilon
@@ -1874,31 +1552,6 @@ void EOS::init_eos11(int selector) {
         }
     }
 
-    eos_p1.close();
-    eos_p2.close();
-    eos_p3.close();
-    eos_p4.close();
-
-    eos_T1.close();
-    eos_T2.close();
-    eos_T3.close();
-    eos_T4.close();
-
-    eos_s1.close();
-    eos_s2.close();
-    eos_s3.close();
-    eos_s4.close();
-
-    eos_mub1.close();
-    eos_mub2.close();
-    eos_mub3.close();
-    eos_mub4.close();
-
-    eos_mus1.close();
-    eos_mus2.close();
-    eos_mus3.close();
-    eos_mus4.close();
-
     music_message.info("Done reading EOS.");
 }
 
@@ -1921,76 +1574,30 @@ void EOS::init_eos12(int selector) {
 
     string path = slocalpath.str();
 
-    stringstream streos_p1_name;
-    stringstream streos_p2_name;
-    stringstream streos_p3_name;
-    stringstream streos_p4_name;
-    stringstream streos_p5_name;
-    stringstream streos_p6_name;
-    stringstream streos_p7_name;
-    stringstream streos_T1_name;
-    stringstream streos_T2_name;
-    stringstream streos_T3_name;
-    stringstream streos_T4_name;
-    stringstream streos_T5_name;
-    stringstream streos_T6_name;
-    stringstream streos_T7_name;
-    stringstream streos_mub1_name;
-    stringstream streos_mub2_name;
-    stringstream streos_mub3_name;
-    stringstream streos_mub4_name;
-    stringstream streos_mub5_name;
-    stringstream streos_mub6_name;
-    stringstream streos_mub7_name;
-
-    streos_p1_name << path << "neos1_p.dat";
-    streos_p2_name << path << "neos2_p.dat";
-    streos_p3_name << path << "neos3_p.dat";
-    streos_p4_name << path << "neos4_p.dat";
-    streos_p5_name << path << "neos5_p.dat";
-    streos_p6_name << path << "neos6_p.dat";
-    streos_p7_name << path << "neos7_p.dat";
-
-    streos_T1_name << path << "neos1_t.dat";
-    streos_T2_name << path << "neos2_t.dat";
-    streos_T3_name << path << "neos3_t.dat";
-    streos_T4_name << path << "neos4_t.dat";
-    streos_T5_name << path << "neos5_t.dat";
-    streos_T6_name << path << "neos6_t.dat";
-    streos_T7_name << path << "neos7_t.dat";
-
-    streos_mub1_name << path << "neos1_mub.dat";
-    streos_mub2_name << path << "neos2_mub.dat";
-    streos_mub3_name << path << "neos3_mub.dat";
-    streos_mub4_name << path << "neos4_mub.dat";
-    streos_mub5_name << path << "neos5_mub.dat";
-    streos_mub6_name << path << "neos6_mub.dat";
-    streos_mub7_name << path << "neos7_mub.dat";
-
     music_message << "from path " << path;
     music_message.flush("info");
 
-    ifstream eos_p1(streos_p1_name.str().c_str());
-    ifstream eos_p2(streos_p2_name.str().c_str());
-    ifstream eos_p3(streos_p3_name.str().c_str());
-    ifstream eos_p4(streos_p4_name.str().c_str());
-    ifstream eos_p5(streos_p5_name.str().c_str());
-    ifstream eos_p6(streos_p6_name.str().c_str());
-    ifstream eos_p7(streos_p7_name.str().c_str());
-    ifstream eos_T1(streos_T1_name.str().c_str());
-    ifstream eos_T2(streos_T2_name.str().c_str());
-    ifstream eos_T3(streos_T3_name.str().c_str());
-    ifstream eos_T4(streos_T4_name.str().c_str());
-    ifstream eos_T5(streos_T5_name.str().c_str());
-    ifstream eos_T6(streos_T6_name.str().c_str());
-    ifstream eos_T7(streos_T7_name.str().c_str());
-    ifstream eos_mub1(streos_mub1_name.str().c_str());
-    ifstream eos_mub2(streos_mub2_name.str().c_str());
-    ifstream eos_mub3(streos_mub3_name.str().c_str());
-    ifstream eos_mub4(streos_mub4_name.str().c_str());
-    ifstream eos_mub5(streos_mub5_name.str().c_str());
-    ifstream eos_mub6(streos_mub6_name.str().c_str());
-    ifstream eos_mub7(streos_mub7_name.str().c_str());
+    std::ifstream eos_p1(path + "neos1_p.dat");
+    std::ifstream eos_p2(path + "neos2_p.dat");
+    std::ifstream eos_p3(path + "neos3_p.dat");
+    std::ifstream eos_p4(path + "neos4_p.dat");
+    std::ifstream eos_p5(path + "neos5_p.dat");
+    std::ifstream eos_p6(path + "neos6_p.dat");
+    std::ifstream eos_p7(path + "neos7_p.dat");
+    std::ifstream eos_T1(path + "neos1_t.dat");
+    std::ifstream eos_T2(path + "neos2_t.dat");
+    std::ifstream eos_T3(path + "neos3_t.dat");
+    std::ifstream eos_T4(path + "neos4_t.dat");
+    std::ifstream eos_T5(path + "neos5_t.dat");
+    std::ifstream eos_T6(path + "neos6_t.dat");
+    std::ifstream eos_T7(path + "neos7_t.dat");
+    std::ifstream eos_mub1(path + "neos1_mub.dat");
+    std::ifstream eos_mub2(path + "neos2_mub.dat");
+    std::ifstream eos_mub3(path + "neos3_mub.dat");
+    std::ifstream eos_mub4(path + "neos4_mub.dat");
+    std::ifstream eos_mub5(path + "neos5_mub.dat");
+    std::ifstream eos_mub6(path + "neos6_mub.dat");
+    std::ifstream eos_mub7(path + "neos7_mub.dat");
 
     // read the first two lines with general info:
     // first value of rhob, first value of epsilon
@@ -2168,28 +1775,6 @@ void EOS::init_eos12(int selector) {
             entropyDensity7[i][j] = max(sd, eps);
         }
     }
-
-    eos_p1.close();
-    eos_p2.close();
-    eos_p3.close();
-    eos_p4.close();
-    eos_p5.close();
-    eos_p6.close();
-    eos_p7.close();
-    eos_T1.close();
-    eos_T2.close();
-    eos_T3.close();
-    eos_T4.close();
-    eos_T5.close();
-    eos_T6.close();
-    eos_T7.close();
-    eos_mub1.close();
-    eos_mub2.close();
-    eos_mub3.close();
-    eos_mub4.close();
-    eos_mub5.close();
-    eos_mub6.close();
-    eos_mub7.close();
 
     music_message.info("Done reading EOS.");
 }
