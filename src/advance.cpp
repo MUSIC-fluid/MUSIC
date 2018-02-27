@@ -106,7 +106,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 int Advance::FirstRKStepT(double tau, double x_local, double y_local,
-			  double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag) {
+        double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag) {
   // this advances the ideal part
   double tau_now  = tau;
   double tau_next = tau + (DATA_ptr->delta_tau);
@@ -144,13 +144,13 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
       u_local[ii] = arena(ix,iy,ieta).u[rk_flag][ii];
     }
     hydro_source_ptr->get_hydro_energy_source(
-					      tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
+                tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
     for (int ii = 0; ii < 4; ii++) {
       j_mu[ii] *= tau_rk;
     }
     if (DATA->turn_on_rhob == 1) {
       rhob_source = tau_rk*hydro_source_ptr->get_hydro_rhob_source(
-								   tau_rk, x_local, y_local, eta_s_local, u_local);
+                   tau_rk, x_local, y_local, eta_s_local, u_local);
     }
     delete[] u_local;
   }
@@ -166,9 +166,9 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
     if (flag_add_hydro_source) {
       // adding hydro_source terms
       if (alpha < 4) {
-	qi[alpha] += j_mu[alpha]*DATA->delta_tau;
+  qi[alpha] += j_mu[alpha]*DATA->delta_tau;
       } else {
-	qi[alpha] += rhob_source*DATA->delta_tau;
+  qi[alpha] += rhob_source*DATA->delta_tau;
       }
     }
     
@@ -178,7 +178,7 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
     // can make rho_b negative which we do not want.
     if (DATA->turn_on_rhob == 0) {
       if (alpha == 4 && fabs(qi[alpha]) > 1e-12)
-	qi[alpha] = 0.;
+  qi[alpha] = 0.;
     }
     
     /* if rk_flag > 0, we now have q0 + k1 + k2. 
@@ -194,7 +194,7 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
   Cell grid_rk_t;
   //grid_rk_t.u = Util::mtx_malloc(1, 4);
   flag = reconst_ptr->ReconstIt_shell(&grid_rk_t, tau_next, qi, &arena(ix,iy,ieta),
-				      rk_flag); 
+              rk_flag); 
   
   delete[] qi;
   
@@ -252,39 +252,39 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
   double tempf, temps;
   if (rk_flag == 0) {
     diss->Make_uWRHS(tau_now, arena, ix, iy, ieta, w_rhs, DATA, rk_flag,
-		     theta_local, a_local);
+         theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
-	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-	tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
-		 *(grid_pt->u[rk_flag][0]));
-	temps = diss->Make_uWSource(tau_now, grid_pt, mu, nu, DATA,
-				    rk_flag, theta_local, a_local,
-				    sigma_local); 
-	tempf += temps*(DATA->delta_tau);
-	tempf += w_rhs[mu][nu];
-	grid_pt->Wmunu[trk_flag][idx_1d] = (
-					    tempf/(grid_pt->u[trk_flag][0]));
+  int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+  tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
+     *(grid_pt->u[rk_flag][0]));
+  temps = diss->Make_uWSource(tau_now, grid_pt, mu, nu, DATA,
+            rk_flag, theta_local, a_local,
+            sigma_local); 
+  tempf += temps*(DATA->delta_tau);
+  tempf += w_rhs[mu][nu];
+  grid_pt->Wmunu[trk_flag][idx_1d] = (
+              tempf/(grid_pt->u[trk_flag][0]));
       }
     }
   } else if (rk_flag > 0) {
     diss->Make_uWRHS(tau_next, arena, ix, iy, ieta, w_rhs, DATA, rk_flag,
-		     theta_local, a_local);
+         theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
-	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-	tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->prev_u[0][0]);
-	temps = diss->Make_uWSource(tau_next, grid_pt, mu, nu, DATA,
-				    rk_flag, theta_local, a_local,
-				    sigma_local); 
-	tempf += temps*(DATA->delta_tau);
-	tempf += w_rhs[mu][nu];
-	
-	tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
-		  *(grid_pt->u[rk_flag][0]));
-	tempf *= 0.5;
-	
-	grid_pt->Wmunu[trk_flag][idx_1d] = (
+  int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+  tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->prev_u[0][0]);
+  temps = diss->Make_uWSource(tau_next, grid_pt, mu, nu, DATA,
+            rk_flag, theta_local, a_local,
+            sigma_local); 
+  tempf += temps*(DATA->delta_tau);
+  tempf += w_rhs[mu][nu];
+  
+  tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
+      *(grid_pt->u[rk_flag][0]));
+  tempf *= 0.5;
+  
+  grid_pt->Wmunu[trk_flag][idx_1d] = (
                                             tempf/(grid_pt->u[trk_flag][0]));
       }
     }
@@ -296,11 +296,11 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
     if (rk_flag == 0) {
       /* calculate delta u^0 pi */
       diss->Make_uPRHS(tau_now, arena, ix, iy, ieta, &p_rhs, DATA, rk_flag,
-		       theta_local);
+           theta_local);
       
       tempf = (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
       temps = diss->Make_uPiSource(tau_now, grid_pt, DATA, rk_flag,
-				   theta_local, sigma_local);
+           theta_local, sigma_local);
       tempf += temps*(DATA->delta_tau);
       tempf += p_rhs;
       
@@ -308,11 +308,11 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
     } else if (rk_flag > 0) {
       /* calculate delta u^0 pi */
       diss->Make_uPRHS(tau_next, arena, ix, iy, ieta, &p_rhs, DATA, rk_flag,
-		       theta_local);
+           theta_local);
       
       tempf = (grid_pt->pi_b[0])*(grid_pt->prev_u[0][0]);
       temps = diss->Make_uPiSource(tau_next, grid_pt, DATA, rk_flag,
-				   theta_local, sigma_local);
+           theta_local, sigma_local);
       tempf += temps*(DATA->delta_tau);
       tempf += p_rhs;
       
@@ -331,36 +331,36 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
       diss->Make_uqRHS(tau_now, arena, ix, iy, ieta, w_rhs, DATA, rk_flag);
       int mu = 4;
       for (int nu = 1; nu < 4; nu++) {
-	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-	tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
-		 *(grid_pt->u[rk_flag][0]));
-	temps = diss->Make_uqSource(tau_now, grid_pt, nu, DATA,
-				    rk_flag, theta_local, a_local,
-				    sigma_local); 
-	tempf += temps*(DATA->delta_tau);
-	tempf += w_rhs[mu][nu];
-	
-	grid_pt->Wmunu[trk_flag][idx_1d] = (
+  int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+  tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
+     *(grid_pt->u[rk_flag][0]));
+  temps = diss->Make_uqSource(tau_now, grid_pt, nu, DATA,
+            rk_flag, theta_local, a_local,
+            sigma_local); 
+  tempf += temps*(DATA->delta_tau);
+  tempf += w_rhs[mu][nu];
+  
+  grid_pt->Wmunu[trk_flag][idx_1d] = (
                                             tempf/(grid_pt->u[trk_flag][0]));
       }
     } else if (rk_flag > 0) {
       diss->Make_uqRHS(tau_next, arena, ix, iy, ieta, w_rhs, DATA, rk_flag);
       int mu = 4;
       for (int nu = 1; nu < 4; nu++) {
-	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-	tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->prev_u[0][0]);
-	temps = diss->Make_uqSource(tau_next, grid_pt, nu, DATA,
-				    rk_flag, theta_local, a_local,
-				    sigma_local); 
-	tempf += temps*(DATA->delta_tau);
-	tempf += w_rhs[mu][nu];
-	
-	tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
-		  *(grid_pt->u[rk_flag][0]));
-	tempf *= 0.5;
-	
-	grid_pt->Wmunu[trk_flag][idx_1d] = (
-					    tempf/(grid_pt->u[trk_flag][0]));
+  int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+  tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->prev_u[0][0]);
+  temps = diss->Make_uqSource(tau_next, grid_pt, nu, DATA,
+            rk_flag, theta_local, a_local,
+            sigma_local); 
+  tempf += temps*(DATA->delta_tau);
+  tempf += w_rhs[mu][nu];
+  
+  tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
+      *(grid_pt->u[rk_flag][0]));
+  tempf *= 0.5;
+  
+  grid_pt->Wmunu[trk_flag][idx_1d] = (
+              tempf/(grid_pt->u[trk_flag][0]));
       }
     } /* rk_flag > 0 */
   } else {
@@ -372,20 +372,20 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
   
   // re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless
   grid_pt->Wmunu[trk_flag][9] = (
-				 (2.*(grid_pt->u[trk_flag][1]*grid_pt->u[trk_flag][2]
-				      *grid_pt->Wmunu[trk_flag][5]
-				      + grid_pt->u[trk_flag][1]*grid_pt->u[trk_flag][3]
-				      *grid_pt->Wmunu[trk_flag][6]
-				      + grid_pt->u[trk_flag][2]*grid_pt->u[trk_flag][3]
-				      *grid_pt->Wmunu[trk_flag][8])
-				  - (grid_pt->u[trk_flag][0]*grid_pt->u[trk_flag][0] 
-				     - grid_pt->u[trk_flag][1]*grid_pt->u[trk_flag][1])
-				  *grid_pt->Wmunu[trk_flag][4] 
-				  - (grid_pt->u[trk_flag][0]*grid_pt->u[trk_flag][0] 
-				     - grid_pt->u[trk_flag][2]*grid_pt->u[trk_flag][2])
-				  *grid_pt->Wmunu[trk_flag][7])
-				 /(grid_pt->u[trk_flag][0]*grid_pt->u[trk_flag][0] 
-				   - grid_pt->u[trk_flag][3]*grid_pt->u[trk_flag][3]));
+         (2.*(grid_pt->u[trk_flag][1]*grid_pt->u[trk_flag][2]
+              *grid_pt->Wmunu[trk_flag][5]
+              + grid_pt->u[trk_flag][1]*grid_pt->u[trk_flag][3]
+              *grid_pt->Wmunu[trk_flag][6]
+              + grid_pt->u[trk_flag][2]*grid_pt->u[trk_flag][3]
+              *grid_pt->Wmunu[trk_flag][8])
+          - (grid_pt->u[trk_flag][0]*grid_pt->u[trk_flag][0] 
+             - grid_pt->u[trk_flag][1]*grid_pt->u[trk_flag][1])
+          *grid_pt->Wmunu[trk_flag][4] 
+          - (grid_pt->u[trk_flag][0]*grid_pt->u[trk_flag][0] 
+             - grid_pt->u[trk_flag][2]*grid_pt->u[trk_flag][2])
+          *grid_pt->Wmunu[trk_flag][7])
+         /(grid_pt->u[trk_flag][0]*grid_pt->u[trk_flag][0] 
+           - grid_pt->u[trk_flag][3]*grid_pt->u[trk_flag][3]));
   
   // make Wmunu[i][0] using the transversality
   for (int mu = 1; mu < 4; mu++) {
@@ -409,12 +409,12 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
     for (int mu = 4; mu < mu_max + 1; mu++) {
       tempf = 0.0;
       for (int nu = 1; nu < 4; nu++) {
-	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-	tempf += (grid_pt->Wmunu[trk_flag][idx_1d]
-		  *grid_pt->u[trk_flag][nu]);
+  int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+  tempf += (grid_pt->Wmunu[trk_flag][idx_1d]
+      *grid_pt->u[trk_flag][nu]);
       }
       grid_pt->Wmunu[trk_flag][10] = (
-				      tempf/(grid_pt->u[trk_flag][0]));
+              tempf/(grid_pt->u[trk_flag][0]));
     }
   } else {
     grid_pt->Wmunu[trk_flag][10] = 0.0;
@@ -428,7 +428,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
     revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA, ieta, ix, iy);
     if (DATA->turn_on_diff == 1) {
       revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA,
-				      ieta, ix, iy);
+              ieta, ix, iy);
     }
   }
   
@@ -484,7 +484,7 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
   //double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
   double xi = 0.05;
   double factor = 100.*(1./(exp(-(e_local - eps_scale)/xi) + 1.)
-			- 1./(exp(eps_scale/xi) + 1.));
+      - 1./(exp(eps_scale/xi) + 1.));
   double factor_bulk = factor;
   
   // regulation factor from Bjoern
@@ -505,8 +505,8 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
   double pi_33 = grid_pt->Wmunu[trk_flag][9];
   
   double pisize = (pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
-		   - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
-		   + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
+       - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
+       + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
   
   double pi_local = grid_pt->pi_b[trk_flag];
   double bulksize = 3.*pi_local*pi_local;
@@ -527,15 +527,15 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
   if (rho_shear > rho_shear_max) {
     if (e_local > eps_scale && DATA_ptr->echo_level > 5) {
       music_message << "ieta = " << ieta << ", ix = " << ix
-		    << ", iy = " << iy
-		    << ", energy density = " << e_local*hbarc
-		    << " GeV/fm^3, shear |pi/(epsilon+3*P)| = "
-		    << rho_shear;
+        << ", iy = " << iy
+        << ", energy density = " << e_local*hbarc
+        << " GeV/fm^3, shear |pi/(epsilon+3*P)| = "
+        << rho_shear;
       music_message.flush("warning");
     }
     for (int mu = 0; mu < 10; mu++) {
       grid_pt->Wmunu[trk_flag][mu] = (
-				      (rho_shear_max/rho_shear)*grid_pt->Wmunu[trk_flag][mu]);
+              (rho_shear_max/rho_shear)*grid_pt->Wmunu[trk_flag][mu]);
     }
     revert_flag = 1;
   }
@@ -545,14 +545,14 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
   if (rho_bulk > rho_bulk_max) {
     if (e_local > eps_scale && DATA_ptr->echo_level > 5) {
       music_message << "ieta = " << ieta << ", ix = " << ix
-		    << ", iy = " << iy
-		    << ", energy density = " << e_local*hbarc
-		    << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
-		    << rho_bulk;
+        << ", iy = " << iy
+        << ", energy density = " << e_local*hbarc
+        << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
+        << rho_bulk;
       music_message.flush("warning");
     }
     grid_pt->pi_b[trk_flag] = (
-			       (rho_bulk_max/rho_bulk)*grid_pt->pi_b[trk_flag]);
+             (rho_bulk_max/rho_bulk)*grid_pt->pi_b[trk_flag]);
     revert_flag = 1;
   }
   return(revert_flag);
@@ -573,7 +573,7 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
   
   double xi = 0.05;
   double factor = 100.*(1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
-			- 1./(exp(eps_scale/xi) + 1.));
+      - 1./(exp(eps_scale/xi) + 1.));
   
   double q_mu_local[4];
   for (int i = 0; i < 4; i++) {
@@ -592,7 +592,7 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
   // (in the conversion of gmn = diag(-+++))
   if (q_size < 0.0) {
     music_message << "Advance::QuestRevert_qmu: q^mu q_mu = " << q_size
-		  << " < 0!";
+      << " < 0!";
     music_message.flush("warning");
     music_message << "Reset it to zero!!!!";
     music_message.flush("warning");
@@ -611,16 +611,16 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
   if (rho_q > rho_q_max) {
     if (e_local > eps_scale && DATA_ptr->echo_level > 5) {
       music_message << "ieta = " << ieta << ", ix = " << ix
-		    << ", iy = " << iy
-		    << ", energy density = " << e_local*hbarc
-		    << "GeV/fm^3"
-		    << ", rhob = " << rhob_local << "1/fm^3"
-		    << "-- diffusion |q/rhob| = " << rho_q;
+        << ", iy = " << iy
+        << ", energy density = " << e_local*hbarc
+        << "GeV/fm^3"
+        << ", rhob = " << rhob_local << "1/fm^3"
+        << "-- diffusion |q/rhob| = " << rho_q;
       music_message.flush("warning");
     }
     for (int i = 0; i < 4; i++) {
       grid_pt->Wmunu[trk_flag][10+i] = (
-					(rho_q_max/rho_q)*q_mu_local[i]);
+          (rho_q_max/rho_q)*q_mu_local[i]);
     }
     revert_flag = 1;
   }
@@ -652,21 +652,21 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
       Cell grid_phL, grid_phR, grid_mhL, grid_mhR;
       double tau_fac = tau;
       if (direction == 3) {
-	tau_fac = 1.0;
+        tau_fac = 1.0;
       }
       for (int alpha = 0; alpha < 5; alpha++) {
-	double gphL = qi[alpha];
-	double gphR = tau*get_TJb(p1, rk_flag, alpha, 0);
-	double gmhL = tau*get_TJb(m1, rk_flag, alpha, 0);
-	double gmhR = qi[alpha];
-	double fphL = 0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
-	double fphR = -0.5*minmod.minmod_dx(tau*get_TJb(p2, rk_flag, alpha, 0), gphR, qi[alpha]);
-	double fmhL = 0.5*minmod.minmod_dx(qi[alpha], gmhL, tau*get_TJb(m2, rk_flag, alpha, 0));
-	double fmhR = -0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
-	qiphL[alpha] = gphL + fphL;
-	qiphR[alpha] = gphR + fphR;
-	qimhL[alpha] = gmhL + fmhL;
-	qimhR[alpha] = gmhR + fmhR;
+        double gphL = qi[alpha];
+        double gphR = tau*get_TJb(p1, rk_flag, alpha, 0);
+        double gmhL = tau*get_TJb(m1, rk_flag, alpha, 0);
+        double gmhR = qi[alpha];
+        double fphL = 0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
+        double fphR = -0.5*minmod.minmod_dx(tau*get_TJb(p2, rk_flag, alpha, 0), gphR, qi[alpha]);
+        double fmhL = 0.5*minmod.minmod_dx(qi[alpha], gmhL, tau*get_TJb(m2, rk_flag, alpha, 0));
+        double fmhR = -0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
+        qiphL[alpha] = gphL + fphL;
+        qiphR[alpha] = gphR + fphR;
+        qimhL[alpha] = gmhL + fmhL;
+        qimhR[alpha] = gmhR + fmhR;
       }
       // for each direction, reconstruct half-way cells
       // reconstruct e, rhob, and u[4] for half way cells
@@ -684,20 +684,20 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
       double aimh = maxi(aimhL, aimhR);
       
       for (int alpha = 0; alpha < 5; alpha++) {
-	double FiphL = get_TJb(grid_phL, 0, alpha, direction)*tau_fac;
-	double FiphR = get_TJb(grid_phR, 0, alpha, direction)*tau_fac;
-	double FimhL = get_TJb(grid_mhL, 0, alpha, direction)*tau_fac;
-	double FimhR = get_TJb(grid_mhR, 0, alpha, direction)*tau_fac;
-        
-	// KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2
-	//                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
-	double Fiph = 0.5*((FiphL + FiphR)
-			   - aiph*(qiphR[alpha] - qiphL[alpha]));
-	double Fimh = 0.5*((FimhL + FimhR)
-			   - aimh*(qimhR[alpha] - qimhL[alpha]));
-	double DFmmp = (Fimh - Fiph)/delta[direction];
-        
-	rhs[alpha] += DFmmp*(DATA_ptr->delta_tau);
+        double FiphL = get_TJb(grid_phL, 0, alpha, direction)*tau_fac;
+        double FiphR = get_TJb(grid_phR, 0, alpha, direction)*tau_fac;
+        double FimhL = get_TJb(grid_mhL, 0, alpha, direction)*tau_fac;
+        double FimhR = get_TJb(grid_mhR, 0, alpha, direction)*tau_fac;
+              
+        // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2
+        //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
+        double Fiph = 0.5*((FiphL + FiphR)
+               - aiph*(qiphR[alpha] - qiphL[alpha]));
+        double Fimh = 0.5*((FimhL + FimhR)
+               - aimh*(qimhR[alpha] - qimhL[alpha]));
+        double DFmmp = (Fimh - Fiph)/delta[direction];
+              
+        rhs[alpha] += DFmmp*(DATA_ptr->delta_tau);
       }
     });
   
@@ -793,11 +793,11 @@ double Advance::MaxSpeed(double tau, int direc, Cell *grid_p) {
             if (fabs(f-ux/utau)<0.0001) {
                 f = ux/utau;
             } else {
-	            fprintf(stderr, "SpeedMax-v = %lf\n", f-ux/utau);
-	            fprintf(stderr, "SpeedMax = %e\n is smaller than v = %e.\n",
+              fprintf(stderr, "SpeedMax-v = %lf\n", f-ux/utau);
+              fprintf(stderr, "SpeedMax = %e\n is smaller than v = %e.\n",
                         f, ux/utau);
-	            fprintf(stderr, "Can't happen.\n");
-	            exit(0);
+              fprintf(stderr, "Can't happen.\n");
+              exit(0);
             }
         }
     } else if (f >  1.0) {
@@ -814,19 +814,19 @@ double Advance::MaxSpeed(double tau, int direc, Cell *grid_p) {
     return f;
 }/* MaxSpeed */
 
-double Advance::get_TJb(Cell *grid_p, int rk_flag, int mu, int nu) {
-    double rhob = grid_p->rhob;
+double Advance::get_TJb(const Cell &grid_p, const int rk_flag, const int mu, const int nu) {
+    double rhob = grid_p.rhob;
     if (rk_flag == 1) {
-        rhob = grid_p->rhob_t;
+        rhob = grid_p.rhob_t;
     }
-    double u_nu = grid_p->u[rk_flag][nu];
+
+    const double u_nu = grid_p.u[rk_flag][nu];
     if (mu == 4) {
-        double J_nu = rhob*u_nu;
-        return(J_nu);
+        return rhob*u_nu;
     } else if (mu < 4) {
-        double e = grid_p->epsilon;
+        double e = grid_p.epsilon;
         if (rk_flag == 1) {
-            e = grid_p->epsilon_t;
+            e = grid_p.epsilon_t;
         }
         double gfac = 0.0;
         double u_mu = 0.0;
@@ -838,10 +838,10 @@ double Advance::get_TJb(Cell *grid_p, int rk_flag, int mu, int nu) {
                 gfac = 1.0;
             }
         } else {
-            u_mu = grid_p->u[rk_flag][mu];
+            u_mu = grid_p.u[rk_flag][mu];
         }
-        double pressure = eos->get_pressure(e, rhob);
-        double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
+        const double pressure = eos->get_pressure(e, rhob);
+        const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
         return(T_munu);
     } else {
         return(0.0);
