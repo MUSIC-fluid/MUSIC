@@ -53,6 +53,6 @@ void Neighbourloop(Grid &arena, int cx, int cy, int ceta, Func func){
   }
 }
 
-#define NLAMBDA [&](Cell& c, const Cell& p1, const Cell& p2, const Cell& m1, const Cell& m2, const int direction)
+#define NLAMBDA [&](const Cell& c, const Cell& p1, const Cell& p2, const Cell& m1, const Cell& m2, const int direction)
 
 #endif

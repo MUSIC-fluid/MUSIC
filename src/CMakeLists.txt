@@ -20,6 +20,7 @@ add_executable (mpihydro
     evolve.cpp
     u_derivative.cpp
     dissipative.cpp
+    emoji.cpp
     )
 
 target_link_libraries (mpihydro ${GSL_LIBRARIES})
