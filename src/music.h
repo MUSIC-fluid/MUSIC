@@ -36,8 +36,8 @@ class MUSIC {
     Grid arena;
 
     Init *init;
-    Evolve *evolve;
-    Freeze *freeze;
+    Evolve *evolve = nullptr;
+    Freeze *freeze = nullptr;
 
     hydro_source *hydro_source_ptr;
 

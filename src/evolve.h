@@ -23,11 +23,10 @@
 class Evolve {
  private:
     EOS *eos;        // declare EOS object
-    Cell *grid;      // declare Cell object
-    Cell_info *grid_info;
-    Util *util;
-    Advance *advance;
-    U_derivative *u_derivative;
+    Cell_info grid_info;
+    Util util;
+    Advance advance;
+    U_derivative u_derivative;
     hydro_source *hydro_source_ptr;
     pretty_ostream music_message;
 
@@ -50,7 +49,6 @@ class Evolve {
 
  public:
     Evolve(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
-    ~Evolve();
     int EvolveIt(InitData *DATA, Grid &arena);
 
     int AdvanceRK(double tau, InitData *DATA, Grid &arena);
