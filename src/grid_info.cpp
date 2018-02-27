@@ -398,30 +398,15 @@ void Cell_info::get_maximum_energy_density(Grid &arena) {
     int nx   = DATA_ptr->nx;
     int ny   = DATA_ptr->ny;
 
-    int ieta;
-    #pragma omp parallel private(ieta) reduction(max:eps_max, rhob_max, T_max)
-    {
-        #pragma omp for
-        for (ieta = 0; ieta < neta; ieta++) {
-            for (int ix = 0; ix <= nx; ix++) {
-                for (int iy = 0; iy <= ny; iy++) {
-                    double eps_local = arena(ix,iy,ieta).epsilon;
-                    if (eps_max < eps_local) {
-                        eps_max = eps_local;
-                    }
-                    double rhob_local = arena(ix,iy,ieta).rhob;
-                    if (rhob_max < rhob_local) {
-                        rhob_max = rhob_local;
-                    }
-                    double T_local =
-                            eos_ptr->get_temperature(eps_local, rhob_local);
-                    if (T_max < T_local) {
-                        T_max = T_local;
-                    }
-                }
-            }
-        }
-        #pragma omp barrier
+    #pragma omp parallel for collapse(3) reduction(max:eps_max, rhob_max, T_max)
+    for (int ieta = 0; ieta < neta; ieta++)
+    for (int ix = 0; ix <= nx; ix++) 
+    for (int iy = 0; iy <= ny; iy++) {
+        const auto eps_local  = arena(ix,iy,ieta).epsilon
+        const auto rhob_local = arena(ix,iy,ieta).rhob   
+        eps_max  = std::max(eps_max,  eps_local );
+        rhob_max = std::max(rhob_max, rhob_local);
+        T_max    = std::max(T_max,    eos_ptr->get_temperature(eps_local, rhob_local) );
     }
     eps_max *= 0.19733;   // GeV/fm^3
     T_max *= 0.19733;     // GeV
@@ -444,44 +429,40 @@ void Cell_info::check_conservation_law(Grid &arena, InitData *DATA,
     double dx      = DATA->delta_x;
     int    ny      = DATA->ny;
     double dy      = DATA->delta_y;
-    int ieta;
-    #pragma omp parallel private(ieta) reduction(+:N_B, T_tau_t)
-    {
-        #pragma omp for
-        for (ieta = 0; ieta < neta; ieta++) {
-            double eta_s = deta*ieta - (DATA->eta_size)/2.0;
-            for (int ix = 0; ix <= nx; ix++) {
-                for (int iy = 0; iy <= ny; iy++) {
-                    double cosh_eta = cosh(eta_s);
-                    double sinh_eta = sinh(eta_s);
-                    N_B += (arena(ix,iy,ieta).rhob
-                            *arena(ix,iy,ieta).u[0][0]
-                            + arena(ix,iy,ieta).prevWmunu[0][10]);
-                    double Pi00_rk_0 = (
-                        arena(ix,iy,ieta).prev_pi_b[0]
-                        *(-1.0 + arena(ix,iy,ieta).prev_u[0][0]
-                                 *(arena(ix,iy,ieta).prev_u[0][0])));
-                    double e_local   = arena(ix,iy,ieta).epsilon;
-                    double rhob      = arena(ix,iy,ieta).rhob;
-                    double pressure  = eos_ptr->get_pressure(e_local, rhob);
-                    double u0        = arena(ix,iy,ieta).u[0][0];
-                    double u3        = arena(ix,iy,ieta).u[0][3];
-                    double T00_local = (e_local + pressure)*u0*u0 - pressure;
-                    double T03_local = (e_local + pressure)*u0*u3;
-                    double T_tau_tau = (T00_local
-                            + arena(ix,iy,ieta).prevWmunu[0][0] + Pi00_rk_0);
 
-                    double Pi03_rk_0 = (
-                        arena(ix,iy,ieta).prev_pi_b[0]
-                        *(arena(ix,iy,ieta).prev_u[0][0]
-                          *(arena(ix,iy,ieta).prev_u[0][3])));
-                    double T_tau_eta = (T03_local
-                            + arena(ix,iy,ieta).prevWmunu[0][3] + Pi03_rk_0);
-                    T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
-                }
-            }
-        }
-        #pragma omp barrier
+    #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t)
+    for (int ieta = 0; ieta < neta; ieta++)     
+    for (int ix = 0; ix <= nx; ix++) 
+    for (int iy = 0; iy <= ny; iy++) {
+        const auto& c = arena(ix,iy,ieta);
+
+        const double eta_s = deta*ieta - (DATA->eta_size)/2.0;
+        const double cosh_eta = cosh(eta_s);
+        const double sinh_eta = sinh(eta_s);
+        N_B += (c.rhob
+                *c.u[0][0]
+                + c.prevWmunu[0][10]);
+        const double Pi00_rk_0 = (
+            c.prev_pi_b[0]
+            *(-1.0 + c.prev_u[0][0]
+                     *(c.prev_u[0][0])));
+        const double e_local   = c.epsilon;
+        const double rhob      = c.rhob;
+        const double pressure  = eos_ptr->get_pressure(e_local, rhob);
+        const double u0        = c.u[0][0];
+        const double u3        = c.u[0][3];
+        const double T00_local = (e_local + pressure)*u0*u0 - pressure;
+        const double T03_local = (e_local + pressure)*u0*u3;
+        const double T_tau_tau = (T00_local
+                + c.prevWmunu[0][0] + Pi00_rk_0);
+
+        const double Pi03_rk_0 = (
+            c.prev_pi_b[0]
+            *(c.prev_u[0][0]
+              *(c.prev_u[0][3])));
+        const double T_tau_eta = (T03_local
+                + c.prevWmunu[0][3] + Pi03_rk_0);
+        T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
     }
     double factor = tau*dx*dy*deta;
     N_B *= factor;

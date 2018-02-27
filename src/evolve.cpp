@@ -246,34 +246,26 @@ int Evolve::Update_prev_Arena(Grid &arena) {
     int neta = grid_neta;
     int nx   = grid_nx;
     int ny   = grid_ny;
-    int ieta, ix, iy;
-    #pragma omp parallel private(ieta, ix, iy)
-    {
-        #pragma omp for collapse(3)
-        for (ieta = 0; ieta < neta; ieta++) {
-            for (ix = 0; ix <= nx; ix++) {
-                for (iy = 0; iy <= ny; iy++) {
-                    arena(ix,iy,ieta).prev_epsilon = (
-                                                arena(ix,iy,ieta).epsilon);
-                    arena(ix,iy,ieta).prev_rhob = arena(ix,iy,ieta).rhob;
-     
-                    // previous pi_b is stored in prevPimunu
-                    arena(ix,iy,ieta).prev_pi_b[0] = (
-                                                arena(ix,iy,ieta).pi_b[0]);
-                    for (int ii = 0; ii < 14; ii++) {
-                        /* this was the previous value */
-                        arena(ix,iy,ieta).prevWmunu[0][ii] = (
-                                        arena(ix,iy,ieta).Wmunu[0][ii]); 
-                    }
-                    for (int mu = 0; mu < 4; mu++) {
-                        /* this was the previous value */
-                        arena(ix,iy,ieta).prev_u[0][mu] = (
-                                                arena(ix,iy,ieta).u[0][mu]); 
-                    }
-                }
-            }
+
+    #pragma omp parallel for collapse(3)
+    for(int ieta = 0; ieta < neta; ieta++) 
+    for(int ix   = 0; ix   <= nx;  ix++  )
+    for(int iy   = 0; iy   <= ny;  iy++  ) {
+        arena(ix,iy,ieta).prev_epsilon = arena(ix,iy,ieta).epsilon;
+        arena(ix,iy,ieta).prev_rhob    = arena(ix,iy,ieta).rhob;
+
+        // previous pi_b is stored in prevPimunu
+        arena(ix,iy,ieta).prev_pi_b[0] = arena(ix,iy,ieta).pi_b[0];
+        for (int ii = 0; ii < 14; ii++) {
+            /* this was the previous value */
+            arena(ix,iy,ieta).prevWmunu[0][ii] = arena(ix,iy,ieta).Wmunu[0][ii]; 
+        }
+        for (int mu = 0; mu < 4; mu++) {
+            /* this was the previous value */
+            arena(ix,iy,ieta).prev_u[0][mu] = arena(ix,iy,ieta).u[0][mu]; 
         }
     }
+
     return(1);
 }
 

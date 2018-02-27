@@ -46,13 +46,11 @@ Advance::~Advance() {
 //! this function evolves one Runge-Kutta step in tau
 int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
                        int rk_flag) {
-  int ieta, ix, iy;
-#pragma omp parallel private(ieta, ix, iy)
-  {
-#pragma omp for collapse(3)
-    for (ieta = 0; ieta < grid_neta; ieta++) {
-      for (ix = 0; ix <= grid_nx; ix++) {
-  for (iy = 0; iy <= grid_ny; iy++) {
+
+  #pragma omp parallel for collapse(3)
+  for(int ieta = 0; ieta <  grid_neta; ieta++)
+  for(int ix   = 0; ix   <= grid_nx;   ix++  )
+  for(int iy   = 0; iy   <= grid_ny;   iy++  ) {
     double eta_s_local = (- DATA_ptr->eta_size/2.
         + ieta*DATA_ptr->delta_eta);
     double x_local = (- DATA_ptr->x_size/2.
@@ -96,10 +94,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
       delete[] sigma_local;
     }
   }
-      }
-    }
-#pragma omp barrier
-  }
+  
   return(1);
 }
 

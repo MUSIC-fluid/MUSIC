@@ -659,10 +659,9 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
         // use critical clause at the end to add the private 2d arrays
         // together from individual omp_thread
         double temp_sum_private[iptmax][iphimax];
-        for (int ii = 0; ii < iptmax; ii++) {
-            for (int jj = 0; jj < iphimax; jj++) {
-                temp_sum_private[ii][jj] = 0.0;
-            }
+        for (int ii = 0; ii < iptmax;  ii++) 
+        for (int jj = 0; jj < iphimax; jj++) {
+            temp_sum_private[ii][jj] = 0.0;
         }
 
         #pragma omp for
