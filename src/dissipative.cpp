@@ -82,17 +82,17 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     double dPidx = 0.0;
     Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
         int idx_1d;
-        idx_1d      = Util::map_2d_idx_to_1d(alpha, direction + 1);
+        idx_1d      = Util::map_2d_idx_to_1d(alpha, direction);
         double sg   = c.Wmunu[rk_flag][idx_1d];
         double sgp1 = p1.Wmunu[rk_flag][idx_1d];
         double sgm1 = m1.Wmunu[rk_flag][idx_1d];
-        dWdx += minmod.minmod_dx(sgp1, sg, sgm1)/delta[direction + 1];
+        dWdx += minmod.minmod_dx(sgp1, sg, sgm1)/delta[direction];
         if (alpha < 4 && DATA->turn_on_bulk == 1) {
-            double gfac1 = (alpha == (direction + 1) ? 1.0 : 0.0);
-            double bgp1  = p1.pi_b[rk_flag]*(gfac1 + p1.u[rk_flag][alpha]*p1.u[rk_flag][direction + 1]);
-            double bg    = c.pi_b[rk_flag]*(gfac1 + c.u[rk_flag][alpha]*c.u[rk_flag][direction + 1]);
-            double bgm1  = m1.pi_b[rk_flag]*(gfac1 + m1.u[rk_flag][alpha]*m1.u[rk_flag][direction + 1]);
-            dPidx += minmod.minmod_dx(bgp1, bg, bgm1)/delta[direction + 1];
+            double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
+            double bgp1  = p1.pi_b[rk_flag]*(gfac1 + p1.u[rk_flag][alpha]*p1.u[rk_flag][direction]);
+            double bg    = c.pi_b[rk_flag]*(gfac1 + c.u[rk_flag][alpha]*c.u[rk_flag][direction]);
+            double bgm1  = m1.pi_b[rk_flag]*(gfac1 + m1.u[rk_flag][alpha]*m1.u[rk_flag][direction]);
+            dPidx += minmod.minmod_dx(bgp1, bg, bgm1)/delta[direction];
         }
     });
 
@@ -517,26 +517,26 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
             int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
             sum = 0.0;
             Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
-                int direc = direction + 1;
+//                int direc = direction + 1;
                 /* Get_uWmns */
                 double g = c.Wmunu[rk_flag][idx_1d];
-                double f = g*c.u[rk_flag][direc];
+                double f = g*c.u[rk_flag][direction];
                 g *=   c.u[rk_flag][0];
                    
                 double gp2 = p2.Wmunu[rk_flag][idx_1d];
-                double fp2 = gp2*p2.u[rk_flag][direc];
+                double fp2 = gp2*p2.u[rk_flag][direction];
                 gp2 *= p2.u[rk_flag][0];
                 
                 double gp1 = p1.Wmunu[rk_flag][idx_1d];
-                double fp1 = gp1*p1.u[rk_flag][direc];
+                double fp1 = gp1*p1.u[rk_flag][direction];
                 gp1 *= p1.u[rk_flag][0];
                 
                 double gm1 = m1.Wmunu[rk_flag][idx_1d];
-                double fm1 = gm1*m1.u[rk_flag][direc];
+                double fm1 = gm1*m1.u[rk_flag][direction];
                 gm1 *= m1.u[rk_flag][0];
                 
                 double gm2 = m2.Wmunu[rk_flag][idx_1d];
-                double fm2 = gm2*m2.u[rk_flag][direc];
+                double fm2 = gm2*m2.u[rk_flag][direction];
                 gm2 *= m2.u[rk_flag][0];
                 
                 /* MakeuWmnHalfs */
@@ -554,9 +554,9 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                 double WmhR = g - temp;
                 double WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
 
-                double a   = fabs(c.u[rk_flag][direc])/c.u[rk_flag][0];
-                double am1 = (fabs(m1.u[rk_flag][direc])/m1.u[rk_flag][0]);
-                double ap1 = (fabs(p1.u[rk_flag][direc])/p1.u[rk_flag][0]);
+                double a   = fabs(c.u[rk_flag][direction])/c.u[rk_flag][0];
+                double am1 = (fabs(m1.u[rk_flag][direction])/m1.u[rk_flag][0]);
+                double ap1 = (fabs(p1.u[rk_flag][direction])/p1.u[rk_flag][0]);
 
                 double ax = maxi(a, ap1);
                 double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
@@ -564,7 +564,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                 ax = maxi(a, am1);
                 double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
 
-                double HW = (HWph - HWmh)/delta[direc];
+                double HW = (HWph - HWmh)/delta[direction];
 
                 /* make partial_i (u^i Wmn) */
                 sum += -HW;
@@ -726,26 +726,26 @@ int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
     double sum = 0.0;
     Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
-        int direc = direction + 1;
+//        int direc = direction + 1;
         /* Get_uPis */
         double g = c.pi_b[rk_flag];
-        double f = g*c.u[rk_flag][direc];
+        double f = g*c.u[rk_flag][direction];
         g *= c.u[rk_flag][0];
 
         double gp2 = p2.pi_b[rk_flag];
-        double fp2 = gp2*p2.u[rk_flag][direc];
+        double fp2 = gp2*p2.u[rk_flag][direction];
         gp2 *= p2.u[rk_flag][0];
         
         double gp1 = p1.pi_b[rk_flag];
-        double fp1 = gp1*p1.u[rk_flag][direc];
+        double fp1 = gp1*p1.u[rk_flag][direction];
         gp1 *= p1.u[rk_flag][0];
         
         double gm1 = m1.pi_b[rk_flag];
-        double fm1 = gm1*m1.u[rk_flag][direc];
+        double fm1 = gm1*m1.u[rk_flag][direction];
         gm1 *= m1.u[rk_flag][0];
         
         double gm2 = m2.pi_b[rk_flag];
-        double fm2 = gm2*m2.u[rk_flag][direc];
+        double fm2 = gm2*m2.u[rk_flag][direction];
         gm2 *= m2.u[rk_flag][0];
 
         /*  Make upi Halfs */
@@ -765,13 +765,13 @@ int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
         /* MakePimnCurrents following Kurganov-Tadmor */
     
-        double a = fabs(c.u[rk_flag][direc]);
+        double a = fabs(c.u[rk_flag][direction]);
         a /= c.u[rk_flag][0];
   
-        double am1 = fabs(m1.u[rk_flag][direc]);
+        double am1 = fabs(m1.u[rk_flag][direction]);
         am1 /= m1.u[rk_flag][0];
 
-        double ap1 = fabs(p1.u[rk_flag][direc]);
+        double ap1 = fabs(p1.u[rk_flag][direction]);
         ap1 /= p1.u[rk_flag][0];
         
         double ax = maxi(a, ap1);
@@ -780,7 +780,7 @@ int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
         ax = maxi(a, am1); 
         double HPimh = ((uPimhR + uPimhL) - ax*(PimhR - PimhL))*0.5;
 
-        double HPi = (HPiph - HPimh)/delta[direc];
+        double HPi = (HPiph - HPimh)/delta[direction];
 
         /* make partial_i (u^i Pi) */
         sum += -HPi;
@@ -1176,26 +1176,26 @@ int Diss::Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
         int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
         double sum = 0.0;
         Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
-            int direc = direction + 1;
+//            int direc = direction + 1;
             /* Get_uWmns */
             double g = c.Wmunu[rk_flag][idx_1d];
-            double f = g*c.u[rk_flag][direc];
+            double f = g*c.u[rk_flag][direction];
             g *=   c.u[rk_flag][0];
                
             double gp2 = p2.Wmunu[rk_flag][idx_1d];
-            double fp2 = gp2*p2.u[rk_flag][direc];
+            double fp2 = gp2*p2.u[rk_flag][direction];
             gp2 *=     p2.u[rk_flag][0];
             
             double gp1 = p1.Wmunu[rk_flag][idx_1d];
-            double fp1 = gp1*p1.u[rk_flag][direc];
+            double fp1 = gp1*p1.u[rk_flag][direction];
             gp1 *=     p1.u[rk_flag][0];
             
             double gm1 = m1.Wmunu[rk_flag][idx_1d];
-            double fm1 = gm1*m1.u[rk_flag][direc];
+            double fm1 = gm1*m1.u[rk_flag][direction];
             gm1 *=     m1.u[rk_flag][0];
             
             double gm2 = m2.Wmunu[rk_flag][idx_1d];
-            double fm2 = gm2*m2.u[rk_flag][direc];
+            double fm2 = gm2*m2.u[rk_flag][direction];
             gm2 *=     m2.u[rk_flag][0];
  
             /*  MakeuWmnHalfs */
@@ -1213,17 +1213,17 @@ int Diss::Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
             double WmhR = g - temp;
             double WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
 
-            double a = fabs(c.u[rk_flag][direc])/c.u[rk_flag][0];
+            double a = fabs(c.u[rk_flag][direction])/c.u[rk_flag][0];
 
-            double am1 = (fabs(m1.u[rk_flag][direc])/m1.u[rk_flag][0]);
-            double ap1 = (fabs(p1.u[rk_flag][direc])/p1.u[rk_flag][0]);
+            double am1 = (fabs(m1.u[rk_flag][direction])/m1.u[rk_flag][0]);
+            double ap1 = (fabs(p1.u[rk_flag][direction])/p1.u[rk_flag][0]);
             double ax = maxi(a, ap1);
             double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
 
             ax = maxi(a, am1); 
             double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
 
-            double HW = (HWph - HWmh)/delta[direc];
+            double HW = (HWph - HWmh)/delta[direction];
             /* make partial_i (u^i Wmn) */
             sum += -HW;
         });
