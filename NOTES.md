@@ -107,9 +107,40 @@ Suggested flags GCC compiler:
     -std=c11 -march=knl -O3 -mavx512f -mavx512pf -mavx512er -mavx512cd -mfma -malign-data=cacheline -finline-functions
 
 
+
+What's vectorizing? What isn't? And why?
+========================================
+
+Compiler outputs
+----------------
+
+    -qopt-report=5 -qopt-report-phase:vec
+
+
+
+Intel advisor
+-------------
+
+/hpcgpfs01/software/Intel/psxe2018.u1/parallel_studio_xe_2018/advisor_2018/bin64/advixe-cl
+
+
+    /hpcgpfs01/software/Intel/psxe2018.u1/parallel_studio_xe_2018/advisor_2018/bin64/advixe-cl --collect survey -project-dir=profile/  ./a.out 3001 120 out.dem 123
+
+    /hpcgpfs01/software/Intel/psxe2018.u1/parallel_studio_xe_2018/advisor_2018/bin64/advixe-cl --collect tripcounts -flop -project-dir=profile/  ./a.out 3001 120 out.dem 123
+
+    /hpcgpfs01/software/Intel/psxe2018.u1/parallel_studio_xe_2018/advisor_2018/bin64/advixe-cl --collect map -mark-up-list=26 -project-dir=profile/ ./a.out 501 120 out.dem 123
+
+
+
 OpenMP Scheduling
 ===================
 
  * `schedule(static)`  : Allocate iterations to threads and never changed
  * `schedule(dynamic)` : Threads take new work after each iteration (probably slow for small workloads)
  * `schedule(guided)`  : Threads take new chunks of work after each iteration. Chunksize automagically adjusts.
+
+
+BNL KNL Cluster
+===================
+
+    salloc -A hackathon --reservation=hackathon -p long -t hh:mm:ss
