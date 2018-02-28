@@ -2,6 +2,7 @@ all	: mpihydro
 
 mpihydro:
 	$(MAKE) -C src
+	cp -f src/mpihydro ./
 
 clean:
 	$(MAKE) -C src clean
