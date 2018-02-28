@@ -23,18 +23,30 @@ class Grid {
   int nY()   const;
   int nEta() const;
 
-  const Cell& operator()(int x, int y, int eta) const {
-    return const_cast<Cell&>(static_cast<const Cell &>((*this)(x,y,eta)));
-  }
-
-  Cell& operator()(int x, int y, int eta) {
-    x   += 2;  assert(x>=0);   assert(x<Nx);
-    y   += 2;  assert(y>=0);   assert(y<Ny);
-    eta += 2;  assert(eta>=0); assert(eta<Neta);
+  Cell& getHalo(int x, int y, int eta){
+    assert(-2<=x  ); assert(x  <Nx  +2);
+    assert(-2<=y  ); assert(y  <Ny  +2);
+    assert(-2<=eta); assert(eta<Neta+2);
+    if(x  <0)   x  =0;  else if(x  >=Nx)   x  =Nx  -1;
+    if(y  <0)   y  =0;  else if(y  >=Ny)   y  =Ny  -1;
+    if(eta<0)   eta=0;  else if(eta>=Neta) eta=Neta-1;
     return grid[Nx*(Ny*eta+y)+x];
   }
 
-  void updateHalo();
+  const Cell& getHalo(int x, int y, int eta) const {
+    return getHalo(x,y,eta);
+  }
+
+  Cell& operator()(const int x, const int y, const int eta) {
+    assert(0<=x  ); assert(x  <Nx);
+    assert(0<=y  ); assert(y  <Ny);
+    assert(0<=eta); assert(eta<Neta);
+    return grid[Nx*(Ny*eta+y)+x];
+  }
+
+  const Cell& operator()(int x, int y, int eta) const {
+    return const_cast<Cell&>(static_cast<const Cell &>((*this)(x,y,eta)));
+  }
 
 };
 
@@ -57,11 +69,11 @@ void Neighbourloop(Grid &arena, int cx, int cy, int ceta, Func func){
     const int p2nx   = 2*p1nx;  
     const int p2ny   = 2*p1ny;  
     const int p2neta = 2*p1neta;
-          auto&  c   = arena(cx,      cy,      ceta       );
-    const auto& p1   = arena(cx+p1nx, cy+p1ny, ceta+p1neta);
-    const auto& p2   = arena(cx+p2nx, cy+p2ny, ceta+p2neta);
-    const auto& m1   = arena(cx+m1nx, cy+m1ny, ceta+m1neta);
-    const auto& m2   = arena(cx+m2nx, cy+m2ny, ceta+m2neta);
+          auto&  c   = arena        (cx,      cy,      ceta       );
+    const auto& p1   = arena.getHalo(cx+p1nx, cy+p1ny, ceta+p1neta);
+    const auto& p2   = arena.getHalo(cx+p2nx, cy+p2ny, ceta+p2neta);
+    const auto& m1   = arena.getHalo(cx+m1nx, cy+m1ny, ceta+m1neta);
+    const auto& m2   = arena.getHalo(cx+m2nx, cy+m2ny, ceta+m2neta);
     func(c,p1,p2,m1,m2,dir+1);
   }
 }
