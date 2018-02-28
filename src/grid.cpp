@@ -27,6 +27,18 @@ Cell& Grid::get(int x, int y, int eta){
   return grid[Nx*(Ny*eta+y)+x];
 }
 
+int Grid::nX() const {
+  return(Nx - 4);
+}
+
+int Grid::nY() const {
+  return(Ny - 4);
+}
+
+int Grid::nEta() const {
+  return(Neta - 4);
+}
+
 void Grid::updateHalo()
 {
   //x-y planes
