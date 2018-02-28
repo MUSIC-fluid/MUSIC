@@ -32,7 +32,6 @@ void Grid::updateHalo()
 
   //x-y planes
   const auto xycopy = [&](int from,int to){
-  #pragma omp simd 
     for(int y=2;y<Ny-2;y++)
     for(int x=2;x<Nx-2;x++){
       get(x,y,to)=get(x,y,from);
@@ -42,7 +41,6 @@ void Grid::updateHalo()
 
   //x-eta planes
   const auto xetacopy = [&](int from,int to){
-  #pragma omp simd
     for(int eta=2;eta<Neta-2;eta++)
     for(int x  =2;x  <Nx  -2;  x++  ){
       get(x,to,eta)=get(x,from,eta);
@@ -52,7 +50,6 @@ void Grid::updateHalo()
        
   //y-eta planes
   const auto yetacopy = [&](int from,int to){
-  #pragma omp simd
     for(int eta=2;eta<Neta-2;eta++)
     for(int y  =2;y  <Ny  -2;  y++  ){
       get(to,y,eta)=get(from,y,eta);
