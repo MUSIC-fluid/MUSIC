@@ -26,9 +26,6 @@ int Grid::nEta() const {
   return(Neta );
 }
 
-
-
-
 TEST_CASE("Does grid copy work"){
  Grid grid(3,3,3);
 
