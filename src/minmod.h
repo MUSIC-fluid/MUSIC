@@ -9,9 +9,9 @@ class Minmod {
     double theta_flux;
 
  public:
-    Minmod(InitData* DATA);
+    Minmod(const InitData *const DATA);
 
-    double minmod_dx(double up1, double u, double um1) {
+    double minmod_dx(const double up1, const double u, const double um1) {
         const double diffup   = (up1 - u)*theta_flux;
         const double diffdown = (u - um1)*theta_flux;
         const double diffmid  = (up1 - um1)*0.5;

@@ -73,8 +73,9 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
       double theta_local = (
           u_derivative_ptr->calculate_expansion_rate(
                        tau, arena, ieta, ix, iy, rk_flag));
-      double *a_local = new double[5];
-      double *sigma_local = new double[10];
+      
+      std::array<double, 5> a_local;
+      std::array<double, 10> sigma_local;
       //u_derivative_ptr->calculate_Du_supmu(
       //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local);
       //u_derivative_ptr->calculate_velocity_shear_tensor(
@@ -89,9 +90,6 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
       FirstRKStepW(tau, DATA, arena,
        rk_flag, theta_local, a_local,
        sigma_local, ieta, ix, iy);
-	    
-      delete[] a_local;
-      delete[] sigma_local;
     }
   }
   
@@ -100,7 +98,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
-int Advance::FirstRKStepT(double tau, double x_local, double y_local,
+void Advance::FirstRKStepT(double tau, double x_local, double y_local,
         double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag) {
   // this advances the ideal part
   double tau_now  = tau;
@@ -124,20 +122,15 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
   // rhs[alpha] is what MakeDeltaQI outputs. 
   // It is the spatial derivative part of partial_a T^{a mu}
   // (including geometric terms)
-  double *qi = new double[5];
+  std::array<double,5> qi = {0};
   MakeDeltaQI(tau_rk, arena, ix, iy, ieta, qi, rk_flag);
   
-  double *j_mu = new double[4];
-  for (int ii = 0; ii < 4; ii++) {
-    j_mu[ii] = 0.0;
-  }
+  std::array<double, 4> j_mu = {0};
+
   double rhob_source = 0.0;
   if (flag_add_hydro_source) {
-    double *u_local = new double[4];
-    for (int ii = 0; ii < 4; ii++) {
-      //            u_local[ii] = grid_pt->u[rk_flag][ii];
-      u_local[ii] = arena(ix,iy,ieta).u[rk_flag][ii];
-    }
+    std::array<double,4> u_local = arena(ix,iy,ieta).u[rk_flag];
+
     hydro_source_ptr->get_hydro_energy_source(
                 tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
     for (int ii = 0; ii < 4; ii++) {
@@ -147,7 +140,6 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
       rhob_source = tau_rk*hydro_source_ptr->get_hydro_rhob_source(
                    tau_rk, x_local, y_local, eta_s_local, u_local);
     }
-    delete[] u_local;
   }
   
   for (int alpha = 0; alpha < 5; alpha++) {
@@ -183,19 +175,12 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
       qi[alpha] *= 0.5;
     }
   }
-  delete[] j_mu;
   
   //grid_rk_t.u = Util::mtx_malloc(1, 4);
   auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena(ix,iy,ieta), rk_flag); 
   
-  delete[] qi;
-  
   UpdateTJbRK(&grid_rk_t, &arena(ix,iy,ieta), rk_flag); 
   //    Util::mtx_free(grid_rk_t.u, 1, 4);
-
-  //TODO: CHeck for flag
-
-  return 0; //TODO
 }
 
 
@@ -206,9 +191,9 @@ int Advance::FirstRKStepT(double tau, double x_local, double y_local,
 */
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
-int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
-                          int rk_flag, double theta_local, double* a_local,
-                          double *sigma_local, int ieta, int ix, int iy) {
+void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
+                          int rk_flag, double theta_local, std::array<double,5> &a_local,
+                          std::array<double,10> &sigma_local, int ieta, int ix, int iy) {
     auto grid_pt = &(arena(ix, iy, ieta));
   double tau_now = tau;
   double tau_next = tau + (DATA->delta_tau);
@@ -218,14 +203,7 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
     trk_flag = 0;
   }
   
-  double **w_rhs;
-  w_rhs = new double* [5];
-  for (int i = 0; i < 5; i++) {
-    w_rhs[i] = new double[4];
-    for (int j = 0; j < 4; j++) {
-      w_rhs[i][j] = 0.;
-    }
-  }
+  std::array< std::array<double,4>, 5> w_rhs = {0};
   
   // Sangyong Nov 18 2014 implemented mu_max
   int mu_max;
@@ -427,16 +405,6 @@ int Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
     }
   }
   
-  for (int i = 0; i < 5; i++) {
-    delete[] w_rhs[i];
-  }
-  delete[] w_rhs;
-  
-  if (revert_flag == 1 || revert_q_flag == 1) {
-    return(-1);
-  } else {
-    return(1);
-  }
 }/* FirstRKStepW */
 
 // update results after RK evolution to grid_pt
@@ -623,7 +591,7 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
 
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, double *qi, int rk_flag) {
+void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, std::array<double,5> &qi, int rk_flag) {
   double delta[4];
   delta[1] = DATA_ptr->delta_x;
   delta[2] = DATA_ptr->delta_y;
@@ -636,10 +604,10 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
       rhs[alpha] = 0.0; 
     }/* get qi first */
   
-  double *qiphL = new double[5];
-  double *qiphR = new double[5];
-  double *qimhL = new double[5];
-  double *qimhR = new double[5];
+  std::array<double,5> qiphL = {0};
+  std::array<double,5> qiphR = {0};
+  std::array<double,5> qimhL = {0};
+  std::array<double,5> qimhR = {0};
   
   Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
     double tau_fac = tau;
@@ -647,14 +615,14 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
       tau_fac = 1.0;
     }
     for (int alpha = 0; alpha < 5; alpha++) {
-      double gphL = qi[alpha];
-      double gphR = tau*get_TJb(p1, rk_flag, alpha, 0);
-      double gmhL = tau*get_TJb(m1, rk_flag, alpha, 0);
-      double gmhR = qi[alpha];
-      double fphL = 0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
-      double fphR = -0.5*minmod.minmod_dx(tau*get_TJb(p2, rk_flag, alpha, 0), gphR, qi[alpha]);
-      double fmhL = 0.5*minmod.minmod_dx(qi[alpha], gmhL, tau*get_TJb(m2, rk_flag, alpha, 0));
-      double fmhR = -0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
+      const double gphL = qi[alpha];
+      const double gphR = tau*get_TJb(p1, rk_flag, alpha, 0);
+      const double gmhL = tau*get_TJb(m1, rk_flag, alpha, 0);
+      const double gmhR = qi[alpha];
+      const double fphL =  0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
+      const double fphR = -0.5*minmod.minmod_dx(tau*get_TJb(p2, rk_flag, alpha, 0), gphR, qi[alpha]);
+      const double fmhL =  0.5*minmod.minmod_dx(qi[alpha], gmhL, tau*get_TJb(m2, rk_flag, alpha, 0));
+      const double fmhR = -0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL); //TODO: Drop one of these minmods
       qiphL[alpha] = gphL + fphL;
       qiphR[alpha] = gphR + fphR;
       qimhL[alpha] = gmhL + fmhL;
@@ -700,11 +668,6 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, dou
     qi[i] += rhs[i];
   }
   
-  delete[] qiphL;
-  delete[] qiphR;
-  delete[] qimhL;
-  delete[] qimhR;
-
   // Util::mtx_free(grid_phL.u, 1, 4);
   // Util::mtx_free(grid_phR.u, 1, 4);
   // Util::mtx_free(grid_mhL.u, 1, 4);

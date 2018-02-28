@@ -2,6 +2,7 @@
 #ifndef SRC_HYDRO_SOURCE_H_
 #define SRC_HYDRO_SOURCE_H_
 
+#include <array>
 #include <vector>
 #include "data.h"
 #include "pretty_ostream.h"
@@ -59,12 +60,12 @@ class hydro_source {
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(double tau, double x, double y, double eta_s,
-                                 double *u_mu, double *j_mu);
+                                 std::array<double,4> &u_mu, std::array<double,4> &j_mu);
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
     double get_hydro_rhob_source(double tau, double x, double y, double eta_s,
-                                 double *mu);
+                                 std::array<double,4> &u_mu);
 
     //! this function returns the energy source term J^\mu up to a given point
     //! (tau, x, y, eta_s)

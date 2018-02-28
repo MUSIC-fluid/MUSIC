@@ -26,11 +26,10 @@ class U_derivative {
 
     //! this function returns Du^\mu
     void calculate_Du_supmu(double tau, Grid &arena, int ieta, int ix,
-                            int iy, int rk_flag, double *a);
+                            int iy, int rk_flag, std::array<double,5> &a);
 
     //! This funciton returns the velocity shear tensor sigma^\mu\nu
-    void calculate_velocity_shear_tensor(double tau, Grid &arena,
-        int ieta, int ix, int iy, int rk_flag, double *a_local, double *sigma);
+    void calculate_velocity_shear_tensor(double tau, Grid &arena, int ieta, int ix, int iy, int rk_flag, std::array<double,5> &a_local, std::array<double,10> &sigma);
     int MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag);
     int MakeDTau(double tau, InitData *DATA, Cell *grid_pt, int rk_flag);
 };

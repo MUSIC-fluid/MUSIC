@@ -58,7 +58,7 @@ double U_derivative::calculate_expansion_rate(
 
 //! this function returns Du^\mu
 void U_derivative::calculate_Du_supmu(double tau, Grid &arena, int ieta,
-                                      int ix, int iy, int rk_flag, double *a) {
+                                      int ix, int iy, int rk_flag, std::array<double,5> &a) {
     for (int mu = 0; mu <= 4; mu++) {
         double u_supnu_partial_nu_u_supmu = 0.0;
 	    for (int nu = 0; nu < 4; nu++) {
@@ -73,8 +73,7 @@ void U_derivative::calculate_Du_supmu(double tau, Grid &arena, int ieta,
 
 
 //! This funciton returns the velocity shear tensor sigma^\mu\nu
-void U_derivative::calculate_velocity_shear_tensor(double tau, Grid &arena,
-    int ieta, int ix, int iy, int rk_flag, double *a_local, double *sigma) {
+void U_derivative::calculate_velocity_shear_tensor(double tau, Grid &arena, int ieta, int ix, int iy, int rk_flag, std::array<double,5> &a_local, std::array<double,10> &sigma){
     double dUsup_local[4][4];
     double u_local[4];
     double sigma_local[4][4];

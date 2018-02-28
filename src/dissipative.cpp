@@ -195,7 +195,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
 
 double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
                            InitData *DATA, int rk_flag, double theta_local,
-                           double *a_local, double *sigma_1d) {
+                           std::array<double,5> &a_local, std::array<double,10> &sigma_1d) {
     if (DATA->turn_on_shear == 0)
         return 0.0;
 
@@ -463,8 +463,8 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 
 
 int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                     double **w_rhs, InitData *DATA, int rk_flag,
-                     double theta_local, double *a_local) {
+                     std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag,
+                     double theta_local, std::array<double,5> &a_local) {
     auto grid_pt = &(arena(ix, iy, ieta));
     for (int a = 0; a < 4; a++) {
         for (int b = 0; b < 4; b++) {
@@ -876,7 +876,7 @@ int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
 
 double Diss::Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
-                        int rk_flag, double theta_local, double *sigma_1d) {
+                        int rk_flag, double theta_local, std::array<double,10> &sigma_1d) {
     if (DATA->turn_on_bulk == 0) return 0.0;
 
     double tempf;
@@ -1014,8 +1014,8 @@ double Diss::Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
     -u[a]u[b]g[b][e] Dq[e]
 */
 double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
-                           int rk_flag, double theta_local, double *a_local,
-                           double *sigma_1d) {
+                           int rk_flag, double theta_local, std::array<double,5> &a_local,
+                           std::array<double,10> &sigma_1d) {
     double q[4];
   
     if (DATA->turn_on_diff == 0) return 0.0;
@@ -1145,7 +1145,7 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
 
 
 int Diss::Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                     double **w_rhs, InitData *DATA, int rk_flag) {
+                     std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag) {
     /* Kurganov-Tadmor for q */
     /* implement 
       partial_tau (utau qmu) + (1/tau)partial_eta (ueta qmu) 

@@ -22,7 +22,7 @@ Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
     abs_err  = 1e-10;
 }
 
-Cell Reconst::ReconstIt_shell(double tau, double *uq, Cell &grid_pt, int rk_flag) {
+Cell Reconst::ReconstIt_shell(double tau, std::array<double,5> &uq, Cell &grid_pt, int rk_flag) {
 
     Cell grid_p;
 
@@ -44,7 +44,7 @@ Cell Reconst::ReconstIt_shell(double tau, double *uq, Cell &grid_pt, int rk_flag
 }
 
 //! reconstruct TJb from q[0] - q[4] solve energy density first
-int Reconst::ReconstIt(Cell *grid_p, double tau, double *uq,
+int Reconst::ReconstIt(Cell *grid_p, double tau, std::array<double,5> &uq,
                        Cell *grid_pt, int rk_flag) {
     double K00, T00, J0, u[4], epsilon, p, h;
     double epsilon_prev, rhob_prev, p_prev, p_guess, temperr;
@@ -290,7 +290,7 @@ void Reconst::revert_grid(Cell *grid_current, Cell *grid_prev, int rk_flag) {
 }
 
 int Reconst::ReconstIt_velocity_iteration(
-    Cell *grid_p, double tau, double *uq, Cell *grid_pt, int rk_flag) {
+    Cell *grid_p, double tau, std::array<double,5> &uq, Cell *grid_pt, int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
     /* reconstruct velocity first for finite mu_B case */
     /* use iteration to solve v and u0 */
@@ -563,7 +563,7 @@ int Reconst::ReconstIt_velocity_iteration(
 //! reconstruct velocity first for finite mu_B case
 //! use Newton's method to solve v and u0
 int Reconst::ReconstIt_velocity_Newton(
-    Cell *grid_p, double tau, double *uq, Cell *grid_pt, int rk_flag) {
+    Cell *grid_p, double tau, std::array<double,5> &uq, Cell *grid_pt, int rk_flag) {
     /* prepare for the iteration */
     /* uq = qiphL, qiphR, etc 
        qiphL[alpha] means, for instance, TJ[alpha][0] 

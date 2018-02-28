@@ -246,7 +246,10 @@ void hydro_source::read_in_AMPT_partons() {
 }
 
 void hydro_source::get_hydro_energy_source(
-    double tau, double x, double y, double eta_s, double *u_mu, double *j_mu) {
+    double tau, double x, double y, double eta_s, 
+    std::array<double,4> &u_mu, 
+    std::array<double,4> &j_mu
+) {
     // clean up j_mu
     for (int i = 0; i < 4; i++) {
         j_mu[i] = 0.0;
@@ -517,7 +520,7 @@ void hydro_source::get_hydro_energy_source(
 }
 
 double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
-                                           double eta_s, double *u_mu) {
+                                           double eta_s, std::array<double,4> &u_mu) {
     double res = 0.;
 
     // flow velocity
@@ -711,20 +714,17 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
 
 void hydro_source::get_hydro_energy_source_before_tau(
     double tau, double x, double y, double eta_s, double *j_mu) {
-    double *u = new double[4];
-    double *j_mu_one_step = new double[4];
-    for (int i = 0; i < 4; i++) {
-        j_mu[i] = 0.0;  // clean up j_mu
-        u[i] = 0.0;
-    }
+    std::array<double,4> u             = {0};
+    std::array<double,4> j_mu_one_step = {0};
+
     u[0] = 1.0;
+
     double tau0 = 0.0;
     double dtau = DATA_ptr->delta_tau;
     int n_tau_steps = static_cast<int>((tau - tau0)/dtau);
     for (int i = 0; i < n_tau_steps; i++) {
-        for (int j = 0; j < 4; j++) {
-            j_mu_one_step[j] = 0.0; }
-        double tau_local = tau0 + (i + 0.5)*dtau;
+        j_mu_one_step = {0};
+        const double tau_local = tau0 + (i + 0.5)*dtau;
         get_hydro_energy_source(tau_local, x, y, eta_s, u, j_mu_one_step);
         for (int j = 0; j < 4; j++) {
             j_mu[j] += tau_local*j_mu_one_step[j]*dtau;
@@ -733,28 +733,24 @@ void hydro_source::get_hydro_energy_source_before_tau(
     for (int j = 0; j < 4; j++) {
         j_mu[j] /= tau;
     }
-    delete[] u;
-    delete[] j_mu_one_step;
 }
 
 double hydro_source::get_hydro_rhob_source_before_tau(
-        double tau, double x, double y, double eta_s) {
-    double *u = new double[4];
-    for (int i = 1; i < 4; i++) {
-        u[i] = 0.0;
-    }
+        double tau, double x, double y, double eta_s
+) {
+    std::array<double,4> u = {0};
     u[0] = 1.0;
-    double res = 0.;
+
+    double res  = 0.;
     double tau0 = 0.0;
     double dtau = DATA_ptr->delta_tau;
+
     int n_tau_steps = static_cast<int>((tau - tau0)/dtau);
     for (int i = 0; i < n_tau_steps; i++) {
-        double res_local = 0.0;
-        double tau_local = tau0 + (i + 0.5)*dtau;
-        res_local = get_hydro_rhob_source(tau_local, x, y, eta_s, u);
+        const double tau_local = tau0 + (i + 0.5)*dtau;
+        const double res_local = get_hydro_rhob_source(tau_local, x, y, eta_s, u);
         res += tau_local*res_local*dtau;
     }
-    delete[] u;
-    res /= tau;
-    return(res);
+
+    return res/tau;
 }
