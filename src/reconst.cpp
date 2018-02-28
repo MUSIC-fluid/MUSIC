@@ -599,8 +599,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJ
     double abs_error_v = reconst_velocity_f_Newton(v_prev, T00, M, J0);
     do {
         iter++;
-        v_next = (v_prev
-                  - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0)));
+        v_next = v_prev - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0));
         if (v_next < 0.0) {
             v_next = 0.0 + 1e-10;
         } else if (v_next > 1.0) {
@@ -642,8 +641,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJ
         double rel_error_u0 = 1.0;
         do {
             iter_u0++;
-            u0_next = (u0_prev
-                       - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0));
+            u0_next = u0_prev - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0);
             if (u0_next < 1.0) {
                 u0_next = 1.0 + 1e-10;
             }
