@@ -40,12 +40,6 @@ ReconstCell Reconst::ReconstIt_shell(double tau, TJbVec &q_vec, const Cell &grid
         regulate_grid(grid_p1, q_vec[0]);
     }
 
-    //grid_p.epsilon = grid_p1.e;
-    //grid_p.rhob = grid_p1.rhob;
-    //for (int i = 0; i < 4; i++) {
-    //    grid_p.u[0][i] = grid_p1.u[i];
-    //}
-
     return grid_p1;
 }
 
