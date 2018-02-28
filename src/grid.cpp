@@ -26,43 +26,72 @@ int Grid::nEta() const {
   return(Neta - 4);
 }
 
+
 void Grid::updateHalo()
 {
+
   //x-y planes
-  auto xycopy = [&](int from,int to){
-    for(int y=0;y<Ny;y++)
-    for(int x=0;x<Nx;x++)
+  const auto xycopy = [&](int from,int to){
+  #pragma omp simd 
+    for(int y=2;y<Ny-2;y++)
+    for(int x=2;x<Nx-2;x++){
       get(x,y,to)=get(x,y,from);
+      get(x,y,to-1)=get(x,y,from);
+    } 
   };
-  
-  xycopy(2,1);
-  xycopy(2,0);
-  xycopy(Neta-3,Neta-2);
-  xycopy(Neta-3,Neta-1);
-  
+
   //x-eta planes
-  auto xetacopy = [&](int from,int to){
-    for(int eta=0;eta<Neta;eta++)
-    for(int x  =0;x  <Nx;  x++  )
+  const auto xetacopy = [&](int from,int to){
+  #pragma omp simd
+    for(int eta=2;eta<Neta-2;eta++)
+    for(int x  =2;x  <Nx  -2;  x++  ){
       get(x,to,eta)=get(x,from,eta);
+      get(x,to-1,eta)=get(x,from,eta);
+    }
   };
-  
-  xetacopy(2,1);
-  xetacopy(2,0);
-  xetacopy(Ny-3,Ny-2);
-  xetacopy(Ny-3,Ny-1);
-  
+       
   //y-eta planes
-  auto yetacopy = [&](int from,int to){
-    for(int eta=0;eta<Neta;eta++)
-    for(int y  =0;y  <Ny;  y++  )
+  const auto yetacopy = [&](int from,int to){
+  #pragma omp simd
+    for(int eta=2;eta<Neta-2;eta++)
+    for(int y  =2;y  <Ny  -2;  y++  ){
       get(to,y,eta)=get(from,y,eta);
+      get(to-1,y,eta)=get(from,y,eta);
+    }
   };
-  
-  yetacopy(2,1);
-  yetacopy(2,0);
-  yetacopy(Nx-3,Nx-2);
-  yetacopy(Nx-3,Nx-1); 
+       
+  #pragma omp parallel num_threads(6)
+  {
+     #pragma omp task
+     xycopy(2,1);
+     #pragma omp task
+     xycopy(Neta-3,Neta-1);
+     
+     #pragma omp task
+     xetacopy(2,1);
+     #pragma omp task
+     xetacopy(Ny-3,Ny-1);
+
+     #pragma omp task
+     yetacopy(2,1);
+     #pragma omp task
+     yetacopy(Nx-3,Nx-1); 
+
+//     #pragma omp task
+//     xycopy(2,0);
+//     #pragma omp task
+//     xycopy(Neta-3,Neta-2);
+//
+//     #pragma omp task
+//     xetacopy(2,0);
+//     #pragma omp task
+//     xetacopy(Ny-3,Ny-2);
+//
+//     #pragma omp task
+//     yetacopy(2,0);
+//     #pragma omp task
+//     yetacopy(Nx-3,Nx-2);
+  }
 }
 
 
