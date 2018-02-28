@@ -504,20 +504,20 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
        Here fRph = ux WmnRph and ax uRph = |ux/utau|_max utau Wmn */
     /* This is the second step in the operator splitting. it uses
        rk_flag+1 as initial condition */
-    double delta[4];
-    delta[0] = 0.0;
-    delta[1] = DATA->delta_x;
-    delta[2] = DATA->delta_y;
-    delta[3] = DATA->delta_eta*tau;
+    double delta[4] = { 
+        0.0,
+        DATA->delta_x,
+        DATA->delta_y,
+        DATA->delta_eta*tau
+    };
     
-    double sum;
     // pi^\mu\nu is symmetric
 
 #pragma omp for simd 
     for (mu = 1; mu < 4; mu++) {
         for (nu = mu; nu < 4; nu++) {
             int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-	    sum = 0.0;
+            double sum = 0.0;
             Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
                 /* Get_uWmns */
                 double g = c.Wmunu[rk_flag][idx_1d];
