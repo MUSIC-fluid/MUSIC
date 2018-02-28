@@ -28,11 +28,6 @@ Advance::Advance(EOS *eosIn, InitData *DATA_in,
         flag_add_hydro_source = false;
         hydro_source_ptr = NULL;
   }
-  
-  grid_nx   = DATA_in->nx;
-  grid_ny   = DATA_in->ny;
-  grid_neta = DATA_in->neta;
-  rk_order  = DATA_in->rk_order;
 }
 
 // destructor
@@ -47,10 +42,13 @@ Advance::~Advance() {
 int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
                        int rk_flag) {
 
+  const int grid_neta = arena.nEta();
+  const int grid_nx   = arena.nX();
+  const int grid_ny   = arena.nY();
   #pragma omp parallel for collapse(3)
-  for(int ieta = 0; ieta <  grid_neta; ieta++)
-  for(int ix   = 0; ix   <= grid_nx;   ix++  )
-  for(int iy   = 0; iy   <= grid_ny;   iy++  ) {
+  for(int ieta = 0; ieta < grid_neta; ieta++)
+  for(int ix   = 0; ix   < grid_nx;   ix++  )
+  for(int iy   = 0; iy   < grid_ny;   iy++  ) {
     double eta_s_local = (- DATA_ptr->eta_size/2.
         + ieta*DATA_ptr->delta_eta);
     double x_local = (- DATA_ptr->x_size/2.
@@ -194,7 +192,7 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
 void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
                           int rk_flag, double theta_local, std::array<double,5> &a_local,
                           std::array<double,10> &sigma_local, int ieta, int ix, int iy) {
-    auto grid_pt = &(arena(ix, iy, ieta));
+  auto grid_pt = &(arena(ix, iy, ieta));
   double tau_now = tau;
   double tau_next = tau + (DATA->delta_tau);
   
