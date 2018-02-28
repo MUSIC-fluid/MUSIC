@@ -27,6 +27,18 @@ Cell& Grid::get(int x, int y, int eta){
   return grid[Nx*(Ny*eta+y)+x];
 }
 
+int Grid::nX() const {
+  return(Nx - 4);
+}
+
+int Grid::nY() const {
+  return(Ny - 4);
+}
+
+int Grid::nEta() const {
+  return(Neta - 4);
+}
+
 void Grid::updateHalo()
 {
   //x-y planes
@@ -114,7 +126,7 @@ TEST_CASE("check neighbourloop2"){
  grid1.updateHalo();
  
  Neighbourloop(grid1, 2, 0, 0, NLAMBDA{
-    if (direction == 0) {
+    if (direction == 1) {
         CHECK(p1.epsilon == 4);
         CHECK(p2.epsilon == 5);
         CHECK(m1.epsilon == 2);
@@ -165,3 +177,12 @@ TEST_CASE("check neighbourloop4"){
   });
   CHECK(sum == 15);
 }
+
+TEST_CASE("check dimension"){
+  Grid grid(1,2,3);
+
+  CHECK(grid.nX()   == 1);
+  CHECK(grid.nY()   == 2);
+  CHECK(grid.nEta() == 3);
+}
+

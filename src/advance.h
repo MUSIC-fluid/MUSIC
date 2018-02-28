@@ -29,8 +29,6 @@ class Advance {
     hydro_source *hydro_source_ptr;
     pretty_ostream music_message;
 
-    int grid_nx, grid_ny, grid_neta;
-    int rk_order;
     bool flag_add_hydro_source;
 
 

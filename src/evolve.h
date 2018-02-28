@@ -33,7 +33,6 @@ class Evolve {
 
     // simulation information
     int rk_order;
-    int grid_nx, grid_ny, grid_neta;
 
     double SUM;
     int warnings;

@@ -17,12 +17,9 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) :
     u_derivative(eosIn, DATA_in)
 
 {
-    eos          = eosIn;
+    eos       = eosIn;
     DATA_ptr  = DATA_in;
     rk_order  = DATA_in->rk_order;
-    grid_nx   = DATA_in->nx;
-    grid_ny   = DATA_in->ny;
-    grid_neta = DATA_in->neta;
   
     if (DATA_ptr->freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
@@ -207,35 +204,32 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
 }/* Evolve */
 
 void Evolve::store_previous_step_for_freezeout(Grid &arena) {
-    int nx = grid_nx;
-    int ny = grid_ny;
-    int neta = grid_neta;
-    for (int ieta=0; ieta<neta; ieta++) {
-        for (int ix=0; ix<=nx; ix++) {
-            for (int iy=0; iy<=ny; iy++) {
-                arena(ix,iy,ieta).epsilon_prev = arena(ix,iy,ieta).epsilon;
-                arena(ix,iy,ieta).u_prev[0] = arena(ix,iy,ieta).u[0][0];
-                arena(ix,iy,ieta).u_prev[1] = arena(ix,iy,ieta).u[0][1];
-                arena(ix,iy,ieta).u_prev[2] = arena(ix,iy,ieta).u[0][2];
-                arena(ix,iy,ieta).u_prev[3] = arena(ix,iy,ieta).u[0][3];
-                arena(ix,iy,ieta).rhob_prev = arena(ix,iy,ieta).rhob;
+    const int nx   = arena.nX();
+    const int ny   = arena.nY();
+    const int neta = arena.nEta();
+    #pragma omp parallel for collapse(3)
+    for (int ieta = 0; ieta < neta; ieta++)
+    for (int ix = 0; ix < nx; ix++)
+    for (int iy = 0; iy < ny; iy++) {
+        arena(ix,iy,ieta).epsilon_prev = arena(ix,iy,ieta).epsilon;
+        arena(ix,iy,ieta).u_prev[0] = arena(ix,iy,ieta).u[0][0];
+        arena(ix,iy,ieta).u_prev[1] = arena(ix,iy,ieta).u[0][1];
+        arena(ix,iy,ieta).u_prev[2] = arena(ix,iy,ieta).u[0][2];
+        arena(ix,iy,ieta).u_prev[3] = arena(ix,iy,ieta).u[0][3];
+        arena(ix,iy,ieta).rhob_prev = arena(ix,iy,ieta).rhob;
 
-                arena(ix,iy,ieta).pi_b_prev = arena(ix,iy,ieta).pi_b[0];
-                
-                for (int ii = 0; ii < 10; ii++) {
-                    arena(ix,iy,ieta).W_prev[ii] =
-                                            arena(ix,iy,ieta).Wmunu[0][ii];
-                }
-                if (DATA_ptr->turn_on_diff == 1) {
-                    for (int ii = 10; ii < 14; ii++) {
-                        arena(ix,iy,ieta).W_prev[ii] =
-                                            arena(ix,iy,ieta).Wmunu[0][ii];
-                    }
-                } else {
-                    for (int ii = 10; ii < 14; ii++) {
-                        arena(ix,iy,ieta).W_prev[ii] = 0.0;
-                    }
-                }
+        arena(ix,iy,ieta).pi_b_prev = arena(ix,iy,ieta).pi_b[0];
+        
+        for (int ii = 0; ii < 10; ii++) {
+            arena(ix,iy,ieta).W_prev[ii] = arena(ix,iy,ieta).Wmunu[0][ii];
+        }
+        if (DATA_ptr->turn_on_diff == 1) {
+            for (int ii = 10; ii < 14; ii++) {
+                arena(ix,iy,ieta).W_prev[ii] = arena(ix,iy,ieta).Wmunu[0][ii];
+            }
+        } else {
+            for (int ii = 10; ii < 14; ii++) {
+                arena(ix,iy,ieta).W_prev[ii] = 0.0;
             }
         }
     }
@@ -243,9 +237,9 @@ void Evolve::store_previous_step_for_freezeout(Grid &arena) {
 
 //! update grid information after the tau RK evolution 
 int Evolve::Update_prev_Arena(Grid &arena) {
-    int neta = grid_neta;
-    int nx   = grid_nx;
-    int ny   = grid_ny;
+    const int nx   = arena.nX();
+    const int ny   = arena.nY();
+    const int neta = arena.nEta();
 
     #pragma omp parallel for collapse(3)
     for(int ieta = 0; ieta < neta; ieta++) 
@@ -5383,22 +5377,17 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
     for(int i = 0; i < n_freeze_surf; i++)
         all_frozen[i] = 0;
       
-    int neta = grid_neta;
-    int fac_eta = 1;
+    const int neta = arena.nEta();
+    const int fac_eta = 1;
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
         double epsFO = epsFO_list[i_freezesurf]/hbarc;
         
         int intersections = 0;
-        int ieta;
-        #pragma omp parallel private(ieta)
-        {
-            #pragma omp for
-            for (ieta = 0; ieta < (neta-fac_eta); ieta += fac_eta) {
-                int thread_id = omp_get_thread_num();
-                intersections += FindFreezeOutSurface_Cornelius_XY(
-                                    tau, DATA, ieta, arena, thread_id, epsFO);
-            }
-            #pragma omp barrier
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < (neta-fac_eta); ieta += fac_eta) {
+            int thread_id = omp_get_thread_num();
+            intersections += FindFreezeOutSurface_Cornelius_XY(
+                                tau, DATA, ieta, arena, thread_id, epsFO);
         }
 
         if (intersections == 0)
@@ -5419,8 +5408,8 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
 int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                                               int ieta, Grid &arena,
                                               int thread_id, double epsFO) {
-    int nx = grid_nx;
-    int ny = grid_ny;
+    const int nx = arena.nX();
+    const int ny = arena.nY();
 
     stringstream strs_name;
     strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc
@@ -5491,9 +5480,9 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
     }
 
     double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
-    for (int ix = 0; ix <= nx - fac_x; ix += fac_x) {
+    for (int ix = 0; ix < nx - fac_x; ix += fac_x) {
         double x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
-        for (int iy = 0; iy <= ny - fac_y; iy += fac_y) {
+        for (int iy = 0; iy < ny - fac_y; iy += fac_y) {
             double y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
 
             // make sure the epsilon value is never exactly 
@@ -6165,21 +6154,16 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau, InitData *DATA,
     // this function freeze-out fluid cells between epsFO and epsFO_low
     // on an equal time hyper-surface at the first time step
     // this function will be trigged if freezeout_lowtemp_flag == 1
-    int neta = grid_neta;
-    int fac_eta = 1;
+    const int neta = arena.nEta();
+    const int fac_eta = 1;
    
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
         double epsFO = epsFO_list[i_freezesurf]/hbarc;
-        int ieta;
-        #pragma omp parallel private(ieta)
-        {
-            #pragma omp for
-            for (ieta = 0; ieta < neta - fac_eta; ieta += fac_eta) {
-                int thread_id = omp_get_thread_num();
-                FreezeOut_equal_tau_Surface_XY(tau, DATA, ieta, arena,
-                                               thread_id, epsFO);
-            }
-            #pragma omp barrier
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < neta - fac_eta; ieta += fac_eta) {
+            int thread_id = omp_get_thread_num();
+            FreezeOut_equal_tau_Surface_XY(tau, DATA, ieta, arena,
+                                           thread_id, epsFO);
         }
     }
     return(0);
@@ -6191,8 +6175,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
 
     double epsFO_low = 0.05/hbarc;        // 1/fm^4
 
-    int nx = grid_nx;
-    int ny = grid_ny;
+    const int nx = arena.nX();
+    const int ny = arena.nY();
 
     stringstream strs_name;
     strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc
@@ -6223,9 +6207,9 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
     double DETA = fac_eta*DATA->delta_eta;
 
     double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
-    for (int ix = 0; ix <= nx - fac_x; ix += fac_x) {
+    for (int ix = 0; ix < nx - fac_x; ix += fac_x) {
         double x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
-        for (int iy = 0; iy <= ny - fac_y; iy += fac_y) {
+        for (int iy = 0; iy < ny - fac_y; iy += fac_y) {
             double y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
 
             // judge intersection
@@ -6406,8 +6390,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         ofstream s_file;
         s_file.open(strs_name.str().c_str() , ios::out | ios::app );
     
-        int nx = grid_nx;
-        int ny = grid_ny;
+        const int nx = arena.nX();
+        const int ny = arena.nY();
         double FULLSU[4];  // d^3 \sigma_\mu
     
         double tau_center, x_center, y_center, eta_center;
@@ -6464,9 +6448,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
             }
         }
   
-        for (int ix=0; ix <= nx - fac_x; ix += fac_x) {
+        for (int ix=0; ix < nx - fac_x; ix += fac_x) {
             double x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
-            for (int iy=0; iy <= ny - fac_y; iy += fac_y) {
+            for (int iy=0; iy < ny - fac_y; iy += fac_y) {
                 double y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
     
                 // make sure the epsilon value is never 

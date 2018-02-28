@@ -136,11 +136,10 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
         out_file_q_xyeta = fopen(out_name_q_xyeta.c_str(),
                                  out_open_mode.c_str());
     }
-    int ix, iy, ieta;
     int n_skip_x = DATA->output_evolution_every_N_x;
     int n_skip_y = DATA->output_evolution_every_N_y;
     int n_skip_eta = DATA->output_evolution_every_N_eta;
-    for (ieta = 0; ieta < DATA->neta; ieta += n_skip_eta) {
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         double eta;
         if (DATA->boost_invariant == 1) {
             eta = 0.0;
@@ -150,8 +149,8 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
         }
         double cosh_eta = cosh(eta);
         double sinh_eta = sinh(eta);
-        for (iy = 0; iy <= DATA->ny; iy += n_skip_y) {
-            for (ix = 0; ix <= DATA->nx; ix += n_skip_x) {
+        for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double e_local = arena(ix,iy,ieta).epsilon;  // 1/fm^4
                 double rhob_local = arena(ix,iy,ieta).rhob;  // 1/fm^3
                 double p_local = eos_ptr->get_pressure(e_local, rhob_local);
@@ -299,9 +298,9 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, InitData *DATA,
     int n_skip_x   = DATA->output_evolution_every_N_x;
     int n_skip_y   = DATA->output_evolution_every_N_y;
     int n_skip_eta = DATA->output_evolution_every_N_eta;
-    for (int ieta = 0; ieta < DATA->neta; ieta += n_skip_eta) {
-        for (int iy = 0; iy <= DATA->ny; iy += n_skip_y) {
-            for (int ix = 0; ix <= DATA->nx; ix += n_skip_x) {
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+        for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double e_local = arena(ix,iy,ieta).epsilon;  // 1/fm^4
                 double rhob_local = arena(ix,iy,ieta).rhob;  // 1/fm^3
                 double p_local = eos_ptr->get_pressure(e_local, rhob_local);
@@ -394,14 +393,14 @@ void Cell_info::get_maximum_energy_density(Grid &arena) {
     double T_max    = 0.0;
 
     // get the grid information
-    int neta = DATA_ptr->neta;
-    int nx   = DATA_ptr->nx;
-    int ny   = DATA_ptr->ny;
+    const int neta = arena.nEta();
+    const int nx   = arena.nX();
+    const int ny   = arena.nY();
 
     #pragma omp parallel for collapse(3) reduction(max:eps_max, rhob_max, T_max)
     for (int ieta = 0; ieta < neta; ieta++)
-    for (int ix = 0; ix <= nx; ix++) 
-    for (int iy = 0; iy <= ny; iy++) {
+    for (int ix = 0; ix < nx; ix++) 
+    for (int iy = 0; iy < ny; iy++) {
         const auto eps_local  = arena(ix,iy,ieta).epsilon;
         const auto rhob_local = arena(ix,iy,ieta).rhob;
         eps_max  = std::max(eps_max,  eps_local );
@@ -423,17 +422,17 @@ void Cell_info::check_conservation_law(Grid &arena, InitData *DATA,
                                       double tau) {
     double N_B     = 0.0;
     double T_tau_t = 0.0;
-    int neta       = DATA->neta;
     double deta    = DATA->delta_eta;
-    int    nx      = DATA->nx;
     double dx      = DATA->delta_x;
-    int    ny      = DATA->ny;
     double dy      = DATA->delta_y;
+    const int neta = arena.nEta();
+    const int nx   = arena.nX();
+    const int ny   = arena.nY();
 
     #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t)
     for (int ieta = 0; ieta < neta; ieta++)     
-    for (int ix = 0; ix <= nx; ix++) 
-    for (int iy = 0; iy <= ny; iy++) {
+    for (int ix = 0; ix < nx; ix++) 
+    for (int iy = 0; iy < ny; iy++) {
         const auto& c = arena(ix,iy,ieta);
 
         const double eta_s = deta*ieta - (DATA->eta_size)/2.0;
@@ -551,25 +550,24 @@ void Cell_info::Gubser_flow_check_file(Grid &arena, double tau) {
     double x_min = -DATA_ptr->x_size/2.;
     double dy = DATA_ptr->delta_y;
     double y_min = -DATA_ptr->y_size/2.;
-    for (int ix = 0; ix <= DATA_ptr->nx; ix++) {
+    for (int ix = 0; ix < arena.nX(); ix++)
+    for (int iy = 0; iy < arena.nY(); iy++) {
         double x_local = x_min + ix*dx;
-        for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
-            double y_local = y_min + iy*dy;
-            double e_local = arena(ix,iy,0).epsilon;
-            double rhob_local = arena(ix,iy,0).rhob;
-            double T_local = eos_ptr->get_temperature(e_local, 0.0);
-            output_file << scientific << setprecision(8) << setw(18)
-                        << x_local << "  " << y_local << "  "
-                        << e_local*unit_convert << "  " << rhob_local << "  "
-                        << T_local*unit_convert << "  "
-                        << arena(ix,iy,0).u[0][1] << "  "
-                        << arena(ix,iy,0).u[0][2] << "  "
-                        << arena(ix,iy,0).Wmunu[0][4]*unit_convert << "  "
-                        << arena(ix,iy,0).Wmunu[0][7]*unit_convert << "  "
-                        << arena(ix,iy,0).Wmunu[0][5]*unit_convert << "  "
-                        << arena(ix,iy,0).Wmunu[0][9]*unit_convert << "  "
-                        << endl;
-        }
+        double y_local = y_min + iy*dy;
+        double e_local = arena(ix,iy,0).epsilon;
+        double rhob_local = arena(ix,iy,0).rhob;
+        double T_local = eos_ptr->get_temperature(e_local, 0.0);
+        output_file << scientific << setprecision(8) << setw(18)
+                    << x_local << "  " << y_local << "  "
+                    << e_local*unit_convert << "  " << rhob_local << "  "
+                    << T_local*unit_convert << "  "
+                    << arena(ix,iy,0).u[0][1] << "  "
+                    << arena(ix,iy,0).u[0][2] << "  "
+                    << arena(ix,iy,0).Wmunu[0][4]*unit_convert << "  "
+                    << arena(ix,iy,0).Wmunu[0][7]*unit_convert << "  "
+                    << arena(ix,iy,0).Wmunu[0][5]*unit_convert << "  "
+                    << arena(ix,iy,0).Wmunu[0][9]*unit_convert << "  "
+                    << endl;
     }
     output_file.close();
 }
@@ -584,7 +582,7 @@ void Cell_info::output_1p1D_check_file(Grid &arena, double tau) {
     double unit_convert = 0.19733;  // hbarC
     double deta = DATA_ptr->delta_eta;
     double eta_min = -6.94;
-    for (int ieta = 0; ieta < DATA_ptr->neta; ieta++) {
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta_local = eta_min + ieta*deta;
         double e_local = arena(1,1,ieta).epsilon;
         double rhob_local = arena(1,1,ieta).rhob;
@@ -614,15 +612,13 @@ void Cell_info::output_energy_density_and_rhob_disitrubtion(Grid &arena,
     int n_skip_x = DATA_ptr->output_evolution_every_N_x;
     int n_skip_y = DATA_ptr->output_evolution_every_N_y;
     int n_skip_eta = DATA_ptr->output_evolution_every_N_eta;
-    for (int ieta = 0; ieta < DATA_ptr->neta; ieta += n_skip_eta) {
-        for (int ix = 0; ix <= DATA_ptr->nx; ix += n_skip_x) {
-            for (int iy = 0; iy <= DATA_ptr->ny; iy += n_skip_y) {
-                double e_local = arena(ix,iy,ieta).epsilon*unit_convert;
-                double rhob_local = arena(ix,iy,ieta).rhob;
-                output_file << scientific << setprecision(5) << setw(18)
-                            << e_local << "  " << rhob_local << endl;
-            }
-        }
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta)
+    for (int ix   = 0; ix   < arena.nX();   ix += n_skip_x)
+    for (int iy   = 0; iy   < arena.nY();   iy += n_skip_y) {
+        double e_local = arena(ix,iy,ieta).epsilon*unit_convert;
+        double rhob_local = arena(ix,iy,ieta).rhob;
+        output_file << scientific << setprecision(5) << setw(18)
+                    << e_local << "  " << rhob_local << endl;
     }
     output_file.close();
 }
@@ -835,7 +831,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
     double std_T = 0.0;
     double std_mu = 0.0;
     double weight = 0.0;
-    for (int ieta = 0; ieta < DATA_ptr->neta; ieta++) {
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta;
         if (DATA_ptr->boost_invariant == 1) {
             eta = 0.0;
@@ -846,23 +842,22 @@ void Cell_info::output_average_phase_diagram_trajectory(
         if (eta < eta_max && eta > eta_min) {
             double cosh_eta = cosh(eta);
             double sinh_eta = sinh(eta);
-            for (int iy = 0; iy <= DATA_ptr->ny; iy++) {
-                for (int ix = 0; ix <= DATA_ptr->nx; ix++) {
-                    double e_local    = arena(ix,iy,ieta).epsilon;  // 1/fm^4
-                    double rhob_local = arena(ix,iy,ieta).rhob;  // 1/fm^3
-                    double utau       = arena(ix,iy,ieta).u[0][0];
-                    double ueta       = arena(ix,iy,ieta).u[0][3];
-                    double ut         = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
-                    double T_local    = eos_ptr->get_temperature(e_local,
-                                                              rhob_local);
-                    double muB_local = eos_ptr->get_mu(e_local, rhob_local);
-                    double weight_local = e_local*ut;
-                    avg_T += T_local*weight_local;
-                    avg_mu += muB_local*weight_local;
-                    std_T += T_local*T_local*weight_local;
-                    std_mu += muB_local*muB_local*weight_local;
-                    weight += weight_local;
-                }
+            for (int iy = 0; iy < arena.nY(); iy++)
+            for (int ix = 0; ix < arena.nX(); ix++) {
+                double e_local    = arena(ix,iy,ieta).epsilon;  // 1/fm^4
+                double rhob_local = arena(ix,iy,ieta).rhob;  // 1/fm^3
+                double utau       = arena(ix,iy,ieta).u[0][0];
+                double ueta       = arena(ix,iy,ieta).u[0][3];
+                double ut         = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
+                double T_local    = eos_ptr->get_temperature(e_local,
+                                                             rhob_local);
+                double muB_local = eos_ptr->get_mu(e_local, rhob_local);
+                double weight_local = e_local*ut;
+                avg_T += T_local*weight_local;
+                avg_mu += muB_local*weight_local;
+                std_T += T_local*T_local*weight_local;
+                std_mu += muB_local*muB_local*weight_local;
+                weight += weight_local;
             }
         }
     }
