@@ -7,13 +7,20 @@ Date        Time      Machine       Test      Wall-time
 2018-02-26  12:00     Cori KNL      Medium    03:26.858
 2018-02-26  12:00     Cori KNL      Large     06:31.306
 
+new memory layout:
 2018-02-27  17:00     Cori KNL      Small     01:36.577
 2018-02-27  17:00     Cori KNL      Medium    03:57.133
 2018-02-27  17:00     Cori KNL      Large     06:52.356
 
+new minmod:
 2018-02-27  17:40     Cori KNL      Small     02:08.459
 2018-02-27  17:40     Cori KNL      Medium    04:22.419
 2018-02-27  17:40     Cori KNL      Large     07:08.197
+
+new compiler flags
+2018-02-28  12:50     Cori KNL      Small     01:06.188
+2018-02-28  12:50     Cori KNL      Medium    02:28.531
+2018-02-28  12:50     Cori KNL      Large     04:14.172
 
 
 
@@ -91,3 +98,25 @@ Performance counter stats for './mpihydro benchmark/music_input_Gubser_small':
 
      102.181073494 seconds time elapsed
 
+2018-02-28 12:50 (Cori KNL)
+----------------
+ Performance counter stats for './mpihydro benchmark/music_input_Gubser_small':
+
+      124670443637      branches                                                      (29.99%)
+         910413939      branch-misses             #    0.73% of all branches          (30.00%)
+        1441473878      cache-misses              #   28.550 % of all cache refs      (20.01%)
+        5049009695      cache-references                                              (20.01%)
+     1079077235170      cycles                                                        (30.01%)
+             44749      faults                                                      
+      747109355418      instructions              #    0.69  insns per cycle          (40.02%)
+        1862820999      L1-dcache-load-misses     #    0.00% of all L1-dcache hits    (40.01%)
+   <not supported>      L1-dcache-loads          
+   <not supported>      L1-dcache-stores         
+   <not supported>      LLC-load-misses          
+        4221388742      LLC-loads                                                     (40.01%)
+   <not supported>      LLC-store-misses         
+        2207814819      LLC-stores                                                    (20.00%)
+               293      migrations                                                  
+     1079899030978      cycles                                                        (30.00%)
+
+      67.545363014 seconds time elapsed
