@@ -467,11 +467,8 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                      double theta_local, std::array<double,5> &a_local) {
     auto& grid_pt = arena(ix, iy, ieta);
 
-    for (int a = 0; a < 4; a++) {
-        for (int b = 0; b < 4; b++) {
-            w_rhs[a][b] = 0.0;
-        }
-    }
+    w_rhs = {0};
+
     if (DATA->turn_on_shear == 0)
         return(1);
 
