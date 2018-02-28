@@ -11,6 +11,7 @@
 #include <fstream>
 #include <cstring>
 #include <sys/stat.h>
+#include "data_struct.h"
 
 using namespace std;
 
@@ -48,7 +49,7 @@ namespace Util {
     double ***cube_malloc(int , int , int ); 
     double **mtx_malloc(int , int );
     double *vector_malloc(int );
-    
+
     void cube_free(double ***, int, int, int);
     void mtx_free(double **, int, int);
     void vector_free(double *);
@@ -66,6 +67,8 @@ namespace Util {
     int binary_search(double* array, int length, double x);
     void print_backtrace_errors();
     int map_2d_idx_to_1d(int a, int b);
+    Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector);
+    Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector);
 }
 
 #endif

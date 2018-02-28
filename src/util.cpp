@@ -309,30 +309,49 @@ void print_backtrace_errors() {
 }
 
 int map_2d_idx_to_1d(int a, int b) {
-    // this function maps the 2d indices of a symmetric matrix to the index
-    // in a 1-d array, which only stores the 10 independent components
-    if (a == 4)
-        return(10 + b);
-    else if (a > b)  // symmetric matrix
-        return(map_2d_idx_to_1d(b, a));
-    if (b > 3) {
-        cout << "Util::map_2d_idx_to_1d: index exceed dimension! "
-             << "a = " << a << ", b = " << b << endl;
-        exit(1);
-    }
-    if (a == 0)
-        return(b);
-    else if (a == 1)
-        return(3 + b);
-    else if (a == 2)
-        return(5 + b);
-    else if (a == 3)
-        return(9);
-    else {
-        cout << "Util::map_2d_idx_to_1d: index exceed dimension! "
-             << "a = " << a << ", b = " << b << endl;
-        exit(1);
-    }
+  static const int index_map[5][4] = {{0,1,2,3},{1,4,5,6},{2,5,7,8},{3,6,8,9},{10,11,12,13}};
+  return index_map[a][b];
 }
 
+Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector) {
+    Mat4x4 out_matrix;
+    out_matrix[0][0]=in_vector[0];
+    out_matrix[0][1]=in_vector[1];
+    out_matrix[0][2]=in_vector[2];
+    out_matrix[0][3]=in_vector[3];
+    out_matrix[1][0]=in_vector[1];
+    out_matrix[1][1]=in_vector[4];
+    out_matrix[1][2]=in_vector[5];
+    out_matrix[1][3]=in_vector[6];
+    out_matrix[2][0]=in_vector[2];
+    out_matrix[2][1]=in_vector[5];
+    out_matrix[2][2]=in_vector[7];
+    out_matrix[2][3]=in_vector[8];
+    out_matrix[3][0]=in_vector[3];
+    out_matrix[3][1]=in_vector[6];
+    out_matrix[3][2]=in_vector[8];
+    out_matrix[3][3]=in_vector[9];
+    return out_matrix;
+  }
+
+Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector) {
+    Mat4x4 out_matrix;
+    out_matrix[0][0]=in_vector[0];
+    out_matrix[0][1]=in_vector[1];
+    out_matrix[0][2]=in_vector[2];
+    out_matrix[0][3]=in_vector[3];
+    out_matrix[1][0]=in_vector[1];
+    out_matrix[1][1]=in_vector[4];
+    out_matrix[1][2]=in_vector[5];
+    out_matrix[1][3]=in_vector[6];
+    out_matrix[2][0]=in_vector[2];
+    out_matrix[2][1]=in_vector[5];
+    out_matrix[2][2]=in_vector[7];
+    out_matrix[2][3]=in_vector[8];
+    out_matrix[3][0]=in_vector[3];
+    out_matrix[3][1]=in_vector[6];
+    out_matrix[3][2]=in_vector[8];
+    out_matrix[3][3]=in_vector[9];
+    return out_matrix;
+  }
 }
