@@ -43,8 +43,8 @@ class Advance {
                      int rk_flag);
 
     void FirstRKStepW(double tau_it, InitData *DATA, Grid &arena,
-                     int rk_flag, double theta_local, std::array<double,5> &a_local,
-                     std::array<double,10> &sigma_local, int ieta, int ix, int iy);
+                     int rk_flag, double theta_local, DumuVec &a_local,
+                     VelocityShearVec &sigma_local, int ieta, int ix, int iy);
 
     void UpdateTJbRK(const ReconstCell &grid_rk, Cell *grid_pt, int rk_flag);
     int QuestRevert(double tau, Cell *grid_pt, int rk_flag, InitData *DATA,

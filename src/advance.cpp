@@ -72,13 +72,8 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
           u_derivative_ptr->calculate_expansion_rate(
                        tau, arena, ieta, ix, iy, rk_flag));
       
-      std::array<double, 5> a_local;
-      std::array<double, 10> sigma_local;
-      //u_derivative_ptr->calculate_Du_supmu(
-      //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local);
-      //u_derivative_ptr->calculate_velocity_shear_tensor(
-      //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local,
-      //        sigma_local);
+      DumuVec a_local;
+      VelocityShearVec sigma_local;
       u_derivative_ptr->calculate_Du_supmu(
              tau, arena, ieta, ix, iy, rk_flag, a_local);
       u_derivative_ptr->calculate_velocity_shear_tensor(
@@ -188,8 +183,8 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
 void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
-                          int rk_flag, double theta_local, std::array<double,5> &a_local,
-                          std::array<double,10> &sigma_local, int ieta, int ix, int iy) {
+                           int rk_flag, double theta_local, DumuVec &a_local,
+                           VelocityShearVec &sigma_local, int ieta, int ix, int iy) {
   auto grid_pt = &(arena(ix, iy, ieta));
   double tau_now = tau;
   double tau_next = tau + (DATA->delta_tau);
