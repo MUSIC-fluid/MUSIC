@@ -126,7 +126,7 @@ TEST_CASE("check neighbourloop2"){
  grid1.updateHalo();
  
  Neighbourloop(grid1, 2, 0, 0, NLAMBDA{
-    if (direction == 0) {
+    if (direction == 1) {
         CHECK(p1.epsilon == 4);
         CHECK(p2.epsilon == 5);
         CHECK(m1.epsilon == 2);
@@ -177,3 +177,12 @@ TEST_CASE("check neighbourloop4"){
   });
   CHECK(sum == 15);
 }
+
+TEST_CASE("check dimension"){
+  Grid grid(1,2,3);
+
+  CHECK(grid.nX()   == 1);
+  CHECK(grid.nY()   == 2);
+  CHECK(grid.nEta() == 3);
+}
+
