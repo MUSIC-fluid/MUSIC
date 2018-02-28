@@ -22,42 +22,35 @@ Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
     abs_err  = 1e-10;
 }
 
-ReconstCell Reconst::ReconstIt_shell(double tau, std::array<double,5> &uq, Cell &grid_pt, int rk_flag) {
+ReconstCell Reconst::ReconstIt_shell(double tau, TJbVec &q_vec, const Cell &grid_pt, int rk_flag) {
 
     ReconstCell grid_p1;
 
-    int           flag = ReconstIt_velocity_Newton   (grid_p1, tau, uq, &grid_pt, rk_flag);
-    if (flag < 0) flag = ReconstIt_velocity_iteration(grid_p1, tau, uq, &grid_pt, rk_flag);
-    if (flag < 0) flag = ReconstIt                   (grid_p1, tau, uq, &grid_pt, rk_flag);
-
-    if (flag == -1) {
-        revert_grid(grid_p1, &grid_pt, rk_flag);
-    } else if (flag == -2) {
-        if (uq[0]/tau < abs_err) {
-            regulate_grid(grid_p1, abs_err, 0);
-        } else {
-            regulate_grid(grid_p1, uq[0]/tau, 0);
-        }
+    for (int i = 0; i < 5; i++) {
+        q_vec[i] /= tau;
     }
 
-    //grid_p.epsilon = grid_p1.e;
-    //grid_p.rhob = grid_p1.rhob;
-    //for (int i = 0; i < 4; i++) {
-    //    grid_p.u[0][i] = grid_p1.u[i];
-    //}
+    int           flag = ReconstIt_velocity_Newton   (grid_p1, tau, q_vec, grid_pt, rk_flag);
+    if (flag < 0) flag = ReconstIt_velocity_iteration(grid_p1, tau, q_vec, grid_pt, rk_flag);
+    if (flag < 0) flag = ReconstIt                   (grid_p1, tau, q_vec, grid_pt, rk_flag);
+
+    if (flag == -1) {
+        revert_grid(grid_p1, grid_pt, rk_flag);
+    } else if (flag == -2) {
+        regulate_grid(grid_p1, q_vec[0]);
+    }
 
     return grid_p1;
 }
 
 //! reconstruct TJb from q[0] - q[4] solve energy density first
-int Reconst::ReconstIt(ReconstCell &grid_p, double tau, std::array<double,5> &uq,
-                       Cell *grid_pt, int rk_flag) {
+int Reconst::ReconstIt(ReconstCell &grid_p, double tau, const TJbVec &q,
+                       const Cell &grid_pt, int rk_flag) {
     double K00, T00, J0, u[4], epsilon, p, h;
     double epsilon_prev, rhob_prev, p_prev, p_guess, temperr;
     double epsilon_next, rhob_next, p_next, err, temph, cs2;
     double eps_guess, scalef;
     int iter, alpha;
-    double q[5];
     const double RECONST_PRECISION = 1e-8;
 
     /* prepare for the iteration */
@@ -77,15 +70,9 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, std::array<double,5> &uq
        q[4] = Jtau */
     /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
 
-    for (alpha=0; alpha<5; alpha++) {
-        q[alpha] = uq[alpha];
-    }
-
     K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
-    K00 /= (tau*tau);
- 
-    T00 = q[0]/tau;
-    J0 = q[4]/tau;
+    T00 = q[0];
+    J0 = q[4];
  
     if ((T00 - K00/T00) < 0.0 || (T00 < (abs_err))) {
         // can't make Tmunu with this. restore the previous value
@@ -95,8 +82,8 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, std::array<double,5> &uq
     }
 
     /* Iteration scheme */
-    double eps_init  = grid_pt->epsilon;
-    double rhob_init = grid_pt->rhob;
+    double eps_init  = grid_pt.epsilon;
+    double rhob_init = grid_pt.rhob;
     cs2              = eos->get_cs2(eps_init, rhob_init);
     eps_guess        = GuessEps(T00, K00, cs2);
     epsilon_next     = eps_guess;
@@ -104,8 +91,8 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, std::array<double,5> &uq
     if (isnan(epsilon_next)) {
         music_message << "problem " << eps_guess << " T00=" << T00
                       << " K00=" << K00 << " cs2=" << cs2
-                      << " q[0]=" << q[0] << " uq[0] ="
-                      << uq[0] << " q[1]=" << q[1] << " q[2]=" << q[2];
+                      << " q[0]=" << q[0]
+                      << " q[1]=" << q[1] << " q[2]=" << q[2];
         music_message.flush("warning");
     }
     p_guess = eos->get_pressure(epsilon_next, rhob_init);
@@ -199,17 +186,17 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, std::array<double,5> &uq
         }
         return(-1);
     }
-    double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
-                           /(grid_pt->u[rk_flag][0]));
+    double check_u0_var = (fabs(u[0] - grid_pt.u[rk_flag][0])
+                           /(grid_pt.u[rk_flag][0]));
     if (check_u0_var > 100.) {
-        if (grid_pt->epsilon > 1e-6 && echo_level > 5) {
+        if (grid_pt.epsilon > 1e-6 && echo_level > 5) {
             music_message << "Reconst e:: "
                           << "u0 varies more than 100 times compared to "
                           << "its value at previous time step";
             music_message.flush("warning");
-            music_message << "e = " << grid_pt->epsilon
+            music_message << "e = " << grid_pt.epsilon
                           << ", u[0] = " << u[0]
-                          << ", prev_u[0] = " << grid_pt->u[rk_flag][0];
+                          << ", prev_u[0] = " << grid_pt.u[rk_flag][0];
             music_message.flush("warning");
         }
         return(-1);
@@ -222,7 +209,7 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, std::array<double,5> &uq
             music_message.flush("warning");
 	        music_message << "e_max = " << eos_eps_max << " [1/fm^4]";
             music_message.flush("warning");
-	        music_message << "previous epsilon = " << grid_pt->epsilon
+	        music_message << "previous epsilon = " << grid_pt.epsilon
                           << " [1/fm^4]";
             music_message.flush("warning");
         }
@@ -231,16 +218,16 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, std::array<double,5> &uq
 
     double u_max = 242582597.70489514; // cosh(20)
     if (u[0] > u_max) {
-        if (echo_level > 5 && grid_pt->epsilon > 0.3) {
+        if (echo_level > 5 && grid_pt.epsilon > 0.3) {
             music_message << "Reconst e: u[0] = " << u[0] << " is too large.";
-	        music_message << "epsilon = " << grid_pt->epsilon;
+	        music_message << "epsilon = " << grid_pt.epsilon;
             music_message.flush("warning");
 	    }
         return(-1);
     } else if (u[0] < 1.) {
         if (echo_level > 5) {
             music_message << "Reconst e: u[0] = " << u[0] << " < 1.";
-	        music_message << " epsilon = " << grid_pt->epsilon;
+	        music_message << " epsilon = " << grid_pt.epsilon;
             music_message.flush("warning");
 	    }
     } else {
@@ -284,19 +271,19 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, std::array<double,5> &uq
 
 //! This function reverts the grid information back its values
 //! at the previous time step
-void Reconst::revert_grid(ReconstCell &grid_current, Cell *grid_prev, int rk_flag) {
+void Reconst::revert_grid(ReconstCell &grid_current, const Cell &grid_prev, int rk_flag) {
     if (echo_level > 5) {
         music_message.warning("revert grid to its previous value ...");
     }
-    grid_current.e = grid_prev->epsilon;
-    grid_current.rhob = grid_prev->rhob;
+    grid_current.e = grid_prev.epsilon;
+    grid_current.rhob = grid_prev.rhob;
     for (int mu = 0; mu < 4; mu++) {
-        grid_current.u[mu] = grid_prev->u[rk_flag][mu];
+        grid_current.u[mu] = grid_prev.u[rk_flag][mu];
     }
 }
 
 int Reconst::ReconstIt_velocity_iteration(
-    ReconstCell &grid_p, double tau, std::array<double,5> &uq, Cell *grid_pt, int rk_flag) {
+    ReconstCell &grid_p, double tau, const TJbVec &q, const Cell &grid_pt, int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
     /* reconstruct velocity first for finite mu_B case */
     /* use iteration to solve v and u0 */
@@ -315,11 +302,6 @@ int Reconst::ReconstIt_velocity_iteration(
     /* q[0] = Ttautau/tau, q[1] = Ttaux, q[2] = Ttauy, q[3] = Ttaueta
        q[4] = Jtau */
     /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
-
-    double q[5];
-    for (int alpha = 0; alpha < 5; alpha++) {
-        q[alpha] = uq[alpha]/tau;
-    }
 
     double K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
     double M = sqrt(K00);
@@ -425,17 +407,17 @@ int Reconst::ReconstIt_velocity_iteration(
         rhob = J0/u0_solution;
     }
     
-    double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
-                           /(grid_pt->u[rk_flag][0]));
+    double check_u0_var = (fabs(u[0] - grid_pt.u[rk_flag][0])
+                           /(grid_pt.u[rk_flag][0]));
     if (check_u0_var > 100.) {
-        if (grid_pt->epsilon > 1e-6 && echo_level > 5) {
+        if (grid_pt.epsilon > 1e-6 && echo_level > 5) {
             music_message << "Reconst velocity iteration::"
                           << "u0 varies more than 100 times compared to "
                           << "its value at previous time step";
             music_message.flush("warning");
-            music_message << "e = " << grid_pt->epsilon
+            music_message << "e = " << grid_pt.epsilon
                           << ", u[0] = " << u[0]
-                          << ", prev_u[0] = " << grid_pt->u[rk_flag][0];
+                          << ", prev_u[0] = " << grid_pt.u[rk_flag][0];
             music_message.flush("warning");
         }
         return(-1);
@@ -448,7 +430,7 @@ int Reconst::ReconstIt_velocity_iteration(
             music_message.flush("warning");
 	        music_message << "e_max = " << eos_eps_max << " [1/fm^4]";
             music_message.flush("warning");
-	        music_message << "previous epsilon = " << grid_pt->epsilon
+	        music_message << "previous epsilon = " << grid_pt.epsilon
                           << " [1/fm^4]";
             music_message.flush("warning");
         }
@@ -467,7 +449,7 @@ int Reconst::ReconstIt_velocity_iteration(
         if (echo_level > 5) {
             music_message << "Reconst velocity iteration: u[0] = " << u[0]
                           << " is too large!"
-                          << "epsilon = " << grid_pt->epsilon;
+                          << "epsilon = " << grid_pt.epsilon;
             music_message.flush("warning");
         }
         return(-1);
@@ -475,7 +457,7 @@ int Reconst::ReconstIt_velocity_iteration(
         // check whether velocity is too large
         if (echo_level > 5) {
             music_message << "Reconst velocity iteration: u[0] = " << u[0]
-                          << " is < 1.! " << "epsilon = " << grid_pt->epsilon;
+                          << " is < 1.! " << "epsilon = " << grid_pt.epsilon;
             music_message.flush("warning");
         }
         return(-1);
@@ -568,7 +550,7 @@ int Reconst::ReconstIt_velocity_iteration(
 //! reconstruct TJb from q[0] - q[4]
 //! reconstruct velocity first for finite mu_B case
 //! use Newton's method to solve v and u0
-int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, std::array<double,5> &uq, Cell *grid_pt, int rk_flag) {
+int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJbVec &q, const Cell &grid_pt, int rk_flag) {
     /* prepare for the iteration */
     /* uq = qiphL, qiphR, etc 
        qiphL[alpha] means, for instance, TJ[alpha][0] 
@@ -583,11 +565,6 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, std::arr
     /* q[0] = Ttautau/tau, q[1] = Ttaux, q[2] = Ttauy, q[3] = Ttaueta
        q[4] = Jtau */
     /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
-
-    double q[5];
-    for (int alpha = 0; alpha < 5; alpha++) {
-        q[alpha] = uq[alpha]/tau;
-    }
 
     double K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
     double M   = sqrt(K00);
@@ -609,7 +586,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, std::arr
 
     double u[4], epsilon, pressure, rhob;
 
-    double u0_guess = grid_pt->u[rk_flag][0];
+    double u0_guess = grid_pt.u[rk_flag][0];
     double v_guess = sqrt(1. - 1./(u0_guess*u0_guess + 1e-15));
     if (v_guess != v_guess) {
         v_guess = 0.0;
@@ -622,8 +599,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, std::arr
     double abs_error_v = reconst_velocity_f_Newton(v_prev, T00, M, J0);
     do {
         iter++;
-        v_next = (v_prev
-                  - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0)));
+        v_next = v_prev - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0));
         if (v_next < 0.0) {
             v_next = 0.0 + 1e-10;
         } else if (v_next > 1.0) {
@@ -665,8 +641,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, std::arr
         double rel_error_u0 = 1.0;
         do {
             iter_u0++;
-            u0_next = (u0_prev
-                       - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0));
+            u0_next = u0_prev - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0);
             if (u0_next < 1.0) {
                 u0_next = 1.0 + 1e-10;
             }
@@ -708,17 +683,17 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, std::arr
         rhob = J0/u0_solution;
     }
 
-    double check_u0_var = (fabs(u[0] - grid_pt->u[rk_flag][0])
-                           /(grid_pt->u[rk_flag][0]));
+    double check_u0_var = (fabs(u[0] - grid_pt.u[rk_flag][0])
+                           /(grid_pt.u[rk_flag][0]));
     if (check_u0_var > 100.) {
-        if (grid_pt->epsilon > 1e-6 && echo_level > 2) {
+        if (grid_pt.epsilon > 1e-6 && echo_level > 2) {
             music_message << "Reconst velocity Newton:: "
                           << "u0 varies more than 100 times compared to "
                           << "its value at previous time step";
             music_message.flush("warning");
-            music_message << "e = " << grid_pt->epsilon
+            music_message << "e = " << grid_pt.epsilon
                           << ", u[0] = " << u[0]
-                          << ", prev_u[0] = " << grid_pt->u[rk_flag][0];
+                          << ", prev_u[0] = " << grid_pt.u[rk_flag][0];
             music_message.flush("warning");
         }
         return(-1);
@@ -732,7 +707,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, std::arr
             music_message.flush("warning");
 	        music_message << "e_max = " << eos_eps_max << " [1/fm^4]";
             music_message.flush("warning");
-	        music_message << "previous epsilon = " << grid_pt->epsilon
+	        music_message << "previous epsilon = " << grid_pt.epsilon
                           << " [1/fm^4]";
             music_message.flush("warning");
         }
@@ -755,7 +730,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, std::arr
             music_message << "Reconst velocity Newton:: "
                           << "Reconst velocity: u[0] = " << u[0]
                           << " is too large!"
-                          << "epsilon = " << grid_pt->epsilon;
+                          << "epsilon = " << grid_pt.epsilon;
             music_message.flush("warning");
         }
         return(-1);
@@ -764,7 +739,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, std::arr
         if (echo_level > 5) {
             music_message << "Reconst velocity Newton:: "
                           << "Reconst velocity: u[0] = " << u[0] << " < 1! "
-                          << "epsilon = " << grid_pt->epsilon;
+                          << "epsilon = " << grid_pt.epsilon;
             music_message.flush("warning");
         }
         return(-1);
@@ -936,11 +911,11 @@ double Reconst::reconst_u0_df(double u0, double T00, double K00, double M,
 
 
 //! This function regulate the grid information
-void Reconst::regulate_grid(ReconstCell &grid_cell, double elocal, int rk_flag) {
+void Reconst::regulate_grid(ReconstCell &grid_cell, double elocal) {
     if (echo_level > 9) {
         music_message.warning("regulate grid to ideal form...");
     }
-    grid_cell.e = elocal;
+    grid_cell.e = std::max(1e-8, elocal);
     grid_cell.rhob = 0.0;
 
     grid_cell.u[0] = 1.0;
