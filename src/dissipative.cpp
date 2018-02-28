@@ -465,12 +465,10 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                      std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag,
                      double theta_local, std::array<double,5> &a_local) {
-    auto grid_pt = &(arena(ix, iy, ieta));
-    for (int a = 0; a < 4; a++) {
-        for (int b = 0; b < 4; b++) {
-            w_rhs[a][b] = 0.0;
-        }
-    }
+    auto& grid_pt = arena(ix, iy, ieta);
+
+    w_rhs = {0};
+
     if (DATA->turn_on_shear == 0)
         return(1);
 
@@ -479,7 +477,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
     for (int aa = 0; aa < 4; aa++) {
         for (int bb = aa; bb < 4; bb++) {
             int idx_1d = Util::map_2d_idx_to_1d(aa, bb);
-            Wmunu_local[aa][bb] = grid_pt->Wmunu[rk_flag][idx_1d];
+            Wmunu_local[aa][bb] = grid_pt.Wmunu[rk_flag][idx_1d];
         }
     }
     for (int aa = 0; aa < 4; aa++) {
@@ -571,7 +569,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
             /* add a source term -u^tau Wmn/tau
                due to the coordinate change to tau-eta */
-            sum += (- (grid_pt->u[rk_flag][0]*Wmunu_local[mu][nu])/tau
+            sum += (- (grid_pt.u[rk_flag][0]*Wmunu_local[mu][nu])/tau
                     + (theta_local*Wmunu_local[mu][nu]));
 
             /* this is from udW = d(uW) - Wdu = RHS */
@@ -585,20 +583,20 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                 + (DATA->gmunu[0][mu])*(Wmunu_local[3][nu])
                 + (DATA->gmunu[0][nu])*(Wmunu_local[3][mu])
                 + (Wmunu_local[3][nu])
-                  *(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][0])
+                  *(grid_pt.u[rk_flag][mu])*(grid_pt.u[rk_flag][0])
                 + (Wmunu_local[3][mu])
-                  *(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][0])
+                  *(grid_pt.u[rk_flag][nu])*(grid_pt.u[rk_flag][0])
                 - (Wmunu_local[0][nu])
-                  *(grid_pt->u[rk_flag][mu])*(grid_pt->u[rk_flag][3])
+                  *(grid_pt.u[rk_flag][mu])*(grid_pt.u[rk_flag][3])
                 - (Wmunu_local[0][mu])
-                  *(grid_pt->u[rk_flag][nu])*(grid_pt->u[rk_flag][3]))
-                  *(grid_pt->u[rk_flag][3]/tau);
+                  *(grid_pt.u[rk_flag][nu])*(grid_pt.u[rk_flag][3]))
+                  *(grid_pt.u[rk_flag][3]/tau);
             for (int ic = 0; ic < 4; ic++) {
                 double ic_fac = (ic == 0 ? -1.0 : 1.0);
                 tempf += (
-                      (Wmunu_local[ic][nu])*(grid_pt->u[rk_flag][mu])
+                      (Wmunu_local[ic][nu])*(grid_pt.u[rk_flag][mu])
                        *(a_local[ic])*ic_fac
-                    + (Wmunu_local[ic][mu])*(grid_pt->u[rk_flag][nu])
+                    + (Wmunu_local[ic][mu])*(grid_pt.u[rk_flag][nu])
                        *(a_local[ic])*ic_fac);
             }
             sum += tempf;
