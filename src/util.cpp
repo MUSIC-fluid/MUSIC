@@ -309,7 +309,7 @@ void print_backtrace_errors() {
 }
 
 int map_2d_idx_to_1d(int a, int b) {
-    // this function maps the 2d indeices of a symmetric matrix to the index
+    // this function maps the 2d indices of a symmetric matrix to the index
     // in a 1-d array, which only stores the 10 independent components
     // if (a == 4)
     //     return(10 + b);

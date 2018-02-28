@@ -72,13 +72,8 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
           u_derivative_ptr->calculate_expansion_rate(
                        tau, arena, ieta, ix, iy, rk_flag));
       
-      std::array<double, 5> a_local;
-      std::array<double, 10> sigma_local;
-      //u_derivative_ptr->calculate_Du_supmu(
-      //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local);
-      //u_derivative_ptr->calculate_velocity_shear_tensor(
-      //        tau_rk, arena, ieta, ix, iy, rk_flag, a_local,
-      //        sigma_local);
+      DumuVec a_local;
+      VelocityShearVec sigma_local;
       u_derivative_ptr->calculate_Du_supmu(
              tau, arena, ieta, ix, iy, rk_flag, a_local);
       u_derivative_ptr->calculate_velocity_shear_tensor(
@@ -120,7 +115,7 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
   // rhs[alpha] is what MakeDeltaQI outputs. 
   // It is the spatial derivative part of partial_a T^{a mu}
   // (including geometric terms)
-  std::array<double,5> qi = {0};
+  TJbVec qi = {0};
   MakeDeltaQI(tau_rk, arena, ix, iy, ieta, qi, rk_flag);
   
   std::array<double, 4> j_mu = {0};
@@ -163,7 +158,7 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
     // can make rho_b negative which we do not want.
     if (DATA->turn_on_rhob == 0) {
       if (alpha == 4 && fabs(qi[alpha]) > 1e-12)
-	qi[alpha] = 0.;
+        qi[alpha] = 0.;
     }
     
     /* if rk_flag > 0, we now have q0 + k1 + k2. 
@@ -174,11 +169,9 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
     }
   }
   
-  //grid_rk_t.u = Util::mtx_malloc(1, 4);
   auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena(ix,iy,ieta), rk_flag); 
   
   UpdateTJbRK(grid_rk_t, &arena(ix,iy,ieta), rk_flag); 
-  //    Util::mtx_free(grid_rk_t.u, 1, 4);
 }
 
 
@@ -190,8 +183,8 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
 void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
-                          int rk_flag, double theta_local, std::array<double,5> &a_local,
-                          std::array<double,10> &sigma_local, int ieta, int ix, int iy) {
+                           int rk_flag, double theta_local, DumuVec &a_local,
+                           VelocityShearVec &sigma_local, int ieta, int ix, int iy) {
   auto grid_pt = &(arena(ix, iy, ieta));
   double tau_now = tau;
   double tau_next = tau + (DATA->delta_tau);
@@ -589,7 +582,7 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
 
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, std::array<double,5> &qi, int rk_flag) {
+void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
   double delta[4];
   delta[1] = DATA_ptr->delta_x;
   delta[2] = DATA_ptr->delta_y;
@@ -602,10 +595,10 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, std
       rhs[alpha] = 0.0; 
     }/* get qi first */
   
-  std::array<double,5> qiphL = {0};
-  std::array<double,5> qiphR = {0};
-  std::array<double,5> qimhL = {0};
-  std::array<double,5> qimhR = {0};
+  TJbVec qiphL = {0};
+  TJbVec qiphR = {0};
+  TJbVec qimhL = {0};
+  TJbVec qimhR = {0};
   
   Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
     double tau_fac = tau;
