@@ -509,7 +509,7 @@ void Cell_info::Gubser_flow_check_file(Grid &arena, double tau) {
         double pixy_sum  = 0.0;
         double piyy_sum  = 0.0;
         double pizz_sum  = 0.0;
-        for (int i = 0; i < 201; i++) {
+        for (int i = 0; i < arena.nX(); i++) {
             double e_local = arena(i,i,0).epsilon;
             double T_local = (
                     eos_ptr->get_temperature(e_local, 0.0)*unit_convert);
