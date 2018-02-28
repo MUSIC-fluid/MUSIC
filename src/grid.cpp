@@ -10,19 +10,6 @@ Grid::Grid(int Nx0, int Ny0, int Neta0){
   grid.resize(Nx*Ny*Neta);
 }
 
-const Cell& Grid::operator()(int x, int y, int eta) const
-{
-  return const_cast<Cell&>(static_cast<const Cell &>((*this)(x,y,eta)));
-}
-
-Cell& Grid::operator()(int x, int y, int eta)
-{
-  x   += 2;  assert(x>=0);   assert(x<Nx);
-  y   += 2;  assert(y>=0);   assert(y<Ny);
-  eta += 2;  assert(eta>=0); assert(eta<Neta);
-  return grid[Nx*(Ny*eta+y)+x];
-}
-
 Cell& Grid::get(int x, int y, int eta){
   return grid[Nx*(Ny*eta+y)+x];
 }

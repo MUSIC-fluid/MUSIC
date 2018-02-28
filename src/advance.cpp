@@ -45,7 +45,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
   const int grid_neta = arena.nEta();
   const int grid_nx   = arena.nX();
   const int grid_ny   = arena.nY();
-  #pragma omp parallel for collapse(3)
+  #pragma omp parallel for collapse(3) schedule(guided)
   for(int ieta = 0; ieta < grid_neta; ieta++)
   for(int ix   = 0; ix   < grid_nx;   ix++  )
   for(int iy   = 0; iy   < grid_ny;   iy++  ) {
@@ -177,7 +177,7 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
   //grid_rk_t.u = Util::mtx_malloc(1, 4);
   auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena(ix,iy,ieta), rk_flag); 
   
-  UpdateTJbRK(&grid_rk_t, &arena(ix,iy,ieta), rk_flag); 
+  UpdateTJbRK(grid_rk_t, &arena(ix,iy,ieta), rk_flag); 
   //    Util::mtx_free(grid_rk_t.u, 1, 4);
 }
 
@@ -406,23 +406,23 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
 }/* FirstRKStepW */
 
 // update results after RK evolution to grid_pt
-void Advance::UpdateTJbRK(Cell *grid_rk, Cell *grid_pt, int rk_flag) {
+void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell *grid_pt, int rk_flag) {
   int trk_flag = rk_flag + 1;
   if (rk_flag == 1) {
     trk_flag = 0;
   }
   
   if (rk_flag == 0) {
-    grid_pt->epsilon_t = grid_rk->epsilon;
-    grid_pt->rhob_t = grid_rk->rhob;
+    grid_pt->epsilon_t = grid_rk.e;
+    grid_pt->rhob_t = grid_rk.rhob;
   } else {
-    grid_pt->epsilon = grid_rk->epsilon;
-    grid_pt->rhob = grid_rk->rhob;
+    grid_pt->epsilon = grid_rk.e;
+    grid_pt->rhob = grid_rk.rhob;
   }
   
   // reconstructed grid_rk uses rk_flag 0 only
   for (int mu=0; mu<4; mu++) {
-    grid_pt->u[trk_flag][mu] = grid_rk->u[0][mu];
+    grid_pt->u[trk_flag][mu] = grid_rk.u[mu];
   }
 }/* UpdateTJbRK */
 
@@ -634,10 +634,10 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, std
     auto grid_mhL = reconst_ptr->ReconstIt_shell(tau, qimhL, c, 0);
     auto grid_mhR = reconst_ptr->ReconstIt_shell(tau, qimhR, c, 0);
       
-    double aiphL = MaxSpeed(tau, direction, &grid_phL);
-    double aiphR = MaxSpeed(tau, direction, &grid_phR);
-    double aimhL = MaxSpeed(tau, direction, &grid_mhL);
-    double aimhR = MaxSpeed(tau, direction, &grid_mhR);
+    double aiphL = MaxSpeed(tau, direction, grid_phL);
+    double aiphR = MaxSpeed(tau, direction, grid_phR);
+    double aimhL = MaxSpeed(tau, direction, grid_mhL);
+    double aimhR = MaxSpeed(tau, direction, grid_mhR);
         
     double aiph = maxi(aiphL, aiphR);
     double aimh = maxi(aimhL, aimhR);
@@ -665,11 +665,6 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, std
   for (int i = 0; i < 5; i++) {
     qi[i] += rhs[i];
   }
-  
-  // Util::mtx_free(grid_phL.u, 1, 4);
-  // Util::mtx_free(grid_phR.u, 1, 4);
-  // Util::mtx_free(grid_mhL.u, 1, 4);
-  // Util::mtx_free(grid_mhR.u, 1, 4);
 }/* MakeDeltaQI */
 
 
@@ -689,17 +684,17 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, std
 */
 
 // determine the maximum signal propagation speed at the given direction
-double Advance::MaxSpeed(double tau, int direc, Cell *grid_p) {
+double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
     //grid_p = grid_p_h_L, grid_p_h_R, grid_m_h_L, grid_m_h_R
     //these are reconstructed by Reconst which only uses u[0] and TJb[0]
-    double utau = (grid_p->u[0][0]);
+    double utau = grid_p.u[0];
     double utau2 = utau*utau;
-    double ux = fabs((grid_p->u[0][direc]));
+    double ux = fabs(grid_p.u[direc]);
     double ux2 = ux*ux;
     double ut2mux2 = utau2 - ux2;
   
-    double eps = grid_p->epsilon;
-    double rhob = grid_p->rhob;
+    double eps = grid_p.e;
+    double rhob = grid_p.rhob;
   
     double vs2 = eos->get_cs2(eps, rhob);
 
@@ -789,6 +784,33 @@ double Advance::get_TJb(const Cell &grid_p, const int rk_flag, const int mu, con
             }
         } else {
             u_mu = grid_p.u[rk_flag][mu];
+        }
+        const double pressure = eos->get_pressure(e, rhob);
+        const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
+        return(T_munu);
+    } else {
+        return(0.0);
+    }
+}
+
+double Advance::get_TJb(const ReconstCell &grid_p, const int rk_flag, const int mu, const int nu) {
+    double rhob = grid_p.rhob;
+    const double u_nu = grid_p.u[nu];
+    if (mu == 4) {
+        return rhob*u_nu;
+    } else if (mu < 4) {
+        double e = grid_p.e;
+        double gfac = 0.0;
+        double u_mu = 0.0;
+        if (mu == nu) {
+            u_mu = u_nu;
+            if (mu == 0) {
+                gfac = -1.0;
+            } else {
+                gfac = 1.0;
+            }
+        } else {
+            u_mu = grid_p.u[mu];
         }
         const double pressure = eos->get_pressure(e, rhob);
         const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;

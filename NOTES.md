@@ -81,3 +81,35 @@ Regular Expressions
 Change the phrase `arena[asdf][bob][ted]` into `arena(bob,ted,asdf)` in all files:
 
     ls *cpp *h | xargs -n 1 sed -i -E 's/arena\[([^]]*)\]\[([^]]*)\]\[([^]]*)\]/arena(\2,\3,\1)/g'
+
+
+Compiler Flags
+===================
+
+ * `-fsanitize=address`       : Check for memory leaks/errors (don't use for production runs)
+ * `-O3`                      : Many optimizations
+ * `-g`                       : Debugging info (use this always)
+ * `-xmic-avx512`             : Use for KNL     (icc)
+ * `-xavx2`                   : Use for Haswell (icc)
+ * `-march=native`            : Use full capabilities of current CPU (gcc)
+ * `-debug inline-debug-info` : For running with VTune (icc) (Can use this always, only makes EXE file larger)
+ * `-ipo`                     : Interprocedural optimization (icc) (Same as LTO). Longer compilation time, optimizing between files.
+ * `-flto`                    : Link-Time Optimization (gcc) (Same as IPO). Longer compilation time, optimizing between files.
+ * `-fma`                     : Fused multiply-add: a faster, more precise way of doing `a=a+b*c`
+ * `-align`                   : Ensure memory is allocated to cache-line boundaries, makes accesses faster
+
+Suggested flags INtel compiler:
+
+    -g -std=c11 -O3 -xMIC-AVX512 -fma -align -finline-functions
+
+Suggested flags GCC compiler:
+
+    -std=c11 -march=knl -O3 -mavx512f -mavx512pf -mavx512er -mavx512cd -mfma -malign-data=cacheline -finline-functions
+
+
+OpenMP Scheduling
+===================
+
+ * `schedule(static)`  : Allocate iterations to threads and never changed
+ * `schedule(dynamic)` : Threads take new work after each iteration (probably slow for small workloads)
+ * `schedule(guided)`  : Threads take new chunks of work after each iteration. Chunksize automagically adjusts.

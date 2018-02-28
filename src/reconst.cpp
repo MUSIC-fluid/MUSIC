@@ -2,7 +2,7 @@
 #include <iostream>
 #include "data.h"
 #include "cell.h"
-#include "./grid.h"
+#include "grid.h"
 #include "eos.h"
 #include "reconst.h"
 
@@ -22,29 +22,35 @@ Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
     abs_err  = 1e-10;
 }
 
-Cell Reconst::ReconstIt_shell(double tau, std::array<double,5> &uq, Cell &grid_pt, int rk_flag) {
+ReconstCell Reconst::ReconstIt_shell(double tau, std::array<double,5> &uq, Cell &grid_pt, int rk_flag) {
 
-    Cell grid_p;
+    ReconstCell grid_p1;
 
-    int           flag = ReconstIt_velocity_Newton   (&grid_p, tau, uq, &grid_pt, rk_flag);
-    if (flag < 0) flag = ReconstIt_velocity_iteration(&grid_p, tau, uq, &grid_pt, rk_flag);
-    if (flag < 0) flag = ReconstIt                   (&grid_p, tau, uq, &grid_pt, rk_flag);
+    int           flag = ReconstIt_velocity_Newton   (grid_p1, tau, uq, &grid_pt, rk_flag);
+    if (flag < 0) flag = ReconstIt_velocity_iteration(grid_p1, tau, uq, &grid_pt, rk_flag);
+    if (flag < 0) flag = ReconstIt                   (grid_p1, tau, uq, &grid_pt, rk_flag);
 
     if (flag == -1) {
-        revert_grid(&grid_p, &grid_pt, rk_flag);
+        revert_grid(grid_p1, &grid_pt, rk_flag);
     } else if (flag == -2) {
         if (uq[0]/tau < abs_err) {
-            regulate_grid(&grid_p, abs_err, 0);
+            regulate_grid(grid_p1, abs_err, 0);
         } else {
-            regulate_grid(&grid_p, uq[0]/tau, 0);
+            regulate_grid(grid_p1, uq[0]/tau, 0);
         }
     }
 
-    return grid_p;
+    //grid_p.epsilon = grid_p1.e;
+    //grid_p.rhob = grid_p1.rhob;
+    //for (int i = 0; i < 4; i++) {
+    //    grid_p.u[0][i] = grid_p1.u[i];
+    //}
+
+    return grid_p1;
 }
 
 //! reconstruct TJb from q[0] - q[4] solve energy density first
-int Reconst::ReconstIt(Cell *grid_p, double tau, std::array<double,5> &uq,
+int Reconst::ReconstIt(ReconstCell &grid_p, double tau, std::array<double,5> &uq,
                        Cell *grid_pt, int rk_flag) {
     double K00, T00, J0, u[4], epsilon, p, h;
     double epsilon_prev, rhob_prev, p_prev, p_guess, temperr;
@@ -170,9 +176,9 @@ int Reconst::ReconstIt(Cell *grid_p, double tau, std::array<double,5> &uq,
     }  // if iteration is unsuccessful, revert
 
     // update
-    epsilon = grid_p->epsilon = epsilon_next;
+    epsilon = grid_p.e = epsilon_next;
     p = p_next;
-    grid_p->rhob = rhob_next;
+    grid_p.rhob = rhob_next;
     h = p+epsilon;
 
     /* q[0] = Ttautau/tau, q[1] = Ttaux, q[2] = Ttauy, q[3] = Ttaueta,
@@ -270,7 +276,7 @@ int Reconst::ReconstIt(Cell *grid_p, double tau, std::array<double,5> &uq,
     /* End: Correcting normalization of 4-velocity */
 
     for (int mu = 0; mu < 4; mu++) {
-        grid_p->u[0][mu] = u[mu];
+        grid_p.u[mu] = u[mu];
     }
 
     return(1);  // on successful execution
@@ -278,19 +284,19 @@ int Reconst::ReconstIt(Cell *grid_p, double tau, std::array<double,5> &uq,
 
 //! This function reverts the grid information back its values
 //! at the previous time step
-void Reconst::revert_grid(Cell *grid_current, Cell *grid_prev, int rk_flag) {
+void Reconst::revert_grid(ReconstCell &grid_current, Cell *grid_prev, int rk_flag) {
     if (echo_level > 5) {
         music_message.warning("revert grid to its previous value ...");
     }
-    grid_current->epsilon = grid_prev->epsilon;
-    grid_current->rhob = grid_prev->rhob;
+    grid_current.e = grid_prev->epsilon;
+    grid_current.rhob = grid_prev->rhob;
     for (int mu = 0; mu < 4; mu++) {
-        grid_current->u[0][mu] = grid_prev->u[rk_flag][mu];
+        grid_current.u[mu] = grid_prev->u[rk_flag][mu];
     }
 }
 
 int Reconst::ReconstIt_velocity_iteration(
-    Cell *grid_p, double tau, std::array<double,5> &uq, Cell *grid_pt, int rk_flag) {
+    ReconstCell &grid_p, double tau, std::array<double,5> &uq, Cell *grid_pt, int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
     /* reconstruct velocity first for finite mu_B case */
     /* use iteration to solve v and u0 */
@@ -449,8 +455,8 @@ int Reconst::ReconstIt_velocity_iteration(
         return(-1);
     }
 
-    grid_p->epsilon = epsilon;
-    grid_p->rhob = rhob;
+    grid_p.e = epsilon;
+    grid_p.rhob = rhob;
 
     pressure = eos->get_pressure(epsilon, rhob);
 
@@ -552,7 +558,7 @@ int Reconst::ReconstIt_velocity_iteration(
     // End: Correcting normalization of 4-velocity
    
     for (int mu = 0; mu < 4; mu++) {
-        grid_p->u[0][mu] = u[mu];
+        grid_p.u[mu] = u[mu];
     }
 
     return(1);
@@ -562,8 +568,7 @@ int Reconst::ReconstIt_velocity_iteration(
 //! reconstruct TJb from q[0] - q[4]
 //! reconstruct velocity first for finite mu_B case
 //! use Newton's method to solve v and u0
-int Reconst::ReconstIt_velocity_Newton(
-    Cell *grid_p, double tau, std::array<double,5> &uq, Cell *grid_pt, int rk_flag) {
+int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, std::array<double,5> &uq, Cell *grid_pt, int rk_flag) {
     /* prepare for the iteration */
     /* uq = qiphL, qiphR, etc 
        qiphL[alpha] means, for instance, TJ[alpha][0] 
@@ -734,8 +739,8 @@ int Reconst::ReconstIt_velocity_Newton(
         return(-1);
     }
 
-    grid_p->epsilon = epsilon;
-    grid_p->rhob = rhob;
+    grid_p.e = epsilon;
+    grid_p.rhob = rhob;
 
     pressure = eos->get_pressure(epsilon, rhob);
 
@@ -834,7 +839,7 @@ int Reconst::ReconstIt_velocity_Newton(
     // End: Correcting normalization of 4-velocity
    
     for (int mu = 0; mu < 4; mu++) {
-        grid_p->u[0][mu] = u[mu];
+        grid_p.u[mu] = u[mu];
     }
 
     return(1);
@@ -931,16 +936,15 @@ double Reconst::reconst_u0_df(double u0, double T00, double K00, double M,
 
 
 //! This function regulate the grid information
-void Reconst::regulate_grid(Cell *grid_cell, double elocal, int rk_flag) {
+void Reconst::regulate_grid(ReconstCell &grid_cell, double elocal, int rk_flag) {
     if (echo_level > 9) {
         music_message.warning("regulate grid to ideal form...");
     }
-    grid_cell->epsilon = elocal;
-    grid_cell->rhob = 0.0;
+    grid_cell.e = elocal;
+    grid_cell.rhob = 0.0;
 
-    grid_cell->u[rk_flag][0] = 1.0;
-    grid_cell->u[rk_flag][1] = 0.0;
-    grid_cell->u[rk_flag][2] = 0.0;
-    grid_cell->u[rk_flag][3] = 0.0;
-    
+    grid_cell.u[0] = 1.0;
+    grid_cell.u[1] = 0.0;
+    grid_cell.u[2] = 0.0;
+    grid_cell.u[3] = 0.0;
 }
