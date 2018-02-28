@@ -1,6 +1,7 @@
 #ifndef _SRC_GRID_H_
 #define _SRC_GRID_H_
 
+#include <cassert>
 #include <vector>
 #include "cell.h"
 #include "./grid.h"
@@ -22,8 +23,16 @@ class Grid {
   int nY()   const;
   int nEta() const;
 
-  Cell& operator()(int x, int y, int eta);
-  const Cell& operator()(int x, int y, int eta) const;
+  const Cell& operator()(int x, int y, int eta) const {
+    return const_cast<Cell&>(static_cast<const Cell &>((*this)(x,y,eta)));
+  }
+
+  Cell& operator()(int x, int y, int eta) {
+    x   += 2;  assert(x>=0);   assert(x<Nx);
+    y   += 2;  assert(y>=0);   assert(y<Ny);
+    eta += 2;  assert(eta>=0); assert(eta<Neta);
+    return grid[Nx*(Ny*eta+y)+x];
+  }
 
   void updateHalo();
 
