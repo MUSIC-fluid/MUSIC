@@ -4,9 +4,9 @@
 #include <iostream>
 
 Grid::Grid(int Nx0, int Ny0, int Neta0){
-  Nx   = Nx0  +4;
-  Ny   = Ny0  +4;
-  Neta = Neta0+4;
+  Nx   = Nx0  ;
+  Ny   = Ny0  ;
+  Neta = Neta0;
   grid.resize(Nx*Ny*Neta);
 }
 
@@ -15,26 +15,26 @@ Cell& Grid::get(int x, int y, int eta){
 }
 
 int Grid::nX() const {
-  return(Nx - 4);
+  return(Nx );
 }
 
 int Grid::nY() const {
-  return(Ny - 4);
+  return(Ny );
 }
 
 int Grid::nEta() const {
-  return(Neta - 4);
+  return(Neta );
 }
 
 
 void Grid::updateHalo()
 {
-
+return;
   //x-y planes
   const auto xycopy = [&](int from,int to){
   #pragma omp simd 
-    for(int y=2;y<Ny-2;y++)
-    for(int x=2;x<Nx-2;x++){
+    for(int y=0;y<Ny;y++)
+    for(int x=0;x<Nx;x++){
       get(x,y,to)=get(x,y,from);
       get(x,y,to-1)=get(x,y,from);
     } 
@@ -43,8 +43,8 @@ void Grid::updateHalo()
   //x-eta planes
   const auto xetacopy = [&](int from,int to){
   #pragma omp simd
-    for(int eta=2;eta<Neta-2;eta++)
-    for(int x  =2;x  <Nx  -2;  x++  ){
+    for(int eta=0;eta<Neta;eta++)
+    for(int x  =0;x  <Nx  ;  x++  ){
       get(x,to,eta)=get(x,from,eta);
       get(x,to-1,eta)=get(x,from,eta);
     }
@@ -53,8 +53,8 @@ void Grid::updateHalo()
   //y-eta planes
   const auto yetacopy = [&](int from,int to){
   #pragma omp simd
-    for(int eta=2;eta<Neta-2;eta++)
-    for(int y  =2;y  <Ny  -2;  y++  ){
+    for(int eta=0;eta<Neta;eta++)
+    for(int y  =0;y  <Ny  ;  y++  ){
       get(to,y,eta)=get(from,y,eta);
       get(to-1,y,eta)=get(from,y,eta);
     }
@@ -80,17 +80,17 @@ void Grid::updateHalo()
 //     #pragma omp task
 //     xycopy(2,0);
 //     #pragma omp task
-//     xycopy(Neta-3,Neta-2);
+//     xycopy(Neta-3,Neta);
 //
 //     #pragma omp task
 //     xetacopy(2,0);
 //     #pragma omp task
-//     xetacopy(Ny-3,Ny-2);
+//     xetacopy(Ny-3,Ny);
 //
 //     #pragma omp task
 //     yetacopy(2,0);
 //     #pragma omp task
-//     yetacopy(Nx-3,Nx-2);
+//     yetacopy(Nx-3,Nx);
   }
 }
 

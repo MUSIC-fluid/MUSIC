@@ -28,9 +28,12 @@ class Grid {
   }
 
   Cell& operator()(int x, int y, int eta) {
-    x   += 2;  assert(x>=0);   assert(x<Nx);
-    y   += 2;  assert(y>=0);   assert(y<Ny);
-    eta += 2;  assert(eta>=0); assert(eta<Neta);
+    x   ;  assert(x>=0);   assert(x<Nx);
+    y   ;  assert(y>=0);   assert(y<Ny);
+    eta ;  assert(eta>=0); assert(eta<Neta);
+    if(x<0)   x=0;  else if(x>=Nx) x=Nx-1;
+    if(y<0)   y=0;  else if(y>=Ny) y=Ny-1;
+    if(eta<0)   eta=0;  else if(eta>=Neta) eta=Neta-1;
     return grid[Nx*(Ny*eta+y)+x];
   }
 
