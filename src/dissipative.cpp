@@ -195,7 +195,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
 
 double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
                            InitData *DATA, int rk_flag, double theta_local,
-                           std::array<double,5> &a_local, std::array<double,10> &sigma_1d) {
+                           DumuVec &a_local, VelocityShearVec &sigma_1d) {
     if (DATA->turn_on_shear == 0)
         return 0.0;
 
@@ -464,7 +464,7 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 
 int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                      std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag,
-                     double theta_local, std::array<double,5> &a_local) {
+                     double theta_local, DumuVec &a_local) {
     auto& grid_pt = arena(ix, iy, ieta);
 
     w_rhs = {0};
@@ -797,7 +797,7 @@ int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
 
 double Diss::Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
-                        int rk_flag, double theta_local, std::array<double,10> &sigma_1d) {
+                        int rk_flag, double theta_local, VelocityShearVec &sigma_1d) {
     if (DATA->turn_on_bulk == 0) return 0.0;
 
     double tempf;
@@ -935,8 +935,8 @@ double Diss::Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
     -u[a]u[b]g[b][e] Dq[e]
 */
 double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
-                           int rk_flag, double theta_local, std::array<double,5> &a_local,
-                           std::array<double,10> &sigma_1d) {
+                           int rk_flag, double theta_local, DumuVec &a_local,
+                           VelocityShearVec &sigma_1d) {
     double q[4];
   
     if (DATA->turn_on_diff == 0) return 0.0;

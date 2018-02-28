@@ -247,8 +247,8 @@ void hydro_source::read_in_AMPT_partons() {
 
 void hydro_source::get_hydro_energy_source(
     double tau, double x, double y, double eta_s, 
-    std::array<double,4> &u_mu, 
-    std::array<double,4> &j_mu
+    FlowVec &u_mu, 
+    EnergyFlowVec &j_mu
 ) {
     // clean up j_mu
     for (int i = 0; i < 4; i++) {
@@ -520,7 +520,7 @@ void hydro_source::get_hydro_energy_source(
 }
 
 double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
-                                           double eta_s, std::array<double,4> &u_mu) {
+                                           double eta_s, FlowVec &u_mu) {
     double res = 0.;
 
     // flow velocity
@@ -714,8 +714,8 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
 
 void hydro_source::get_hydro_energy_source_before_tau(
     double tau, double x, double y, double eta_s, double *j_mu) {
-    std::array<double,4> u             = {0};
-    std::array<double,4> j_mu_one_step = {0};
+    FlowVec u             = {0};
+    EnergyFlowVec j_mu_one_step = {0};
 
     u[0] = 1.0;
 
@@ -738,7 +738,7 @@ void hydro_source::get_hydro_energy_source_before_tau(
 double hydro_source::get_hydro_rhob_source_before_tau(
         double tau, double x, double y, double eta_s
 ) {
-    std::array<double,4> u = {0};
+    FlowVec u = {0};
     u[0] = 1.0;
 
     double res  = 0.;

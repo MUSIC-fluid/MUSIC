@@ -118,11 +118,11 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
   TJbVec qi = {0};
   MakeDeltaQI(tau_rk, arena, ix, iy, ieta, qi, rk_flag);
   
-  std::array<double, 4> j_mu = {0};
+  EnergyFlowVec j_mu = {0};
 
   double rhob_source = 0.0;
   if (flag_add_hydro_source) {
-    std::array<double,4> u_local = arena(ix,iy,ieta).u[rk_flag];
+    FlowVec u_local = arena(ix,iy,ieta).u[rk_flag];
 
     hydro_source_ptr->get_hydro_energy_source(
                 tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);

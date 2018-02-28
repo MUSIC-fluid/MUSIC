@@ -3,10 +3,12 @@
 
 #include <array>
 
+typedef std::array<double, 4> EnergyFlowVec;
 typedef std::array<double, 4> FlowVec;
 typedef std::array<double, 5> TJbVec;
 typedef std::array<double, 5> DumuVec;
 typedef std::array<double, 10> VelocityShearVec;
+typedef std::array<double, 14> ViscousVec;
 
 typedef struct {
     double e;
