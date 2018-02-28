@@ -30,7 +30,7 @@ new compiler flags
 with #pragma in uWHRS
 2018-02-28  18:00     Cori KNL      Small     01:17.038
 2018-02-28  18:00     Cori KNL      Medium    02:41.463
-2018-02-28  18:00     Cori KNL      Large     
+2018-02-28  18:00     Cori KNL      Large     04:32.225
 
 no more halo copying
 
