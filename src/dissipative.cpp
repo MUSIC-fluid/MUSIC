@@ -474,11 +474,10 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
     int mu, nu;
     double Wmunu_local[4][4];
-    for (int aa = 0; aa < 4; aa++) {
-        for (int bb = aa; bb < 4; bb++) {
-            int idx_1d = Util::map_2d_idx_to_1d(aa, bb);
-            Wmunu_local[aa][bb] = grid_pt.Wmunu[rk_flag][idx_1d];
-        }
+    for (int aa = 0;  aa < 4; aa++) 
+    for (int bb = aa; bb < 4; bb++) {
+        int idx_1d = Util::map_2d_idx_to_1d(aa, bb);
+        Wmunu_local[aa][bb] = grid_pt.Wmunu[rk_flag][idx_1d];
     }
     for (int aa = 0; aa < 4; aa++) {
         for (int bb = aa+1; bb < 4; bb++) {
