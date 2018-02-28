@@ -272,7 +272,6 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
 
     double dummy;
     double u[4];
-    int rk_order = DATA->rk_order;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
             if (DATA->turn_on_shear == 1) {
@@ -455,7 +454,6 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid &arena) {
 
     double dummy;
     double u[4];
-    int rk_order = DATA->rk_order;
     for (int ieta = 0; ieta < neta; ieta++) {
         profile_ed >> dummy >> temp_profile_ed[ieta];
         profile_rhob >> dummy >> temp_profile_rhob[ieta];
@@ -715,7 +713,6 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
     double eta = (DATA->delta_eta)*(ieta) - (DATA->eta_size)/2.0;
     double eta_envelop_ed = eta_profile_normalisation(DATA, eta);
     int entropy_flag = DATA->initializeEntropy;
-    int rk_order = DATA->rk_order;
     double u[4];
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {

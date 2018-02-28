@@ -517,7 +517,6 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
             int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
             sum = 0.0;
             Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
-//                int direc = direction + 1;
                 /* Get_uWmns */
                 double g = c.Wmunu[rk_flag][idx_1d];
                 double f = g*c.u[rk_flag][direction];
@@ -570,82 +569,6 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                 sum += -HW;
             });
 
-//            for (direc = 1; direc <= 3; direc++) {
-//                if (direc == 1) {
-//                    grid_pt_p1 = &(arena(ix + 1, iy, ieta));
-//                    grid_pt_p2 = &(arena(ix + 2, iy, ieta));
-//                    grid_pt_m1 = &(arena(ix - 1, iy, ieta));
-//                    grid_pt_m2 = &(arena(ix - 2, iy, ieta));
-//                } else if (direc == 2) {
-//                    grid_pt_p1 = &(arena(ix, iy + 1, ieta));
-//                    grid_pt_p2 = &(arena(ix, iy + 2, ieta));
-//                    grid_pt_m1 = &(arena(ix, iy - 1, ieta));
-//                    grid_pt_m2 = &(arena(ix, iy - 2, ieta));
-//                } else {
-//                    grid_pt_p1 = &(arena(ix, iy, ieta + 1));
-//                    grid_pt_p2 = &(arena(ix, iy, ieta + 2));
-//                    grid_pt_m1 = &(arena(ix, iy, ieta - 1));
-//                    grid_pt_m2 = &(arena(ix, iy, ieta - 2));
-//                }
-//
-//                if (direc == 3) {
-//                    taufactor = tau;
-//                } else {
-//                    taufactor = 1.0;
-//                }
-//
-//                /* Get_uWmns */
-//                g = Wmunu_local[mu][nu];
-//                f = g*grid_pt->u[rk_flag][direc];
-//                g *=   grid_pt->u[rk_flag][0];
-//                   
-//                gp2 = grid_pt_p2->Wmunu[rk_flag][idx_1d];
-//                fp2 = gp2*grid_pt_p2->u[rk_flag][direc];
-//                gp2 *= grid_pt_p2->u[rk_flag][0];
-//                
-//                gp1 = grid_pt_p1->Wmunu[rk_flag][idx_1d];
-//                fp1 = gp1*grid_pt_p1->u[rk_flag][direc];
-//                gp1 *= grid_pt_p1->u[rk_flag][0];
-//                
-//                gm1 = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-//                fm1 = gm1*grid_pt_m1->u[rk_flag][direc];
-//                gm1 *= grid_pt_m1->u[rk_flag][0];
-//                
-//                gm2 = grid_pt_m2->Wmunu[rk_flag][idx_1d];
-//                fm2 = gm2*grid_pt_m2->u[rk_flag][direc];
-//                gm2 *= grid_pt_m2->u[rk_flag][0];
-//
-//                /* MakeuWmnHalfs */
-//                /* uWmn */
-//                uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f);
-//                uWphL = f + 0.5*minmod.minmod_dx(fp1, f, fm1);
-//                uWmhR = f - 0.5*minmod.minmod_dx(fp1, f, fm1);
-//                uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
-//
-//                /* just Wmn */
-//                WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g);
-//                WphL = g + 0.5*minmod.minmod_dx(gp1, g, gm1);
-//                WmhR = g - 0.5*minmod.minmod_dx(gp1, g, gm1);
-//                WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
-//
-//                a = fabs(grid_pt->u[rk_flag][direc]);
-//                a /= grid_pt->u[rk_flag][0];
-//                am1 = (fabs(grid_pt_m1->u[rk_flag][direc])
-//                       /grid_pt_m1->u[rk_flag][0]);
-//                ap1 = (fabs(grid_pt_p1->u[rk_flag][direc])
-//                       /grid_pt_p1->u[rk_flag][0]);
-//
-//                ax = maxi(a, ap1);
-//                HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
-//
-//                ax = maxi(a, am1);
-//                HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
-//
-//                HW = (HWph - HWmh)/delta[direc]/taufactor;
-//
-//                /* make partial_i (u^i Wmn) */
-//                sum += -HW;
-//            }/* direction */
             /* add a source term -u^tau Wmn/tau
                due to the coordinate change to tau-eta */
             sum += (- (grid_pt->u[rk_flag][0]*Wmunu_local[mu][nu])/tau
