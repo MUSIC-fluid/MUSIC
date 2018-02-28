@@ -34,7 +34,7 @@ void Init::InitArena(InitData *DATA, Grid &arena) {
         DATA->delta_x = 0.1;
         DATA->delta_y = 0.1;
         DATA->delta_eta = 0.02;
-        music_message << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1;
+        music_message << "nx=" << DATA->nx << ", ny=" << DATA->ny;
         music_message << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y;
         music_message << "neta=" << DATA->neta << ", deta=" << DATA->delta_eta;
         music_message.flush("info");
