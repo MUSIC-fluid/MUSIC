@@ -622,7 +622,7 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, std
       const double fphL =  0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
       const double fphR = -0.5*minmod.minmod_dx(tau*get_TJb(p2, rk_flag, alpha, 0), gphR, qi[alpha]);
       const double fmhL =  0.5*minmod.minmod_dx(qi[alpha], gmhL, tau*get_TJb(m2, rk_flag, alpha, 0));
-      const double fmhR = -0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL); //TODO: Drop one of these minmods
+      const double fmhR = -fphL;//-0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL); //TODO: Drop one of these minmods
       qiphL[alpha] = gphL + fphL;
       qiphR[alpha] = gphR + fphR;
       qimhL[alpha] = gmhL + fmhL;
