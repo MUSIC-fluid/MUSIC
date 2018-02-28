@@ -22,8 +22,16 @@ new compiler flags
 2018-02-28  12:50     Cori KNL      Medium    02:28.531
 2018-02-28  12:50     Cori KNL      Large     04:14.172
 
+-ipo flag in there
+2018-02-28  18:00     Cori KNL      Small     01:09.359
+2018-02-28  18:00     Cori KNL      Medium    02:23.585
+2018-02-28  18:00     Cori KNL      Large     04:00.812
 
-
+with #pragma in uWHRS
+2018-02-28  18:00     Cori KNL      Small     
+2018-02-28  18:00     Cori KNL      Medium    
+2018-02-28  18:00     Cori KNL      Large     
+  
 
 
 Perf output:
