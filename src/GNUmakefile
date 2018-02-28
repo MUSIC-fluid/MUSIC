@@ -12,7 +12,7 @@
 
 #CXX := g++-mp-6
 #CFLAGS= -Wall -g -O2 -qopenmp $(shell gsl-config --cflags)
-CFLAGS= -g -Wall -std=c++14 -O3 -fopenmp $(shell gsl-config --cflags) -DDOCTEST_CONFIG_DISABLE -DNDEBUG
+CFLAGS= -g -Wall -std=c++11 -O3 -fopenmp $(shell gsl-config --cflags) -DDOCTEST_CONFIG_DISABLE -DNDEBUG
 
 RM		=	rm -f
 O               =       .o
@@ -71,7 +71,8 @@ $(TARGET):	$(OBJECTS)
 #		strip $(TARGET)
 
 clean:		
-		-rm $(OBJECTS)
+	rm -f obj/*
+	rm -f mpihydro
 
 distclean:	
 		-rm $(TARGET)

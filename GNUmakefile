@@ -1,12 +1,12 @@
 all	: mpihydro
 
-mpihydro	:
-	(cd src; make; make install)
+mpihydro:
+	$(MAKE) -C src
 
-clean       :
-	(cd src; make clean;)
-	rm mpihydro
+clean:
+	$(MAKE) -C src clean
+	rm -f mpihydro
 
-distclean	:
-	(cd src; make distclean)
-	rm mpihydro
+distclean:
+	$(MAKE) -C src distclean
+	rm -f mpihydro
