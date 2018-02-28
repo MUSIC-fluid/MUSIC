@@ -48,7 +48,6 @@ class Grid {
     return const_cast<Cell&>(static_cast<const Cell &>((*this)(x,y,eta)));
   }
 
-  void updateHalo();
 };
 
 template<class Func>

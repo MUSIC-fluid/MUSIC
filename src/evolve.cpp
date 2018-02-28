@@ -237,10 +237,13 @@ void Evolve::store_previous_step_for_freezeout(Grid &arena) {
 
 //! update grid information after the tau RK evolution 
 int Evolve::Update_prev_Arena(Grid &arena) {
+    const int neta = arena.nEta();
+    const int nx   = arena.nX();
+    const int ny   = arena.nY();
     #pragma omp parallel for collapse(3)
-    for(int ieta = 0; ieta < arena.nEta(); ieta++) 
-    for(int ix   = 0; ix   < arena.nX();  ix++  )
-    for(int iy   = 0; iy   < arena.nY();  iy++  ) {
+    for(int ieta = 0; ieta < neta; ieta++) 
+    for(int ix   = 0; ix   < nx;  ix++  )
+    for(int iy   = 0; iy   < ny;  iy++  ) {
         arena(ix,iy,ieta).prev_epsilon = arena(ix,iy,ieta).epsilon;
         arena(ix,iy,ieta).prev_rhob    = arena(ix,iy,ieta).rhob;
 
@@ -265,7 +268,6 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
     int flag = 0;
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
-        arena.updateHalo();
         flag = u_derivative.MakedU(tau, DATA, arena, rk_flag);
         flag = advance.AdvanceIt(tau, DATA, arena, rk_flag);
         if (rk_flag == 0) {
