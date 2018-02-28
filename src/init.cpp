@@ -23,9 +23,7 @@ void Init::InitArena(InitData *DATA, Grid &arena) {
     music_message.info("initArena");
     if (DATA->Initial_profile == 0) {
         music_message << "Using Initial_profile=" << DATA->Initial_profile;
-        DATA->nx = DATA->nx - 1;
-        DATA->ny = DATA->ny - 1;
-        music_message << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1;
+        music_message << "nx=" << DATA->nx << ", ny=" << DATA->ny;
         music_message << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y;
         music_message.flush("info");
     } else if (DATA->Initial_profile == 1) {
@@ -54,8 +52,8 @@ void Init::InitArena(InitData *DATA, Grid &arena) {
         music_message << "Using Initial_profile=" << DATA->Initial_profile
                       << ". Overwriting lattice dimensions:";
 
-        DATA->nx = nx - 1;
-        DATA->ny = ny - 1;
+        DATA->nx = nx;
+        DATA->ny = ny;
         DATA->delta_x = dx;
         DATA->delta_y = dy;
 
@@ -77,8 +75,8 @@ void Init::InitArena(InitData *DATA, Grid &arena) {
         music_message << "Using Initial_profile=" << DATA->Initial_profile
                       << ". Overwriting lattice dimensions:";
 
-        DATA->nx = nx - 1;
-        DATA->ny = ny - 1;
+        DATA->nx = nx;
+        DATA->ny = ny;
         DATA->neta = neta;
         DATA->delta_x = dx;
         DATA->delta_y = dy;
@@ -88,26 +86,16 @@ void Init::InitArena(InitData *DATA, Grid &arena) {
         music_message << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x
                       << ", dy=" << DATA->delta_y;
         music_message.flush("info");
-    } else if (DATA->Initial_profile == 11) {
-        DATA->nx = DATA->nx - 1;
-        DATA->ny = DATA->ny - 1;
     } else if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
         DATA->tau0 = hydro_source_ptr->get_source_tau_min();
-        DATA->nx = DATA->nx - 1;
-        DATA->ny = DATA->ny - 1;
-    } else if (DATA->Initial_profile == 30) {
-        DATA->nx = DATA->nx - 1;
-        DATA->ny = DATA->ny - 1;
     } else if (DATA->Initial_profile == 101) {
         cout << "Using Initial_profile=" << DATA->Initial_profile << endl;
-        DATA->nx = DATA->nx - 1;
-        DATA->ny = DATA->ny - 1;
-        cout << "nx=" << DATA->nx+1 << ", ny=" << DATA->ny+1 << endl;
+        cout << "nx=" << DATA->nx << ", ny=" << DATA->ny << endl;
         cout << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y << endl;
     }
 
     // initialize arena
-    arena = Grid(DATA->nx + 1, DATA->ny + 1,DATA->neta);
+    arena = Grid(DATA->nx, DATA->ny,DATA->neta);
     music_message.info("Cell allocated.");
 
     InitTJb(DATA, arena);
