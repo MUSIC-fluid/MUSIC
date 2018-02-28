@@ -11,6 +11,7 @@
 #include <fstream>
 #include <cstring>
 #include <sys/stat.h>
+#include "data_struct.h"
 
 using namespace std;
 

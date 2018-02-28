@@ -479,6 +479,9 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
         int idx_1d = Util::map_2d_idx_to_1d(aa, bb);
         Wmunu_local[aa][bb] = grid_pt.Wmunu[rk_flag][idx_1d];
     }
+
+
+
     for (int aa = 0; aa < 4; aa++) {
         for (int bb = aa+1; bb < 4; bb++) {
             Wmunu_local[bb][aa] = Wmunu_local[aa][bb];
@@ -874,14 +877,20 @@ double Diss::Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
 
     if (include_coupling_to_shear == 1) {
         // Computing sigma^mu^nu
-        double sigma[4][4], Wmunu[4][4];
-        for (int a = 0; a < 4 ; a++) {
+        double Wmunu[4][4];
+        
+	auto sigma = Util::UnpackVecToMatrix(sigma_1d);
+	
+	for (int a = 0; a < 4 ; a++) {
             for (int b = a; b < 4; b++) {
                 int idx_1d = Util::map_2d_idx_to_1d(a, b);
-                sigma[a][b] = sigma_1d[idx_1d];
+		//        sigma[a][b] = sigma_1d[idx_1d];
                 Wmunu[a][b] = grid_pt->Wmunu[rk_flag][idx_1d];
             }
         }
+
+	
+
 
         Wsigma = (  Wmunu[0][0]*sigma[0][0]
                   + Wmunu[1][1]*sigma[1][1]
