@@ -46,13 +46,9 @@ using namespace std;
 //! This is a utility class which contains a collection of helper functions.
 
 namespace Util {
-    double ***cube_malloc(int , int , int ); 
     double **mtx_malloc(int , int );
-    double *vector_malloc(int );
 
-    void cube_free(double ***, int, int, int);
     void mtx_free(double **, int, int);
-    void vector_free(double *);
     
     int IsFile(string);
     

@@ -10,125 +10,35 @@ using namespace std;
 
 namespace Util {
 
-double ***cube_malloc(int n1, int n2, int n3)
-{
-    int i,j,k;
-    double ***d1_ptr; 
-    n1+=1;
-    n2+=1;
-    n3+=1;
-
-
-    /* pointer to the n1*n2*n3 memory */
-    d1_ptr = new double **[n1];
-
-    for(i=0; i<n1; i++) 
-     {
-       d1_ptr[i] = new double *[n2];
-     } 
-
-    for(i=0; i<n1; i++)
-    {
-     for(j=0; j<n2; j++) 
-      {
-       d1_ptr[i][j] = new double [n3];
-      }
-    }
-
-    for(i=0; i<n1; i++)
-    {
-     for(j=0; j<n2; j++) 
-      {
-	for(k=0; k<n3; k++) 
-	  {
-	    d1_ptr[i][j][k] = 0.0;
-	  }
-      }
-    }
-
-    return d1_ptr;
-}/* cube_malloc */
-
-
-void cube_free(double ***cube, int n1, int n2, int n3)
-{
-  int i,j;
-  n1+=1;
-  n2+=1;
-  n3+=1;
-  
-
-  for(i=0; i<n1; i++)
-    {
-      for(j=0; j<n2; j++) 
-	{
-	  delete [] cube[i][j];
-	}
-    }
-  for(j=0; j<n1; j++) 
-    {
-      delete [] cube[j];
-    }
-  
-  delete [] cube;
-
-}/* cube_free */
-
 
 double **mtx_malloc(int n1, int n2)
 {
-    int i, j;
     double **d1_ptr; 
     d1_ptr = new double *[n1];
-    
-    for(i=0; i<n1; i++) 
-     {
-       d1_ptr[i] = new double [n2];
-     }
-    
-    for(i=0; i<n1; i++) 
-     {
-      for(j=0; j<n2; j++) 
-	{
-	  d1_ptr[i][j] = 0.0;
-	}
-     }
 
-return d1_ptr;
+    for(int i=0; i<n1; i++) 
+        d1_ptr[i] = new double [n2];
+
+    for(int i=0; i<n1; i++) 
+    for(int j=0; j<n2; j++) 
+        d1_ptr[i][j] = 0.0;
+
+    return d1_ptr;
 }
+
 
 
 void mtx_free(double **m, int n1, int n2)
 {
-  int j;
-  
- for(j=0; j<n1; j++) 
-   {
-     delete [] m[j];
-   }
+    int j;
 
- delete [] m;
+    for(int j=0; j<n1; j++) 
+        delete [] m[j];
 
+    delete [] m;
 }
 
 
-double *vector_malloc(int n1)
-{
- double *d1_ptr;
- int i;
-
-    /* pointer to the n1 array */
- d1_ptr = new double[n1];
- for(i=0; i<n1; i++) d1_ptr[i] = 0.0; 
-    
- return d1_ptr;
-}
-
-
-void vector_free(double *vec)
-{
-  delete [] vec;
-}
 
 int IsFile(string file_name)
 {
