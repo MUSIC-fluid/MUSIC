@@ -4,6 +4,7 @@
 #include <array>
 
 typedef std::array<double, 4> FlowVec;
+typedef std::array<double, 5> TJbVec;
 
 typedef struct {
     double e;

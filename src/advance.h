@@ -52,7 +52,7 @@ class Advance {
     int QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
                         InitData *DATA, int ieta, int ix, int iy);
 
-    void MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, std::array<double,5> &qi, int rk_flag);
+    void MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, TJbVec &qi, int rk_flag);
     double MaxSpeed(double tau, int direc, const ReconstCell &grid_p);
     double get_TJb(const Cell &grid_p, const int rk_flag, const int mu, const int nu);
     double get_TJb(const ReconstCell &grid_p, const int rk_flag, const int mu, const int nu);
