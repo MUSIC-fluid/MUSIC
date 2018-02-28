@@ -515,7 +515,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
     for (mu = 1; mu < 4; mu++) {
         for (nu = mu; nu < 4; nu++) {
             int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-            sum = 0.0;
+	    sum = 0.0;
             Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
                 /* Get_uWmns */
                 double g = c.Wmunu[rk_flag][idx_1d];
