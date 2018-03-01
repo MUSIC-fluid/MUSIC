@@ -53,7 +53,7 @@ class GridT {
   }
 
   const T& operator()(int x, int y, int eta) const {
-    return const_cast<Cell&>(static_cast<const Cell &>((*this)(x,y,eta)));
+    return const_cast<T&>(static_cast<const T &>((*this)(x,y,eta)));
   }
   
 };
