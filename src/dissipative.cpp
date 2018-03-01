@@ -392,7 +392,7 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 
 
 template<typename T>
-T assume_aligned(T x)
+T assume_aligned(T x) __attribute__((always_inline))
 {
 #if defined(__AVX512__)
   constexpr int i = 64;
@@ -513,8 +513,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
       });
     
     for (int mu = 1; mu < 4; mu++) {
-      //    double savew_rhs = w_rhs[mu][0];
-      
+      //    double savew_rhs = w_rhs[mu][0];      
 #pragma omp simd 
       for (int nu = 0; nu < 4; nu++) {
 	/* add a source term -u^tau Wmn/tau
