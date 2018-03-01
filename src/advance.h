@@ -38,7 +38,7 @@ class Advance {
 
     int AdvanceIt(double tau_init, InitData *DATA, Grid &arena, int rk_flag);
 
-    void FirstRKStepT(double tau, double x_local, double y_local,
+    void FirstRKStepT(const double tau, double x_local, double y_local,
                      double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta,
                      int rk_flag);
 

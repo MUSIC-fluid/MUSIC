@@ -5,6 +5,16 @@
 #include "data_struct.h"
 #include <array>
 
+class Cell_small {
+ public:
+    double epsilon = 0;
+    double rhob    = 0;
+    FlowVec u;
+
+    ViscousVec Wmunu;
+    double pi_b    = 0.;
+};
+
 class Cell {
  public:
     double epsilon = 0;

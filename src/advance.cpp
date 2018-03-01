@@ -91,20 +91,10 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
-void Advance::FirstRKStepT(double tau, double x_local, double y_local,
+void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
         double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag) {
   // this advances the ideal part
-  double tau_now  = tau;
-  double tau_next = tau + (DATA_ptr->delta_tau);
-  double tau_rk;
-  if (rk_flag == 0) {
-    tau_rk = tau_now;
-  } else if (rk_flag == 1) {
-    tau_rk = tau_next;
-  } else {
-    fprintf(stderr,"rk_flag = %d out of range.\n", rk_flag);
-    exit(0);
-  }
+  double tau_rk = tau + rk_flag*(DATA_ptr->delta_tau);
   
   // Solve partial_a T^{a mu} = -partial_a W^{a mu}
   // Update T^{mu nu}
@@ -164,11 +154,12 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
     /* if rk_flag > 0, we now have q0 + k1 + k2. 
      * So add q0 and multiply by 1/2 */
     if (rk_flag > 0) {
-      qi[alpha] += get_TJb(arena(ix,iy,ieta), 0, alpha, 0)*tau_now;
+      qi[alpha] += get_TJb(arena(ix,iy,ieta), 0, alpha, 0)*tau;
       qi[alpha] *= 0.5;
     }
   }
   
+  double tau_next = tau + DATA_ptr->delta_tau;
   auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena(ix,iy,ieta), rk_flag); 
   
   UpdateTJbRK(grid_rk_t, &arena(ix,iy,ieta), rk_flag); 
