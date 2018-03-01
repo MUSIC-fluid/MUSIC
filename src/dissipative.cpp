@@ -391,9 +391,24 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 }/* Make_uWSource */
 
 
+template<typename T>
+T assume_aligned(T x, int i)
+{
+#ifdef __ICC
+  T r = x;
+  __assume_aligned(r,i);
+  return r;
+#else
+  return reinterpret_cast<T>(__builtin_assume_aligned(x,i));
+#endif
+}
+
 int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                     std::array< std::array<double,4>, 5> &w_rhs, const InitData *const DATA, int rk_flag,
+                     std::array< std::array<double,4>, 5> &w_rhs, const InitData *const unaligned_data, int rk_flag,
                      double theta_local, DumuVec &a_local) {
+
+  const InitData *const DATA = assume_aligned(unaligned_data,32);
+
     auto& grid_pt = arena(ix, iy, ieta);
 
     w_rhs = {0};
@@ -489,10 +504,8 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
       });
     
     for (int mu = 1; mu < 4; mu++) {
-      double savew_rhs = w_rhs[mu][0];
-   
-      __assume_aligned(DATA,32);
-      //  void *mydata = __builtin_assume_aligned(DATA,32);
+      //    double savew_rhs = w_rhs[mu][0];
+      
 #pragma omp simd 
       for (int nu = 0; nu < 4; nu++) {
 	/* add a source term -u^tau Wmn/tau
@@ -508,6 +521,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 	// vectorized innermost loop more efficiently by iterating over 4 indices instead of 3 to avoid masking
 
 	double tempf = (
+			//	 - (((init_data*)(&mydata))->gmunu[3][mu])*(Wmunu_local[0][nu])
 		 - (DATA->gmunu[3][mu])*(Wmunu_local[0][nu])
 		 - (DATA->gmunu[3][nu])*(Wmunu_local[0][mu])
 		 + (DATA->gmunu[0][mu])*(Wmunu_local[3][nu])
@@ -532,7 +546,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 	w_rhs[mu][nu] += tempf*(DATA->delta_tau) 
 	  + (- (grid_pt.u[rk_flag][0]*Wmunu_local[mu][nu])/tau + (theta_local*Wmunu_local[mu][nu]))*(DATA->delta_tau);
       }
-      w_rhs[mu][0] = savew_rhs;
+      //     w_rhs[mu][0] = savew_rhs;
     }
     // // pi^\mu\nu is symmetric
     // for (int mu = 1; mu < 4; mu++) {
