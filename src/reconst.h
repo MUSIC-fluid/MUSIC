@@ -30,7 +30,6 @@ class Reconst {
  public:
     Reconst(EOS *eos, InitData *DATA_in);
 
-    ReconstCell ReconstIt_shell(double tau, TJbVec &q_vec, const Cell &grid_pt, int rk_flag);
     ReconstCell ReconstIt_shell(double tau, TJbVec &q_vec, const Cell_small &grid_pt, int rk_flag);
 
     int ReconstIt(ReconstCell &grid_p, double tau, const TJbVec &q, const Cell &grid_pt,

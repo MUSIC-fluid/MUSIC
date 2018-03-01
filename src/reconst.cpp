@@ -43,27 +43,6 @@ ReconstCell Reconst::ReconstIt_shell(double tau, TJbVec &q_vec, const Cell_small
     return grid_p1;
 }
 
-ReconstCell Reconst::ReconstIt_shell(double tau, TJbVec &q_vec, const Cell &grid_pt, int rk_flag) {
-
-    ReconstCell grid_p1;
-
-    for (int i = 0; i < 5; i++) {
-        q_vec[i] /= tau;
-    }
-
-    int           flag = ReconstIt_velocity_Newton   (grid_p1, tau, q_vec, grid_pt, rk_flag);
-    if (flag < 0) flag = ReconstIt_velocity_iteration(grid_p1, tau, q_vec, grid_pt, rk_flag);
-    if (flag < 0) flag = ReconstIt                   (grid_p1, tau, q_vec, grid_pt, rk_flag);
-
-    if (flag == -1) {
-        revert_grid(grid_p1, grid_pt, rk_flag);
-    } else if (flag == -2) {
-        regulate_grid(grid_p1, q_vec[0]);
-    }
-
-    return grid_p1;
-}
-
 //! reconstruct TJb from q[0] - q[4] solve energy density first
 int Reconst::ReconstIt(ReconstCell &grid_p, double tau, const TJbVec &q,
                        const Cell &grid_pt, int rk_flag) {

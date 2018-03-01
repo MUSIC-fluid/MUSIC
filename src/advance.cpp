@@ -73,10 +73,13 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
   const int grid_ny   = arena.nY();
 
   SCGrid arena_current = SCGrid(grid_nx, grid_ny, grid_neta);
+  SCGrid arena_future  = SCGrid(grid_nx, grid_ny, grid_neta);
+
   for(int ieta = 0; ieta < grid_neta; ieta++)
   for(int ix   = 0; ix   < grid_nx;   ix++  )
   for(int iy   = 0; iy   < grid_ny;   iy++  ) {
       update_cell_to_small_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), rk_flag);
+      update_cell_to_small_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag + 1)%2);
   }
   
   #pragma omp parallel for collapse(3) schedule(guided)
@@ -92,7 +95,8 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 	  
     //        FirstRKStepT(tau, x_local, y_local, eta_s_local,
     //             DATA, &(arena(ix,iy,ieta)), rk_flag);
-    FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena, arena_current, ix, iy, ieta, rk_flag);
+    FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena, arena_current, arena_future, ix, iy, ieta, rk_flag);
+    update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag+1)%2);
           
     if (DATA->viscosity_flag == 1) {
       //double tau_rk = tau;
@@ -126,7 +130,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
-        double eta_s_local, InitData *DATA, Grid &arena, SCGrid &arena_current, int ix, int iy, int ieta, int rk_flag) {
+        double eta_s_local, InitData *DATA, Grid &arena, SCGrid &arena_current, SCGrid &arena_future, int ix, int iy, int ieta, int rk_flag) {
   // this advances the ideal part
   double tau_rk = tau + rk_flag*(DATA_ptr->delta_tau);
   
@@ -140,13 +144,13 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
   // It is the spatial derivative part of partial_a T^{a mu}
   // (including geometric terms)
   TJbVec qi = {0};
-  MakeDeltaQI(tau_rk, arena, arena_current, ix, iy, ieta, qi, rk_flag);
+  MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
   
   EnergyFlowVec j_mu = {0};
 
   double rhob_source = 0.0;
   if (flag_add_hydro_source) {
-    FlowVec u_local = arena(ix,iy,ieta).u[rk_flag];
+    FlowVec u_local = arena_current(ix,iy,ieta).u;
 
     hydro_source_ptr->get_hydro_energy_source(
                 tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
@@ -159,12 +163,9 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
     }
   }
   
-  update_small_cell_to_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), rk_flag);
-  
   for (int alpha = 0; alpha < 5; alpha++) {
     // now MakeWSource returns partial_a W^{a mu}
     // (including geometric terms) 
-    //double dwmn = diss->MakeWSource(tau_rk, alpha, &arena(ix,iy,ieta), DATA, rk_flag);
     double dwmn = diss->MakeWSource(tau_rk, alpha, arena, ix, iy, ieta, DATA, rk_flag);
     /* dwmn is the only one with the minus sign */
     qi[alpha] -= dwmn*(DATA->delta_tau);
@@ -196,13 +197,9 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
   }
   
   double tau_next = tau + DATA_ptr->delta_tau;
-  Cell_small cell_current;
-  update_cell_to_small_cell(arena(ix, iy, ieta), cell_current, (rk_flag+1)%2);
-  auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena(ix,iy,ieta), rk_flag); 
-  
-  //UpdateTJbRK(grid_rk_t, &arena(ix,iy,ieta), rk_flag); 
-  UpdateTJbRK(grid_rk_t, cell_current);
-  update_small_cell_to_cell(arena(ix, iy, ieta), cell_current, (rk_flag+1)%2);
+
+  auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena_current(ix, iy, ieta), rk_flag); 
+  UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
 }
 
 
@@ -620,18 +617,15 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
 
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(double tau, Grid &arena, SCGrid &arena_current, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
+void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
   double delta[4];
   delta[1] = DATA_ptr->delta_x;
   delta[2] = DATA_ptr->delta_y;
   delta[3] = DATA_ptr->delta_eta;
   
-  //update_cell_to_small_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), rk_flag);
-
   double rhs[5];
   for (int alpha = 0; alpha < 5; alpha++) 
     {
-      //qi[alpha] = get_TJb(arena(ix,iy,ieta), rk_flag, alpha, 0)*tau;
       qi[alpha] = get_TJb(arena_current(ix, iy, ieta), alpha, 0)*tau;
       rhs[alpha] = 0.0; 
     }/* get qi first */
@@ -641,59 +635,6 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, SCGrid &arena_current, int ix
   TJbVec qiphR = {0};
   TJbVec qimhL = {0};
   TJbVec qimhR = {0};
-  
-
-//  Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
-//    double tau_fac = tau;
-//    if (direction == 3) {
-//      tau_fac = 1.0;
-//    }
-//    for (int alpha = 0; alpha < 5; alpha++) {
-//      const double gphL = qi[alpha];
-//      const double gphR = tau*get_TJb(p1, rk_flag, alpha, 0);
-//      const double gmhL = tau*get_TJb(m1, rk_flag, alpha, 0);
-//      const double gmhR = qi[alpha];
-//      const double fphL =  0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
-//      const double fphR = -0.5*minmod.minmod_dx(tau*get_TJb(p2, rk_flag, alpha, 0), gphR, qi[alpha]);
-//      const double fmhL =  0.5*minmod.minmod_dx(qi[alpha], gmhL, tau*get_TJb(m2, rk_flag, alpha, 0));
-//      const double fmhR = -fphL;//-0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL); //TODO: Drop one of these minmods
-//      qiphL[alpha] = gphL + fphL;
-//      qiphR[alpha] = gphR + fphR;
-//      qimhL[alpha] = gmhL + fmhL;
-//      qimhR[alpha] = gmhR + fmhR;
-//    }
-//      
-//
-//    // for each direction, reconstruct half-way cells
-//    // reconstruct e, rhob, and u[4] for half way cells
-//    auto grid_phL = reconst_ptr->ReconstIt_shell(tau, qiphL, c, 0);
-//    auto grid_phR = reconst_ptr->ReconstIt_shell(tau, qiphR, c, 0); 
-//    auto grid_mhL = reconst_ptr->ReconstIt_shell(tau, qimhL, c, 0);
-//    auto grid_mhR = reconst_ptr->ReconstIt_shell(tau, qimhR, c, 0);
-//      
-//    double aiphL = MaxSpeed(tau, direction, grid_phL);
-//    double aiphR = MaxSpeed(tau, direction, grid_phR);
-//    double aimhL = MaxSpeed(tau, direction, grid_mhL);
-//    double aimhR = MaxSpeed(tau, direction, grid_mhR);
-//        
-//    double aiph = maxi(aiphL, aiphR);
-//    double aimh = maxi(aimhL, aimhR);
-//        
-//    for (int alpha = 0; alpha < 5; alpha++) {
-//      double FiphL = get_TJb(grid_phL, 0, alpha, direction)*tau_fac;
-//      double FiphR = get_TJb(grid_phR, 0, alpha, direction)*tau_fac;
-//      double FimhL = get_TJb(grid_mhL, 0, alpha, direction)*tau_fac;
-//      double FimhR = get_TJb(grid_mhR, 0, alpha, direction)*tau_fac;
-//            
-//      // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2
-//      //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
-//      double Fiph = 0.5*((FiphL + FiphR) - aiph*(qiphR[alpha] - qiphL[alpha]));
-//      double Fimh = 0.5*((FimhL + FimhR) - aimh*(qimhR[alpha] - qimhL[alpha]));
-//      double DFmmp = (Fimh - Fiph)/delta[direction];
-//            
-//      rhs[alpha] += DFmmp*(DATA_ptr->delta_tau);
-//    }
-//  });
   
   Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
     double tau_fac = tau;
