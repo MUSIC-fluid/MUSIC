@@ -13,7 +13,7 @@ using namespace std;
 //! This is a data structure contains all the parameters for simulation
 
 typedef struct init_data {
-    double **gmunu;   //! metric
+    double gmunu[4][4];     //! metric
     int echo_level;
     int mode;               //!< 1: do everything;
                             //!< 2: do hydro evolution only;

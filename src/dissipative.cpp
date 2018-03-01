@@ -490,6 +490,9 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
     
     for (int mu = 1; mu < 4; mu++) {
       double savew_rhs = w_rhs[mu][0];
+   
+      __assume_aligned(DATA,32);
+      //  void *mydata = __builtin_assume_aligned(DATA,32);
 #pragma omp simd 
       for (int nu = 0; nu < 4; nu++) {
 	/* add a source term -u^tau Wmn/tau
@@ -498,6 +501,12 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 	/* or d(uW) = udW + Wdu */
 	/* this term is being added to the rhs so that -4/3 + 1 = -1/3 */
 	/* other source terms due to the coordinate change to tau-eta */
+
+	// align gmunu in data for faster access - also changed **gmunu in data to gmunu[4][4]
+	// moved two sums into w_rhs at top and bottom into one sum in the end
+	// do not symmetrize in the end, just go through all nu's
+	// vectorized innermost loop more efficiently by iterating over 4 indices instead of 3 to avoid masking
+
 	double tempf = (
 		 - (DATA->gmunu[3][mu])*(Wmunu_local[0][nu])
 		 - (DATA->gmunu[3][nu])*(Wmunu_local[0][mu])
