@@ -19,7 +19,6 @@ Advance::Advance(EOS *eosIn, InitData *DATA_in,
   eos              = eosIn;
   reconst_ptr      = new Reconst(eos, DATA_in);
   diss             = new Diss(eosIn, DATA_in);
-  u_derivative_ptr = new U_derivative(eosIn, DATA_in);
   if (DATA_in->Initial_profile == 12 || DATA_in->Initial_profile == 13
       || DATA_in->Initial_profile == 30) {
     flag_add_hydro_source = true;
@@ -34,7 +33,6 @@ Advance::Advance(EOS *eosIn, InitData *DATA_in,
 Advance::~Advance() {
   delete diss;
   delete reconst_ptr;
-  delete u_derivative_ptr;
 }
 
 
@@ -61,18 +59,19 @@ int Advance::AdvanceIt(double tau, InitData *DATA,
     FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena_current, arena_future, arena_prev, ix, iy, ieta, rk_flag);
 
     if (DATA->viscosity_flag == 1) {
-      int flag = u_derivative_ptr->MakedU(tau, DATA, arena_prev, arena_current,
+      U_derivative u_derivative_helper(eos, DATA_ptr);
+      int flag = u_derivative_helper.MakedU(tau, DATA, arena_prev, arena_current,
                                           ix, iy, ieta, rk_flag);
       double theta_local = (
-          u_derivative_ptr->calculate_expansion_rate(
+          u_derivative_helper.calculate_expansion_rate(
                        tau, arena_current, ieta, ix, iy, rk_flag));
       
       DumuVec a_local;
-      u_derivative_ptr->calculate_Du_supmu(
+      u_derivative_helper.calculate_Du_supmu(
              tau, arena_current, ieta, ix, iy, rk_flag, a_local);
 
       VelocityShearVec sigma_local;
-      u_derivative_ptr->calculate_velocity_shear_tensor(
+      u_derivative_helper.calculate_velocity_shear_tensor(
                     tau, arena_current, ieta, ix, iy, rk_flag, a_local,
                     sigma_local);
 	    

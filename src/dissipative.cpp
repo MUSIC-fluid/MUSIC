@@ -227,40 +227,41 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 
     // remember: dUsup[m][n] = partial^n u^m  ///
     // remember:  a[n]  =  u^m*partial_m u^n  ///
-    if (include_Vorticity_term == 1) {
-        double omega[4][4];
-        for (a = 0; a < 4; a++) {
-            for (b = 0; b <4; b++) {
-                omega[a][b] = (
-                    (grid_pt->dUsup[a][b]
-                     - grid_pt->dUsup[b][a])/2.
-                    + ueta/tau/2.*(  DATA->gmunu[a][0]*DATA->gmunu[b][3]
-                                   - DATA->gmunu[b][0]*DATA->gmunu[a][3])
-                    - ueta*gamma/tau/2.
-                      *(  DATA->gmunu[a][3]*grid_pt->u[b]
-                        - DATA->gmunu[b][3]*grid_pt->u[a])
-                    + ueta*ueta/tau/2.
-                      *(   DATA->gmunu[a][0]*grid_pt->u[b]
-                         - DATA->gmunu[b][0]*grid_pt->u[a])
-                    + (  grid_pt->u[a]*a_local[b]
-                       - grid_pt->u[b]*a_local[a])/2.);
-            }
-        }
-        term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
-                           - Wmunu[nu][0]*omega[mu][0]
-                           + Wmunu[mu][1]*omega[nu][1]
-                           + Wmunu[nu][1]*omega[mu][1]
-                           + Wmunu[mu][2]*omega[nu][2]
-                           + Wmunu[nu][2]*omega[mu][2]
-                           + Wmunu[mu][3]*omega[nu][3]
-                           + Wmunu[nu][3]*omega[mu][3])/2.;
-        // multiply term by its respective transport coefficient
-        term1_Vorticity = transport_coefficient4*term1_Vorticity;
-        // full term is
-        Vorticity_term = term1_Vorticity;
-    } else {
-        Vorticity_term = 0.0;
-    }
+    //if (include_Vorticity_term == 1) {
+    //    double omega[4][4];
+    //    for (a = 0; a < 4; a++) {
+    //        for (b = 0; b <4; b++) {
+    //            omega[a][b] = (
+    //                (grid_pt->dUsup[a][b]
+    //                 - grid_pt->dUsup[b][a])/2.
+    //                + ueta/tau/2.*(  DATA->gmunu[a][0]*DATA->gmunu[b][3]
+    //                               - DATA->gmunu[b][0]*DATA->gmunu[a][3])
+    //                - ueta*gamma/tau/2.
+    //                  *(  DATA->gmunu[a][3]*grid_pt->u[b]
+    //                    - DATA->gmunu[b][3]*grid_pt->u[a])
+    //                + ueta*ueta/tau/2.
+    //                  *(   DATA->gmunu[a][0]*grid_pt->u[b]
+    //                     - DATA->gmunu[b][0]*grid_pt->u[a])
+    //                + (  grid_pt->u[a]*a_local[b]
+    //                   - grid_pt->u[b]*a_local[a])/2.);
+    //        }
+    //    }
+    //    term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
+    //                       - Wmunu[nu][0]*omega[mu][0]
+    //                       + Wmunu[mu][1]*omega[nu][1]
+    //                       + Wmunu[nu][1]*omega[mu][1]
+    //                       + Wmunu[mu][2]*omega[nu][2]
+    //                       + Wmunu[nu][2]*omega[mu][2]
+    //                       + Wmunu[mu][3]*omega[nu][3]
+    //                       + Wmunu[nu][3]*omega[mu][3])/2.;
+    //    // multiply term by its respective transport coefficient
+    //    term1_Vorticity = transport_coefficient4*term1_Vorticity;
+    //    // full term is
+    //    Vorticity_term = term1_Vorticity;
+    //} else {
+    //    Vorticity_term = 0.0;
+    //}
+    Vorticity_term = 0.0;
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -797,18 +798,19 @@ double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     // -(1/tau_rho)(q[a] + kappa g[a][b]DmuB/T[b] 
     // + kappa u[a] u[b]g[b][c]DmuB/T[c])
     // a = nu 
-    double NS = kappa*(grid_pt->dUsup[4][nu] 
-                           + grid_pt->u[nu]*a_local[4]);
-    if (isnan(NS)) {
-        cout << "Navier Stock term is nan! " << endl;
-        cout << q[nu] << endl;
-        // derivative already upper index
-        cout << grid_pt->dUsup[4][nu] << endl;
-        cout << a_local[4] << endl;
-        cout << tau_rho << endl;
-        cout << kappa << endl;
-        cout << grid_pt->u[nu] << endl;
-    }
+    double NS = 0.0;
+    //double NS = kappa*(grid_pt->dUsup[4][nu] 
+    //                       + grid_pt->u[nu]*a_local[4]);
+    //if (isnan(NS)) {
+    //    cout << "Navier Stock term is nan! " << endl;
+    //    cout << q[nu] << endl;
+    //    // derivative already upper index
+    //    cout << grid_pt->dUsup[4][nu] << endl;
+    //    cout << a_local[4] << endl;
+    //    cout << tau_rho << endl;
+    //    cout << kappa << endl;
+    //    cout << grid_pt->u[nu] << endl;
+    //}
   
     // add a new non-linear term (- q \theta)
     double transport_coeff = 1.0*tau_rho;   // from conformal kinetic theory

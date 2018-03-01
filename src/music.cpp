@@ -53,31 +53,6 @@ int MUSIC::initialize_hydro() {
     return(status);
 }
 
-void update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag) {
-    if (rk_flag == 0) {
-        c.epsilon = c_s.epsilon;
-        c.rhob = c_s.rhob;
-        c.dUsup = c_s.dUsup;
-        c.u.at(rk_flag)     = c_s.u;
-        c.Wmunu.at(rk_flag) = c_s.Wmunu;
-        c.pi_b.at(rk_flag)  = c_s.pi_b;
-    } else if (rk_flag == 1) {
-        c.epsilon_t = c_s.epsilon;
-        c.rhob_t = c_s.rhob;
-        c.dUsup = c_s.dUsup;
-        c.u.at(rk_flag)     = c_s.u;
-        c.Wmunu.at(rk_flag) = c_s.Wmunu;
-        c.pi_b.at(rk_flag)  = c_s.pi_b;
-    } else if (rk_flag == 2) {
-        c.prev_epsilon = c_s.epsilon;
-        c.prev_rhob = c_s.rhob;
-        c.dUsup = c_s.dUsup;
-        c.prev_u.at   (0)     = c_s.u;
-        c.prevWmunu.at(0) = c_s.Wmunu;
-        c.prev_pi_b.at(0)  = c_s.pi_b;
-    }
-}
-
 void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
     if (rk_flag == 0) {
         c_s.epsilon = c.epsilon;
@@ -85,21 +60,18 @@ void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
         c_s.u     = c.u[rk_flag];
         c_s.Wmunu = c.Wmunu[rk_flag];
         c_s.pi_b  = c.pi_b[rk_flag];
-        c_s.dUsup = c.dUsup;
     } else if (rk_flag == 1) {
         c_s.epsilon = c.epsilon_t;
         c_s.rhob = c.rhob_t;
         c_s.u     = c.u[rk_flag];
         c_s.Wmunu = c.Wmunu[rk_flag];
         c_s.pi_b  = c.pi_b[rk_flag];
-        c_s.dUsup = c.dUsup;
     } else if (rk_flag == 2) {
         c_s.epsilon = c.prev_epsilon;
         c_s.rhob = c.prev_rhob;
         c_s.u     = c.prev_u[0];
         c_s.Wmunu = c.prevWmunu[0];
         c_s.pi_b  = c.prev_pi_b[0];
-        c_s.dUsup = c.dUsup;
     }
 }
 

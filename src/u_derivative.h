@@ -15,6 +15,7 @@ class U_derivative {
      // Sangyong Nov 18 2014: added EOS *eos;
      EOS *eos;
      InitData *DATA_ptr;
+     std::array<std::array<double, 4>, 5> dUsup;
   
  public:
     // Sangyong Nov 18 2014: added EOS *eos in the argument

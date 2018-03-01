@@ -49,8 +49,6 @@ class Evolve {
     Evolve(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
     int EvolveIt(InitData *DATA, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future);
 
-    void update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag);
-    void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag);
     int AdvanceRK(double tau, InitData *DATA, SCGrid &arena_prev,
                   SCGrid &arena_current, SCGrid &arena_future);
 
