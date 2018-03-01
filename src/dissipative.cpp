@@ -22,10 +22,12 @@ Diss::Diss(EOS *eosIn, InitData* DATA_in) :
 for everywhere else. also, this change is necessary
 to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
 /* this is the only one that is being subtracted in the rhs */
-double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int ieta,
+double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &arena_prev, int ix, int iy, int ieta,
                          InitData *DATA, int rk_flag) {
     /* calculate d_m (tau W^{m,alpha}) + (geom source terms) */
-    const auto& grid_pt = arena(ix, iy, ieta);
+    const auto& grid_pt = arena_current(ix, iy, ieta);
+    const auto& grid_pt_prev = arena_prev(ix, iy, ieta);
+
     double shear_on = DATA->turn_on_shear;
     double bulk_on  = DATA->turn_on_bulk;
     double diff_on  = DATA->turn_on_diff;
@@ -50,29 +52,23 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     // backward time derivative (first order is more stable)
     int idx_1d_alpha0 = Util::map_2d_idx_to_1d(alpha, 0);
     double dWdtau;
-    if (rk_flag == 0) {
-        dWdtau = (grid_pt.Wmunu[rk_flag][idx_1d_alpha0] - grid_pt.prevWmunu[0][idx_1d_alpha0])/DATA->delta_tau;
-    } else {
-        dWdtau = (grid_pt.Wmunu[rk_flag][idx_1d_alpha0] - grid_pt.Wmunu    [0][idx_1d_alpha0])/DATA->delta_tau;
-    }
+    dWdtau = (grid_pt.Wmunu[idx_1d_alpha0] - grid_pt_prev.Wmunu[idx_1d_alpha0])/DATA->delta_tau;
 
     /* bulk pressure term */
     double dPidtau = 0.0;
     double Pi_alpha0 = 0.0;
     if (alpha < 4 && DATA->turn_on_bulk == 1) {
         double gfac = (alpha == 0 ? -1.0 : 0.0);
-        Pi_alpha0 = (
-            grid_pt.pi_b[rk_flag]*(gfac + grid_pt.u[rk_flag][alpha]
-                                           *grid_pt.u[rk_flag][0]));
+        Pi_alpha0 = grid_pt.pi_b*(gfac + grid_pt.u[alpha]*grid_pt.u[0]);
         if (rk_flag == 0) {
-            dPidtau = ((Pi_alpha0 - grid_pt.prev_pi_b[0]
-                                    *(gfac + grid_pt.prev_u[0][alpha]
-                                             *grid_pt.prev_u[0][0]))
+            dPidtau = ((Pi_alpha0 - grid_pt_prev.pi_b
+                                    *(gfac + grid_pt_prev.u[alpha]
+                                             *grid_pt_prev.u[0]))
                        /DATA->delta_tau);
         } else {
-            dPidtau = ((Pi_alpha0 - grid_pt.pi_b[0]
-                                    *(gfac + grid_pt.u[0][alpha]
-                                             *grid_pt.u[0][0]))
+            dPidtau = ((Pi_alpha0 - grid_pt.pi_b
+                                    *(gfac + grid_pt.u[alpha]
+                                             *grid_pt.u[0]))
                        /DATA->delta_tau);
         }
     }
@@ -80,37 +76,35 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     // use central difference to preserve conservation law exactly
     double dWdx  = 0.0;
     double dPidx = 0.0;
-    Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
+    Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
         int idx_1d;
         idx_1d      = Util::map_2d_idx_to_1d(alpha, direction);
-        double sg   = c.Wmunu[rk_flag][idx_1d];
-        double sgp1 = p1.Wmunu[rk_flag][idx_1d];
-        double sgm1 = m1.Wmunu[rk_flag][idx_1d];
+        double sg   = c.Wmunu[idx_1d];
+        double sgp1 = p1.Wmunu[idx_1d];
+        double sgm1 = m1.Wmunu[idx_1d];
         dWdx += minmod.minmod_dx(sgp1, sg, sgm1)/delta[direction];
         if (alpha < 4 && DATA->turn_on_bulk == 1) {
             double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
-            double bgp1  = p1.pi_b[rk_flag]*(gfac1 + p1.u[rk_flag][alpha]*p1.u[rk_flag][direction]);
-            double bg    = c.pi_b[rk_flag]*(gfac1 + c.u[rk_flag][alpha]*c.u[rk_flag][direction]);
-            double bgm1  = m1.pi_b[rk_flag]*(gfac1 + m1.u[rk_flag][alpha]*m1.u[rk_flag][direction]);
+            double bgp1  = p1.pi_b*(gfac1 + p1.u[alpha]*p1.u[direction]);
+            double bg    = c.pi_b*(gfac1 + c.u[alpha]*c.u[direction]);
+            double bgm1  = m1.pi_b*(gfac1 + m1.u[alpha]*m1.u[direction]);
             dPidx += minmod.minmod_dx(bgp1, bg, bgm1)/delta[direction];
         }
     });
 
     /* partial_m (tau W^mn) = W^0n + tau partial_m W^mn */
     double sf = (tau*(dWdtau + dWdx)
-                 + grid_pt.Wmunu[rk_flag][idx_1d_alpha0]);
+                 + grid_pt.Wmunu[idx_1d_alpha0]);
     double bf = (tau*(dPidtau + dPidx) + Pi_alpha0);
 
     /* sources due to coordinate transform this is added to partial_m W^mn */
     if (alpha == 0) {
-        sf += grid_pt.Wmunu[rk_flag][9];
-        bf += grid_pt.pi_b[rk_flag]*(1.0 + grid_pt.u[rk_flag][3]
-                                            *grid_pt.u[rk_flag][3]);
+        sf += grid_pt.Wmunu[9];
+        bf += grid_pt.pi_b*(1.0 + grid_pt.u[3]*grid_pt.u[3]);
     }
     if (alpha == 3) {
-        sf += grid_pt.Wmunu[rk_flag][3];
-        bf += grid_pt.pi_b[rk_flag]*(grid_pt.u[rk_flag][0]
-                                      *grid_pt.u[rk_flag][3]);
+        sf += grid_pt.Wmunu[3];
+        bf += grid_pt.pi_b*(grid_pt.u[0]*grid_pt.u[3]);
     }
 
     // final result
@@ -122,17 +116,13 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
 
     if (isnan(result)) {
         cout << "[Error]Diss::MakeWSource: " << endl;
-        cout << "rk_flag = " << rk_flag << endl;
         cout << "sf=" << sf << " bf=" << bf
-             << " Wmunu[" << rk_flag << "]="
-             << grid_pt.Wmunu[rk_flag][alpha]
-             << " pi_b[" << rk_flag << "]="
-             << grid_pt.pi_b[rk_flag]
-             << " prev_pi_b=" << grid_pt.prev_pi_b[rk_flag] << endl;
+             << " Wmunu =" << grid_pt.Wmunu[alpha]
+             << " pi_b =" << grid_pt.pi_b
+             << " prev_pi_b=" << grid_pt_prev.pi_b << endl;
     }
     return(result);
 }/* MakeWSource */
-/* MakeWSource is for Tmunu */
 
 double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
                            InitData *DATA, int rk_flag, double theta_local,

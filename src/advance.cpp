@@ -54,13 +54,22 @@ void Advance::update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_f
     if (rk_flag == 0) {
         c_s.epsilon = c.epsilon;
         c_s.rhob = c.rhob;
-    } else {
+        c_s.u     = c.u[rk_flag];
+        c_s.Wmunu = c.Wmunu[rk_flag];
+        c_s.pi_b  = c.pi_b[rk_flag];
+    } else if (rk_flag == 1) {
         c_s.epsilon = c.epsilon_t;
         c_s.rhob = c.rhob_t;
+        c_s.u     = c.u[rk_flag];
+        c_s.Wmunu = c.Wmunu[rk_flag];
+        c_s.pi_b  = c.pi_b[rk_flag];
+    } else if (rk_flag == 2) {
+        c_s.epsilon = c.prev_epsilon;
+        c_s.rhob = c.prev_rhob;
+        c_s.u     = c.prev_u[0];
+        c_s.Wmunu = c.prevWmunu[0];
+        c_s.pi_b  = c.prev_pi_b[0];
     }
-    c_s.u     = c.u[rk_flag];
-    c_s.Wmunu = c.Wmunu[rk_flag];
-    c_s.pi_b  = c.pi_b[rk_flag];
 }
 
 
@@ -72,12 +81,14 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
   const int grid_nx   = arena.nX();
   const int grid_ny   = arena.nY();
 
+  SCGrid arena_prev    = SCGrid(grid_nx, grid_ny, grid_neta);
   SCGrid arena_current = SCGrid(grid_nx, grid_ny, grid_neta);
   SCGrid arena_future  = SCGrid(grid_nx, grid_ny, grid_neta);
 
   for(int ieta = 0; ieta < grid_neta; ieta++)
   for(int ix   = 0; ix   < grid_nx;   ix++  )
   for(int iy   = 0; iy   < grid_ny;   iy++  ) {
+      update_cell_to_small_cell(arena(ix, iy, ieta), arena_prev(ix, iy, ieta), 2);
       update_cell_to_small_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), rk_flag);
       update_cell_to_small_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag + 1)%2);
   }
@@ -95,7 +106,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 	  
     //        FirstRKStepT(tau, x_local, y_local, eta_s_local,
     //             DATA, &(arena(ix,iy,ieta)), rk_flag);
-    FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena, arena_current, arena_future, ix, iy, ieta, rk_flag);
+    FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena, arena_current, arena_future, arena_prev, ix, iy, ieta, rk_flag);
     update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag+1)%2);
           
     if (DATA->viscosity_flag == 1) {
@@ -130,7 +141,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
-        double eta_s_local, InitData *DATA, Grid &arena, SCGrid &arena_current, SCGrid &arena_future, int ix, int iy, int ieta, int rk_flag) {
+        double eta_s_local, InitData *DATA, Grid &arena, SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta, int rk_flag) {
   // this advances the ideal part
   double tau_rk = tau + rk_flag*(DATA_ptr->delta_tau);
   
@@ -166,7 +177,7 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
   for (int alpha = 0; alpha < 5; alpha++) {
     // now MakeWSource returns partial_a W^{a mu}
     // (including geometric terms) 
-    double dwmn = diss->MakeWSource(tau_rk, alpha, arena, ix, iy, ieta, DATA, rk_flag);
+    double dwmn = diss->MakeWSource(tau_rk, alpha, arena_current, arena_prev, ix, iy, ieta, DATA, rk_flag);
     /* dwmn is the only one with the minus sign */
     qi[alpha] -= dwmn*(DATA->delta_tau);
     
@@ -197,7 +208,6 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
   }
   
   double tau_next = tau + DATA_ptr->delta_tau;
-
   auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena_current(ix, iy, ieta), rk_flag); 
   UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
 }
