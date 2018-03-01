@@ -346,7 +346,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
       for (int nu = 1; nu < 4; nu++) {
 	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
 	tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
-	temps = diss->Make_uqSource(tau_now, grid_pt, nu, DATA,
+	temps = diss->Make_uqSource(tau_now, grid_pt_c, grid_pt_prev, nu, DATA,
 				    rk_flag, theta_local, a_local,
 				    sigma_local); 
 	tempf += temps*(DATA->delta_tau);
@@ -360,7 +360,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
       for (int nu = 1; nu < 4; nu++) {
 	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
 	tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
-	temps = diss->Make_uqSource(tau_next, grid_pt, nu, DATA,
+	temps = diss->Make_uqSource(tau_next, grid_pt_c, grid_pt_prev, nu, DATA,
 				    rk_flag, theta_local, a_local,
 				    sigma_local); 
 	tempf += temps*(DATA->delta_tau);
@@ -407,7 +407,6 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
     }
     grid_pt_f->Wmunu[mu] = tempf/(grid_pt_f->u[0]);
   }
-  
   // make Wmunu[0][0]
   tempf = 0.0;
   for (int nu=1; nu<4; nu++)

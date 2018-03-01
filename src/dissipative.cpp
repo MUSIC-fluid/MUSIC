@@ -520,146 +520,6 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 }/* Make_uWRHS */
 
 
-int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                     std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag,
-                     double theta_local, DumuVec &a_local) {
-    auto& grid_pt = arena(ix, iy, ieta);
-
-    w_rhs = {0};
-
-    if (DATA->turn_on_shear == 0)
-        return(1);
-    auto Wmunu_local = Util::UnpackVecToMatrix(grid_pt.Wmunu[rk_flag]);
-
-    /* Kurganov-Tadmor for Wmunu */
-    /* implement 
-       partial_tau (utau Wmn) + (1/tau)partial_eta (ueta Wmn) 
-       + partial_x (ux Wmn) + partial_y (uy Wmn) + utau Wmn/tau = SW 
-       or the right hand side of,
-       partial_tau (utau Wmn) = 
-                        - (1/tau)partial_eta (ueta Wmn)
-                        - partial_x (ux Wmn) - partial_y (uy Wmn) 
-                        - utau Wmn/tau + SW*/
-
-    /* the local velocity is just u_x/u_tau, u_y/u_tau, u_eta/tau/u_tau */
-    /* KT flux is given by 
-       H_{j+1/2} = (fRph + fLph)/2 - ax(uRph - uLph) 
-       Here fRph = ux WmnRph and ax uRph = |ux/utau|_max utau Wmn */
-    /* This is the second step in the operator splitting. it uses
-       rk_flag+1 as initial condition */
-    double delta[4] = { 
-        0.0,
-        DATA->delta_x,
-        DATA->delta_y,
-        DATA->delta_eta*tau
-    };
-    
-    // pi^\mu\nu is symmetric
-    for (int mu = 1; mu < 4; mu++) {
-        for (int nu = mu; nu < 4; nu++) {
-            int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-            double sum = 0.0;
-            Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
-                /* Get_uWmns */
-                double g = c.Wmunu[rk_flag][idx_1d];
-                double f = g*c.u[rk_flag][direction];
-                g *=   c.u[rk_flag][0];
-                   
-                double gp2 = p2.Wmunu[rk_flag][idx_1d];
-                double fp2 = gp2*p2.u[rk_flag][direction];
-                gp2 *= p2.u[rk_flag][0];
-                
-                double gp1 = p1.Wmunu[rk_flag][idx_1d];
-                double fp1 = gp1*p1.u[rk_flag][direction];
-                gp1 *= p1.u[rk_flag][0];
-                
-                double gm1 = m1.Wmunu[rk_flag][idx_1d];
-                double fm1 = gm1*m1.u[rk_flag][direction];
-                gm1 *= m1.u[rk_flag][0];
-                
-                double gm2 = m2.Wmunu[rk_flag][idx_1d];
-                double fm2 = gm2*m2.u[rk_flag][direction];
-                gm2 *= m2.u[rk_flag][0];
-                
-                /* MakeuWmnHalfs */
-                /* uWmn */
-                double uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f);
-                double temp = 0.5*minmod.minmod_dx(fp1, f, fm1);
-                double uWphL = f + temp;
-                double uWmhR = f - temp;
-                double uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
-
-                /* just Wmn */
-                double WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g);
-                temp = 0.5*minmod.minmod_dx(gp1, g, gm1);
-                double WphL = g + temp;
-                double WmhR = g - temp;
-                double WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
-
-                double a   = fabs(c.u[rk_flag][direction])/c.u[rk_flag][0];
-                double am1 = (fabs(m1.u[rk_flag][direction])/m1.u[rk_flag][0]);
-                double ap1 = (fabs(p1.u[rk_flag][direction])/p1.u[rk_flag][0]);
-
-                double ax = maxi(a, ap1);
-                double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
-
-                ax = maxi(a, am1);
-                double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
-
-                double HW = (HWph - HWmh)/delta[direction];
-
-                /* make partial_i (u^i Wmn) */
-                sum += -HW;
-            });
-
-            /* add a source term -u^tau Wmn/tau
-               due to the coordinate change to tau-eta */
-            sum += (- (grid_pt.u[rk_flag][0]*Wmunu_local[mu][nu])/tau
-                    + (theta_local*Wmunu_local[mu][nu]));
-
-            /* this is from udW = d(uW) - Wdu = RHS */
-            /* or d(uW) = udW + Wdu */
-            /* this term is being added to the rhs so that -4/3 + 1 = -1/3 */
-            /* other source terms due to the coordinate change to tau-eta */
-            double tempf = 0.0;
-            tempf = (
-                - (DATA->gmunu[3][mu])*(Wmunu_local[0][nu])
-                - (DATA->gmunu[3][nu])*(Wmunu_local[0][mu])
-                + (DATA->gmunu[0][mu])*(Wmunu_local[3][nu])
-                + (DATA->gmunu[0][nu])*(Wmunu_local[3][mu])
-                + (Wmunu_local[3][nu])
-                  *(grid_pt.u[rk_flag][mu])*(grid_pt.u[rk_flag][0])
-                + (Wmunu_local[3][mu])
-                  *(grid_pt.u[rk_flag][nu])*(grid_pt.u[rk_flag][0])
-                - (Wmunu_local[0][nu])
-                  *(grid_pt.u[rk_flag][mu])*(grid_pt.u[rk_flag][3])
-                - (Wmunu_local[0][mu])
-                  *(grid_pt.u[rk_flag][nu])*(grid_pt.u[rk_flag][3]))
-                  *(grid_pt.u[rk_flag][3]/tau);
-            for (int ic = 0; ic < 4; ic++) {
-                double ic_fac = (ic == 0 ? -1.0 : 1.0);
-                tempf += (
-                      (Wmunu_local[ic][nu])*(grid_pt.u[rk_flag][mu])
-                       *(a_local[ic])*ic_fac
-                    + (Wmunu_local[ic][mu])*(grid_pt.u[rk_flag][nu])
-                       *(a_local[ic])*ic_fac);
-            }
-            sum += tempf;
-            w_rhs[mu][nu] = sum*(DATA->delta_tau);
-        }  /* nu */
-    }  /* mu */
-
-    // pi^\mu\nu is symmetric
-    for (int mu = 1; mu < 4; mu++) {
-        for (int nu = mu+1; nu < 4; nu++) {
-            w_rhs[nu][mu] = w_rhs[mu][nu];
-        }
-    }
-    return(1);
-}/* Make_uWRHS */
-
-
-
 int Diss::Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
                      double *p_rhs, InitData *DATA, 
                      int rk_flag, double theta_local) {
@@ -892,7 +752,7 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     -Delta[a][eta] u[eta] q[tau]/tau
     -u[a]u[b]g[b][e] Dq[e]
 */
-double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
+double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu, InitData *DATA,
                            int rk_flag, double theta_local, DumuVec &a_local,
                            VelocityShearVec &sigma_1d) {
     double q[4];
@@ -905,8 +765,8 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
         epsilon = grid_pt->epsilon;
         rhob = grid_pt->rhob;
     } else {
-        epsilon = grid_pt->prev_epsilon;
-        rhob = grid_pt->prev_rhob;
+        epsilon = grid_pt_prev->epsilon;
+        rhob = grid_pt_prev->rhob;
     }
     double pressure = eos->get_pressure(epsilon, rhob);
     double T        = eos->get_temperature(epsilon, rhob);
@@ -926,7 +786,7 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
     // copy the value of \tilde{q^\mu}
     for (int i = 0; i < 4; i++) {
         int idx_1d = Util::map_2d_idx_to_1d(4, i);
-        q[i] = (grid_pt->Wmunu[rk_flag][idx_1d]);
+        q[i] = (grid_pt->Wmunu[idx_1d]);
     }
 
     /* -(1/tau_rho)(q[a] + kappa g[a][b]Dtildemu[b] 
@@ -945,7 +805,7 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
     // + kappa u[a] u[b]g[b][c]DmuB/T[c])
     // a = nu 
     double NS = kappa*(grid_pt->dUsup[4][nu] 
-                           + grid_pt->u[rk_flag][nu]*a_local[4]);
+                           + grid_pt->u[nu]*a_local[4]);
     if (isnan(NS)) {
         cout << "Navier Stock term is nan! " << endl;
         cout << q[nu] << endl;
@@ -954,7 +814,7 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
         cout << a_local[4] << endl;
         cout << tau_rho << endl;
         cout << kappa << endl;
-        cout << grid_pt->u[rk_flag][nu] << endl;
+        cout << grid_pt->u[nu] << endl;
     }
   
     // add a new non-linear term (- q \theta)
@@ -978,7 +838,7 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
 
     // all other geometric terms....
     // + theta q[a] - q[a] u^\tau/tau
-    SW += (theta_local - grid_pt->u[rk_flag][0]/tau)*q[nu];
+    SW += (theta_local - grid_pt->u[0]/tau)*q[nu];
  
     if (isnan(SW)) {
         cout << "theta term is nan! " << endl;
@@ -986,11 +846,11 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
 
     // +Delta[a][tau] u[eta] q[eta]/tau 
     double tempf = ((DATA->gmunu[nu][0] 
-                    + grid_pt->u[rk_flag][nu]*grid_pt->u[rk_flag][0])
-                      *grid_pt->u[rk_flag][3]*q[3]/tau
+                    + grid_pt->u[nu]*grid_pt->u[0])
+                      *grid_pt->u[3]*q[3]/tau
                     - (DATA->gmunu[nu][3]
-                       + grid_pt->u[rk_flag][nu]*grid_pt->u[rk_flag][3])
-                      *grid_pt->u[rk_flag][3]*q[0]/tau);
+                       + grid_pt->u[nu]*grid_pt->u[3])
+                      *grid_pt->u[3]*q[0]/tau);
     SW += tempf;
  
     if (isnan(tempf)) {
@@ -1002,7 +862,7 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
     for (int i = 0; i < 4; i++) {
         tempf += q[i]*gmn(i)*a_local[i];
     }
-    SW += (grid_pt->u[rk_flag][nu])*tempf;
+    SW += (grid_pt->u[nu])*tempf;
     
     if (isnan(tempf)) {
         cout << "u^a q_b Du^b term is nan! " << endl;

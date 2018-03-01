@@ -20,9 +20,6 @@ class Diss {
   
     double MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &arena_prev, int ix, int iy, int ieta,
                          InitData *DATA, int rk_flag);
-    int Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                   std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA,
-                   int rk_flag, double theta_local, DumuVec &a_local);
     int Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
                      std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA,
                      double theta_local, DumuVec &a_local);
@@ -39,7 +36,7 @@ class Diss {
 
     int Make_uqRHS(double tau, SCGrid &arena_current, int ix, int iy, int ieta,
                    std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag);
-    double Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
+    double Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu, InitData *DATA,
                          int rk_flag, double theta_local, DumuVec &a_local,
                          VelocityShearVec &sigma_1d); 
     double get_temperature_dependent_eta_s(InitData *DATA, double T);
