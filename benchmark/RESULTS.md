@@ -33,7 +33,9 @@ with #pragma in uWHRS
 2018-02-28  18:00     Cori KNL      Large     04:32.225
 
 no more halo copying
-
+2018-02-28  18:35     Cori KNL      Small     00:50.342
+2018-02-28  18:35     Cori KNL      Medium    02:02.215
+2018-02-28  18:35     Cori KNL      Large     03:40.763
 
   
 
