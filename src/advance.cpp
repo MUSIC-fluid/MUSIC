@@ -48,6 +48,7 @@ void Advance::update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_f
     } else if (rk_flag == 1) {
         c.epsilon_t = c_s.epsilon;
         c.rhob_t = c_s.rhob;
+        c.dUsup = c_s.dUsup;
         c.u[rk_flag]     = c_s.u;
         c.Wmunu[rk_flag] = c_s.Wmunu;
         c.pi_b[rk_flag]  = c_s.pi_b;
@@ -74,6 +75,7 @@ void Advance::update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_f
         c_s.u     = c.u[rk_flag];
         c_s.Wmunu = c.Wmunu[rk_flag];
         c_s.pi_b  = c.pi_b[rk_flag];
+        c_s.dUsup = c.dUsup;
     } else if (rk_flag == 2) {
         c_s.epsilon = c.prev_epsilon;
         c_s.rhob = c.prev_rhob;
@@ -131,20 +133,26 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
       //            tau_rk, arena, ieta, ix, iy, rk_flag));
       double theta_local = (
           u_derivative_ptr->calculate_expansion_rate(
-                       tau, arena, ieta, ix, iy, rk_flag));
+                       tau, arena_current, ieta, ix, iy, rk_flag));
       
       DumuVec a_local;
-      VelocityShearVec sigma_local;
       u_derivative_ptr->calculate_Du_supmu(
-             tau, arena, ieta, ix, iy, rk_flag, a_local);
+             tau, arena_current, ieta, ix, iy, rk_flag, a_local);
+
+      VelocityShearVec sigma_local;
       u_derivative_ptr->calculate_velocity_shear_tensor(
-                    tau, arena, ieta, ix, iy, rk_flag, a_local,
+                    tau, arena_current, ieta, ix, iy, rk_flag, a_local,
                     sigma_local);
 	    
       FirstRKStepW(tau, DATA, arena_prev, arena_current, arena_future,
        rk_flag, theta_local, a_local,
        sigma_local, ieta, ix, iy);
     }
+  }
+    
+  for(int ieta = 0; ieta < grid_neta; ieta++)
+  for(int ix   = 0; ix   < grid_nx;   ix++  )
+  for(int iy   = 0; iy   < grid_ny;   iy++  ) {
     update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag+1)%2);
   }
   

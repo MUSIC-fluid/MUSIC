@@ -22,15 +22,15 @@ class U_derivative {
     int MakedU(double tau, InitData *DATA, Grid &arena, int rk_flag);
 
     //! this function returns the expansion rate on the grid
-    double calculate_expansion_rate(double tau, Grid &arena,
+    double calculate_expansion_rate(double tau, SCGrid &arena,
                                     int ieta, int ix, int iy, int rk_flag);
 
     //! this function returns Du^\mu
-    void calculate_Du_supmu(double tau, Grid &arena, int ieta, int ix,
+    void calculate_Du_supmu(double tau, SCGrid &arena, int ieta, int ix,
                             int iy, int rk_flag, DumuVec &a);
 
     //! This funciton returns the velocity shear tensor sigma^\mu\nu
-    void calculate_velocity_shear_tensor(double tau, Grid &arena, int ieta, int ix, int iy, int rk_flag, DumuVec &a_local, VelocityShearVec &sigma);
+    void calculate_velocity_shear_tensor(double tau, SCGrid &arena, int ieta, int ix, int iy, int rk_flag, DumuVec &a_local, VelocityShearVec &sigma);
     int MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag);
     int MakeDTau(double tau, InitData *DATA, Cell *grid_pt, int rk_flag);
 };

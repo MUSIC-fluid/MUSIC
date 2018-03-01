@@ -44,27 +44,27 @@ int U_derivative::MakedU(double tau, InitData *DATA,
 
 //! this function returns the expansion rate on the grid
 double U_derivative::calculate_expansion_rate(
-        double tau, Grid &arena, int ieta, int ix, int iy, int rk_flag) {
+        double tau, SCGrid &arena, int ieta, int ix, int iy, int rk_flag) {
     double partial_mu_u_supmu = 0.0;
     for (int mu = 0; mu < 4; mu++) {
         double gfac = (mu == 0 ? -1.0 : 1.0);
         // for expansion rate: theta
         partial_mu_u_supmu += arena(ix,iy,ieta).dUsup[mu][mu]*gfac;
     }
-    double theta = partial_mu_u_supmu + arena(ix,iy,ieta).u[rk_flag][0]/tau;
+    double theta = partial_mu_u_supmu + arena(ix,iy,ieta).u[0]/tau;
     return(theta);
 }
 
 
 //! this function returns Du^\mu
-void U_derivative::calculate_Du_supmu(double tau, Grid &arena, int ieta,
+void U_derivative::calculate_Du_supmu(double tau, SCGrid &arena, int ieta,
                                       int ix, int iy, int rk_flag, DumuVec &a) {
     for (int mu = 0; mu <= 4; mu++) {
         double u_supnu_partial_nu_u_supmu = 0.0;
 	    for (int nu = 0; nu < 4; nu++) {
             double tfac = (nu==0 ? -1.0 : 1.0);
             u_supnu_partial_nu_u_supmu += (
-                tfac*arena(ix,iy,ieta).u[rk_flag][nu]
+                tfac*arena(ix,iy,ieta).u[nu]
                 *arena(ix,iy,ieta).dUsup[mu][nu]);
         }
         a[mu] = u_supnu_partial_nu_u_supmu;
@@ -73,12 +73,12 @@ void U_derivative::calculate_Du_supmu(double tau, Grid &arena, int ieta,
 
 
 //! This funciton returns the velocity shear tensor sigma^\mu\nu
-void U_derivative::calculate_velocity_shear_tensor(double tau, Grid &arena, int ieta, int ix, int iy, int rk_flag, DumuVec &a_local, VelocityShearVec &sigma){
+void U_derivative::calculate_velocity_shear_tensor(double tau, SCGrid &arena, int ieta, int ix, int iy, int rk_flag, DumuVec &a_local, VelocityShearVec &sigma){
     double dUsup_local[4][4];
     double u_local[4];
     double sigma_local[4][4];
     for (int i = 0; i < 4; i++) {
-        u_local[i] = arena(ix,iy,ieta).u[rk_flag][i];
+        u_local[i] = arena(ix,iy,ieta).u[i];
         for (int j = 0; j < 4; j++) {
             dUsup_local[i][j] = arena(ix,iy,ieta).dUsup[i][j];
         }
