@@ -13,6 +13,8 @@ class Cell_small {
 
     ViscousVec Wmunu;
     double pi_b    = 0.;
+    
+    std::array<std::array<double, 4>, 5> dUsup;
 };
 
 class Cell {

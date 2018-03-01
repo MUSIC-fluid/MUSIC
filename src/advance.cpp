@@ -41,13 +41,23 @@ void Advance::update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_f
     if (rk_flag == 0) {
         c.epsilon = c_s.epsilon;
         c.rhob = c_s.rhob;
-    } else {
+        c.dUsup = c_s.dUsup;
+        c.u[rk_flag]     = c_s.u;
+        c.Wmunu[rk_flag] = c_s.Wmunu;
+        c.pi_b[rk_flag]  = c_s.pi_b;
+    } else if (rk_flag == 1) {
         c.epsilon_t = c_s.epsilon;
         c.rhob_t = c_s.rhob;
+        c.u[rk_flag]     = c_s.u;
+        c.Wmunu[rk_flag] = c_s.Wmunu;
+        c.pi_b[rk_flag]  = c_s.pi_b;
+    } else if (rk_flag == 2) {
+        c.prev_epsilon = c_s.epsilon;
+        c.prev_rhob = c_s.rhob;
+        c.prev_u[rk_flag]     = c_s.u;
+        c.prevWmunu[rk_flag] = c_s.Wmunu;
+        c.prev_pi_b[rk_flag]  = c_s.pi_b;
     }
-    c.u[rk_flag]     = c_s.u;
-    c.Wmunu[rk_flag] = c_s.Wmunu;
-    c.pi_b[rk_flag]  = c_s.pi_b;
 }
 
 void Advance::update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
@@ -57,6 +67,7 @@ void Advance::update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_f
         c_s.u     = c.u[rk_flag];
         c_s.Wmunu = c.Wmunu[rk_flag];
         c_s.pi_b  = c.pi_b[rk_flag];
+        c_s.dUsup = c.dUsup;
     } else if (rk_flag == 1) {
         c_s.epsilon = c.epsilon_t;
         c_s.rhob = c.rhob_t;
@@ -226,6 +237,11 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
                            int rk_flag, double theta_local, DumuVec &a_local,
                            VelocityShearVec &sigma_local, int ieta, int ix, int iy) {
   auto grid_pt = &(arena(ix, iy, ieta));
+
+  auto grid_pt_prev = &(arena_prev(ix, iy, ieta));
+  auto grid_pt_c = &(arena_current(ix, iy, ieta));
+  auto grid_pt_f = &(arena_future(ix, iy, ieta));
+
   double tau_now = tau;
   double tau_next = tau + (DATA->delta_tau);
   
@@ -252,41 +268,35 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
   /* Advance uWmunu */
   double tempf, temps;
   if (rk_flag == 0) {
-    //diss->Make_uWRHS(tau_now, arena, ix, iy, ieta, w_rhs, DATA, rk_flag,
-    //     theta_local, a_local);
     diss->Make_uWRHS(tau_now, arena_current, ix, iy, ieta, w_rhs, DATA,
          theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
-	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-	tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
-		 *(grid_pt->u[rk_flag][0]));
-	temps = diss->Make_uWSource(tau_now, grid_pt, mu, nu, DATA,
+          int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+          tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+          temps = diss->Make_uWSource(tau_now, grid_pt_c, grid_pt_prev, mu, nu, DATA,
 				    rk_flag, theta_local, a_local,
 				    sigma_local); 
-	tempf += temps*(DATA->delta_tau);
-	tempf += w_rhs[mu][nu];
-	grid_pt->Wmunu[trk_flag][idx_1d] = (
+          tempf += temps*(DATA->delta_tau);
+          tempf += w_rhs[mu][nu];
+          grid_pt->Wmunu[trk_flag][idx_1d] = (
 					    tempf/(grid_pt->u[trk_flag][0]));
       }
     }
   } else if (rk_flag > 0) {
-    //diss->Make_uWRHS(tau_next, arena, ix, iy, ieta, w_rhs, DATA, rk_flag,
-    //                 theta_local, a_local);
     diss->Make_uWRHS(tau_next, arena_current, ix, iy, ieta, w_rhs, DATA,
                      theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
-	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-	tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->prev_u[0][0]);
-	temps = diss->Make_uWSource(tau_next, grid_pt, mu, nu, DATA,
+          int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+	      tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
+	temps = diss->Make_uWSource(tau_next, grid_pt_c, grid_pt_prev, mu, nu, DATA,
 				    rk_flag, theta_local, a_local,
 				    sigma_local); 
 	tempf += temps*(DATA->delta_tau);
 	tempf += w_rhs[mu][nu];
 	
-	tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
-		  *(grid_pt->u[rk_flag][0]));
+	tempf += ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
 	tempf *= 0.5;
 	
 	grid_pt->Wmunu[trk_flag][idx_1d] = (
