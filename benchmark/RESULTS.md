@@ -48,6 +48,16 @@ no -g flag
 2018-02-28  22:35     Cori KNL      Large     02:01.966
 
 64 threads
+2018-02-28  23:00     Cori KNL      Small     00:29.711
+2018-02-28  23:00     Cori KNL      Medium    00:48.650
+2018-02-28  23:00     Cori KNL      Large     01:18.369
+
+272 threads
+2018-02-28  23:10     Cori KNL      Small     00:29.106
+2018-02-28  23:10     Cori KNL      Medium    00:39.570
+2018-02-28  23:10     Cori KNL      Large     00:51.547
+
+
 
 
 Perf output:
