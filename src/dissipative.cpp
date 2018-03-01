@@ -392,7 +392,7 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 
 
 template<typename T>
-T assume_aligned(T x) __attribute__((always_inline))
+T assume_aligned(T x)
 {
 #if defined(__AVX512__)
   constexpr int i = 64;
