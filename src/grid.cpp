@@ -3,29 +3,6 @@
 #include <cassert>
 #include <iostream>
 
-Grid::Grid(int Nx0, int Ny0, int Neta0){
-  Nx   = Nx0  ;
-  Ny   = Ny0  ;
-  Neta = Neta0;
-  grid.resize(Nx*Ny*Neta);
-}
-
-Cell& Grid::get(int x, int y, int eta){
-  return grid[Nx*(Ny*eta+y)+x];
-}
-
-int Grid::nX() const {
-  return(Nx );
-}
-
-int Grid::nY() const {
-  return(Ny );
-}
-
-int Grid::nEta() const {
-  return(Neta );
-}
-
 TEST_CASE("Does grid copy work"){
  Grid grid(3,3,3);
 
