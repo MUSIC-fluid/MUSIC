@@ -4,9 +4,9 @@
 
 #include <iostream>
 
-#include "./util.h"
-#include "./data.h"
-#include "./pretty_ostream.h"
+#include "util.h"
+#include "data.h"
+#include "pretty_ostream.h"
 
 class EOS {
  private:
@@ -129,25 +129,25 @@ class EOS {
                          double rhob0, double drhob, int nrhob,
                          double** cs2_ptr);
     void build_velocity_of_sound_sq_matrix();
-    double get_rhob_from_mub(double e, double mub);
-    double get_dpOverde(double e, double rhob);
-    double get_dpOverde2(double e, double rhob);
-    double get_dpOverde_WB(double e);
-    double get_dpOverde3(double e, double rhob);
-    double get_dpOverdrhob(double e, double rhob);
-    double get_dpOverdrhob2(double e, double rhob);
-    double p_rho_func(double e, double rhob);
-    double p_e_func(double e, double rhob);
+    double get_rhob_from_mub   (double e, double mub);
+    double get_dpOverde        (double e, double rhob);
+    double get_dpOverde2       (double e, double rhob);
+    double get_dpOverde_WB     (double e);
+    double get_dpOverde3       (double e, double rhob);
+    double get_dpOverdrhob     (double e, double rhob);
+    double get_dpOverdrhob2    (double e, double rhob);
+    double p_rho_func          (double e, double rhob);
+    double p_e_func            (double e, double rhob);
     double T_from_eps_ideal_gas(double eps);
-    double get_entropy(double epsilon, double rhob);
-    double get_temperature(double epsilon, double rhob);
-    double get_temperature_WB(double e_local);
-    double get_mu(double epsilon, double rhob);
-    double get_muS(double epsilon, double rhob);
-    double get_pressure(double epsilon, double rhob);
-    double get_pressure_WB(double e_local);
-    double ssolve(double e, double rhob, double s);
-    double Tsolve(double e, double rhob, double T);
+    double get_entropy         (double epsilon, double rhob);
+    double get_temperature     (double epsilon, double rhob);
+    double get_temperature_WB  (double e_local);
+    double get_mu              (double epsilon, double rhob);
+    double get_muS             (double epsilon, double rhob);
+    double get_pressure        (double epsilon, double rhob);
+    double get_pressure_WB     (double e_local);
+    double ssolve              (double e, double rhob, double s);
+    double Tsolve              (double e, double rhob, double T);
     double findRoot(double (EOS::*function)(double, double, double),
                     double rhob, double s, double e1, double e2, double eacc);
     double s2e_ideal_gas(double s);

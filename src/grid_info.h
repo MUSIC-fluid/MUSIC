@@ -19,16 +19,22 @@ class Cell_info {
     
     int deltaf_qmu_coeff_table_length_T;
     int deltaf_qmu_coeff_table_length_mu;
-    double delta_qmu_coeff_table_T0, delta_qmu_coeff_table_mu0;
-    double delta_qmu_coeff_table_dT, delta_qmu_coeff_table_dmu;
+    double delta_qmu_coeff_table_T0;
+    double delta_qmu_coeff_table_mu0;
+    double delta_qmu_coeff_table_dT;
+    double delta_qmu_coeff_table_dmu;
     double **deltaf_qmu_coeff_tb;
     int deltaf_coeff_table_14mom_length_T;
     int deltaf_coeff_table_14mom_length_mu;
-    double delta_coeff_table_14mom_T0, delta_coeff_table_14mom_mu0;
-    double delta_coeff_table_14mom_dT, delta_coeff_table_14mom_dmu;
-    double **deltaf_coeff_tb_14mom_DPi, **deltaf_coeff_tb_14mom_BPi;
+    double delta_coeff_table_14mom_T0;
+    double delta_coeff_table_14mom_mu0;
+    double delta_coeff_table_14mom_dT;
+    double delta_coeff_table_14mom_dmu;
+    double **deltaf_coeff_tb_14mom_DPi;
+    double **deltaf_coeff_tb_14mom_BPi;
     double **deltaf_coeff_tb_14mom_BPitilde;
-    double **deltaf_coeff_tb_14mom_BV, **deltaf_coeff_tb_14mom_DV;
+    double **deltaf_coeff_tb_14mom_BV;
+    double **deltaf_coeff_tb_14mom_DV;
     double **deltaf_coeff_tb_14mom_Bpi_shear;
 
  public:
