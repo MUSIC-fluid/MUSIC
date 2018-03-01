@@ -524,15 +524,15 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 	}
 	w_rhs[mu][nu] += tempf*(DATA->delta_tau);
 	
-	
-	// pi^\mu\nu is symmetric
-	for (int mu = 1; mu < 4; mu++) {
-	  for (int nu = mu+1; nu < 4; nu++) {
-	    w_rhs[nu][mu] = w_rhs[mu][nu];
-	  }
-	}
       }
     }
+    // pi^\mu\nu is symmetric
+    for (int mu = 1; mu < 4; mu++) {
+      for (int nu = mu+1; nu < 4; nu++) {
+	w_rhs[nu][mu] = w_rhs[mu][nu];
+	  }
+    }
+
     return(1);
 }/* Make_uWRHS */
 
