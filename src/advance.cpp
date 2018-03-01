@@ -117,20 +117,9 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
     double y_local = (- DATA_ptr->y_size/2.
           + iy*DATA_ptr->delta_y);
 	  
-    //        FirstRKStepT(tau, x_local, y_local, eta_s_local,
-    //             DATA, &(arena(ix,iy,ieta)), rk_flag);
     FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena_current, arena_future, arena_prev, ix, iy, ieta, rk_flag);
 
-    update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag+1)%2);
-          
     if (DATA->viscosity_flag == 1) {
-      //double tau_rk = tau;
-      //if (rk_flag == 1) {
-      //    tau_rk = tau + DATA_ptr->delta_tau;
-      //}
-      //double theta_local = (
-      //        u_derivative_ptr->calculate_expansion_rate(
-      //            tau_rk, arena, ieta, ix, iy, rk_flag));
       double theta_local = (
           u_derivative_ptr->calculate_expansion_rate(
                        tau, arena_current, ieta, ix, iy, rk_flag));

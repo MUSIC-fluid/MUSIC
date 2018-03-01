@@ -74,11 +74,9 @@ void U_derivative::calculate_Du_supmu(double tau, SCGrid &arena, int ieta,
 
 //! This funciton returns the velocity shear tensor sigma^\mu\nu
 void U_derivative::calculate_velocity_shear_tensor(double tau, SCGrid &arena, int ieta, int ix, int iy, int rk_flag, DumuVec &a_local, VelocityShearVec &sigma){
+    FlowVec u_local = arena(ix, iy, ieta).u;
     double dUsup_local[4][4];
-    double u_local[4];
-    double sigma_local[4][4];
     for (int i = 0; i < 4; i++) {
-        u_local[i] = arena(ix,iy,ieta).u[i];
         for (int j = 0; j < 4; j++) {
             dUsup_local[i][j] = arena(ix,iy,ieta).dUsup[i][j];
         }
@@ -86,6 +84,7 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, SCGrid &arena, in
     double theta_u_local = calculate_expansion_rate(tau, arena, ieta, ix,
                                                     iy, rk_flag);
     double gfac = 0.0;
+    double sigma_local[4][4];
     for (int a = 1; a < 4; a++) {
         for (int b = a; b < 4; b++) {
             if (b == a) {
