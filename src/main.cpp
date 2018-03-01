@@ -11,6 +11,7 @@ using namespace std;
 // main program
 int main(int argc, char *argv[]) {
     string input_file;
+    InitData DATA __attribute__ ((aligned (64)));
 
     if (argc > 1)
         input_file = *(argv+1);

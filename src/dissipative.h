@@ -22,7 +22,7 @@ class Diss {
     double MakeWSource(double tau, int alpha, Grid &arena,
                        int ix, int iy, int ieta, int rk_flag);
     int Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                   std::array< std::array<double,4>, 5> &w_rhs, 
+                   std::array< std::array<double,4>, 5> &w_rhs, const InitData *const DATA,
                    int rk_flag, double theta_local, DumuVec &a_local);
     double Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
                          int rk_flag, double theta_local,

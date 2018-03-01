@@ -37,7 +37,7 @@ no more halo copying
 2018-02-28  18:35     Cori KNL      Medium    02:02.215
 2018-02-28  18:35     Cori KNL      Large     03:40.763
 
-no -g flag
+16 threads no -g flag
 2018-02-28  18:35     Cori KNL      Small     00:45.130
 2018-02-28  18:35     Cori KNL      Medium    02:00.469
 2018-02-28  18:35     Cori KNL      Large     03:39.614
@@ -59,7 +59,19 @@ no -g flag
 2018-03-01  08:00     Cori KNL      L(32)      02:13.885
 2018-03-01  09:16     Cori KNL      XL (128)   07:42.895
 
+16 threads SIMD uWRHS no -ipo
+2018-03-01  23:10     Cori KNL      Small      00:46.454
+2018-03-01  23:10     Cori KNL      Medium     02:01.209
+2018-03-01  23:10     Cori KNL      Large      03:38.343
+
+16 threads SIMD uWRHS with -ipo
+2018-03-01  23:10     Cori KNL      Small      0m47.986s
+2018-03-01  23:10     Cori KNL      Medium     1m58.253s
+2018-03-01  23:10     Cori KNL      Large      3m34.379s
+
+
 Perf output:
+============
 
 2018-02-26 12:00 (Cori KNL)
 ----------------
