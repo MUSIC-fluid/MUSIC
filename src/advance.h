@@ -45,6 +45,7 @@ class Advance {
                      int rk_flag);
 
     void FirstRKStepW(double tau_it, InitData *DATA, Grid &arena,
+                      SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
                      int rk_flag, double theta_local, DumuVec &a_local,
                      VelocityShearVec &sigma_local, int ieta, int ix, int iy);
 

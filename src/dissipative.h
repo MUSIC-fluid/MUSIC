@@ -23,6 +23,9 @@ class Diss {
     int Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                    std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA,
                    int rk_flag, double theta_local, DumuVec &a_local);
+    int Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
+                     std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA,
+                     double theta_local, DumuVec &a_local);
     double Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
                          InitData *DATA, int rk_flag, double theta_local,
                          DumuVec &a_local, VelocityShearVec &sigma_1d);

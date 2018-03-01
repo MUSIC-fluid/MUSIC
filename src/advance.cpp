@@ -130,7 +130,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
                     tau, arena, ieta, ix, iy, rk_flag, a_local,
                     sigma_local);
 	    
-      FirstRKStepW(tau, DATA, arena,
+      FirstRKStepW(tau, DATA, arena, arena_prev, arena_current, arena_future,
        rk_flag, theta_local, a_local,
        sigma_local, ieta, ix, iy);
     }
@@ -222,16 +222,14 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
 void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
+                           SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
                            int rk_flag, double theta_local, DumuVec &a_local,
                            VelocityShearVec &sigma_local, int ieta, int ix, int iy) {
   auto grid_pt = &(arena(ix, iy, ieta));
   double tau_now = tau;
   double tau_next = tau + (DATA->delta_tau);
   
-  int trk_flag = rk_flag + 1;
-  if (rk_flag == 1) {
-    trk_flag = 0;
-  }
+  int trk_flag = (rk_flag + 1)%2;
   
   std::array< std::array<double,4>, 5> w_rhs = {0};
   
@@ -254,7 +252,9 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
   /* Advance uWmunu */
   double tempf, temps;
   if (rk_flag == 0) {
-    diss->Make_uWRHS(tau_now, arena, ix, iy, ieta, w_rhs, DATA, rk_flag,
+    //diss->Make_uWRHS(tau_now, arena, ix, iy, ieta, w_rhs, DATA, rk_flag,
+    //     theta_local, a_local);
+    diss->Make_uWRHS(tau_now, arena_current, ix, iy, ieta, w_rhs, DATA,
          theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
@@ -271,8 +271,10 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
       }
     }
   } else if (rk_flag > 0) {
-    diss->Make_uWRHS(tau_next, arena, ix, iy, ieta, w_rhs, DATA, rk_flag,
-		     theta_local, a_local);
+    //diss->Make_uWRHS(tau_next, arena, ix, iy, ieta, w_rhs, DATA, rk_flag,
+    //                 theta_local, a_local);
+    diss->Make_uWRHS(tau_next, arena_current, ix, iy, ieta, w_rhs, DATA,
+                     theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
 	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
