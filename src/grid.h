@@ -30,6 +30,7 @@ class GridT {
   int nX()   const {return(Nx );  }
   int nY()   const {return(Ny );  }
   int nEta() const {return(Neta );}
+  int size() const {return Nx*Ny*Neta; }
 
   T& getHalo(int x, int y, int eta){
     assert(-2<=x  ); assert(x  <Nx  +2);
@@ -54,6 +55,15 @@ class GridT {
 
   const T& operator()(int x, int y, int eta) const {
     return const_cast<T&>(static_cast<const T &>((*this)(x,y,eta)));
+  }
+
+  T& operator()(const int i) {
+    assert(0<=i  ); assert(x  <Nx*Ny*Neta);
+    return grid[i];
+  }
+
+  const T& operator()(const int i) const {
+    return const_cast<T&>(static_cast<const T &>((*this)(i)));
   }
   
 };
