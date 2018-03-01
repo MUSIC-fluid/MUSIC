@@ -144,3 +144,17 @@ BNL KNL Cluster
 ===================
 
     salloc -A hackathon --reservation=hackathon -p long -t hh:mm:ss
+
+Advisor on Cori via NX and ssh -X
+=================================
+
+ * open NX session either via browser or app (see http://www.nersc.gov/users/connecting-to-nersc/using-nx/)
+ * open konsole or some such and ssh -X to cori
+ * Alt-Ctrl-0 opens the NX options where you can resize and maximize the window (on a mac at least)
+ * on cori 
+
+    module load advisor
+
+  then 
+
+    advixe-gui ./myproj
