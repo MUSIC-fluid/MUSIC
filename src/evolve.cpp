@@ -32,7 +32,7 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_so
 }
 
 // master control function for hydrodynamic evolution
-int Evolve::EvolveIt(const InitData &DATA, Grid &arena) {
+int Evolve::EvolveIt(Grid &arena) {
     // first pass some control parameters
     facTau                      = DATA.facTau;
     int output_hydro_debug_flag = DATA.output_hydro_debug_info;
@@ -47,7 +47,7 @@ int Evolve::EvolveIt(const InitData &DATA, Grid &arena) {
     // Output information about the hydro parameters 
     // in the format of a C header file
     if (DATA.output_hydro_params_header || outputEvo_flag == 1)
-        grid_info.Output_hydro_information_header(DATA);
+        grid_info.Output_hydro_information_header();
 
     // main loop starts ...
     int    itmax = DATA.nt;
@@ -122,9 +122,9 @@ int Evolve::EvolveIt(const InitData &DATA, Grid &arena) {
 
         if (it % Nskip_timestep == 0) {
             if (outputEvo_flag == 1) {
-                grid_info.OutputEvolutionDataXYEta(arena, DATA, tau);
+                grid_info.OutputEvolutionDataXYEta(arena,  tau);
             } else if (outputEvo_flag == 2) {
-                grid_info.OutputEvolutionDataXYEta_chun(arena, DATA, tau);
+                grid_info.OutputEvolutionDataXYEta_chun(arena,  tau);
             }
             if (output_movie_flag == 1) {
                 grid_info.output_evolution_for_movie(arena, tau);
@@ -135,7 +135,7 @@ int Evolve::EvolveIt(const InitData &DATA, Grid &arena) {
 
         // check energy conservation
         if (boost_invariant_flag == 0)
-            grid_info.check_conservation_law(arena, DATA, tau);
+            grid_info.check_conservation_law(arena,  tau);
         grid_info.get_maximum_energy_density(arena);
 
         if (output_hydro_debug_flag == 1) {
@@ -144,31 +144,31 @@ int Evolve::EvolveIt(const InitData &DATA, Grid &arena) {
 
         /* execute rk steps */
         // all the evolution are at here !!!
-        AdvanceRK(tau, DATA, arena);
+        AdvanceRK(tau,  arena);
    
         //determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
             if (freezeout_lowtemp_flag == 1) {
                 if (it == it_start) {
-                    frozen = FreezeOut_equal_tau_Surface(tau, DATA, arena);
+                    frozen = FreezeOut_equal_tau_Surface(tau,  arena);
                 }
             }
             // avoid freeze-out at the first time step
             if ((it - it_start)%facTau == 0 && it > it_start) {
                //if (freezeout_method == 1)
-               //    FindFreezeOutSurface(tau, DATA, arena);
+               //    FindFreezeOutSurface(tau,  arena);
                //else if (freezeout_method == 2)
-               //    FindFreezeOutSurface2(tau, DATA, arena);
+               //    FindFreezeOutSurface2(tau,  arena);
                //else if (freezeout_method == 3)
-               //    frozen = FindFreezeOutSurface3(tau, DATA, arena);
+               //    frozen = FindFreezeOutSurface3(tau,  arena);
                if (freezeout_method == 4) {
                    if (boost_invariant_flag == 0) {
-                       frozen = FindFreezeOutSurface_Cornelius(tau, DATA,
+                       frozen = FindFreezeOutSurface_Cornelius(tau, 
                                                                arena);
                    } else {
                        frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
-                                                            tau, DATA, arena);
+                                                            tau,  arena);
                    }
                }
                store_previous_step_for_freezeout(arena);
@@ -262,13 +262,13 @@ int Evolve::Update_prev_Arena(Grid &arena) {
 }
 
 
-int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
+int Evolve::AdvanceRK(double tau, Grid &arena) {
     // control function for Runge-Kutta evolution in tau
     int flag = 0;
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
-        flag = u_derivative.MakedU(tau, DATA, arena, rk_flag);
-        flag = advance.AdvanceIt(tau, DATA, arena, rk_flag);
+        flag = u_derivative.MakedU(tau,  arena, rk_flag);
+        flag = advance.AdvanceIt(tau,  arena, rk_flag);
         if (rk_flag == 0) {
             Update_prev_Arena(arena);
         }
@@ -277,7 +277,7 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 }  /* AdvanceRK */
       
 
-//void Evolve::FindFreezeOutSurface(double tau, const InitData &DATA, Grid &arena, int size, int rank)
+//void Evolve::FindFreezeOutSurface(double tau, Grid &arena, int size, int rank)
 //{   
 //  FILE *t_file;
 //  const char* t_name = "tauf.dat";
@@ -689,7 +689,7 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //}
 //
 //
-//void Evolve::FindFreezeOutSurface2(double tau, const InitData &DATA, Grid &arena, int size, int rank)
+//void Evolve::FindFreezeOutSurface2(double tau, Grid &arena, int size, int rank)
 //{   
 //  ofstream t_file;
 //  t_file.open("tauf.dat" , ios::out | ios::app );
@@ -4389,7 +4389,7 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //// Modified version of simplified freeze out  (M. Luzum, 04/2013)
 //// Every element of the freezeout surface is a rectangular cuboid
 //// located mid-way between cells/grid points.
-//int Evolve::FindFreezeOutSurface3(double tau, const InitData &DATA, Grid &arena, int size, int rank)
+//int Evolve::FindFreezeOutSurface3(double tau, Grid &arena, int size, int rank)
 //{   
 //  stringstream strs_name;
 //  strs_name << "surface" << rank << ".dat";
@@ -5367,7 +5367,7 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //}
 //
 // Cornelius freeze out  (C. Shen, 11/2014)
-int Evolve::FindFreezeOutSurface_Cornelius(double tau, const InitData &DATA,
+int Evolve::FindFreezeOutSurface_Cornelius(double tau,
                                            Grid &arena) {
     // output hyper-surfaces for Cooper-Frye
     int *all_frozen = new int [n_freeze_surf];
@@ -5384,7 +5384,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, const InitData &DATA,
         for (int ieta = 0; ieta < (neta-fac_eta); ieta += fac_eta) {
             int thread_id = omp_get_thread_num();
             intersections += FindFreezeOutSurface_Cornelius_XY(
-                                tau, DATA, ieta, arena, thread_id, epsFO);
+                                tau,  ieta, arena, thread_id, epsFO);
         }
 
         if (intersections == 0)
@@ -5402,7 +5402,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, const InitData &DATA,
     return(all_frozen_flag);
 }
 
-int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, const InitData &DATA,
+int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau,
                                               int ieta, Grid &arena,
                                               int thread_id, double epsFO) {
     const int nx = arena.nX();
@@ -6146,7 +6146,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, const InitData &DATA,
 }
 
 // Cornelius freeze out (C. Shen, 11/2014)
-int Evolve::FreezeOut_equal_tau_Surface(double tau, const InitData &DATA,
+int Evolve::FreezeOut_equal_tau_Surface(double tau,
                                         Grid &arena) {
     // this function freeze-out fluid cells between epsFO and epsFO_low
     // on an equal time hyper-surface at the first time step
@@ -6159,14 +6159,14 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau, const InitData &DATA,
         #pragma omp parallel for
         for (int ieta = 0; ieta < neta - fac_eta; ieta += fac_eta) {
             int thread_id = omp_get_thread_num();
-            FreezeOut_equal_tau_Surface_XY(tau, DATA, ieta, arena,
+            FreezeOut_equal_tau_Surface_XY(tau,  ieta, arena,
                                            thread_id, epsFO);
         }
     }
     return(0);
 }
 
-void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, const InitData &DATA,
+void Evolve::FreezeOut_equal_tau_Surface_XY(double tau,
                                             int ieta, Grid &arena,
                                             int thread_id, double epsFO) {
 
@@ -6373,7 +6373,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, const InitData &DATA,
 }
 
 int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
-                                double tau, const InitData &DATA, Grid &arena) {
+                                double tau, Grid &arena) {
     // find boost-invariant hyper-surfaces
     int *all_frozen = new int [n_freeze_surf];
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {

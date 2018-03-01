@@ -42,15 +42,13 @@ class Cell_info {
     ~Cell_info();
 
     //! This function outputs a header files for JF and Gojko's EM programs
-    void Output_hydro_information_header(const InitData &DATA);
+    void Output_hydro_information_header();
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta(Grid &arena, const InitData &DATA,
-                                  double tau);
+    void OutputEvolutionDataXYEta(Grid &arena, double tau);
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta_chun(Grid &arena, const InitData &DATA,
-                                       double tau);
+    void OutputEvolutionDataXYEta_chun(Grid &arena, double tau);
 
     void load_deltaf_qmu_coeff_table(string filename);
     void load_deltaf_qmu_coeff_table_14mom(string filename);
@@ -81,7 +79,7 @@ class Cell_info {
     
     //! This function checks the total energy and total net baryon number
     //! at a give proper time
-    void check_conservation_law(Grid &arena, const InitData &DATA, double tau);
+    void check_conservation_law(Grid &arena, double tau);
 
     //! This function outputs the evolution of hydrodynamic variables at a
     //! give fluid cell

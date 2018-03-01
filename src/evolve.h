@@ -48,13 +48,13 @@ class Evolve {
 
  public:
     Evolve(const EOS &eos, const InitData &DATA_in, hydro_source *hydro_source_in);
-    int EvolveIt(const InitData &DATA, Grid &arena);
+    int EvolveIt(Grid &arena);
 
-    int AdvanceRK(double tau, const InitData &DATA, Grid &arena);
+    int AdvanceRK(double tau, Grid &arena);
     int Update_prev_Arena(Grid &arena);
 
-    int FreezeOut_equal_tau_Surface(double tau, const InitData &DATA, Grid &arena);
-    void FreezeOut_equal_tau_Surface_XY(double tau, const InitData &DATA,
+    int FreezeOut_equal_tau_Surface(double tau, Grid &arena);
+    void FreezeOut_equal_tau_Surface_XY(double tau,
                                         int ieta, Grid &arena,
                                         int thread_id, double epsFO);
     // void FindFreezeOutSurface(double tau, const InitData &DATA,
@@ -63,13 +63,12 @@ class Evolve {
     //                           Grid &arena, int size, int rank);
     // int FindFreezeOutSurface3(double tau, const InitData &DATA,
     //                          Grid &arena, int size, int rank);
-    int FindFreezeOutSurface_Cornelius(double tau, const InitData &DATA,
-                                       Grid &arena);
-    int FindFreezeOutSurface_Cornelius_XY(double tau, const InitData &DATA,
+    int FindFreezeOutSurface_Cornelius(double tau, Grid &arena);
+    int FindFreezeOutSurface_Cornelius_XY(double tau,
                                           int ieta, Grid &arena,
                                           int thread_id, double epsFO);
     int FindFreezeOutSurface_boostinvariant_Cornelius(
-                                    double tau, const InitData &DATA, Grid &arena);
+                                    double tau, Grid &arena);
 
     void store_previous_step_for_freezeout(Grid &arena);
 

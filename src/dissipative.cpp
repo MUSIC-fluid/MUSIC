@@ -1,15 +1,15 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include <iomanip>
-#include "./util.h"
-#include "./cell.h"
-#include "./grid.h"
-#include "./data.h"
-#include "./eos.h"
-#include "./dissipative.h"
+#include "util.h"
+#include "cell.h"
+#include "grid.h"
+#include "data.h"
+#include "eos.h"
+#include "dissipative.h"
 
 using namespace std;
 
-Diss::Diss(const EOS &eosIn, const InitData &DATA_in) : eos(eosIn), minmod(DATA_in) {}
+Diss::Diss(const EOS &eosIn, const InitData &Data_in) : DATA(Data_in), eos(eosIn), minmod(Data_in) {}
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 /* Dissipative parts */
@@ -19,7 +19,7 @@ for everywhere else. also, this change is necessary
 to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
 /* this is the only one that is being subtracted in the rhs */
 double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int ieta,
-                         const InitData &DATA, int rk_flag) {
+                         int rk_flag) {
     /* calculate d_m (tau W^{m,alpha}) + (geom source terms) */
     const auto& grid_pt = arena(ix, iy, ieta);
     double shear_on = DATA.turn_on_shear;
@@ -130,7 +130,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
 /* MakeWSource is for Tmunu */
 
 double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
-                           const InitData &DATA, int rk_flag, double theta_local,
+                           int rk_flag, double theta_local,
                            DumuVec &a_local, VelocityShearVec &sigma_1d) {
     if (DATA.turn_on_shear == 0)
         return 0.0;
@@ -157,7 +157,7 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
     T = eos.get_temperature(epsilon, rhob);
 
     if (DATA.T_dependent_shear_to_s == 1) {
-        shear_to_s = get_temperature_dependent_eta_s(DATA, T);
+        shear_to_s = get_temperature_dependent_eta_s(T);
     } else {
         shear_to_s = DATA.shear_to_s;
     }
@@ -387,7 +387,7 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 
 
 int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                     std::array< std::array<double,4>, 5> &w_rhs, const InitData &DATA, int rk_flag,
+                     std::array< std::array<double,4>, 5> &w_rhs, int rk_flag,
                      double theta_local, DumuVec &a_local) {
     auto& grid_pt = arena(ix, iy, ieta);
 
@@ -527,7 +527,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
 
 int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                     double *p_rhs, const InitData &DATA, 
+                     double *p_rhs, 
                      int rk_flag, double theta_local) {
     auto grid_pt = &(arena(ix, iy, ieta));
     double bulk_on = DATA.turn_on_bulk;
@@ -627,8 +627,7 @@ int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
 
 
-double Diss::Make_uPiSource(double tau, Cell *grid_pt, const InitData &DATA,
-                        int rk_flag, double theta_local, VelocityShearVec &sigma_1d) {
+double Diss::Make_uPiSource(double tau, Cell *grid_pt,                         int rk_flag, double theta_local, VelocityShearVec &sigma_1d) {
     if (DATA.turn_on_bulk == 0) return 0.0;
 
     double tempf;
@@ -758,8 +757,7 @@ double Diss::Make_uPiSource(double tau, Cell *grid_pt, const InitData &DATA,
     -Delta[a][eta] u[eta] q[tau]/tau
     -u[a]u[b]g[b][e] Dq[e]
 */
-double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, const InitData &DATA,
-                           int rk_flag, double theta_local, DumuVec &a_local,
+double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu,                            int rk_flag, double theta_local, DumuVec &a_local,
                            VelocityShearVec &sigma_1d) {
     double q[4];
   
@@ -879,7 +877,7 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, const InitData &DA
 
 
 int Diss::Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                     std::array< std::array<double,4>, 5> &w_rhs, const InitData &DATA, int rk_flag) {
+                     std::array< std::array<double,4>, 5> &w_rhs, int rk_flag) {
     /* Kurganov-Tadmor for q */
     /* implement 
       partial_tau (utau qmu) + (1/tau)partial_eta (ueta qmu) 
@@ -974,7 +972,7 @@ int Diss::Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
     return 1; /* if successful */
 } /* Make_uqRHS */
 
-double Diss::get_temperature_dependent_eta_s(const InitData &DATA, double T) {
+double Diss::get_temperature_dependent_eta_s(double T) {
     double Ttr = 0.18/hbarc;  // phase transition temperature
     double Tfrac = T/Ttr;
     double shear_to_s;
@@ -1051,7 +1049,7 @@ double Diss::get_temperature_dependent_zeta_s(double temperature) {
 
 //! this function outputs the T and muB dependence of the baryon diffusion
 //! coefficient, kappa
-void Diss::output_kappa_T_and_muB_dependence(const InitData &DATA) {
+void Diss::output_kappa_T_and_muB_dependence() {
     cout << "output kappa_B(T, mu_B) ..." << endl;
     ofstream of("kappa_B_T_and_muB_dependence.dat");
     // write out the header of the file
@@ -1096,7 +1094,7 @@ void Diss::output_kappa_T_and_muB_dependence(const InitData &DATA) {
 
 //! this function outputs the T and muB dependence of the baryon diffusion
 //! coefficient, kappa_B, along constant s/n_B trajectories
-void Diss::output_kappa_along_const_sovernB(const InitData &DATA) {
+void Diss::output_kappa_along_const_sovernB() {
     cout << "output kappa_B(T, mu_B) along constant s/n_B trajectories..."
          << endl;
     
@@ -1142,7 +1140,7 @@ void Diss::output_kappa_along_const_sovernB(const InitData &DATA) {
 
 //! this function outputs the T and muB dependence of the specific shear
 //! viscosity eta/s
-void Diss::output_eta_over_s_T_and_muB_dependence(const InitData &DATA) {
+void Diss::output_eta_over_s_T_and_muB_dependence() {
     cout << "output eta/s(T, mu_B) ..." << endl;
     ofstream of("eta_over_s_T_and_muB_dependence.dat");
     // write out the header of the file
@@ -1188,7 +1186,7 @@ void Diss::output_eta_over_s_T_and_muB_dependence(const InitData &DATA) {
 
 //! this function outputs the T and muB dependence of the specific shear
 //! viscosity eta/s along constant s/n_B trajectories
-void Diss::output_eta_over_s_along_const_sovernB(const InitData &DATA) {
+void Diss::output_eta_over_s_along_const_sovernB() {
     cout << "output eta/s(T, mu_B) along constant s/n_B trajectories..."
          << endl;
     

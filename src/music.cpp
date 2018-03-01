@@ -61,7 +61,7 @@ int MUSIC::run_hydro() {
     }
 
     evolve = new Evolve(eos, DATA, hydro_source_ptr);
-    evolve->EvolveIt(DATA, arena);
+    evolve->EvolveIt(arena);
     flag_hydro_run = 1;
     return(0);
 }
@@ -84,10 +84,10 @@ void MUSIC::output_transport_coefficients() {
     music_message << "output transport coefficients as functions of T and muB";
     music_message.flush("info");
     Diss temp_dissipative_ptr(eos, DATA);
-    temp_dissipative_ptr.output_eta_over_s_T_and_muB_dependence(DATA);
-    temp_dissipative_ptr.output_eta_over_s_along_const_sovernB(DATA);
-    temp_dissipative_ptr.output_kappa_T_and_muB_dependence(DATA);
-    temp_dissipative_ptr.output_kappa_along_const_sovernB(DATA);
+    temp_dissipative_ptr.output_eta_over_s_T_and_muB_dependence();
+    temp_dissipative_ptr.output_eta_over_s_along_const_sovernB();
+    temp_dissipative_ptr.output_kappa_T_and_muB_dependence();
+    temp_dissipative_ptr.output_kappa_along_const_sovernB();
 }
 
 

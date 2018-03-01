@@ -12,8 +12,7 @@ using namespace std;
 U_derivative::U_derivative(const EOS &eosIn, const InitData &DATA_in) : DATA(DATA_in), eos(eosIn), minmod(DATA_in) {}
 
 //! This function is a shell function to calculate parital^\nu u^\mu
-int U_derivative::MakedU(double tau, const InitData &DATA,
-                         Grid &arena, int rk_flag) {
+int U_derivative::MakedU(double tau, Grid &arena, int rk_flag) {
     // ideal hydro: no need to evaluate any flow derivatives
     if (DATA.viscosity_flag == 0) {
         return(1);
@@ -28,9 +27,9 @@ int U_derivative::MakedU(double tau, const InitData &DATA,
     for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
 	    // this calculates du/dx, du/dy, (du/deta)/tau
-        MakeDSpatial(tau, DATA, arena, ix, iy, ieta, rk_flag);
+        MakeDSpatial(tau, arena, ix, iy, ieta, rk_flag);
         // this calculates du/dtau
-        MakeDTau(tau, DATA, &(arena(ix,iy,ieta)), rk_flag); 
+        MakeDTau(tau, &(arena(ix,iy,ieta)), rk_flag); 
     }
 
    return(1);
@@ -134,7 +133,7 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, Grid &arena, int 
 }
 
 
-int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, int ix, int iy, int ieta,
+int U_derivative::MakeDSpatial(double tau, Grid &arena, int ix, int iy, int ieta,
                                int rk_flag) {
     const double delta[4] = {
       0.0,
@@ -336,7 +335,7 @@ int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, in
     return 1;
 }/* MakeDSpatial */
 
-int U_derivative::MakeDTau(double tau, const InitData &DATA, Cell *grid_pt,
+int U_derivative::MakeDTau(double tau, Cell *grid_pt,
                            int rk_flag) {
     int m;
     double f;

@@ -54,7 +54,7 @@ Cell_info::~Cell_info() {
 
 
 //! This function outputs a header files for JF and Gojko's EM program
-void Cell_info::Output_hydro_information_header(const InitData &DATA) {
+void Cell_info::Output_hydro_information_header() {
     string fname = "hydro_info_header_h";
 
     // Open output file
@@ -101,7 +101,7 @@ void Cell_info::Output_hydro_information_header(const InitData &DATA) {
 
 
 //! This function outputs hydro evolution file in binary format
-void Cell_info::OutputEvolutionDataXYEta(Grid &arena, const InitData &DATA,
+void Cell_info::OutputEvolutionDataXYEta(Grid &arena, 
                                          double tau) {
     const string out_name_xyeta = "evolution_xyeta.dat";
     const string out_name_W_xyeta =
@@ -266,7 +266,7 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, const InitData &DATA,
 
     
 //! This function outputs hydro evolution file in binary format
-void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, const InitData &DATA,
+void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, 
                                               double tau) {
     // the format of the file is as follows,
     //    itau ix iy ieta T ux uy ueta
@@ -419,7 +419,7 @@ void Cell_info::get_maximum_energy_density(Grid &arena) {
 
 //! This function checks the total energy and total net baryon number
 //! at a give proper time
-void Cell_info::check_conservation_law(Grid &arena, const InitData &DATA,
+void Cell_info::check_conservation_law(Grid &arena, 
                                       double tau) {
     double N_B     = 0.0;
     double T_tau_t = 0.0;
