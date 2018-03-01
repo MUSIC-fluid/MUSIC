@@ -33,12 +33,40 @@ with #pragma in uWHRS
 2018-02-28  18:00     Cori KNL      Large     04:32.225
 
 no more halo copying
+2018-02-28  18:35     Cori KNL      Small     00:50.342
+2018-02-28  18:35     Cori KNL      Medium    02:02.215
+2018-02-28  18:35     Cori KNL      Large     03:40.763
 
+16 threads no -g flag
+2018-02-28  18:35     Cori KNL      Small     00:45.130
+2018-02-28  18:35     Cori KNL      Medium    02:00.469
+2018-02-28  18:35     Cori KNL      Large     03:39.614
 
-  
+32 threads
+2018-02-28  22:35     Cori KNL      Small     00:35.816
+2018-02-28  22:35     Cori KNL      Medium    01:12.237
+2018-02-28  22:35     Cori KNL      Large     02:01.966
+
+64 threads
+2018-02-28  23:00     Cori KNL      Small     00:29.711
+2018-02-28  23:00     Cori KNL      Medium    00:48.650
+2018-02-28  23:00     Cori KNL      Large     01:18.369
+
+272 threads
+2018-02-28  23:10     Cori KNL      Small      00:29.106
+2018-02-28  23:10     Cori KNL      Medium     00:39.570
+2018-02-28  23:10     Cori KNL      Large      00:51.547
+2018-03-01  08:00     Cori KNL      L(32)      02:13.885
+2018-03-01  09:16     Cori KNL      XL (128)   07:42.895
+
+16 threads SIMD uWRHS no -ipo
+2018-03-01  23:10     Cori KNL      Small      00:46.454
+2018-03-01  23:10     Cori KNL      Medium     02:01.209
+2018-03-01  23:10     Cori KNL      Large      03:38.343
 
 
 Perf output:
+============
 
 2018-02-26 12:00 (Cori KNL)
 ----------------
