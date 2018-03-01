@@ -30,8 +30,6 @@ double **mtx_malloc(int n1, int n2)
 
 void mtx_free(double **m, int n1, int n2)
 {
-    int j;
-
     for(int j=0; j<n1; j++) 
         delete [] m[j];
 

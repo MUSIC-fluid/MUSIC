@@ -81,17 +81,16 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
     double dWdx  = 0.0;
     double dPidx = 0.0;
     Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
-        int idx_1d;
-        idx_1d      = Util::map_2d_idx_to_1d(alpha, direction);
-        double sg   = c.Wmunu[rk_flag][idx_1d];
-        double sgp1 = p1.Wmunu[rk_flag][idx_1d];
-        double sgm1 = m1.Wmunu[rk_flag][idx_1d];
+        const int idx_1d = Util::map_2d_idx_to_1d(alpha, direction);
+        const double sg   = c.Wmunu[rk_flag][idx_1d];
+        const double sgp1 = p1.Wmunu[rk_flag][idx_1d];
+        const double sgm1 = m1.Wmunu[rk_flag][idx_1d];
         dWdx += minmod.minmod_dx(sgp1, sg, sgm1)/delta[direction];
         if (alpha < 4 && DATA->turn_on_bulk == 1) {
-            double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
-            double bgp1  = p1.pi_b[rk_flag]*(gfac1 + p1.u[rk_flag][alpha]*p1.u[rk_flag][direction]);
-            double bg    = c.pi_b[rk_flag]*(gfac1 + c.u[rk_flag][alpha]*c.u[rk_flag][direction]);
-            double bgm1  = m1.pi_b[rk_flag]*(gfac1 + m1.u[rk_flag][alpha]*m1.u[rk_flag][direction]);
+            const double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
+            const double bgp1  = p1.pi_b[rk_flag]*(gfac1 + p1.u[rk_flag][alpha]*p1.u[rk_flag][direction]);
+            const double bg    = c.pi_b[rk_flag]*(gfac1 + c.u[rk_flag][alpha]*c.u[rk_flag][direction]);
+            const double bgm1  = m1.pi_b[rk_flag]*(gfac1 + m1.u[rk_flag][alpha]*m1.u[rk_flag][direction]);
             dPidx += minmod.minmod_dx(bgp1, bg, bgm1)/delta[direction];
         }
     });
