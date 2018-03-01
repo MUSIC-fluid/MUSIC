@@ -141,10 +141,11 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
                     tau, arena, ieta, ix, iy, rk_flag, a_local,
                     sigma_local);
 	    
-      FirstRKStepW(tau, DATA, arena, arena_prev, arena_current, arena_future,
+      FirstRKStepW(tau, DATA, arena_prev, arena_current, arena_future,
        rk_flag, theta_local, a_local,
        sigma_local, ieta, ix, iy);
     }
+    update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag+1)%2);
   }
   
   return(1);
@@ -232,20 +233,16 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
 */
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
-void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
+void Advance::FirstRKStepW(double tau, InitData *DATA,
                            SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
                            int rk_flag, double theta_local, DumuVec &a_local,
                            VelocityShearVec &sigma_local, int ieta, int ix, int iy) {
-  auto grid_pt = &(arena(ix, iy, ieta));
-
   auto grid_pt_prev = &(arena_prev(ix, iy, ieta));
   auto grid_pt_c = &(arena_current(ix, iy, ieta));
   auto grid_pt_f = &(arena_future(ix, iy, ieta));
 
   double tau_now = tau;
   double tau_next = tau + (DATA->delta_tau);
-  
-  int trk_flag = (rk_flag + 1)%2;
   
   std::array< std::array<double,4>, 5> w_rhs = {0};
   
@@ -440,9 +437,6 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
 				      ieta, ix, iy);
     }
   }
-
-  update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag+1)%2);
-  
 }/* FirstRKStepW */
 
 // update results after RK evolution to grid_pt
@@ -482,11 +476,6 @@ int Advance::QuestRevert(double tau, Cell_small *grid_pt, int rk_flag,
   double eps_scale = 0.5;   // 1/fm^4
   double e_local = grid_pt->epsilon;
   double rhob = grid_pt->rhob;
-  
-  int trk_flag = rk_flag + 1;
-  if (rk_flag == 1) {
-    trk_flag = 0;
-  }
   
   // regulation factor in the default MUSIC
   //double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
@@ -571,10 +560,6 @@ int Advance::QuestRevert(double tau, Cell_small *grid_pt, int rk_flag,
 int Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt, int rk_flag,
                              InitData *DATA, int ieta, int ix, int iy) {
   
-  int trk_flag = rk_flag + 1;
-  if (rk_flag == 1) {
-    trk_flag = 0;
-  }
   int revert_flag = 0;
   double eps_scale = 0.5;   // in 1/fm^4
   
