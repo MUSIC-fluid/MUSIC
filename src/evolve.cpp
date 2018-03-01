@@ -240,7 +240,25 @@ void Evolve::store_previous_step_for_freezeout(Grid &arena) {
 }
 
 //! update grid information after the tau RK evolution 
-int Evolve::Update_prev_Arena(Grid &arena) {
+void Update_Arena(const SCGrid &arena_old, SCGrid &arena_new) {
+    const int n = arena_old.size();
+    //#pragma omp parallel for collapse(3)
+    for(int i = 0; i < n; i++) {
+        // #pragma omp critical
+        // {
+        // cout << "check " << i << endl;
+        // cout << "check " << arena_old(i).epsilon << endl;}
+        arena_new(i).epsilon = arena_old(i).epsilon;
+        arena_new(i).rhob    = arena_old(i).rhob;
+        arena_new(i).u       = arena_old(i).u;
+        arena_new(i).Wmunu   = arena_old(i).Wmunu;
+        arena_new(i).pi_b    = arena_old(i).pi_b;
+        arena_new(i).dUsup   = arena_old(i).dUsup;
+    }
+}
+
+//! update grid information after the tau RK evolution 
+int Update_prev_Arena(Grid &arena) {
     const int neta = arena.nEta();
     const int nx   = arena.nX();
     const int ny   = arena.nY();
@@ -266,7 +284,7 @@ int Evolve::Update_prev_Arena(Grid &arena) {
     return(1);
 }
 
-void Evolve::update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag) {
+void update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag) {
     if (rk_flag == 0) {
         c.epsilon = c_s.epsilon;
         c.rhob = c_s.rhob;
@@ -284,13 +302,13 @@ void Evolve::update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_fl
     } else if (rk_flag == 2) {
         c.prev_epsilon = c_s.epsilon;
         c.prev_rhob = c_s.rhob;
-        c.prev_u.at(rk_flag)     = c_s.u;
+        c.prev_u.at   (rk_flag)     = c_s.u;
         c.prevWmunu.at(rk_flag) = c_s.Wmunu;
         c.prev_pi_b.at(rk_flag)  = c_s.pi_b;
     }
 }
 
-void Evolve::update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
+void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
     if (rk_flag == 0) {
         c_s.epsilon = c.epsilon;
         c_s.rhob = c.rhob;
@@ -347,6 +365,14 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
         for(int ix   = 0; ix   < grid_nx;   ix++  )
         for(int iy   = 0; iy   < grid_ny;   iy++  ) {
           update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag+1)%2);
+        }
+
+        if (rk_flag == 0) {
+            std::cerr<<"Updating rk_Flag=0"<<std::endl;
+            Update_Arena(arena_current, arena_prev);
+        } else {
+            std::cerr<<"Updating rk_Flag=1"<<std::endl;
+            Update_Arena(arena_future, arena_current);
         }
 
         if (rk_flag == 0) {
