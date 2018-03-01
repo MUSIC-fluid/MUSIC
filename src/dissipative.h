@@ -18,8 +18,6 @@ class Diss {
  public:
     Diss(EOS *eosIn, InitData* DATA_in);
   
-    double MakeWSource(double tau, int alpha, Grid &arena,
-                       int ix, int iy, int ieta, InitData *DATA, int rk_flag);
     double MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &arena_prev, int ix, int iy, int ieta,
                          InitData *DATA, int rk_flag);
     int Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,

@@ -106,7 +106,8 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 	  
     //        FirstRKStepT(tau, x_local, y_local, eta_s_local,
     //             DATA, &(arena(ix,iy,ieta)), rk_flag);
-    FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena, arena_current, arena_future, arena_prev, ix, iy, ieta, rk_flag);
+    FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena_current, arena_future, arena_prev, ix, iy, ieta, rk_flag);
+
     update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag+1)%2);
           
     if (DATA->viscosity_flag == 1) {
@@ -141,7 +142,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
-        double eta_s_local, InitData *DATA, Grid &arena, SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta, int rk_flag) {
+        double eta_s_local, InitData *DATA, SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta, int rk_flag) {
   // this advances the ideal part
   double tau_rk = tau + rk_flag*(DATA_ptr->delta_tau);
   
@@ -202,7 +203,7 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
     /* if rk_flag > 0, we now have q0 + k1 + k2. 
      * So add q0 and multiply by 1/2 */
     if (rk_flag > 0) {
-      qi[alpha] += get_TJb(arena(ix,iy,ieta), 0, alpha, 0)*tau;
+      qi[alpha] += get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
       qi[alpha] *= 0.5;
     }
   }
