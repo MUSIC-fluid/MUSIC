@@ -338,7 +338,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, SCGrid &arena_prev, SCGrid &ar
 
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
-        flag = u_derivative.MakedU(tau, DATA, arena_prev, arena_current, rk_flag);
+        //flag = u_derivative.MakedU(tau, DATA, arena_prev, arena_current, rk_flag);
         flag = advance.AdvanceIt(tau, DATA, arena_prev, arena_current, arena_future, rk_flag);
 
         if (rk_flag == 0) {

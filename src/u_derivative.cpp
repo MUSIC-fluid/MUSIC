@@ -19,25 +19,16 @@ U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in) :
 //! This function is a shell function to calculate parital^\nu u^\mu
 int U_derivative::MakedU(double tau, InitData *DATA,
                          SCGrid &arena_prev, SCGrid &arena_current,
-                         int rk_flag) {
+                         int ix, int iy, int ieta, int rk_flag) {
     // ideal hydro: no need to evaluate any flow derivatives
     if (DATA->viscosity_flag == 0) {
         return(1);
     }
 
-    const int neta = arena_current.nEta();
-    const int nx   = arena_current.nX();
-    const int ny   = arena_current.nY();
-
-    #pragma omp parallel for collapse(3)
-    for (int ieta = 0; ieta < neta; ieta++)
-    for (int ix = 0; ix < nx; ix++)
-    for (int iy = 0; iy < ny; iy++) {
-	    // this calculates du/dx, du/dy, (du/deta)/tau
-        MakeDSpatial(tau, DATA, arena_current, ix, iy, ieta, rk_flag);
-        // this calculates du/dtau
-        MakeDTau(tau, DATA, &(arena_prev(ix, iy, ieta)), &(arena_current(ix,iy,ieta)), rk_flag); 
-    }
+	// this calculates du/dx, du/dy, (du/deta)/tau
+    MakeDSpatial(tau, DATA, arena_current, ix, iy, ieta, rk_flag);
+    // this calculates du/dtau
+    MakeDTau(tau, DATA, &(arena_prev(ix, iy, ieta)), &(arena_current(ix,iy,ieta)), rk_flag); 
 
    return(1);
 }

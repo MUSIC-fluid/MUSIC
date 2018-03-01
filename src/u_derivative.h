@@ -20,7 +20,8 @@ class U_derivative {
     // Sangyong Nov 18 2014: added EOS *eos in the argument
     U_derivative(EOS *eosIn, InitData* DATA_in);  // constructor
     int MakedU(double tau, InitData *DATA,
-               SCGrid &arena_prev, SCGrid &arena_current, int rk_flag);
+               SCGrid &arena_prev, SCGrid &arena_current,
+               int ix, int iy, int ieta, int rk_flag);
 
     //! this function returns the expansion rate on the grid
     double calculate_expansion_rate(double tau, SCGrid &arena,

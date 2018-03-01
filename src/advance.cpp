@@ -61,6 +61,8 @@ int Advance::AdvanceIt(double tau, InitData *DATA,
     FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena_current, arena_future, arena_prev, ix, iy, ieta, rk_flag);
 
     if (DATA->viscosity_flag == 1) {
+      int flag = u_derivative_ptr->MakedU(tau, DATA, arena_prev, arena_current,
+                                          ix, iy, ieta, rk_flag);
       double theta_local = (
           u_derivative_ptr->calculate_expansion_rate(
                        tau, arena_current, ieta, ix, iy, rk_flag));
