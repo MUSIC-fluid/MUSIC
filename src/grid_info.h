@@ -52,7 +52,7 @@ class Cell_info {
     double get_deltaf_coeff_14moments(double T, double muB, double type);
 
     //! This function putputs files to check with Gubser flow solution
-    void Gubser_flow_check_file(Grid &arena, double tau);
+    void Gubser_flow_check_file(SCGrid &arena, double tau);
 
     //! This function outputs files to cross check with 1+1D simulation
     void output_1p1D_check_file(Grid &arena, double tau);

@@ -475,7 +475,7 @@ void Cell_info::check_conservation_law(Grid &arena, InitData *DATA,
 
 
 //! This function putputs files to check with Gubser flow solution
-void Cell_info::Gubser_flow_check_file(Grid &arena, double tau) {
+void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
     double unit_convert = 0.19733;  // hbarC
     if (tau > 1.) {
         ostringstream filename_analytic;
@@ -515,21 +515,21 @@ void Cell_info::Gubser_flow_check_file(Grid &arena, double tau) {
                     eos_ptr->get_temperature(e_local, 0.0)*unit_convert);
             T_diff += fabs(T_analytic[i] - T_local);
             T_sum += fabs(T_analytic[i]);
-            ux_diff += fabs(ux_analytic[i] - arena(i,i,0).u[0][1]);
+            ux_diff += fabs(ux_analytic[i] - arena(i,i,0).u[1]);
             ux_sum += fabs(ux_analytic[i]);
-            uy_diff += fabs(uy_analytic[i] - arena(i,i,0).u[0][2]);
+            uy_diff += fabs(uy_analytic[i] - arena(i,i,0).u[2]);
             uy_sum += fabs(uy_analytic[i]);
             pixx_diff += (fabs(pixx_analytic[i]
-                               - arena(i,i,0).Wmunu[0][4]*unit_convert));
+                               - arena(i,i,0).Wmunu[4]*unit_convert));
             pixx_sum += fabs(pixx_analytic[i]);
             pixy_diff += (fabs(pixx_analytic[i]
-                               - arena(i,i,0).Wmunu[0][5]*unit_convert));
+                               - arena(i,i,0).Wmunu[5]*unit_convert));
             pixy_sum += fabs(pixx_analytic[i]);
             piyy_diff += (fabs(piyy_analytic[i]
-                               - arena(i,i,0).Wmunu[0][7]*unit_convert));
+                               - arena(i,i,0).Wmunu[7]*unit_convert));
             piyy_sum += fabs(piyy_analytic[i]);
             pizz_diff += (fabs(pizz_analytic[i]
-                               - arena(i,i,0).Wmunu[0][9]*unit_convert));
+                               - arena(i,i,0).Wmunu[9]*unit_convert));
             pizz_sum += fabs(pizz_analytic[i]);
         }
         music_message << "Autocheck: T_diff = " << T_diff/T_sum
@@ -561,12 +561,12 @@ void Cell_info::Gubser_flow_check_file(Grid &arena, double tau) {
                     << x_local << "  " << y_local << "  "
                     << e_local*unit_convert << "  " << rhob_local << "  "
                     << T_local*unit_convert << "  "
-                    << arena(ix,iy,0).u[0][1] << "  "
-                    << arena(ix,iy,0).u[0][2] << "  "
-                    << arena(ix,iy,0).Wmunu[0][4]*unit_convert << "  "
-                    << arena(ix,iy,0).Wmunu[0][7]*unit_convert << "  "
-                    << arena(ix,iy,0).Wmunu[0][5]*unit_convert << "  "
-                    << arena(ix,iy,0).Wmunu[0][9]*unit_convert << "  "
+                    << arena(ix,iy,0).u[1] << "  "
+                    << arena(ix,iy,0).u[2] << "  "
+                    << arena(ix,iy,0).Wmunu[4]*unit_convert << "  "
+                    << arena(ix,iy,0).Wmunu[7]*unit_convert << "  "
+                    << arena(ix,iy,0).Wmunu[5]*unit_convert << "  "
+                    << arena(ix,iy,0).Wmunu[9]*unit_convert << "  "
                     << endl;
     }
     output_file.close();
