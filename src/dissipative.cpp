@@ -392,7 +392,7 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 
 
 int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                     std::array< std::array<double,4>, 5> &w_rhs, const InitData *DATA, int rk_flag,
+                     std::array< std::array<double,4>, 5> &w_rhs, const InitData *const DATA, int rk_flag,
                      double theta_local, DumuVec &a_local) {
     auto& grid_pt = arena(ix, iy, ieta);
 
@@ -488,6 +488,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 	}  /* mu */
       });
     
+#pragma omp simd
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
 	/* add a source term -u^tau Wmn/tau
