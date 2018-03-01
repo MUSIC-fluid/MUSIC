@@ -40,7 +40,7 @@ TEST_CASE("Check halo"){
  Grid grid(1,1,1);
 
  grid(0,0,0).epsilon = 3;
- grid.updateHalo();
+ //grid.updateHalo();
 
  for(int i=-2; i<3; i++)
    for(int j=-2; j<3; j++)
@@ -54,7 +54,7 @@ TEST_CASE("check neighbourloop1"){
  Grid grid(1,1,1);
 
  grid(0,0,0).epsilon = 3;
- grid.updateHalo();
+ //grid.updateHalo();
 
  Neighbourloop(grid, 0, 0, 0, NLAMBDA{
     CHECK(c.epsilon == p1.epsilon);
@@ -69,7 +69,7 @@ TEST_CASE("check neighbourloop2"){
  for (int i = 0; i < 5; i++) {
     grid1(i,0,0).epsilon = i + 1;
  }
- grid1.updateHalo();
+ //grid1.updateHalo();
  
  Neighbourloop(grid1, 2, 0, 0, NLAMBDA{
     if (direction == 1) {
@@ -93,7 +93,7 @@ TEST_CASE("check neighbourloop3"){
   for (int k = 0; k < 3; k++) {
     grid2(i,j,k).epsilon = 1;
   }
-  grid2.updateHalo();
+  //grid2.updateHalo();
 
   Neighbourloop(grid2, 1, 1, 1, NLAMBDA{
     int sum = 0;
@@ -111,7 +111,7 @@ TEST_CASE("check neighbourloop3"){
 TEST_CASE("check neighbourloop4"){
   Grid grid(1,1,1);
   grid(0,0,0).epsilon = 1;
-  grid.updateHalo();
+  //grid.updateHalo();
 
   int sum = 0;
   Neighbourloop(grid, 0, 0, 0, NLAMBDA{

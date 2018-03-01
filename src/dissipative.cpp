@@ -426,11 +426,11 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
     };
     
     // pi^\mu\nu is symmetric
-    for (int mu = 1; mu < 4; mu++) {
-        for (int nu = mu; nu < 4; nu++) {
+    Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
+	for (int mu = 1; mu < 4; mu++) {
+	  for (int nu = mu; nu < 4; nu++) {
             int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
             double sum = 0.0;
-            Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
                 /* Get_uWmns */
                 double g = c.Wmunu[rk_flag][idx_1d];
                 double f = g*c.u[rk_flag][direction];
@@ -481,44 +481,49 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
                 /* make partial_i (u^i Wmn) */
                 sum += -HW;
-            });
+		
+		w_rhs[mu][nu] += sum*(DATA->delta_tau);
 
-            /* add a source term -u^tau Wmn/tau
-               due to the coordinate change to tau-eta */
-            sum += (- (grid_pt.u[rk_flag][0]*Wmunu_local[mu][nu])/tau
-                    + (theta_local*Wmunu_local[mu][nu]));
-
-            /* this is from udW = d(uW) - Wdu = RHS */
-            /* or d(uW) = udW + Wdu */
-            /* this term is being added to the rhs so that -4/3 + 1 = -1/3 */
-            /* other source terms due to the coordinate change to tau-eta */
-            double tempf = 0.0;
-            tempf = (
-                - (DATA->gmunu[3][mu])*(Wmunu_local[0][nu])
-                - (DATA->gmunu[3][nu])*(Wmunu_local[0][mu])
-                + (DATA->gmunu[0][mu])*(Wmunu_local[3][nu])
-                + (DATA->gmunu[0][nu])*(Wmunu_local[3][mu])
-                + (Wmunu_local[3][nu])
-                  *(grid_pt.u[rk_flag][mu])*(grid_pt.u[rk_flag][0])
-                + (Wmunu_local[3][mu])
-                  *(grid_pt.u[rk_flag][nu])*(grid_pt.u[rk_flag][0])
-                - (Wmunu_local[0][nu])
-                  *(grid_pt.u[rk_flag][mu])*(grid_pt.u[rk_flag][3])
-                - (Wmunu_local[0][mu])
-                  *(grid_pt.u[rk_flag][nu])*(grid_pt.u[rk_flag][3]))
-                  *(grid_pt.u[rk_flag][3]/tau);
-            for (int ic = 0; ic < 4; ic++) {
-                double ic_fac = (ic == 0 ? -1.0 : 1.0);
-                tempf += (
-                      (Wmunu_local[ic][nu])*(grid_pt.u[rk_flag][mu])
-                       *(a_local[ic])*ic_fac
-                    + (Wmunu_local[ic][mu])*(grid_pt.u[rk_flag][nu])
-                       *(a_local[ic])*ic_fac);
-            }
-            sum += tempf;
-            w_rhs[mu][nu] = sum*(DATA->delta_tau);
-        }  /* nu */
-    }  /* mu */
+		
+		if (direction==3)
+		  {
+		    /* add a source term -u^tau Wmn/tau
+		       due to the coordinate change to tau-eta */
+		    w_rhs[mu][nu] += (- (grid_pt.u[rk_flag][0]*Wmunu_local[mu][nu])/tau
+				      + (theta_local*Wmunu_local[mu][nu]))*(DATA->delta_tau);
+		    
+		    /* this is from udW = d(uW) - Wdu = RHS */
+		    /* or d(uW) = udW + Wdu */
+		    /* this term is being added to the rhs so that -4/3 + 1 = -1/3 */
+		    /* other source terms due to the coordinate change to tau-eta */
+		    double tempf = 0.0;
+		    tempf = (
+			     - (DATA->gmunu[3][mu])*(Wmunu_local[0][nu])
+			     - (DATA->gmunu[3][nu])*(Wmunu_local[0][mu])
+			     + (DATA->gmunu[0][mu])*(Wmunu_local[3][nu])
+			     + (DATA->gmunu[0][nu])*(Wmunu_local[3][mu])
+			     + (Wmunu_local[3][nu])
+			     *(grid_pt.u[rk_flag][mu])*(grid_pt.u[rk_flag][0])
+			     + (Wmunu_local[3][mu])
+			     *(grid_pt.u[rk_flag][nu])*(grid_pt.u[rk_flag][0])
+			     - (Wmunu_local[0][nu])
+			     *(grid_pt.u[rk_flag][mu])*(grid_pt.u[rk_flag][3])
+			     - (Wmunu_local[0][mu])
+			     *(grid_pt.u[rk_flag][nu])*(grid_pt.u[rk_flag][3]))
+		      *(grid_pt.u[rk_flag][3]/tau);
+		    for (int ic = 0; ic < 4; ic++) {
+		      double ic_fac = (ic == 0 ? -1.0 : 1.0);
+		      tempf += (
+				(Wmunu_local[ic][nu])*(grid_pt.u[rk_flag][mu])
+				*(a_local[ic])*ic_fac
+				+ (Wmunu_local[ic][mu])*(grid_pt.u[rk_flag][nu])
+				*(a_local[ic])*ic_fac);
+		    }
+		    w_rhs[mu][nu] += tempf*(DATA->delta_tau);
+		  }	
+	  }  /* nu */
+	}  /* mu */
+      });
 
     // pi^\mu\nu is symmetric
     for (int mu = 1; mu < 4; mu++) {
