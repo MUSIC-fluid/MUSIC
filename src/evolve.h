@@ -22,14 +22,15 @@
 // this is a control class for the hydrodynamic evolution
 class Evolve {
  private:
-    EOS *eos = nullptr;        // declare EOS object
+    const EOS &eos;        // declare EOS object
+    const InitData &DATA;
+
     Cell_info grid_info;
     Advance advance;
     U_derivative u_derivative;
     hydro_source *hydro_source_ptr = nullptr;
     pretty_ostream music_message;
 
-    InitData *DATA_ptr = nullptr;
 
     // simulation information
     int rk_order;
@@ -46,7 +47,7 @@ class Evolve {
     vector<double> epsFO_list;
 
  public:
-    Evolve(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
+    Evolve(const EOS &eos, const InitData &DATA_in, hydro_source *hydro_source_in);
     int EvolveIt(const InitData &DATA, Grid &arena);
 
     int AdvanceRK(double tau, const InitData &DATA, Grid &arena);

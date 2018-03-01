@@ -28,7 +28,7 @@ class MUSIC {
 
     InitData DATA;
 
-    EOS *eos = nullptr;
+    EOS eos;
 
     Grid arena;
 
@@ -41,7 +41,7 @@ class MUSIC {
     pretty_ostream music_message;
 
  public:
-    MUSIC(InitData *DATA_in, std::string input_file);
+    MUSIC(std::string input_file);
     ~MUSIC();
 
     //! this function returns the running mode

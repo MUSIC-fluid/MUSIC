@@ -7,17 +7,18 @@
 
 using namespace std;
 
-Cell_info::Cell_info(InitData* DATA_in, EOS *eos_ptr_in) {
-    DATA_ptr = DATA_in;
-    eos_ptr = eos_ptr_in;
+Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in) :
+    DATA(DATA_in),
+    eos(eos_in)
+{
 
     // read in tables for delta f coefficients
-    if (DATA_ptr->turn_on_diff == 1) {
-        if (DATA_ptr->deltaf_14moments == 1) {
+    if (DATA.turn_on_diff == 1) {
+        if (DATA.deltaf_14moments == 1) {
             load_deltaf_qmu_coeff_table_14mom(
                     "tables/deltaf_coefficients_14moments.dat");
         } else {
-            if (DATA_ptr->include_deltaf_qmu == 1)
+            if (DATA.include_deltaf_qmu == 1)
                 load_deltaf_qmu_coeff_table(
                         "tables/Coefficients_RTA_diffusion.dat");
         }
@@ -25,8 +26,8 @@ Cell_info::Cell_info(InitData* DATA_in, EOS *eos_ptr_in) {
 }
 
 Cell_info::~Cell_info() {
-    if (DATA_ptr->turn_on_diff == 1) {
-        if (DATA_ptr->deltaf_14moments == 1) {
+    if (DATA.turn_on_diff == 1) {
+        if (DATA.deltaf_14moments == 1) {
             for (int i = 0; i < deltaf_coeff_table_14mom_length_T; i++) {
                 delete [] deltaf_coeff_tb_14mom_DPi[i];
                 delete [] deltaf_coeff_tb_14mom_BPi[i];
@@ -42,7 +43,7 @@ Cell_info::~Cell_info() {
             delete [] deltaf_coeff_tb_14mom_BV;
             delete [] deltaf_coeff_tb_14mom_Bpi_shear;
         } else {
-            if (DATA_ptr->include_deltaf_qmu == 1) {
+            if (DATA.include_deltaf_qmu == 1) {
                 for (int i = 0; i < deltaf_qmu_coeff_table_length_T; i++)
                     delete [] deltaf_qmu_coeff_tb[i];
                 delete [] deltaf_qmu_coeff_tb;
@@ -153,7 +154,7 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, const InitData &DATA,
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double e_local = arena(ix,iy,ieta).epsilon;  // 1/fm^4
                 double rhob_local = arena(ix,iy,ieta).rhob;  // 1/fm^3
-                double p_local = eos_ptr->get_pressure(e_local, rhob_local);
+                double p_local = eos.get_pressure(e_local, rhob_local);
                 double utau = arena(ix,iy,ieta).u[0][0];
                 double ux = arena(ix,iy,ieta).u[0][1];
                 double uy = arena(ix,iy,ieta).u[0][2];
@@ -164,9 +165,9 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, const InitData &DATA,
                 double uz = ueta*cosh_eta + utau*sinh_eta;
                 double vz = uz/ut;
 
-                double T_local = eos_ptr->get_temperature(e_local, rhob_local);
-                double cs2_local = eos_ptr->get_cs2(e_local, rhob_local);
-                double muB_local = eos_ptr->get_mu(e_local, rhob_local);
+                double T_local = eos.get_temperature(e_local, rhob_local);
+                double cs2_local = eos.get_cs2(e_local, rhob_local);
+                double muB_local = eos.get_mu(e_local, rhob_local);
                 double entropy = e_local + p_local;  // [1/fm^4]
 
                 double Wtautau = 0.0;
@@ -303,14 +304,14 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, const InitData &DATA,
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double e_local = arena(ix,iy,ieta).epsilon;  // 1/fm^4
                 double rhob_local = arena(ix,iy,ieta).rhob;  // 1/fm^3
-                double p_local = eos_ptr->get_pressure(e_local, rhob_local);
+                double p_local = eos.get_pressure(e_local, rhob_local);
 
                 double ux   = arena(ix,iy,ieta).u[0][1];
                 double uy   = arena(ix,iy,ieta).u[0][2];
                 double ueta = arena(ix,iy,ieta).u[0][3];
 
                 // T_local is in 1/fm
-                double T_local = eos_ptr->get_temperature(e_local, rhob_local);
+                double T_local = eos.get_temperature(e_local, rhob_local);
 
 
                 if (T_local*hbarc < DATA.output_evolution_T_cut) continue;
@@ -318,7 +319,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, const InitData &DATA,
 
                 double muB_local = 0.0;
                 if (DATA.turn_on_rhob == 1)
-                    muB_local = eos_ptr->get_mu(e_local, rhob_local);
+                    muB_local = eos.get_mu(e_local, rhob_local);
 
                 double div_factor = e_local + p_local;  // 1/fm^4
                 double Wxx = 0.0;
@@ -405,7 +406,7 @@ void Cell_info::get_maximum_energy_density(Grid &arena) {
         const auto rhob_local = arena(ix,iy,ieta).rhob;
         eps_max  = std::max(eps_max,  eps_local );
         rhob_max = std::max(rhob_max, rhob_local);
-        T_max    = std::max(T_max,    eos_ptr->get_temperature(eps_local, rhob_local) );
+        T_max    = std::max(T_max,    eos.get_temperature(eps_local, rhob_local) );
     }
     eps_max *= 0.19733;   // GeV/fm^3
     T_max *= 0.19733;     // GeV
@@ -447,7 +448,7 @@ void Cell_info::check_conservation_law(Grid &arena, const InitData &DATA,
                      *(c.prev_u[0][0])));
         const double e_local   = c.epsilon;
         const double rhob      = c.rhob;
-        const double pressure  = eos_ptr->get_pressure(e_local, rhob);
+        const double pressure  = eos.get_pressure(e_local, rhob);
         const double u0        = c.u[0][0];
         const double u3        = c.u[0][3];
         const double T00_local = (e_local + pressure)*u0*u0 - pressure;
@@ -512,7 +513,7 @@ void Cell_info::Gubser_flow_check_file(Grid &arena, double tau) {
         for (int i = 0; i < arena.nX(); i++) {
             double e_local = arena(i,i,0).epsilon;
             double T_local = (
-                    eos_ptr->get_temperature(e_local, 0.0)*unit_convert);
+                    eos.get_temperature(e_local, 0.0)*unit_convert);
             T_diff += fabs(T_analytic[i] - T_local);
             T_sum += fabs(T_analytic[i]);
             ux_diff += fabs(ux_analytic[i] - arena(i,i,0).u[0][1]);
@@ -546,17 +547,17 @@ void Cell_info::Gubser_flow_check_file(Grid &arena, double tau) {
     filename << "Gubser_flow_check_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
 
-    double dx = DATA_ptr->delta_x;
-    double x_min = -DATA_ptr->x_size/2.;
-    double dy = DATA_ptr->delta_y;
-    double y_min = -DATA_ptr->y_size/2.;
+    double dx = DATA.delta_x;
+    double x_min = -DATA.x_size/2.;
+    double dy = DATA.delta_y;
+    double y_min = -DATA.y_size/2.;
     for (int ix = 0; ix < arena.nX(); ix++)
     for (int iy = 0; iy < arena.nY(); iy++) {
         double x_local = x_min + ix*dx;
         double y_local = y_min + iy*dy;
         double e_local = arena(ix,iy,0).epsilon;
         double rhob_local = arena(ix,iy,0).rhob;
-        double T_local = eos_ptr->get_temperature(e_local, 0.0);
+        double T_local = eos.get_temperature(e_local, 0.0);
         output_file << scientific << setprecision(8) << setw(18)
                     << x_local << "  " << y_local << "  "
                     << e_local*unit_convert << "  " << rhob_local << "  "
@@ -580,7 +581,7 @@ void Cell_info::output_1p1D_check_file(Grid &arena, double tau) {
     ofstream output_file(filename.str().c_str());
 
     double unit_convert = 0.19733;  // hbarC
-    double deta = DATA_ptr->delta_eta;
+    double deta = DATA.delta_eta;
     double eta_min = -6.94;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta_local = eta_min + ieta*deta;
@@ -609,9 +610,9 @@ void Cell_info::output_energy_density_and_rhob_disitrubtion(Grid &arena,
                                                             string filename) {
     ofstream output_file(filename.c_str());
     double unit_convert = 0.19733;  // hbarC [GeV*fm]
-    int n_skip_x = DATA_ptr->output_evolution_every_N_x;
-    int n_skip_y = DATA_ptr->output_evolution_every_N_y;
-    int n_skip_eta = DATA_ptr->output_evolution_every_N_eta;
+    int n_skip_x = DATA.output_evolution_every_N_x;
+    int n_skip_y = DATA.output_evolution_every_N_y;
+    int n_skip_eta = DATA.output_evolution_every_N_eta;
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta)
     for (int ix   = 0; ix   < arena.nX();   ix += n_skip_x)
     for (int iy   = 0; iy   < arena.nY();   iy += n_skip_y) {
@@ -822,7 +823,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
     filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
              << "_" << eta_max << ".dat";
     fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
-    if (fabs(tau - DATA_ptr->tau0) < 1e-10) {
+    if (fabs(tau - DATA.tau0) < 1e-10) {
         of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)"
            << endl;
     }
@@ -833,11 +834,11 @@ void Cell_info::output_average_phase_diagram_trajectory(
     double weight = 0.0;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta;
-        if (DATA_ptr->boost_invariant == 1) {
+        if (DATA.boost_invariant == 1) {
             eta = 0.0;
         } else {
-            eta = ((static_cast<double>(ieta))*(DATA_ptr->delta_eta)
-                    - (DATA_ptr->eta_size)/2.0);
+            eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
+                    - (DATA.eta_size)/2.0);
         }
         if (eta < eta_max && eta > eta_min) {
             double cosh_eta = cosh(eta);
@@ -849,9 +850,9 @@ void Cell_info::output_average_phase_diagram_trajectory(
                 double utau       = arena(ix,iy,ieta).u[0][0];
                 double ueta       = arena(ix,iy,ieta).u[0][3];
                 double ut         = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
-                double T_local    = eos_ptr->get_temperature(e_local,
+                double T_local    = eos.get_temperature(e_local,
                                                              rhob_local);
-                double muB_local = eos_ptr->get_mu(e_local, rhob_local);
+                double muB_local = eos.get_mu(e_local, rhob_local);
                 double weight_local = e_local*ut;
                 avg_T += T_local*weight_local;
                 avg_mu += muB_local*weight_local;

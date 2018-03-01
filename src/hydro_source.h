@@ -42,7 +42,7 @@ struct parton {
 //! This is a class that feeds source currents to hydrodynamics
 class hydro_source {
  private:
-    InitData *DATA_ptr;
+    const InitData &DATA;
     pretty_ostream music_message;
     double volume;
     double string_quench_factor;
@@ -55,7 +55,7 @@ class hydro_source {
     std::vector<parton> parton_list;
 
  public:
-    hydro_source(InitData *DATA_in);
+    hydro_source(const InitData &DATA_in);
     ~hydro_source();
 
     //! this function returns the energy source term J^\mu at a given point

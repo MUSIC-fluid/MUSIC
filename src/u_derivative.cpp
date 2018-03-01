@@ -9,12 +9,7 @@
 
 using namespace std;
 
-U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in) :
-    minmod(DATA_in)
-{
-   eos = eosIn;
-   DATA_ptr = DATA_in;
-}
+U_derivative::U_derivative(const EOS &eosIn, const InitData &DATA_in) : DATA(DATA_in), eos(eosIn), minmod(DATA_in) {}
 
 //! This function is a shell function to calculate parital^\nu u^\mu
 int U_derivative::MakedU(double tau, const InitData &DATA,
@@ -95,10 +90,10 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, Grid &arena, int 
             }
             sigma_local[a][b] = ((dUsup_local[a][b] + dUsup_local[b][a])/2.
                 - (gfac + u_local[a]*u_local[b])*theta_u_local/3.
-                + u_local[0]/tau*DATA_ptr->gmunu[a][3]*DATA_ptr->gmunu[b][3]
+                + u_local[0]/tau*DATA.gmunu[a][3]*DATA.gmunu[b][3]
                 + u_local[3]*u_local[0]/tau/2.
-                  *(DATA_ptr->gmunu[a][3]*u_local[b] 
-                    + DATA_ptr->gmunu[b][3]*u_local[a])
+                  *(DATA.gmunu[a][3]*u_local[b] 
+                    + DATA.gmunu[b][3]*u_local[a])
                 + (u_local[a]*a_local[b] + u_local[b]*a_local[a])/2.);
             sigma_local[b][a] = sigma_local[a][b];
         }
@@ -214,21 +209,21 @@ int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, in
         rhob = arena(ix,iy,ieta).rhob_t;
         eps = arena(ix,iy,ieta).epsilon_t;
     }
-    muB = eos->get_mu(eps, rhob);
-    T = eos->get_temperature(eps, rhob);
+    muB = eos.get_mu(eps, rhob);
+    T = eos.get_temperature(eps, rhob);
     double f = muB/T; 
     Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
         double fp1, fm1;
         if (rk_flag == 0) {
-            fp1 = ( eos->get_mu(p1.epsilon, p1.rhob)
-                   /eos->get_temperature(p1.epsilon, p1.rhob));
-            fm1 = ( eos->get_mu(m1.epsilon, m1.rhob)
-                   /eos->get_temperature(m1.epsilon, m1.rhob));
+            fp1 = ( eos.get_mu(p1.epsilon, p1.rhob)
+                   /eos.get_temperature(p1.epsilon, p1.rhob));
+            fm1 = ( eos.get_mu(m1.epsilon, m1.rhob)
+                   /eos.get_temperature(m1.epsilon, m1.rhob));
         } else {
-            fp1 = ( eos->get_mu(p1.epsilon_t, p1.rhob_t)
-                   /eos->get_temperature(p1.epsilon_t, p1.rhob_t));
-            fm1 = ( eos->get_mu(m1.epsilon_t, m1.rhob_t)
-                   /eos->get_temperature(m1.epsilon_t, m1.rhob_t));
+            fp1 = ( eos.get_mu(p1.epsilon_t, p1.rhob_t)
+                   /eos.get_temperature(p1.epsilon_t, p1.rhob_t));
+            fm1 = ( eos.get_mu(m1.epsilon_t, m1.rhob_t)
+                   /eos.get_temperature(m1.epsilon_t, m1.rhob_t));
         }
         double g = minmod.minmod_dx(fp1, f, fm1)/delta[direction];
         c.dUsup[m][direction] = g;
@@ -246,8 +241,8 @@ int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, in
 //            rhob = arena(ix,iy,ieta).rhob_t;
 //            eps = arena(ix,iy,ieta).epsilon_t;
 //        }
-//        muB = eos->get_mu(eps, rhob);
-//        T = eos->get_temperature(eps, rhob);
+//        muB = eos.get_mu(eps, rhob);
+//        T = eos.get_temperature(eps, rhob);
 //        f = muB/T; 
 //
 //// in x-dir    
@@ -259,8 +254,8 @@ int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, in
 //            rhob = arena(ix+1,iy,ieta).rhob_t;
 //            eps = arena(ix+1,iy,ieta).epsilon_t;
 //        }
-//        muB = eos->get_mu(eps, rhob);
-//        T = eos->get_temperature(eps, rhob);
+//        muB = eos.get_mu(eps, rhob);
+//        T = eos.get_temperature(eps, rhob);
 //        fp1 = muB/T; 
 //       
 //        // fm1 = grid_pt->nbr_m_1[n]->rhob;
@@ -271,8 +266,8 @@ int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, in
 //            rhob = arena(ix-1,iy,ieta).rhob_t;
 //            eps = arena(ix-1,iy,ieta).epsilon_t;
 //        }
-//        muB = eos->get_mu(eps, rhob);
-//        T = eos->get_temperature(eps, rhob);
+//        muB = eos.get_mu(eps, rhob);
+//        T = eos.get_temperature(eps, rhob);
 //        fm1 = muB/T; 
 //
 //        g = minmod.minmod_dx(fp1, f, fm1);
@@ -288,8 +283,8 @@ int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, in
 //            rhob = arena(ix,iy+1,ieta).rhob_t;
 //            eps = arena(ix,iy+1,ieta).epsilon_t;
 //        }
-//        muB = eos->get_mu(eps, rhob);
-//        T = eos->get_temperature(eps, rhob);
+//        muB = eos.get_mu(eps, rhob);
+//        T = eos.get_temperature(eps, rhob);
 //        fp1 = muB/T; 
 //       
 //        // fm1 = grid_pt->nbr_m_1[n]->rhob;
@@ -300,8 +295,8 @@ int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, in
 //            rhob = arena(ix,iy-1,ieta).rhob_t;
 //            eps = arena(ix,iy-1,ieta).epsilon_t;
 //        }
-//        muB = eos->get_mu(eps, rhob);
-//        T = eos->get_temperature(eps, rhob);
+//        muB = eos.get_mu(eps, rhob);
+//        T = eos.get_temperature(eps, rhob);
 //        fm1 = muB/T; 
 //
 //        g = minmod.minmod_dx(fp1, f, fm1);
@@ -317,8 +312,8 @@ int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, in
 //            rhob = arena(ix,iy,ieta+1).rhob_t;
 //            eps = arena(ix,iy,ieta+1).epsilon_t;
 //        }
-//        muB = eos->get_mu(eps, rhob);
-//        T = eos->get_temperature(eps, rhob);
+//        muB = eos.get_mu(eps, rhob);
+//        T = eos.get_temperature(eps, rhob);
 //        fp1 = muB/T; 
 //       
 //        // fm1 = grid_pt->nbr_m_1[n]->rhob;
@@ -329,8 +324,8 @@ int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, in
 //            rhob = arena(ix,iy,ieta-1).rhob_t;
 //            eps = arena(ix,iy,ieta-1).epsilon_t;
 //        }
-//        muB = eos->get_mu(eps, rhob);
-//        T = eos->get_temperature(eps, rhob);
+//        muB = eos.get_mu(eps, rhob);
+//        T = eos.get_temperature(eps, rhob);
 //        fm1 = muB/T; 
 //
 //        g = minmod.minmod_dx(fp1, f, fm1);
@@ -392,14 +387,14 @@ int U_derivative::MakeDTau(double tau, const InitData &DATA, Cell *grid_pt,
         // f         = (grid_pt->rhob);
         rhob         = grid_pt->rhob;
         eps          = grid_pt->epsilon;
-        muB          = eos->get_mu(eps, rhob);
-        T            = eos->get_temperature(eps, rhob);
+        muB          = eos.get_mu(eps, rhob);
+        T            = eos.get_temperature(eps, rhob);
         tildemu      = muB/T;
         // f        -= (grid_pt->rhob_prev);
         rhob         = grid_pt->prev_rhob;
         eps          = grid_pt->prev_epsilon;
-        muB          = eos->get_mu(eps, rhob);
-        T            = eos->get_temperature(eps, rhob);
+        muB          = eos.get_mu(eps, rhob);
+        T            = eos.get_temperature(eps, rhob);
         tildemu_prev = muB/T;
         f            = (tildemu - tildemu_prev)/(DATA.delta_tau);
         grid_pt->dUsup[m][0] = -f; /* g00 = -1 */
@@ -412,14 +407,14 @@ int U_derivative::MakeDTau(double tau, const InitData &DATA, Cell *grid_pt,
         // f        /= (DATA.delta_tau);
         rhob         = grid_pt->rhob_t;
         eps          = grid_pt->epsilon_t;
-        muB          = eos->get_mu(eps, rhob);
-        T            = eos->get_temperature(eps, rhob);
+        muB          = eos.get_mu(eps, rhob);
+        T            = eos.get_temperature(eps, rhob);
         tildemu      = muB/T;
         // f        -= (grid_pt->rhob_prev);
         rhob         = grid_pt->rhob;
         eps          = grid_pt->epsilon;
-        muB          = eos->get_mu(eps, rhob);
-        T            = eos->get_temperature(eps, rhob);
+        muB          = eos.get_mu(eps, rhob);
+        T            = eos.get_temperature(eps, rhob);
         tildemu_prev = muB/T;
         f            = (tildemu - tildemu_prev)/(DATA.delta_tau);
         grid_pt->dUsup[m][0] = -f; /* g00 = -1 */

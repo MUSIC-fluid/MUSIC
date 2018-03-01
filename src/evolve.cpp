@@ -11,23 +11,22 @@
 
 using namespace std;
 
-Evolve::Evolve(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) :
+Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_source_in) :
+    eos(eosIn),
+    DATA(DATA_in),
     grid_info(DATA_in, eosIn),
     advance(eosIn, DATA_in, hydro_source_in),
     u_derivative(eosIn, DATA_in)
-
 {
-    eos       = eosIn;
-    DATA_ptr  = DATA_in;
-    rk_order  = DATA_in->rk_order;
+    rk_order  = DATA_in.rk_order;
   
-    if (DATA_ptr->freezeOutMethod == 4) {
+    if (DATA.freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
     }
 
-    if (DATA_ptr->Initial_profile == 12 || DATA_ptr->Initial_profile == 13) {
+    if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
         hydro_source_ptr = hydro_source_in;
-    } else if (DATA_ptr->Initial_profile == 30) {
+    } else if (DATA.Initial_profile == 30) {
         hydro_source_ptr = hydro_source_in;
     }
 }
@@ -223,7 +222,7 @@ void Evolve::store_previous_step_for_freezeout(Grid &arena) {
         for (int ii = 0; ii < 10; ii++) {
             arena(ix,iy,ieta).W_prev[ii] = arena(ix,iy,ieta).Wmunu[0][ii];
         }
-        if (DATA_ptr->turn_on_diff == 1) {
+        if (DATA.turn_on_diff == 1) {
             for (int ii = 10; ii < 14; ii++) {
                 arena(ix,iy,ieta).W_prev[ii] = arena(ix,iy,ieta).Wmunu[0][ii];
             }
@@ -588,10 +587,10 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          
 //          rhob = ((1.-etafrac)*rhobY1+etafrac*rhobY2);
 //          
-//          TFO = eos->get_temperature(epsFO, rhob);
-//          muB = eos->get_mu(epsFO, rhob);
-////      double P=eos->get_pressure(epsFO, rhob);
-//        eps_plus_p_over_T_FO=(epsFO+eos->get_pressure(epsFO, rhob))/TFO;
+//          TFO = eos.get_temperature(epsFO, rhob);
+//          muB = eos.get_mu(epsFO, rhob);
+////      double P=eos.get_pressure(epsFO, rhob);
+//        eps_plus_p_over_T_FO=(epsFO+eos.get_pressure(epsFO, rhob))/TFO;
 //
 // 
 //       /*    if (xf==x) */
@@ -812,7 +811,7 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //    {
 //      rhob = 0.;
 //      cout << "[evolve.cpp:FindFreezeoutSurface2]: Using T_freeze works for rhob=0 only" << endl;
-//      epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA.TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
+//      epsFO= eos.findRoot(&EOS::Tsolve, rhob, DATA.TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
 //      cout << "T_freeze=" << DATA.TFO << ", epsFO=" << epsFO*hbarc << endl;
 //    }
 //
@@ -4094,14 +4093,14 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //        
 //          Wetaeta = (1.-taufrac)*Wetaeta2+taufrac*Wetaeta1;
 //          
-//          TFO = eos->get_temperature(epsFO, rhob);
-//          muB = eos->get_mu(epsFO, rhob);
+//          TFO = eos.get_temperature(epsFO, rhob);
+//          muB = eos.get_mu(epsFO, rhob);
 //          if (TFO<0) {
 //            cout << "TFO=" << TFO << "<0. ERROR. exiting." << endl;
 //            exit(1);
 //          }
 //          
-//          P=eos->get_pressure(epsFO, rhob);
+//          P=eos.get_pressure(epsFO, rhob);
 //          eps_plus_p_over_T_FO=(epsFO+P)/TFO;
 //
 //          if (fabs(FULLSU[0])>DX*DY*DETA+0.01)
@@ -4693,7 +4692,7 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          eta = (DATA.delta_eta)*(ieta+DATA.neta*rank) - (DATA.eta_size)/2.0;
 //          
 //          if (DATA.useEpsFO && (arena(iy,ieta,ix).epsilon >= FO)) frozen = 0;
-//          else if (!DATA.useEpsFO && (eos->get_temperature(arena(iy,ieta,ix).epsilon,arena(iy,ieta,ix).rhob) >= FO)) frozen = 0;
+//          else if (!DATA.useEpsFO && (eos.get_temperature(arena(iy,ieta,ix).epsilon,arena(iy,ieta,ix).rhob) >= FO)) frozen = 0;
 //          
 ////          rhob = arena(iy,ieta,ix).rhob;
 ////          if (!DATA.useEpsFO && (1 == DATA.turn_on_rhob)) 
@@ -4724,8 +4723,8 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          {
 ////        home = arena(iy,ieta,ix).T;
 ////        neighbor = arena(niy,nieta,nix).T;
-//          home = eos->get_temperature(arena(iy,ieta,ix).epsilon,arena(iy,ieta,ix).rhob);
-//          neighbor = eos->get_temperature(arena(niy,nieta,nix).epsilon,arena(niy,nieta,nix).rhob);
+//          home = eos.get_temperature(arena(iy,ieta,ix).epsilon,arena(iy,ieta,ix).rhob);
+//          neighbor = eos.get_temperature(arena(niy,nieta,nix).epsilon,arena(niy,nieta,nix).rhob);
 //          }
 //          if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 //        {
@@ -4741,9 +4740,9 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          iepsFO = 0.5*(arena(iy,ieta,ix).epsilon + arena(niy,nieta,nix).epsilon);
 //          rhob = 0.5*(arena(iy,ieta,ix).rhob + arena(niy,nieta,nix).rhob);
 //          pi_b = 0.5*(arena(iy,ieta,ix).pi_b[0] + arena(niy,nieta,nix).pi_b[0]);
-//          TFO = eos->get_temperature(iepsFO, rhob);
-//          muB = eos->get_mu(iepsFO, rhob);
-//          eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
+//          TFO = eos.get_temperature(iepsFO, rhob);
+//          muB = eos.get_mu(iepsFO, rhob);
+//          eps_plus_p_over_T_FO=(iepsFO+eos.get_pressure(iepsFO, rhob))/TFO;
 //          Wxx = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][1] + arena(niy,nieta,nix).Wmunu[0][1][1]);
 //          Wxy = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][2] + arena(niy,nieta,nix).Wmunu[0][1][2]);
 //          Wxeta = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][3] + arena(niy,nieta,nix).Wmunu[0][1][3]);
@@ -4776,7 +4775,7 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          }
 //          if(DATA.boost_invariant && (eta==0.0))
 //          {
-//            double P = eos->get_pressure(iepsFO, rhob);
+//            double P = eos.get_pressure(iepsFO, rhob);
 //            freeze_file << setprecision(10) << xf << "\t" << yf << "\t" << tauf << "\t";
 //            freeze_file << SIG << "\t" << ux << "\t" << uy << "\t";
 //            freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
@@ -4822,8 +4821,8 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          {
 ////        home = arena(iy,ieta,ix).T;
 ////        neighbor = arena(niy,nieta,nix).T;
-//          home = eos->get_temperature(arena(iy,ieta,ix).epsilon,arena(iy,ieta,ix).rhob);
-//          neighbor = eos->get_temperature(arena(niy,nieta,nix).epsilon,arena(niy,nieta,nix).rhob);
+//          home = eos.get_temperature(arena(iy,ieta,ix).epsilon,arena(iy,ieta,ix).rhob);
+//          neighbor = eos.get_temperature(arena(niy,nieta,nix).epsilon,arena(niy,nieta,nix).rhob);
 //          }
 //          if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 //        {
@@ -4839,9 +4838,9 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          iepsFO = 0.5*(arena(iy,ieta,ix).epsilon + arena(niy,nieta,nix).epsilon);
 //          rhob = 0.5*(arena(iy,ieta,ix).rhob + arena(niy,nieta,nix).rhob);
 //          pi_b = 0.5*(arena(iy,ieta,ix).pi_b[0] + arena(niy,nieta,nix).pi_b[0]);
-//          TFO = eos->get_temperature(iepsFO, rhob);
-//          muB = eos->get_mu(iepsFO, rhob);
-//          eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
+//          TFO = eos.get_temperature(iepsFO, rhob);
+//          muB = eos.get_mu(iepsFO, rhob);
+//          eps_plus_p_over_T_FO=(iepsFO+eos.get_pressure(iepsFO, rhob))/TFO;
 //          Wxx = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][1] + arena(niy,nieta,nix).Wmunu[0][1][1]);
 //          Wxy = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][2] + arena(niy,nieta,nix).Wmunu[0][1][2]);
 //          Wxeta = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][3] + arena(niy,nieta,nix).Wmunu[0][1][3]);
@@ -4874,7 +4873,7 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          }
 //          if(DATA.boost_invariant && (eta==0.0))
 //          {
-//            double P = eos->get_pressure(iepsFO, rhob);
+//            double P = eos.get_pressure(iepsFO, rhob);
 //            freeze_file << setprecision(10) << xf << "\t" << yf << "\t" << tauf << "\t";
 //            freeze_file << SIG*2 << "\t" << ux << "\t" << uy << "\t";
 //            freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
@@ -4920,8 +4919,8 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          {
 ////        home = arena(iy,ieta,ix).T;
 ////        neighbor = arena(niy,nieta,nix).T;
-//          home = eos->get_temperature(arena(iy,ieta,ix).epsilon,arena(iy,ieta,ix).rhob);
-//          neighbor = eos->get_temperature(arena(niy,nieta,nix).epsilon,arena(niy,nieta,nix).rhob);
+//          home = eos.get_temperature(arena(iy,ieta,ix).epsilon,arena(iy,ieta,ix).rhob);
+//          neighbor = eos.get_temperature(arena(niy,nieta,nix).epsilon,arena(niy,nieta,nix).rhob);
 //          }
 //          if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 //        {
@@ -4937,9 +4936,9 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          iepsFO = 0.5*(arena(iy,ieta,ix).epsilon + arena(niy,nieta,nix).epsilon);
 //          rhob = 0.5*(arena(iy,ieta,ix).rhob + arena(niy,nieta,nix).rhob);
 //          pi_b = 0.5*(arena(iy,ieta,ix).pi_b[0] + arena(niy,nieta,nix).pi_b[0]);
-//          TFO = eos->get_temperature(iepsFO, rhob);
-//          muB = eos->get_mu(iepsFO, rhob);
-//          eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
+//          TFO = eos.get_temperature(iepsFO, rhob);
+//          muB = eos.get_mu(iepsFO, rhob);
+//          eps_plus_p_over_T_FO=(iepsFO+eos.get_pressure(iepsFO, rhob))/TFO;
 //          Wxx = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][1] + arena(niy,nieta,nix).Wmunu[0][1][1]);
 //          Wxy = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][2] + arena(niy,nieta,nix).Wmunu[0][1][2]);
 //          Wxeta = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][3] + arena(niy,nieta,nix).Wmunu[0][1][3]);
@@ -5005,11 +5004,11 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          else
 //          {
 ////        home = arena(iy,ieta,ix).T;
-////        home = eos->get_temperature(arena(iy,ieta,ix).epsilon_prev,arena(iy,ieta,ix).rhob);
+////        home = eos.get_temperature(arena(iy,ieta,ix).epsilon_prev,arena(iy,ieta,ix).rhob);
 //          
 //        // Need temperature at previous time step. Use value of rhob at previous time step,
 //        // or else use T_prev if that is available
-//          home = eos->get_temperature(arena(iy,ieta,ix).epsilon_prev,arena(iy,ieta,ix).rhob_prev);
+//          home = eos.get_temperature(arena(iy,ieta,ix).epsilon_prev,arena(iy,ieta,ix).rhob_prev);
 //          }
 //          if(((home > FO) && (neighbor <= FO)) || ((home <= FO) && (neighbor > FO)))
 //        {
@@ -5027,9 +5026,9 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 ////        rhob = 0.5*(arena(iy,ieta,ix).rhob + arena(niy,nieta,nix).rhob);
 //          rhob = 0.5*(arena(iy,ieta,ix).rhob + arena(niy,nieta,nix).rhob_prev);
 //          pi_b = 0.5*(arena(iy,ieta,ix).pi_b[0] + arena(niy,nieta,nix).pi_b_prev);
-//          TFO = eos->get_temperature(iepsFO, rhob);
-//          muB = eos->get_mu(iepsFO, rhob);
-//          eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
+//          TFO = eos.get_temperature(iepsFO, rhob);
+//          muB = eos.get_mu(iepsFO, rhob);
+//          eps_plus_p_over_T_FO=(iepsFO+eos.get_pressure(iepsFO, rhob))/TFO;
 //          Wxx = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][1] + arena(niy,nieta,nix).W_prev[1][1]);
 //          Wxy = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][2] + arena(niy,nieta,nix).W_prev[1][2]);
 //          Wxeta = 0.5*(arena(iy,ieta,ix).Wmunu[0][1][3] + arena(niy,nieta,nix).W_prev[1][3]);
@@ -5062,7 +5061,7 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          }
 //          if(DATA.boost_invariant && (eta==0.0))
 //          {
-//            double P = eos->get_pressure(iepsFO, rhob);
+//            double P = eos.get_pressure(iepsFO, rhob);
 //            freeze_file << setprecision(10) << xf << "\t" << yf << "\t" << tauf << "\t";
 //            freeze_file << SIG*3 << "\t" << ux << "\t" << uy << "\t";
 //            freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
@@ -5134,8 +5133,8 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          {
 ////        home = arena(iy,ieta,ix).T;
 ////        neighbor = arena(niy,nieta,nix).T;
-//          home = eos->get_temperature(arena(iy,nieta,ix).epsilon,arena(iy,nieta,ix).rhob);
-//          neighbor = eos->get_temperature(Rneighbor_eps[nix][niy],Rneighbor_rhob[nix][niy]);
+//          home = eos.get_temperature(arena(iy,nieta,ix).epsilon,arena(iy,nieta,ix).rhob);
+//          neighbor = eos.get_temperature(Rneighbor_eps[nix][niy],Rneighbor_rhob[nix][niy]);
 //          }
 ////         if (ieta>=neta-fac)
 ////       {
@@ -5155,9 +5154,9 @@ int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
 //          iepsFO = 0.5*(arena(iy,nieta,ix).epsilon + Rneighbor_eps[nix][niy]);
 //          rhob = 0.5*(Rneighbor_rhob[ix][iy] + arena(niy,nieta,nix).rhob);
 //          pi_b = 0.5*(Rneighbor_Pi_b[ix][iy] + arena(niy,nieta,nix).pi_b[0]);
-//          TFO = eos->get_temperature(iepsFO, rhob);
-//          muB = eos->get_mu(iepsFO, rhob);
-//          eps_plus_p_over_T_FO=(iepsFO+eos->get_pressure(iepsFO, rhob))/TFO;
+//          TFO = eos.get_temperature(iepsFO, rhob);
+//          muB = eos.get_mu(iepsFO, rhob);
+//          eps_plus_p_over_T_FO=(iepsFO+eos.get_pressure(iepsFO, rhob))/TFO;
 //          Wxx = 0.5*(Rneighbor_Wxx[ix][iy] + arena(niy,nieta,nix).Wmunu[0][1][1]);
 //          Wxy = 0.5*(Rneighbor_Wxy[ix][iy] + arena(niy,nieta,nix).Wmunu[0][1][2]);
 //          Wxeta = 0.5*(Rneighbor_Wxeta[ix][iy] + arena(niy,nieta,nix).Wmunu[0][1][3]);
@@ -6086,8 +6085,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, const InitData &DATA,
                 delete [] Wmunu_regulated;
 
                 // 4-dimension interpolation done
-                TFO = eos->get_temperature(epsFO, rhob_center);
-                muB = eos->get_mu(epsFO, rhob_center);
+                TFO = eos.get_temperature(epsFO, rhob_center);
+                muB = eos.get_mu(epsFO, rhob_center);
                 if (TFO < 0) {
                     music_message << "TFO=" << TFO
                                   << "<0. ERROR. exiting.";
@@ -6095,7 +6094,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, const InitData &DATA,
                     exit(1);
                 }
 
-                pressure = eos->get_pressure(epsFO, rhob_center);
+                pressure = eos.get_pressure(epsFO, rhob_center);
                 eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                 // finally output results !!!!
@@ -6330,8 +6329,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, const InitData &DATA,
 
             // get other thermodynamical quantities
             double e_local = arena(ix,iy,ieta).epsilon;
-            double T_local = eos->get_temperature(e_local, rhob_center);
-            double muB_local = eos->get_mu(e_local, rhob_center);
+            double T_local = eos.get_temperature(e_local, rhob_center);
+            double muB_local = eos.get_mu(e_local, rhob_center);
             if (T_local < 0) {
                 music_message << "Evolve::FreezeOut_equal_tau_Surface: "
                               << "T_local = " << T_local
@@ -6340,7 +6339,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, const InitData &DATA,
                 exit(1);
             }
 
-            double pressure = eos->get_pressure(e_local, rhob_center);
+            double pressure = eos.get_pressure(e_local, rhob_center);
             double eps_plus_p_over_T = (e_local + pressure)/T_local;
 
             // finally output results !!!!
@@ -6868,8 +6867,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
 
                     // 3-dimension interpolation done
                 
-                    TFO = eos->get_temperature(epsFO, rhob_center);
-                    muB = eos->get_mu(epsFO, rhob_center);
+                    TFO = eos.get_temperature(epsFO, rhob_center);
+                    muB = eos.get_mu(epsFO, rhob_center);
                     if (TFO < 0)
                     {
                         music_message << "TFO=" << TFO
@@ -6878,7 +6877,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                         exit(1);
                     }
 
-                    pressure = eos->get_pressure(epsFO, rhob_center);
+                    pressure = eos.get_pressure(epsFO, rhob_center);
                     eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                     // finally output results !!!!
@@ -6982,12 +6981,12 @@ void Evolve::regulate_Wmunu(double* u, double** Wmunu,
 }
 
 void Evolve::initialize_freezeout_surface_info() {
-    int freeze_eps_flag = DATA_ptr->freeze_eps_flag;
+    int freeze_eps_flag = DATA.freeze_eps_flag;
     if (freeze_eps_flag == 0) {
         // constant spacing the energy density
-        n_freeze_surf = DATA_ptr->N_freeze_out;
-        double freeze_max_ed = DATA_ptr->eps_freeze_max;
-        double freeze_min_ed = DATA_ptr->eps_freeze_min;
+        n_freeze_surf = DATA.N_freeze_out;
+        double freeze_max_ed = DATA.eps_freeze_max;
+        double freeze_min_ed = DATA.eps_freeze_min;
         double d_epsFO = ((freeze_max_ed - freeze_min_ed)
                           /(n_freeze_surf - 1 + 1e-15));
         for(int isurf = 0; isurf < n_freeze_surf; isurf++)
@@ -6997,7 +6996,7 @@ void Evolve::initialize_freezeout_surface_info() {
         }
     } else if(freeze_eps_flag == 1) {
         // read in from a file
-        string eps_freeze_list_filename = DATA_ptr->freeze_list_filename;
+        string eps_freeze_list_filename = DATA.freeze_list_filename;
         music_message << "read in freeze out surface information from " 
                       << eps_freeze_list_filename;
         music_message.flush("info");

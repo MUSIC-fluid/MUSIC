@@ -9,11 +9,7 @@
 
 using namespace std;
 
-Diss::Diss(EOS *eosIn, InitData* DATA_in) :
-    minmod(DATA_in)
-{
-    eos = eosIn;
-}
+Diss::Diss(const EOS &eosIn, const InitData &DATA_in) : eos(eosIn), minmod(DATA_in) {}
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 /* Dissipative parts */
@@ -158,7 +154,7 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
         epsilon = grid_pt->prev_epsilon;
         rhob = grid_pt->prev_rhob;
     }
-    T = eos->get_temperature(epsilon, rhob);
+    T = eos.get_temperature(epsilon, rhob);
 
     if (DATA.T_dependent_shear_to_s == 1) {
         shear_to_s = get_temperature_dependent_eta_s(DATA, T);
@@ -184,7 +180,7 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 ///                 Defining transport coefficients                        ///
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
-    double pressure = eos->get_pressure(epsilon, rhob);
+    double pressure = eos.get_pressure(epsilon, rhob);
     shear = (shear_to_s)*(epsilon + pressure)/(T + 1e-15);
     tau_pi = 5.0*shear/(epsilon + pressure + 1e-15);
 
@@ -663,14 +659,14 @@ double Diss::Make_uPiSource(double tau, Cell *grid_pt, const InitData &DATA,
     // defining bulk viscosity coefficient
 
     // shear viscosity = constant * entropy density
-    //s_den = eos->get_entropy(epsilon, rhob);
+    //s_den = eos.get_entropy(epsilon, rhob);
     //shear = (DATA.shear_to_s)*s_den;   
     // shear viscosity = constant * (e + P)/T
-    double temperature = eos->get_temperature(epsilon, rhob);
+    double temperature = eos.get_temperature(epsilon, rhob);
 
     // cs2 is the velocity of sound squared
-    double cs2 = eos->get_cs2(epsilon, rhob);  
-    double pressure = eos->get_pressure(epsilon, rhob);
+    double cs2 = eos.get_cs2(epsilon, rhob);  
+    double pressure = eos.get_pressure(epsilon, rhob);
 
     // T dependent bulk viscosity from Gabriel
     bulk = get_temperature_dependent_zeta_s(temperature);
@@ -778,12 +774,12 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, const InitData &DA
         epsilon = grid_pt->prev_epsilon;
         rhob = grid_pt->prev_rhob;
     }
-    double pressure = eos->get_pressure(epsilon, rhob);
-    double T        = eos->get_temperature(epsilon, rhob);
+    double pressure = eos.get_pressure(epsilon, rhob);
+    double T        = eos.get_temperature(epsilon, rhob);
 
     double kappa_coefficient = DATA.kappa_coefficient;
     double tau_rho = kappa_coefficient/(T + 1e-15);
-    double mub     = eos->get_mu(epsilon, rhob);
+    double mub     = eos.get_mu(epsilon, rhob);
     double alpha   = mub/T;
     double kappa   = kappa_coefficient*(rhob/(3.*T*tanh(alpha) + 1e-15)
                                       - rhob*rhob/(epsilon + pressure));
@@ -1077,11 +1073,11 @@ void Diss::output_kappa_T_and_muB_dependence(const InitData &DATA) {
         for (int j = 0; j < nrhob; j++) {
             double rhob_local = rhob_min + j*drhob;
             rhob_local *= rhob_local;
-            double mu_B_local = eos->get_mu(e_local, rhob_local);
+            double mu_B_local = eos.get_mu(e_local, rhob_local);
             if (mu_B_local*hbarc > 0.78)
                 continue;  // discard points out of the table
-            double p_local = eos->get_pressure(e_local, rhob_local);
-            double T_local = eos->get_temperature(e_local, rhob_local);
+            double p_local = eos.get_pressure(e_local, rhob_local);
+            double T_local = eos.get_temperature(e_local, rhob_local);
             double alpha_local = mu_B_local/T_local;
 
             double kappa_local = (DATA.kappa_coefficient
@@ -1120,11 +1116,11 @@ void Diss::output_kappa_along_const_sovernB(const InitData &DATA) {
         for (int j = 0; j < ns; j++) {
             double s_local = s_0 + j*ds;
             double nB_local = s_local/sovernB[i];
-            double e_local = eos->get_s2e_finite_rhob(s_local, nB_local);
-            double s_check = eos->get_entropy(e_local, nB_local);
-            double p_local = eos->get_pressure(e_local, nB_local);
-            double temperature = eos->get_temperature(e_local, nB_local);
-            double mu_B = eos->get_mu(e_local, nB_local);
+            double e_local = eos.get_s2e_finite_rhob(s_local, nB_local);
+            double s_check = eos.get_entropy(e_local, nB_local);
+            double p_local = eos.get_pressure(e_local, nB_local);
+            double temperature = eos.get_temperature(e_local, nB_local);
+            double mu_B = eos.get_mu(e_local, nB_local);
             if (mu_B*hbarc > 0.78)
                 continue;  // discard points out of the table
             double alpha_local = mu_B/temperature;
@@ -1169,12 +1165,12 @@ void Diss::output_eta_over_s_T_and_muB_dependence(const InitData &DATA) {
         for (int j = 0; j < nrhob; j++) {
             double rhob_local = rhob_min + j*drhob;
             rhob_local *= rhob_local;
-            double mu_B_local = eos->get_mu(e_local, rhob_local);
+            double mu_B_local = eos.get_mu(e_local, rhob_local);
             if (mu_B_local*hbarc > 0.78)
                 continue;  // discard points out of the table
-            double p_local = eos->get_pressure(e_local, rhob_local);
-            double s_local = eos->get_entropy(e_local, rhob_local);
-            double T_local = eos->get_temperature(e_local, rhob_local);
+            double p_local = eos.get_pressure(e_local, rhob_local);
+            double s_local = eos.get_entropy(e_local, rhob_local);
+            double T_local = eos.get_temperature(e_local, rhob_local);
 
             double eta_over_s = (
                 etaT_over_enthropy*(e_local + p_local)/(T_local*s_local));
@@ -1213,11 +1209,11 @@ void Diss::output_eta_over_s_along_const_sovernB(const InitData &DATA) {
         for (int j = 0; j < ns; j++) {
             double s_local = s_0 + j*ds;
             double nB_local = s_local/sovernB[i];
-            double e_local = eos->get_s2e_finite_rhob(s_local, nB_local);
-            double s_check = eos->get_entropy(e_local, nB_local);
-            double p_local = eos->get_pressure(e_local, nB_local);
-            double temperature = eos->get_temperature(e_local, nB_local);
-            double mu_B = eos->get_mu(e_local, nB_local);
+            double e_local = eos.get_s2e_finite_rhob(s_local, nB_local);
+            double s_check = eos.get_entropy(e_local, nB_local);
+            double p_local = eos.get_pressure(e_local, nB_local);
+            double temperature = eos.get_temperature(e_local, nB_local);
+            double mu_B = eos.get_mu(e_local, nB_local);
             if (mu_B*hbarc > 0.78)
                 continue;  // discard points out of the table
 

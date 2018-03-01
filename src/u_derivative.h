@@ -11,23 +11,20 @@
 
 class U_derivative {
  private:
+     const InitData &DATA;
+     const EOS &eos; // Sangyong Nov 18 2014: added EOS *eos;
      Minmod minmod;
-     // Sangyong Nov 18 2014: added EOS *eos;
-     EOS *eos;
-     InitData *DATA_ptr;
   
  public:
     // Sangyong Nov 18 2014: added EOS *eos in the argument
-    U_derivative(EOS *eosIn, InitData* DATA_in);  // constructor
+    U_derivative(const EOS &eosIn, const InitData &DATA_in);  // constructor
     int MakedU(double tau, const InitData &DATA, Grid &arena, int rk_flag);
 
     //! this function returns the expansion rate on the grid
-    double calculate_expansion_rate(double tau, Grid &arena,
-                                    int ieta, int ix, int iy, int rk_flag);
+    double calculate_expansion_rate(double tau, Grid &arena, int ieta, int ix, int iy, int rk_flag);
 
     //! this function returns Du^\mu
-    void calculate_Du_supmu(double tau, Grid &arena, int ieta, int ix,
-                            int iy, int rk_flag, DumuVec &a);
+    void calculate_Du_supmu(double tau, Grid &arena, int ieta, int ix, int iy, int rk_flag, DumuVec &a);
 
     //! This funciton returns the velocity shear tensor sigma^\mu\nu
     void calculate_velocity_shear_tensor(double tau, Grid &arena, int ieta, int ix, int iy, int rk_flag, DumuVec &a_local, VelocityShearVec &sigma);

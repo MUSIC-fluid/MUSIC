@@ -11,17 +11,17 @@
 
 using namespace std;
 
-Advance::Advance(EOS *eosIn, InitData *DATA_in,
+Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
                  hydro_source *hydro_source_in) :
+  DATA(DATA_in),
+  eos(eosIn),
   minmod(DATA_in)
 {
-  DATA_ptr         = DATA_in;
-  eos              = eosIn;
-  reconst_ptr      = new Reconst(eos, DATA_in);
-  diss             = new Diss(eosIn, DATA_in);
-  u_derivative_ptr = new U_derivative(eosIn, DATA_in);
-  if (DATA_in->Initial_profile == 12 || DATA_in->Initial_profile == 13
-      || DATA_in->Initial_profile == 30) {
+  reconst_ptr      = new Reconst(eos, DATA);
+  diss             = new Diss(eosIn, DATA);
+  u_derivative_ptr = new U_derivative(eosIn, DATA);
+  if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13
+      || DATA.Initial_profile == 30) {
     flag_add_hydro_source = true;
     hydro_source_ptr = hydro_source_in;
   } else {
@@ -49,12 +49,12 @@ int Advance::AdvanceIt(double tau, const InitData &DATA, Grid &arena,
   for(int ieta = 0; ieta < grid_neta; ieta++)
   for(int ix   = 0; ix   < grid_nx;   ix++  )
   for(int iy   = 0; iy   < grid_ny;   iy++  ) {
-    double eta_s_local = (- DATA_ptr->eta_size/2.
-        + ieta*DATA_ptr->delta_eta);
-    double x_local = (- DATA_ptr->x_size/2.
-          + ix*DATA_ptr->delta_x);
-    double y_local = (- DATA_ptr->y_size/2.
-          + iy*DATA_ptr->delta_y);
+    double eta_s_local = (- DATA.eta_size/2.
+        + ieta*DATA.delta_eta);
+    double x_local = (- DATA.x_size/2.
+          + ix*DATA.delta_x);
+    double y_local = (- DATA.y_size/2.
+          + iy*DATA.delta_y);
 	  
     //        FirstRKStepT(tau, x_local, y_local, eta_s_local,
     //             DATA, &(arena(ix,iy,ieta)), rk_flag);
@@ -63,7 +63,7 @@ int Advance::AdvanceIt(double tau, const InitData &DATA, Grid &arena,
     if (DATA.viscosity_flag == 1) {
       //double tau_rk = tau;
       //if (rk_flag == 1) {
-      //    tau_rk = tau + DATA_ptr->delta_tau;
+      //    tau_rk = tau + DATA.delta_tau;
       //}
       //double theta_local = (
       //        u_derivative_ptr->calculate_expansion_rate(
@@ -95,7 +95,7 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
         double eta_s_local, const InitData &DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag) {
   // this advances the ideal part
   double tau_now  = tau;
-  double tau_next = tau + (DATA_ptr->delta_tau);
+  double tau_next = tau + (DATA.delta_tau);
   double tau_rk;
   if (rk_flag == 0) {
     tau_rk = tau_now;
@@ -465,7 +465,7 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
   double pi_local = grid_pt->pi_b[trk_flag];
   double bulksize = 3.*pi_local*pi_local;
   
-  double p_local = eos->get_pressure(e_local, rhob);
+  double p_local = eos.get_pressure(e_local, rhob);
   double eq_size = e_local*e_local + 3.*p_local*p_local;
   
   // In default MUSIC
@@ -479,7 +479,7 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
   // Reducing the shear stress tensor 
   double rho_shear_max = 0.1;
   if (rho_shear > rho_shear_max) {
-    if (e_local > eps_scale && DATA_ptr->echo_level > 5) {
+    if (e_local > eps_scale && DATA.echo_level > 5) {
       music_message << "ieta = " << ieta << ", ix = " << ix
 		    << ", iy = " << iy
 		    << ", energy density = " << e_local*hbarc
@@ -497,7 +497,7 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
   // Reducing bulk viscous pressure 
   double rho_bulk_max = 0.1;
   if (rho_bulk > rho_bulk_max) {
-    if (e_local > eps_scale && DATA_ptr->echo_level > 5) {
+    if (e_local > eps_scale && DATA.echo_level > 5) {
       music_message << "ieta = " << ieta << ", ix = " << ix
 		    << ", iy = " << iy
 		    << ", energy density = " << e_local*hbarc
@@ -562,7 +562,7 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
   double rho_q = sqrt(q_size/(rhob_local*rhob_local))/factor;
   double rho_q_max = 0.1;
   if (rho_q > rho_q_max) {
-    if (e_local > eps_scale && DATA_ptr->echo_level > 5) {
+    if (e_local > eps_scale && DATA.echo_level > 5) {
       music_message << "ieta = " << ieta << ", ix = " << ix
         << ", iy = " << iy
         << ", energy density = " << e_local*hbarc
@@ -584,9 +584,9 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
 //! derivatives of T^\mu\nu using the KT algorithm
 void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
   double delta[4];
-  delta[1] = DATA_ptr->delta_x;
-  delta[2] = DATA_ptr->delta_y;
-  delta[3] = DATA_ptr->delta_eta;
+  delta[1] = DATA.delta_x;
+  delta[2] = DATA.delta_y;
+  delta[3] = DATA.delta_eta;
   
   double rhs[5];
   for (int alpha = 0; alpha < 5; alpha++) 
@@ -647,13 +647,13 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, TJb
       double Fimh = 0.5*((FimhL + FimhR) - aimh*(qimhR[alpha] - qimhL[alpha]));
       double DFmmp = (Fimh - Fiph)/delta[direction];
             
-      rhs[alpha] += DFmmp*(DATA_ptr->delta_tau);
+      rhs[alpha] += DFmmp*(DATA.delta_tau);
     }
   });
   
   // geometric terms
-  rhs[0] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 3)*DATA_ptr->delta_tau;
-  rhs[3] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 0)*DATA_ptr->delta_tau;
+  rhs[0] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 3)*DATA.delta_tau;
+  rhs[3] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 0)*DATA.delta_tau;
   
   for (int i = 0; i < 5; i++) {
     qi[i] += rhs[i];
@@ -689,7 +689,7 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
     double eps = grid_p.e;
     double rhob = grid_p.rhob;
   
-    double vs2 = eos->get_cs2(eps, rhob);
+    double vs2 = eos.get_cs2(eps, rhob);
 
     double den = utau2*(1. - vs2) + vs2;
     double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.)*vs2)*vs2;
@@ -697,8 +697,8 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
     if (num_temp_sqrt >= 0) {
         num = utau*ux*(1. - vs2) + sqrt(num_temp_sqrt);
     } else {
-        double dpde = eos->p_e_func(eps, rhob);
-        double p = eos->get_pressure(eps, rhob);
+        double dpde = eos.p_e_func(eps, rhob);
+        double p = eos.get_pressure(eps, rhob);
         double h = p+eps;
         if (dpde < 0.001) {
             num = (sqrt(-(h*dpde*h*(dpde*(-1.0 + ut2mux2) - ut2mux2))) 
@@ -714,9 +714,9 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
             fprintf(stderr,"at value utau=%lf. \n", utau);
             fprintf(stderr,"at value uk=%lf. \n", ux);
             fprintf(stderr,"at value vs^2=%lf. \n", vs2);
-            fprintf(stderr,"at value dpde=%lf. \n", eos->p_e_func(eps, rhob));
+            fprintf(stderr,"at value dpde=%lf. \n", eos.p_e_func(eps, rhob));
             fprintf(stderr,"at value dpdrhob=%lf. \n",
-                    eos->p_rho_func(eps, rhob));
+                    eos.p_rho_func(eps, rhob));
             fprintf(stderr, "MaxSpeed: exiting.\n");
             exit(1);
         }
@@ -778,7 +778,7 @@ double Advance::get_TJb(const Cell &grid_p, const int rk_flag, const int mu, con
         } else {
             u_mu = grid_p.u[rk_flag][mu];
         }
-        const double pressure = eos->get_pressure(e, rhob);
+        const double pressure = eos.get_pressure(e, rhob);
         const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
         return(T_munu);
     } else {
@@ -805,7 +805,7 @@ double Advance::get_TJb(const ReconstCell &grid_p, const int rk_flag, const int 
         } else {
             u_mu = grid_p.u[mu];
         }
-        const double pressure = eos->get_pressure(e, rhob);
+        const double pressure = eos.get_pressure(e, rhob);
         const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
         return(T_munu);
     } else {

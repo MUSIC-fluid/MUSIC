@@ -412,19 +412,20 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     int j = 0;
     // read particle data:
     while (i < DATA->NumberOfParticlesToInclude) {
+        int temp;
         //particleList[i].name = Util::char_malloc(50);
-        fscanf(p_file, "%d",  &particleList[i].number );
-        fscanf(p_file, "%s",   particleList[i].name   );
-        fscanf(p_file, "%lf", &particleList[i].mass   );
-        fscanf(p_file, "%lf", &particleList[i].width  );
-        fscanf(p_file, "%d",  &particleList[i].degeneracy);
-        fscanf(p_file, "%d",  &particleList[i].baryon );
-        fscanf(p_file, "%d",  &particleList[i].strange);
-        fscanf(p_file, "%d",  &particleList[i].charm  );
-        fscanf(p_file, "%d",  &particleList[i].bottom );
-        fscanf(p_file, "%d",  &particleList[i].isospin);
-        fscanf(p_file, "%lf", &particleList[i].charge );
-        fscanf(p_file, "%d",  &particleList[i].decays );   // number of decays
+        temp = fscanf(p_file, "%d",  &particleList[i].number );
+        temp = fscanf(p_file, "%s",   particleList[i].name   );
+        temp = fscanf(p_file, "%lf", &particleList[i].mass   );
+        temp = fscanf(p_file, "%lf", &particleList[i].width  );
+        temp = fscanf(p_file, "%d",  &particleList[i].degeneracy);
+        temp = fscanf(p_file, "%d",  &particleList[i].baryon );
+        temp = fscanf(p_file, "%d",  &particleList[i].strange);
+        temp = fscanf(p_file, "%d",  &particleList[i].charm  );
+        temp = fscanf(p_file, "%d",  &particleList[i].bottom );
+        temp = fscanf(p_file, "%d",  &particleList[i].isospin);
+        temp = fscanf(p_file, "%lf", &particleList[i].charge );
+        temp = fscanf(p_file, "%d",  &particleList[i].decays );   // number of decays
 
         partid[MHALF + particleList[i].number] = i;
         particleList[i].stable = 0;
@@ -513,65 +514,66 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
     surface = (SurfaceElement *) malloc((NCells)*sizeof(SurfaceElement));
     int i = 0;
     while (i < NCells) {
+        int temp;
         // position in (tau, x, y, eta)
-        fscanf(s_file, "%lf", &surface[i].x[0]);
-        fscanf(s_file, "%lf", &surface[i].x[1]);
-        fscanf(s_file, "%lf", &surface[i].x[2]);
-        fscanf(s_file, "%lf", &surface[i].x[3]);
+        temp = fscanf(s_file, "%lf", &surface[i].x[0]);
+        temp = fscanf(s_file, "%lf", &surface[i].x[1]);
+        temp = fscanf(s_file, "%lf", &surface[i].x[2]);
+        temp = fscanf(s_file, "%lf", &surface[i].x[3]);
         surface[i].sinh_eta_s = sinh(surface[i].x[3]);
         surface[i].cosh_eta_s = cosh(surface[i].x[3]);
         // hypersurface vector in (tau, x, y, eta)
-        fscanf(s_file, "%lf", &surface[i].s[0]);
-        fscanf(s_file, "%lf", &surface[i].s[1]);
-        fscanf(s_file, "%lf", &surface[i].s[2]);
-        fscanf(s_file, "%lf", &surface[i].s[3]);
+        temp = fscanf(s_file, "%lf", &surface[i].s[0]);
+        temp = fscanf(s_file, "%lf", &surface[i].s[1]);
+        temp = fscanf(s_file, "%lf", &surface[i].s[2]);
+        temp = fscanf(s_file, "%lf", &surface[i].s[3]);
         // flow velocity in (tau, x, y, eta)
-        fscanf(s_file, "%lf", &surface[i].u[0]);
-        fscanf(s_file, "%lf", &surface[i].u[1]);
-        fscanf(s_file, "%lf", &surface[i].u[2]);
-        fscanf(s_file, "%lf", &surface[i].u[3]);
+        temp = fscanf(s_file, "%lf", &surface[i].u[0]);
+        temp = fscanf(s_file, "%lf", &surface[i].u[1]);
+        temp = fscanf(s_file, "%lf", &surface[i].u[2]);
+        temp = fscanf(s_file, "%lf", &surface[i].u[3]);
         //// correct u^\mu using u^\mu u_\mu = 1
         //surface[i].u[0] = sqrt(1. + surface[i].u[1]*surface[i].u[1]
         //                          + surface[i].u[2]*surface[i].u[2]
         //                          + surface[i].u[3]*surface[i].u[3]);
         // freeze-out energy density
-        fscanf(s_file, "%lf", &surface[i].epsilon_f);
+        temp = fscanf(s_file, "%lf", &surface[i].epsilon_f);
         if (surface[i].epsilon_f < 0)  {
             music_message.error("epsilon_f < 0.!");
             exit(1);
         }
         // freeze-out temperature
-        fscanf(s_file, "%lf", &surface[i].T_f);
+        temp = fscanf(s_file, "%lf", &surface[i].T_f);
         if (surface[i].T_f < 0) {
             music_message.error("T_f < 0.!");
             exit(1);
         }
         // freeze-out baryon chemical potential
-        fscanf(s_file, "%lf", &surface[i].mu_B);
+        temp = fscanf(s_file, "%lf", &surface[i].mu_B);
         // freeze-out entropy density s
-        fscanf(s_file, "%lf", &surface[i].eps_plus_p_over_T_FO);
+        temp = fscanf(s_file, "%lf", &surface[i].eps_plus_p_over_T_FO);
         // freeze-out Wmunu
-        fscanf(s_file, "%lf", &surface[i].W[0][0]);
-        fscanf(s_file, "%lf", &surface[i].W[0][1]);
-        fscanf(s_file, "%lf", &surface[i].W[0][2]);
-        fscanf(s_file, "%lf", &surface[i].W[0][3]);
-        fscanf(s_file, "%lf", &surface[i].W[1][1]);
-        fscanf(s_file, "%lf", &surface[i].W[1][2]);
-        fscanf(s_file, "%lf", &surface[i].W[1][3]);
-        fscanf(s_file, "%lf", &surface[i].W[2][2]);
-        fscanf(s_file, "%lf", &surface[i].W[2][3]);
-        fscanf(s_file, "%lf", &surface[i].W[3][3]);
+        temp = fscanf(s_file, "%lf", &surface[i].W[0][0]);
+        temp = fscanf(s_file, "%lf", &surface[i].W[0][1]);
+        temp = fscanf(s_file, "%lf", &surface[i].W[0][2]);
+        temp = fscanf(s_file, "%lf", &surface[i].W[0][3]);
+        temp = fscanf(s_file, "%lf", &surface[i].W[1][1]);
+        temp = fscanf(s_file, "%lf", &surface[i].W[1][2]);
+        temp = fscanf(s_file, "%lf", &surface[i].W[1][3]);
+        temp = fscanf(s_file, "%lf", &surface[i].W[2][2]);
+        temp = fscanf(s_file, "%lf", &surface[i].W[2][3]);
+        temp = fscanf(s_file, "%lf", &surface[i].W[3][3]);
         if (DATA->turn_on_bulk) {
-            fscanf(s_file, "%lf", &surface[i].pi_b);
+            temp = fscanf(s_file, "%lf", &surface[i].pi_b);
         }
         if (DATA->turn_on_rhob) {
-            fscanf(s_file, "%lf", &surface[i].rho_B);
+            temp = fscanf(s_file, "%lf", &surface[i].rho_B);
         }
         if (DATA->turn_on_diff) {
-            fscanf(s_file, "%lf", &surface[i].q[0]);
-            fscanf(s_file, "%lf", &surface[i].q[1]);
-            fscanf(s_file, "%lf", &surface[i].q[2]);
-            fscanf(s_file, "%lf", &surface[i].q[3]);
+            temp = fscanf(s_file, "%lf", &surface[i].q[0]);
+            temp = fscanf(s_file, "%lf", &surface[i].q[1]);
+            temp = fscanf(s_file, "%lf", &surface[i].q[2]);
+            temp = fscanf(s_file, "%lf", &surface[i].q[3]);
         }
         i++;
     }

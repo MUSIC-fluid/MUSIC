@@ -9,7 +9,9 @@ namespace ReadInParameters {
 
 pretty_ostream music_message;
 
-void read_in_parameters(InitData &parameter_list, std::string input_file) {
+InitData read_in_parameters(std::string input_file) {
+    InitData parameter_list;
+
     // this function reads in parameters
     int m, n;
     string tempinput;
@@ -782,7 +784,11 @@ void read_in_parameters(InitData &parameter_list, std::string input_file) {
 
     music_message.info("Done read_in_parameters.");
     check_parameters(parameter_list, input_file);
+
+    return parameter_list;
 }
+
+
 
 void check_parameters(InitData &parameter_list, std::string input_file) {
     music_message.info("Checking input parameter list ... ");

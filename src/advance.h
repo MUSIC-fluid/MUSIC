@@ -20,10 +20,10 @@
 //! W with source (WS)
 class Advance {
  private:
-    InitData* DATA_ptr;
+    const InitData &DATA;
+    const EOS &eos;
     Diss *diss;
     Reconst *reconst_ptr;
-    EOS *eos;
     Minmod minmod;
     U_derivative *u_derivative_ptr;
     hydro_source *hydro_source_ptr;
@@ -33,7 +33,7 @@ class Advance {
 
 
  public:
-    Advance(EOS *eosIn, InitData* DATA_in, hydro_source *hydro_source_in);
+    Advance(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_source_in);
     ~Advance();
 
     int AdvanceIt(double tau_init, const InitData &DATA, Grid &arena, int rk_flag);

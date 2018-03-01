@@ -12,11 +12,11 @@
 
 class Diss {
  private:
-    EOS *eos;
-    Minmod minmod;
+    const EOS &eos;
+    const Minmod minmod;
 
  public:
-    Diss(EOS *eosIn, InitData *DATA_in);
+    Diss(const EOS &eosIn, const InitData &DATA_in);
   
     double MakeWSource(double tau, int alpha, Grid &arena,
                        int ix, int iy, int ieta, const InitData &DATA, int rk_flag);

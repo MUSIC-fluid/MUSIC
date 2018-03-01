@@ -13,8 +13,8 @@
 
 class Cell_info {
  private:
-    InitData* DATA_ptr;
-    EOS* eos_ptr;
+    const InitData &DATA;
+    const EOS &eos;
     pretty_ostream music_message;
     
     int deltaf_qmu_coeff_table_length_T;
@@ -38,7 +38,7 @@ class Cell_info {
     double **deltaf_coeff_tb_14mom_Bpi_shear;
 
  public:
-    Cell_info(InitData* DATA_in, EOS *eos_ptr_in);
+    Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in);
     ~Cell_info();
 
     //! This function outputs a header files for JF and Gojko's EM programs

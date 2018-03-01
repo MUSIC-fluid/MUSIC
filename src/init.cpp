@@ -9,38 +9,38 @@
 
 using namespace std;
 
-Init::Init(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) {
-    eos = eosIn;
-    DATA_ptr = DATA_in;
-    if (DATA_ptr->Initial_profile == 12 || DATA_ptr->Initial_profile == 13) {
+Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source *hydro_source_in) :
+    DATA(DATA_in), eos(eosIn)
+{
+    if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
         hydro_source_ptr = hydro_source_in;
-    } else if (DATA_ptr->Initial_profile == 30) {
+    } else if (DATA.Initial_profile == 30) {
         hydro_source_ptr = hydro_source_in;
     }
 }
 
-void Init::InitArena(InitData *DATA, Grid &arena) {
+void Init::InitArena(Grid &arena) {
     music_message.info("initArena");
-    if (DATA->Initial_profile == 0) {
-        music_message << "Using Initial_profile=" << DATA->Initial_profile;
-        music_message << "nx=" << DATA->nx << ", ny=" << DATA->ny;
-        music_message << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y;
+    if (DATA.Initial_profile == 0) {
+        music_message << "Using Initial_profile=" << DATA.Initial_profile;
+        music_message << "nx=" << DATA.nx << ", ny=" << DATA.ny;
+        music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
         music_message.flush("info");
-    } else if (DATA->Initial_profile == 1) {
-        music_message << "Using Initial_profile=" << DATA->Initial_profile;
-        DATA->nx = 2;
-        DATA->ny = 2;
-        DATA->neta = 695;
-        DATA->delta_x = 0.1;
-        DATA->delta_y = 0.1;
-        DATA->delta_eta = 0.02;
-        music_message << "nx=" << DATA->nx << ", ny=" << DATA->ny;
-        music_message << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y;
-        music_message << "neta=" << DATA->neta << ", deta=" << DATA->delta_eta;
+    } else if (DATA.Initial_profile == 1) {
+        music_message << "Using Initial_profile=" << DATA.Initial_profile;
+        DATA.nx = 2;
+        DATA.ny = 2;
+        DATA.neta = 695;
+        DATA.delta_x = 0.1;
+        DATA.delta_y = 0.1;
+        DATA.delta_eta = 0.02;
+        music_message << "nx=" << DATA.nx << ", ny=" << DATA.ny;
+        music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
+        music_message << "neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
         music_message.flush("info");
-    } else if (DATA->Initial_profile == 8) {
-        music_message.info(DATA->initName);
-        ifstream profile(DATA->initName.c_str());
+    } else if (DATA.Initial_profile == 8) {
+        music_message.info(DATA.initName);
+        ifstream profile(DATA.initName.c_str());
         string dummy;
         int nx, ny, neta;
         double deta, dx, dy, dummy2;
@@ -49,21 +49,21 @@ void Init::InitArena(InitData *DATA, Grid &arena) {
                 >> dummy >> neta >> dummy >> nx >> dummy >> ny
                 >> dummy >> deta >> dummy >> dx >> dummy >> dy;
         profile.close();
-        music_message << "Using Initial_profile=" << DATA->Initial_profile
+        music_message << "Using Initial_profile=" << DATA.Initial_profile
                       << ". Overwriting lattice dimensions:";
 
-        DATA->nx = nx;
-        DATA->ny = ny;
-        DATA->delta_x = dx;
-        DATA->delta_y = dy;
+        DATA.nx = nx;
+        DATA.ny = ny;
+        DATA.delta_x = dx;
+        DATA.delta_y = dy;
 
         music_message << "neta=" << neta << ", nx=" << nx << ", ny=" << ny;
-        music_message << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x
-                      << ", dy=" << DATA->delta_y;
+        music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
+                      << ", dy=" << DATA.delta_y;
         music_message.flush("info");
-    } else if (DATA->Initial_profile == 9) {
-        music_message.info(DATA->initName);
-        ifstream profile(DATA->initName.c_str());
+    } else if (DATA.Initial_profile == 9) {
+        music_message.info(DATA.initName);
+        ifstream profile(DATA.initName.c_str());
         string dummy;
         int nx, ny, neta;
         double deta, dx, dy, dummy2;
@@ -72,42 +72,42 @@ void Init::InitArena(InitData *DATA, Grid &arena) {
                 >> dummy >> neta >> dummy >> nx >> dummy >> ny
                 >> dummy >> deta >> dummy >> dx >> dummy >> dy;
         profile.close();
-        music_message << "Using Initial_profile=" << DATA->Initial_profile
+        music_message << "Using Initial_profile=" << DATA.Initial_profile
                       << ". Overwriting lattice dimensions:";
 
-        DATA->nx = nx;
-        DATA->ny = ny;
-        DATA->neta = neta;
-        DATA->delta_x = dx;
-        DATA->delta_y = dy;
-        DATA->delta_eta = 0.1;
+        DATA.nx = nx;
+        DATA.ny = ny;
+        DATA.neta = neta;
+        DATA.delta_x = dx;
+        DATA.delta_y = dy;
+        DATA.delta_eta = 0.1;
 
         music_message << "neta=" << neta << ", nx=" << nx << ", ny=" << ny;
-        music_message << "deta=" << DATA->delta_eta << ", dx=" << DATA->delta_x
-                      << ", dy=" << DATA->delta_y;
+        music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
+                      << ", dy=" << DATA.delta_y;
         music_message.flush("info");
-    } else if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
-        DATA->tau0 = hydro_source_ptr->get_source_tau_min();
-    } else if (DATA->Initial_profile == 101) {
-        cout << "Using Initial_profile=" << DATA->Initial_profile << endl;
-        cout << "nx=" << DATA->nx << ", ny=" << DATA->ny << endl;
-        cout << "dx=" << DATA->delta_x << ", dy=" << DATA->delta_y << endl;
+    } else if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
+        DATA.tau0 = hydro_source_ptr->get_source_tau_min();
+    } else if (DATA.Initial_profile == 101) {
+        cout << "Using Initial_profile=" << DATA.Initial_profile << endl;
+        cout << "nx=" << DATA.nx << ", ny=" << DATA.ny << endl;
+        cout << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y << endl;
     }
 
     // initialize arena
-    arena = Grid(DATA->nx, DATA->ny,DATA->neta);
+    arena = Grid(DATA.nx, DATA.ny,DATA.neta);
     music_message.info("Cell allocated.");
 
-    InitTJb(DATA, arena);
+    InitTJb(arena);
 
-    if (DATA->output_initial_density_profiles == 1) {
-        output_initial_density_profiles(DATA, arena);
+    if (DATA.output_initial_density_profiles == 1) {
+        output_initial_density_profiles(arena);
     }
 }/* InitArena */
 
 //! This is a shell function to initial hydrodynamic fields
-int Init::InitTJb(InitData *DATA, Grid &arena) {
-    if (DATA->Initial_profile == 0) {
+int Init::InitTJb(Grid &arena) {
+    if (DATA.Initial_profile == 0) {
         // Gubser flow test
         music_message.info(" Perform Gubser flow test ... ");
         music_message.info(" ----- information on initial distribution -----");
@@ -116,82 +116,82 @@ int Init::InitTJb(InitData *DATA, Grid &arena) {
         for (int ieta = 0; ieta < arena.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_Gubser_XY(DATA, ieta, arena);
+            initial_Gubser_XY(ieta, arena);
         }/* ieta */
-    } else if (DATA->Initial_profile == 1) {
+    } else if (DATA.Initial_profile == 1) {
         // code test in 1+1 D vs Monnai's results
         music_message.info(" Perform 1+1D test vs Monnai's results... ");
-        initial_1p1D_eta(DATA, arena);
-    } else if (DATA->Initial_profile == 8) {
+        initial_1p1D_eta(arena);
+    } else if (DATA.Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
         music_message.info(" ----- information on initial distribution -----");
-        music_message << "file name used: " << DATA->initName;
+        music_message << "file name used: " << DATA.initName;
         music_message.flush("info");
   
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_IPGlasma_XY(DATA, ieta, arena);
+            initial_IPGlasma_XY(ieta, arena);
         } /* ieta */
-    } else if (DATA->Initial_profile == 9) {
+    } else if (DATA.Initial_profile == 9) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
         // and initial shear viscous tensor
         music_message.info(" ----- information on initial distribution -----");
-        music_message << "file name used: " << DATA->initName;
+        music_message << "file name used: " << DATA.initName;
         music_message.flush("info");
   
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_IPGlasma_XY_with_pi(DATA, ieta, arena);
+            initial_IPGlasma_XY_with_pi(ieta, arena);
         } /* ieta */
-    } else if (DATA->Initial_profile == 11) {
+    } else if (DATA.Initial_profile == 11) {
         // read in the transverse profile from file with finite rho_B
         // the initial entropy and net baryon density profile are
         // constructed by nuclear thickness function TA and TB.
         // Along the longitudinal direction an asymmetric contribution from
         // target and projectile thickness function is allowed
         music_message.info(" ----- information on initial distribution -----");
-        music_message << "file name used: " << DATA->initName_TA << " and "
-                      << DATA->initName_TB;
+        music_message << "file name used: " << DATA.initName_TA << " and "
+                      << DATA.initName_TB;
         music_message.flush("info");
 
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_MCGlb_with_rhob_XY(DATA, ieta, arena);
+            initial_MCGlb_with_rhob_XY(ieta, arena);
         } /* ix, iy, ieta */
-    } else if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
+    } else if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
         music_message.info("Initialize hydro with source terms");
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_MCGlbLEXUS_with_rhob_XY(DATA, ieta, arena);
+            initial_MCGlbLEXUS_with_rhob_XY(ieta, arena);
         } /* ix, iy, ieta */
-    } else if (DATA->Initial_profile == 30) {
+    } else if (DATA.Initial_profile == 30) {
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_AMPT_XY(DATA, ieta, arena);
+            initial_AMPT_XY(ieta, arena);
         }
-    } else if (DATA->Initial_profile == 101) {
-        initial_UMN_with_rhob(DATA, arena);
+    } else if (DATA.Initial_profile == 101) {
+        initial_UMN_with_rhob(arena);
     }
     music_message.info("initial distribution done.");
     return 1;
 }  /* InitTJb*/
 
-void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
+void Init::initial_Gubser_XY(int ieta, Grid &arena) {
     string input_filename;
     string input_filename_prev;
-    if (DATA->turn_on_shear == 1) {
+    if (DATA.turn_on_shear == 1) {
         input_filename = "tests/Gubser_flow/Initial_Profile.dat";
     } else {
         input_filename = "tests/Gubser_flow/y=0_tau=1.00_ideal.dat";
@@ -206,7 +206,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
         exit(1);
     }
     ifstream profile_prev;
-    if (DATA->turn_on_shear == 0) {
+    if (DATA.turn_on_shear == 0) {
         profile_prev.open(input_filename_prev.c_str());
         if (!profile_prev.good()) {
             music_message << "Init::InitTJb: "
@@ -234,7 +234,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
     double **temp_profile_pi0x      = NULL;
     double **temp_profile_pi0y      = NULL;
     double **temp_profile_pi33      = NULL;
-    if (DATA->turn_on_shear == 1) {
+    if (DATA.turn_on_shear == 1) {
         temp_profile_pixx = new double* [nx];
         temp_profile_piyy = new double* [nx];
         temp_profile_pixy = new double* [nx];
@@ -253,7 +253,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
         temp_profile_ed[i] = new double[ny];
         temp_profile_ux[i] = new double[ny];
         temp_profile_uy[i] = new double[ny];
-        if (DATA->turn_on_shear == 1) {
+        if (DATA.turn_on_shear == 1) {
             temp_profile_pixx[i] = new double[ny];
             temp_profile_pixy[i] = new double[ny];
             temp_profile_piyy[i] = new double[ny];
@@ -274,7 +274,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
     double u[4];
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
-            if (DATA->turn_on_shear == 1) {
+            if (DATA.turn_on_shear == 1) {
                 profile >> dummy >> dummy >> temp_profile_ed[ix][iy]
                         >> temp_profile_ux[ix][iy] >> temp_profile_uy[ix][iy];
                 profile >> temp_profile_pixx[ix][iy]
@@ -296,15 +296,15 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
         }
     }
     profile.close();
-    if (DATA->turn_on_shear == 0) {
+    if (DATA.turn_on_shear == 0) {
         profile_prev.close();
     }
 
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
             double rhob = 0.0;
-            if (DATA->turn_on_shear == 0) {
-                if (DATA->turn_on_rhob == 1) {
+            if (DATA.turn_on_shear == 0) {
+                if (DATA.turn_on_rhob == 1) {
                     rhob = temp_profile_rhob[ix][iy];
                 }
             }
@@ -340,7 +340,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
                 arena(ix,iy,ieta).prev_pi_b[rk_i] = 0.0;
             }
 
-            if (DATA->turn_on_shear == 0) {
+            if (DATA.turn_on_shear == 0) {
                 double utau_prev = sqrt(1.
                     + temp_profile_ux_prev[ix][iy]*temp_profile_ux_prev[ix][iy]
                     + temp_profile_uy_prev[ix][iy]*temp_profile_uy_prev[ix][iy]
@@ -356,7 +356,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
             }
             arena(ix,iy,ieta).pi_b[0] = 0.0;
 
-            if (DATA->turn_on_shear == 1) {
+            if (DATA.turn_on_shear == 1) {
                 arena(ix,iy,ieta).Wmunu[0][0] = temp_profile_pi00[ix][iy];
                 arena(ix,iy,ieta).Wmunu[0][1] = temp_profile_pi0x[ix][iy];
                 arena(ix,iy,ieta).Wmunu[0][2] = temp_profile_pi0y[ix][iy];
@@ -388,7 +388,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
         delete[] temp_profile_ed[i];
         delete[] temp_profile_ux[i];
         delete[] temp_profile_uy[i];
-        if (DATA->turn_on_shear == 1) {
+        if (DATA.turn_on_shear == 1) {
             delete[] temp_profile_pixx[i];
             delete[] temp_profile_piyy[i];
             delete[] temp_profile_pixy[i];
@@ -407,7 +407,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
     delete[] temp_profile_ed;
     delete[] temp_profile_ux;
     delete[] temp_profile_uy;
-    if (DATA->turn_on_shear == 1) {
+    if (DATA.turn_on_shear == 1) {
         delete[] temp_profile_pixx;
         delete[] temp_profile_piyy;
         delete[] temp_profile_pixy;
@@ -424,7 +424,7 @@ void Init::initial_Gubser_XY(InitData *DATA, int ieta, Grid &arena) {
     }
 }
 
-void Init::initial_1p1D_eta(InitData *DATA, Grid &arena) {
+void Init::initial_1p1D_eta(Grid &arena) {
     string input_ed_filename;
     string input_rhob_filename;
     input_ed_filename = "tests/test_1+1D_with_Akihiko/e_baryon_init.dat";
@@ -513,8 +513,8 @@ void Init::initial_1p1D_eta(InitData *DATA, Grid &arena) {
     delete[] temp_profile_rhob;
 }
 
-void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid &arena) {
-    ifstream profile(DATA->initName.c_str());
+void Init::initial_IPGlasma_XY(int ieta, Grid &arena) {
+    ifstream profile(DATA.initName.c_str());
 
     string dummy;
     // read the information line
@@ -546,12 +546,12 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid &arena) {
             temp_profile_uy[ix][iy] = uy;
             temp_profile_utau[ix][iy] = sqrt(1. + ux*ux + uy*uy);
             if (ix == 0 && iy == 0) {
-                DATA->x_size = -dummy2*2;
-                DATA->y_size = -dummy3*2;
+                DATA.x_size = -dummy2*2;
+                DATA.y_size = -dummy3*2;
                 if (omp_get_thread_num() == 0) {
-                    music_message << "eta_size=" << DATA->eta_size
-                                  << ", x_size=" << DATA->x_size
-                                  << ", y_size=" << DATA->y_size;
+                    music_message << "eta_size=" << DATA.eta_size
+                                  << ", x_size=" << DATA.x_size
+                                  << ", y_size=" << DATA.y_size;
                     music_message.flush("info");
                 }
             }
@@ -559,9 +559,9 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid &arena) {
     }
     profile.close();
 
-    double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
-    double eta_envelop_ed = eta_profile_normalisation(DATA, eta);
-    int entropy_flag = DATA->initializeEntropy;
+    double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+    double eta_envelop_ed = eta_profile_normalisation(eta);
+    int entropy_flag = DATA.initializeEntropy;
     double u[4];
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
@@ -569,11 +569,11 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid &arena) {
             double epsilon = 0.0;
             if (entropy_flag == 0) {
                 epsilon = (temp_profile_ed[ix][iy]*eta_envelop_ed
-                           *DATA->sFactor/hbarc);  // 1/fm^4
+                           *DATA.sFactor/hbarc);  // 1/fm^4
             } else {
-                double local_sd = (temp_profile_ed[ix][iy]*DATA->sFactor
+                double local_sd = (temp_profile_ed[ix][iy]*DATA.sFactor
                                    *eta_envelop_ed);
-                epsilon = eos->get_s2e(local_sd, rhob);
+                epsilon = eos.get_s2e(local_sd, rhob);
             }
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
@@ -626,10 +626,10 @@ void Init::initial_IPGlasma_XY(InitData *DATA, int ieta, Grid &arena) {
     delete[] temp_profile_uy;
 }
 
-void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
+void Init::initial_IPGlasma_XY_with_pi(int ieta,
                                        Grid &arena) {
-    double tau0 = DATA->tau0;
-    ifstream profile(DATA->initName.c_str());
+    double tau0 = DATA.tau0;
+    ifstream profile(DATA.initName.c_str());
 
     string dummy;
     // read the information line
@@ -686,23 +686,23 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
             temp_profile_uy      [ix][iy] = uy;
             temp_profile_ueta    [ix][iy] = ueta*tau0;
             temp_profile_utau    [ix][iy] = sqrt(1. + ux*ux + uy*uy + ueta*ueta);
-            temp_profile_pitautau[ix][iy] = pitautau*DATA->sFactor;
-            temp_profile_pitaux  [ix][iy] = pitaux*DATA->sFactor;
-            temp_profile_pitauy  [ix][iy] = pitauy*DATA->sFactor;
-            temp_profile_pitaueta[ix][iy] = pitaueta*tau0*DATA->sFactor;
-            temp_profile_pixx    [ix][iy] = pixx*DATA->sFactor;
-            temp_profile_pixy    [ix][iy] = pixy*DATA->sFactor;
-            temp_profile_pixeta  [ix][iy] = pixeta*tau0*DATA->sFactor;
-            temp_profile_piyy    [ix][iy] = piyy*DATA->sFactor;
-            temp_profile_piyeta  [ix][iy] = piyeta*tau0*DATA->sFactor;
-            temp_profile_pietaeta[ix][iy] = piyeta*tau0*tau0*DATA->sFactor;
+            temp_profile_pitautau[ix][iy] = pitautau*DATA.sFactor;
+            temp_profile_pitaux  [ix][iy] = pitaux*DATA.sFactor;
+            temp_profile_pitauy  [ix][iy] = pitauy*DATA.sFactor;
+            temp_profile_pitaueta[ix][iy] = pitaueta*tau0*DATA.sFactor;
+            temp_profile_pixx    [ix][iy] = pixx*DATA.sFactor;
+            temp_profile_pixy    [ix][iy] = pixy*DATA.sFactor;
+            temp_profile_pixeta  [ix][iy] = pixeta*tau0*DATA.sFactor;
+            temp_profile_piyy    [ix][iy] = piyy*DATA.sFactor;
+            temp_profile_piyeta  [ix][iy] = piyeta*tau0*DATA.sFactor;
+            temp_profile_pietaeta[ix][iy] = piyeta*tau0*tau0*DATA.sFactor;
             if (ix == 0 && iy == 0) {
-                DATA->x_size = -dummy2*2;
-                DATA->y_size = -dummy3*2;
+                DATA.x_size = -dummy2*2;
+                DATA.y_size = -dummy3*2;
                 if (omp_get_thread_num() == 0) {
-                    music_message << "eta_size=" << DATA->eta_size
-                                  << ", x_size=" << DATA->x_size
-                                  << ", y_size=" << DATA->y_size;
+                    music_message << "eta_size=" << DATA.eta_size
+                                  << ", x_size=" << DATA.x_size
+                                  << ", y_size=" << DATA.y_size;
                     music_message.flush("info");
                 }
             }
@@ -710,9 +710,9 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
     }
     profile.close();
 
-    double eta = (DATA->delta_eta)*(ieta) - (DATA->eta_size)/2.0;
-    double eta_envelop_ed = eta_profile_normalisation(DATA, eta);
-    int entropy_flag = DATA->initializeEntropy;
+    double eta = (DATA.delta_eta)*(ieta) - (DATA.eta_size)/2.0;
+    double eta_envelop_ed = eta_profile_normalisation(eta);
+    int entropy_flag = DATA.initializeEntropy;
     double u[4];
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
@@ -720,16 +720,16 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
             double epsilon = 0.0;
             if (entropy_flag == 0) {
                 epsilon = (temp_profile_ed[ix][iy]*eta_envelop_ed
-                           *DATA->sFactor/hbarc);  // 1/fm^4
+                           *DATA.sFactor/hbarc);  // 1/fm^4
             } else {
-                double local_sd = (temp_profile_ed[ix][iy]*DATA->sFactor
+                double local_sd = (temp_profile_ed[ix][iy]*DATA.sFactor
                                    *eta_envelop_ed);
-                epsilon = eos->get_s2e(local_sd, rhob);
+                epsilon = eos.get_s2e(local_sd, rhob);
             }
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
 
-            double pressure = eos->get_pressure(epsilon, rhob);
+            double pressure = eos.get_pressure(epsilon, rhob);
 
             // set all values in the grid element:
             arena(ix,iy,ieta).epsilon      = epsilon;
@@ -818,13 +818,13 @@ void Init::initial_IPGlasma_XY_with_pi(InitData *DATA, int ieta,
     delete[] temp_profile_pietaeta;
 }
 
-void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
+void Init::initial_MCGlb_with_rhob_XY(int ieta,
                                       Grid &arena) {
     // first load in the transverse profile
-    ifstream profile_TA(DATA->initName_TA.c_str());
-    ifstream profile_TB(DATA->initName_TB.c_str());
-    ifstream profile_rhob_TA(DATA->initName_rhob_TA.c_str());
-    ifstream profile_rhob_TB(DATA->initName_rhob_TB.c_str());
+    ifstream profile_TA(DATA.initName_TA.c_str());
+    ifstream profile_TB(DATA.initName_TB.c_str());
+    ifstream profile_rhob_TA(DATA.initName_rhob_TA.c_str());
+    ifstream profile_rhob_TB(DATA.initName_rhob_TB.c_str());
 
     const int nx = arena.nX();
     const int ny = arena.nY();
@@ -851,18 +851,18 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
     profile_rhob_TA.close();
     profile_rhob_TB.close();
 
-    double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
-    double eta_envelop_left  = eta_profile_left_factor(DATA, eta);
-    double eta_envelop_right = eta_profile_right_factor(DATA, eta);
-    double eta_rhob_left     = eta_rhob_left_factor(DATA, eta);
-    double eta_rhob_right    = eta_rhob_right_factor(DATA, eta);
+    double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+    double eta_envelop_left  = eta_profile_left_factor(eta);
+    double eta_envelop_right = eta_profile_right_factor(eta);
+    double eta_rhob_left     = eta_rhob_left_factor(eta);
+    double eta_rhob_right    = eta_rhob_right_factor(eta);
 
-    int entropy_flag = DATA->initializeEntropy;
+    int entropy_flag = DATA.initializeEntropy;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
             double rhob = 0.0;
             double epsilon = 0.0;
-            if (DATA->turn_on_rhob == 1) {
+            if (DATA.turn_on_rhob == 1) {
                 rhob = (
                     (temp_profile_rhob_TA[ix][iy]*eta_rhob_left
                      + temp_profile_rhob_TB[ix][iy]*eta_rhob_right));
@@ -873,13 +873,13 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
                 epsilon = (
                     (temp_profile_TA[ix][iy]*eta_envelop_left
                      + temp_profile_TB[ix][iy]*eta_envelop_right)
-                    *DATA->sFactor/hbarc);   // 1/fm^4
+                    *DATA.sFactor/hbarc);   // 1/fm^4
             } else {
                 double local_sd = (
                     (temp_profile_TA[ix][iy]*eta_envelop_left
                      + temp_profile_TB[ix][iy]*eta_envelop_right)
-                    *DATA->sFactor);         // 1/fm^3
-                epsilon = eos->get_s2e(local_sd, rhob);
+                    *DATA.sFactor);         // 1/fm^3
+                epsilon = eos.get_s2e(local_sd, rhob);
             }
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
@@ -927,7 +927,7 @@ void Init::initial_MCGlb_with_rhob_XY(InitData *DATA, int ieta,
     delete[] temp_profile_rhob_TB;
 }
 
-void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
+void Init::initial_MCGlbLEXUS_with_rhob_XY(int ieta,
                                            Grid &arena) {
     const int nx = arena.nX();
     const int ny = arena.nY();
@@ -940,14 +940,14 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
     for (int i = 0; i < 3; i++) {
         j_mu[i] = 0.0;
     }
-    int entropy_flag = DATA->initializeEntropy;
+    int entropy_flag = DATA.initializeEntropy;
     for (int ix = 0; ix < nx; ix++) {
-        // double x_local = - DATA->x_size/2. + ix*DATA->delta_x;
+        // double x_local = - DATA.x_size/2. + ix*DATA.delta_x;
         for (int iy = 0; iy < ny; iy++) {
-            // double y_local = - DATA->y_size/2. + iy*DATA->delta_y;
+            // double y_local = - DATA.y_size/2. + iy*DATA.delta_y;
             double rhob = 0.0;
             double epsilon = 0.0;
-            if (DATA->turn_on_rhob == 1) {
+            if (DATA.turn_on_rhob == 1) {
                 //rhob = hydro_source_ptr->get_hydro_rhob_source(
                 //                            tau0, x_local, y_local, eta, u);
                 rhob = 0.0;
@@ -962,8 +962,8 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
                 // epsilon = j_mu[0];           // 1/fm^4
                 epsilon = 0.0;           // 1/fm^4
             } else {
-                //double local_sd = j_mu[0]*DATA->sFactor;         // 1/fm^3
-                //epsilon = eos->get_s2e(local_sd, rhob);
+                //double local_sd = j_mu[0]*DATA.sFactor;         // 1/fm^3
+                //epsilon = eos.get_s2e(local_sd, rhob);
                 epsilon = 0.0;           // 1/fm^4
             }
 
@@ -1005,11 +1005,11 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(InitData *DATA, int ieta,
 }
 
 
-void Init::initial_UMN_with_rhob(InitData *DATA, Grid &arena) {
+void Init::initial_UMN_with_rhob(Grid &arena) {
     // first load in the transverse profile
-    ifstream profile(DATA->initName.c_str());
-    ifstream profile_TA(DATA->initName_TA.c_str());
-    ifstream profile_TB(DATA->initName_TB.c_str());
+    ifstream profile(DATA.initName.c_str());
+    ifstream profile_TA(DATA.initName_TA.c_str());
+    ifstream profile_TB(DATA.initName_TB.c_str());
 
     const int nx = arena.nX();
     const int ny = arena.nY();
@@ -1030,10 +1030,10 @@ void Init::initial_UMN_with_rhob(InitData *DATA, Grid &arena) {
 
     double dummy;
     double ed_local, rhob_local;
-    for (int ieta = 0; ieta < DATA->neta; ieta++) {
-        double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
-        double eta_envelop_left = eta_profile_left_factor(DATA, eta);
-        double eta_envelop_right = eta_profile_right_factor(DATA, eta);
+    for (int ieta = 0; ieta < DATA.neta; ieta++) {
+        double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+        double eta_envelop_left = eta_profile_left_factor(eta);
+        double eta_envelop_right = eta_profile_right_factor(eta);
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
                 double rhob = 0.0;
@@ -1041,8 +1041,8 @@ void Init::initial_UMN_with_rhob(InitData *DATA, Grid &arena) {
                 profile >> dummy >> dummy >> dummy >> ed_local >> rhob_local;
                 rhob = rhob_local;
                 double sd_bg = (temp_profile_TA[ix][iy]*eta_envelop_left
-                    + temp_profile_TB[ix][iy]*eta_envelop_right)*DATA->sFactor;
-                double ed_bg = eos->get_s2e(sd_bg, 0.0);
+                    + temp_profile_TB[ix][iy]*eta_envelop_right)*DATA.sFactor;
+                double ed_bg = eos.get_s2e(sd_bg, 0.0);
                 epsilon = ed_bg + ed_local/hbarc;    // 1/fm^4
                 if (epsilon < 0.00000000001) {
                     epsilon = 0.00000000001;
@@ -1088,7 +1088,7 @@ void Init::initial_UMN_with_rhob(InitData *DATA, Grid &arena) {
     delete[] temp_profile_TB;
 }
 
-void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid &arena) {
+void Init::initial_AMPT_XY(int ieta, Grid &arena) {
     double *u = new double[4];
     u[0] = 1.0;
     u[1] = 0.0;
@@ -1099,17 +1099,17 @@ void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid &arena) {
         j_mu[i] = 0.0;
     }
 
-    double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
-    double tau0 = DATA->tau0;
+    double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+    double tau0 = DATA.tau0;
     const int nx = arena.nX();
     const int ny = arena.nY();
     for (int ix = 0; ix < nx; ix++) {
-        double x_local = - DATA->x_size/2. + ix*DATA->delta_x;
+        double x_local = - DATA.x_size/2. + ix*DATA.delta_x;
         for (int iy = 0; iy < ny; iy++) {
-            double y_local = - DATA->y_size/2. + iy*DATA->delta_y;
+            double y_local = - DATA.y_size/2. + iy*DATA.delta_y;
             double rhob = 0.0;
             double epsilon = 0.0;
-            if (DATA->turn_on_rhob == 1) {
+            if (DATA.turn_on_rhob == 1) {
                 rhob = hydro_source_ptr->get_hydro_rhob_source_before_tau(
                                                 tau0, x_local, y_local, eta);
             } else {
@@ -1158,21 +1158,21 @@ void Init::initial_AMPT_XY(InitData *DATA, int ieta, Grid &arena) {
     delete[] j_mu;
 }
 
-double Init::eta_profile_normalisation(InitData *DATA, double eta) {
+double Init::eta_profile_normalisation(double eta) {
     // this function return the eta envelope profile for energy density
     double res;
     // Hirano's plateau + Gaussian fall-off
-    if (DATA->initial_eta_profile == 1) {
+    if (DATA.initial_eta_profile == 1) {
         double exparg1, exparg;
-        exparg1 = (fabs(eta) - DATA->eta_flat/2.0)/DATA->eta_fall_off;
+        exparg1 = (fabs(eta) - DATA.eta_flat/2.0)/DATA.eta_fall_off;
         exparg = exparg1*exparg1/2.0;
         res = exp(-exparg*theta(exparg1));
-    } else if (DATA->initial_eta_profile == 2) {
+    } else if (DATA.initial_eta_profile == 2) {
         // Woods-Saxon
-        // The radius is set to be half of DATA->eta_flat
-        // The diffusiveness is set to DATA->eta_fall_off
-        double ws_R = DATA->eta_flat/2.0;
-        double ws_a = DATA->eta_fall_off;
+        // The radius is set to be half of DATA.eta_flat
+        // The diffusiveness is set to DATA.eta_fall_off
+        double ws_R = DATA.eta_flat/2.0;
+        double ws_a = DATA.eta_fall_off;
         res = (1.0 + exp(-ws_R/ws_a))/(1.0 + exp((abs(eta) - ws_R)/ws_a));
     } else {
         music_message.error("initial_eta_profile out of range.");
@@ -1181,45 +1181,45 @@ double Init::eta_profile_normalisation(InitData *DATA, double eta) {
     return res;
 }
 
-double Init::eta_profile_left_factor(InitData *Data, double eta) {
+double Init::eta_profile_left_factor(double eta) {
     // this function return the eta envelope for projectile
-    double res = eta_profile_normalisation(Data, eta);
-    if (fabs(eta) < Data->beam_rapidity) {
-        res = (1. - eta/Data->beam_rapidity)*res;
+    double res = eta_profile_normalisation(eta);
+    if (fabs(eta) < DATA.beam_rapidity) {
+        res = (1. - eta/DATA.beam_rapidity)*res;
     } else {
         res = 0.0;
     }
     return(res);
 }
 
-double Init::eta_profile_right_factor(InitData *Data, double eta) {
+double Init::eta_profile_right_factor(double eta) {
     // this function return the eta envelope for target
-    double res = eta_profile_normalisation(Data, eta);
-    if (fabs(eta) < Data->beam_rapidity) {
-        res = (1. + eta/Data->beam_rapidity)*res;
+    double res = eta_profile_normalisation(eta);
+    if (fabs(eta) < DATA.beam_rapidity) {
+        res = (1. + eta/DATA.beam_rapidity)*res;
     } else {
         res = 0.0;
     }
     return(res);
 }
 
-double Init::eta_rhob_profile_normalisation(InitData *DATA, double eta) {
+double Init::eta_rhob_profile_normalisation(double eta) {
     // this function return the eta envelope profile for net baryon density
     double res;
-    int profile_flag = DATA->initial_eta_rhob_profile;
-    double eta_0 = DATA->eta_rhob_0;
-    double tau0 = DATA->tau0;
+    int profile_flag = DATA.initial_eta_rhob_profile;
+    double eta_0 = DATA.eta_rhob_0;
+    double tau0 = DATA.tau0;
     if (profile_flag == 1) {
-        const double eta_width = DATA->eta_rhob_width;
+        const double eta_width = DATA.eta_rhob_width;
         const double norm      = 1./(2.*sqrt(2*M_PI)*eta_width*tau0);
         const double exparg1   = (eta - eta_0)/eta_width;
         const double exparg2   = (eta + eta_0)/eta_width;
         res = norm*(exp(-exparg1*exparg1/2.0) + exp(-exparg2*exparg2/2.0));
     } else if (profile_flag == 2) {
         double eta_abs     = fabs(eta);
-        double delta_eta_1 = DATA->eta_rhob_width_1;
-        double delta_eta_2 = DATA->eta_rhob_width_2;
-        double A           = DATA->eta_rhob_plateau_height;
+        double delta_eta_1 = DATA.eta_rhob_width_1;
+        double delta_eta_2 = DATA.eta_rhob_width_2;
+        double A           = DATA.eta_rhob_plateau_height;
         double exparg1     = (eta_abs - eta_0)/delta_eta_1;
         double exparg2     = (eta_abs - eta_0)/delta_eta_2;
         double theta;
@@ -1240,11 +1240,11 @@ double Init::eta_rhob_profile_normalisation(InitData *DATA, double eta) {
     return res;
 }
 
-double Init::eta_rhob_left_factor(InitData *DATA, double eta) {
-    double eta_0       = -fabs(DATA->eta_rhob_0);
-    double tau0        = DATA->tau0;
-    double delta_eta_1 = DATA->eta_rhob_width_1;
-    double delta_eta_2 = DATA->eta_rhob_width_2;
+double Init::eta_rhob_left_factor(double eta) {
+    double eta_0       = -fabs(DATA.eta_rhob_0);
+    double tau0        = DATA.tau0;
+    double delta_eta_1 = DATA.eta_rhob_width_1;
+    double delta_eta_2 = DATA.eta_rhob_width_2;
     double norm        = 2./(sqrt(M_PI)*tau0*(delta_eta_1 + delta_eta_2));
     double exp_arg     = 0.0;
     if (eta < eta_0) {
@@ -1256,11 +1256,11 @@ double Init::eta_rhob_left_factor(InitData *DATA, double eta) {
     return(res);
 }
 
-double Init::eta_rhob_right_factor(InitData *DATA, double eta) {
-    double eta_0       = fabs(DATA->eta_rhob_0);
-    double tau0        = DATA->tau0;
-    double delta_eta_1 = DATA->eta_rhob_width_1;
-    double delta_eta_2 = DATA->eta_rhob_width_2;
+double Init::eta_rhob_right_factor(double eta) {
+    double eta_0       = fabs(DATA.eta_rhob_0);
+    double tau0        = DATA.tau0;
+    double delta_eta_1 = DATA.eta_rhob_width_1;
+    double delta_eta_2 = DATA.eta_rhob_width_2;
     double norm        = 2./(sqrt(M_PI)*tau0*(delta_eta_1 + delta_eta_2));
     double exp_arg     = 0.0;
     if (eta < eta_0) {
@@ -1272,26 +1272,26 @@ double Init::eta_rhob_right_factor(InitData *DATA, double eta) {
     return(res);
 }
 
-void Init::output_initial_density_profiles(InitData *DATA, Grid &arena) {
+void Init::output_initial_density_profiles(Grid &arena) {
     // this function outputs the 3d initial energy density profile
     // and net baryon density profile (if turn_on_rhob == 1)
     // for checking purpose
     music_message.info("output initial density profiles into a file... ");
     ofstream of("check_initial_density_profiles.dat");
     of << "# x(fm)  y(fm)  eta  ed(GeV/fm^3)";
-    if (DATA->turn_on_rhob == 1)
+    if (DATA.turn_on_rhob == 1)
         of << "  rhob(1/fm^3)";
     of << endl;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
-        double eta_local = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
+        double eta_local = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
         for(int ix = 0; ix < arena.nX(); ix++) {
-            double x_local = -DATA->x_size/2. + ix*DATA->delta_x;
+            double x_local = -DATA.x_size/2. + ix*DATA.delta_x;
             for(int iy = 0; iy < arena.nY(); iy++) {
-                double y_local = -DATA->y_size/2. + iy*DATA->delta_y;
+                double y_local = -DATA.y_size/2. + iy*DATA.delta_y;
                 of << scientific << setw(18) << std::setprecision(8)
                    << x_local << "   " << y_local << "   "
                    << eta_local << "   " << arena(ix,iy,ieta).epsilon*hbarc;
-                if (DATA->turn_on_rhob == 1) {
+                if (DATA.turn_on_rhob == 1) {
                     of << "   " << arena(ix,iy,ieta).rhob;
                 }
                 of << endl;
