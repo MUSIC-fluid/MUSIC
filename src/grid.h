@@ -4,7 +4,7 @@
 #include <cassert>
 #include <vector>
 #include "cell.h"
-#include "./grid.h"
+#include "grid.h"
 
 template<class T>
 class GridT {

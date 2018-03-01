@@ -9,6 +9,10 @@
 #include "./advance.h"
 #include "./cornelius.h"
 
+#ifndef _OPENMP
+  #define omp_get_thread_num() 0
+#endif
+
 using namespace std;
 
 Evolve::Evolve(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) :
