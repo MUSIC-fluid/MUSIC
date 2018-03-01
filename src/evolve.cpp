@@ -146,10 +146,36 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
         if (output_hydro_debug_flag == 1) {
             grid_info.monitor_fluid_cell(arena, 100, 100, 0, tau);
         }
+    
+        const int grid_neta = arena.nEta();
+        const int grid_nx   = arena.nX();
+        const int grid_ny   = arena.nY();
+
+        SCGrid arena_prev   (grid_nx, grid_ny, grid_neta);
+        SCGrid arena_current(grid_nx, grid_ny, grid_neta);
+        SCGrid arena_future (grid_nx, grid_ny, grid_neta);
+
+        for(int ieta = 0; ieta < grid_neta; ieta++)
+        for(int ix   = 0; ix   < grid_nx;   ix++  )
+        for(int iy   = 0; iy   < grid_ny;   iy++  ) {
+            update_cell_to_small_cell(arena(ix, iy, ieta), arena_prev(ix, iy, ieta), 2);
+            update_cell_to_small_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), 0);
+            update_cell_to_small_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), 1);
+        }
 
         /* execute rk steps */
         // all the evolution are at here !!!
-        AdvanceRK(tau, DATA, arena);
+        AdvanceRK(tau, DATA, arena_prev, arena_current, arena_future);
+    
+        
+        for(int ieta = 0; ieta < grid_neta; ieta++)
+        for(int ix   = 0; ix   < grid_nx;   ix++  )
+        for(int iy   = 0; iy   < grid_ny;   iy++  ) {
+          update_small_cell_to_cell(arena(ix, iy, ieta), arena_prev(ix, iy, ieta), 2);
+          update_small_cell_to_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), 0);
+          update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), 1);
+        }
+
    
         //determine freeze-out surface
         int frozen = 0;
@@ -280,7 +306,7 @@ int Update_prev_Arena(Grid &arena) {
     return(1);
 }
 
-void update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag) {
+void Evolve::update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag) {
     if (rk_flag == 0) {
         c.epsilon = c_s.epsilon;
         c.rhob = c_s.rhob;
@@ -305,7 +331,7 @@ void update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag) {
     }
 }
 
-void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
+void Evolve::update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
     if (rk_flag == 0) {
         c_s.epsilon = c.epsilon;
         c_s.rhob = c.rhob;
@@ -332,25 +358,9 @@ void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
 
 
 
-int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
+int Evolve::AdvanceRK(double tau, InitData *DATA, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future) {
     // control function for Runge-Kutta evolution in tau
     int flag = 0;
-
-    const int grid_neta = arena.nEta();
-    const int grid_nx   = arena.nX();
-    const int grid_ny   = arena.nY();
-
-    SCGrid arena_prev   (grid_nx, grid_ny, grid_neta);
-    SCGrid arena_current(grid_nx, grid_ny, grid_neta);
-    SCGrid arena_future (grid_nx, grid_ny, grid_neta);
-
-    for(int ieta = 0; ieta < grid_neta; ieta++)
-    for(int ix   = 0; ix   < grid_nx;   ix++  )
-    for(int iy   = 0; iy   < grid_ny;   iy++  ) {
-        update_cell_to_small_cell(arena(ix, iy, ieta), arena_prev(ix, iy, ieta), 2);
-        update_cell_to_small_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), 0);
-        update_cell_to_small_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), 1);
-    }
 
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
@@ -365,18 +375,6 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
         }
         
     }  /* loop over rk_flag */
-
-    for(int ieta = 0; ieta < grid_neta; ieta++)
-    for(int ix   = 0; ix   < grid_nx;   ix++  )
-    for(int iy   = 0; iy   < grid_ny;   iy++  ) {
-      update_small_cell_to_cell(arena(ix, iy, ieta), arena_prev(ix, iy, ieta), 2);
-      update_small_cell_to_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), 0);
-      update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), 1);
-    }
-
-    //if (rk_flag == 0) {
-    //    Update_prev_Arena(arena);
-    //}
 
     return(flag);
 }  /* AdvanceRK */

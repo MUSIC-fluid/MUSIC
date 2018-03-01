@@ -49,7 +49,10 @@ class Evolve {
     Evolve(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
     int EvolveIt(InitData *DATA, Grid &arena);
 
-    int AdvanceRK(double tau, InitData *DATA, Grid &arena);
+    void update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag);
+    void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag);
+    int AdvanceRK(double tau, InitData *DATA, SCGrid &arena_prev,
+                  SCGrid &arena_current, SCGrid &arena_future);
 
     int FreezeOut_equal_tau_Surface(double tau, InitData *DATA, Grid &arena);
     void FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
