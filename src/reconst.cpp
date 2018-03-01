@@ -262,6 +262,7 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, const TJbVec &q,
     }/* if u^mu u_\mu != 1 */
     /* End: Correcting normalization of 4-velocity */
 
+    #pragma omp simd
     for (int mu = 0; mu < 4; mu++) {
         grid_p.u[mu] = u[mu];
     }
@@ -277,6 +278,7 @@ void Reconst::revert_grid(ReconstCell &grid_current, const Cell &grid_prev, int 
     }
     grid_current.e = grid_prev.epsilon;
     grid_current.rhob = grid_prev.rhob;
+    #pragma omp simd
     for (int mu = 0; mu < 4; mu++) {
         grid_current.u[mu] = grid_prev.u[rk_flag][mu];
     }
