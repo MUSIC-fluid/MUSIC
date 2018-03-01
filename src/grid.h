@@ -15,7 +15,7 @@ class GridT {
   int Neta = 0;
   
   T& get(int x, int y, int eta){
-      return grid[Nx*(Ny*eta+y)+x];
+      return grid.at(Nx*(Ny*eta+y)+x);
   }
   
  public:
@@ -39,7 +39,7 @@ class GridT {
     if(x  <0)   x  =0;  else if(x  >=Nx)   x  =Nx  -1;
     if(y  <0)   y  =0;  else if(y  >=Ny)   y  =Ny  -1;
     if(eta<0)   eta=0;  else if(eta>=Neta) eta=Neta-1;
-    return grid[Nx*(Ny*eta+y)+x];
+    return get(x,y,eta);
   }
 
   const T& getHalo(int x, int y, int eta) const {
@@ -50,20 +50,24 @@ class GridT {
     assert(0<=x  ); assert(x  <Nx);
     assert(0<=y  ); assert(y  <Ny);
     assert(0<=eta); assert(eta<Neta);
-    return grid[Nx*(Ny*eta+y)+x];
+    return get(x,y,eta);
   }
 
   const T& operator()(int x, int y, int eta) const {
-    return const_cast<T&>(static_cast<const T &>((*this)(x,y,eta)));
+    assert(0<=x  ); assert(x  <Nx);
+    assert(0<=y  ); assert(y  <Ny);
+    assert(0<=eta); assert(eta<Neta);
+    return get(x,y,eta);
   }
 
   T& operator()(const int i) {
     assert(0<=i  ); assert(x  <Nx*Ny*Neta);
-    return grid[i];
+    return grid.at(i);
   }
 
   const T& operator()(const int i) const {
-    return const_cast<T&>(static_cast<const T &>((*this)(i)));
+    assert(0<=i  ); assert(x  <Nx*Ny*Neta);
+    return grid.at(i);
   }
   
 };
