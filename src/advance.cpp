@@ -308,7 +308,6 @@ void Advance::FirstRKStepW(double tau, InitData *DATA,
     }
   }
 
-  
   // re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless
   grid_pt_f->Wmunu[9] = (
          (2.*(grid_pt_f->u[1]*grid_pt_f->u[2]
@@ -370,27 +369,6 @@ void Advance::FirstRKStepW(double tau, InitData *DATA,
     }
   }
 }/* FirstRKStepW */
-
-// update results after RK evolution to grid_pt
-void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell *grid_pt, int rk_flag) {
-  int trk_flag = rk_flag + 1;
-  if (rk_flag == 1) {
-    trk_flag = 0;
-  }
-  
-  if (rk_flag == 0) {
-    grid_pt->epsilon_t = grid_rk.e;
-    grid_pt->rhob_t = grid_rk.rhob;
-  } else {
-    grid_pt->epsilon = grid_rk.e;
-    grid_pt->rhob = grid_rk.rhob;
-  }
-  
-  // reconstructed grid_rk uses rk_flag 0 only
-  for (int mu=0; mu<4; mu++) {
-    grid_pt->u[trk_flag][mu] = grid_rk.u[mu];
-  }
-}/* UpdateTJbRK */
 
 // update results after RK evolution to grid_pt
 void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {

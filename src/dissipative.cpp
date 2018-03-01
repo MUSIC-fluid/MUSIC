@@ -60,17 +60,10 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
     if (alpha < 4 && DATA->turn_on_bulk == 1) {
         double gfac = (alpha == 0 ? -1.0 : 0.0);
         Pi_alpha0 = grid_pt.pi_b*(gfac + grid_pt.u[alpha]*grid_pt.u[0]);
-        if (rk_flag == 0) {
-            dPidtau = ((Pi_alpha0 - grid_pt_prev.pi_b
-                                    *(gfac + grid_pt_prev.u[alpha]
-                                             *grid_pt_prev.u[0]))
-                       /DATA->delta_tau);
-        } else {
-            dPidtau = ((Pi_alpha0 - grid_pt.pi_b
-                                    *(gfac + grid_pt.u[alpha]
-                                             *grid_pt.u[0]))
-                       /DATA->delta_tau);
-        }
+        dPidtau = ((Pi_alpha0 - grid_pt_prev.pi_b
+                                *(gfac + grid_pt_prev.u[alpha]
+                                         *grid_pt_prev.u[0]))
+                   /DATA->delta_tau);
     }
 
     // use central difference to preserve conservation law exactly

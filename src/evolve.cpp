@@ -244,10 +244,6 @@ void Update_Arena(const SCGrid &arena_old, SCGrid &arena_new) {
     const int n = arena_old.size();
     //#pragma omp parallel for collapse(3)
     for(int i = 0; i < n; i++) {
-        // #pragma omp critical
-        // {
-        // cout << "check " << i << endl;
-        // cout << "check " << arena_old(i).epsilon << endl;}
         arena_new(i).epsilon = arena_old(i).epsilon;
         arena_new(i).rhob    = arena_old(i).rhob;
         arena_new(i).u       = arena_old(i).u;
@@ -302,9 +298,10 @@ void update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag) {
     } else if (rk_flag == 2) {
         c.prev_epsilon = c_s.epsilon;
         c.prev_rhob = c_s.rhob;
-        c.prev_u.at   (rk_flag)     = c_s.u;
-        c.prevWmunu.at(rk_flag) = c_s.Wmunu;
-        c.prev_pi_b.at(rk_flag)  = c_s.pi_b;
+        c.dUsup = c_s.dUsup;
+        c.prev_u.at   (0)     = c_s.u;
+        c.prevWmunu.at(0) = c_s.Wmunu;
+        c.prev_pi_b.at(0)  = c_s.pi_b;
     }
 }
 
@@ -329,6 +326,7 @@ void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
         c_s.u     = c.prev_u[0];
         c_s.Wmunu = c.prevWmunu[0];
         c_s.pi_b  = c.prev_pi_b[0];
+        c_s.dUsup = c.dUsup;
     }
 }
 
@@ -337,47 +335,49 @@ void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
 int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
     // control function for Runge-Kutta evolution in tau
     int flag = 0;
+
+    const int grid_neta = arena.nEta();
+    const int grid_nx   = arena.nX();
+    const int grid_ny   = arena.nY();
+
+    SCGrid arena_prev   (grid_nx, grid_ny, grid_neta);
+    SCGrid arena_current(grid_nx, grid_ny, grid_neta);
+    SCGrid arena_future (grid_nx, grid_ny, grid_neta);
+
+    for(int ieta = 0; ieta < grid_neta; ieta++)
+    for(int ix   = 0; ix   < grid_nx;   ix++  )
+    for(int iy   = 0; iy   < grid_ny;   iy++  ) {
+        update_cell_to_small_cell(arena(ix, iy, ieta), arena_prev(ix, iy, ieta), 2);
+        update_cell_to_small_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), 0);
+        update_cell_to_small_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), 1);
+    }
+
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
-        const int grid_neta = arena.nEta();
-        const int grid_nx   = arena.nX();
-        const int grid_ny   = arena.nY();
-
-        SCGrid arena_prev   (grid_nx, grid_ny, grid_neta);
-        SCGrid arena_current(grid_nx, grid_ny, grid_neta);
-        SCGrid arena_future (grid_nx, grid_ny, grid_neta);
-
-        for(int ieta = 0; ieta < grid_neta; ieta++)
-        for(int ix   = 0; ix   < grid_nx;   ix++  )
-        for(int iy   = 0; iy   < grid_ny;   iy++  ) {
-            update_cell_to_small_cell(arena(ix, iy, ieta), arena_prev(ix, iy, ieta), 2);
-            update_cell_to_small_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), rk_flag);
-            update_cell_to_small_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag + 1)%2);
-        }
-
-
         flag = u_derivative.MakedU(tau, DATA, arena_prev, arena_current, rk_flag);
         flag = advance.AdvanceIt(tau, DATA, arena_prev, arena_current, arena_future, rk_flag);
 
-
-        for(int ieta = 0; ieta < grid_neta; ieta++)
-        for(int ix   = 0; ix   < grid_nx;   ix++  )
-        for(int iy   = 0; iy   < grid_ny;   iy++  ) {
-          update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag+1)%2);
-        }
-
         if (rk_flag == 0) {
-            std::cerr<<"Updating rk_Flag=0"<<std::endl;
             Update_Arena(arena_current, arena_prev);
+            Update_Arena(arena_future, arena_current);
         } else {
-            std::cerr<<"Updating rk_Flag=1"<<std::endl;
             Update_Arena(arena_future, arena_current);
         }
-
-        if (rk_flag == 0) {
-            Update_prev_Arena(arena);
-        }
+        
     }  /* loop over rk_flag */
+
+    for(int ieta = 0; ieta < grid_neta; ieta++)
+    for(int ix   = 0; ix   < grid_nx;   ix++  )
+    for(int iy   = 0; iy   < grid_ny;   iy++  ) {
+      update_small_cell_to_cell(arena(ix, iy, ieta), arena_prev(ix, iy, ieta), 2);
+      update_small_cell_to_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), 0);
+      update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), 1);
+    }
+
+    //if (rk_flag == 0) {
+    //    Update_prev_Arena(arena);
+    //}
+
     return(flag);
 }  /* AdvanceRK */
       
