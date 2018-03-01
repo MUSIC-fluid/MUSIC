@@ -31,12 +31,14 @@ class Reconst {
     Reconst(EOS *eos, InitData *DATA_in);
 
     ReconstCell ReconstIt_shell(double tau, TJbVec &q_vec, const Cell &grid_pt, int rk_flag);
+    ReconstCell ReconstIt_shell(double tau, TJbVec &q_vec, const Cell_small &grid_pt, int rk_flag);
 
     int ReconstIt(ReconstCell &grid_p, double tau, const TJbVec &q, const Cell &grid_pt,
                   int rk_flag);
     double GuessEps(double T00, double K00, double cs2);
     
     void revert_grid(ReconstCell &grid_current, const Cell &grid_prev, int rk_flag);
+    void revert_grid(ReconstCell &grid_current, const Cell_small &grid_prev, int rk_flag);
 
     int ReconstIt_velocity_iteration(ReconstCell &grid_p, double tau,
                                      const TJbVec &q, const Cell &grid_pt, int rk_flag);
@@ -46,6 +48,8 @@ class Reconst {
 
     int ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
                                   const TJbVec &q, const Cell &grid_pt, int rk_flag);
+    int ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
+                                  const TJbVec &q, const Cell_small &grid_pt, int rk_flag);
     double reconst_velocity_f_Newton(double v, double T00, double M,
                                      double J0);
     double reconst_u0_f_Newton(double u0, double T00, double K00,

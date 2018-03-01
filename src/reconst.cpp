@@ -22,6 +22,27 @@ Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
     abs_err  = 1e-10;
 }
 
+ReconstCell Reconst::ReconstIt_shell(double tau, TJbVec &q_vec, const Cell_small &grid_pt, int rk_flag) {
+
+    ReconstCell grid_p1;
+
+    for (int i = 0; i < 5; i++) {
+        q_vec[i] /= tau;
+    }
+
+    int           flag = ReconstIt_velocity_Newton   (grid_p1, tau, q_vec, grid_pt, rk_flag);
+    //if (flag < 0) flag = ReconstIt_velocity_iteration(grid_p1, tau, q_vec, grid_pt, rk_flag);
+    //if (flag < 0) flag = ReconstIt                   (grid_p1, tau, q_vec, grid_pt, rk_flag);
+
+    if (flag == -1) {
+        revert_grid(grid_p1, grid_pt, rk_flag);
+    } else if (flag == -2) {
+        regulate_grid(grid_p1, q_vec[0]);
+    }
+
+    return grid_p1;
+}
+
 ReconstCell Reconst::ReconstIt_shell(double tau, TJbVec &q_vec, const Cell &grid_pt, int rk_flag) {
 
     ReconstCell grid_p1;
@@ -282,6 +303,17 @@ void Reconst::revert_grid(ReconstCell &grid_current, const Cell &grid_prev, int 
     }
 }
 
+//! This function reverts the grid information back its values
+//! at the previous time step
+void Reconst::revert_grid(ReconstCell &grid_current, const Cell_small &grid_prev, int rk_flag) {
+    if (echo_level > 5) {
+        music_message.warning("revert grid to its previous value ...");
+    }
+    grid_current.e = grid_prev.epsilon;
+    grid_current.rhob = grid_prev.rhob;
+    grid_current.u = grid_prev.u;
+}
+
 int Reconst::ReconstIt_velocity_iteration(
     ReconstCell &grid_p, double tau, const TJbVec &q, const Cell &grid_pt, int rk_flag) {
     /* reconstruct TJb from q[0] - q[4] */
@@ -537,6 +569,280 @@ int Reconst::ReconstIt_velocity_iteration(
         u[2] *= scalef;
         u[3] *= scalef;
     }// if u^mu u_\mu != 1 
+    // End: Correcting normalization of 4-velocity
+   
+    for (int mu = 0; mu < 4; mu++) {
+        grid_p.u[mu] = u[mu];
+    }
+
+    return(1);
+}
+
+
+//! reconstruct TJb from q[0] - q[4]
+//! reconstruct velocity first for finite mu_B case
+//! use Newton's method to solve v and u0
+int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJbVec &q, const Cell_small &grid_pt, int rk_flag) {
+    /* prepare for the iteration */
+    /* uq = qiphL, qiphR, etc 
+       qiphL[alpha] means, for instance, TJ[alpha][0] 
+       in the cell at x+dx/2 calculated from the left */
+    
+    /* uq are the conserved charges. That is, the ones appearing in
+       d_tau (Ttautau/tau) + d_eta(Ttaueta/tau) + d_perp(Tperptau) = -Tetaeta
+       d_tau (Ttaueta) + d_eta(Tetaeta) + d_v(tau Tveta) = -Ttaueta/tau 
+       d_tau (Ttauv) + d_eta(Tetav) + d_w(tau Twv) = 0
+       d_tau (Jtau) + d_eta Jeta + d_perp(tau Jperp) = 0 */
+    
+    /* q[0] = Ttautau/tau, q[1] = Ttaux, q[2] = Ttauy, q[3] = Ttaueta
+       q[4] = Jtau */
+    /* uq = qiphL, qiphR, qimhL, qimhR, qirk */
+
+    double K00 = q[1]*q[1] + q[2]*q[2] + q[3]*q[3];
+    double M   = sqrt(K00);
+    double T00 = q[0];
+    double J0  = q[4];
+
+    if ((T00 < abs_err) || ((T00 - K00/T00) < 0.0)) {
+        // can't make Tmunu with this. restore the previous value 
+        // remember that uq are eigher halfway cells or the final q_next 
+        // at this point, the original values in grid_pt->TJb are not touched. 
+        if (echo_level > 9) {
+            music_message.warning(
+                    "Reconst velocity Newton:: can not find solution!");
+            music_message << "T00 = " << T00 << ", K00 = " << K00;
+            music_message.flush("warning");
+        }
+        return(-2);
+    }/* if t00-k00/t00 < 0.0 */
+
+    double u[4], epsilon, pressure, rhob;
+
+    double u0_guess = grid_pt.u[0];
+    double v_guess = sqrt(1. - 1./(u0_guess*u0_guess + 1e-15));
+    if (v_guess != v_guess) {
+        v_guess = 0.0;
+    }
+    int v_status       = 1;
+    int iter           = 0;
+    double rel_error_v = 10.0;
+    double v_next      = 1.0;
+    double v_prev      = v_guess;
+    double abs_error_v = reconst_velocity_f_Newton(v_prev, T00, M, J0);
+    do {
+        iter++;
+        v_next = v_prev - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0));
+        if (v_next < 0.0) {
+            v_next = 0.0 + 1e-10;
+        } else if (v_next > 1.0) {
+            v_next = 1.0 - 1e-10;
+        }
+        abs_error_v = reconst_velocity_f_Newton(v_next, T00, M, J0);
+        rel_error_v = 2.*abs_error_v/(v_next + v_prev + 1e-15);
+        v_prev = v_next;
+        if (iter > max_iter) {
+            v_status = 0;
+            break;
+        }
+    } while (fabs(abs_error_v) > abs_err && fabs(rel_error_v) > rel_err);
+
+    double v_solution;
+    if (v_status == 1) {
+        v_solution = v_next;
+    } else {
+        if (echo_level > 5) {
+            music_message.warning(
+                    "Reconst velocity Newton:: can not find solution!");
+            music_message.warning("output the results at the last iteration:");
+            music_message.warning("iter  [lower, upper]  root  err(est)");
+            music_message << iter << "   [" << v_prev << ",  " << v_next
+                          << "]  " << abs_error_v << "  " << rel_error_v;
+            music_message.flush("warning");
+        }
+        return(-1);
+    }/* if iteration is unsuccessful, revert */
+   
+    // for large velocity, solve u0
+    int iter_u0 = 0;
+    double u0_solution = 1.0;
+    if (v_solution > v_critical) {
+        double u0_prev = 1./sqrt(1. - v_solution*v_solution);
+        int u0_status = 1;
+        double u0_next;
+        double abs_error_u0 = reconst_u0_f_Newton(u0_prev, T00, K00, M, J0);
+        double rel_error_u0 = 1.0;
+        do {
+            iter_u0++;
+            u0_next = u0_prev - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0);
+            if (u0_next < 1.0) {
+                u0_next = 1.0 + 1e-10;
+            }
+            abs_error_u0 = reconst_u0_f_Newton(u0_next, T00, K00, M, J0);
+            rel_error_u0 = 2.*abs_error_u0/(u0_next + u0_prev + 1e-15);
+            u0_prev = u0_next;
+            if (iter_u0 > max_iter) {
+                u0_status = 0;
+                break;
+            }
+        } while (fabs(abs_error_u0) > abs_err && fabs(rel_error_u0) > rel_err);
+
+        if (u0_status == 1) {
+            u0_solution = u0_next;
+        } else {
+            if (echo_level > 5) {
+                music_message.warning(
+                        "Reconst velocity Newton:: can not find solution!");
+                music_message.warning(
+                        "output the results at the last iteration:");
+                music_message.warning("iter  [lower, upper]  root  err(est)");
+                music_message << iter_u0 << "   [" << u0_prev << ",  "
+                              << u0_next << "]  " << abs_error_u0 << "  "
+                              << rel_error_u0;
+                music_message.flush("warning");
+            }
+            return(-1);
+        }  // if iteration is unsuccessful, revert
+    }
+
+    // successfully found velocity, now update everything else
+    if (v_solution < v_critical) {
+        u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*abs_err);
+        epsilon = T00 - v_solution*sqrt(K00);
+        rhob = J0/u[0];
+    } else {
+        u[0] = u0_solution;
+        epsilon = T00 - sqrt((1. - 1./(u0_solution*u0_solution))*K00);
+        rhob = J0/u0_solution;
+    }
+
+    double check_u0_var = (fabs(u[0] - grid_pt.u[0])
+                           /(grid_pt.u[0]));
+    if (check_u0_var > 100.) {
+        if (grid_pt.epsilon > 1e-6 && echo_level > 2) {
+            music_message << "Reconst velocity Newton:: "
+                          << "u0 varies more than 100 times compared to "
+                          << "its value at previous time step";
+            music_message.flush("warning");
+            music_message << "e = " << grid_pt.epsilon
+                          << ", u[0] = " << u[0]
+                          << ", prev_u[0] = " << grid_pt.u[0];
+            music_message.flush("warning");
+        }
+        return(-1);
+    }
+
+    if (epsilon > eos_eps_max) {
+        if (echo_level > 5) {
+            music_message << "Reconst velocity Newton:: "
+                          << "Reconst velocity: e = " << epsilon
+                          << " > e_max in the EoS table.";
+            music_message.flush("warning");
+	        music_message << "e_max = " << eos_eps_max << " [1/fm^4]";
+            music_message.flush("warning");
+	        music_message << "previous epsilon = " << grid_pt.epsilon
+                          << " [1/fm^4]";
+            music_message.flush("warning");
+        }
+        return(-1);
+    }
+
+    grid_p.e = epsilon;
+    grid_p.rhob = rhob;
+
+    pressure = eos->get_pressure(epsilon, rhob);
+
+    // individual components of velocity
+    double velocity_inverse_factor = u[0]/(T00 + pressure);
+
+    double u_max = 242582597.70489514; // cosh(20)
+    //remove if for speed
+    if (u[0] > u_max) {
+        // check whether velocity is too large
+        if (echo_level > 5) {
+            music_message << "Reconst velocity Newton:: "
+                          << "Reconst velocity: u[0] = " << u[0]
+                          << " is too large!"
+                          << "epsilon = " << grid_pt.epsilon;
+            music_message.flush("warning");
+        }
+        return(-1);
+    } if (u[0] < 1.) {
+        // unphysical solution u^0 < 1.
+        if (echo_level > 5) {
+            music_message << "Reconst velocity Newton:: "
+                          << "Reconst velocity: u[0] = " << u[0] << " < 1! "
+                          << "epsilon = " << grid_pt.epsilon;
+            music_message.flush("warning");
+        }
+        return(-1);
+    } else {
+        u[1] = q[1]*velocity_inverse_factor; 
+        u[2] = q[2]*velocity_inverse_factor; 
+        u[3] = q[3]*velocity_inverse_factor; 
+    }
+
+    // Correcting normalization of 4-velocity
+    double temp_usq = u[0]*u[0] - u[1]*u[1] - u[2]*u[2] - u[3]*u[3];
+    // Correct velocity when unitarity is not satisfied to numerical accuracy
+    if (fabs(temp_usq - 1.0) > abs_err) {
+        // If the deviation is too large, exit MUSIC
+        if (fabs(temp_usq - 1.0) > 0.1*u[0]) {
+            music_message << "In Reconst velocity Newton, "
+                          << "reconstructed: u^2 - 1 = " << temp_usq - 1.0;
+            music_message.flush("error");
+            music_message << "u[0]=" << u[0] << ", u[1]=" << u[1]
+                          << ", u[2]=" << u[2] << ", u[3]=" << u[3];
+            music_message.flush("error");
+            music_message << "e=" << epsilon << ", rhob=" << rhob
+                          << ", p=" << pressure;
+            music_message.flush("error");
+            music_message << "with q0 = " << q[0]
+                          << ", q1 = " << q[1] << ", q2 = " << q[2]
+                          << ", q3 = " << q[3];
+            music_message.flush("error");
+            double f_res_v = reconst_velocity_f_Newton(v_solution, T00, M, J0);
+            double f_res_u = reconst_u0_f_Newton(u0_solution, T00, K00, M, J0);
+            music_message << "u0_solution = " << u0_solution
+                          << ", v_solution = " << v_solution
+                          << ", iter_v = " << iter
+                          << ", iter_u0 = " << iter_u0
+                          << ", f_res_v = " << f_res_v
+                          << ", f_res_u = " << f_res_u;
+            music_message.flush("error");
+            exit(0);
+        } else if (fabs(temp_usq - 1.0) > sqrt(abs_err)*u[0]
+                                                && echo_level > 5) {
+            // Warn only when the deviation from 1 is relatively large
+            music_message << "In Reconst velocity Newton, "
+                          << "reconstructed: u^2 - 1 = " << temp_usq - 1.0;
+            music_message.flush("warning");
+            double f_res;
+            if (v_solution < v_critical)
+                f_res = reconst_velocity_f_Newton(v_solution, T00, M, J0);
+            else
+                f_res = reconst_u0_f_Newton(u0_solution, T00, K00, M, J0);
+            music_message << "with v = " << v_solution << ", u[0] = " << u[0]
+                          << ", res = " << f_res;
+            music_message.flush("warning");
+            music_message << "with u[1] = " << u[1]
+                          << "with u[2] = " << u[2]
+                          << "with u[3] = " << u[3];
+            music_message.flush("warning");
+            music_message << "with T00 = " << T00 << ", K = " << K00;
+            music_message.flush("warning");
+            music_message << "with q0 = " << q[0] << ", q1 = " << q[1]
+                          << ", q2 = " << q[2] << ", q3 = " << q[3];
+            music_message.flush("warning");
+            music_message.warning("Correcting it...");
+        }
+        // Rescaling spatial components of velocity so that unitarity 
+        // is exactly satisfied (u[0] is not modified)
+        double scalef = (sqrt((u[0]*u[0] - 1.)
+                              /(u[1]*u[1] + u[2]*u[2] + u[3]*u[3] + abs_err)));
+        u[1] *= scalef;
+        u[2] *= scalef;
+        u[3] *= scalef;
+    }  // if u^mu u_\mu != 1 
     // End: Correcting normalization of 4-velocity
    
     for (int mu = 0; mu < 4; mu++) {
