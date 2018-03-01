@@ -64,6 +64,11 @@ no more halo copying
 2018-03-01  23:10     Cori KNL      Medium     02:01.209
 2018-03-01  23:10     Cori KNL      Large      03:38.343
 
+16 threads SIMD uWRHS with -ipo
+2018-03-01  23:10     Cori KNL      Small      0m47.986s
+2018-03-01  23:10     Cori KNL      Medium     1m58.253s
+2018-03-01  23:10     Cori KNL      Large      3m34.379s
+
 
 Perf output:
 ============
