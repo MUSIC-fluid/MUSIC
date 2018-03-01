@@ -667,21 +667,6 @@ void read_in_parameters(InitData *parameter_list, std::string input_file) {
     double y_beam = atanh(sqrt(1. - 1./pow(temp_ecm/2., 2.)));
     parameter_list->beam_rapidity = y_beam;
     
-    // initialize the metric, mostly plus
-    //parameter_list->gmunu = Util::mtx_malloc(4, 4);
-    for (m=0; m<4; m++) {
-        for (n=0; n<4; n++) {
-            if (m == n)
-                (parameter_list->gmunu)[m][n] = 1.0;
-            else
-                (parameter_list->gmunu)[m][n] = 0.0;
-            if (m==0 && n==0)
-                (parameter_list->gmunu)[m][n] *= -1.0;
-        }
-    }  /* m */
-
-    //   parameter_list->gmunu[4][4] = {{-1.,0.,0.,0.},{0.,1.,0.,0.},{},{}};
-
     
     int tempoutputBinaryEvolution = 0;
     tempinput = Util::StringFind4(input_file, "outputBinaryEvolution");

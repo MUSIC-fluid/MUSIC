@@ -452,7 +452,8 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
     // pi^\mu\nu is symmetric
     Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
 	for (int mu = 1; mu < 4; mu++) {
-	  for (int nu = mu; nu < 4; nu++) {
+          #pragma omp simd 
+	  for (int nu = 0; nu < 4; nu++) {
             int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
             double sum = 0.0;
 	    /* Get_uWmns */
@@ -513,9 +514,9 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
       });
     
     for (int mu = 1; mu < 4; mu++) {
-      //    double savew_rhs = w_rhs[mu][0];      
-#pragma omp simd 
-      for (int nu = 0; nu < 4; nu++) {
+    //    double savew_rhs = w_rhs[mu][0];      
+       #pragma omp simd 
+       for (int nu = 0; nu < 4; nu++) {
 	/* add a source term -u^tau Wmn/tau
 	   due to the coordinate change to tau-eta */
 	/* this is from udW = d(uW) - Wdu = RHS */
