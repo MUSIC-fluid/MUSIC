@@ -17,10 +17,10 @@ U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in) :
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
-int U_derivative::MakedU(double tau, InitData *DATA,
+int U_derivative::MakedU(double tau, const InitData &DATA,
                          Grid &arena, int rk_flag) {
     // ideal hydro: no need to evaluate any flow derivatives
-    if (DATA->viscosity_flag == 0) {
+    if (DATA.viscosity_flag == 0) {
         return(1);
     }
 
@@ -139,13 +139,13 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, Grid &arena, int 
 }
 
 
-int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, int iy, int ieta,
+int U_derivative::MakeDSpatial(double tau, const InitData &DATA, Grid &arena, int ix, int iy, int ieta,
                                int rk_flag) {
     const double delta[4] = {
       0.0,
-      DATA->delta_x,
-      DATA->delta_y,
-      DATA->delta_eta*tau
+      DATA.delta_x,
+      DATA.delta_y,
+      DATA.delta_eta*tau
     };  // taken care of the tau factor
 
     // calculate dUsup[m][n] = partial_n u_m
@@ -341,7 +341,7 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, 
     return 1;
 }/* MakeDSpatial */
 
-int U_derivative::MakeDTau(double tau, InitData *DATA, Cell *grid_pt,
+int U_derivative::MakeDTau(double tau, const InitData &DATA, Cell *grid_pt,
                            int rk_flag) {
     int m;
     double f;
@@ -356,14 +356,14 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Cell *grid_pt,
         for (m=1; m<=3; m++) {
             /* first order is more stable */
             f = ((grid_pt->u[rk_flag][m] - grid_pt->prev_u[0][m])
-                 /DATA->delta_tau);
+                 /DATA.delta_tau);
             grid_pt->dUsup[m][0] = -f; /* g00 = -1 */
         }/* m */
     } else if (rk_flag > 0) {
         for (m=1; m<=3; m++) {
             /* first order */
             // this is from the prev full RK step 
-            f = (grid_pt->u[rk_flag][m] - grid_pt->u[0][m])/(DATA->delta_tau);
+            f = (grid_pt->u[rk_flag][m] - grid_pt->u[0][m])/(DATA.delta_tau);
             grid_pt->dUsup[m][0] = -f; /* g00 = -1 */
         }/* m */
     }
@@ -401,7 +401,7 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Cell *grid_pt,
         muB          = eos->get_mu(eps, rhob);
         T            = eos->get_temperature(eps, rhob);
         tildemu_prev = muB/T;
-        f            = (tildemu - tildemu_prev)/(DATA->delta_tau);
+        f            = (tildemu - tildemu_prev)/(DATA.delta_tau);
         grid_pt->dUsup[m][0] = -f; /* g00 = -1 */
     } else if (rk_flag > 0) {
         m = 4;  
@@ -409,7 +409,7 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Cell *grid_pt,
         // forward derivative
         // f         = (grid_pt->rhob_t); // this is from the prev full RK step 
         // f        -= (grid_pt->rhob_prev);
-        // f        /= (DATA->delta_tau);
+        // f        /= (DATA.delta_tau);
         rhob         = grid_pt->rhob_t;
         eps          = grid_pt->epsilon_t;
         muB          = eos->get_mu(eps, rhob);
@@ -421,7 +421,7 @@ int U_derivative::MakeDTau(double tau, InitData *DATA, Cell *grid_pt,
         muB          = eos->get_mu(eps, rhob);
         T            = eos->get_temperature(eps, rhob);
         tildemu_prev = muB/T;
-        f            = (tildemu - tildemu_prev)/(DATA->delta_tau);
+        f            = (tildemu - tildemu_prev)/(DATA.delta_tau);
         grid_pt->dUsup[m][0] = -f; /* g00 = -1 */
     }
     // Ends Sangyong's addition Nov 18 2014

@@ -39,7 +39,7 @@ Advance::~Advance() {
 
 
 //! this function evolves one Runge-Kutta step in tau
-int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
+int Advance::AdvanceIt(double tau, const InitData &DATA, Grid &arena,
                        int rk_flag) {
 
   const int grid_neta = arena.nEta();
@@ -60,7 +60,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
     //             DATA, &(arena(ix,iy,ieta)), rk_flag);
     FirstRKStepT(tau, x_local, y_local, eta_s_local, DATA, arena, ix, iy, ieta, rk_flag);
           
-    if (DATA->viscosity_flag == 1) {
+    if (DATA.viscosity_flag == 1) {
       //double tau_rk = tau;
       //if (rk_flag == 1) {
       //    tau_rk = tau + DATA_ptr->delta_tau;
@@ -92,7 +92,7 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 void Advance::FirstRKStepT(double tau, double x_local, double y_local,
-        double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag) {
+        double eta_s_local, const InitData &DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag) {
   // this advances the ideal part
   double tau_now  = tau;
   double tau_next = tau + (DATA_ptr->delta_tau);
@@ -129,7 +129,7 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
     for (int ii = 0; ii < 4; ii++) {
       j_mu[ii] *= tau_rk;
     }
-    if (DATA->turn_on_rhob == 1) {
+    if (DATA.turn_on_rhob == 1) {
       rhob_source = tau_rk*hydro_source_ptr->get_hydro_rhob_source(
                    tau_rk, x_local, y_local, eta_s_local, u_local);
     }
@@ -141,14 +141,14 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
     //double dwmn = diss->MakeWSource(tau_rk, alpha, &arena(ix,iy,ieta), DATA, rk_flag);
     double dwmn = diss->MakeWSource(tau_rk, alpha, arena, ix, iy, ieta, DATA, rk_flag);
     /* dwmn is the only one with the minus sign */
-    qi[alpha] -= dwmn*(DATA->delta_tau);
+    qi[alpha] -= dwmn*(DATA.delta_tau);
     
     if (flag_add_hydro_source) {
       // adding hydro_source terms
       if (alpha < 4) {
-        qi[alpha] += j_mu[alpha]*DATA->delta_tau;
+        qi[alpha] += j_mu[alpha]*DATA.delta_tau;
       } else {
-        qi[alpha] += rhob_source*DATA->delta_tau;
+        qi[alpha] += rhob_source*DATA.delta_tau;
       }
     }
     
@@ -156,7 +156,7 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
     // non-zero remove/modify if rho_b!=0 
     // - this is only to remove the viscous correction that 
     // can make rho_b negative which we do not want.
-    if (DATA->turn_on_rhob == 0) {
+    if (DATA.turn_on_rhob == 0) {
       if (alpha == 4 && fabs(qi[alpha]) > 1e-12)
         qi[alpha] = 0.;
     }
@@ -182,12 +182,12 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
 */
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
-void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
+void Advance::FirstRKStepW(double tau, const InitData &DATA, Grid &arena,
                            int rk_flag, double theta_local, DumuVec &a_local,
                            VelocityShearVec &sigma_local, int ieta, int ix, int iy) {
   auto grid_pt = &(arena(ix, iy, ieta));
   double tau_now = tau;
-  double tau_next = tau + (DATA->delta_tau);
+  double tau_next = tau + (DATA.delta_tau);
   
   int trk_flag = rk_flag + 1;
   if (rk_flag == 1) {
@@ -198,7 +198,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
   
   // Sangyong Nov 18 2014 implemented mu_max
   int mu_max;
-  if (DATA->turn_on_rhob == 1)
+  if (DATA.turn_on_rhob == 1)
     mu_max = 4;
   else 
     mu_max = 3;
@@ -225,7 +225,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
 	temps = diss->Make_uWSource(tau_now, grid_pt, mu, nu, DATA,
 				    rk_flag, theta_local, a_local,
 				    sigma_local); 
-	tempf += temps*(DATA->delta_tau);
+	tempf += temps*(DATA.delta_tau);
 	tempf += w_rhs[mu][nu];
 	grid_pt->Wmunu[trk_flag][idx_1d] = (
 					    tempf/(grid_pt->u[trk_flag][0]));
@@ -241,7 +241,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
 	temps = diss->Make_uWSource(tau_next, grid_pt, mu, nu, DATA,
 				    rk_flag, theta_local, a_local,
 				    sigma_local); 
-	tempf += temps*(DATA->delta_tau);
+	tempf += temps*(DATA.delta_tau);
 	tempf += w_rhs[mu][nu];
 	
 	tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
@@ -254,7 +254,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
     }
   } /* rk_flag > 0 */
   
-  if (DATA->turn_on_bulk == 1) {
+  if (DATA.turn_on_bulk == 1) {
     /* calculate delta u pi */
     double p_rhs;
     if (rk_flag == 0) {
@@ -265,7 +265,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
       tempf = (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
       temps = diss->Make_uPiSource(tau_now, grid_pt, DATA, rk_flag,
 				   theta_local, sigma_local);
-      tempf += temps*(DATA->delta_tau);
+      tempf += temps*(DATA.delta_tau);
       tempf += p_rhs;
       
       grid_pt->pi_b[trk_flag] = tempf/(grid_pt->u[trk_flag][0]);
@@ -277,7 +277,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
       tempf = (grid_pt->pi_b[0])*(grid_pt->prev_u[0][0]);
       temps = diss->Make_uPiSource(tau_next, grid_pt, DATA, rk_flag,
 				   theta_local, sigma_local);
-      tempf += temps*(DATA->delta_tau);
+      tempf += temps*(DATA.delta_tau);
       tempf += p_rhs;
       
       tempf += (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
@@ -290,7 +290,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
   }
   
   // CShen: add source term for baryon diffusion
-  if (DATA->turn_on_diff == 1) {
+  if (DATA.turn_on_diff == 1) {
     if (rk_flag == 0) {
       diss->Make_uqRHS(tau_now, arena, ix, iy, ieta, w_rhs, DATA, rk_flag);
       int mu = 4;
@@ -301,7 +301,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
 	temps = diss->Make_uqSource(tau_now, grid_pt, nu, DATA,
 				    rk_flag, theta_local, a_local,
 				    sigma_local); 
-	tempf += temps*(DATA->delta_tau);
+	tempf += temps*(DATA.delta_tau);
 	tempf += w_rhs[mu][nu];
 	
 	grid_pt->Wmunu[trk_flag][idx_1d] = (
@@ -316,7 +316,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
 	temps = diss->Make_uqSource(tau_next, grid_pt, nu, DATA,
 				    rk_flag, theta_local, a_local,
 				    sigma_local); 
-	tempf += temps*(DATA->delta_tau);
+	tempf += temps*(DATA.delta_tau);
 	tempf += w_rhs[mu][nu];
 	
 	tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
@@ -368,7 +368,7 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
     tempf += grid_pt->Wmunu[trk_flag][nu]*grid_pt->u[trk_flag][nu]; 
   grid_pt->Wmunu[trk_flag][0] = tempf/(grid_pt->u[trk_flag][0]);
   
-  if (DATA->turn_on_diff == 1) {
+  if (DATA.turn_on_diff == 1) {
     // make qmu[0] using transversality
     for (int mu = 4; mu < mu_max + 1; mu++) {
       tempf = 0.0;
@@ -388,9 +388,9 @@ void Advance::FirstRKStepW(double tau, InitData *DATA, Grid &arena,
   // reduce Wmunu using the QuestRevert algorithm
   int revert_flag = 0;
   int revert_q_flag = 0;
-  if (DATA->Initial_profile != 0) {
+  if (DATA.Initial_profile != 0) {
     revert_flag = QuestRevert(tau, grid_pt, rk_flag, DATA, ieta, ix, iy);
-    if (DATA->turn_on_diff == 1) {
+    if (DATA.turn_on_diff == 1) {
       revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, DATA,
 				      ieta, ix, iy);
     }
@@ -423,7 +423,7 @@ void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell *grid_pt, int rk_flag
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
 int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
-                         InitData *DATA, int ieta, int ix, int iy) {
+                         const InitData &DATA, int ieta, int ix, int iy) {
   int revert_flag = 0;
   double eps_scale = 0.5;   // 1/fm^4
   double e_local = grid_pt->epsilon;
@@ -515,7 +515,7 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
 //! this function reduce the size of net baryon diffusion current
 //! in the dilute region to stablize numerical simulations
 int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
-                             InitData *DATA, int ieta, int ix, int iy) {
+                             const InitData &DATA, int ieta, int ix, int iy) {
   
   int trk_flag = rk_flag + 1;
   if (rk_flag == 1) {

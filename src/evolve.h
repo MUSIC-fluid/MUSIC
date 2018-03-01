@@ -8,16 +8,16 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include "./util.h"
-#include "./data.h"
-#include "./cell.h"
-#include "./grid.h"
-#include "./grid_info.h"
-#include "./eos.h"
-#include "./advance.h"
-#include "./hydro_source.h"
-#include "./u_derivative.h"
-#include "./pretty_ostream.h"
+#include "util.h"
+#include "data.h"
+#include "cell.h"
+#include "grid.h"
+#include "grid_info.h"
+#include "eos.h"
+#include "advance.h"
+#include "hydro_source.h"
+#include "u_derivative.h"
+#include "pretty_ostream.h"
 
 // this is a control class for the hydrodynamic evolution
 class Evolve {
@@ -47,28 +47,28 @@ class Evolve {
 
  public:
     Evolve(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
-    int EvolveIt(InitData *DATA, Grid &arena);
+    int EvolveIt(const InitData &DATA, Grid &arena);
 
-    int AdvanceRK(double tau, InitData *DATA, Grid &arena);
+    int AdvanceRK(double tau, const InitData &DATA, Grid &arena);
     int Update_prev_Arena(Grid &arena);
 
-    int FreezeOut_equal_tau_Surface(double tau, InitData *DATA, Grid &arena);
-    void FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
+    int FreezeOut_equal_tau_Surface(double tau, const InitData &DATA, Grid &arena);
+    void FreezeOut_equal_tau_Surface_XY(double tau, const InitData &DATA,
                                         int ieta, Grid &arena,
                                         int thread_id, double epsFO);
-    // void FindFreezeOutSurface(double tau, InitData *DATA,
+    // void FindFreezeOutSurface(double tau, const InitData &DATA,
     //                          Grid &arena, int size, int rank);
-    // void FindFreezeOutSurface2(double tau, InitData *DATA,
+    // void FindFreezeOutSurface2(double tau, const InitData &DATA,
     //                           Grid &arena, int size, int rank);
-    // int FindFreezeOutSurface3(double tau, InitData *DATA,
+    // int FindFreezeOutSurface3(double tau, const InitData &DATA,
     //                          Grid &arena, int size, int rank);
-    int FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
+    int FindFreezeOutSurface_Cornelius(double tau, const InitData &DATA,
                                        Grid &arena);
-    int FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
+    int FindFreezeOutSurface_Cornelius_XY(double tau, const InitData &DATA,
                                           int ieta, Grid &arena,
                                           int thread_id, double epsFO);
     int FindFreezeOutSurface_boostinvariant_Cornelius(
-                                    double tau, InitData *DATA, Grid &arena);
+                                    double tau, const InitData &DATA, Grid &arena);
 
     void store_previous_step_for_freezeout(Grid &arena);
 

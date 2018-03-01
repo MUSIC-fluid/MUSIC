@@ -26,7 +26,7 @@ class MUSIC {
     //! flag to tell whether hydro is run
     int flag_hydro_run;
 
-    InitData *DATA = nullptr;
+    InitData DATA;
 
     EOS *eos = nullptr;
 

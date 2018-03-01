@@ -33,27 +33,27 @@ Evolve::Evolve(EOS *eosIn, InitData *DATA_in, hydro_source *hydro_source_in) :
 }
 
 // master control function for hydrodynamic evolution
-int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
+int Evolve::EvolveIt(const InitData &DATA, Grid &arena) {
     // first pass some control parameters
-    facTau                      = DATA->facTau;
-    int output_hydro_debug_flag = DATA->output_hydro_debug_info;
-    int Nskip_timestep          = DATA->output_evolution_every_N_timesteps;
-    int outputEvo_flag          = DATA->outputEvolutionData;
-    int output_movie_flag       = DATA->output_movie_flag;
-    int freezeout_flag          = DATA->doFreezeOut;
-    int freezeout_lowtemp_flag  = DATA->doFreezeOut_lowtemp;
-    int freezeout_method        = DATA->freezeOutMethod;
-    int boost_invariant_flag    = DATA->boost_invariant;
+    facTau                      = DATA.facTau;
+    int output_hydro_debug_flag = DATA.output_hydro_debug_info;
+    int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
+    int outputEvo_flag          = DATA.outputEvolutionData;
+    int output_movie_flag       = DATA.output_movie_flag;
+    int freezeout_flag          = DATA.doFreezeOut;
+    int freezeout_lowtemp_flag  = DATA.doFreezeOut_lowtemp;
+    int freezeout_method        = DATA.freezeOutMethod;
+    int boost_invariant_flag    = DATA.boost_invariant;
 
     // Output information about the hydro parameters 
     // in the format of a C header file
-    if (DATA->output_hydro_params_header || outputEvo_flag == 1)
+    if (DATA.output_hydro_params_header || outputEvo_flag == 1)
         grid_info.Output_hydro_information_header(DATA);
 
     // main loop starts ...
-    int    itmax = DATA->nt;
-    double tau0  = DATA->tau0;
-    double dt    = DATA->delta_tau;
+    int    itmax = DATA.nt;
+    double tau0  = DATA.tau0;
+    double dt    = DATA.delta_tau;
 
     weirdCases = 0;
     SUM        = 0.;
@@ -62,11 +62,11 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
       
     double tau;
     int it_start = 0;
-    if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
+    if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
         double source_tau_max = hydro_source_ptr->get_source_tau_max();
         it_start = static_cast<int>((source_tau_max - tau0)/dt);
         if (it_start < 0) it_start = 0;
-    } else if (DATA->Initial_profile == 30) {
+    } else if (DATA.Initial_profile == 30) {
         double source_tau_max = hydro_source_ptr->get_source_tau_max();
         it_start = static_cast<int>((source_tau_max - tau0)/dt);
         if (it_start < 0) it_start = 0;
@@ -78,7 +78,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
             store_previous_step_for_freezeout(arena);
         }
         
-        if (DATA->Initial_profile == 0) {
+        if (DATA.Initial_profile == 0) {
             if (fabs(tau - 1.0) < 1e-8) {
                 grid_info.Gubser_flow_check_file(arena, tau);
             }
@@ -96,7 +96,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
             }
         }
 
-        if (DATA->Initial_profile == 1) {
+        if (DATA.Initial_profile == 1) {
             if (fabs(tau - 1.0) < 1e-8) {
                 grid_info.output_1p1D_check_file(arena, tau);
             }
@@ -114,7 +114,7 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
             }
         }
         
-        if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
+        if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
             if (it == it_start) {
                 grid_info.output_energy_density_and_rhob_disitrubtion(
                     arena, "energy_density_and_rhob_from_source_terms.dat");
@@ -183,9 +183,9 @@ int Evolve::EvolveIt(InitData *DATA, Grid &arena) {
     }/* it */ 
 
     // clean up
-//    for (int ieta=0; ieta < DATA->neta; ieta++) {
-//        for (int ix=0; ix <= DATA->nx; ix++) {
-//            for (int iy=0; iy <= DATA->ny; iy++) {
+//    for (int ieta=0; ieta < DATA.neta; ieta++) {
+//        for (int ix=0; ix <= DATA.nx; ix++) {
+//            for (int iy=0; iy <= DATA.ny; iy++) {
 //                Util::cube_free(arena(ix,iy,ieta).dUsup, 5, 4);
 //                Util::mtx_free(arena(ix,iy,ieta).Wmunu, rk_order, 14);
 //                Util::mtx_free(arena(ix,iy,ieta).prevWmunu, 1, 14);
@@ -263,7 +263,7 @@ int Evolve::Update_prev_Arena(Grid &arena) {
 }
 
 
-int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
+int Evolve::AdvanceRK(double tau, const InitData &DATA, Grid &arena) {
     // control function for Runge-Kutta evolution in tau
     int flag = 0;
     // loop over Runge-Kutta steps
@@ -278,7 +278,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 }  /* AdvanceRK */
       
 
-//void Evolve::FindFreezeOutSurface(double tau, InitData *DATA, Grid &arena, int size, int rank)
+//void Evolve::FindFreezeOutSurface(double tau, const InitData &DATA, Grid &arena, int size, int rank)
 //{   
 //  FILE *t_file;
 //  const char* t_name = "tauf.dat";
@@ -304,11 +304,11 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //  //fprintf(t_file,"x [fm], tau_f(x) [fm] \n");
 //  int ix, iy, ieta, nx, ny, neta;
 //  double x, y, eta;
-//  double epsFO=DATA->epsilonFreeze/hbarc;
+//  double epsFO=DATA.epsilonFreeze/hbarc;
 //  double tauf, xf, yf, etaf;
-//  nx = DATA->nx;
-//  ny = DATA->ny;
-//  neta = DATA->neta;
+//  nx = DATA.nx;
+//  ny = DATA.ny;
+//  neta = DATA.neta;
 //  double FULLSU[4];
 //  int fac, intersect, intersectx, intersecty, intersecteta, intersecttau;
 //  double DX, DY, DETA, DTAU, SIG;
@@ -323,11 +323,11 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //  int shown;
 //  
 //  fac=1;
-//  facTau = DATA->facTau;
-//  DX=fac*DATA->delta_x;
-//  DY=fac*DATA->delta_y;
-//  DETA=fac*DATA->delta_eta;
-//  DTAU=facTau*DATA->delta_tau;
+//  facTau = DATA.facTau;
+//  DX=fac*DATA.delta_x;
+//  DY=fac*DATA.delta_y;
+//  DETA=fac*DATA.delta_eta;
+//  DTAU=facTau*DATA.delta_tau;
 //  
 //  fprintf(stderr,"DTAU=%f\n", DTAU);
 //  fprintf(stderr,"DX=%f\n", DX);
@@ -387,13 +387,13 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //
 //  for(ix=0; ix<nx; ix+=fac)
 //    {
-//      x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
+//      x = ix*(DATA.delta_x) - (DATA.x_size/2.0); 
 //      for(iy=0; iy<ny; iy+=fac)
 //    {
-//      y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+//      y = iy*(DATA.delta_y) - (DATA.y_size/2.0);
 //      for(ieta=0; ieta<maxEta; ieta+=fac)
 //        {
-//          eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
+//          eta = (DATA.delta_eta)*(ieta+DATA.neta*rank) - (DATA.eta_size)/2.0;
 //          intersect=0;
 //          intersectx=0;
 //          intersecty=0;
@@ -690,7 +690,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //}
 //
 //
-//void Evolve::FindFreezeOutSurface2(double tau, InitData *DATA, Grid &arena, int size, int rank)
+//void Evolve::FindFreezeOutSurface2(double tau, const InitData &DATA, Grid &arena, int size, int rank)
 //{   
 //  ofstream t_file;
 //  t_file.open("tauf.dat" , ios::out | ios::app );
@@ -797,23 +797,23 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //    };
 //  
 //  fac=1; // keep fac=1 in this version for now (parallel needs it to be)
-//  facTau = DATA->facTau;
-//  DX=fac*DATA->delta_x;
-//  DY=fac*DATA->delta_y;
-//  DETA=fac*DATA->delta_eta;
-//  DTAU=facTau*DATA->delta_tau;
+//  facTau = DATA.facTau;
+//  DX=fac*DATA.delta_x;
+//  DY=fac*DATA.delta_y;
+//  DETA=fac*DATA.delta_eta;
+//  DTAU=facTau*DATA.delta_tau;
 //  intersections=0;
 //
-//  if (DATA->useEpsFO)
+//  if (DATA.useEpsFO)
 //    {
-//      epsFO=DATA->epsilonFreeze/hbarc;
+//      epsFO=DATA.epsilonFreeze/hbarc;
 //    }
 //  else 
 //    {
 //      rhob = 0.;
 //      cout << "[evolve.cpp:FindFreezeoutSurface2]: Using T_freeze works for rhob=0 only" << endl;
-//      epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA->TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
-//      cout << "T_freeze=" << DATA->TFO << ", epsFO=" << epsFO*hbarc << endl;
+//      epsFO= eos->findRoot(&EOS::Tsolve, rhob, DATA.TFO/hbarc, 1.15*rhob+0.001, 300.,0.001);
+//      cout << "T_freeze=" << DATA.TFO << ", epsFO=" << epsFO*hbarc << endl;
 //    }
 //
 //  //  int ix, iy, ieta, nx, ny, neta, i, alpha, iflag;
@@ -1132,13 +1132,13 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //    {
 //      // fprintf(stderr,"IBIT[%d][%d]=%d\n",0,0,IBIT[0][0]);
 //      // fprintf(stderr,"IBIT[%d][%d]=%d\n",20,6,IBIT[20-1][6-1]);
-//      x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
+//      x = ix*(DATA.delta_x) - (DATA.x_size/2.0); 
 //      for(iy=0; iy<=ny-fac; iy+=fac)
 //    {
-//      y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+//      y = iy*(DATA.delta_y) - (DATA.y_size/2.0);
 //      for(ieta=0; ieta<maxEta; ieta+=fac)
 //        {
-//          eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
+//          eta = (DATA.delta_eta)*(ieta+DATA.neta*rank) - (DATA.eta_size)/2.0;
 //          //fprintf(stderr, "%d, %d, %d\n",ix,iy,ieta);
 //          
 //
@@ -4194,46 +4194,46 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //      FILE *oout_file;
 //      const char* oout_name = "OSCARheader.dat";
 //      oout_file = fopen(oout_name, "w");
-//      if(DATA->outputEvolutionData)
+//      if(DATA.outputEvolutionData)
 //        {
-//          if(DATA->viscosity_flag==1)
+//          if(DATA.viscosity_flag==1)
 //        fprintf(oout_file,"OSCAR2008H viscous history\n");
 //          else
 //        fprintf(oout_file,"OSCAR2008H ideal history\n");
 //
-//          fprintf(oout_file,"INIT: MUSIC %s+%s at b=%f fm, Glauber\n",DATA->Target.c_str(), DATA->Projectile.c_str(),DATA->b);
+//          fprintf(oout_file,"INIT: MUSIC %s+%s at b=%f fm, Glauber\n",DATA.Target.c_str(), DATA.Projectile.c_str(),DATA.b);
 //          fprintf(oout_file,"INIT: \n");
 //          
-//          if (DATA->whichEOS==0)
+//          if (DATA.whichEOS==0)
 //        {
 //          fprintf(oout_file,"EOS: ideal gas EOS \n");
 //        }
-//          else if (DATA->whichEOS==1)
+//          else if (DATA.whichEOS==1)
 //        {
 //            fprintf(oout_file,"EOS: EOS-Q from AZHYDRO \n");
 //        }
-//          else if (DATA->whichEOS==2)
+//          else if (DATA.whichEOS==2)
 //        {
 //            fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky \n");
 //        }
-//          else if (DATA->whichEOS==3)
+//          else if (DATA.whichEOS==3)
 //        {
 //            fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 150 MeV\n");
 //        }
-//          else if (DATA->whichEOS==4)
+//          else if (DATA.whichEOS==4)
 //        {
 //            fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 155 MeV\n");
 //        }
-//          else if (DATA->whichEOS==5)
+//          else if (DATA.whichEOS==5)
 //        {
 //            fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 160 MeV\n");
 //        }
-//          else if (DATA->whichEOS==6)
+//          else if (DATA.whichEOS==6)
 //        {
 //            fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 165 MeV\n");
 //        }
 //
-//          if(DATA->turn_on_rhob==0)
+//          if(DATA.turn_on_rhob==0)
 //        fprintf(oout_file,"CHARGES: none\n");
 //          else
 //        fprintf(oout_file,"CHARGES: baryon\n");
@@ -4244,30 +4244,30 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //       
 //          fprintf(oout_file,"GRID: Euler\n");
 // 
-//          fprintf(oout_file,"%d %d %d %d %d %d %d\n", static_cast<int>(((tau-DATA->tau0)/static_cast<double>(DATA->delta_tau)+1)/10.)+1, 
-//              DATA->nx, DATA->ny, DATA->neta, 0, 0, 0);
+//          fprintf(oout_file,"%d %d %d %d %d %d %d\n", static_cast<int>(((tau-DATA.tau0)/static_cast<double>(DATA.delta_tau)+1)/10.)+1, 
+//              DATA.nx, DATA.ny, DATA.neta, 0, 0, 0);
 //        
-//          fprintf(oout_file,"%f %f %f %f %f %f %f %f\n", DATA->tau0, tau, -DATA->x_size/2., DATA->x_size/2., -DATA->y_size/2., DATA->y_size/2.,
-//              -DATA->eta_size/2., DATA->eta_size/2.);
+//          fprintf(oout_file,"%f %f %f %f %f %f %f %f\n", DATA.tau0, tau, -DATA.x_size/2., DATA.x_size/2., -DATA.y_size/2., DATA.y_size/2.,
+//              -DATA.eta_size/2., DATA.eta_size/2.);
 //
-//          if(DATA->viscosity_flag==1)
+//          if(DATA.viscosity_flag==1)
 //        {
-//          if(DATA->turn_on_shear && DATA->turn_on_bulk)
+//          if(DATA.turn_on_shear && DATA.turn_on_bulk)
 //            {
 //              fprintf(oout_file,"VISCOSITY: shear and bulk viscosity\n");
-//              fprintf(oout_file,"VISCOSITY: eta/s = %f, zeta/s = %f\n", DATA->shear_to_s, DATA->bulk_to_s);
+//              fprintf(oout_file,"VISCOSITY: eta/s = %f, zeta/s = %f\n", DATA.shear_to_s, DATA.bulk_to_s);
 //            }
-//          else if(DATA->turn_on_shear==1 && DATA->turn_on_bulk==0)
+//          else if(DATA.turn_on_shear==1 && DATA.turn_on_bulk==0)
 //            {
 //              fprintf(oout_file,"VISCOSITY: shear viscosity only\n");
-//              fprintf(oout_file,"VISCOSITY: eta/s = %f\n", DATA->shear_to_s);
+//              fprintf(oout_file,"VISCOSITY: eta/s = %f\n", DATA.shear_to_s);
 //            }
-//          else if(DATA->turn_on_shear==0 && DATA->turn_on_bulk==1)
+//          else if(DATA.turn_on_shear==0 && DATA.turn_on_bulk==1)
 //            {
 //              fprintf(oout_file,"VISCOSITY: bulk viscosity only\n");
-//              fprintf(oout_file,"VISCOSITY: zeta/s = %f\n", DATA->bulk_to_s);
+//              fprintf(oout_file,"VISCOSITY: zeta/s = %f\n", DATA.bulk_to_s);
 //            }
-//          else if(DATA->turn_on_shear==0 && DATA->turn_on_bulk==0)
+//          else if(DATA.turn_on_shear==0 && DATA.turn_on_bulk==0)
 //            {
 //              fprintf(oout_file,"VISCOSITY: none\n");
 //              fprintf(oout_file,"VISCOSITY: \n");
@@ -4390,7 +4390,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //// Modified version of simplified freeze out  (M. Luzum, 04/2013)
 //// Every element of the freezeout surface is a rectangular cuboid
 //// located mid-way between cells/grid points.
-//int Evolve::FindFreezeOutSurface3(double tau, InitData *DATA, Grid &arena, int size, int rank)
+//int Evolve::FindFreezeOutSurface3(double tau, const InitData &DATA, Grid &arena, int size, int rank)
 //{   
 //  stringstream strs_name;
 //  strs_name << "surface" << rank << ".dat";
@@ -4401,7 +4401,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //  
 //  
 //  // output file for computing spectra with UVH2+1 code by Luzum & Romatschke
-////   if(DATA->boost_invariant)
+////   if(DATA.boost_invariant)
 ////   {
 //    stringstream fr_name;
 //    fr_name << "freezeout" << rank << ".dat";
@@ -4418,7 +4418,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //  
 //  int ix, iy, ieta, nx, ny, neta;
 //  double x, y, eta;
-////   double epsFO=DATA->epsilonFreeze/hbarc;
+////   double epsFO=DATA.epsilonFreeze/hbarc;
 //  double tauf, xf, yf, etaf;
 //  nx = grid_nx;
 //  ny = grid_ny;
@@ -4435,14 +4435,14 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 ////   int shown;
 //  
 //  fac=1; // Non-unity value does not currently work
-//  facTau = DATA->facTau;
-//  DX=fac*DATA->delta_x;
-//  DY=fac*DATA->delta_y;
-//  DETA=fac*DATA->delta_eta;
-//  DTAU=facTau*DATA->delta_tau;
+//  facTau = DATA.facTau;
+//  DX=fac*DATA.delta_x;
+//  DY=fac*DATA.delta_y;
+//  DETA=fac*DATA.delta_eta;
+//  DTAU=facTau*DATA.delta_tau;
 //  
 //  
-//  double maxDETA = DATA->max_delta_eta;// maximum size of cuboid in eta direction.  If DETA > maxDETA, split the surface into several identical sections spread across eta.
+//  double maxDETA = DATA.max_delta_eta;// maximum size of cuboid in eta direction.  If DETA > maxDETA, split the surface into several identical sections spread across eta.
 //  int subsections = floor(DETA/maxDETA) + 1;// subdivide the blocks into this many subdivisions in eta
 // 
 ////  cout << "subsections = " << subsections << endl;
@@ -4558,9 +4558,9 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //          packageux[position] = arena(iy,0,ix).u[0][1];
 //          packageuy[position] = arena(iy,0,ix).u[0][2];
 //          packageueta[position] = arena(iy,0,ix).u[0][3];
-//          if(DATA->turn_on_rhob) packagerhob[position] = arena(iy,0,ix).rhob;
-//          if(DATA->turn_on_bulk) packagePi_b[position] = arena(iy,0,ix).pi_b[0];
-//          if(DATA->turn_on_shear) 
+//          if(DATA.turn_on_rhob) packagerhob[position] = arena(iy,0,ix).rhob;
+//          if(DATA.turn_on_bulk) packagePi_b[position] = arena(iy,0,ix).pi_b[0];
+//          if(DATA.turn_on_shear) 
 //          {
 //  //          packageWtautau[position] = arena(iy,0,ix).Wmunu[0][0][0];
 //  //          packageWtaux[position] = arena(iy,0,ix).Wmunu[0][0][1];
@@ -4583,9 +4583,9 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //      MPI::COMM_WORLD.Send(packageux,sizeOfData,MPI::DOUBLE,to,4);
 //      MPI::COMM_WORLD.Send(packageuy,sizeOfData,MPI::DOUBLE,to,5);
 //      MPI::COMM_WORLD.Send(packageueta,sizeOfData,MPI::DOUBLE,to,6);
-//      if(DATA->turn_on_rhob) MPI::COMM_WORLD.Send(packagerhob,sizeOfData,MPI::DOUBLE,to,7);
-//      if(DATA->turn_on_bulk) MPI::COMM_WORLD.Send(packagePi_b,sizeOfData,MPI::DOUBLE,to,8);
-//      if(DATA->turn_on_shear) 
+//      if(DATA.turn_on_rhob) MPI::COMM_WORLD.Send(packagerhob,sizeOfData,MPI::DOUBLE,to,7);
+//      if(DATA.turn_on_bulk) MPI::COMM_WORLD.Send(packagePi_b,sizeOfData,MPI::DOUBLE,to,8);
+//      if(DATA.turn_on_shear) 
 //      {
 //  //      MPI::COMM_WORLD.Send(packageWtautau,sizeOfData,MPI::DOUBLE,to,12);
 //  //      MPI::COMM_WORLD.Send(packageWtaux,sizeOfData,MPI::DOUBLE,to,13);
@@ -4608,9 +4608,9 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //      MPI::COMM_WORLD.Recv(packageux,sizeOfData,MPI::DOUBLE,from,4);
 //      MPI::COMM_WORLD.Recv(packageuy,sizeOfData,MPI::DOUBLE,from,5);
 //      MPI::COMM_WORLD.Recv(packageueta,sizeOfData,MPI::DOUBLE,from,6);
-//      if(DATA->turn_on_rhob) MPI::COMM_WORLD.Recv(packagerhob,sizeOfData,MPI::DOUBLE,from,7);
-//      if(DATA->turn_on_bulk) MPI::COMM_WORLD.Recv(packagePi_b,sizeOfData,MPI::DOUBLE,from,8);
-//      if(DATA->turn_on_shear) 
+//      if(DATA.turn_on_rhob) MPI::COMM_WORLD.Recv(packagerhob,sizeOfData,MPI::DOUBLE,from,7);
+//      if(DATA.turn_on_bulk) MPI::COMM_WORLD.Recv(packagePi_b,sizeOfData,MPI::DOUBLE,from,8);
+//      if(DATA.turn_on_shear) 
 //      {
 //  //      MPI::COMM_WORLD.Recv(packageWtautau,sizeOfData,MPI::DOUBLE,from,12);
 //  //      MPI::COMM_WORLD.Recv(packageWtaux,sizeOfData,MPI::DOUBLE,from,13);
@@ -4636,15 +4636,15 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //          Rneighbor_ux[ix][iy] = packageux[position];
 //          Rneighbor_uy[ix][iy] = packageuy[position];
 //          Rneighbor_ueta[ix][iy] = packageueta[position];
-//          if(DATA->turn_on_rhob)
+//          if(DATA.turn_on_rhob)
 //                Rneighbor_rhob[ix][iy] = packagerhob[position];
 //          else 
 //                Rneighbor_rhob[ix][iy] = 0.;
-//          if(DATA->turn_on_bulk)
+//          if(DATA.turn_on_bulk)
 //                Rneighbor_Pi_b[ix][iy] = packagePi_b[position];
 //          else 
 //                Rneighbor_Pi_b[ix][iy] = 0.;
-//          if(DATA->turn_on_shear) 
+//          if(DATA.turn_on_shear) 
 //          {
 //  //          Rneighbor_Wtautau[ix][iy] = packageWtautau[position];
 //  //          Rneighbor_Wtaux[ix][iy] = packageWtaux[position];
@@ -4679,24 +4679,24 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 ////   int maxEta;
 //  maxEta = neta-fac;
 //  
-//  if (DATA->useEpsFO) FO = DATA->epsilonFreeze/hbarc;
-//  else FO = DATA->TFO/hbarc;
+//  if (DATA.useEpsFO) FO = DATA.epsilonFreeze/hbarc;
+//  else FO = DATA.TFO/hbarc;
 //
 //  for(ix=0; ix<=nx; ix+=fac)
 //    {
-//      x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
+//      x = ix*(DATA.delta_x) - (DATA.x_size/2.0); 
 //      for(iy=0; iy<=ny; iy+=fac)
 //    {
-//      y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+//      y = iy*(DATA.delta_y) - (DATA.y_size/2.0);
 //      for(ieta=0; ieta<=maxEta; ieta+=fac)
 //        {
-//          eta = (DATA->delta_eta)*(ieta+DATA->neta*rank) - (DATA->eta_size)/2.0;
+//          eta = (DATA.delta_eta)*(ieta+DATA.neta*rank) - (DATA.eta_size)/2.0;
 //          
-//          if (DATA->useEpsFO && (arena(iy,ieta,ix).epsilon >= FO)) frozen = 0;
-//          else if (!DATA->useEpsFO && (eos->get_temperature(arena(iy,ieta,ix).epsilon,arena(iy,ieta,ix).rhob) >= FO)) frozen = 0;
+//          if (DATA.useEpsFO && (arena(iy,ieta,ix).epsilon >= FO)) frozen = 0;
+//          else if (!DATA.useEpsFO && (eos->get_temperature(arena(iy,ieta,ix).epsilon,arena(iy,ieta,ix).rhob) >= FO)) frozen = 0;
 //          
 ////          rhob = arena(iy,ieta,ix).rhob;
-////          if (!DATA->useEpsFO && (1 == DATA->turn_on_rhob)) 
+////          if (!DATA.useEpsFO && (1 == DATA.turn_on_rhob)) 
 ////        cerr << "Caution! Constant temperature freezeout with nonzero chemical potential doesn't yet work properly (need to implement rhob_prev)\n";
 //
 //          if(ix<nx)
@@ -4715,7 +4715,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //          FULLSU[2]=0.;
 //          FULLSU[3]=0.;
 //          
-//          if (DATA->useEpsFO)
+//          if (DATA.useEpsFO)
 //          {
 //          home = arena(iy,ieta,ix).epsilon;
 //          neighbor = arena(niy,nieta,nix).epsilon;
@@ -4771,10 +4771,10 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //              << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
 //              << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
 //              << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
-//            if(DATA->turn_on_bulk) s_file << " " << pi_b;
+//            if(DATA.turn_on_bulk) s_file << " " << pi_b;
 //            s_file << endl;  
 //          }
-//          if(DATA->boost_invariant && (eta==0.0))
+//          if(DATA.boost_invariant && (eta==0.0))
 //          {
 //            double P = eos->get_pressure(iepsFO, rhob);
 //            freeze_file << setprecision(10) << xf << "\t" << yf << "\t" << tauf << "\t";
@@ -4782,17 +4782,17 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //            freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
 //            freeze_file << TFO*hbarc << "\n";
 //          }
-//          if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
+//          if((iy==0 || niy==ny) && DATA.check_FO3_at_boundary_xy>0)
 //          {
 //            cerr << "Freeze out surface exiting the volume in y direction at tau, x,y,eta = " 
 //              << tauf << ", " << x << ", " << y << ", " << eta << endl;
-//            if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+//            if(DATA.check_FO3_at_boundary_xy>1) exit(42);
 //          }
-//          if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))
+//          if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA.check_FO3_at_boundary_eta>0))
 //          {
 //            cerr << "Freeze out surface exiting the volume in eta direction at tau, x,y,eta = " 
 //              << tauf << ", " << x << ", " << y << ", " << eta << endl;
-//            if(DATA->check_FO3_at_boundary_eta>1) exit(42);
+//            if(DATA.check_FO3_at_boundary_eta>1) exit(42);
 //          }
 //        } // if grid pair straddles freeze out density
 //        } //if(ix<nx)
@@ -4813,7 +4813,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //          FULLSU[2]=DTAU*DX*DETA/subsections;
 //          FULLSU[3]=0.;
 //        
-//          if (DATA->useEpsFO)
+//          if (DATA.useEpsFO)
 //          {
 //          home = arena(iy,ieta,ix).epsilon;
 //          neighbor = arena(niy,nieta,nix).epsilon;
@@ -4869,10 +4869,10 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //              << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
 //              << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
 //              << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
-//            if(DATA->turn_on_bulk) s_file << " " << pi_b;
+//            if(DATA.turn_on_bulk) s_file << " " << pi_b;
 //            s_file << endl; 
 //          }
-//          if(DATA->boost_invariant && (eta==0.0))
+//          if(DATA.boost_invariant && (eta==0.0))
 //          {
 //            double P = eos->get_pressure(iepsFO, rhob);
 //            freeze_file << setprecision(10) << xf << "\t" << yf << "\t" << tauf << "\t";
@@ -4880,17 +4880,17 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //            freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
 //            freeze_file << TFO*hbarc << "\n";
 //          }
-//          if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
+//          if((ix==0 || nix==nx) && DATA.check_FO3_at_boundary_xy>0)
 //          {
 //            cerr << "Freeze out surface exiting the volume in x direction at tau, x,y,eta = " 
 //              << tauf << ", " << x << ", " << y << ", " << eta << endl;
-//            if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+//            if(DATA.check_FO3_at_boundary_xy>1) exit(42);
 //          }
-//          if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))
+//          if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA.check_FO3_at_boundary_eta>0))
 //          {
 //            cerr << "Freeze out surface exiting the volume in eta direction at tau, x,y,eta = " 
 //              << tauf << ", " << x << ", " << y << ", " << eta << endl;
-//            if(DATA->check_FO3_at_boundary_eta>1) exit(42);
+//            if(DATA.check_FO3_at_boundary_eta>1) exit(42);
 //          }
 //        } // if grid pair straddles freeze out density
 //        } //if(iy<ny)
@@ -4911,7 +4911,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //          FULLSU[2]=0.;
 //          FULLSU[3]=DTAU*DX*DY;
 //          
-//          if (DATA->useEpsFO)
+//          if (DATA.useEpsFO)
 //          {
 //          home = arena(iy,ieta,ix).epsilon;
 //          neighbor = arena(niy,nieta,nix).epsilon;
@@ -4963,20 +4963,20 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //             << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
 //             << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
 //             << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
-//          if(DATA->turn_on_bulk) s_file << " " << pi_b;
+//          if(DATA.turn_on_bulk) s_file << " " << pi_b;
 //          s_file << endl; 
 //             
-//          if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
+//          if((ix==0 || nix==nx) && DATA.check_FO3_at_boundary_xy>0)
 //          {
 //            cerr << "Freeze out surface exiting the volume in x direction at tau, x,y,eta = " 
 //              << tauf << ", " << x << ", " << y << ", " << eta << endl;
-//            if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+//            if(DATA.check_FO3_at_boundary_xy>1) exit(42);
 //          }
-//          if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
+//          if((iy==0 || niy==ny) && DATA.check_FO3_at_boundary_xy>0)
 //          {
 //            cerr << "Freeze out surface exiting the volume in y direction at tau, x,y,eta = " 
 //              << tauf << ", " << x << ", " << y << ", " << eta << endl;
-//            if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+//            if(DATA.check_FO3_at_boundary_xy>1) exit(42);
 //          }
 //        }// if grid pair straddles freeze out density
 //          }// if (ieta<maxEta)
@@ -4998,7 +4998,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //          FULLSU[3]=0.;
 //        
 //          neighbor = home;
-//          if (DATA->useEpsFO)
+//          if (DATA.useEpsFO)
 //          {
 //          home = arena(iy,ieta,ix).epsilon_prev;
 //          }
@@ -5057,10 +5057,10 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //              << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
 //              << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
 //              << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
-//            if(DATA->turn_on_bulk) s_file << " " << pi_b;
+//            if(DATA.turn_on_bulk) s_file << " " << pi_b;
 //            s_file << endl; 
 //          }
-//          if(DATA->boost_invariant && (eta==0.0))
+//          if(DATA.boost_invariant && (eta==0.0))
 //          {
 //            double P = eos->get_pressure(iepsFO, rhob);
 //            freeze_file << setprecision(10) << xf << "\t" << yf << "\t" << tauf << "\t";
@@ -5068,23 +5068,23 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //            freeze_file << Wxx/(iepsFO + P) << "\t" << Wxy/(iepsFO + P) << "\t" << Wyy/(iepsFO + P) << "\t";
 //            freeze_file << TFO*hbarc << "\n";
 //          }
-//          if((ix==0 || nix==nx) && DATA->check_FO3_at_boundary_xy>0)
+//          if((ix==0 || nix==nx) && DATA.check_FO3_at_boundary_xy>0)
 //          {
 //            cerr << "Freeze out surface exiting the volume in x direction at tau, x,y,eta = " 
 //              << tauf << ", " << x << ", " << y << ", " << eta << endl;
-//            if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+//            if(DATA.check_FO3_at_boundary_xy>1) exit(42);
 //          }
-//          if((iy==0 || niy==ny) && DATA->check_FO3_at_boundary_xy>0)
+//          if((iy==0 || niy==ny) && DATA.check_FO3_at_boundary_xy>0)
 //          {
 //            cerr << "Freeze out surface exiting the volume in y direction at tau, x,y,eta = " 
 //              << tauf << ", " << x << ", " << y << ", " << eta << endl;
-//            if(DATA->check_FO3_at_boundary_xy>1) exit(42);
+//            if(DATA.check_FO3_at_boundary_xy>1) exit(42);
 //          }
-//          if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA->check_FO3_at_boundary_eta>0))
+//          if(((ieta==0 && rank ==0) || (nieta==maxEta && rank == (size-1))) && (DATA.check_FO3_at_boundary_eta>0))
 //          {
 //            cerr << "Freeze out surface exiting the volume in eta direction at tau, x,y,eta = " 
 //              << tauf << ", " << x << ", " << y << ", " << eta << endl;
-//            if(DATA->check_FO3_at_boundary_eta>1) exit(42);
+//            if(DATA.check_FO3_at_boundary_eta>1) exit(42);
 //          }
 //        } // if grid pair straddles density
 //          
@@ -5109,7 +5109,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //      //  (steps in x, y, and tau are checked on the neighboring processor)
 //      if (rank != size-1) 
 //      {
-//        eta = (DATA->delta_eta)*(neta+DATA->neta*rank) - (DATA->eta_size)/2.0;
+//        eta = (DATA.delta_eta)*(neta+DATA.neta*rank) - (DATA.eta_size)/2.0;
 //    
 //          // from Rneighbor, check backward in eta
 //          xf = x;
@@ -5125,7 +5125,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //          FULLSU[2]=0.;
 //          FULLSU[3]=DTAU*DX*DY;
 //          
-//          if (DATA->useEpsFO)
+//          if (DATA.useEpsFO)
 //          {
 //          home = arena(iy,nieta,ix).epsilon;
 //          neighbor = Rneighbor_eps[nix][niy];
@@ -5181,7 +5181,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //             << iepsFO << " " << TFO << " " << muB << " " << eps_plus_p_over_T_FO << " " 
 //             << Wtautau << " " << Wtaux << " " << Wtauy << " " << Wtaueta << " " 
 //             << Wxx << " " << Wxy << " " << Wxeta << " " << Wyy << " " << Wyeta << " " << Wetaeta; 
-//          if(DATA->turn_on_bulk) s_file << " " << pi_b;
+//          if(DATA.turn_on_bulk) s_file << " " << pi_b;
 //          s_file << endl; 
 //        }// if grid pair straddles freeze out density
 //
@@ -5220,46 +5220,46 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 ////    FILE *oout_file;
 ////    char* oout_name = "OSCARheader.dat";
 ////    oout_file = fopen(oout_name, "w");
-////    if(DATA->outputEvolutionData)
+////    if(DATA.outputEvolutionData)
 ////      {
-////        if(DATA->viscosity_flag==1)
+////        if(DATA.viscosity_flag==1)
 ////      fprintf(oout_file,"OSCAR2008H viscous history\n");
 ////        else
 ////      fprintf(oout_file,"OSCAR2008H ideal history\n");
 //// 
-////        fprintf(oout_file,"INIT: MUSIC %s+%s at b=%f fm, Glauber\n",DATA->Target.c_str(), DATA->Projectile.c_str(),DATA->b);
+////        fprintf(oout_file,"INIT: MUSIC %s+%s at b=%f fm, Glauber\n",DATA.Target.c_str(), DATA.Projectile.c_str(),DATA.b);
 ////        fprintf(oout_file,"INIT: \n");
 ////        
-////        if (DATA->whichEOS==0)
+////        if (DATA.whichEOS==0)
 ////      {
 ////        fprintf(oout_file,"EOS: ideal gas EOS \n");
 ////      }
-////        else if (DATA->whichEOS==1)
+////        else if (DATA.whichEOS==1)
 ////      {
 ////          fprintf(oout_file,"EOS: EOS-Q from AZHYDRO \n");
 ////      }
-////        else if (DATA->whichEOS==2)
+////        else if (DATA.whichEOS==2)
 ////      {
 ////          fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky \n");
 ////      }
-////        else if (DATA->whichEOS==3)
+////        else if (DATA.whichEOS==3)
 ////      {
 ////          fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 150 MeV\n");
 ////      }
-////        else if (DATA->whichEOS==4)
+////        else if (DATA.whichEOS==4)
 ////      {
 ////          fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 155 MeV\n");
 ////      }
-////        else if (DATA->whichEOS==5)
+////        else if (DATA.whichEOS==5)
 ////      {
 ////          fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 160 MeV\n");
 ////      }
-////        else if (DATA->whichEOS==6)
+////        else if (DATA.whichEOS==6)
 ////      {
 ////          fprintf(oout_file,"EOS: lattice EOS from Huovinen/Petreczky with partial chemical equilibrium (PCE) chem. f.o. at 165 MeV\n");
 ////      }
 //// 
-////        if(DATA->turn_on_rhob==0)
+////        if(DATA.turn_on_rhob==0)
 ////      fprintf(oout_file,"CHARGES: none\n");
 ////        else
 ////      fprintf(oout_file,"CHARGES: baryon\n");
@@ -5270,30 +5270,30 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 ////        
 ////        fprintf(oout_file,"GRID: Euler\n");
 ////  
-////        fprintf(oout_file,"%d %d %d %d %d %d %d\n", static_cast<int>(((tau-DATA->tau0)/static_cast<double>(DATA->delta_tau)+1)/10.)+1, 
-////            DATA->nx, DATA->ny, DATA->neta, 0, 0, 0);
+////        fprintf(oout_file,"%d %d %d %d %d %d %d\n", static_cast<int>(((tau-DATA.tau0)/static_cast<double>(DATA.delta_tau)+1)/10.)+1, 
+////            DATA.nx, DATA.ny, DATA.neta, 0, 0, 0);
 ////      
-////        fprintf(oout_file,"%f %f %f %f %f %f %f %f\n", DATA->tau0, tau, -DATA->x_size/2., DATA->x_size/2., -DATA->y_size/2., DATA->y_size/2.,
-////            -DATA->eta_size/2., DATA->eta_size/2.);
+////        fprintf(oout_file,"%f %f %f %f %f %f %f %f\n", DATA.tau0, tau, -DATA.x_size/2., DATA.x_size/2., -DATA.y_size/2., DATA.y_size/2.,
+////            -DATA.eta_size/2., DATA.eta_size/2.);
 //// 
-////        if(DATA->viscosity_flag==1)
+////        if(DATA.viscosity_flag==1)
 ////      {
-////        if(DATA->turn_on_shear && DATA->turn_on_bulk)
+////        if(DATA.turn_on_shear && DATA.turn_on_bulk)
 ////          {
 ////            fprintf(oout_file,"VISCOSITY: shear and bulk viscosity\n");
-////            fprintf(oout_file,"VISCOSITY: eta/s = %f, zeta/s = %f\n", DATA->shear_to_s, DATA->bulk_to_s);
+////            fprintf(oout_file,"VISCOSITY: eta/s = %f, zeta/s = %f\n", DATA.shear_to_s, DATA.bulk_to_s);
 ////          }
-////        else if(DATA->turn_on_shear==1 && DATA->turn_on_bulk==0)
+////        else if(DATA.turn_on_shear==1 && DATA.turn_on_bulk==0)
 ////          {
 ////            fprintf(oout_file,"VISCOSITY: shear viscosity only\n");
-////            fprintf(oout_file,"VISCOSITY: eta/s = %f\n", DATA->shear_to_s);
+////            fprintf(oout_file,"VISCOSITY: eta/s = %f\n", DATA.shear_to_s);
 ////          }
-////        else if(DATA->turn_on_shear==0 && DATA->turn_on_bulk==1)
+////        else if(DATA.turn_on_shear==0 && DATA.turn_on_bulk==1)
 ////          {
 ////            fprintf(oout_file,"VISCOSITY: bulk viscosity only\n");
-////            fprintf(oout_file,"VISCOSITY: zeta/s = %f\n", DATA->bulk_to_s);
+////            fprintf(oout_file,"VISCOSITY: zeta/s = %f\n", DATA.bulk_to_s);
 ////          }
-////        else if(DATA->turn_on_shear==0 && DATA->turn_on_bulk==0)
+////        else if(DATA.turn_on_shear==0 && DATA.turn_on_bulk==0)
 ////          {
 ////            fprintf(oout_file,"VISCOSITY: none\n");
 ////            fprintf(oout_file,"VISCOSITY: \n");
@@ -5368,7 +5368,7 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
 //}
 //
 // Cornelius freeze out  (C. Shen, 11/2014)
-int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
+int Evolve::FindFreezeOutSurface_Cornelius(double tau, const InitData &DATA,
                                            Grid &arena) {
     // output hyper-surfaces for Cooper-Frye
     int *all_frozen = new int [n_freeze_surf];
@@ -5403,7 +5403,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau, InitData *DATA,
     return(all_frozen_flag);
 }
 
-int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
+int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, const InitData &DATA,
                                               int ieta, Grid &arena,
                                               int thread_id, double epsFO) {
     const int nx = arena.nX();
@@ -5439,15 +5439,15 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
     int intersect;
     int intersections = 0;
 
-    facTau      = DATA->facTau;   // step to skip in tau direction
-    int fac_x   = DATA->fac_x;
-    int fac_y   = DATA->fac_y;
+    facTau      = DATA.facTau;   // step to skip in tau direction
+    int fac_x   = DATA.fac_x;
+    int fac_y   = DATA.fac_y;
     int fac_eta = 1;
     
-    double DTAU = facTau*DATA->delta_tau;
-    double DX   = fac_x*DATA->delta_x;
-    double DY   = fac_y*DATA->delta_y;
-    double DETA = fac_eta*DATA->delta_eta;
+    double DTAU = facTau*DATA.delta_tau;
+    double DX   = fac_x*DATA.delta_x;
+    double DY   = fac_y*DATA.delta_y;
+    double DETA = fac_eta*DATA.delta_eta;
 
     lattice_spacing[0] = DTAU;
     lattice_spacing[1] = DX;
@@ -5477,11 +5477,11 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
         }
     }
 
-    double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
+    double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
     for (int ix = 0; ix < nx - fac_x; ix += fac_x) {
-        double x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
+        double x = ix*(DATA.delta_x) - (DATA.x_size/2.0); 
         for (int iy = 0; iy < ny - fac_y; iy += fac_y) {
-            double y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+            double y = iy*(DATA.delta_y) - (DATA.y_size/2.0);
 
             // make sure the epsilon value is never exactly 
             // the same as epsFO...
@@ -6114,11 +6114,11 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
                        << Wxeta_center << " " 
                        << Wyy_center << " " << Wyeta_center << " " 
                        << Wetaeta_center << " " ;
-                if(DATA->turn_on_bulk)
+                if(DATA.turn_on_bulk)
                     s_file << pi_b_center << " " ;
-                if(DATA->turn_on_rhob)
+                if(DATA.turn_on_rhob)
                     s_file << rhob_center << " " ;
-                if(DATA->turn_on_diff)
+                if(DATA.turn_on_diff)
                     s_file << qtau_center << " " << qx_center << " " 
                            << qy_center << " " << qeta_center << " " ;
                 s_file << endl;
@@ -6147,7 +6147,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, InitData *DATA,
 }
 
 // Cornelius freeze out (C. Shen, 11/2014)
-int Evolve::FreezeOut_equal_tau_Surface(double tau, InitData *DATA,
+int Evolve::FreezeOut_equal_tau_Surface(double tau, const InitData &DATA,
                                         Grid &arena) {
     // this function freeze-out fluid cells between epsFO and epsFO_low
     // on an equal time hyper-surface at the first time step
@@ -6167,7 +6167,7 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau, InitData *DATA,
     return(0);
 }
 
-void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
+void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, const InitData &DATA,
                                             int ieta, Grid &arena,
                                             int thread_id, double epsFO) {
 
@@ -6196,19 +6196,19 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
     int intersect;
     int intersections = 0;
 
-    int fac_x = DATA->fac_x;
-    int fac_y = DATA->fac_y;
+    int fac_x = DATA.fac_x;
+    int fac_y = DATA.fac_y;
     int fac_eta = 1;
     
-    double DX = fac_x*DATA->delta_x;
-    double DY = fac_y*DATA->delta_y;
-    double DETA = fac_eta*DATA->delta_eta;
+    double DX = fac_x*DATA.delta_x;
+    double DY = fac_y*DATA.delta_y;
+    double DETA = fac_eta*DATA.delta_eta;
 
-    double eta = (DATA->delta_eta)*ieta - (DATA->eta_size)/2.0;
+    double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
     for (int ix = 0; ix < nx - fac_x; ix += fac_x) {
-        double x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
+        double x = ix*(DATA.delta_x) - (DATA.x_size/2.0); 
         for (int iy = 0; iy < ny - fac_y; iy += fac_y) {
-            double y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+            double y = iy*(DATA.delta_y) - (DATA.y_size/2.0);
 
             // judge intersection
             intersect = 0;
@@ -6360,11 +6360,11 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
                    << Wxeta_center << " " 
                    << Wyy_center << " " << Wyeta_center << " " 
                    << Wetaeta_center << " " ;
-            if (DATA->turn_on_bulk)
+            if (DATA.turn_on_bulk)
                 s_file << pi_b_center << " " ;
-            if (DATA->turn_on_rhob)
+            if (DATA.turn_on_rhob)
                 s_file << rhob_center << " " ;
-            if (DATA->turn_on_diff)
+            if (DATA.turn_on_diff)
                 s_file << qtau_center << " " << qx_center << " " 
                        << qy_center << " " << qeta_center << " " ;
             s_file << endl;
@@ -6374,7 +6374,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
 }
 
 int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
-                                double tau, InitData *DATA, Grid &arena) {
+                                double tau, const InitData &DATA, Grid &arena) {
     // find boost-invariant hyper-surfaces
     int *all_frozen = new int [n_freeze_surf];
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
@@ -6414,14 +6414,14 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         int intersect;
         int intersections = 0;
 
-        facTau = DATA->facTau;   // step to skip in tau direction
-        int fac_x = DATA->fac_x;
-        int fac_y = DATA->fac_y;
+        facTau = DATA.facTau;   // step to skip in tau direction
+        int fac_x = DATA.fac_x;
+        int fac_y = DATA.fac_y;
 
-        double DX=fac_x*DATA->delta_x;
-        double DY=fac_y*DATA->delta_y;
+        double DX=fac_x*DATA.delta_x;
+        double DY=fac_y*DATA.delta_y;
         double DETA=1.0;
-        double DTAU=facTau*DATA->delta_tau;
+        double DTAU=facTau*DATA.delta_tau;
 
         lattice_spacing[0] = DTAU;
         lattice_spacing[1] = DX;
@@ -6447,9 +6447,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         }
   
         for (int ix=0; ix < nx - fac_x; ix += fac_x) {
-            double x = ix*(DATA->delta_x) - (DATA->x_size/2.0); 
+            double x = ix*(DATA.delta_x) - (DATA.x_size/2.0); 
             for (int iy=0; iy < ny - fac_y; iy += fac_y) {
-                double y = iy*(DATA->delta_y) - (DATA->y_size/2.0);
+                double y = iy*(DATA.delta_y) - (DATA.y_size/2.0);
     
                 // make sure the epsilon value is never 
                 // exactly the same as epsFO...
@@ -6897,11 +6897,11 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                            << Wxeta_center << " " 
                            << Wyy_center << " " << Wyeta_center << " " 
                            << Wetaeta_center << " " ;
-                    if(DATA->turn_on_bulk)   // 27th column
+                    if(DATA.turn_on_bulk)   // 27th column
                         s_file << pi_b_center << " " ;
-                    if(DATA->turn_on_rhob)   // 28th column
+                    if(DATA.turn_on_rhob)   // 28th column
                         s_file << rhob_center << " " ;
-                    if(DATA->turn_on_diff)   // 29-32th column
+                    if(DATA.turn_on_diff)   // 29-32th column
                         s_file << qtau_center << " " << qx_center << " " 
                                << qy_center << " " << qeta_center << " " ;
                     s_file << endl;

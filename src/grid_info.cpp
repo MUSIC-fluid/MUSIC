@@ -53,7 +53,7 @@ Cell_info::~Cell_info() {
 
 
 //! This function outputs a header files for JF and Gojko's EM program
-void Cell_info::Output_hydro_information_header(InitData *DATA) {
+void Cell_info::Output_hydro_information_header(const InitData &DATA) {
     string fname = "hydro_info_header_h";
 
     // Open output file
@@ -61,46 +61,46 @@ void Cell_info::Output_hydro_information_header(InitData *DATA) {
     outfile.open(fname.c_str());
 
     int grid_nx = ceil(
-        (static_cast<double>(DATA->nx + 1))/DATA->output_evolution_every_N_x);
+        (static_cast<double>(DATA.nx + 1))/DATA.output_evolution_every_N_x);
     int grid_ny = ceil(
-        (static_cast<double>(DATA->ny + 1))/DATA->output_evolution_every_N_y);
+        (static_cast<double>(DATA.ny + 1))/DATA.output_evolution_every_N_y);
     int grid_neta = ceil(
-        (static_cast<double>(DATA->neta))/DATA->output_evolution_every_N_eta);
+        (static_cast<double>(DATA.neta))/DATA.output_evolution_every_N_eta);
 
     outfile << "const int MUSIC_real_nx = " << grid_nx << ";" << endl;
     outfile << "const int MUSIC_real_ny = " << grid_ny << ";" << endl;
     outfile << "const int MUSIC_real_neta = " << grid_neta << ";" << endl;
 
-    outfile << "const double MUSIC_tau0 = " << DATA->tau0 << ";" << endl;
+    outfile << "const double MUSIC_tau0 = " << DATA.tau0 << ";" << endl;
 
     outfile << "const double MUSIC_dx = "
-            << DATA->delta_x*DATA->output_evolution_every_N_x << ";" << endl;
+            << DATA.delta_x*DATA.output_evolution_every_N_x << ";" << endl;
     outfile << "const double MUSIC_dy = "
-            << DATA->delta_y*DATA->output_evolution_every_N_y << ";" << endl;
+            << DATA.delta_y*DATA.output_evolution_every_N_y << ";" << endl;
     outfile << "const double MUSIC_deta = "
-            << DATA->delta_eta*DATA->output_evolution_every_N_eta << ";"
+            << DATA.delta_eta*DATA.output_evolution_every_N_eta << ";"
             << endl;
     outfile << "const double MUSIC_dtau = "
-            << DATA->output_evolution_every_N_timesteps*DATA->delta_tau << ";"
+            << DATA.output_evolution_every_N_timesteps*DATA.delta_tau << ";"
             << endl;
 
     outfile << "const bool MUSIC_with_shear_viscosity = "
-            << ((DATA->viscosity_flag) && (DATA->turn_on_shear)) << ";\n";
+            << ((DATA.viscosity_flag) && (DATA.turn_on_shear)) << ";\n";
     outfile << "const bool MUSIC_with_bulk_viscosity = "
-            << ((DATA->viscosity_flag) && (DATA->turn_on_bulk)) << ";\n";
-    outfile << "const bool MUSIC_with_rhob = " << (DATA->turn_on_rhob) << ";\n";
+            << ((DATA.viscosity_flag) && (DATA.turn_on_bulk)) << ";\n";
+    outfile << "const bool MUSIC_with_rhob = " << (DATA.turn_on_rhob) << ";\n";
     outfile << "const bool MUSIC_with_diffusion = "
-            << ((DATA->viscosity_flag) && (DATA->turn_on_diff)) << ";\n";
+            << ((DATA.viscosity_flag) && (DATA.turn_on_diff)) << ";\n";
 
     outfile << "const bool MUSIC_outputBinaryEvolution="
-            << DATA->outputBinaryEvolution << ";" << endl;
+            << DATA.outputBinaryEvolution << ";" << endl;
 
     outfile.close();
 }
 
 
 //! This function outputs hydro evolution file in binary format
-void Cell_info::OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
+void Cell_info::OutputEvolutionDataXYEta(Grid &arena, const InitData &DATA,
                                          double tau) {
     const string out_name_xyeta = "evolution_xyeta.dat";
     const string out_name_W_xyeta =
@@ -114,38 +114,38 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
     FILE *out_file_q_xyeta = NULL;
 
     // If it's the first timestep, overwrite the previous file
-    if (tau == DATA->tau0) {
+    if (tau == DATA.tau0) {
         out_open_mode = "w";
     } else {
         out_open_mode = "a";
     }
     // If we output in binary, set the mode accordingly
-    if (0 == DATA->outputBinaryEvolution) {
+    if (0 == DATA.outputBinaryEvolution) {
         out_open_mode += "b";
     }
     out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
-    if (DATA->turn_on_shear == 1) {
+    if (DATA.turn_on_shear == 1) {
         out_file_W_xyeta = fopen(out_name_W_xyeta.c_str(),
                                  out_open_mode.c_str());
     }
-    if (DATA->turn_on_bulk == 1) {
+    if (DATA.turn_on_bulk == 1) {
         out_file_bulkpi_xyeta = fopen(out_name_bulkpi_xyeta.c_str(),
                                       out_open_mode.c_str());
     }
-    if (DATA->turn_on_diff == 1) {
+    if (DATA.turn_on_diff == 1) {
         out_file_q_xyeta = fopen(out_name_q_xyeta.c_str(),
                                  out_open_mode.c_str());
     }
-    int n_skip_x = DATA->output_evolution_every_N_x;
-    int n_skip_y = DATA->output_evolution_every_N_y;
-    int n_skip_eta = DATA->output_evolution_every_N_eta;
+    int n_skip_x = DATA.output_evolution_every_N_x;
+    int n_skip_y = DATA.output_evolution_every_N_y;
+    int n_skip_eta = DATA.output_evolution_every_N_eta;
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         double eta;
-        if (DATA->boost_invariant == 1) {
+        if (DATA.boost_invariant == 1) {
             eta = 0.0;
         } else {
-            eta = ((static_cast<double>(ieta))*(DATA->delta_eta)
-                    - (DATA->eta_size)/2.0);
+            eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
+                    - (DATA.eta_size)/2.0);
         }
         double cosh_eta = cosh(eta);
         double sinh_eta = sinh(eta);
@@ -179,7 +179,7 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
                 double Wyy     = 0.0;
                 double Wyeta   = 0.0;
                 double Wetaeta = 0.0;
-                if (DATA->turn_on_shear == 1) {
+                if (DATA.turn_on_shear == 1) {
                     Wtautau = arena(ix,iy,ieta).Wmunu[0][0]/entropy;
                     Wtaux   = arena(ix,iy,ieta).Wmunu[0][1]/entropy;
                     Wtauy   = arena(ix,iy,ieta).Wmunu[0][2]/entropy;
@@ -193,7 +193,7 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
                 }
 
                 double bulk_Pi = 0.0;
-                if (DATA->turn_on_bulk == 1) {
+                if (DATA.turn_on_bulk == 1) {
                     bulk_Pi = arena(ix,iy,ieta).pi_b[0];  // [1/fm^4]
                 }
 
@@ -203,7 +203,7 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
                 double qx            = 0.0;
                 double qy            = 0.0;
                 double qeta          = 0.0;
-                if (DATA->turn_on_diff == 1) {
+                if (DATA.turn_on_diff == 1) {
                     common_term_q = rhob_local*T_local/entropy;
                     double kappa_hat = get_deltaf_qmu_coeff(T_local,
                                                             muB_local);
@@ -214,10 +214,10 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
                 }
 
                 // exclude the actual coordinates from the output to save space:
-                if (DATA->outputBinaryEvolution == 0) {
+                if (DATA.outputBinaryEvolution == 0) {
                     fprintf(out_file_xyeta, "%e %e %e %e %e\n",
                             T_local*hbarc, muB_local*hbarc, vx, vy, vz);
-                    if (DATA->viscosity_flag == 1) {
+                    if (DATA.viscosity_flag == 1) {
                         fprintf(out_file_W_xyeta,
                                 "%e %e %e %e %e %e %e %e %e %e\n",
                                 Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy,
@@ -227,20 +227,20 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
                     double array[] = {T_local*hbarc, muB_local*hbarc,
                                       vx, vy, vz};
                     fwrite(array, sizeof(double), 5, out_file_xyeta);
-                    if (DATA->viscosity_flag == 1) {
-                        if (DATA->turn_on_shear == 1) {
+                    if (DATA.viscosity_flag == 1) {
+                        if (DATA.turn_on_shear == 1) {
                             double array2[] = {Wtautau, Wtaux, Wtauy, Wtaueta,
                                                Wxx, Wxy, Wxeta, Wyy, Wyeta,
                                                Wetaeta};
                             fwrite(array2, sizeof(double), 10,
                                    out_file_W_xyeta);
                         }
-                        if (DATA->turn_on_bulk == 1) {
+                        if (DATA.turn_on_bulk == 1) {
                             double array1[] = {bulk_Pi, entropy, cs2_local};
                             fwrite(array1, sizeof(double), 3,
                                    out_file_bulkpi_xyeta);
                         }
-                        if (DATA->turn_on_diff == 1) {
+                        if (DATA.turn_on_diff == 1) {
                             double array3[] = {common_term_q,
                                                qtau, qx, qy, qeta};
                             fwrite(array3, sizeof(double), 5,
@@ -252,20 +252,20 @@ void Cell_info::OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
         }/* iy */
     }/* ieta */
     fclose(out_file_xyeta);
-    if (DATA->turn_on_shear == 1) {
+    if (DATA.turn_on_shear == 1) {
         fclose(out_file_W_xyeta);
     }
-    if (DATA->turn_on_bulk == 1) {
+    if (DATA.turn_on_bulk == 1) {
         fclose(out_file_bulkpi_xyeta);
     }
-    if (DATA->turn_on_diff == 1) {
+    if (DATA.turn_on_diff == 1) {
         fclose(out_file_q_xyeta);
     }
 }/* OutputEvolutionDataXYEta */
 
     
 //! This function outputs hydro evolution file in binary format
-void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, InitData *DATA,
+void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, const InitData &DATA,
                                               double tau) {
     // the format of the file is as follows,
     //    itau ix iy ieta T ux uy ueta
@@ -286,18 +286,18 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, InitData *DATA,
     string out_open_mode;
     FILE *out_file_xyeta;
     // If it's the first timestep, overwrite the previous file
-    if (tau == DATA->tau0) {
+    if (tau == DATA.tau0) {
         out_open_mode = "wb";
     } else {
         out_open_mode = "ab";
     }
     out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
 
-    int itau = static_cast<int>((tau - DATA->tau0)/DATA->delta_tau);
+    int itau = static_cast<int>((tau - DATA.tau0)/DATA.delta_tau);
 
-    int n_skip_x   = DATA->output_evolution_every_N_x;
-    int n_skip_y   = DATA->output_evolution_every_N_y;
-    int n_skip_eta = DATA->output_evolution_every_N_eta;
+    int n_skip_x   = DATA.output_evolution_every_N_x;
+    int n_skip_y   = DATA.output_evolution_every_N_y;
+    int n_skip_eta = DATA.output_evolution_every_N_eta;
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
@@ -313,11 +313,11 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, InitData *DATA,
                 double T_local = eos_ptr->get_temperature(e_local, rhob_local);
 
 
-                if (T_local*hbarc < DATA->output_evolution_T_cut) continue;
+                if (T_local*hbarc < DATA.output_evolution_T_cut) continue;
                 // only ouput fluid cells that are above cut-off temperature
 
                 double muB_local = 0.0;
-                if (DATA->turn_on_rhob == 1)
+                if (DATA.turn_on_rhob == 1)
                     muB_local = eos_ptr->get_mu(e_local, rhob_local);
 
                 double div_factor = e_local + p_local;  // 1/fm^4
@@ -326,7 +326,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, InitData *DATA,
                 double Wxeta = 0.0;
                 double Wyy = 0.0;
                 double Wyeta = 0.0;
-                if (DATA->turn_on_shear == 1) {
+                if (DATA.turn_on_shear == 1) {
                     Wxx   = arena(ix,iy,ieta).Wmunu[0][4]/div_factor;
                     Wxy   = arena(ix,iy,ieta).Wmunu[0][5]/div_factor;
                     Wxeta = arena(ix,iy,ieta).Wmunu[0][6]/div_factor;
@@ -335,7 +335,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, InitData *DATA,
                 }
 
                 double pi_b = 0.0;
-                if (DATA->turn_on_bulk == 1) {
+                if (DATA.turn_on_bulk == 1) {
                     pi_b = arena(ix,iy,ieta).pi_b[0];   // 1/fm^4
                 }
 
@@ -344,7 +344,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, InitData *DATA,
                 double qx = 0.0;
                 double qy = 0.0;
                 double qeta = 0.0;
-                if (DATA->turn_on_diff == 1) {
+                if (DATA.turn_on_diff == 1) {
                     //common_term_q = rhob_local*T_local/div_factor;
                     double kappa_hat = get_deltaf_qmu_coeff(T_local,
                                                             muB_local);
@@ -359,22 +359,22 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Grid &arena, InitData *DATA,
                 fwrite(pos, sizeof(int), 4, out_file_xyeta);
                 fwrite(ideal, sizeof(double), 4, out_file_xyeta);
 
-                if (DATA->turn_on_rhob == 1) {
+                if (DATA.turn_on_rhob == 1) {
                     double mu[] = {muB_local*hbarc};
                     fwrite(mu, sizeof(double), 1, out_file_xyeta);
                 }
 
-                if (DATA->turn_on_shear == 1) {
+                if (DATA.turn_on_shear == 1) {
                     double shear_pi[] = {Wxx, Wxy, Wxeta, Wyy, Wyeta};
                     fwrite(shear_pi, sizeof(double), 5, out_file_xyeta);
                 }
 
-                if (DATA->turn_on_bulk == 1) {
+                if (DATA.turn_on_bulk == 1) {
                     double bulk_pi[] = {pi_b};
                     fwrite(bulk_pi, sizeof(double), 1, out_file_xyeta);
                 }
 
-                if (DATA->turn_on_diff == 1) {
+                if (DATA.turn_on_diff == 1) {
                     double diffusion[] = {qx, qy, qeta};
                     fwrite(diffusion, sizeof(double), 3, out_file_xyeta);
                 }
@@ -418,13 +418,13 @@ void Cell_info::get_maximum_energy_density(Grid &arena) {
 
 //! This function checks the total energy and total net baryon number
 //! at a give proper time
-void Cell_info::check_conservation_law(Grid &arena, InitData *DATA,
+void Cell_info::check_conservation_law(Grid &arena, const InitData &DATA,
                                       double tau) {
     double N_B     = 0.0;
     double T_tau_t = 0.0;
-    double deta    = DATA->delta_eta;
-    double dx      = DATA->delta_x;
-    double dy      = DATA->delta_y;
+    double deta    = DATA.delta_eta;
+    double dx      = DATA.delta_x;
+    double dy      = DATA.delta_y;
     const int neta = arena.nEta();
     const int nx   = arena.nX();
     const int ny   = arena.nY();
@@ -435,7 +435,7 @@ void Cell_info::check_conservation_law(Grid &arena, InitData *DATA,
     for (int iy = 0; iy < ny; iy++) {
         const auto& c = arena(ix,iy,ieta);
 
-        const double eta_s = deta*ieta - (DATA->eta_size)/2.0;
+        const double eta_s = deta*ieta - (DATA.eta_size)/2.0;
         const double cosh_eta = cosh(eta_s);
         const double sinh_eta = sinh(eta_s);
         N_B += (c.rhob
