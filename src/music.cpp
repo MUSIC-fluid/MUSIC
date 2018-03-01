@@ -100,6 +100,7 @@ int MUSIC::run_hydro() {
         update_cell_to_small_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), 0);
         update_cell_to_small_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), 1);
     }
+    arena.clear();
 
     evolve->EvolveIt(DATA, arena_prev, arena_current, arena_future);
         

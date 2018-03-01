@@ -69,6 +69,11 @@ class GridT {
     assert(0<=i  ); assert(x  <Nx*Ny*Neta);
     return grid.at(i);
   }
+
+  void clear() {
+    grid.clear();
+    grid.shrink_to_fit();
+  }
   
 };
 
