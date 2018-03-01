@@ -144,3 +144,28 @@ BNL KNL Cluster
 ===================
 
     salloc -A hackathon --reservation=hackathon -p long -t hh:mm:ss
+
+Advisor on Cori via NX and ssh -X
+=================================
+
+ * first run command line advisor with your code in an interactive session - this will generate the needed data in the myproj folder:
+ 
+    salloc -N 1 -C knl,quad,cache -t 30:00 -q debug  
+    module load advisor
+    export OMP_NUM_THREADS=8
+    module load impi
+    mpiicc -g -openmp -O3 -o mycode.exe mycode.c
+    export I_MPI_PMI_LIBRARY=/opt/slurm/default/lib/pmi/libpmi.so
+    srun -n 4 -c 8 advixe-cl --collect survey --trace-mpi --project-dir ./myproj  -- ./mycode.exe
+
+
+ * open NX session either via browser or app (see http://www.nersc.gov/users/connecting-to-nersc/using-nx/)
+ * open konsole or some such and ssh -X to cori
+ * Alt-Ctrl-0 opens the NX options where you can resize and maximize the window (on a mac at least)
+ * on cori 
+
+    module load advisor
+
+  then 
+
+    advixe-gui ./myproj

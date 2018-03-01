@@ -13,38 +13,42 @@
 
 class Cell_info {
  private:
-    InitData* DATA_ptr;
-    EOS* eos_ptr;
+    const InitData &DATA;
+    const EOS &eos;
     pretty_ostream music_message;
     
     int deltaf_qmu_coeff_table_length_T;
     int deltaf_qmu_coeff_table_length_mu;
-    double delta_qmu_coeff_table_T0, delta_qmu_coeff_table_mu0;
-    double delta_qmu_coeff_table_dT, delta_qmu_coeff_table_dmu;
+    double delta_qmu_coeff_table_T0;
+    double delta_qmu_coeff_table_mu0;
+    double delta_qmu_coeff_table_dT;
+    double delta_qmu_coeff_table_dmu;
     double **deltaf_qmu_coeff_tb;
     int deltaf_coeff_table_14mom_length_T;
     int deltaf_coeff_table_14mom_length_mu;
-    double delta_coeff_table_14mom_T0, delta_coeff_table_14mom_mu0;
-    double delta_coeff_table_14mom_dT, delta_coeff_table_14mom_dmu;
-    double **deltaf_coeff_tb_14mom_DPi, **deltaf_coeff_tb_14mom_BPi;
+    double delta_coeff_table_14mom_T0;
+    double delta_coeff_table_14mom_mu0;
+    double delta_coeff_table_14mom_dT;
+    double delta_coeff_table_14mom_dmu;
+    double **deltaf_coeff_tb_14mom_DPi;
+    double **deltaf_coeff_tb_14mom_BPi;
     double **deltaf_coeff_tb_14mom_BPitilde;
-    double **deltaf_coeff_tb_14mom_BV, **deltaf_coeff_tb_14mom_DV;
+    double **deltaf_coeff_tb_14mom_BV;
+    double **deltaf_coeff_tb_14mom_DV;
     double **deltaf_coeff_tb_14mom_Bpi_shear;
 
  public:
-    Cell_info(InitData* DATA_in, EOS *eos_ptr_in);
+    Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in);
     ~Cell_info();
 
     //! This function outputs a header files for JF and Gojko's EM programs
-    void Output_hydro_information_header(InitData *DATA);
+    void Output_hydro_information_header();
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta(Grid &arena, InitData *DATA,
-                                  double tau);
+    void OutputEvolutionDataXYEta(Grid &arena, double tau);
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta_chun(Grid &arena, InitData *DATA,
-                                       double tau);
+    void OutputEvolutionDataXYEta_chun(Grid &arena, double tau);
 
     void load_deltaf_qmu_coeff_table(string filename);
     void load_deltaf_qmu_coeff_table_14mom(string filename);
@@ -75,7 +79,7 @@ class Cell_info {
     
     //! This function checks the total energy and total net baryon number
     //! at a give proper time
-    void check_conservation_law(Grid &arena, InitData *DATA, double tau);
+    void check_conservation_law(Grid &arena, double tau);
 
     //! This function outputs the evolution of hydrodynamic variables at a
     //! give fluid cell

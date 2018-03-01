@@ -12,9 +12,9 @@ set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS})
 set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${OpenMP_EXE_LINKER_FLAGS})
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-set(CMAKE_CXX_FLAGS "-g -xmic-avx512 -ipo -qopt-report=5 -qopt-report-phase:vec -Ofast -Wall ${OpenMP_CXX_FLAGS} -std=c++11 -fma -align -finline-functions -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
+set(CMAKE_CXX_FLAGS "-g -ipo -xmic-avx512 -qopt-report=5 -qopt-report-phase:vec -Ofast -Wall ${OpenMP_CXX_FLAGS} -std=c++11 -fma -align -finline-functions -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-set(CMAKE_CXX_FLAGS "-g -flto -Ofast -Wall ${OpenMP_CXX_FLAGS} -std=c++11 -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
+set(CMAKE_CXX_FLAGS "-g -flto -Ofast -Wall ${OpenMP_CXX_FLAGS} -std=c++14 -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
 endif()
 
 add_subdirectory (src)  

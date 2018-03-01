@@ -4,13 +4,13 @@
 
 #include <iostream>
 
-#include "./util.h"
-#include "./data.h"
-#include "./pretty_ostream.h"
+#include "util.h"
+#include "data.h"
+#include "pretty_ostream.h"
 
 class EOS {
  private:
-    InitData *parameters_ptr;
+    const InitData& parameters_ptr;
     pretty_ostream music_message;
 
     double BNP1, EPP1;            // start value for \mu_B and epsilon
@@ -94,7 +94,8 @@ class EOS {
 
 
  public:
-    EOS(InitData *para_in);  // constructor
+    EOS() = default;
+    EOS(const InitData &para_in);  // constructor
     ~EOS();  // destructor
     void initialize_eos();
     void init_eos0();                // for whichEOS=0
@@ -111,53 +112,53 @@ class EOS {
 
     // returns maximum local energy density of the EoS table
     // in the unit of [1/fm^4]
-    double get_eps_max() {return(eps_max);}
+    double get_eps_max() const { return(eps_max); }
 
-    void checkForReadError(FILE *file, const char* name);
-    double interpolate_pressure(double e, double rhob);  // for whichEOS == 1
-    double interpolate(double e, double rhob, int selector);
+    void checkForReadError(FILE *file, const char* name) const;
+    double interpolate_pressure(double e, double rhob) const;  // for whichEOS == 1
+    double interpolate(double e, double rhob, int selector) const;
 
     // for whichEOS == 2
-    double interpolate2(double e, double rhob, int selector);
+    double interpolate2(double e, double rhob, int selector) const;
 
     // for EOS at finite mu_B
-    double interpolate2D(double e, double rhob, int selector);
+    double interpolate2D(double e, double rhob, int selector) const;
 
-    double get_cs2(double e, double rhob);
-    double calculate_velocity_of_sound_sq(double e, double rhob);
+    double get_cs2(double e, double rhob) const;
+    double calculate_velocity_of_sound_sq(double e, double rhob) const;
     void fill_cs2_matrix(double e0, double de, int ne,
                          double rhob0, double drhob, int nrhob,
                          double** cs2_ptr);
     void build_velocity_of_sound_sq_matrix();
-    double get_rhob_from_mub(double e, double mub);
-    double get_dpOverde(double e, double rhob);
-    double get_dpOverde2(double e, double rhob);
-    double get_dpOverde_WB(double e);
-    double get_dpOverde3(double e, double rhob);
-    double get_dpOverdrhob(double e, double rhob);
-    double get_dpOverdrhob2(double e, double rhob);
-    double p_rho_func(double e, double rhob);
-    double p_e_func(double e, double rhob);
-    double T_from_eps_ideal_gas(double eps);
-    double get_entropy(double epsilon, double rhob);
-    double get_temperature(double epsilon, double rhob);
-    double get_temperature_WB(double e_local);
-    double get_mu(double epsilon, double rhob);
-    double get_muS(double epsilon, double rhob);
-    double get_pressure(double epsilon, double rhob);
-    double get_pressure_WB(double e_local);
-    double ssolve(double e, double rhob, double s);
-    double Tsolve(double e, double rhob, double T);
+    double get_rhob_from_mub   (double e, double mub) const;
+    double get_dpOverde        (double e, double rhob) const;
+    double get_dpOverde2       (double e, double rhob) const;
+    double get_dpOverde_WB     (double e) const;
+    double get_dpOverde3       (double e, double rhob) const;
+    double get_dpOverdrhob     (double e, double rhob) const;
+    double get_dpOverdrhob2    (double e, double rhob) const;
+    double p_rho_func          (double e, double rhob) const;
+    double p_e_func            (double e, double rhob) const;
+    double T_from_eps_ideal_gas(double eps) const;
+    double get_entropy         (double epsilon, double rhob) const;
+    double get_temperature     (double epsilon, double rhob) const;
+    double get_temperature_WB  (double e_local) const;
+    double get_mu              (double epsilon, double rhob) const;
+    double get_muS             (double epsilon, double rhob) const;
+    double get_pressure        (double epsilon, double rhob) const;
+    double get_pressure_WB     (double e_local) const;
+    double ssolve              (double e, double rhob, double s) const;
+    double Tsolve              (double e, double rhob, double T);
     double findRoot(double (EOS::*function)(double, double, double),
                     double rhob, double s, double e1, double e2, double eacc);
-    double s2e_ideal_gas(double s);
-    double get_s2e(double s, double rhob);
-    double get_s2e_finite_rhob(double s, double rhob);
-    void check_eos();
-    void check_eos_with_finite_muB();
-    void check_eos_no_muB();
+    double s2e_ideal_gas(double s) const;
+    double get_s2e(double s, double rhob) const;
+    double get_s2e_finite_rhob(double s, double rhob) const;
+    void check_eos() const;
+    void check_eos_with_finite_muB() const;
+    void check_eos_no_muB() const;
     void output_eos_matrix(int ne, int nrhob, double** matrix_ptr,
-                           string filename);
+                           string filename) const;
 };
 
 #endif  // SRC_EOS_H_

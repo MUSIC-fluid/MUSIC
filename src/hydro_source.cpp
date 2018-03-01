@@ -10,38 +10,39 @@
 
 using namespace std;
 
-hydro_source::hydro_source(InitData *DATA_in) {
-    DATA_ptr = DATA_in;
+hydro_source::hydro_source(const InitData &DATA_in) :
+    DATA(DATA_in)
+{
     source_tau_max = 0.0;
     source_tau_min = 100.0;
-    if (DATA_ptr->Initial_profile == 12
-            || DATA_ptr->Initial_profile == 13) {  // MC-Glauber-LEXUS
+    if (DATA.Initial_profile == 12
+            || DATA.Initial_profile == 13) {  // MC-Glauber-LEXUS
         sigma_tau            = 0.1;
         sigma_x              = 0.5;
         sigma_eta            = 0.5;
-        volume               = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
-        string_dump_mode     = DATA_ptr->string_dump_mode;
-        string_quench_factor = DATA_ptr->string_quench_factor;
+        volume               = DATA.delta_x*DATA.delta_y*DATA.delta_eta;
+        string_dump_mode     = DATA.string_dump_mode;
+        string_quench_factor = DATA.string_quench_factor;
         parton_quench_factor = 1.0;
         read_in_QCD_strings_and_partons();
     }
-    if (DATA_ptr->Initial_profile == 30) {  // AMPT
+    if (DATA.Initial_profile == 30) {  // AMPT
         sigma_tau = 0.1;
         sigma_x   = 0.5;
         sigma_eta = 0.5;
-        volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
+        volume = DATA.delta_x*DATA.delta_y*DATA.delta_eta;
         parton_quench_factor = 1.0;
         read_in_AMPT_partons();
     }
 }
 
 hydro_source::~hydro_source() {
-    if (DATA_ptr->Initial_profile == 12
-            || DATA_ptr->Initial_profile == 13) {
+    if (DATA.Initial_profile == 12
+            || DATA.Initial_profile == 13) {
         QCD_strings_list.clear();
         parton_list.clear();
     }
-    if (DATA_ptr->Initial_profile == 30) {
+    if (DATA.Initial_profile == 30) {
         parton_list.clear();
     }
 }
@@ -49,8 +50,8 @@ hydro_source::~hydro_source() {
 //! This function reads in the spatal information of the strings and partons
 //! which are produced from the MC-Glauber-LEXUS model
 void hydro_source::read_in_QCD_strings_and_partons() {
-    string QCD_strings_filename = DATA_ptr->initName;
-    string partons_filename = DATA_ptr->initName_rhob;
+    string QCD_strings_filename = DATA.initName;
+    string partons_filename = DATA.initName_rhob;
     music_message << "read in QCD strings list from " << QCD_strings_filename
                   << " and partons list from " << partons_filename;
     music_message.flush("info");
@@ -99,10 +100,10 @@ void hydro_source::read_in_QCD_strings_and_partons() {
         }
 
         new_string.status = 0;
-        if (DATA_ptr->Initial_profile == 12) {
+        if (DATA.Initial_profile == 12) {
             new_string.tau_end_left = new_string.tau_form;
             new_string.tau_end_right = new_string.tau_form;
-        } else if (DATA_ptr->Initial_profile == 13) {
+        } else if (DATA.Initial_profile == 13) {
             double temp_factor1 = (new_string.tau_0*new_string.tau_0
                                    - new_string.tau_form*new_string.tau_form);
             double temp_factor2 = (new_string.tau_0
@@ -121,7 +122,7 @@ void hydro_source::read_in_QCD_strings_and_partons() {
 
         // record the proper time of the first and last string sources
         double source_tau = new_string.tau_form;
-        if (DATA_ptr->Initial_profile == 13) {
+        if (DATA.Initial_profile == 13) {
             if (new_string.tau_end_left > new_string.tau_end_right) {
                 source_tau = new_string.tau_end_left;
             } else {
@@ -132,11 +133,11 @@ void hydro_source::read_in_QCD_strings_and_partons() {
             source_tau_max = source_tau;
         }
 
-        if (DATA_ptr->Initial_profile == 12) {
+        if (DATA.Initial_profile == 12) {
             if (source_tau_min > source_tau) {
                 source_tau_min = source_tau;
             }
-        } else if (DATA_ptr->Initial_profile == 13) {
+        } else if (DATA.Initial_profile == 13) {
             if (source_tau_min > (new_string.tau_0 + new_string.tau_form)) {
                 source_tau_min = new_string.tau_0 + new_string.tau_form;
             }
@@ -149,7 +150,7 @@ void hydro_source::read_in_QCD_strings_and_partons() {
     music_message << "hydro_source: tau_max = " << source_tau_max << " fm/c.";
     music_message.flush("info");
     
-    if (DATA_ptr->Initial_profile == 12) {
+    if (DATA.Initial_profile == 12) {
         ifstream partons_file(partons_filename.c_str());
         if (!partons_file) {
             music_message << "hydro_source::read_in_QCD_strings_and_partons: "
@@ -174,9 +175,9 @@ void hydro_source::read_in_QCD_strings_and_partons() {
     }
 
     double total_baryon_number = 0;
-    if (DATA_ptr->Initial_profile == 12) {
+    if (DATA.Initial_profile == 12) {
         total_baryon_number = parton_list.size();
-    } else if (DATA_ptr->Initial_profile == 13) {
+    } else if (DATA.Initial_profile == 13) {
         for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
              it != QCD_strings_list.end(); it++) {
             total_baryon_number += ((*it).frac_l + (*it).frac_r);
@@ -189,7 +190,7 @@ void hydro_source::read_in_QCD_strings_and_partons() {
 
 //! This function reads in the partons information from the AMPT model
 void hydro_source::read_in_AMPT_partons() {
-    string AMPT_filename = DATA_ptr->initName_AMPT;
+    string AMPT_filename = DATA.initName_AMPT;
     music_message << "hydro_source: "
                   << "read in AMPT parton list from " << AMPT_filename;
     music_message.flush("info");
@@ -261,7 +262,7 @@ void hydro_source::get_hydro_energy_source(
     double sin_phi_flow    = u_mu[1]/gamma_perp_flow;
     double cos_phi_flow    = u_mu[2]/gamma_perp_flow;
 
-    if (DATA_ptr->Initial_profile == 12) {
+    if (DATA.Initial_profile == 12) {
         // energy source from strings
         double n_sigma_skip = 5.;
         double tau_dis_max = tau - source_tau_max;
@@ -311,7 +312,7 @@ void hydro_source::get_hydro_energy_source(
                                  /(sigma_eta*sigma_eta)));
                 }
                 double e_local = exp_tau*exp_xperp*exp_eta_s;
-                e_local *= DATA_ptr->sFactor/hbarc;  // 1/fm^4
+                e_local *= DATA.sFactor/hbarc;  // 1/fm^4
                 double y_string = (
                         (*it).y_l + ((*it).y_r - (*it).y_l)
                                     /(eta_s_right - eta_s_left)
@@ -333,12 +334,12 @@ void hydro_source::get_hydro_energy_source(
             j_mu[2] *= prefactor_tau*prefactor_prep;
             j_mu[3] *= prefactor_tau*prefactor_prep;
         }
-    } else if (DATA_ptr->Initial_profile == 13) {
+    } else if (DATA.Initial_profile == 13) {
         // energy source from strings
         double n_sigma_skip = 5.;
         double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
         double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
-        double dtau = DATA_ptr->delta_tau;
+        double dtau = DATA.delta_tau;
         // double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
         for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
              it != QCD_strings_list.end(); it++) {
@@ -445,7 +446,7 @@ void hydro_source::get_hydro_energy_source(
                     e_frac = (*it).frac_r;
                 }
                 double e_local = e_frac*exp_tau*exp_xperp*exp_eta_s;
-                e_local *= DATA_ptr->sFactor/hbarc;  // 1/fm^4
+                e_local *= DATA.sFactor/hbarc;  // 1/fm^4
                 double y_string = (
                         (*it).y_l + ((*it).y_r - (*it).y_l)
                                     /((*it).eta_s_right - (*it).eta_s_left)
@@ -468,7 +469,7 @@ void hydro_source::get_hydro_energy_source(
         j_mu[1] *= prefactors;
         j_mu[2] *= prefactors;
         j_mu[3] *= prefactors;
-    } else if (DATA_ptr->Initial_profile == 30) {
+    } else if (DATA.Initial_profile == 30) {
         // AMPT parton sources
         double n_sigma_skip = 5.;
         double tau_dis_max = tau - source_tau_max;
@@ -510,7 +511,7 @@ void hydro_source::get_hydro_energy_source(
                 j_mu[2] += (*it).py*f_smear;
                 j_mu[3] += m_perp*sinh((*it).rapidity - eta_s)*f_smear;
             }
-            double norm = DATA_ptr->sFactor/hbarc;     // 1/fm^4
+            double norm = DATA.sFactor/hbarc;     // 1/fm^4
             j_mu[0] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
             j_mu[1] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
             j_mu[2] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
@@ -528,9 +529,9 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
     double y_perp_flow = acosh(gamma_perp_flow);
     double y_long_flow = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
     double sinh_y_perp_flow = sinh(y_perp_flow);
-    double dtau = DATA_ptr->delta_tau;
+    double dtau = DATA.delta_tau;
 
-    if (DATA_ptr->Initial_profile == 12) {
+    if (DATA.Initial_profile == 12) {
         double n_sigma_skip = 5.;
         double tau_dis_max = tau - source_tau_max;
         if (tau_dis_max < n_sigma_skip*sigma_tau) {
@@ -580,7 +581,7 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             }
             res *= prefactor_tau*prefactor_prep*prefactor_etas;
         }
-    } else if (DATA_ptr->Initial_profile == 13) {
+    } else if (DATA.Initial_profile == 13) {
         double n_sigma_skip = 5.;
         double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
         double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
@@ -661,7 +662,7 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             }
         }
         res *= prefactor_tau*prefactor_prep*prefactor_etas;
-    } else if (DATA_ptr->Initial_profile == 30) {
+    } else if (DATA.Initial_profile == 30) {
         double n_sigma_skip = 5.;
         double tau_dis_max = tau - source_tau_max;
         if (tau_dis_max < n_sigma_skip*sigma_tau) {
@@ -720,7 +721,7 @@ void hydro_source::get_hydro_energy_source_before_tau(
     u[0] = 1.0;
 
     double tau0 = 0.0;
-    double dtau = DATA_ptr->delta_tau;
+    double dtau = DATA.delta_tau;
     int n_tau_steps = static_cast<int>((tau - tau0)/dtau);
     for (int i = 0; i < n_tau_steps; i++) {
         j_mu_one_step = {0};
@@ -743,7 +744,7 @@ double hydro_source::get_hydro_rhob_source_before_tau(
 
     double res  = 0.;
     double tau0 = 0.0;
-    double dtau = DATA_ptr->delta_tau;
+    double dtau = DATA.delta_tau;
 
     int n_tau_steps = static_cast<int>((tau - tau0)/dtau);
     for (int i = 0; i < n_tau_steps; i++) {

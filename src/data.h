@@ -4,6 +4,7 @@
 
 #define SMALL (1.0e-16)
 
+#include <array>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -13,13 +14,17 @@ using namespace std;
 //! This is a data structure contains all the parameters for simulation
 
 typedef struct init_data {
-    double **gmunu;   //! metric
-    int echo_level;
-    int mode;               //!< 1: do everything;
-                            //!< 2: do hydro evolution only;
-                            //!< 3: do calculation of thermal spectra only;
-                            //!< 4: do resonance decays only
-    string initName;
+  
+  std::array<std::array<double, 4>, 4> gmunu= {{{-1,0,0,0},
+					       { 0,1,0,0},
+					       { 0,0,1,0},
+					       { 0,0,0,1}}};
+  int echo_level;
+  int mode;               //!< 1: do everything;
+  //!< 2: do hydro evolution only;
+  //!< 3: do calculation of thermal spectra only;
+  //!< 4: do resonance decays only
+  string initName;
     string initName_rhob;
     string initName_ux;
     string initName_uy;

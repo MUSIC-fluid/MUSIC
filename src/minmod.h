@@ -6,10 +6,10 @@
 #include "iostream"
 class Minmod {
  private:
-    double theta_flux;
+    const double theta_flux;
 
  public:
-    Minmod(const InitData *const DATA);
+    Minmod(const InitData &DATA);
 
     /* double minmod_dx(const double up1, const double u, const double um1) { */
     /*     const double diffup   = (up1 - u)*theta_flux; */
@@ -25,7 +25,7 @@ class Minmod {
     /*     } */
     /* }/\* minmod_dx *\/ */
 
-    double minmod_dx(const double up1, const double u, const double um1) {
+    double minmod_dx(const double up1, const double u, const double um1) const {
         const double diffup   = (up1 - u)*theta_flux;
         const double diffdown = (u - um1)*theta_flux;
         const double diffmid  = (up1 - um1)*0.5;

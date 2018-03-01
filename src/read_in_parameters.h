@@ -10,8 +10,8 @@
 
 //! This class handles read in parameters
 namespace ReadInParameters {
-    void read_in_parameters(InitData *parameter_list, std::string input_file);
-    void check_parameters(InitData *parameter_list, std::string input_file);
+    InitData read_in_parameters(std::string input_file);
+    void check_parameters(InitData &parameter_list, std::string input_file);
 }
 
 #endif  // SRC_READ_IN_PARAMETERS_H_

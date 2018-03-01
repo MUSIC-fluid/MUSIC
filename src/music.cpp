@@ -4,21 +4,22 @@
 #include <sys/stat.h>
 
 #include <cstring>
-#include "./music.h"
-#include "./dissipative.h"
+#include "music.h"
+#include "dissipative.h"
 
 using namespace std;
 
-MUSIC::MUSIC(InitData *DATA_in, string input_file) {
+MUSIC::MUSIC(string input_file) : 
+    DATA(ReadInParameters::read_in_parameters(input_file)),
+    eos(DATA)
+{
     welcome_message();
-    DATA = DATA_in;
-    ReadInParameters::read_in_parameters(DATA, input_file);
-    mode = DATA->mode;
-    eos  = new EOS(DATA);
-    if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
-        hydro_source_ptr = new hydro_source(DATA_in);
-    } else if (DATA->Initial_profile == 30) {
-        hydro_source_ptr = new hydro_source(DATA_in);
+    
+    mode = DATA.mode;
+    if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
+        hydro_source_ptr = new hydro_source(DATA);
+    } else if (DATA.Initial_profile == 30) {
+        hydro_source_ptr = new hydro_source(DATA);
     }
     flag_hydro_run = 0;
     flag_hydro_initialized = 0;
@@ -32,10 +33,9 @@ MUSIC::~MUSIC() {
     if (flag_hydro_run == 1) {
         delete evolve;
     }
-    delete eos;
-    if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
+    if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
         delete hydro_source_ptr;
-    } else if (DATA->Initial_profile == 30) {
+    } else if (DATA.Initial_profile == 30) {
         delete hydro_source_ptr;
     }
 }
@@ -48,7 +48,7 @@ int MUSIC::initialize_hydro() {
                     "rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 
     init = new Init(eos, DATA, hydro_source_ptr);
-    init->InitArena(DATA, arena);
+    init->InitArena(arena);
     flag_hydro_initialized = 1;
     return(status);
 }
@@ -61,7 +61,7 @@ int MUSIC::run_hydro() {
     }
 
     evolve = new Evolve(eos, DATA, hydro_source_ptr);
-    evolve->EvolveIt(DATA, arena);
+    evolve->EvolveIt(arena);
     flag_hydro_run = 1;
     return(0);
 }
@@ -72,9 +72,8 @@ int MUSIC::run_Cooper_Frye() {
     if (freeze != NULL) {
         delete freeze;
     }
-    freeze = new Freeze(DATA);
-    freeze->CooperFrye_pseudo(DATA->particleSpectrumNumber, mode,
-                              DATA, eos);
+    freeze = new Freeze(&DATA);
+    freeze->CooperFrye_pseudo(DATA.particleSpectrumNumber, mode, &DATA, &eos);
     return(0);
 }
 
@@ -84,12 +83,11 @@ int MUSIC::run_Cooper_Frye() {
 void MUSIC::output_transport_coefficients() {
     music_message << "output transport coefficients as functions of T and muB";
     music_message.flush("info");
-    Diss *temp_dissipative_ptr = new Diss(eos, DATA);
-    temp_dissipative_ptr->output_eta_over_s_T_and_muB_dependence(DATA);
-    temp_dissipative_ptr->output_eta_over_s_along_const_sovernB(DATA);
-    temp_dissipative_ptr->output_kappa_T_and_muB_dependence(DATA);
-    temp_dissipative_ptr->output_kappa_along_const_sovernB(DATA);
-    delete temp_dissipative_ptr;
+    Diss temp_dissipative_ptr(eos, DATA);
+    temp_dissipative_ptr.output_eta_over_s_T_and_muB_dependence();
+    temp_dissipative_ptr.output_eta_over_s_along_const_sovernB();
+    temp_dissipative_ptr.output_kappa_T_and_muB_dependence();
+    temp_dissipative_ptr.output_kappa_along_const_sovernB();
 }
 
 

@@ -8,12 +8,13 @@
 
 using namespace std;
 
-Reconst::Reconst(EOS *eosIn, InitData *DATA_in) {
-    eos         = eosIn;
-    eos_eps_max = eos->get_eps_max();
-    DATA_ptr    = DATA_in;
+Reconst::Reconst(const EOS &eosIn, const InitData &DATA_in) :
+    eos(eosIn),
+    DATA(DATA_in)
+{
+    eos_eps_max = eos.get_eps_max();
 
-    echo_level = DATA_ptr->echo_level;
+    echo_level = DATA.echo_level;
     v_critical = 0.563624;
     LARGE      = 1e20;
 
@@ -84,7 +85,7 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, const TJbVec &q,
     /* Iteration scheme */
     double eps_init  = grid_pt.epsilon;
     double rhob_init = grid_pt.rhob;
-    cs2              = eos->get_cs2(eps_init, rhob_init);
+    cs2              = eos.get_cs2(eps_init, rhob_init);
     eps_guess        = GuessEps(T00, K00, cs2);
     epsilon_next     = eps_guess;
      
@@ -95,7 +96,7 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, const TJbVec &q,
                       << " q[1]=" << q[1] << " q[2]=" << q[2];
         music_message.flush("warning");
     }
-    p_guess = eos->get_pressure(epsilon_next, rhob_init);
+    p_guess = eos.get_pressure(epsilon_next, rhob_init);
     p_next = p_guess;
 
     if (J0 == 0.0) {
@@ -117,7 +118,7 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, const TJbVec &q,
                 music_message.error("epsilon is nan");
                 exit(-1);
             }
-            p_next = eos->get_pressure(epsilon_next, rhob_next);
+            p_next = eos.get_pressure(epsilon_next, rhob_next);
             break;
         } else {
             epsilon_prev = epsilon_next;
@@ -129,11 +130,11 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, const TJbVec &q,
             exit(-1);
         }
 
-        p_prev = eos->get_pressure(epsilon_prev, rhob_prev);
+        p_prev = eos.get_pressure(epsilon_prev, rhob_prev);
         epsilon_next = T00 - K00/(T00 + p_prev);
         err = 0.0;
    
-        if (DATA_ptr->turn_on_rhob == 1) {
+        if (DATA.turn_on_rhob == 1) {
             rhob_next = J0*sqrt((epsilon_prev + p_prev)/(T00 + p_prev));
             temperr = fabs((rhob_next-rhob_prev)/(rhob_prev+abs_err));
             if (temperr > LARGE)
@@ -262,7 +263,7 @@ int Reconst::ReconstIt(ReconstCell &grid_p, double tau, const TJbVec &q,
     }/* if u^mu u_\mu != 1 */
     /* End: Correcting normalization of 4-velocity */
 
-    #pragma omp simd
+#pragma omp simd
     for (int mu = 0; mu < 4; mu++) {
         grid_p.u[mu] = u[mu];
     }
@@ -278,7 +279,7 @@ void Reconst::revert_grid(ReconstCell &grid_current, const Cell &grid_prev, int 
     }
     grid_current.e = grid_prev.epsilon;
     grid_current.rhob = grid_prev.rhob;
-    #pragma omp simd
+#pragma omp simd
     for (int mu = 0; mu < 4; mu++) {
         grid_current.u[mu] = grid_prev.u[rk_flag][mu];
     }
@@ -442,7 +443,7 @@ int Reconst::ReconstIt_velocity_iteration(
     grid_p.e = epsilon;
     grid_p.rhob = rhob;
 
-    pressure = eos->get_pressure(epsilon, rhob);
+    pressure = eos.get_pressure(epsilon, rhob);
 
     double u_max = 242582597.70489514; // cosh(20)
     //remove if for speed
@@ -719,7 +720,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJ
     grid_p.e = epsilon;
     grid_p.rhob = rhob;
 
-    pressure = eos->get_pressure(epsilon, rhob);
+    pressure = eos.get_pressure(epsilon, rhob);
 
     // individual components of velocity
     double velocity_inverse_factor = u[0]/(T00 + pressure);
@@ -815,6 +816,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJ
     }  // if u^mu u_\mu != 1 
     // End: Correcting normalization of 4-velocity
    
+   #pragma omp simd
     for (int mu = 0; mu < 4; mu++) {
         grid_p.u[mu] = u[mu];
     }
@@ -846,7 +848,7 @@ double Reconst::reconst_velocity_f(double v, double T00, double M,
     double epsilon = T00 - v*M;
     double rho = J0*sqrt(1 - v*v);
    
-    double pressure = eos->get_pressure(epsilon, rho);
+    double pressure = eos.get_pressure(epsilon, rho);
     double fv = M/(T00 + pressure);
     return(fv);
 }
@@ -865,9 +867,9 @@ double Reconst::reconst_velocity_df(double v, double T00, double M,
     double rho     = J0*temp;
     double temp2   = v/temp;
    
-    double pressure = eos->get_pressure(epsilon, rho);
-    double dPde     = eos->p_e_func(epsilon, rho);
-    double dPdrho   = eos->p_rho_func(epsilon, rho);
+    double pressure = eos.get_pressure(epsilon, rho);
+    double dPde     = eos.p_e_func(epsilon, rho);
+    double dPdrho   = eos.p_rho_func(epsilon, rho);
     
     double temp1 = T00 + pressure;
 
@@ -881,7 +883,7 @@ double Reconst::reconst_u0_f(double u0, double T00, double K00, double M,
     double epsilon = T00 - sqrt(1. - 1./u0/u0)*M;
     double rho = J0/u0;
     
-    double pressure = eos->get_pressure(epsilon, rho);
+    double pressure = eos.get_pressure(epsilon, rho);
     double fu = (T00 + pressure)/sqrt((T00 + pressure)*(T00 + pressure) - K00);
     return(fu);
 }
@@ -902,9 +904,9 @@ double Reconst::reconst_u0_df(double u0, double T00, double K00, double M,
     double dedu0   = - M/(u0*u0*u0*v);
     double drhodu0 = - J0/(u0*u0);
     
-    double pressure = eos->get_pressure(epsilon, rho);
-    double dPde     = eos->p_e_func(epsilon, rho);
-    double dPdrho   = eos->p_rho_func(epsilon, rho);
+    double pressure = eos.get_pressure(epsilon, rho);
+    double dPde     = eos.p_e_func(epsilon, rho);
+    double dPdrho   = eos.p_rho_func(epsilon, rho);
 
     double denorm = pow(((T00 + pressure)*(T00 + pressure) - K00), 1.5);
     double dfdu0  = 1. + (dedu0*dPde + drhodu0*dPdrho)*K00/denorm;

@@ -14,10 +14,10 @@
 
 class Reconst {
  private:
-    EOS *eos;
+    const EOS &eos;
+    const InitData &DATA;
     double eos_eps_max;
     pretty_ostream music_message;
-    InitData *DATA_ptr;
 
     int max_iter;
     double rel_err, abs_err;
@@ -28,7 +28,7 @@ class Reconst {
     double v_critical;
 
  public:
-    Reconst(EOS *eos, InitData *DATA_in);
+    Reconst(const EOS &eos, const InitData &DATA_in);
 
     ReconstCell ReconstIt_shell(double tau, TJbVec &q_vec, const Cell &grid_pt, int rk_flag);
 
