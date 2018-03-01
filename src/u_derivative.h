@@ -19,7 +19,8 @@ class U_derivative {
  public:
     // Sangyong Nov 18 2014: added EOS *eos in the argument
     U_derivative(EOS *eosIn, InitData* DATA_in);  // constructor
-    int MakedU(double tau, InitData *DATA, Grid &arena, int rk_flag);
+    int MakedU(double tau, InitData *DATA,
+               SCGrid &arena_prev, SCGrid &arena_current, int rk_flag);
 
     //! this function returns the expansion rate on the grid
     double calculate_expansion_rate(double tau, SCGrid &arena,
@@ -31,7 +32,8 @@ class U_derivative {
 
     //! This funciton returns the velocity shear tensor sigma^\mu\nu
     void calculate_velocity_shear_tensor(double tau, SCGrid &arena, int ieta, int ix, int iy, int rk_flag, DumuVec &a_local, VelocityShearVec &sigma);
-    int MakeDSpatial(double tau, InitData *DATA, Grid &arena, int ix, int iy, int ieta, int rk_flag);
-    int MakeDTau(double tau, InitData *DATA, Cell *grid_pt, int rk_flag);
+    int MakeDSpatial(double tau, InitData *DATA, SCGrid &arena, int ix, int iy, int ieta, int rk_flag);
+    int MakeDTau(double tau, InitData *DATA,
+                 Cell_small *grid_pt_prev, Cell_small *grid_pt, int rk_flag);
 };
 #endif

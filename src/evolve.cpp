@@ -317,7 +317,6 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
     int flag = 0;
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
-        flag = u_derivative.MakedU(tau, DATA, arena, rk_flag);
 
         const int grid_neta = arena.nEta();
         const int grid_nx   = arena.nX();
@@ -336,7 +335,10 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
         }
 
 
+        flag = u_derivative.MakedU(tau, DATA, arena_prev, arena_current, rk_flag);
         flag = advance.AdvanceIt(tau, DATA, arena_prev, arena_current, arena_future, rk_flag);
+
+
         for(int ieta = 0; ieta < grid_neta; ieta++)
         for(int ix   = 0; ix   < grid_nx;   ix++  )
         for(int iy   = 0; iy   < grid_ny;   iy++  ) {
