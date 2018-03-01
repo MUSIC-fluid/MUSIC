@@ -30,13 +30,14 @@ class Diss {
                          InitData *DATA, int rk_flag, double theta_local,
                          DumuVec &a_local, VelocityShearVec &sigma_1d);
     
-    int Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
+    int Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
                    double *p_rhs, InitData *DATA,
                    int rk_flag, double theta_local);
 
-    double Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
-                          int rk_flag, double theta_local, VelocityShearVec &sigma_1d);
-    int Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
+    double Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, InitData *DATA,
+                        int rk_flag, double theta_local, VelocityShearVec &sigma_1d);
+
+    int Make_uqRHS(double tau, SCGrid &arena_current, int ix, int iy, int ieta,
                    std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag);
     double Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
                          int rk_flag, double theta_local, DumuVec &a_local,
