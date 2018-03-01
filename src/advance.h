@@ -38,6 +38,8 @@ class Advance {
 
     int AdvanceIt(double tau_init, InitData *DATA, Grid &arena, int rk_flag);
 
+    void update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag);
+    void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag);
     void FirstRKStepT(const double tau, double x_local, double y_local,
                      double eta_s_local, InitData *DATA, Grid &arena, int ix, int iy, int ieta,
                      int rk_flag);
@@ -47,6 +49,7 @@ class Advance {
                      VelocityShearVec &sigma_local, int ieta, int ix, int iy);
 
     void UpdateTJbRK(const ReconstCell &grid_rk, Cell *grid_pt, int rk_flag);
+    void UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt);
     int QuestRevert(double tau, Cell *grid_pt, int rk_flag, InitData *DATA,
                     int ieta, int ix, int iy);
     int QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
@@ -56,6 +59,7 @@ class Advance {
     double MaxSpeed(double tau, int direc, const ReconstCell &grid_p);
     double get_TJb(const Cell &grid_p, const int rk_flag, const int mu, const int nu);
     double get_TJb(const ReconstCell &grid_p, const int rk_flag, const int mu, const int nu);
+    double get_TJb(const Cell_small &grid_p, const int mu, const int nu);
 };
 
 #endif  // SRC_ADVANCE_H_

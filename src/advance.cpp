@@ -37,6 +37,32 @@ Advance::~Advance() {
   delete u_derivative_ptr;
 }
 
+void Advance::update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag) {
+    if (rk_flag == 0) {
+        c.epsilon = c_s.epsilon;
+        c.rhob = c_s.rhob;
+    } else {
+        c.epsilon_t = c_s.epsilon;
+        c.rhob_t = c_s.rhob;
+    }
+    c.u[rk_flag]     = c_s.u;
+    c.Wmunu[rk_flag] = c_s.Wmunu;
+    c.pi_b[rk_flag]  = c_s.pi_b;
+}
+
+void Advance::update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
+    if (rk_flag == 0) {
+        c_s.epsilon = c.epsilon;
+        c_s.rhob = c.rhob;
+    } else {
+        c_s.epsilon = c.epsilon_t;
+        c_s.rhob = c.rhob_t;
+    }
+    c_s.u     = c.u[rk_flag];
+    c_s.Wmunu = c.Wmunu[rk_flag];
+    c_s.pi_b  = c.pi_b[rk_flag];
+}
+
 
 //! this function evolves one Runge-Kutta step in tau
 int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
@@ -45,6 +71,8 @@ int Advance::AdvanceIt(double tau, InitData *DATA, Grid &arena,
   const int grid_neta = arena.nEta();
   const int grid_nx   = arena.nX();
   const int grid_ny   = arena.nY();
+
+
   #pragma omp parallel for collapse(3) schedule(guided)
   for(int ieta = 0; ieta < grid_neta; ieta++)
   for(int ix   = 0; ix   < grid_nx;   ix++  )
@@ -162,7 +190,11 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
   double tau_next = tau + DATA_ptr->delta_tau;
   auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena(ix,iy,ieta), rk_flag); 
   
-  UpdateTJbRK(grid_rk_t, &arena(ix,iy,ieta), rk_flag); 
+  //UpdateTJbRK(grid_rk_t, &arena(ix,iy,ieta), rk_flag); 
+  Cell_small arena_current;
+  update_cell_to_small_cell(arena(ix, iy, ieta), arena_current, (rk_flag+1)%2);
+  UpdateTJbRK(grid_rk_t, arena_current);
+  update_small_cell_to_cell(arena(ix, iy, ieta), arena_current, (rk_flag+1)%2);
 }
 
 
@@ -410,6 +442,13 @@ void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell *grid_pt, int rk_flag
   }
 }/* UpdateTJbRK */
 
+// update results after RK evolution to grid_pt
+void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {
+    grid_pt.epsilon = grid_rk.e;
+    grid_pt.rhob    = grid_rk.rhob;
+    grid_pt.u       = grid_rk.u;
+}/* UpdateTJbRK */
+
 
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
@@ -579,17 +618,24 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, TJb
   delta[2] = DATA_ptr->delta_y;
   delta[3] = DATA_ptr->delta_eta;
   
+  Cell_small arena_current;
+  update_cell_to_small_cell(arena(ix, iy, ieta), arena_current, rk_flag);
+
   double rhs[5];
   for (int alpha = 0; alpha < 5; alpha++) 
     {
-      qi[alpha] = get_TJb(arena(ix,iy,ieta), rk_flag, alpha, 0)*tau;
+      //qi[alpha] = get_TJb(arena(ix,iy,ieta), rk_flag, alpha, 0)*tau;
+      qi[alpha] = get_TJb(arena_current, alpha, 0)*tau;
       rhs[alpha] = 0.0; 
     }/* get qi first */
+  
+  update_small_cell_to_cell(arena(ix, iy, ieta), arena_current, rk_flag);
   
   TJbVec qiphL = {0};
   TJbVec qiphR = {0};
   TJbVec qimhL = {0};
   TJbVec qimhR = {0};
+  
   
   Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
     double tau_fac = tau;
@@ -784,6 +830,33 @@ double Advance::get_TJb(const ReconstCell &grid_p, const int rk_flag, const int 
         return rhob*u_nu;
     } else if (mu < 4) {
         double e = grid_p.e;
+        double gfac = 0.0;
+        double u_mu = 0.0;
+        if (mu == nu) {
+            u_mu = u_nu;
+            if (mu == 0) {
+                gfac = -1.0;
+            } else {
+                gfac = 1.0;
+            }
+        } else {
+            u_mu = grid_p.u[mu];
+        }
+        const double pressure = eos->get_pressure(e, rhob);
+        const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
+        return(T_munu);
+    } else {
+        return(0.0);
+    }
+}
+
+double Advance::get_TJb(const Cell_small &grid_p, const int mu, const int nu) {
+    double rhob = grid_p.rhob;
+    const double u_nu = grid_p.u[nu];
+    if (mu == 4) {
+        return rhob*u_nu;
+    } else if (mu < 4) {
+        double e = grid_p.epsilon;
         double gfac = 0.0;
         double u_mu = 0.0;
         if (mu == nu) {
