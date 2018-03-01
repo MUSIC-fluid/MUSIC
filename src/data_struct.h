@@ -5,6 +5,7 @@
 
 typedef std::array<std::array<double, 4>, 4> Mat4x4;
 typedef std::array<double, 10>               Arr10;
+
 typedef std::array<double, 4>  EnergyFlowVec;
 typedef std::array<double, 4>  FlowVec;
 typedef std::array<double, 5>  TJbVec;

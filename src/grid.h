@@ -6,55 +6,84 @@
 #include "cell.h"
 #include "grid.h"
 
-class Grid {
+template<class T>
+class GridT {
  private:
-  std::vector<Cell> grid;
+  std::vector<T> grid;
   int Nx   = 0;
   int Ny   = 0;
   int Neta = 0;
   
-  Cell& get(int x, int y, int eta);
+  T& get(int x, int y, int eta){
+      return grid.at(Nx*(Ny*eta+y)+x);
+  }
   
  public:
-  Grid() = default;
-  Grid(int Nx0, int Ny0, int Neta0);
+  GridT() = default;
+  GridT(int Nx0, int Ny0, int Neta0){
+      Nx   = Nx0  ;
+      Ny   = Ny0  ;
+      Neta = Neta0;
+      grid.resize(Nx*Ny*Neta);
+  }
 
-  int nX()   const;
-  int nY()   const;
-  int nEta() const;
+  int nX()   const {return(Nx );  }
+  int nY()   const {return(Ny );  }
+  int nEta() const {return(Neta );}
+  int size() const {return Nx*Ny*Neta; }
 
-  Cell& getHalo(int x, int y, int eta){
+  T& getHalo(int x, int y, int eta){
     assert(-2<=x  ); assert(x  <Nx  +2);
     assert(-2<=y  ); assert(y  <Ny  +2);
     assert(-2<=eta); assert(eta<Neta+2);
     if(x  <0)   x  =0;  else if(x  >=Nx)   x  =Nx  -1;
     if(y  <0)   y  =0;  else if(y  >=Ny)   y  =Ny  -1;
     if(eta<0)   eta=0;  else if(eta>=Neta) eta=Neta-1;
-    return grid[Nx*(Ny*eta+y)+x];
+    return get(x,y,eta);
   }
 
-  const Cell& getHalo(int x, int y, int eta) const {
+  const T& getHalo(int x, int y, int eta) const {
     return getHalo(x,y,eta);
   }
 
-  Cell& operator()(const int x, const int y, const int eta) {
+  T& operator()(const int x, const int y, const int eta) {
     assert(0<=x  ); assert(x  <Nx);
     assert(0<=y  ); assert(y  <Ny);
     assert(0<=eta); assert(eta<Neta);
-    return grid[Nx*(Ny*eta+y)+x];
+    return get(x,y,eta);
   }
 
-  const Cell& operator()(int x, int y, int eta) const {
+  const T& operator()(int x, int y, int eta) const {
     assert(0<=x  ); assert(x  <Nx);
     assert(0<=y  ); assert(y  <Ny);
     assert(0<=eta); assert(eta<Neta);
-    return grid[Nx*(Ny*eta+y)+x];
+    return get(x,y,eta);
   }
 
+  T& operator()(const int i) {
+    assert(0<=i  ); assert(x  <Nx*Ny*Neta);
+    return grid.at(i);
+  }
+
+  const T& operator()(const int i) const {
+    assert(0<=i  ); assert(x  <Nx*Ny*Neta);
+    return grid.at(i);
+  }
+
+  void clear() {
+    grid.clear();
+    grid.shrink_to_fit();
+  }
+  
 };
 
-template<class Func>
-void Neighbourloop(Grid &arena, int cx, int cy, int ceta, Func func){
+
+
+typedef GridT<Cell> Grid;
+typedef GridT<Cell_small> SCGrid;
+
+template<class T, class Func>
+void Neighbourloop(GridT<T> &arena, int cx, int cy, int ceta, Func func){
   const std::array<int,6> dx   = {-1,1, 0,0, 0,0};
   const std::array<int,6> dy   = { 0,0,-1,1, 0,0};
   const std::array<int,6> deta = { 0,0, 0,0,-1,1};
@@ -82,5 +111,6 @@ void Neighbourloop(Grid &arena, int cx, int cy, int ceta, Func func){
 }
 
 #define NLAMBDA [&](Cell& c, const Cell& p1, const Cell& p2, const Cell& m1, const Cell& m2, const int direction) 
+#define NLAMBDAS [&](Cell_small& c, const Cell_small& p1, const Cell_small& p2, const Cell_small& m1, const Cell_small& m2, const int direction) 
 
 #endif

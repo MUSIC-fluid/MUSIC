@@ -3,29 +3,6 @@
 #include <cassert>
 #include <iostream>
 
-Grid::Grid(int Nx0, int Ny0, int Neta0){
-  Nx   = Nx0  ;
-  Ny   = Ny0  ;
-  Neta = Neta0;
-  grid.resize(Nx*Ny*Neta);
-}
-
-Cell& Grid::get(int x, int y, int eta){
-  return grid[Nx*(Ny*eta+y)+x];
-}
-
-int Grid::nX() const {
-  return(Nx );
-}
-
-int Grid::nY() const {
-  return(Ny );
-}
-
-int Grid::nEta() const {
-  return(Neta );
-}
-
 TEST_CASE("Does grid copy work"){
  Grid grid(3,3,3);
 
@@ -39,7 +16,7 @@ TEST_CASE("Does grid copy work"){
 TEST_CASE("Check halo"){
   Grid grid(1,1,1);
 
-  grid(0,0,0).epsilon = 3;
+ grid(0,0,0).epsilon = 3;
  //grid.updateHalo();
 
   for(int i=-2; i<3; i++)
@@ -51,8 +28,8 @@ TEST_CASE("Check halo"){
 TEST_CASE("check neighbourloop1"){
   Grid grid(1,1,1);
 
-  grid(0,0,0).epsilon = 3;
-  //grid.updateHalo();
+ grid(0,0,0).epsilon = 3;
+ //grid.updateHalo();
 
   Neighbourloop(grid, 0, 0, 0, NLAMBDA{
     CHECK(c.epsilon == p1.epsilon);
@@ -62,11 +39,11 @@ TEST_CASE("check neighbourloop1"){
   });
 }
  
-// TEST_CASE("check neighbourloop2"){
-//  Grid grid1(5,1,1);
-//  for (int i = 0; i < 5; i++) {
-//     grid1(i,0,0).epsilon = i + 1;
-//  }
+TEST_CASE("check neighbourloop2"){
+ Grid grid1(5,1,1);
+ for (int i = 0; i < 5; i++) {
+    grid1(i,0,0).epsilon = i + 1;
+ }
  //grid1.updateHalo();
  
 //  Neighbourloop(grid1, 2, 0, 0, NLAMBDA{
