@@ -4,7 +4,7 @@
 #include <cassert>
 #include <vector>
 #include "cell.h"
-#include "./grid.h"
+#include "grid.h"
 
 class Grid {
  private:
@@ -45,7 +45,10 @@ class Grid {
   }
 
   const Cell& operator()(int x, int y, int eta) const {
-    return const_cast<Cell&>(static_cast<const Cell &>((*this)(x,y,eta)));
+    assert(0<=x  ); assert(x  <Nx);
+    assert(0<=y  ); assert(y  <Ny);
+    assert(0<=eta); assert(eta<Neta);
+    return grid[Nx*(Ny*eta+y)+x];
   }
 
 };
