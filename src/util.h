@@ -64,6 +64,7 @@ namespace Util {
     void print_backtrace_errors();
     int map_2d_idx_to_1d(int a, int b);
     Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector);
+    Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector);
 }
 
 #endif

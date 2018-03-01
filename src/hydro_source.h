@@ -6,6 +6,7 @@
 #include <vector>
 #include "data.h"
 #include "pretty_ostream.h"
+#include "data_struct.h"
 
 
 //! This data structure contains a QCD string object
@@ -60,12 +61,12 @@ class hydro_source {
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(double tau, double x, double y, double eta_s,
-                                 std::array<double,4> &u_mu, std::array<double,4> &j_mu);
+                                 FlowVec &u_mu, EnergyFlowVec &j_mu);
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
     double get_hydro_rhob_source(double tau, double x, double y, double eta_s,
-                                 std::array<double,4> &u_mu);
+                                 FlowVec &u_mu);
 
     //! this function returns the energy source term J^\mu up to a given point
     //! (tau, x, y, eta_s)

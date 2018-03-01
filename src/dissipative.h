@@ -22,22 +22,22 @@ class Diss {
                        int ix, int iy, int ieta, InitData *DATA, int rk_flag);
     int Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                    std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA,
-                   int rk_flag, double theta_local, std::array<double,5> &a_local);
+                   int rk_flag, double theta_local, DumuVec &a_local);
     double Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
                          InitData *DATA, int rk_flag, double theta_local,
-                         std::array<double,5> &a_local, std::array<double,10> &sigma_1d);
+                         DumuVec &a_local, VelocityShearVec &sigma_1d);
     
     int Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                    double *p_rhs, InitData *DATA,
                    int rk_flag, double theta_local);
 
     double Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
-                          int rk_flag, double theta_local, std::array<double,10> &sigma_1d);
+                          int rk_flag, double theta_local, VelocityShearVec &sigma_1d);
     int Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                    std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag);
     double Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
-                         int rk_flag, double theta_local, std::array<double,5> &a_local,
-                         std::array<double,10> &sigma_1d); 
+                         int rk_flag, double theta_local, DumuVec &a_local,
+                         VelocityShearVec &sigma_1d); 
     double get_temperature_dependent_eta_s(InitData *DATA, double T);
     double get_temperature_dependent_zeta_s(double temperature);
 

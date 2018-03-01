@@ -95,65 +95,6 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
         }
     });
 
-
-//    // x-direction
-//    idx_1d          = Util::map_2d_idx_to_1d(alpha, 1);
-//    auto grid_pt_p1 = &arena(ix + 1, iy, ieta);
-//    auto grid_pt_m1 = &arena(ix - 1, iy, ieta);
-//    double sg       = grid_pt.Wmunu[rk_flag][idx_1d];
-//    double sgp1     = grid_pt_p1->Wmunu[rk_flag][idx_1d];
-//    double sgm1     = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-//    dWdx_perp += minmod.minmod_dx(sgp1, sg, sgm1)/delta[1];
-//    //dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
-//    if (alpha < 4 && DATA->turn_on_bulk == 1) {
-//        double gfac1 = (alpha == 1 ? 1.0 : 0.0);
-//        double bgp1  = grid_pt_p1->pi_b[rk_flag]*(gfac1 + grid_pt_p1->u[rk_flag][alpha]*grid_pt_p1->u[rk_flag][1]);
-//        double bg    = grid_pt    .pi_b[rk_flag]*(gfac1 + grid_pt    .u[rk_flag][alpha]*grid_pt    .u[rk_flag][1]);
-//        double bgm1  = grid_pt_m1->pi_b[rk_flag]*(gfac1 + grid_pt_m1->u[rk_flag][alpha]*grid_pt_m1->u[rk_flag][1]);
-//        dPidx_perp  += minmod.minmod_dx(bgp1, bg, bgm1)/delta[1];
-//        //dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
-//    }
-//
-//    // y-direction
-//    idx_1d     = Util::map_2d_idx_to_1d(alpha, 2);
-//    grid_pt_p1 = &arena(ix, iy + 1, ieta);
-//    grid_pt_m1 = &arena(ix, iy - 1, ieta);
-//    sg         = grid_pt.Wmunu[rk_flag][idx_1d];
-//    sgp1       = grid_pt_p1->Wmunu[rk_flag][idx_1d];
-//    sgm1       = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-//    dWdx_perp += minmod.minmod_dx(sgp1, sg, sgm1)/delta[2];
-//    //dWdx_perp += (sgp1 - sgm1)/(2.*delta[i]);
-//    if (alpha < 4 && DATA->turn_on_bulk == 1) {
-//        double gfac1 = (alpha == 2 ? 1.0 : 0.0);
-//        double bgp1  = grid_pt_p1->pi_b[rk_flag]*(gfac1 + grid_pt_p1->u[rk_flag][alpha]*grid_pt_p1->u[rk_flag][2]);
-//        double bg    = grid_pt    .pi_b[rk_flag]*(gfac1 + grid_pt    .u[rk_flag][alpha]*grid_pt    .u[rk_flag][2]);
-//        double bgm1  = grid_pt_m1->pi_b[rk_flag]*(gfac1 + grid_pt_m1->u[rk_flag][alpha]*grid_pt_m1->u[rk_flag][2]);
-//        dPidx_perp  += minmod.minmod_dx(bgp1, bg, bgm1)/delta[2];
-//        //dPidx_perp += (bgp1 - bgm1)/(2.*delta[i]);
-//    }
-//
-//    // eta-direction
-//    i              = 3;
-//    taufactor      = tau;
-//    double dWdeta  = 0.0;
-//    double dPideta = 0.0;
-//    idx_1d         = Util::map_2d_idx_to_1d(alpha, i);
-//    grid_pt_p1     = &arena(ix, iy, ieta + 1);
-//    grid_pt_m1     = &arena(ix, iy, ieta - 1);
-//    sg             = grid_pt.Wmunu[rk_flag][idx_1d];
-//    sgp1           = grid_pt_p1->Wmunu[rk_flag][idx_1d];
-//    sgm1           = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-//    dWdeta         = minmod.minmod_dx(sgp1, sg, sgm1)/delta[i]/taufactor;
-//    //dWdeta = (sgp1 - sgm1)/(2.*delta[i]*taufactor);
-//    if (alpha < 4 && DATA->turn_on_bulk == 1) {
-//        double gfac3 = (alpha == i ? 1.0 : 0.0);
-//        double bgp1  = grid_pt_p1->pi_b[rk_flag]*(gfac3 + grid_pt_p1->u[rk_flag][alpha]*grid_pt_p1->u[rk_flag][i]);
-//        double bg    = grid_pt    .pi_b[rk_flag]*(gfac3 + grid_pt    .u[rk_flag][alpha]*grid_pt    .u[rk_flag][i]);
-//        double bgm1  = grid_pt_m1->pi_b[rk_flag]*(gfac3 + grid_pt_m1->u[rk_flag][alpha]*grid_pt_m1->u[rk_flag][i]);
-//        dPideta      = minmod.minmod_dx(bgp1, bg, bgm1)/delta[i]/taufactor;
-//        //dPideta    = (bgp1 - bgm1)/(2.*delta[i]*taufactor);
-//    }
-
     /* partial_m (tau W^mn) = W^0n + tau partial_m W^mn */
     double sf = (tau*(dWdtau + dWdx)
                  + grid_pt.Wmunu[rk_flag][idx_1d_alpha0]);
@@ -194,7 +135,7 @@ double Diss::MakeWSource(double tau, int alpha, Grid &arena, int ix, int iy, int
 
 double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
                            InitData *DATA, int rk_flag, double theta_local,
-                           std::array<double,5> &a_local, std::array<double,10> &sigma_1d) {
+                           DumuVec &a_local, VelocityShearVec &sigma_1d) {
     if (DATA->turn_on_shear == 0)
         return 0.0;
 
@@ -203,21 +144,9 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
     int a, b;
     double gamma, ueta;
     double NS_term;
-    double sigma[4][4];
-    double Wmunu[4][4];
-    for (int a = 0; a < 4; a++) {
-        for (int b = a; b < 4; b++) {
-            int idx_1d = Util::map_2d_idx_to_1d(a, b);
-            Wmunu[a][b] = grid_pt->Wmunu[rk_flag][idx_1d];
-            sigma[a][b] = sigma_1d[idx_1d];
-        }
-    }
-    for (int a = 0; a < 4; a++) {
-        for (int b = a+1; b < 4; b++) {
-            Wmunu[b][a] = Wmunu[a][b];
-            sigma[b][a] = sigma[a][b];
-        }
-    }
+
+    auto sigma = Util::UnpackVecToMatrix(sigma_1d);
+    auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu[rk_flag]);
 
     // Useful variables to define
     gamma = grid_pt->u[rk_flag][0];
@@ -463,29 +392,14 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 
 int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                      std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag,
-                     double theta_local, std::array<double,5> &a_local) {
+                     double theta_local, DumuVec &a_local) {
     auto& grid_pt = arena(ix, iy, ieta);
 
     w_rhs = {0};
 
     if (DATA->turn_on_shear == 0)
         return(1);
-
-    int mu, nu;
-    double Wmunu_local[4][4];
-    for (int aa = 0;  aa < 4; aa++) 
-    for (int bb = aa; bb < 4; bb++) {
-        int idx_1d = Util::map_2d_idx_to_1d(aa, bb);
-        Wmunu_local[aa][bb] = grid_pt.Wmunu[rk_flag][idx_1d];
-    }
-
-
-
-    for (int aa = 0; aa < 4; aa++) {
-        for (int bb = aa+1; bb < 4; bb++) {
-            Wmunu_local[bb][aa] = Wmunu_local[aa][bb];
-        }
-    }
+    auto Wmunu_local = Util::UnpackVecToMatrix(grid_pt.Wmunu[rk_flag]);
 
     /* Kurganov-Tadmor for Wmunu */
     /* implement 
@@ -511,8 +425,8 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
     };
     
     // pi^\mu\nu is symmetric
-    for (mu = 1; mu < 4; mu++) {
-        for (nu = mu; nu < 4; nu++) {
+    for (int mu = 1; mu < 4; mu++) {
+        for (int nu = mu; nu < 4; nu++) {
             int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
             double sum = 0.0;
             Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
@@ -648,7 +562,6 @@ int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
     double sum = 0.0;
     Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
-//        int direc = direction + 1;
         /* Get_uPis */
         double g = c.pi_b[rk_flag];
         double f = g*c.u[rk_flag][direction];
@@ -708,85 +621,6 @@ int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
         sum += -HPi;
     });
 
-//    for (direc=1; direc<=3; direc++) {
-//        if (direc == 1) {
-//            grid_pt_p1 = &(arena(ix + 1, iy, ieta));
-//            grid_pt_p2 = &(arena(ix + 2, iy, ieta));
-//            grid_pt_m1 = &(arena(ix - 1, iy, ieta));
-//            grid_pt_m2 = &(arena(ix - 2, iy, ieta));
-//        } else if (direc == 2) {
-//            grid_pt_p1 = &(arena(ix, iy + 1, ieta));
-//            grid_pt_p2 = &(arena(ix, iy + 2, ieta));
-//            grid_pt_m1 = &(arena(ix, iy - 1, ieta));
-//            grid_pt_m2 = &(arena(ix, iy - 2, ieta));
-//        } else {
-//            grid_pt_p1 = &(arena(ix, iy, ieta + 1));
-//            grid_pt_p2 = &(arena(ix, iy, ieta + 2));
-//            grid_pt_m1 = &(arena(ix, iy, ieta - 1));
-//            grid_pt_m2 = &(arena(ix, iy, ieta - 2));
-//        }
-//        if (direc==3) 
-//            taufactor = tau;
-//        else 
-//            taufactor = 1.0;
-//
-//        /* Get_uPis */
-//        g = grid_pt->pi_b[rk_flag];
-//        f = g*grid_pt->u[rk_flag][direc];
-//        g *= grid_pt->u[rk_flag][0];
-//
-//        gp2 = grid_pt_p2->pi_b[rk_flag];
-//        fp2 = gp2*grid_pt_p2->u[rk_flag][direc];
-//        gp2 *= grid_pt_p2->u[rk_flag][0];
-//        
-//        gp1 = grid_pt_p1->pi_b[rk_flag];
-//        fp1 = gp1*grid_pt_p1->u[rk_flag][direc];
-//        gp1 *= grid_pt_p1->u[rk_flag][0];
-//        
-//        gm1 = grid_pt_m1->pi_b[rk_flag];
-//        fm1 = gm1*grid_pt_m1->u[rk_flag][direc];
-//        gm1 *= grid_pt_m1->u[rk_flag][0];
-//        
-//        gm2 = grid_pt_m2->pi_b[rk_flag];
-//        fm2 = gm2*grid_pt_m2->u[rk_flag][direc];
-//        gm2 *= grid_pt_m2->u[rk_flag][0];
-//
-//        /*  Make upi Halfs */
-//        /* uPi */
-//        uPiphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f); 
-//        uPiphL = f + 0.5*minmod.minmod_dx(fp1, f, fm1);
-//        uPimhR = f - 0.5*minmod.minmod_dx(fp1, f, fm1);
-//        uPimhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
-//
-//        /* just Pi */
-//        PiphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g); 
-//        PiphL = g + 0.5*minmod.minmod_dx(gp1, g, gm1);
-//        PimhR = g - 0.5*minmod.minmod_dx(gp1, g, gm1);
-//        PimhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
-//
-//        /* MakePimnCurrents following Kurganov-Tadmor */
-//    
-//        a = fabs(grid_pt->u[rk_flag][direc]);
-//        a /= grid_pt->u[rk_flag][0];
-//  
-//        am1 = fabs(grid_pt_m1->u[rk_flag][direc]);
-//        am1 /= grid_pt_m1->u[rk_flag][0];
-//
-//        ap1 = fabs(grid_pt_p1->u[rk_flag][direc]);
-//        ap1 /= grid_pt_p1->u[rk_flag][0];
-//        
-//        ax = maxi(a, ap1);
-//        HPiph = ((uPiphR + uPiphL) - ax*(PiphR - PiphL))*0.5;
-//
-//        ax = maxi(a, am1); 
-//        HPimh = ((uPimhR + uPimhL) - ax*(PimhR - PimhL))*0.5;
-//
-//        HPi = (HPiph - HPimh)/delta[direc]/taufactor;
-//
-//        /* make partial_i (u^i Pi) */
-//        sum += -HPi;
-//     }/* direction */
-       
      /* add a source term due to the coordinate change to tau-eta */
      sum -= (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0])/tau;
      sum += (grid_pt->pi_b[rk_flag])*theta_local;
@@ -798,7 +632,7 @@ int Diss::Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 
 
 double Diss::Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
-                        int rk_flag, double theta_local, std::array<double,10> &sigma_1d) {
+                        int rk_flag, double theta_local, VelocityShearVec &sigma_1d) {
     if (DATA->turn_on_bulk == 0) return 0.0;
 
     double tempf;
@@ -875,21 +709,8 @@ double Diss::Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
     double Wsigma, WW, Shear_Sigma_term, Shear_Shear_term, Coupling_to_Shear;
 
     if (include_coupling_to_shear == 1) {
-        // Computing sigma^mu^nu
-        double Wmunu[4][4];
-        
-	auto sigma = Util::UnpackVecToMatrix(sigma_1d);
-	
-	for (int a = 0; a < 4 ; a++) {
-            for (int b = a; b < 4; b++) {
-                int idx_1d = Util::map_2d_idx_to_1d(a, b);
-		//        sigma[a][b] = sigma_1d[idx_1d];
-                Wmunu[a][b] = grid_pt->Wmunu[rk_flag][idx_1d];
-            }
-        }
-
-	
-
+        auto sigma = Util::UnpackVecToMatrix(sigma_1d);
+	    auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu[rk_flag]);
 
         Wsigma = (  Wmunu[0][0]*sigma[0][0]
                   + Wmunu[1][1]*sigma[1][1]
@@ -942,8 +763,8 @@ double Diss::Make_uPiSource(double tau, Cell *grid_pt, InitData *DATA,
     -u[a]u[b]g[b][e] Dq[e]
 */
 double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
-                           int rk_flag, double theta_local, std::array<double,5> &a_local,
-                           std::array<double,10> &sigma_1d) {
+                           int rk_flag, double theta_local, DumuVec &a_local,
+                           VelocityShearVec &sigma_1d) {
     double q[4];
   
     if (DATA->turn_on_diff == 0) return 0.0;
@@ -1012,18 +833,7 @@ double Diss::Make_uqSource(double tau, Cell *grid_pt, int nu, InitData *DATA,
 
     // add a new non-linear term (-q^\mu \sigma_\mu\nu)
     double transport_coeff_2 = 3./5.*tau_rho;   // from 14-momentum massless
-    double sigma[4][4];
-    for (int ii = 0; ii < 4; ii++) {
-        for (int jj = ii; jj < 4; jj++) {
-            int idx_1d = Util::map_2d_idx_to_1d(ii, jj);
-            sigma[ii][jj] = sigma_1d[idx_1d];
-        }
-    }
-    for (int ii = 0; ii < 4; ii++) {
-        for (int jj = ii+1; jj < 4; jj++) {
-            sigma[jj][ii] = sigma[ii][jj];
-        }
-    }
+    auto sigma = Util::UnpackVecToMatrix(sigma_1d);
     double temptemp = 0.0;
     for (int i = 0 ; i < 4; i++) {
         temptemp += q[i]*sigma[i][nu]*DATA->gmunu[i][i]; 
@@ -1104,7 +914,6 @@ int Diss::Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
         int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
         double sum = 0.0;
         Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
-//            int direc = direction + 1;
             /* Get_uWmns */
             double g = c.Wmunu[rk_flag][idx_1d];
             double f = g*c.u[rk_flag][direction];
@@ -1155,80 +964,6 @@ int Diss::Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
             /* make partial_i (u^i Wmn) */
             sum += -HW;
         });
-//        for (direc=1; direc<=3; direc++) {
-//            if (direc == 1) {
-//                grid_pt_p1 = &(arena(ix + 1, iy, ieta));
-//                grid_pt_p2 = &(arena(ix + 2, iy, ieta));
-//                grid_pt_m1 = &(arena(ix - 1, iy, ieta));
-//                grid_pt_m2 = &(arena(ix - 2, iy, ieta));
-//            } else if (direc == 2) {
-//                grid_pt_p1 = &(arena(ix, iy + 1, ieta));
-//                grid_pt_p2 = &(arena(ix, iy + 2, ieta));
-//                grid_pt_m1 = &(arena(ix, iy - 1, ieta));
-//                grid_pt_m2 = &(arena(ix, iy - 2, ieta));
-//            } else {
-//                grid_pt_p1 = &(arena(ix, iy, ieta + 1));
-//                grid_pt_p2 = &(arena(ix, iy, ieta + 2));
-//                grid_pt_m1 = &(arena(ix, iy, ieta - 1));
-//                grid_pt_m2 = &(arena(ix, iy, ieta - 2));
-//            }
-//            if (direc==3)
-//                taufactor = tau;
-//            else 
-//                taufactor = 1.0;
-//
-//            /* Get_uWmns */
-//            g = grid_pt->Wmunu[rk_flag][idx_1d];
-//            f = g*grid_pt->u[rk_flag][direc];
-//            g *=   grid_pt->u[rk_flag][0];
-//               
-//            gp2 = grid_pt_p2->Wmunu[rk_flag][idx_1d];
-//            fp2 = gp2*grid_pt_p2->u[rk_flag][direc];
-//            gp2 *=     grid_pt_p2->u[rk_flag][0];
-//            
-//            gp1 = grid_pt_p1->Wmunu[rk_flag][idx_1d];
-//            fp1 = gp1*grid_pt_p1->u[rk_flag][direc];
-//            gp1 *=     grid_pt_p1->u[rk_flag][0];
-//            
-//            gm1 = grid_pt_m1->Wmunu[rk_flag][idx_1d];
-//            fm1 = gm1*grid_pt_m1->u[rk_flag][direc];
-//            gm1 *=     grid_pt_m1->u[rk_flag][0];
-//            
-//            gm2 = grid_pt_m2->Wmunu[rk_flag][idx_1d];
-//            fm2 = gm2*grid_pt_m2->u[rk_flag][direc];
-//            gm2 *=     grid_pt_m2->u[rk_flag][0];
-// 
-//            /*  MakeuWmnHalfs */
-//            /* uWmn */
-//            uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f); 
-//            uWphL = f + 0.5*minmod.minmod_dx(fp1, f, fm1);
-//            uWmhR = f - 0.5*minmod.minmod_dx(fp1, f, fm1);
-//            uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
-//
-//            /* just Wmn */
-//            WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g); 
-//            WphL = g + 0.5*minmod.minmod_dx(gp1, g, gm1);
-//            WmhR = g - 0.5*minmod.minmod_dx(gp1, g, gm1);
-//            WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
-//
-//            a = fabs(grid_pt->u[rk_flag][direc])/grid_pt->u[rk_flag][0];
-//
-//            am1 = (fabs(grid_pt_m1->u[rk_flag][direc])
-//                   /grid_pt_m1->u[rk_flag][0]);
-//            ap1 = (fabs(grid_pt_p1->u[rk_flag][direc])
-//                   /grid_pt_p1->u[rk_flag][0]);
-//            ax = maxi(a, ap1);
-//            HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
-//
-//            ax = maxi(a, am1); 
-//            HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
-//
-//            HW = (HWph - HWmh)/delta[direc]/taufactor;
-//
-//            /* make partial_i (u^i Wmn) */
-//            sum += -HW;
-//        }/* direction */
-    
         /* add a source term -u^tau Wmn/tau due to the coordinate 
          * change to tau-eta */
         /* Sangyong Nov 18 2014: don't need this. included in the uqSource. */
