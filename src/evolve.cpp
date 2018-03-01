@@ -262,6 +262,55 @@ int Evolve::Update_prev_Arena(Grid &arena) {
     return(1);
 }
 
+void Evolve::update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag) {
+    if (rk_flag == 0) {
+        c.epsilon = c_s.epsilon;
+        c.rhob = c_s.rhob;
+        c.dUsup = c_s.dUsup;
+        c.u[rk_flag]     = c_s.u;
+        c.Wmunu[rk_flag] = c_s.Wmunu;
+        c.pi_b[rk_flag]  = c_s.pi_b;
+    } else if (rk_flag == 1) {
+        c.epsilon_t = c_s.epsilon;
+        c.rhob_t = c_s.rhob;
+        c.dUsup = c_s.dUsup;
+        c.u[rk_flag]     = c_s.u;
+        c.Wmunu[rk_flag] = c_s.Wmunu;
+        c.pi_b[rk_flag]  = c_s.pi_b;
+    } else if (rk_flag == 2) {
+        c.prev_epsilon = c_s.epsilon;
+        c.prev_rhob = c_s.rhob;
+        c.prev_u[rk_flag]     = c_s.u;
+        c.prevWmunu[rk_flag] = c_s.Wmunu;
+        c.prev_pi_b[rk_flag]  = c_s.pi_b;
+    }
+}
+
+void Evolve::update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
+    if (rk_flag == 0) {
+        c_s.epsilon = c.epsilon;
+        c_s.rhob = c.rhob;
+        c_s.u     = c.u[rk_flag];
+        c_s.Wmunu = c.Wmunu[rk_flag];
+        c_s.pi_b  = c.pi_b[rk_flag];
+        c_s.dUsup = c.dUsup;
+    } else if (rk_flag == 1) {
+        c_s.epsilon = c.epsilon_t;
+        c_s.rhob = c.rhob_t;
+        c_s.u     = c.u[rk_flag];
+        c_s.Wmunu = c.Wmunu[rk_flag];
+        c_s.pi_b  = c.pi_b[rk_flag];
+        c_s.dUsup = c.dUsup;
+    } else if (rk_flag == 2) {
+        c_s.epsilon = c.prev_epsilon;
+        c_s.rhob = c.prev_rhob;
+        c_s.u     = c.prev_u[0];
+        c_s.Wmunu = c.prevWmunu[0];
+        c_s.pi_b  = c.prev_pi_b[0];
+    }
+}
+
+
 
 int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
     // control function for Runge-Kutta evolution in tau
@@ -269,7 +318,31 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
         flag = u_derivative.MakedU(tau, DATA, arena, rk_flag);
-        flag = advance.AdvanceIt(tau, DATA, arena, rk_flag);
+
+        const int grid_neta = arena.nEta();
+        const int grid_nx   = arena.nX();
+        const int grid_ny   = arena.nY();
+
+        SCGrid arena_prev    = SCGrid(grid_nx, grid_ny, grid_neta);
+        SCGrid arena_current = SCGrid(grid_nx, grid_ny, grid_neta);
+        SCGrid arena_future  = SCGrid(grid_nx, grid_ny, grid_neta);
+
+        for(int ieta = 0; ieta < grid_neta; ieta++)
+        for(int ix   = 0; ix   < grid_nx;   ix++  )
+        for(int iy   = 0; iy   < grid_ny;   iy++  ) {
+            update_cell_to_small_cell(arena(ix, iy, ieta), arena_prev(ix, iy, ieta), 2);
+            update_cell_to_small_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), rk_flag);
+            update_cell_to_small_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag + 1)%2);
+        }
+
+
+        flag = advance.AdvanceIt(tau, DATA, arena_prev, arena_current, arena_future, rk_flag);
+        for(int ieta = 0; ieta < grid_neta; ieta++)
+        for(int ix   = 0; ix   < grid_nx;   ix++  )
+        for(int iy   = 0; iy   < grid_ny;   iy++  ) {
+          update_small_cell_to_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), (rk_flag+1)%2);
+        }
+
         if (rk_flag == 0) {
             Update_prev_Arena(arena);
         }

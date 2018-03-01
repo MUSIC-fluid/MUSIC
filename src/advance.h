@@ -36,10 +36,10 @@ class Advance {
     Advance(EOS *eosIn, InitData* DATA_in, hydro_source *hydro_source_in);
     ~Advance();
 
-    int AdvanceIt(double tau_init, InitData *DATA, Grid &arena, int rk_flag);
+    int AdvanceIt(double tau_init, InitData *DATA,
+                  SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
+                  int rk_flag);
 
-    void update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag);
-    void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag);
     void FirstRKStepT(const double tau, double x_local, double y_local,
                      double eta_s_local, InitData *DATA, SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta,
                      int rk_flag);

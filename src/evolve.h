@@ -52,6 +52,9 @@ class Evolve {
     int AdvanceRK(double tau, InitData *DATA, Grid &arena);
     int Update_prev_Arena(Grid &arena);
 
+    void update_small_cell_to_cell(Cell &c, const Cell_small &c_s, int rk_flag);
+    void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag);
+
     int FreezeOut_equal_tau_Surface(double tau, InitData *DATA, Grid &arena);
     void FreezeOut_equal_tau_Surface_XY(double tau, InitData *DATA,
                                         int ieta, Grid &arena,
