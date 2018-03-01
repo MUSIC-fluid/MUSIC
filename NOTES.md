@@ -121,7 +121,7 @@ Compiler outputs
 Intel advisor
 -------------
 
-/hpcgpfs01/software/Intel/psxe2018.u1/parallel_studio_xe_2018/advisor_2018/bin64/advixe-cl
+    /hpcgpfs01/software/Intel/psxe2018.u1/parallel_studio_xe_2018/advisor_2018/bin64/advixe-cl
 
 
     /hpcgpfs01/software/Intel/psxe2018.u1/parallel_studio_xe_2018/advisor_2018/bin64/advixe-cl --collect survey -project-dir=profile/  ./a.out 3001 120 out.dem 123
