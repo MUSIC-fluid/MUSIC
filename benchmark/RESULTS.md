@@ -37,7 +37,17 @@ no more halo copying
 2018-02-28  18:35     Cori KNL      Medium    02:02.215
 2018-02-28  18:35     Cori KNL      Large     03:40.763
 
-  
+no -g flag
+2018-02-28  18:35     Cori KNL      Small     00:45.130
+2018-02-28  18:35     Cori KNL      Medium    02:00.469
+2018-02-28  18:35     Cori KNL      Large     03:39.614
+
+32 threads
+2018-02-28  22:35     Cori KNL      Small     00:35.816
+2018-02-28  22:35     Cori KNL      Medium    01:12.237
+2018-02-28  22:35     Cori KNL      Large     02:01.966
+
+64 threads
 
 
 Perf output:
