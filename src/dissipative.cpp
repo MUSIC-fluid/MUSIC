@@ -392,8 +392,17 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 
 
 template<typename T>
-T assume_aligned(T x, int i)
+T assume_aligned(T x)
 {
+#if defined(__AVX512__)
+  constexpr int i = 64;
+#elif defined(__AVX__)
+  constexpr int i = 32;
+#elif defined(__SSE2__)
+  constexpr int i = 16;
+#else
+#error please set alignment i 
+#endif
 #ifdef __ICC
   T r = x;
   __assume_aligned(r,i);
@@ -407,7 +416,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
                      std::array< std::array<double,4>, 5> &w_rhs, const InitData *const unaligned_data, int rk_flag,
                      double theta_local, DumuVec &a_local) {
 
-  const InitData *const DATA = assume_aligned(unaligned_data,32);
+  const InitData *const DATA = assume_aligned(unaligned_data);
 
     auto& grid_pt = arena(ix, iy, ieta);
 
