@@ -344,9 +344,9 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
         const int grid_nx   = arena.nX();
         const int grid_ny   = arena.nY();
 
-        SCGrid arena_prev    = SCGrid(grid_nx, grid_ny, grid_neta);
-        SCGrid arena_current = SCGrid(grid_nx, grid_ny, grid_neta);
-        SCGrid arena_future  = SCGrid(grid_nx, grid_ny, grid_neta);
+        SCGrid arena_prev   (grid_nx, grid_ny, grid_neta);
+        SCGrid arena_current(grid_nx, grid_ny, grid_neta);
+        SCGrid arena_future (grid_nx, grid_ny, grid_neta);
 
         for(int ieta = 0; ieta < grid_neta; ieta++)
         for(int ix   = 0; ix   < grid_nx;   ix++  )
