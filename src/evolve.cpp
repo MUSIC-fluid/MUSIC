@@ -339,7 +339,6 @@ int Evolve::AdvanceRK(double tau, InitData *DATA, Grid &arena) {
     int flag = 0;
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
-
         const int grid_neta = arena.nEta();
         const int grid_nx   = arena.nX();
         const int grid_ny   = arena.nY();
