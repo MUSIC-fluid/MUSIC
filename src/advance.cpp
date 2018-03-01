@@ -758,7 +758,7 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
 }/* MaxSpeed */
 
 double Advance::get_TJb(const Cell &grid_p, const int rk_flag, const int mu, const int nu) {
-  double gfac[4][4] = {{-1.,0.,0.,0.},{0.,1.,0.,0.},{0.,0.,1.,0.},{0.,0.,0.,1.}};
+  double gfac[] = {-1.,1.,1.,1.};
   double rhob = grid_p.rhob;
   if (rk_flag == 1) {
     rhob = grid_p.rhob_t;
@@ -775,9 +775,18 @@ double Advance::get_TJb(const Cell &grid_p, const int rk_flag, const int mu, con
 	e = grid_p.epsilon_t;
       }
       double u_mu = 0.0;
-      u_mu = grid_p.u[rk_flag][mu];
+      double gfac2 = 0.;
+      if (mu == nu) 
+	{
+	  gfac2=1.;
+	  u_mu = u_nu;
+	}
+      else
+	{
+	  u_mu = grid_p.u[rk_flag][mu];
+	}
       const double pressure = eos->get_pressure(e, rhob);
-      const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac[mu][nu];
+      const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac[mu]*gfac2;
       return(T_munu);
     } 
   else 

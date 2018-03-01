@@ -392,7 +392,7 @@ double Diss::Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
 
 
 int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                     std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag,
+                     std::array< std::array<double,4>, 5> &w_rhs, const InitData *DATA, int rk_flag,
                      double theta_local, DumuVec &a_local) {
     auto& grid_pt = arena(ix, iy, ieta);
 
