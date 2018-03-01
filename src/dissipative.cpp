@@ -488,9 +488,10 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 	}  /* mu */
       });
     
-#pragma omp simd 
     for (int mu = 1; mu < 4; mu++) {
-      for (int nu = 1; nu < 4; nu++) {
+      double savew_rhs = w_rhs[mu][0];
+#pragma omp simd 
+      for (int nu = 0; nu < 4; nu++) {
 	/* add a source term -u^tau Wmn/tau
 	   due to the coordinate change to tau-eta */
 	/* this is from udW = d(uW) - Wdu = RHS */
@@ -522,6 +523,7 @@ int Diss::Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
 	w_rhs[mu][nu] += tempf*(DATA->delta_tau) 
 	  + (- (grid_pt.u[rk_flag][0]*Wmunu_local[mu][nu])/tau + (theta_local*Wmunu_local[mu][nu]))*(DATA->delta_tau);
       }
+      w_rhs[mu][0] = savew_rhs;
     }
     // // pi^\mu\nu is symmetric
     // for (int mu = 1; mu < 4; mu++) {
