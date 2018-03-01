@@ -112,9 +112,14 @@ int MUSIC::run_hydro() {
     }
 
     evolve = new Evolve(eos, DATA, hydro_source_ptr);
-    arena_prev   (grid_nx, grid_ny, grid_neta);
-    arena_current(grid_nx, grid_ny, grid_neta);
-    arena_future (grid_nx, grid_ny, grid_neta);
+
+    const int grid_nx = arena.nX();
+    const int grid_ny = arena.nY();
+    const int grid_neta = arena.nEta();
+
+    SCGrid arena_prev   (grid_nx, grid_ny, grid_neta);
+    SCGrid arena_current(grid_nx, grid_ny, grid_neta);
+    SCGrid arena_future (grid_nx, grid_ny, grid_neta);
 
     for(int ieta = 0; ieta < grid_neta; ieta++)
     for(int ix   = 0; ix   < grid_nx;   ix++  )
