@@ -52,13 +52,6 @@ no more halo copying
 2018-02-28  23:00     Cori KNL      Medium    00:48.650
 2018-02-28  23:00     Cori KNL      Large     01:18.369
 
-272 threads
-2018-02-28  23:10     Cori KNL      Small      00:29.106
-2018-02-28  23:10     Cori KNL      Medium     00:39.570
-2018-02-28  23:10     Cori KNL      Large      00:51.547
-2018-03-01  08:00     Cori KNL      L(32)      02:13.885
-2018-03-01  09:16     Cori KNL      XL (128)   07:42.895
-
 16 threads SIMD uWRHS no -ipo
 2018-03-01  12:00     Cori KNL      Small      00:46.454
 2018-03-01  12:00     Cori KNL      Medium     02:01.209
@@ -73,6 +66,19 @@ no more halo copying
 2018-03-01  22:10     Cori KNL      Small      00:42.803
 2018-03-01  22:10     Cori KNL      Medium     01:48.224
 2018-03-01  22:10     Cori KNL      Large      03:15.796
+
+16 threads new code - improved reconst
+2018-03-02  10:40     Cori KNL      Small      00:44.908
+2018-03-02  10:40     Cori KNL      Medium     01:45.722
+2018-03-02  10:40     Cori KNL      Large      03:10.951
+
+272 threads
+2018-02-28  23:10     Cori KNL      Small      00:29.106
+2018-02-28  23:10     Cori KNL      Medium     00:39.570
+2018-02-28  23:10     Cori KNL      Large      00:51.547
+2018-03-01  08:00     Cori KNL      L(32)      02:13.885
+2018-03-01  09:16     Cori KNL      XL (128)   07:42.895
+2018-03-02  11:00     Cori KNL      XL (128)   07:23.849
 
 
 Perf output:
