@@ -35,24 +35,24 @@ class Advance {
     Advance(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_source_in);
     ~Advance();
 
-    int AdvanceIt(double tau_init, InitData *DATA,
+    int AdvanceIt(double tau_init, 
                   SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
                   int rk_flag);
 
     void FirstRKStepT(const double tau, double x_local, double y_local,
-                     double eta_s_local, InitData *DATA, SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta,
+                     double eta_s_local,  SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta,
                      int rk_flag);
 
-    void FirstRKStepW(double tau_it, InitData *DATA,
+    void FirstRKStepW(double tau_it, 
                       SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
                      int rk_flag, double theta_local, DumuVec &a_local,
                      VelocityShearVec &sigma_local, int ieta, int ix, int iy);
 
     void UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt);
-    int QuestRevert(double tau, Cell_small *grid_pt, int rk_flag, InitData *DATA,
+    int QuestRevert(double tau, Cell_small *grid_pt, int rk_flag, 
                     int ieta, int ix, int iy);
     int QuestRevert_qmu(double tau, Cell_small *grid_pt, int rk_flag,
-                        InitData *DATA, int ieta, int ix, int iy);
+                         int ieta, int ix, int iy);
 
     void MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int ieta, TJbVec &qi, int rk_flag);
     double MaxSpeed(double tau, int direc, const ReconstCell &grid_p);

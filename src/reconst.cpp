@@ -731,7 +731,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJ
     grid_p.e = epsilon;
     grid_p.rhob = rhob;
 
-    pressure = eos->get_pressure(epsilon, rhob);
+    pressure = eos.get_pressure(epsilon, rhob);
 
     // individual components of velocity
     double velocity_inverse_factor = u[0]/(T00 + pressure);

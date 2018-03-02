@@ -47,10 +47,10 @@ class Evolve {
     vector<double> epsFO_list;
 
  public:
-    Evolve(EOS *eos, InitData *DATA_in, hydro_source *hydro_source_in);
-    int EvolveIt(InitData *DATA, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future);
+    Evolve(const EOS &eos, const InitData &DATA_in, hydro_source *hydro_source_in);
+    int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future);
 
-    int AdvanceRK(double tau, InitData *DATA, SCGrid &arena_prev,
+    int AdvanceRK(double tau, SCGrid &arena_prev,
                   SCGrid &arena_current, SCGrid &arena_future);
 
     int FreezeOut_equal_tau_Surface(double tau, Grid &arena);

@@ -9,20 +9,18 @@
 
 using namespace std;
 
-U_derivative::U_derivative(EOS *eosIn, InitData* DATA_in) :
+U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn) :
+    DATA(DATA_in),
+    eos(eosIn),
     minmod(DATA_in)
 {
-   eos = eosIn;
-   DATA_ptr = DATA_in;
-   for (int i = 0; i < 5; i++) {
-       for (int j = 0; j < 4; j++) {
+   for (int i = 0; i < 5; i++)
+   for (int j = 0; j < 4; j++)
            dUsup[i][j] = 0.0;
-       }
-   }
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
-int U_derivative::MakedU(double tau, InitData *DATA,
+int U_derivative::MakedU(double tau,
                          SCGrid &arena_prev, SCGrid &arena_current,
                          int ix, int iy, int ieta, int rk_flag) {
     // ideal hydro: no need to evaluate any flow derivatives
@@ -37,9 +35,9 @@ int U_derivative::MakedU(double tau, InitData *DATA,
     }
 
 	// this calculates du/dx, du/dy, (du/deta)/tau
-    MakeDSpatial(tau, DATA, arena_current, ix, iy, ieta, rk_flag);
+    MakeDSpatial(tau, arena_current, ix, iy, ieta, rk_flag);
     // this calculates du/dtau
-    MakeDTau(tau, DATA, &(arena_prev(ix, iy, ieta)), &(arena_current(ix,iy,ieta)), rk_flag); 
+    MakeDTau(tau, &arena_prev(ix, iy, ieta), &arena_current(ix,iy,ieta), rk_flag); 
 
    return(1);
 }
@@ -141,7 +139,7 @@ void U_derivative::calculate_velocity_shear_tensor(double tau, SCGrid &arena, in
 }
 
 
-int U_derivative::MakeDSpatial(double tau, InitData *DATA, SCGrid &arena, int ix, int iy, int ieta,
+int U_derivative::MakeDSpatial(double tau, SCGrid &arena, int ix, int iy, int ieta,
                                int rk_flag) {
     const double delta[4] = {
       0.0,
@@ -182,22 +180,22 @@ int U_derivative::MakeDSpatial(double tau, InitData *DATA, SCGrid &arena, int ix
     double rhob, eps, muB, T;
     rhob = arena(ix,iy,ieta).rhob;
     eps = arena(ix,iy,ieta).epsilon;
-    muB = eos->get_mu(eps, rhob);
-    T = eos->get_temperature(eps, rhob);
+    muB = eos.get_mu(eps, rhob);
+    T = eos.get_temperature(eps, rhob);
     double f = muB/T; 
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
         double fp1, fm1;
-        fp1 = ( eos->get_mu(p1.epsilon, p1.rhob)
-               /eos->get_temperature(p1.epsilon, p1.rhob));
-        fm1 = ( eos->get_mu(m1.epsilon, m1.rhob)
-               /eos->get_temperature(m1.epsilon, m1.rhob));
+        fp1 = ( eos.get_mu(p1.epsilon, p1.rhob)
+               /eos.get_temperature(p1.epsilon, p1.rhob));
+        fm1 = ( eos.get_mu(m1.epsilon, m1.rhob)
+               /eos.get_temperature(m1.epsilon, m1.rhob));
         double g = minmod.minmod_dx(fp1, f, fm1)/delta[direction];
         dUsup[m][direction] = g;
     });
     return 1;
 }/* MakeDSpatial */
 
-int U_derivative::MakeDTau(double tau, InitData *DATA,
+int U_derivative::MakeDTau(double tau,
                            Cell_small *grid_pt_prev, Cell_small *grid_pt,
                            int rk_flag) {
     int m;
@@ -212,7 +210,7 @@ int U_derivative::MakeDTau(double tau, InitData *DATA,
     for (m=1; m<=3; m++) {
         /* first order is more stable */
         f = ((grid_pt->u[m] - grid_pt_prev->u[m])
-             /DATA->delta_tau);
+             /DATA.delta_tau);
         dUsup[m][0] = -f; /* g00 = -1 */
     }/* m */
 
@@ -239,16 +237,16 @@ int U_derivative::MakeDTau(double tau, InitData *DATA,
     // f         = (grid_pt->rhob);
     rhob         = grid_pt->rhob;
     eps          = grid_pt->epsilon;
-    muB          = eos->get_mu(eps, rhob);
-    T            = eos->get_temperature(eps, rhob);
+    muB          = eos.get_mu(eps, rhob);
+    T            = eos.get_temperature(eps, rhob);
     tildemu      = muB/T;
     // f        -= (grid_pt->rhob_prev);
     rhob         = grid_pt_prev->rhob;
     eps          = grid_pt_prev->epsilon;
-    muB          = eos->get_mu(eps, rhob);
-    T            = eos->get_temperature(eps, rhob);
+    muB          = eos.get_mu(eps, rhob);
+    T            = eos.get_temperature(eps, rhob);
     tildemu_prev = muB/T;
-    f            = (tildemu - tildemu_prev)/(DATA->delta_tau);
+    f            = (tildemu - tildemu_prev)/(DATA.delta_tau);
     dUsup[m][0] = -f; /* g00 = -1 */
     // Ends Sangyong's addition Nov 18 2014
     return 1;

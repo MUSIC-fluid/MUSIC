@@ -61,12 +61,12 @@ class GridT {
   }
 
   T& operator()(const int i) {
-    assert(0<=i  ); assert(x  <Nx*Ny*Neta);
+    assert(0<=i  ); assert(i<Nx*Ny*Neta);
     return grid.at(i);
   }
 
   const T& operator()(const int i) const {
-    assert(0<=i  ); assert(x  <Nx*Ny*Neta);
+    assert(0<=i  ); assert(i<Nx*Ny*Neta);
     return grid.at(i);
   }
 

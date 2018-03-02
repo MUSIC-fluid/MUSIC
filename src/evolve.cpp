@@ -20,7 +20,7 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_so
     DATA(DATA_in),
     grid_info(DATA_in, eosIn),
     advance(eosIn, DATA_in, hydro_source_in),
-    u_derivative(eosIn, DATA_in)
+    u_derivative(DATA_in, eosIn)
 {
     rk_order  = DATA_in.rk_order;
   
@@ -36,7 +36,7 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_so
 }
 
 // master control function for hydrodynamic evolution
-int Evolve::EvolveIt(InitData *DATA, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future) {
+int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future) {
     // first pass some control parameters
     facTau                      = DATA.facTau;
     int output_hydro_debug_flag = DATA.output_hydro_debug_info;
@@ -148,7 +148,7 @@ int Evolve::EvolveIt(InitData *DATA, SCGrid &arena_prev, SCGrid &arena_current, 
     
         /* execute rk steps */
         // all the evolution are at here !!!
-        AdvanceRK(tau, DATA, arena_prev, arena_current, arena_future);
+        AdvanceRK(tau, arena_prev, arena_current, arena_future);
     
         //determine freeze-out surface
         int frozen = 0;
@@ -280,14 +280,14 @@ int Update_prev_Arena(Grid &arena) {
 }
 
 
-int Evolve::AdvanceRK(double tau, InitData *DATA, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future) {
+int Evolve::AdvanceRK(double tau, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future) {
     // control function for Runge-Kutta evolution in tau
     int flag = 0;
 
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
         //flag = u_derivative.MakedU(tau, DATA, arena_prev, arena_current, rk_flag);
-        flag = advance.AdvanceIt(tau, DATA, arena_prev, arena_current, arena_future, rk_flag);
+        flag = advance.AdvanceIt(tau,  arena_prev, arena_current, arena_future, rk_flag);
 
         if (rk_flag == 0) {
             Update_Arena(arena_current, arena_prev);

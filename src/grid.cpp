@@ -39,11 +39,11 @@ TEST_CASE("check neighbourloop1"){
   });
 }
  
-TEST_CASE("check neighbourloop2"){
- Grid grid1(5,1,1);
- for (int i = 0; i < 5; i++) {
-    grid1(i,0,0).epsilon = i + 1;
- }
+// TEST_CASE("check neighbourloop2"){
+//  Grid grid1(5,1,1);
+//  for (int i = 0; i < 5; i++) {
+//     grid1(i,0,0).epsilon = i + 1;
+//  }
  //grid1.updateHalo();
  
 //  Neighbourloop(grid1, 2, 0, 0, NLAMBDA{

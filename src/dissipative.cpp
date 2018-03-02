@@ -19,14 +19,14 @@ for everywhere else. also, this change is necessary
 to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
 /* this is the only one that is being subtracted in the rhs */
 double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &arena_prev, int ix, int iy, int ieta,
-                         InitData *DATA, int rk_flag) {
+                         int rk_flag) {
     /* calculate d_m (tau W^{m,alpha}) + (geom source terms) */
     const auto& grid_pt = arena_current(ix, iy, ieta);
     const auto& grid_pt_prev = arena_prev(ix, iy, ieta);
 
-    double shear_on = DATA->turn_on_shear;
-    double bulk_on  = DATA->turn_on_bulk;
-    double diff_on  = DATA->turn_on_diff;
+    double shear_on = DATA.turn_on_shear;
+    double bulk_on  = DATA.turn_on_bulk;
+    double diff_on  = DATA.turn_on_diff;
 
     double delta[4];
     delta[0] = 0.0;
@@ -48,7 +48,7 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
     // backward time derivative (first order is more stable)
     int idx_1d_alpha0 = Util::map_2d_idx_to_1d(alpha, 0);
     double dWdtau;
-    dWdtau = (grid_pt.Wmunu[idx_1d_alpha0] - grid_pt_prev.Wmunu[idx_1d_alpha0])/DATA->delta_tau;
+    dWdtau = (grid_pt.Wmunu[idx_1d_alpha0] - grid_pt_prev.Wmunu[idx_1d_alpha0])/DATA.delta_tau;
 
     /* bulk pressure term */
     double dPidtau = 0.0;
@@ -59,7 +59,7 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
         dPidtau = ((Pi_alpha0 - grid_pt_prev.pi_b
                                 *(gfac + grid_pt_prev.u[alpha]
                                          *grid_pt_prev.u[0]))
-                   /DATA->delta_tau);
+                   /DATA.delta_tau);
     }
 
     // use central difference to preserve conservation law exactly
@@ -72,7 +72,7 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
         double sgp1 = p1.Wmunu[idx_1d];
         double sgm1 = m1.Wmunu[idx_1d];
         dWdx += minmod.minmod_dx(sgp1, sg, sgm1)/delta[direction];
-        if (alpha < 4 && DATA->turn_on_bulk == 1) {
+        if (alpha < 4 && DATA.turn_on_bulk == 1) {
             double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
             double bgp1  = p1.pi_b*(gfac1 + p1.u[alpha]*p1.u[direction]);
             double bg    = c.pi_b*(gfac1 + c.u[alpha]*c.u[direction]);
@@ -114,7 +114,7 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
 }/* MakeWSource */
 
 double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int mu, int nu,
-                           InitData *DATA, int rk_flag, double theta_local,
+                           int rk_flag, double theta_local,
                            DumuVec &a_local, VelocityShearVec &sigma_1d) {
     if (DATA.turn_on_shear == 0)
         return 0.0;
@@ -230,14 +230,14 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     //            omega[a][b] = (
     //                (grid_pt->dUsup[a][b]
     //                 - grid_pt->dUsup[b][a])/2.
-    //                + ueta/tau/2.*(  DATA->gmunu[a][0]*DATA->gmunu[b][3]
-    //                               - DATA->gmunu[b][0]*DATA->gmunu[a][3])
+    //                + ueta/tau/2.*(  DATA.gmunu[a][0]*DATA.gmunu[b][3]
+    //                               - DATA.gmunu[b][0]*DATA.gmunu[a][3])
     //                - ueta*gamma/tau/2.
-    //                  *(  DATA->gmunu[a][3]*grid_pt->u[b]
-    //                    - DATA->gmunu[b][3]*grid_pt->u[a])
+    //                  *(  DATA.gmunu[a][3]*grid_pt->u[b]
+    //                    - DATA.gmunu[b][3]*grid_pt->u[a])
     //                + ueta*ueta/tau/2.
-    //                  *(   DATA->gmunu[a][0]*grid_pt->u[b]
-    //                     - DATA->gmunu[b][0]*grid_pt->u[a])
+    //                  *(   DATA.gmunu[a][0]*grid_pt->u[b]
+    //                     - DATA.gmunu[b][0]*grid_pt->u[a])
     //                + (  grid_pt->u[a]*a_local[b]
     //                   - grid_pt->u[b]*a_local[a])/2.);
     //        }
@@ -288,7 +288,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
                          + Wmunu[mu][3]*sigma[nu][3]
                          + Wmunu[nu][3]*sigma[mu][3])/2.;
 
-        term2_Wsigma = (-(1./3.)*(DATA->gmunu[mu][nu]
+        term2_Wsigma = (-(1./3.)*(DATA.gmunu[mu][nu]
                                   + grid_pt->u[mu]
                                     *grid_pt->u[nu])*Wsigma);
         // multiply term by its respective transport coefficient
@@ -326,7 +326,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
                      + Wmunu[mu][3]*Wmunu[nu][3]);
 
         term2_WW = (
-            -(1./3.)*(DATA->gmunu[mu][nu]
+            -(1./3.)*(DATA.gmunu[mu][nu]
                       + grid_pt->u[mu]*grid_pt->u[nu])
             *Wsquare);
 
@@ -349,7 +349,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 /// ////////////////////////////////////////////////////////////////////// ///
 /// ////////////////////////////////////////////////////////////////////// ///
     double Coupling_to_Bulk;
-    if (DATA->include_second_order_terms == 1) {
+    if (DATA.include_second_order_terms == 1) {
         double Bulk_Sigma = grid_pt->pi_b*sigma[mu][nu];
         double Bulk_W = grid_pt->pi_b*Wmunu[mu][nu];
 
@@ -372,10 +372,12 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 
 
 int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                     std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA,
+                     std::array< std::array<double,4>, 5> &w_rhs, 
                      double theta_local, DumuVec &a_local) {
 
-    if (DATA->turn_on_shear == 0)
+    const auto& grid_pt = arena(ix,iy,ieta);
+
+    if (DATA.turn_on_shear == 0)
         return(1);
     auto Wmunu_local = Util::UnpackVecToMatrix(grid_pt.Wmunu);
 
@@ -397,9 +399,9 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
        rk_flag+1 as initial condition */
     double delta[4] = { 
         0.0,
-        DATA->delta_x,
-        DATA->delta_y,
-        DATA->delta_eta*tau
+        DATA.delta_x,
+        DATA.delta_y,
+        DATA.delta_eta*tau
     };
     
     // pi^\mu\nu is symmetric
@@ -471,10 +473,10 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
             /* other source terms due to the coordinate change to tau-eta */
             double tempf = 0.0;
             tempf = (
-                - (DATA->gmunu[3][mu])*(Wmunu_local[0][nu])
-                - (DATA->gmunu[3][nu])*(Wmunu_local[0][mu])
-                + (DATA->gmunu[0][mu])*(Wmunu_local[3][nu])
-                + (DATA->gmunu[0][nu])*(Wmunu_local[3][mu])
+                - (DATA.gmunu[3][mu])*(Wmunu_local[0][nu])
+                - (DATA.gmunu[3][nu])*(Wmunu_local[0][mu])
+                + (DATA.gmunu[0][mu])*(Wmunu_local[3][nu])
+                + (DATA.gmunu[0][nu])*(Wmunu_local[3][mu])
                 + (Wmunu_local[3][nu])
                   *(grid_pt.u[mu])*(grid_pt.u[0])
                 + (Wmunu_local[3][mu])
@@ -493,10 +495,10 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
                        *(a_local[ic])*ic_fac);
             }
             sum += tempf;
-            w_rhs[mu][nu] = sum*(DATA->delta_tau);
+            w_rhs[mu][nu] = sum*(DATA.delta_tau);
         }  /* nu */
     }  /* mu */
-  });
+  );
 
   const InitData *const DATAaligned = assume_aligned(&DATA);
   
@@ -557,7 +559,7 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 
 
 int Diss::Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                     double *p_rhs, InitData *DATA, 
+                     double *p_rhs, 
                      int rk_flag, double theta_local) {
     auto grid_pt = &(arena(ix, iy, ieta));
     double bulk_on = DATA.turn_on_bulk;
@@ -650,16 +652,16 @@ int Diss::Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
      /* add a source term due to the coordinate change to tau-eta */
      sum -= (grid_pt->pi_b)*(grid_pt->u[0])/tau;
      sum += (grid_pt->pi_b)*theta_local;
-     *p_rhs = sum*(DATA->delta_tau)*bulk_on;
+     *p_rhs = sum*(DATA.delta_tau)*bulk_on;
 
      return 1; /* if successful */
 }/* Make_uPRHS */
 
 
 
-double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, InitData *DATA,
+double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, 
                         int rk_flag, double theta_local, VelocityShearVec &sigma_1d) {
-    if (DATA->turn_on_bulk == 0) return 0.0;
+    if (DATA.turn_on_bulk == 0) return 0.0;
 
     double tempf;
     double bulk;
@@ -788,7 +790,7 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     -Delta[a][eta] u[eta] q[tau]/tau
     -u[a]u[b]g[b][e] Dq[e]
 */
-double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu, InitData *DATA,
+double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu, 
                            int rk_flag, double theta_local, DumuVec &a_local,
                            VelocityShearVec &sigma_1d) {
     double q[4];
@@ -882,10 +884,10 @@ double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     }
 
     // +Delta[a][tau] u[eta] q[eta]/tau 
-    double tempf = ((DATA->gmunu[nu][0] 
+    double tempf = ((DATA.gmunu[nu][0] 
                     + grid_pt->u[nu]*grid_pt->u[0])
                       *grid_pt->u[3]*q[3]/tau
-                    - (DATA->gmunu[nu][3]
+                    - (DATA.gmunu[nu][3]
                        + grid_pt->u[nu]*grid_pt->u[3])
                       *grid_pt->u[3]*q[0]/tau);
     SW += tempf;
@@ -910,7 +912,7 @@ double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 
 
 int Diss::Make_uqRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                     std::array< std::array<double,4>, 5> &w_rhs, InitData *DATA, int rk_flag) {
+                     std::array< std::array<double,4>, 5> &w_rhs, int rk_flag) {
     /* Kurganov-Tadmor for q */
     /* implement 
       partial_tau (utau qmu) + (1/tau)partial_eta (ueta qmu) 

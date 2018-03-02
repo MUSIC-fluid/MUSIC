@@ -102,7 +102,7 @@ int MUSIC::run_hydro() {
     }
     arena.clear();
 
-    evolve->EvolveIt(DATA, arena_prev, arena_current, arena_future);
+    evolve->EvolveIt(arena_prev, arena_current, arena_future);
         
     flag_hydro_run = 1;
     return(0);
