@@ -375,7 +375,7 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
                      std::array< std::array<double,4>, 5> &w_rhs, 
                      double theta_local, DumuVec &a_local) {
 
-  const InitData *const DATAaligned = assume_aligned(unaligned_data);
+  const InitData *const DATAaligned = assume_aligned(&DATA);
 
     auto& grid_pt = arena(ix, iy, ieta);
 
@@ -408,10 +408,14 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
         DATA.delta_eta*tau
     };
     
+
+
+    const double delta_tau=DATA.delta_tau;
+
     // pi^\mu\nu is symmetric
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
     for (int mu = 1; mu < 4; mu++) {
-          #pragma omp simd 
+      #pragma omp simd 
 	  for (int nu = 0; nu < 4; nu++) {
             int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
             double sum = 0.0;
@@ -466,7 +470,7 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
                 /* make partial_i (u^i Wmn) */
                 sum += -HW;
 
-	    w_rhs[mu][nu] += sum*(DATA->delta_tau);
+	    w_rhs[mu][nu] += sum*delta_tau;
 
         }  /* nu */
     }  /* mu */
@@ -488,34 +492,34 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
       // vectorized innermost loop more efficiently by iterating over 4 indices instead of 3 to avoid masking
 
       double tempf = (
-          //   - (((init_data*)(&mydata))->gmunu[3][mu])*(Wmunu_local[0][nu])
+          //   - (((init_data*)(&mydata))->gmunu[3][mu])*(Wmunu_local[0][nu]) //TODO: Ask Bjorn about this
          - (DATAaligned->gmunu[3][mu])*(Wmunu_local[0][nu])
          - (DATAaligned->gmunu[3][nu])*(Wmunu_local[0][mu])
          + (DATAaligned->gmunu[0][mu])*(Wmunu_local[3][nu])
          + (DATAaligned->gmunu[0][nu])*(Wmunu_local[3][mu])
          + (Wmunu_local[3][nu])
-         *(grid_pt.u[rk_flag][mu])*(grid_pt.u[rk_flag][0])
+         *(grid_pt.u[mu])*(grid_pt.u[0])
          + (Wmunu_local[3][mu])
-         *(grid_pt.u[rk_flag][nu])*(grid_pt.u[rk_flag][0])
+         *(grid_pt.u[nu])*(grid_pt.u[0])
          - (Wmunu_local[0][nu])
-         *(grid_pt.u[rk_flag][mu])*(grid_pt.u[rk_flag][3])
+         *(grid_pt.u[mu])*(grid_pt.u[3])
          - (Wmunu_local[0][mu])
-         *(grid_pt.u[rk_flag][nu])*(grid_pt.u[rk_flag][3]))
-        *(grid_pt.u[rk_flag][3]/tau);
+         *(grid_pt.u[nu])*(grid_pt.u[3]))
+        *(grid_pt.u[3]/tau);
 
       for (int ic = 0; ic < 4; ic++) {
         const double ic_fac = (ic == 0 ? -1.0 : 1.0);
         tempf += (
-            (Wmunu_local[ic][nu])*(grid_pt.u[rk_flag][mu])
+            (Wmunu_local[ic][nu])*(grid_pt.u[mu])
             *(a_local[ic])*ic_fac
-            + (Wmunu_local[ic][mu])*(grid_pt.u[rk_flag][nu])
+            + (Wmunu_local[ic][mu])*(grid_pt.u[nu])
             *(a_local[ic])*ic_fac);
       }
 
       w_rhs[mu][nu] += tempf*(DATAaligned->delta_tau) 
-        + (- (grid_pt.u[rk_flag][0]*Wmunu_local[mu][nu])/tau + (theta_local*Wmunu_local[mu][nu]))*(DATAaligned->delta_tau);
+        + (- (grid_pt.u[0]*Wmunu_local[mu][nu])/tau + (theta_local*Wmunu_local[mu][nu]))*(DATAaligned->delta_tau);
     }
-    //     w_rhs[mu][0] = savew_rhs;
+    //     w_rhs[mu][0] = savew_rhs; //TODO: Ask Bjorn
   }
   // // pi^\mu\nu is symmetric
   // for (int mu = 1; mu < 4; mu++) {
