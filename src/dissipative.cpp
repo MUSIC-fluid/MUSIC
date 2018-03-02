@@ -375,7 +375,11 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
                      std::array< std::array<double,4>, 5> &w_rhs, 
                      double theta_local, DumuVec &a_local) {
 
-    const auto& grid_pt = arena(ix,iy,ieta);
+  const InitData *const DATAaligned = assume_aligned(unaligned_data);
+
+    auto& grid_pt = arena(ix, iy, ieta);
+
+    w_rhs = {0};
 
     if (DATA.turn_on_shear == 0)
         return(1);
@@ -405,11 +409,12 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
     };
     
     // pi^\mu\nu is symmetric
+    Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
     for (int mu = 1; mu < 4; mu++) {
-        for (int nu = mu; nu < 4; nu++) {
+          #pragma omp simd 
+	  for (int nu = 0; nu < 4; nu++) {
             int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
             double sum = 0.0;
-            Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
                 /* Get_uWmns */
                 double g = c.Wmunu[idx_1d];
                 double f = g*c.u[direction];
@@ -460,47 +465,12 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 
                 /* make partial_i (u^i Wmn) */
                 sum += -HW;
-            });
 
-            /* add a source term -u^tau Wmn/tau
-               due to the coordinate change to tau-eta */
-            sum += (- (grid_pt.u[0]*Wmunu_local[mu][nu])/tau
-                    + (theta_local*Wmunu_local[mu][nu]));
+	    w_rhs[mu][nu] += sum*(DATA->delta_tau);
 
-            /* this is from udW = d(uW) - Wdu = RHS */
-            /* or d(uW) = udW + Wdu */
-            /* this term is being added to the rhs so that -4/3 + 1 = -1/3 */
-            /* other source terms due to the coordinate change to tau-eta */
-            double tempf = 0.0;
-            tempf = (
-                - (DATA.gmunu[3][mu])*(Wmunu_local[0][nu])
-                - (DATA.gmunu[3][nu])*(Wmunu_local[0][mu])
-                + (DATA.gmunu[0][mu])*(Wmunu_local[3][nu])
-                + (DATA.gmunu[0][nu])*(Wmunu_local[3][mu])
-                + (Wmunu_local[3][nu])
-                  *(grid_pt.u[mu])*(grid_pt.u[0])
-                + (Wmunu_local[3][mu])
-                  *(grid_pt.u[nu])*(grid_pt.u[0])
-                - (Wmunu_local[0][nu])
-                  *(grid_pt.u[mu])*(grid_pt.u[3])
-                - (Wmunu_local[0][mu])
-                  *(grid_pt.u[nu])*(grid_pt.u[3]))
-                  *(grid_pt.u[3]/tau);
-            for (int ic = 0; ic < 4; ic++) {
-                double ic_fac = (ic == 0 ? -1.0 : 1.0);
-                tempf += (
-                      (Wmunu_local[ic][nu])*(grid_pt.u[mu])
-                       *(a_local[ic])*ic_fac
-                    + (Wmunu_local[ic][mu])*(grid_pt.u[nu])
-                       *(a_local[ic])*ic_fac);
-            }
-            sum += tempf;
-            w_rhs[mu][nu] = sum*(DATA.delta_tau);
         }  /* nu */
     }  /* mu */
-  );
-
-  const InitData *const DATAaligned = assume_aligned(&DATA);
+      });
   
   for (int mu = 1; mu < 4; mu++) {
     #pragma omp simd 
