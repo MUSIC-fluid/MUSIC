@@ -9,6 +9,10 @@
 #include "./advance.h"
 #include "./cornelius.h"
 
+#ifndef _OPENMP
+  #define omp_get_thread_num() 0
+#endif
+
 using namespace std;
 
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_source_in) :
@@ -16,7 +20,7 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_so
     DATA(DATA_in),
     grid_info(DATA_in, eosIn),
     advance(eosIn, DATA_in, hydro_source_in),
-    u_derivative(eosIn, DATA_in)
+    u_derivative(DATA_in, eosIn)
 {
     rk_order  = DATA_in.rk_order;
   
@@ -32,7 +36,7 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_so
 }
 
 // master control function for hydrodynamic evolution
-int Evolve::EvolveIt(Grid &arena) {
+int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future) {
     // first pass some control parameters
     facTau                      = DATA.facTau;
     int output_hydro_debug_flag = DATA.output_hydro_debug_info;
@@ -73,107 +77,107 @@ int Evolve::EvolveIt(Grid &arena) {
     for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
         // store initial conditions
-        if (it == it_start) {
-            store_previous_step_for_freezeout(arena);
-        }
+        //if (it == it_start) {
+        //    store_previous_step_for_freezeout(arena);
+        //}
         
         if (DATA.Initial_profile == 0) {
             if (fabs(tau - 1.0) < 1e-8) {
-                grid_info.Gubser_flow_check_file(arena, tau);
+                grid_info.Gubser_flow_check_file(arena_current, tau);
             }
             if (fabs(tau - 1.2) < 1e-8) {
-                grid_info.Gubser_flow_check_file(arena, tau);
+                grid_info.Gubser_flow_check_file(arena_current, tau);
             }
             if (fabs(tau - 1.5) < 1e-8) {
-                grid_info.Gubser_flow_check_file(arena, tau);
+                grid_info.Gubser_flow_check_file(arena_current, tau);
             }
             if (fabs(tau - 2.0) < 1e-8) {
-                grid_info.Gubser_flow_check_file(arena, tau);
+                grid_info.Gubser_flow_check_file(arena_current, tau);
             }
             if (fabs(tau - 3.0) < 1e-8) {
-                grid_info.Gubser_flow_check_file(arena, tau);
+                grid_info.Gubser_flow_check_file(arena_current, tau);
             }
         }
 
-        if (DATA.Initial_profile == 1) {
-            if (fabs(tau - 1.0) < 1e-8) {
-                grid_info.output_1p1D_check_file(arena, tau);
-            }
-            if (fabs(tau - 2.0) < 1e-8) {
-                grid_info.output_1p1D_check_file(arena, tau);
-            }
-            if (fabs(tau - 5.0) < 1e-8) {
-                grid_info.output_1p1D_check_file(arena, tau);
-            }
-            if (fabs(tau - 10.) < 1e-8) {
-                grid_info.output_1p1D_check_file(arena, tau);
-            }
-            if (fabs(tau - 20.) < 1e-8) {
-                grid_info.output_1p1D_check_file(arena, tau);
-            }
-        }
+        //if (DATA->Initial_profile == 1) {
+        //    if (fabs(tau - 1.0) < 1e-8) {
+        //        grid_info.output_1p1D_check_file(arena, tau);
+        //    }
+        //    if (fabs(tau - 2.0) < 1e-8) {
+        //        grid_info.output_1p1D_check_file(arena, tau);
+        //    }
+        //    if (fabs(tau - 5.0) < 1e-8) {
+        //        grid_info.output_1p1D_check_file(arena, tau);
+        //    }
+        //    if (fabs(tau - 10.) < 1e-8) {
+        //        grid_info.output_1p1D_check_file(arena, tau);
+        //    }
+        //    if (fabs(tau - 20.) < 1e-8) {
+        //        grid_info.output_1p1D_check_file(arena, tau);
+        //    }
+        //}
         
-        if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
-            if (it == it_start) {
-                grid_info.output_energy_density_and_rhob_disitrubtion(
-                    arena, "energy_density_and_rhob_from_source_terms.dat");
-            }
-        }
+        //if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
+        //    if (it == it_start) {
+        //        grid_info.output_energy_density_and_rhob_disitrubtion(
+        //            arena, "energy_density_and_rhob_from_source_terms.dat");
+        //    }
+        //}
 
-        if (it % Nskip_timestep == 0) {
-            if (outputEvo_flag == 1) {
-                grid_info.OutputEvolutionDataXYEta(arena,  tau);
-            } else if (outputEvo_flag == 2) {
-                grid_info.OutputEvolutionDataXYEta_chun(arena,  tau);
-            }
-            if (output_movie_flag == 1) {
-                grid_info.output_evolution_for_movie(arena, tau);
-            }
-        }
+        //if (it % Nskip_timestep == 0) {
+        //    if (outputEvo_flag == 1) {
+        //        grid_info.OutputEvolutionDataXYEta(arena, DATA, tau);
+        //    } else if (outputEvo_flag == 2) {
+        //        grid_info.OutputEvolutionDataXYEta_chun(arena, DATA, tau);
+        //    }
+        //    if (output_movie_flag == 1) {
+        //        grid_info.output_evolution_for_movie(arena, tau);
+        //    }
+        //}
         // grid_info.output_average_phase_diagram_trajectory(tau, -0.5, 0.5,
         //                                                    arena);
 
         // check energy conservation
-        if (boost_invariant_flag == 0)
-            grid_info.check_conservation_law(arena,  tau);
-        grid_info.get_maximum_energy_density(arena);
+        //if (boost_invariant_flag == 0)
+        //    grid_info.check_conservation_law(arena, DATA, tau);
+        //grid_info.get_maximum_energy_density(arena);
 
-        if (output_hydro_debug_flag == 1) {
-            grid_info.monitor_fluid_cell(arena, 100, 100, 0, tau);
-        }
-
+        //if (output_hydro_debug_flag == 1) {
+        //    grid_info.monitor_fluid_cell(arena, 100, 100, 0, tau);
+        //}
+    
         /* execute rk steps */
         // all the evolution are at here !!!
-        AdvanceRK(tau,  arena);
-   
+        AdvanceRK(tau, arena_prev, arena_current, arena_future);
+    
         //determine freeze-out surface
         int frozen = 0;
-        if (freezeout_flag == 1) {
-            if (freezeout_lowtemp_flag == 1) {
-                if (it == it_start) {
-                    frozen = FreezeOut_equal_tau_Surface(tau,  arena);
-                }
-            }
-            // avoid freeze-out at the first time step
-            if ((it - it_start)%facTau == 0 && it > it_start) {
-               //if (freezeout_method == 1)
-               //    FindFreezeOutSurface(tau,  arena);
-               //else if (freezeout_method == 2)
-               //    FindFreezeOutSurface2(tau,  arena);
-               //else if (freezeout_method == 3)
-               //    frozen = FindFreezeOutSurface3(tau,  arena);
-               if (freezeout_method == 4) {
-                   if (boost_invariant_flag == 0) {
-                       frozen = FindFreezeOutSurface_Cornelius(tau, 
-                                                               arena);
-                   } else {
-                       frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
-                                                            tau,  arena);
-                   }
-               }
-               store_previous_step_for_freezeout(arena);
-            }
-        }/* do freeze-out determination */
+        //if (freezeout_flag == 1) {
+        //    if (freezeout_lowtemp_flag == 1) {
+        //        if (it == it_start) {
+        //            frozen = FreezeOut_equal_tau_Surface(tau, DATA, arena);
+        //        }
+        //    }
+        //    // avoid freeze-out at the first time step
+        //    if ((it - it_start)%facTau == 0 && it > it_start) {
+        //       //if (freezeout_method == 1)
+        //       //    FindFreezeOutSurface(tau, DATA, arena);
+        //       //else if (freezeout_method == 2)
+        //       //    FindFreezeOutSurface2(tau, DATA, arena);
+        //       //else if (freezeout_method == 3)
+        //       //    frozen = FindFreezeOutSurface3(tau, DATA, arena);
+        //       if (freezeout_method == 4) {
+        //           if (boost_invariant_flag == 0) {
+        //               frozen = FindFreezeOutSurface_Cornelius(tau, DATA,
+        //                                                       arena);
+        //           } else {
+        //               frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
+        //                                                    tau, DATA, arena);
+        //           }
+        //       }
+        //       store_previous_step_for_freezeout(arena);
+        //    }
+        //}/* do freeze-out determination */
     
         music_message << "Done time step " << it << "/" << itmax
                       << " tau = " << tau << " fm/c";
@@ -235,7 +239,21 @@ void Evolve::store_previous_step_for_freezeout(Grid &arena) {
 }
 
 //! update grid information after the tau RK evolution 
-int Evolve::Update_prev_Arena(Grid &arena) {
+void Update_Arena(const SCGrid &arena_old, SCGrid &arena_new) {
+    const int n = arena_old.size();
+    //#pragma omp parallel for collapse(3)
+    for(int i = 0; i < n; i++) {
+        arena_new(i).epsilon = arena_old(i).epsilon;
+        arena_new(i).rhob    = arena_old(i).rhob;
+        arena_new(i).u       = arena_old(i).u;
+        arena_new(i).Wmunu   = arena_old(i).Wmunu;
+        arena_new(i).pi_b    = arena_old(i).pi_b;
+        //arena_new(i).dUsup   = arena_old(i).dUsup;
+    }
+}
+
+//! update grid information after the tau RK evolution 
+int Update_prev_Arena(Grid &arena) {
     const int neta = arena.nEta();
     const int nx   = arena.nX();
     const int ny   = arena.nY();
@@ -262,17 +280,24 @@ int Evolve::Update_prev_Arena(Grid &arena) {
 }
 
 
-int Evolve::AdvanceRK(double tau, Grid &arena) {
+int Evolve::AdvanceRK(double tau, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future) {
     // control function for Runge-Kutta evolution in tau
     int flag = 0;
+
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
-        flag = u_derivative.MakedU(tau,  arena, rk_flag);
-        flag = advance.AdvanceIt(tau,  arena, rk_flag);
+        //flag = u_derivative.MakedU(tau, DATA, arena_prev, arena_current, rk_flag);
+        flag = advance.AdvanceIt(tau,  arena_prev, arena_current, arena_future, rk_flag);
+
         if (rk_flag == 0) {
-            Update_prev_Arena(arena);
+            Update_Arena(arena_current, arena_prev);
+            Update_Arena(arena_future, arena_current);
+        } else {
+            Update_Arena(arena_future, arena_current);
         }
+        
     }  /* loop over rk_flag */
+
     return(flag);
 }  /* AdvanceRK */
       

@@ -13,7 +13,6 @@ InitData read_in_parameters(std::string input_file) {
     InitData parameter_list;
 
     // this function reads in parameters
-    int m, n;
     string tempinput;
 
     // echo_level controls the mount of
@@ -669,18 +668,6 @@ InitData read_in_parameters(std::string input_file) {
     double y_beam = atanh(sqrt(1. - 1./pow(temp_ecm/2., 2.)));
     parameter_list.beam_rapidity = y_beam;
     
-    // initialize the metric, mostly plus
-    parameter_list.gmunu = Util::mtx_malloc(4, 4);
-    for (m=0; m<4; m++) {
-        for (n=0; n<4; n++) {
-            if (m == n)
-                (parameter_list.gmunu)[m][n] = 1.0;
-            else
-                (parameter_list.gmunu)[m][n] = 0.0;
-            if (m==0 && n==0)
-                (parameter_list.gmunu)[m][n] *= -1.0;
-        }
-    }  /* m */
     
     int tempoutputBinaryEvolution = 0;
     tempinput = Util::StringFind4(input_file, "outputBinaryEvolution");
