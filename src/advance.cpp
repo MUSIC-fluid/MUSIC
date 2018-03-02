@@ -17,11 +17,10 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
   eos(eosIn),
   minmod(DATA_in)
 {
-  reconst_ptr      = new Reconst(eos, DATA);
-  diss             = new Diss(eosIn, DATA);
-  u_derivative_ptr = new U_derivative(eosIn, DATA);
-  if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13
-      || DATA.Initial_profile == 30) {
+  reconst_ptr      = new Reconst(eos, DATA_in);
+  diss             = new Diss(eosIn, DATA_in);
+  if (DATA_in.Initial_profile == 12 || DATA_in.Initial_profile == 13
+      || DATA_in.Initial_profile == 30) {
     flag_add_hydro_source = true;
     hydro_source_ptr = hydro_source_in;
   } else {
@@ -34,74 +33,63 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
 Advance::~Advance() {
   delete diss;
   delete reconst_ptr;
-  delete u_derivative_ptr;
 }
 
 
 //! this function evolves one Runge-Kutta step in tau
-int Advance::AdvanceIt(double tau,  Grid &arena,
+int Advance::AdvanceIt(double tau, 
+                       SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
                        int rk_flag) {
 
-  const int grid_neta = arena.nEta();
-  const int grid_nx   = arena.nX();
-  const int grid_ny   = arena.nY();
+  const int grid_neta = arena_current.nEta();
+  const int grid_nx   = arena_current.nX();
+  const int grid_ny   = arena_current.nY();
+
   #pragma omp parallel for collapse(3) schedule(guided)
   for(int ieta = 0; ieta < grid_neta; ieta++)
   for(int ix   = 0; ix   < grid_nx;   ix++  )
   for(int iy   = 0; iy   < grid_ny;   iy++  ) {
-    double eta_s_local = (- DATA.eta_size/2. + ieta*DATA.delta_eta);
-    double x_local     = (- DATA.x_size  /2. + ix  *DATA.delta_x  );
-    double y_local     = (- DATA.y_size  /2. + iy  *DATA.delta_y  );
-
-    //        FirstRKStepT(tau, x_local, y_local, eta_s_local,
-    //              &(arena(ix,iy,ieta)), rk_flag);
-    FirstRKStepT(tau, x_local, y_local, eta_s_local, arena, ix, iy, ieta, rk_flag);
+    double eta_s_local = (- DATA.eta_size/2.
+        + ieta*DATA.delta_eta);
+    double x_local = (- DATA.x_size/2.
+          + ix*DATA.delta_x);
+    double y_local = (- DATA.y_size/2.
+          + iy*DATA.delta_y);
+	  
+    FirstRKStepT(tau, x_local, y_local, eta_s_local,  arena_current, arena_future, arena_prev, ix, iy, ieta, rk_flag);
 
     if (DATA.viscosity_flag == 1) {
-      //double tau_rk = tau;
-      //if (rk_flag == 1) {
-      //    tau_rk = tau + DATA.delta_tau;
-      //}
-      //double theta_local = (
-      //        u_derivative_ptr->calculate_expansion_rate(
-      //            tau_rk, arena, ieta, ix, iy, rk_flag));
+      U_derivative u_derivative_helper(DATA,eos);
+      int flag = u_derivative_helper.MakedU(tau,  arena_prev, arena_current,
+                                          ix, iy, ieta, rk_flag);
       double theta_local = (
-          u_derivative_ptr->calculate_expansion_rate(
-                       tau, arena, ieta, ix, iy, rk_flag));
+          u_derivative_helper.calculate_expansion_rate(
+                       tau, arena_current, ieta, ix, iy, rk_flag));
       
       DumuVec a_local;
+      u_derivative_helper.calculate_Du_supmu(
+             tau, arena_current, ieta, ix, iy, rk_flag, a_local);
+
       VelocityShearVec sigma_local;
-      u_derivative_ptr->calculate_Du_supmu(
-                   tau, arena, ieta, ix, iy, rk_flag, a_local);
-      u_derivative_ptr->calculate_velocity_shear_tensor(
-                    tau, arena, ieta, ix, iy, rk_flag, a_local,
+      u_derivative_helper.calculate_velocity_shear_tensor(
+                    tau, arena_current, ieta, ix, iy, rk_flag, a_local,
                     sigma_local);
-      
-      FirstRKStepW(tau,  arena,
-             rk_flag, theta_local, a_local,
-             sigma_local, ieta, ix, iy);
+	    
+      FirstRKStepW(tau,  arena_prev, arena_current, arena_future,
+       rk_flag, theta_local, a_local,
+       sigma_local, ieta, ix, iy);
     }
   }
-  
+    
   return(1);
 }
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
-void Advance::FirstRKStepT(double tau, double x_local, double y_local,
-         double eta_s_local,  Grid &arena, int ix, int iy, int ieta, int rk_flag) {
+void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
+        double eta_s_local, SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta, int rk_flag) {
   // this advances the ideal part
-  double tau_now  = tau;
-  double tau_next = tau + (DATA.delta_tau);
-  double tau_rk;
-  if (rk_flag == 0) {
-    tau_rk = tau_now;
-  } else if (rk_flag == 1) {
-    tau_rk = tau_next;
-  } else {
-    fprintf(stderr,"rk_flag = %d out of range.\n", rk_flag);
-    exit(0);
-  }
+  double tau_rk = tau + rk_flag*(DATA.delta_tau);
   
   // Solve partial_a T^{a mu} = -partial_a W^{a mu}
   // Update T^{mu nu}
@@ -113,14 +101,14 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
   // It is the spatial derivative part of partial_a T^{a mu}
   // (including geometric terms)
   TJbVec qi = {0};
-  MakeDeltaQI(tau_rk, arena, ix, iy, ieta, qi, rk_flag);
+  MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
   
   EnergyFlowVec j_mu = {0};
   
   double rhob_source = 0.0;
   if (flag_add_hydro_source) {
-    FlowVec u_local = arena(ix,iy,ieta).u[rk_flag];
-    
+    FlowVec u_local = arena_current(ix,iy,ieta).u;
+
     hydro_source_ptr->get_hydro_energy_source(
                 tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
     for (int ii = 0; ii < 4; ii++) {
@@ -135,8 +123,7 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
   for (int alpha = 0; alpha < 5; alpha++) {
     // now MakeWSource returns partial_a W^{a mu}
     // (including geometric terms) 
-    //double dwmn = diss->MakeWSource(tau_rk, alpha, &arena(ix,iy,ieta), rk_flag);
-    double dwmn = diss->MakeWSource(tau_rk, alpha, arena, ix, iy, ieta, rk_flag);
+    double dwmn = diss->MakeWSource(tau_rk, alpha, arena_current, arena_prev, ix, iy, ieta,  rk_flag);
     /* dwmn is the only one with the minus sign */
     qi[alpha] -= dwmn*(DATA.delta_tau);
     
@@ -161,14 +148,14 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
     /* if rk_flag > 0, we now have q0 + k1 + k2. 
      * So add q0 and multiply by 1/2 */
     if (rk_flag > 0) {
-      qi[alpha] += get_TJb(arena(ix,iy,ieta), 0, alpha, 0)*tau_now;
+      qi[alpha] += get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
       qi[alpha] *= 0.5;
     }
   }
   
-  auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena(ix,iy,ieta), rk_flag); 
-  
-  UpdateTJbRK(grid_rk_t, &arena(ix,iy,ieta), rk_flag); 
+  double tau_next = tau + DATA.delta_tau;
+  auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena_current(ix, iy, ieta), rk_flag); 
+  UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
 }
 
 
@@ -179,17 +166,16 @@ void Advance::FirstRKStepT(double tau, double x_local, double y_local,
 */
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
-void Advance::FirstRKStepW(double tau,  Grid &arena,
+void Advance::FirstRKStepW(double tau, 
+                           SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
                            int rk_flag, double theta_local, DumuVec &a_local,
                            VelocityShearVec &sigma_local, int ieta, int ix, int iy) {
-  auto grid_pt = &(arena(ix, iy, ieta));
+  auto grid_pt_prev = &(arena_prev(ix, iy, ieta));
+  auto grid_pt_c = &(arena_current(ix, iy, ieta));
+  auto grid_pt_f = &(arena_future(ix, iy, ieta));
+
   double tau_now = tau;
   double tau_next = tau + (DATA.delta_tau);
-  
-  int trk_flag = rk_flag + 1;
-  if (rk_flag == 1) {
-    trk_flag = 0;
-  }
   
   std::array< std::array<double,4>, 5> w_rhs = {0};
   
@@ -212,41 +198,37 @@ void Advance::FirstRKStepW(double tau,  Grid &arena,
   /* Advance uWmunu */
   double tempf, temps;
   if (rk_flag == 0) {
-    diss->Make_uWRHS(tau_now, arena, ix, iy, ieta, w_rhs,  rk_flag,
+    diss->Make_uWRHS(tau_now, arena_current, ix, iy, ieta, w_rhs, 
          theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
-  int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-  tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
-     *(grid_pt->u[rk_flag][0]));
-  temps = diss->Make_uWSource(tau_now, grid_pt, mu, nu, 
-            rk_flag, theta_local, a_local,
-            sigma_local); 
-  tempf += temps*(DATA.delta_tau);
-  tempf += w_rhs[mu][nu];
-  grid_pt->Wmunu[trk_flag][idx_1d] = (
-              tempf/(grid_pt->u[trk_flag][0]));
+          int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+          tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+          temps = diss->Make_uWSource(tau_now, grid_pt_c, grid_pt_prev, mu, nu, 
+				    rk_flag, theta_local, a_local,
+				    sigma_local); 
+          tempf += temps*(DATA.delta_tau);
+          tempf += w_rhs[mu][nu];
+          grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
       }
     }
   } else if (rk_flag > 0) {
-    diss->Make_uWRHS(tau_next, arena, ix, iy, ieta, w_rhs, rk_flag,
-         theta_local, a_local);
+    diss->Make_uWRHS(tau_next, arena_current, ix, iy, ieta, w_rhs, 
+                     theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
-  int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-  tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->prev_u[0][0]);
-  temps = diss->Make_uWSource(tau_next, grid_pt, mu, nu, 
-            rk_flag, theta_local, a_local,
-            sigma_local); 
-  tempf += temps*(DATA.delta_tau);
-  tempf += w_rhs[mu][nu];
-  
-  tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
-      *(grid_pt->u[rk_flag][0]));
-  tempf *= 0.5;
-  
-  grid_pt->Wmunu[trk_flag][idx_1d] = (
-                                            tempf/(grid_pt->u[trk_flag][0]));
+          int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+	      tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
+	      temps = diss->Make_uWSource(tau_next, grid_pt_c, grid_pt_prev, mu, nu, 
+				    rk_flag, theta_local, a_local,
+				    sigma_local); 
+	      tempf += temps*(DATA.delta_tau);
+	      tempf += w_rhs[mu][nu];
+	
+	      tempf += ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+	      tempf *= 0.5;
+	
+	      grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
       }
     }
   } /* rk_flag > 0 */
@@ -256,97 +238,93 @@ void Advance::FirstRKStepW(double tau,  Grid &arena,
     double p_rhs;
     if (rk_flag == 0) {
       /* calculate delta u^0 pi */
-      diss->Make_uPRHS(tau_now, arena, ix, iy, ieta, &p_rhs, rk_flag,
-           theta_local);
+      diss->Make_uPRHS(tau_now, arena_current, ix, iy, ieta, &p_rhs,  rk_flag,
+		       theta_local);
       
-      tempf = (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
-      temps = diss->Make_uPiSource(tau_now, grid_pt, rk_flag,
-           theta_local, sigma_local);
+      tempf = (grid_pt_c->pi_b)*(grid_pt_c->u[0]);
+      temps = diss->Make_uPiSource(tau_now, grid_pt_c, grid_pt_prev,  rk_flag,
+				   theta_local, sigma_local);
       tempf += temps*(DATA.delta_tau);
       tempf += p_rhs;
       
-      grid_pt->pi_b[trk_flag] = tempf/(grid_pt->u[trk_flag][0]);
+      grid_pt_f->pi_b = tempf/(grid_pt_f->u[0]);
     } else if (rk_flag > 0) {
       /* calculate delta u^0 pi */
-      diss->Make_uPRHS(tau_next, arena, ix, iy, ieta, &p_rhs, rk_flag,
-           theta_local);
+      diss->Make_uPRHS(tau_next, arena_current, ix, iy, ieta, &p_rhs,  rk_flag,
+		       theta_local);
       
-      tempf = (grid_pt->pi_b[0])*(grid_pt->prev_u[0][0]);
-      temps = diss->Make_uPiSource(tau_next, grid_pt, rk_flag,
-           theta_local, sigma_local);
+      tempf = (grid_pt_prev->pi_b)*(grid_pt_prev->u[0]);
+      temps = diss->Make_uPiSource(tau_next, grid_pt_c, grid_pt_prev,  rk_flag,
+				   theta_local, sigma_local);
       tempf += temps*(DATA.delta_tau);
       tempf += p_rhs;
       
-      tempf += (grid_pt->pi_b[rk_flag])*(grid_pt->u[rk_flag][0]);
+      tempf += (grid_pt_c->pi_b)*(grid_pt_c->u[0]);
       tempf *= 0.5;
       
-      grid_pt->pi_b[trk_flag] = tempf/(grid_pt->u[trk_flag][0]);
+      grid_pt_f->pi_b = tempf/(grid_pt_f->u[0]);
     }
   } else {
-    grid_pt->pi_b[trk_flag] = 0.0;
+    grid_pt_f->pi_b = 0.0;
   }
   
   // CShen: add source term for baryon diffusion
   if (DATA.turn_on_diff == 1) {
     if (rk_flag == 0) {
-      diss->Make_uqRHS(tau_now, arena, ix, iy, ieta, w_rhs, rk_flag);
+      diss->Make_uqRHS(tau_now, arena_current, ix, iy, ieta, w_rhs,  rk_flag);
       int mu = 4;
       for (int nu = 1; nu < 4; nu++) {
-  int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-  tempf = ((grid_pt->Wmunu[rk_flag][idx_1d])
-     *(grid_pt->u[rk_flag][0]));
-  temps = diss->Make_uqSource(tau_now, grid_pt, nu, 
-            rk_flag, theta_local, a_local,
-            sigma_local); 
-  tempf += temps*(DATA.delta_tau);
-  tempf += w_rhs[mu][nu];
-  
-  grid_pt->Wmunu[trk_flag][idx_1d] = (
-                                            tempf/(grid_pt->u[trk_flag][0]));
+	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+	tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+	temps = diss->Make_uqSource(tau_now, grid_pt_c, grid_pt_prev, nu, 
+				    rk_flag, theta_local, a_local,
+				    sigma_local); 
+	tempf += temps*(DATA.delta_tau);
+	tempf += w_rhs[mu][nu];
+	
+	grid_pt_f->Wmunu[idx_1d] = tempf/grid_pt_f->u[0];
       }
     } else if (rk_flag > 0) {
-      diss->Make_uqRHS(tau_next, arena, ix, iy, ieta, w_rhs, rk_flag);
+      diss->Make_uqRHS(tau_next, arena_current, ix, iy, ieta, w_rhs,  rk_flag);
       int mu = 4;
       for (int nu = 1; nu < 4; nu++) {
-  int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-  tempf = (grid_pt->Wmunu[0][idx_1d])*(grid_pt->prev_u[0][0]);
-  temps = diss->Make_uqSource(tau_next, grid_pt, nu, 
-            rk_flag, theta_local, a_local,
-            sigma_local); 
-  tempf += temps*(DATA.delta_tau);
-  tempf += w_rhs[mu][nu];
-  
-  tempf += ((grid_pt->Wmunu[rk_flag][idx_1d])
-      *(grid_pt->u[rk_flag][0]));
-  tempf *= 0.5;
-  
-  grid_pt->Wmunu[trk_flag][idx_1d] = (
-              tempf/(grid_pt->u[trk_flag][0]));
+	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+	tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
+	temps = diss->Make_uqSource(tau_next, grid_pt_c, grid_pt_prev, nu, 
+				    rk_flag, theta_local, a_local,
+				    sigma_local); 
+	tempf += temps*(DATA.delta_tau);
+	tempf += w_rhs[mu][nu];
+	
+	tempf += grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0];
+	tempf *= 0.5;
+	
+	grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
       }
     } /* rk_flag > 0 */
   } else {
     for (int nu = 0; nu < 4; nu++) {
       int idx_1d = Util::map_2d_idx_to_1d(4, nu);
-      grid_pt->Wmunu[trk_flag][idx_1d] = 0.0;
+      grid_pt_f->Wmunu[idx_1d] = 0.0;
     }
   }
-  
+
   // re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless
-  grid_pt->Wmunu[trk_flag][9] = (
-         (2.*(grid_pt->u[trk_flag][1]*grid_pt->u[trk_flag][2]
-              *grid_pt->Wmunu[trk_flag][5]
-              + grid_pt->u[trk_flag][1]*grid_pt->u[trk_flag][3]
-              *grid_pt->Wmunu[trk_flag][6]
-              + grid_pt->u[trk_flag][2]*grid_pt->u[trk_flag][3]
-              *grid_pt->Wmunu[trk_flag][8])
-          - (grid_pt->u[trk_flag][0]*grid_pt->u[trk_flag][0] 
-             - grid_pt->u[trk_flag][1]*grid_pt->u[trk_flag][1])
-          *grid_pt->Wmunu[trk_flag][4] 
-          - (grid_pt->u[trk_flag][0]*grid_pt->u[trk_flag][0] 
-             - grid_pt->u[trk_flag][2]*grid_pt->u[trk_flag][2])
-          *grid_pt->Wmunu[trk_flag][7])
-         /(grid_pt->u[trk_flag][0]*grid_pt->u[trk_flag][0] 
-           - grid_pt->u[trk_flag][3]*grid_pt->u[trk_flag][3]));
+  grid_pt_f->Wmunu[9] = (
+         (2.*(grid_pt_f->u[1]*grid_pt_f->u[2]
+              *grid_pt_f->Wmunu[5]
+              + grid_pt_f->u[1]*grid_pt_f->u[3]
+              *grid_pt_f->Wmunu[6]
+              + grid_pt_f->u[2]*grid_pt_f->u[3]
+              *grid_pt_f->Wmunu[8])
+          - (grid_pt_f->u[0]*grid_pt_f->u[0] 
+             - grid_pt_f->u[1]*grid_pt_f->u[1])
+          *grid_pt_f->Wmunu[4] 
+          - (grid_pt_f->u[0]*grid_pt_f->u[0] 
+             - grid_pt_f->u[2]*grid_pt_f->u[2])
+          *grid_pt_f->Wmunu[7])
+         /(grid_pt_f->u[0]*grid_pt_f->u[0] 
+           - grid_pt_f->u[3]*grid_pt_f->u[3]));
   
   // make Wmunu[i][0] using the transversality
   for (int mu = 1; mu < 4; mu++) {
@@ -354,31 +332,30 @@ void Advance::FirstRKStepW(double tau,  Grid &arena,
     for (int nu = 1; nu < 4; nu++) {
       int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
       tempf += (
-                grid_pt->Wmunu[trk_flag][idx_1d]*grid_pt->u[trk_flag][nu]);
+                grid_pt_f->Wmunu[idx_1d]*grid_pt_f->u[nu]);
     }
-    grid_pt->Wmunu[trk_flag][mu] = tempf/(grid_pt->u[trk_flag][0]);
+    grid_pt_f->Wmunu[mu] = tempf/(grid_pt_f->u[0]);
   }
-  
   // make Wmunu[0][0]
   tempf = 0.0;
   for (int nu=1; nu<4; nu++)
-    tempf += grid_pt->Wmunu[trk_flag][nu]*grid_pt->u[trk_flag][nu]; 
-  grid_pt->Wmunu[trk_flag][0] = tempf/(grid_pt->u[trk_flag][0]);
+    tempf += grid_pt_f->Wmunu[nu]*grid_pt_f->u[nu]; 
+  grid_pt_f->Wmunu[0] = tempf/(grid_pt_f->u[0]);
   
   if (DATA.turn_on_diff == 1) {
     // make qmu[0] using transversality
     for (int mu = 4; mu < mu_max + 1; mu++) {
       tempf = 0.0;
       for (int nu = 1; nu < 4; nu++) {
-  int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-  tempf += (grid_pt->Wmunu[trk_flag][idx_1d]
-      *grid_pt->u[trk_flag][nu]);
+	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+	tempf += (grid_pt_f->Wmunu[idx_1d]
+		  *grid_pt_f->u[nu]);
       }
-      grid_pt->Wmunu[trk_flag][10] = (
-              tempf/(grid_pt->u[trk_flag][0]));
+      grid_pt_f->Wmunu[10] = (
+				      tempf/(grid_pt_f->u[0]));
     }
   } else {
-    grid_pt->Wmunu[trk_flag][10] = 0.0;
+    grid_pt_f->Wmunu[10] = 0.0;
   }
   
   // If the energy density of the fluid element is smaller than 0.01GeV
@@ -386,50 +363,30 @@ void Advance::FirstRKStepW(double tau,  Grid &arena,
   int revert_flag = 0;
   int revert_q_flag = 0;
   if (DATA.Initial_profile != 0) {
-    revert_flag = QuestRevert(tau, grid_pt, rk_flag, ieta, ix, iy);
+    revert_flag = QuestRevert(tau, grid_pt_f, rk_flag,  ieta, ix, iy);
     if (DATA.turn_on_diff == 1) {
-      revert_q_flag = QuestRevert_qmu(tau, grid_pt, rk_flag, 
-              ieta, ix, iy);
+      revert_q_flag = QuestRevert_qmu(tau, grid_pt_f, rk_flag, 
+				      ieta, ix, iy);
     }
   }
-  
 }/* FirstRKStepW */
 
 // update results after RK evolution to grid_pt
-void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell *grid_pt, int rk_flag) {
-  int trk_flag = rk_flag + 1;
-  if (rk_flag == 1) {
-    trk_flag = 0;
-  }
-  
-  if (rk_flag == 0) {
-    grid_pt->epsilon_t = grid_rk.e;
-    grid_pt->rhob_t = grid_rk.rhob;
-  } else {
-    grid_pt->epsilon = grid_rk.e;
-    grid_pt->rhob = grid_rk.rhob;
-  }
-  
-  // reconstructed grid_rk uses rk_flag 0 only
-  for (int mu=0; mu<4; mu++) {
-    grid_pt->u[trk_flag][mu] = grid_rk.u[mu];
-  }
+void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {
+    grid_pt.epsilon = grid_rk.e;
+    grid_pt.rhob    = grid_rk.rhob;
+    grid_pt.u       = grid_rk.u;
 }/* UpdateTJbRK */
 
 
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
-int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
+int Advance::QuestRevert(double tau, Cell_small *grid_pt, int rk_flag,
                           int ieta, int ix, int iy) {
   int revert_flag = 0;
   double eps_scale = 0.5;   // 1/fm^4
   double e_local = grid_pt->epsilon;
   double rhob = grid_pt->rhob;
-  
-  int trk_flag = rk_flag + 1;
-  if (rk_flag == 1) {
-    trk_flag = 0;
-  }
   
   // regulation factor in the default MUSIC
   //double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
@@ -444,22 +401,22 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
   //    1e-15, 4.*(1. + tanh(3.*(grid_pt->epsilon - eps_scale/hbarc - 0.5))));
   //double factor_bulk = 2.*factor;
   
-  double pi_00 = grid_pt->Wmunu[trk_flag][0];
-  double pi_01 = grid_pt->Wmunu[trk_flag][1];
-  double pi_02 = grid_pt->Wmunu[trk_flag][2];
-  double pi_03 = grid_pt->Wmunu[trk_flag][3];
-  double pi_11 = grid_pt->Wmunu[trk_flag][4];
-  double pi_12 = grid_pt->Wmunu[trk_flag][5];
-  double pi_13 = grid_pt->Wmunu[trk_flag][6];
-  double pi_22 = grid_pt->Wmunu[trk_flag][7];
-  double pi_23 = grid_pt->Wmunu[trk_flag][8];
-  double pi_33 = grid_pt->Wmunu[trk_flag][9];
+  double pi_00 = grid_pt->Wmunu[0];
+  double pi_01 = grid_pt->Wmunu[1];
+  double pi_02 = grid_pt->Wmunu[2];
+  double pi_03 = grid_pt->Wmunu[3];
+  double pi_11 = grid_pt->Wmunu[4];
+  double pi_12 = grid_pt->Wmunu[5];
+  double pi_13 = grid_pt->Wmunu[6];
+  double pi_22 = grid_pt->Wmunu[7];
+  double pi_23 = grid_pt->Wmunu[8];
+  double pi_33 = grid_pt->Wmunu[9];
   
   double pisize = (pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
        - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
        + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
   
-  double pi_local = grid_pt->pi_b[trk_flag];
+  double pi_local = grid_pt->pi_b;
   double bulksize = 3.*pi_local*pi_local;
   
   double p_local = eos.get_pressure(e_local, rhob);
@@ -485,8 +442,8 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
       music_message.flush("warning");
     }
     for (int mu = 0; mu < 10; mu++) {
-      grid_pt->Wmunu[trk_flag][mu] = (
-              (rho_shear_max/rho_shear)*grid_pt->Wmunu[trk_flag][mu]);
+      grid_pt->Wmunu[mu] = (
+				      (rho_shear_max/rho_shear)*grid_pt->Wmunu[mu]);
     }
     revert_flag = 1;
   }
@@ -502,7 +459,7 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
         << rho_bulk;
       music_message.flush("warning");
     }
-    grid_pt->pi_b[trk_flag] = (rho_bulk_max/rho_bulk)*grid_pt->pi_b[trk_flag];
+    grid_pt->pi_b = (rho_bulk_max/rho_bulk)*grid_pt->pi_b;
     revert_flag = 1;
   }
   return(revert_flag);
@@ -511,13 +468,9 @@ int Advance::QuestRevert(double tau, Cell *grid_pt, int rk_flag,
 
 //! this function reduce the size of net baryon diffusion current
 //! in the dilute region to stablize numerical simulations
-int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
-            int ieta, int ix, int iy) {
+int Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt, int rk_flag,
+                              int ieta, int ix, int iy) {
   
-  int trk_flag = rk_flag + 1;
-  if (rk_flag == 1) {
-    trk_flag = 0;
-  }
   int revert_flag = 0;
   double eps_scale = 0.5;   // in 1/fm^4
   
@@ -528,7 +481,7 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
   double q_mu_local[4];
   for (int i = 0; i < 4; i++) {
     // copy the value from the grid
-    q_mu_local[i] = grid_pt->Wmunu[trk_flag][10+i];
+    q_mu_local[i] = grid_pt->Wmunu[10+i];
   }
   
   // calculate the size of q^\mu
@@ -548,7 +501,7 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
     music_message.flush("warning");
     for (int i = 0; i < 4; i++) {
       int idx_1d = Util::map_2d_idx_to_1d(4, i);
-      grid_pt->Wmunu[trk_flag][idx_1d] = 0.0;
+      grid_pt->Wmunu[idx_1d] = 0.0;
     }
     revert_flag = 1;
   }
@@ -569,7 +522,7 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
       music_message.flush("warning");
     }
     for (int i = 0; i < 4; i++) {
-      grid_pt->Wmunu[trk_flag][10+i] = (rho_q_max/rho_q)*q_mu_local[i];
+      grid_pt->Wmunu[10+i] = (rho_q_max/rho_q)*q_mu_local[i];
     }
     revert_flag = 1;
   }
@@ -579,7 +532,7 @@ int Advance::QuestRevert_qmu(double tau, Cell *grid_pt, int rk_flag,
 
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
+void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
   double delta[4];
   delta[1] = DATA.delta_x;
   delta[2] = DATA.delta_y;
@@ -587,38 +540,40 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, TJb
   
   double rhs[5];
   for (int alpha = 0; alpha < 5; alpha++) 
-  {
-    qi[alpha] = get_TJb(arena(ix,iy,ieta), rk_flag, alpha, 0)*tau;
-    rhs[alpha] = 0.0; 
-  }/* get qi first */
-
+    {
+      qi[alpha] = get_TJb(arena_current(ix, iy, ieta), alpha, 0)*tau;
+      rhs[alpha] = 0.0; 
+    }/* get qi first */
+  
+  
   TJbVec qiphL = {0};
   TJbVec qiphR = {0};
   TJbVec qimhL = {0};
   TJbVec qimhR = {0};
   
-  Neighbourloop(arena, ix, iy, ieta, NLAMBDA{
+  Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
     double tau_fac = tau;
     if (direction == 3) {
       tau_fac = 1.0;
     }
     for (int alpha = 0; alpha < 5; alpha++) {
       const double gphL = qi[alpha];
-      const double gphR = tau*get_TJb(p1, rk_flag, alpha, 0);
-      const double gmhL = tau*get_TJb(m1, rk_flag, alpha, 0);
+      const double gphR = tau*get_TJb(p1, alpha, 0);
+      const double gmhL = tau*get_TJb(m1, alpha, 0);
       const double gmhR = qi[alpha];
       const double fphL =  0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
-      const double fphR = -0.5*minmod.minmod_dx(tau*get_TJb(p2, rk_flag, alpha, 0), gphR, qi[alpha]);
-      const double fmhL =  0.5*minmod.minmod_dx(qi[alpha], gmhL, tau*get_TJb(m2, rk_flag, alpha, 0));
+      const double fphR = -0.5*minmod.minmod_dx(tau*get_TJb(p2, alpha, 0), gphR, qi[alpha]);
+      const double fmhL =  0.5*minmod.minmod_dx(qi[alpha], gmhL, tau*get_TJb(m2, alpha, 0));
       const double fmhR = -fphL;//-0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL); //TODO: Drop one of these minmods
       qiphL[alpha] = gphL + fphL;
       qiphR[alpha] = gphR + fphR;
       qimhL[alpha] = gmhL + fmhL;
       qimhR[alpha] = gmhR + fmhR;
     }
+      
+
     // for each direction, reconstruct half-way cells
     // reconstruct e, rhob, and u[4] for half way cells
-    
     auto grid_phL = reconst_ptr->ReconstIt_shell(tau, qiphL, c, 0);
     auto grid_phR = reconst_ptr->ReconstIt_shell(tau, qiphR, c, 0); 
     auto grid_mhL = reconst_ptr->ReconstIt_shell(tau, qimhL, c, 0);
@@ -648,9 +603,11 @@ void Advance::MakeDeltaQI(double tau, Grid &arena, int ix, int iy, int ieta, TJb
     }
   });
   
+
   // geometric terms
-  rhs[0] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 3)*DATA.delta_tau;
-  rhs[3] -= get_TJb(arena(ix,iy,ieta), rk_flag, 3, 0)*DATA.delta_tau;
+  rhs[0] -= get_TJb(arena_current(ix,iy,ieta), 3, 3)*DATA.delta_tau;
+  rhs[3] -= get_TJb(arena_current(ix,iy,ieta), 3, 0)*DATA.delta_tau;
+  
   
   for (int i = 0; i < 5; i++) {
     qi[i] += rhs[i];
@@ -817,4 +774,31 @@ double Advance::get_TJb(const ReconstCell &grid_p, const int rk_flag, const int 
   } else {
     return(0.0);
   }
+}
+
+double Advance::get_TJb(const Cell_small &grid_p, const int mu, const int nu) {
+    double rhob = grid_p.rhob;
+    const double u_nu = grid_p.u[nu];
+    if (mu == 4) {
+        return rhob*u_nu;
+    } else if (mu < 4) {
+        double e = grid_p.epsilon;
+        double gfac = 0.0;
+        double u_mu = 0.0;
+        if (mu == nu) {
+            u_mu = u_nu;
+            if (mu == 0) {
+                gfac = -1.0;
+            } else {
+                gfac = 1.0;
+            }
+        } else {
+            u_mu = grid_p.u[mu];
+        }
+        const double pressure = eos.get_pressure(e, rhob);
+        const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
+        return(T_munu);
+    } else {
+        return(0.0);
+    }
 }

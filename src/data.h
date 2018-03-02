@@ -15,10 +15,12 @@ using namespace std;
 
 typedef struct init_data {
   
-  std::array<std::array<double, 4>, 4> gmunu= {{{-1,0,0,0},
-					       { 0,1,0,0},
-					       { 0,0,1,0},
-					       { 0,0,0,1}}};
+  std::array<std::array<double, 4>, 4> gmunu = 
+    {{{-1,0,0,0},
+      { 0,1,0,0},
+      { 0,0,1,0},
+      { 0,0,0,1}}};
+      
   int echo_level;
   int mode;               //!< 1: do everything;
   //!< 2: do hydro evolution only;

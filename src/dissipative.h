@@ -19,24 +19,25 @@ class Diss {
  public:
     Diss(const EOS &eosIn, const InitData &DATA_in);
   
-    double MakeWSource(double tau, int alpha, Grid &arena,
-                       int ix, int iy, int ieta, int rk_flag);
-    int Make_uWRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                   std::array< std::array<double,4>, 5> &w_rhs,
-                   int rk_flag, double theta_local, DumuVec &a_local);
-    double Make_uWSource(double tau, Cell *grid_pt, int mu, int nu,
-                         int rk_flag, double theta_local,
+    double MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &arena_prev, int ix, int iy, int ieta,
+                          int rk_flag);
+    int Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
+                     std::array< std::array<double,4>, 5> &w_rhs, 
+                     double theta_local, DumuVec &a_local);
+    double Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int mu, int nu,
+                          int rk_flag, double theta_local,
                          DumuVec &a_local, VelocityShearVec &sigma_1d);
     
-    int Make_uPRHS(double tau, Grid &arena, int ix, int iy, int ieta,
+    int Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
                    double *p_rhs, 
                    int rk_flag, double theta_local);
 
-    double Make_uPiSource(double tau, Cell *grid_pt, 
-                          int rk_flag, double theta_local, VelocityShearVec &sigma_1d);
-    int Make_uqRHS(double tau, Grid &arena, int ix, int iy, int ieta,
-                   std::array< std::array<double,4>, 5> &w_rhs, int rk_flag);
-    double Make_uqSource(double tau, Cell *grid_pt, int nu, 
+    double Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, 
+                        int rk_flag, double theta_local, VelocityShearVec &sigma_1d);
+
+    int Make_uqRHS(double tau, SCGrid &arena_current, int ix, int iy, int ieta,
+                   std::array< std::array<double,4>, 5> &w_rhs,  int rk_flag);
+    double Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu, 
                          int rk_flag, double theta_local, DumuVec &a_local,
                          VelocityShearVec &sigma_1d); 
     double get_temperature_dependent_eta_s(double T);

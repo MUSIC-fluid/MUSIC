@@ -7,6 +7,10 @@
 #include "./init.h"
 #include "./eos.h"
 
+#ifndef _OPENMP
+  #define omp_get_thread_num() 0
+#endif
+
 using namespace std;
 
 Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source *hydro_source_in) :

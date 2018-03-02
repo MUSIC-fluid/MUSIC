@@ -13,7 +13,6 @@ InitData read_in_parameters(std::string input_file) {
     InitData parameter_list;
 
     // this function reads in parameters
-    int m, n;
     string tempinput;
 
     // echo_level controls the mount of
