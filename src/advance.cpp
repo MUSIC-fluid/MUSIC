@@ -556,6 +556,7 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
     if (direction == 3) {
       tau_fac = 1.0;
     }
+    #pragma omp simd
     for (int alpha = 0; alpha < 5; alpha++) {
       const double gphL = qi[alpha];
       const double gphR = tau*get_TJb(p1, alpha, 0);
