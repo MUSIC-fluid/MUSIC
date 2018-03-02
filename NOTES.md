@@ -154,9 +154,9 @@ Advisor on Cori via NX and ssh -X
     module load advisor
     export OMP_NUM_THREADS=8
     module load impi
-    mpiicc -g -openmp -O3 -o mycode.exe mycode.c
+    mpiicc -g -openmp -O3 -o mycode.exe mycode.c  #make with debug flags
     export I_MPI_PMI_LIBRARY=/opt/slurm/default/lib/pmi/libpmi.so
-    srun -n 4 -c 8 advixe-cl --collect survey --trace-mpi --project-dir ./myproj  -- ./mycode.exe
+    srun -n 1 -c 8 advixe-cl --collect survey --trace-mpi --project-dir ./myproj  -- ./mpihydro input
 
 
  * open NX session either via browser or app (see http://www.nersc.gov/users/connecting-to-nersc/using-nx/)

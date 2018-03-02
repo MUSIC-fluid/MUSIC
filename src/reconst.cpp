@@ -279,7 +279,7 @@ void Reconst::revert_grid(ReconstCell &grid_current, const Cell &grid_prev, int 
     }
     grid_current.e = grid_prev.epsilon;
     grid_current.rhob = grid_prev.rhob;
-   #pragma omp simd
+#pragma omp simd
     for (int mu = 0; mu < 4; mu++) {
         grid_current.u[mu] = grid_prev.u[rk_flag][mu];
     }
