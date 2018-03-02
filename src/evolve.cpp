@@ -246,20 +246,6 @@ void Evolve::store_previous_step_for_freezeout(Grid &arena) {
 }
 
 //! update grid information after the tau RK evolution 
-void Update_Arena(const SCGrid &arena_old, SCGrid &arena_new) {
-    const int n = arena_old.size();
-    //#pragma omp parallel for collapse(3)
-    for(int i = 0; i < n; i++) {
-        arena_new(i).epsilon = arena_old(i).epsilon;
-        arena_new(i).rhob    = arena_old(i).rhob;
-        arena_new(i).u       = arena_old(i).u;
-        arena_new(i).Wmunu   = arena_old(i).Wmunu;
-        arena_new(i).pi_b    = arena_old(i).pi_b;
-        //arena_new(i).dUsup   = arena_old(i).dUsup;
-    }
-}
-
-//! update grid information after the tau RK evolution 
 int Update_prev_Arena(Grid &arena) {
     const int neta = arena.nEta();
     const int nx   = arena.nX();
@@ -297,14 +283,11 @@ int Evolve::AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_cu
         flag = advance.AdvanceIt(tau, *arena_prev, *arena_current, *arena_future, rk_flag);
 
         if (rk_flag == 0) {
-            //Update_Arena(arena_current, arena_prev);
-            //Update_Arena(arena_future, arena_current);
             auto temp     = std::move(arena_prev);
             arena_prev    = std::move(arena_current);
             arena_current = std::move(arena_future);
             arena_future  = std::move(temp);
         } else {
-            //Update_Arena(*arena_future, *arena_current);
             std::swap(arena_current,arena_future);
         }
         
