@@ -611,16 +611,21 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJ
     double rel_error_v = 10.0;
     double v_next      = 1.0;
     double v_prev      = v_guess;
-    double abs_error_v = reconst_velocity_f_Newton(v_prev, T00, M, J0);
+    double fv, dfdv;
+    reconst_velocity_fdf(v_prev, T00, M, J0, fv, dfdv);
+    double abs_error_v = fv;
     do {
         iter++;
-        v_next = v_prev - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0));
+        //v_next = v_prev - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0));
+        v_next = v_prev - (abs_error_v/dfdv);
         if (v_next < 0.0) {
             v_next = 0.0 + 1e-10;
         } else if (v_next > 1.0) {
             v_next = 1.0 - 1e-10;
         }
-        abs_error_v = reconst_velocity_f_Newton(v_next, T00, M, J0);
+        reconst_velocity_fdf(v_next, T00, M, J0, fv, dfdv);
+        //abs_error_v = reconst_velocity_f_Newton(v_next, T00, M, J0);
+        abs_error_v = fv;
         rel_error_v = 2.*abs_error_v/(v_next + v_prev + 1e-15);
         v_prev = v_next;
         if (iter > max_iter) {
@@ -652,15 +657,20 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJ
         double u0_prev = 1./sqrt(1. - v_solution*v_solution);
         int u0_status = 1;
         double u0_next;
-        double abs_error_u0 = reconst_u0_f_Newton(u0_prev, T00, K00, M, J0);
+        double fu, dfdu;
+        reconst_u_fdf(u0_prev, T00, K00, M, J0, fu, dfdu);
+        double abs_error_u0 = fu;
         double rel_error_u0 = 1.0;
         do {
             iter_u0++;
-            u0_next = u0_prev - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0);
+            //u0_next = u0_prev - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0);
+            u0_next = u0_prev - abs_error_u0/dfdu;
             if (u0_next < 1.0) {
                 u0_next = 1.0 + 1e-10;
             }
-            abs_error_u0 = reconst_u0_f_Newton(u0_next, T00, K00, M, J0);
+            //abs_error_u0 = reconst_u0_f_Newton(u0_next, T00, K00, M, J0);
+            reconst_u_fdf(u0_next, T00, K00, M, J0, fu, dfdu);
+            abs_error_u0 = fu;
             rel_error_u0 = 2.*abs_error_u0/(u0_next + u0_prev + 1e-15);
             u0_prev = u0_next;
             if (iter_u0 > max_iter) {
@@ -1128,6 +1138,24 @@ double Reconst::GuessEps(double T00, double K00, double cs2) {
     return(f);
 }/*  GuessEps */
 
+
+void Reconst::reconst_velocity_fdf(const double v, const double T00, const double M, const double J0, double &fv, double &dfdv) const {
+    // this function returns f(v) = M/(M0 + P)
+    const double epsilon = T00 - v*M;
+    const double temp    = sqrt(1. - v*v);
+    const double rho     = J0*temp;
+   
+    const double pressure = eos.get_pressure(epsilon, rho);
+    const double temp1    = T00 + pressure;
+    const double temp0    = M/temp1;
+    const double temp2    = v/temp;
+    const double dPde     = eos.p_e_func(epsilon, rho);
+    const double dPdrho   = eos.p_rho_func(epsilon, rho);
+
+    fv   = v - temp0;
+    dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0*temp2*dPdrho);
+}
+
 double Reconst::reconst_velocity_f(double v, double T00, double M,
                                    double J0) {
     // this function returns f(v) = M/(M0 + P)
@@ -1162,6 +1190,27 @@ double Reconst::reconst_velocity_df(double v, double T00, double M,
     double dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0*temp2*dPdrho);
     return(dfdv);
 }
+
+void Reconst::reconst_u_fdf(const double u0, const double T00, const double K00, const double M, const double J0, double &fu, double &dfdu) const {
+    const double v       = sqrt(1. - 1./(u0*u0));
+    const double epsilon = T00 - v*M;
+    const double rho     = J0/u0;
+
+    const double pressure = eos.get_pressure(epsilon, rho);
+    const double temp0 = (T00 + pressure)/sqrt((T00 + pressure)*(T00 + pressure) - K00);
+
+    const double dedu0   = - M/(u0*u0*u0*v);
+    const double drhodu0 = - J0/(u0*u0);
+
+    const double dPde     = eos.p_e_func(epsilon, rho);
+    const double dPdrho   = eos.p_rho_func(epsilon, rho);
+
+    const double denorm = pow(((T00 + pressure)*(T00 + pressure) - K00), 1.5);
+    
+    fu = u0 - temp0;
+    dfdu  = 1. + (dedu0*dPde + drhodu0*dPdrho)*K00/denorm;
+}
+
 
 double Reconst::reconst_u0_f(double u0, double T00, double K00, double M,
                              double J0) {
