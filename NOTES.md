@@ -97,6 +97,7 @@ Compiler Flags
  * `-flto`                    : Link-Time Optimization (gcc) (Same as IPO). Longer compilation time, optimizing between files.
  * `-fma`                     : Fused multiply-add: a faster, more precise way of doing `a=a+b*c`
  * `-align`                   : Ensure memory is allocated to cache-line boundaries, makes accesses faster
+ * `-fimf-use-svml`           : Power implementation same as vector mass
 
 Suggested flags INtel compiler:
 
@@ -157,7 +158,7 @@ Advisor on Cori via NX and ssh -X
     mpiicc -g -openmp -O3 -o mycode.exe mycode.c  #make with debug flags
     export I_MPI_PMI_LIBRARY=/opt/slurm/default/lib/pmi/libpmi.so
     srun -n 1 -c 8 advixe-cl --collect survey --trace-mpi --project-dir ./myproj  -- ./mpihydro input
-
+    srun -n 1 -c 8 advixe-cl --collect tripcounts -flop --trace-mpi --project-dir ./myproj  -- ./mpihydro input
 
  * open NX session either via browser or app (see http://www.nersc.gov/users/connecting-to-nersc/using-nx/)
  * open konsole or some such and ssh -X to cori
