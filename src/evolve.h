@@ -2,6 +2,7 @@
 #ifndef SRC_EVOLVE_H_
 #define SRC_EVOLVE_H_
 
+#include <memory>
 #include <time.h>
 #include <vector>
 #include <iostream>
