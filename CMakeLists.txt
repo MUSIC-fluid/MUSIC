@@ -19,7 +19,6 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
     else ()
         set(CMAKE_CXX_FLAGS "-g -ipo -qopt-report=5 -qopt-report-phase:vec -Ofast -Wall ${OpenMP_CXX_FLAGS} -std=c++11 -fma -align -finline-functions -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
     endif ()
->>>>>>> 088db3311e94bd4e4fd62e4b5748b2781ea7dc1b
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "-g -flto -fsanitize=address -Ofast -Wall ${OpenMP_CXX_FLAGS} -std=c++11 -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
 endif()
