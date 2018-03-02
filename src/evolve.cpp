@@ -74,6 +74,12 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_fu
         it_start = static_cast<int>((source_tau_max - tau0)/dt);
         if (it_start < 0) it_start = 0;
     }
+
+
+    SCGrid *ap_prev    = &arena_prev;
+    SCGrid *ap_current = &arena_current;
+    SCGrid *ap_future  = &arena_future;
+
     for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
         // store initial conditions
@@ -148,7 +154,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_fu
     
         /* execute rk steps */
         // all the evolution are at here !!!
-        AdvanceRK(tau, arena_prev, arena_current, arena_future);
+        AdvanceRK(tau, &ap_prev, &ap_current, &ap_future);
     
         //determine freeze-out surface
         int frozen = 0;
@@ -280,20 +286,25 @@ int Update_prev_Arena(Grid &arena) {
 }
 
 
-int Evolve::AdvanceRK(double tau, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future) {
+int Evolve::AdvanceRK(double tau, SCGrid **arena_prev, SCGrid **arena_current, SCGrid **arena_future) {
     // control function for Runge-Kutta evolution in tau
     int flag = 0;
 
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
         //flag = u_derivative.MakedU(tau, DATA, arena_prev, arena_current, rk_flag);
-        flag = advance.AdvanceIt(tau,  arena_prev, arena_current, arena_future, rk_flag);
+        flag = advance.AdvanceIt(tau, **arena_prev, **arena_current, **arena_future, rk_flag);
 
         if (rk_flag == 0) {
-            Update_Arena(arena_current, arena_prev);
-            Update_Arena(arena_future, arena_current);
+            //Update_Arena(arena_current, arena_prev);
+            //Update_Arena(arena_future, arena_current);
+            auto temp      = *arena_prev;
+            *arena_prev    = *arena_current;
+            *arena_current = *arena_future;
+            *arena_future  = temp;
         } else {
-            Update_Arena(arena_future, arena_current);
+            //Update_Arena(*arena_future, *arena_current);
+            std::swap(*arena_current,*arena_future);
         }
         
     }  /* loop over rk_flag */
