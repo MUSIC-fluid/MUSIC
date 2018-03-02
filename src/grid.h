@@ -10,12 +10,13 @@ template<class T>
 class GridT {
  private:
   std::vector<T> grid;
+
   int Nx   = 0;
   int Ny   = 0;
   int Neta = 0;
   
   T& get(int x, int y, int eta){
-      return grid.at(Nx*(Ny*eta+y)+x);
+      return grid[Nx*(Ny*eta+y)+x];
   }
   
  public:
@@ -62,12 +63,12 @@ class GridT {
 
   T& operator()(const int i) {
     assert(0<=i  ); assert(i<Nx*Ny*Neta);
-    return grid.at(i);
+    return grid[i];
   }
 
   const T& operator()(const int i) const {
     assert(0<=i  ); assert(i<Nx*Ny*Neta);
-    return grid.at(i);
+    return grid[i];
   }
 
   void clear() {
