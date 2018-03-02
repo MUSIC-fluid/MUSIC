@@ -637,13 +637,13 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
   
   double g[] = {1.,1.,1./tau};
   
-  double utau = grid_p.u[0];
-  double utau2 = utau*utau;
-  double ux = fabs(grid_p.u[direc]);
-  double ux2 = ux*ux;
+  double utau    = grid_p.u[0];
+  double utau2   = utau*utau;
+  double ux      = fabs(grid_p.u[direc]);
+  double ux2     = ux*ux;
   double ut2mux2 = utau2 - ux2;
   
-  double eps = grid_p.e;
+  double eps  = grid_p.e;
   double rhob = grid_p.rhob;
   
   double vs2 = eos.get_cs2(eps, rhob);

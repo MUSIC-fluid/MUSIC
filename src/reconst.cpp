@@ -412,13 +412,13 @@ int Reconst::ReconstIt_velocity_iteration(
 
     // successfully found velocity, now update everything else
     if (v_solution < v_critical) {
-        u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*abs_err);
+        u[0]    = 1./(sqrt(1. - v_solution*v_solution) + v_solution*abs_err);
         epsilon = T00 - v_solution*sqrt(K00);
-        rhob = J0/u[0];
+        rhob    = J0/u[0];
     } else {
-        u[0] = u0_solution;
+        u[0]    = u0_solution;
         epsilon = T00 - sqrt((1. - 1./(u0_solution*u0_solution))*K00);
-        rhob = J0/u0_solution;
+        rhob    = J0/u0_solution;
     }
     
     double check_u0_var = (fabs(u[0] - grid_pt.u[rk_flag][0])
@@ -451,7 +451,7 @@ int Reconst::ReconstIt_velocity_iteration(
         return(-1);
     }
 
-    grid_p.e = epsilon;
+    grid_p.e    = epsilon;
     grid_p.rhob = rhob;
 
     pressure = eos.get_pressure(epsilon, rhob);

@@ -47,8 +47,7 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
     // dW/dtau
     // backward time derivative (first order is more stable)
     int idx_1d_alpha0 = Util::map_2d_idx_to_1d(alpha, 0);
-    double dWdtau;
-    dWdtau = (grid_pt.Wmunu[idx_1d_alpha0] - grid_pt_prev.Wmunu[idx_1d_alpha0])/DATA.delta_tau;
+    double dWdtau = (grid_pt.Wmunu[idx_1d_alpha0] - grid_pt_prev.Wmunu[idx_1d_alpha0])/DATA.delta_tau;
 
     /* bulk pressure term */
     double dPidtau = 0.0;
@@ -66,8 +65,7 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
     double dWdx  = 0.0;
     double dPidx = 0.0;
     Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
-        int idx_1d;
-        idx_1d      = Util::map_2d_idx_to_1d(alpha, direction);
+        int idx_1d  = Util::map_2d_idx_to_1d(alpha, direction);
         double sg   = c.Wmunu[idx_1d];
         double sgp1 = p1.Wmunu[idx_1d];
         double sgm1 = m1.Wmunu[idx_1d];
@@ -75,7 +73,7 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
         if (alpha < 4 && DATA.turn_on_bulk == 1) {
             double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
             double bgp1  = p1.pi_b*(gfac1 + p1.u[alpha]*p1.u[direction]);
-            double bg    = c.pi_b*(gfac1 + c.u[alpha]*c.u[direction]);
+            double bg    = c.pi_b *(gfac1 + c.u [alpha]*c.u [direction]);
             double bgm1  = m1.pi_b*(gfac1 + m1.u[alpha]*m1.u[direction]);
             dPidx += minmod.minmod_dx(bgp1, bg, bgm1)/delta[direction];
         }
@@ -414,67 +412,66 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 
     // pi^\mu\nu is symmetric
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
-    for (int mu = 1; mu < 4; mu++) {
-      #pragma omp simd 
-	  for (int nu = 0; nu < 4; nu++) {
-            int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
-            double sum = 0.0;
-                /* Get_uWmns */
-                double g = c.Wmunu[idx_1d];
-                double f = g*c.u[direction];
-                g *=   c.u[0];
-                   
-                double gp2 = p2.Wmunu[idx_1d];
-                double fp2 = gp2*p2.u[direction];
-                gp2 *= p2.u[0];
-                
-                double gp1 = p1.Wmunu[idx_1d];
-                double fp1 = gp1*p1.u[direction];
-                gp1 *= p1.u[0];
-                
-                double gm1 = m1.Wmunu[idx_1d];
-                double fm1 = gm1*m1.u[direction];
-                gm1 *= m1.u[0];
-                
-                double gm2 = m2.Wmunu[idx_1d];
-                double fm2 = gm2*m2.u[direction];
-                gm2 *= m2.u[0];
-                
-                /* MakeuWmnHalfs */
-                /* uWmn */
-                double uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f);
-                double temp = 0.5*minmod.minmod_dx(fp1, f, fm1);
-                double uWphL = f + temp;
-                double uWmhR = f - temp;
-                double uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
+      for (int mu = 1; mu < 4; mu++) {
+        #pragma omp simd 
+        for (int nu = 0; nu < 4; nu++) {
+          int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+          double sum = 0.0;
+          /* Get_uWmns */
+          double g = c.Wmunu[idx_1d];
+          double f = g*c.u[direction];
+          g *=   c.u[0];
+             
+          double gp2 = p2.Wmunu[idx_1d];
+          double fp2 = gp2*p2.u[direction];
+          gp2 *= p2.u[0];
+          
+          double gp1 = p1.Wmunu[idx_1d];
+          double fp1 = gp1*p1.u[direction];
+          gp1 *= p1.u[0];
+          
+          double gm1 = m1.Wmunu[idx_1d];
+          double fm1 = gm1*m1.u[direction];
+          gm1 *= m1.u[0];
+          
+          double gm2 = m2.Wmunu[idx_1d];
+          double fm2 = gm2*m2.u[direction];
+          gm2 *= m2.u[0];
+          
+          /* MakeuWmnHalfs */
+          /* uWmn */
+          double uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f);
+          double temp  = 0.5*minmod.minmod_dx(fp1, f, fm1);
+          double uWphL = f + temp;
+          double uWmhR = f - temp;
+          double uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
 
-                /* just Wmn */
-                double WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g);
-                temp = 0.5*minmod.minmod_dx(gp1, g, gm1);
-                double WphL = g + temp;
-                double WmhR = g - temp;
-                double WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
+          /* just Wmn */
+          double WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g);
+          temp        = 0.5*minmod.minmod_dx(gp1, g, gm1);
+          double WphL = g + temp;
+          double WmhR = g - temp;
+          double WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
 
-                double a   = fabs(c.u[direction])/c.u[0];
-                double am1 = (fabs(m1.u[direction])/m1.u[0]);
-                double ap1 = (fabs(p1.u[direction])/p1.u[0]);
+          double a   = fabs(c.u[direction])/c.u[0];
+          double am1 = (fabs(m1.u[direction])/m1.u[0]);
+          double ap1 = (fabs(p1.u[direction])/p1.u[0]);
 
-                double ax = maxi(a, ap1);
-                double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
+          double ax = maxi(a, ap1);
+          double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
 
-                ax = maxi(a, am1);
-                double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
+          ax = maxi(a, am1);
+          double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
 
-                double HW = (HWph - HWmh)/delta[direction];
+          double HW = (HWph - HWmh)/delta[direction];
 
-                /* make partial_i (u^i Wmn) */
-                sum += -HW;
+          /* make partial_i (u^i Wmn) */
+          sum += -HW;
 
-	    w_rhs[mu][nu] += sum*delta_tau;
-
+          w_rhs[mu][nu] += sum*delta_tau;
         }  /* nu */
-    }  /* mu */
-      });
+      }  /* mu */
+    });
   
   for (int mu = 1; mu < 4; mu++) {
     #pragma omp simd 
