@@ -49,8 +49,46 @@ class Reconst {
                                   const TJbVec &q, const Cell &grid_pt, int rk_flag);
     int ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
                                   const TJbVec &q, const Cell_small &grid_pt, int rk_flag);
-    void reconst_velocity_fdf(const double v, const double T00, const double M, const double J0, double &fv, double &dfdv) const;
-    void reconst_u_fdf(const double u0, const double T00, const double K00, const double M, const double J0, double &fu, double &dfdu) const;
+
+#pragma omp declare simd
+    void reconst_velocity_fdf(const double v, const double T00, const double M, const double J0, double &fv, double &dfdv) const{
+        // this function returns f(v) = M/(M0 + P)
+        const double epsilon = T00 - v*M;
+        const double temp    = sqrt(1. - v*v);
+        const double rho     = J0*temp;
+   
+        const double pressure = eos.get_pressure(epsilon, rho);
+        const double temp1    = T00 + pressure;
+        const double temp2    = v/temp;
+        const double dPde     = eos.p_e_func(epsilon, rho);
+        const double dPdrho   = eos.p_rho_func(epsilon, rho);
+
+        fv   = v - M/temp1;
+        dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0*temp2*dPdrho);
+    }
+
+#pragma omp declare simd
+    void reconst_u_fdf(const double u0, const double T00, const double K00, const double M, const double J0, double &fu, double &dfdu) const {
+        const double v       = sqrt(1. - 1./(u0*u0));
+        const double epsilon = T00 - v*M;
+        const double rho     = J0/u0;
+
+        const double pressure = eos.get_pressure(epsilon, rho);
+        const double temp1 = T00 + pressure;
+        const double temp0 = sqrt(temp1*temp1 - K00);
+
+        const double dedu0   = - M/(u0*u0*u0*v);
+        const double drhodu0 = - J0/(u0*u0);
+
+        const double dPde     = eos.p_e_func(epsilon, rho);
+        const double dPdrho   = eos.p_rho_func(epsilon, rho);
+
+        const double denorm = temp0*temp0*temp0;
+        
+        fu = u0 - temp1/temp0;
+        dfdu  = 1. + (dedu0*dPde + drhodu0*dPdrho)*K00/denorm;
+    }
+
     double reconst_velocity_f_Newton(double v, double T00, double M,
                                      double J0);
     double reconst_u0_f_Newton(double u0, double T00, double K00,

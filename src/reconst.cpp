@@ -1139,23 +1139,6 @@ double Reconst::GuessEps(double T00, double K00, double cs2) {
 }/*  GuessEps */
 
 
-void Reconst::reconst_velocity_fdf(const double v, const double T00, const double M, const double J0, double &fv, double &dfdv) const {
-    // this function returns f(v) = M/(M0 + P)
-    const double epsilon = T00 - v*M;
-    const double temp    = sqrt(1. - v*v);
-    const double rho     = J0*temp;
-   
-    const double pressure = eos.get_pressure(epsilon, rho);
-    const double temp1    = T00 + pressure;
-    const double temp0    = M/temp1;
-    const double temp2    = v/temp;
-    const double dPde     = eos.p_e_func(epsilon, rho);
-    const double dPdrho   = eos.p_rho_func(epsilon, rho);
-
-    fv   = v - temp0;
-    dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0*temp2*dPdrho);
-}
-
 double Reconst::reconst_velocity_f(double v, double T00, double M,
                                    double J0) {
     // this function returns f(v) = M/(M0 + P)
@@ -1189,26 +1172,6 @@ double Reconst::reconst_velocity_df(double v, double T00, double M,
 
     double dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0*temp2*dPdrho);
     return(dfdv);
-}
-
-void Reconst::reconst_u_fdf(const double u0, const double T00, const double K00, const double M, const double J0, double &fu, double &dfdu) const {
-    const double v       = sqrt(1. - 1./(u0*u0));
-    const double epsilon = T00 - v*M;
-    const double rho     = J0/u0;
-
-    const double pressure = eos.get_pressure(epsilon, rho);
-    const double temp0 = (T00 + pressure)/sqrt((T00 + pressure)*(T00 + pressure) - K00);
-
-    const double dedu0   = - M/(u0*u0*u0*v);
-    const double drhodu0 = - J0/(u0*u0);
-
-    const double dPde     = eos.p_e_func(epsilon, rho);
-    const double dPdrho   = eos.p_rho_func(epsilon, rho);
-
-    const double denorm = pow(((T00 + pressure)*(T00 + pressure) - K00), 1.5);
-    
-    fu = u0 - temp0;
-    dfdu  = 1. + (dedu0*dPde + drhodu0*dPdrho)*K00/denorm;
 }
 
 
