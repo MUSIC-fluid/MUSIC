@@ -74,6 +74,13 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_fu
         it_start = static_cast<int>((source_tau_max - tau0)/dt);
         if (it_start < 0) it_start = 0;
     }
+
+
+    const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
+    GridPointer ap_prev   (&arena_prev, closer);
+    GridPointer ap_current(&arena_current, closer);
+    GridPointer ap_future (&arena_future, closer);
+
     for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
         // store initial conditions
@@ -148,7 +155,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_fu
     
         /* execute rk steps */
         // all the evolution are at here !!!
-        AdvanceRK(tau, arena_prev, arena_current, arena_future);
+        AdvanceRK(tau, ap_prev, ap_current, ap_future);
     
         //determine freeze-out surface
         int frozen = 0;
@@ -239,20 +246,6 @@ void Evolve::store_previous_step_for_freezeout(Grid &arena) {
 }
 
 //! update grid information after the tau RK evolution 
-void Update_Arena(const SCGrid &arena_old, SCGrid &arena_new) {
-    const int n = arena_old.size();
-    //#pragma omp parallel for collapse(3)
-    for(int i = 0; i < n; i++) {
-        arena_new(i).epsilon = arena_old(i).epsilon;
-        arena_new(i).rhob    = arena_old(i).rhob;
-        arena_new(i).u       = arena_old(i).u;
-        arena_new(i).Wmunu   = arena_old(i).Wmunu;
-        arena_new(i).pi_b    = arena_old(i).pi_b;
-        //arena_new(i).dUsup   = arena_old(i).dUsup;
-    }
-}
-
-//! update grid information after the tau RK evolution 
 int Update_prev_Arena(Grid &arena) {
     const int neta = arena.nEta();
     const int nx   = arena.nX();
@@ -280,20 +273,22 @@ int Update_prev_Arena(Grid &arena) {
 }
 
 
-int Evolve::AdvanceRK(double tau, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future) {
+int Evolve::AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future) {
     // control function for Runge-Kutta evolution in tau
     int flag = 0;
 
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
         //flag = u_derivative.MakedU(tau, DATA, arena_prev, arena_current, rk_flag);
-        flag = advance.AdvanceIt(tau,  arena_prev, arena_current, arena_future, rk_flag);
+        flag = advance.AdvanceIt(tau, *arena_prev, *arena_current, *arena_future, rk_flag);
 
         if (rk_flag == 0) {
-            Update_Arena(arena_current, arena_prev);
-            Update_Arena(arena_future, arena_current);
+            auto temp     = std::move(arena_prev);
+            arena_prev    = std::move(arena_current);
+            arena_current = std::move(arena_future);
+            arena_future  = std::move(temp);
         } else {
-            Update_Arena(arena_future, arena_current);
+            std::swap(arena_current,arena_future);
         }
         
     }  /* loop over rk_flag */

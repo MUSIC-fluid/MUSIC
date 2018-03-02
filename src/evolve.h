@@ -46,12 +46,13 @@ class Evolve {
     int n_freeze_surf;
     vector<double> epsFO_list;
 
+    typedef std::unique_ptr<SCGrid, void(*)(SCGrid*)> GridPointer;
+
  public:
     Evolve(const EOS &eos, const InitData &DATA_in, hydro_source *hydro_source_in);
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future);
 
-    int AdvanceRK(double tau, SCGrid &arena_prev,
-                  SCGrid &arena_current, SCGrid &arena_future);
+    int AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future);
 
     int FreezeOut_equal_tau_Surface(double tau, Grid &arena);
     void FreezeOut_equal_tau_Surface_XY(double tau,
