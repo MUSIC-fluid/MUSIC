@@ -52,22 +52,45 @@ no more halo copying
 2018-02-28  23:00     Cori KNL      Medium    00:48.650
 2018-02-28  23:00     Cori KNL      Large     01:18.369
 
+16 threads SIMD uWRHS no -ipo
+2018-03-01  12:00     Cori KNL      Small      00:46.454
+2018-03-01  12:00     Cori KNL      Medium     02:01.209
+2018-03-01  12:00     Cori KNL      Large      03:38.343
+
+16 threads SIMD uWRHS with -ipo
+2018-03-01  12:10     Cori KNL      Small      0m47.986s
+2018-03-01  12:10     Cori KNL      Medium     1m58.253s
+2018-03-01  12:10     Cori KNL      Large      3m34.379s
+
+16 threads new code
+2018-03-01  22:10     Cori KNL      Small      00:42.803
+2018-03-01  22:10     Cori KNL      Medium     01:48.224
+2018-03-01  22:10     Cori KNL      Large      03:15.796
+
+16 threads new code - improved reconst
+2018-03-02  10:40     Cori KNL      Small      00:44.908
+2018-03-02  10:40     Cori KNL      Medium     01:45.722
+2018-03-02  10:40     Cori KNL      Large      03:10.951
+
 272 threads
 2018-02-28  23:10     Cori KNL      Small      00:29.106
 2018-02-28  23:10     Cori KNL      Medium     00:39.570
 2018-02-28  23:10     Cori KNL      Large      00:51.547
 2018-03-01  08:00     Cori KNL      L(32)      02:13.885
 2018-03-01  09:16     Cori KNL      XL (128)   07:42.895
+2018-03-02  11:00     Cori KNL      XL (128)   07:23.849
 
-16 threads SIMD uWRHS no -ipo
-2018-03-01  23:10     Cori KNL      Small      00:46.454
-2018-03-01  23:10     Cori KNL      Medium     02:01.209
-2018-03-01  23:10     Cori KNL      Large      03:38.343
+64x200x200                          Threads
+----------                          -------
+2018-03-02  13:00    Cori KNL       256 th.    03:59.553  
+2018-03-02  13:00    Cori KNL       128 th.    04:40.912
+2018-03-02  13:00    Cori KNL       64  th.    06:30.982    
+2018-03-02  13:45    Cori Haswell   64  th.    03:19.622    
 
-16 threads SIMD uWRHS with -ipo
-2018-03-01  23:10     Cori KNL      Small      0m47.986s
-2018-03-01  23:10     Cori KNL      Medium     1m58.253s
-2018-03-01  23:10     Cori KNL      Large      3m34.379s
+128x200x200
+2018-03-02  11:00     Cori KNL      272 th.    07:23.849
+2018-03-02  13:50     Cori Haswell  64  th.    06:29.131
+
 
 
 Perf output:

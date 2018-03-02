@@ -56,16 +56,16 @@ int MUSIC::initialize_hydro() {
 void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
     if (rk_flag == 0) {
         c_s.epsilon = c.epsilon;
-        c_s.rhob = c.rhob;
-        c_s.u     = c.u[rk_flag];
-        c_s.Wmunu = c.Wmunu[rk_flag];
-        c_s.pi_b  = c.pi_b[rk_flag];
+        c_s.rhob    = c.rhob;
+        c_s.u       = c.u[rk_flag];
+        c_s.Wmunu   = c.Wmunu[rk_flag];
+        c_s.pi_b    = c.pi_b[rk_flag];
     } else if (rk_flag == 1) {
         c_s.epsilon = c.epsilon_t;
-        c_s.rhob = c.rhob_t;
-        c_s.u     = c.u[rk_flag];
-        c_s.Wmunu = c.Wmunu[rk_flag];
-        c_s.pi_b  = c.pi_b[rk_flag];
+        c_s.rhob    = c.rhob_t;
+        c_s.u       = c.u[rk_flag];
+        c_s.Wmunu   = c.Wmunu[rk_flag];
+        c_s.pi_b    = c.pi_b[rk_flag];
     } else if (rk_flag == 2) {
         c_s.epsilon = c.prev_epsilon;
         c_s.rhob = c.prev_rhob;

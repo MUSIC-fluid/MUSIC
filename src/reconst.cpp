@@ -412,13 +412,13 @@ int Reconst::ReconstIt_velocity_iteration(
 
     // successfully found velocity, now update everything else
     if (v_solution < v_critical) {
-        u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*abs_err);
+        u[0]    = 1./(sqrt(1. - v_solution*v_solution) + v_solution*abs_err);
         epsilon = T00 - v_solution*sqrt(K00);
-        rhob = J0/u[0];
+        rhob    = J0/u[0];
     } else {
-        u[0] = u0_solution;
+        u[0]    = u0_solution;
         epsilon = T00 - sqrt((1. - 1./(u0_solution*u0_solution))*K00);
-        rhob = J0/u0_solution;
+        rhob    = J0/u0_solution;
     }
     
     double check_u0_var = (fabs(u[0] - grid_pt.u[rk_flag][0])
@@ -451,7 +451,7 @@ int Reconst::ReconstIt_velocity_iteration(
         return(-1);
     }
 
-    grid_p.e = epsilon;
+    grid_p.e    = epsilon;
     grid_p.rhob = rhob;
 
     pressure = eos.get_pressure(epsilon, rhob);
@@ -611,16 +611,21 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJ
     double rel_error_v = 10.0;
     double v_next      = 1.0;
     double v_prev      = v_guess;
-    double abs_error_v = reconst_velocity_f_Newton(v_prev, T00, M, J0);
+    double fv, dfdv;
+    reconst_velocity_fdf(v_prev, T00, M, J0, fv, dfdv);
+    double abs_error_v = fv;
     do {
         iter++;
-        v_next = v_prev - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0));
+        //v_next = v_prev - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0));
+        v_next = v_prev - (abs_error_v/dfdv);
         if (v_next < 0.0) {
             v_next = 0.0 + 1e-10;
         } else if (v_next > 1.0) {
             v_next = 1.0 - 1e-10;
         }
-        abs_error_v = reconst_velocity_f_Newton(v_next, T00, M, J0);
+        reconst_velocity_fdf(v_next, T00, M, J0, fv, dfdv);
+        //abs_error_v = reconst_velocity_f_Newton(v_next, T00, M, J0);
+        abs_error_v = fv;
         rel_error_v = 2.*abs_error_v/(v_next + v_prev + 1e-15);
         v_prev = v_next;
         if (iter > max_iter) {
@@ -652,15 +657,20 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJ
         double u0_prev = 1./sqrt(1. - v_solution*v_solution);
         int u0_status = 1;
         double u0_next;
-        double abs_error_u0 = reconst_u0_f_Newton(u0_prev, T00, K00, M, J0);
+        double fu, dfdu;
+        reconst_u_fdf(u0_prev, T00, K00, M, J0, fu, dfdu);
+        double abs_error_u0 = fu;
         double rel_error_u0 = 1.0;
         do {
             iter_u0++;
-            u0_next = u0_prev - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0);
+            //u0_next = u0_prev - abs_error_u0/reconst_u0_df(u0_prev, T00, K00, M, J0);
+            u0_next = u0_prev - abs_error_u0/dfdu;
             if (u0_next < 1.0) {
                 u0_next = 1.0 + 1e-10;
             }
-            abs_error_u0 = reconst_u0_f_Newton(u0_next, T00, K00, M, J0);
+            //abs_error_u0 = reconst_u0_f_Newton(u0_next, T00, K00, M, J0);
+            reconst_u_fdf(u0_next, T00, K00, M, J0, fu, dfdu);
+            abs_error_u0 = fu;
             rel_error_u0 = 2.*abs_error_u0/(u0_next + u0_prev + 1e-15);
             u0_prev = u0_next;
             if (iter_u0 > max_iter) {
@@ -1128,6 +1138,7 @@ double Reconst::GuessEps(double T00, double K00, double cs2) {
     return(f);
 }/*  GuessEps */
 
+
 double Reconst::reconst_velocity_f(double v, double T00, double M,
                                    double J0) {
     // this function returns f(v) = M/(M0 + P)
@@ -1162,6 +1173,7 @@ double Reconst::reconst_velocity_df(double v, double T00, double M,
     double dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0*temp2*dPdrho);
     return(dfdv);
 }
+
 
 double Reconst::reconst_u0_f(double u0, double T00, double K00, double M,
                              double J0) {
