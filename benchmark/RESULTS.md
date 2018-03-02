@@ -71,8 +71,8 @@ no more halo copying
 
 16 threads new code
 2018-03-01  22:10     Cori KNL      Small      00:42.803
-2018-03-01  22:10     Cori KNL      Small      01:48.224
-2018-03-01  22:10     Cori KNL      Small      03:15.796
+2018-03-01  22:10     Cori KNL      Medium     01:48.224
+2018-03-01  22:10     Cori KNL      Large      03:15.796
 
 
 Perf output:
