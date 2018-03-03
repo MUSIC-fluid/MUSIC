@@ -202,7 +202,7 @@ void Advance::FirstRKStepW(double tau,
          theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
-          int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+          int idx_1d = map_2d_idx_to_1d(mu, nu);
           tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
           temps = diss->Make_uWSource(tau_now, grid_pt_c, grid_pt_prev, mu, nu, 
 				    rk_flag, theta_local, a_local,
@@ -217,7 +217,7 @@ void Advance::FirstRKStepW(double tau,
                      theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
-          int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+          int idx_1d = map_2d_idx_to_1d(mu, nu);
 	      tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
 	      temps = diss->Make_uWSource(tau_next, grid_pt_c, grid_pt_prev, mu, nu, 
 				    rk_flag, theta_local, a_local,
@@ -274,7 +274,7 @@ void Advance::FirstRKStepW(double tau,
       diss->Make_uqRHS(tau_now, arena_current, ix, iy, ieta, w_rhs,  rk_flag);
       int mu = 4;
       for (int nu = 1; nu < 4; nu++) {
-	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+	int idx_1d = map_2d_idx_to_1d(mu, nu);
 	tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
 	temps = diss->Make_uqSource(tau_now, grid_pt_c, grid_pt_prev, nu, 
 				    rk_flag, theta_local, a_local,
@@ -288,7 +288,7 @@ void Advance::FirstRKStepW(double tau,
       diss->Make_uqRHS(tau_next, arena_current, ix, iy, ieta, w_rhs,  rk_flag);
       int mu = 4;
       for (int nu = 1; nu < 4; nu++) {
-	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+	int idx_1d = map_2d_idx_to_1d(mu, nu);
 	tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
 	temps = diss->Make_uqSource(tau_next, grid_pt_c, grid_pt_prev, nu, 
 				    rk_flag, theta_local, a_local,
@@ -304,7 +304,7 @@ void Advance::FirstRKStepW(double tau,
     } /* rk_flag > 0 */
   } else {
     for (int nu = 0; nu < 4; nu++) {
-      int idx_1d = Util::map_2d_idx_to_1d(4, nu);
+      int idx_1d = map_2d_idx_to_1d(4, nu);
       grid_pt_f->Wmunu[idx_1d] = 0.0;
     }
   }
@@ -330,7 +330,7 @@ void Advance::FirstRKStepW(double tau,
   for (int mu = 1; mu < 4; mu++) {
     tempf = 0.0;
     for (int nu = 1; nu < 4; nu++) {
-      int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+      int idx_1d = map_2d_idx_to_1d(mu, nu);
       tempf += (
                 grid_pt_f->Wmunu[idx_1d]*grid_pt_f->u[nu]);
     }
@@ -347,7 +347,7 @@ void Advance::FirstRKStepW(double tau,
     for (int mu = 4; mu < mu_max + 1; mu++) {
       tempf = 0.0;
       for (int nu = 1; nu < 4; nu++) {
-	int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+	int idx_1d = map_2d_idx_to_1d(mu, nu);
 	tempf += (grid_pt_f->Wmunu[idx_1d]
 		  *grid_pt_f->u[nu]);
       }
@@ -500,7 +500,7 @@ int Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt, int rk_flag,
     music_message << "Reset it to zero!!!!";
     music_message.flush("warning");
     for (int i = 0; i < 4; i++) {
-      int idx_1d = Util::map_2d_idx_to_1d(4, i);
+      int idx_1d = map_2d_idx_to_1d(4, i);
       grid_pt->Wmunu[idx_1d] = 0.0;
     }
     revert_flag = 1;

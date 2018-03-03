@@ -88,7 +88,6 @@ void Neighbourloop(GridT<T> &arena, int cx, int cy, int ceta, Func func){
   const std::array<int,6> dx   = {-1,1, 0,0, 0,0};
   const std::array<int,6> dy   = { 0,0,-1,1, 0,0};
   const std::array<int,6> deta = { 0,0, 0,0,-1,1};
-
   for(int dir=0;dir<3;dir++){
     const int m1nx   = dx  [2*dir];
     const int m1ny   = dy  [2*dir];

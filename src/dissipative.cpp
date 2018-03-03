@@ -46,7 +46,7 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
                to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
     // dW/dtau
     // backward time derivative (first order is more stable)
-    int idx_1d_alpha0 = Util::map_2d_idx_to_1d(alpha, 0);
+    int idx_1d_alpha0 = map_2d_idx_to_1d(alpha, 0);
     double dWdtau = (grid_pt.Wmunu[idx_1d_alpha0] - grid_pt_prev.Wmunu[idx_1d_alpha0])/DATA.delta_tau;
 
     /* bulk pressure term */
@@ -65,7 +65,7 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
     double dWdx  = 0.0;
     double dPidx = 0.0;
     Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
-        int idx_1d  = Util::map_2d_idx_to_1d(alpha, direction);
+        int idx_1d  = map_2d_idx_to_1d(alpha, direction);
         double sg   = c.Wmunu[idx_1d];
         double sgp1 = p1.Wmunu[idx_1d];
         double sgm1 = m1.Wmunu[idx_1d];
@@ -415,7 +415,7 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
       for (int mu = 1; mu < 4; mu++) {
         #pragma omp simd 
         for (int nu = 0; nu < 4; nu++) {
-          int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+          int idx_1d = map_2d_idx_to_1d(mu, nu);
           double sum = 0.0;
           /* Get_uWmns */
           double g = c.Wmunu[idx_1d];
@@ -794,7 +794,7 @@ double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 
     // copy the value of \tilde{q^\mu}
     for (int i = 0; i < 4; i++) {
-        int idx_1d = Util::map_2d_idx_to_1d(4, i);
+        int idx_1d = map_2d_idx_to_1d(4, i);
         q[i] = (grid_pt->Wmunu[idx_1d]);
     }
 
@@ -911,7 +911,7 @@ int Diss::Make_uqRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
     // we use the Wmunu[4][nu] = q[nu] 
     int mu = 4;
     for (int nu = 1; nu < 4; nu++) {
-        int idx_1d = Util::map_2d_idx_to_1d(mu, nu);
+        int idx_1d = map_2d_idx_to_1d(mu, nu);
         double sum = 0.0;
         Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
             /* Get_uWmns */
