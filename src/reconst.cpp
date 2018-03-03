@@ -616,6 +616,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau, const TJ
     double abs_error_v = fv;
     do {
         iter++;
+        #pragma omp critical
         //v_next = v_prev - (abs_error_v/reconst_velocity_df(v_prev, T00, M, J0));
         v_next = v_prev - (abs_error_v/dfdv);
         if (v_next < 0.0) {
