@@ -72,7 +72,6 @@ no more halo copying
 2018-03-02  10:40     Cori KNL      Medium     01:45.722
 2018-03-02  10:40     Cori KNL      Large      03:10.951
 
-
 272 threads
 2018-02-28  23:10     Cori KNL      Small      00:29.106
 2018-02-28  23:10     Cori KNL      Medium     00:39.570
