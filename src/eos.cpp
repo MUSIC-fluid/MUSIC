@@ -2456,7 +2456,6 @@ double EOS::calculate_velocity_of_sound_sq(double e, double rhob) const {
     
 //! This function returns the local pressure in [1/fm^4]
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
-#pragma omp declare simd
 double EOS::get_pressure(double e, double rhob) const {
     double f;
     if (whichEOS == 0) {
@@ -2480,7 +2479,6 @@ double EOS::get_pressure(double e, double rhob) const {
 }/* get_pressure */
 
 
-#pragma omp declare simd
 double EOS::p_rho_func(double e, double rhob) const {
     // return dP/drho_b (in 1/fm)
     double f;
@@ -2500,7 +2498,6 @@ double EOS::p_rho_func(double e, double rhob) const {
     return f;
 }/* p_rho_func */
 
-#pragma omp declare simd
 double EOS::p_e_func(double e, double rhob) const {
     // return dP/de
     double f;

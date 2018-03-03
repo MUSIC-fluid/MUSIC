@@ -137,9 +137,7 @@ class EOS {
     double get_dpOverde3       (double e, double rhob) const;
     double get_dpOverdrhob     (double e, double rhob) const;
     double get_dpOverdrhob2    (double e, double rhob) const;
-#pragma omp declare simd
     double p_rho_func          (double e, double rhob) const;
-#pragma omp declare simd
     double p_e_func            (double e, double rhob) const;
     double T_from_eps_ideal_gas(double eps) const;
     double get_entropy         (double epsilon, double rhob) const;
@@ -147,7 +145,6 @@ class EOS {
     double get_temperature_WB  (double e_local) const;
     double get_mu              (double epsilon, double rhob) const;
     double get_muS             (double epsilon, double rhob) const;
-#pragma omp declare simd
     double get_pressure        (double epsilon, double rhob) const;
     double get_pressure_WB     (double e_local) const;
     double ssolve              (double e, double rhob, double s) const;
