@@ -28,12 +28,12 @@ struct QCD_string {
 struct parton {
     double tau, x, y, eta_s;
     double rapidity;
-    double y_perp;
+    double rapidity_perp;
     double E, px, py;
     double mass;
-    double baryon_number;     //!< nucleon = 1, quark = 1/3
-    // this data structure can be extended to include charge and strangeness
-    // quantum number
+    double baryon_number;
+    double strangness;
+    double electric_charge;
 };
 
 

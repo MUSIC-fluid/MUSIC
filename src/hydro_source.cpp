@@ -28,7 +28,7 @@ hydro_source::hydro_source(InitData *DATA_in) {
     if (DATA_ptr->Initial_profile == 30) {  // AMPT
         sigma_tau = 0.1;
         sigma_x = 0.5;
-        sigma_eta = 0.5;
+        sigma_eta = 0.2;
         volume = DATA_ptr->delta_x*DATA_ptr->delta_y*DATA_ptr->delta_eta;
         parton_quench_factor = 1.0;
         read_in_AMPT_partons();
@@ -189,6 +189,7 @@ void hydro_source::read_in_QCD_strings_and_partons() {
 
 //! This function reads in the partons information from the AMPT model
 void hydro_source::read_in_AMPT_partons() {
+    parton_list.clear();
     string AMPT_filename = DATA_ptr->initName_AMPT;
     music_message << "hydro_source: "
                   << "read in AMPT parton list from " << AMPT_filename;
@@ -204,38 +205,72 @@ void hydro_source::read_in_AMPT_partons() {
     }
 
     int n_partons = 0;
-    AMPT_file >> n_partons;
+    int event_id  = 0;
+    int dummy;
+    getline(AMPT_file, text_string);
+    stringstream text_stream1(text_string);
+    text_stream1 >> event_id >> dummy >> n_partons;
 
     // now we read in data
-    getline(AMPT_file, text_string);
-    while (!AMPT_file.eof()) {
+    for (int ipart = 0; ipart < n_partons; ipart++) {
+        getline(AMPT_file, text_string);
         stringstream text_stream(text_string);
         parton new_parton;
         double t_local, z_local, pz_local;
-        text_stream >> t_local >> new_parton.x >> new_parton.y >> z_local
-                    >> new_parton.E >> new_parton.px >> new_parton.py
-                    >> pz_local;
-        if (t_local > z_local) {
-            // the parton is inside the light cone
-            double p_perp_sq = (new_parton.px*new_parton.px
-                                + new_parton.py*new_parton.py);
-            double mass_sq = (new_parton.E*new_parton.E
-                              - p_perp_sq - pz_local*pz_local);
-            if (mass_sq > 0.) {
-                new_parton.mass = sqrt(mass_sq);
-                new_parton.y_perp = asinh(sqrt(p_perp_sq)/new_parton.mass);
-                new_parton.tau = sqrt(t_local*t_local - z_local*z_local);
-                new_parton.eta_s = 0.5*log((t_local + z_local)
-                                           /(t_local - z_local + 1e-15));
-                new_parton.rapidity = 0.5*log((new_parton.E + pz_local)
-                                              /(new_parton.E - pz_local));
-                parton_list.push_back(new_parton);
-                if (source_tau_max < new_parton.tau) {
-                    source_tau_max = new_parton.tau;
-                }
-            }
+        int pid;
+        text_stream >> pid >> new_parton.px >> new_parton.py >> pz_local
+                    >> new_parton.mass
+                    >> new_parton.x >> new_parton.y >> z_local >> t_local;
+        if (t_local < z_local) continue;
+        if (std::abs(pid) > 3) continue;
+
+        // Now the parton is inside the light cone
+        new_parton.tau      = sqrt(t_local*t_local - z_local*z_local);
+        new_parton.eta_s    = 0.5*log( (t_local + z_local)
+                                      /(t_local - z_local + 1e-15));
+        new_parton.rapidity = 0.5*log( (new_parton.E + pz_local)
+                                      /(new_parton.E - pz_local));
+        double u_perp = (sqrt(  new_parton.px*new_parton.px
+                              + new_parton.py*new_parton.py)
+                         /new_parton.mass);
+        new_parton.rapidity_perp = asinh(u_perp);
+        if (pid == 1) {
+            // d quark
+            new_parton.baryon_number   =  1./3.;
+            new_parton.strangness      =  0.0  ;
+            new_parton.electric_charge = -1./3.;
+        } else if (pid == -1) {
+            // anti-d quark
+            new_parton.baryon_number   = -1./3.;
+            new_parton.strangness      =  0.0  ;
+            new_parton.electric_charge =  1./3.;
+        } else if (pid == 2) {
+            // u quark
+            new_parton.baryon_number   =  1./3.;
+            new_parton.strangness      =  0.0  ;
+            new_parton.electric_charge =  2./3.;
+        } else if (pid == -2) {
+            // anti-u quark
+            new_parton.baryon_number   = -1./3.;
+            new_parton.strangness      =  0.0  ;
+            new_parton.electric_charge = -2./3.;
+        } else if (pid == 3) {
+            // s quark
+            new_parton.baryon_number   =  1./3.;
+            new_parton.strangness      = -1.0  ;
+            new_parton.electric_charge = -1./3.;
+        } else if (pid == -3) {
+            // anti-s quark
+            new_parton.baryon_number   = -1./3.;
+            new_parton.strangness      =  1.0  ;
+            new_parton.electric_charge =  1./3.;
+        } else {
+            cout << "pid = " << pid << endl;
         }
-        getline(AMPT_file, text_string);
+        parton_list.push_back(new_parton);
+        if (source_tau_max < new_parton.tau) {
+            source_tau_max = new_parton.tau;
+        }
     }
     AMPT_file.close();
     music_message << "hydro_source:: read in " << parton_list.size() << "/"
@@ -695,7 +730,7 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 double f_smear = exp_tau*exp_xperp*exp_eta_s;
                 double y_dump = ((1. - parton_quench_factor)*(*it).rapidity
                                  + parton_quench_factor*y_long_flow);
-                double y_dump_perp = ((1. - parton_quench_factor)*(*it).y_perp
+                double y_dump_perp = ((1. - parton_quench_factor)*(*it).rapidity_perp
                                       + parton_quench_factor*y_perp_flow);
                 double p_dot_u = (u_mu[0]
                     - tanh(y_dump_perp)*sinh_y_perp_flow/cosh(y_dump - eta_s)
