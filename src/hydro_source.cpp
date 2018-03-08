@@ -289,6 +289,23 @@ void hydro_source::read_in_AMPT_partons() {
     music_message.flush("info");
 }
 
+
+void hydro_source::prepare_list_for_current_tau_frame(double tau_local) {
+    double dtau = DATA_ptr->delta_tau;
+    parton_list_current_tau.clear();
+    for (vector<parton>::iterator it = parton_list.begin();
+         it != parton_list.end(); it++) {
+        double tau_dis = tau_local - (*it).tau;
+        if (fabs(tau_dis) < dtau) {
+            parton_list_current_tau.push_back(*it);
+        }
+    }
+    music_message << "hydro_source: tau = " << tau_local
+                  << " number of source: "
+                  << parton_list_current_tau.size();
+    music_message.flush("info");
+}
+
 void hydro_source::get_hydro_energy_source(
     double tau, double x, double y, double eta_s, double *u_mu, double *j_mu) {
     // clean up j_mu
@@ -518,15 +535,15 @@ void hydro_source::get_hydro_energy_source(
             //double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
             double prefactor_tau = 1./dtau;
             double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
-            for (vector<parton>::iterator it = parton_list.begin();
-                 it != parton_list.end(); it++) {
-                double tau_dis = tau - (*it).tau;
+            for (vector<parton>::iterator it = parton_list_current_tau.begin();
+                 it != parton_list_current_tau.end(); it++) {
+                //double tau_dis = tau - (*it).tau;
                 //if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
                 //    continue;
                 //}
-                if (fabs(tau_dis) > dtau) {
-                    continue;
-                }
+                //if (fabs(tau_dis) > dtau) {
+                //    continue;
+                //}
 
                 double x_dis = x - (*it).x;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {
@@ -716,17 +733,17 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
             //double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
             double prefactor_tau = 1./dtau;
-            for (vector<parton>::iterator it = parton_list.begin();
-                 it != parton_list.end(); it++) {
+            for (vector<parton>::iterator it = parton_list_current_tau.begin();
+                 it != parton_list_current_tau.end(); it++) {
                 // skip the evaluation if the strings is too far away in the
                 // space-time grid
-                double tau_dis = tau - (*it).tau;
+                //double tau_dis = tau - (*it).tau;
                 //if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
                 //    continue;
                 //}
-                if (fabs(tau_dis) > dtau) {
-                    continue;
-                }
+                //if (fabs(tau_dis) > dtau) {
+                //    continue;
+                //}
 
                 double x_dis = x - (*it).x;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {

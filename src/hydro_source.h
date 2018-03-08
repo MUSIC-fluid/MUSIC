@@ -51,6 +51,7 @@ class hydro_source {
     double source_tau_min;
     std::vector<QCD_string> QCD_strings_list;
     std::vector<parton> parton_list;
+    std::vector<parton> parton_list_current_tau;
 
  public:
     hydro_source(InitData *DATA_in);
@@ -86,6 +87,8 @@ class hydro_source {
     //! Get the minimum and maximum tau for the source term
     double get_source_tau_min() {return(source_tau_min);}
     double get_source_tau_max() {return(source_tau_max);}
+
+    void prepare_list_for_current_tau_frame(double tau_local);
 };
 
 #endif  // SRC_HYDRO_SOURCE_H_

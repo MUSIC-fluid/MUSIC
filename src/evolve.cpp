@@ -85,6 +85,10 @@ int Evolve::EvolveIt(InitData *DATA, Grid ***arena) {
     }
     for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
+
+        if (DATA->Initial_profile == 30) {
+            hydro_source_ptr->prepare_list_for_current_tau_frame(tau);
+        }
         // store initial conditions
         if (it == it_start) {
             store_previous_step_for_freezeout(arena);
