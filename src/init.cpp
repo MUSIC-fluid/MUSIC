@@ -102,6 +102,7 @@ void Init::InitArena(InitData *DATA, Grid ****arena) {
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
     } else if (DATA->Initial_profile == 30) {
+        DATA->tau0 = hydro_source_ptr->get_source_tau_min();
         DATA->nx = DATA->nx - 1;
         DATA->ny = DATA->ny - 1;
     } else if (DATA->Initial_profile == 101) {
