@@ -225,6 +225,10 @@ void hydro_source::read_in_AMPT_partons() {
         if (std::abs(pid) > 3) continue;
 
         // Now the parton is inside the light cone
+        new_parton.E = sqrt(  new_parton.mass*new_parton.mass
+                            + new_parton.px*new_parton.px
+                            + new_parton.py*new_parton.py
+                            + pz_local*pz_local);
         new_parton.tau      = sqrt(t_local*t_local - z_local*z_local);
         new_parton.eta_s    = 0.5*log( (t_local + z_local)
                                       /(t_local - z_local + 1e-15));
@@ -271,10 +275,15 @@ void hydro_source::read_in_AMPT_partons() {
         if (source_tau_max < new_parton.tau) {
             source_tau_max = new_parton.tau;
         }
+        if (source_tau_min > new_parton.tau) {
+            source_tau_min = new_parton.tau;
+        }
     }
     AMPT_file.close();
     music_message << "hydro_source:: read in " << parton_list.size() << "/"
                   << n_partons << " partons.";
+    music_message.flush("info");
+    music_message << "hydro_source:: tau_min = " << source_tau_min << " fm.";
     music_message.flush("info");
     music_message << "hydro_source:: tau_max = " << source_tau_max << " fm.";
     music_message.flush("info");
@@ -292,6 +301,7 @@ void hydro_source::get_hydro_energy_source(
     double y_long_flow = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
     double sin_phi_flow = u_mu[1]/gamma_perp_flow;
     double cos_phi_flow = u_mu[2]/gamma_perp_flow;
+    double dtau = DATA_ptr->delta_tau;
 
     if (DATA_ptr->Initial_profile == 12) {
         // energy source from strings
@@ -370,7 +380,6 @@ void hydro_source::get_hydro_energy_source(
         double n_sigma_skip = 5.;
         double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
         double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
-        double dtau = DATA_ptr->delta_tau;
         // double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
         for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
              it != QCD_strings_list.end(); it++) {
@@ -506,14 +515,19 @@ void hydro_source::get_hydro_energy_source(
         double tau_dis_max = tau - source_tau_max;
         if (tau_dis_max < n_sigma_skip*sigma_tau) {
             double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
-            double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+            //double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+            double prefactor_tau = 1./dtau;
             double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
             for (vector<parton>::iterator it = parton_list.begin();
                  it != parton_list.end(); it++) {
                 double tau_dis = tau - (*it).tau;
-                if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
+                //if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
+                //    continue;
+                //}
+                if (fabs(tau_dis) > dtau) {
                     continue;
                 }
+
                 double x_dis = x - (*it).x;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {
                     continue;
@@ -526,9 +540,10 @@ void hydro_source::get_hydro_energy_source(
                 if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
                     continue;
                 }
-                double exp_tau = (
-                    1./((*it).tau)
-                    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
+                //double exp_tau = (
+                //    1./((*it).tau)
+                //    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
+                double exp_tau = 1./tau;
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                         /(sigma_x*sigma_x));
                 double exp_eta_s = (
@@ -699,15 +714,20 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
         if (tau_dis_max < n_sigma_skip*sigma_tau) {
             double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
             double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
-            double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+            //double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
+            double prefactor_tau = 1./dtau;
             for (vector<parton>::iterator it = parton_list.begin();
                  it != parton_list.end(); it++) {
                 // skip the evaluation if the strings is too far away in the
                 // space-time grid
                 double tau_dis = tau - (*it).tau;
-                if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
+                //if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
+                //    continue;
+                //}
+                if (fabs(tau_dis) > dtau) {
                     continue;
                 }
+
                 double x_dis = x - (*it).x;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {
                     continue;
@@ -720,9 +740,10 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
                     continue;
                 }
-                double exp_tau = (
-                    1./((*it).tau)
-                    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
+                //double exp_tau = (
+                //    1./((*it).tau)
+                //    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
+                double exp_tau = 1./tau;
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                         /(sigma_x*sigma_x));
                 double exp_eta_s = (

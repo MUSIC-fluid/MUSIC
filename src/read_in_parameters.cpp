@@ -896,7 +896,7 @@ void ReadInParameters::check_parameters(InitData *parameter_list) {
         music_message.flush("warning");
     }
 
-    if (parameter_list->neta < 32 && !parameter_list->boost_invariant) {
+    if (parameter_list->neta < 2 && !parameter_list->boost_invariant) {
         music_message << "Grid size in eta = " << parameter_list->neta 
                       << "is too small for a (3+1)-d run! "
                       << "Please increase Grid_size_in_eta to be "
