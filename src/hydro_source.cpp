@@ -295,8 +295,8 @@ void hydro_source::prepare_list_for_current_tau_frame(double tau_local) {
     parton_list_current_tau.clear();
     for (vector<parton>::iterator it = parton_list.begin();
          it != parton_list.end(); it++) {
-        double tau_dis = tau_local - (*it).tau;
-        if (fabs(tau_dis) < dtau) {
+        double tau_dis = (*it).tau - tau_local;
+        if (tau_dis > 0. && tau_dis < dtau) {
             parton_list_current_tau.push_back(*it);
         }
     }
