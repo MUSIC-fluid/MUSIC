@@ -36,4 +36,5 @@ class U_derivative {
     int MakeDSpatial(double tau, SCGrid &arena, int ix, int iy, int ieta);
     int MakeDTau(double tau, Cell_small *grid_pt_prev, Cell_small *grid_pt);
 };
+
 #endif

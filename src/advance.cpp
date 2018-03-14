@@ -119,14 +119,15 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
                    tau_rk, x_local, y_local, eta_s_local, u_local);
     }
   }
-  
+
   for (int alpha = 0; alpha < 5; alpha++) {
     // now MakeWSource returns partial_a W^{a mu}
-    // (including geometric terms) 
-    double dwmn = diss->MakeWSource(tau_rk, alpha, arena_current, arena_prev, ix, iy, ieta,  rk_flag);
+    // (including geometric terms)
+    double dwmn = diss->MakeWSource(tau_rk, alpha, arena_current, arena_prev,
+                                    ix, iy, ieta);
     /* dwmn is the only one with the minus sign */
     qi[alpha] -= dwmn*(DATA.delta_tau);
-    
+
     if (flag_add_hydro_source) {
       // adding hydro_source terms
       if (alpha < 4) {
@@ -238,11 +239,11 @@ void Advance::FirstRKStepW(double tau,
     double p_rhs;
     if (rk_flag == 0) {
       /* calculate delta u^0 pi */
-      diss->Make_uPRHS(tau_now, arena_current, ix, iy, ieta, &p_rhs,  rk_flag,
+      diss->Make_uPRHS(tau_now, arena_current, ix, iy, ieta, &p_rhs,
 		       theta_local);
       
       tempf = (grid_pt_c->pi_b)*(grid_pt_c->u[0]);
-      temps = diss->Make_uPiSource(tau_now, grid_pt_c, grid_pt_prev,  rk_flag,
+      temps = diss->Make_uPiSource(tau_now, grid_pt_c, grid_pt_prev, rk_flag,
 				   theta_local, sigma_local);
       tempf += temps*(DATA.delta_tau);
       tempf += p_rhs;
@@ -250,11 +251,11 @@ void Advance::FirstRKStepW(double tau,
       grid_pt_f->pi_b = tempf/(grid_pt_f->u[0]);
     } else if (rk_flag > 0) {
       /* calculate delta u^0 pi */
-      diss->Make_uPRHS(tau_next, arena_current, ix, iy, ieta, &p_rhs,  rk_flag,
+      diss->Make_uPRHS(tau_next, arena_current, ix, iy, ieta, &p_rhs,
 		       theta_local);
       
       tempf = (grid_pt_prev->pi_b)*(grid_pt_prev->u[0]);
-      temps = diss->Make_uPiSource(tau_next, grid_pt_c, grid_pt_prev,  rk_flag,
+      temps = diss->Make_uPiSource(tau_next, grid_pt_c, grid_pt_prev, rk_flag,
 				   theta_local, sigma_local);
       tempf += temps*(DATA.delta_tau);
       tempf += p_rhs;
@@ -271,12 +272,12 @@ void Advance::FirstRKStepW(double tau,
   // CShen: add source term for baryon diffusion
   if (DATA.turn_on_diff == 1) {
     if (rk_flag == 0) {
-      diss->Make_uqRHS(tau_now, arena_current, ix, iy, ieta, w_rhs,  rk_flag);
+      diss->Make_uqRHS(tau_now, arena_current, ix, iy, ieta, w_rhs);
       int mu = 4;
       for (int nu = 1; nu < 4; nu++) {
 	int idx_1d = map_2d_idx_to_1d(mu, nu);
 	tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
-	temps = diss->Make_uqSource(tau_now, grid_pt_c, grid_pt_prev, nu, 
+	temps = diss->Make_uqSource(tau_now, grid_pt_c, grid_pt_prev, nu,
 				    rk_flag, theta_local, a_local,
 				    sigma_local); 
 	tempf += temps*(DATA.delta_tau);
@@ -285,12 +286,12 @@ void Advance::FirstRKStepW(double tau,
 	grid_pt_f->Wmunu[idx_1d] = tempf/grid_pt_f->u[0];
       }
     } else if (rk_flag > 0) {
-      diss->Make_uqRHS(tau_next, arena_current, ix, iy, ieta, w_rhs,  rk_flag);
+      diss->Make_uqRHS(tau_next, arena_current, ix, iy, ieta, w_rhs);
       int mu = 4;
       for (int nu = 1; nu < 4; nu++) {
 	int idx_1d = map_2d_idx_to_1d(mu, nu);
 	tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
-	temps = diss->Make_uqSource(tau_next, grid_pt_c, grid_pt_prev, nu, 
+	temps = diss->Make_uqSource(tau_next, grid_pt_c, grid_pt_prev, nu,
 				    rk_flag, theta_local, a_local,
 				    sigma_local); 
 	tempf += temps*(DATA.delta_tau);
@@ -331,8 +332,7 @@ void Advance::FirstRKStepW(double tau,
     tempf = 0.0;
     for (int nu = 1; nu < 4; nu++) {
       int idx_1d = map_2d_idx_to_1d(mu, nu);
-      tempf += (
-                grid_pt_f->Wmunu[idx_1d]*grid_pt_f->u[nu]);
+      tempf += grid_pt_f->Wmunu[idx_1d]*grid_pt_f->u[nu];
     }
     grid_pt_f->Wmunu[mu] = tempf/(grid_pt_f->u[0]);
   }
@@ -363,10 +363,9 @@ void Advance::FirstRKStepW(double tau,
   int revert_flag = 0;
   int revert_q_flag = 0;
   if (DATA.Initial_profile != 0) {
-    revert_flag = QuestRevert(tau, grid_pt_f, rk_flag,  ieta, ix, iy);
+    revert_flag = QuestRevert(tau, grid_pt_f, ieta, ix, iy);
     if (DATA.turn_on_diff == 1) {
-      revert_q_flag = QuestRevert_qmu(tau, grid_pt_f, rk_flag, 
-				      ieta, ix, iy);
+      revert_q_flag = QuestRevert_qmu(tau, grid_pt_f, ieta, ix, iy);
     }
   }
 }/* FirstRKStepW */
@@ -381,152 +380,140 @@ void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {
 
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
-int Advance::QuestRevert(double tau, Cell_small *grid_pt, int rk_flag,
+int Advance::QuestRevert(double tau, Cell_small *grid_pt,
                           int ieta, int ix, int iy) {
-  int revert_flag = 0;
-  double eps_scale = 0.5;   // 1/fm^4
-  double e_local = grid_pt->epsilon;
-  double rhob = grid_pt->rhob;
-  
-  // regulation factor in the default MUSIC
-  //double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
-  double xi = 0.05;
-  double factor = 100.*(1./(exp(-(e_local - eps_scale)/xi) + 1.)
-      - 1./(exp(eps_scale/xi) + 1.));
-  double factor_bulk = factor;
-  
-  // regulation factor from Bjoern
-  //double eps_scale = 0.1;  // GeV/fm^3
-  //double factor = max(
-  //    1e-15, 4.*(1. + tanh(3.*(grid_pt->epsilon - eps_scale/hbarc - 0.5))));
-  //double factor_bulk = 2.*factor;
-  
-  double pi_00 = grid_pt->Wmunu[0];
-  double pi_01 = grid_pt->Wmunu[1];
-  double pi_02 = grid_pt->Wmunu[2];
-  double pi_03 = grid_pt->Wmunu[3];
-  double pi_11 = grid_pt->Wmunu[4];
-  double pi_12 = grid_pt->Wmunu[5];
-  double pi_13 = grid_pt->Wmunu[6];
-  double pi_22 = grid_pt->Wmunu[7];
-  double pi_23 = grid_pt->Wmunu[8];
-  double pi_33 = grid_pt->Wmunu[9];
-  
-  double pisize = (pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
-       - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
-       + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
-  
-  double pi_local = grid_pt->pi_b;
-  double bulksize = 3.*pi_local*pi_local;
-  
-  double p_local = eos.get_pressure(e_local, rhob);
-  double eq_size = e_local*e_local + 3.*p_local*p_local;
-  
-  // In default MUSIC
-  double rho_shear = sqrt(pisize/eq_size)/factor; 
-  double rho_bulk  = sqrt(bulksize/eq_size)/factor_bulk;
-  
-  // Bjoern's quest_revert
-  //double rho_shear = pisize/eq_size/factor; 
-  //double rho_bulk  = bulksize/eq_size/factor_bulk;
-  
-  // Reducing the shear stress tensor 
-  double rho_shear_max = 0.1;
-  if (rho_shear > rho_shear_max) {
-    if (e_local > eps_scale && DATA.echo_level > 5) {
-      music_message << "ieta = " << ieta << ", ix = " << ix
-        << ", iy = " << iy
-        << ", energy density = " << e_local*hbarc
-        << " GeV/fm^3, shear |pi/(epsilon+3*P)| = "
-        << rho_shear;
-      music_message.flush("warning");
+    int revert_flag  = 0;
+    double eps_scale = 0.5;   // 1/fm^4
+    double e_local   = grid_pt->epsilon;
+    double rhob      = grid_pt->rhob;
+
+    // regulation factor in the default MUSIC
+    // double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
+    double xi = 0.05;
+    double factor = 100.*(1./(exp(-(e_local - eps_scale)/xi) + 1.)
+        - 1./(exp(eps_scale/xi) + 1.));
+    double factor_bulk = factor;
+
+    double pi_00 = grid_pt->Wmunu[0];
+    double pi_01 = grid_pt->Wmunu[1];
+    double pi_02 = grid_pt->Wmunu[2];
+    double pi_03 = grid_pt->Wmunu[3];
+    double pi_11 = grid_pt->Wmunu[4];
+    double pi_12 = grid_pt->Wmunu[5];
+    double pi_13 = grid_pt->Wmunu[6];
+    double pi_22 = grid_pt->Wmunu[7];
+    double pi_23 = grid_pt->Wmunu[8];
+    double pi_33 = grid_pt->Wmunu[9];
+
+    double pisize = (pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
+         - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
+         + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
+
+    double pi_local = grid_pt->pi_b;
+    double bulksize = 3.*pi_local*pi_local;
+
+    double p_local = eos.get_pressure(e_local, rhob);
+    double eq_size = e_local*e_local + 3.*p_local*p_local;
+
+    // In default MUSIC
+    double rho_shear = sqrt(pisize/eq_size)/factor;
+    double rho_bulk  = sqrt(bulksize/eq_size)/factor_bulk;
+
+    // Reducing the shear stress tensor
+    double rho_shear_max = 0.1;
+    if (rho_shear > rho_shear_max) {
+        if (e_local > eps_scale && DATA.echo_level > 5) {
+            music_message << "ieta = " << ieta << ", ix = " << ix
+                          << ", iy = " << iy
+                          << ", energy density = " << e_local*hbarc
+                          << " GeV/fm^3, shear |pi/(epsilon+3*P)| = "
+                          << rho_shear;
+            music_message.flush("warning");
+        }
+        for (int mu = 0; mu < 10; mu++) {
+            grid_pt->Wmunu[mu] = (rho_shear_max/rho_shear)*grid_pt->Wmunu[mu];
+        }
+        revert_flag = 1;
     }
-    for (int mu = 0; mu < 10; mu++) {
-      grid_pt->Wmunu[mu] = (
-				      (rho_shear_max/rho_shear)*grid_pt->Wmunu[mu]);
+
+    // Reducing bulk viscous pressure
+    double rho_bulk_max = 0.1;
+    if (rho_bulk > rho_bulk_max) {
+        if (e_local > eps_scale && DATA.echo_level > 5) {
+            music_message << "ieta = " << ieta << ", ix = " << ix
+                          << ", iy = " << iy
+                          << ", energy density = " << e_local*hbarc
+                          << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
+                          << rho_bulk;
+            music_message.flush("warning");
+        }
+        grid_pt->pi_b = (rho_bulk_max/rho_bulk)*grid_pt->pi_b;
+        revert_flag = 1;
     }
-    revert_flag = 1;
-  }
-  
-  // Reducing bulk viscous pressure 
-  double rho_bulk_max = 0.1;
-  if (rho_bulk > rho_bulk_max) {
-    if (e_local > eps_scale && DATA.echo_level > 5) {
-      music_message << "ieta = " << ieta << ", ix = " << ix
-        << ", iy = " << iy
-        << ", energy density = " << e_local*hbarc
-        << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
-        << rho_bulk;
-      music_message.flush("warning");
-    }
-    grid_pt->pi_b = (rho_bulk_max/rho_bulk)*grid_pt->pi_b;
-    revert_flag = 1;
-  }
-  return(revert_flag);
+    return(revert_flag);
 }
 
 
 //! this function reduce the size of net baryon diffusion current
 //! in the dilute region to stablize numerical simulations
-int Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt, int rk_flag,
+int Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
                               int ieta, int ix, int iy) {
-  
-  int revert_flag = 0;
-  double eps_scale = 0.5;   // in 1/fm^4
-  
-  double xi = 0.05;
-  double factor = 100.*(1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
-      - 1./(exp(eps_scale/xi) + 1.));
-  
-  double q_mu_local[4];
-  for (int i = 0; i < 4; i++) {
-    // copy the value from the grid
-    q_mu_local[i] = grid_pt->Wmunu[10+i];
-  }
-  
-  // calculate the size of q^\mu
-  double q_size = 0.0;
-  for (int i = 0; i < 4; i++) {
-    double gfac = (i == 0 ? -1.0 : 1.0);
-    q_size += gfac*q_mu_local[i]*q_mu_local[i];
-  }
-  
-  // first check the positivity of q^mu q_mu 
-  // (in the conversion of gmn = diag(-+++))
-  if (q_size < 0.0) {
-    music_message << "Advance::QuestRevert_qmu: q^mu q_mu = " << q_size
-      << " < 0!";
-    music_message.flush("warning");
-    music_message << "Reset it to zero!!!!";
-    music_message.flush("warning");
+    int revert_flag = 0;
+    double eps_scale = 0.5;   // in 1/fm^4
+
+    double xi = 0.05;
+    double factor = 100.*(1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
+                          - 1./(exp(eps_scale/xi) + 1.));
+
+    double q_mu_local[4];
     for (int i = 0; i < 4; i++) {
-      int idx_1d = map_2d_idx_to_1d(4, i);
-      grid_pt->Wmunu[idx_1d] = 0.0;
+        // copy the value from the grid
+        q_mu_local[i] = grid_pt->Wmunu[10+i];
     }
-    revert_flag = 1;
-  }
-  
-  // reduce the size of q^mu according to rhoB
-  double e_local = grid_pt->epsilon;
-  double rhob_local = grid_pt->rhob;
-  double rho_q = sqrt(q_size/(rhob_local*rhob_local))/factor;
-  double rho_q_max = 0.1;
-  if (rho_q > rho_q_max) {
-    if (e_local > eps_scale && DATA.echo_level > 5) {
-      music_message << "ieta = " << ieta << ", ix = " << ix
-        << ", iy = " << iy
-        << ", energy density = " << e_local*hbarc
-        << "GeV/fm^3"
-        << ", rhob = " << rhob_local << "1/fm^3"
-        << "-- diffusion |q/rhob| = " << rho_q;
-      music_message.flush("warning");
-    }
+
+    // calculate the size of q^\mu
+    double q_size = 0.0;
     for (int i = 0; i < 4; i++) {
-      grid_pt->Wmunu[10+i] = (rho_q_max/rho_q)*q_mu_local[i];
+        double gfac = (i == 0 ? -1.0 : 1.0);
+        q_size += gfac*q_mu_local[i]*q_mu_local[i];
     }
-    revert_flag = 1;
-  }
-  return(revert_flag);
+
+    // first check the positivity of q^mu q_mu
+    // (in the conversion of gmn = diag(-+++))
+    if (q_size < 0.0) {
+        music_message << "Advance::QuestRevert_qmu: q^mu q_mu = " << q_size
+                      << " < 0!";
+        music_message.flush("warning");
+        music_message << "Reset it to zero!!!!";
+        music_message.flush("warning");
+        for (int i = 0; i < 4; i++) {
+            int idx_1d = map_2d_idx_to_1d(4, i);
+            grid_pt->Wmunu[idx_1d] = 0.0;
+        }
+        revert_flag = 1;
+    }
+  
+    // reduce the size of q^mu according to rhoB
+    double e_local = grid_pt->epsilon;
+    double rhob_local = grid_pt->rhob;
+    double rho_q = sqrt(q_size/(rhob_local*rhob_local))/factor;
+    double rho_q_max = 0.1;
+    if (rho_q > rho_q_max) {
+        if (e_local > eps_scale && DATA.echo_level > 5) {
+            music_message << "ieta = " << ieta << ", ix = " << ix
+                          << ", iy = " << iy
+                          << ", energy density = " << e_local*hbarc
+                          << "GeV/fm^3"
+                          << ", rhob = " << rhob_local << "1/fm^3"
+                          << "-- diffusion |q/rhob| = " << rho_q;
+            music_message.flush("warning");
+        }
+        for (int i = 0; i < 4; i++) {
+            grid_pt->Wmunu[10+i] = (rho_q_max/rho_q)*q_mu_local[i];
+        }
+        revert_flag = 1;
+    }
+    return(revert_flag);
 }
 
 

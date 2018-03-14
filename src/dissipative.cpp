@@ -18,8 +18,7 @@ Diss::Diss(const EOS &eosIn, const InitData &Data_in) : DATA(Data_in), eos(eosIn
 for everywhere else. also, this change is necessary
 to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
 /* this is the only one that is being subtracted in the rhs */
-double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &arena_prev, int ix, int iy, int ieta,
-                         int rk_flag) {
+double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &arena_prev, int ix, int iy, int ieta) {
     /* calculate d_m (tau W^{m,alpha}) + (geom source terms) */
     const auto& grid_pt = arena_current(ix, iy, ieta);
     const auto& grid_pt_prev = arena_prev(ix, iy, ieta);
@@ -111,8 +110,8 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
     return(result);
 }/* MakeWSource */
 
-double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int mu, int nu,
-                           int rk_flag, double theta_local,
+double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
+                           int mu, int nu, int rk_flag, double theta_local,
                            DumuVec &a_local, VelocityShearVec &sigma_1d) {
     if (DATA.turn_on_shear == 0)
         return 0.0;
@@ -530,8 +529,7 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 
 
 int Diss::Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                     double *p_rhs, 
-                     int rk_flag, double theta_local) {
+                     double *p_rhs, double theta_local) {
     auto grid_pt = &(arena(ix, iy, ieta));
     double bulk_on = DATA.turn_on_bulk;
 
@@ -883,7 +881,7 @@ double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 
 
 int Diss::Make_uqRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                     std::array< std::array<double,4>, 5> &w_rhs, int rk_flag) {
+                     std::array< std::array<double,4>, 5> &w_rhs) {
     /* Kurganov-Tadmor for q */
     /* implement 
       partial_tau (utau qmu) + (1/tau)partial_eta (ueta qmu) 
