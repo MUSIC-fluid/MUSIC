@@ -55,7 +55,7 @@ int Advance::AdvanceIt(double tau,
           + ix*DATA.delta_x);
     double y_local = (- DATA.y_size/2.
           + iy*DATA.delta_y);
-	  
+      
     FirstRKStepT(tau, x_local, y_local, eta_s_local,  arena_current, arena_future, arena_prev, ix, iy, ieta, rk_flag);
 
     if (DATA.viscosity_flag == 1) {
@@ -74,7 +74,7 @@ int Advance::AdvanceIt(double tau,
       u_derivative_helper.calculate_velocity_shear_tensor(
                     tau, arena_current, ieta, ix, iy, a_local,
                     sigma_local);
-	    
+        
       FirstRKStepW(tau,  arena_prev, arena_current, arena_future,
        rk_flag, theta_local, a_local,
        sigma_local, ieta, ix, iy);
@@ -176,10 +176,7 @@ void Advance::FirstRKStepW(double tau,
   auto grid_pt_f = &(arena_future(ix, iy, ieta));
 
   double tau_now = tau;
-  double tau_next = tau + (DATA.delta_tau);
-  
-  std::array< std::array<double,4>, 5> w_rhs = {0};
-  
+  double tau_next = tau + (DATA.delta_tau);  
   // Sangyong Nov 18 2014 implemented mu_max
   int mu_max;
   if (DATA.turn_on_rhob == 1)
@@ -198,38 +195,39 @@ void Advance::FirstRKStepW(double tau,
   
   /* Advance uWmunu */
   double tempf, temps;
+  double w_rhs = 0.;
   if (rk_flag == 0) {
-    diss->Make_uWRHS(tau_now, arena_current, ix, iy, ieta, w_rhs, 
-         theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
           int idx_1d = map_2d_idx_to_1d(mu, nu);
+          diss->Make_uWRHS(tau_now, arena_current, ix, iy, ieta, mu, nu, w_rhs, 
+                           theta_local, a_local);
           tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
           temps = diss->Make_uWSource(tau_now, grid_pt_c, grid_pt_prev, mu, nu, 
-				    rk_flag, theta_local, a_local,
-				    sigma_local); 
+                    rk_flag, theta_local, a_local,
+                    sigma_local); 
           tempf += temps*(DATA.delta_tau);
-          tempf += w_rhs[mu][nu];
+          tempf += w_rhs;
           grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
       }
     }
   } else if (rk_flag > 0) {
-    diss->Make_uWRHS(tau_next, arena_current, ix, iy, ieta, w_rhs, 
-                     theta_local, a_local);
     for (int mu = 1; mu < 4; mu++) {
       for (int nu = mu; nu < 4; nu++) {
           int idx_1d = map_2d_idx_to_1d(mu, nu);
-	      tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
-	      temps = diss->Make_uWSource(tau_next, grid_pt_c, grid_pt_prev, mu, nu, 
-				    rk_flag, theta_local, a_local,
-				    sigma_local); 
-	      tempf += temps*(DATA.delta_tau);
-	      tempf += w_rhs[mu][nu];
-	
-	      tempf += ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
-	      tempf *= 0.5;
-	
-	      grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
+          diss->Make_uWRHS(tau_next, arena_current, ix, iy, ieta, mu, nu, w_rhs, 
+                           theta_local, a_local);
+          tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
+          temps = diss->Make_uWSource(tau_next, grid_pt_c, grid_pt_prev, mu, nu, 
+                    rk_flag, theta_local, a_local,
+                    sigma_local); 
+          tempf += temps*(DATA.delta_tau);
+          tempf += w_rhs;
+    
+          tempf += ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+          tempf *= 0.5;
+    
+          grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
       }
     }
   } /* rk_flag > 0 */
@@ -240,11 +238,11 @@ void Advance::FirstRKStepW(double tau,
     if (rk_flag == 0) {
       /* calculate delta u^0 pi */
       diss->Make_uPRHS(tau_now, arena_current, ix, iy, ieta, &p_rhs,
-		       theta_local);
+               theta_local);
       
       tempf = (grid_pt_c->pi_b)*(grid_pt_c->u[0]);
       temps = diss->Make_uPiSource(tau_now, grid_pt_c, grid_pt_prev, rk_flag,
-				   theta_local, sigma_local);
+                   theta_local, sigma_local);
       tempf += temps*(DATA.delta_tau);
       tempf += p_rhs;
       
@@ -252,11 +250,11 @@ void Advance::FirstRKStepW(double tau,
     } else if (rk_flag > 0) {
       /* calculate delta u^0 pi */
       diss->Make_uPRHS(tau_next, arena_current, ix, iy, ieta, &p_rhs,
-		       theta_local);
+               theta_local);
       
       tempf = (grid_pt_prev->pi_b)*(grid_pt_prev->u[0]);
       temps = diss->Make_uPiSource(tau_next, grid_pt_c, grid_pt_prev, rk_flag,
-				   theta_local, sigma_local);
+                   theta_local, sigma_local);
       tempf += temps*(DATA.delta_tau);
       tempf += p_rhs;
       
@@ -269,46 +267,45 @@ void Advance::FirstRKStepW(double tau,
     grid_pt_f->pi_b = 0.0;
   }
   
-  // CShen: add source term for baryon diffusion
-  if (DATA.turn_on_diff == 1) {
-    if (rk_flag == 0) {
-      diss->Make_uqRHS(tau_now, arena_current, ix, iy, ieta, w_rhs);
-      int mu = 4;
-      for (int nu = 1; nu < 4; nu++) {
-	int idx_1d = map_2d_idx_to_1d(mu, nu);
-	tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
-	temps = diss->Make_uqSource(tau_now, grid_pt_c, grid_pt_prev, nu,
-				    rk_flag, theta_local, a_local,
-				    sigma_local); 
-	tempf += temps*(DATA.delta_tau);
-	tempf += w_rhs[mu][nu];
-	
-	grid_pt_f->Wmunu[idx_1d] = tempf/grid_pt_f->u[0];
-      }
-    } else if (rk_flag > 0) {
-      diss->Make_uqRHS(tau_next, arena_current, ix, iy, ieta, w_rhs);
-      int mu = 4;
-      for (int nu = 1; nu < 4; nu++) {
-	int idx_1d = map_2d_idx_to_1d(mu, nu);
-	tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
-	temps = diss->Make_uqSource(tau_next, grid_pt_c, grid_pt_prev, nu,
-				    rk_flag, theta_local, a_local,
-				    sigma_local); 
-	tempf += temps*(DATA.delta_tau);
-	tempf += w_rhs[mu][nu];
-	
-	tempf += grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0];
-	tempf *= 0.5;
-	
-	grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
-      }
-    } /* rk_flag > 0 */
-  } else {
-    for (int nu = 0; nu < 4; nu++) {
-      int idx_1d = map_2d_idx_to_1d(4, nu);
-      grid_pt_f->Wmunu[idx_1d] = 0.0;
+    // CShen: add source term for baryon diffusion
+    if (DATA.turn_on_diff == 1) {
+        int mu = 4;
+        if (rk_flag == 0) {
+            for (int nu = 1; nu < 4; nu++) {
+                int idx_1d = map_2d_idx_to_1d(mu, nu);
+                w_rhs = diss->Make_uqRHS(tau_now, arena_current, ix, iy, ieta, mu, nu);
+                tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+                temps = diss->Make_uqSource(tau_now, grid_pt_c, grid_pt_prev, nu,
+                                            rk_flag, theta_local, a_local,
+                                            sigma_local); 
+                tempf += temps*(DATA.delta_tau);
+                tempf += w_rhs;
+    
+                grid_pt_f->Wmunu[idx_1d] = tempf/grid_pt_f->u[0];
+            }
+        } else if (rk_flag > 0) {
+            for (int nu = 1; nu < 4; nu++) {
+                int idx_1d = map_2d_idx_to_1d(mu, nu);
+                w_rhs = diss->Make_uqRHS(tau_next, arena_current, ix, iy, ieta, mu, nu);
+                tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
+                temps = diss->Make_uqSource(tau_next, grid_pt_c, grid_pt_prev, nu,
+                                            rk_flag, theta_local, a_local,
+                                            sigma_local); 
+                tempf += temps*(DATA.delta_tau);
+                tempf += w_rhs;
+                
+                tempf += grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0];
+                tempf *= 0.5;
+                
+                grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
+            }
+        }
+    } else {
+        for (int nu = 0; nu < 4; nu++) {
+            int idx_1d = map_2d_idx_to_1d(4, nu);
+            grid_pt_f->Wmunu[idx_1d] = 0.0;
+        }
     }
-  }
 
   // re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless
   grid_pt_f->Wmunu[9] = (
@@ -347,12 +344,12 @@ void Advance::FirstRKStepW(double tau,
     for (int mu = 4; mu < mu_max + 1; mu++) {
       tempf = 0.0;
       for (int nu = 1; nu < 4; nu++) {
-	int idx_1d = map_2d_idx_to_1d(mu, nu);
-	tempf += (grid_pt_f->Wmunu[idx_1d]
-		  *grid_pt_f->u[nu]);
+    int idx_1d = map_2d_idx_to_1d(mu, nu);
+    tempf += (grid_pt_f->Wmunu[idx_1d]
+          *grid_pt_f->u[nu]);
       }
       grid_pt_f->Wmunu[10] = (
-				      tempf/(grid_pt_f->u[0]));
+                      tempf/(grid_pt_f->u[0]));
     }
   } else {
     grid_pt_f->Wmunu[10] = 0.0;
