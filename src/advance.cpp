@@ -154,7 +154,7 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
   }
   
   double tau_next = tau + DATA.delta_tau;
-  auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena_current(ix, iy, ieta), rk_flag); 
+  auto grid_rk_t = reconst_ptr->ReconstIt_shell(tau_next, qi, arena_current(ix, iy, ieta)); 
   UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
 }
 
@@ -575,10 +575,10 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
 
     // for each direction, reconstruct half-way cells
     // reconstruct e, rhob, and u[4] for half way cells
-    auto grid_phL = reconst_ptr->ReconstIt_shell(tau, qiphL, c, 0);
-    auto grid_phR = reconst_ptr->ReconstIt_shell(tau, qiphR, c, 0); 
-    auto grid_mhL = reconst_ptr->ReconstIt_shell(tau, qimhL, c, 0);
-    auto grid_mhR = reconst_ptr->ReconstIt_shell(tau, qimhR, c, 0);
+    auto grid_phL = reconst_ptr->ReconstIt_shell(tau, qiphL, c);
+    auto grid_phR = reconst_ptr->ReconstIt_shell(tau, qiphR, c); 
+    auto grid_mhL = reconst_ptr->ReconstIt_shell(tau, qimhL, c);
+    auto grid_mhR = reconst_ptr->ReconstIt_shell(tau, qimhR, c);
     
     double aiphL = MaxSpeed(tau, direction, grid_phL);
     double aiphR = MaxSpeed(tau, direction, grid_phR);
