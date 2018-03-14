@@ -61,18 +61,18 @@ int Advance::AdvanceIt(double tau,
     if (DATA.viscosity_flag == 1) {
       U_derivative u_derivative_helper(DATA,eos);
       int flag = u_derivative_helper.MakedU(tau,  arena_prev, arena_current,
-                                          ix, iy, ieta, rk_flag);
+                                          ix, iy, ieta);
       double theta_local = (
           u_derivative_helper.calculate_expansion_rate(
-                       tau, arena_current, ieta, ix, iy, rk_flag));
+                       tau, arena_current, ieta, ix, iy));
       
       DumuVec a_local;
       u_derivative_helper.calculate_Du_supmu(
-             tau, arena_current, ieta, ix, iy, rk_flag, a_local);
+             tau, arena_current, ieta, ix, iy, a_local);
 
       VelocityShearVec sigma_local;
       u_derivative_helper.calculate_velocity_shear_tensor(
-                    tau, arena_current, ieta, ix, iy, rk_flag, a_local,
+                    tau, arena_current, ieta, ix, iy, a_local,
                     sigma_local);
 	    
       FirstRKStepW(tau,  arena_prev, arena_current, arena_future,
