@@ -114,16 +114,11 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 
     double tempf;
     double SW, shear, shear_to_s, T, epsilon, rhob;
-    int a, b;
-    double gamma, ueta;
     double NS_term;
 
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
     auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu);
 
-    // Useful variables to define
-    gamma = grid_pt->u[0];
-    ueta  = grid_pt->u[3];
     if (rk_flag == 0) {
         epsilon = grid_pt->epsilon;
         rhob = grid_pt->rhob;
@@ -210,40 +205,46 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 
     // remember: dUsup[m][n] = partial^n u^m  ///
     // remember:  a[n]  =  u^m*partial_m u^n  ///
-    //if (include_Vorticity_term == 1) {
-    //    double omega[4][4];
-    //    for (a = 0; a < 4; a++) {
-    //        for (b = 0; b <4; b++) {
-    //            omega[a][b] = (
-    //                (grid_pt->dUsup[a][b]
-    //                 - grid_pt->dUsup[b][a])/2.
-    //                + ueta/tau/2.*(  DATA.gmunu[a][0]*DATA.gmunu[b][3]
-    //                               - DATA.gmunu[b][0]*DATA.gmunu[a][3])
-    //                - ueta*gamma/tau/2.
-    //                  *(  DATA.gmunu[a][3]*grid_pt->u[b]
-    //                    - DATA.gmunu[b][3]*grid_pt->u[a])
-    //                + ueta*ueta/tau/2.
-    //                  *(   DATA.gmunu[a][0]*grid_pt->u[b]
-    //                     - DATA.gmunu[b][0]*grid_pt->u[a])
-    //                + (  grid_pt->u[a]*a_local[b]
-    //                   - grid_pt->u[b]*a_local[a])/2.);
-    //        }
-    //    }
-    //    term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
-    //                       - Wmunu[nu][0]*omega[mu][0]
-    //                       + Wmunu[mu][1]*omega[nu][1]
-    //                       + Wmunu[nu][1]*omega[mu][1]
-    //                       + Wmunu[mu][2]*omega[nu][2]
-    //                       + Wmunu[nu][2]*omega[mu][2]
-    //                       + Wmunu[mu][3]*omega[nu][3]
-    //                       + Wmunu[nu][3]*omega[mu][3])/2.;
-    //    // multiply term by its respective transport coefficient
-    //    term1_Vorticity = transport_coefficient4*term1_Vorticity;
-    //    // full term is
-    //    Vorticity_term = term1_Vorticity;
-    //} else {
-    //    Vorticity_term = 0.0;
-    //}
+    // if (include_Vorticity_term == 1) {
+    //     double omega[4][4];
+    //     double gmunu[4][4] = {{-1., 0., 0., 0.},
+    //                           { 0., 1., 0., 0.},
+    //                           { 0., 0., 1., 0.},
+    //                           { 0., 0., 0., 1.}};
+    //     double gamma = grid_pt->u[0];
+    //     double ueta  = grid_pt->u[3];
+    //     for (int a = 0; a < 4; a++) {
+    //         for (int b = 0; b < 4; b++) {
+    //             omega[a][b] = (
+    //                 (grid_pt->dUsup[a][b]
+    //                  - grid_pt->dUsup[b][a])/2.
+    //                 + ueta/tau/2.*(  gmunu[a][0]*gmunu[b][3]
+    //                                - gmunu[b][0]*gmunu[a][3])
+    //                 - ueta*gamma/tau/2.
+    //                   *(  gmunu[a][3]*grid_pt->u[b]
+    //                     - gmunu[b][3]*grid_pt->u[a])
+    //                 + ueta*ueta/tau/2.
+    //                   *(   gmunu[a][0]*grid_pt->u[b]
+    //                      - gmunu[b][0]*grid_pt->u[a])
+    //                 + (  grid_pt->u[a]*a_local[b]
+    //                    - grid_pt->u[b]*a_local[a])/2.);
+    //         }
+    //     }
+    //     term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
+    //                        - Wmunu[nu][0]*omega[mu][0]
+    //                        + Wmunu[mu][1]*omega[nu][1]
+    //                        + Wmunu[nu][1]*omega[mu][1]
+    //                        + Wmunu[mu][2]*omega[nu][2]
+    //                        + Wmunu[nu][2]*omega[mu][2]
+    //                        + Wmunu[mu][3]*omega[nu][3]
+    //                        + Wmunu[nu][3]*omega[mu][3])/2.;
+    //     // multiply term by its respective transport coefficient
+    //     term1_Vorticity = transport_coefficient4*term1_Vorticity;
+    //     // full term is
+    //     Vorticity_term = term1_Vorticity;
+    // } else {
+    //     Vorticity_term = 0.0;
+    // }
     Vorticity_term = 0.0;
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -871,14 +872,12 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     -Delta[a][eta] u[eta] q[tau]/tau
     -u[a]u[b]g[b][e] Dq[e]
 */
-double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu, 
-                           int rk_flag, double theta_local, DumuVec &a_local,
-                           VelocityShearVec &sigma_1d) {
-    double q[4];
-  
+double Diss::Make_uqSource(
+    double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu,
+    int rk_flag, double theta_local, DumuVec &a_local,
+    VelocityShearVec &sigma_1d, DmuMuBoverTVec &baryon_diffusion_vec) {
     if (DATA.turn_on_diff == 0) return 0.0;
- 
-    // Useful variables to define
+
     double epsilon, rhob;
     if (rk_flag == 0) {
         epsilon = grid_pt->epsilon;
@@ -903,9 +902,9 @@ double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     }
 
     // copy the value of \tilde{q^\mu}
+    double q[4];
     for (int i = 0; i < 4; i++) {
-        int idx_1d = map_2d_idx_to_1d(4, i);
-        q[i] = (grid_pt->Wmunu[idx_1d]);
+        q[i] = grid_pt->Wmunu[10+i];
     }
 
     /* -(1/tau_rho)(q[a] + kappa g[a][b]Dtildemu[b] 
@@ -917,25 +916,13 @@ double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     */
 
     // first: (1/tau_rho) part
-    // recall that dUsup[4][i] = partial_i (muB/T) 
+    // recall that dUsup[4][i] = partial_i (muB/T)
     // and dUsup[4][0] = -partial_tau (muB/T) = partial^tau (muB/T)
     // and a[4] = u^a partial_a (muB/T) = DmuB/T
-    // -(1/tau_rho)(q[a] + kappa g[a][b]DmuB/T[b] 
+    // -(1/tau_rho)(q[a] + kappa g[a][b]DmuB/T[b]
     // + kappa u[a] u[b]g[b][c]DmuB/T[c])
-    // a = nu 
-    double NS = 0.0;
-    //double NS = kappa*(grid_pt->dUsup[4][nu] 
-    //                       + grid_pt->u[nu]*a_local[4]);
-    //if (isnan(NS)) {
-    //    cout << "Navier Stock term is nan! " << endl;
-    //    cout << q[nu] << endl;
-    //    // derivative already upper index
-    //    cout << grid_pt->dUsup[4][nu] << endl;
-    //    cout << a_local[4] << endl;
-    //    cout << tau_rho << endl;
-    //    cout << kappa << endl;
-    //    cout << grid_pt->u[nu] << endl;
-    //}
+    // a = nu
+    double NS = kappa*(baryon_diffusion_vec[nu] + grid_pt->u[nu]*a_local[4]);
 
     // add a new non-linear term (- q \theta)
     double transport_coeff = 1.0*tau_rho;   // from conformal kinetic theory
@@ -946,7 +933,7 @@ double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
     double temptemp = 0.0;
     for (int i = 0 ; i < 4; i++) {
-        temptemp += q[i]*sigma[i][nu]*DATA.gmunu[i][i]; 
+        temptemp += q[i]*sigma[i][nu]*DATA.gmunu[i][i];
     }
     double Nonlinear2 = - transport_coeff_2*temptemp;
 
@@ -959,10 +946,9 @@ double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     // all other geometric terms....
     // + theta q[a] - q[a] u^\tau/tau
     SW += (theta_local - grid_pt->u[0]/tau)*q[nu];
-
-    if (isnan(SW)) {
-        cout << "theta term is nan! " << endl;
-    }
+    // if (isnan(SW)) {
+    //     cout << "theta term is nan! " << endl;
+    // }
 
     // +Delta[a][tau] u[eta] q[eta]/tau
     double tempf = ((DATA.gmunu[nu][0]
@@ -972,28 +958,25 @@ double Diss::Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
                        + grid_pt->u[nu]*grid_pt->u[3])
                       *grid_pt->u[3]*q[0]/tau);
     SW += tempf;
+    // if (isnan(tempf)) {
+    //     cout << "Delta^{a \tau} and Delta^{a \eta} terms are nan!" << endl;
+    // }
 
-    if (isnan(tempf)) {
-        cout << "Delta^{a \tau} and Delta^{a \eta} terms are nan!" << endl;
-    }
-
-    //-u[a] u[b]g[b][e] Dq[e] -> u[a] (q[e] g[e][b] Du[b])
+    // -u[a] u[b]g[b][e] Dq[e] -> u[a] (q[e] g[e][b] Du[b])
     tempf = 0.0;
     for (int i = 0; i < 4; i++) {
         tempf += q[i]*gmn(i)*a_local[i];
     }
     SW += (grid_pt->u[nu])*tempf;
-
-    if (isnan(tempf)) {
-        cout << "u^a q_b Du^b term is nan! " << endl;
-    }
-
+    // if (isnan(tempf)) {
+    //     cout << "u^a q_b Du^b term is nan! " << endl;
+    // }
     return SW;
-}/* Make_uqSource */
+}
 
 
 double Diss::Make_uqRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                     int mu, int nu) {
+                        int mu, int nu) {
     /* Kurganov-Tadmor for q */
     /* implement 
       partial_tau (utau qmu) + (1/tau)partial_eta (ueta qmu) 

@@ -50,7 +50,8 @@ class Diss {
                       int mu, int nu);
     double Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu,
                          int rk_flag, double theta_local, DumuVec &a_local,
-                         VelocityShearVec &sigma_1d);
+                         VelocityShearVec &sigma_1d,
+                         DmuMuBoverTVec &baryon_diffusion_vec);
 
     double get_temperature_dependent_eta_s(double T);
     double get_temperature_dependent_zeta_s(double temperature);

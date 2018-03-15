@@ -11,6 +11,7 @@ typedef std::array<double, 4>  FlowVec;
 typedef std::array<double, 5>  TJbVec;
 typedef std::array<double, 5>  DumuVec;
 typedef Arr10                  VelocityShearVec;
+typedef std::array<double, 4>  DmuMuBoverTVec;
 typedef std::array<double, 14> ViscousVec;
 
 typedef struct {

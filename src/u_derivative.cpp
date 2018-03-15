@@ -12,7 +12,7 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn) :
     minmod(DATA_in) {
     for (int i = 0; i < 5; i++)
     for (int j = 0; j < 4; j++)
-           dUsup[i][j] = 0.0;
+        dUsup[i][j] = 0.0;
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
@@ -29,12 +29,12 @@ int U_derivative::MakedU(double tau, SCGrid &arena_prev, SCGrid &arena_current,
         }
     }
 
-	// this calculates du/dx, du/dy, (du/deta)/tau
+    // this calculates du/dx, du/dy, (du/deta)/tau
     MakeDSpatial(tau, arena_current, ix, iy, ieta);
     // this calculates du/dtau
-    MakeDTau(tau, &arena_prev(ix, iy, ieta), &arena_current(ix,iy,ieta)); 
+    MakeDTau(tau, &arena_prev(ix, iy, ieta), &arena_current(ix, iy, ieta));
 
-   return(1);
+    return(1);
 }
 
 
@@ -57,7 +57,7 @@ void U_derivative::calculate_Du_supmu(double tau, SCGrid &arena, int ieta,
                                       int ix, int iy, DumuVec &a) {
     for (int mu = 0; mu <= 4; mu++) {
         double u_supnu_partial_nu_u_supmu = 0.0;
-	    for (int nu = 0; nu < 4; nu++) {
+        for (int nu = 0; nu < 4; nu++) {
             double tfac = (nu==0 ? -1.0 : 1.0);
             u_supnu_partial_nu_u_supmu += (
                 tfac*arena(ix,iy,ieta).u[nu]
@@ -132,6 +132,12 @@ void U_derivative::calculate_velocity_shear_tensor(
     sigma[7] = sigma_local[2][2];
     sigma[8] = sigma_local[2][3];
     sigma[9] = sigma_local[3][3];
+}
+
+//! this function returns the vector D^\mu(\mu_B/T)
+void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
+    for (int mu = 0; mu < 4; mu++)
+        vec[mu] = dUsup[4][mu];
 }
 
 

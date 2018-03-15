@@ -29,6 +29,9 @@ class U_derivative {
     void calculate_Du_supmu(double tau, SCGrid &arena, int ieta, int ix, int iy,
                             DumuVec &a);
 
+    //! this function returns the vector D^\mu(\mu_B/T)
+    void get_DmuMuBoverTVec(DmuMuBoverTVec &vec);
+
     //! This funciton returns the velocity shear tensor sigma^\mu\nu
     void calculate_velocity_shear_tensor(
         double tau, SCGrid &arena, int ieta, int ix, int iy,

@@ -34,31 +34,29 @@ class Advance {
         return index_map[a][b];
     }
 
-
  public:
     Advance(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_source_in);
     ~Advance();
 
-    void AdvanceIt(double tau_init, 
-                  SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-                  int rk_flag);
+    void AdvanceIt(double tau_init,
+                   SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
+                   int rk_flag);
 
     void FirstRKStepT(const double tau, double x_local, double y_local,
-                     double eta_s_local,  SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta,
-                     int rk_flag);
+                      double eta_s_local,  SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta,
+                      int rk_flag);
 
-    void FirstRKStepW(double tau_it, 
-                      SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-                     int rk_flag, double theta_local, DumuVec &a_local,
-                     VelocityShearVec &sigma_local, int ieta, int ix, int iy);
+    void FirstRKStepW(double tau_it, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
+                      int rk_flag, double theta_local, DumuVec &a_local,
+                      VelocityShearVec &sigma_local, DmuMuBoverTVec &baryon_diffusion_vector, int ieta, int ix, int iy);
 
     void UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt);
-    int QuestRevert(double tau, Cell_small *grid_pt, 
-                    int ieta, int ix, int iy);
-    int QuestRevert_qmu(double tau, Cell_small *grid_pt,
+    void QuestRevert(double tau, Cell_small *grid_pt, int ieta, int ix, int iy);
+    void QuestRevert_qmu(double tau, Cell_small *grid_pt,
                          int ieta, int ix, int iy);
 
-    void MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int ieta, TJbVec &qi, int rk_flag);
+    void MakeDeltaQI(double tau, SCGrid &arena_current,
+                     int ix, int iy, int ieta, TJbVec &qi, int rk_flag);
     double MaxSpeed(double tau, int direc, const ReconstCell &grid_p);
     double get_TJb(const Cell &grid_p, const int rk_flag, const int mu, const int nu);
     double get_TJb(const ReconstCell &grid_p, const int rk_flag, const int mu, const int nu);
