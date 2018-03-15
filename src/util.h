@@ -57,7 +57,7 @@ namespace Util {
     double lin_int(double x1,double x2,double f1,double f2,double x);
 
     double four_dimension_linear_interpolation(
-            double* lattice_spacing, double** fraction, double**** cube);
+            double* lattice_spacing, double fraction[2][4], double**** cube);
     double three_dimension_linear_interpolation(
             double* lattice_spacing, double** fraction, double*** cube);
     int binary_search(double* array, int length, double x);

@@ -129,16 +129,15 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
         qi[alpha] += rhob_source*DATA.delta_tau;
       }
     }
-    
     // set baryon density back to zero if viscous correction made it
-    // non-zero remove/modify if rho_b!=0 
-    // - this is only to remove the viscous correction that 
+    // non-zero remove/modify if rho_b!=0
+    // - this is only to remove the viscous correction that
     // can make rho_b negative which we do not want.
     if (DATA.turn_on_rhob == 0) {
       if (alpha == 4 && fabs(qi[alpha]) > 1e-12)
         qi[alpha] = 0.;
     }
-    
+
     /* if rk_flag > 0, we now have q0 + k1 + k2. 
      * So add q0 and multiply by 1/2 */
     if (rk_flag > 0) {
@@ -168,12 +167,11 @@ void Advance::FirstRKStepW(
     // Solve partial_a (u^a W^{mu nu}) = 0
     // Update W^{mu nu}
     // mu = 4 is the baryon current qmu
-  
+
     // calculate delta uWmunu
     // need to use u[0][mu], remember rk_flag = 0 here
-    // with the KT flux 
+    // with the KT flux
     // solve partial_tau (u^0 W^{kl}) = -partial_i (u^i W^{kl}
-  
     /* Advance uWmunu */
     double tempf, temps;
     double w_rhs = 0.;
@@ -186,7 +184,7 @@ void Advance::FirstRKStepW(
                 tempf = ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
                 temps = diss->Make_uWSource(tau_now, grid_pt_c, grid_pt_prev,
                                             mu, nu, rk_flag, theta_local,
-                                            a_local, sigma_local); 
+                                            a_local, sigma_local);
                 tempf += temps*(DATA.delta_tau);
                 tempf += w_rhs;
                 grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
@@ -201,7 +199,7 @@ void Advance::FirstRKStepW(
                 tempf = (grid_pt_prev->Wmunu[idx_1d])*(grid_pt_prev->u[0]);
                 temps = diss->Make_uWSource(tau_next, grid_pt_c, grid_pt_prev,
                                             mu, nu, rk_flag, theta_local,
-                                            a_local, sigma_local); 
+                                            a_local, sigma_local);
                 tempf += temps*(DATA.delta_tau);
                 tempf += w_rhs;
                 tempf += ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));

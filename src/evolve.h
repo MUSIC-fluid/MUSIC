@@ -36,10 +36,6 @@ class Evolve {
     // simulation information
     int rk_order;
 
-    double SUM;
-    int warnings;
-    int cells;
-    int weirdCases;
     int facTau;
 
     // information about freeze-out surface
@@ -55,27 +51,24 @@ class Evolve {
 
     void AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future);
 
-    int FreezeOut_equal_tau_Surface(double tau, Grid &arena);
+    int FreezeOut_equal_tau_Surface(double tau, SCGrid &arena_current);
     void FreezeOut_equal_tau_Surface_XY(double tau,
-                                        int ieta, Grid &arena,
+                                        int ieta, SCGrid &arena_current,
                                         int thread_id, double epsFO);
-    // void FindFreezeOutSurface(double tau, const InitData &DATA,
-    //                          Grid &arena, int size, int rank);
-    // void FindFreezeOutSurface2(double tau, const InitData &DATA,
-    //                           Grid &arena, int size, int rank);
-    // int FindFreezeOutSurface3(double tau, const InitData &DATA,
-    //                          Grid &arena, int size, int rank);
-    int FindFreezeOutSurface_Cornelius(double tau, Grid &arena);
-    int FindFreezeOutSurface_Cornelius_XY(double tau,
-                                          int ieta, Grid &arena,
+    int FindFreezeOutSurface_Cornelius(double tau,
+                                       SCGrid &arena_current,
+                                       SCGrid &arena_freezeout);
+    int FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
+                                          SCGrid &arena_current,
+                                          SCGrid &arena_freezeout,
                                           int thread_id, double epsFO);
     int FindFreezeOutSurface_boostinvariant_Cornelius(
                                     double tau, Grid &arena);
 
-    void store_previous_step_for_freezeout(Grid &arena);
-
-    void regulate_qmu(double* u, double* q, double* q_regulated);
-    void regulate_Wmunu(double* u, double** Wmunu, double** Wmunu_regulated);
+    void store_previous_step_for_freezeout(SCGrid &arena_current,
+                                           SCGrid &arena_freezeout);
+    void regulate_qmu(const double u[], const double q[], double q_regulated[]) const;
+    void regulate_Wmunu(const double u[], const double Wmunu[4][4], double Wmunu_regulated[4][4]) const;
 
     void initialize_freezeout_surface_info();
 };
