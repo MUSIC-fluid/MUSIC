@@ -63,7 +63,7 @@ class Evolve {
                                           SCGrid &arena_freezeout,
                                           int thread_id, double epsFO);
     int FindFreezeOutSurface_boostinvariant_Cornelius(
-                                    double tau, Grid &arena);
+                double tau, SCGrid &arena_current, SCGrid &arena_freezeout);
 
     void store_previous_step_for_freezeout(SCGrid &arena_current,
                                            SCGrid &arena_freezeout);

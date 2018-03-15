@@ -149,7 +149,7 @@ double four_dimension_linear_interpolation(
 }
 
 double three_dimension_linear_interpolation(
-            double* lattice_spacing, double** fraction, double*** cube) {
+            double* lattice_spacing, double fraction[2][3], double*** cube) {
     double denorm = 1.0;
     double results = 0.0;
     for (int i = 0; i < 3; i++) {
