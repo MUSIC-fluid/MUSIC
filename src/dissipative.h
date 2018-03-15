@@ -21,7 +21,7 @@ class Diss {
                                             {2,   5,  7,  8},
                                             {3,   6,  8,  9},
                                             {10, 11, 12, 13}};
-      return index_map[a][b];
+        return index_map[a][b];
     }
 
  public:

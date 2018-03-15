@@ -97,11 +97,11 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
         result = sf*diff_on;
 
     if (isnan(result)) {
-        cout << "[Error]Diss::MakeWSource: " << endl;
-        cout << "sf=" << sf << " bf=" << bf
-             << " Wmunu =" << grid_pt.Wmunu[alpha]
-             << " pi_b =" << grid_pt.pi_b
-             << " prev_pi_b=" << grid_pt_prev.pi_b << endl;
+        std::cout << "[Error]Diss::MakeWSource: " << std::endl;
+        std::cout << "sf=" << sf << " bf=" << bf
+                  << " Wmunu =" << grid_pt.Wmunu[alpha]
+                  << " pi_b =" << grid_pt.pi_b
+                  << " prev_pi_b=" << grid_pt_prev.pi_b << std::endl;
     }
     return(result);
 }

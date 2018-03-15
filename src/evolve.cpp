@@ -273,13 +273,12 @@ int Update_prev_Arena(Grid &arena) {
 }
 
 
-int Evolve::AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future) {
+void Evolve::AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future) {
     // control function for Runge-Kutta evolution in tau
-    int flag = 0;
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
         //flag = u_derivative.MakedU(tau, DATA, arena_prev, arena_current, rk_flag);
-        flag = advance.AdvanceIt(tau, *arena_prev, *arena_current, *arena_future, rk_flag);
+        advance.AdvanceIt(tau, *arena_prev, *arena_current, *arena_future, rk_flag);
 
         if (rk_flag == 0) {
             auto temp     = std::move(arena_prev);
@@ -291,7 +290,6 @@ int Evolve::AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_cu
         }
         
     }  /* loop over rk_flag */
-    return(flag);
 }
       
 

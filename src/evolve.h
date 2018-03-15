@@ -53,7 +53,7 @@ class Evolve {
     Evolve(const EOS &eos, const InitData &DATA_in, hydro_source *hydro_source_in);
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future);
 
-    int AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future);
+    void AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future);
 
     int FreezeOut_equal_tau_Surface(double tau, Grid &arena);
     void FreezeOut_equal_tau_Surface_XY(double tau,

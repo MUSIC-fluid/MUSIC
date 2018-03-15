@@ -13,75 +13,64 @@ using namespace std;
 
 Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
                  hydro_source *hydro_source_in) :
-  DATA(DATA_in),
-  eos(eosIn),
-  minmod(DATA_in)
-{
-  reconst_ptr      = new Reconst(eos, DATA_in);
-  diss             = new Diss(eosIn, DATA_in);
-  if (DATA_in.Initial_profile == 12 || DATA_in.Initial_profile == 13
-      || DATA_in.Initial_profile == 30) {
-    flag_add_hydro_source = true;
-    hydro_source_ptr = hydro_source_in;
-  } else {
-    flag_add_hydro_source = false;
-    hydro_source_ptr = NULL;
-  }
+    DATA(DATA_in),
+    eos(eosIn),
+    minmod(DATA_in) {
+    reconst_ptr      = new Reconst(eos, DATA_in);
+    diss             = new Diss(eosIn, DATA_in);
+    if (DATA_in.Initial_profile == 12 || DATA_in.Initial_profile == 13
+        || DATA_in.Initial_profile == 30) {
+        flag_add_hydro_source = true;
+        hydro_source_ptr      = hydro_source_in;
+    } else {
+        flag_add_hydro_source = false;
+        hydro_source_ptr      = nullptr;
+    }
 }
 
-// destructor
+
 Advance::~Advance() {
-  delete diss;
-  delete reconst_ptr;
+    delete diss;
+    delete reconst_ptr;
 }
 
 
 //! this function evolves one Runge-Kutta step in tau
-int Advance::AdvanceIt(double tau, 
-                       SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-                       int rk_flag) {
-
+void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
+                       SCGrid &arena_future, int rk_flag) {
   const int grid_neta = arena_current.nEta();
   const int grid_nx   = arena_current.nX();
   const int grid_ny   = arena_current.nY();
 
-  #pragma omp parallel for collapse(3) schedule(guided)
-  for(int ieta = 0; ieta < grid_neta; ieta++)
-  for(int ix   = 0; ix   < grid_nx;   ix++  )
-  for(int iy   = 0; iy   < grid_ny;   iy++  ) {
-    double eta_s_local = (- DATA.eta_size/2.
-        + ieta*DATA.delta_eta);
-    double x_local = (- DATA.x_size/2.
-          + ix*DATA.delta_x);
-    double y_local = (- DATA.y_size/2.
-          + iy*DATA.delta_y);
-      
-    FirstRKStepT(tau, x_local, y_local, eta_s_local,  arena_current, arena_future, arena_prev, ix, iy, ieta, rk_flag);
+    #pragma omp parallel for collapse(3) schedule(guided)
+    for (int ieta = 0; ieta < grid_neta; ieta++)
+    for (int ix   = 0; ix   < grid_nx;   ix++  )
+    for (int iy   = 0; iy   < grid_ny;   iy++  ) {
+        double eta_s_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
+        double x_local     = - DATA.x_size  /2. +   ix*DATA.delta_x;
+        double y_local     = - DATA.y_size  /2. +   iy*DATA.delta_y;
 
-    if (DATA.viscosity_flag == 1) {
-      U_derivative u_derivative_helper(DATA,eos);
-      int flag = u_derivative_helper.MakedU(tau,  arena_prev, arena_current,
-                                          ix, iy, ieta);
-      double theta_local = (
-          u_derivative_helper.calculate_expansion_rate(
-                       tau, arena_current, ieta, ix, iy));
-      
-      DumuVec a_local;
-      u_derivative_helper.calculate_Du_supmu(
-             tau, arena_current, ieta, ix, iy, a_local);
+        FirstRKStepT(tau, x_local, y_local, eta_s_local,
+                     arena_current, arena_future, arena_prev,
+                     ix, iy, ieta, rk_flag);
 
-      VelocityShearVec sigma_local;
-      u_derivative_helper.calculate_velocity_shear_tensor(
-                    tau, arena_current, ieta, ix, iy, a_local,
-                    sigma_local);
-        
-      FirstRKStepW(tau,  arena_prev, arena_current, arena_future,
-       rk_flag, theta_local, a_local,
-       sigma_local, ieta, ix, iy);
+        if (DATA.viscosity_flag == 1) {
+            U_derivative u_derivative_helper(DATA, eos);
+            int flag = u_derivative_helper.MakedU(tau,  arena_prev,
+                                                  arena_current, ix, iy, ieta);
+            double theta_local = u_derivative_helper.calculate_expansion_rate(
+                                            tau, arena_current, ieta, ix, iy);
+            DumuVec a_local;
+            u_derivative_helper.calculate_Du_supmu(tau, arena_current,
+                                                   ieta, ix, iy, a_local);
+            VelocityShearVec sigma_local;
+            u_derivative_helper.calculate_velocity_shear_tensor(
+                        tau, arena_current, ieta, ix, iy, a_local, sigma_local);
+
+            FirstRKStepW(tau,  arena_prev, arena_current, arena_future, rk_flag,
+                         theta_local, a_local, sigma_local, ieta, ix, iy);
+        }
     }
-  }
-    
-  return(1);
 }
 
 

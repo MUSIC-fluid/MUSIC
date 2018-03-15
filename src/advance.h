@@ -39,7 +39,7 @@ class Advance {
     Advance(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_source_in);
     ~Advance();
 
-    int AdvanceIt(double tau_init, 
+    void AdvanceIt(double tau_init, 
                   SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
                   int rk_flag);
 
