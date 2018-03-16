@@ -1,4 +1,4 @@
-add_executable (mpihydro
+set (SOURCES
     u_derivative.cpp
     dissipative.cpp
     main.cpp
@@ -23,9 +23,14 @@ add_executable (mpihydro
     emoji.cpp
     )
 
-target_link_libraries (mpihydro ${GSL_LIBRARIES})
-if (APPLE)
-    set_target_properties (mpihydro PROPERTIES COMPILE_FLAGS "-DAPPLE")
-endif (APPLE)
-
-install(TARGETS mpihydro DESTINATION ${CMAKE_HOME_DIRECTORY})
+if (test)
+    add_executable (unittest_grid.e grid.cpp)
+    install(TARGETS unittest_grid.e DESTINATION ${CMAKE_HOME_DIRECTORY})
+else (test)
+    add_executable (mpihydro ${SOURCES})
+    target_link_libraries (mpihydro ${GSL_LIBRARIES})
+    if (APPLE)
+        set_target_properties (mpihydro PROPERTIES COMPILE_FLAGS "-DAPPLE")
+    endif (APPLE)
+    install(TARGETS mpihydro DESTINATION ${CMAKE_HOME_DIRECTORY})
+endif (test)

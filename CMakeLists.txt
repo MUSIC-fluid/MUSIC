@@ -11,7 +11,8 @@ include_directories(${GSL_INCLUDE_DIR})
 set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS})
 set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${OpenMP_EXE_LINKER_FLAGS})
 
-option (KNL "Build executable on KNL" ON)
+option (KNL "Build executable on KNL" OFF)
+option (test "Build Unit tests" OFF)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
     if (KNL)
@@ -23,7 +24,8 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "-g -Ofast -Wall ${OpenMP_CXX_FLAGS} -std=c++11 -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
 endif()
 
-add_subdirectory (src)  
-#set_property(TARGET mpihydro PROPERTY INTERPROCEDURAL_OPTIMIZATION True)
+if (test)
+    set(CMAKE_CXX_FLAGS "-g -Wall ${OpenMP_CXX_FLAGS} -std=c++11 -DDOCTEST_CONFIG_IMPLEMENT_WITH_MAIN")
+endif()
 
-#set(CMAKE_CXX_FLAGS "-g -qopt-report=5 -qopt-report-phase:vec -ipo -Ofast -Wall ${OpenMP_CXX_FLAGS} -std=c++11 -xmic-avx512 -fma -align -finline-functions -DDOCTEST_CONFIG_DISA
+add_subdirectory (src)
