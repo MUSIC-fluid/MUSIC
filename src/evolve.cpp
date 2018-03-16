@@ -39,7 +39,6 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     int output_movie_flag       = DATA.output_movie_flag;
     int freezeout_flag          = DATA.doFreezeOut;
     int freezeout_lowtemp_flag  = DATA.doFreezeOut_lowtemp;
-    int freezeout_method        = DATA.freezeOutMethod;
     int boost_invariant_flag    = DATA.boost_invariant;
 
     // Output information about the hydro parameters 

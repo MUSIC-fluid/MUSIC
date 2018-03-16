@@ -248,13 +248,8 @@ void hydro_source::read_in_AMPT_partons() {
 
 void hydro_source::get_hydro_energy_source(
     double tau, double x, double y, double eta_s, 
-    FlowVec &u_mu, 
-    EnergyFlowVec &j_mu
-) {
-    // clean up j_mu
-    for (int i = 0; i < 4; i++) {
-        j_mu[i] = 0.0;
-    }
+    FlowVec &u_mu, EnergyFlowVec &j_mu) {
+    j_mu = {0};
     // flow velocity
     double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
     double y_perp_flow     = acosh(gamma_perp_flow);
@@ -525,11 +520,11 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
     double res = 0.;
 
     // flow velocity
-    double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
-    double y_perp_flow = acosh(gamma_perp_flow);
-    double y_long_flow = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
+    double gamma_perp_flow  = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
+    double y_perp_flow      = acosh(gamma_perp_flow);
+    double y_long_flow      = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
     double sinh_y_perp_flow = sinh(y_perp_flow);
-    double dtau = DATA.delta_tau;
+    double dtau             = DATA.delta_tau;
 
     if (DATA.Initial_profile == 12) {
         double n_sigma_skip = 5.;
@@ -715,10 +710,9 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
 
 void hydro_source::get_hydro_energy_source_before_tau(
     double tau, double x, double y, double eta_s, double *j_mu) {
-    FlowVec u             = {0};
+    FlowVec u                   = {0};
+    u[0]                        = 1.0;
     EnergyFlowVec j_mu_one_step = {0};
-
-    u[0] = 1.0;
 
     double tau0 = 0.0;
     double dtau = DATA.delta_tau;
@@ -737,8 +731,7 @@ void hydro_source::get_hydro_energy_source_before_tau(
 }
 
 double hydro_source::get_hydro_rhob_source_before_tau(
-        double tau, double x, double y, double eta_s
-) {
+        double tau, double x, double y, double eta_s) {
     FlowVec u = {0};
     u[0] = 1.0;
 

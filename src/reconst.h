@@ -29,6 +29,7 @@ class Reconst {
     const double v_critical;
 
  public:
+    Reconst() = default;
     Reconst(const EOS &eos, const InitData &DATA_in);
 
     ReconstCell ReconstIt_shell(double tau, TJbVec &q_vec,

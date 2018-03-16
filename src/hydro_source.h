@@ -87,8 +87,8 @@ class hydro_source {
     void read_in_AMPT_partons();
 
     //! Get the minimum and maximum tau for the source term
-    double get_source_tau_min() {return(source_tau_min);}
-    double get_source_tau_max() {return(source_tau_max);}
+    double get_source_tau_min() const {return(source_tau_min);}
+    double get_source_tau_max() const {return(source_tau_max);}
 };
 
 #endif  // SRC_HYDRO_SOURCE_H_

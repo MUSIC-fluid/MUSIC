@@ -14,12 +14,12 @@ class U_derivative {
      const InitData &DATA;
      const EOS &eos;
      Minmod minmod;
-     std::array<std::array<double, 4>, 5> dUsup;
+     dUsupMat dUsup;
 
  public:
     U_derivative(const InitData &DATA_in, const EOS &eosIn);
-    int MakedU(double tau, SCGrid &arena_prev, SCGrid &arena_current,
-               int ix, int iy, int ieta);
+    void MakedU(double tau, SCGrid &arena_prev, SCGrid &arena_current,
+                int ix, int iy, int ieta);
 
     //! this function returns the expansion rate on the grid
     double calculate_expansion_rate(double tau, SCGrid &arena,

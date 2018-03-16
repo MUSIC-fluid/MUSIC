@@ -10,31 +10,18 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn) :
     DATA(DATA_in),
     eos(eosIn),
     minmod(DATA_in) {
-    for (int i = 0; i < 5; i++)
-    for (int j = 0; j < 4; j++)
-        dUsup[i][j] = 0.0;
+    dUsup = {0.0};
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
-int U_derivative::MakedU(double tau, SCGrid &arena_prev, SCGrid &arena_current,
-                         int ix, int iy, int ieta) {
-    // ideal hydro: no need to evaluate any flow derivatives
-    if (DATA.viscosity_flag == 0) {
-        return(1);
-    }
-
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j < 4; j++) {
-            dUsup[i][j] = 0.0;
-        }
-    }
+void U_derivative::MakedU(double tau, SCGrid &arena_prev, SCGrid &arena_current,
+                          int ix, int iy, int ieta) {
+    dUsup = {0.0};
 
     // this calculates du/dx, du/dy, (du/deta)/tau
     MakeDSpatial(tau, arena_current, ix, iy, ieta);
     // this calculates du/dtau
     MakeDTau(tau, &arena_prev(ix, iy, ieta), &arena_current(ix, iy, ieta));
-
-    return(1);
 }
 
 
