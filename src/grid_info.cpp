@@ -9,8 +9,7 @@ using namespace std;
 
 Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in) :
     DATA(DATA_in),
-    eos(eos_in)
-{
+    eos(eos_in) {
 
     // read in tables for delta f coefficients
     if (DATA.turn_on_diff == 1) {

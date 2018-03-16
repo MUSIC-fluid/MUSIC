@@ -14,8 +14,7 @@
 using namespace std;
 
 Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source *hydro_source_in) :
-    DATA(DATA_in), eos(eosIn)
-{
+    DATA(DATA_in), eos(eosIn) {
     if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
         hydro_source_ptr = hydro_source_in;
     } else if (DATA.Initial_profile == 30) {
@@ -55,7 +54,6 @@ void Init::InitArena(Grid &arena) {
         profile.close();
         music_message << "Using Initial_profile=" << DATA.Initial_profile
                       << ". Overwriting lattice dimensions:";
-
         DATA.nx = nx;
         DATA.ny = ny;
         DATA.delta_x = dx;
@@ -78,7 +76,6 @@ void Init::InitArena(Grid &arena) {
         profile.close();
         music_message << "Using Initial_profile=" << DATA.Initial_profile
                       << ". Overwriting lattice dimensions:";
-
         DATA.nx = nx;
         DATA.ny = ny;
         DATA.neta = neta;
@@ -935,15 +932,8 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(int ieta,
                                            Grid &arena) {
     const int nx = arena.nX();
     const int ny = arena.nY();
-    double *u = new double[4];
-    u[0] = 1.0;
-    u[1] = 0.0;
-    u[2] = 0.0;
-    u[3] = 0.0;
-    double *j_mu = new double[4];
-    for (int i = 0; i < 3; i++) {
-        j_mu[i] = 0.0;
-    }
+    double u[4] = {1.0, 0.0, 0.0, 0.0};
+    double j_mu[4] = {0.0, 0.0, 0.0, 0.0};
     int entropy_flag = DATA.initializeEntropy;
     for (int ix = 0; ix < nx; ix++) {
         // double x_local = - DATA.x_size/2. + ix*DATA.delta_x;
@@ -1004,8 +994,6 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(int ieta,
             }
         }
     }
-    delete[] u;
-    delete[] j_mu;
 }
 
 
@@ -1093,15 +1081,8 @@ void Init::initial_UMN_with_rhob(Grid &arena) {
 }
 
 void Init::initial_AMPT_XY(int ieta, Grid &arena) {
-    double *u = new double[4];
-    u[0] = 1.0;
-    u[1] = 0.0;
-    u[2] = 0.0;
-    u[3] = 0.0;
-    double *j_mu = new double[4];
-    for (int i = 0; i < 3; i++) {
-        j_mu[i] = 0.0;
-    }
+    double u[4] = {1.0, 0.0, 0.0, 0.0};
+    double j_mu[4] = {0.0, 0.0, 0.0, 0.0};
 
     double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
     double tau0 = DATA.tau0;
@@ -1158,8 +1139,6 @@ void Init::initial_AMPT_XY(int ieta, Grid &arena) {
             }
         }
     }
-    delete[] u;
-    delete[] j_mu;
 }
 
 double Init::eta_profile_normalisation(double eta) {
@@ -1167,9 +1146,8 @@ double Init::eta_profile_normalisation(double eta) {
     double res;
     // Hirano's plateau + Gaussian fall-off
     if (DATA.initial_eta_profile == 1) {
-        double exparg1, exparg;
-        exparg1 = (fabs(eta) - DATA.eta_flat/2.0)/DATA.eta_fall_off;
-        exparg = exparg1*exparg1/2.0;
+        double exparg1 = (fabs(eta) - DATA.eta_flat/2.0)/DATA.eta_fall_off;
+        double exparg = exparg1*exparg1/2.0;
         res = exp(-exparg*theta(exparg1));
     } else if (DATA.initial_eta_profile == 2) {
         // Woods-Saxon
