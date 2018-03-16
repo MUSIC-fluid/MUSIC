@@ -1,5 +1,6 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include <omp.h>
+#include <cassert>
 #include "./util.h"
 #include "./data.h"
 #include "./cell.h"
@@ -465,7 +466,8 @@ void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
 void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
-    double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
+    double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
+    double tau_fac[4] = {0.0, tau, tau, 1.0};
   
     double rhs[5];
     for (int alpha = 0; alpha < 5; alpha++) {
@@ -479,11 +481,6 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
     TJbVec qimhR = {0};
   
     Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
-        double tau_fac = tau;
-        if (direction == 3) {
-            tau_fac = 1.0;
-        }
-
         #pragma omp simd
         for (int alpha = 0; alpha < 5; alpha++) {
             const double gphL = qi[alpha];
@@ -492,9 +489,9 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
             const double gmhR = qi[alpha];
             const double fphL =  0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
             const double fphR = -0.5*minmod.minmod_dx(
-                                    tau*get_TJb(p2, alpha, 0), gphR, qi[alpha]);
+                                tau*get_TJb(p2, alpha, 0), gphR, qi[alpha]);
             const double fmhL =  0.5*minmod.minmod_dx(
-                                    qi[alpha], gmhL, tau*get_TJb(m2, alpha, 0));
+                                qi[alpha], gmhL, tau*get_TJb(m2, alpha, 0));
             const double fmhR = -fphL;
             qiphL[alpha] = gphL + fphL;
             qiphR[alpha] = gphR + fphR;
@@ -518,10 +515,10 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
         double aimh = std::max(aimhL, aimhR);
 
         for (int alpha = 0; alpha < 5; alpha++) {
-            double FiphL = get_TJb(grid_phL, 0, alpha, direction)*tau_fac;
-            double FiphR = get_TJb(grid_phR, 0, alpha, direction)*tau_fac;
-            double FimhL = get_TJb(grid_mhL, 0, alpha, direction)*tau_fac;
-            double FimhR = get_TJb(grid_mhR, 0, alpha, direction)*tau_fac;
+            double FiphL = get_TJb(grid_phL, 0, alpha, direction)*tau_fac[direction];
+            double FiphR = get_TJb(grid_phR, 0, alpha, direction)*tau_fac[direction];
+            double FimhL = get_TJb(grid_mhL, 0, alpha, direction)*tau_fac[direction];
+            double FimhR = get_TJb(grid_mhR, 0, alpha, direction)*tau_fac[direction];
 
             // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2
             //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
@@ -545,7 +542,7 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
 
 // determine the maximum signal propagation speed at the given direction
 double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {  
-    double g[] = {1.,1.,1./tau};
+    double g[] = {1., 1., 1./tau};
 
     double utau    = grid_p.u[0];
     double utau2   = utau*utau;
@@ -614,94 +611,53 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
     return f;
 }
 
-double Advance::get_TJb(const Cell &grid_p, const int rk_flag, const int mu, const int nu) {
-  double gfac[] = {-1.,1.,1.,1.};
-  double rhob = grid_p.rhob;
-  if (rk_flag == 1) {
-    rhob = grid_p.rhob_t;
-  }
-  const double u_nu = grid_p.u[rk_flag][nu];
-  if (mu == 4) 
-  {
-    return rhob*u_nu;
-  } 
-  else if (mu < 4) 
-  {
-    double e = grid_p.epsilon;
-    if (rk_flag == 1) {
-      e = grid_p.epsilon_t;
-    }
-    double u_mu = 0.0;
-    double gfac2 = 0.;
-    if (mu == nu) 
-    {
-      gfac2=1.;
-      u_mu = u_nu;
-    }
-    else
-    {
-      u_mu = grid_p.u[rk_flag][mu];
-    }
-    const double pressure = eos.get_pressure(e, rhob);
-    const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac[mu]*gfac2;
-    return(T_munu);
-  } 
-  else 
-  {
-    return(0.0);
-  }
-}
-
-double Advance::get_TJb(const ReconstCell &grid_p, const int rk_flag, const int mu, const int nu) {
-  double rhob = grid_p.rhob;
-  const double u_nu = grid_p.u[nu];
-  if (mu == 4) {
-    return rhob*u_nu;
-  } else if (mu < 4) {
-    double e = grid_p.e;
-    double gfac = 0.0;
-    double u_mu = 0.0;
-    if (mu == nu) {
-      u_mu = u_nu;
-      if (mu == 0) {
-        gfac = -1.0;
-      } else {
-       gfac = 1.0;
-      }
-    } else {
-      u_mu = grid_p.u[mu];
-    }
-    const double pressure = eos.get_pressure(e, rhob);
-    const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
-    return(T_munu);
-  } else {
-    return(0.0);
-  }
-}
-
-double Advance::get_TJb(const Cell_small &grid_p, const int mu, const int nu) {
+double Advance::get_TJb(const ReconstCell &grid_p, const int rk_flag,
+                        const int mu, const int nu) {
+    assert(mu < 5); assert(mu > -1);
+    assert(nu < 4); assert(nu > -1);
     double rhob = grid_p.rhob;
     const double u_nu = grid_p.u[nu];
     if (mu == 4) {
         return rhob*u_nu;
-    } else if (mu < 4) {
-        double e = grid_p.epsilon;
-        double gfac = 0.0;
-        double u_mu = 0.0;
-        if (mu == nu) {
-            u_mu = u_nu;
-            if (mu == 0) {
-                gfac = -1.0;
-            } else {
-                gfac = 1.0;
-            }
-        } else {
-            u_mu = grid_p.u[mu];
-        }
-        const double pressure = eos.get_pressure(e, rhob);
-        const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
-        return(T_munu);
-    } else {
-        return(0.0);
     }
+    double e = grid_p.e;
+    double gfac = 0.0;
+    double u_mu = 0.0;
+    if (mu == nu) {
+        u_mu = u_nu;
+        gfac = 1.0;
+        if (mu == 0) {
+            gfac = -1.0;
+        }
+    } else {
+        u_mu = grid_p.u[mu];
+    }
+    const double pressure = eos.get_pressure(e, rhob);
+    const double T_munu   = (e + pressure)*u_mu*u_nu + pressure*gfac;
+    return(T_munu);
+}
+
+double Advance::get_TJb(const Cell_small &grid_p, const int mu, const int nu) {
+    assert(mu < 5); assert(mu > -1);
+    assert(nu < 4); assert(nu > -1);
+    double rhob = grid_p.rhob;
+    const double u_nu = grid_p.u[nu];
+    if (mu == 4) {
+        return rhob*u_nu;
+    }
+    double e = grid_p.epsilon;
+    double gfac = 0.0;
+    double u_mu = 0.0;
+    if (mu == nu) {
+        u_mu = u_nu;
+        gfac = 1.0;
+        if (mu == 0) {
+            gfac = -1.0;
+        }
+    } else {
+        u_mu = grid_p.u[mu];
+    }
+    const double pressure = eos.get_pressure(e, rhob);
+    const double T_munu   = (e + pressure)*u_mu*u_nu + pressure*gfac;
+    return(T_munu);
 }
