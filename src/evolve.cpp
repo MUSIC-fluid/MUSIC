@@ -17,13 +17,13 @@
 
 using namespace std;
 
-Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_source_in) :
+Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
+               hydro_source *hydro_source_in) :
     eos(eosIn),
     DATA(DATA_in),
     grid_info(DATA_in, eosIn),
     advance(eosIn, DATA_in, hydro_source_in),
-    u_derivative(DATA_in, eosIn)
-{
+    u_derivative(DATA_in, eosIn) {
     rk_order  = DATA_in.rk_order;
   
     if (DATA.freezeOutMethod == 4) {
@@ -38,7 +38,8 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_so
 }
 
 // master control function for hydrodynamic evolution
-int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future) {
+int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
+                     SCGrid &arena_future) {
     // first pass some control parameters
     facTau                      = DATA.facTau;
     int output_hydro_debug_flag = DATA.output_hydro_debug_info;
@@ -90,69 +91,48 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_fu
         }
         
         if (DATA.Initial_profile == 0) {
-            if (fabs(tau - 1.0) < 1e-8) {
+            if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
+                || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
+                || fabs(tau - 3.0) < 1e-8) {
                 grid_info.Gubser_flow_check_file(arena_current, tau);
             }
-            if (fabs(tau - 1.2) < 1e-8) {
-                grid_info.Gubser_flow_check_file(arena_current, tau);
+        } else if (DATA.Initial_profile == 1) {
+            if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
+                || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8
+                || fabs(tau - 20.0) < 1e-8) {
+                grid_info.output_1p1D_check_file(arena_current, tau);
             }
-            if (fabs(tau - 1.5) < 1e-8) {
-                grid_info.Gubser_flow_check_file(arena_current, tau);
-            }
-            if (fabs(tau - 2.0) < 1e-8) {
-                grid_info.Gubser_flow_check_file(arena_current, tau);
-            }
-            if (fabs(tau - 3.0) < 1e-8) {
-                grid_info.Gubser_flow_check_file(arena_current, tau);
+        }
+        
+        if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
+            if (it == it_start) {
+                grid_info.output_energy_density_and_rhob_disitrubtion(
+                            arena_current,
+                            "energy_density_and_rhob_from_source_terms.dat");
             }
         }
 
-        //if (DATA->Initial_profile == 1) {
-        //    if (fabs(tau - 1.0) < 1e-8) {
-        //        grid_info.output_1p1D_check_file(arena, tau);
-        //    }
-        //    if (fabs(tau - 2.0) < 1e-8) {
-        //        grid_info.output_1p1D_check_file(arena, tau);
-        //    }
-        //    if (fabs(tau - 5.0) < 1e-8) {
-        //        grid_info.output_1p1D_check_file(arena, tau);
-        //    }
-        //    if (fabs(tau - 10.) < 1e-8) {
-        //        grid_info.output_1p1D_check_file(arena, tau);
-        //    }
-        //    if (fabs(tau - 20.) < 1e-8) {
-        //        grid_info.output_1p1D_check_file(arena, tau);
-        //    }
-        //}
-        
-        //if (DATA->Initial_profile == 12 || DATA->Initial_profile == 13) {
-        //    if (it == it_start) {
-        //        grid_info.output_energy_density_and_rhob_disitrubtion(
-        //            arena, "energy_density_and_rhob_from_source_terms.dat");
-        //    }
-        //}
-
-        //if (it % Nskip_timestep == 0) {
-        //    if (outputEvo_flag == 1) {
-        //        grid_info.OutputEvolutionDataXYEta(arena, DATA, tau);
-        //    } else if (outputEvo_flag == 2) {
-        //        grid_info.OutputEvolutionDataXYEta_chun(arena, DATA, tau);
-        //    }
-        //    if (output_movie_flag == 1) {
-        //        grid_info.output_evolution_for_movie(arena, tau);
-        //    }
-        //}
-        // grid_info.output_average_phase_diagram_trajectory(tau, -0.5, 0.5,
-        //                                                    arena);
+        if (it % Nskip_timestep == 0) {
+            if (outputEvo_flag == 1) {
+                grid_info.OutputEvolutionDataXYEta(arena_current, tau);
+            } else if (outputEvo_flag == 2) {
+                grid_info.OutputEvolutionDataXYEta_chun(arena_current, tau);
+            }
+            if (output_movie_flag == 1) {
+                grid_info.output_evolution_for_movie(arena_current, tau);
+            }
+        }
+        grid_info.output_average_phase_diagram_trajectory(tau, -0.5, 0.5,
+                                                          arena_current);
 
         // check energy conservation
-        //if (boost_invariant_flag == 0)
-        //    grid_info.check_conservation_law(arena, DATA, tau);
-        //grid_info.get_maximum_energy_density(arena);
+        if (boost_invariant_flag == 0)
+            grid_info.check_conservation_law(arena_current, arena_prev, tau);
+        grid_info.get_maximum_energy_density(arena_current);
 
-        //if (output_hydro_debug_flag == 1) {
-        //    grid_info.monitor_fluid_cell(arena, 100, 100, 0, tau);
-        //}
+        if (output_hydro_debug_flag == 1) {
+            grid_info.monitor_fluid_cell(arena_current, 100, 100, 0, tau);
+        }
     
         /* execute rk steps */
         // all the evolution are at here !!!
@@ -183,8 +163,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_fu
         if (frozen) break;
     }
     music_message.info("Finished.");
-    return 1; /* successful */
-}/* Evolve */
+    return 1;
+}
 
 void Evolve::store_previous_step_for_freezeout(SCGrid &arena_current,
                                                SCGrid &arena_freezeout) {
@@ -199,41 +179,12 @@ void Evolve::store_previous_step_for_freezeout(SCGrid &arena_current,
     }
 }
 
-//! update grid information after the tau RK evolution
-int Update_prev_Arena(Grid &arena) {
-    const int neta = arena.nEta();
-    const int nx   = arena.nX();
-    const int ny   = arena.nY();
-    #pragma omp parallel for collapse(3)
-    for(int ieta = 0; ieta < neta; ieta++) 
-    for(int ix   = 0; ix   < nx;  ix++  )
-    for(int iy   = 0; iy   < ny;  iy++  ) {
-        arena(ix,iy,ieta).prev_epsilon = arena(ix,iy,ieta).epsilon;
-        arena(ix,iy,ieta).prev_rhob    = arena(ix,iy,ieta).rhob;
-
-        // previous pi_b is stored in prevPimunu
-        arena(ix,iy,ieta).prev_pi_b[0] = arena(ix,iy,ieta).pi_b[0];
-        for (int ii = 0; ii < 14; ii++) {
-            /* this was the previous value */
-            arena(ix,iy,ieta).prevWmunu[0][ii] = arena(ix,iy,ieta).Wmunu[0][ii]; 
-        }
-        for (int mu = 0; mu < 4; mu++) {
-            /* this was the previous value */
-            arena(ix,iy,ieta).prev_u[0][mu] = arena(ix,iy,ieta).u[0][mu]; 
-        }
-    }
-
-    return(1);
-}
-
-
 void Evolve::AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future) {
     // control function for Runge-Kutta evolution in tau
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
-        //flag = u_derivative.MakedU(tau, DATA, arena_prev, arena_current, rk_flag);
-        advance.AdvanceIt(tau, *arena_prev, *arena_current, *arena_future, rk_flag);
-
+        advance.AdvanceIt(tau, *arena_prev, *arena_current, *arena_future,
+                          rk_flag);
         if (rk_flag == 0) {
             auto temp     = std::move(arena_prev);
             arena_prev    = std::move(arena_current);
