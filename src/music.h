@@ -30,7 +30,9 @@ class MUSIC {
 
     EOS eos;
 
-    Grid arena;
+    SCGrid arena_prev;
+    SCGrid arena_current;
+    SCGrid arena_future;
 
     Init *init     = nullptr;
     Evolve *evolve = nullptr;

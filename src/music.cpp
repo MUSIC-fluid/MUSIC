@@ -48,34 +48,10 @@ int MUSIC::initialize_hydro() {
                     "rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 
     init = new Init(eos, DATA, hydro_source_ptr);
-    init->InitArena(arena);
+    init->InitArena(arena_prev, arena_current, arena_future);
     flag_hydro_initialized = 1;
     return(status);
 }
-
-void update_cell_to_small_cell(const Cell &c, Cell_small &c_s, int rk_flag) {
-    if (rk_flag == 0) {
-        c_s.epsilon = c.epsilon;
-        c_s.rhob    = c.rhob;
-        c_s.u       = c.u[rk_flag];
-        c_s.Wmunu   = c.Wmunu[rk_flag];
-        c_s.pi_b    = c.pi_b[rk_flag];
-    } else if (rk_flag == 1) {
-        c_s.epsilon = c.epsilon_t;
-        c_s.rhob    = c.rhob_t;
-        c_s.u       = c.u[rk_flag];
-        c_s.Wmunu   = c.Wmunu[rk_flag];
-        c_s.pi_b    = c.pi_b[rk_flag];
-    } else if (rk_flag == 2) {
-        c_s.epsilon = c.prev_epsilon;
-        c_s.rhob = c.prev_rhob;
-        c_s.u     = c.prev_u[0];
-        c_s.Wmunu = c.prevWmunu[0];
-        c_s.pi_b  = c.prev_pi_b[0];
-    }
-}
-
-
 
 //! this is a shell function to run hydro
 int MUSIC::run_hydro() {
@@ -84,23 +60,6 @@ int MUSIC::run_hydro() {
     }
 
     evolve = new Evolve(eos, DATA, hydro_source_ptr);
-
-    const int grid_nx = arena.nX();
-    const int grid_ny = arena.nY();
-    const int grid_neta = arena.nEta();
-
-    SCGrid arena_prev   (grid_nx, grid_ny, grid_neta);
-    SCGrid arena_current(grid_nx, grid_ny, grid_neta);
-    SCGrid arena_future (grid_nx, grid_ny, grid_neta);
-
-    for(int ieta = 0; ieta < grid_neta; ieta++)
-    for(int ix   = 0; ix   < grid_nx;   ix++  )
-    for(int iy   = 0; iy   < grid_ny;   iy++  ) {
-        update_cell_to_small_cell(arena(ix, iy, ieta), arena_prev(ix, iy, ieta), 2);
-        update_cell_to_small_cell(arena(ix, iy, ieta), arena_current(ix, iy, ieta), 0);
-        update_cell_to_small_cell(arena(ix, iy, ieta), arena_future(ix, iy, ieta), 1);
-    }
-    arena.clear();
 
     evolve->EvolveIt(arena_prev, arena_current, arena_future);
         

@@ -22,7 +22,8 @@ Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source *hydro_source_in) :
     }
 }
 
-void Init::InitArena(Grid &arena) {
+void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
+                     SCGrid &arena_future) {
     music_message.info("initArena");
     if (DATA.Initial_profile == 0) {
         music_message << "Using Initial_profile=" << DATA.Initial_profile;
@@ -96,33 +97,35 @@ void Init::InitArena(Grid &arena) {
     }
 
     // initialize arena
-    arena = Grid(DATA.nx, DATA.ny,DATA.neta);
-    music_message.info("Cell allocated.");
+    arena_prev    = SCGrid(DATA.nx, DATA.ny,DATA.neta);
+    arena_current = SCGrid(DATA.nx, DATA.ny,DATA.neta);
+    arena_future  = SCGrid(DATA.nx, DATA.ny,DATA.neta);
+    music_message.info("Grid allocated.");
 
-    InitTJb(arena);
+    InitTJb(arena_prev, arena_current);
 
     if (DATA.output_initial_density_profiles == 1) {
-        output_initial_density_profiles(arena);
+        output_initial_density_profiles(arena_current);
     }
 }/* InitArena */
 
 //! This is a shell function to initial hydrodynamic fields
-int Init::InitTJb(Grid &arena) {
+void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
     if (DATA.Initial_profile == 0) {
         // Gubser flow test
         music_message.info(" Perform Gubser flow test ... ");
         music_message.info(" ----- information on initial distribution -----");
         
         #pragma omp parallel for
-        for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_Gubser_XY(ieta, arena);
+            initial_Gubser_XY(ieta, arena_prev, arena_current);
         }/* ieta */
     } else if (DATA.Initial_profile == 1) {
         // code test in 1+1 D vs Monnai's results
         music_message.info(" Perform 1+1D test vs Monnai's results... ");
-        initial_1p1D_eta(arena);
+        initial_1p1D_eta(arena_prev, arena_current);
     } else if (DATA.Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
@@ -131,10 +134,10 @@ int Init::InitTJb(Grid &arena) {
         music_message.flush("info");
   
         #pragma omp parallel for
-        for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_IPGlasma_XY(ieta, arena);
+            initial_IPGlasma_XY(ieta, arena_prev, arena_current);
         } /* ieta */
     } else if (DATA.Initial_profile == 9) {
         // read in the profile from file
@@ -145,10 +148,10 @@ int Init::InitTJb(Grid &arena) {
         music_message.flush("info");
   
         #pragma omp parallel for
-        for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_IPGlasma_XY_with_pi(ieta, arena);
+            initial_IPGlasma_XY_with_pi(ieta, arena_prev, arena_current);
         } /* ieta */
     } else if (DATA.Initial_profile == 11) {
         // read in the transverse profile from file with finite rho_B
@@ -162,34 +165,34 @@ int Init::InitTJb(Grid &arena) {
         music_message.flush("info");
 
         #pragma omp parallel for
-        for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_MCGlb_with_rhob_XY(ieta, arena);
+            initial_MCGlb_with_rhob_XY(ieta, arena_prev, arena_current);
         } /* ix, iy, ieta */
     } else if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
         music_message.info("Initialize hydro with source terms");
         #pragma omp parallel for
-        for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_MCGlbLEXUS_with_rhob_XY(ieta, arena);
+            initial_MCGlbLEXUS_with_rhob_XY(ieta, arena_prev, arena_current);
         } /* ix, iy, ieta */
     } else if (DATA.Initial_profile == 30) {
         #pragma omp parallel for
-        for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             //cout << "[Info] Thread " << omp_get_thread_num()
             //     << " executes loop iteraction ieta = " << ieta << endl;
-            initial_AMPT_XY(ieta, arena);
+            initial_AMPT_XY(ieta, arena_prev, arena_current);
         }
     } else if (DATA.Initial_profile == 101) {
-        initial_UMN_with_rhob(arena);
+        initial_UMN_with_rhob(arena_prev, arena_current);
     }
     music_message.info("initial distribution done.");
-    return 1;
-}  /* InitTJb*/
+}
 
-void Init::initial_Gubser_XY(int ieta, Grid &arena) {
+void Init::initial_Gubser_XY(int ieta, SCGrid &arena_prev,
+                             SCGrid &arena_current) {
     string input_filename;
     string input_filename_prev;
     if (DATA.turn_on_shear == 1) {
@@ -218,61 +221,25 @@ void Init::initial_Gubser_XY(int ieta, Grid &arena) {
         }
     }
 
-    const int nx = arena.nX();
-    const int ny = arena.nY();
-    double** temp_profile_ed        = new double* [nx];
-    double** temp_profile_ux        = new double* [nx];
-    double** temp_profile_uy        = new double* [nx];
-    double **temp_profile_ed_prev   = NULL;
-    double **temp_profile_rhob      = NULL;
-    double **temp_profile_rhob_prev = NULL;
-    double **temp_profile_ux_prev   = NULL;
-    double **temp_profile_uy_prev   = NULL;
-    double **temp_profile_pixx      = NULL;
-    double **temp_profile_piyy      = NULL;
-    double **temp_profile_pixy      = NULL;
-    double **temp_profile_pi00      = NULL;
-    double **temp_profile_pi0x      = NULL;
-    double **temp_profile_pi0y      = NULL;
-    double **temp_profile_pi33      = NULL;
-    if (DATA.turn_on_shear == 1) {
-        temp_profile_pixx = new double* [nx];
-        temp_profile_piyy = new double* [nx];
-        temp_profile_pixy = new double* [nx];
-        temp_profile_pi00 = new double* [nx];
-        temp_profile_pi0x = new double* [nx];
-        temp_profile_pi0y = new double* [nx];
-        temp_profile_pi33 = new double* [nx];
-    } else {
-        temp_profile_ed_prev   = new double* [nx];
-        temp_profile_rhob      = new double* [nx];
-        temp_profile_rhob_prev = new double* [nx];
-        temp_profile_ux_prev   = new double* [nx];
-        temp_profile_uy_prev   = new double* [nx];
-    }
-    for (int i = 0; i < nx; i++) {
-        temp_profile_ed[i] = new double[ny];
-        temp_profile_ux[i] = new double[ny];
-        temp_profile_uy[i] = new double[ny];
-        if (DATA.turn_on_shear == 1) {
-            temp_profile_pixx[i] = new double[ny];
-            temp_profile_pixy[i] = new double[ny];
-            temp_profile_piyy[i] = new double[ny];
-            temp_profile_pi00[i] = new double[ny];
-            temp_profile_pi0x[i] = new double[ny];
-            temp_profile_pi0y[i] = new double[ny];
-            temp_profile_pi33[i] = new double[ny];
-        } else {
-            temp_profile_ed_prev[i]   = new double[ny];
-            temp_profile_rhob[i]      = new double[ny];
-            temp_profile_rhob_prev[i] = new double[ny];
-            temp_profile_ux_prev[i]   = new double[ny];
-            temp_profile_uy_prev[i]   = new double[ny];
-        }
-    }
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
+    double temp_profile_ed[nx][ny];
+    double temp_profile_ux[nx][ny];
+    double temp_profile_uy[nx][ny];
+    double temp_profile_ed_prev[nx][ny];
+    double temp_profile_rhob[nx][ny];
+    double temp_profile_rhob_prev[nx][ny];
+    double temp_profile_ux_prev[nx][ny];
+    double temp_profile_uy_prev[nx][ny];
+    double temp_profile_pixx[nx][ny];
+    double temp_profile_piyy[nx][ny];
+    double temp_profile_pixy[nx][ny];
+    double temp_profile_pi00[nx][ny];
+    double temp_profile_pi0x[nx][ny];
+    double temp_profile_pi0y[nx][ny];
+    double temp_profile_pi33[nx][ny];
 
     double dummy;
-    double u[4];
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
             if (DATA.turn_on_shear == 1) {
@@ -304,128 +271,55 @@ void Init::initial_Gubser_XY(int ieta, Grid &arena) {
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
             double rhob = 0.0;
-            if (DATA.turn_on_shear == 0) {
-                if (DATA.turn_on_rhob == 1) {
-                    rhob = temp_profile_rhob[ix][iy];
-                }
+            if (DATA.turn_on_shear == 0 && DATA.turn_on_rhob == 1) {
+                rhob = temp_profile_rhob[ix][iy];
             }
 
             double epsilon = temp_profile_ed[ix][iy];
             
-            // set all values in the grid element:
-            arena(ix,iy,ieta).epsilon      = epsilon;
-            arena(ix,iy,ieta).epsilon_t    = epsilon;
-            arena(ix,iy,ieta).prev_epsilon = epsilon;
-            arena(ix,iy,ieta).rhob         = rhob;
-            arena(ix,iy,ieta).rhob_t       = rhob;
-            arena(ix,iy,ieta).prev_rhob    = rhob;
+            arena_current(ix, iy, ieta).epsilon = epsilon;
+            arena_prev   (ix, iy, ieta).epsilon = epsilon;
+            arena_current(ix, iy, ieta).rhob    = rhob;
+            arena_prev   (ix, iy, ieta).rhob    = rhob;
             
-            /* for HIC */
             double utau_local = sqrt(1.
                           + temp_profile_ux[ix][iy]*temp_profile_ux[ix][iy]
                           + temp_profile_uy[ix][iy]*temp_profile_uy[ix][iy]);
-            arena(ix,iy,ieta).u[0][0] = utau_local;
-            arena(ix,iy,ieta).u[0][1] = temp_profile_ux[ix][iy];
-            arena(ix,iy,ieta).u[0][2] = temp_profile_uy[ix][iy];
-            arena(ix,iy,ieta).u[0][3] = 0.0;
-
-            u[0] = utau_local;
-            u[1] = temp_profile_ux[ix][iy];
-            u[2] = temp_profile_uy[ix][iy];
-            u[3] = 0.0;
-            for (int rk_i = 0; rk_i < 1; rk_i++) {
-                arena(ix,iy,ieta).prev_u[rk_i][0] = u[0];
-                arena(ix,iy,ieta).prev_u[rk_i][1] = u[1];
-                arena(ix,iy,ieta).prev_u[rk_i][2] = u[2];
-                arena(ix,iy,ieta).prev_u[rk_i][3] = u[3];
-                arena(ix,iy,ieta).prev_pi_b[rk_i] = 0.0;
-            }
+            arena_current(ix, iy, ieta).u[0] = utau_local;
+            arena_current(ix, iy, ieta).u[1] = temp_profile_ux[ix][iy];
+            arena_current(ix, iy, ieta).u[2] = temp_profile_uy[ix][iy];
+            arena_current(ix, iy, ieta).u[3] = 0.0;
+            arena_prev(ix, iy, ieta).u = arena_current(ix, iy, ieta).u;
 
             if (DATA.turn_on_shear == 0) {
                 double utau_prev = sqrt(1.
                     + temp_profile_ux_prev[ix][iy]*temp_profile_ux_prev[ix][iy]
                     + temp_profile_uy_prev[ix][iy]*temp_profile_uy_prev[ix][iy]
                 );
-                for (int rk_i = 0; rk_i < 1; rk_i++) {
-                    arena(ix,iy,ieta).prev_u[rk_i][0] = utau_prev;
-                    arena(ix,iy,ieta).prev_u[rk_i][1] =
-                                                temp_profile_ux_prev[ix][iy];
-                    arena(ix,iy,ieta).prev_u[rk_i][2] =
-                                                temp_profile_uy_prev[ix][iy];
-                    arena(ix,iy,ieta).prev_u[rk_i][3] = 0.0;
-                }
+                arena_prev(ix, iy, ieta).u[0] = utau_prev;
+                arena_prev(ix, iy, ieta).u[1] = temp_profile_ux_prev[ix][iy];
+                arena_prev(ix, iy, ieta).u[2] = temp_profile_uy_prev[ix][iy];
+                arena_prev(ix, iy, ieta).u[3] = 0.0;
             }
-            arena(ix,iy,ieta).pi_b[0] = 0.0;
 
             if (DATA.turn_on_shear == 1) {
-                arena(ix,iy,ieta).Wmunu[0][0] = temp_profile_pi00[ix][iy];
-                arena(ix,iy,ieta).Wmunu[0][1] = temp_profile_pi0x[ix][iy];
-                arena(ix,iy,ieta).Wmunu[0][2] = temp_profile_pi0y[ix][iy];
-                arena(ix,iy,ieta).Wmunu[0][3] = 0.0;
-                arena(ix,iy,ieta).Wmunu[0][4] = temp_profile_pixx[ix][iy];
-                arena(ix,iy,ieta).Wmunu[0][5] = temp_profile_pixy[ix][iy];
-                arena(ix,iy,ieta).Wmunu[0][6] = 0.0;
-                arena(ix,iy,ieta).Wmunu[0][7] = temp_profile_piyy[ix][iy];
-                arena(ix,iy,ieta).Wmunu[0][8] = 0.0;
-                arena(ix,iy,ieta).Wmunu[0][9] = temp_profile_pi33[ix][iy];
-                for (int mu = 10; mu < 14; mu++) {
-                        arena(ix,iy,ieta).Wmunu[0][mu] = 0.0;
-                }
-            } else {
-                for (int mu = 0; mu < 14; mu++) {
-                        arena(ix,iy,ieta).Wmunu[0][mu] = 0.0;
-                }
+                arena_current(ix,iy,ieta).Wmunu[0] = temp_profile_pi00[ix][iy];
+                arena_current(ix,iy,ieta).Wmunu[1] = temp_profile_pi0x[ix][iy];
+                arena_current(ix,iy,ieta).Wmunu[2] = temp_profile_pi0y[ix][iy];
+                arena_current(ix,iy,ieta).Wmunu[3] = 0.0;
+                arena_current(ix,iy,ieta).Wmunu[4] = temp_profile_pixx[ix][iy];
+                arena_current(ix,iy,ieta).Wmunu[5] = temp_profile_pixy[ix][iy];
+                arena_current(ix,iy,ieta).Wmunu[6] = 0.0;
+                arena_current(ix,iy,ieta).Wmunu[7] = temp_profile_piyy[ix][iy];
+                arena_current(ix,iy,ieta).Wmunu[8] = 0.0;
+                arena_current(ix,iy,ieta).Wmunu[9] = temp_profile_pi33[ix][iy];
             }
-            for (int rkstep = 0; rkstep < 1; rkstep++) {
-                for (int ii = 0; ii < 14; ii++) {
-                    arena(ix,iy,ieta).prevWmunu[rkstep][ii] = 
-                                        arena(ix,iy,ieta).Wmunu[0][ii];
-                }
-            }
+            arena_prev(ix,iy,ieta).Wmunu = arena_current(ix,iy,ieta).Wmunu;
         }
-    }
-    // clean up
-    for (int i = 0; i < nx; i++) {
-        delete[] temp_profile_ed[i];
-        delete[] temp_profile_ux[i];
-        delete[] temp_profile_uy[i];
-        if (DATA.turn_on_shear == 1) {
-            delete[] temp_profile_pixx[i];
-            delete[] temp_profile_piyy[i];
-            delete[] temp_profile_pixy[i];
-            delete[] temp_profile_pi00[i];
-            delete[] temp_profile_pi0x[i];
-            delete[] temp_profile_pi0y[i];
-            delete[] temp_profile_pi33[i];
-        } else {
-            delete[] temp_profile_ed_prev[i];
-            delete[] temp_profile_rhob[i];
-            delete[] temp_profile_rhob_prev[i];
-            delete[] temp_profile_ux_prev[i];
-            delete[] temp_profile_uy_prev[i];
-        }
-    }
-    delete[] temp_profile_ed;
-    delete[] temp_profile_ux;
-    delete[] temp_profile_uy;
-    if (DATA.turn_on_shear == 1) {
-        delete[] temp_profile_pixx;
-        delete[] temp_profile_piyy;
-        delete[] temp_profile_pixy;
-        delete[] temp_profile_pi00;
-        delete[] temp_profile_pi0x;
-        delete[] temp_profile_pi0y;
-        delete[] temp_profile_pi33;
-    } else {
-        delete[] temp_profile_ed_prev;
-        delete[] temp_profile_rhob;
-        delete[] temp_profile_rhob_prev;
-        delete[] temp_profile_ux_prev;
-        delete[] temp_profile_uy_prev;
     }
 }
 
-void Init::initial_1p1D_eta(Grid &arena) {
+void Init::initial_1p1D_eta(SCGrid &arena_prev, SCGrid &arena_current) {
     string input_ed_filename;
     string input_rhob_filename;
     input_ed_filename = "tests/test_1+1D_with_Akihiko/e_baryon_init.dat";
@@ -449,12 +343,11 @@ void Init::initial_1p1D_eta(Grid &arena) {
         exit(1);
     }
 
-    const int neta = arena.nEta();
-    double *temp_profile_ed = new double[neta];
-    double *temp_profile_rhob = new double[neta];
+    const int neta = arena_current.nEta();
+    double temp_profile_ed[neta];
+    double temp_profile_rhob[neta];
 
     double dummy;
-    double u[4];
     for (int ieta = 0; ieta < neta; ieta++) {
         profile_ed >> dummy >> temp_profile_ed[ieta];
         profile_rhob >> dummy >> temp_profile_rhob[ieta];
@@ -462,77 +355,42 @@ void Init::initial_1p1D_eta(Grid &arena) {
     profile_ed.close();
     profile_rhob.close();
 
-    const int nx = arena.nX();
-    const int ny = arena.nY();
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
     for (int ieta = 0; ieta < neta; ieta++) {
         double rhob = temp_profile_rhob[ieta];
         double epsilon = temp_profile_ed[ieta]/hbarc;   // fm^-4
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
                 // set all values in the grid element:
-                arena(ix,iy,ieta).epsilon      = epsilon;
-                arena(ix,iy,ieta).epsilon_t    = epsilon;
-                arena(ix,iy,ieta).prev_epsilon = epsilon;
-                arena(ix,iy,ieta).rhob         = rhob;
-                arena(ix,iy,ieta).rhob_t       = rhob;
-                arena(ix,iy,ieta).prev_rhob    = rhob;
+                arena_current(ix, iy, ieta).epsilon = epsilon;
+                arena_current(ix, iy, ieta).rhob    = rhob;
             
-                /* for HIC */
-                arena(ix,iy,ieta).u[0][0] = 1.0;
-                arena(ix,iy,ieta).u[0][1] = 0.0;
-                arena(ix,iy,ieta).u[0][2] = 0.0;
-                arena(ix,iy,ieta).u[0][3] = 0.0;
+                arena_current(ix, iy, ieta).u[0] = 1.0;
+                arena_current(ix, iy, ieta).u[1] = 0.0;
+                arena_current(ix, iy, ieta).u[2] = 0.0;
+                arena_current(ix, iy, ieta).u[3] = 0.0;
 
-                u[0] = 1.0;
-                u[1] = 0.0;
-                u[2] = 0.0;
-                u[3] = 0.0;
-                for (int rk_i = 0; rk_i < 1; rk_i++) {
-                    arena(ix,iy,ieta).prev_u[rk_i][0] = u[0];
-                    arena(ix,iy,ieta).prev_u[rk_i][1] = u[1];
-                    arena(ix,iy,ieta).prev_u[rk_i][2] = u[2];
-                    arena(ix,iy,ieta).prev_u[rk_i][3] = u[3];
-                    arena(ix,iy,ieta).prev_pi_b[rk_i] = 0.0;
-                }
-                arena(ix,iy,ieta).pi_b[0] = 0.0;
-
-                for (int mu = 0; mu < 14; mu++) {
-                    arena(ix,iy,ieta).Wmunu[0][mu] = 0.0;
-                }
-            
-                for (int rkstep = 0; rkstep < 1; rkstep++) {
-                    for (int ii = 0; ii < 14; ii++) {
-                        arena(ix,iy,ieta).prevWmunu[rkstep][ii] = 
-                                        arena(ix,iy,ieta).Wmunu[0][ii];
-                    }
-                }
+                arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
         }
     }
-    // clean up
-    delete[] temp_profile_ed;
-    delete[] temp_profile_rhob;
 }
 
-void Init::initial_IPGlasma_XY(int ieta, Grid &arena) {
+void Init::initial_IPGlasma_XY(int ieta, SCGrid &arena_prev,
+                               SCGrid &arena_current) {
     ifstream profile(DATA.initName.c_str());
 
     string dummy;
     // read the information line
     std::getline(profile, dummy);
 
-    const int nx = arena.nX();
-    const int ny = arena.nY();
-    double** temp_profile_ed   = new double* [nx];
-    double** temp_profile_utau = new double* [nx];
-    double** temp_profile_ux   = new double* [nx];
-    double** temp_profile_uy   = new double* [nx];
-    for (int i = 0; i < nx; i++) {
-        temp_profile_ed[i]   = new double[ny];
-        temp_profile_utau[i] = new double[ny];
-        temp_profile_ux[i]   = new double[ny];
-        temp_profile_uy[i]   = new double[ny];
-    }
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
+    double temp_profile_ed[nx][ny];
+    double temp_profile_utau[nx][ny];
+    double temp_profile_ux[nx][ny];
+    double temp_profile_uy[nx][ny];
 
     // read the one slice
     double density, dummy1, dummy2, dummy3;
@@ -563,7 +421,6 @@ void Init::initial_IPGlasma_XY(int ieta, Grid &arena) {
     double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
     double eta_envelop_ed = eta_profile_normalisation(eta);
     int entropy_flag = DATA.initializeEntropy;
-    double u[4];
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
             double rhob = 0.0;
@@ -579,56 +436,21 @@ void Init::initial_IPGlasma_XY(int ieta, Grid &arena) {
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
 
-            // set all values in the grid element:
-            arena(ix,iy,ieta).epsilon      = epsilon;
-            arena(ix,iy,ieta).epsilon_t    = epsilon;
-            arena(ix,iy,ieta).prev_epsilon = epsilon;
-            arena(ix,iy,ieta).rhob         = rhob;
-            arena(ix,iy,ieta).rhob_t       = rhob;
-            arena(ix,iy,ieta).prev_rhob    = rhob;
+            arena_current(ix, iy, ieta).epsilon = epsilon;
+            arena_current(ix, iy, ieta).rhob = rhob;
 
-            /* for HIC */
-            arena(ix,iy,ieta).u[0][0] = temp_profile_utau[ix][iy];
-            arena(ix,iy,ieta).u[0][1] = temp_profile_ux[ix][iy];
-            arena(ix,iy,ieta).u[0][2] = temp_profile_uy[ix][iy];
-            arena(ix,iy,ieta).u[0][3] = 0.0;
+            arena_current(ix, iy, ieta).u[0] = temp_profile_utau[ix][iy];
+            arena_current(ix, iy, ieta).u[1] = temp_profile_ux[ix][iy];
+            arena_current(ix, iy, ieta).u[2] = temp_profile_uy[ix][iy];
+            arena_current(ix, iy, ieta).u[3] = 0.0;
 
-            u[0] = temp_profile_utau[ix][iy];
-            u[1] = temp_profile_ux[ix][iy];
-            u[2] = temp_profile_uy[ix][iy];
-            u[3] = 0.0;
-
-            for (int ii = 0; ii < 1; ii++) {
-                arena(ix,iy,ieta).prev_u[ii][0] = u[0];
-                arena(ix,iy,ieta).prev_u[ii][1] = u[1];
-                arena(ix,iy,ieta).prev_u[ii][2] = u[2];
-                arena(ix,iy,ieta).prev_u[ii][3] = u[3];
-                arena(ix,iy,ieta).prev_pi_b[ii] = 0.0;
-            }
-
-            arena(ix,iy,ieta).pi_b[0] = 0.0;
-
-            for (int ii = 0; ii < 14; ii++) {
-                arena(ix,iy,ieta).prevWmunu[0][ii] = 0.0;
-                arena(ix,iy,ieta).Wmunu[0][ii] = 0.0;
-            }
+            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
     }
-    // clean up
-    for (int i = 0; i < nx; i++) {
-        delete[] temp_profile_ed[i];
-        delete[] temp_profile_utau[i];
-        delete[] temp_profile_ux[i];
-        delete[] temp_profile_uy[i];
-    }
-    delete[] temp_profile_ed;
-    delete[] temp_profile_utau;
-    delete[] temp_profile_ux;
-    delete[] temp_profile_uy;
 }
 
-void Init::initial_IPGlasma_XY_with_pi(int ieta,
-                                       Grid &arena) {
+void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
+                                       SCGrid &arena_current) {
     double tau0 = DATA.tau0;
     ifstream profile(DATA.initName.c_str());
 
@@ -636,40 +458,23 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta,
     // read the information line
     std::getline(profile, dummy);
 
-    const int nx = arena.nX();
-    const int ny = arena.nY();
-    double** temp_profile_ed       = new double* [nx];
-    double** temp_profile_utau     = new double* [nx];
-    double** temp_profile_ux       = new double* [nx];
-    double** temp_profile_uy       = new double* [nx];
-    double** temp_profile_ueta     = new double* [nx];
-    double** temp_profile_pitautau = new double* [nx];
-    double** temp_profile_pitaux   = new double* [nx];
-    double** temp_profile_pitauy   = new double* [nx];
-    double** temp_profile_pitaueta = new double* [nx];
-    double** temp_profile_pixx     = new double* [nx];
-    double** temp_profile_pixy     = new double* [nx];
-    double** temp_profile_pixeta   = new double* [nx];
-    double** temp_profile_piyy     = new double* [nx];
-    double** temp_profile_piyeta   = new double* [nx];
-    double** temp_profile_pietaeta = new double* [nx];
-    for (int i = 0; i < nx; i++) {
-        temp_profile_ed[i]       = new double[ny];
-        temp_profile_utau[i]     = new double[ny];
-        temp_profile_ux[i]       = new double[ny];
-        temp_profile_uy[i]       = new double[ny];
-        temp_profile_ueta[i]     = new double[ny];
-        temp_profile_pitautau[i] = new double[ny];
-        temp_profile_pitaux[i]   = new double[ny];
-        temp_profile_pitauy[i]   = new double[ny];
-        temp_profile_pitaueta[i] = new double[ny];
-        temp_profile_pixx[i]     = new double[ny];
-        temp_profile_pixy[i]     = new double[ny];
-        temp_profile_pixeta[i]   = new double[ny];
-        temp_profile_piyy[i]     = new double[ny];
-        temp_profile_piyeta[i]   = new double[ny];
-        temp_profile_pietaeta[i] = new double[ny];
-    }
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
+    double temp_profile_ed[nx][ny];
+    double temp_profile_utau[nx][ny];
+    double temp_profile_ux[nx][ny];
+    double temp_profile_uy[nx][ny];
+    double temp_profile_ueta[nx][ny];
+    double temp_profile_pitautau[nx][ny];
+    double temp_profile_pitaux[nx][ny];
+    double temp_profile_pitauy[nx][ny];
+    double temp_profile_pitaueta[nx][ny];
+    double temp_profile_pixx[nx][ny];
+    double temp_profile_pixy[nx][ny];
+    double temp_profile_pixeta[nx][ny];
+    double temp_profile_piyy[nx][ny];
+    double temp_profile_piyeta[nx][ny];
+    double temp_profile_pietaeta[nx][ny];
 
     // read the one slice
     double density, dummy1, dummy2, dummy3;
@@ -714,7 +519,6 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta,
     double eta = (DATA.delta_eta)*(ieta) - (DATA.eta_size)/2.0;
     double eta_envelop_ed = eta_profile_normalisation(eta);
     int entropy_flag = DATA.initializeEntropy;
-    double u[4];
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
             double rhob = 0.0;
@@ -730,115 +534,47 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta,
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
 
+            arena_current(ix, iy, ieta).epsilon = epsilon;
+            arena_current(ix, iy, ieta).rhob = rhob;
+
+            arena_current(ix, iy, ieta).u[0] = temp_profile_utau[ix][iy];
+            arena_current(ix, iy, ieta).u[1] = temp_profile_ux[ix][iy];
+            arena_current(ix, iy, ieta).u[2] = temp_profile_uy[ix][iy];
+            arena_current(ix, iy, ieta).u[3] = temp_profile_ueta[ix][iy];
+            
             double pressure = eos.get_pressure(epsilon, rhob);
+            arena_current(ix, iy, ieta).pi_b = epsilon/3. - pressure;
 
-            // set all values in the grid element:
-            arena(ix,iy,ieta).epsilon      = epsilon;
-            arena(ix,iy,ieta).epsilon_t    = epsilon;
-            arena(ix,iy,ieta).prev_epsilon = epsilon;
-            arena(ix,iy,ieta).rhob         = rhob;
-            arena(ix,iy,ieta).rhob_t       = rhob;
-            arena(ix,iy,ieta).prev_rhob    = rhob;
+            arena_current(ix, iy, ieta).Wmunu[0] = temp_profile_pitautau[ix][iy];
+            arena_current(ix, iy, ieta).Wmunu[1] = temp_profile_pitaux[ix][iy];
+            arena_current(ix, iy, ieta).Wmunu[2] = temp_profile_pitauy[ix][iy];
+            arena_current(ix, iy, ieta).Wmunu[3] = temp_profile_pitaueta[ix][iy];
+            arena_current(ix, iy, ieta).Wmunu[4] = temp_profile_pixx[ix][iy];
+            arena_current(ix, iy, ieta).Wmunu[5] = temp_profile_pixy[ix][iy];
+            arena_current(ix, iy, ieta).Wmunu[6] = temp_profile_pixeta[ix][iy];
+            arena_current(ix, iy, ieta).Wmunu[7] = temp_profile_piyy[ix][iy];
+            arena_current(ix, iy, ieta).Wmunu[8] = temp_profile_piyeta[ix][iy];
+            arena_current(ix, iy, ieta).Wmunu[9] = temp_profile_pietaeta[ix][iy];
 
-
-            /* for HIC */
-            arena(ix,iy,ieta).u[0][0] = temp_profile_utau[ix][iy];
-            arena(ix,iy,ieta).u[0][1] = temp_profile_ux[ix][iy];
-            arena(ix,iy,ieta).u[0][2] = temp_profile_uy[ix][iy];
-            arena(ix,iy,ieta).u[0][3] = temp_profile_ueta[ix][iy];
-
-            u[0] = temp_profile_utau[ix][iy];
-            u[1] = temp_profile_ux[ix][iy];
-            u[2] = temp_profile_uy[ix][iy];
-            u[3] = temp_profile_ueta[ix][iy];
-
-            for (int ii = 0; ii < 1; ii++) {
-                arena(ix,iy,ieta).prev_u[ii][0] = u[0];
-                arena(ix,iy,ieta).prev_u[ii][1] = u[1];
-                arena(ix,iy,ieta).prev_u[ii][2] = u[2];
-                arena(ix,iy,ieta).prev_u[ii][3] = u[3];
-                arena(ix,iy,ieta).prev_pi_b[ii] = epsilon/3. - pressure;
-            }
-
-            arena(ix,iy,ieta).pi_b[0] = epsilon/3. - pressure;
-
-            arena(ix,iy,ieta).prevWmunu[0][0] = temp_profile_pitautau[ix][iy];
-            arena(ix,iy,ieta).Wmunu    [0][0] = temp_profile_pitautau[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[0][1] = temp_profile_pitaux[ix][iy];
-            arena(ix,iy,ieta).Wmunu    [0][1] = temp_profile_pitaux[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[0][2] = temp_profile_pitauy[ix][iy];
-            arena(ix,iy,ieta).Wmunu    [0][2] = temp_profile_pitauy[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[0][3] = temp_profile_pitaueta[ix][iy];
-            arena(ix,iy,ieta).Wmunu    [0][3] = temp_profile_pitaueta[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[0][4] = temp_profile_pixx[ix][iy];
-            arena(ix,iy,ieta).Wmunu    [0][4] = temp_profile_pixx[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[0][5] = temp_profile_pixy[ix][iy];
-            arena(ix,iy,ieta).Wmunu    [0][5] = temp_profile_pixy[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[0][6] = temp_profile_pixeta[ix][iy];
-            arena(ix,iy,ieta).Wmunu    [0][6] = temp_profile_pixeta[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[0][7] = temp_profile_piyy[ix][iy];
-            arena(ix,iy,ieta).Wmunu    [0][7] = temp_profile_piyy[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[0][8] = temp_profile_piyeta[ix][iy];
-            arena(ix,iy,ieta).Wmunu    [0][8] = temp_profile_piyeta[ix][iy];
-            arena(ix,iy,ieta).prevWmunu[0][9] = temp_profile_pietaeta[ix][iy];
-            arena(ix,iy,ieta).Wmunu    [0][9] = temp_profile_pietaeta[ix][iy];
+            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
     }
-    // clean up
-    for (int i = 0; i < nx; i++) {
-        delete[] temp_profile_ed[i];
-        delete[] temp_profile_utau[i];
-        delete[] temp_profile_ux[i];
-        delete[] temp_profile_uy[i];
-        delete[] temp_profile_ueta[i];
-        delete[] temp_profile_pitautau[i];
-        delete[] temp_profile_pitaux[i];
-        delete[] temp_profile_pitauy[i];
-        delete[] temp_profile_pitaueta[i];
-        delete[] temp_profile_pixx[i];
-        delete[] temp_profile_pixy[i];
-        delete[] temp_profile_pixeta[i];
-        delete[] temp_profile_piyy[i];
-        delete[] temp_profile_piyeta[i];
-        delete[] temp_profile_pietaeta[i];
-    }
-    delete[] temp_profile_ed;
-    delete[] temp_profile_utau;
-    delete[] temp_profile_ux;
-    delete[] temp_profile_uy;
-    delete[] temp_profile_ueta;
-    delete[] temp_profile_pitautau;
-    delete[] temp_profile_pitaux;
-    delete[] temp_profile_pitauy;
-    delete[] temp_profile_pitaueta;
-    delete[] temp_profile_pixx;
-    delete[] temp_profile_pixy;
-    delete[] temp_profile_pixeta;
-    delete[] temp_profile_piyy;
-    delete[] temp_profile_piyeta;
-    delete[] temp_profile_pietaeta;
 }
 
-void Init::initial_MCGlb_with_rhob_XY(int ieta,
-                                      Grid &arena) {
+void Init::initial_MCGlb_with_rhob_XY(int ieta, SCGrid &arena_prev,
+                                      SCGrid &arena_current) {
     // first load in the transverse profile
     ifstream profile_TA(DATA.initName_TA.c_str());
     ifstream profile_TB(DATA.initName_TB.c_str());
     ifstream profile_rhob_TA(DATA.initName_rhob_TA.c_str());
     ifstream profile_rhob_TB(DATA.initName_rhob_TB.c_str());
 
-    const int nx = arena.nX();
-    const int ny = arena.nY();
-    double** temp_profile_TA = new double* [nx];
-    double** temp_profile_TB = new double* [nx];
-    double** temp_profile_rhob_TA = new double* [nx];
-    double** temp_profile_rhob_TB = new double* [nx];
-    for (int i = 0; i < nx; i++) {
-        temp_profile_TA[i] = new double[ny];
-        temp_profile_TB[i] = new double[ny];
-        temp_profile_rhob_TA[i] = new double[ny];
-        temp_profile_rhob_TB[i] = new double[ny];
-    }
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
+    double temp_profile_TA[nx][ny];
+    double temp_profile_TB[nx][ny];
+    double temp_profile_rhob_TA[nx][ny];
+    double temp_profile_rhob_TB[nx][ny];
     for (int i = 0; i < nx; i++) {
         for (int j = 0; j < ny; j++) {
             profile_TA >> temp_profile_TA[i][j];
@@ -885,132 +621,53 @@ void Init::initial_MCGlb_with_rhob_XY(int ieta,
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
 
-            // set all values in the grid element:
-            arena(ix,iy,ieta).epsilon      = epsilon;
-            arena(ix,iy,ieta).epsilon_t    = epsilon;
-            arena(ix,iy,ieta).prev_epsilon = epsilon;
-            arena(ix,iy,ieta).rhob         = rhob;
-            arena(ix,iy,ieta).rhob_t       = rhob;
-            arena(ix,iy,ieta).prev_rhob    = rhob;
+            arena_current(ix, iy, ieta).epsilon = epsilon;
+            arena_current(ix, iy, ieta).rhob = rhob;
 
-            /* for HIC */
-            arena(ix,iy,ieta).u[0][0] = 1.0;
-            arena(ix,iy,ieta).u[0][3] = 0.0;
-            arena(ix,iy,ieta).u[0][1] = 0.0;
-            arena(ix,iy,ieta).u[0][2] = 0.0;
-            
-            for (int ii = 0; ii < 1; ii++) {
-                arena(ix,iy,ieta).prev_u[ii][0] = 1.0;
-                arena(ix,iy,ieta).prev_u[ii][3] = 0.0;
-                arena(ix,iy,ieta).prev_u[ii][1] = 0.0;
-                arena(ix,iy,ieta).prev_u[ii][2] = 0.0;
-                arena(ix,iy,ieta).prev_pi_b[ii] = 0.0;
-            }
+            arena_current(ix, iy, ieta).u[0] = 1.0;
+            arena_current(ix, iy, ieta).u[1] = 0.0;
+            arena_current(ix, iy, ieta).u[2] = 0.0;
+            arena_current(ix, iy, ieta).u[3] = 0.0;
 
-            arena(ix,iy,ieta).pi_b[0] = 0.0;
-
-            for (int ii = 0; ii < 14; ii++) {
-                arena(ix,iy,ieta).prevWmunu[0][ii] = 0.0;
-                arena(ix,iy,ieta).Wmunu[0][ii] = 0.0;
-            }
+            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
     }
-    // clean up
-    for (int i = 0; i < nx; i++) {
-        delete[] temp_profile_TA[i];
-        delete[] temp_profile_TB[i];
-        delete[] temp_profile_rhob_TA[i];
-        delete[] temp_profile_rhob_TB[i];
-    }
-    delete[] temp_profile_TA;
-    delete[] temp_profile_TB;
-    delete[] temp_profile_rhob_TA;
-    delete[] temp_profile_rhob_TB;
 }
 
-void Init::initial_MCGlbLEXUS_with_rhob_XY(int ieta,
-                                           Grid &arena) {
-    const int nx = arena.nX();
-    const int ny = arena.nY();
+void Init::initial_MCGlbLEXUS_with_rhob_XY(int ieta, SCGrid &arena_prev,
+                                           SCGrid &arena_current) {
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
     double u[4] = {1.0, 0.0, 0.0, 0.0};
-    double j_mu[4] = {0.0, 0.0, 0.0, 0.0};
-    int entropy_flag = DATA.initializeEntropy;
     for (int ix = 0; ix < nx; ix++) {
-        // double x_local = - DATA.x_size/2. + ix*DATA.delta_x;
         for (int iy = 0; iy < ny; iy++) {
-            // double y_local = - DATA.y_size/2. + iy*DATA.delta_y;
             double rhob = 0.0;
-            double epsilon = 0.0;
-            if (DATA.turn_on_rhob == 1) {
-                //rhob = hydro_source_ptr->get_hydro_rhob_source(
-                //                            tau0, x_local, y_local, eta, u);
-                rhob = 0.0;
-            } else {
-                rhob = 0.0;
-            }
+            double epsilon = 1e-12;
 
-            //hydro_source_ptr->get_hydro_energy_source(
-            //                        tau0, x_local, y_local, eta, u, j_mu);
+            arena_current(ix, iy, ieta).epsilon = epsilon;
+            arena_current(ix, iy, ieta).rhob = rhob;
 
-            if (entropy_flag == 0) {
-                // epsilon = j_mu[0];           // 1/fm^4
-                epsilon = 0.0;           // 1/fm^4
-            } else {
-                //double local_sd = j_mu[0]*DATA.sFactor;         // 1/fm^3
-                //epsilon = eos.get_s2e(local_sd, rhob);
-                epsilon = 0.0;           // 1/fm^4
-            }
-
-            if (epsilon < 0.00000000001)
-                epsilon = 0.00000000001;
-
-            // set all values in the grid element:
-            arena(ix,iy,ieta).epsilon      = epsilon;
-            arena(ix,iy,ieta).epsilon_t    = epsilon;
-            arena(ix,iy,ieta).prev_epsilon = epsilon;
-            arena(ix,iy,ieta).rhob         = rhob;
-            arena(ix,iy,ieta).rhob_t       = rhob;
-            arena(ix,iy,ieta).prev_rhob    = rhob;
-
-            /* for HIC */
-            arena(ix,iy,ieta).u[0][0] = u[0];
-            arena(ix,iy,ieta).u[0][1] = u[1];
-            arena(ix,iy,ieta).u[0][2] = u[2];
-            arena(ix,iy,ieta).u[0][3] = u[3];
+            arena_current(ix, iy, ieta).u[0] = u[0];
+            arena_current(ix, iy, ieta).u[1] = u[1];
+            arena_current(ix, iy, ieta).u[2] = u[2];
+            arena_current(ix, iy, ieta).u[3] = u[3];
             
-            for (int ii = 0; ii < 1; ii++) {
-                arena(ix,iy,ieta).prev_u[ii][0] = 1.0;
-                arena(ix,iy,ieta).prev_u[ii][1] = 0.0;
-                arena(ix,iy,ieta).prev_u[ii][2] = 0.0;
-                arena(ix,iy,ieta).prev_u[ii][3] = 0.0;
-                arena(ix,iy,ieta).prev_pi_b[ii] = 0.0;
-            }
-
-            arena(ix,iy,ieta).pi_b[0] = 0.0;
-
-            for (int ii = 0; ii < 14; ii++) {
-                arena(ix,iy,ieta).prevWmunu[0][ii] = 0.0;
-                arena(ix,iy,ieta).Wmunu[0][ii] = 0.0;
-            }
+            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
     }
 }
 
 
-void Init::initial_UMN_with_rhob(Grid &arena) {
+void Init::initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     // first load in the transverse profile
     ifstream profile(DATA.initName.c_str());
     ifstream profile_TA(DATA.initName_TA.c_str());
     ifstream profile_TB(DATA.initName_TB.c_str());
 
-    const int nx = arena.nX();
-    const int ny = arena.nY();
-    double** temp_profile_TA = new double* [nx];
-    double** temp_profile_TB = new double* [nx];
-    for (int i = 0; i < nx+1; i++) {
-        temp_profile_TA[i] = new double[ny];
-        temp_profile_TB[i] = new double[ny];
-    }
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
+    double temp_profile_TA[nx][ny];
+    double temp_profile_TB[nx][ny];
     for (int i = 0; i < nx; i++) {
         for (int j = 0; j < ny; j++) {
             profile_TA >> temp_profile_TA[i][j];
@@ -1032,7 +689,8 @@ void Init::initial_UMN_with_rhob(Grid &arena) {
                 double epsilon = 0.0;
                 profile >> dummy >> dummy >> dummy >> ed_local >> rhob_local;
                 rhob = rhob_local;
-                double sd_bg = (temp_profile_TA[ix][iy]*eta_envelop_left
+                double sd_bg = (
+                      temp_profile_TA[ix][iy]*eta_envelop_left
                     + temp_profile_TB[ix][iy]*eta_envelop_right)*DATA.sFactor;
                 double ed_bg = eos.get_s2e(sd_bg, 0.0);
                 epsilon = ed_bg + ed_local/hbarc;    // 1/fm^4
@@ -1040,54 +698,30 @@ void Init::initial_UMN_with_rhob(Grid &arena) {
                     epsilon = 0.00000000001;
                 }
 
-                // set all values in the grid element:
-                arena(ix,iy,ieta).epsilon      = epsilon;
-                arena(ix,iy,ieta).epsilon_t    = epsilon;
-                arena(ix,iy,ieta).prev_epsilon = epsilon;
-                arena(ix,iy,ieta).rhob         = rhob;
-                arena(ix,iy,ieta).rhob_t       = rhob;
-                arena(ix,iy,ieta).prev_rhob    = rhob;
+                arena_current(ix, iy, ieta).epsilon = epsilon;
+                arena_current(ix, iy, ieta).rhob = rhob;
 
-                arena(ix,iy,ieta).u[0][0] = 1.0;
-                arena(ix,iy,ieta).u[0][3] = 0.0;
-                arena(ix,iy,ieta).u[0][1] = 0.0;
-                arena(ix,iy,ieta).u[0][2] = 0.0;
+                arena_current(ix, iy, ieta).u[0] = 1.0;
+                arena_current(ix, iy, ieta).u[1] = 0.0;
+                arena_current(ix, iy, ieta).u[2] = 0.0;
+                arena_current(ix, iy, ieta).u[3] = 0.0;
             
-                for (int ii = 0; ii < 1; ii++) {
-                    arena(ix,iy,ieta).prev_u[ii][0] = 1.0;
-                    arena(ix,iy,ieta).prev_u[ii][3] = 0.0;
-                    arena(ix,iy,ieta).prev_u[ii][1] = 0.0;
-                    arena(ix,iy,ieta).prev_u[ii][2] = 0.0;
-                    arena(ix,iy,ieta).prev_pi_b[ii] = 0.0;
-                }
-
-                arena(ix,iy,ieta).pi_b[0] = 0.0;
-
-                for (int ii = 0; ii < 14; ii++) {
-                    arena(ix,iy,ieta).prevWmunu[0][ii] = 0.0;
-                    arena(ix,iy,ieta).Wmunu[0][ii] = 0.0;
-                }
+                arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
         }
     }
     profile.close();
-    // clean up
-    for (int i = 0; i < nx; i++) {
-        delete[] temp_profile_TA[i];
-        delete[] temp_profile_TB[i];
-    }
-    delete[] temp_profile_TA;
-    delete[] temp_profile_TB;
 }
 
-void Init::initial_AMPT_XY(int ieta, Grid &arena) {
+void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
+                           SCGrid &arena_current) {
     double u[4] = {1.0, 0.0, 0.0, 0.0};
     double j_mu[4] = {0.0, 0.0, 0.0, 0.0};
 
     double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
     double tau0 = DATA.tau0;
-    const int nx = arena.nX();
-    const int ny = arena.nY();
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
     for (int ix = 0; ix < nx; ix++) {
         double x_local = - DATA.x_size/2. + ix*DATA.delta_x;
         for (int iy = 0; iy < ny; iy++) {
@@ -1109,34 +743,15 @@ void Init::initial_AMPT_XY(int ieta, Grid &arena) {
             if (epsilon < 0.00000000001)
                 epsilon = 0.00000000001;
 
-            // set all values in the grid element:
-            arena(ix,iy,ieta).epsilon      = epsilon;
-            arena(ix,iy,ieta).epsilon_t    = epsilon;
-            arena(ix,iy,ieta).prev_epsilon = epsilon;
-            arena(ix,iy,ieta).rhob         = rhob;
-            arena(ix,iy,ieta).rhob_t       = rhob;
-            arena(ix,iy,ieta).prev_rhob    = rhob;
+            arena_current(ix, iy, ieta).epsilon = epsilon;
+            arena_current(ix, iy, ieta).rhob = rhob;
 
-            /* for HIC */
-            arena(ix,iy,ieta).u[0][0] = u[0];
-            arena(ix,iy,ieta).u[0][3] = u[3];
-            arena(ix,iy,ieta).u[0][1] = u[1];
-            arena(ix,iy,ieta).u[0][2] = u[2];
+            arena_current(ix, iy, ieta).u[0] = u[0];
+            arena_current(ix, iy, ieta).u[1] = u[1];
+            arena_current(ix, iy, ieta).u[2] = u[2];
+            arena_current(ix, iy, ieta).u[3] = u[3];
             
-            for (int ii = 0; ii < 1; ii++) {
-                arena(ix,iy,ieta).prev_u[ii][0] = 1.0;
-                arena(ix,iy,ieta).prev_u[ii][3] = 0.0;
-                arena(ix,iy,ieta).prev_u[ii][1] = 0.0;
-                arena(ix,iy,ieta).prev_u[ii][2] = 0.0;
-                arena(ix,iy,ieta).prev_pi_b[ii] = 0.0;
-            }
-
-            arena(ix,iy,ieta).pi_b[0] = 0.0;
-
-            for (int ii = 0; ii < 14; ii++) {
-                arena(ix,iy,ieta).prevWmunu[0][ii] = 0.0;
-                arena(ix,iy,ieta).Wmunu[0][ii] = 0.0;
-            }
+            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
     }
 }
@@ -1254,7 +869,7 @@ double Init::eta_rhob_right_factor(double eta) {
     return(res);
 }
 
-void Init::output_initial_density_profiles(Grid &arena) {
+void Init::output_initial_density_profiles(SCGrid &arena) {
     // this function outputs the 3d initial energy density profile
     // and net baryon density profile (if turn_on_rhob == 1)
     // for checking purpose
