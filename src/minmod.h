@@ -10,6 +10,8 @@ class Minmod {
 
  public:
     Minmod(const InitData &DATA);
+    Minmod(double theta_in);
+    double get_theta() const {return(theta_flux);}
 
     /* double minmod_dx(const double up1, const double u, const double um1) { */
     /*     const double diffup   = (up1 - u)*theta_flux; */

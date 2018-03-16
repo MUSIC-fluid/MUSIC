@@ -26,6 +26,8 @@ set (SOURCES
 if (test)
     add_executable (unittest_grid.e grid.cpp)
     install(TARGETS unittest_grid.e DESTINATION ${CMAKE_HOME_DIRECTORY})
+    add_executable (unittest_minmod.e minmod.cpp)
+    install(TARGETS unittest_minmod.e DESTINATION ${CMAKE_HOME_DIRECTORY})
 else (test)
     add_executable (mpihydro ${SOURCES})
     target_link_libraries (mpihydro ${GSL_LIBRARIES})
