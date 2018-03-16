@@ -55,6 +55,7 @@ class hydro_source {
     std::vector<parton> parton_list;
 
  public:
+    hydro_source() = default;
     hydro_source(const InitData &DATA_in);
     ~hydro_source();
 

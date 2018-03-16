@@ -18,11 +18,11 @@ class Init {
  private:
     InitData &DATA;
     const EOS &eos;
-    hydro_source *hydro_source_ptr;
+    hydro_source &hydro_source_terms;
     pretty_ostream music_message;
 
  public:
-    Init(const EOS &eos, InitData &DATA_in, hydro_source *hydro_source_in);
+    Init(const EOS &eos, InitData &DATA_in, hydro_source &hydro_source_in);
 
     void InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                    SCGrid &arena_future);

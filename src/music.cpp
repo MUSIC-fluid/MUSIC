@@ -11,16 +11,11 @@ using namespace std;
 
 MUSIC::MUSIC(string input_file) : 
     DATA(ReadInParameters::read_in_parameters(input_file)),
-    eos(DATA)
-{
+    eos(DATA),
+    hydro_source_terms(DATA) {
     welcome_message();
     
     mode = DATA.mode;
-    if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
-        hydro_source_ptr = new hydro_source(DATA);
-    } else if (DATA.Initial_profile == 30) {
-        hydro_source_ptr = new hydro_source(DATA);
-    }
     flag_hydro_run = 0;
     flag_hydro_initialized = 0;
 }
@@ -33,11 +28,6 @@ MUSIC::~MUSIC() {
     if (flag_hydro_run == 1) {
         delete evolve;
     }
-    if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
-        delete hydro_source_ptr;
-    } else if (DATA.Initial_profile == 30) {
-        delete hydro_source_ptr;
-    }
 }
 
 
@@ -47,7 +37,7 @@ int MUSIC::initialize_hydro() {
     int status = system(
                     "rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 
-    init = new Init(eos, DATA, hydro_source_ptr);
+    init = new Init(eos, DATA, hydro_source_terms);
     init->InitArena(arena_prev, arena_current, arena_future);
     flag_hydro_initialized = 1;
     return(status);
@@ -59,7 +49,7 @@ int MUSIC::run_hydro() {
         delete evolve;
     }
 
-    evolve = new Evolve(eos, DATA, hydro_source_ptr);
+    evolve = new Evolve(eos, DATA, hydro_source_terms);
 
     evolve->EvolveIt(arena_prev, arena_current, arena_future);
         

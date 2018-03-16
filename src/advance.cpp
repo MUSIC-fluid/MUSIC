@@ -12,19 +12,16 @@
 using namespace std;
 
 Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
-                 hydro_source *hydro_source_in) :
-    DATA(DATA_in),
-    eos(eosIn),
-    minmod(DATA_in) {
+                 hydro_source &hydro_source_in) :
+    DATA(DATA_in), eos(eosIn),
+    hydro_source_terms(hydro_source_in), minmod(DATA_in) {
     reconst_ptr      = new Reconst(eos, DATA_in);
     diss             = new Diss(eosIn, DATA_in);
     if (DATA_in.Initial_profile == 12 || DATA_in.Initial_profile == 13
         || DATA_in.Initial_profile == 30) {
         flag_add_hydro_source = true;
-        hydro_source_ptr      = hydro_source_in;
     } else {
         flag_add_hydro_source = false;
-        hydro_source_ptr      = nullptr;
     }
 }
 
@@ -102,13 +99,13 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
   if (flag_add_hydro_source) {
     FlowVec u_local = arena_current(ix,iy,ieta).u;
 
-    hydro_source_ptr->get_hydro_energy_source(
+    hydro_source_terms.get_hydro_energy_source(
                 tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
     for (int ii = 0; ii < 4; ii++) {
       j_mu[ii] *= tau_rk;
     }
     if (DATA.turn_on_rhob == 1) {
-      rhob_source = tau_rk*hydro_source_ptr->get_hydro_rhob_source(
+      rhob_source = tau_rk*hydro_source_terms.get_hydro_rhob_source(
                    tau_rk, x_local, y_local, eta_s_local, u_local);
     }
   }

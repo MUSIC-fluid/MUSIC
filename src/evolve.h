@@ -25,11 +25,11 @@ class Evolve {
  private:
     const EOS &eos;        // declare EOS object
     const InitData &DATA;
+    hydro_source &hydro_source_terms;
 
     Cell_info grid_info;
     Advance advance;
     U_derivative u_derivative;
-    hydro_source *hydro_source_ptr = nullptr;
     pretty_ostream music_message;
 
 
@@ -46,7 +46,8 @@ class Evolve {
     typedef std::unique_ptr<SCGrid, void(*)(SCGrid*)> GridPointer;
 
  public:
-    Evolve(const EOS &eos, const InitData &DATA_in, hydro_source *hydro_source_in);
+    Evolve(const EOS &eos, const InitData &DATA_in,
+           hydro_source &hydro_source_in);
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future);
 
     void AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future);

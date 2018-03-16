@@ -18,22 +18,13 @@
 using namespace std;
 
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
-               hydro_source *hydro_source_in) :
-    eos(eosIn),
-    DATA(DATA_in),
-    grid_info(DATA_in, eosIn),
-    advance(eosIn, DATA_in, hydro_source_in),
+               hydro_source &hydro_source_in) :
+    eos(eosIn), DATA(DATA_in), hydro_source_terms(hydro_source_in),
+    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_in),
     u_derivative(DATA_in, eosIn) {
     rk_order  = DATA_in.rk_order;
-  
     if (DATA.freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
-    }
-
-    if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
-        hydro_source_ptr = hydro_source_in;
-    } else if (DATA.Initial_profile == 30) {
-        hydro_source_ptr = hydro_source_in;
     }
 }
 
@@ -64,11 +55,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double tau;
     int it_start = 0;
     if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
-        double source_tau_max = hydro_source_ptr->get_source_tau_max();
+        double source_tau_max = hydro_source_terms.get_source_tau_max();
         it_start = static_cast<int>((source_tau_max - tau0)/dt);
         if (it_start < 0) it_start = 0;
     } else if (DATA.Initial_profile == 30) {
-        double source_tau_max = hydro_source_ptr->get_source_tau_max();
+        double source_tau_max = hydro_source_terms.get_source_tau_max();
         it_start = static_cast<int>((source_tau_max - tau0)/dt);
         if (it_start < 0) it_start = 0;
     }

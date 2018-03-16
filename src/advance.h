@@ -17,10 +17,11 @@ class Advance {
  private:
     const InitData &DATA;
     const EOS &eos;
+    hydro_source &hydro_source_terms;
+
     Diss *diss;
     Reconst *reconst_ptr;
     Minmod minmod;
-    hydro_source *hydro_source_ptr;
     pretty_ostream music_message;
 
     bool flag_add_hydro_source;
@@ -35,7 +36,8 @@ class Advance {
     }
 
  public:
-    Advance(const EOS &eosIn, const InitData &DATA_in, hydro_source *hydro_source_in);
+    Advance(const EOS &eosIn, const InitData &DATA_in,
+            hydro_source &hydro_source_in);
     ~Advance();
 
     void AdvanceIt(double tau_init,

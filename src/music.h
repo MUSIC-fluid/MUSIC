@@ -38,7 +38,7 @@ class MUSIC {
     Evolve *evolve = nullptr;
     Freeze *freeze = nullptr;
 
-    hydro_source *hydro_source_ptr;
+    hydro_source hydro_source_terms;
 
     pretty_ostream music_message;
 

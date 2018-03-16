@@ -13,14 +13,8 @@
 
 using namespace std;
 
-Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source *hydro_source_in) :
-    DATA(DATA_in), eos(eosIn) {
-    if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
-        hydro_source_ptr = hydro_source_in;
-    } else if (DATA.Initial_profile == 30) {
-        hydro_source_ptr = hydro_source_in;
-    }
-}
+Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source &hydro_source_in) :
+    DATA(DATA_in), eos(eosIn) , hydro_source_terms(hydro_source_in) {}
 
 void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                      SCGrid &arena_future) {
@@ -89,7 +83,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
     } else if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
-        DATA.tau0 = hydro_source_ptr->get_source_tau_min();
+        DATA.tau0 = hydro_source_terms.get_source_tau_min();
     } else if (DATA.Initial_profile == 101) {
         cout << "Using Initial_profile=" << DATA.Initial_profile << endl;
         cout << "nx=" << DATA.nx << ", ny=" << DATA.ny << endl;
@@ -729,13 +723,13 @@ void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
             double rhob = 0.0;
             double epsilon = 0.0;
             if (DATA.turn_on_rhob == 1) {
-                rhob = hydro_source_ptr->get_hydro_rhob_source_before_tau(
+                rhob = hydro_source_terms.get_hydro_rhob_source_before_tau(
                                                 tau0, x_local, y_local, eta);
             } else {
                 rhob = 0.0;
             }
 
-            hydro_source_ptr->get_hydro_energy_source_before_tau(
+            hydro_source_terms.get_hydro_energy_source_before_tau(
                                     tau0, x_local, y_local, eta, j_mu);
 
             epsilon = j_mu[0];           // 1/fm^4
