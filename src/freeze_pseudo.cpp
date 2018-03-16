@@ -915,7 +915,6 @@ void Freeze::compute_thermal_spectra(int particleSpectrumNumber,
                                      InitData* DATA) {
     double mass_tol = 1e-3;
     double mu_tol = 1e-3;
-    int alreadyread = 0;
 
     // clean up
     system("rm yptphiSpectra.dat yptphiSpectra?.dat "

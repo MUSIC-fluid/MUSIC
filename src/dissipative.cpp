@@ -137,14 +137,9 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     int include_WWterm         = 0;
     int include_Vorticity_term = 0;
     int include_Wsigma_term    = 0;
-    if (DATA.include_second_order_terms == 1) {
+    if (DATA.include_second_order_terms == 1 && DATA.Initial_profile != 0) {
         include_WWterm      = 1;
         include_Wsigma_term = 1;
-    }
-    if (DATA.Initial_profile == 0) {
-        include_WWterm         = 0;
-        include_Wsigma_term    = 0;
-        include_Vorticity_term = 0;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -163,7 +158,6 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     double transport_coefficient  = 9./70.*tau_pi/shear*(4./5.);
     double transport_coefficient2 = 4./3.*tau_pi;
     double transport_coefficient3 = 10./7.*tau_pi;
-    double transport_coefficient4 = 2.*tau_pi;
 
     // transport coefficient for nonlinear terms
     // -- coupling to bulk viscous pressure
@@ -200,12 +194,9 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     //                            Vorticity Term                           //
     /////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////
-    double term1_Vorticity;
-    double Vorticity_term;
-
-    // remember: dUsup[m][n] = partial^n u^m  ///
-    // remember:  a[n]  =  u^m*partial_m u^n  ///
+    double Vorticity_term = 0.0;
     // if (include_Vorticity_term == 1) {
+    //     double transport_coefficient4 = 2.*tau_pi;
     //     double omega[4][4];
     //     double gmunu[4][4] = {{-1., 0., 0., 0.},
     //                           { 0., 1., 0., 0.},
@@ -230,14 +221,14 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     //                    - grid_pt->u[b]*a_local[a])/2.);
     //         }
     //     }
-    //     term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
-    //                        - Wmunu[nu][0]*omega[mu][0]
-    //                        + Wmunu[mu][1]*omega[nu][1]
-    //                        + Wmunu[nu][1]*omega[mu][1]
-    //                        + Wmunu[mu][2]*omega[nu][2]
-    //                        + Wmunu[nu][2]*omega[mu][2]
-    //                        + Wmunu[mu][3]*omega[nu][3]
-    //                        + Wmunu[nu][3]*omega[mu][3])/2.;
+    //     double term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
+    //                               - Wmunu[nu][0]*omega[mu][0]
+    //                               + Wmunu[mu][1]*omega[nu][1]
+    //                               + Wmunu[nu][1]*omega[mu][1]
+    //                               + Wmunu[mu][2]*omega[nu][2]
+    //                               + Wmunu[nu][2]*omega[mu][2]
+    //                               + Wmunu[mu][3]*omega[nu][3]
+    //                               + Wmunu[nu][3]*omega[mu][3])/2.;
     //     // multiply term by its respective transport coefficient
     //     term1_Vorticity = transport_coefficient4*term1_Vorticity;
     //     // full term is
@@ -245,7 +236,6 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     // } else {
     //     Vorticity_term = 0.0;
     // }
-    Vorticity_term = 0.0;
 
     ///////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////
@@ -253,10 +243,9 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     //  transport_coefficient3*Delta(mu nu)(alpha beta)*Wmu gamma sigma nu gamma //
     ///////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////
-    double Wsigma, Wsigma_term;
-    double term1_Wsigma, term2_Wsigma;
+    double Wsigma_term = 0.0;
     if (include_Wsigma_term == 1) {
-        Wsigma = (
+        double Wsigma = (
                Wmunu[0][0]*sigma[0][0]
              + Wmunu[1][1]*sigma[1][1]
              + Wmunu[2][2]*sigma[2][2]
@@ -267,26 +256,24 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
              +2.*(  Wmunu[1][2]*sigma[1][2]
                   + Wmunu[1][3]*sigma[1][3]
                   + Wmunu[2][3]*sigma[2][3]));
-        term1_Wsigma = ( - Wmunu[mu][0]*sigma[nu][0]
-                         - Wmunu[nu][0]*sigma[mu][0]
-                         + Wmunu[mu][1]*sigma[nu][1]
-                         + Wmunu[nu][1]*sigma[mu][1]
-                         + Wmunu[mu][2]*sigma[nu][2]
-                         + Wmunu[nu][2]*sigma[mu][2]
-                         + Wmunu[mu][3]*sigma[nu][3]
-                         + Wmunu[nu][3]*sigma[mu][3])/2.;
+        double term1_Wsigma = ( - Wmunu[mu][0]*sigma[nu][0]
+                                - Wmunu[nu][0]*sigma[mu][0]
+                                + Wmunu[mu][1]*sigma[nu][1]
+                                + Wmunu[nu][1]*sigma[mu][1]
+                                + Wmunu[mu][2]*sigma[nu][2]
+                                + Wmunu[nu][2]*sigma[mu][2]
+                                + Wmunu[mu][3]*sigma[nu][3]
+                                + Wmunu[nu][3]*sigma[mu][3])/2.;
 
-        term2_Wsigma = (-(1./3.)*(DATA.gmunu[mu][nu]
-                                  + grid_pt->u[mu]
-                                    *grid_pt->u[nu])*Wsigma);
+        double term2_Wsigma = (-(1./3.)*(DATA.gmunu[mu][nu]
+                                         + grid_pt->u[mu]
+                                           *grid_pt->u[nu])*Wsigma);
         // multiply term by its respective transport coefficient
         term1_Wsigma = transport_coefficient3*term1_Wsigma;
         term2_Wsigma = transport_coefficient3*term2_Wsigma;
 
         // full term is
         Wsigma_term = -term1_Wsigma - term2_Wsigma;
-    } else {
-        Wsigma_term = 0.0;
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -295,29 +282,25 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     //  transport_coefficient*Delta(mu nu)(alpha beta)*Wmu gamma Wnu gamma  //
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
-    double Wsquare, WW_term;
-    double term1_WW, term2_WW;
+    double WW_term = 0.0;
     if (include_WWterm == 1) {
-        Wsquare = (  Wmunu[0][0]*Wmunu[0][0]
-                   + Wmunu[1][1]*Wmunu[1][1]
-                   + Wmunu[2][2]*Wmunu[2][2]
-                   + Wmunu[3][3]*Wmunu[3][3]
-            - 2.*(  Wmunu[0][1]*Wmunu[0][1]
-                  + Wmunu[0][2]*Wmunu[0][2]
-                  + Wmunu[0][3]*Wmunu[0][3])
-            + 2.*(  Wmunu[1][2]*Wmunu[1][2]
-                  + Wmunu[1][3]*Wmunu[1][3]
-                  + Wmunu[2][3]*Wmunu[2][3]));
-        term1_WW = ( - Wmunu[mu][0]*Wmunu[nu][0]
-                     + Wmunu[mu][1]*Wmunu[nu][1]
-                     + Wmunu[mu][2]*Wmunu[nu][2]
-                     + Wmunu[mu][3]*Wmunu[nu][3]);
-
-        term2_WW = (
-            -(1./3.)*(DATA.gmunu[mu][nu]
-                      + grid_pt->u[mu]*grid_pt->u[nu])
-            *Wsquare);
-
+        double Wsquare = (  Wmunu[0][0]*Wmunu[0][0]
+                          + Wmunu[1][1]*Wmunu[1][1]
+                          + Wmunu[2][2]*Wmunu[2][2]
+                          + Wmunu[3][3]*Wmunu[3][3]
+                   - 2.*(  Wmunu[0][1]*Wmunu[0][1]
+                         + Wmunu[0][2]*Wmunu[0][2]
+                         + Wmunu[0][3]*Wmunu[0][3])
+                   + 2.*(  Wmunu[1][2]*Wmunu[1][2]
+                         + Wmunu[1][3]*Wmunu[1][3]
+                         + Wmunu[2][3]*Wmunu[2][3]));
+        double term1_WW = ( - Wmunu[mu][0]*Wmunu[nu][0]
+                            + Wmunu[mu][1]*Wmunu[nu][1]
+                            + Wmunu[mu][2]*Wmunu[nu][2]
+                            + Wmunu[mu][3]*Wmunu[nu][3]);
+        double term2_WW = (-(1./3.)*(DATA.gmunu[mu][nu]
+                                     + grid_pt->u[mu]*grid_pt->u[nu])*Wsquare);
+        
         // multiply term by its respective transport coefficient
         term1_WW = term1_WW*transport_coefficient;
         term2_WW = term2_WW*transport_coefficient;
@@ -325,8 +308,6 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
         // full term is
         // sign changes according to metric sign convention
         WW_term = -term1_WW - term2_WW;
-    } else {
-        WW_term = 0.0;
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -336,7 +317,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     //              transport_coefficient2_b*Bulk*W^mu nu                   //
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
-    double Coupling_to_Bulk;
+    double Coupling_to_Bulk = 0.0;
     if (DATA.include_second_order_terms == 1) {
         double Bulk_Sigma = grid_pt->pi_b*sigma[mu][nu];
         double Bulk_W = grid_pt->pi_b*Wmunu[mu][nu];
@@ -348,8 +329,6 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
         // full term is
         // first term: sign changes according to metric sign convention
         Coupling_to_Bulk = -Bulk_Sigma_term + Bulk_W_term;
-    } else {
-        Coupling_to_Bulk = 0.0;
     }
 
     // final answer is

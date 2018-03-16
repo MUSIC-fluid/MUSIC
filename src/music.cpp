@@ -7,8 +7,6 @@
 #include "music.h"
 #include "dissipative.h"
 
-using namespace std;
-
 MUSIC::MUSIC(string input_file) : 
     DATA(ReadInParameters::read_in_parameters(input_file)),
     eos(DATA),
@@ -43,9 +41,10 @@ int MUSIC::initialize_hydro() {
     return(status);
 }
 
+
 //! this is a shell function to run hydro
 int MUSIC::run_hydro() {
-    if (evolve != NULL) {
+    if (evolve != nullptr) {
         delete evolve;
     }
 
@@ -60,7 +59,7 @@ int MUSIC::run_hydro() {
 
 //! this is a shell function to run Cooper-Frye
 int MUSIC::run_Cooper_Frye() {
-    if (freeze != NULL) {
+    if (freeze != nullptr) {
         delete freeze;
     }
     freeze = new Freeze(&DATA);
@@ -86,57 +85,57 @@ void MUSIC::output_transport_coefficients() {
 void MUSIC::display_logo(int selector) {
     switch (selector) {
         case 0:  // 3D Diagonal
-            cout << "================================================================" << endl;
-            cout << "|           ____                                               |" << endl;
-            cout << "|         ,'  , `.               .--.--.      ,---,  ,----..   |" << endl;
-            cout << "|      ,-+-,.' _ |         ,--, /  /    '. ,`--.' | /   /   \\  |" << endl;
-            cout << "|   ,-+-. ;   , ||       ,'_ /||  :  /`. / |   :  :|   :     : |" << endl;
-            cout << "|  ,--.'|'   |  ;|  .--. |  | :;  |  |--`  :   |  '.   |  ;. / |" << endl;
-            cout << "| |   |  ,', |  ':,'_ /| :  . ||  :  ;_    |   :  |.   ; /--`  |" << endl;
-            cout << "| |   | /  | |  |||  ' | |  . . \\  \\    `. '   '  ;;   | ;     |" << endl;
-            cout << "| '   | :  | :  |,|  | ' |  | |  `----.   \\|   |  ||   : |     |" << endl;
-            cout << "| ;   . |  ; |--' :  | | :  ' ;  __ \\  \\  |'   :  ;.   | '___  |" << endl;
-            cout << "| |   : |  | ,    |  ; ' |  | ' /  /`--'  /|   |  ''   ; : .'| |" << endl;
-            cout << "| |   : '  |/     :  | : ;  ; |'--'.     / '   :  |'   | '/  : |" << endl;
-            cout << "| ;   | |`-'      '  :  `--'   \\ `--'---'  ;   |.' |   :    /  |" << endl;
-            cout << "| |   ;/          :  ,      .-./           '---'    \\   \\ .'   |" << endl;
-            cout << "| '---'            `--`----'                         `---`     |" << endl;
-            cout << "================================================================" << endl;
+            std::cout << "================================================================"   << std::endl;
+            std::cout << "|           ____                                               |"   << std::endl;
+            std::cout << "|         ,'  , `.               .--.--.      ,---,  ,----..   |"   << std::endl;
+            std::cout << "|      ,-+-,.' _ |         ,--, /  /    '. ,`--.' | /   /   \\  |"  << std::endl;
+            std::cout << "|   ,-+-. ;   , ||       ,'_ /||  :  /`. / |   :  :|   :     : |"   << std::endl;
+            std::cout << "|  ,--.'|'   |  ;|  .--. |  | :;  |  |--`  :   |  '.   |  ;. / |"   << std::endl;
+            std::cout << "| |   |  ,', |  ':,'_ /| :  . ||  :  ;_    |   :  |.   ; /--`  |"   << std::endl;
+            std::cout << "| |   | /  | |  |||  ' | |  . . \\  \\    `. '   '  ;;   | ;     |" << std::endl;
+            std::cout << "| '   | :  | :  |,|  | ' |  | |  `----.   \\|   |  ||   : |     |"  << std::endl;
+            std::cout << "| ;   . |  ; |--' :  | | :  ' ;  __ \\  \\  |'   :  ;.   | '___  |" << std::endl;
+            std::cout << "| |   : |  | ,    |  ; ' |  | ' /  /`--'  /|   |  ''   ; : .'| |"   << std::endl;
+            std::cout << "| |   : '  |/     :  | : ;  ; |'--'.     / '   :  |'   | '/  : |"   << std::endl;
+            std::cout << "| ;   | |`-'      '  :  `--'   \\ `--'---'  ;   |.' |   :    /  |"  << std::endl;
+            std::cout << "| |   ;/          :  ,      .-./           '---'    \\   \\ .'   |" << std::endl;
+            std::cout << "| '---'            `--`----'                         `---`     |"   << std::endl;
+            std::cout << "================================================================"   << std::endl;
             break;
         case 1:  // bloody
-            cout << "==============================================" << endl;
-            cout << "|  ███▄ ▄███▓ █    ██   ██████  ██▓ ▄████▄   |" << endl;
-            cout << "| ▓██▒▀█▀ ██▒ ██  ▓██▒▒██    ▒ ▓██▒▒██▀ ▀█   |" << endl;
-            cout << "| ▓██    ▓██░▓██  ▒██░░ ▓██▄   ▒██▒▒▓█    ▄  |" << endl;
-            cout << "| ▒██    ▒██ ▓▓█  ░██░  ▒   ██▒░██░▒▓▓▄ ▄██▒ |" << endl;
-            cout << "| ▒██▒   ░██▒▒▒█████▓ ▒██████▒▒░██░▒ ▓███▀ ░ |" << endl;
-            cout << "| ░ ▒░   ░  ░░▒▓▒ ▒ ▒ ▒ ▒▓▒ ▒ ░░▓  ░ ░▒ ▒  ░ |" << endl;
-            cout << "| ░  ░      ░░░▒░ ░ ░ ░ ░▒  ░ ░ ▒ ░  ░  ▒    |" << endl;
-            cout << "| ░      ░    ░░░ ░ ░ ░  ░  ░   ▒ ░░         |" << endl;
-            cout << "|        ░      ░           ░   ░  ░ ░       |" << endl;
-            cout << "|                                  ░         |" << endl;
-            cout << "==============================================" << endl;
+            std::cout << "==============================================" << std::endl;
+            std::cout << "|  ███▄ ▄███▓ █    ██   ██████  ██▓ ▄████▄   |" << std::endl;
+            std::cout << "| ▓██▒▀█▀ ██▒ ██  ▓██▒▒██    ▒ ▓██▒▒██▀ ▀█   |" << std::endl;
+            std::cout << "| ▓██    ▓██░▓██  ▒██░░ ▓██▄   ▒██▒▒▓█    ▄  |" << std::endl;
+            std::cout << "| ▒██    ▒██ ▓▓█  ░██░  ▒   ██▒░██░▒▓▓▄ ▄██▒ |" << std::endl;
+            std::cout << "| ▒██▒   ░██▒▒▒█████▓ ▒██████▒▒░██░▒ ▓███▀ ░ |" << std::endl;
+            std::cout << "| ░ ▒░   ░  ░░▒▓▒ ▒ ▒ ▒ ▒▓▒ ▒ ░░▓  ░ ░▒ ▒  ░ |" << std::endl;
+            std::cout << "| ░  ░      ░░░▒░ ░ ░ ░ ░▒  ░ ░ ▒ ░  ░  ▒    |" << std::endl;
+            std::cout << "| ░      ░    ░░░ ░ ░ ░  ░  ░   ▒ ░░         |" << std::endl;
+            std::cout << "|        ░      ░           ░   ░  ░ ░       |" << std::endl;
+            std::cout << "|                                  ░         |" << std::endl;
+            std::cout << "==============================================" << std::endl;
             break;
         case 2:  // Dancing font
-            cout << "====================================================" << endl;
-            cout << "|   __  __     _   _   ____                   ____  |" << endl;
-            cout << "| U|' \\/ '|uU |\"|u| | / __\"| u      ___    U /\"___| |" << endl;
-            cout << "| \\| |\\/| |/ \\| |\\| |<\\___ \\/      |_\"_|   \\| | u   |" << endl;
-            cout << "|  | |  | |   | |_| | u___) |       | |     | |/__  |" << endl;
-            cout << "|  |_|  |_|  <<\\___/  |____/>>    U/| |\\u    \\____| |" << endl;
-            cout << "| <<,-,,-.  (__) )(    )(  (__).-,_|___|_,-._// \\\\  |" << endl;
-            cout << "|  (./  \\.)     (__)  (__)      \\_)-' '-(_/(__)(__) |" << endl;
-            cout << "====================================================" << endl;
+            std::cout << "===================================================="          << std::endl;
+            std::cout << "|   __  __     _   _   ____                   ____  |"         << std::endl;
+            std::cout << "| U|' \\/ '|uU |\"|u| | / __\"| u      ___    U /\"___| |"     << std::endl;
+            std::cout << "| \\| |\\/| |/ \\| |\\| |<\\___ \\/      |_\"_|   \\| | u   |" << std::endl;
+            std::cout << "|  | |  | |   | |_| | u___) |       | |     | |/__  |"         << std::endl;
+            std::cout << "|  |_|  |_|  <<\\___/  |____/>>    U/| |\\u    \\____| |"      << std::endl;
+            std::cout << "| <<,-,,-.  (__) )(    )(  (__).-,_|___|_,-._// \\\\  |"       << std::endl;
+            std::cout << "|  (./  \\.)     (__)  (__)      \\_)-' '-(_/(__)(__) |"       << std::endl;
+            std::cout << "===================================================="          << std::endl;
             break;
         case 3:  // STAR Wars
-            cout << "=====================================================" << endl;
-            cout << "| .___  ___.  __    __       _______. __    ______  |" << endl;
-            cout << "| |   \\/   | |  |  |  |     /       ||  |  /      | |" << endl;
-            cout << "| |  \\  /  | |  |  |  |    |   (----`|  | |  ,----' |" << endl;
-            cout << "| |  |\\/|  | |  |  |  |     \\   \\    |  | |  |      |" << endl;
-            cout << "| |  |  |  | |  `--'  | .----)   |   |  | |  `----. |" << endl;
-            cout << "| |__|  |__|  \\______/  |_______/    |__|  \\______| |" << endl;
-            cout << "=====================================================" << endl;
+            std::cout << "====================================================="    << std::endl;
+            std::cout << "| .___  ___.  __    __       _______. __    ______  |"    << std::endl;
+            std::cout << "| |   \\/   | |  |  |  |     /       ||  |  /      | |"   << std::endl;
+            std::cout << "| |  \\  /  | |  |  |  |    |   (----`|  | |  ,----' |"   << std::endl;
+            std::cout << "| |  |\\/|  | |  |  |  |     \\   \\    |  | |  |      |" << std::endl;
+            std::cout << "| |  |  |  | |  `--'  | .----)   |   |  | |  `----. |"    << std::endl;
+            std::cout << "| |__|  |__|  \\______/  |_______/    |__|  \\______| |"  << std::endl;
+            std::cout << "====================================================="    << std::endl;
             break;
     }
 
@@ -145,11 +144,11 @@ void MUSIC::display_logo(int selector) {
 
 //! This function prints out code desciprtion and copyright information
 void MUSIC::display_code_description_and_copyright() {
-    cout << "MUSIC - a 3+1D viscous relativistic hydrodynamic code for "
-         << "heavy ion collisions" << endl;
-    cout << "Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, "
-         << "Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen"
-         << endl;
+    std::cout << "MUSIC - a 3+1D viscous relativistic hydrodynamic code for "
+              << "heavy ion collisions" << std::endl;
+    std::cout << "Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, "
+              << "Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen"
+              << std::endl;
 }
 
 //! This function prints out the welcome message
