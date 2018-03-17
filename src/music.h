@@ -61,15 +61,6 @@ class MUSIC {
     //! this is a test function to output the transport coefficients as
     //! function of T and mu_B
     void output_transport_coefficients();
-
-    //! This function prints out the welcome message
-    void welcome_message();
-
-    //! This function prints out code desciprtion and copyright information
-    void display_code_description_and_copyright();
-
-    //! This function prints out the program logo
-    void display_logo(int selector);
 };
 
 #endif  // SRC_MUSIC_H_

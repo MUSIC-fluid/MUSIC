@@ -21,6 +21,7 @@ set (SOURCES
     eos.cpp
     evolve.cpp
     emoji.cpp
+    music_logo.cpp
     )
 
 if (test)

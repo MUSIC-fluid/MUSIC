@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
-#include "./music.h"
+#include "music.h"
+#include "music_logo.h"
 
 using namespace std;
 
@@ -18,6 +19,7 @@ int main(int argc, char *argv[]) {
     else
         input_file = "";
 
+    MUSIC_LOGO::welcome_message();
     MUSIC music_hydro(input_file);
     int running_mode = music_hydro.get_running_mode();
 
