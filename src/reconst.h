@@ -32,7 +32,7 @@ class Reconst {
     Reconst() = default;
     Reconst(const EOS &eos, const InitData &DATA_in);
 
-    ReconstCell ReconstIt_shell(double tau, TJbVec &q_vec,
+    ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,
                                 const Cell_small &grid_pt);
 
     void revert_grid(ReconstCell &grid_current,
@@ -40,24 +40,21 @@ class Reconst {
 
     int ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
                                   const TJbVec &q, const Cell_small &grid_pt);
-
-#pragma omp declare simd
+    
     void reconst_velocity_fdf(const double v, const double T00, const double M,
-                              const double J0, double &fv, double &dfdv) const {
-        // this function returns f(v) = M/(M0 + P)
-        const double epsilon = T00 - v*M;
-        const double temp    = sqrt(1. - v*v);
-        const double rho     = J0*temp;
+                              const double J0, double &fv, double &dfdv) const;
 
-        const double pressure = eos.get_pressure(epsilon, rho);
-        const double temp1    = T00 + pressure;
-        const double temp2    = v/temp;
-        const double dPde     = eos.p_e_func(epsilon, rho);
-        const double dPdrho   = eos.p_rho_func(epsilon, rho);
+    void reconst_u0_fdf(const double u0, const double T00, const double K00,
+                        const double M, const double J0,
+                        double &fu0, double &dfdu0) const;
 
-        fv   = v - M/temp1;
-        dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0*temp2*dPdrho);
-    }
+    int solve_velocity_Newton(const double v_guess, const double T00,
+                              const double M, const double J0,
+                              double &v_solution);
+
+    int solve_u0_Newton(const double u0_guess, const double T00,
+                        const double K00, const double M, const double J0,
+                        double &u0_solution);
 
     void regulate_grid(ReconstCell &grid_cell, double elocal) const;
 };
