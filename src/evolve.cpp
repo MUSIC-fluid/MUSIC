@@ -77,51 +77,51 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         tau = tau0 + dt*it;
         // store initial conditions
         if (it == it_start) {
-            store_previous_step_for_freezeout(arena_current, arena_freezeout);
+            store_previous_step_for_freezeout(*ap_current, arena_freezeout);
         }
         
         if (DATA.Initial_profile == 0) {
             if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
                 || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
                 || fabs(tau - 3.0) < 1e-8) {
-                grid_info.Gubser_flow_check_file(arena_current, tau);
+                grid_info.Gubser_flow_check_file(*ap_current, tau);
             }
         } else if (DATA.Initial_profile == 1) {
             if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
                 || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8
                 || fabs(tau - 20.0) < 1e-8) {
-                grid_info.output_1p1D_check_file(arena_current, tau);
+                grid_info.output_1p1D_check_file(*ap_current, tau);
             }
         }
         
         if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
             if (it == it_start) {
                 grid_info.output_energy_density_and_rhob_disitrubtion(
-                            arena_current,
+                            *ap_current,
                             "energy_density_and_rhob_from_source_terms.dat");
             }
         }
 
         if (it % Nskip_timestep == 0) {
             if (outputEvo_flag == 1) {
-                grid_info.OutputEvolutionDataXYEta(arena_current, tau);
+                grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
             } else if (outputEvo_flag == 2) {
-                grid_info.OutputEvolutionDataXYEta_chun(arena_current, tau);
+                grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
             }
             if (output_movie_flag == 1) {
-                grid_info.output_evolution_for_movie(arena_current, tau);
+                grid_info.output_evolution_for_movie(*ap_current, tau);
             }
         }
         grid_info.output_average_phase_diagram_trajectory(tau, -0.5, 0.5,
-                                                          arena_current);
+                                                          *ap_current);
 
         // check energy conservation
         if (boost_invariant_flag == 0)
-            grid_info.check_conservation_law(arena_current, arena_prev, tau);
-        grid_info.get_maximum_energy_density(arena_current);
+            grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
+        grid_info.get_maximum_energy_density(*ap_current);
 
         if (output_hydro_debug_flag == 1) {
-            grid_info.monitor_fluid_cell(arena_current, 100, 100, 0, tau);
+            grid_info.monitor_fluid_cell(*ap_current, 100, 100, 0, tau);
         }
     
         /* execute rk steps */
@@ -132,18 +132,18 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         int frozen = 0;
         if (freezeout_flag == 1) {
             if (freezeout_lowtemp_flag == 1 && it == it_start) {
-                frozen = FreezeOut_equal_tau_Surface(tau, arena_current);
+                frozen = FreezeOut_equal_tau_Surface(tau, *ap_current);
             }
             // avoid freeze-out at the first time step
             if ((it - it_start)%facTau == 0 && it > it_start) {
                 if (boost_invariant_flag == 0) {
                     frozen = FindFreezeOutSurface_Cornelius(
-                                tau, arena_current, arena_freezeout);
+                                tau, *ap_current, arena_freezeout);
                 } else {
                     frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
-                                tau, arena_current, arena_freezeout);
+                                tau, *ap_current, arena_freezeout);
                 }
-                store_previous_step_for_freezeout(arena_current,
+                store_previous_step_for_freezeout(*ap_current,
                                                   arena_freezeout);
             }
         }
