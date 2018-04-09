@@ -30,12 +30,12 @@ struct QCD_string {
 struct parton {
     double tau, x, y, eta_s;
     double rapidity;
-    double y_perp;
+    double rapidity_perp;
     double E, px, py;
     double mass;
-    double baryon_number;     //!< nucleon = 1, quark = 1/3
-    // this data structure can be extended to include charge and strangeness
-    // quantum number
+    double baryon_number;
+    double strangness;
+    double electric_charge;
 };
 
 
@@ -53,6 +53,7 @@ class hydro_source {
     double source_tau_min;
     std::vector<QCD_string> QCD_strings_list;
     std::vector<parton> parton_list;
+    std::vector<parton> parton_list_current_tau;
 
  public:
     hydro_source() = default;
@@ -89,6 +90,8 @@ class hydro_source {
     //! Get the minimum and maximum tau for the source term
     double get_source_tau_min() const {return(source_tau_min);}
     double get_source_tau_max() const {return(source_tau_max);}
+
+    void prepare_list_for_current_tau_frame(double tau_local);
 };
 
 #endif  // SRC_HYDRO_SOURCE_H_

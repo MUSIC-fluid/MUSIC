@@ -84,6 +84,8 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message.flush("info");
     } else if (DATA.Initial_profile == 13) {
         DATA.tau0 = hydro_source_terms.get_source_tau_min();
+    } else if (DATA->Initial_profile == 30) {
+        DATA->tau0 = hydro_source_ptr->get_source_tau_min();
     } else if (DATA.Initial_profile == 101) {
         cout << "Using Initial_profile=" << DATA.Initial_profile << endl;
         cout << "nx=" << DATA.nx << ", ny=" << DATA.ny << endl;
