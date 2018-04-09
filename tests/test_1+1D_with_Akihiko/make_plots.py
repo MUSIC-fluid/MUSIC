@@ -5,7 +5,7 @@ sys.path.insert(0, '../../utilities')
 
 from numpy import *
 import matplotlib.pyplot as plt
-plt.style.use('csplotstyle')
+plt.style.use('CS_paper')
 from os import path
 from CSplottools import getPlotElements
 

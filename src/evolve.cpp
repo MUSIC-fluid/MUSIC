@@ -119,7 +119,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
         grid_info.get_maximum_energy_density(*ap_current);
 
-        if (DATA.output_hydro_debug_flag == 1) {
+        if (DATA.output_hydro_debug_info == 1) {
             grid_info.monitor_fluid_cell(*ap_current, 100, 100, 0, tau);
         }
     
