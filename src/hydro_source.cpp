@@ -11,8 +11,7 @@
 using namespace std;
 
 hydro_source::hydro_source(const InitData &DATA_in) :
-    DATA(DATA_in)
-{
+    DATA(DATA_in) {
     source_tau_max = 0.0;
     source_tau_min = 100.0;
     if (DATA.Initial_profile == 12
@@ -178,10 +177,8 @@ void hydro_source::read_in_QCD_strings_and_partons() {
     if (DATA.Initial_profile == 12) {
         total_baryon_number = parton_list.size();
     } else if (DATA.Initial_profile == 13) {
-        for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
-             it != QCD_strings_list.end(); it++) {
-            total_baryon_number += ((*it).frac_l + (*it).frac_r);
-        }
+        for (auto const& it : QCD_strings_list)
+            total_baryon_number += it.frac_l + it.frac_r;
     }
     music_message << "total baryon number = " << total_baryon_number;
     music_message.flush("info");
@@ -336,50 +333,49 @@ void hydro_source::get_hydro_energy_source(
         double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
         double dtau = DATA.delta_tau;
         // double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
-        for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
-             it != QCD_strings_list.end(); it++) {
-            double tau_0 = (*it).tau_0;
-            double delta_tau = (*it).tau_form;
+        for (auto &it: QCD_strings_list) {
+            double tau_0 = it.tau_0;
+            double delta_tau = it.tau_form;
             double tau_start = tau_0 + delta_tau;
-            if ((*it).eta_s_left > (*it).eta_s_0) {
-                tau_start = (*it).tau_end_left;
-            } else if ((*it).eta_s_right < (*it).eta_s_0) {
-                tau_start = (*it).tau_end_right;
+            if (it.eta_s_left > it.eta_s_0) {
+                tau_start = it.tau_end_left;
+            } else if (it.eta_s_right < it.eta_s_0) {
+                tau_start = it.tau_end_right;
             }
-            if (tau > tau_start && (*it).status == 0) {
+            if (tau > tau_start && it.status == 0) {
                 // activiate the string when the constant tau hypersurface
                 // starts to cross it
-                (*it).status = 1;
+                it.status = 1;
             }
-            if ((*it).status == 1) {
+            if (it.status == 1) {
                 // dumping energy into the medium from the active strings
-                if (tau > (*it).tau_end_left && tau > (*it).tau_end_right) {
-                    (*it).status = 2;
+                if (tau > it.tau_end_left && tau > it.tau_end_right) {
+                    it.status = 2;
                     continue;
                 }
-                double x_dis = x - (*it).x_perp;
+                double x_dis = x - it.x_perp;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {
                     continue;
                 }
-                double y_dis = y - (*it).y_perp;
+                double y_dis = y - it.y_perp;
                 if (fabs(y_dis) > n_sigma_skip*sigma_x) {
                     continue;
                 }
                 int flag_left = 1;
                 int flag_right = 1;
 
-                if ((*it).eta_s_0 < (*it).eta_s_left) {
+                if (it.eta_s_0 < it.eta_s_left) {
                     flag_left = 0;
                 }
-                if ((*it).eta_s_0 > (*it).eta_s_right) {
+                if (it.eta_s_0 > it.eta_s_right) {
                     flag_right = 0;
                 }
 
                 double eta_s_shift = acosh((tau*tau + tau_0*tau_0
                                             - delta_tau*delta_tau)
                                            /(2.*tau*tau_0));
-                double eta_s_left = (*it).eta_s_0 - eta_s_shift;
-                double eta_s_right = (*it).eta_s_0 + eta_s_shift;
+                double eta_s_left = it.eta_s_0 - eta_s_shift;
+                double eta_s_right = it.eta_s_0 + eta_s_shift;
 
                 double eta_s_prev_shift = 0.0;
                 double tau_prev = tau - dtau;
@@ -388,19 +384,19 @@ void hydro_source::get_hydro_energy_source(
                                               - delta_tau*delta_tau)
                                              /(2.*tau_prev*tau_0));
                 }
-                double eta_s_left_prev = (*it).eta_s_0 - eta_s_prev_shift;
-                double eta_s_right_prev = (*it).eta_s_0 + eta_s_prev_shift;
+                double eta_s_left_prev = it.eta_s_0 - eta_s_prev_shift;
+                double eta_s_right_prev = it.eta_s_0 + eta_s_prev_shift;
 
-                if (eta_s_left_prev < (*it).eta_s_left) {
+                if (eta_s_left_prev < it.eta_s_left) {
                     flag_left = 0;
-                } else if (eta_s_left < (*it).eta_s_left) {
-                    eta_s_left = (*it).eta_s_left;
+                } else if (eta_s_left < it.eta_s_left) {
+                    eta_s_left = it.eta_s_left;
                 }
                 
-                if (eta_s_right_prev > (*it).eta_s_right) {
+                if (eta_s_right_prev > it.eta_s_right) {
                     flag_right = 0;
-                } else if (eta_s_right > (*it).eta_s_right) {
-                    eta_s_right = (*it).eta_s_right;
+                } else if (eta_s_right > it.eta_s_right) {
+                    eta_s_right = it.eta_s_right;
                 }
 
                 double eta_s_left_dis = (
@@ -430,22 +426,22 @@ void hydro_source::get_hydro_energy_source(
                                         /(sigma_x*sigma_x));
 
                 double e_frac = 1.0;
-                if (eta_s < (*it).eta_s_left) {
-                    e_frac = (*it).frac_l;
-                } else if (eta_s < (*it).eta_s_right) {
-                    e_frac = ((*it).frac_l
-                              + ((*it).frac_r - (*it).frac_l)
-                                /((*it).eta_s_right - (*it).eta_s_left)
-                                *(eta_s - (*it).eta_s_left));
+                if (eta_s < it.eta_s_left) {
+                    e_frac = it.frac_l;
+                } else if (eta_s < it.eta_s_right) {
+                    e_frac = (it.frac_l
+                              + (it.frac_r - it.frac_l)
+                                /(it.eta_s_right - it.eta_s_left)
+                                *(eta_s - it.eta_s_left));
                 } else {
-                    e_frac = (*it).frac_r;
+                    e_frac = it.frac_r;
                 }
                 double e_local = e_frac*exp_tau*exp_xperp*exp_eta_s;
                 e_local *= DATA.sFactor/hbarc;  // 1/fm^4
                 double y_string = (
-                        (*it).y_l + ((*it).y_r - (*it).y_l)
-                                    /((*it).eta_s_right - (*it).eta_s_left)
-                                    *(eta_s - (*it).eta_s_left));
+                        it.y_l + (it.y_r - it.y_l)
+                                    /(it.eta_s_right - it.eta_s_left)
+                                    *(eta_s - it.eta_s_left));
                 double y_dump = ((1. - string_quench_factor)*y_string
                                  + string_quench_factor*y_long_flow);
                 double y_dump_perp = string_quench_factor*y_perp_flow;
@@ -581,25 +577,24 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
         double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
         double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
         double prefactor_tau = 1./dtau;
-        for (vector<QCD_string>::iterator it = QCD_strings_list.begin();
-             it != QCD_strings_list.end(); it++) {
+        for (auto &it: QCD_strings_list) {
             // skip the evaluation if the strings is too far away in the
             // space-time grid
             // dumping energy into the medium from the active strings
-            //double tau_dis_left = fabs(tau - (*it).tau_end_left);
-            //double tau_dis_right = fabs(tau - (*it).tau_end_right);
+            //double tau_dis_left = fabs(tau - it.tau_end_left);
+            //double tau_dis_right = fabs(tau - it.tau_end_right);
             //if (tau_dis_left > n_sigma_skip*sigma_tau
             //        && tau_dis_right > n_sigma_skip*sigma_tau) {
             //    continue;
             //}
             int flag_left = 0;
             int flag_right = 0;
-            if (tau > (*it).tau_end_left
-                    && tau < (*it).tau_end_left + dtau) {
+            if (tau > it.tau_end_left
+                    && tau < it.tau_end_left + dtau) {
                 flag_left = 1;
             }
-            if (tau > (*it).tau_end_right
-                    && tau < (*it).tau_end_right + dtau) {
+            if (tau > it.tau_end_right
+                    && tau < it.tau_end_right + dtau) {
                 flag_right = 1;
             }
 
@@ -607,11 +602,11 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 continue;
             }
 
-            double x_dis = x - (*it).x_perp;
+            double x_dis = x - it.x_perp;
             if (fabs(x_dis) > n_sigma_skip*sigma_x) {
                 continue;
             }
-            double y_dis = y - (*it).y_perp;
+            double y_dis = y - it.y_perp;
             if (fabs(y_dis) > n_sigma_skip*sigma_x) {
                 continue;
             }
@@ -619,7 +614,7 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             double exp_tau_left = 1.0/tau;
             double exp_eta_s_left = 0.0;
             if (flag_left == 1) {
-                double eta_dis_left = fabs(eta_s - (*it).eta_s_left);
+                double eta_dis_left = fabs(eta_s - it.eta_s_left);
                 if (eta_dis_left < n_sigma_skip*sigma_eta) {
                     exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
                                           /(sigma_eta*sigma_eta)));
@@ -629,24 +624,24 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             double exp_tau_right = 1.0/tau;
             double exp_eta_s_right = 0.0;
             if (flag_right == 1) {
-                double eta_dis_right = fabs(eta_s - (*it).eta_s_right);
+                double eta_dis_right = fabs(eta_s - it.eta_s_right);
                 if (eta_dis_right < n_sigma_skip*sigma_eta) {
                     exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
                                            /(sigma_eta*sigma_eta)));
                 }
             }
             
-            double exp_factors = (exp_tau_left*exp_eta_s_left*(*it).frac_l
-                                + exp_tau_right*exp_eta_s_right*(*it).frac_r);
+            double exp_factors = (exp_tau_left*exp_eta_s_left*it.frac_l
+                                + exp_tau_right*exp_eta_s_right*it.frac_r);
             if (exp_factors > 0) {
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                         /(sigma_x*sigma_x));
                 double fsmear = exp_xperp*exp_factors;
                 double rapidity_local = (
-                    (exp_tau_left*exp_eta_s_left*(*it).frac_l*(*it).y_l
-                     + exp_tau_right*exp_eta_s_right*(*it).frac_r*(*it).y_r)
-                    /(exp_tau_left*exp_eta_s_left*(*it).frac_l
-                      + exp_tau_right*exp_eta_s_right*(*it).frac_r));
+                    (exp_tau_left*exp_eta_s_left*it.frac_l*it.y_l
+                     + exp_tau_right*exp_eta_s_right*it.frac_r*it.y_r)
+                    /(exp_tau_left*exp_eta_s_left*it.frac_l
+                      + exp_tau_right*exp_eta_s_right*it.frac_r));
                 double y_dump = ((1. - parton_quench_factor)*rapidity_local
                                  + parton_quench_factor*y_long_flow);
                 double y_dump_perp = parton_quench_factor*y_perp_flow;
