@@ -418,9 +418,8 @@ void hydro_source::get_hydro_energy_source(
             //double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
             double prefactor_tau = 1./dtau;
             double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
-            for (vector<parton>::iterator it = parton_list_current_tau.begin();
-                 it != parton_list_current_tau.end(); it++) {
-                //double tau_dis = tau - (*it).tau;
+            for (auto &it: parton_list_current_tau) {
+                //double tau_dis = tau - it.tau;
                 //if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
                 //    continue;
                 //}
@@ -428,20 +427,20 @@ void hydro_source::get_hydro_energy_source(
                 //    continue;
                 //}
 
-                double x_dis = x - (*it).x;
+                double x_dis = x - it.x;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {
                     continue;
                 }
-                double y_dis = y - (*it).y;
+                double y_dis = y - it.y;
                 if (fabs(y_dis) > n_sigma_skip*sigma_x) {
                     continue;
                 }
-                double eta_s_dis = eta_s - (*it).eta_s;
+                double eta_s_dis = eta_s - it.eta_s;
                 if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
                     continue;
                 }
                 //double exp_tau = (
-                //    1./((*it).tau)
+                //    1./(it.tau)
                 //    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
                 double exp_tau = 1./tau;
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
@@ -450,12 +449,12 @@ void hydro_source::get_hydro_energy_source(
                         exp(-eta_s_dis*eta_s_dis/(sigma_eta*sigma_eta)));
 
                 double f_smear = exp_tau*exp_xperp*exp_eta_s;
-                double p_perp_sq = (*it).px*(*it).px + (*it).py*(*it).py;
-                double m_perp = sqrt((*it).mass*(*it).mass + p_perp_sq);
-                j_mu[0] += m_perp*cosh((*it).rapidity - eta_s)*f_smear;
-                j_mu[1] += (*it).px*f_smear;
-                j_mu[2] += (*it).py*f_smear;
-                j_mu[3] += m_perp*sinh((*it).rapidity - eta_s)*f_smear;
+                double p_perp_sq = it.px*it.px + it.py*it.py;
+                double m_perp = sqrt(it.mass*it.mass + p_perp_sq);
+                j_mu[0] += m_perp*cosh(it.rapidity - eta_s)*f_smear;
+                j_mu[1] += it.px*f_smear;
+                j_mu[2] += it.py*f_smear;
+                j_mu[3] += m_perp*sinh(it.rapidity - eta_s)*f_smear;
             }
             double norm = DATA.sFactor/hbarc;     // 1/fm^4
             j_mu[0] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
@@ -559,11 +558,10 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
             //double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
             double prefactor_tau = 1./dtau;
-            for (vector<parton>::iterator it = parton_list_current_tau.begin();
-                 it != parton_list_current_tau.end(); it++) {
+            for (auto &it: parton_list_current_tau) {
                 // skip the evaluation if the strings is too far away in the
                 // space-time grid
-                //double tau_dis = tau - (*it).tau;
+                //double tau_dis = tau - it.tau;
                 //if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
                 //    continue;
                 //}
@@ -571,20 +569,20 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 //    continue;
                 //}
 
-                double x_dis = x - (*it).x;
+                double x_dis = x - it.x;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {
                     continue;
                 }
-                double y_dis = y - (*it).y;
+                double y_dis = y - it.y;
                 if (fabs(y_dis) > n_sigma_skip*sigma_x) {
                     continue;
                 }
-                double eta_s_dis = eta_s - (*it).eta_s;
+                double eta_s_dis = eta_s - it.eta_s;
                 if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
                     continue;
                 }
                 //double exp_tau = (
-                //    1./((*it).tau)
+                //    1./(it.tau)
                 //    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
                 double exp_tau = 1./tau;
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
@@ -592,9 +590,9 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 double exp_eta_s = (
                         exp(-eta_s_dis*eta_s_dis/(sigma_eta*sigma_eta)));
                 double f_smear = exp_tau*exp_xperp*exp_eta_s;
-                double y_dump = ((1. - parton_quench_factor)*(*it).rapidity
+                double y_dump = ((1. - parton_quench_factor)*it.rapidity
                                  + parton_quench_factor*y_long_flow);
-                double y_dump_perp = ((1. - parton_quench_factor)*(*it).rapidity_perp
+                double y_dump_perp = ((1. - parton_quench_factor)*it.rapidity_perp
                                       + parton_quench_factor*y_perp_flow);
                 double p_dot_u = (u_mu[0]
                     - tanh(y_dump_perp)*sinh_y_perp_flow/cosh(y_dump - eta_s)
