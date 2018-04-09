@@ -33,17 +33,13 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                      SCGrid &arena_future) {
     // first pass some control parameters
     facTau                      = DATA.facTau;
-    int output_hydro_debug_flag = DATA.output_hydro_debug_info;
     int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
-    int outputEvo_flag          = DATA.outputEvolutionData;
-    int output_movie_flag       = DATA.output_movie_flag;
     int freezeout_flag          = DATA.doFreezeOut;
     int freezeout_lowtemp_flag  = DATA.doFreezeOut_lowtemp;
-    int boost_invariant_flag    = DATA.boost_invariant;
 
     // Output information about the hydro parameters 
     // in the format of a C header file
-    if (DATA.output_hydro_params_header || outputEvo_flag == 1)
+    if (DATA.output_hydro_params_header || DATA.outputEvolutionData == 1)
         grid_info.Output_hydro_information_header();
 
     // main loop starts ...
@@ -103,24 +99,27 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
 
         if (it % Nskip_timestep == 0) {
-            if (outputEvo_flag == 1) {
+            if (DATA.outputEvolutionData == 1) {
                 grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
-            } else if (outputEvo_flag == 2) {
+            } else if (DATA.outputEvolutionData == 2) {
                 grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
             }
-            if (output_movie_flag == 1) {
+            if (DATA.output_movie_flag == 1) {
                 grid_info.output_evolution_for_movie(*ap_current, tau);
             }
         }
-        grid_info.output_average_phase_diagram_trajectory(tau, -0.5, 0.5,
-                                                          *ap_current);
+
+        if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
+            grid_info.output_average_phase_diagram_trajectory(
+                                            tau, -0.5, 0.5, *ap_current);
+        }
 
         // check energy conservation
-        if (boost_invariant_flag == 0)
+        if (DATA.boost_invariant == 0)
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
         grid_info.get_maximum_energy_density(*ap_current);
 
-        if (output_hydro_debug_flag == 1) {
+        if (DATA.output_hydro_debug_flag == 1) {
             grid_info.monitor_fluid_cell(*ap_current, 100, 100, 0, tau);
         }
     
@@ -136,7 +135,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
             // avoid freeze-out at the first time step
             if ((it - it_start)%facTau == 0 && it > it_start) {
-                if (boost_invariant_flag == 0) {
+                if (DATA.boost_invariant == 0) {
                     frozen = FindFreezeOutSurface_Cornelius(
                                 tau, *ap_current, arena_freezeout);
                 } else {

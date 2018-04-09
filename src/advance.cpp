@@ -316,7 +316,7 @@ void Advance::FirstRKStepW(
 
     // If the energy density of the fluid element is smaller than 0.01GeV
     // reduce Wmunu using the QuestRevert algorithm
-    if (DATA.Initial_profile != 0) {
+    if (DATA.Initial_profile != 0 && DATA.Initial_profile != 1) {
         QuestRevert(tau, grid_pt_f, ieta, ix, iy);
         if (DATA.turn_on_diff == 1) {
             QuestRevert_qmu(tau, grid_pt_f, ieta, ix, iy);

@@ -1,10 +1,11 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import sys
 sys.path.insert(0, '../../utilities')
 
 from numpy import *
 import matplotlib.pyplot as plt
+plt.style.use('csplotstyle')
 from os import path
 from CSplottools import getPlotElements
 
