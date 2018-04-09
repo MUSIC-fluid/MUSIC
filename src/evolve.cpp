@@ -72,8 +72,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
-        if (DATA->Initial_profile == 30) {
-            hydro_source_ptr->prepare_list_for_current_tau_frame(tau);
+        if (DATA.Initial_profile == 30) {
+            hydro_source_terms.prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
         if (it == it_start) {

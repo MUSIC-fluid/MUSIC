@@ -247,7 +247,7 @@ void hydro_source::read_in_AMPT_partons() {
 
 
 void hydro_source::prepare_list_for_current_tau_frame(double tau_local) {
-    double dtau = DATA_ptr->delta_tau;
+    double dtau = DATA.delta_tau;
     parton_list_current_tau.clear();
     for (vector<parton>::iterator it = parton_list.begin();
          it != parton_list.end(); it++) {
