@@ -82,7 +82,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
+    } else if (DATA.Initial_profile == 13) {
         DATA.tau0 = hydro_source_terms.get_source_tau_min();
     } else if (DATA.Initial_profile == 101) {
         cout << "Using Initial_profile=" << DATA.Initial_profile << endl;
@@ -164,7 +164,7 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
             //     << " executes loop iteraction ieta = " << ieta << endl;
             initial_MCGlb_with_rhob_XY(ieta, arena_prev, arena_current);
         } /* ix, iy, ieta */
-    } else if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
+    } else if (DATA.Initial_profile == 13) {
         music_message.info("Initialize hydro with source terms");
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {

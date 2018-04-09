@@ -19,8 +19,7 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
     diss_helper(eosIn, DATA_in),
     minmod(DATA_in),
     reconst_helper(eos, DATA_in) {
-    if (DATA_in.Initial_profile == 12 || DATA_in.Initial_profile == 13
-        || DATA_in.Initial_profile == 30) {
+    if (DATA_in.Initial_profile == 13 || DATA_in.Initial_profile == 30) {
         flag_add_hydro_source = true;
     } else {
         flag_add_hydro_source = false;

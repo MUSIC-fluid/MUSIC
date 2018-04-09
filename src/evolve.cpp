@@ -49,7 +49,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     double tau;
     int it_start = 0;
-    if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
+    if (DATA.Initial_profile == 13) {
         double source_tau_max = hydro_source_terms.get_source_tau_max();
         it_start = static_cast<int>((source_tau_max - tau0)/dt);
         if (it_start < 0) it_start = 0;
@@ -90,7 +90,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
         
-        if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
+        if (DATA.Initial_profile == 13) {
             if (it == it_start) {
                 grid_info.output_energy_density_and_rhob_disitrubtion(
                             *ap_current,
@@ -109,7 +109,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
-        if (DATA.Initial_profile == 12 || DATA.Initial_profile == 13) {
+        if (DATA.Initial_profile == 13) {
             grid_info.output_average_phase_diagram_trajectory(
                                             tau, -0.5, 0.5, *ap_current);
         }
