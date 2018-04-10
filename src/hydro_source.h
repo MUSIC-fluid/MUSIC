@@ -16,6 +16,7 @@ struct QCD_string {
     double delta_E;           // the energy difference between
                               // before and after the collisions [GeV]
     double tau_form;
+    double tau_start, eta_s_start;
     double tau_0, eta_s_0;
     double x_perp, y_perp;    // transverse position of the string
     double tau_end_left, tau_end_right;
