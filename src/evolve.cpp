@@ -49,15 +49,15 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     double tau;
     int it_start = 0;
-    if (DATA.Initial_profile == 13) {
-        double source_tau_max = hydro_source_terms.get_source_tau_max();
-        it_start = static_cast<int>((source_tau_max - tau0)/dt);
-        if (it_start < 0) it_start = 0;
-    } else if (DATA.Initial_profile == 30) {
-        double source_tau_max = hydro_source_terms.get_source_tau_max();
-        it_start = static_cast<int>((source_tau_max - tau0)/dt);
-        if (it_start < 0) it_start = 0;
-    }
+    //if (DATA.Initial_profile == 13) {
+    //    double source_tau_max = hydro_source_terms.get_source_tau_max();
+    //    it_start = static_cast<int>((source_tau_max - tau0)/dt);
+    //    if (it_start < 0) it_start = 0;
+    //} else if (DATA.Initial_profile == 30) {
+    //    double source_tau_max = hydro_source_terms.get_source_tau_max();
+    //    it_start = static_cast<int>((source_tau_max - tau0)/dt);
+    //    if (it_start < 0) it_start = 0;
+    //}
 
 
     const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
@@ -195,22 +195,19 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau,
                                            SCGrid &arena_freezeout) {
     const int neta = arena_current.nEta();
     const int fac_eta = 1;
-    int flag_all_frozen = 0;
+    int intersections = 0;
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
         const double epsFO = epsFO_list[i_freezesurf]/hbarc;   // 1/fm^4
 
-        int intersections = 0;
         #pragma omp parallel for reduction(+:intersections)
         for (int ieta = 0; ieta < (neta-fac_eta); ieta += fac_eta) {
             int thread_id = omp_get_thread_num();
             intersections += FindFreezeOutSurface_Cornelius_XY(
                 tau, ieta, arena_current, arena_freezeout, thread_id, epsFO);
         }
-        if (intersections == 0)
-            flag_all_frozen = 1;
     }
 
-    if (flag_all_frozen == 1) {
+    if (intersections == 0) {
         std::cout << "All cells frozen out. Exiting." << std::endl;
     }
     return(flag_all_frozen);
