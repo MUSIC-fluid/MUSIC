@@ -263,14 +263,14 @@ void hydro_source::prepare_list_for_current_tau_frame(double tau_local) {
     parton_list_current_tau.clear();
     if (DATA.Initial_profile == 13) {
         for (auto &it: QCD_strings_list) {
-            if ((   tau_local > (it.tau_end_left - dtau)
-                 && tau_local <= it.tau_end_left)
-                || (   tau_local > (it.tau_end_right - dtau)
-                    && tau_local <= it.tau_end_right)) {
+            if ((   it.tau_end_left >= (tau_local - 1./2.*dtau)
+                 && it.tau_end_left <  (tau_local + 3./2.*dtau))
+                || (   it.tau_end_right >= (tau_local - 1./2.*dtau)
+                    && it.tau_end_right <  (tau_local + 3./2.*dtau))) {
                 QCD_strings_baryon_list_current_tau.push_back(it);
             }
-            if (   tau_local > it.tau_start - dtau
-                && tau_local <= std::max(it.tau_end_left, it.tau_end_right)) {
+            if (   it.tau_start <= tau_local + 3./2.*dtau
+                && std::max(it.tau_end_left, it.tau_end_right) >= tau_local - dtau/2.) {
                 QCD_strings_list_current_tau.push_back(it);
             }
         }
@@ -331,17 +331,23 @@ void hydro_source::get_hydro_energy_source(
             // the envelop profile for a segment [eta_L, eta_R] is
             // f(eta) = 0.5*(- Erf((eta_L - eta)/sigma)
             //               + Erf((eta_R - eta)/sigma))
-            double eta_s_shift = acosh((tau*tau + tau_0*tau_0
+            double eta_s_shift = 0.0;
+            double tau_L = tau - dtau/2.;
+            if (tau_L > tau_0 + delta_tau) {
+                eta_s_shift = acosh((tau_L*tau_L + tau_0*tau_0
                                         - delta_tau*delta_tau)
-                                       /(2.*tau*tau_0 + 1e-10));
+                                       /(2.*tau_L*tau_0 + 1e-10));
+            }
             double eta_s_L = std::min(it.eta_s_right, it.eta_s_0 - eta_s_shift);
             double eta_s_R = std::max(it.eta_s_left,  it.eta_s_0 + eta_s_shift);
 
             double eta_s_next_shift = 0.0;
-            double tau_next = tau + dtau;
-            eta_s_next_shift = acosh((tau_next*tau_next + tau_0*tau_0
-                                      - delta_tau*delta_tau)
-                                     /(2.*tau_next*tau_0 + 1e-10));
+            double tau_next = tau + dtau/2.;
+            if (tau_next > tau_0 + delta_tau) {
+                eta_s_next_shift = acosh((tau_next*tau_next + tau_0*tau_0
+                                          - delta_tau*delta_tau)
+                                         /(2.*tau_next*tau_0 + 1e-10));
+            }
             double eta_s_L_next = std::max(it.eta_s_left,  it.eta_s_0 - eta_s_next_shift);
             double eta_s_R_next = std::min(it.eta_s_right, it.eta_s_0 + eta_s_next_shift);
 
@@ -478,6 +484,19 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             // dumping energy into the medium from the active strings
             //double tau_dis_left = fabs(tau - it.tau_end_left);
             //double tau_dis_right = fabs(tau - it.tau_end_right);
+            int flag_left = 0;
+            if (   it.tau_end_left >= tau - dtau/2.
+                && it.tau_end_left <  tau + dtau/2.) {
+                flag_left = 1;
+            }
+
+            int flag_right = 0;
+            if (   it.tau_end_right >= tau - dtau/2.
+                && it.tau_end_right <  tau + dtau/2.) {
+                flag_right = 1;
+            }
+
+            if (flag_left == 0 && flag_right == 0) continue;
 
             double x_dis = x - it.x_perp;
             if (std::abs(x_dis) > skip_dis_x) continue;
@@ -487,17 +506,21 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
 
             double exp_tau = 1.0/tau;
             double exp_eta_s_left = 0.0;
-            double eta_dis_left = std::abs(eta_s - it.eta_s_left);
-            if (eta_dis_left < skip_dis_eta) {
-                exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
-                                      /(sigma_eta*sigma_eta)));
+            if (flag_left == 1) {
+                double eta_dis_left = std::abs(eta_s - it.eta_s_left);
+                if (eta_dis_left < skip_dis_eta) {
+                    exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
+                                          /(sigma_eta*sigma_eta)));
+                }
             }
 
             double exp_eta_s_right = 0.0;
-            double eta_dis_right = std::abs(eta_s - it.eta_s_right);
-            if (eta_dis_right < skip_dis_eta) {
-                exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
-                                       /(sigma_eta*sigma_eta)));
+            if (flag_right == 1) {
+                double eta_dis_right = std::abs(eta_s - it.eta_s_right);
+                if (eta_dis_right < skip_dis_eta) {
+                    exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
+                                           /(sigma_eta*sigma_eta)));
+                }
             }
             
             double exp_factors = exp_tau*(
@@ -544,9 +567,6 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
                     continue;
                 }
-                //double exp_tau = (
-                //    1./(it.tau)
-                //    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
                 double exp_tau = 1./tau;
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                         /(sigma_x*sigma_x));

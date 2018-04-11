@@ -83,7 +83,8 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
     } else if (DATA.Initial_profile == 13) {
-        DATA.tau0 = hydro_source_terms.get_source_tau_min();
+        DATA.tau0 = hydro_source_terms.get_source_tau_min() - DATA.delta_tau;
+        DATA.tau0 = std::max(0.1, DATA.tau0);
     } else if (DATA.Initial_profile == 30) {
         DATA.tau0 = hydro_source_terms.get_source_tau_min();
     } else if (DATA.Initial_profile == 101) {
