@@ -37,7 +37,7 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.string_dump_mode = temp_string_dump_mode;
     
     // hydro source
-    double temp_string_quench_factor = 1.;
+    double temp_string_quench_factor = 0.;
     tempinput = Util::StringFind4(input_file, "string_quench_factor");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_string_quench_factor;

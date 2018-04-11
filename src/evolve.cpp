@@ -1,6 +1,7 @@
 // Copyright 2012 Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include <omp.h>
 #include <algorithm>
+#include <memory>
 
 #include "./evolve.h"
 #include "./util.h"
@@ -234,7 +235,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
     // initialize Cornelius
     double lattice_spacing[4] = {DTAU, DX, DY, DETA};
-    Cornelius* cornelius_ptr = new Cornelius();
+    std::shared_ptr<Cornelius> cornelius_ptr(new Cornelius());
     cornelius_ptr->init(dim, epsFO, lattice_spacing);
 
     // initialize the hyper-cube for Cornelius
@@ -1057,7 +1058,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
 
         // initialize Cornelius
         const int dim = 3;
-        Cornelius* cornelius_ptr = new Cornelius();
+        std::shared_ptr<Cornelius> cornelius_ptr(new Cornelius());
         cornelius_ptr->init(dim, epsFO, lattice_spacing);
 
         // initialize the hyper-cube for Cornelius
@@ -1491,7 +1492,6 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
             delete [] cube[i];
         }
         delete [] cube;
-        delete cornelius_ptr;
 
         // judge whether the entire fireball is freeze-out
         all_frozen[i_freezesurf] = 0;
