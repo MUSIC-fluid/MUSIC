@@ -9,18 +9,16 @@
 #include <math.h>
 #include <sstream>
 #include <fstream>
-#include <cstring>
+#include <string>
 #include <sys/stat.h>
 #include "data_struct.h"
-
-using namespace std;
 
 #ifndef PI
 #define PI (3.14159265358979324)
 #endif
 
 #ifndef hbarc
-#define hbarc (0.1973)
+#define hbarc (0.19733)
 #endif
 
 #ifndef default_tol
@@ -50,9 +48,9 @@ namespace Util {
 
     void mtx_free(double **, int, int);
     
-    int IsFile(string);
+    int IsFile(std::string);
     
-    string StringFind4(string file_name, string str_in);
+    std::string StringFind4(std::string file_name, std::string str_in);
     
     double lin_int(double x1,double x2,double f1,double f2,double x);
 

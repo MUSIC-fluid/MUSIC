@@ -5,10 +5,12 @@
 #include <sstream>
 #include <algorithm>
 #include <cmath>
-#include "./hydro_source.h"
-#include "./util.h"
+#include <memory>
 
-using namespace std;
+#include "hydro_source.h"
+#include "util.h"
+
+//using namespace std;
 
 hydro_source::hydro_source(const InitData &DATA_in) :
     DATA(DATA_in) {
@@ -306,7 +308,7 @@ void hydro_source::get_hydro_energy_source(
     const double dtau            = DATA.delta_tau;
 
     const double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
-    const double prefactor_tau = 1./dtau;
+    const double prefactor_tau  = 1./dtau;
     const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
     const double n_sigma_skip   = 5.;
     const double skip_dis_x     = n_sigma_skip*sigma_x;
@@ -422,17 +424,14 @@ void hydro_source::get_hydro_energy_source(
         if (tau_dis_max < n_sigma_skip*sigma_tau) {
             for (auto &it: parton_list_current_tau) {
                 double x_dis = x - it->x;
-                if (fabs(x_dis) > skip_dis_x) {
-                    continue;
-                }
+                if (std::abs(x_dis) > skip_dis_x) continue;
+
                 double y_dis = y - it->y;
-                if (fabs(y_dis) > skip_dis_x) {
-                    continue;
-                }
+                if (std::abs(y_dis) > skip_dis_x) continue;
+
                 double eta_s_dis = eta_s - it->eta_s;
-                if (fabs(eta_s_dis) > skip_dis_eta) {
-                    continue;
-                }
+                if (std::abs(eta_s_dis) > skip_dis_eta) continue;
+
                 double exp_tau = 1./tau;
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                         /(sigma_x*sigma_x));
@@ -548,17 +547,14 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 // skip the evaluation if the strings is too far away in the
                 // space-time grid
                 double x_dis = x - it->x;
-                if (fabs(x_dis) > skip_dis_x) {
-                    continue;
-                }
+                if (std::abs(x_dis) > skip_dis_x) continue;
+
                 double y_dis = y - it->y;
-                if (fabs(y_dis) > skip_dis_x) {
-                    continue;
-                }
+                if (std::abs(y_dis) > skip_dis_x) continue;
+
                 double eta_s_dis = eta_s - it->eta_s;
-                if (fabs(eta_s_dis) > skip_dis_eta) {
-                    continue;
-                }
+                if (std::abs(eta_s_dis) > skip_dis_eta) continue;
+
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                         /(sigma_x*sigma_x));
                 double exp_eta_s = (
