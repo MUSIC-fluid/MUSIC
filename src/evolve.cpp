@@ -49,16 +49,10 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     double tau;
     int it_start = 0;
-    //if (DATA.Initial_profile == 13) {
-    //    double source_tau_max = hydro_source_terms.get_source_tau_max();
-    //    it_start = static_cast<int>((source_tau_max - tau0)/dt);
-    //    if (it_start < 0) it_start = 0;
-    //} else if (DATA.Initial_profile == 30) {
-    //    double source_tau_max = hydro_source_terms.get_source_tau_max();
-    //    it_start = static_cast<int>((source_tau_max - tau0)/dt);
-    //    if (it_start < 0) it_start = 0;
-    //}
-
+    double source_tau_max = 0.0;
+    if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
+        source_tau_max = hydro_source_terms.get_source_tau_max();
+    }
 
     const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
     GridPointer ap_prev   (&arena_prev, closer);
@@ -72,7 +66,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
-        if (DATA.Initial_profile == 30) {
+        if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
             hydro_source_terms.prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
@@ -95,7 +89,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
         
         if (DATA.Initial_profile == 13) {
-            if (it == it_start) {
+            if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
                 grid_info.output_energy_density_and_rhob_disitrubtion(
                             *ap_current,
                             "energy_density_and_rhob_from_source_terms.dat");

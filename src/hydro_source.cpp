@@ -258,18 +258,40 @@ void hydro_source::read_in_AMPT_partons() {
 
 void hydro_source::prepare_list_for_current_tau_frame(double tau_local) {
     double dtau = DATA.delta_tau;
+    QCD_strings_list_current_tau.clear();
+    QCD_strings_baryon_list_current_tau.clear();
     parton_list_current_tau.clear();
-    for (vector<parton>::iterator it = parton_list.begin();
-         it != parton_list.end(); it++) {
-        double tau_dis = (*it).tau - tau_local;
-        if (tau_dis > 0. && tau_dis < dtau) {
-            parton_list_current_tau.push_back(*it);
+    if (DATA.Initial_profile == 13) {
+        for (auto &it: QCD_strings_list) {
+            if (   tau_local > it.tau_start - dtau
+                && tau_local <= std::max(it.tau_end_left, it.tau_end_right)) {
+                QCD_strings_list_current_tau.push_back(it);
+            }
+            if ((   tau_local > (it.tau_end_left - dtau)
+                 && tau_local <= it.tau_end_left)
+                || (   tau_local > (it.tau_end_right - dtau)
+                    && tau_local <= it.tau_end_right)) {
+                QCD_strings_baryon_list_current_tau.push_back(it);
+            }
         }
+        music_message << "hydro_source: tau = " << tau_local << " fm."
+                      << " number of strings for energy density: "
+                      << QCD_strings_list_current_tau.size()
+                      << " number of strings for net baryon density: "
+                      << QCD_strings_baryon_list_current_tau.size();
+        music_message.flush("info");
+    } else if (DATA.Initial_profile == 30) {
+        for (auto &it: parton_list) {
+            double tau_dis = it.tau - tau_local;
+            if (tau_dis > 0. && tau_dis < dtau) {
+                parton_list_current_tau.push_back(it);
+            }
+        }
+        music_message << "hydro_source: tau = " << tau_local
+                      << " number of source: "
+                      << parton_list_current_tau.size();
+        music_message.flush("info");
     }
-    music_message << "hydro_source: tau = " << tau_local
-                  << " number of source: "
-                  << parton_list_current_tau.size();
-    music_message.flush("info");
 }
 
 void hydro_source::get_hydro_energy_source(
@@ -293,24 +315,24 @@ void hydro_source::get_hydro_energy_source(
         const double skip_dis_eta   = n_sigma_skip*sigma_eta;
         const double sfactor        = DATA.sFactor/hbarc;
         // double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
-        for (auto &it: QCD_strings_list) {
+        for (auto &it: QCD_strings_list_current_tau) {
             const double tau_0     = it.tau_0;
             const double delta_tau = it.tau_form;
-            const double tau_start = it.tau_start;
+            //const double tau_start = it.tau_start;
 
-            if (tau > tau_start && it.status == 0) {
-                // activiate the string when the constant tau hypersurface
-                // starts to cross it
-                it.status = 1;
-            }
+            //if (tau > tau_start && it.status == 0) {
+            //    // activiate the string when the constant tau hypersurface
+            //    // starts to cross it
+            //    it.status = 1;
+            //}
 
-            if (it.status != 1) continue;
+            //if (it.status != 1) continue;
 
-            // dumping energy into the medium from the active strings
-            if ((tau - dtau) > it.tau_end_left && (tau - dtau) > it.tau_end_right) {
-                it.status = 2;
-                //continue;
-            }
+            //// dumping energy into the medium from the active strings
+            //if ((tau - dtau) > it.tau_end_left && (tau - dtau) > it.tau_end_right) {
+            //    it.status = 2;
+            //    //continue;
+            //}
 
             double x_dis = x - it.x_perp;
             if (std::abs(x_dis) > skip_dis_x) continue;
@@ -478,7 +500,7 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
         const double prefactor_tau  = 1./dtau;
         const double skip_dis_x     = n_sigma_skip*sigma_x;
         const double skip_dis_eta   = n_sigma_skip*sigma_eta;
-        for (auto &it: QCD_strings_list) {
+        for (auto &it: QCD_strings_baryon_list_current_tau) {
             // skip the evaluation if the strings is too far away in the
             // space-time grid
             // dumping energy into the medium from the active strings
@@ -488,17 +510,17 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             //        && tau_dis_right > n_sigma_skip*sigma_tau) {
             //    continue;
             //}
-            int flag_left = 0;
-            if (tau > it.tau_end_left && tau <= it.tau_end_left + dtau) {
-                flag_left = 1;
-            }
+            //int flag_left = 0;
+            //if (tau > it.tau_end_left && tau <= it.tau_end_left + dtau) {
+            //    flag_left = 1;
+            //}
 
-            int flag_right = 0;
-            if (tau > it.tau_end_right && tau <= it.tau_end_right + dtau) {
-                flag_right = 1;
-            }
+            //int flag_right = 0;
+            //if (tau > it.tau_end_right && tau <= it.tau_end_right + dtau) {
+            //    flag_right = 1;
+            //}
 
-            if (flag_left == 0 && flag_right == 0) continue;
+            //if (flag_left == 0 && flag_right == 0) continue;
 
             double x_dis = x - it.x_perp;
             if (std::abs(x_dis) > skip_dis_x) continue;
@@ -506,37 +528,32 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             double y_dis = y - it.y_perp;
             if (std::abs(y_dis) > skip_dis_x) continue;
 
-            double exp_tau_left = 1.0/tau;
+            double exp_tau = 1.0/tau;
             double exp_eta_s_left = 0.0;
-            if (flag_left == 1) {
-                double eta_dis_left = std::abs(eta_s - it.eta_s_left);
-                if (eta_dis_left < skip_dis_eta) {
-                    exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
-                                          /(sigma_eta*sigma_eta)));
-                }
+            double eta_dis_left = std::abs(eta_s - it.eta_s_left);
+            if (eta_dis_left < skip_dis_eta) {
+                exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
+                                      /(sigma_eta*sigma_eta)));
             }
 
-            double exp_tau_right = 1.0/tau;
             double exp_eta_s_right = 0.0;
-            if (flag_right == 1) {
-                double eta_dis_right = std::abs(eta_s - it.eta_s_right);
-                if (eta_dis_right < skip_dis_eta) {
-                    exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
-                                           /(sigma_eta*sigma_eta)));
-                }
+            double eta_dis_right = std::abs(eta_s - it.eta_s_right);
+            if (eta_dis_right < skip_dis_eta) {
+                exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
+                                       /(sigma_eta*sigma_eta)));
             }
             
-            double exp_factors = (exp_tau_left*exp_eta_s_left*it.frac_l
-                                  + exp_tau_right*exp_eta_s_right*it.frac_r);
+            double exp_factors = exp_tau*(
+                    exp_eta_s_left*it.frac_l + exp_eta_s_right*it.frac_r);
             if (exp_factors > 0) {
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                         /(sigma_x*sigma_x));
                 double fsmear = exp_xperp*exp_factors;
                 double rapidity_local = (
-                    (exp_tau_left*exp_eta_s_left*it.frac_l*it.y_l
-                     + exp_tau_right*exp_eta_s_right*it.frac_r*it.y_r)
-                    /(exp_tau_left*exp_eta_s_left*it.frac_l
-                      + exp_tau_right*exp_eta_s_right*it.frac_r));
+                    (  exp_eta_s_left*it.frac_l*it.y_l
+                     + exp_eta_s_right*it.frac_r*it.y_r)
+                    /(  exp_eta_s_left*it.frac_l
+                      + exp_eta_s_right*it.frac_r));
                 double y_dump = ((1. - parton_quench_factor)*rapidity_local
                                  + parton_quench_factor*y_long_flow);
                 double y_dump_perp = parton_quench_factor*y_perp_flow;

@@ -53,6 +53,8 @@ class hydro_source {
     double source_tau_max;
     double source_tau_min;
     std::vector<QCD_string> QCD_strings_list;
+    std::vector<QCD_string> QCD_strings_list_current_tau;
+    std::vector<QCD_string> QCD_strings_baryon_list_current_tau;
     std::vector<parton> parton_list;
     std::vector<parton> parton_list_current_tau;
 
