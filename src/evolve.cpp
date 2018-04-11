@@ -111,6 +111,14 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         if (DATA.Initial_profile == 13) {
             grid_info.output_average_phase_diagram_trajectory(
                                             tau, -0.5, 0.5, *ap_current);
+            grid_info.output_average_phase_diagram_trajectory(
+                                            tau, 0.5, 2.0, *ap_current);
+            grid_info.output_average_phase_diagram_trajectory(
+                                            tau, 2.0, 3.0, *ap_current);
+            grid_info.output_average_phase_diagram_trajectory(
+                                            tau, 3.0, 4.0, *ap_current);
+            grid_info.output_average_phase_diagram_trajectory(
+                                            tau, 4.0, 5.0, *ap_current);
         }
 
         // check energy conservation

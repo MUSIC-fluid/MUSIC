@@ -841,7 +841,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
     double weight = 0.0;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
-        if (DATA.boost_invariant == 1) {
+        if (DATA.boost_invariant == 0) {
             eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
                     - (DATA.eta_size)/2.0);
         }

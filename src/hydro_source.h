@@ -4,6 +4,8 @@
 
 #include <array>
 #include <vector>
+#include <memory>
+
 #include "data.h"
 #include "pretty_ostream.h"
 #include "data_struct.h"
@@ -11,7 +13,6 @@
 
 //! This data structure contains a QCD string object
 struct QCD_string {
-    int status;
     double norm;              // normalization for the string energy
     double delta_E;           // the energy difference between
                               // before and after the collisions [GeV]
@@ -52,11 +53,11 @@ class hydro_source {
     int string_dump_mode;
     double source_tau_max;
     double source_tau_min;
-    std::vector<QCD_string> QCD_strings_list;
-    std::vector<QCD_string> QCD_strings_list_current_tau;
-    std::vector<QCD_string> QCD_strings_baryon_list_current_tau;
-    std::vector<parton> parton_list;
-    std::vector<parton> parton_list_current_tau;
+    std::vector<std::shared_ptr<QCD_string>> QCD_strings_list;
+    std::vector<std::shared_ptr<QCD_string>> QCD_strings_list_current_tau;
+    std::vector<std::shared_ptr<QCD_string>> QCD_strings_baryon_list_current_tau;
+    std::vector<std::shared_ptr<parton>> parton_list;
+    std::vector<std::shared_ptr<parton>> parton_list_current_tau;
 
  public:
     hydro_source() = default;
