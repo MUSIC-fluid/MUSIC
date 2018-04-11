@@ -137,7 +137,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     }
 
     int include_WWterm         = 0;
-    int include_Vorticity_term = 0;
+    //int include_Vorticity_term = 0;
     int include_Wsigma_term    = 0;
     if (DATA.include_second_order_terms == 1 && DATA.Initial_profile != 0) {
         include_WWterm      = 1;
