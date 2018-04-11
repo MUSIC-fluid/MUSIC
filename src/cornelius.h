@@ -6,7 +6,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-using namespace std;
+//using namespace std;
 
 /**
  *
@@ -85,7 +85,7 @@ class Polygon : public GeneralElement
     bool add_line(Line*,int);
     int get_Nlines();
     Line** get_lines();
-    void print(ofstream &file,double*);
+    void print(std::ofstream &file,double*);
 };
 
 /**
@@ -255,7 +255,7 @@ class Cornelius
     int print_initialized;
     double value0;
     double *dx;
-    ofstream output_print;
+    std::ofstream output_print;
     void surface_3d(double***,double*,int);
     Square cu2d;
     Cube cu3d;
@@ -264,7 +264,7 @@ class Cornelius
     Cornelius();
     ~Cornelius();
     void init(int,double,double*);
-    void init_print(string);
+    void init_print(std::string);
     void find_surface_2d(double**);
     void find_surface_3d(double***);
     void find_surface_3d_print(double***,double*);
