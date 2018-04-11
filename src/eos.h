@@ -3,6 +3,7 @@
 #define SRC_EOS_H_
 
 #include <iostream>
+#include <string>
 
 #include "util.h"
 #include "data.h"
@@ -158,7 +159,7 @@ class EOS {
     void check_eos_with_finite_muB() const;
     void check_eos_no_muB() const;
     void output_eos_matrix(int ne, int nrhob, double** matrix_ptr,
-                           string filename) const;
+                           std::string filename) const;
 };
 
 #endif  // SRC_EOS_H_

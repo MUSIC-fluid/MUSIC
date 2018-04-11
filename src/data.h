@@ -9,32 +9,29 @@
 #include <stdlib.h>
 #include <string>
 
-using namespace std;
-
 //! This is a data structure contains all the parameters for simulation
-
 typedef struct init_data {
   
-  std::array<std::array<double, 4>, 4> gmunu = 
-    {{{-1,0,0,0},
-      { 0,1,0,0},
-      { 0,0,1,0},
-      { 0,0,0,1}}};
-      
-  int echo_level;
-  int mode;               //!< 1: do everything;
-  //!< 2: do hydro evolution only;
-  //!< 3: do calculation of thermal spectra only;
-  //!< 4: do resonance decays only
-  string initName;
-    string initName_rhob;
-    string initName_ux;
-    string initName_uy;
-    string initName_TA;
-    string initName_TB;
-    string initName_rhob_TA;
-    string initName_rhob_TB;
-    string initName_AMPT;
+    std::array<std::array<double, 4>, 4> gmunu = 
+      {{{-1,0,0,0},
+        { 0,1,0,0},
+        { 0,0,1,0},
+        { 0,0,0,1}}};
+        
+    int echo_level;
+    int mode;               //!< 1: do everything;
+    //!< 2: do hydro evolution only;
+    //!< 3: do calculation of thermal spectra only;
+    //!< 4: do resonance decays only
+    std::string initName;
+    std::string initName_rhob;
+    std::string initName_ux;
+    std::string initName_uy;
+    std::string initName_TA;
+    std::string initName_TB;
+    std::string initName_rhob_TA;
+    std::string initName_rhob_TB;
+    std::string initName_AMPT;
     
     //! random seed
     int seed;
@@ -152,7 +149,7 @@ typedef struct init_data {
     double eps_freeze_min;
     double eps_freeze_max;
     int freeze_eps_flag;
-    string freeze_list_filename;
+    std::string freeze_list_filename;
 
     // for calculation of spectra
     int pseudofreeze;    //! flag to compute spectra in pseudorapdity

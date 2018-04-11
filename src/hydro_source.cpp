@@ -10,7 +10,9 @@
 #include "hydro_source.h"
 #include "util.h"
 
-//using namespace std;
+using std::string;
+using std::cout;
+using std::endl;
 
 hydro_source::hydro_source(const InitData &DATA_in) :
     DATA(DATA_in) {
@@ -55,7 +57,7 @@ void hydro_source::read_in_QCD_strings_and_partons() {
     music_message.flush("info");
     string text_string;
 
-    ifstream QCD_strings_file(QCD_strings_filename.c_str());
+    std::ifstream QCD_strings_file(QCD_strings_filename.c_str());
     if (!QCD_strings_file) {
         music_message << "hydro_source::read_in_QCD_strings_and_partons: "
                       << "can not open QCD strings file: "
@@ -67,7 +69,7 @@ void hydro_source::read_in_QCD_strings_and_partons() {
     // now we read in data
     getline(QCD_strings_file, text_string);
     while (!QCD_strings_file.eof()) {
-        stringstream text_stream(text_string);
+        std::stringstream text_stream(text_string);
         std::shared_ptr<QCD_string> new_string(new QCD_string);
         text_stream >> new_string->norm >> new_string->delta_E
                     >> new_string->tau_form
@@ -163,7 +165,7 @@ void hydro_source::read_in_AMPT_partons() {
     music_message.flush("info");
 
     string text_string;
-    ifstream AMPT_file(AMPT_filename.c_str());
+    std::ifstream AMPT_file(AMPT_filename.c_str());
     if (!AMPT_file) {
         music_message << "hydro_source::read_in_AMPT_partons: "
                       << "can not open the AMPT file: " << AMPT_filename;
@@ -175,13 +177,13 @@ void hydro_source::read_in_AMPT_partons() {
     int event_id  = 0;
     int dummy;
     getline(AMPT_file, text_string);
-    stringstream text_stream1(text_string);
+    std::stringstream text_stream1(text_string);
     text_stream1 >> event_id >> dummy >> n_partons;
 
     // now we read in data
     for (int ipart = 0; ipart < n_partons; ipart++) {
         getline(AMPT_file, text_string);
-        stringstream text_stream(text_string);
+        std::stringstream text_stream(text_string);
         std::shared_ptr<parton> new_parton(new parton);
         double t_local, z_local, pz_local;
         int pid;

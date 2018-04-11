@@ -27,7 +27,7 @@
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_interp.h>
 
-#include <cstring>
+#include <string>
 #include <iostream>
 #include <iterator>
 #include <algorithm>
@@ -177,8 +177,8 @@ class Freeze{
     void ComputeParticleSpectrum_pseudo_boost_invariant(InitData *DATA,
                                                         int number);
 
-    void load_deltaf_qmu_coeff_table(string filename);
-    void load_deltaf_qmu_coeff_table_14mom(string filename);
+    void load_deltaf_qmu_coeff_table(std::string filename);
+    void load_deltaf_qmu_coeff_table_14mom(std::string filename);
     double get_deltaf_qmu_coeff(double T, double muB);
     double get_deltaf_coeff_14moments(double T, double muB, double type);
 

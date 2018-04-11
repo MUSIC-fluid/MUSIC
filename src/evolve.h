@@ -41,7 +41,7 @@ class Evolve {
     // information about freeze-out surface
     // (only used when freezeout_method == 4)
     int n_freeze_surf;
-    vector<double> epsFO_list;
+    std::vector<double> epsFO_list;
 
     typedef std::unique_ptr<SCGrid, void(*)(SCGrid*)> GridPointer;
 

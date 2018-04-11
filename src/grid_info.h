@@ -5,6 +5,8 @@
 
 #include <iostream>
 #include <iomanip>
+#include <string>
+
 #include "data.h"
 #include "eos.h"
 #include "cell.h"
@@ -50,8 +52,8 @@ class Cell_info {
     //! This function outputs hydro evolution file in binary format
     void OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau);
 
-    void load_deltaf_qmu_coeff_table(string filename);
-    void load_deltaf_qmu_coeff_table_14mom(string filename);
+    void load_deltaf_qmu_coeff_table(std::string filename);
+    void load_deltaf_qmu_coeff_table_14mom(std::string filename);
     double get_deltaf_qmu_coeff(double T, double muB);
     double get_deltaf_coeff_14moments(double T, double muB, double type);
 
@@ -75,7 +77,7 @@ class Cell_info {
 
     //! This function dumps the energy density and net baryon density
     void output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
-                                                     string filename);
+                                                     std::string filename);
     
     //! This function checks the total energy and total net baryon number
     //! at a give proper time

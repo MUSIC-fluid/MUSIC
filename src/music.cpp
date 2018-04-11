@@ -7,7 +7,7 @@
 #include "music.h"
 #include "dissipative.h"
 
-MUSIC::MUSIC(string input_file) : 
+MUSIC::MUSIC(std::string input_file) : 
     DATA(ReadInParameters::read_in_parameters(input_file)),
     eos(DATA),
     hydro_source_terms(DATA) {

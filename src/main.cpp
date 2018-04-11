@@ -2,16 +2,15 @@
 // Massively cleaned up and improved by Chun Shen 2015-2016
 
 #include <stdio.h>
+#include <string>
 #include <sys/stat.h>
 
 #include "music.h"
 #include "music_logo.h"
 
-using namespace std;
-
 // main program
 int main(int argc, char *argv[]) {
-    string input_file;
+    std::string input_file;
     InitData DATA __attribute__ ((aligned (64)));
 
     if (argc > 1)

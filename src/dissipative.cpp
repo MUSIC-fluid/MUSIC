@@ -8,6 +8,8 @@
 #include "eos.h"
 #include "dissipative.h"
 
+using namespace std;
+
 Diss::Diss(const EOS &eosIn, const InitData &Data_in) : DATA(Data_in), eos(eosIn), minmod(Data_in) {}
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
