@@ -263,15 +263,15 @@ void hydro_source::prepare_list_for_current_tau_frame(double tau_local) {
     parton_list_current_tau.clear();
     if (DATA.Initial_profile == 13) {
         for (auto &it: QCD_strings_list) {
-            if (   tau_local > it.tau_start - dtau
-                && tau_local <= std::max(it.tau_end_left, it.tau_end_right)) {
-                QCD_strings_list_current_tau.push_back(it);
-            }
             if ((   tau_local > (it.tau_end_left - dtau)
                  && tau_local <= it.tau_end_left)
                 || (   tau_local > (it.tau_end_right - dtau)
                     && tau_local <= it.tau_end_right)) {
                 QCD_strings_baryon_list_current_tau.push_back(it);
+            }
+            if (   tau_local > it.tau_start - dtau
+                && tau_local <= std::max(it.tau_end_left, it.tau_end_right)) {
+                QCD_strings_list_current_tau.push_back(it);
             }
         }
         music_message << "hydro_source: tau = " << tau_local << " fm."
@@ -318,22 +318,7 @@ void hydro_source::get_hydro_energy_source(
         for (auto &it: QCD_strings_list_current_tau) {
             const double tau_0     = it.tau_0;
             const double delta_tau = it.tau_form;
-            //const double tau_start = it.tau_start;
-
-            //if (tau > tau_start && it.status == 0) {
-            //    // activiate the string when the constant tau hypersurface
-            //    // starts to cross it
-            //    it.status = 1;
-            //}
-
-            //if (it.status != 1) continue;
-
-            //// dumping energy into the medium from the active strings
-            //if ((tau - dtau) > it.tau_end_left && (tau - dtau) > it.tau_end_right) {
-            //    it.status = 2;
-            //    //continue;
-            //}
-
+            
             double x_dis = x - it.x_perp;
             if (std::abs(x_dis) > skip_dis_x) continue;
 
@@ -342,45 +327,43 @@ void hydro_source::get_hydro_energy_source(
 
             // calculate the crossed string segments in the eta direction
             // normally, there will be two segments
-            // [eta_L, eta_L_prev] and [eta_R_prev, eta_R]
+            // [eta_L_next, eta_L] and [eta_R, eta_R_next]
             // the envelop profile for a segment [eta_L, eta_R] is
             // f(eta) = 0.5*(- Erf((eta_L - eta)/sigma)
             //               + Erf((eta_R - eta)/sigma))
             double eta_s_shift = acosh((tau*tau + tau_0*tau_0
                                         - delta_tau*delta_tau)
                                        /(2.*tau*tau_0 + 1e-10));
-            double eta_s_L = std::max(it.eta_s_left,  it.eta_s_0 - eta_s_shift);
-            double eta_s_R = std::min(it.eta_s_right, it.eta_s_0 + eta_s_shift);
+            double eta_s_L = std::min(it.eta_s_right, it.eta_s_0 - eta_s_shift);
+            double eta_s_R = std::max(it.eta_s_left,  it.eta_s_0 + eta_s_shift);
 
-            double eta_s_prev_shift = 0.0;
-            double tau_prev = tau - dtau;
-            if (tau_prev > tau_0 + delta_tau) {
-                eta_s_prev_shift = acosh((tau_prev*tau_prev + tau_0*tau_0
-                                          - delta_tau*delta_tau)
-                                         /(2.*tau_prev*tau_0 + 1e-10));
-            }
-            double eta_s_L_prev = std::min(it.eta_s_right, it.eta_s_0 - eta_s_prev_shift);
-            double eta_s_R_prev = std::max(it.eta_s_left,  it.eta_s_0 + eta_s_prev_shift);
+            double eta_s_next_shift = 0.0;
+            double tau_next = tau + dtau;
+            eta_s_next_shift = acosh((tau_next*tau_next + tau_0*tau_0
+                                      - delta_tau*delta_tau)
+                                     /(2.*tau_next*tau_0 + 1e-10));
+            double eta_s_L_next = std::max(it.eta_s_left,  it.eta_s_0 - eta_s_next_shift);
+            double eta_s_R_next = std::min(it.eta_s_right, it.eta_s_0 + eta_s_next_shift);
 
             bool flag_left = true;  // the left string segment is valid
-            if (eta_s_L_prev < eta_s_L) flag_left = false;
+            if (eta_s_L_next > eta_s_L) flag_left = false;
             
             bool flag_right = true;  // the right string segment is valid
-            if (eta_s_R_prev > eta_s_R) flag_right = false;
+            if (eta_s_R_next < eta_s_R) flag_right = false;
 
             double exp_eta_s = 0.;
             if (flag_left) {
-                if (   eta_s > eta_s_L - skip_dis_eta 
-                    && eta_s < eta_s_L_prev + skip_dis_eta) {
-                    exp_eta_s += 0.5*(- erf((eta_s_L - eta_s)/sigma_eta)
-                                      + erf((eta_s_L_prev - eta_s)/sigma_eta));
+                if (   eta_s > eta_s_L_next - skip_dis_eta 
+                    && eta_s < eta_s_L + skip_dis_eta) {
+                    exp_eta_s += 0.5*(- erf((eta_s_L_next - eta_s)/sigma_eta)
+                                      + erf((eta_s_L - eta_s)/sigma_eta));
                 }
             }
             if (flag_right) {
-                if (   eta_s > eta_s_R_prev - skip_dis_eta 
-                    && eta_s < eta_s_R + skip_dis_eta) {
-                    exp_eta_s += 0.5*(- erf((eta_s_R_prev - eta_s)/sigma_eta)
-                                      + erf((eta_s_R - eta_s)/sigma_eta));
+                if (   eta_s > eta_s_R - skip_dis_eta 
+                    && eta_s < eta_s_R_next + skip_dis_eta) {
+                    exp_eta_s += 0.5*(- erf((eta_s_R - eta_s)/sigma_eta)
+                                      + erf((eta_s_R_next - eta_s)/sigma_eta));
                 }
             }
 
@@ -506,21 +489,6 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             // dumping energy into the medium from the active strings
             //double tau_dis_left = fabs(tau - it.tau_end_left);
             //double tau_dis_right = fabs(tau - it.tau_end_right);
-            //if (tau_dis_left > n_sigma_skip*sigma_tau
-            //        && tau_dis_right > n_sigma_skip*sigma_tau) {
-            //    continue;
-            //}
-            //int flag_left = 0;
-            //if (tau > it.tau_end_left && tau <= it.tau_end_left + dtau) {
-            //    flag_left = 1;
-            //}
-
-            //int flag_right = 0;
-            //if (tau > it.tau_end_right && tau <= it.tau_end_right + dtau) {
-            //    flag_right = 1;
-            //}
-
-            //if (flag_left == 0 && flag_right == 0) continue;
 
             double x_dis = x - it.x_perp;
             if (std::abs(x_dis) > skip_dis_x) continue;
