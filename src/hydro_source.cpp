@@ -415,18 +415,9 @@ void hydro_source::get_hydro_energy_source(
         double tau_dis_max = tau - source_tau_max;
         if (tau_dis_max < n_sigma_skip*sigma_tau) {
             double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
-            //double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
             double prefactor_tau = 1./dtau;
             double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
             for (auto &it: parton_list_current_tau) {
-                //double tau_dis = tau - it.tau;
-                //if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
-                //    continue;
-                //}
-                //if (fabs(tau_dis) > dtau) {
-                //    continue;
-                //}
-
                 double x_dis = x - it.x;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {
                     continue;
@@ -439,9 +430,6 @@ void hydro_source::get_hydro_energy_source(
                 if (fabs(eta_s_dis) > n_sigma_skip*sigma_eta) {
                     continue;
                 }
-                //double exp_tau = (
-                //    1./(it.tau)
-                //    *exp(-tau_dis*tau_dis/(sigma_tau*sigma_tau)));
                 double exp_tau = 1./tau;
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                         /(sigma_x*sigma_x));
@@ -457,10 +445,11 @@ void hydro_source::get_hydro_energy_source(
                 j_mu[3] += m_perp*sinh(it.rapidity - eta_s)*f_smear;
             }
             double norm = DATA.sFactor/hbarc;     // 1/fm^4
-            j_mu[0] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
-            j_mu[1] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
-            j_mu[2] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
-            j_mu[3] *= norm*prefactor_tau*prefactor_prep*prefactor_etas;
+            double prefactor = norm*prefactor_tau*prefactor_prep*prefactor_etas;
+            j_mu[0] *= prefactor;
+            j_mu[1] *= prefactor;
+            j_mu[2] *= prefactor;
+            j_mu[3] *= prefactor;
         }
     }
 }
@@ -543,14 +532,6 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
             for (auto &it: parton_list_current_tau) {
                 // skip the evaluation if the strings is too far away in the
                 // space-time grid
-                //double tau_dis = tau - it.tau;
-                //if (fabs(tau_dis) > n_sigma_skip*sigma_tau) {
-                //    continue;
-                //}
-                //if (fabs(tau_dis) > dtau) {
-                //    continue;
-                //}
-
                 double x_dis = x - it.x;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {
                     continue;
