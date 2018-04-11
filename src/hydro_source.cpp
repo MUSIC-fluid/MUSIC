@@ -306,14 +306,15 @@ void hydro_source::get_hydro_energy_source(
     const double cos_phi_flow    = u_mu[2]/gamma_perp_flow;
     const double dtau            = DATA.delta_tau;
 
+    const double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
+    const double prefactor_tau = 1./dtau;
+    const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+    const double n_sigma_skip   = 5.;
+    const double skip_dis_x     = n_sigma_skip*sigma_x;
+    const double skip_dis_eta   = n_sigma_skip*sigma_eta;
+    const double sfactor        = DATA.sFactor/hbarc;
     if (DATA.Initial_profile == 13) {
         // energy source from strings
-        const double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
-        const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
-        const double n_sigma_skip   = 5.;
-        const double skip_dis_x     = n_sigma_skip*sigma_x;
-        const double skip_dis_eta   = n_sigma_skip*sigma_eta;
-        const double sfactor        = DATA.sFactor/hbarc;
         // double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
         for (auto &it: QCD_strings_list_current_tau) {
             const double tau_0     = it.tau_0;
@@ -410,7 +411,7 @@ void hydro_source::get_hydro_energy_source(
             j_mu[2] += e_local*sinh_perp*sin_phi_flow;
             j_mu[3] += e_local*sinh_long*cosh_perp;
         }
-        double prefactors = prefactor_prep*prefactor_etas;
+        double prefactors = prefactor_tau*prefactor_prep*prefactor_etas;
         j_mu[0] *= prefactors;
         j_mu[1] *= prefactors;
         j_mu[2] *= prefactors;
@@ -420,9 +421,6 @@ void hydro_source::get_hydro_energy_source(
         double n_sigma_skip = 5.;
         double tau_dis_max = tau - source_tau_max;
         if (tau_dis_max < n_sigma_skip*sigma_tau) {
-            double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
-            double prefactor_tau = 1./dtau;
-            double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
             for (auto &it: parton_list_current_tau) {
                 double x_dis = x - it.x;
                 if (fabs(x_dis) > n_sigma_skip*sigma_x) {

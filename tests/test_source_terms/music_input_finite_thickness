@@ -30,7 +30,7 @@ initialize_with_entropy 0       # 0: with energy density
 Initial_Distribution_input_filename tests/test_source_terms/QCD_strings_Hydro_decelerate_LEXUS_finite_thickness.dat
                                # the filename of initial profile 
                                # (for Initial_profile == 8)
-s_factor  1560.                 # normalization factor read in 
+s_factor  15.6                 # normalization factor read in 
                                # initial data file
 Eta_plateau_size 20.           # size of the plateau in eta_s
 Eta_fall_off 0.7               # the scale of the fall off of the 
@@ -102,9 +102,9 @@ Minmod_Theta 1.8              # theta parameter in the min-mod like limiter
 Runge_Kutta_order 2           # order of Runge_Kutta for temporal evolution 
                               # (must be 1 or 2)
 # transport coefficients
-Viscosity_Flag_Yes_1_No_0 1        # turn on viscosity in the evolution
-Include_Shear_Visc_Yes_1_No_0 1    # include shear viscous effect
-Shear_to_S_ratio 0.08              # value of \eta/s
+Viscosity_Flag_Yes_1_No_0 0        # turn on viscosity in the evolution
+Include_Shear_Visc_Yes_1_No_0 0    # include shear viscous effect
+Shear_to_S_ratio 0.00              # value of \eta/s
 T_dependent_Shear_to_S_ratio  0    # flag to use temperature dep. \eta/s(T)
 Include_Bulk_Visc_Yes_1_No_0 0     # include bulk viscous effect
 Include_second_order_terms 1       # include second order non-linear coupling terms
