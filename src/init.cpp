@@ -544,6 +544,11 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
                 arena_current(ix, iy, ieta).u[1] = temp_profile_ux[ix][iy];
                 arena_current(ix, iy, ieta).u[2] = temp_profile_uy[ix][iy];
                 arena_current(ix, iy, ieta).u[3] = temp_profile_ueta[ix][iy];
+            } else {
+                arena_current(ix, iy, ieta).u[0] = 1.0;
+                arena_current(ix, iy, ieta).u[1] = 0.0;
+                arena_current(ix, iy, ieta).u[2] = 0.0;
+                arena_current(ix, iy, ieta).u[3] = 0.0;
             }
             
             if (DATA.Initial_profile == 9) {

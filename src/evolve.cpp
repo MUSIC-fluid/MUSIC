@@ -135,7 +135,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         AdvanceRK(tau, ap_prev, ap_current, ap_future);
     
         //determine freeze-out surface
-        int frozen = 1;
+        int frozen = 0;
         if (freezeout_flag == 1) {
             if (freezeout_lowtemp_flag == 1 && it == it_start) {
                 frozen = FreezeOut_equal_tau_Surface(tau, *ap_current);
@@ -875,7 +875,7 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau,
                                            thread_id, epsFO);
         }
     }
-    return(1);
+    return(0);
 }
 
 
