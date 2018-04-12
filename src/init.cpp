@@ -499,23 +499,32 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
             temp_profile_pixeta  [ix][iy] = pixeta*tau0*DATA.sFactor;
             temp_profile_piyy    [ix][iy] = piyy*DATA.sFactor;
             temp_profile_piyeta  [ix][iy] = piyeta*tau0*DATA.sFactor;
-            temp_profile_pietaeta[ix][iy] = pietaeta*tau0*tau0*DATA.sFactor;
-            temp_profile_pitaux  [ix][iy] = (1./temp_profile_utau[ix][iy]
-                *(  temp_profile_pixx[ix][iy]*temp_profile_ux[ix][iy]
-                  + temp_profile_pixy[ix][iy]*temp_profile_uy[ix][iy]
-                  + temp_profile_pixeta[ix][iy]*temp_profile_ueta[ix][iy]));
-            temp_profile_pitauy  [ix][iy] = (1./temp_profile_utau[ix][iy]
-                *(  temp_profile_pixy[ix][iy]*temp_profile_ux[ix][iy]
-                  + temp_profile_piyy[ix][iy]*temp_profile_uy[ix][iy]
-                  + temp_profile_piyeta[ix][iy]*temp_profile_ueta[ix][iy]));
-            temp_profile_pitaueta[ix][iy] = (1./temp_profile_utau[ix][iy]
-                *(  temp_profile_pixeta[ix][iy]*temp_profile_ux[ix][iy]
-                  + temp_profile_piyeta[ix][iy]*temp_profile_uy[ix][iy]
-                  + temp_profile_pietaeta[ix][iy]*temp_profile_ueta[ix][iy]));
-            temp_profile_pitautau[ix][iy] = (1./temp_profile_utau[ix][iy]
-                *(  temp_profile_pitaux[ix][iy]*temp_profile_ux[ix][iy]
-                  + temp_profile_pitauy[ix][iy]*temp_profile_uy[ix][iy]
-                  + temp_profile_pitaueta[ix][iy]*temp_profile_ueta[ix][iy]));
+
+            utau = temp_profile_utau[ix][iy];
+            ueta = ueta*tau0;
+            temp_profile_pietaeta[ix][iy] = (
+                (2.*(  ux*uy*temp_profile_pixy[ix][iy]
+                     + ux*ueta*temp_profile_pixeta[ix][iy]
+                     + uy*ueta*temp_profile_piyeta[ix][iy])
+                 - (utau*utau - ux*ux)*temp_profile_pixx[ix][iy]
+                 - (utau*utau - uy*uy)*temp_profile_piyy[ix][iy])
+                /(utau*utau - ueta*ueta));
+            temp_profile_pitaux  [ix][iy] = (1./utau
+                *(  temp_profile_pixx[ix][iy]*ux
+                  + temp_profile_pixy[ix][iy]*uy
+                  + temp_profile_pixeta[ix][iy]*ueta));
+            temp_profile_pitauy  [ix][iy] = (1./utau
+                *(  temp_profile_pixy[ix][iy]*ux
+                  + temp_profile_piyy[ix][iy]*uy
+                  + temp_profile_piyeta[ix][iy]*ueta));
+            temp_profile_pitaueta[ix][iy] = (1./utau
+                *(  temp_profile_pixeta[ix][iy]*ux
+                  + temp_profile_piyeta[ix][iy]*uy
+                  + temp_profile_pietaeta[ix][iy]*ueta));
+            temp_profile_pitautau[ix][iy] = (1./utau
+                *(  temp_profile_pitaux[ix][iy]*ux
+                  + temp_profile_pitauy[ix][iy]*uy
+                  + temp_profile_pitaueta[ix][iy]*ueta));
             if (ix == 0 && iy == 0) {
                 DATA.x_size = -dummy2*2;
                 DATA.y_size = -dummy3*2;
