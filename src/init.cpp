@@ -58,7 +58,8 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 9) {
+    } else if (   DATA.Initial_profile == 9 || DATA.Initial_profile == 91
+               || DATA.Initial_profile == 92) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
         string dummy;
@@ -136,7 +137,8 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
             //     << " executes loop iteraction ieta = " << ieta << endl;
             initial_IPGlasma_XY(ieta, arena_prev, arena_current);
         } /* ieta */
-    } else if (DATA.Initial_profile == 9) {
+    } else if (   DATA.Initial_profile == 9 || DATA.Initial_profile == 91
+               || DATA.Initial_profile == 92) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
         // and initial shear viscous tensor
@@ -448,6 +450,9 @@ void Init::initial_IPGlasma_XY(int ieta, SCGrid &arena_prev,
 
 void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
                                        SCGrid &arena_current) {
+    // Initial_profile == 9 : full T^\mu\nu
+    // Initial_profile == 91: e and u^\mu
+    // Initial_profile == 92: e only
     double tau0 = DATA.tau0;
     ifstream profile(DATA.initName.c_str());
 
@@ -498,7 +503,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
             temp_profile_pixeta  [ix][iy] = pixeta*tau0*DATA.sFactor;
             temp_profile_piyy    [ix][iy] = piyy*DATA.sFactor;
             temp_profile_piyeta  [ix][iy] = piyeta*tau0*DATA.sFactor;
-            temp_profile_pietaeta[ix][iy] = piyeta*tau0*tau0*DATA.sFactor;
+            temp_profile_pietaeta[ix][iy] = pietaeta*tau0*tau0*DATA.sFactor;
             if (ix == 0 && iy == 0) {
                 DATA.x_size = -dummy2*2;
                 DATA.y_size = -dummy3*2;
@@ -534,24 +539,28 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
             arena_current(ix, iy, ieta).epsilon = epsilon;
             arena_current(ix, iy, ieta).rhob = rhob;
 
-            arena_current(ix, iy, ieta).u[0] = temp_profile_utau[ix][iy];
-            arena_current(ix, iy, ieta).u[1] = temp_profile_ux[ix][iy];
-            arena_current(ix, iy, ieta).u[2] = temp_profile_uy[ix][iy];
-            arena_current(ix, iy, ieta).u[3] = temp_profile_ueta[ix][iy];
+            if (DATA.Initial_profile == 9 || DATA.Initial_profile == 91) {
+                arena_current(ix, iy, ieta).u[0] = temp_profile_utau[ix][iy];
+                arena_current(ix, iy, ieta).u[1] = temp_profile_ux[ix][iy];
+                arena_current(ix, iy, ieta).u[2] = temp_profile_uy[ix][iy];
+                arena_current(ix, iy, ieta).u[3] = temp_profile_ueta[ix][iy];
+            }
             
-            double pressure = eos.get_pressure(epsilon, rhob);
-            arena_current(ix, iy, ieta).pi_b = epsilon/3. - pressure;
+            if (DATA.Initial_profile == 9) {
+                double pressure = eos.get_pressure(epsilon, rhob);
+                arena_current(ix, iy, ieta).pi_b = epsilon/3. - pressure;
 
-            arena_current(ix, iy, ieta).Wmunu[0] = temp_profile_pitautau[ix][iy];
-            arena_current(ix, iy, ieta).Wmunu[1] = temp_profile_pitaux[ix][iy];
-            arena_current(ix, iy, ieta).Wmunu[2] = temp_profile_pitauy[ix][iy];
-            arena_current(ix, iy, ieta).Wmunu[3] = temp_profile_pitaueta[ix][iy];
-            arena_current(ix, iy, ieta).Wmunu[4] = temp_profile_pixx[ix][iy];
-            arena_current(ix, iy, ieta).Wmunu[5] = temp_profile_pixy[ix][iy];
-            arena_current(ix, iy, ieta).Wmunu[6] = temp_profile_pixeta[ix][iy];
-            arena_current(ix, iy, ieta).Wmunu[7] = temp_profile_piyy[ix][iy];
-            arena_current(ix, iy, ieta).Wmunu[8] = temp_profile_piyeta[ix][iy];
-            arena_current(ix, iy, ieta).Wmunu[9] = temp_profile_pietaeta[ix][iy];
+                arena_current(ix, iy, ieta).Wmunu[0] = temp_profile_pitautau[ix][iy];
+                arena_current(ix, iy, ieta).Wmunu[1] = temp_profile_pitaux[ix][iy];
+                arena_current(ix, iy, ieta).Wmunu[2] = temp_profile_pitauy[ix][iy];
+                arena_current(ix, iy, ieta).Wmunu[3] = temp_profile_pitaueta[ix][iy];
+                arena_current(ix, iy, ieta).Wmunu[4] = temp_profile_pixx[ix][iy];
+                arena_current(ix, iy, ieta).Wmunu[5] = temp_profile_pixy[ix][iy];
+                arena_current(ix, iy, ieta).Wmunu[6] = temp_profile_pixeta[ix][iy];
+                arena_current(ix, iy, ieta).Wmunu[7] = temp_profile_piyy[ix][iy];
+                arena_current(ix, iy, ieta).Wmunu[8] = temp_profile_piyeta[ix][iy];
+                arena_current(ix, iy, ieta).Wmunu[9] = temp_profile_pietaeta[ix][iy];
+            }
 
             arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
