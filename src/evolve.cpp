@@ -156,7 +156,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         music_message << "Done time step " << it << "/" << itmax
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
-        if (frozen == 0) break;
+        if (frozen == 1) break;
     }
     music_message.info("Finished.");
     return 1;
@@ -213,7 +213,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau,
     if (intersections == 0) {
         std::cout << "All cells frozen out. Exiting." << std::endl;
     }
-    return(intersections);
+    return(intersections + 1);
 }
 
 int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
