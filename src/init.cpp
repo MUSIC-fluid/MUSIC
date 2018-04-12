@@ -494,16 +494,28 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
             temp_profile_uy      [ix][iy] = uy;
             temp_profile_ueta    [ix][iy] = ueta*tau0;
             temp_profile_utau    [ix][iy] = sqrt(1. + ux*ux + uy*uy + ueta*ueta);
-            temp_profile_pitautau[ix][iy] = pitautau*DATA.sFactor;
-            temp_profile_pitaux  [ix][iy] = pitaux*DATA.sFactor;
-            temp_profile_pitauy  [ix][iy] = pitauy*DATA.sFactor;
-            temp_profile_pitaueta[ix][iy] = pitaueta*tau0*DATA.sFactor;
             temp_profile_pixx    [ix][iy] = pixx*DATA.sFactor;
             temp_profile_pixy    [ix][iy] = pixy*DATA.sFactor;
             temp_profile_pixeta  [ix][iy] = pixeta*tau0*DATA.sFactor;
             temp_profile_piyy    [ix][iy] = piyy*DATA.sFactor;
             temp_profile_piyeta  [ix][iy] = piyeta*tau0*DATA.sFactor;
             temp_profile_pietaeta[ix][iy] = pietaeta*tau0*tau0*DATA.sFactor;
+            temp_profile_pitaux  [ix][iy] = (1./temp_profile_utau[ix][iy]
+                *(  temp_profile_pixx[ix][iy]*temp_profile_ux[ix][iy]
+                  + temp_profile_pixy[ix][iy]*temp_profile_uy[ix][iy]
+                  + temp_profile_pixeta[ix][iy]*temp_profile_ueta[ix][iy]));
+            temp_profile_pitauy  [ix][iy] = (1./temp_profile_utau[ix][iy]
+                *(  temp_profile_pixy[ix][iy]*temp_profile_ux[ix][iy]
+                  + temp_profile_piyy[ix][iy]*temp_profile_uy[ix][iy]
+                  + temp_profile_piyeta[ix][iy]*temp_profile_ueta[ix][iy]));
+            temp_profile_pitaueta[ix][iy] = (1./temp_profile_utau[ix][iy]
+                *(  temp_profile_pixeta[ix][iy]*temp_profile_ux[ix][iy]
+                  + temp_profile_piyeta[ix][iy]*temp_profile_uy[ix][iy]
+                  + temp_profile_pietaeta[ix][iy]*temp_profile_ueta[ix][iy]));
+            temp_profile_pitautau[ix][iy] = (1./temp_profile_utau[ix][iy]
+                *(  temp_profile_pitaux[ix][iy]*temp_profile_ux[ix][iy]
+                  + temp_profile_pitauy[ix][iy]*temp_profile_uy[ix][iy]
+                  + temp_profile_pitaueta[ix][iy]*temp_profile_ueta[ix][iy]));
             if (ix == 0 && iy == 0) {
                 DATA.x_size = -dummy2*2;
                 DATA.y_size = -dummy3*2;
