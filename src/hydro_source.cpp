@@ -153,6 +153,7 @@ void hydro_source::read_in_QCD_strings_and_partons() {
         total_baryon_number += it->frac_l + it->frac_r;
     music_message << "total baryon number = " << total_baryon_number;
     music_message.flush("info");
+    compute_norm_for_strings();
 }
 
 
@@ -578,8 +579,7 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 res += p_dot_u*f_smear;
             }
             res *= prefactor_tau*prefactor_prep*prefactor_etas;
-        }
-    }
+        } }
     return(res);
 }
 
@@ -624,3 +624,31 @@ double hydro_source::get_hydro_rhob_source_before_tau(
     return res/tau;
 }
 
+void hydro_source::compute_norm_for_strings() {
+    const int neta              = 500;
+    const double eta_range      = 6.;
+    const double deta           = 2.*eta_range/(neta - 1);
+    const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+
+    for (auto &it: QCD_strings_list) {
+        double E_string_norm = 0.;
+        for (int ieta = 0; ieta < neta; ieta++) {
+            double eta_local = - eta_range + ieta*deta;
+            double f_eta = (it->frac_l
+                + (it->frac_l - it->frac_r)/(it->eta_s_left - it->eta_s_right)
+                  *(eta_local - it->eta_s_left));
+            double y_eta = (it->y_l
+                + (it->y_l - it->y_r)/(it->eta_s_left - it->eta_s_right)
+                  *(eta_local - it->eta_s_left));
+            double e_eta = 0.5*(- erf((it->eta_s_left - eta_local)/sigma_eta)
+                                + erf((it->eta_s_right - eta_local)/sigma_eta));
+            E_string_norm += f_eta*e_eta*cosh(y_eta);
+        }
+        E_string_norm *= prefactor_etas*deta;
+        double E_string = (  it->frac_l*cosh(it->y_l_i)
+                           + it->frac_r*cosh(it->y_r_i)
+                           - it->frac_l*cosh(it->y_l)
+                           - it->frac_r*cosh(it->y_r));
+        it->norm = E_string/E_string_norm;
+    }
+}

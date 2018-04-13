@@ -96,6 +96,7 @@ class hydro_source {
     double get_source_tau_max() const {return(source_tau_max);}
 
     void prepare_list_for_current_tau_frame(double tau_local);
+    void compute_norm_for_strings();
 };
 
 #endif  // SRC_HYDRO_SOURCE_H_
