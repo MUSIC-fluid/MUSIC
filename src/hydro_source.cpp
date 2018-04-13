@@ -393,7 +393,7 @@ void hydro_source::get_hydro_energy_source(
                 e_frac = it->frac_r;
             }
             double e_local = e_frac*exp_tau*exp_xperp*exp_eta_s;
-            e_local *= sfactor;  // 1/fm^4
+            e_local *= it->norm*sfactor;  // 1/fm^4
             double y_string = (
                     it->y_l + (it->y_r - it->y_l)
                                 /(it->eta_s_right - it->eta_s_left)
