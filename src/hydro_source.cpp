@@ -25,7 +25,7 @@ hydro_source::hydro_source(const InitData &DATA_in) :
         volume               = DATA.delta_x*DATA.delta_y*DATA.delta_eta;
         string_dump_mode     = DATA.string_dump_mode;
         string_quench_factor = DATA.string_quench_factor;
-        parton_quench_factor = 1.0;
+        parton_quench_factor = 1.0;    // no diffusion current from the source
         read_in_QCD_strings_and_partons();
     }
     if (DATA.Initial_profile == 30) {  // AMPT
@@ -467,6 +467,8 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
     const double y_perp_flow      = acosh(gamma_perp_flow);
     const double y_long_flow      = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
     const double sinh_y_perp_flow = sinh(y_perp_flow);
+    const double sin_phi_flow     = u_mu[1]/gamma_perp_flow;
+    const double cos_phi_flow     = u_mu[2]/gamma_perp_flow;
     const double dtau             = DATA.delta_tau;
 
     const double exp_tau        = 1.0/tau;
@@ -535,9 +537,13 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 double y_dump = ((1. - parton_quench_factor)*rapidity_local
                                  + parton_quench_factor*y_long_flow);
                 double y_dump_perp = parton_quench_factor*y_perp_flow;
-                double p_dot_u = (u_mu[0]
-                    - tanh(y_dump_perp)*sinh_y_perp_flow/cosh(y_dump - eta_s)
-                    - tanh(y_dump - eta_s)*u_mu[3]);
+                double p_dot_u = 1.;
+                if (parton_quench_factor < 1.) {
+                    p_dot_u = (  u_mu[0]*cosh(y_dump)*cosh(y_dump_perp)
+                               - u_mu[1]*sinh(y_dump_perp)*cos_phi_flow
+                               - u_mu[2]*sinh(y_dump_perp)*sin_phi_flow
+                               - u_mu[3]*sinh(y_dump)*cosh(y_dump_perp));
+                }
                 res += p_dot_u*fsmear;
             }
         }
