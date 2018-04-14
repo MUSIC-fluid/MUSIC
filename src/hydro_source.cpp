@@ -317,10 +317,10 @@ void hydro_source::get_hydro_energy_source(
     const double skip_dis_x     = n_sigma_skip*sigma_x;
     const double skip_dis_eta   = n_sigma_skip*sigma_eta;
     const double sfactor        = DATA.sFactor/hbarc;
+    const double exp_tau = 1./tau;
     if (DATA.Initial_profile == 13) {
-        // energy source from strings
-        // double prefactor_tau = 1./(sqrt(M_PI)*sigma_tau);
-        for (auto &it: QCD_strings_list_current_tau) {
+        for (auto const&it: QCD_strings_list_current_tau) {
+            // energy source from strings
             const double tau_0     = it->tau_0;
             const double delta_tau = it->tau_form;
             
@@ -378,7 +378,6 @@ void hydro_source::get_hydro_energy_source(
                 }
             }
 
-            double exp_tau = 1./tau;
             double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                     /(sigma_x*sigma_x));
 
@@ -415,6 +414,54 @@ void hydro_source::get_hydro_energy_source(
             j_mu[2] += e_local*sinh_perp*sin_phi_flow;
             j_mu[3] += e_local*sinh_long*cosh_perp;
         }
+
+        for (auto const&it: QCD_strings_baryon_list_current_tau) {
+            // add baryon energy at the string ends
+            bool flag_left = false;
+            if (   it->tau_end_left >= tau - dtau/2.
+                && it->tau_end_left <  tau + dtau/2.) {
+                flag_left = true;
+            }
+
+            bool flag_right = false;
+            if (   it->tau_end_right >= tau - dtau/2.
+                && it->tau_end_right <  tau + dtau/2.) {
+                flag_right = true;
+            }
+            
+            double x_dis = x - it->x_perp;
+            if (std::abs(x_dis) > skip_dis_x) continue;
+            
+            double y_dis = y - it->y_perp;
+            if (std::abs(y_dis) > skip_dis_x) continue;
+
+            double exp_eta_s_left = 0.0;
+            if (flag_left) {
+                double eta_dis_left = std::abs(eta_s - it->eta_s_left);
+                if (eta_dis_left < skip_dis_eta) {
+                    exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
+                                          /(sigma_eta*sigma_eta)));
+                }
+            }
+            double exp_eta_s_right = 0.0;
+            if (flag_right) {
+                double eta_dis_right = std::abs(eta_s - it->eta_s_right);
+                if (eta_dis_right < skip_dis_eta) {
+                    exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
+                                           /(sigma_eta*sigma_eta)));
+                }
+            }
+            double exp_factors = exp_tau*(
+                      exp_eta_s_left*it->frac_l*it->E_baryon_norm_L
+                    + exp_eta_s_right*it->frac_r*it->E_baryon_norm_R);
+            double e_baryon_local = 0.0;
+            if (exp_factors > 0) {
+                double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
+                                        /(sigma_x*sigma_x));
+                e_baryon_local = exp_xperp*exp_factors;
+            }
+            j_mu[0] += e_baryon_local*sfactor;
+        }
         double prefactors = prefactor_tau*prefactor_prep*prefactor_etas;
         j_mu[0] *= prefactors;
         j_mu[1] *= prefactors;
@@ -435,7 +482,6 @@ void hydro_source::get_hydro_energy_source(
                 double eta_s_dis = eta_s - it->eta_s;
                 if (std::abs(eta_s_dis) > skip_dis_eta) continue;
 
-                double exp_tau = 1./tau;
                 double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                         /(sigma_x*sigma_x));
                 double exp_eta_s = (
@@ -630,8 +676,12 @@ void hydro_source::compute_norm_for_strings() {
     const double deta           = 2.*eta_range/(neta - 1);
     const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
 
+    double E_string_total   = 0.0;
+    double E_baryon_total = 0.0;
     for (auto &it: QCD_strings_list) {
-        double E_string_norm = 0.;
+        double E_string_norm   = 0.;
+        double E_baryon_L_norm = 0.;
+        double E_baryon_R_norm = 0.;
         for (int ieta = 0; ieta < neta; ieta++) {
             double eta_local = - eta_range + ieta*deta;
             double f_eta = (it->frac_l
@@ -640,15 +690,37 @@ void hydro_source::compute_norm_for_strings() {
             double y_eta = (it->y_l
                 + (it->y_l - it->y_r)/(it->eta_s_left - it->eta_s_right)
                   *(eta_local - it->eta_s_left));
-            double e_eta = 0.5*(- erf((it->eta_s_left - eta_local)/sigma_eta)
-                                + erf((it->eta_s_right - eta_local)/sigma_eta));
+
+            double expon_left  = (it->eta_s_left - eta_local)/sigma_eta;
+            double expon_right = (it->eta_s_right - eta_local)/sigma_eta;
+            double e_eta = 0.5*(- erf(expon_left) + erf(expon_right));
             E_string_norm += f_eta*e_eta*cosh(y_eta);
+
+            double e_baryon_L = exp(-expon_left*expon_left);
+            double e_baryon_R = exp(-expon_right*expon_right);
+            E_baryon_L_norm += e_baryon_L*cosh(eta_local);
+            E_baryon_R_norm += e_baryon_R*cosh(eta_local);
         }
-        E_string_norm *= prefactor_etas*deta;
+        E_string_norm   *= prefactor_etas*deta;
         double E_string = (  it->frac_l*cosh(it->y_l_i)
                            + it->frac_r*cosh(it->y_r_i)
                            - it->frac_l*cosh(it->y_l)
                            - it->frac_r*cosh(it->y_r));
         it->norm = E_string/E_string_norm;
+        E_string_total += E_string;
+
+        E_baryon_L_norm *= it->frac_l*prefactor_etas*deta;
+        E_baryon_R_norm *= it->frac_r*prefactor_etas*deta;
+        double E_baryon_L   = it->frac_l*cosh(it->y_l);
+        double E_baryon_R   = it->frac_r*cosh(it->y_r);
+        it->E_baryon_norm_L = E_baryon_L/E_baryon_L_norm;
+        it->E_baryon_norm_R = E_baryon_R/E_baryon_R_norm;
+        E_baryon_total += E_baryon_L + E_baryon_R;
     }
+    music_message << "E_total = "
+                  << (E_string_total + E_baryon_total)*DATA.sFactor << " GeV. "
+                  << "E_string_total = " << E_string_total*DATA.sFactor
+                  << " GeV" << ", E_baryon_total = "
+                  << E_baryon_total*DATA.sFactor << " GeV.";
+    music_message.flush("info");
 }

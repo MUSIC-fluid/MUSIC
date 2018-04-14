@@ -14,6 +14,7 @@
 //! This data structure contains a QCD string object
 struct QCD_string {
     double norm;              // normalization for the string energy
+    double E_baryon_norm_L, E_baryon_norm_R;
     double delta_E;           // the energy difference between
                               // before and after the collisions [GeV]
     double tau_form;
