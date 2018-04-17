@@ -876,3 +876,67 @@ void Cell_info::output_average_phase_diagram_trajectory(
     of.close();
 }
 
+
+//! This function outputs system's momentum anisotropy as a function of tau
+void Cell_info::output_momentum_anisotropy_vs_tau(
+                double tau, double eta_min, double eta_max, SCGrid &arena) {
+    ostringstream filename;
+    filename << "momentum_anisotropy_eta_" << eta_min
+             << "_" << eta_max << ".dat";
+    fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
+    if (fabs(tau - DATA.tau0) < 1e-10) {
+        of << "# tau(fm)  epsilon_p(ideal)  epsilon_p(full)"
+           << endl;
+    }
+    double ideal_num1 = 0.0;
+    double ideal_num2 = 0.0;
+    double ideal_den  = 0.0;
+    double full_num1 = 0.0;
+    double full_num2 = 0.0;
+    double full_den  = 0.0;
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        double eta = 0.0;
+        if (DATA.boost_invariant == 0) {
+            eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
+                    - (DATA.eta_size)/2.0);
+        }
+        if (eta < eta_max && eta > eta_min) {
+            for (int iy = 0; iy < arena.nY(); iy++)
+            for (int ix = 0; ix < arena.nX(); ix++) {
+                double e_local      = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+                double rhob_local   = arena(ix, iy, ieta).rhob;     // 1/fm^3
+                double P_local      = eos.get_pressure(e_local, rhob_local);
+                double ux           = arena(ix, iy, ieta).u[1];
+                double uy           = arena(ix, iy, ieta).u[2];
+                double pi_xx        = arena(ix, iy, ieta).Wmunu[4];
+                double pi_xy        = arena(ix, iy, ieta).Wmunu[5];
+                double pi_yy        = arena(ix, iy, ieta).Wmunu[7];
+                double bulk_Pi      = arena(ix, iy, ieta).pi_b;
+
+                double T_xx_ideal   = (e_local*ux*ux
+                                       - (P_local + bulk_Pi)*(-1. - ux*ux));
+                double T_xy_ideal   = (e_local*ux*uy
+                                       - (P_local + bulk_Pi)*(- ux*uy));
+                double T_yy_ideal   = (e_local*uy*uy
+                                       - (P_local + bulk_Pi)*(-1. - uy*uy));
+                double T_xx         = T_xx_ideal + pi_xx;
+                double T_xy         = T_xy_ideal + pi_xy;
+                double T_yy         = T_yy_ideal + pi_yy;
+                double weight_local = e_local;
+
+                ideal_num1 += weight_local*(T_xx_ideal - T_yy_ideal);
+                ideal_num2 += weight_local*(2.*T_xy_ideal);
+                ideal_den  += weight_local*(T_xx_ideal + T_yy_ideal);
+                full_num1  += weight_local*(T_xx - T_yy);
+                full_num2  += weight_local*(2.*T_xy);
+                full_den   += weight_local*(T_xx + T_yy);
+            }
+        }
+    }
+    double ep_ideal = sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)/ideal_den;
+    double ep_full  = sqrt(full_num1*full_num1 + full_num2*full_num2)/full_den;
+
+    of << scientific << setw(18) << setprecision(8)
+       << tau << "  " << ep_ideal << "  " << ep_full << endl;
+    of.close();
+}
