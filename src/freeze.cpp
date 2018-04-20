@@ -100,18 +100,7 @@ void Freeze::checkForReadError(FILE *file, const char* name) {
 }
 
 void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
-    double ef;
-    if (DATA->useEpsFO == 1) {
-        ef = DATA->epsilonFreeze;
-    } else {
-        music_message << "determining epsFO from TFO=" << DATA->TFO;
-        music_message.flush("info");
-        ef = eos->findRoot(&EOS::Tsolve, 0., DATA->TFO/hbarc,
-                           0.001, 300.,0.001)*hbarc;
-        music_message << "freeze out energy density is " << ef;
-        music_message.flush("info");
-    }
-
+    double ef = DATA->epsilonFreeze;
     music_message << "Determining chemical potentials at freeze out "
                   << "energy density " << ef << " GeV/fm^3.";
     music_message.flush("info");

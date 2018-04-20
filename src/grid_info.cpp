@@ -913,15 +913,12 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double pi_yy        = arena(ix, iy, ieta).Wmunu[7];
                 double bulk_Pi      = arena(ix, iy, ieta).pi_b;
 
-                double T_xx_ideal   = (e_local*ux*ux
-                                       - (P_local + bulk_Pi)*(-1. - ux*ux));
-                double T_xy_ideal   = (e_local*ux*uy
-                                       - (P_local + bulk_Pi)*(- ux*uy));
-                double T_yy_ideal   = (e_local*uy*uy
-                                       - (P_local + bulk_Pi)*(-1. - uy*uy));
-                double T_xx         = T_xx_ideal + pi_xx;
-                double T_xy         = T_xy_ideal + pi_xy;
-                double T_yy         = T_yy_ideal + pi_yy;
+                double T_xx_ideal   = e_local*ux*ux - P_local*(-1. - ux*ux);
+                double T_xy_ideal   = (e_local + P_local)*ux*uy;
+                double T_yy_ideal   = e_local*uy*uy - P_local*(-1. - uy*uy);
+                double T_xx         = T_xx_ideal + pi_xx - bulk_Pi*(-1 - ux*ux);
+                double T_xy         = T_xy_ideal + pi_xy + bulk_Pi*ux*uy;
+                double T_yy         = T_yy_ideal + pi_yy - bulk_Pi*(-1 - uy*uy);
                 double weight_local = e_local;
 
                 ideal_num1 += weight_local*(T_xx_ideal - T_yy_ideal);

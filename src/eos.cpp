@@ -176,7 +176,8 @@ void EOS::initialize_eos() {
         whichEOS = 8;
     } else if (parameters_ptr.whichEOS == 10) {
         music_message.info("Using lattice EOS from A. Monnai");
-        init_eos10(0);
+        //init_eos10(0);
+        init_eos10();
     } else if (parameters_ptr.whichEOS == 11) {
         music_message.info("Using lattice EOS from Pasi");
         init_eos11(0);
@@ -524,35 +525,6 @@ void EOS::init_eos2()
 /*     } */
 
   music_message.info("Done reading EOS.");
-
-  //Allocate and fill arrays for get_s2e()
-  //First, create new arrays that will permit to extract information we need from each EOS table in a unified way
-  const int number_of_EOS_tables = 7;
-  double lowest_eps_list[number_of_EOS_tables] = {EPP1,EPP2,EPP3,EPP4,EPP5,EPP6,EPP7};
-  double delta_eps_list[number_of_EOS_tables] = {deltaEPP1,deltaEPP2,deltaEPP3,deltaEPP4,deltaEPP5,deltaEPP6,deltaEPP7};
-  int nb_elements_list[number_of_EOS_tables] = {NEPP1,NEPP2,NEPP3,NEPP4,NEPP5,NEPP6,NEPP7};
-  double ** s_list[number_of_EOS_tables] = {entropyDensity1,entropyDensity2,entropyDensity3,entropyDensity4,entropyDensity5,entropyDensity6,entropyDensity7};
-  //Compute the maximum number of entropyDensity elements (the actual number of entropyDensity elements we will use 
-  //will be smaller since we skip duplicate entropyDensities)
-  int s_list_rho0_maximal_length=0;
-  for(int kk=0;kk<number_of_EOS_tables;kk++) s_list_rho0_maximal_length+=nb_elements_list[kk];
-  double last=0.0, tmp_s;
-  s_list_rho0_length=0;
-  //Allocate memory
-  eps_list_rho0= new double [s_list_rho0_maximal_length];
-  s_list_rho0= new double [s_list_rho0_maximal_length];
-
-  for(int table_id=0; table_id<number_of_EOS_tables;table_id++) {
-      for(i=0;i<nb_elements_list[table_id];i++) {
-        tmp_s=s_list[table_id][0][i];
-        if (tmp_s > last) {
-            eps_list_rho0[s_list_rho0_length]=(lowest_eps_list[table_id]+i*delta_eps_list[table_id])/hbarc;
-            s_list_rho0[s_list_rho0_length]=tmp_s;
-            s_list_rho0_length++;
-        }
-        last=tmp_s;
-      }
-  }
 }
 
 void EOS::init_eos3(int selector)
@@ -912,35 +884,6 @@ void EOS::init_eos3(int selector)
 //     } 
 
   music_message.info("Done reading EOS.");
-
-  //Allocate and fill arrays for get_s2e()
-  //First, create new arrays that will permit to extract information we need from each EOS table in a unified way
-  const int number_of_EOS_tables               = 7;
-  double lowest_eps_list[number_of_EOS_tables] = {EPP1,EPP2,EPP3,EPP4,EPP5,EPP6,EPP7};
-  double delta_eps_list[number_of_EOS_tables]  = {deltaEPP1,deltaEPP2,deltaEPP3,deltaEPP4,deltaEPP5,deltaEPP6,deltaEPP7};
-  int nb_elements_list[number_of_EOS_tables]   = {NEPP1,NEPP2,NEPP3,NEPP4,NEPP5,NEPP6,NEPP7};
-  double ** s_list[number_of_EOS_tables]       = {entropyDensity1,entropyDensity2,entropyDensity3,entropyDensity4,entropyDensity5,entropyDensity6,entropyDensity7};
-  //Compute the maximum number of entropyDensity elements (the actual number of entropyDensity elements we will use 
-  //will be smaller since we skip duplicate entropyDensities)
-  int s_list_rho0_maximal_length=0;
-  for(int kk=0;kk<number_of_EOS_tables;kk++) s_list_rho0_maximal_length+=nb_elements_list[kk];
-  double last=0.0, tmp_s;
-  s_list_rho0_length=0;
-  //Allocate memory
-  eps_list_rho0= new double [s_list_rho0_maximal_length];
-  s_list_rho0= new double [s_list_rho0_maximal_length];
-
-  for(int table_id=0; table_id<number_of_EOS_tables;table_id++) {
-      for(i=0;i<nb_elements_list[table_id];i++) {
-        tmp_s=s_list[table_id][0][i];
-        if (tmp_s > last) {
-            eps_list_rho0[s_list_rho0_length]=(lowest_eps_list[table_id]+i*delta_eps_list[table_id])/hbarc;
-            s_list_rho0[s_list_rho0_length]=tmp_s;
-            s_list_rho0_length++;
-        }
-        last=tmp_s;
-      }
-  }
 }
 
 void EOS::init_eos7() {
@@ -1138,6 +1081,81 @@ void EOS::init_eos7() {
 
     music_message.info("Done reading EOS.");
 
+}
+
+
+
+void EOS::init_eos10() {
+    // read the lattice EOS at finite muB
+    // pressure, temperature, and baryon chemical potential from file
+    music_message.info("reading EOS...");
+    whichEOS = 10;
+
+    stringstream slocalpath;
+    slocalpath << "./EOS/neos_2/";
+
+    string path = slocalpath.str();
+    music_message << "from path " << path;
+    music_message.flush("info");
+    
+    number_of_tables = 7;
+    nb_bounds.resize(number_of_tables, 0.0);
+    nb_spacing.resize(number_of_tables, 0.0);
+    nb_length.resize(number_of_tables, 0);
+    e_bounds.resize(number_of_tables, 0.0);
+    e_spacing.resize(number_of_tables, 0.0);
+    e_length.resize(number_of_tables, 0);
+
+    string eos_file_string_array[7] = {"0a", "0b", "0c", "1a", "2", "3", "4"};
+    pressure_tb       = new double** [number_of_tables];
+    temperature_tb    = new double** [number_of_tables];
+    mu_B_tb           = new double** [number_of_tables];
+
+    for (int itable = 0; itable < number_of_tables; itable++) {
+        string eos_filename = (path + "neos" + eos_file_string_array[itable]
+                               + "_p.dat");
+        std::ifstream eos_p(eos_filename);
+        eos_filename = (path + "neos" + eos_file_string_array[itable]
+                        + "_t.dat");
+        std::ifstream eos_T(eos_filename);
+        eos_filename = (path + "neos" + eos_file_string_array[itable]
+                        + "_mb.dat");
+        std::ifstream eos_mub(eos_filename);
+
+        // read the first two lines with general info:
+        // first value of rhob, first value of epsilon
+        // deltaRhob, deltaE, number of rhob points, number of epsilon points
+        // the table size is
+        // (number of rhob points + 1, number of epsilon points + 1)
+        eos_p >> nb_bounds[itable] >> e_bounds[itable];
+        eos_p >> nb_spacing[itable] >> e_spacing[itable]
+              >> nb_length[itable] >> e_length[itable];
+
+        // skip the header in T and mu_B files
+        string dummy;
+        std::getline(eos_T, dummy);
+        std::getline(eos_T, dummy);
+        std::getline(eos_mub, dummy);
+        std::getline(eos_mub, dummy);
+
+        // allocate memory for EOS arrays
+        pressure_tb[itable] = Util::mtx_malloc(nb_length[itable] + 1,
+                                               e_length[itable] + 1);
+        temperature_tb[itable] = Util::mtx_malloc(nb_length[itable] + 1,
+                                                  e_length[itable] + 1);
+        mu_B_tb[itable] = Util::mtx_malloc(nb_length[itable] + 1,
+                                           e_length[itable] + 1);
+
+        // read pressure, temperature and chemical potential values
+        for (int j = 0; j < e_length[itable] + 1; j++) {
+            for (int i = 0; i < nb_length[itable] + 1; i++) {
+                eos_p >> pressure_tb[itable][i][j];
+                eos_T >> temperature_tb[itable][i][j];
+                eos_mub >> mu_B_tb[itable][i][j];
+            }
+        }
+    }
+    music_message.info("Done reading EOS.");
 }
 
 void EOS::init_eos10(int selector) {
@@ -1916,6 +1934,7 @@ double EOS::interpolate_pressure(double e, double rhob) const
   return p/hbarc;
 }
 
+
 double EOS::interpolate2(double e, double rhob, int selector) const {
     // use linear interpolation
     // selector = 0 : pressure
@@ -2296,93 +2315,33 @@ double EOS::get_dpOverde2(double e, double rhob) const {
     return dpde;
 }
 
-double EOS::get_dpOverde3(double e, double rhob) const
-{
+double EOS::get_dpOverde3(double e, double rhob) const {
    double eLeft = 0.9*e;
    double eRight = 1.1*e;
 
-   double pL = get_pressure(eLeft, rhob);  // 1/fm^4
-   double pR = get_pressure(eRight, rhob); // 1/fm^4
+   double pL = get_pressure(eLeft, rhob);   // 1/fm^4
+   double pR = get_pressure(eRight, rhob);  // 1/fm^4
       
    double dpde = (pR - pL)/(eRight - eLeft);
-      
-   //if(dpde > 1./3.) 
-   //{ 
-   //    fprintf(stderr, "dp/de=%lf\n", dpde); 
-   //    fprintf(stderr, "pL=%lf\n", pL); 
-   //    fprintf(stderr, "pR=%lf\n", pR); 
-   //    fprintf(stderr, "e=%lf\n", e/hbarc);  
-   //    fprintf(stderr, "eLeft=%lf\n", eLeft/hbarc);  
-   //    fprintf(stderr, "eRight=%lf\n", eRight/hbarc);  
-   //} 
-   //if(dpde < 0) 
-   //{ 
-   //    fprintf(stderr, "dp/de=%lf\n", dpde); 
-   //    fprintf(stderr, "pL=%lf\n", pL); 
-   //    fprintf(stderr, "pR=%lf\n", pR); 
-   //    fprintf(stderr, "e=%lf\n", e);  
-   //    fprintf(stderr, "eLeft=%lf\n", eLeft/hbarc);  
-   //    fprintf(stderr, "eRight=%lf\n", eRight/hbarc);  
-   //} 
    return dpde;
 }
 
-double EOS::get_dpOverdrhob2(double e, double rhob) const
-{
-    double local_ed = e*hbarc;      // GeV/fm^3
-    double local_rhob = rhob;       // 1/fm^3
+double EOS::get_dpOverdrhob2(double e, double rhob) const {
+    int table_idx = get_table_idx(e);
+    //double local_ed = e*hbarc;    // GeV/fm^3
+    double local_rhob = rhob;     // 1/fm^3
     
-    double deltaRhob;               // in 1/fm^3
-    double rhob_end;
-    if (local_ed < EPP2)
-    {
-        deltaRhob = deltaBNP1;
-        rhob_end = BNP1 + (NBNP1 - 1)*deltaRhob;
-    }
-    else if (local_ed < EPP3)
-    {
-        deltaRhob = deltaBNP2;
-        rhob_end = BNP2 + (NBNP2 - 1)*deltaRhob;
-    }
-    else if (local_ed < EPP4)
-    {
-        deltaRhob = deltaBNP3;
-        rhob_end = BNP3 + (NBNP3 - 1)*deltaRhob;
-    }
-    else if (local_ed < EPP5)
-    {
-        deltaRhob = deltaBNP4;
-        rhob_end = BNP4 + (NBNP4 - 1)*deltaRhob;
-    }
-    else if (local_ed < EPP6)
-    {
-        deltaRhob = deltaBNP5;
-        rhob_end = BNP5 + (NBNP5 - 1)*deltaRhob;
-    }
-    else if (local_ed < EPP7)
-    {
-        deltaRhob = deltaBNP6;
-        rhob_end = BNP6 + (NBNP6 - 1)*deltaRhob;
-    }
-    else 
-    {
-        deltaRhob = deltaBNP7;
-        rhob_end = BNP7 + (NBNP7 - 1)*deltaRhob;
-    }
+    double deltaRhob = nb_spacing[table_idx];
+    //double rhob_max = nb_bounds[table_idx] + nb_length[table_idx]*deltaRhob;
     
-    double rhobLeft = local_rhob - deltaRhob*0.1;
+    double rhobLeft  = local_rhob - deltaRhob*0.1;
     double rhobRight = local_rhob + deltaRhob*0.1;
 
-    // avoid exceeding the table
-    if(rhobRight > rhob_end)
-        rhobRight = rhob_end;
-   
-    double pL = get_pressure(e, rhobLeft);  // 1/fm^4
-    double pR = get_pressure(e, rhobRight); // 1/fm^4
+    double pL = get_pressure(e, rhobLeft);      // 1/fm^4
+    double pR = get_pressure(e, rhobRight);     // 1/fm^4
       
     double dpdrho = (pR - pL)/(rhobRight - rhobLeft);  // 1/fm
-   
-    return dpdrho;   // in 1/fm
+    return (dpdrho);   // in 1/fm
 }
 
 double EOS::get_cs2(double e, double rhob) const {
@@ -2427,29 +2386,7 @@ double EOS::calculate_velocity_of_sound_sq(double e, double rhob) const {
     double pressure = get_pressure(e, rhob);
     double v_sound = dpde + rhob/(e + pressure + 1e-15)*dpdrho;
 
-    if (v_sound < v_min) {
-        v_sound = v_min;
-        // fprintf(stderr, "EOS::get_velocity_of_sound: " const
-        //                 "velocity of sound is negative!\n");
-        // fprintf(stderr, "v_sound = %lf \n", v_sound);
-        // fprintf(stderr, "e = %lf GeV/fm^3\n", e*hbarc);
-        // fprintf(stderr, "rhob = %lf \n", rhob);
-        // fprintf(stderr, "pressure = %lf GeV/fm^3\n", pressure*hbarc);
-        // fprintf(stderr, "dP/de = %lf \n", dpde);
-        // fprintf(stderr, "dP/drho = %lf \n", dpdrho);
-    }
-    if (v_sound > v_max) {
-        // fprintf(stderr, "EOS::get_velocity_of_sound:" const
-        //                 "velocity of sound is larger than 1/3!\n");
-        // fprintf(stderr, "v_sound = %lf \n", v_sound);
-        // fprintf(stderr, "e = %lf \n", e*hbarc);
-        // fprintf(stderr, "rhob = %lf \n", rhob);
-        // fprintf(stderr, "pressure = %lf \n", pressure);
-        // fprintf(stderr, "dP/de = %lf \n", dpde);
-        // fprintf(stderr, "dP/drho = %lf \n", dpdrho);
-        // exit(0);
-        v_sound = v_max;
-    }
+    v_sound = std::max(v_min, std::min(v_max, v_sound));
     return(v_sound);
 }
 
@@ -2469,7 +2406,10 @@ double EOS::get_pressure(double e, double rhob) const {
         //cout << "e = " << e << ", p = " << f << endl;
     } else if (whichEOS >= 10) {
         // EOS is symmetric in rho_b for pressure
-        f = interpolate2D(e, fabs(rhob), 0);
+        //f = interpolate2D(e, fabs(rhob), 0);
+        int table_idx = get_table_idx(e);
+        f = interpolate2D_new(e, std::abs(rhob), table_idx, pressure_tb);
+        f = f/hbarc;  // 1/fm^4
     } else {
         fprintf(stderr, "EOS::get_pressure: whichEOS = %d is out of range!\n", 
                 whichEOS);
@@ -2510,7 +2450,7 @@ double EOS::p_e_func(double e, double rhob) const {
     } else if (whichEOS == 8) {
         f = get_dpOverde_WB(e);
     } else if (whichEOS >= 10) {
-        f = get_dpOverde2(e, rhob);
+        f = get_dpOverde3(e, rhob);
     } else {
         fprintf(stderr, "EOS::p_e_func: whichEOS = %d is out of range!\n", 
                 whichEOS);
@@ -2796,6 +2736,60 @@ double EOS::interpolate(double e, double rhob, int selector) const
       T = pa*(1-frace) + pb*frace;
     }
   return T/hbarc;
+}
+
+
+int EOS::get_table_idx(double e) const {
+    double local_ed = e*hbarc;  // [GeV/fm^3]
+    for (int itable = 0; itable < number_of_tables; itable++) {
+        if (local_ed < e_bounds[itable]) {
+            return(itable);
+        }
+    }
+    return(number_of_tables - 1);
+}
+
+double EOS::interpolate2D_new(double e, double rhob, int table_idx, double ***table) const {
+// This is a generic bilinear interpolation routine for EOS at finite mu_B
+// it assumes the class has already read in
+//        P(e, rho_b), T(e, rho_b), s(e, rho_b), mu_b(e, rho_b)
+// as two-dimensional arrays on an equally spacing lattice grid
+// units: e is in 1/fm^4, rhob is in 1/fm^3
+    double local_ed = e*hbarc;  // [GeV/fm^3]
+    double local_nb = rhob;     // [1/fm^3]
+
+    double e0       = e_bounds[table_idx];
+    double nb0      = nb_bounds[table_idx];
+    double delta_e  = e_spacing[table_idx];
+    double delta_nb = nb_spacing[table_idx];
+
+    int N_e  = e_length[table_idx];
+    int N_nb = nb_length[table_idx];
+
+    // compute the indices
+    int idx_e  = static_cast<int>((local_ed - e0)/delta_e);
+    int idx_nb = static_cast<int>((local_nb - nb0)/delta_nb);
+
+    // treatment for overflow, use the last two points to do extrapolation
+    idx_e  = std::min(N_e - 2, idx_e);
+    idx_nb = std::min(N_nb - 2, idx_nb);
+
+    // check underflow
+    idx_e  = std::max(0, idx_e);
+    idx_nb = std::max(0, idx_nb);
+
+    double frac_e    = (local_ed - (idx_e*delta_e + e0))/delta_e;
+    double frac_rhob = (local_nb - (idx_nb*delta_nb + nb0))/delta_nb;
+
+    double result;
+    double temp1 = std::max(table[table_idx][idx_nb][idx_e], 0.0);
+    double temp2 = std::max(table[table_idx][idx_nb][idx_e + 1], 0.0);
+    double temp3 = std::max(table[table_idx][idx_nb + 1][idx_e + 1], 0.0);
+    double temp4 = std::max(table[table_idx][idx_nb + 1][idx_e], 0.0);
+    result = ((temp1*(1. - frac_e) + temp2*frac_e)*(1. - frac_rhob)
+              + (temp3*frac_e + temp4*(1. - frac_e))*frac_rhob);
+    result = std::max(result, 1e-15);
+    return(result);
 }
 
 double EOS::interpolate2D(double e, double rhob, int selector) const {
@@ -3084,104 +3078,18 @@ double EOS::s2e_ideal_gas(double s) const {
     //s = 4 e / (3 T)
     //s =4/3 T*T*T*(M_PI*M_PI*3.0*(2*(Nc*Nc-1)+7./2*Nc*Nf)/90.0);
     //T = pow(3. * s / 4. / (M_PI*M_PI*3.0*(2*(Nc*Nc-1)+7./2*Nc*Nf)/90.0), 1./3.);
-    return 3. / 4. * s * pow(3. * s / 4. / (M_PI*M_PI*3.0*(2*(Nc*Nc-1)+7./2*Nc*Nf)/90.0), 1./3.); //in 1/fm^4
-
+    return 3./4.*s*pow(3.*s/4./(M_PI*M_PI*3.0*(2*(Nc*Nc-1)+7./2*Nc*Nf)/90.0), 1./3.); //in 1/fm^4
 }
 
 //! This function returns entropy density in [1/fm^3]
 //! The input local energy density e [1/fm^4], rhob[1/fm^3]
 double EOS::get_entropy(double epsilon, double rhob) const {
-    double f;
-    double P, T, mu;
-    P = get_pressure(epsilon, rhob);
-    T = get_temperature(epsilon, rhob);
-    mu = get_mu(epsilon, rhob);
-    if (T > 0)
-        f = (epsilon + P - mu*rhob)/(T + 1e-15);
-    else
-        f = 0.;
-    if (f < 0.) {
-        f = 1e-16;
-        // cout << "[Warning]EOS::get_entropy: s < 0!" << endl; const
-        // cout << "s = " << f << ", e = " << epsilon << ", P = " << P
-        //      << ", mu = " << mu << ", rhob = " << rhob << ", T = " << T
-        //      << endl;
-    }
-    return f;
+    double P = get_pressure(epsilon, rhob);
+    double T = get_temperature(epsilon, rhob);
+    double mu = get_mu(epsilon, rhob);
+    double f = (epsilon + P - mu*rhob)/(T + 1e-15);
+    return(std::max(1e-16, f));
 }/* get_entropy */
-
-double EOS::ssolve(double e, double rhob, double s) const
-{
-  // takes e in GeV/fm^3 and passes it on in 1/fm^4 ...
-  double P, T, mu;
-  P = get_pressure(e/hbarc, rhob);
-  T = get_temperature(e/hbarc, rhob);
-  mu = get_mu(e/hbarc, rhob);
-      
-//   fprintf(stderr,"T=%f\n",T*hbarc);
-//   fprintf(stderr,"P=%f\n",P*hbarc);
-//   fprintf(stderr,"e=%f\n",e);
-//   fprintf(stderr,"s=%f\n",s);
-//   fprintf(stderr,"ssolve=%f\n",T*s-e/hbarc-P+mu*rhob);
-
-  return T*s-e/hbarc-P+mu*rhob;
-}
-
-double EOS::Tsolve(double e, double rhob, double T) {
-    // takes e in GeV/fm^3 and passes it on in 1/fm^4 ...
-    return T-get_temperature(e/hbarc,rhob);
-}
-
-double EOS::findRoot(double (EOS::*func)(double, double, double), double rhob, double s, double e1, double e2, double eacc)
-{
-  int j, jmax;
-  jmax=40;
-  double emid, de, value, f, fmid;
-  fmid = (this->*func)(e2, rhob, s);
-  f = (this->*func)(e1, rhob, s);
- 
-  //  fprintf(stderr,"fmid=%f\n",fmid);
-  //fprintf(stderr,"fabs(f)=%f\n",fabs(f));
-  //fprintf(stderr,"eacc=%f\n",eacc);
-  
-  if(f*fmid>=0)
-    {
-      if( fabs(f) < eacc )
-    {
-     return 0.;
-    }
-      fprintf(stderr,"root must be bracketed in findRoot\n");
-      fprintf(stderr,"f=%f\n",f);
-      fprintf(stderr,"fmid=%f\n",fmid);
-      fprintf(stderr,"fabs(f)=%f\n",fabs(f));
-      fprintf(stderr,"eacc=%f\n",eacc);
-    }
-     
-  if (f<0)
-    {
-      value=e1;
-      de=e2-e1;
-    }
-  else
-    {
-      value=e2;
-      de=e1-e2;
-    }
-  for(j=1; j<=jmax; j++)
-    {
-      de*=0.5;
-      emid = value+de;
-      fmid = (this->*func)(emid, rhob, s);
-      //fprintf(stderr,"fmid(emid)=%f\n",fmid);
-      //fprintf(stderr,"emid=%f\n",emid);
-      //fprintf(stderr,"value=%f\n",value);
-      if (fmid<=0.) value = emid;
-      if (fabs(de)<eacc || fmid==0.) return value/hbarc;
-    }
-  fprintf(stderr,"too many bisections in findRoot\n");
-  return 0.;
-}
-
 
 //! This function returns the local temperature in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
@@ -3196,7 +3104,9 @@ double EOS::get_temperature(double eps, double rhob) const {
     } else if (whichEOS == 8) {
         T = get_temperature_WB(eps);
     } else if (whichEOS >= 10) {
-        T = interpolate2D(eps, fabs(rhob), 1);  // EOS is symmetric in rho_b
+        int table_idx = get_table_idx(eps);
+        T = interpolate2D_new(eps, std::abs(rhob), table_idx,
+                              temperature_tb)/hbarc;  // 1/fm
     } else {
         fprintf(stderr,"EOS::get_temperature: " 
                 "whichEOS = %d is out of range!\n", whichEOS);
@@ -3217,10 +3127,14 @@ double EOS::get_mu(double eps, double rhob) const {
     } else if (whichEOS < 10) {
         mu = 0.0;
     } else if (whichEOS >= 10) {
-        if (rhob < 0.0)    // EOS is anti-symmetric in rho_b for mu_B
-            mu = -interpolate2D(eps, -rhob, 3);
-        else
-            mu = interpolate2D(eps, rhob, 3);
+        int table_idx = get_table_idx(eps);
+        if (rhob < 0.0) {   // EOS is anti-symmetric in rho_b for mu_B
+            mu = -interpolate2D_new(eps, std::abs(rhob), table_idx,
+                                    temperature_tb)/hbarc;  // 1/fm
+        } else {
+            mu = interpolate2D_new(eps, std::abs(rhob), table_idx,
+                                   temperature_tb)/hbarc;  // 1/fm
+        }
     } else {
         fprintf(stderr, "EOS::get_mu: whichEOS = %d is out of range!\n", 
                 whichEOS);
