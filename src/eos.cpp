@@ -201,7 +201,8 @@ void EOS::initialize_eos() {
     if (whichEOS >= 2 && whichEOS < 8) {
         eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
     } else if (whichEOS == 10) {
-        eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
+        //eps_max = (EPP7 + deltaEPP7*(NEPP7-1))/hbarc;  // [1/fm^4]
+        eps_max = (e_bounds[6] + e_spacing[6]*e_length[6])/hbarc;  // [1/fm^4]
     } else if (whichEOS == 11) {
         eps_max = (EPP4 + deltaEPP4*(NEPP4-1))/hbarc;  // [1/fm^4]
     } else if (whichEOS == 12) {
