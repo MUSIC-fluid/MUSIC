@@ -2744,7 +2744,7 @@ int EOS::get_table_idx(double e) const {
     double local_ed = e*hbarc;  // [GeV/fm^3]
     for (int itable = 0; itable < number_of_tables; itable++) {
         if (local_ed < e_bounds[itable]) {
-            return(itable);
+            return(std::max(0, itable - 1));
         }
     }
     return(number_of_tables - 1);
