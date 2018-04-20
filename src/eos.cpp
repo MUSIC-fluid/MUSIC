@@ -2329,14 +2329,11 @@ double EOS::get_dpOverde3(double e, double rhob) const {
 
 double EOS::get_dpOverdrhob2(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    //double local_ed = e*hbarc;    // GeV/fm^3
-    double local_rhob = rhob;     // 1/fm^3
-    
     double deltaRhob = nb_spacing[table_idx];
     //double rhob_max = nb_bounds[table_idx] + nb_length[table_idx]*deltaRhob;
     
-    double rhobLeft  = local_rhob - deltaRhob*0.1;
-    double rhobRight = local_rhob + deltaRhob*0.1;
+    double rhobLeft  = rhob - deltaRhob*0.5;
+    double rhobRight = rhob + deltaRhob*0.5;
 
     double pL = get_pressure(e, rhobLeft);      // 1/fm^4
     double pR = get_pressure(e, rhobRight);     // 1/fm^4
@@ -2386,7 +2383,6 @@ double EOS::calculate_velocity_of_sound_sq(double e, double rhob) const {
     double dpdrho = p_rho_func(e, rhob);
     double pressure = get_pressure(e, rhob);
     double v_sound = dpde + rhob/(e + pressure + 1e-15)*dpdrho;
-
     v_sound = std::max(v_min, std::min(v_max, v_sound));
     return(v_sound);
 }
@@ -2742,9 +2738,9 @@ double EOS::interpolate(double e, double rhob, int selector) const
 
 int EOS::get_table_idx(double e) const {
     double local_ed = e*hbarc;  // [GeV/fm^3]
-    for (int itable = 0; itable < number_of_tables; itable++) {
+    for (int itable = 1; itable < number_of_tables; itable++) {
         if (local_ed < e_bounds[itable]) {
-            return(std::max(0, itable - 1));
+            return(itable - 1);
         }
     }
     return(number_of_tables - 1);
@@ -3518,19 +3514,22 @@ void EOS::check_eos_with_finite_muB() const {
         file_name << "check_EoS_cs2_vs_e_sovernB_" << sovernB[i] << ".dat";
         ofstream check_file9(file_name.str().c_str());
         check_file9 << "# e(GeV/fm^3)  T(GeV)  cs^2  mu_B(GeV)  "
-                    << "s(1/fm^3)  rho_B(1/fm^3)" << endl;
+                    << "s(1/fm^3)  rho_B(1/fm^3)  dP/de  dP/drho" << endl;
         for (int j = 0; j < ns; j++) {
             double s_local     = s_0 + j*ds;
             double nB_local    = s_local/sovernB[i];
             double e_local     = get_s2e_finite_rhob(s_local, nB_local);
             double s_check     = get_entropy(e_local, nB_local);
             double cs2_local   = get_cs2(e_local, nB_local);
+            double dpde        = p_e_func(e_local, nB_local);
+            double dpdrho      = p_rho_func(e_local, nB_local);
             double temperature = get_temperature(e_local, nB_local)*hbarc;
             double mu_B        = get_mu(e_local, nB_local)*hbarc;
             check_file9 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "  " << temperature << "  "
                         << cs2_local << "  " << mu_B << "  " 
-                        << s_check << "  " << nB_local << endl;
+                        << s_check << "  " << nB_local << "  "
+                        << dpde << "  " << dpdrho << endl;
         }
         check_file9.close();
     }
