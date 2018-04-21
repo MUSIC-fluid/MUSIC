@@ -40,15 +40,9 @@ class EOS {
     void initialize_eos();
     std::string get_hydro_env_path() const;
     void resize_table_info_arrays();
-    void init_eos0();                // for whichEOS=0
     void init_eos();                 // for whichEOS=1
-    void init_eos2();                // for whichEOS=2
-    void init_eos3(int selector);    // for whichEOS=3 (PCE 150 MeV),
-                                     // whichEOS=4 (PCE 155 MeV),
-                                     // whichEOS=5 (PCE 160 MeV),
-                                     // whichEOS=6 (PCE 165 MeV)
-    void init_eos7();                // for whichEOS=7 s95p-v1.2 (for UrQMD)
-    void init_eos10(int selector);   // for EOS at finite mu_B from A. M.
+
+    void init_eos_s95p(int selector);
     void init_eos10();   // for EOS at finite mu_B from A. M.
     void init_eos11();   // foe EoS at finite mu_B from Pasi
     void init_eos12();   // for EOS at finite mu_B from A. M.
@@ -57,13 +51,10 @@ class EOS {
     // in the unit of [1/fm^4]
     double get_eps_max() const { return(eps_max); }
 
-    double interpolate_pressure(double e, double rhob) const;  // for whichEOS == 1
-    double interpolate(double e, double rhob, int selector) const;
-
     // for EOS at finite mu_B
     int get_table_idx(double e) const;
-    double interpolate1D_new(double e, int table_idx, double ***table) const;
-    double interpolate2D_new(double e, double rhob, int table_idx, double ***table) const;
+    double interpolate1D(double e, int table_idx, double ***table) const;
+    double interpolate2D(double e, double rhob, int table_idx, double ***table) const;
 
     double get_cs2(double e, double rhob) const;
     double calculate_velocity_of_sound_sq(double e, double rhob) const;
