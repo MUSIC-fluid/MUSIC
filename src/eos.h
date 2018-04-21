@@ -16,88 +16,19 @@ class EOS {
     pretty_ostream music_message;
 
     int number_of_tables;
-    double BNP1, EPP1;            // start value for \mu_B and epsilon
-    double BNP2, EPP2;            // start value for \mu_B and epsilon
-    double BNP3, EPP3;            // start value for \mu_B and epsilon
-    double BNP4, EPP4;            // start value for \mu_B and epsilon
-    double BNP5, EPP5;            // start value for \mu_B and epsilon
-    double BNP6, EPP6;            // start value for \mu_B and epsilon
-    double BNP7, EPP7;            // start value for \mu_B and epsilon
     std::vector<double> nb_bounds;
     std::vector<double> e_bounds;
 
-    double deltaBNP1, deltaEPP1;  // step size for \mu_B and epsilon
-    double deltaBNP2, deltaEPP2;  // step size for \mu_B and epsilon
-    double deltaBNP3, deltaEPP3;  // step size for \mu_B and epsilon
-    double deltaBNP4, deltaEPP4;  // step size for \mu_B and epsilon
-    double deltaBNP5, deltaEPP5;  // step size for \mu_B and epsilon
-    double deltaBNP6, deltaEPP6;  // step size for \mu_B and epsilon
-    double deltaBNP7, deltaEPP7;  // step size for \mu_B and epsilon
     std::vector<double> nb_spacing;
     std::vector<double> e_spacing;
 
-    int NBNP1, NEPP1;             // number of entries for \mu_B and epsilon
-    int NBNP2, NEPP2;             // number of entries for \mu_B and epsilon
-    int NBNP3, NEPP3;             // number of entries for \mu_B and epsilon
-    int NBNP4, NEPP4;             // number of entries for \mu_B and epsilon
-    int NBNP5, NEPP5;             // number of entries for \mu_B and epsilon
-    int NBNP6, NEPP6;             // number of entries for \mu_B and epsilon
-    int NBNP7, NEPP7;             // number of entries for \mu_B and epsilon
     std::vector<int> nb_length;
     std::vector<int> e_length;
 
-    double **pressure1;
-    double **pressure2;
-    double **pressure3;
-    double **pressure4;
-    double **pressure5;
-    double **pressure6;
-    double **pressure7;
     double ***pressure_tb;
-    double **temperature1;
-    double **temperature2;
-    double **temperature3;
-    double **temperature4;
-    double **temperature5;
-    double **temperature6;
-    double **temperature7;
     double ***temperature_tb;
-    double **QGPfraction1;
-    double **QGPfraction2;
-    double **QGPfraction3;
-    double **QGPfraction4;
-    double **QGPfraction5;
-    double **QGPfraction6;
-    double **QGPfraction7;
-    double **entropyDensity1;
-    double **entropyDensity2;
-    double **entropyDensity3;
-    double **entropyDensity4;
-    double **entropyDensity5;
-    double **entropyDensity6;
-    double **entropyDensity7;
-    double **mu1;
-    double **mu2;
-    double **mu3;
-    double **mu4;
-    double **mu5;
-    double **mu6;
-    double **mu7;
     double ***mu_B_tb;
-    double **mus1;
-    double **mus2;
-    double **mus3;
-    double **mus4;
-    double **mus5;
-    double **mus6;
-    double **mus7;
-    double **cs2_1;
-    double **cs2_2;
-    double **cs2_3;
-    double **cs2_4;
-    double **cs2_5;
-    double **cs2_6;
-    double **cs2_7;
+    double ***mu_S_tb;
 
     int whichEOS;
     double eps_max;
@@ -107,6 +38,8 @@ class EOS {
     EOS(const InitData &para_in);  // constructor
     ~EOS();  // destructor
     void initialize_eos();
+    std::string get_hydro_env_path() const;
+    void resize_table_info_arrays();
     void init_eos0();                // for whichEOS=0
     void init_eos();                 // for whichEOS=1
     void init_eos2();                // for whichEOS=2
@@ -117,14 +50,13 @@ class EOS {
     void init_eos7();                // for whichEOS=7 s95p-v1.2 (for UrQMD)
     void init_eos10(int selector);   // for EOS at finite mu_B from A. M.
     void init_eos10();   // for EOS at finite mu_B from A. M.
-    void init_eos11(int selector);   // foe EoS at finite mu_B from Pasi
-    void init_eos12(int selector);   // for EOS at finite mu_B from A. M.
+    void init_eos11();   // foe EoS at finite mu_B from Pasi
+    void init_eos12();   // for EOS at finite mu_B from A. M.
 
     // returns maximum local energy density of the EoS table
     // in the unit of [1/fm^4]
     double get_eps_max() const { return(eps_max); }
 
-    void checkForReadError(FILE *file, const char* name) const;
     double interpolate_pressure(double e, double rhob) const;  // for whichEOS == 1
     double interpolate(double e, double rhob, int selector) const;
 
@@ -134,16 +66,14 @@ class EOS {
     // for EOS at finite mu_B
     double interpolate2D(double e, double rhob, int selector) const;
     int get_table_idx(double e) const;
+    double interpolate1D_new(double e, int table_idx, double ***table) const;
     double interpolate2D_new(double e, double rhob, int table_idx, double ***table) const;
 
     double get_cs2(double e, double rhob) const;
     double calculate_velocity_of_sound_sq(double e, double rhob) const;
     double get_rhob_from_mub   (double e, double mub) const;
-    double get_dpOverde        (double e, double rhob) const;
-    double get_dpOverde2       (double e, double rhob) const;
     double get_dpOverde_WB     (double e) const;
     double get_dpOverde3       (double e, double rhob) const;
-    double get_dpOverdrhob     (double e, double rhob) const;
     double get_dpOverdrhob2    (double e, double rhob) const;
     double p_rho_func          (double e, double rhob) const;
     double p_e_func            (double e, double rhob) const;
