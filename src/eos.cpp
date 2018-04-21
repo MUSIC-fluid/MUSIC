@@ -220,7 +220,7 @@ void EOS::init_eos2() {
         std::getline(eos_T, dummy);
   
         // no rho_b dependence at the moment
-        nb_length[itable] = 0;
+        nb_length[itable] = 1;
 
         // allocate memory for pressure arrays
         pressure_tb[itable] = Util::mtx_malloc(nb_length[itable],
@@ -286,7 +286,7 @@ void EOS::init_eos3(int selector) {
         std::getline(eos_T, dummy);
         
         // no rho_b dependence at the moment
-        nb_length[itable] = 0;
+        nb_length[itable] = 1;
         
         // allocate memory for pressure arrays
         pressure_tb[itable] = Util::mtx_malloc(nb_length[itable],
@@ -341,7 +341,7 @@ void EOS::init_eos7() {
         std::getline(eos_T, dummy);
   
         // no rho_b dependence at the moment
-        nb_length[itable] = 0;
+        nb_length[itable] = 1;
         
         // allocate memory for pressure arrays
         pressure_tb[itable] = Util::mtx_malloc(nb_length[itable],
