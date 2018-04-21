@@ -32,6 +32,9 @@ int main(int argc, char *argv[]) {
         music_hydro.run_Cooper_Frye();
     }
 
+    if (running_mode == 71) {
+        music_hydro.check_eos();
+    }
     if (running_mode == 73) {
         music_hydro.output_transport_coefficients();
     }

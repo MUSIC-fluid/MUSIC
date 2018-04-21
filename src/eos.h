@@ -60,11 +60,7 @@ class EOS {
     double interpolate_pressure(double e, double rhob) const;  // for whichEOS == 1
     double interpolate(double e, double rhob, int selector) const;
 
-    // for whichEOS == 2
-    double interpolate2(double e, double rhob, int selector) const;
-
     // for EOS at finite mu_B
-    double interpolate2D(double e, double rhob, int selector) const;
     int get_table_idx(double e) const;
     double interpolate1D_new(double e, int table_idx, double ***table) const;
     double interpolate2D_new(double e, double rhob, int table_idx, double ***table) const;

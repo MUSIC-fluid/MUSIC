@@ -78,7 +78,6 @@ typedef struct init_data {
     
     double sFactor;     //!< overall normalization on energy density profile
     int whichEOS;       //!< type of EoS
-    int check_eos;      //!< flag to output files to check EoS
     //! flag for boost invariant simulations
     bool boost_invariant;
 

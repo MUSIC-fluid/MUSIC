@@ -85,12 +85,6 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_rhob_flag;
     parameter_list.initial_eta_rhob_profile = temp_rhob_flag;
     
-    int temp_check_eos = 0;
-    tempinput = Util::StringFind4(input_file, "check_eos");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_check_eos;
-    parameter_list.check_eos = temp_check_eos;
-    
     //initialize_with_entropy:
     //0: scale with energy density
     //1: scale with entropy density

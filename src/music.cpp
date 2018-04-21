@@ -66,6 +66,12 @@ int MUSIC::run_Cooper_Frye() {
 }
 
 
+void MUSIC::check_eos() {
+    music_message << "check eos ...";
+    music_message.flush("info");
+    eos.check_eos();
+}
+
 //! this is a test function to output the transport coefficients as
 //! function of T and mu_B
 void MUSIC::output_transport_coefficients() {

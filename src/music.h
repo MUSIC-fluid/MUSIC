@@ -58,6 +58,7 @@ class MUSIC {
     //! this is a shell function to run Cooper-Frye
     int run_Cooper_Frye();
 
+    void check_eos();
     //! this is a test function to output the transport coefficients as
     //! function of T and mu_B
     void output_transport_coefficients();

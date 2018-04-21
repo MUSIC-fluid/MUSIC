@@ -1,5 +1,5 @@
 echo_level  1 
-mode  2 
+mode  71
 eta_rhob_plateau_height  0.3 
 Eta_plateau_size  5.36 
 initial_eta_rhob_profile  2 
@@ -8,7 +8,7 @@ Eta_fall_off  0.5
 Initial_rhob_TB_Distribution_Filename  initial/nuclear_thickness_TB_event_1_block.dat 
 Initial_uy_Distribution_Filename  initial/uy_event_1_block.dat 
 Initial_ux_Distribution_Filename  initial/ux_event_1_block.dat 
-Initial_profile  11 
+Initial_profile  11
 Initial_TB_Distribution_Filename  initial/sd_TB_event_1_block.dat 
 Initial_Rhob_Distribution_Filename  initial/rhob_event_1_block.dat 
 Initial_Distribution_Filename  initial/epsilon-u-Hydro1.dat 

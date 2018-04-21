@@ -13,9 +13,6 @@ using namespace std;
 EOS::EOS(const InitData &para_in) : parameters_ptr(para_in)  {
     initialize_eos();
     whichEOS = parameters_ptr.whichEOS;
-    if (parameters_ptr.check_eos == 1) {
-        check_eos();
-    }
     eps_max = 1e5;  // [1/fm^4]
 }
 
@@ -668,7 +665,6 @@ double EOS::get_pressure(double e, double rhob) const {
         //cout << "e = " << e << ", p = " << f << endl;
     } else if (whichEOS >= 10) {
         // EOS is symmetric in rho_b for pressure
-        //f = interpolate2D(e, fabs(rhob), 0);
         int table_idx = get_table_idx(e);
         f = interpolate2D_new(e, std::abs(rhob), table_idx, pressure_tb);
         f = f/hbarc;  // 1/fm^4
