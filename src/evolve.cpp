@@ -2,6 +2,7 @@
 #include <omp.h>
 #include <algorithm>
 #include <memory>
+#include <cmath>
 
 #include "./evolve.h"
 #include "./util.h"
@@ -102,6 +103,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                 grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 2) {
                 grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
+            } else if (DATA.outputEvolutionData == 3) {
+                grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
             }
             if (DATA.output_movie_flag == 1) {
                 grid_info.output_evolution_for_movie(*ap_current, tau);

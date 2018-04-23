@@ -52,6 +52,9 @@ class Cell_info {
     //! This function outputs hydro evolution file in binary format
     void OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau);
 
+    //! This function outputs hydro evolution file in binary format for photon production
+    void OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau);
+
     void load_deltaf_qmu_coeff_table(std::string filename);
     void load_deltaf_qmu_coeff_table_14mom(std::string filename);
     double get_deltaf_qmu_coeff(double T, double muB);
