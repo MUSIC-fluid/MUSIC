@@ -98,7 +98,7 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
     else if (alpha == 4)
         result = sf*diff_on;
 
-    if (isnan(result)) {
+    if (std::isnan(result)) {
         std::cout << "[Error]Diss::MakeWSource: " << std::endl;
         std::cout << "sf=" << sf << " bf=" << bf
                   << " Wmunu =" << grid_pt.Wmunu[alpha]

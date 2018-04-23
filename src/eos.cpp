@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
+#include <cmath>
 
 #include "util.h"
 #include "eos.h"
