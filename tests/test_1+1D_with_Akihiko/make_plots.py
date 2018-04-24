@@ -143,6 +143,6 @@ plt.yscale('log')
 plt.xticks(linspace(-6.0, 6.0, 7), color = 'k', size = plotfontsize)
 plt.yticks(10**linspace(-7.0, 0.0, 8), color = 'k', size = plotfontsize)
 plt.xlabel(r'$\eta$', {'fontsize': plotfontsize})
-plt.ylabel(r'$\rho_B$ (1/fm$^3$)', fontsize = plotfontsize)
+plt.ylabel(r'$n_B$ (1/fm$^3$)', fontsize = plotfontsize)
 plt.savefig('1+1D_rhob.pdf', format='pdf')
 
