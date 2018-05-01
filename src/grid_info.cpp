@@ -1029,9 +1029,10 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double full_den  = 0.0;
     double ecc2_num1  = 0.0;
     double ecc2_num2  = 0.0;
+    double ecc2_den   = 0.0;
     double ecc3_num1  = 0.0;
     double ecc3_num2  = 0.0;
-    double ecc2_den   = 0.0;
+    double ecc3_den   = 0.0;
     double R_Pi_num   = 0.0;
     double R_Pi_den   = 0.0;
     double u_perp_num = 0.0;
@@ -1095,6 +1096,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 ecc3_num1  += gamma_perp*e_local*r_local*r_local*r_local*cos(3.*phi_local);
                 ecc3_num2  += gamma_perp*e_local*r_local*r_local*r_local*sin(3.*phi_local);
                 ecc2_den   += gamma_perp*e_local*r_local*r_local;
+                ecc3_den   += gamma_perp*e_local*r_local*r_local*r_local;
                 R_Pi_num   += weight_local*bulk_Pi/P_local;
                 R_Pi_den   += weight_local;
                 u_perp_num += weight_local*gamma_perp;
@@ -1105,7 +1107,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double ep_ideal = sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)/ideal_den;
     double ep_full  = sqrt(full_num1*full_num1 + full_num2*full_num2)/full_den;
     double ecc2     = sqrt(ecc2_num1*ecc2_num1 + ecc2_num2*ecc2_num2)/ecc2_den;
-    double ecc3     = sqrt(ecc3_num1*ecc3_num1 + ecc3_num2*ecc3_num2)/ecc2_den;
+    double ecc3     = sqrt(ecc3_num1*ecc3_num1 + ecc3_num2*ecc3_num2)/ecc3_den;
     double R_Pi     = R_Pi_num/R_Pi_den;
     double u_avg    = u_perp_num/u_perp_den;
 
