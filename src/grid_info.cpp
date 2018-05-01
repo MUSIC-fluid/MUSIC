@@ -1017,7 +1017,8 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
              << "_" << eta_max << ".dat";
     fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
     if (fabs(tau - DATA.tau0) < 1e-10) {
-        of << "# tau(fm)  epsilon_p(ideal)  epsilon_p(full)"
+        of << "# tau(fm)  epsilon_p(ideal)  epsilon_p(full)  "
+           << "ecc_2  ecc_3  R_Pi  gamma"
            << endl;
     }
     double ideal_num1 = 0.0;
@@ -1026,6 +1027,15 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double full_num1 = 0.0;
     double full_num2 = 0.0;
     double full_den  = 0.0;
+    double ecc2_num1  = 0.0;
+    double ecc2_num2  = 0.0;
+    double ecc3_num1  = 0.0;
+    double ecc3_num2  = 0.0;
+    double ecc2_den   = 0.0;
+    double R_Pi_num   = 0.0;
+    double R_Pi_den   = 0.0;
+    double u_perp_num = 0.0;
+    double u_perp_den = 0.0;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
         if (DATA.boost_invariant == 0) {
@@ -1033,11 +1043,32 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                     - (DATA.eta_size)/2.0);
         }
         if (eta < eta_max && eta > eta_min) {
+            double x_o   = 0.0;
+            double y_o   = 0.0;
+            double w_sum = 0.0;
             for (int iy = 0; iy < arena.nY(); iy++)
             for (int ix = 0; ix < arena.nX(); ix++) {
+                double x_local    = - DATA.x_size/2. + ix*DATA.delta_x;
+                double y_local    = - DATA.y_size/2. + iy*DATA.delta_y;
+                double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+                double gamma_perp = arena(ix, iy, ieta).u[0];
+                x_o   += x_local*e_local*gamma_perp;
+                y_o   += y_local*e_local*gamma_perp;
+                w_sum += e_local*gamma_perp;
+            }
+            x_o /= w_sum;
+            y_o /= w_sum;
+            for (int iy = 0; iy < arena.nY(); iy++)
+            for (int ix = 0; ix < arena.nX(); ix++) {
+                double x_local   = (- DATA.x_size/2. + ix*DATA.delta_x - x_o);
+                double y_local   = (- DATA.y_size/2. + iy*DATA.delta_y - y_o);
+                double r_local   = sqrt(x_local*x_local + y_local*y_local);
+                double phi_local = atan2(y_local, x_local);
+
                 double e_local      = arena(ix, iy, ieta).epsilon;  // 1/fm^4
                 double rhob_local   = arena(ix, iy, ieta).rhob;     // 1/fm^3
                 double P_local      = eos.get_pressure(e_local, rhob_local);
+                double gamma_perp   = arena(ix, iy, ieta).u[0];
                 double ux           = arena(ix, iy, ieta).u[1];
                 double uy           = arena(ix, iy, ieta).u[2];
                 double pi_xx        = arena(ix, iy, ieta).Wmunu[4];
@@ -1059,13 +1090,28 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 full_num1  += weight_local*(T_xx - T_yy);
                 full_num2  += weight_local*(2.*T_xy);
                 full_den   += weight_local*(T_xx + T_yy);
+                ecc2_num1  += gamma_perp*e_local*r_local*r_local*cos(2.*phi_local);
+                ecc2_num2  += gamma_perp*e_local*r_local*r_local*sin(2.*phi_local);
+                ecc3_num1  += gamma_perp*e_local*r_local*r_local*r_local*cos(3.*phi_local);
+                ecc3_num2  += gamma_perp*e_local*r_local*r_local*r_local*sin(3.*phi_local);
+                ecc2_den   += gamma_perp*e_local*r_local*r_local;
+                R_Pi_num   += weight_local*bulk_Pi/P_local;
+                R_Pi_den   += weight_local;
+                u_perp_num += weight_local*gamma_perp;
+                u_perp_den += weight_local;
             }
         }
     }
     double ep_ideal = sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)/ideal_den;
     double ep_full  = sqrt(full_num1*full_num1 + full_num2*full_num2)/full_den;
+    double ecc2     = sqrt(ecc2_num1*ecc2_num1 + ecc2_num2*ecc2_num2)/ecc2_den;
+    double ecc3     = sqrt(ecc3_num1*ecc3_num1 + ecc3_num2*ecc3_num2)/ecc2_den;
+    double R_Pi     = R_Pi_num/R_Pi_den;
+    double u_avg    = u_perp_num/u_perp_den;
 
     of << scientific << setw(18) << setprecision(8)
-       << tau << "  " << ep_ideal << "  " << ep_full << endl;
+       << tau << "  " << ep_ideal << "  " << ep_full << "  "
+       << ecc2 << "  " << ecc3 << "  " << R_Pi << "  " << u_avg
+       << endl;
     of.close();
 }
