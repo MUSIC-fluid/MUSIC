@@ -819,7 +819,7 @@ double EOS::get_mu(double eps, double rhob) const {
     double mu = 0.0;
     if (whichEOS >= 10) {
         int table_idx = get_table_idx(eps);
-        double sign = rhob/std::abs(rhob);
+        double sign = rhob/(std::abs(rhob) + 1e-15);
         mu = sign*interpolate2D(eps, std::abs(rhob), table_idx,
                                     mu_B_tb)/hbarc;  // 1/fm
     }
@@ -832,7 +832,7 @@ double EOS::get_muS(double eps, double rhob) const {
     double mu = 0.0;
     if (whichEOS == 11) {
         int table_idx = get_table_idx(eps);
-        double sign = rhob/std::abs(rhob);
+        double sign = rhob/(std::abs(rhob) + 1e-15);
         mu = sign*interpolate2D(eps, std::abs(rhob), table_idx,
                                     mu_S_tb)/hbarc;  // 1/fm
     }
