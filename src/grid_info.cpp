@@ -743,10 +743,68 @@ void Cell_info::output_1p1D_check_file(SCGrid &arena, double tau) {
 
 //! This function outputs energy density and n_b for making movies
 void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
-    ostringstream filename;
-    filename << "movie_tau_"
-             << setprecision(2) << fixed << tau << ".dat";
-    output_energy_density_and_rhob_disitrubtion(arena, filename.str());
+    const string out_name_xyeta = "evolution_for_movie_xyeta.dat";
+    string out_open_mode;
+    FILE *out_file_xyeta;
+    // If it's the first timestep, overwrite the previous file
+    if (tau == DATA.tau0) {
+        out_open_mode = "wb";
+    } else {
+        out_open_mode = "ab";
+    }
+    out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
+    int n_skip_tau = DATA.output_evolution_every_N_timesteps;
+    int n_skip_x   = DATA.output_evolution_every_N_x;
+    int n_skip_y   = DATA.output_evolution_every_N_y;
+    int n_skip_eta = DATA.output_evolution_every_N_eta;
+    double dtau    = DATA.delta_tau;
+    double dx      = DATA.delta_x;
+    double dy      = DATA.delta_y;
+    double deta    = DATA.delta_eta;
+    double volume  = tau*n_skip_tau*dtau*n_skip_x*dx*n_skip_y*dy*n_skip_eta*deta;
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+        double eta_local = - DATA.eta_size/2. + ieta*deta;
+        for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
+            double y_local = - DATA.y_size/2. + iy*dy;
+            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
+                double x_local = - DATA.x_size/2. + ix*dx;
+                double e_local = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+                double rhob_local = arena(ix, iy, ieta).rhob;  // 1/fm^3
+                // T_local is in 1/fm
+                double T_local   = eos.get_temperature(e_local, rhob_local);
+                double muB_local = eos.get_mu(e_local, rhob_local);  // 1/fm
+        
+                double pressure  = eos.get_pressure(e_local, rhob_local);
+                double u0        = arena(ix, iy, ieta).u[0];
+                double u3        = arena(ix, iy, ieta).u[3];
+                double T00_ideal = (e_local + pressure)*u0*u0 - pressure;
+                double T03_ideal = (e_local + pressure)*u0*u3;
+                double Pi00      = arena(ix, iy, ieta).pi_b*(-1.0 + u0*u0);
+                double Pi03      = arena(ix, iy, ieta).pi_b*u0*u3;
+                double T00_full  = (  T00_ideal
+                                    + arena(ix, iy, ieta).Wmunu[0] + Pi00);
+                double T03_full  = (  T03_ideal
+                                    + arena(ix, iy, ieta).Wmunu[3] + Pi03);
+                double Ttaut     = (  T00_full*cosh(eta_local)
+                                    + T03_full*sinh(eta_local));
+                double JBtau     = (  rhob_local*u0
+                                    + arena(ix, iy, ieta).Wmunu[10]);
+                float array[] = {static_cast<float>(tau),
+                                 static_cast<float>(x_local),
+                                 static_cast<float>(y_local),
+                                 static_cast<float>(eta_local),
+                                 static_cast<float>(volume),
+                                 static_cast<float>(e_local*hbarc),
+                                 static_cast<float>(rhob_local),
+                                 static_cast<float>(T_local*hbarc),
+                                 static_cast<float>(muB_local*hbarc),
+                                 static_cast<float>(Ttaut*hbarc),
+                                 static_cast<float>(JBtau)};
+                fwrite(array, sizeof(float), 11, out_file_xyeta);
+            }
+        }
+    }
+    fclose(out_file_xyeta);
 }
 
 
