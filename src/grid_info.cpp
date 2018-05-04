@@ -1022,14 +1022,16 @@ void Cell_info::output_average_phase_diagram_trajectory(
              << "_" << eta_max << ".dat";
     fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
     if (fabs(tau - DATA.tau0) < 1e-10) {
-        of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)"
-           << endl;
+        of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)  "
+           << "V4 (fm^4)" << endl;
     }
-    double avg_T = 0.0;
+    double avg_T  = 0.0;
     double avg_mu = 0.0;
-    double std_T = 0.0;
+    double std_T  = 0.0;
     double std_mu = 0.0;
     double weight = 0.0;
+    double V4     = 0.0;
+    const double unit_volume = tau*DATA.delta_x*DATA.delta_y*DATA.delta_eta;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
         if (DATA.boost_invariant == 0) {
@@ -1042,6 +1044,8 @@ void Cell_info::output_average_phase_diagram_trajectory(
             for (int iy = 0; iy < arena.nY(); iy++)
             for (int ix = 0; ix < arena.nX(); ix++) {
                 double e_local      = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+                if (e_local > 0.16/hbarc)
+                    V4 += unit_volume;
                 double rhob_local   = arena(ix, iy, ieta).rhob;     // 1/fm^3
                 double utau         = arena(ix, iy, ieta).u[0];
                 double ueta         = arena(ix, iy, ieta).u[3];
@@ -1063,7 +1067,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
     std_mu = sqrt(std_mu/(weight + 1e-15)*hbarc*hbarc - avg_mu*avg_mu);
     of << scientific << setw(18) << setprecision(8)
        << tau << "  " << avg_T << "  " << std_T << "  "
-       << avg_mu << "  " << std_mu << endl;
+       << avg_mu << "  " << std_mu << "  " << V4 << endl;
     of.close();
 }
 
