@@ -769,6 +769,7 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double x_local = - DATA.x_size/2. + ix*dx;
                 double e_local = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+                if (e_local < 0.05/hbarc) continue;
                 double rhob_local = arena(ix, iy, ieta).rhob;  // 1/fm^3
                 // T_local is in 1/fm
                 double T_local   = eos.get_temperature(e_local, rhob_local);
