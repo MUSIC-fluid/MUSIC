@@ -891,6 +891,7 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau,
 void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                                             SCGrid &arena_current,
                                             int thread_id, double epsFO) {
+    bool surface_in_binary = true;
     double epsFO_low = 0.05/hbarc;        // 1/fm^4
 
     const int nx = arena_current.nX();
@@ -905,7 +906,12 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                   << ".dat";
     }
     ofstream s_file;
-    s_file.open(strs_name.str().c_str(), ios::out | ios::app);
+    FILE *surface_file;
+    if (surface_in_binary) {
+        surface_file = fopen(strs_name.str().c_str(), "ab");
+    } else {
+        s_file.open(strs_name.str().c_str(), ios::out | ios::app);
+    }
 
     const int fac_x   = DATA.fac_x;
     const int fac_y   = DATA.fac_y;
@@ -1017,31 +1023,71 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
             double eps_plus_p_over_T = (e_local + pressure)/T_local;
 
             // finally output results
-            s_file << scientific << setprecision(10) 
-                   << tau_center     << " " << x_center          << " " 
-                   << y_center       << " " << eta_center        << " " 
-                   << FULLSU[0]      << " " << FULLSU[1]         << " " 
-                   << FULLSU[2]      << " " << FULLSU[3]         << " " 
-                   << utau_center    << " " << ux_center         << " " 
-                   << uy_center      << " " << ueta_center       << " " 
-                   << e_local        << " " << T_local           << " "
-                   << muB_local      << " " << eps_plus_p_over_T << " " 
-                   << Wtautau_center << " " << Wtaux_center      << " " 
-                   << Wtauy_center   << " " << Wtaueta_center    << " " 
-                   << Wxx_center     << " " << Wxy_center        << " " 
-                   << Wxeta_center   << " " << Wyy_center        << " "
-                   << Wyeta_center   << " " << Wetaeta_center    << " " ;
-            if (DATA.turn_on_bulk)
-                s_file << pi_b_center << " " ;
-            if (DATA.turn_on_rhob)
-                s_file << rhob_center << " " ;
-            if (DATA.turn_on_diff)
-                s_file << qtau_center << " " << qx_center << " " 
-                       << qy_center << " " << qeta_center << " " ;
-            s_file << endl;
+            if (surface_in_binary) {
+                float array[] = {static_cast<float>(tau_center),
+                                 static_cast<float>(x_center),
+                                 static_cast<float>(y_center),
+                                 static_cast<float>(eta_center),
+                                 static_cast<float>(FULLSU[0]),
+                                 static_cast<float>(FULLSU[1]),
+                                 static_cast<float>(FULLSU[2]),
+                                 static_cast<float>(FULLSU[3]),
+                                 static_cast<float>(utau_center),
+                                 static_cast<float>(ux_center),
+                                 static_cast<float>(uy_center),
+                                 static_cast<float>(ueta_center),
+                                 static_cast<float>(e_local),
+                                 static_cast<float>(T_local),
+                                 static_cast<float>(muB_local),
+                                 static_cast<float>(eps_plus_p_over_T),
+                                 static_cast<float>(Wtautau_center),
+                                 static_cast<float>(Wtaux_center),
+                                 static_cast<float>(Wtauy_center),
+                                 static_cast<float>(Wtaueta_center),
+                                 static_cast<float>(Wxx_center),
+                                 static_cast<float>(Wxy_center),
+                                 static_cast<float>(Wxeta_center),
+                                 static_cast<float>(Wyy_center),
+                                 static_cast<float>(Wyeta_center),
+                                 static_cast<float>(Wetaeta_center),
+                                 static_cast<float>(pi_b_center),
+                                 static_cast<float>(rhob_center),
+                                 static_cast<float>(qtau_center),
+                                 static_cast<float>(qx_center),
+                                 static_cast<float>(qy_center),
+                                 static_cast<float>(qeta_center)};
+                fwrite(array, sizeof(float), 32, surface_file);
+            } else {
+                s_file << scientific << setprecision(10) 
+                       << tau_center     << " " << x_center          << " " 
+                       << y_center       << " " << eta_center        << " " 
+                       << FULLSU[0]      << " " << FULLSU[1]         << " " 
+                       << FULLSU[2]      << " " << FULLSU[3]         << " " 
+                       << utau_center    << " " << ux_center         << " " 
+                       << uy_center      << " " << ueta_center       << " " 
+                       << e_local        << " " << T_local           << " "
+                       << muB_local      << " " << eps_plus_p_over_T << " " 
+                       << Wtautau_center << " " << Wtaux_center      << " " 
+                       << Wtauy_center   << " " << Wtaueta_center    << " " 
+                       << Wxx_center     << " " << Wxy_center        << " " 
+                       << Wxeta_center   << " " << Wyy_center        << " "
+                       << Wyeta_center   << " " << Wetaeta_center    << " " ;
+                if (DATA.turn_on_bulk)
+                    s_file << pi_b_center << " " ;
+                if (DATA.turn_on_rhob)
+                    s_file << rhob_center << " " ;
+                if (DATA.turn_on_diff)
+                    s_file << qtau_center << " " << qx_center << " " 
+                           << qy_center << " " << qeta_center << " " ;
+                s_file << endl;
+            }
         }
     }
-    s_file.close();
+    if (surface_in_binary) {
+        fclose(surface_file);
+    } else {
+        s_file.close();
+    }
 }
 
 
