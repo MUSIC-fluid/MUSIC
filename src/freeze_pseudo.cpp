@@ -1035,7 +1035,6 @@ void Freeze::compute_thermal_spectra(int particleSpectrumNumber,
         system("cat yptphiSpectra??.dat >> yptphiSpectra.dat "
                "2> /dev/null");
     }
-    free(surface);
 }
 
 void Freeze::perform_resonance_decays(InitData *DATA) {

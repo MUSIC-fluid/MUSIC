@@ -89,6 +89,7 @@ Freeze::~Freeze() {
         delete[] sinh_eta_s_inte;
         delete[] cosh_eta_s_inte;
     }
+    surface.clear();
 }
 
 void Freeze::checkForReadError(FILE *file, const char* name) {
@@ -500,70 +501,69 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
 
     s_file = fopen(s_name, "r");
     // Now allocate memory: array of surfaceElements with length NCells
-    surface = (SurfaceElement *) malloc((NCells)*sizeof(SurfaceElement));
+    //surface = (SurfaceElement *) malloc((NCells)*sizeof(SurfaceElement));
     int i = 0;
     while (i < NCells) {
+        SurfaceElement temp_cell;
         int temp;
         // position in (tau, x, y, eta)
-        temp = fscanf(s_file, "%lf", &surface[i].x[0]);
-        temp = fscanf(s_file, "%lf", &surface[i].x[1]);
-        temp = fscanf(s_file, "%lf", &surface[i].x[2]);
-        temp = fscanf(s_file, "%lf", &surface[i].x[3]);
-        surface[i].sinh_eta_s = sinh(surface[i].x[3]);
-        surface[i].cosh_eta_s = cosh(surface[i].x[3]);
+        temp = fscanf(s_file, "%lf", &temp_cell.x[0]);
+        temp = fscanf(s_file, "%lf", &temp_cell.x[1]);
+        temp = fscanf(s_file, "%lf", &temp_cell.x[2]);
+        temp = fscanf(s_file, "%lf", &temp_cell.x[3]);
+        temp_cell.sinh_eta_s = sinh(temp_cell.x[3]);
+        temp_cell.cosh_eta_s = cosh(temp_cell.x[3]);
         // hypersurface vector in (tau, x, y, eta)
-        temp = fscanf(s_file, "%lf", &surface[i].s[0]);
-        temp = fscanf(s_file, "%lf", &surface[i].s[1]);
-        temp = fscanf(s_file, "%lf", &surface[i].s[2]);
-        temp = fscanf(s_file, "%lf", &surface[i].s[3]);
+        temp = fscanf(s_file, "%lf", &temp_cell.s[0]);
+        temp = fscanf(s_file, "%lf", &temp_cell.s[1]);
+        temp = fscanf(s_file, "%lf", &temp_cell.s[2]);
+        temp = fscanf(s_file, "%lf", &temp_cell.s[3]);
         // flow velocity in (tau, x, y, eta)
-        temp = fscanf(s_file, "%lf", &surface[i].u[0]);
-        temp = fscanf(s_file, "%lf", &surface[i].u[1]);
-        temp = fscanf(s_file, "%lf", &surface[i].u[2]);
-        temp = fscanf(s_file, "%lf", &surface[i].u[3]);
-        //// correct u^\mu using u^\mu u_\mu = 1
-        //surface[i].u[0] = sqrt(1. + surface[i].u[1]*surface[i].u[1]
-        //                          + surface[i].u[2]*surface[i].u[2]
-        //                          + surface[i].u[3]*surface[i].u[3]);
+        temp = fscanf(s_file, "%lf", &temp_cell.u[0]);
+        temp = fscanf(s_file, "%lf", &temp_cell.u[1]);
+        temp = fscanf(s_file, "%lf", &temp_cell.u[2]);
+        temp = fscanf(s_file, "%lf", &temp_cell.u[3]);
+
         // freeze-out energy density
-        temp = fscanf(s_file, "%lf", &surface[i].epsilon_f);
-        if (surface[i].epsilon_f < 0)  {
+        temp = fscanf(s_file, "%lf", &temp_cell.epsilon_f);
+        if (temp_cell.epsilon_f < 0)  {
             music_message.error("epsilon_f < 0.!");
             exit(1);
         }
         // freeze-out temperature
-        temp = fscanf(s_file, "%lf", &surface[i].T_f);
-        if (surface[i].T_f < 0) {
+        temp = fscanf(s_file, "%lf", &temp_cell.T_f);
+        if (temp_cell.T_f < 0) {
             music_message.error("T_f < 0.!");
             exit(1);
         }
         // freeze-out baryon chemical potential
-        temp = fscanf(s_file, "%lf", &surface[i].mu_B);
+        temp = fscanf(s_file, "%lf", &temp_cell.mu_B);
         // freeze-out entropy density s
-        temp = fscanf(s_file, "%lf", &surface[i].eps_plus_p_over_T_FO);
+        temp = fscanf(s_file, "%lf", &temp_cell.eps_plus_p_over_T_FO);
         // freeze-out Wmunu
-        temp = fscanf(s_file, "%lf", &surface[i].W[0][0]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[0][1]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[0][2]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[0][3]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[1][1]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[1][2]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[1][3]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[2][2]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[2][3]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[3][3]);
+        temp = fscanf(s_file, "%lf", &temp_cell.W[0][0]);
+        temp = fscanf(s_file, "%lf", &temp_cell.W[0][1]);
+        temp = fscanf(s_file, "%lf", &temp_cell.W[0][2]);
+        temp = fscanf(s_file, "%lf", &temp_cell.W[0][3]);
+        temp = fscanf(s_file, "%lf", &temp_cell.W[1][1]);
+        temp = fscanf(s_file, "%lf", &temp_cell.W[1][2]);
+        temp = fscanf(s_file, "%lf", &temp_cell.W[1][3]);
+        temp = fscanf(s_file, "%lf", &temp_cell.W[2][2]);
+        temp = fscanf(s_file, "%lf", &temp_cell.W[2][3]);
+        temp = fscanf(s_file, "%lf", &temp_cell.W[3][3]);
         if (DATA->turn_on_bulk) {
-            temp = fscanf(s_file, "%lf", &surface[i].pi_b);
+            temp = fscanf(s_file, "%lf", &temp_cell.pi_b);
         }
         if (DATA->turn_on_rhob) {
-            temp = fscanf(s_file, "%lf", &surface[i].rho_B);
+            temp = fscanf(s_file, "%lf", &temp_cell.rho_B);
         }
         if (DATA->turn_on_diff) {
-            temp = fscanf(s_file, "%lf", &surface[i].q[0]);
-            temp = fscanf(s_file, "%lf", &surface[i].q[1]);
-            temp = fscanf(s_file, "%lf", &surface[i].q[2]);
-            temp = fscanf(s_file, "%lf", &surface[i].q[3]);
+            temp = fscanf(s_file, "%lf", &temp_cell.q[0]);
+            temp = fscanf(s_file, "%lf", &temp_cell.q[1]);
+            temp = fscanf(s_file, "%lf", &temp_cell.q[2]);
+            temp = fscanf(s_file, "%lf", &temp_cell.q[3]);
         }
+        surface.push_back(temp_cell);
         i++;
     }
     fclose(s_file);

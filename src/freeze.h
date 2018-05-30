@@ -34,6 +34,7 @@
 #include <fstream>
 #include <unistd.h>
 #include <sstream>
+#include <vector>
 
 #include "./data.h"
 #include "./util.h"
@@ -126,7 +127,7 @@ class Freeze{
     double *cosh_eta_s_inte, *sinh_eta_s_inte;
 
     pretty_ostream music_message;
-    SurfaceElement *surface;
+    std::vector<SurfaceElement> surface;
     Particle *particleList;
     int NCells;
     int decayMax, particleMax;
