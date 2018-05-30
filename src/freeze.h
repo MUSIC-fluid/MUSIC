@@ -34,6 +34,7 @@
 #include <fstream>
 #include <unistd.h>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include "./data.h"
@@ -121,6 +122,7 @@ typedef struct surfaceElement {
 //! This class perform Cooper-Fyre freeze-out and resonance decays
 class Freeze{
  private:
+    bool surface_in_binary;
     bool boost_invariant;
     int n_eta_s_integral;
     double *eta_s_inte_array, *eta_s_inte_weight;
@@ -170,6 +172,8 @@ class Freeze{
     double gauss(int n, double (Freeze::*f)(double, void *), double xlo,
                  double xhi, void *optvec);
     void read_particle_PCE_mu(InitData* DATA, EOS* eos);
+    int get_number_of_lines_of_binary_surface_file(std::string filename);
+    int get_number_of_lines_of_text_surface_file(std::string filename);
     void ReadParticleData(InitData *DATA, EOS *eos);
     void ReadFreezeOutSurface(InitData *DATA);
     void ReadSpectra_pseudo(InitData* DATA, int full, int verbose);
@@ -216,7 +220,6 @@ class Freeze{
     void cal_reso_decays(int maxpart, int maxdecay, int bound);
     // -----------------------------------------------------------------------
     
-    int countLines(std::istream& in);
     void checkForReadError(FILE *file, const char* name);
 
     void OutputFullParticleSpectrum_pseudo(
