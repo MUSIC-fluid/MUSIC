@@ -891,7 +891,7 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau,
 void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                                             SCGrid &arena_current,
                                             int thread_id, double epsFO) {
-    bool surface_in_binary = true;
+    const bool surface_in_binary = DATA.freeze_surface_in_binary;
     double epsFO_low = 0.05/hbarc;        // 1/fm^4
 
     const int nx = arena_current.nX();
@@ -906,9 +906,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                   << ".dat";
     }
     ofstream s_file;
-    FILE *surface_file;
     if (surface_in_binary) {
-        surface_file = fopen(strs_name.str().c_str(), "ab");
+        s_file.open(strs_name.str().c_str(), ios::out | ios::app | ios::binary);
     } else {
         s_file.open(strs_name.str().c_str(), ios::out | ios::app);
     }
@@ -1056,7 +1055,9 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                                  static_cast<float>(qx_center),
                                  static_cast<float>(qy_center),
                                  static_cast<float>(qeta_center)};
-                fwrite(array, sizeof(float), 32, surface_file);
+                for (int i = 0; i < 32; i++) {
+                    s_file.write((char*) &(array[i]), sizeof(float));
+                }
             } else {
                 s_file << scientific << setprecision(10) 
                        << tau_center     << " " << x_center          << " " 
@@ -1084,7 +1085,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
         }
     }
     if (surface_in_binary) {
-        fclose(surface_file);
+        s_file.close();
     } else {
         s_file.close();
     }
@@ -1093,7 +1094,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
 
 int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                 double tau, SCGrid &arena_current, SCGrid &arena_freezeout) {
-    bool surface_in_binary = true;
+    const bool surface_in_binary = DATA.freeze_surface_in_binary;
     // find boost-invariant hyper-surfaces
     int *all_frozen = new int[n_freeze_surf];
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
@@ -1104,9 +1105,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                   << ".dat";
 
         ofstream s_file;
-        FILE *surface_file;
         if (surface_in_binary) {
-            surface_file = fopen(strs_name.str().c_str(), "ab");
+            s_file.open(strs_name.str().c_str(),
+                        ios::out | ios::app | ios::binary);
         } else {
             s_file.open(strs_name.str().c_str(), ios::out | ios::app);
         }
@@ -1564,7 +1565,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                          static_cast<float>(qx_center),
                                          static_cast<float>(qy_center),
                                          static_cast<float>(qeta_center)};
-                        fwrite(array, sizeof(float), 32, surface_file);
+                        for (int i = 0; i < 32; i++) {
+                            s_file.write((char*) &(array[i]), sizeof(float));
+                        }
                     } else {
                         s_file << scientific << setprecision(10) 
                                << tau_center << " " << x_center << " " 
@@ -1595,7 +1598,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         }
 
         if (surface_in_binary) {
-            fclose(surface_file);
+            s_file.close();
         } else {
             s_file.close();
         }
