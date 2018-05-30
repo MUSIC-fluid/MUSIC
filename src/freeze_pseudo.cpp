@@ -280,14 +280,14 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
 
             #pragma omp for
             for (int icell = 0; icell < NCells; icell++) {
-                double tau = surface[icell].x[0];
-                double eta_s = surface[icell].x[3];
+                double tau        = surface[icell].x[0];
+                double eta_s      = surface[icell].x[3];
                 double cosh_eta_s = surface[icell].cosh_eta_s;
                 double sinh_eta_s = surface[icell].sinh_eta_s;
 
-                double T = surface[icell].T_f*hbarc;  // GeV
+                double T   = surface[icell].T_f*hbarc;  // GeV
                 double muB = surface[icell].mu_B*hbarc;  // GeV
-                double mu = baryon*muB;  // GeV
+                double mu  = baryon*muB;  // GeV
                 if (DATA->whichEOS>=3 && DATA->whichEOS < 10) {
                     // for PCE use the previously computed mu
                     // at the freeze-out energy density
