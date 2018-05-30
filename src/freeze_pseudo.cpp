@@ -2,6 +2,11 @@
 // Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
 
 // Copyright @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
+
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
+#include <gsl/gsl_interp.h>
+
 #include<sys/stat.h>
 #include<iomanip>
 #include "./freeze.h"
