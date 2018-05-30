@@ -45,80 +45,81 @@ const int nharmonics = 8;   // calculate up to maximum harmonic (n-1)
 const int etasize = 200;    // max number of points in eta for array
 const int ptsize = 100;     // max number of points in pt for array
 
+typedef struct particle {
+    int number;
+    char name[50];
+    double mass;
+    double width;
+    int degeneracy;
+    int baryon;
+    int strange;
+    int charm;
+    int bottom;
+    int isospin;
+    double charge;
+    int decays;
+    int stable;
+    int ny;
+    int npt;
+    int nphi;
+    double phimin;
+    double phimax;
+    double ymax;
+    double deltaY;
+    double dNdydptdphi[NY][NPT][NPHI+1];
+    double pt[NPT];         // pt values for spectrum
+    double y[NY];           // y values for spectrum
+    double slope;           // assymtotic slope of pt-spectrum
+    double muAtFreezeOut;   // the chemical potential at freeze-out
+                            // for the partial chemical equilibrium EoS
+} Particle;
+
+    
+typedef struct de {
+    int  reso;          // Montecarlo number of decaying resonance
+    int  numpart;       // number of daughter particles after decay
+    double branch;      // branching ratio
+    int    part[5];     // array of daughter particles Montecarlo number
+} de;
+    
+
+typedef struct pblockN {
+    double pt, mt, y, e, pl;        // pt, mt, y of decay product 1
+    double phi;
+    double m1, m2, m3;              // masses of decay products
+    double mr;                      // mass of resonance
+    double costh, sinth;
+    double e0, p0;
+    int res_num;                    // Montecarlo number of the Res.
+} pblockN;
+
+
+typedef struct nblock {
+    double a, b, c, d;
+} nblock;         // for normalisation integral of 3-body decays
+
+
+typedef struct surfaceElement {
+    double x[4];            // position in (tau, x, y, eta)
+    double sinh_eta_s;      // caching the sinh and cosh of eta_s
+    double cosh_eta_s;
+    double s[4];            // hypersurface vector in (tau, x, y, eta)
+    double u[4];            // flow velocity in (tau, x, y, eta)
+    double W[4][4];         // W^{\mu\nu}
+    double q[4];            // baryon diffusion current
+    double pi_b;            // bulk pressure
+    double rho_B;           // net baryon density
+    
+    double epsilon_f;
+    double T_f;
+    double mu_B; 
+    double eps_plus_p_over_T_FO;  // (energy_density+pressure)/temperature
+} SurfaceElement;
+
 
 //! This class perform Cooper-Fyre freeze-out and resonance decays
 class Freeze{
  private:
-    typedef struct particle {
-        int number;
-        char name[50];
-        double mass;
-        double width;
-        int degeneracy;
-        int baryon;
-        int strange;
-        int charm;
-        int bottom;
-        int isospin;
-        double charge;
-        int decays;
-        int stable;
-        int ny;
-        int npt;
-        int nphi;
-        double phimin;
-        double phimax;
-        double ymax;
-        double deltaY;
-        //double resCont[NY][NPT][NPHI];
-        double dNdydptdphi[NY][NPT][NPHI+1];
-        double pt[NPT];         // pt values for spectrum
-        double y[NY];           // y values for spectrum
-        double slope;           // assymtotic slope of pt-spectrum
-        double muAtFreezeOut;   // the chemical potential at freeze-out
-                                // for the partial chemical equilibrium EoS
-    } Particle;
-  
-    struct de {
-        int  reso;          // Montecarlo number of decaying resonance
-        int  numpart;       // number of daughter particles after decay
-        double branch;      // branching ratio
-        int    part[5];     // array of daughter particles Montecarlo number
-    } decay[NUMDECAY];
-  
-    typedef struct pblockN {
-        double pt, mt, y, e, pl;        // pt, mt, y of decay product 1
-        double phi;
-        double m1, m2, m3;              // masses of decay products
-        double mr;                      // mass of resonance
-        double costh, sinth;
-        double e0, p0;
-        int res_num;                    // Montecarlo number of the Res.
-    } pblockN;
-  
-  
-    typedef struct nblock {
-        double a, b, c, d;
-    } nblock;         // for normalisation integral of 3-body decays
-  
-  
-    typedef struct surfaceElement {
-        double x[4];            // position in (tau, x, y, eta)
-        double sinh_eta_s;      // caching the sinh and cosh of eta_s
-        double cosh_eta_s;
-        double s[4];            // hypersurface vector in (tau, x, y, eta)
-        double u[4];            // flow velocity in (tau, x, y, eta)
-        double W[4][4];         // W^{\mu\nu}
-        double q[4];            // baryon diffusion current
-        double pi_b;            // bulk pressure
-        double rho_B;           // net baryon density
-        
-        double epsilon_f;
-        double T_f;
-        double mu_B; 
-        double eps_plus_p_over_T_FO;  // (energy_density+pressure)/temperature
-    } SurfaceElement;
-  
     bool boost_invariant;
     int n_eta_s_integral;
     double *eta_s_inte_array, *eta_s_inte_weight;
@@ -129,6 +130,8 @@ class Freeze{
     Particle *particleList;
     int NCells;
     int decayMax, particleMax;
+
+    de decay[NUMDECAY];
 
     double ***sumYPtPhi;
     int *partid;
