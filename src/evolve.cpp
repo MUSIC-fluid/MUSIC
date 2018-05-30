@@ -225,6 +225,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                                               SCGrid &arena_current,
                                               SCGrid &arena_freezeout,
                                               int thread_id, double epsFO) {
+    const bool surface_in_binary = DATA.freeze_surface_in_binary;
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
 
@@ -232,7 +233,12 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc
               << "_" << thread_id << ".dat";
     ofstream s_file;
-    s_file.open(strs_name.str().c_str(), ios::out | ios::app);
+    if (surface_in_binary) {
+        s_file.open(strs_name.str().c_str(),
+                    ios::out | ios::app | ios::binary);
+    } else {
+        s_file.open(strs_name.str().c_str(), ios::out | ios::app);
+    }
     const int dim = 4;
     int intersections = 0;
 
@@ -821,29 +827,67 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 const double eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                 // finally output results !!!!
-                s_file << scientific << setprecision(10)
-                       << tau_center << " " << x_center << " "
-                       << y_center << " " << eta_center << " "
-                       << FULLSU[0] << " " << FULLSU[1] << " "
-                       << FULLSU[2] << " " << FULLSU[3] << " "
-                       << utau_center << " " << ux_center << " "
-                       << uy_center << " " << ueta_center << " "
-                       << epsFO << " " << TFO << " " << muB << " "
-                       << eps_plus_p_over_T_FO << " "
-                       << Wtautau_center << " " << Wtaux_center << " "
-                       << Wtauy_center << " " << Wtaueta_center << " "
-                       << Wxx_center << " " << Wxy_center << " "
-                       << Wxeta_center << " "
-                       << Wyy_center << " " << Wyeta_center << " "
-                       << Wetaeta_center << " ";
-                if (DATA.turn_on_bulk)
-                    s_file << pi_b_center << " ";
-                if (DATA.turn_on_rhob)
-                    s_file << rhob_center << " ";
-                if (DATA.turn_on_diff)
-                    s_file << qtau_center << " " << qx_center << " "
-                           << qy_center << " " << qeta_center << " ";
-                s_file << endl;
+                if (surface_in_binary) {
+                        float array[] = {static_cast<float>(tau_center),
+                                         static_cast<float>(x_center),
+                                         static_cast<float>(y_center),
+                                         static_cast<float>(eta_center),
+                                         static_cast<float>(FULLSU[0]),
+                                         static_cast<float>(FULLSU[1]),
+                                         static_cast<float>(FULLSU[2]),
+                                         static_cast<float>(FULLSU[3]),
+                                         static_cast<float>(utau_center),
+                                         static_cast<float>(ux_center),
+                                         static_cast<float>(uy_center),
+                                         static_cast<float>(ueta_center),
+                                         static_cast<float>(epsFO),
+                                         static_cast<float>(TFO),
+                                         static_cast<float>(muB),
+                                         static_cast<float>(eps_plus_p_over_T_FO),
+                                         static_cast<float>(Wtautau_center),
+                                         static_cast<float>(Wtaux_center),
+                                         static_cast<float>(Wtauy_center),
+                                         static_cast<float>(Wtaueta_center),
+                                         static_cast<float>(Wxx_center),
+                                         static_cast<float>(Wxy_center),
+                                         static_cast<float>(Wxeta_center),
+                                         static_cast<float>(Wyy_center),
+                                         static_cast<float>(Wyeta_center),
+                                         static_cast<float>(Wetaeta_center),
+                                         static_cast<float>(pi_b_center),
+                                         static_cast<float>(rhob_center),
+                                         static_cast<float>(qtau_center),
+                                         static_cast<float>(qx_center),
+                                         static_cast<float>(qy_center),
+                                         static_cast<float>(qeta_center)};
+                    for (int i = 0; i < 32; i++) {
+                        s_file.write((char*) &(array[i]), sizeof(float));
+                    }
+                } else {
+                    s_file << scientific << setprecision(10)
+                           << tau_center << " " << x_center << " "
+                           << y_center << " " << eta_center << " "
+                           << FULLSU[0] << " " << FULLSU[1] << " "
+                           << FULLSU[2] << " " << FULLSU[3] << " "
+                           << utau_center << " " << ux_center << " "
+                           << uy_center << " " << ueta_center << " "
+                           << epsFO << " " << TFO << " " << muB << " "
+                           << eps_plus_p_over_T_FO << " "
+                           << Wtautau_center << " " << Wtaux_center << " "
+                           << Wtauy_center << " " << Wtaueta_center << " "
+                           << Wxx_center << " " << Wxy_center << " "
+                           << Wxeta_center << " "
+                           << Wyy_center << " " << Wyeta_center << " "
+                           << Wetaeta_center << " ";
+                    if (DATA.turn_on_bulk)
+                        s_file << pi_b_center << " ";
+                    if (DATA.turn_on_rhob)
+                        s_file << rhob_center << " ";
+                    if (DATA.turn_on_diff)
+                        s_file << qtau_center << " " << qx_center << " "
+                               << qy_center << " " << qeta_center << " ";
+                    s_file << endl;
+                }
             }
         }
     }
@@ -907,7 +951,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     }
     ofstream s_file;
     if (surface_in_binary) {
-        s_file.open(strs_name.str().c_str(), ios::out | ios::app | ios::binary);
+        s_file.open(strs_name.str().c_str(),
+                    ios::out | ios::app | ios::binary);
     } else {
         s_file.open(strs_name.str().c_str(), ios::out | ios::app);
     }
@@ -1084,11 +1129,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
             }
         }
     }
-    if (surface_in_binary) {
-        s_file.close();
-    } else {
-        s_file.close();
-    }
+    s_file.close();
 }
 
 
@@ -1597,11 +1638,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
             }
         }
 
-        if (surface_in_binary) {
-            s_file.close();
-        } else {
-            s_file.close();
-        }
+        s_file.close();
 
         // clean up
         for (int i = 0; i < 2; i++) {
