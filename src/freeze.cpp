@@ -16,6 +16,8 @@ Freeze::Freeze(InitData* DATA_in) {
     }
 
     DATA_ptr = DATA_in;
+    surface_in_binary = DATA_ptr->freeze_surface_in_binary;
+
     // for final particle spectra and flow analysis, define the list
     // of charged hadrons that have a long enough lifetime to reach
     // the detectors
@@ -89,6 +91,7 @@ Freeze::~Freeze() {
         delete[] sinh_eta_s_inte;
         delete[] cosh_eta_s_inte;
     }
+    surface.clear();
 }
 
 void Freeze::checkForReadError(FILE *file, const char* name) {
@@ -474,98 +477,163 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
 }
 
 
-int Freeze::countLines(std::istream& in) {
-    return std::count(std::istreambuf_iterator<char>(in),
-                      std::istreambuf_iterator<char>(),
-                      '\n');
-}
-
 void Freeze::ReadFreezeOutSurface(InitData *DATA) {
     music_message.info("reading freeze-out surface");
+    
+    ostringstream surfdat_stream;
+    surfdat_stream << "./surface.dat";
 
-    FILE *s_file;
-    const char* s_name = "./surface.dat";
-    s_file = fopen(s_name, "r");
-    checkForReadError(s_file, s_name);
-
-    NCells = 0;
     // new counting, mac compatible ...
-    ifstream in;
-    in.open(s_name);
-    NCells = 0;
-    NCells += countLines(in);
+    if (surface_in_binary) {
+        NCells = get_number_of_lines_of_binary_surface_file(
+                                                    surfdat_stream.str());
+    } else {
+        NCells = get_number_of_lines_of_text_surface_file(
+                                                    surfdat_stream.str());
+    }
     music_message << "NCells = " << NCells;
     music_message.flush("info");
-    fclose(s_file);
 
-    s_file = fopen(s_name, "r");
+    ifstream surfdat;
+    if (surface_in_binary) {
+        surfdat.open(surfdat_stream.str().c_str(), std::ios::binary);
+    } else {
+        surfdat.open(surfdat_stream.str().c_str());
+    }
     // Now allocate memory: array of surfaceElements with length NCells
-    surface = (SurfaceElement *) malloc((NCells)*sizeof(SurfaceElement));
+    //surface = (SurfaceElement *) malloc((NCells)*sizeof(SurfaceElement));
     int i = 0;
     while (i < NCells) {
-        int temp;
-        // position in (tau, x, y, eta)
-        temp = fscanf(s_file, "%lf", &surface[i].x[0]);
-        temp = fscanf(s_file, "%lf", &surface[i].x[1]);
-        temp = fscanf(s_file, "%lf", &surface[i].x[2]);
-        temp = fscanf(s_file, "%lf", &surface[i].x[3]);
-        surface[i].sinh_eta_s = sinh(surface[i].x[3]);
-        surface[i].cosh_eta_s = cosh(surface[i].x[3]);
-        // hypersurface vector in (tau, x, y, eta)
-        temp = fscanf(s_file, "%lf", &surface[i].s[0]);
-        temp = fscanf(s_file, "%lf", &surface[i].s[1]);
-        temp = fscanf(s_file, "%lf", &surface[i].s[2]);
-        temp = fscanf(s_file, "%lf", &surface[i].s[3]);
-        // flow velocity in (tau, x, y, eta)
-        temp = fscanf(s_file, "%lf", &surface[i].u[0]);
-        temp = fscanf(s_file, "%lf", &surface[i].u[1]);
-        temp = fscanf(s_file, "%lf", &surface[i].u[2]);
-        temp = fscanf(s_file, "%lf", &surface[i].u[3]);
-        //// correct u^\mu using u^\mu u_\mu = 1
-        //surface[i].u[0] = sqrt(1. + surface[i].u[1]*surface[i].u[1]
-        //                          + surface[i].u[2]*surface[i].u[2]
-        //                          + surface[i].u[3]*surface[i].u[3]);
-        // freeze-out energy density
-        temp = fscanf(s_file, "%lf", &surface[i].epsilon_f);
-        if (surface[i].epsilon_f < 0)  {
+        SurfaceElement temp_cell;
+        if (surface_in_binary) {
+            float array[32];
+            for (int ii = 0; ii < 32; ii++) {
+                float temp = 0.;
+                surfdat.read((char*)&temp, sizeof(float));
+                array[ii] = temp;
+            }
+            temp_cell.x[0] = array[0];
+            temp_cell.x[1] = array[1];
+            temp_cell.x[2] = array[2];
+            temp_cell.x[3] = array[3];
+            if (boost_invariant) {
+                temp_cell.x[3] = 0.0;
+            }
+
+            temp_cell.s[0] = array[4];
+            temp_cell.s[1] = array[5];
+            temp_cell.s[2] = array[6];
+            temp_cell.s[3] = array[7];
+
+            temp_cell.u[0] = array[8];
+            temp_cell.u[1] = array[9];
+            temp_cell.u[2] = array[10];
+            temp_cell.u[3] = array[11];
+
+            temp_cell.epsilon_f            = array[12];
+            temp_cell.T_f                  = array[13];
+            temp_cell.mu_B                 = array[14];
+            temp_cell.eps_plus_p_over_T_FO = array[15];
+            
+            temp_cell.W[0][0] = array[16];
+            temp_cell.W[0][1] = array[17];
+            temp_cell.W[0][2] = array[18];
+            temp_cell.W[0][3] = array[19];
+            temp_cell.W[1][1] = array[20];
+            temp_cell.W[1][2] = array[21];
+            temp_cell.W[1][3] = array[22];
+            temp_cell.W[2][2] = array[23];
+            temp_cell.W[2][3] = array[24];
+            temp_cell.W[3][3] = array[25];
+
+            temp_cell.pi_b  = array[26];
+            temp_cell.rho_B = array[27];
+
+            temp_cell.q[0] = array[28];
+            temp_cell.q[1] = array[29];
+            temp_cell.q[2] = array[30];
+            temp_cell.q[3] = array[31];
+        } else {
+            // position in (tau, x, y, eta)
+            surfdat >> temp_cell.x[0] >> temp_cell.x[1]
+                    >> temp_cell.x[2] >> temp_cell.x[3];
+            
+            // hypersurface vector in (tau, x, y, eta)
+            surfdat >> temp_cell.s[0] >> temp_cell.s[1]
+                    >> temp_cell.s[2] >> temp_cell.s[3];
+            
+            // flow velocity in (tau, x, y, eta)
+            surfdat >> temp_cell.u[0] >> temp_cell.u[1]
+                    >> temp_cell.u[2] >> temp_cell.u[3];
+
+            surfdat >> temp_cell.epsilon_f >> temp_cell.T_f
+                    >> temp_cell.mu_B >> temp_cell.eps_plus_p_over_T_FO;
+
+            // freeze-out Wmunu
+            surfdat >> temp_cell.W[0][0] >> temp_cell.W[0][1]
+                    >> temp_cell.W[0][2] >> temp_cell.W[0][3]
+                    >> temp_cell.W[1][1] >> temp_cell.W[1][2]
+                    >> temp_cell.W[1][3] >> temp_cell.W[2][2]
+                    >> temp_cell.W[2][3] >> temp_cell.W[3][3];
+            if (DATA->turn_on_bulk) {
+                surfdat >> temp_cell.pi_b;
+            } else {
+                temp_cell.pi_b = 0.;
+            }
+            if (DATA->turn_on_rhob) {
+                surfdat >> temp_cell.rho_B;
+            } else {
+                temp_cell.rho_B = 0.;
+            }
+            if (DATA->turn_on_diff) {
+                surfdat >> temp_cell.q[0] >> temp_cell.q[1]
+                        >> temp_cell.q[2] >> temp_cell.q[3];
+            } else {
+                temp_cell.q[0] = 0.;
+                temp_cell.q[1] = 0.;
+                temp_cell.q[2] = 0.;
+                temp_cell.q[3] = 0.;
+            }
+        }
+        temp_cell.sinh_eta_s = sinh(temp_cell.x[3]);
+        temp_cell.cosh_eta_s = cosh(temp_cell.x[3]);
+
+        if (temp_cell.epsilon_f < 0)  {
             music_message.error("epsilon_f < 0.!");
             exit(1);
         }
-        // freeze-out temperature
-        temp = fscanf(s_file, "%lf", &surface[i].T_f);
-        if (surface[i].T_f < 0) {
+        if (temp_cell.T_f < 0) {
             music_message.error("T_f < 0.!");
             exit(1);
         }
-        // freeze-out baryon chemical potential
-        temp = fscanf(s_file, "%lf", &surface[i].mu_B);
-        // freeze-out entropy density s
-        temp = fscanf(s_file, "%lf", &surface[i].eps_plus_p_over_T_FO);
-        // freeze-out Wmunu
-        temp = fscanf(s_file, "%lf", &surface[i].W[0][0]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[0][1]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[0][2]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[0][3]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[1][1]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[1][2]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[1][3]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[2][2]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[2][3]);
-        temp = fscanf(s_file, "%lf", &surface[i].W[3][3]);
-        if (DATA->turn_on_bulk) {
-            temp = fscanf(s_file, "%lf", &surface[i].pi_b);
-        }
-        if (DATA->turn_on_rhob) {
-            temp = fscanf(s_file, "%lf", &surface[i].rho_B);
-        }
-        if (DATA->turn_on_diff) {
-            temp = fscanf(s_file, "%lf", &surface[i].q[0]);
-            temp = fscanf(s_file, "%lf", &surface[i].q[1]);
-            temp = fscanf(s_file, "%lf", &surface[i].q[2]);
-            temp = fscanf(s_file, "%lf", &surface[i].q[3]);
-        }
+        surface.push_back(temp_cell);
         i++;
     }
-    fclose(s_file);
+    surfdat.close();
 }
 
+
+int Freeze::get_number_of_lines_of_binary_surface_file(string filename) {
+    std::ifstream surface_file(filename.c_str(), std::ios::binary);
+    int count = 0;
+    float temp = 0.;
+    while(surface_file) {
+        surface_file.read((char*) &temp, sizeof(float));
+        count++;
+    }
+    int counted_line = count/32;
+    surface_file.close();
+    return(counted_line);
+}
+
+
+int Freeze::get_number_of_lines_of_text_surface_file(string filename) {
+    std::ifstream surface_file(filename.c_str(), std::ios::binary);
+    int counted_lines = 0;
+    std::string temp_line;
+    while (std::getline(surface_file, temp_line)) {
+        ++counted_lines;
+    }
+    surface_file.close();
+    return(counted_lines);
+}

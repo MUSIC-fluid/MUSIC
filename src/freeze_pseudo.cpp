@@ -2,6 +2,11 @@
 // Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
 
 // Copyright @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
+
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
+#include <gsl/gsl_interp.h>
+
 #include<sys/stat.h>
 #include<iomanip>
 #include "./freeze.h"
@@ -275,14 +280,14 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
 
             #pragma omp for
             for (int icell = 0; icell < NCells; icell++) {
-                double tau = surface[icell].x[0];
-                double eta_s = surface[icell].x[3];
+                double tau        = surface[icell].x[0];
+                double eta_s      = surface[icell].x[3];
                 double cosh_eta_s = surface[icell].cosh_eta_s;
                 double sinh_eta_s = surface[icell].sinh_eta_s;
 
-                double T = surface[icell].T_f*hbarc;  // GeV
+                double T   = surface[icell].T_f*hbarc;  // GeV
                 double muB = surface[icell].mu_B*hbarc;  // GeV
-                double mu = baryon*muB;  // GeV
+                double mu  = baryon*muB;  // GeV
                 if (DATA->whichEOS>=3 && DATA->whichEOS < 10) {
                     // for PCE use the previously computed mu
                     // at the freeze-out energy density
@@ -1035,7 +1040,6 @@ void Freeze::compute_thermal_spectra(int particleSpectrumNumber,
         system("cat yptphiSpectra??.dat >> yptphiSpectra.dat "
                "2> /dev/null");
     }
-    free(surface);
 }
 
 void Freeze::perform_resonance_decays(InitData *DATA) {
