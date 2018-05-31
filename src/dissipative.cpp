@@ -153,7 +153,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     shear = (shear_to_s)*(epsilon + pressure)/(T + 1e-15);
     double tau_pi = 5.0*shear/(epsilon + pressure + 1e-15);
 
-    tau_pi = std::min(10., std::max(DATA.delta_tau, tau_pi));
+    tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
@@ -771,6 +771,7 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     // Bulk relaxation time from kinetic theory
     Bulk_Relax_time = (1./(14.55*(1./3. - cs2)*(1./3. - cs2))
                        /(epsilon + pressure)*bulk);
+    Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
 
     // from kinetic theory, small mass limit
     transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);
@@ -872,6 +873,7 @@ double Diss::Make_uqSource(
 
     double kappa_coefficient = DATA.kappa_coefficient;
     double tau_rho = kappa_coefficient/(T + 1e-15);
+    tau_rho = std::max(3.*DATA.delta_tau, tau_rho);
     double mub     = eos.get_mu(epsilon, rhob);
     double alpha   = mub/T;
     double kappa   = kappa_coefficient*(rhob/(3.*T*tanh(alpha) + 1e-15)
