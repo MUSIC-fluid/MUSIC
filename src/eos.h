@@ -43,6 +43,7 @@ class EOS {
     void init_eos();                 // for whichEOS=1
 
     void init_eos_s95p(int selector);
+    void init_eos9();
     void init_eos10();   // for EOS at finite mu_B from A. M.
     void init_eos11();   // foe EoS at finite mu_B from Pasi
     void init_eos12();   // for EOS at finite mu_B from A. M.

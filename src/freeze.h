@@ -114,7 +114,6 @@ typedef struct surfaceElement {
     double eps_plus_p_over_T_FO;  // (energy_density+pressure)/temperature
 } SurfaceElement;
 
-
 //! This class perform Cooper-Fyre freeze-out and resonance decays
 class Freeze{
  private:

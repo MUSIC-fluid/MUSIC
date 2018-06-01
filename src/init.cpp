@@ -9,7 +9,7 @@
 #include "./eos.h"
 
 #ifndef _OPENMP
-  #define omp_get_thread_num() 0
+    #define omp_get_thread_num() 0
 #endif
 
 using namespace std;
@@ -117,10 +117,8 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            //cout << "[Info] Thread " << omp_get_thread_num()
-            //     << " executes loop iteraction ieta = " << ieta << endl;
             initial_Gubser_XY(ieta, arena_prev, arena_current);
-        }/* ieta */
+        }
     } else if (DATA.Initial_profile == 1) {
         // code test in 1+1 D vs Monnai's results
         music_message.info(" Perform 1+1D test vs Monnai's results... ");
@@ -134,10 +132,8 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
   
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            //cout << "[Info] Thread " << omp_get_thread_num()
-            //     << " executes loop iteraction ieta = " << ieta << endl;
             initial_IPGlasma_XY(ieta, arena_prev, arena_current);
-        } /* ieta */
+        }
     } else if (   DATA.Initial_profile == 9 || DATA.Initial_profile == 91
                || DATA.Initial_profile == 92) {
         // read in the profile from file
@@ -149,10 +145,8 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
   
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            //cout << "[Info] Thread " << omp_get_thread_num()
-            //     << " executes loop iteraction ieta = " << ieta << endl;
             initial_IPGlasma_XY_with_pi(ieta, arena_prev, arena_current);
-        } /* ieta */
+        }
     } else if (DATA.Initial_profile == 11) {
         // read in the transverse profile from file with finite rho_B
         // the initial entropy and net baryon density profile are
@@ -166,23 +160,17 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
 
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            //cout << "[Info] Thread " << omp_get_thread_num()
-            //     << " executes loop iteraction ieta = " << ieta << endl;
             initial_MCGlb_with_rhob_XY(ieta, arena_prev, arena_current);
-        } /* ix, iy, ieta */
+        }
     } else if (DATA.Initial_profile == 13) {
         music_message.info("Initialize hydro with source terms");
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            //cout << "[Info] Thread " << omp_get_thread_num()
-            //     << " executes loop iteraction ieta = " << ieta << endl;
             initial_MCGlbLEXUS_with_rhob_XY(ieta, arena_prev, arena_current);
-        } /* ix, iy, ieta */
+        }
     } else if (DATA.Initial_profile == 30) {
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            //cout << "[Info] Thread " << omp_get_thread_num()
-            //     << " executes loop iteraction ieta = " << ieta << endl;
             initial_AMPT_XY(ieta, arena_prev, arena_current);
         }
     } else if (DATA.Initial_profile == 101) {

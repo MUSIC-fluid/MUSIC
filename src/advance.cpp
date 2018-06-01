@@ -1,14 +1,14 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include <omp.h>
 #include <cassert>
-#include "./util.h"
-#include "./data.h"
-#include "./cell.h"
-#include "./grid.h"
-#include "./reconst.h"
-#include "./eos.h"
-#include "./evolve.h"
-#include "./advance.h"
+#include "util.h"
+#include "data.h"
+#include "cell.h"
+#include "grid.h"
+#include "reconst.h"
+#include "eos.h"
+#include "evolve.h"
+#include "advance.h"
 
 using namespace std;
 
@@ -343,7 +343,7 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
     // double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
     double xi = 0.05;
     double factor = 100.*(1./(exp(-(e_local - eps_scale)/xi) + 1.)
-        - 1./(exp(eps_scale/xi) + 1.));
+                          - 1./(exp(eps_scale/xi) + 1.));
     double factor_bulk = factor;
 
     double pi_00 = grid_pt->Wmunu[0];
