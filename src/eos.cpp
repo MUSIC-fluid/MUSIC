@@ -1025,7 +1025,7 @@ void EOS::check_eos() const {
 void EOS::check_eos_no_muB() const {
     // output EoS as function of e
     ostringstream file_name;
-    file_name << "check_EoS_PST.dat";
+    file_name << "check_EoS_" << whichEOS << "_PST.dat";
     ofstream check_file(file_name.str().c_str());
     check_file << "#e(GeV/fm^3) P(GeV/fm^3) s(1/fm^3) T(GeV) cs^2" << endl;
     double e0 = 1e-3;
