@@ -51,7 +51,7 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.parton_quench_factor = temp_parton_quench_factor;
 
     // boost-invariant
-    int temp_boost_invariant = 0;
+    int temp_boost_invariant = 1;
     tempinput = Util::StringFind4(input_file, "boost_invariant");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_boost_invariant;
@@ -226,7 +226,7 @@ InitData read_in_parameters(std::string input_file) {
     
     // freeze_out_method:
     // 2: Schenke's more complex method
-    int tempfreezeOutMethod = 2;
+    int tempfreezeOutMethod = 4;
     tempinput = Util::StringFind4(input_file, "freeze_out_method");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempfreezeOutMethod;
