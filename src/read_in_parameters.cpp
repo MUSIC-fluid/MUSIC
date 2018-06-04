@@ -96,6 +96,7 @@ InitData read_in_parameters(std::string input_file) {
     
     // T_freeze: freeze out temperature
     // only used with use_eps_for_freeze_out = 0
+    parameter_list.useEpsFO = 0;
     double tempTFO = 0.12;
     tempinput = Util::StringFind4(input_file, "T_freeze");
     if (tempinput != "empty") {

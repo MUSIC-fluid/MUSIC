@@ -34,8 +34,6 @@ EOS::~EOS() {
                            nb_length[itable], e_length[itable]);
         }
     }
-    delete [] pressure_tb;
-    delete [] temperature_tb;
     if (parameters_ptr.whichEOS == 1 || parameters_ptr.whichEOS > 9) {
         delete [] mu_B_tb;
     }
