@@ -89,20 +89,21 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
     TJbVec qi = {0};
     MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
     
-    EnergyFlowVec j_mu = {0};
-    
-    double rhob_source = 0.0;
+    TJbVec qi_source = {0.0};
+
     if (flag_add_hydro_source) {
+        EnergyFlowVec j_mu = {0};
         FlowVec u_local = arena_current(ix,iy,ieta).u;
 
         hydro_source_terms.get_hydro_energy_source(
                     tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
         for (int ii = 0; ii < 4; ii++) {
-          j_mu[ii] *= tau_rk;
+            qi_source[ii] = tau_rk*j_mu[ii];
         }
+
         if (DATA.turn_on_rhob == 1) {
-          rhob_source = tau_rk*hydro_source_terms.get_hydro_rhob_source(
-                       tau_rk, x_local, y_local, eta_s_local, u_local);
+            qi_source[4] = tau_rk*hydro_source_terms.get_hydro_rhob_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local);
         }
     }
 
@@ -114,31 +115,24 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn*(DATA.delta_tau);
 
-        if (flag_add_hydro_source) {
-            // adding hydro_source terms
-            if (alpha < 4) {
-              qi[alpha] += j_mu[alpha]*DATA.delta_tau;
-            } else {
-              qi[alpha] += rhob_source*DATA.delta_tau;
-            }
-        }
+        // add energy moemntum and net baryon density source terms
+        qi[alpha] += qi_source[alpha]*DATA.delta_tau;
+
         // set baryon density back to zero if viscous correction made it
         // non-zero remove/modify if rho_b!=0
         // - this is only to remove the viscous correction that
         // can make rho_b negative which we do not want.
-        if (DATA.turn_on_rhob == 0) {
-            if (alpha == 4 && fabs(qi[alpha]) > 1e-12)
-                qi[alpha] = 0.;
-        }
+        //if (DATA.turn_on_rhob == 0) {
+        //    if (alpha == 4 && std::abs(qi[alpha]) > 1e-12)
+        //        qi[alpha] = 0.;
+        //}
 
         /* if rk_flag > 0, we now have q0 + k1 + k2. 
          * So add q0 and multiply by 1/2 */
-        if (rk_flag > 0) {
-            qi[alpha] += get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
-            qi[alpha] *= 0.5;
-        }
+        qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
+        qi[alpha] *= 1./(1. + rk_flag);
     }
-    
+ 
     double tau_next = tau + DATA.delta_tau;
     auto grid_rk_t = reconst_helper.ReconstIt_shell(
                                 tau_next, qi, arena_current(ix, iy, ieta)); 
