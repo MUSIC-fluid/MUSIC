@@ -111,9 +111,6 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
 double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
                            int mu, int nu, int rk_flag, double theta_local,
                            DumuVec &a_local, VelocityShearVec &sigma_1d) {
-    if (DATA.turn_on_shear == 0)
-        return 0.0;
-
     double tempf;
     double SW, shear, shear_to_s, T, epsilon, rhob;
     double NS_term;
@@ -128,6 +125,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
         epsilon = grid_pt_prev->epsilon;
         rhob = grid_pt_prev->rhob;
     }
+
     T = eos.get_temperature(epsilon, rhob);
 
     if (DATA.T_dependent_shear_to_s == 1) {
@@ -499,8 +497,6 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 
     w_rhs = 0.;
 
-    if (DATA.turn_on_shear == 0)
-        return(1);
     auto Wmunu_local = Util::UnpackVecToMatrix(grid_pt.Wmunu);
 
     /* Kurganov-Tadmor for Wmunu */
@@ -627,7 +623,6 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 int Diss::Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
                      double *p_rhs, double theta_local) {
     auto grid_pt = &(arena(ix, iy, ieta));
-    double bulk_on = DATA.turn_on_bulk;
 
     /* Kurganov-Tadmor for Pi */
     /* implement 
@@ -716,7 +711,7 @@ int Diss::Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
      /* add a source term due to the coordinate change to tau-eta */
      sum -= (grid_pt->pi_b)*(grid_pt->u[0])/tau;
      sum += (grid_pt->pi_b)*theta_local;
-     *p_rhs = sum*(DATA.delta_tau)*bulk_on;
+     *p_rhs = sum*(DATA.delta_tau);
 
      return 1;
 }
@@ -724,8 +719,6 @@ int Diss::Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 
 double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, 
                         int rk_flag, double theta_local, VelocityShearVec &sigma_1d) {
-    if (DATA.turn_on_bulk == 0) return 0.0;
-
     double tempf;
     double bulk;
     double Bulk_Relax_time;
@@ -858,7 +851,6 @@ double Diss::Make_uqSource(
     double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu,
     int rk_flag, double theta_local, DumuVec &a_local,
     VelocityShearVec &sigma_1d, DmuMuBoverTVec &baryon_diffusion_vec) {
-    if (DATA.turn_on_diff == 0) return 0.0;
 
     double epsilon, rhob;
     if (rk_flag == 0) {

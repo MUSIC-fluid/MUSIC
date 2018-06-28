@@ -165,22 +165,31 @@ void Advance::FirstRKStepW(
     // solve partial_tau (u^0 W^{kl}) = -partial_i (u^i W^{kl}
     /* Advance uWmunu */
     double tempf, temps;
-    double w_rhs = 0.;
-    for (int mu = 1; mu < 4; mu++) {
-        for (int nu = mu; nu < 4; nu++) {
-            int idx_1d = map_2d_idx_to_1d(mu, nu);
-            diss_helper.Make_uWRHS(tau_now, arena_current, ix, iy, ieta,
-                                   mu, nu, w_rhs, theta_local, a_local);
-            tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
-                     + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
-            temps = diss_helper.Make_uWSource(
-                    tau_now, grid_pt_c, grid_pt_prev, mu, nu, rk_flag,
-                    theta_local, a_local, sigma_local);
-            tempf += temps*(DATA.delta_tau);
-            tempf += w_rhs;
-            tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
-            tempf *= 1./(1. + rk_flag);
-            grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
+    if (DATA.turn_on_shear == 1) {
+        double w_rhs = 0.;
+        for (int mu = 1; mu < 4; mu++) {
+            for (int nu = mu; nu < 4; nu++) {
+                int idx_1d = map_2d_idx_to_1d(mu, nu);
+                diss_helper.Make_uWRHS(tau_now, arena_current, ix, iy, ieta,
+                                       mu, nu, w_rhs, theta_local, a_local);
+                tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
+                         + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
+                temps = diss_helper.Make_uWSource(
+                        tau_now, grid_pt_c, grid_pt_prev, mu, nu, rk_flag,
+                        theta_local, a_local, sigma_local);
+                tempf += temps*(DATA.delta_tau);
+                tempf += w_rhs;
+                tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+                tempf *= 1./(1. + rk_flag);
+                grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
+            }
+        }
+    } else {
+        for (int mu = 1; mu < 4; mu++) {
+            for (int nu = mu; nu < 4; nu++) {
+                int idx_1d = map_2d_idx_to_1d(mu, nu);
+                grid_pt_f->Wmunu[idx_1d] = 0.0;
+            }
         }
     }
 
@@ -207,7 +216,7 @@ void Advance::FirstRKStepW(
         int mu = 4;
         for (int nu = 1; nu < 4; nu++) {
             int idx_1d = map_2d_idx_to_1d(mu, nu);
-            w_rhs = diss_helper.Make_uqRHS(
+            double w_rhs = diss_helper.Make_uqRHS(
                         tau_now, arena_current, ix, iy, ieta, mu, nu);
             tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
                      + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
