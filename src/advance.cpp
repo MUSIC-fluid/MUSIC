@@ -179,6 +179,8 @@ void Advance::FirstRKStepW(
                         theta_local, a_local, sigma_local);
                 tempf += temps*(DATA.delta_tau);
                 tempf += w_rhs;
+                tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+                tempf *= 1./(1. + rk_flag);
                 grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
             }
         }
@@ -195,8 +197,8 @@ void Advance::FirstRKStepW(
                                             a_local, sigma_local);
                 tempf += temps*(DATA.delta_tau);
                 tempf += w_rhs;
-                tempf += ((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
-                tempf *= 0.5;
+                tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+                tempf *= 1./(1. + rk_flag);
                 grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
             }
         }
@@ -513,6 +515,7 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
         double aiph = std::max(aiphL, aiphR);
         double aimh = std::max(aimhL, aimhR);
 
+        #pragma omp simd
         for (int alpha = 0; alpha < 5; alpha++) {
             double FiphL = get_TJb(grid_phL, 0, alpha, direction)*tau_fac[direction];
             double FiphR = get_TJb(grid_phR, 0, alpha, direction)*tau_fac[direction];
@@ -534,6 +537,7 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
     rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
     rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
 
+    #pragma omp simd
     for (int i = 0; i < 5; i++) {
         qi[i] += rhs[i];
     }
@@ -545,15 +549,13 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
 
     double utau    = grid_p.u[0];
     double utau2   = utau*utau;
-    double ux      = fabs(grid_p.u[direc]);
-    double ux2     = ux*ux;
-    double ut2mux2 = utau2 - ux2;
+    double ux      = std::abs(grid_p.u[direc]);
+    double ut2mux2 = utau2 - ux*ux;
 
     double eps  = grid_p.e;
     double rhob = grid_p.rhob;
 
     double vs2 = eos.get_cs2(eps, rhob);
-    double den = utau2*(1. - vs2) + vs2;
     double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.)*vs2)*vs2;
     double num;
     if (num_temp_sqrt >= 0)  {
@@ -581,6 +583,7 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
           exit(1);
         }
     }
+    double den = utau2*(1. - vs2) + vs2;
     double f = num/(den + 1e-15);
     // check for problems
     if (f < 0.0) {
@@ -598,7 +601,7 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
                 exit(0);
             }
         }
-    } else if (f >  1.0) {
+    } else if (f > 1.0) {
         fprintf(stderr, "SpeedMax = %e\n is bigger than 1.\n", f);
         fprintf(stderr, "Can't happen.\n");
         fprintf(stderr, "SpeedMax = num/den, num = %e, den = %e \n", num, den);
