@@ -72,75 +72,75 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
         double eta_s_local, SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta, int rk_flag) {
-  // this advances the ideal part
-  double tau_rk = tau + rk_flag*(DATA.delta_tau);
-  
-  // Solve partial_a T^{a mu} = -partial_a W^{a mu}
-  // Update T^{mu nu}
-  
-  // MakeDelatQI gets
-  //   qi = q0 if rk_flag = 0 or
-  //   qi = q0 + k1 if rk_flag = 1
-  // rhs[alpha] is what MakeDeltaQI outputs. 
-  // It is the spatial derivative part of partial_a T^{a mu}
-  // (including geometric terms)
-  TJbVec qi = {0};
-  MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
-  
-  EnergyFlowVec j_mu = {0};
-  
-  double rhob_source = 0.0;
-  if (flag_add_hydro_source) {
-    FlowVec u_local = arena_current(ix,iy,ieta).u;
-
-    hydro_source_terms.get_hydro_energy_source(
-                tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
-    for (int ii = 0; ii < 4; ii++) {
-      j_mu[ii] *= tau_rk;
-    }
-    if (DATA.turn_on_rhob == 1) {
-      rhob_source = tau_rk*hydro_source_terms.get_hydro_rhob_source(
-                   tau_rk, x_local, y_local, eta_s_local, u_local);
-    }
-  }
-
-  for (int alpha = 0; alpha < 5; alpha++) {
-    // now MakeWSource returns partial_a W^{a mu}
+    // this advances the ideal part
+    double tau_rk = tau + rk_flag*(DATA.delta_tau);
+    
+    // Solve partial_a T^{a mu} = -partial_a W^{a mu}
+    // Update T^{mu nu}
+    
+    // MakeDelatQI gets
+    //   qi = q0 if rk_flag = 0 or
+    //   qi = q0 + k1 if rk_flag = 1
+    // rhs[alpha] is what MakeDeltaQI outputs. 
+    // It is the spatial derivative part of partial_a T^{a mu}
     // (including geometric terms)
-    double dwmn = diss_helper.MakeWSource(
-                tau_rk, alpha, arena_current, arena_prev, ix, iy, ieta);
-    /* dwmn is the only one with the minus sign */
-    qi[alpha] -= dwmn*(DATA.delta_tau);
-
+    TJbVec qi = {0};
+    MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
+    
+    EnergyFlowVec j_mu = {0};
+    
+    double rhob_source = 0.0;
     if (flag_add_hydro_source) {
-      // adding hydro_source terms
-      if (alpha < 4) {
-        qi[alpha] += j_mu[alpha]*DATA.delta_tau;
-      } else {
-        qi[alpha] += rhob_source*DATA.delta_tau;
-      }
-    }
-    // set baryon density back to zero if viscous correction made it
-    // non-zero remove/modify if rho_b!=0
-    // - this is only to remove the viscous correction that
-    // can make rho_b negative which we do not want.
-    if (DATA.turn_on_rhob == 0) {
-      if (alpha == 4 && fabs(qi[alpha]) > 1e-12)
-        qi[alpha] = 0.;
+        FlowVec u_local = arena_current(ix,iy,ieta).u;
+
+        hydro_source_terms.get_hydro_energy_source(
+                    tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
+        for (int ii = 0; ii < 4; ii++) {
+          j_mu[ii] *= tau_rk;
+        }
+        if (DATA.turn_on_rhob == 1) {
+          rhob_source = tau_rk*hydro_source_terms.get_hydro_rhob_source(
+                       tau_rk, x_local, y_local, eta_s_local, u_local);
+        }
     }
 
-    /* if rk_flag > 0, we now have q0 + k1 + k2. 
-     * So add q0 and multiply by 1/2 */
-    if (rk_flag > 0) {
-      qi[alpha] += get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
-      qi[alpha] *= 0.5;
+    for (int alpha = 0; alpha < 5; alpha++) {
+        // now MakeWSource returns partial_a W^{a mu}
+        // (including geometric terms)
+        double dwmn = diss_helper.MakeWSource(
+                    tau_rk, alpha, arena_current, arena_prev, ix, iy, ieta);
+        /* dwmn is the only one with the minus sign */
+        qi[alpha] -= dwmn*(DATA.delta_tau);
+
+        if (flag_add_hydro_source) {
+            // adding hydro_source terms
+            if (alpha < 4) {
+              qi[alpha] += j_mu[alpha]*DATA.delta_tau;
+            } else {
+              qi[alpha] += rhob_source*DATA.delta_tau;
+            }
+        }
+        // set baryon density back to zero if viscous correction made it
+        // non-zero remove/modify if rho_b!=0
+        // - this is only to remove the viscous correction that
+        // can make rho_b negative which we do not want.
+        if (DATA.turn_on_rhob == 0) {
+            if (alpha == 4 && fabs(qi[alpha]) > 1e-12)
+                qi[alpha] = 0.;
+        }
+
+        /* if rk_flag > 0, we now have q0 + k1 + k2. 
+         * So add q0 and multiply by 1/2 */
+        if (rk_flag > 0) {
+            qi[alpha] += get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
+            qi[alpha] *= 0.5;
+        }
     }
-  }
-  
-  double tau_next = tau + DATA.delta_tau;
-  auto grid_rk_t = reconst_helper.ReconstIt_shell(tau_next, qi,
-                                                  arena_current(ix, iy, ieta)); 
-  UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
+    
+    double tau_next = tau + DATA.delta_tau;
+    auto grid_rk_t = reconst_helper.ReconstIt_shell(
+                                tau_next, qi, arena_current(ix, iy, ieta)); 
+    UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
 }
 
 
