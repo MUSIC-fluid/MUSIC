@@ -26,15 +26,6 @@ class Advance {
 
     bool flag_add_hydro_source;
 
-    int map_2d_idx_to_1d(int a, int b) {
-        static const int index_map[5][4] = {{0,   1,  2,  3},
-                                            {1,   4,  5,  6},
-                                            {2,   5,  7,  8},
-                                            {3,   6,  8,  9},
-                                            {10, 11, 12, 13}};
-        return index_map[a][b];
-    }
-
  public:
     Advance(const EOS &eosIn, const InitData &DATA_in,
             hydro_source &hydro_source_in);

@@ -11,6 +11,8 @@
 #include "advance.h"
 
 using namespace std;
+using Util::map_2d_idx_to_1d;
+using Util::map_1d_idx_to_2d;
 
 Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
                  hydro_source &hydro_source_in) :
@@ -167,29 +169,28 @@ void Advance::FirstRKStepW(
     double tempf, temps;
     if (DATA.turn_on_shear == 1) {
         double w_rhs = 0.;
-        for (int mu = 1; mu < 4; mu++) {
-            for (int nu = mu; nu < 4; nu++) {
-                int idx_1d = map_2d_idx_to_1d(mu, nu);
-                diss_helper.Make_uWRHS(tau_now, arena_current, ix, iy, ieta,
-                                       mu, nu, w_rhs, theta_local, a_local);
-                tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
-                         + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
-                temps = diss_helper.Make_uWSource(
-                        tau_now, grid_pt_c, grid_pt_prev, mu, nu, rk_flag,
-                        theta_local, a_local, sigma_local);
-                tempf += temps*(DATA.delta_tau);
-                tempf += w_rhs;
-                tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
-                tempf *= 1./(1. + rk_flag);
-                grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
-            }
+        #pragma omp simd
+        for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
+            int mu = 0;
+            int nu = 0;
+            map_1d_idx_to_2d(idx_1d, mu, nu);
+            diss_helper.Make_uWRHS(tau_now, arena_current, ix, iy, ieta,
+                                   mu, nu, w_rhs, theta_local, a_local);
+            tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
+                     + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
+            temps = diss_helper.Make_uWSource(
+                    tau_now, grid_pt_c, grid_pt_prev, mu, nu, rk_flag,
+                    theta_local, a_local, sigma_local);
+            tempf += temps*(DATA.delta_tau);
+            tempf += w_rhs;
+            tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+            tempf *= 1./(1. + rk_flag);
+            grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
         }
     } else {
-        for (int mu = 1; mu < 4; mu++) {
-            for (int nu = mu; nu < 4; nu++) {
-                int idx_1d = map_2d_idx_to_1d(mu, nu);
-                grid_pt_f->Wmunu[idx_1d] = 0.0;
-            }
+        #pragma omp simd
+        for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
+            grid_pt_f->Wmunu[idx_1d] = 0.0;
         }
     }
 
@@ -214,8 +215,9 @@ void Advance::FirstRKStepW(
     // CShen: add source term for baryon diffusion
     if (DATA.turn_on_diff == 1) {
         int mu = 4;
-        for (int nu = 1; nu < 4; nu++) {
-            int idx_1d = map_2d_idx_to_1d(mu, nu);
+        #pragma omp simd
+        for (int idx_1d = 11; idx_1d < 14; idx_1d++) {
+            int nu = idx_1d - 10;
             double w_rhs = diss_helper.Make_uqRHS(
                         tau_now, arena_current, ix, iy, ieta, mu, nu);
             tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
@@ -233,8 +235,8 @@ void Advance::FirstRKStepW(
             grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
         }
     } else {
-        for (int nu = 0; nu < 4; nu++) {
-            int idx_1d = map_2d_idx_to_1d(4, nu);
+        #pragma omp simd
+        for (int idx_1d = 10; idx_1d < 14; idx_1d++) {
             grid_pt_f->Wmunu[idx_1d] = 0.0;
         }
     }
