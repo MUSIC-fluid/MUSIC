@@ -1,9 +1,5 @@
 // Copyright 2018 @ Chun Shen
 
-#ifndef hbarc
-#define hbarc (0.19733)
-#endif
-
 #ifndef SRC_EOS_BASE_H_
 #define SRC_EOS_BASE_H_
 
@@ -37,22 +33,22 @@ class EOS_base {
     std::string get_hydro_env_path() const;
 
     void set_number_of_tables(int ntables) {number_of_tables = ntables;}
-    int get_number_of_tables() const {return(number_of_tables);}
+    int  get_number_of_tables() const {return(number_of_tables);}
     void resize_table_info_arrays();
 
     void set_EOS_id(int eos_id) {whichEOS = eos_id;}
-    int get_EOS_id() const {return(whichEOS);}
+    int  get_EOS_id() const {return(whichEOS);}
 
     // returns maximum local energy density of the EoS table
     // in the unit of [1/fm^4]
-    void set_eps_max(double eps_max_in) {eps_max = eps_max_in;}
+    void   set_eps_max(double eps_max_in) {eps_max = eps_max_in;}
     double get_eps_max() const {return(eps_max);}
 
     double interpolate1D(double e, int table_idx, double ***table) const;
     double interpolate2D(double e, double rhob, int table_idx, double ***table) const;
 
-    int    get_table_idx    (double e) const;
-    double get_entropy      (double epsilon, double rhob) const;
+    int    get_table_idx(double e) const;
+    double get_entropy  (double epsilon, double rhob) const;
 
     double calculate_velocity_of_sound_sq(double e, double rhob) const;
 
