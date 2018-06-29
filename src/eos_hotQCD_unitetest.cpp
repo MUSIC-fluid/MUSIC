@@ -67,3 +67,9 @@ TEST_CASE("test muS") {
 TEST_CASE("test pressure") {
     EOS_hotQCD test;
 }
+
+TEST_CASE("check eos") {
+    EOS_hotQCD test;
+    test.initialize_eos();
+    test.check_eos();
+}
