@@ -3,6 +3,8 @@
 #ifndef SRC_EOS_BASE_H_
 #define SRC_EOS_BASE_H_
 
+#include "pretty_ostream.h"
+
 #include <string>
 #include <vector>
 
@@ -11,8 +13,10 @@ class EOS_base {
     int whichEOS;
     int number_of_tables;
     double eps_max;
+    int status;
 
  public:
+    pretty_ostream music_message;
     std::vector<double> nb_bounds;
     std::vector<double> e_bounds;
 
@@ -51,6 +55,8 @@ class EOS_base {
     double get_entropy  (double epsilon, double rhob) const;
 
     double calculate_velocity_of_sound_sq(double e, double rhob) const;
+    double get_dpOverde3(double e, double rhob) const;
+    double get_s2e_finite_rhob(double s, double rhob) const;
 
     virtual void   initialize_eos () {}
     virtual double get_cs2        (double e, double rhob) const {}

@@ -1,4 +1,3 @@
-// Copyright 2018 @ Chun Shen
 
 #include "eos_base.h"
 #include "util.h"
@@ -12,6 +11,7 @@ using std::ostringstream;
 using std::setw;
 using std::setprecision;
 using std::scientific;
+using std::cout;
 using std::endl;
 using std::ofstream;
 using std::string;
@@ -125,6 +125,18 @@ double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob) const {
 }
 
 
+double EOS_base::get_dpOverde3(double e, double rhob) const {
+   double eLeft = 0.9*e;
+   double eRight = 1.1*e;
+
+   double pL = get_pressure(eLeft, rhob);   // 1/fm^4
+   double pR = get_pressure(eRight, rhob);  // 1/fm^4
+      
+   double dpde = (pR - pL)/(eRight - eLeft);
+   return dpde;
+}
+
+
 int EOS_base::get_table_idx(double e) const {
     double local_ed = e*hbarc;  // [GeV/fm^3]
     for (int itable = 1; itable < number_of_tables; itable++) {
@@ -133,6 +145,52 @@ int EOS_base::get_table_idx(double e) const {
         }
     }
     return(std::max(0, number_of_tables - 1));
+}
+
+
+//! This function returns local energy density [1/fm^4] from
+//! a given entropy density [1/fm^3] and rhob [1/fm^3]
+//! using binary search
+double EOS_base::get_s2e_finite_rhob(double s, double rhob) const {
+    double eps_lower = 1e-15;
+    double eps_upper = eps_max;
+    double eps_mid   = (eps_upper + eps_lower)/2.;
+    double s_lower   = get_entropy(eps_lower, rhob);
+    double s_upper   = get_entropy(eps_upper, rhob);
+    int ntol         = 1000;
+    if (s < 0.0 || s > s_upper) {
+        cout << "get_s2e_finite_rhob:: s is out of bound, "
+             << "s = " << s << ", s_upper = " << s_upper
+             << ", s_lower = " << s_lower << endl;
+        exit(1);
+    }
+    if (s < s_lower) return(eps_lower);
+
+    double rel_accuracy = 1e-8;
+    double abs_accuracy = 1e-15;
+    double s_mid;
+    int iter = 0;
+    while (((eps_upper - eps_lower)/eps_mid > rel_accuracy
+            && (eps_upper - eps_lower) > abs_accuracy) && iter < ntol) {
+        s_mid = get_entropy(eps_mid, rhob);
+        if (s < s_mid)
+            eps_upper = eps_mid;
+        else 
+            eps_lower = eps_mid;
+        eps_mid = (eps_upper + eps_lower)/2.;
+        iter++;
+    }
+    if (iter == ntol) {
+        cout << "get_s2e_finite_rhob:: max iteration reached, "
+             << "s = " << s << ", rhob = " << rhob << endl;
+        cout << "s_upper = " << get_entropy(eps_upper, rhob)
+             << " , s_lower = " << get_entropy(eps_lower, rhob) << endl;
+        cout << "eps_upper = " << eps_upper
+             << " , eps_lower = " << eps_lower
+             << ", diff = " << (eps_upper - eps_lower) << endl;
+        exit(1);
+    }
+    return (eps_mid);
 }
 
 

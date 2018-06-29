@@ -1,3 +1,4 @@
+// Copyright 2018 @ Chun Shen
 #include "eos_idealgas.h"
 
 #include <cmath>
