@@ -37,13 +37,14 @@ class EOS {
     EOS() = default;
     EOS(const InitData &para_in);  // constructor
     ~EOS();  // destructor
+
     void initialize_eos();
     std::string get_hydro_env_path() const;
     void resize_table_info_arrays();
-    void init_eos();                 // for whichEOS=1
 
-    void init_eos_s95p(int selector);
-    void init_eos9();
+    void init_eos();     // for EOS-Q whichEOS=1
+    void init_eos_s95p(int selector);  // for EOS s95p family
+    void init_eos9();    // for hotQCD EoS
     void init_eos10();   // for EOS at finite mu_B from A. M.
     void init_eos11();   // foe EoS at finite mu_B from Pasi
     void init_eos12();   // for EOS at finite mu_B from A. M.
@@ -76,6 +77,7 @@ class EOS {
     double s2e_ideal_gas(double s) const;
     double get_s2e(double s, double rhob) const;
     double get_s2e_finite_rhob(double s, double rhob) const;
+
     void check_eos() const;
     void check_eos_with_finite_muB() const;
     void check_eos_no_muB() const;
