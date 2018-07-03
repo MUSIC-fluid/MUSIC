@@ -90,9 +90,14 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
     } else if (DATA.Initial_profile == 30) {
         DATA.tau0 = hydro_source_terms.get_source_tau_min();
     } else if (DATA.Initial_profile == 101) {
-        cout << "Using Initial_profile=" << DATA.Initial_profile << endl;
-        cout << "nx=" << DATA.nx << ", ny=" << DATA.ny << endl;
-        cout << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y << endl;
+        music_message << "Using Initial_profile = " << DATA.Initial_profile;
+        music_message.flush("info");
+        music_message << "nx = " << DATA.nx << ", ny = " << DATA.ny
+                      << ", neta = " << DATA.neta;
+        music_message.flush("info");
+        music_message << "dx = " << DATA.delta_x << ", dy = " << DATA.delta_y
+                      << ", deta = " << DATA.delta_eta;
+        music_message.flush("info");
     }
 
     // initialize arena
@@ -174,6 +179,9 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
             initial_AMPT_XY(ieta, arena_prev, arena_current);
         }
     } else if (DATA.Initial_profile == 101) {
+        music_message.info(" ----- information on initial distribution -----");
+        music_message << "file name used: " << DATA.initName;
+        music_message.flush("info");
         initial_UMN_with_rhob(arena_prev, arena_current);
     }
     music_message.info("initial distribution done.");
@@ -687,17 +695,26 @@ void Init::initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     // first load in the transverse profile
     ifstream profile(DATA.initName.c_str());
 
-    const int nx = arena_current.nX();
-    const int ny = arena_current.nY();
+    if (!profile) {
+        music_message << "Can not open file: " << DATA.initName;
+        music_message.flush("error");
+        exit(1);
+    }
+    std::string dummy_s;
+    std::getline(profile, dummy_s);
+
+    const int nx   = arena_current.nX();
+    const int ny   = arena_current.nY();
+    const int neta = arena_current.nEta();
 
     double dummy;
     double ed_local, rhob_local;
-    for (int ieta = 0; ieta < DATA.neta; ieta++) {
+    for (int ieta = 0; ieta < neta; ieta++) {
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
                 profile >> dummy >> dummy >> dummy >> rhob_local >> ed_local;
                 double rhob    = rhob_local;
-                double epsilon = ed_local/hbarc;    // 1/fm^4
+                double epsilon = ed_local*DATA.sFactor/hbarc;    // 1/fm^4
 
                 if (epsilon < 0.00000000001) {
                     epsilon = 0.00000000001;
