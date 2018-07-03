@@ -1,6 +1,8 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include <omp.h>
 #include <cassert>
+#include <cmath>
+
 #include "util.h"
 #include "data.h"
 #include "cell.h"
