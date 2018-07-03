@@ -686,39 +686,19 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(int ieta, SCGrid &arena_prev,
 void Init::initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     // first load in the transverse profile
     ifstream profile(DATA.initName.c_str());
-    ifstream profile_TA(DATA.initName_TA.c_str());
-    ifstream profile_TB(DATA.initName_TB.c_str());
 
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
-    double temp_profile_TA[nx][ny];
-    double temp_profile_TB[nx][ny];
-    for (int i = 0; i < nx; i++) {
-        for (int j = 0; j < ny; j++) {
-            profile_TA >> temp_profile_TA[i][j];
-            profile_TB >> temp_profile_TB[i][j];
-        }
-    }
-    profile_TA.close();
-    profile_TB.close();
 
     double dummy;
     double ed_local, rhob_local;
     for (int ieta = 0; ieta < DATA.neta; ieta++) {
-        double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-        double eta_envelop_left = eta_profile_left_factor(eta);
-        double eta_envelop_right = eta_profile_right_factor(eta);
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
-                double rhob = 0.0;
-                double epsilon = 0.0;
-                profile >> dummy >> dummy >> dummy >> ed_local >> rhob_local;
-                rhob = rhob_local;
-                double sd_bg = (
-                      temp_profile_TA[ix][iy]*eta_envelop_left
-                    + temp_profile_TB[ix][iy]*eta_envelop_right)*DATA.sFactor;
-                double ed_bg = eos.get_s2e(sd_bg, 0.0);
-                epsilon = ed_bg + ed_local/hbarc;    // 1/fm^4
+                profile >> dummy >> dummy >> dummy >> rhob_local >> ed_local;
+                double rhob    = rhob_local;
+                double epsilon = ed_local/hbarc;    // 1/fm^4
+
                 if (epsilon < 0.00000000001) {
                     epsilon = 0.00000000001;
                 }
