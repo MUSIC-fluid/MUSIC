@@ -815,7 +815,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
                 // 4-dimension interpolation done
                 const double TFO = eos.get_temperature(epsFO, rhob_center);
-                const double muB = eos.get_mu(epsFO, rhob_center);
+                const double muB = eos.get_muB(epsFO, rhob_center);
                 if (TFO < 0) {
                     music_message << "TFO=" << TFO
                                   << "<0. ERROR. exiting.";
@@ -1054,7 +1054,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
             // get other thermodynamical quantities
             double e_local   = arena_current(ix, iy, ieta).epsilon;
             double T_local   = eos.get_temperature(e_local, rhob_center);
-            double muB_local = eos.get_mu(e_local, rhob_center);
+            double muB_local = eos.get_muB(e_local, rhob_center);
             if (T_local < 0) {
                 music_message << "Evolve::FreezeOut_equal_tau_Surface: "
                               << "T_local = " << T_local
@@ -1561,7 +1561,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
 
                     // 3-dimension interpolation done
                     double TFO = eos.get_temperature(epsFO, rhob_center);
-                    double muB = eos.get_mu(epsFO, rhob_center);
+                    double muB = eos.get_muB(epsFO, rhob_center);
                     if (TFO < 0) {
                         music_message << "TFO=" << TFO
                                       << "<0. ERROR. exiting.";

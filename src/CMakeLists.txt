@@ -19,6 +19,9 @@ set (SOURCES
     reso_decay.cpp
     advance.cpp
     eos.cpp
+    eos_idealgas.cpp
+    eos_hotQCD.cpp
+    eos_base.cpp
     evolve.cpp
     emoji.cpp
     music_logo.cpp

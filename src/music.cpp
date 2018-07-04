@@ -9,7 +9,7 @@
 
 MUSIC::MUSIC(std::string input_file) : 
     DATA(ReadInParameters::read_in_parameters(input_file)),
-    eos(DATA),
+    eos(DATA.whichEOS),
     hydro_source_terms(DATA) {
     mode = DATA.mode;
     flag_hydro_run = 0;

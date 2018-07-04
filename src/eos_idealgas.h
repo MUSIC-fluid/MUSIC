@@ -16,6 +16,7 @@ class EOS_idealgas : public EOS_base {
     
     void set_Nc_and_Nf(double Nc_in, double Nf_in) {Nc = Nc_in; Nf = Nf_in;}
 
+    void   initialize_eos();
     double get_cs2        (double e, double rhob) const {return(1./3.);}
     double p_rho_func     (double e, double rhob) const {return(0.0);}
     double p_e_func       (double e, double rhob) const {return(1./3.);}

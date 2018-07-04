@@ -11,6 +11,10 @@ EOS_idealgas::EOS_idealgas() {
     Nf = 2.5;
 }
 
+void EOS_idealgas::initialize_eos() {
+    music_message.info("initialze EOS ideal gas ...");
+}
+
 double EOS_idealgas::get_temperature(double eps, double rhob) const {
     return pow(90.0/M_PI/M_PI*(eps/3.0)/(2*(Nc*Nc-1)+7./2*Nc*Nf), .25);
 }

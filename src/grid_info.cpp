@@ -164,7 +164,7 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena,
 
                 double T_local   = eos.get_temperature(e_local, rhob_local);
                 double cs2_local = eos.get_cs2(e_local, rhob_local);
-                double muB_local = eos.get_mu(e_local, rhob_local);
+                double muB_local = eos.get_muB(e_local, rhob_local);
                 double enthropy  = e_local + p_local;  // [1/fm^4]
 
                 double Wtautau = 0.0;
@@ -331,7 +331,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
 
                 double muB_local = 0.0;
                 if (DATA.turn_on_rhob == 1)
-                    muB_local = eos.get_mu(e_local, rhob_local);
+                    muB_local = eos.get_muB(e_local, rhob_local);
 
                 double div_factor = e_local + p_local;  // 1/fm^4
                 double Wxx   = 0.0;
@@ -470,7 +470,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
 
                 double muB_local = 0.0;
                 if (DATA.turn_on_rhob == 1)
-                    muB_local = eos.get_mu(e_local, rhob_local);
+                    muB_local = eos.get_muB(e_local, rhob_local);
 
                 double div_factor = e_local + p_local;  // 1/fm^4
                 double Wxx = 0.0;
@@ -773,7 +773,7 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
                 double rhob_local = arena(ix, iy, ieta).rhob;  // 1/fm^3
                 // T_local is in 1/fm
                 double T_local   = eos.get_temperature(e_local, rhob_local);
-                double muB_local = eos.get_mu(e_local, rhob_local);  // 1/fm
+                double muB_local = eos.get_muB(e_local, rhob_local);  // 1/fm
         
                 double pressure  = eos.get_pressure(e_local, rhob_local);
                 double u0        = arena(ix, iy, ieta).u[0];
@@ -1051,7 +1051,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
                 double ueta         = arena(ix, iy, ieta).u[3];
                 double ut           = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
                 double T_local      = eos.get_temperature(e_local, rhob_local);
-                double muB_local    = eos.get_mu(e_local, rhob_local);
+                double muB_local    = eos.get_muB(e_local, rhob_local);
                 double weight_local = e_local*ut;
                 avg_T  += T_local*weight_local;
                 avg_mu += muB_local*weight_local;

@@ -32,7 +32,7 @@ class EOS_base {
     double ***mu_S_tb;
 
     EOS_base() = default;
-    ~EOS_base();  // destructor
+    ~EOS_base();
 
     std::string get_hydro_env_path() const;
 
@@ -59,14 +59,14 @@ class EOS_base {
     double get_s2e_finite_rhob(double s, double rhob) const;
 
     virtual void   initialize_eos () {}
-    virtual double get_cs2        (double e, double rhob) const {}
-    virtual double p_rho_func     (double e, double rhob) const {}
-    virtual double p_e_func       (double e, double rhob) const {}
-    virtual double get_temperature(double epsilon, double rhob) const {}
-    virtual double get_mu         (double epsilon, double rhob) const {}
-    virtual double get_muS        (double epsilon, double rhob) const {}
-    virtual double get_pressure   (double epsilon, double rhob) const {}
-    virtual double get_s2e        (double s, double rhob) const {}
+    virtual double get_cs2        (double e, double rhob) const {return(0.0);}
+    virtual double p_rho_func     (double e, double rhob) const {return(0.0);}
+    virtual double p_e_func       (double e, double rhob) const {return(0.0);}
+    virtual double get_temperature(double epsilon, double rhob) const {return(0.0);}
+    virtual double get_mu         (double epsilon, double rhob) const {return(0.0);}
+    virtual double get_muS        (double epsilon, double rhob) const {return(0.0);}
+    virtual double get_pressure   (double epsilon, double rhob) const {return(0.0);}
+    virtual double get_s2e        (double s, double rhob) const {return(0.0);}
     virtual void   check_eos      () const {}
     
     void check_eos_with_finite_muB() const;

@@ -242,8 +242,8 @@ void Reconst::reconst_velocity_fdf(const double v, const double T00,
     const double pressure = eos.get_pressure(epsilon, rho);
     const double temp1    = T00 + pressure;
     const double temp2    = v/temp;
-    const double dPde     = eos.p_e_func(epsilon, rho);
-    const double dPdrho   = eos.p_rho_func(epsilon, rho);
+    const double dPde     = eos.get_dpde(epsilon, rho);
+    const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
 
     fv   = v - M/temp1;
     dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0*temp2*dPdrho);
@@ -260,8 +260,8 @@ void Reconst::reconst_u0_fdf(const double u0, const double T00,
     const double drhodu0 = - J0/(u0*u0);
 
     const double pressure = eos.get_pressure(epsilon, rho);
-    const double dPde     = eos.p_e_func(epsilon, rho);
-    const double dPdrho   = eos.p_rho_func(epsilon, rho);
+    const double dPde     = eos.get_dpde(epsilon, rho);
+    const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
 
     const double temp1 = (T00 + pressure)*(T00 + pressure) - K00;
     const double denorm1 = sqrt(temp1);
