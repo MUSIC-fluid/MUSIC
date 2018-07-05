@@ -69,6 +69,19 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         s2e_ptr         = &EOS::get_s2e_neos2;
         get_eps_max_ptr = &EOS::get_eps_max_neos2;
         check_eos_ptr   = &EOS::check_eos_neos2;
+    } else if (eos_id == 12) {
+        neos3.initialize_eos();
+        pressure_ptr    = &EOS::get_pressure_neos3;
+        temperature_ptr = &EOS::get_temperature_neos3;
+        entropy_ptr     = &EOS::get_entropy_neos3;
+        cs2_ptr         = &EOS::get_cs2_neos3;
+        dpde_ptr        = &EOS::get_dpde_neos3;
+        dpdrhob_ptr     = &EOS::get_dpdrhob_neos3;
+        muB_ptr         = &EOS::get_muB_neos3;
+        muS_ptr         = &EOS::get_muS_neos3;
+        s2e_ptr         = &EOS::get_s2e_neos3;
+        get_eps_max_ptr = &EOS::get_eps_max_neos3;
+        check_eos_ptr   = &EOS::check_eos_neos3;
     } else {
         std::cout << "No EOS for eos_id = " << std::endl;
         exit(1);

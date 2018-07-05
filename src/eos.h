@@ -8,6 +8,7 @@
 #include "eos_WB.h"
 #include "eos_hotQCD.h"
 #include "eos_neos2.h"
+#include "eos_neos3.h"
 
 //! This is a wrapper class for the equation of state
 class EOS {
@@ -19,6 +20,7 @@ class EOS {
     EOS_WB WB;
     EOS_hotQCD hotQCD;
     EOS_neos2 neos2;
+    EOS_neos3 neos3;
 
     // function pointers
     double (EOS::*pressure_ptr)   (double e, double rhob) const;
@@ -103,6 +105,19 @@ class EOS {
     double get_s2e_neos2        (double s, double rhob) const {return(neos2.get_s2e(s, rhob));}
     double get_eps_max_neos2    () const {return(neos2.get_eps_max());}
     void   check_eos_neos2      () const {return(neos2.check_eos());}
+    
+    // functions from the neos3 EOS
+    double get_pressure_neos3   (double e, double rhob) const {return(neos3.get_pressure(e, rhob));}
+    double get_temperature_neos3(double e, double rhob) const {return(neos3.get_temperature(e, rhob));}
+    double get_entropy_neos3    (double e, double rhob) const {return(neos3.get_entropy(e, rhob));}
+    double get_cs2_neos3        (double e, double rhob) const {return(neos3.get_cs2(e, rhob));}
+    double get_dpde_neos3       (double e, double rhob) const {return(neos3.p_e_func(e, rhob));}
+    double get_dpdrhob_neos3    (double e, double rhob) const {return(neos3.p_rho_func(e, rhob));}
+    double get_muB_neos3        (double e, double rhob) const {return(neos3.get_mu(e, rhob));}
+    double get_muS_neos3        (double e, double rhob) const {return(neos3.get_muS(e, rhob));}
+    double get_s2e_neos3        (double s, double rhob) const {return(neos3.get_s2e(s, rhob));}
+    double get_eps_max_neos3    () const {return(neos3.get_eps_max());}
+    void   check_eos_neos3      () const {return(neos3.check_eos());}
 
     // functions to call the function pointers
     double get_pressure   (double e, double rhob) const {return((this->*(pressure_ptr))(e, rhob));}
