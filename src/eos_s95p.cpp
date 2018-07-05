@@ -82,6 +82,9 @@ void EOS_s95p::initialize_eos(int eos_id_in) {
         eos_d >> e_bounds[itable];
         eos_d >> e_spacing[itable] >> e_length[itable];
         
+        e_bounds[itable]  /= hbarc;   // 1/fm^4
+        e_spacing[itable] /= hbarc;   // 1/fm^4
+        
         // skip the header in T file
         string dummy;
         std::getline(eos_T, dummy);
@@ -105,21 +108,19 @@ void EOS_s95p::initialize_eos(int eos_id_in) {
             eos_d >> pressure_tb[itable][i][j];
             eos_d >> d_dummy >> dummy >> dummy;;
             eos_T >> temperature_tb[itable][i][j] >> dummy >> dummy;
+                
+            pressure_tb[itable][i][j]    /= hbarc;    // 1/fm^4
+            temperature_tb[itable][i][j] /= hbarc;    // 1/fm
         }
     }
 
-    double eps_max_in = (e_bounds[6] + e_spacing[6]*e_length[6])/hbarc;
+    //double eps_max_in = (e_bounds[6] + e_spacing[6]*e_length[6])/hbarc;
+    double eps_max_in = e_bounds[6] + e_spacing[6]*e_length[6];
     set_eps_max(eps_max_in);
 
     music_message.info("Done reading EOS.");
 }
 
-
-double EOS_s95p::get_cs2(double e, double rhob) const {
-    double f = calculate_velocity_of_sound_sq(e, rhob);
-    return(f);
-}
-    
 
 double EOS_s95p::p_e_func(double e, double rhob) const {
     return(get_dpOverde3(e, rhob));
@@ -130,7 +131,7 @@ double EOS_s95p::p_e_func(double e, double rhob) const {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_s95p::get_temperature(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double T = interpolate1D(e, table_idx, temperature_tb)/hbarc;  // 1/fm
+    double T = interpolate1D(e, table_idx, temperature_tb);  // 1/fm
     return(std::max(1e-15, T));
 }
 
@@ -139,7 +140,7 @@ double EOS_s95p::get_temperature(double e, double rhob) const {
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
 double EOS_s95p::get_pressure(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double f = interpolate1D(e, table_idx, pressure_tb)/hbarc;  // 1/fm^4
+    double f = interpolate1D(e, table_idx, pressure_tb);  // 1/fm^4
     return(std::max(1e-15, f));
 }
 

@@ -13,7 +13,6 @@ class EOS_base {
     int whichEOS;
     int number_of_tables;
     double eps_max;
-    int status;
 
  public:
     pretty_ostream music_message;
@@ -60,7 +59,7 @@ class EOS_base {
     double get_s2e_finite_rhob(double s, double rhob) const;
 
     virtual void   initialize_eos () {}
-    virtual double get_cs2        (double e, double rhob) const {return(0.0);}
+    virtual double get_cs2        (double e, double rhob) const;
     virtual double p_rho_func     (double e, double rhob) const {return(0.0);}
     virtual double p_e_func       (double e, double rhob) const {return(0.0);}
     virtual double get_temperature(double epsilon, double rhob) const {return(0.0);}

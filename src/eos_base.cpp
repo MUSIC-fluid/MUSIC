@@ -32,7 +32,8 @@ double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
 //        P(e), T(e), s(e)
 // as one-dimensional arrays on an equally spacing lattice grid
 // units: e is in 1/fm^4
-    double local_ed = e*hbarc;  // [GeV/fm^3]
+    //double local_ed = e*hbarc;  // [GeV/fm^3]
+    double local_ed = e;
 
     const double e0       = e_bounds[table_idx];
     const double delta_e  = e_spacing[table_idx];
@@ -64,7 +65,8 @@ double EOS_base::interpolate2D(double e, double rhob, int table_idx, double ***t
 //        P(e, rho_b), T(e, rho_b), s(e, rho_b), mu_b(e, rho_b)
 // as two-dimensional arrays on an equally spacing lattice grid
 // units: e is in 1/fm^4, rhob is in 1/fm^3
-    double local_ed = e*hbarc;  // [GeV/fm^3]
+    //double local_ed = e*hbarc;  // [GeV/fm^3]
+    double local_ed = e;
     double local_nb = rhob;     // [1/fm^3]
 
     double e0       = e_bounds[table_idx];
@@ -113,6 +115,12 @@ double EOS_base::get_entropy(double epsilon, double rhob) const {
 }
 
 
+double EOS_base::get_cs2(double e, double rhob) const {
+    double f = calculate_velocity_of_sound_sq(e, rhob);
+    return(f);
+}
+
+
 double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob) const {
     double v_min = 0.01;
     double v_max = 1./3;
@@ -154,7 +162,8 @@ double EOS_base::get_dpOverdrhob2(double e, double rhob) const {
 
 
 int EOS_base::get_table_idx(double e) const {
-    double local_ed = e*hbarc;  // [GeV/fm^3]
+    //double local_ed = e*hbarc;  // [GeV/fm^3]
+    double local_ed = e;  // [GeV/fm^3]
     for (int itable = 1; itable < number_of_tables; itable++) {
         if (local_ed < e_bounds[itable]) {
             return(itable - 1);
@@ -223,6 +232,7 @@ std::string EOS_base::get_hydro_env_path() const {
     return(envPath);
 }
 
+
 void EOS_base::resize_table_info_arrays() {
     nb_bounds.resize(number_of_tables, 0.0);
     nb_spacing.resize(number_of_tables, 0.0);
@@ -256,7 +266,6 @@ void EOS_base::check_eos_no_muB() const {
     }
     check_file.close();
 }
-
 
 
 void EOS_base::check_eos_with_finite_muB() const {

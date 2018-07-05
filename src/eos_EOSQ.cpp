@@ -62,6 +62,9 @@ void EOS_eosQ::initialize_eos() {
         nb_length[itable] = N_rhob + 1;
         e_length[itable]  = N_e + 1;
 
+        e_bounds[itable]  /= hbarc;   // 1/fm^4
+        e_spacing[itable] /= hbarc;   // 1/fm^4
+
         // skip the header in T and mu_B files
         string dummy;
         std::getline(eos_T, dummy);
@@ -83,22 +86,21 @@ void EOS_eosQ::initialize_eos() {
                 eos_p >> pressure_tb[itable][i][j];
                 eos_T >> temperature_tb[itable][i][j];
                 eos_mub >> mu_B_tb[itable][i][j];
+                
+                pressure_tb[itable][i][j]    /= hbarc;    // 1/fm^4
+                temperature_tb[itable][i][j] /= hbarc;    // 1/fm
+                mu_B_tb[itable][i][j]        /= hbarc;    // 1/fm
             }
         }
     }
     
-    double eps_max_in = (e_bounds[1] + e_spacing[1]*e_length[1])/hbarc;
+    //double eps_max_in = (e_bounds[1] + e_spacing[1]*e_length[1])/hbarc;
+    double eps_max_in = e_bounds[1] + e_spacing[1]*e_length[1];
     set_eps_max(eps_max_in);
 
     music_message.info("Done reading EOS.");
 }
 
-
-double EOS_eosQ::get_cs2(double e, double rhob) const {
-    double f = calculate_velocity_of_sound_sq(e, rhob);
-    return(f);
-}
-    
 
 double EOS_eosQ::p_e_func(double e, double rhob) const {
     return(get_dpOverde3(e, rhob));
@@ -115,7 +117,7 @@ double EOS_eosQ::p_rho_func(double e, double rhob) const {
 double EOS_eosQ::get_temperature(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double T = interpolate2D(e, std::abs(rhob), table_idx,
-                             temperature_tb)/hbarc;  // 1/fm
+                             temperature_tb);  // 1/fm
     return(std::max(1e-15, T));
 }
 
@@ -124,7 +126,7 @@ double EOS_eosQ::get_temperature(double e, double rhob) const {
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
 double EOS_eosQ::get_pressure(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb)/hbarc;
+    double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb);
     return(std::max(1e-15, f));
 }
 
@@ -135,7 +137,7 @@ double EOS_eosQ::get_mu(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double sign = rhob/(std::abs(rhob) + 1e-15);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
-                                   mu_B_tb)/hbarc;  // 1/fm
+                                   mu_B_tb);  // 1/fm
     return(mu);
 }
 

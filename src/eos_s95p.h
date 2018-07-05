@@ -13,12 +13,8 @@ class EOS_s95p : public EOS_base {
     ~EOS_s95p() {}
     
     void initialize_eos(int eos_id_in);
-    double get_cs2        (double e, double rhob) const;
-    double p_rho_func     (double e, double rhob) const {return(0.0);}
     double p_e_func       (double e, double rhob) const;
     double get_temperature(double e, double rhob) const;
-    double get_mu         (double e, double rhob) const {return(0.0);}
-    double get_muS        (double e, double rhob) const {return(0.0);}
     double get_pressure   (double e, double rhob) const;
     double get_s2e        (double s, double rhob) const;
 
