@@ -26,16 +26,32 @@ void EOS_s95p::initialize_eos(int eos_id_in) {
     stringstream spath;
     spath << envPath;
     if (eos_id_in == 2) {
+        music_message.info("Using lattice EOS from Huovinen/Petreczky");
         spath << "/EOS/s95p-v1/";
     } else if (eos_id_in == 3) {
+        music_message << "Using lattice EOS from Huovinen/Petreczky with "
+                      << "partial chemical equilibrium (PCE) "
+                      << "chem. f.o. at 150 MeV";
+        music_message.flush("info");
         spath << "/EOS/s95p-PCE-v1/";
     } else if (eos_id_in == 4) {
+        music_message << "Using lattice EOS from Huovinen/Petreczky with "
+                      << "partial chemical equilibrium (PCE) "
+                      << "chem. f.o. at 155 MeV";
         spath << "/EOS/s95p-PCE155/";
     } else if (eos_id_in == 5) {
+        music_message << "Using lattice EOS from Huovinen/Petreczky with "
+                      << "partial chemical equilibrium (PCE) "
+                      << "chem. f.o. at 160 MeV";
         spath << "/EOS/s95p-PCE160/";
     } else if (eos_id_in == 6) {
+        music_message << "Using lattice EOS from Huovinen/Petreczky with "
+                      << "partial chemical equilibrium (PCE) chem. f.o. "
+                       << "at 165 MeV";
         spath << "/EOS/s95p-PCE165-v0/";
     } else if (eos_id_in == 7) {
+        music_message.info(
+            "Using lattice EOS from Huovinen/Petreczky s95p-v1.2 (for UrQMD)");
         spath << "/EOS/s95p-v1.2/";
     }
     

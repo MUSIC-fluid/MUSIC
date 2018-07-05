@@ -5,7 +5,7 @@
 
 EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
     if (eos_id == 0) {
-        eos_ideal.initialize_eos();
+        ideal.initialize_eos();
         pressure_ptr    = &EOS::get_pressure_idealgas;
         temperature_ptr = &EOS::get_temperature_idealgas;
         entropy_ptr     = &EOS::get_entropy_idealgas;
@@ -18,7 +18,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         get_eps_max_ptr = &EOS::get_eps_max_idealgas;
         check_eos_ptr   = &EOS::check_eos_idealgas;
     } else if (eos_id >= 2 && eos_id <= 7) {
-        eos_s95.initialize_eos(eos_id);
+        s95p.initialize_eos(eos_id);
         pressure_ptr    = &EOS::get_pressure_s95p;
         temperature_ptr = &EOS::get_temperature_s95p;
         entropy_ptr     = &EOS::get_entropy_s95p;
@@ -31,7 +31,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         get_eps_max_ptr = &EOS::get_eps_max_s95p;
         check_eos_ptr   = &EOS::check_eos_s95p;
     } else if (eos_id == 9) {
-        eos_HQCD.initialize_eos();
+        hotQCD.initialize_eos();
         pressure_ptr    = &EOS::get_pressure_hotQCD;
         temperature_ptr = &EOS::get_temperature_hotQCD;
         entropy_ptr     = &EOS::get_entropy_hotQCD;
@@ -43,6 +43,23 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         s2e_ptr         = &EOS::get_s2e_hotQCD;
         get_eps_max_ptr = &EOS::get_eps_max_hotQCD;
         check_eos_ptr   = &EOS::check_eos_hotQCD;
+    } else if (eos_id == 10) {
+        neos2.initialize_eos();
+        pressure_ptr    = &EOS::get_pressure_neos2;
+        temperature_ptr = &EOS::get_temperature_neos2;
+        entropy_ptr     = &EOS::get_entropy_neos2;
+        cs2_ptr         = &EOS::get_cs2_neos2;
+        dpde_ptr        = &EOS::get_dpde_neos2;
+        dpdrhob_ptr     = &EOS::get_dpdrhob_neos2;
+        muB_ptr         = &EOS::get_muB_neos2;
+        muS_ptr         = &EOS::get_muS_neos2;
+        s2e_ptr         = &EOS::get_s2e_neos2;
+        get_eps_max_ptr = &EOS::get_eps_max_neos2;
+        check_eos_ptr   = &EOS::check_eos_neos2;
+    } else {
+        music_message << "No EOS for eos_id = " << eos_id;
+        music_message.flush("error");
+        exit(1);
     }
 }
 

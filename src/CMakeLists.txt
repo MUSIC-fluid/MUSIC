@@ -23,6 +23,7 @@ set (SOURCES
     eos_idealgas.cpp
     eos_s95p.cpp
     eos_hotQCD.cpp
+    eos_neos2.cpp
     evolve.cpp
     emoji.cpp
     music_logo.cpp

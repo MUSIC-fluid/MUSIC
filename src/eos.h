@@ -6,6 +6,8 @@
 #include "eos_idealgas.h"
 #include "eos_hotQCD.h"
 #include "eos_s95p.h"
+#include "eos_neos2.h"
+
 
 #include <iostream>
 
@@ -13,9 +15,10 @@
 class EOS {
  private:
     const int eos_id;
-    EOS_idealgas eos_ideal;
-    EOS_hotQCD eos_HQCD;
-    EOS_s95p eos_s95;
+    EOS_idealgas ideal;
+    EOS_hotQCD hotQCD;
+    EOS_s95p s95p;
+    EOS_neos2 neos2;
 
     // function pointers
     double (EOS::*pressure_ptr)   (double e, double rhob) const;
@@ -37,44 +40,56 @@ class EOS {
     ~EOS() {};
 
     // functions from the ideal gas EOS
-    double get_pressure_idealgas   (double e, double rhob) const {return(eos_ideal.get_pressure(e, rhob));}
-    double get_temperature_idealgas(double e, double rhob) const {return(eos_ideal.get_temperature(e, rhob));}
-    double get_entropy_idealgas    (double e, double rhob) const {return(eos_ideal.get_entropy(e, rhob));}
-    double get_cs2_idealgas        (double e, double rhob) const {return(eos_ideal.get_cs2(e, rhob));}
-    double get_dpde_idealgas       (double e, double rhob) const {return(eos_ideal.p_e_func(e, rhob));}
-    double get_dpdrhob_idealgas    (double e, double rhob) const {return(eos_ideal.p_rho_func(e, rhob));}
-    double get_muB_idealgas        (double e, double rhob) const {return(eos_ideal.get_mu(e, rhob));}
-    double get_muS_idealgas        (double e, double rhob) const {return(eos_ideal.get_muS(e, rhob));}
-    double get_s2e_idealgas        (double s, double rhob) const {return(eos_ideal.get_s2e(s, rhob));}
-    double get_eps_max_idealgas    () const {return(eos_ideal.get_eps_max());}
-    void   check_eos_idealgas      () const {return(eos_ideal.check_eos());}
+    double get_pressure_idealgas   (double e, double rhob) const {return(ideal.get_pressure(e, rhob));}
+    double get_temperature_idealgas(double e, double rhob) const {return(ideal.get_temperature(e, rhob));}
+    double get_entropy_idealgas    (double e, double rhob) const {return(ideal.get_entropy(e, rhob));}
+    double get_cs2_idealgas        (double e, double rhob) const {return(ideal.get_cs2(e, rhob));}
+    double get_dpde_idealgas       (double e, double rhob) const {return(ideal.p_e_func(e, rhob));}
+    double get_dpdrhob_idealgas    (double e, double rhob) const {return(ideal.p_rho_func(e, rhob));}
+    double get_muB_idealgas        (double e, double rhob) const {return(ideal.get_mu(e, rhob));}
+    double get_muS_idealgas        (double e, double rhob) const {return(ideal.get_muS(e, rhob));}
+    double get_s2e_idealgas        (double s, double rhob) const {return(ideal.get_s2e(s, rhob));}
+    double get_eps_max_idealgas    () const {return(ideal.get_eps_max());}
+    void   check_eos_idealgas      () const {return(ideal.check_eos());}
     
     // functions from the hot QCD EOS
-    double get_pressure_hotQCD   (double e, double rhob) const {return(eos_HQCD.get_pressure(e, rhob));}
-    double get_temperature_hotQCD(double e, double rhob) const {return(eos_HQCD.get_temperature(e, rhob));}
-    double get_entropy_hotQCD    (double e, double rhob) const {return(eos_HQCD.get_entropy(e, rhob));}
-    double get_cs2_hotQCD        (double e, double rhob) const {return(eos_HQCD.get_cs2(e, rhob));}
-    double get_dpde_hotQCD       (double e, double rhob) const {return(eos_HQCD.p_e_func(e, rhob));}
-    double get_dpdrhob_hotQCD    (double e, double rhob) const {return(eos_HQCD.p_rho_func(e, rhob));}
-    double get_muB_hotQCD        (double e, double rhob) const {return(eos_HQCD.get_mu(e, rhob));}
-    double get_muS_hotQCD        (double e, double rhob) const {return(eos_HQCD.get_muS(e, rhob));}
-    double get_s2e_hotQCD        (double s, double rhob) const {return(eos_HQCD.get_s2e(s, rhob));}
-    double get_eps_max_hotQCD    () const {return(eos_HQCD.get_eps_max());}
-    void   check_eos_hotQCD      () const {return(eos_HQCD.check_eos());}
+    double get_pressure_hotQCD   (double e, double rhob) const {return(hotQCD.get_pressure(e, rhob));}
+    double get_temperature_hotQCD(double e, double rhob) const {return(hotQCD.get_temperature(e, rhob));}
+    double get_entropy_hotQCD    (double e, double rhob) const {return(hotQCD.get_entropy(e, rhob));}
+    double get_cs2_hotQCD        (double e, double rhob) const {return(hotQCD.get_cs2(e, rhob));}
+    double get_dpde_hotQCD       (double e, double rhob) const {return(hotQCD.p_e_func(e, rhob));}
+    double get_dpdrhob_hotQCD    (double e, double rhob) const {return(hotQCD.p_rho_func(e, rhob));}
+    double get_muB_hotQCD        (double e, double rhob) const {return(hotQCD.get_mu(e, rhob));}
+    double get_muS_hotQCD        (double e, double rhob) const {return(hotQCD.get_muS(e, rhob));}
+    double get_s2e_hotQCD        (double s, double rhob) const {return(hotQCD.get_s2e(s, rhob));}
+    double get_eps_max_hotQCD    () const {return(hotQCD.get_eps_max());}
+    void   check_eos_hotQCD      () const {return(hotQCD.check_eos());}
     
     // functions from the s95p EOS
-    double get_pressure_s95p   (double e, double rhob) const {return(eos_s95.get_pressure(e, rhob));}
-    double get_temperature_s95p(double e, double rhob) const {return(eos_s95.get_temperature(e, rhob));}
-    double get_entropy_s95p    (double e, double rhob) const {return(eos_s95.get_entropy(e, rhob));}
-    double get_cs2_s95p        (double e, double rhob) const {return(eos_s95.get_cs2(e, rhob));}
-    double get_dpde_s95p       (double e, double rhob) const {return(eos_s95.p_e_func(e, rhob));}
-    double get_dpdrhob_s95p    (double e, double rhob) const {return(eos_s95.p_rho_func(e, rhob));}
-    double get_muB_s95p        (double e, double rhob) const {return(eos_s95.get_mu(e, rhob));}
-    double get_muS_s95p        (double e, double rhob) const {return(eos_s95.get_muS(e, rhob));}
-    double get_s2e_s95p        (double s, double rhob) const {return(eos_s95.get_s2e(s, rhob));}
-    double get_eps_max_s95p    () const {return(eos_s95.get_eps_max());}
-    void   check_eos_s95p      () const {return(eos_s95.check_eos());}
+    double get_pressure_s95p   (double e, double rhob) const {return(s95p.get_pressure(e, rhob));}
+    double get_temperature_s95p(double e, double rhob) const {return(s95p.get_temperature(e, rhob));}
+    double get_entropy_s95p    (double e, double rhob) const {return(s95p.get_entropy(e, rhob));}
+    double get_cs2_s95p        (double e, double rhob) const {return(s95p.get_cs2(e, rhob));}
+    double get_dpde_s95p       (double e, double rhob) const {return(s95p.p_e_func(e, rhob));}
+    double get_dpdrhob_s95p    (double e, double rhob) const {return(s95p.p_rho_func(e, rhob));}
+    double get_muB_s95p        (double e, double rhob) const {return(s95p.get_mu(e, rhob));}
+    double get_muS_s95p        (double e, double rhob) const {return(s95p.get_muS(e, rhob));}
+    double get_s2e_s95p        (double s, double rhob) const {return(s95p.get_s2e(s, rhob));}
+    double get_eps_max_s95p    () const {return(s95p.get_eps_max());}
+    void   check_eos_s95p      () const {return(s95p.check_eos());}
 
+    // functions from the neos2 EOS
+    double get_pressure_neos2   (double e, double rhob) const {return(neos2.get_pressure(e, rhob));}
+    double get_temperature_neos2(double e, double rhob) const {return(neos2.get_temperature(e, rhob));}
+    double get_entropy_neos2    (double e, double rhob) const {return(neos2.get_entropy(e, rhob));}
+    double get_cs2_neos2        (double e, double rhob) const {return(neos2.get_cs2(e, rhob));}
+    double get_dpde_neos2       (double e, double rhob) const {return(neos2.p_e_func(e, rhob));}
+    double get_dpdrhob_neos2    (double e, double rhob) const {return(neos2.p_rho_func(e, rhob));}
+    double get_muB_neos2        (double e, double rhob) const {return(neos2.get_mu(e, rhob));}
+    double get_muS_neos2        (double e, double rhob) const {return(neos2.get_muS(e, rhob));}
+    double get_s2e_neos2        (double s, double rhob) const {return(neos2.get_s2e(s, rhob));}
+    double get_eps_max_neos2    () const {return(neos2.get_eps_max());}
+    void   check_eos_neos2      () const {return(neos2.check_eos());}
 
     // functions to call the function pointers
     double get_pressure   (double e, double rhob) const {return((this->*(pressure_ptr))(e, rhob));}
