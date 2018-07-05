@@ -5,14 +5,17 @@
 
 #include "eos_idealgas.h"
 #include "eos_hotQCD.h"
+#include "eos_s95p.h"
 
 #include <iostream>
 
 //! This is a wrapper class for the equation of state
 class EOS {
  private:
-    const int eos_id; EOS_idealgas eos_ideal;
+    const int eos_id;
+    EOS_idealgas eos_ideal;
     EOS_hotQCD eos_HQCD;
+    EOS_s95p eos_s95;
 
     // function pointers
     double (EOS::*pressure_ptr)   (double e, double rhob) const;
@@ -58,6 +61,19 @@ class EOS {
     double get_s2e_hotQCD        (double s, double rhob) const {return(eos_HQCD.get_s2e(s, rhob));}
     double get_eps_max_hotQCD    () const {return(eos_HQCD.get_eps_max());}
     void   check_eos_hotQCD      () const {return(eos_HQCD.check_eos());}
+    
+    // functions from the s95p EOS
+    double get_pressure_s95p   (double e, double rhob) const {return(eos_s95.get_pressure(e, rhob));}
+    double get_temperature_s95p(double e, double rhob) const {return(eos_s95.get_temperature(e, rhob));}
+    double get_entropy_s95p    (double e, double rhob) const {return(eos_s95.get_entropy(e, rhob));}
+    double get_cs2_s95p        (double e, double rhob) const {return(eos_s95.get_cs2(e, rhob));}
+    double get_dpde_s95p       (double e, double rhob) const {return(eos_s95.p_e_func(e, rhob));}
+    double get_dpdrhob_s95p    (double e, double rhob) const {return(eos_s95.p_rho_func(e, rhob));}
+    double get_muB_s95p        (double e, double rhob) const {return(eos_s95.get_mu(e, rhob));}
+    double get_muS_s95p        (double e, double rhob) const {return(eos_s95.get_muS(e, rhob));}
+    double get_s2e_s95p        (double s, double rhob) const {return(eos_s95.get_s2e(s, rhob));}
+    double get_eps_max_s95p    () const {return(eos_s95.get_eps_max());}
+    void   check_eos_s95p      () const {return(eos_s95.check_eos());}
 
 
     // functions to call the function pointers

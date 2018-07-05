@@ -17,6 +17,19 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         s2e_ptr         = &EOS::get_s2e_idealgas;
         get_eps_max_ptr = &EOS::get_eps_max_idealgas;
         check_eos_ptr   = &EOS::check_eos_idealgas;
+    } else if (eos_id >= 2 && eos_id <= 7) {
+        eos_s95.initialize_eos(eos_id);
+        pressure_ptr    = &EOS::get_pressure_s95p;
+        temperature_ptr = &EOS::get_temperature_s95p;
+        entropy_ptr     = &EOS::get_entropy_s95p;
+        cs2_ptr         = &EOS::get_cs2_s95p;
+        dpde_ptr        = &EOS::get_dpde_s95p;
+        dpdrhob_ptr     = &EOS::get_dpdrhob_s95p;
+        muB_ptr         = &EOS::get_muB_s95p;
+        muS_ptr         = &EOS::get_muS_s95p;
+        s2e_ptr         = &EOS::get_s2e_s95p;
+        get_eps_max_ptr = &EOS::get_eps_max_s95p;
+        check_eos_ptr   = &EOS::check_eos_s95p;
     } else if (eos_id == 9) {
         eos_HQCD.initialize_eos();
         pressure_ptr    = &EOS::get_pressure_hotQCD;
