@@ -56,6 +56,7 @@ class EOS_base {
 
     double calculate_velocity_of_sound_sq(double e, double rhob) const;
     double get_dpOverde3(double e, double rhob) const;
+    double get_dpOverdrhob2(double e, double rhob) const;
     double get_s2e_finite_rhob(double s, double rhob) const;
 
     virtual void   initialize_eos () {}

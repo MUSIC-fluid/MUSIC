@@ -21,6 +21,7 @@ set (SOURCES
     eos.cpp
     eos_base.cpp
     eos_idealgas.cpp
+    eos_eosQ.cpp
     eos_s95p.cpp
     eos_WB.cpp
     eos_hotQCD.cpp

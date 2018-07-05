@@ -4,6 +4,7 @@
 #define SRC_EOS_H_
 
 #include "eos_idealgas.h"
+#include "eos_eosQ.h"
 #include "eos_s95p.h"
 #include "eos_WB.h"
 #include "eos_hotQCD.h"
@@ -16,6 +17,7 @@ class EOS {
     const int eos_id;
 
     EOS_idealgas ideal;
+    EOS_eosQ eosQ;
     EOS_s95p s95p;
     EOS_WB WB;
     EOS_hotQCD hotQCD;
@@ -53,6 +55,19 @@ class EOS {
     double get_s2e_idealgas        (double s, double rhob) const {return(ideal.get_s2e(s, rhob));}
     double get_eps_max_idealgas    () const {return(ideal.get_eps_max());}
     void   check_eos_idealgas      () const {return(ideal.check_eos());}
+    
+    // functions from the EOSQ
+    double get_pressure_eosQ   (double e, double rhob) const {return(eosQ.get_pressure(e, rhob));}
+    double get_temperature_eosQ(double e, double rhob) const {return(eosQ.get_temperature(e, rhob));}
+    double get_entropy_eosQ    (double e, double rhob) const {return(eosQ.get_entropy(e, rhob));}
+    double get_cs2_eosQ        (double e, double rhob) const {return(eosQ.get_cs2(e, rhob));}
+    double get_dpde_eosQ       (double e, double rhob) const {return(eosQ.p_e_func(e, rhob));}
+    double get_dpdrhob_eosQ    (double e, double rhob) const {return(eosQ.p_rho_func(e, rhob));}
+    double get_muB_eosQ        (double e, double rhob) const {return(eosQ.get_mu(e, rhob));}
+    double get_muS_eosQ        (double e, double rhob) const {return(eosQ.get_muS(e, rhob));}
+    double get_s2e_eosQ        (double s, double rhob) const {return(eosQ.get_s2e(s, rhob));}
+    double get_eps_max_eosQ    () const {return(eosQ.get_eps_max());}
+    void   check_eos_eosQ      () const {return(eosQ.check_eos());}
     
     // functions from the hot QCD EOS
     double get_pressure_hotQCD   (double e, double rhob) const {return(hotQCD.get_pressure(e, rhob));}

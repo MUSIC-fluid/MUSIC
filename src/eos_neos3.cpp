@@ -16,6 +16,15 @@ EOS_neos3::EOS_neos3() {
 }
 
 
+EOS_neos3::~EOS_neos3() {
+    int ntables = get_number_of_tables();
+    for (int itable = 0; itable < ntables; itable++) {
+        Util::mtx_free(mu_B_tb[itable],
+                       nb_length[itable], e_length[itable]);
+    }
+}
+
+
 void EOS_neos3::initialize_eos() {
     // read the lattice EOS pressure, temperature, and 
     music_message.info("Using lattice EOS from A. Monnai (up to mu_B^6)");
@@ -101,22 +110,6 @@ double EOS_neos3::p_e_func(double e, double rhob) const {
 
 double EOS_neos3::p_rho_func(double e, double rhob) const {
     return(get_dpOverdrhob2(e, rhob));
-}
-
-
-double EOS_neos3::get_dpOverdrhob2(double e, double rhob) const {
-    int table_idx = get_table_idx(e);
-    double deltaRhob = nb_spacing[table_idx];
-    //double rhob_max = nb_bounds[table_idx] + nb_length[table_idx]*deltaRhob;
-    
-    double rhobLeft  = rhob - deltaRhob*0.5;
-    double rhobRight = rhob + deltaRhob*0.5;
-
-    double pL = get_pressure(e, rhobLeft);      // 1/fm^4
-    double pR = get_pressure(e, rhobRight);     // 1/fm^4
-      
-    double dpdrho = (pR - pL)/(rhobRight - rhobLeft);  // 1/fm
-    return (dpdrho);   // in 1/fm
 }
 
 

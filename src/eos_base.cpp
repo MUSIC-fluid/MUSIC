@@ -137,6 +137,22 @@ double EOS_base::get_dpOverde3(double e, double rhob) const {
 }
 
 
+double EOS_base::get_dpOverdrhob2(double e, double rhob) const {
+    int table_idx = get_table_idx(e);
+    double deltaRhob = nb_spacing[table_idx];
+    //double rhob_max = nb_bounds[table_idx] + nb_length[table_idx]*deltaRhob;
+    
+    double rhobLeft  = rhob - deltaRhob*0.5;
+    double rhobRight = rhob + deltaRhob*0.5;
+
+    double pL = get_pressure(e, rhobLeft);      // 1/fm^4
+    double pR = get_pressure(e, rhobRight);     // 1/fm^4
+      
+    double dpdrho = (pR - pL)/(rhobRight - rhobLeft);  // 1/fm
+    return (dpdrho);   // in 1/fm
+}
+
+
 int EOS_base::get_table_idx(double e) const {
     double local_ed = e*hbarc;  // [GeV/fm^3]
     for (int itable = 1; itable < number_of_tables; itable++) {

@@ -10,7 +10,7 @@ class EOS_neos3 : public EOS_base {
    
  public:
     EOS_neos3();
-    ~EOS_neos3() {}
+    ~EOS_neos3();
     
     void initialize_eos();
     double get_cs2        (double e, double rhob) const;
@@ -21,7 +21,6 @@ class EOS_neos3 : public EOS_base {
     double get_muS        (double e, double rhob) const {return(0.0);}
     double get_pressure   (double e, double rhob) const;
     double get_s2e        (double s, double rhob) const;
-    double get_dpOverdrhob2(double e, double rhob) const;
 
     void check_eos() const {check_eos_with_finite_muB();}
 };
