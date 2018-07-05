@@ -134,7 +134,7 @@ double EOS_neos2::get_temperature(double e, double rhob) const {
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
 double EOS_neos2::get_pressure(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb);
+    double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb)/hbarc;
     return(std::max(1e-15, f));
 }
 
