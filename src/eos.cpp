@@ -1,7 +1,7 @@
 // Copyright 2018 @ Chun Shen
 
 #include "eos.h"
-
+#include <iostream>
 
 EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
     if (eos_id == 0) {
@@ -30,6 +30,19 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         s2e_ptr         = &EOS::get_s2e_s95p;
         get_eps_max_ptr = &EOS::get_eps_max_s95p;
         check_eos_ptr   = &EOS::check_eos_s95p;
+    } else if (eos_id == 8) {
+        WB.initialize_eos();
+        pressure_ptr    = &EOS::get_pressure_WB;
+        temperature_ptr = &EOS::get_temperature_WB;
+        entropy_ptr     = &EOS::get_entropy_WB;
+        cs2_ptr         = &EOS::get_cs2_WB;
+        dpde_ptr        = &EOS::get_dpde_WB;
+        dpdrhob_ptr     = &EOS::get_dpdrhob_WB;
+        muB_ptr         = &EOS::get_muB_WB;
+        muS_ptr         = &EOS::get_muS_WB;
+        s2e_ptr         = &EOS::get_s2e_WB;
+        get_eps_max_ptr = &EOS::get_eps_max_WB;
+        check_eos_ptr   = &EOS::check_eos_WB;
     } else if (eos_id == 9) {
         hotQCD.initialize_eos();
         pressure_ptr    = &EOS::get_pressure_hotQCD;
@@ -57,8 +70,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         get_eps_max_ptr = &EOS::get_eps_max_neos2;
         check_eos_ptr   = &EOS::check_eos_neos2;
     } else {
-        music_message << "No EOS for eos_id = " << eos_id;
-        music_message.flush("error");
+        std::cout << "No EOS for eos_id = " << std::endl;
         exit(1);
     }
 }

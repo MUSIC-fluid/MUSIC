@@ -4,20 +4,20 @@
 #define SRC_EOS_H_
 
 #include "eos_idealgas.h"
-#include "eos_hotQCD.h"
 #include "eos_s95p.h"
+#include "eos_WB.h"
+#include "eos_hotQCD.h"
 #include "eos_neos2.h"
-
-
-#include <iostream>
 
 //! This is a wrapper class for the equation of state
 class EOS {
  private:
     const int eos_id;
+
     EOS_idealgas ideal;
-    EOS_hotQCD hotQCD;
     EOS_s95p s95p;
+    EOS_WB WB;
+    EOS_hotQCD hotQCD;
     EOS_neos2 neos2;
 
     // function pointers
@@ -77,6 +77,19 @@ class EOS {
     double get_s2e_s95p        (double s, double rhob) const {return(s95p.get_s2e(s, rhob));}
     double get_eps_max_s95p    () const {return(s95p.get_eps_max());}
     void   check_eos_s95p      () const {return(s95p.check_eos());}
+    
+    // functions from the WB EOS
+    double get_pressure_WB   (double e, double rhob) const {return(WB.get_pressure(e, rhob));}
+    double get_temperature_WB(double e, double rhob) const {return(WB.get_temperature(e, rhob));}
+    double get_entropy_WB    (double e, double rhob) const {return(WB.get_entropy(e, rhob));}
+    double get_cs2_WB        (double e, double rhob) const {return(WB.get_cs2(e, rhob));}
+    double get_dpde_WB       (double e, double rhob) const {return(WB.p_e_func(e, rhob));}
+    double get_dpdrhob_WB    (double e, double rhob) const {return(WB.p_rho_func(e, rhob));}
+    double get_muB_WB        (double e, double rhob) const {return(WB.get_mu(e, rhob));}
+    double get_muS_WB        (double e, double rhob) const {return(WB.get_muS(e, rhob));}
+    double get_s2e_WB        (double s, double rhob) const {return(WB.get_s2e(s, rhob));}
+    double get_eps_max_WB    () const {return(WB.get_eps_max());}
+    void   check_eos_WB      () const {return(WB.check_eos());}
 
     // functions from the neos2 EOS
     double get_pressure_neos2   (double e, double rhob) const {return(neos2.get_pressure(e, rhob));}
