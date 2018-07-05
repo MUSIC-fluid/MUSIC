@@ -119,7 +119,7 @@ double EOS_neos2::get_temperature(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double T = interpolate2D(e, std::abs(rhob), table_idx,
                              temperature_tb)/hbarc;  // 1/fm
-    return(std::max(1e-15, T));
+    return(T);
 }
 
 
@@ -128,7 +128,7 @@ double EOS_neos2::get_temperature(double e, double rhob) const {
 double EOS_neos2::get_pressure(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb)/hbarc;
-    return(std::max(1e-15, f));
+    return(f);
 }
 
 

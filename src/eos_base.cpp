@@ -50,8 +50,8 @@ double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
     const double frac_e = (local_ed - (idx_e*delta_e + e0))/delta_e;
 
     double result;
-    double temp1 = std::max(table[table_idx][0][idx_e], 0.0);
-    double temp2 = std::max(table[table_idx][0][idx_e + 1], 0.0);
+    double temp1 = table[table_idx][0][idx_e];
+    double temp2 = table[table_idx][0][idx_e + 1];
     result = temp1*(1. - frac_e) + temp2*frac_e;
     result = std::max(1e-15, result);
     return(result);
@@ -91,13 +91,13 @@ double EOS_base::interpolate2D(double e, double rhob, int table_idx, double ***t
     double frac_rhob = (local_nb - (idx_nb*delta_nb + nb0))/delta_nb;
 
     double result;
-    double temp1 = std::max(table[table_idx][idx_nb][idx_e], 0.0);
-    double temp2 = std::max(table[table_idx][idx_nb][idx_e + 1], 0.0);
-    double temp3 = std::max(table[table_idx][idx_nb + 1][idx_e + 1], 0.0);
-    double temp4 = std::max(table[table_idx][idx_nb + 1][idx_e], 0.0);
+    double temp1 = table[table_idx][idx_nb][idx_e];
+    double temp2 = table[table_idx][idx_nb][idx_e + 1];
+    double temp3 = table[table_idx][idx_nb + 1][idx_e + 1];
+    double temp4 = table[table_idx][idx_nb + 1][idx_e];
     result = ((temp1*(1. - frac_e) + temp2*frac_e)*(1. - frac_rhob)
               + (temp3*frac_e + temp4*(1. - frac_e))*frac_rhob);
-    result = std::max(result, 1e-15);
+    result = std::max(1e-15, result);
     return(result);
 }
 
