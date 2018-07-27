@@ -106,10 +106,12 @@ double EOS_base::interpolate2D(double e, double rhob, int table_idx, double ***t
 //! This function returns entropy density in [1/fm^3]
 //! The input local energy density e [1/fm^4], rhob[1/fm^3]
 double EOS_base::get_entropy(double epsilon, double rhob) const {
-    auto P  = get_pressure(epsilon, rhob);
-    auto T  = get_temperature(epsilon, rhob);
-    auto mu = get_muB(epsilon, rhob);
-    auto f  = (epsilon + P - mu*rhob)/(T + 1e-15);
+    auto P    = get_pressure(epsilon, rhob);
+    auto T    = get_temperature(epsilon, rhob);
+    auto muB  = get_muB(epsilon, rhob);
+    auto muC  = get_muC(epsilon, rhob);
+    auto rhoC = 0.4*rhob;
+    auto f    = (epsilon + P - muB*rhob - muC*rhoC)/(T + 1e-15);
     return(std::max(1e-16, f));
 }
 
