@@ -13,6 +13,9 @@ class EOS_base {
     int whichEOS;
     int number_of_tables;
     double eps_max;
+    bool flag_muB;
+    bool flag_muS;
+    bool flag_muC;
 
  public:
     pretty_ostream music_message;
@@ -43,6 +46,13 @@ class EOS_base {
     void set_EOS_id(int eos_id) {whichEOS = eos_id;}
     int  get_EOS_id() const {return(whichEOS);}
 
+    void set_flag_muB(bool flag_muB_in) {flag_muB = flag_muB_in;}
+    bool get_flag_muB() const {return(flag_muB);}
+    void set_flag_muS(bool flag_muS_in) {flag_muS = flag_muS_in;}
+    bool get_flag_muS() const {return(flag_muS);}
+    void set_flag_muC(bool flag_muC_in) {flag_muC = flag_muC_in;}
+    bool get_flag_muC() const {return(flag_muC);}
+
     // returns maximum local energy density of the EoS table
     // in the unit of [1/fm^4]
     void   set_eps_max(double eps_max_in) {eps_max = eps_max_in;}
@@ -64,8 +74,9 @@ class EOS_base {
     virtual double p_rho_func     (double e, double rhob) const {return(0.0);}
     virtual double p_e_func       (double e, double rhob) const {return(0.0);}
     virtual double get_temperature(double epsilon, double rhob) const {return(0.0);}
-    virtual double get_mu         (double epsilon, double rhob) const {return(0.0);}
+    virtual double get_muB        (double epsilon, double rhob) const {return(0.0);}
     virtual double get_muS        (double epsilon, double rhob) const {return(0.0);}
+    virtual double get_muC        (double epsilon, double rhob) const {return(0.0);}
     virtual double get_pressure   (double epsilon, double rhob) const {return(0.0);}
     virtual double get_s2e        (double s, double rhob) const {return(0.0);}
     virtual void   check_eos      () const {}

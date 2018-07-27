@@ -109,7 +109,7 @@ double EOS_base::interpolate2D(double e, double rhob, int table_idx, double ***t
 double EOS_base::get_entropy(double epsilon, double rhob) const {
     auto P  = get_pressure(epsilon, rhob);
     auto T  = get_temperature(epsilon, rhob);
-    auto mu = get_mu(epsilon, rhob);
+    auto mu = get_muB(epsilon, rhob);
     auto f  = (epsilon + P - mu*rhob)/(T + 1e-15);
     return(std::max(1e-16, f));
 }
@@ -288,7 +288,7 @@ void EOS_base::check_eos_with_finite_muB() const {
             double s_local    = get_entropy(e_local, rhob_local);
             double T_local    = get_temperature(e_local, rhob_local);
             double cs2_local  = get_cs2(e_local, rhob_local);
-            double mu_b_local = get_mu(e_local, rhob_local);
+            double mu_b_local = get_muB(e_local, rhob_local);
             double mu_s_local = get_muS(e_local, rhob_local);
             check_file << scientific << setw(18) << setprecision(8)
                        << e_local*hbarc << "   " << p_local*hbarc << "   " 
@@ -319,7 +319,7 @@ void EOS_base::check_eos_with_finite_muB() const {
             double s_local    = get_entropy(e_local, rhob_local);
             double T_local    = get_temperature(e_local, rhob_local);
             double cs2_local  = get_cs2(e_local, rhob_local);
-            double mu_b_local = get_mu(e_local, rhob_local);
+            double mu_b_local = get_muB(e_local, rhob_local);
             double mu_s_local = get_muS(e_local, rhob_local);
             check_file << scientific << setw(18) << setprecision(8)
                        << rhob_local << "   " << p_local*hbarc << "   " 
@@ -381,7 +381,7 @@ void EOS_base::check_eos_with_finite_muB() const {
             double dpde        = p_e_func(e_local, nB_local);
             double dpdrho      = p_rho_func(e_local, nB_local);
             double temperature = get_temperature(e_local, nB_local)*hbarc;
-            double mu_B        = get_mu(e_local, nB_local)*hbarc;
+            double mu_B        = get_muB(e_local, nB_local)*hbarc;
             check_file9 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "  " << temperature << "  "
                         << cs2_local << "  " << mu_B << "  " 

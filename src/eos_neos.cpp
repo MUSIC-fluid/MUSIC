@@ -13,6 +13,9 @@ EOS_neos::EOS_neos() {
     set_EOS_id(10);
     set_number_of_tables(0);
     set_eps_max(1e5);
+    set_flag_muB(true);
+    set_flag_muS(false);
+    set_flag_muC(false);
 }
 
 
@@ -21,13 +24,11 @@ EOS_neos::~EOS_neos() {
     for (int itable = 0; itable < ntables; itable++) {
         Util::mtx_free(mu_B_tb[itable],
                        nb_length[itable], e_length[itable]);
-        if (get_EOS_id() == 13) {
+        if (get_flag_muS()) {
             Util::mtx_free(mu_S_tb[itable],
                            nb_length[itable], e_length[itable]);
         }
-        if (get_EOS_id() == 14) {
-            Util::mtx_free(mu_S_tb[itable],
-                           nb_length[itable], e_length[itable]);
+        if (get_flag_muC()) {
             Util::mtx_free(mu_C_tb[itable],
                            nb_length[itable], e_length[itable]);
         }
@@ -72,6 +73,7 @@ void EOS_neos::initialize_eos(int eos_id_in) {
         std::copy(std::begin(string_tmp), std::end(string_tmp),
                   std::begin(eos_file_string_array));
         flag_muS = true;
+        set_flag_muS(flag_muS);
     } else if (eos_id_in == 14) {
         music_message.info("reading EOS neos_bqs ...");
         spath << "/EOS/neos_bqs/";
@@ -80,6 +82,8 @@ void EOS_neos::initialize_eos(int eos_id_in) {
                   std::begin(eos_file_string_array));
         flag_muS = true;
         flag_muC = true;
+        set_flag_muS(flag_muS);
+        set_flag_muC(flag_muC);
     }
     
     string path = spath.str();
@@ -232,11 +236,35 @@ double EOS_neos::get_pressure(double e, double rhob) const {
 
 //! This function returns the local baryon chemical potential  mu_B in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_neos::get_mu(double e, double rhob) const {
+double EOS_neos::get_muB(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double sign = rhob/(std::abs(rhob) + 1e-15);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
                                    mu_B_tb);  // 1/fm
+    return(mu);
+}
+
+
+//! This function returns the local baryon chemical potential  mu_B in [1/fm]
+//! input local energy density eps [1/fm^4] and rhob [1/fm^3]
+double EOS_neos::get_muS(double e, double rhob) const {
+    if (!get_flag_muS()) return(0.0);
+    int table_idx = get_table_idx(e);
+    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
+                                   mu_S_tb);  // 1/fm
+    return(mu);
+}
+
+
+//! This function returns the local baryon chemical potential  mu_B in [1/fm]
+//! input local energy density eps [1/fm^4] and rhob [1/fm^3]
+double EOS_neos::get_muC(double e, double rhob) const {
+    if (!get_flag_muC()) return(0.0);
+    int table_idx = get_table_idx(e);
+    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
+                                   mu_C_tb);  // 1/fm
     return(mu);
 }
 

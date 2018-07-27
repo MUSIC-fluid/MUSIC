@@ -14,6 +14,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         dpdrhob_ptr     = &EOS::get_dpdrhob_idealgas;
         muB_ptr         = &EOS::get_muB_idealgas;
         muS_ptr         = &EOS::get_muS_idealgas;
+        muC_ptr         = &EOS::get_muC_idealgas;
         s2e_ptr         = &EOS::get_s2e_idealgas;
         get_eps_max_ptr = &EOS::get_eps_max_idealgas;
         check_eos_ptr   = &EOS::check_eos_idealgas;
@@ -27,6 +28,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         dpdrhob_ptr     = &EOS::get_dpdrhob_eosQ;
         muB_ptr         = &EOS::get_muB_eosQ;
         muS_ptr         = &EOS::get_muS_eosQ;
+        muC_ptr         = &EOS::get_muC_eosQ;
         s2e_ptr         = &EOS::get_s2e_eosQ;
         get_eps_max_ptr = &EOS::get_eps_max_eosQ;
         check_eos_ptr   = &EOS::check_eos_eosQ;
@@ -40,6 +42,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         dpdrhob_ptr     = &EOS::get_dpdrhob_s95p;
         muB_ptr         = &EOS::get_muB_s95p;
         muS_ptr         = &EOS::get_muS_s95p;
+        muC_ptr         = &EOS::get_muC_s95p;
         s2e_ptr         = &EOS::get_s2e_s95p;
         get_eps_max_ptr = &EOS::get_eps_max_s95p;
         check_eos_ptr   = &EOS::check_eos_s95p;
@@ -53,6 +56,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         dpdrhob_ptr     = &EOS::get_dpdrhob_WB;
         muB_ptr         = &EOS::get_muB_WB;
         muS_ptr         = &EOS::get_muS_WB;
+        muC_ptr         = &EOS::get_muC_WB;
         s2e_ptr         = &EOS::get_s2e_WB;
         get_eps_max_ptr = &EOS::get_eps_max_WB;
         check_eos_ptr   = &EOS::check_eos_WB;
@@ -66,6 +70,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         dpdrhob_ptr     = &EOS::get_dpdrhob_hotQCD;
         muB_ptr         = &EOS::get_muB_hotQCD;
         muS_ptr         = &EOS::get_muS_hotQCD;
+        muC_ptr         = &EOS::get_muC_hotQCD;
         s2e_ptr         = &EOS::get_s2e_hotQCD;
         get_eps_max_ptr = &EOS::get_eps_max_hotQCD;
         check_eos_ptr   = &EOS::check_eos_hotQCD;
@@ -79,6 +84,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         dpdrhob_ptr     = &EOS::get_dpdrhob_neos;
         muB_ptr         = &EOS::get_muB_neos;
         muS_ptr         = &EOS::get_muS_neos;
+        muC_ptr         = &EOS::get_muC_neos;
         s2e_ptr         = &EOS::get_s2e_neos;
         get_eps_max_ptr = &EOS::get_eps_max_neos;
         check_eos_ptr   = &EOS::check_eos_neos;

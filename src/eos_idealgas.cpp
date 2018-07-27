@@ -9,6 +9,9 @@ EOS_idealgas::EOS_idealgas() {
     set_eps_max(1e5);
     Nc = 3.;
     Nf = 2.5;
+    set_flag_muB(false);
+    set_flag_muS(false);
+    set_flag_muC(false);
 }
 
 void EOS_idealgas::initialize_eos() {
