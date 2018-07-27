@@ -99,7 +99,6 @@ double EOS_base::interpolate2D(double e, double rhob, int table_idx, double ***t
     double temp4 = table[table_idx][idx_nb + 1][idx_e];
     result = ((temp1*(1. - frac_e) + temp2*frac_e)*(1. - frac_rhob)
               + (temp3*frac_e + temp4*(1. - frac_e))*frac_rhob);
-    result = std::max(1e-15, result);
     return(result);
 }
 
@@ -375,7 +374,7 @@ void EOS_base::check_eos_with_finite_muB() const {
         file_name << "check_EoS_cs2_vs_e_sovernB_" << sovernB[i] << ".dat";
         ofstream check_file9(file_name.str().c_str());
         check_file9 << "# e(GeV/fm^3)  T(GeV)  cs^2  mu_B(GeV)  "
-                    << "s(1/fm^3)  rho_B(1/fm^3)  dP/de  dP/drho"
+                    << "s(1/fm^3)  rho_B(1/fm^3)  dP/de  dP/drho  "
                     << "mu_S(GeV)  mu_C(GeV)" << endl;
         for (int j = 0; j < ns; j++) {
             double s_local     = s_0 + j*ds;

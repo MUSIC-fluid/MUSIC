@@ -121,12 +121,26 @@ void EOS_neos::initialize_eos(int eos_id_in) {
         std::ifstream eos_muS;
         std::ifstream eos_muC;
         if (flag_muS) {
-            std::ifstream eos_muS(path + "neos" + eos_file_string_array[itable]
+            eos_muS.open(path + "neos" + eos_file_string_array[itable]
+                         + "_mus.dat");
+            if (!eos_muS.is_open()) {
+                music_message << "Can not open EOS files: "
+                              << (path + "neos" + eos_file_string_array[itable]
                                   + "_mus.dat");
+                music_message.flush("error");
+                exit(1);
+            }
         }
         if (flag_muC) {
-            std::ifstream eos_muC(path + "neos" + eos_file_string_array[itable]
-                                  + "_muq.dat");
+            eos_muC.open(path + "neos" + eos_file_string_array[itable]
+                         + "_muq.dat");
+            if (!eos_muC.is_open()) {
+                music_message << "Can not open EOS files: "
+                              << (path + "neos" + eos_file_string_array[itable]
+                                  + "_muc.dat");
+                music_message.flush("error");
+                exit(1);
+            }
         }
         // read the first two lines with general info:
         // first value of rhob, first value of epsilon
@@ -149,11 +163,11 @@ void EOS_neos::initialize_eos(int eos_id_in) {
         std::getline(eos_T, dummy);
         std::getline(eos_mub, dummy);
         std::getline(eos_mub, dummy);
-        if (eos_muS.is_open()) {
+        if (flag_muS) {
             std::getline(eos_muS, dummy);
             std::getline(eos_muS, dummy);
         }
-        if (eos_muC.is_open()) {
+        if (flag_muC) {
             std::getline(eos_muC, dummy);
             std::getline(eos_muC, dummy);
         }
@@ -221,6 +235,7 @@ double EOS_neos::get_temperature(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double T = interpolate2D(e, std::abs(rhob), table_idx,
                              temperature_tb);  // 1/fm
+    T = std::max(1e-15, T);
     return(T);
 }
 
@@ -230,6 +245,7 @@ double EOS_neos::get_temperature(double e, double rhob) const {
 double EOS_neos::get_pressure(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb);
+    f = std::max(1e-15, f);
     return(f);
 }
 
