@@ -77,6 +77,8 @@ class EOS_base {
     virtual double get_muB        (double epsilon, double rhob) const {return(0.0);}
     virtual double get_muS        (double epsilon, double rhob) const {return(0.0);}
     virtual double get_muC        (double epsilon, double rhob) const {return(0.0);}
+    virtual double get_rhoS       (double epsilon, double rhob) const {return(0.0);}
+    virtual double get_rhoC       (double epsilon, double rhob) const {return(0.4*rhob);}
     virtual double get_pressure   (double epsilon, double rhob) const {return(0.0);}
     virtual double get_s2e        (double s, double rhob) const {return(0.0);}
     virtual void   check_eos      () const {}

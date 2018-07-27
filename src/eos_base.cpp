@@ -109,9 +109,11 @@ double EOS_base::get_entropy(double epsilon, double rhob) const {
     auto P    = get_pressure(epsilon, rhob);
     auto T    = get_temperature(epsilon, rhob);
     auto muB  = get_muB(epsilon, rhob);
+    auto muS  = get_muS(epsilon, rhob);
     auto muC  = get_muC(epsilon, rhob);
-    auto rhoC = 0.4*rhob;
-    auto f    = (epsilon + P - muB*rhob - muC*rhoC)/(T + 1e-15);
+    auto rhoS = get_rhoS(epsilon, rhob);
+    auto rhoC = get_rhoC(epsilon, rhob);
+    auto f    = (epsilon + P - muB*rhob - muS*rhoS - muC*rhoC)/(T + 1e-15);
     return(std::max(1e-16, f));
 }
 
