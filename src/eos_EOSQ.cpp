@@ -1,6 +1,6 @@
 // Copyright 2018 @ Chun Shen
 
-#include "eos_eosQ.h"
+#include "eos_EOSQ.h"
 #include "util.h"
 
 #include <sstream>

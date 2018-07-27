@@ -69,32 +69,19 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         s2e_ptr         = &EOS::get_s2e_hotQCD;
         get_eps_max_ptr = &EOS::get_eps_max_hotQCD;
         check_eos_ptr   = &EOS::check_eos_hotQCD;
-    } else if (eos_id == 10) {
-        neos2.initialize_eos();
-        pressure_ptr    = &EOS::get_pressure_neos2;
-        temperature_ptr = &EOS::get_temperature_neos2;
-        entropy_ptr     = &EOS::get_entropy_neos2;
-        cs2_ptr         = &EOS::get_cs2_neos2;
-        dpde_ptr        = &EOS::get_dpde_neos2;
-        dpdrhob_ptr     = &EOS::get_dpdrhob_neos2;
-        muB_ptr         = &EOS::get_muB_neos2;
-        muS_ptr         = &EOS::get_muS_neos2;
-        s2e_ptr         = &EOS::get_s2e_neos2;
-        get_eps_max_ptr = &EOS::get_eps_max_neos2;
-        check_eos_ptr   = &EOS::check_eos_neos2;
-    } else if (eos_id == 12) {
-        neos3.initialize_eos();
-        pressure_ptr    = &EOS::get_pressure_neos3;
-        temperature_ptr = &EOS::get_temperature_neos3;
-        entropy_ptr     = &EOS::get_entropy_neos3;
-        cs2_ptr         = &EOS::get_cs2_neos3;
-        dpde_ptr        = &EOS::get_dpde_neos3;
-        dpdrhob_ptr     = &EOS::get_dpdrhob_neos3;
-        muB_ptr         = &EOS::get_muB_neos3;
-        muS_ptr         = &EOS::get_muS_neos3;
-        s2e_ptr         = &EOS::get_s2e_neos3;
-        get_eps_max_ptr = &EOS::get_eps_max_neos3;
-        check_eos_ptr   = &EOS::check_eos_neos3;
+    } else if (eos_id >= 10 && eos_id <= 14) {
+        neos.initialize_eos(eos_id);
+        pressure_ptr    = &EOS::get_pressure_neos;
+        temperature_ptr = &EOS::get_temperature_neos;
+        entropy_ptr     = &EOS::get_entropy_neos;
+        cs2_ptr         = &EOS::get_cs2_neos;
+        dpde_ptr        = &EOS::get_dpde_neos;
+        dpdrhob_ptr     = &EOS::get_dpdrhob_neos;
+        muB_ptr         = &EOS::get_muB_neos;
+        muS_ptr         = &EOS::get_muS_neos;
+        s2e_ptr         = &EOS::get_s2e_neos;
+        get_eps_max_ptr = &EOS::get_eps_max_neos;
+        check_eos_ptr   = &EOS::check_eos_neos;
     } else {
         std::cout << "No EOS for eos_id = " << std::endl;
         exit(1);

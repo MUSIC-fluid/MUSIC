@@ -21,12 +21,11 @@ set (SOURCES
     eos.cpp
     eos_base.cpp
     eos_idealgas.cpp
-    eos_eosQ.cpp
+    eos_EOSQ.cpp
     eos_s95p.cpp
     eos_WB.cpp
     eos_hotQCD.cpp
-    eos_neos2.cpp
-    eos_neos3.cpp
+    eos_neos.cpp
     evolve.cpp
     emoji.cpp
     music_logo.cpp

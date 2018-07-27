@@ -29,6 +29,7 @@ class EOS_base {
     double ***temperature_tb;
     double ***mu_B_tb;
     double ***mu_S_tb;
+    double ***mu_C_tb;
 
     EOS_base() = default;
     ~EOS_base();
