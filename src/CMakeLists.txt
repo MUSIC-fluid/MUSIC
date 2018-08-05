@@ -27,6 +27,7 @@ set (SOURCES
     eos_hotQCD.cpp
     eos_neos2.cpp
     eos_neos3.cpp
+    eos_best.cpp
     evolve.cpp
     emoji.cpp
     music_logo.cpp

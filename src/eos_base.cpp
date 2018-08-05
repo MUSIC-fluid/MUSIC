@@ -372,7 +372,7 @@ void EOS_base::check_eos_with_finite_muB() const {
         ofstream check_file9(file_name.str().c_str());
         check_file9 << "# e(GeV/fm^3)  T(GeV)  cs^2  mu_B(GeV)  "
                     << "s(1/fm^3)  rho_B(1/fm^3)  dP/de  dP/drho" << endl;
-        for (int j = 0; j < ns; j++) {
+        for (int j = 1; j < ns; j++) {
             double s_local     = s_0 + j*ds;
             double nB_local    = s_local/sovernB[i];
             double e_local     = get_s2e(s_local, nB_local);
