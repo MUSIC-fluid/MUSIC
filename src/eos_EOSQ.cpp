@@ -1,6 +1,6 @@
 // Copyright 2018 @ Chun Shen
 
-#include "eos_eosQ.h"
+#include "eos_EOSQ.h"
 #include "util.h"
 
 #include <sstream>
@@ -13,6 +13,9 @@ EOS_eosQ::EOS_eosQ() {
     set_EOS_id(1);
     set_number_of_tables(0);
     set_eps_max(1e5);
+    set_flag_muB(true);
+    set_flag_muS(false);
+    set_flag_muC(false);
 }
 
 

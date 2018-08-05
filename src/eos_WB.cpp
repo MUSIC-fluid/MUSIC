@@ -13,6 +13,9 @@ EOS_WB::EOS_WB() {
     set_EOS_id(8);
     set_number_of_tables(0);
     set_eps_max(1e5);
+    set_flag_muB(false);
+    set_flag_muS(false);
+    set_flag_muC(false);
 }
 
 
