@@ -5,6 +5,7 @@
 
 #include <sstream>
 #include <fstream>
+#include <cmath>
 
 using std::stringstream;
 using std::string;

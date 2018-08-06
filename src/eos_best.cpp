@@ -1,11 +1,12 @@
 // Copyright 2018 @ Chun Shen
 
-#include "eos_BEST.h"
+#include "eos_best.h"
 #include "util.h"
 
 #include <sstream>
 #include <fstream>
 #include <iostream>
+#include <cmath>
 
 using std::stringstream;
 using std::string;
