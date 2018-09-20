@@ -2,10 +2,13 @@
 // Massively cleaned up and improved by Chun Shen 2015-2016
 #include <stdio.h>
 #include <sys/stat.h>
+#include <vector>
 
 #include <string>
 #include "music.h"
 #include "dissipative.h"
+
+using std::vector;
 
 MUSIC::MUSIC(std::string input_file) : 
     DATA(ReadInParameters::read_in_parameters(input_file)),
@@ -26,17 +29,18 @@ MUSIC::~MUSIC() {
     }
 }
 
+void MUSIC::clean_all_the_surface_files() {
+    system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+}
+
 
 //! This function initialize hydro
-int MUSIC::initialize_hydro() {
-    // clean all the surface files
-    int status = system(
-                    "rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+void MUSIC::initialize_hydro() {
+    clean_all_the_surface_files();
 
     init = new Init(eos, DATA, hydro_source_terms);
     init->InitArena(arena_prev, arena_current, arena_future);
     flag_hydro_initialized = 1;
-    return(status);
 }
 
 
@@ -84,3 +88,38 @@ void MUSIC::output_transport_coefficients() {
     temp_dissipative_ptr.output_kappa_along_const_sovernB();
 }
 
+
+void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
+        const double dx, const double dz, const double z_max, const int nz,
+        vector<double> e_in,
+        vector<double> u_tau_in, vector<double> u_x_in,
+        vector<double> u_y_in,   vector<double> u_eta_in,
+        vector<double> pi_00_in, vector<double> pi_01_in,
+        vector<double> pi_02_in, vector<double> pi_03_in,
+        vector<double> pi_11_in, vector<double> pi_12_in,
+        vector<double> pi_13_in, vector<double> pi_22_in,
+        vector<double> pi_23_in, vector<double> pi_33_in,
+        vector<double> Bulk_pi_in) {
+
+    DATA.Initial_profile = 42;
+    clean_all_the_surface_files();
+
+    if (nz > 1) {
+        DATA.boost_invariant = false;
+        DATA.eta_size        = z_max;
+        DATA.delta_eta       = dz;
+        DATA.neta            = nz;
+    }
+    DATA.delta_x = dx;
+    DATA.delta_y = dx;
+
+    if (init != nullptr)
+        delete init;
+
+    init = new Init(eos, DATA, hydro_source_terms);
+    init->get_jetscape_preequilibrium_vectors(
+        e_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
+        pi_00_in, pi_01_in, pi_02_in, pi_03_in, pi_11_in, pi_12_in, pi_13_in,
+        pi_22_in, pi_23_in, pi_33_in, Bulk_pi_in);
+    init->InitArena(arena_prev, arena_current, arena_future);
+}

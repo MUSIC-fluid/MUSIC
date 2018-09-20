@@ -22,7 +22,6 @@ class Init {
     pretty_ostream music_message;
         
     // support for JETSCAPE
-    std::vector<double> jetscape_initial_entropy_density;
     std::vector<double> jetscape_initial_energy_density;
     std::vector<double> jetscape_initial_u_tau;
     std::vector<double> jetscape_initial_u_x;
@@ -57,8 +56,6 @@ class Init {
     void initial_UMN_with_rhob           (SCGrid &arena_prev, SCGrid & arena_current);
     void initial_with_jetscape           (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
 
-    void get_jetscape_entropy_density_vector(
-                                    std::vector<double> entropy_density_in);
     void get_jetscape_preequilibrium_vectors(
         std::vector<double> e_in,
         std::vector<double> u_tau_in, std::vector<double> u_x_in,

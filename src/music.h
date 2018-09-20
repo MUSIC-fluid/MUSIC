@@ -50,7 +50,7 @@ class MUSIC {
     int get_running_mode() {return(mode);}
 
     //! This function initialize hydro
-    int initialize_hydro();
+    void initialize_hydro();
 
     //! this is a shell function to run hydro
     int run_hydro();
@@ -62,6 +62,20 @@ class MUSIC {
     //! this is a test function to output the transport coefficients as
     //! function of T and mu_B
     void output_transport_coefficients();
+
+    void clean_all_the_surface_files();
+
+    void initialize_hydro_from_jetscape_preequilibrium_vectors(
+        const double dx, const double dz, const double z_max, const int nz,
+        std::vector<double> e_in,
+        std::vector<double> u_tau_in, std::vector<double> u_x_in,
+        std::vector<double> u_y_in,   std::vector<double> u_eta_in,
+        std::vector<double> pi_00_in, std::vector<double> pi_01_in,
+        std::vector<double> pi_02_in, std::vector<double> pi_03_in,
+        std::vector<double> pi_11_in, std::vector<double> pi_12_in,
+        std::vector<double> pi_13_in, std::vector<double> pi_22_in,
+        std::vector<double> pi_23_in, std::vector<double> pi_33_in,
+        std::vector<double> Bulk_pi_in);
 };
 
 #endif  // SRC_MUSIC_H_
