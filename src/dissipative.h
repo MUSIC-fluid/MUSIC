@@ -3,12 +3,12 @@
 #define SRC_DISSIPATIVE_H_
 
 #include <array>
-#include <iostream>
 #include "util.h"
 #include "cell.h"
 #include "grid.h"
 #include "data.h"
 #include "minmod.h"
+#include "pretty_ostream.h"
 
 class Diss {
  private:
@@ -23,6 +23,8 @@ class Diss {
                                             {10, 11, 12, 13}};
         return index_map[a][b];
     }
+    
+    pretty_ostream music_message;
 
  public:
     Diss(const EOS &eosIn, const InitData &DATA_in);
