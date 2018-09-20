@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 project(mpihydro)
 
+#for MacOSX
+cmake_policy(SET CMP0042 NEW)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_HOME_DIRECTORY}")
 
 # Require GSL and openMP for this project:

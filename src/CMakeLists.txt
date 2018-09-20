@@ -1,7 +1,6 @@
 set (SOURCES
     u_derivative.cpp
     dissipative.cpp
-    main.cpp
     cell.cpp
     init.cpp
     reconst.cpp
@@ -39,10 +38,13 @@ if (test)
     add_executable (unittest_minmod.e minmod.cpp)
     install(TARGETS unittest_minmod.e DESTINATION ${CMAKE_HOME_DIRECTORY})
 else (test)
-    add_executable (mpihydro ${SOURCES})
-    target_link_libraries (mpihydro ${GSL_LIBRARIES})
+    add_library(music_lib SHARED ${SOURCES})
+    add_executable (mpihydro main.cpp ${SOURCES})
     if (APPLE)
         set_target_properties (mpihydro PROPERTIES COMPILE_FLAGS "-DAPPLE")
+        set_target_properties (music_lib PROPERTIES COMPILE_FLAGS "-DAPPLE")
     endif (APPLE)
+    target_link_libraries (mpihydro ${GSL_LIBRARIES})
+    target_link_libraries (music_lib ${GSL_LIBRARIES})
     install(TARGETS mpihydro DESTINATION ${CMAKE_HOME_DIRECTORY})
 endif (test)

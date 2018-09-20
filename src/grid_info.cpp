@@ -462,7 +462,6 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
                 // only ouput fluid cells that are above cut-off temperature
 
                 double rhob_local = arena(ix, iy, ieta).rhob;  // 1/fm^3
-                double p_local = eos.get_pressure(e_local, rhob_local);
 
                 double ux   = arena(ix, iy, ieta).u[1];
                 double uy   = arena(ix, iy, ieta).u[2];
@@ -479,38 +478,39 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
                 if (DATA.turn_on_rhob == 1)
                     muB_local = eos.get_muB(e_local, rhob_local);
 
-                double div_factor = e_local + p_local;  // 1/fm^4
-                double Wxx = 0.0;
-                double Wxy = 0.0;
-                double Wxeta = 0.0;
-                double Wyy = 0.0;
-                double Wyeta = 0.0;
-                if (DATA.turn_on_shear == 1) {
-                    Wxx   = arena(ix, iy, ieta).Wmunu[4]/div_factor;
-                    Wxy   = arena(ix, iy, ieta).Wmunu[5]/div_factor;
-                    Wxeta = arena(ix, iy, ieta).Wmunu[6]/div_factor;
-                    Wyy   = arena(ix, iy, ieta).Wmunu[7]/div_factor;
-                    Wyeta = arena(ix, iy, ieta).Wmunu[8]/div_factor;
-                }
+                //double p_local = eos.get_pressure(e_local, rhob_local);
+                //double div_factor = e_local + p_local;  // 1/fm^4
+                //double Wxx = 0.0;
+                //double Wxy = 0.0;
+                //double Wxeta = 0.0;
+                //double Wyy = 0.0;
+                //double Wyeta = 0.0;
+                //if (DATA.turn_on_shear == 1) {
+                //    Wxx   = arena(ix, iy, ieta).Wmunu[4]/div_factor;
+                //    Wxy   = arena(ix, iy, ieta).Wmunu[5]/div_factor;
+                //    Wxeta = arena(ix, iy, ieta).Wmunu[6]/div_factor;
+                //    Wyy   = arena(ix, iy, ieta).Wmunu[7]/div_factor;
+                //    Wyeta = arena(ix, iy, ieta).Wmunu[8]/div_factor;
+                //}
 
-                double pi_b = 0.0;
-                if (DATA.turn_on_bulk == 1) {
-                    pi_b = arena(ix, iy, ieta).pi_b;   // 1/fm^4
-                }
+                //double pi_b = 0.0;
+                //if (DATA.turn_on_bulk == 1) {
+                //    pi_b = arena(ix, iy, ieta).pi_b;   // 1/fm^4
+                //}
 
                 // outputs for baryon diffusion part
                 //double common_term_q = 0.0;
-                double qx = 0.0;
-                double qy = 0.0;
-                double qeta = 0.0;
-                if (DATA.turn_on_diff == 1) {
-                    //common_term_q = rhob_local*T_local/div_factor;
-                    double kappa_hat = get_deltaf_qmu_coeff(T_local,
-                                                            muB_local);
-                    qx   = arena(ix, iy, ieta).Wmunu[11]/kappa_hat;
-                    qy   = arena(ix, iy, ieta).Wmunu[12]/kappa_hat;
-                    qeta = arena(ix, iy, ieta).Wmunu[13]/kappa_hat;
-                }
+                //double qx = 0.0;
+                //double qy = 0.0;
+                //double qeta = 0.0;
+                //if (DATA.turn_on_diff == 1) {
+                //    //common_term_q = rhob_local*T_local/div_factor;
+                //    double kappa_hat = get_deltaf_qmu_coeff(T_local,
+                //                                            muB_local);
+                //    qx   = arena(ix, iy, ieta).Wmunu[11]/kappa_hat;
+                //    qy   = arena(ix, iy, ieta).Wmunu[12]/kappa_hat;
+                //    qeta = arena(ix, iy, ieta).Wmunu[13]/kappa_hat;
+                //}
 
                 float ideal[] = {static_cast<float>(volume),
                                  static_cast<float>(eta_local),
