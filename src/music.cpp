@@ -3,9 +3,13 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <vector>
+#include <memory>
 
 #include <string>
 #include "music.h"
+#include "init.h"
+#include "freeze.h"
+#include "evolve.h"
 #include "dissipative.h"
 #include "data_struct.h"
 
@@ -18,18 +22,12 @@ MUSIC::MUSIC(std::string input_file) :
     mode = DATA.mode;
     flag_hydro_run = 0;
     flag_hydro_initialized = 0;
+    if (DATA.store_hydro_info_in_memory == 1)
+        hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
 }
 
 
 MUSIC::~MUSIC() {
-    if (flag_hydro_initialized == 1) {
-        delete init;
-    }
-    if (flag_hydro_run == 1) {
-        delete evolve;
-    }
-    if (hydro_info_ptr != nullptr)
-        delete hydro_info_ptr;
 }
 
 void MUSIC::clean_all_the_surface_files() {
@@ -41,22 +39,18 @@ void MUSIC::clean_all_the_surface_files() {
 void MUSIC::initialize_hydro() {
     clean_all_the_surface_files();
 
-    init = new Init(eos, DATA, hydro_source_terms);
-    init->InitArena(arena_prev, arena_current, arena_future);
+    Init initialization(eos, DATA, hydro_source_terms);
+    initialization.InitArena(arena_prev, arena_current, arena_future);
     flag_hydro_initialized = 1;
 }
 
 
 //! this is a shell function to run hydro
 int MUSIC::run_hydro() {
-    if (evolve != nullptr) {
-        delete evolve;
-    }
+    Evolve evolve_local(eos, DATA, hydro_source_terms);
 
-    evolve = new Evolve(eos, DATA, hydro_source_terms);
-
-    evolve->EvolveIt(arena_prev, arena_current, arena_future, (*hydro_info_ptr));
-        
+    evolve_local.EvolveIt(arena_prev, arena_current, arena_future,
+                          (*hydro_info_ptr));
     flag_hydro_run = 1;
     return(0);
 }
@@ -64,11 +58,9 @@ int MUSIC::run_hydro() {
 
 //! this is a shell function to run Cooper-Frye
 int MUSIC::run_Cooper_Frye() {
-    if (freeze != nullptr) {
-        delete freeze;
-    }
-    freeze = new Freeze(&DATA);
-    freeze->CooperFrye_pseudo(DATA.particleSpectrumNumber, mode, &DATA, &eos);
+    Freeze cooper_frye(&DATA);
+    cooper_frye.CooperFrye_pseudo(DATA.particleSpectrumNumber, mode,
+                                  &DATA, &eos);
     return(0);
 }
 
@@ -116,15 +108,13 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
     DATA.delta_x = dx;
     DATA.delta_y = dx;
 
-    if (init != nullptr)
-        delete init;
-
-    init = new Init(eos, DATA, hydro_source_terms);
-    init->get_jetscape_preequilibrium_vectors(
+    Init initialization(eos, DATA, hydro_source_terms);
+    initialization.get_jetscape_preequilibrium_vectors(
         e_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
         pi_00_in, pi_01_in, pi_02_in, pi_03_in, pi_11_in, pi_12_in, pi_13_in,
         pi_22_in, pi_23_in, pi_33_in, Bulk_pi_in);
-    init->InitArena(arena_prev, arena_current, arena_future);
+    initialization.InitArena(arena_prev, arena_current, arena_future);
+    flag_hydro_initialized = 1;
 }
 
 void MUSIC::get_hydro_info(

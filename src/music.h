@@ -2,14 +2,13 @@
 #ifndef SRC_MUSIC_H_
 #define SRC_MUSIC_H_
 
+#include <memory>
+
 #include "util.h"
 #include "cell.h"
 #include "grid.h"
 #include "data.h"
-#include "freeze.h"
-#include "init.h"
 #include "eos.h"
-#include "evolve.h"
 #include "hydro_source.h"
 #include "read_in_parameters.h"
 #include "pretty_ostream.h"
@@ -35,13 +34,9 @@ class MUSIC {
     SCGrid arena_current;
     SCGrid arena_future;
 
-    Init *init     = nullptr;
-    Evolve *evolve = nullptr;
-    Freeze *freeze = nullptr;
-
     hydro_source hydro_source_terms;
 
-    HydroinfoMUSIC *hydro_info_ptr = nullptr;
+    std::shared_ptr<HydroinfoMUSIC> hydro_info_ptr;
 
     pretty_ostream music_message;
 
