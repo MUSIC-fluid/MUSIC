@@ -4,14 +4,8 @@
 #include <memory>
 #include <cmath>
 
-#include "./evolve.h"
-#include "./util.h"
-#include "./data.h"
-#include "./cell.h"
-#include "./grid.h"
-#include "./eos.h"
-#include "./advance.h"
-#include "./cornelius.h"
+#include "evolve.h"
+#include "cornelius.h"
 
 #ifndef _OPENMP
   #define omp_get_thread_num() 0
@@ -32,7 +26,7 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
 
 // master control function for hydrodynamic evolution
 int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
-                     SCGrid &arena_future) {
+                     SCGrid &arena_future, HydroinfoMUSIC *hydro_info_ptr) {
     // first pass some control parameters
     facTau                      = DATA.facTau;
     int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
@@ -41,8 +35,12 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     // Output information about the hydro parameters 
     // in the format of a C header file
-    if (DATA.output_hydro_params_header || DATA.outputEvolutionData == 1)
-        grid_info.Output_hydro_information_header();
+    //if (DATA.output_hydro_params_header || DATA.outputEvolutionData == 1)
+    //    grid_info.Output_hydro_information_header();
+    
+    if (DATA.store_hydro_info_in_memory == 1) {
+        hydro_info_ptr->set_grid_infomatioin(DATA);
+    }
 
     // main loop starts ...
     int    itmax = DATA.nt;

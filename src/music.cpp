@@ -55,7 +55,7 @@ int MUSIC::run_hydro() {
 
     evolve = new Evolve(eos, DATA, hydro_source_terms);
 
-    evolve->EvolveIt(arena_prev, arena_current, arena_future);
+    evolve->EvolveIt(arena_prev, arena_current, arena_future, hydro_info_ptr);
         
     flag_hydro_run = 1;
     return(0);

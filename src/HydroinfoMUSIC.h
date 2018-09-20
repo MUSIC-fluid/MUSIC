@@ -48,7 +48,7 @@ class HydroinfoMUSIC {
     void getHydroValues(const double x, const double y,
                         const double z, const double t,
                         fluidCell *info);
-    void set_grid_infomatioin(InitData *DATA);
+    void set_grid_infomatioin(const InitData &DATA);
     void print_grid_information();
     void dump_ideal_info_to_memory(double tau, float epsilon, float pressure,
                                    float entropy, float T,
