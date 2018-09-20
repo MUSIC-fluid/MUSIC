@@ -7,6 +7,7 @@
 #include <string>
 #include "data_struct.h"
 #include "data.h"
+#include "pretty_ostream.h"
 
 class HydroinfoMUSIC {
  private:
@@ -27,6 +28,7 @@ class HydroinfoMUSIC {
     int itaumax, ixmax, ietamax;
 
     std::vector<fluidCell_ideal> lattice_ideal;
+    pretty_ostream music_message;
 
  public:
     HydroinfoMUSIC();       // constructor

@@ -56,13 +56,14 @@ void HydroinfoMUSIC::getHydroValues(
     double taufrac = (tau - hydroTau0)/hydroDtau - static_cast<double>(itau);
 
     if (ix < 0 || ix >= ixmax) {
-        //cout << "[HydroinfoMUSIC::getHydroValues]: "
-        //     << "WARNING - x out of range x=" << x
-        //     << ", ix=" << ix << ", ixmax=" << ixmax << endl;
-        //cout << "x=" << x << " y=" << y << " eta=" << eta
-        //     << " ix=" << ix << " iy=" << iy << " ieta=" << ieta << endl;
-        //cout << "t=" << t << " tau=" << tau
-        //     << " itau=" << itau << " itaumax=" << itaumax << endl;
+        music_message << "[HydroinfoMUSIC::getHydroValues]: "
+                      << "WARNING - x out of range x=" << x
+                      << ", ix=" << ix << ", ixmax=" << ixmax;
+        music_message << "x=" << x << " y=" << y << " eta=" << eta
+                      << " ix=" << ix << " iy=" << iy << " ieta=" << ieta;
+        music_message << "t=" << t << " tau=" << tau
+                      << " itau=" << itau << " itaumax=" << itaumax;
+        music_message.flush("warning");
 
         info->temperature = 0.0;
         info->ed = 0.0;
@@ -75,13 +76,14 @@ void HydroinfoMUSIC::getHydroValues(
     }
 
     if (iy < 0 || iy >= ixmax) {
-        //cout << "[HydroinfoMUSIC::getHydroValues]: "
-        //     << "WARNING - y out of range, y=" << y << ", iy="  << iy
-        //     << ", iymax=" << ixmax << endl;
-        //cout << "x=" << x << " y=" << y << " eta=" << eta
-        //     << " ix=" << ix << " iy=" << iy << " ieta=" << ieta << endl;
-        //cout << "t=" << t << " tau=" << tau
-        //     << " itau=" << itau << " itaumax=" << itaumax << endl;
+        music_message << "[HydroinfoMUSIC::getHydroValues]: "
+                      << "WARNING - y out of range, y=" << y << ", iy="  << iy
+                      << ", iymax=" << ixmax;
+        music_message << "x=" << x << " y=" << y << " eta=" << eta
+                      << " ix=" << ix << " iy=" << iy << " ieta=" << ieta;
+        music_message << "t=" << t << " tau=" << tau
+                      << " itau=" << itau << " itaumax=" << itaumax;
+        music_message.flush("warning");
 
         info->temperature = 0.0;
         info->ed = 0.0;
@@ -93,12 +95,13 @@ void HydroinfoMUSIC::getHydroValues(
         return;
     }
     if (itau < 0 || itau > itaumax) {
-        //cout << "[HydroinfoMUSIC::getHydroValues]: WARNING - "
-        //     << "tau out of range, itau=" << itau << ", itaumax=" << itaumax
-        //     << endl;
-        //cout << "[HydroinfoMUSIC::getHydroValues]: tau= " << tau
-        //     << ", hydroTauMax = " << hydroTauMax
-        //     << ", hydroDtau = " << hydroDtau << endl;
+        music_message << "[HydroinfoMUSIC::getHydroValues]: WARNING - "
+                      << "tau out of range, itau=" << itau
+                      << ", itaumax=" << itaumax;
+        music_message << "[HydroinfoMUSIC::getHydroValues]: tau= " << tau
+                      << ", hydroTauMax = " << hydroTauMax
+                      << ", hydroDtau = " << hydroDtau;
+        music_message.flush("warning");
 
         info->temperature = 0.0;
         info->ed = 0.0;
@@ -110,9 +113,10 @@ void HydroinfoMUSIC::getHydroValues(
         return;
     }
     if (ieta < 0 || ieta >= ietamax) {
-        //cout << "[HydroinfoMUSIC::getHydroValues]: WARNING - "
-        //     << "eta out of range, ieta=" << ieta << ", ietamax=" << ietamax
-        //     << endl;
+        music_message << "[HydroinfoMUSIC::getHydroValues]: WARNING - "
+                      << "eta out of range, ieta=" << ieta
+                      << ", ietamax=" << ietamax;
+        music_message.flush("warning");
         info->temperature = 0.0;
         info->ed = 0.0;
         info->sd = 0.0;
@@ -291,17 +295,18 @@ void HydroinfoMUSIC::set_grid_infomatioin(const InitData &DATA) {
 }
 
 void HydroinfoMUSIC::print_grid_information() {
-    //cout << "boost_invariant = " << boost_invariant << endl;
-    //cout << "hydro_tau0 = " << hydroTau0 << " fm"<< endl;
-    //cout << "hydro_tau_max = " << hydroTauMax << " fm" << endl;
-    //cout << "hydry_dtau = " << hydroDtau << " fm" << endl;
-    //cout << "itaumax = " << itaumax << endl;
-    //cout << "hydro_Xmax = " << hydroXmax << " fm" << endl;
-    //cout << "hydro_dx = " << hydroDx << " fm" << endl;
-    //cout << "ixmax = " << ixmax << endl;
-    //cout << "hydro_eta_max = " << hydro_eta_max << endl;
-    //cout << "hydro_deta = " << hydroDeta << endl;
-    //cout << "ietamax = " << ietamax << endl;
+    music_message << "boost_invariant = " << boost_invariant;
+    music_message << "hydro_tau0 = " << hydroTau0 << " fm";
+    music_message << "hydro_tau_max = " << hydroTauMax << " fm";
+    music_message << "hydry_dtau = " << hydroDtau << " fm";
+    music_message << "itaumax = " << itaumax;
+    music_message << "hydro_Xmax = " << hydroXmax << " fm";
+    music_message << "hydro_dx = " << hydroDx << " fm";
+    music_message << "ixmax = " << ixmax;
+    music_message << "hydro_eta_max = " << hydro_eta_max;
+    music_message << "hydro_deta = " << hydroDeta;
+    music_message << "ietamax = " << ietamax;
+    music_message.flush("info");
 }
 
 void HydroinfoMUSIC::dump_ideal_info_to_memory(double tau,
