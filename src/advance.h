@@ -2,7 +2,6 @@
 #ifndef SRC_ADVANCE_H_
 #define SRC_ADVANCE_H_
 
-#include <iostream>
 #include "./data.h"
 #include "./cell.h"
 #include "./grid.h"

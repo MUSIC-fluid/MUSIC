@@ -11,7 +11,6 @@
 #include "evolve.h"
 #include "advance.h"
 
-using namespace std;
 using Util::map_2d_idx_to_1d;
 using Util::map_1d_idx_to_2d;
 
