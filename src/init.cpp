@@ -1,6 +1,8 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
-#include <iomanip>
+#include <string>
+#include <fstream>
 #include <sstream>
+#include <iomanip>
 #include <omp.h>
 #include "./util.h"
 #include "./cell.h"
@@ -12,7 +14,8 @@
     #define omp_get_thread_num() 0
 #endif
 
-using namespace std;
+using std::vector;
+using std::ifstream;
 
 Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source &hydro_source_in) :
     DATA(DATA_in), eos(eosIn) , hydro_source_terms(hydro_source_in) {}
@@ -40,7 +43,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
     } else if (DATA.Initial_profile == 8) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
-        string dummy;
+        std::string dummy;
         int nx, ny, neta;
         double deta, dx, dy, dummy2;
         // read the first line with general info
@@ -63,7 +66,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                || DATA.Initial_profile == 92) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
-        string dummy;
+        std::string dummy;
         int nx, ny, neta;
         double deta, dx, dy, dummy2;
         // read the first line with general info
@@ -115,9 +118,10 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ", eta_size = " << DATA.eta_size;
         music_message.flush("info");
     } else if (DATA.Initial_profile == 101) {
-        cout << "Using Initial_profile=" << DATA.Initial_profile << endl;
-        cout << "nx=" << DATA.nx << ", ny=" << DATA.ny << endl;
-        cout << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y << endl;
+        music_message << "Using Initial_profile=" << DATA.Initial_profile;
+        music_message << "nx=" << DATA.nx << ", ny=" << DATA.ny;
+        music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
+        music_message.flush("info");
     }
 
     // initialize arena
@@ -216,8 +220,8 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
 
 void Init::initial_Gubser_XY(int ieta, SCGrid &arena_prev,
                              SCGrid &arena_current) {
-    string input_filename;
-    string input_filename_prev;
+    std::string input_filename;
+    std::string input_filename_prev;
     if (DATA.turn_on_shear == 1) {
         input_filename = "tests/Gubser_flow/Initial_Profile.dat";
     } else {
@@ -343,8 +347,8 @@ void Init::initial_Gubser_XY(int ieta, SCGrid &arena_prev,
 }
 
 void Init::initial_1p1D_eta(SCGrid &arena_prev, SCGrid &arena_current) {
-    string input_ed_filename;
-    string input_rhob_filename;
+    std::string input_ed_filename;
+    std::string input_rhob_filename;
     input_ed_filename = "tests/test_1+1D_with_Akihiko/e_baryon_init.dat";
     input_rhob_filename = "tests/test_1+1D_with_Akihiko/rhoB_baryon_init.dat";
 
@@ -404,7 +408,7 @@ void Init::initial_IPGlasma_XY(int ieta, SCGrid &arena_prev,
                                SCGrid &arena_current) {
     ifstream profile(DATA.initName.c_str());
 
-    string dummy;
+    std::string dummy;
     // read the information line
     std::getline(profile, dummy);
 
@@ -480,7 +484,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
     double tau0 = DATA.tau0;
     ifstream profile(DATA.initName.c_str());
 
-    string dummy;
+    std::string dummy;
     // read the information line
     std::getline(profile, dummy);
 
@@ -1025,24 +1029,24 @@ void Init::output_initial_density_profiles(SCGrid &arena) {
     // and net baryon density profile (if turn_on_rhob == 1)
     // for checking purpose
     music_message.info("output initial density profiles into a file... ");
-    ofstream of("check_initial_density_profiles.dat");
+    std::ofstream of("check_initial_density_profiles.dat");
     of << "# x(fm)  y(fm)  eta  ed(GeV/fm^3)";
     if (DATA.turn_on_rhob == 1)
         of << "  rhob(1/fm^3)";
-    of << endl;
+    of << std::endl;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta_local = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
         for(int ix = 0; ix < arena.nX(); ix++) {
             double x_local = -DATA.x_size/2. + ix*DATA.delta_x;
             for(int iy = 0; iy < arena.nY(); iy++) {
                 double y_local = -DATA.y_size/2. + iy*DATA.delta_y;
-                of << scientific << setw(18) << std::setprecision(8)
+                of << std::scientific << std::setw(18) << std::setprecision(8)
                    << x_local << "   " << y_local << "   "
                    << eta_local << "   " << arena(ix,iy,ieta).epsilon*hbarc;
                 if (DATA.turn_on_rhob == 1) {
                     of << "   " << arena(ix,iy,ieta).rhob;
                 }
-                of << endl;
+                of << std::endl;
             }
         }
     }

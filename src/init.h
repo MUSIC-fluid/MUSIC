@@ -3,8 +3,6 @@
 #define SRC_INIT_H_
 
 #include <stdio.h>
-#include <time.h>
-#include <iostream>
 #include <vector>
 #include <cmath>
 #include "data.h"
