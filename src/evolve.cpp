@@ -26,7 +26,7 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
 
 // master control function for hydrodynamic evolution
 int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
-                     SCGrid &arena_future, HydroinfoMUSIC *hydro_info_ptr) {
+                     SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr) {
     // first pass some control parameters
     facTau                      = DATA.facTau;
     int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
@@ -39,7 +39,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     //    grid_info.Output_hydro_information_header();
     
     if (DATA.store_hydro_info_in_memory == 1) {
-        hydro_info_ptr->set_grid_infomatioin(DATA);
+        hydro_info_ptr.set_grid_infomatioin(DATA);
     }
 
     // main loop starts ...

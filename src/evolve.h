@@ -50,7 +50,7 @@ class Evolve {
     Evolve(const EOS &eos, const InitData &DATA_in,
            hydro_source &hydro_source_in);
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
-                 SCGrid &arena_future, HydroinfoMUSIC *hydro_info_ptr);
+                 SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr);
 
     void AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future);
 
