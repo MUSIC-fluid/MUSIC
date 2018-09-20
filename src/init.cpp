@@ -89,6 +89,35 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         DATA.tau0 = std::max(0.1, DATA.tau0);
     } else if (DATA.Initial_profile == 30) {
         DATA.tau0 = hydro_source_terms.get_source_tau_min();
+    } else if (DATA.Initial_profile == 41 || DATA.Initial_profile == 42) {
+        // initial condition from the JETSCAPE framework
+        music_message << "Using Initial_profile=" << DATA.Initial_profile 
+                      << ". Overwriting lattice dimensions:";
+        music_message.flush("info");
+
+        int nx = static_cast<int>(
+                            sqrt(jetscape_initial_entropy_density.size()));
+        if (DATA.Initial_profile == 42) {
+            nx = static_cast<int>(
+                    sqrt(jetscape_initial_energy_density.size()/DATA.neta));
+        }
+        int ny = nx;
+        DATA.nx = nx;
+        DATA.ny = ny;
+        DATA.x_size = DATA.delta_x*(nx - 1);
+        DATA.y_size = DATA.delta_y*(ny - 1);
+
+        music_message << "neta = " << DATA.neta
+                      << ", nx = " << nx << ", ny = " << ny;
+        music_message.flush("info");
+        music_message << "deta=" << DATA.delta_eta
+                      << ", dx=" << DATA.delta_x 
+                      << ", dy=" << DATA.delta_y;
+        music_message.flush("info");
+        music_message << "x_size = "     << DATA.x_size
+                      << ", y_size = "   << DATA.y_size
+                      << ", eta_size = " << DATA.eta_size;
+        music_message.flush("info");
     } else if (DATA.Initial_profile == 101) {
         cout << "Using Initial_profile=" << DATA.Initial_profile << endl;
         cout << "nx=" << DATA.nx << ", ny=" << DATA.ny << endl;
@@ -96,9 +125,9 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
     }
 
     // initialize arena
-    arena_prev    = SCGrid(DATA.nx, DATA.ny,DATA.neta);
-    arena_current = SCGrid(DATA.nx, DATA.ny,DATA.neta);
-    arena_future  = SCGrid(DATA.nx, DATA.ny,DATA.neta);
+    arena_prev    = SCGrid(DATA.nx, DATA.ny, DATA.neta);
+    arena_current = SCGrid(DATA.nx, DATA.ny, DATA.neta);
+    arena_future  = SCGrid(DATA.nx, DATA.ny, DATA.neta);
     music_message.info("Grid allocated.");
 
     InitTJb(arena_prev, arena_current);
@@ -173,6 +202,16 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             initial_AMPT_XY(ieta, arena_prev, arena_current);
         }
+    } else if (DATA.Initial_profile == 41 || DATA.Initial_profile == 42) {
+        // initialize hydro with vectors from JETSCAPE
+        music_message.info(" ----- information on initial distribution -----");
+        music_message << "initialized with a JETSCAPE initial condition.";
+        music_message.flush("info");
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+            initial_with_jetscape(ieta, arena_prev, arena_current);
+        }
+        clean_up_jetscape_arrays();
     } else if (DATA.Initial_profile == 101) {
         initial_UMN_with_rhob(arena_prev, arena_current);
     }
@@ -779,6 +818,118 @@ void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
             arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
     }
+}
+
+
+void Init::get_jetscape_entropy_density_vector(
+                                        vector<double> entropy_density_in) {
+    jetscape_initial_entropy_density = entropy_density_in;
+}
+
+void Init::get_jetscape_preequilibrium_vectors(
+        vector<double> e_in,
+        vector<double> u_tau_in, vector<double> u_x_in,
+        vector<double> u_y_in,   vector<double> u_eta_in,
+        vector<double> pi_00_in, vector<double> pi_01_in,
+        vector<double> pi_02_in, vector<double> pi_03_in,
+        vector<double> pi_11_in, vector<double> pi_12_in,
+        vector<double> pi_13_in, vector<double> pi_22_in,
+        vector<double> pi_23_in, vector<double> pi_33_in,
+        vector<double> Bulk_pi_in) {
+    jetscape_initial_energy_density = e_in;
+    jetscape_initial_u_tau          = u_tau_in;
+    jetscape_initial_u_x            = u_x_in;
+    jetscape_initial_u_y            = u_y_in;
+    jetscape_initial_u_eta          = u_eta_in;
+    jetscape_initial_pi_00          = pi_00_in;
+    jetscape_initial_pi_01          = pi_01_in;
+    jetscape_initial_pi_02          = pi_02_in;
+    jetscape_initial_pi_03          = pi_03_in;
+    jetscape_initial_pi_11          = pi_11_in;
+    jetscape_initial_pi_12          = pi_12_in;
+    jetscape_initial_pi_13          = pi_13_in;
+    jetscape_initial_pi_22          = pi_22_in;
+    jetscape_initial_pi_23          = pi_23_in;
+    jetscape_initial_pi_33          = pi_33_in;
+    jetscape_initial_bulk_pi        = Bulk_pi_in;
+}
+
+
+void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
+                                 SCGrid &arena_current) {
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
+    
+    for (int ix = 0; ix < nx; ix++) {
+        for (int iy = 0; iy< ny; iy++) {
+            int idx;
+            double rhob = 0.0;
+            double epsilon = 0.0;
+            if (DATA.Initial_profile == 41) {
+                idx = ix + iy*nx;
+                double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+                double eta_envelop_ed = eta_profile_normalisation(eta);
+                double local_sd = (jetscape_initial_entropy_density[idx]
+                                   *DATA.sFactor*eta_envelop_ed);
+                epsilon = eos.get_s2e(local_sd, rhob);
+            } else {
+                idx = ix + (iy + ieta*nx)*nx;
+                epsilon = (jetscape_initial_entropy_density[idx]
+                           *DATA.sFactor/hbarc);  // 1/fm^4
+            }
+            if (epsilon < 0.00000000001)
+                epsilon = 0.00000000001;
+
+            arena_current(ix, iy, ieta).epsilon = epsilon;
+            arena_current(ix, iy, ieta).rhob = rhob;
+
+            if (DATA.Initial_profile == 41) {
+                arena_current(ix, iy, ieta).u[0] = 1.0;
+                arena_current(ix, iy, ieta).u[1] = 0.0;
+                arena_current(ix, iy, ieta).u[2] = 0.0;
+                arena_current(ix, iy, ieta).u[3] = 0.0;
+            } else {
+                arena_current(ix, iy, ieta).u[0] = jetscape_initial_u_tau[idx];
+                arena_current(ix, iy, ieta).u[1] = jetscape_initial_u_x[idx];
+                arena_current(ix, iy, ieta).u[2] = jetscape_initial_u_y[idx];
+                arena_current(ix, iy, ieta).u[3] = DATA.tau0*jetscape_initial_u_eta[idx];
+                arena_current(ix, iy, ieta).pi_b = jetscape_initial_bulk_pi[idx]/hbarc;
+                
+                arena_current(ix, iy, ieta).Wmunu[0] = jetscape_initial_pi_00[idx]/hbarc;
+                arena_current(ix, iy, ieta).Wmunu[1] = jetscape_initial_pi_01[idx]/hbarc;
+                arena_current(ix, iy, ieta).Wmunu[2] = jetscape_initial_pi_02[idx]/hbarc;
+                arena_current(ix, iy, ieta).Wmunu[3] = jetscape_initial_pi_03[idx]/hbarc*DATA.tau0;
+                arena_current(ix, iy, ieta).Wmunu[4] = jetscape_initial_pi_11[idx]/hbarc;
+                arena_current(ix, iy, ieta).Wmunu[5] = jetscape_initial_pi_12[idx]/hbarc;
+                arena_current(ix, iy, ieta).Wmunu[6] = jetscape_initial_pi_13[idx]/hbarc*DATA.tau0;
+                arena_current(ix, iy, ieta).Wmunu[7] = jetscape_initial_pi_22[idx]/hbarc;
+                arena_current(ix, iy, ieta).Wmunu[8] = jetscape_initial_pi_23[idx]/hbarc*DATA.tau0;
+                arena_current(ix, iy, ieta).Wmunu[9] = jetscape_initial_pi_33[idx]/hbarc*DATA.tau0;
+            }
+
+            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
+        }
+    }
+}
+
+void Init::clean_up_jetscape_arrays() {
+    // clean up
+    jetscape_initial_energy_density.clear();
+    jetscape_initial_u_tau.clear();
+    jetscape_initial_u_x.clear();
+    jetscape_initial_u_y.clear();
+    jetscape_initial_u_eta.clear();
+    jetscape_initial_pi_00.clear();
+    jetscape_initial_pi_01.clear();
+    jetscape_initial_pi_02.clear();
+    jetscape_initial_pi_03.clear();
+    jetscape_initial_pi_11.clear();
+    jetscape_initial_pi_12.clear();
+    jetscape_initial_pi_13.clear();
+    jetscape_initial_pi_22.clear();
+    jetscape_initial_pi_23.clear();
+    jetscape_initial_pi_33.clear();
+    jetscape_initial_bulk_pi.clear();
 }
 
 double Init::eta_profile_normalisation(double eta) {
