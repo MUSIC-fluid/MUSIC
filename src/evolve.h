@@ -3,12 +3,7 @@
 #define SRC_EVOLVE_H_
 
 #include <memory>
-#include <time.h>
 #include <vector>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <iomanip>
 #include "util.h"
 #include "data.h"
 #include "cell.h"
