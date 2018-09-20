@@ -7,6 +7,7 @@
 #include <string>
 #include "music.h"
 #include "dissipative.h"
+#include "data_struct.h"
 
 using std::vector;
 
@@ -27,6 +28,8 @@ MUSIC::~MUSIC() {
     if (flag_hydro_run == 1) {
         delete evolve;
     }
+    if (hydro_info_ptr != nullptr)
+        delete hydro_info_ptr;
 }
 
 void MUSIC::clean_all_the_surface_files() {
@@ -122,4 +125,27 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
         pi_00_in, pi_01_in, pi_02_in, pi_03_in, pi_11_in, pi_12_in, pi_13_in,
         pi_22_in, pi_23_in, pi_33_in, Bulk_pi_in);
     init->InitArena(arena_prev, arena_current, arena_future);
+}
+
+void MUSIC::get_hydro_info(
+        const double x, const double y, const double z, const double t,
+        fluidCell* fluid_cell_info) {
+    if (DATA.store_hydro_info_in_memory == 0) {
+        music_message << "hydro evolution informaiton is not stored "
+                      << "in the momeory! Please set the parameter "
+                      << "store_hydro_info_in_memory to 1~";
+        music_message.flush("error");
+        exit(1);
+    }
+    hydro_info_ptr->getHydroValues(x, y, z, t, fluid_cell_info);
+}
+
+void MUSIC::clear_hydro_info_from_memory() {
+    if (DATA.store_hydro_info_in_memory == 0) {
+        music_message << "The parameter store_hydro_info_in_memory is 0. "
+                      << "No need to clean memory~";
+        music_message.flush("warning");
+    } else {
+        hydro_info_ptr->clean_hydro_event();
+    }
 }

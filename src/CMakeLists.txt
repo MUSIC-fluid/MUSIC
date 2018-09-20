@@ -30,6 +30,7 @@ set (SOURCES
     evolve.cpp
     emoji.cpp
     music_logo.cpp
+    HydroinfoMUSIC.cpp
     )
 
 if (test)

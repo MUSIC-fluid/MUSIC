@@ -13,6 +13,7 @@
 #include "hydro_source.h"
 #include "read_in_parameters.h"
 #include "pretty_ostream.h"
+#include "HydroinfoMUSIC.h"
 
 //! This is a wrapper class for the MUSIC hydro
 class MUSIC {
@@ -39,6 +40,8 @@ class MUSIC {
     Freeze *freeze = nullptr;
 
     hydro_source hydro_source_terms;
+
+    HydroinfoMUSIC *hydro_info_ptr = nullptr;
 
     pretty_ostream music_message;
 
@@ -76,6 +79,11 @@ class MUSIC {
         std::vector<double> pi_13_in, std::vector<double> pi_22_in,
         std::vector<double> pi_23_in, std::vector<double> pi_33_in,
         std::vector<double> Bulk_pi_in);
+
+    void get_hydro_info(
+        const double x, const double y, const double z, const double t,
+        fluidCell* fluid_cell_info);
+    void clear_hydro_info_from_memory();
 };
 
 #endif  // SRC_MUSIC_H_

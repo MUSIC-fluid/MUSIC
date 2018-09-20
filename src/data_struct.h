@@ -21,6 +21,18 @@ typedef struct {
     FlowVec u;
 } ReconstCell;
 
+typedef struct {
+   float ed, sd, temperature, pressure;
+   float vx, vy, vz;
+   float pi[4][4];
+   float bulkPi;
+} fluidCell;
+
+typedef struct {
+    float sd, ed, pressure, temperature;
+    float ux, uy, ueta;
+} fluidCell_ideal;
+
 template<typename T>
 T assume_aligned(T x) {
   #if defined(__AVX512__)
