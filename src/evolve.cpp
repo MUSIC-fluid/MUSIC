@@ -98,7 +98,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
         if (it % Nskip_timestep == 0) {
             if (DATA.outputEvolutionData == 1) {
-                grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
+                grid_info.OutputEvolutionDataXYEta(*ap_current, tau,
+                                                   hydro_info_ptr);
             } else if (DATA.outputEvolutionData == 2) {
                 grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 3) {

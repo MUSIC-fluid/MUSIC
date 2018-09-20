@@ -12,6 +12,7 @@
 #include "cell.h"
 #include "grid.h"
 #include "pretty_ostream.h"
+#include "HydroinfoMUSIC.h"
 
 class Cell_info {
  private:
@@ -47,7 +48,8 @@ class Cell_info {
     void Output_hydro_information_header();
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta(SCGrid &arena, double tau);
+    void OutputEvolutionDataXYEta(SCGrid &arena, double tau,
+                                  HydroinfoMUSIC &hydro_info_ptr);
 
     //! This function outputs hydro evolution file in binary format
     void OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau);
