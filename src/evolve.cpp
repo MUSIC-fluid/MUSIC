@@ -816,13 +816,15 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
                 // 4-dimension interpolation done
                 const double TFO = eos.get_temperature(epsFO, rhob_center);
-                const double muB = eos.get_muB(epsFO, rhob_center);
                 if (TFO < 0) {
                     music_message << "TFO=" << TFO
                                   << "<0. ERROR. exiting.";
                     music_message.flush("error");
                     exit(1);
                 }
+                const double muB = eos.get_muB(epsFO, rhob_center);
+                const double muS = eos.get_muS(epsFO, rhob_center);
+                const double muC = eos.get_muC(epsFO, rhob_center);
 
                 const double pressure = eos.get_pressure(epsFO, rhob_center);
                 const double eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
@@ -844,6 +846,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                                      static_cast<float>(epsFO),
                                      static_cast<float>(TFO),
                                      static_cast<float>(muB),
+                                     static_cast<float>(muS),
+                                     static_cast<float>(muC),
                                      static_cast<float>(eps_plus_p_over_T_FO),
                                      static_cast<float>(Wtautau_center),
                                      static_cast<float>(Wtaux_center),
@@ -861,7 +865,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                                      static_cast<float>(qx_center),
                                      static_cast<float>(qy_center),
                                      static_cast<float>(qeta_center)};
-                    for (int i = 0; i < 32; i++) {
+                    for (int i = 0; i < 34; i++) {
                         s_file.write((char*) &(array[i]), sizeof(float));
                     }
                 } else {
@@ -873,6 +877,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                            << utau_center << " " << ux_center << " "
                            << uy_center << " " << ueta_center << " "
                            << epsFO << " " << TFO << " " << muB << " "
+                           << muS << " " << muC << " "
                            << eps_plus_p_over_T_FO << " "
                            << Wtautau_center << " " << Wtaux_center << " "
                            << Wtauy_center << " " << Wtaueta_center << " "
@@ -1055,7 +1060,6 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
             // get other thermodynamical quantities
             double e_local   = arena_current(ix, iy, ieta).epsilon;
             double T_local   = eos.get_temperature(e_local, rhob_center);
-            double muB_local = eos.get_muB(e_local, rhob_center);
             if (T_local < 0) {
                 music_message << "Evolve::FreezeOut_equal_tau_Surface: "
                               << "T_local = " << T_local
@@ -1063,6 +1067,9 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 music_message.flush("error");
                 exit(1);
             }
+            double muB_local = eos.get_muB(e_local, rhob_center);
+            double muS_local = eos.get_muS(e_local, rhob_center);
+            double muC_local = eos.get_muC(e_local, rhob_center);
 
             double pressure = eos.get_pressure(e_local, rhob_center);
             double eps_plus_p_over_T = (e_local + pressure)/T_local;
@@ -1084,6 +1091,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                                  static_cast<float>(e_local),
                                  static_cast<float>(T_local),
                                  static_cast<float>(muB_local),
+                                 static_cast<float>(muS_local),
+                                 static_cast<float>(muC_local),
                                  static_cast<float>(eps_plus_p_over_T),
                                  static_cast<float>(Wtautau_center),
                                  static_cast<float>(Wtaux_center),
@@ -1101,7 +1110,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                                  static_cast<float>(qx_center),
                                  static_cast<float>(qy_center),
                                  static_cast<float>(qeta_center)};
-                for (int i = 0; i < 32; i++) {
+                for (int i = 0; i < 34; i++) {
                     s_file.write((char*) &(array[i]), sizeof(float));
                 }
             } else {
@@ -1113,7 +1122,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                        << utau_center    << " " << ux_center         << " " 
                        << uy_center      << " " << ueta_center       << " " 
                        << e_local        << " " << T_local           << " "
-                       << muB_local      << " " << eps_plus_p_over_T << " " 
+                       << muB_local      << " " << muS_local         << " "
+                       << muC_local      << " " << eps_plus_p_over_T << " " 
                        << Wtautau_center << " " << Wtaux_center      << " " 
                        << Wtauy_center   << " " << Wtaueta_center    << " " 
                        << Wxx_center     << " " << Wxy_center        << " " 
