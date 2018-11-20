@@ -1573,6 +1573,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     // 3-dimension interpolation done
                     double TFO = eos.get_temperature(epsFO, rhob_center);
                     double muB = eos.get_muB(epsFO, rhob_center);
+                    double muS_local = eos.get_muS(epsFO, rhob_center);
+                    double muC_local = eos.get_muC(epsFO, rhob_center);
                     if (TFO < 0) {
                         music_message << "TFO=" << TFO
                                       << "<0. ERROR. exiting.";
@@ -1600,6 +1602,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                          static_cast<float>(epsFO),
                                          static_cast<float>(TFO),
                                          static_cast<float>(muB),
+                                         static_cast<float>(muS_local),
+                                         static_cast<float>(muC_local),
                                          static_cast<float>(eps_plus_p_over_T_FO),
                                          static_cast<float>(Wtautau_center),
                                          static_cast<float>(Wtaux_center),
@@ -1617,7 +1621,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                          static_cast<float>(qx_center),
                                          static_cast<float>(qy_center),
                                          static_cast<float>(qeta_center)};
-                        for (int i = 0; i < 32; i++) {
+                        for (int i = 0; i < 34; i++) {
                             s_file.write((char*) &(array[i]), sizeof(float));
                         }
                     } else {
@@ -1629,6 +1633,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                << utau_center << " " << ux_center << " " 
                                << uy_center << " " << ueta_center << " " 
                                << epsFO << " " << TFO << " " << muB << " " 
+                               << muS_local << " " << muC_local << " "
                                << eps_plus_p_over_T_FO << " " 
                                << Wtautau_center << " " << Wtaux_center << " " 
                                << Wtauy_center << " " << Wtaueta_center << " " 
@@ -1636,11 +1641,11 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                << Wxeta_center << " " 
                                << Wyy_center << " " << Wyeta_center << " " 
                                << Wetaeta_center << " " ;
-                        if(DATA.turn_on_bulk)   // 27th column
+                        if(DATA.turn_on_bulk)   // 29th column
                             s_file << pi_b_center << " " ;
-                        if(DATA.turn_on_rhob)   // 28th column
+                        if(DATA.turn_on_rhob)   // 30th column
                             s_file << rhob_center << " " ;
-                        if(DATA.turn_on_diff)   // 29-32th column
+                        if(DATA.turn_on_diff)   // 31-34th column
                             s_file << qtau_center << " " << qx_center << " " 
                                    << qy_center << " " << qeta_center << " " ;
                         s_file << std::endl;
