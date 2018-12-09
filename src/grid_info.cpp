@@ -288,17 +288,19 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena,
 void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, 
                                               double tau) {
     // the format of the file is as follows,
-    //    itau ix iy ieta T ux uy ueta
+    //    itau ix iy ieta e P T ux uy ueta
     // if turn_on_shear == 1:
-    //    itau ix iy ieta T ux uy ueta Wxx Wxy Wxeta Wyy Wyeta
+    //    itau ix iy ieta e P T ux uy ueta Wxx Wxy Wxeta Wyy Wyeta
     // if turn_on_shear == 1 and turn_on_bulk == 1:
-    //    itau ix iy ieta T ux uy ueta Wxx Wxy Wxeta Wyy Wyeta pi_b
+    //    itau ix iy ieta e P T ux uy ueta Wxx Wxy Wxeta Wyy Wyeta pi_b
     // if turn_on_rhob == 1:
-    //    itau ix iy ieta T ux uy ueta mu_B
+    //    itau ix iy ieta e P T ux uy ueta mu_B
     // if turn_on_rhob == 1 and turn_on_shear == 1:
-    //    itau ix iy ieta T ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta
+    //    itau ix iy ieta e P T ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta
     // if turn_on_rhob == 1 and turn_on_shear == 1 and turn_on_diff == 1:
-    //    itau ix iy ieta T ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta qx qy qeta
+    //    itau ix iy ieta e P T ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta qx qy qeta
+    // if turn_on_rhob == 1 and turn_on_shear == 1 and turn_on_bulk == 1 and turn_on_diff == 1:
+    //    itau ix iy ieta e P T ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta pi_b qx qy qeta
     // Here ueta = tau*ueta, Wieta = tau*Wieta, qeta = tau*qeta
     // Here Wij is reduced variables Wij/(e+P) used in delta f
     // and qi is reduced variables qi/kappa_hat
@@ -313,11 +315,41 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
     }
     out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
 
-    int itau = static_cast<int>((tau - DATA.tau0)/DATA.delta_tau);
+    int n_skip_tau     = DATA.output_evolution_every_N_timesteps;
+    double output_dtau = DATA.delta_tau*n_skip_tau;
+    int itau           = static_cast<int>((tau - DATA.tau0)/(output_dtau));
 
-    int n_skip_x   = DATA.output_evolution_every_N_x;
-    int n_skip_y   = DATA.output_evolution_every_N_y;
-    int n_skip_eta = DATA.output_evolution_every_N_eta;
+    int n_skip_x       = DATA.output_evolution_every_N_x;
+    int n_skip_y       = DATA.output_evolution_every_N_y;
+    int n_skip_eta     = DATA.output_evolution_every_N_eta;
+
+    // write out header
+    const int output_nx        = static_cast<int>(arena.nX()/n_skip_x);
+    const int output_ny        = static_cast<int>(arena.nY()/n_skip_y);
+    const int output_neta      = static_cast<int>(arena.nEta()/n_skip_eta);
+    const double output_dx     = DATA.delta_x*n_skip_x;
+    const double output_dy     = DATA.delta_y*n_skip_y;
+    const double output_deta   = DATA.delta_eta*n_skip_eta;
+    const double output_xmin   = - DATA.x_size/2.;
+    const double output_ymin   = - DATA.y_size/2.;
+    const double output_etamin = - DATA.eta_size/2.;
+
+    const int nVar_per_cell = (10 + DATA.turn_on_rhob*1 + DATA.turn_on_shear*5
+                                  + DATA.turn_on_bulk*1 + DATA.turn_on_diff*3);
+    float header[] = {
+        static_cast<float>(DATA.tau0), static_cast<float>(output_dtau),
+        static_cast<float>(output_nx), static_cast<float>(output_dx),
+        static_cast<float>(output_xmin),
+        static_cast<float>(output_ny), static_cast<float>(output_dy),
+        static_cast<float>(output_ymin),
+        static_cast<float>(output_neta), static_cast<float>(output_deta),
+        static_cast<float>(output_etamin),
+        static_cast<float>(DATA.turn_on_rhob),
+        static_cast<float>(DATA.turn_on_shear),
+        static_cast<float>(DATA.turn_on_bulk),
+        static_cast<float>(DATA.turn_on_diff),
+        static_cast<float>(nVar_per_cell)};
+    fwrite(header, sizeof(float), 16, out_file_xyeta);
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
@@ -331,7 +363,6 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
 
                 // T_local is in 1/fm
                 double T_local = eos.get_temperature(e_local, rhob_local);
-
 
                 if (T_local*hbarc < DATA.output_evolution_T_cut) continue;
                 // only ouput fluid cells that are above cut-off temperature
@@ -373,14 +404,18 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
                     qeta = arena(ix, iy, ieta).Wmunu[13]/kappa_hat;
                 }
 
-                int pos[] = {itau, ix, iy, ieta};
-                float ideal[] = {static_cast<float>(T_local*hbarc),
+                float ideal[] = {static_cast<float>(itau/n_skip_x),
+                                 static_cast<float>(ix/n_skip_x),
+                                 static_cast<float>(iy/n_skip_y),
+                                 static_cast<float>(ieta/n_skip_eta),
+                                 static_cast<float>(e_local*hbarc),
+                                 static_cast<float>(p_local*hbarc),
+                                 static_cast<float>(T_local*hbarc),
                                  static_cast<float>(ux),
                                  static_cast<float>(uy),
                                  static_cast<float>(ueta)};
 
-                fwrite(pos, sizeof(int), 4, out_file_xyeta);
-                fwrite(ideal, sizeof(float), 4, out_file_xyeta);
+                fwrite(ideal, sizeof(float), 10, out_file_xyeta);
 
                 if (DATA.turn_on_rhob == 1) {
                     float mu[] = {static_cast<float>(muB_local*hbarc)};
