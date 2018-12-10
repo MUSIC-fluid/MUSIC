@@ -1129,6 +1129,9 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double ideal_num1 = 0.0;
     double ideal_num2 = 0.0;
     double ideal_den  = 0.0;
+    double shear_num1 = 0.0;
+    double shear_num2 = 0.0;
+    double shear_den  = 0.0;
     double full_num1 = 0.0;
     double full_num2 = 0.0;
     double full_den  = 0.0;
@@ -1185,17 +1188,23 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double T_xx_ideal   = e_local*ux*ux - P_local*(-1. - ux*ux);
                 double T_xy_ideal   = (e_local + P_local)*ux*uy;
                 double T_yy_ideal   = e_local*uy*uy - P_local*(-1. - uy*uy);
-                double T_xx         = T_xx_ideal + pi_xx - bulk_Pi*(-1 - ux*ux);
-                double T_xy         = T_xy_ideal + pi_xy + bulk_Pi*ux*uy;
-                double T_yy         = T_yy_ideal + pi_yy - bulk_Pi*(-1 - uy*uy);
+                double T_xx_full    = T_xx_ideal + pi_xx - bulk_Pi*(-1 - ux*ux);
+                double T_xy_full    = T_xy_ideal + pi_xy + bulk_Pi*ux*uy;
+                double T_yy_full    = T_yy_ideal + pi_yy - bulk_Pi*(-1 - uy*uy);
+                double T_xx_shear   = T_xx_ideal + pi_xx;
+                double T_xy_shear   = T_xy_ideal + pi_xy;
+                double T_yy_shear   = T_yy_ideal + pi_yy;
                 double weight_local = e_local;
 
                 ideal_num1 += weight_local*(T_xx_ideal - T_yy_ideal);
                 ideal_num2 += weight_local*(2.*T_xy_ideal);
                 ideal_den  += weight_local*(T_xx_ideal + T_yy_ideal);
-                full_num1  += weight_local*(T_xx - T_yy);
-                full_num2  += weight_local*(2.*T_xy);
-                full_den   += weight_local*(T_xx + T_yy);
+                full_num1  += weight_local*(T_xx_full - T_yy_full);
+                full_num2  += weight_local*(2.*T_xy_full);
+                full_den   += weight_local*(T_xx_full + T_yy_full);
+                shear_num1 += weight_local*(T_xx_shear - T_yy_shear);
+                shear_num2 += weight_local*(2.*T_xy_shear);
+                shear_den  += weight_local*(T_xx_shear + T_yy_shear);
                 ecc2_num1  += gamma_perp*e_local*r_local*r_local*cos(2.*phi_local);
                 ecc2_num2  += gamma_perp*e_local*r_local*r_local*sin(2.*phi_local);
                 ecc3_num1  += gamma_perp*e_local*r_local*r_local*r_local*cos(3.*phi_local);
@@ -1211,13 +1220,14 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     }
     double ep_ideal = sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)/ideal_den;
     double ep_full  = sqrt(full_num1*full_num1 + full_num2*full_num2)/full_den;
+    double ep_shear = sqrt(shear_num1*shear_num1 + shear_num2*shear_num2)/shear_den;
     double ecc2     = sqrt(ecc2_num1*ecc2_num1 + ecc2_num2*ecc2_num2)/ecc2_den;
     double ecc3     = sqrt(ecc3_num1*ecc3_num1 + ecc3_num2*ecc3_num2)/ecc3_den;
     double R_Pi     = R_Pi_num/R_Pi_den;
     double u_avg    = u_perp_num/u_perp_den;
 
     of << scientific << setw(18) << setprecision(8)
-       << tau << "  " << ep_ideal << "  " << ep_full << "  "
+       << tau << "  " << ep_ideal << "  " << ep_shear << "  " << ep_full << "  "
        << ecc2 << "  " << ecc3 << "  " << R_Pi << "  " << u_avg
        << endl;
     of.close();
