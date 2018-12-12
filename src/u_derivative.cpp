@@ -169,14 +169,14 @@ int U_derivative::MakeDSpatial(double tau, SCGrid &arena,
     double rhob, eps, muB, T;
     rhob = arena(ix, iy, ieta).rhob;
     eps = arena(ix, iy, ieta).epsilon;
-    muB = eos.get_mu(eps, rhob);
+    muB = eos.get_muB(eps, rhob);
     T = eos.get_temperature(eps, rhob);
     double f = muB/T;
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
         double fp1, fm1;
-        fp1 = ( eos.get_mu(p1.epsilon, p1.rhob)
+        fp1 = ( eos.get_muB(p1.epsilon, p1.rhob)
                /eos.get_temperature(p1.epsilon, p1.rhob));
-        fm1 = ( eos.get_mu(m1.epsilon, m1.rhob)
+        fm1 = ( eos.get_muB(m1.epsilon, m1.rhob)
                /eos.get_temperature(m1.epsilon, m1.rhob));
         double g = minmod.minmod_dx(fp1, f, fm1)/delta[direction];
         dUsup[m][direction] = g;
@@ -215,12 +215,12 @@ int U_derivative::MakeDTau(double tau,
     // first order is more stable backward derivative
     rhob         = grid_pt->rhob;
     eps          = grid_pt->epsilon;
-    muB          = eos.get_mu(eps, rhob);
+    muB          = eos.get_muB(eps, rhob);
     T            = eos.get_temperature(eps, rhob);
     tildemu      = muB/T;
     rhob         = grid_pt_prev->rhob;
     eps          = grid_pt_prev->epsilon;
-    muB          = eos.get_mu(eps, rhob);
+    muB          = eos.get_muB(eps, rhob);
     T            = eos.get_temperature(eps, rhob);
     tildemu_prev = muB/T;
     f            = (tildemu - tildemu_prev)/(DATA.delta_tau);

@@ -1,5 +1,7 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include <iomanip>
+#include <sstream>
+#include <fstream>
 #include <algorithm>
 #include "util.h"
 #include "cell.h"
@@ -7,8 +9,6 @@
 #include "data.h"
 #include "eos.h"
 #include "dissipative.h"
-
-using namespace std;
 
 Diss::Diss(const EOS &eosIn, const InitData &Data_in) : DATA(Data_in), eos(eosIn), minmod(Data_in) {}
 
@@ -99,11 +99,12 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
         result = sf*diff_on;
 
     if (std::isnan(result)) {
-        std::cout << "[Error]Diss::MakeWSource: " << std::endl;
-        std::cout << "sf=" << sf << " bf=" << bf
-                  << " Wmunu =" << grid_pt.Wmunu[alpha]
-                  << " pi_b =" << grid_pt.pi_b
-                  << " prev_pi_b=" << grid_pt_prev.pi_b << std::endl;
+        music_message << "[Error]Diss::MakeWSource: ";
+        music_message << "sf=" << sf << " bf=" << bf
+                      << " Wmunu =" << grid_pt.Wmunu[alpha]
+                      << " pi_b =" << grid_pt.pi_b
+                      << " prev_pi_b=" << grid_pt_prev.pi_b;
+        music_message.flush("error");
     }
     return(result);
 }
@@ -866,7 +867,7 @@ double Diss::Make_uqSource(
     double kappa_coefficient = DATA.kappa_coefficient;
     double tau_rho = kappa_coefficient/(T + 1e-15);
     tau_rho = std::max(3.*DATA.delta_tau, tau_rho);
-    double mub     = eos.get_mu(epsilon, rhob);
+    double mub     = eos.get_muB(epsilon, rhob);
     double alpha   = mub/T;
     double kappa   = kappa_coefficient*(rhob/(3.*T*tanh(alpha) + 1e-15)
                                       - rhob*rhob/(epsilon + pressure));
@@ -1117,11 +1118,11 @@ double Diss::get_temperature_dependent_zeta_s(double temperature) {
 //! this function outputs the T and muB dependence of the baryon diffusion
 //! coefficient, kappa
 void Diss::output_kappa_T_and_muB_dependence() {
-    cout << "output kappa_B(T, mu_B) ..." << endl;
-    ofstream of("kappa_B_T_and_muB_dependence.dat");
+    music_message.info("output kappa_B(T, mu_B) ...");
+    std::ofstream of("kappa_B_T_and_muB_dependence.dat");
     // write out the header of the file
     of << "# e (GeV/fm^3)  rhob (1/fm^3) T (GeV)  mu_B (GeV)  kappa (1/fm^2)"
-       << endl;
+       << std::endl;
 
     // define the grid
     double e_min = 1e-5;     // fm^-4
@@ -1138,7 +1139,7 @@ void Diss::output_kappa_T_and_muB_dependence() {
         for (int j = 0; j < nrhob; j++) {
             double rhob_local = rhob_min + j*drhob;
             rhob_local *= rhob_local;
-            double mu_B_local = eos.get_mu(e_local, rhob_local);
+            double mu_B_local = eos.get_muB(e_local, rhob_local);
             if (mu_B_local*hbarc > 0.78)
                 continue;  // discard points out of the table
             double p_local = eos.get_pressure(e_local, rhob_local);
@@ -1149,10 +1150,10 @@ void Diss::output_kappa_T_and_muB_dependence() {
                     *(rhob_local/(3.*T_local*tanh(alpha_local) + 1e-15)
                       - rhob_local*rhob_local/(e_local + p_local)));
             // output
-            of << scientific << setw(18) << setprecision(8)
+            of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << rhob_local << "   "
                << T_local*hbarc << "   " << mu_B_local*hbarc << "   "
-               << kappa_local << endl;
+               << kappa_local << std::endl;
         }
     }
     of.close();  // close the file
@@ -1162,8 +1163,7 @@ void Diss::output_kappa_T_and_muB_dependence() {
 //! this function outputs the T and muB dependence of the baryon diffusion
 //! coefficient, kappa_B, along constant s/n_B trajectories
 void Diss::output_kappa_along_const_sovernB() {
-    cout << "output kappa_B(T, mu_B) along constant s/n_B trajectories..."
-         << endl;
+    music_message.info("output kappa_B(T, mu_B) along constant s/n_B trajectories...");
 
     double sovernB[] = {10.0, 20.0, 30.0, 51.0, 70.0, 94.0, 144.0, 420.0};
     int array_length = sizeof(sovernB)/sizeof(double);
@@ -1172,20 +1172,20 @@ void Diss::output_kappa_along_const_sovernB() {
     double ds = 0.005;         // 1/fm^3
     int ns = static_cast<int>((s_max - s_0)/ds) + 1;
     for (int i = 0; i < array_length; i++) {
-        ostringstream file_name;
+        std::ostringstream file_name;
         file_name << "kappa_B_sovernB_" << sovernB[i] << ".dat";
-        ofstream of(file_name.str().c_str());
+        std::ofstream of(file_name.str().c_str());
         // write out the header of the file
         of << "# e (GeV/fm^3)  rhob (1/fm^3) s (1/fm^3)  "
-           << "T (GeV)  mu_B (GeV)  kappa (1/fm^2)" << endl;
+           << "T (GeV)  mu_B (GeV)  kappa (1/fm^2)" << std::endl;
         for (int j = 0; j < ns; j++) {
             double s_local = s_0 + j*ds;
             double nB_local = s_local/sovernB[i];
-            double e_local = eos.get_s2e_finite_rhob(s_local, nB_local);
+            double e_local = eos.get_s2e(s_local, nB_local);
             double s_check = eos.get_entropy(e_local, nB_local);
             double p_local = eos.get_pressure(e_local, nB_local);
             double temperature = eos.get_temperature(e_local, nB_local);
-            double mu_B = eos.get_mu(e_local, nB_local);
+            double mu_B = eos.get_muB(e_local, nB_local);
             if (mu_B*hbarc > 0.78)
                 continue;  // discard points out of the table
             double alpha_local = mu_B/temperature;
@@ -1194,11 +1194,11 @@ void Diss::output_kappa_along_const_sovernB() {
                     *(nB_local/(3.*temperature*tanh(alpha_local) + 1e-15)
                       - nB_local*nB_local/(e_local + p_local)));
             // output
-            of << scientific << setw(18) << setprecision(8)
+            of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << nB_local << "   "
                << s_check << "   "
                << temperature*hbarc << "   " << mu_B*hbarc << "   "
-               << kappa_local << endl;
+               << kappa_local << std::endl;
         }
         of.close();  // close the file
     }
@@ -1208,11 +1208,11 @@ void Diss::output_kappa_along_const_sovernB() {
 //! this function outputs the T and muB dependence of the specific shear
 //! viscosity eta/s
 void Diss::output_eta_over_s_T_and_muB_dependence() {
-    cout << "output eta/s(T, mu_B) ..." << endl;
-    ofstream of("eta_over_s_T_and_muB_dependence.dat");
+    music_message.info("output eta/s(T, mu_B) ...");
+    std::ofstream of("eta_over_s_T_and_muB_dependence.dat");
     // write out the header of the file
     of << "# e (GeV/fm^3)  rhob (1/fm^3) T (GeV)  mu_B (GeV)  eta/s"
-       << endl;
+       << std::endl;
 
     // define the grid
     double e_min    = 1e-5;     // fm^-4
@@ -1230,7 +1230,7 @@ void Diss::output_eta_over_s_T_and_muB_dependence() {
         for (int j = 0; j < nrhob; j++) {
             double rhob_local = rhob_min + j*drhob;
             rhob_local *= rhob_local;
-            double mu_B_local = eos.get_mu(e_local, rhob_local);
+            double mu_B_local = eos.get_muB(e_local, rhob_local);
             if (mu_B_local*hbarc > 0.78)
                 continue;  // discard points out of the table
             double p_local = eos.get_pressure(e_local, rhob_local);
@@ -1241,10 +1241,10 @@ void Diss::output_eta_over_s_T_and_muB_dependence() {
                 etaT_over_enthropy*(e_local + p_local)/(T_local*s_local));
 
             // output
-            of << scientific << setw(18) << setprecision(8)
+            of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << rhob_local << "   "
                << T_local*hbarc << "   " << mu_B_local*hbarc << "   "
-               << eta_over_s << endl;
+               << eta_over_s << std::endl;
         }
     }
     of.close();  // close the file
@@ -1254,8 +1254,7 @@ void Diss::output_eta_over_s_T_and_muB_dependence() {
 //! this function outputs the T and muB dependence of the specific shear
 //! viscosity eta/s along constant s/n_B trajectories
 void Diss::output_eta_over_s_along_const_sovernB() {
-    cout << "output eta/s(T, mu_B) along constant s/n_B trajectories..."
-         << endl;
+    music_message.info("output eta/s(T, mu_B) along constant s/n_B trajectories...");
 
     double etaT_over_enthropy = DATA.shear_to_s;
     double sovernB[] = {10.0, 20.0, 30.0, 51.0, 70.0, 94.0, 144.0, 420.0};
@@ -1265,20 +1264,20 @@ void Diss::output_eta_over_s_along_const_sovernB() {
     double ds = 0.005;         // 1/fm^3
     int ns = static_cast<int>((s_max - s_0)/ds) + 1;
     for (int i = 0; i < array_length; i++) {
-        ostringstream file_name;
+        std::ostringstream file_name;
         file_name << "eta_over_s_sovernB_" << sovernB[i] << ".dat";
-        ofstream of(file_name.str().c_str());
+        std::ofstream of(file_name.str().c_str());
         // write out the header of the file
         of << "# e (GeV/fm^3)  rhob (1/fm^3) s (1/fm^3)  "
-           << "T (GeV)  mu_B (GeV)  eta/s" << endl;
+           << "T (GeV)  mu_B (GeV)  eta/s" << std::endl;
         for (int j = 0; j < ns; j++) {
             double s_local = s_0 + j*ds;
             double nB_local = s_local/sovernB[i];
-            double e_local = eos.get_s2e_finite_rhob(s_local, nB_local);
+            double e_local = eos.get_s2e(s_local, nB_local);
             double s_check = eos.get_entropy(e_local, nB_local);
             double p_local = eos.get_pressure(e_local, nB_local);
             double temperature = eos.get_temperature(e_local, nB_local);
-            double mu_B = eos.get_mu(e_local, nB_local);
+            double mu_B = eos.get_muB(e_local, nB_local);
             if (mu_B*hbarc > 0.78)
                 continue;  // discard points out of the table
 
@@ -1286,11 +1285,11 @@ void Diss::output_eta_over_s_along_const_sovernB() {
                 etaT_over_enthropy*(e_local + p_local)/(temperature*s_local));
 
             // output
-            of << scientific << setw(18) << setprecision(8)
+            of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << nB_local << "   "
                << s_check << "   "
                << temperature*hbarc << "   " << mu_B*hbarc << "   "
-               << eta_over_s << endl;
+               << eta_over_s << std::endl;
         }
         of.close();  // close the file
     }

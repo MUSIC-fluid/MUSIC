@@ -3,8 +3,6 @@
 #define SRC_INIT_H_
 
 #include <stdio.h>
-#include <time.h>
-#include <iostream>
 #include <vector>
 #include <cmath>
 #include "data.h"
@@ -20,6 +18,24 @@ class Init {
     const EOS &eos;
     hydro_source &hydro_source_terms;
     pretty_ostream music_message;
+        
+    // support for JETSCAPE
+    std::vector<double> jetscape_initial_energy_density;
+    std::vector<double> jetscape_initial_u_tau;
+    std::vector<double> jetscape_initial_u_x;
+    std::vector<double> jetscape_initial_u_y;
+    std::vector<double> jetscape_initial_u_eta;
+    std::vector<double> jetscape_initial_pi_00;
+    std::vector<double> jetscape_initial_pi_01;
+    std::vector<double> jetscape_initial_pi_02;
+    std::vector<double> jetscape_initial_pi_03;
+    std::vector<double> jetscape_initial_pi_11;
+    std::vector<double> jetscape_initial_pi_12;
+    std::vector<double> jetscape_initial_pi_13;
+    std::vector<double> jetscape_initial_pi_22;
+    std::vector<double> jetscape_initial_pi_23;
+    std::vector<double> jetscape_initial_pi_33;
+    std::vector<double> jetscape_initial_bulk_pi;
 
  public:
     Init(const EOS &eos, InitData &DATA_in, hydro_source &hydro_source_in);
@@ -36,6 +52,19 @@ class Init {
     void initial_MCGlbLEXUS_with_rhob_XY (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_AMPT_XY                 (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_UMN_with_rhob           (SCGrid &arena_prev, SCGrid & arena_current);
+    void initial_with_jetscape           (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
+
+    void get_jetscape_preequilibrium_vectors(
+        std::vector<double> e_in,
+        std::vector<double> u_tau_in, std::vector<double> u_x_in,
+        std::vector<double> u_y_in,   std::vector<double> u_eta_in,
+        std::vector<double> pi_00_in, std::vector<double> pi_01_in,
+        std::vector<double> pi_02_in, std::vector<double> pi_03_in,
+        std::vector<double> pi_11_in, std::vector<double> pi_12_in,
+        std::vector<double> pi_13_in, std::vector<double> pi_22_in,
+        std::vector<double> pi_23_in, std::vector<double> pi_33_in,
+        std::vector<double> Bulk_pi_in);
+    void clean_up_jetscape_arrays();
     
     double eta_profile_normalisation       (double eta);
     double eta_rhob_profile_normalisation  (double eta);

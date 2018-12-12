@@ -114,6 +114,9 @@ typedef struct init_data {
     //! decide whether to output the evolution data (1) or not (0)
     int outputEvolutionData;
 
+    //! flag to store hydro evolution in memory for jetscape
+    int store_hydro_info_in_memory;
+
     //! decide whether to output files for movie
     int output_movie_flag;
 

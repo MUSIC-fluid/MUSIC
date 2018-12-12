@@ -1,6 +1,8 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
-#include <iomanip>
+#include <string>
+#include <fstream>
 #include <sstream>
+#include <iomanip>
 #include <omp.h>
 #include "./util.h"
 #include "./cell.h"
@@ -12,7 +14,8 @@
     #define omp_get_thread_num() 0
 #endif
 
-using namespace std;
+using std::vector;
+using std::ifstream;
 
 Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source &hydro_source_in) :
     DATA(DATA_in), eos(eosIn) , hydro_source_terms(hydro_source_in) {}
@@ -40,7 +43,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
     } else if (DATA.Initial_profile == 8) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
-        string dummy;
+        std::string dummy;
         int nx, ny, neta;
         double deta, dx, dy, dummy2;
         // read the first line with general info
@@ -63,7 +66,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                || DATA.Initial_profile == 92) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
-        string dummy;
+        std::string dummy;
         int nx, ny, neta;
         double deta, dx, dy, dummy2;
         // read the first line with general info
@@ -89,6 +92,31 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         DATA.tau0 = std::max(0.1, DATA.tau0);
     } else if (DATA.Initial_profile == 30) {
         DATA.tau0 = hydro_source_terms.get_source_tau_min();
+    } else if (DATA.Initial_profile == 42) {
+        // initial condition from the JETSCAPE framework
+        music_message << "Using Initial_profile=" << DATA.Initial_profile 
+                      << ". Overwriting lattice dimensions:";
+        music_message.flush("info");
+
+        const int nx = static_cast<int>(
+                sqrt(jetscape_initial_energy_density.size()/DATA.neta));
+        const int ny = nx;
+        DATA.nx = nx;
+        DATA.ny = ny;
+        DATA.x_size = DATA.delta_x*(nx - 1);
+        DATA.y_size = DATA.delta_y*(ny - 1);
+
+        music_message << "neta = " << DATA.neta
+                      << ", nx = " << nx << ", ny = " << ny;
+        music_message.flush("info");
+        music_message << "deta=" << DATA.delta_eta
+                      << ", dx=" << DATA.delta_x 
+                      << ", dy=" << DATA.delta_y;
+        music_message.flush("info");
+        music_message << "x_size = "     << DATA.x_size
+                      << ", y_size = "   << DATA.y_size
+                      << ", eta_size = " << DATA.eta_size;
+        music_message.flush("info");
     } else if (DATA.Initial_profile == 101) {
         music_message << "Using Initial_profile = " << DATA.Initial_profile;
         music_message.flush("info");
@@ -101,9 +129,9 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
     }
 
     // initialize arena
-    arena_prev    = SCGrid(DATA.nx, DATA.ny,DATA.neta);
-    arena_current = SCGrid(DATA.nx, DATA.ny,DATA.neta);
-    arena_future  = SCGrid(DATA.nx, DATA.ny,DATA.neta);
+    arena_prev    = SCGrid(DATA.nx, DATA.ny, DATA.neta);
+    arena_current = SCGrid(DATA.nx, DATA.ny, DATA.neta);
+    arena_future  = SCGrid(DATA.nx, DATA.ny, DATA.neta);
     music_message.info("Grid allocated.");
 
     InitTJb(arena_prev, arena_current);
@@ -178,6 +206,16 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             initial_AMPT_XY(ieta, arena_prev, arena_current);
         }
+    } else if (DATA.Initial_profile == 42) {
+        // initialize hydro with vectors from JETSCAPE
+        music_message.info(" ----- information on initial distribution -----");
+        music_message << "initialized with a JETSCAPE initial condition.";
+        music_message.flush("info");
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+            initial_with_jetscape(ieta, arena_prev, arena_current);
+        }
+        clean_up_jetscape_arrays();
     } else if (DATA.Initial_profile == 101) {
         music_message.info(" ----- information on initial distribution -----");
         music_message << "file name used: " << DATA.initName;
@@ -189,8 +227,8 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
 
 void Init::initial_Gubser_XY(int ieta, SCGrid &arena_prev,
                              SCGrid &arena_current) {
-    string input_filename;
-    string input_filename_prev;
+    std::string input_filename;
+    std::string input_filename_prev;
     if (DATA.turn_on_shear == 1) {
         input_filename = "tests/Gubser_flow/Initial_Profile.dat";
     } else {
@@ -316,8 +354,8 @@ void Init::initial_Gubser_XY(int ieta, SCGrid &arena_prev,
 }
 
 void Init::initial_1p1D_eta(SCGrid &arena_prev, SCGrid &arena_current) {
-    string input_ed_filename;
-    string input_rhob_filename;
+    std::string input_ed_filename;
+    std::string input_rhob_filename;
     input_ed_filename = "tests/test_1+1D_with_Akihiko/e_baryon_init.dat";
     input_rhob_filename = "tests/test_1+1D_with_Akihiko/rhoB_baryon_init.dat";
 
@@ -377,7 +415,7 @@ void Init::initial_IPGlasma_XY(int ieta, SCGrid &arena_prev,
                                SCGrid &arena_current) {
     ifstream profile(DATA.initName.c_str());
 
-    string dummy;
+    std::string dummy;
     // read the information line
     std::getline(profile, dummy);
 
@@ -453,7 +491,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
     double tau0 = DATA.tau0;
     ifstream profile(DATA.initName.c_str());
 
-    string dummy;
+    std::string dummy;
     // read the information line
     std::getline(profile, dummy);
 
@@ -778,6 +816,97 @@ void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
     }
 }
 
+
+void Init::get_jetscape_preequilibrium_vectors(
+        vector<double> e_in,
+        vector<double> u_tau_in, vector<double> u_x_in,
+        vector<double> u_y_in,   vector<double> u_eta_in,
+        vector<double> pi_00_in, vector<double> pi_01_in,
+        vector<double> pi_02_in, vector<double> pi_03_in,
+        vector<double> pi_11_in, vector<double> pi_12_in,
+        vector<double> pi_13_in, vector<double> pi_22_in,
+        vector<double> pi_23_in, vector<double> pi_33_in,
+        vector<double> Bulk_pi_in) {
+    jetscape_initial_energy_density = e_in;
+    jetscape_initial_u_tau          = u_tau_in;
+    jetscape_initial_u_x            = u_x_in;
+    jetscape_initial_u_y            = u_y_in;
+    jetscape_initial_u_eta          = u_eta_in;
+    jetscape_initial_pi_00          = pi_00_in;
+    jetscape_initial_pi_01          = pi_01_in;
+    jetscape_initial_pi_02          = pi_02_in;
+    jetscape_initial_pi_03          = pi_03_in;
+    jetscape_initial_pi_11          = pi_11_in;
+    jetscape_initial_pi_12          = pi_12_in;
+    jetscape_initial_pi_13          = pi_13_in;
+    jetscape_initial_pi_22          = pi_22_in;
+    jetscape_initial_pi_23          = pi_23_in;
+    jetscape_initial_pi_33          = pi_33_in;
+    jetscape_initial_bulk_pi        = Bulk_pi_in;
+}
+
+
+void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
+                                 SCGrid &arena_current) {
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
+    
+    for (int ix = 0; ix < nx; ix++) {
+        for (int iy = 0; iy< ny; iy++) {
+            const double rhob = 0.0;
+            double epsilon = 0.0;
+            const int idx = ix + (iy + ieta*nx)*nx;
+            epsilon = (jetscape_initial_energy_density[idx]
+                       *DATA.sFactor/hbarc);  // 1/fm^4
+            if (epsilon < 0.00000000001)
+                epsilon = 0.00000000001;
+
+            arena_current(ix, iy, ieta).epsilon = epsilon;
+            arena_current(ix, iy, ieta).rhob = rhob;
+
+            arena_current(ix, iy, ieta).u[0] = jetscape_initial_u_tau[idx];
+            arena_current(ix, iy, ieta).u[1] = jetscape_initial_u_x[idx];
+            arena_current(ix, iy, ieta).u[2] = jetscape_initial_u_y[idx];
+            arena_current(ix, iy, ieta).u[3] = DATA.tau0*jetscape_initial_u_eta[idx];
+
+            arena_current(ix, iy, ieta).pi_b = jetscape_initial_bulk_pi[idx]/hbarc;
+
+            arena_current(ix, iy, ieta).Wmunu[0] = jetscape_initial_pi_00[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[1] = jetscape_initial_pi_01[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[2] = jetscape_initial_pi_02[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[3] = jetscape_initial_pi_03[idx]/hbarc*DATA.tau0;
+            arena_current(ix, iy, ieta).Wmunu[4] = jetscape_initial_pi_11[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[5] = jetscape_initial_pi_12[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[6] = jetscape_initial_pi_13[idx]/hbarc*DATA.tau0;
+            arena_current(ix, iy, ieta).Wmunu[7] = jetscape_initial_pi_22[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[8] = jetscape_initial_pi_23[idx]/hbarc*DATA.tau0;
+            arena_current(ix, iy, ieta).Wmunu[9] = jetscape_initial_pi_33[idx]/hbarc*DATA.tau0;
+
+            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
+        }
+    }
+}
+
+void Init::clean_up_jetscape_arrays() {
+    // clean up
+    jetscape_initial_energy_density.clear();
+    jetscape_initial_u_tau.clear();
+    jetscape_initial_u_x.clear();
+    jetscape_initial_u_y.clear();
+    jetscape_initial_u_eta.clear();
+    jetscape_initial_pi_00.clear();
+    jetscape_initial_pi_01.clear();
+    jetscape_initial_pi_02.clear();
+    jetscape_initial_pi_03.clear();
+    jetscape_initial_pi_11.clear();
+    jetscape_initial_pi_12.clear();
+    jetscape_initial_pi_13.clear();
+    jetscape_initial_pi_22.clear();
+    jetscape_initial_pi_23.clear();
+    jetscape_initial_pi_33.clear();
+    jetscape_initial_bulk_pi.clear();
+}
+
 double Init::eta_profile_normalisation(double eta) {
     // this function return the eta envelope profile for energy density
     double res;
@@ -896,24 +1025,24 @@ void Init::output_initial_density_profiles(SCGrid &arena) {
     // and net baryon density profile (if turn_on_rhob == 1)
     // for checking purpose
     music_message.info("output initial density profiles into a file... ");
-    ofstream of("check_initial_density_profiles.dat");
+    std::ofstream of("check_initial_density_profiles.dat");
     of << "# x(fm)  y(fm)  eta  ed(GeV/fm^3)";
     if (DATA.turn_on_rhob == 1)
         of << "  rhob(1/fm^3)";
-    of << endl;
+    of << std::endl;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta_local = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
         for(int ix = 0; ix < arena.nX(); ix++) {
             double x_local = -DATA.x_size/2. + ix*DATA.delta_x;
             for(int iy = 0; iy < arena.nY(); iy++) {
                 double y_local = -DATA.y_size/2. + iy*DATA.delta_y;
-                of << scientific << setw(18) << std::setprecision(8)
+                of << std::scientific << std::setw(18) << std::setprecision(8)
                    << x_local << "   " << y_local << "   "
                    << eta_local << "   " << arena(ix,iy,ieta).epsilon*hbarc;
                 if (DATA.turn_on_rhob == 1) {
                     of << "   " << arena(ix,iy,ieta).rhob;
                 }
-                of << endl;
+                of << std::endl;
             }
         }
     }

@@ -361,6 +361,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempoutputEvolutionData;
     parameter_list.outputEvolutionData = tempoutputEvolutionData;
     
+    int temp_store_hydro_info_in_memory = 0;
+    tempinput = Util::StringFind4(input_file, "store_hydro_info_in_memory");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_store_hydro_info_in_memory;
+    parameter_list.store_hydro_info_in_memory =
+                                            temp_store_hydro_info_in_memory;
+    
     int temp_output_movie_flag = 0;
     tempinput = Util::StringFind4(input_file, "output_movie_flag");
     if (tempinput != "empty")
@@ -828,7 +835,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
-    if (parameter_list.whichEOS > 12 || parameter_list.whichEOS < 0) {
+    if (parameter_list.whichEOS > 17 || parameter_list.whichEOS < 0) {
         music_message << "EOS_to_use unspecified or invalid option: "
                       << parameter_list.whichEOS;
         music_message.flush("error");

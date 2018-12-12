@@ -1,11 +1,22 @@
 cmake_minimum_required(VERSION 2.8)
 project(mpihydro)
 
+#for MacOSX
+if (APPLE)
+    cmake_policy(SET CMP0042 NEW)
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_HOME_DIRECTORY}")
 
 # Require GSL and openMP for this project:
 find_package(OpenMP REQUIRED)
 find_package(GSL REQUIRED)
+
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
+        message(FATAL_ERROR "Insufficient gcc version")
+    endif()
+endif()
 
 include_directories(${GSL_INCLUDE_DIR})
 set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS})
@@ -13,6 +24,7 @@ set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${OpenMP_EXE_LINKER_FLAGS})
 
 option (KNL "Build executable on KNL" OFF)
 option (test "Build Unit tests" OFF)
+option (build_lib "Build binary library" OFF)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
     if (KNL)
