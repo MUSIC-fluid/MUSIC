@@ -24,7 +24,7 @@ set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${OpenMP_EXE_LINKER_FLAGS})
 
 option (KNL "Build executable on KNL" OFF)
 option (test "Build Unit tests" OFF)
-option (build_lib "Build binary library" OFF)
+option (build_lib "Build binary library" ON)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
     if (KNL)
