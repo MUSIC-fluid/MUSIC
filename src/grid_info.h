@@ -47,9 +47,12 @@ class Cell_info {
     //! This function outputs a header files for JF and Gojko's EM programs
     void Output_hydro_information_header();
 
-    //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta(SCGrid &arena, double tau,
-                                  HydroinfoMUSIC &hydro_info_ptr);
+    //! This function outputs hydro evolution file
+    void OutputEvolutionDataXYEta(SCGrid &arena, double tau);
+
+    //! This function outputs hydro evolution file into memory for JETSCAPE
+    void OutputEvolutionDataXYEta_memory(
+                SCGrid &arena, double tau, HydroinfoMUSIC &hydro_info_ptr);
 
     //! This function outputs hydro evolution file in binary format
     void OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau);

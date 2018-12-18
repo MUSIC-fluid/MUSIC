@@ -283,15 +283,19 @@ void HydroinfoMUSIC::getHydroValues(
 void HydroinfoMUSIC::set_grid_infomatioin(const InitData &DATA) {
     use_tau_eta_coordinate = 1;
     boost_invariant = DATA.boost_invariant;
+
     hydroTau0 = DATA.tau0;
     hydroDtau = DATA.delta_tau*DATA.output_evolution_every_N_timesteps;
-    hydroXmax = DATA.x_size/2.;
-    ixmax = (static_cast<int>((DATA.nx + 1)
-                              /DATA.output_evolution_every_N_x) + 1);
-    hydro_eta_max = DATA.eta_size/2.;
-    ietamax = static_cast<int>(DATA.neta/DATA.output_evolution_every_N_eta);
-    hydroDx = DATA.delta_x*DATA.output_evolution_every_N_x;
+    hydroDx   = DATA.delta_x*DATA.output_evolution_every_N_x;
     hydroDeta = DATA.delta_eta*DATA.output_evolution_every_N_eta;
+
+    hydroXmax     = DATA.x_size/2.;
+    hydro_eta_max = DATA.eta_size/2.;
+
+    ixmax   = (static_cast<int>((DATA.nx - 1)
+                                /DATA.output_evolution_every_N_x) + 1);
+    ietamax = (static_cast<int>((DATA.neta - 1)
+                                /DATA.output_evolution_every_N_eta) + 1);
 }
 
 void HydroinfoMUSIC::print_grid_information() {

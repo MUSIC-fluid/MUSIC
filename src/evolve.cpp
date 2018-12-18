@@ -100,12 +100,15 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
         if (it % Nskip_timestep == 0) {
             if (DATA.outputEvolutionData == 1) {
-                grid_info.OutputEvolutionDataXYEta(*ap_current, tau,
-                                                   hydro_info_ptr);
+                grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 2) {
                 grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 3) {
                 grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
+            }
+            if (DATA.store_hydro_info_in_memory == 1) {
+                grid_info.OutputEvolutionDataXYEta_memory(*ap_current, tau,
+                                                          hydro_info_ptr);
             }
             if (DATA.output_movie_flag == 1) {
                 grid_info.output_evolution_for_movie(*ap_current, tau);
