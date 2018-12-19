@@ -59,10 +59,13 @@ void HydroinfoMUSIC::getHydroValues(
         music_message << "[HydroinfoMUSIC::getHydroValues]: "
                       << "WARNING - x out of range x=" << x
                       << ", ix=" << ix << ", ixmax=" << ixmax;
+        music_message.flush("warning");
         music_message << "x=" << x << " y=" << y << " eta=" << eta
                       << " ix=" << ix << " iy=" << iy << " ieta=" << ieta;
+        music_message.flush("warning");
         music_message << "t=" << t << " tau=" << tau
                       << " itau=" << itau << " itaumax=" << itaumax;
+        music_message.flush("warning");
         music_message.flush("warning");
 
         info->temperature = 0.0;
@@ -79,10 +82,13 @@ void HydroinfoMUSIC::getHydroValues(
         music_message << "[HydroinfoMUSIC::getHydroValues]: "
                       << "WARNING - y out of range, y=" << y << ", iy="  << iy
                       << ", iymax=" << ixmax;
+        music_message.flush("warning");
         music_message << "x=" << x << " y=" << y << " eta=" << eta
                       << " ix=" << ix << " iy=" << iy << " ieta=" << ieta;
+        music_message.flush("warning");
         music_message << "t=" << t << " tau=" << tau
                       << " itau=" << itau << " itaumax=" << itaumax;
+        music_message.flush("warning");
         music_message.flush("warning");
 
         info->temperature = 0.0;
@@ -98,7 +104,9 @@ void HydroinfoMUSIC::getHydroValues(
         music_message << "[HydroinfoMUSIC::getHydroValues]: WARNING - "
                       << "tau out of range, itau=" << itau
                       << ", itaumax=" << itaumax;
+        music_message.flush("warning");
         music_message << "[HydroinfoMUSIC::getHydroValues]: tau= " << tau
+                      << ", hydroTau0 = " << hydroTau0
                       << ", hydroTauMax = " << hydroTauMax
                       << ", hydroDtau = " << hydroDtau;
         music_message.flush("warning");
