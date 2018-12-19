@@ -488,7 +488,7 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.pseudofreeze = temppseudofreeze;
     
     // Runge_Kutta_order:  must be 1 or 2
-    int temprk_order = 1;
+    int temprk_order = 2;
     tempinput = Util::StringFind4(input_file, "Runge_Kutta_order");
     if (tempinput != "empty")
         istringstream(tempinput) >> temprk_order;
