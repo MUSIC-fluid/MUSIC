@@ -59,7 +59,6 @@ hydro_dict.update({
     'Grid_size_in_x': 261,       # number of the grid points in x direction
     
     'EOS_to_use': 10,         # type of the equation of state
-    'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
     'boost_invariant': 0,    # initial condition is boost invariant
 
     #viscosity and diffusion options
@@ -74,38 +73,41 @@ hydro_dict.update({
     'kappa_coefficient': 0.4,               # coefficients for baryon diffusion kappa_B
 
     'output_hydro_debug_info': 0,           # flag to output additional evolution information for debuging
+    'store_hydro_info_in_memory': 0,        # flag to store hydro information in memory
     'output_evolution_data': 0,             # flag to output evolution history to file
     'output_movie_flag': 0,                 # flag to output evolution file for making movie
     'output_evolution_T_cut': 0.145,        # minimum temperature for outputing fluid cells [GeV]
     'output_hydro_params_header' : 0,       # flag to output hydro evolution information header
     'outputBinaryEvolution': 1,             # flag to output evolution history in binary format
-    'output_evolution_every_N_timesteps' : 1,     # number of points to skip in tau direction for hydro evolution
+    'output_evolution_every_N_timesteps' : 10,    # number of points to skip in tau direction for hydro evolution
     'output_evolution_every_N_x' : 2,             # number of points to skip in x direction for hydro evolution
     'output_evolution_every_N_y' : 2,             # number of points to skip in y direction for hydro evolution
     'output_evolution_every_N_eta' : 1,           # number of points to skip in eta direction for hydro evolution
-})
-
-freeze_out_dict.update({
+    
     'Do_FreezeOut_Yes_1_No_0': 1,   # flag to find freeze-out surface
     'Do_FreezeOut_lowtemp'   : 1,   # flag to freeze out low temperature fluid
                                     # cells outside the freeze-out surface
                                     # at the first time step
     'freeze_out_method': 4,         # method for hyper-surface finder
+    'freeze_surface_in_binary': 0,   # flag to output surface file in binary format
+    'use_eps_for_freeze_out': 1,     # flag to determine freeze-out surface based on
+                                    # (1: energy density [GeV/fm^3]) or (0: temperature [GeV])
 
-    'average_surface_over_this_many_time_steps': 5,   # the step skipped in the tau direction
-    'freeze_Ncell_x_step': 3,              # the step skipped in x direction
-    'freeze_Ncell_y_step': 3,              # the step skipped in y direction
+    'average_surface_over_this_many_time_steps': 10,   # the step skipped in the tau direction
+    'freeze_Ncell_x_step': 1,              # the step skipped in x direction
+    'freeze_Ncell_y_step': 1,              # the step skipped in y direction
     'freeze_eps_flag': 0,           # flag for defining freeze out energy density
                                     # 0: freeze out energy densities are equally spaced between 
                                     #    eps_freeze_min and eps_freeze_max for N_freeze_out surfaces
                                     # 1: freeze out energy densities are read in from file freeze_list_filename
-    'freeze_list_filename': "eps_freeze_list_s95p-v1.2.dat",   # filename of the list for the freeze-out energy densities
-    'N_freeze_out': 14,             # number of freeze-out surfaces
-    'eps_freeze_max': 0.750,        # the maximum freeze-out energy density (GeV/fm^3)
-    'eps_freeze_min': 0.100,        # the minimum freeze-out energy density (GeV/fm^3)
+    'N_freeze_out': 5,             # number of freeze-out surfaces
+    'eps_freeze_max': 0.56,        # the maximum freeze-out energy density (GeV/fm^3)
+    'eps_freeze_min': 0.16,        # the minimum freeze-out energy density (GeV/fm^3)
+})
 
+freeze_out_dict.update({
     'Include_deltaf': 1,        # flag to include delta f correction in Cooper-Frye formula
-    'Include_deltaf_qmu': 1,    # flag to include delta f for qmu
+    'Include_deltaf_qmu': 0,    # flag to include delta f for qmu
     'Inlucde_deltaf_bulk': 0,   # flag to include delta f for bulk viscosity
 
     'number_of_particles_to_include': 320,  # number of thermal particles to compute for particle spectra and vn
@@ -140,36 +142,30 @@ def generate_music_input_file(include_nodeltaf, include_y):
     # mode 2:
     control_dict.update({'mode': 2})
     f = open('music_input_2', 'w')
-    dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                 freeze_out_dict, collect_dict]
+    dict_list = [control_dict, initial_condition_dict, hydro_dict]
     for idict in range(len(dict_list)):
-        temp_list = dict_list[idict].items()
-        for i in range(len(temp_list)):
-            f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+        for key, val in dict_list[idict].items():
+            f.write('%s  %s \n' % (key, str(val)))
     f.write('EndOfData\n')
     f.close()
 
     # mode 3:
     control_dict.update({'mode': 3})
     f = open('music_input_3', 'w')
-    dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                 freeze_out_dict, collect_dict]
+    dict_list = [control_dict, freeze_out_dict, collect_dict]
     for idict in range(len(dict_list)):
-        temp_list = dict_list[idict].items()
-        for i in range(len(temp_list)):
-            f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+        for key, val in dict_list[idict].items():
+            f.write('%s  %s \n' % (key, str(val)))
     f.write('EndOfData\n')
     f.close()
     
     if include_nodeltaf == 1:
         freeze_out_dict.update({'Include_deltaf_qmu': 0})
         f = open('music_input_3_nodeltaf', 'w')
-        dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                     freeze_out_dict, collect_dict]
+        dict_list = [control_dict, freeze_out_dict, collect_dict]
         for idict in range(len(dict_list)):
-            temp_list = dict_list[idict].items()
-            for i in range(len(temp_list)):
-                f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+            for key, val in dict_list[idict].items():
+                f.write('%s  %s \n' % (key, str(val)))
         f.write('EndOfData\n')
         f.close()
         freeze_out_dict.update({'Include_deltaf_qmu': 1})
@@ -177,23 +173,19 @@ def generate_music_input_file(include_nodeltaf, include_y):
     if include_y == 1:
         freeze_out_dict.update({'pseudofreeze': 0})
         f = open('music_input_3_y', 'w')
-        dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                     freeze_out_dict, collect_dict]
+        dict_list = [control_dict, freeze_out_dict, collect_dict]
         for idict in range(len(dict_list)):
-            temp_list = dict_list[idict].items()
-            for i in range(len(temp_list)):
-                f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+            for key, val in dict_list[idict].items():
+                f.write('%s  %s \n' % (key, str(val)))
         f.write('EndOfData\n')
         f.close()
         if include_nodeltaf == 1:
             freeze_out_dict.update({'Include_deltaf_qmu': 0})
             f = open('music_input_3_y_nodeltaf', 'w')
-            dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                         freeze_out_dict, collect_dict]
+            dict_list = [control_dict, freeze_out_dict, collect_dict]
             for idict in range(len(dict_list)):
-                temp_list = dict_list[idict].items()
-                for i in range(len(temp_list)):
-                    f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+                for key, val in dict_list[idict].items():
+                    f.write('%s  %s \n' % (key, str(val)))
             f.write('EndOfData\n')
             f.close()
             freeze_out_dict.update({'Include_deltaf_qmu': 1})
@@ -202,23 +194,19 @@ def generate_music_input_file(include_nodeltaf, include_y):
     # mode 4:
     control_dict.update({'mode': 4})
     f = open('music_input_4', 'w')
-    dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                 freeze_out_dict, collect_dict]
+    dict_list = [control_dict, freeze_out_dict, collect_dict]
     for idict in range(len(dict_list)):
-        temp_list = dict_list[idict].items()
-        for i in range(len(temp_list)):
-            f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+        for key, val in dict_list[idict].items():
+            f.write('%s  %s \n' % (key, str(val)))
     f.write('EndOfData\n')
     f.close()
     if include_y == 1:
         freeze_out_dict.update({'pseudofreeze': 0})
         f = open('music_input_4_y', 'w')
-        dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                     freeze_out_dict, collect_dict]
+        dict_list = [control_dict, freeze_out_dict, collect_dict]
         for idict in range(len(dict_list)):
-            temp_list = dict_list[idict].items()
-            for i in range(len(temp_list)):
-                f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+            for key, val in dict_list[idict].items():
+                f.write('%s  %s \n' % (key, str(val)))
         f.write('EndOfData\n')
         f.close()
         freeze_out_dict.update({'pseudofreeze': 1})
@@ -226,12 +214,10 @@ def generate_music_input_file(include_nodeltaf, include_y):
     # mode 13:
     control_dict.update({'mode': 13})
     f = open('music_input_13', 'w')
-    dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                 freeze_out_dict, collect_dict]
+    dict_list = [control_dict, freeze_out_dict, collect_dict]
     for idict in range(len(dict_list)):
-        temp_list = dict_list[idict].items()
-        for i in range(len(temp_list)):
-            f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+        for key, val in dict_list[idict].items():
+            f.write('%s  %s \n' % (key, str(val)))
     f.write('EndOfData\n')
     f.close()
     if include_y == 1:
@@ -243,12 +229,10 @@ def generate_music_input_file(include_nodeltaf, include_y):
             'dNdy_eta_max': 0.5,
         })
         f = open('music_input_13_y', 'w')
-        dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                     freeze_out_dict, collect_dict]
+        dict_list = [control_dict, freeze_out_dict, collect_dict]
         for idict in range(len(dict_list)):
-            temp_list = dict_list[idict].items()
-            for i in range(len(temp_list)):
-                f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+            for key, val in dict_list[idict].items():
+                f.write('%s  %s \n' % (key, str(val)))
         f.write('EndOfData\n')
         f.close()
         freeze_out_dict.update({'pseudofreeze': 1})
@@ -262,12 +246,10 @@ def generate_music_input_file(include_nodeltaf, include_y):
     # mode 14:
     control_dict.update({'mode': 14})
     f = open('music_input_14', 'w')
-    dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                 freeze_out_dict, collect_dict]
+    dict_list = [control_dict, freeze_out_dict, collect_dict]
     for idict in range(len(dict_list)):
-        temp_list = dict_list[idict].items()
-        for i in range(len(temp_list)):
-            f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+        for key, val in dict_list[idict].items():
+            f.write('%s  %s \n' % (key, str(val)))
     f.write('EndOfData\n')
     f.close()
     if include_y == 1:
@@ -279,12 +261,10 @@ def generate_music_input_file(include_nodeltaf, include_y):
             'dNdy_eta_max': 0.5,
         })
         f = open('music_input_14_y', 'w')
-        dict_list = [control_dict, initial_condition_dict, hydro_dict,
-                     freeze_out_dict, collect_dict]
+        dict_list = [control_dict, freeze_out_dict, collect_dict]
         for idict in range(len(dict_list)):
-            temp_list = dict_list[idict].items()
-            for i in range(len(temp_list)):
-                f.write('%s  %s \n' % (temp_list[i][0], str(temp_list[i][1])))
+            for key, val in dict_list[idict].items():
+                f.write('%s  %s \n' % (key, str(val)))
         f.write('EndOfData\n')
         f.close()
         freeze_out_dict.update({'pseudofreeze': 1})
@@ -418,12 +398,12 @@ cd ..
 
 
 def print_help_message():
-    print "Usage : "
+    print("Usage : ")
     print(color.bold
           + "./generate_music_inputfile.py"
           + "[-cen centrality -shear_vis eta_over_s -EOS eos_type]"
           + color.end)
-    print "Usage of runHydro.py command line arguments: "
+    print("Usage of runHydro.py command line arguments: ")
     print(color.bold + "-shear_vis" + color.end
           + "   the specific shear viscosity used in the hydro simulation\n"
           + color.bold + "       eta/s = 0.08 [default]" + color.end)
@@ -509,7 +489,7 @@ def read_in_parameters_from_command_line():
             print_help_message()
             sys.exit(0)
         else:
-            print sys.argv[0], ': invalid option', option
+            print(sys.argv[0], ': invalid option', option)
             print_help_message()
             sys.exit(1)
     
