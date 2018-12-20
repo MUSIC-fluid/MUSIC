@@ -38,24 +38,6 @@ Eta_plateau_size 20.           # size of the plateau in eta_s
 Eta_fall_off 0.7               # the scale of the fall off of the 
                                # plateau in eta_s direction
 #
-# parameters for Glauber model (effective only when Initial_profile == 1)
-binary_collision_scaling_fraction 0.14    # for wounded nucleon/binary 
-                                          # collision mixing ratio in the 
-                                          # Glauber model
-Maximum_energy_density 54.                # maximum energy density for Glauber 
-                                          # initial condition
-SigmaNN 42.1                              # NN inelastic cross section for 
-                                          # Glauber model
-Impact_parameter 9.                       # impact parameter (fm)
-Target Au                                 # type of target nucleus
-Projectile Au                             # type of projectile nucleus
-# parameters for Glauber model (effective only when Initial_profile == 1)
-sigma_0 0.4                               # the width of the gaussian
-                                          # for entropy density profile
-bmin 0.0                                  # minimum value of impact parameter
-bmax 2.0                                  # maximum value of impact parameter
-#
-#
 #######################################
 # parameters for hydrodynamic evolution
 #######################################
@@ -100,9 +82,6 @@ EOS_to_use 10                 # type of the equation of state
                               # 5: lattice EOS s95p at 160 MeV
                               # 6: lattice EOS s95p at 165 MeV
                               # 7: lattice EOS s95p-v1.2 for UrQMD
-Minmod_Theta 1.8              # theta parameter in the min-mod like limiter
-Runge_Kutta_order 2           # order of Runge_Kutta for temporal evolution 
-                              # (must be 1 or 2)
 # transport coefficients
 Viscosity_Flag_Yes_1_No_0 1        # turn on viscosity in the evolution
 Include_Shear_Visc_Yes_1_No_0 1    # include shear viscous effect

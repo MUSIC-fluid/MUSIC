@@ -12,7 +12,6 @@
 #include "evolve.h"
 #include "advance.h"
 
-using namespace std;
 using Util::map_2d_idx_to_1d;
 using Util::map_1d_idx_to_2d;
 
@@ -518,7 +517,7 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
     if (num_temp_sqrt >= 0)  {
         num = utau*ux*(1. - vs2) + sqrt(num_temp_sqrt);
     } else {
-        double dpde = eos.p_e_func(eps, rhob);
+        double dpde = eos.get_dpde(eps, rhob);
         double p = eos.get_pressure(eps, rhob);
         double h = p+eps;
         if (dpde < 0.001) {
@@ -534,8 +533,8 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
           fprintf(stderr,"at value utau=%lf. \n", utau);
           fprintf(stderr,"at value uk=%lf. \n", ux);
           fprintf(stderr,"at value vs^2=%lf. \n", vs2);
-          fprintf(stderr,"at value dpde=%lf. \n", eos.p_e_func(eps, rhob));
-          fprintf(stderr,"at value dpdrhob=%lf. \n", eos.p_rho_func(eps, rhob));
+          fprintf(stderr,"at value dpde=%lf. \n", eos.get_dpde(eps, rhob));
+          fprintf(stderr,"at value dpdrhob=%lf. \n", eos.get_dpdrhob(eps, rhob));
           fprintf(stderr, "MaxSpeed: exiting.\n");
           exit(1);
         }

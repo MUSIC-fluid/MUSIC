@@ -37,6 +37,8 @@ initial_condition_dict = {
                              # 11: read in initial profiles for e and rhob
                              #     in the transverse plane from files
                              # 12: read in initial 3d profiles for e and rhob
+                             # 13: dynamical initialization
+                             # 101: initial condition from UMN
 
     'initialize_with_entropy': 0,   # 0: with energy density
                                     # 1: with entropy density
@@ -106,9 +108,6 @@ hydro_dict = {
     'check_eos': 0,   # switch to out check files for EoS
     'Minmod_Theta': 1.8,     # theta parameter in the min-mod like limiter
     'Runge_Kutta_order': 2,  # order of Runge_Kutta for temporal evolution (must be 1 or 2)
-    'reconst_type': 1,       # the type of quantity that will be first reconstruct from T^0\mu and J^0
-                             # 0: energy density and rho_baryon
-                             # 1: flow velocity
     'boost_invariant': 0,    # initial condition is boost invariant
 
     #viscosity and diffusion options
@@ -132,12 +131,7 @@ hydro_dict = {
     'output_evolution_every_N_x' : 1,             # number of points to skip in x direction for hydro evolution
     'output_evolution_every_N_y' : 1,             # number of points to skip in y direction for hydro evolution
     'output_evolution_every_N_eta' : 1,           # number of points to skip in eta direction for hydro evolution
-}
-
-###########################################
-# parameters for freeze out and Cooper-Frye
-###########################################
-freeze_out_dict = {
+    
     'Do_FreezeOut_Yes_1_No_0': 1,                 # flag to find freeze-out surface
     'freeze_out_method': 4,                       # method for hyper-surface finder
                                           # 1: Hirano's simplified lego method
@@ -147,12 +141,12 @@ freeze_out_dict = {
     'Do_FreezeOut_lowtemp'   : 1,   # flag to freeze out low temperature fluid
                                     # cells outside the freeze-out surface
                                     # at the first time step
+    'freeze_surface_in_binary': 0,   # flag to output surface file in binary format
+
     'average_surface_over_this_many_time_steps': 5,   # the step skipped in the tau direction
-    'Ncell_skip_x': 3,                            # the step skipped in x direction
-    'Ncell_skip_y': 3,                            # the step skipped in y direction
-    'epsilon_freeze': 0.18,                       # the freeze out energy density (GeV/fm^3)
+    'freeze_Ncell_x_step': 1,              # the step skipped in x direction
+    'freeze_Ncell_y_step': 1,              # the step skipped in y direction
     'use_eps_for_freeze_out': 1,                  # flag to use energy density as criteria to find freeze-out surface 0: use temperature, 1: use energy density
-    'T_freeze': 0.12,                             # freeze-out temperature (GeV)
 
     'freeze_eps_flag': 0,           # flag for defining freeze out energy density (only for freezeoutMethod = 4)
                                     # 0: freeze out energy densities are equally spaced between 
@@ -163,7 +157,12 @@ freeze_out_dict = {
                                                   # (only work for freeze_out_method = 4)
     'eps_freeze_max': 0.508,                      # the maximum freeze-out energy density (GeV/fm^3)
     'eps_freeze_min': 0.100,                      # the minimum freeze-out energy density (GeV/fm^3)
+}
 
+###########################################
+# parameters for freeze out and Cooper-Frye
+###########################################
+freeze_out_dict = {
     'number_of_particles_to_include': 320,        # number of thermal particles to compute for particle spectra and vn
                                           # current maximum = 320
     'particle_spectrum_to_compute': 0,            # 0: Do all up to number_of_particles_to_include

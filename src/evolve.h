@@ -3,12 +3,7 @@
 #define SRC_EVOLVE_H_
 
 #include <memory>
-#include <time.h>
 #include <vector>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <iomanip>
 #include "util.h"
 #include "data.h"
 #include "cell.h"
@@ -19,6 +14,7 @@
 #include "hydro_source.h"
 #include "u_derivative.h"
 #include "pretty_ostream.h"
+#include "HydroinfoMUSIC.h"
 
 // this is a control class for the hydrodynamic evolution
 class Evolve {
@@ -48,7 +44,8 @@ class Evolve {
  public:
     Evolve(const EOS &eos, const InitData &DATA_in,
            hydro_source &hydro_source_in);
-    int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future);
+    int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
+                 SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr);
 
     void AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future);
 

@@ -3,21 +3,17 @@
 #include <algorithm>
 #include <memory>
 #include <cmath>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
 
-#include "./evolve.h"
-#include "./util.h"
-#include "./data.h"
-#include "./cell.h"
-#include "./grid.h"
-#include "./eos.h"
-#include "./advance.h"
-#include "./cornelius.h"
+#include "evolve.h"
+#include "cornelius.h"
 
 #ifndef _OPENMP
   #define omp_get_thread_num() 0
 #endif
-
-using namespace std;
 
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
                hydro_source &hydro_source_in) :
@@ -32,7 +28,7 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
 
 // master control function for hydrodynamic evolution
 int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
-                     SCGrid &arena_future) {
+                     SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr) {
     // first pass some control parameters
     facTau                      = DATA.facTau;
     int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
@@ -41,8 +37,12 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     // Output information about the hydro parameters 
     // in the format of a C header file
-    if (DATA.output_hydro_params_header || DATA.outputEvolutionData == 1)
-        grid_info.Output_hydro_information_header();
+    //if (DATA.output_hydro_params_header || DATA.outputEvolutionData == 1)
+    //    grid_info.Output_hydro_information_header();
+    
+    if (DATA.store_hydro_info_in_memory == 1) {
+        hydro_info_ptr.set_grid_infomatioin(DATA);
+    }
 
     // main loop starts ...
     int    itmax = DATA.nt;
@@ -100,7 +100,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
         if (it % Nskip_timestep == 0) {
             if (DATA.outputEvolutionData == 1) {
-                grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
+                grid_info.OutputEvolutionDataXYEta(*ap_current, tau,
+                                                   hydro_info_ptr);
             } else if (DATA.outputEvolutionData == 2) {
                 grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 3) {
@@ -229,15 +230,15 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
 
-    stringstream strs_name;
-    strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc
+    std::stringstream strs_name;
+    strs_name << "surface_eps_" << std::setprecision(4) << epsFO*hbarc
               << "_" << thread_id << ".dat";
-    ofstream s_file;
+    std::ofstream s_file;
     if (surface_in_binary) {
         s_file.open(strs_name.str().c_str(),
-                    ios::out | ios::app | ios::binary);
+                    std::ios::out | std::ios::app | std::ios::binary);
     } else {
-        s_file.open(strs_name.str().c_str(), ios::out | ios::app);
+        s_file.open(strs_name.str().c_str(), std::ios::out | std::ios::app);
     }
     const int dim = 4;
     int intersections = 0;
@@ -815,13 +816,15 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
                 // 4-dimension interpolation done
                 const double TFO = eos.get_temperature(epsFO, rhob_center);
-                const double muB = eos.get_mu(epsFO, rhob_center);
                 if (TFO < 0) {
                     music_message << "TFO=" << TFO
                                   << "<0. ERROR. exiting.";
                     music_message.flush("error");
                     exit(1);
                 }
+                const double muB = eos.get_muB(epsFO, rhob_center);
+                const double muS = eos.get_muS(epsFO, rhob_center);
+                const double muC = eos.get_muC(epsFO, rhob_center);
 
                 const double pressure = eos.get_pressure(epsFO, rhob_center);
                 const double eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
@@ -843,6 +846,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                                      static_cast<float>(epsFO),
                                      static_cast<float>(TFO),
                                      static_cast<float>(muB),
+                                     static_cast<float>(muS),
+                                     static_cast<float>(muC),
                                      static_cast<float>(eps_plus_p_over_T_FO),
                                      static_cast<float>(Wtautau_center),
                                      static_cast<float>(Wtaux_center),
@@ -860,11 +865,11 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                                      static_cast<float>(qx_center),
                                      static_cast<float>(qy_center),
                                      static_cast<float>(qeta_center)};
-                    for (int i = 0; i < 32; i++) {
+                    for (int i = 0; i < 34; i++) {
                         s_file.write((char*) &(array[i]), sizeof(float));
                     }
                 } else {
-                    s_file << scientific << setprecision(10)
+                    s_file << std::scientific << std::setprecision(10)
                            << tau_center << " " << x_center << " "
                            << y_center << " " << eta_center << " "
                            << FULLSU[0] << " " << FULLSU[1] << " "
@@ -872,6 +877,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                            << utau_center << " " << ux_center << " "
                            << uy_center << " " << ueta_center << " "
                            << epsFO << " " << TFO << " " << muB << " "
+                           << muS << " " << muC << " "
                            << eps_plus_p_over_T_FO << " "
                            << Wtautau_center << " " << Wtaux_center << " "
                            << Wtauy_center << " " << Wtaueta_center << " "
@@ -886,7 +892,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     if (DATA.turn_on_diff)
                         s_file << qtau_center << " " << qx_center << " "
                                << qy_center << " " << qeta_center << " ";
-                    s_file << endl;
+                    s_file << std::endl;
                 }
             }
         }
@@ -941,20 +947,20 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
 
-    stringstream strs_name;
+    std::stringstream strs_name;
     if (DATA.boost_invariant == 0) {
-        strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc
+        strs_name << "surface_eps_" << std::setprecision(4) << epsFO*hbarc
                   << "_" << thread_id << ".dat";
     } else {
-        strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc
+        strs_name << "surface_eps_" << std::setprecision(4) << epsFO*hbarc
                   << ".dat";
     }
-    ofstream s_file;
+    std::ofstream s_file;
     if (surface_in_binary) {
         s_file.open(strs_name.str().c_str(),
-                    ios::out | ios::app | ios::binary);
+                    std::ios::out | std::ios::app | std::ios::binary);
     } else {
-        s_file.open(strs_name.str().c_str(), ios::out | ios::app);
+        s_file.open(strs_name.str().c_str(), std::ios::out | std::ios::app);
     }
 
     const int fac_x   = DATA.fac_x;
@@ -1054,7 +1060,6 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
             // get other thermodynamical quantities
             double e_local   = arena_current(ix, iy, ieta).epsilon;
             double T_local   = eos.get_temperature(e_local, rhob_center);
-            double muB_local = eos.get_mu(e_local, rhob_center);
             if (T_local < 0) {
                 music_message << "Evolve::FreezeOut_equal_tau_Surface: "
                               << "T_local = " << T_local
@@ -1062,6 +1067,9 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 music_message.flush("error");
                 exit(1);
             }
+            double muB_local = eos.get_muB(e_local, rhob_center);
+            double muS_local = eos.get_muS(e_local, rhob_center);
+            double muC_local = eos.get_muC(e_local, rhob_center);
 
             double pressure = eos.get_pressure(e_local, rhob_center);
             double eps_plus_p_over_T = (e_local + pressure)/T_local;
@@ -1083,6 +1091,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                                  static_cast<float>(e_local),
                                  static_cast<float>(T_local),
                                  static_cast<float>(muB_local),
+                                 static_cast<float>(muS_local),
+                                 static_cast<float>(muC_local),
                                  static_cast<float>(eps_plus_p_over_T),
                                  static_cast<float>(Wtautau_center),
                                  static_cast<float>(Wtaux_center),
@@ -1100,11 +1110,11 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                                  static_cast<float>(qx_center),
                                  static_cast<float>(qy_center),
                                  static_cast<float>(qeta_center)};
-                for (int i = 0; i < 32; i++) {
+                for (int i = 0; i < 34; i++) {
                     s_file.write((char*) &(array[i]), sizeof(float));
                 }
             } else {
-                s_file << scientific << setprecision(10) 
+                s_file << std::scientific << std::setprecision(10) 
                        << tau_center     << " " << x_center          << " " 
                        << y_center       << " " << eta_center        << " " 
                        << FULLSU[0]      << " " << FULLSU[1]         << " " 
@@ -1112,7 +1122,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                        << utau_center    << " " << ux_center         << " " 
                        << uy_center      << " " << ueta_center       << " " 
                        << e_local        << " " << T_local           << " "
-                       << muB_local      << " " << eps_plus_p_over_T << " " 
+                       << muB_local      << " " << muS_local         << " "
+                       << muC_local      << " " << eps_plus_p_over_T << " " 
                        << Wtautau_center << " " << Wtaux_center      << " " 
                        << Wtauy_center   << " " << Wtaueta_center    << " " 
                        << Wxx_center     << " " << Wxy_center        << " " 
@@ -1125,7 +1136,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 if (DATA.turn_on_diff)
                     s_file << qtau_center << " " << qx_center << " " 
                            << qy_center << " " << qeta_center << " " ;
-                s_file << endl;
+                s_file << std::endl;
             }
         }
     }
@@ -1141,16 +1152,16 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
         double epsFO = epsFO_list[i_freezesurf]/hbarc;
 
-        stringstream strs_name;
-        strs_name << "surface_eps_" << setprecision(4) << epsFO*hbarc
+        std::stringstream strs_name;
+        strs_name << "surface_eps_" << std::setprecision(4) << epsFO*hbarc
                   << ".dat";
 
-        ofstream s_file;
+        std::ofstream s_file;
         if (surface_in_binary) {
             s_file.open(strs_name.str().c_str(),
-                        ios::out | ios::app | ios::binary);
+                        std::ios::out | std::ios::app | std::ios::binary);
         } else {
-            s_file.open(strs_name.str().c_str(), ios::out | ios::app);
+            s_file.open(strs_name.str().c_str(), std::ios::out | std::ios::app);
         }
 
         const int nx = arena_current.nX();
@@ -1561,7 +1572,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
 
                     // 3-dimension interpolation done
                     double TFO = eos.get_temperature(epsFO, rhob_center);
-                    double muB = eos.get_mu(epsFO, rhob_center);
+                    double muB = eos.get_muB(epsFO, rhob_center);
+                    double muS_local = eos.get_muS(epsFO, rhob_center);
+                    double muC_local = eos.get_muC(epsFO, rhob_center);
                     if (TFO < 0) {
                         music_message << "TFO=" << TFO
                                       << "<0. ERROR. exiting.";
@@ -1589,6 +1602,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                          static_cast<float>(epsFO),
                                          static_cast<float>(TFO),
                                          static_cast<float>(muB),
+                                         static_cast<float>(muS_local),
+                                         static_cast<float>(muC_local),
                                          static_cast<float>(eps_plus_p_over_T_FO),
                                          static_cast<float>(Wtautau_center),
                                          static_cast<float>(Wtaux_center),
@@ -1606,11 +1621,11 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                          static_cast<float>(qx_center),
                                          static_cast<float>(qy_center),
                                          static_cast<float>(qeta_center)};
-                        for (int i = 0; i < 32; i++) {
+                        for (int i = 0; i < 34; i++) {
                             s_file.write((char*) &(array[i]), sizeof(float));
                         }
                     } else {
-                        s_file << scientific << setprecision(10) 
+                        s_file << std::scientific << std::setprecision(10) 
                                << tau_center << " " << x_center << " " 
                                << y_center << " " << eta_center << " " 
                                << FULLSU[0] << " " << FULLSU[1] << " " 
@@ -1618,6 +1633,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                << utau_center << " " << ux_center << " " 
                                << uy_center << " " << ueta_center << " " 
                                << epsFO << " " << TFO << " " << muB << " " 
+                               << muS_local << " " << muC_local << " "
                                << eps_plus_p_over_T_FO << " " 
                                << Wtautau_center << " " << Wtaux_center << " " 
                                << Wtauy_center << " " << Wtaueta_center << " " 
@@ -1625,14 +1641,14 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                << Wxeta_center << " " 
                                << Wyy_center << " " << Wyeta_center << " " 
                                << Wetaeta_center << " " ;
-                        if(DATA.turn_on_bulk)   // 27th column
+                        if(DATA.turn_on_bulk)   // 29th column
                             s_file << pi_b_center << " " ;
-                        if(DATA.turn_on_rhob)   // 28th column
+                        if(DATA.turn_on_rhob)   // 30th column
                             s_file << rhob_center << " " ;
-                        if(DATA.turn_on_diff)   // 29-32th column
+                        if(DATA.turn_on_diff)   // 31-34th column
                             s_file << qtau_center << " " << qx_center << " " 
                                    << qy_center << " " << qeta_center << " " ;
-                        s_file << endl;
+                        s_file << std::endl;
                     }
                 }
             }
@@ -1720,11 +1736,11 @@ void Evolve::initialize_freezeout_surface_info() {
         }
     } else if(freeze_eps_flag == 1) {
         // read in from a file
-        string eps_freeze_list_filename = DATA.freeze_list_filename;
+        std::string eps_freeze_list_filename = DATA.freeze_list_filename;
         music_message << "read in freeze out surface information from " 
                       << eps_freeze_list_filename;
         music_message.flush("info");
-        ifstream freeze_list_file(eps_freeze_list_filename.c_str());
+        std::ifstream freeze_list_file(eps_freeze_list_filename.c_str());
         if (!freeze_list_file) {
             music_message << "Evolve::initialize_freezeout_surface_info: "
                           << "can not open freeze-out list file: " 
@@ -1733,7 +1749,7 @@ void Evolve::initialize_freezeout_surface_info() {
             exit(1);
         }
         int temp_n_surf = 0;
-        string dummy;
+        std::string dummy;
         double temp_epsFO, dummyd;
         getline(freeze_list_file, dummy);  // get rid of the comment
         while(1) {
