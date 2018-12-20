@@ -94,9 +94,18 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempinitializeEntropy;
     parameter_list.initializeEntropy = tempinitializeEntropy;
     
+    //use_eps_for_freeze_out: 
+    // 0: freeze out at constant temperature T_freeze
+    // 1: freeze out at constant energy density epsilon_freeze
+    // if set in input input_file, overide above defaults
+    int tempuseEpsFO = 1;
+    tempinput = Util::StringFind4(input_file, "use_eps_for_freeze_out");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempuseEpsFO;
+    parameter_list.useEpsFO = tempuseEpsFO;
+
     // T_freeze: freeze out temperature
     // only used with use_eps_for_freeze_out = 0
-    parameter_list.useEpsFO = 0;
     double tempTFO = 0.12;
     tempinput = Util::StringFind4(input_file, "T_freeze");
     if (tempinput != "empty") {
@@ -123,16 +132,6 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_N_freeze_out;
     parameter_list.N_freeze_out = temp_N_freeze_out;
 
-    //use_eps_for_freeze_out: 
-    // 0: freeze out at constant temperature T_freeze
-    // 1: freeze out at constant energy density epsilon_freeze
-    // if set in input input_file, overide above defaults
-    int tempuseEpsFO = parameter_list.useEpsFO;
-    tempinput = Util::StringFind4(input_file, "use_eps_for_freeze_out");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempuseEpsFO;
-    parameter_list.useEpsFO = tempuseEpsFO;
-    
     string temp_freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
     tempinput = Util::StringFind4(input_file, "freeze_list_filename");
     if (tempinput != "empty")
@@ -424,10 +423,11 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.eta_flat = tempeta_flat;
 
     // s_factor:  for use with IP-Glasma initial conditions
-    double tempsFactor   = 20.;
+    double tempsFactor   = 1.0;
     tempinput = Util::StringFind4(input_file, "s_factor");
-    if (tempinput != "empty") istringstream ( tempinput ) >> tempsFactor  ;
-    parameter_list.sFactor   = tempsFactor;
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempsFactor;
+    parameter_list.sFactor = tempsFactor;
     
     // for calculation of spectra:
     // max_pseudorapidity:
@@ -494,7 +494,6 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temprk_order;
     parameter_list.rk_order = temprk_order;
     
-
     // Minmod_Theta: theta parameter in the min-mod like limiter
     double tempminmod_theta   = 1.8;
     tempinput = Util::StringFind4(input_file, "Minmod_Theta");
@@ -505,7 +504,8 @@ InitData read_in_parameters(std::string input_file) {
     // Viscosity_Flag_Yes_1_No_0:   set to 0 for ideal hydro
     int tempviscosity_flag = 1;
     tempinput = Util::StringFind4(input_file, "Viscosity_Flag_Yes_1_No_0");
-    if(tempinput != "empty") istringstream ( tempinput ) >> tempviscosity_flag;
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempviscosity_flag;
     parameter_list.viscosity_flag = tempviscosity_flag;
     
     // Include_Shear_Visc_Yes_1_No_0
@@ -680,7 +680,6 @@ InitData read_in_parameters(std::string input_file) {
     double y_beam = atanh(sqrt(1. - 1./pow(temp_ecm/2., 2.)));
     parameter_list.beam_rapidity = y_beam;
     
-    
     int tempoutputBinaryEvolution = 0;
     tempinput = Util::StringFind4(input_file, "outputBinaryEvolution");
     if (tempinput != "empty")
@@ -788,7 +787,6 @@ InitData read_in_parameters(std::string input_file) {
 }
 
 
-
 void check_parameters(InitData &parameter_list, std::string input_file) {
     music_message.info("Checking input parameter list ... ");
 
@@ -828,11 +826,19 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     }
     
     if (parameter_list.useEpsFO > 1 || parameter_list.useEpsFO < 0) {
-        music_message << "Error: did not set either freeze out energy density "
+        music_message << "did not set either freeze out energy density "
                       << "or temperature, or invalid option for "
                       << "use_eps_for_freeze_out:"
                       << parameter_list.useEpsFO;
+        music_message.flush("error");
         exit(1);
+    }
+
+    if (parameter_list.useEpsFO == 0) {
+        music_message << "freeze-out surface set by temperature is not "
+                      << "support yet. reset use_eps_for_freeze_out to 1.";
+        music_message.flush("warning");
+        parameter_list.useEpsFO = 1;
     }
 
     if (parameter_list.whichEOS > 17 || parameter_list.whichEOS < 0) {
