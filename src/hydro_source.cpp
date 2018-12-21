@@ -71,7 +71,7 @@ void hydro_source::read_in_QCD_strings_and_partons() {
     while (!QCD_strings_file.eof()) {
         std::stringstream text_stream(text_string);
         std::shared_ptr<QCD_string> new_string(new QCD_string);
-        text_stream >> new_string->norm >> new_string->delta_E
+        text_stream >> new_string->norm >> new_string->m_over_sigma
                     >> new_string->tau_form
                     >> new_string->tau_0 >> new_string->eta_s_0
                     >> new_string->x_perp >> new_string->y_perp
@@ -91,12 +91,16 @@ void hydro_source::read_in_QCD_strings_and_partons() {
             exit(1);
         }
         if (!text_stream.eof()) {
-            // the string is too long
-            music_message << "read_in_QCD_strings_and_partons: "
-                          << "the format of file"
-                          << QCD_strings_filename << "is wrong~";
-            music_message.flush("error");
-            exit(1);
+            std::string str_temp;
+            text_stream >> str_temp;
+            if (str_temp.find_first_not_of(' ') != std::string::npos) {
+                // the string is too long
+                music_message << "read_in_QCD_strings_and_partons: "
+                              << "the format of file"
+                              << QCD_strings_filename << "is wrong~";
+                music_message.flush("error");
+                exit(1);
+            }
         }
 
         double temp_factor1 = (new_string->tau_0*new_string->tau_0

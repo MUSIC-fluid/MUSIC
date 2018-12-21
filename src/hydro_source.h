@@ -15,8 +15,8 @@
 struct QCD_string {
     double norm;              // normalization for the string energy
     double E_baryon_norm_L, E_baryon_norm_R;
-    double delta_E;           // the energy difference between
-                              // before and after the collisions [GeV]
+    double m_over_sigma;      // m/sigma [fm] sigma is the string tension
+
     double tau_form;
     double tau_start, eta_s_start;
     double tau_0, eta_s_0;
