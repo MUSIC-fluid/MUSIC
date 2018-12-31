@@ -3,7 +3,6 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include <omp.h>
 #include "./util.h"
 #include "./cell.h"
 #include "./grid.h"
@@ -12,6 +11,8 @@
 
 #ifndef _OPENMP
     #define omp_get_thread_num() 0
+#else
+    #include <omp.h>
 #endif
 
 using std::vector;

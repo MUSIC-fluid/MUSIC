@@ -1,5 +1,9 @@
 // Copyright 2012 Bjoern Schenke, Sangyong Jeon, and Charles Gale
-#include <omp.h>
+
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
 #include <algorithm>
 #include <memory>
 #include <cmath>

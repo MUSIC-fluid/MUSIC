@@ -1,6 +1,7 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include <iostream>
 #include <algorithm>
+#include <cmath>
 #include "data.h"
 #include "cell.h"
 #include "grid.h"

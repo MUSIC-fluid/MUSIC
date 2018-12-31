@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <algorithm>
+#include <cmath>
 #include "util.h"
 #include "cell.h"
 #include "grid.h"
