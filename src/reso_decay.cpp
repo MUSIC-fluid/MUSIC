@@ -10,6 +10,7 @@
 // J. Sollfrank, P. Koch, and U. Heinz, Z. Phys. C 52 (1991) 
 // for a description of the formalism utilized in this program.
 
+#include <cmath>
 #include "./freeze.h"
 #include "./int.h"
 
