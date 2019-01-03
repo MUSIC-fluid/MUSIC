@@ -787,6 +787,25 @@ InitData read_in_parameters(std::string input_file) {
 }
 
 
+void set_parameter(InitData &parameter_list, std::string parameter_name,
+                   double value) {
+    if (parameter_name == "output_evolution_data") {
+        parameter_list.outputEvolutionData = static_cast<int>(value);
+    }
+    if (parameter_name == "store_hydro_info_in_memory") {
+        parameter_list.store_hydro_info_in_memory = static_cast<int>(value);
+    }
+    if (parameter_name == "Viscosity_Flag_Yes_1_No_0") {
+        parameter_list.viscosity_flag = static_cast<int>(value);
+    }
+    if (parameter_name == "Include_Shear_Visc_Yes_1_No_0") {
+        parameter_list.turn_on_shear = static_cast<int>(value);
+    }
+    if (parameter_name == "Shear_to_S_ratio") {
+        parameter_list.shear_to_s = value;
+    }
+}
+
 void check_parameters(InitData &parameter_list, std::string input_file) {
     music_message.info("Checking input parameter list ... ");
 
