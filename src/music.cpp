@@ -22,8 +22,10 @@ MUSIC::MUSIC(std::string input_file) :
     mode = DATA.mode;
     flag_hydro_run = 0;
     flag_hydro_initialized = 0;
-    if (DATA.store_hydro_info_in_memory == 1)
+    hydro_info_ptr = nullptr;
+    if (DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
+    }
 }
 
 
@@ -54,6 +56,9 @@ void MUSIC::initialize_hydro() {
 int MUSIC::run_hydro() {
     Evolve evolve_local(eos, DATA, hydro_source_terms);
 
+    if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
+        hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
+    }
     evolve_local.EvolveIt(arena_prev, arena_current, arena_future,
                           (*hydro_info_ptr));
     flag_hydro_run = 1;
@@ -125,7 +130,7 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
 void MUSIC::get_hydro_info(
         const double x, const double y, const double z, const double t,
         fluidCell* fluid_cell_info) {
-    if (DATA.store_hydro_info_in_memory == 0) {
+    if (DATA.store_hydro_info_in_memory == 0 || hydro_info_ptr == nullptr) {
         music_message << "hydro evolution informaiton is not stored "
                       << "in the momeory! Please set the parameter "
                       << "store_hydro_info_in_memory to 1~";
@@ -136,7 +141,7 @@ void MUSIC::get_hydro_info(
 }
 
 void MUSIC::clear_hydro_info_from_memory() {
-    if (DATA.store_hydro_info_in_memory == 0) {
+    if (DATA.store_hydro_info_in_memory == 0 || hydro_info_ptr == nullptr) {
         music_message << "The parameter store_hydro_info_in_memory is 0. "
                       << "No need to clean memory~";
         music_message.flush("warning");
