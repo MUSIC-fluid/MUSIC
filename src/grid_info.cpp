@@ -819,6 +819,8 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
         
                 double pressure  = eos.get_pressure(e_local, rhob_local);
                 double u0        = arena(ix, iy, ieta).u[0];
+                double u1        = arena(ix, iy, ieta).u[1];
+                double u2        = arena(ix, iy, ieta).u[2];
                 double u3        = arena(ix, iy, ieta).u[3];
                 double T00_ideal = (e_local + pressure)*u0*u0 - pressure;
                 double T03_ideal = (e_local + pressure)*u0*u3;
@@ -841,9 +843,12 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
                                  static_cast<float>(rhob_local),
                                  static_cast<float>(T_local*hbarc),
                                  static_cast<float>(muB_local*hbarc),
+                                 static_cast<float>(u1),
+                                 static_cast<float>(u2),
+                                 static_cast<float>(u3),
                                  static_cast<float>(Ttaut*hbarc),
                                  static_cast<float>(JBtau)};
-                fwrite(array, sizeof(float), 11, out_file_xyeta);
+                fwrite(array, sizeof(float), 14, out_file_xyeta);
             }
         }
     }
