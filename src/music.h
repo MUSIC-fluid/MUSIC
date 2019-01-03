@@ -49,6 +49,9 @@ class MUSIC {
 
     //! This function initialize hydro
     void initialize_hydro();
+    
+    //! This function change the parameter value in DATA
+    void set_parameter(std::string parameter_name, double value);
 
     //! this is a shell function to run hydro
     int run_hydro();
