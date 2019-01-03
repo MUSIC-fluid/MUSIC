@@ -1169,9 +1169,9 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double shear_num1 = 0.0;
     double shear_num2 = 0.0;
     double shear_den  = 0.0;
-    double full_num1 = 0.0;
-    double full_num2 = 0.0;
-    double full_den  = 0.0;
+    double full_num1  = 0.0;
+    double full_num2  = 0.0;
+    double full_den   = 0.0;
     double ecc2_num1  = 0.0;
     double ecc2_num2  = 0.0;
     double ecc2_den   = 0.0;
