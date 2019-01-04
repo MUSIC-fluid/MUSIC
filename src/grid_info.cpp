@@ -1160,7 +1160,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
     if (fabs(tau - DATA.tau0) < 1e-10) {
         of << "# tau(fm)  epsilon_p(ideal) epsilon_p(shear) epsilon_p(full)  "
-           << "ecc_2  ecc_3  R_Pi  gamma  T[GeV]"
+           << "ecc_2  ecc_3  R_Pi  gamma  T[GeV]  dS/deta_s"
            << endl;
     }
     double ideal_num1 = 0.0;
@@ -1184,6 +1184,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double u_perp_den = 0.0;
     double T_avg_num  = 0.0;
     double T_avg_den  = 0.0;
+    double S_total    = 0.0;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
         if (DATA.boost_invariant == 0) {
@@ -1217,6 +1218,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double rhob_local   = arena(ix, iy, ieta).rhob;     // 1/fm^3
                 double P_local      = eos.get_pressure(e_local, rhob_local);
                 double T_local      = eos.get_temperature(e_local, rhob_local);
+                double s_local      = eos.get_entropy(e_local, rhob_local);
                 double gamma_perp   = arena(ix, iy, ieta).u[0];
                 double ux           = arena(ix, iy, ieta).u[1];
                 double uy           = arena(ix, iy, ieta).u[2];
@@ -1257,6 +1259,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 u_perp_den += weight_local;
                 T_avg_num  += weight_local*T_local;
                 T_avg_den  += weight_local;
+                S_total    += s_local*gamma_perp;
             }
         }
     }
@@ -1268,10 +1271,11 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double R_Pi     = R_Pi_num/R_Pi_den;
     double u_avg    = u_perp_num/u_perp_den;
     double T_avg    = T_avg_num/T_avg_den*hbarc;
+    S_total *= tau*DATA.delta_x*DATA.delta_y;  // dS/deta_s
 
     of << scientific << setw(18) << setprecision(8)
        << tau << "  " << ep_ideal << "  " << ep_shear << "  " << ep_full << "  "
        << ecc2 << "  " << ecc3 << "  " << R_Pi << "  " << u_avg << "  "
-       << T_avg << endl;
+       << T_avg << "  " << S_total << endl;
     of.close();
 }
