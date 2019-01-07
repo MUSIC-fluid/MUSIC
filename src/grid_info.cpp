@@ -1157,12 +1157,16 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     ostringstream filename;
     filename << "momentum_anisotropy_eta_" << eta_min
              << "_" << eta_max << ".dat";
-    fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
-    if (fabs(tau - DATA.tau0) < 1e-10) {
+    fstream of;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of.open(filename.str().c_str(), std::fstream::out);
         of << "# tau(fm)  epsilon_p(ideal) epsilon_p(shear) epsilon_p(full)  "
            << "ecc_2  ecc_3  R_Pi  gamma  T[GeV]"
            << endl;
+    } else {
+        of.open(filename.str().c_str(), std::fstream::app);
     }
+
     double ideal_num1 = 0.0;
     double ideal_num2 = 0.0;
     double ideal_den  = 0.0;
