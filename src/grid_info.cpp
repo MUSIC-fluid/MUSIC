@@ -1,6 +1,7 @@
 // Copyright Chun Shen @ 2014-2016
 #include <string>
 #include <iomanip>
+#include <cmath>
 
 #include "./util.h"
 #include "./grid_info.h"
