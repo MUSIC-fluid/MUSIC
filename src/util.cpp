@@ -11,8 +11,25 @@ using namespace std;
 namespace Util {
 
 
-double **mtx_malloc(int n1, int n2)
-{
+double theta(const double x) {
+    if (x < 0.) {
+        return(0.0);
+    } else {
+        return(1.0);
+    }
+}
+
+
+double gmn(const int a) {
+    if (a == 0) {
+        return(-1.0);
+    } else {
+        return(1.0);
+    }
+}
+
+
+double **mtx_malloc(const int n1, const int n2) {
     double **d1_ptr; 
     d1_ptr = new double *[n1];
 
@@ -28,27 +45,24 @@ double **mtx_malloc(int n1, int n2)
 
 
 
-void mtx_free(double **m, int n1, int n2)
-{
-    for(int j=0; j<n1; j++) 
+void mtx_free(double **m, const int n1, const int n2) {
+    for (int j = 0; j < n1; j++) 
         delete [] m[j];
-
     delete [] m;
 }
 
 
 
-int IsFile(string file_name)
-{
- FILE *temp;
+int IsFile(string file_name) {
+    FILE *temp;
 
- if( (temp = fopen(file_name.c_str(),"r")) == NULL) return 0;
- else 
-  {
-   fclose(temp);
-   return 1;
-  }
-}/* IsFile */
+    if ((temp = fopen(file_name.c_str(),"r")) == NULL) {
+        return(0);
+    } else  {
+        fclose(temp);
+        return(1);
+    }
+}
 
 // support comments in the parameters file
 // comments need to start with #

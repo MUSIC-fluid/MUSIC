@@ -7,6 +7,7 @@
 #include "./grid_info.h"
 
 using namespace std;
+using Util::hbarc;
 
 Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in) :
     DATA(DATA_in),

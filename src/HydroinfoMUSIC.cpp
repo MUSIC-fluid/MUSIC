@@ -329,10 +329,10 @@ void HydroinfoMUSIC::dump_ideal_info_to_memory(double tau,
         itaumax++;
     }
     fluidCell_ideal new_cell;
-    new_cell.temperature = T*hbarc;
-    new_cell.ed = epsilon*hbarc;
+    new_cell.temperature = T*Util::hbarc;
+    new_cell.ed = epsilon*Util::hbarc;
     new_cell.sd = entropy;
-    new_cell.pressure = pressure*hbarc;
+    new_cell.pressure = pressure*Util::hbarc;
     new_cell.ux = ux;
     new_cell.uy = uy;
     new_cell.ueta = ueta;

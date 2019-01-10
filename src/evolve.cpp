@@ -19,6 +19,8 @@
   #define omp_get_thread_num() 0
 #endif
 
+using Util::hbarc;
+
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
                hydro_source &hydro_source_in) :
     eos(eosIn), DATA(DATA_in), hydro_source_terms(hydro_source_in),

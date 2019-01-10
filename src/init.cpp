@@ -17,6 +17,7 @@
 
 using std::vector;
 using std::ifstream;
+using Util::hbarc;
 
 Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source &hydro_source_in) :
     DATA(DATA_in), eos(eosIn) , hydro_source_terms(hydro_source_in) {}
@@ -915,7 +916,7 @@ double Init::eta_profile_normalisation(double eta) {
     if (DATA.initial_eta_profile == 1) {
         double exparg1 = (fabs(eta) - DATA.eta_flat/2.0)/DATA.eta_fall_off;
         double exparg = exparg1*exparg1/2.0;
-        res = exp(-exparg*theta(exparg1));
+        res = exp(-exparg*Util::theta(exparg1));
     } else if (DATA.initial_eta_profile == 2) {
         // Woods-Saxon
         // The radius is set to be half of DATA.eta_flat

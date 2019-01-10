@@ -85,8 +85,8 @@ void EOS_s95p::initialize_eos(int eos_id_in) {
         eos_d >> e_bounds[itable];
         eos_d >> e_spacing[itable] >> e_length[itable];
         
-        e_bounds[itable]  /= hbarc;   // 1/fm^4
-        e_spacing[itable] /= hbarc;   // 1/fm^4
+        e_bounds[itable]  /= Util::hbarc;   // 1/fm^4
+        e_spacing[itable] /= Util::hbarc;   // 1/fm^4
         
         // skip the header in T file
         string dummy;
@@ -112,8 +112,8 @@ void EOS_s95p::initialize_eos(int eos_id_in) {
             eos_d >> d_dummy >> dummy >> dummy;;
             eos_T >> temperature_tb[itable][i][j] >> dummy >> dummy;
                 
-            pressure_tb[itable][i][j]    /= hbarc;    // 1/fm^4
-            temperature_tb[itable][i][j] /= hbarc;    // 1/fm
+            pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
+            temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
         }
     }
 

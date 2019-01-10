@@ -11,6 +11,8 @@
 #include "eos.h"
 #include "dissipative.h"
 
+using Util::hbarc;
+
 Diss::Diss(const EOS &eosIn, const InitData &Data_in) : DATA(Data_in), eos(eosIn), minmod(Data_in) {}
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
@@ -419,10 +421,10 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
           double am1 = (fabs(m1.u[direction])/m1.u[0]);
           double ap1 = (fabs(p1.u[direction])/p1.u[0]);
 
-          double ax = maxi(a, ap1);
+          double ax = std::max(a, ap1);
           double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
 
-          ax = maxi(a, am1);
+          ax = std::max(a, am1);
           double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
 
           double HW = (HWph - HWmh)/delta[direction];
@@ -565,10 +567,10 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
         double am1 = (fabs(m1.u[direction])/m1.u[0]);
         double ap1 = (fabs(p1.u[direction])/p1.u[0]);
 
-        double ax = maxi(a, ap1);
+        double ax = std::max(a, ap1);
         double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
 
-        ax = maxi(a, am1);
+        ax = std::max(a, am1);
         double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
 
         double HW = (HWph - HWmh)/delta[direction];
@@ -942,7 +944,7 @@ double Diss::Make_uqSource(
     // -u[a] u[b]g[b][e] Dq[e] -> u[a] (q[e] g[e][b] Du[b])
     tempf = 0.0;
     for (int i = 0; i < 4; i++) {
-        tempf += q[i]*gmn(i)*a_local[i];
+        tempf += q[i]*Util::gmn(i)*a_local[i];
     }
     SW += (grid_pt->u[nu])*tempf;
     // if (isnan(tempf)) {

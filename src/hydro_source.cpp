@@ -320,7 +320,7 @@ void hydro_source::get_hydro_energy_source(
     const double n_sigma_skip   = 5.;
     const double skip_dis_x     = n_sigma_skip*sigma_x;
     const double skip_dis_eta   = n_sigma_skip*sigma_eta;
-    const double sfactor        = DATA.sFactor/hbarc;
+    const double sfactor        = DATA.sFactor/Util::hbarc;
     const double exp_tau = 1./tau;
     if (DATA.Initial_profile == 13) {
         for (auto const&it: QCD_strings_list_current_tau) {
@@ -499,7 +499,7 @@ void hydro_source::get_hydro_energy_source(
                 j_mu[2] += it->py*f_smear;
                 j_mu[3] += m_perp*sinh(it->rapidity - eta_s)*f_smear;
             }
-            double norm = DATA.sFactor/hbarc;     // 1/fm^4
+            double norm = DATA.sFactor/Util::hbarc;     // 1/fm^4
             double prefactor = norm*prefactor_tau*prefactor_prep*prefactor_etas;
             j_mu[0] *= prefactor;
             j_mu[1] *= prefactor;
