@@ -6,8 +6,14 @@
 #include "./util.h"
 #include "./grid_info.h"
 
-using namespace std;
 using Util::hbarc;
+using std::string;
+using std::scientific;
+using std::setw;
+using std::setprecision;
+using std::endl;
+using std::ofstream;
+using std::ostringstream;
 
 Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in) :
     DATA(DATA_in),
@@ -676,7 +682,7 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
         double pixx_analytic[201], pixy_analytic[201];
         double piyy_analytic[201], pizz_analytic[201];
         double dummy;
-        ifstream input_file(filename_analytic.str().c_str());
+        std::ifstream input_file(filename_analytic.str().c_str());
         for (int i = 0; i < 201; i++) {
             input_file >> dummy >> dummy >> T_analytic[i] >> ux_analytic[i]
                        >> uy_analytic[i] >> pixx_analytic[i]
@@ -905,7 +911,7 @@ void Cell_info::monitor_fluid_cell(SCGrid &arena, int ix, int iy, int ieta,
 }
 
 void Cell_info::load_deltaf_qmu_coeff_table(string filename) {
-    ifstream table(filename.c_str());
+    std::ifstream table(filename.c_str());
     deltaf_qmu_coeff_table_length_T = 150;
     deltaf_qmu_coeff_table_length_mu = 100;
     delta_qmu_coeff_table_T0 = 0.05;
@@ -924,7 +930,7 @@ void Cell_info::load_deltaf_qmu_coeff_table(string filename) {
 }
 
 void Cell_info::load_deltaf_qmu_coeff_table_14mom(string filename) {
-    ifstream table(filename.c_str());
+    std::ifstream table(filename.c_str());
     deltaf_coeff_table_14mom_length_T = 190;
     deltaf_coeff_table_14mom_length_mu = 160;
     delta_coeff_table_14mom_T0 = 0.01;
@@ -1069,7 +1075,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
     ostringstream filename;
     filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
              << "_" << eta_max << ".dat";
-    fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
+    std::fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
     if (fabs(tau - DATA.tau0) < 1e-10) {
         of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)  "
            << "V4 (fm^4)" << endl;
@@ -1127,7 +1133,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     ostringstream filename;
     filename << "momentum_anisotropy_eta_" << eta_min
              << "_" << eta_max << ".dat";
-    fstream of;
+    std::fstream of;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of.open(filename.str().c_str(), std::fstream::out);
         of << "# tau(fm)  epsilon_p(ideal) epsilon_p(shear) epsilon_p(full)  "
