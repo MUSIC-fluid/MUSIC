@@ -6,7 +6,7 @@
 #include <string>
 #include <execinfo.h>
 
-using namespace std;
+using std::string;
 
 namespace Util {
 
@@ -79,19 +79,20 @@ string StringFind4(string file_name, string str_in) {
             fprintf(stderr, "No input file name specified.\n");
             fprintf(stderr, "Creating a default file named input.default\n");
         } else {
-            cerr << "The file named " << file_name << " is absent." << endl;
-            cout << "Creating " << file_name << "..." << endl;
+            std::cerr << "The file named " << file_name << " is absent."
+                      << std::endl;
+            std::cout << "Creating " << file_name << "..." << std::endl;
             tmpfilename = file_name;
         }
-        ofstream tmp_file(tmpfilename.c_str());
-        tmp_file << "EndOfData" << endl;
+        std::ofstream tmp_file(tmpfilename.c_str());
+        tmp_file << "EndOfData" << std::endl;
         tmp_file.close();
         exit(1);
     }/* if isfile */
   
     // pass checking, now read in the parameter file
     string temp_string;
-    ifstream input(inputname.c_str());
+    std::ifstream input(inputname.c_str());
     getline(input, temp_string);  // read in the first entry
 
     int ind = 0;
@@ -100,12 +101,12 @@ string StringFind4(string file_name, string str_in) {
     while (temp_string.compare("EndOfData") != 0) {
         // check whether it is the end of the file
         string para_string;
-        stringstream temp_ss(temp_string);
+        std::stringstream temp_ss(temp_string);
         getline(temp_ss, para_string, '#');  // remove the comments
         if (para_string.compare("") != 0
                 && para_string.find_first_not_of(' ') != std::string::npos) {
             // check the read in string is not empty
-            stringstream para_stream(para_string);
+            std::stringstream para_stream(para_string);
             para_stream >> para_name >> para_val;
             if (para_name.compare(str) == 0) {
                 // find the desired parameter
@@ -123,7 +124,7 @@ string StringFind4(string file_name, string str_in) {
         return("empty");
     }
     // should not cross here !!!
-    cout << "Error in StringFind4 !!!\n";
+    std::cout << "Error in StringFind4 !!!\n";
     return("empty");
 }/* StringFind4 */
 
