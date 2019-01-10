@@ -27,7 +27,7 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num) {
         printf("ERROR: phir %15.8le < 0 !!! \n", phirin);
         exit(0);
     }
-    if(phirin > 2.0*PI) {
+    if(phirin > 2.0*M_PI) {
         printf("ERROR: phir %15.8le > 2PI !!! \n", phirin);
         exit(0);
     }
@@ -256,7 +256,7 @@ double Freeze::dnpir2N (double phi, void *para1)
 
   phiR = acos (cphiR);
   if (sphiR < 0.0)
-    phiR = 2.0 * PI - phiR;
+    phiR = 2.0 * M_PI - phiR;
 
   dnr = Edndp3 (yR, ptR, phiR, para->res_num);
 
@@ -281,7 +281,7 @@ double Freeze::dnpir1N (double costh, void* para1)
   double r;
   para->costh = costh;
   para->sinth = sqrt (1.0 - para->costh * para->costh);
-  r = gauss (PTN2, &Freeze::dnpir2N, 0.0, 2.0 * PI, para); //Integrates the "dnpir2N" kernel over phi using gaussian integration
+  r = gauss (PTN2, &Freeze::dnpir2N, 0.0, 2.0 * M_PI, para); //Integrates the "dnpir2N" kernel over phi using gaussian integration
   return r;
 }
 
@@ -366,7 +366,7 @@ double Freeze::Edndp3_2bodyN (double y, double pt, double phi, double m1, double
 
   para.res_num = res_num;
 
-  norm2 = 1.0 / (2.0 * PI);
+  norm2 = 1.0 / (2.0 * M_PI);
   res2 = norm2 * dn2ptN (m2 * m2, &para); //Calls the integration routines for 2-body
   if (res2<0.) res2=0.;
   return res2;          /* like Ed3ndp3_2body() */
@@ -427,7 +427,7 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
     int ny = particleList[pn].ny;
     int npt = particleList[pn].npt;
     int nphi = particleList[pn].nphi;
-    double deltaphi = 2*PI/nphi;
+    double deltaphi = 2*M_PI/nphi;
   
 
     // Determine the number of particles involved in the decay with the switch
@@ -563,7 +563,7 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
             paranorm.b = (mr - m1)*(mr - m1);
             paranorm.c = (m2 + m3)*(m2 + m3);
             paranorm.d = (m2 - m3)*(m2 - m3);
-            norm3 = mr*mr/(2*PI*gauss(PTS3, &Freeze::norm3int, paranorm.c,
+            norm3 = mr*mr/(2*M_PI*gauss(PTS3, &Freeze::norm3int, paranorm.c,
                                       paranorm.b, &paranorm));
     
             if (boost_invariant) {
@@ -675,7 +675,7 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
             paranorm.b = (mr - m1)*(mr - m1);
             paranorm.c = (m2 + m3)*(m2 + m3);
             paranorm.d = (m2 - m3)*(m2 - m3);
-            norm3 = mr*mr/(2*PI*gauss(PTS3, &Freeze::norm3int, paranorm.c,
+            norm3 = mr*mr/(2*M_PI*gauss(PTS3, &Freeze::norm3int, paranorm.c,
                                       paranorm.b, &paranorm));
     
             if (boost_invariant) {

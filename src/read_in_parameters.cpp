@@ -961,7 +961,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
 
         if (reset_dtau_use_CFL_condition) {
             music_message.info("reset dtau using CFL condition.");
-            double dtau_CFL = mini(
+            double dtau_CFL = std::min(
                     parameter_list.delta_x/10.0,
                     parameter_list.tau0*parameter_list.delta_eta/10.0);
             parameter_list.delta_tau = dtau_CFL;

@@ -155,8 +155,8 @@ void EOS_neos::initialize_eos(int eos_id_in) {
         nb_length[itable] = N_rhob + 1;
         e_length[itable]  = N_e + 1;
 
-        e_bounds[itable]  /= hbarc;   // 1/fm^4
-        e_spacing[itable] /= hbarc;   // 1/fm^4
+        e_bounds[itable]  /= Util::hbarc;   // 1/fm^4
+        e_spacing[itable] /= Util::hbarc;   // 1/fm^4
 
         // skip the header in T and mu_B files
         string dummy;
@@ -198,16 +198,16 @@ void EOS_neos::initialize_eos(int eos_id_in) {
 
                 if (flag_muS) {
                     eos_muS >> mu_S_tb[itable][i][j];
-                    mu_S_tb[itable][i][j] /= hbarc;    // 1/fm
+                    mu_S_tb[itable][i][j] /= Util::hbarc;    // 1/fm
                 }
                 if (flag_muC) {
                     eos_muC >> mu_C_tb[itable][i][j];
-                    mu_C_tb[itable][i][j] /= hbarc;    // 1/fm
+                    mu_C_tb[itable][i][j] /= Util::hbarc;    // 1/fm
                 }
 
-                pressure_tb[itable][i][j]    /= hbarc;    // 1/fm^4
-                temperature_tb[itable][i][j] /= hbarc;    // 1/fm
-                mu_B_tb[itable][i][j]        /= hbarc;    // 1/fm
+                pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
+                temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
+                mu_B_tb[itable][i][j]        /= Util::hbarc;    // 1/fm
             }
         }
     }

@@ -72,8 +72,8 @@ void EOS_BEST::initialize_eos() {
            >> dummy >> e_length[itable] >> dummy >> nb_bounds[itable]
            >> dummy >> nb_spacing[itable] >> dummy >> nb_length[itable];
 
-        e_bounds[itable]  /= hbarc;   // 1/fm^4
-        e_spacing[itable] /= hbarc;   // 1/fm^4
+        e_bounds[itable]  /= Util::hbarc;   // 1/fm^4
+        e_spacing[itable] /= Util::hbarc;   // 1/fm^4
 
         // allocate memory for EOS arrays
         pressure_tb[itable] = Util::mtx_malloc(nb_length[itable],
@@ -90,9 +90,9 @@ void EOS_BEST::initialize_eos() {
                 eos_T >> temperature_tb[itable][i][j];
                 eos_mub >> mu_B_tb[itable][i][j];
 
-                pressure_tb[itable][i][j]    /= hbarc;    // 1/fm^4
-                temperature_tb[itable][i][j] /= hbarc;    // 1/fm
-                mu_B_tb[itable][i][j]        /= hbarc;    // 1/fm
+                pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
+                temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
+                mu_B_tb[itable][i][j]        /= Util::hbarc;    // 1/fm
             }
         }
     }

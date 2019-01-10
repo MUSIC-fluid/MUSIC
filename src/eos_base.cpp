@@ -15,6 +15,7 @@ using std::cout;
 using std::endl;
 using std::ofstream;
 using std::string;
+using Util::hbarc;
 
 EOS_base::~EOS_base() {
     for (int itable = 0; itable < number_of_tables; itable++) {
