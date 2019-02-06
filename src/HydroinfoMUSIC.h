@@ -55,7 +55,12 @@ class HydroinfoMUSIC {
     void dump_ideal_info_to_memory(double tau, float epsilon, float pressure,
                                    float entropy, float T,
                                    float ux, float uy, float ueta);
-    int get_number_of_fluid_cells() {return(lattice_ideal.size());};
+
+    int get_number_of_fluid_cells() const {return(lattice_ideal.size());}
+
+    fluidCell_ideal get_fluid_cell_with_index(int idx) const {
+        return(lattice_ideal[idx]);
+    }
 };
 
 #endif  // SRC_HYDROINFO_MUSIC_H_
