@@ -87,8 +87,22 @@ class MUSIC {
     void get_fluid_cell_with_index(const int idx, fluidCell *info) const {
         return(hydro_info_ptr->get_fluid_cell_with_index(idx, info));
     }
-
     void clear_hydro_info_from_memory();
+
+    double get_hydro_tau0() const {return(hydro_info_ptr->get_hydro_tau0());}
+    double get_hydro_dtau() const {return(hydro_info_ptr->get_hydro_dtau());}
+    double get_hydro_tau_max() const {
+        return(hydro_info_ptr->get_hydro_tau_max());
+    }
+    double get_hydro_dx() const {return(hydro_info_ptr->get_hydro_dx());}
+    double get_hydro_x_max() const {return(hydro_info_ptr->get_hydro_x_max());}
+    double get_hydro_deta() const {return(hydro_info_ptr->get_hydro_deta());}
+    double get_hydro_eta_max() const {
+        return(hydro_info_ptr->get_hydro_eta_max());
+    }
+    int get_ntau() const {return(hydro_info_ptr->get_ntau());}
+    int get_neta() const {return(hydro_info_ptr->get_neta());}
+    int get_nx()   const {return(hydro_info_ptr->get_nx()  );}
 };
 
 #endif  // SRC_MUSIC_H_
