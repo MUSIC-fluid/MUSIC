@@ -103,6 +103,9 @@ class MUSIC {
     int get_ntau() const {return(hydro_info_ptr->get_ntau());}
     int get_neta() const {return(hydro_info_ptr->get_neta());}
     int get_nx()   const {return(hydro_info_ptr->get_nx()  );}
+    bool is_boost_invariant() const {
+        return(hydro_info_ptr->is_boost_invariant());
+    }
 };
 
 #endif  // SRC_MUSIC_H_
