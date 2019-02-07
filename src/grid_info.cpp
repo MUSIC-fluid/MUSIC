@@ -108,9 +108,7 @@ void Cell_info::Output_hydro_information_header() {
 
 
 //! This function outputs hydro evolution file in binary format
-void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, 
-                                         double tau,
-                                         HydroinfoMUSIC &hydro_info_ptr) {
+void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
     const string out_name_xyeta = "evolution_xyeta.dat";
     const string out_name_W_xyeta =
                         "evolution_Wmunu_over_epsilon_plus_P_xyeta.dat";
@@ -174,14 +172,8 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena,
                 double T_local   = eos.get_temperature(e_local, rhob_local);
                 double cs2_local = eos.get_cs2(e_local, rhob_local);
                 double muB_local = eos.get_muB(e_local, rhob_local);
-                double s_local   = eos.get_entropy(e_local, rhob_local);
                 double enthropy  = e_local + p_local;  // [1/fm^4]
                 
-                if (DATA.store_hydro_info_in_memory == 1) {
-                    hydro_info_ptr.dump_ideal_info_to_memory(
-                        tau, e_local, p_local, s_local, T_local, vx, vy, vz);
-                }
-
                 double Wtautau = 0.0;
                 double Wtaux   = 0.0;
                 double Wtauy   = 0.0;

@@ -48,8 +48,7 @@ class Cell_info {
     void Output_hydro_information_header();
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta(SCGrid &arena, double tau,
-                                  HydroinfoMUSIC &hydro_info_ptr);
+    void OutputEvolutionDataXYEta(SCGrid &arena, double tau);
 
     //! This function outputs hydro evolution file in binary format
     void OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau);
@@ -96,6 +95,10 @@ class Cell_info {
     //! This function outputs system's momentum anisotropy as a function of tau
     void output_momentum_anisotropy_vs_tau(
                 double tau, double eta_min, double eta_max, SCGrid &arena);
+
+    //! This function outputs hydro evolution file into memory for JETSCAPE
+    void OutputEvolutionDataXYEta_memory(
+                SCGrid &arena, double tau, HydroinfoMUSIC &hydro_info_ptr);
 };
 
 #endif  // SRC_GRID_INFO_H_
