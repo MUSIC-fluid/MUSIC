@@ -42,6 +42,9 @@ class HydroinfoMUSIC {
     double get_hydro_deta() const    {return(hydroDeta);}
     double get_hydro_eta_max() const {return(hydro_eta_max);}
     double get_hydro_x_max() const   {return(hydroXmax);}
+    int get_ntau() const {return(itaumax);}
+    int get_nx()   const {return(ixmax  );}
+    int get_neta() const {return(ietamax);}
 
     void getHydroValues(const double x, const double y,
                         const double z, const double t,
