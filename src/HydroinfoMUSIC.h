@@ -45,6 +45,7 @@ class HydroinfoMUSIC {
     int get_ntau() const {return(itaumax);}
     int get_nx()   const {return(ixmax  );}
     int get_neta() const {return(ietamax);}
+    bool is_boost_invariant() const {return(boost_invariant);}
 
     void getHydroValues(const double x, const double y,
                         const double z, const double t,
