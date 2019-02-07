@@ -81,6 +81,13 @@ class MUSIC {
     void get_hydro_info(
         const double x, const double y, const double z, const double t,
         fluidCell* fluid_cell_info);
+    int get_number_of_fluid_cells() const {
+        return(hydro_info_ptr->get_number_of_fluid_cells());
+    }
+    void get_fluid_cell_with_index(const int idx, fluidCell *info) const {
+        return(hydro_info_ptr->get_fluid_cell_with_index(idx, info));
+    }
+
     void clear_hydro_info_from_memory();
 };
 

@@ -35,32 +35,25 @@ class HydroinfoMUSIC {
     ~HydroinfoMUSIC();      // destructor
 
     void clean_hydro_event();
-    double get_hydro_tau_max() {return(hydroTauMax);}
-    double get_hydro_tau0()    {return(hydroTau0);}
-    double get_hydro_dtau()    {return(hydroDtau);}
-    double get_hydro_dx()      {return(hydroDx);}
-    double get_hydro_deta()    {return(hydroDeta);}
-    double get_hydro_eta_max() {return(hydro_eta_max);}
-    double get_hydro_x_max()   {return(hydroXmax);}
-
-    void readHydroData(int whichHydro, int nskip_tau_in,
-            std::string input_filename_in, std::string hydro_ideal_filename,
-            std::string hydro_shear_filename, std::string hydro_bulk_filename);
+    double get_hydro_tau_max() const {return(hydroTauMax);}
+    double get_hydro_tau0() const    {return(hydroTau0);}
+    double get_hydro_dtau() const    {return(hydroDtau);}
+    double get_hydro_dx() const      {return(hydroDx);}
+    double get_hydro_deta() const    {return(hydroDeta);}
+    double get_hydro_eta_max() const {return(hydro_eta_max);}
+    double get_hydro_x_max() const   {return(hydroXmax);}
 
     void getHydroValues(const double x, const double y,
                         const double z, const double t,
                         fluidCell *info);
     void set_grid_infomatioin(const InitData &DATA);
     void print_grid_information();
-    void dump_ideal_info_to_memory(double tau, float epsilon, float pressure,
-                                   float entropy, float T,
+    void dump_ideal_info_to_memory(double tau, float eta, float epsilon,
+                                   float pressure, float entropy, float T,
                                    float ux, float uy, float ueta);
 
     int get_number_of_fluid_cells() const {return(lattice_ideal.size());}
-
-    fluidCell_ideal get_fluid_cell_with_index(int idx) const {
-        return(lattice_ideal[idx]);
-    }
+    void get_fluid_cell_with_index(const int idx, fluidCell *info) const;
 };
 
 #endif  // SRC_HYDROINFO_MUSIC_H_

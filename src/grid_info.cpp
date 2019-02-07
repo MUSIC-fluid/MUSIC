@@ -291,6 +291,45 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena,
     }
 }
 
+//! This function outputs hydro evolution file into memory for JETSCAPE
+void Cell_info::OutputEvolutionDataXYEta_memory(
+                SCGrid &arena, double tau, HydroinfoMUSIC &hydro_info_ptr) {
+    const int n_skip_x   = DATA.output_evolution_every_N_x;
+    const int n_skip_y   = DATA.output_evolution_every_N_y;
+    const int n_skip_eta = DATA.output_evolution_every_N_eta;
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+        double eta = 0.0;
+        if (DATA.boost_invariant == 0) {
+            eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
+                    - (DATA.eta_size)/2.0);
+        }
+        double cosh_eta = cosh(eta);
+        double sinh_eta = sinh(eta);
+        for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
+                double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+                double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
+                double p_local = eos.get_pressure(e_local, rhob_local);
+                double utau = arena(ix, iy, ieta).u[0];
+                double ux   = arena(ix, iy, ieta).u[1];
+                double uy   = arena(ix, iy, ieta).u[2];
+                double ueta = arena(ix, iy, ieta).u[3];
+                double ut = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
+                double vx = ux/ut;
+                double vy = uy/ut;
+                double uz = ueta*cosh_eta + utau*sinh_eta;
+                double vz = uz/ut;
+
+                double T_local   = eos.get_temperature(e_local, rhob_local);
+                double s_local   = eos.get_entropy(e_local, rhob_local);
+                
+                hydro_info_ptr.dump_ideal_info_to_memory(
+                    tau, eta, e_local, p_local, s_local, T_local, vx, vy, vz);
+            }
+        }
+    }
+}
+
     
 //! This function outputs hydro evolution file in binary format
 void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, 
