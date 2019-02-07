@@ -317,7 +317,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
                 double s_local   = eos.get_entropy(e_local, rhob_local);
                 
                 hydro_info_ptr.dump_ideal_info_to_memory(
-                        tau, e_local, p_local, s_local, T_local, vx, vy, vz);
+                    tau, eta, e_local, p_local, s_local, T_local, vx, vy, vz);
             }
         }
     }
