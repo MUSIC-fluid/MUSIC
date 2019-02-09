@@ -1284,19 +1284,6 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
 
                     // perform 3-d linear interpolation for all fluid quantities
 
-                    // flow velocity u^\tau
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).u[0];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).u[0];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).u[0];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).u[0];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).u[0];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).u[0];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).u[0];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).u[0];
-                    double utau_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-
                     // flow velocity u^x
                     cube[0][0][0] = arena_freezeout(ix      , iy      , 0).u[1];
                     cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).u[1];
@@ -1335,6 +1322,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     double ueta_center = (
                         Util::three_dimension_linear_interpolation(
                                         lattice_spacing, x_fraction, cube));
+                
+                    const double utau_center = sqrt(1. + ux_center*ux_center 
+                                   + uy_center*uy_center 
+                                   + ueta_center*ueta_center);
 
                     // baryon density rho_b
                     cube[0][0][0] = arena_freezeout(ix      , iy      , 0).rhob;
