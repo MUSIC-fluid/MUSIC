@@ -55,8 +55,12 @@ class Diss {
                          VelocityShearVec &sigma_1d,
                          DmuMuBoverTVec &baryon_diffusion_vec);
 
-    double get_temperature_dependent_eta_s(double T);
-    double get_temperature_dependent_zeta_s(double temperature);
+    double get_eta_over_s(double T);
+    double get_zeta_over_s(double T);
+    double get_temperature_dependent_eta_over_s_default(double T);
+    double get_temperature_dependent_zeta_over_s_default(double T);
+    double get_temperature_dependent_eta_over_s_duke(double T);
+    double get_temperature_dependent_zeta_over_s_duke(double T);
 
     void output_kappa_T_and_muB_dependence();
     void output_kappa_along_const_sovernB();

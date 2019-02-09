@@ -105,6 +105,19 @@ typedef struct init_data {
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;
 
+    //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==2"
+    double eta_over_s_min;
+    double eta_over_s_slope;
+    double eta_over_s_curv;
+
+    //! flag to include temperature dependent zeta/s(T)
+    int T_dependent_bulk_to_s;
+
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==2"
+    double bulk_viscosity_normalisation;
+    double bulk_viscosity_width_in_GeV;
+    double bulk_viscosity_peak_in_GeV;
+
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
 
