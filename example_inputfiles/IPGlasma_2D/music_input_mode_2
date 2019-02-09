@@ -29,10 +29,10 @@ initialize_with_entropy 0       # 0: with energy density
                                 # 1: with entropy density
 
 # read in initial conditions from external file
-Initial_Distribution_input_filename initial_pPb/epsilon-u-Hydro-t0.6-97.dat
+Initial_Distribution_input_filename initial/epsilon-u-Hydro.dat
                                # the filename of initial profile 
                                # (for Initial_profile == 8)
-s_factor 0.165                 # normalization factor read in 
+s_factor 0.190                 # normalization factor read in 
                                # initial data file
 Eta_plateau_size 20.           # size of the plateau in eta_s
 Eta_fall_off 0.7               # the scale of the fall off of the 
@@ -43,7 +43,7 @@ Eta_fall_off 0.7               # the scale of the fall off of the
 #######################################
 boost_invariant  1            # whether the simulation is boost-invariant 
 # grid information
-Initial_time_tau_0 0.6        # starting time of the hydrodynamic 
+Initial_time_tau_0 0.4        # starting time of the hydrodynamic 
                               # evolution (fm/c)
 Total_evolution_time_tau 30.  # the maximum allowed running 
                               # evolution time (fm/c)
@@ -68,7 +68,7 @@ Grid_size_in_y 200            # number of the grid points in y direction
 Grid_size_in_x 200            # number of the grid points in x direction
 #
 #
-EOS_to_use 10                 # type of the equation of state
+EOS_to_use 9                  # type of the equation of state
                               # 0: ideal gas
                               # 1: EOS-Q from azhydro
                               # 2: lattice EOS s95p-v1 
@@ -85,7 +85,7 @@ EOS_to_use 10                 # type of the equation of state
 # transport coefficients
 Viscosity_Flag_Yes_1_No_0 1        # turn on viscosity in the evolution
 Include_Shear_Visc_Yes_1_No_0 1    # include shear viscous effect
-Shear_to_S_ratio 0.13              # value of \eta/s
+Shear_to_S_ratio 0.12              # value of \eta/s
 T_dependent_Shear_to_S_ratio  0    # flag to use temperature dep. \eta/s(T)
 Include_Bulk_Visc_Yes_1_No_0 1     # include bulk viscous effect
 Include_second_order_terms 1       # include second order non-linear coupling terms
@@ -112,14 +112,14 @@ Do_FreezeOut_Yes_1_No_0 1       # flag to find freeze-out surface
 Do_FreezeOut_lowtemp 1          # flag to include cold corona
 freeze_out_method 4             # method for hyper-surface finder
                                 # 4: Cornelius
-freeze_surface_in_binary 0      # switch to output surface file in binary format
+freeze_surface_in_binary 1      # switch to output surface file in binary format
 average_surface_over_this_many_time_steps 10   # the step skipped in the tau
 freeze_Ncell_x_step 1
 freeze_Ncell_eta_step 1
 freeze_eps_flag 0
-N_freeze_out 5
-eps_freeze_max 0.56
-eps_freeze_min 0.16
+N_freeze_out 4
+eps_freeze_max 0.3
+eps_freeze_min 0.15
 use_eps_for_freeze_out 1        # flag to use energy density as criteria to 
                                 # find freeze-out surface 
                                 # 0: use temperature, 1: use energy density
