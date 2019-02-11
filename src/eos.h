@@ -34,7 +34,8 @@ class EOS {
     double (EOS::*muB_ptr)        (double e, double rhob) const;
     double (EOS::*muS_ptr)        (double e, double rhob) const;
     double (EOS::*muC_ptr)        (double e, double rhob) const;
-    double (EOS::*s2e_ptr)        (double e, double rhob) const;
+    double (EOS::*s2e_ptr)        (double s, double rhob) const;
+    double (EOS::*T2e_ptr)        (double T, double rhob) const;
     double (EOS::*get_eps_max_ptr)() const;
     void   (EOS::*check_eos_ptr)  () const;
 
@@ -55,6 +56,7 @@ class EOS {
     double get_muS_idealgas        (double e, double rhob) const {return(ideal.get_muS(e, rhob));}
     double get_muC_idealgas        (double e, double rhob) const {return(ideal.get_muC(e, rhob));}
     double get_s2e_idealgas        (double s, double rhob) const {return(ideal.get_s2e(s, rhob));}
+    double get_T2e_idealgas        (double T, double rhob) const {return(ideal.get_T2e(T, rhob));}
     double get_eps_max_idealgas    () const {return(ideal.get_eps_max());}
     void   check_eos_idealgas      () const {return(ideal.check_eos());}
     
@@ -69,6 +71,7 @@ class EOS {
     double get_muS_eosQ        (double e, double rhob) const {return(eosQ.get_muS(e, rhob));}
     double get_muC_eosQ        (double e, double rhob) const {return(eosQ.get_muC(e, rhob));}
     double get_s2e_eosQ        (double s, double rhob) const {return(eosQ.get_s2e(s, rhob));}
+    double get_T2e_eosQ        (double T, double rhob) const {return(eosQ.get_T2e(T, rhob));}
     double get_eps_max_eosQ    () const {return(eosQ.get_eps_max());}
     void   check_eos_eosQ      () const {return(eosQ.check_eos());}
     
@@ -83,6 +86,7 @@ class EOS {
     double get_muS_hotQCD        (double e, double rhob) const {return(hotQCD.get_muS(e, rhob));}
     double get_muC_hotQCD        (double e, double rhob) const {return(hotQCD.get_muC(e, rhob));}
     double get_s2e_hotQCD        (double s, double rhob) const {return(hotQCD.get_s2e(s, rhob));}
+    double get_T2e_hotQCD        (double T, double rhob) const {return(hotQCD.get_T2e(T, rhob));}
     double get_eps_max_hotQCD    () const {return(hotQCD.get_eps_max());}
     void   check_eos_hotQCD      () const {return(hotQCD.check_eos());}
     
@@ -97,6 +101,7 @@ class EOS {
     double get_muS_s95p        (double e, double rhob) const {return(s95p.get_muS(e, rhob));}
     double get_muC_s95p        (double e, double rhob) const {return(s95p.get_muC(e, rhob));}
     double get_s2e_s95p        (double s, double rhob) const {return(s95p.get_s2e(s, rhob));}
+    double get_T2e_s95p        (double T, double rhob) const {return(s95p.get_T2e(T, rhob));}
     double get_eps_max_s95p    () const {return(s95p.get_eps_max());}
     void   check_eos_s95p      () const {return(s95p.check_eos());}
     
@@ -111,6 +116,7 @@ class EOS {
     double get_muS_WB        (double e, double rhob) const {return(WB.get_muS(e, rhob));}
     double get_muC_WB        (double e, double rhob) const {return(WB.get_muC(e, rhob));}
     double get_s2e_WB        (double s, double rhob) const {return(WB.get_s2e(s, rhob));}
+    double get_T2e_WB        (double T, double rhob) const {return(WB.get_T2e(T, rhob));}
     double get_eps_max_WB    () const {return(WB.get_eps_max());}
     void   check_eos_WB      () const {return(WB.check_eos());}
 
@@ -125,6 +131,7 @@ class EOS {
     double get_muS_neos        (double e, double rhob) const {return(neos.get_muS(e, rhob));}
     double get_muC_neos        (double e, double rhob) const {return(neos.get_muC(e, rhob));}
     double get_s2e_neos        (double s, double rhob) const {return(neos.get_s2e(s, rhob));}
+    double get_T2e_neos        (double T, double rhob) const {return(neos.get_T2e(T, rhob));}
     double get_eps_max_neos    () const {return(neos.get_eps_max());}
     void   check_eos_neos      () const {return(neos.check_eos());}
     
@@ -139,6 +146,7 @@ class EOS {
     double get_muS_best        (double e, double rhob) const {return(best.get_muS(e, rhob));}
     double get_muC_best        (double e, double rhob) const {return(best.get_muC(e, rhob));}
     double get_s2e_best        (double s, double rhob) const {return(best.get_s2e(s, rhob));}
+    double get_T2e_best        (double T, double rhob) const {return(best.get_T2e(T, rhob));}
     double get_eps_max_best    () const {return(best.get_eps_max());}
     void   check_eos_best      () const {return(best.check_eos());}
 
@@ -153,6 +161,7 @@ class EOS {
     double get_muS        (double e, double rhob) const {return((this->*(muS_ptr))(e, rhob));}
     double get_muC        (double e, double rhob) const {return((this->*(muC_ptr))(e, rhob));}
     double get_s2e        (double s, double rhob) const {return((this->*(s2e_ptr))(s, rhob));}
+    double get_T2e        (double T, double rhob) const {return((this->*(T2e_ptr))(T, rhob));}
 
     double get_eps_max() const {return((this->*(get_eps_max_ptr))());}
     void   check_eos()   const {return((this->*(check_eos_ptr))());}

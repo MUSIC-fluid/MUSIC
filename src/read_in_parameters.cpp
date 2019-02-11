@@ -96,7 +96,6 @@ InitData read_in_parameters(std::string input_file) {
     
     // T_freeze: freeze out temperature
     // only used with use_eps_for_freeze_out = 0
-    parameter_list.useEpsFO = 0;
     double tempTFO = 0.12;
     tempinput = Util::StringFind4(input_file, "T_freeze");
     if (tempinput != "empty") {
@@ -127,7 +126,7 @@ InitData read_in_parameters(std::string input_file) {
     // 0: freeze out at constant temperature T_freeze
     // 1: freeze out at constant energy density epsilon_freeze
     // if set in input input_file, overide above defaults
-    int tempuseEpsFO = parameter_list.useEpsFO;
+    int tempuseEpsFO = 1;
     tempinput = Util::StringFind4(input_file, "use_eps_for_freeze_out");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempuseEpsFO;

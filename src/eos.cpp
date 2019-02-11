@@ -16,6 +16,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         muS_ptr         = &EOS::get_muS_idealgas;
         muC_ptr         = &EOS::get_muC_idealgas;
         s2e_ptr         = &EOS::get_s2e_idealgas;
+        T2e_ptr         = &EOS::get_T2e_idealgas;
         get_eps_max_ptr = &EOS::get_eps_max_idealgas;
         check_eos_ptr   = &EOS::check_eos_idealgas;
     } else if (eos_id == 1) {
@@ -30,6 +31,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         muS_ptr         = &EOS::get_muS_eosQ;
         muC_ptr         = &EOS::get_muC_eosQ;
         s2e_ptr         = &EOS::get_s2e_eosQ;
+        T2e_ptr         = &EOS::get_T2e_eosQ;
         get_eps_max_ptr = &EOS::get_eps_max_eosQ;
         check_eos_ptr   = &EOS::check_eos_eosQ;
     } else if (eos_id >= 2 && eos_id <= 7) {
@@ -44,6 +46,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         muS_ptr         = &EOS::get_muS_s95p;
         muC_ptr         = &EOS::get_muC_s95p;
         s2e_ptr         = &EOS::get_s2e_s95p;
+        T2e_ptr         = &EOS::get_T2e_s95p;
         get_eps_max_ptr = &EOS::get_eps_max_s95p;
         check_eos_ptr   = &EOS::check_eos_s95p;
     } else if (eos_id == 8) {
@@ -58,6 +61,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         muS_ptr         = &EOS::get_muS_WB;
         muC_ptr         = &EOS::get_muC_WB;
         s2e_ptr         = &EOS::get_s2e_WB;
+        T2e_ptr         = &EOS::get_T2e_WB;
         get_eps_max_ptr = &EOS::get_eps_max_WB;
         check_eos_ptr   = &EOS::check_eos_WB;
     } else if (eos_id == 9) {
@@ -72,6 +76,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         muS_ptr         = &EOS::get_muS_hotQCD;
         muC_ptr         = &EOS::get_muC_hotQCD;
         s2e_ptr         = &EOS::get_s2e_hotQCD;
+        T2e_ptr         = &EOS::get_T2e_hotQCD;
         get_eps_max_ptr = &EOS::get_eps_max_hotQCD;
         check_eos_ptr   = &EOS::check_eos_hotQCD;
     } else if (eos_id >= 10 && eos_id <= 14) {
@@ -86,6 +91,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         muS_ptr         = &EOS::get_muS_neos;
         muC_ptr         = &EOS::get_muC_neos;
         s2e_ptr         = &EOS::get_s2e_neos;
+        T2e_ptr         = &EOS::get_T2e_neos;
         get_eps_max_ptr = &EOS::get_eps_max_neos;
         check_eos_ptr   = &EOS::check_eos_neos;
     } else if (eos_id == 17) {
@@ -100,6 +106,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         muS_ptr         = &EOS::get_muS_best;
         muC_ptr         = &EOS::get_muC_best;
         s2e_ptr         = &EOS::get_s2e_best;
+        T2e_ptr         = &EOS::get_T2e_best;
         get_eps_max_ptr = &EOS::get_eps_max_best;
         check_eos_ptr   = &EOS::check_eos_best;
     } else {
