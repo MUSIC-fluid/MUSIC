@@ -1721,7 +1721,18 @@ void Evolve::regulate_Wmunu(const double u[], const double Wmunu[4][4],
 }
 
 void Evolve::initialize_freezeout_surface_info() {
-    int freeze_eps_flag = DATA.freeze_eps_flag;
+    if (DATA.useEpsFO == 0) {
+        const double e_freeze = eos.get_T2e(DATA.TFO, 0.0);
+        n_freeze_surf = 1;
+        for (int isurf = 0; isurf < n_freeze_surf; isurf++) {
+            epsFO_list.push_back(e_freeze);
+            music_message << "Freeze out at a constant temperature T = " 
+                          << DATA.TFO << " GeV, e_fo = "
+                          << e_freeze*Util::hbarc << " GeV/fm^3";
+            music_message.flush("info");
+        }
+    }
+    const int freeze_eps_flag = DATA.freeze_eps_flag;
     if (freeze_eps_flag == 0) {
         // constant spacing the energy density
         n_freeze_surf = DATA.N_freeze_out;
@@ -1729,8 +1740,7 @@ void Evolve::initialize_freezeout_surface_info() {
         double freeze_min_ed = DATA.eps_freeze_min;
         double d_epsFO = ((freeze_max_ed - freeze_min_ed)
                           /(n_freeze_surf - 1 + 1e-15));
-        for(int isurf = 0; isurf < n_freeze_surf; isurf++)
-        {
+        for (int isurf = 0; isurf < n_freeze_surf; isurf++) {
             double temp_epsFO = freeze_min_ed + isurf*d_epsFO;
             epsFO_list.push_back(temp_epsFO);
         }
