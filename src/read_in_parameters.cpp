@@ -836,17 +836,19 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
-    if (parameter_list.TFO < 0.0 || parameter_list.TFO > 0.2) {
-        music_message << "T_freeze = " << parameter_list.TFO
-                      << " is not physical!";
-        music_message.flush("error");
-        exit(1);
-    }
-    
-    if (parameter_list.epsilonFreeze <= 0) {
-        music_message.error(
-                "Freeze out energy density must be greater than zero");
-        exit(1);
+    if (parameter_list.useEpsFO == 0) {
+        if (parameter_list.TFO < 0.0 || parameter_list.TFO > 0.2) {
+            music_message << "T_freeze = " << parameter_list.TFO
+                          << " is not physical!";
+            music_message.flush("error");
+            exit(1);
+        }
+    } else {
+        if (parameter_list.epsilonFreeze <= 0) {
+            music_message.error(
+                    "Freeze out energy density must be greater than zero");
+            exit(1);
+        }
     }
     
     if (parameter_list.useEpsFO > 1 || parameter_list.useEpsFO < 0) {
