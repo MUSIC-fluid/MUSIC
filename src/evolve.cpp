@@ -1722,13 +1722,13 @@ void Evolve::regulate_Wmunu(const double u[], const double Wmunu[4][4],
 
 void Evolve::initialize_freezeout_surface_info() {
     if (DATA.useEpsFO == 0) {
-        const double e_freeze = eos.get_T2e(DATA.TFO, 0.0);
+        const double e_freeze = eos.get_T2e(DATA.TFO, 0.0)*Util::hbarc;
         n_freeze_surf = 1;
         for (int isurf = 0; isurf < n_freeze_surf; isurf++) {
             epsFO_list.push_back(e_freeze);
             music_message << "Freeze out at a constant temperature T = " 
                           << DATA.TFO << " GeV, e_fo = "
-                          << e_freeze*Util::hbarc << " GeV/fm^3";
+                          << e_freeze << " GeV/fm^3";
             music_message.flush("info");
         }
     }
