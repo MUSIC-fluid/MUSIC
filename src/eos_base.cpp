@@ -178,6 +178,51 @@ int EOS_base::get_table_idx(double e) const {
 
 
 //! This function returns local energy density [1/fm^4] from
+//! a given temperature T [GeV] and rhob [1/fm^3] using binary search
+double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
+    double T_goal = T/Util::hbarc;         // convert to 1/fm
+    double eps_lower = 1e-15;
+    double eps_upper = eps_max;
+    double eps_mid   = (eps_upper + eps_lower)/2.;
+    double T_lower   = get_temperature(eps_lower, rhob);
+    double T_upper   = get_temperature(eps_upper, rhob);
+    int ntol         = 1000;
+    if (T_goal < 0.0 || T_goal > T_upper) {
+        cout << "get_T2e:: T is out of bound, "
+             << "T = " << T << ", T_upper = " << T_upper*Util::hbarc
+             << ", T_lower = " << T_lower*Util::hbarc << endl;
+        exit(1);
+    }
+    if (T_goal < T_lower) return(eps_lower);
+
+    double rel_accuracy = 1e-8;
+    double abs_accuracy = 1e-15;
+    double T_mid;
+    int iter = 0;
+    while (((eps_upper - eps_lower)/eps_mid > rel_accuracy
+            && (eps_upper - eps_lower) > abs_accuracy) && iter < ntol) {
+        T_mid = get_temperature(eps_mid, rhob);
+        if (T_goal < T_mid)
+            eps_upper = eps_mid;
+        else 
+            eps_lower = eps_mid;
+        eps_mid = (eps_upper + eps_lower)/2.;
+        iter++;
+    }
+    if (iter == ntol) {
+        cout << "get_T2e_finite_rhob:: max iteration reached, "
+             << "T = " << T << ", rhob = " << rhob << endl;;
+        cout << "T_upper = " << T_upper*Util::hbarc
+             << " , T_lower = " << T_lower*Util::hbarc << endl;
+        cout << "eps_upper = " << eps_upper
+             << " , eps_lower = " << eps_lower
+             << ", diff = " << (eps_upper - eps_lower) << endl;
+        exit(1);
+    }
+    return (eps_mid);
+}
+
+//! This function returns local energy density [1/fm^4] from
 //! a given entropy density [1/fm^3] and rhob [1/fm^3]
 //! using binary search
 double EOS_base::get_s2e_finite_rhob(double s, double rhob) const {
