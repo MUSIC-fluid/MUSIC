@@ -94,34 +94,6 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempinitializeEntropy;
     parameter_list.initializeEntropy = tempinitializeEntropy;
     
-    // T_freeze: freeze out temperature
-    // only used with use_eps_for_freeze_out = 0
-    double tempTFO = 0.12;
-    tempinput = Util::StringFind4(input_file, "T_freeze");
-    if (tempinput != "empty") {
-        istringstream(tempinput) >> tempTFO;
-        // if only freeze out temperature is set, freeze out by temperature
-        parameter_list.useEpsFO = 0;
-    }
-    parameter_list.TFO = tempTFO;
-    
-    // epsilon_freeze: freeze-out energy density in GeV/fm^3
-    // only used with use_eps_for_freeze_out = 1
-    double tempepsilonFreeze = 0.12;
-    tempinput = Util::StringFind4(input_file, "epsilon_freeze");
-    if (tempinput != "empty") {
-        istringstream(tempinput) >> tempepsilonFreeze;
-        // if epsilon_freeze is set, freeze out by epsilon
-        parameter_list.useEpsFO = 1;
-    }
-    parameter_list.epsilonFreeze = tempepsilonFreeze;
-    
-    int temp_N_freeze_out = 1;
-    tempinput = Util::StringFind4(input_file, "N_freeze_out");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_N_freeze_out;
-    parameter_list.N_freeze_out = temp_N_freeze_out;
-
     //use_eps_for_freeze_out: 
     // 0: freeze out at constant temperature T_freeze
     // 1: freeze out at constant energy density epsilon_freeze
@@ -131,6 +103,36 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempuseEpsFO;
     parameter_list.useEpsFO = tempuseEpsFO;
+    
+    // T_freeze: freeze out temperature
+    // only used with use_eps_for_freeze_out = 0
+    double tempTFO = 0.12;
+    if (parameter_list.useEpsFO == 0) {
+        tempinput = Util::StringFind4(input_file, "T_freeze");
+        if (tempinput != "empty") {
+            istringstream(tempinput) >> tempTFO;
+        } else {
+            music_message << "T_freeze is not set, use default T = 0.12 GeV";
+            music_message.flush("warning");
+        }
+        parameter_list.TFO = tempTFO;
+        parameter_list.N_freeze_out = 1;  // only one freeze-out is allowed
+    } else if (parameter_list.useEpsFO == 1) {
+        // epsilon_freeze: freeze-out energy density in GeV/fm^3
+        // only used with use_eps_for_freeze_out = 1
+        double tempepsilonFreeze = 0.12;
+        tempinput = Util::StringFind4(input_file, "epsilon_freeze");
+        if (tempinput != "empty") {
+            istringstream(tempinput) >> tempepsilonFreeze;
+        }
+        parameter_list.epsilonFreeze = tempepsilonFreeze;
+
+        int temp_N_freeze_out = 1;
+        tempinput = Util::StringFind4(input_file, "N_freeze_out");
+        if (tempinput != "empty")
+            istringstream(tempinput) >> temp_N_freeze_out;
+        parameter_list.N_freeze_out = temp_N_freeze_out;
+    }
     
     string temp_freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
     tempinput = Util::StringFind4(input_file, "freeze_list_filename");
