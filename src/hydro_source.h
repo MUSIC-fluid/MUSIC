@@ -67,23 +67,27 @@ class hydro_source {
 
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
-    void get_hydro_energy_source(double tau, double x, double y, double eta_s,
-                                 FlowVec &u_mu, EnergyFlowVec &j_mu);
+    void get_hydro_energy_source(
+        const double tau, const double x, const double y, const double eta_s,
+        const FlowVec &u_mu, EnergyFlowVec &j_mu) const ;
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
-    double get_hydro_rhob_source(double tau, double x, double y, double eta_s,
-                                 FlowVec &u_mu);
+    double get_hydro_rhob_source(const double tau, const double x,
+                                 const double y, const double eta_s,
+                                 const FlowVec &u_mu) const ;
 
     //! this function returns the energy source term J^\mu up to a given point
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source_before_tau(
-        double tau, double x, double y, double eta_s, double *j_mu);
+        const double tau, const double x, const double y, const double eta_s,
+        EnergyFlowVec &j_mu) const;
     
     //! this function returns the net baryon density source term rho
     //! up to a given point (tau, x, y, eta_s)
-    double get_hydro_rhob_source_before_tau(double tau, double x, double y,
-                                            double eta_s);
+    double get_hydro_rhob_source_before_tau(const double tau, const double x,
+                                            const double y,
+                                            const double eta_s) const;
 
     //! This function reads in the spatal information of the strings
     //! and partons which are produced from the MC-Glauber-LEXUS model
