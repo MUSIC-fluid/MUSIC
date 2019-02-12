@@ -289,16 +289,17 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
     const int n_skip_x   = DATA.output_evolution_every_N_x;
     const int n_skip_y   = DATA.output_evolution_every_N_y;
     const int n_skip_eta = DATA.output_evolution_every_N_eta;
-    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
-        double eta = 0.0;
-        if (DATA.boost_invariant == 0) {
-            eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
-                    - (DATA.eta_size)/2.0);
-        }
-        double cosh_eta = cosh(eta);
-        double sinh_eta = sinh(eta);
+    for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
-            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
+            for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+                double eta = 0.0;
+                if (DATA.boost_invariant == 0) {
+                    eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
+                            - (DATA.eta_size)/2.0);
+                }
+                double cosh_eta = cosh(eta);
+                double sinh_eta = sinh(eta);
+
                 double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
                 double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
                 double p_local = eos.get_pressure(e_local, rhob_local);
