@@ -778,7 +778,7 @@ void Init::initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
 void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
                            SCGrid &arena_current) {
     double u[4] = {1.0, 0.0, 0.0, 0.0};
-    double j_mu[4] = {0.0, 0.0, 0.0, 0.0};
+    EnergyFlowVec j_mu = {0.0, 0.0, 0.0, 0.0};
 
     double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
     double tau0 = DATA.tau0;

@@ -303,8 +303,8 @@ void hydro_source::prepare_list_for_current_tau_frame(double tau_local) {
 }
 
 void hydro_source::get_hydro_energy_source(
-    double tau, double x, double y, double eta_s, 
-    FlowVec &u_mu, EnergyFlowVec &j_mu) {
+    const double tau, const double x, const double y, const double eta_s, 
+    const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
     j_mu = {0};
     // flow velocity
     const double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
@@ -509,8 +509,9 @@ void hydro_source::get_hydro_energy_source(
     }
 }
 
-double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
-                                           double eta_s, FlowVec &u_mu) {
+double hydro_source::get_hydro_rhob_source(const double tau, const double x,
+                                           const double y, const double eta_s,
+                                           const FlowVec &u_mu) const {
     double res = 0.;
 
     // flow velocity
@@ -629,12 +630,15 @@ double hydro_source::get_hydro_rhob_source(double tau, double x, double y,
                 res += p_dot_u*f_smear;
             }
             res *= prefactor_tau*prefactor_prep*prefactor_etas;
-        } }
+        }
+    }
     return(res);
 }
 
 void hydro_source::get_hydro_energy_source_before_tau(
-    double tau, double x, double y, double eta_s, double *j_mu) {
+    const double tau, const double x, const double y, const double eta_s,
+    EnergyFlowVec &j_mu) const {
+
     FlowVec u                   = {0};
     u[0]                        = 1.0;
     EnergyFlowVec j_mu_one_step = {0};
@@ -656,7 +660,8 @@ void hydro_source::get_hydro_energy_source_before_tau(
 }
 
 double hydro_source::get_hydro_rhob_source_before_tau(
-        double tau, double x, double y, double eta_s) {
+                                const double tau, const double x,
+                                const double y, const double eta_s) const {
     FlowVec u = {0};
     u[0] = 1.0;
 
