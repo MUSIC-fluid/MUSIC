@@ -141,8 +141,8 @@ void hydro_source::read_in_QCD_strings_and_partons() {
             source_tau_max = source_tau;
         }
 
-        if (source_tau_min > (new_string->tau_0 + new_string->tau_form)) {
-            source_tau_min = new_string->tau_0 + new_string->tau_form;
+        if (source_tau_min > new_string->tau_start) {
+            source_tau_min = new_string->tau_start;
         }
         getline(QCD_strings_file, text_string);
     }
