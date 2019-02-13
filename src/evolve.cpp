@@ -119,6 +119,10 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             if (DATA.output_movie_flag == 1) {
                 grid_info.output_evolution_for_movie(*ap_current, tau);
             }
+            if (DATA.output_outofequilibriumsize == 1) {
+                grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*ap_current,
+                                                                  tau);
+            }
         }
 
         grid_info.output_momentum_anisotropy_vs_tau(
