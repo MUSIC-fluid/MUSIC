@@ -144,6 +144,7 @@ void hydro_source::read_in_QCD_strings_and_partons() {
         if (source_tau_min > new_string->tau_start) {
             source_tau_min = new_string->tau_start;
         }
+
         getline(QCD_strings_file, text_string);
     }
     QCD_strings_file.close();
@@ -672,7 +673,8 @@ double hydro_source::get_hydro_rhob_source_before_tau(
     int n_tau_steps = static_cast<int>((tau - tau0)/dtau);
     for (int i = 0; i < n_tau_steps; i++) {
         const double tau_local = tau0 + (i + 0.5)*dtau;
-        const double res_local = get_hydro_rhob_source(tau_local, x, y, eta_s, u);
+        const double res_local = get_hydro_rhob_source(
+                                                tau_local, x, y, eta_s, u);
         res += tau_local*res_local*dtau;
     }
 
