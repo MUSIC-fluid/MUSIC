@@ -61,7 +61,18 @@ class Cell_info {
     double get_deltaf_qmu_coeff(double T, double muB);
     double get_deltaf_coeff_14moments(double T, double muB, double type);
 
-    //! This function putputs files to check with Gubser flow solution
+
+    //! This function computes the inverse Reynolds number for a given fluid
+    //! cell at (ix, iy, ieta)
+    void calculate_inverse_Reynolds_numbers(
+                        SCGrid &arena_current,
+                        const int ieta, const int ix, const int iy,
+                        double &R_pi, double &R_Pi) const;
+    
+    void OutputEvolution_Knudsen_Reynoldsnumbers(SCGrid &arena,
+                                                 double tau) const;
+
+    //! This function outputs files to check with Gubser flow solution
     void Gubser_flow_check_file(SCGrid &arena, double tau);
 
     //! This function outputs files to cross check with 1+1D simulation
