@@ -119,6 +119,9 @@ typedef struct init_data {
 
     //! decide whether to output files for movie
     int output_movie_flag;
+    
+    //! decide whether to output files for R_pi and R_Pi
+    int output_outofequilibriumsize;
 
     //! decide whether to output "evolution_xyeta.dat" and
     //! "evolution_Wmunu_over_shear_xyeta.dat" in binary format (1)

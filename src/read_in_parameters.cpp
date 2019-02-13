@@ -375,6 +375,14 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_output_movie_flag;
     parameter_list.output_movie_flag = temp_output_movie_flag;
     
+    
+    int temp_output_outofequilibriumsize = 0;
+    tempinput = Util::StringFind4(input_file, "output_outofequilibriumsize");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_output_outofequilibriumsize;
+    parameter_list.output_outofequilibriumsize = (
+                                        temp_output_outofequilibriumsize);
+    
     parameter_list.nt = static_cast<int>(
             parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
     music_message << "read_in_parameters: Time step size = "

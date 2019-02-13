@@ -284,6 +284,83 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
 }
 
 
+void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(SCGrid &arena,
+                                                        double tau) const {
+    const string out_name_xyeta = "evolution_KRnumbers.dat";
+    FILE *out_file_xyeta        = NULL;
+
+    // If it's the first timestep, overwrite the previous file
+    string out_open_mode;
+    if (tau == DATA.tau0) {
+        out_open_mode = "w";
+    } else {
+        out_open_mode = "a";
+    }
+    
+    // If we output in binary, set the mode accordingly
+    if (DATA.outputBinaryEvolution == 0) {
+        out_open_mode += "b";
+    }
+    out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
+    
+    const int n_skip_x   = DATA.output_evolution_every_N_x;
+    const int n_skip_y   = DATA.output_evolution_every_N_y;
+    const int n_skip_eta = DATA.output_evolution_every_N_eta;
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+        for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
+                double R_pi = 0.0;
+                double R_Pi = 0.0;
+                calculate_inverse_Reynolds_numbers(arena, ieta, ix, iy,
+                                                   R_pi, R_Pi);
+
+                if (DATA.outputBinaryEvolution == 0) {
+                    fprintf(out_file_xyeta, "%e %e\n", R_pi, R_Pi);
+                } else {
+                    float array[] = {static_cast<float>(R_pi),
+                                     static_cast<float>(R_Pi)};
+                    fwrite(array, sizeof(float), 2, out_file_xyeta);
+                } 
+            }
+        }
+    }
+    fclose(out_file_xyeta);
+}
+
+
+void Cell_info::calculate_inverse_Reynolds_numbers(
+                                SCGrid &arena_current,
+                                const int ieta, const int ix, const int iy,
+                                double &R_pi, double &R_Pi) const {
+    const auto grid_pt = arena_current(ix, iy, ieta);
+    
+    const double e_local  = grid_pt.epsilon;
+    const double rhob     = grid_pt.rhob;
+    const double pressure = eos.get_pressure(e_local, rhob);
+
+    const double pi_00 = grid_pt.Wmunu[0];
+    const double pi_01 = grid_pt.Wmunu[1];
+    const double pi_02 = grid_pt.Wmunu[2];
+    const double pi_03 = grid_pt.Wmunu[3];
+    const double pi_11 = grid_pt.Wmunu[4];
+    const double pi_12 = grid_pt.Wmunu[5];
+    const double pi_13 = grid_pt.Wmunu[6];
+    const double pi_22 = grid_pt.Wmunu[7];
+    const double pi_23 = grid_pt.Wmunu[8];
+    const double pi_33 = grid_pt.Wmunu[9];
+
+    const double pisize = (
+           pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
+         - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
+         + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
+    
+    const double pi_local = grid_pt.pi_b;
+
+    R_pi = sqrt(pisize)/pressure;
+    R_Pi = sqrt(pi_local)/pressure;
+}
+
+
 //! This function outputs hydro evolution file into memory for JETSCAPE
 void Cell_info::OutputEvolutionDataXYEta_memory(
                 SCGrid &arena, double tau, HydroinfoMUSIC &hydro_info_ptr) {
