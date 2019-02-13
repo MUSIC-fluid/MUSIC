@@ -55,7 +55,6 @@ double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
     double temp1 = table[table_idx][0][idx_e];
     double temp2 = table[table_idx][0][idx_e + 1];
     result = temp1*(1. - frac_e) + temp2*frac_e;
-    result = std::max(1e-15, result);
     return(result);
 }
 
@@ -115,7 +114,7 @@ double EOS_base::get_entropy(double epsilon, double rhob) const {
     auto rhoS = get_rhoS(epsilon, rhob);
     auto rhoC = get_rhoC(epsilon, rhob);
     auto f    = (epsilon + P - muB*rhob - muS*rhoS - muC*rhoC)/(T + 1e-15);
-    return(std::max(1e-16, f));
+    return(std::max(1e-15, f));
 }
 
 
