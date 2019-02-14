@@ -350,7 +350,7 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
                         << ", iy = " << iy
                         << ", energy density = " << e_local*hbarc
                         << " GeV/fm^3, shear |pi/(epsilon+3*P)| = "
-                        << rho_shear;
+                        << rho_shear << "\n";
           crash_file.close();
           //exit(-1);
         }
@@ -381,7 +381,7 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
                         << ", iy = " << iy
                         << ", energy density = " << e_local*hbarc
                         << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
-                        << rho_bulk;
+                        << rho_bulk << "\n";
           crash_file.close();
           //exit(-1);
         }
