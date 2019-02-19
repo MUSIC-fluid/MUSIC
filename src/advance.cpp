@@ -170,9 +170,9 @@ void Advance::FirstRKStepW(
     /* Advance uWmunu */
     double tempf, temps;
     if (DATA.turn_on_shear == 1) {
-        double w_rhs = 0.;
         #pragma omp simd
         for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
+            double w_rhs = 0.;
             int mu = 0;
             int nu = 0;
             map_1d_idx_to_2d(idx_1d, mu, nu);
