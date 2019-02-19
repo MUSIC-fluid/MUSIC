@@ -6,6 +6,8 @@
 
 #include <cassert>
 #include <cmath>
+#include <iostream>
+#include <fstream>
 
 #include "util.h"
 #include "data.h"
@@ -336,7 +338,22 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
 
     // Reducing the shear stress tensor
     double rho_shear_max = 0.1;
-    if (rho_shear > rho_shear_max) {
+    if (rho_shear > rho_shear_max)
+    {
+        //DEREK
+        //flag and stop events for which the inverse reynolds numbers are too large near switching surface
+        if (e_local > eps_scale)
+        {
+          std::ofstream crash_file;
+          crash_file.open("music_inv_reynolds_shear.txt", std::ios_base::app);
+          crash_file << "ieta = " << ieta << ", ix = " << ix
+                        << ", iy = " << iy
+                        << ", energy density = " << e_local*hbarc
+                        << " GeV/fm^3, shear |pi/(epsilon+3*P)| = "
+                        << rho_shear << "\n";
+          crash_file.close();
+          //exit(-1);
+        }
         if (e_local > eps_scale && DATA.echo_level > 5) {
             music_message << "ieta = " << ieta << ", ix = " << ix
                           << ", iy = " << iy
@@ -352,7 +369,23 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
 
     // Reducing bulk viscous pressure
     double rho_bulk_max = 0.1;
-    if (rho_bulk > rho_bulk_max) {
+    if (rho_bulk > rho_bulk_max)
+    {
+        //DEREK
+        //flag and stop events for which the inverse reynolds numbers are too large near switching surface
+        if (e_local > eps_scale)
+        {
+          std::ofstream crash_file;
+          crash_file.open("music_inv_reynolds_bulk.txt", std::ios_base::app);
+          crash_file << "ieta = " << ieta << ", ix = " << ix
+                        << ", iy = " << iy
+                        << ", energy density = " << e_local*hbarc
+                        << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
+                        << rho_bulk << "\n";
+          crash_file.close();
+          //exit(-1);
+        }
+
         if (e_local > eps_scale && DATA.echo_level > 5) {
             music_message << "ieta = " << ieta << ", ix = " << ix
                           << ", iy = " << iy
