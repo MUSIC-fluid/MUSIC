@@ -7,12 +7,13 @@
 
 class EOS_s95p : public EOS_base {
  private:
+    const int eos_id;
    
  public:
-    EOS_s95p();
+    EOS_s95p(const int eos_id_in);
     ~EOS_s95p() {}
     
-    void initialize_eos(int eos_id_in);
+    void initialize_eos();
     double p_e_func       (double e, double rhob) const;
     double get_temperature(double e, double rhob) const;
     double get_pressure   (double e, double rhob) const;
