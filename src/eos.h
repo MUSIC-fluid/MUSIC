@@ -11,7 +11,7 @@ class EOS {
  private:
     const int eos_id;
 
-    std::shared_ptr<EOS_base> eos_ptr;
+    std::unique_ptr<EOS_base> eos_ptr;
 
  public:
     EOS() = default;

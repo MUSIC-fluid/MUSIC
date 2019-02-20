@@ -10,8 +10,8 @@
 using std::stringstream;
 using std::string;
 
-EOS_neos::EOS_neos() {
-    set_EOS_id(10);
+EOS_neos::EOS_neos(const int eos_id_in) : eos_id(eos_id_in) {
+    set_EOS_id(eos_id);
     set_number_of_tables(0);
     set_eps_max(1e5);
     set_flag_muB(true);
@@ -37,11 +37,10 @@ EOS_neos::~EOS_neos() {
 }
 
 
-void EOS_neos::initialize_eos(int eos_id_in) {
+void EOS_neos::initialize_eos() {
     // read the lattice EOS pressure, temperature, and 
     music_message.info("Using lattice EOS at finite muB from A. Monnai");
     
-    set_EOS_id(eos_id_in);
     auto envPath = get_hydro_env_path();
     stringstream spath;
     spath << envPath;
@@ -49,25 +48,25 @@ void EOS_neos::initialize_eos(int eos_id_in) {
     bool flag_muS = false;
     bool flag_muC = false;
     string eos_file_string_array[7];
-    if (eos_id_in == 10) {
+    if (eos_id == 10) {
         music_message.info("reading EOS neos ...");
         spath << "/EOS/neos_2/";
         string string_tmp[] = {"0a", "0b", "0c", "1a", "2", "3", "4"};
         std::copy(std::begin(string_tmp), std::end(string_tmp),
                   std::begin(eos_file_string_array));
-    } else if (eos_id_in == 11) {
+    } else if (eos_id == 11) {
         music_message.info("reading EOS neos3 ...");
         spath << "/EOS/neos_3/";
         string string_tmp[] = {"1", "2", "3", "4", "5", "6", "7"};
         std::copy(std::begin(string_tmp), std::end(string_tmp),
                   std::begin(eos_file_string_array));
-    } else if (eos_id_in == 12) {
+    } else if (eos_id == 12) {
         music_message.info("reading EOS neos_b ...");
         spath << "/EOS/neos_b/";
         string string_tmp[] = {"1", "2", "3", "4", "5", "6", "7"};
         std::copy(std::begin(string_tmp), std::end(string_tmp),
                   std::begin(eos_file_string_array));
-    } else if (eos_id_in == 13) {
+    } else if (eos_id == 13) {
         music_message.info("reading EOS neos_bs ...");
         spath << "/EOS/neos_bs/";
         string string_tmp[] = {"1s", "2s", "3s", "4s", "5s", "6s", "7s"};
@@ -75,7 +74,7 @@ void EOS_neos::initialize_eos(int eos_id_in) {
                   std::begin(eos_file_string_array));
         flag_muS = true;
         set_flag_muS(flag_muS);
-    } else if (eos_id_in == 14) {
+    } else if (eos_id == 14) {
         music_message.info("reading EOS neos_bqs ...");
         spath << "/EOS/neos_bqs/";
         string string_tmp[] = {"1qs", "2qs", "3qs", "4qs", "5qs", "6qs", "7qs"};
