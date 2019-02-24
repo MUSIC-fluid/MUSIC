@@ -43,6 +43,7 @@ class Init {
     void InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                    SCGrid &arena_future);
     void InitTJb  (SCGrid &arena_prev, SCGrid &arena_current);
+    void print_num_of_threads();
 
     void initial_Gubser_XY               (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_1p1D_eta                (SCGrid &arena_prev, SCGrid &arena_current);
