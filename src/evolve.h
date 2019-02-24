@@ -21,7 +21,7 @@ class Evolve {
  private:
     const EOS &eos;        // declare EOS object
     const InitData &DATA;
-    hydro_source &hydro_source_terms;
+    HydroSource &hydro_source_terms;
 
     Cell_info grid_info;
     Advance advance;
@@ -43,7 +43,7 @@ class Evolve {
 
  public:
     Evolve(const EOS &eos, const InitData &DATA_in,
-           hydro_source &hydro_source_in);
+           HydroSource &hydro_source_in);
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                  SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr);
 

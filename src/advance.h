@@ -2,21 +2,21 @@
 #ifndef SRC_ADVANCE_H_
 #define SRC_ADVANCE_H_
 
-#include "./data.h"
-#include "./cell.h"
-#include "./grid.h"
-#include "./dissipative.h"
-#include "./minmod.h"
-#include "./u_derivative.h"
-#include "./reconst.h"
-#include "./hydro_source.h"
-#include "./pretty_ostream.h"
+#include "data.h"
+#include "cell.h"
+#include "grid.h"
+#include "dissipative.h"
+#include "minmod.h"
+#include "u_derivative.h"
+#include "reconst.h"
+#include "hydro_source.h"
+#include "pretty_ostream.h"
 
 class Advance {
  private:
     const InitData &DATA;
     const EOS &eos;
-    hydro_source &hydro_source_terms;
+    HydroSource &hydro_source_terms;
 
     Diss diss_helper;
     Minmod minmod;
@@ -27,7 +27,7 @@ class Advance {
 
  public:
     Advance(const EOS &eosIn, const InitData &DATA_in,
-            hydro_source &hydro_source_in);
+            HydroSource &hydro_source_in);
 
     void AdvanceIt(double tau_init,
                    SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,

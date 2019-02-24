@@ -34,7 +34,7 @@ class MUSIC {
     SCGrid arena_current;
     SCGrid arena_future;
 
-    hydro_source hydro_source_terms;
+    HydroSource hydro_source_terms;
 
     std::shared_ptr<HydroinfoMUSIC> hydro_info_ptr;
 

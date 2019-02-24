@@ -22,7 +22,7 @@
 using Util::hbarc;
 
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
-               hydro_source &hydro_source_in) :
+               HydroSource &hydro_source_in) :
     eos(eosIn), DATA(DATA_in), hydro_source_terms(hydro_source_in),
     grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_in),
     u_derivative(DATA_in, eosIn) {
