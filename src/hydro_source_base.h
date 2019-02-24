@@ -10,7 +10,6 @@ class HydroSourceBase {
  private:
     double source_tau_max;
     double source_tau_min;
-    double volume;
     double sigma_tau, sigma_x, sigma_eta;
 
  public:
