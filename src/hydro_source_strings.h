@@ -27,6 +27,7 @@ struct QCD_string {
 
 class HydroSourceStrings : public HydroSourceBase {
  private:
+    const InitData &DATA;
     int string_dump_mode;
     double string_quench_factor;
     double parton_quench_factor;
