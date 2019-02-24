@@ -24,7 +24,7 @@ HydroSourceStrings::HydroSourceStrings(const InitData &DATA_in) :
 }
 
 
-~HydroSourceStrings::HydroSourceStrings() {
+HydroSourceStrings::~HydroSourceStrings() {
     QCD_strings_list.clear();
 }
 
@@ -128,9 +128,11 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         getline(QCD_strings_file, text_string);
     }
     QCD_strings_file.close();
-    music_message << "hydro_source: tau_min = " << source_tau_min << " fm/c.";
+    music_message << "HydroSourceStrings: tau_min = " << get_source_tau_min()
+                  << " fm/c.";
     music_message.flush("info");
-    music_message << "hydro_source: tau_max = " << source_tau_max << " fm/c.";
+    music_message << "HydroSourceStrings: tau_max = " << get_source_tau_max()
+                  << " fm/c.";
     music_message.flush("info");
     
     double total_baryon_number = 0;
@@ -146,6 +148,8 @@ void HydroSourceStrings::compute_norm_for_strings() {
     const int neta              = 500;
     const double eta_range      = 12.;
     const double deta           = 2.*eta_range/(neta - 1);
+
+    const double sigma_eta = get_sigma_eta();
     const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
 
     double E_string_total   = 0.0;
@@ -228,6 +232,9 @@ void HydroSourceStrings::get_hydro_energy_source(
     const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
     j_mu = {0};
     if (QCD_strings_list_current_tau.size() == 0) return;
+
+    const double sigma_x   = get_sigma_x();
+    const double sigma_eta = get_sigma_eta();
 
     // flow velocity
     const double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
@@ -403,12 +410,14 @@ double HydroSourceStrings::get_hydro_rhob_source(
         const FlowVec &u_mu) const {
     double res = 0.;
     if (QCD_strings_baryon_list_current_tau.size() == 0) return(res);
+    
+    const double sigma_x   = get_sigma_x();
+    const double sigma_eta = get_sigma_eta();
 
     // flow velocity
     const double gamma_perp_flow  = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
     const double y_perp_flow      = acosh(gamma_perp_flow);
     const double y_long_flow      = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
-    const double sinh_y_perp_flow = sinh(y_perp_flow);
     const double sin_phi_flow     = u_mu[1]/gamma_perp_flow;
     const double cos_phi_flow     = u_mu[2]/gamma_perp_flow;
     const double dtau             = DATA.delta_tau;

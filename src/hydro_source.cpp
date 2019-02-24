@@ -13,6 +13,6 @@ HydroSource::HydroSource(const InitData &DATA_in) : DATA(DATA_in) {
                                             new HydroSourceStrings (DATA));
     } else if (DATA.Initial_profile == 30) {  // AMPT
         hydro_source_ptr = std::unique_ptr<HydroSourceAMPT> (
-                                            new HydroSourceStrings (DATA));
+                                            new HydroSourceAMPT (DATA));
     }
 }
