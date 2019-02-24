@@ -11,6 +11,7 @@
 
 #ifndef _OPENMP
     #define omp_get_thread_num() 0
+    #define omp_get_num_threads() 1
 #else
     #include <omp.h>
 #endif
@@ -24,6 +25,7 @@ Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source &hydro_source_in) :
 
 void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                      SCGrid &arena_future) {
+    print_num_of_threads();
     music_message.info("initArena");
     if (DATA.Initial_profile == 0) {
         music_message << "Using Initial_profile=" << DATA.Initial_profile;
@@ -142,6 +144,18 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         output_initial_density_profiles(arena_current);
     }
 }/* InitArena */
+    
+
+void Init::print_num_of_threads() {
+    #pragma omp parallel for
+    for (int i = 0; i < 2; i++) {
+        if (i == 0) {
+            music_message << "OpenMP: using " << omp_get_num_threads()
+                          << " threads.";
+            music_message.flush("info");
+        }
+    }
+}
 
 //! This is a shell function to initial hydrodynamic fields
 void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
