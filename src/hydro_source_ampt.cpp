@@ -22,7 +22,7 @@ HydroSourceAMPT::HydroSourceAMPT(const InitData &DATA_in) :
 }
 
 
-~HydroSourceAMPT::HydroSourceAMPT() {
+HydroSourceAMPT::~HydroSourceAMPT() {
     parton_list.clear();
 }
 
@@ -121,12 +121,14 @@ void HydroSourceAMPT::read_in_AMPT_partons() {
         }
     }
     AMPT_file.close();
-    music_message << "hydro_source:: read in " << parton_list.size() << "/"
+    music_message << "HydroSourceAMPT:: read in " << parton_list.size() << "/"
                   << n_partons << " partons.";
     music_message.flush("info");
-    music_message << "hydro_source:: tau_min = " << source_tau_min << " fm.";
+    music_message << "HydroSourceAMPT:: tau_min = " << get_source_tau_min()
+                  << " fm.";
     music_message.flush("info");
-    music_message << "hydro_source:: tau_max = " << source_tau_max << " fm.";
+    music_message << "HydroSourceAMPT:: tau_max = " << get_source_tau_max()
+                  << " fm.";
     music_message.flush("info");
 }
 
@@ -153,13 +155,12 @@ void HydroSourceAMPT::get_hydro_energy_source(
     j_mu = {0};
     if (parton_list_current_tau.size() == 0) return;
     
+    const double sigma_tau = get_sigma_tau();
+    const double sigma_x   = get_sigma_x();
+    const double sigma_eta = get_sigma_eta();
+
     // flow velocity
-    const double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
-    const double y_perp_flow     = acosh(gamma_perp_flow);
-    const double y_long_flow     = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
-    const double sin_phi_flow    = u_mu[1]/gamma_perp_flow;
-    const double cos_phi_flow    = u_mu[2]/gamma_perp_flow;
-    const double dtau            = DATA.delta_tau;
+    const double dtau = DATA.delta_tau;
 
     const double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
     const double prefactor_tau  = 1./dtau;
@@ -167,12 +168,10 @@ void HydroSourceAMPT::get_hydro_energy_source(
     const double n_sigma_skip   = 5.;
     const double skip_dis_x     = n_sigma_skip*sigma_x;
     const double skip_dis_eta   = n_sigma_skip*sigma_eta;
-    const double sfactor        = DATA.sFactor/Util::hbarc;
     const double exp_tau = 1./tau;
 
     // AMPT parton sources
-    double n_sigma_skip = 5.;
-    double tau_dis_max = tau - source_tau_max;
+    double tau_dis_max = tau - get_source_tau_max();
     if (tau_dis_max < n_sigma_skip*sigma_tau) {
         for (auto &it: parton_list_current_tau) {
             double x_dis = x - it->x;
@@ -213,13 +212,15 @@ double HydroSourceAMPT::get_hydro_rhob_source(
     double res = 0.;
     if (parton_list_current_tau.size() == 0) return(res);
     
+    const double sigma_tau = get_sigma_tau();
+    const double sigma_x   = get_sigma_x();
+    const double sigma_eta = get_sigma_eta();
+
     // flow velocity
     const double gamma_perp_flow  = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
     const double y_perp_flow      = acosh(gamma_perp_flow);
     const double y_long_flow      = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
     const double sinh_y_perp_flow = sinh(y_perp_flow);
-    const double sin_phi_flow     = u_mu[1]/gamma_perp_flow;
-    const double cos_phi_flow     = u_mu[2]/gamma_perp_flow;
     const double dtau             = DATA.delta_tau;
 
     const double exp_tau        = 1.0/tau;
@@ -230,7 +231,7 @@ double HydroSourceAMPT::get_hydro_rhob_source(
     const double skip_dis_x     = n_sigma_skip*sigma_x;
     const double skip_dis_eta   = n_sigma_skip*sigma_eta;
 
-    double tau_dis_max = tau - source_tau_max;
+    double tau_dis_max = tau - get_source_tau_max();
     if (tau_dis_max < n_sigma_skip*sigma_tau) {
         for (auto &it: parton_list_current_tau) {
             // skip the evaluation if the strings is too far away in the
