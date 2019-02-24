@@ -35,7 +35,7 @@ class EOS_base {
     double ***mu_C_tb;
 
     EOS_base() = default;
-    ~EOS_base();
+    virtual ~EOS_base();
 
     std::string get_hydro_env_path() const;
 
