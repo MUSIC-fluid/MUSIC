@@ -16,7 +16,7 @@ class Init {
  private:
     InitData &DATA;
     const EOS &eos;
-    hydro_source &hydro_source_terms;
+    HydroSource &hydro_source_terms;
     pretty_ostream music_message;
         
     // support for JETSCAPE
@@ -38,7 +38,7 @@ class Init {
     std::vector<double> jetscape_initial_bulk_pi;
 
  public:
-    Init(const EOS &eos, InitData &DATA_in, hydro_source &hydro_source_in);
+    Init(const EOS &eos, InitData &DATA_in, HydroSource &hydro_source_in);
 
     void InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                    SCGrid &arena_future);

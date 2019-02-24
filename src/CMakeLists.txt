@@ -8,6 +8,9 @@ set (SOURCES
     music.cpp
     cornelius.cpp
     hydro_source.cpp
+    hydro_source_base.cpp
+    hydro_source_strings.cpp
+    hydro_source_ampt.cpp
     pretty_ostream.cpp
     freeze.cpp
     grid_info.cpp

@@ -21,7 +21,7 @@ using Util::map_1d_idx_to_2d;
 using Util::hbarc;
 
 Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
-                 hydro_source &hydro_source_in) :
+                 HydroSource &hydro_source_in) :
     DATA(DATA_in), eos(eosIn),
     hydro_source_terms(hydro_source_in),
     diss_helper(eosIn, DATA_in),
