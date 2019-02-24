@@ -22,8 +22,11 @@ struct parton {
 
 class HydroSourceAMPT : public HydroSourceBase {
  private:
+    const InitData &DATA;
+    double parton_quench_factor;
     std::vector<std::shared_ptr<parton>> parton_list;
     std::vector<std::shared_ptr<parton>> parton_list_current_tau;
+
  public:
     HydroSourceAMPT() = default;
     HydroSourceAMPT(const InitData &DATA_in);
