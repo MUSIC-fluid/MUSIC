@@ -10,7 +10,6 @@ class EOS_hotQCD : public EOS_base {
    
  public:
     EOS_hotQCD();
-    ~EOS_hotQCD() {}
     
     void initialize_eos();
     double p_e_func       (double e, double rhob) const;

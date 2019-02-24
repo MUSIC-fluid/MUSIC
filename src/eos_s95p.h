@@ -11,7 +11,6 @@ class EOS_s95p : public EOS_base {
    
  public:
     EOS_s95p(const int eos_id_in);
-    ~EOS_s95p() {}
     
     void initialize_eos();
     double p_e_func       (double e, double rhob) const;
