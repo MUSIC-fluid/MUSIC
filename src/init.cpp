@@ -20,8 +20,13 @@ using std::vector;
 using std::ifstream;
 using Util::hbarc;
 
-Init::Init(const EOS &eosIn, InitData &DATA_in, HydroSource &hydro_source_in) :
-    DATA(DATA_in), eos(eosIn) , hydro_source_terms(hydro_source_in) {}
+
+Init::Init(const EOS &eosIn, InitData &DATA_in,
+           std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
+    DATA(DATA_in), eos(eosIn){
+    hydro_source_terms_ptr = hydro_source_ptr_in;
+}
+
 
 void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                      SCGrid &arena_future) {
@@ -92,10 +97,11 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
     } else if (DATA.Initial_profile == 13) {
-        DATA.tau0 = hydro_source_terms.get_source_tau_min() - DATA.delta_tau;
+        DATA.tau0 = (hydro_source_terms_ptr.lock()->get_source_tau_min()
+                     - DATA.delta_tau);
         DATA.tau0 = std::max(0.1, DATA.tau0);
     } else if (DATA.Initial_profile == 30) {
-        DATA.tau0 = hydro_source_terms.get_source_tau_min();
+        DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
     } else if (DATA.Initial_profile == 42) {
         // initial condition from the JETSCAPE framework
         music_message << "Using Initial_profile=" << DATA.Initial_profile 
@@ -805,13 +811,13 @@ void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
             double rhob = 0.0;
             double epsilon = 0.0;
             if (DATA.turn_on_rhob == 1) {
-                rhob = hydro_source_terms.get_hydro_rhob_source_before_tau(
+                rhob = hydro_source_terms_ptr.lock()->get_hydro_rhob_source_before_tau(
                                                 tau0, x_local, y_local, eta);
             } else {
                 rhob = 0.0;
             }
 
-            hydro_source_terms.get_hydro_energy_source_before_tau(
+            hydro_source_terms_ptr.lock()->get_hydro_energy_source_before_tau(
                                     tau0, x_local, y_local, eta, j_mu);
 
             epsilon = j_mu[0];           // 1/fm^4
