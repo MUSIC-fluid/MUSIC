@@ -2,6 +2,7 @@
 #include <string>
 #include <iomanip>
 #include <cmath>
+#include <vector>
 
 #include "./util.h"
 #include "./grid_info.h"
@@ -1252,6 +1253,17 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     } else {
         of.open(filename.str().c_str(), std::fstream::app);
     }
+    
+    ostringstream filename1;
+    filename1 << "eccentricities_evo_eta_" << eta_min
+              << "_" << eta_max << ".dat";
+    std::fstream of1;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of1.open(filename1.str().c_str(), std::fstream::out);
+        of1 << "# tau(fm)  ecc_1  ecc_2  ecc_3  ecc_4  ecc_5  ecc_6"<< endl;
+    } else {
+        of1.open(filename1.str().c_str(), std::fstream::app);
+    }
 
     double ideal_num1 = 0.0;
     double ideal_num2 = 0.0;
@@ -1274,6 +1286,11 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double u_perp_den = 0.0;
     double T_avg_num  = 0.0;
     double T_avg_den  = 0.0;
+    
+    const int norder = 6;
+    std::vector<double> eccn_num1(norder, 0.0);
+    std::vector<double> eccn_num2(norder, 0.0);
+    std::vector<double> eccn_den (norder, 0.0);
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
         if (DATA.boost_invariant == 0) {
@@ -1347,6 +1364,13 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 u_perp_den += weight_local;
                 T_avg_num  += weight_local*T_local;
                 T_avg_den  += weight_local;
+                
+                for (int i = 1; i <= norder; i++) {
+                    weight_local    = gamma_perp*e_local*pow(r_local, i);
+                    eccn_num1[i-1] += weight_local*cos(i*phi_local);
+                    eccn_num2[i-1] += weight_local*sin(i*phi_local);
+                    eccn_den [i-1] += weight_local;
+                }
             }
         }
     }
@@ -1364,4 +1388,14 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
        << ecc2 << "  " << ecc3 << "  " << R_Pi << "  " << u_avg << "  "
        << T_avg << endl;
     of.close();
+    
+    of1 << scientific << setw(18) << setprecision(8)
+        << tau << "  ";
+    for (int i = 0; i < norder; i++) {
+        double eccn = sqrt(  eccn_num1[i]*eccn_num1[i]
+                           + eccn_num2[i]*eccn_num2[i])/eccn_den[i];
+        of1 << eccn << "  ";
+    }
+    of1 << endl;
+    of1.close();
 }
