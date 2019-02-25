@@ -61,7 +61,7 @@ class HydroSourceBase {
                                             const double y,
                                             const double eta_s) const;
 
-    virtual void prepare_list_for_current_tau_frame(double tau_local) {}
+    virtual void prepare_list_for_current_tau_frame(const double tau_local) {}
 };
 
 #endif  // SRC_HYDRO_SOURCE_BASE_H_
