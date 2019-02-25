@@ -5,18 +5,20 @@
 #include <stdio.h>
 #include <vector>
 #include <cmath>
+#include <memory>
+
 #include "data.h"
 #include "cell.h"
 #include "grid.h"
 #include "eos.h"
-#include "hydro_source.h"
+#include "hydro_source_base.h"
 #include "pretty_ostream.h"
 
 class Init {
  private:
     InitData &DATA;
     const EOS &eos;
-    HydroSource &hydro_source_terms;
+    std::weak_ptr<HydroSourceBase> hydro_source_terms_ptr;
     pretty_ostream music_message;
         
     // support for JETSCAPE
@@ -38,7 +40,8 @@ class Init {
     std::vector<double> jetscape_initial_bulk_pi;
 
  public:
-    Init(const EOS &eos, InitData &DATA_in, HydroSource &hydro_source_in);
+    Init(const EOS &eos, InitData &DATA_in,
+         std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
 
     void InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                    SCGrid &arena_future);

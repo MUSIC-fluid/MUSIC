@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <memory>
 
 #include "util.h"
 #include "data.h"
@@ -21,12 +22,13 @@ using Util::map_1d_idx_to_2d;
 using Util::hbarc;
 
 Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
-                 HydroSource &hydro_source_in) :
+                 std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
     DATA(DATA_in), eos(eosIn),
-    hydro_source_terms(hydro_source_in),
     diss_helper(eosIn, DATA_in),
     minmod(DATA_in),
     reconst_helper(eos, DATA_in) {
+
+    hydro_source_terms_ptr = hydro_source_ptr_in;
     if (DATA_in.Initial_profile == 13 || DATA_in.Initial_profile == 30) {
         flag_add_hydro_source = true;
     } else {
@@ -101,14 +103,14 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
         EnergyFlowVec j_mu = {0};
         FlowVec u_local = arena_current(ix,iy,ieta).u;
 
-        hydro_source_terms.get_hydro_energy_source(
+        hydro_source_terms_ptr.lock()->get_hydro_energy_source(
                     tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
         for (int ii = 0; ii < 4; ii++) {
             qi_source[ii] = tau_rk*j_mu[ii];
         }
 
         if (DATA.turn_on_rhob == 1) {
-            qi_source[4] = tau_rk*hydro_source_terms.get_hydro_rhob_source(
+            qi_source[4] = tau_rk*hydro_source_terms_ptr.lock()->get_hydro_rhob_source(
                             tau_rk, x_local, y_local, eta_s_local, u_local);
         }
     }

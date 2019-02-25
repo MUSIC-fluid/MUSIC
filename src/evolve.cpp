@@ -22,14 +22,16 @@
 using Util::hbarc;
 
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
-               HydroSource &hydro_source_in) :
-    eos(eosIn), DATA(DATA_in), hydro_source_terms(hydro_source_in),
-    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_in),
+               std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
+    eos(eosIn), DATA(DATA_in),
+    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in),
     u_derivative(DATA_in, eosIn) {
+
     rk_order  = DATA_in.rk_order;
     if (DATA.freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
     }
+    hydro_source_terms_ptr = hydro_source_ptr_in;
 }
 
 // master control function for hydrodynamic evolution
@@ -59,7 +61,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     int it_start = 0;
     double source_tau_max = 0.0;
     if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
-        source_tau_max = hydro_source_terms.get_source_tau_max();
+        source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
     }
 
     const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
@@ -75,7 +77,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         tau = tau0 + dt*it;
 
         if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
-            hydro_source_terms.prepare_list_for_current_tau_frame(tau);
+            hydro_source_terms_ptr.lock()->prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
         if (it == it_start) {

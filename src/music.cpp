@@ -12,29 +12,60 @@
 #include "evolve.h"
 #include "dissipative.h"
 #include "data_struct.h"
+#include "hydro_source_strings.h"
+#include "hydro_source_ampt.h"
 
 using std::vector;
 
 MUSIC::MUSIC(std::string input_file) : 
     DATA(ReadInParameters::read_in_parameters(input_file)),
-    eos(DATA.whichEOS),
-    hydro_source_terms(DATA) {
-    mode = DATA.mode;
-    flag_hydro_run = 0;
+    eos(DATA.whichEOS) {
+
+    mode                   = DATA.mode;
+    flag_hydro_run         = 0;
     flag_hydro_initialized = 0;
-    hydro_info_ptr = nullptr;
+    
+    // setup hydro evolution information
+    hydro_info_ptr         = nullptr;
     if (DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
     }
+    
+    // setup source terms
+    hydro_source_terms_ptr = nullptr;
+    generate_hydro_source_terms();
 }
 
 
 MUSIC::~MUSIC() {
 }
 
+
+//! This function adds hydro source terms pointer
+void MUSIC::add_hydro_source_terms(
+            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) {
+    hydro_source_terms_ptr = hydro_source_ptr_in;
+}
+
+
+//! This function setup source terms from dynamical initialization
+void MUSIC::generate_hydro_source_terms() {
+    if (DATA.Initial_profile == 13) {  // MC-Glauber-LEXUS
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceStrings> (
+                                            new HydroSourceStrings (DATA));
+        add_hydro_source_terms(hydro_source_ptr);
+    } else if (DATA.Initial_profile == 30) {  // AMPT
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceAMPT> (
+                                            new HydroSourceAMPT (DATA));
+        add_hydro_source_terms(hydro_source_ptr);
+    }
+}
+
+
 void MUSIC::clean_all_the_surface_files() {
     system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 }
+
 
 //! This function change the parameter value in DATA
 void MUSIC::set_parameter(std::string parameter_name, double value) {
@@ -46,7 +77,7 @@ void MUSIC::set_parameter(std::string parameter_name, double value) {
 void MUSIC::initialize_hydro() {
     clean_all_the_surface_files();
 
-    Init initialization(eos, DATA, hydro_source_terms);
+    Init initialization(eos, DATA, hydro_source_terms_ptr);
     initialization.InitArena(arena_prev, arena_current, arena_future);
     flag_hydro_initialized = 1;
 }
@@ -54,7 +85,7 @@ void MUSIC::initialize_hydro() {
 
 //! this is a shell function to run hydro
 int MUSIC::run_hydro() {
-    Evolve evolve_local(eos, DATA, hydro_source_terms);
+    Evolve evolve_local(eos, DATA, hydro_source_terms_ptr);
 
     if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
@@ -118,7 +149,7 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
     DATA.delta_x = dx;
     DATA.delta_y = dx;
 
-    Init initialization(eos, DATA, hydro_source_terms);
+    Init initialization(eos, DATA, hydro_source_terms_ptr);
     initialization.get_jetscape_preequilibrium_vectors(
         e_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
         pi_00_in, pi_01_in, pi_02_in, pi_03_in, pi_11_in, pi_12_in, pi_13_in,

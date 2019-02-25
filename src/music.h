@@ -9,7 +9,7 @@
 #include "grid.h"
 #include "data.h"
 #include "eos.h"
-#include "hydro_source.h"
+#include "hydro_source_base.h"
 #include "read_in_parameters.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
@@ -34,7 +34,7 @@ class MUSIC {
     SCGrid arena_current;
     SCGrid arena_future;
 
-    HydroSource hydro_source_terms;
+    std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
     std::shared_ptr<HydroinfoMUSIC> hydro_info_ptr;
 
@@ -59,7 +59,16 @@ class MUSIC {
     //! this is a shell function to run Cooper-Frye
     int run_Cooper_Frye();
 
+    //! this function adds hydro source terms pointer
+    void add_hydro_source_terms(
+            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
+    
+    //! This function setup source terms from dynamical initialization
+    void generate_hydro_source_terms();
+
+    //! This function calls routine to check EoS
     void check_eos();
+
     //! this is a test function to output the transport coefficients as
     //! function of T and mu_B
     void output_transport_coefficients();
