@@ -1247,8 +1247,8 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     std::fstream of;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of.open(filename.str().c_str(), std::fstream::out);
-        of << "# tau(fm)  epsilon_p(ideal) epsilon_p(shear) epsilon_p(full)  "
-           << "ecc_2  ecc_3  R_Pi  gamma  T[GeV]"
+        of << "# tau(fm)  epsilon_p(ideal)  epsilon_p(shear)  epsilon_p(full)  "
+           << "ecc_2  ecc_3  R_Pi  gamma  T[GeV]  epsilon_3p(ideal)"
            << endl;
     } else {
         of.open(filename.str().c_str(), std::fstream::app);
@@ -1286,6 +1286,10 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double u_perp_den = 0.0;
     double T_avg_num  = 0.0;
     double T_avg_den  = 0.0;
+
+    // compute epsilon_3 accroding to Derek's definition, arXiv:1010.1876
+    double ep3_ideal_num = 0.0;
+    double ep3_ideal_den = 0.0;
     
     const int norder = 6;
     std::vector<double> eccn_num1(norder, 0.0);
@@ -1327,11 +1331,14 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double gamma_perp   = arena(ix, iy, ieta).u[0];
                 double ux           = arena(ix, iy, ieta).u[1];
                 double uy           = arena(ix, iy, ieta).u[2];
+                double ur           = sqrt(ux*ux + uy*uy);
+                double phi_u        = atan2(uy, ux);
                 double pi_xx        = arena(ix, iy, ieta).Wmunu[4];
                 double pi_xy        = arena(ix, iy, ieta).Wmunu[5];
                 double pi_yy        = arena(ix, iy, ieta).Wmunu[7];
                 double bulk_Pi      = arena(ix, iy, ieta).pi_b;
 
+                double T_00_ideal   = (e_local + P_local)*gamma_perp*gamma_perp - P_local;
                 double T_xx_ideal   = e_local*ux*ux - P_local*(-1. - ux*ux);
                 double T_xy_ideal   = (e_local + P_local)*ux*uy;
                 double T_yy_ideal   = e_local*uy*uy - P_local*(-1. - uy*uy);
@@ -1364,12 +1371,16 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 u_perp_den += weight_local;
                 T_avg_num  += weight_local*T_local;
                 T_avg_den  += weight_local;
+
+                ep3_ideal_num += gamma_perp*(e_local + P_local)*ur*ur*ur*cos(3.*phi_u);
+                ep3_ideal_den += T_00_ideal*gamma_perp*gamma_perp;
                 
                 for (int i = 1; i <= norder; i++) {
-                    if (i == 1)
+                    if (i == 1) {
                         weight_local = gamma_perp*e_local*pow(r_local, 3);
-                    else 
+                    } else {
                         weight_local = gamma_perp*e_local*pow(r_local, i);
+                    }
                     eccn_num1[i-1] += weight_local*cos(i*phi_local);
                     eccn_num2[i-1] += weight_local*sin(i*phi_local);
                     eccn_den [i-1] += weight_local;
@@ -1386,10 +1397,12 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double u_avg    = u_perp_num/u_perp_den;
     double T_avg    = T_avg_num/T_avg_den*hbarc;
 
+    double ep3_ideal = ep3_ideal_num/ep3_ideal_den;
+
     of << scientific << setw(18) << setprecision(8)
        << tau << "  " << ep_ideal << "  " << ep_shear << "  " << ep_full << "  "
        << ecc2 << "  " << ecc3 << "  " << R_Pi << "  " << u_avg << "  "
-       << T_avg << endl;
+       << T_avg << "  " << ep3_ideal << endl;
     of.close();
     
     of1 << scientific << setw(18) << setprecision(8)
