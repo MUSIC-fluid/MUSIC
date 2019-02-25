@@ -17,7 +17,7 @@ HydroSourceStrings::HydroSourceStrings(const InitData &DATA_in) :
     set_source_tau_min(100.0);
     set_source_tau_max(0.0);
     set_sigma_tau(0.1);
-    set_sigma_x(0.5);
+    set_sigma_x  (0.5);
     set_sigma_eta(0.5);
     string_dump_mode     = DATA.string_dump_mode;
     string_quench_factor = DATA.string_quench_factor;
@@ -204,7 +204,8 @@ void HydroSourceStrings::compute_norm_for_strings() {
 }
 
 
-void HydroSourceStrings::prepare_list_for_current_tau_frame(double tau_local) {
+void HydroSourceStrings::prepare_list_for_current_tau_frame(
+                                                    const double tau_local) {
     double dtau = DATA.delta_tau;
     QCD_strings_list_current_tau.clear();
     QCD_strings_baryon_list_current_tau.clear();
@@ -246,9 +247,6 @@ void HydroSourceStrings::get_hydro_energy_source(
     const double cos_phi_flow    = u_mu[2]/gamma_perp_flow;
     const double dtau            = DATA.delta_tau;
 
-    const double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
-    const double prefactor_tau  = 1./dtau;
-    const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
     const double n_sigma_skip   = 5.;
     const double skip_dis_x     = n_sigma_skip*sigma_x;
     const double skip_dis_eta   = n_sigma_skip*sigma_eta;
@@ -399,7 +397,10 @@ void HydroSourceStrings::get_hydro_energy_source(
         }
         j_mu[0] += e_baryon_local*sfactor;
     }
-    double prefactors = prefactor_tau*prefactor_prep*prefactor_etas;
+    const double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
+    const double prefactor_tau  = 1./dtau;
+    const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+    const double prefactors = prefactor_tau*prefactor_prep*prefactor_etas;
     j_mu[0] *= prefactors;
     j_mu[1] *= prefactors;
     j_mu[2] *= prefactors;
@@ -426,9 +427,6 @@ double HydroSourceStrings::get_hydro_rhob_source(
 
     const double exp_tau        = 1.0/tau;
     const double n_sigma_skip   = 5.;
-    const double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
-    const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
-    const double prefactor_tau  = 1./dtau;
     const double skip_dis_x     = n_sigma_skip*sigma_x;
     const double skip_dis_eta   = n_sigma_skip*sigma_eta;
     for (auto &it: QCD_strings_baryon_list_current_tau) {
@@ -499,6 +497,9 @@ double HydroSourceStrings::get_hydro_rhob_source(
             res += p_dot_u*fsmear;
         }
     }
+    const double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
+    const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+    const double prefactor_tau  = 1./dtau;
     res *= prefactor_tau*prefactor_prep*prefactor_etas;
     return(res);
 }

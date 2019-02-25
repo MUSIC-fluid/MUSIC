@@ -135,7 +135,8 @@ void HydroSourceAMPT::read_in_AMPT_partons() {
 }
 
 
-void HydroSourceAMPT::prepare_list_for_current_tau_frame(double tau_local) {
+void HydroSourceAMPT::prepare_list_for_current_tau_frame(
+                                                const double tau_local) {
     double dtau = DATA.delta_tau;
     parton_list_current_tau.clear();
     for (auto &it: parton_list) {

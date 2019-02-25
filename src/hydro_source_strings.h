@@ -56,7 +56,7 @@ class HydroSourceStrings : public HydroSourceBase {
                                  const double y, const double eta_s,
                                  const FlowVec &u_mu) const ;
 
-    void prepare_list_for_current_tau_frame(double tau_local);
+    void prepare_list_for_current_tau_frame(const double tau_local);
     void compute_norm_for_strings();
 };
 
