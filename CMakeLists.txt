@@ -45,7 +45,6 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 option (KNL "Build executable on KNL" OFF)
 option (unittest "Build Unit tests" OFF)
-option (build_lib "Build binary library" OFF)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
     if (KNL)
