@@ -1366,7 +1366,10 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 T_avg_den  += weight_local;
                 
                 for (int i = 1; i <= norder; i++) {
-                    weight_local    = gamma_perp*e_local*pow(r_local, i);
+                    if (i == 1)
+                        weight_local = gamma_perp*e_local*pow(r_local, 3);
+                    else 
+                        weight_local = gamma_perp*e_local*pow(r_local, i);
                     eccn_num1[i-1] += weight_local*cos(i*phi_local);
                     eccn_num2[i-1] += weight_local*sin(i*phi_local);
                     eccn_den [i-1] += weight_local;
