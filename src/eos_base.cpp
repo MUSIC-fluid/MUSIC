@@ -137,8 +137,8 @@ double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob) const {
 
 
 double EOS_base::get_dpOverde3(double e, double rhob) const {
-   double eLeft = 0.9*e;
-   double eRight = 1.1*e;
+   double eLeft = 0.99*e;
+   double eRight = 1.01*e;
 
    double pL = get_pressure(eLeft, rhob);   // 1/fm^4
    double pR = get_pressure(eRight, rhob);  // 1/fm^4
