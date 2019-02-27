@@ -9,8 +9,8 @@
 using std::stringstream;
 using std::string;
 
-EOS_hotQCD::EOS_hotQCD() {
-    set_EOS_id(9);
+EOS_hotQCD::EOS_hotQCD(const int eos_id_in) : eos_id(eos_id_in) {
+    set_EOS_id(eos_id);
     set_number_of_tables(0);
     set_eps_max(1e5);
     set_flag_muB(false);
@@ -39,8 +39,14 @@ void EOS_hotQCD::initialize_eos() {
     pressure_tb    = new double** [ntables];
     temperature_tb = new double** [ntables];
     for (int itable = 0; itable < ntables; itable++) {
-        std::ifstream eos_file(path + "/hrg_hotqcd_eos_binary.dat",
-                               std::ios::binary);
+        std::ifstream eos_file;
+        if (eos_id == 9) {
+            eos_file.open(path + "/hrg_hotqcd_eos_binary.dat",
+                          std::ios::binary);
+        } else if (eos_id == 91) {
+            eos_file.open(path + "/hrg_hotqcd_eos_SMASH_binary.dat",
+                          std::ios::binary);
+        }
         
         if (!eos_file) {
             music_message.error("Can not find the EoS file.");
