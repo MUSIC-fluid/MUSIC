@@ -10,13 +10,11 @@
 Reconst::Reconst(const EOS &eosIn, const int echo_level_in) :
     eos(eosIn),
     max_iter(100),
-    rel_err(1e-9),
-    abs_err(1e-10),
+    rel_err(1e-15),
+    abs_err(1e-16),
     LARGE(1e20),
-    v_critical(0.563624) {
-    eos_eps_max = eos.get_eps_max();
-    echo_level = echo_level_in;
-}
+    v_critical(0.563624),
+    echo_level(echo_level_in) {}
 
 ReconstCell Reconst::ReconstIt_shell(double tau, const TJbVec &tauq_vec,
                                      const Cell_small &grid_pt) {
@@ -155,7 +153,7 @@ void Reconst::regulate_grid(ReconstCell &grid_cell, double elocal) const {
 int Reconst::solve_velocity_Newton(const double v_guess, const double T00,
                                    const double M, const double J0,
                                    double &v_solution) {
-    int v_status      = 1;
+    int v_status       = 1;
     int iter           = 0;
     double rel_error_v = 10.0;
     double abs_error_v = 10.0;

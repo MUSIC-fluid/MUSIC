@@ -14,7 +14,6 @@
 class Reconst {
  private:
     const EOS &eos;
-    double eos_eps_max;
     pretty_ostream music_message;
 
     const int max_iter;
@@ -23,8 +22,8 @@ class Reconst {
 
     const double LARGE;
 
-    int echo_level;
     const double v_critical;
+    const int echo_level;
 
  public:
     Reconst() = default;
@@ -32,6 +31,11 @@ class Reconst {
 
     ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,
                                 const Cell_small &grid_pt);
+
+    int get_max_iter() const {return(max_iter);}
+    int get_echo_level() const {return(echo_level);}
+    double get_abs_err() const {return(abs_err);}
+    double get_v_critical() const {return(v_critical);}
 
     void revert_grid(ReconstCell &grid_current,
                      const Cell_small &grid_prev) const;
