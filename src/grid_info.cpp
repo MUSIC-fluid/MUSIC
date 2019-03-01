@@ -1248,7 +1248,12 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of.open(filename.str().c_str(), std::fstream::out);
         of << "# tau(fm)  epsilon_p(ideal)  epsilon_p(shear)  epsilon_p(full)  "
-           << "ecc_2  ecc_3  R_Pi  gamma  T[GeV]  epsilon_3p(ideal)"
+           << "epsilon_2p(ideal)(cos)  epsilon_2p(ideal)(sin)  "
+           << "epsilon_2p(shear)(cos)  epsilon_2p(shear)(sin)  "
+           << "epsilon_2p(full)(cos)  epsilon_2p(full)(sin)  "
+           << "epsilon_3p(ideal)(cos)  epsilon_3p(ideal)(sin)  "
+           << "epsilon_3p(shear)(cos)  epsilon_3p(shear)(sin)  "
+           << "epsilon_3p(full)(cos)  epsilon_3p(full)(sin)  "
            << endl;
     } else {
         of.open(filename.str().c_str(), std::fstream::app);
@@ -1260,9 +1265,20 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     std::fstream of1;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of1.open(filename1.str().c_str(), std::fstream::out);
-        of1 << "# tau(fm)  ecc_1  ecc_2  ecc_3  ecc_4  ecc_5  ecc_6"<< endl;
+        of1 << "# tau(fm)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
     } else {
         of1.open(filename1.str().c_str(), std::fstream::app);
+    }
+    
+    ostringstream filename2;
+    filename << "inverse_Reynolds_number_eta_" << eta_min
+             << "_" << eta_max << ".dat";
+    std::fstream of2;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of2.open(filename2.str().c_str(), std::fstream::out);
+        of2 << "# tau(fm)  R_Pi  gamma  T[GeV]" << endl;
+    } else {
+        of2.open(filename2.str().c_str(), std::fstream::app);
     }
 
     double ideal_num1 = 0.0;
@@ -1274,12 +1290,6 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double full_num1  = 0.0;
     double full_num2  = 0.0;
     double full_den   = 0.0;
-    double ecc2_num1  = 0.0;
-    double ecc2_num2  = 0.0;
-    double ecc2_den   = 0.0;
-    double ecc3_num1  = 0.0;
-    double ecc3_num2  = 0.0;
-    double ecc3_den   = 0.0;
     double R_Pi_num   = 0.0;
     double R_Pi_den   = 0.0;
     double u_perp_num = 0.0;
@@ -1287,9 +1297,12 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double T_avg_num  = 0.0;
     double T_avg_den  = 0.0;
 
-    // compute epsilon_3 accroding to Derek's definition, arXiv:1010.1876
-    double ep3_ideal_num = 0.0;
-    double ep3_ideal_den = 0.0;
+    // compute epsilon_{p2} and epsilon_{p3} using T^{0\mu} vector
+    // epsilon_{pn} = (\int (T^{0r} exp(i n \phi_u))/(\int T^{0r})
+    // for every n, we compute T^{0\mu} for ideal, ideal + shear, and full
+    std::vector<double> ep_num1(6, 0.0);
+    std::vector<double> ep_num2(6, 0.0);
+    std::vector<double> ep_den (6, 0.0);
     
     const int norder = 6;
     std::vector<double> eccn_num1(norder, 0.0);
@@ -1324,62 +1337,85 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double r_local   = sqrt(x_local*x_local + y_local*y_local);
                 double phi_local = atan2(y_local, x_local);
 
-                double e_local      = arena(ix, iy, ieta).epsilon;  // 1/fm^4
-                double rhob_local   = arena(ix, iy, ieta).rhob;     // 1/fm^3
-                double P_local      = eos.get_pressure(e_local, rhob_local);
-                double T_local      = eos.get_temperature(e_local, rhob_local);
-                double gamma_perp   = arena(ix, iy, ieta).u[0];
-                double ux           = arena(ix, iy, ieta).u[1];
-                double uy           = arena(ix, iy, ieta).u[2];
-                double ur           = sqrt(ux*ux + uy*uy);
-                double phi_u        = atan2(uy, ux);
-                double pi_xx        = arena(ix, iy, ieta).Wmunu[4];
-                double pi_xy        = arena(ix, iy, ieta).Wmunu[5];
-                double pi_yy        = arena(ix, iy, ieta).Wmunu[7];
-                double bulk_Pi      = arena(ix, iy, ieta).pi_b;
+                double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+                double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
+                double P_local    = eos.get_pressure(e_local, rhob_local);
+                double enthopy    = e_local + P_local;
+                double T_local    = eos.get_temperature(e_local, rhob_local);
+                double u0         = arena(ix, iy, ieta).u[0];
+                double ux         = arena(ix, iy, ieta).u[1];
+                double uy         = arena(ix, iy, ieta).u[2];
+                double pi_0x      = arena(ix, iy, ieta).Wmunu[1];
+                double pi_0y      = arena(ix, iy, ieta).Wmunu[2];
+                double pi_xx      = arena(ix, iy, ieta).Wmunu[4];
+                double pi_xy      = arena(ix, iy, ieta).Wmunu[5];
+                double pi_yy      = arena(ix, iy, ieta).Wmunu[7];
+                double bulk_Pi    = arena(ix, iy, ieta).pi_b;
 
-                double T_00_ideal   = (e_local + P_local)*gamma_perp*gamma_perp - P_local;
-                double T_xx_ideal   = e_local*ux*ux - P_local*(-1. - ux*ux);
-                double T_xy_ideal   = (e_local + P_local)*ux*uy;
-                double T_yy_ideal   = e_local*uy*uy - P_local*(-1. - uy*uy);
-                double T_xx_full    = T_xx_ideal + pi_xx - bulk_Pi*(-1 - ux*ux);
-                double T_xy_full    = T_xy_ideal + pi_xy + bulk_Pi*ux*uy;
-                double T_yy_full    = T_yy_ideal + pi_yy - bulk_Pi*(-1 - uy*uy);
+                double T_0x_ideal   = enthopy*u0*ux;
+                double T_0y_ideal   = enthopy*u0*uy;
+                double T_0r_ideal   = sqrt(T_0x_ideal*T_0x_ideal
+                                           + T_0y_ideal*T_0y_ideal);
+                double phi_u_ideal  = atan2(T_0y_ideal, T_0x_ideal);
+                double T_xx_ideal   = enthopy*ux*ux + P_local;
+                double T_xy_ideal   = enthopy*ux*uy;
+                double T_yy_ideal   = enthopy*uy*uy + P_local;
+                
+                double T_0x_shear   = T_0x_ideal + pi_0x;
+                double T_0y_shear   = T_0y_ideal + pi_0y;
+                double T_0r_shear   = sqrt(  T_0x_shear*T_0x_shear
+                                           + T_0y_shear*T_0y_shear);
+                double phi_u_shear  = atan2(T_0y_shear, T_0x_shear);
                 double T_xx_shear   = T_xx_ideal + pi_xx;
                 double T_xy_shear   = T_xy_ideal + pi_xy;
                 double T_yy_shear   = T_yy_ideal + pi_yy;
+
+                double T_0x_full    = T_0x_shear + bulk_Pi*u0*ux;
+                double T_0y_full    = T_0x_shear + bulk_Pi*u0*uy;
+                double T_0r_full    = sqrt(  T_0x_full*T_0x_full
+                                          + T_0y_full*T_0y_full);
+                double phi_u_full   = atan2(T_0y_full, T_0x_full);
+                double T_xx_full    = T_xx_shear - bulk_Pi*(-1 - ux*ux);
+                double T_xy_full    = T_xy_shear + bulk_Pi*ux*uy;
+                double T_yy_full    = T_yy_shear - bulk_Pi*(-1 - uy*uy);
+
                 double weight_local = e_local;
 
                 ideal_num1 += weight_local*(T_xx_ideal - T_yy_ideal);
                 ideal_num2 += weight_local*(2.*T_xy_ideal);
                 ideal_den  += weight_local*(T_xx_ideal + T_yy_ideal);
-                full_num1  += weight_local*(T_xx_full - T_yy_full);
-                full_num2  += weight_local*(2.*T_xy_full);
-                full_den   += weight_local*(T_xx_full + T_yy_full);
                 shear_num1 += weight_local*(T_xx_shear - T_yy_shear);
                 shear_num2 += weight_local*(2.*T_xy_shear);
                 shear_den  += weight_local*(T_xx_shear + T_yy_shear);
-                ecc2_num1  += gamma_perp*e_local*r_local*r_local*cos(2.*phi_local);
-                ecc2_num2  += gamma_perp*e_local*r_local*r_local*sin(2.*phi_local);
-                ecc3_num1  += gamma_perp*e_local*r_local*r_local*r_local*cos(3.*phi_local);
-                ecc3_num2  += gamma_perp*e_local*r_local*r_local*r_local*sin(3.*phi_local);
-                ecc2_den   += gamma_perp*e_local*r_local*r_local;
-                ecc3_den   += gamma_perp*e_local*r_local*r_local*r_local;
+                full_num1  += weight_local*(T_xx_full - T_yy_full);
+                full_num2  += weight_local*(2.*T_xy_full);
+                full_den   += weight_local*(T_xx_full + T_yy_full);
+
                 R_Pi_num   += weight_local*bulk_Pi/P_local;
                 R_Pi_den   += weight_local;
-                u_perp_num += weight_local*gamma_perp;
+                u_perp_num += weight_local*u0;
                 u_perp_den += weight_local;
                 T_avg_num  += weight_local*T_local;
                 T_avg_den  += weight_local;
 
-                ep3_ideal_num += gamma_perp*(e_local + P_local)*ur*ur*ur*cos(3.*phi_u);
-                ep3_ideal_den += T_00_ideal*gamma_perp*gamma_perp;
-                
+                for (int i = 0; i < 2; i++) {
+                    int idx = 3*i;
+                    int iorder = 2+i;
+                    ep_num1[idx]   += T_0r_ideal*cos(iorder*phi_u_ideal);
+                    ep_num2[idx]   += T_0r_ideal*sin(iorder*phi_u_ideal);
+                    ep_den [idx]   += T_0r_ideal;
+                    ep_num1[idx+1] += T_0r_shear*cos(iorder*phi_u_shear);
+                    ep_num2[idx+1] += T_0r_shear*sin(iorder*phi_u_shear);
+                    ep_den [idx+1] += T_0r_shear;
+                    ep_num1[idx+2] += T_0r_full*cos(iorder*phi_u_full);
+                    ep_num2[idx+2] += T_0r_full*sin(iorder*phi_u_full);
+                    ep_den [idx+2] += T_0r_full;
+                }
                 for (int i = 1; i <= norder; i++) {
                     if (i == 1) {
-                        weight_local = gamma_perp*e_local*pow(r_local, 3);
+                        weight_local = u0*e_local*pow(r_local, 3);
                     } else {
-                        weight_local = gamma_perp*e_local*pow(r_local, i);
+                        weight_local = u0*e_local*pow(r_local, i);
                     }
                     eccn_num1[i-1] += weight_local*cos(i*phi_local);
                     eccn_num2[i-1] += weight_local*sin(i*phi_local);
@@ -1391,27 +1427,30 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double ep_ideal = sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)/ideal_den;
     double ep_full  = sqrt(full_num1*full_num1 + full_num2*full_num2)/full_den;
     double ep_shear = sqrt(shear_num1*shear_num1 + shear_num2*shear_num2)/shear_den;
-    double ecc2     = sqrt(ecc2_num1*ecc2_num1 + ecc2_num2*ecc2_num2)/ecc2_den;
-    double ecc3     = sqrt(ecc3_num1*ecc3_num1 + ecc3_num2*ecc3_num2)/ecc3_den;
     double R_Pi     = R_Pi_num/R_Pi_den;
     double u_avg    = u_perp_num/u_perp_den;
     double T_avg    = T_avg_num/T_avg_den*hbarc;
 
-    double ep3_ideal = ep3_ideal_num/ep3_ideal_den;
-
     of << scientific << setw(18) << setprecision(8)
-       << tau << "  " << ep_ideal << "  " << ep_shear << "  " << ep_full << "  "
-       << ecc2 << "  " << ecc3 << "  " << R_Pi << "  " << u_avg << "  "
-       << T_avg << "  " << ep3_ideal << endl;
+       << tau << "  " << ep_ideal << "  " << ep_shear << "  "
+       << ep_full << "  ";
+    for (int i = 0; i < 6; i++) {
+        of << ep_num1[i]/ep_den[i] << "  " << ep_num2[i]/ep_den[i] << "  ";
+    }
+    of << endl;
     of.close();
     
     of1 << scientific << setw(18) << setprecision(8)
         << tau << "  ";
     for (int i = 0; i < norder; i++) {
-        double eccn = sqrt(  eccn_num1[i]*eccn_num1[i]
-                           + eccn_num2[i]*eccn_num2[i])/eccn_den[i];
-        of1 << eccn << "  ";
+        // the minus sign ensure the vector points to the short axis
+        of1 << -eccn_num1[i]/eccn_den[i] << "  "
+            << -eccn_num2[i]/eccn_den[i] << "  ";
     }
     of1 << endl;
     of1.close();
+    
+    of2 << scientific << setw(18) << setprecision(8)
+        << tau << "  " << R_Pi << "  " << u_avg << "  " << T_avg << endl;
+    of2.close();
 }
