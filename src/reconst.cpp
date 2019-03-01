@@ -2,22 +2,20 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
-#include "data.h"
 #include "cell.h"
 #include "grid.h"
 #include "eos.h"
 #include "reconst.h"
 
-Reconst::Reconst(const EOS &eosIn, const InitData &DATA_in) :
+Reconst::Reconst(const EOS &eosIn, const int echo_level_in) :
     eos(eosIn),
-    DATA(DATA_in),
     max_iter(100),
     rel_err(1e-9),
     abs_err(1e-10),
     LARGE(1e20),
     v_critical(0.563624) {
     eos_eps_max = eos.get_eps_max();
-    echo_level = DATA.echo_level;
+    echo_level = echo_level_in;
 }
 
 ReconstCell Reconst::ReconstIt_shell(double tau, const TJbVec &tauq_vec,
@@ -129,7 +127,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
 
     // Correcting normalization of 4-velocity
     double u_mag_sq = u[1]*u[1] + u[2]*u[2] + u[3]*u[3];
-    if (fabs(u[0]*u[0] - u_mag_sq - 1.0) > abs_err) {
+    if (std::abs(u[0]*u[0] - u_mag_sq - 1.0) > abs_err) {
         double scalef = sqrt((u[0]*u[0] - 1.)/(u_mag_sq + abs_err));
         u[1] *= scalef;
         u[2] *= scalef;
@@ -176,7 +174,7 @@ int Reconst::solve_velocity_Newton(const double v_guess, const double T00,
             v_status = 0;
             break;
         }
-    } while (fabs(abs_error_v) > abs_err && fabs(rel_error_v) > rel_err);
+    } while (std::abs(abs_error_v) > abs_err && std::abs(rel_error_v) > rel_err);
 
     v_solution = v_next;
     if (v_status == 0 && echo_level > 5) {
@@ -214,7 +212,7 @@ int Reconst::solve_u0_Newton(const double u0_guess, const double T00,
             u0_status = 0;
             break;
         }
-    } while (fabs(abs_error_u0) > abs_err && fabs(rel_error_u0) > rel_err);
+    } while (std::abs(abs_error_u0) > abs_err && std::abs(rel_error_u0) > rel_err);
 
     u0_solution = u0_next;
     if (u0_status == 0 && echo_level > 5) {

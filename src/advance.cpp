@@ -26,7 +26,7 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
     DATA(DATA_in), eos(eosIn),
     diss_helper(eosIn, DATA_in),
     minmod(DATA_in),
-    reconst_helper(eos, DATA_in) {
+    reconst_helper(eos, DATA_in.echo_level) {
 
     hydro_source_terms_ptr = hydro_source_ptr_in;
     if (DATA_in.Initial_profile == 13 || DATA_in.Initial_profile == 30) {

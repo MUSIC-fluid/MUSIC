@@ -5,7 +5,6 @@
 #include <array>
 #include <iostream>
 #include "util.h"
-#include "data.h"
 #include "cell.h"
 #include "grid.h"
 #include "eos.h"
@@ -15,7 +14,6 @@
 class Reconst {
  private:
     const EOS &eos;
-    const InitData &DATA;
     double eos_eps_max;
     pretty_ostream music_message;
 
@@ -30,7 +28,7 @@ class Reconst {
 
  public:
     Reconst() = default;
-    Reconst(const EOS &eos, const InitData &DATA_in);
+    Reconst(const EOS &eos, const int echo_level_in);
 
     ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,
                                 const Cell_small &grid_pt);
