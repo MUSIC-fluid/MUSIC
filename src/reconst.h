@@ -58,6 +58,10 @@ class Reconst {
                         const double K00, const double M, const double J0,
                         double &u0_solution);
 
+    int solve_u0_Hybrid(const double u0_guess, const double T00,
+                        const double K00, const double M, const double J0,
+                        double &u0_solution);
+
     void regulate_grid(ReconstCell &grid_cell, double elocal) const;
 };
 
