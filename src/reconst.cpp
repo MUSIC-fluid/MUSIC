@@ -10,7 +10,7 @@
 Reconst::Reconst(const EOS &eosIn, const int echo_level_in) :
     eos(eosIn),
     max_iter(100),
-    rel_err(1e-15),
+    rel_err(1e-16),
     abs_err(1e-16),
     LARGE(1e20),
     v_critical(0.563624),
