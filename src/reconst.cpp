@@ -188,6 +188,89 @@ int Reconst::solve_velocity_Newton(const double v_guess, const double T00,
 }
 
 
+int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
+                            const double M, const double J0,
+                            double &v_solution) {
+    int v_status = 1;
+    double v_l = 0.0;
+    double v_h = 1.0;
+    double fv_l, fv_h;
+    double dfdv_l, dfdv_h;
+    reconst_velocity_fdf(v_l, T00, M, J0, fv_l, dfdv_l);
+    reconst_velocity_fdf(v_h, T00, M, J0, fv_h, dfdv_h);
+    if (std::abs(fv_l) < abs_err) {
+        v_solution = v_l;
+        return(1);
+    }
+    if (std::abs(fv_h) < abs_err) {
+        v_solution = v_h;
+        return(1);
+    }
+
+    if (fv_l*fv_h > 0.) {
+        v_status = 0;
+        music_message.error(
+                "Reconst velocity Hybrid:: can not find solution!");
+        return(v_status);
+    }
+
+    double dv_prev = v_h - v_l;
+    double dv_curr = dv_prev;
+    double v_root = (v_h + v_l)/2.;
+    double fv, dfdv;
+    reconst_velocity_fdf(v_root, T00, M, J0, fv, dfdv);
+    double abs_error_v = 10.0;
+    double rel_error_v = 10.0;
+    int iter_v = 0;
+    do {
+        //std::cout << iter_v << " " << v_root << " " << v_l << " "
+        //          << v_h << " " << fv << " " << dfdv << std::endl;
+        iter_v++;
+        if (((v_root - v_h)*dfdv - fv)*((v_root - v_l)*dfdv - fv) > 0.
+            || (std::abs(2.*fv) > std::abs(dv_prev*dfdv))) {
+            dv_prev = dv_curr;
+            dv_curr = (v_h - v_l)/2.;
+            v_root  = v_l + dv_curr;
+        } else {
+            dv_prev = dv_curr;
+            dv_curr = fv/dfdv;
+            v_root  = v_root - dv_curr;
+        }
+        abs_error_v = dv_curr;
+        rel_error_v = abs_error_v/(v_root + abs_err);
+        reconst_velocity_fdf(v_root, T00, M, J0, fv, dfdv);
+        if (fv*fv_l < 0.) {
+            v_h  = v_root;
+            fv_h = fv;
+        } else {
+            v_l  = v_root;
+            fv_l = fv;
+        }
+        if (iter_v > max_iter) {
+            v_status = 0;
+            break;
+        }
+    } while ((   std::abs(abs_error_v) > abs_err
+              && std::abs(rel_error_v) > rel_err)
+             || (std::abs(fv) > abs_err
+                 && std::abs(fv/(v_root + abs_err) > rel_err)));
+    v_solution = v_root;
+
+    if (v_status == 0 && echo_level > 5) {
+        music_message.warning(
+                "Reconst velocity Hybrid:: can not find solution!");
+        music_message.warning(
+                "output the results at the last iteration:");
+        music_message.warning("iter  [lower, upper]  root  err(est)");
+        music_message << iter_v << "   [" << v_l << ",  "
+                      << v_h << "]  " << abs_error_v << "  "
+                      << rel_error_v;
+        music_message.flush("warning");
+    }
+    return(v_status);
+}
+
+
 int Reconst::solve_u0_Newton(const double u0_guess, const double T00,
                              const double K00, const double M, const double J0,
                              double &u0_solution) {
@@ -257,13 +340,15 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
     double du0_prev = u0_h - u0_l;
     double du0_curr = du0_prev;
     double u0_root = (u0_h + u0_l)/2.;
+    double fu0, dfdu0;
+    reconst_u0_fdf(u0_root, T00, K00, M, J0, fu0, dfdu0);
     double abs_error_u0 = 10.0;
     double rel_error_u0 = 10.0;
-    double fu0, dfdu0;
     int iter_u0 = 0;
     do {
+        //std::cout << iter_u0 << " " << u0_root << " " << u0_l << " "
+        //          << u0_h << " " << fu0 << " " << dfdu0 << std::endl;
         iter_u0++;
-        reconst_u0_fdf(u0_root, T00, K00, M, J0, fu0, dfdu0);
         if (((u0_root - u0_h)*dfdu0 - fu0)*((u0_root - u0_l)*dfdu0 - fu0) > 0.
             || (std::abs(2.*fu0) > std::abs(du0_prev*dfdu0))) {
             du0_prev = du0_curr;
@@ -274,6 +359,7 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
             du0_curr = fu0/dfdu0;
             u0_root  = u0_root - du0_curr;
         }
+        reconst_u0_fdf(u0_root, T00, K00, M, J0, fu0, dfdu0);
         abs_error_u0 = du0_curr;
         rel_error_u0 = du0_curr/u0_root;
         if (fu0*fu0_l < 0.) {
@@ -287,11 +373,9 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
             u0_status = 0;
             break;
         }
-        //std::cout << iter_u0 << " " << u0_root << " " << u0_l << " "
-        //          << u0_h << " " << fu0 << " " << dfdu0 << std::endl;
-    } while (   std::abs(abs_error_u0) > abs_err
-             && std::abs(rel_error_u0) > rel_err
-             && std::abs(fu0) > abs_err);
+    } while ((   std::abs(abs_error_u0) > abs_err
+              && std::abs(rel_error_u0) > rel_err)
+             || (std::abs(fu0) > abs_err && std::abs(fu0)/u0_root > rel_err));
     u0_solution = u0_root;
 
     if (u0_status == 0 && echo_level > 5) {

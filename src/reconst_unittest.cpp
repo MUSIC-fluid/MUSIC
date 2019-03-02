@@ -86,6 +86,77 @@ TEST_CASE("Test Newton solver v") {
     CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
 }
 
+TEST_CASE("Test hybrid solver v") {
+    EOS eos_ideal(0);
+    Reconst reconst_test(eos_ideal, 9);
+    double v_sol = 10.0;
+    reconst_test.solve_v_Hybrid(0.0, 1.0, 0.0, 0.0, v_sol);
+    CHECK(v_sol == doctest::Approx(0.0).epsilon(1e-16));
+
+    double M0 = 1.0;
+    double M = 0.5;
+    double v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));
+    std::cout << "check v = " << v_correct << std::endl;
+    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    
+    M0 = 1.0;
+    M = 0.99;
+    v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));
+    std::cout << "check v = " << v_correct << std::endl;
+    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    
+    M0 = 1.0;
+    M = 1.0 - 1e-6;
+    v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));
+    std::cout << "check v = " << v_correct << std::endl;
+    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(2e-16));
+    
+    M0 = 1.0;
+    M = 1e-6;
+    v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));
+    std::cout << "check v = " << v_correct << std::endl;
+    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    
+    M0 = 1.0;
+    M = 1.0 - 1e-10;
+    v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));
+    std::cout << "check v = " << v_correct << std::endl;
+    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    
+    M0 = 1.0;
+    M = 1e-10;
+    v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));
+    std::cout << "check v = " << v_correct << std::endl;
+    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    
+    M0 = 1e-8;
+    M = 1e-12;
+    v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));
+    std::cout << "check v = " << v_correct << std::endl;
+    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    
+    M0 = 1e-12;
+    M = 3.23e-15;
+    v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));
+    std::cout << "check v = " << v_correct << std::endl;
+    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    
+    M0 = 1e-14;
+    M = M0 - 2.43e-18;
+    v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));
+    std::cout << "check v = " << v_correct << std::endl;
+    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+}
+
 TEST_CASE("Test Newton solver u0") {
     EOS eos_ideal(0);
     Reconst reconst_test(eos_ideal, 9);
