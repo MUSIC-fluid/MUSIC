@@ -119,8 +119,7 @@ TEST_CASE("Test hybrid solver v") {
     v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));
     std::cout << "check v = " << v_correct << std::endl;
     reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
-    
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16)); 
     M0 = 1.0;
     M = 1.0 - 1e-10;
     v_correct = 3.*M/(2.*M0 + sqrt(4.*M0*M0 - 3.*M*M));

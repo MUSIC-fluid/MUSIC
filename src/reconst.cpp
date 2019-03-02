@@ -76,7 +76,8 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
         v_guess = 0.0;
     }
     double v_solution = 0.0;
-    int v_status = solve_velocity_Newton(v_guess, T00, M, J0, v_solution);
+    //int v_status = solve_velocity_Newton(v_guess, T00, M, J0, v_solution);
+    int v_status = solve_v_Hybrid(v_guess, T00, M, J0, v_solution);
     if (v_status == 0) {
         return(-1);
     }
@@ -88,7 +89,8 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     } else {  // for large velocity, solve u0
         double u0_guess = 1./sqrt(1. - v_solution*v_solution);
         double u0_solution = u0_guess;
-        int u0_status = solve_u0_Newton(u0_guess, T00, K00, M, J0, u0_solution);
+        //int u0_status = solve_u0_Newton(u0_guess, T00, K00, M, J0, u0_solution);
+        int u0_status = solve_u0_Hybrid(u0_guess, T00, K00, M, J0, u0_solution);
         if (u0_status == 0) {
             return(-1);
         }
