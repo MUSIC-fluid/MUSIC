@@ -236,7 +236,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     double u0_correct = 1./sqrt(1. - v_correct*v_correct);
     double utol = u0_correct*1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(1.0, M0, M*M, M, 0.0, u0_sol);
+    reconst_test.solve_u0_Hybrid(0.0, M0, M*M, M, 0.0, u0_sol);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
     
     M0 = 1.0;
@@ -245,7 +245,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1./sqrt(1. - v_correct*v_correct);
     utol = u0_correct*1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(1.0, M0, M*M, M, 0.0, u0_sol);
+    reconst_test.solve_u0_Hybrid(2.0, M0, M*M, M, 0.0, u0_sol);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
     
     M0 = 1.0;
@@ -263,7 +263,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1./sqrt(1. - v_correct*v_correct);
     utol = u0_correct*1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(1.0, M0, M*M, M, 0.0, u0_sol);
+    reconst_test.solve_u0_Hybrid(0.0, M0, M*M, M, 0.0, u0_sol);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
     
     M0 = 1.0;
@@ -272,7 +272,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1./sqrt(1. - v_correct*v_correct);
     utol = u0_correct*1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(1.0, M0, M*M, M, 0.0, u0_sol);
+    reconst_test.solve_u0_Hybrid(0.0, M0, M*M, M, 0.0, u0_sol);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
     
     M0 = 1e-15;
@@ -281,7 +281,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1./sqrt(1. - v_correct*v_correct);
     utol = u0_correct*1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(1.0, M0, M*M, M, 0.0, u0_sol);
+    reconst_test.solve_u0_Hybrid(0.0, M0, M*M, M, 0.0, u0_sol);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
     
     M0 = 1e-15;
@@ -290,7 +290,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1./sqrt(1. - v_correct*v_correct);
     utol = u0_correct*1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(1.0, M0, M*M, M, 0.0, u0_sol);
+    reconst_test.solve_u0_Hybrid(0.0, M0, M*M, M, 0.0, u0_sol);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
 }
 

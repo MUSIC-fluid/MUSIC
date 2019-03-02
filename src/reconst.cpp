@@ -318,7 +318,11 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
                              double &u0_solution) {
     int u0_status = 1;
     double u0_l = 1.0;
-    double u0_h = std::max(1e5, 1.5*u0_guess);
+    double u0_h = 1e5;
+    if (u0_guess >= 1.0) {
+        u0_l = std::max(u0_l, 0.5*u0_guess);
+        u0_h = std::min(u0_h, 1.5*u0_guess);
+    }
     double fu0_l, fu0_h;
     double dfdu0_l, dfdu0_h;
     reconst_u0_fdf(u0_l, T00, K00, M, J0, fu0_l, dfdu0_l);
