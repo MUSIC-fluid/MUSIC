@@ -78,6 +78,7 @@ class GridT {
 };
 
 typedef GridT<Cell_small> SCGrid;
+typedef GridT<double> GridphiQ;
 
 template<class T, class Func>
 void Neighbourloop(GridT<T> &arena, int cx, int cy, int ceta, Func func) {

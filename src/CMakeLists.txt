@@ -31,6 +31,7 @@ set (SOURCES
     emoji.cpp
     music_logo.cpp
     HydroinfoMUSIC.cpp
+    critical_modes.cpp
     )
 
 add_library(music_lib SHARED ${SOURCES})
@@ -44,6 +45,10 @@ if (unittest)
     add_executable (unittest_reconst.e reconst_unittest.cpp)
     target_link_libraries (unittest_reconst.e music_lib)
     install(TARGETS unittest_reconst.e DESTINATION ${CMAKE_HOME_DIRECTORY})
+    
+    add_executable (unittest_criticalmodes.e critical_modes_unittest.cpp)
+    target_link_libraries (unittest_criticalmodes.e music_lib)
+    install(TARGETS unittest_criticalmodes.e DESTINATION ${CMAKE_HOME_DIRECTORY})
 
     add_executable (unittest_grid.e grid_unittest.cpp)
     target_link_libraries (unittest_grid.e music_lib)
