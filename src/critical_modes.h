@@ -7,18 +7,20 @@
 #include "data.h"
 #include "grid.h"
 #include "eos.h"
+#include "minmod.h"
 #include "pretty_ostream.h"
 #include "data_struct.h"
 
 class CriticalSlowModes {
  private:
-    InitData &DATA;
+    const InitData &DATA;
     const EOS &eos;
     std::vector<double> Qvec;
+    Minmod minmod;
     pretty_ostream music_message;
 
  public:
-    CriticalSlowModes(const EOS &eos_in, InitData &DATA_in);
+    CriticalSlowModes(const EOS &eos_in, const InitData &DATA_in);
     ~CriticalSlowModes();
 
     void InitializeFields(const int nQ, SCGrid &arena_current);
@@ -40,9 +42,20 @@ class CriticalSlowModes {
 
     //! This function evolves the phi_Q field at ix, iy, ieta
     //! by one RK step in time
-    void evolve_phiQfields(const double tau, const int ix, const int iy,
-                           const int ieta, const int rk_flag,
-                           const double T_local, FlowVec umu);
+    void evolve_phiQfields(const double tau, SCGrid &arena_prev,
+                           SCGrid &arena_current, SCGrid &arena_future,
+                           const double theta_local,
+                           const int ix, const int iy, const int ieta,
+                           const int rk_flag);
+
+    void compute_KTflux(
+        const double tau, SCGrid &arena, const double theta_local,
+        const int ix, const int iy, const int ieta, const int iQ,
+        const DeltaXVec delta, double &flux_term) const;
+
+    double compute_relaxation_source_term(
+        const double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
+        const int iQ, const int rk_flag) const;
 };
 
 #endif  // SRC_CRITICAL_MODES_H_

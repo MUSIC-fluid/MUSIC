@@ -16,3 +16,4 @@ TEST_CASE("Check CriticalSlowModes initialization") {
     test.InitializeFields(20, arena_current);
     CHECK(test.get_Qvec_size() == 20);
 }
+
