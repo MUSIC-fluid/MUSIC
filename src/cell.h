@@ -3,7 +3,7 @@
 #define _SRC_CELL_H_
 
 #include "data_struct.h"
-#include <array>
+#include <vector>
 
 class Cell_small {
  public:
@@ -13,6 +13,8 @@ class Cell_small {
 
     ViscousVec Wmunu;
     double pi_b    = 0.;
+
+    std::vector<double> phi_Q;  // for critical slow modes
 };
 
-#endif  // SRC_GRID_H_
+#endif  // SRC_CELL_H_
