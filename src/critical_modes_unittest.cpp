@@ -42,7 +42,7 @@ TEST_CASE("TEST phiQ evolution static medium") {
     for (int ieta = 0; ieta < grid_neta; ieta++) {
         for (int ix = 0; ix < grid_nx; ix++) {
             for (int iy = 0; iy < grid_ny; iy++) {
-                arena_current(ix, iy, ieta).epsilon = 1.0;
+                arena_current(ix, iy, ieta).epsilon = 10.0;
                 arena_current(ix, iy, ieta).rhob    = 0.0;
                 arena_current(ix, iy, ieta).u[0] = 1.0;
                 arena_current(ix, iy, ieta).u[1] = 0.0;
@@ -96,7 +96,7 @@ TEST_CASE("TEST phiQ evolution static medium") {
                 std::cout << std::scientific
                           << it << "  " << iQ << "  " << phiQ_eq << "  "
                           << (*ap_current)(0, 0, 0).phi_Q[iQ] << "  "
-                          << (*ap_current)(0, 0, 0).phi_Q[iQ]
+                          << (*ap_current)(0, 0, 0).phi_Q[iQ]/phiQ_eq
                           << std::endl;
             }
         }

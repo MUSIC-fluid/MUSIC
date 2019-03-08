@@ -31,7 +31,7 @@ void CriticalSlowModes::InitializeFields(const int nQ, SCGrid &arena_current) {
                     arena_current(ix, iy, ieta).phi_Q.resize(nQ);
                     const double e_local = arena_current(ix, iy, ieta).epsilon;
                     const double rhob_local = arena_current(ix, iy, ieta).rhob;
-                    arena_current(ix, iy, ieta).phi_Q[i] = 3.*(
+                    arena_current(ix, iy, ieta).phi_Q[i] = 0.1*(
                         compute_phiQ_equilibrium(Qvec[i], e_local, rhob_local));
                 }
             }
