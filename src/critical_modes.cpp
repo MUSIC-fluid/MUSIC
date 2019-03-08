@@ -9,7 +9,9 @@
 #include <iomanip>
 #include <iostream>
 
-CriticalSlowModes::CriticalSlowModes(const EOS &eos_in, const InitData &DATA_in) : DATA(DATA_in), eos(eos_in), minmod(DATA_in) {
+CriticalSlowModes::CriticalSlowModes(
+        const EOS &eos_in, const InitData &DATA_in) :
+    DATA(DATA_in), eos(eos_in), minmod(DATA_in) {
 }
 
 CriticalSlowModes::~CriticalSlowModes() {

@@ -13,6 +13,7 @@
 #include "read_in_parameters.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
+#include "critical_modes.h"
 
 //! This is a wrapper class for the MUSIC hydro
 class MUSIC {
@@ -29,12 +30,13 @@ class MUSIC {
     InitData DATA;
 
     EOS eos;
-
+    
     SCGrid arena_prev;
     SCGrid arena_current;
     SCGrid arena_future;
 
     std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
+    std::shared_ptr<CriticalSlowModes> critical_slow_modes_ptr;
 
     std::shared_ptr<HydroinfoMUSIC> hydro_info_ptr;
 

@@ -60,6 +60,22 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_parton_quench_factor;
     parameter_list.parton_quench_factor = temp_parton_quench_factor;
 
+
+    // critical modes
+    bool temp_critical_modes = false;
+    tempinput = Util::StringFind4(input_file, "include_critical_modes");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_critical_modes;
+    if (temp_critical_modes == 1) {
+        parameter_list.flag_critical_modes = true;
+    }
+
+    int temp_nphiQ = 1;
+    tempinput = Util::StringFind4(input_file, "critical_nphiQ");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_nphiQ;
+    parameter_list.critical_nphiQ = temp_nphiQ;
+
     // boost-invariant
     int temp_boost_invariant = 1;
     tempinput = Util::StringFind4(input_file, "boost_invariant");

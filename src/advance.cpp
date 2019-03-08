@@ -16,19 +16,22 @@
 #include "eos.h"
 #include "evolve.h"
 #include "advance.h"
+#include "critical_modes.h"
 
 using Util::map_2d_idx_to_1d;
 using Util::map_1d_idx_to_2d;
 using Util::hbarc;
 
 Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
-                 std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
+                 std::shared_ptr<HydroSourceBase> hydro_source_ptr_in,
+                 std::shared_ptr<CriticalSlowModes> critical_slow_modes_in) :
     DATA(DATA_in), eos(eosIn),
     diss_helper(eosIn, DATA_in),
     minmod(DATA_in),
     reconst_helper(eos, DATA_in.echo_level) {
 
-    hydro_source_terms_ptr = hydro_source_ptr_in;
+    hydro_source_terms_ptr  = hydro_source_ptr_in;
+    critical_slow_modes_ptr = critical_slow_modes_in;
     if (DATA_in.Initial_profile == 13 || DATA_in.Initial_profile == 30) {
         flag_add_hydro_source = true;
     } else {
@@ -74,6 +77,12 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
             FirstRKStepW(tau,  arena_prev, arena_current, arena_future, rk_flag,
                          theta_local, a_local, sigma_local,
                          baryon_diffusion_vector, ieta, ix, iy);
+
+            if (DATA.flag_critical_modes) {
+                critical_slow_modes_ptr.lock()->evolve_phiQfields(
+                        tau, arena_prev, arena_current, arena_future,
+                        theta_local, ix, iy, ieta, rk_flag);
+            }
         }
     }
 }

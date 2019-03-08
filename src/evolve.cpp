@@ -14,6 +14,7 @@
 
 #include "evolve.h"
 #include "cornelius.h"
+#include "critical_modes.h"
 
 #ifndef _OPENMP
   #define omp_get_thread_num() 0
@@ -22,16 +23,19 @@
 using Util::hbarc;
 
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
-               std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
+               std::shared_ptr<HydroSourceBase> hydro_source_ptr_in,
+               std::shared_ptr<CriticalSlowModes> critical_slow_modes_in) :
     eos(eosIn), DATA(DATA_in),
-    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in),
+    grid_info(DATA_in, eosIn),
+    advance(eosIn, DATA_in, hydro_source_ptr_in, critical_slow_modes_in),
     u_derivative(DATA_in, eosIn) {
 
     rk_order  = DATA_in.rk_order;
     if (DATA.freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
     }
-    hydro_source_terms_ptr = hydro_source_ptr_in;
+    hydro_source_terms_ptr  = hydro_source_ptr_in;
+    critical_slow_modes_ptr = critical_slow_modes_in;
 }
 
 // master control function for hydrodynamic evolution

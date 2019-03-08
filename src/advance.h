@@ -12,12 +12,14 @@
 #include "reconst.h"
 #include "hydro_source_base.h"
 #include "pretty_ostream.h"
+#include "critical_modes.h"
 
 class Advance {
  private:
     const InitData &DATA;
     const EOS &eos;
     std::weak_ptr<HydroSourceBase> hydro_source_terms_ptr;
+    std::weak_ptr<CriticalSlowModes> critical_slow_modes_ptr;
 
     Diss diss_helper;
     Minmod minmod;
@@ -28,7 +30,8 @@ class Advance {
 
  public:
     Advance(const EOS &eosIn, const InitData &DATA_in,
-            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
+            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in,
+            std::shared_ptr<CriticalSlowModes> critical_slow_modes_in);
 
     void AdvanceIt(double tau_init,
                    SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,

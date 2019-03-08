@@ -3,11 +3,11 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include "./util.h"
-#include "./cell.h"
-#include "./grid.h"
-#include "./init.h"
-#include "./eos.h"
+#include "util.h"
+#include "cell.h"
+#include "grid.h"
+#include "init.h"
+#include "eos.h"
 
 #ifndef _OPENMP
     #define omp_get_thread_num() 0
@@ -22,9 +22,11 @@ using Util::hbarc;
 
 
 Init::Init(const EOS &eosIn, InitData &DATA_in,
-           std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
+           std::shared_ptr<HydroSourceBase> hydro_source_ptr_in,
+           std::shared_ptr<CriticalSlowModes> critical_slow_modes_in) :
     DATA(DATA_in), eos(eosIn){
-    hydro_source_terms_ptr = hydro_source_ptr_in;
+    hydro_source_terms_ptr  = hydro_source_ptr_in;
+    critical_slow_modes_ptr = critical_slow_modes_in;
 }
 
 
@@ -158,6 +160,13 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
     music_message.info("Grid allocated.");
 
     InitTJb(arena_prev, arena_current);
+    
+    if (DATA.flag_critical_modes) {
+        const int nQ = DATA.critical_nphiQ;
+        critical_slow_modes_ptr.lock()->InitializeFields(nQ, arena_prev);
+        critical_slow_modes_ptr.lock()->InitializeFields(nQ, arena_current);
+        critical_slow_modes_ptr.lock()->InitializeFields(nQ, arena_future);
+    }
 
     if (DATA.output_initial_density_profiles == 1) {
         output_initial_density_profiles(arena_current);
@@ -261,6 +270,7 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message.flush("info");
         initial_UMN_with_rhob(arena_prev, arena_current);
     }
+
     music_message.info("initial distribution done.");
 }
 

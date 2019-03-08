@@ -31,6 +31,8 @@ MUSIC::MUSIC(std::string input_file) :
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
     }
     
+    critical_slow_modes_ptr = std::make_shared<CriticalSlowModes> (eos, DATA);
+
     // setup source terms
     hydro_source_terms_ptr = nullptr;
     generate_hydro_source_terms();
@@ -77,7 +79,8 @@ void MUSIC::set_parameter(std::string parameter_name, double value) {
 void MUSIC::initialize_hydro() {
     clean_all_the_surface_files();
 
-    Init initialization(eos, DATA, hydro_source_terms_ptr);
+    Init initialization(eos, DATA, hydro_source_terms_ptr,
+                        critical_slow_modes_ptr);
     initialization.InitArena(arena_prev, arena_current, arena_future);
     flag_hydro_initialized = 1;
 }
@@ -85,7 +88,8 @@ void MUSIC::initialize_hydro() {
 
 //! this is a shell function to run hydro
 int MUSIC::run_hydro() {
-    Evolve evolve_local(eos, DATA, hydro_source_terms_ptr);
+    Evolve evolve_local(eos, DATA, hydro_source_terms_ptr,
+                        critical_slow_modes_ptr);
 
     if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
@@ -149,7 +153,8 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
     DATA.delta_x = dx;
     DATA.delta_y = dx;
 
-    Init initialization(eos, DATA, hydro_source_terms_ptr);
+    Init initialization(eos, DATA, hydro_source_terms_ptr,
+                        critical_slow_modes_ptr);
     initialization.get_jetscape_preequilibrium_vectors(
         e_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
         pi_00_in, pi_01_in, pi_02_in, pi_03_in, pi_11_in, pi_12_in, pi_13_in,

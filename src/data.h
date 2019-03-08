@@ -60,6 +60,9 @@ typedef struct init_data {
     double string_quench_factor;
     double parton_quench_factor;
 
+    bool flag_critical_modes;
+    int critical_nphiQ;
+
     int nx;
     int ny;
     int neta;
