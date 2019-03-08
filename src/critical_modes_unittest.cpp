@@ -22,8 +22,8 @@ TEST_CASE("Check CriticalSlowModes initialization") {
 }
 
 TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
-    //bool flagBjorken = true;
-    bool flagBjorken = false;
+    bool flagBjorken = true;
+    //bool flagBjorken = false;
     EOS eos_ideal(0);
     InitData DATA(ReadInParameters::read_in_parameters(
                             "tests/unittest_files/music_input_criticalmodes"));
@@ -58,13 +58,13 @@ TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
     arena_prev   = arena_current;
     arena_future = arena_current;
 
-    const int nQ = 50;
+    const int nQ = 100;
     test.InitializeFields(nQ, arena_current);
     test.InitializeFields(nQ, arena_prev);
     test.InitializeFields(nQ, arena_future);
     
     const int rk_order = 2;
-    for (int it = 0; it <= 2000; it++) {
+    for (int it = 0; it <= DATA.nt; it++) {
         double tau_local = DATA.tau0 + it*DATA.delta_tau;
         // rk evolution
         for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
@@ -95,7 +95,7 @@ TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
                 ap_current   = temp;
             }
         }
-        if (it % 100 == 0) {
+        if (it % 50 == 0) {
             for (int iQ = 0; iQ < test.get_Qvec_size(); iQ++) {
                 const double Q_local = test.get_Qi(iQ);
                 const double phiQ_eq = test.compute_phiQ_equilibrium(
@@ -104,7 +104,7 @@ TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
                 std::cout << std::scientific
                           << tau_local << "  "
                           << (*ap_current)(0, 0, 0).epsilon << "  "
-                          << iQ << "  " << phiQ_eq << "  "
+                          << Q_local << "  " << phiQ_eq << "  "
                           << (*ap_current)(0, 0, 0).phi_Q[iQ] << "  "
                           << (*ap_current)(0, 0, 0).phi_Q[iQ]/phiQ_eq
                           << std::endl;
