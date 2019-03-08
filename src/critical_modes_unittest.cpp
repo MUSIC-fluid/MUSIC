@@ -21,7 +21,9 @@ TEST_CASE("Check CriticalSlowModes initialization") {
     CHECK(test.get_Qvec_size() == 20);
 }
 
-TEST_CASE("TEST phiQ evolution static medium") {
+TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
+    //bool flagBjorken = true;
+    bool flagBjorken = false;
     EOS eos_ideal(0);
     InitData DATA(ReadInParameters::read_in_parameters(
                             "tests/unittest_files/music_input_criticalmodes"));
@@ -39,15 +41,17 @@ TEST_CASE("TEST phiQ evolution static medium") {
   
 
     // initialize the background
+    double e_initial = 10.0;
+    double rhob_init = 1.0;
     for (int ieta = 0; ieta < grid_neta; ieta++) {
         for (int ix = 0; ix < grid_nx; ix++) {
             for (int iy = 0; iy < grid_ny; iy++) {
-                arena_current(ix, iy, ieta).epsilon = 10.0;
-                arena_current(ix, iy, ieta).rhob    = 0.0;
-                arena_current(ix, iy, ieta).u[0] = 1.0;
-                arena_current(ix, iy, ieta).u[1] = 0.0;
-                arena_current(ix, iy, ieta).u[2] = 0.0;
-                arena_current(ix, iy, ieta).u[3] = 0.0;
+                arena_current(ix, iy, ieta).epsilon = e_initial;
+                arena_current(ix, iy, ieta).rhob    = rhob_init;
+                arena_current(ix, iy, ieta).u[0]    = 1.0;
+                arena_current(ix, iy, ieta).u[1]    = 0.0;
+                arena_current(ix, iy, ieta).u[2]    = 0.0;
+                arena_current(ix, iy, ieta).u[3]    = 0.0;
             }
         }
     }
@@ -60,15 +64,19 @@ TEST_CASE("TEST phiQ evolution static medium") {
     test.InitializeFields(nQ, arena_future);
     
     const int rk_order = 2;
-    for (int it = 0; it <= 1000; it++) {
+    for (int it = 0; it <= 2000; it++) {
         double tau_local = DATA.tau0 + it*DATA.delta_tau;
         // rk evolution
         for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
+            double tau_rk = tau_local + rk_flag*DATA.delta_tau;
+            double e_local = e_initial*pow(tau_rk/DATA.tau0, -4./3.);
             for (int ieta = 0; ieta < grid_neta; ieta++) {
                 for (int ix = 0; ix < grid_nx; ix++) {
                     for (int iy = 0; iy < grid_ny; iy++) {
-                        double theta_local = 1./(tau_local 
-                                                 + rk_flag*DATA.delta_tau);
+                        if (flagBjorken) {
+                            (*ap_future)(ix, iy, ieta).epsilon = e_local;
+                        }
+                        double theta_local = 1./tau_rk;
                         test.evolve_phiQfields(tau_local,
                                                *ap_prev, *ap_current,
                                                *ap_future, theta_local,
@@ -94,7 +102,9 @@ TEST_CASE("TEST phiQ evolution static medium") {
                                 Q_local, (*ap_current)(0, 0, 0).epsilon,
                                 (*ap_current)(0, 0, 0).rhob);
                 std::cout << std::scientific
-                          << it << "  " << iQ << "  " << phiQ_eq << "  "
+                          << tau_local << "  "
+                          << (*ap_current)(0, 0, 0).epsilon << "  "
+                          << iQ << "  " << phiQ_eq << "  "
                           << (*ap_current)(0, 0, 0).phi_Q[iQ] << "  "
                           << (*ap_current)(0, 0, 0).phi_Q[iQ]/phiQ_eq
                           << std::endl;

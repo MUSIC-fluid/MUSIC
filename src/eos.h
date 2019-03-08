@@ -31,6 +31,7 @@ class EOS {
     double get_muC        (double e, double rhob) const {return(eos_ptr->get_muC(e, rhob));}
     double get_s2e        (double s, double rhob) const {return(eos_ptr->get_s2e(s, rhob));}
     double get_T2e        (double T, double rhob) const {return(eos_ptr->get_T2e(T, rhob));}
+    double get_dedT       (double e, double rhob) const {return(eos_ptr->get_dedT(e, rhob));}
 
     double get_eps_max() const {return(eos_ptr->get_eps_max());}
     void   check_eos()   const {return(eos_ptr->check_eos());}
