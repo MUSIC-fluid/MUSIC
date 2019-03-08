@@ -1,0 +1,60 @@
+###################################
+# parameters list
+###################################
+#
+echo_level  1   # control the mount of message output to screen
+mode 2          # MUSIC running mode
+#
+#
+###################################
+# parameters for initial conditions
+###################################
+Initial_profile 2               # type of initial condition 
+BJ_e0 10.0                      # Bjorken initial energy density
+BJ_rhob 1.0                     # Bjorken initial net baryon density
+#
+#
+#######################################
+# parameters for hydrodynamic evolution
+#######################################
+boost_invariant  1            # whether the simulation is boost-invariant 
+# grid information
+Initial_time_tau_0 1.0        # starting time of the hydrodynamic 
+                              # evolution (fm/c)
+Total_evolution_time_tau 10.  # the maximum allowed running 
+                              # evolution time (fm/c)
+Delta_Tau 0.005               # time step to use in the evolution [fm/c]
+#
+#
+EOS_to_use 0                  # type of the equation of state
+                              # 0: ideal gas
+# transport coefficients
+Viscosity_Flag_Yes_1_No_0 1        # turn on viscosity in the evolution
+Include_Shear_Visc_Yes_1_No_0 1    # include shear viscous effect
+Shear_to_S_ratio 0.12              # value of \eta/s
+T_dependent_Shear_to_S_ratio  0    # flag to use temperature dep. \eta/s(T)
+Include_Bulk_Visc_Yes_1_No_0 0     # include bulk viscous effect
+Include_second_order_terms 1       # include second order non-linear coupling terms
+Include_Rhob_Yes_1_No_0 0
+turn_on_baryon_diffusion 0
+kappa_coefficient 0.4
+#
+#
+# switches to output evolution information
+output_evolution_data 0            # flag to output evolution history to file
+output_movie_flag 0
+output_evolution_T_cut 0.145
+outputBinaryEvolution  1           # output evolution file in binary format
+output_evolution_every_N_eta  1    # output evolution file every Neta steps
+output_evolution_every_N_y  1      # output evolution file every Ny steps
+output_evolution_every_N_x  1      # output evolution file every Nx steps
+output_evolution_every_N_timesteps  1  # output evolution every Ntime steps
+#
+#
+###########################################
+# parameters for freeze out and Cooper-Frye 
+###########################################
+Do_FreezeOut_Yes_1_No_0 0       # flag to find freeze-out surface
+#
+#
+EndOfData

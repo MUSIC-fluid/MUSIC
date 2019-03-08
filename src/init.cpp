@@ -49,6 +49,19 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
         music_message << "neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
         music_message.flush("info");
+    } else if (DATA.Initial_profile == 2) {
+        music_message << "Using Initial_profile=" << DATA.Initial_profile;
+        music_message.flush("info");
+        DATA.nx = 2;
+        DATA.ny = 2;
+        DATA.neta = 2;
+        DATA.delta_x = 0.1;
+        DATA.delta_y = 0.1;
+        DATA.delta_eta = 0.1;
+        music_message << "nx=" << DATA.nx << ", ny=" << DATA.ny;
+        music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
+        music_message << "neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
+        music_message.flush("info");
     } else if (DATA.Initial_profile == 8) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
@@ -178,6 +191,10 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         // code test in 1+1 D vs Monnai's results
         music_message.info(" Perform 1+1D test vs Monnai's results... ");
         initial_1p1D_eta(arena_prev, arena_current);
+    } else if (DATA.Initial_profile == 2) {
+        // code test in 1+1 D vs Monnai's results
+        music_message.info(" Perform Bjorken expansion ... ");
+        initial_Bjorken(arena_prev, arena_current);
     } else if (DATA.Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
@@ -246,6 +263,7 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
     }
     music_message.info("initial distribution done.");
 }
+
 
 void Init::initial_Gubser_XY(int ieta, SCGrid &arena_prev,
                              SCGrid &arena_current) {
@@ -431,6 +449,30 @@ void Init::initial_1p1D_eta(SCGrid &arena_prev, SCGrid &arena_current) {
             }
         }
     }
+}
+
+
+void Init::initial_Bjorken(SCGrid &arena_prev, SCGrid &arena_current) {
+    const int neta = arena_current.nEta();
+    const int nx   = arena_current.nX();
+    const int ny   = arena_current.nY();
+
+    for (int ieta = 0; ieta < neta; ieta++) {
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy< ny; iy++) {
+                // set all values in the grid element:
+                arena_current(ix, iy, ieta).epsilon = DATA.BJ_e0/hbarc;
+                arena_current(ix, iy, ieta).rhob    = DATA.BJ_rhob0;
+            
+                arena_current(ix, iy, ieta).u[0] = 1.0;
+                arena_current(ix, iy, ieta).u[1] = 0.0;
+                arena_current(ix, iy, ieta).u[2] = 0.0;
+                arena_current(ix, iy, ieta).u[3] = 0.0;
+
+            }
+        }
+    }
+    arena_prev = arena_current;
 }
 
 void Init::initial_IPGlasma_XY(int ieta, SCGrid &arena_prev,

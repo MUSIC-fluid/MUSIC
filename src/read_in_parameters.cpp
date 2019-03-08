@@ -29,6 +29,16 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty") istringstream(tempinput) >> tempInitial_profile;
     parameter_list.Initial_profile = tempInitial_profile;
 
+    double tempBJ_e0 = 10.;
+    tempinput = Util::StringFind4(input_file, "BJ_e0");
+    if (tempinput != "empty") istringstream(tempinput) >> tempBJ_e0;
+    parameter_list.BJ_e0 = tempBJ_e0;
+    
+    double tempBJ_rhob = 1.;
+    tempinput = Util::StringFind4(input_file, "BJ_rhob");
+    if (tempinput != "empty") istringstream(tempinput) >> tempBJ_rhob;
+    parameter_list.BJ_rhob0 = tempBJ_rhob;
+
     // Initial_profile: 
     int temp_string_dump_mode = 1;
     tempinput = Util::StringFind4(input_file, "string_dump_mode");

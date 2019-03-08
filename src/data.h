@@ -53,6 +53,9 @@ typedef struct init_data {
     int Initial_profile;    //! type of initial condition
     int initializeEntropy;  //! flag to initial entropy or energy density
 
+    double BJ_e0;
+    double BJ_rhob0;
+
     int string_dump_mode;
     double string_quench_factor;
     double parton_quench_factor;
