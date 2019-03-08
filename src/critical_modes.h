@@ -26,6 +26,7 @@ class CriticalSlowModes {
     void InitializeFields(const int nQ, SCGrid &arena_current);
 
     int get_Qvec_size() const {return(Qvec.size());}
+    double get_Qi(int iQ) const {return(Qvec[iQ]);}
 
     double phiQbar_f2(const double x) const;
     double phiQbar_0(const double e, const double rho_b) const;

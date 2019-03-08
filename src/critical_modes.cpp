@@ -6,6 +6,8 @@
 #include "data_struct.h"
 #include "minmod.h"
 #include <cmath>
+#include <iomanip>
+#include <iostream>
 
 CriticalSlowModes::CriticalSlowModes(const EOS &eos_in, const InitData &DATA_in) : DATA(DATA_in), eos(eos_in), minmod(DATA_in) {
 }
@@ -18,7 +20,7 @@ CriticalSlowModes::~CriticalSlowModes() {
 void CriticalSlowModes::InitializeFields(const int nQ, SCGrid &arena_current) {
     Qvec.clear();
     const double Q_min = 0.1;
-    const double Q_max = 1.0;
+    const double Q_max = 20.0;
     const double dQ = (Q_max - Q_min)/(nQ - 1);
     Qvec.resize(nQ);
     for (int i = 0; i < nQ; i++) {
@@ -29,7 +31,7 @@ void CriticalSlowModes::InitializeFields(const int nQ, SCGrid &arena_current) {
                     arena_current(ix, iy, ieta).phi_Q.resize(nQ);
                     const double e_local = arena_current(ix, iy, ieta).epsilon;
                     const double rhob_local = arena_current(ix, iy, ieta).rhob;
-                    arena_current(ix, iy, ieta).phi_Q[i] = (
+                    arena_current(ix, iy, ieta).phi_Q[i] = 3.*(
                         compute_phiQ_equilibrium(Qvec[i], e_local, rhob_local));
                 }
             }
@@ -53,7 +55,7 @@ double CriticalSlowModes::phiQbar_0(const double e, const double rho_b) const {
 
 //! This function gets the local correlation length
 double CriticalSlowModes::get_xi(const double e, const double rho_b) const {
-    double xi = 1.0;
+    double xi = 2.0;
     return(xi);
 }
 
