@@ -58,30 +58,33 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
                      arena_current, arena_future, arena_prev,
                      ix, iy, ieta, rk_flag);
 
-        if (DATA.viscosity_flag == 1) {
+        if (DATA.viscosity_flag == 1 || DATA.flag_critical_modes) {
             U_derivative u_derivative_helper(DATA, eos);
             u_derivative_helper.MakedU(tau, arena_prev, arena_current,
                                        ix, iy, ieta);
             double theta_local = u_derivative_helper.calculate_expansion_rate(
                                             tau, arena_current, ieta, ix, iy);
-            DumuVec a_local;
-            u_derivative_helper.calculate_Du_supmu(tau, arena_current,
-                                                   ieta, ix, iy, a_local);
-            VelocityShearVec sigma_local;
-            u_derivative_helper.calculate_velocity_shear_tensor(
-                        tau, arena_current, ieta, ix, iy, a_local, sigma_local);
-
-            DmuMuBoverTVec baryon_diffusion_vector;
-            u_derivative_helper.get_DmuMuBoverTVec(baryon_diffusion_vector);
-
-            FirstRKStepW(tau,  arena_prev, arena_current, arena_future, rk_flag,
-                         theta_local, a_local, sigma_local,
-                         baryon_diffusion_vector, ieta, ix, iy);
-
+            
             if (DATA.flag_critical_modes) {
                 critical_slow_modes_ptr.lock()->evolve_phiQfields(
                         tau, arena_prev, arena_current, arena_future,
                         theta_local, ix, iy, ieta, rk_flag);
+            }
+
+            if (DATA.viscosity_flag == 1) {
+                DumuVec a_local;
+                u_derivative_helper.calculate_Du_supmu(tau, arena_current,
+                                                       ieta, ix, iy, a_local);
+                VelocityShearVec sigma_local;
+                u_derivative_helper.calculate_velocity_shear_tensor(
+                    tau, arena_current, ieta, ix, iy, a_local, sigma_local);
+
+                DmuMuBoverTVec baryon_diffusion_vector;
+                u_derivative_helper.get_DmuMuBoverTVec(baryon_diffusion_vector);
+
+                FirstRKStepW(tau, arena_prev, arena_current, arena_future,
+                             rk_flag, theta_local, a_local, sigma_local,
+                             baryon_diffusion_vector, ieta, ix, iy);
             }
         }
     }

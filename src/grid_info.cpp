@@ -4,8 +4,9 @@
 #include <cmath>
 #include <vector>
 
-#include "./util.h"
-#include "./grid_info.h"
+#include "util.h"
+#include "grid_info.h"
+#include "critical_modes.h"
 
 using Util::hbarc;
 using std::string;
@@ -16,10 +17,11 @@ using std::endl;
 using std::ofstream;
 using std::ostringstream;
 
-Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in) :
-    DATA(DATA_in),
-    eos(eos_in) {
-
+Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in,
+                std::shared_ptr<CriticalSlowModes> critical_slow_modes_in) :
+    DATA(DATA_in), eos(eos_in) {
+    
+    critical_slow_modes_ptr = critical_slow_modes_in;
     // read in tables for delta f coefficients
     if (DATA.turn_on_diff == 1) {
         if (DATA.deltaf_14moments == 1) {
@@ -820,24 +822,24 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
             double e_local = arena(i,i,0).epsilon;
             double T_local = (
                     eos.get_temperature(e_local, 0.0)*unit_convert);
-            T_diff += fabs(T_analytic[i] - T_local);
-            T_sum += fabs(T_analytic[i]);
-            ux_diff += fabs(ux_analytic[i] - arena(i,i,0).u[1]);
-            ux_sum += fabs(ux_analytic[i]);
-            uy_diff += fabs(uy_analytic[i] - arena(i,i,0).u[2]);
-            uy_sum += fabs(uy_analytic[i]);
-            pixx_diff += (fabs(pixx_analytic[i]
+            T_diff += std::abs(T_analytic[i] - T_local);
+            T_sum += std::abs(T_analytic[i]);
+            ux_diff += std::abs(ux_analytic[i] - arena(i,i,0).u[1]);
+            ux_sum += std::abs(ux_analytic[i]);
+            uy_diff += std::abs(uy_analytic[i] - arena(i,i,0).u[2]);
+            uy_sum += std::abs(uy_analytic[i]);
+            pixx_diff += (std::abs(pixx_analytic[i]
                                - arena(i,i,0).Wmunu[4]*unit_convert));
-            pixx_sum += fabs(pixx_analytic[i]);
-            pixy_diff += (fabs(pixx_analytic[i]
+            pixx_sum += std::abs(pixx_analytic[i]);
+            pixy_diff += (std::abs(pixx_analytic[i]
                                - arena(i,i,0).Wmunu[5]*unit_convert));
-            pixy_sum += fabs(pixx_analytic[i]);
-            piyy_diff += (fabs(piyy_analytic[i]
+            pixy_sum += std::abs(pixx_analytic[i]);
+            piyy_diff += (std::abs(piyy_analytic[i]
                                - arena(i,i,0).Wmunu[7]*unit_convert));
-            piyy_sum += fabs(piyy_analytic[i]);
-            pizz_diff += (fabs(pizz_analytic[i]
+            piyy_sum += std::abs(piyy_analytic[i]);
+            pizz_diff += (std::abs(pizz_analytic[i]
                                - arena(i,i,0).Wmunu[9]*unit_convert));
-            pizz_sum += fabs(pizz_analytic[i]);
+            pizz_sum += std::abs(pizz_analytic[i]);
         }
         music_message << "Autocheck: T_diff = " << T_diff/T_sum
                       << ", ux_diff = " << ux_diff/ux_sum
@@ -1179,6 +1181,33 @@ double Cell_info::get_deltaf_coeff_14moments(double T, double muB,
 }
 
 
+void Cell_info::output_critical_modes_evolution(double tau, SCGrid &arena) {
+    std::ofstream outputfile;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        outputfile.open("phiQ_evo_Bjorken_medium.dat", std::ofstream::out);
+        outputfile << "# tau[fm]  e[1/fm^4]  Q[1/fm^4]  "
+                   << "phiQ_eq  phi_Q  phi_Q/phiQ_eq" << std::endl;
+    } else {
+        outputfile.open("phiQ_evo_Bjorken_medium.dat", std::ofstream::app);
+    }
+
+    int iQ = 0;
+    for (double Q_local : critical_slow_modes_ptr.lock()->get_Qvec()) {
+        const double phiQ_eq = (
+            critical_slow_modes_ptr.lock()->compute_phiQ_equilibrium(
+                        Q_local, arena(0, 0, 0).epsilon, arena(0, 0, 0).rhob));
+        outputfile << std::scientific
+                   << tau << "  " << arena(0, 0, 0).epsilon << "  "
+                   << Q_local << "  " << phiQ_eq << "  "
+                   << arena(0, 0, 0).phi_Q[iQ] << "  "
+                   << arena(0, 0, 0).phi_Q[iQ]/phiQ_eq
+                   << std::endl;
+        iQ++;
+    }
+
+}
+
+
 //! This function outputs average T and mu_B as a function of proper tau
 //! within a given space-time rapidity range
 void Cell_info::output_average_phase_diagram_trajectory(
@@ -1187,7 +1216,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
     filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
              << "_" << eta_max << ".dat";
     std::fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
-    if (fabs(tau - DATA.tau0) < 1e-10) {
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
         of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)  "
            << "V4 (fm^4)" << endl;
     }

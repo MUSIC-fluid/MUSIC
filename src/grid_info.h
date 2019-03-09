@@ -13,12 +13,15 @@
 #include "grid.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
+#include "critical_modes.h"
 
 class Cell_info {
  private:
     const InitData &DATA;
     const EOS &eos;
     pretty_ostream music_message;
+    
+    std::weak_ptr<CriticalSlowModes> critical_slow_modes_ptr;
     
     int deltaf_qmu_coeff_table_length_T;
     int deltaf_qmu_coeff_table_length_mu;
@@ -41,7 +44,8 @@ class Cell_info {
     double **deltaf_coeff_tb_14mom_Bpi_shear;
 
  public:
-    Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in);
+    Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in,
+              std::shared_ptr<CriticalSlowModes> critical_slow_modes_in);
     ~Cell_info();
 
     //! This function outputs a header files for JF and Gojko's EM programs
@@ -110,6 +114,8 @@ class Cell_info {
     //! This function outputs hydro evolution file into memory for JETSCAPE
     void OutputEvolutionDataXYEta_memory(
                 SCGrid &arena, double tau, HydroinfoMUSIC &hydro_info_ptr);
+
+    void output_critical_modes_evolution(double tau, SCGrid &arena);
 };
 
 #endif  // SRC_GRID_INFO_H_

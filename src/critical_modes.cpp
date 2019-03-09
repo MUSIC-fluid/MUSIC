@@ -218,7 +218,7 @@ double CriticalSlowModes::compute_relaxation_source_term(
     }
     const double temperature = eos.get_temperature(epsilon, rhob);
     const double s_local     = eos.get_entropy(epsilon, rhob);
-    const double shear_eta   = DATA.shear_to_s*s_local;
+    const double shear_eta   = std::max(DATA.shear_to_s, 0.08)*s_local;
     const double xi          = get_xi(epsilon, rhob);
 
     const double phiQ_relax_time = std::max(3.*DATA.delta_tau,

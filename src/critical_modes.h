@@ -27,6 +27,7 @@ class CriticalSlowModes {
 
     int get_Qvec_size() const {return(Qvec.size());}
     double get_Qi(int iQ) const {return(Qvec[iQ]);}
+    std::vector<double> get_Qvec() const {return(Qvec);}
 
     double phiQbar_f2(const double x) const;
     double phiQbar_0(const double e, const double rho_b) const;

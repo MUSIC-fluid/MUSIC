@@ -17,7 +17,7 @@
 #include "critical_modes.h"
 
 #ifndef _OPENMP
-  #define omp_get_thread_num() 0
+    #define omp_get_thread_num() 0
 #endif
 
 using Util::hbarc;
@@ -26,7 +26,7 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
                std::shared_ptr<HydroSourceBase> hydro_source_ptr_in,
                std::shared_ptr<CriticalSlowModes> critical_slow_modes_in) :
     eos(eosIn), DATA(DATA_in),
-    grid_info(DATA_in, eosIn),
+    grid_info(DATA_in, eosIn, critical_slow_modes_in),
     advance(eosIn, DATA_in, hydro_source_ptr_in, critical_slow_modes_in),
     u_derivative(DATA_in, eosIn) {
 
@@ -89,15 +89,15 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
         
         if (DATA.Initial_profile == 0) {
-            if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
-                || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
-                || fabs(tau - 3.0) < 1e-8) {
+            if (   std::abs(tau - 1.0) < 1e-8 || std::abs(tau - 1.2) < 1e-8
+                || std::abs(tau - 1.5) < 1e-8 || std::abs(tau - 2.0) < 1e-8
+                || std::abs(tau - 3.0) < 1e-8) {
                 grid_info.Gubser_flow_check_file(*ap_current, tau);
             }
         } else if (DATA.Initial_profile == 1) {
-            if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
-                || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8
-                || fabs(tau - 20.0) < 1e-8) {
+            if (   std::abs(tau -  1.0) < 1e-8 || std::abs(tau -  2.0) < 1e-8
+                || std::abs(tau -  5.0) < 1e-8 || std::abs(tau - 10.0) < 1e-8
+                || std::abs(tau - 20.0) < 1e-8) {
                 grid_info.output_1p1D_check_file(*ap_current, tau);
             }
         }
@@ -111,6 +111,9 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
 
         if (it % Nskip_timestep == 0) {
+            if (DATA.Initial_profile == 2 && DATA.flag_critical_modes) {
+                grid_info.output_critical_modes_evolution(tau, *ap_current);
+            }
 
             if (DATA.outputEvolutionData == 1) {
                 grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
@@ -1265,21 +1268,21 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     FULLSU[3] = 0.0; // rapidity direction is set to 0
 
                     // check the size of the surface normal vector
-                    if (fabs(FULLSU[0]) > (DX*DY*DETA + 0.01)) {
+                    if (std::abs(FULLSU[0]) > (DX*DY*DETA + 0.01)) {
                        music_message << "problem: volume in tau direction "
-                                     << fabs(FULLSU[0]) << "  > DX*DY*DETA = "
+                                     << std::abs(FULLSU[0]) << "  > DX*DY*DETA = "
                                      << DX*DY*DETA;
                         music_message.flush("warning");
                     }
-                    if (fabs(FULLSU[1]) > (DTAU*DY*DETA + 0.01)) {
+                    if (std::abs(FULLSU[1]) > (DTAU*DY*DETA + 0.01)) {
                         music_message << "problem: volume in x direction "
-                                      << fabs(FULLSU[1])
+                                      << std::abs(FULLSU[1])
                                       << "  > DTAU*DY*DETA = " << DTAU*DY*DETA;
                         music_message.flush("warning");
                     }
-                    if (fabs(FULLSU[2]) > (DX*DTAU*DETA+0.01)) {
+                    if (std::abs(FULLSU[2]) > (DX*DTAU*DETA+0.01)) {
                         music_message << "problem: volume in y direction "
-                                      << fabs(FULLSU[2])
+                                      << std::abs(FULLSU[2])
                                       << "  > DX*DTAU*DETA = " << DX*DTAU*DETA;
                         music_message.flush("warning");
                     }
