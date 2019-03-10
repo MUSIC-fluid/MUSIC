@@ -31,3 +31,12 @@ double EOS_idealgas::get_dedT(double eps, double rhob) const {
     const double dedT = 12.*factor*pow(eps/(3.*factor), 0.75);
     return(dedT);
 }
+
+double EOS_idealgas::get_correlation_length(
+                            const double eps, const double rhob) const {
+    const double T_local = get_temperature(eps, rhob);
+    const double chi_B   = get_chi_B;
+    const double C_xi    = 1.0;
+    const double xi      = std::max(C_xi/T_local, sqrt(chi_B/C_xi));
+    return(xi);
+}

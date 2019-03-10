@@ -23,20 +23,18 @@ void CriticalSlowModes::InitializeFields(const int nQ, SCGrid &arena_current) {
     Qvec.clear();
     const double Q_min = 0.1;
     const double Q_max = 10.0;
-    const double dQ = (Q_max - Q_min)/(nQ - 1);
+    const double dQ    = (Q_max - Q_min)/(nQ - 1);
     Qvec.resize(nQ);
     for (int i = 0; i < nQ; i++) {
         Qvec[i] = Q_min + i*dQ;
-        for (int ix = 0; ix < arena_current.nX(); ix++) {
-            for (int iy = 0; iy < arena_current.nY(); iy++) {
-                for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-                    arena_current(ix, iy, ieta).phi_Q.resize(nQ);
-                    const double e_local = arena_current(ix, iy, ieta).epsilon;
-                    const double rhob_local = arena_current(ix, iy, ieta).rhob;
-                    arena_current(ix, iy, ieta).phi_Q[i] = 0.1*(
-                        compute_phiQ_equilibrium(Qvec[i], e_local, rhob_local));
-                }
-            }
+        for (int ix = 0; ix < arena_current.nX(); ix++)
+        for (int iy = 0; iy < arena_current.nY(); iy++)
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+            arena_current(ix, iy, ieta).phi_Q.resize(nQ);
+            const double e_local    = arena_current(ix, iy, ieta).epsilon;
+            const double rhob_local = arena_current(ix, iy, ieta).rhob;
+            arena_current(ix, iy, ieta).phi_Q[i] = 0.1*(
+                compute_phiQ_equilibrium(Qvec[i], e_local, rhob_local));
         }
     }
     music_message.info("The critical slow modes phiQ are initialized.");
@@ -56,7 +54,8 @@ double CriticalSlowModes::phiQbar_0(const double e, const double rho_b) const {
 
 //! This function gets the local correlation length
 double CriticalSlowModes::get_xi(const double e, const double rho_b) const {
-    double xi = 2.0;
+    //const double xi = 2.0;
+    const double xi = eos.get_correlation_length(e, rho_b);
     return(xi);
 }
 
@@ -74,11 +73,11 @@ double CriticalSlowModes::compute_phiQ_equilibrium(
 //! This function computes the relaxation rate for the phiQ fields
 double CriticalSlowModes::get_GammaQ(const double Q, const double xi,
                                      const double T, const double eta) const {
-    const double Gamma_xi = T/(6.*M_PI*eta*xi*xi*xi);
+    const double Gamma_xi = T/(6.*M_PI*eta*xi*xi*xi);  // [1/fm]
     const double Qxi      = Q*xi;
     const double Kawasaki = 3./4.*(
             1. + Qxi*Qxi + (Qxi*Qxi*Qxi - 1./(Qxi + 1e-16))*atan(Qxi + 1e-16));
-    const double GammaQ = 2.*Gamma_xi*Kawasaki;
+    const double GammaQ = 2.*Gamma_xi*Kawasaki;  // [1/fm]
     return(GammaQ);
 }
 

@@ -87,6 +87,8 @@ class EOS_base {
     virtual double get_dedT       (double epsilon, double rhob) const {return(0.0);}
     virtual void   check_eos      () const {}
     
+    virtual double get_correlation_length(const double eps, const double rhob) const {return(0.0);}
+    
     void check_eos_with_finite_muB() const;
     void check_eos_no_muB() const;
 };

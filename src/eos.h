@@ -33,6 +33,11 @@ class EOS {
     double get_T2e        (double T, double rhob) const {return(eos_ptr->get_T2e(T, rhob));}
     double get_dedT       (double e, double rhob) const {return(eos_ptr->get_dedT(e, rhob));}
 
+    //! This function get the correlation length
+    double get_correlation_length(const double e, const double rhob) const {
+        return(eos_ptr->get_correlation_length(e, rhob));
+    }
+
     double get_eps_max() const {return(eos_ptr->get_eps_max());}
     void   check_eos()   const {return(eos_ptr->check_eos());}
 };
