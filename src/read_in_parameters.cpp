@@ -62,12 +62,14 @@ InitData read_in_parameters(std::string input_file) {
 
 
     // critical modes
-    bool temp_critical_modes = false;
+    int temp_critical_modes = 0;
     tempinput = Util::StringFind4(input_file, "include_critical_modes");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_critical_modes;
     if (temp_critical_modes == 1) {
         parameter_list.flag_critical_modes = true;
+    } else {
+        parameter_list.flag_critical_modes = false;
     }
 
     int temp_nphiQ = 1;
