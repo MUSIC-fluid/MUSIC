@@ -46,9 +46,8 @@ class Advance {
                       VelocityShearVec &sigma_local, DmuMuBoverTVec &baryon_diffusion_vector, int ieta, int ix, int iy);
 
     void UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt);
-    void QuestRevert(double tau, Cell_small *grid_pt, int ieta, int ix, int iy);
-    void QuestRevert_qmu(double tau, Cell_small *grid_pt,
-                         int ieta, int ix, int iy);
+    void QuestRevert(Cell_small *grid_pt, int ieta, int ix, int iy);
+    void QuestRevert_qmu(Cell_small *grid_pt, int ieta, int ix, int iy);
 
     void MakeDeltaQI(double tau, SCGrid &arena_current,
                      int ix, int iy, int ieta, TJbVec &qi, int rk_flag);

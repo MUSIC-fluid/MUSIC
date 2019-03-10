@@ -293,9 +293,9 @@ void Advance::FirstRKStepW(
     // If the energy density of the fluid element is smaller than 0.01GeV
     // reduce Wmunu using the QuestRevert algorithm
     if (DATA.Initial_profile != 0 && DATA.Initial_profile != 1) {
-        QuestRevert(tau, grid_pt_f, ieta, ix, iy);
+        QuestRevert(grid_pt_f, ieta, ix, iy);
         if (DATA.turn_on_diff == 1) {
-            QuestRevert_qmu(tau, grid_pt_f, ieta, ix, iy);
+            QuestRevert_qmu(grid_pt_f, ieta, ix, iy);
         }
     }
 }
@@ -310,9 +310,9 @@ void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {
 
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
-void Advance::QuestRevert(double tau, Cell_small *grid_pt,
+void Advance::QuestRevert(Cell_small *grid_pt,
                           int ieta, int ix, int iy) {
-    double eps_scale = 0.5;   // 1/fm^4
+    double eps_scale = 0.1;   // 1/fm^4
     double e_local   = grid_pt->epsilon;
     double rhob      = grid_pt->rhob;
 
@@ -382,9 +382,9 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
 
 //! this function reduce the size of net baryon diffusion current
 //! in the dilute region to stablize numerical simulations
-void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
+void Advance::QuestRevert_qmu(Cell_small *grid_pt,
                               int ieta, int ix, int iy) {
-    double eps_scale = 0.5;   // in 1/fm^4
+    double eps_scale = 0.1;   // in 1/fm^4
 
     double xi = 0.05;
     double factor = 100.*(1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
