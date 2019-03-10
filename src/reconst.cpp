@@ -20,6 +20,7 @@ Reconst::Reconst(const EOS &eosIn, const InitData &DATA_in) :
     echo_level = DATA.echo_level;
 }
 
+
 ReconstCell Reconst::ReconstIt_shell(double tau, const TJbVec &tauq_vec,
                                      const Cell_small &grid_pt) {
     ReconstCell grid_p1;
@@ -40,13 +41,14 @@ ReconstCell Reconst::ReconstIt_shell(double tau, const TJbVec &tauq_vec,
     return grid_p1;
 }
 
+
 //! This function reverts the grid information back its values
 //! at the previous time step
 void Reconst::revert_grid(ReconstCell &grid_current,
                           const Cell_small &grid_prev) const {
-    grid_current.e = grid_prev.epsilon;
+    grid_current.e    = grid_prev.epsilon;
     grid_current.rhob = grid_prev.rhob;
-    grid_current.u = grid_prev.u;
+    grid_current.u    = grid_prev.u;
 }
 
 //! reconstruct TJb from q[0] - q[4]
@@ -59,18 +61,21 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     double M   = sqrt(K00);
     double T00 = q[0];
     double J0  = q[4];
+    
+    if ((T00 < abs_err)) {
+        // T^{0\mu} is too small, directly set it to
+        // e = abs_err, u^\mu = (1, 0, 0, 0)
+        return(-2);
+    }
 
-    if ((T00 < abs_err) || ((T00 - K00/T00) < 0.0)) {
-        // can't make Tmunu with this. restore the previous value
-        // remember that uq are eigher halfway cells or the final q_next
-        // at this point, the original values in grid_pt->TJb are not touched.
+    if (T00 < M) {
         if (echo_level > 9) {
             music_message.warning(
-                    "Reconst velocity Newton:: can not find solution!");
-            music_message << "T00 = " << T00 << ", K00 = " << K00;
+                            "Reconst:: can not find solution! Revert back~");
+            music_message << "T00 = " << T00 << ", M = " << M;
             music_message.flush("warning");
         }
-        return(-2);
+        return(-1);
     }
 
     double u[4], epsilon, pressure, rhob;
@@ -145,7 +150,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
 
 //! This function regulate the grid information
 void Reconst::regulate_grid(ReconstCell &grid_cell, double elocal) const {
-    grid_cell.e = std::max(1e-12, elocal);
+    grid_cell.e = std::max(abs_err, elocal);
     grid_cell.rhob = 0.0;
     grid_cell.u[0] = 1.0;
     grid_cell.u[1] = 0.0;
