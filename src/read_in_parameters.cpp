@@ -745,7 +745,11 @@ InitData read_in_parameters(std::string input_file) {
     tempinput = Util::StringFind4(input_file, "output_evolution_every_N_x");
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_x;
     parameter_list.output_evolution_every_N_x = temp_evo_N_x;
-    parameter_list.output_evolution_every_N_y = temp_evo_N_x;
+    
+    int temp_evo_N_y = 1;
+    tempinput = Util::StringFind4(input_file, "output_evolution_every_N_y");
+    if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_y;
+    parameter_list.output_evolution_every_N_y = temp_evo_N_y;
     
     int temp_evo_N_eta = 1;
     tempinput = Util::StringFind4(input_file, "output_evolution_every_N_eta");
