@@ -872,7 +872,9 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
             arena_current(ix, iy, ieta).u[2] = jetscape_initial_u_y[idx];
             arena_current(ix, iy, ieta).u[3] = DATA.tau0*jetscape_initial_u_eta[idx];
 
-            arena_current(ix, iy, ieta).pi_b = jetscape_initial_bulk_pi[idx]/hbarc;
+            //arena_current(ix, iy, ieta).pi_b = jetscape_initial_bulk_pi[idx]/hbarc;
+	    // Initialize bulk as "pressure_conformal(epsilon)-pressure_QCD(epsilon)" to conserve Tmunu
+            arena_current(ix, iy, ieta).pi_b = epsilon/3.-eos.get_pressure(epsilon,rhob);
 
             arena_current(ix, iy, ieta).Wmunu[0] = jetscape_initial_pi_00[idx]/hbarc;
             arena_current(ix, iy, ieta).Wmunu[1] = jetscape_initial_pi_01[idx]/hbarc;
