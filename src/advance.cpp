@@ -564,15 +564,15 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
         } else {
           fprintf(stderr,"WARNING: in MaxSpeed. \n");
           fprintf(stderr, "Expression under sqrt in num=%lf. \n", num_temp_sqrt);
-          fprintf(stderr,"at value e=%lf. \n",eps);
-          fprintf(stderr,"at value p=%lf. \n",p);
-          fprintf(stderr,"at value h=%lf. \n",h);
-          fprintf(stderr,"at value rhob=%lf. \n",rhob);
-          fprintf(stderr,"at value utau=%lf. \n", utau);
-          fprintf(stderr,"at value uk=%lf. \n", ux);
-          fprintf(stderr,"at value vs^2=%lf. \n", vs2);
-          fprintf(stderr,"at value dpde=%lf. \n", eos.get_dpde(eps, rhob));
-          fprintf(stderr,"at value dpdrhob=%lf. \n", eos.get_dpdrhob(eps, rhob));
+          fprintf(stderr,"at value e=%g. \n",eps);
+          fprintf(stderr,"at value p=%g. \n",p);
+          fprintf(stderr,"at value h=%g. \n",h);
+          fprintf(stderr,"at value rhob=%g. \n",rhob);
+          fprintf(stderr,"at value utau=%g. \n", utau);
+          fprintf(stderr,"at value uk=%g. \n", ux);
+          fprintf(stderr,"at value vs^2=%g. \n", vs2);
+          fprintf(stderr,"at value dpde=%g. \n", eos.get_dpde(eps, rhob));
+          fprintf(stderr,"at value dpdrhob=%g. \n", eos.get_dpdrhob(eps, rhob));
           fprintf(stderr, "MaxSpeed: exiting.\n");
           exit(1);
         }
