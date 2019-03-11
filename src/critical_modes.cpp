@@ -27,14 +27,21 @@ void CriticalSlowModes::InitializeFields(const int nQ, SCGrid &arena_current) {
     Qvec.resize(nQ);
     for (int i = 0; i < nQ; i++) {
         Qvec[i] = Q_min + i*dQ;
-        for (int ix = 0; ix < arena_current.nX(); ix++)
-        for (int iy = 0; iy < arena_current.nY(); iy++)
-        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            arena_current(ix, iy, ieta).phi_Q.resize(nQ);
-            const double e_local    = arena_current(ix, iy, ieta).epsilon;
-            const double rhob_local = arena_current(ix, iy, ieta).rhob;
-            arena_current(ix, iy, ieta).phi_Q[i] = 0.1*(
-                compute_phiQ_equilibrium(Qvec[i], e_local, rhob_local));
+    }
+    for (int ix = 0; ix < arena_current.nX(); ix++)
+    for (int iy = 0; iy < arena_current.nY(); iy++)
+    for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+        arena_current(ix, iy, ieta).phi_Q.resize(nQ);
+        const double e_local    = arena_current(ix, iy, ieta).epsilon;
+        const double rhob_local = arena_current(ix, iy, ieta).rhob;
+        for (int iQ = 0; iQ < nQ; iQ++) {
+            arena_current(ix, iy, ieta).phi_Q[iQ] = 0.1*(
+                compute_phiQ_equilibrium(Qvec[iQ], e_local, rhob_local));
+        }
+        if (DATA.flag_critical_modes_feedback) {
+            // initialize the renormalization to the EoS and transport
+            // coefficients from out-of-equilibrium phi_Q fields
+            arena_current(ix, iy, ieta).critical_renormalization.resize(3, 0.);
         }
     }
     music_message.info("The critical slow modes phiQ are initialized.");

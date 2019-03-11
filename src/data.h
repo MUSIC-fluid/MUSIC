@@ -62,6 +62,7 @@ typedef struct init_data {
 
     bool flag_critical_modes;
     int critical_nphiQ;
+    bool flag_critical_modes_feedback;
 
     int nx;
     int ny;

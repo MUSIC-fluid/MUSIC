@@ -14,8 +14,11 @@ class Cell_small {
     ViscousVec Wmunu;
     double pi_b    = 0.;
 
-    std::vector<double> phi_Q;  // for critical slow modes
-    std::vector<double> EOS_renormalization;
+    std::vector<double> phi_Q;  //!< for critical slow modes
+    
+    //! array to store the renormalization to the EoS and transport
+    //! coefficients from out-of-equilibrium phi_Q fields
+    std::vector<double> critical_renormalization;
 };
 
 #endif  // SRC_CELL_H_

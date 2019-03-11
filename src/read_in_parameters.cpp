@@ -78,6 +78,16 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_nphiQ;
     parameter_list.critical_nphiQ = temp_nphiQ;
 
+    int temp_critical_feedback = 0;
+    tempinput = Util::StringFind4(input_file, "include_critical_modes_feedback");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_critical_feedback;
+    if (parameter_list.flag_critical_modes && temp_critical_feedback == 1) {
+        parameter_list.flag_critical_modes_feedback = true;
+    } else {
+        parameter_list.flag_critical_modes_feedback = false;
+    }
+
     // boost-invariant
     int temp_boost_invariant = 1;
     tempinput = Util::StringFind4(input_file, "boost_invariant");
