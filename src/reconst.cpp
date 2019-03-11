@@ -230,8 +230,6 @@ int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
     double rel_error_v = 10.0;
     int iter_v = 0;
     do {
-        //std::cout << iter_v << " " << v_root << " " << v_l << " "
-        //          << v_h << " " << fv << " " << dfdv << std::endl;
         iter_v++;
         if (((v_root - v_h)*dfdv - fv)*((v_root - v_l)*dfdv - fv) > 0.
             || (std::abs(2.*fv) > std::abs(dv_prev*dfdv))) {
@@ -257,10 +255,8 @@ int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
             v_status = 0;
             break;
         }
-    } while ((   std::abs(abs_error_v) > abs_err
-              && std::abs(rel_error_v) > rel_err)
-             || (std::abs(fv) > abs_err
-                 && std::abs(fv/(v_root + abs_err) > rel_err)));
+    } while (   std::abs(abs_error_v) > abs_err
+             && std::abs(rel_error_v) > rel_err);
     v_solution = v_root;
 
     if (v_status == 0 && echo_level > 5) {
@@ -357,8 +353,6 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
     double rel_error_u0 = 10.0;
     int iter_u0 = 0;
     do {
-        //std::cout << iter_u0 << " " << u0_root << " " << u0_l << " "
-        //          << u0_h << " " << fu0 << " " << dfdu0 << std::endl;
         iter_u0++;
         if (((u0_root - u0_h)*dfdu0 - fu0)*((u0_root - u0_l)*dfdu0 - fu0) > 0.
             || (std::abs(2.*fu0) > std::abs(du0_prev*dfdu0))) {
@@ -384,9 +378,8 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
             u0_status = 0;
             break;
         }
-    } while ((   std::abs(abs_error_u0) > abs_err
-              && std::abs(rel_error_u0) > rel_err)
-             || (std::abs(fu0) > abs_err && std::abs(fu0)/u0_root > rel_err));
+    } while (   std::abs(abs_error_u0) > abs_err
+             && std::abs(rel_error_u0) > rel_err);
     u0_solution = u0_root;
 
     if (u0_status == 0 && echo_level > 5) {
