@@ -15,6 +15,7 @@ class Cell_small {
     double pi_b    = 0.;
 
     std::vector<double> phi_Q;  // for critical slow modes
+    std::vector<double> EOS_renormalization;
 };
 
 #endif  // SRC_CELL_H_
