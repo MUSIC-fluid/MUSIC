@@ -7,6 +7,7 @@
 #include "cell.h"
 #include "grid.h"
 #include "data.h"
+#include "transport.h"
 #include "minmod.h"
 #include "pretty_ostream.h"
 
@@ -14,6 +15,7 @@ class Diss {
  private:
     const InitData &DATA;
     const EOS &eos;
+    Transport transport;
     const Minmod minmod;
     int map_2d_idx_to_1d(int a, int b) {
         static const int index_map[5][4] = {{0,   1,  2,  3},
@@ -54,13 +56,6 @@ class Diss {
                          int rk_flag, double theta_local, DumuVec &a_local,
                          VelocityShearVec &sigma_1d,
                          DmuMuBoverTVec &baryon_diffusion_vec);
-
-    double get_eta_over_s(double T);
-    double get_zeta_over_s(double T);
-    double get_temperature_dependent_eta_over_s_default(double T);
-    double get_temperature_dependent_zeta_over_s_default(double T);
-    double get_temperature_dependent_eta_over_s_duke(double T);
-    double get_temperature_dependent_zeta_over_s_duke(double T);
 
     void output_kappa_T_and_muB_dependence();
     void output_kappa_along_const_sovernB();

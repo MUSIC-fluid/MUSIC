@@ -8,6 +8,7 @@
 #include "data.h"
 #include "cell.h"
 #include "grid.h"
+#include "transport.h"
 #include "eos.h"
 #include "hydro_source.h"
 #include "pretty_ostream.h"
@@ -16,6 +17,7 @@ class Init {
  private:
     InitData &DATA;
     const EOS &eos;
+    Transport transport;
     hydro_source &hydro_source_terms;
     pretty_ostream music_message;
         

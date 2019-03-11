@@ -20,7 +20,7 @@ using std::ifstream;
 using Util::hbarc;
 
 Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source &hydro_source_in) :
-    DATA(DATA_in), eos(eosIn) , hydro_source_terms(hydro_source_in) {}
+    DATA(DATA_in), eos(eosIn), transport(eosIn,DATA_in) , hydro_source_terms(hydro_source_in) {}
 
 void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                      SCGrid &arena_future) {
