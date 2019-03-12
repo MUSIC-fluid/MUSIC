@@ -15,8 +15,10 @@ class CriticalSlowModes {
  private:
     const InitData &DATA;
     const EOS &eos;
-    std::vector<double> Qvec;
     Minmod minmod;
+    const int n_renorm;
+    std::vector<double> Qvec;
+    double dQ;
     pretty_ostream music_message;
 
  public:
@@ -58,6 +60,16 @@ class CriticalSlowModes {
     double compute_relaxation_source_term(
         const double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
         const int iQ, const int rk_flag) const;
+
+    double entropy_intergrand(double x) const;
+    double alpha_intergrand(const double e, const double rhob,
+                            const double Qxi, const double phi_ratio) const;
+    double beta_intergrand(const double e, const double rhob,
+                           const double Qxi, const double phi_ratio) const;
+
+    void compute_renormalizations(
+        const double tau, SCGrid &arena_current, SCGrid &arena_future,
+        const int ix, const int iy, const int ieta ) const;
 };
 
 #endif  // SRC_CRITICAL_MODES_H_

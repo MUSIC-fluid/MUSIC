@@ -11,7 +11,7 @@
 
 CriticalSlowModes::CriticalSlowModes(
         const EOS &eos_in, const InitData &DATA_in) :
-    DATA(DATA_in), eos(eos_in), minmod(DATA_in) {
+    DATA(DATA_in), eos(eos_in), minmod(DATA_in), n_renorm(4) {
 }
 
 CriticalSlowModes::~CriticalSlowModes() {
@@ -23,7 +23,7 @@ void CriticalSlowModes::InitializeFields(const int nQ, SCGrid &arena_current) {
     Qvec.clear();
     const double Q_min = 0.1;
     const double Q_max = 10.0;
-    const double dQ    = (Q_max - Q_min)/(nQ - 1);
+    dQ = (Q_max - Q_min)/(nQ - 1);
     Qvec.resize(nQ);
     for (int i = 0; i < nQ; i++) {
         Qvec[i] = Q_min + i*dQ;
@@ -41,7 +41,8 @@ void CriticalSlowModes::InitializeFields(const int nQ, SCGrid &arena_current) {
         if (DATA.flag_critical_modes_feedback) {
             // initialize the renormalization to the EoS and transport
             // coefficients from out-of-equilibrium phi_Q fields
-            arena_current(ix, iy, ieta).critical_renormalization.resize(3, 0.);
+            arena_current(ix, iy, ieta).critical_renormalizations.resize(
+                                                                n_renorm, 0.);
         }
     }
     music_message.info("The critical slow modes phiQ are initialized.");
@@ -82,7 +83,7 @@ double CriticalSlowModes::get_GammaQ(const double Q, const double xi,
                                      const double T, const double eta) const {
     const double Gamma_xi = T/(6.*M_PI*eta*xi*xi*xi);  // [1/fm]
     const double Qxi      = Q*xi;
-    const double Kawasaki = 3./4.*(
+    const double Kawasaki = 0.75*(
             1. + Qxi*Qxi + (Qxi*Qxi*Qxi - 1./(Qxi + 1e-16))*atan(Qxi + 1e-16));
     const double GammaQ = 2.*Gamma_xi*Kawasaki;  // [1/fm]
     return(GammaQ);
@@ -96,9 +97,9 @@ void CriticalSlowModes::evolve_phiQfields(
         const int ix, const int iy, const int ieta,
         const int rk_flag) {
     
-    auto grid_pt_prev = &(arena_prev(ix, iy, ieta));
+    auto grid_pt_prev = &(arena_prev   (ix, iy, ieta));
     auto grid_pt_c    = &(arena_current(ix, iy, ieta));
-    auto grid_pt_f    = &(arena_future(ix, iy, ieta));
+    auto grid_pt_f    = &(arena_future (ix, iy, ieta));
 
     const double tau_rk = tau + rk_flag*(DATA.delta_tau);
     DeltaXVec delta = {DATA.delta_tau, DATA.delta_x, DATA.delta_y,
@@ -113,8 +114,7 @@ void CriticalSlowModes::evolve_phiQfields(
                  + rk_flag*(grid_pt_prev->phi_Q[iQ]*grid_pt_prev->u[0]));
         double source_term = compute_relaxation_source_term(
                             tau_rk, grid_pt_c, grid_pt_prev, iQ, rk_flag);
-        tempf += source_term*(DATA.delta_tau);
-        tempf += flux_term;
+        tempf += (flux_term + source_term)*(DATA.delta_tau);
         tempf += rk_flag*((grid_pt_c->phi_Q[iQ])*(grid_pt_c->u[0]));
         tempf *= 1./(1. + rk_flag);
         grid_pt_f->phi_Q[iQ] = tempf/(grid_pt_f->u[0]);
@@ -203,10 +203,7 @@ void CriticalSlowModes::compute_KTflux(
     });
 
     /* add a source term due to the coordinate change to tau-eta */
-    flux_term -= (grid_pt->phi_Q[iQ])*(grid_pt->u[0])/tau;
-    flux_term += (grid_pt->phi_Q[iQ])*theta_local;
-
-    flux_term *= delta[0];
+    flux_term += (grid_pt->phi_Q[iQ])*(-(grid_pt->u[0])/tau + theta_local);
 }
 
 
@@ -217,22 +214,99 @@ double CriticalSlowModes::compute_relaxation_source_term(
     double epsilon, rhob;
     if (rk_flag == 0) {
         epsilon = grid_pt->epsilon;
-        rhob = grid_pt->rhob;
+        rhob    = grid_pt->rhob;
     } else {
         epsilon = grid_pt_prev->epsilon;
-        rhob = grid_pt_prev->rhob;
+        rhob    = grid_pt_prev->rhob;
     }
     const double temperature = eos.get_temperature(epsilon, rhob);
     const double s_local     = eos.get_entropy(epsilon, rhob);
     const double shear_eta   = std::max(DATA.shear_to_s, 0.08)*s_local;
     const double xi          = get_xi(epsilon, rhob);
 
-    const double phiQ_relax_time = std::max(3.*DATA.delta_tau,
-                                            1./(get_GammaQ(Qvec[iQ], xi,
-                                                temperature, shear_eta)));
+    const double phiQ_relax_rate = std::min(
+            1./(3.*DATA.delta_tau), get_GammaQ(Qvec[iQ], xi,
+                                               temperature, shear_eta));
     const double phiQ_eq = compute_phiQ_equilibrium(Qvec[iQ], epsilon, rhob);
-    double source_term   = - (
-            (phiQ_eq/(grid_pt->phi_Q[iQ])*(grid_pt->phi_Q[iQ] - phiQ_eq))
-            /phiQ_relax_time);
+    double source_term   = - phiQ_relax_rate*(
+            (phiQ_eq/(grid_pt->phi_Q[iQ])*(grid_pt->phi_Q[iQ] - phiQ_eq)));
     return(source_term);
+}
+
+
+//! This function computes the renormalizations for EoS and
+//! transport coefficients (future)
+void CriticalSlowModes::compute_renormalizations(
+        const double tau, SCGrid &arena_current, SCGrid &arena_future,
+        const int ix, const int iy, const int ieta ) const {
+    auto grid_pt_c = &(arena_current(ix, iy, ieta));
+    auto grid_pt_f = &(arena_future (ix, iy, ieta));
+    
+    const double eps    = grid_pt_c->epsilon;
+    const double rhob   = grid_pt_c->rhob;
+    const double P0     = eos.get_pressure(eps, rhob);
+    const double beta0  = 1./eos.get_temperature(eps, rhob);
+    const double xi     = eos.get_correlation_length(eps, rhob);
+
+    const double phase_factor = 1./(2.*2.*M_PI*M_PI)*dQ;
+    double Delta_s     = 0.0;
+    double Delta_beta  = 0.0;
+    double Delta_alpha = 0.0;
+    for (unsigned int iQ = 0; iQ < Qvec.size(); iQ++) {
+        const double phiQ_eq   = compute_phiQ_equilibrium(Qvec[iQ], eps, rhob);
+        const double ratio     = grid_pt_c->phi_Q[iQ]/phiQ_eq;
+        const double Qxi       = Qvec[iQ]*xi;
+        const double Q2        = Qvec[iQ]*Qvec[iQ];
+
+        const double delta_s_i     = entropy_intergrand(ratio);
+        const double delta_alpha_i = alpha_intergrand(eps, rhob, Qxi, ratio);
+        const double delta_beta_i  = beta_intergrand(eps, rhob, Qxi, ratio);
+
+        Delta_s     += Q2*delta_s_i;
+        Delta_alpha += Q2*delta_alpha_i;
+        Delta_beta  += Q2*delta_beta_i;
+    }
+    Delta_s     *= phase_factor;
+    Delta_alpha *= phase_factor;
+    Delta_beta  *= phase_factor;
+    
+    double Delta_P = ((Delta_s - (eps + P0)*Delta_beta + rhob*Delta_alpha)
+                      /(beta0 + Delta_beta));
+
+    // update the renormalization at the future step
+    grid_pt_f->critical_renormalizations[0] = Delta_s;
+    grid_pt_f->critical_renormalizations[1] = Delta_beta;
+    grid_pt_f->critical_renormalizations[2] = Delta_alpha;
+    grid_pt_f->critical_renormalizations[3] = Delta_P;
+}
+
+
+double CriticalSlowModes::entropy_intergrand(const double x) const {
+    double integrand = log(x) + 1. - x;
+    return(integrand);
+}
+
+
+double CriticalSlowModes::alpha_intergrand(
+                        const double e, const double rhob,
+                        const double Qxi, const double phi_ratio) const {
+    double dCpde = 0.0;
+    double dxide = 0.0;
+    double Cp = eos.get_dedT(e, rhob);
+    double factor = dCpde/(Cp + 1e-16) - 2.*Qxi/(1. + Qxi*Qxi)*dxide;
+    double integrand = factor*(phi_ratio - 1.);
+    return(integrand);
+}
+
+
+double CriticalSlowModes::beta_intergrand(
+                        const double e, const double rhob,
+                        const double Qxi, const double phi_ratio) const {
+    double dCpdrhob = 0.0;
+    double dxidrhob = 0.0;
+    double Cp = eos.get_dedT(e, rhob);
+    double factor = (dCpdrhob/(Cp + 1e-16) - 2./(rhob + 1e-16)
+                     - 2.*Qxi/(1. + Qxi*Qxi)*dxidrhob);
+    double integrand = factor*(phi_ratio - 1.);
+    return(integrand);
 }
