@@ -25,13 +25,18 @@ TEST_CASE("Check CriticalSlowModes initialization") {
 TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
     for (bool flagBjorken : { false, true }) {
         std::ofstream outputfile;
+        std::ofstream outputfile2;
         if (flagBjorken) {
             outputfile.open("phiQ_evo_Bjorken_medium.dat");
+            outputfile2.open("EoS_renorm_Bjorken_medium.dat");
         } else {
             outputfile.open("phiQ_evo_static_medium.dat");
+            outputfile2.open("EoS_renorm_static_medium.dat");
         }
         outputfile << "# tau[fm]  e[1/fm^4]  Q[1/fm^4]  "
                    << "phiQ_eq  phi_Q  phi_Q/phiQ_eq" << std::endl;
+        outputfile2 << "# tau[fm]  Delta s[1/fm^3]  Delta beta[1/fm]  "
+                    << "Delta alpha  Delta P[1/fm^4]" << std::endl;
 
         EOS eos_ideal(0);
         InitData DATA(ReadInParameters::read_in_parameters(
@@ -91,6 +96,13 @@ TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
                                << (*ap_current)(0, 0, 0).phi_Q[iQ]/phiQ_eq
                                << std::endl;
                 }
+                outputfile2 << std::scientific
+                            << tau_local << "  "
+                            << (*ap_current)(0, 0, 0).critical_renormalizations[0] << "  "
+                            << (*ap_current)(0, 0, 0).critical_renormalizations[1] << "  "
+                            << (*ap_current)(0, 0, 0).critical_renormalizations[2] << "  "
+                            << (*ap_current)(0, 0, 0).critical_renormalizations[3] << "  "
+                            << std::endl;
             }
 
             // rk evolution
@@ -111,6 +123,18 @@ TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
                         }
                     }
                 }
+
+                if (rk_flag == 1) {
+                    for (int ieta = 0; ieta < grid_neta; ieta++) {
+                        for (int ix = 0; ix < grid_nx; ix++) {
+                            for (int iy = 0; iy < grid_ny; iy++) {
+                                test.compute_renormalizations(
+                                    tau_local, *ap_current, *ap_future, ix, iy, ieta);
+                            }
+                        }
+                    }
+                }
+
                 if (rk_flag == 0) {
                     SCGrid *temp = ap_prev;
                     ap_prev      = ap_current;
@@ -124,6 +148,7 @@ TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
             }
         }
         outputfile.close();
+        outputfile2.close();
     }
 }
 
