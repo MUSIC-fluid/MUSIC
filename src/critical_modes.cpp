@@ -32,11 +32,12 @@ void CriticalSlowModes::InitializeFields(const int nQ, SCGrid &arena_current) {
     for (int iy = 0; iy < arena_current.nY(); iy++)
     for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
         arena_current(ix, iy, ieta).phi_Q.resize(nQ);
-        const double e_local    = arena_current(ix, iy, ieta).epsilon;
-        const double rhob_local = arena_current(ix, iy, ieta).rhob;
+        const double eps  = arena_current(ix, iy, ieta).epsilon;
+        const double rhob = arena_current(ix, iy, ieta).rhob;
+        const double xi   = eos.get_correlation_length(eps, rhob);
         for (int iQ = 0; iQ < nQ; iQ++) {
             arena_current(ix, iy, ieta).phi_Q[iQ] = 0.1*(
-                compute_phiQ_equilibrium(Qvec[iQ], e_local, rhob_local));
+                compute_phiQ_equilibrium(Qvec[iQ]*xi, eps, rhob));
         }
         if (DATA.flag_critical_modes_feedback) {
             // initialize the renormalization to the EoS and transport
@@ -70,9 +71,8 @@ double CriticalSlowModes::get_xi(const double e, const double rho_b) const {
 
 //! This function computes the equilibrium value of phi_Q
 double CriticalSlowModes::compute_phiQ_equilibrium(
-        const double Q, const double e, const double rho_b) const {
+        const double Qxi, const double e, const double rho_b) const {
     const double phi_0 = phiQbar_0(e, rho_b);
-    const double Qxi   = Q*get_xi(e, rho_b);
     const double f2    = phiQbar_f2(Qxi);
     return(phi_0*f2);
 }
@@ -227,7 +227,7 @@ double CriticalSlowModes::compute_relaxation_source_term(
     const double phiQ_relax_rate = std::min(
             1./(3.*DATA.delta_tau), get_GammaQ(Qvec[iQ], xi,
                                                temperature, shear_eta));
-    const double phiQ_eq = compute_phiQ_equilibrium(Qvec[iQ], epsilon, rhob);
+    const double phiQ_eq = compute_phiQ_equilibrium(Qvec[iQ]*xi, epsilon, rhob);
     double source_term   = - phiQ_relax_rate*(
             (phiQ_eq/(grid_pt->phi_Q[iQ])*(grid_pt->phi_Q[iQ] - phiQ_eq)));
     return(source_term);
@@ -253,9 +253,9 @@ void CriticalSlowModes::compute_renormalizations(
     double Delta_beta  = 0.0;
     double Delta_alpha = 0.0;
     for (unsigned int iQ = 0; iQ < Qvec.size(); iQ++) {
-        const double phiQ_eq   = compute_phiQ_equilibrium(Qvec[iQ], eps, rhob);
-        const double ratio     = grid_pt_c->phi_Q[iQ]/phiQ_eq;
         const double Qxi       = Qvec[iQ]*xi;
+        const double phiQ_eq   = compute_phiQ_equilibrium(Qxi, eps, rhob);
+        const double ratio     = grid_pt_c->phi_Q[iQ]/phiQ_eq;
         const double Q2        = Qvec[iQ]*Qvec[iQ];
 
         const double delta_s_i     = entropy_intergrand(ratio);

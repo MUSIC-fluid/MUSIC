@@ -83,11 +83,13 @@ TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
 
             // output results
             if (it % 20 == 0) {
+                const double eps  = (*ap_current)(0, 0, 0).epsilon;
+                const double rhob = (*ap_current)(0, 0, 0).rhob;
+                const double xi   = eos_ideal.get_correlation_length(eps, rhob);
                 for (int iQ = 0; iQ < test.get_Qvec_size(); iQ++) {
                     const double Q_local = test.get_Qi(iQ);
                     const double phiQ_eq = test.compute_phiQ_equilibrium(
-                                    Q_local, (*ap_current)(0, 0, 0).epsilon,
-                                    (*ap_current)(0, 0, 0).rhob);
+                                                        Q_local*xi, eps, rhob);
                     outputfile << std::scientific
                                << tau_local << "  "
                                << (*ap_current)(0, 0, 0).epsilon << "  "
