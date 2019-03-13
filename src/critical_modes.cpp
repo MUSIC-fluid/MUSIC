@@ -231,10 +231,9 @@ double CriticalSlowModes::compute_relaxation_source_term(
 //! This function computes the renormalizations for EoS and
 //! transport coefficients (future)
 void CriticalSlowModes::compute_renormalizations(
-        const double tau, SCGrid &arena_current, SCGrid &arena_future,
-        const int ix, const int iy, const int ietat) const {
+        const double tau, SCGrid &arena_current,
+        const int ix, const int iy, const int ieta) const {
     auto grid_pt_c = &(arena_current(ix, iy, ieta));
-    auto grid_pt_f = &(arena_future (ix, iy, ieta));
     
     const double eps    = grid_pt_c->epsilon;
     const double rhob   = grid_pt_c->rhob;

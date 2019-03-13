@@ -68,8 +68,8 @@ class CriticalSlowModes {
                            const double Qxi, const double phi_ratio) const;
 
     void compute_renormalizations(
-        const double tau, SCGrid &arena_current, SCGrid &arena_future,
-        const int ix, const int iy, const int ieta ) const;
+        const double tau, SCGrid &arena_current,
+        const int ix, const int iy, const int ieta) const;
 };
 
 #endif  // SRC_CRITICAL_MODES_H_
