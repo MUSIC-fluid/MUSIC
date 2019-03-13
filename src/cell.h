@@ -15,10 +15,6 @@ class Cell_small {
     double pi_b    = 0.;
 
     std::vector<double> phi_Q;  //!< for critical slow modes
-    
-    //! array to store the renormalization to the EoS and transport
-    //! coefficients from out-of-equilibrium phi_Q fields
-    std::vector<double> critical_renormalizations;
 };
 
 #endif  // SRC_CELL_H_

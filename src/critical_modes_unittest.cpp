@@ -98,13 +98,6 @@ TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
                                << (*ap_current)(0, 0, 0).phi_Q[iQ]/phiQ_eq
                                << std::endl;
                 }
-                outputfile2 << std::scientific
-                            << tau_local << "  "
-                            << (*ap_current)(0, 0, 0).critical_renormalizations[0] << "  "
-                            << (*ap_current)(0, 0, 0).critical_renormalizations[1] << "  "
-                            << (*ap_current)(0, 0, 0).critical_renormalizations[2] << "  "
-                            << (*ap_current)(0, 0, 0).critical_renormalizations[3] << "  "
-                            << std::endl;
             }
 
             // rk evolution
@@ -122,17 +115,6 @@ TEST_CASE("TEST phiQ evolution static medium/Bjorken expansion") {
                                                    *ap_prev, *ap_current,
                                                    *ap_future, theta_local,
                                                    ix, iy, ieta, rk_flag);
-                        }
-                    }
-                }
-
-                if (rk_flag == 1) {
-                    for (int ieta = 0; ieta < grid_neta; ieta++) {
-                        for (int ix = 0; ix < grid_nx; ix++) {
-                            for (int iy = 0; iy < grid_ny; iy++) {
-                                test.compute_renormalizations(
-                                    tau_local, *ap_current, *ap_future, ix, iy, ieta);
-                            }
                         }
                     }
                 }

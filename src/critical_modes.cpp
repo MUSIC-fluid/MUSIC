@@ -39,12 +39,6 @@ void CriticalSlowModes::InitializeFields(const int nQ, SCGrid &arena_current) {
             arena_current(ix, iy, ieta).phi_Q[iQ] = 0.1*(
                 compute_phiQ_equilibrium(Qvec[iQ]*xi, eps, rhob));
         }
-        if (DATA.flag_critical_modes_feedback) {
-            // initialize the renormalization to the EoS and transport
-            // coefficients from out-of-equilibrium phi_Q fields
-            arena_current(ix, iy, ieta).critical_renormalizations.resize(
-                                                                n_renorm, 0.);
-        }
     }
     music_message.info("The critical slow modes phiQ are initialized.");
 }
@@ -238,7 +232,7 @@ double CriticalSlowModes::compute_relaxation_source_term(
 //! transport coefficients (future)
 void CriticalSlowModes::compute_renormalizations(
         const double tau, SCGrid &arena_current, SCGrid &arena_future,
-        const int ix, const int iy, const int ieta ) const {
+        const int ix, const int iy, const int ietat) const {
     auto grid_pt_c = &(arena_current(ix, iy, ieta));
     auto grid_pt_f = &(arena_future (ix, iy, ieta));
     
@@ -272,12 +266,6 @@ void CriticalSlowModes::compute_renormalizations(
     
     double Delta_P = ((Delta_s - (eps + P0)*Delta_beta + rhob*Delta_alpha)
                       /(beta0 + Delta_beta));
-
-    // update the renormalization at the future step
-    grid_pt_f->critical_renormalizations[0] = Delta_s;
-    grid_pt_f->critical_renormalizations[1] = Delta_beta;
-    grid_pt_f->critical_renormalizations[2] = Delta_alpha;
-    grid_pt_f->critical_renormalizations[3] = Delta_P;
 }
 
 
