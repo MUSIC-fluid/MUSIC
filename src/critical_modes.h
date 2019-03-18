@@ -26,6 +26,7 @@ class CriticalSlowModes {
     ~CriticalSlowModes();
 
     void InitializeFields(const int nQ, SCGrid &arena_current);
+    void InitializeFields_Gubser(SCGrid &arena_current);
 
     int get_Qvec_size() const {return(Qvec.size());}
     double get_Qi(int iQ) const {return(Qvec[iQ]);}

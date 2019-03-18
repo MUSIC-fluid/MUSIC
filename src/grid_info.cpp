@@ -855,17 +855,17 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
     filename << "Gubser_flow_check_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
 
-    double dx = DATA.delta_x;
+    double dx    = DATA.delta_x;
     double x_min = -DATA.x_size/2.;
-    double dy = DATA.delta_y;
+    double dy    = DATA.delta_y;
     double y_min = -DATA.y_size/2.;
     for (int ix = 0; ix < arena.nX(); ix++)
     for (int iy = 0; iy < arena.nY(); iy++) {
-        double x_local = x_min + ix*dx;
-        double y_local = y_min + iy*dy;
-        double e_local = arena(ix,iy,0).epsilon;
+        double x_local    = x_min + ix*dx;
+        double y_local    = y_min + iy*dy;
+        double e_local    = arena(ix,iy,0).epsilon;
         double rhob_local = arena(ix,iy,0).rhob;
-        double T_local = eos.get_temperature(e_local, 0.0);
+        double T_local    = eos.get_temperature(e_local, 0.0);
         output_file << scientific << setprecision(8) << setw(18)
                     << x_local << "  " << y_local << "  "
                     << e_local*unit_convert << "  " << rhob_local << "  "
@@ -879,6 +879,38 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
                     << endl;
     }
     output_file.close();
+
+    if (DATA.flag_critical_modes) {
+        ostringstream filename1, filename2;
+        filename1 << "Gubser_flow_check_critical_modes_x=0_tau_"
+                  << tau << ".dat";
+        filename2 << "Gubser_flow_check_critical_modes_eq_x=0_tau_" << tau
+                  << ".dat";
+        ofstream output_file1(filename1.str().c_str());
+        ofstream output_file2(filename2.str().c_str());
+        int ix = 100;
+        for (int iy = 0; iy < arena.nY(); iy++) {
+            double e_local    = arena(ix, iy, 0).epsilon;
+            double rhob_local = arena(ix, iy, 0).rhob;
+            int iQ = 0;
+            for (double Q_local : critical_slow_modes_ptr.lock()->get_Qvec()) {
+                const double xi = eos.get_correlation_length(e_local,
+                                                             rhob_local);
+                const double phiQ_eq = (
+                    critical_slow_modes_ptr.lock()->compute_phiQ_equilibrium(
+                                            Q_local*xi, e_local, rhob_local));
+                output_file1 << scientific << setprecision(8) << setw(18)
+                             << arena(ix, iy, 0).phi_Q[iQ] << "  ";
+                output_file2 << scientific << setprecision(8) << setw(18)
+                             << phiQ_eq << "  ";
+                iQ++;
+            }
+            output_file1 << std::endl;
+            output_file2 << std::endl;
+        }
+        output_file1.close();
+        output_file2.close();
+    }
 }
 
 
@@ -1193,9 +1225,11 @@ void Cell_info::output_critical_modes_evolution(double tau, SCGrid &arena) {
 
     int iQ = 0;
     for (double Q_local : critical_slow_modes_ptr.lock()->get_Qvec()) {
+        const double xi = eos.get_correlation_length(arena(0, 0, 0).epsilon,
+                                                     arena(0, 0, 0).rhob);
         const double phiQ_eq = (
             critical_slow_modes_ptr.lock()->compute_phiQ_equilibrium(
-                        Q_local, arena(0, 0, 0).epsilon, arena(0, 0, 0).rhob));
+                    Q_local*xi, arena(0, 0, 0).epsilon, arena(0, 0, 0).rhob));
         outputfile << std::scientific
                    << tau << "  " << arena(0, 0, 0).epsilon << "  "
                    << Q_local << "  " << phiQ_eq << "  "

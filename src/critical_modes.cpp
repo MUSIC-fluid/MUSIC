@@ -5,6 +5,7 @@
 #include "data.h"
 #include "data_struct.h"
 #include "minmod.h"
+#include <fstream>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -16,6 +17,51 @@ CriticalSlowModes::CriticalSlowModes(
 
 CriticalSlowModes::~CriticalSlowModes() {
     Qvec.clear();
+}
+
+
+void CriticalSlowModes::InitializeFields_Gubser(SCGrid &arena_current) {
+    Qvec.clear();
+    const int nQ = 3;
+    dQ = 1.0;
+    Qvec.resize(nQ);
+    Qvec[0] = 1.0;
+    Qvec[1] = 20.0;
+    Qvec[2] = 50.0;
+
+    std::string input_filename = (
+                        "tests/Gubser_flow/Gubser_ideal_phiQ_init_tau_1.dat");
+    std::ifstream profile(input_filename.c_str());
+    if (!profile.good()) {
+        music_message << "CriticalSlowModes::InitializeFields_Gubser: "
+                      << "Can not open the initial file: " << input_filename;
+        music_message.flush("error");
+        exit(1);
+    }
+    // read the information line
+    std::string dummy;
+    std::getline(profile, dummy);
+
+    for (int ix = 0; ix < arena_current.nX(); ix++)
+    for (int iy = 0; iy < arena_current.nY(); iy++)
+    for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+        arena_current(ix, iy, ieta).phi_Q.resize(nQ);
+        double x_local, y_local;
+        profile >> x_local >> y_local;
+        for (int iQ = 0; iQ < nQ; iQ++) {
+            double phiQ_tmp = 0.0;
+            profile >> phiQ_tmp;
+            if (phiQ_tmp < 1e-16) {
+                music_message << "ix = " << ix << ", iy = " << iy
+                              << "phiQ_init = " << phiQ_tmp << " is too small";
+                music_message.flush("warning");
+            }
+            arena_current(ix, iy, ieta).phi_Q[iQ] = std::max(1e-16, phiQ_tmp);
+        }
+    }
+    profile.close();
+    music_message.info(
+        "The critical slow modes phiQ are initialized with Gubser solution.");
 }
 
 
@@ -36,7 +82,7 @@ void CriticalSlowModes::InitializeFields(const int nQ, SCGrid &arena_current) {
         const double rhob = arena_current(ix, iy, ieta).rhob;
         const double xi   = eos.get_correlation_length(eps, rhob);
         for (int iQ = 0; iQ < nQ; iQ++) {
-            arena_current(ix, iy, ieta).phi_Q[iQ] = 0.1*(
+            arena_current(ix, iy, ieta).phi_Q[iQ] = 1.0*(
                 compute_phiQ_equilibrium(Qvec[iQ]*xi, eps, rhob));
         }
     }
@@ -219,8 +265,8 @@ double CriticalSlowModes::compute_relaxation_source_term(
     const double xi          = get_xi(epsilon, rhob);
 
     const double phiQ_relax_rate = std::min(
-            1./(3.*DATA.delta_tau), get_GammaQ(Qvec[iQ], xi,
-                                               temperature, shear_eta));
+            1./(DATA.delta_tau), get_GammaQ(Qvec[iQ], xi,
+                                            temperature, shear_eta));
     const double phiQ_eq = compute_phiQ_equilibrium(Qvec[iQ]*xi, epsilon, rhob);
     double source_term   = - phiQ_relax_rate*(
             (phiQ_eq/(grid_pt->phi_Q[iQ])*(grid_pt->phi_Q[iQ] - phiQ_eq)));

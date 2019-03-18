@@ -162,10 +162,16 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
     InitTJb(arena_prev, arena_current);
     
     if (DATA.flag_critical_modes) {
-        const int nQ = DATA.critical_nphiQ;
-        critical_slow_modes_ptr.lock()->InitializeFields(nQ, arena_prev);
-        critical_slow_modes_ptr.lock()->InitializeFields(nQ, arena_current);
-        critical_slow_modes_ptr.lock()->InitializeFields(nQ, arena_future);
+        if (DATA.Initial_profile == 0) {
+            critical_slow_modes_ptr.lock()->InitializeFields_Gubser(arena_prev);
+            critical_slow_modes_ptr.lock()->InitializeFields_Gubser(arena_current);
+            critical_slow_modes_ptr.lock()->InitializeFields_Gubser(arena_future);
+        } else {
+            const int nQ = DATA.critical_nphiQ;
+            critical_slow_modes_ptr.lock()->InitializeFields(nQ, arena_prev);
+            critical_slow_modes_ptr.lock()->InitializeFields(nQ, arena_current);
+            critical_slow_modes_ptr.lock()->InitializeFields(nQ, arena_future);
+        }
     }
 
     if (DATA.output_initial_density_profiles == 1) {
