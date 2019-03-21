@@ -461,14 +461,14 @@ double HydroSourceStrings::get_hydro_rhob_source(
         //double tau_dis_left = fabs(tau - it->tau_end_left);
         //double tau_dis_right = fabs(tau - it->tau_end_right);
         int flag_left = 0;
-        if (   it.lock()->tau_end_left >= tau - dtau/2.
-            && it.lock()->tau_end_left <  tau + dtau/2.) {
+        if (   it.lock()->tau_baryon_left >= tau - dtau/2.
+            && it.lock()->tau_baryon_left <  tau + dtau/2.) {
             flag_left = 1;
         }
 
         int flag_right = 0;
-        if (   it.lock()->tau_end_right >= tau - dtau/2.
-            && it.lock()->tau_end_right <  tau + dtau/2.) {
+        if (   it.lock()->tau_baryon_right >= tau - dtau/2.
+            && it.lock()->tau_baryon_right <  tau + dtau/2.) {
             flag_right = 1;
         }
 
@@ -482,7 +482,8 @@ double HydroSourceStrings::get_hydro_rhob_source(
 
         double exp_eta_s_left = 0.0;
         if (flag_left == 1) {
-            double eta_dis_left = std::abs(eta_s - it.lock()->eta_s_left);
+            double eta_dis_left = std::abs(eta_s
+                                           - it.lock()->eta_s_baryon_left);
             if (eta_dis_left < skip_dis_eta) {
                 exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
                                       /(sigma_eta*sigma_eta)));
@@ -491,7 +492,8 @@ double HydroSourceStrings::get_hydro_rhob_source(
 
         double exp_eta_s_right = 0.0;
         if (flag_right == 1) {
-            double eta_dis_right = std::abs(eta_s - it.lock()->eta_s_right);
+            double eta_dis_right = std::abs(eta_s
+                                            - it.lock()->eta_s_baryon_right);
             if (eta_dis_right < skip_dis_eta) {
                 exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
                                        /(sigma_eta*sigma_eta)));
@@ -505,8 +507,8 @@ double HydroSourceStrings::get_hydro_rhob_source(
                                     /(sigma_x*sigma_x));
             double fsmear = exp_xperp*exp_factors;
             double rapidity_local = (
-                (  exp_eta_s_left*it.lock()->frac_l*it.lock()->y_l
-                 + exp_eta_s_right*it.lock()->frac_r*it.lock()->y_r)
+                (  exp_eta_s_left*it.lock()->frac_l*it.lock()->y_l_baryon
+                 + exp_eta_s_right*it.lock()->frac_r*it.lock()->y_r_baryon)
                 /(  exp_eta_s_left*it.lock()->frac_l
                   + exp_eta_s_right*it.lock()->frac_r));
             double y_dump = ((1. - parton_quench_factor)*rapidity_local
