@@ -1,5 +1,6 @@
 // Copyright 2018 @ Chun Shen
 #include "eos_idealgas.h"
+#include "util.h"
 
 #include <cmath>
 
@@ -39,6 +40,14 @@ double EOS_idealgas::get_correlation_length(
     const double T_local = get_temperature(eps, rhob);
     const double chi_B   = get_chi_B(eps, rhob);
     const double C_xi    = 1.0;
-    const double xi      = std::max(C_xi/T_local, sqrt(chi_B/C_xi));
+
+    // add a critical point where xi blows up
+    //const double T_crit  = 0.15/Util::hbarc;      // 1/fm
+    //const double sigma_T = 0.002/Util::hbarc;     // 1/fm
+    //const double peak    = 10.0;
+    //const double factor  = peak*(1. + exp(-(T_local - T_crit)*(T_local - T_crit)
+    //                                      /(2.*sigma_T*sigma_T)));
+    const double factor = 1.0;
+    const double xi      = factor*std::max(C_xi/T_local, sqrt(chi_B/C_xi));
     return(xi);
 }

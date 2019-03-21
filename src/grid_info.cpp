@@ -1215,30 +1215,43 @@ double Cell_info::get_deltaf_coeff_14moments(double T, double muB,
 
 void Cell_info::output_critical_modes_evolution(double tau, SCGrid &arena) {
     std::ofstream outputfile;
+    std::ofstream outputfile1;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         outputfile.open("phiQ_evo_Bjorken_medium.dat", std::ofstream::out);
-        outputfile << "# tau[fm]  e[1/fm^4]  Q[1/fm^4]  "
-                   << "phiQ_eq  phi_Q  phi_Q/phiQ_eq" << std::endl;
+        outputfile << "# tau[fm]  Q[1/fm^4]  phiQ_eq  phi_Q  phi_Q/phiQ_eq"
+                   << std::endl;
+        outputfile1.open("Bjorken_medium_evo.dat", std::ofstream::out);
+        outputfile1 << "# tau[fm]  e[GeV/fm^3]  n_b[1/fm]  T[GeV]  xi[fm]"
+                    << std::endl;
     } else {
-        outputfile.open("phiQ_evo_Bjorken_medium.dat", std::ofstream::app);
+        outputfile.open ("phiQ_evo_Bjorken_medium.dat", std::ofstream::app);
+        outputfile1.open("Bjorken_medium_evo.dat",      std::ofstream::app);
     }
+
+    const double eps = arena(0, 0, 0).epsilon;
+    const double n_b = arena(0, 0, 0).rhob;
+    const double T_i = eos.get_temperature(eps, n_b);
+    const double xi  = eos.get_correlation_length(eps, n_b);
+        
+    outputfile1 << std::scientific
+                << tau << "  " << eps*Util::hbarc << "  "
+                << n_b << "  " << T_i*Util::hbarc << "  "
+                << xi << std::endl;
 
     int iQ = 0;
     for (double Q_local : critical_slow_modes_ptr.lock()->get_Qvec()) {
-        const double xi = eos.get_correlation_length(arena(0, 0, 0).epsilon,
-                                                     arena(0, 0, 0).rhob);
         const double phiQ_eq = (
             critical_slow_modes_ptr.lock()->compute_phiQ_equilibrium(
                     Q_local*xi, arena(0, 0, 0).epsilon, arena(0, 0, 0).rhob));
         outputfile << std::scientific
-                   << tau << "  " << arena(0, 0, 0).epsilon << "  "
-                   << Q_local << "  " << phiQ_eq << "  "
+                   << tau << "  " << Q_local << "  " << phiQ_eq << "  "
                    << arena(0, 0, 0).phi_Q[iQ] << "  "
                    << arena(0, 0, 0).phi_Q[iQ]/phiQ_eq
                    << std::endl;
         iQ++;
     }
-
+    outputfile.close();
+    outputfile1.close();
 }
 
 
