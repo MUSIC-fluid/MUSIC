@@ -22,6 +22,9 @@ struct QCD_string {
     double y_l, y_r;          // rapidity of the two ends of the string
     double frac_l, frac_r;
     double y_l_i, y_r_i;
+    double tau_baryon_left, tau_baryon_right;
+    double eta_s_baryon_left, eta_s_baryon_right;
+    double y_l_baryon, y_r_baryon;
 };
 
 
@@ -32,8 +35,9 @@ class HydroSourceStrings : public HydroSourceBase {
     double string_quench_factor;
     double parton_quench_factor;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list;
-    std::vector<std::shared_ptr<QCD_string>> QCD_strings_list_current_tau;
-    std::vector<std::shared_ptr<QCD_string>> QCD_strings_baryon_list_current_tau;
+    std::vector<std::weak_ptr<QCD_string>> QCD_strings_list_current_tau;
+    std::vector<std::weak_ptr<QCD_string>> QCD_strings_remnant_list_current_tau;
+    std::vector<std::weak_ptr<QCD_string>> QCD_strings_baryon_list_current_tau;
 
  public:
     HydroSourceStrings() = default;
