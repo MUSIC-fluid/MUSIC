@@ -228,9 +228,12 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
     QCD_strings_remnant_list_current_tau.clear();
     for (auto &it: QCD_strings_list) {
         if ((   it->tau_baryon_left >= (tau_local - 1./2.*dtau)
-             && it->tau_baryon_left <  (tau_local + 3./2.*dtau))
+             && it->tau_baryon_left <  (tau_local + 3./2.*dtau)
+             && it->frac_l > 0.)
             || (   it->tau_baryon_right >= (tau_local - 1./2.*dtau)
-                && it->tau_baryon_right <  (tau_local + 3./2.*dtau))) {
+                && it->tau_baryon_right <  (tau_local + 3./2.*dtau)
+                && it->frac_r > 0.)
+            ) {
             QCD_strings_baryon_list_current_tau.push_back(it);
         }
         if ((   it->tau_end_left >= (tau_local - 1./2.*dtau)
@@ -462,13 +465,15 @@ double HydroSourceStrings::get_hydro_rhob_source(
         //double tau_dis_right = fabs(tau - it->tau_end_right);
         int flag_left = 0;
         if (   it.lock()->tau_baryon_left >= tau - dtau/2.
-            && it.lock()->tau_baryon_left <  tau + dtau/2.) {
+            && it.lock()->tau_baryon_left <  tau + dtau/2.
+            && it.lock()->frac_l > 0.) {
             flag_left = 1;
         }
 
         int flag_right = 0;
         if (   it.lock()->tau_baryon_right >= tau - dtau/2.
-            && it.lock()->tau_baryon_right <  tau + dtau/2.) {
+            && it.lock()->tau_baryon_right <  tau + dtau/2.
+            && it.lock()->frac_r > 0.) {
             flag_right = 1;
         }
 
