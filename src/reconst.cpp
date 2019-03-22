@@ -86,7 +86,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     if (v_status == 0) {
         return(-1);
     }
-    
+
     if (v_solution < v_critical) {
         u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*abs_err);
         epsilon = T00 - v_solution*sqrt(K00);

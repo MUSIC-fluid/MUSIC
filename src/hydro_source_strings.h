@@ -25,6 +25,7 @@ struct QCD_string {
     double tau_baryon_left, tau_baryon_right;
     double eta_s_baryon_left, eta_s_baryon_right;
     double y_l_baryon, y_r_baryon;
+    double baryon_frac_l, baryon_frac_r;
 };
 
 
