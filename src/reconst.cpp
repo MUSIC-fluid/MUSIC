@@ -87,21 +87,20 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
         return(-1);
     }
 
-    if (v_solution < v_critical) {
-        u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*abs_err);
-        epsilon = T00 - v_solution*sqrt(K00);
-        rhob = J0/u[0];
-    } else {  // for large velocity, solve u0
-        double u0_guess = 1./sqrt(1. - v_solution*v_solution);
+    u[0] = 1./(sqrt(1. - v_solution*v_solution) + v_solution*abs_err);
+    epsilon = T00 - v_solution*sqrt(K00);
+    rhob = J0/u[0];
+    if (v_solution > v_critical) {
+        // for large velocity, solve u0
+        double u0_guess    = u[0];
         double u0_solution = u0_guess;
         //int u0_status = solve_u0_Newton(u0_guess, T00, K00, M, J0, u0_solution);
         int u0_status = solve_u0_Hybrid(u0_guess, T00, K00, M, J0, u0_solution);
-        if (u0_status == 0) {
-            return(-1);
+        if (u0_status == 1) {
+            u[0] = u0_solution;
+            epsilon = T00 - sqrt((1. - 1./(u0_solution*u0_solution))*K00);
+            rhob = J0/u0_solution;
         }
-        u[0] = u0_solution;
-        epsilon = T00 - sqrt((1. - 1./(u0_solution*u0_solution))*K00);
-        rhob = J0/u0_solution;
     }
 
     double check_u0_var = std::abs(u[0] - grid_pt.u[0])/grid_pt.u[0];
@@ -339,9 +338,12 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
 
     if (fu0_l*fu0_h > 0.) {
         u0_status = 0;
-        music_message.error(
-                "Reconst velocity Hybrid:: can not find solution!");
-        exit(1);
+        music_message << "Reconst u0 Hybrid:: can not find solution!";
+        music_message.flush("error");
+        music_message << "u0_guess = " << u0_guess << ", T00 = " << T00
+                      << ", M = " << M << ", J0 = " << J0;
+        music_message.flush("error");
+        return(u0_status);
     }
 
     double du0_prev = u0_h - u0_l;
