@@ -26,8 +26,8 @@ void CriticalSlowModes::InitializeFields_Gubser(SCGrid &arena_current) {
     dQ = 1.0;
     Qvec.resize(nQ);
     Qvec[0] = 1.0;
-    Qvec[1] = 20.0;
-    Qvec[2] = 50.0;
+    Qvec[1] = 2.0;
+    Qvec[2] = 5.0;
 
     std::string input_filename = (
                         "tests/Gubser_flow/Gubser_ideal_phiQ_init_tau_1.dat");
