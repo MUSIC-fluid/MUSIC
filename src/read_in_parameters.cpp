@@ -563,6 +563,28 @@ InitData read_in_parameters(std::string input_file) {
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_over_s_curv;
     parameter_list.eta_over_s_curv = temp_eta_over_s_curv;
 
+
+    // If "T_dependent_Shear_to_S_ratio==3", 
+    double temp_eta_over_s_T_kink_in_GeV = .16;
+    tempinput = Util::StringFind4(input_file, "eta_over_s_T_kink_in_GeV");
+    if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_over_s_T_kink_in_GeV;
+    parameter_list.eta_over_s_T_kink_in_GeV = temp_eta_over_s_T_kink_in_GeV;
+
+    double temp_eta_over_s_low_T_slope_in_GeV = 0.0;
+    tempinput = Util::StringFind4(input_file, "eta_over_s_low_T_slope_in_GeV");
+    if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_over_s_low_T_slope_in_GeV;
+    parameter_list.eta_over_s_low_T_slope_in_GeV = temp_eta_over_s_low_T_slope_in_GeV;
+
+    double temp_eta_over_s_high_T_slope_in_GeV = 0.0;
+    tempinput = Util::StringFind4(input_file, "eta_over_s_high_T_slope_in_GeV");
+    if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_over_s_high_T_slope_in_GeV;
+    parameter_list.eta_over_s_high_T_slope_in_GeV = temp_eta_over_s_high_T_slope_in_GeV;
+
+    double temp_eta_over_s_at_kink = 0.08;
+    tempinput = Util::StringFind4(input_file, "eta_over_s_at_kink");
+    if(tempinput != "empty") istringstream ( tempinput ) >> temp_eta_over_s_at_kink;
+    parameter_list.eta_over_s_at_kink = temp_eta_over_s_at_kink;
+
     // Include_Bulk_Visc_Yes_1_No_0
     int tempturn_on_bulk = 0;
     tempinput = Util::StringFind4(input_file, "Include_Bulk_Visc_Yes_1_No_0");
@@ -593,6 +615,27 @@ InitData read_in_parameters(std::string input_file) {
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_peak_in_GeV");
     if(tempinput != "empty") istringstream ( tempinput ) >> tempBulkViscosityPeak;
     parameter_list.bulk_viscosity_peak_in_GeV = tempBulkViscosityPeak;
+
+    // "T_dependent_Bulk_to_S_ratio==3", 
+    double tempzeta_over_s_max= 0.1;
+    tempinput = Util::StringFind4(input_file, "zeta_over_s_max");
+    if(tempinput != "empty") istringstream ( tempinput ) >> tempzeta_over_s_max;
+    parameter_list.zeta_over_s_max = tempzeta_over_s_max;
+
+    double tempzeta_over_s_width_in_GeV= 0.05;
+    tempinput = Util::StringFind4(input_file, "zeta_over_s_width_in_GeV");
+    if(tempinput != "empty") istringstream ( tempinput ) >> tempzeta_over_s_width_in_GeV;
+    parameter_list.zeta_over_s_width_in_GeV = tempzeta_over_s_width_in_GeV;
+
+    double tempzeta_over_s_T_peak_in_GeV= 0.18;
+    tempinput = Util::StringFind4(input_file, "zeta_over_s_T_peak_in_GeV");
+    if(tempinput != "empty") istringstream ( tempinput ) >> tempzeta_over_s_T_peak_in_GeV;
+    parameter_list.zeta_over_s_T_peak_in_GeV = tempzeta_over_s_T_peak_in_GeV;
+
+    double tempzeta_over_s_lambda_asymm= 0.;
+    tempinput = Util::StringFind4(input_file, "zeta_over_s_lambda_asymm");
+    if(tempinput != "empty") istringstream ( tempinput ) >> tempzeta_over_s_lambda_asymm;
+    parameter_list.zeta_over_s_lambda_asymm = tempzeta_over_s_lambda_asymm;
     
     // Include secord order terms
     int tempturn_on_second_order = 0;

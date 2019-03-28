@@ -19,6 +19,8 @@ double Transport::get_eta_over_s(double T) {
         eta_over_s = get_temperature_dependent_eta_over_s_default(T);
     } else if (DATA.T_dependent_bulk_to_s == 2) {
         eta_over_s = get_temperature_dependent_eta_over_s_duke(T);
+    } else if (DATA.T_dependent_bulk_to_s == 3) {
+        eta_over_s = get_temperature_dependent_eta_over_s_sims(T);
     } else {
         eta_over_s = DATA.shear_to_s;
     }
@@ -54,12 +56,34 @@ double Transport::get_temperature_dependent_eta_over_s_duke(double T_in_fm) {
     return eta_over_s;
 }
 
+double Transport::get_temperature_dependent_eta_over_s_sims(double T_in_fm) {
+
+    double T_in_GeV=T_in_fm*hbarc;
+    double T_kink_in_GeV = DATA.eta_over_s_T_kink_in_GeV;
+    double low_T_slope=DATA.eta_over_s_low_T_slope_in_GeV;
+    double high_T_slope=DATA.eta_over_s_high_T_slope_in_GeV;
+    double eta_over_s_at_kink=DATA.eta_over_s_at_kink;
+
+    double eta_over_s;
+
+    if (T_in_GeV<T_kink_in_GeV) {
+	eta_over_s=eta_over_s_at_kink + low_T_slope*(T_kink_in_GeV - T_in_GeV);
+    }
+    else {
+	eta_over_s=eta_over_s_at_kink + high_T_slope*(T_in_GeV - T_kink_in_GeV);
+    }
+
+    return eta_over_s;
+}
+
 
 double Transport::get_zeta_over_s(double T) {
 
     double zeta_over_s;
     if (DATA.T_dependent_bulk_to_s == 2) {
         zeta_over_s = get_temperature_dependent_zeta_over_s_duke(T);
+    } else if (DATA.T_dependent_bulk_to_s == 3) {
+        zeta_over_s = get_temperature_dependent_zeta_over_s_sims(T);
     } else {
         zeta_over_s = get_temperature_dependent_zeta_over_s_default(T);
     }
@@ -67,6 +91,7 @@ double Transport::get_zeta_over_s(double T) {
 
 }
 
+// Cauchy distribution
 double Transport::get_temperature_dependent_zeta_over_s_duke(double T_in_fm) {
 
   const double A=DATA.bulk_viscosity_normalisation;
@@ -78,6 +103,23 @@ double Transport::get_temperature_dependent_zeta_over_s_duke(double T_in_fm) {
   //const double T_delta=(T_in_GeV*T_in_GeV)/(Tpeak_in_GeV*Tpeak_in_GeV)-1;
   //double  bulk_over_sden=A*(G*G)/(T_delta*T_delta+G*G);
   return A/(1+diff_ratio*diff_ratio);
+
+}
+
+// Skewed Cauchy distribution
+double Transport::get_temperature_dependent_zeta_over_s_sims(double T_in_fm) {
+
+  const double T_in_GeV=T_in_fm*hbarc;
+
+  const double max=DATA.zeta_over_s_max;
+  const double width=DATA.zeta_over_s_width_in_GeV;
+  const double T_peak_in_GeV=DATA.zeta_over_s_T_peak_in_GeV;
+  const double lambda=DATA.zeta_over_s_lambda_asymm;
+  const double diff=T_in_GeV-T_peak_in_GeV;
+  const double sign=(diff > 0) - (diff < 0);
+  const double diff_ratio=(diff)/(width*(lambda*sign+1));
+
+  return max/(1+diff_ratio*diff_ratio);
 
 }
 

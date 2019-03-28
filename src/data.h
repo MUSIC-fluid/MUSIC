@@ -110,6 +110,12 @@ typedef struct init_data {
     double eta_over_s_slope;
     double eta_over_s_curv;
 
+    //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==3"
+    double eta_over_s_T_kink_in_GeV;
+    double eta_over_s_low_T_slope_in_GeV;
+    double eta_over_s_high_T_slope_in_GeV;
+    double eta_over_s_at_kink;
+
     //! flag to include temperature dependent zeta/s(T)
     int T_dependent_bulk_to_s;
 
@@ -117,6 +123,12 @@ typedef struct init_data {
     double bulk_viscosity_normalisation;
     double bulk_viscosity_width_in_GeV;
     double bulk_viscosity_peak_in_GeV;
+
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==3"
+    double zeta_over_s_max;
+    double zeta_over_s_width_in_GeV;
+    double zeta_over_s_T_peak_in_GeV;
+    double zeta_over_s_lambda_asymm;
 
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
