@@ -151,7 +151,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     shear = (shear_to_s)*(epsilon + pressure)/(T + 1e-15);
     double tau_pi = 5.0*shear/(epsilon + pressure + 1e-15);
 
-    tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
+    tau_pi = std::max(3.*DATA.delta_tau, tau_pi);
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
