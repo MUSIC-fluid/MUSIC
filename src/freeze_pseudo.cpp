@@ -10,9 +10,13 @@
 #include<sys/stat.h>
 #include<iomanip>
 #include "./freeze.h"
+#include <cstring>
 
-using namespace std;
 using Util::hbarc;
+using std::string;
+using std::stringstream;
+using std::ofstream;
+using std::endl;
 
 // read in thermal spectra from file to then perform resonance decays with them
 // Must set verbose to 1 if you want particleMax to be set by this routine.
@@ -1644,7 +1648,7 @@ void Freeze::OutputIntegratedFlow_vs_y(
                                         y_local, y_local, vn);
    
         // Output result
-        outfilevn << scientific << setprecision(8) << y_local;
+        outfilevn << std::scientific << std::setprecision(8) << y_local;
         for (int i = 0; i < nharmonics; i++) {
             for (int k = 0; k < 2; k++) {
                 outfilevn << "  " << vn[i][k];
@@ -1656,7 +1660,7 @@ void Freeze::OutputIntegratedFlow_vs_y(
         pt_and_rapidity_integrated_flow(DATA, number, pT_min, pT_max, 0,
                                         eta_local, eta_local, vn);
     
-        outfilevn2 << scientific << setprecision(8) << eta_local;
+        outfilevn2 << std::scientific << std::setprecision(8) << eta_local;
         for (int i = 0; i < nharmonics; i++) {
             for (int k = 0; k < 2; k++) {
                 outfilevn2 << "  " << vn[i][k];
@@ -1693,7 +1697,8 @@ void Freeze::Output_charged_IntegratedFlow(
             << "v4cos  v4sin  v5cos  v5sin  v6cos  v6sin  v7cos  v7sin\n";
     
     double dNch = get_Nch(DATA, pT_min, pT_max, 0, eta_min, eta_max);
-    outfile << scientific << setw(18) << setprecision(8) << dNch << "  ";
+    outfile << std::scientific << std::setw(18) << std::setprecision(8)
+            << dNch << "  ";
     int max_flow_order = 7;
     for (int iorder = 1; iorder < max_flow_order; iorder++) {
         double *vn_temp = new double [2];
@@ -1714,7 +1719,7 @@ void Freeze::Output_charged_hadrons_eta_differential_spectra(
     tmpStr << "./outputs/vnchdeta_pT_" << pT_min << "_" << pT_max << ".dat";
     
     ofstream outfile;
-    outfile.open(tmpStr.str().c_str(),ios::trunc);
+    outfile.open(tmpStr.str().c_str(), std::ios::trunc);
     
     outfile << "#eta  dNch/deta  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  "
             << "v4cos  v4sin  v5cos  v5sin  v6cos  v6sin  v7cos  v7sin\n";
@@ -1754,7 +1759,7 @@ void Freeze::Output_charged_hadrons_pT_differential_spectra(
     stringstream tmpStr;
     tmpStr << "./outputs/vnchpT_eta_" << eta_min << "_" << eta_max << ".dat";
     ofstream outfile;
-    outfile.open(tmpStr.str().c_str(), ios::trunc);
+    outfile.open(tmpStr.str().c_str(), std::ios::trunc);
     // header
     outfile << "#pT  dNch/detapTdpTdphi  v1cos  v1sin  v2cos  v2sin  "
             << "v3cos  v3sin  v4cos  v4sin  v5cos  v5sin  v6cos  v6sin  "
@@ -2072,7 +2077,7 @@ double Freeze::get_weighted_psi1(InitData *DATA, int number,
 }
 
 void Freeze::load_deltaf_qmu_coeff_table(string filename) {
-    ifstream table(filename.c_str());
+    std::ifstream table(filename.c_str());
     deltaf_qmu_coeff_table_length_T = 150;
     deltaf_qmu_coeff_table_length_mu = 100;
     delta_qmu_coeff_table_T0 = 0.05;
@@ -2094,7 +2099,7 @@ void Freeze::load_deltaf_qmu_coeff_table(string filename) {
 }
 
 void Freeze::load_deltaf_qmu_coeff_table_14mom(string filename) {
-    ifstream table(filename.c_str());
+    std::ifstream table(filename.c_str());
     deltaf_coeff_table_14mom_length_T = 190;
     deltaf_coeff_table_14mom_length_mu = 160;
     delta_coeff_table_14mom_T0 = 0.01;
