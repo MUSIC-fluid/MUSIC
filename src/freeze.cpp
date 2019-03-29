@@ -2,8 +2,10 @@
 // Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
 
 #include "./freeze.h"
+#include <cstring>
 
-using namespace std;
+using std::string;
+using std::ifstream;
 
 Freeze::Freeze(InitData* DATA_in) {
     if (etasize < DATA_in->pseudo_steps + 1) {
@@ -451,8 +453,8 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
             particleList[i].decays  =  particleList[i-1].decays;
             particleList[i].stable  =  particleList[i-1].stable;
             particleList[i].number  = -particleList[i-1].number;
-            strcpy(particleList[i].name, "Anti-");
-            strcat(particleList[i].name,particleList[i-1].name);
+            std::strcpy(particleList[i].name, "Anti-");
+            std::strcat(particleList[i].name,particleList[i-1].name);
             particleList[i].mass       =  particleList[i-1].mass;
             particleList[i].degeneracy =  particleList[i-1].degeneracy;
             particleList[i].baryon     = -particleList[i-1].baryon;
@@ -480,7 +482,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
 void Freeze::ReadFreezeOutSurface(InitData *DATA) {
     music_message.info("reading freeze-out surface");
     
-    ostringstream surfdat_stream;
+    std::ostringstream surfdat_stream;
     surfdat_stream << "./surface.dat";
 
     // new counting, mac compatible ...

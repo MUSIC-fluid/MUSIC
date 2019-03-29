@@ -8,7 +8,9 @@
 
 #include "pretty_ostream.h"
 
-using namespace std;
+using std::cout;
+using std::endl;
+using std::string;
 
 pretty_ostream::pretty_ostream() {}
 
@@ -66,8 +68,8 @@ string pretty_ostream::get_memory_usage() {
 #else
         memory_usage_in_MB = usage.ru_maxrss/1024.;   // MB in linux
 #endif
-        ostringstream memory_usage;
-        memory_usage << setprecision(4)
+        std::ostringstream memory_usage;
+        memory_usage << std::setprecision(4)
                      << memory_usage_in_MB << " MB";
         return(memory_usage.str());
     } else {
