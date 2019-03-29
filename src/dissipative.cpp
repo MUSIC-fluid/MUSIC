@@ -149,7 +149,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     ////////////////////////////////////////////////////////////////////////
     double pressure = eos.get_pressure(epsilon, rhob);
     shear = (shear_to_s)*(epsilon + pressure)/(T + 1e-15);
-    double tau_pi = 5.0*shear/(epsilon + pressure + 1e-15);
+    double tau_pi = (DATA.shear_relax_time_factor)*shear/(epsilon + pressure + 1e-15);
 
     tau_pi = std::max(3.*DATA.delta_tau, tau_pi);
 
@@ -762,7 +762,7 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
-    Bulk_Relax_time = (1./(14.55*(1./3. - cs2)*(1./3. - cs2))
+    Bulk_Relax_time = (DATA.bulk_relax_time_factor)*(1./((1./3. - cs2)*(1./3. - cs2))
                        /(epsilon + pressure)*bulk);
     Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
 

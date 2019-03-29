@@ -130,6 +130,10 @@ typedef struct init_data {
     double zeta_over_s_T_peak_in_GeV;
     double zeta_over_s_lambda_asymm;
 
+    //! multiplicative factors for the relaxation times
+    double shear_relax_time_factor;
+    double bulk_relax_time_factor;
+
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
 

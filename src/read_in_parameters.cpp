@@ -649,6 +649,18 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_diff;
     parameter_list.turn_on_diff = tempturn_on_diff;
+
+
+    // Relaxation time factors
+    double tempshear_relax_time_factor= 5.;
+    tempinput = Util::StringFind4(input_file, "shear_relax_time_factor");
+    if(tempinput != "empty") istringstream ( tempinput ) >> tempshear_relax_time_factor;
+    parameter_list.shear_relax_time_factor = tempshear_relax_time_factor;
+
+    double tempbulk_relax_time_factor= 1./14.55;
+    tempinput = Util::StringFind4(input_file, "bulk_relax_time_factor");
+    if(tempinput != "empty") istringstream ( tempinput ) >> tempbulk_relax_time_factor;
+    parameter_list.bulk_relax_time_factor = tempbulk_relax_time_factor;
     
     // kappa coefficient
     double temp_kappa_coefficient = 0.0;
