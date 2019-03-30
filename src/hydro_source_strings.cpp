@@ -157,8 +157,9 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     music_message.flush("info");
     
     double total_baryon_number = 0;
-    for (auto const& it : QCD_strings_list)
-        total_baryon_number += it->frac_l + it->frac_r;
+    for (auto const& it : QCD_strings_list) {
+        total_baryon_number += it->baryon_frac_l + it->baryon_frac_r;
+    }
     music_message << "total baryon number = " << total_baryon_number;
     music_message.flush("info");
     compute_norm_for_strings();
@@ -263,7 +264,8 @@ void HydroSourceStrings::get_hydro_energy_source(
     const double tau, const double x, const double y, const double eta_s, 
     const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
     j_mu = {0};
-    if (QCD_strings_list_current_tau.size() == 0) return;
+    if (   QCD_strings_list_current_tau.size() == 0
+        && QCD_strings_remnant_list_current_tau.size() == 0) return;
 
     const double sigma_x   = get_sigma_x();
     const double sigma_eta = get_sigma_eta();
