@@ -223,7 +223,7 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
                 if (DATA.outputBinaryEvolution == 0) {
                     fprintf(out_file_xyeta, "%e %e %e %e %e\n",
                             T_local*hbarc, muB_local*hbarc, vx, vy, vz);
-                    if (DATA.viscosity_flag == 1) {
+                    if ((DATA.viscosity_flag == 1)&&(DATA.turn_on_shear)) {
                         fprintf(out_file_W_xyeta,
                                 "%e %e %e %e %e %e %e %e %e %e\n",
                                 Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy,
