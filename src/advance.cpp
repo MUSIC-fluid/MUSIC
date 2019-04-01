@@ -29,7 +29,8 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
     reconst_helper(eos, DATA_in) {
 
     hydro_source_terms_ptr = hydro_source_ptr_in;
-    if (DATA_in.Initial_profile == 13 || DATA_in.Initial_profile == 30) {
+    if (DATA_in.Initial_profile == 13 || DATA_in.Initial_profile == 30
+        || DATA_in.Initial_profile == 42) {
         flag_add_hydro_source = true;
     } else {
         flag_add_hydro_source = false;
