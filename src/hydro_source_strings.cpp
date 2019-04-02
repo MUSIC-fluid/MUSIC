@@ -189,7 +189,7 @@ void HydroSourceStrings::compute_norm_for_strings() {
                 + (it->y_l - it->y_r)/(it->eta_s_left - it->eta_s_right)
                   *(eta_local - it->eta_s_left));
 
-            double expon_left  = (it->eta_s_left - eta_local)/sigma_eta;
+            double expon_left  = (it->eta_s_left  - eta_local)/sigma_eta;
             double expon_right = (it->eta_s_right - eta_local)/sigma_eta;
             double e_eta = 0.5*(- erf(expon_left) + erf(expon_right));
             E_string_norm += f_eta*e_eta*cosh(y_eta);
@@ -207,10 +207,12 @@ void HydroSourceStrings::compute_norm_for_strings() {
         it->norm = E_string/(E_string_norm + 1e-16);
         E_string_total += E_string;
 
-        E_baryon_L_norm *= it->baryon_frac_l*prefactor_etas*deta;
-        E_baryon_R_norm *= it->baryon_frac_r*prefactor_etas*deta;
-        double E_baryon_L   = it->baryon_frac_l*cosh(it->y_l);
-        double E_baryon_R   = it->baryon_frac_r*cosh(it->y_r);
+        // here the E_norm is for the energy of remnants at the string ends
+        // frac_l and frac_r should be used here
+        E_baryon_L_norm *= it->frac_l*prefactor_etas*deta;
+        E_baryon_R_norm *= it->frac_r*prefactor_etas*deta;
+        double E_baryon_L   = it->frac_l*cosh(it->y_l);
+        double E_baryon_R   = it->frac_r*cosh(it->y_r);
         it->E_baryon_norm_L = E_baryon_L/(E_baryon_L_norm + 1e-16);
         it->E_baryon_norm_R = E_baryon_R/(E_baryon_R_norm + 1e-16);
         E_baryon_total += E_baryon_L + E_baryon_R;
@@ -420,8 +422,9 @@ void HydroSourceStrings::get_hydro_energy_source(
             }
         }
         double exp_factors = exp_tau*(
-                  exp_eta_s_left*it.lock()->frac_l*it.lock()->E_baryon_norm_L
-                + exp_eta_s_right*it.lock()->frac_r*it.lock()->E_baryon_norm_R);
+              exp_eta_s_left*(it.lock()->frac_l)*(it.lock()->E_baryon_norm_L)
+            + exp_eta_s_right*(it.lock()->frac_r)*(it.lock()->E_baryon_norm_R)
+        );
         double e_baryon_local = 0.0;
         if (exp_factors > 0) {
             double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
@@ -518,10 +521,10 @@ double HydroSourceStrings::get_hydro_rhob_source(
                                     /(sigma_x*sigma_x));
             double fsmear = exp_xperp*exp_factors;
             double rapidity_local = (
-                (  exp_eta_s_left*it.lock()->baryon_frac_l*it.lock()->y_l_baryon
-                 + exp_eta_s_right*it.lock()->baryon_frac_r*it.lock()->y_r_baryon)
-                /(  exp_eta_s_left*it.lock()->baryon_frac_l
-                  + exp_eta_s_right*it.lock()->baryon_frac_r + 1e-16));
+                (  exp_eta_s_left*(it.lock()->baryon_frac_l)*(it.lock()->y_l_baryon)
+                 + exp_eta_s_right*(it.lock()->baryon_frac_r)*(it.lock()->y_r_baryon))
+                /(  exp_eta_s_left*(it.lock()->baryon_frac_l)
+                  + exp_eta_s_right*(it.lock()->baryon_frac_r) + 1e-16));
             double y_dump = ((1. - parton_quench_factor)*rapidity_local
                              + parton_quench_factor*y_long_flow);
             double y_dump_perp = parton_quench_factor*y_perp_flow;
