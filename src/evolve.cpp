@@ -98,13 +98,13 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
         
-        if (DATA.Initial_profile == 13) {
-            if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
-                grid_info.output_energy_density_and_rhob_disitrubtion(
-                            *ap_current,
-                            "energy_density_and_rhob_from_source_terms.dat");
-            }
-        }
+        //if (DATA.Initial_profile == 13) {
+        //    if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
+        //        grid_info.output_energy_density_and_rhob_disitrubtion(
+        //                    *ap_current,
+        //                    "energy_density_and_rhob_from_source_terms.dat");
+        //    }
+        //}
 
         if (it % Nskip_timestep == 0) {
 
