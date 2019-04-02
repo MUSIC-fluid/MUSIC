@@ -300,7 +300,7 @@ void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {
 //! in the dilute region to stablize numerical simulations
 void Advance::QuestRevert(double tau, Cell_small *grid_pt,
                           int ieta, int ix, int iy) {
-    double eps_scale = 0.5;   // 1/fm^4
+    double eps_scale = 0.1;   // 1/fm^4
     double e_local   = grid_pt->epsilon;
     double rhob      = grid_pt->rhob;
 
@@ -372,7 +372,7 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
 //! in the dilute region to stablize numerical simulations
 void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
                               int ieta, int ix, int iy) {
-    double eps_scale = 0.5;   // in 1/fm^4
+    double eps_scale = 0.1;   // in 1/fm^4
 
     double xi = 0.05;
     double factor = 100.*(1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
