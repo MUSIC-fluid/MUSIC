@@ -1271,7 +1271,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     }
     
     ostringstream filename2;
-    filename << "inverse_Reynolds_number_eta_" << eta_min
+    filename2 << "inverse_Reynolds_number_eta_" << eta_min
              << "_" << eta_max << ".dat";
     std::fstream of2;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
