@@ -360,7 +360,7 @@ void Cell_info::calculate_inverse_Reynolds_numbers(
     const double pi_local = grid_pt.pi_b;
 
     R_pi = sqrt(pisize)/pressure;
-    R_Pi = sqrt(pi_local)/pressure;
+    R_Pi = pi_local/pressure;
 }
 
 
@@ -1349,12 +1349,12 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     }
     
     ostringstream filename2;
-    filename << "inverse_Reynolds_number_eta_" << eta_min
+    filename2 << "inverse_Reynolds_number_eta_" << eta_min
              << "_" << eta_max << ".dat";
     std::fstream of2;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of2.open(filename2.str().c_str(), std::fstream::out);
-        of2 << "# tau(fm)  R_Pi  gamma  T[GeV]" << endl;
+        of2 << "# tau(fm)  R_shearpi  R_Pi  gamma  T[GeV]" << endl;
     } else {
         of2.open(filename2.str().c_str(), std::fstream::app);
     }
@@ -1368,12 +1368,14 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double full_num1  = 0.0;
     double full_num2  = 0.0;
     double full_den   = 0.0;
-    double R_Pi_num   = 0.0;
-    double R_Pi_den   = 0.0;
     double u_perp_num = 0.0;
     double u_perp_den = 0.0;
     double T_avg_num  = 0.0;
     double T_avg_den  = 0.0;
+    double R_Pi_num   = 0.0;
+    double R_Pi_den   = 0.0;
+    double R_shearpi_num   = 0.0;
+    double R_shearpi_den   = 0.0;
 
     // compute epsilon_{p2} and epsilon_{p3} using T^{0\mu} vector
     // epsilon_{pn} = (\int (T^{0r} exp(i n \phi_u))/(\int T^{0r})
@@ -1432,7 +1434,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
 
                 double T_0x_ideal   = enthopy*u0*ux;
                 double T_0y_ideal   = enthopy*u0*uy;
-                double T_0r_ideal   = sqrt(T_0x_ideal*T_0x_ideal
+                double T_0r_ideal   = sqrt(  T_0x_ideal*T_0x_ideal
                                            + T_0y_ideal*T_0y_ideal);
                 double phi_u_ideal  = atan2(T_0y_ideal, T_0x_ideal);
                 double T_xx_ideal   = enthopy*ux*ux + P_local;
@@ -1449,9 +1451,9 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double T_yy_shear   = T_yy_ideal + pi_yy;
 
                 double T_0x_full    = T_0x_shear + bulk_Pi*u0*ux;
-                double T_0y_full    = T_0x_shear + bulk_Pi*u0*uy;
+                double T_0y_full    = T_0y_shear + bulk_Pi*u0*uy;
                 double T_0r_full    = sqrt(  T_0x_full*T_0x_full
-                                          + T_0y_full*T_0y_full);
+                                           + T_0y_full*T_0y_full);
                 double phi_u_full   = atan2(T_0y_full, T_0x_full);
                 double T_xx_full    = T_xx_shear - bulk_Pi*(-1 - ux*ux);
                 double T_xy_full    = T_xy_shear + bulk_Pi*ux*uy;
@@ -1469,12 +1471,21 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 full_num2  += weight_local*(2.*T_xy_full);
                 full_den   += weight_local*(T_xx_full + T_yy_full);
 
-                R_Pi_num   += weight_local*bulk_Pi/P_local;
-                R_Pi_den   += weight_local;
                 u_perp_num += weight_local*u0;
                 u_perp_den += weight_local;
                 T_avg_num  += weight_local*T_local;
                 T_avg_den  += weight_local;
+                
+                if (e_local > 1e-3) {
+                    double r_shearpi_tmp, r_bulkPi_tmp;
+                    calculate_inverse_Reynolds_numbers(arena, ieta, ix, iy,
+                                                       r_shearpi_tmp,
+                                                       r_bulkPi_tmp);
+                    R_shearpi_num += weight_local*r_shearpi_tmp;
+                    R_shearpi_den += weight_local;
+                    R_Pi_num      += weight_local*r_bulkPi_tmp;
+                    R_Pi_den      += weight_local;
+                }
 
                 for (int i = 0; i < 2; i++) {
                     int idx = 3*i;
@@ -1502,18 +1513,23 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
             }
         }
     }
-    double ep_ideal = sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)/ideal_den;
-    double ep_full  = sqrt(full_num1*full_num1 + full_num2*full_num2)/full_den;
-    double ep_shear = sqrt(shear_num1*shear_num1 + shear_num2*shear_num2)/shear_den;
-    double R_Pi     = R_Pi_num/R_Pi_den;
-    double u_avg    = u_perp_num/u_perp_den;
-    double T_avg    = T_avg_num/T_avg_den*hbarc;
+    double ep_ideal  = (sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)
+                        /(ideal_den + 1e-16));
+    double ep_full   = (sqrt(full_num1*full_num1 + full_num2*full_num2)
+                        /(full_den + 1e-16));
+    double ep_shear  = (sqrt(shear_num1*shear_num1 + shear_num2*shear_num2)
+                        /(shear_den + 1e-16));
+    double R_shearpi = R_shearpi_num/(R_shearpi_den + 1e-16);
+    double R_Pi      = R_Pi_num/(R_Pi_den + 1e-16);
+    double u_avg     = u_perp_num/(u_perp_den + 1e-16);
+    double T_avg     = T_avg_num/(T_avg_den*hbarc + 1e-16);
 
     of << scientific << setw(18) << setprecision(8)
        << tau << "  " << ep_ideal << "  " << ep_shear << "  "
        << ep_full << "  ";
     for (int i = 0; i < 6; i++) {
-        of << ep_num1[i]/ep_den[i] << "  " << ep_num2[i]/ep_den[i] << "  ";
+        of << ep_num1[i]/(ep_den[i] + 1e-16) << "  "
+           << ep_num2[i]/(ep_den[i] + 1e-16)<< "  ";
     }
     of << endl;
     of.close();
@@ -1522,13 +1538,14 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
         << tau << "  ";
     for (int i = 0; i < norder; i++) {
         // the minus sign ensure the vector points to the short axis
-        of1 << -eccn_num1[i]/eccn_den[i] << "  "
-            << -eccn_num2[i]/eccn_den[i] << "  ";
+        of1 << -eccn_num1[i]/(eccn_den[i] + 1e-16) << "  "
+            << -eccn_num2[i]/(eccn_den[i] + 1e-16)<< "  ";
     }
     of1 << endl;
     of1.close();
     
     of2 << scientific << setw(18) << setprecision(8)
-        << tau << "  " << R_Pi << "  " << u_avg << "  " << T_avg << endl;
+        << tau << "  " << R_shearpi << "  " << R_Pi << "  "
+        << u_avg << "  " << T_avg << endl;
     of2.close();
 }
