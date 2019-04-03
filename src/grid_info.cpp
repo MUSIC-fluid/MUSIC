@@ -1241,22 +1241,6 @@ void Cell_info::output_average_phase_diagram_trajectory(
 //! This function outputs system's momentum anisotropy as a function of tau
 void Cell_info::output_momentum_anisotropy_vs_tau(
                 double tau, double eta_min, double eta_max, SCGrid &arena) {
-    if (std::abs(tau - DATA.tau0) < 1e-10) {
-        std::ofstream temp("check_bulkPi.dat");
-        int ieta = 0;
-        for (int iy = 0; iy < arena.nY(); iy++) {
-            for (int ix = 0; ix < arena.nX(); ix++) {
-                double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
-                double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
-                double P_local    = eos.get_pressure(e_local, rhob_local);
-                double bulk_Pi    = arena(ix, iy, ieta).pi_b;
-                temp << scientific << setw(18) << setprecision(8)
-                     << e_local << "  " << P_local << "  " << bulk_Pi << "  "
-                     << endl;
-            }
-        }
-        temp.close();
-    }
     ostringstream filename;
     filename << "momentum_anisotropy_eta_" << eta_min
              << "_" << eta_max << ".dat";
