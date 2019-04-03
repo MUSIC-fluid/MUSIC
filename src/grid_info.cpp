@@ -1356,7 +1356,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
 
                 double T_0x_ideal   = enthopy*u0*ux;
                 double T_0y_ideal   = enthopy*u0*uy;
-                double T_0r_ideal   = sqrt(T_0x_ideal*T_0x_ideal
+                double T_0r_ideal   = sqrt(  T_0x_ideal*T_0x_ideal
                                            + T_0y_ideal*T_0y_ideal);
                 double phi_u_ideal  = atan2(T_0y_ideal, T_0x_ideal);
                 double T_xx_ideal   = enthopy*ux*ux + P_local;
@@ -1373,9 +1373,9 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double T_yy_shear   = T_yy_ideal + pi_yy;
 
                 double T_0x_full    = T_0x_shear + bulk_Pi*u0*ux;
-                double T_0y_full    = T_0x_shear + bulk_Pi*u0*uy;
+                double T_0y_full    = T_0y_shear + bulk_Pi*u0*uy;
                 double T_0r_full    = sqrt(  T_0x_full*T_0x_full
-                                          + T_0y_full*T_0y_full);
+                                           + T_0y_full*T_0y_full);
                 double phi_u_full   = atan2(T_0y_full, T_0x_full);
                 double T_xx_full    = T_xx_shear - bulk_Pi*(-1 - ux*ux);
                 double T_xy_full    = T_xy_shear + bulk_Pi*ux*uy;
