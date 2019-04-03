@@ -358,7 +358,7 @@ void Cell_info::calculate_inverse_Reynolds_numbers(
     const double pi_local = grid_pt.pi_b;
 
     R_pi = sqrt(pisize)/pressure;
-    R_Pi = sqrt(pi_local)/pressure;
+    R_Pi = pi_local/pressure;
 }
 
 
@@ -1241,6 +1241,22 @@ void Cell_info::output_average_phase_diagram_trajectory(
 //! This function outputs system's momentum anisotropy as a function of tau
 void Cell_info::output_momentum_anisotropy_vs_tau(
                 double tau, double eta_min, double eta_max, SCGrid &arena) {
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        std::ofstream temp("check_bulkPi.dat");
+        int ieta = 0;
+        for (int iy = 0; iy < arena.nY(); iy++) {
+            for (int ix = 0; ix < arena.nX(); ix++) {
+                double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+                double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
+                double P_local    = eos.get_pressure(e_local, rhob_local);
+                double bulk_Pi    = arena(ix, iy, ieta).pi_b;
+                temp << scientific << setw(18) << setprecision(8)
+                     << e_local << "  " << P_local << "  " << bulk_Pi << "  "
+                     << endl;
+            }
+        }
+        temp.close();
+    }
     ostringstream filename;
     filename << "momentum_anisotropy_eta_" << eta_min
              << "_" << eta_max << ".dat";
@@ -1276,7 +1292,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     std::fstream of2;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of2.open(filename2.str().c_str(), std::fstream::out);
-        of2 << "# tau(fm)  R_Pi  gamma  T[GeV]" << endl;
+        of2 << "# tau(fm)  R_shearpi  R_Pi  gamma  T[GeV]" << endl;
     } else {
         of2.open(filename2.str().c_str(), std::fstream::app);
     }
@@ -1290,12 +1306,14 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double full_num1  = 0.0;
     double full_num2  = 0.0;
     double full_den   = 0.0;
-    double R_Pi_num   = 0.0;
-    double R_Pi_den   = 0.0;
     double u_perp_num = 0.0;
     double u_perp_den = 0.0;
     double T_avg_num  = 0.0;
     double T_avg_den  = 0.0;
+    double R_Pi_num   = 0.0;
+    double R_Pi_den   = 0.0;
+    double R_shearpi_num   = 0.0;
+    double R_shearpi_den   = 0.0;
 
     // compute epsilon_{p2} and epsilon_{p3} using T^{0\mu} vector
     // epsilon_{pn} = (\int (T^{0r} exp(i n \phi_u))/(\int T^{0r})
@@ -1391,12 +1409,21 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 full_num2  += weight_local*(2.*T_xy_full);
                 full_den   += weight_local*(T_xx_full + T_yy_full);
 
-                R_Pi_num   += weight_local*bulk_Pi/P_local;
-                R_Pi_den   += weight_local;
                 u_perp_num += weight_local*u0;
                 u_perp_den += weight_local;
                 T_avg_num  += weight_local*T_local;
                 T_avg_den  += weight_local;
+                
+                if (e_local > 1e-3) {
+                    double r_shearpi_tmp, r_bulkPi_tmp;
+                    calculate_inverse_Reynolds_numbers(arena, ieta, ix, iy,
+                                                       r_shearpi_tmp,
+                                                       r_bulkPi_tmp);
+                    R_shearpi_num += weight_local*r_shearpi_tmp;
+                    R_shearpi_den += weight_local;
+                    R_Pi_num      += weight_local*r_bulkPi_tmp;
+                    R_Pi_den      += weight_local;
+                }
 
                 for (int i = 0; i < 2; i++) {
                     int idx = 3*i;
@@ -1424,15 +1451,16 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
             }
         }
     }
-    double ep_ideal = (sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)
-                       /(ideal_den + 1e-16));
-    double ep_full  = (sqrt(full_num1*full_num1 + full_num2*full_num2)
-                       /(full_den + 1e-16));
-    double ep_shear = (sqrt(shear_num1*shear_num1 + shear_num2*shear_num2)
-                       /(shear_den + 1e-16));
-    double R_Pi     = R_Pi_num/(R_Pi_den + 1e-16);
-    double u_avg    = u_perp_num/(u_perp_den + 1e-16);
-    double T_avg    = T_avg_num/(T_avg_den*hbarc + 1e-16);
+    double ep_ideal  = (sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)
+                        /(ideal_den + 1e-16));
+    double ep_full   = (sqrt(full_num1*full_num1 + full_num2*full_num2)
+                        /(full_den + 1e-16));
+    double ep_shear  = (sqrt(shear_num1*shear_num1 + shear_num2*shear_num2)
+                        /(shear_den + 1e-16));
+    double R_shearpi = R_shearpi_num/(R_shearpi_den + 1e-16);
+    double R_Pi      = R_Pi_num/(R_Pi_den + 1e-16);
+    double u_avg     = u_perp_num/(u_perp_den + 1e-16);
+    double T_avg     = T_avg_num/(T_avg_den*hbarc + 1e-16);
 
     of << scientific << setw(18) << setprecision(8)
        << tau << "  " << ep_ideal << "  " << ep_shear << "  "
@@ -1455,6 +1483,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     of1.close();
     
     of2 << scientific << setw(18) << setprecision(8)
-        << tau << "  " << R_Pi << "  " << u_avg << "  " << T_avg << endl;
+        << tau << "  " << R_shearpi << "  " << R_Pi << "  "
+        << u_avg << "  " << T_avg << endl;
     of2.close();
 }
