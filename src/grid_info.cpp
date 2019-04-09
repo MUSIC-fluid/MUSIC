@@ -773,10 +773,15 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
     double factor = tau*dx*dy*deta;
     N_B *= factor;
     T_tau_t *= factor*0.19733;  // GeV
-    music_message << "net baryon number N_B = " << N_B;
-    music_message.flush("info");
     music_message << "total energy T^{taut} = " << T_tau_t << " GeV";
     music_message.flush("info");
+    music_message << "net baryon number N_B = " << N_B;
+    if (N_B > 0. || N_B < 500.) {
+        music_message.flush("info");
+    } else {
+        music_message.flush("error");
+        exit(1);
+    }
 }
 
 
