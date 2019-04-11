@@ -24,6 +24,8 @@ EOS_base::~EOS_base() {
         Util::mtx_free(temperature_tb[itable],
                        nb_length[itable], e_length[itable]);
     }
+    delete[] pressure_tb;
+    delete[] temperature_tb;
 }
 
 
