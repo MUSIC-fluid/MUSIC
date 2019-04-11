@@ -34,6 +34,13 @@ EOS_neos::~EOS_neos() {
                            nb_length[itable], e_length[itable]);
         }
     }
+    delete [] mu_B_tb;
+    if (get_flag_muS()) {
+        delete [] mu_S_tb;
+    }
+    if (get_flag_muC()) {
+        delete [] mu_C_tb;
+    }
 }
 
 
