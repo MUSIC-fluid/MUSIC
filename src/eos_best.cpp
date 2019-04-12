@@ -24,7 +24,9 @@ EOS_BEST::~EOS_BEST() {
         Util::mtx_free(mu_B_tb[itable],
                        nb_length[itable], e_length[itable]);
     }
-    delete[] mu_B_tb;
+    if (ntables>0) {
+        delete[] mu_B_tb;
+    }
 }
 
 
