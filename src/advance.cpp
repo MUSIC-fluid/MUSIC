@@ -29,10 +29,15 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
     reconst_helper(eos, DATA_in.echo_level) {
 
     hydro_source_terms_ptr = hydro_source_ptr_in;
-    if (DATA_in.Initial_profile == 13 || DATA_in.Initial_profile == 30) {
-        flag_add_hydro_source = true;
-    } else {
-        flag_add_hydro_source = false;
+    flag_add_hydro_source = false;
+    if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
+        if (DATA.Initial_profile == 42) {
+            if (hydro_source_terms_ptr.lock()->get_number_of_sources() > 0) {
+                flag_add_hydro_source = true;
+            }
+        } else {
+            flag_add_hydro_source = true;
+        }
     }
 }
 
