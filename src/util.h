@@ -10,6 +10,7 @@
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <memory>
 #include <sys/stat.h>
 #include "data_struct.h"
 
@@ -44,6 +45,14 @@ namespace Util {
 
     Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector);
     Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector);
+
+    // check whether a weak pointer is initialized or not
+    template <typename T>
+    bool weak_ptr_is_uninitialized(std::weak_ptr<T> const& weak) {
+        using wt = std::weak_ptr<T>;
+        return !weak.owner_before(wt{}) && !wt{}.owner_before(weak);
+    }
+
 }
 
 #endif

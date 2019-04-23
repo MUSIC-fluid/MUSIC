@@ -17,6 +17,8 @@ class HydroSourceBase {
 
     HydroSourceBase() = default;
     virtual ~HydroSourceBase() {}
+
+    virtual int get_number_of_sources() const {return(0);}
     
     void set_sigma_tau(double sigma_tau_in) {sigma_tau = sigma_tau_in;}
     void set_sigma_x  (double sigma_x_in  ) {sigma_x   = sigma_x_in  ;}
