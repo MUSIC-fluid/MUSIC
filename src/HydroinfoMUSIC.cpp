@@ -14,6 +14,8 @@ HydroinfoMUSIC::~HydroinfoMUSIC() {
 
 void HydroinfoMUSIC::clean_hydro_event() {
     lattice_ideal.clear();
+    hydroTauMax = 0.;
+    itaumax = 0;
 }
 
 void HydroinfoMUSIC::getHydroValues(
