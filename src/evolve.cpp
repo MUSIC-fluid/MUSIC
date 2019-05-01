@@ -313,6 +313,14 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                                                 intersect=0;
 
             if (intersect==0) continue;
+                
+            if (ix == 0 || ix >= nx - 2*fac_x
+                    || iy == 0 || iy >= ny - 2*fac_y) {
+                music_message << "Freeze-out cell at the boundary! "
+                              << "The grid is too small!";
+                music_message.flush("error");
+                exit(1);
+            }
 
             // if intersect, prepare for the hyper-cube
             intersections++;
@@ -1229,6 +1237,14 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                 *(arena_freezeout(ix+fac_x,iy+fac_y,0).epsilon-epsFO) > 0.)
                                     intersect = 0;
                 if (intersect == 0) continue;
+
+                if (ix == 0 || ix >= nx - 2*fac_x
+                        || iy == 0 || iy >= ny - 2*fac_y) {
+                    music_message << "Freeze-out cell at the boundary! "
+                                  << "The grid is too small!";
+                    music_message.flush("error");
+                    exit(1);
+                }
 
                 // if intersect, prepare for the hyper-cube
                 intersections++;
