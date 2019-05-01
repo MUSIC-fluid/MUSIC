@@ -73,7 +73,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                            arena_current.nY(),
                            arena_current.nEta());
 
-    for (int it = 0; it <= itmax; it++) {
+    int it = 0;
+    for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
         if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
@@ -183,7 +184,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         music_message.flush("info");
         if (frozen == 1) break;
     }
-    music_message.info("Finished.");
+    if (it < itmax) {
+        music_message.info("Finished.");
+    } else {
+        music_message.warning("Maximum allowed time needed.");
+    }
     return 1;
 }
 
