@@ -187,7 +187,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     if (it < itmax) {
         music_message.info("Finished.");
     } else {
-        music_message.warning("Maximum allowed time needed.");
+        music_message.warning("Maximum allowed time reached.");
     }
     return 1;
 }
