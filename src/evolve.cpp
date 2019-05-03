@@ -14,6 +14,7 @@
 
 #include "evolve.h"
 #include "cornelius.h"
+#include "emoji.h"
 
 #ifndef _OPENMP
   #define omp_get_thread_num() 0
@@ -174,7 +175,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                                   arena_freezeout);
             }
         }
-        music_message << "Done time step " << it << "/" << itmax
+        music_message << emoji::clock()
+                      << " Done time step " << it << "/" << itmax
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
         if (frozen == 1) break;

@@ -8,35 +8,28 @@
 
 namespace emoji {
 
-std::string excited(int id) {
-    if (id == 1) return("☜(⌒▽⌒)☞");
-    else return("Ｏ(≧▽≦)Ｏ");
-}
-
-std::string success           () {return("(*•̀ᴗ•́*)و ̑̑");}
-std::string angry             () {return("(╬ ಠ益ಠ)");}
-std::string very_angry        () {return("┻━┻ ︵ヽ(`Д´)ﾉ︵┻━┻");}
-std::string innocent          () {return("ʘ‿ʘ");}
-std::string cute              () {return("(｡◕‿◕｡)");}
-std::string surprise          () {return("（　ﾟДﾟ）");}
-std::string meh               () {return("¯\\(°_o)/¯");}
-std::string running           () {return("ε=ε=ε=┌(;*´Д`)ﾉ");}
-std::string happy             () {return("ヽ(´▽`)/");}
-std::string disagree          () {return("٩◔̯◔۶");}
-std::string discombobulated   () {return("⊙﹏⊙");}
-std::string sad               () {return("¯\\_(⊙︿⊙)_/¯");}
-std::string confused          () {return("¿ⓧ_ⓧﮌ");}
-std::string confused_scratch  () {return("(⊙.☉)7");}
-std::string dear_god_why      () {return("щ（ﾟДﾟщ）");}
-std::string trolling          () {return("༼∵༽ ༼⍨༽ ༼⍢༽ ༼⍤༽");}
-std::string fuck_it           () {return("t(-_-t)");}
-std::string dancing           () {return("┌(ㆆ㉨ㆆ)ʃ");}
-std::string argry_birds       () {return("( ఠൠఠ )ﾉ");}
-std::string not_support       () {return("乁( ◔ ౪◔)「      ┑(￣Д ￣)┍");}
-std::string pointing          () {return("(☞ﾟヮﾟ)☞");}
-std::string zombie            () {return("[¬º-°]¬");}
-std::string dislike           () {return("(Ծ‸ Ծ)");}
-std::string cry_troll         () {return("༼ ༎ຶ ෴ ༎ຶ༽");}
-std::string cat               () {return("((ΦωΦ))");}    
-
+std::string success            () {return("\xF0\x9F\x98\x81");}
+std::string angry              () {return("\xF0\x9F\x98\xA4");}
+std::string very_angry         () {return("\xF0\x9F\x98\xA1");}
+std::string innocent           () {return("\xF0\x9F\x98\x8B");}
+std::string cute               () {return("\xF0\x9F\x98\x9D");}
+std::string surprise           () {return("\xF0\x9F\x98\xB1");}
+std::string meh                () {return("\xF0\x9F\x98\x85");}
+std::string happy              () {return("\xF0\x9F\x98\x9C");}
+std::string smile_with_sunglass() {return("\xF0\x9F\x98\x8E");}
+std::string disagree           () {return("\xF0\x9F\x91\x8E");}
+std::string sad                () {return("\xF0\x9F\x98\x9E");}
+std::string confused           () {return("\xF0\x9F\x98\xB5");}
+std::string dislike            () {return("\xF0\x9F\x98\xB0");}
+std::string cry_troll          () {return("\xF0\x9F\x98\xAD");}
+std::string cat                () {return("\xF0\x9F\x90\x88");}
+std::string thumbup            () {return("\xF0\x9F\x91\x8D");}
+std::string beer               () {return("\xF0\x9F\x8D\xBA");}
+std::string beerclinking       () {return("\U0001F37B");}
+std::string waterwave          () {return("\xF0\x9F\x8C\x8A");}
+std::string not_supprot        () {return("\xF0\x9F\x99\x85");}
+std::string raise_hand         () {return("\xE2\x9C\x8B");}
+std::string clock              () {return("\xF0\x9F\x95\x91");}
+std::string thinking           () {return("\U0001F914");}
+std::string stopwatch          () {return("\U000023F1");}
 }
