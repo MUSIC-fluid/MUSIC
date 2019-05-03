@@ -32,4 +32,10 @@ std::string raise_hand         () {return("\xE2\x9C\x8B");}
 std::string clock              () {return("\xF0\x9F\x95\x91");}
 std::string thinking           () {return("\U0001F914");}
 std::string stopwatch          () {return("\U000023F1");}
+std::string information        () {return("\U00002139");}
+std::string warning            () {return("\U000026A0");}
+std::string error              () {return("\U0001F6AB");}
+std::string debug              () {return("\U0001F50D");}
+std::string music_note         () {return("\U0001F3B5");}
+
 }

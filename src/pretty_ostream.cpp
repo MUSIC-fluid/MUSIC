@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "pretty_ostream.h"
+#include "emoji.h"
 
 using namespace std;
 
@@ -33,26 +34,29 @@ void pretty_ostream::flush(string type) {
 
 //! This function output information message
 void pretty_ostream::info(string message) {
-    cout << "[Info] " << get_memory_usage() << " " << message << endl;
+    //cout << "[Info] " << get_memory_usage() << " " << message << endl;
+    cout << emoji::music_note() << " " << get_memory_usage() << " "
+         << message << endl;
 }
 
 
 //! This function output debug message
 void pretty_ostream::debug(string message) {
-    cout << CYAN << "[debug] " << get_memory_usage() << " "
+    cout << CYAN << emoji::debug() << " " << get_memory_usage() << " "
          << message << RESET << endl;
 }
 
 
 //! This function output warning message
 void pretty_ostream::warning(string message) {
-    cout << BOLD << YELLOW << "[Warning] " << message << RESET << endl;
+    cout << BOLD << YELLOW << emoji::warning() << " " << message
+         << RESET << endl;
 }
 
 
 //! This function output error message
 void pretty_ostream::error(string message) {
-    cout << BOLD << RED << "[Error] " << message << RESET << endl;
+    cout << BOLD << RED << emoji::error() << " " << message << RESET << endl;
 }
 
 //! This function returns a string for the memory usage

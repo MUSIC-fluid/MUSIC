@@ -32,6 +32,11 @@ namespace emoji {
     std::string clock              ();
     std::string thinking           ();
     std::string stopwatch          ();
+    std::string information        ();
+    std::string warning            ();
+    std::string error              ();
+    std::string debug              ();
+    std::string music_note         ();
 }
 
 #endif  // SRC_EMOJI_H_
