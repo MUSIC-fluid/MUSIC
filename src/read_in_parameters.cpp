@@ -1114,7 +1114,9 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
 
     music_message << "Finished checking input parameter list. "
                   << "Everything looks reasonable so far "
-                  << emoji::success();
+                  << emoji::success() << emoji::thumbup()
+                  << emoji::beer() << emoji::beer()
+                  << emoji::beerclinking() << emoji::beerclinking();
     music_message.flush("info");
 }
 
