@@ -185,7 +185,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
         if (frozen == 1 && tau > source_tau_max) {
-            music_message << "All cells frozen out. Exiting.";
+            music_message.info("All cells frozen out. Exiting.");
             break;
         }
     }
