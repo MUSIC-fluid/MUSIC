@@ -142,9 +142,9 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
 
     if (nz > 1) {
         DATA.boost_invariant = false;
-        DATA.eta_size        = z_max;
         DATA.delta_eta       = dz;
         DATA.neta            = nz;
+        DATA.eta_size        = nz*dz;
     }
     DATA.delta_x = dx;
     DATA.delta_y = dx;
