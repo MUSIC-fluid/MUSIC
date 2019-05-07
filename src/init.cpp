@@ -113,8 +113,8 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         const int ny = nx;
         DATA.nx = nx;
         DATA.ny = ny;
-        DATA.x_size = DATA.delta_x*(nx - 1);
-        DATA.y_size = DATA.delta_y*(ny - 1);
+        DATA.x_size = DATA.delta_x*nx;
+        DATA.y_size = DATA.delta_y*ny;
 
         music_message << "neta = " << DATA.neta
                       << ", nx = " << nx << ", ny = " << ny;
@@ -878,7 +878,7 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
         for (int iy = 0; iy< ny; iy++) {
             const double rhob = 0.0;
             double epsilon = 0.0;
-            const int idx = ieta + (iy + ix*ny)*neta;
+            const int idx = iy + ix*ny + ieta*ny*nx;
             epsilon = (jetscape_initial_energy_density[idx]
                        *DATA.sFactor/hbarc);  // 1/fm^4
             if (epsilon < 0.00000000001)
