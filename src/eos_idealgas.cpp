@@ -4,6 +4,7 @@
 
 #include <cmath>
 
+
 EOS_idealgas::EOS_idealgas() {
     set_EOS_id(0);
     set_number_of_tables(0);
@@ -15,25 +16,36 @@ EOS_idealgas::EOS_idealgas() {
     set_flag_muC(false);
 }
 
+
 void EOS_idealgas::initialize_eos() {
     music_message.info("initialze EOS ideal gas ...");
 }
+
 
 double EOS_idealgas::get_temperature(double eps, double rhob) const {
     const double factor = (M_PI*M_PI)/90.*(2*(Nc*Nc-1)+7./2*Nc*Nf);
     return pow((eps/3.0/factor), .25);
 }
 
+
 double EOS_idealgas::get_s2e(double s, double rhob) const {
     const double factor = (M_PI*M_PI)/90.*(2*(Nc*Nc-1)+7./2*Nc*Nf);
     return(3./4.*s*pow(3.*s/4./(3.0*factor), 1./3.));    // in 1/fm^4
 }
+
 
 double EOS_idealgas::get_dedT(double eps, double rhob) const {
     const double factor = (M_PI*M_PI)/90.*(2*(Nc*Nc-1)+7./2*Nc*Nf);
     const double dedT = 12.*factor*pow(eps/(3.*factor), 0.75);
     return(dedT);
 }
+
+
+double EOS_idealgas::get_Cp(const double eps, const double rhob) const {
+    double Cp = get_dedT(eps, rhob);
+    return(Cp);
+}
+
 
 double EOS_idealgas::get_correlation_length(
                             const double eps, const double rhob) const {
@@ -51,6 +63,7 @@ double EOS_idealgas::get_correlation_length(
     const double xi     = factor*std::max(C_xi/T_local, sqrt(chi_B/C_xi));
     return(xi);
 }
+
 
 double EOS_idealgas::get_muB(double e, double rhob) const {
     double T_local = get_temperature(e, rhob);

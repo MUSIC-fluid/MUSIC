@@ -96,7 +96,7 @@ double CriticalSlowModes::phiQbar_f2(const double x) const {
 
 
 double CriticalSlowModes::phiQbar_0(const double e, const double rho_b) const {
-    const double c_p = eos.get_dedT(e, rho_b);
+    const double c_p = eos.get_Cp(e, rho_b);
     return(c_p/(rho_b*rho_b + 1e-16));
 }
 
@@ -325,7 +325,7 @@ double CriticalSlowModes::alpha_intergrand(
                         const double Qxi, const double phi_ratio) const {
     double dCpde = 0.0;
     double dxide = 0.0;
-    double Cp = eos.get_dedT(e, rhob);
+    double Cp = eos.get_Cp(e, rhob);
     double factor = dCpde/(Cp + 1e-16) - 2.*Qxi/(1. + Qxi*Qxi)*dxide;
     double integrand = factor*(phi_ratio - 1.);
     return(integrand);
@@ -337,7 +337,7 @@ double CriticalSlowModes::beta_intergrand(
                         const double Qxi, const double phi_ratio) const {
     double dCpdrhob = 0.0;
     double dxidrhob = 0.0;
-    double Cp = eos.get_dedT(e, rhob);
+    double Cp = eos.get_Cp(e, rhob);
     double factor = (dCpdrhob/(Cp + 1e-16) - 2./(rhob + 1e-16)
                      - 2.*Qxi/(1. + Qxi*Qxi)*dxidrhob);
     double integrand = factor*(phi_ratio - 1.);

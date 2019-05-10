@@ -28,6 +28,7 @@ class EOS_idealgas : public EOS_base {
     double get_dedT       (double eps, double rhob) const;
 
     double get_chiB2(const double eps, const double rhob) const {return(1./3.);}
+    double get_Cp(const double eps, const double rhob) const;
     double get_correlation_length(const double eps, const double rhob) const;
 
     void check_eos() const {check_eos_no_muB();}
