@@ -16,7 +16,7 @@ class EOS_BEST : public EOS_base {
     double p_rho_func     (double e, double rhob) const;
     double p_e_func       (double e, double rhob) const;
     double get_temperature(double e, double rhob) const;
-    double get_mu         (double e, double rhob) const;
+    double get_muB        (double e, double rhob) const;
     double get_pressure   (double e, double rhob) const;
     double get_s2e        (double s, double rhob) const;
     double get_chiB2      (const double e, const double rhob) const;
