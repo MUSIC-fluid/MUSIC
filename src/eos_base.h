@@ -33,6 +33,8 @@ class EOS_base {
     double ***mu_B_tb;
     double ***mu_S_tb;
     double ***mu_C_tb;
+    double ***chiB2_tb;
+    double ***Cp_tb;
 
     EOS_base() = default;
     virtual ~EOS_base();
@@ -75,19 +77,27 @@ class EOS_base {
     virtual double get_cs2        (double e, double rhob) const;
     virtual double p_rho_func     (double e, double rhob) const {return(0.0);}
     virtual double p_e_func       (double e, double rhob) const {return(0.0);}
-    virtual double get_temperature(double epsilon, double rhob) const {return(0.0);}
-    virtual double get_muB        (double epsilon, double rhob) const {return(0.0);}
-    virtual double get_muS        (double epsilon, double rhob) const {return(0.0);}
-    virtual double get_muC        (double epsilon, double rhob) const {return(0.0);}
-    virtual double get_rhoS       (double epsilon, double rhob) const {return(0.0);}
-    virtual double get_rhoC       (double epsilon, double rhob) const {return(0.4*rhob);}
-    virtual double get_pressure   (double epsilon, double rhob) const {return(0.0);}
+    virtual double get_temperature(double e, double rhob) const {return(0.0);}
+    virtual double get_muB        (double e, double rhob) const {return(0.0);}
+    virtual double get_muS        (double e, double rhob) const {return(0.0);}
+    virtual double get_muC        (double e, double rhob) const {return(0.0);}
+    virtual double get_rhoS       (double e, double rhob) const {return(0.0);}
+    virtual double get_rhoC       (double e, double rhob) const {return(0.4*rhob);}
+    virtual double get_pressure   (double e, double rhob) const {return(0.0);}
     virtual double get_s2e        (double s, double rhob) const {return(0.0);}
     virtual double get_T2e        (double T, double rhob) const {return(0.0);}
-    virtual double get_dedT       (double epsilon, double rhob) const {return(0.0);}
+    virtual double get_dedT       (double e, double rhob) const {return(0.0);}
     virtual void   check_eos      () const {}
-    
-    virtual double get_correlation_length(const double eps, const double rhob) const {return(0.0);}
+
+    virtual double get_chiB2(const double e, const double rhob) const {
+        return(0.0);
+    }
+    virtual double get_Cp(const double e, const double rhob) const {
+        return(0.0);
+    }
+    virtual double get_correlation_length(const double e, const double rhob) const {
+        return(0.0);
+    }
     
     void check_eos_with_finite_muB() const;
     void check_eos_no_muB() const;

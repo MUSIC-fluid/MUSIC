@@ -19,6 +19,9 @@ class EOS_BEST : public EOS_base {
     double get_mu         (double e, double rhob) const;
     double get_pressure   (double e, double rhob) const;
     double get_s2e        (double s, double rhob) const;
+    double get_chiB2      (const double e, const double rhob) const;
+    double get_Cp         (const double e, const double rhob) const;
+    double get_correlation_length(const double eps, const double rhob) const;
 
     void check_eos() const {check_eos_with_finite_muB();}
 };

@@ -23,8 +23,14 @@ EOS_BEST::~EOS_BEST() {
     for (int itable = 0; itable < ntables; itable++) {
         Util::mtx_free(mu_B_tb[itable],
                        nb_length[itable], e_length[itable]);
+        Util::mtx_free(chiB2_tb[itable],
+                       nb_length[itable], e_length[itable]);
+        Util::mtx_free(Cp_tb[itable],
+                       nb_length[itable], e_length[itable]);
     }
     delete[] mu_B_tb;
+    delete[] chiB2_tb;
+    delete[] Cp_tb;
 }
 
 
@@ -56,10 +62,15 @@ void EOS_BEST::initialize_eos() {
                             + eos_file_string_array[itable] + ".dat");
         std::ifstream eos_mub(path + "BEST_eos_muB_"
                             + eos_file_string_array[itable] + ".dat");
+        std::ifstream eos_chiB2(path + "BEST_eos_chi2_"
+                            + eos_file_string_array[itable] + ".dat");
+        std::ifstream eos_Cp(path + "BEST_eos_Cp_"
+                            + eos_file_string_array[itable] + ".dat");
         
         if (!eos_p) {
             music_message << "Can not found the EoS file! filename: "
-                          << path + "BEST_eos_p_" << eos_file_string_array[itable] + ".dat";
+                          << path + "BEST_eos_p_"
+                          << eos_file_string_array[itable] + ".dat";
             music_message.flush("error");
             exit(1);
         }
@@ -83,6 +94,10 @@ void EOS_BEST::initialize_eos() {
                                                   e_length[itable]);
         mu_B_tb[itable] = Util::mtx_malloc(nb_length[itable],
                                            e_length[itable]);
+        chiB2_tb[itable] = Util::mtx_malloc(nb_length[itable],
+                                            e_length[itable]);
+        Cp_tb[itable] = Util::mtx_malloc(nb_length[itable],
+                                         e_length[itable]);
 
         // read pressure, temperature and chemical potential values
         for (int j = 0; j < e_length[itable]; j++) {
@@ -90,6 +105,8 @@ void EOS_BEST::initialize_eos() {
                 eos_p >> pressure_tb[itable][i][j];
                 eos_T >> temperature_tb[itable][i][j];
                 eos_mub >> mu_B_tb[itable][i][j];
+                eos_chiB2 >> chiB2_tb[itable][i][j];            // 1/fm^3
+                eos_Cp >> Cp_tb[itable][i][j];                  // 1/fm^3
 
                 pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
                 temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
@@ -148,4 +165,29 @@ double EOS_BEST::get_mu(double e, double rhob) const {
 double EOS_BEST::get_s2e(double s, double rhob) const {
     double e = get_s2e_finite_rhob(s, rhob);
     return(e);
+}
+
+
+double EOS_BEST::get_chiB2(const double e, const double rhob) const {
+    int table_idx = get_table_idx(e);
+    double chiB2 = interpolate2D(e, std::abs(rhob), table_idx,
+                                 chiB2_tb);  // 1/fm^3
+    return(chiB2);
+}
+
+
+double EOS_BEST::get_Cp(const double e, const double rhob) const {
+    int table_idx = get_table_idx(e);
+    double Cp = interpolate2D(e, std::abs(rhob), table_idx, Cp_tb);  // 1/fm^3
+    return(Cp);
+}
+
+
+double EOS_BEST::get_correlation_length(
+                            const double eps, const double rhob) const {
+    const double T_local = get_temperature(eps, rhob);
+    const double chi_B   = get_chiB2(eps, rhob);
+    const double C_xi    = 1.0;
+    const double xi      = std::max(C_xi/T_local, sqrt(chi_B/C_xi));
+    return(xi);
 }
