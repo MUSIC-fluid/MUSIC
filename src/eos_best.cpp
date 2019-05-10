@@ -54,6 +54,8 @@ void EOS_BEST::initialize_eos() {
     pressure_tb    = new double** [ntables];
     temperature_tb = new double** [ntables];
     mu_B_tb        = new double** [ntables];
+    chiB2_tb       = new double** [ntables];
+    Cp_tb          = new double** [ntables];
 
     for (int itable = 0; itable < ntables; itable++) {
         std::ifstream eos_p(path + "BEST_eos_p_"
