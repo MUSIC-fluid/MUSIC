@@ -703,7 +703,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
 
 //! This function prints to the screen the maximum local energy density,
 //! the maximum temperature in the current grid
-void Cell_info::get_maximum_energy_density(SCGrid &arena) {
+double Cell_info::get_maximum_energy_density(SCGrid &arena) {
     double eps_max  = 0.0;
     double rhob_max = 0.0;
     double T_max    = 0.0;
@@ -737,6 +737,7 @@ void Cell_info::get_maximum_energy_density(SCGrid &arena) {
                   << "rhob_max = " << rhob_max << " 1/fm^3, "
                   << "T_max = " << T_max << " GeV.";
     music_message.flush("info");
+    return(eps_max);
 }
 
 

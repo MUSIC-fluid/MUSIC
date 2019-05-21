@@ -76,6 +76,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                            arena_current.nEta());
 
     int it = 0;
+    double eps_max_cur = -1.;
+    const double max_allowed_e_increase_factor = 2.;
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
@@ -152,7 +154,23 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         // check energy conservation
         if (DATA.boost_invariant == 0)
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
-        grid_info.get_maximum_energy_density(*ap_current);
+        auto emax_loc = grid_info.get_maximum_energy_density(*ap_current);
+        if (tau > source_tau_max && it > 0) {
+            if (eps_max_cur < 0.) {
+                eps_max_cur = emax_loc;
+            } else {
+                if (emax_loc > max_allowed_e_increase_factor*eps_max_cur) {
+                    music_message << "The maximum energy density increased by "
+                                  << "more than facotor of "
+                                  << max_allowed_e_increase_factor << "! ";
+                    music_message << "This should not happen!";
+                    music_message.flush("error");
+                    exit(1);
+                } else {
+                    eps_max_cur = emax_loc;
+                }
+            }
+        }
 
         if (DATA.output_hydro_debug_info == 1) {
             grid_info.monitor_fluid_cell(*ap_current, 100, 100, 0, tau);
