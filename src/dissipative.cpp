@@ -152,14 +152,16 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     ////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
     double pressure = eos.get_pressure(epsilon, rhob);
-    shear = (shear_to_s)*(epsilon + pressure)/(T + 1e-15);
-    double tau_pi = 5.0*shear/(epsilon + pressure + 1e-15);
+    shear = (shear_to_s)*(epsilon + pressure)/(T + Util::small_eps);
+    double tau_pi = 5.0*shear/(epsilon + pressure + Util::small_eps);
 
-    tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
+    tau_pi = std::max(3.*DATA.delta_tau, tau_pi);
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
-    double transport_coefficient  = 9./70.*tau_pi/shear*(4./5.);
+    //double transport_coefficient  = 9./70.*tau_pi/shear*(4./5.);
+    double transport_coefficient  = (
+                            9./70.*4./(epsilon + pressure + Util::small_eps));
     double transport_coefficient2 = 4./3.*tau_pi;
     double transport_coefficient3 = 10./7.*tau_pi;
 
@@ -868,12 +870,13 @@ double Diss::Make_uqSource(
     double T        = eos.get_temperature(epsilon, rhob);
 
     double kappa_coefficient = DATA.kappa_coefficient;
-    double tau_rho = kappa_coefficient/(T + 1e-15);
+    double tau_rho = kappa_coefficient/(T + Util::small_eps);
     tau_rho = std::max(3.*DATA.delta_tau, tau_rho);
     double mub     = eos.get_muB(epsilon, rhob);
     double alpha   = mub/T;
-    double kappa   = kappa_coefficient*(rhob/(3.*T*tanh(alpha) + 1e-15)
-                                      - rhob*rhob/(epsilon + pressure));
+    double kappa   = kappa_coefficient*(
+            rhob/(3.*T*tanh(alpha) + Util::small_eps)
+            - rhob*rhob/(epsilon + pressure));
 
     if (DATA.Initial_profile == 1) {
         // for 1+1D numerical test
@@ -916,10 +919,11 @@ double Diss::Make_uqSource(
     }
     double Nonlinear2 = - transport_coeff_2*temptemp;
 
-    double SW = (-q[nu] - NS + Nonlinear1 + Nonlinear2)/(tau_rho + 1e-15);
+    double SW = ((-q[nu] - NS + Nonlinear1 + Nonlinear2)
+                 /(tau_rho + Util::small_eps));
     if (DATA.Initial_profile == 1) {
         // for 1+1D numerical test
-        SW = (-q[nu] - NS)/(tau_rho + 1e-15);
+        SW = (-q[nu] - NS)/(tau_rho + Util::small_eps);
     }
 
     // all other geometric terms....
@@ -1150,7 +1154,8 @@ void Diss::output_kappa_T_and_muB_dependence() {
             double alpha_local = mu_B_local/T_local;
 
             double kappa_local = (DATA.kappa_coefficient
-                    *(rhob_local/(3.*T_local*tanh(alpha_local) + 1e-15)
+                    *(rhob_local/(3.*T_local*tanh(alpha_local)
+                                  + Util::small_eps)
                       - rhob_local*rhob_local/(e_local + p_local)));
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
@@ -1194,7 +1199,8 @@ void Diss::output_kappa_along_const_sovernB() {
             double alpha_local = mu_B/temperature;
 
             double kappa_local = (DATA.kappa_coefficient
-                    *(nB_local/(3.*temperature*tanh(alpha_local) + 1e-15)
+                    *(nB_local/(3.*temperature*tanh(alpha_local)
+                                + Util::small_eps)
                       - nB_local*nB_local/(e_local + p_local)));
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
