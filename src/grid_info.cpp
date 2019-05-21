@@ -723,8 +723,8 @@ double Cell_info::get_maximum_energy_density(SCGrid &arena) {
         rhob_max = std::max(rhob_max, rhob_local);
         T_max    = std::max(T_max,    eos.get_temperature(eps_local, rhob_local));
     }
-    eps_max *= 0.19733;   // GeV/fm^3
-    T_max   *= 0.19733;   // GeV
+    eps_max *= Util::hbarc;   // GeV/fm^3
+    T_max   *= Util::hbarc;   // GeV
 
     if (eps_max > 1e5) {
         music_message << "The maximum e = " << eps_max << " < 1e5 GeV/fm^3";
@@ -782,7 +782,7 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
     }
     double factor = tau*dx*dy*deta;
     N_B *= factor;
-    T_tau_t *= factor*0.19733;  // GeV
+    T_tau_t *= factor*Util::hbarc;  // GeV
     music_message << "total energy T^{taut} = " << T_tau_t << " GeV";
     music_message.flush("info");
     music_message << "net baryon number N_B = " << N_B;
@@ -798,7 +798,6 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
 
 //! This function putputs files to check with Gubser flow solution
 void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
-    double unit_convert = 0.19733;  // hbarC
     if (tau > 1.) {
         ostringstream filename_analytic;
         filename_analytic << "tests/Gubser_flow/y=x_tau="
@@ -834,7 +833,7 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
         for (int i = 0; i < arena.nX(); i++) {
             double e_local = arena(i,i,0).epsilon;
             double T_local = (
-                    eos.get_temperature(e_local, 0.0)*unit_convert);
+                    eos.get_temperature(e_local, 0.0)*Util::hbarc);
             T_diff += fabs(T_analytic[i] - T_local);
             T_sum += fabs(T_analytic[i]);
             ux_diff += fabs(ux_analytic[i] - arena(i,i,0).u[1]);
@@ -842,16 +841,16 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
             uy_diff += fabs(uy_analytic[i] - arena(i,i,0).u[2]);
             uy_sum += fabs(uy_analytic[i]);
             pixx_diff += (fabs(pixx_analytic[i]
-                               - arena(i,i,0).Wmunu[4]*unit_convert));
+                               - arena(i,i,0).Wmunu[4]*Util::hbarc));
             pixx_sum += fabs(pixx_analytic[i]);
             pixy_diff += (fabs(pixx_analytic[i]
-                               - arena(i,i,0).Wmunu[5]*unit_convert));
+                               - arena(i,i,0).Wmunu[5]*Util::hbarc));
             pixy_sum += fabs(pixx_analytic[i]);
             piyy_diff += (fabs(piyy_analytic[i]
-                               - arena(i,i,0).Wmunu[7]*unit_convert));
+                               - arena(i,i,0).Wmunu[7]*Util::hbarc));
             piyy_sum += fabs(piyy_analytic[i]);
             pizz_diff += (fabs(pizz_analytic[i]
-                               - arena(i,i,0).Wmunu[9]*unit_convert));
+                               - arena(i,i,0).Wmunu[9]*Util::hbarc));
             pizz_sum += fabs(pizz_analytic[i]);
         }
         music_message << "Autocheck: T_diff = " << T_diff/T_sum
@@ -881,14 +880,14 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
         double T_local = eos.get_temperature(e_local, 0.0);
         output_file << scientific << setprecision(8) << setw(18)
                     << x_local << "  " << y_local << "  "
-                    << e_local*unit_convert << "  " << rhob_local << "  "
-                    << T_local*unit_convert << "  "
+                    << e_local*Util::hbarc << "  " << rhob_local << "  "
+                    << T_local*Util::hbarc << "  "
                     << arena(ix,iy,0).u[1] << "  "
                     << arena(ix,iy,0).u[2] << "  "
-                    << arena(ix,iy,0).Wmunu[4]*unit_convert << "  "
-                    << arena(ix,iy,0).Wmunu[7]*unit_convert << "  "
-                    << arena(ix,iy,0).Wmunu[5]*unit_convert << "  "
-                    << arena(ix,iy,0).Wmunu[9]*unit_convert << "  "
+                    << arena(ix,iy,0).Wmunu[4]*Util::hbarc << "  "
+                    << arena(ix,iy,0).Wmunu[7]*Util::hbarc << "  "
+                    << arena(ix,iy,0).Wmunu[5]*Util::hbarc << "  "
+                    << arena(ix,iy,0).Wmunu[9]*Util::hbarc << "  "
                     << endl;
     }
     output_file.close();
@@ -901,7 +900,6 @@ void Cell_info::output_1p1D_check_file(SCGrid &arena, double tau) {
     filename << "1+1D_check_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
 
-    double unit_convert = 0.19733;  // hbarC
     double deta = DATA.delta_eta;
     double eta_min = -6.94;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
@@ -910,7 +908,7 @@ void Cell_info::output_1p1D_check_file(SCGrid &arena, double tau) {
         double rhob_local = arena(1, 1, ieta).rhob;
         output_file << scientific << setprecision(8) << setw(18)
                     << eta_local << "  "
-                    << e_local*unit_convert << "  " << rhob_local
+                    << e_local*Util::hbarc << "  " << rhob_local
                     << endl;
     }
     output_file.close();
@@ -994,14 +992,13 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
 void Cell_info::output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
                                                             string filename) {
     ofstream output_file(filename.c_str());
-    const double unit_convert = 0.19733;  // hbarC [GeV*fm]
     const int n_skip_x   = DATA.output_evolution_every_N_x;
     const int n_skip_y   = DATA.output_evolution_every_N_y;
     const int n_skip_eta = DATA.output_evolution_every_N_eta;
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta)
     for (int ix   = 0; ix   < arena.nX();   ix += n_skip_x)
     for (int iy   = 0; iy   < arena.nY();   iy += n_skip_y) {
-        double e_local = arena(ix, iy, ieta).epsilon*unit_convert;
+        double e_local = arena(ix, iy, ieta).epsilon*Util::hbarc;
         double rhob_local = arena(ix, iy, ieta).rhob;
         output_file << scientific << setprecision(5) << setw(18)
                     << e_local << "  " << rhob_local << endl;
