@@ -122,7 +122,7 @@ double EOS_eosQ::get_temperature(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double T = interpolate2D(e, std::abs(rhob), table_idx,
                              temperature_tb);  // 1/fm
-    return(std::max(1e-15, T));
+    return(std::max(Util::small_eps, T));
 }
 
 
@@ -131,7 +131,7 @@ double EOS_eosQ::get_temperature(double e, double rhob) const {
 double EOS_eosQ::get_pressure(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb);
-    return(std::max(1e-15, f));
+    return(std::max(Util::small_eps, f));
 }
 
 
@@ -139,7 +139,7 @@ double EOS_eosQ::get_pressure(double e, double rhob) const {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_eosQ::get_mu(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
                                    mu_B_tb);  // 1/fm
     return(mu);

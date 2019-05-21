@@ -90,7 +90,7 @@ double EOS_hotQCD::p_e_func(double e, double rhob) const {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_hotQCD::get_temperature(double e, double rhob) const {
     double T = interpolate1D(e, 0, temperature_tb);  // 1/fm
-    return(std::max(1e-15, T));
+    return(std::max(Util::small_eps, T));
 }
 
 
@@ -98,7 +98,7 @@ double EOS_hotQCD::get_temperature(double e, double rhob) const {
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
 double EOS_hotQCD::get_pressure(double e, double rhob) const {
     double f = interpolate1D(e, 0, pressure_tb);  // 1/fm^4
-    return(std::max(1e-15, f));
+    return(std::max(Util::small_eps, f));
 }
 
 

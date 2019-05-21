@@ -552,7 +552,7 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
         }
     }
     double den = utau2*(1. - vs2) + vs2;
-    double f = num/(den + 1e-15);
+    double f = num/(den + Util::small_eps);
     // check for problems
     if (f < 0.0) {
         fprintf(stderr, "SpeedMax = %e\n is negative.\n", f);

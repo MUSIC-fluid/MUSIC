@@ -8,6 +8,7 @@
 #include "grid_info.h"
 
 using Util::hbarc;
+using Util::small_eps;
 using std::string;
 using std::scientific;
 using std::setw;
@@ -1240,10 +1241,10 @@ void Cell_info::output_average_phase_diagram_trajectory(
             }
         }
     }
-    avg_T  = avg_T/(weight + 1e-15)*hbarc;
-    avg_mu = avg_mu/(weight + 1e-15)*hbarc;
-    std_T  = sqrt(std_T/(weight + 1e-15)*hbarc*hbarc - avg_T*avg_T);
-    std_mu = sqrt(std_mu/(weight + 1e-15)*hbarc*hbarc - avg_mu*avg_mu);
+    avg_T  = avg_T/(weight + small_eps)*hbarc;
+    avg_mu = avg_mu/(weight + small_eps)*hbarc;
+    std_T  = sqrt(std_T/(weight + small_eps)*hbarc*hbarc - avg_T*avg_T);
+    std_mu = sqrt(std_mu/(weight + small_eps)*hbarc*hbarc - avg_mu*avg_mu);
     of << scientific << setw(18) << setprecision(8)
        << tau << "  " << avg_T << "  " << std_T << "  "
        << avg_mu << "  " << std_mu << "  " << V4 << endl;
@@ -1449,22 +1450,22 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
         }
     }
     double ep_ideal  = (sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)
-                        /(ideal_den + 1e-16));
+                        /(ideal_den + small_eps));
     double ep_full   = (sqrt(full_num1*full_num1 + full_num2*full_num2)
-                        /(full_den + 1e-16));
+                        /(full_den + small_eps));
     double ep_shear  = (sqrt(shear_num1*shear_num1 + shear_num2*shear_num2)
-                        /(shear_den + 1e-16));
-    double R_shearpi = R_shearpi_num/(R_shearpi_den + 1e-16);
-    double R_Pi      = R_Pi_num/(R_Pi_den + 1e-16);
-    double u_avg     = u_perp_num/(u_perp_den + 1e-16);
-    double T_avg     = T_avg_num/(T_avg_den*hbarc + 1e-16);
+                        /(shear_den + small_eps));
+    double R_shearpi = R_shearpi_num/(R_shearpi_den + small_eps);
+    double R_Pi      = R_Pi_num/(R_Pi_den + small_eps);
+    double u_avg     = u_perp_num/(u_perp_den + small_eps);
+    double T_avg     = T_avg_num/(T_avg_den + small_eps)*hbarc;
 
     of << scientific << setw(18) << setprecision(8)
        << tau << "  " << ep_ideal << "  " << ep_shear << "  "
        << ep_full << "  ";
     for (int i = 0; i < 6; i++) {
-        of << ep_num1[i]/(ep_den[i] + 1e-16) << "  "
-           << ep_num2[i]/(ep_den[i] + 1e-16)<< "  ";
+        of << ep_num1[i]/(ep_den[i] + small_eps) << "  "
+           << ep_num2[i]/(ep_den[i] + small_eps)<< "  ";
     }
     of << endl;
     of.close();
@@ -1473,8 +1474,8 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
         << tau << "  ";
     for (int i = 0; i < norder; i++) {
         // the minus sign ensure the vector points to the short axis
-        of1 << -eccn_num1[i]/(eccn_den[i] + 1e-16) << "  "
-            << -eccn_num2[i]/(eccn_den[i] + 1e-16)<< "  ";
+        of1 << -eccn_num1[i]/(eccn_den[i] + small_eps) << "  "
+            << -eccn_num2[i]/(eccn_den[i] + small_eps)<< "  ";
     }
     of1 << endl;
     of1.close();

@@ -15,6 +15,7 @@
 #include "evolve.h"
 #include "cornelius.h"
 #include "emoji.h"
+#include "util.h"
 
 #ifndef _OPENMP
   #define omp_get_thread_num() 0
@@ -1772,7 +1773,7 @@ void Evolve::initialize_freezeout_surface_info() {
         double freeze_max_ed = DATA.eps_freeze_max;
         double freeze_min_ed = DATA.eps_freeze_min;
         double d_epsFO = ((freeze_max_ed - freeze_min_ed)
-                          /(n_freeze_surf - 1 + 1e-15));
+                          /(n_freeze_surf - 1 + Util::small_eps));
         for (int isurf = 0; isurf < n_freeze_surf; isurf++) {
             double temp_epsFO = freeze_min_ed + isurf*d_epsFO;
             epsFO_list.push_back(temp_epsFO);

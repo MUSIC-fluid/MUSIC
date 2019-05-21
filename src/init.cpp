@@ -489,8 +489,7 @@ void Init::initial_IPGlasma_XY(int ieta, SCGrid &arena_prev,
                                    *eta_envelop_ed);
                 epsilon = eos.get_s2e(local_sd, rhob);
             }
-            if (epsilon < 0.00000000001)
-                epsilon = 0.00000000001;
+            epsilon = std::max(Util::small_eps, epsilon);
 
             arena_current(ix, iy, ieta).epsilon = epsilon;
             arena_current(ix, iy, ieta).rhob = rhob;
@@ -616,8 +615,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
                                    *eta_envelop_ed);
                 epsilon = eos.get_s2e(local_sd, rhob);
             }
-            if (epsilon < 0.00000000001)
-                epsilon = 0.00000000001;
+            epsilon = std::max(Util::small_eps, epsilon);
 
             arena_current(ix, iy, ieta).epsilon = epsilon;
             arena_current(ix, iy, ieta).rhob = rhob;
@@ -713,8 +711,7 @@ void Init::initial_MCGlb_with_rhob_XY(int ieta, SCGrid &arena_prev,
                     *DATA.sFactor);         // 1/fm^3
                 epsilon = eos.get_s2e(local_sd, rhob);
             }
-            if (epsilon < 0.00000000001)
-                epsilon = 0.00000000001;
+            epsilon = std::max(Util::small_eps, epsilon);
 
             arena_current(ix, iy, ieta).epsilon = epsilon;
             arena_current(ix, iy, ieta).rhob = rhob;
@@ -778,9 +775,7 @@ void Init::initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                 double rhob    = rhob_local;
                 double epsilon = ed_local*DATA.sFactor/hbarc;    // 1/fm^4
 
-                if (epsilon < 0.00000000001) {
-                    epsilon = 0.00000000001;
-                }
+                epsilon = std::max(Util::small_eps, epsilon);
 
                 arena_current(ix, iy, ieta).epsilon = epsilon;
                 arena_current(ix, iy, ieta).rhob = rhob;
@@ -824,8 +819,7 @@ void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
 
             epsilon = j_mu[0];           // 1/fm^4
 
-            if (epsilon < 0.00000000001)
-                epsilon = 0.00000000001;
+            epsilon = std::max(Util::small_eps, epsilon);
 
             arena_current(ix, iy, ieta).epsilon = epsilon;
             arena_current(ix, iy, ieta).rhob = rhob;
@@ -883,8 +877,7 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
             const int idx = iy + ix*ny + ieta*ny*nx;
             epsilon = (jetscape_initial_energy_density[idx]
                        *DATA.sFactor/hbarc);  // 1/fm^4
-            if (epsilon < 0.00000000001)
-                epsilon = 0.00000000001;
+            epsilon = std::max(Util::small_eps, epsilon);
 
             arena_current(ix, iy, ieta).epsilon = epsilon;
             arena_current(ix, iy, ieta).rhob = rhob;
