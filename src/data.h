@@ -106,6 +106,9 @@ typedef struct init_data {
 
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;
+    
+    //! flag to include temperature dependent zeta/s(T)
+    int T_dependent_zeta_over_s;
 
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;

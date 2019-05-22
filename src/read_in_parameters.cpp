@@ -560,6 +560,13 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_bulk;
     parameter_list.turn_on_bulk = tempturn_on_bulk;
+   
+    // flag for different parameterization of zeta/s(T)
+    int temp_T_dependent_zeta_over_s = 0;
+    tempinput = Util::StringFind4(input_file, "T_dependent_zeta_over_s");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_T_dependent_zeta_over_s;
+    parameter_list.T_dependent_zeta_over_s = temp_T_dependent_zeta_over_s;
     
     // Include secord order terms
     int tempturn_on_second_order = 0;
