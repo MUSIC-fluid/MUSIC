@@ -102,6 +102,8 @@ typedef struct init_data {
     int turn_on_diff;       //!< flag to include net baryon diffusion
     double shear_to_s;      //!< value of specific shear viscosity
 
+    double quest_revert_strength;
+
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;
 

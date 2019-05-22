@@ -312,8 +312,9 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
     // regulation factor in the default MUSIC
     // double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
     double xi = 0.05;
-    double factor = 100.*(1./(exp(-(e_local - eps_scale)/xi) + 1.)
-                          - 1./(exp(eps_scale/xi) + 1.));
+    double factor = 10.*DATA.quest_revert_strength*(
+                        1./(exp(-(e_local - eps_scale)/xi) + 1.)
+                            - 1./(exp(eps_scale/xi) + 1.));
     double factor_bulk = factor;
 
     double pi_00 = grid_pt->Wmunu[0];
@@ -380,8 +381,9 @@ void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
     double eps_scale = 0.1;   // in 1/fm^4
 
     double xi = 0.05;
-    double factor = 100.*(1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
-                          - 1./(exp(eps_scale/xi) + 1.));
+    double factor = 10.*DATA.quest_revert_strength*(
+                            1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
+                            - 1./(exp(eps_scale/xi) + 1.));
 
     double q_mu_local[4];
     for (int i = 0; i < 4; i++) {

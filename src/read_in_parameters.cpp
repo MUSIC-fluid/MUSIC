@@ -545,6 +545,14 @@ InitData read_in_parameters(std::string input_file) {
         exit(1);
     }
     parameter_list.shear_to_s = tempshear_to_s;
+    
+    // the strength for the viscous regulation
+    double temp_quest_revert_strength = 10.;
+    tempinput = Util::StringFind4(input_file, "quest_revert_strength");
+    if (tempinput != "empty") {
+        istringstream(tempinput) >> temp_quest_revert_strength;
+    }
+    parameter_list.quest_revert_strength = temp_quest_revert_strength;
 
     // Include_Bulk_Visc_Yes_1_No_0
     int tempturn_on_bulk = 0;
