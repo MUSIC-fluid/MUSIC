@@ -167,7 +167,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                     music_message.flush("error");
                     exit(1);
                 } else {
-                    eps_max_cur = emax_loc;
+                    eps_max_cur = std::min(emax_loc, eps_max_cur);
                 }
             }
         }
