@@ -383,9 +383,11 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     music_message << "read in particle species table from " << p_name;
     music_message.flush("info");
 
-    FILE *p_file;
-    p_file = fopen(p_name.c_str(), "r");
-    checkForReadError(p_file, p_name.c_str());
+    //FILE *p_file;
+    //p_file = fopen(p_name.c_str(), "r");
+    //checkForReadError(p_file, p_name.c_str());
+
+    std::ifstream p_file(p_name.c_str());
 
     for (int k = 0; k < MAXINTV; k++) 
         partid[k] = -1; 
@@ -406,34 +408,21 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     int j = 0;
     // read particle data:
     while (i < DATA->NumberOfParticlesToInclude) {
-        int temp;
-        //particleList[i].name = Util::char_malloc(50);
-        temp = fscanf(p_file, "%d",  &particleList[i].number );
-        temp = fscanf(p_file, "%s",   particleList[i].name   );
-        temp = fscanf(p_file, "%lf", &particleList[i].mass   );
-        temp = fscanf(p_file, "%lf", &particleList[i].width  );
-        temp = fscanf(p_file, "%d",  &particleList[i].degeneracy);
-        temp = fscanf(p_file, "%d",  &particleList[i].baryon );
-        temp = fscanf(p_file, "%d",  &particleList[i].strange);
-        temp = fscanf(p_file, "%d",  &particleList[i].charm  );
-        temp = fscanf(p_file, "%d",  &particleList[i].bottom );
-        temp = fscanf(p_file, "%d",  &particleList[i].isospin);
-        temp = fscanf(p_file, "%lf", &particleList[i].charge );
-        temp = fscanf(p_file, "%d",  &particleList[i].decays );   // number of decays
+        p_file >> particleList[i].number >> particleList[i].name
+               >> particleList[i].mass >> particleList[i].width
+               >> particleList[i].degeneracy >> particleList[i].baryon
+               >> particleList[i].strange >> particleList[i].charm
+               >> particleList[i].bottom >> particleList[i].isospin
+               >> particleList[i].charge >> particleList[i].decays;
 
         partid[MHALF + particleList[i].number] = i;
         particleList[i].stable = 0;
 
-        int h;
         for(int k = 0; k < particleList[i].decays; k++) {
-            h = fscanf(p_file, "%i%i%lf%i%i%i%i%i",
-                       &decay[j].reso, &decay[j].numpart, &decay[j].branch, 
-                       &decay[j].part[0], &decay[j].part[1], &decay[j].part[2],
-                       &decay[j].part[3], &decay[j].part[4]);
-            if (h != 8) {
-                printf("Error in scanf decay \n");
-                exit(0);
-            }
+            p_file >> decay[j].reso >> decay[j].numpart >> decay[j].branch
+                   >> decay[j].part[0] >> decay[j].part[1]
+                   >> decay[j].part[2] >> decay[j].part[3]
+                   >> decay[j].part[4];
             if (decay[j].numpart == 1) {
                 // "decays" into one particle, i.e. is stable 
                 particleList[i].stable = 1;
@@ -445,18 +434,17 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
         if (particleList[i].baryon != 0) {
             i++;
             //particleList[i].name  = Util::char_malloc(50);
-            particleList[i].width   =  particleList[i-1].width;
-            particleList[i].charm   = -particleList[i-1].charm;
-            particleList[i].bottom  = -particleList[i-1].bottom;
-            particleList[i].isospin =  particleList[i-1].isospin;
-            particleList[i].charge  = -particleList[i-1].charge;
-            particleList[i].decays  =  particleList[i-1].decays;
-            particleList[i].stable  =  particleList[i-1].stable;
-            particleList[i].number  = -particleList[i-1].number;
-            std::strcpy(particleList[i].name, "Anti-");
-            std::strcat(particleList[i].name,particleList[i-1].name);
-            particleList[i].mass       =  particleList[i-1].mass;
-            particleList[i].degeneracy =  particleList[i-1].degeneracy;
+            particleList[i].width      = particleList[i-1].width;
+            particleList[i].charm      = -particleList[i-1].charm;
+            particleList[i].bottom     = -particleList[i-1].bottom;
+            particleList[i].isospin    = particleList[i-1].isospin;
+            particleList[i].charge     = -particleList[i-1].charge;
+            particleList[i].decays     = particleList[i-1].decays;
+            particleList[i].stable     = particleList[i-1].stable;
+            particleList[i].number     = -particleList[i-1].number;
+            particleList[i].name       = "Anti-" + particleList[i-1].name;
+            particleList[i].mass       = particleList[i-1].mass;
+            particleList[i].degeneracy = particleList[i-1].degeneracy;
             particleList[i].baryon     = -particleList[i-1].baryon;
             particleList[i].strange    = -particleList[i-1].strange;
             particleList[i].charge     = -particleList[i-1].charge;
@@ -465,7 +453,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
         i++;
     }
     decayMax = j;
-    fclose(p_file);
+    p_file.close();
     music_message << "Read in particle spicies " << i;
     music_message.flush("info");
     DATA->NumberOfParticlesToInclude = i;

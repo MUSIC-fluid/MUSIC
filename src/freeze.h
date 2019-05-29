@@ -45,7 +45,7 @@ const int ptsize = 100;     // max number of points in pt for array
 
 typedef struct particle {
     int number;
-    char name[50];
+    std::string name;
     double mass;
     double width;
     int degeneracy;
