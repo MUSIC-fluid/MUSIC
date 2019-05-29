@@ -62,7 +62,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double tau;
     int it_start = 0;
     double source_tau_max = 0.0;
-    if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
+    if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
         source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
     }
 
@@ -81,7 +81,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
-        if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
+        if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
             hydro_source_terms_ptr.lock()->prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
