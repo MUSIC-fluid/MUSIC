@@ -91,6 +91,11 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             }
         }
 
+        if (DATA.Initial_profile == 131) {
+            new_string->tau_0 = 0.;
+            new_string->eta_s_0 = 0.;
+        }
+
         // compute the string end tau
         double temp_factor1 = (new_string->tau_0*new_string->tau_0
                                - new_string->tau_form*new_string->tau_form);
