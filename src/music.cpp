@@ -8,12 +8,15 @@
 #include <string>
 #include "music.h"
 #include "init.h"
-#include "freeze.h"
 #include "evolve.h"
 #include "dissipative.h"
 #include "data_struct.h"
 #include "hydro_source_strings.h"
 #include "hydro_source_ampt.h"
+
+#ifdef GSL
+    #include "freeze.h"
+#endif
 
 using std::vector;
 
@@ -100,9 +103,11 @@ int MUSIC::run_hydro() {
 
 //! this is a shell function to run Cooper-Frye
 int MUSIC::run_Cooper_Frye() {
+#ifdef GSL
     Freeze cooper_frye(&DATA);
     cooper_frye.CooperFrye_pseudo(DATA.particleSpectrumNumber, mode,
                                   &DATA, &eos);
+#endif
     return(0);
 }
 

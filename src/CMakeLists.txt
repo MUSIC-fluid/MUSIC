@@ -11,12 +11,9 @@ set (SOURCES
     hydro_source_strings.cpp
     hydro_source_ampt.cpp
     pretty_ostream.cpp
-    freeze.cpp
     grid_info.cpp
     util.cpp
     read_in_parameters.cpp
-    freeze_pseudo.cpp
-    reso_decay.cpp
     advance.cpp
     eos.cpp
     eos_base.cpp
@@ -32,12 +29,22 @@ set (SOURCES
     music_logo.cpp
     HydroinfoMUSIC.cpp
     )
+if (GSL_FOUND)
+    set(SOURCES ${SOURCES}
+        freeze.cpp
+        freeze_pseudo.cpp
+        reso_decay.cpp
+        )
+endif()
 
 add_library(music_lib SHARED ${SOURCES})
 if (APPLE)
     set_target_properties (music_lib PROPERTIES COMPILE_FLAGS "-DAPPLE")
 endif (APPLE)
-target_link_libraries (music_lib ${GSL_LIBRARIES})
+if (GSL_FOUND)
+    set_target_properties (music_lib PROPERTIES COMPILE_FLAGS "-DGSL")
+    target_link_libraries (music_lib ${GSL_LIBRARIES})
+endif()
 install(TARGETS music_lib DESTINATION ${CMAKE_HOME_DIRECTORY})
 
 if (unittest)
@@ -57,6 +64,9 @@ else (unittest)
     if (APPLE)
         set_target_properties (mpihydro PROPERTIES COMPILE_FLAGS "-DAPPLE")
     endif (APPLE)
-    target_link_libraries (mpihydro music_lib ${GSL_LIBRARIES})
+    if (GSL_FOUND)
+        set_target_properties (mpihydro PROPERTIES COMPILE_FLAGS "-DGSL")
+    endif()
+    target_link_libraries (mpihydro music_lib)
     install(TARGETS mpihydro DESTINATION ${CMAKE_HOME_DIRECTORY})
 endif (unittest)

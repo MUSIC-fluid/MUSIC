@@ -11,10 +11,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_HOME_DIRECTORY}")
 set(CMAKE_INSTALL_RPATH ${CMAKE_HOME_DIRECTORY})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-# Require GSL and openMP for this project:
-
-find_package(GSL REQUIRED)
-include_directories(${GSL_INCLUDE_DIR})
+# Find GSL and openMP for this project:
+find_package(GSL)
+if (GSL_FOUND)
+    message("Found GSL library ${GSL_INCLUDE_DIR}, will build MUSIC with GSL")
+    include_directories(${GSL_INCLUDE_DIR})
+elseif()
+    message("Did not find GSL library, will build MUSIC alone")
+endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)

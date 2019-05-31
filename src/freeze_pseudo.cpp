@@ -9,8 +9,8 @@
 
 #include<sys/stat.h>
 #include<iomanip>
-#include "./freeze.h"
-#include <cstring>
+#include<cstring>
+#include "freeze.h"
 
 using Util::hbarc;
 using std::string;

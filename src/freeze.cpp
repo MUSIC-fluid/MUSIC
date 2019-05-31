@@ -1,7 +1,7 @@
 // MUSIC - a 3+1D viscous relativistic hydrodynamic code for heavy ion collisions
 // Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
 
-#include "./freeze.h"
+#include "freeze.h"
 #include <cstring>
 
 using std::string;
