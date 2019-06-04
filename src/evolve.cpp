@@ -77,6 +77,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     int it = 0;
     double eps_max_cur = -1.;
+    double e_cut = -1.;
     const double max_allowed_e_increase_factor = 2.;
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
@@ -112,13 +113,13 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         //}
 
         if (it % Nskip_timestep == 0) {
-
             if (DATA.outputEvolutionData == 1) {
                 grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 2) {
                 grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 3) {
-                grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
+                e_cut = grid_info.OutputEvolutionDataXYEta_photon(
+                    *ap_current, tau);
             }
 
             if (DATA.output_movie_flag == 1) {
@@ -204,8 +205,16 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
         if (frozen == 1 && tau > source_tau_max) {
-            music_message.info("All cells frozen out. Exiting.");
-            break;
+            if (DATA.outputEvolutionData != 3) {
+                music_message.info("All cells frozen out. Exiting.");
+                break;
+            } else {
+                if (eps_max_cur < e_cut) {
+                    music_message << "All cells e < " << e_cut << " GeV/fm^3.";
+                    music_message.flush("info");
+                    break;
+                }
+            }
         }
     }
     if (it < itmax) {

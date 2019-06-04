@@ -570,7 +570,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
 
 
 //! This function outputs hydro evolution file in binary format for photon production
-void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
+double Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
     // volume = tau*dtau*dx*dy*deta
     // the format of the file is as follows,
     //    volume T ux uy ueta
@@ -608,12 +608,13 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
     double deta = DATA.delta_eta;
     double volume = tau*n_skip_tau*dtau*n_skip_x*dx*n_skip_y*dy*n_skip_eta*deta;
 
+    const double e_cut = 0.1;  // GeV/fm^3
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         double eta_local = - DATA.eta_size/2. + ieta*deta;
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double e_local = arena(ix, iy, ieta).epsilon;  // 1/fm^4
-                if (e_local < 0.16/hbarc) continue;
+                if (e_local < e_cut/hbarc) continue;
                 // only ouput fluid cells that are above cut-off temperature
 
                 double rhob_local = arena(ix, iy, ieta).rhob;  // 1/fm^3
@@ -624,48 +625,44 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
 
                 // T_local is in 1/fm
                 double T_local = eos.get_temperature(e_local, rhob_local);
-
-
-                //if (T_local*hbarc < DATA->output_evolution_T_cut) continue;
-                // only ouput fluid cells that are above cut-off temperature
-
                 double muB_local = 0.0;
-                if (DATA.turn_on_rhob == 1)
+                if (DATA.turn_on_rhob == 1) {
                     muB_local = eos.get_muB(e_local, rhob_local);
+                }
 
-                //double p_local = eos.get_pressure(e_local, rhob_local);
-                //double div_factor = e_local + p_local;  // 1/fm^4
-                //double Wxx = 0.0;
-                //double Wxy = 0.0;
-                //double Wxeta = 0.0;
-                //double Wyy = 0.0;
-                //double Wyeta = 0.0;
-                //if (DATA.turn_on_shear == 1) {
-                //    Wxx   = arena(ix, iy, ieta).Wmunu[4]/div_factor;
-                //    Wxy   = arena(ix, iy, ieta).Wmunu[5]/div_factor;
-                //    Wxeta = arena(ix, iy, ieta).Wmunu[6]/div_factor;
-                //    Wyy   = arena(ix, iy, ieta).Wmunu[7]/div_factor;
-                //    Wyeta = arena(ix, iy, ieta).Wmunu[8]/div_factor;
-                //}
+                double p_local = eos.get_pressure(e_local, rhob_local);
+                double div_factor = e_local + p_local;  // 1/fm^4
+                double Wxx = 0.0;
+                double Wxy = 0.0;
+                double Wxeta = 0.0;
+                double Wyy = 0.0;
+                double Wyeta = 0.0;
+                if (DATA.turn_on_shear == 1) {
+                    Wxx   = arena(ix, iy, ieta).Wmunu[4]/div_factor;
+                    Wxy   = arena(ix, iy, ieta).Wmunu[5]/div_factor;
+                    Wxeta = arena(ix, iy, ieta).Wmunu[6]/div_factor;
+                    Wyy   = arena(ix, iy, ieta).Wmunu[7]/div_factor;
+                    Wyeta = arena(ix, iy, ieta).Wmunu[8]/div_factor;
+                }
 
-                //double pi_b = 0.0;
-                //if (DATA.turn_on_bulk == 1) {
-                //    pi_b = arena(ix, iy, ieta).pi_b;   // 1/fm^4
-                //}
+                double pi_b = 0.0;
+                if (DATA.turn_on_bulk == 1) {
+                    pi_b = arena(ix, iy, ieta).pi_b;   // 1/fm^4
+                }
 
                 // outputs for baryon diffusion part
-                //double common_term_q = 0.0;
-                //double qx = 0.0;
-                //double qy = 0.0;
-                //double qeta = 0.0;
-                //if (DATA.turn_on_diff == 1) {
-                //    //common_term_q = rhob_local*T_local/div_factor;
-                //    double kappa_hat = get_deltaf_qmu_coeff(T_local,
-                //                                            muB_local);
-                //    qx   = arena(ix, iy, ieta).Wmunu[11]/kappa_hat;
-                //    qy   = arena(ix, iy, ieta).Wmunu[12]/kappa_hat;
-                //    qeta = arena(ix, iy, ieta).Wmunu[13]/kappa_hat;
-                //}
+                double common_term_q = 0.0;
+                double qx = 0.0;
+                double qy = 0.0;
+                double qeta = 0.0;
+                if (DATA.turn_on_diff == 1) {
+                    common_term_q = rhob_local*T_local/div_factor;
+                    double kappa_hat = get_deltaf_qmu_coeff(T_local,
+                                                            muB_local);
+                    qx   = arena(ix, iy, ieta).Wmunu[11]/kappa_hat;
+                    qy   = arena(ix, iy, ieta).Wmunu[12]/kappa_hat;
+                    qeta = arena(ix, iy, ieta).Wmunu[13]/kappa_hat;
+                }
 
                 float ideal[] = {static_cast<float>(volume),
                                  static_cast<float>(eta_local),
@@ -680,24 +677,33 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
                     float mu[] = {static_cast<float>(muB_local*hbarc)};
                     fwrite(mu, sizeof(float), 1, out_file_xyeta);
                 }
-                //if (DATA->turn_on_shear == 1) {
-                //    float shear_pi[] = {Wxx, Wxy, Wxeta, Wyy, Wyeta};
-                //    fwrite(shear_pi, sizeof(double), 5, out_file_xyeta);
-                //}
 
-                //if (DATA->turn_on_bulk == 1) {
-                //    double bulk_pi[] = {pi_b};
-                //    fwrite(bulk_pi, sizeof(double), 1, out_file_xyeta);
-                //}
+                if (DATA.turn_on_shear == 1) {
+                    float shear_pi[] = {static_cast<float>(Wxx),
+                                        static_cast<float>(Wxy),
+                                        static_cast<float>(Wxeta),
+                                        static_cast<float>(Wyy),
+                                        static_cast<float>(Wyeta)};
+                    fwrite(shear_pi, sizeof(float), 5, out_file_xyeta);
+                }
 
-                //if (DATA->turn_on_diff == 1) {
-                //    double diffusion[] = {qx, qy, qeta};
-                //    fwrite(diffusion, sizeof(double), 3, out_file_xyeta);
-                //}
+                if (DATA.turn_on_bulk == 1) {
+                    float bulk_pi[] = {static_cast<float>(pi_b)};
+                    fwrite(bulk_pi, sizeof(float), 1, out_file_xyeta);
+                }
+
+                if (DATA.turn_on_diff == 1) {
+                    float diffusion[] = {static_cast<float>(common_term_q),
+                                         static_cast<float>(qx),
+                                         static_cast<float>(qy),
+                                         static_cast<float>(qeta)};
+                    fwrite(diffusion, sizeof(float), 4, out_file_xyeta);
+                }
             }
         }
     }
     fclose(out_file_xyeta);
+    return(e_cut);
 }/* OutputEvolutionDataXYEta */
 
 
