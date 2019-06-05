@@ -158,7 +158,7 @@ InitData read_in_parameters(std::string input_file) {
         istringstream (tempinput) >> temp_freeze_eps_flag;
     parameter_list.freeze_eps_flag = temp_freeze_eps_flag;
     
-    int temp_freeze_surface_binary = 0;
+    int temp_freeze_surface_binary = 1;
     tempinput = Util::StringFind4(input_file, "freeze_surface_in_binary");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_freeze_surface_binary;
