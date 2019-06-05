@@ -47,7 +47,12 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         music_message.flush("error");
         exit(1);
     }
-    getline(QCD_strings_file, text_string);  // read the header
+
+    for (int i = 0; i < 2; i++) {
+        // read the header
+        getline(QCD_strings_file, text_string);
+    }
+
     // now we read in data
     getline(QCD_strings_file, text_string);
     while (!QCD_strings_file.eof()) {
