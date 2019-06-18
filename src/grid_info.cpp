@@ -1265,7 +1265,9 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     std::fstream of;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of.open(filename.str().c_str(), std::fstream::out);
-        of << "# tau(fm)  epsilon_p(ideal)  epsilon_p(shear)  epsilon_p(full)  "
+        of << "# tau(fm)  epsilon_p(ideal)(cos)  epsilon_p(ideal)(sin)  "
+           << "epsilon_p(shear)(cos)  epsilon_p(shear)(sin)  "
+           << "epsilon_p(full)(cos)  epsilon_p(full)(sin)  "
            << "epsilon_2p(ideal)(cos)  epsilon_2p(ideal)(sin)  "
            << "epsilon_2p(shear)(cos)  epsilon_2p(shear)(sin)  "
            << "epsilon_2p(full)(cos)  epsilon_2p(full)(sin)  "
@@ -1453,20 +1455,19 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
             }
         }
     }
-    double ep_ideal  = (sqrt(ideal_num1*ideal_num1 + ideal_num2*ideal_num2)
-                        /(ideal_den + small_eps));
-    double ep_full   = (sqrt(full_num1*full_num1 + full_num2*full_num2)
-                        /(full_den + small_eps));
-    double ep_shear  = (sqrt(shear_num1*shear_num1 + shear_num2*shear_num2)
-                        /(shear_den + small_eps));
     double R_shearpi = R_shearpi_num/(R_shearpi_den + small_eps);
     double R_Pi      = R_Pi_num/(R_Pi_den + small_eps);
     double u_avg     = u_perp_num/(u_perp_den + small_eps);
     double T_avg     = T_avg_num/(T_avg_den + small_eps)*hbarc;
 
     of << scientific << setw(18) << setprecision(8)
-       << tau << "  " << ep_ideal << "  " << ep_shear << "  "
-       << ep_full << "  ";
+       << tau << "  "
+       << ideal_num1/(ideal_den + small_eps) << "  "
+       << ideal_num2/(ideal_den + small_eps) << "  "
+       << shear_num1/(shear_den + small_eps) << "  "
+       << shear_num2/(shear_den + small_eps) << "  "
+       << full_num1/(full_den + small_eps) << "  "
+       << full_num2/(full_den + small_eps) << "  ";
     for (int i = 0; i < 6; i++) {
         of << ep_num1[i]/(ep_den[i] + small_eps) << "  "
            << ep_num2[i]/(ep_den[i] + small_eps)<< "  ";
