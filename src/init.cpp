@@ -878,8 +878,8 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
         for (int iy = 0; iy< ny; iy++) {
             const double rhob = 0.0;
             double epsilon = 0.0;
-            const int idx = iy + ix*ny + ieta*ny*nx;  // old trento convension
-            //const int idx = ieta + iy*neta + ix*ny*neta;  // new trento convension
+            //const int idx = iy + ix*ny + ieta*ny*nx;  // old trento convension
+            const int idx = ieta + iy*neta + ix*ny*neta;  // new trento convension
             epsilon = (jetscape_initial_energy_density[idx]
                        *DATA.sFactor/hbarc);  // 1/fm^4
             if (epsilon < 0.00000000001)
