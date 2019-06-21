@@ -69,6 +69,11 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
             DumuVec a_local;
             u_derivative_helper.calculate_Du_supmu(tau, arena_current,
                                                    ieta, ix, iy, a_local);
+
+            VorticityVec omega_local;
+            u_derivative_helper.calculate_kinetic_vorticity(
+                        tau, arena_current, ieta, ix, iy, a_local, omega_local);
+
             VelocityShearVec sigma_local;
             u_derivative_helper.calculate_velocity_shear_tensor(
                         tau, arena_current, ieta, ix, iy, a_local, sigma_local);

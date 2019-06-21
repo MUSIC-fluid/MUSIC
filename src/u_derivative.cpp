@@ -11,12 +11,14 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn) :
     eos(eosIn),
     minmod(DATA_in) {
     dUsup = {0.0};
+    dUoverTsup = {0.0};
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
 void U_derivative::MakedU(double tau, SCGrid &arena_prev, SCGrid &arena_current,
                           int ix, int iy, int ieta) {
     dUsup = {0.0};
+    dUoverTsup = {0.0};
 
     // this calculates du/dx, du/dy, (du/deta)/tau
     MakeDSpatial(tau, arena_current, ix, iy, ieta);
@@ -53,6 +55,81 @@ void U_derivative::calculate_Du_supmu(double tau, SCGrid &arena, int ieta,
         a[mu] = u_supnu_partial_nu_u_supmu;
     }
 }
+
+void U_derivative::calculate_kinetic_vorticity(
+            double tau, SCGrid &arena, int ieta, int ix, int iy,
+            DumuVec &a_local, VorticityVec &omega) {
+
+    // this function computes the kinetic vorticity
+    FlowVec u_local = arena(ix, iy, ieta).u;
+    double dUsup_local[4][4];
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            dUsup_local[i][j] = dUsup[i][j];
+        }
+    }
+
+    double omega_local[4][4];
+    for (int mu = 0; mu < 4; mu++) {
+        for (int nu = mu + 1; nu < 4; nu++) {
+            
+            omega_local[mu][nu] = ((dUsup_local[nu][mu] - dUsup_local[mu][nu])/2.
+                                
+                                + (u_local[mu]*a_local[nu] - u_local[nu]*a_local[mu])/2.
+
+                                - (u_local[nu]*(-1)*DATA.gmunu[mu][0]*DATA.gmunu[nu][3])/(2.*tau)
+
+                                + (u_local[mu]*DATA.gmunu[nu][0]*DATA.gmunu[mu][3])/(2.*tau)
+
+            );
+
+        }   
+    }
+   
+    omega[0] = omega_local[0][1];
+    omega[1] = omega_local[0][2];
+    omega[2] = omega_local[0][3];
+    omega[3] = omega_local[1][2];
+    omega[4] = omega_local[1][3];
+    omega[5] = omega_local[2][3];
+
+   
+
+}
+////////////////////////////////////////////////////////// thermal ////////////////////////////////
+
+void U_derivative::calculate_thermal_vorticity(
+            double tau, SCGrid &arena, int ieta, int ix, int iy,
+            VorticityVec &omega) {
+
+
+    FlowVec u = arena(ix, iy, ieta).u;
+    double T_local = eos.get_temperature(arena(ix, iy, ieta).epsilon,
+                                         arena(ix, iy, ieta).rhob);
+    double dUsup_local[4][4];
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            dUsup_local[i][j] = dUoverTsup[i][j];
+        }
+    }
+
+    double omega_thermal[4][4];
+    for (int mu = 0; mu < 4; mu++) {
+        for (int nu = mu + 1; nu < 4; nu++) {
+            omega_thermal[mu][nu] = ((-1/2.)*(dUsup_local[mu][nu] - dUsup_local[nu][mu])
+                                    - u[3]/(2.*tau*T_local)*(-DATA.gmunu[mu][0]*DATA.gmunu[nu][3] + DATA.gmunu[mu][3]*DATA.gmunu[nu][0]));
+        }
+    }
+
+    omega[0] = omega_thermal[0][1];
+    omega[1] = omega_thermal[0][2];
+    omega[2] = omega_thermal[0][3];
+    omega[3] = omega_thermal[1][2];
+    omega[4] = omega_thermal[1][3];
+    omega[5] = omega_thermal[2][3];
+}
+
+
 
 
 //! This funciton returns the velocity shear tensor sigma^\mu\nu
@@ -139,12 +216,19 @@ int U_derivative::MakeDSpatial(double tau, SCGrid &arena,
 
     // calculate dUsup[m][n] = partial_n u_m
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
-        for (int m = 1; m <= 3; m++) {
+
+        const double T   = eos.get_temperature(c.epsilon, c.rhob);
+        const double Tp1 = eos.get_temperature(p1.epsilon, p1.rhob);
+        const double Tm1 = eos.get_temperature(m1.epsilon, m1.rhob);
+        for (int m = 0; m <= 3; m++) {
             const double f   = c.u[m];
             const double fp1 = p1.u[m];
             const double fm1 = m1.u[m];
             const double g   = minmod.minmod_dx(fp1, f, fm1) / delta[direction];
             dUsup[m][direction] = g;
+
+            dUoverTsup[m][direction] = (minmod.minmod_dx(fp1/Tp1, f/T, fm1/Tm1)
+                                        /delta[direction]);
         }
     });
 
@@ -188,11 +272,22 @@ int U_derivative::MakeDTau(double tau,
                            Cell_small *grid_pt_prev, Cell_small *grid_pt) {
     /* this makes dU[m][0] = partial^tau u^m */
     /* note the minus sign at the end because of g[0][0] = -1 */
-    double f;
-    for (int m = 1; m < 4; m++) {
-        /* first order is more stable */
-        f = (grid_pt->u[m] - grid_pt_prev->u[m])/DATA.delta_tau;
-        dUsup[m][0] = -f;  // g00 = -1
+
+    const double eps  = grid_pt->epsilon;
+    const double rhob = grid_pt->rhob;
+    const double eps_prev  = grid_pt_prev->epsilon;
+    const double rhob_prev = grid_pt_prev->rhob;
+    const double T = eos.get_temperature(eps, rhob);
+    const double T_prev = eos.get_temperature(eps_prev, rhob_prev);
+
+    for (int m = 0; m < 4; m++) {
+        // first order is more stable
+        double f = (grid_pt->u[m] - grid_pt_prev->u[m])/DATA.delta_tau;
+        dUsup[m][0] = -f;  // g^{00} = -1
+
+        double duoverTdtau = ((grid_pt->u[m]/T - grid_pt_prev->u[m]/T_prev)
+                              /DATA.delta_tau);
+        dUoverTsup[m][0] = -duoverTdtau;   // g^{00} = -1
     }
 
     /* I have now partial^tau u^i */
@@ -200,7 +295,7 @@ int U_derivative::MakeDTau(double tau,
     /* u_0 d^0 u^0 + u_m d^0 u^m = 0 */
     /* -u^0 d^0 u^0 + u_m d^0 u^m = 0 */
     /* d^0 u^0 = u_m d^0 u^m/u^0 */
-    f = 0.0;
+    double f = 0.0;
     for (int m = 1; m < 4; m++) {
         /* (partial_0 u^m) u[m] */
         f += dUsup[m][0]*(grid_pt->u[m]);
@@ -210,20 +305,13 @@ int U_derivative::MakeDTau(double tau,
 
     // Sangyong Nov 18 2014
     // Here we make the time derivative of (muB/T)
-    double tildemu, tildemu_prev, rhob, eps, muB, T;
     int m = 4;
     // first order is more stable backward derivative
-    rhob         = grid_pt->rhob;
-    eps          = grid_pt->epsilon;
-    muB          = eos.get_muB(eps, rhob);
-    T            = eos.get_temperature(eps, rhob);
-    tildemu      = muB/T;
-    rhob         = grid_pt_prev->rhob;
-    eps          = grid_pt_prev->epsilon;
-    muB          = eos.get_muB(eps, rhob);
-    T            = eos.get_temperature(eps, rhob);
-    tildemu_prev = muB/T;
-    f            = (tildemu - tildemu_prev)/(DATA.delta_tau);
+    const double muB = eos.get_muB(eps, rhob);
+    const double tildemu = muB/T;
+    const double muB_prev = eos.get_muB(eps, rhob);
+    const double tildemu_prev = muB_prev/T_prev;
+    f = (tildemu - tildemu_prev)/(DATA.delta_tau);
     dUsup[m][0]  = -f;  // g00 = -1
     return 1;
 }

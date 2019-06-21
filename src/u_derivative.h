@@ -15,6 +15,7 @@ class U_derivative {
      const EOS &eos;
      Minmod minmod;
      dUsupMat dUsup;
+     Mat4x4 dUoverTsup;
 
  public:
     U_derivative(const InitData &DATA_in, const EOS &eosIn);
@@ -31,6 +32,14 @@ class U_derivative {
 
     //! this function returns the vector D^\mu(\mu_B/T)
     void get_DmuMuBoverTVec(DmuMuBoverTVec &vec);
+
+    //! this function computes the kinetic vorticity
+    void calculate_kinetic_vorticity(double tau, SCGrid &arena,
+        int ieta, int ix, int iy, DumuVec &a_local, VorticityVec &omega);
+
+    //! this function computes the thermal vorticity
+    void calculate_thermal_vorticity(double tau, SCGrid &arena,
+        int ieta, int ix, int iy, VorticityVec &omega);
 
     //! This funciton returns the velocity shear tensor sigma^\mu\nu
     void calculate_velocity_shear_tensor(
