@@ -67,7 +67,7 @@ class MUSIC {
     void clean_all_the_surface_files();
 
     void initialize_hydro_from_jetscape_preequilibrium_vectors(
-        const double dx, const double dz, const double z_max, const int nz,
+        const double tau0, const double dx, const double dz, const double z_max, const int nz,
         std::vector<double> e_in,
         std::vector<double> u_tau_in, std::vector<double> u_x_in,
         std::vector<double> u_y_in,   std::vector<double> u_eta_in,
