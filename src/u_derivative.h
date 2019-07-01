@@ -15,8 +15,7 @@ class U_derivative {
      const EOS &eos;
      Minmod minmod;
      dUsupMat dUsup;
-     Mat4x4 dUoverTsup;
-
+     Mat4x4 dUoverTsup; 
  public:
     U_derivative(const InitData &DATA_in, const EOS &eosIn);
     void MakedU(double tau, SCGrid &arena_prev, SCGrid &arena_current,

@@ -56,10 +56,10 @@ void U_derivative::calculate_Du_supmu(double tau, SCGrid &arena, int ieta,
     }
 }
 
+
 void U_derivative::calculate_kinetic_vorticity(
             double tau, SCGrid &arena, int ieta, int ix, int iy,
             DumuVec &a_local, VorticityVec &omega) {
-
     // this function computes the kinetic vorticity
     FlowVec u_local = arena(ix, iy, ieta).u;
     double dUsup_local[4][4];
@@ -72,40 +72,35 @@ void U_derivative::calculate_kinetic_vorticity(
     double omega_local[4][4];
     for (int mu = 0; mu < 4; mu++) {
         for (int nu = mu + 1; nu < 4; nu++) {
-            
-            omega_local[mu][nu] = ((dUsup_local[nu][mu] - dUsup_local[mu][nu])/2.
-                                
-                                + (u_local[mu]*a_local[nu] - u_local[nu]*a_local[mu])/2.
-
-                                - (u_local[nu]*(-1)*DATA.gmunu[mu][0]*DATA.gmunu[nu][3])/(2.*tau)
-
-                                + (u_local[mu]*DATA.gmunu[nu][0]*DATA.gmunu[mu][3])/(2.*tau)
-
+            omega_local[mu][nu] = 0.5*(
+                  (dUsup_local[nu][mu] - dUsup_local[mu][nu])
+                + (u_local[mu]*a_local[nu] - u_local[nu]*a_local[mu])
+                - u_local[3]/tau*(- DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                                  + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+                + u_local[3]*u_local[0]/tau*(  u_local[mu]*DATA.gmunu[nu][3]
+                                             - u_local[nu]*DATA.gmunu[mu][3])
+                + u_local[3]*u_local[3]/tau*(- u_local[mu]*DATA.gmunu[nu][0]
+                                             + u_local[nu]*DATA.gmunu[mu][0])
             );
-
-        }   
+        }
     }
-   
+
     omega[0] = omega_local[0][1];
     omega[1] = omega_local[0][2];
     omega[2] = omega_local[0][3];
     omega[3] = omega_local[1][2];
     omega[4] = omega_local[1][3];
     omega[5] = omega_local[2][3];
-
-   
-
 }
-////////////////////////////////////////////////////////// thermal ////////////////////////////////
+
 
 void U_derivative::calculate_thermal_vorticity(
             double tau, SCGrid &arena, int ieta, int ix, int iy,
             VorticityVec &omega) {
-
-
-    FlowVec u = arena(ix, iy, ieta).u;
-    double T_local = eos.get_temperature(arena(ix, iy, ieta).epsilon,
-                                         arena(ix, iy, ieta).rhob);
+    // this function computes the thermal vorticity
+    FlowVec u_local = arena(ix, iy, ieta).u;
+    double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
+                                          arena(ix, iy, ieta).rhob);
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
@@ -116,8 +111,12 @@ void U_derivative::calculate_thermal_vorticity(
     double omega_thermal[4][4];
     for (int mu = 0; mu < 4; mu++) {
         for (int nu = mu + 1; nu < 4; nu++) {
-            omega_thermal[mu][nu] = ((-1/2.)*(dUsup_local[mu][nu] - dUsup_local[nu][mu])
-                                    - u[3]/(2.*tau*T_local)*(-DATA.gmunu[mu][0]*DATA.gmunu[nu][3] + DATA.gmunu[mu][3]*DATA.gmunu[nu][0]));
+            omega_thermal[mu][nu] = -0.5*(
+                (dUsup_local[nu][mu] - dUsup_local[mu][nu])
+                - u_local[3]/(2.*tau*T_local)*(
+                    - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                    + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+            );
         }
     }
 
