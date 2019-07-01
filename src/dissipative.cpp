@@ -147,6 +147,9 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt,
     if (DATA.include_second_order_terms == 1 && DATA.Initial_profile != 0) {
         include_WWterm      = 1;
         include_Wsigma_term = 1;
+    }
+
+    if (DATA.include_vorticity_terms == 1) {
         include_Vorticity_term = 1;
     }
 
@@ -895,13 +898,16 @@ double Diss::Make_uqSource(
     double Nonlinear2 = -transport_coeff_2*temptemp;
 
     // add a new non-linear term (-q^\mu \omega_\mu\nu)
-    double transport_coeff_3 = 1.0*tau_rho;
-    auto omega = Util::UnpackVecToMatrix(omega_1d);
-    double temp3 = 0.0;
-    for (int i = 0 ; i < 4; i++) {
-        temp3 += q[i]*omega[i][nu]*DATA.gmunu[i][i];
+    double Nonlinear3 = 0.0;
+    if (DATA.include_vorticity_terms == 1) {
+        double transport_coeff_3 = 1.0*tau_rho;
+        auto omega = Util::UnpackVecToMatrix(omega_1d);
+        double temp3 = 0.0;
+        for (int i = 0 ; i < 4; i++) {
+            temp3 += q[i]*omega[i][nu]*DATA.gmunu[i][i];
+        }
+        Nonlinear3 = -transport_coeff_3*temp3;
     }
-    double Nonlinear3 = -transport_coeff_3*temp3;
 
     double SW = ((-q[nu] - NS + Nonlinear1 + Nonlinear2 + Nonlinear3)
                  /(tau_rho + Util::small_eps));

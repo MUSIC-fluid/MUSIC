@@ -22,7 +22,6 @@ InitData read_in_parameters(std::string input_file) {
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_echo_level;
     parameter_list.echo_level = temp_echo_level;
 
-    
     // Initial_profile: 
     int tempInitial_profile = 1;
     tempinput = Util::StringFind4(input_file, "Initial_profile");
@@ -35,14 +34,14 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_string_dump_mode;
     parameter_list.string_dump_mode = temp_string_dump_mode;
-    
+
     // hydro source
     double temp_string_quench_factor = 0.;
     tempinput = Util::StringFind4(input_file, "string_quench_factor");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_string_quench_factor;
     parameter_list.string_quench_factor = temp_string_quench_factor;
-    
+
     // hydro source
     double temp_parton_quench_factor = 1.;
     tempinput = Util::StringFind4(input_file, "parton_quench_factor");
@@ -60,7 +59,7 @@ InitData read_in_parameters(std::string input_file) {
     } else {
         parameter_list.boost_invariant = true;
     }
-    
+
     int temp_output_initial_profile = 0;
     tempinput = Util::StringFind4(input_file,
                                   "output_initial_density_profiles");
@@ -560,27 +559,34 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_bulk;
     parameter_list.turn_on_bulk = tempturn_on_bulk;
-   
+
     // flag for different parameterization of zeta/s(T)
     int temp_T_dependent_zeta_over_s = 0;
     tempinput = Util::StringFind4(input_file, "T_dependent_zeta_over_s");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_T_dependent_zeta_over_s;
     parameter_list.T_dependent_zeta_over_s = temp_T_dependent_zeta_over_s;
-    
+
     // Include secord order terms
     int tempturn_on_second_order = 0;
     tempinput = Util::StringFind4(input_file, "Include_second_order_terms");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_second_order;
     parameter_list.include_second_order_terms = tempturn_on_second_order;
-    
+
+    // Include vorticity coupling terms
+    int tempturn_on_vorticity_terms = 0;
+    tempinput = Util::StringFind4(input_file, "Include_vorticity_terms");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempturn_on_vorticity_terms;
+    parameter_list.include_vorticity_terms = tempturn_on_vorticity_terms;
+
     int tempturn_on_diff = 0;
     tempinput = Util::StringFind4(input_file, "turn_on_baryon_diffusion");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_diff;
     parameter_list.turn_on_diff = tempturn_on_diff;
-    
+
     // kappa coefficient
     double temp_kappa_coefficient = 0.0;
     tempinput = Util::StringFind4(input_file, "kappa_coefficient");
