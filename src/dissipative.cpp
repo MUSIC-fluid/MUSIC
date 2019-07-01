@@ -112,15 +112,18 @@ double Diss::MakeWSource(double tau, int alpha, SCGrid &arena_current, SCGrid &a
     return(result);
 }
 
-double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
-                           int mu, int nu, int rk_flag, double theta_local,
-                           DumuVec &a_local, VelocityShearVec &sigma_1d) {
+double Diss::Make_uWSource(double tau, Cell_small *grid_pt,
+                           Cell_small *grid_pt_prev, int mu, int nu,
+                           int rk_flag, double theta_local,
+                           DumuVec &a_local, VelocityShearVec &sigma_1d,
+                           VorticityVec &omega_1d) {
     double tempf;
     double SW, shear, shear_to_s, T, epsilon, rhob;
     double NS_term;
 
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
     auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu);
+    auto omega = Util::UnpackVecToMatrix(omega_1d);
 
     if (rk_flag == 0) {
         epsilon = grid_pt->epsilon;
@@ -139,11 +142,12 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     }
 
     int include_WWterm         = 0;
-    //int include_Vorticity_term = 0;
+    int include_Vorticity_term = 0;
     int include_Wsigma_term    = 0;
     if (DATA.include_second_order_terms == 1 && DATA.Initial_profile != 0) {
         include_WWterm      = 1;
         include_Wsigma_term = 1;
+        include_Vorticity_term = 1;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -201,54 +205,29 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     /////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////
     double Vorticity_term = 0.0;
-    // if (include_Vorticity_term == 1) {
-    //     double transport_coefficient4 = 2.*tau_pi;
-    //     double omega[4][4];
-    //     double gmunu[4][4] = {{-1., 0., 0., 0.},
-    //                           { 0., 1., 0., 0.},
-    //                           { 0., 0., 1., 0.},
-    //                           { 0., 0., 0., 1.}};
-    //     double gamma = grid_pt->u[0];
-    //     double ueta  = grid_pt->u[3];
-    //     for (int a = 0; a < 4; a++) {
-    //         for (int b = 0; b < 4; b++) {
-    //             omega[a][b] = (
-    //                 (grid_pt->dUsup[a][b]
-    //                  - grid_pt->dUsup[b][a])/2.
-    //                 + ueta/tau/2.*(  gmunu[a][0]*gmunu[b][3]
-    //                                - gmunu[b][0]*gmunu[a][3])
-    //                 - ueta*gamma/tau/2.
-    //                   *(  gmunu[a][3]*grid_pt->u[b]
-    //                     - gmunu[b][3]*grid_pt->u[a])
-    //                 + ueta*ueta/tau/2.
-    //                   *(   gmunu[a][0]*grid_pt->u[b]
-    //                      - gmunu[b][0]*grid_pt->u[a])
-    //                 + (  grid_pt->u[a]*a_local[b]
-    //                    - grid_pt->u[b]*a_local[a])/2.);
-    //         }
-    //     }
-    //     double term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
-    //                               - Wmunu[nu][0]*omega[mu][0]
-    //                               + Wmunu[mu][1]*omega[nu][1]
-    //                               + Wmunu[nu][1]*omega[mu][1]
-    //                               + Wmunu[mu][2]*omega[nu][2]
-    //                               + Wmunu[nu][2]*omega[mu][2]
-    //                               + Wmunu[mu][3]*omega[nu][3]
-    //                               + Wmunu[nu][3]*omega[mu][3])/2.;
-    //     // multiply term by its respective transport coefficient
-    //     term1_Vorticity = transport_coefficient4*term1_Vorticity;
-    //     // full term is
-    //     Vorticity_term = term1_Vorticity;
-    // } else {
-    //     Vorticity_term = 0.0;
-    // }
+    if (include_Vorticity_term == 1) {
+        double transport_coefficient4 = 2.*tau_pi;
+        double term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
+                                  - Wmunu[nu][0]*omega[mu][0]
+                                  + Wmunu[mu][1]*omega[nu][1]
+                                  + Wmunu[nu][1]*omega[mu][1]
+                                  + Wmunu[mu][2]*omega[nu][2]
+                                  + Wmunu[nu][2]*omega[mu][2]
+                                  + Wmunu[mu][3]*omega[nu][3]
+                                  + Wmunu[nu][3]*omega[mu][3])/2.;
+        // multiply term by its respective transport coefficient
+        Vorticity_term = transport_coefficient4*term1_Vorticity;
+    } else {
+        Vorticity_term = 0.0;
+    }
 
-    ///////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////
-    //                  Add nonlinear term in shear-stress tensor                //
-    //  transport_coefficient3*Delta(mu nu)(alpha beta)*Wmu gamma sigma nu gamma //
-    ///////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    //              Add nonlinear term in shear-stress tensor                //
+    //  transport_coefficient3                                               //
+    //                    *Delta(mu nu)(alpha beta)*Wmu gamma sigma nu gamma //
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     double Wsigma_term = 0.0;
     if (include_Wsigma_term == 1) {
         double Wsigma = (
@@ -306,7 +285,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
                             + Wmunu[mu][3]*Wmunu[nu][3]);
         double term2_WW = (-(1./3.)*(DATA.gmunu[mu][nu]
                                      + grid_pt->u[mu]*grid_pt->u[nu])*Wsquare);
-        
+
         // multiply term by its respective transport coefficient
         term1_WW = term1_WW*transport_coefficient;
         term2_WW = term2_WW*transport_coefficient;
@@ -601,22 +580,17 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
          - (DATAaligned->gmunu[3][nu])*(Wmunu_local[0][mu])
          + (DATAaligned->gmunu[0][mu])*(Wmunu_local[3][nu])
          + (DATAaligned->gmunu[0][nu])*(Wmunu_local[3][mu])
-         + (Wmunu_local[3][nu])
-         *(grid_pt.u[mu])*(grid_pt.u[0])
-         + (Wmunu_local[3][mu])
-         *(grid_pt.u[nu])*(grid_pt.u[0])
-         - (Wmunu_local[0][nu])
-         *(grid_pt.u[mu])*(grid_pt.u[3])
-         - (Wmunu_local[0][mu])
-         *(grid_pt.u[nu])*(grid_pt.u[3]))*(grid_pt.u[3]/tau);
+         + (Wmunu_local[3][nu])*(grid_pt.u[mu])*(grid_pt.u[0])
+         + (Wmunu_local[3][mu])*(grid_pt.u[nu])*(grid_pt.u[0])
+         - (Wmunu_local[0][nu])*(grid_pt.u[mu])*(grid_pt.u[3])
+         - (Wmunu_local[0][mu])*(grid_pt.u[nu])*(grid_pt.u[3]))
+         *(grid_pt.u[3]/tau);
 
     for (int ic = 0; ic < 4; ic++) {
         const double ic_fac = (ic == 0 ? -1.0 : 1.0);
         tempf += (
-            (Wmunu_local[ic][nu])*(grid_pt.u[mu])
-            *(a_local[ic])*ic_fac
-            + (Wmunu_local[ic][mu])*(grid_pt.u[nu])
-            *(a_local[ic])*ic_fac);
+            (Wmunu_local[ic][nu])*(grid_pt.u[mu])*(a_local[ic])*ic_fac
+            + (Wmunu_local[ic][mu])*(grid_pt.u[nu])*(a_local[ic])*ic_fac);
     }
 
     w_rhs += (tempf*(DATAaligned->delta_tau)
@@ -856,7 +830,8 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
 double Diss::Make_uqSource(
     double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu,
     int rk_flag, double theta_local, DumuVec &a_local,
-    VelocityShearVec &sigma_1d, DmuMuBoverTVec &baryon_diffusion_vec) {
+    VelocityShearVec &sigma_1d, VorticityVec &omega_1d,
+    DmuMuBoverTVec &baryon_diffusion_vec) {
 
     double epsilon, rhob;
     if (rk_flag == 0) {
@@ -917,9 +892,18 @@ double Diss::Make_uqSource(
     for (int i = 0 ; i < 4; i++) {
         temptemp += q[i]*sigma[i][nu]*DATA.gmunu[i][i];
     }
-    double Nonlinear2 = - transport_coeff_2*temptemp;
+    double Nonlinear2 = -transport_coeff_2*temptemp;
 
-    double SW = ((-q[nu] - NS + Nonlinear1 + Nonlinear2)
+    // add a new non-linear term (-q^\mu \omega_\mu\nu)
+    double transport_coeff_3 = 1.0*tau_rho;
+    auto omega = Util::UnpackVecToMatrix(omega_1d);
+    double temp3 = 0.0;
+    for (int i = 0 ; i < 4; i++) {
+        temp3 += q[i]*omega[i][nu]*DATA.gmunu[i][i];
+    }
+    double Nonlinear3 = -transport_coeff_3*temp3;
+
+    double SW = ((-q[nu] - NS + Nonlinear1 + Nonlinear2 + Nonlinear3)
                  /(tau_rho + Util::small_eps));
     if (DATA.Initial_profile == 1) {
         // for 1+1D numerical test
@@ -1110,7 +1094,7 @@ double Diss::get_temperature_dependent_zeta_s(double temperature) {
         double dummy=temperature/Ttr;
         double lambda3=0.9, lambda4=0.22;
         double sigma3=0.0025, sigma4=0.022;
-        
+
         if (temperature<0.99945*Ttr) {
             bulk = (lambda3*exp((dummy-1)/sigma3)
                     + lambda4*exp((dummy-1)/sigma4) + 0.03);
@@ -1119,15 +1103,15 @@ double Diss::get_temperature_dependent_zeta_s(double temperature) {
             bulk = 0.901*exp(14.5*(1.0-dummy)) + 0.061/dummy/dummy;
         }
     } else if (DATA.T_dependent_zeta_over_s == 7) {
-        double B_norm = 0.24;                                                       
-        double B_width = 1.5;                                                       
-        double Tpeak = 0.165/hbarc;                                                 
-        double Ttilde = (temperature/Tpeak - 1.)/B_width;                           
-        bulk = B_norm/(Ttilde*Ttilde + 1.);                                  
-        if (temperature < Tpeak) {                                                  
-            double Tdiff = (temperature - Tpeak)/(0.01/hbarc);                      
-            bulk = B_norm*exp(-Tdiff*Tdiff);                                        
-        }   
+        double B_norm = 0.24;
+        double B_width = 1.5;
+        double Tpeak = 0.165/hbarc;
+        double Ttilde = (temperature/Tpeak - 1.)/B_width;
+        bulk = B_norm/(Ttilde*Ttilde + 1.);
+        if (temperature < Tpeak) {
+            double Tdiff = (temperature - Tpeak)/(0.01/hbarc);
+            bulk = B_norm*exp(-Tdiff*Tdiff);
+        }
     }
     return(bulk);
 }

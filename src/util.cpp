@@ -247,7 +247,7 @@ void map_1d_idx_to_2d(int idx_1d, int &a, int &b) {
     a = index_1d_a[idx_1d - 4];
     b = index_1d_b[idx_1d - 4];
 }
-  
+
 
 Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector) {
     Mat4x4 out_matrix;
@@ -268,7 +268,7 @@ Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector) {
     out_matrix[3][2] = in_vector[8];
     out_matrix[3][3] = in_vector[9];
     return out_matrix;
-  }
+}
 
 Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector) {
     Mat4x4 out_matrix;
@@ -289,6 +289,27 @@ Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector) {
     out_matrix[3][2] = in_vector[8];
     out_matrix[3][3] = in_vector[9];
     return out_matrix;
-  }
+}
+
+Mat4x4 UnpackVecToMatrix(const VorticityVec &in_vector) {
+    Mat4x4 out_matrix;
+    out_matrix[0][0] = 0.0;
+    out_matrix[0][1] = in_vector[0];
+    out_matrix[0][2] = in_vector[1];
+    out_matrix[0][3] = in_vector[2];
+    out_matrix[1][0] = -out_matrix[0][1];
+    out_matrix[1][1] = 0.0;
+    out_matrix[1][2] = in_vector[3];
+    out_matrix[1][3] = in_vector[4];
+    out_matrix[2][0] = -out_matrix[0][2];
+    out_matrix[2][1] = -out_matrix[1][2];
+    out_matrix[2][2] = 0.0;
+    out_matrix[2][3] = in_vector[5];
+    out_matrix[3][0] = -out_matrix[0][3];
+    out_matrix[3][1] = -out_matrix[1][3];
+    out_matrix[3][2] = -out_matrix[2][3];
+    out_matrix[3][3] = 0.0;
+    return out_matrix;
+}
 
 }

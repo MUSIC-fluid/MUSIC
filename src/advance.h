@@ -35,12 +35,17 @@ class Advance {
                    int rk_flag);
 
     void FirstRKStepT(const double tau, double x_local, double y_local,
-                      double eta_s_local,  SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta,
+                      double eta_s_local,
+                      SCGrid &arena_current, SCGrid &arena_future,
+                      SCGrid &arena_prev, int ix, int iy, int ieta,
                       int rk_flag);
 
-    void FirstRKStepW(double tau_it, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-                      int rk_flag, double theta_local, DumuVec &a_local,
-                      VelocityShearVec &sigma_local, DmuMuBoverTVec &baryon_diffusion_vector, int ieta, int ix, int iy);
+    void FirstRKStepW(double tau_it, SCGrid &arena_prev, SCGrid &arena_current,
+                      SCGrid &arena_future, int rk_flag,
+                      double theta_local, DumuVec &a_local,
+                      VelocityShearVec &sigma_local, VorticityVec &omega_local,
+                      DmuMuBoverTVec &baryon_diffusion_vector,
+                      int ieta, int ix, int iy);
 
     void UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt);
     void QuestRevert(double tau, Cell_small *grid_pt, int ieta, int ix, int iy);

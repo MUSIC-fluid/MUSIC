@@ -46,6 +46,7 @@ namespace Util {
 
     Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector);
     Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector);
+    Mat4x4 UnpackVecToMatrix(const VorticityVec &in_vector);
 
     // check whether a weak pointer is initialized or not
     template <typename T>

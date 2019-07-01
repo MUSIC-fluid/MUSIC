@@ -44,9 +44,9 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
 //! this function evolves one Runge-Kutta step in tau
 void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
                        SCGrid &arena_future, int rk_flag) {
-  const int grid_neta = arena_current.nEta();
-  const int grid_nx   = arena_current.nX();
-  const int grid_ny   = arena_current.nY();
+    const int grid_neta = arena_current.nEta();
+    const int grid_nx   = arena_current.nX();
+    const int grid_ny   = arena_current.nY();
 
     #pragma omp parallel for collapse(3) schedule(guided)
     for (int ieta = 0; ieta < grid_neta; ieta++)
@@ -70,19 +70,19 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
             u_derivative_helper.calculate_Du_supmu(tau, arena_current,
                                                    ieta, ix, iy, a_local);
 
-            VorticityVec omega_local;
-            u_derivative_helper.calculate_kinetic_vorticity(
-                        tau, arena_current, ieta, ix, iy, a_local, omega_local);
-
             VelocityShearVec sigma_local;
             u_derivative_helper.calculate_velocity_shear_tensor(
-                        tau, arena_current, ieta, ix, iy, a_local, sigma_local);
+                    tau, arena_current, ieta, ix, iy, a_local, sigma_local);
+
+            VorticityVec omega_local;
+            u_derivative_helper.calculate_kinetic_vorticity(
+                    tau, arena_current, ieta, ix, iy, a_local, omega_local);
 
             DmuMuBoverTVec baryon_diffusion_vector;
             u_derivative_helper.get_DmuMuBoverTVec(baryon_diffusion_vector);
 
-            FirstRKStepW(tau,  arena_prev, arena_current, arena_future, rk_flag,
-                         theta_local, a_local, sigma_local,
+            FirstRKStepW(tau, arena_prev, arena_current, arena_future, rk_flag,
+                         theta_local, a_local, sigma_local, omega_local,
                          baryon_diffusion_vector, ieta, ix, iy);
         }
     }
@@ -158,11 +158,14 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
 }
 
 
-void Advance::FirstRKStepW(
-    double tau, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-    int rk_flag, double theta_local, DumuVec &a_local,
-    VelocityShearVec &sigma_local, DmuMuBoverTVec &baryon_diffusion_vector,
-    int ieta, int ix, int iy) {
+void Advance::FirstRKStepW(double tau, SCGrid &arena_prev,
+                           SCGrid &arena_current, SCGrid &arena_future,
+                           int rk_flag, double theta_local, DumuVec &a_local,
+                           VelocityShearVec &sigma_local,
+                           VorticityVec &omega_local,
+                           DmuMuBoverTVec &baryon_diffusion_vector,
+                           int ieta, int ix, int iy) {
+
     auto grid_pt_prev = &(arena_prev(ix, iy, ieta));
     auto grid_pt_c = &(arena_current(ix, iy, ieta));
     auto grid_pt_f = &(arena_future(ix, iy, ieta));
@@ -188,11 +191,13 @@ void Advance::FirstRKStepW(
             map_1d_idx_to_2d(idx_1d, mu, nu);
             diss_helper.Make_uWRHS(tau_now, arena_current, ix, iy, ieta,
                                    mu, nu, w_rhs, theta_local, a_local);
-            tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
-                     + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
+            tempf = (
+                  (1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
+                + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0])
+            );
             temps = diss_helper.Make_uWSource(
                     tau_now, grid_pt_c, grid_pt_prev, mu, nu, rk_flag,
-                    theta_local, a_local, sigma_local);
+                    theta_local, a_local, sigma_local, omega_local);
             tempf += temps*(DATA.delta_tau);
             tempf += w_rhs;
             tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
@@ -236,7 +241,7 @@ void Advance::FirstRKStepW(
                      + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
             temps = diss_helper.Make_uqSource(
                         tau_now, grid_pt_c, grid_pt_prev, nu, rk_flag,
-                        theta_local, a_local, sigma_local,
+                        theta_local, a_local, sigma_local, omega_local,
                         baryon_diffusion_vector);
             tempf += temps*(DATA.delta_tau);
             tempf += w_rhs;
