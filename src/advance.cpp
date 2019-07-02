@@ -42,8 +42,9 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
 }
 
 //! this function evolves one Runge-Kutta step in tau
-void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
-                       SCGrid &arena_future, int rk_flag) {
+void Advance::AdvanceIt(const double tau,
+                        SCGrid &arena_prev, SCGrid &arena_current,
+                        SCGrid &arena_future, const int rk_flag) {
     const int grid_neta = arena_current.nEta();
     const int grid_nx   = arena_current.nX();
     const int grid_ny   = arena_current.nY();
@@ -90,14 +91,15 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
-void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
-        double eta_s_local, SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta, int rk_flag) {
+void Advance::FirstRKStepT(const double tau, const double x_local,
+                           const double y_local, const double eta_s_local,
+                           SCGrid &arena_current, SCGrid &arena_future,
+                           SCGrid &arena_prev, const int ix, const int iy,
+                           const int ieta, const int rk_flag) {
     // this advances the ideal part
     double tau_rk = tau + rk_flag*(DATA.delta_tau);
-    
     // Solve partial_a T^{a mu} = -partial_a W^{a mu}
     // Update T^{mu nu}
-    
     // MakeDelatQI gets
     //   qi = q0 if rk_flag = 0 or
     //   qi = q0 + k1 if rk_flag = 1
@@ -106,7 +108,7 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
     // (including geometric terms)
     TJbVec qi = {0};
     MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
-    
+
     TJbVec qi_source = {0.0};
 
     if (flag_add_hydro_source) {
@@ -120,8 +122,9 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
         }
 
         if (DATA.turn_on_rhob == 1) {
-            qi_source[4] = tau_rk*hydro_source_terms_ptr.lock()->get_hydro_rhob_source(
-                            tau_rk, x_local, y_local, eta_s_local, u_local);
+            qi_source[4] = (
+                tau_rk*hydro_source_terms_ptr.lock()->get_hydro_rhob_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local));
         }
     }
 
@@ -150,7 +153,7 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
         qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
         qi[alpha] *= 1./(1. + rk_flag);
     }
- 
+
     double tau_next = tau + DATA.delta_tau;
     auto grid_rk_t = reconst_helper.ReconstIt_shell(
                                 tau_next, qi, arena_current(ix, iy, ieta)); 
@@ -158,13 +161,14 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
 }
 
 
-void Advance::FirstRKStepW(double tau, SCGrid &arena_prev,
+void Advance::FirstRKStepW(const double tau, SCGrid &arena_prev,
                            SCGrid &arena_current, SCGrid &arena_future,
-                           int rk_flag, double theta_local, DumuVec &a_local,
-                           VelocityShearVec &sigma_local,
-                           VorticityVec &omega_local,
-                           DmuMuBoverTVec &baryon_diffusion_vector,
-                           int ieta, int ix, int iy) {
+                           const int rk_flag, const double theta_local,
+                           const DumuVec &a_local,
+                           const VelocityShearVec &sigma_local,
+                           const VorticityVec &omega_local,
+                           const DmuMuBoverTVec &baryon_diffusion_vector,
+                           const int ieta, const int ix, const int iy) {
 
     auto grid_pt_prev = &(arena_prev(ix, iy, ieta));
     auto grid_pt_c = &(arena_current(ix, iy, ieta));
@@ -313,8 +317,8 @@ void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {
 
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
-void Advance::QuestRevert(double tau, Cell_small *grid_pt,
-                          int ieta, int ix, int iy) {
+void Advance::QuestRevert(const double tau, Cell_small *grid_pt,
+                          const int ieta, const int ix, const int iy) {
     double eps_scale = 0.1;   // 1/fm^4
     double e_local   = grid_pt->epsilon;
     double rhob      = grid_pt->rhob;
@@ -386,8 +390,8 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
 
 //! this function reduce the size of net baryon diffusion current
 //! in the dilute region to stablize numerical simulations
-void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
-                              int ieta, int ix, int iy) {
+void Advance::QuestRevert_qmu(const double tau, Cell_small *grid_pt,
+                              const int ieta, const int ix, const int iy) {
     double eps_scale = 0.1;   // in 1/fm^4
 
     double xi = 0.05;
@@ -446,7 +450,9 @@ void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
 
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
+void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
+                          const int ix, const int iy, const int ieta,
+                          TJbVec &qi, const int rk_flag) {
     double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
     double tau_fac[4] = {0.0, tau, tau, 1.0};
   
@@ -524,7 +530,8 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
 }
 
 // determine the maximum signal propagation speed at the given direction
-double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {  
+double Advance::MaxSpeed(const double tau, const int direc,
+                         const ReconstCell &grid_p) {
     double g[] = {1., 1., 1./tau};
 
     double utau    = grid_p.u[0];
