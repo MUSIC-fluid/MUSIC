@@ -10,8 +10,8 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn) :
     DATA(DATA_in),
     eos(eosIn),
     minmod(DATA_in) {
-    dUsup = {0.0};
-    dUoverTsup = {0.0};
+    dUsup = {0.0};        // dUsup[m][n] = partial^n u^m
+    dUoverTsup = {0.0};   // dUoverTsup[m][n] = partial^n (u^m/T)
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
@@ -51,8 +51,7 @@ void U_derivative::calculate_Du_supmu(const double tau, SCGrid &arena,
         for (int nu = 0; nu < 4; nu++) {
             double tfac = (nu==0 ? -1.0 : 1.0);
             u_supnu_partial_nu_u_supmu += (
-                tfac*arena(ix,iy,ieta).u[nu]
-                *dUsup[mu][nu]);
+                tfac*arena(ix,iy,ieta).u[nu]*dUsup[mu][nu]);
         }
         a[mu] = u_supnu_partial_nu_u_supmu;
     }
@@ -83,10 +82,10 @@ void U_derivative::calculate_kinetic_vorticity(
             omega_local[mu][nu] = 0.5*(
                   (dUsup_local[nu][mu] - dUsup_local[mu][nu])
                 + (u_local[mu]*a_local[nu] - u_local[nu]*a_local[mu])
-                //- u_local[3]/tau*(- DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                //                  + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
                 + u_local[3]*u_local[0]/tau*(  u_local[mu]*DATA.gmunu[nu][3]
                                              - u_local[nu]*DATA.gmunu[mu][3])
+                //- u_local[3]/tau*(- DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                //                  + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
                 //+ u_local[3]*u_local[3]/tau*(- u_local[mu]*DATA.gmunu[nu][0]
                 //                             + u_local[nu]*DATA.gmunu[mu][0])
             );
@@ -148,8 +147,6 @@ void U_derivative::calculate_thermal_vorticity(
 }
 
 
-
-
 //! This funciton returns the velocity shear tensor sigma^\mu\nu
 void U_derivative::calculate_velocity_shear_tensor(
         const double tau, SCGrid &arena, const int ieta, const int ix,
@@ -175,8 +172,7 @@ void U_derivative::calculate_velocity_shear_tensor(
                 - (gfac + u_local[a]*u_local[b])*theta_u_local/3.
                 + u_local[0]/tau*DATA.gmunu[a][3]*DATA.gmunu[b][3]
                 + u_local[3]*u_local[0]/tau/2.
-                  *(DATA.gmunu[a][3]*u_local[b] 
-                    + DATA.gmunu[b][3]*u_local[a])
+                  *(DATA.gmunu[a][3]*u_local[b] + DATA.gmunu[b][3]*u_local[a])
                 + (u_local[a]*a_local[b] + u_local[b]*a_local[a])/2.);
             sigma_local[b][a] = sigma_local[a][b];
         }
@@ -225,16 +221,12 @@ void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
 
 int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
                                const int ix, const int iy, const int ieta) {
-    const double delta[4] = {
-      0.0,
-      DATA.delta_x,
-      DATA.delta_y,
-      DATA.delta_eta*tau
-    };  // taken care of the tau factor
+    // taken care of the tau factor
+    const double delta[4] = {0.0, DATA.delta_x, DATA.delta_y,
+                             DATA.delta_eta*tau};
 
     // calculate dUsup[m][n] = partial_n u_m
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
-
         const double T   = eos.get_temperature(c.epsilon, c.rhob);
         const double Tp1 = eos.get_temperature(p1.epsilon, p1.rhob);
         const double Tm1 = eos.get_temperature(m1.epsilon, m1.rhob);
@@ -242,9 +234,8 @@ int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
             const double f   = c.u[m];
             const double fp1 = p1.u[m];
             const double fm1 = m1.u[m];
-            const double g   = minmod.minmod_dx(fp1, f, fm1) / delta[direction];
-            dUsup[m][direction] = g;
-
+            dUsup[m][direction] = (minmod.minmod_dx(fp1, f, fm1)
+                                   /delta[direction]);
             dUoverTsup[m][direction] = (minmod.minmod_dx(fp1/Tp1, f/T, fm1/Tm1)
                                         /delta[direction]);
         }
@@ -267,21 +258,18 @@ int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
     // Here we make derivatives of muB/T
     // dUsup[rk_flag][4][n] = partial_n (muB/T)
     // partial_x (muB/T) and partial_y (muB/T) first
-    int m = 4;  // means (muB/T)
-    double rhob, eps, muB, T;
-    rhob = arena(ix, iy, ieta).rhob;
-    eps = arena(ix, iy, ieta).epsilon;
-    muB = eos.get_muB(eps, rhob);
-    T = eos.get_temperature(eps, rhob);
-    double f = muB/T;
+    const int m = 4;  // means (muB/T)
+    const double rhob = arena(ix, iy, ieta).rhob;
+    const double eps = arena(ix, iy, ieta).epsilon;
+    const double muB = eos.get_muB(eps, rhob);
+    const double T = eos.get_temperature(eps, rhob);
+    const double f = muB/T;
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
-        double fp1, fm1;
-        fp1 = ( eos.get_muB(p1.epsilon, p1.rhob)
-               /eos.get_temperature(p1.epsilon, p1.rhob));
-        fm1 = ( eos.get_muB(m1.epsilon, m1.rhob)
-               /eos.get_temperature(m1.epsilon, m1.rhob));
-        double g = minmod.minmod_dx(fp1, f, fm1)/delta[direction];
-        dUsup[m][direction] = g;
+        const double fp1 = (eos.get_muB(p1.epsilon, p1.rhob)
+                            /eos.get_temperature(p1.epsilon, p1.rhob));
+        const double fm1 = (eos.get_muB(m1.epsilon, m1.rhob)
+                            /eos.get_temperature(m1.epsilon, m1.rhob));
+        dUsup[m][direction] = minmod.minmod_dx(fp1, f, fm1)/delta[direction];
     });
     return 1;
 }/* MakeDSpatial */
@@ -319,8 +307,7 @@ int U_derivative::MakeDTau(const double tau,
         /* (partial_0 u^m) u[m] */
         f += dUsup[m][0]*(grid_pt->u[m]);
     }
-    f /= grid_pt->u[0];
-    dUsup[0][0] = f;
+    dUsup[0][0] = f/grid_pt->u[0];
 
     // Sangyong Nov 18 2014
     // Here we make the time derivative of (muB/T)
@@ -331,6 +318,6 @@ int U_derivative::MakeDTau(const double tau,
     const double muB_prev = eos.get_muB(eps, rhob);
     const double tildemu_prev = muB_prev/T_prev;
     f = (tildemu - tildemu_prev)/(DATA.delta_tau);
-    dUsup[m][0]  = -f;  // g00 = -1
+    dUsup[m][0]  = -f;  // g^{00} = -1
     return 1;
 }
