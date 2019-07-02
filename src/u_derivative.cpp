@@ -225,19 +225,27 @@ int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
     const double delta[4] = {0.0, DATA.delta_x, DATA.delta_y,
                              DATA.delta_eta*tau};
 
-    // calculate dUsup[m][n] = partial_n u_m
+    // calculate dUsup[m][n] = partial^n u^m
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
-        const double T   = eos.get_temperature(c.epsilon, c.rhob);
-        const double Tp1 = eos.get_temperature(p1.epsilon, p1.rhob);
-        const double Tm1 = eos.get_temperature(m1.epsilon, m1.rhob);
-        for (int m = 0; m <= 3; m++) {
+        for (int m = 1; m <= 3; m++) {
             const double f   = c.u[m];
             const double fp1 = p1.u[m];
             const double fm1 = m1.u[m];
             dUsup[m][direction] = (minmod.minmod_dx(fp1, f, fm1)
                                    /delta[direction]);
-            dUoverTsup[m][direction] = (minmod.minmod_dx(fp1/Tp1, f/T, fm1/Tm1)
-                                        /delta[direction]);
+        }
+
+        if (DATA.include_vorticity_terms == 1) {
+            const double T   = eos.get_temperature(c.epsilon, c.rhob);
+            const double Tp1 = eos.get_temperature(p1.epsilon, p1.rhob);
+            const double Tm1 = eos.get_temperature(m1.epsilon, m1.rhob);
+            for (int m = 0; m <= 3; m++) {
+                const double f   = c.u[m];
+                const double fp1 = p1.u[m];
+                const double fm1 = m1.u[m];
+                dUoverTsup[m][direction] = (
+                    minmod.minmod_dx(fp1/Tp1, f/T, fm1/Tm1)/delta[direction]);
+            }
         }
     });
 
@@ -292,9 +300,11 @@ int U_derivative::MakeDTau(const double tau,
         double f = (grid_pt->u[m] - grid_pt_prev->u[m])/DATA.delta_tau;
         dUsup[m][0] = -f;  // g^{00} = -1
 
-        double duoverTdtau = ((grid_pt->u[m]/T - grid_pt_prev->u[m]/T_prev)
-                              /DATA.delta_tau);
-        dUoverTsup[m][0] = -duoverTdtau;   // g^{00} = -1
+        if (DATA.include_vorticity_terms == 1) {
+            double duoverTdtau = ((grid_pt->u[m]/T - grid_pt_prev->u[m]/T_prev)
+                                  /DATA.delta_tau);
+            dUoverTsup[m][0] = -duoverTdtau;   // g^{00} = -1
+        }
     }
 
     /* I have now partial^tau u^i */
