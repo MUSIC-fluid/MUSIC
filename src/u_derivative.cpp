@@ -15,8 +15,9 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn) :
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
-void U_derivative::MakedU(double tau, SCGrid &arena_prev, SCGrid &arena_current,
-                          int ix, int iy, int ieta) {
+void U_derivative::MakedU(const double tau, SCGrid &arena_prev,
+                          SCGrid &arena_current,
+                          const int ix, const int iy, const int ieta) {
     dUsup = {0.0};
     dUoverTsup = {0.0};
 
@@ -42,8 +43,9 @@ double U_derivative::calculate_expansion_rate(
 
 
 //! this function returns Du^\mu
-void U_derivative::calculate_Du_supmu(double tau, SCGrid &arena, int ieta,
-                                      int ix, int iy, DumuVec &a) {
+void U_derivative::calculate_Du_supmu(const double tau, SCGrid &arena,
+                                      const int ieta, const int ix,
+                                      const int iy, DumuVec &a) {
     for (int mu = 0; mu <= 4; mu++) {
         double u_supnu_partial_nu_u_supmu = 0.0;
         for (int nu = 0; nu < 4; nu++) {
@@ -58,8 +60,9 @@ void U_derivative::calculate_Du_supmu(double tau, SCGrid &arena, int ieta,
 
 
 void U_derivative::calculate_kinetic_vorticity(
-            double tau, SCGrid &arena, int ieta, int ix, int iy,
-            DumuVec &a_local, VorticityVec &omega) {
+            const double tau, SCGrid &arena,
+            const int ieta, const int ix, const int iy,
+            const DumuVec &a_local, VorticityVec &omega) {
     // this function computes the kinetic vorticity
     FlowVec u_local = arena(ix, iy, ieta).u;
     double dUsup_local[4][4];
@@ -95,8 +98,8 @@ void U_derivative::calculate_kinetic_vorticity(
 
 
 void U_derivative::calculate_thermal_vorticity(
-            double tau, SCGrid &arena, int ieta, int ix, int iy,
-            VorticityVec &omega) {
+            const double tau, SCGrid &arena, const int ieta,
+            const int ix, const int iy, VorticityVec &omega) {
     // this function computes the thermal vorticity
     FlowVec u_local = arena(ix, iy, ieta).u;
     double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
@@ -133,8 +136,8 @@ void U_derivative::calculate_thermal_vorticity(
 
 //! This funciton returns the velocity shear tensor sigma^\mu\nu
 void U_derivative::calculate_velocity_shear_tensor(
-                double tau, SCGrid &arena, int ieta, int ix, int iy,
-                DumuVec &a_local, VelocityShearVec &sigma) {
+        const double tau, SCGrid &arena, const int ieta, const int ix,
+        const int iy, const DumuVec &a_local, VelocityShearVec &sigma) {
     FlowVec u_local = arena(ix, iy, ieta).u;
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
@@ -204,8 +207,8 @@ void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
 }
 
 
-int U_derivative::MakeDSpatial(double tau, SCGrid &arena,
-                               int ix, int iy, int ieta) {
+int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
+                               const int ix, const int iy, const int ieta) {
     const double delta[4] = {
       0.0,
       DATA.delta_x,
@@ -267,8 +270,9 @@ int U_derivative::MakeDSpatial(double tau, SCGrid &arena,
     return 1;
 }/* MakeDSpatial */
 
-int U_derivative::MakeDTau(double tau,
-                           Cell_small *grid_pt_prev, Cell_small *grid_pt) {
+int U_derivative::MakeDTau(const double tau,
+                           const Cell_small *grid_pt_prev,
+                           const Cell_small *grid_pt) {
     /* this makes dU[m][0] = partial^tau u^m */
     /* note the minus sign at the end because of g[0][0] = -1 */
 
