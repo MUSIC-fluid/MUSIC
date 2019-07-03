@@ -175,7 +175,7 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
                 double cs2_local = eos.get_cs2(e_local, rhob_local);
                 double muB_local = eos.get_muB(e_local, rhob_local);
                 double enthropy  = e_local + p_local;  // [1/fm^4]
-                
+
                 double Wtautau = 0.0;
                 double Wtaux   = 0.0;
                 double Wtauy   = 0.0;
@@ -298,13 +298,13 @@ void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(SCGrid &arena,
     } else {
         out_open_mode = "a";
     }
-    
+
     // If we output in binary, set the mode accordingly
     if (DATA.outputBinaryEvolution == 0) {
         out_open_mode += "b";
     }
     out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
-    
+
     const int n_skip_x   = DATA.output_evolution_every_N_x;
     const int n_skip_y   = DATA.output_evolution_every_N_y;
     const int n_skip_eta = DATA.output_evolution_every_N_eta;
@@ -335,7 +335,7 @@ void Cell_info::calculate_inverse_Reynolds_numbers(
                                 const int ieta, const int ix, const int iy,
                                 double &R_pi, double &R_Pi) const {
     const auto grid_pt = arena_current(ix, iy, ieta);
-    
+
     const double e_local  = grid_pt.epsilon;
     const double rhob     = grid_pt.rhob;
     const double pressure = eos.get_pressure(e_local, rhob);
@@ -355,7 +355,7 @@ void Cell_info::calculate_inverse_Reynolds_numbers(
            pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
          - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
          + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
-    
+
     const double pi_local = grid_pt.pi_b;
 
     R_pi = sqrt(pisize)/pressure;
@@ -395,7 +395,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
 
                 double T_local   = eos.get_temperature(e_local, rhob_local);
                 double s_local   = eos.get_entropy(e_local, rhob_local);
-                
+
                 hydro_info_ptr.dump_ideal_info_to_memory(
                     tau, eta, e_local, p_local, s_local, T_local, vx, vy, vz);
             }
@@ -403,7 +403,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
     }
 }
 
-    
+
 //! This function outputs hydro evolution file in binary format
 void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, 
                                               double tau) {
@@ -704,7 +704,7 @@ double Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
     }
     fclose(out_file_xyeta);
     return(e_cut);
-}/* OutputEvolutionDataXYEta */
+}
 
 
 //! This function prints to the screen the maximum local energy density,
@@ -799,7 +799,6 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
         exit(1);
     }
 }
-
 
 
 //! This function putputs files to check with Gubser flow solution
@@ -954,7 +953,7 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
                 // T_local is in 1/fm
                 double T_local   = eos.get_temperature(e_local, rhob_local);
                 double muB_local = eos.get_muB(e_local, rhob_local);  // 1/fm
-        
+
                 double pressure  = eos.get_pressure(e_local, rhob_local);
                 double u0        = arena(ix, iy, ieta).u[0];
                 double u1        = arena(ix, iy, ieta).u[1];
@@ -1039,6 +1038,7 @@ void Cell_info::monitor_fluid_cell(SCGrid &arena, int ix, int iy, int ieta,
     output_file.close();
 }
 
+
 void Cell_info::load_deltaf_qmu_coeff_table(string filename) {
     std::ifstream table(filename.c_str());
     deltaf_qmu_coeff_table_length_T = 150;
@@ -1057,6 +1057,7 @@ void Cell_info::load_deltaf_qmu_coeff_table(string filename) {
           table >> dummy >> dummy >> deltaf_qmu_coeff_tb[i][j];
     table.close();
 }
+
 
 void Cell_info::load_deltaf_qmu_coeff_table_14mom(string filename) {
     std::ifstream table(filename.c_str());
@@ -1122,6 +1123,7 @@ void Cell_info::load_deltaf_qmu_coeff_table_14mom(string filename) {
     }
 }
 
+
 double Cell_info::get_deltaf_qmu_coeff(double T, double muB) {
     if (muB < 0) {
        muB = -muB;
@@ -1152,6 +1154,7 @@ double Cell_info::get_deltaf_qmu_coeff(double T, double muB) {
                     + f4*x_fraction*(1. - y_fraction));
     return(coeff);
 }
+
 
 double Cell_info::get_deltaf_coeff_14moments(double T, double muB,
                                              double type) {
@@ -1278,7 +1281,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     } else {
         of.open(filename.str().c_str(), std::fstream::app);
     }
-    
+
     ostringstream filename1;
     filename1 << "eccentricities_evo_eta_" << eta_min
               << "_" << eta_max << ".dat";
@@ -1289,7 +1292,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     } else {
         of1.open(filename1.str().c_str(), std::fstream::app);
     }
-    
+
     ostringstream filename2;
     filename2 << "inverse_Reynolds_number_eta_" << eta_min
              << "_" << eta_max << ".dat";
@@ -1325,7 +1328,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     std::vector<double> ep_num1(6, 0.0);
     std::vector<double> ep_num2(6, 0.0);
     std::vector<double> ep_den (6, 0.0);
-    
+
     const int norder = 6;
     std::vector<double> eccn_num1(norder, 0.0);
     std::vector<double> eccn_num2(norder, 0.0);
@@ -1382,7 +1385,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double T_xx_ideal   = enthopy*ux*ux + P_local;
                 double T_xy_ideal   = enthopy*ux*uy;
                 double T_yy_ideal   = enthopy*uy*uy + P_local;
-                
+
                 double T_0x_shear   = T_0x_ideal + pi_0x;
                 double T_0y_shear   = T_0y_ideal + pi_0y;
                 double T_0r_shear   = sqrt(  T_0x_shear*T_0x_shear
@@ -1417,7 +1420,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 u_perp_den += weight_local;
                 T_avg_num  += weight_local*T_local;
                 T_avg_den  += weight_local;
-                
+
                 if (e_local > 1e-3) {
                     double r_shearpi_tmp, r_bulkPi_tmp;
                     calculate_inverse_Reynolds_numbers(arena, ieta, ix, iy,
@@ -1474,7 +1477,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     }
     of << endl;
     of.close();
-    
+
     of1 << scientific << setw(18) << setprecision(8)
         << tau << "  ";
     for (int i = 0; i < norder; i++) {
@@ -1484,7 +1487,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     }
     of1 << endl;
     of1.close();
-    
+
     of2 << scientific << setw(18) << setprecision(8)
         << tau << "  " << R_shearpi << "  " << R_Pi << "  "
         << u_avg << "  " << T_avg << endl;
