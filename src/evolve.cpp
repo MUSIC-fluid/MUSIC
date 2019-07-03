@@ -174,7 +174,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
 
         if (DATA.output_hydro_debug_info == 1) {
-            grid_info.monitor_a_fluid_cell(*ap_current, 100, 100, 0, tau);
+            grid_info.monitor_a_fluid_cell(*ap_current, *ap_prev,
+                                           100, 100, 0, tau);
         }
 
         /* execute rk steps */

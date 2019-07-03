@@ -5,6 +5,7 @@
 #include "data.h"
 #include "cell.h"
 #include "grid.h"
+#include "minmod.h"
 #include "data_struct.h"
 #include <string.h>
 #include <iostream>

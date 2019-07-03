@@ -19,7 +19,8 @@ using std::ostringstream;
 
 Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in) :
     DATA(DATA_in),
-    eos(eos_in) {
+    eos(eos_in),
+    u_derivative_helper(DATA_in, eos_in) {
 
     // read in tables for delta f coefficients
     if (DATA.turn_on_diff == 1) {
@@ -1014,26 +1015,55 @@ void Cell_info::output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
 
 //! This function outputs the evolution of hydrodynamic variables at a
 //! give fluid cell
-void Cell_info::monitor_a_fluid_cell(SCGrid &arena, const int ix, const int iy,
+void Cell_info::monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
+                                     const int ix, const int iy,
                                      const int ieta, const double tau) {
     ostringstream filename;
     filename << "monitor_fluid_cell_ix_" << ix << "_iy_" << iy
              << "_ieta_" << ieta << ".dat";
-    ofstream output_file(filename.str().c_str(),
-                         std::ofstream::out | std::ofstream::app);
+    ofstream output_file;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        output_file.open(filename.str().c_str(), std::ofstream::out);
+        output_file << "# tau(fm)  e(GeV/fm^3)  rhob(1/fm^3)  "
+                    << "u^tau  u^x  u^y  tau*u^eta  "
+                    << "Bulk_Pi(GeV/fm^3)  theta(1/fm)  "
+                    << "pi^{\\mu\\nu}(GeV/fm^3)  sigma^{\\mu\\nu}(1/fm)  "
+                    << "omega^{\\mu\\nu}(1/fm)" << std::endl;
+    } else {
+        output_file.open(filename.str().c_str(), std::ofstream::app);
+    }
     output_file << scientific << setprecision(8)
-                << tau << "  " << arena(ix,iy,ieta).epsilon << "  "
-                << arena(ix,iy,ieta).rhob << "  ";
+                << tau << "  " << arena_curr(ix,iy,ieta).epsilon*Util::hbarc
+                << "  " << arena_curr(ix,iy,ieta).rhob << "  ";
     for (int i = 0; i < 4; i++) {
         output_file << scientific << setprecision(8)
-                    << arena(ix, iy, ieta).u[i] << "  ";
+                    << arena_curr(ix, iy, ieta).u[i] << "  ";
     }
+
+    u_derivative_helper.MakedU(tau, arena_prev, arena_curr, ix, iy, ieta);
+    auto theta_local = u_derivative_helper.calculate_expansion_rate(
+                                            tau, arena_curr, ieta, ix, iy);
+    output_file << scientific << setprecision(8)
+                << arena_curr(ix, iy, ieta).pi_b*Util::hbarc << "  "
+                << theta_local << "  ";
+    DumuVec a_local;
+    u_derivative_helper.calculate_Du_supmu(tau, arena_curr,
+                                           ieta, ix, iy, a_local);
+    VelocityShearVec sigma_local;
+    u_derivative_helper.calculate_velocity_shear_tensor(
+                    tau, arena_curr, ieta, ix, iy, a_local, sigma_local);
+    VorticityVec omega_local;
+    u_derivative_helper.calculate_kinetic_vorticity(
+                    tau, arena_curr, ieta, ix, iy, a_local, omega_local);
     for (int i = 0; i < 10; i++) {
         output_file << scientific << setprecision(8)
-                    << arena(ix, iy, ieta).Wmunu[i] << "  ";
+                    << arena_curr(ix, iy, ieta).Wmunu[i]*Util::hbarc << "  "
+                    << sigma_local[i] << "  ";
     }
-    output_file << scientific << setprecision(8)
-                << arena(ix, iy, ieta).pi_b << "  ";
+    for (int i = 0; i < 6; i++) {
+        output_file << scientific << setprecision(8)
+                    << omega_local[i] << "  ";
+    }
     output_file << endl;
     output_file.close();
 }

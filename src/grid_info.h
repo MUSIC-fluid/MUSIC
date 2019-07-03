@@ -11,6 +11,7 @@
 #include "eos.h"
 #include "cell.h"
 #include "grid.h"
+#include "u_derivative.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
 
@@ -18,6 +19,7 @@ class Cell_info {
  private:
     const InitData &DATA;
     const EOS &eos;
+    U_derivative u_derivative_helper;
     pretty_ostream music_message;
 
     int deltaf_qmu_coeff_table_length_T;
@@ -102,8 +104,9 @@ class Cell_info {
 
     //! This function outputs the evolution of hydrodynamic variables at a
     //! give fluid cell
-    void monitor_a_fluid_cell(SCGrid &arena, const int ix, const int iy,
-                              const int ieta, const double tau);
+    void monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
+                              const int ix, const int iy, const int ieta,
+                              const double tau);
 
     //! This function outputs system's momentum anisotropy as a function of tau
     void output_momentum_anisotropy_vs_tau(
