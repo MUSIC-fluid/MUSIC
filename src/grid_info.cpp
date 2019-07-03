@@ -286,8 +286,8 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
 }
 
 
-void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(SCGrid &arena,
-                                                        double tau) const {
+void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(
+        SCGrid &arena, const double tau) const {
     const string out_name_xyeta = "evolution_KRnumbers.dat";
     FILE *out_file_xyeta        = NULL;
 
@@ -365,7 +365,7 @@ void Cell_info::calculate_inverse_Reynolds_numbers(
 
 //! This function outputs hydro evolution file into memory for JETSCAPE
 void Cell_info::OutputEvolutionDataXYEta_memory(
-                SCGrid &arena, double tau, HydroinfoMUSIC &hydro_info_ptr) {
+            SCGrid &arena, const double tau, HydroinfoMUSIC &hydro_info_ptr) {
     const int n_skip_x   = DATA.output_evolution_every_N_x;
     const int n_skip_y   = DATA.output_evolution_every_N_y;
     const int n_skip_eta = DATA.output_evolution_every_N_eta;
@@ -750,7 +750,7 @@ double Cell_info::get_maximum_energy_density(SCGrid &arena) {
 //! This function checks the total energy and total net baryon number
 //! at a give proper time
 void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
-                                       double tau) {
+                                       const double tau) {
     double N_B     = 0.0;
     double T_tau_t = 0.0;
     double deta    = DATA.delta_eta;
@@ -802,7 +802,7 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
 
 
 //! This function putputs files to check with Gubser flow solution
-void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
+void Cell_info::Gubser_flow_check_file(SCGrid &arena, const double tau) {
     if (tau > 1.) {
         ostringstream filename_analytic;
         filename_analytic << "tests/Gubser_flow/y=x_tau="
@@ -900,7 +900,7 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
 
 
 //! This function outputs files to cross check with 1+1D simulation
-void Cell_info::output_1p1D_check_file(SCGrid &arena, double tau) {
+void Cell_info::output_1p1D_check_file(SCGrid &arena, const double tau) {
     ostringstream filename;
     filename << "1+1D_check_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
@@ -921,7 +921,7 @@ void Cell_info::output_1p1D_check_file(SCGrid &arena, double tau) {
 
 
 //! This function outputs energy density and n_b for making movies
-void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
+void Cell_info::output_evolution_for_movie(SCGrid &arena, const double tau) {
     const string out_name_xyeta = "evolution_for_movie_xyeta.dat";
     string out_open_mode;
     FILE *out_file_xyeta;
@@ -1014,8 +1014,8 @@ void Cell_info::output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
 
 //! This function outputs the evolution of hydrodynamic variables at a
 //! give fluid cell
-void Cell_info::monitor_fluid_cell(SCGrid &arena, int ix, int iy, int ieta,
-                                   double tau) {
+void Cell_info::monitor_a_fluid_cell(SCGrid &arena, const int ix, const int iy,
+                                     const int ieta, const double tau) {
     ostringstream filename;
     filename << "monitor_fluid_cell_ix_" << ix << "_iy_" << iy
              << "_ieta_" << ieta << ".dat";
@@ -1203,7 +1203,8 @@ double Cell_info::get_deltaf_coeff_14moments(double T, double muB,
 //! This function outputs average T and mu_B as a function of proper tau
 //! within a given space-time rapidity range
 void Cell_info::output_average_phase_diagram_trajectory(
-                double tau, double eta_min, double eta_max, SCGrid &arena) {
+        const double tau, const double eta_min, const double eta_max,
+        SCGrid &arena) {
     ostringstream filename;
     filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
              << "_" << eta_max << ".dat";
@@ -1261,7 +1262,8 @@ void Cell_info::output_average_phase_diagram_trajectory(
 
 //! This function outputs system's momentum anisotropy as a function of tau
 void Cell_info::output_momentum_anisotropy_vs_tau(
-                double tau, double eta_min, double eta_max, SCGrid &arena) {
+                const double tau, const double eta_min, const double eta_max,
+                SCGrid &arena) {
     ostringstream filename;
     filename << "momentum_anisotropy_eta_" << eta_min
              << "_" << eta_max << ".dat";
