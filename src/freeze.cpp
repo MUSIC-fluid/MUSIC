@@ -1,11 +1,9 @@
 // MUSIC - a 3+1D viscous relativistic hydrodynamic code for heavy ion collisions
 // Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
 
-#include "freeze.h"
-#include <cstring>
+#include "./freeze.h"
 
-using std::string;
-using std::ifstream;
+using namespace std;
 
 Freeze::Freeze(InitData* DATA_in) {
     if (etasize < DATA_in->pseudo_steps + 1) {
@@ -34,7 +32,7 @@ Freeze::Freeze(InitData* DATA_in) {
     music_message << "number of particle species to compute = " << particleMax;
     music_message.flush("info");
     bulk_deltaf_kind = 1;
-    
+
     // read in tables for delta f coefficients
     if (DATA_ptr->turn_on_diff == 1 && DATA_ptr->include_deltaf_qmu == 1) {
         if (DATA_ptr->deltaf_14moments == 1) {
@@ -383,11 +381,9 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     music_message << "read in particle species table from " << p_name;
     music_message.flush("info");
 
-    //FILE *p_file;
-    //p_file = fopen(p_name.c_str(), "r");
-    //checkForReadError(p_file, p_name.c_str());
-
-    std::ifstream p_file(p_name.c_str());
+    FILE *p_file;
+    p_file = fopen(p_name.c_str(), "r");
+    checkForReadError(p_file, p_name.c_str());
 
     for (int k = 0; k < MAXINTV; k++) 
         partid[k] = -1; 
@@ -408,21 +404,34 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     int j = 0;
     // read particle data:
     while (i < DATA->NumberOfParticlesToInclude) {
-        p_file >> particleList[i].number >> particleList[i].name
-               >> particleList[i].mass >> particleList[i].width
-               >> particleList[i].degeneracy >> particleList[i].baryon
-               >> particleList[i].strange >> particleList[i].charm
-               >> particleList[i].bottom >> particleList[i].isospin
-               >> particleList[i].charge >> particleList[i].decays;
+        int temp;
+        //particleList[i].name = Util::char_malloc(50);
+        temp = fscanf(p_file, "%d",  &particleList[i].number );
+        temp = fscanf(p_file, "%s",   particleList[i].name   );
+        temp = fscanf(p_file, "%lf", &particleList[i].mass   );
+        temp = fscanf(p_file, "%lf", &particleList[i].width  );
+        temp = fscanf(p_file, "%d",  &particleList[i].degeneracy);
+        temp = fscanf(p_file, "%d",  &particleList[i].baryon );
+        temp = fscanf(p_file, "%d",  &particleList[i].strange);
+        temp = fscanf(p_file, "%d",  &particleList[i].charm  );
+        temp = fscanf(p_file, "%d",  &particleList[i].bottom );
+        temp = fscanf(p_file, "%d",  &particleList[i].isospin);
+        temp = fscanf(p_file, "%lf", &particleList[i].charge );
+        temp = fscanf(p_file, "%d",  &particleList[i].decays );   // number of decays
 
         partid[MHALF + particleList[i].number] = i;
         particleList[i].stable = 0;
 
+        int h;
         for(int k = 0; k < particleList[i].decays; k++) {
-            p_file >> decay[j].reso >> decay[j].numpart >> decay[j].branch
-                   >> decay[j].part[0] >> decay[j].part[1]
-                   >> decay[j].part[2] >> decay[j].part[3]
-                   >> decay[j].part[4];
+            h = fscanf(p_file, "%i%i%lf%i%i%i%i%i",
+                       &decay[j].reso, &decay[j].numpart, &decay[j].branch, 
+                       &decay[j].part[0], &decay[j].part[1], &decay[j].part[2],
+                       &decay[j].part[3], &decay[j].part[4]);
+            if (h != 8) {
+                printf("Error in scanf decay \n");
+                exit(0);
+            }
             if (decay[j].numpart == 1) {
                 // "decays" into one particle, i.e. is stable 
                 particleList[i].stable = 1;
@@ -434,17 +443,18 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
         if (particleList[i].baryon != 0) {
             i++;
             //particleList[i].name  = Util::char_malloc(50);
-            particleList[i].width      = particleList[i-1].width;
-            particleList[i].charm      = -particleList[i-1].charm;
-            particleList[i].bottom     = -particleList[i-1].bottom;
-            particleList[i].isospin    = particleList[i-1].isospin;
-            particleList[i].charge     = -particleList[i-1].charge;
-            particleList[i].decays     = particleList[i-1].decays;
-            particleList[i].stable     = particleList[i-1].stable;
-            particleList[i].number     = -particleList[i-1].number;
-            particleList[i].name       = "Anti-" + particleList[i-1].name;
-            particleList[i].mass       = particleList[i-1].mass;
-            particleList[i].degeneracy = particleList[i-1].degeneracy;
+            particleList[i].width   =  particleList[i-1].width;
+            particleList[i].charm   = -particleList[i-1].charm;
+            particleList[i].bottom  = -particleList[i-1].bottom;
+            particleList[i].isospin =  particleList[i-1].isospin;
+            particleList[i].charge  = -particleList[i-1].charge;
+            particleList[i].decays  =  particleList[i-1].decays;
+            particleList[i].stable  =  particleList[i-1].stable;
+            particleList[i].number  = -particleList[i-1].number;
+            strcpy(particleList[i].name, "Anti-");
+            strcat(particleList[i].name,particleList[i-1].name);
+            particleList[i].mass       =  particleList[i-1].mass;
+            particleList[i].degeneracy =  particleList[i-1].degeneracy;
             particleList[i].baryon     = -particleList[i-1].baryon;
             particleList[i].strange    = -particleList[i-1].strange;
             particleList[i].charge     = -particleList[i-1].charge;
@@ -453,7 +463,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
         i++;
     }
     decayMax = j;
-    p_file.close();
+    fclose(p_file);
     music_message << "Read in particle spicies " << i;
     music_message.flush("info");
     DATA->NumberOfParticlesToInclude = i;
@@ -462,15 +472,15 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     if (DATA->whichEOS > 2 && DATA->whichEOS < 6) {
         read_particle_PCE_mu(DATA, eos);
     }
-      
+
     music_message.info("Done reading particle data.");
 }
 
 
 void Freeze::ReadFreezeOutSurface(InitData *DATA) {
     music_message.info("reading freeze-out surface");
-    
-    std::ostringstream surfdat_stream;
+
+    ostringstream surfdat_stream;
     surfdat_stream << "./surface.dat";
 
     // new counting, mac compatible ...
@@ -496,8 +506,8 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
     while (i < NCells) {
         SurfaceElement temp_cell;
         if (surface_in_binary) {
-            float array[32];
-            for (int ii = 0; ii < 32; ii++) {
+            float array[34];
+            for (int ii = 0; ii < 34; ii++) {
                 float temp = 0.;
                 surfdat.read((char*)&temp, sizeof(float));
                 array[ii] = temp;
@@ -523,41 +533,44 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
             temp_cell.epsilon_f            = array[12];
             temp_cell.T_f                  = array[13];
             temp_cell.mu_B                 = array[14];
-            temp_cell.eps_plus_p_over_T_FO = array[15];
-            
-            temp_cell.W[0][0] = array[16];
-            temp_cell.W[0][1] = array[17];
-            temp_cell.W[0][2] = array[18];
-            temp_cell.W[0][3] = array[19];
-            temp_cell.W[1][1] = array[20];
-            temp_cell.W[1][2] = array[21];
-            temp_cell.W[1][3] = array[22];
-            temp_cell.W[2][2] = array[23];
-            temp_cell.W[2][3] = array[24];
-            temp_cell.W[3][3] = array[25];
+            temp_cell.mu_S                 = array[15];
+            temp_cell.mu_C                 = array[16];
+            temp_cell.eps_plus_p_over_T_FO = array[17];
 
-            temp_cell.pi_b  = array[26];
-            temp_cell.rho_B = array[27];
+            temp_cell.W[0][0] = array[18];
+            temp_cell.W[0][1] = array[19];
+            temp_cell.W[0][2] = array[20];
+            temp_cell.W[0][3] = array[21];
+            temp_cell.W[1][1] = array[22];
+            temp_cell.W[1][2] = array[23];
+            temp_cell.W[1][3] = array[24];
+            temp_cell.W[2][2] = array[25];
+            temp_cell.W[2][3] = array[26];
+            temp_cell.W[3][3] = array[27];
 
-            temp_cell.q[0] = array[28];
-            temp_cell.q[1] = array[29];
-            temp_cell.q[2] = array[30];
-            temp_cell.q[3] = array[31];
+            temp_cell.pi_b  = array[28];
+            temp_cell.rho_B = array[29];
+
+            temp_cell.q[0] = array[30];
+            temp_cell.q[1] = array[31];
+            temp_cell.q[2] = array[32];
+            temp_cell.q[3] = array[33];
         } else {
             // position in (tau, x, y, eta)
             surfdat >> temp_cell.x[0] >> temp_cell.x[1]
                     >> temp_cell.x[2] >> temp_cell.x[3];
-            
+
             // hypersurface vector in (tau, x, y, eta)
             surfdat >> temp_cell.s[0] >> temp_cell.s[1]
                     >> temp_cell.s[2] >> temp_cell.s[3];
-            
+
             // flow velocity in (tau, x, y, eta)
             surfdat >> temp_cell.u[0] >> temp_cell.u[1]
                     >> temp_cell.u[2] >> temp_cell.u[3];
 
             surfdat >> temp_cell.epsilon_f >> temp_cell.T_f
-                    >> temp_cell.mu_B >> temp_cell.eps_plus_p_over_T_FO;
+                    >> temp_cell.mu_B >> temp_cell.mu_S >> temp_cell.mu_C
+                    >> temp_cell.eps_plus_p_over_T_FO;
 
             // freeze-out Wmunu
             surfdat >> temp_cell.W[0][0] >> temp_cell.W[0][1]
@@ -611,7 +624,7 @@ int Freeze::get_number_of_lines_of_binary_surface_file(string filename) {
         surface_file.read((char*) &temp, sizeof(float));
         count++;
     }
-    int counted_line = count/32;
+    int counted_line = count/34;
     surface_file.close();
     return(counted_line);
 }
