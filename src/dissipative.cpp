@@ -128,7 +128,6 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
 
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
     auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu);
-    auto omega = Util::UnpackVecToMatrix(omega_1d);
 
     if (rk_flag == 0) {
         epsilon = grid_pt->epsilon;
@@ -146,16 +145,11 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
         shear_to_s = DATA.shear_to_s;
     }
 
-    int include_WWterm         = 0;
-    int include_Vorticity_term = 0;
-    int include_Wsigma_term    = 0;
+    bool include_WWterm = false;
+    bool include_Wsigma_term = false;
     if (DATA.include_second_order_terms == 1 && DATA.Initial_profile != 0) {
-        include_WWterm      = 1;
-        include_Wsigma_term = 1;
-    }
-
-    if (DATA.include_vorticity_terms == 1) {
-        include_Vorticity_term = 1;
+        include_WWterm = true;
+        include_Wsigma_term = true;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -213,8 +207,9 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     /////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////
     double Vorticity_term = 0.0;
-    if (include_Vorticity_term == 1) {
+    if (DATA.include_vorticity_terms == 1) {
         double transport_coefficient4 = 2.*tau_pi;
+        auto omega = Util::UnpackVecToMatrix(omega_1d);
         double term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
                                   - Wmunu[nu][0]*omega[mu][0]
                                   + Wmunu[mu][1]*omega[nu][1]
@@ -225,8 +220,6 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
                                   + Wmunu[nu][3]*omega[mu][3])/2.;
         // multiply term by its respective transport coefficient
         Vorticity_term = transport_coefficient4*term1_Vorticity;
-    } else {
-        Vorticity_term = 0.0;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -237,7 +230,7 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     ///////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////
     double Wsigma_term = 0.0;
-    if (include_Wsigma_term == 1) {
+    if (include_Wsigma_term) {
         double Wsigma = (
                Wmunu[0][0]*sigma[0][0]
              + Wmunu[1][1]*sigma[1][1]
@@ -276,7 +269,7 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
     double WW_term = 0.0;
-    if (include_WWterm == 1) {
+    if (include_WWterm) {
         double Wsquare = (  Wmunu[0][0]*Wmunu[0][0]
                           + Wmunu[1][1]*Wmunu[1][1]
                           + Wmunu[2][2]*Wmunu[2][2]
@@ -742,11 +735,11 @@ double Diss::Make_uqSource(
     // a = nu
     double NS = kappa*(baryon_diffusion_vec[nu] + grid_pt->u[nu]*a_local[4]);
 
-    // add a new non-linear term (- q \theta)
+    // add a new non-linear term (- q^{\nu} \theta)
     double transport_coeff = 1.0*tau_rho;   // from conformal kinetic theory
     double Nonlinear1 = -transport_coeff*q[nu]*theta_local;
 
-    // add a new non-linear term (-q^\mu \sigma_\mu\nu)
+    // add a new non-linear term (-q_\mu \sigma^{\mu\nu})
     double transport_coeff_2 = 3./5.*tau_rho;   // from 14-momentum massless
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
     double temptemp = 0.0;
@@ -755,7 +748,7 @@ double Diss::Make_uqSource(
     }
     double Nonlinear2 = -transport_coeff_2*temptemp;
 
-    // add a new non-linear term (-q^\mu \omega_\mu\nu)
+    // add a new non-linear term (-q_\mu \omega^{\mu\nu})
     double Nonlinear3 = 0.0;
     if (DATA.include_vorticity_terms == 1) {
         double transport_coeff_3 = 1.0*tau_rho;
