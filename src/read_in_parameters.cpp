@@ -803,6 +803,9 @@ InitData read_in_parameters(std::string input_file) {
 
 void set_parameter(InitData &parameter_list, std::string parameter_name,
                    double value) {
+    if (parameter_name == "MUSIC_mode") {
+        parameter_list.mode = static_cast<int>(value);
+    }
     if (parameter_name == "output_evolution_data") {
         parameter_list.outputEvolutionData = static_cast<int>(value);
     }
