@@ -1278,7 +1278,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     } else {
         of.open(filename.str().c_str(), std::fstream::app);
     }
-    
+
     ostringstream filename1;
     filename1 << "eccentricities_evo_eta_" << eta_min
               << "_" << eta_max << ".dat";
@@ -1289,7 +1289,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     } else {
         of1.open(filename1.str().c_str(), std::fstream::app);
     }
-    
+
     ostringstream filename2;
     filename2 << "inverse_Reynolds_number_eta_" << eta_min
              << "_" << eta_max << ".dat";
@@ -1325,7 +1325,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     std::vector<double> ep_num1(6, 0.0);
     std::vector<double> ep_num2(6, 0.0);
     std::vector<double> ep_den (6, 0.0);
-    
+
     const int norder = 6;
     std::vector<double> eccn_num1(norder, 0.0);
     std::vector<double> eccn_num2(norder, 0.0);
@@ -1382,7 +1382,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double T_xx_ideal   = enthopy*ux*ux + P_local;
                 double T_xy_ideal   = enthopy*ux*uy;
                 double T_yy_ideal   = enthopy*uy*uy + P_local;
-                
+
                 double T_0x_shear   = T_0x_ideal + pi_0x;
                 double T_0y_shear   = T_0y_ideal + pi_0y;
                 double T_0r_shear   = sqrt(  T_0x_shear*T_0x_shear
@@ -1417,7 +1417,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 u_perp_den += weight_local;
                 T_avg_num  += weight_local*T_local;
                 T_avg_den  += weight_local;
-                
+
                 if (e_local > 1e-3) {
                     double r_shearpi_tmp, r_bulkPi_tmp;
                     calculate_inverse_Reynolds_numbers(arena, ieta, ix, iy,
@@ -1474,7 +1474,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     }
     of << endl;
     of.close();
-    
+
     of1 << scientific << setw(18) << setprecision(8)
         << tau << "  ";
     for (int i = 0; i < norder; i++) {
@@ -1484,7 +1484,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     }
     of1 << endl;
     of1.close();
-    
+
     of2 << scientific << setw(18) << setprecision(8)
         << tau << "  " << R_shearpi << "  " << R_Pi << "  "
         << u_avg << "  " << T_avg << endl;
