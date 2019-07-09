@@ -2,6 +2,7 @@
 // Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
 
 #include "./freeze.h"
+#include <cstring>
 
 using namespace std;
 
