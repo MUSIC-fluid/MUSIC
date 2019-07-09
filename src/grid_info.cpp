@@ -1401,18 +1401,17 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double T_xy_full    = T_xy_shear + bulk_Pi*ux*uy;
                 double T_yy_full    = T_yy_shear - bulk_Pi*(-1 - uy*uy);
 
+                ideal_num1 += T_xx_ideal - T_yy_ideal;
+                ideal_num2 += 2.*T_xy_ideal;
+                ideal_den  += T_xx_ideal + T_yy_ideal;
+                shear_num1 += T_xx_shear - T_yy_shear;
+                shear_num2 += 2.*T_xy_shear;
+                shear_den  += T_xx_shear + T_yy_shear;
+                full_num1  += T_xx_full - T_yy_full;
+                full_num2  += 2.*T_xy_full;
+                full_den   += T_xx_full + T_yy_full;
+
                 double weight_local = e_local;
-
-                ideal_num1 += weight_local*(T_xx_ideal - T_yy_ideal);
-                ideal_num2 += weight_local*(2.*T_xy_ideal);
-                ideal_den  += weight_local*(T_xx_ideal + T_yy_ideal);
-                shear_num1 += weight_local*(T_xx_shear - T_yy_shear);
-                shear_num2 += weight_local*(2.*T_xy_shear);
-                shear_den  += weight_local*(T_xx_shear + T_yy_shear);
-                full_num1  += weight_local*(T_xx_full - T_yy_full);
-                full_num2  += weight_local*(2.*T_xy_full);
-                full_den   += weight_local*(T_xx_full + T_yy_full);
-
                 u_perp_num += weight_local*u0;
                 u_perp_den += weight_local;
                 T_avg_num  += weight_local*T_local;
