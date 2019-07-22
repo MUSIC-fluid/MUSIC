@@ -155,8 +155,6 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     shear = (shear_to_s)*(epsilon + pressure)/(T + 1e-15);
     double tau_pi = 5.0*shear/(epsilon + pressure + 1e-15);
 
-    tau_pi = std::max(3.*DATA.delta_tau, tau_pi);
-
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
     double transport_coefficient  = 9./70.*tau_pi/shear*(4./5.);
@@ -168,6 +166,8 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     // transport coefficients not yet known -- fixed to zero
     double transport_coefficient_b  = 6./5.*tau_pi;
     double transport_coefficient2_b = 0.;
+
+    tau_pi = std::max(3.*DATA.delta_tau, tau_pi);
 
     /* This source has many terms */
     /* everything in the 1/(tau_pi) piece is here */
@@ -768,7 +768,6 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     // Bulk relaxation time from kinetic theory
     Bulk_Relax_time = (1./(14.55*(1./3. - cs2)*(1./3. - cs2))
                        /(epsilon + pressure)*bulk);
-    Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
 
     // from kinetic theory, small mass limit
     transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);
@@ -777,6 +776,8 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     // from kinetic theory
     transport_coeff1_s = 8./5.*(1./3.-cs2)*Bulk_Relax_time;
     transport_coeff2_s = 0.;  // not known;  put 0
+
+    Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
     NS_term = -bulk*theta_local;
