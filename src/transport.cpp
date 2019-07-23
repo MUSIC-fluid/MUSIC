@@ -64,6 +64,8 @@ double Transport::get_temperature_dependent_eta_over_s_sims(double T_in_fm) {
     double high_T_slope=DATA.eta_over_s_high_T_slope_in_GeV;
     double eta_over_s_at_kink=DATA.eta_over_s_at_kink;
 
+    const double eta_over_s_min=0.001;
+
     double eta_over_s;
 
     if (T_in_GeV<T_kink_in_GeV) {
@@ -72,6 +74,8 @@ double Transport::get_temperature_dependent_eta_over_s_sims(double T_in_fm) {
     else {
 	eta_over_s=eta_over_s_at_kink + high_T_slope*(T_in_GeV - T_kink_in_GeV);
     }
+
+    eta_over_s=std::max(eta_over_s,eta_over_s_min);
 
     return eta_over_s;
 }
