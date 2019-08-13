@@ -152,7 +152,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                             tau, 4.0, 5.0, *ap_current);
             if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
                 || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
-                grid_info.output_vorticity_time_evolution(
+                grid_info.output_vorticity_distribution(
                                     *ap_current, *ap_prev, -0.5, 0.5, tau);
             }
             grid_info.output_vorticity_time_evolution(
