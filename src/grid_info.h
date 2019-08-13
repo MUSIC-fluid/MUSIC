@@ -93,6 +93,16 @@ class Cell_info {
         const double tau, const double eta_min, const double eta_max,
         SCGrid &arena);
 
+    //! This function outputs the vorticity tensor at a given tau
+    void output_vorticity_distribution(
+        SCGrid &arena_curr, SCGrid &arena_prev,
+        const double eta_min, const double eta_max, const double tau);
+
+    //! This function outputs the time evolution of the vorticity tensor
+    void output_vorticity_time_evolution(
+        SCGrid &arena_curr, SCGrid &arena_prev,
+        const double eta_min, const double eta_max, const double tau);
+
     //! This function dumps the energy density and net baryon density
     void output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
                                                      std::string filename);

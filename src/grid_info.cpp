@@ -1068,6 +1068,107 @@ void Cell_info::monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
     output_file.close();
 }
 
+void Cell_info::output_vorticity_distribution(
+                SCGrid &arena_curr, SCGrid &arena_prev,
+                const double eta_min, const double eta_max, const double tau) {
+    // This function outputs the vorticity tensor at a given tau
+    ostringstream filename1;
+    filename1 << "vorticity_dis_eta_" << eta_min
+              << "_" << eta_max << "_tau_" << tau << ".dat";
+    std::fstream of1;
+    of1.open(filename1.str().c_str(), std::fstream::out);
+    // write the header
+    of1 << "# x(fm)  y(fm)  omega^{taux}  omega^{tauy}  tau*omega^{taueta}  "
+        << "omega^{xy}  tau*omega^{xeta}  tau*omega^{yeta}" << endl;
+
+    for (int ix = 0; ix < arena_curr.nX(); ix++) {
+        for (int iy = 0; iy < arena_curr.nY(); iy++) {
+            double x_local = -DATA.x_size/2. + ix*DATA.delta_x;
+            double y_local = -DATA.y_size/2. + iy*DATA.delta_y;
+            std::vector<double> omega_num(6, 0.0);
+            double weight = 0.0;
+            for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
+                double eta_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
+                if (eta_local < eta_max && eta_local > eta_min) {
+                    double e_local = arena_curr(ix, iy, ieta).epsilon;
+                    u_derivative_helper.MakedU(
+                            tau, arena_prev, arena_curr, ix, iy, ieta);
+                    DumuVec a_local;
+                    u_derivative_helper.calculate_Du_supmu(
+                        tau, arena_curr, ieta, ix, iy, a_local);
+                    VorticityVec omega_local;
+                    u_derivative_helper.calculate_kinetic_vorticity(
+                        tau, arena_curr, ieta, ix, iy, a_local, omega_local);
+                    for (int i = 0; i < 6; i++) {
+                        omega_num[i] += e_local*omega_local[i];
+                    }
+                    weight += e_local;
+
+                }
+            }
+            of1 << scientific << setprecision(8) << setw(18)
+                << x_local << "  " << y_local << "  ";
+            for (int i = 0; i < 6; i++) {
+                of1 << omega_num[i]/(weight + small_eps) << "  ";
+            }
+            of1 << endl;
+        }
+    }
+    of1.close();
+}
+
+void Cell_info::output_vorticity_time_evolution(
+                SCGrid &arena_curr, SCGrid &arena_prev,
+                const double eta_min, const double eta_max, const double tau) {
+    // This function outputs the time evolution of the vorticity tensor
+    ostringstream filename1;
+    filename1 << "vorticity_evo_eta_" << eta_min
+              << "_" << eta_max << ".dat";
+    std::fstream of1;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of1.open(filename1.str().c_str(), std::fstream::out);
+        of1 << "# tau(fm)  omega^{taux}  omega^{tauy}  tau*omega^{taueta}  "
+            << "omega^{xy}  tau*omega^{xeta}  tau*omega^{yeta}" << endl;
+    } else {
+        of1.open(filename1.str().c_str(), std::fstream::app);
+    }
+
+    std::vector<double> omega_num(6, 0.0);
+    double weight = 0.0;
+    for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
+        double eta = 0.0;
+        if (DATA.boost_invariant == 0) {
+            eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
+                    - (DATA.eta_size)/2.0);
+        }
+        if (eta < eta_max && eta > eta_min) {
+            for (int iy = 0; iy < arena_curr.nY(); iy++)
+            for (int ix = 0; ix < arena_curr.nX(); ix++) {
+                double e_local = arena_curr(ix, iy, ieta).epsilon;  // 1/fm^4
+                u_derivative_helper.MakedU(
+                        tau, arena_prev, arena_curr, ix, iy, ieta);
+                DumuVec a_local;
+                u_derivative_helper.calculate_Du_supmu(tau, arena_curr,
+                                                       ieta, ix, iy, a_local);
+                VorticityVec omega_local;
+                u_derivative_helper.calculate_kinetic_vorticity(
+                        tau, arena_curr, ieta, ix, iy, a_local, omega_local);
+                for (int i = 0; i < 6; i++) {
+                    omega_num[i] += e_local*omega_local[i];
+                }
+                weight += e_local;
+            }
+        }
+    }
+    of1 << scientific << setw(18) << setprecision(8)
+        << tau << "  ";
+    for (unsigned int i = 0; i < omega_num.size(); i++) {
+        of1 << omega_num[i]/(weight + small_eps) << "  ";
+    }
+    of1 << endl;
+    of1.close();
+}
+
 
 void Cell_info::load_deltaf_qmu_coeff_table(string filename) {
     std::ifstream table(filename.c_str());

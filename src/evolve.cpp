@@ -150,11 +150,20 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                             tau, 3.0, 4.0, *ap_current);
             grid_info.output_average_phase_diagram_trajectory(
                                             tau, 4.0, 5.0, *ap_current);
+            if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
+                || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
+                grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, -0.5, 0.5, tau);
+            }
+            grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, -0.5, 0.5, tau);
         }
 
         // check energy conservation
-        if (DATA.boost_invariant == 0)
+        if (DATA.boost_invariant == 0) {
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
+        }
+
         auto emax_loc = grid_info.get_maximum_energy_density(*ap_current);
         if (tau > source_tau_max && it > 0) {
             if (eps_max_cur < 0.) {
