@@ -49,7 +49,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     // in the format of a C header file
     //if (DATA.output_hydro_params_header || DATA.outputEvolutionData == 1)
     //    grid_info.Output_hydro_information_header();
-    
+
     if (DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr.set_grid_infomatioin(DATA);
     }
