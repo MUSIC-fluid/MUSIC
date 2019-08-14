@@ -36,15 +36,15 @@ class HydroSourceStrings : public HydroSourceBase {
     double string_quench_factor;
     double parton_quench_factor;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list;
-    std::vector<std::weak_ptr<QCD_string>> QCD_strings_list_current_tau;
-    std::vector<std::weak_ptr<QCD_string>> QCD_strings_remnant_list_current_tau;
-    std::vector<std::weak_ptr<QCD_string>> QCD_strings_baryon_list_current_tau;
+    std::vector<std::shared_ptr<QCD_string>> QCD_strings_list_current_tau;
+    std::vector<std::shared_ptr<QCD_string>> QCD_strings_remnant_list_current_tau;
+    std::vector<std::shared_ptr<QCD_string>> QCD_strings_baryon_list_current_tau;
 
  public:
     HydroSourceStrings() = default;
     HydroSourceStrings(const InitData &DATA_in);
     ~HydroSourceStrings();
-    
+
     //! This function reads in the spatal information of the strings
     //! and partons which are produced from the MC-Glauber-LEXUS model
     void read_in_QCD_strings_and_partons();

@@ -30,9 +30,9 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
 
     hydro_source_terms_ptr = hydro_source_ptr_in;
     flag_add_hydro_source = false;
-    if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
+    if (hydro_source_terms_ptr) {
         if (DATA.Initial_profile == 42) {
-            if (hydro_source_terms_ptr.lock()->get_number_of_sources() > 0) {
+            if (hydro_source_terms_ptr->get_number_of_sources() > 0) {
                 flag_add_hydro_source = true;
             }
         } else {
@@ -85,14 +85,15 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
-void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
-        double eta_s_local, SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta, int rk_flag) {
+void Advance::FirstRKStepT(
+        const double tau, double x_local, double y_local, double eta_s_local,
+        SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev,
+        int ix, int iy, int ieta, int rk_flag) {
     // this advances the ideal part
     double tau_rk = tau + rk_flag*(DATA.delta_tau);
-    
+
     // Solve partial_a T^{a mu} = -partial_a W^{a mu}
     // Update T^{mu nu}
-    
     // MakeDelatQI gets
     //   qi = q0 if rk_flag = 0 or
     //   qi = q0 + k1 if rk_flag = 1
@@ -101,22 +102,23 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
     // (including geometric terms)
     TJbVec qi = {0};
     MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
-    
+
     TJbVec qi_source = {0.0};
 
     if (flag_add_hydro_source) {
         EnergyFlowVec j_mu = {0};
         FlowVec u_local = arena_current(ix,iy,ieta).u;
 
-        hydro_source_terms_ptr.lock()->get_hydro_energy_source(
+        hydro_source_terms_ptr->get_hydro_energy_source(
                     tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
         for (int ii = 0; ii < 4; ii++) {
             qi_source[ii] = tau_rk*j_mu[ii];
         }
 
         if (DATA.turn_on_rhob == 1) {
-            qi_source[4] = tau_rk*hydro_source_terms_ptr.lock()->get_hydro_rhob_source(
-                            tau_rk, x_local, y_local, eta_s_local, u_local);
+            qi_source[4] = (
+                tau_rk*hydro_source_terms_ptr->get_hydro_rhob_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local));
         }
     }
 

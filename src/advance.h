@@ -17,7 +17,7 @@ class Advance {
  private:
     const InitData &DATA;
     const EOS &eos;
-    std::weak_ptr<HydroSourceBase> hydro_source_terms_ptr;
+    std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
     Diss diss_helper;
     Minmod minmod;
@@ -30,17 +30,19 @@ class Advance {
     Advance(const EOS &eosIn, const InitData &DATA_in,
             std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
 
-    void AdvanceIt(double tau_init,
-                   SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-                   int rk_flag);
+    void AdvanceIt(double tau_init, SCGrid &arena_prev, SCGrid &arena_current,
+                   SCGrid &arena_future, int rk_flag);
 
     void FirstRKStepT(const double tau, double x_local, double y_local,
-                      double eta_s_local,  SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta,
-                      int rk_flag);
+                      double eta_s_local, SCGrid &arena_current,
+                      SCGrid &arena_future, SCGrid &arena_prev,
+                      int ix, int iy, int ieta, int rk_flag);
 
-    void FirstRKStepW(double tau_it, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-                      int rk_flag, double theta_local, DumuVec &a_local,
-                      VelocityShearVec &sigma_local, DmuMuBoverTVec &baryon_diffusion_vector, int ieta, int ix, int iy);
+    void FirstRKStepW(double tau_it, SCGrid &arena_prev, SCGrid &arena_current,
+                      SCGrid &arena_future, int rk_flag, double theta_local,
+                      DumuVec &a_local, VelocityShearVec &sigma_local,
+                      DmuMuBoverTVec &baryon_diffusion_vector,
+                      int ieta, int ix, int iy);
 
     void UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt);
     void QuestRevert(double tau, Cell_small *grid_pt, int ieta, int ix, int iy);
@@ -50,7 +52,9 @@ class Advance {
     void MakeDeltaQI(double tau, SCGrid &arena_current,
                      int ix, int iy, int ieta, TJbVec &qi, int rk_flag);
     double MaxSpeed(double tau, int direc, const ReconstCell &grid_p);
-    double get_TJb(const ReconstCell &grid_p, const int rk_flag, const int mu, const int nu);
+
+    double get_TJb(const ReconstCell &grid_p, const int rk_flag,
+                   const int mu, const int nu);
     double get_TJb(const Cell_small &grid_p, const int mu, const int nu);
 };
 
