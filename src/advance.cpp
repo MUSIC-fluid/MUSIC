@@ -42,11 +42,12 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
 }
 
 //! this function evolves one Runge-Kutta step in tau
-void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
-                       SCGrid &arena_future, int rk_flag) {
-  const int grid_neta = arena_current.nEta();
-  const int grid_nx   = arena_current.nX();
-  const int grid_ny   = arena_current.nY();
+void Advance::AdvanceIt(const double tau,
+                        SCGrid &arena_prev, SCGrid &arena_current,
+                        SCGrid &arena_future, const int rk_flag) {
+    const int grid_neta = arena_current.nEta();
+    const int grid_nx   = arena_current.nX();
+    const int grid_ny   = arena_current.nY();
 
     #pragma omp parallel for collapse(3) schedule(guided)
     for (int ieta = 0; ieta < grid_neta; ieta++)
@@ -69,15 +70,20 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
             DumuVec a_local;
             u_derivative_helper.calculate_Du_supmu(tau, arena_current,
                                                    ieta, ix, iy, a_local);
+
             VelocityShearVec sigma_local;
             u_derivative_helper.calculate_velocity_shear_tensor(
-                        tau, arena_current, ieta, ix, iy, a_local, sigma_local);
+                    tau, arena_current, ieta, ix, iy, a_local, sigma_local);
+
+            VorticityVec omega_local;
+            u_derivative_helper.calculate_kinetic_vorticity(
+                    tau, arena_current, ieta, ix, iy, a_local, omega_local);
 
             DmuMuBoverTVec baryon_diffusion_vector;
             u_derivative_helper.get_DmuMuBoverTVec(baryon_diffusion_vector);
 
-            FirstRKStepW(tau,  arena_prev, arena_current, arena_future, rk_flag,
-                         theta_local, a_local, sigma_local,
+            FirstRKStepW(tau, arena_prev, arena_current, arena_future, rk_flag,
+                         theta_local, a_local, sigma_local, omega_local,
                          baryon_diffusion_vector, ieta, ix, iy);
         }
     }
@@ -88,7 +94,7 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
 void Advance::FirstRKStepT(
         const double tau, double x_local, double y_local, double eta_s_local,
         SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev,
-        int ix, int iy, int ieta, int rk_flag) {
+        const int ix, const int iy, const int ieta, const int rk_flag) {
     // this advances the ideal part
     double tau_rk = tau + rk_flag*(DATA.delta_tau);
 
@@ -147,7 +153,7 @@ void Advance::FirstRKStepT(
         qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
         qi[alpha] *= 1./(1. + rk_flag);
     }
- 
+
     double tau_next = tau + DATA.delta_tau;
     auto grid_rk_t = reconst_helper.ReconstIt_shell(
                                 tau_next, qi, arena_current(ix, iy, ieta)); 
@@ -155,11 +161,15 @@ void Advance::FirstRKStepT(
 }
 
 
-void Advance::FirstRKStepW(
-    double tau, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-    int rk_flag, double theta_local, DumuVec &a_local,
-    VelocityShearVec &sigma_local, DmuMuBoverTVec &baryon_diffusion_vector,
-    int ieta, int ix, int iy) {
+void Advance::FirstRKStepW(const double tau, SCGrid &arena_prev,
+                           SCGrid &arena_current, SCGrid &arena_future,
+                           const int rk_flag, const double theta_local,
+                           const DumuVec &a_local,
+                           const VelocityShearVec &sigma_local,
+                           const VorticityVec &omega_local,
+                           const DmuMuBoverTVec &baryon_diffusion_vector,
+                           const int ieta, const int ix, const int iy) {
+
     auto grid_pt_prev = &(arena_prev(ix, iy, ieta));
     auto grid_pt_c = &(arena_current(ix, iy, ieta));
     auto grid_pt_f = &(arena_future(ix, iy, ieta));
@@ -184,11 +194,13 @@ void Advance::FirstRKStepW(
             map_1d_idx_to_2d(idx_1d, mu, nu);
             diss_helper.Make_uWRHS(tau_now, arena_current, ix, iy, ieta,
                                    mu, nu, w_rhs, theta_local, a_local);
-            tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
-                     + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
+            tempf = (
+                  (1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
+                + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0])
+            );
             temps = diss_helper.Make_uWSource(
                     tau_now, grid_pt_c, grid_pt_prev, mu, nu, rk_flag,
-                    theta_local, a_local, sigma_local);
+                    theta_local, a_local, sigma_local, omega_local);
             tempf += temps*(DATA.delta_tau);
             tempf += w_rhs;
             tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
@@ -230,7 +242,7 @@ void Advance::FirstRKStepW(
                      + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
             temps = diss_helper.Make_uqSource(
                         tau_now, grid_pt_c, grid_pt_prev, nu, rk_flag,
-                        theta_local, a_local, sigma_local,
+                        theta_local, a_local, sigma_local, omega_local,
                         baryon_diffusion_vector);
             tempf += temps*(DATA.delta_tau);
             tempf += w_rhs;
@@ -301,8 +313,8 @@ void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {
 
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
-void Advance::QuestRevert(double tau, Cell_small *grid_pt,
-                          int ieta, int ix, int iy) {
+void Advance::QuestRevert(const double tau, Cell_small *grid_pt,
+                          const int ieta, const int ix, const int iy) {
     double eps_scale = 0.1;   // 1/fm^4
     double e_local   = grid_pt->epsilon;
     double rhob      = grid_pt->rhob;
@@ -374,8 +386,8 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
 
 //! this function reduce the size of net baryon diffusion current
 //! in the dilute region to stablize numerical simulations
-void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
-                              int ieta, int ix, int iy) {
+void Advance::QuestRevert_qmu(const double tau, Cell_small *grid_pt,
+                              const int ieta, const int ix, const int iy) {
     double eps_scale = 0.1;   // in 1/fm^4
 
     double xi = 0.05;
@@ -434,7 +446,9 @@ void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
 
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
+void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
+                          const int ix, const int iy, const int ieta,
+                          TJbVec &qi, const int rk_flag) {
     double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
     double tau_fac[4] = {0.0, tau, tau, 1.0};
 
@@ -509,7 +523,8 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
 }
 
 // determine the maximum signal propagation speed at the given direction
-double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {  
+double Advance::MaxSpeed(const double tau, const int direc,
+                         const ReconstCell &grid_p) {
     double g[] = {1., 1., 1./tau};
 
     double utau    = grid_p.u[0];

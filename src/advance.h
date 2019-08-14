@@ -33,16 +33,20 @@ class Advance {
     void AdvanceIt(double tau_init, SCGrid &arena_prev, SCGrid &arena_current,
                    SCGrid &arena_future, int rk_flag);
 
-    void FirstRKStepT(const double tau, double x_local, double y_local,
-                      double eta_s_local, SCGrid &arena_current,
-                      SCGrid &arena_future, SCGrid &arena_prev,
-                      int ix, int iy, int ieta, int rk_flag);
+    void FirstRKStepT(const double tau, const double x_local,
+                      const double y_local, const double eta_s_local,
+                      SCGrid &arena_current, SCGrid &arena_future,
+                      SCGrid &arena_prev, const int ix, const int iy,
+                      const int ieta, const int rk_flag);
 
-    void FirstRKStepW(double tau_it, SCGrid &arena_prev, SCGrid &arena_current,
-                      SCGrid &arena_future, int rk_flag, double theta_local,
-                      DumuVec &a_local, VelocityShearVec &sigma_local,
-                      DmuMuBoverTVec &baryon_diffusion_vector,
-                      int ieta, int ix, int iy);
+    void FirstRKStepW(const double tau_it, SCGrid &arena_prev,
+                      SCGrid &arena_current, SCGrid &arena_future,
+                      const int rk_flag, const double theta_local,
+                      const DumuVec &a_local,
+                      const VelocityShearVec &sigma_local,
+                      const VorticityVec &omega_local,
+                      const DmuMuBoverTVec &baryon_diffusion_vector,
+                      const int ieta, const int ix, const int iy);
 
     void UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt);
     void QuestRevert(double tau, Cell_small *grid_pt, int ieta, int ix, int iy);

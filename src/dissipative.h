@@ -23,40 +23,50 @@ class Diss {
                                             {10, 11, 12, 13}};
         return index_map[a][b];
     }
-    
+
     pretty_ostream music_message;
 
  public:
     Diss(const EOS &eosIn, const InitData &DATA_in);
-    double MakeWSource(double tau, int alpha,
+    double MakeWSource(const double tau, const int alpha,
                        SCGrid &arena_current, SCGrid &arena_prev,
-                       int ix, int iy, int ieta);
+                       const int ix, const int iy, const int ieta);
 
-    int Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                   std::array< std::array<double,4>, 5> &w_rhs,
-                   double theta_local, DumuVec &a_local);
-    double Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
-                         int mu, int nu, int rk_flag, double theta_local,
-                         DumuVec &a_local, VelocityShearVec &sigma_1d);
+    double Make_uWSource(const double tau, const Cell_small *grid_pt,
+                         const Cell_small *grid_pt_prev,
+                         const int mu, const int nu, const int rk_flag,
+                         const double theta_local, const DumuVec &a_local,
+                         const VelocityShearVec &sigma_1d,
+                         const VorticityVec &omega_1d);
 
-    int Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                   int mu, int nu, double &w_rhs,
-                   double theta_local, DumuVec &a_local);
+    int Make_uWRHS(const double tau, SCGrid &arena,
+                   const int ix, const int iy, const int ieta,
+                   const int mu, const int nu, double &w_rhs,
+                   const double theta_local, const DumuVec &a_local);
 
-    int Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                   double *p_rhs, double theta_local);
-    double Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
-                          int rk_flag, double theta_local, VelocityShearVec &sigma_1d);
+    int Make_uPRHS(const double tau, SCGrid &arena,
+                   const int ix, const int iy, const int ieta,
+                   double *p_rhs, const double theta_local);
 
-    double Make_uqRHS(double tau, SCGrid &arena_current, int ix, int iy, int ieta,
-                      int mu, int nu);
-    double Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu,
-                         int rk_flag, double theta_local, DumuVec &a_local,
-                         VelocityShearVec &sigma_1d,
-                         DmuMuBoverTVec &baryon_diffusion_vec);
+    double Make_uPiSource(const double tau, const Cell_small *grid_pt,
+                          const Cell_small *grid_pt_prev, const int rk_flag,
+                          const double theta_local,
+                          const VelocityShearVec &sigma_1d);
 
-    double get_temperature_dependent_eta_s(double T);
-    double get_temperature_dependent_zeta_s(double temperature);
+    double Make_uqRHS(const double tau, SCGrid &arena_current,
+                      const int ix, const int iy, const int ieta,
+                      const int mu, const int nu);
+
+    double Make_uqSource(const double tau, const Cell_small *grid_pt,
+                         const Cell_small *grid_pt_prev,
+                         const int nu, const int rk_flag,
+                         const double theta_local, const DumuVec &a_local,
+                         const VelocityShearVec &sigma_1d,
+                         const VorticityVec &omega_1d,
+                         const DmuMuBoverTVec &baryon_diffusion_vec);
+
+    double get_temperature_dependent_eta_s(const double T) const;
+    double get_temperature_dependent_zeta_s(const double temperature) const;
 
     void output_kappa_T_and_muB_dependence();
     void output_kappa_along_const_sovernB();

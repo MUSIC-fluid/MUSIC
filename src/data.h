@@ -11,13 +11,13 @@
 
 //! This is a data structure contains all the parameters for simulation
 typedef struct init_data {
-  
+
     std::array<std::array<double, 4>, 4> gmunu = 
       {{{-1,0,0,0},
         { 0,1,0,0},
         { 0,0,1,0},
         { 0,0,0,1}}};
-        
+
     int echo_level;
     int mode;               //!< 1: do everything;
     //!< 2: do hydro evolution only;
@@ -112,6 +112,9 @@ typedef struct init_data {
 
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
+    
+    //! flag to include vorticity coupling terms in shear and diffusion
+    int include_vorticity_terms;
 
     //! coefficient related to the net baryon diff.
     double kappa_coefficient;

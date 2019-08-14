@@ -99,6 +99,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
     } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
         DATA.tau0 = (hydro_source_terms_ptr.lock()->get_source_tau_min()
                      - DATA.delta_tau);
+        DATA.tau0 = static_cast<int>(DATA.tau0/0.02)*0.02;
         DATA.tau0 = std::max(0.1, DATA.tau0);
     } else if (DATA.Initial_profile == 30) {
         DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
