@@ -306,7 +306,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
                             + Wmunu[mu][3]*Wmunu[nu][3]);
         double term2_WW = (-(1./3.)*(DATA.gmunu[mu][nu]
                                      + grid_pt->u[mu]*grid_pt->u[nu])*Wsquare);
-        
+
         // multiply term by its respective transport coefficient
         term1_WW = term1_WW*transport_coefficient;
         term2_WW = term2_WW*transport_coefficient;
@@ -378,120 +378,119 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 
     // pi^\mu\nu is symmetric
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
-      for (int mu = 1; mu < 4; mu++) {
-        #pragma omp simd
-        for (int nu = 0; nu < 4; nu++) {
-          int idx_1d = map_2d_idx_to_1d(mu, nu);
-          double sum = 0.0;
-          /* Get_uWmns */
-          double g = c.Wmunu[idx_1d];
-          double f = g*c.u[direction];
-          g *=   c.u[0];
+        for (int mu = 1; mu < 4; mu++) {
+            for (int nu = 0; nu < 4; nu++) {
+                int idx_1d = map_2d_idx_to_1d(mu, nu);
+                double sum = 0.0;
+                /* Get_uWmns */
+                double g = c.Wmunu[idx_1d];
+                double f = g*c.u[direction];
+                g *=   c.u[0];
 
-          double gp2 = p2.Wmunu[idx_1d];
-          double fp2 = gp2*p2.u[direction];
-          gp2 *= p2.u[0];
+                double gp2 = p2.Wmunu[idx_1d];
+                double fp2 = gp2*p2.u[direction];
+                gp2 *= p2.u[0];
 
-          double gp1 = p1.Wmunu[idx_1d];
-          double fp1 = gp1*p1.u[direction];
-          gp1 *= p1.u[0];
+                double gp1 = p1.Wmunu[idx_1d];
+                double fp1 = gp1*p1.u[direction];
+                gp1 *= p1.u[0];
 
-          double gm1 = m1.Wmunu[idx_1d];
-          double fm1 = gm1*m1.u[direction];
-          gm1 *= m1.u[0];
+                double gm1 = m1.Wmunu[idx_1d];
+                double fm1 = gm1*m1.u[direction];
+                gm1 *= m1.u[0];
 
-          double gm2 = m2.Wmunu[idx_1d];
-          double fm2 = gm2*m2.u[direction];
-          gm2 *= m2.u[0];
+                double gm2 = m2.Wmunu[idx_1d];
+                double fm2 = gm2*m2.u[direction];
+                gm2 *= m2.u[0];
 
-          /* MakeuWmnHalfs */
-          /* uWmn */
-          double uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f);
-          double temp  = 0.5*minmod.minmod_dx(fp1, f, fm1);
-          double uWphL = f + temp;
-          double uWmhR = f - temp;
-          double uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
+                /* MakeuWmnHalfs */
+                /* uWmn */
+                double uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f);
+                double temp  = 0.5*minmod.minmod_dx(fp1, f, fm1);
+                double uWphL = f + temp;
+                double uWmhR = f - temp;
+                double uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
 
-          /* just Wmn */
-          double WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g);
-          temp        = 0.5*minmod.minmod_dx(gp1, g, gm1);
-          double WphL = g + temp;
-          double WmhR = g - temp;
-          double WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
+                /* just Wmn */
+                double WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g);
+                temp        = 0.5*minmod.minmod_dx(gp1, g, gm1);
+                double WphL = g + temp;
+                double WmhR = g - temp;
+                double WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
 
-          double a   = fabs(c.u[direction])/c.u[0];
-          double am1 = (fabs(m1.u[direction])/m1.u[0]);
-          double ap1 = (fabs(p1.u[direction])/p1.u[0]);
+                double a   = fabs(c.u[direction])/c.u[0];
+                double am1 = (fabs(m1.u[direction])/m1.u[0]);
+                double ap1 = (fabs(p1.u[direction])/p1.u[0]);
 
-          double ax = std::max(a, ap1);
-          double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
+                double ax = std::max(a, ap1);
+                double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
 
-          ax = std::max(a, am1);
-          double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
+                ax = std::max(a, am1);
+                double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
 
-          double HW = (HWph - HWmh)/delta[direction];
+                double HW = (HWph - HWmh)/delta[direction];
 
-          /* make partial_i (u^i Wmn) */
-          sum += -HW;
+                /* make partial_i (u^i Wmn) */
+                sum += -HW;
 
-          w_rhs[mu][nu] += sum*delta_tau;
-        }  /* nu */
-      }  /* mu */
+                w_rhs[mu][nu] += sum*delta_tau;
+            }  /* nu */
+        }  /* mu */
     });
 
-  for (int mu = 1; mu < 4; mu++) {
-    #pragma omp simd
-    for (int nu = 0; nu < 4; nu++) {
-      /* add a source term -u^tau Wmn/tau
-         due to the coordinate change to tau-eta */
-      /* this is from udW = d(uW) - Wdu = RHS */
-      /* or d(uW) = udW + Wdu */
-      /* this term is being added to the rhs so that -4/3 + 1 = -1/3 */
-      /* other source terms due to the coordinate change to tau-eta */
+    for (int mu = 1; mu < 4; mu++) {
+        for (int nu = 0; nu < 4; nu++) {
+            /* add a source term -u^tau Wmn/tau
+               due to the coordinate change to tau-eta */
+            /* this is from udW = d(uW) - Wdu = RHS */
+            /* or d(uW) = udW + Wdu */
+            /* this term is being added to the rhs so that -4/3 + 1 = -1/3 */
+            /* other source terms due to the coordinate change to tau-eta */
 
-      // align gmunu in data for faster access - also changed **gmunu in data to gmunu[4][4]
-      // moved two sums into w_rhs at top and bottom into one sum in the end
-      // do not symmetrize in the end, just go through all nu's
-      // vectorized innermost loop more efficiently by iterating over 4 indices instead of 3 to avoid masking
+            // align gmunu in data for faster access - also changed **gmunu in data to gmunu[4][4]
+            // moved two sums into w_rhs at top and bottom into one sum in the end
+            // do not symmetrize in the end, just go through all nu's
+            // vectorized innermost loop more efficiently by iterating over 4 indices instead of 3 to avoid masking
 
-      double tempf = (
-          //   - (((init_data*)(&mydata))->gmunu[3][mu])*(Wmunu_local[0][nu]) //TODO: Ask Bjorn about this
-         - (DATAaligned->gmunu[3][mu])*(Wmunu_local[0][nu])
-         - (DATAaligned->gmunu[3][nu])*(Wmunu_local[0][mu])
-         + (DATAaligned->gmunu[0][mu])*(Wmunu_local[3][nu])
-         + (DATAaligned->gmunu[0][nu])*(Wmunu_local[3][mu])
-         + (Wmunu_local[3][nu])
-         *(grid_pt.u[mu])*(grid_pt.u[0])
-         + (Wmunu_local[3][mu])
-         *(grid_pt.u[nu])*(grid_pt.u[0])
-         - (Wmunu_local[0][nu])
-         *(grid_pt.u[mu])*(grid_pt.u[3])
-         - (Wmunu_local[0][mu])
-         *(grid_pt.u[nu])*(grid_pt.u[3]))
-        *(grid_pt.u[3]/tau);
+            double tempf = (
+                //   - (((init_data*)(&mydata))->gmunu[3][mu])*(Wmunu_local[0][nu]) //TODO: Ask Bjorn about this
+               - (DATAaligned->gmunu[3][mu])*(Wmunu_local[0][nu])
+               - (DATAaligned->gmunu[3][nu])*(Wmunu_local[0][mu])
+               + (DATAaligned->gmunu[0][mu])*(Wmunu_local[3][nu])
+               + (DATAaligned->gmunu[0][nu])*(Wmunu_local[3][mu])
+               + (Wmunu_local[3][nu])
+               *(grid_pt.u[mu])*(grid_pt.u[0])
+               + (Wmunu_local[3][mu])
+               *(grid_pt.u[nu])*(grid_pt.u[0])
+               - (Wmunu_local[0][nu])
+               *(grid_pt.u[mu])*(grid_pt.u[3])
+               - (Wmunu_local[0][mu])
+               *(grid_pt.u[nu])*(grid_pt.u[3]))
+              *(grid_pt.u[3]/tau);
 
-      for (int ic = 0; ic < 4; ic++) {
-        const double ic_fac = (ic == 0 ? -1.0 : 1.0);
-        tempf += (
-            (Wmunu_local[ic][nu])*(grid_pt.u[mu])
-            *(a_local[ic])*ic_fac
-            + (Wmunu_local[ic][mu])*(grid_pt.u[nu])
-            *(a_local[ic])*ic_fac);
-      }
+            for (int ic = 0; ic < 4; ic++) {
+              const double ic_fac = (ic == 0 ? -1.0 : 1.0);
+              tempf += (
+                  (Wmunu_local[ic][nu])*(grid_pt.u[mu])
+                  *(a_local[ic])*ic_fac
+                  + (Wmunu_local[ic][mu])*(grid_pt.u[nu])
+                  *(a_local[ic])*ic_fac);
+            }
 
-      w_rhs[mu][nu] += tempf*(DATAaligned->delta_tau)
-        + (- (grid_pt.u[0]*Wmunu_local[mu][nu])/tau + (theta_local*Wmunu_local[mu][nu]))*(DATAaligned->delta_tau);
+            w_rhs[mu][nu] += (tempf*(DATAaligned->delta_tau)
+                              + (- (grid_pt.u[0]*Wmunu_local[mu][nu])/tau
+                                 + (theta_local*Wmunu_local[mu][nu]))
+                                *(DATAaligned->delta_tau));
+        }
     }
-    //     w_rhs[mu][0] = savew_rhs; //TODO: Ask Bjorn
-  }
-  // // pi^\mu\nu is symmetric
-  // for (int mu = 1; mu < 4; mu++) {
-  //   for (int nu = mu+1; nu < 4; nu++) {
-  //  w_rhs[nu][mu] = w_rhs[mu][nu];
-  //    }
-  // }
+    // // pi^\mu\nu is symmetric
+    // for (int mu = 1; mu < 4; mu++) {
+    //   for (int nu = mu+1; nu < 4; nu++) {
+    //  w_rhs[nu][mu] = w_rhs[mu][nu];
+    //    }
+    // }
 
-  return(1);
+    return(1);
 }
 
 
@@ -802,7 +801,7 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
 
     if (include_coupling_to_shear == 1) {
         auto sigma = Util::UnpackVecToMatrix(sigma_1d);
-	    auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu);
+        auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu);
 
         Wsigma = (  Wmunu[0][0]*sigma[0][0]
                   + Wmunu[1][1]*sigma[1][1]
@@ -834,7 +833,7 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     } else {
         Coupling_to_Shear = 0.0;
     }
-        
+
     // Final Answer
     Final_Answer = NS_term + tempf + BB_term + Coupling_to_Shear;
 
@@ -1074,7 +1073,7 @@ double Diss::get_temperature_dependent_zeta_s(double temperature) {
         double A1=-13.77, A2=27.55, A3=13.45;
         double lambda1=0.9, lambda2=0.25, lambda3=0.9, lambda4=0.22;
         double sigma1=0.025, sigma2=0.13, sigma3=0.0025, sigma4=0.022;
- 
+
         bulk = A1*dummy*dummy + A2*dummy - A3;
         if (temperature < 0.995*Ttr) {
             bulk = (lambda3*exp((dummy-1)/sigma3)
@@ -1111,7 +1110,7 @@ double Diss::get_temperature_dependent_zeta_s(double temperature) {
         double dummy=temperature/Ttr;
         double lambda3=0.9, lambda4=0.22;
         double sigma3=0.0025, sigma4=0.022;
-        
+
         if (temperature<0.99945*Ttr) {
             bulk = (lambda3*exp((dummy-1)/sigma3)
                     + lambda4*exp((dummy-1)/sigma4) + 0.03);
@@ -1120,15 +1119,15 @@ double Diss::get_temperature_dependent_zeta_s(double temperature) {
             bulk = 0.901*exp(14.5*(1.0-dummy)) + 0.061/dummy/dummy;
         }
     } else if (DATA.T_dependent_zeta_over_s == 7) {
-        double B_norm = 0.24;                                                       
-        double B_width = 1.5;                                                       
-        double Tpeak = 0.165/hbarc;                                                 
-        double Ttilde = (temperature/Tpeak - 1.)/B_width;                           
-        bulk = B_norm/(Ttilde*Ttilde + 1.);                                  
-        if (temperature < Tpeak) {                                                  
-            double Tdiff = (temperature - Tpeak)/(0.01/hbarc);                      
-            bulk = B_norm*exp(-Tdiff*Tdiff);                                        
-        }   
+        double B_norm = 0.24;
+        double B_width = 1.5;
+        double Tpeak = 0.165/hbarc;
+        double Ttilde = (temperature/Tpeak - 1.)/B_width;
+        bulk = B_norm/(Ttilde*Ttilde + 1.);
+        if (temperature < Tpeak) {
+            double Tdiff = (temperature - Tpeak)/(0.01/hbarc);
+            bulk = B_norm*exp(-Tdiff*Tdiff);
+        }
     }
     return(bulk);
 }

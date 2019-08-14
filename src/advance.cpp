@@ -177,7 +177,6 @@ void Advance::FirstRKStepW(
     /* Advance uWmunu */
     double tempf, temps;
     if (DATA.turn_on_shear == 1) {
-        #pragma omp simd
         for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
             double w_rhs = 0.;
             int mu = 0;
@@ -197,7 +196,6 @@ void Advance::FirstRKStepW(
             grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
         }
     } else {
-        #pragma omp simd
         for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
             grid_pt_f->Wmunu[idx_1d] = 0.0;
         }
@@ -224,7 +222,6 @@ void Advance::FirstRKStepW(
     // CShen: add source term for baryon diffusion
     if (DATA.turn_on_diff == 1) {
         int mu = 4;
-        #pragma omp simd
         for (int idx_1d = 11; idx_1d < 14; idx_1d++) {
             int nu = idx_1d - 10;
             double w_rhs = diss_helper.Make_uqRHS(
@@ -244,7 +241,6 @@ void Advance::FirstRKStepW(
             grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
         }
     } else {
-        #pragma omp simd
         for (int idx_1d = 10; idx_1d < 14; idx_1d++) {
             grid_pt_f->Wmunu[idx_1d] = 0.0;
         }
@@ -441,20 +437,19 @@ void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
 void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
     double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
     double tau_fac[4] = {0.0, tau, tau, 1.0};
-  
+
     double rhs[5];
     for (int alpha = 0; alpha < 5; alpha++) {
         qi[alpha] = get_TJb(arena_current(ix, iy, ieta), alpha, 0)*tau;
         rhs[alpha] = 0.0; 
     }
-  
+
     TJbVec qiphL = {0};
     TJbVec qiphR = {0};
     TJbVec qimhL = {0};
     TJbVec qimhR = {0};
-  
+
     Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
-        #pragma omp simd
         for (int alpha = 0; alpha < 5; alpha++) {
             const double gphL = qi[alpha];
             const double gphR = tau*get_TJb(p1, alpha, 0);
@@ -487,7 +482,6 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
         double aiph = std::max(aiphL, aiphR);
         double aimh = std::max(aimhL, aimhR);
 
-        #pragma omp simd
         for (int alpha = 0; alpha < 5; alpha++) {
             double FiphL = get_TJb(grid_phL, 0, alpha, direction)*tau_fac[direction];
             double FiphR = get_TJb(grid_phR, 0, alpha, direction)*tau_fac[direction];
@@ -509,7 +503,6 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
     rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
     rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
 
-    #pragma omp simd
     for (int i = 0; i < 5; i++) {
         qi[i] += rhs[i];
     }
