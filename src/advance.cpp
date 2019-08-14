@@ -92,7 +92,8 @@ void Advance::AdvanceIt(const double tau,
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 void Advance::FirstRKStepT(
-        const double tau, double x_local, double y_local, double eta_s_local,
+        const double tau, const double x_local, const double y_local,
+        const double eta_s_local,
         SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev,
         const int ix, const int iy, const int ieta, const int rk_flag) {
     // this advances the ideal part
