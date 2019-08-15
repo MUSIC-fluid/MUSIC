@@ -971,6 +971,18 @@ double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
             double Tdiff = (temperature - Tpeak)/(0.01/hbarc);
             bulk = B_norm*exp(-Tdiff*Tdiff);
         }
+    } else if (DATA.T_dependent_zeta_over_s == 8) {
+        double B_norm = 0.25;
+        double B_width = 0.05/hbarc;
+        double B_skew = 0.8;
+        double Tpeak = 0.165/hbarc;
+        double Tdiff = temperature - Tpeak;
+        if (Tdiff > 0.) {
+            Tdiff = Tdiff/(B_width*(1. + B_skew));
+        } else {
+            Tdiff = Tdiff/(B_width*(1. - B_skew));
+        }
+        bulk = B_norm*exp(-Tdiff*Tdiff);
     }
     return(bulk);
 }
