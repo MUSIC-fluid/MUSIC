@@ -2,6 +2,7 @@
 #include <string>
 #include <iomanip>
 #include <cmath>
+#include <vector>
 
 #include "./util.h"
 #include "./grid_info.h"
@@ -1252,6 +1253,17 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     } else {
         of.open(filename.str().c_str(), std::fstream::app);
     }
+    
+    ostringstream filename1;
+    filename1 << "eccentricities_evo_eta_" << eta_min
+              << "_" << eta_max << ".dat";
+    std::fstream of1;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of1.open(filename1.str().c_str(), std::fstream::out);
+        of1 << "# tau(fm)  ecc_1  ecc_2  ecc_3  ecc_4  ecc_5  ecc_6"<< endl;
+    } else {
+        of1.open(filename1.str().c_str(), std::fstream::app);
+    }
 
     double ideal_num1 = 0.0;
     double ideal_num2 = 0.0;
@@ -1274,6 +1286,11 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double u_perp_den = 0.0;
     double T_avg_num  = 0.0;
     double T_avg_den  = 0.0;
+    
+    const int norder = 6;
+    std::vector<double> eccn_num1(norder, 0.0);
+    std::vector<double> eccn_num2(norder, 0.0);
+    std::vector<double> eccn_den (norder, 0.0);
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
         if (DATA.boost_invariant == 0) {
@@ -1347,6 +1364,16 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 u_perp_den += weight_local;
                 T_avg_num  += weight_local*T_local;
                 T_avg_den  += weight_local;
+                
+                for (int i = 1; i <= norder; i++) {
+                    if (i == 1)
+                        weight_local = gamma_perp*e_local*pow(r_local, 3);
+                    else 
+                        weight_local = gamma_perp*e_local*pow(r_local, i);
+                    eccn_num1[i-1] += weight_local*cos(i*phi_local);
+                    eccn_num2[i-1] += weight_local*sin(i*phi_local);
+                    eccn_den [i-1] += weight_local;
+                }
             }
         }
     }
@@ -1364,4 +1391,262 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
        << ecc2 << "  " << ecc3 << "  " << R_Pi << "  " << u_avg << "  "
        << T_avg << endl;
     of.close();
+    
+    of1 << scientific << setw(18) << setprecision(8)
+        << tau << "  ";
+    for (int i = 0; i < norder; i++) {
+        double eccn = sqrt(  eccn_num1[i]*eccn_num1[i]
+                           + eccn_num2[i]*eccn_num2[i])/eccn_den[i];
+        of1 << eccn << "  ";
+    }
+    of1 << endl;
+    of1.close();
+}
+
+#include <complex> 
+void Cell_info::output_2D_eccentricities(int ieta, SCGrid &arena) {
+    
+    int zmax = 6;
+    std::complex<double>     eps[zmax][zmax] = {{0.0}}; // moment <z^j z*^k> =  <r^(j+k) e^{i(j-k) phi}>
+    std::complex<double>    epsU[zmax][zmax] = {{0.0}}; // same but using momentum density as weight U = T^0x + i T^0y
+    std::complex<double> epsUbar[zmax][zmax] = {{0.0}}; //
+    std::complex<double>    epsC[zmax][zmax] = {{0.0}}; //
+    std::complex<double> epsCbar[zmax][zmax] = {{0.0}}; //
+    std::complex<double>    epsT[zmax][zmax] = {{0.0}}; //
+    std::complex<double>    epsS[zmax][zmax] = {{0.0}}; // using entropy density as weight
+    for(int ix = 0; ix < arena.nX(); ix++) {
+     double x = DATA.delta_x*(ix*2.0 - arena.nX())/2.0;
+     for(int iy = 0; iy < arena.nY(); iy++) {
+        double y = DATA.delta_y*(iy*2.0 - arena.nY())/2.0;
+        std::complex<double> z (x,y);
+        std::complex<double> zbar = conj(z);
+        
+        double e    = arena(ix,iy,ieta).epsilon;
+        double rhob = arena(ix,iy,ieta).rhob;
+        double p    = eos.get_pressure(e,rhob);
+        double pi_b = arena(ix,iy,ieta).pi_b;
+        double u[4];
+        for(int i = 0; i<4; i++){
+           u[i] = arena(ix,iy,ieta).u[i];
+        }
+        double Wmunu[10];
+        for(int j = 0; j<10; j++){
+           Wmunu[j] = arena(ix,iy,ieta).Wmunu[j];
+        }
+        
+        double pi00 = Wmunu[0]; 
+        double  T00 = (e+p+pi_b)*u[0]*u[0] - (p+pi_b) + pi00; // T^{tau tau}
+        double pi0x = Wmunu[1];
+        double pi0y = Wmunu[2];
+        double  T0x = (e+p+pi_b)*u[0]*u[1] + pi0x; // T^{tau x}
+        double  T0y = (e+p+pi_b)*u[0]*u[2] + pi0y;
+        double pixx = Wmunu[4];
+        double  Txx = (e+p+pi_b)*u[1]*u[1] + (p+pi_b) + pixx; //T^{xx}
+        double piyy = Wmunu[7];
+        double  Tyy = (e+p+pi_b)*u[2]*u[2] + (p+pi_b) + piyy; //T^{yy}
+        double pixy = Wmunu[5];
+        double  Txy = (e+p+pi_b)*u[1]*u[2] + pixy; //T^{xy}
+        
+        std::complex<double> U (T0x,T0y);
+        std::complex<double> C ((Txx-Tyy)/2,Txy);
+        double T = (Txx+Tyy)/2;
+        double s = eos.get_entropy(e, rhob);
+        
+        for(int j=0; j < zmax; j++) {
+         for(int k=0; k < zmax; k++) {
+            std::complex<double> powz, powzbar;
+            if(abs(z) == 0.0) // pow() doesn't work nicely with a vanishing complex number
+            { 
+              powz    = 0.0;
+              powzbar = 0.0;
+            } 
+            else
+            { 
+              powz    = std::pow(z   ,j);
+              powzbar = std::pow(zbar,k);
+            }
+            std::complex<double> powz_powzbar=powz*powzbar;
+            
+                eps[j][k] +=      T00*powz_powzbar;
+               epsU[j][k] +=       -U*powz_powzbar;
+            epsUbar[j][k] += -conj(U)*powz_powzbar;
+               epsC[j][k] +=       -C*powz_powzbar;
+            epsCbar[j][k] += -conj(C)*powz_powzbar;
+               epsT[j][k] +=       -T*powz_powzbar;
+               epsS[j][k] +=        s*powz_powzbar;
+         }
+        }
+     }
+    }
+    
+    //////////////////////////////////////////////
+    // Note: 
+    // Multiplication by dx*dy will be done after
+    // r^3 and r^5 contributions are calculated 
+    // below.
+    //////////////////////////////////////////////
+    std::complex<double>     eps_r3 = 0.0; // moment <r^3> 
+    std::complex<double>    epsU_r3 = 0.0; // same but using momentum density as weight U = T^0x + i T^0y
+    std::complex<double> epsUbar_r3 = 0.0; //
+    std::complex<double>    epsC_r3 = 0.0; //
+    std::complex<double> epsCbar_r3 = 0.0; //
+    std::complex<double>    epsT_r3 = 0.0; //
+    std::complex<double>    epsS_r3 = 0.0; // using entropy density as weight
+    
+    std::complex<double>     eps_r5 = 0.0; // moment <r^5>
+    std::complex<double>    epsU_r5 = 0.0; // same but using momentum density as weight U = T^0x + i T^0y
+    std::complex<double> epsUbar_r5 = 0.0; //
+    std::complex<double>    epsC_r5 = 0.0; //
+    std::complex<double> epsCbar_r5 = 0.0; //
+    std::complex<double>    epsT_r5 = 0.0; //
+    std::complex<double>    epsS_r5 = 0.0; // using entropy density as weight
+    
+    for(int ix = 0; ix < arena.nX(); ix++) {
+     double x = DATA.delta_x*(ix*2.0 - arena.nX())/2.0;
+     for(int iy = 0; iy < arena.nY(); iy++) {
+        double y = DATA.delta_y*(iy*2.0 - arena.nY())/2.0;
+        std::complex<double> z (x,y);
+        
+        double e    = arena(ix,iy,ieta).epsilon;
+        double rhob = arena(ix,iy,ieta).rhob;
+        double p    = eos.get_pressure(e,rhob);
+        double pi_b = arena(ix,iy,ieta).pi_b;
+        double u[4];
+        for(int i = 0; i<4; i++){
+           u[i] = arena(ix,iy,ieta).u[i];
+        }
+        double Wmunu[10];
+        for(int j = 0; j<10; j++){
+           Wmunu[j] = arena(ix,iy,ieta).Wmunu[j];
+        }
+        
+        double pi00 = Wmunu[0]; 
+        double  T00 = (e+p+pi_b)*u[0]*u[0] - (p+pi_b) + pi00; // T^{tau tau}
+        double pi0x = Wmunu[1];
+        double pi0y = Wmunu[2];
+        double  T0x = (e+p+pi_b)*u[0]*u[1] + pi0x; // T^{tau x}
+        double  T0y = (e+p+pi_b)*u[0]*u[2] + pi0y;
+        double pixx = Wmunu[4];
+        double  Txx = (e+p+pi_b)*u[1]*u[1] + (p+pi_b) + pixx; //T^{xx}
+        double piyy = Wmunu[7];
+        double  Tyy = (e+p+pi_b)*u[2]*u[2] + (p+pi_b) + piyy; //T^{yy}
+        double pixy = Wmunu[5];
+        double  Txy = (e+p+pi_b)*u[1]*u[2] + pixy; //T^{xy}
+        
+        std::complex<double> U (T0x,T0y);
+        std::complex<double> C ((Txx-Tyy)/2,Txy);
+        double T = (Txx+Tyy)/2;
+        double s = eos.get_entropy(e, rhob);
+            
+            eps_r3 +=      T00*std::pow(std::abs(z - (    eps[1][0]/ eps[0][0])),3.0);
+           epsU_r3 +=       -U*std::pow(std::abs(z - (   epsU[1][0]/ eps[0][0])),3.0);
+        epsUbar_r3 += -conj(U)*std::pow(std::abs(z - (epsUbar[1][0]/ eps[0][0])),3.0);
+           epsC_r3 +=       -C*std::pow(std::abs(z - (   epsC[1][0]/ eps[0][0])),3.0);
+        epsCbar_r3 += -conj(C)*std::pow(std::abs(z - (   epsC[1][0]/ eps[0][0])),3.0);
+           epsT_r3 +=       -T*std::pow(std::abs(z - (   epsT[1][0]/ eps[0][0])),3.0);
+           epsS_r3 +=        s*std::pow(std::abs(z - (   epsS[1][0]/epsS[0][0])),3.0);
+                               
+            eps_r5 +=      T00*std::pow(std::abs(z - (    eps[1][0]/ eps[0][0])),5.0);
+           epsU_r5 +=       -U*std::pow(std::abs(z - (   epsU[1][0]/ eps[0][0])),5.0);
+        epsUbar_r5 += -conj(U)*std::pow(std::abs(z - (epsUbar[1][0]/ eps[0][0])),5.0);
+           epsC_r5 +=       -C*std::pow(std::abs(z - (   epsC[1][0]/ eps[0][0])),5.0);
+        epsCbar_r5 += -conj(C)*std::pow(std::abs(z - (   epsC[1][0]/ eps[0][0])),5.0);
+           epsT_r5 +=       -T*std::pow(std::abs(z - (   epsT[1][0]/ eps[0][0])),5.0);
+           epsS_r5 +=        s*std::pow(std::abs(z - (   epsS[1][0]/epsS[0][0])),5.0);
+     }
+    }
+    
+    //////////////////////////////////////////
+    // Done calculating all contributions
+    // and multiplying by dx*dy to get final
+    // result.
+    //////////////////////////////////////////
+    for(int j=0; j < zmax; j++) {
+     for(int k=0; k < zmax; k++) {
+             eps[j][k] *= DATA.delta_x*DATA.delta_y;
+            epsU[j][k] *= DATA.delta_x*DATA.delta_y;
+         epsUbar[j][k] *= DATA.delta_x*DATA.delta_y;
+            epsC[j][k] *= DATA.delta_x*DATA.delta_y;
+         epsCbar[j][k] *= DATA.delta_x*DATA.delta_y;
+            epsT[j][k] *= DATA.delta_x*DATA.delta_y;
+            epsS[j][k] *= DATA.delta_x*DATA.delta_y;
+     }
+    }
+        eps_r3 *= DATA.delta_x*DATA.delta_y;
+       epsU_r3 *= DATA.delta_x*DATA.delta_y;
+    epsUbar_r3 *= DATA.delta_x*DATA.delta_y;
+       epsC_r3 *= DATA.delta_x*DATA.delta_y;
+    epsCbar_r3 *= DATA.delta_x*DATA.delta_y;
+       epsT_r3 *= DATA.delta_x*DATA.delta_y;
+       epsS_r3 *= DATA.delta_x*DATA.delta_y;
+              
+        eps_r5 *= DATA.delta_x*DATA.delta_y;
+       epsU_r5 *= DATA.delta_x*DATA.delta_y;
+    epsUbar_r5 *= DATA.delta_x*DATA.delta_y;
+       epsC_r5 *= DATA.delta_x*DATA.delta_y;
+    epsCbar_r5 *= DATA.delta_x*DATA.delta_y;
+       epsT_r5 *= DATA.delta_x*DATA.delta_y;
+       epsS_r5 *= DATA.delta_x*DATA.delta_y;
+    
+/////////////////////////////////////////////////////////////////////////
+// Now printing the results to various files
+/////////////////////////////////////////////////////////////////////////
+    // this function outputs a set of eccentricities (cumulants) to a file
+    music_message.info("output initial eccentricities into a file... ");
+    
+    std::ofstream ofs;
+    
+    ofs.open("ecc.dat", std::ofstream::out);// | std::ofstream::binary);
+    ofs << "#No recentering correction has been made! Must use full expression for cumulants!\n";
+    ofs << "#i\tj\t<z^i zbar^j>_eps\t<z^i zbar^j>_U\t<z^i zbar^j>_Ubar\t<z^i zbar^j>_C\t<z^i zbar^j>_T\t<z^i zbar^j>_s\n";
+    // normalize by total energy to obtain <z^j z*^k> and output to file
+    for(int j=0; j < zmax; j++) {
+     for(int k=0; k < zmax; k++) {
+        if(!(j==0 && k==0)) {
+           eps[j][k] /=  eps[0][0];
+          epsS[j][k] /= epsS[0][0];
+        }
+           epsU[j][k] /= eps[0][0];
+        epsUbar[j][k] /= eps[0][0];
+           epsC[j][k] /= eps[0][0];
+           epsT[j][k] /= eps[0][0];
+           
+        ofs << j                                               << "\t" 
+            << k                                               << "\t"
+            << static_cast<std::complex<float>>(    eps[j][k]) << "\t" 
+            << static_cast<std::complex<float>>(   epsU[j][k]) << "\t"
+            << static_cast<std::complex<float>>(epsUbar[j][k]) << "\t"
+            << static_cast<std::complex<float>>(   epsC[j][k]) << "\t"
+            << static_cast<std::complex<float>>(epsCbar[j][k]) << "\t"
+            << static_cast<std::complex<float>>(   epsT[j][k]) << "\t" 
+            << static_cast<std::complex<float>>(   epsS[j][k]) << endl;
+     }
+    }
+    ofs.close();
+    
+    ofs.open("ecc_r3.dat", std::ofstream::out);// | std::ofstream::binary);
+    ofs << "#Recentering correction has been made for r^3.\n";
+    ofs << "#r3_eps\tr3_U\tr3_Ubar\tr3_C\tr3_T\tr3_s\n";
+    // normalize by total energy to obtain <r^3> and output to file
+    ofs << static_cast<std::complex<float>>(    eps_r3/eps[0][0]) << "\t" 
+        << static_cast<std::complex<float>>(   epsU_r3/eps[0][0]) << "\t"
+        << static_cast<std::complex<float>>(epsUbar_r3/eps[0][0]) << "\t"
+        << static_cast<std::complex<float>>(   epsC_r3/eps[0][0]) << "\t"
+        << static_cast<std::complex<float>>(epsCbar_r3/eps[0][0]) << "\t"
+        << static_cast<std::complex<float>>(   epsT_r3/eps[0][0]) << "\t"
+        << static_cast<std::complex<float>>(  epsS_r3/epsS[0][0]) << endl;
+    ofs.close();
+    
+    ofs.open("ecc_r5.dat", std::ofstream::out);// | std::ofstream::binary);
+    ofs << "#Recentering correction has been made for r^5.\n";
+    ofs << "#r5_eps\tr5_U\tr5_Ubar\tr5_C\tr5_T\tr5_s\n";
+    // normalize by total energy to obtain <r^5> and output to file
+    ofs << static_cast<std::complex<float>>(    eps_r5/eps[0][0]) << "\t"
+        << static_cast<std::complex<float>>(   epsU_r5/eps[0][0]) << "\t"
+        << static_cast<std::complex<float>>(epsUbar_r5/eps[0][0]) << "\t" 
+        << static_cast<std::complex<float>>(   epsC_r5/eps[0][0]) << "\t"
+        << static_cast<std::complex<float>>(epsCbar_r5/eps[0][0]) << "\t"
+        << static_cast<std::complex<float>>(   epsT_r5/eps[0][0]) << "\t"
+        << static_cast<std::complex<float>>(  epsS_r5/epsS[0][0]) << endl;
+    ofs.close();
 }

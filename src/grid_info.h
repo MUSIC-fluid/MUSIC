@@ -110,6 +110,11 @@ class Cell_info {
     //! This function outputs system's momentum anisotropy as a function of tau
     void output_momentum_anisotropy_vs_tau(
                 double tau, double eta_min, double eta_max, SCGrid &arena);
+
+    //! This function outputs system's spatial eccentricity (i.e. epsilon_{n,m})
+    //! at any tau that it's called
+    void output_2D_eccentricities(int ieta, SCGrid &arena);
+
 };
 
 #endif  // SRC_GRID_INFO_H_

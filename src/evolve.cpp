@@ -74,6 +74,12 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
+        if (it==0) {
+           //outputting eccentricities at ieta=0;
+           int ieta_just_for_inital_ecc=0;
+           grid_info.output_2D_eccentricities(ieta_just_for_inital_ecc,*ap_current);
+        }
+
         if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
             hydro_source_terms.prepare_list_for_current_tau_frame(tau);
         }
