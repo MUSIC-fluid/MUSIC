@@ -1596,7 +1596,7 @@ void Cell_info::output_2D_eccentricities(int ieta, SCGrid &arena) {
     
     std::ofstream ofs;
     
-    ofs.open("ecc.dat", std::ofstream::out);// | std::ofstream::binary);
+    ofs.open("ecc_before_hydro.dat", std::ofstream::out);// | std::ofstream::binary);
     ofs << "#No recentering correction has been made! Must use full expression for cumulants!\n";
     ofs << "#i\tj\t<z^i zbar^j>_eps\t<z^i zbar^j>_U\t<z^i zbar^j>_Ubar\t<z^i zbar^j>_C\t<z^i zbar^j>_T\t<z^i zbar^j>_s\n";
     // normalize by total energy to obtain <z^j z*^k> and output to file
@@ -1624,7 +1624,7 @@ void Cell_info::output_2D_eccentricities(int ieta, SCGrid &arena) {
     }
     ofs.close();
     
-    ofs.open("ecc_r3.dat", std::ofstream::out);// | std::ofstream::binary);
+    ofs.open("ecc_r3_before_hydro.dat", std::ofstream::out);// | std::ofstream::binary);
     ofs << "#Recentering correction has been made for r^3.\n";
     ofs << "#r3_eps\tr3_U\tr3_Ubar\tr3_C\tr3_T\tr3_s\n";
     // normalize by total energy to obtain <r^3> and output to file
@@ -1637,7 +1637,7 @@ void Cell_info::output_2D_eccentricities(int ieta, SCGrid &arena) {
         << static_cast<std::complex<float>>(  epsS_r3/epsS[0][0]) << endl;
     ofs.close();
     
-    ofs.open("ecc_r5.dat", std::ofstream::out);// | std::ofstream::binary);
+    ofs.open("ecc_r5_before_hydro.dat", std::ofstream::out);// | std::ofstream::binary);
     ofs << "#Recentering correction has been made for r^5.\n";
     ofs << "#r5_eps\tr5_U\tr5_Ubar\tr5_C\tr5_T\tr5_s\n";
     // normalize by total energy to obtain <r^5> and output to file
