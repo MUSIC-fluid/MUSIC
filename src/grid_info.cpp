@@ -1341,11 +1341,11 @@ void Cell_info::output_average_phase_diagram_trajectory(
              << "_" << eta_max << ".dat";
     std::fstream of;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
-        of(filename.str().c_str(), std::fstream::out);
+        of.open(filename.str().c_str(), std::fstream::out);
         of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)  "
            << "V4 (fm^4)" << endl;
     } else {
-        of(filename.str().c_str(), std::fstream::app);
+        of.open(filename.str().c_str(), std::fstream::app);
     }
     double avg_T  = 0.0;
     double avg_mu = 0.0;

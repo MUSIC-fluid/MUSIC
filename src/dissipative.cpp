@@ -111,6 +111,17 @@ double Diss::MakeWSource(const double tau, const int alpha,
                       << " pi_b =" << grid_pt.pi_b
                       << " prev_pi_b=" << grid_pt_prev.pi_b;
         music_message.flush("error");
+        if (std::isnan(sf)) {
+            music_message << "dWdtau = " << dWdtau
+                          << ", dWdx = " << dWdx;
+            music_message.flush("error");
+        }
+        if (std::isnan(bf)) {
+            music_message << "dPidtau = " << dPidtau
+                          << ", dPidx = " << dPidx
+                          << ", Pi_alpha0 = " << Pi_alpha0;
+            music_message.flush("error");
+        }
     }
     return(result);
 }
