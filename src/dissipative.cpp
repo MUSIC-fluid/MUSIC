@@ -12,6 +12,7 @@
 #include "dissipative.h"
 
 using Util::hbarc;
+using Util::small_eps;
 
 Diss::Diss(const EOS &eosIn, const InitData &Data_in) : 
                     DATA(Data_in), eos(eosIn), minmod(Data_in) {}
@@ -169,14 +170,14 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     ////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
     double pressure = eos.get_pressure(epsilon, rhob);
-    shear = (shear_to_s)*(epsilon + pressure)/(T + Util::small_eps);
-    double tau_pi = 5.0*shear/(epsilon + pressure + Util::small_eps);
+    shear = shear_to_s*(epsilon + pressure)/(T + small_eps);
+    double tau_pi = 5.0*shear/(epsilon + pressure + small_eps);
+    tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
     //double transport_coefficient  = 9./70.*tau_pi/shear*(4./5.);
-    double transport_coefficient  = (
-                            9./70.*4./(epsilon + pressure + Util::small_eps));
+    double transport_coefficient  = 9./70.*4./(epsilon + pressure + small_eps);
     double transport_coefficient2 = 4./3.*tau_pi;
     double transport_coefficient3 = 10./7.*tau_pi;
 
@@ -185,8 +186,6 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     // transport coefficients not yet known -- fixed to zero
     double transport_coefficient_b  = 6./5.*tau_pi;
     double transport_coefficient2_b = 0.;
-
-    tau_pi = std::max(3.*DATA.delta_tau, tau_pi);
 
     /* This source has many terms */
     /* everything in the 1/(tau_pi) piece is here */
@@ -607,8 +606,11 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
-    Bulk_Relax_time = (1./(14.55*(1./3. - cs2)*(1./3. - cs2))
-                       /(epsilon + pressure)*bulk);
+    Bulk_Relax_time = (bulk/(14.55*(1./3. - cs2 + small_eps)
+                                  *(1./3. - cs2 + small_eps))
+                           /(epsilon + pressure + small_eps));
+    Bulk_Relax_time = (
+        std::min(10., std::max(3.*DATA.delta_tau, Bulk_Relax_time)));
 
     // from kinetic theory, small mass limit
     transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);
@@ -618,7 +620,6 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
     transport_coeff1_s = 8./5.*(1./3.-cs2)*Bulk_Relax_time;
     transport_coeff2_s = 0.;  // not known;  put 0
 
-    Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
     NS_term = -bulk*theta_local;
@@ -711,17 +712,18 @@ double Diss::Make_uqSource(
     double T        = eos.get_temperature(epsilon, rhob);
 
     double kappa_coefficient = DATA.kappa_coefficient;
-    double tau_rho = kappa_coefficient/(T + Util::small_eps);
-    tau_rho = std::max(3.*DATA.delta_tau, tau_rho);
-    double mub     = eos.get_muB(epsilon, rhob);
-    double alpha   = mub/T;
-    double kappa   = kappa_coefficient*(
-            rhob/(3.*T*tanh(alpha) + Util::small_eps)
-            - rhob*rhob/(epsilon + pressure));
+    double tau_rho = kappa_coefficient/(T + small_eps);
+    tau_rho = std::min(10., std::max(3.*DATA.delta_tau, tau_rho));
+
+    double mub   = eos.get_muB(epsilon, rhob);
+    double alpha = mub/(T + small_eps);
+    double kappa = kappa_coefficient*(
+                        rhob/(3.*T*tanh(alpha) + small_eps)
+                        - rhob*rhob/(epsilon + pressure + small_eps));
 
     if (DATA.Initial_profile == 1) {
         // for 1+1D numerical test
-        kappa = kappa_coefficient*(rhob/mub);
+        kappa = kappa_coefficient*(rhob/(mub + small_eps));
     }
 
     // copy the value of \tilde{q^\mu}
@@ -772,11 +774,10 @@ double Diss::Make_uqSource(
         Nonlinear3 = -transport_coeff_3*temp3;
     }
 
-    double SW = ((-q[nu] - NS + Nonlinear1 + Nonlinear2 + Nonlinear3)
-                 /(tau_rho + Util::small_eps));
+    double SW = (-q[nu] - NS + Nonlinear1 + Nonlinear2 + Nonlinear3)/tau_rho;
     if (DATA.Initial_profile == 1) {
         // for 1+1D numerical test
-        SW = (-q[nu] - NS)/(tau_rho + Util::small_eps);
+        SW = (-q[nu] - NS)/tau_rho;
     }
 
     // all other geometric terms....
@@ -1031,9 +1032,8 @@ void Diss::output_kappa_T_and_muB_dependence() {
             double alpha_local = mu_B_local/T_local;
 
             double kappa_local = (DATA.kappa_coefficient
-                    *(rhob_local/(3.*T_local*tanh(alpha_local)
-                                  + Util::small_eps)
-                      - rhob_local*rhob_local/(e_local + p_local)));
+                *(rhob_local/(3.*T_local*tanh(alpha_local) + small_eps)
+                  - rhob_local*rhob_local/(e_local + p_local + small_eps)));
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << rhob_local << "   "
@@ -1077,9 +1077,8 @@ void Diss::output_kappa_along_const_sovernB() {
             double alpha_local = mu_B/temperature;
 
             double kappa_local = (DATA.kappa_coefficient
-                    *(nB_local/(3.*temperature*tanh(alpha_local)
-                                + Util::small_eps)
-                      - nB_local*nB_local/(e_local + p_local)));
+                    *(nB_local/(3.*temperature*tanh(alpha_local) + small_eps)
+                      - nB_local*nB_local/(e_local + p_local + small_eps)));
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << nB_local << "   "
