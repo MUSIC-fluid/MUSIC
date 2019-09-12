@@ -49,10 +49,18 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         exit(1);
     }
 
-    for (int i = 0; i < 2; i++) {
-        // read the header
-        getline(QCD_strings_file, text_string);
+    // read in collision information
+    getline(QCD_strings_file, text_string);
+    std::stringstream coll_info(text_string);
+    std::string dummy;
+    double total_energy = 0;
+    for (int ii = 0; ii < 16; ii++) {
+        coll_info >> dummy;
     }
+    coll_info >> total_energy;
+
+    // read the header
+    getline(QCD_strings_file, text_string);
 
     // now we read in data
     getline(QCD_strings_file, text_string);
@@ -172,17 +180,23 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     }
     music_message << "total baryon number = " << total_baryon_number;
     music_message.flush("info");
-    compute_norm_for_strings();
+    compute_norm_for_strings(total_energy);
 }
 
 
-void HydroSourceStrings::compute_norm_for_strings() {
-    const int neta              = 500;
-    const double eta_range      = 12.;
-    const double deta           = 2.*eta_range/(neta - 1);
+void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
+    const int neta         = 500;
+    const double eta_range = 12.;
+    const double deta      = 2.*eta_range/(neta - 1);
 
     const double sigma_eta = get_sigma_eta();
     const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+
+    double total_E = 0.0;
+    for (auto &it: QCD_strings_list) {
+        total_E += it->frac_l*cosh(it->y_l_i) + it->frac_r*cosh(it->y_r_i);
+    }
+    const double overall_norm = total_energy/total_E;
 
     double E_string_total = 0.0;
     double E_baryon_total = 0.0;
@@ -210,10 +224,10 @@ void HydroSourceStrings::compute_norm_for_strings() {
             E_baryon_R_norm += e_baryon_R*cosh(eta_local);
         }
         E_string_norm  *= prefactor_etas*deta;
-        double E_string = (  it->frac_l*cosh(it->y_l_i)
-                           + it->frac_r*cosh(it->y_r_i)
-                           - it->frac_l*cosh(it->y_l)
-                           - it->frac_r*cosh(it->y_r));
+        double E_string = overall_norm*(  it->frac_l*cosh(it->y_l_i)
+                                        + it->frac_r*cosh(it->y_r_i)
+                                        - it->frac_l*cosh(it->y_l)
+                                        - it->frac_r*cosh(it->y_r));
         it->norm = E_string/(E_string_norm + 1e-16);
         E_string_total += E_string;
 
@@ -221,8 +235,8 @@ void HydroSourceStrings::compute_norm_for_strings() {
         // frac_l and frac_r should be used here
         E_baryon_L_norm *= it->frac_l*prefactor_etas*deta;
         E_baryon_R_norm *= it->frac_r*prefactor_etas*deta;
-        double E_baryon_L   = it->frac_l*cosh(it->y_l);
-        double E_baryon_R   = it->frac_r*cosh(it->y_r);
+        double E_baryon_L   = overall_norm*it->frac_l*cosh(it->y_l);
+        double E_baryon_R   = overall_norm*it->frac_r*cosh(it->y_r);
         it->E_baryon_norm_L = E_baryon_L/(E_baryon_L_norm + 1e-16);
         it->E_baryon_norm_R = E_baryon_R/(E_baryon_R_norm + 1e-16);
         E_baryon_total += E_baryon_L + E_baryon_R;
