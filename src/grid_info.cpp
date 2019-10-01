@@ -1406,7 +1406,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
 #include <complex> 
 void Cell_info::output_2D_eccentricities(int ieta, SCGrid &arena) {
     
-    int zmax = 6;
+    const int zmax = 6;
     std::complex<double>     eps[zmax][zmax] = {{0.0}}; // moment <z^j z*^k> =  <r^(j+k) e^{i(j-k) phi}>
     std::complex<double>    epsU[zmax][zmax] = {{0.0}}; // same but using momentum density as weight U = T^0x + i T^0y
     std::complex<double> epsUbar[zmax][zmax] = {{0.0}}; //
