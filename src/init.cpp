@@ -951,7 +951,7 @@ double Init::eta_profile_normalisation(double eta) {
 double Init::eta_profile_left_factor(double eta) {
     // this function return the eta envelope for projectile
     double res = eta_profile_normalisation(eta);
-    if (fabs(eta) < DATA.beam_rapidity) {
+    if (std::abs(eta) < DATA.beam_rapidity) {
         res = (1. - eta/DATA.beam_rapidity)*res;
     } else {
         res = 0.0;
@@ -962,7 +962,7 @@ double Init::eta_profile_left_factor(double eta) {
 double Init::eta_profile_right_factor(double eta) {
     // this function return the eta envelope for target
     double res = eta_profile_normalisation(eta);
-    if (fabs(eta) < DATA.beam_rapidity) {
+    if (std::abs(eta) < DATA.beam_rapidity) {
         res = (1. + eta/DATA.beam_rapidity)*res;
     } else {
         res = 0.0;
@@ -1008,7 +1008,7 @@ double Init::eta_rhob_profile_normalisation(double eta) {
 }
 
 double Init::eta_rhob_left_factor(double eta) {
-    double eta_0       = -fabs(DATA.eta_rhob_0);
+    double eta_0       = -std::abs(DATA.eta_rhob_0);
     double tau0        = DATA.tau0;
     double delta_eta_1 = DATA.eta_rhob_width_1;
     double delta_eta_2 = DATA.eta_rhob_width_2;
@@ -1024,7 +1024,7 @@ double Init::eta_rhob_left_factor(double eta) {
 }
 
 double Init::eta_rhob_right_factor(double eta) {
-    double eta_0       = fabs(DATA.eta_rhob_0);
+    double eta_0       = std::abs(DATA.eta_rhob_0);
     double tau0        = DATA.tau0;
     double delta_eta_1 = DATA.eta_rhob_width_1;
     double delta_eta_2 = DATA.eta_rhob_width_2;
