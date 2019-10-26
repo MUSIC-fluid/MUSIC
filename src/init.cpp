@@ -151,7 +151,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         output_initial_density_profiles(arena_current);
     }
 }/* InitArena */
-    
+
 
 void Init::print_num_of_threads() {
     #pragma omp parallel for
@@ -170,7 +170,7 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         // Gubser flow test
         music_message.info(" Perform Gubser flow test ... ");
         music_message.info(" ----- information on initial distribution -----");
-        
+
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             initial_Gubser_XY(ieta, arena_prev, arena_current);
@@ -185,7 +185,7 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message.info(" ----- information on initial distribution -----");
         music_message << "file name used: " << DATA.initName;
         music_message.flush("info");
-  
+
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             initial_IPGlasma_XY(ieta, arena_prev, arena_current);
@@ -198,7 +198,7 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message.info(" ----- information on initial distribution -----");
         music_message << "file name used: " << DATA.initName;
         music_message.flush("info");
-  
+
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             initial_IPGlasma_XY_with_pi(ieta, arena_prev, arena_current);
@@ -258,7 +258,7 @@ void Init::initial_Gubser_XY(int ieta, SCGrid &arena_prev,
         input_filename = "tests/Gubser_flow/y=0_tau=1.00_ideal.dat";
         input_filename_prev = "tests/Gubser_flow/y=0_tau=0.98_ideal.dat";
     }
-    
+
     ifstream profile(input_filename.c_str());
     if (!profile.good()) {
         music_message << "Init::InitTJb: "
@@ -333,12 +333,12 @@ void Init::initial_Gubser_XY(int ieta, SCGrid &arena_prev,
             }
 
             double epsilon = temp_profile_ed[ix][iy];
-            
+
             arena_current(ix, iy, ieta).epsilon = epsilon;
             arena_prev   (ix, iy, ieta).epsilon = epsilon;
             arena_current(ix, iy, ieta).rhob    = rhob;
             arena_prev   (ix, iy, ieta).rhob    = rhob;
-            
+
             double utau_local = sqrt(1.
                           + temp_profile_ux[ix][iy]*temp_profile_ux[ix][iy]
                           + temp_profile_uy[ix][iy]*temp_profile_uy[ix][iy]);
@@ -422,7 +422,7 @@ void Init::initial_1p1D_eta(SCGrid &arena_prev, SCGrid &arena_current) {
                 // set all values in the grid element:
                 arena_current(ix, iy, ieta).epsilon = epsilon;
                 arena_current(ix, iy, ieta).rhob    = rhob;
-            
+
                 arena_current(ix, iy, ieta).u[0] = 1.0;
                 arena_current(ix, iy, ieta).u[1] = 0.0;
                 arena_current(ix, iy, ieta).u[2] = 0.0;
@@ -632,7 +632,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
                 arena_current(ix, iy, ieta).u[2] = temp_profile_uy[idx];
                 arena_current(ix, iy, ieta).u[3] = temp_profile_ueta[idx];
             }
-            
+
             if (DATA.Initial_profile == 9 || DATA.Initial_profile == 93) {
                 arena_current(ix, iy, ieta).Wmunu[0] = temp_profile_pitautau[idx];
                 arena_current(ix, iy, ieta).Wmunu[1] = temp_profile_pitaux[idx];
@@ -744,7 +744,7 @@ void Init::initial_MCGlbLEXUS_with_rhob_XY(int ieta, SCGrid &arena_prev,
             arena_current(ix, iy, ieta).u[1] = u[1];
             arena_current(ix, iy, ieta).u[2] = u[2];
             arena_current(ix, iy, ieta).u[3] = u[3];
-            
+
             arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
     }
@@ -785,7 +785,7 @@ void Init::initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                 arena_current(ix, iy, ieta).u[1] = 0.0;
                 arena_current(ix, iy, ieta).u[2] = 0.0;
                 arena_current(ix, iy, ieta).u[3] = 0.0;
-            
+
                 arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
         }
@@ -829,7 +829,7 @@ void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
             arena_current(ix, iy, ieta).u[1] = u[1];
             arena_current(ix, iy, ieta).u[2] = u[2];
             arena_current(ix, iy, ieta).u[3] = u[3];
-            
+
             arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
     }
@@ -870,7 +870,7 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
     //const int neta = arena_current.nEta();
-    
+
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
             const double rhob = 0.0;
