@@ -12,6 +12,7 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn) :
     minmod(DATA_in) {
     dUsup = {0.0};        // dUsup[m][n] = partial^n u^m
     dUoverTsup = {0.0};   // dUoverTsup[m][n] = partial^n (u^m/T)
+    dUTsup = {0.0};       // dUTsup[m][n] = partial^n (Tu^m)
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
@@ -20,6 +21,7 @@ void U_derivative::MakedU(const double tau, SCGrid &arena_prev,
                           const int ix, const int iy, const int ieta) {
     dUsup = {0.0};
     dUoverTsup = {0.0};
+    dUTsup = {0.0};
 
     // this calculates du/dx, du/dy, (du/deta)/tau
     MakeDSpatial(tau, arena_current, ix, iy, ieta);
@@ -147,6 +149,76 @@ void U_derivative::calculate_thermal_vorticity(
 }
 
 
+void U_derivative::calculate_T_vorticity(
+            const double tau, SCGrid &arena, const int ieta,
+            const int ix, const int iy, VorticityVec &omega) {
+    // this function computes the T-vorticity
+    FlowVec u_local = arena(ix, iy, ieta).u;
+    double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
+                                          arena(ix, iy, ieta).rhob);
+    double dUsup_local[4][4];
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            dUsup_local[i][j] = dUTsup[i][j];
+        }
+    }
+
+    double omega_thermal[4][4];
+    for (int mu = 0; mu < 4; mu++) {
+        for (int nu = mu + 1; nu < 4; nu++) {
+            omega_thermal[mu][nu] = -0.5*(
+                (dUsup_local[nu][mu] - dUsup_local[mu][nu])
+                - u_local[3]*T_local/(2.*tau)*(
+                    - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                    + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+            );
+        }
+    }
+
+    omega[0] = omega_thermal[0][1];
+    omega[1] = omega_thermal[0][2];
+    omega[2] = omega_thermal[0][3];
+    omega[3] = omega_thermal[1][2];
+    omega[4] = omega_thermal[1][3];
+    omega[5] = omega_thermal[2][3];
+}
+
+
+void U_derivative::calculate_kinetic_vorticity_no_spatial_projection(
+            const double tau, SCGrid &arena, const int ieta,
+            const int ix, const int iy, VorticityVec &omega) {
+    // this function computes the full kinetic vorticity without the spatial
+    // projection
+    // omega^{\mu\nu} = \partial^\mu u^\nu - \partial^\nu u^\mu
+    FlowVec u_local = arena(ix, iy, ieta).u;
+    double dUsup_local[4][4];
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            dUsup_local[i][j] = dUsup[i][j];
+        }
+    }
+
+    double omega_thermal[4][4];
+    for (int mu = 0; mu < 4; mu++) {
+        for (int nu = mu + 1; nu < 4; nu++) {
+            omega_thermal[mu][nu] = -0.5*(
+                (dUsup_local[nu][mu] - dUsup_local[mu][nu])
+                - u_local[3]/(2.*tau)*(
+                    - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                    + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+            );
+        }
+    }
+
+    omega[0] = omega_thermal[0][1];
+    omega[1] = omega_thermal[0][2];
+    omega[2] = omega_thermal[0][3];
+    omega[3] = omega_thermal[1][2];
+    omega[4] = omega_thermal[1][3];
+    omega[5] = omega_thermal[2][3];
+}
+
+
 //! This funciton returns the velocity shear tensor sigma^\mu\nu
 void U_derivative::calculate_velocity_shear_tensor(
         const double tau, SCGrid &arena, const int ieta, const int ix,
@@ -245,6 +317,8 @@ int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
                 const double fm1 = m1.u[m];
                 dUoverTsup[m][direction] = (
                     minmod.minmod_dx(fp1/Tp1, f/T, fm1/Tm1)/delta[direction]);
+                dUTsup[m][direction] = (
+                    minmod.minmod_dx(fp1*Tp1, f*T, fm1*Tm1)/delta[direction]);
             }
         }
     });
@@ -304,6 +378,9 @@ int U_derivative::MakeDTau(const double tau,
             double duoverTdtau = ((grid_pt->u[m]/T - grid_pt_prev->u[m]/T_prev)
                                   /DATA.delta_tau);
             dUoverTsup[m][0] = -duoverTdtau;   // g^{00} = -1
+            double duTdtau = ((grid_pt->u[m]*T - grid_pt_prev->u[m]*T_prev)
+                              /DATA.delta_tau);
+            dUTsup[m][0] = -duTdtau;   // g^{00} = -1
         }
     }
 

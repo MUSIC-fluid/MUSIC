@@ -16,7 +16,9 @@ class U_derivative {
      const EOS &eos;
      Minmod minmod;
      dUsupMat dUsup;
-     Mat4x4 dUoverTsup; 
+     Mat4x4 dUoverTsup;
+     Mat4x4 dUTsup;
+
  public:
     U_derivative(const InitData &DATA_in, const EOS &eosIn);
     void MakedU(const double tau, SCGrid &arena_prev, SCGrid &arena_current,
@@ -38,8 +40,17 @@ class U_derivative {
         const int ieta, const int ix, const int iy, const DumuVec &a_local,
         VorticityVec &omega);
 
+    //! this function computes the kinetic vorticity without spatial projection
+    void calculate_kinetic_vorticity_no_spatial_projection(
+        const double tau, SCGrid &arena,
+        const int ieta, const int ix, const int iy, VorticityVec &omega);
+
     //! this function computes the thermal vorticity
     void calculate_thermal_vorticity(const double tau, SCGrid &arena,
+        const int ieta, const int ix, const int iy, VorticityVec &omega);
+
+    //! this function computes the T-vorticity
+    void calculate_T_vorticity(const double tau, SCGrid &arena,
         const int ieta, const int ix, const int iy, VorticityVec &omega);
 
     //! This funciton returns the velocity shear tensor sigma^\mu\nu
