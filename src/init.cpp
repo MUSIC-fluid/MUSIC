@@ -213,11 +213,8 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
                       << DATA.initName_TB;
         music_message.flush("info");
 
-        #pragma omp parallel for
-        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            initial_MCGlb_with_rhob_XY(ieta, arena_prev, arena_current);
-        }
-    } else if (DATA.Initial_profile == 13) {
+        initial_MCGlb_with_rhob(arena_prev, arena_current);
+    } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
         music_message.info("Initialize hydro with source terms");
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
@@ -654,8 +651,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
     }
 }
 
-void Init::initial_MCGlb_with_rhob_XY(int ieta, SCGrid &arena_prev,
-                                      SCGrid &arena_current) {
+void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     // first load in the transverse profile
     ifstream profile_TA(DATA.initName_TA.c_str());
     ifstream profile_TB(DATA.initName_TB.c_str());
@@ -681,48 +677,51 @@ void Init::initial_MCGlb_with_rhob_XY(int ieta, SCGrid &arena_prev,
     profile_rhob_TA.close();
     profile_rhob_TB.close();
 
-    double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-    double eta_envelop_left  = eta_profile_left_factor(eta);
-    double eta_envelop_right = eta_profile_right_factor(eta);
-    double eta_rhob_left     = eta_rhob_left_factor(eta);
-    double eta_rhob_right    = eta_rhob_right_factor(eta);
-
     int entropy_flag = DATA.initializeEntropy;
-    for (int ix = 0; ix < nx; ix++) {
-        for (int iy = 0; iy< ny; iy++) {
-            double rhob = 0.0;
-            double epsilon = 0.0;
-            if (DATA.turn_on_rhob == 1) {
-                rhob = (
-                    (temp_profile_rhob_TA[ix][iy]*eta_rhob_left
-                     + temp_profile_rhob_TB[ix][iy]*eta_rhob_right));
-            } else {
-                rhob = 0.0;
+
+    #pragma omp parallel for
+    for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+        double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+        double eta_envelop_left  = eta_profile_left_factor(eta);
+        double eta_envelop_right = eta_profile_right_factor(eta);
+        double eta_rhob_left     = eta_rhob_left_factor(eta);
+        double eta_rhob_right    = eta_rhob_right_factor(eta);
+
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy< ny; iy++) {
+                double rhob = 0.0;
+                double epsilon = 0.0;
+                if (DATA.turn_on_rhob == 1) {
+                    rhob = (
+                        (temp_profile_rhob_TA[ix][iy]*eta_rhob_left
+                         + temp_profile_rhob_TB[ix][iy]*eta_rhob_right));
+                } else {
+                    rhob = 0.0;
+                }
+                if (entropy_flag == 0) {
+                    epsilon = (
+                        (temp_profile_TA[ix][iy]*eta_envelop_left
+                         + temp_profile_TB[ix][iy]*eta_envelop_right)
+                        *DATA.sFactor/hbarc);   // 1/fm^4
+                } else {
+                    double local_sd = (
+                        (temp_profile_TA[ix][iy]*eta_envelop_left
+                         + temp_profile_TB[ix][iy]*eta_envelop_right)
+                        *DATA.sFactor);         // 1/fm^3
+                    epsilon = eos.get_s2e(local_sd, rhob);
+                }
+                epsilon = std::max(1e-12, epsilon);
+
+                arena_current(ix, iy, ieta).epsilon = epsilon;
+                arena_current(ix, iy, ieta).rhob = rhob;
+
+                arena_current(ix, iy, ieta).u[0] = 1.0;
+                arena_current(ix, iy, ieta).u[1] = 0.0;
+                arena_current(ix, iy, ieta).u[2] = 0.0;
+                arena_current(ix, iy, ieta).u[3] = 0.0;
+
+                arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
-            if (entropy_flag == 0) {
-                epsilon = (
-                    (temp_profile_TA[ix][iy]*eta_envelop_left
-                     + temp_profile_TB[ix][iy]*eta_envelop_right)
-                    *DATA.sFactor/hbarc);   // 1/fm^4
-            } else {
-                double local_sd = (
-                    (temp_profile_TA[ix][iy]*eta_envelop_left
-                     + temp_profile_TB[ix][iy]*eta_envelop_right)
-                    *DATA.sFactor);         // 1/fm^3
-                epsilon = eos.get_s2e(local_sd, rhob);
-            }
-            if (epsilon < 0.00000000001)
-                epsilon = 0.00000000001;
-
-            arena_current(ix, iy, ieta).epsilon = epsilon;
-            arena_current(ix, iy, ieta).rhob = rhob;
-
-            arena_current(ix, iy, ieta).u[0] = 1.0;
-            arena_current(ix, iy, ieta).u[1] = 0.0;
-            arena_current(ix, iy, ieta).u[2] = 0.0;
-            arena_current(ix, iy, ieta).u[3] = 0.0;
-
-            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
     }
 }
