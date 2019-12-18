@@ -68,15 +68,6 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.output_initial_density_profiles =
                                             temp_output_initial_profile;
 
-    //Select the profile to use in eta for the energy/entropy initialisation
-    //1 for Hirano's central plateau + Gaussian decay
-    //2 for a Woods-Saxon proinput_file
-    int tempinitial_eta_profile = 1;
-    tempinput = Util::StringFind4(input_file, "initial_eta_profile");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempinitial_eta_profile;
-    parameter_list.initial_eta_profile = tempinitial_eta_profile;
-
     // eta envelope function parameter for rhob
     int temp_rhob_flag = 1;
     tempinput = Util::StringFind4(input_file, "initial_eta_rhob_profile");
@@ -844,15 +835,6 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
 
     if (parameter_list.Initial_profile < 0) {
         music_message << "Initial profile" << parameter_list.Initial_profile
-                      << "not defined";
-        music_message.flush("error");
-        exit(1);
-    }
-
-    if (parameter_list.initial_eta_profile > 2
-            || parameter_list.initial_eta_profile < 0) {
-        music_message << "Initial eta profile"
-                      << parameter_list.Initial_profile
                       << "not defined";
         music_message.flush("error");
         exit(1);

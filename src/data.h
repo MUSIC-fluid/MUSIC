@@ -32,13 +32,12 @@ typedef struct init_data {
     std::string initName_rhob_TA;
     std::string initName_rhob_TB;
     std::string initName_AMPT;
-    
+
     //! random seed
     int seed;
     double ecm;
     double beam_rapidity;
 
-    int initial_eta_profile;
     int initial_eta_rhob_profile;
     // envelope function parameter for energy density in eta_s direction
     double eta_fall_off;
@@ -49,7 +48,7 @@ typedef struct init_data {
     double eta_rhob_plateau_height;  //!< central plateau height profile == 2
     double eta_rhob_width_1;         //!< outside tail Gaussian width profile == 2
     double eta_rhob_width_2;         //!< inside Gaussian width profile == 2
-    
+
     int Initial_profile;    //! type of initial condition
     int initializeEntropy;  //! flag to initial entropy or energy density
 
@@ -75,7 +74,7 @@ typedef struct init_data {
 
     int rk_order;
     double minmod_theta;
-    
+
     double sFactor;     //!< overall normalization on energy density profile
     int whichEOS;       //!< type of EoS
     //! flag for boost invariant simulations
@@ -106,13 +105,13 @@ typedef struct init_data {
 
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;
-    
+
     //! flag to include temperature dependent zeta/s(T)
     int T_dependent_zeta_over_s;
 
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
-    
+
     //! flag to include vorticity coupling terms in shear and diffusion
     int include_vorticity_terms;
 
@@ -127,7 +126,7 @@ typedef struct init_data {
 
     //! decide whether to output files for movie
     int output_movie_flag;
-    
+
     //! decide whether to output files for R_pi and R_Pi
     int output_outofequilibriumsize;
 

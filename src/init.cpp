@@ -665,22 +665,30 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     double temp_profile_TB[nx][ny];
     double temp_profile_rhob_TA[nx][ny];
     double temp_profile_rhob_TB[nx][ny];
+    double N_B = 0.0;
     for (int i = 0; i < nx; i++) {
         for (int j = 0; j < ny; j++) {
             profile_TA >> temp_profile_TA[i][j];
             profile_TB >> temp_profile_TB[i][j];
             profile_rhob_TA >> temp_profile_rhob_TA[i][j];
             profile_rhob_TB >> temp_profile_rhob_TB[i][j];
+            N_B += temp_profile_rhob_TA[i][j] + temp_profile_rhob_TB[i][j];
         }
     }
     profile_TA.close();
     profile_TB.close();
     profile_rhob_TA.close();
     profile_rhob_TB.close();
+    N_B *= DATA.delta_x*DATA.delta_y;
+    double total_energy = DATA.ecm/2.*N_B;
+    music_message << "sqrt{s} = " << DATA.ecm << " GeV, N_B = " << N_B
+                  << ", total energy = " << total_energy << " GeV";
+    music_message.flush("info");
 
     int entropy_flag = DATA.initializeEntropy;
 
-    #pragma omp parallel for
+    double T_tau_t = 0.0;
+    #pragma omp parallel for reduction(+: T_tau_t)
     for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
         double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
         double eta_envelop_left  = eta_profile_left_factor(eta);
@@ -700,15 +708,12 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                     rhob = 0.0;
                 }
                 if (entropy_flag == 0) {
-                    epsilon = (
-                        (temp_profile_TA[ix][iy]*eta_envelop_left
-                         + temp_profile_TB[ix][iy]*eta_envelop_right)
-                        *DATA.sFactor/hbarc);   // 1/fm^4
+                    epsilon = (temp_profile_TA[ix][iy]*eta_envelop_left
+                               + temp_profile_TB[ix][iy]*eta_envelop_right);
                 } else {
                     double local_sd = (
-                        (temp_profile_TA[ix][iy]*eta_envelop_left
-                         + temp_profile_TB[ix][iy]*eta_envelop_right)
-                        *DATA.sFactor);         // 1/fm^3
+                          temp_profile_TA[ix][iy]*eta_envelop_left
+                        + temp_profile_TB[ix][iy]*eta_envelop_right);
                     epsilon = eos.get_s2e(local_sd, rhob);
                 }
                 epsilon = std::max(Util::small_eps, epsilon);
@@ -721,6 +726,19 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                 arena_current(ix, iy, ieta).u[2] = 0.0;
                 arena_current(ix, iy, ieta).u[3] = 0.0;
 
+                T_tau_t += epsilon*cosh(eta);
+            }
+        }
+    }
+    T_tau_t *= DATA.tau0*DATA.delta_eta*DATA.delta_x*DATA.delta_y*Util::hbarc;
+    double norm = total_energy/T_tau_t;
+
+    // renormalize the system's energy density
+    #pragma omp parallel for collapse(3)
+    for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy< ny; iy++) {
+                arena_current(ix, iy, ieta).epsilon *= norm;
                 arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
         }
@@ -928,23 +946,11 @@ void Init::clean_up_jetscape_arrays() {
 
 double Init::eta_profile_normalisation(double eta) {
     // this function return the eta envelope profile for energy density
-    double res;
     // Hirano's plateau + Gaussian fall-off
-    if (DATA.initial_eta_profile == 1) {
-        double exparg1 = (fabs(eta) - DATA.eta_flat/2.0)/DATA.eta_fall_off;
-        double exparg = exparg1*exparg1/2.0;
-        res = exp(-exparg*Util::theta(exparg1));
-    } else if (DATA.initial_eta_profile == 2) {
-        // Woods-Saxon
-        // The radius is set to be half of DATA.eta_flat
-        // The diffusiveness is set to DATA.eta_fall_off
-        double ws_R = DATA.eta_flat/2.0;
-        double ws_a = DATA.eta_fall_off;
-        res = (1.0 + exp(-ws_R/ws_a))/(1.0 + exp((abs(eta) - ws_R)/ws_a));
-    } else {
-        music_message.error("initial_eta_profile out of range.");
-        exit(1);
-    }
+    double res;
+    double exparg1 = (std::abs(eta) - DATA.eta_flat/2.0)/DATA.eta_fall_off;
+    double exparg = exparg1*exparg1/2.0;
+    res = exp(-exparg*Util::theta(exparg1));
     return res;
 }
 
