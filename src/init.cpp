@@ -700,8 +700,6 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
         double eta_envelop_right = eta_profile_right_factor(eta);
         double eta_rhob_left     = eta_rhob_left_factor(eta);
         double eta_rhob_right    = eta_rhob_right_factor(eta);
-        double eta_norm = (DATA.eta_flat*1
-                           + sqrt(2*M_PI*DATA.eta_fall_off*DATA.eta_fall_off));
 
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
@@ -729,7 +727,7 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                             (temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy])
                             *cosh(DATA.beam_rapidity)/cosh(y_CM));
                         double eta_envelop = (
-                            eta_norm*eta_profile_normalisation(eta - y_CM));
+                            eta_profile_normalisation(eta - y_CM));
                         epsilon = E_lrf*eta_envelop;
                     }
                 } else {
@@ -754,20 +752,16 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     }
     T_tau_t *= DATA.tau0*DATA.delta_eta*DATA.delta_x*DATA.delta_y*Util::hbarc;
     double norm = total_energy/T_tau_t;
-    if (DATA.Initial_profile == 111) {
-        music_message << "norm = " << norm;
-        music_message.flush("info");
-    }
+    music_message << "energy norm = " << norm;
+    music_message.flush("info");
 
-    if (DATA.Initial_profile == 11) {
-        // renormalize the system's energy density
-        #pragma omp parallel for collapse(3)
-        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            for (int ix = 0; ix < nx; ix++) {
-                for (int iy = 0; iy< ny; iy++) {
-                    arena_current(ix, iy, ieta).epsilon *= norm;
-                    arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
-                }
+    // renormalize the system's energy density
+    #pragma omp parallel for collapse(3)
+    for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy< ny; iy++) {
+                arena_current(ix, iy, ieta).epsilon *= norm;
+                arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
         }
     }
