@@ -96,6 +96,11 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
+    } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111) {
+        double tau_overlap = 2.*7./(sinh(DATA.beam_rapidity));
+        DATA.tau0 = std::max(DATA.tau0, tau_overlap);
+        music_message << "tau0 = " << DATA.tau0 << " fm/c.";
+        music_message.flush("info");
     } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
         DATA.tau0 = (hydro_source_terms_ptr.lock()->get_source_tau_min()
                      - DATA.delta_tau);
@@ -105,7 +110,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
     } else if (DATA.Initial_profile == 42) {
         // initial condition from the JETSCAPE framework
-        music_message << "Using Initial_profile=" << DATA.Initial_profile 
+        music_message << "Using Initial_profile=" << DATA.Initial_profile
                       << ". Overwriting lattice dimensions:";
         music_message.flush("info");
 
@@ -203,7 +208,7 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             initial_IPGlasma_XY_with_pi(ieta, arena_prev, arena_current);
         }
-    } else if (DATA.Initial_profile == 11) {
+    } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111) {
         // read in the transverse profile from file with finite rho_B
         // the initial entropy and net baryon density profile are
         // constructed by nuclear thickness function TA and TB.
@@ -695,6 +700,8 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
         double eta_envelop_right = eta_profile_right_factor(eta);
         double eta_rhob_left     = eta_rhob_left_factor(eta);
         double eta_rhob_right    = eta_rhob_right_factor(eta);
+        double eta_norm = (DATA.eta_flat*1
+                           + sqrt(2*M_PI*DATA.eta_fall_off*DATA.eta_fall_off));
 
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
@@ -708,8 +715,23 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                     rhob = 0.0;
                 }
                 if (entropy_flag == 0) {
-                    epsilon = (temp_profile_TA[ix][iy]*eta_envelop_left
-                               + temp_profile_TB[ix][iy]*eta_envelop_right);
+                    if (DATA.Initial_profile == 11) {
+                        epsilon = (
+                            temp_profile_TA[ix][iy]*eta_envelop_left
+                            + temp_profile_TB[ix][iy]*eta_envelop_right);
+                    } else if (DATA.Initial_profile == 111) {
+                        double y_CM = atanh(
+                            (temp_profile_TA[ix][iy] - temp_profile_TB[ix][iy])
+                            /(temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy]
+                              + Util::small_eps)
+                            *tanh(DATA.beam_rapidity));
+                        double E_lrf = (
+                            (temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy])
+                            *cosh(DATA.beam_rapidity)/cosh(y_CM));
+                        double eta_envelop = (
+                            eta_norm*eta_profile_normalisation(eta - y_CM));
+                        epsilon = E_lrf*eta_envelop;
+                    }
                 } else {
                     double local_sd = (
                           temp_profile_TA[ix][iy]*eta_envelop_left
@@ -732,14 +754,20 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     }
     T_tau_t *= DATA.tau0*DATA.delta_eta*DATA.delta_x*DATA.delta_y*Util::hbarc;
     double norm = total_energy/T_tau_t;
+    if (DATA.Initial_profile == 111) {
+        music_message << "norm = " << norm;
+        music_message.flush("info");
+    }
 
-    // renormalize the system's energy density
-    #pragma omp parallel for collapse(3)
-    for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-        for (int ix = 0; ix < nx; ix++) {
-            for (int iy = 0; iy< ny; iy++) {
-                arena_current(ix, iy, ieta).epsilon *= norm;
-                arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
+    if (DATA.Initial_profile == 11) {
+        // renormalize the system's energy density
+        #pragma omp parallel for collapse(3)
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+            for (int ix = 0; ix < nx; ix++) {
+                for (int iy = 0; iy< ny; iy++) {
+                    arena_current(ix, iy, ieta).epsilon *= norm;
+                    arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
+                }
             }
         }
     }
