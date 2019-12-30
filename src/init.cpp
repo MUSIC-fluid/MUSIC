@@ -725,10 +725,11 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                             *tanh(DATA.beam_rapidity));
                         double E_lrf = (
                             (temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy])
-                            *cosh(DATA.beam_rapidity)/cosh(y_CM));
+                            *cosh(DATA.beam_rapidity)/cosh(y_CM)/Util::hbarc);
                         double eta_envelop = (
                             eta_profile_normalisation(eta - y_CM));
-                        double E_norm = energy_eta_profile_normalisation(y_CM);
+                        double E_norm = (
+                            DATA.tau0*energy_eta_profile_normalisation(-y_CM));
                         epsilon = E_lrf*eta_envelop/E_norm;
                     }
                 } else {
