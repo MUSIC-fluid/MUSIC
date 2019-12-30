@@ -728,7 +728,8 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                             *cosh(DATA.beam_rapidity)/cosh(y_CM));
                         double eta_envelop = (
                             eta_profile_normalisation(eta - y_CM));
-                        epsilon = E_lrf*eta_envelop;
+                        double E_norm = energy_eta_profile_normalisation(y_CM);
+                        epsilon = E_lrf*eta_envelop/E_norm;
                     }
                 } else {
                     double local_sd = (
@@ -966,7 +967,8 @@ void Init::clean_up_jetscape_arrays() {
     jetscape_initial_bulk_pi.clear();
 }
 
-double Init::eta_profile_normalisation(double eta) {
+
+double Init::eta_profile_normalisation(const double eta) const {
     // this function return the eta envelope profile for energy density
     // Hirano's plateau + Gaussian fall-off
     double res;
@@ -976,7 +978,23 @@ double Init::eta_profile_normalisation(double eta) {
     return res;
 }
 
-double Init::eta_profile_left_factor(double eta) {
+
+double Init::energy_eta_profile_normalisation(const double y_CM) const {
+    // this function returns the normalization of the eta envelope profile
+    // for energy density
+    //      eta_profile_normalisation(eta)*cosh(eta - y_CM)
+    double eta_0 = DATA.eta_flat/2.;
+    double sigma_eta = DATA.eta_fall_off;
+    double f1 = (exp(eta_0)*erfc(-sqrt(0.5)*sigma_eta)
+                 + exp(-eta_0)*erfc(sqrt(0.5*sigma_eta)));
+    double f2 = sqrt(M_PI/2.)*sigma_eta*exp(sigma_eta*sigma_eta/2.);
+    double f3 = sinh(eta_0 - y_CM) - sinh(-eta_0 - y_CM);
+    double norm = cosh(y_CM)*f2*f1 + f3;
+    return(norm);
+}
+
+
+double Init::eta_profile_left_factor(const double eta) const {
     // this function return the eta envelope for projectile
     double res = eta_profile_normalisation(eta);
     if (std::abs(eta) < DATA.beam_rapidity) {
@@ -987,7 +1005,8 @@ double Init::eta_profile_left_factor(double eta) {
     return(res);
 }
 
-double Init::eta_profile_right_factor(double eta) {
+
+double Init::eta_profile_right_factor(const double eta) const {
     // this function return the eta envelope for target
     double res = eta_profile_normalisation(eta);
     if (std::abs(eta) < DATA.beam_rapidity) {
@@ -998,9 +1017,9 @@ double Init::eta_profile_right_factor(double eta) {
     return(res);
 }
 
-double Init::eta_rhob_profile_normalisation(double eta) {
+double Init::eta_rhob_profile_normalisation(const double eta) const {
     // this function return the eta envelope profile for net baryon density
-    double res;
+    double res = 0.0;
     int profile_flag = DATA.initial_eta_rhob_profile;
     double eta_0 = DATA.eta_rhob_0;
     double tau0 = DATA.tau0;
@@ -1026,16 +1045,12 @@ double Init::eta_rhob_profile_normalisation(double eta) {
             theta = 0.0;
         res = norm*(theta*exp(-exparg1*exparg1/2.)
                     + (1. - theta)*(A + (1. - A)*exp(-exparg2*exparg2/2.)));
-    } else {
-        music_message << "initial_eta_rhob_profile = " << profile_flag
-                      << " out of range.";
-        music_message.flush("error");
-        exit(1);
     }
     return res;
 }
 
-double Init::eta_rhob_left_factor(double eta) {
+
+double Init::eta_rhob_left_factor(const double eta) const {
     double eta_0       = -std::abs(DATA.eta_rhob_0);
     double tau0        = DATA.tau0;
     double delta_eta_1 = DATA.eta_rhob_width_1;
@@ -1051,7 +1066,8 @@ double Init::eta_rhob_left_factor(double eta) {
     return(res);
 }
 
-double Init::eta_rhob_right_factor(double eta) {
+
+double Init::eta_rhob_right_factor(const double eta) const {
     double eta_0       = std::abs(DATA.eta_rhob_0);
     double tau0        = DATA.tau0;
     double delta_eta_1 = DATA.eta_rhob_width_1;

@@ -20,7 +20,7 @@ class Init {
     const EOS &eos;
     std::weak_ptr<HydroSourceBase> hydro_source_terms_ptr;
     pretty_ostream music_message;
-        
+
     // support for JETSCAPE
     std::vector<double> jetscape_initial_energy_density;
     std::vector<double> jetscape_initial_u_tau;
@@ -69,13 +69,14 @@ class Init {
         std::vector<double> pi_23_in, std::vector<double> pi_33_in,
         std::vector<double> Bulk_pi_in);
     void clean_up_jetscape_arrays();
-    
-    double eta_profile_normalisation       (double eta);
-    double eta_rhob_profile_normalisation  (double eta);
-    double eta_profile_left_factor         (double eta);
-    double eta_profile_right_factor        (double eta);
-    double eta_rhob_left_factor            (double eta);
-    double eta_rhob_right_factor           (double eta);
+
+    double eta_profile_normalisation       (const double eta) const;
+    double energy_eta_profile_normalisation(const double y_CM) const;
+    double eta_rhob_profile_normalisation  (const double eta) const;
+    double eta_profile_left_factor         (const double eta) const;
+    double eta_profile_right_factor        (const double eta) const;
+    double eta_rhob_left_factor            (const double eta) const;
+    double eta_rhob_right_factor           (const double eta) const;
     void   output_initial_density_profiles (SCGrid &arena);
 };
 
