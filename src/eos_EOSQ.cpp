@@ -66,8 +66,8 @@ void EOS_eosQ::initialize_eos() {
         nb_length[itable] = N_rhob + 1;
         e_length[itable]  = N_e + 1;
 
-        e_bounds[itable]  /= hbarc;   // 1/fm^4
-        e_spacing[itable] /= hbarc;   // 1/fm^4
+        e_bounds[itable]  /= Util::hbarc;   // 1/fm^4
+        e_spacing[itable] /= Util::hbarc;   // 1/fm^4
 
         // skip the header in T and mu_B files
         string dummy;
@@ -91,9 +91,9 @@ void EOS_eosQ::initialize_eos() {
                 eos_T >> temperature_tb[itable][i][j];
                 eos_mub >> mu_B_tb[itable][i][j];
                 
-                pressure_tb[itable][i][j]    /= hbarc;    // 1/fm^4
-                temperature_tb[itable][i][j] /= hbarc;    // 1/fm
-                mu_B_tb[itable][i][j]        /= hbarc;    // 1/fm
+                pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
+                temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
+                mu_B_tb[itable][i][j]        /= Util::hbarc;    // 1/fm
             }
         }
     }

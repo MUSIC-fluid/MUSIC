@@ -9,8 +9,8 @@
 using std::stringstream;
 using std::string;
 
-EOS_s95p::EOS_s95p() {
-    set_EOS_id(2);
+EOS_s95p::EOS_s95p(const int eos_id_in) : eos_id(eos_id_in) {
+    set_EOS_id(eos_id);
     set_number_of_tables(0);
     set_eps_max(1e5);
     set_flag_muB(false);
@@ -19,40 +19,38 @@ EOS_s95p::EOS_s95p() {
 }
 
 
-void EOS_s95p::initialize_eos(int eos_id_in) {
+void EOS_s95p::initialize_eos() {
     // read the lattice EOS pressure, temperature, and 
     music_message.info("reading EOS s95p ...");
     
-    set_EOS_id(eos_id_in);
-
     auto envPath = get_hydro_env_path();
     stringstream spath;
     spath << envPath;
-    if (eos_id_in == 2) {
+    if (eos_id == 2) {
         music_message.info("Using lattice EOS from Huovinen/Petreczky");
         spath << "/EOS/s95p-v1/";
-    } else if (eos_id_in == 3) {
+    } else if (eos_id == 3) {
         music_message << "Using lattice EOS from Huovinen/Petreczky with "
                       << "partial chemical equilibrium (PCE) "
                       << "chem. f.o. at 150 MeV";
         music_message.flush("info");
         spath << "/EOS/s95p-PCE-v1/";
-    } else if (eos_id_in == 4) {
+    } else if (eos_id == 4) {
         music_message << "Using lattice EOS from Huovinen/Petreczky with "
                       << "partial chemical equilibrium (PCE) "
                       << "chem. f.o. at 155 MeV";
         spath << "/EOS/s95p-PCE155/";
-    } else if (eos_id_in == 5) {
+    } else if (eos_id == 5) {
         music_message << "Using lattice EOS from Huovinen/Petreczky with "
                       << "partial chemical equilibrium (PCE) "
                       << "chem. f.o. at 160 MeV";
         spath << "/EOS/s95p-PCE160/";
-    } else if (eos_id_in == 6) {
+    } else if (eos_id == 6) {
         music_message << "Using lattice EOS from Huovinen/Petreczky with "
                       << "partial chemical equilibrium (PCE) chem. f.o. "
                        << "at 165 MeV";
         spath << "/EOS/s95p-PCE165-v0/";
-    } else if (eos_id_in == 7) {
+    } else if (eos_id == 7) {
         music_message.info(
             "Using lattice EOS from Huovinen/Petreczky s95p-v1.2 (for UrQMD)");
         spath << "/EOS/s95p-v1.2/";
@@ -61,9 +59,9 @@ void EOS_s95p::initialize_eos(int eos_id_in) {
     music_message << "from path " << spath.str();
     music_message.flush("info");
 
-    if (eos_id_in == 2) {
+    if (eos_id == 2) {
         spath << "s95p-v1_";
-    } else if (eos_id_in == 7) {
+    } else if (eos_id == 7) {
         spath << "s95p-v1.2_";
     }
     
@@ -85,8 +83,8 @@ void EOS_s95p::initialize_eos(int eos_id_in) {
         eos_d >> e_bounds[itable];
         eos_d >> e_spacing[itable] >> e_length[itable];
         
-        e_bounds[itable]  /= hbarc;   // 1/fm^4
-        e_spacing[itable] /= hbarc;   // 1/fm^4
+        e_bounds[itable]  /= Util::hbarc;   // 1/fm^4
+        e_spacing[itable] /= Util::hbarc;   // 1/fm^4
         
         // skip the header in T file
         string dummy;
@@ -112,8 +110,8 @@ void EOS_s95p::initialize_eos(int eos_id_in) {
             eos_d >> d_dummy >> dummy >> dummy;;
             eos_T >> temperature_tb[itable][i][j] >> dummy >> dummy;
                 
-            pressure_tb[itable][i][j]    /= hbarc;    // 1/fm^4
-            temperature_tb[itable][i][j] /= hbarc;    // 1/fm
+            pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
+            temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
         }
     }
 
@@ -150,5 +148,10 @@ double EOS_s95p::get_pressure(double e, double rhob) const {
 
 double EOS_s95p::get_s2e(double s, double rhob) const {
     double e = get_s2e_finite_rhob(s, 0.0);
+    return(e);
+}
+
+double EOS_s95p::get_T2e(double T, double rhob) const {
+    double e = get_T2e_finite_rhob(T, 0.0);
     return(e);
 }

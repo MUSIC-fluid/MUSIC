@@ -29,6 +29,7 @@ typedef struct {
 } fluidCell;
 
 typedef struct {
+    float eta;
     float sd, ed, pressure, temperature;
     float ux, uy, ueta;
 } fluidCell_ideal;

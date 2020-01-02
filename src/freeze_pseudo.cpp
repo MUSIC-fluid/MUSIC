@@ -12,6 +12,7 @@
 #include "./freeze.h"
 
 using namespace std;
+using Util::hbarc;
 
 // read in thermal spectra from file to then perform resonance decays with them
 // Must set verbose to 1 if you want particleMax to be set by this routine.
@@ -54,7 +55,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose) {
         particleList[ip].npt = iptmax;
         particleList[ip].nphi = iphimax;
         particleList[ip].phimin = 0;
-        particleList[ip].phimax = 2*PI;
+        particleList[ip].phimax = 2*M_PI;
         particleList[ip].slope = 1;
         particleList[ip].ymax = etamax;
         deltaeta = 0.;
@@ -117,7 +118,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose) {
     if (phiArray == NULL) {
         phiArray = new double[iphimax];
         for (int iphi = 0; iphi < iphimax; iphi++) {
-            phiArray[iphi] = iphi*2*PI/iphimax;
+            phiArray[iphi] = iphi*2*M_PI/iphimax;
         }
     }
     fclose(s_file);
@@ -145,7 +146,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
                                     // (ipt goes from 0 to iptmax)
     int iphimax = DATA->phi_steps;  // number of points
                                     // (phi=2pi equal to phi=0)
-    double deltaphi = 2*PI/iphimax;
+    double deltaphi = 2*M_PI/iphimax;
   
     // Reuse rapidity variables (Need to reuse variable y
     // so resonance decay routine can be used as is.
@@ -522,7 +523,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
                 }
             }
         }
-        double prefactor = deg/(pow(2.*PI,3.)*pow(hbarc,3.));
+        double prefactor = deg/(pow(2.*M_PI,3.)*pow(hbarc,3.));
         // store the final results
         for (int ipt = 0; ipt < iptmax; ipt++) {
             for (int iphi = 0; iphi < iphimax; iphi++) {
@@ -573,7 +574,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
                                     // (ipt goes from 0 to iptmax)
     int iphimax = DATA->phi_steps;  // number of points
                                     // (phi=2pi equal to phi=0)
-    double deltaphi = 2*PI/iphimax;
+    double deltaphi = 2*M_PI/iphimax;
   
     // Reuse rapidity variables (Need to reuse variable y
     // so resonance decay routine can be used as is.
@@ -847,7 +848,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
             }
         }
     }
-    double prefactor = deg/(pow(2.*PI, 3.)*pow(hbarc, 3.));
+    double prefactor = deg/(pow(2.*M_PI, 3.)*pow(hbarc, 3.));
 
     for (int ieta = 0; ieta < ietamax; ieta++) {
         double eta = -etamax + ieta*deltaeta;
@@ -1315,10 +1316,10 @@ void Freeze::rapidity_integrated_flow(
                 dNdp = gsl_spline_eval(spline, maxrap, acc);
             }
            
-            double phi = iphi*2*PI/nphi;
+            double phi = iphi*2*M_PI/nphi;
             for (int i = 0; i < nharmonics; i++) {
-                intvn[ipt][i][0] += cos(i*phi)*dNdp*2*PI/nphi;
-                intvn[ipt][i][1] += sin(i*phi)*dNdp*2*PI/nphi;
+                intvn[ipt][i][0] += cos(i*phi)*dNdp*2*M_PI/nphi;
+                intvn[ipt][i][1] += sin(i*phi)*dNdp*2*M_PI/nphi;
             }
             gsl_spline_free (spline);
             gsl_interp_accel_free (acc);

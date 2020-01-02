@@ -15,6 +15,7 @@ using std::cout;
 using std::endl;
 using std::ofstream;
 using std::string;
+using Util::hbarc;
 
 EOS_base::~EOS_base() {
     for (int itable = 0; itable < number_of_tables; itable++) {
@@ -22,6 +23,10 @@ EOS_base::~EOS_base() {
                        nb_length[itable], e_length[itable]);
         Util::mtx_free(temperature_tb[itable],
                        nb_length[itable], e_length[itable]);
+    }
+    if (number_of_tables > 0) {
+        delete[] pressure_tb;
+        delete[] temperature_tb;
     }
 }
 
@@ -54,7 +59,6 @@ double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
     double temp1 = table[table_idx][0][idx_e];
     double temp2 = table[table_idx][0][idx_e + 1];
     result = temp1*(1. - frac_e) + temp2*frac_e;
-    result = std::max(1e-15, result);
     return(result);
 }
 
@@ -114,7 +118,7 @@ double EOS_base::get_entropy(double epsilon, double rhob) const {
     auto rhoS = get_rhoS(epsilon, rhob);
     auto rhoC = get_rhoC(epsilon, rhob);
     auto f    = (epsilon + P - muB*rhob - muS*rhoS - muC*rhoC)/(T + 1e-15);
-    return(std::max(1e-16, f));
+    return(std::max(1e-15, f));
 }
 
 
@@ -175,6 +179,51 @@ int EOS_base::get_table_idx(double e) const {
     return(std::max(0, number_of_tables - 1));
 }
 
+
+//! This function returns local energy density [1/fm^4] from
+//! a given temperature T [GeV] and rhob [1/fm^3] using binary search
+double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
+    double T_goal = T/Util::hbarc;         // convert to 1/fm
+    double eps_lower = 1e-15;
+    double eps_upper = eps_max;
+    double eps_mid   = (eps_upper + eps_lower)/2.;
+    double T_lower   = get_temperature(eps_lower, rhob);
+    double T_upper   = get_temperature(eps_upper, rhob);
+    int ntol         = 1000;
+    if (T_goal < 0.0 || T_goal > T_upper) {
+        cout << "get_T2e:: T is out of bound, "
+             << "T = " << T << ", T_upper = " << T_upper*Util::hbarc
+             << ", T_lower = " << T_lower*Util::hbarc << endl;
+        exit(1);
+    }
+    if (T_goal < T_lower) return(eps_lower);
+
+    double rel_accuracy = 1e-8;
+    double abs_accuracy = 1e-15;
+    double T_mid;
+    int iter = 0;
+    while (((eps_upper - eps_lower)/eps_mid > rel_accuracy
+            && (eps_upper - eps_lower) > abs_accuracy) && iter < ntol) {
+        T_mid = get_temperature(eps_mid, rhob);
+        if (T_goal < T_mid)
+            eps_upper = eps_mid;
+        else 
+            eps_lower = eps_mid;
+        eps_mid = (eps_upper + eps_lower)/2.;
+        iter++;
+    }
+    if (iter == ntol) {
+        cout << "get_T2e_finite_rhob:: max iteration reached, "
+             << "T = " << T << ", rhob = " << rhob << endl;;
+        cout << "T_upper = " << T_upper*Util::hbarc
+             << " , T_lower = " << T_lower*Util::hbarc << endl;
+        cout << "eps_upper = " << eps_upper
+             << " , eps_lower = " << eps_lower
+             << ", diff = " << (eps_upper - eps_lower) << endl;
+        exit(1);
+    }
+    return (eps_mid);
+}
 
 //! This function returns local energy density [1/fm^4] from
 //! a given entropy density [1/fm^3] and rhob [1/fm^3]

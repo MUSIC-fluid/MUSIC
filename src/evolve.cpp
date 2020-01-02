@@ -1,5 +1,9 @@
 // Copyright 2012 Bjoern Schenke, Sangyong Jeon, and Charles Gale
-#include <omp.h>
+
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
 #include <algorithm>
 #include <memory>
 #include <cmath>
@@ -10,20 +14,25 @@
 
 #include "evolve.h"
 #include "cornelius.h"
+#include "emoji.h"
 
 #ifndef _OPENMP
   #define omp_get_thread_num() 0
 #endif
 
+using Util::hbarc;
+
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
-               hydro_source &hydro_source_in) :
-    eos(eosIn), DATA(DATA_in), hydro_source_terms(hydro_source_in),
-    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_in),
+               std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
+    eos(eosIn), DATA(DATA_in),
+    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in),
     u_derivative(DATA_in, eosIn) {
+
     rk_order  = DATA_in.rk_order;
     if (DATA.freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
     }
+    hydro_source_terms_ptr = hydro_source_ptr_in;
 }
 
 // master control function for hydrodynamic evolution
@@ -53,7 +62,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     int it_start = 0;
     double source_tau_max = 0.0;
     if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
-        source_tau_max = hydro_source_terms.get_source_tau_max();
+        source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
     }
 
     const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
@@ -69,7 +78,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         tau = tau0 + dt*it;
 
         if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
-            hydro_source_terms.prepare_list_for_current_tau_frame(tau);
+            hydro_source_terms_ptr.lock()->prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
         if (it == it_start) {
@@ -112,6 +121,10 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
             if (DATA.output_movie_flag == 1) {
                 grid_info.output_evolution_for_movie(*ap_current, tau);
+            }
+            if (DATA.output_outofequilibriumsize == 1) {
+                grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*ap_current,
+                                                                  tau);
             }
         }
 
@@ -162,7 +175,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                                   arena_freezeout);
             }
         }
-        music_message << "Done time step " << it << "/" << itmax
+        music_message << emoji::clock()
+                      << " Done time step " << it << "/" << itmax
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
         if (frozen == 1) break;
@@ -303,6 +317,14 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                                                 intersect=0;
 
             if (intersect==0) continue;
+                
+            if (ix == 0 || ix >= nx - 2*fac_x
+                    || iy == 0 || iy >= ny - 2*fac_y) {
+                music_message << "Freeze-out cell at the boundary! "
+                              << "The grid is too small!";
+                music_message.flush("error");
+                exit(1);
+            }
 
             // if intersect, prepare for the hyper-cube
             intersections++;
@@ -1220,6 +1242,14 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                     intersect = 0;
                 if (intersect == 0) continue;
 
+                if (ix == 0 || ix >= nx - 2*fac_x
+                        || iy == 0 || iy >= ny - 2*fac_y) {
+                    music_message << "Freeze-out cell at the boundary! "
+                                  << "The grid is too small!";
+                    music_message.flush("error");
+                    exit(1);
+                }
+
                 // if intersect, prepare for the hyper-cube
                 intersections++;
                 cube[0][0][0] = arena_freezeout(ix      , iy      , 0).epsilon;
@@ -1278,19 +1308,6 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
 
                     // perform 3-d linear interpolation for all fluid quantities
 
-                    // flow velocity u^\tau
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).u[0];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).u[0];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).u[0];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).u[0];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).u[0];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).u[0];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).u[0];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).u[0];
-                    double utau_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-
                     // flow velocity u^x
                     cube[0][0][0] = arena_freezeout(ix      , iy      , 0).u[1];
                     cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).u[1];
@@ -1329,6 +1346,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     double ueta_center = (
                         Util::three_dimension_linear_interpolation(
                                         lattice_spacing, x_fraction, cube));
+                
+                    const double utau_center = sqrt(1. + ux_center*ux_center 
+                                   + uy_center*uy_center 
+                                   + ueta_center*ueta_center);
 
                     // baryon density rho_b
                     cube[0][0][0] = arena_freezeout(ix      , iy      , 0).rhob;
@@ -1724,7 +1745,18 @@ void Evolve::regulate_Wmunu(const double u[], const double Wmunu[4][4],
 }
 
 void Evolve::initialize_freezeout_surface_info() {
-    int freeze_eps_flag = DATA.freeze_eps_flag;
+    if (DATA.useEpsFO == 0) {
+        const double e_freeze = eos.get_T2e(DATA.TFO, 0.0)*Util::hbarc;
+        n_freeze_surf = 1;
+        for (int isurf = 0; isurf < n_freeze_surf; isurf++) {
+            epsFO_list.push_back(e_freeze);
+            music_message << "Freeze out at a constant temperature T = " 
+                          << DATA.TFO << " GeV, e_fo = "
+                          << e_freeze << " GeV/fm^3";
+            music_message.flush("info");
+        }
+    }
+    const int freeze_eps_flag = DATA.freeze_eps_flag;
     if (freeze_eps_flag == 0) {
         // constant spacing the energy density
         n_freeze_surf = DATA.N_freeze_out;
@@ -1732,8 +1764,7 @@ void Evolve::initialize_freezeout_surface_info() {
         double freeze_min_ed = DATA.eps_freeze_min;
         double d_epsFO = ((freeze_max_ed - freeze_min_ed)
                           /(n_freeze_surf - 1 + 1e-15));
-        for(int isurf = 0; isurf < n_freeze_surf; isurf++)
-        {
+        for (int isurf = 0; isurf < n_freeze_surf; isurf++) {
             double temp_epsFO = freeze_min_ed + isurf*d_epsFO;
             epsFO_list.push_back(temp_epsFO);
         }

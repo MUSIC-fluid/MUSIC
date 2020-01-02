@@ -9,7 +9,7 @@
 #include "grid.h"
 #include "data.h"
 #include "eos.h"
-#include "hydro_source.h"
+#include "hydro_source_base.h"
 #include "read_in_parameters.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
@@ -34,7 +34,7 @@ class MUSIC {
     SCGrid arena_current;
     SCGrid arena_future;
 
-    hydro_source hydro_source_terms;
+    std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
     std::shared_ptr<HydroinfoMUSIC> hydro_info_ptr;
 
@@ -49,6 +49,9 @@ class MUSIC {
 
     //! This function initialize hydro
     void initialize_hydro();
+    
+    //! This function change the parameter value in DATA
+    void set_parameter(std::string parameter_name, double value);
 
     //! this is a shell function to run hydro
     int run_hydro();
@@ -56,7 +59,16 @@ class MUSIC {
     //! this is a shell function to run Cooper-Frye
     int run_Cooper_Frye();
 
+    //! this function adds hydro source terms pointer
+    void add_hydro_source_terms(
+            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
+    
+    //! This function setup source terms from dynamical initialization
+    void generate_hydro_source_terms();
+
+    //! This function calls routine to check EoS
     void check_eos();
+
     //! this is a test function to output the transport coefficients as
     //! function of T and mu_B
     void output_transport_coefficients();
@@ -78,7 +90,31 @@ class MUSIC {
     void get_hydro_info(
         const double x, const double y, const double z, const double t,
         fluidCell* fluid_cell_info);
+    int get_number_of_fluid_cells() const {
+        return(hydro_info_ptr->get_number_of_fluid_cells());
+    }
+    void get_fluid_cell_with_index(const int idx, fluidCell *info) const {
+        return(hydro_info_ptr->get_fluid_cell_with_index(idx, info));
+    }
     void clear_hydro_info_from_memory();
+
+    double get_hydro_tau0() const {return(hydro_info_ptr->get_hydro_tau0());}
+    double get_hydro_dtau() const {return(hydro_info_ptr->get_hydro_dtau());}
+    double get_hydro_tau_max() const {
+        return(hydro_info_ptr->get_hydro_tau_max());
+    }
+    double get_hydro_dx() const {return(hydro_info_ptr->get_hydro_dx());}
+    double get_hydro_x_max() const {return(hydro_info_ptr->get_hydro_x_max());}
+    double get_hydro_deta() const {return(hydro_info_ptr->get_hydro_deta());}
+    double get_hydro_eta_max() const {
+        return(hydro_info_ptr->get_hydro_eta_max());
+    }
+    int get_ntau() const {return(hydro_info_ptr->get_ntau());}
+    int get_neta() const {return(hydro_info_ptr->get_neta());}
+    int get_nx()   const {return(hydro_info_ptr->get_nx()  );}
+    bool is_boost_invariant() const {
+        return(hydro_info_ptr->is_boost_invariant());
+    }
 };
 
 #endif  // SRC_MUSIC_H_

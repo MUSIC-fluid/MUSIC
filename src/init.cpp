@@ -3,7 +3,6 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include <omp.h>
 #include "./util.h"
 #include "./cell.h"
 #include "./grid.h"
@@ -12,16 +11,26 @@
 
 #ifndef _OPENMP
     #define omp_get_thread_num() 0
+    #define omp_get_num_threads() 1
+#else
+    #include <omp.h>
 #endif
 
 using std::vector;
 using std::ifstream;
+using Util::hbarc;
 
-Init::Init(const EOS &eosIn, InitData &DATA_in, hydro_source &hydro_source_in) :
-    DATA(DATA_in), eos(eosIn) , hydro_source_terms(hydro_source_in) {}
+
+Init::Init(const EOS &eosIn, InitData &DATA_in,
+           std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
+    DATA(DATA_in), eos(eosIn){
+    hydro_source_terms_ptr = hydro_source_ptr_in;
+}
+
 
 void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                      SCGrid &arena_future) {
+    print_num_of_threads();
     music_message.info("initArena");
     if (DATA.Initial_profile == 0) {
         music_message << "Using Initial_profile=" << DATA.Initial_profile;
@@ -88,10 +97,11 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
     } else if (DATA.Initial_profile == 13) {
-        DATA.tau0 = hydro_source_terms.get_source_tau_min() - DATA.delta_tau;
+        DATA.tau0 = (hydro_source_terms_ptr.lock()->get_source_tau_min()
+                     - DATA.delta_tau);
         DATA.tau0 = std::max(0.1, DATA.tau0);
     } else if (DATA.Initial_profile == 30) {
-        DATA.tau0 = hydro_source_terms.get_source_tau_min();
+        DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
     } else if (DATA.Initial_profile == 42) {
         // initial condition from the JETSCAPE framework
         music_message << "Using Initial_profile=" << DATA.Initial_profile 
@@ -103,8 +113,8 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         const int ny = nx;
         DATA.nx = nx;
         DATA.ny = ny;
-        DATA.x_size = DATA.delta_x*(nx - 1);
-        DATA.y_size = DATA.delta_y*(ny - 1);
+        DATA.x_size = DATA.delta_x*nx;
+        DATA.y_size = DATA.delta_y*ny;
 
         music_message << "neta = " << DATA.neta
                       << ", nx = " << nx << ", ny = " << ny;
@@ -140,6 +150,18 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         output_initial_density_profiles(arena_current);
     }
 }/* InitArena */
+    
+
+void Init::print_num_of_threads() {
+    #pragma omp parallel for
+    for (int i = 0; i < 2; i++) {
+        if (i == 0) {
+            music_message << "OpenMP: using " << omp_get_num_threads()
+                          << " threads.";
+            music_message.flush("info");
+        }
+    }
+}
 
 //! This is a shell function to initial hydrodynamic fields
 void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
@@ -191,11 +213,8 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
                       << DATA.initName_TB;
         music_message.flush("info");
 
-        #pragma omp parallel for
-        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            initial_MCGlb_with_rhob_XY(ieta, arena_prev, arena_current);
-        }
-    } else if (DATA.Initial_profile == 13) {
+        initial_MCGlb_with_rhob(arena_prev, arena_current);
+    } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
         music_message.info("Initialize hydro with source terms");
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
@@ -632,8 +651,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
     }
 }
 
-void Init::initial_MCGlb_with_rhob_XY(int ieta, SCGrid &arena_prev,
-                                      SCGrid &arena_current) {
+void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     // first load in the transverse profile
     ifstream profile_TA(DATA.initName_TA.c_str());
     ifstream profile_TB(DATA.initName_TB.c_str());
@@ -659,48 +677,51 @@ void Init::initial_MCGlb_with_rhob_XY(int ieta, SCGrid &arena_prev,
     profile_rhob_TA.close();
     profile_rhob_TB.close();
 
-    double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-    double eta_envelop_left  = eta_profile_left_factor(eta);
-    double eta_envelop_right = eta_profile_right_factor(eta);
-    double eta_rhob_left     = eta_rhob_left_factor(eta);
-    double eta_rhob_right    = eta_rhob_right_factor(eta);
-
     int entropy_flag = DATA.initializeEntropy;
-    for (int ix = 0; ix < nx; ix++) {
-        for (int iy = 0; iy< ny; iy++) {
-            double rhob = 0.0;
-            double epsilon = 0.0;
-            if (DATA.turn_on_rhob == 1) {
-                rhob = (
-                    (temp_profile_rhob_TA[ix][iy]*eta_rhob_left
-                     + temp_profile_rhob_TB[ix][iy]*eta_rhob_right));
-            } else {
-                rhob = 0.0;
+
+    #pragma omp parallel for
+    for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+        double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+        double eta_envelop_left  = eta_profile_left_factor(eta);
+        double eta_envelop_right = eta_profile_right_factor(eta);
+        double eta_rhob_left     = eta_rhob_left_factor(eta);
+        double eta_rhob_right    = eta_rhob_right_factor(eta);
+
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy< ny; iy++) {
+                double rhob = 0.0;
+                double epsilon = 0.0;
+                if (DATA.turn_on_rhob == 1) {
+                    rhob = (
+                        (temp_profile_rhob_TA[ix][iy]*eta_rhob_left
+                         + temp_profile_rhob_TB[ix][iy]*eta_rhob_right));
+                } else {
+                    rhob = 0.0;
+                }
+                if (entropy_flag == 0) {
+                    epsilon = (
+                        (temp_profile_TA[ix][iy]*eta_envelop_left
+                         + temp_profile_TB[ix][iy]*eta_envelop_right)
+                        *DATA.sFactor/hbarc);   // 1/fm^4
+                } else {
+                    double local_sd = (
+                        (temp_profile_TA[ix][iy]*eta_envelop_left
+                         + temp_profile_TB[ix][iy]*eta_envelop_right)
+                        *DATA.sFactor);         // 1/fm^3
+                    epsilon = eos.get_s2e(local_sd, rhob);
+                }
+                epsilon = std::max(1e-12, epsilon);
+
+                arena_current(ix, iy, ieta).epsilon = epsilon;
+                arena_current(ix, iy, ieta).rhob = rhob;
+
+                arena_current(ix, iy, ieta).u[0] = 1.0;
+                arena_current(ix, iy, ieta).u[1] = 0.0;
+                arena_current(ix, iy, ieta).u[2] = 0.0;
+                arena_current(ix, iy, ieta).u[3] = 0.0;
+
+                arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
-            if (entropy_flag == 0) {
-                epsilon = (
-                    (temp_profile_TA[ix][iy]*eta_envelop_left
-                     + temp_profile_TB[ix][iy]*eta_envelop_right)
-                    *DATA.sFactor/hbarc);   // 1/fm^4
-            } else {
-                double local_sd = (
-                    (temp_profile_TA[ix][iy]*eta_envelop_left
-                     + temp_profile_TB[ix][iy]*eta_envelop_right)
-                    *DATA.sFactor);         // 1/fm^3
-                epsilon = eos.get_s2e(local_sd, rhob);
-            }
-            if (epsilon < 0.00000000001)
-                epsilon = 0.00000000001;
-
-            arena_current(ix, iy, ieta).epsilon = epsilon;
-            arena_current(ix, iy, ieta).rhob = rhob;
-
-            arena_current(ix, iy, ieta).u[0] = 1.0;
-            arena_current(ix, iy, ieta).u[1] = 0.0;
-            arena_current(ix, iy, ieta).u[2] = 0.0;
-            arena_current(ix, iy, ieta).u[3] = 0.0;
-
-            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
     }
 }
@@ -776,7 +797,7 @@ void Init::initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
 void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
                            SCGrid &arena_current) {
     double u[4] = {1.0, 0.0, 0.0, 0.0};
-    double j_mu[4] = {0.0, 0.0, 0.0, 0.0};
+    EnergyFlowVec j_mu = {0.0, 0.0, 0.0, 0.0};
 
     double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
     double tau0 = DATA.tau0;
@@ -789,13 +810,13 @@ void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
             double rhob = 0.0;
             double epsilon = 0.0;
             if (DATA.turn_on_rhob == 1) {
-                rhob = hydro_source_terms.get_hydro_rhob_source_before_tau(
+                rhob = hydro_source_terms_ptr.lock()->get_hydro_rhob_source_before_tau(
                                                 tau0, x_local, y_local, eta);
             } else {
                 rhob = 0.0;
             }
 
-            hydro_source_terms.get_hydro_energy_source_before_tau(
+            hydro_source_terms_ptr.lock()->get_hydro_energy_source_before_tau(
                                     tau0, x_local, y_local, eta, j_mu);
 
             epsilon = j_mu[0];           // 1/fm^4
@@ -850,12 +871,14 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
                                  SCGrid &arena_current) {
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
+    const int neta = arena_current.nEta();
     
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
             const double rhob = 0.0;
             double epsilon = 0.0;
-            const int idx = ix + (iy + ieta*nx)*nx;
+            //const int idx = iy + ix*ny + ieta*ny*nx;  // old trento convension
+            const int idx = ieta + iy*neta + ix*ny*neta;  // new trento convension
             epsilon = (jetscape_initial_energy_density[idx]
                        *DATA.sFactor/hbarc);  // 1/fm^4
             if (epsilon < 0.00000000001)
@@ -880,7 +903,7 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
             arena_current(ix, iy, ieta).Wmunu[6] = jetscape_initial_pi_13[idx]/hbarc*DATA.tau0;
             arena_current(ix, iy, ieta).Wmunu[7] = jetscape_initial_pi_22[idx]/hbarc;
             arena_current(ix, iy, ieta).Wmunu[8] = jetscape_initial_pi_23[idx]/hbarc*DATA.tau0;
-            arena_current(ix, iy, ieta).Wmunu[9] = jetscape_initial_pi_33[idx]/hbarc*DATA.tau0;
+            arena_current(ix, iy, ieta).Wmunu[9] = jetscape_initial_pi_33[idx]/hbarc*DATA.tau0*DATA.tau0;
 
             arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
@@ -914,7 +937,7 @@ double Init::eta_profile_normalisation(double eta) {
     if (DATA.initial_eta_profile == 1) {
         double exparg1 = (fabs(eta) - DATA.eta_flat/2.0)/DATA.eta_fall_off;
         double exparg = exparg1*exparg1/2.0;
-        res = exp(-exparg*theta(exparg1));
+        res = exp(-exparg*Util::theta(exparg1));
     } else if (DATA.initial_eta_profile == 2) {
         // Woods-Saxon
         // The radius is set to be half of DATA.eta_flat

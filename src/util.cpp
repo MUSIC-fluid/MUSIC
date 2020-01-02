@@ -6,13 +6,30 @@
 #include <string>
 #include <execinfo.h>
 
-using namespace std;
+using std::string;
 
 namespace Util {
 
 
-double **mtx_malloc(int n1, int n2)
-{
+double theta(const double x) {
+    if (x < 0.) {
+        return(0.0);
+    } else {
+        return(1.0);
+    }
+}
+
+
+double gmn(const int a) {
+    if (a == 0) {
+        return(-1.0);
+    } else {
+        return(1.0);
+    }
+}
+
+
+double **mtx_malloc(const int n1, const int n2) {
     double **d1_ptr; 
     d1_ptr = new double *[n1];
 
@@ -28,27 +45,24 @@ double **mtx_malloc(int n1, int n2)
 
 
 
-void mtx_free(double **m, int n1, int n2)
-{
-    for(int j=0; j<n1; j++) 
+void mtx_free(double **m, const int n1, const int n2) {
+    for (int j = 0; j < n1; j++) 
         delete [] m[j];
-
     delete [] m;
 }
 
 
 
-int IsFile(string file_name)
-{
- FILE *temp;
+int IsFile(string file_name) {
+    FILE *temp;
 
- if( (temp = fopen(file_name.c_str(),"r")) == NULL) return 0;
- else 
-  {
-   fclose(temp);
-   return 1;
-  }
-}/* IsFile */
+    if ((temp = fopen(file_name.c_str(),"r")) == NULL) {
+        return(0);
+    } else  {
+        fclose(temp);
+        return(1);
+    }
+}
 
 // support comments in the parameters file
 // comments need to start with #
@@ -65,19 +79,20 @@ string StringFind4(string file_name, string str_in) {
             fprintf(stderr, "No input file name specified.\n");
             fprintf(stderr, "Creating a default file named input.default\n");
         } else {
-            cerr << "The file named " << file_name << " is absent." << endl;
-            cout << "Creating " << file_name << "..." << endl;
+            std::cerr << "The file named " << file_name << " is absent."
+                      << std::endl;
+            std::cout << "Creating " << file_name << "..." << std::endl;
             tmpfilename = file_name;
         }
-        ofstream tmp_file(tmpfilename.c_str());
-        tmp_file << "EndOfData" << endl;
+        std::ofstream tmp_file(tmpfilename.c_str());
+        tmp_file << "EndOfData" << std::endl;
         tmp_file.close();
         exit(1);
     }/* if isfile */
   
     // pass checking, now read in the parameter file
     string temp_string;
-    ifstream input(inputname.c_str());
+    std::ifstream input(inputname.c_str());
     getline(input, temp_string);  // read in the first entry
 
     int ind = 0;
@@ -86,12 +101,12 @@ string StringFind4(string file_name, string str_in) {
     while (temp_string.compare("EndOfData") != 0) {
         // check whether it is the end of the file
         string para_string;
-        stringstream temp_ss(temp_string);
+        std::stringstream temp_ss(temp_string);
         getline(temp_ss, para_string, '#');  // remove the comments
         if (para_string.compare("") != 0
                 && para_string.find_first_not_of(' ') != std::string::npos) {
             // check the read in string is not empty
-            stringstream para_stream(para_string);
+            std::stringstream para_stream(para_string);
             para_stream >> para_name >> para_val;
             if (para_name.compare(str) == 0) {
                 // find the desired parameter
@@ -109,7 +124,7 @@ string StringFind4(string file_name, string str_in) {
         return("empty");
     }
     // should not cross here !!!
-    cout << "Error in StringFind4 !!!\n";
+    std::cout << "Error in StringFind4 !!!\n";
     return("empty");
 }/* StringFind4 */
 
@@ -275,4 +290,5 @@ Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector) {
     out_matrix[3][3] = in_vector[9];
     return out_matrix;
   }
+
 }

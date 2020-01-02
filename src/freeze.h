@@ -72,14 +72,14 @@ typedef struct particle {
                             // for the partial chemical equilibrium EoS
 } Particle;
 
-    
+
 typedef struct de {
     int  reso;          // Montecarlo number of decaying resonance
     int  numpart;       // number of daughter particles after decay
     double branch;      // branching ratio
     int    part[5];     // array of daughter particles Montecarlo number
 } de;
-    
+
 
 typedef struct pblockN {
     double pt, mt, y, e, pl;        // pt, mt, y of decay product 1
@@ -107,10 +107,12 @@ typedef struct surfaceElement {
     double q[4];            // baryon diffusion current
     double pi_b;            // bulk pressure
     double rho_B;           // net baryon density
-    
+
     double epsilon_f;
     double T_f;
-    double mu_B; 
+    double mu_B;
+    double mu_S;
+    double mu_C;
     double eps_plus_p_over_T_FO;  // (energy_density+pressure)/temperature
 } SurfaceElement;
 

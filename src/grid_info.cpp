@@ -1,11 +1,20 @@
 // Copyright Chun Shen @ 2014-2016
 #include <string>
 #include <iomanip>
+#include <cmath>
+#include <vector>
 
 #include "./util.h"
 #include "./grid_info.h"
 
-using namespace std;
+using Util::hbarc;
+using std::string;
+using std::scientific;
+using std::setw;
+using std::setprecision;
+using std::endl;
+using std::ofstream;
+using std::ostringstream;
 
 Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in) :
     DATA(DATA_in),
@@ -214,7 +223,7 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
                 if (DATA.outputBinaryEvolution == 0) {
                     fprintf(out_file_xyeta, "%e %e %e %e %e\n",
                             T_local*hbarc, muB_local*hbarc, vx, vy, vz);
-                    if (DATA.viscosity_flag == 1) {
+                    if ((DATA.viscosity_flag == 1)&&(DATA.turn_on_shear)) {
                         fprintf(out_file_W_xyeta,
                                 "%e %e %e %e %e %e %e %e %e %e\n",
                                 Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy,
@@ -276,22 +285,100 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
 }
 
 
+void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(SCGrid &arena,
+                                                        double tau) const {
+    const string out_name_xyeta = "evolution_KRnumbers.dat";
+    FILE *out_file_xyeta        = NULL;
+
+    // If it's the first timestep, overwrite the previous file
+    string out_open_mode;
+    if (tau == DATA.tau0) {
+        out_open_mode = "w";
+    } else {
+        out_open_mode = "a";
+    }
+    
+    // If we output in binary, set the mode accordingly
+    if (DATA.outputBinaryEvolution == 0) {
+        out_open_mode += "b";
+    }
+    out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
+    
+    const int n_skip_x   = DATA.output_evolution_every_N_x;
+    const int n_skip_y   = DATA.output_evolution_every_N_y;
+    const int n_skip_eta = DATA.output_evolution_every_N_eta;
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+        for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
+                double R_pi = 0.0;
+                double R_Pi = 0.0;
+                calculate_inverse_Reynolds_numbers(arena, ieta, ix, iy,
+                                                   R_pi, R_Pi);
+
+                if (DATA.outputBinaryEvolution == 0) {
+                    fprintf(out_file_xyeta, "%e %e\n", R_pi, R_Pi);
+                } else {
+                    float array[] = {static_cast<float>(R_pi),
+                                     static_cast<float>(R_Pi)};
+                    fwrite(array, sizeof(float), 2, out_file_xyeta);
+                } 
+            }
+        }
+    }
+    fclose(out_file_xyeta);
+}
+
+
+void Cell_info::calculate_inverse_Reynolds_numbers(
+                                SCGrid &arena_current,
+                                const int ieta, const int ix, const int iy,
+                                double &R_pi, double &R_Pi) const {
+    const auto grid_pt = arena_current(ix, iy, ieta);
+    
+    const double e_local  = grid_pt.epsilon;
+    const double rhob     = grid_pt.rhob;
+    const double pressure = eos.get_pressure(e_local, rhob);
+
+    const double pi_00 = grid_pt.Wmunu[0];
+    const double pi_01 = grid_pt.Wmunu[1];
+    const double pi_02 = grid_pt.Wmunu[2];
+    const double pi_03 = grid_pt.Wmunu[3];
+    const double pi_11 = grid_pt.Wmunu[4];
+    const double pi_12 = grid_pt.Wmunu[5];
+    const double pi_13 = grid_pt.Wmunu[6];
+    const double pi_22 = grid_pt.Wmunu[7];
+    const double pi_23 = grid_pt.Wmunu[8];
+    const double pi_33 = grid_pt.Wmunu[9];
+
+    const double pisize = (
+           pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
+         - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
+         + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
+    
+    const double pi_local = grid_pt.pi_b;
+
+    R_pi = sqrt(pisize)/pressure;
+    R_Pi = sqrt(pi_local)/pressure;
+}
+
+
 //! This function outputs hydro evolution file into memory for JETSCAPE
 void Cell_info::OutputEvolutionDataXYEta_memory(
                 SCGrid &arena, double tau, HydroinfoMUSIC &hydro_info_ptr) {
     const int n_skip_x   = DATA.output_evolution_every_N_x;
     const int n_skip_y   = DATA.output_evolution_every_N_y;
     const int n_skip_eta = DATA.output_evolution_every_N_eta;
-    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
-        double eta = 0.0;
-        if (DATA.boost_invariant == 0) {
-            eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
-                    - (DATA.eta_size)/2.0);
-        }
-        double cosh_eta = cosh(eta);
-        double sinh_eta = sinh(eta);
+    for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
-            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
+            for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+                double eta = 0.0;
+                if (DATA.boost_invariant == 0) {
+                    eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
+                            - (DATA.eta_size)/2.0);
+                }
+                double cosh_eta = cosh(eta);
+                double sinh_eta = sinh(eta);
+
                 double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
                 double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
                 double p_local = eos.get_pressure(e_local, rhob_local);
@@ -309,7 +396,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
                 double s_local   = eos.get_entropy(e_local, rhob_local);
                 
                 hydro_info_ptr.dump_ideal_info_to_memory(
-                        tau, e_local, p_local, s_local, T_local, vx, vy, vz);
+                    tau, eta, e_local, p_local, s_local, T_local, vx, vy, vz);
             }
         }
     }
@@ -706,7 +793,7 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, double tau) {
         double pixx_analytic[201], pixy_analytic[201];
         double piyy_analytic[201], pizz_analytic[201];
         double dummy;
-        ifstream input_file(filename_analytic.str().c_str());
+        std::ifstream input_file(filename_analytic.str().c_str());
         for (int i = 0; i < 201; i++) {
             input_file >> dummy >> dummy >> T_analytic[i] >> ux_analytic[i]
                        >> uy_analytic[i] >> pixx_analytic[i]
@@ -851,6 +938,8 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
         
                 double pressure  = eos.get_pressure(e_local, rhob_local);
                 double u0        = arena(ix, iy, ieta).u[0];
+                double u1        = arena(ix, iy, ieta).u[1];
+                double u2        = arena(ix, iy, ieta).u[2];
                 double u3        = arena(ix, iy, ieta).u[3];
                 double T00_ideal = (e_local + pressure)*u0*u0 - pressure;
                 double T03_ideal = (e_local + pressure)*u0*u3;
@@ -873,9 +962,12 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
                                  static_cast<float>(rhob_local),
                                  static_cast<float>(T_local*hbarc),
                                  static_cast<float>(muB_local*hbarc),
+                                 static_cast<float>(u1),
+                                 static_cast<float>(u2),
+                                 static_cast<float>(u3),
                                  static_cast<float>(Ttaut*hbarc),
                                  static_cast<float>(JBtau)};
-                fwrite(array, sizeof(float), 11, out_file_xyeta);
+                fwrite(array, sizeof(float), 14, out_file_xyeta);
             }
         }
     }
@@ -930,7 +1022,7 @@ void Cell_info::monitor_fluid_cell(SCGrid &arena, int ix, int iy, int ieta,
 }
 
 void Cell_info::load_deltaf_qmu_coeff_table(string filename) {
-    ifstream table(filename.c_str());
+    std::ifstream table(filename.c_str());
     deltaf_qmu_coeff_table_length_T = 150;
     deltaf_qmu_coeff_table_length_mu = 100;
     delta_qmu_coeff_table_T0 = 0.05;
@@ -949,7 +1041,7 @@ void Cell_info::load_deltaf_qmu_coeff_table(string filename) {
 }
 
 void Cell_info::load_deltaf_qmu_coeff_table_14mom(string filename) {
-    ifstream table(filename.c_str());
+    std::ifstream table(filename.c_str());
     deltaf_coeff_table_14mom_length_T = 190;
     deltaf_coeff_table_14mom_length_mu = 160;
     delta_coeff_table_14mom_T0 = 0.01;
@@ -1094,7 +1186,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
     ostringstream filename;
     filename << "averaged_phase_diagram_trajectory_eta_" << eta_min
              << "_" << eta_max << ".dat";
-    fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
+    std::fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
     if (fabs(tau - DATA.tau0) < 1e-10) {
         of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)  "
            << "V4 (fm^4)" << endl;
@@ -1152,21 +1244,36 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     ostringstream filename;
     filename << "momentum_anisotropy_eta_" << eta_min
              << "_" << eta_max << ".dat";
-    fstream of(filename.str().c_str(), std::fstream::app | std::fstream::out);
-    if (fabs(tau - DATA.tau0) < 1e-10) {
-        of << "# tau(fm)  epsilon_p(ideal)  epsilon_p(full)  "
-           << "ecc_2  ecc_3  R_Pi  gamma"
+    std::fstream of;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of.open(filename.str().c_str(), std::fstream::out);
+        of << "# tau(fm)  epsilon_p(ideal) epsilon_p(shear) epsilon_p(full)  "
+           << "ecc_2  ecc_3  R_Pi  gamma  T[GeV]"
            << endl;
+    } else {
+        of.open(filename.str().c_str(), std::fstream::app);
     }
+    
+    ostringstream filename1;
+    filename1 << "eccentricities_evo_eta_" << eta_min
+              << "_" << eta_max << ".dat";
+    std::fstream of1;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of1.open(filename1.str().c_str(), std::fstream::out);
+        of1 << "# tau(fm)  ecc_1  ecc_2  ecc_3  ecc_4  ecc_5  ecc_6"<< endl;
+    } else {
+        of1.open(filename1.str().c_str(), std::fstream::app);
+    }
+
     double ideal_num1 = 0.0;
     double ideal_num2 = 0.0;
     double ideal_den  = 0.0;
     double shear_num1 = 0.0;
     double shear_num2 = 0.0;
     double shear_den  = 0.0;
-    double full_num1 = 0.0;
-    double full_num2 = 0.0;
-    double full_den  = 0.0;
+    double full_num1  = 0.0;
+    double full_num2  = 0.0;
+    double full_den   = 0.0;
     double ecc2_num1  = 0.0;
     double ecc2_num2  = 0.0;
     double ecc2_den   = 0.0;
@@ -1177,6 +1284,13 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double R_Pi_den   = 0.0;
     double u_perp_num = 0.0;
     double u_perp_den = 0.0;
+    double T_avg_num  = 0.0;
+    double T_avg_den  = 0.0;
+    
+    const int norder = 6;
+    std::vector<double> eccn_num1(norder, 0.0);
+    std::vector<double> eccn_num2(norder, 0.0);
+    std::vector<double> eccn_den (norder, 0.0);
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
         if (DATA.boost_invariant == 0) {
@@ -1209,6 +1323,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double e_local      = arena(ix, iy, ieta).epsilon;  // 1/fm^4
                 double rhob_local   = arena(ix, iy, ieta).rhob;     // 1/fm^3
                 double P_local      = eos.get_pressure(e_local, rhob_local);
+                double T_local      = eos.get_temperature(e_local, rhob_local);
                 double gamma_perp   = arena(ix, iy, ieta).u[0];
                 double ux           = arena(ix, iy, ieta).u[1];
                 double uy           = arena(ix, iy, ieta).u[2];
@@ -1247,6 +1362,18 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 R_Pi_den   += weight_local;
                 u_perp_num += weight_local*gamma_perp;
                 u_perp_den += weight_local;
+                T_avg_num  += weight_local*T_local;
+                T_avg_den  += weight_local;
+                
+                for (int i = 1; i <= norder; i++) {
+                    if (i == 1)
+                        weight_local = gamma_perp*e_local*pow(r_local, 3);
+                    else 
+                        weight_local = gamma_perp*e_local*pow(r_local, i);
+                    eccn_num1[i-1] += weight_local*cos(i*phi_local);
+                    eccn_num2[i-1] += weight_local*sin(i*phi_local);
+                    eccn_den [i-1] += weight_local;
+                }
             }
         }
     }
@@ -1257,10 +1384,21 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double ecc3     = sqrt(ecc3_num1*ecc3_num1 + ecc3_num2*ecc3_num2)/ecc3_den;
     double R_Pi     = R_Pi_num/R_Pi_den;
     double u_avg    = u_perp_num/u_perp_den;
+    double T_avg    = T_avg_num/T_avg_den*hbarc;
 
     of << scientific << setw(18) << setprecision(8)
        << tau << "  " << ep_ideal << "  " << ep_shear << "  " << ep_full << "  "
-       << ecc2 << "  " << ecc3 << "  " << R_Pi << "  " << u_avg
-       << endl;
+       << ecc2 << "  " << ecc3 << "  " << R_Pi << "  " << u_avg << "  "
+       << T_avg << endl;
     of.close();
+    
+    of1 << scientific << setw(18) << setprecision(8)
+        << tau << "  ";
+    for (int i = 0; i < norder; i++) {
+        double eccn = sqrt(  eccn_num1[i]*eccn_num1[i]
+                           + eccn_num2[i]*eccn_num2[i])/eccn_den[i];
+        of1 << eccn << "  ";
+    }
+    of1 << endl;
+    of1.close();
 }

@@ -10,43 +10,22 @@
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <memory>
 #include <sys/stat.h>
 #include "data_struct.h"
 
-#ifndef PI
-#define PI (3.14159265358979324)
-#endif
-
-#ifndef hbarc
-#define hbarc (0.19733)
-#endif
-
-#ifndef default_tol
-#define default_tol (1.0e-8)
-#endif
-
-#define absol(a) ((a) > 0 ? (a) : (-(a)))
-#define maxi(a, b) ((a) > (b) ? (a) : (b))
-#define mini(a, b) ((a) < (b) ? (a) : (b))
-#define sgn(x) ((x) < 0.0 ? (-1.0) : (1.0))
-#define theta(x) ((x) < 0.0 ? (0.0) : (1.0))
-#define SQR(a) ((a)*(a))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define DMAX(a,b) ((a) > (b) ? (a) : (b))
-#define DMIN(a,b) ((a) < (b) ? (a) : (b))
-#define SIGN(a,b) ((b) >= 0.0 ? absol(a): -absol(a)) 
-/* added gmn = Minkowski metric to be used in sums */
-#define gmn(a) ((a) == 0 ? (-1.0) : (1.0))
-
-#define BT_BUF_SIZE 500
-
 //! This is a utility class which contains a collection of helper functions.
-
 namespace Util {
-    double **mtx_malloc(int , int );
+    const double hbarc = 0.19733;
+    const double default_tol = 1.0e-8;
+    const int BT_BUF_SIZE = 500;
 
-    void mtx_free(double **, int, int);
+    double theta(const double x);
+    double gmn(const int a);
+
+    double **mtx_malloc(const int n1, const int n2);
+
+    void mtx_free(double **m, const int n1, const int n2);
     
     int IsFile(std::string);
     
@@ -66,6 +45,14 @@ namespace Util {
 
     Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector);
     Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector);
+
+    // check whether a weak pointer is initialized or not
+    template <typename T>
+    bool weak_ptr_is_uninitialized(std::weak_ptr<T> const& weak) {
+        using wt = std::weak_ptr<T>;
+        return !weak.owner_before(wt{}) && !wt{}.owner_before(weak);
+    }
+
 }
 
 #endif

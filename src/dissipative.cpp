@@ -3,12 +3,15 @@
 #include <sstream>
 #include <fstream>
 #include <algorithm>
+#include <cmath>
 #include "util.h"
 #include "cell.h"
 #include "grid.h"
 #include "data.h"
 #include "eos.h"
 #include "dissipative.h"
+
+using Util::hbarc;
 
 Diss::Diss(const EOS &eosIn, const InitData &Data_in) : DATA(Data_in), eos(eosIn), minmod(Data_in) {}
 
@@ -152,8 +155,6 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     shear = (shear_to_s)*(epsilon + pressure)/(T + 1e-15);
     double tau_pi = 5.0*shear/(epsilon + pressure + 1e-15);
 
-    tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
-
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
     double transport_coefficient  = 9./70.*tau_pi/shear*(4./5.);
@@ -165,6 +166,8 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     // transport coefficients not yet known -- fixed to zero
     double transport_coefficient_b  = 6./5.*tau_pi;
     double transport_coefficient2_b = 0.;
+
+    tau_pi = std::max(3.*DATA.delta_tau, tau_pi);
 
     /* This source has many terms */
     /* everything in the 1/(tau_pi) piece is here */
@@ -418,10 +421,10 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
           double am1 = (fabs(m1.u[direction])/m1.u[0]);
           double ap1 = (fabs(p1.u[direction])/p1.u[0]);
 
-          double ax = maxi(a, ap1);
+          double ax = std::max(a, ap1);
           double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
 
-          ax = maxi(a, am1);
+          ax = std::max(a, am1);
           double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
 
           double HW = (HWph - HWmh)/delta[direction];
@@ -564,10 +567,10 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
         double am1 = (fabs(m1.u[direction])/m1.u[0]);
         double ap1 = (fabs(p1.u[direction])/p1.u[0]);
 
-        double ax = maxi(a, ap1);
+        double ax = std::max(a, ap1);
         double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
 
-        ax = maxi(a, am1);
+        ax = std::max(a, am1);
         double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
 
         double HW = (HWph - HWmh)/delta[direction];
@@ -765,7 +768,6 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     // Bulk relaxation time from kinetic theory
     Bulk_Relax_time = (1./(14.55*(1./3. - cs2)*(1./3. - cs2))
                        /(epsilon + pressure)*bulk);
-    Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
 
     // from kinetic theory, small mass limit
     transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);
@@ -774,6 +776,8 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     // from kinetic theory
     transport_coeff1_s = 8./5.*(1./3.-cs2)*Bulk_Relax_time;
     transport_coeff2_s = 0.;  // not known;  put 0
+
+    Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
     NS_term = -bulk*theta_local;
@@ -941,7 +945,7 @@ double Diss::Make_uqSource(
     // -u[a] u[b]g[b][e] Dq[e] -> u[a] (q[e] g[e][b] Du[b])
     tempf = 0.0;
     for (int i = 0; i < 4; i++) {
-        tempf += q[i]*gmn(i)*a_local[i];
+        tempf += q[i]*Util::gmn(i)*a_local[i];
     }
     SW += (grid_pt->u[nu])*tempf;
     // if (isnan(tempf)) {

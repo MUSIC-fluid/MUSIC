@@ -1,7 +1,12 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
-#include <omp.h>
+
+#ifdef _OPENMP
+    #include <omp.h>
+#endif
+
 #include <cassert>
 #include <cmath>
+#include <memory>
 
 #include "util.h"
 #include "data.h"
@@ -14,18 +19,25 @@
 
 using Util::map_2d_idx_to_1d;
 using Util::map_1d_idx_to_2d;
+using Util::hbarc;
 
 Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
-                 hydro_source &hydro_source_in) :
+                 std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
     DATA(DATA_in), eos(eosIn),
-    hydro_source_terms(hydro_source_in),
     diss_helper(eosIn, DATA_in),
     minmod(DATA_in),
     reconst_helper(eos, DATA_in) {
-    if (DATA_in.Initial_profile == 13 || DATA_in.Initial_profile == 30) {
-        flag_add_hydro_source = true;
-    } else {
-        flag_add_hydro_source = false;
+
+    hydro_source_terms_ptr = hydro_source_ptr_in;
+    flag_add_hydro_source = false;
+    if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
+        if (DATA.Initial_profile == 42) {
+            if (hydro_source_terms_ptr.lock()->get_number_of_sources() > 0) {
+                flag_add_hydro_source = true;
+            }
+        } else {
+            flag_add_hydro_source = true;
+        }
     }
 }
 
@@ -96,14 +108,14 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
         EnergyFlowVec j_mu = {0};
         FlowVec u_local = arena_current(ix,iy,ieta).u;
 
-        hydro_source_terms.get_hydro_energy_source(
+        hydro_source_terms_ptr.lock()->get_hydro_energy_source(
                     tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
         for (int ii = 0; ii < 4; ii++) {
             qi_source[ii] = tau_rk*j_mu[ii];
         }
 
         if (DATA.turn_on_rhob == 1) {
-            qi_source[4] = tau_rk*hydro_source_terms.get_hydro_rhob_source(
+            qi_source[4] = tau_rk*hydro_source_terms_ptr.lock()->get_hydro_rhob_source(
                             tau_rk, x_local, y_local, eta_s_local, u_local);
         }
     }
@@ -163,9 +175,9 @@ void Advance::FirstRKStepW(
     /* Advance uWmunu */
     double tempf, temps;
     if (DATA.turn_on_shear == 1) {
-        double w_rhs = 0.;
         #pragma omp simd
         for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
+            double w_rhs = 0.;
             int mu = 0;
             int nu = 0;
             map_1d_idx_to_2d(idx_1d, mu, nu);

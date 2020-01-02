@@ -27,3 +27,6 @@ double EOS_idealgas::get_s2e(double s, double rhob) const {
 }
 
 
+double EOS_idealgas::get_T2e(double T, double rhob) const {
+    return 3*T*T*T*T*M_PI*M_PI/90*(2*(Nc*Nc-1)+7./2*Nc*Nf);
+}

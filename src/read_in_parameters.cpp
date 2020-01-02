@@ -94,44 +94,45 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempinitializeEntropy;
     parameter_list.initializeEntropy = tempinitializeEntropy;
     
-    // T_freeze: freeze out temperature
-    // only used with use_eps_for_freeze_out = 0
-    parameter_list.useEpsFO = 0;
-    double tempTFO = 0.12;
-    tempinput = Util::StringFind4(input_file, "T_freeze");
-    if (tempinput != "empty") {
-        istringstream(tempinput) >> tempTFO;
-        // if only freeze out temperature is set, freeze out by temperature
-        parameter_list.useEpsFO = 0;
-    }
-    parameter_list.TFO = tempTFO;
-    
-    // epsilon_freeze: freeze-out energy density in GeV/fm^3
-    // only used with use_eps_for_freeze_out = 1
-    double tempepsilonFreeze = 0.12;
-    tempinput = Util::StringFind4(input_file, "epsilon_freeze");
-    if (tempinput != "empty") {
-        istringstream(tempinput) >> tempepsilonFreeze;
-        // if epsilon_freeze is set, freeze out by epsilon
-        parameter_list.useEpsFO = 1;
-    }
-    parameter_list.epsilonFreeze = tempepsilonFreeze;
-    
-    int temp_N_freeze_out = 1;
-    tempinput = Util::StringFind4(input_file, "N_freeze_out");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_N_freeze_out;
-    parameter_list.N_freeze_out = temp_N_freeze_out;
-
     //use_eps_for_freeze_out: 
     // 0: freeze out at constant temperature T_freeze
     // 1: freeze out at constant energy density epsilon_freeze
     // if set in input input_file, overide above defaults
-    int tempuseEpsFO = parameter_list.useEpsFO;
+    int tempuseEpsFO = 1;
     tempinput = Util::StringFind4(input_file, "use_eps_for_freeze_out");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempuseEpsFO;
     parameter_list.useEpsFO = tempuseEpsFO;
+    
+    // T_freeze: freeze out temperature
+    // only used with use_eps_for_freeze_out = 0
+    double tempTFO = 0.12;
+    if (parameter_list.useEpsFO == 0) {
+        tempinput = Util::StringFind4(input_file, "T_freeze");
+        if (tempinput != "empty") {
+            istringstream(tempinput) >> tempTFO;
+        } else {
+            music_message << "T_freeze is not set, use default T = 0.12 GeV";
+            music_message.flush("warning");
+        }
+        parameter_list.TFO = tempTFO;
+        parameter_list.N_freeze_out = 1;  // only one freeze-out is allowed
+    } else if (parameter_list.useEpsFO == 1) {
+        // epsilon_freeze: freeze-out energy density in GeV/fm^3
+        // only used with use_eps_for_freeze_out = 1
+        double tempepsilonFreeze = 0.12;
+        tempinput = Util::StringFind4(input_file, "epsilon_freeze");
+        if (tempinput != "empty") {
+            istringstream(tempinput) >> tempepsilonFreeze;
+        }
+        parameter_list.epsilonFreeze = tempepsilonFreeze;
+
+        int temp_N_freeze_out = 1;
+        tempinput = Util::StringFind4(input_file, "N_freeze_out");
+        if (tempinput != "empty")
+            istringstream(tempinput) >> temp_N_freeze_out;
+        parameter_list.N_freeze_out = temp_N_freeze_out;
+    }
     
     string temp_freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
     tempinput = Util::StringFind4(input_file, "freeze_list_filename");
@@ -157,7 +158,7 @@ InitData read_in_parameters(std::string input_file) {
         istringstream (tempinput) >> temp_freeze_eps_flag;
     parameter_list.freeze_eps_flag = temp_freeze_eps_flag;
     
-    int temp_freeze_surface_binary = 0;
+    int temp_freeze_surface_binary = 1;
     tempinput = Util::StringFind4(input_file, "freeze_surface_in_binary");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_freeze_surface_binary;
@@ -373,6 +374,14 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_output_movie_flag;
     parameter_list.output_movie_flag = temp_output_movie_flag;
+    
+    
+    int temp_output_outofequilibriumsize = 0;
+    tempinput = Util::StringFind4(input_file, "output_outofequilibriumsize");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_output_outofequilibriumsize;
+    parameter_list.output_outofequilibriumsize = (
+                                        temp_output_outofequilibriumsize);
     
     parameter_list.nt = static_cast<int>(
             parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
@@ -708,7 +717,11 @@ InitData read_in_parameters(std::string input_file) {
     tempinput = Util::StringFind4(input_file, "output_evolution_every_N_x");
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_x;
     parameter_list.output_evolution_every_N_x = temp_evo_N_x;
-    parameter_list.output_evolution_every_N_y = temp_evo_N_x;
+
+    int temp_evo_N_y = 1;
+    tempinput = Util::StringFind4(input_file, "output_evolution_every_N_y");
+    if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_y;
+    parameter_list.output_evolution_every_N_y = temp_evo_N_y;
     
     int temp_evo_N_eta = 1;
     tempinput = Util::StringFind4(input_file, "output_evolution_every_N_eta");
@@ -788,6 +801,30 @@ InitData read_in_parameters(std::string input_file) {
 }
 
 
+void set_parameter(InitData &parameter_list, std::string parameter_name,
+                   double value) {
+    if (parameter_name == "MUSIC_mode") {
+        parameter_list.mode = static_cast<int>(value);
+    }
+    if (parameter_name == "output_evolution_data") {
+        parameter_list.outputEvolutionData = static_cast<int>(value);
+    }
+    if (parameter_name == "output_movie_flag") {
+        parameter_list.output_movie_flag = static_cast<int>(value);
+    }
+    if (parameter_name == "store_hydro_info_in_memory") {
+        parameter_list.store_hydro_info_in_memory = static_cast<int>(value);
+    }
+    if (parameter_name == "Viscosity_Flag_Yes_1_No_0") {
+        parameter_list.viscosity_flag = static_cast<int>(value);
+    }
+    if (parameter_name == "Include_Shear_Visc_Yes_1_No_0") {
+        parameter_list.turn_on_shear = static_cast<int>(value);
+    }
+    if (parameter_name == "Shear_to_S_ratio") {
+        parameter_list.shear_to_s = value;
+    }
+}
 
 void check_parameters(InitData &parameter_list, std::string input_file) {
     music_message.info("Checking input parameter list ... ");
@@ -814,17 +851,19 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
-    if (parameter_list.TFO < 0.0 || parameter_list.TFO > 0.2) {
-        music_message << "T_freeze = " << parameter_list.TFO
-                      << " is not physical!";
-        music_message.flush("error");
-        exit(1);
-    }
-    
-    if (parameter_list.epsilonFreeze <= 0) {
-        music_message.error(
-                "Freeze out energy density must be greater than zero");
-        exit(1);
+    if (parameter_list.useEpsFO == 0) {
+        if (parameter_list.TFO < 0.0 || parameter_list.TFO > 0.2) {
+            music_message << "T_freeze = " << parameter_list.TFO
+                          << " is not physical!";
+            music_message.flush("error");
+            exit(1);
+        }
+    } else {
+        if (parameter_list.epsilonFreeze <= 0) {
+            music_message.error(
+                    "Freeze out energy density must be greater than zero");
+            exit(1);
+        }
     }
     
     if (parameter_list.useEpsFO > 1 || parameter_list.useEpsFO < 0) {
@@ -933,7 +972,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
 
         if (reset_dtau_use_CFL_condition) {
             music_message.info("reset dtau using CFL condition.");
-            double dtau_CFL = mini(
+            double dtau_CFL = std::min(
                     parameter_list.delta_x/10.0,
                     parameter_list.tau0*parameter_list.delta_eta/10.0);
             parameter_list.delta_tau = dtau_CFL;
@@ -1073,7 +1112,9 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
 
     music_message << "Finished checking input parameter list. "
                   << "Everything looks reasonable so far "
-                  << emoji::success();
+                  << emoji::success() << emoji::thumbup()
+                  << emoji::beer() << emoji::beer()
+                  << emoji::beerclinking() << emoji::beerclinking();
     music_message.flush("info");
 }
 

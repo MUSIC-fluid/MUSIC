@@ -14,6 +14,8 @@ HydroinfoMUSIC::~HydroinfoMUSIC() {
 
 void HydroinfoMUSIC::clean_hydro_event() {
     lattice_ideal.clear();
+    hydroTauMax = 0.;
+    itaumax = 0;
 }
 
 void HydroinfoMUSIC::getHydroValues(
@@ -284,7 +286,47 @@ void HydroinfoMUSIC::getHydroValues(
     info->pi[3][3] = static_cast<float>(pi33);
 
     info->bulkPi = static_cast<float>(bulkPi);
-    return;
+}
+
+
+void HydroinfoMUSIC::get_fluid_cell_with_index(const int idx,
+                                               fluidCell *info) const {
+    info->temperature = static_cast<float>(lattice_ideal[idx].temperature);
+    
+    double ux   = lattice_ideal[idx].ux;
+    double uy   = lattice_ideal[idx].uy;
+    double ueta = lattice_ideal[idx].ueta;
+    double utau = sqrt(1. + ux*ux + uy*uy + ueta*ueta);
+    double sinh_eta = sinh(lattice_ideal[idx].eta);
+    double cosh_eta = cosh(lattice_ideal[idx].eta);
+    double uz = utau*sinh_eta + ueta*cosh_eta;
+    double ut = utau*cosh_eta + ueta*sinh_eta;
+    info->vx = static_cast<float>(ux/ut);
+    info->vy = static_cast<float>(uy/ut);
+    info->vz = static_cast<float>(uz/ut);
+
+    info->ed = static_cast<float>(lattice_ideal[idx].ed);
+    info->sd = static_cast<float>(lattice_ideal[idx].sd);
+    info->pressure = static_cast<float>(lattice_ideal[idx].pressure);
+
+    info->pi[0][0] = static_cast<float>(0.0);
+    info->pi[0][1] = static_cast<float>(0.0);
+    info->pi[0][2] = static_cast<float>(0.0);
+    info->pi[0][3] = static_cast<float>(0.0);
+    info->pi[1][0] = static_cast<float>(0.0);
+    info->pi[1][1] = static_cast<float>(0.0);
+    info->pi[1][2] = static_cast<float>(0.0);
+    info->pi[1][3] = static_cast<float>(0.0);
+    info->pi[2][0] = static_cast<float>(0.0);
+    info->pi[2][1] = static_cast<float>(0.0);
+    info->pi[2][2] = static_cast<float>(0.0);
+    info->pi[2][3] = static_cast<float>(0.0);
+    info->pi[3][0] = static_cast<float>(0.0);
+    info->pi[3][1] = static_cast<float>(0.0);
+    info->pi[3][2] = static_cast<float>(0.0);
+    info->pi[3][3] = static_cast<float>(0.0);
+
+    info->bulkPi = static_cast<float>(0.0);
 }
 
 
@@ -321,7 +363,7 @@ void HydroinfoMUSIC::print_grid_information() {
     music_message.flush("info");
 }
 
-void HydroinfoMUSIC::dump_ideal_info_to_memory(double tau,
+void HydroinfoMUSIC::dump_ideal_info_to_memory(double tau, float eta,
         float epsilon, float pressure, float entropy, float T,
         float ux, float uy, float ueta) {
     if (tau > hydroTauMax) {
@@ -329,10 +371,11 @@ void HydroinfoMUSIC::dump_ideal_info_to_memory(double tau,
         itaumax++;
     }
     fluidCell_ideal new_cell;
-    new_cell.temperature = T*hbarc;
-    new_cell.ed = epsilon*hbarc;
+    new_cell.eta = eta;
+    new_cell.temperature = T*Util::hbarc;
+    new_cell.ed = epsilon*Util::hbarc;
     new_cell.sd = entropy;
-    new_cell.pressure = pressure*hbarc;
+    new_cell.pressure = pressure*Util::hbarc;
     new_cell.ux = ux;
     new_cell.uy = uy;
     new_cell.ueta = ueta;

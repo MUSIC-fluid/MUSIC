@@ -11,7 +11,7 @@
 #include "grid_info.h"
 #include "eos.h"
 #include "advance.h"
-#include "hydro_source.h"
+#include "hydro_source_base.h"
 #include "u_derivative.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
@@ -21,7 +21,7 @@ class Evolve {
  private:
     const EOS &eos;        // declare EOS object
     const InitData &DATA;
-    hydro_source &hydro_source_terms;
+    std::weak_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
     Cell_info grid_info;
     Advance advance;
@@ -43,7 +43,7 @@ class Evolve {
 
  public:
     Evolve(const EOS &eos, const InitData &DATA_in,
-           hydro_source &hydro_source_in);
+           std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                  SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr);
 

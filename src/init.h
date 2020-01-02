@@ -5,18 +5,20 @@
 #include <stdio.h>
 #include <vector>
 #include <cmath>
+#include <memory>
+
 #include "data.h"
 #include "cell.h"
 #include "grid.h"
 #include "eos.h"
-#include "hydro_source.h"
+#include "hydro_source_base.h"
 #include "pretty_ostream.h"
 
 class Init {
  private:
     InitData &DATA;
     const EOS &eos;
-    hydro_source &hydro_source_terms;
+    std::weak_ptr<HydroSourceBase> hydro_source_terms_ptr;
     pretty_ostream music_message;
         
     // support for JETSCAPE
@@ -38,19 +40,21 @@ class Init {
     std::vector<double> jetscape_initial_bulk_pi;
 
  public:
-    Init(const EOS &eos, InitData &DATA_in, hydro_source &hydro_source_in);
+    Init(const EOS &eos, InitData &DATA_in,
+         std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
 
     void InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                    SCGrid &arena_future);
     void InitTJb  (SCGrid &arena_prev, SCGrid &arena_current);
+    void print_num_of_threads();
 
     void initial_Gubser_XY               (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_1p1D_eta                (SCGrid &arena_prev, SCGrid &arena_current);
     void initial_IPGlasma_XY             (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_IPGlasma_XY_with_pi     (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_MCGlb_with_rhob_XY      (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_MCGlbLEXUS_with_rhob_XY (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_AMPT_XY                 (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
+    void initial_MCGlb_with_rhob         (SCGrid &arena_prev, SCGrid &arena_current);
     void initial_UMN_with_rhob           (SCGrid &arena_prev, SCGrid & arena_current);
     void initial_with_jetscape           (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
 

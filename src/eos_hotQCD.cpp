@@ -57,18 +57,18 @@ void EOS_hotQCD::initialize_eos() {
         double temp;
         for (int ii = 0; ii < e_length[itable]; ii++) {
             eos_file.read((char*)&temp, sizeof(double));  // e
-            temp /= hbarc;      // 1/fm^4
+            temp /= Util::hbarc;      // 1/fm^4
             if (ii == 0) e_bounds[itable] = temp;
             if (ii == 1) e_spacing[itable] = temp - e_bounds[itable];
             if (ii == e_length[itable] - 1) set_eps_max(temp);
 
             eos_file.read((char*)&temp, sizeof(double));  // P
-            pressure_tb[itable][0][ii] = temp/hbarc;      // 1/fm^4
+            pressure_tb[itable][0][ii] = temp/Util::hbarc;      // 1/fm^4
 
             eos_file.read((char*)&temp, sizeof(double));  // s
 
             eos_file.read((char*)&temp, sizeof(double));  // T
-            temperature_tb[itable][0][ii] = temp/hbarc;   // 1/fm
+            temperature_tb[itable][0][ii] = temp/Util::hbarc;   // 1/fm
         }
     }
     music_message.info("Done reading EOS.");
@@ -98,5 +98,10 @@ double EOS_hotQCD::get_pressure(double e, double rhob) const {
 
 double EOS_hotQCD::get_s2e(double s, double rhob) const {
     double e = get_s2e_finite_rhob(s, 0.0);
+    return(e);
+}
+
+double EOS_hotQCD::get_T2e(double T, double rhob) const {
+    double e = get_T2e_finite_rhob(T, 0.0);
     return(e);
 }

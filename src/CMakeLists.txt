@@ -7,7 +7,9 @@ set (SOURCES
     minmod.cpp
     music.cpp
     cornelius.cpp
-    hydro_source.cpp
+    hydro_source_base.cpp
+    hydro_source_strings.cpp
+    hydro_source_ampt.cpp
     pretty_ostream.cpp
     freeze.cpp
     grid_info.cpp
@@ -32,28 +34,23 @@ set (SOURCES
     HydroinfoMUSIC.cpp
     )
 
+add_library(${libname} SHARED ${SOURCES})
+set(CompileFlags "")
+if (APPLE)
+    set(CompileFlags "${CompileFlags} -DAPPLE")
+endif (APPLE)
+set_target_properties (${libname} PROPERTIES COMPILE_FLAGS "${CompileFlags}")
+target_link_libraries (${libname} ${GSL_LIBRARIES})
+install(TARGETS ${libname} DESTINATION ${CMAKE_HOME_DIRECTORY})
+
 if (unittest)
     add_executable (unittest_grid.e grid.cpp)
     install(TARGETS unittest_grid.e DESTINATION ${CMAKE_HOME_DIRECTORY})
     add_executable (unittest_minmod.e minmod.cpp)
     install(TARGETS unittest_minmod.e DESTINATION ${CMAKE_HOME_DIRECTORY})
 else (unittest)
-    if (build_lib)
-        add_library(music_lib SHARED ${SOURCES})
-    endif()
-    add_executable (mpihydro main.cpp ${SOURCES})
-    if (APPLE)
-        set_target_properties (mpihydro PROPERTIES COMPILE_FLAGS "-DAPPLE")
-        if (build_lib)
-            set_target_properties (music_lib PROPERTIES COMPILE_FLAGS "-DAPPLE")
-        endif()
-    endif (APPLE)
-    target_link_libraries (mpihydro ${GSL_LIBRARIES})
-    if (build_lib)
-        target_link_libraries (music_lib ${GSL_LIBRARIES})
-    endif()
-    install(TARGETS mpihydro DESTINATION ${CMAKE_HOME_DIRECTORY})
-    if (build_lib)
-        install(TARGETS music_lib DESTINATION ${CMAKE_HOME_DIRECTORY}/lib)
-    endif()
+    add_executable (${exename} main.cpp)
+    set_target_properties (${exename} PROPERTIES COMPILE_FLAGS "${CompileFlags}")
+    target_link_libraries (${exename} ${libname})
+    install(TARGETS ${exename} DESTINATION ${CMAKE_HOME_DIRECTORY})
 endif (unittest)
