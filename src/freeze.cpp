@@ -533,26 +533,39 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
             temp_cell.epsilon_f            = array[12];
             temp_cell.T_f                  = array[13];
             temp_cell.mu_B                 = array[14];
-            temp_cell.eps_plus_p_over_T_FO = array[15];
+            temp_cell.mu_S                 = array[15];
+            temp_cell.mu_C                 = array[16];
+            temp_cell.eps_plus_p_over_T_FO = array[17];
             
-            temp_cell.W[0][0] = array[16];
-            temp_cell.W[0][1] = array[17];
-            temp_cell.W[0][2] = array[18];
-            temp_cell.W[0][3] = array[19];
-            temp_cell.W[1][1] = array[20];
-            temp_cell.W[1][2] = array[21];
-            temp_cell.W[1][3] = array[22];
-            temp_cell.W[2][2] = array[23];
-            temp_cell.W[2][3] = array[24];
-            temp_cell.W[3][3] = array[25];
+            temp_cell.W[0][0] = array[18];
+            temp_cell.W[0][1] = array[19];
+            temp_cell.W[0][2] = array[20];
+            temp_cell.W[0][3] = array[21];
+            temp_cell.W[1][1] = array[22];
+            temp_cell.W[1][2] = array[23];
+            temp_cell.W[1][3] = array[24];
+            temp_cell.W[2][2] = array[25];
+            temp_cell.W[2][3] = array[26];
+            temp_cell.W[3][3] = array[27];
 
-            temp_cell.pi_b  = array[26];
-            temp_cell.rho_B = array[27];
+            int optional_cell_count=0;
+            if(DATA->turn_on_bulk) {
+                    temp_cell.pi_b  = array[28];
+                    optional_cell_count++;
+            }
+                    
+            if(DATA->turn_on_rhob) {
+                temp_cell.rho_B = array[28+optional_cell_count];
+                optional_cell_count++;
+            }
 
-            temp_cell.q[0] = array[28];
-            temp_cell.q[1] = array[29];
-            temp_cell.q[2] = array[30];
-            temp_cell.q[3] = array[31];
+            if(DATA->turn_on_diff) {
+                temp_cell.q[0] = array[28+optional_cell_count];
+                temp_cell.q[1] = array[28+optional_cell_count+1];
+                temp_cell.q[2] = array[28+optional_cell_count+2];
+                temp_cell.q[3] = array[28+optional_cell_count+3];
+            }
+
         } else {
             // position in (tau, x, y, eta)
             surfdat >> temp_cell.x[0] >> temp_cell.x[1]
@@ -567,7 +580,7 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
                     >> temp_cell.u[2] >> temp_cell.u[3];
 
             surfdat >> temp_cell.epsilon_f >> temp_cell.T_f
-                    >> temp_cell.mu_B >> temp_cell.eps_plus_p_over_T_FO;
+                    >> temp_cell.mu_B >> temp_cell.mu_S >> temp_cell.mu_C >> temp_cell.eps_plus_p_over_T_FO;
 
             // freeze-out Wmunu
             surfdat >> temp_cell.W[0][0] >> temp_cell.W[0][1]

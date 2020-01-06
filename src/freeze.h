@@ -110,7 +110,7 @@ typedef struct surfaceElement {
     
     double epsilon_f;
     double T_f;
-    double mu_B; 
+    double mu_B, mu_S, mu_C; 
     double eps_plus_p_over_T_FO;  // (energy_density+pressure)/temperature
 } SurfaceElement;
 
