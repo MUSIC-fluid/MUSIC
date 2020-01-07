@@ -666,6 +666,7 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
 
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
+    const int neta = arena_current.nEta();
     double temp_profile_TA[nx][ny];
     double temp_profile_TB[nx][ny];
     double temp_profile_rhob_TA[nx][ny];
@@ -694,7 +695,7 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
 
     double T_tau_t = 0.0;
     #pragma omp parallel for reduction(+: T_tau_t)
-    for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+    for (int ieta = 0; ieta < neta; ieta++) {
         double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
         double eta_envelop_left  = eta_profile_left_factor(eta);
         double eta_envelop_right = eta_profile_right_factor(eta);
@@ -759,7 +760,7 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
 
     // renormalize the system's energy density
     #pragma omp parallel for collapse(3)
-    for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+    for (int ieta = 0; ieta < neta; ieta++) {
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
                 arena_current(ix, iy, ieta).epsilon *= norm;
