@@ -478,7 +478,8 @@ void Init::initial_IPGlasma_XY(int ieta, SCGrid &arena_prev,
     profile.close();
 
     double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-    double eta_envelop_ed = eta_profile_normalisation(eta);
+    double eta_envelop_ed = eta_profile_plateau(eta, DATA.eta_flat/2.0,
+                                                DATA.eta_fall_off);
     int entropy_flag = DATA.initializeEntropy;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
@@ -603,7 +604,8 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
     profile.close();
 
     double eta = (DATA.delta_eta)*(ieta) - (DATA.eta_size)/2.0;
-    double eta_envelop_ed = eta_profile_normalisation(eta);
+    double eta_envelop_ed = eta_profile_plateau(eta, DATA.eta_flat/2.0,
+                                                DATA.eta_fall_off);
     int entropy_flag = DATA.initializeEntropy;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
@@ -727,10 +729,13 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                         double E_lrf = (
                             (temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy])
                             *cosh(DATA.beam_rapidity)/cosh(y_CM)/Util::hbarc);
-                        double eta_envelop = (
-                            eta_profile_normalisation(eta - y_CM));
+                        double eta0 = std::min(DATA.eta_flat/2.0,
+                                        std::abs(DATA.beam_rapidity - y_CM));
+                        double eta_envelop = eta_profile_plateau(
+                                        eta - y_CM, eta0, DATA.eta_fall_off);
                         double E_norm = (
-                            DATA.tau0*energy_eta_profile_normalisation(-y_CM));
+                            DATA.tau0*energy_eta_profile_normalisation(
+                                        -y_CM, eta0, DATA.eta_fall_off));
                         epsilon = E_lrf*eta_envelop/E_norm;
                     }
                 } else {
@@ -970,23 +975,23 @@ void Init::clean_up_jetscape_arrays() {
 }
 
 
-double Init::eta_profile_normalisation(const double eta) const {
+double Init::eta_profile_plateau(const double eta, const double eta_0,
+                                 const double sigma_eta) const {
     // this function return the eta envelope profile for energy density
     // Hirano's plateau + Gaussian fall-off
     double res;
-    double exparg1 = (std::abs(eta) - DATA.eta_flat/2.0)/DATA.eta_fall_off;
+    double exparg1 = (std::abs(eta) - eta_0)/sigma_eta;
     double exparg = exparg1*exparg1/2.0;
     res = exp(-exparg*Util::theta(exparg1));
     return res;
 }
 
 
-double Init::energy_eta_profile_normalisation(const double y_CM) const {
+double Init::energy_eta_profile_normalisation(
+        const double y_CM, const double eta_0, const double sigma_eta) const {
     // this function returns the normalization of the eta envelope profile
     // for energy density
-    //      eta_profile_normalisation(eta)*cosh(eta - y_CM)
-    double eta_0 = DATA.eta_flat/2.;
-    double sigma_eta = DATA.eta_fall_off;
+    //  \int deta eta_profile_plateau(eta, eta_0, sigma_eta)*cosh(eta - y_CM)
     double f1 = (exp(eta_0)*erfc(-sqrt(0.5)*sigma_eta)
                  + exp(-eta_0)*erfc(sqrt(0.5*sigma_eta)));
     double f2 = sqrt(M_PI/2.)*sigma_eta*exp(sigma_eta*sigma_eta/2.);
@@ -998,7 +1003,8 @@ double Init::energy_eta_profile_normalisation(const double y_CM) const {
 
 double Init::eta_profile_left_factor(const double eta) const {
     // this function return the eta envelope for projectile
-    double res = eta_profile_normalisation(eta);
+    double res = eta_profile_plateau(
+                    eta, DATA.eta_flat/2.0, DATA.eta_fall_off);
     if (std::abs(eta) < DATA.beam_rapidity) {
         res = (1. - eta/DATA.beam_rapidity)*res;
     } else {
@@ -1010,7 +1016,8 @@ double Init::eta_profile_left_factor(const double eta) const {
 
 double Init::eta_profile_right_factor(const double eta) const {
     // this function return the eta envelope for target
-    double res = eta_profile_normalisation(eta);
+    double res = eta_profile_plateau(
+                    eta, DATA.eta_flat/2.0, DATA.eta_fall_off);
     if (std::abs(eta) < DATA.beam_rapidity) {
         res = (1. + eta/DATA.beam_rapidity)*res;
     } else {
