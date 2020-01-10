@@ -768,7 +768,7 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     for (int ieta = 0; ieta < neta; ieta++) {
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
-                arena_current(ix, iy, ieta).epsilon *= norm;
+                //arena_current(ix, iy, ieta).epsilon *= norm;
                 arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
         }
