@@ -687,14 +687,10 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                   << "N_B = " << N_B;
     music_message.flush("info");
 
-    int entropy_flag = DATA.initializeEntropy;
-
     double T_tau_t = 0.0;
     #pragma omp parallel for reduction(+: T_tau_t)
     for (int ieta = 0; ieta < neta; ieta++) {
         double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-        double eta_envelop_left  = eta_profile_left_factor(eta);
-        double eta_envelop_right = eta_profile_right_factor(eta);
         double eta_rhob_left     = eta_rhob_left_factor(eta);
         double eta_rhob_right    = eta_rhob_right_factor(eta);
 
@@ -709,35 +705,46 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                 } else {
                     rhob = 0.0;
                 }
-                if (entropy_flag == 0) {
-                    if (DATA.Initial_profile == 11) {
-                        epsilon = (
-                            temp_profile_TA[ix][iy]*eta_envelop_left
-                            + temp_profile_TB[ix][iy]*eta_envelop_right);
-                    } else if (DATA.Initial_profile == 111) {
-                        double y_CM = atanh(
-                            (temp_profile_TA[ix][iy] - temp_profile_TB[ix][iy])
-                            /(temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy]
-                              + Util::small_eps)
-                            *tanh(DATA.beam_rapidity));
-                        // local energy density [1/fm]
-                        double E_lrf = (
-                            (temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy])
-                            *Util::m_N*cosh(DATA.beam_rapidity)/Util::hbarc);
-                        double eta0 = std::min(DATA.eta_flat/2.0,
-                                        std::abs(DATA.beam_rapidity - y_CM));
-                        double eta_envelop = eta_profile_plateau(
-                                        eta - y_CM, eta0, DATA.eta_fall_off);
-                        double E_norm = (
-                            DATA.tau0*energy_eta_profile_normalisation(
-                                        y_CM, eta0, DATA.eta_fall_off));
-                        epsilon = E_lrf*eta_envelop/E_norm;
-                    }
-                } else {
-                    double local_sd = (
-                          temp_profile_TA[ix][iy]*eta_envelop_left
-                        + temp_profile_TB[ix][iy]*eta_envelop_right);
-                    epsilon = eos.get_s2e(local_sd, rhob);
+
+                if (DATA.Initial_profile == 11) {
+                    const double eta_0 = DATA.eta_flat/2.;
+                    const double sigma_eta = DATA.eta_fall_off;
+                    const double E_norm = energy_eta_profile_normalisation(
+                                                0.0, eta_0, sigma_eta);
+                    const double Pz_norm = Pz_eta_profile_normalisation(
+                                                eta_0, sigma_eta);
+                    const double norm_even = (
+                            1./(DATA.tau0*E_norm)
+                            *Util::m_N*cosh(DATA.beam_rapidity));
+                    const double norm_odd = (
+                            DATA.beam_rapidity/(DATA.tau0*Pz_norm)
+                            *Util::m_N*sinh(DATA.beam_rapidity));
+                    double eta_envelop = eta_profile_plateau(
+                                                    eta, eta_0, sigma_eta);
+                    epsilon = (
+                        ((  (temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy])
+                           *norm_even
+                          + (temp_profile_TA[ix][iy] - temp_profile_TB[ix][iy])
+                            *norm_odd*eta/DATA.beam_rapidity)*eta_envelop)
+                        /Util::hbarc);
+                } else if (DATA.Initial_profile == 111) {
+                    double y_CM = atanh(
+                        (temp_profile_TA[ix][iy] - temp_profile_TB[ix][iy])
+                        /(temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy]
+                          + Util::small_eps)
+                        *tanh(DATA.beam_rapidity));
+                    // local energy density [1/fm]
+                    double E_lrf = (
+                        (temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy])
+                        *Util::m_N*cosh(DATA.beam_rapidity)/Util::hbarc);
+                    double eta0 = std::min(DATA.eta_flat/2.0,
+                                    std::abs(DATA.beam_rapidity - y_CM));
+                    double eta_envelop = eta_profile_plateau(
+                                    eta - y_CM, eta0, DATA.eta_fall_off);
+                    double E_norm = (
+                        DATA.tau0*energy_eta_profile_normalisation(
+                                    y_CM, eta0, DATA.eta_fall_off));
+                    epsilon = E_lrf*eta_envelop/E_norm;
                 }
                 epsilon = std::max(Util::small_eps, epsilon);
 
@@ -995,6 +1002,21 @@ double Init::energy_eta_profile_normalisation(
     return(norm);
 }
 
+
+double Init::Pz_eta_profile_normalisation(
+        const double eta_0, const double sigma_eta) const {
+    // this function returns the normalization of the eta envelope profile
+    // for longitudinal momentum
+    //  \int deta eta_profile_plateau(eta, eta_0, sigma_eta)*eta*sinh(eta)
+    const double sigma_sq = sigma_eta*sigma_eta;
+    double f1 = (  exp(eta_0)*(eta_0 + sigma_sq)*erfc(-sqrt(0.5)*sigma_eta)
+                 - exp(-eta_0)*(eta_0 - sigma_sq)*erfc(sqrt(0.5*sigma_eta)));
+    double f2 = sqrt(M_PI/2.)*sigma_eta*exp(sigma_sq/2.)/2.;
+    double f3 = sigma_sq*sinh(eta_0);
+    double f4 = 2.*eta_0*cosh(eta_0) - 2.*sinh(eta_0);
+    double norm = 2.*(f2*f1 + f3) + f4;
+    return(norm);
+}
 
 double Init::eta_profile_left_factor(const double eta) const {
     // this function return the eta envelope for projectile
