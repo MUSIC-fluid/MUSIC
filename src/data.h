@@ -19,23 +19,24 @@ typedef struct init_data {
         { 0,0,0,1}}};
 
     int echo_level;
+
     int mode;               //!< 1: do everything;
-    //!< 2: do hydro evolution only;
-    //!< 3: do calculation of thermal spectra only;
-    //!< 4: do resonance decays only
-    std::string initName;
-    std::string initName_rhob;
-    std::string initName_ux;
-    std::string initName_uy;
-    std::string initName_TA;
-    std::string initName_TB;
-    std::string initName_rhob_TA;
-    std::string initName_rhob_TB;
-    std::string initName_AMPT;
+                            //!< 2: do hydro evolution only;
+                            //!< 3: do calculation of thermal spectra only;
+                            //!< 4: do resonance decays only
+
+    std::string initName;   //!< filename for initial condition T^{\mu\nu}
+
+    // parameters for Initial_profile == 11 || 111
+    std::string initName_TA;  //!< filename for nuclear thickness function TA
+    std::string initName_TB;  //!< filename for nuclear thickness function TB
+
+    // parameters for Initial_profile == 30
+    std::string initName_AMPT;  //!< initial state filename from AMPT
 
     //! random seed
     int seed;
-    double ecm;
+    double ecm;                 //!< collision energy [GeV]
     double beam_rapidity;
 
     int initial_eta_rhob_profile;

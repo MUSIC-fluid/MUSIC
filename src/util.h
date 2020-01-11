@@ -19,6 +19,10 @@ namespace Util {
     const double hbarc = 0.19733;
     const double default_tol = 1.0e-8;
     const double small_eps = 1e-16;
+
+    //the mass of a nucleon (averaged over proton and neutron)
+    const double m_N = 0.939;   // [GeV]
+
     const int BT_BUF_SIZE = 500;
 
     double theta(const double x);

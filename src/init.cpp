@@ -663,34 +663,28 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     // first load in the transverse profile
     ifstream profile_TA(DATA.initName_TA.c_str());
     ifstream profile_TB(DATA.initName_TB.c_str());
-    ifstream profile_rhob_TA(DATA.initName_rhob_TA.c_str());
-    ifstream profile_rhob_TB(DATA.initName_rhob_TB.c_str());
 
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
     const int neta = arena_current.nEta();
     double temp_profile_TA[nx][ny];
     double temp_profile_TB[nx][ny];
-    double temp_profile_rhob_TA[nx][ny];
-    double temp_profile_rhob_TB[nx][ny];
     double N_B = 0.0;
     for (int i = 0; i < nx; i++) {
         for (int j = 0; j < ny; j++) {
             profile_TA >> temp_profile_TA[i][j];
             profile_TB >> temp_profile_TB[i][j];
-            profile_rhob_TA >> temp_profile_rhob_TA[i][j];
-            profile_rhob_TB >> temp_profile_rhob_TB[i][j];
-            N_B += temp_profile_rhob_TA[i][j] + temp_profile_rhob_TB[i][j];
+            N_B += temp_profile_TA[i][j] + temp_profile_TB[i][j];
         }
     }
     profile_TA.close();
     profile_TB.close();
-    profile_rhob_TA.close();
-    profile_rhob_TB.close();
     N_B *= DATA.delta_x*DATA.delta_y;
     double total_energy = DATA.ecm/2.*N_B;
-    music_message << "sqrt{s} = " << DATA.ecm << " GeV, N_B = " << N_B
-                  << ", total energy = " << total_energy << " GeV";
+    music_message << "sqrt{s} = " << DATA.ecm << " GeV, "
+                  << "beam rapidit = " << DATA.beam_rapidity << ", "
+                  << "total energy = " << total_energy << " GeV, "
+                  << "N_B = " << N_B;
     music_message.flush("info");
 
     int entropy_flag = DATA.initializeEntropy;
@@ -710,8 +704,8 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                 double epsilon = 0.0;
                 if (DATA.turn_on_rhob == 1) {
                     rhob = (
-                        (temp_profile_rhob_TA[ix][iy]*eta_rhob_left
-                         + temp_profile_rhob_TB[ix][iy]*eta_rhob_right));
+                        (temp_profile_TA[ix][iy]*eta_rhob_left
+                         + temp_profile_TB[ix][iy]*eta_rhob_right));
                 } else {
                     rhob = 0.0;
                 }
@@ -726,16 +720,17 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                             /(temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy]
                               + Util::small_eps)
                             *tanh(DATA.beam_rapidity));
+                        // local energy density [1/fm]
                         double E_lrf = (
                             (temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy])
-                            *cosh(DATA.beam_rapidity)/cosh(y_CM)/Util::hbarc);
+                            *Util::m_N*cosh(DATA.beam_rapidity)/Util::hbarc);
                         double eta0 = std::min(DATA.eta_flat/2.0,
                                         std::abs(DATA.beam_rapidity - y_CM));
                         double eta_envelop = eta_profile_plateau(
                                         eta - y_CM, eta0, DATA.eta_fall_off);
                         double E_norm = (
                             DATA.tau0*energy_eta_profile_normalisation(
-                                        -y_CM, eta0, DATA.eta_fall_off));
+                                        y_CM, eta0, DATA.eta_fall_off));
                         epsilon = E_lrf*eta_envelop/E_norm;
                     }
                 } else {
@@ -991,11 +986,11 @@ double Init::energy_eta_profile_normalisation(
         const double y_CM, const double eta_0, const double sigma_eta) const {
     // this function returns the normalization of the eta envelope profile
     // for energy density
-    //  \int deta eta_profile_plateau(eta, eta_0, sigma_eta)*cosh(eta - y_CM)
+    //  \int deta eta_profile_plateau(eta - y_CM, eta_0, sigma_eta)*cosh(eta)
     double f1 = (exp(eta_0)*erfc(-sqrt(0.5)*sigma_eta)
                  + exp(-eta_0)*erfc(sqrt(0.5*sigma_eta)));
     double f2 = sqrt(M_PI/2.)*sigma_eta*exp(sigma_eta*sigma_eta/2.);
-    double f3 = sinh(eta_0 - y_CM) - sinh(-eta_0 - y_CM);
+    double f3 = sinh(eta_0 + y_CM) - sinh(-eta_0 + y_CM);
     double norm = cosh(y_CM)*f2*f1 + f3;
     return(norm);
 }

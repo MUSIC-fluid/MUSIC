@@ -13,3 +13,4 @@ MUSIChydro
 perf.data*
 a.out
 build/
+*.so
