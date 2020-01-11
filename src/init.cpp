@@ -682,7 +682,7 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     N_B *= DATA.delta_x*DATA.delta_y;
     double total_energy = DATA.ecm/2.*N_B;
     music_message << "sqrt{s} = " << DATA.ecm << " GeV, "
-                  << "beam rapidit = " << DATA.beam_rapidity << ", "
+                  << "beam rapidity = " << DATA.beam_rapidity << ", "
                   << "total energy = " << total_energy << " GeV, "
                   << "N_B = " << N_B;
     music_message.flush("info");
