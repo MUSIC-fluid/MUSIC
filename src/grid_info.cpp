@@ -754,6 +754,7 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
                                        const double tau) {
     double N_B     = 0.0;
     double T_tau_t = 0.0;
+    double net_Pz  = 0.0;
     double deta    = DATA.delta_eta;
     double dx      = DATA.delta_x;
     double dy      = DATA.delta_y;
@@ -761,9 +762,9 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
     const int nx   = arena.nX();
     const int ny   = arena.nY();
 
-    #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t)
-    for (int ieta = 0; ieta < neta; ieta++)     
-    for (int ix = 0; ix < nx; ix++) 
+    #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t, net_Pz)
+    for (int ieta = 0; ieta < neta; ieta++)
+    for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
         const auto& c      = arena     (ix, iy, ieta);
         const auto& c_prev = arena_prev(ix, iy, ieta);
@@ -786,11 +787,15 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
         const double Pi03_rk_0 = c_prev.pi_b*c_prev.u[0]*c_prev.u[3];
         const double T_tau_eta = T03_local + c_prev.Wmunu[3] + Pi03_rk_0;
         T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
+        net_Pz  += T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
     }
     double factor = tau*dx*dy*deta;
     N_B *= factor;
     T_tau_t *= factor*Util::hbarc;  // GeV
+    net_Pz *= factor*Util::hbarc;   // GeV
     music_message << "total energy T^{taut} = " << T_tau_t << " GeV";
+    music_message.flush("info");
+    music_message << "net longitudinal momentum Pz = " << net_Pz << " GeV";
     music_message.flush("info");
     music_message << "net baryon number N_B = " << N_B;
     if (N_B > 0. || N_B < 500.) {

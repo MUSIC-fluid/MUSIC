@@ -195,6 +195,8 @@ void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
 
     double E_string_total  = 0.0;
     double E_remnant_total = 0.0;
+    double Pz_string_total  = 0.0;
+    double Pz_remnant_total = 0.0;
     for (auto &it: QCD_strings_list) {
         double E_string_norm    = 0.;
         double E_remnant_L_norm = 0.;
@@ -222,6 +224,9 @@ void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
                            - it->mass*cosh(it->y_l) - it->mass*cosh(it->y_r));
         it->norm = E_string/(E_string_norm + Util::small_eps);
         E_string_total += E_string;
+        double Pz_string = (  it->mass*sinh(it->y_l_i) - it->mass*sinh(it->y_l)
+                            + it->mass*sinh(it->y_r_i) - it->mass*sinh(it->y_r));
+        Pz_string_total += Pz_string;
 
         // here the E_norm is for the energy of remnants at the string ends
         E_remnant_L_norm *= prefactor_etas*deta;
@@ -231,11 +236,19 @@ void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
         it->E_remnant_norm_L = E_remnant_L/(E_remnant_L_norm + Util::small_eps);
         it->E_remnant_norm_R = E_remnant_R/(E_remnant_R_norm + Util::small_eps);
         E_remnant_total += E_remnant_L + E_remnant_R;
+        double Pz_remnant_L = it->remnant_l*it->mass*sinh(it->y_l);
+        double Pz_remnant_R = it->remnant_r*it->mass*sinh(it->y_r);
+        Pz_remnant_total += Pz_remnant_L + Pz_remnant_R;
     }
     music_message << "E_total = "
                   << E_string_total + E_remnant_total << " GeV. "
                   << "E_string_total = " << E_string_total << " GeV, "
                   << "E_remnant_total = " << E_remnant_total << " GeV.";
+    music_message.flush("info");
+    music_message << "Pz_total = "
+                  << Pz_string_total + Pz_remnant_total << " GeV. "
+                  << "Pz_string_total = " << Pz_string_total << " GeV, "
+                  << "Pz_remnant_total = " << Pz_remnant_total << " GeV.";
     music_message.flush("info");
 }
 
