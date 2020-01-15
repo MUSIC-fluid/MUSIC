@@ -383,7 +383,6 @@ void HydroSourceStrings::get_hydro_energy_source(
         double cosh_long = cosh(y_string - eta_s);
         double sinh_long = sinh(y_string - eta_s);
         double cosh_perp = 1.0;
-        double sinh_perp = 0.0;
         j_mu[0] += e_local*cosh_long*cosh_perp;
         j_mu[1] += 0.0;
         j_mu[2] += 0.0;
