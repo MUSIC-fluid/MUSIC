@@ -203,10 +203,11 @@ void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
         double E_remnant_R_norm = 0.;
         for (int ieta = 0; ieta < neta; ieta++) {
             double eta_local = - eta_range + ieta*deta;
-            double y_eta = (it->y_l
-                + (it->y_l - it->y_r)/(it->eta_s_left - it->eta_s_right)
-                  *(eta_local - it->eta_s_left));
-
+            double y_eta = (
+                it->y_l + (it->y_l - it->y_r)
+                          /(it->eta_s_left - it->eta_s_right + Util::small_eps)
+                          *(eta_local - it->eta_s_left)
+            );
             double expon_left  = (
                         (it->eta_s_left  - eta_local)/(sqrt(2.)*sigma_eta));
             double expon_right = (
@@ -299,12 +300,6 @@ void HydroSourceStrings::get_hydro_energy_source(
     const double sigma_x   = get_sigma_x();
     const double sigma_eta = get_sigma_eta();
 
-    // flow velocity
-    const double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
-    const double y_perp_flow     = acosh(gamma_perp_flow);
-    const double y_long_flow     = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
-    const double sin_phi_flow    = u_mu[1]/gamma_perp_flow;
-    const double cos_phi_flow    = u_mu[2]/gamma_perp_flow;
     const double dtau            = DATA.delta_tau;
 
     const double n_sigma_skip   = 5.;
@@ -381,16 +376,17 @@ void HydroSourceStrings::get_hydro_energy_source(
 
         double e_local = exp_tau*exp_xperp*exp_eta_s*it->norm;
         double y_string = (
-                it->y_l + (it->y_r - it->y_l)
-                            /(it->eta_s_right - it->eta_s_left)
-                            *(eta_s - it->eta_s_left));
+            it->y_l + (it->y_r - it->y_l)
+                      /(it->eta_s_right - it->eta_s_left + Util::small_eps)
+                      *(eta_s - it->eta_s_left)
+        );
         double cosh_long = cosh(y_string - eta_s);
         double sinh_long = sinh(y_string - eta_s);
         double cosh_perp = 1.0;
         double sinh_perp = 0.0;
         j_mu[0] += e_local*cosh_long*cosh_perp;
-        j_mu[1] += e_local*sinh_perp*cos_phi_flow;
-        j_mu[2] += e_local*sinh_perp*sin_phi_flow;
+        j_mu[1] += 0.0;
+        j_mu[2] += 0.0;
         j_mu[3] += e_local*sinh_long*cosh_perp;
     }
 
