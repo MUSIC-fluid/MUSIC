@@ -17,7 +17,7 @@ mode 2   # MUSIC running mode
 ###################################
 # parameters for initial conditions
 ###################################
-Initial_profile 13               # type of initial condition 
+Initial_profile 13              # type of initial condition 
                                 # 0: for Gubser flow test (future)
                                 # 1: Optical Glauber model
                                 # 3: MC-Glauber model
@@ -30,7 +30,7 @@ initialize_with_entropy 0       # 0: with energy density
 Initial_Distribution_input_filename initial/QCD_strings_Hydro_decelerate.dat
                                # the filename of initial profile 
                                # (for Initial_profile == 8)
-s_factor  1.2                  # normalization factor read in 
+s_factor  1.0                  # normalization factor read in 
                                # initial data file
 #
 #######################################
@@ -43,7 +43,7 @@ Initial_time_tau_0 0.6        # starting time of the hydrodynamic
 Total_evolution_time_tau 30.  # the maximum allowed running 
                               # evolution time (fm/c)
                               # need to be set to some large number
-Delta_Tau 0.005               # time step to use in the evolution [fm/c]
+Delta_Tau 0.01                # time step to use in the evolution [fm/c]
 Eta_grid_size 12.8            # spatial rapidity range 
                               # [-Eta_grid_size/2, Eta_grid_size/2 - delta_eta]
 Grid_size_in_eta 64           # number of the grid points in spatial 
@@ -80,7 +80,7 @@ EOS_to_use 10                 # type of the equation of state
 # transport coefficients
 Viscosity_Flag_Yes_1_No_0 1        # turn on viscosity in the evolution
 Include_Shear_Visc_Yes_1_No_0 1    # include shear viscous effect
-Shear_to_S_ratio 0.08              # value of \eta/s
+Shear_to_S_ratio 0.00001           # value of \eta/s
 T_dependent_Shear_to_S_ratio  0    # flag to use temperature dep. \eta/s(T)
 Include_Bulk_Visc_Yes_1_No_0 0     # include bulk viscous effect
 Include_second_order_terms 1       # include second order non-linear coupling terms
@@ -111,9 +111,9 @@ average_surface_over_this_many_time_steps 20   # the step skipped in the tau
 freeze_Ncell_x_step 2
 freeze_Ncell_eta_step 1
 freeze_eps_flag 0
-N_freeze_out 5
-eps_freeze_max 0.56
-eps_freeze_min 0.16
+N_freeze_out 1
+eps_freeze_max 0.25
+eps_freeze_min 0.25
 use_eps_for_freeze_out 1        # flag to use energy density as criteria to 
                                 # find freeze-out surface 
                                 # 0: use temperature, 1: use energy density

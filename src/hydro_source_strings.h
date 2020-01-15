@@ -10,9 +10,10 @@
 //! This data structure contains a QCD string object
 struct QCD_string {
     double norm;              // normalization for the string energy
-    double E_baryon_norm_L, E_baryon_norm_R;
+    double E_remnant_norm_L, E_remnant_norm_R;
     double m_over_sigma;      // m/sigma [fm] sigma is the string tension
 
+    double mass;
     double tau_form;
     double tau_start, eta_s_start;
     double tau_0, eta_s_0;
@@ -20,7 +21,7 @@ struct QCD_string {
     double tau_end_left, tau_end_right;
     double eta_s_left, eta_s_right;
     double y_l, y_r;          // rapidity of the two ends of the string
-    double frac_l, frac_r;
+    double remnant_l, remnant_r;
     double y_l_i, y_r_i;
     double tau_baryon_left, tau_baryon_right;
     double eta_s_baryon_left, eta_s_baryon_right;

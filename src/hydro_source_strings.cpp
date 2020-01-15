@@ -67,13 +67,13 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     while (!QCD_strings_file.eof()) {
         std::stringstream text_stream(text_string);
         std::shared_ptr<QCD_string> new_string(new QCD_string);
-        text_stream >> new_string->norm >> new_string->m_over_sigma
+        text_stream >> new_string->mass >> new_string->m_over_sigma
                     >> new_string->tau_form
                     >> new_string->tau_0 >> new_string->eta_s_0
                     >> new_string->x_perp >> new_string->y_perp
                     >> new_string->eta_s_left >> new_string->eta_s_right
                     >> new_string->y_l >> new_string->y_r
-                    >> new_string->frac_l >> new_string->frac_r
+                    >> new_string->remnant_l >> new_string->remnant_r
                     >> new_string->y_l_i >> new_string->y_r_i
                     >> new_string->eta_s_baryon_left
                     >> new_string->eta_s_baryon_right
@@ -107,6 +107,7 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         if (DATA.Initial_profile == 131) {
             new_string->tau_0 = 0.;
             new_string->eta_s_0 = 0.;
+            new_string->tau_form = 0.5;
         }
 
         // compute the string end tau
@@ -190,62 +191,51 @@ void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
     const double deta      = 2.*eta_range/(neta - 1);
 
     const double sigma_eta = get_sigma_eta();
-    const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+    const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
 
-    double total_E = 0.0;
+    double E_string_total  = 0.0;
+    double E_remnant_total = 0.0;
     for (auto &it: QCD_strings_list) {
-        total_E += it->frac_l*cosh(it->y_l_i) + it->frac_r*cosh(it->y_r_i);
-    }
-    const double overall_norm = total_energy/total_E;
-
-    double E_string_total = 0.0;
-    double E_baryon_total = 0.0;
-    for (auto &it: QCD_strings_list) {
-        double E_string_norm   = 0.;
-        double E_baryon_L_norm = 0.;
-        double E_baryon_R_norm = 0.;
+        double E_string_norm    = 0.;
+        double E_remnant_L_norm = 0.;
+        double E_remnant_R_norm = 0.;
         for (int ieta = 0; ieta < neta; ieta++) {
             double eta_local = - eta_range + ieta*deta;
-            double f_eta = (it->frac_l
-                + (it->frac_l - it->frac_r)/(it->eta_s_left - it->eta_s_right)
-                  *(eta_local - it->eta_s_left));
             double y_eta = (it->y_l
                 + (it->y_l - it->y_r)/(it->eta_s_left - it->eta_s_right)
                   *(eta_local - it->eta_s_left));
 
-            double expon_left  = (it->eta_s_left  - eta_local)/sigma_eta;
-            double expon_right = (it->eta_s_right - eta_local)/sigma_eta;
+            double expon_left  = (
+                        (it->eta_s_left  - eta_local)/(sqrt(2.)*sigma_eta));
+            double expon_right = (
+                        (it->eta_s_right - eta_local)/(sqrt(2.)*sigma_eta));
             double e_eta = 0.5*(- erf(expon_left) + erf(expon_right));
-            E_string_norm += f_eta*e_eta*cosh(y_eta);
+            E_string_norm += e_eta*cosh(y_eta);
 
-            double e_baryon_L = exp(-expon_left*expon_left);
-            double e_baryon_R = exp(-expon_right*expon_right);
-            E_baryon_L_norm += e_baryon_L*cosh(eta_local);
-            E_baryon_R_norm += e_baryon_R*cosh(eta_local);
+            double e_remnant_L = exp(-expon_left*expon_left);
+            double e_remnant_R = exp(-expon_right*expon_right);
+            E_remnant_L_norm += e_remnant_L*cosh(it->y_l);
+            E_remnant_R_norm += e_remnant_R*cosh(it->y_r);
         }
-        E_string_norm  *= prefactor_etas*deta;
-        double E_string = overall_norm*(  it->frac_l*cosh(it->y_l_i)
-                                        + it->frac_r*cosh(it->y_r_i)
-                                        - it->frac_l*cosh(it->y_l)
-                                        - it->frac_r*cosh(it->y_r));
-        it->norm = E_string/(E_string_norm + 1e-16);
+        E_string_norm *= prefactor_etas*deta;
+        double E_string = (it->mass*cosh(it->y_l_i) + it->mass*cosh(it->y_r_i)
+                           - it->mass*cosh(it->y_l) - it->mass*cosh(it->y_r));
+        it->norm = E_string/(E_string_norm + Util::small_eps);
         E_string_total += E_string;
 
         // here the E_norm is for the energy of remnants at the string ends
-        // frac_l and frac_r should be used here
-        E_baryon_L_norm *= it->frac_l*prefactor_etas*deta;
-        E_baryon_R_norm *= it->frac_r*prefactor_etas*deta;
-        double E_baryon_L   = overall_norm*it->frac_l*cosh(it->y_l);
-        double E_baryon_R   = overall_norm*it->frac_r*cosh(it->y_r);
-        it->E_baryon_norm_L = E_baryon_L/(E_baryon_L_norm + 1e-16);
-        it->E_baryon_norm_R = E_baryon_R/(E_baryon_R_norm + 1e-16);
-        E_baryon_total += E_baryon_L + E_baryon_R;
+        E_remnant_L_norm *= prefactor_etas*deta;
+        E_remnant_R_norm *= prefactor_etas*deta;
+        double E_remnant_L   = it->remnant_l*it->mass*cosh(it->y_l);
+        double E_remnant_R   = it->remnant_r*it->mass*cosh(it->y_r);
+        it->E_remnant_norm_L = E_remnant_L/(E_remnant_L_norm + Util::small_eps);
+        it->E_remnant_norm_R = E_remnant_R/(E_remnant_R_norm + Util::small_eps);
+        E_remnant_total += E_remnant_L + E_remnant_R;
     }
     music_message << "E_total = "
-                  << (E_string_total + E_baryon_total)*DATA.sFactor << " GeV. "
-                  << "E_string_total = " << E_string_total*DATA.sFactor
-                  << " GeV" << ", E_baryon_total = "
-                  << E_baryon_total*DATA.sFactor << " GeV.";
+                  << E_string_total + E_remnant_total << " GeV. "
+                  << "E_string_total = " << E_string_total << " GeV, "
+                  << "E_remnant_total = " << E_remnant_total << " GeV.";
     music_message.flush("info");
 }
 
@@ -307,7 +297,6 @@ void HydroSourceStrings::get_hydro_energy_source(
     const double n_sigma_skip   = 5.;
     const double skip_dis_x     = n_sigma_skip*sigma_x;
     const double skip_dis_eta   = n_sigma_skip*sigma_eta;
-    const double sfactor        = DATA.sFactor/Util::hbarc;
     const double exp_tau = 1./tau;
     for (auto const&it: QCD_strings_list_current_tau) {
         // energy source from strings
@@ -358,51 +347,34 @@ void HydroSourceStrings::get_hydro_energy_source(
 
         double exp_eta_s = 0.;
         if (flag_left) {
-            if (   eta_s > eta_s_L_next - skip_dis_eta 
+            if (   eta_s > eta_s_L_next - skip_dis_eta
                 && eta_s < eta_s_L + skip_dis_eta) {
-                exp_eta_s += 0.5*(- erf((eta_s_L_next - eta_s)/sigma_eta)
-                                  + erf((eta_s_L - eta_s)/sigma_eta));
+                exp_eta_s += 0.5*(
+                        - erf((eta_s_L_next - eta_s)/(sqrt(2.)*sigma_eta))
+                        + erf((eta_s_L - eta_s)/(sqrt(2.)*sigma_eta)));
             }
         }
         if (flag_right) {
             if (   eta_s > eta_s_R - skip_dis_eta 
                 && eta_s < eta_s_R_next + skip_dis_eta) {
-                exp_eta_s += 0.5*(- erf((eta_s_R - eta_s)/sigma_eta)
-                                  + erf((eta_s_R_next - eta_s)/sigma_eta));
+                exp_eta_s += 0.5*(
+                        - erf((eta_s_R - eta_s)/(sqrt(2.)*sigma_eta))
+                        + erf((eta_s_R_next - eta_s)/(sqrt(2.)*sigma_eta)));
             }
         }
 
         double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
-                                /(sigma_x*sigma_x));
+                                /(2.*sigma_x*sigma_x));
 
-        double e_frac = 1.0;
-        if (eta_s < it->eta_s_left) {
-            e_frac = it->frac_l;
-        } else if (eta_s < it->eta_s_right) {
-            e_frac = (it->frac_l
-                      + (it->frac_r - it->frac_l)
-                        /(it->eta_s_right - it->eta_s_left)
-                        *(eta_s - it->eta_s_left));
-        } else {
-            e_frac = it->frac_r;
-        }
-        double e_local = e_frac*exp_tau*exp_xperp*exp_eta_s;
-        e_local *= it->norm*sfactor;  // 1/fm^4
+        double e_local = exp_tau*exp_xperp*exp_eta_s*it->norm;
         double y_string = (
                 it->y_l + (it->y_r - it->y_l)
                             /(it->eta_s_right - it->eta_s_left)
                             *(eta_s - it->eta_s_left));
-        double y_dump = ((1. - string_quench_factor)*y_string
-                         + string_quench_factor*y_long_flow);
-        double y_dump_perp = string_quench_factor*y_perp_flow;
-        double cosh_long = cosh(y_dump - eta_s);
-        double sinh_long = sinh(y_dump - eta_s);
+        double cosh_long = cosh(y_string - eta_s);
+        double sinh_long = sinh(y_string - eta_s);
         double cosh_perp = 1.0;
         double sinh_perp = 0.0;
-        if (std::abs(y_dump_perp) > 1e-6) {
-            cosh_perp = cosh(y_dump_perp);
-            sinh_perp = sinh(y_dump_perp);
-        }
         j_mu[0] += e_local*cosh_long*cosh_perp;
         j_mu[1] += e_local*sinh_perp*cos_phi_flow;
         j_mu[2] += e_local*sinh_perp*sin_phi_flow;
@@ -413,13 +385,15 @@ void HydroSourceStrings::get_hydro_energy_source(
         // add remnant energy at the string ends
         bool flag_left = false;
         if (   it->tau_end_left >= tau - dtau/2.
-            && it->tau_end_left <  tau + dtau/2.) {
+            && it->tau_end_left <  tau + dtau/2.
+            && it->remnant_l > 0.) {
             flag_left = true;
         }
 
         bool flag_right = false;
         if (   it->tau_end_right >= tau - dtau/2.
-            && it->tau_end_right <  tau + dtau/2.) {
+            && it->tau_end_right <  tau + dtau/2.
+            && it->remnant_r > 0.) {
             flag_right = true;
         }
 
@@ -434,7 +408,7 @@ void HydroSourceStrings::get_hydro_energy_source(
             double eta_dis_left = std::abs(eta_s - it->eta_s_left);
             if (eta_dis_left < skip_dis_eta) {
                 exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
-                                      /(sigma_eta*sigma_eta)));
+                                      /(2.*sigma_eta*sigma_eta)));
             }
         }
         double exp_eta_s_right = 0.0;
@@ -442,25 +416,34 @@ void HydroSourceStrings::get_hydro_energy_source(
             double eta_dis_right = std::abs(eta_s - it->eta_s_right);
             if (eta_dis_right < skip_dis_eta) {
                 exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
-                                       /(sigma_eta*sigma_eta)));
+                                       /(2.*sigma_eta*sigma_eta)));
             }
         }
         double exp_factors = exp_tau*(
-              exp_eta_s_left*(it->frac_l)*(it->E_baryon_norm_L)
-            + exp_eta_s_right*(it->frac_r)*(it->E_baryon_norm_R)
+              exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)*cosh(it->y_l - eta_s)
+            + exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)*cosh(it->y_r - eta_s)
         );
-        double e_baryon_local = 0.0;
+        double pz_factors = exp_tau*(
+              exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)*sinh(it->y_l - eta_s)
+            + exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)*sinh(it->y_r - eta_s)
+        );
+        double e_remnant_local = 0.0;
+        double pz_remnant_local = 0.0;
         if (exp_factors > 0) {
             double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
-                                    /(sigma_x*sigma_x));
-            e_baryon_local = exp_xperp*exp_factors;
+                                    /(2.*sigma_x*sigma_x));
+            e_remnant_local = exp_xperp*exp_factors;
+            pz_remnant_local = exp_xperp*pz_factors;
         }
-        j_mu[0] += e_baryon_local*sfactor;
+        j_mu[0] += e_remnant_local;
+        j_mu[3] += pz_remnant_local;
     }
-    const double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
+    const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
     const double prefactor_tau  = 1./dtau;
-    const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
-    const double prefactors = prefactor_tau*prefactor_prep*prefactor_etas;
+    const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
+    const double unit_convert   = 1.0/Util::hbarc;
+    const double prefactors = (prefactor_tau*prefactor_prep*prefactor_etas
+                               *unit_convert);
     j_mu[0] *= prefactors;
     j_mu[1] *= prefactors;
     j_mu[2] *= prefactors;
@@ -523,7 +506,7 @@ double HydroSourceStrings::get_hydro_rhob_source(
                                            - it->eta_s_baryon_left);
             if (eta_dis_left < skip_dis_eta) {
                 exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
-                                      /(sigma_eta*sigma_eta)));
+                                      /(2.*sigma_eta*sigma_eta)));
             }
         }
 
@@ -533,16 +516,16 @@ double HydroSourceStrings::get_hydro_rhob_source(
                                             - it->eta_s_baryon_right);
             if (eta_dis_right < skip_dis_eta) {
                 exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
-                                       /(sigma_eta*sigma_eta)));
+                                       /(2.*sigma_eta*sigma_eta)));
             }
         }
 
         double exp_factors = exp_tau*(
                 exp_eta_s_left*it->baryon_frac_l
                 + exp_eta_s_right*it->baryon_frac_r);
-        if (exp_factors > 0) {
+        if (exp_factors > 0.) {
             double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
-                                    /(sigma_x*sigma_x));
+                                    /(2.*sigma_x*sigma_x));
             double fsmear = exp_xperp*exp_factors;
             double rapidity_local = (
                 (  exp_eta_s_left*(it->baryon_frac_l)*(it->y_l_baryon)
@@ -562,8 +545,8 @@ double HydroSourceStrings::get_hydro_rhob_source(
             res += p_dot_u*fsmear;
         }
     }
-    const double prefactor_prep = 1./(M_PI*sigma_x*sigma_x);
-    const double prefactor_etas = 1./(sqrt(M_PI)*sigma_eta);
+    const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
+    const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
     const double prefactor_tau  = 1./dtau;
     res *= prefactor_tau*prefactor_prep*prefactor_etas;
     return(res);
