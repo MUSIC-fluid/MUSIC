@@ -8,6 +8,7 @@
 #include <string>
 
 #include "data.h"
+#include "data_struct.h"
 #include "eos.h"
 #include "cell.h"
 #include "grid.h"
@@ -41,6 +42,8 @@ class Cell_info {
     double **deltaf_coeff_tb_14mom_BV;
     double **deltaf_coeff_tb_14mom_DV;
     double **deltaf_coeff_tb_14mom_Bpi_shear;
+
+    TJbVec Pmu_edge_prev, outflow_flux;
 
  public:
     Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in);

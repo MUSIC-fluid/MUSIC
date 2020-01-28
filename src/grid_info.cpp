@@ -33,6 +33,8 @@ Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in) :
                         "tables/Coefficients_RTA_diffusion.dat");
         }
     }
+    Pmu_edge_prev = {0.};
+    outflow_flux = {0.};
 }
 
 Cell_info::~Cell_info() {
@@ -766,6 +768,11 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
     double T_tau_x = 0.0;
     double T_tau_y = 0.0;
     double T_tau_z = 0.0;
+    double N_B_edge     = 0.0;
+    double T_tau_t_edge = 0.0;
+    double T_tau_x_edge = 0.0;
+    double T_tau_y_edge = 0.0;
+    double T_tau_z_edge = 0.0;
     double deta    = DATA.delta_eta;
     double dx      = DATA.delta_x;
     double dy      = DATA.delta_y;
@@ -773,7 +780,7 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
     const int nx   = arena.nX();
     const int ny   = arena.nY();
 
-    #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t, T_tau_x, T_tau_y, T_tau_z)
+    #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t, T_tau_x, T_tau_y, T_tau_z, N_B_edge, T_tau_t_edge, T_tau_x_edge, T_tau_y_edge, T_tau_z_edge)
     for (int ieta = 0; ieta < neta; ieta++)
     for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
@@ -806,13 +813,51 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
         T_tau_x += T01_local;
         T_tau_y += T02_local;
         T_tau_z += T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
+
+        // compute the energy-momentum vector on the edge
+        if (ieta == 0 || ieta == neta - 1 || ix == 0 || ix == nx - 1
+            || iy == 0 || iy == ny - 1) {
+            N_B_edge     += c.rhob*c.u[0] + c_prev.Wmunu[10];
+            T_tau_t_edge += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
+            T_tau_x_edge += T01_local;
+            T_tau_y_edge += T02_local;
+            T_tau_z_edge += T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
+        }
     }
+    // add units
     double factor = tau*dx*dy*deta;
     N_B *= factor;
     T_tau_t *= factor*Util::hbarc;  // GeV
     T_tau_x *= factor*Util::hbarc;  // GeV
     T_tau_y *= factor*Util::hbarc;  // GeV
     T_tau_z *= factor*Util::hbarc;  // GeV
+    N_B_edge *= factor;
+    T_tau_t_edge *= factor*Util::hbarc;  // GeV
+    T_tau_x_edge *= factor*Util::hbarc;  // GeV
+    T_tau_y_edge *= factor*Util::hbarc;  // GeV
+    T_tau_z_edge *= factor*Util::hbarc;  // GeV
+
+    // compute the outflow flux
+    if (tau > DATA.tau0) {
+        outflow_flux[0] += T_tau_t_edge - Pmu_edge_prev[0];
+        outflow_flux[1] += T_tau_x_edge - Pmu_edge_prev[1];
+        outflow_flux[2] += T_tau_y_edge - Pmu_edge_prev[2];
+        outflow_flux[3] += T_tau_z_edge - Pmu_edge_prev[3];
+        outflow_flux[4] += N_B_edge - Pmu_edge_prev[4];
+
+        N_B     += outflow_flux[4];
+        T_tau_t += outflow_flux[0];  // GeV
+        T_tau_x += outflow_flux[1];  // GeV
+        T_tau_y += outflow_flux[2];  // GeV
+        T_tau_z += outflow_flux[3];  // GeV
+    }
+    Pmu_edge_prev[0] = T_tau_t_edge;
+    Pmu_edge_prev[1] = T_tau_x_edge;
+    Pmu_edge_prev[2] = T_tau_y_edge;
+    Pmu_edge_prev[3] = T_tau_z_edge;
+    Pmu_edge_prev[4] = N_B_edge;
+
+    // output results
     music_message << "total energy T^{taut} = " << T_tau_t << " GeV";
     music_message.flush("info");
     music_message << "net longitudinal momentum Pz = " << T_tau_z << " GeV";
