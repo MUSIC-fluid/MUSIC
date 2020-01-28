@@ -752,9 +752,20 @@ double Cell_info::get_maximum_energy_density(SCGrid &arena) {
 //! at a give proper time
 void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
                                        const double tau) {
+    std::string filename = "global_conservation_laws.dat";
+    ofstream output_file;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        output_file.open(filename.c_str(), std::ofstream::out);
+        output_file << "# tau(fm)  E(GeV)  Px(GeV)  Py(GeV)  Pz(GeV)  N_B "
+                    << std::endl;
+    } else {
+        output_file.open(filename.c_str(), std::ofstream::app);
+    }
     double N_B     = 0.0;
     double T_tau_t = 0.0;
-    double net_Pz  = 0.0;
+    double T_tau_x = 0.0;
+    double T_tau_y = 0.0;
+    double T_tau_z = 0.0;
     double deta    = DATA.delta_eta;
     double dx      = DATA.delta_x;
     double dy      = DATA.delta_y;
@@ -762,7 +773,7 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
     const int nx   = arena.nX();
     const int ny   = arena.nY();
 
-    #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t, net_Pz)
+    #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t, T_tau_x, T_tau_y, T_tau_z)
     for (int ieta = 0; ieta < neta; ieta++)
     for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
@@ -773,29 +784,38 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
         const double cosh_eta = cosh(eta_s);
         const double sinh_eta = sinh(eta_s);
         N_B += (c.rhob*c.u[0] + c_prev.Wmunu[10]);
-        const double Pi00_rk_0 = (c_prev.pi_b
-                                  *(-1.0 + c_prev.u[0]*c_prev.u[0]));
         const double e_local   = c.epsilon;
         const double rhob      = c.rhob;
         const double pressure  = eos.get_pressure(e_local, rhob);
         const double u0        = c.u[0];
+        const double u1        = c.u[1];
+        const double u2        = c.u[2];
         const double u3        = c.u[3];
         const double T00_local = (e_local + pressure)*u0*u0 - pressure;
-        const double T03_local = (e_local + pressure)*u0*u3;
-        const double T_tau_tau = (T00_local + c_prev.Wmunu[0] + Pi00_rk_0);
+        const double Pi00_rk_0 = (c_prev.pi_b
+                                  *(-1.0 + c_prev.u[0]*c_prev.u[0]));
 
-        const double Pi03_rk_0 = c_prev.pi_b*c_prev.u[0]*c_prev.u[3];
-        const double T_tau_eta = T03_local + c_prev.Wmunu[3] + Pi03_rk_0;
+        const double T_tau_tau = (T00_local + c_prev.Wmunu[0] + Pi00_rk_0);
+        const double T01_local = ((e_local + pressure)*u0*u1 + c_prev.Wmunu[1]
+                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[1]);
+        const double T02_local = ((e_local + pressure)*u0*u2 + c_prev.Wmunu[2]
+                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[2]);
+        const double T_tau_eta = ((e_local + pressure)*u0*u3 + c_prev.Wmunu[3]
+                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[3]);
         T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
-        net_Pz  += T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
+        T_tau_x += T01_local;
+        T_tau_y += T02_local;
+        T_tau_z += T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
     }
     double factor = tau*dx*dy*deta;
     N_B *= factor;
     T_tau_t *= factor*Util::hbarc;  // GeV
-    net_Pz *= factor*Util::hbarc;   // GeV
+    T_tau_x *= factor*Util::hbarc;  // GeV
+    T_tau_y *= factor*Util::hbarc;  // GeV
+    T_tau_z *= factor*Util::hbarc;  // GeV
     music_message << "total energy T^{taut} = " << T_tau_t << " GeV";
     music_message.flush("info");
-    music_message << "net longitudinal momentum Pz = " << net_Pz << " GeV";
+    music_message << "net longitudinal momentum Pz = " << T_tau_z << " GeV";
     music_message.flush("info");
     music_message << "net baryon number N_B = " << N_B;
     if (N_B > 0. || N_B < 500.) {
@@ -804,6 +824,10 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
         music_message.flush("error");
         exit(1);
     }
+    output_file << scientific << setprecision(6)
+                << tau << "  " << T_tau_t << "  " << T_tau_x << "  "
+                << T_tau_y << "  " << T_tau_z << "  " << N_B << std::endl;
+    output_file.close();
 }
 
 
