@@ -23,18 +23,16 @@ class Diss {
                                             {10, 11, 12, 13}};
         return index_map[a][b];
     }
-    
+
     pretty_ostream music_message;
 
  public:
     Diss(const EOS &eosIn, const InitData &DATA_in);
-    double MakeWSource(double tau, int alpha,
-                       SCGrid &arena_current, SCGrid &arena_prev,
-                       int ix, int iy, int ieta);
+    void MakeWSource(const double tau,
+                     SCGrid &arena_current, SCGrid &arena_prev,
+                     const int ix, const int iy, const int ieta,
+                     TJbVec &dwmn);
 
-    int Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                   std::array< std::array<double,4>, 5> &w_rhs,
-                   double theta_local, DumuVec &a_local);
     double Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
                          int mu, int nu, int rk_flag, double theta_local,
                          DumuVec &a_local, VelocityShearVec &sigma_1d);
