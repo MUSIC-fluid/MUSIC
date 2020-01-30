@@ -134,13 +134,14 @@ void Advance::FirstRKStepT(
         }
     }
 
+    // now MakeWSource returns partial_a W^{a mu}
+    // (including geometric terms)
+    TJbVec dwmn ={0.0};
+    diss_helper.MakeWSource(tau_rk, arena_current, arena_prev, ix, iy, ieta,
+                            dwmn);
     for (int alpha = 0; alpha < 5; alpha++) {
-        // now MakeWSource returns partial_a W^{a mu}
-        // (including geometric terms)
-        double dwmn = diss_helper.MakeWSource(
-                    tau_rk, alpha, arena_current, arena_prev, ix, iy, ieta);
         /* dwmn is the only one with the minus sign */
-        qi[alpha] -= dwmn*(DATA.delta_tau);
+        qi[alpha] -= dwmn[alpha]*(DATA.delta_tau);
 
         // add energy moemntum and net baryon density source terms
         qi[alpha] += qi_source[alpha]*DATA.delta_tau;
@@ -455,8 +456,8 @@ void Advance::QuestRevert_qmu(const double tau, Cell_small *grid_pt,
 void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
                           const int ix, const int iy, const int ieta,
                           TJbVec &qi, const int rk_flag) {
-    double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
-    double tau_fac[4] = {0.0, tau, tau, 1.0};
+    const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
+    const double tau_fac[4] = {0.0, tau, tau, 1.0};
 
     for (int alpha = 0; alpha < 5; alpha++) {
         qi[alpha] = get_TJb(arena_current(ix, iy, ieta), alpha, 0)*tau;

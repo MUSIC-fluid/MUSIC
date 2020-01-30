@@ -28,9 +28,10 @@ class Diss {
 
  public:
     Diss(const EOS &eosIn, const InitData &DATA_in);
-    double MakeWSource(const double tau, const int alpha,
-                       SCGrid &arena_current, SCGrid &arena_prev,
-                       const int ix, const int iy, const int ieta);
+    void MakeWSource(const double tau,
+                     SCGrid &arena_current, SCGrid &arena_prev,
+                     const int ix, const int iy, const int ieta,
+                     TJbVec &dwmn);
 
     double Make_uWSource(const double tau, const Cell_small *grid_pt,
                          const Cell_small *grid_pt_prev,
