@@ -30,17 +30,13 @@ void Diss::MakeWSource(const double tau,
     const auto& grid_pt      = arena_current(ix, iy, ieta);
     const auto& grid_pt_prev = arena_prev(ix, iy, ieta);
 
-    double shear_on = static_cast<double>(DATA.turn_on_shear);
-    double bulk_on  = static_cast<double>(DATA.turn_on_bulk);
-    double diff_on  = static_cast<double>(DATA.turn_on_diff);
-
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y,
                                DATA.delta_eta};
     const double tau_fac[4] = {0.0, tau, tau, 1.0};
 
     dwmn = {0.};
-    TJbVec W_eta_p = {0.};  // save tau*W^{\eta \nu} at eta + deta/2
-    TJbVec W_eta_m = {0.};  // save tau*W^{\eta \nu} at eta - deta/2
+    EnergyFlowVec W_eta_p = {0.};  // save tau*W^{\eta \nu} at eta + deta/2
+    EnergyFlowVec W_eta_m = {0.};  // save tau*W^{\eta \nu} at eta - deta/2
     for (int alpha = 0; alpha < 5; alpha++) {
         /* partial_tau W^tau alpha */
         /* this is partial_tau evaluated at tau */
@@ -88,9 +84,12 @@ void Diss::MakeWSource(const double tau,
 
             if (alpha < 4 && DATA.turn_on_bulk == 1) {
                 double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
-                double bgp1  = p1.pi_b*(gfac1 + p1.u[alpha]*p1.u[direction])*tau_fac[direction];
-                double bg    = c.pi_b *(gfac1 + c.u [alpha]*c.u [direction])*tau_fac[direction];
-                double bgm1  = m1.pi_b*(gfac1 + m1.u[alpha]*m1.u[direction])*tau_fac[direction];
+                double bgp1  = (p1.pi_b*(gfac1 + p1.u[alpha]*p1.u[direction])
+                                *tau_fac[direction]);
+                double bg    = (c.pi_b *(gfac1 + c.u[alpha]*c.u[direction])
+                                *tau_fac[direction]);
+                double bgm1  = (m1.pi_b*(gfac1 + m1.u[alpha]*m1.u[direction])
+                                *tau_fac[direction]);
                 //dPidx += minmod.minmod_dx(bgp1, bg, bgm1)/delta[direction];
                 // use central difference to preserve conservation law exactly
                 double Pi_m = (bg + bgm1)*0.5;
@@ -108,7 +107,7 @@ void Diss::MakeWSource(const double tau,
         //                        + partial_i(tau W^in)
         double sf = tau*dWdtau + grid_pt.Wmunu[idx_1d_alpha0] + dWdx;
         double bf = tau*dPidtau + Pi_alpha0 + dPidx;
-        dwmn[alpha] += (sf*shear_on + bf*bulk_on);
+        dwmn[alpha] += sf + bf;
         if (std::isnan(sf + bf)) {
             music_message << "[Error]Diss::MakeWSource: ";
             music_message << "sf=" << sf << " bf=" << bf
@@ -127,19 +126,20 @@ void Diss::MakeWSource(const double tau,
     }
     // add longitudinal flux with the discretized geometric terms
     // careful about the boost-invariant case when deta could be arbitary
-    double cosh_eta = cosh(delta[3]/2.)/delta[3];
-    double sinh_eta = sinh(delta[3]/2.)/delta[3];
+    double cosh_deta = cosh(delta[3]/2.)/(delta[3] + Util::small_eps);
+    double sinh_deta = sinh(delta[3]/2.)/(delta[3] + Util::small_eps);
+    sinh_deta = std::max(0.5, sinh_deta);
     if (DATA.boost_invariant) {
         // if the simulation is boost-invariant,
         // we directly use the limiting value at \Delta eta = 0
-        // Longitudinal derivatives should be 0, we set cosh_eta = 0 here
-        cosh_eta = 0.0;
-        sinh_eta = 0.5;
+        // Longitudinal derivatives should be 0, we set cosh_deta = 0 here
+        cosh_deta = 0.0;
+        sinh_deta = 0.5;
     }
-    dwmn[0] += (  (W_eta_p[0] - W_eta_m[0])*cosh_eta
-                + (W_eta_p[3] + W_eta_m[3])*sinh_eta);
-    dwmn[3] += (  (W_eta_p[3] - W_eta_m[3])*cosh_eta
-                + (W_eta_p[0] + W_eta_m[0])*sinh_eta);
+    dwmn[0] += (  (W_eta_p[0] - W_eta_m[0])*cosh_deta
+                + (W_eta_p[3] + W_eta_m[3])*sinh_deta);
+    dwmn[3] += (  (W_eta_p[3] - W_eta_m[3])*cosh_deta
+                + (W_eta_p[0] + W_eta_m[0])*sinh_deta);
 
     // sources due to coordinate transform this is added to partial_m W^mn
     //dwmn[0] += grid_pt.Wmunu[9];
