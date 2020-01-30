@@ -529,9 +529,9 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
     double cosh_deta = cosh(delta[3]/2.);
     double sinh_deta = sinh(delta[3]/2.);
     rhs[0] += ((  (T_eta_m[0] - T_eta_p[0])*cosh_deta
-                - (T_eta_m[3] + T_eta_p[3])*sinh_deta)/delta[3]);
+                - (T_eta_m[3] + T_eta_p[3])*sinh_deta)/delta[3]*DATA.delta_tau);
     rhs[3] += ((  (T_eta_m[3] - T_eta_p[3])*cosh_deta
-                - (T_eta_m[0] + T_eta_p[0])*sinh_deta)/delta[3]);
+                - (T_eta_m[0] + T_eta_p[0])*sinh_deta)/delta[3]*DATA.delta_tau);
 
     // geometric terms
     //rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
