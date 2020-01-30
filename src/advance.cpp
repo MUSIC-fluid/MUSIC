@@ -437,18 +437,19 @@ void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
 void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int ieta, TJbVec &qi, int rk_flag) {
     double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
     double tau_fac[4] = {0.0, tau, tau, 1.0};
-  
-    double rhs[5];
+
     for (int alpha = 0; alpha < 5; alpha++) {
         qi[alpha] = get_TJb(arena_current(ix, iy, ieta), alpha, 0)*tau;
-        rhs[alpha] = 0.0; 
     }
-  
-    TJbVec qiphL = {0};
-    TJbVec qiphR = {0};
-    TJbVec qimhL = {0};
-    TJbVec qimhR = {0};
-  
+
+    TJbVec qiphL   = {0.};
+    TJbVec qiphR   = {0.};
+    TJbVec qimhL   = {0.};
+    TJbVec qimhR   = {0.};
+
+    TJbVec rhs     = {0.};
+    TJbVec T_eta_m = {0.};
+    TJbVec T_eta_p = {0.};
     Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
         #pragma omp simd
         for (int alpha = 0; alpha < 5; alpha++) {
@@ -496,14 +497,27 @@ void Advance::MakeDeltaQI(double tau, SCGrid &arena_current, int ix, int iy, int
                                - aiph*(qiphR[alpha] - qiphL[alpha]));
             double Fimh = 0.5*((FimhL + FimhR)
                                - aimh*(qimhR[alpha] - qimhL[alpha]));
-            double DFmmp = (Fimh - Fiph)/delta[direction];
-            rhs[alpha] += DFmmp*(DATA.delta_tau);
+            if (direction == 3 && (alpha == 0 || alpha == 3)) {
+                T_eta_m[alpha] = Fimh;
+                T_eta_p[alpha] = Fiph;
+            } else {
+                double DFmmp = (Fimh - Fiph)/delta[direction];
+                rhs[alpha] += DFmmp*(DATA.delta_tau);
+            }
         }
     });
 
+    // add longitudinal flux with discretized geometric terms
+    double cosh_deta = cosh(delta[3]/2.);
+    double sinh_deta = sinh(delta[3]/2.);
+    rhs[0] += ((  (T_eta_m[0] - T_eta_p[0])*cosh_deta
+                - (T_eta_m[3] + T_eta_p[3])*sinh_deta)/delta[3]);
+    rhs[3] += ((  (T_eta_m[3] - T_eta_p[3])*cosh_deta
+                - (T_eta_m[0] + T_eta_p[0])*sinh_deta)/delta[3]);
+
     // geometric terms
-    rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
-    rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
+    //rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
+    //rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
 
     #pragma omp simd
     for (int i = 0; i < 5; i++) {
