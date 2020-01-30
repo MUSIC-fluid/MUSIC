@@ -469,8 +469,8 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
     TJbVec qimhR   = {0.};
 
     TJbVec rhs     = {0.};
-    TJbVec T_eta_m = {0.};
-    TJbVec T_eta_p = {0.};
+    EnergyFlowVec T_eta_m = {0.};
+    EnergyFlowVec T_eta_p = {0.};
     Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
         for (int alpha = 0; alpha < 5; alpha++) {
             const double gphL = qi[alpha];
@@ -527,12 +527,20 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
     });
 
     // add longitudinal flux with discretized geometric terms
-    double cosh_deta = cosh(delta[3]/2.);
-    double sinh_deta = sinh(delta[3]/2.);
+    double cosh_deta = cosh(delta[3]/2.)/(delta[3] + Util::small_eps);
+    double sinh_deta = sinh(delta[3]/2.)/(delta[3] + Util::small_eps);
+    sinh_deta = std::max(0.5, sinh_deta);
+    if (DATA.boost_invariant) {
+        // if the simulation is boost-invariant,
+        // we directly use the limiting value at \Delta eta = 0
+        // Longitudinal derivatives should be 0, we set cosh_eta = 0 here
+        cosh_deta = 0.0;
+        sinh_deta = 0.5;
+    }
     rhs[0] += ((  (T_eta_m[0] - T_eta_p[0])*cosh_deta
-                - (T_eta_m[3] + T_eta_p[3])*sinh_deta)/delta[3]*DATA.delta_tau);
+                - (T_eta_m[3] + T_eta_p[3])*sinh_deta)*DATA.delta_tau);
     rhs[3] += ((  (T_eta_m[3] - T_eta_p[3])*cosh_deta
-                - (T_eta_m[0] + T_eta_p[0])*sinh_deta)/delta[3]*DATA.delta_tau);
+                - (T_eta_m[0] + T_eta_p[0])*sinh_deta)*DATA.delta_tau);
 
     // geometric terms
     //rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
