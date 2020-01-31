@@ -750,6 +750,92 @@ double Cell_info::get_maximum_energy_density(SCGrid &arena) {
 }
 
 
+//! This function computes global angular momentum at a give proper time
+void Cell_info::compute_angular_momentum(SCGrid &arena, SCGrid &arena_prev,
+                                         const double tau) {
+    std::string filename = "global_angular_momentum.dat";
+    ofstream output_file;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        output_file.open(filename.c_str(), std::ofstream::out);
+        output_file << "# tau[fm]  Lx[hbarc]  Ly[hbarc]  Lz[hbarc]  "
+                    << "L^{tx}[hbarc]  L^{ty}[hbarc]  L^{tz}[hbarc]"
+                    << std::endl;
+    } else {
+        output_file.open(filename.c_str(), std::ofstream::app);
+    }
+    double Lx = 0.0;
+    double Ly = 0.0;
+    double Lz = 0.0;
+    double Ltx = 0.0;
+    double Lty = 0.0;
+    double Ltz = 0.0;
+    const double deta = DATA.delta_eta;
+    const double dx   = DATA.delta_x;
+    const double dy   = DATA.delta_y;
+    const int neta    = arena.nEta();
+    const int nx      = arena.nX();
+    const int ny      = arena.nY();
+    #pragma omp parallel for collapse(3) reduction(+:Lx, Ly, Lz, Ltx, Lty, Ltz)
+    for (int ieta = 0; ieta < neta; ieta++)
+    for (int ix = 0; ix < nx; ix++)
+    for (int iy = 0; iy < ny; iy++) {
+        const auto& c      = arena     (ix, iy, ieta);
+        const auto& c_prev = arena_prev(ix, iy, ieta);
+
+        const double eta_s = deta*ieta - (DATA.eta_size)/2.0;
+        const double cosh_eta = cosh(eta_s);
+        const double sinh_eta = sinh(eta_s);
+        const double t_local = tau*cosh_eta;
+        const double x_local = DATA.x_size/2. + ix*dx;
+        const double y_local = DATA.x_size/2. + iy*dy;
+        const double z_local = tau*sinh_eta;
+
+        const double e_local   = c.epsilon;
+        const double rhob      = c.rhob;
+        const double pressure  = eos.get_pressure(e_local, rhob);
+        const double u0        = c.u[0];
+        const double u1        = c.u[1];
+        const double u2        = c.u[2];
+        const double u3        = c.u[3];
+
+        const double T00_local = (e_local + pressure)*u0*u0 - pressure;
+        const double Pi00_rk_0 = (c_prev.pi_b
+                                  *(-1.0 + c_prev.u[0]*c_prev.u[0]));
+
+        const double T_tau_tau = (T00_local + c_prev.Wmunu[0] + Pi00_rk_0);
+        const double T_tau_x   = ((e_local + pressure)*u0*u1 + c_prev.Wmunu[1]
+                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[1]);
+        const double T_tau_y   = ((e_local + pressure)*u0*u2 + c_prev.Wmunu[2]
+                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[2]);
+        const double T_tau_eta = ((e_local + pressure)*u0*u3 + c_prev.Wmunu[3]
+                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[3]);
+        const double T_tau_t = T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
+        const double T_tau_z = T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
+
+        Lx  += (y_local*T_tau_z - z_local*T_tau_y);
+        Ly  += (z_local*T_tau_x - x_local*T_tau_z);
+        Lz  += (x_local*T_tau_y - y_local*T_tau_x);
+        Ltx += (t_local*T_tau_x - x_local*T_tau_t);
+        Lty += (t_local*T_tau_y - y_local*T_tau_t);
+        Ltz += (t_local*T_tau_z - z_local*T_tau_t);
+    }
+    // add units
+    double factor = tau*dx*dy*deta;
+    Lx *= factor;
+    Ly *= factor;
+    Lz *= factor;
+    Ltx *= factor;
+    Lty *= factor;
+    Ltz *= factor;
+
+    // output results
+    output_file << scientific << setprecision(6)
+                << tau << "  " << Lx << "  " << Ly << "  " << Lz << "  "
+                << Ltx << "  " << Lty << "  " << Ltz << std::endl;
+    output_file.close();
+}
+
+
 //! This function checks the total energy and total net baryon number
 //! at a give proper time
 void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,

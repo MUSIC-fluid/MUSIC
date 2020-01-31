@@ -110,6 +110,10 @@ class Cell_info {
     void output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
                                                      std::string filename);
 
+    //! This function computes global angular momentum at a give proper time
+    void compute_angular_momentum(SCGrid &arena, SCGrid &arena_prev,
+                                  const double tau);
+
     //! This function checks the total energy and total net baryon number
     //! at a give proper time
     void check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
