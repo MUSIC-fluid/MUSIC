@@ -162,6 +162,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         // check energy conservation
         if (DATA.boost_invariant == 0) {
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
+            grid_info.compute_angular_momentum(*ap_current, *ap_prev, tau);
         }
 
         auto emax_loc = grid_info.get_maximum_energy_density(*ap_current);
