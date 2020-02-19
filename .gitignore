@@ -12,3 +12,5 @@ mpihydro
 perf.data*
 a.out
 build/
+MUSIChydro
+*.dylib
