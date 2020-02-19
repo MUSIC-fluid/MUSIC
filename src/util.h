@@ -19,6 +19,7 @@ namespace Util {
     const double hbarc = 0.19733;
     const double default_tol = 1.0e-8;
     const int BT_BUF_SIZE = 500;
+    const double small_eps = 1e-16;
 
     double theta(const double x);
     double gmn(const int a);
@@ -26,11 +27,11 @@ namespace Util {
     double **mtx_malloc(const int n1, const int n2);
 
     void mtx_free(double **m, const int n1, const int n2);
-    
+
     int IsFile(std::string);
-    
+
     std::string StringFind4(std::string file_name, std::string str_in);
-    
+
     double lin_int(double x1,double x2,double f1,double f2,double x);
 
     double four_dimension_linear_interpolation(
@@ -39,7 +40,7 @@ namespace Util {
             double* lattice_spacing, double fraction[2][3], double*** cube);
     int binary_search(double* array, int length, double x);
     void print_backtrace_errors();
-    
+
     int map_2d_idx_to_1d(int a, int b);
     void map_1d_idx_to_2d(int idx_1d, int &a, int &b);
 
