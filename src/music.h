@@ -22,7 +22,7 @@ class MUSIC {
 
     //! flag to tell whether hydro is initialized
     int flag_hydro_initialized;
-    
+
     //! flag to tell whether hydro is run
     int flag_hydro_run;
 
@@ -49,7 +49,7 @@ class MUSIC {
 
     //! This function initialize hydro
     void initialize_hydro();
-    
+
     //! This function change the parameter value in DATA
     void set_parameter(std::string parameter_name, double value);
 

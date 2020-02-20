@@ -160,7 +160,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
 
         // check energy conservation
-        if (DATA.boost_invariant == 0) {
+        if (DATA.boost_invariant) {
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
             grid_info.compute_angular_momentum(*ap_current, *ap_prev, tau);
         }
@@ -200,7 +200,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
             // avoid freeze-out at the first time step
             if ((it - it_start)%facTau == 0 && it > it_start) {
-                if (DATA.boost_invariant == 0) {
+                if (DATA.boost_invariant) {
                     frozen = FindFreezeOutSurface_Cornelius(
                                 tau, *ap_current, arena_freezeout);
                 } else {
@@ -1003,7 +1003,7 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau,
 
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
         double epsFO = epsFO_list[i_freezesurf]/hbarc;
-        if (DATA.boost_invariant == 0) {
+        if (DATA.boost_invariant) {
             #pragma omp parallel for
             for (int ieta = 0; ieta < neta - fac_eta; ieta += fac_eta) {
                 int thread_id = omp_get_thread_num();
@@ -1028,7 +1028,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     const int ny = arena_current.nY();
 
     std::stringstream strs_name;
-    if (DATA.boost_invariant == 0) {
+    if (DATA.boost_invariant) {
         strs_name << "surface_eps_" << std::setprecision(4) << epsFO*hbarc
                   << "_" << thread_id << ".dat";
     } else {
