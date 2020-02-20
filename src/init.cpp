@@ -691,17 +691,19 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     #pragma omp parallel for reduction(+: T_tau_t)
     for (int ieta = 0; ieta < neta; ieta++) {
         double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-        double eta_rhob_left     = eta_rhob_left_factor(eta);
-        double eta_rhob_right    = eta_rhob_right_factor(eta);
+        if (DATA.boost_invariant) {
+            eta = 0.0;
+        }
+        double eta_rhob_left  = eta_rhob_left_factor(eta);
+        double eta_rhob_right = eta_rhob_right_factor(eta);
 
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
                 double rhob = 0.0;
                 double epsilon = 0.0;
                 if (DATA.turn_on_rhob == 1) {
-                    rhob = (
-                        (temp_profile_TA[ix][iy]*eta_rhob_left
-                         + temp_profile_TB[ix][iy]*eta_rhob_right));
+                    rhob = (  temp_profile_TA[ix][iy]*eta_rhob_left
+                            + temp_profile_TB[ix][iy]*eta_rhob_right);
                 } else {
                     rhob = 0.0;
                 }

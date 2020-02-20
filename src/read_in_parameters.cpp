@@ -916,6 +916,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         music_message.flush("warning");
         parameter_list.neta = 1;
     }
+
     if (parameter_list.boost_invariant) {
         music_message << "For a (2+1)-d simulation, "
                       << "reset deta = 0.1 and eta_size = 0.0";
