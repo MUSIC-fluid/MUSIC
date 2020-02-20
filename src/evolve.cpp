@@ -160,7 +160,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
 
         // check energy conservation
-        if (DATA.boost_invariant) {
+        if (!DATA.boost_invariant) {
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
             grid_info.compute_angular_momentum(*ap_current, *ap_prev, tau);
         }
@@ -200,7 +200,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
             // avoid freeze-out at the first time step
             if ((it - it_start)%facTau == 0 && it > it_start) {
-                if (DATA.boost_invariant) {
+                if (!DATA.boost_invariant) {
                     frozen = FindFreezeOutSurface_Cornelius(
                                 tau, *ap_current, arena_freezeout);
                 } else {
@@ -1003,7 +1003,7 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau,
 
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
         double epsFO = epsFO_list[i_freezesurf]/hbarc;
-        if (DATA.boost_invariant) {
+        if (!DATA.boost_invariant) {
             #pragma omp parallel for
             for (int ieta = 0; ieta < neta - fac_eta; ieta += fac_eta) {
                 int thread_id = omp_get_thread_num();
@@ -1028,7 +1028,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     const int ny = arena_current.nY();
 
     std::stringstream strs_name;
-    if (DATA.boost_invariant) {
+    if (!DATA.boost_invariant) {
         strs_name << "surface_eps_" << std::setprecision(4) << epsFO*hbarc
                   << "_" << thread_id << ".dat";
     } else {
@@ -1037,13 +1037,13 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     }
     std::ofstream s_file;
     std::ios_base::openmode modes;
-    
+
     if (surface_in_binary) {
         modes=std::ios::out | std::ios::binary;
     } else {
         modes=std::ios::out;
     }
-    
+
     // Only append at the end of the file if it's not the first timestep
     // (that is, overwrite file at first timestep)
     if (tau != DATA.tau0+DATA.delta_tau) {
