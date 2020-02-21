@@ -702,8 +702,8 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
                 double rhob = 0.0;
                 double epsilon = 0.0;
                 if (DATA.turn_on_rhob == 1) {
-                    rhob = (  temp_profile_TA[ix][iy]*eta_rhob_left
-                            + temp_profile_TB[ix][iy]*eta_rhob_right);
+                    rhob = (  temp_profile_TA[ix][iy]*eta_rhob_right
+                            + temp_profile_TB[ix][iy]*eta_rhob_left);
                 } else {
                     rhob = 0.0;
                 }
