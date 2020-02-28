@@ -158,7 +158,7 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
                            const VelocityShearVec &sigma_1d,
                            const VorticityVec &omega_1d) {
     double tempf;
-    double SW, shear, shear_to_s, T, epsilon, rhob;
+    double SW, shear, T, epsilon, rhob;
     double NS_term;
 
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
@@ -174,10 +174,14 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
 
     T = eos.get_temperature(epsilon, rhob);
 
-    if (DATA.T_dependent_shear_to_s == 1) {
-        shear_to_s = get_temperature_dependent_eta_s(T);
-    } else {
-        shear_to_s = DATA.shear_to_s;
+    double shear_to_s = DATA.shear_to_s;
+    if (DATA.T_dependent_shear_to_s != 0) {
+        shear_to_s *= get_temperature_dependent_eta_s(T);
+    }
+
+    if (DATA.muB_dependent_shear_to_s != 0) {
+        double muB = eos.get_muB(epsilon, rhob);
+        shear_to_s *= get_muB_dependent_eta_s(muB);
     }
 
     bool include_WWterm = false;
@@ -193,7 +197,12 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     ////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
     double pressure = eos.get_pressure(epsilon, rhob);
-    shear = shear_to_s*(epsilon + pressure)/(T + small_eps);
+    if (DATA.muB_dependent_shear_to_s == 0) {
+        double entropy = eos.get_entropy(epsilon, rhob);
+        shear = shear_to_s*entropy;
+    } else {
+        shear = shear_to_s*(epsilon + pressure)/(T + small_eps);
+    }
     double tau_pi = 5.0*shear/(epsilon + pressure + small_eps);
     tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
 
@@ -926,17 +935,31 @@ double Diss::Make_uqRHS(const double tau, SCGrid &arena,
 }
 
 double Diss::get_temperature_dependent_eta_s(const double T) const {
-    double Ttr = 0.18/hbarc;  // phase transition temperature
-    double Tfrac = T/Ttr;
-    double shear_to_s;
-    if (T < Ttr) {
-        shear_to_s = (DATA.shear_to_s + 0.0594*(1. - Tfrac)
-                      + 0.544*(1. - Tfrac*Tfrac));
+    const double Tc = 0.165/hbarc;
+    const double Tslope = 1.2;
+    const double Tlow = 0.1/hbarc;
+    double f_T = 1.0;
+    if (T < Tc) {
+        f_T += Tslope*(Tc - T)/(Tc - Tlow);
     } else {
-        shear_to_s = (DATA.shear_to_s + 0.288*(Tfrac - 1.)
-                      + 0.0818*(Tfrac*Tfrac - 1.));
+        if (DATA.T_dependent_shear_to_s == 2) {
+            const double Tslope2 = 1.0;
+            const double Thigh = 0.4/hbarc;
+            f_T += Tslope2*(T - Tc)/(Thigh - Tc);
+        }
     }
-    return(shear_to_s);
+    return(f_T);
+}
+
+double Diss::get_muB_dependent_eta_s(const double muB) const {
+    const double alpha = 0.8;
+    const double muB_slope = 0.9;
+    const double muB_scale = 0.6/hbarc;
+    double f_muB = 1.;
+    if (DATA.muB_dependent_shear_to_s == 10) {
+        f_muB += muB_slope*pow(muB/muB_scale, alpha);
+    }
+    return(f_muB);
 }
 
 double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
@@ -1133,21 +1156,30 @@ void Diss::output_eta_over_s_T_and_muB_dependence() {
     int nrhob       = 1000;
     double drhob    = (rhob_max - rhob_min)/(nrhob - 1.);
 
-    double etaT_over_enthropy = DATA.shear_to_s;
     for (int i = 0; i < ne; i++) {
         double e_local = e_min + i*de;
         for (int j = 0; j < nrhob; j++) {
             double rhob_local = rhob_min + j*drhob;
             rhob_local *= rhob_local;
             double mu_B_local = eos.get_muB(e_local, rhob_local);
-            if (mu_B_local*hbarc > 0.78)
+            if (mu_B_local*hbarc > 0.59)
                 continue;  // discard points out of the table
             double p_local = eos.get_pressure(e_local, rhob_local);
             double s_local = eos.get_entropy(e_local, rhob_local);
             double T_local = eos.get_temperature(e_local, rhob_local);
 
-            double eta_over_s = (
-                etaT_over_enthropy*(e_local + p_local)/(T_local*s_local));
+            double shear_to_s = DATA.shear_to_s;
+            if (DATA.T_dependent_shear_to_s != 0) {
+                shear_to_s *= get_temperature_dependent_eta_s(T_local);
+            }
+            if (DATA.muB_dependent_shear_to_s != 0) {
+                shear_to_s *= get_muB_dependent_eta_s(mu_B_local);
+            }
+
+            double eta_over_s = shear_to_s;
+            if (DATA.muB_dependent_shear_to_s != 0) {
+                eta_over_s = shear_to_s*(e_local + p_local)/(T_local*s_local);
+            }
 
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)

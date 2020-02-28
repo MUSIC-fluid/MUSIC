@@ -67,6 +67,7 @@ class Diss {
                          const DmuMuBoverTVec &baryon_diffusion_vec);
 
     double get_temperature_dependent_eta_s(const double T) const;
+    double get_muB_dependent_eta_s(const double muB) const;
     double get_temperature_dependent_zeta_s(const double temperature) const;
 
     void output_kappa_T_and_muB_dependence();
