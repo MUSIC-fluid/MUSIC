@@ -751,21 +751,25 @@ double Cell_info::get_maximum_energy_density(SCGrid &arena) {
 
 
 //! This function computes global angular momentum at a give proper time
-void Cell_info::compute_angular_momentum(SCGrid &arena, SCGrid &arena_prev,
-                                         const double tau) {
-    std::string filename = "global_angular_momentum.dat";
+void Cell_info::compute_angular_momentum(
+        SCGrid &arena, SCGrid &arena_prev, const double tau,
+        const double eta_min, const double eta_max) {
+    ostringstream filename;
+    filename << "global_angular_momentum_eta_"
+             << eta_min << "_" << eta_max << ".dat";
     ofstream output_file;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
-        output_file.open(filename.c_str(), std::ofstream::out);
+        // create new files at the first time step
+        output_file.open(filename.str().c_str(), std::ofstream::out);
         output_file << "# tau[fm]  Lx[hbarc]  Ly[hbarc]  Lz[hbarc]  "
                     << "L^{tx}[hbarc]  L^{ty}[hbarc]  L^{tz}[hbarc]"
                     << std::endl;
     } else {
-        output_file.open(filename.c_str(), std::ofstream::app);
+        output_file.open(filename.str().c_str(), std::ofstream::app);
     }
-    double Lx = 0.0;
-    double Ly = 0.0;
-    double Lz = 0.0;
+    double Lx  = 0.0;
+    double Ly  = 0.0;
+    double Lz  = 0.0;
     double Ltx = 0.0;
     double Lty = 0.0;
     double Ltz = 0.0;
@@ -782,7 +786,11 @@ void Cell_info::compute_angular_momentum(SCGrid &arena, SCGrid &arena_prev,
         const auto& c      = arena     (ix, iy, ieta);
         const auto& c_prev = arena_prev(ix, iy, ieta);
 
-        const double eta_s = deta*ieta - (DATA.eta_size)/2.0;
+        double eta_s = deta*ieta - (DATA.eta_size)/2.0;
+        if (DATA.boost_invariant) {
+            eta_s = 0.0;
+        }
+
         const double cosh_eta = cosh(eta_s);
         const double sinh_eta = sinh(eta_s);
         const double t_local = tau*cosh_eta;
@@ -812,18 +820,20 @@ void Cell_info::compute_angular_momentum(SCGrid &arena, SCGrid &arena_prev,
         const double T_tau_t = T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
         const double T_tau_z = T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
 
-        Lx  += (y_local*T_tau_z - z_local*T_tau_y);
-        Ly  += (z_local*T_tau_x - x_local*T_tau_z);
-        Lz  += (x_local*T_tau_y - y_local*T_tau_x);
-        Ltx += (t_local*T_tau_x - x_local*T_tau_t);
-        Lty += (t_local*T_tau_y - y_local*T_tau_t);
-        Ltz += (t_local*T_tau_z - z_local*T_tau_t);
+        if (eta_s < eta_max && eta_s > eta_min) {
+            Lx  += (y_local*T_tau_z - z_local*T_tau_y);
+            Ly  += (z_local*T_tau_x - x_local*T_tau_z);
+            Lz  += (x_local*T_tau_y - y_local*T_tau_x);
+            Ltx += (t_local*T_tau_x - x_local*T_tau_t);
+            Lty += (t_local*T_tau_y - y_local*T_tau_t);
+            Ltz += (t_local*T_tau_z - z_local*T_tau_t);
+        }
     }
     // add units
     double factor = tau*dx*dy*deta;
-    Lx *= factor;
-    Ly *= factor;
-    Lz *= factor;
+    Lx  *= factor;
+    Ly  *= factor;
+    Lz  *= factor;
     Ltx *= factor;
     Lty *= factor;
     Ltz *= factor;
@@ -1229,8 +1239,8 @@ void Cell_info::monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
 }
 
 void Cell_info::output_vorticity_distribution(
-                SCGrid &arena_curr, SCGrid &arena_prev,
-                const double eta_min, const double eta_max, const double tau) {
+                SCGrid &arena_curr, SCGrid &arena_prev, const double tau,
+                const double eta_min, const double eta_max) {
     // This function outputs the vorticity tensor at a given tau
     ostringstream filename1;
     filename1 << "vorticity_dis_eta_" << eta_min
@@ -1238,19 +1248,30 @@ void Cell_info::output_vorticity_distribution(
     std::fstream of1;
     of1.open(filename1.str().c_str(), std::fstream::out);
     // write the header
-    of1 << "# x(fm)  y(fm)  omega^{taux}  omega^{tauy}  tau*omega^{taueta}  "
-        << "omega^{xy}  tau*omega^{xeta}  tau*omega^{yeta}" << endl;
+    of1 << "# x[fm]  y[fm]  omega^{yz}[1/fm]  omega^{zx}[1/fm]  "
+        << "omega^{xy}[1/fm]  omega^{tx}[1/fm]  tau*omega^{ty}[1/fm]  "
+        << "tau*omega^{tz}[1/fm]" << std::endl;
 
     for (int ix = 0; ix < arena_curr.nX(); ix++) {
         for (int iy = 0; iy < arena_curr.nY(); iy++) {
-            double x_local = -DATA.x_size/2. + ix*DATA.delta_x;
-            double y_local = -DATA.y_size/2. + iy*DATA.delta_y;
-            std::vector<double> omega_num(6, 0.0);
-            double weight = 0.0;
+            const double x_local = -DATA.x_size/2. + ix*DATA.delta_x;
+            const double y_local = -DATA.y_size/2. + iy*DATA.delta_y;
+
+            double omega_xy = 0.0;
+            double omega_zx = 0.0;
+            double omega_yz = 0.0;
+            double omega_tx = 0.0;
+            double omega_ty = 0.0;
+            double omega_tz = 0.0;
+            double weight   = 0.0;
             for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
                 double eta_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
+                if (DATA.boost_invariant)
+                    eta_local = 0.0;
                 if (eta_local < eta_max && eta_local > eta_min) {
-                    double e_local = arena_curr(ix, iy, ieta).epsilon;
+                    const double cosh_eta = cosh(eta_local);
+                    const double sinh_eta = sinh(eta_local);
+                    const double e_local = arena_curr(ix, iy, ieta).epsilon;
                     u_derivative_helper.MakedU(
                             tau, arena_prev, arena_curr, ix, iy, ieta);
                     DumuVec a_local;
@@ -1259,27 +1280,32 @@ void Cell_info::output_vorticity_distribution(
                     VorticityVec omega_local;
                     u_derivative_helper.calculate_kinetic_vorticity(
                         tau, arena_curr, ieta, ix, iy, a_local, omega_local);
-                    for (int i = 0; i < 6; i++) {
-                        omega_num[i] += e_local*omega_local[i];
-                    }
-                    weight += e_local;
-
+                    omega_tx += e_local*(  omega_local[0]*cosh_eta
+                                         - omega_local[4]*sinh_eta);
+                    omega_ty += e_local*(  omega_local[1]*cosh_eta
+                                         - omega_local[5]*sinh_eta);
+                    omega_tz += e_local*omega_local[2];
+                    omega_xy += e_local*omega_local[3];
+                    omega_zx += e_local*(- omega_local[4]*cosh_eta
+                                         + omega_local[0]*sinh_eta);
+                    omega_yz += e_local*(- omega_local[1]*sinh_eta
+                                         + omega_local[5]*cosh_eta);
+                    weight   += e_local;
                 }
             }
             of1 << scientific << setprecision(8) << setw(18)
-                << x_local << "  " << y_local << "  ";
-            for (int i = 0; i < 6; i++) {
-                of1 << omega_num[i]/(weight + small_eps) << "  ";
-            }
-            of1 << endl;
+                << x_local << "  " << y_local << "  "
+                << omega_yz/weight << "  " << omega_zx/weight << "  "
+                << omega_xy/weight << "  " << omega_tx/weight << "  "
+                << omega_ty/weight << "  " << omega_tz/weight << std::endl;
         }
     }
     of1.close();
 }
 
 void Cell_info::output_vorticity_time_evolution(
-                SCGrid &arena_curr, SCGrid &arena_prev,
-                const double eta_min, const double eta_max, const double tau) {
+                SCGrid &arena_curr, SCGrid &arena_prev, const double tau,
+                const double eta_min, const double eta_max) {
     // This function outputs the time evolution of the vorticity tensor
     ostringstream filename1;
     filename1 << "vorticity_evo_eta_" << eta_min
@@ -1287,24 +1313,32 @@ void Cell_info::output_vorticity_time_evolution(
     std::fstream of1;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of1.open(filename1.str().c_str(), std::fstream::out);
-        of1 << "# tau(fm)  omega^{taux}  omega^{tauy}  tau*omega^{taueta}  "
-            << "omega^{xy}  tau*omega^{xeta}  tau*omega^{yeta}" << endl;
+        of1 << "# tau[fm]  omega^{yz}[1/fm]  omega^{zx}[1/fm]  "
+            << "omega^{xy}[1/fm]  omega^{tx}[1/fm]  tau*omega^{ty}[1/fm]  "
+            << "tau*omega^{tz}[1/fm]" << std::endl;
     } else {
         of1.open(filename1.str().c_str(), std::fstream::app);
     }
 
-    std::vector<double> omega_num(6, 0.0);
-    double weight = 0.0;
+    double omega_xy = 0.0;
+    double omega_zx = 0.0;
+    double omega_yz = 0.0;
+    double omega_tx = 0.0;
+    double omega_ty = 0.0;
+    double omega_tz = 0.0;
+    double weight   = 0.0;
     for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
         double eta = 0.0;
         if (!DATA.boost_invariant) {
             eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
                     - (DATA.eta_size)/2.0);
         }
+        const double cosh_eta = cosh(eta);
+        const double sinh_eta = sinh(eta);
         if (eta < eta_max && eta > eta_min) {
             for (int iy = 0; iy < arena_curr.nY(); iy++)
             for (int ix = 0; ix < arena_curr.nX(); ix++) {
-                double e_local = arena_curr(ix, iy, ieta).epsilon;  // 1/fm^4
+                const double e_local = arena_curr(ix, iy, ieta).epsilon;
                 u_derivative_helper.MakedU(
                         tau, arena_prev, arena_curr, ix, iy, ieta);
                 DumuVec a_local;
@@ -1313,19 +1347,24 @@ void Cell_info::output_vorticity_time_evolution(
                 VorticityVec omega_local;
                 u_derivative_helper.calculate_kinetic_vorticity(
                         tau, arena_curr, ieta, ix, iy, a_local, omega_local);
-                for (int i = 0; i < 6; i++) {
-                    omega_num[i] += e_local*omega_local[i];
-                }
-                weight += e_local;
+                omega_tx += e_local*(  omega_local[0]*cosh_eta
+                                     - omega_local[4]*sinh_eta);
+                omega_ty += e_local*(  omega_local[1]*cosh_eta
+                                     - omega_local[5]*sinh_eta);
+                omega_tz += e_local*omega_local[2];
+                omega_xy += e_local*omega_local[3];
+                omega_zx += e_local*(- omega_local[4]*cosh_eta
+                                     + omega_local[0]*sinh_eta);
+                omega_yz += e_local*(- omega_local[1]*sinh_eta
+                                     + omega_local[5]*cosh_eta);
+                weight   += e_local;
             }
         }
     }
     of1 << scientific << setw(18) << setprecision(8)
-        << tau << "  ";
-    for (unsigned int i = 0; i < omega_num.size(); i++) {
-        of1 << omega_num[i]/(weight + small_eps) << "  ";
-    }
-    of1 << endl;
+        << tau << "  " << omega_yz/weight << "  " << omega_zx/weight << "  "
+        << omega_xy/weight << "  " << omega_tx/weight << "  "
+        << omega_ty/weight << "  " << omega_tz/weight << std::endl;
     of1.close();
 }
 

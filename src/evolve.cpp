@@ -153,16 +153,25 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
                 || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
                 grid_info.output_vorticity_distribution(
-                                    *ap_current, *ap_prev, -0.5, 0.5, tau);
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
             }
-            grid_info.output_vorticity_time_evolution(
-                                    *ap_current, *ap_prev, -0.5, 0.5, tau);
         }
 
         // check energy conservation
         if (!DATA.boost_invariant) {
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
-            grid_info.compute_angular_momentum(*ap_current, *ap_prev, tau);
+            grid_info.compute_angular_momentum(
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+            grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+            grid_info.compute_angular_momentum(
+                                    *ap_current, *ap_prev, tau, -1.0, 1.0);
+            grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau, -1.0, 1.0);
+            grid_info.compute_angular_momentum(
+                                    *ap_current, *ap_prev, tau, -10.0, 10.0);
+            grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau, -10.0, 10.0);
         }
 
         auto emax_loc = grid_info.get_maximum_energy_density(*ap_current);
