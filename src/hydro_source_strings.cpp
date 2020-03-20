@@ -157,6 +157,9 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             source_tau = new_string->tau_end_right;
         }
 
+        // set the maximum tau = 10 fm/c for source terms
+        source_tau = std::min(10., source_tau);
+
         if (get_source_tau_max() < source_tau) {
             set_source_tau_max(source_tau);
         }
