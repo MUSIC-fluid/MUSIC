@@ -527,8 +527,8 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
     });
 
     // add longitudinal flux with discretized geometric terms
-    double cosh_deta = cosh(delta[3]/2.)/(delta[3] + Util::small_eps);
-    double sinh_deta = sinh(delta[3]/2.)/(delta[3] + Util::small_eps);
+    double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+    double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
     sinh_deta = std::max(0.5, sinh_deta);
     if (DATA.boost_invariant) {
         // if the simulation is boost-invariant,
@@ -593,7 +593,7 @@ double Advance::MaxSpeed(const double tau, const int direc,
         }
     }
     double den = utau2*(1. - vs2) + vs2;
-    double f = num/(den + Util::small_eps);
+    double f = num/std::max(den, Util::small_eps);
     // check for problems
     if (f < 0.0) {
         fprintf(stderr, "SpeedMax = %e\n is negative.\n", f);

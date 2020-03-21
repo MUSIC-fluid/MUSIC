@@ -128,8 +128,8 @@ void Diss::MakeWSource(const double tau,
     }
     // add longitudinal flux with the discretized geometric terms
     // careful about the boost-invariant case when deta could be arbitary
-    double cosh_deta = cosh(delta[3]/2.)/(delta[3] + Util::small_eps);
-    double sinh_deta = sinh(delta[3]/2.)/(delta[3] + Util::small_eps);
+    double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+    double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
     sinh_deta = std::max(0.5, sinh_deta);
     if (DATA.boost_invariant) {
         // if the simulation is boost-invariant,
@@ -201,15 +201,15 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
         double entropy = eos.get_entropy(epsilon, rhob);
         shear = shear_to_s*entropy;
     } else {
-        shear = shear_to_s*(epsilon + pressure)/(T + small_eps);
+        shear = shear_to_s*(epsilon + pressure)/std::max(T, small_eps);
     }
-    double tau_pi = 5.0*shear/(epsilon + pressure + small_eps);
+    double tau_pi = 5.0*shear/std::max(epsilon + pressure, small_eps);
     tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
     //double transport_coefficient  = 9./70.*tau_pi/shear*(4./5.);
-    double transport_coefficient  = 9./70.*4./(epsilon + pressure + small_eps);
+    double transport_coefficient  = 9./70.*4./std::max(epsilon + pressure, small_eps);
     double transport_coefficient2 = 4./3.*tau_pi;
     double transport_coefficient3 = 10./7.*tau_pi;
 
@@ -638,9 +638,9 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
-    Bulk_Relax_time = (bulk/(14.55*(1./3. - cs2 + small_eps)
-                                  *(1./3. - cs2 + small_eps))
-                           /(epsilon + pressure + small_eps));
+    Bulk_Relax_time = (bulk/(14.55*std::max(1./3. - cs2, small_eps)
+                                  *std::max(1./3. - cs2, small_eps))
+                           /std::max(epsilon + pressure, small_eps));
     Bulk_Relax_time = (
         std::min(10., std::max(3.*DATA.delta_tau, Bulk_Relax_time)));
 
@@ -744,18 +744,22 @@ double Diss::Make_uqSource(
     double T        = eos.get_temperature(epsilon, rhob);
 
     double kappa_coefficient = DATA.kappa_coefficient;
-    double tau_rho = kappa_coefficient/(T + small_eps);
+    double tau_rho = kappa_coefficient/std::max(T, small_eps);
     tau_rho = std::min(10., std::max(3.*DATA.delta_tau, tau_rho));
 
     double mub   = eos.get_muB(epsilon, rhob);
-    double alpha = mub/(T + small_eps);
+    double alpha = mub/std::max(T, small_eps);
+    double denorm_safe = std::copysign(
+            std::max(std::abs(3.*T*tanh(alpha)), small_eps), 3.*T*tanh(alpha));
     double kappa = kappa_coefficient*(
-                        rhob/(3.*T*tanh(alpha) + small_eps)
-                        - rhob*rhob/(epsilon + pressure + small_eps));
+                          rhob/denorm_safe
+                        - rhob*rhob/std::max(epsilon + pressure, small_eps));
 
     if (DATA.Initial_profile == 1) {
         // for 1+1D numerical test
-        kappa = kappa_coefficient*(rhob/(mub + small_eps));
+        double denorm_safe = std::copysign(
+            std::max(std::abs(mub), small_eps), mub);
+        kappa = kappa_coefficient*(rhob/denorm_safe);
     }
 
     // copy the value of \tilde{q^\mu}
@@ -1077,9 +1081,12 @@ void Diss::output_kappa_T_and_muB_dependence() {
             double T_local = eos.get_temperature(e_local, rhob_local);
             double alpha_local = mu_B_local/T_local;
 
+            double denorm_safe = std::copysign(
+                std::max(small_eps, std::abs(3.*T_local*tanh(alpha_local))),
+                3.*T_local*tanh(alpha_local));
             double kappa_local = (DATA.kappa_coefficient
-                *(rhob_local/(3.*T_local*tanh(alpha_local) + small_eps)
-                  - rhob_local*rhob_local/(e_local + p_local + small_eps)));
+                *(rhob_local/denorm_safe
+                  - rhob_local*rhob_local/std::max(e_local + p_local, small_eps)));
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << rhob_local << "   "
@@ -1122,9 +1129,12 @@ void Diss::output_kappa_along_const_sovernB() {
                 continue;  // discard points out of the table
             double alpha_local = mu_B/temperature;
 
+            double denorm_safe = std::copysign(
+                std::max(small_eps, std::abs(3.*temperature*tanh(alpha_local))),
+                3.*temperature*tanh(alpha_local));
             double kappa_local = (DATA.kappa_coefficient
-                    *(nB_local/(3.*temperature*tanh(alpha_local) + small_eps)
-                      - nB_local*nB_local/(e_local + p_local + small_eps)));
+                    *(nB_local/denorm_safe
+                      - nB_local*nB_local/std::max(e_local + p_local, small_eps)));
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << nB_local << "   "
