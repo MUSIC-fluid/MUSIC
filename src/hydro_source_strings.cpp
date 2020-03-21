@@ -206,11 +206,11 @@ void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
         double E_remnant_R_norm = 0.;
         for (int ieta = 0; ieta < neta; ieta++) {
             double eta_local = - eta_range + ieta*deta;
-            double y_eta = (
-                it->y_l + (it->y_l - it->y_r)
-                          /(it->eta_s_left - it->eta_s_right + Util::small_eps)
-                          *(eta_local - it->eta_s_left)
-            );
+            double Delta_eta = it->eta_s_right - it->eta_s_left;
+            double denorm_safe = std::copysign(
+                std::max(Util::small_eps, std::abs(Delta_eta)), Delta_eta);
+            double y_eta = (it->y_l + (it->y_r - it->y_l)/denorm_safe
+                                      *(eta_local - it->eta_s_left));
             double expon_left  = (
                         (it->eta_s_left  - eta_local)/(sqrt(2.)*sigma_eta));
             double expon_right = (
@@ -226,7 +226,7 @@ void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
         E_string_norm *= prefactor_etas*deta;
         double E_string = (it->mass*cosh(it->y_l_i) + it->mass*cosh(it->y_r_i)
                            - it->mass*cosh(it->y_l) - it->mass*cosh(it->y_r));
-        it->norm = E_string/(E_string_norm + Util::small_eps);
+        it->norm = E_string/std::max(E_string_norm, Util::small_eps);
         E_string_total += E_string;
         double Pz_string = (  it->mass*sinh(it->y_l_i) - it->mass*sinh(it->y_l)
                             + it->mass*sinh(it->y_r_i) - it->mass*sinh(it->y_r));
@@ -237,8 +237,10 @@ void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
         E_remnant_R_norm *= prefactor_etas*deta;
         double E_remnant_L   = it->remnant_l*it->mass*cosh(it->y_l);
         double E_remnant_R   = it->remnant_r*it->mass*cosh(it->y_r);
-        it->E_remnant_norm_L = E_remnant_L/(E_remnant_L_norm + Util::small_eps);
-        it->E_remnant_norm_R = E_remnant_R/(E_remnant_R_norm + Util::small_eps);
+        it->E_remnant_norm_L = (E_remnant_L
+                                /std::max(E_remnant_L_norm, Util::small_eps));
+        it->E_remnant_norm_R = (E_remnant_R
+                                /std::max(E_remnant_R_norm, Util::small_eps));
         E_remnant_total += E_remnant_L + E_remnant_R;
         double Pz_remnant_L = it->remnant_l*it->mass*sinh(it->y_l);
         double Pz_remnant_R = it->remnant_r*it->mass*sinh(it->y_r);
@@ -331,7 +333,7 @@ void HydroSourceStrings::get_hydro_energy_source(
         if (tau_L > tau_0 + delta_tau) {
             eta_s_shift = acosh((tau_L*tau_L + tau_0*tau_0
                                     - delta_tau*delta_tau)
-                                   /(2.*tau_L*tau_0 + 1e-16));
+                                   /std::max(Util::small_eps, 2.*tau_L*tau_0));
         }
         double eta_s_L = std::min(it->eta_s_right,
                                   it->eta_s_0 - eta_s_shift);
@@ -341,9 +343,9 @@ void HydroSourceStrings::get_hydro_energy_source(
         double eta_s_next_shift = 0.0;
         double tau_next = tau + dtau/2.;
         if (tau_next > tau_0 + delta_tau) {
-            eta_s_next_shift = acosh((tau_next*tau_next + tau_0*tau_0
-                                      - delta_tau*delta_tau)
-                                     /(2.*tau_next*tau_0 + 1e-16));
+            eta_s_next_shift = acosh(
+                (tau_next*tau_next + tau_0*tau_0 - delta_tau*delta_tau)
+                /std::max(Util::small_eps, 2.*tau_next*tau_0));
         }
         double eta_s_L_next = std::max(it->eta_s_left,
                                        it->eta_s_0 - eta_s_next_shift);
@@ -378,11 +380,11 @@ void HydroSourceStrings::get_hydro_energy_source(
                                 /(2.*sigma_x*sigma_x));
 
         double e_local = exp_tau*exp_xperp*exp_eta_s*it->norm;
-        double y_string = (
-            it->y_l + (it->y_r - it->y_l)
-                      /(it->eta_s_right - it->eta_s_left + Util::small_eps)
-                      *(eta_s - it->eta_s_left)
-        );
+        double Delta_eta = it->eta_s_right - it->eta_s_left;
+        double denorm_safe = std::copysign(
+                std::max(Util::small_eps, std::abs(Delta_eta)), Delta_eta);
+        double y_string = (it->y_l + (it->y_r - it->y_l)/denorm_safe
+                                     *(eta_s - it->eta_s_left));
         double cosh_long = cosh(y_string - eta_s);
         double sinh_long = sinh(y_string - eta_s);
         double cosh_perp = 1.0;
@@ -541,8 +543,11 @@ double HydroSourceStrings::get_hydro_rhob_source(
             double rapidity_local = (
                 (  exp_eta_s_left*(it->baryon_frac_l)*(it->y_l_baryon)
                  + exp_eta_s_right*(it->baryon_frac_r)*(it->y_r_baryon))
-                /(  exp_eta_s_left*(it->baryon_frac_l)
-                  + exp_eta_s_right*(it->baryon_frac_r) + 1e-16));
+                /(std::max(Util::small_eps,
+                           (exp_eta_s_left*(it->baryon_frac_l)
+                            + exp_eta_s_right*(it->baryon_frac_r)))
+                 )
+            );
             double y_dump = ((1. - parton_quench_factor)*rapidity_local
                              + parton_quench_factor*y_long_flow);
             double y_dump_perp = parton_quench_factor*y_perp_flow;
