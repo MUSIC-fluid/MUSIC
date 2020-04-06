@@ -15,6 +15,7 @@ struct QCD_string {
 
     double mass;
     double tau_form;
+    double sigma_x, sigma_eta;
     double tau_start, eta_s_start;
     double tau_0, eta_s_0;
     double x_perp, y_perp;    // transverse position of the string

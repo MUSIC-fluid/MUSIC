@@ -109,6 +109,8 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             new_string->eta_s_0 = 0.;
             new_string->tau_form = 0.5;
         }
+        new_string->sigma_x = new_string->tau_form/2.;
+        new_string->sigma_eta = get_sigma_eta();
 
         // compute the string end tau
         double temp_factor1 = (new_string->tau_0*new_string->tau_0
@@ -189,18 +191,18 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
 
 
 void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
-    const int neta         = 500;
+    const int neta = 500;
     const double eta_range = 12.;
-    const double deta      = 2.*eta_range/(neta - 1);
-
-    const double sigma_eta = get_sigma_eta();
-    const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
+    const double deta = 2.*eta_range/(neta - 1);
 
     double E_string_total  = 0.0;
     double E_remnant_total = 0.0;
     double Pz_string_total  = 0.0;
     double Pz_remnant_total = 0.0;
     for (auto &it: QCD_strings_list) {
+        const double sigma_eta = it->sigma_eta;
+        const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
+
         double E_string_norm    = 0.;
         double E_remnant_L_norm = 0.;
         double E_remnant_R_norm = 0.;
@@ -302,16 +304,16 @@ void HydroSourceStrings::get_hydro_energy_source(
     if (   QCD_strings_list_current_tau.size() == 0
         && QCD_strings_remnant_list_current_tau.size() == 0) return;
 
-    const double sigma_x   = get_sigma_x();
-    const double sigma_eta = get_sigma_eta();
-
-    const double dtau            = DATA.delta_tau;
-
-    const double n_sigma_skip   = 5.;
-    const double skip_dis_x     = n_sigma_skip*sigma_x;
-    const double skip_dis_eta   = n_sigma_skip*sigma_eta;
+    const double dtau = DATA.delta_tau;
+    const double n_sigma_skip = 5.;
     const double exp_tau = 1./tau;
     for (auto const&it: QCD_strings_list_current_tau) {
+        const double sigma_x = it->sigma_x;
+        const double sigma_eta = it->sigma_eta;
+        const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
+        const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
+        const double skip_dis_x = n_sigma_skip*sigma_x;
+        const double skip_dis_eta = n_sigma_skip*sigma_eta;
         // energy source from strings
         const double tau_0     = it->tau_0;
         const double delta_tau = it->tau_form;
@@ -388,13 +390,20 @@ void HydroSourceStrings::get_hydro_energy_source(
         double cosh_long = cosh(y_string - eta_s);
         double sinh_long = sinh(y_string - eta_s);
         double cosh_perp = 1.0;
-        j_mu[0] += e_local*cosh_long*cosh_perp;
+        double local_eperp = prefactor_etas*prefactor_prep*e_local*cosh_perp;
+        j_mu[0] += local_eperp*cosh_long;
         j_mu[1] += 0.0;
         j_mu[2] += 0.0;
-        j_mu[3] += e_local*sinh_long*cosh_perp;
+        j_mu[3] += local_eperp*sinh_long;
     }
 
     for (auto const&it: QCD_strings_remnant_list_current_tau) {
+        const double sigma_x = it->sigma_x;
+        const double sigma_eta = it->sigma_eta;
+        const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
+        const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
+        const double skip_dis_x = n_sigma_skip*sigma_x;
+        const double skip_dis_eta = n_sigma_skip*sigma_eta;
         // add remnant energy at the string ends
         bool flag_left = false;
         if (   it->tau_end_left >= tau - dtau/2.
@@ -448,19 +457,16 @@ void HydroSourceStrings::get_hydro_energy_source(
             e_remnant_local = exp_xperp*exp_factors;
             pz_remnant_local = exp_xperp*pz_factors;
         }
-        j_mu[0] += e_remnant_local;
-        j_mu[3] += pz_remnant_local;
+        j_mu[0] += prefactor_etas*prefactor_prep*e_remnant_local;
+        j_mu[3] += prefactor_etas*prefactor_prep*pz_remnant_local;
     }
-    const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
-    const double prefactor_tau  = 1./dtau;
-    const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
-    const double unit_convert   = 1.0/Util::hbarc;
-    const double prefactors = (prefactor_tau*prefactor_prep*prefactor_etas
-                               *unit_convert);
-    j_mu[0] *= prefactors;
-    j_mu[1] *= prefactors;
-    j_mu[2] *= prefactors;
-    j_mu[3] *= prefactors;
+    const double prefactor_tau = 1./dtau;
+    const double unit_convert = 1.0/Util::hbarc;
+    const double prefactors = prefactor_tau*unit_convert;
+    j_mu[0] *= prefactors;  // 1/fm^4
+    j_mu[1] *= prefactors;  // 1/fm^4
+    j_mu[2] *= prefactors;  // 1/fm^4
+    j_mu[3] *= prefactors;  // 1/fm^4
 }
 
 
@@ -469,9 +475,6 @@ double HydroSourceStrings::get_hydro_rhob_source(
         const FlowVec &u_mu) const {
     double res = 0.;
     if (QCD_strings_baryon_list_current_tau.size() == 0) return(res);
-
-    const double sigma_x   = get_sigma_x();
-    const double sigma_eta = get_sigma_eta();
 
     // flow velocity
     const double gamma_perp_flow  = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
@@ -483,9 +486,14 @@ double HydroSourceStrings::get_hydro_rhob_source(
 
     const double exp_tau        = 1.0/tau;
     const double n_sigma_skip   = 5.;
-    const double skip_dis_x     = n_sigma_skip*sigma_x;
-    const double skip_dis_eta   = n_sigma_skip*sigma_eta;
     for (auto &it: QCD_strings_baryon_list_current_tau) {
+        const double sigma_x = it->sigma_x;
+        const double sigma_eta = it->sigma_eta;
+        const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
+        const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
+        const double skip_dis_x = n_sigma_skip*sigma_x;
+        const double skip_dis_eta = n_sigma_skip*sigma_eta;
+
         // skip the evaluation if the strings is too far away in the
         // space-time grid
         // dumping energy into the medium from the active strings
@@ -558,12 +566,10 @@ double HydroSourceStrings::get_hydro_rhob_source(
                            - u_mu[2]*sinh(y_dump_perp)*sin_phi_flow
                            - u_mu[3]*sinh(y_dump)*cosh(y_dump_perp));
             }
-            res += p_dot_u*fsmear;
+            res += prefactor_etas*prefactor_prep*p_dot_u*fsmear;
         }
     }
-    const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
-    const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
     const double prefactor_tau  = 1./dtau;
-    res *= prefactor_tau*prefactor_prep*prefactor_etas;
+    res *= prefactor_tau;
     return(res);
 }
