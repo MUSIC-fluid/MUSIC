@@ -109,7 +109,7 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             new_string->eta_s_0 = 0.;
             new_string->tau_form = 0.5;
         }
-        new_string->sigma_x = new_string->tau_form/2.;
+        new_string->sigma_x = new_string->tau_form;
         new_string->sigma_eta = get_sigma_eta();
 
         // compute the string end tau
