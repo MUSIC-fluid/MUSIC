@@ -632,7 +632,7 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
     double cs2 = eos.get_cs2(epsilon, rhob);
     double pressure = eos.get_pressure(epsilon, rhob);
 
-    // T dependent bulk viscosity from Gabriel
+    // T dependent bulk viscosity
     bulk = get_temperature_dependent_zeta_s(temperature);
     bulk = bulk*(epsilon + pressure)/temperature;
 
@@ -970,9 +970,7 @@ double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
     double bulk = 0.0;
     if (DATA.T_dependent_zeta_over_s == 0) {
         // T dependent bulk viscosity from Gabriel
-        /////////////////////////////////////////////
-        //           Parametrization 1             //
-        /////////////////////////////////////////////
+        // used in arXiv: 1502.01675 and 1704.04216
         double Ttr=0.18/0.1973;
         double dummy=temperature/Ttr;
         double A1=-13.77, A2=27.55, A3=13.45;
@@ -989,9 +987,6 @@ double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
                     + lambda2*exp(-(dummy-1)/sigma2) + 0.001);
         }
     } else if (DATA.T_dependent_zeta_over_s == 1) {
-        /////////////////////////////////////////////
-        //           Parametrization 2             //
-        /////////////////////////////////////////////
         double Ttr=0.18/0.1973;
         double dummy=temperature/Ttr;
         double A1=-79.53, A2=159.067, A3=79.04;
@@ -1008,9 +1003,6 @@ double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
                     + lambda2*exp(-(dummy-1)/sigma2) + 0.001);
         }
     } else if (DATA.T_dependent_zeta_over_s == 2) {
-        ////////////////////////////////////////////
-        //           Parametrization 3            //
-        ////////////////////////////////////////////
         double Ttr=0.18/0.1973;
         double dummy=temperature/Ttr;
         double lambda3=0.9, lambda4=0.22;
@@ -1024,6 +1016,7 @@ double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
             bulk = 0.901*exp(14.5*(1.0-dummy)) + 0.061/dummy/dummy;
         }
     } else if (DATA.T_dependent_zeta_over_s == 7) {
+        // used in arXiv: 1901.04378 and 1908.06212
         double B_norm = 0.24;
         double B_width = 1.5;
         double Tpeak = 0.165/hbarc;
@@ -1034,15 +1027,29 @@ double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
             bulk = B_norm*exp(-Tdiff*Tdiff);
         }
     } else if (DATA.T_dependent_zeta_over_s == 8) {
-        double B_norm = 0.25;
-        double B_width = 0.05/hbarc;
-        double B_skew = 0.8;
-        double Tpeak = 0.165/hbarc;
+        // latest param. for IPGlasma + MUSIC + UrQMD
+        double B_norm = 0.13;
+        double B_width1 = 0.01/hbarc;
+        double B_width2 = 0.12/hbarc;
+        double Tpeak = 0.160/hbarc;
         double Tdiff = temperature - Tpeak;
         if (Tdiff > 0.) {
-            Tdiff = Tdiff/(B_width*(1. + B_skew));
+            Tdiff = Tdiff/B_width2;
         } else {
-            Tdiff = Tdiff/(B_width*(1. - B_skew));
+            Tdiff = Tdiff/B_width1;
+        }
+        bulk = B_norm*exp(-Tdiff*Tdiff);
+    } else if (DATA.T_dependent_zeta_over_s == 9) {
+        // latest param. for IPGlasma + KoMPoST + MUSIC + UrQMD
+        double B_norm = 0.175;
+        double B_width1 = 0.01/hbarc;
+        double B_width2 = 0.12/hbarc;
+        double Tpeak = 0.160/hbarc;
+        double Tdiff = temperature - Tpeak;
+        if (Tdiff > 0.) {
+            Tdiff = Tdiff/B_width2;
+        } else {
+            Tdiff = Tdiff/B_width1;
         }
         bulk = B_norm*exp(-Tdiff*Tdiff);
     }
