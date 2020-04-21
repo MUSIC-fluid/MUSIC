@@ -765,7 +765,8 @@ void Cell_info::compute_angular_momentum(
                     << "L^{tx}[hbarc]  L^{ty}[hbarc]  L^{tz}[hbarc]"
                     << std::endl;
     } else {
-        output_file.open(filename.str().c_str(), std::ofstream::app);
+        output_file.open(filename.str().c_str(),
+                         std::fstream::out | std::fstream::app);
     }
     double Lx  = 0.0;
     double Ly  = 0.0;
@@ -857,7 +858,8 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
         output_file << "# tau(fm)  E(GeV)  Px(GeV)  Py(GeV)  Pz(GeV)  N_B "
                     << std::endl;
     } else {
-        output_file.open(filename.c_str(), std::ofstream::app);
+        output_file.open(filename.c_str(),
+                         std::fstream::out | std::fstream::app);
     }
     double N_B     = 0.0;
     double T_tau_t = 0.0;
@@ -1200,7 +1202,8 @@ void Cell_info::monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
                     << "pi^{\\mu\\nu}(GeV/fm^3)  sigma^{\\mu\\nu}(1/fm)  "
                     << "omega^{\\mu\\nu}(1/fm)" << std::endl;
     } else {
-        output_file.open(filename.str().c_str(), std::ofstream::app);
+        output_file.open(filename.str().c_str(),
+                         std::fstream::out | std::fstream::app);
     }
     output_file << scientific << setprecision(8)
                 << tau << "  " << arena_curr(ix,iy,ieta).epsilon*Util::hbarc
@@ -1317,7 +1320,8 @@ void Cell_info::output_vorticity_time_evolution(
             << "omega^{xy}[1/fm]  omega^{tx}[1/fm]  tau*omega^{ty}[1/fm]  "
             << "tau*omega^{tz}[1/fm]" << std::endl;
     } else {
-        of1.open(filename1.str().c_str(), std::fstream::app);
+        of1.open(filename1.str().c_str(),
+                 std::fstream::out | std::fstream::app);
     }
 
     double omega_xy = 0.0;
@@ -1544,7 +1548,8 @@ void Cell_info::output_average_phase_diagram_trajectory(
         of << "# tau(fm)  <T>(GeV)  std(T)(GeV)  <mu_B>(GeV)  std(mu_B)(GeV)  "
            << "V4 (fm^4)" << endl;
     } else {
-        of.open(filename.str().c_str(), std::fstream::app);
+        of.open(filename.str().c_str(),
+                std::fstream::out | std::fstream::app);
     }
     double avg_T  = 0.0;
     double avg_mu = 0.0;
@@ -1614,7 +1619,8 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
            << "epsilon_3p(full)(cos)  epsilon_3p(full)(sin)  "
            << endl;
     } else {
-        of.open(filename.str().c_str(), std::fstream::app);
+        of.open(filename.str().c_str(),
+                std::fstream::out | std::fstream::app);
     }
 
     ostringstream filename1;
@@ -1625,7 +1631,8 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
         of1.open(filename1.str().c_str(), std::fstream::out);
         of1 << "# tau(fm)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
     } else {
-        of1.open(filename1.str().c_str(), std::fstream::app);
+        of1.open(filename1.str().c_str(),
+                 std::fstream::out | std::fstream::app);
     }
 
     ostringstream filename2;
@@ -1636,7 +1643,8 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
         of2.open(filename2.str().c_str(), std::fstream::out);
         of2 << "# tau(fm)  R_shearpi  R_Pi  gamma  T[GeV]" << endl;
     } else {
-        of2.open(filename2.str().c_str(), std::fstream::app);
+        of2.open(filename2.str().c_str(),
+                 std::fstream::out | std::fstream::app);
     }
 
     double ideal_num1 = 0.0;
