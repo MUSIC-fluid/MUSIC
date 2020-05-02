@@ -60,6 +60,47 @@ void U_derivative::calculate_Du_supmu(const double tau, SCGrid &arena,
 }
 
 
+// This is a shell function to compute all 4 kinds of vorticity tensors
+void U_derivative::compute_vorticity_shell(
+        const double tau, SCGrid &arena_prev, SCGrid &arena_curr,
+        const int ieta, const int ix, const int iy, const double eta,
+        VorticityVec &omega_local_k, VorticityVec &omega_local_knoSP,
+        VorticityVec &omega_local_th, VorticityVec &omega_local_T) {
+    MakedU(tau, arena_prev, arena_curr, ix, iy, ieta);
+    DumuVec a_local;
+    calculate_Du_supmu(tau, arena_curr, ieta, ix, iy, a_local);
+
+    VorticityVec omega_local;
+    calculate_kinetic_vorticity(
+            tau, arena_curr, ieta, ix, iy, a_local, omega_local);
+    omega_local_k = transform_vorticity_to_tz(omega_local, eta);
+    calculate_kinetic_vorticity_no_spatial_projection(
+            tau, arena_curr, ieta, ix, iy, omega_local);
+    omega_local_knoSP = transform_vorticity_to_tz(omega_local, eta);
+    calculate_thermal_vorticity(tau, arena_curr, ieta, ix, iy, omega_local);
+    omega_local_th = transform_vorticity_to_tz(omega_local, eta);
+    calculate_T_vorticity(tau, arena_curr, ieta, ix, iy, omega_local);
+    omega_local_T = transform_vorticity_to_tz(omega_local, eta);
+}
+
+
+// This function transforms the vorticity tensor from tau-eta to tz
+// It outputs (omega^tx, omega^ty, omega^tz, omega^xy, omega^xz, omega^yz)
+VorticityVec U_derivative::transform_vorticity_to_tz(
+                    const VorticityVec omega_Mline, const double eta) {
+    VorticityVec omega_Cart;
+    const double cosh_eta = cosh(eta);
+    const double sinh_eta = sinh(eta);
+    omega_Cart[0] = omega_Mline[0]*cosh_eta - omega_Mline[4]*sinh_eta;
+    omega_Cart[1] = omega_Mline[1]*cosh_eta - omega_Mline[5]*sinh_eta;
+    omega_Cart[2] = omega_Mline[2];
+    omega_Cart[3] = omega_Mline[3];
+    omega_Cart[4] = omega_Mline[4]*cosh_eta - omega_Mline[0]*sinh_eta;
+    omega_Cart[5] = omega_Mline[5]*cosh_eta - omega_Mline[1]*sinh_eta;
+    return(omega_Cart);
+}
+
+
 void U_derivative::calculate_kinetic_vorticity(
             const double tau, SCGrid &arena,
             const int ieta, const int ix, const int iy,

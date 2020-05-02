@@ -62,6 +62,17 @@ class U_derivative {
                      const int iy, const int ieta);
     int MakeDTau(const double tau, const Cell_small *grid_pt_prev,
                  const Cell_small *grid_pt);
+
+    //! This is a shell function to compute all 4 kinds of vorticity tensors
+    void compute_vorticity_shell(
+        const double tau, SCGrid &arena_prev, SCGrid &arena_curr,
+        const int ieta, const int ix, const int iy, const double eta,
+        VorticityVec &omega_local_k, VorticityVec &omega_local_knoSP,
+        VorticityVec &omega_local_th, VorticityVec &omega_local_T);
+
+    //! This function transforms the vorticity tensor from tau-eta to tz
+    VorticityVec transform_vorticity_to_tz(const VorticityVec omega_Mline,
+                                           const double eta);
 };
 
 #endif
