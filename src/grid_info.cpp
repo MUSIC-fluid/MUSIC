@@ -1251,7 +1251,38 @@ void Cell_info::output_vorticity_distribution(
     std::fstream of1;
     of1.open(filename1.str().c_str(), std::fstream::out);
     // write the header
-    of1 << "# x[fm]  y[fm]  omega^{yz}[1/fm]  omega^{zx}[1/fm]  "
+    of1 << "# x[fm]  y[fm]  T[GeV]  muB[GeV]  "
+        << "omega^{yz}[1/fm]  omega^{zx}[1/fm]  "
+        << "omega^{xy}[1/fm]  omega^{tx}[1/fm]  tau*omega^{ty}[1/fm]  "
+        << "tau*omega^{tz}[1/fm]" << std::endl;
+    ostringstream filename2;
+    filename2 << "vorticity_dis_nospatialprojector_eta_" << eta_min
+              << "_" << eta_max << "_tau_" << tau << ".dat";
+    std::fstream of2;
+    of2.open(filename2.str().c_str(), std::fstream::out);
+    // write the header
+    of2 << "# x[fm]  y[fm]  T[GeV]  muB[GeV]  "
+        << "omega^{yz}[1/fm]  omega^{zx}[1/fm]  "
+        << "omega^{xy}[1/fm]  omega^{tx}[1/fm]  tau*omega^{ty}[1/fm]  "
+        << "tau*omega^{tz}[1/fm]" << std::endl;
+    ostringstream filename3;
+    filename3 << "vorticity_dis_thermal_eta_" << eta_min
+              << "_" << eta_max << "_tau_" << tau << ".dat";
+    std::fstream of3;
+    of3.open(filename3.str().c_str(), std::fstream::out);
+    // write the header
+    of3 << "# x[fm]  y[fm]  T[GeV]  muB[GeV]  "
+        << "omega^{yz}[1/fm]  omega^{zx}[1/fm]  "
+        << "omega^{xy}[1/fm]  omega^{tx}[1/fm]  tau*omega^{ty}[1/fm]  "
+        << "tau*omega^{tz}[1/fm]" << std::endl;
+    ostringstream filename4;
+    filename4 << "vorticity_dis_T_eta_" << eta_min
+              << "_" << eta_max << "_tau_" << tau << ".dat";
+    std::fstream of4;
+    of4.open(filename4.str().c_str(), std::fstream::out);
+    // write the header
+    of4 << "# x[fm]  y[fm]  T[GeV]  muB[GeV]  "
+        << "omega^{yz}[1/fm]  omega^{zx}[1/fm]  "
         << "omega^{xy}[1/fm]  omega^{tx}[1/fm]  tau*omega^{ty}[1/fm]  "
         << "tau*omega^{tz}[1/fm]" << std::endl;
 
@@ -1266,44 +1297,134 @@ void Cell_info::output_vorticity_distribution(
             double omega_tx = 0.0;
             double omega_ty = 0.0;
             double omega_tz = 0.0;
+            double omega_nospatialprojector_xy = 0.0;
+            double omega_nospatialprojector_zx = 0.0;
+            double omega_nospatialprojector_yz = 0.0;
+            double omega_nospatialprojector_tx = 0.0;
+            double omega_nospatialprojector_ty = 0.0;
+            double omega_nospatialprojector_tz = 0.0;
+            double omega_th_xy = 0.0;
+            double omega_th_zx = 0.0;
+            double omega_th_yz = 0.0;
+            double omega_th_tx = 0.0;
+            double omega_th_ty = 0.0;
+            double omega_th_tz = 0.0;
+            double omega_T_xy = 0.0;
+            double omega_T_zx = 0.0;
+            double omega_T_yz = 0.0;
+            double omega_T_tx = 0.0;
+            double omega_T_ty = 0.0;
+            double omega_T_tz = 0.0;
+            double T_avg = 0.0;
+            double muB_avg = 0.0;
             double weight   = 0.0;
             for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
                 double eta_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
                 if (DATA.boost_invariant)
                     eta_local = 0.0;
                 if (eta_local < eta_max && eta_local > eta_min) {
+                    const double e_local = arena_curr(ix, iy, ieta).epsilon;
+                    if (e_local < 0.1) continue;
                     const double cosh_eta = cosh(eta_local);
                     const double sinh_eta = sinh(eta_local);
-                    const double e_local = arena_curr(ix, iy, ieta).epsilon;
+                    const double rhob_local = arena_curr(ix, iy, ieta).rhob;
+                    const double T_local = (
+                            eos.get_temperature(e_local, rhob_local)*hbarc);
+                    const double muB_local = (
+                            eos.get_muB(e_local, rhob_local)*hbarc);
                     u_derivative_helper.MakedU(
                             tau, arena_prev, arena_curr, ix, iy, ieta);
                     DumuVec a_local;
                     u_derivative_helper.calculate_Du_supmu(
                         tau, arena_curr, ieta, ix, iy, a_local);
-                    VorticityVec omega_local;
+                    VorticityVec omega_local_1;
                     u_derivative_helper.calculate_kinetic_vorticity(
-                        tau, arena_curr, ieta, ix, iy, a_local, omega_local);
-                    omega_tx += e_local*(  omega_local[0]*cosh_eta
-                                         - omega_local[4]*sinh_eta);
-                    omega_ty += e_local*(  omega_local[1]*cosh_eta
-                                         - omega_local[5]*sinh_eta);
-                    omega_tz += e_local*omega_local[2];
-                    omega_xy += e_local*omega_local[3];
-                    omega_zx += e_local*(- omega_local[4]*cosh_eta
-                                         + omega_local[0]*sinh_eta);
-                    omega_yz += e_local*(- omega_local[1]*sinh_eta
-                                         + omega_local[5]*cosh_eta);
+                        tau, arena_curr, ieta, ix, iy, a_local, omega_local_1);
+                    VorticityVec omega_local_2;
+                    u_derivative_helper.calculate_kinetic_vorticity_no_spatial_projection(
+                        tau, arena_curr, ieta, ix, iy, omega_local_2);
+                    VorticityVec omega_local_3;
+                    u_derivative_helper.calculate_thermal_vorticity(
+                        tau, arena_curr, ieta, ix, iy, omega_local_3);
+                    VorticityVec omega_local_4;
+                    u_derivative_helper.calculate_T_vorticity(
+                        tau, arena_curr, ieta, ix, iy, omega_local_4);
+                    T_avg += e_local*T_local;
+                    muB_avg += e_local*muB_local;
+                    omega_tx += e_local*(  omega_local_1[0]*cosh_eta
+                                         - omega_local_1[4]*sinh_eta);
+                    omega_ty += e_local*(  omega_local_1[1]*cosh_eta
+                                         - omega_local_1[5]*sinh_eta);
+                    omega_tz += e_local*omega_local_1[2];
+                    omega_xy += e_local*omega_local_1[3];
+                    omega_zx += e_local*(- omega_local_1[4]*cosh_eta
+                                         + omega_local_1[0]*sinh_eta);
+                    omega_yz += e_local*(- omega_local_1[1]*sinh_eta
+                                         + omega_local_1[5]*cosh_eta);
+                    omega_nospatialprojector_tx += e_local*(omega_local_2[0]*cosh_eta
+                                         - omega_local_2[4]*sinh_eta);
+                    omega_nospatialprojector_ty += e_local*(omega_local_2[1]*cosh_eta
+                                         - omega_local_2[5]*sinh_eta);
+                    omega_nospatialprojector_tz += e_local*omega_local_2[2];
+                    omega_nospatialprojector_xy += e_local*omega_local_2[3];
+                    omega_nospatialprojector_zx += e_local*(- omega_local_2[4]*cosh_eta
+                                         + omega_local_2[0]*sinh_eta);
+                    omega_nospatialprojector_yz += e_local*(- omega_local_2[1]*sinh_eta
+                                         + omega_local_2[5]*cosh_eta);
+                    omega_th_tx += e_local*(  omega_local_3[0]*cosh_eta
+                                         - omega_local_3[4]*sinh_eta);
+                    omega_th_ty += e_local*(  omega_local_3[1]*cosh_eta
+                                         - omega_local_3[5]*sinh_eta);
+                    omega_th_tz += e_local*omega_local_3[2];
+                    omega_th_xy += e_local*omega_local_3[3];
+                    omega_th_zx += e_local*(- omega_local_3[4]*cosh_eta
+                                         + omega_local_3[0]*sinh_eta);
+                    omega_th_yz += e_local*(- omega_local_3[1]*sinh_eta
+                                         + omega_local_3[5]*cosh_eta);
+                    omega_T_tx += e_local*(  omega_local_4[0]*cosh_eta
+                                         - omega_local_4[4]*sinh_eta);
+                    omega_T_ty += e_local*(  omega_local_4[1]*cosh_eta
+                                         - omega_local_4[5]*sinh_eta);
+                    omega_T_tz += e_local*omega_local_4[2];
+                    omega_T_xy += e_local*omega_local_4[3];
+                    omega_T_zx += e_local*(- omega_local_4[4]*cosh_eta
+                                         + omega_local_4[0]*sinh_eta);
+                    omega_T_yz += e_local*(- omega_local_4[1]*sinh_eta
+                                         + omega_local_4[5]*cosh_eta);
                     weight   += e_local;
                 }
             }
+            weight += small_eps;
             of1 << scientific << setprecision(8) << setw(18)
                 << x_local << "  " << y_local << "  "
+                << T_avg/weight << "  " << muB_avg/weight << "  "
                 << omega_yz/weight << "  " << omega_zx/weight << "  "
                 << omega_xy/weight << "  " << omega_tx/weight << "  "
                 << omega_ty/weight << "  " << omega_tz/weight << std::endl;
+            of2 << scientific << setprecision(8) << setw(18)
+                << x_local << "  " << y_local << "  "
+                << T_avg/weight << "  " << muB_avg/weight << "  "
+                << omega_nospatialprojector_yz/weight << "  " << omega_nospatialprojector_zx/weight << "  "
+                << omega_nospatialprojector_xy/weight << "  " << omega_nospatialprojector_tx/weight << "  "
+                << omega_nospatialprojector_ty/weight << "  " << omega_nospatialprojector_tz/weight << std::endl;
+            of3 << scientific << setprecision(8) << setw(18)
+                << x_local << "  " << y_local << "  "
+                << T_avg/weight << "  " << muB_avg/weight << "  "
+                << omega_th_yz/weight << "  " << omega_th_zx/weight << "  "
+                << omega_th_xy/weight << "  " << omega_th_tx/weight << "  "
+                << omega_th_ty/weight << "  " << omega_th_tz/weight << std::endl;
+            of4 << scientific << setprecision(8) << setw(18)
+                << x_local << "  " << y_local << "  "
+                << T_avg/weight << "  " << muB_avg/weight << "  "
+                << omega_T_yz/weight << "  " << omega_T_zx/weight << "  "
+                << omega_T_xy/weight << "  " << omega_T_tx/weight << "  "
+                << omega_T_ty/weight << "  " << omega_T_tz/weight << std::endl;
         }
     }
     of1.close();
+    of2.close();
+    of3.close();
+    of4.close();
 }
 
 void Cell_info::output_vorticity_time_evolution(
@@ -1323,6 +1444,45 @@ void Cell_info::output_vorticity_time_evolution(
         of1.open(filename1.str().c_str(),
                  std::fstream::out | std::fstream::app);
     }
+    ostringstream filename2;
+    filename2 << "vorticity_evo_nospatialprojector_eta_" << eta_min
+              << "_" << eta_max << ".dat";
+    std::fstream of2;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of2.open(filename2.str().c_str(), std::fstream::out);
+        of2 << "# tau[fm]  omega^{yz}[1/fm]  omega^{zx}[1/fm]  "
+            << "omega^{xy}[1/fm]  omega^{tx}[1/fm]  tau*omega^{ty}[1/fm]  "
+            << "tau*omega^{tz}[1/fm]" << std::endl;
+    } else {
+        of2.open(filename2.str().c_str(),
+                 std::fstream::out | std::fstream::app);
+    }
+    ostringstream filename3;
+    filename3 << "vorticity_evo_thermal_eta_" << eta_min
+              << "_" << eta_max << ".dat";
+    std::fstream of3;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of3.open(filename3.str().c_str(), std::fstream::out);
+        of3 << "# tau[fm]  omega^{yz}[1/fm]  omega^{zx}[1/fm]  "
+            << "omega^{xy}[1/fm]  omega^{tx}[1/fm]  tau*omega^{ty}[1/fm]  "
+            << "tau*omega^{tz}[1/fm]" << std::endl;
+    } else {
+        of3.open(filename3.str().c_str(),
+                 std::fstream::out | std::fstream::app);
+    }
+    ostringstream filename4;
+    filename4 << "vorticity_evo_T_eta_" << eta_min
+              << "_" << eta_max << ".dat";
+    std::fstream of4;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of4.open(filename4.str().c_str(), std::fstream::out);
+        of4 << "# tau[fm]  omega^{yz}[1/fm]  omega^{zx}[1/fm]  "
+            << "omega^{xy}[1/fm]  omega^{tx}[1/fm]  tau*omega^{ty}[1/fm]  "
+            << "tau*omega^{tz}[1/fm]" << std::endl;
+    } else {
+        of4.open(filename4.str().c_str(),
+                 std::fstream::out | std::fstream::app);
+    }
 
     double omega_xy = 0.0;
     double omega_zx = 0.0;
@@ -1330,6 +1490,24 @@ void Cell_info::output_vorticity_time_evolution(
     double omega_tx = 0.0;
     double omega_ty = 0.0;
     double omega_tz = 0.0;
+    double omega_nospatialprojector_xy = 0.0;
+    double omega_nospatialprojector_zx = 0.0;
+    double omega_nospatialprojector_yz = 0.0;
+    double omega_nospatialprojector_tx = 0.0;
+    double omega_nospatialprojector_ty = 0.0;
+    double omega_nospatialprojector_tz = 0.0;
+    double omega_th_xy = 0.0;
+    double omega_th_zx = 0.0;
+    double omega_th_yz = 0.0;
+    double omega_th_tx = 0.0;
+    double omega_th_ty = 0.0;
+    double omega_th_tz = 0.0;
+    double omega_T_xy = 0.0;
+    double omega_T_zx = 0.0;
+    double omega_T_yz = 0.0;
+    double omega_T_tx = 0.0;
+    double omega_T_ty = 0.0;
+    double omega_T_tz = 0.0;
     double weight   = 0.0;
     for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
         double eta = 0.0;
@@ -1343,33 +1521,98 @@ void Cell_info::output_vorticity_time_evolution(
             for (int iy = 0; iy < arena_curr.nY(); iy++)
             for (int ix = 0; ix < arena_curr.nX(); ix++) {
                 const double e_local = arena_curr(ix, iy, ieta).epsilon;
+                if (e_local < 0.1) continue;
                 u_derivative_helper.MakedU(
                         tau, arena_prev, arena_curr, ix, iy, ieta);
                 DumuVec a_local;
                 u_derivative_helper.calculate_Du_supmu(tau, arena_curr,
                                                        ieta, ix, iy, a_local);
-                VorticityVec omega_local;
+                VorticityVec omega_local_1;
                 u_derivative_helper.calculate_kinetic_vorticity(
-                        tau, arena_curr, ieta, ix, iy, a_local, omega_local);
-                omega_tx += e_local*(  omega_local[0]*cosh_eta
-                                     - omega_local[4]*sinh_eta);
-                omega_ty += e_local*(  omega_local[1]*cosh_eta
-                                     - omega_local[5]*sinh_eta);
-                omega_tz += e_local*omega_local[2];
-                omega_xy += e_local*omega_local[3];
-                omega_zx += e_local*(- omega_local[4]*cosh_eta
-                                     + omega_local[0]*sinh_eta);
-                omega_yz += e_local*(- omega_local[1]*sinh_eta
-                                     + omega_local[5]*cosh_eta);
+                        tau, arena_curr, ieta, ix, iy, a_local, omega_local_1);
+                VorticityVec omega_local_2;
+                u_derivative_helper.calculate_kinetic_vorticity_no_spatial_projection(
+                        tau, arena_curr, ieta, ix, iy, omega_local_2);
+                VorticityVec omega_local_3;
+                u_derivative_helper.calculate_thermal_vorticity(
+                        tau, arena_curr, ieta, ix, iy, omega_local_3);
+                VorticityVec omega_local_4;
+                u_derivative_helper.calculate_T_vorticity(
+                        tau, arena_curr, ieta, ix, iy, omega_local_4);
+                omega_tx += e_local*(  omega_local_1[0]*cosh_eta
+                                     - omega_local_1[4]*sinh_eta);
+                omega_ty += e_local*(  omega_local_1[1]*cosh_eta
+                                     - omega_local_1[5]*sinh_eta);
+                omega_tz += e_local*omega_local_1[2];
+                omega_xy += e_local*omega_local_1[3];
+                omega_zx += e_local*(- omega_local_1[4]*cosh_eta
+                                     + omega_local_1[0]*sinh_eta);
+                omega_yz += e_local*(- omega_local_1[1]*sinh_eta
+                                     + omega_local_1[5]*cosh_eta);
+                omega_nospatialprojector_tx += (
+                        e_local*(  omega_local_2[0]*cosh_eta
+                                 - omega_local_2[4]*sinh_eta));
+                omega_nospatialprojector_ty += (
+                        e_local*(  omega_local_2[1]*cosh_eta
+                                 - omega_local_2[5]*sinh_eta));
+                omega_nospatialprojector_tz += e_local*omega_local_2[2];
+                omega_nospatialprojector_xy += e_local*omega_local_2[3];
+                omega_nospatialprojector_zx += (
+                        e_local*(- omega_local_2[4]*cosh_eta
+                                 + omega_local_2[0]*sinh_eta));
+                omega_nospatialprojector_yz += (
+                        e_local*(- omega_local_2[1]*sinh_eta
+                                 + omega_local_2[5]*cosh_eta));
+                omega_th_tx += e_local*(  omega_local_3[0]*cosh_eta
+                                        - omega_local_3[4]*sinh_eta);
+                omega_th_ty += e_local*(  omega_local_3[1]*cosh_eta
+                                        - omega_local_3[5]*sinh_eta);
+                omega_th_tz += e_local*omega_local_3[2];
+                omega_th_xy += e_local*omega_local_3[3];
+                omega_th_zx += e_local*(- omega_local_3[4]*cosh_eta
+                                        + omega_local_3[0]*sinh_eta);
+                omega_th_yz += e_local*(- omega_local_3[1]*sinh_eta
+                                        + omega_local_3[5]*cosh_eta);
+                omega_T_tx += e_local*(  omega_local_4[0]*cosh_eta
+                                       - omega_local_4[4]*sinh_eta);
+                omega_T_ty += e_local*(  omega_local_4[1]*cosh_eta
+                                       - omega_local_4[5]*sinh_eta);
+                omega_T_tz += e_local*omega_local_4[2];
+                omega_T_xy += e_local*omega_local_4[3];
+                omega_T_zx += e_local*(- omega_local_4[4]*cosh_eta
+                                       + omega_local_4[0]*sinh_eta);
+                omega_T_yz += e_local*(- omega_local_4[1]*sinh_eta
+                                       + omega_local_4[5]*cosh_eta);
                 weight   += e_local;
             }
         }
     }
+    weight += small_eps;
     of1 << scientific << setw(18) << setprecision(8)
         << tau << "  " << omega_yz/weight << "  " << omega_zx/weight << "  "
         << omega_xy/weight << "  " << omega_tx/weight << "  "
         << omega_ty/weight << "  " << omega_tz/weight << std::endl;
     of1.close();
+    of2 << scientific << setw(18) << setprecision(8)
+        << tau << "  " << omega_nospatialprojector_yz/weight << "  "
+        << omega_nospatialprojector_zx/weight << "  "
+        << omega_nospatialprojector_xy/weight << "  "
+        << omega_nospatialprojector_tx/weight << "  "
+        << omega_nospatialprojector_ty/weight << "  "
+        << omega_nospatialprojector_tz/weight << std::endl;
+    of2.close();
+    of3 << scientific << setw(18) << setprecision(8)
+        << tau << "  " << omega_th_yz/weight << "  "
+        << omega_th_zx/weight << "  "
+        << omega_th_xy/weight << "  " << omega_th_tx/weight << "  "
+        << omega_th_ty/weight << "  " << omega_th_tz/weight << std::endl;
+    of3.close();
+    of4 << scientific << setw(18) << setprecision(8)
+        << tau << "  " << omega_T_yz/weight << "  "
+        << omega_T_zx/weight << "  "
+        << omega_T_xy/weight << "  " << omega_T_tx/weight << "  "
+        << omega_T_ty/weight << "  " << omega_T_tz/weight << std::endl;
+    of4.close();
 }
 
 
