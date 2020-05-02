@@ -356,6 +356,17 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
         }
     }
 
+    Cell_small ****fluid_cube = new Cell_small*** [2];
+    for (int i = 0; i < 2; i++) {
+        fluid_cube[i] = new Cell_small** [2];
+        for (int j = 0; j < 2; j++) {
+            fluid_cube[i][j] = new Cell_small* [2];
+            for (int k = 0; k < 2; k++) {
+                fluid_cube[i][j][k] = new Cell_small[2];
+            }
+        }
+    }
+
     double x_fraction[2][4];
     double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
     for (int ix = 0; ix < nx - fac_x; ix += fac_x) {
@@ -395,6 +406,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
             // if intersect, prepare for the hyper-cube
             intersections++;
+
             cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).epsilon;
             cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).epsilon;
             cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).epsilon;
@@ -464,6 +476,23 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
                 // perform 4-d linear interpolation for all fluid
                 // quantities
+                fluid_cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        );
+                fluid_cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        );
+                fluid_cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        );
+                fluid_cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        );
+                fluid_cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        );
+                fluid_cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        );
+                fluid_cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        );
+                fluid_cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        );
+                fluid_cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta);
+                fluid_cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta);
+                fluid_cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta);
+                fluid_cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta);
+                fluid_cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta);
+                fluid_cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta);
+                fluid_cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta);
+                fluid_cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta);
+                auto fluid_center = four_dimension_linear_interpolation(lattice_spacing, x_fraction, fluid_cube);
 
                 // flow velocity u^x
                 cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).u[1];
@@ -486,6 +515,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     Util::four_dimension_linear_interpolation(
                                 lattice_spacing, x_fraction, cube);
 
+                std::cout << "check : ux = " << fluid_center.u[1] << "   " << ux_center << std::endl;
+
                 // flow velocity u^y
                 cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).u[2];
                 cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).u[2];
@@ -507,6 +538,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     Util::four_dimension_linear_interpolation(
                                 lattice_spacing, x_fraction, cube);
 
+                std::cout << "check : uy = " << fluid_center.u[2] << "   " << uy_center << std::endl;
+
                 // flow velocity u^eta
                 cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).u[3];
                 cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).u[3];
@@ -527,11 +560,14 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 const double ueta_center = 
                     Util::four_dimension_linear_interpolation(
                                 lattice_spacing, x_fraction, cube);
+                
+                std::cout << "check : ueta = " << fluid_center.u[3] << "   " << ueta_center << std::endl;
 
                 // reconstruct u^tau from u^i
                 const double utau_center = sqrt(1. + ux_center*ux_center 
                                    + uy_center*uy_center 
                                    + ueta_center*ueta_center);
+                std::cout << "check : utau = " << fluid_center.u[0] << "   " << utau_center << std::endl;
 
                 // baryon density rho_b
                 cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).rhob;
@@ -553,6 +589,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 const double rhob_center = 
                     Util::four_dimension_linear_interpolation(
                                 lattice_spacing, x_fraction, cube);
+                std::cout << "check : rhob = " << fluid_center.rhob << "   " << rhob_center << std::endl;
 
                 // baryon diffusion current q^tau
                 cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[10];
@@ -1888,4 +1925,27 @@ void Evolve::initialize_freezeout_surface_info() {
         music_message.flush("error");
         exit(1);
     }
+}
+
+
+Cell_small Evolve::four_dimension_linear_interpolation(
+        double* lattice_spacing, double fraction[2][4], Cell_small**** cube) {
+    double denorm = 1.0;
+    Cell_small results;
+    for (int i = 0; i < 4; i++) {
+        denorm *= lattice_spacing[i];
+    }
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (int l = 0; l < 2; l++) {
+                    results = results + (
+                        cube[i][j][k][l]*fraction[i][0]*fraction[j][1]
+                        *fraction[k][2]*fraction[l][3]);
+                }
+            }
+        }
+    }
+    results = results*(1./denorm);
+    return (results);
 }

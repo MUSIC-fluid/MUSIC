@@ -71,6 +71,9 @@ class Evolve {
                         double Wmunu_regulated[4][4]) const;
 
     void initialize_freezeout_surface_info();
+
+    Cell_small four_dimension_linear_interpolation(
+        double* lattice_spacing, double fraction[2][4], Cell_small**** cube);
 };
 
 #endif  // SRC_EVOLVE_H_

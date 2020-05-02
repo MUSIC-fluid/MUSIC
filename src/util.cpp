@@ -138,7 +138,7 @@ double lin_int(double x1,double x2,double f1,double f2,double x)
   else
     aa =(f2-f1)/(x2-x1);
   bb = f1 - aa * x1;
-  
+
   return aa*x + bb;
 }
 
@@ -162,6 +162,7 @@ double four_dimension_linear_interpolation(
     results = results/denorm;
     return (results);
 }
+
 
 double three_dimension_linear_interpolation(
             double* lattice_spacing, double fraction[2][3], double*** cube) {
