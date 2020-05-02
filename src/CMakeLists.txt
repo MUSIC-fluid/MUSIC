@@ -1,7 +1,6 @@
 set (SOURCES
     u_derivative.cpp
     dissipative.cpp
-    cell.cpp
     init.cpp
     reconst.cpp
     minmod.cpp
@@ -57,6 +56,10 @@ if (unittest)
     add_executable (unittest_grid.e grid_unittest.cpp)
     target_link_libraries (unittest_grid.e ${libname})
     install(TARGETS unittest_grid.e DESTINATION ${CMAKE_HOME_DIRECTORY})
+
+    add_executable (unittest_cell.e cell_unittest.cpp)
+    target_link_libraries (unittest_cell.e ${libname})
+    install(TARGETS unittest_cell.e DESTINATION ${CMAKE_HOME_DIRECTORY})
 
     add_executable (unittest_minmod.e minmod_unittest.cpp)
     target_link_libraries (unittest_minmod.e ${libname})
