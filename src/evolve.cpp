@@ -44,6 +44,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
     int freezeout_flag          = DATA.doFreezeOut;
     int freezeout_lowtemp_flag  = DATA.doFreezeOut_lowtemp;
+    flag_vorticity = 1;
 
     // Output information about the hydro parameters 
     // in the format of a C header file
@@ -71,6 +72,9 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     GridPointer ap_current(&arena_current, closer);
     GridPointer ap_future (&arena_future, closer);
 
+    SCGrid arena_freezeout_prev(arena_current.nX(),
+                                arena_current.nY(),
+                                arena_current.nEta());
     SCGrid arena_freezeout(arena_current.nX(),
                            arena_current.nY(),
                            arena_current.nEta());
@@ -87,6 +91,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
         // store initial conditions
         if (it == it_start) {
+            store_previous_step_for_freezeout(*ap_prev, arena_freezeout_prev);
             store_previous_step_for_freezeout(*ap_current, arena_freezeout);
         }
 
@@ -211,11 +216,14 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             if ((it - it_start)%facTau == 0 && it > it_start) {
                 if (!DATA.boost_invariant) {
                     frozen = FindFreezeOutSurface_Cornelius(
-                                tau, *ap_current, arena_freezeout);
+                                tau, *ap_prev, *ap_current,
+                                arena_freezeout_prev, arena_freezeout);
                 } else {
                     frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
                                 tau, *ap_current, arena_freezeout);
                 }
+                store_previous_step_for_freezeout(*ap_prev,
+                                                  arena_freezeout_prev);
                 store_previous_step_for_freezeout(*ap_current,
                                                   arena_freezeout);
             }
@@ -277,8 +285,8 @@ void Evolve::AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_c
 
 // Cornelius freeze out  (C. Shen, 11/2014)
 int Evolve::FindFreezeOutSurface_Cornelius(double tau,
-                                           SCGrid &arena_current,
-                                           SCGrid &arena_freezeout) {
+        SCGrid &arena_prev, SCGrid &arena_current,
+        SCGrid &arena_freezeout_prev, SCGrid &arena_freezeout) {
     const int neta = arena_current.nEta();
     const int fac_eta = 1;
     int intersections = 0;
@@ -289,7 +297,8 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau,
         for (int ieta = 0; ieta < (neta-fac_eta); ieta += fac_eta) {
             int thread_id = omp_get_thread_num();
             intersections += FindFreezeOutSurface_Cornelius_XY(
-                tau, ieta, arena_current, arena_freezeout, thread_id, epsFO);
+                tau, ieta, arena_prev, arena_current,
+                arena_freezeout_prev, arena_freezeout, thread_id, epsFO);
         }
     }
 
@@ -297,7 +306,9 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau,
 }
 
 int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
+                                              SCGrid &arena_prev,
                                               SCGrid &arena_current,
+                                              SCGrid &arena_freezeout_prev,
                                               SCGrid &arena_freezeout,
                                               int thread_id, double epsFO) {
     const bool surface_in_binary = DATA.freeze_surface_in_binary;
@@ -319,7 +330,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     // Only append at the end of the file if it's not the first timestep
     // (that is, overwrite file at first timestep)
     if (tau != DATA.tau0+DATA.delta_tau) {
-            modes = modes | std::ios::app;
+        modes = modes | std::ios::app;
     }
 
     s_file.open(strs_name.str().c_str(), modes);
@@ -344,15 +355,19 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
     // initialize the hyper-cube for Cornelius
     Cell_small ****fluid_cube = new Cell_small*** [2];
+    Cell_aux ****fluid_aux_cube = new Cell_aux*** [2];
     double ****cube = new double*** [2];
     for (int i = 0; i < 2; i++) {
         fluid_cube[i] = new Cell_small** [2];
+        fluid_aux_cube[i] = new Cell_aux** [2];
         cube[i] = new double** [2];
         for (int j = 0; j < 2; j++) {
             fluid_cube[i][j] = new Cell_small* [2];
+            fluid_aux_cube[i][j] = new Cell_aux* [2];
             cube[i][j] = new double* [2];
             for (int k = 0; k < 2; k++) {
                 fluid_cube[i][j][k] = new Cell_small[2];
+                fluid_aux_cube[i][j][k] = new Cell_aux[2];
                 cube[i][j][k] = new double[2];
                 for (int l = 0; l < 2; l++)
                     cube[i][j][k][l] = 0.0;
@@ -467,26 +482,42 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 const double y_center = y + x_fraction[1][2];
                 const double eta_center = eta + x_fraction[1][3];
 
-                // perform 4-d linear interpolation for all fluid
-                // quantities
-                fluid_cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        );
-                fluid_cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        );
-                fluid_cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        );
-                fluid_cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        );
-                fluid_cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        );
-                fluid_cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        );
-                fluid_cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        );
-                fluid_cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        );
-                fluid_cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta);
-                fluid_cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta);
-                fluid_cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta);
-                fluid_cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta);
-                fluid_cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta);
-                fluid_cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta);
-                fluid_cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta);
-                fluid_cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta);
+                // compute the vorticity tensors
+
+                // perform 4-d linear interpolation for all fluid quantities
+                for (int ii = 0; ii < 2; ii++)
+                for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++) {
+                    fluid_cube[0][ii][jj][kk] = arena_freezeout(
+                            ix + ii*fac_x, iy + jj*fac_y, ieta + kk*fac_eta);
+                    fluid_cube[1][ii][jj][kk] = arena_current(
+                            ix + ii*fac_x, iy + jj*fac_y, ieta + kk*fac_eta);
+
+                    if (flag_vorticity == 0) continue;
+                    Cell_aux aux_tmp;
+                    double eta_local = eta + kk*DETA;
+                    u_derivative.compute_vorticity_shell(
+                        tau, arena_prev, arena_current,
+                        ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
+                        eta_local,
+                        aux_tmp.omega_k, aux_tmp.omega_knoSP,
+                        aux_tmp.omega_th, aux_tmp.omega_T);
+                    fluid_aux_cube[1][ii][jj][kk] = aux_tmp;
+                    u_derivative.compute_vorticity_shell(
+                        tau - DTAU, arena_freezeout_prev, arena_freezeout,
+                        ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
+                        eta_local,
+                        aux_tmp.omega_k, aux_tmp.omega_knoSP,
+                        aux_tmp.omega_th, aux_tmp.omega_T);
+                    fluid_aux_cube[0][ii][jj][kk] = aux_tmp;
+                }
                 auto fluid_center = four_dimension_linear_interpolation(
                         lattice_spacing, x_fraction, fluid_cube);
+                Cell_aux fluid_aux_center;
+                if (flag_vorticity == 1) {
+                    fluid_aux_center = four_dimension_linear_interpolation(
+                            lattice_spacing, x_fraction, fluid_aux_cube);
+                }
 
                 // reconstruct q^\tau from the transverality criteria
                 FlowVec u_flow = fluid_center.u;
@@ -542,7 +573,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
                 // finally output results !!!!
                 if (surface_in_binary) {
-                    float array[34];
+                    const int FOsize = 34 + flag_vorticity*24;
+                    float array[FOsize];
                     array[0] = static_cast<float>(tau_center);
                     array[1] = static_cast<float>(x_center);
                     array[2] = static_cast<float>(y_center);
@@ -563,7 +595,15 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     array[29] = fluid_center.rhob;
                     for (int ii = 0; ii < 4; ii++)
                         array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
-                    for (int i = 0; i < 34; i++)
+                    if (flag_vorticity == 1) {
+                        for (int ii = 0; ii < 6; ii++) {
+                            array[34+ii] = fluid_aux_center.omega_k[ii];
+                            array[40+ii] = fluid_aux_center.omega_knoSP[ii];
+                            array[46+ii] = fluid_aux_center.omega_th[ii];
+                            array[52+ii] = fluid_aux_center.omega_T[ii];
+                        }
+                    }
+                    for (int i = 0; i < FOsize; i++)
                         s_file.write((char*) &(array[i]), sizeof(float));
                 } else {
                     s_file << std::scientific << std::setprecision(10)
@@ -600,17 +640,22 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
             for (int k = 0; k < 2; k++) {
                 delete [] cube[i][j][k];
                 delete [] fluid_cube[i][j][k];
+                delete [] fluid_aux_cube[i][j][k];
             }
             delete [] cube[i][j];
             delete [] fluid_cube[i][j];
+            delete [] fluid_aux_cube[i][j];
         }
         delete [] cube[i];
         delete [] fluid_cube[i];
+        delete [] fluid_aux_cube[i];
     }
     delete [] cube;
     delete [] fluid_cube;
+    delete [] fluid_aux_cube;
     return(intersections);
 }
+
 
 // Cornelius freeze out (C. Shen, 11/2014)
 int Evolve::FreezeOut_equal_tau_Surface(double tau,
@@ -766,6 +811,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
             Wyeta_center   = Wmunu_regulated[2][3];
             Wetaeta_center = Wmunu_regulated[3][3];
 
+            Cell_aux fluid_aux_center;
+
             // get other thermodynamical quantities
             double e_local   = arena_current(ix, iy, ieta).epsilon;
             double T_local   = eos.get_temperature(e_local, rhob_center);
@@ -785,41 +832,51 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
 
             // finally output results
             if (surface_in_binary) {
-                float array[] = {static_cast<float>(tau_center),
-                                 static_cast<float>(x_center),
-                                 static_cast<float>(y_center),
-                                 static_cast<float>(eta_center),
-                                 static_cast<float>(FULLSU[0]),
-                                 static_cast<float>(FULLSU[1]),
-                                 static_cast<float>(FULLSU[2]),
-                                 static_cast<float>(FULLSU[3]),
-                                 static_cast<float>(utau_center),
-                                 static_cast<float>(ux_center),
-                                 static_cast<float>(uy_center),
-                                 static_cast<float>(ueta_center),
-                                 static_cast<float>(e_local),
-                                 static_cast<float>(T_local),
-                                 static_cast<float>(muB_local),
-                                 static_cast<float>(muS_local),
-                                 static_cast<float>(muC_local),
-                                 static_cast<float>(eps_plus_p_over_T),
-                                 static_cast<float>(Wtautau_center),
-                                 static_cast<float>(Wtaux_center),
-                                 static_cast<float>(Wtauy_center),
-                                 static_cast<float>(Wtaueta_center),
-                                 static_cast<float>(Wxx_center),
-                                 static_cast<float>(Wxy_center),
-                                 static_cast<float>(Wxeta_center),
-                                 static_cast<float>(Wyy_center),
-                                 static_cast<float>(Wyeta_center),
-                                 static_cast<float>(Wetaeta_center),
-                                 static_cast<float>(pi_b_center),
-                                 static_cast<float>(rhob_center),
-                                 static_cast<float>(qtau_center),
-                                 static_cast<float>(qx_center),
-                                 static_cast<float>(qy_center),
-                                 static_cast<float>(qeta_center)};
-                for (int i = 0; i < 34; i++) {
+                const int FOsize = 34 + flag_vorticity*24;
+                float array[FOsize];
+                array[0] = static_cast<float>(tau_center);
+                array[1] = static_cast<float>(x_center);
+                array[2] = static_cast<float>(y_center);
+                array[3] = static_cast<float>(eta_center);
+                array[4] = static_cast<float>(FULLSU[0]);
+                array[5] = static_cast<float>(FULLSU[1]);
+                array[6] = static_cast<float>(FULLSU[2]);
+                array[7] = static_cast<float>(FULLSU[3]);
+                array[8] = static_cast<float>(utau_center);
+                array[9] = static_cast<float>(ux_center);
+                array[10] = static_cast<float>(uy_center);
+                array[11] = static_cast<float>(ueta_center);
+                array[12] = static_cast<float>(e_local);
+                array[13] = static_cast<float>(T_local);
+                array[14] = static_cast<float>(muB_local);
+                array[15] = static_cast<float>(muS_local);
+                array[16] = static_cast<float>(muC_local);
+                array[17] = static_cast<float>(eps_plus_p_over_T);
+                array[18] = static_cast<float>(Wtautau_center);
+                array[19] = static_cast<float>(Wtaux_center);
+                array[20] = static_cast<float>(Wtauy_center);
+                array[21] = static_cast<float>(Wtaueta_center);
+                array[22] = static_cast<float>(Wxx_center);
+                array[23] = static_cast<float>(Wxy_center);
+                array[24] = static_cast<float>(Wxeta_center);
+                array[25] = static_cast<float>(Wyy_center);
+                array[26] = static_cast<float>(Wyeta_center);
+                array[27] = static_cast<float>(Wetaeta_center);
+                array[28] = static_cast<float>(pi_b_center);
+                array[29] = static_cast<float>(rhob_center);
+                array[30] = static_cast<float>(qtau_center);
+                array[31] = static_cast<float>(qx_center);
+                array[32] = static_cast<float>(qy_center);
+                array[33] = static_cast<float>(qeta_center);
+                if (flag_vorticity == 1) {
+                    for (int ii = 0; ii < 6; ii++) {
+                        array[34+ii] = fluid_aux_center.omega_k[ii];
+                        array[40+ii] = fluid_aux_center.omega_knoSP[ii];
+                        array[46+ii] = fluid_aux_center.omega_th[ii];
+                        array[52+ii] = fluid_aux_center.omega_T[ii];
+                    }
+                }
+                for (int i = 0; i < FOsize; i++) {
                     s_file.write((char*) &(array[i]), sizeof(float));
                 }
             } else {
@@ -1279,6 +1336,50 @@ Cell_small Evolve::four_dimension_linear_interpolation(
         double* lattice_spacing, double fraction[2][4], Cell_small**** cube) {
     double denorm = 1.0;
     Cell_small results;
+    for (int i = 0; i < 4; i++) {
+        denorm *= lattice_spacing[i];
+    }
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (int l = 0; l < 2; l++) {
+                    results = results + (
+                        cube[i][j][k][l]*fraction[i][0]*fraction[j][1]
+                        *fraction[k][2]*fraction[l][3]);
+                }
+            }
+        }
+    }
+    results = results*(1./denorm);
+    return (results);
+}
+
+
+Cell_aux Evolve::three_dimension_linear_interpolation(
+        double* lattice_spacing, double fraction[2][3], Cell_aux*** cube) {
+    double denorm = 1.0;
+    for (int i = 0; i < 3; i++) {
+        denorm *= lattice_spacing[i];
+    }
+
+    Cell_aux results;
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 2; k++) {
+                results = results + (cube[i][j][k]*fraction[i][0]
+                                     *fraction[j][1]*fraction[k][2]);
+            }
+        }
+    }
+    results = results*(1./denorm);
+    return(results);
+}
+
+
+Cell_aux Evolve::four_dimension_linear_interpolation(
+        double* lattice_spacing, double fraction[2][4], Cell_aux**** cube) {
+    double denorm = 1.0;
+    Cell_aux results;
     for (int i = 0; i < 4; i++) {
         denorm *= lattice_spacing[i];
     }

@@ -32,6 +32,7 @@ class Evolve {
     int rk_order;
 
     int facTau;
+    int flag_vorticity;
 
     // information about freeze-out surface
     // (only used when freezeout_method == 4)
@@ -54,10 +55,13 @@ class Evolve {
                                         int ieta, SCGrid &arena_current,
                                         int thread_id, double epsFO);
     int FindFreezeOutSurface_Cornelius(double tau,
-                                       SCGrid &arena_current,
-                                       SCGrid &arena_freezeout);
+        SCGrid &arena_prev, SCGrid &arena_current,
+        SCGrid &arena_freezeout_prev, SCGrid &arena_freezeout);
+
     int FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
+                                          SCGrid &arena_prev,
                                           SCGrid &arena_current,
+                                          SCGrid &arena_freezeout_prev,
                                           SCGrid &arena_freezeout,
                                           int thread_id, double epsFO);
     int FindFreezeOutSurface_boostinvariant_Cornelius(
@@ -76,6 +80,10 @@ class Evolve {
         double* lattice_spacing, double fraction[2][4], Cell_small**** cube);
     Cell_small three_dimension_linear_interpolation(
         double* lattice_spacing, double fraction[2][3], Cell_small*** cube);
+    Cell_aux four_dimension_linear_interpolation(
+        double* lattice_spacing, double fraction[2][4], Cell_aux**** cube);
+    Cell_aux three_dimension_linear_interpolation(
+        double* lattice_spacing, double fraction[2][3], Cell_aux*** cube);
 };
 
 #endif  // SRC_EVOLVE_H_
