@@ -44,7 +44,6 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
     int freezeout_flag          = DATA.doFreezeOut;
     int freezeout_lowtemp_flag  = DATA.doFreezeOut_lowtemp;
-    flag_vorticity = 1;
 
     // Output information about the hydro parameters 
     // in the format of a C header file
@@ -155,28 +154,31 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                             tau, 3.0, 4.0, *ap_current);
             grid_info.output_average_phase_diagram_trajectory(
                                             tau, 4.0, 5.0, *ap_current);
-            if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
-                || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
-                grid_info.output_vorticity_distribution(
-                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
-            }
         }
+
 
         // check energy conservation
         if (!DATA.boost_invariant) {
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
-            grid_info.compute_angular_momentum(
+            if (DATA.output_vorticity) {
+                if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
+                    || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
+                    grid_info.output_vorticity_distribution(
                                     *ap_current, *ap_prev, tau, -0.5, 0.5);
-            grid_info.output_vorticity_time_evolution(
+                }
+                grid_info.compute_angular_momentum(
                                     *ap_current, *ap_prev, tau, -0.5, 0.5);
-            grid_info.compute_angular_momentum(
+                grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+                grid_info.compute_angular_momentum(
                                     *ap_current, *ap_prev, tau, -1.0, 1.0);
-            grid_info.output_vorticity_time_evolution(
+                grid_info.output_vorticity_time_evolution(
                                     *ap_current, *ap_prev, tau, -1.0, 1.0);
-            grid_info.compute_angular_momentum(
-                                    *ap_current, *ap_prev, tau, -10.0, 10.0);
-            grid_info.output_vorticity_time_evolution(
-                                    *ap_current, *ap_prev, tau, -10.0, 10.0);
+                grid_info.compute_angular_momentum(
+                                    *ap_current, *ap_prev, tau, -DATA.eta_size/2., DATA.eta_size/2.);
+                grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau, -DATA.eta_size/2., DATA.eta_size/2.);
+            }
         }
 
         auto emax_loc = grid_info.get_maximum_energy_density(*ap_current);
@@ -482,7 +484,6 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 const double y_center = y + x_fraction[1][2];
                 const double eta_center = eta + x_fraction[1][3];
 
-                // compute the vorticity tensors
 
                 // perform 4-d linear interpolation for all fluid quantities
                 for (int ii = 0; ii < 2; ii++)
@@ -493,7 +494,9 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     fluid_cube[1][ii][jj][kk] = arena_current(
                             ix + ii*fac_x, iy + jj*fac_y, ieta + kk*fac_eta);
 
-                    if (flag_vorticity == 0) continue;
+                    if (DATA.output_vorticity == 0) continue;
+
+                    // compute the vorticity tensors
                     Cell_aux aux_tmp;
                     double eta_local = eta + kk*DETA;
                     u_derivative.compute_vorticity_shell(
@@ -514,7 +517,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 auto fluid_center = four_dimension_linear_interpolation(
                         lattice_spacing, x_fraction, fluid_cube);
                 Cell_aux fluid_aux_center;
-                if (flag_vorticity == 1) {
+                if (DATA.output_vorticity == 1) {
                     fluid_aux_center = four_dimension_linear_interpolation(
                             lattice_spacing, x_fraction, fluid_aux_cube);
                 }
@@ -573,7 +576,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
                 // finally output results !!!!
                 if (surface_in_binary) {
-                    const int FOsize = 34 + flag_vorticity*24;
+                    const int FOsize = 34 + DATA.output_vorticity*24;
                     float array[FOsize];
                     array[0] = static_cast<float>(tau_center);
                     array[1] = static_cast<float>(x_center);
@@ -595,7 +598,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     array[29] = fluid_center.rhob;
                     for (int ii = 0; ii < 4; ii++)
                         array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
-                    if (flag_vorticity == 1) {
+                    if (DATA.output_vorticity == 1) {
                         for (int ii = 0; ii < 6; ii++) {
                             array[34+ii] = fluid_aux_center.omega_k[ii];
                             array[40+ii] = fluid_aux_center.omega_knoSP[ii];
@@ -832,7 +835,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
 
             // finally output results
             if (surface_in_binary) {
-                const int FOsize = 34 + flag_vorticity*24;
+                const int FOsize = 34 + DATA.output_vorticity*24;
                 float array[FOsize];
                 array[0] = static_cast<float>(tau_center);
                 array[1] = static_cast<float>(x_center);
@@ -868,7 +871,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 array[31] = static_cast<float>(qx_center);
                 array[32] = static_cast<float>(qy_center);
                 array[33] = static_cast<float>(qeta_center);
-                if (flag_vorticity == 1) {
+                if (DATA.output_vorticity == 1) {
                     for (int ii = 0; ii < 6; ii++) {
                         array[34+ii] = fluid_aux_center.omega_k[ii];
                         array[40+ii] = fluid_aux_center.omega_knoSP[ii];

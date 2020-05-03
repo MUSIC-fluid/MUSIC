@@ -578,6 +578,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempturn_on_vorticity_terms;
     parameter_list.include_vorticity_terms = tempturn_on_vorticity_terms;
 
+    // Output vorticity evolution
+    int tempoutput_vorticity = 0;
+    tempinput = Util::StringFind4(input_file, "output_vorticity");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempoutput_vorticity;
+    parameter_list.output_vorticity = tempoutput_vorticity;
+
     int tempturn_on_diff = 0;
     tempinput = Util::StringFind4(input_file, "turn_on_baryon_diffusion");
     if (tempinput != "empty")

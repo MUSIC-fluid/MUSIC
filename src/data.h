@@ -12,7 +12,7 @@
 //! This is a data structure contains all the parameters for simulation
 typedef struct init_data {
 
-    std::array<std::array<double, 4>, 4> gmunu = 
+    std::array<std::array<double, 4>, 4> gmunu =
       {{{-1,0,0,0},
         { 0,1,0,0},
         { 0,0,1,0},
@@ -116,6 +116,9 @@ typedef struct init_data {
 
     //! flag to include vorticity coupling terms in shear and diffusion
     int include_vorticity_terms;
+
+    //! flag to output vorticity evolution
+    int output_vorticity;
 
     //! coefficient related to the net baryon diff.
     double kappa_coefficient;

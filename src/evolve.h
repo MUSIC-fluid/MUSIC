@@ -32,7 +32,6 @@ class Evolve {
     int rk_order;
 
     int facTau;
-    int flag_vorticity;
 
     // information about freeze-out surface
     // (only used when freezeout_method == 4)
