@@ -14,6 +14,7 @@ class U_derivative {
  private:
      const InitData &DATA;
      const EOS &eos;
+     const double T_tol = 1e-5;
      Minmod minmod;
      dUsupMat dUsup;
      Mat4x4 dUoverTsup;

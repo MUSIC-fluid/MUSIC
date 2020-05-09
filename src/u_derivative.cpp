@@ -162,31 +162,40 @@ void U_derivative::calculate_thermal_vorticity(
     FlowVec u_local = arena(ix, iy, ieta).u;
     double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
                                           arena(ix, iy, ieta).rhob);
-    double dUsup_local[4][4];
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            dUsup_local[i][j] = dUoverTsup[i][j];
+    if (T_local > T_tol) {
+        double dUsup_local[4][4];
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                dUsup_local[i][j] = dUoverTsup[i][j];
+            }
         }
-    }
 
-    double omega_thermal[4][4];
-    for (int mu = 0; mu < 4; mu++) {
-        for (int nu = mu + 1; nu < 4; nu++) {
-            omega_thermal[mu][nu] = -0.5*(
-                (dUsup_local[nu][mu] - dUsup_local[mu][nu])
-                - u_local[3]/(2.*tau*T_local)*(
-                    - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                    + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
-            );
+        double omega_thermal[4][4];
+        for (int mu = 0; mu < 4; mu++) {
+            for (int nu = mu + 1; nu < 4; nu++) {
+                omega_thermal[mu][nu] = -0.5*(
+                    (dUsup_local[nu][mu] - dUsup_local[mu][nu])
+                    - u_local[3]/(2.*tau*T_local)*(
+                        - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                        + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+                );
+            }
         }
-    }
 
-    omega[0] = omega_thermal[0][1];
-    omega[1] = omega_thermal[0][2];
-    omega[2] = omega_thermal[0][3];
-    omega[3] = omega_thermal[1][2];
-    omega[4] = omega_thermal[1][3];
-    omega[5] = omega_thermal[2][3];
+        omega[0] = omega_thermal[0][1];
+        omega[1] = omega_thermal[0][2];
+        omega[2] = omega_thermal[0][3];
+        omega[3] = omega_thermal[1][2];
+        omega[4] = omega_thermal[1][3];
+        omega[5] = omega_thermal[2][3];
+    } else {
+        omega[0] = 0.;
+        omega[1] = 0.;
+        omega[2] = 0.;
+        omega[3] = 0.;
+        omega[4] = 0.;
+        omega[5] = 0.;
+    }
 }
 
 
@@ -356,8 +365,13 @@ int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
                 const double f   = c.u[m];
                 const double fp1 = p1.u[m];
                 const double fm1 = m1.u[m];
-                dUoverTsup[m][direction] = (
-                    minmod.minmod_dx(fp1/Tp1, f/T, fm1/Tm1)/delta[direction]);
+                if (T > T_tol && Tp1 > T_tol && Tm1 > T_tol) {
+                    dUoverTsup[m][direction] = (
+                        minmod.minmod_dx(fp1/Tp1, f/T, fm1/Tm1)
+                        /delta[direction]);
+                } else {
+                    dUoverTsup[m][direction] = 0.;
+                }
                 dUTsup[m][direction] = (
                     minmod.minmod_dx(fp1*Tp1, f*T, fm1*Tm1)/delta[direction]);
             }
@@ -416,9 +430,14 @@ int U_derivative::MakeDTau(const double tau,
         dUsup[m][0] = -f;  // g^{00} = -1
 
         if (DATA.include_vorticity_terms == 1) {
-            double duoverTdtau = ((grid_pt->u[m]/T - grid_pt_prev->u[m]/T_prev)
-                                  /DATA.delta_tau);
-            dUoverTsup[m][0] = -duoverTdtau;   // g^{00} = -1
+            if (T > T_tol && T_prev > T_tol) {
+                double duoverTdtau = (
+                    (grid_pt->u[m]/T - grid_pt_prev->u[m]/T_prev)
+                    /DATA.delta_tau);
+                dUoverTsup[m][0] = -duoverTdtau;   // g^{00} = -1
+            } else {
+                dUoverTsup[m][0] = 0.;
+            }
             double duTdtau = ((grid_pt->u[m]*T - grid_pt_prev->u[m]*T_prev)
                               /DATA.delta_tau);
             dUTsup[m][0] = -duTdtau;   // g^{00} = -1

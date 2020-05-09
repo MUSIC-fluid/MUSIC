@@ -560,7 +560,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 fluid_center.Wmunu[9] = Wmunu_regulated[3][3];
 
                 // 4-dimension interpolation done
-                const double TFO = eos.get_temperature(epsFO, fluid_center.rhob);
+                const double TFO = eos.get_temperature(epsFO,
+                                                       fluid_center.rhob);
                 if (TFO < 0) {
                     music_message << "TFO=" << TFO
                                   << "<0. ERROR. exiting.";
@@ -600,10 +601,10 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
                     if (DATA.output_vorticity == 1) {
                         for (int ii = 0; ii < 6; ii++) {
-                            array[34+ii] = fluid_aux_center.omega_k[ii];
-                            array[40+ii] = fluid_aux_center.omega_knoSP[ii];
+                            array[34+ii] = - fluid_aux_center.omega_k[ii]/TFO;
+                            array[40+ii] = fluid_aux_center.omega_knoSP[ii]/TFO;
                             array[46+ii] = fluid_aux_center.omega_th[ii];
-                            array[52+ii] = fluid_aux_center.omega_T[ii];
+                            array[52+ii] = fluid_aux_center.omega_T[ii]/TFO/TFO;
                         }
                     }
                     for (int i = 0; i < FOsize; i++)
@@ -873,10 +874,11 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 array[33] = static_cast<float>(qeta_center);
                 if (DATA.output_vorticity == 1) {
                     for (int ii = 0; ii < 6; ii++) {
-                        array[34+ii] = fluid_aux_center.omega_k[ii];
-                        array[40+ii] = fluid_aux_center.omega_knoSP[ii];
+                        array[34+ii] = -fluid_aux_center.omega_k[ii]/T_local;
+                        array[40+ii] = fluid_aux_center.omega_knoSP[ii]/T_local;
                         array[46+ii] = fluid_aux_center.omega_th[ii];
-                        array[52+ii] = fluid_aux_center.omega_T[ii];
+                        array[52+ii] = (fluid_aux_center.omega_T[ii]
+                                        /T_local/T_local);
                     }
                 }
                 for (int i = 0; i < FOsize; i++) {
