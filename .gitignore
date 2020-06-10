@@ -14,3 +14,4 @@ perf.data*
 a.out
 build/
 *.so
+music_input*
