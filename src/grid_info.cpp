@@ -440,7 +440,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
 
     int n_skip_tau     = DATA.output_evolution_every_N_timesteps;
     double output_dtau = DATA.delta_tau*n_skip_tau;
-    int itau           = static_cast<int>((tau - DATA.tau0)/(output_dtau));
+    int itau = static_cast<int>((tau - DATA.tau0)/(output_dtau) + 0.1);
 
     int n_skip_x       = DATA.output_evolution_every_N_x;
     int n_skip_y       = DATA.output_evolution_every_N_y;
@@ -459,20 +459,22 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
 
     const int nVar_per_cell = (10 + DATA.turn_on_rhob*1 + DATA.turn_on_shear*5
                                   + DATA.turn_on_bulk*1 + DATA.turn_on_diff*3);
-    float header[] = {
-        static_cast<float>(DATA.tau0), static_cast<float>(output_dtau),
-        static_cast<float>(output_nx), static_cast<float>(output_dx),
-        static_cast<float>(output_xmin),
-        static_cast<float>(output_ny), static_cast<float>(output_dy),
-        static_cast<float>(output_ymin),
-        static_cast<float>(output_neta), static_cast<float>(output_deta),
-        static_cast<float>(output_etamin),
-        static_cast<float>(DATA.turn_on_rhob),
-        static_cast<float>(DATA.turn_on_shear),
-        static_cast<float>(DATA.turn_on_bulk),
-        static_cast<float>(DATA.turn_on_diff),
-        static_cast<float>(nVar_per_cell)};
-    fwrite(header, sizeof(float), 16, out_file_xyeta);
+    if (tau == DATA.tau0) {
+        float header[] = {
+            static_cast<float>(DATA.tau0), static_cast<float>(output_dtau),
+            static_cast<float>(output_nx), static_cast<float>(output_dx),
+            static_cast<float>(output_xmin),
+            static_cast<float>(output_ny), static_cast<float>(output_dy),
+            static_cast<float>(output_ymin),
+            static_cast<float>(output_neta), static_cast<float>(output_deta),
+            static_cast<float>(output_etamin),
+            static_cast<float>(DATA.turn_on_rhob),
+            static_cast<float>(DATA.turn_on_shear),
+            static_cast<float>(DATA.turn_on_bulk),
+            static_cast<float>(DATA.turn_on_diff),
+            static_cast<float>(nVar_per_cell)};
+        fwrite(header, sizeof(float), 16, out_file_xyeta);
+    }
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
@@ -527,7 +529,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
                     qeta = arena(ix, iy, ieta).Wmunu[13]/kappa_hat;
                 }
 
-                float ideal[] = {static_cast<float>(itau/n_skip_x),
+                float ideal[] = {static_cast<float>(itau),
                                  static_cast<float>(ix/n_skip_x),
                                  static_cast<float>(iy/n_skip_y),
                                  static_cast<float>(ieta/n_skip_eta),
