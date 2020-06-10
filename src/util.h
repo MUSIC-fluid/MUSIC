@@ -35,6 +35,7 @@ namespace Util {
     int IsFile(std::string);
 
     std::string StringFind4(std::string file_name, std::string str_in);
+    std::string convert_to_lowercase(std::string str_in);
 
     double lin_int(double x1,double x2,double f1,double f2,double x);
 
