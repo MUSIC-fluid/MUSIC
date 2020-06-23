@@ -34,6 +34,9 @@ typedef struct init_data {
     // parameters for Initial_profile == 30
     std::string initName_AMPT;  //!< initial state filename from AMPT
 
+    std::string initName_SMASH;  //!< initial state filename from SMASH
+    int event_id_SMASH;          //!< event id in the initial state file from SMASH
+
     //! random seed
     int seed;
     double ecm;                 //!< collision energy [GeV]

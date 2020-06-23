@@ -670,6 +670,14 @@ InitData read_in_parameters(std::string input_file) {
         tempinitName_AMPT.assign(tempinput);
     parameter_list.initName_AMPT.assign(tempinitName_AMPT);
 
+    // Initial_Distribution_SMASH_filename for SMASH
+    string tempinitName_SMASH = "initial/SMASH_IC.oscar";
+    tempinput = Util::StringFind4(input_file,
+                                  "Initial_Distribution_SMASH_filename");
+    if (tempinput != "empty")
+        tempinitName_SMASH.assign(tempinput);
+    parameter_list.initName_SMASH.assign(tempinitName_SMASH);
+
     // compute beam rapidity according to the collision energy
     double temp_ecm = 200;
     tempinput = Util::StringFind4(input_file, "ecm");

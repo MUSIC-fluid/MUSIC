@@ -328,4 +328,67 @@ Mat4x4 UnpackVecToMatrix(const VorticityVec &in_vector) {
     return out_matrix;
 }
 
+int get_baryon_number_from_pdg(int pdgid) {
+    bool sign = pdgid > 0;
+    int pdgid_val_abs = std::abs(pdgid) % 10000;  // remove excitation digits
+    if (pdgid_val_abs < 1000) {  // meson
+        return 0;
+    } else {
+        if (sign) {  // baryon
+            return 1;
+        } else {  // anti-baryon
+            return -1;
+        }
+    }
+}
+
+int get_net_quark_from_pdg(int pdgid, int id_quark) {
+    int id_quark_to_find = std::abs(id_quark);
+
+    bool sign = pdgid > 0;
+    int pdgid_val_abs = std::abs(pdgid) % 10000;
+    int digit_val[4];
+    int id_tmp = pdgid_val_abs;
+    for (int j = 0; j < 4; j++) {
+        digit_val[j] = id_tmp % 10;
+        id_tmp = (id_tmp - id_tmp % 10) / 10;
+    }
+
+    int net_quark = 0;
+
+    if (digit_val[3] == 0) {  // meson
+        if (digit_val[2] == id_quark_to_find) {
+            if (sign) {
+                net_quark += 1;
+            } else {
+                net_quark -= 1;
+            }
+        }
+
+        if (digit_val[1] == id_quark_to_find) {
+            if (sign) {
+                net_quark -= 1;
+            } else {
+                net_quark += 1;
+            }
+        }
+
+        if (digit_val[2] % 2 == 1) {
+            net_quark = -net_quark;
+        }
+    } else {  // baryon
+        for (int j = 1; j < 4; j++) {
+            if (digit_val[j] == id_quark_to_find) {
+                net_quark += 1;
+            }
+        }
+
+        if (!sign) {  // anti-baryon
+            net_quark = -net_quark;
+        }
+    }
+
+    return net_quark;
+}
+
 }

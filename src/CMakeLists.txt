@@ -9,6 +9,7 @@ set (SOURCES
     hydro_source_base.cpp
     hydro_source_strings.cpp
     hydro_source_ampt.cpp
+    hydro_source_smash.cpp
     pretty_ostream.cpp
     grid_info.cpp
     util.cpp

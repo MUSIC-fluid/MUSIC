@@ -106,7 +106,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                      - DATA.delta_tau);
         DATA.tau0 = static_cast<int>(DATA.tau0/0.02)*0.02;
         DATA.tau0 = std::max(0.1, DATA.tau0);
-    } else if (DATA.Initial_profile == 30) {
+    } else if (DATA.Initial_profile == 30 || DATA.Initial_profile == 31) {
         DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
     } else if (DATA.Initial_profile == 42) {
         // initial condition from the JETSCAPE framework
@@ -230,6 +230,11 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             initial_AMPT_XY(ieta, arena_prev, arena_current);
+        }
+    } else if (DATA.Initial_profile == 31) {
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+            initial_SMASH_XY(ieta, arena_prev, arena_current);
         }
     } else if (DATA.Initial_profile == 42) {
         // initialize hydro with vectors from JETSCAPE
@@ -847,6 +852,48 @@ void Init::initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
 
 void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
                            SCGrid &arena_current) {
+    double u[4] = {1.0, 0.0, 0.0, 0.0};
+    EnergyFlowVec j_mu = {0.0, 0.0, 0.0, 0.0};
+
+    double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+    double tau0 = DATA.tau0;
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
+    for (int ix = 0; ix < nx; ix++) {
+        double x_local = - DATA.x_size/2. + ix*DATA.delta_x;
+        for (int iy = 0; iy < ny; iy++) {
+            double y_local = - DATA.y_size/2. + iy*DATA.delta_y;
+            double rhob = 0.0;
+            double epsilon = 0.0;
+            if (DATA.turn_on_rhob == 1) {
+                rhob = hydro_source_terms_ptr.lock()->get_hydro_rhob_source_before_tau(
+                                                tau0, x_local, y_local, eta);
+            } else {
+                rhob = 0.0;
+            }
+
+            hydro_source_terms_ptr.lock()->get_hydro_energy_source_before_tau(
+                                    tau0, x_local, y_local, eta, j_mu);
+
+            epsilon = j_mu[0];           // 1/fm^4
+
+            epsilon = std::max(Util::small_eps, epsilon);
+
+            arena_current(ix, iy, ieta).epsilon = epsilon;
+            arena_current(ix, iy, ieta).rhob = rhob;
+
+            arena_current(ix, iy, ieta).u[0] = u[0];
+            arena_current(ix, iy, ieta).u[1] = u[1];
+            arena_current(ix, iy, ieta).u[2] = u[2];
+            arena_current(ix, iy, ieta).u[3] = u[3];
+
+            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
+        }
+    }
+}
+
+void Init::initial_SMASH_XY(int ieta, SCGrid &arena_prev,
+                            SCGrid &arena_current) {
     double u[4] = {1.0, 0.0, 0.0, 0.0};
     EnergyFlowVec j_mu = {0.0, 0.0, 0.0, 0.0};
 

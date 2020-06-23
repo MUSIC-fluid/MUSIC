@@ -53,6 +53,9 @@ namespace Util {
     Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector);
     Mat4x4 UnpackVecToMatrix(const VorticityVec &in_vector);
 
+    int get_baryon_number_from_pdg(int pdgid);
+    int get_net_quark_from_pdg(int pdgid, int id_quark);
+
     // check whether a weak pointer is initialized or not
     template <typename T>
     bool weak_ptr_is_uninitialized(std::weak_ptr<T> const& weak) {
