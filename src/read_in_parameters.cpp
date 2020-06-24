@@ -678,6 +678,12 @@ InitData read_in_parameters(std::string input_file) {
         tempinitName_SMASH.assign(tempinput);
     parameter_list.initName_SMASH.assign(tempinitName_SMASH);
 
+    int tempeventId_SMASH = 1;
+    tempinput = Util::StringFind4(input_file, "Event_id_SMASH_output");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempeventId_SMASH;
+    parameter_list.event_id_SMASH = tempeventId_SMASH;
+
     // compute beam rapidity according to the collision energy
     double temp_ecm = 200;
     tempinput = Util::StringFind4(input_file, "ecm");
