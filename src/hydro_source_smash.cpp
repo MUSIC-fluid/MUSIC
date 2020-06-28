@@ -76,13 +76,19 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
         char entry2_dummy[10];
         char entry3_dummy[10];
         int k_ev = 0;
-        int n_had_now = 0;
-        sscanf(line_header_ev, "%s %s %d %s %d", entry1_dummy, entry2_dummy, &k_ev, entry3_dummy, &n_had_now);
-        if (j_ev == i_event) {
-            n_hadrons = n_had_now;
-        }
+        int n_had_init = 0;
+        sscanf(line_header_ev, "%s %s %d %s %d", entry1_dummy, entry2_dummy, &k_ev, entry3_dummy, &n_had_init);
 
-        for (int ipart = 0; ipart < n_had_now; ipart++) {
+        char line_particle[500];
+        bool end_of_event = false;
+        while (!end_of_event && feof(fin) == 0) {
+            fgets(line_particle, 500, fin);
+
+            if (*line_particle == '#') {
+                end_of_event = true;
+                break;
+            }
+
             double t;
             double x;
             double y;
@@ -96,12 +102,14 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
             int tag;
             int charge;
 
-            fscanf(fin, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %d %d %d",
+            sscanf(line_particle, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %d %d %d",
                 &t, &x, &y, &z, &mass, &p0, &px, &py, &pz, &pdgid, &tag, &charge);
 
             if (j_ev != i_event) {
                 continue;
             }
+
+            n_hadrons += 1;
 
             if (std::abs(t) <= std::abs(z)) {
                 continue;
@@ -130,9 +138,6 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
                 set_source_tau_min(new_hadron.tau);
             }
         }
-
-        char line_end_ev[200];
-        fgets(line_end_ev, 200, fin);
     }
 
     fclose(fin);
