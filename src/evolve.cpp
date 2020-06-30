@@ -141,6 +141,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
+        if (std::abs(tau - DATA.tau0) < 1e-15)
+            grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
         grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *ap_current);
         if (DATA.Initial_profile == 13) {

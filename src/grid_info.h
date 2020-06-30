@@ -129,7 +129,12 @@ class Cell_info {
     //! This function outputs system's momentum anisotropy as a function of tau
     void output_momentum_anisotropy_vs_tau(
                 const double tau, const double eta_min, const double eta_max,
-                SCGrid &arena);
+                SCGrid &arena) const;
+
+    //! This function outputs system's eccentricity and momentum anisotropy
+    //! as functions of eta_s
+    void output_momentum_anisotropy_vs_etas(const double tau,
+                                            SCGrid &arena) const;
 
     //! This function outputs hydro evolution file into memory for JETSCAPE
     void OutputEvolutionDataXYEta_memory(

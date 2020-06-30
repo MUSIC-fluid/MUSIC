@@ -1707,10 +1707,178 @@ void Cell_info::output_average_phase_diagram_trajectory(
 }
 
 
+//! This function outputs system's eccentricity and momentum anisotropy
+//! as functions of eta_s
+void Cell_info::output_momentum_anisotropy_vs_etas(
+                const double tau, SCGrid &arena) const {
+    ostringstream filename;
+    filename << "momentum_anisotropy_tau_" << tau << ".dat";
+    std::fstream of;
+    of.open(filename.str().c_str(), std::fstream::out);
+    of << "# tau(fm)  epsilon_p(ideal)(cos)  epsilon_p(ideal)(sin)  "
+       << "epsilon_p(shear)(cos)  epsilon_p(shear)(sin)  "
+       << "epsilon_p(full)(cos)  epsilon_p(full)(sin)  " << endl;
+
+    ostringstream filename1;
+    filename1 << "eccentricities_evo_ed_tau_" << tau << ".dat";
+    std::fstream of1;
+    of1.open(filename1.str().c_str(), std::fstream::out);
+    of1 << "# tau(fm)  ed(GeV/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
+
+    ostringstream filename2;
+    filename2 << "eccentricities_evo_nB_tau_" << tau << ".dat";
+    std::fstream of2;
+    of2.open(filename2.str().c_str(), std::fstream::out);
+    of2 << "# tau(fm)  nB(1/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
+
+    const int norder = 6;
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        double eta = 0.0;
+        if (!DATA.boost_invariant) {
+            eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
+                    - (DATA.eta_size)/2.0);
+        }
+
+        // compute the central of mass position
+        double x_ed_o = 0.0, x_nB_o = 0.0;
+        double y_ed_o = 0.0, y_nB_o = 0.0;
+        double w_ed_sum = 0.0, w_nB_sum = 0.0;
+        for (int iy = 0; iy < arena.nY(); iy++)
+        for (int ix = 0; ix < arena.nX(); ix++) {
+            double x_local    = - DATA.x_size/2. + ix*DATA.delta_x;
+            double y_local    = - DATA.y_size/2. + iy*DATA.delta_y;
+            double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+            double nB_local   = arena(ix, iy, ieta).rhob;     // 1/fm^3
+            double gamma_perp = arena(ix, iy, ieta).u[0];
+            x_ed_o   += x_local*e_local*gamma_perp;
+            y_ed_o   += y_local*e_local*gamma_perp;
+            w_ed_sum += e_local*gamma_perp;
+            x_nB_o   += x_local*nB_local*gamma_perp;
+            y_nB_o   += y_local*nB_local*gamma_perp;
+            w_nB_sum += nB_local*gamma_perp;
+        }
+        x_ed_o /= w_ed_sum;
+        y_ed_o /= w_ed_sum;
+        x_nB_o /= w_nB_sum;
+        y_nB_o /= w_nB_sum;
+
+        // compute epsilon_p with ideal, ideal + shear, and full T^{\munu}
+        std::vector<double> ep_num1(3, 0.0);
+        std::vector<double> ep_num2(3, 0.0);
+        std::vector<double> ep_den (3, 0.0);
+
+        // spatial eccentricity arrays
+        std::vector<double> eccn_ed_num1(norder, 0.0);
+        std::vector<double> eccn_ed_num2(norder, 0.0);
+        std::vector<double> eccn_ed_den (norder, 0.0);
+        std::vector<double> eccn_nB_num1(norder, 0.0);
+        std::vector<double> eccn_nB_num2(norder, 0.0);
+        std::vector<double> eccn_nB_den (norder, 0.0);
+        for (int iy = 0; iy < arena.nY(); iy++)
+        for (int ix = 0; ix < arena.nX(); ix++) {
+            double x_ed = - DATA.x_size/2. + ix*DATA.delta_x - x_ed_o;
+            double y_ed = - DATA.y_size/2. + iy*DATA.delta_y - y_ed_o;
+            double x_nB = - DATA.x_size/2. + ix*DATA.delta_x - x_nB_o;
+            double y_nB = - DATA.y_size/2. + iy*DATA.delta_y - y_nB_o;
+            double r_ed = sqrt(x_ed*x_ed + y_ed*y_ed);
+            double r_nB = sqrt(x_nB*x_nB + y_nB*y_nB);
+            double phi_ed = atan2(y_ed, x_ed);
+            double phi_nB = atan2(y_nB, x_nB);
+
+            double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+            double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
+            double P_local    = eos.get_pressure(e_local, rhob_local);
+            double enthopy    = e_local + P_local;
+            double u0         = arena(ix, iy, ieta).u[0];
+            double ux         = arena(ix, iy, ieta).u[1];
+            double uy         = arena(ix, iy, ieta).u[2];
+            double pi_xx      = arena(ix, iy, ieta).Wmunu[4];
+            double pi_xy      = arena(ix, iy, ieta).Wmunu[5];
+            double pi_yy      = arena(ix, iy, ieta).Wmunu[7];
+            double bulk_Pi    = arena(ix, iy, ieta).pi_b;
+
+            double T_xx_ideal   = enthopy*ux*ux + P_local;
+            double T_xy_ideal   = enthopy*ux*uy;
+            double T_yy_ideal   = enthopy*uy*uy + P_local;
+
+            double T_xx_shear   = T_xx_ideal + pi_xx;
+            double T_xy_shear   = T_xy_ideal + pi_xy;
+            double T_yy_shear   = T_yy_ideal + pi_yy;
+
+            double T_xx_full    = T_xx_shear - bulk_Pi*(-1 - ux*ux);
+            double T_xy_full    = T_xy_shear + bulk_Pi*ux*uy;
+            double T_yy_full    = T_yy_shear - bulk_Pi*(-1 - uy*uy);
+
+            ep_num1[0] += T_xx_ideal - T_yy_ideal;
+            ep_num2[0] += 2.*T_xy_ideal;
+            ep_den[0]  += T_xx_ideal + T_yy_ideal;
+            ep_num1[1] += T_xx_shear - T_yy_shear;
+            ep_num2[1] += 2.*T_xy_shear;
+            ep_den[1]  += T_xx_shear + T_yy_shear;
+            ep_num1[2] += T_xx_full - T_yy_full;
+            ep_num2[2] += 2.*T_xy_full;
+            ep_den[2]  += T_xx_full + T_yy_full;
+
+            double w_ed = 0.0, w_nB = 0.0;
+            for (int i = 0; i < norder; i++) {
+                if (i == 1) {
+                    w_ed = u0*e_local*pow(r_ed, 3);
+                    w_nB = u0*rhob_local*pow(r_nB, 3);
+                } else {
+                    w_ed = u0*e_local*pow(r_ed, i);
+                    w_nB = u0*rhob_local*pow(r_nB, i);
+                }
+                if (i == 0) {
+                    eccn_ed_num1[i] += e_local;
+                    eccn_nB_num1[i] += rhob_local;
+                } else {
+                    eccn_ed_num1[i] += w_ed*cos(i*phi_ed);
+                    eccn_ed_num2[i] += w_ed*sin(i*phi_ed);
+                    eccn_ed_den [i] += w_ed;
+                    eccn_nB_num1[i] += w_nB*cos(i*phi_nB);
+                    eccn_nB_num2[i] += w_nB*sin(i*phi_nB);
+                    eccn_nB_den [i] += w_nB;
+                }
+            }
+        }
+
+        // output results
+        of << scientific << setw(18) << setprecision(8)
+           << eta << "  ";
+        for (int i = 0; i < 3; i++) {
+            of << ep_num1[i]/std::max(ep_den[i], small_eps) << "  "
+               << ep_num2[i]/std::max(ep_den[i], small_eps)<< "  ";
+        }
+        of << endl;
+        of1 << scientific << setw(18) << setprecision(8)
+            << eta << "  "
+            << eccn_ed_num1[0]*DATA.delta_x*DATA.delta_y*hbarc << "  ";
+        for (int i = 1; i < norder; i++) {
+            // the minus sign ensure the vector points to the short axis
+            of1 << -eccn_ed_num1[i]/std::max(eccn_ed_den[i], small_eps) << "  "
+                << -eccn_ed_num2[i]/std::max(eccn_ed_den[i], small_eps) << "  ";
+        }
+        of1 << endl;
+        of2 << scientific << setw(18) << setprecision(8)
+            << eta << "  "
+            << eccn_nB_num1[0]*DATA.delta_x*DATA.delta_y << "  ";
+        for (int i = 1; i < norder; i++) {
+            // the minus sign ensure the vector points to the short axis
+            of2 << -eccn_nB_num1[i]/std::max(eccn_nB_den[i], small_eps) << "  "
+                << -eccn_nB_num2[i]/std::max(eccn_nB_den[i], small_eps) << "  ";
+        }
+        of2 << endl;
+    }
+    of.close();
+    of1.close();
+    of2.close();
+}
+
+
 //! This function outputs system's momentum anisotropy as a function of tau
 void Cell_info::output_momentum_anisotropy_vs_tau(
                 const double tau, const double eta_min, const double eta_max,
-                SCGrid &arena) {
+                SCGrid &arena) const {
     ostringstream filename;
     filename << "momentum_anisotropy_eta_" << eta_min
              << "_" << eta_max << ".dat";
