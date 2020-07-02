@@ -824,6 +824,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "Shear_to_S_ratio") {
         parameter_list.shear_to_s = value;
     }
+    if (parameter_name == "T_freeze") {
+	parameter_list.TFO = value;
+    }
 }
 
 void check_parameters(InitData &parameter_list, std::string input_file) {
