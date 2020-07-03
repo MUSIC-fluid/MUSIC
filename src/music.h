@@ -22,7 +22,7 @@ class MUSIC {
 
     //! flag to tell whether hydro is initialized
     int flag_hydro_initialized;
-    
+
     //! flag to tell whether hydro is run
     int flag_hydro_run;
 
@@ -49,7 +49,7 @@ class MUSIC {
 
     //! This function initialize hydro
     void initialize_hydro();
-    
+
     //! This function change the parameter value in DATA
     void set_parameter(std::string parameter_name, double value);
 
@@ -62,7 +62,7 @@ class MUSIC {
     //! this function adds hydro source terms pointer
     void add_hydro_source_terms(
             std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
-    
+
     //! This function setup source terms from dynamical initialization
     void generate_hydro_source_terms();
 

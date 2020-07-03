@@ -17,20 +17,20 @@
 
 using std::vector;
 
-MUSIC::MUSIC(std::string input_file) : 
+MUSIC::MUSIC(std::string input_file) :
     DATA(ReadInParameters::read_in_parameters(input_file)),
     eos(DATA.whichEOS) {
 
     mode                   = DATA.mode;
     flag_hydro_run         = 0;
     flag_hydro_initialized = 0;
-    
+
     // setup hydro evolution information
     hydro_info_ptr         = nullptr;
     if (DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
     }
-    
+
     // setup source terms
     hydro_source_terms_ptr = nullptr;
     generate_hydro_source_terms();

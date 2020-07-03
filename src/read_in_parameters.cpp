@@ -22,8 +22,7 @@ InitData read_in_parameters(std::string input_file) {
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_echo_level;
     parameter_list.echo_level = temp_echo_level;
 
-    
-    // Initial_profile: 
+    // Initial_profile:
     int tempInitial_profile = 1;
     tempinput = Util::StringFind4(input_file, "Initial_profile");
     if (tempinput != "empty") istringstream(tempinput) >> tempInitial_profile;
@@ -35,14 +34,14 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_string_dump_mode;
     parameter_list.string_dump_mode = temp_string_dump_mode;
-    
+
     // hydro source
     double temp_string_quench_factor = 0.;
     tempinput = Util::StringFind4(input_file, "string_quench_factor");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_string_quench_factor;
     parameter_list.string_quench_factor = temp_string_quench_factor;
-    
+
     // hydro source
     double temp_parton_quench_factor = 1.;
     tempinput = Util::StringFind4(input_file, "parton_quench_factor");
@@ -77,14 +76,14 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempinitial_eta_profile;
     parameter_list.initial_eta_profile = tempinitial_eta_profile;
-    
+
     // eta envelope function parameter for rhob
     int temp_rhob_flag = 1;
     tempinput = Util::StringFind4(input_file, "initial_eta_rhob_profile");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_rhob_flag;
     parameter_list.initial_eta_rhob_profile = temp_rhob_flag;
-    
+
     //initialize_with_entropy:
     //0: scale with energy density
     //1: scale with entropy density
@@ -93,7 +92,7 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempinitializeEntropy;
     parameter_list.initializeEntropy = tempinitializeEntropy;
-    
+
     //use_eps_for_freeze_out: 
     // 0: freeze out at constant temperature T_freeze
     // 1: freeze out at constant energy density epsilon_freeze
@@ -103,7 +102,7 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempuseEpsFO;
     parameter_list.useEpsFO = tempuseEpsFO;
-    
+
     // T_freeze: freeze out temperature
     // only used with use_eps_for_freeze_out = 0
     double tempTFO = 0.12;
@@ -194,7 +193,7 @@ InitData read_in_parameters(std::string input_file) {
         exit(1);
     }
     parameter_list.mode = tempmode;
-    
+
     //EOS_to_use:
     // 0: ideal gas
     // 1: EOS-Q from azhydro
@@ -214,7 +213,7 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempwhichEOS;
     parameter_list.whichEOS = tempwhichEOS;
-    
+
     // number_of_particles_to_include:
     // This determines up to which particle in the list spectra
     // should be computed (mode=3) or resonances should be included (mode=4)
@@ -225,7 +224,7 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempNumberOfParticlesToInclude;
     parameter_list.NumberOfParticlesToInclude = tempNumberOfParticlesToInclude;
-    
+
     // freeze_out_method:
     // 2: Schenke's more complex method
     int tempfreezeOutMethod = 4;
@@ -551,14 +550,14 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_bulk;
     parameter_list.turn_on_bulk = tempturn_on_bulk;
-    
+
     // Include secord order terms
     int tempturn_on_second_order = 0;
     tempinput = Util::StringFind4(input_file, "Include_second_order_terms");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_second_order;
     parameter_list.include_second_order_terms = tempturn_on_second_order;
-    
+
     int tempturn_on_diff = 0;
     tempinput = Util::StringFind4(input_file, "turn_on_baryon_diffusion");
     if (tempinput != "empty")
@@ -825,7 +824,13 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
         parameter_list.shear_to_s = value;
     }
     if (parameter_name == "T_freeze") {
-	parameter_list.TFO = value;
+        parameter_list.TFO = value;
+    }
+    if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0") {
+        parameter_list.turn_on_bulk = static_cast<int>(value);
+    }
+    if (parameter_name == "Include_second_order_terms") {
+        parameter_list.include_second_order_terms = static_cast<int>(value);
     }
 }
 
@@ -868,7 +873,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
             exit(1);
         }
     }
-    
+
     if (parameter_list.useEpsFO > 1 || parameter_list.useEpsFO < 0) {
         music_message << "Error: did not set either freeze out energy density "
                       << "or temperature, or invalid option for "
@@ -891,7 +896,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         music_message.flush("error");
         exit(1);
     }
-    
+
     if (parameter_list.freezeOutMethod != 4) {
         music_message << "Invalid option for freeze_out_method: "
                       << parameter_list.freezeOutMethod;
