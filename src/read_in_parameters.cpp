@@ -721,18 +721,18 @@ InitData read_in_parameters(std::string input_file) {
     tempinput = Util::StringFind4(input_file, "output_evolution_every_N_y");
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_y;
     parameter_list.output_evolution_every_N_y = temp_evo_N_y;
-    
+
     int temp_evo_N_eta = 1;
     tempinput = Util::StringFind4(input_file, "output_evolution_every_N_eta");
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_eta;
     parameter_list.output_evolution_every_N_eta = temp_evo_N_eta;
-    
-    double temp_evo_T_cut = 0.105;  // GeV
+
+    double temp_evo_T_cut = 0.130;  // GeV
     tempinput = Util::StringFind4(input_file, "output_evolution_T_cut");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_evo_T_cut;
     parameter_list.output_evolution_T_cut = temp_evo_T_cut;
-    
+
     // Make MUSIC output a C header input_file containing
     // informations about the hydro parameters used
     // 0 for false (do not output), 1 for true
@@ -747,46 +747,46 @@ InitData read_in_parameters(std::string input_file) {
     tempinput = Util::StringFind4(input_file, "dNdy_y_min");
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_y_min;
     parameter_list.dNdy_y_min = temp_dNdy_y_min;
-    
+
     double temp_dNdy_y_max = 0.5;
     tempinput = Util::StringFind4(input_file, "dNdy_y_max");
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_y_max;
     parameter_list.dNdy_y_max = temp_dNdy_y_max;
-    
+
     double temp_dNdy_eta_min = -2.0;
     tempinput = Util::StringFind4(input_file, "dNdy_eta_min");
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_eta_min;
     parameter_list.dNdy_eta_min = temp_dNdy_eta_min;
-    
+
     double temp_dNdy_eta_max = 2.0;
     tempinput = Util::StringFind4(input_file, "dNdy_eta_max");
     if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_eta_max;
     parameter_list.dNdy_eta_max = temp_dNdy_eta_max;
-    
+
     int temp_dNdy_nrap = 30;
     tempinput = Util::StringFind4(input_file, "dNdy_nrap");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_dNdy_nrap;
     parameter_list.dNdy_nrap = temp_dNdy_nrap;
-    
+
     double temp_dNdyptdpt_y_min = -0.5;
     tempinput = Util::StringFind4(input_file, "dNdyptdpt_y_min");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_dNdyptdpt_y_min;
     parameter_list.dNdyptdpt_y_min = temp_dNdyptdpt_y_min;
-    
+
     double temp_dNdyptdpt_y_max = 0.5;
     tempinput = Util::StringFind4(input_file, "dNdyptdpt_y_max");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_dNdyptdpt_y_max;
     parameter_list.dNdyptdpt_y_max = temp_dNdyptdpt_y_max;
-    
+
     double temp_dNdyptdpt_eta_min = -0.5;
     tempinput = Util::StringFind4(input_file, "dNdyptdpt_eta_min");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_dNdyptdpt_eta_min;
     parameter_list.dNdyptdpt_eta_min = temp_dNdyptdpt_eta_min;
-    
+
     double temp_dNdyptdpt_eta_max = 0.5;
     tempinput = Util::StringFind4(input_file, "dNdyptdpt_eta_max");
     if (tempinput != "empty")

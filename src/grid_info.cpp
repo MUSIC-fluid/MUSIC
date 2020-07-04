@@ -174,7 +174,7 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
                 double cs2_local = eos.get_cs2(e_local, rhob_local);
                 double muB_local = eos.get_muB(e_local, rhob_local);
                 double enthropy  = e_local + p_local;  // [1/fm^4]
-                
+
                 double Wtautau = 0.0;
                 double Wtaux   = 0.0;
                 double Wtauy   = 0.0;
@@ -297,13 +297,13 @@ void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(SCGrid &arena,
     } else {
         out_open_mode = "a";
     }
-    
+
     // If we output in binary, set the mode accordingly
     if (DATA.outputBinaryEvolution == 0) {
         out_open_mode += "b";
     }
     out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
-    
+
     const int n_skip_x   = DATA.output_evolution_every_N_x;
     const int n_skip_y   = DATA.output_evolution_every_N_y;
     const int n_skip_eta = DATA.output_evolution_every_N_eta;
@@ -334,7 +334,7 @@ void Cell_info::calculate_inverse_Reynolds_numbers(
                                 const int ieta, const int ix, const int iy,
                                 double &R_pi, double &R_Pi) const {
     const auto grid_pt = arena_current(ix, iy, ieta);
-    
+
     const double e_local  = grid_pt.epsilon;
     const double rhob     = grid_pt.rhob;
     const double pressure = eos.get_pressure(e_local, rhob);
@@ -354,7 +354,7 @@ void Cell_info::calculate_inverse_Reynolds_numbers(
            pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
          - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
          + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
-    
+
     const double pi_local = grid_pt.pi_b;
 
     R_pi = sqrt(pisize)/pressure;
@@ -394,7 +394,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
 
                 double T_local   = eos.get_temperature(e_local, rhob_local);
                 double s_local   = eos.get_entropy(e_local, rhob_local);
-                
+
                 hydro_info_ptr.dump_ideal_info_to_memory(
                     tau, eta, e_local, p_local, s_local, T_local, vx, vy, vz);
             }
@@ -402,9 +402,9 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
     }
 }
 
-    
+
 //! This function outputs hydro evolution file in binary format
-void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, 
+void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
                                               double tau) {
     // the format of the file is as follows,
     //    itau ix iy ieta e P T ux uy ueta
@@ -453,22 +453,26 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
     const double output_ymin   = - DATA.y_size/2.;
     const double output_etamin = - DATA.eta_size/2.;
 
-    const int nVar_per_cell = (10 + DATA.turn_on_rhob*1 + DATA.turn_on_shear*5
-                                  + DATA.turn_on_bulk*1 + DATA.turn_on_diff*3);
-    float header[] = {
-        static_cast<float>(DATA.tau0), static_cast<float>(output_dtau),
-        static_cast<float>(output_nx), static_cast<float>(output_dx),
-        static_cast<float>(output_xmin),
-        static_cast<float>(output_ny), static_cast<float>(output_dy),
-        static_cast<float>(output_ymin),
-        static_cast<float>(output_neta), static_cast<float>(output_deta),
-        static_cast<float>(output_etamin),
-        static_cast<float>(DATA.turn_on_rhob),
-        static_cast<float>(DATA.turn_on_shear),
-        static_cast<float>(DATA.turn_on_bulk),
-        static_cast<float>(DATA.turn_on_diff),
-        static_cast<float>(nVar_per_cell)};
-    fwrite(header, sizeof(float), 16, out_file_xyeta);
+    if (tau == DATA.tau0) {
+        const int nVar_per_cell = (10 + DATA.turn_on_rhob*1
+                                      + DATA.turn_on_shear*5
+                                      + DATA.turn_on_bulk*1
+                                      + DATA.turn_on_diff*3);
+        float header[] = {
+            static_cast<float>(DATA.tau0), static_cast<float>(output_dtau),
+            static_cast<float>(output_nx), static_cast<float>(output_dx),
+            static_cast<float>(output_xmin),
+            static_cast<float>(output_ny), static_cast<float>(output_dy),
+            static_cast<float>(output_ymin),
+            static_cast<float>(output_neta), static_cast<float>(output_deta),
+            static_cast<float>(output_etamin),
+            static_cast<float>(DATA.turn_on_rhob),
+            static_cast<float>(DATA.turn_on_shear),
+            static_cast<float>(DATA.turn_on_bulk),
+            static_cast<float>(DATA.turn_on_diff),
+            static_cast<float>(nVar_per_cell)};
+        fwrite(header, sizeof(float), 16, out_file_xyeta);
+    }
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
@@ -523,7 +527,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
                     qeta = arena(ix, iy, ieta).Wmunu[13]/kappa_hat;
                 }
 
-                float ideal[] = {static_cast<float>(itau/n_skip_x),
+                float ideal[] = {static_cast<float>(itau),
                                  static_cast<float>(ix/n_skip_x),
                                  static_cast<float>(iy/n_skip_y),
                                  static_cast<float>(ieta/n_skip_eta),
@@ -702,7 +706,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
 
 //! This function prints to the screen the maximum local energy density,
 //! the maximum temperature in the current grid
-void Cell_info::get_maximum_energy_density(SCGrid &arena) {
+double Cell_info::get_maximum_energy_density(SCGrid &arena) {
     double eps_max  = 0.0;
     double rhob_max = 0.0;
     double T_max    = 0.0;
@@ -728,6 +732,7 @@ void Cell_info::get_maximum_energy_density(SCGrid &arena) {
                   << "rhob_max = " << rhob_max << " 1/fm^3, "
                   << "T_max = " << T_max << " GeV.";
     music_message.flush("info");
+    return(T_max);
 }
 
 
@@ -948,28 +953,57 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
         out_open_mode = "ab";
     }
     out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
+
     int n_skip_tau = DATA.output_evolution_every_N_timesteps;
+    double output_dtau = DATA.delta_tau*n_skip_tau;
+    int itau = static_cast<int>((tau - DATA.tau0)/(output_dtau) + 0.1);
+
     int n_skip_x   = DATA.output_evolution_every_N_x;
     int n_skip_y   = DATA.output_evolution_every_N_y;
     int n_skip_eta = DATA.output_evolution_every_N_eta;
-    double dtau    = DATA.delta_tau;
     double dx      = DATA.delta_x;
     double dy      = DATA.delta_y;
     double deta    = DATA.delta_eta;
-    double volume  = tau*n_skip_tau*dtau*n_skip_x*dx*n_skip_y*dy*n_skip_eta*deta;
+    double volume  = tau*output_dtau*n_skip_x*dx*n_skip_y*dy*n_skip_eta*deta;
+
+    const int nVar_per_cell = 14;
+    if (tau == DATA.tau0) {
+        // write out header
+        const int output_nx   = static_cast<int>(arena.nX()/n_skip_x);
+        const int output_ny   = static_cast<int>(arena.nY()/n_skip_y);
+        const int output_neta = (
+                std::min(1, static_cast<int>(arena.nEta()/n_skip_eta)));
+        const double output_dx     = DATA.delta_x*n_skip_x;
+        const double output_dy     = DATA.delta_y*n_skip_y;
+        const double output_deta   = DATA.delta_eta*n_skip_eta;
+        const double output_xmin   = - DATA.x_size/2.;
+        const double output_ymin   = - DATA.y_size/2.;
+        const double output_etamin = - DATA.eta_size/2.;
+        float header[] = {
+            static_cast<float>(DATA.tau0), static_cast<float>(output_dtau),
+            static_cast<float>(output_nx), static_cast<float>(output_dx),
+            static_cast<float>(output_xmin),
+            static_cast<float>(output_ny), static_cast<float>(output_dy),
+            static_cast<float>(output_ymin),
+            static_cast<float>(output_neta), static_cast<float>(output_deta),
+            static_cast<float>(output_etamin),
+            static_cast<float>(nVar_per_cell)};
+        fwrite(header, sizeof(float), 12, out_file_xyeta);
+    }
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         double eta_local = - DATA.eta_size/2. + ieta*deta;
+        if (DATA.boost_invariant) eta_local = 0.;
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
-            double y_local = - DATA.y_size/2. + iy*dy;
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
-                double x_local = - DATA.x_size/2. + ix*dx;
                 double e_local = arena(ix, iy, ieta).epsilon;  // 1/fm^4
-                if (e_local < 0.05/hbarc) continue;
                 double rhob_local = arena(ix, iy, ieta).rhob;  // 1/fm^3
+
                 // T_local is in 1/fm
                 double T_local   = eos.get_temperature(e_local, rhob_local);
+                if (T_local*hbarc < DATA.output_evolution_T_cut) continue;
+
                 double muB_local = eos.get_muB(e_local, rhob_local);  // 1/fm
-        
+
                 double pressure  = eos.get_pressure(e_local, rhob_local);
                 double u0        = arena(ix, iy, ieta).u[0];
                 double u1        = arena(ix, iy, ieta).u[1];
@@ -987,10 +1021,10 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, double tau) {
                                     + T03_full*sinh(eta_local));
                 double JBtau     = (  rhob_local*u0
                                     + arena(ix, iy, ieta).Wmunu[10]);
-                float array[] = {static_cast<float>(tau),
-                                 static_cast<float>(x_local),
-                                 static_cast<float>(y_local),
-                                 static_cast<float>(eta_local),
+                float array[] = {static_cast<float>(itau),
+                                 static_cast<float>(ix/n_skip_x),
+                                 static_cast<float>(iy/n_skip_y),
+                                 static_cast<float>(ieta/n_skip_eta),
                                  static_cast<float>(volume),
                                  static_cast<float>(e_local*hbarc),
                                  static_cast<float>(rhob_local),

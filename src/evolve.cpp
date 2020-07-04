@@ -48,7 +48,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     // in the format of a C header file
     //if (DATA.output_hydro_params_header || DATA.outputEvolutionData == 1)
     //    grid_info.Output_hydro_information_header();
-    
+
     if (DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr.set_grid_infomatioin(DATA);
     }
@@ -74,6 +74,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                            arena_current.nY(),
                            arena_current.nEta());
 
+    double T_max = -1;
     for (int it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
@@ -84,7 +85,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         if (it == it_start) {
             store_previous_step_for_freezeout(*ap_current, arena_freezeout);
         }
-        
+
         if (DATA.Initial_profile == 0) {
             if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
                 || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
@@ -98,7 +99,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                 grid_info.output_1p1D_check_file(*ap_current, tau);
             }
         }
-        
+
         if (DATA.Initial_profile == 13) {
             if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
                 grid_info.output_energy_density_and_rhob_disitrubtion(
@@ -146,16 +147,16 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         // check energy conservation
         if (DATA.boost_invariant == 0)
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
-        grid_info.get_maximum_energy_density(*ap_current);
+        T_max = grid_info.get_maximum_energy_density(*ap_current);
 
         if (DATA.output_hydro_debug_info == 1) {
             grid_info.monitor_fluid_cell(*ap_current, 100, 100, 0, tau);
         }
-    
+
         /* execute rk steps */
         // all the evolution are at here !!!
         AdvanceRK(tau, ap_prev, ap_current, ap_future);
-    
+
         //determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
@@ -179,7 +180,13 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                       << " Done time step " << it << "/" << itmax
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
-        if (frozen == 1) break;
+        if (frozen == 1) {
+            if (DATA.outputEvolutionData == 0 && DATA.output_movie_flag == 0) {
+                break;
+            } else {
+                if (T_max < DATA.output_evolution_T_cut) break;
+            }
+        }
     }
     music_message.info("Finished.");
     return 1;
