@@ -32,6 +32,7 @@ set (SOURCES
     emoji.cpp
     music_logo.cpp
     HydroinfoMUSIC.cpp
+    transport_coeffs.cpp
     )
 
 add_library(${libname} SHARED ${SOURCES})

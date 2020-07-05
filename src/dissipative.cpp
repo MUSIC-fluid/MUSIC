@@ -13,7 +13,9 @@
 
 using Util::hbarc;
 
-Diss::Diss(const EOS &eosIn, const InitData &Data_in) : DATA(Data_in), eos(eosIn), minmod(Data_in) {}
+Diss::Diss(const EOS &eosIn, const InitData &Data_in)
+    : DATA(Data_in), eos(eosIn), minmod(Data_in),
+      transport_coeffs_(eosIn, Data_in) {}
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 /* Dissipative parts */
@@ -168,11 +170,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 
     T = eos.get_temperature(epsilon, rhob);
 
-    if (DATA.T_dependent_shear_to_s == 1) {
-        shear_to_s = get_temperature_dependent_eta_s(T);
-    } else {
-        shear_to_s = DATA.shear_to_s;
-    }
+    shear_to_s = transport_coeffs_.get_eta_over_s(T);
 
     int include_WWterm         = 0;
     //int include_Vorticity_term = 0;
@@ -189,7 +187,9 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     ////////////////////////////////////////////////////////////////////////
     double pressure = eos.get_pressure(epsilon, rhob);
     shear = (shear_to_s)*(epsilon + pressure)/(T + 1e-15);
-    double tau_pi = 5.0*shear/(epsilon + pressure + 1e-15);
+    double tau_pi = (transport_coeffs_.get_shear_relax_time_factor()
+                     *shear/(epsilon + pressure + 1e-15));
+    tau_pi = std::max(3.*DATA.delta_tau, tau_pi);
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
@@ -203,7 +203,6 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     double transport_coefficient_b  = 6./5.*tau_pi;
     double transport_coefficient2_b = 0.;
 
-    tau_pi = std::max(3.*DATA.delta_tau, tau_pi);
 
     /* This source has many terms */
     /* everything in the 1/(tau_pi) piece is here */
@@ -340,7 +339,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
                             + Wmunu[mu][3]*Wmunu[nu][3]);
         double term2_WW = (-(1./3.)*(DATA.gmunu[mu][nu]
                                      + grid_pt->u[mu]*grid_pt->u[nu])*Wsquare);
-        
+
         // multiply term by its respective transport coefficient
         term1_WW = term1_WW*transport_coefficient;
         term2_WW = term2_WW*transport_coefficient;
@@ -646,13 +645,15 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     double pressure = eos.get_pressure(epsilon, rhob);
 
     // T dependent bulk viscosity from Gabriel
-    bulk = get_temperature_dependent_zeta_s(temperature);
+    bulk = transport_coeffs_.get_zeta_over_s(temperature);
     bulk = bulk*(epsilon + pressure)/temperature;
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
-    Bulk_Relax_time = (1./(14.55*(1./3. - cs2)*(1./3. - cs2))
+    Bulk_Relax_time = (transport_coeffs_.get_bulk_relax_time_factor()
+                       /((1./3. - cs2)*(1./3. - cs2))
                        /(epsilon + pressure)*bulk);
+    Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
 
     // from kinetic theory, small mass limit
     transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);
@@ -661,8 +662,6 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     // from kinetic theory
     transport_coeff1_s = 8./5.*(1./3.-cs2)*Bulk_Relax_time;
     transport_coeff2_s = 0.;  // not known;  put 0
-
-    Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
     NS_term = -bulk*theta_local;
@@ -717,7 +716,7 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     } else {
         Coupling_to_Shear = 0.0;
     }
-        
+
     // Final Answer
     Final_Answer = NS_term + tempf + BB_term + Coupling_to_Shear;
 
@@ -928,81 +927,6 @@ double Diss::Make_uqRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
     */  
     return(sum*(DATA.delta_tau));
 }
-
-double Diss::get_temperature_dependent_eta_s(double T) {
-    double Ttr = 0.18/hbarc;  // phase transition temperature
-    double Tfrac = T/Ttr;
-    double shear_to_s;
-    if (T < Ttr) {
-        shear_to_s = (DATA.shear_to_s + 0.0594*(1. - Tfrac)
-                      + 0.544*(1. - Tfrac*Tfrac));
-    } else {
-        shear_to_s = (DATA.shear_to_s + 0.288*(Tfrac - 1.)
-                      + 0.0818*(Tfrac*Tfrac - 1.));
-    }
-    return(shear_to_s);
-}
-
-double Diss::get_temperature_dependent_zeta_s(double temperature) {
-    // T dependent bulk viscosity from Gabriel
-    /////////////////////////////////////////////
-    //           Parametrization 1             //
-    /////////////////////////////////////////////
-    double Ttr=0.18/0.1973;
-    double dummy=temperature/Ttr;
-    double A1=-13.77, A2=27.55, A3=13.45;
-    double lambda1=0.9, lambda2=0.25, lambda3=0.9, lambda4=0.22;
-    double sigma1=0.025, sigma2=0.13, sigma3=0.0025, sigma4=0.022;
- 
-    double bulk = A1*dummy*dummy + A2*dummy - A3;
-    if (temperature < 0.995*Ttr) {
-        bulk = (lambda3*exp((dummy-1)/sigma3)
-                + lambda4*exp((dummy-1)/sigma4) + 0.03);
-    }
-    if (temperature > 1.05*Ttr) {
-        bulk = (lambda1*exp(-(dummy-1)/sigma1)
-                + lambda2*exp(-(dummy-1)/sigma2) + 0.001);
-    }
-
-    /////////////////////////////////////////////
-    //           Parametrization 2             //
-    /////////////////////////////////////////////
-    //double Ttr=0.18/0.1973;
-    //double dummy=temperature/Ttr;
-    //double A1=-79.53, A2=159.067, A3=79.04;
-    //double lambda1=0.9, lambda2=0.25, lambda3=0.9, lambda4=0.22;
-    //double sigma1=0.025, sigma2=0.13, sigma3=0.0025, sigma4=0.022;
-
-    //bulk = A1*dummy*dummy + A2*dummy - A3;
-
-    //if (temperature < 0.997*Ttr) {
-    //    bulk = (lambda3*exp((dummy-1)/sigma3)
-    //            + lambda4*exp((dummy-1)/sigma4) + 0.03);
-    //}
-    //if (temperature > 1.04*Ttr) {
-    //    bulk = (lambda1*exp(-(dummy-1)/sigma1)
-    //            + lambda2*exp(-(dummy-1)/sigma2) + 0.001);
-    //}
-
-    ////////////////////////////////////////////
-    //           Parametrization 3            //
-    ////////////////////////////////////////////
-    //double Ttr=0.18/0.1973;
-    //double dummy=temperature/Ttr;
-    //double lambda1=0.9, lambda2=0.25, lambda3=0.9, lambda4=0.22;
-    //double sigma1=0.025, sigma2=0.13, sigma3=0.0025, sigma4=0.022;
-    
-    //if (temperature<0.99945*Ttr) {
-    //    bulk = (lambda3*exp((dummy-1)/sigma3)
-    //            + lambda4*exp((dummy-1)/sigma4) + 0.03);
-    //}
-    //if (temperature>0.99945*Ttr) {
-    //    bulk = 0.901*exp(14.5*(1.0-dummy)) + 0.061/dummy/dummy;
-    //}
-
-    return(bulk);
-}
-
 
 //! this function outputs the T and muB dependence of the baryon diffusion
 //! coefficient, kappa

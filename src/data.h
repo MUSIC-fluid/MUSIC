@@ -11,13 +11,13 @@
 
 //! This is a data structure contains all the parameters for simulation
 typedef struct init_data {
-  
+
     std::array<std::array<double, 4>, 4> gmunu = 
       {{{-1,0,0,0},
         { 0,1,0,0},
         { 0,0,1,0},
         { 0,0,0,1}}};
-        
+
     int echo_level;
     int mode;               //!< 1: do everything;
     //!< 2: do hydro evolution only;
@@ -32,7 +32,7 @@ typedef struct init_data {
     std::string initName_rhob_TA;
     std::string initName_rhob_TB;
     std::string initName_AMPT;
-    
+
     //! random seed
     int seed;
     double ecm;
@@ -49,7 +49,7 @@ typedef struct init_data {
     double eta_rhob_plateau_height;  //!< central plateau height profile == 2
     double eta_rhob_width_1;         //!< outside tail Gaussian width profile == 2
     double eta_rhob_width_2;         //!< inside Gaussian width profile == 2
-    
+
     int Initial_profile;    //! type of initial condition
     int initializeEntropy;  //! flag to initial entropy or energy density
 
@@ -75,7 +75,7 @@ typedef struct init_data {
 
     int rk_order;
     double minmod_theta;
-    
+
     double sFactor;     //!< overall normalization on energy density profile
     int whichEOS;       //!< type of EoS
     //! flag for boost invariant simulations
@@ -105,6 +105,35 @@ typedef struct init_data {
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;
 
+    //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==2"
+    double eta_over_s_min;
+    double eta_over_s_slope;
+    double eta_over_s_curv;
+
+    //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==3"
+    double eta_over_s_T_kink_in_GeV;
+    double eta_over_s_low_T_slope_in_GeV;
+    double eta_over_s_high_T_slope_in_GeV;
+    double eta_over_s_at_kink;
+
+    //! flag to include temperature dependent zeta/s(T)
+    int T_dependent_bulk_to_s;
+
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==2"
+    double bulk_viscosity_normalisation;
+    double bulk_viscosity_width_in_GeV;
+    double bulk_viscosity_peak_in_GeV;
+
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==3"
+    double zeta_over_s_max;
+    double zeta_over_s_width_in_GeV;
+    double zeta_over_s_T_peak_in_GeV;
+    double zeta_over_s_lambda_asymm;
+
+    //! multiplicative factors for the relaxation times
+    double shear_relax_time_factor;
+    double bulk_relax_time_factor;
+
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
 
@@ -119,7 +148,7 @@ typedef struct init_data {
 
     //! decide whether to output files for movie
     int output_movie_flag;
-    
+
     //! decide whether to output files for R_pi and R_Pi
     int output_outofequilibriumsize;
 
