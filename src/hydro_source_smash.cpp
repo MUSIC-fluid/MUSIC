@@ -65,6 +65,12 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
     fgets(line2_header, 200, fin);
     fgets(line3_header, 200, fin);
 
+    baryon_total_ = 0;
+    p0_total_ = 0.;
+    px_total_ = 0.;
+    py_total_ = 0.;
+    pz_total_ = 0.;
+
     // now we read in data
     for (int j_ev = 1; j_ev <= i_event; j_ev++) {
         // reading the event header
@@ -137,6 +143,26 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
             if (get_source_tau_min() > new_hadron.tau) {
                 set_source_tau_min(new_hadron.tau);
             }
+
+            bool out_of_range_x = fabs(new_hadron.x) > 0.5 * DATA.x_size;
+            bool out_of_range_y = fabs(new_hadron.y) > 0.5 * DATA.y_size;
+            bool out_of_range_eta = fabs(new_hadron.eta_s) > 0.5 * DATA.eta_size;
+            if (out_of_range_x || out_of_range_y || out_of_range_eta) {
+                music_message << "HydroSourceSMASH:: hadronic source is out of range.";
+                music_message.flush("info");
+                music_message << "HydroSourceSMASH::     pdgid = " << new_hadron.pdgid;
+                music_message.flush("info");
+                music_message << "HydroSourceSMASH::     (x, y) = (" << new_hadron.x << ", " << new_hadron.y << ") fm.";
+                music_message.flush("info");
+                music_message << "HydroSourceSMASH::     eta_s = " << new_hadron.eta_s;
+                music_message.flush("info");
+            }
+
+            baryon_total_ += new_hadron.baryon_number;
+            p0_total_ += p0;
+            px_total_ += px;
+            py_total_ += py;
+            pz_total_ += pz;
         }
     }
 
@@ -151,6 +177,16 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
     music_message << "HydroSourceSMASH:: tau_max = " << get_source_tau_max()
                   << " fm.";
     music_message.flush("info");
+    music_message << "HydroSourceSMASH:: p0_total = " << p0_total_ << " GeV.";
+    music_message.flush("info");
+    music_message << "HydroSourceSMASH:: px_total = " << px_total_ << " GeV.";
+    music_message.flush("info");
+    music_message << "HydroSourceSMASH:: py_total = " << py_total_ << " GeV.";
+    music_message.flush("info");
+    music_message << "HydroSourceSMASH:: pz_total = " << pz_total_ << " GeV.";
+    music_message.flush("info");
+    music_message << "HydroSourceSMASH:: baryon_total = " << baryon_total_;
+    music_message.flush("info");
 }
 
 
@@ -161,7 +197,7 @@ void HydroSourceSMASH::prepare_list_for_current_tau_frame(
     int n_hadrons_all = list_hadrons_.size();
     for (int ipart = 0; ipart < n_hadrons_all; ipart++) {
         double tau_dis = list_hadrons_.at(ipart).tau - tau_local;
-        if (tau_dis > 0. && tau_dis < dtau) {
+        if (tau_dis >= 0. && tau_dis < dtau) {
             list_hadrons_current_tau_.push_back(list_hadrons_.at(ipart));
         }
     }

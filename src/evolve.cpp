@@ -59,11 +59,15 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double tau0  = DATA.tau0;
     double dt    = DATA.delta_tau;
 
+    bool write_initial_profile = true;
+    double tauinit_to_write = 0.99 * DATA.tau0;
+
     double tau;
     int it_start = 0;
     double source_tau_max = 0.0;
     if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
         source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
+        tauinit_to_write = source_tau_max;
     }
 
     const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
@@ -141,8 +145,10 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
-        if (std::abs(tau - DATA.tau0) < 1e-15)
+        if (tau > tauinit_to_write && write_initial_profile) {
             grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
+            write_initial_profile = false;
+        }
         grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *ap_current);
         if (DATA.Initial_profile == 13) {

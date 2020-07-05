@@ -27,6 +27,12 @@ class HydroSourceSMASH : public HydroSourceBase {
     std::vector<hadron> list_hadrons_;
     std::vector<hadron> list_hadrons_current_tau_;
 
+    int baryon_total_;
+    double p0_total_;
+    double px_total_;
+    double py_total_;
+    double pz_total_;
+
  public:
     HydroSourceSMASH() = default;
     HydroSourceSMASH(const InitData &DATA_in);
