@@ -662,7 +662,6 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempturn_on_diff;
     parameter_list.turn_on_diff = tempturn_on_diff;
 
-
     // Relaxation time factors
     double tempshear_relax_time_factor= 5.;
     tempinput = Util::StringFind4(input_file, "shear_relax_time_factor");
@@ -913,36 +912,73 @@ InitData read_in_parameters(std::string input_file) {
 
 void set_parameter(InitData &parameter_list, std::string parameter_name,
                    double value) {
-    if (parameter_name == "MUSIC_mode") {
+    if (parameter_name == "MUSIC_mode")
         parameter_list.mode = static_cast<int>(value);
-    }
-    if (parameter_name == "output_evolution_data") {
+
+    if (parameter_name == "output_evolution_data")
         parameter_list.outputEvolutionData = static_cast<int>(value);
-    }
-    if (parameter_name == "output_movie_flag") {
+
+    if (parameter_name == "output_movie_flag")
         parameter_list.output_movie_flag = static_cast<int>(value);
-    }
-    if (parameter_name == "store_hydro_info_in_memory") {
+
+    if (parameter_name == "store_hydro_info_in_memory")
         parameter_list.store_hydro_info_in_memory = static_cast<int>(value);
-    }
-    if (parameter_name == "Viscosity_Flag_Yes_1_No_0") {
+
+    if (parameter_name == "Viscosity_Flag_Yes_1_No_0")
         parameter_list.viscosity_flag = static_cast<int>(value);
-    }
-    if (parameter_name == "Include_Shear_Visc_Yes_1_No_0") {
+
+    if (parameter_name == "Include_Shear_Visc_Yes_1_No_0")
         parameter_list.turn_on_shear = static_cast<int>(value);
-    }
-    if (parameter_name == "Shear_to_S_ratio") {
+
+    if (parameter_name == "Shear_to_S_ratio")
         parameter_list.shear_to_s = value;
-    }
-    if (parameter_name == "T_freeze") {
+
+    if (parameter_name == "T_freeze")
         parameter_list.TFO = value;
-    }
-    if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0") {
+
+    if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0")
         parameter_list.turn_on_bulk = static_cast<int>(value);
-    }
-    if (parameter_name == "Include_second_order_terms") {
+
+    if (parameter_name == "Include_second_order_terms")
         parameter_list.include_second_order_terms = static_cast<int>(value);
-    }
+
+    if (parameter_name == "T_dependent_Shear_to_S_ratio")
+        parameter_list.T_dependent_shear_to_s = static_cast<int>(value);
+
+    if (parameter_name == "eta_over_s_min")
+        parameter_list.eta_over_s_min = value;
+    if (parameter_name == "eta_over_s_slope")
+        parameter_list.eta_over_s_slope = value;
+    if (parameter_name == "eta_over_s_curv")
+        parameter_list.eta_over_s_curv = value;
+
+    if (parameter_name == "eta_over_s_T_kink_in_GeV")
+        parameter_list.eta_over_s_T_kink_in_GeV = value;
+    if (parameter_name == "eta_over_s_low_T_slope_in_GeV")
+        parameter_list.eta_over_s_low_T_slope_in_GeV = value;
+    if (parameter_name == "eta_over_s_high_T_slope_in_GeV")
+        parameter_list.eta_over_s_high_T_slope_in_GeV = value;
+    if (parameter_name == "eta_over_s_at_kink")
+        parameter_list.eta_over_s_at_kink = value;
+
+    if (parameter_name == "T_dependent_Bulk_to_S_ratio")
+        parameter_list.T_dependent_bulk_to_s = static_cast<int>(value);
+
+    if (parameter_name == "bulk_viscosity_normalisation")
+        parameter_list.bulk_viscosity_normalisation = value;
+    if (parameter_name == "bulk_viscosity_peak_in_GeV")
+        parameter_list.bulk_viscosity_peak_in_GeV = value;
+    if (parameter_name == "bulk_viscosity_width_in_GeV")
+        parameter_list.bulk_viscosity_width_in_GeV = value;
+
+    if (parameter_name == "zeta_over_s_max")
+        parameter_list.zeta_over_s_max = value;
+    if (parameter_name == "zeta_over_s_width_in_GeV")
+        parameter_list.zeta_over_s_width_in_GeV = value;
+    if (parameter_name == "zeta_over_s_T_peak_in_GeV")
+        parameter_list.zeta_over_s_T_peak_in_GeV = value;
+    if (parameter_name == "zeta_over_s_lambda_asymm")
+        parameter_list.zeta_over_s_lambda_asymm = value;
 }
 
 void check_parameters(InitData &parameter_list, std::string input_file) {

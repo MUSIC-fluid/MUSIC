@@ -193,14 +193,18 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
-    double transport_coefficient  = 9./70.*tau_pi/shear*(4./5.);
-    double transport_coefficient2 = 4./3.*tau_pi;
-    double transport_coefficient3 = 10./7.*tau_pi;
+    double transport_coefficient  = (
+            transport_coeffs_.get_phi7_coeff()*tau_pi/shear*(4./5.));
+    double transport_coefficient2 = (
+            transport_coeffs_.get_delta_pipi_coeff()*tau_pi);
+    double transport_coefficient3 = (
+            transport_coeffs_.get_tau_pipi_coeff()*tau_pi);
 
     // transport coefficient for nonlinear terms
     // -- coupling to bulk viscous pressure
     // transport coefficients not yet known -- fixed to zero
-    double transport_coefficient_b  = 6./5.*tau_pi;
+    double transport_coefficient_b  = (
+            transport_coeffs_.get_lambda_piPi_coeff()*tau_pi);
     double transport_coefficient2_b = 0.;
 
 
@@ -656,11 +660,14 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
 
     // from kinetic theory, small mass limit
-    transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);
-    transport_coeff2   = 0.;  // not known; put 0
+    transport_coeff1   = (
+            transport_coeffs_.get_delta_PiPi_coeff()*Bulk_Relax_time);
+    transport_coeff2   = (
+            transport_coeffs_.get_tau_pipi_coeff()*Bulk_Relax_time);
 
     // from kinetic theory
-    transport_coeff1_s = 8./5.*(1./3.-cs2)*Bulk_Relax_time;
+    transport_coeff1_s = (transport_coeffs_.get_lambda_Pipi_coeff()
+                          *(1./3. - cs2)*Bulk_Relax_time);
     transport_coeff2_s = 0.;  // not known;  put 0
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
@@ -789,11 +796,11 @@ double Diss::Make_uqSource(
     double NS = kappa*(baryon_diffusion_vec[nu] + grid_pt->u[nu]*a_local[4]);
 
     // add a new non-linear term (- q \theta)
-    double transport_coeff = 1.0*tau_rho;   // from conformal kinetic theory
+    double transport_coeff = transport_coeffs_.get_delta_qq_coeff()*tau_rho;
     double Nonlinear1 = -transport_coeff*q[nu]*theta_local;
 
     // add a new non-linear term (-q^\mu \sigma_\mu\nu)
-    double transport_coeff_2 = 3./5.*tau_rho;   // from 14-momentum massless
+    double transport_coeff_2 = transport_coeffs_.get_lambda_qq_coeff()*tau_rho;
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
     double temptemp = 0.0;
     for (int i = 0 ; i < 4; i++) {
