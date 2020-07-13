@@ -24,20 +24,25 @@ HydroSourceSMASH::HydroSourceSMASH(const InitData &DATA_in) :
     set_sigma_x  (0.5);
     set_sigma_eta(0.2);
     parton_quench_factor = 1.;    // no diffusion current from the source
-    int i_event = DATA.event_id_SMASH;
-    read_in_SMASH_hadrons(i_event);
+    int i_event = DATA.event_id_SMASH_output;
+    int extended_output = DATA.extended_SMASH_output;
+    int reject_spectators = DATA.reject_SMASH_spectators;
+    read_in_SMASH_hadrons(i_event, extended_output, reject_spectators);
 }
 
 
 HydroSourceSMASH::~HydroSourceSMASH() {
     list_hadrons_.clear();
     list_hadrons_current_tau_.clear();
+    list_spectators_.clear();
 }
 
 
 //! This function reads in the hadron information from the SMASH model
-void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
+void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event,
+    int extended_output, int reject_spectators) {
     list_hadrons_.clear();
+    list_spectators_.clear();
     string SMASH_filename = DATA.initName_SMASH;
     music_message << "hydro_source: "
                   << "read in SMASH parton list from " << SMASH_filename;
@@ -56,6 +61,7 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
     }
 
     int n_hadrons = 0;
+    int n_spectators = 0;
 
     // reading the file header
     char line1_header[200];
@@ -70,6 +76,9 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
     px_total_ = 0.;
     py_total_ = 0.;
     pz_total_ = 0.;
+
+    char line_event_spec_ini[500];
+    char line_event_spec_fin[500];
 
     // now we read in data
     for (int j_ev = 1; j_ev <= i_event; j_ev++) {
@@ -92,7 +101,15 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
 
             if (*line_particle == '#') {
                 end_of_event = true;
+                if (j_ev == i_event) {
+                    strcpy(line_event_spec_fin, line_particle);
+                }
+
                 break;
+            }
+
+            if (j_ev != i_event) {
+                continue;
             }
 
             double t;
@@ -108,14 +125,37 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
             int tag;
             int charge;
 
-            sscanf(line_particle, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %d %d %d",
-                &t, &x, &y, &z, &mass, &p0, &px, &py, &pz, &pdgid, &tag, &charge);
+            int ncoll = 0;
+            double form_time = 0.;
+            double xsecfac = 1.;
+            int proc_id_origin = 0;
+            int proc_type_origin = 0;
+            double time_last_coll = 0.;
+            int pdg_mother1 = 0;
+            int pdg_mother2 = 0;
 
-            if (j_ev != i_event) {
-                continue;
+            bool is_spectator_now = false;
+
+            if (extended_output == 0) {
+                sscanf(line_particle, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %d %d %d",
+                    &t, &x, &y, &z, &mass, &p0, &px, &py, &pz, &pdgid, &tag, &charge);
+
+                is_spectator_now =
+                    reject_spectators != 0 && std::abs(px) < 1e-4 && std::abs(py) < 1e-4;
+            } else {
+                sscanf(line_particle, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %d %d %d %d %lf %lf %d %d %lf %d %d",
+                    &t, &x, &y, &z, &mass, &p0, &px, &py, &pz, &pdgid, &tag, &charge,
+                    &ncoll, &form_time, &xsecfac, &proc_id_origin, &proc_type_origin, &time_last_coll,
+                    &pdg_mother1, &pdg_mother2);
+
+                is_spectator_now = reject_spectators != 0 && proc_id_origin == 0;
             }
 
-            n_hadrons += 1;
+            if (is_spectator_now) {
+                n_spectators += 1;
+            } else {
+                n_hadrons += 1;
+            }
 
             if (std::abs(t) <= std::abs(z)) {
                 continue;
@@ -136,12 +176,16 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
             new_hadron.strangness = -Util::get_net_quark_from_pdg(pdgid, 3);
             new_hadron.electric_charge = charge;
 
-            list_hadrons_.push_back(new_hadron);
-            if (get_source_tau_max() < new_hadron.tau) {
-                set_source_tau_max(new_hadron.tau);
-            }
-            if (get_source_tau_min() > new_hadron.tau) {
-                set_source_tau_min(new_hadron.tau);
+            if (is_spectator_now) {
+                list_spectators_.push_back(new_hadron);
+            } else {
+                list_hadrons_.push_back(new_hadron);
+                if (get_source_tau_max() < new_hadron.tau) {
+                    set_source_tau_max(new_hadron.tau);
+                }
+                if (get_source_tau_min() > new_hadron.tau) {
+                    set_source_tau_min(new_hadron.tau);
+                }
             }
 
             bool out_of_range_x = fabs(new_hadron.x) > 0.5 * DATA.x_size;
@@ -166,10 +210,12 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
         }
     }
 
+    sprintf(line_event_spec_ini, "# event 1 out %d", n_spectators);
+
     fclose(fin);
 
     music_message << "HydroSourceSMASH:: read in " << list_hadrons_.size() << "/"
-                  << n_hadrons << " hadrons.";
+                  << n_hadrons << " hadrons and " << n_spectators << "spectators.";
     music_message.flush("info");
     music_message << "HydroSourceSMASH:: tau_min = " << get_source_tau_min()
                   << " fm.";
@@ -187,6 +233,35 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event) {
     music_message.flush("info");
     music_message << "HydroSourceSMASH:: baryon_total = " << baryon_total_;
     music_message.flush("info");
+
+    if (reject_spectators != 0) {
+        FILE *fout_spectators;
+        fout_spectators = fopen("SMASH_spectators.oscar", "w");
+        fprintf(fout_spectators, "#!OSCAR2013 SMASH_spectators t x y z mass p0 px py pz pdg ID charge\n");
+        fprintf(fout_spectators, "# Units: fm fm fm fm GeV GeV GeV GeV GeV none none none\n");
+        fprintf(fout_spectators, "%s", line3_header);
+        fprintf(fout_spectators, "%s\n", line_event_spec_ini);
+        for (int ipart = 0; ipart < n_spectators; ipart++) {
+            double t = list_spectators_.at(ipart).tau * std::cosh(list_spectators_.at(ipart).eta_s);
+            double x = list_spectators_.at(ipart).x;
+            double y = list_spectators_.at(ipart).y;
+            double z = list_spectators_.at(ipart).tau * std::sinh(list_spectators_.at(ipart).eta_s);
+            double mass = list_spectators_.at(ipart).mass;
+            double px = list_spectators_.at(ipart).px;
+            double py = list_spectators_.at(ipart).py;
+            double mT = std::sqrt(mass * mass + px * px + py * py);
+            double p0 = mT * std::cosh(list_spectators_.at(ipart).rapidity);
+            double pz = mT * std::sinh(list_spectators_.at(ipart).rapidity);
+            int pdgid = list_spectators_.at(ipart).pdgid;
+            int tag = ipart;
+            int charge = list_spectators_.at(ipart).electric_charge;
+
+            fprintf(fout_spectators, "%e  %e  %e  %e  %e  %e  %e  %e  %e  %d  %d  %d\n",
+                t, x, y, z, mass, p0, px, py, pz, pdgid, tag, charge);
+        }
+        fprintf(fout_spectators, "%s\n", line_event_spec_fin);
+        fclose(fout_spectators);
+    }
 }
 
 

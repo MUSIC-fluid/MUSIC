@@ -34,8 +34,10 @@ typedef struct init_data {
     // parameters for Initial_profile == 30
     std::string initName_AMPT;  //!< initial state filename from AMPT
 
-    std::string initName_SMASH;  //!< initial state filename from SMASH
-    int event_id_SMASH;          //!< event id in the initial state file from SMASH
+    std::string initName_SMASH;    //!< initial state filename from SMASH
+    int event_id_SMASH_output;     //!< event id in the initial state file from SMASH
+    int extended_SMASH_output;     //!< whether or not the extended format is used for SMASH output
+    int reject_SMASH_spectators;   //!< whether or not the spectators in SMASH will be rejected
 
     //! random seed
     int seed;

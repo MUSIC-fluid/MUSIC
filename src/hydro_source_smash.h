@@ -26,6 +26,7 @@ class HydroSourceSMASH : public HydroSourceBase {
     double parton_quench_factor;
     std::vector<hadron> list_hadrons_;
     std::vector<hadron> list_hadrons_current_tau_;
+    std::vector<hadron> list_spectators_;
 
     int baryon_total_;
     double p0_total_;
@@ -39,7 +40,8 @@ class HydroSourceSMASH : public HydroSourceBase {
     ~HydroSourceSMASH();
     
     //! This function reads in the hadron information from the SMASH model
-    void read_in_SMASH_hadrons(int i_event);
+    void read_in_SMASH_hadrons(int i_event,
+        int extended_output, int reject_spectators);
     
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
