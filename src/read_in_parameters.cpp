@@ -678,19 +678,25 @@ InitData read_in_parameters(std::string input_file) {
         tempinitName_SMASH.assign(tempinput);
     parameter_list.initName_SMASH.assign(tempinitName_SMASH);
 
+    int tempAverage_SMASH = 0;
+    tempinput = Util::StringFind4(input_file, "Average_SMASH_events");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempAverage_SMASH;
+    parameter_list.average_SMASH_events = tempAverage_SMASH;
+
     int tempeventId_SMASH = 1;
     tempinput = Util::StringFind4(input_file, "Event_id_SMASH_output");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempeventId_SMASH;
     parameter_list.event_id_SMASH_output = tempeventId_SMASH;
 
-    int tempextended_SMASH = 0;
+    int tempextended_SMASH = 1;
     tempinput = Util::StringFind4(input_file, "Extended_SMASH_output");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempextended_SMASH;
     parameter_list.extended_SMASH_output = tempextended_SMASH;
 
-    int temprejectspec_SMASH = 0;
+    int temprejectspec_SMASH = 1;
     tempinput = Util::StringFind4(input_file, "Reject_SMASH_spectators");
     if (tempinput != "empty")
         istringstream(tempinput) >> temprejectspec_SMASH;

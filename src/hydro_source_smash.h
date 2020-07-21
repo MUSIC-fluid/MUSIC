@@ -28,6 +28,10 @@ class HydroSourceSMASH : public HydroSourceBase {
     std::vector<hadron> list_hadrons_current_tau_;
     std::vector<hadron> list_spectators_;
 
+    int average_events_;
+    int number_events_;
+    double weight_event_;
+
     int baryon_total_;
     double p0_total_;
     double px_total_;

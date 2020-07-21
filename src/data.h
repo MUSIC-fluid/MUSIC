@@ -35,6 +35,7 @@ typedef struct init_data {
     std::string initName_AMPT;  //!< initial state filename from AMPT
 
     std::string initName_SMASH;    //!< initial state filename from SMASH
+    int average_SMASH_events;      //!< whether take an event average from the SMASH output
     int event_id_SMASH_output;     //!< event id in the initial state file from SMASH
     int extended_SMASH_output;     //!< whether or not the extended format is used for SMASH output
     int reject_SMASH_spectators;   //!< whether or not the spectators in SMASH will be rejected
