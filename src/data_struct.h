@@ -13,6 +13,7 @@ typedef std::array<double, 5>  DumuVec;
 typedef Arr10                  VelocityShearVec;
 typedef std::array<double, 4>  DmuMuBoverTVec;
 typedef std::array<double, 6>  VorticityVec;
+typedef std::array<double, 8>  ShearVisVecLRF;
 typedef std::array<double, 14> ViscousVec;
 typedef std::array<std::array<double, 4>, 5> dUsupMat;
 

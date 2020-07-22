@@ -408,8 +408,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
 
 
 //! This function outputs hydro evolution file in binary format
-void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, 
-                                              double tau) {
+void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
     // the format of the file is as follows,
     //    itau ix iy ieta e P T ux uy ueta
     // if turn_on_shear == 1:
@@ -476,6 +475,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
         fwrite(header, sizeof(float), 16, out_file_xyeta);
     }
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+        double eta_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
@@ -496,18 +496,21 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
                 if (DATA.turn_on_rhob == 1)
                     muB_local = eos.get_muB(e_local, rhob_local);
 
+                ShearVisVecLRF piLRF;
+                get_LRF_shear_stress_tensor(arena(ix, iy, ieta), eta_local,
+                                            piLRF);
                 double div_factor = e_local + p_local;  // 1/fm^4
-                double Wxx   = 0.0;
-                double Wxy   = 0.0;
-                double Wxeta = 0.0;
-                double Wyy   = 0.0;
-                double Wyeta = 0.0;
+                double Wxx = 0.0;
+                double Wxy = 0.0;
+                double Wxz = 0.0;
+                double Wyy = 0.0;
+                double Wyz = 0.0;
                 if (DATA.turn_on_shear == 1) {
-                    Wxx   = arena(ix, iy, ieta).Wmunu[4]/div_factor;
-                    Wxy   = arena(ix, iy, ieta).Wmunu[5]/div_factor;
-                    Wxeta = arena(ix, iy, ieta).Wmunu[6]/div_factor;
-                    Wyy   = arena(ix, iy, ieta).Wmunu[7]/div_factor;
-                    Wyeta = arena(ix, iy, ieta).Wmunu[8]/div_factor;
+                    Wxx = piLRF[0]/div_factor;
+                    Wxy = piLRF[1]/div_factor;
+                    Wxz = piLRF[2]/div_factor;
+                    Wyy = piLRF[3]/div_factor;
+                    Wyz = piLRF[4]/div_factor;
                 }
 
                 double pi_b = 0.0;
@@ -519,14 +522,14 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
                 //double common_term_q = 0.0;
                 double qx   = 0.0;
                 double qy   = 0.0;
-                double qeta = 0.0;
+                double qz = 0.0;
                 if (DATA.turn_on_diff == 1) {
                     //common_term_q = rhob_local*T_local/div_factor;
                     double kappa_hat = get_deltaf_qmu_coeff(T_local,
                                                             muB_local);
-                    qx   = arena(ix, iy, ieta).Wmunu[11]/kappa_hat;
-                    qy   = arena(ix, iy, ieta).Wmunu[12]/kappa_hat;
-                    qeta = arena(ix, iy, ieta).Wmunu[13]/kappa_hat;
+                    qx = piLRF[5]/kappa_hat;
+                    qy = piLRF[6]/kappa_hat;
+                    qz = piLRF[7]/kappa_hat;
                 }
 
                 float ideal[] = {static_cast<float>(itau),
@@ -550,9 +553,9 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
                 if (DATA.turn_on_shear == 1) {
                     float shear_pi[] = {static_cast<float>(Wxx),
                                         static_cast<float>(Wxy),
-                                        static_cast<float>(Wxeta),
+                                        static_cast<float>(Wxz),
                                         static_cast<float>(Wyy),
-                                        static_cast<float>(Wyeta)};
+                                        static_cast<float>(Wyz)};
                     fwrite(shear_pi, sizeof(float), 5, out_file_xyeta);
                 }
 
@@ -564,7 +567,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
                 if (DATA.turn_on_diff == 1) {
                     float diffusion[] = {static_cast<float>(qx),
                                          static_cast<float>(qy),
-                                         static_cast<float>(qeta)};
+                                         static_cast<float>(qz)};
                     fwrite(diffusion, sizeof(float), 3, out_file_xyeta);
                 }
             }
@@ -2114,4 +2117,81 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
         << tau << "  " << R_shearpi << "  " << R_Pi << "  "
         << u_avg << "  " << T_avg << endl;
     of2.close();
+}
+
+
+void Cell_info::get_LRF_shear_stress_tensor(const Cell_small &cell,
+                                            const double eta_s,
+                                            ShearVisVecLRF &res) {
+    const double cosh_eta = cosh(eta_s);
+    const double sinh_eta = sinh(eta_s);
+
+    double u0 = cell.u[0];
+    double ux = cell.u[1];
+    double uy = cell.u[2];
+    double u3 = cell.u[3];
+    double ut = u0*cosh_eta + u3*sinh_eta;
+    double uz = u3*cosh_eta + u0*sinh_eta;
+    double LorentzBoost[4][4] = {
+        {ut, -ux, -uy, -uz},
+        {-ux, 1. + ux*ux/(ut+1.), ux*uy/(ut+1.), ux*uz/(ut+1.)},
+        {-uy, ux*uy/(ut+1.), 1. + uy*uy/(ut+1.), uy*uz/(ut+1.)},
+        {-uz, ux*uz/(ut+1.), uy*uz/(ut+1.), 1. + uz*uz/(ut+1.)}
+    };
+
+    auto ShearVisVec = cell.Wmunu;
+    double pi_tz[4][4];
+    pi_tz[0][0] = (  ShearVisVec[0]*cosh_eta*cosh_eta
+                   + 2.*ShearVisVec[3]*cosh_eta*sinh_eta
+                   + ShearVisVec[9]*sinh_eta*sinh_eta);
+    pi_tz[0][1] = ShearVisVec[1]*cosh_eta + ShearVisVec[6]*sinh_eta;
+    pi_tz[0][2] = ShearVisVec[2]*cosh_eta + ShearVisVec[8]*sinh_eta;
+    pi_tz[0][3] = (  ShearVisVec[0]*cosh_eta*sinh_eta
+                   + ShearVisVec[3]*(cosh_eta*cosh_eta
+                                       + sinh_eta*sinh_eta)
+                     + ShearVisVec[9]*sinh_eta*cosh_eta);
+    pi_tz[1][0] = pi_tz[0][1];
+    pi_tz[1][1] = ShearVisVec[4];
+    pi_tz[1][2] = ShearVisVec[5];
+    pi_tz[1][3] = ShearVisVec[1]*sinh_eta + ShearVisVec[6]*cosh_eta;
+    pi_tz[2][0] = pi_tz[0][2];
+    pi_tz[2][1] = pi_tz[1][2];
+    pi_tz[2][2] = ShearVisVec[7];
+    pi_tz[2][3] = ShearVisVec[2]*sinh_eta + ShearVisVec[8]*cosh_eta;
+    pi_tz[3][0] = pi_tz[0][3];
+    pi_tz[3][1] = pi_tz[1][3];
+    pi_tz[3][2] = pi_tz[2][3];
+    pi_tz[3][3] = pi_tz[0][0] - pi_tz[1][1] - pi_tz[2][2];
+    double pi_LRF[4][4];
+    for (int i = 1; i < 3; i++) {
+        for (int j = i; j < 4; j++) {
+            pi_LRF[i][j] = 0.;
+            for (int a = 0; a < 4; a++) {
+                for (int b = 0; b < 4; b++) {
+                    pi_LRF[i][j] += (LorentzBoost[i][a]*pi_tz[a][b]
+                                     *LorentzBoost[b][j]);
+                }
+            }
+        }
+    }
+    res[0] = pi_LRF[1][1];
+    res[1] = pi_LRF[1][2];
+    res[2] = pi_LRF[1][3];
+    res[3] = pi_LRF[2][2];
+    res[4] = pi_LRF[2][3];
+
+    double q_tz[4];
+    q_tz[0] = ShearVisVec[10]*cosh_eta + ShearVisVec[13]*sinh_eta;
+    q_tz[1] = ShearVisVec[11];
+    q_tz[2] = ShearVisVec[12];
+    q_tz[3] = ShearVisVec[10]*sinh_eta + ShearVisVec[13]*cosh_eta;
+    double q_LRF[4];
+    for (int i = 1; i < 4; i++) {
+        q_LRF[i] = 0.;
+        for (int a = 0; a < 4; a++)
+            q_LRF[i] += LorentzBoost[i][a]*q_tz[a];
+    }
+    res[5] = q_LRF[1];
+    res[6] = q_LRF[2];
+    res[7] = q_LRF[3];
 }

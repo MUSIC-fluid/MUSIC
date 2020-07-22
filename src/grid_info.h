@@ -140,6 +140,12 @@ class Cell_info {
     //! This function outputs hydro evolution file into memory for JETSCAPE
     void OutputEvolutionDataXYEta_memory(
             SCGrid &arena, const double tau, HydroinfoMUSIC &hydro_info_ptr);
+
+
+    //! This function computes the pi^{\mu\nu} in the local rest frame
+    //! and in the Cartisian coordinates
+    void get_LRF_shear_stress_tensor(const Cell_small &cell,
+                                     const double eta_s, ShearVisVecLRF &res);
 };
 
 #endif  // SRC_GRID_INFO_H_
