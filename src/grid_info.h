@@ -85,7 +85,8 @@ class Cell_info {
 
     //! This function prints to the screen the maximum local energy density,
     //! the maximum temperature in the current grid
-    double get_maximum_energy_density(SCGrid &arena);
+    void get_maximum_energy_density(
+        SCGrid &arena, double &e_max, double &nB_max, double &Tmax);
 
     //! This function outputs energy density and n_b for making movies
     void output_evolution_for_movie(SCGrid &arena, const double tau);

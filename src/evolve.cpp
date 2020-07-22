@@ -183,7 +183,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
-        auto emax_loc = grid_info.get_maximum_energy_density(*ap_current);
+        double emax_loc = 0.;
+        double Tmax_curr = 0.;
+        double nB_max_curr = 0.;
+        grid_info.get_maximum_energy_density(*ap_current, emax_loc,
+                                             nB_max_curr, Tmax_curr);
         if (tau > source_tau_max && it > 0) {
             if (eps_max_cur < 0.) {
                 eps_max_cur = emax_loc;
@@ -237,15 +241,22 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
         if (frozen == 1 && tau > source_tau_max) {
-            if (DATA.outputEvolutionData != 3) {
-                music_message.info("All cells frozen out. Exiting.");
-                break;
-            } else {
+            if (DATA.outputEvolutionData == 3) {
                 if (eps_max_cur < e_cut) {
                     music_message << "All cells e < " << e_cut << " GeV/fm^3.";
                     music_message.flush("info");
                     break;
                 }
+            } else if (DATA.outputEvolutionData == 2) {
+                if (Tmax_curr < DATA.output_evolution_T_cut) {
+                    music_message << "All cells T < "
+                                  << DATA.output_evolution_T_cut << " GeV.";
+                    music_message.flush("info");
+                    break;
+                }
+            } else {
+                music_message.info("All cells frozen out. Exiting.");
+                break;
             }
         }
     }
