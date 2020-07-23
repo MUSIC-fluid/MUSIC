@@ -1712,7 +1712,8 @@ void Cell_info::output_average_phase_diagram_trajectory(
 void Cell_info::output_momentum_anisotropy_vs_etas(
                 const double tau, SCGrid &arena) const {
     ostringstream filename;
-    filename << "momentum_anisotropy_tau_" << tau << ".dat";
+    //filename << "momentum_anisotropy_tau_" << tau << ".dat";
+    filename << "momentum_anisotropy_tauinit.dat";
     std::fstream of;
     of.open(filename.str().c_str(), std::fstream::out);
     of << "# tau(fm)  epsilon_p(ideal)(cos)  epsilon_p(ideal)(sin)  "
@@ -1720,13 +1721,15 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
        << "epsilon_p(full)(cos)  epsilon_p(full)(sin)  " << endl;
 
     ostringstream filename1;
-    filename1 << "eccentricities_evo_ed_tau_" << tau << ".dat";
+    //filename1 << "eccentricities_evo_ed_tau_" << tau << ".dat";
+    filename1 << "eccentricities_evo_ed_tauinit.dat";
     std::fstream of1;
     of1.open(filename1.str().c_str(), std::fstream::out);
     of1 << "# tau(fm)  ed(GeV/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
 
     ostringstream filename2;
-    filename2 << "eccentricities_evo_nB_tau_" << tau << ".dat";
+    //filename2 << "eccentricities_evo_nB_tau_" << tau << ".dat";
+    filename2 << "eccentricities_evo_nB_tauinit.dat";
     std::fstream of2;
     of2.open(filename2.str().c_str(), std::fstream::out);
     of2 << "# tau(fm)  nB(1/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
