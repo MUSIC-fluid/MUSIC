@@ -476,15 +476,18 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
     }
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         double eta_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
+        double cosh_eta = cosh(eta_local);
+        double sinh_eta = sinh(eta_local);
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
                 double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
                 double p_local    = eos.get_pressure(e_local, rhob_local);
 
-                double ux   = arena(ix, iy, ieta).u[1];
-                double uy   = arena(ix, iy, ieta).u[2];
-                double ueta = arena(ix, iy, ieta).u[3];
+                double ux = arena(ix, iy, ieta).u[1];
+                double uy = arena(ix, iy, ieta).u[2];
+                double uz = (  arena(ix, iy, ieta).u[3]*cosh_eta
+                             + arena(ix, iy, ieta).u[0]*sinh_eta);
 
                 // T_local is in 1/fm
                 double T_local = eos.get_temperature(e_local, rhob_local);
@@ -515,7 +518,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
 
                 double pi_b = 0.0;
                 if (DATA.turn_on_bulk == 1) {
-                    pi_b = arena(ix, iy, ieta).pi_b;   // 1/fm^4
+                    pi_b = arena(ix, iy, ieta).pi_b/div_factor;
                 }
 
                 // outputs for baryon diffusion part
@@ -541,7 +544,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
                                  static_cast<float>(T_local*hbarc),
                                  static_cast<float>(ux),
                                  static_cast<float>(uy),
-                                 static_cast<float>(ueta)};
+                                 static_cast<float>(uz)};
 
                 fwrite(ideal, sizeof(float), 10, out_file_xyeta);
 
