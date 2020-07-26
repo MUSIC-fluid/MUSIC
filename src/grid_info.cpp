@@ -718,6 +718,118 @@ double Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
 }
 
 
+//! This function outputs hydro evolution file in binary format
+void Cell_info::OutputEvolutionDataXYEta_vorticity(
+        SCGrid &arena_curr, SCGrid &arena_prev, double tau) {
+    // the format of the file is as follows,
+    //    itau ix iy ieta e P T ux uy ueta mu_B
+    //    omega^tx omega^ty omega^tz omega^xy omega^xz omega^yz
+    const string out_name_xyeta = "evolution_all_xyeta.dat";
+    string out_open_mode;
+    FILE *out_file_xyeta;
+    // If it's the first timestep, overwrite the previous file
+    if (tau == DATA.tau0) {
+        out_open_mode = "wb";
+    } else {
+        out_open_mode = "ab";
+    }
+    out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
+
+    int n_skip_tau     = DATA.output_evolution_every_N_timesteps;
+    double output_dtau = DATA.delta_tau*n_skip_tau;
+    int itau = static_cast<int>((tau - DATA.tau0)/(output_dtau) + 0.1);
+
+    int n_skip_x       = DATA.output_evolution_every_N_x;
+    int n_skip_y       = DATA.output_evolution_every_N_y;
+    int n_skip_eta     = DATA.output_evolution_every_N_eta;
+
+    // write out header
+    const int output_nx        = static_cast<int>(arena_curr.nX()/n_skip_x);
+    const int output_ny        = static_cast<int>(arena_curr.nY()/n_skip_y);
+    const int output_neta      = static_cast<int>(arena_curr.nEta()/n_skip_eta);
+    const double output_dx     = DATA.delta_x*n_skip_x;
+    const double output_dy     = DATA.delta_y*n_skip_y;
+    const double output_deta   = DATA.delta_eta*n_skip_eta;
+    const double output_xmin   = - DATA.x_size/2.;
+    const double output_ymin   = - DATA.y_size/2.;
+    const double output_etamin = - DATA.eta_size/2.;
+
+    const int nVar_per_cell = 35;
+
+    if (tau == DATA.tau0) {
+        float header[] = {
+            static_cast<float>(DATA.tau0), static_cast<float>(output_dtau),
+            static_cast<float>(output_nx), static_cast<float>(output_dx),
+            static_cast<float>(output_xmin),
+            static_cast<float>(output_ny), static_cast<float>(output_dy),
+            static_cast<float>(output_ymin),
+            static_cast<float>(output_neta), static_cast<float>(output_deta),
+            static_cast<float>(output_etamin),
+            static_cast<float>(nVar_per_cell)};
+        fwrite(header, sizeof(float), 12, out_file_xyeta);
+    }
+    for (int ieta = 0; ieta < arena_curr.nEta(); ieta += n_skip_eta) {
+        double eta_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
+        for (int iy = 0; iy < arena_curr.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena_curr.nX(); ix += n_skip_x) {
+                double e_local    = arena_curr(ix, iy, ieta).epsilon;  // 1/fm^4
+                double rhob_local = arena_curr(ix, iy, ieta).rhob;     // 1/fm^3
+                double p_local    = eos.get_pressure(e_local, rhob_local);
+
+                double ux   = arena_curr(ix, iy, ieta).u[1];
+                double uy   = arena_curr(ix, iy, ieta).u[2];
+                double ueta = arena_curr(ix, iy, ieta).u[3];
+
+                // T_local is in GeV
+                double T_local = eos.get_temperature(e_local, rhob_local)*hbarc;
+
+                if (T_local < DATA.output_evolution_T_cut) continue;
+                // only ouput fluid cells that are above cut-off temperature
+
+                double muB_local = eos.get_muB(e_local, rhob_local);
+
+                VorticityVec omega_k = {0.0};
+                VorticityVec omega_knoSP = {0.0};
+                VorticityVec omega_th = {0.0};
+                VorticityVec omega_T = {0.0};
+                u_derivative_helper.compute_vorticity_shell(
+                    tau, arena_prev, arena_curr, ieta, ix, iy, eta_local,
+                    omega_k, omega_knoSP, omega_th, omega_T);
+
+                float ideal[] = {static_cast<float>(itau),
+                                 static_cast<float>(ix/n_skip_x),
+                                 static_cast<float>(iy/n_skip_y),
+                                 static_cast<float>(ieta/n_skip_eta),
+                                 static_cast<float>(e_local*hbarc),
+                                 static_cast<float>(p_local*hbarc),
+                                 static_cast<float>(T_local),
+                                 static_cast<float>(ux),
+                                 static_cast<float>(uy),
+                                 static_cast<float>(ueta),
+                                 static_cast<float>(muB_local*hbarc)};
+
+                fwrite(ideal, sizeof(float), 11, out_file_xyeta);
+
+                float vor_vec[6];
+                for (int i = 0; i < 6; i++)
+                    vor_vec[i] = static_cast<float>(omega_k[i]*hbarc);  // GeV
+                fwrite(vor_vec, sizeof(float), 6, out_file_xyeta);
+                for (int i = 0; i < 6; i++)
+                    vor_vec[i] = static_cast<float>(omega_knoSP[i]*hbarc);  // GeV
+                fwrite(vor_vec, sizeof(float), 6, out_file_xyeta);
+                for (int i = 0; i < 6; i++)
+                    vor_vec[i] = static_cast<float>(omega_th[i]);
+                fwrite(vor_vec, sizeof(float), 6, out_file_xyeta);  // 1
+                for (int i = 0; i < 6; i++)
+                    vor_vec[i] = static_cast<float>(omega_T[i]*hbarc*hbarc);  // GeV^2
+                fwrite(vor_vec, sizeof(float), 6, out_file_xyeta);
+            }
+        }
+    }
+    fclose(out_file_xyeta);
+}
+
+
 //! This function prints to the screen the maximum local energy density,
 //! the maximum temperature in the current grid
 void Cell_info::get_maximum_energy_density(

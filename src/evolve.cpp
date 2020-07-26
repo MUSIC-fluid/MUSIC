@@ -124,6 +124,9 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             } else if (DATA.outputEvolutionData == 3) {
                 e_cut = grid_info.OutputEvolutionDataXYEta_photon(
                     *ap_current, tau);
+            } else if (DATA.outputEvolutionData == 4) {
+                grid_info.OutputEvolutionDataXYEta_vorticity(
+                                            *ap_current, *ap_prev, tau);
             }
 
             if (DATA.output_movie_flag == 1) {
@@ -177,9 +180,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                 grid_info.output_vorticity_time_evolution(
                                     *ap_current, *ap_prev, tau, -1.0, 1.0);
                 grid_info.compute_angular_momentum(
-                                    *ap_current, *ap_prev, tau, -DATA.eta_size/2., DATA.eta_size/2.);
+                                    *ap_current, *ap_prev, tau,
+                                    -DATA.eta_size/2., DATA.eta_size/2.);
                 grid_info.output_vorticity_time_evolution(
-                                    *ap_current, *ap_prev, tau, -DATA.eta_size/2., DATA.eta_size/2.);
+                                    *ap_current, *ap_prev, tau,
+                                    -DATA.eta_size/2., DATA.eta_size/2.);
             }
         }
 
@@ -247,7 +252,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                     music_message.flush("info");
                     break;
                 }
-            } else if (DATA.outputEvolutionData == 2) {
+            } else if (   DATA.outputEvolutionData == 2
+                       || DATA.outputEvolutionData == 4) {
                 if (Tmax_curr < DATA.output_evolution_T_cut) {
                     music_message << "All cells T < "
                                   << DATA.output_evolution_T_cut << " GeV.";
