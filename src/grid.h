@@ -14,11 +14,11 @@ class GridT {
     int Nx   = 0;
     int Ny   = 0;
     int Neta = 0;
-  
+
     T& get(int x, int y, int eta) {
         return grid[Nx*(Ny*eta+y)+x];
     }
-  
+
  public:
     GridT() = default;
     GridT(int Nx0, int Ny0, int Neta0) {
@@ -91,11 +91,11 @@ void Neighbourloop(GridT<T> &arena, int cx, int cy, int ceta, Func func) {
         const int p1nx   = dx  [2*dir+1];
         const int p1ny   = dy  [2*dir+1];
         const int p1neta = deta[2*dir+1];
-        const int m2nx   = 2*m1nx;  
-        const int m2ny   = 2*m1ny;  
+        const int m2nx   = 2*m1nx;
+        const int m2ny   = 2*m1ny;
         const int m2neta = 2*m1neta;
-        const int p2nx   = 2*p1nx;  
-        const int p2ny   = 2*p1ny;  
+        const int p2nx   = 2*p1nx;
+        const int p2ny   = 2*p1ny;
         const int p2neta = 2*p1neta;
               auto&  c   = arena        (cx,      cy,      ceta       );
         const auto& p1   = arena.getHalo(cx+p1nx, cy+p1ny, ceta+p1neta);
