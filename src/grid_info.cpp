@@ -1255,8 +1255,8 @@ void Cell_info::output_vorticity_distribution(
     // write the header
     of1 << "# x[fm]  y[fm]  T[GeV]  muB[GeV]  "
         << "omega^{tx}[1/fm]  omega^{ty}[1/fm]  "
-        << "omega^{tz}[1/fm]  omega^{xy}[1/fm]  tau*omega^{xz}[1/fm]  "
-        << "tau*omega^{yz}[1/fm]" << std::endl;
+        << "omega^{tz}[1/fm]  omega^{xy}[1/fm]  omega^{xz}[1/fm]  "
+        << "omega^{yz}[1/fm]" << std::endl;
     ostringstream filename2;
     filename2 << "vorticity_dis_nospatialprojector_eta_" << eta_min
               << "_" << eta_max << "_tau_" << tau << ".dat";
@@ -1266,7 +1266,7 @@ void Cell_info::output_vorticity_distribution(
     of2 << "# x[fm]  y[fm]  T[GeV]  muB[GeV]  "
         << "omega^{tx}[1/fm]  omega^{ty}[1/fm]  "
         << "omega^{tz}[1/fm]  omega^{xy}[1/fm]  omega^{xz}[1/fm]  "
-        << "tau*omega^{yz}[1/fm]" << std::endl;
+        << "omega^{yz}[1/fm]" << std::endl;
     ostringstream filename3;
     filename3 << "vorticity_dis_thermal_eta_" << eta_min
               << "_" << eta_max << "_tau_" << tau << ".dat";
