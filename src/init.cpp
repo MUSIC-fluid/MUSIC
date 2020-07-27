@@ -96,10 +96,14 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111
-               || DATA.Initial_profile == 112) {
+    } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111) {
         double tau_overlap = 2.*7./(sinh(DATA.beam_rapidity));
         DATA.tau0 = std::max(DATA.tau0, tau_overlap);
+        music_message << "tau0 = " << DATA.tau0 << " fm/c.";
+        music_message.flush("info");
+    } else if (DATA.Initial_profile == 112) {
+        double tau_overlap = 2.*7./(sinh(DATA.beam_rapidity));
+        DATA.tau0 = std::max(DATA.tau0, tau_overlap) - DATA.delta_tau;
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
     } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {

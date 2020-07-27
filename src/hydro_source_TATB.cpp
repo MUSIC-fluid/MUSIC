@@ -16,9 +16,11 @@ using std::string;
 
 HydroSourceTATB::HydroSourceTATB(const InitData &DATA_in) :
     DATA_(DATA_in) {
-    set_source_tau_min(DATA_.tau0);
-    set_source_tau_max(DATA_.tau0);
-    yL_frac_ = 0.0;
+    double tau_overlap = 2.*7./(sinh(DATA_.beam_rapidity));
+    tau_source = std::max(DATA_.tau0, tau_overlap);
+    set_source_tau_min(tau_source);
+    set_source_tau_max(tau_source);
+    yL_frac_ = 1.0;
     read_in_TATB();
 }
 
@@ -92,8 +94,9 @@ void HydroSourceTATB::read_in_TATB() {
 void HydroSourceTATB::get_hydro_energy_source(
     const double tau, const double x, const double y, const double eta_s,
     const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
+    const double dtau = DATA_.delta_tau;
     j_mu = {0};
-    if (std::abs(tau - DATA_.tau0) > Util::small_eps) return;
+    if (std::abs((tau - tau_source)) > 1./2.*dtau) return;
 
     const int ix = static_cast<int>((x + DATA_.x_size/2.)/DATA_.delta_x + 0.1);
     const int iy = static_cast<int>((y + DATA_.y_size/2.)/DATA_.delta_y + 0.1);
@@ -109,9 +112,9 @@ void HydroSourceTATB::get_hydro_energy_source(
                            std::abs(DATA_.beam_rapidity - (y_CM - y_L)));
     double eta_envelop = eta_profile_plateau(eta_s - (y_CM - y_L), eta0,
                                              DATA_.eta_fall_off);
-    double E_norm = DATA_.tau0*energy_eta_profile_normalisation(
+    double E_norm = tau_source*energy_eta_profile_normalisation(
                                     y_CM - y_L, eta0, DATA_.eta_fall_off);
-    double epsilon = M_inv*eta_envelop/E_norm/DATA_.delta_tau;  // [1/fm^5]
+    double epsilon = M_inv*eta_envelop/E_norm/dtau;  // [1/fm^5]
     j_mu[0] = epsilon*cosh(y_L);  // [1/fm^5]
     j_mu[3] = epsilon*sinh(y_L);  // [1/fm^5]
 }
@@ -120,25 +123,25 @@ void HydroSourceTATB::get_hydro_energy_source(
 double HydroSourceTATB::get_hydro_rhob_source(
         const double tau, const double x, const double y, const double eta_s,
         const FlowVec &u_mu) const {
+    const double dtau = DATA_.delta_tau;
     double res = 0.;
-    if (std::abs(tau - DATA_.tau0) > Util::small_eps) return(res);
+    if (std::abs((tau - tau_source)) > 1./2.*dtau) return(res);
 
     const int ix = static_cast<int>((x + DATA_.x_size/2.)/DATA_.delta_x + 0.1);
     const int iy = static_cast<int>((y + DATA_.y_size/2.)/DATA_.delta_y + 0.1);
     double eta_rhob_left  = eta_rhob_left_factor(eta_s);
     double eta_rhob_right = eta_rhob_right_factor(eta_s);
     res = profile_TA[ix][iy]*eta_rhob_right + profile_TB[ix][iy]*eta_rhob_left;  // [1/fm^3]
-    res /= (DATA_.delta_tau);  // [1/fm^4]
+    res /= dtau;  // [1/fm^4]
     return(res);
 }
 
 
 double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
     double eta_0       = -std::abs(DATA_.eta_rhob_0);
-    double tau0        = DATA_.tau0;
     double delta_eta_1 = DATA_.eta_rhob_width_1;
     double delta_eta_2 = DATA_.eta_rhob_width_2;
-    double norm        = 2./(sqrt(M_PI)*tau0*(delta_eta_1 + delta_eta_2));
+    double norm        = 2./(sqrt(M_PI)*tau_source*(delta_eta_1 + delta_eta_2));
     double exp_arg     = 0.0;
     if (eta < eta_0) {
         exp_arg = (eta - eta_0)/delta_eta_1;
@@ -152,10 +155,9 @@ double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
 
 double HydroSourceTATB::eta_rhob_right_factor(const double eta) const {
     double eta_0       = std::abs(DATA_.eta_rhob_0);
-    double tau0        = DATA_.tau0;
     double delta_eta_1 = DATA_.eta_rhob_width_1;
     double delta_eta_2 = DATA_.eta_rhob_width_2;
-    double norm        = 2./(sqrt(M_PI)*tau0*(delta_eta_1 + delta_eta_2));
+    double norm        = 2./(sqrt(M_PI)*tau_source*(delta_eta_1 + delta_eta_2));
     double exp_arg     = 0.0;
     if (eta < eta_0) {
         exp_arg = (eta - eta_0)/delta_eta_2;
