@@ -11,6 +11,7 @@
 class HydroSourceTATB : public HydroSourceBase {
  private:
     const InitData &DATA_;
+    double yL_frac_;
     std::vector<std::vector<double>> profile_TA;
     std::vector<std::vector<double>> profile_TB;
 
@@ -25,6 +26,10 @@ class HydroSourceTATB : public HydroSourceBase {
 
     double eta_rhob_left_factor(const double eta) const;
     double eta_rhob_right_factor(const double eta) const;
+    double energy_eta_profile_normalisation(
+        const double y_CM, const double eta_0, const double sigma_eta) const;
+    double eta_profile_plateau(
+        const double eta, const double eta_0, const double sigma_eta) const;
 
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)

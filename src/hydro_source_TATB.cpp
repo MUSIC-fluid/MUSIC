@@ -18,6 +18,7 @@ HydroSourceTATB::HydroSourceTATB(const InitData &DATA_in) :
     DATA_(DATA_in) {
     set_source_tau_min(DATA_.tau0);
     set_source_tau_max(DATA_.tau0);
+    yL_frac_ = 1.0;
     read_in_TATB();
 }
 
@@ -92,6 +93,26 @@ void HydroSourceTATB::get_hydro_energy_source(
     const double tau, const double x, const double y, const double eta_s,
     const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
     j_mu = {0};
+    if (std::abs(tau - DATA_.tau0) > Util::small_eps) return;
+
+    const int ix = static_cast<int>((x - DATA_.x_size/2.)/DATA_.delta_x + 0.1);
+    const int iy = static_cast<int>((y - DATA_.y_size/2.)/DATA_.delta_y + 0.1);
+    double y_CM = atanh((profile_TA[ix][iy] - profile_TB[ix][iy])
+                        /(profile_TA[ix][iy] + profile_TB[ix][iy]
+                          + Util::small_eps)
+                        *tanh(DATA_.beam_rapidity));
+    double y_L = yL_frac_*y_CM;
+    double M_inv = ((profile_TA[ix][iy] + profile_TB[ix][iy])
+                    *Util::m_N*cosh(DATA_.beam_rapidity)/Util::hbarc);  // [1/fm^3]
+    double eta0 = std::min(DATA_.eta_flat/2.0,
+                           std::abs(DATA_.beam_rapidity - (y_CM - y_L)));
+    double eta_envelop = eta_profile_plateau(eta_s - (y_CM - y_L), eta0,
+                                             DATA_.eta_fall_off);
+    double E_norm = DATA_.tau0*energy_eta_profile_normalisation(
+                                    y_CM - y_L, eta0, DATA_.eta_fall_off);
+    double epsilon = M_inv*eta_envelop/E_norm/DATA_.delta_tau;  // [1/fm^5]
+    j_mu[0] = epsilon*cosh(y_L);  // [1/fm^5]
+    j_mu[3] = epsilon*sinh(y_L);  // [1/fm^5]
 }
 
 
@@ -99,6 +120,14 @@ double HydroSourceTATB::get_hydro_rhob_source(
         const double tau, const double x, const double y, const double eta_s,
         const FlowVec &u_mu) const {
     double res = 0.;
+    if (std::abs(tau - DATA_.tau0) > Util::small_eps) return(res);
+
+    const int ix = static_cast<int>((x - DATA_.x_size/2.)/DATA_.delta_x + 0.1);
+    const int iy = static_cast<int>((y - DATA_.y_size/2.)/DATA_.delta_y + 0.1);
+    double eta_rhob_left  = eta_rhob_left_factor(eta_s);
+    double eta_rhob_right = eta_rhob_right_factor(eta_s);
+    res = profile_TA[ix][iy]*eta_rhob_right + profile_TB[ix][iy]*eta_rhob_left;  // [1/fm^3]
+    res /= (DATA_.delta_tau);  // [1/fm^4]
     return(res);
 }
 
@@ -136,3 +165,28 @@ double HydroSourceTATB::eta_rhob_right_factor(const double eta) const {
     return(res);
 }
 
+
+double HydroSourceTATB::eta_profile_plateau(
+        const double eta, const double eta_0, const double sigma_eta) const {
+    // this function return the eta envelope profile for energy density
+    // Hirano's plateau + Gaussian fall-off
+    double res;
+    double exparg1 = (std::abs(eta) - eta_0)/sigma_eta;
+    double exparg = exparg1*exparg1/2.0;
+    res = exp(-exparg*Util::theta(exparg1));
+    return res;
+}
+
+
+double HydroSourceTATB::energy_eta_profile_normalisation(
+        const double y_CM, const double eta_0, const double sigma_eta) const {
+    // this function returns the normalization of the eta envelope profile
+    // for energy density
+    //  \int deta eta_profile_plateau(eta - y_CM, eta_0, sigma_eta)*cosh(eta)
+    double f1 = (exp(eta_0)*erfc(-sqrt(0.5)*sigma_eta)
+                 + exp(-eta_0)*erfc(sqrt(0.5*sigma_eta)));
+    double f2 = sqrt(M_PI/2.)*sigma_eta*exp(sigma_eta*sigma_eta/2.);
+    double f3 = sinh(eta_0 + y_CM) - sinh(-eta_0 + y_CM);
+    double norm = cosh(y_CM)*f2*f1 + f3;
+    return(norm);
+}
