@@ -95,8 +95,9 @@ void HydroSourceTATB::get_hydro_energy_source(
     j_mu = {0};
     if (std::abs(tau - DATA_.tau0) > Util::small_eps) return;
 
-    const int ix = static_cast<int>((x - DATA_.x_size/2.)/DATA_.delta_x + 0.1);
-    const int iy = static_cast<int>((y - DATA_.y_size/2.)/DATA_.delta_y + 0.1);
+    const int ix = static_cast<int>((x + DATA_.x_size/2.)/DATA_.delta_x + 0.1);
+    const int iy = static_cast<int>((y + DATA_.y_size/2.)/DATA_.delta_y + 0.1);
+
     double y_CM = atanh((profile_TA[ix][iy] - profile_TB[ix][iy])
                         /(profile_TA[ix][iy] + profile_TB[ix][iy]
                           + Util::small_eps)
@@ -122,8 +123,8 @@ double HydroSourceTATB::get_hydro_rhob_source(
     double res = 0.;
     if (std::abs(tau - DATA_.tau0) > Util::small_eps) return(res);
 
-    const int ix = static_cast<int>((x - DATA_.x_size/2.)/DATA_.delta_x + 0.1);
-    const int iy = static_cast<int>((y - DATA_.y_size/2.)/DATA_.delta_y + 0.1);
+    const int ix = static_cast<int>((x + DATA_.x_size/2.)/DATA_.delta_x + 0.1);
+    const int iy = static_cast<int>((y + DATA_.y_size/2.)/DATA_.delta_y + 0.1);
     double eta_rhob_left  = eta_rhob_left_factor(eta_s);
     double eta_rhob_right = eta_rhob_right_factor(eta_s);
     res = profile_TA[ix][iy]*eta_rhob_right + profile_TB[ix][iy]*eta_rhob_left;  // [1/fm^3]
