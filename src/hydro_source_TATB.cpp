@@ -20,7 +20,7 @@ HydroSourceTATB::HydroSourceTATB(const InitData &DATA_in) :
     tau_source = std::max(DATA_.tau0, tau_overlap);
     set_source_tau_min(tau_source);
     set_source_tau_max(tau_source);
-    yL_frac_ = 1.0;
+    yL_frac_ = DATA_.yL_frac;
     read_in_TATB();
 }
 
@@ -87,6 +87,8 @@ void HydroSourceTATB::read_in_TATB() {
     music_message.flush("info");
     music_message << "HydroSourceTATB: tau_max = " << get_source_tau_max()
                   << " fm/c.";
+    music_message.flush("info");
+    music_message << "Longitudinal velocity fraction yL_frac = " << yL_frac_;
     music_message.flush("info");
 }
 

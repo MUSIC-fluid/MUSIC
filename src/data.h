@@ -49,6 +49,7 @@ typedef struct init_data {
     double eta_rhob_plateau_height;  //!< central plateau height profile == 2
     double eta_rhob_width_1;         //!< outside tail Gaussian width profile == 2
     double eta_rhob_width_2;         //!< inside Gaussian width profile == 2
+    double yL_frac;
 
     int Initial_profile;    //! type of initial condition
     int initializeEntropy;  //! flag to initial entropy or energy density

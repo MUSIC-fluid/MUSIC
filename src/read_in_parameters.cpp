@@ -421,6 +421,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempeta_flat;
     parameter_list.eta_flat = tempeta_flat;
 
+    // yL_frac: the fraction of Y_CM in the longitudinal velocity
+    double temp_yL_frac = 0.0;  // default is 0: Bjorken flow
+    tempinput = Util::StringFind4(input_file, "yL_frac");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_yL_frac;
+    parameter_list.yL_frac = temp_yL_frac;
+
     // s_factor:  for use with IP-Glasma initial conditions
     double tempsFactor   = 1.0;
     tempinput = Util::StringFind4(input_file, "s_factor");
