@@ -96,7 +96,8 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111) {
+    } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111
+               || DATA.Initial_profile == 112) {
         double tau_overlap = 2.*7./(sinh(DATA.beam_rapidity));
         DATA.tau0 = std::max(DATA.tau0, tau_overlap);
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
@@ -220,11 +221,18 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message.flush("info");
 
         initial_MCGlb_with_rhob(arena_prev, arena_current);
+    } else if (DATA.Initial_profile == 112) {
+        music_message.info(
+                "Initialize hydro with source terms from TA and TB");
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+            initial_with_zero_XY(ieta, arena_prev, arena_current);
+        }
     } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
         music_message.info("Initialize hydro with source terms");
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            initial_MCGlbLEXUS_with_rhob_XY(ieta, arena_prev, arena_current);
+            initial_with_zero_XY(ieta, arena_prev, arena_current);
         }
     } else if (DATA.Initial_profile == 30) {
         #pragma omp parallel for
@@ -779,8 +787,9 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     }
 }
 
-void Init::initial_MCGlbLEXUS_with_rhob_XY(int ieta, SCGrid &arena_prev,
-                                           SCGrid &arena_current) {
+
+void Init::initial_with_zero_XY(int ieta, SCGrid &arena_prev,
+                                SCGrid &arena_current) {
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
     double u[4] = {1.0, 0.0, 0.0, 0.0};
@@ -844,6 +853,7 @@ void Init::initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     }
     profile.close();
 }
+
 
 void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
                            SCGrid &arena_current) {

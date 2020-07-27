@@ -18,7 +18,7 @@ HydroSourceTATB::HydroSourceTATB(const InitData &DATA_in) :
     DATA_(DATA_in) {
     set_source_tau_min(DATA_.tau0);
     set_source_tau_max(DATA_.tau0);
-    yL_frac_ = 1.0;
+    yL_frac_ = 0.0;
     read_in_TATB();
 }
 
