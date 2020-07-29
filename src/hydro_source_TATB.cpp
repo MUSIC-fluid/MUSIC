@@ -115,7 +115,7 @@ void HydroSourceTATB::get_hydro_energy_source(
     double eta_envelop = eta_profile_plateau(eta_s - (y_CM - y_L), eta0,
                                              DATA_.eta_fall_off);
     double E_norm = tau_source*energy_eta_profile_normalisation(
-                                    y_CM - y_L, eta0, DATA_.eta_fall_off);
+                                    y_CM, eta0, DATA_.eta_fall_off);
     double epsilon = M_inv*eta_envelop/E_norm/dtau;  // [1/fm^5]
     j_mu[0] = epsilon*cosh(y_L);  // [1/fm^5]
     j_mu[3] = epsilon*sinh(y_L);  // [1/fm^5]
