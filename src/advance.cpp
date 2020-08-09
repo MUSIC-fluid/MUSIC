@@ -76,7 +76,7 @@ void Advance::AdvanceIt(const double tau,
                     tau, arena_current, ieta, ix, iy, a_local, sigma_local);
 
             VorticityVec omega_local;
-            u_derivative_helper.calculate_kinetic_vorticity(
+            u_derivative_helper.calculate_kinetic_vorticity_with_spatial_projector(
                     tau, arena_current, ieta, ix, iy, a_local, omega_local);
 
             DmuMuBoverTVec baryon_diffusion_vector;

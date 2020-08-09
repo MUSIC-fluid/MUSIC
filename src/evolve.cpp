@@ -522,14 +522,14 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         tau, arena_prev, arena_current,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
-                        aux_tmp.omega_k, aux_tmp.omega_knoSP,
+                        aux_tmp.omega_kSP, aux_tmp.omega_k,
                         aux_tmp.omega_th, aux_tmp.omega_T);
                     fluid_aux_cube[1][ii][jj][kk] = aux_tmp;
                     u_derivative.compute_vorticity_shell(
                         tau - DTAU, arena_freezeout_prev, arena_freezeout,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
-                        aux_tmp.omega_k, aux_tmp.omega_knoSP,
+                        aux_tmp.omega_kSP, aux_tmp.omega_k,
                         aux_tmp.omega_th, aux_tmp.omega_T);
                     fluid_aux_cube[0][ii][jj][kk] = aux_tmp;
                 }
@@ -620,10 +620,13 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
                     if (DATA.output_vorticity == 1) {
                         for (int ii = 0; ii < 6; ii++) {
-                            array[34+ii] = - fluid_aux_center.omega_k[ii]/TFO;
-                            array[40+ii] = fluid_aux_center.omega_knoSP[ii]/TFO;
-                            array[46+ii] = fluid_aux_center.omega_th[ii];
-                            array[52+ii] = fluid_aux_center.omega_T[ii]/TFO/TFO;
+                            array[34+ii] = fluid_aux_center.omega_kSP[ii]/TFO;  // no minus sign because its definition is opposite to the kinetic vorticity
+                            // the extra minus sign is from metric
+                            // output quantities for g = (1, -1, -1, -1)
+                            array[40+ii] = -fluid_aux_center.omega_k[ii]/TFO;
+                            array[46+ii] = -fluid_aux_center.omega_th[ii];
+                            array[52+ii] = (-fluid_aux_center.omega_T[ii]
+                                            /TFO/TFO);
                         }
                     }
                     for (int i = 0; i < FOsize; i++)
@@ -893,10 +896,12 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 array[33] = static_cast<float>(qeta_center);
                 if (DATA.output_vorticity == 1) {
                     for (int ii = 0; ii < 6; ii++) {
-                        array[34+ii] = -fluid_aux_center.omega_k[ii]/T_local;
-                        array[40+ii] = fluid_aux_center.omega_knoSP[ii]/T_local;
-                        array[46+ii] = fluid_aux_center.omega_th[ii];
-                        array[52+ii] = (fluid_aux_center.omega_T[ii]
+                        array[34+ii] = fluid_aux_center.omega_kSP[ii]/T_local;  // no minus sign because its definition is opposite to the kinetic vorticity
+                        // the extra minus sign is from metric
+                        // output quantities for g = (1, -1, -1, -1)
+                        array[40+ii] = -fluid_aux_center.omega_k[ii]/T_local;
+                        array[46+ii] = -fluid_aux_center.omega_th[ii];
+                        array[52+ii] = (-fluid_aux_center.omega_T[ii]
                                         /T_local/T_local);
                     }
                 }

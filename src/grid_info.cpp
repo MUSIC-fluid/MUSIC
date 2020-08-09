@@ -788,13 +788,13 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
 
                 double muB_local = eos.get_muB(e_local, rhob_local);
 
-                VorticityVec omega_k = {0.0};
-                VorticityVec omega_knoSP = {0.0};
-                VorticityVec omega_th = {0.0};
-                VorticityVec omega_T = {0.0};
+                VorticityVec omega_kSP = {0.0};
+                VorticityVec omega_k   = {0.0};
+                VorticityVec omega_th  = {0.0};
+                VorticityVec omega_T   = {0.0};
                 u_derivative_helper.compute_vorticity_shell(
                     tau, arena_prev, arena_curr, ieta, ix, iy, eta_local,
-                    omega_k, omega_knoSP, omega_th, omega_T);
+                    omega_kSP, omega_k, omega_th, omega_T);
 
                 float ideal[] = {static_cast<float>(itau),
                                  static_cast<float>(ix/n_skip_x),
@@ -811,17 +811,28 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
                 fwrite(ideal, sizeof(float), 11, out_file_xyeta);
 
                 float vor_vec[6];
-                for (int i = 0; i < 6; i++)
-                    vor_vec[i] = static_cast<float>(omega_k[i]*hbarc);  // GeV
+                for (int i = 0; i < 6; i++) {
+                    // no minus sign because it has an opposite sign compared to kinetic vorticity
+                    vor_vec[i] = static_cast<float>(omega_kSP[i]*hbarc);  // GeV
+                }
                 fwrite(vor_vec, sizeof(float), 6, out_file_xyeta);
-                for (int i = 0; i < 6; i++)
-                    vor_vec[i] = static_cast<float>(omega_knoSP[i]*hbarc);  // GeV
+                for (int i = 0; i < 6; i++) {
+                    // the minus sign is from metric
+                    // output quantities for g = (1, -1, -1 , -1)
+                    vor_vec[i] = static_cast<float>(-omega_k[i]*hbarc);  // GeV
+                }
                 fwrite(vor_vec, sizeof(float), 6, out_file_xyeta);
-                for (int i = 0; i < 6; i++)
-                    vor_vec[i] = static_cast<float>(omega_th[i]);
-                fwrite(vor_vec, sizeof(float), 6, out_file_xyeta);  // 1
-                for (int i = 0; i < 6; i++)
-                    vor_vec[i] = static_cast<float>(omega_T[i]*hbarc*hbarc);  // GeV^2
+                for (int i = 0; i < 6; i++) {
+                    // the minus sign is from metric
+                    // output quantities for g = (1, -1, -1 , -1)
+                    vor_vec[i] = static_cast<float>(-omega_th[i]);  // 1
+                }
+                fwrite(vor_vec, sizeof(float), 6, out_file_xyeta);
+                for (int i = 0; i < 6; i++) {
+                    // the minus sign is from metric
+                    // output quantities for g = (1, -1, -1 , -1)
+                    vor_vec[i] = static_cast<float>(-omega_T[i]*hbarc*hbarc);  // GeV^2
+                }
                 fwrite(vor_vec, sizeof(float), 6, out_file_xyeta);
             }
         }
@@ -1349,7 +1360,7 @@ void Cell_info::monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
     u_derivative_helper.calculate_velocity_shear_tensor(
                     tau, arena_curr, ieta, ix, iy, a_local, sigma_local);
     VorticityVec omega_local;
-    u_derivative_helper.calculate_kinetic_vorticity(
+    u_derivative_helper.calculate_kinetic_vorticity_with_spatial_projector(
                     tau, arena_curr, ieta, ix, iy, a_local, omega_local);
     for (int i = 0; i < 10; i++) {
         output_file << scientific << setprecision(8)
@@ -1369,25 +1380,25 @@ void Cell_info::output_vorticity_distribution(
                 const double eta_min, const double eta_max) {
     // This function outputs the vorticity tensor at a given tau
     ostringstream filename1;
-    filename1 << "vorticity_dis_eta_" << eta_min
+    filename1 << "vorticity_dis_kinetic_wSP_eta_" << eta_min
               << "_" << eta_max << "_tau_" << tau << ".dat";
     std::fstream of1;
     of1.open(filename1.str().c_str(), std::fstream::out);
     // write the header
     of1 << "# x[fm]  y[fm]  T[GeV]  muB[GeV]  "
-        << "omega^{tx}[1/fm]  omega^{ty}[1/fm]  "
-        << "omega^{tz}[1/fm]  omega^{xy}[1/fm]  omega^{xz}[1/fm]  "
-        << "omega^{yz}[1/fm]" << std::endl;
+        << "omega^{tx}/T  omega^{ty}/T  "
+        << "omega^{tz}/T  omega^{xy}/T  omega^{xz}/T  "
+        << "omega^{yz}/T" << std::endl;
     ostringstream filename2;
-    filename2 << "vorticity_dis_nospatialprojector_eta_" << eta_min
+    filename2 << "vorticity_dis_kinetic_eta_" << eta_min
               << "_" << eta_max << "_tau_" << tau << ".dat";
     std::fstream of2;
     of2.open(filename2.str().c_str(), std::fstream::out);
     // write the header
     of2 << "# x[fm]  y[fm]  T[GeV]  muB[GeV]  "
-        << "omega^{tx}[1/fm]  omega^{ty}[1/fm]  "
-        << "omega^{tz}[1/fm]  omega^{xy}[1/fm]  omega^{xz}[1/fm]  "
-        << "omega^{yz}[1/fm]" << std::endl;
+        << "omega^{tx}/T  omega^{ty}/T  "
+        << "omega^{tz}/T  omega^{xy}/T  omega^{xz}/T  "
+        << "omega^{yz}/T" << std::endl;
     ostringstream filename3;
     filename3 << "vorticity_dis_thermal_eta_" << eta_min
               << "_" << eta_max << "_tau_" << tau << ".dat";
@@ -1395,9 +1406,9 @@ void Cell_info::output_vorticity_distribution(
     of3.open(filename3.str().c_str(), std::fstream::out);
     // write the header
     of3 << "# x[fm]  y[fm]  T[GeV]  muB[GeV]  "
-        << "omega^{tx}[1]  omega^{ty}[1]  "
-        << "omega^{tz}[1]  omega^{xy}[1]  omega^{xz}[1]  "
-        << "omega^{yz}[1]" << std::endl;
+        << "omega^{tx}  omega^{ty}  "
+        << "omega^{tz}  omega^{xy}  omega^{xz}  "
+        << "omega^{yz}" << std::endl;
     ostringstream filename4;
     filename4 << "vorticity_dis_T_eta_" << eta_min
               << "_" << eta_max << "_tau_" << tau << ".dat";
@@ -1405,19 +1416,19 @@ void Cell_info::output_vorticity_distribution(
     of4.open(filename4.str().c_str(), std::fstream::out);
     // write the header
     of4 << "# x[fm]  y[fm]  T[GeV]  muB[GeV]  "
-        << "omega^{tx}[1/fm^2]  omega^{ty}[1/fm^2]  "
-        << "omega^{tz}[1/fm^2]  omega^{xy}[1/fm^2]  omega^{xz}[1/fm^2]  "
-        << "omega^{yz}[1/fm^2]" << std::endl;
+        << "omega^{tx}/T^2  omega^{ty}/T^2  "
+        << "omega^{tz}/T^2  omega^{xy}/T^2  omega^{xz}/T^2  "
+        << "omega^{yz}/T^2" << std::endl;
 
     for (int ix = 0; ix < arena_curr.nX(); ix++) {
         for (int iy = 0; iy < arena_curr.nY(); iy++) {
             const double x_local = -DATA.x_size/2. + ix*DATA.delta_x;
             const double y_local = -DATA.y_size/2. + iy*DATA.delta_y;
 
-            VorticityVec omega_k = {0.0};
-            VorticityVec omega_knoSP = {0.0};
-            VorticityVec omega_th = {0.0};
-            VorticityVec omega_T = {0.0};
+            VorticityVec omega_kSP = {0.0};
+            VorticityVec omega_k   = {0.0};
+            VorticityVec omega_th  = {0.0};
+            VorticityVec omega_T   = {0.0};
             double T_avg = 0.0;
             double muB_avg = 0.0;
             double weight   = 0.0;
@@ -1430,11 +1441,10 @@ void Cell_info::output_vorticity_distribution(
                     if (e_local < 0.1) continue;
                     const double rhob_local = arena_curr(ix, iy, ieta).rhob;
                     const double T_local = (
-                            eos.get_temperature(e_local, rhob_local)*hbarc);
-                    const double muB_local = (
-                            eos.get_muB(e_local, rhob_local)*hbarc);
-                    T_avg += e_local*T_local;
-                    muB_avg += e_local*muB_local;
+                            eos.get_temperature(e_local, rhob_local));
+                    const double muB_local = eos.get_muB(e_local, rhob_local);
+                    T_avg += e_local*T_local*hbarc;
+                    muB_avg += e_local*muB_local*hbarc;
 
                     VorticityVec omega_local_1, omega_local_2;
                     VorticityVec omega_local_3, omega_local_4;
@@ -1443,10 +1453,11 @@ void Cell_info::output_vorticity_distribution(
                         omega_local_1, omega_local_2,
                         omega_local_3, omega_local_4);
                     for (unsigned int ii = 0; ii < omega_k.size(); ii++) {
-                        omega_k[ii] += e_local*omega_local_1[ii];
-                        omega_knoSP[ii] += e_local*omega_local_2[ii];
-                        omega_th[ii] += e_local*omega_local_3[ii];
-                        omega_T[ii] += e_local*omega_local_4[ii];
+                        omega_kSP[ii] += e_local*omega_local_1[ii]/T_local;
+                        omega_k[ii]   += e_local*omega_local_2[ii]/T_local;
+                        omega_th[ii]  += e_local*omega_local_3[ii];
+                        omega_T[ii]   += (e_local*omega_local_4[ii]
+                                          /T_local/T_local);
                     }
                     weight += e_local;
                 }
@@ -1465,14 +1476,18 @@ void Cell_info::output_vorticity_distribution(
                 << x_local << "  " << y_local << "  "
                 << T_avg/weight << "  " << muB_avg/weight << "  ";
             for (unsigned int ii = 0; ii < omega_k.size(); ii++) {
+                // no minus sign because it has an opposite sign to
+                // the kinetic vorticity
                 of1 << scientific << setprecision(8) << setw(18)
-                    << omega_k[ii]/weight << "  ";
+                    << omega_kSP[ii]/weight << "  ";
+                // minus sign from the metric
+                // output quantities in g = (1, -1, -1 , -1)
                 of2 << scientific << setprecision(8) << setw(18)
-                    << omega_knoSP[ii]/weight << "  ";
+                    << -omega_k[ii]/weight << "  ";
                 of3 << scientific << setprecision(8) << setw(18)
-                    << omega_th[ii]/weight << "  ";
+                    << -omega_th[ii]/weight << "  ";
                 of4 << scientific << setprecision(8) << setw(18)
-                    << omega_T[ii]/weight << "  ";
+                    << -omega_T[ii]/weight << "  ";
             }
             of1 << std::endl;
             of2 << std::endl;
@@ -1491,27 +1506,27 @@ void Cell_info::output_vorticity_time_evolution(
                 const double eta_min, const double eta_max) {
     // This function outputs the time evolution of the vorticity tensor
     ostringstream filename1;
-    filename1 << "vorticity_evo_eta_" << eta_min
+    filename1 << "vorticity_evo_kinetic_wSP_eta_" << eta_min
               << "_" << eta_max << ".dat";
     std::fstream of1;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of1.open(filename1.str().c_str(), std::fstream::out);
-        of1 << "# tau[fm]  omega^{tx}[1/fm]  omega^{ty}[1/fm]  "
-            << "omega^{tz}[1/fm]  omega^{xy}[1/fm]  omega^{xz}[1/fm]  "
-            << "omega^{yz}[1/fm]" << std::endl;
+        of1 << "# tau[fm]  omega^{tx}/T  omega^{ty}/T  "
+            << "omega^{tz}/T  omega^{xy}/T  omega^{xz}/T  "
+            << "omega^{yz}/T" << std::endl;
     } else {
         of1.open(filename1.str().c_str(),
                  std::fstream::out | std::fstream::app);
     }
     ostringstream filename2;
-    filename2 << "vorticity_evo_nospatialprojector_eta_" << eta_min
+    filename2 << "vorticity_evo_kinetic_eta_" << eta_min
               << "_" << eta_max << ".dat";
     std::fstream of2;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of2.open(filename2.str().c_str(), std::fstream::out);
-        of2 << "# tau[fm]  omega^{tx}[1/fm]  omega^{ty}[1/fm]  "
-            << "omega^{tz}[1/fm]  omega^{xy}[1/fm]  omega^{xz}[1/fm]  "
-            << "omega^{yz}[1/fm]" << std::endl;
+        of2 << "# tau[fm]  omega^{tx}/T  omega^{ty}/T  "
+            << "omega^{tz}/T  omega^{xy}/T  omega^{xz}/T  "
+            << "omega^{yz}/T" << std::endl;
     } else {
         of2.open(filename2.str().c_str(),
                  std::fstream::out | std::fstream::app);
@@ -1522,9 +1537,9 @@ void Cell_info::output_vorticity_time_evolution(
     std::fstream of3;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of3.open(filename3.str().c_str(), std::fstream::out);
-        of3 << "# tau[fm]  omega^{tx}[1]  omega^{ty}[1]  "
-            << "omega^{tz}[1]  omega^{xy}[1]  omega^{xz}[1]  "
-            << "omega^{yz}[1]" << std::endl;
+        of3 << "# tau[fm]  omega^{tx}  omega^{ty}  "
+            << "omega^{tz}  omega^{xy}  omega^{xz}  "
+            << "omega^{yz}" << std::endl;
     } else {
         of3.open(filename3.str().c_str(),
                  std::fstream::out | std::fstream::app);
@@ -1535,19 +1550,19 @@ void Cell_info::output_vorticity_time_evolution(
     std::fstream of4;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of4.open(filename4.str().c_str(), std::fstream::out);
-        of4 << "# tau[fm]  omega^{tx}[1/fm^2]  omega^{ty}[1/fm^2]  "
-            << "omega^{tz}[1/fm^2]  omega^{xy}[1/fm^2]  "
-            << "omega^{xz}[1/fm^2]  omega^{yz}[1/fm^2]" << std::endl;
+        of4 << "# tau[fm]  omega^{tx}/T^2  omega^{ty}/T^2  "
+            << "omega^{tz}/T^2  omega^{xy}/T^2  "
+            << "omega^{xz}/T^2  omega^{yz}/T^2" << std::endl;
     } else {
         of4.open(filename4.str().c_str(),
                  std::fstream::out | std::fstream::app);
     }
 
-    VorticityVec omega_k = {0.0};
-    VorticityVec omega_knoSP = {0.0};
-    VorticityVec omega_th = {0.0};
-    VorticityVec omega_T = {0.0};
-    double weight   = 0.0;
+    VorticityVec omega_kSP = {0.0};
+    VorticityVec omega_k   = {0.0};
+    VorticityVec omega_th  = {0.0};
+    VorticityVec omega_T   = {0.0};
+    double weight = 0.0;
     for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
         double eta = 0.0;
         if (!DATA.boost_invariant) {
@@ -1559,6 +1574,9 @@ void Cell_info::output_vorticity_time_evolution(
             for (int ix = 0; ix < arena_curr.nX(); ix++) {
                 const double e_local = arena_curr(ix, iy, ieta).epsilon;
                 if (e_local < 0.1) continue;
+                const double rhob_local = arena_curr(ix, iy, ieta).rhob;
+                const double T_local = (
+                            eos.get_temperature(e_local, rhob_local));
                 VorticityVec omega_local_1, omega_local_2;
                 VorticityVec omega_local_3, omega_local_4;
                 u_derivative_helper.compute_vorticity_shell(
@@ -1566,12 +1584,12 @@ void Cell_info::output_vorticity_time_evolution(
                     omega_local_1, omega_local_2,
                     omega_local_3, omega_local_4);
                 for (unsigned int ii = 0; ii < omega_k.size(); ii++) {
-                    omega_k[ii] += e_local*omega_local_1[ii];
-                    omega_knoSP[ii] += e_local*omega_local_2[ii];
-                    omega_th[ii] += e_local*omega_local_3[ii];
-                    omega_T[ii] += e_local*omega_local_4[ii];
+                    omega_kSP[ii] += e_local*omega_local_1[ii]/T_local;
+                    omega_k[ii]   += e_local*omega_local_2[ii]/T_local;
+                    omega_th[ii]  += e_local*omega_local_3[ii];
+                    omega_T[ii]   += e_local*omega_local_4[ii]/T_local/T_local;
                 }
-                weight   += e_local;
+                weight += e_local;
             }
         }
     }
@@ -1582,14 +1600,17 @@ void Cell_info::output_vorticity_time_evolution(
     of3 << scientific << setw(18) << setprecision(8) << tau << "  ";
     of4 << scientific << setw(18) << setprecision(8) << tau << "  ";
     for (unsigned int ii = 0; ii < omega_k.size(); ii++) {
+        // no minus sign because it has opposite sign to the kinetic vorcitity
         of1 << scientific << setprecision(8) << setw(18)
-            << omega_k[ii]/weight << "  ";
+            << omega_kSP[ii]/weight << "  ";
+        // minus sign from the metric
+        // output quantities in g = (1, -1, -1 , -1)
         of2 << scientific << setprecision(8) << setw(18)
-            << omega_knoSP[ii]/weight << "  ";
+            << -omega_k[ii]/weight << "  ";
         of3 << scientific << setprecision(8) << setw(18)
-            << omega_th[ii]/weight << "  ";
+            << -omega_th[ii]/weight << "  ";
         of4 << scientific << setprecision(8) << setw(18)
-            << omega_T[ii]/weight << "  ";
+            << -omega_T[ii]/weight << "  ";
     }
     of1 << std::endl;
     of2 << std::endl;

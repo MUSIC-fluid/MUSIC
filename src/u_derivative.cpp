@@ -64,16 +64,16 @@ void U_derivative::calculate_Du_supmu(const double tau, SCGrid &arena,
 void U_derivative::compute_vorticity_shell(
         const double tau, SCGrid &arena_prev, SCGrid &arena_curr,
         const int ieta, const int ix, const int iy, const double eta,
-        VorticityVec &omega_local_k, VorticityVec &omega_local_knoSP,
+        VorticityVec &omega_local_kSP, VorticityVec &omega_local_knoSP,
         VorticityVec &omega_local_th, VorticityVec &omega_local_T) {
     MakedU(tau, arena_prev, arena_curr, ix, iy, ieta);
     DumuVec a_local;
     calculate_Du_supmu(tau, arena_curr, ieta, ix, iy, a_local);
 
     VorticityVec omega_local;
-    calculate_kinetic_vorticity(
+    calculate_kinetic_vorticity_with_spatial_projector(
             tau, arena_curr, ieta, ix, iy, a_local, omega_local);
-    omega_local_k = transform_vorticity_to_tz(omega_local, eta);
+    omega_local_kSP = transform_vorticity_to_tz(omega_local, eta);
     calculate_kinetic_vorticity_no_spatial_projection(
             tau, arena_curr, ieta, ix, iy, omega_local);
     omega_local_knoSP = transform_vorticity_to_tz(omega_local, eta);
@@ -101,7 +101,7 @@ VorticityVec U_derivative::transform_vorticity_to_tz(
 }
 
 
-void U_derivative::calculate_kinetic_vorticity(
+void U_derivative::calculate_kinetic_vorticity_with_spatial_projector(
             const double tau, SCGrid &arena,
             const int ieta, const int ix, const int iy,
             const DumuVec &a_local, VorticityVec &omega) {
