@@ -101,11 +101,17 @@ VorticityVec U_derivative::transform_vorticity_to_tz(
 }
 
 
+//! this function computes the kinetic vorticity with the spatial projectors
+//! the output omega^{\mu\nu} can be directly used in the EoM for the
+//! shear viscous tensor and diffusion current
+//! Please note that it is defined with the opposite sign compared to the
+//! conventional kinetic vorticity in the literature
+//! Because MUSIC use the metric g = (-1, 1, 1, 1), the output omega^{\mu\nu}
+//! differs from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_kinetic_vorticity_with_spatial_projector(
             const double tau, SCGrid &arena,
             const int ieta, const int ix, const int iy,
             const DumuVec &a_local, VorticityVec &omega) {
-    // this function computes the kinetic vorticity
     FlowVec u_local = arena(ix, iy, ieta).u;
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
@@ -155,6 +161,9 @@ void U_derivative::calculate_kinetic_vorticity_with_spatial_projector(
 }
 
 
+//! this function computes the thermal vorticity
+//! it outputs omega^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
+//! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_thermal_vorticity(
             const double tau, SCGrid &arena, const int ieta,
             const int ix, const int iy, VorticityVec &omega) {
@@ -199,6 +208,9 @@ void U_derivative::calculate_thermal_vorticity(
 }
 
 
+//! this function computes the temperature- (T-)vorticity
+//! it outputs omega^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
+//! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_T_vorticity(
             const double tau, SCGrid &arena, const int ieta,
             const int ix, const int iy, VorticityVec &omega) {
@@ -234,6 +246,9 @@ void U_derivative::calculate_T_vorticity(
 }
 
 
+//! this function computes the conventional kinetic vorticity
+//! it outputs omega^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
+//! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_kinetic_vorticity_no_spatial_projection(
             const double tau, SCGrid &arena, const int ieta,
             const int ix, const int iy, VorticityVec &omega) {
@@ -269,7 +284,10 @@ void U_derivative::calculate_kinetic_vorticity_no_spatial_projection(
 }
 
 
-//! This funciton returns the velocity shear tensor sigma^\mu\nu
+//! This funciton returns the velocity shear tensor sigma^{\mu\nu}
+//! it outputs sigma^{\mu\nu} in the metric g = (-1, 1, 1, 1)
+//! Please note that this output differs from the sigma^{\mu\nu} in the metric
+//! g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_velocity_shear_tensor(
         const double tau, SCGrid &arena, const int ieta, const int ix,
         const int iy, const DumuVec &a_local, VelocityShearVec &sigma) {
