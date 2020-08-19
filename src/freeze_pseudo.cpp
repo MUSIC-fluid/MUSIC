@@ -107,7 +107,8 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose) {
         for(int ieta = 0; ieta <= pseudo_steps; ieta++) {
             for (int ipt = 0; ipt < iptmax; ipt++) {
                 for (int iphi = 0; iphi < iphimax; iphi++) {
-                    fscanf(s_file, "%lf",
+                    system_status_ = fscanf(
+                           s_file, "%lf",
                            &particleList[ip].dNdydptdphi[ieta][ipt][iphi]);
                     if (particleList[ip].dNdydptdphi[ieta][ipt][iphi] < 0.) {
                         particleList[ip].dNdydptdphi[ieta][ipt][iphi] = 0;
@@ -465,7 +466,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
                                             *Pi_bulk);
                                 }
                             }
-                            
+
                             // delta f for qmu
                             double qmufactor = 0.0;
                             double delta_f_qmu = 0.0;
@@ -927,7 +928,7 @@ void Freeze::compute_thermal_spectra(int particleSpectrumNumber,
     double mu_tol = 1e-3;
 
     // clean up
-    system("rm yptphiSpectra.dat yptphiSpectra?.dat "
+    system_status_ = system("rm yptphiSpectra.dat yptphiSpectra?.dat "
            "yptphiSpectra??.dat particleInformation.dat 2> /dev/null");
 
     ReadFreezeOutSurface(DATA);  // read freeze out surface
@@ -939,7 +940,7 @@ void Freeze::compute_thermal_spectra(int particleSpectrumNumber,
         for (int i = 1; i < particleMax_copy; i++) {
             int number = particleList[i].number;
             int computespectrum = 1;
-      
+
             // Only calculate particles with unique mass
             for(int part = 1; part < i; part++) {
                 double mass_diff = fabs(particleList[i].mass
@@ -1011,7 +1012,7 @@ void Freeze::compute_thermal_spectra(int particleSpectrumNumber,
                     part = particleMax_copy; // break out of particle loop
                 }  // if particles have same mass
             }  // loop over particles that have already been calculated
-      
+
             if (computespectrum) {
                 if (boost_invariant) {
                     ComputeParticleSpectrum_pseudo_boost_invariant(
@@ -1020,9 +1021,11 @@ void Freeze::compute_thermal_spectra(int particleSpectrumNumber,
                     ComputeParticleSpectrum_pseudo_improved(DATA, number);
                 }
 
-                system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
-                system("cat yptphiSpectra??.dat >> yptphiSpectra.dat "
-                       "2> /dev/null");
+                system_status_ = system(
+                        "cat yptphiSpectra?.dat >> yptphiSpectra.dat");
+                system_status_ = system(
+                        "cat yptphiSpectra??.dat >> yptphiSpectra.dat "
+                        "2> /dev/null");
             }
         }
     } else {
@@ -1040,10 +1043,9 @@ void Freeze::compute_thermal_spectra(int particleSpectrumNumber,
         } else {
             ComputeParticleSpectrum_pseudo_improved(DATA, number);
         }
-    
-        system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
-        system("cat yptphiSpectra??.dat >> yptphiSpectra.dat "
-               "2> /dev/null");
+        system_status_ = system("cat yptphiSpectra?.dat >> yptphiSpectra.dat");
+        system_status_ = system("cat yptphiSpectra??.dat >> yptphiSpectra.dat "
+                                "2> /dev/null");
     }
 }
 
@@ -1060,7 +1062,8 @@ void Freeze::perform_resonance_decays(InitData *DATA) {
 
     cal_reso_decays(particleMax, decayMax, bound);
 
-    system("rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
+    system_status_ = system(
+            "rm FyptphiSpectra.dat FparticleInformation.dat 2> /dev/null");
     for (int i = 1; i < particleMax; i++) {
         int number = particleList[i].number;
         int b = particleList[i].baryon;

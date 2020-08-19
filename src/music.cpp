@@ -72,7 +72,8 @@ void MUSIC::generate_hydro_source_terms() {
 
 
 void MUSIC::clean_all_the_surface_files() {
-    system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+    system_status_ = system(
+            "rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 }
 
 
