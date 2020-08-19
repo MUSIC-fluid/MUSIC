@@ -410,19 +410,19 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
 //! This function outputs hydro evolution file in binary format
 void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
     // the format of the file is as follows,
-    //    itau ix iy ieta e P T ux uy ueta
+    //    itau ix iy ieta e P T cs^2 ux uy ueta
     // if turn_on_shear == 1:
-    //    itau ix iy ieta e P T ux uy ueta Wxx Wxy Wxeta Wyy Wyeta
+    //    itau ix iy ieta e P T cs^2 ux uy ueta Wxx Wxy Wxeta Wyy Wyeta
     // if turn_on_shear == 1 and turn_on_bulk == 1:
-    //    itau ix iy ieta e P T ux uy ueta Wxx Wxy Wxeta Wyy Wyeta pi_b
+    //    itau ix iy ieta e P T cs^2 ux uy ueta Wxx Wxy Wxeta Wyy Wyeta pi_b
     // if turn_on_rhob == 1:
-    //    itau ix iy ieta e P T ux uy ueta mu_B
+    //    itau ix iy ieta e P T cs^2 ux uy ueta mu_B
     // if turn_on_rhob == 1 and turn_on_shear == 1:
-    //    itau ix iy ieta e P T ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta
+    //    itau ix iy ieta e P T cs^2 ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta
     // if turn_on_rhob == 1 and turn_on_shear == 1 and turn_on_diff == 1:
-    //    itau ix iy ieta e P T ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta qx qy qeta
+    //    itau ix iy ieta e P T cs^2 ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta qx qy qeta
     // if turn_on_rhob == 1 and turn_on_shear == 1 and turn_on_bulk == 1 and turn_on_diff == 1:
-    //    itau ix iy ieta e P T ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta pi_b qx qy qeta
+    //    itau ix iy ieta e P T cs^2 ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta pi_b qx qy qeta
     // Here ueta = tau*ueta, Wieta = tau*Wieta, qeta = tau*qeta
     // Here Wij is reduced variables Wij/(e+P) used in delta f
     // and qi is reduced variables qi/kappa_hat
@@ -456,7 +456,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
     const double output_ymin   = - DATA.y_size/2.;
     const double output_etamin = - DATA.eta_size/2.;
 
-    const int nVar_per_cell = (10 + DATA.turn_on_rhob*1 + DATA.turn_on_shear*5
+    const int nVar_per_cell = (11 + DATA.turn_on_rhob*1 + DATA.turn_on_shear*5
                                   + DATA.turn_on_bulk*1 + DATA.turn_on_diff*3);
     if (tau == DATA.tau0) {
         float header[] = {
@@ -483,6 +483,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
                 double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
                 double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
                 double p_local    = eos.get_pressure(e_local, rhob_local);
+                double cs2        = eos.get_cs2(e_local, rhob_local);
 
                 double ux = arena(ix, iy, ieta).u[1];
                 double uy = arena(ix, iy, ieta).u[2];
@@ -523,8 +524,8 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
 
                 // outputs for baryon diffusion part
                 //double common_term_q = 0.0;
-                double qx   = 0.0;
-                double qy   = 0.0;
+                double qx = 0.0;
+                double qy = 0.0;
                 double qz = 0.0;
                 if (DATA.turn_on_diff == 1) {
                     //common_term_q = rhob_local*T_local/div_factor;
@@ -542,11 +543,12 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
                                  static_cast<float>(e_local*hbarc),
                                  static_cast<float>(p_local*hbarc),
                                  static_cast<float>(T_local*hbarc),
+                                 static_cast<float>(cs2),
                                  static_cast<float>(ux),
                                  static_cast<float>(uy),
                                  static_cast<float>(uz)};
 
-                fwrite(ideal, sizeof(float), 10, out_file_xyeta);
+                fwrite(ideal, sizeof(float), 11, out_file_xyeta);
 
                 if (DATA.turn_on_rhob == 1) {
                     float mu[] = {static_cast<float>(muB_local*hbarc)};
