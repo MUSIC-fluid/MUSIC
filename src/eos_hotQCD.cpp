@@ -9,8 +9,8 @@
 using std::stringstream;
 using std::string;
 
-EOS_hotQCD::EOS_hotQCD() {
-    set_EOS_id(9);
+EOS_hotQCD::EOS_hotQCD(const int eos_id_in) : eos_id(eos_id_in) {
+    set_EOS_id(eos_id);
     set_number_of_tables(0);
     set_eps_max(1e5);
     set_flag_muB(false);
@@ -22,7 +22,7 @@ EOS_hotQCD::EOS_hotQCD() {
 void EOS_hotQCD::initialize_eos() {
     // read the lattice EOS pressure, temperature, and 
     music_message.info("reading EOS hotQCD ...");
-    
+
     auto envPath = get_hydro_env_path();
     stringstream slocalpath;
     slocalpath << envPath << "/EOS/hotQCD";
@@ -30,7 +30,7 @@ void EOS_hotQCD::initialize_eos() {
     string path = slocalpath.str();
     music_message << "from path " << path;
     music_message.flush("info");
-   
+
     set_number_of_tables(1);
     resize_table_info_arrays();
 
@@ -39,9 +39,15 @@ void EOS_hotQCD::initialize_eos() {
     pressure_tb    = new double** [ntables];
     temperature_tb = new double** [ntables];
     for (int itable = 0; itable < ntables; itable++) {
-        std::ifstream eos_file(path + "/hrg_hotqcd_eos_binary.dat",
-                               std::ios::binary);
-        
+        std::ifstream eos_file;
+        if (eos_id == 9) {
+            eos_file.open(path + "/hrg_hotqcd_eos_binary.dat",
+                          std::ios::binary);
+        } else if (eos_id == 91) {
+            eos_file.open(path + "/hrg_hotqcd_eos_SMASH_binary.dat",
+                          std::ios::binary);
+        }
+
         if (!eos_file) {
             music_message.error("Can not find the EoS file.");
             exit(1);
@@ -84,7 +90,7 @@ double EOS_hotQCD::p_e_func(double e, double rhob) const {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_hotQCD::get_temperature(double e, double rhob) const {
     double T = interpolate1D(e, 0, temperature_tb);  // 1/fm
-    return(std::max(1e-15, T));
+    return(std::max(Util::small_eps, T));
 }
 
 
@@ -92,7 +98,7 @@ double EOS_hotQCD::get_temperature(double e, double rhob) const {
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
 double EOS_hotQCD::get_pressure(double e, double rhob) const {
     double f = interpolate1D(e, 0, pressure_tb);  // 1/fm^4
-    return(std::max(1e-15, f));
+    return(std::max(Util::small_eps, f));
 }
 
 

@@ -14,9 +14,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_HOME_DIRECTORY}")
 set(CMAKE_INSTALL_RPATH ${CMAKE_HOME_DIRECTORY})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-# Require GSL for this project:
-find_package(GSL REQUIRED)
-include_directories(${GSL_INCLUDE_DIR})
+# Find GSL and openMP for this project:
+find_package(GSL)
+if (GSL_FOUND)
+    message("Found GSL library ${GSL_INCLUDE_DIR}, will build MUSIC with GSL")
+    include_directories(${GSL_INCLUDE_DIR})
+elseif()
+    message("Did not find GSL library, will build MUSIC alone")
+endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
@@ -50,10 +55,11 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 option (KNL "Build executable on KNL" OFF)
 option (unittest "Build Unit tests" OFF)
+option (link_with_lib "Link executable with the libarary" ON)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
     if (KNL)
-        set(CMAKE_CXX_FLAGS "-g -vecabi=cmdtarget -dynamic -debug inline-debug-info -fimf-use-svml -xmic-avx512 -qopt-report=5 -qopt-report-phase:vec -Ofast ${OpenMP_CXX_FLAGS} -std=c++11 -fma -align -finline-functions -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
+        set(CMAKE_CXX_FLAGS "-g -vecabi=cmdtarget -debug inline-debug-info -fimf-use-svml -xmic-avx512 -qopt-report=5 -qopt-report-phase:vec -Ofast ${OpenMP_CXX_FLAGS} -std=c++11 -fma -align -finline-functions -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
     else ()
         set(CMAKE_CXX_FLAGS "-g -ipo -qopt-report=5 -qopt-report-phase:vec -Ofast ${OpenMP_CXX_FLAGS} -std=c++11 -fimf-use-svml -fma -align -finline-functions -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
     endif ()

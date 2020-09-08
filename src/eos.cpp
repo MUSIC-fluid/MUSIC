@@ -20,8 +20,8 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         eos_ptr = std::unique_ptr<EOS_s95p> (new EOS_s95p (eos_id));
     } else if (eos_id == 8) {
         eos_ptr = std::unique_ptr<EOS_WB> (new EOS_WB ());
-    } else if (eos_id == 9) {
-        eos_ptr = std::unique_ptr<EOS_hotQCD> (new EOS_hotQCD ());
+    } else if (eos_id == 9 || eos_id == 91) {
+        eos_ptr = std::unique_ptr<EOS_hotQCD> (new EOS_hotQCD (eos_id));
     } else if (eos_id >= 10 && eos_id <= 14) {
         eos_ptr = std::unique_ptr<EOS_neos> (new EOS_neos (eos_id));
     } else if (eos_id == 17) {

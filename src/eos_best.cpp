@@ -138,7 +138,7 @@ double EOS_BEST::get_pressure(double e, double rhob) const {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_BEST::get_mu(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
                                    mu_B_tb);  // 1/fm
     return(mu);

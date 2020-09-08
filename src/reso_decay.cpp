@@ -11,8 +11,8 @@
 // for a description of the formalism utilized in this program.
 
 #include <cmath>
-#include "./freeze.h"
-#include "./int.h"
+#include "freeze.h"
+#include "int.h"
 
 /*************************************************
 *

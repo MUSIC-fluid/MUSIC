@@ -15,17 +15,25 @@ class TransportCoeffs {
  public:
     TransportCoeffs(const EOS &eosIn, const InitData &DATA_in);
 
-    double get_eta_over_s(double T) const;
-    double get_zeta_over_s(double T) const;
+    double get_eta_over_s(const double T, const double muB) const;
+    double get_zeta_over_s(const double T) const;
 
-    double get_temperature_dependent_eta_over_s_default(double T) const;
-    double get_temperature_dependent_zeta_over_s_default(double T) const;
+    double get_temperature_dependent_eta_over_s_default(const double T) const;
+    double get_temperature_dependent_zeta_over_s_default(cosnt double T) const;
 
-    double get_temperature_dependent_eta_over_s_duke(double T) const;
-    double get_temperature_dependent_zeta_over_s_duke(double T) const;
+    double get_temperature_dependent_eta_over_s_duke(const double T) const;
+    double get_temperature_dependent_zeta_over_s_duke(const double T) const;
 
-    double get_temperature_dependent_eta_over_s_sims(double T) const;
-    double get_temperature_dependent_zeta_over_s_sims(double T) const;
+    double get_temperature_dependent_eta_over_s_sims(const double T) const;
+    double get_temperature_dependent_zeta_over_s_sims(const double T) const;
+
+    double get_muB_dependence_shear_profile(const double muB) const;
+    double get_temperature_dependence_shear_profile(const double T) const;
+
+    double get_temperature_dependent_zeta_over_s_bigbroadP(
+                                                    const double T) const;
+    double get_temperature_dependent_zeta_over_s_AsymGaussian(
+                                                    const double T) const;
 
     // Second-order coefficients
     double get_shear_relax_time_factor() const {

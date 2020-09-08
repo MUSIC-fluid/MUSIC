@@ -17,7 +17,7 @@
 
 #include <iostream>
 #include <sstream>
-#include <cstring>
+#include <string>
 
 class pretty_ostream {
  private:

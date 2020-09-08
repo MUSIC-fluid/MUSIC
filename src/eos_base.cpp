@@ -16,6 +16,7 @@ using std::endl;
 using std::ofstream;
 using std::string;
 using Util::hbarc;
+using Util::small_eps;
 
 EOS_base::~EOS_base() {
     for (int itable = 0; itable < number_of_tables; itable++) {
@@ -117,8 +118,8 @@ double EOS_base::get_entropy(double epsilon, double rhob) const {
     auto muC  = get_muC(epsilon, rhob);
     auto rhoS = get_rhoS(epsilon, rhob);
     auto rhoC = get_rhoC(epsilon, rhob);
-    auto f    = (epsilon + P - muB*rhob - muS*rhoS - muC*rhoC)/(T + 1e-15);
-    return(std::max(1e-15, f));
+    auto f    = (epsilon + P - muB*rhob - muS*rhoS - muC*rhoC)/(T + small_eps);
+    return(std::max(small_eps, f));
 }
 
 
@@ -134,7 +135,7 @@ double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob) const {
     double dpde = p_e_func(e, rhob);
     double dpdrho = p_rho_func(e, rhob);
     double pressure = get_pressure(e, rhob);
-    double v_sound = dpde + rhob/(e + pressure + 1e-15)*dpdrho;
+    double v_sound = dpde + rhob/(e + pressure + small_eps)*dpdrho;
     v_sound = std::max(v_min, std::min(v_max, v_sound));
     return(v_sound);
 }
@@ -184,7 +185,7 @@ int EOS_base::get_table_idx(double e) const {
 //! a given temperature T [GeV] and rhob [1/fm^3] using binary search
 double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
     double T_goal = T/Util::hbarc;         // convert to 1/fm
-    double eps_lower = 1e-15;
+    double eps_lower = small_eps;
     double eps_upper = eps_max;
     double eps_mid   = (eps_upper + eps_lower)/2.;
     double T_lower   = get_temperature(eps_lower, rhob);
@@ -198,8 +199,8 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
     }
     if (T_goal < T_lower) return(eps_lower);
 
-    double rel_accuracy = 1e-8;
-    double abs_accuracy = 1e-15;
+    double rel_accuracy = sqrt(small_eps);
+    double abs_accuracy = small_eps;
     double T_mid;
     int iter = 0;
     while (((eps_upper - eps_lower)/eps_mid > rel_accuracy
@@ -229,7 +230,7 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
 //! a given entropy density [1/fm^3] and rhob [1/fm^3]
 //! using binary search
 double EOS_base::get_s2e_finite_rhob(double s, double rhob) const {
-    double eps_lower = 1e-15;
+    double eps_lower = small_eps;
     double eps_upper = eps_max;
     double eps_mid   = (eps_upper + eps_lower)/2.;
     double s_lower   = get_entropy(eps_lower, rhob);
@@ -243,8 +244,8 @@ double EOS_base::get_s2e_finite_rhob(double s, double rhob) const {
     }
     if (s < s_lower) return(eps_lower);
 
-    double rel_accuracy = 1e-8;
-    double abs_accuracy = 1e-15;
+    double rel_accuracy = sqrt(small_eps);
+    double abs_accuracy = small_eps;
     double s_mid;
     int iter = 0;
     while (((eps_upper - eps_lower)/eps_mid > rel_accuracy

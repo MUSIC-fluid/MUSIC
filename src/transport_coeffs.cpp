@@ -13,22 +13,54 @@ TransportCoeffs::TransportCoeffs(const EOS &eosIn, const InitData &Data_in)
 }
 
 
-double TransportCoeffs::get_eta_over_s(double T) const {
-    double eta_over_s;
+double TransportCoeffs::get_eta_over_s(const double T, const double muB) const {
+    double eta_over_s = DATA.shear_to_s;
     if (DATA.T_dependent_shear_to_s == 1) {
         eta_over_s = get_temperature_dependent_eta_over_s_default(T);
-    } else if (DATA.T_dependent_bulk_to_s == 2) {
+    } else if (DATA.T_dependent_shear_to_s == 2) {
         eta_over_s = get_temperature_dependent_eta_over_s_duke(T);
-    } else if (DATA.T_dependent_bulk_to_s == 3) {
+    } else if (DATA.T_dependent_shear_to_s == 3) {
         eta_over_s = get_temperature_dependent_eta_over_s_sims(T);
+    } else if (DATA.T_dependent_shear_to_s == 11) {
+        eta_over_s *= get_temperature_dependence_shear_profile(T);
     } else {
         eta_over_s = DATA.shear_to_s;
+    }
+    if (DATA.muB_dependent_shear_to_s == 10) {
+        eta_over_s *= get_muB_dependence_shear_profile(muB);
     }
     return eta_over_s;
 }
 
 
-double TransportCoeffs::get_temperature_dependent_eta_over_s_default(double T) const {
+double Diss::get_temperature_dependence_shear_profile(const double T) const {
+    const double Tc = 0.165/hbarc;
+    const double Tslope = 1.2;
+    const double Tlow = 0.1/hbarc;
+    double f_T = 1.0;
+    if (T < Tc) {
+        f_T += Tslope*(Tc - T)/(Tc - Tlow);
+    } else {
+        const double Tslope2 = 0.0;
+        const double Thigh = 0.4/hbarc;
+        f_T += Tslope2*(T - Tc)/(Thigh - Tc);
+    }
+    return(f_T);
+}
+
+
+double TransportCoeffs::get_muB_dependence_shear_profile(
+                                                const double muB) const {
+    const double alpha = 0.8;
+    const double muB_slope = 0.9;
+    const double muB_scale = 0.6/hbarc;
+    double f_muB = 1. + muB_slope*pow(muB/muB_scale, alpha);
+    return(f_muB);
+}
+
+
+double TransportCoeffs::get_temperature_dependent_eta_over_s_default(
+                                                    const double T) const {
     double Ttr = 0.18/hbarc;  // phase transition temperature
     double Tfrac = T/Ttr;
     double eta_over_s;
@@ -44,7 +76,7 @@ double TransportCoeffs::get_temperature_dependent_eta_over_s_default(double T) c
 
 
 double TransportCoeffs::get_temperature_dependent_eta_over_s_duke(
-                                                double T_in_fm) const {
+                                            const double T_in_fm) const {
     double T_in_GeV = T_in_fm*hbarc;
     double Ttr_in_GeV = 0.154;
     double Tfrac = T_in_GeV/Ttr_in_GeV;
@@ -57,7 +89,7 @@ double TransportCoeffs::get_temperature_dependent_eta_over_s_duke(
 
 
 double TransportCoeffs::get_temperature_dependent_eta_over_s_sims(
-                                                double T_in_fm) const {
+                                            const double T_in_fm) const {
     double T_in_GeV = T_in_fm*hbarc;
     double T_kink_in_GeV = DATA.eta_over_s_T_kink_in_GeV;
     double low_T_slope = DATA.eta_over_s_low_T_slope_in_GeV;
@@ -78,7 +110,7 @@ double TransportCoeffs::get_temperature_dependent_eta_over_s_sims(
 }
 
 
-double TransportCoeffs::get_zeta_over_s(double T) const {
+double TransportCoeffs::get_zeta_over_s(const double T) const {
     double zeta_over_s = 0.;;
     if (DATA.T_dependent_bulk_to_s == 2) {
         zeta_over_s = get_temperature_dependent_zeta_over_s_duke(T);
@@ -86,6 +118,10 @@ double TransportCoeffs::get_zeta_over_s(double T) const {
         zeta_over_s = get_temperature_dependent_zeta_over_s_sims(T);
     } else if (DATA.T_dependent_bulk_to_s == 1) {
         zeta_over_s = get_temperature_dependent_zeta_over_s_default(T);
+    } else if (DATA.T_dependent_bulk_to_s == 7) {
+        zeta_over_s = get_temperature_dependent_zeta_over_s_bigbroadP(T);
+    } else if (DATA.T_dependent_bulk_to_s == 8) {
+        zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(T);
     }
     zeta_over_s = std::max(0., zeta_over_s);
     return zeta_over_s;
@@ -94,7 +130,7 @@ double TransportCoeffs::get_zeta_over_s(double T) const {
 
 //! Cauchy distribution
 double TransportCoeffs::get_temperature_dependent_zeta_over_s_duke(
-                                                double T_in_fm) const {
+                                            const double T_in_fm) const {
     const double A=DATA.bulk_viscosity_normalisation;
     const double G=DATA.bulk_viscosity_width_in_GeV;
     const double Tpeak_in_GeV=DATA.bulk_viscosity_peak_in_GeV;
@@ -109,7 +145,7 @@ double TransportCoeffs::get_temperature_dependent_zeta_over_s_duke(
 
 //! Skewed Cauchy distribution
 double TransportCoeffs::get_temperature_dependent_zeta_over_s_sims(
-                                                    double T_in_fm) const {
+                                                const double T_in_fm) const {
     const double T_in_GeV=T_in_fm*hbarc;
 
     const double max=DATA.zeta_over_s_max;
@@ -126,10 +162,12 @@ double TransportCoeffs::get_temperature_dependent_zeta_over_s_sims(
 
 //! T dependent bulk viscosity from Gabriel
 double TransportCoeffs::get_temperature_dependent_zeta_over_s_default(
-                                                double temperature) const {
+                                            const double temperature) const {
     /////////////////////////////////////////////
     //           Parametrization 1             //
     /////////////////////////////////////////////
+    // T dependent bulk viscosity from Gabriel
+    // used in arXiv: 1502.01675 and 1704.04216
     double Ttr=0.18/0.1973;
     double dummy=temperature/Ttr;
     double A1=-13.77, A2=27.55, A3=13.45;
@@ -186,3 +224,33 @@ double TransportCoeffs::get_temperature_dependent_zeta_over_s_default(
 }
 
 
+double TransportCoeffs::get_temperature_dependent_zeta_over_s_bigbroadP(
+                                                    const double T) const {
+    // used in arXiv: 1901.04378 and 1908.06212
+    double B_norm = 0.24;
+    double B_width = 1.5;
+    double Tpeak = 0.165/hbarc;
+    double Ttilde = (temperature/Tpeak - 1.)/B_width;
+    bulk = B_norm/(Ttilde*Ttilde + 1.);
+    if (temperature < Tpeak) {
+        double Tdiff = (temperature - Tpeak)/(0.01/hbarc);
+        bulk = B_norm*exp(-Tdiff*Tdiff);
+    }
+}
+
+
+double TransportCoeffs::get_temperature_dependent_zeta_over_s_AsymGaussian(
+                                                    const double T) const {
+    double B_norm = 0.13;   // latest param. for IPGlasma + MUSIC + UrQMD
+    //double B_norm = 0.175;  // latest param. for IPGlasma + KoMPoST + MUSIC + UrQMD
+    double B_width1 = 0.01/hbarc;
+    double B_width2 = 0.12/hbarc;
+    double Tpeak = 0.160/hbarc;
+    double Tdiff = temperature - Tpeak;
+    if (Tdiff > 0.) {
+        Tdiff = Tdiff/B_width2;
+    } else {
+        Tdiff = Tdiff/B_width1;
+    }
+    bulk = B_norm*exp(-Tdiff*Tdiff);
+}

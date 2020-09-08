@@ -12,33 +12,33 @@
 //! This is a data structure contains all the parameters for simulation
 typedef struct init_data {
 
-    std::array<std::array<double, 4>, 4> gmunu = 
+    std::array<std::array<double, 4>, 4> gmunu =
       {{{-1,0,0,0},
         { 0,1,0,0},
         { 0,0,1,0},
         { 0,0,0,1}}};
 
     int echo_level;
+
     int mode;               //!< 1: do everything;
-    //!< 2: do hydro evolution only;
-    //!< 3: do calculation of thermal spectra only;
-    //!< 4: do resonance decays only
-    std::string initName;
-    std::string initName_rhob;
-    std::string initName_ux;
-    std::string initName_uy;
-    std::string initName_TA;
-    std::string initName_TB;
-    std::string initName_rhob_TA;
-    std::string initName_rhob_TB;
-    std::string initName_AMPT;
+                            //!< 2: do hydro evolution only;
+                            //!< 3: do calculation of thermal spectra only;
+                            //!< 4: do resonance decays only
+
+    std::string initName;   //!< filename for initial condition T^{\mu\nu}
+
+    // parameters for Initial_profile == 11 || 111
+    std::string initName_TA;  //!< filename for nuclear thickness function TA
+    std::string initName_TB;  //!< filename for nuclear thickness function TB
+
+    // parameters for Initial_profile == 30
+    std::string initName_AMPT;  //!< initial state filename from AMPT
 
     //! random seed
     int seed;
-    double ecm;
+    double ecm;                 //!< collision energy [GeV]
     double beam_rapidity;
 
-    int initial_eta_profile;
     int initial_eta_rhob_profile;
     // envelope function parameter for energy density in eta_s direction
     double eta_fall_off;
@@ -49,6 +49,7 @@ typedef struct init_data {
     double eta_rhob_plateau_height;  //!< central plateau height profile == 2
     double eta_rhob_width_1;         //!< outside tail Gaussian width profile == 2
     double eta_rhob_width_2;         //!< inside Gaussian width profile == 2
+    double yL_frac;
 
     int Initial_profile;    //! type of initial condition
     int initializeEntropy;  //! flag to initial entropy or energy density
@@ -102,8 +103,14 @@ typedef struct init_data {
     int turn_on_diff;       //!< flag to include net baryon diffusion
     double shear_to_s;      //!< value of specific shear viscosity
 
+    double quest_revert_strength;
+
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;
+    int muB_dependent_shear_to_s;
+
+    //! flag to include temperature dependent zeta/s(T)
+    int T_dependent_zeta_over_s;
 
     //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==2"
     double eta_over_s_min;
@@ -136,6 +143,12 @@ typedef struct init_data {
 
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
+
+    //! flag to include vorticity coupling terms in shear and diffusion
+    int include_vorticity_terms;
+
+    //! flag to output vorticity evolution
+    int output_vorticity;
 
     //! coefficient related to the net baryon diff.
     double kappa_coefficient;

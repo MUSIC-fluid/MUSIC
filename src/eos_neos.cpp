@@ -244,7 +244,7 @@ double EOS_neos::get_temperature(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double T = interpolate2D(e, std::abs(rhob), table_idx,
                              temperature_tb);  // 1/fm
-    T = std::max(1e-15, T);
+    T = std::max(Util::small_eps, T);
     return(T);
 }
 
@@ -254,7 +254,7 @@ double EOS_neos::get_temperature(double e, double rhob) const {
 double EOS_neos::get_pressure(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb);
-    f = std::max(1e-15, f);
+    f = std::max(Util::small_eps, f);
     return(f);
 }
 
@@ -263,7 +263,7 @@ double EOS_neos::get_pressure(double e, double rhob) const {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_neos::get_muB(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
                                    mu_B_tb);  // 1/fm
     return(mu);
@@ -275,7 +275,7 @@ double EOS_neos::get_muB(double e, double rhob) const {
 double EOS_neos::get_muS(double e, double rhob) const {
     if (!get_flag_muS()) return(0.0);
     int table_idx = get_table_idx(e);
-    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
                                    mu_S_tb);  // 1/fm
     return(mu);
@@ -287,7 +287,7 @@ double EOS_neos::get_muS(double e, double rhob) const {
 double EOS_neos::get_muC(double e, double rhob) const {
     if (!get_flag_muC()) return(0.0);
     int table_idx = get_table_idx(e);
-    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
                                    mu_C_tb);  // 1/fm
     return(mu);

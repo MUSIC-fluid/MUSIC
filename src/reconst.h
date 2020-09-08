@@ -5,7 +5,6 @@
 #include <array>
 #include <iostream>
 #include "util.h"
-#include "data.h"
 #include "cell.h"
 #include "grid.h"
 #include "eos.h"
@@ -15,8 +14,6 @@
 class Reconst {
  private:
     const EOS &eos;
-    const InitData &DATA;
-    double eos_eps_max;
     pretty_ostream music_message;
 
     const int max_iter;
@@ -25,15 +22,20 @@ class Reconst {
 
     const double LARGE;
 
-    int echo_level;
     const double v_critical;
+    const int echo_level;
 
  public:
     Reconst() = default;
-    Reconst(const EOS &eos, const InitData &DATA_in);
+    Reconst(const EOS &eos, const int echo_level_in);
 
     ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,
                                 const Cell_small &grid_pt);
+
+    int get_max_iter() const {return(max_iter);}
+    int get_echo_level() const {return(echo_level);}
+    double get_abs_err() const {return(abs_err);}
+    double get_v_critical() const {return(v_critical);}
 
     void revert_grid(ReconstCell &grid_current,
                      const Cell_small &grid_prev) const;
@@ -51,8 +53,15 @@ class Reconst {
     int solve_velocity_Newton(const double v_guess, const double T00,
                               const double M, const double J0,
                               double &v_solution);
+    int solve_v_Hybrid(const double v_guess, const double T00,
+                       const double M, const double J0,
+                       double &v_solution);
 
     int solve_u0_Newton(const double u0_guess, const double T00,
+                        const double K00, const double M, const double J0,
+                        double &u0_solution);
+
+    int solve_u0_Hybrid(const double u0_guess, const double T00,
                         const double K00, const double M, const double J0,
                         double &u0_solution);
 
