@@ -33,7 +33,7 @@ class TransportCoeffs {
     double get_temperature_dependent_zeta_over_s_bigbroadP(
                                                     const double T) const;
     double get_temperature_dependent_zeta_over_s_AsymGaussian(
-                                                    const double T) const;
+                                    const double T, const double norm) const;
 
     // Second-order coefficients
     double get_shear_relax_time_factor() const {

@@ -128,7 +128,7 @@ double TransportCoeffs::get_zeta_over_s(const double T) const {
         zeta_over_s = get_temperature_dependent_zeta_over_s_bigbroadP(T);
     } else if (DATA.T_dependent_bulk_to_s == 8) {
         // latest param. for IPGlasma + MUSIC + UrQMD
-        const double peak_norm = 0.13
+        const double peak_norm = 0.13;
         zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
                                                                 T, peak_norm);
     } else if (DATA.T_dependent_bulk_to_s == 9) {
