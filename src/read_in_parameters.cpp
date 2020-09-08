@@ -549,7 +549,7 @@ InitData read_in_parameters(std::string input_file) {
     }
     parameter_list.shear_to_s = tempshear_to_s;
 
-    // If "T_dependent_Shear_to_S_ratio==2", 
+    // If "T_dependent_Shear_to_S_ratio==2",
     // (eta/s)(T) = eta_over_s_min + eta_over_s_slope*(T − Tc)*(T/Tc)^{eta_over_s_curv}
     // with T_c=0.154 GeV
     double temp_eta_over_s_min = 0.08;
@@ -621,7 +621,7 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempT_dependent_bulk_to_s;
     parameter_list.T_dependent_bulk_to_s = tempT_dependent_bulk_to_s;
 
-    // "T_dependent_Bulk_to_S_ratio=2", 
+    // "T_dependent_Bulk_to_S_ratio=2",
     // bulk viscosity is parametrized as with "A", "G" and "Tc" as "A*(1/(1+((T-Tc)/G)^2)"
     double tempBulkViscosityNorm = 0.33;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_normalisation");

@@ -17,41 +17,41 @@ mode 2   # MUSIC running mode
 ###################################
 # parameters for initial conditions
 ###################################
-Initial_profile 9               # type of initial condition 
-                                # 0: for Gubser flow test
-                                # 1: for 1+1D test
+Initial_profile 13              # type of initial condition 
+                                # 0: for Gubser flow test (future)
+                                # 1: Optical Glauber model
+                                # 3: MC-Glauber model
                                 # 8: Read in initial profile from a file 
-                                #    (public IP-Glasma)
-                                # 9: Read in initial profile from a file 
+                                #    (e.g., IP-Glasma)
+                                # 9: Read in initial profile from a file
                                 #    (from Bjoern's IP-Glasma)
-                                #    (9: full T^\mu\nu; 91: e and u^\mu; 92: e only)
+                                #    (9: full T^\mu\nu; 91: e and u^\mu; 92: e only, 93: no initial bulk)
+                                # 13: 3D MC-Glauber with dynamical initialization
+                                # 131: 3D MC-Glauber start at tau_0 = 0.5 fm/c
 initialize_with_entropy 0       # 0: with energy density 
                                 # 1: with entropy density
 
 # read in initial conditions from external file
-Initial_Distribution_input_filename initial/epsilon-u-Hydro.dat
+Initial_Distribution_input_filename initial/QCD_strings_Hydro_decelerate.dat
                                # the filename of initial profile 
                                # (for Initial_profile == 8)
-s_factor 0.190                 # normalization factor read in 
+s_factor  1.0                  # normalization factor read in 
                                # initial data file
-Eta_plateau_size 20.           # size of the plateau in eta_s
-Eta_fall_off 0.7               # the scale of the fall off of the 
-                               # plateau in eta_s direction
 #
 #######################################
 # parameters for hydrodynamic evolution
 #######################################
-boost_invariant  1            # whether the simulation is boost-invariant 
+boost_invariant  0            # whether the simulation is boost-invariant 
 # grid information
-Initial_time_tau_0 0.4        # starting time of the hydrodynamic 
+Initial_time_tau_0 0.6        # starting time of the hydrodynamic 
                               # evolution (fm/c)
 Total_evolution_time_tau 30.  # the maximum allowed running 
                               # evolution time (fm/c)
                               # need to be set to some large number
-Delta_Tau 0.005               # time step to use in the evolution [fm/c]
-Eta_grid_size 14.0            # spatial rapidity range 
+Delta_Tau 0.01                # time step to use in the evolution [fm/c]
+Eta_grid_size 12.8            # spatial rapidity range 
                               # [-Eta_grid_size/2, Eta_grid_size/2 - delta_eta]
-Grid_size_in_eta 1            # number of the grid points in spatial 
+Grid_size_in_eta 64           # number of the grid points in spatial 
                               # rapidity direction
                               # Must have at least 4 cells per processor.
                               # Must be an even number.
@@ -64,11 +64,11 @@ X_grid_size_in_fm 20.0        # spatial range along x direction in the
 Y_grid_size_in_fm 20.0        # spatial range along y direction in the 
                               # transverse plane 
                               # [-Y_grid_size_in_fm/2, Y_grid_size_in_fm/2]
-Grid_size_in_y 200            # number of the grid points in y direction
-Grid_size_in_x 200            # number of the grid points in x direction
+Grid_size_in_y 192            # number of the grid points in y direction
+Grid_size_in_x 192            # number of the grid points in x direction
 #
 #
-EOS_to_use 9                  # type of the equation of state
+EOS_to_use 14                 # type of the equation of state
                               # 0: ideal gas
                               # 1: EOS-Q from azhydro
                               # 2: lattice EOS s95p-v1 
@@ -82,16 +82,19 @@ EOS_to_use 9                  # type of the equation of state
                               # 5: lattice EOS s95p at 160 MeV
                               # 6: lattice EOS s95p at 165 MeV
                               # 7: lattice EOS s95p-v1.2 for UrQMD
+                              # 9: lattice EOS hotQCD with UrQMD
+                              # 91: lattice EOS hotQCD with SMASH
+                              # 14: lattice EOS hotQCD at finite muB
 # transport coefficients
 Viscosity_Flag_Yes_1_No_0 1        # turn on viscosity in the evolution
 Include_Shear_Visc_Yes_1_No_0 1    # include shear viscous effect
-Shear_to_S_ratio 0.12              # value of \eta/s
+Shear_to_S_ratio 0.08              # value of \eta/s
 T_dependent_Shear_to_S_ratio  0    # flag to use temperature dep. \eta/s(T)
-Include_Bulk_Visc_Yes_1_No_0 1     # include bulk viscous effect
+Include_Bulk_Visc_Yes_1_No_0 0     # include bulk viscous effect
 Include_second_order_terms 1       # include second order non-linear coupling terms
-Include_Rhob_Yes_1_No_0 0
+Include_Rhob_Yes_1_No_0 1
 turn_on_baryon_diffusion 0
-kappa_coefficient 0.4
+kappa_coefficient 0.0
 #
 #
 # switches to output evolution information
@@ -102,24 +105,24 @@ outputBinaryEvolution  1           # output evolution file in binary format
 output_evolution_every_N_eta  1    # output evolution file every Neta steps
 output_evolution_every_N_y  2      # output evolution file every Ny steps
 output_evolution_every_N_x  2      # output evolution file every Nx steps
-output_evolution_every_N_timesteps  1  # output evolution every Ntime steps
+output_evolution_every_N_timesteps  10  # output evolution every Ntime steps
 #
 #
 ###########################################
 # parameters for freeze out and Cooper-Frye 
 ###########################################
 Do_FreezeOut_Yes_1_No_0 1       # flag to find freeze-out surface
-Do_FreezeOut_lowtemp 1          # flag to include cold corona
+Do_FreezeOut_lowtemp 1
 freeze_out_method 4             # method for hyper-surface finder
-                                # 4: Cornelius
+                                # 2: Schenke's more complex method
 freeze_surface_in_binary 1      # switch to output surface file in binary format
-average_surface_over_this_many_time_steps 10   # the step skipped in the tau
-freeze_Ncell_x_step 1
+average_surface_over_this_many_time_steps 20   # the step skipped in the tau
+freeze_Ncell_x_step 2
 freeze_Ncell_eta_step 1
 freeze_eps_flag 0
 N_freeze_out 1
-eps_freeze_max 0.18
-eps_freeze_min 0.18
+eps_freeze_max 0.25
+eps_freeze_min 0.25
 use_eps_for_freeze_out 1        # flag to use energy density as criteria to 
                                 # find freeze-out surface 
                                 # 0: use temperature, 1: use energy density

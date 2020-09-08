@@ -127,7 +127,15 @@ double TransportCoeffs::get_zeta_over_s(const double T) const {
     } else if (DATA.T_dependent_bulk_to_s == 7) {
         zeta_over_s = get_temperature_dependent_zeta_over_s_bigbroadP(T);
     } else if (DATA.T_dependent_bulk_to_s == 8) {
-        zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(T);
+        // latest param. for IPGlasma + MUSIC + UrQMD
+        const double peak_norm = 0.13
+        zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
+                                                                T, peak_norm);
+    } else if (DATA.T_dependent_bulk_to_s == 9) {
+        // latest param. for IPGlasma + KoMPoST + MUSIC + UrQMD
+        const double peak_norm = 0.175;
+        zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
+                                                                T, peak_norm);
     }
     zeta_over_s = std::max(0., zeta_over_s);
     return zeta_over_s;
@@ -249,10 +257,9 @@ double TransportCoeffs::get_temperature_dependent_zeta_over_s_bigbroadP(
 
 
 double TransportCoeffs::get_temperature_dependent_zeta_over_s_AsymGaussian(
-                                                const double T_in_fm) const {
+                            const double T_in_fm, const double norm) const {
     const double T_in_GeV = T_in_fm*hbarc;
-    const double B_norm = 0.13;   // latest param. for IPGlasma + MUSIC + UrQMD
-    //double B_norm = 0.175;  // latest param. for IPGlasma + KoMPoST + MUSIC + UrQMD
+    const double B_norm = norm;
     const double B_width1 = 0.01;
     const double B_width2 = 0.12;
     const double Tpeak = 0.160;
