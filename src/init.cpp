@@ -161,18 +161,6 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         output_initial_density_profiles(arena_current);
     }
 }/* InitArena */
-    
-
-void Init::print_num_of_threads() {
-    #pragma omp parallel for
-    for (int i = 0; i < 2; i++) {
-        if (i == 0) {
-            music_message << "OpenMP: using " << omp_get_num_threads()
-                          << " threads.";
-            music_message.flush("info");
-        }
-    }
-}
 
 
 void Init::print_num_of_threads() {
@@ -185,6 +173,7 @@ void Init::print_num_of_threads() {
         }
     }
 }
+
 
 //! This is a shell function to initial hydrodynamic fields
 void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {

@@ -15,7 +15,8 @@ using Util::hbarc;
 using Util::small_eps;
 
 Diss::Diss(const EOS &eosIn, const InitData &Data_in) :
-                    DATA(Data_in), eos(eosIn), minmod(Data_in) {}
+                DATA(Data_in), eos(eosIn), minmod(Data_in),
+                transport_coeffs_(eosIn, Data_in) {}
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 /* Dissipative parts */
@@ -175,7 +176,7 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     T = eos.get_temperature(epsilon, rhob);
     double muB = eos.get_muB(epsilon, rhob);
 
-    shear_to_s = transport_coeffs_.get_eta_over_s(T, muB);
+    double shear_to_s = transport_coeffs_.get_eta_over_s(T, muB);
 
     bool include_WWterm = false;
     bool include_Wsigma_term = false;
@@ -1119,7 +1120,7 @@ void Diss::output_eta_over_s_along_const_sovernB() {
             double T_local = eos.get_temperature(e_local, nB_local);
 
             double shear_to_s = DATA.shear_to_s;
-            shear_to_s = transport_coeffs_.get_eta_over_s(T_local, mu_B_local);
+            shear_to_s = transport_coeffs_.get_eta_over_s(T_local, mu_B);
 
             double eta_over_s = shear_to_s;
             if (DATA.muB_dependent_shear_to_s != 0) {

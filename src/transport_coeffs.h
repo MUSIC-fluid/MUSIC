@@ -19,7 +19,7 @@ class TransportCoeffs {
     double get_zeta_over_s(const double T) const;
 
     double get_temperature_dependent_eta_over_s_default(const double T) const;
-    double get_temperature_dependent_zeta_over_s_default(cosnt double T) const;
+    double get_temperature_dependent_zeta_over_s_default(const double T) const;
 
     double get_temperature_dependent_eta_over_s_duke(const double T) const;
     double get_temperature_dependent_zeta_over_s_duke(const double T) const;

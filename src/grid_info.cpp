@@ -4,18 +4,11 @@
 #include <cmath>
 #include <vector>
 
-<<<<<<< HEAD
-#include "./util.h"
-#include "./grid_info.h"
-
-using Util::hbarc;
-=======
 #include "util.h"
 #include "grid_info.h"
 
 using Util::hbarc;
 using Util::small_eps;
->>>>>>> chun_dev
 using std::string;
 using std::scientific;
 using std::setw;
@@ -119,11 +112,7 @@ void Cell_info::Output_hydro_information_header() {
 }
 
 
-<<<<<<< HEAD
-//! This function outputs hydro evolution file
-=======
 //! This function outputs hydro evolution file in binary format
->>>>>>> chun_dev
 void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
     const string out_name_xyeta = "evolution_xyeta.dat";
     const string out_name_W_xyeta =
@@ -300,13 +289,8 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
 }
 
 
-<<<<<<< HEAD
-void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(SCGrid &arena,
-                                                        double tau) const {
-=======
 void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(
         SCGrid &arena, const double tau) const {
->>>>>>> chun_dev
     const string out_name_xyeta = "evolution_KRnumbers.dat";
     FILE *out_file_xyeta        = NULL;
 
@@ -378,21 +362,13 @@ void Cell_info::calculate_inverse_Reynolds_numbers(
     const double pi_local = grid_pt.pi_b;
 
     R_pi = sqrt(pisize)/pressure;
-<<<<<<< HEAD
-    R_Pi = sqrt(pi_local)/pressure;
-=======
     R_Pi = pi_local/pressure;
->>>>>>> chun_dev
 }
 
 
 //! This function outputs hydro evolution file into memory for JETSCAPE
 void Cell_info::OutputEvolutionDataXYEta_memory(
-<<<<<<< HEAD
-                SCGrid &arena, double tau, HydroinfoMUSIC &hydro_info_ptr) {
-=======
             SCGrid &arena, const double tau, HydroinfoMUSIC &hydro_info_ptr) {
->>>>>>> chun_dev
     const int n_skip_x   = DATA.output_evolution_every_N_x;
     const int n_skip_y   = DATA.output_evolution_every_N_y;
     const int n_skip_eta = DATA.output_evolution_every_N_eta;
@@ -400,11 +376,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
                 double eta = 0.0;
-<<<<<<< HEAD
-                if (DATA.boost_invariant == 0) {
-=======
                 if (!DATA.boost_invariant) {
->>>>>>> chun_dev
                     eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
                             - (DATA.eta_size)/2.0);
                 }
@@ -436,12 +408,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
 
 
 //! This function outputs hydro evolution file in binary format
-<<<<<<< HEAD
-void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
-                                              double tau) {
-=======
 void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
->>>>>>> chun_dev
     // the format of the file is as follows,
     //    itau ix iy ieta e P T cs^2 ux uy ueta
     // if turn_on_shear == 1:
@@ -489,17 +456,9 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
     const double output_ymin   = - DATA.y_size/2.;
     const double output_etamin = - DATA.eta_size/2.;
 
-<<<<<<< HEAD
-    if (tau == DATA.tau0) {
-        const int nVar_per_cell = (10 + DATA.turn_on_rhob*1
-                                      + DATA.turn_on_shear*5
-                                      + DATA.turn_on_bulk*1
-                                      + DATA.turn_on_diff*3);
-=======
     const int nVar_per_cell = (11 + DATA.turn_on_rhob*1 + DATA.turn_on_shear*5
                                   + DATA.turn_on_bulk*1 + DATA.turn_on_diff*3);
     if (tau == DATA.tau0) {
->>>>>>> chun_dev
         float header[] = {
             static_cast<float>(DATA.tau0), static_cast<float>(output_dtau),
             static_cast<float>(output_nx), static_cast<float>(output_dx),
@@ -1021,7 +980,6 @@ void Cell_info::compute_angular_momentum(
                 << tau << "  " << Lx << "  " << Ly << "  " << Lz << "  "
                 << Ltx << "  " << Lty << "  " << Ltz << std::endl;
     output_file.close();
->>>>>>> chun_dev
 }
 
 

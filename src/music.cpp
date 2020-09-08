@@ -83,12 +83,6 @@ void MUSIC::set_parameter(std::string parameter_name, double value) {
 }
 
 
-//! This function change the parameter value in DATA
-void MUSIC::set_parameter(std::string parameter_name, double value) {
-    ReadInParameters::set_parameter(DATA, parameter_name, value);
-}
-
-
 //! This function initialize hydro
 void MUSIC::initialize_hydro() {
     clean_all_the_surface_files();
