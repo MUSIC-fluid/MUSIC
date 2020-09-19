@@ -12,7 +12,6 @@
 #include "eos.h"
 #include "advance.h"
 #include "hydro_source_base.h"
-#include "u_derivative.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
 
@@ -25,7 +24,6 @@ class Evolve {
 
     Cell_info grid_info;
     Advance advance;
-    U_derivative u_derivative;
     pretty_ostream music_message;
 
     // simulation information

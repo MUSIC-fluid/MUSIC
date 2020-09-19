@@ -14,6 +14,7 @@
 
 #include "evolve.h"
 #include "cornelius.h"
+#include "u_derivative.h"
 #include "emoji.h"
 #include "util.h"
 
@@ -26,8 +27,7 @@ using Util::hbarc;
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
                std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
     eos(eosIn), DATA(DATA_in),
-    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in),
-    u_derivative(DATA_in, eosIn) {
+    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in) {
 
     rk_order  = DATA_in.rk_order;
     if (DATA.freezeOutMethod == 4) {
@@ -369,6 +369,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     const double DY   = fac_y*DATA.delta_y;
     const double DETA = fac_eta*DATA.delta_eta;
 
+    U_derivative u_derivative_helper(DATA, eos);
+
     // initialize Cornelius
     double lattice_spacing[4] = {DTAU, DX, DY, DETA};
     std::shared_ptr<Cornelius> cornelius_ptr(new Cornelius());
@@ -518,14 +520,14 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     // compute the vorticity tensors
                     Cell_aux aux_tmp;
                     double eta_local = eta + kk*DETA;
-                    u_derivative.compute_vorticity_shell(
+                    u_derivative_helper.compute_vorticity_shell(
                         tau, arena_prev, arena_current,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
                         aux_tmp.omega_kSP, aux_tmp.omega_k,
                         aux_tmp.omega_th, aux_tmp.omega_T);
                     fluid_aux_cube[1][ii][jj][kk] = aux_tmp;
-                    u_derivative.compute_vorticity_shell(
+                    u_derivative_helper.compute_vorticity_shell(
                         tau - DTAU, arena_freezeout_prev, arena_freezeout,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
