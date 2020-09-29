@@ -112,10 +112,15 @@ void HydroSourceTATB::get_hydro_energy_source(
                     *Util::m_N*cosh(DATA_.beam_rapidity)/Util::hbarc);  // [1/fm^3]
     double eta0 = std::min(DATA_.eta_flat/2.0,
                            std::abs(DATA_.beam_rapidity - (y_CM - y_L)));
-    double eta_envelop = eta_profile_plateau(eta_s - (y_CM - y_L), eta0,
-                                             DATA_.eta_fall_off);
-    double E_norm = tau_source*energy_eta_profile_normalisation(
+    //double eta_envelop = eta_profile_plateau(eta_s - (y_CM - y_L), eta0,
+    //                                         DATA_.eta_fall_off);
+    //double E_norm = tau_source*energy_eta_profile_normalisation(
+    //                                y_CM, eta0, DATA_.eta_fall_off);
+    double eta_envelop = eta_profile_plateau_frag(eta_s - (y_CM - y_L), eta0,
+                                                  DATA_.eta_fall_off);
+    double E_norm = tau_source*energy_eta_profile_normalisation_numerical(
                                     y_CM, eta0, DATA_.eta_fall_off);
+    //std::cout << "check E_norm1 = " << E_norm1 << ", E_norm = " << E_norm << std::endl;
     double epsilon = M_inv*eta_envelop/E_norm/dtau;  // [1/fm^5]
     j_mu[0] = epsilon*cosh(y_L);  // [1/fm^5]
     j_mu[3] = epsilon*sinh(y_L);  // [1/fm^5]
@@ -194,4 +199,38 @@ double HydroSourceTATB::energy_eta_profile_normalisation(
     double f3 = sinh(eta_0 + y_CM) - sinh(-eta_0 + y_CM);
     double norm = cosh(y_CM)*f2*f1 + f3;
     return(norm);
+}
+
+
+double HydroSourceTATB::eta_profile_plateau_frag(
+        const double eta, const double eta_0, const double sigma_eta) const {
+    // this function return the eta envelope profile for energy density
+    // Hirano's plateau + Gaussian fall-off
+    double res;
+    double exparg1 = (std::abs(eta) - eta_0)/sigma_eta;
+    double exparg = exparg1*exparg1/2.0;
+    double eta_fragmentation = std::max(eta_0, DATA_.beam_rapidity - 2.0);
+    double exparg_frag1 = (std::abs(eta) - eta_fragmentation)/0.5;
+    double exparg_frag = exparg_frag1*exparg_frag1/2.0;
+    res = (exp(-exparg*Util::theta(exparg1))
+           *exp(-exparg_frag*Util::theta(exparg_frag1)));
+    return res;
+}
+
+
+double HydroSourceTATB::energy_eta_profile_normalisation_numerical(
+        const double y_CM, const double eta_0, const double sigma_eta) const {
+    // this function returns the normalization of the eta envelope profile
+    // for energy density by performing numerical integral
+    //  \int deta eta_profile_plateau(eta - y_CM, eta_0, sigma_eta)*cosh(eta)
+    const int npoints = 200;
+    const double eta_max = DATA_.beam_rapidity + 3.0;
+    const double deta = 2.*eta_max/(npoints - 1);
+    double f_eta = 0.;
+    for (int i = 0; i < npoints; i++) {
+        double eta_i = - eta_max + i*deta + y_CM;
+        f_eta += eta_profile_plateau_frag(eta_i - y_CM, eta_0, sigma_eta)*cosh(eta_i);
+    }
+    f_eta *= deta;
+    return(f_eta);
 }
