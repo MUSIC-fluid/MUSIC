@@ -416,16 +416,16 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
     // if turn_on_shear == 1 and turn_on_bulk == 1:
     //    itau ix iy ieta e P T cs^2 ux uy ueta Wxx Wxy Wxeta Wyy Wyeta pi_b
     // if turn_on_rhob == 1:
-    //    itau ix iy ieta e P T cs^2 ux uy ueta mu_B
+    //    itau ix iy ieta e P T cs^2 ux uy ueta rho_B mu_B
     // if turn_on_rhob == 1 and turn_on_shear == 1:
-    //    itau ix iy ieta e P T cs^2 ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta
+    //    itau ix iy ieta e P T cs^2 ux uy ueta rho_B mu_B Wxx Wxy Wxeta Wyy Wyeta
     // if turn_on_rhob == 1 and turn_on_shear == 1 and turn_on_diff == 1:
-    //    itau ix iy ieta e P T cs^2 ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta qx qy qeta
+    //    itau ix iy ieta e P T cs^2 ux uy ueta rho_B mu_B Wxx Wxy Wxeta Wyy Wyeta qx qy qeta
     // if turn_on_rhob == 1 and turn_on_shear == 1 and turn_on_bulk == 1 and turn_on_diff == 1:
-    //    itau ix iy ieta e P T cs^2 ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta pi_b qx qy qeta
-    // Here ueta = tau*ueta, Wieta = tau*Wieta, qeta = tau*qeta
-    // Here Wij is reduced variables Wij/(e+P) used in delta f
-    // and qi is reduced variables qi/kappa_hat
+    //    itau ix iy ieta e P T cs^2 ux uy ueta rho_B mu_B Wxx Wxy Wxeta Wyy Wyeta pi_b qx qy qeta
+    // Here ueta = tau*ueta, Wieta = tau*Wieta, Wetaeta = tau^2*Wetaeta, qeta = tau*qeta
+    // Here Wij is reduced variables Wij/(e+P) in the fluid rest frame
+    // and qi is reduced variables qi/kappa_hat in the fluid rest frame
     const string out_name_xyeta = "evolution_all_xyeta.dat";
     string out_open_mode;
     FILE *out_file_xyeta;
@@ -456,7 +456,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
     const double output_ymin   = - DATA.y_size/2.;
     const double output_etamin = - DATA.eta_size/2.;
 
-    const int nVar_per_cell = (11 + DATA.turn_on_rhob*1 + DATA.turn_on_shear*5
+    const int nVar_per_cell = (11 + DATA.turn_on_rhob*2 + DATA.turn_on_shear*5
                                   + DATA.turn_on_bulk*1 + DATA.turn_on_diff*3);
     if (tau == DATA.tau0) {
         float header[] = {
@@ -551,8 +551,9 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
                 fwrite(ideal, sizeof(float), 11, out_file_xyeta);
 
                 if (DATA.turn_on_rhob == 1) {
-                    float mu[] = {static_cast<float>(muB_local*hbarc)};
-                    fwrite(mu, sizeof(float), 1, out_file_xyeta);
+                    float mu[] = {static_cast<float>(rhob_local),
+                                  static_cast<float>(muB_local*hbarc)};
+                    fwrite(mu, sizeof(float), 2, out_file_xyeta);
                 }
 
                 if (DATA.turn_on_shear == 1) {
