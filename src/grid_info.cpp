@@ -482,6 +482,10 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
                 double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
+
+                if (e_local*hbarc < DATA.output_evolution_e_cut) continue;
+                // only ouput fluid cells that are above cut-off temperature
+
                 double p_local    = eos.get_pressure(e_local, rhob_local);
                 double cs2        = eos.get_cs2(e_local, rhob_local);
 
@@ -490,11 +494,9 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
                 double uz = (  arena(ix, iy, ieta).u[3]*cosh_eta
                              + arena(ix, iy, ieta).u[0]*sinh_eta);
 
+
                 // T_local is in 1/fm
                 double T_local = eos.get_temperature(e_local, rhob_local);
-
-                if (T_local*hbarc < DATA.output_evolution_T_cut) continue;
-                // only ouput fluid cells that are above cut-off temperature
 
                 double muB_local = 0.0;
                 if (DATA.turn_on_rhob == 1)
@@ -584,7 +586,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
 
 
 //! This function outputs hydro evolution file in binary format for photon production
-double Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
+void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
     // volume = tau*dtau*dx*dy*deta
     // the format of the file is as follows,
     //    volume T ux uy ueta
@@ -622,13 +624,13 @@ double Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
     double deta = DATA.delta_eta;
     double volume = tau*n_skip_tau*dtau*n_skip_x*dx*n_skip_y*dy*n_skip_eta*deta;
 
-    const double e_cut = 0.1;  // GeV/fm^3
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         double eta_local = - DATA.eta_size/2. + ieta*deta;
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double e_local = arena(ix, iy, ieta).epsilon;  // 1/fm^4
-                if (e_local < e_cut/hbarc) continue;
+
+                if (e_local*hbarc < output_evolution_e_cut) continue;
                 // only ouput fluid cells that are above cut-off temperature
 
                 double rhob_local = arena(ix, iy, ieta).rhob;  // 1/fm^3
@@ -717,7 +719,6 @@ double Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
         }
     }
     fclose(out_file_xyeta);
-    return(e_cut);
 }
 
 
@@ -815,7 +816,8 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
 
                 float vor_vec[6];
                 for (int i = 0; i < 6; i++) {
-                    // no minus sign because it has an opposite sign compared to kinetic vorticity
+                    // no minus sign because it has an opposite sign compared
+                    // to kinetic vorticity
                     vor_vec[i] = static_cast<float>(omega_kSP[i]*hbarc);  // GeV
                 }
                 fwrite(vor_vec, sizeof(float), 6, out_file_xyeta);

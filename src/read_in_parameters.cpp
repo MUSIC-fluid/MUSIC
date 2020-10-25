@@ -726,6 +726,12 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_evo_T_cut;
     parameter_list.output_evolution_T_cut = temp_evo_T_cut;
 
+    double temp_evo_e_cut = 0.15;  // GeV/fm^3
+    tempinput = Util::StringFind4(input_file, "output_evolution_e_cut");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_evo_e_cut;
+    parameter_list.output_evolution_e_cut = temp_evo_e_cut;
+
     // Make MUSIC output a C header input_file containing
     // informations about the hydro parameters used
     // 0 for false (do not output), 1 for true
