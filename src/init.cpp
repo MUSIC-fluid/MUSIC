@@ -262,6 +262,10 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
 
     if (DATA.viscosity_flag == 0) {
         // for ideal hydrodynamic simualtions set all viscous tensor to zero
+        music_message << "Running ideal hydrodynamic simulations ...";
+        music_message.flush("info");
+        music_message << "Setting the initial viscous tensor to zero.";
+        music_message.flush("info");
         const int grid_neta = arena_current.nEta();
         const int grid_nx   = arena_current.nX();
         const int grid_ny   = arena_current.nY();
