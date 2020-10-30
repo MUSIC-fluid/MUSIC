@@ -259,6 +259,24 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message.flush("info");
         initial_UMN_with_rhob(arena_prev, arena_current);
     }
+
+    if (DATA.viscosity_flag == 0) {
+        // for ideal hydrodynamic simualtions set all viscous tensor to zero
+        const int grid_neta = arena_current.nEta();
+        const int grid_nx   = arena_current.nX();
+        const int grid_ny   = arena_current.nY();
+        #pragma omp parallel for collapse(3)
+        for (int ieta = 0; ieta < grid_neta; ieta++) {
+            for (int ix = 0; ix < grid_nx; ix++) {
+                for (int iy = 0; iy < grid_ny; iy++) {
+                    arena_prev(ix, iy, ieta).Wmunu = {0.};
+                    arena_prev(ix, iy, ieta).pi_b = 0.;
+                    arena_current(ix, iy, ieta).Wmunu = {0.};
+                    arena_current(ix, iy, ieta).pi_b = 0.;
+                }
+            }
+        }
+    }
     music_message.info("initial distribution done.");
 }
 
