@@ -148,6 +148,7 @@ typedef struct init_data {
     int output_evolution_every_N_eta;
     bool output_hydro_params_header;
     double output_evolution_T_cut;
+    double output_evolution_e_cut;
 
     int doFreezeOut;            //!< flag to output freeze-out surface
 
