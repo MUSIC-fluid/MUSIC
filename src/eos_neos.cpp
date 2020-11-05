@@ -49,7 +49,7 @@ EOS_neos::~EOS_neos() {
 void EOS_neos::initialize_eos() {
     // read the lattice EOS pressure, temperature, and 
     music_message.info("Using lattice EOS at finite muB from A. Monnai");
-    
+
     auto envPath = get_hydro_env_path();
     stringstream spath;
     spath << envPath;
@@ -94,11 +94,11 @@ void EOS_neos::initialize_eos() {
         set_flag_muS(flag_muS);
         set_flag_muC(flag_muC);
     }
-    
+
     string path = spath.str();
     music_message << "from path " << path;
     music_message.flush("info");
-    
+
     const int ntables = 7;
     set_number_of_tables(ntables);
     resize_table_info_arrays();
@@ -219,7 +219,7 @@ void EOS_neos::initialize_eos() {
             }
         }
     }
-    
+
     //double eps_max_in = (e_bounds[6] + e_spacing[6]*e_length[6])/hbarc;
     double eps_max_in = e_bounds[6] + e_spacing[6]*e_length[6];
     set_eps_max(eps_max_in);
