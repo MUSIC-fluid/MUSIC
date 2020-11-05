@@ -215,6 +215,7 @@ void EOS_neos::initialize_eos() {
 
                 pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
                 temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
+                temperature_tb[itable][i][j] = pow(temperature_tb[itable][i][j], 5.);    // 1/fm^5
                 mu_B_tb[itable][i][j]        /= Util::hbarc;    // 1/fm
             }
         }
@@ -242,9 +243,10 @@ double EOS_neos::p_rho_func(double e, double rhob) const {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_neos::get_temperature(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double T = interpolate2D(e, std::abs(rhob), table_idx,
-                             temperature_tb);  // 1/fm
-    T = std::max(Util::small_eps, T);
+    double T5 = interpolate2D(e, std::abs(rhob), table_idx,
+                              temperature_tb);  // 1/fm^5
+    T5 = std::max(Util::small_eps, T5);
+    double T = pow(T5, 0.2);  // 1/fm
     return(T);
 }
 
