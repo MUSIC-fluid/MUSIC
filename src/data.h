@@ -112,6 +112,9 @@ typedef struct init_data {
     //! flag to include temperature dependent zeta/s(T)
     int T_dependent_zeta_over_s;
 
+    //! Type of bulk relaxation time
+    int bulk_relaxation_type;
+
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
 

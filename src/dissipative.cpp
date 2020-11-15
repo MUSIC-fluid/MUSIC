@@ -641,6 +641,13 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
     Bulk_Relax_time = (bulk/(14.55*std::max(1./3. - cs2, small_eps)
                                   *std::max(1./3. - cs2, small_eps))
                            /std::max(epsilon + pressure, small_eps));
+    if (DATA.bulk_relaxation_type == 1) {
+        Bulk_Relax_time = (
+                bulk/(std::max(1./3. - cs2, small_eps)/(2. - log(2)))
+                /std::max(epsilon + pressure, small_eps));
+    }
+
+    // avoid overflow or underflow of the bulk relaxation time
     Bulk_Relax_time = (
         std::min(10., std::max(3.*DATA.delta_tau, Bulk_Relax_time)));
 

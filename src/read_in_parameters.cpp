@@ -564,6 +564,14 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempturn_on_bulk;
     parameter_list.turn_on_bulk = tempturn_on_bulk;
 
+    // type of bulk relaxation time parameterization
+    int tempbulk_relaxation_type = 0;
+    tempinput = Util::StringFind4(input_file, "Bulk_relaxation_time_type");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempbulk_relaxation_type;
+    parameter_list.bulk_relaxation_type = tempbulk_relaxation_type;
+
+
     // flag for different parameterization of zeta/s(T)
     int temp_T_dependent_zeta_over_s = 0;
     tempinput = Util::StringFind4(input_file, "T_dependent_zeta_over_s");
