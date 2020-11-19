@@ -55,6 +55,7 @@ typedef struct init_data {
     double eta_rhob_plateau_height;  //!< central plateau height profile == 2
     double eta_rhob_width_1;         //!< outside tail Gaussian width profile == 2
     double eta_rhob_width_2;         //!< inside Gaussian width profile == 2
+    double yL_frac;
 
     int Initial_profile;    //! type of initial condition
     int initializeEntropy;  //! flag to initial entropy or energy density
@@ -117,6 +118,9 @@ typedef struct init_data {
     //! flag to include temperature dependent zeta/s(T)
     int T_dependent_zeta_over_s;
 
+    //! Type of bulk relaxation time
+    int bulk_relaxation_type;
+
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
 
@@ -153,6 +157,7 @@ typedef struct init_data {
     int output_evolution_every_N_eta;
     bool output_hydro_params_header;
     double output_evolution_T_cut;
+    double output_evolution_e_cut;
 
     int doFreezeOut;            //!< flag to output freeze-out surface
 

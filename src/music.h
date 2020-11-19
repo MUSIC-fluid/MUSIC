@@ -26,6 +26,8 @@ class MUSIC {
     //! flag to tell whether hydro is run
     int flag_hydro_run;
 
+    int system_status_;
+
     InitData DATA;
 
     EOS eos;

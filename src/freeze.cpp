@@ -108,15 +108,15 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     music_message << "Determining chemical potentials at freeze out "
                   << "energy density " << ef << " GeV/fm^3.";
     music_message.flush("info");
-    
+
     // get environment path
     const char* EOSPATH = "HYDROPROGRAMPATH";
     char * pre_envPath= getenv(EOSPATH);
     std::string envPath;
     if (pre_envPath == 0) {
-	    envPath = ".";
+        envPath = ".";
     } else {
-	    envPath = pre_envPath;
+        envPath = pre_envPath;
     }
 
     string mu_name;
@@ -405,20 +405,19 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     int j = 0;
     // read particle data:
     while (i < DATA->NumberOfParticlesToInclude) {
-        int temp;
         //particleList[i].name = Util::char_malloc(50);
-        temp = fscanf(p_file, "%d",  &particleList[i].number );
-        temp = fscanf(p_file, "%s",   particleList[i].name   );
-        temp = fscanf(p_file, "%lf", &particleList[i].mass   );
-        temp = fscanf(p_file, "%lf", &particleList[i].width  );
-        temp = fscanf(p_file, "%d",  &particleList[i].degeneracy);
-        temp = fscanf(p_file, "%d",  &particleList[i].baryon );
-        temp = fscanf(p_file, "%d",  &particleList[i].strange);
-        temp = fscanf(p_file, "%d",  &particleList[i].charm  );
-        temp = fscanf(p_file, "%d",  &particleList[i].bottom );
-        temp = fscanf(p_file, "%d",  &particleList[i].isospin);
-        temp = fscanf(p_file, "%lf", &particleList[i].charge );
-        temp = fscanf(p_file, "%d",  &particleList[i].decays );   // number of decays
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].number );
+        system_status_ = fscanf(p_file, "%s",   particleList[i].name   );
+        system_status_ = fscanf(p_file, "%lf", &particleList[i].mass   );
+        system_status_ = fscanf(p_file, "%lf", &particleList[i].width  );
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].degeneracy);
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].baryon );
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].strange);
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].charm  );
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].bottom );
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].isospin);
+        system_status_ = fscanf(p_file, "%lf", &particleList[i].charge );
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].decays );   // number of decays
 
         partid[MHALF + particleList[i].number] = i;
         particleList[i].stable = 0;
@@ -439,7 +438,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
             }
             j++;   // increase the decay counting variable "j" by 1
         }
-    
+
         // include anti-baryons (there are none in the file)
         if (particleList[i].baryon != 0) {
             i++;
@@ -453,7 +452,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
             particleList[i].stable  =  particleList[i-1].stable;
             particleList[i].number  = -particleList[i-1].number;
             strcpy(particleList[i].name, "Anti-");
-            strcat(particleList[i].name,particleList[i-1].name);
+            strcat(particleList[i].name, particleList[i-1].name);
             particleList[i].mass       =  particleList[i-1].mass;
             particleList[i].degeneracy =  particleList[i-1].degeneracy;
             particleList[i].baryon     = -particleList[i-1].baryon;

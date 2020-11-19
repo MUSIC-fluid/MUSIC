@@ -37,7 +37,8 @@ class U_derivative {
     void get_DmuMuBoverTVec(DmuMuBoverTVec &vec);
 
     //! this function computes the kinetic vorticity
-    void calculate_kinetic_vorticity(const double tau, SCGrid &arena,
+    void calculate_kinetic_vorticity_with_spatial_projector(
+        const double tau, SCGrid &arena,
         const int ieta, const int ix, const int iy, const DumuVec &a_local,
         VorticityVec &omega);
 

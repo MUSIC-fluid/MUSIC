@@ -52,7 +52,7 @@ class Init {
     void initial_1p1D_eta                (SCGrid &arena_prev, SCGrid &arena_current);
     void initial_IPGlasma_XY             (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_IPGlasma_XY_with_pi     (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_MCGlbLEXUS_with_rhob_XY (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
+    void initial_with_zero_XY            (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_AMPT_XY                 (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_SMASH_XY                (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_MCGlb_with_rhob         (SCGrid &arena_prev, SCGrid &arena_current);

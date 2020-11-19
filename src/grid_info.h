@@ -59,7 +59,11 @@ class Cell_info {
     void OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau);
 
     //! This function outputs hydro evolution file in binary format for photon production
-    double OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau);
+    void OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau);
+
+    //! This function outputs hydro evolution file in binary format
+    void OutputEvolutionDataXYEta_vorticity(
+            SCGrid &arena_curr, SCGrid &arena_prev, double tau);
 
     void load_deltaf_qmu_coeff_table(std::string filename);
     void load_deltaf_qmu_coeff_table_14mom(std::string filename);
@@ -85,7 +89,8 @@ class Cell_info {
 
     //! This function prints to the screen the maximum local energy density,
     //! the maximum temperature in the current grid
-    double get_maximum_energy_density(SCGrid &arena);
+    void get_maximum_energy_density(
+        SCGrid &arena, double &e_max, double &nB_max, double &Tmax);
 
     //! This function outputs energy density and n_b for making movies
     void output_evolution_for_movie(SCGrid &arena, const double tau);
@@ -139,6 +144,12 @@ class Cell_info {
     //! This function outputs hydro evolution file into memory for JETSCAPE
     void OutputEvolutionDataXYEta_memory(
             SCGrid &arena, const double tau, HydroinfoMUSIC &hydro_info_ptr);
+
+
+    //! This function computes the pi^{\mu\nu} in the local rest frame
+    //! and in the Cartisian coordinates
+    void get_LRF_shear_stress_tensor(const Cell_small &cell,
+                                     const double eta_s, ShearVisVecLRF &res);
 };
 
 #endif  // SRC_GRID_INFO_H_

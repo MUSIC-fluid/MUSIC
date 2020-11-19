@@ -101,6 +101,11 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         DATA.tau0 = std::max(DATA.tau0, tau_overlap);
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
+    } else if (DATA.Initial_profile == 112) {
+        double tau_overlap = 2.*7./(sinh(DATA.beam_rapidity));
+        DATA.tau0 = std::max(DATA.tau0, tau_overlap) - DATA.delta_tau;
+        music_message << "tau0 = " << DATA.tau0 << " fm/c.";
+        music_message.flush("info");
     } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
         DATA.tau0 = (hydro_source_terms_ptr.lock()->get_source_tau_min()
                      - DATA.delta_tau);
@@ -220,11 +225,18 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message.flush("info");
 
         initial_MCGlb_with_rhob(arena_prev, arena_current);
+    } else if (DATA.Initial_profile == 112) {
+        music_message.info(
+                "Initialize hydro with source terms from TA and TB");
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+            initial_with_zero_XY(ieta, arena_prev, arena_current);
+        }
     } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
         music_message.info("Initialize hydro with source terms");
         #pragma omp parallel for
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
-            initial_MCGlbLEXUS_with_rhob_XY(ieta, arena_prev, arena_current);
+            initial_with_zero_XY(ieta, arena_prev, arena_current);
         }
     } else if (DATA.Initial_profile == 30) {
         #pragma omp parallel for
@@ -251,6 +263,28 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message << "file name used: " << DATA.initName;
         music_message.flush("info");
         initial_UMN_with_rhob(arena_prev, arena_current);
+    }
+
+    if (DATA.viscosity_flag == 0) {
+        // for ideal hydrodynamic simualtions set all viscous tensor to zero
+        music_message << "Running ideal hydrodynamic simulations ...";
+        music_message.flush("info");
+        music_message << "Setting the initial viscous tensor to zero.";
+        music_message.flush("info");
+        const int grid_neta = arena_current.nEta();
+        const int grid_nx   = arena_current.nX();
+        const int grid_ny   = arena_current.nY();
+        #pragma omp parallel for collapse(3)
+        for (int ieta = 0; ieta < grid_neta; ieta++) {
+            for (int ix = 0; ix < grid_nx; ix++) {
+                for (int iy = 0; iy < grid_ny; iy++) {
+                    arena_prev(ix, iy, ieta).Wmunu = {0.};
+                    arena_prev(ix, iy, ieta).pi_b = 0.;
+                    arena_current(ix, iy, ieta).Wmunu = {0.};
+                    arena_current(ix, iy, ieta).pi_b = 0.;
+                }
+            }
+        }
     }
     music_message.info("initial distribution done.");
 }
@@ -784,8 +818,9 @@ void Init::initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     }
 }
 
-void Init::initial_MCGlbLEXUS_with_rhob_XY(int ieta, SCGrid &arena_prev,
-                                           SCGrid &arena_current) {
+
+void Init::initial_with_zero_XY(int ieta, SCGrid &arena_prev,
+                                SCGrid &arena_current) {
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
     double u[4] = {1.0, 0.0, 0.0, 0.0};
@@ -849,6 +884,7 @@ void Init::initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid &arena_current) {
     }
     profile.close();
 }
+
 
 void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
                            SCGrid &arena_current) {

@@ -421,6 +421,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempeta_flat;
     parameter_list.eta_flat = tempeta_flat;
 
+    // yL_frac: the fraction of Y_CM in the longitudinal velocity
+    double temp_yL_frac = 0.0;  // default is 0: Bjorken flow
+    tempinput = Util::StringFind4(input_file, "yL_frac");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_yL_frac;
+    parameter_list.yL_frac = temp_yL_frac;
+
     // s_factor:  for use with IP-Glasma initial conditions
     double tempsFactor   = 1.0;
     tempinput = Util::StringFind4(input_file, "s_factor");
@@ -556,6 +563,14 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_bulk;
     parameter_list.turn_on_bulk = tempturn_on_bulk;
+
+    // type of bulk relaxation time parameterization
+    int tempbulk_relaxation_type = 0;
+    tempinput = Util::StringFind4(input_file, "Bulk_relaxation_time_type");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempbulk_relaxation_type;
+    parameter_list.bulk_relaxation_type = tempbulk_relaxation_type;
+
 
     // flag for different parameterization of zeta/s(T)
     int temp_T_dependent_zeta_over_s = 0;
@@ -750,6 +765,12 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_evo_T_cut;
     parameter_list.output_evolution_T_cut = temp_evo_T_cut;
+
+    double temp_evo_e_cut = 0.15;  // GeV/fm^3
+    tempinput = Util::StringFind4(input_file, "output_evolution_e_cut");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_evo_e_cut;
+    parameter_list.output_evolution_e_cut = temp_evo_e_cut;
 
     // Make MUSIC output a C header input_file containing
     // informations about the hydro parameters used

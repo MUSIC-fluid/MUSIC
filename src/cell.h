@@ -53,8 +53,8 @@ class Cell_small {
 
 class Cell_aux {
  public:
+    VorticityVec omega_kSP = {0.};
     VorticityVec omega_k = {0.};
-    VorticityVec omega_knoSP = {0.};
     VorticityVec omega_th = {0.};
     VorticityVec omega_T = {0.};
 
@@ -62,8 +62,8 @@ class Cell_aux {
     Cell_aux operator + (Cell_aux const &obj) {
         Cell_aux res;
         for (unsigned int i = 0; i < omega_k.size(); i++) {
+            res.omega_kSP[i] = omega_kSP[i] + obj.omega_kSP[i];
             res.omega_k[i] = omega_k[i] + obj.omega_k[i];
-            res.omega_knoSP[i] = omega_knoSP[i] + obj.omega_knoSP[i];
             res.omega_th[i] = omega_th[i] + obj.omega_th[i];
             res.omega_T[i] = omega_T[i] + obj.omega_T[i];
         }
@@ -74,8 +74,8 @@ class Cell_aux {
     Cell_aux operator * (const double a) {
         Cell_aux res;
         for (unsigned int i = 0; i < omega_k.size(); i++) {
+            res.omega_kSP[i] = omega_kSP[i]*a;
             res.omega_k[i] = omega_k[i]*a;
-            res.omega_knoSP[i] = omega_knoSP[i]*a;
             res.omega_th[i] = omega_th[i]*a;
             res.omega_T[i] = omega_T[i]*a;
         }

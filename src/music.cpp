@@ -14,6 +14,7 @@
 #include "hydro_source_strings.h"
 #include "hydro_source_ampt.h"
 #include "hydro_source_smash.h"
+#include "hydro_source_TATB.h"
 
 #ifdef GSL
     #include "freeze.h"
@@ -28,13 +29,13 @@ MUSIC::MUSIC(std::string input_file) :
     mode                   = DATA.mode;
     flag_hydro_run         = 0;
     flag_hydro_initialized = 0;
-    
+
     // setup hydro evolution information
     hydro_info_ptr         = nullptr;
     if (DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
     }
-    
+
     // setup source terms
     hydro_source_terms_ptr = nullptr;
     generate_hydro_source_terms();
@@ -66,13 +67,17 @@ void MUSIC::generate_hydro_source_terms() {
     } else if (DATA.Initial_profile == 31) {  // SMASH
         auto hydro_source_ptr = std::shared_ptr<HydroSourceSMASH> (
                                             new HydroSourceSMASH (DATA));
+    } else if (DATA.Initial_profile == 112) {  // source from TA and TB
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceTATB> (
+                                            new HydroSourceTATB (DATA));
         add_hydro_source_terms(hydro_source_ptr);
     }
 }
 
 
 void MUSIC::clean_all_the_surface_files() {
-    system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+    system_status_ = system(
+            "rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 }
 
 

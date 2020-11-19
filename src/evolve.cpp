@@ -14,6 +14,7 @@
 
 #include "evolve.h"
 #include "cornelius.h"
+#include "u_derivative.h"
 #include "emoji.h"
 #include "util.h"
 
@@ -26,8 +27,7 @@ using Util::hbarc;
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
                std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
     eos(eosIn), DATA(DATA_in),
-    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in),
-    u_derivative(DATA_in, eosIn) {
+    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in) {
 
     rk_order  = DATA_in.rk_order;
     if (DATA.freezeOutMethod == 4) {
@@ -84,7 +84,6 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     int it = 0;
     double eps_max_cur = -1.;
-    double e_cut = -1.;
     const double max_allowed_e_increase_factor = 2.;
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
@@ -126,8 +125,10 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             } else if (DATA.outputEvolutionData == 2) {
                 grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 3) {
-                e_cut = grid_info.OutputEvolutionDataXYEta_photon(
-                    *ap_current, tau);
+                grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
+            } else if (DATA.outputEvolutionData == 4) {
+                grid_info.OutputEvolutionDataXYEta_vorticity(
+                                            *ap_current, *ap_prev, tau);
             }
 
             if (DATA.output_movie_flag == 1) {
@@ -187,13 +188,19 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                 grid_info.output_vorticity_time_evolution(
                                     *ap_current, *ap_prev, tau, -1.0, 1.0);
                 grid_info.compute_angular_momentum(
-                                    *ap_current, *ap_prev, tau, -DATA.eta_size/2., DATA.eta_size/2.);
+                                    *ap_current, *ap_prev, tau,
+                                    -DATA.eta_size/2., DATA.eta_size/2.);
                 grid_info.output_vorticity_time_evolution(
-                                    *ap_current, *ap_prev, tau, -DATA.eta_size/2., DATA.eta_size/2.);
+                                    *ap_current, *ap_prev, tau,
+                                    -DATA.eta_size/2., DATA.eta_size/2.);
             }
         }
 
-        auto emax_loc = grid_info.get_maximum_energy_density(*ap_current);
+        double emax_loc = 0.;
+        double Tmax_curr = 0.;
+        double nB_max_curr = 0.;
+        grid_info.get_maximum_energy_density(*ap_current, emax_loc,
+                                             nB_max_curr, Tmax_curr);
         if (tau > source_tau_max && it > 0) {
             if (eps_max_cur < 0.) {
                 eps_max_cur = emax_loc;
@@ -247,15 +254,25 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
         if (frozen == 1 && tau > source_tau_max) {
-            if (DATA.outputEvolutionData != 3) {
-                music_message.info("All cells frozen out. Exiting.");
-                break;
-            } else {
-                if (eps_max_cur < e_cut) {
-                    music_message << "All cells e < " << e_cut << " GeV/fm^3.";
+            if (   DATA.outputEvolutionData == 2
+                || DATA.outputEvolutionData == 3) {
+                if (eps_max_cur < DATA.output_evolution_e_cut) {
+                    music_message << "All cells e < "
+                                  << DATA.output_evolution_e_cut
+                                  << " GeV/fm^3.";
                     music_message.flush("info");
                     break;
                 }
+            } else if (DATA.outputEvolutionData == 4) {
+                if (Tmax_curr < DATA.output_evolution_T_cut) {
+                    music_message << "All cells T < "
+                                  << DATA.output_evolution_T_cut << " GeV.";
+                    music_message.flush("info");
+                    break;
+                }
+            } else {
+                music_message.info("All cells frozen out. Exiting.");
+                break;
             }
         }
     }
@@ -361,6 +378,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     const double DX   = fac_x*DATA.delta_x;
     const double DY   = fac_y*DATA.delta_y;
     const double DETA = fac_eta*DATA.delta_eta;
+
+    U_derivative u_derivative_helper(DATA, eos);
 
     // initialize Cornelius
     double lattice_spacing[4] = {DTAU, DX, DY, DETA};
@@ -511,18 +530,18 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     // compute the vorticity tensors
                     Cell_aux aux_tmp;
                     double eta_local = eta + kk*DETA;
-                    u_derivative.compute_vorticity_shell(
+                    u_derivative_helper.compute_vorticity_shell(
                         tau, arena_prev, arena_current,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
-                        aux_tmp.omega_k, aux_tmp.omega_knoSP,
+                        aux_tmp.omega_kSP, aux_tmp.omega_k,
                         aux_tmp.omega_th, aux_tmp.omega_T);
                     fluid_aux_cube[1][ii][jj][kk] = aux_tmp;
-                    u_derivative.compute_vorticity_shell(
+                    u_derivative_helper.compute_vorticity_shell(
                         tau - DTAU, arena_freezeout_prev, arena_freezeout,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
-                        aux_tmp.omega_k, aux_tmp.omega_knoSP,
+                        aux_tmp.omega_kSP, aux_tmp.omega_k,
                         aux_tmp.omega_th, aux_tmp.omega_T);
                     fluid_aux_cube[0][ii][jj][kk] = aux_tmp;
                 }
@@ -613,10 +632,13 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
                     if (DATA.output_vorticity == 1) {
                         for (int ii = 0; ii < 6; ii++) {
-                            array[34+ii] = - fluid_aux_center.omega_k[ii]/TFO;
-                            array[40+ii] = fluid_aux_center.omega_knoSP[ii]/TFO;
-                            array[46+ii] = fluid_aux_center.omega_th[ii];
-                            array[52+ii] = fluid_aux_center.omega_T[ii]/TFO/TFO;
+                            array[34+ii] = fluid_aux_center.omega_kSP[ii]/TFO;  // no minus sign because its definition is opposite to the kinetic vorticity
+                            // the extra minus sign is from metric
+                            // output quantities for g = (1, -1, -1, -1)
+                            array[40+ii] = -fluid_aux_center.omega_k[ii]/TFO;
+                            array[46+ii] = -fluid_aux_center.omega_th[ii];
+                            array[52+ii] = (-fluid_aux_center.omega_T[ii]
+                                            /TFO/TFO);
                         }
                     }
                     for (int i = 0; i < FOsize; i++)
@@ -886,10 +908,12 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 array[33] = static_cast<float>(qeta_center);
                 if (DATA.output_vorticity == 1) {
                     for (int ii = 0; ii < 6; ii++) {
-                        array[34+ii] = -fluid_aux_center.omega_k[ii]/T_local;
-                        array[40+ii] = fluid_aux_center.omega_knoSP[ii]/T_local;
-                        array[46+ii] = fluid_aux_center.omega_th[ii];
-                        array[52+ii] = (fluid_aux_center.omega_T[ii]
+                        array[34+ii] = fluid_aux_center.omega_kSP[ii]/T_local;  // no minus sign because its definition is opposite to the kinetic vorticity
+                        // the extra minus sign is from metric
+                        // output quantities for g = (1, -1, -1, -1)
+                        array[40+ii] = -fluid_aux_center.omega_k[ii]/T_local;
+                        array[46+ii] = -fluid_aux_center.omega_th[ii];
+                        array[52+ii] = (-fluid_aux_center.omega_T[ii]
                                         /T_local/T_local);
                     }
                 }
