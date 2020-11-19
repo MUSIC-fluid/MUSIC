@@ -1245,11 +1245,16 @@ void Cell_info::monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
 
 void Cell_info::output_vorticity_distribution(
                 SCGrid &arena_curr, SCGrid &arena_prev, const double tau,
-                const double eta_min, const double eta_max) {
+                const double eta_min, const double eta_max, bool is_initial) {
     // This function outputs the vorticity tensor at a given tau
     ostringstream filename1;
-    filename1 << "vorticity_dis_eta_" << eta_min
-              << "_" << eta_max << "_tau_" << tau << ".dat";
+    if (is_initial) {
+        filename1 << "vorticity_dis_eta_" << eta_min
+                  << "_" << eta_max << "_tauinit.dat";
+    } else {
+        filename1 << "vorticity_dis_eta_" << eta_min
+                  << "_" << eta_max << "_tau_" << tau << ".dat";
+    }
     std::fstream of1;
     of1.open(filename1.str().c_str(), std::fstream::out);
     // write the header
@@ -1258,8 +1263,13 @@ void Cell_info::output_vorticity_distribution(
         << "omega^{tz}[1/fm]  omega^{xy}[1/fm]  tau*omega^{xz}[1/fm]  "
         << "tau*omega^{yz}[1/fm]" << std::endl;
     ostringstream filename2;
-    filename2 << "vorticity_dis_nospatialprojector_eta_" << eta_min
-              << "_" << eta_max << "_tau_" << tau << ".dat";
+    if (is_initial) {
+        filename2 << "vorticity_dis_nospatialprojector_eta_" << eta_min
+                  << "_" << eta_max << "_tauinit.dat";
+    } else {
+        filename2 << "vorticity_dis_nospatialprojector_eta_" << eta_min
+                  << "_" << eta_max << "_tau_" << tau << ".dat";
+    }
     std::fstream of2;
     of2.open(filename2.str().c_str(), std::fstream::out);
     // write the header
@@ -1268,8 +1278,13 @@ void Cell_info::output_vorticity_distribution(
         << "omega^{tz}[1/fm]  omega^{xy}[1/fm]  omega^{xz}[1/fm]  "
         << "tau*omega^{yz}[1/fm]" << std::endl;
     ostringstream filename3;
-    filename3 << "vorticity_dis_thermal_eta_" << eta_min
-              << "_" << eta_max << "_tau_" << tau << ".dat";
+    if (is_initial) {
+        filename3 << "vorticity_dis_thermal_eta_" << eta_min
+                  << "_" << eta_max << "_tauinit.dat";
+    } else {
+        filename3 << "vorticity_dis_thermal_eta_" << eta_min
+                  << "_" << eta_max << "_tau_" << tau << ".dat";
+    }
     std::fstream of3;
     of3.open(filename3.str().c_str(), std::fstream::out);
     // write the header
@@ -1278,8 +1293,13 @@ void Cell_info::output_vorticity_distribution(
         << "omega^{tz}[1]  omega^{xy}[1]  omega^{xz}[1]  "
         << "omega^{yz}[1]" << std::endl;
     ostringstream filename4;
-    filename4 << "vorticity_dis_T_eta_" << eta_min
-              << "_" << eta_max << "_tau_" << tau << ".dat";
+    if (is_initial) {
+        filename4 << "vorticity_dis_T_eta_" << eta_min
+                  << "_" << eta_max << "_tauinit.dat";
+    } else {
+        filename4 << "vorticity_dis_T_eta_" << eta_min
+                  << "_" << eta_max << "_tau_" << tau << ".dat";
+    }
     std::fstream of4;
     of4.open(filename4.str().c_str(), std::fstream::out);
     // write the header

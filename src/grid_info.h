@@ -99,7 +99,7 @@ class Cell_info {
     //! This function outputs the vorticity tensor at a given tau
     void output_vorticity_distribution(
         SCGrid &arena_curr, SCGrid &arena_prev, const double tau,
-        const double eta_min, const double eta_max);
+        const double eta_min, const double eta_max, bool is_initial);
 
     //! This function outputs the time evolution of the vorticity tensor
     void output_vorticity_time_evolution(

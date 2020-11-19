@@ -147,6 +147,10 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
         if (tau > tauinit_to_write && write_initial_profile) {
             grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
+            if (DATA.output_vorticity) {
+                grid_info.output_vorticity_distribution(
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5, true);
+            }
             write_initial_profile = false;
         }
         grid_info.output_momentum_anisotropy_vs_tau(
@@ -172,7 +176,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                 if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
                     || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
                     grid_info.output_vorticity_distribution(
-                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5, false);
                 }
                 grid_info.compute_angular_momentum(
                                     *ap_current, *ap_prev, tau, -0.5, 0.5);
