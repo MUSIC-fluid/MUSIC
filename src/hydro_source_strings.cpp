@@ -71,6 +71,8 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
                     >> new_string->tau_form
                     >> new_string->tau_0 >> new_string->eta_s_0
                     >> new_string->x_perp >> new_string->y_perp
+                    >> new_string->x_pl >> new_string->y_pl
+                    >> new_string->x_pr >> new_string->y_pr
                     >> new_string->eta_s_left >> new_string->eta_s_right
                     >> new_string->y_l >> new_string->y_r
                     >> new_string->remnant_l >> new_string->remnant_r
@@ -298,7 +300,7 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
 
 
 void HydroSourceStrings::get_hydro_energy_source(
-    const double tau, const double x, const double y, const double eta_s, 
+    const double tau, const double x, const double y, const double eta_s,
     const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
     j_mu = {0};
     if (   QCD_strings_list_current_tau.size() == 0
@@ -317,11 +319,15 @@ void HydroSourceStrings::get_hydro_energy_source(
         // energy source from strings
         const double tau_0     = it->tau_0;
         const double delta_tau = it->tau_form;
+        const double eta_frac = ((eta_s - it->eta_s_left)
+                                 /(it->eta_s_right - it->eta_s_left));
 
-        double x_dis = x - it->x_perp;
+        const double x_perp = it->x_pl + eta_frac*(it->x_pr - it->x_pl);
+        double x_dis = x - x_perp;
         if (std::abs(x_dis) > skip_dis_x) continue;
 
-        double y_dis = y - it->y_perp;
+        const double y_perp = it->y_pl + eta_frac*(it->y_pr - it->y_pl);
+        double y_dis = y - y_perp;
         if (std::abs(y_dis) > skip_dis_x) continue;
 
         // calculate the crossed string segments in the eta direction
@@ -515,11 +521,33 @@ double HydroSourceStrings::get_hydro_rhob_source(
 
         if (flag_left == 0 && flag_right == 0) continue;
 
-        double x_dis = x - it->x_perp;
-        if (std::abs(x_dis) > skip_dis_x) continue;
+        const double eta_frac_left = ((eta_s - it->eta_s_left)
+                                      /(it->eta_s_right - it->eta_s_left));
+        const double eta_frac_right = ((eta_s - it->eta_s_right)
+                                       /(it->eta_s_right - it->eta_s_left));
+        const double x_perp_left = (
+                it->x_pl + eta_frac_left*(it->x_pr - it->x_pl));
+        const double x_perp_right = (
+                it->x_pl + eta_frac_right*(it->x_pr - it->x_pl));
 
-        double y_dis = y - it->y_perp;
-        if (std::abs(y_dis) > skip_dis_x) continue;
+        const double x_dis_left  = x - x_perp_left;
+        const double x_dis_right = x - x_perp_right;
+        if (std::abs(x_dis_left) > skip_dis_x
+                && std::abs(x_dis_right) > skip_dis_x) {
+            continue;
+        }
+
+        const double y_perp_left = (
+                it->y_pl + eta_frac_left*(it->y_pr - it->y_pl));
+        const double y_perp_right = (
+                it->y_pl + eta_frac_right*(it->y_pr - it->y_pl));
+
+        const double y_dis_left  = y - y_perp_left;
+        const double y_dis_right = y - y_perp_right;
+        if (std::abs(y_dis_left) > skip_dis_x
+                && std::abs(y_dis_right) > skip_dis_x) {
+            continue;
+        }
 
         double exp_eta_s_left = 0.0;
         if (flag_left == 1) {
@@ -541,13 +569,17 @@ double HydroSourceStrings::get_hydro_rhob_source(
             }
         }
 
-        double exp_factors = exp_tau*(
-                exp_eta_s_left*it->baryon_frac_l
-                + exp_eta_s_right*it->baryon_frac_r);
-        if (exp_factors > 0.) {
-            double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
-                                    /(2.*sigma_x*sigma_x));
-            double fsmear = exp_xperp*exp_factors;
+        double exp_xperp_l = exp(
+            -(x_dis_left*x_dis_left + y_dis_left*y_dis_left)
+            /(2.*sigma_x*sigma_x));
+        double exp_xperp_r = exp(
+            -(x_dis_right*x_dis_right + y_dis_right*y_dis_right)
+            /(2.*sigma_x*sigma_x));
+
+        double fsmear = exp_tau*(
+                  exp_xperp_l*exp_eta_s_left*it->baryon_frac_l
+                + exp_xperp_r*exp_eta_s_right*it->baryon_frac_r);
+        if (fsmear > 0.) {
             double rapidity_local = (
                 (  exp_eta_s_left*(it->baryon_frac_l)*(it->y_l_baryon)
                  + exp_eta_s_right*(it->baryon_frac_r)*(it->y_r_baryon))
