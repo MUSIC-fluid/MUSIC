@@ -5,6 +5,7 @@
 
 #include <sstream>
 #include <fstream>
+#include <cmath>
 
 using std::stringstream;
 using std::string;
@@ -74,7 +75,10 @@ void EOS_hotQCD::initialize_eos() {
             eos_file.read((char*)&temp, sizeof(double));  // s
 
             eos_file.read((char*)&temp, sizeof(double));  // T
-            temperature_tb[itable][0][ii] = temp/Util::hbarc;   // 1/fm
+            temp /= Util::hbarc;   // 1/fm
+            // store T^5
+            // scaling with T^5 seems to be the best to get a smooth curve
+            temperature_tb[itable][0][ii] = pow(temp, 5);
         }
     }
     music_message.info("Done reading EOS.");
@@ -89,7 +93,8 @@ double EOS_hotQCD::p_e_func(double e, double rhob) const {
 //! This function returns the local temperature in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_hotQCD::get_temperature(double e, double rhob) const {
-    double T = interpolate1D(e, 0, temperature_tb);  // 1/fm
+    double T5 = interpolate1D(e, 0, temperature_tb);  // e/T^5
+    double T = pow(T5, 0.2);  // 1/fm
     return(std::max(Util::small_eps, T));
 }
 

@@ -13,6 +13,7 @@ class HydroSourceTATB : public HydroSourceBase {
     const InitData &DATA_;
     double yL_frac_;
     double tau_source;
+    double TA_, TB_;
     std::vector<std::vector<double>> profile_TA;
     std::vector<std::vector<double>> profile_TB;
 
@@ -43,6 +44,10 @@ class HydroSourceTATB : public HydroSourceBase {
     double get_hydro_rhob_source(const double tau, const double x,
                                  const double y, const double eta_s,
                                  const FlowVec &u_mu) const ;
+    double eta_profile_plateau_frag(
+        const double eta, const double eta_0, const double sigma_eta) const;
+    double energy_eta_profile_normalisation_numerical(
+        const double y_CM, const double eta_0, const double sigma_eta) const;
 };
 
 #endif  // SRC_HYDRO_SOURCE_TATB_H_

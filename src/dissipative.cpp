@@ -637,9 +637,18 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
+    double csfactor = std::max(1./3. - cs2, small_eps);
     Bulk_Relax_time = (transport_coeffs_.get_bulk_relax_time_factor()
-                       /((1./3. - cs2)*(1./3. - cs2))
-                       /(epsilon + pressure)*bulk);
+                       /(csfactor*csfactor)
+                       /std::max(epsilon + pressure, small_eps)*bulk);
+    if (DATA.bulk_relaxation_type == 1) {
+        Bulk_Relax_time = (
+                bulk/(transport_coeffs_.get_bulk_relax_time_factor()
+                      *csfactor)
+                /std::max(epsilon + pressure, small_eps));
+    }
+
+    // avoid overflow or underflow of the bulk relaxation time
     Bulk_Relax_time = (
         std::min(10., std::max(3.*DATA.delta_tau, Bulk_Relax_time)));
 

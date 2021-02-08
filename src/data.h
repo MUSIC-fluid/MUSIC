@@ -141,6 +141,9 @@ typedef struct init_data {
     double shear_relax_time_factor;
     double bulk_relax_time_factor;
 
+    //! Type of bulk relaxation time
+    int bulk_relaxation_type;
+
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
 
@@ -177,6 +180,7 @@ typedef struct init_data {
     int output_evolution_every_N_eta;
     bool output_hydro_params_header;
     double output_evolution_T_cut;
+    double output_evolution_e_cut;
 
     int doFreezeOut;            //!< flag to output freeze-out surface
 

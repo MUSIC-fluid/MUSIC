@@ -614,6 +614,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempturn_on_bulk;
     parameter_list.turn_on_bulk = tempturn_on_bulk;
 
+    // type of bulk relaxation time parameterization
+    int tempbulk_relaxation_type = 0;
+    tempinput = Util::StringFind4(input_file, "Bulk_relaxation_time_type");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempbulk_relaxation_type;
+    parameter_list.bulk_relaxation_type = tempbulk_relaxation_type;
+
     // T_dependent_Bulk_to_S_ratio:
     int tempT_dependent_bulk_to_s = 1;
     tempinput = Util::StringFind4(input_file, "T_dependent_Bulk_to_S_ratio");
@@ -635,6 +642,7 @@ InitData read_in_parameters(std::string input_file) {
         istringstream ( tempinput ) >> tempBulkViscosityWidth;
     parameter_list.bulk_viscosity_width_in_GeV = tempBulkViscosityWidth;
 
+    // flag for different parameterization of zeta/s(T)
     double tempBulkViscosityPeak = 0.18;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_peak_in_GeV");
     if (tempinput != "empty")
@@ -834,6 +842,12 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_evo_T_cut;
     parameter_list.output_evolution_T_cut = temp_evo_T_cut;
 
+    double temp_evo_e_cut = 0.15;  // GeV/fm^3
+    tempinput = Util::StringFind4(input_file, "output_evolution_e_cut");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_evo_e_cut;
+    parameter_list.output_evolution_e_cut = temp_evo_e_cut;
+
     // Make MUSIC output a C header input_file containing
     // informations about the hydro parameters used
     // 0 for false (do not output), 1 for true
@@ -1022,7 +1036,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         parameter_list.useEpsFO = 1;
     }
 
-    if ((parameter_list.whichEOS > 17 && parameter_list.whichEOS != 91)
+    if ((parameter_list.whichEOS > 19 && parameter_list.whichEOS != 91)
         || parameter_list.whichEOS < 0) {
         music_message << "EOS_to_use unspecified or invalid option: "
                       << parameter_list.whichEOS;

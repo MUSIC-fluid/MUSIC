@@ -1,16 +1,16 @@
-// Copyright 2018 @ Chun Shen
+// Copyright 2020 @ Chun Shen
 
-#ifndef SRC_EOS_BEST_H_
-#define SRC_EOS_BEST_H_
+#ifndef SRC_EOS_UH_H_
+#define SRC_EOS_UH_H_
 
 #include "eos_base.h"
 
-class EOS_BEST : public EOS_base {
+class EOS_UH : public EOS_base {
  private:
 
  public:
-    EOS_BEST();
-    ~EOS_BEST();
+    EOS_UH();
+    ~EOS_UH();
 
     void initialize_eos();
     double p_rho_func     (double e, double rhob) const;
@@ -23,4 +23,4 @@ class EOS_BEST : public EOS_base {
     void check_eos() const {check_eos_with_finite_muB();}
 };
 
-#endif  // SRC_EOS_BEST_H_
+#endif  // SRC_EOS_UH_H_

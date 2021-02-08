@@ -46,20 +46,21 @@ double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
     const int N_e         = e_length[table_idx];
 
     // compute the indices
-    int idx_e  = static_cast<int>((local_ed - e0)/delta_e);
+    int idx_e = static_cast<int>((local_ed - e0)/delta_e);
 
     // treatment for overflow, use the last two points to do extrapolation
     idx_e  = std::min(N_e - 2, idx_e);
 
-    // check underflow
-    idx_e  = std::max(0, idx_e);
-
-    const double frac_e = (local_ed - (idx_e*delta_e + e0))/delta_e;
-
-    double result;
-    double temp1 = table[table_idx][0][idx_e];
-    double temp2 = table[table_idx][0][idx_e + 1];
-    result = temp1*(1. - frac_e) + temp2*frac_e;
+    double result = 0.;
+    if (local_ed < e0) {
+        // check underflow
+        result = table[table_idx][0][0]*local_ed/e0;
+    } else {
+        const double frac_e = (local_ed - (idx_e*delta_e + e0))/delta_e;
+        double temp1 = table[table_idx][0][idx_e];
+        double temp2 = table[table_idx][0][idx_e + 1];
+        result = temp1*(1. - frac_e) + temp2*frac_e;
+    }
     return(result);
 }
 
@@ -147,7 +148,7 @@ double EOS_base::get_dpOverde3(double e, double rhob) const {
 
    double pL = get_pressure(eLeft, rhob);   // 1/fm^4
    double pR = get_pressure(eRight, rhob);  // 1/fm^4
-      
+
    double dpde = (pR - pL)/(eRight - eLeft);
    return dpde;
 }
@@ -157,13 +158,13 @@ double EOS_base::get_dpOverdrhob2(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double deltaRhob = nb_spacing[table_idx];
     //double rhob_max = nb_bounds[table_idx] + nb_length[table_idx]*deltaRhob;
-    
+
     double rhobLeft  = rhob - deltaRhob*0.5;
     double rhobRight = rhob + deltaRhob*0.5;
 
     double pL = get_pressure(e, rhobLeft);      // 1/fm^4
     double pR = get_pressure(e, rhobRight);     // 1/fm^4
-      
+
     double dpdrho = (pR - pL)/(rhobRight - rhobLeft);  // 1/fm
     return (dpdrho);   // in 1/fm
 }
@@ -277,10 +278,10 @@ std::string EOS_base::get_hydro_env_path() const {
     char *pre_envPath = getenv(EOSPATH);
     std::string envPath;
     if (pre_envPath == 0) {
-	    envPath=".";
+        envPath=".";
     }
     else {
-	    envPath=pre_envPath;
+        envPath=pre_envPath;
     }
     return(envPath);
 }
@@ -302,9 +303,9 @@ void EOS_base::check_eos_no_muB() const {
     file_name << "check_EoS_" << whichEOS << "_PST.dat";
     ofstream check_file(file_name.str().c_str());
     check_file << "#e(GeV/fm^3) P(GeV/fm^3) s(1/fm^3) T(GeV) cs^2" << endl;
-    double e0 = 1e-3;
-    double emax = 100;
-    double de = 0.01;
+    double e0 = 5e-4;
+    double emax = 100.;
+    double de = 5e-3;
     int ne = (emax - e0)/de + 1;
     for (int i = 0; i < ne; i++) {
         double e_local = (e0 + i*de)/hbarc;
@@ -313,27 +314,47 @@ void EOS_base::check_eos_no_muB() const {
         double T_local = get_temperature(e_local, 0.0);
         double cs2_local = get_cs2(e_local, 0.0);
         check_file << scientific << setw(18) << setprecision(8)
-                   << e_local*hbarc << "   " << p_local*hbarc << "   " 
+                   << e_local*hbarc << "   " << p_local*hbarc << "   "
                    << s_local << "   " << T_local*hbarc << "   "
                    << cs2_local << endl;
     }
     check_file.close();
+    ostringstream file_name1;
+    file_name1 << "check_EoS_" << whichEOS << "_PST_lowdensity.dat";
+    ofstream check_file1(file_name1.str().c_str());
+    check_file1 << "#e(GeV/fm^3) P(GeV/fm^3) s(1/fm^3) T(GeV) cs^2" << endl;
+    e0 = 1e-8;
+    emax = 1e-1;
+    de = 2;
+    ne = log(emax/e0)/log(de) + 1;
+    for (int i = 0; i < ne; i++) {
+        double e_local = e0*pow(de, i)/hbarc;
+        double p_local = get_pressure(e_local, 0.0);
+        double s_local = get_entropy(e_local, 0.0);
+        double T_local = get_temperature(e_local, 0.0);
+        double cs2_local = get_cs2(e_local, 0.0);
+        check_file1 << scientific << setw(18) << setprecision(8)
+                   << e_local*hbarc << "   " << p_local*hbarc << "   "
+                   << s_local << "   " << T_local*hbarc << "   "
+                   << cs2_local << endl;
+    }
+    check_file1.close();
 }
 
 
 void EOS_base::check_eos_with_finite_muB() const {
     // output EoS as function of e for several rhob
-    double rhob_pick[6] = {0.0, 0.02, 0.05, 0.1, 0.2, 0.5};
-    for (int i = 0; i < 6; i++) {
+    double rhob_pick[7] = {0.0, 0.002, 0.02, 0.05, 0.1, 0.2, 0.5};
+    for (int i = 0; i < 7; i++) {
         double rhob_local = rhob_pick[i];
         ostringstream file_name;
         file_name << "check_EoS_PST_rhob_" << rhob_pick[i] << ".dat";
         ofstream check_file(file_name.str().c_str());
         check_file << "#e(GeV/fm^3)  P(GeV/fm^3)  s(1/fm^3)  T(GeV)  cs^2  "
                    << "mu_B(GeV)  mu_S(GeV)  mu_C(GeV)" << endl;
-        double e0 = 1e-3;
-        double emax = 100;
-        double de = 0.01;
+        double e0 = 5e-4;
+        double emax = 100.;
+        double de = 5e-3;
         int ne = (emax - e0)/de + 1;
         for (int i = 0; i < ne; i++) {
             double e_local    = (e0 + i*de)/hbarc;
@@ -345,13 +366,34 @@ void EOS_base::check_eos_with_finite_muB() const {
             double mu_s_local = get_muS(e_local, rhob_local);
             double mu_c_local = get_muC(e_local, rhob_local);
             check_file << scientific << setw(18) << setprecision(8)
-                       << e_local*hbarc << "   " << p_local*hbarc << "   " 
+                       << e_local*hbarc << "   " << p_local*hbarc << "   "
                        << s_local << "   " << T_local*hbarc << "   "
                        << cs2_local << "   " << mu_b_local*hbarc << "   "
                        << mu_s_local*hbarc << "   "
                        << mu_c_local*hbarc << endl;
         }
         check_file.close();
+        ostringstream file_name1;
+        file_name1 << "check_EoS_PST_rhob_" << rhob_pick[i]
+                   << "_lowdensity.dat";
+        ofstream check_file1(file_name1.str().c_str());
+        check_file1 << "#e(GeV/fm^3) P(GeV/fm^3) s(1/fm^3) T(GeV) cs^2" << endl;
+        e0 = 1e-8;
+        emax = 1e-1;
+        de = 2;
+        ne = log(emax/e0)/log(de) + 1;
+        for (int i = 0; i < ne; i++) {
+            double e_local = e0*pow(de, i)/hbarc;
+            double p_local = get_pressure(e_local, rhob_local);
+            double s_local = get_entropy(e_local, rhob_local);
+            double T_local = get_temperature(e_local, rhob_local);
+            double cs2_local = get_cs2(e_local, rhob_local);
+            check_file1 << scientific << setw(18) << setprecision(8)
+                       << e_local*hbarc << "   " << p_local*hbarc << "   "
+                       << s_local << "   " << T_local*hbarc << "   "
+                       << cs2_local << endl;
+        }
+        check_file1.close();
     }
 
     // output EoS as a function of rho_b for several energy density
@@ -378,7 +420,7 @@ void EOS_base::check_eos_with_finite_muB() const {
             double mu_s_local = get_muS(e_local, rhob_local);
             double mu_c_local = get_muC(e_local, rhob_local);
             check_file << scientific << setw(18) << setprecision(8)
-                       << rhob_local << "   " << p_local*hbarc << "   " 
+                       << rhob_local << "   " << p_local*hbarc << "   "
                        << s_local << "   " << T_local*hbarc << "   "
                        << cs2_local << "   " << mu_b_local*hbarc << "   "
                        << mu_s_local*hbarc << "   "
@@ -444,7 +486,7 @@ void EOS_base::check_eos_with_finite_muB() const {
             double mu_C        = get_muC(e_local, nB_local)*hbarc;
             check_file9 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "  " << temperature << "  "
-                        << cs2_local << "  " << mu_B << "  " 
+                        << cs2_local << "  " << mu_B << "  "
                         << s_check << "  " << nB_local << "  "
                         << dpde << "  " << dpdrho << "  "
                         << mu_S << "  " << mu_C << endl;

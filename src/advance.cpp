@@ -361,7 +361,11 @@ void Advance::QuestRevert(const double tau, Cell_small *grid_pt,
 
     // Reducing the shear stress tensor
     double rho_shear_max = 0.1;
-    if (rho_shear > rho_shear_max) {
+    if (std::isnan(rho_shear)) {
+        for (int mu = 0; mu < 10; mu++) {
+            grid_pt->Wmunu[mu] = 0.0;
+        }
+    } else if (rho_shear > rho_shear_max) {
         if (e_local > eps_scale && DATA.echo_level > 5) {
             music_message << "ieta = " << ieta << ", ix = " << ix
                           << ", iy = " << iy

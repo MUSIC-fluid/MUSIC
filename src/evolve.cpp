@@ -14,6 +14,7 @@
 
 #include "evolve.h"
 #include "cornelius.h"
+#include "u_derivative.h"
 #include "emoji.h"
 #include "util.h"
 
@@ -26,8 +27,7 @@ using Util::hbarc;
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
                std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
     eos(eosIn), DATA(DATA_in),
-    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in),
-    u_derivative(DATA_in, eosIn) {
+    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in) {
 
     rk_order  = DATA_in.rk_order;
     if (DATA.freezeOutMethod == 4) {
@@ -80,7 +80,6 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     int it = 0;
     double eps_max_cur = -1.;
-    double e_cut = -1.;
     const double max_allowed_e_increase_factor = 2.;
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
@@ -122,8 +121,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             } else if (DATA.outputEvolutionData == 2) {
                 grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 3) {
-                e_cut = grid_info.OutputEvolutionDataXYEta_photon(
-                    *ap_current, tau);
+                grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 4) {
                 grid_info.OutputEvolutionDataXYEta_vorticity(
                                             *ap_current, *ap_prev, tau);
@@ -246,14 +244,16 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
         if (frozen == 1 && tau > source_tau_max) {
-            if (DATA.outputEvolutionData == 3) {
-                if (eps_max_cur < e_cut) {
-                    music_message << "All cells e < " << e_cut << " GeV/fm^3.";
+            if (   DATA.outputEvolutionData == 2
+                || DATA.outputEvolutionData == 3) {
+                if (eps_max_cur < DATA.output_evolution_e_cut) {
+                    music_message << "All cells e < "
+                                  << DATA.output_evolution_e_cut
+                                  << " GeV/fm^3.";
                     music_message.flush("info");
                     break;
                 }
-            } else if (   DATA.outputEvolutionData == 2
-                       || DATA.outputEvolutionData == 4) {
+            } else if (DATA.outputEvolutionData == 4) {
                 if (Tmax_curr < DATA.output_evolution_T_cut) {
                     music_message << "All cells T < "
                                   << DATA.output_evolution_T_cut << " GeV.";
@@ -368,6 +368,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     const double DX   = fac_x*DATA.delta_x;
     const double DY   = fac_y*DATA.delta_y;
     const double DETA = fac_eta*DATA.delta_eta;
+
+    U_derivative u_derivative_helper(DATA, eos);
 
     // initialize Cornelius
     double lattice_spacing[4] = {DTAU, DX, DY, DETA};
@@ -526,14 +528,14 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     // compute the vorticity tensors
                     Cell_aux aux_tmp;
                     double eta_local = eta + kk*DETA;
-                    u_derivative.compute_vorticity_shell(
+                    u_derivative_helper.compute_vorticity_shell(
                         tau, arena_prev, arena_current,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
                         aux_tmp.omega_kSP, aux_tmp.omega_k,
                         aux_tmp.omega_th, aux_tmp.omega_T);
                     fluid_aux_cube[1][ii][jj][kk] = aux_tmp;
-                    u_derivative.compute_vorticity_shell(
+                    u_derivative_helper.compute_vorticity_shell(
                         tau - DTAU, arena_freezeout_prev, arena_freezeout,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
