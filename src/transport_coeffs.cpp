@@ -86,9 +86,9 @@ double TransportCoeffs::get_temperature_dependent_eta_over_s_duke(
     double Ttr_in_GeV = 0.154;
     double Tfrac = T_in_GeV/Ttr_in_GeV;
 
-    double eta_over_s = (DATA.eta_over_s_min
-                         + (DATA.eta_over_s_slope)*(T_in_GeV - Ttr_in_GeV)
-                           *pow(Tfrac,DATA.eta_over_s_curv));
+    double eta_over_s = (DATA.shear_2_min
+                         + (DATA.shear_2_slope)*(T_in_GeV - Ttr_in_GeV)
+                           *pow(Tfrac,DATA.shear_2_curv));
     return eta_over_s;
 }
 
@@ -96,10 +96,10 @@ double TransportCoeffs::get_temperature_dependent_eta_over_s_duke(
 double TransportCoeffs::get_temperature_dependent_eta_over_s_sims(
                                             const double T_in_fm) const {
     double T_in_GeV = T_in_fm*hbarc;
-    double T_kink_in_GeV = DATA.eta_over_s_T_kink_in_GeV;
-    double low_T_slope = DATA.eta_over_s_low_T_slope_in_GeV;
-    double high_T_slope = DATA.eta_over_s_high_T_slope_in_GeV;
-    double eta_over_s_at_kink = DATA.eta_over_s_at_kink;
+    double T_kink_in_GeV = DATA.shear_3_T_kink_in_GeV;
+    double low_T_slope = DATA.shear_3_low_T_slope_in_GeV;
+    double high_T_slope = DATA.shear_3_high_T_slope_in_GeV;
+    double eta_over_s_at_kink = DATA.shear_3_at_kink;
 
     const double eta_over_s_min = 1e-6;
     double eta_over_s;
@@ -145,11 +145,11 @@ double TransportCoeffs::get_zeta_over_s(const double T) const {
 //! Cauchy distribution
 double TransportCoeffs::get_temperature_dependent_zeta_over_s_duke(
                                             const double T_in_fm) const {
-    const double A=DATA.bulk_viscosity_normalisation;
-    const double G=DATA.bulk_viscosity_width_in_GeV;
-    const double Tpeak_in_GeV=DATA.bulk_viscosity_peak_in_GeV;
-    const double T_in_GeV=T_in_fm*hbarc;
-    const double diff_ratio=(T_in_GeV-Tpeak_in_GeV)/G;
+    const double A = DATA.bulk_2_normalisation;
+    const double G = DATA.bulk_2_width_in_GeV;
+    const double Tpeak_in_GeV = DATA.bulk_2_peak_in_GeV;
+    const double T_in_GeV = T_in_fm*hbarc;
+    const double diff_ratio = (T_in_GeV-Tpeak_in_GeV)/G;
 
     //const double T_delta=(T_in_GeV*T_in_GeV)/(Tpeak_in_GeV*Tpeak_in_GeV)-1;
     //double  bulk_over_sden=A*(G*G)/(T_delta*T_delta+G*G);
@@ -160,15 +160,15 @@ double TransportCoeffs::get_temperature_dependent_zeta_over_s_duke(
 //! Skewed Cauchy distribution
 double TransportCoeffs::get_temperature_dependent_zeta_over_s_sims(
                                                 const double T_in_fm) const {
-    const double T_in_GeV=T_in_fm*hbarc;
+    const double T_in_GeV = T_in_fm*hbarc;
 
-    const double max=DATA.zeta_over_s_max;
-    const double width=DATA.zeta_over_s_width_in_GeV;
-    const double T_peak_in_GeV=DATA.zeta_over_s_T_peak_in_GeV;
-    const double lambda=DATA.zeta_over_s_lambda_asymm;
-    const double diff=T_in_GeV-T_peak_in_GeV;
-    const double sign=(diff > 0) - (diff < 0);
-    const double diff_ratio=(diff)/(width*(lambda*sign+1));
+    const double max = DATA.bulk_3_max;
+    const double width = DATA.bulk_3_width_in_GeV;
+    const double T_peak_in_GeV = DATA.bulk_3_T_peak_in_GeV;
+    const double lambda = DATA.bulk_3_lambda_asymm;
+    const double diff = T_in_GeV-T_peak_in_GeV;
+    const double sign = (diff > 0) - (diff < 0);
+    const double diff_ratio = (diff)/(width*(lambda*sign+1));
 
     return max/(1+diff_ratio*diff_ratio);
 }
