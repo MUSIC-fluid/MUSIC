@@ -187,7 +187,7 @@ double EOS_BEST::get_Cp(const double e, const double rhob) const {
 
 double EOS_BEST::get_correlation_length(
                             const double eps, const double rhob) const {
-    const double T_local = get_temperature(eps, rhob);
+    //const double T_local = get_temperature(eps, rhob);
     const double chi_B   = get_chiB2(eps, rhob);
     const double C_xi    = 1.0;
     //const double xi      = std::max(C_xi/T_local, sqrt(chi_B/C_xi));
