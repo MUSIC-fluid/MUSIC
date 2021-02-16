@@ -1233,7 +1233,7 @@ void Cell_info::output_critical_modes_evolution(double tau, SCGrid &arena) {
     const double T_i = eos.get_temperature(eps, n_b);
     const double mu_B = eos.get_muB(eps, n_b);
     const double xi  = eos.get_correlation_length(eps, n_b);
-        
+
     outputfile1 << std::scientific
                 << tau << "  " << eps*Util::hbarc << "  "
                 << n_b << "  " << T_i*Util::hbarc << "  "

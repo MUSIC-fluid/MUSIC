@@ -54,12 +54,12 @@ double EOS_idealgas::get_correlation_length(
     const double C_xi    = 1.0;
 
     // add a critical point where xi blows up
-    //const double T_crit  = 0.15/Util::hbarc;      // 1/fm
-    //const double sigma_T = 0.002/Util::hbarc;     // 1/fm
-    //const double peak    = 4.0;
-    //const double factor  = (1. + peak*exp(-(T_local - T_crit)*(T_local - T_crit)
-    //                                      /(2.*sigma_T*sigma_T)));
-    const double factor = 1.0;
+    const double T_crit  = 0.15/Util::hbarc;      // 1/fm
+    const double sigma_T = 0.002/Util::hbarc;     // 1/fm
+    const double peak    = 4.0;
+    const double factor  = (1. + peak*exp(-(T_local - T_crit)*(T_local - T_crit)
+                                          /(2.*sigma_T*sigma_T)));
+    //const double factor = 1.0;
     const double xi     = factor*std::max(C_xi/T_local, sqrt(chi_B/C_xi));
     return(xi);
 }
