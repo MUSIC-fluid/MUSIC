@@ -1,0 +1,11 @@
+echo_level  1 
+mode  71
+EOS_to_use  0
+Initial_time_tau_0 1.0        # starting time of the hydrodynamic 
+Total_evolution_time_tau 20.  # the maximum allowed running 
+Delta_Tau 0.005               # time step to use in the evolution [fm/c]
+Shear_to_S_ratio 0.08         # value of \eta/s
+include_critical_modes 1
+critical_nphiQ  100
+include_critical_modes_feedback 1
+EndOfData
