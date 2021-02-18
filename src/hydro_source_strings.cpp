@@ -319,8 +319,13 @@ void HydroSourceStrings::get_hydro_energy_source(
         // energy source from strings
         const double tau_0     = it->tau_0;
         const double delta_tau = it->tau_form;
-        const double eta_frac = ((eta_s - it->eta_s_left)
-                                 /(it->eta_s_right - it->eta_s_left));
+
+        if (eta_s < it->eta_s_left - skip_dis_eta
+                || eta_s > it->eta_s_right + skip_dis_eta) continue;
+        double eta_frac = ((eta_s - it->eta_s_left)
+                           /std::max(Util::small_eps,
+                                     it->eta_s_right - it->eta_s_left));
+        eta_frac = std::max(1., std::min(0., eta_frac));
 
         const double x_perp = it->x_pl + eta_frac*(it->x_pr - it->x_pl);
         double x_dis = x - x_perp;
@@ -376,7 +381,7 @@ void HydroSourceStrings::get_hydro_energy_source(
             }
         }
         if (flag_right) {
-            if (   eta_s > eta_s_R - skip_dis_eta 
+            if (   eta_s > eta_s_R - skip_dis_eta
                 && eta_s < eta_s_R_next + skip_dis_eta) {
                 exp_eta_s += 0.5*(
                         - erf((eta_s_R - eta_s)/(sqrt(2.)*sigma_eta))
@@ -398,6 +403,16 @@ void HydroSourceStrings::get_hydro_energy_source(
         double cosh_perp = 1.0;
         double local_eperp = prefactor_etas*prefactor_prep*e_local*cosh_perp;
         j_mu[0] += local_eperp*cosh_long;
+        if (std::isnan(j_mu[0])) {
+            std::cout << local_eperp << "  " << cosh_long << std::endl;
+            std::cout << prefactor_etas << "  " << prefactor_prep << "  "
+                      << e_local << "  " << cosh_perp
+                      << std::endl;
+            std::cout << exp_tau << "  " << exp_xperp << "  "
+                      << exp_eta_s << "  " << it->norm << std::endl;
+            std::cout << x_dis << "  " << y_dis << "  " << sigma_x << std::endl;
+            std::cout << it->x_pl << "  " << it->x_pr << "  " << eta_frac << "  " << it->eta_s_right << "  " << it->eta_s_left << std::endl;
+        }
         j_mu[1] += 0.0;
         j_mu[2] += 0.0;
         j_mu[3] += local_eperp*sinh_long;
@@ -521,10 +536,18 @@ double HydroSourceStrings::get_hydro_rhob_source(
 
         if (flag_left == 0 && flag_right == 0) continue;
 
-        const double eta_frac_left = ((eta_s - it->eta_s_left)
-                                      /(it->eta_s_right - it->eta_s_left));
-        const double eta_frac_right = ((eta_s - it->eta_s_right)
-                                       /(it->eta_s_right - it->eta_s_left));
+        if (eta_s < it->eta_s_left - skip_dis_eta
+                || eta_s > it->eta_s_right + skip_dis_eta) continue;
+
+        double eta_frac_left = (
+                (eta_s - it->eta_s_left)
+                /std::max(Util::small_eps, it->eta_s_right - it->eta_s_left));
+        double eta_frac_right = (
+                (eta_s - it->eta_s_right)
+                /std::max(Util::small_eps, it->eta_s_right - it->eta_s_left));
+        eta_frac_left = std::max(1., std::min(0., eta_frac_left));
+        eta_frac_right = std::max(1., std::min(0., eta_frac_right));
+
         const double x_perp_left = (
                 it->x_pl + eta_frac_left*(it->x_pr - it->x_pl));
         const double x_perp_right = (
