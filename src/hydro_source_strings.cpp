@@ -325,7 +325,7 @@ void HydroSourceStrings::get_hydro_energy_source(
         double eta_frac = ((eta_s - it->eta_s_left)
                            /std::max(Util::small_eps,
                                      it->eta_s_right - it->eta_s_left));
-        eta_frac = std::max(1., std::min(0., eta_frac));
+        eta_frac = std::max(0., std::min(1., eta_frac));
 
         const double x_perp = it->x_pl + eta_frac*(it->x_pr - it->x_pl);
         double x_dis = x - x_perp;
@@ -545,8 +545,8 @@ double HydroSourceStrings::get_hydro_rhob_source(
         double eta_frac_right = (
                 (eta_s - it->eta_s_right)
                 /std::max(Util::small_eps, it->eta_s_right - it->eta_s_left));
-        eta_frac_left = std::max(1., std::min(0., eta_frac_left));
-        eta_frac_right = std::max(1., std::min(0., eta_frac_right));
+        eta_frac_left = std::max(0., std::min(1., eta_frac_left));
+        eta_frac_right = std::max(0., std::min(1., eta_frac_right));
 
         const double x_perp_left = (
                 it->x_pl + eta_frac_left*(it->x_pr - it->x_pl));
