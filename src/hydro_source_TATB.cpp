@@ -21,6 +21,8 @@ HydroSourceTATB::HydroSourceTATB(const InitData &DATA_in) :
     set_source_tau_min(tau_source);
     set_source_tau_max(tau_source);
     yL_frac_ = DATA_.yL_frac;
+    TA_ = 0.;
+    TB_ = 0.;
     read_in_TATB();
 }
 
@@ -57,7 +59,6 @@ void HydroSourceTATB::read_in_TATB() {
 
     const int nx = DATA_.nx;
     const int ny = DATA_.ny;
-    double N_B = 0.0;
     for (int i = 0; i < nx; i++) {
         std::vector<double> TA_temp;
         std::vector<double> TB_temp;
@@ -67,14 +68,17 @@ void HydroSourceTATB::read_in_TATB() {
             TBfile >> TB;
             TA_temp.push_back(TA);
             TB_temp.push_back(TB);
-            N_B += TA + TB;
+            TA_ += TA;
+            TB_ += TB;
         }
         profile_TA.push_back(TA_temp);
         profile_TB.push_back(TB_temp);
     }
     TAfile.close();
     TBfile.close();
-    N_B *= DATA_.delta_x*DATA_.delta_y;
+    TA_ *= DATA_.delta_x*DATA_.delta_y;
+    TB_ *= DATA_.delta_x*DATA_.delta_y;
+    double N_B = TA_ + TB_;
     double total_energy = DATA_.ecm/2.*N_B;
     music_message << "sqrt{s} = " << DATA_.ecm << " GeV, "
                   << "beam rapidity = " << DATA_.beam_rapidity << ", "
@@ -103,6 +107,14 @@ void HydroSourceTATB::get_hydro_energy_source(
     const int ix = static_cast<int>((x + DATA_.x_size/2.)/DATA_.delta_x + 0.1);
     const int iy = static_cast<int>((y + DATA_.y_size/2.)/DATA_.delta_y + 0.1);
 
+    double eta_flat = DATA_.eta_flat;
+    if (DATA_.ecm > 2000.) {
+        // at LHC energies, we vary eta_flat according to TA + TB
+        double total_num_nucleons = 208.*2.;  // for PbPb runs
+        double slope = -0.4;
+        eta_flat = eta_flat + ((TA_ + TB_)/total_num_nucleons - 0.5)*slope;
+    }
+
     double y_CM = atanh((profile_TA[ix][iy] - profile_TB[ix][iy])
                         /(profile_TA[ix][iy] + profile_TB[ix][iy]
                           + Util::small_eps)
@@ -110,16 +122,16 @@ void HydroSourceTATB::get_hydro_energy_source(
     double y_L = yL_frac_*y_CM;
     double M_inv = ((profile_TA[ix][iy] + profile_TB[ix][iy])
                     *Util::m_N*cosh(DATA_.beam_rapidity)/Util::hbarc);  // [1/fm^3]
-    double eta0 = std::min(DATA_.eta_flat/2.0,
+    double eta0 = std::min(eta_flat/2.0,
                            std::abs(DATA_.beam_rapidity - (y_CM - y_L)));
-    //double eta_envelop = eta_profile_plateau(eta_s - (y_CM - y_L), eta0,
-    //                                         DATA_.eta_fall_off);
-    //double E_norm = tau_source*energy_eta_profile_normalisation(
-    //                                y_CM, eta0, DATA_.eta_fall_off);
-    double eta_envelop = eta_profile_plateau_frag(eta_s - (y_CM - y_L), eta0,
-                                                  DATA_.eta_fall_off);
-    double E_norm = tau_source*energy_eta_profile_normalisation_numerical(
+    double eta_envelop = eta_profile_plateau(eta_s - (y_CM - y_L), eta0,
+                                             DATA_.eta_fall_off);
+    double E_norm = tau_source*energy_eta_profile_normalisation(
                                     y_CM, eta0, DATA_.eta_fall_off);
+    //double eta_envelop = eta_profile_plateau_frag(eta_s - (y_CM - y_L), eta0,
+    //                                              DATA_.eta_fall_off);
+    //double E_norm = tau_source*energy_eta_profile_normalisation_numerical(
+    //                                y_CM, eta0, DATA_.eta_fall_off);
     //std::cout << "check E_norm1 = " << E_norm1 << ", E_norm = " << E_norm << std::endl;
     double epsilon = M_inv*eta_envelop/E_norm/dtau;  // [1/fm^5]
     j_mu[0] = epsilon*cosh(y_L);  // [1/fm^5]

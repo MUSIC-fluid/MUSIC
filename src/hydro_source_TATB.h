@@ -13,6 +13,7 @@ class HydroSourceTATB : public HydroSourceBase {
     const InitData &DATA_;
     double yL_frac_;
     double tau_source;
+    double TA_, TB_;
     std::vector<std::vector<double>> profile_TA;
     std::vector<std::vector<double>> profile_TB;
 

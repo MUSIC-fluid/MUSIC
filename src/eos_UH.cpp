@@ -1,6 +1,6 @@
-// Copyright 2018 @ Chun Shen
+// Copyright 2020 @ Chun Shen
 
-#include "eos_best.h"
+#include "eos_UH.h"
 #include "util.h"
 
 #include <sstream>
@@ -11,14 +11,14 @@
 using std::stringstream;
 using std::string;
 
-EOS_BEST::EOS_BEST() {
-    set_EOS_id(17);
+EOS_UH::EOS_UH() {
+    set_EOS_id(19);
     set_number_of_tables(0);
     set_eps_max(1e5);
 }
 
 
-EOS_BEST::~EOS_BEST() {
+EOS_UH::~EOS_UH() {
     int ntables = get_number_of_tables();
     for (int itable = 0; itable < ntables; itable++) {
         Util::mtx_free(mu_B_tb[itable],
@@ -28,18 +28,18 @@ EOS_BEST::~EOS_BEST() {
 }
 
 
-void EOS_BEST::initialize_eos() {
+void EOS_UH::initialize_eos() {
     // read the lattice EOS pressure, temperature, and 
-    music_message.info("Using lattice EOS at finite muB from the BEST Collaboration");
-    music_message.info("reading EOS BEST ...");
-    
+    music_message.info("Using lattice EOS at finite muB from the UH Collaboration");
+    music_message.info("reading EOS UH ...");
+
     stringstream slocalpath;
-    slocalpath << "./EOS/BEST/";
+    slocalpath << "./EOS/UH/";
 
     string path = slocalpath.str();
     music_message << "from path " << path;
     music_message.flush("info");
-    
+
     const int ntables = 6;
     set_number_of_tables(ntables);
     resize_table_info_arrays();
@@ -50,16 +50,16 @@ void EOS_BEST::initialize_eos() {
     mu_B_tb        = new double** [ntables];
 
     for (int itable = 0; itable < ntables; itable++) {
-        std::ifstream eos_p(path + "BEST_eos_p_"
+        std::ifstream eos_p(path + "UH_eos_p_"
                             + eos_file_string_array[itable] + ".dat");
-        std::ifstream eos_T(path + "BEST_eos_T_"
+        std::ifstream eos_T(path + "UH_eos_T_"
                             + eos_file_string_array[itable] + ".dat");
-        std::ifstream eos_mub(path + "BEST_eos_muB_"
+        std::ifstream eos_mub(path + "UH_eos_muB_"
                             + eos_file_string_array[itable] + ".dat");
-        
+
         if (!eos_p) {
             music_message << "Can not found the EoS file! filename: "
-                          << path + "BEST_eos_p_" << eos_file_string_array[itable] + ".dat";
+                          << path + "UH_eos_p_" << eos_file_string_array[itable] + ".dat";
             music_message.flush("error");
             exit(1);
         }
@@ -97,7 +97,7 @@ void EOS_BEST::initialize_eos() {
             }
         }
     }
-    
+
     double eps_max_in = e_bounds[5] + e_spacing[5]*e_length[5];
     set_eps_max(eps_max_in);
 
@@ -105,19 +105,19 @@ void EOS_BEST::initialize_eos() {
 }
 
 
-double EOS_BEST::p_e_func(double e, double rhob) const {
+double EOS_UH::p_e_func(double e, double rhob) const {
     return(get_dpOverde3(e, rhob));
 }
 
 
-double EOS_BEST::p_rho_func(double e, double rhob) const {
+double EOS_UH::p_rho_func(double e, double rhob) const {
     return(get_dpOverdrhob2(e, rhob));
 }
 
 
 //! This function returns the local temperature in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_BEST::get_temperature(double e, double rhob) const {
+double EOS_UH::get_temperature(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double T = interpolate2D(e, std::abs(rhob), table_idx,
                              temperature_tb);  // 1/fm
@@ -127,7 +127,7 @@ double EOS_BEST::get_temperature(double e, double rhob) const {
 
 //! This function returns the local pressure in [1/fm^4]
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
-double EOS_BEST::get_pressure(double e, double rhob) const {
+double EOS_UH::get_pressure(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb);
     return(f);
@@ -136,7 +136,7 @@ double EOS_BEST::get_pressure(double e, double rhob) const {
 
 //! This function returns the local baryon chemical potential  mu_B in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_BEST::get_muB(double e, double rhob) const {
+double EOS_UH::get_muB(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
@@ -145,7 +145,7 @@ double EOS_BEST::get_muB(double e, double rhob) const {
 }
 
 
-double EOS_BEST::get_s2e(double s, double rhob) const {
+double EOS_UH::get_s2e(double s, double rhob) const {
     double e = get_s2e_finite_rhob(s, rhob);
     return(e);
 }

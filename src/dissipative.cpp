@@ -643,7 +643,7 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
                            /std::max(epsilon + pressure, small_eps));
     if (DATA.bulk_relaxation_type == 1) {
         Bulk_Relax_time = (
-                bulk/(std::max(1./3. - cs2, small_eps)/(2. - log(2)))
+                bulk/(7./5.*std::max(1./3. - cs2, small_eps))
                 /std::max(epsilon + pressure, small_eps));
     }
 
@@ -1052,6 +1052,18 @@ double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
         double B_width1 = 0.01/hbarc;
         double B_width2 = 0.12/hbarc;
         double Tpeak = 0.160/hbarc;
+        double Tdiff = temperature - Tpeak;
+        if (Tdiff > 0.) {
+            Tdiff = Tdiff/B_width2;
+        } else {
+            Tdiff = Tdiff/B_width1;
+        }
+        bulk = B_norm*exp(-Tdiff*Tdiff);
+    } else if (DATA.T_dependent_zeta_over_s == 10) {
+        double B_norm = 0.10;
+        double B_width1 = 0.015/hbarc;
+        double B_width2 = 0.10/hbarc;
+        double Tpeak = 0.170/hbarc;
         double Tdiff = temperature - Tpeak;
         if (Tdiff > 0.) {
             Tdiff = Tdiff/B_width2;

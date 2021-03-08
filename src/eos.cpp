@@ -8,6 +8,7 @@
 #include "eos_hotQCD.h"
 #include "eos_best.h"
 #include "eos_neos.h"
+#include "eos_UH.h"
 #include <iostream>
 #include <memory>
 
@@ -26,6 +27,8 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in)  {
         eos_ptr = std::unique_ptr<EOS_neos> (new EOS_neos (eos_id));
     } else if (eos_id == 17) {
         eos_ptr = std::unique_ptr<EOS_BEST> (new EOS_BEST ());
+    } else if (eos_id == 19) {
+        eos_ptr = std::unique_ptr<EOS_UH> (new EOS_UH ());
     } else {
         std::cout << "No EOS for eos_id = " << std::endl;
         exit(1);

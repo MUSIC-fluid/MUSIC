@@ -8,11 +8,11 @@
 class EOS_neos : public EOS_base {
  private:
     const int eos_id;
-   
+
  public:
     EOS_neos(const int eos_id_in);
     ~EOS_neos();
-    
+
     void initialize_eos();
     double p_rho_func     (double e, double rhob) const;
     double p_e_func       (double e, double rhob) const;
