@@ -546,10 +546,11 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
                >> density >> utau >> ux >> uy >> ueta
                >> pitautau >> pitaux >> pitauy >> pitaueta
                >> pixx >> pixy >> pixeta >> piyy >> piyeta >> pietaeta;
+            ueta = ueta*tau0;
             temp_profile_ed    [idx] = density;
             temp_profile_ux    [idx] = ux;
             temp_profile_uy    [idx] = uy;
-            temp_profile_ueta  [idx] = ueta*tau0;
+            temp_profile_ueta  [idx] = ueta;
             temp_profile_utau  [idx] = sqrt(1. + ux*ux + uy*uy + ueta*ueta);
             temp_profile_pixx  [idx] = pixx*DATA.sFactor;
             temp_profile_pixy  [idx] = pixy*DATA.sFactor;
@@ -558,7 +559,6 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
             temp_profile_piyeta[idx] = piyeta*tau0*DATA.sFactor;
 
             utau = temp_profile_utau[idx];
-            ueta = ueta*tau0;
             temp_profile_pietaeta[idx] = (
                 (2.*(  ux*uy*temp_profile_pixy[idx]
                      + ux*ueta*temp_profile_pixeta[idx]
