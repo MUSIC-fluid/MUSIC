@@ -717,6 +717,20 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temprejectspec_SMASH;
     parameter_list.reject_SMASH_spectators = temprejectspec_SMASH;
 
+    int tempturn_on_source = 0;
+    tempinput = Util::StringFind4(input_file, "turn_on_source");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempturn_on_source;
+    parameter_list.turn_on_source = tempturn_on_source;
+
+    // List_Source_JetFeed_filename for jet feedback
+    string templistName_source = "initial/list_source.dat";
+    tempinput = Util::StringFind4(input_file,
+                                  "List_Source_filename");
+    if (tempinput != "empty")
+        templistName_source.assign(tempinput);
+    parameter_list.listName_source.assign(templistName_source);
+
     // compute beam rapidity according to the collision energy
     double temp_ecm = 200;
     tempinput = Util::StringFind4(input_file, "ecm");
@@ -725,6 +739,12 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.ecm = temp_ecm;
     double y_beam = acosh(temp_ecm/(2.*Util::m_N));
     parameter_list.beam_rapidity = y_beam;
+
+    double temp_eps_init = 50.;
+    tempinput = Util::StringFind4(input_file, "eps_initial_Bjorken");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_eps_init;
+    parameter_list.eps_initial_Bjorken = temp_eps_init;
 
     int tempoutputBinaryEvolution = 0;
     tempinput = Util::StringFind4(input_file, "outputBinaryEvolution");

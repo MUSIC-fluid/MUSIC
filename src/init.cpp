@@ -263,6 +263,14 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message << "file name used: " << DATA.initName;
         music_message.flush("info");
         initial_UMN_with_rhob(arena_prev, arena_current);
+    } else if (DATA.Initial_profile == 20) {
+        music_message.info(" ----- information on jet feedback -----");
+        music_message << "file name used: " << DATA.listName_source;
+        music_message.flush("info");
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
+            initial_Bjorken_JetFeed(ieta, arena_prev, arena_current);
+        }
     }
 
     if (DATA.viscosity_flag == 0) {
@@ -964,6 +972,39 @@ void Init::initial_SMASH_XY(int ieta, SCGrid &arena_prev,
             arena_current(ix, iy, ieta).u[1] = u[1];
             arena_current(ix, iy, ieta).u[2] = u[2];
             arena_current(ix, iy, ieta).u[3] = u[3];
+
+            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
+        }
+    }
+}
+
+void Init::initial_Bjorken_JetFeed(int ieta, SCGrid &arena_prev, SCGrid &arena_current) {
+    const int nx   = arena_current.nX();
+    const int ny   = arena_current.nY();
+
+    double epsilon = DATA.eps_initial_Bjorken * DATA.sFactor / hbarc;
+    double rhob = 0.;
+    double u[4];
+    u[0] = 1.;
+    for (int imu = 1; imu < 4; imu++) {
+        u[imu] = 0.;
+    }
+
+    for (int ix = 0; ix < nx; ix++) {
+        for (int iy = 0; iy < ny; iy++) {
+            arena_current(ix, iy, ieta).epsilon = epsilon;
+            arena_current(ix, iy, ieta).rhob = rhob;
+
+            arena_current(ix, iy, ieta).u[0] = u[0];
+            arena_current(ix, iy, ieta).u[1] = u[1];
+            arena_current(ix, iy, ieta).u[2] = u[2];
+            arena_current(ix, iy, ieta).u[3] = u[3];
+
+            arena_current(ix, iy, ieta).pi_b = 0.;
+
+            for (int icomp = 0; icomp < 10; icomp++) {
+                arena_current(ix, iy, ieta).Wmunu[icomp] = 0.;
+            }
 
             arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }

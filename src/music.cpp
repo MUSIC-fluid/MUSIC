@@ -14,6 +14,7 @@
 #include "hydro_source_strings.h"
 #include "hydro_source_ampt.h"
 #include "hydro_source_smash.h"
+#include "hydro_source_jetfeed.h"
 #include "hydro_source_TATB.h"
 
 #ifdef GSL
@@ -67,9 +68,14 @@ void MUSIC::generate_hydro_source_terms() {
     } else if (DATA.Initial_profile == 31) {  // SMASH
         auto hydro_source_ptr = std::shared_ptr<HydroSourceSMASH> (
                                             new HydroSourceSMASH (DATA));
+        add_hydro_source_terms(hydro_source_ptr);
     } else if (DATA.Initial_profile == 112) {  // source from TA and TB
         auto hydro_source_ptr = std::shared_ptr<HydroSourceTATB> (
                                             new HydroSourceTATB (DATA));
+        add_hydro_source_terms(hydro_source_ptr);
+    } else if (DATA.Initial_profile == 20) {
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceJetFeed> (
+                                            new HydroSourceJetFeed (DATA));
         add_hydro_source_terms(hydro_source_ptr);
     }
 }

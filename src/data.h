@@ -40,10 +40,15 @@ typedef struct init_data {
     int extended_SMASH_output;     //!< whether or not the extended format is used for SMASH output
     int reject_SMASH_spectators;   //!< whether or not the spectators in SMASH will be rejected
 
+    int turn_on_source;
+    std::string listName_source;
+
     //! random seed
     int seed;
     double ecm;                 //!< collision energy [GeV]
     double beam_rapidity;
+
+    double eps_initial_Bjorken;
 
     int initial_eta_rhob_profile;
     // envelope function parameter for energy density in eta_s direction
