@@ -525,14 +525,16 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
                         aux_tmp.omega_kSP, aux_tmp.omega_k,
-                        aux_tmp.omega_th, aux_tmp.omega_T);
+                        aux_tmp.omega_th, aux_tmp.omega_T,
+                        aux_tmp.sigma, aux_tmp.DbetaMu);
                     fluid_aux_cube[1][ii][jj][kk] = aux_tmp;
                     u_derivative_helper.compute_vorticity_shell(
                         tau - DTAU, arena_freezeout_prev, arena_freezeout,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
                         aux_tmp.omega_kSP, aux_tmp.omega_k,
-                        aux_tmp.omega_th, aux_tmp.omega_T);
+                        aux_tmp.omega_th, aux_tmp.omega_T,
+                        aux_tmp.sigma, aux_tmp.DbetaMu);
                     fluid_aux_cube[0][ii][jj][kk] = aux_tmp;
                 }
                 auto fluid_center = four_dimension_linear_interpolation(
@@ -598,7 +600,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
                 // finally output results !!!!
                 if (surface_in_binary) {
-                    const int FOsize = 34 + DATA.output_vorticity*24;
+                    const int FOsize = 34 + DATA.output_vorticity*(24 + 14);
                     float array[FOsize];
                     array[0] = static_cast<float>(tau_center);
                     array[1] = static_cast<float>(x_center);
@@ -630,6 +632,12 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                             array[52+ii] = (-fluid_aux_center.omega_T[ii]
                                             /TFO/TFO);
                         }
+                        // the extra minus sign is from metric
+                        // output quantities for g = (1, -1, -1, -1)
+                        for (int ii = 0; ii < 10; ii++)
+                            array[58+ii] = -fluid_aux_center.sigma[ii];
+                        for (int ii = 0; ii < 4; ii++)
+                            array[68+ii] = -fluid_aux_center.DbetaMu[ii];
                     }
                     for (int i = 0; i < FOsize; i++)
                         s_file.write((char*) &(array[i]), sizeof(float));
@@ -860,7 +868,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
 
             // finally output results
             if (surface_in_binary) {
-                const int FOsize = 34 + DATA.output_vorticity*24;
+                const int FOsize = 34 + DATA.output_vorticity*(24 + 14);
                 float array[FOsize];
                 array[0] = static_cast<float>(tau_center);
                 array[1] = static_cast<float>(x_center);
@@ -906,6 +914,12 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                         array[52+ii] = (-fluid_aux_center.omega_T[ii]
                                         /T_local/T_local);
                     }
+                    // the extra minus sign is from metric
+                    // output quantities for g = (1, -1, -1, -1)
+                    for (int ii = 0; ii < 10; ii++)
+                        array[58+ii] = -fluid_aux_center.sigma[ii];
+                    for (int ii = 0; ii < 4; ii++)
+                        array[68+ii] = -fluid_aux_center.DbetaMu[ii];
                 }
                 for (int i = 0; i < FOsize; i++) {
                     s_file.write((char*) &(array[i]), sizeof(float));
