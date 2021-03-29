@@ -81,11 +81,11 @@ class SourceProfile {
         int nlat_tot_ = (nbin_eta_ + 1) * (nbin_x_ + 1) * (nbin_y_ + 1);
 
         lattice_jvec_.clear();
-        for (int isrc = 0; isrc < nlat_tot_; isrc++) {
+        for (int ilat = 0; ilat < nlat_tot_; ilat++) {
             std::vector<double> new_entry;
             new_entry.clear();
             for (int imu = 0; imu < 5; imu++) {
-                new_entry.push_back(src.lattice_jvec_.at(isrc).at(imu));
+                new_entry.push_back(src.lattice_jvec_.at(ilat).at(imu));
             }
             lattice_jvec_.push_back(new_entry);
         }
@@ -120,11 +120,11 @@ class SourceProfile {
         int nlat_tot_ = (nbin_eta_ + 1) * (nbin_x_ + 1) * (nbin_y_ + 1);
 
         lattice_jvec_.clear();
-        for (int isrc = 0; isrc < nlat_tot_; isrc++) {
+        for (int ilat = 0; ilat < nlat_tot_; ilat++) {
             std::vector<double> new_entry;
             new_entry.clear();
             for (int imu = 0; imu < 5; imu++) {
-                new_entry.push_back(src.lattice_jvec_.at(isrc).at(imu));
+                new_entry.push_back(src.lattice_jvec_.at(ilat).at(imu));
             }
             lattice_jvec_.push_back(new_entry);
         }
@@ -218,21 +218,20 @@ class SourceProfile {
             jvec_out.push_back(0.);
         }
 
-        if (eta < eta_min_ || eta > eta_max_) {
-            return;
-        }
-
-        if (x < x_min_ || x > x_max_) {
-            return;
-        }
-
-        if (y < y_min_ || y > y_max_) {
-            return;
-        }
-
         int ieta = (int)floor((eta - eta_min_) / delta_eta_);
+        if (ieta < 0 || ieta >= nbin_eta_) {
+            return;
+        }
+
         int ix = (int)floor((x - x_min_) / delta_x_);
+        if (ix < 0 || ix >= nbin_x_) {
+            return;
+        }
+
         int iy = (int)floor((y - y_min_) / delta_y_);
+        if (iy < 0 || iy >= nbin_y_) {
+            return;
+        }
 
         double frac_eta[2];
         frac_eta[1] = (eta - eta_min_) / delta_eta_ - (double)ieta;
