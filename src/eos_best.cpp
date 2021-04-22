@@ -23,14 +23,14 @@ EOS_BEST::~EOS_BEST() {
     for (int itable = 0; itable < ntables; itable++) {
         Util::mtx_free(mu_B_tb[itable],
                        nb_length[itable], e_length[itable]);
-        Util::mtx_free(chiB2_tb[itable],
+        Util::mtx_free(cs2_tb[itable],
                        nb_length[itable], e_length[itable]);
-        Util::mtx_free(Cp_tb[itable],
+        Util::mtx_free(CorrLen_tb[itable],
                        nb_length[itable], e_length[itable]);
     }
     delete[] mu_B_tb;
-    delete[] chiB2_tb;
-    delete[] Cp_tb;
+    delete[] cs2_tb;
+    delete[] CorrLen_tb;
 }
 
 
@@ -54,8 +54,8 @@ void EOS_BEST::initialize_eos() {
     pressure_tb    = new double** [ntables];
     temperature_tb = new double** [ntables];
     mu_B_tb        = new double** [ntables];
-    chiB2_tb       = new double** [ntables];
-    Cp_tb          = new double** [ntables];
+    cs2_tb       = new double** [ntables];
+    CorrLen_tb          = new double** [ntables];
 
     for (int itable = 0; itable < ntables; itable++) {
         std::ifstream eos_p(path + "BEST_eos_p_"
@@ -64,9 +64,9 @@ void EOS_BEST::initialize_eos() {
                             + eos_file_string_array[itable] + ".dat");
         std::ifstream eos_mub(path + "BEST_eos_muB_"
                             + eos_file_string_array[itable] + ".dat");
-        std::ifstream eos_chiB2(path + "BEST_eos_chi2_"
+        std::ifstream eos_cs2(path + "BEST_eos_cs2_"
                             + eos_file_string_array[itable] + ".dat");
-        std::ifstream eos_Cp(path + "BEST_eos_Cp_"
+        std::ifstream eos_CorrLen(path + "BEST_eos_CorrLen_"
                             + eos_file_string_array[itable] + ".dat");
         
         if (!eos_p) {
@@ -96,9 +96,9 @@ void EOS_BEST::initialize_eos() {
                                                   e_length[itable]);
         mu_B_tb[itable] = Util::mtx_malloc(nb_length[itable],
                                            e_length[itable]);
-        chiB2_tb[itable] = Util::mtx_malloc(nb_length[itable],
+        cs2_tb[itable] = Util::mtx_malloc(nb_length[itable],
                                             e_length[itable]);
-        Cp_tb[itable] = Util::mtx_malloc(nb_length[itable],
+        CorrLen_tb[itable] = Util::mtx_malloc(nb_length[itable],
                                          e_length[itable]);
 
         // read pressure, temperature and chemical potential values
@@ -107,8 +107,8 @@ void EOS_BEST::initialize_eos() {
                 eos_p >> pressure_tb[itable][i][j];
                 eos_T >> temperature_tb[itable][i][j];
                 eos_mub >> mu_B_tb[itable][i][j];
-                eos_chiB2 >> chiB2_tb[itable][i][j];            // 1/fm^3
-                eos_Cp >> Cp_tb[itable][i][j];                  // 1/fm^3
+                eos_cs2 >> cs2_tb[itable][i][j];            // 1/fm^3
+                eos_CorrLen >> CorrLen_tb[itable][i][j];                  // 1/fm^3
 
                 pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
                 temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
@@ -171,16 +171,18 @@ double EOS_BEST::get_s2e(double s, double rhob) const {
 
 
 double EOS_BEST::get_chiB2(const double e, const double rhob) const {
-    int table_idx = get_table_idx(e);
-    double chiB2 = interpolate2D(e, std::abs(rhob), table_idx,
-                                 chiB2_tb);  // 1/fm^3
+    //int table_idx = get_table_idx(e);
+    //double chiB2 = interpolate2D(e, std::abs(rhob), table_idx,
+    //                             chiB2_tb);  // 1/fm^3
+    double chiB2 = 1. ;
     return(chiB2);
 }
 
 
 double EOS_BEST::get_Cp(const double e, const double rhob) const {
-    int table_idx = get_table_idx(e);
-    double Cp = interpolate2D(e, std::abs(rhob), table_idx, Cp_tb);  // 1/fm^3
+    //int table_idx = get_table_idx(e);
+    //double Cp = interpolate2D(e, std::abs(rhob), table_idx, Cp_tb);  // 1/fm^3
+    double Cp = 1. ;
     return(Cp);
 }
 

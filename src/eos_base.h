@@ -33,8 +33,8 @@ class EOS_base {
     double ***mu_B_tb;
     double ***mu_S_tb;
     double ***mu_C_tb;
-    double ***chiB2_tb;
-    double ***Cp_tb;
+    double ***cs2_tb;
+    double ***CorrLen_tb;
 
     EOS_base() = default;
     virtual ~EOS_base();
