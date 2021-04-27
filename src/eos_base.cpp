@@ -329,7 +329,7 @@ void EOS_base::check_eos_with_finite_muB() const {
         file_name << "check_EoS_PST_rhob_" << rhob_pick[i] << ".dat";
         ofstream check_file(file_name.str().c_str());
         check_file << "#e(GeV/fm^3)  P(GeV/fm^3)  s(1/fm^3)  T(GeV)  cs^2  "
-                   << "mu_B(GeV)  mu_S(GeV)  mu_C(GeV)" << endl;
+                   << "mu_B(GeV)  mu_S(GeV)  mu_C(GeV)  xi(fm)"<< endl;
         double e0 = 1e-3;
         double emax = 100;
         double de = 0.01;
@@ -343,12 +343,14 @@ void EOS_base::check_eos_with_finite_muB() const {
             double mu_b_local = get_muB(e_local, rhob_local);
             double mu_s_local = get_muS(e_local, rhob_local);
             double mu_c_local = get_muC(e_local, rhob_local);
+            double xi         = get_correlation_length(e_local, rhob_local);
             check_file << scientific << setw(18) << setprecision(8)
                        << e_local*hbarc << "   " << p_local*hbarc << "   " 
                        << s_local << "   " << T_local*hbarc << "   "
                        << cs2_local << "   " << mu_b_local*hbarc << "   "
                        << mu_s_local*hbarc << "   "
-                       << mu_c_local*hbarc << endl;
+                       << mu_c_local*hbarc << "   "
+                       << xi << endl;
         }
         check_file.close();
     }
@@ -362,7 +364,7 @@ void EOS_base::check_eos_with_finite_muB() const {
         file_name << "check_EoS_PST_e_" << e_pick[i] << ".dat";
         ofstream check_file(file_name.str().c_str());
         check_file << "#rho_B(1/fm^3)  P(GeV/fm^3)  s(1/fm^3)  T(GeV)  cs^2  "
-                   << "mu_B(GeV)  mu_S(GeV)  mu_C(GeV)" << endl;
+                   << "mu_B(GeV)  mu_S(GeV)  mu_C(GeV) xi(fm)" << endl;
         double rhob_0 = 0.0;
         double rhob_max = 1.0;
         double drhob = 0.01;
@@ -376,12 +378,14 @@ void EOS_base::check_eos_with_finite_muB() const {
             double mu_b_local = get_muB(e_local, rhob_local);
             double mu_s_local = get_muS(e_local, rhob_local);
             double mu_c_local = get_muC(e_local, rhob_local);
+            double xi         = get_correlation_length(e_local, rhob_local);
             check_file << scientific << setw(18) << setprecision(8)
                        << rhob_local << "   " << p_local*hbarc << "   " 
                        << s_local << "   " << T_local*hbarc << "   "
                        << cs2_local << "   " << mu_b_local*hbarc << "   "
                        << mu_s_local*hbarc << "   "
-                       << mu_c_local*hbarc << endl;
+                       << mu_c_local*hbarc << "   "
+                       << xi << endl;
         }
         check_file.close();
     }
@@ -428,7 +432,7 @@ void EOS_base::check_eos_with_finite_muB() const {
         ofstream check_file9(file_name.str().c_str());
         check_file9 << "# e(GeV/fm^3)  T(GeV)  cs^2  mu_B(GeV)  "
                     << "s(1/fm^3)  rho_B(1/fm^3)  dP/de  dP/drho  "
-                    << "mu_S(GeV)  mu_C(GeV)" << endl;
+                    << "mu_S(GeV)  mu_C(GeV) xi(fm)" << endl;
         for (int j = 0; j < ns; j++) {
             double s_local     = s_0 + j*ds;
             double nB_local    = s_local/sovernB[i];
@@ -441,12 +445,14 @@ void EOS_base::check_eos_with_finite_muB() const {
             double mu_B        = get_muB(e_local, nB_local)*hbarc;
             double mu_S        = get_muS(e_local, nB_local)*hbarc;
             double mu_C        = get_muC(e_local, nB_local)*hbarc;
+            double xi         = get_correlation_length(e_local, nB_local);
             check_file9 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "  " << temperature << "  "
                         << cs2_local << "  " << mu_B << "  " 
                         << s_check << "  " << nB_local << "  "
                         << dpde << "  " << dpdrho << "  "
-                        << mu_S << "  " << mu_C << endl;
+                        << mu_S << "  " << mu_C << "  "
+                        <<  xi << endl;
         }
         check_file9.close();
     }
