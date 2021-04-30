@@ -60,7 +60,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double dt    = DATA.delta_tau;
 
     double tau;
-    int it_start = 0;
+    int it_start = 3;
     double source_tau_max = 0.0;
     if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
         source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
@@ -142,7 +142,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
-        if (std::abs(tau - DATA.tau0) < 1e-15)
+        if (it == it_start)
             grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
         grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *ap_current);
