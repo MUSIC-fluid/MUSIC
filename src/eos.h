@@ -10,7 +10,6 @@
 class EOS {
  private:
     const int eos_id;
-    
     std::unique_ptr<EOS_base> eos_ptr;
 
  public:
