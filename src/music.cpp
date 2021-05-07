@@ -127,7 +127,7 @@ void MUSIC::output_transport_coefficients() {
     temp_dissipative_ptr.output_kappa_T_and_muB_dependence();
     temp_dissipative_ptr.output_kappa_along_const_sovernB();
     temp_dissipative_ptr.output_zeta_over_s_T_and_muB_dependence();
-    //temp_dissipative_ptr.output_zeta_over_s_along_const_sovernB();
+    temp_dissipative_ptr.output_zeta_over_s_along_const_sovernB();
 }
 
 
