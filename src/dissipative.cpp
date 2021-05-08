@@ -1258,13 +1258,13 @@ void Diss::output_zeta_over_s_T_and_muB_dependence() {
             double mu_B_local = eos.get_muB(e_local, rhob_local);
             if (mu_B_local*hbarc > 0.78)
                 continue;  // discard points out of the table
-            double p_local = eos.get_pressure(e_local, rhob_local);
-            double s_local = eos.get_entropy(e_local, rhob_local);
+            //double p_local = eos.get_pressure(e_local, rhob_local);
+            //double s_local = eos.get_entropy(e_local, rhob_local);
             double T_local = eos.get_temperature(e_local, rhob_local);
 
             //double eta_over_s = (
             //    etaT_over_enthropy*(e_local + p_local)/(T_local*s_local));
-           double zeta_over_s = sin_alpha1*pow(eos.get_correlation_length(e_local, rhob_local), 2.8)*4.15e-4; // critical bulk viscosity
+            double zeta_over_s = sin_alpha1*pow(eos.get_correlation_length(e_local, rhob_local), 2.8)*4.15e-4; // critical bulk viscosity
 
 
             // output
@@ -1327,13 +1327,12 @@ void Diss::output_eta_over_s_along_const_sovernB() {
                << s_check << "   "
                << T_local*hbarc << "   " << mu_B*hbarc << "   "
                << eta_over_s << std::endl;
-        
-        }  
+        }
         of.close();  // close the file
     }
-    
 }
- 
+
+
 //! this function outputs the T and muB dependence of the specific shear
 //! viscosity zeta/s along constant s/n_B trajectories
 void Diss::output_zeta_over_s_along_const_sovernB() {
@@ -1358,12 +1357,11 @@ void Diss::output_zeta_over_s_along_const_sovernB() {
             double nB_local = s_local/sovernB[i];
             double e_local = eos.get_s2e(s_local, nB_local);
             double s_check = eos.get_entropy(e_local, nB_local);
-            double p_local = eos.get_pressure(e_local, nB_local);
+            //double p_local = eos.get_pressure(e_local, nB_local);
             double temperature = eos.get_temperature(e_local, nB_local);
             double mu_B = eos.get_muB(e_local, nB_local);
             if (mu_B*hbarc > 0.78)
                 continue;  // discard points out of the table
-            
 
             //double eta_over_s = (
                 //etaT_over_enthropy*(e_local + p_local)/(temperature*s_local));
@@ -1377,97 +1375,7 @@ void Diss::output_zeta_over_s_along_const_sovernB() {
                << zeta_over_s << std::endl;
 
         }
-        of.close();  // close the file  
-    }    
-}
-
-
-//! this function outputs the T and muB dependence of the specific bulk
-//! viscosity zeta/s
-void Diss::output_zeta_over_s_T_and_muB_dependence() {
-    music_message.info("output zeta/s(T, mu_B) ...");
-    std::ofstream of("zeta_over_s_T_and_muB_dependence.dat");
-    // write out the header of the file
-    of << "# e (GeV/fm^3)  rhob (1/fm^3) T (GeV)  mu_B (GeV)  zeta/s"
-       << std::endl;
-
-    // define the grid
-    double e_min    = 1e-5;     // fm^-4
-    double e_max    = 100.0;    // fm^-4
-    int ne          = 1000;
-    double de       = (e_max - e_min)/(ne - 1.);
-    double rhob_min = 0.0;   // fm^-3
-    double rhob_max = sqrt(10.0);  // fm^-3
-    int nrhob       = 1000;
-    double drhob    = (rhob_max - rhob_min)/(nrhob - 1.);
-
-    for (int i = 0; i < ne; i++) {
-        double e_local = e_min + i*de;
-        for (int j = 0; j < nrhob; j++) {
-            double rhob_local = rhob_min + j*drhob;
-            rhob_local *= rhob_local;
-            double mu_B_local = eos.get_muB(e_local, rhob_local);
-            if (mu_B_local*hbarc > 0.89)
-                continue;  // discard points out of the table
-            double p_local = eos.get_pressure(e_local, rhob_local);
-            double s_local = eos.get_entropy(e_local, rhob_local);
-            double T_local = eos.get_temperature(e_local, rhob_local);
-
-            double bulk = get_temperature_dependent_zeta_s(T_local);
-            double zeta_over_s = bulk*(e_local + p_local)/(T_local*s_local);
-
-            // output
-            of << std::scientific << std::setw(18) << std::setprecision(8)
-               << e_local*hbarc << "   " << rhob_local << "   "
-               << T_local*hbarc << "   " << mu_B_local*hbarc << "   "
-               << zeta_over_s << std::endl;
-        }
-    }
-    of.close();  // close the file
-}
-
-
-//! this function outputs the T and muB dependence of the specific bulk
-//! viscosity zeta/s along constant s/n_B trajectories
-void Diss::output_zeta_over_s_along_const_sovernB() {
-    music_message.info(
-        "output zeta/s(T, mu_B) along constant s/n_B trajectories...");
-
-    double sovernB[] = {10.0, 20.0, 30.0, 51.0, 70.0, 94.0, 144.0, 420.0};
-    int array_length = sizeof(sovernB)/sizeof(double);
-    double s_0 = 0.00;         // 1/fm^3
-    double s_max = 100.0;      // 1/fm^3
-    double ds = 0.005;         // 1/fm^3
-    int ns = static_cast<int>((s_max - s_0)/ds) + 1;
-    for (int i = 0; i < array_length; i++) {
-        std::ostringstream file_name;
-        file_name << "zeta_over_s_sovernB_" << sovernB[i] << ".dat";
-        std::ofstream of(file_name.str().c_str());
-        // write out the header of the file
-        of << "# e (GeV/fm^3)  rhob (1/fm^3) s (1/fm^3)  "
-           << "T (GeV)  mu_B (GeV)  eta/s" << std::endl;
-        for (int j = 0; j < ns; j++) {
-            double s_local = s_0 + j*ds;
-            double nB_local = s_local/sovernB[i];
-            double e_local = eos.get_s2e(s_local, nB_local);
-            double mu_B = eos.get_muB(e_local, nB_local);
-            if (mu_B*hbarc > 0.89)
-                continue;  // discard points out of the table
-
-            double T_local = eos.get_temperature(e_local, nB_local);
-            double p_local = eos.get_pressure(e_local, nB_local);
-            double s_check = eos.get_entropy(e_local, nB_local);
-
-            double bulk = get_temperature_dependent_zeta_s(T_local);
-            double zeta_over_s = bulk*(e_local + p_local)/(T_local*s_local);
-
-            // output
-            of << std::scientific << std::setw(18) << std::setprecision(8)
-               << e_local*hbarc << "   " << nB_local << "   "
-               << s_check << "   "
-               << T_local*hbarc << "   " << mu_B*hbarc << "   "
-               << zeta_over_s << std::endl;
-        }
         of.close();  // close the file
     }
 }
+

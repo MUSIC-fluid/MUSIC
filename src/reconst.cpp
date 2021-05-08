@@ -57,7 +57,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     double M   = sqrt(K00);
     double T00 = q[0];
     double J0  = q[4];
-    
+
     if ((T00 < abs_err)) {
         // T^{0\mu} is too small, directly set it to
         // e = abs_err, u^\mu = (1, 0, 0, 0)
@@ -75,7 +75,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     }
 
     double u[4], epsilon, pressure, rhob;
-    
+
     double v_guess = sqrt(1. - 1./(grid_pt.u[0]*grid_pt.u[0] + abs_err));
     if (v_guess != v_guess) {
         v_guess = 0.0;

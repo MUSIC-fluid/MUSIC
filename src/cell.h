@@ -85,5 +85,5 @@ class Cell_aux {
         return(res);
     }
 };
->>>>>>> github_chun_dev
+
 #endif  // SRC_CELL_H_
