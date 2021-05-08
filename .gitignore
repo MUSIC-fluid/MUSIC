@@ -8,8 +8,10 @@ obj/
 tests/
 *.pyc
 *.txt
-mpihydro
+*.dylib
+MUSIChydro
 perf.data*
 a.out
 build/
-*.dylib
+*.so
+music_input*

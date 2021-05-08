@@ -1,7 +1,6 @@
 set (SOURCES
     u_derivative.cpp
     dissipative.cpp
-    cell.cpp
     init.cpp
     reconst.cpp
     minmod.cpp
@@ -10,13 +9,11 @@ set (SOURCES
     hydro_source_base.cpp
     hydro_source_strings.cpp
     hydro_source_ampt.cpp
+    hydro_source_TATB.cpp
     pretty_ostream.cpp
-    freeze.cpp
     grid_info.cpp
     util.cpp
     read_in_parameters.cpp
-    freeze_pseudo.cpp
-    reso_decay.cpp
     advance.cpp
     eos.cpp
     eos_base.cpp
@@ -27,23 +24,36 @@ set (SOURCES
     eos_hotQCD.cpp
     eos_best.cpp
     eos_neos.cpp
+    eos_UH.cpp
     evolve.cpp
     emoji.cpp
     music_logo.cpp
     HydroinfoMUSIC.cpp
     critical_modes.cpp
     )
+if (GSL_FOUND)
+    set(SOURCES ${SOURCES}
+        freeze.cpp
+        freeze_pseudo.cpp
+        reso_decay.cpp
+        )
+endif()
 
-add_library(music_lib SHARED ${SOURCES})
+add_library(${libname} SHARED ${SOURCES})
+set(CompileFlags "")
 if (APPLE)
-    set_target_properties (music_lib PROPERTIES COMPILE_FLAGS "-DAPPLE")
+    set(CompileFlags "${CompileFlags} -DAPPLE")
 endif (APPLE)
-target_link_libraries (music_lib ${GSL_LIBRARIES})
-install(TARGETS music_lib DESTINATION ${CMAKE_HOME_DIRECTORY})
+if (GSL_FOUND)
+    set(CompileFlags "${CompileFlags} -DGSL")
+    target_link_libraries (${libname} ${GSL_LIBRARIES})
+endif()
+set_target_properties (${libname} PROPERTIES COMPILE_FLAGS "${CompileFlags}")
+install(TARGETS ${libname} DESTINATION ${CMAKE_HOME_DIRECTORY})
 
 if (unittest)
     add_executable (unittest_reconst.e reconst_unittest.cpp)
-    target_link_libraries (unittest_reconst.e music_lib)
+    target_link_libraries (unittest_reconst.e ${libname})
     install(TARGETS unittest_reconst.e DESTINATION ${CMAKE_HOME_DIRECTORY})
     
     add_executable (unittest_criticalmodes.e critical_modes_unittest.cpp)
@@ -51,17 +61,26 @@ if (unittest)
     install(TARGETS unittest_criticalmodes.e DESTINATION ${CMAKE_HOME_DIRECTORY})
 
     add_executable (unittest_grid.e grid_unittest.cpp)
-    target_link_libraries (unittest_grid.e music_lib)
+    target_link_libraries (unittest_grid.e ${libname})
     install(TARGETS unittest_grid.e DESTINATION ${CMAKE_HOME_DIRECTORY})
 
+    add_executable (unittest_cell.e cell_unittest.cpp)
+    target_link_libraries (unittest_cell.e ${libname})
+    install(TARGETS unittest_cell.e DESTINATION ${CMAKE_HOME_DIRECTORY})
+
     add_executable (unittest_minmod.e minmod_unittest.cpp)
-    target_link_libraries (unittest_minmod.e music_lib)
+    target_link_libraries (unittest_minmod.e ${libname})
     install(TARGETS unittest_minmod.e DESTINATION ${CMAKE_HOME_DIRECTORY})
 else (unittest)
-    add_executable (mpihydro main.cpp)
-    if (APPLE)
-        set_target_properties (mpihydro PROPERTIES COMPILE_FLAGS "-DAPPLE")
-    endif (APPLE)
-    target_link_libraries (mpihydro music_lib ${GSL_LIBRARIES})
-    install(TARGETS mpihydro DESTINATION ${CMAKE_HOME_DIRECTORY})
+    if (link_with_lib)
+        add_executable (${exename} main.cpp)
+        target_link_libraries (${exename} ${libname})
+    else (link_with_lib)
+        add_executable (${exename} main.cpp ${SOURCES})
+        if (GSL_FOUND)
+            target_link_libraries (${exename} ${GSL_LIBRARIES})
+        endif (GSL_FOUND)
+    endif (link_with_lib)
+    set_target_properties (${exename} PROPERTIES COMPILE_FLAGS "${CompileFlags}")
+    install(TARGETS ${exename} DESTINATION ${CMAKE_HOME_DIRECTORY})
 endif (unittest)

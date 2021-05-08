@@ -17,7 +17,9 @@ class HydroSourceBase {
 
     HydroSourceBase() = default;
     virtual ~HydroSourceBase() {}
-    
+
+    virtual int get_number_of_sources() const {return(0);}
+
     void set_sigma_tau(double sigma_tau_in) {sigma_tau = sigma_tau_in;}
     void set_sigma_x  (double sigma_x_in  ) {sigma_x   = sigma_x_in  ;}
     void set_sigma_eta(double sigma_eta_in) {sigma_eta = sigma_eta_in;}
@@ -40,7 +42,7 @@ class HydroSourceBase {
         const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
         j_mu = {0.0};
     }
-    
+
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
     virtual double get_hydro_rhob_source(const double tau, const double x,
@@ -48,13 +50,13 @@ class HydroSourceBase {
                                  const FlowVec &u_mu) const {
         return(0.0);
     }
-    
+
     //! this function returns the energy source term J^\mu up to a given point
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source_before_tau(
         const double tau, const double x, const double y, const double eta_s,
         EnergyFlowVec &j_mu) const;
-    
+
     //! this function returns the net baryon density source term rho
     //! up to a given point (tau, x, y, eta_s)
     double get_hydro_rhob_source_before_tau(const double tau, const double x,

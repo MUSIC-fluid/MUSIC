@@ -38,14 +38,14 @@ void EOS_BEST::initialize_eos() {
     // read the lattice EOS pressure, temperature, and 
     music_message.info("Using lattice EOS at finite muB from the BEST Collaboration");
     music_message.info("reading EOS BEST ...");
-    
+
     stringstream slocalpath;
     slocalpath << "./EOS/BEST/";
 
     string path = slocalpath.str();
     music_message << "from path " << path;
     music_message.flush("info");
-    
+
     const int ntables = 6;
     set_number_of_tables(ntables);
     resize_table_info_arrays();
@@ -68,7 +68,6 @@ void EOS_BEST::initialize_eos() {
                             + eos_file_string_array[itable] + ".dat");
         std::ifstream eos_CorrLen(path + "BEST_eos_CorrLen_"
                             + eos_file_string_array[itable] + ".dat");
-        
         if (!eos_p) {
             music_message << "Can not found the EoS file! filename: "
                           << path + "BEST_eos_p_"
@@ -116,7 +115,7 @@ void EOS_BEST::initialize_eos() {
             }
         }
     }
-    
+
     double eps_max_in = e_bounds[5] + e_spacing[5]*e_length[5];
     set_eps_max(eps_max_in);
 
@@ -157,7 +156,7 @@ double EOS_BEST::get_pressure(double e, double rhob) const {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_BEST::get_muB(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
                                    mu_B_tb);  // 1/fm
     return(mu);
@@ -189,9 +188,8 @@ double EOS_BEST::get_Cp(const double e, const double rhob) const {
 
 double EOS_BEST::get_correlation_length(
                             const double e, const double rhob) const {
-     int table_idx = get_table_idx(e);
+    int table_idx = get_table_idx(e);
     double xi = interpolate2D(e, std::abs(rhob), table_idx,
-                             CorrLen_tb);  // fm
+                              CorrLen_tb);  // fm
     return(xi);
-    
 }

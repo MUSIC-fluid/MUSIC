@@ -98,7 +98,6 @@ class EOS_base {
     virtual double get_correlation_length(const double e, const double rhob) const {
         return(0.0);
     }
-    
     void check_eos_with_finite_muB() const;
     void check_eos_no_muB() const;
 };

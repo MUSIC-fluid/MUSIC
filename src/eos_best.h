@@ -7,11 +7,11 @@
 
 class EOS_BEST : public EOS_base {
  private:
-   
+
  public:
     EOS_BEST();
     ~EOS_BEST();
-    
+
     void initialize_eos();
     double p_rho_func     (double e, double rhob) const;
     double p_e_func       (double e, double rhob) const;

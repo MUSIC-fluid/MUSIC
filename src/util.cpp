@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <execinfo.h>
+#include <algorithm>
 
 using std::string;
 
@@ -64,15 +65,17 @@ int IsFile(string file_name) {
     }
 }
 
+
 // support comments in the parameters file
 // comments need to start with #
+// case-insensitive
 string StringFind4(string file_name, string str_in) {
     string inputname = file_name;
-    string str = str_in;
+    string str = convert_to_lowercase(str_in);
 
     string tmpfilename;
     tmpfilename = "input.default";
-    
+
     // check whether the input parameter file is exist or not
     if (!IsFile(file_name)) {
         if (file_name == "") {
@@ -89,7 +92,7 @@ string StringFind4(string file_name, string str_in) {
         tmp_file.close();
         exit(1);
     }/* if isfile */
-  
+
     // pass checking, now read in the parameter file
     string temp_string;
     std::ifstream input(inputname.c_str());
@@ -98,7 +101,7 @@ string StringFind4(string file_name, string str_in) {
     int ind = 0;
     string para_name;
     string para_val;
-    while (temp_string.compare("EndOfData") != 0) {
+    while (convert_to_lowercase(temp_string).compare("endofdata") != 0) {
         // check whether it is the end of the file
         string para_string;
         std::stringstream temp_ss(temp_string);
@@ -108,7 +111,7 @@ string StringFind4(string file_name, string str_in) {
             // check the read in string is not empty
             std::stringstream para_stream(para_string);
             para_stream >> para_name >> para_val;
-            if (para_name.compare(str) == 0) {
+            if (convert_to_lowercase(para_name).compare(str) == 0) {
                 // find the desired parameter
                 ind++;
                 input.close();
@@ -116,9 +119,9 @@ string StringFind4(string file_name, string str_in) {
             }  /* if right, return */
         }
         getline(input, temp_string);  // read in the next entry
-    }/* while */
+    }
     input.close(); // finish read in and close the file
-    
+
     // the desired parameter is not in the parameter file, then return "empty"
     if (ind == 0) {
         return("empty");
@@ -126,20 +129,27 @@ string StringFind4(string file_name, string str_in) {
     // should not cross here !!!
     std::cout << "Error in StringFind4 !!!\n";
     return("empty");
-}/* StringFind4 */
+}
 
 
-double lin_int(double x1,double x2,double f1,double f2,double x)
-{
-  double aa, bb;
-  
-  if (x2 == x1) 
-    aa = 0.0;
-  else
-    aa =(f2-f1)/(x2-x1);
-  bb = f1 - aa * x1;
-  
-  return aa*x + bb;
+// this function convert string to lower case
+string convert_to_lowercase(string str_in) {
+    std::transform(str_in.begin(), str_in.end(), str_in.begin(), ::tolower);
+    return(str_in);
+}
+
+
+double lin_int(double x1,double x2,double f1,double f2,double x) {
+    double aa, bb;
+
+    if (x2 == x1) {
+        aa = 0.0;
+    } else {
+        aa =(f2-f1)/(x2-x1);
+    }
+    bb = f1 - aa * x1;
+
+    return aa*x + bb;
 }
 
 double four_dimension_linear_interpolation(
@@ -163,6 +173,7 @@ double four_dimension_linear_interpolation(
     return (results);
 }
 
+
 double three_dimension_linear_interpolation(
             double* lattice_spacing, double fraction[2][3], double*** cube) {
     double denorm = 1.0;
@@ -182,6 +193,7 @@ double three_dimension_linear_interpolation(
     return(results);
 }
 
+
 //! this function return the left index of the array where x sits in 
 //! between array[idx] and array[idx+1]
 //! this function assumes that the input array is monotonic 
@@ -199,7 +211,7 @@ int binary_search(double* array, int length, double x) {
                 array[low_idx], array[high_idx], x);
         exit(-1);
     }
-    
+
     // find the index
     while (high_idx - low_idx > 1) {
         mid_idx = (int)((high_idx + low_idx)/2.);
@@ -211,6 +223,7 @@ int binary_search(double* array, int length, double x) {
     }
     return(low_idx);
 }
+
 
 void print_backtrace_errors() {
     int nptrs;
@@ -241,13 +254,14 @@ int map_2d_idx_to_1d(int a, int b) {
     return index_map[a][b];
 }
 
+
 void map_1d_idx_to_2d(int idx_1d, int &a, int &b) {
     static const int index_1d_a[5] = {1, 1, 1, 2, 2};
     static const int index_1d_b[5] = {1, 2, 3, 2, 3};
     a = index_1d_a[idx_1d - 4];
     b = index_1d_b[idx_1d - 4];
 }
-  
+
 
 Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector) {
     Mat4x4 out_matrix;
@@ -268,7 +282,8 @@ Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector) {
     out_matrix[3][2] = in_vector[8];
     out_matrix[3][3] = in_vector[9];
     return out_matrix;
-  }
+}
+
 
 Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector) {
     Mat4x4 out_matrix;
@@ -289,5 +304,28 @@ Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector) {
     out_matrix[3][2] = in_vector[8];
     out_matrix[3][3] = in_vector[9];
     return out_matrix;
-  }
+}
+
+
+Mat4x4 UnpackVecToMatrix(const VorticityVec &in_vector) {
+    Mat4x4 out_matrix;
+    out_matrix[0][0] = 0.0;
+    out_matrix[0][1] = in_vector[0];
+    out_matrix[0][2] = in_vector[1];
+    out_matrix[0][3] = in_vector[2];
+    out_matrix[1][0] = -out_matrix[0][1];
+    out_matrix[1][1] = 0.0;
+    out_matrix[1][2] = in_vector[3];
+    out_matrix[1][3] = in_vector[4];
+    out_matrix[2][0] = -out_matrix[0][2];
+    out_matrix[2][1] = -out_matrix[1][2];
+    out_matrix[2][2] = 0.0;
+    out_matrix[2][3] = in_vector[5];
+    out_matrix[3][0] = -out_matrix[0][3];
+    out_matrix[3][1] = -out_matrix[1][3];
+    out_matrix[3][2] = -out_matrix[2][3];
+    out_matrix[3][3] = 0.0;
+    return out_matrix;
+}
+
 }

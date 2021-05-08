@@ -18,8 +18,8 @@ class Advance {
  private:
     const InitData &DATA;
     const EOS &eos;
-    std::weak_ptr<HydroSourceBase> hydro_source_terms_ptr;
-    std::weak_ptr<CriticalSlowModes> critical_slow_modes_ptr;
+    std::shared_ptr<CriticalSlowModes> critical_slow_modes_ptr;
+    std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
     Diss diss_helper;
     Minmod minmod;
@@ -33,26 +33,39 @@ class Advance {
             std::shared_ptr<HydroSourceBase> hydro_source_ptr_in,
             std::shared_ptr<CriticalSlowModes> critical_slow_modes_in);
 
-    void AdvanceIt(double tau_init,
-                   SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-                   int rk_flag);
+    void AdvanceIt(const double tau_init,
+                   SCGrid &arena_prev, SCGrid &arena_current,
+                   SCGrid &arena_future, const int rk_flag);
 
-    void FirstRKStepT(const double tau, double x_local, double y_local,
-                      double eta_s_local,  SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta,
-                      int rk_flag);
+    void FirstRKStepT(const double tau, const double x_local,
+                      const double y_local, const double eta_s_local,
+                      SCGrid &arena_current, SCGrid &arena_future,
+                      SCGrid &arena_prev, const int ix, const int iy,
+                      const int ieta, const int rk_flag);
 
-    void FirstRKStepW(double tau_it, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-                      int rk_flag, double theta_local, DumuVec &a_local,
-                      VelocityShearVec &sigma_local, DmuMuBoverTVec &baryon_diffusion_vector, int ieta, int ix, int iy);
+    void FirstRKStepW(const double tau_it, SCGrid &arena_prev,
+                      SCGrid &arena_current, SCGrid &arena_future,
+                      const int rk_flag, const double theta_local,
+                      const DumuVec &a_local,
+                      const VelocityShearVec &sigma_local,
+                      const VorticityVec &omega_local,
+                      const DmuMuBoverTVec &baryon_diffusion_vector,
+                      const int ieta, const int ix, const int iy);
 
     void UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt);
-    void QuestRevert(Cell_small *grid_pt, int ieta, int ix, int iy);
-    void QuestRevert_qmu(Cell_small *grid_pt, int ieta, int ix, int iy);
+    void QuestRevert(const double tau, Cell_small *grid_pt,
+                     const int ieta, const int ix, const int iy);
+    void QuestRevert_qmu(const double tau, Cell_small *grid_pt,
+                         const int ieta, const int ix, const int iy);
 
-    void MakeDeltaQI(double tau, SCGrid &arena_current,
-                     int ix, int iy, int ieta, TJbVec &qi, int rk_flag);
-    double MaxSpeed(double tau, int direc, const ReconstCell &grid_p);
-    double get_TJb(const ReconstCell &grid_p, const int rk_flag, const int mu, const int nu);
+    void MakeDeltaQI(const double tau, SCGrid &arena_current,
+                     const int ix, const int iy, const int ieta, TJbVec &qi,
+                     const int rk_flag);
+    double MaxSpeed(const double tau, const int direc,
+                    const ReconstCell &grid_p);
+
+    double get_TJb(const ReconstCell &grid_p, const int rk_flag,
+                   const int mu, const int nu);
     double get_TJb(const Cell_small &grid_p, const int mu, const int nu);
 };
 

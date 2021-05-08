@@ -76,7 +76,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
 
     double u[4], epsilon, pressure, rhob;
     
-    double v_guess = sqrt(1. - 1./(grid_pt.u[0]*grid_pt.u[0] + 1e-15));
+    double v_guess = sqrt(1. - 1./(grid_pt.u[0]*grid_pt.u[0] + abs_err));
     if (v_guess != v_guess) {
         v_guess = 0.0;
     }
@@ -172,7 +172,7 @@ int Reconst::solve_velocity_Newton(const double v_guess, const double T00,
         v_next = v_prev - (fv/dfdv);
         v_next = std::max(0.0, std::min(1.0, v_next));
         abs_error_v = fv;
-        rel_error_v = 2.*abs_error_v/(v_next + v_prev + 1e-15);
+        rel_error_v = 2.*abs_error_v/(v_next + v_prev + abs_err);
         v_prev = v_next;
         if (iter > max_iter) {
             v_status = 0;
@@ -289,7 +289,7 @@ int Reconst::solve_u0_Newton(const double u0_guess, const double T00,
         u0_next = u0_prev - fu0/dfdu0;
         u0_next = std::max(1.0, u0_next);
         abs_error_u0 = fu0;
-        rel_error_u0 = 2.*abs_error_u0/(u0_next + u0_prev + 1e-15);
+        rel_error_u0 = 2.*abs_error_u0/(u0_next + u0_prev + abs_err);
         u0_prev = u0_next;
         if (iter_u0 > max_iter) {
             u0_status = 0;
@@ -424,7 +424,7 @@ void Reconst::reconst_u0_fdf(const double u0, const double T00,
     const double epsilon = T00 - v*M;
     const double rho     = J0/u0;
 
-    const double dedu0   = - M/(u0*u0*u0*v + 1e-15);
+    const double dedu0   = - M/(u0*u0*u0*v + abs_err);
     const double drhodu0 = - J0/(u0*u0);
 
     const double pressure = eos.get_pressure(epsilon, rho);

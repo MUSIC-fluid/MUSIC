@@ -8,12 +8,16 @@
 #include <string>
 #include "music.h"
 #include "init.h"
-#include "freeze.h"
 #include "evolve.h"
 #include "dissipative.h"
 #include "data_struct.h"
 #include "hydro_source_strings.h"
 #include "hydro_source_ampt.h"
+#include "hydro_source_TATB.h"
+
+#ifdef GSL
+    #include "freeze.h"
+#endif
 
 using std::vector;
 
@@ -24,13 +28,12 @@ MUSIC::MUSIC(std::string input_file) :
     mode                   = DATA.mode;
     flag_hydro_run         = 0;
     flag_hydro_initialized = 0;
-    
+
     // setup hydro evolution information
     hydro_info_ptr         = nullptr;
     if (DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
     }
-    
     critical_slow_modes_ptr = std::make_shared<CriticalSlowModes> (eos, DATA);
 
     // setup source terms
@@ -52,7 +55,8 @@ void MUSIC::add_hydro_source_terms(
 
 //! This function setup source terms from dynamical initialization
 void MUSIC::generate_hydro_source_terms() {
-    if (DATA.Initial_profile == 13) {  // MC-Glauber-LEXUS
+    if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
+        // MC-Glauber-LEXUS
         auto hydro_source_ptr = std::shared_ptr<HydroSourceStrings> (
                                             new HydroSourceStrings (DATA));
         add_hydro_source_terms(hydro_source_ptr);
@@ -60,12 +64,17 @@ void MUSIC::generate_hydro_source_terms() {
         auto hydro_source_ptr = std::shared_ptr<HydroSourceAMPT> (
                                             new HydroSourceAMPT (DATA));
         add_hydro_source_terms(hydro_source_ptr);
+    } else if (DATA.Initial_profile == 112) {  // source from TA and TB
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceTATB> (
+                                            new HydroSourceTATB (DATA));
+        add_hydro_source_terms(hydro_source_ptr);
     }
 }
 
 
 void MUSIC::clean_all_the_surface_files() {
-    system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+    system_status_ = system(
+            "rm surface.dat surface?.dat surface??.dat 2> /dev/null");
 }
 
 
@@ -103,9 +112,11 @@ int MUSIC::run_hydro() {
 
 //! this is a shell function to run Cooper-Frye
 int MUSIC::run_Cooper_Frye() {
+#ifdef GSL
     Freeze cooper_frye(&DATA);
     cooper_frye.CooperFrye_pseudo(DATA.particleSpectrumNumber, mode,
                                   &DATA, &eos);
+#endif
     return(0);
 }
 
@@ -148,9 +159,9 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
 
     if (nz > 1) {
         DATA.boost_invariant = false;
-        DATA.eta_size        = z_max;
         DATA.delta_eta       = dz;
         DATA.neta            = nz;
+        DATA.eta_size        = nz*dz;
     }
     DATA.delta_x = dx;
     DATA.delta_y = dx;
