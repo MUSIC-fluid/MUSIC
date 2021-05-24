@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
     if (running_mode == 1 || running_mode == 2) {
         music_hydro.initialize_hydro();
         music_hydro.run_hydro();
+        
     }
 
     if (running_mode == 1 || running_mode == 3 || running_mode == 4
