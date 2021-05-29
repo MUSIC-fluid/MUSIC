@@ -306,14 +306,14 @@ void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {
 //! in the dilute region to stablize numerical simulations
 void Advance::QuestRevert(double tau, Cell_small *grid_pt,
                           int ieta, int ix, int iy) {
-    double eps_scale = 0.5;   // 1/fm^4
+    double eps_scale = 0.2;   // 1/fm^4
     double e_local   = grid_pt->epsilon;
     double rhob      = grid_pt->rhob;
 
     // regulation factor in the default MUSIC
     // double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
     double xi = 0.05;
-    double factor = 100.*(1./(exp(-(e_local - eps_scale)/xi) + 1.)
+    double factor = 10.*(1./(exp(-(e_local - eps_scale)/xi) + 1.)
                           - 1./(exp(eps_scale/xi) + 1.));
     double factor_bulk = factor;
 
@@ -378,10 +378,10 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
 //! in the dilute region to stablize numerical simulations
 void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
                               int ieta, int ix, int iy) {
-    double eps_scale = 0.5;   // in 1/fm^4
+    double eps_scale = 0.2;   // in 1/fm^4
 
     double xi = 0.05;
-    double factor = 100.*(1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
+    double factor = 10.*(1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
                           - 1./(exp(eps_scale/xi) + 1.));
 
     double q_mu_local[4];
