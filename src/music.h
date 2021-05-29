@@ -77,7 +77,7 @@ class MUSIC {
 
     void initialize_hydro_from_jetscape_preequilibrium_vectors(
         const double dx, const double dz, const double z_max, const int nz,
-        std::vector<double> e_in,
+        std::vector<double> e_in, std::vector<double> P_in,
         std::vector<double> u_tau_in, std::vector<double> u_x_in,
         std::vector<double> u_y_in,   std::vector<double> u_eta_in,
         std::vector<double> pi_00_in, std::vector<double> pi_01_in,
