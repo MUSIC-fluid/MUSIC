@@ -157,11 +157,18 @@ void Advance::FirstRKStepT(
 
         /* if rk_flag > 0, we now have q0 + k1 + k2. 
          * So add q0 and multiply by 1/2 */
-        qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
+        if (DATA.CoorType == 0) {
+            qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
+        } else {
+            qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0);
+        }
         qi[alpha] *= 1./(1. + rk_flag);
     }
 
     double tau_next = tau + DATA.delta_tau;
+    if (DATA.CoorType == 1) {
+        tau_next = 1.;
+    }
     auto grid_rk_t = reconst_helper.ReconstIt_shell(
                                 tau_next, qi, arena_current(ix, iy, ieta)); 
     UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
@@ -460,11 +467,19 @@ void Advance::QuestRevert_qmu(const double tau, Cell_small *grid_pt,
 void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
                           const int ix, const int iy, const int ieta,
                           TJbVec &qi, const int rk_flag) {
+    double tauFactor = tau;
+    if (DATA.CoorType ==  0) {
+        // Milne Coordinates
+        tauFactor = tau;
+    } else {
+        // Cartesian Coordinates
+        tauFactor = 1.0;
+    }
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
-    const double tau_fac[4] = {0.0, tau, tau, 1.0};
+    const double tau_fac[4] = {0.0, tauFactor, tauFactor, 1.0};
 
     for (int alpha = 0; alpha < 5; alpha++) {
-        qi[alpha] = get_TJb(arena_current(ix, iy, ieta), alpha, 0)*tau;
+        qi[alpha] = get_TJb(arena_current(ix, iy, ieta), alpha, 0)*tauFactor;
     }
 
     TJbVec qiphL   = {0.};
@@ -478,14 +493,14 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
     Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
         for (int alpha = 0; alpha < 5; alpha++) {
             const double gphL = qi[alpha];
-            const double gphR = tau*get_TJb(p1, alpha, 0);
-            const double gmhL = tau*get_TJb(m1, alpha, 0);
+            const double gphR = tauFactor*get_TJb(p1, alpha, 0);
+            const double gmhL = tauFactor*get_TJb(m1, alpha, 0);
             const double gmhR = qi[alpha];
             const double fphL =  0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
             const double fphR = -0.5*minmod.minmod_dx(
-                                tau*get_TJb(p2, alpha, 0), gphR, qi[alpha]);
+                                tauFactor*get_TJb(p2, alpha, 0), gphR, qi[alpha]);
             const double fmhL =  0.5*minmod.minmod_dx(
-                                qi[alpha], gmhL, tau*get_TJb(m2, alpha, 0));
+                                qi[alpha], gmhL, tauFactor*get_TJb(m2, alpha, 0));
             const double fmhR = -fphL;
             qiphL[alpha] = gphL + fphL;
             qiphR[alpha] = gphR + fphR;
@@ -495,15 +510,15 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
 
         // for each direction, reconstruct half-way cells
         // reconstruct e, rhob, and u[4] for half way cells
-        auto grid_phL = reconst_helper.ReconstIt_shell(tau, qiphL, c);
-        auto grid_phR = reconst_helper.ReconstIt_shell(tau, qiphR, c);
-        auto grid_mhL = reconst_helper.ReconstIt_shell(tau, qimhL, c);
-        auto grid_mhR = reconst_helper.ReconstIt_shell(tau, qimhR, c);
+        auto grid_phL = reconst_helper.ReconstIt_shell(tauFactor, qiphL, c);
+        auto grid_phR = reconst_helper.ReconstIt_shell(tauFactor, qiphR, c);
+        auto grid_mhL = reconst_helper.ReconstIt_shell(tauFactor, qimhL, c);
+        auto grid_mhR = reconst_helper.ReconstIt_shell(tauFactor, qimhR, c);
 
-        double aiphL = MaxSpeed(tau, direction, grid_phL);
-        double aiphR = MaxSpeed(tau, direction, grid_phR);
-        double aimhL = MaxSpeed(tau, direction, grid_mhL);
-        double aimhR = MaxSpeed(tau, direction, grid_mhR);
+        double aiphL = MaxSpeed(tauFactor, direction, grid_phL);
+        double aiphR = MaxSpeed(tauFactor, direction, grid_phR);
+        double aimhL = MaxSpeed(tauFactor, direction, grid_mhL);
+        double aimhR = MaxSpeed(tauFactor, direction, grid_mhR);
 
         double aiph = std::max(aiphL, aiphR);
         double aimh = std::max(aimhL, aimhR);
@@ -520,7 +535,8 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
                                - aiph*(qiphR[alpha] - qiphL[alpha]));
             double Fimh = 0.5*((FimhL + FimhR)
                                - aimh*(qimhR[alpha] - qimhL[alpha]));
-            if (direction == 3 && (alpha == 0 || alpha == 3)) {
+            if (direction == 3 && (alpha == 0 || alpha == 3)
+                && DATA.CoorType == 0) {
                 T_eta_m[alpha] = Fimh;
                 T_eta_p[alpha] = Fiph;
             } else {
@@ -530,25 +546,26 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
         }
     });
 
-    // add longitudinal flux with discretized geometric terms
-    double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
-    double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
-    sinh_deta = std::max(0.5, sinh_deta);
-    if (DATA.boost_invariant) {
-        // if the simulation is boost-invariant,
-        // we directly use the limiting value at \Delta eta = 0
-        // Longitudinal derivatives should be 0, we set cosh_eta = 0 here
-        cosh_deta = 0.0;
-        sinh_deta = 0.5;
+    if (DATA.CoorType == 0) {
+        // add longitudinal flux with discretized geometric terms
+        double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+        double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+        sinh_deta = std::max(0.5, sinh_deta);
+        if (DATA.boost_invariant) {
+            // if the simulation is boost-invariant,
+            // we directly use the limiting value at \Delta eta = 0
+            // Longitudinal derivatives should be 0, we set cosh_eta = 0 here
+            cosh_deta = 0.0;
+            sinh_deta = 0.5;
+        }
+        rhs[0] += ((  (T_eta_m[0] - T_eta_p[0])*cosh_deta
+                    - (T_eta_m[3] + T_eta_p[3])*sinh_deta)*DATA.delta_tau);
+        rhs[3] += ((  (T_eta_m[3] - T_eta_p[3])*cosh_deta
+                    - (T_eta_m[0] + T_eta_p[0])*sinh_deta)*DATA.delta_tau);
+        // geometric terms
+        //rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
+        //rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
     }
-    rhs[0] += ((  (T_eta_m[0] - T_eta_p[0])*cosh_deta
-                - (T_eta_m[3] + T_eta_p[3])*sinh_deta)*DATA.delta_tau);
-    rhs[3] += ((  (T_eta_m[3] - T_eta_p[3])*cosh_deta
-                - (T_eta_m[0] + T_eta_p[0])*sinh_deta)*DATA.delta_tau);
-
-    // geometric terms
-    //rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
-    //rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
 
     for (int i = 0; i < 5; i++) {
         qi[i] += rhs[i];

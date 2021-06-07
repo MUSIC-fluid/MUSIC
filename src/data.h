@@ -77,6 +77,8 @@ typedef struct init_data {
     int rk_order;
     double minmod_theta;
 
+    int CoorType;   // 0 for Milne; 1 for Cartesian
+
     double sFactor;     //!< overall normalization on energy density profile
     int whichEOS;       //!< type of EoS
     //! flag for boost invariant simulations
