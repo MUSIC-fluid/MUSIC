@@ -36,6 +36,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_string_dump_mode;
     parameter_list.string_dump_mode = temp_string_dump_mode;
 
+    // Coordinate Type:
+    int temp_CoorType = 0;   // Milne
+    tempinput = Util::StringFind4(input_file, "CoorType");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_CoorType;
+    parameter_list.CoorType = temp_CoorType;
+
     // hydro source
     double temp_string_quench_factor = 0.;
     tempinput = Util::StringFind4(input_file, "string_quench_factor");
