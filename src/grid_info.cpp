@@ -1025,8 +1025,12 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
         const auto& c_prev = arena_prev(ix, iy, ieta);
 
         const double eta_s = deta*ieta - (DATA.eta_size)/2.0;
-        const double cosh_eta = cosh(eta_s);
-        const double sinh_eta = sinh(eta_s);
+        double cosh_eta = 1.0;
+        double sinh_eta = 0.0;
+        if (DATA.CoorType == 0) {
+            cosh_eta = cosh(eta_s);
+            sinh_eta = sinh(eta_s);
+        }
         N_B += (c.rhob*c.u[0] + c_prev.Wmunu[10]);
         const double e_local   = c.epsilon;
         const double rhob      = c.rhob;
@@ -1062,7 +1066,10 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
         }
     }
     // add units
-    double factor = tau*dx*dy*deta;
+    double factor = dx*dy*deta;
+    if (DATA.CoorType == 0) {
+        factor *= tau;
+    }
     N_B *= factor;
     T_tau_t *= factor*Util::hbarc;  // GeV
     T_tau_x *= factor*Util::hbarc;  // GeV
