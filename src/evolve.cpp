@@ -60,7 +60,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double dt    = DATA.delta_tau;
 
     double tau;
-    int it_start = 3;
+    int it_start = 0;
     double source_tau_max = 0.0;
     if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
         source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
@@ -81,6 +81,18 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     int it = 0;
     double eps_max_cur = -1.;
     const double max_allowed_e_increase_factor = 2.;
+
+    #ifdef ROOT_FOUND
+    if (DATA.outputEvolutionData == 5) grid_info.initialize_root_output_file(*ap_current);
+    #else
+    if (DATA.outputEvolutionData == 5){
+        music_message << "MUSIC was not compiled against ROOT.";
+        music_message.flush("warning");
+        music_message << "I will not output full output evolution. Try using output_evolution_data 4 instead.";
+        music_message.flush("warning");
+    }
+    #endif
+
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
@@ -125,6 +137,9 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             } else if (DATA.outputEvolutionData == 4) {
                 grid_info.OutputEvolutionDataXYEta_vorticity(
                                             *ap_current, *ap_prev, tau);
+            } else if (DATA.outputEvolutionData == 5){
+                grid_info.OutputEvolutionDataXYEta_vorticity_root(
+                                            *ap_current, *ap_prev, tau);
             }
 
             if (DATA.output_movie_flag == 1) {
@@ -142,7 +157,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
-        if (it == it_start)
+        if (std::abs(tau - DATA.tau0) < 1e-15)
             grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
         grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *ap_current);
@@ -267,8 +282,10 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
     }
     if (it < itmax) {
+         if (DATA.outputEvolutionData == 5) grid_info.finish_root_output_file();
         music_message.info("Finished.");
     } else {
+         if (DATA.outputEvolutionData == 5) grid_info.finish_root_output_file();
         music_message.warning("Maximum allowed time reached.");
     }
     return 1;

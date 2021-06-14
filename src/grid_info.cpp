@@ -2336,3 +2336,321 @@ void Cell_info::get_LRF_shear_stress_tensor(const Cell_small &cell,
     res[6] = q_LRF[2];
     res[7] = q_LRF[3];
 }
+
+void Cell_info::initialize_root_output_file(SCGrid &arena_curr){
+
+    #ifdef ROOT_FOUND
+    evolution_all_xyeta = new TFile("evolution_all_xyeta.root","RECREATE");
+    TFullEvo = new TTree("TFullEvo","Tree with data of full hydrodynamic evolution");
+
+    int nx = arena_curr.nX();
+    int ny = arena_curr.nY();
+    int neta = arena_curr.nEta();
+
+    //Histograms that will be stored in tree branches
+    hEnergy     = new TH3F("hEnergy","Energy density field (GeV/fm^{3})",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hPressure   = new TH3F("hPressure","Pressure field (GeV/fm^{3})",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hTemperature= new TH3F("hTemperature","Temperature field (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    
+    hcs2         = new TH3F("hcs2","Speed of sound c_{s}^{2}",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+
+    hux         = new TH3F("hux","ux field",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    huy         = new TH3F("huy","uy field",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hueta       = new TH3F("hueta","ueta field",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    
+    hmu_B       = new TH3F("hmu_B","Baryonic chemical potential (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+
+    hBulkPressure       = new TH3F("hBulkPressure","Bulk pressure field (GeV/fm^{3})",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    
+    homega_kSP_tx       = new TH3F("homega_kSP_tx","Component tx of kinetic SP vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_kSP_ty       = new TH3F("homega_kSP_ty","Component ty of kinetic SP vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_kSP_tz       = new TH3F("homega_kSP_tz","Component ty of kinetic SP vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_kSP_xy       = new TH3F("homega_kSP_xy","Component xy of kinetic SP vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_kSP_xz       = new TH3F("homega_kSP_xz","Component xz of kinetic SP vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_kSP_yz       = new TH3F("homega_kSP_yz","Component yz of kinetic SP vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    
+    homega_k_tx       = new TH3F("homega_k_tx","Component tx of kinetic vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_k_ty       = new TH3F("homega_k_ty","Component ty of kinetic vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_k_tz       = new TH3F("homega_k_tz","Component ty of kinetic vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_k_xy       = new TH3F("homega_k_xy","Component xy of kinetic vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_k_xz       = new TH3F("homega_k_xz","Component xz of kinetic vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_k_yz       = new TH3F("homega_k_yz","Component yz of kinetic vorticity (GeV)",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+
+    homega_th_tx       = new TH3F("homega_th_tx","Component tx of thermal vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_th_ty       = new TH3F("homega_th_ty","Component ty of thermal vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_th_tz       = new TH3F("homega_th_tz","Component ty of thermal vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_th_xy       = new TH3F("homega_th_xy","Component xy of thermal vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_th_xz       = new TH3F("homega_th_xz","Component xz of thermal vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_th_yz       = new TH3F("homega_th_yz","Component yz of thermal vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+
+    homega_T_tx       = new TH3F("homega_T_tx","Component tx of T vorticity (GeV^{2})",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_T_ty       = new TH3F("homega_T_ty","Component ty of T vorticity (GeV^{2})",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_T_tz       = new TH3F("homega_T_tz","Component ty of T vorticity (GeV^{2})",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_T_xy       = new TH3F("homega_T_xy","Component xy of T vorticity (GeV^{2})",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_T_xz       = new TH3F("homega_T_xz","Component xz of T vorticity (GeV^{2})",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    homega_T_yz       = new TH3F("homega_T_yz","Component yz of T vorticity (GeV^{2})",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+
+    //Organize histograms in an array
+    histo_array[0] = hEnergy; histo_array[1] = hPressure; 
+    histo_array[2] = hTemperature;
+    histo_array[3] = hux; histo_array[4] = huy; histo_array[5] = hueta;
+    histo_array[6] = hmu_B;
+    histo_array[7] = homega_kSP_tx; histo_array[8] = homega_kSP_ty; 
+    histo_array[9] = homega_kSP_tz; histo_array[10] = homega_kSP_xy;
+    histo_array[11] = homega_kSP_xz; histo_array[12] = homega_kSP_yz;
+    histo_array[13] = homega_k_tx; histo_array[14] = homega_k_ty;
+    histo_array[15] = homega_k_tz; histo_array[16] = homega_k_xy;
+    histo_array[17] = homega_k_xz; histo_array[18] = homega_k_yz;
+    histo_array[19] = homega_th_tx; histo_array[20] = homega_th_ty;
+    histo_array[21] = homega_th_tz; histo_array[22] = homega_th_xy;
+    histo_array[23] = homega_th_xz; histo_array[24] = homega_th_yz;
+    histo_array[25] = homega_T_tx; histo_array[26] = homega_T_ty;
+    histo_array[27] = homega_T_tz; histo_array[28] = homega_T_xy;
+    histo_array[29] = homega_T_xz; histo_array[30] = homega_T_yz;
+    histo_array[31] = hcs2;
+    histo_array[32] = hBulkPressure;
+
+    
+    for (int hi=0; hi<33; ++hi){
+        histo_array[hi]->SetDirectory(0);
+        histo_array[hi]->GetXaxis()->SetTitle("x (fm)");
+        histo_array[hi]->GetYaxis()->SetTitle("y (fm)");
+        histo_array[hi]->GetZaxis()->SetTitle("#eta_{s}");
+    }
+
+    //Create tree branches
+    float tau = 0;
+
+    TFullEvo->Branch("tau",&tau, "tau/F");
+    TFullEvo->Branch("hEnergy",&hEnergy);
+    TFullEvo->Branch("hPressure",&hPressure);
+    TFullEvo->Branch("hTemperature",&hTemperature);
+    TFullEvo->Branch("hcs2",&hcs2);
+    TFullEvo->Branch("hux",&hux);
+    TFullEvo->Branch("huy",&huy);
+    TFullEvo->Branch("hueta",&hueta);
+    TFullEvo->Branch("hmu_B",&hmu_B);
+    TFullEvo->Branch("hBulkPressure",&hBulkPressure);
+    TFullEvo->Branch("homega_kSP_tx",&homega_kSP_tx);
+    TFullEvo->Branch("homega_kSP_ty",&homega_kSP_ty);
+    TFullEvo->Branch("homega_kSP_tz",&homega_kSP_tz);
+    TFullEvo->Branch("homega_kSP_xy",&homega_kSP_xy);
+    TFullEvo->Branch("homega_kSP_xz",&homega_kSP_xz);
+    TFullEvo->Branch("homega_kSP_yz",&homega_kSP_yz);
+    TFullEvo->Branch("homega_k_tx",&homega_k_tx);
+    TFullEvo->Branch("homega_k_ty",&homega_k_ty);
+    TFullEvo->Branch("homega_k_tz",&homega_k_tz);
+    TFullEvo->Branch("homega_k_xy",&homega_k_xy);
+    TFullEvo->Branch("homega_k_xz",&homega_k_xz);
+    TFullEvo->Branch("homega_k_yz",&homega_k_yz);
+    TFullEvo->Branch("homega_th_tx",&homega_th_tx);
+    TFullEvo->Branch("homega_th_ty",&homega_th_ty);
+    TFullEvo->Branch("homega_th_tz",&homega_th_tz);
+    TFullEvo->Branch("homega_th_xy",&homega_th_xy);
+    TFullEvo->Branch("homega_th_xz",&homega_th_xz);
+    TFullEvo->Branch("homega_th_yz",&homega_th_yz);
+    TFullEvo->Branch("homega_T_tx",&homega_T_tx);
+    TFullEvo->Branch("homega_T_ty",&homega_T_ty);
+    TFullEvo->Branch("homega_T_tz",&homega_T_tz);
+    TFullEvo->Branch("homega_T_xy",&homega_T_xy);
+    TFullEvo->Branch("homega_T_xz",&homega_T_xz);
+    TFullEvo->Branch("homega_T_yz",&homega_T_yz);
+    #endif
+}
+
+double Cell_info::OutputEvolutionDataXYEta_vorticity_root(
+          SCGrid &arena_curr, SCGrid &arena_prev, double tau){
+
+    #ifdef ROOT_FOUND
+    int n_skip_tau     = DATA.output_evolution_every_N_timesteps;
+    double output_dtau = DATA.delta_tau*n_skip_tau;
+    int itau = static_cast<int>((tau - DATA.tau0)/(output_dtau) + 0.1);
+
+    int n_skip_x       = DATA.output_evolution_every_N_x;
+    int n_skip_y       = DATA.output_evolution_every_N_y;
+    int n_skip_eta     = DATA.output_evolution_every_N_eta;
+
+    for (int hi=0; hi<32;++hi) histo_array[hi]->Reset("ICESM");
+
+    double T_max = 0.;
+    float tau_tree = tau;
+    TFullEvo->SetBranchAddress("tau",&tau_tree);
+    for (int ieta = 0; ieta < arena_curr.nEta(); ieta += n_skip_eta) {
+        double eta_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
+        for (int iy = 0; iy < arena_curr.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena_curr.nX(); ix += n_skip_x) {
+                double e_local    = arena_curr(ix, iy, ieta).epsilon;  // 1/fm^4
+                double rhob_local = arena_curr(ix, iy, ieta).rhob;     // 1/fm^3
+                double p_local    = eos.get_pressure(e_local, rhob_local);
+                double p_bulk     = arena_curr(ix, iy, ieta).pi_b;
+                double ux   = arena_curr(ix, iy, ieta).u[1];
+                double uy   = arena_curr(ix, iy, ieta).u[2];
+                double ueta = arena_curr(ix, iy, ieta).u[3];
+                
+                if (p_local + p_bulk < 0){
+                    music_message << "Cavitation found! Pressure + bulk pressure = "<< p_local + p_bulk
+                          << "< 0.";
+                    music_message.flush("warning");
+                }
+
+                double cs2_local        = eos.get_cs2(e_local, rhob_local);
+                // T_local is in GeV
+                double T_local = eos.get_temperature(e_local, rhob_local)*hbarc;
+
+                if (T_local > T_max) T_max = T_local;
+
+                if (T_local < DATA.output_evolution_T_cut) continue;
+                // only ouput fluid cells that are above cut-off temperature
+
+                double muB_local = eos.get_muB(e_local, rhob_local);
+
+                VorticityVec omega_kSP = {0.0};
+                VorticityVec omega_k = {0.0};
+                VorticityVec omega_th = {0.0};
+                VorticityVec omega_T = {0.0};
+                u_derivative_helper.compute_vorticity_shell(
+                    tau, arena_prev, arena_curr, ieta, ix, iy, eta_local,
+                    omega_kSP, omega_k, omega_th, omega_T);
+
+                hEnergy->SetBinContent(ix+1,iy+1,ieta+1,e_local*hbarc); //energy in GeV/fm^3
+                hPressure->SetBinContent(ix+1,iy+1,ieta+1,p_local*hbarc); //pressure in GeV/fm^3
+                hBulkPressure->SetBinContent(ix+1,iy+1,ieta+1,p_bulk*hbarc); //bulk pressure in GeV/fm^3
+                hTemperature->SetBinContent(ix+1,iy+1,ieta+1,T_local);
+                hcs2->SetBinContent(ix+1,iy+1,ieta+1,cs2_local); 
+                hux->SetBinContent(ix+1,iy+1,ieta+1,ux);
+                huy->SetBinContent(ix+1,iy+1,ieta+1,uy);
+                hueta->SetBinContent(ix+1,iy+1,ieta+1,ueta);
+                hmu_B->SetBinContent(ix+1,iy+1,ieta+1,muB_local*hbarc);
+
+
+                for (int i = 0; i < 6; i++)
+                    // no minus sign because it has an opposite sign compared to kinetic vorticity
+                    histo_array[7+i]->SetBinContent(ix+1,iy+1,ieta+1,omega_kSP[i]*hbarc); //GeV
+                for (int i = 0; i < 6; i++)
+                    // the minus sign is from metric
+                    // output quantities for g = (1, -1, -1 , -1)
+                    histo_array[13+i]->SetBinContent(ix+1,iy+1,ieta+1,-omega_k[i]*hbarc);  //GeV
+                for (int i = 0; i < 6; i++)
+                    // the minus sign is from metric
+                    // output quantities for g = (1, -1, -1 , -1)
+                    histo_array[19+i]->SetBinContent(ix+1,iy+1,ieta+1,-omega_th[i]); //1
+                for (int i = 0; i < 6; i++)
+                    // the minus sign is from metric
+                    // output quantities for g = (1, -1, -1 , -1)
+                    histo_array[25+i]->SetBinContent(ix+1,iy+1,ieta+1,-omega_T[i]*hbarc*hbarc);  //GeV^2
+            }
+        }
+    }
+    TFullEvo->Fill();
+    return(T_max);
+    #endif
+}
+
+void Cell_info::finish_root_output_file(){
+    #ifdef ROOT_FOUND
+    TFullEvo->Write();
+    evolution_all_xyeta->Write();
+    evolution_all_xyeta->Close();
+
+    for(int hi=0; hi<32; ++hi) histo_array[hi]->Delete();
+    #endif
+}

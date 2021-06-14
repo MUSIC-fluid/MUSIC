@@ -3,9 +3,18 @@
 #ifndef SRC_GRID_INFO_H_
 #define SRC_GRID_INFO_H_
 
+
 #include <iostream>
 #include <iomanip>
 #include <string>
+
+//ROOT includes
+#ifdef ROOT_FOUND
+#include "TTree.h"
+#include "TH3.h"
+#include "TFile.h"
+//#define TH3F TH3D //Change precision
+#endif
 
 #include "data.h"
 #include "data_struct.h"
@@ -45,6 +54,24 @@ class Cell_info {
 
     TJbVec Pmu_edge_prev, outflow_flux;
 
+    //ROOT dependant variables
+    #ifdef ROOT_FOUND
+    TFile *evolution_all_xyeta;
+    TTree *TFullEvo;
+    TH3F *hEnergy, *hPressure, *hTemperature, *hcs2;
+    TH3F *hux, *huy, *hueta, *hBulkPressure;
+    TH3F *hmu_B;
+    TH3F *homega_kSP_tx, *homega_kSP_ty, *homega_kSP_tz,
+         *homega_kSP_xy, *homega_kSP_xz, *homega_kSP_yz;
+    TH3F *homega_k_tx, *homega_k_ty, *homega_k_tz,
+         *homega_k_xy, *homega_k_xz, *homega_k_yz;
+    TH3F *homega_th_tx, *homega_th_ty, *homega_th_tz,
+         *homega_th_xy, *homega_th_xz, *homega_th_yz;
+    TH3F *homega_T_tx, *homega_T_ty, *homega_T_tz,
+         *homega_T_xy, *homega_T_xz, *homega_T_yz;
+    TH3F* histo_array[33];
+    #endif
+    
  public:
     Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in);
     ~Cell_info();
@@ -145,6 +172,11 @@ class Cell_info {
     void OutputEvolutionDataXYEta_memory(
             SCGrid &arena, const double tau, HydroinfoMUSIC &hydro_info_ptr);
 
+    //ROOT dependandant subroutines
+    void initialize_root_output_file(SCGrid &arena_curr);
+    double OutputEvolutionDataXYEta_vorticity_root(
+          SCGrid &arena_curr, SCGrid &arena_prev, double tau);
+    void finish_root_output_file();
 
     //! This function computes the pi^{\mu\nu} in the local rest frame
     //! and in the Cartisian coordinates
