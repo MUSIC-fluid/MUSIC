@@ -6,6 +6,7 @@
 #include <vector>
 #include <cmath>
 #include <memory>
+#include <fstream>
 
 #include "data.h"
 #include "cell.h"
@@ -39,6 +40,9 @@ class Init {
     std::vector<double> jetscape_initial_pi_33;
     std::vector<double> jetscape_initial_bulk_pi;
 
+    int read_nexus_header(std::ifstream* nexus_IC);
+
+
  public:
     Init(const EOS &eos, InitData &DATA_in,
          std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
@@ -57,6 +61,7 @@ class Init {
     void initial_MCGlb_with_rhob         (SCGrid &arena_prev, SCGrid &arena_current);
     void initial_UMN_with_rhob           (SCGrid &arena_prev, SCGrid & arena_current);
     void initial_with_jetscape           (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
+    int read_nexus_profile               (SCGrid &arena_prev, SCGrid &arena_current);
 
     void get_jetscape_preequilibrium_vectors(
         std::vector<double> e_in,
