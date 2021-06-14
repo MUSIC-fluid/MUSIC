@@ -8,6 +8,11 @@
 #include <memory>
 #include <fstream>
 
+#ifdef ROOT_FOUND
+#include "TFile.h"
+#include "TH3D.h"
+#endif
+
 #include "data.h"
 #include "cell.h"
 #include "grid.h"
@@ -57,6 +62,7 @@ class Init {
     void initial_IPGlasma_XY             (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_IPGlasma_XY_with_pi     (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_with_zero_XY            (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
+    void initial_ROOT_XYEta_with_pi      (SCGrid &arena_prev, SCGrid &arena_current);
     void initial_AMPT_XY                 (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_MCGlb_with_rhob         (SCGrid &arena_prev, SCGrid &arena_current);
     void initial_UMN_with_rhob           (SCGrid &arena_prev, SCGrid & arena_current);

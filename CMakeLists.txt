@@ -14,11 +14,20 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_HOME_DIRECTORY}")
 set(CMAKE_INSTALL_RPATH ${CMAKE_HOME_DIRECTORY})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
+#Find ROOT for this project>
+find_package(ROOT 6 REQUIRED)
+if (ROOT_FOUND)
+    message("Found ROOT. Will enable ROOT integration.")
+    set(CMAKE_CXX_STANDARD 17) # ROOT requires c++17
+    add_definitions( -DROOT_FOUND )
+endif()
+
 # Find GSL and openMP for this project:
 find_package(GSL)
 if (GSL_FOUND)
     message("Found GSL library ${GSL_INCLUDE_DIR}, will build MUSIC with GSL")
     include_directories(${GSL_INCLUDE_DIR})
+    set (ENV{CPATH} ${GSL_INCLUDE_DIR})
 elseif()
     message("Did not find GSL library, will build MUSIC alone")
 endif()
@@ -55,7 +64,6 @@ message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 option (KNL "Build executable on KNL" OFF)
 option (unittest "Build Unit tests" OFF)
-option (link_with_lib "Link executable with the libarary" ON)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
     if (KNL)
