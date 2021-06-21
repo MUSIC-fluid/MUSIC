@@ -265,6 +265,9 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                 break;
             }
         }
+        if (DATA.Initial_profile == 3 && it == itmax) {
+            grid_info.output_1p1D_RiemannTest(*ap_current, tau);
+        }
     }
     if (it < itmax) {
         music_message.info("Finished.");

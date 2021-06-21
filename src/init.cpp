@@ -49,6 +49,19 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
         music_message << "neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
         music_message.flush("info");
+    } else if (DATA.Initial_profile == 3) {
+        music_message << "Using Initial_profile=" << DATA.Initial_profile;
+        DATA.nx = 1;
+        DATA.ny = 1;
+        DATA.neta = 101;
+        DATA.eta_size = 10.;
+        DATA.delta_x = 0.1;
+        DATA.delta_y = 0.1;
+        DATA.delta_eta = 0.1;
+        music_message << "nx=" << DATA.nx << ", ny=" << DATA.ny;
+        music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
+        music_message << "neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
+        music_message.flush("info");
     } else if (DATA.Initial_profile == 8) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
@@ -193,6 +206,10 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         // code test in 0+1 D Bjorken expansion
         music_message.info(" Perform 0+1D Bjorken expansion ... ");
         initial_0p1D_Bjorken(arena_prev, arena_current);
+    } else if (DATA.Initial_profile == 3) {
+        // code test in 1+1 D Relativistic Riemann Problem
+        music_message.info(" Perform 1+1D Riemann test ... ");
+        initial_1p1D_Riemann(arena_prev, arena_current);
     } else if (DATA.Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
@@ -424,6 +441,37 @@ void Init::initial_0p1D_Bjorken(SCGrid &arena_prev, SCGrid &arena_current) {
     for (int ieta = 0; ieta < neta; ieta++) {
         double rhob = 0.;
         double epsilon = 20./hbarc;   // fm^-4
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy< ny; iy++) {
+                // set all values in the grid element:
+                arena_current(ix, iy, ieta).epsilon = epsilon;
+                arena_current(ix, iy, ieta).rhob    = rhob;
+
+                arena_current(ix, iy, ieta).u[0] = 1.0;
+                arena_current(ix, iy, ieta).u[1] = 0.0;
+                arena_current(ix, iy, ieta).u[2] = 0.0;
+                arena_current(ix, iy, ieta).u[3] = 0.0;
+
+                arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
+            }
+        }
+    }
+}
+
+
+void Init::initial_1p1D_Riemann(SCGrid &arena_prev, SCGrid &arena_current) {
+    const int neta = arena_current.nEta();
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
+    const double T0 = 0.4;  // GeV
+    const double T4 = 0.2;  // GeV
+    const double g = 16.;
+    for (int ieta = 0; ieta < neta; ieta++) {
+        double eta_local = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+        double rhob = 0.;
+        double epsilon = 3*g/(M_PI*M_PI)*pow(T0, 4)/pow(hbarc, 4);   // fm^-4
+        if (eta_local > 0)
+            epsilon = 3*g/(M_PI*M_PI)*pow(T4, 4)/pow(hbarc, 4);      // fm^-4
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy< ny; iy++) {
                 // set all values in the grid element:
