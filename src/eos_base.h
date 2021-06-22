@@ -90,6 +90,7 @@ class EOS_base {
 
     void check_eos_with_finite_muB() const;
     void check_eos_no_muB() const;
+    void outputMutable() const;
 };
 
 

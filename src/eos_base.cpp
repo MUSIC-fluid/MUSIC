@@ -278,7 +278,6 @@ double EOS_base::get_s2e_finite_rhob(double s, double rhob) const {
 //! Inputs: T and muB are in [GeV], outputs: e [1/fm^4], rhoB [1/fm^3]
 void EOS_base::map_TmuB2erhoB(const double T, const double muB,
                               double &e, double &rhob) const {
-    const double T_goal = T/Util::hbarc;         // convert to 1/fm
     const double muB_goal = muB/Util::hbarc;     // convert to 1/fm
     double rhob_lower = 0.;
     const int table_idx = number_of_tables - 1;
@@ -549,4 +548,35 @@ void EOS_base::check_eos_with_finite_muB() const {
         }
         check_file9.close();
     }
+}
+
+
+void EOS_base::outputMutable() const {
+    const double e_min = 0.08;         // GeV/fm^3
+    const double e_max = 0.8;          // GeV/fm^3
+    const double de = 0.005;           // GeV/fm^3
+    const double nB_max = 0.16*4;      // 1/fm^3
+    const double dnB = 0.001;          // 1/fm^3
+    const int ne = static_cast<int>((e_max - e_min)/de) + 1;
+    const int nnB = static_cast<int>(nB_max/dnB) + 1;
+    ostringstream file_name;
+    file_name << "EOS_muTable.dat";
+    ofstream check_file9(file_name.str().c_str());
+    check_file9 << "# e(GeV/fm^3)  rho_B(1/fm^3)  T(GeV)  mu_B(GeV)  "
+                << "mu_S(GeV)  mu_Q(GeV)" << endl;
+    for (int j = 0; j < ne; j++) {
+        double e_local = (e_min + j*de)/hbarc;
+        for (int i = 0; i < nnB; i++) {
+            double nB_local = i*dnB;
+            double temperature = get_temperature(e_local, nB_local)*hbarc;
+            double mu_B = get_muB(e_local, nB_local)*hbarc;
+            double mu_S = get_muS(e_local, nB_local)*hbarc;
+            double mu_C = get_muC(e_local, nB_local)*hbarc;
+            check_file9 << scientific << setw(18) << setprecision(8)
+                        << e_local*hbarc << "  " << nB_local << "  "
+                        << temperature << "  " << mu_B << "  "
+                        << mu_S << "  " << mu_C << endl;
+        }
+    }
+    check_file9.close();
 }
