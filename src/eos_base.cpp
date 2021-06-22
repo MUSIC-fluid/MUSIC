@@ -227,6 +227,7 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
     return (eps_mid);
 }
 
+
 //! This function returns local energy density [1/fm^4] from
 //! a given entropy density [1/fm^3] and rhob [1/fm^3]
 //! using binary search
@@ -270,6 +271,61 @@ double EOS_base::get_s2e_finite_rhob(double s, double rhob) const {
         exit(1);
     }
     return (eps_mid);
+}
+
+
+//! This function perform 2D inversion from (T, muB) to (e, rhoB)
+//! Inputs: T and muB are in [GeV], outputs: e [1/fm^4], rhoB [1/fm^3]
+void EOS_base::map_TmuB2erhoB(const double T, const double muB,
+                              double &e, double &rhob) const {
+    const double T_goal = T/Util::hbarc;         // convert to 1/fm
+    const double muB_goal = muB/Util::hbarc;     // convert to 1/fm
+    double rhob_lower = 0.;
+    const int table_idx = number_of_tables - 1;
+    double rhob_upper = (nb_bounds[table_idx]
+                         + nb_length[table_idx]*nb_spacing[table_idx]);
+    double rhob_mid   = (rhob_upper + rhob_lower)/2.;
+    double e_lower = get_T2e_finite_rhob(T, rhob_lower);
+    double e_upper = get_T2e_finite_rhob(T, rhob_upper);
+    double muB_lower = get_muB(e_lower, rhob_lower);
+    double muB_upper = get_muB(e_upper, rhob_upper);
+    int ntol         = 1000;
+    if (muB_goal < 0.0 || muB_goal > muB_upper) {
+        cout << "map_TmuB2erhoB:: muB is out of bound, "
+             << "muB = " << muB << " GeV, muB_upper = "
+             << muB_upper*Util::hbarc << " GeV, muB_lower = "
+             << muB_lower*Util::hbarc << endl;
+        exit(1);
+    }
+
+    double rel_accuracy = sqrt(small_eps);
+    double abs_accuracy = small_eps;
+    double muB_mid;
+    double e_mid = (e_lower + e_upper)/2.;
+    int iter = 0;
+    while (((rhob_upper - rhob_lower)/rhob_mid > rel_accuracy
+            && (rhob_upper - rhob_lower) > abs_accuracy) && iter < ntol) {
+        e_mid = get_T2e_finite_rhob(T, rhob_mid);
+        muB_mid = get_muB(e_mid, rhob_mid);
+        if (muB_goal < muB_mid)
+            rhob_upper = rhob_mid;
+        else
+            rhob_lower = rhob_mid;
+        rhob_mid = (rhob_upper + rhob_lower)/2.;
+        iter++;
+    }
+    if (iter == ntol) {
+        cout << __PRETTY_FUNCTION__ << ":: max iteration reached, "
+             << "T = " << T << " GeV, muB = " << muB << " GeV" << endl;;
+        cout << "muB_upper = " << muB_upper*Util::hbarc
+             << " GeV, muB_lower = " << muB_lower*Util::hbarc << endl;
+        cout << "rhob_upper = " << rhob_upper
+             << " , rhob_lower = " << rhob_lower
+             << ", diff = " << (rhob_upper - rhob_lower) << endl;
+        exit(1);
+    }
+    e = e_mid;
+    rhob = rhob_mid;
 }
 
 

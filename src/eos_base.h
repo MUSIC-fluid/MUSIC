@@ -69,6 +69,8 @@ class EOS_base {
     double get_dpOverdrhob2(double e, double rhob) const;
     double get_s2e_finite_rhob(double s, double rhob) const;
     double get_T2e_finite_rhob(const double T, const double rhob) const;
+    void map_TmuB2erhoB(const double T, const double muB,
+                        double &e, double &rhob) const;
 
     virtual void   initialize_eos () {}
     virtual void   initialize_eos (int eos_id_in) {}
