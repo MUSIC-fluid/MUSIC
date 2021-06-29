@@ -1245,6 +1245,7 @@ void Cell_info::output_1p1D_RiemannTest(
     ostringstream filename;
     filename << "1+1D_RiemannTest_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
+    output_file << "# z(fm)  e(GeV/fm^3)  v  theta(1/fm)" << endl;
 
     double deta = DATA.delta_eta;
     double eta_min = -DATA.eta_size/2.;
@@ -1262,6 +1263,31 @@ void Cell_info::output_1p1D_RiemannTest(
                     << vz << "  "
                     << theta_local
                     << endl;
+    }
+    output_file.close();
+}
+
+
+//! This function outputs files to cross check with 1+1D simulation
+void Cell_info::output_1p1D_DiffusionTest(SCGrid &arena, const double tau) {
+    ostringstream filename;
+    filename << "1+1D_DiffusionTest_tau_" << tau << ".dat";
+    ofstream output_file(filename.str().c_str());
+    output_file << "# z (fm)   e (GeV/fm^3)  rhob (1/fm^3)" << endl;
+
+    double deta = DATA.delta_eta;
+    double eta_min = -DATA.eta_size/2.;
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        double eta_local = eta_min + ieta*deta;
+        double e_local = arena(0, 0, ieta).epsilon;
+        double rhob_local = arena(0, 0, ieta).rhob;
+        double uz = arena(0, 0, ieta).u[3];
+        double vz = uz/sqrt(1. + uz*uz);
+        output_file << scientific << setprecision(8) << setw(18)
+                    << eta_local << "  "
+                    << e_local*Util::hbarc << "  "
+                    << rhob_local << "  "
+                    << vz << endl;
     }
     output_file.close();
 }

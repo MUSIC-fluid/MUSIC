@@ -49,7 +49,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
         music_message << "neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 3) {
+    } else if (DATA.Initial_profile == 3 || DATA.Initial_profile == 4) {
         music_message << "Using Initial_profile=" << DATA.Initial_profile;
         music_message << "nx=" << DATA.nx << ", ny=" << DATA.ny;
         music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
@@ -203,6 +203,10 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         // code test in 1+1 D Relativistic Riemann Problem
         music_message.info(" Perform 1+1D Riemann test ... ");
         initial_1p1D_Riemann(arena_prev, arena_current);
+    } else if (DATA.Initial_profile == 4) {
+        // code test in 1+1 D Relativistic diffusion equation
+        music_message.info(" Perform 1+1D diffusion test ... ");
+        initial_1p1D_Diffusion(arena_prev, arena_current);
     } else if (DATA.Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
@@ -475,6 +479,36 @@ void Init::initial_1p1D_Riemann(SCGrid &arena_prev, SCGrid &arena_current) {
                 arena_current(ix, iy, ieta).u[1] = 0.0;
                 arena_current(ix, iy, ieta).u[2] = 0.0;
                 arena_current(ix, iy, ieta).u[3] = 0.0;
+
+                arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
+            }
+        }
+    }
+}
+
+
+void Init::initial_1p1D_Diffusion(SCGrid &arena_prev, SCGrid &arena_current) {
+    const int neta = arena_current.nEta();
+    const int nx = arena_current.nX();
+    const int ny = arena_current.nY();
+    const double v = 0.5;
+    const double gamma = 1./sqrt(1. - v*v);
+    for (int ieta = 0; ieta < neta; ieta++) {
+        double eta_local = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+        double rhob = 0.;
+        if (eta_local > -1 && eta_local < 0.)
+            rhob = 1.;
+        double epsilon = 1.0;   // fm^-4
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy< ny; iy++) {
+                // set all values in the grid element:
+                arena_current(ix, iy, ieta).epsilon = epsilon;
+                arena_current(ix, iy, ieta).rhob    = rhob;
+
+                arena_current(ix, iy, ieta).u[0] = gamma;
+                arena_current(ix, iy, ieta).u[1] = 0.0;
+                arena_current(ix, iy, ieta).u[2] = 0.0;
+                arena_current(ix, iy, ieta).u[3] = gamma*v;
 
                 arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
