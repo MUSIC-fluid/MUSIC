@@ -78,6 +78,7 @@ typedef struct init_data {
     double minmod_theta;
 
     int CoorType;       //!< 0: Milne; 1: Cartesian
+    int Test1DDirection;
 
     double sFactor;     //!< overall normalization on energy density profile
     int whichEOS;       //!< type of EoS

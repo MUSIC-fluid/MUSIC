@@ -495,20 +495,38 @@ void Init::initial_1p1D_Diffusion(SCGrid &arena_prev, SCGrid &arena_current) {
     const double gamma = 1./sqrt(1. - v*v);
     for (int ieta = 0; ieta < neta; ieta++) {
         double eta_local = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-        double rhob = 0.;
-        if (eta_local > -1 && eta_local < 0.)
-            rhob = 1.;
-        double epsilon = 1.0;   // fm^-4
         for (int ix = 0; ix < nx; ix++) {
+            double x_local = (DATA.delta_x)*ix - (DATA.x_size)/2.;
             for (int iy = 0; iy< ny; iy++) {
+                double y_local = (DATA.delta_y)*iy - (DATA.y_size)/2.;
+
+                double rhob = 0.;
+                double epsilon = 1.0;   // fm^-4
+                if (DATA.Test1DDirection == 3) {
+                    if (eta_local > -1 && eta_local < 0.)
+                        rhob = 1.;
+                    arena_current(ix, iy, ieta).u[1] = 0.0;
+                    arena_current(ix, iy, ieta).u[2] = 0.0;
+                    arena_current(ix, iy, ieta).u[3] = gamma*v;
+                } else if (DATA.Test1DDirection == 2) {
+                    if (y_local > -1 && y_local < 0.)
+                        rhob = 1.;
+                    arena_current(ix, iy, ieta).u[1] = 0.0;
+                    arena_current(ix, iy, ieta).u[2] = gamma*v;
+                    arena_current(ix, iy, ieta).u[3] = 0.0;
+                } else if (DATA.Test1DDirection == 1) {
+                    if (x_local > -1 && x_local < 0.)
+                        rhob = 1.;
+                    arena_current(ix, iy, ieta).u[1] = gamma*v;
+                    arena_current(ix, iy, ieta).u[2] = 0.0;
+                    arena_current(ix, iy, ieta).u[3] = 0.0;
+                }
+
                 // set all values in the grid element:
                 arena_current(ix, iy, ieta).epsilon = epsilon;
                 arena_current(ix, iy, ieta).rhob    = rhob;
 
                 arena_current(ix, iy, ieta).u[0] = gamma;
-                arena_current(ix, iy, ieta).u[1] = 0.0;
-                arena_current(ix, iy, ieta).u[2] = 0.0;
-                arena_current(ix, iy, ieta).u[3] = gamma*v;
 
                 arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }

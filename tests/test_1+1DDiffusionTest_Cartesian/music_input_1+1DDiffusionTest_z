@@ -2,6 +2,7 @@ echo_level  1
 mode  2
 Initial_profile  4    # 1+1D test for the conserved charge current
 CoorType 1
+Test1DDirection 3
 X_grid_size_in_fm  10.0
 Y_grid_size_in_fm  10.0
 Eta_grid_size  10

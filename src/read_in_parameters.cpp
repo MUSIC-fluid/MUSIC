@@ -43,6 +43,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_CoorType;
     parameter_list.CoorType = temp_CoorType;
 
+    // Cartesian 1D Test Direction
+    int temp_TestDirection = 3;   // Along z-axis
+    tempinput = Util::StringFind4(input_file, "Test1DDirection");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_TestDirection;
+    parameter_list.Test1DDirection = temp_TestDirection;
+
     // hydro source
     double temp_string_quench_factor = 0.;
     tempinput = Util::StringFind4(input_file, "string_quench_factor");
