@@ -89,7 +89,8 @@ class Cell_info {
 
     //! This function outputs files to cross check with 1+1D simulation
     //! for Riemann Test
-    void output_1p1D_RiemannTest(SCGrid &arena, const double tau);
+    void output_1p1D_RiemannTest(SCGrid &arena_prev, SCGrid &arena_curr,
+                                 const double tau);
 
     //! This function prints to the screen the maximum local energy density,
     //! the maximum temperature in the current grid

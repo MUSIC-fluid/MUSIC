@@ -266,7 +266,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
         if (DATA.Initial_profile == 3 && it == itmax) {
-            grid_info.output_1p1D_RiemannTest(*ap_current, tau);
+            grid_info.output_1p1D_RiemannTest(*ap_prev, *ap_current, tau);
         }
     }
     if (it < itmax) {

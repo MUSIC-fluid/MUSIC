@@ -1240,22 +1240,27 @@ void Cell_info::output_1p1D_check_file(SCGrid &arena, const double tau) {
 
 
 //! This function outputs files to cross check with 1+1D simulation
-void Cell_info::output_1p1D_RiemannTest(SCGrid &arena, const double tau) {
+void Cell_info::output_1p1D_RiemannTest(
+        SCGrid &arena_prev, SCGrid &arena_curr, const double tau) {
     ostringstream filename;
     filename << "1+1D_RiemannTest_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
 
     double deta = DATA.delta_eta;
     double eta_min = -DATA.eta_size/2.;
-    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+    for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
         double eta_local = eta_min + ieta*deta;
-        double e_local = arena(0, 0, ieta).epsilon;
-        double uz = arena(0, 0, ieta).u[3];
+        double e_local = arena_curr(0, 0, ieta).epsilon;
+        double uz = arena_curr(0, 0, ieta).u[3];
         double vz = uz/sqrt(1. + uz*uz);
+        u_derivative_helper.MakedU(tau, arena_prev, arena_curr, 0, 0, ieta);
+        auto theta_local = u_derivative_helper.calculate_expansion_rate(
+                                            tau, arena_curr, ieta, 0, 0);
         output_file << scientific << setprecision(8) << setw(18)
                     << eta_local << "  "
                     << e_local*Util::hbarc << "  "
-                    << vz
+                    << vz << "  "
+                    << theta_local
                     << endl;
     }
     output_file.close();

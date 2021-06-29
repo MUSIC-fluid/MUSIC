@@ -39,7 +39,12 @@ double U_derivative::calculate_expansion_rate(
         // for expansion rate: theta
         partial_mu_u_supmu += dUsup[mu][mu]*gfac;
     }
-    double theta = partial_mu_u_supmu + arena(ix,iy,ieta).u[0]/tau;
+    double theta = partial_mu_u_supmu;
+
+    if (DATA.CoorType == 0) {
+        // add the geometric term
+        theta += arena(ix,iy,ieta).u[0]/tau;
+    }
     return(theta);
 }
 
@@ -362,8 +367,11 @@ void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
 int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
                                const int ix, const int iy, const int ieta) {
     // taken care of the tau factor
+    double tauFac = tau;
+    if (DATA.CoorType == 1)
+        tauFac = 1.0;
     const double delta[4] = {0.0, DATA.delta_x, DATA.delta_y,
-                             DATA.delta_eta*tau};
+                             DATA.delta_eta*tauFac};
 
     // calculate dUsup[m][n] = partial^n u^m
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
