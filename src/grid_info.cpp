@@ -1245,24 +1245,66 @@ void Cell_info::output_1p1D_RiemannTest(
     ostringstream filename;
     filename << "1+1D_RiemannTest_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
-    output_file << "# x(fm)  e(GeV/fm^3)  v  theta(1/fm)" << endl;
+    if (DATA.Test1DDirection == 3) {
+        output_file << "# z(fm)  e(GeV/fm^3)  v  theta(1/fm)" << endl;
 
-    double deta = DATA.delta_eta;
-    double eta_min = -DATA.eta_size/2.;
-    for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
-        double eta_local = eta_min + ieta*deta;
-        double e_local = arena_curr(0, 0, ieta).epsilon;
-        double uz = arena_curr(0, 0, ieta).u[3];
-        double vz = uz/sqrt(1. + uz*uz);
-        u_derivative_helper.MakedU(tau, arena_prev, arena_curr, 0, 0, ieta);
-        auto theta_local = u_derivative_helper.calculate_expansion_rate(
-                                            tau, arena_curr, ieta, 0, 0);
-        output_file << scientific << setprecision(8) << setw(18)
-                    << eta_local << "  "
-                    << e_local*Util::hbarc << "  "
-                    << vz << "  "
-                    << theta_local
-                    << endl;
+        double deta = DATA.delta_eta;
+        double eta_min = -DATA.eta_size/2.;
+        for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
+            double eta_local = eta_min + ieta*deta;
+            double e_local = arena_curr(0, 0, ieta).epsilon;
+            double uz = arena_curr(0, 0, ieta).u[3];
+            double vz = uz/sqrt(1. + uz*uz);
+            u_derivative_helper.MakedU(tau, arena_prev, arena_curr, 0, 0, ieta);
+            auto theta_local = u_derivative_helper.calculate_expansion_rate(
+                                                tau, arena_curr, ieta, 0, 0);
+            output_file << scientific << setprecision(8) << setw(18)
+                        << eta_local << "  "
+                        << e_local*Util::hbarc << "  "
+                        << vz << "  "
+                        << theta_local
+                        << endl;
+        }
+    } else if (DATA.Test1DDirection == 2) {
+        output_file << "# y(fm)  e(GeV/fm^3)  v  theta(1/fm)" << endl;
+
+        double dy = DATA.delta_y;
+        double y_min = -DATA.y_size/2.;
+        for (int iy = 0; iy < arena_curr.nY(); iy++) {
+            double y_local = y_min + iy*dy;
+            double e_local = arena_curr(0, iy, 0).epsilon;
+            double uy = arena_curr(0, iy, 0).u[2];
+            double vy = uy/sqrt(1. + uy*uy);
+            u_derivative_helper.MakedU(tau, arena_prev, arena_curr, 0, iy, 0);
+            auto theta_local = u_derivative_helper.calculate_expansion_rate(
+                                                tau, arena_curr, 0, 0, iy);
+            output_file << scientific << setprecision(8) << setw(18)
+                        << y_local << "  "
+                        << e_local*Util::hbarc << "  "
+                        << vy << "  "
+                        << theta_local
+                        << endl;
+        }
+    } else if (DATA.Test1DDirection == 1) {
+        output_file << "# x(fm)  e(GeV/fm^3)  v  theta(1/fm)" << endl;
+
+        double dx = DATA.delta_x;
+        double x_min = -DATA.x_size/2.;
+        for (int ix = 0; ix < arena_curr.nX(); ix++) {
+            double x_local = x_min + ix*dx;
+            double e_local = arena_curr(ix, 0, 0).epsilon;
+            double ux = arena_curr(ix, 0, 0).u[1];
+            double vx = ux/sqrt(1. + ux*ux);
+            u_derivative_helper.MakedU(tau, arena_prev, arena_curr, ix, 0, 0);
+            auto theta_local = u_derivative_helper.calculate_expansion_rate(
+                                                tau, arena_curr, 0, ix, 0);
+            output_file << scientific << setprecision(8) << setw(18)
+                        << x_local << "  "
+                        << e_local*Util::hbarc << "  "
+                        << vx << "  "
+                        << theta_local
+                        << endl;
+        }
     }
     output_file.close();
 }

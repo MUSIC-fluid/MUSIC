@@ -463,14 +463,26 @@ void Init::initial_1p1D_Riemann(SCGrid &arena_prev, SCGrid &arena_current) {
     const double T0 = 0.4;  // GeV
     const double T4 = 0.2;  // GeV
     const double g = 16.;
+    const double rhob = 0.;
     for (int ieta = 0; ieta < neta; ieta++) {
         double eta_local = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-        double rhob = 0.;
-        double epsilon = 3*g/(M_PI*M_PI)*pow(T0, 4)/pow(hbarc, 4);   // fm^-4
-        if (eta_local > 0)
-            epsilon = 3*g/(M_PI*M_PI)*pow(T4, 4)/pow(hbarc, 4);      // fm^-4
         for (int ix = 0; ix < nx; ix++) {
+            double x_local = (DATA.delta_x)*ix - (DATA.x_size)/2.;
             for (int iy = 0; iy< ny; iy++) {
+                double y_local = (DATA.delta_y)*iy - (DATA.y_size)/2.;
+
+                double epsilon = 3*g/(M_PI*M_PI)*pow(T0, 4)/pow(hbarc, 4);       // fm^-4
+                if (DATA.Test1DDirection == 3) {
+                    if (eta_local > 0)
+                        epsilon = 3*g/(M_PI*M_PI)*pow(T4, 4)/pow(hbarc, 4);      // fm^-4
+                } else if (DATA.Test1DDirection == 2) {
+                    if (y_local > 0)
+                        epsilon = 3*g/(M_PI*M_PI)*pow(T4, 4)/pow(hbarc, 4);      // fm^-4
+                } else if (DATA.Test1DDirection == 1) {
+                    if (x_local > 0)
+                        epsilon = 3*g/(M_PI*M_PI)*pow(T4, 4)/pow(hbarc, 4);      // fm^-4
+                }
+
                 // set all values in the grid element:
                 arena_current(ix, iy, ieta).epsilon = epsilon;
                 arena_current(ix, iy, ieta).rhob    = rhob;
