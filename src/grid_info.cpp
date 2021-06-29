@@ -1250,9 +1250,12 @@ void Cell_info::output_1p1D_RiemannTest(SCGrid &arena, const double tau) {
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta_local = eta_min + ieta*deta;
         double e_local = arena(0, 0, ieta).epsilon;
+        double uz = arena(0, 0, ieta).u[3];
+        double vz = uz/sqrt(1. + uz*uz);
         output_file << scientific << setprecision(8) << setw(18)
                     << eta_local << "  "
-                    << e_local*Util::hbarc
+                    << e_local*Util::hbarc << "  "
+                    << vz
                     << endl;
     }
     output_file.close();

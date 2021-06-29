@@ -51,13 +51,6 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message.flush("info");
     } else if (DATA.Initial_profile == 3) {
         music_message << "Using Initial_profile=" << DATA.Initial_profile;
-        DATA.nx = 1;
-        DATA.ny = 1;
-        DATA.neta = 101;
-        DATA.eta_size = 10.;
-        DATA.delta_x = 0.1;
-        DATA.delta_y = 0.1;
-        DATA.delta_eta = 0.1;
         music_message << "nx=" << DATA.nx << ", ny=" << DATA.ny;
         music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
         music_message << "neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
