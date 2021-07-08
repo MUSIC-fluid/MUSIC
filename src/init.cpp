@@ -308,14 +308,21 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
     const int ny = arena_current.nY();
     const int neta = arena_current.nEta();
 
-    double temp_profile_ed[neta][ny][nx];
-    double temp_profile_vx[neta][ny][nx];
-    double temp_profile_vy[neta][ny][nx];
-    double temp_profile_veta[neta][ny][nx];
+    std::vector<std::vector<std::vector<double>>> temp_profile_ed = 
+        std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
+    std::vector<std::vector<std::vector<double>>> temp_profile_vx = 
+        std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
+    std::vector<std::vector<std::vector<double>>> temp_profile_vy = 
+        std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
+    std::vector<std::vector<std::vector<double>>> temp_profile_veta = 
+        std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
 
-    double temp_profile_net_up[neta][ny][nx];
-    double temp_profile_net_down[neta][ny][nx];
-    double temp_profile_net_strange[neta][ny][nx];
+    std::vector<std::vector<std::vector<double>>> temp_profile_net_up = 
+        std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
+    std::vector<std::vector<std::vector<double>>> temp_profile_net_down = 
+        std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
+    std::vector<std::vector<std::vector<double>>> temp_profile_net_strange = 
+        std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
 
     // Ignore T^\mu \nu
     for (int ignore=0; ignore<16*nx*ny*neta;++ignore) profile_nexus >> dummy;
@@ -336,7 +343,7 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
                 profile_nexus >> temp_profile_vx[ieta][iy][ix]
                               >> temp_profile_vy[ieta][iy][ix]
                               >> temp_profile_veta[ieta][iy][ix];
-    
+
     // Grab net flavor densities
     for (int ieta = 0; ieta < neta; ++ieta)
         for (int iy = 0; iy < ny; ++iy) 
@@ -350,10 +357,10 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
         for (int iy = 0; iy< ny; iy++) {
             for (int ix = 0; ix < nx; ix++) {
 
-                double rhob = 0;//(temp_profile_net_up[ieta][iy][ix] 
-                               //+ temp_profile_net_down[ieta][iy][ix]
-                               //+ temp_profile_net_strange[ieta][iy][ix])/3.;
-                double epsilon = (temp_profile_ed[ieta][iy][ix]/1000)/hbarc; // Convert to 1/fm^4
+                double rhob = (temp_profile_net_up[ieta][iy][ix] 
+                               + temp_profile_net_down[ieta][iy][ix]
+                               + temp_profile_net_strange[ieta][iy][ix])/3.;
+                double epsilon = (temp_profile_ed[ieta][iy][ix])/hbarc; // Convert to 1/fm^4
                 if (epsilon < 1.E-12) epsilon = 1.E-12;
 
                 if ( isnan(epsilon) ){
@@ -401,6 +408,8 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
                     //Make the tensor traceless
                     double pressure = eos.get_pressure(epsilon, rhob);
                     arena_current(ix, iy, ieta).pi_b = epsilon/3. - pressure;
+                } else {
+                    arena_current(ix, iy, ieta).pi_b = 0;
                 }
 
 
@@ -1062,10 +1071,11 @@ void Init::initial_ROOT_XYEta_with_pi(SCGrid &arena_prev, SCGrid &arena_current)
                 piyeta = hpiyeta->GetBinContent(ix+1,iy+1,ieta+1);
                 pietaeta = hpietaeta->GetBinContent(ix+1,iy+1,ieta+1);
 
+                ueta = ueta*tau0;
                 temp_profile_ed    [idx] = density;
                 temp_profile_ux    [idx] = ux;
                 temp_profile_uy    [idx] = uy;
-                temp_profile_ueta  [idx] = ueta*tau0;
+                temp_profile_ueta  [idx] = ueta;
                 temp_profile_utau  [idx] = sqrt(1. + ux*ux + uy*uy + ueta*ueta);
                 temp_profile_pixx  [idx] = pixx*DATA.sFactor;
                 temp_profile_pixy  [idx] = pixy*DATA.sFactor;
@@ -1074,7 +1084,6 @@ void Init::initial_ROOT_XYEta_with_pi(SCGrid &arena_prev, SCGrid &arena_current)
                 temp_profile_piyeta[idx] = piyeta*tau0*DATA.sFactor;
 
                 utau = temp_profile_utau[idx];
-                ueta = ueta*tau0;
                 temp_profile_pietaeta[idx] = (
                     (2.*(  ux*uy*temp_profile_pixy[idx]
                          + ux*ueta*temp_profile_pixeta[idx]
