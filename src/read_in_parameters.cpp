@@ -694,6 +694,13 @@ InitData read_in_parameters(std::string input_file) {
     double y_beam = acosh(temp_ecm/(2.*Util::m_N));
     parameter_list.beam_rapidity = y_beam;
 
+    //Chooses tau_pi (shear relaxation time) parametrization
+    int temp_tau_pi_par = 1;
+    tempinput = Util::StringFind4(input_file, "tau_pi_par");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_tau_pi_par;
+    parameter_list.tau_pi_par = temp_tau_pi_par;
+
     int tempoutputBinaryEvolution = 0;
     tempinput = Util::StringFind4(input_file, "outputBinaryEvolution");
     if (tempinput != "empty")
