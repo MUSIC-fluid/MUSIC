@@ -906,7 +906,9 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 array[33] = static_cast<float>(qeta_center);
                 if (DATA.output_vorticity == 1) {
                     for (int ii = 0; ii < 6; ii++) {
-                        array[34+ii] = fluid_aux_center.omega_kSP[ii]/T_local;  // no minus sign because its definition is opposite to the kinetic vorticity
+                        // no minus sign because its definition is opposite to
+                        // the kinetic vorticity
+                        array[34+ii] = fluid_aux_center.omega_kSP[ii]/T_local;
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
                         array[40+ii] = -fluid_aux_center.omega_k[ii]/T_local;
