@@ -421,8 +421,8 @@ void EOS_base::check_eos_with_finite_muB() const {
         double emax = 100.;
         double de = 5e-3;
         int ne = (emax - e0)/de + 1;
-        for (int i = 0; i < ne; i++) {
-            double e_local    = (e0 + i*de)/hbarc;
+        for (int ie = 0; ie < ne; ie++) {
+            double e_local    = (e0 + ie*de)/hbarc;
             double p_local    = get_pressure(e_local, rhob_local);
             double s_local    = get_entropy(e_local, rhob_local);
             double T_local    = get_temperature(e_local, rhob_local);
@@ -447,8 +447,8 @@ void EOS_base::check_eos_with_finite_muB() const {
         emax = 1e-1;
         de = 2;
         ne = log(emax/e0)/log(de) + 1;
-        for (int i = 0; i < ne; i++) {
-            double e_local = e0*pow(de, i)/hbarc;
+        for (int ie = 0; ie < ne; ie++) {
+            double e_local = e0*pow(de, ie)/hbarc;
             double p_local = get_pressure(e_local, rhob_local);
             double s_local = get_entropy(e_local, rhob_local);
             double T_local = get_temperature(e_local, rhob_local);
@@ -475,8 +475,8 @@ void EOS_base::check_eos_with_finite_muB() const {
         double rhob_max = 1.0;
         double drhob = 0.01;
         int nrhob = (rhob_max - rhob_0)/drhob + 1;
-        for (int i = 0; i < nrhob; i++) {
-            double rhob_local = rhob_0 + i*drhob;
+        for (int ib = 0; ib < nrhob; ib++) {
+            double rhob_local = rhob_0 + ib*drhob;
             double p_local    = get_pressure(e_local, rhob_local);
             double s_local    = get_entropy(e_local, rhob_local);
             double T_local    = get_temperature(e_local, rhob_local);
