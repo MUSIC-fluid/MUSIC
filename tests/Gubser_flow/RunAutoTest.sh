@@ -4,10 +4,9 @@ REFERENCE_DIR="tests/Gubser_flow/SimulationReferences"
 
 ./MUSIChydro tests/Gubser_flow/music_input_Gubser
 
-DIFF_1=$(diff ./Gubser_flow_check_tau_1.dat $REFERENCE_DIR/Gubser_flow_check_tau_1.dat)
-DIFF_2=$(diff ./Gubser_flow_check_tau_1.2.dat $REFERENCE_DIR/Gubser_flow_check_tau_1.2.dat)
-DIFF_3=$(diff ./Gubser_flow_check_tau_1.5.dat $REFERENCE_DIR/Gubser_flow_check_tau_1.5.dat)
-DIFF_4=$(diff ./Gubser_flow_check_tau_2.dat $REFERENCE_DIR/Gubser_flow_check_tau_2.dat)
+DIFF_1=$(diff ./Gubser_flow_check_tau_1.2.dat $REFERENCE_DIR/Gubser_flow_check_tau_1.2.dat)
+DIFF_2=$(diff ./Gubser_flow_check_tau_1.5.dat $REFERENCE_DIR/Gubser_flow_check_tau_1.5.dat)
+DIFF_3=$(diff ./Gubser_flow_check_tau_2.dat $REFERENCE_DIR/Gubser_flow_check_tau_2.dat)
 
 N_PASSED=0
 N_TESTS=0
@@ -16,7 +15,8 @@ if [ "${DIFF_1}" == "" ]
 then
     N_PASSED=$((${N_PASSED}+1))
 else
-    echo "Test Gubser_flow_check_tau_1.dat failed"
+    echo "Test Gubser_flow_check_tau_1.2.dat failed"
+    echo ${DIFF_1}
 fi
 N_TESTS=$((${N_TESTS}+1))
 
@@ -24,7 +24,8 @@ if [ "${DIFF_2}" == "" ]
 then
     N_PASSED=$((${N_PASSED}+1))
 else
-    echo "Test Gubser_flow_check_tau_1.2.dat failed"
+    echo "Test Gubser_flow_check_tau_1.5.dat failed"
+    echo ${DIFF_2}
 fi
 N_TESTS=$((${N_TESTS}+1))
 
@@ -32,15 +33,8 @@ if [ "${DIFF_3}" == "" ]
 then
     N_PASSED=$((${N_PASSED}+1))
 else
-    echo "Test Gubser_flow_check_tau_1.5.dat failed"
-fi
-N_TESTS=$((${N_TESTS}+1))
-
-if [ "${DIFF_4}" == "" ]
-then
-    N_PASSED=$((${N_PASSED}+1))
-else
     echo "Test Gubser_flow_check_tau_2.dat failed"
+    echo ${DIFF_3}
 fi
 N_TESTS=$((${N_TESTS}+1))
 
