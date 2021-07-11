@@ -150,7 +150,12 @@ double HydroSourceTATB::get_hydro_rhob_source(
     const int iy = static_cast<int>((y + DATA_.y_size/2.)/DATA_.delta_y + 0.1);
     double eta_rhob_left  = eta_rhob_left_factor(eta_s);
     double eta_rhob_right = eta_rhob_right_factor(eta_s);
-    res = profile_TA[ix][iy]*eta_rhob_right + profile_TB[ix][iy]*eta_rhob_left;  // [1/fm^3]
+    res = 0.5*(
+          profile_TA[ix][iy]*(  (1. + DATA_.eta_rhob_asym)*eta_rhob_right
+                              + (1. - DATA_.eta_rhob_asym)*eta_rhob_left)
+        + profile_TB[ix][iy]*(  (1. + DATA_.eta_rhob_asym)*eta_rhob_left
+                              + (1. - DATA_.eta_rhob_asym)*eta_rhob_right)
+    );   // [1/fm^3]
     res /= dtau;  // [1/fm^4]
     return(res);
 }

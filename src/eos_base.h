@@ -59,7 +59,8 @@ class EOS_base {
     double get_eps_max() const {return(eps_max);}
 
     double interpolate1D(double e, int table_idx, double ***table) const;
-    double interpolate2D(double e, double rhob, int table_idx, double ***table) const;
+    double interpolate2D(const double e, const double rhob,
+                         const int table_idx, double ***table) const;
 
     int    get_table_idx(double e) const;
     double get_entropy  (double epsilon, double rhob) const;

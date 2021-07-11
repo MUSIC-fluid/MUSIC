@@ -65,14 +65,15 @@ double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
 }
 
 
-double EOS_base::interpolate2D(double e, double rhob, int table_idx, double ***table) const {
+double EOS_base::interpolate2D(const double e, const double rhob,
+                               const int table_idx, double ***table) const {
 // This is a generic bilinear interpolation routine for EOS at finite mu_B
 // it assumes the class has already read in
 //        P(e, rho_b), T(e, rho_b), s(e, rho_b), mu_b(e, rho_b)
 // as two-dimensional arrays on an equally spacing lattice grid
 // units: e is in 1/fm^4, rhob is in 1/fm^3
     //double local_ed = e*hbarc;  // [GeV/fm^3]
-    double local_ed = e;
+    double local_ed = e;        // [1/fm^4]
     double local_nb = rhob;     // [1/fm^3]
 
     double e0       = e_bounds[table_idx];
@@ -88,7 +89,9 @@ double EOS_base::interpolate2D(double e, double rhob, int table_idx, double ***t
     int idx_nb = static_cast<int>((local_nb - nb0)/delta_nb);
 
     // treatment for overflow, use the last two points to do extrapolation
-    idx_e  = std::min(N_e - 2, idx_e);
+    idx_e  = std::min(N_e - 1, idx_e);
+    if (table_idx == number_of_tables - 1)
+        idx_e  = std::min(N_e - 2, idx_e);
     idx_nb = std::min(N_nb - 2, idx_nb);
 
     // check underflow
@@ -100,9 +103,16 @@ double EOS_base::interpolate2D(double e, double rhob, int table_idx, double ***t
 
     double result;
     double temp1 = table[table_idx][idx_nb][idx_e];
-    double temp2 = table[table_idx][idx_nb][idx_e + 1];
-    double temp3 = table[table_idx][idx_nb + 1][idx_e + 1];
     double temp4 = table[table_idx][idx_nb + 1][idx_e];
+    double temp2 = 0.;
+    double temp3 = 0;
+    if (idx_e == N_e - 1) {
+        temp2 = table[table_idx + 1][idx_nb][0];
+        temp3 = table[table_idx + 1][idx_nb][0];
+    } else {
+        temp2 = table[table_idx][idx_nb][idx_e + 1];
+        temp3 = table[table_idx][idx_nb + 1][idx_e + 1];
+    }
     result = ((temp1*(1. - frac_e) + temp2*frac_e)*(1. - frac_rhob)
               + (temp3*frac_e + temp4*(1. - frac_e))*frac_rhob);
     return(result);
@@ -172,7 +182,7 @@ double EOS_base::get_dpOverdrhob2(double e, double rhob) const {
 
 int EOS_base::get_table_idx(double e) const {
     //double local_ed = e*hbarc;  // [GeV/fm^3]
-    double local_ed = e;  // [GeV/fm^3]
+    double local_ed = e;  // [1/fm^4]
     for (int itable = 1; itable < number_of_tables; itable++) {
         if (local_ed < e_bounds[itable]) {
             return(itable - 1);
@@ -411,8 +421,8 @@ void EOS_base::check_eos_with_finite_muB() const {
         double emax = 100.;
         double de = 5e-3;
         int ne = (emax - e0)/de + 1;
-        for (int i = 0; i < ne; i++) {
-            double e_local    = (e0 + i*de)/hbarc;
+        for (int ie = 0; ie < ne; ie++) {
+            double e_local    = (e0 + ie*de)/hbarc;
             double p_local    = get_pressure(e_local, rhob_local);
             double s_local    = get_entropy(e_local, rhob_local);
             double T_local    = get_temperature(e_local, rhob_local);
@@ -437,8 +447,8 @@ void EOS_base::check_eos_with_finite_muB() const {
         emax = 1e-1;
         de = 2;
         ne = log(emax/e0)/log(de) + 1;
-        for (int i = 0; i < ne; i++) {
-            double e_local = e0*pow(de, i)/hbarc;
+        for (int ie = 0; ie < ne; ie++) {
+            double e_local = e0*pow(de, ie)/hbarc;
             double p_local = get_pressure(e_local, rhob_local);
             double s_local = get_entropy(e_local, rhob_local);
             double T_local = get_temperature(e_local, rhob_local);
@@ -465,8 +475,8 @@ void EOS_base::check_eos_with_finite_muB() const {
         double rhob_max = 1.0;
         double drhob = 0.01;
         int nrhob = (rhob_max - rhob_0)/drhob + 1;
-        for (int i = 0; i < nrhob; i++) {
-            double rhob_local = rhob_0 + i*drhob;
+        for (int ib = 0; ib < nrhob; ib++) {
+            double rhob_local = rhob_0 + ib*drhob;
             double p_local    = get_pressure(e_local, rhob_local);
             double s_local    = get_entropy(e_local, rhob_local);
             double T_local    = get_temperature(e_local, rhob_local);

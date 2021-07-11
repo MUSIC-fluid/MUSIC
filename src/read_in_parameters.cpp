@@ -404,6 +404,11 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_eta_width_2;
     parameter_list.eta_rhob_width_2 = temp_eta_width_2;
+    double temp_eta_rhob_asym = 1.0;
+    tempinput = Util::StringFind4(input_file, "eta_rhob_asym");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_eta_rhob_asym;
+    parameter_list.eta_rhob_asym = temp_eta_rhob_asym;
 
     // Eta_fall_off:
     // width of half-Gaussian on each side of a central pleateau in eta
