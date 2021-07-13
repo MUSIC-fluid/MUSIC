@@ -656,7 +656,7 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
     transport_coeff1   = (
             transport_coeffs_.get_delta_PiPi_coeff()*Bulk_Relax_time);
     transport_coeff2   = (
-            transport_coeffs_.get_tau_pipi_coeff()*Bulk_Relax_time);
+            transport_coeffs_.get_tau_PiPi_coeff()*Bulk_Relax_time);
 
     // from kinetic theory
     transport_coeff1_s = (transport_coeffs_.get_lambda_Pipi_coeff()
