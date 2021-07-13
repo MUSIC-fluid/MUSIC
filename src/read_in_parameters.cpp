@@ -634,6 +634,10 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempT_dependent_bulk_to_s;
     parameter_list.T_dependent_bulk_to_s = tempT_dependent_bulk_to_s;
+    tempinput = Util::StringFind4(input_file, "T_dependent_zeta_over_s");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempT_dependent_bulk_to_s;
+    parameter_list.T_dependent_bulk_to_s = tempT_dependent_bulk_to_s;
 
     // "T_dependent_Bulk_to_S_ratio=2",
     // bulk viscosity is parametrized as with "A", "G" and "Tc" as "A*(1/(1+((T-Tc)/G)^2)"
