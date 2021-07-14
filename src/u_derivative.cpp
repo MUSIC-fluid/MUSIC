@@ -78,14 +78,32 @@ void U_derivative::compute_vorticity_shell(
     VorticityVec omega_local;
     calculate_kinetic_vorticity_with_spatial_projector(
             tau, arena_curr, ieta, ix, iy, a_local, omega_local);
+    if (DATA.CoorType == 0) {
     omega_local_kSP = transform_vorticity_to_tz(omega_local, eta);
+    } else {
+        omega_local_kSP = omega_local;
+    }
     calculate_kinetic_vorticity_no_spatial_projection(
             tau, arena_curr, ieta, ix, iy, omega_local);
-    omega_local_knoSP = transform_vorticity_to_tz(omega_local, eta);
+    if (DATA.CoorType == 0) {
+        omega_local_knoSP = transform_vorticity_to_tz(omega_local, eta);
+    } else {
+        omega_local_knoSP = omega_local;
+    }
     calculate_thermal_vorticity(tau, arena_curr, ieta, ix, iy, omega_local);
-    omega_local_th = transform_vorticity_to_tz(omega_local, eta);
+    if (DATA.CoorType == 0) {
+        omega_local_th = transform_vorticity_to_tz(omega_local, eta);
+    } else {
+        omega_local_th = omega_local;
+    }
     calculate_T_vorticity(tau, arena_curr, ieta, ix, iy, omega_local);
-    omega_local_T = transform_vorticity_to_tz(omega_local, eta);
+    if (DATA.CoorType == 0) {
+        //Milne
+        omega_local_T = transform_vorticity_to_tz(omega_local, eta);
+    } else {
+        //Cartesian
+        omega_local_T = omega_local;
+    }
 }
 
 
@@ -136,13 +154,15 @@ void U_derivative::calculate_kinetic_vorticity_with_spatial_projector(
             omega_local[mu][nu] = 0.5*(
                   (dUsup_local[nu][mu] - dUsup_local[mu][nu])
                 + (u_local[mu]*a_local[nu] - u_local[nu]*a_local[mu])
-                + u_local[3]*u_local[0]/tau*(  u_local[mu]*DATA.gmunu[nu][3]
-                                             - u_local[nu]*DATA.gmunu[mu][3])
-                //- u_local[3]/tau*(- DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                //                  + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
-                //+ u_local[3]*u_local[3]/tau*(- u_local[mu]*DATA.gmunu[nu][0]
-                //                             + u_local[nu]*DATA.gmunu[mu][0])
             );
+            if (DATA.CoorType == 0) {
+
+                omega_local[nu][mu] += (              
+                    u_local[3]*u_local[0]/tau*(  u_local[mu]*DATA.gmunu[nu][3]
+                                             - u_local[nu]*DATA.gmunu[mu][3])
+                );
+            }
+
             omega_local[nu][mu] = -omega_local[mu][nu];
         }
     }
@@ -189,10 +209,13 @@ void U_derivative::calculate_thermal_vorticity(
             for (int nu = mu + 1; nu < 4; nu++) {
                 omega_thermal[mu][nu] = -0.5*(
                     (dUsup_local[nu][mu] - dUsup_local[mu][nu])
-                    - u_local[3]/(2.*tau*T_local)*(
-                        - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                        + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
                 );
+                if (DATA.CoorType == 0) {
+                    omega_thermal[mu][nu] += (
+                        - u_local[3]/(2.*tau*T_local)*(
+                            - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                            + DATA.gmunu[mu][3]*DATA.gmunu[nu][0]));
+                }
             }
         }
 
@@ -239,6 +262,12 @@ void U_derivative::calculate_T_vorticity(
                     - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
                     + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
             );
+            if (DATA.CoorType == 0) {
+                omega_thermal[mu][nu] += (
+                    - u_local[3]/(2*tau*T_local)*(
+                        - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                        + DATA.gmunu[mu][3]*DATA.gmunu[nu][0]));
+                }
         }
     }
 
@@ -273,10 +302,13 @@ void U_derivative::calculate_kinetic_vorticity_no_spatial_projection(
         for (int nu = mu + 1; nu < 4; nu++) {
             omega_thermal[mu][nu] = -0.5*(
                 (dUsup_local[nu][mu] - dUsup_local[mu][nu])
-                - u_local[3]/(2.*tau)*(
-                    - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                    + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
             );
+            if (DATA.CoorType == 0) {
+                omega_thermal[mu][nu] += (
+                    - u_local[3]/(2.*tau)*(
+                        - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                        + DATA.gmunu[mu][3]*DATA.gmunu[nu][0]));
+            }
         }
     }
 
@@ -315,10 +347,16 @@ void U_derivative::calculate_velocity_shear_tensor(
             }
             sigma_local[a][b] = ((dUsup_local[a][b] + dUsup_local[b][a])/2.
                 - (gfac + u_local[a]*u_local[b])*theta_u_local/3.
-                + u_local[0]/tau*DATA.gmunu[a][3]*DATA.gmunu[b][3]
-                + u_local[3]*u_local[0]/tau/2.
+                + (u_local[a]*a_local[b] + u_local[b]*a_local[a])/2.
+                );
+            if (DATA.CoorType == 0) {
+
+                sigma_local[a][b] += (
+                    u_local[0]/tau*DATA.gmunu[a][3]*DATA.gmunu[b][3]
+                    + u_local[3]*u_local[0]/tau/2.
                   *(DATA.gmunu[a][3]*u_local[b] + DATA.gmunu[b][3]*u_local[a])
-                + (u_local[a]*a_local[b] + u_local[b]*a_local[a])/2.);
+                  );
+            }
             sigma_local[b][a] = sigma_local[a][b];
         }
     }

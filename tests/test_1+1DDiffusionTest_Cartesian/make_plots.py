@@ -5,7 +5,7 @@ sys.path.insert(0, '../../utilities')
 
 from numpy import *
 import matplotlib.pyplot as plt
-plt.style.use('CS_paper')
+#plt.style.use('CS_paper')
 from os import path
 from CSplottools import getPlotElements
 
@@ -15,7 +15,8 @@ plotMarkerSize = 5
 nPointMax = 50
 
 # numerical simulation resutls
-numeric_data = loadtxt('../../1+1D_DiffusionTest_tau_4.dat')
+numeric_data_1 = loadtxt('../../1+1D_DiffusionTest_Baseline.dat')
+numeric_data_2 = loadtxt('../../1+1D_DiffusionTest_theta_1.2.dat')
 
 # analytic resutls
 Analytic_rhoB = zeros(len(numeric_data[:, 0]))
@@ -28,8 +29,10 @@ fig = plt.figure()
 ax = plt.axes([0.13, 0.12, 0.81, 0.83])
 plt.plot(numeric_data[:, 0], Analytic_rhoB, color = 'k',
          linestyle = '-', label = r'Analytic')
-plt.plot(numeric_data[:, 0], numeric_data[:, 2], color = 'r',
+plt.plot(numeric_data_1[:, 0], numeric_data_1[:, 2], color = 'r',
          linestyle = '', marker = 'x', label=r"MUSIC")
+plt.plot(numeric_data_2[:, 0], numeric_data_2[:, 2], color = 'g',
+         linestyle = '', marker = 'o', label=r"MUSIC")
 
 hl = plt.legend(loc=0)
 hl.draw_frame(False)
