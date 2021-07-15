@@ -14,6 +14,7 @@
 #include "hydro_source_strings.h"
 #include "hydro_source_ampt.h"
 #include "hydro_source_TATB.h"
+#include "hydro_source_bullet.h"
 
 #ifdef GSL
     #include "freeze.h"
@@ -67,6 +68,15 @@ void MUSIC::generate_hydro_source_terms() {
         auto hydro_source_ptr = std::shared_ptr<HydroSourceTATB> (
                                             new HydroSourceTATB (DATA));
         add_hydro_source_terms(hydro_source_ptr);
+    } else if (DATA.Initial_profile == 941) {
+        std::array<double,3> r = {.0,.0,.0};
+        std::array<double,4> pmu = {60.,43.,0.,0.}; //See arXiv:2102.11919
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceBullet> (
+                                            new HydroSourceBullet (r, pmu, 0.26, DATA)
+                                            );
+        add_hydro_source_terms(hydro_source_ptr);
+        music_message << "Bullet initialized";
+        music_message.flush("info");
     }
 }
 

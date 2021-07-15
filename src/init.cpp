@@ -96,7 +96,9 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 94 || DATA.Initial_profile == 95){
+    } else if (DATA.Initial_profile == 94  ||
+               DATA.Initial_profile == 941 ||
+               DATA.Initial_profile == 95){
         //Initial profile == 94 => Bulk pressure = eps/3 - pressure => Tmunu is traceless
         //Initial profile == 95 => Bulk pressure = -pressure => Tmunu is not traceless
 
@@ -505,7 +507,9 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++) {
             initial_IPGlasma_XY_with_pi(ieta, arena_prev, arena_current);
         }
-    } else if (   DATA.Initial_profile == 94 || DATA.Initial_profile == 95) {
+    } else if (   DATA.Initial_profile == 94  ||
+                  DATA.Initial_profile == 941 ||
+                  DATA.Initial_profile == 95) {
         // read in the profile from file
         // - Full Tmunu in ROOT format
         music_message.info(" ----- information on initial distribution -----");
