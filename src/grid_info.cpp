@@ -2613,9 +2613,12 @@ double Cell_info::OutputEvolutionDataXYEta_vorticity_root(
                 VorticityVec omega_k = {0.0};
                 VorticityVec omega_th = {0.0};
                 VorticityVec omega_T = {0.0};
+                VelocityShearVec sigma_munu = {0.0};
+                DmuMuBoverTVec DbetaMu = {0.0};
+
                 u_derivative_helper.compute_vorticity_shell(
                     tau, arena_prev, arena_curr, ieta, ix, iy, eta_local,
-                    omega_kSP, omega_k, omega_th, omega_T);
+                    omega_kSP, omega_k, omega_th, omega_T, sigma_munu, DbetaMu);
 
                 hEnergy->SetBinContent(ix+1,iy+1,ieta+1,e_local*hbarc); //energy in GeV/fm^3
                 hPressure->SetBinContent(ix+1,iy+1,ieta+1,p_local*hbarc); //pressure in GeV/fm^3
