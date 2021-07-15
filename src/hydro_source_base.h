@@ -39,7 +39,7 @@ class HydroSourceBase {
     //! (tau, x, y, eta_s)
     virtual void get_hydro_energy_source(
         const double tau, const double x, const double y, const double eta_s,
-        const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
+        const FlowVec &u_mu, EnergyFlowVec &j_mu) {
         j_mu = {0.0};
     }
 
@@ -55,7 +55,7 @@ class HydroSourceBase {
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source_before_tau(
         const double tau, const double x, const double y, const double eta_s,
-        EnergyFlowVec &j_mu) const;
+        EnergyFlowVec &j_mu);
 
     //! this function returns the net baryon density source term rho
     //! up to a given point (tau, x, y, eta_s)

@@ -5,7 +5,7 @@
 
 void HydroSourceBase::get_hydro_energy_source_before_tau(
     const double tau, const double x, const double y, const double eta_s,
-    EnergyFlowVec &j_mu) const {
+    EnergyFlowVec &j_mu){
 
     FlowVec u                   = {0};
     u[0]                        = 1.0;
