@@ -441,7 +441,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena,
 
     int n_skip_tau     = DATA.output_evolution_every_N_timesteps;
     double output_dtau = DATA.delta_tau*n_skip_tau;
-    int itau           = static_cast<int>((tau - DATA.tau0)/(output_dtau));
+    int itau           = static_cast<int>((tau - DATA.tau0)/(output_dtau) + 0.1);
 
     int n_skip_x       = DATA.output_evolution_every_N_x;
     int n_skip_y       = DATA.output_evolution_every_N_y;
