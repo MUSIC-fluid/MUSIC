@@ -487,8 +487,11 @@ int Diss::Make_uWRHS(const double tau, SCGrid &arena,
     }
 
     w_rhs += (tempf*(DATAaligned->delta_tau)
-              + (- (grid_pt.u[0]*Wmunu_local[mu][nu])/tau
-                 + (theta_local*Wmunu_local[mu][nu]))*(DATAaligned->delta_tau));
+              + (theta_local*Wmunu_local[mu][nu]))*(DATAaligned->delta_tau);
+
+    if (DATA.CoorType == 0) {
+        w_rhs -= (grid_pt.u[0]*Wmunu_local[mu][nu])/tau*(DATAaligned->delta_tau);
+    }
     return(1);
 }
 
@@ -582,8 +585,11 @@ int Diss::Make_uPRHS(const double tau, SCGrid &arena,
         sum += -HPi;
     });
 
-     /* add a source term due to the coordinate change to tau-eta */
-     sum -= (grid_pt->pi_b)*(grid_pt->u[0])/tau;
+    if (DATA.CoorType == 0) {
+        /* add a source term due to the coordinate change to tau-eta */
+        sum -= (grid_pt->pi_b)*(grid_pt->u[0])/tau;
+    }
+
      sum += (grid_pt->pi_b)*theta_local;
      *p_rhs = sum*(DATA.delta_tau);
 
