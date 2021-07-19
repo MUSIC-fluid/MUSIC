@@ -796,9 +796,11 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
                 VorticityVec omega_k   = {0.0};
                 VorticityVec omega_th  = {0.0};
                 VorticityVec omega_T   = {0.0};
+                VelocityShearVec sigma_munu = {0.0};
+                DmuMuBoverTVec DbetaMu = {0.0};
                 u_derivative_helper.compute_vorticity_shell(
                     tau, arena_prev, arena_curr, ieta, ix, iy, eta_local,
-                    omega_kSP, omega_k, omega_th, omega_T);
+                    omega_kSP, omega_k, omega_th, omega_T, sigma_munu, DbetaMu);
 
                 float ideal[] = {static_cast<float>(itau),
                                  static_cast<float>(ix/n_skip_x),
@@ -1590,10 +1592,12 @@ void Cell_info::output_vorticity_distribution(
 
                     VorticityVec omega_local_1, omega_local_2;
                     VorticityVec omega_local_3, omega_local_4;
+                    VelocityShearVec sigma_local = {0.0};
+                    DmuMuBoverTVec DbetaMu = {0.0};
                     u_derivative_helper.compute_vorticity_shell(
                         tau, arena_prev, arena_curr, ieta, ix, iy, eta_local,
                         omega_local_1, omega_local_2,
-                        omega_local_3, omega_local_4);
+                        omega_local_3, omega_local_4, sigma_local, DbetaMu);
                     for (unsigned int ii = 0; ii < omega_k.size(); ii++) {
                         omega_kSP[ii] += e_local*omega_local_1[ii]/T_local;
                         omega_k[ii]   += e_local*omega_local_2[ii]/T_local;
@@ -1721,10 +1725,12 @@ void Cell_info::output_vorticity_time_evolution(
                             eos.get_temperature(e_local, rhob_local));
                 VorticityVec omega_local_1, omega_local_2;
                 VorticityVec omega_local_3, omega_local_4;
+                VelocityShearVec sigma_local = {0.0};
+                DmuMuBoverTVec DbetaMu = {0.0};
                 u_derivative_helper.compute_vorticity_shell(
                     tau, arena_prev, arena_curr, ieta, ix, iy, eta,
                     omega_local_1, omega_local_2,
-                    omega_local_3, omega_local_4);
+                    omega_local_3, omega_local_4, sigma_local, DbetaMu);
                 for (unsigned int ii = 0; ii < omega_k.size(); ii++) {
                     omega_kSP[ii] += e_local*omega_local_1[ii]/T_local;
                     omega_k[ii]   += e_local*omega_local_2[ii]/T_local;

@@ -70,7 +70,8 @@ void U_derivative::compute_vorticity_shell(
         const double tau, SCGrid &arena_prev, SCGrid &arena_curr,
         const int ieta, const int ix, const int iy, const double eta,
         VorticityVec &omega_local_kSP, VorticityVec &omega_local_knoSP,
-        VorticityVec &omega_local_th, VorticityVec &omega_local_T) {
+        VorticityVec &omega_local_th, VorticityVec &omega_local_T,
+        VelocityShearVec &sigma_local, DmuMuBoverTVec &DbetaMu) {
     MakedU(tau, arena_prev, arena_curr, ix, iy, ieta);
     DumuVec a_local;
     calculate_Du_supmu(tau, arena_curr, ieta, ix, iy, a_local);
@@ -79,7 +80,7 @@ void U_derivative::compute_vorticity_shell(
     calculate_kinetic_vorticity_with_spatial_projector(
             tau, arena_curr, ieta, ix, iy, a_local, omega_local);
     if (DATA.CoorType == 0) {
-    omega_local_kSP = transform_vorticity_to_tz(omega_local, eta);
+        omega_local_kSP = transform_vorticity_to_tz(omega_local, eta);
     } else {
         omega_local_kSP = omega_local;
     }
@@ -104,6 +105,49 @@ void U_derivative::compute_vorticity_shell(
         //Cartesian
         omega_local_T = omega_local;
     }
+
+    VelocityShearVec sigma_Mline;
+    calculate_velocity_shear_tensor(tau, arena_curr, ieta, ix, iy,
+                                    a_local, sigma_Mline);
+    DmuMuBoverTVec DbetaMu_local;
+    get_DmuMuBoverTVec(DbetaMu_local);
+    if (DATA.CoorType == 0) {
+        sigma_local = transform_SigmaMuNu_to_tz(sigma_Mline, eta);
+        DbetaMu = transform_vector_to_tz(DbetaMu_local, eta);
+    } else {
+        sigma_local = sigma_Mline;
+        DbetaMu = DbetaMu_local;
+    }
+}
+
+
+// This function transforms the vorticity tensor from tau-eta to tz
+// It outputs (sigma^tt, sigma^tx, sigma^ty, sigma^tz,
+//             sigma^xx, sigma^xy, sigma^xz,
+//             sigma^yy, sigma^yz,
+//             sigma^zz)
+VelocityShearVec U_derivative::transform_SigmaMuNu_to_tz(
+                    const VelocityShearVec sigma_Mline, const double eta) {
+    VelocityShearVec sigma_Cart;
+    const double cosh_eta = cosh(eta);
+    const double sinh_eta = sinh(eta);
+    sigma_Cart[0] = (sigma_Mline[0]*cosh_eta*cosh_eta
+                     + 2.*sigma_Mline[3]*cosh_eta*sinh_eta
+                     + sigma_Mline[9]*sinh_eta*sinh_eta);
+    sigma_Cart[1] = sigma_Mline[1]*cosh_eta + sigma_Mline[6]*sinh_eta;
+    sigma_Cart[2] = sigma_Mline[2]*cosh_eta + sigma_Mline[8]*sinh_eta;
+    sigma_Cart[3] = (sigma_Mline[0]*cosh_eta*sinh_eta
+                     + sigma_Mline[3]*(cosh_eta*cosh_eta + sinh_eta*sinh_eta)
+                     + sigma_Mline[9]*sinh_eta*cosh_eta);
+    sigma_Cart[4] = sigma_Mline[4];
+    sigma_Cart[5] = sigma_Mline[5];
+    sigma_Cart[6] = sigma_Mline[1]*sinh_eta + sigma_Mline[6]*cosh_eta;
+    sigma_Cart[7] = sigma_Mline[7];
+    sigma_Cart[8] = sigma_Mline[2]*sinh_eta + sigma_Mline[8]*cosh_eta;
+    sigma_Cart[9] = (sigma_Mline[0]*sinh_eta*sinh_eta
+                     + 2.*sigma_Mline[3]*cosh_eta*sinh_eta
+                     + sigma_Mline[9]*cosh_eta*cosh_eta);
+    return(sigma_Cart);
 }
 
 
@@ -121,6 +165,21 @@ VorticityVec U_derivative::transform_vorticity_to_tz(
     omega_Cart[4] = omega_Mline[4]*cosh_eta - omega_Mline[0]*sinh_eta;
     omega_Cart[5] = omega_Mline[5]*cosh_eta - omega_Mline[1]*sinh_eta;
     return(omega_Cart);
+}
+
+
+// This function transforms the vorticity tensor from tau-eta to tz
+// It outputs (vec^t, vec^x, vec^y, vec^z)
+DmuMuBoverTVec U_derivative::transform_vector_to_tz(
+                    const DmuMuBoverTVec vec_Mline, const double eta) {
+    DmuMuBoverTVec vec_Cart;
+    const double cosh_eta = cosh(eta);
+    const double sinh_eta = sinh(eta);
+    vec_Cart[0] = vec_Mline[0]*cosh_eta + vec_Mline[3]*sinh_eta;
+    vec_Cart[1] = vec_Mline[1];
+    vec_Cart[2] = vec_Mline[2];
+    vec_Cart[3] = vec_Mline[0]*sinh_eta + vec_Mline[3]*cosh_eta;
+    return(vec_Cart);
 }
 
 

@@ -59,7 +59,8 @@ class EOS_base {
     double get_eps_max() const {return(eps_max);}
 
     double interpolate1D(double e, int table_idx, double ***table) const;
-    double interpolate2D(double e, double rhob, int table_idx, double ***table) const;
+    double interpolate2D(const double e, const double rhob,
+                         const int table_idx, double ***table) const;
 
     int    get_table_idx(double e) const;
     double get_entropy  (double epsilon, double rhob) const;
@@ -69,6 +70,8 @@ class EOS_base {
     double get_dpOverdrhob2(double e, double rhob) const;
     double get_s2e_finite_rhob(double s, double rhob) const;
     double get_T2e_finite_rhob(const double T, const double rhob) const;
+    void map_TmuB2erhoB(const double T, const double muB,
+                        double &e, double &rhob) const;
 
     virtual void   initialize_eos () {}
     virtual void   initialize_eos (int eos_id_in) {}
@@ -88,6 +91,7 @@ class EOS_base {
 
     void check_eos_with_finite_muB() const;
     void check_eos_no_muB() const;
+    void outputMutable() const;
 };
 
 
