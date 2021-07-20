@@ -572,18 +572,21 @@ void EOS_base::outputMutable() const {
     ostringstream file_name;
     file_name << "EOS_muTable.dat";
     ofstream check_file9(file_name.str().c_str());
-    check_file9 << "# e(GeV/fm^3)  rho_B(1/fm^3)  T(GeV)  mu_B(GeV)  "
-                << "mu_S(GeV)  mu_Q(GeV)" << endl;
+    check_file9 << "# e(GeV/fm^3)  rho_B(1/fm^3)  P (GeV/fm^3)  S(1/fm^3)  "
+                << "T(GeV)  mu_B(GeV)  mu_S(GeV)  mu_Q(GeV)" << endl;
     for (int j = 0; j < ne; j++) {
         double e_local = (e_min + j*de)/hbarc;
         for (int i = 0; i < nnB; i++) {
             double nB_local = i*dnB;
             double temperature = get_temperature(e_local, nB_local)*hbarc;
+            double pressure = get_pressure(e_local, nB_local)*hbarc;
+            double entropy = get_entropy(e_local, nB_local)*hbarc;
             double mu_B = get_muB(e_local, nB_local)*hbarc;
             double mu_S = get_muS(e_local, nB_local)*hbarc;
             double mu_C = get_muC(e_local, nB_local)*hbarc;
             check_file9 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "  " << nB_local << "  "
+                        << pressure << "   " << entropy << "    "
                         << temperature << "  " << mu_B << "  "
                         << mu_S << "  " << mu_C << endl;
         }
