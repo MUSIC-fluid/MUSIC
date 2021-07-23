@@ -258,7 +258,7 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     /////////////////////////////////////////////////////////////////////////
     double Vorticity_term = 0.0;
     if (DATA.include_vorticity_terms == 1) {
-        double transport_coefficient4 = 2.*tau_pi;
+        double transport_coefficient4 = 2.;
         auto omega = Util::UnpackVecToMatrix(omega_1d);
         double term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
                                   - Wmunu[nu][0]*omega[mu][0]

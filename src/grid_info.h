@@ -43,8 +43,6 @@ class Cell_info {
     double **deltaf_coeff_tb_14mom_DV;
     double **deltaf_coeff_tb_14mom_Bpi_shear;
 
-    TJbVec Pmu_edge_prev, outflow_flux;
-
  public:
     Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in);
     ~Cell_info();

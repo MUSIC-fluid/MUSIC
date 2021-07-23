@@ -33,8 +33,6 @@ Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in) :
                         "tables/Coefficients_RTA_diffusion.dat");
         }
     }
-    Pmu_edge_prev = {0.};
-    outflow_flux = {0.};
 }
 
 Cell_info::~Cell_info() {
@@ -1007,11 +1005,6 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
     double T_tau_x = 0.0;
     double T_tau_y = 0.0;
     double T_tau_z = 0.0;
-    double N_B_edge     = 0.0;
-    double T_tau_t_edge = 0.0;
-    double T_tau_x_edge = 0.0;
-    double T_tau_y_edge = 0.0;
-    double T_tau_z_edge = 0.0;
     double deta    = DATA.delta_eta;
     double dx      = DATA.delta_x;
     double dy      = DATA.delta_y;
@@ -1019,7 +1012,7 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
     const int nx   = arena.nX();
     const int ny   = arena.nY();
 
-    #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t, T_tau_x, T_tau_y, T_tau_z, N_B_edge, T_tau_t_edge, T_tau_x_edge, T_tau_y_edge, T_tau_z_edge)
+    #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t, T_tau_x, T_tau_y, T_tau_z)
     for (int ieta = 0; ieta < neta; ieta++)
     for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
@@ -1056,16 +1049,6 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
         T_tau_x += T01_local;
         T_tau_y += T02_local;
         T_tau_z += T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
-
-        // compute the energy-momentum vector on the edge
-        if (ieta == 0 || ieta == neta - 1 || ix == 0 || ix == nx - 1
-            || iy == 0 || iy == ny - 1) {
-            N_B_edge     += c.rhob*c.u[0] + c_prev.Wmunu[10];
-            T_tau_t_edge += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
-            T_tau_x_edge += T01_local;
-            T_tau_y_edge += T02_local;
-            T_tau_z_edge += T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
-        }
     }
     // add units
     double factor = dx*dy*deta;
@@ -1077,31 +1060,6 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
     T_tau_x *= factor*Util::hbarc;  // GeV
     T_tau_y *= factor*Util::hbarc;  // GeV
     T_tau_z *= factor*Util::hbarc;  // GeV
-    N_B_edge *= factor;
-    T_tau_t_edge *= factor*Util::hbarc;  // GeV
-    T_tau_x_edge *= factor*Util::hbarc;  // GeV
-    T_tau_y_edge *= factor*Util::hbarc;  // GeV
-    T_tau_z_edge *= factor*Util::hbarc;  // GeV
-
-    // compute the outflow flux
-    if (tau > DATA.tau0) {
-        outflow_flux[0] += T_tau_t_edge - Pmu_edge_prev[0];
-        outflow_flux[1] += T_tau_x_edge - Pmu_edge_prev[1];
-        outflow_flux[2] += T_tau_y_edge - Pmu_edge_prev[2];
-        outflow_flux[3] += T_tau_z_edge - Pmu_edge_prev[3];
-        outflow_flux[4] += N_B_edge - Pmu_edge_prev[4];
-
-        N_B     += outflow_flux[4];
-        T_tau_t += outflow_flux[0];  // GeV
-        T_tau_x += outflow_flux[1];  // GeV
-        T_tau_y += outflow_flux[2];  // GeV
-        T_tau_z += outflow_flux[3];  // GeV
-    }
-    Pmu_edge_prev[0] = T_tau_t_edge;
-    Pmu_edge_prev[1] = T_tau_x_edge;
-    Pmu_edge_prev[2] = T_tau_y_edge;
-    Pmu_edge_prev[3] = T_tau_z_edge;
-    Pmu_edge_prev[4] = N_B_edge;
 
     // output results
     music_message << "total energy T^{taut} = " << T_tau_t << " GeV";
@@ -1248,14 +1206,17 @@ void Cell_info::output_1p1D_RiemannTest(
     filename << "1+1D_RiemannTest_tau_" << tau << ".dat";
     ofstream output_file(filename.str().c_str());
     if (DATA.Test1DDirection == 3) {
-        output_file << "# z(fm)  e(GeV/fm^3)  v  theta(1/fm)" << endl;
+        output_file << "# z(fm)  e(GeV/fm^3)  v  theta(1/fm)  pi^zz(GeV/fm^3)"
+                    << "  Pi(GeV/fm^3)" << endl;
 
         double deta = DATA.delta_eta;
         double eta_min = -DATA.eta_size/2.;
         for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
             double eta_local = eta_min + ieta*deta;
             double e_local = arena_curr(0, 0, ieta).epsilon;
+            double pizz = arena_curr(0, 0, ieta).Wmunu[9];
             double uz = arena_curr(0, 0, ieta).u[3];
+            double pi_b = arena_curr(0, 0, ieta).pi_b;
             double vz = uz/sqrt(1. + uz*uz);
             u_derivative_helper.MakedU(tau, arena_prev, arena_curr, 0, 0, ieta);
             auto theta_local = u_derivative_helper.calculate_expansion_rate(
@@ -1264,11 +1225,13 @@ void Cell_info::output_1p1D_RiemannTest(
                         << eta_local << "  "
                         << e_local*Util::hbarc << "  "
                         << vz << "  "
-                        << theta_local
+                        << theta_local << "  "
+                        << pizz*Util::hbarc << "  " << pi_b*Util::hbarc
                         << endl;
         }
     } else if (DATA.Test1DDirection == 2) {
-        output_file << "# y(fm)  e(GeV/fm^3)  v  theta(1/fm)" << endl;
+        output_file << "# y(fm)  e(GeV/fm^3)  v  theta(1/fm)  pi^yy(GeV/fm^3)"
+                    << "  Pi(GeV/fm^3)" << endl;
 
         double dy = DATA.delta_y;
         double y_min = -DATA.y_size/2.;
@@ -1276,6 +1239,8 @@ void Cell_info::output_1p1D_RiemannTest(
             double y_local = y_min + iy*dy;
             double e_local = arena_curr(0, iy, 0).epsilon;
             double uy = arena_curr(0, iy, 0).u[2];
+            double piyy = arena_curr(0, iy, 0).Wmunu[7];
+            double pi_b = arena_curr(0, iy, 0).pi_b;
             double vy = uy/sqrt(1. + uy*uy);
             u_derivative_helper.MakedU(tau, arena_prev, arena_curr, 0, iy, 0);
             auto theta_local = u_derivative_helper.calculate_expansion_rate(
@@ -1284,11 +1249,13 @@ void Cell_info::output_1p1D_RiemannTest(
                         << y_local << "  "
                         << e_local*Util::hbarc << "  "
                         << vy << "  "
-                        << theta_local
+                        << theta_local << "  "
+                        << piyy*Util::hbarc << "  " << pi_b*Util::hbarc
                         << endl;
         }
     } else if (DATA.Test1DDirection == 1) {
-        output_file << "# x(fm)  e(GeV/fm^3)  v  theta(1/fm)" << endl;
+        output_file << "# x(fm)  e(GeV/fm^3)  v  theta(1/fm)  pi^xx(GeV/fm^3)"
+                    << "  Pi(GeV/fm^3)" << endl;
 
         double dx = DATA.delta_x;
         double x_min = -DATA.x_size/2.;
@@ -1296,6 +1263,8 @@ void Cell_info::output_1p1D_RiemannTest(
             double x_local = x_min + ix*dx;
             double e_local = arena_curr(ix, 0, 0).epsilon;
             double ux = arena_curr(ix, 0, 0).u[1];
+            double pixx = arena_curr(ix, 0, 0).Wmunu[4];
+            double pi_b = arena_curr(ix, 0, 0).pi_b;
             double vx = ux/sqrt(1. + ux*ux);
             u_derivative_helper.MakedU(tau, arena_prev, arena_curr, ix, 0, 0);
             auto theta_local = u_derivative_helper.calculate_expansion_rate(
@@ -1304,7 +1273,8 @@ void Cell_info::output_1p1D_RiemannTest(
                         << x_local << "  "
                         << e_local*Util::hbarc << "  "
                         << vx << "  "
-                        << theta_local
+                        << theta_local << "  "
+                        << pixx*Util::hbarc << "  " << pi_b*Util::hbarc
                         << endl;
         }
     }
