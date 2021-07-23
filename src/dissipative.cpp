@@ -34,7 +34,10 @@ void Diss::MakeWSource(const double tau,
 
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y,
                                DATA.delta_eta};
-    const double tau_fac[4] = {0.0, tau, tau, 1.0};
+    double tau_fac[4] = {0.0, tau, tau, 1.0};
+    if (DATA.CoorType == 1) {
+        tau_fac[3] == tau;
+    }
 
     dwmn = {0.};
     EnergyFlowVec W_eta_p = {0.};  // save tau*W^{\eta \nu} at eta + deta/2
@@ -77,7 +80,8 @@ void Diss::MakeWSource(const double tau,
             // use central difference to preserve conservation law exactly
             double W_m = (sg + sgm1)*0.5;
             double W_p = (sg + sgp1)*0.5;
-            if (direction == 3 && (alpha == 0 || alpha == 3)) {
+            if (direction == 3 && (alpha == 0 || alpha == 3)
+                && DATA.CoorType == 0) {
                 W_eta_p[alpha] = W_p;
                 W_eta_m[alpha] = W_m;
             } else {
@@ -96,7 +100,8 @@ void Diss::MakeWSource(const double tau,
                 // use central difference to preserve conservation law exactly
                 double Pi_m = (bg + bgm1)*0.5;
                 double Pi_p = (bg + bgp1)*0.5;
-                if (direction == 3 && (alpha == 0 || alpha == 3)) {
+                if (direction == 3 && (alpha == 0 || alpha == 3)
+                    && DATA.CoorType == 0) {
                     W_eta_p[alpha] += Pi_m;
                     W_eta_m[alpha] += Pi_p;
                 } else {
@@ -126,28 +131,31 @@ void Diss::MakeWSource(const double tau,
             music_message.flush("error");
         }
     }
-    // add longitudinal flux with the discretized geometric terms
-    // careful about the boost-invariant case when deta could be arbitary
-    double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
-    double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
-    sinh_deta = std::max(0.5, sinh_deta);
-    if (DATA.boost_invariant) {
-        // if the simulation is boost-invariant,
-        // we directly use the limiting value at \Delta eta = 0
-        // Longitudinal derivatives should be 0, we set cosh_deta = 0 here
-        cosh_deta = 0.0;
-        sinh_deta = 0.5;
-    }
-    dwmn[0] += (  (W_eta_p[0] - W_eta_m[0])*cosh_deta
-                + (W_eta_p[3] + W_eta_m[3])*sinh_deta);
-    dwmn[3] += (  (W_eta_p[3] - W_eta_m[3])*cosh_deta
-                + (W_eta_p[0] + W_eta_m[0])*sinh_deta);
 
-    // sources due to coordinate transform this is added to partial_m W^mn
-    //dwmn[0] += grid_pt.Wmunu[9];
-    //dwmn[0] += grid_pt.pi_b*(1.0 + grid_pt.u[3]*grid_pt.u[3]);
-    //dwmn[3] += grid_pt.Wmunu[3];
-    //dwmn[3] += grid_pt.pi_b*(grid_pt.u[0]*grid_pt.u[3]);
+    if (DATA.CoorType == 0) {
+        // add longitudinal flux with the discretized geometric terms
+        // careful about the boost-invariant case when deta could be arbitary
+        double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+        double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+        sinh_deta = std::max(0.5, sinh_deta);
+        if (DATA.boost_invariant) {
+            // if the simulation is boost-invariant,
+            // we directly use the limiting value at \Delta eta = 0
+            // Longitudinal derivatives should be 0, we set cosh_deta = 0 here
+            cosh_deta = 0.0;
+            sinh_deta = 0.5;
+        }
+        dwmn[0] += (  (W_eta_p[0] - W_eta_m[0])*cosh_deta
+                    + (W_eta_p[3] + W_eta_m[3])*sinh_deta);
+        dwmn[3] += (  (W_eta_p[3] - W_eta_m[3])*cosh_deta
+                    + (W_eta_p[0] + W_eta_m[0])*sinh_deta);
+
+        // sources due to coordinate transform this is added to partial_m W^mn
+        //dwmn[0] += grid_pt.Wmunu[9];
+        //dwmn[0] += grid_pt.pi_b*(1.0 + grid_pt.u[3]*grid_pt.u[3]);
+        //dwmn[3] += grid_pt.Wmunu[3];
+        //dwmn[3] += grid_pt.pi_b*(grid_pt.u[0]*grid_pt.u[3]);
+    }
 }
 
 double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
