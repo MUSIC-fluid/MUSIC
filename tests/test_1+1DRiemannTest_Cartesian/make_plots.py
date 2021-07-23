@@ -5,7 +5,7 @@ sys.path.insert(0, '../../utilities')
 
 from numpy import *
 import matplotlib.pyplot as plt
-#plt.style.use('CS_paper')
+plt.style.use('CS_paper')
 from os import path
 from CSplottools import getPlotElements
 
@@ -20,10 +20,8 @@ Analytic_v = loadtxt("1DRiemannTest_v.txt")
 Analytic_theta = loadtxt("1DRiemannTest_theta.txt")
 
 # numerical simulation resutls
-numeric_data_1 = loadtxt('../../1+1D_RiemannTest_theta_1.2.dat')
-numeric_data_2 = loadtxt('../../1+1D_RiemannTest_theta_1.8.dat')
+numeric_data_1 = loadtxt('../../1+1D_RiemannTest_tau_4.dat')
 nSkip = int(len(numeric_data_1[:, 0])/nPointMax) + 1
-nSkip = int(len(numeric_data_2[:, 0])/nPointMax) + 1
 
 # plot e
 fig = plt.figure()
@@ -31,9 +29,7 @@ ax = plt.axes([0.13, 0.12, 0.81, 0.83])
 plt.plot(Analytic_e[:, 0], Analytic_e[:, 1], color = 'k',
          linestyle = '-', label = r'Analytic')
 plt.plot(numeric_data_1[::nSkip, 0], numeric_data_1[::nSkip, 1], color = 'r',
-         linestyle = '', marker = 'X', label=r"MUSIC_1.2")
-plt.plot(numeric_data_2[::nSkip, 0], numeric_data_2[::nSkip, 1], color = 'g',
-         linestyle = '', marker = 'X', label=r"MUSIC_1.8")
+         linestyle = '', marker = 'X', label=r"MUSIC")
 
 hl = plt.legend(loc=0)
 hl.draw_frame(False)
@@ -49,8 +45,6 @@ ax = plt.axes([0.13, 0.12, 0.81, 0.83])
 plt.plot(Analytic_v[:, 0], Analytic_v[:, 1], color = 'k',
          linestyle = '-', label = r'Analytic')
 plt.plot(numeric_data_1[::nSkip, 0], numeric_data_1[::nSkip, 2], color = 'r',
-         linestyle = '', marker = 'X', label=r"MUSIC")
-plt.plot(numeric_data_2[::nSkip, 0], numeric_data_2[::nSkip, 2], color = 'g',
          linestyle = '', marker = 'X', label=r"MUSIC")
 
 hl = plt.legend(loc=0)
@@ -68,8 +62,6 @@ ax = plt.axes([0.13, 0.12, 0.81, 0.83])
 plt.plot(Analytic_theta[:, 0], Analytic_theta[:, 1], color = 'k',
          linestyle = '-', label = r'Analytic')
 plt.plot(numeric_data_1[::nSkip, 0], numeric_data_1[::nSkip, 3], color = 'r',
-         linestyle = '', marker = '+', label=r"MUSIC")
-plt.plot(numeric_data_2[::nSkip, 0], numeric_data_2[::nSkip, 3], color = 'g',
          linestyle = '', marker = '+', label=r"MUSIC")
 
 hl = plt.legend(loc=0)

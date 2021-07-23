@@ -36,7 +36,7 @@ void Diss::MakeWSource(const double tau,
                                DATA.delta_eta};
     double tau_fac[4] = {0.0, tau, tau, 1.0};
     if (DATA.CoorType == 1) {
-        tau_fac[3] == tau;
+        tau_fac[3] = tau;
     }
 
     dwmn = {0.};
@@ -402,6 +402,9 @@ void Diss::Make_uWRHS(const double tau, SCGrid &arena,
     /* This is the second step in the operator splitting. it uses
        rk_flag+1 as initial condition */
     double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta*tau};
+    if (DATA.CoorType == 1) {
+        delta[3] = DATA.delta_eta;
+    }
 
     const double delta_tau = DATA.delta_tau;
 
@@ -485,7 +488,7 @@ void Diss::Make_uWRHS(const double tau, SCGrid &arena,
          + (Wmunu_local[3][mu])*(grid_pt.u[nu])*(grid_pt.u[0])
          - (Wmunu_local[0][nu])*(grid_pt.u[mu])*(grid_pt.u[3])
          - (Wmunu_local[0][mu])*(grid_pt.u[nu])*(grid_pt.u[3]))
-         *(grid_pt.u[3]/tau);
+         *(grid_pt.u[3]/tau)*DATA.CoorType;
 
     for (int ic = 0; ic < 4; ic++) {
         const double ic_fac = (ic == 0 ? -1.0 : 1.0);
@@ -530,6 +533,9 @@ int Diss::Make_uPRHS(const double tau, SCGrid &arena,
     delta[1] = DATA.delta_x;
     delta[2] = DATA.delta_y;
     delta[3] = DATA.delta_eta*tau;
+    if (DATA.CoorType == 1) {
+        delta[3] = DATA.delta_eta;
+    }
 
     double sum = 0.0;
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
