@@ -70,11 +70,16 @@ class U_derivative {
         const double tau, SCGrid &arena_prev, SCGrid &arena_curr,
         const int ieta, const int ix, const int iy, const double eta,
         VorticityVec &omega_local_k, VorticityVec &omega_local_knoSP,
-        VorticityVec &omega_local_th, VorticityVec &omega_local_T);
+        VorticityVec &omega_local_th, VorticityVec &omega_local_T,
+        VelocityShearVec &sigma_local, DmuMuBoverTVec &DbetaMu);
 
     //! This function transforms the vorticity tensor from tau-eta to tz
     VorticityVec transform_vorticity_to_tz(const VorticityVec omega_Mline,
                                            const double eta);
+    DmuMuBoverTVec transform_vector_to_tz(
+                    const DmuMuBoverTVec vec_Mline, const double eta);
+    VelocityShearVec transform_SigmaMuNu_to_tz(
+                    const VelocityShearVec sigma_Mline, const double eta);
 };
 
 #endif

@@ -374,10 +374,10 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
 }
 
 
-int Diss::Make_uWRHS(const double tau, SCGrid &arena,
-                     const int ix, const int iy, const int ieta,
-                     const int mu, const int nu, double &w_rhs,
-                     const double theta_local, const DumuVec &a_local) {
+void Diss::Make_uWRHS(const double tau, SCGrid &arena,
+                      const int ix, const int iy, const int ieta,
+                      const int mu, const int nu, double &w_rhs,
+                      const double theta_local, const DumuVec &a_local) {
     const InitData *const DATAaligned = assume_aligned(&DATA);
     auto& grid_pt = arena(ix, iy, ieta);
 
@@ -494,13 +494,11 @@ int Diss::Make_uWRHS(const double tau, SCGrid &arena,
             + (Wmunu_local[ic][mu])*(grid_pt.u[nu])*(a_local[ic])*ic_fac);
     }
 
-    w_rhs += (tempf*(DATAaligned->delta_tau)
-              + (theta_local*Wmunu_local[mu][nu]))*(DATAaligned->delta_tau);
+    w_rhs += (tempf + theta_local*Wmunu_local[mu][nu])*DATAaligned->delta_tau;
 
     if (DATA.CoorType == 0) {
-        w_rhs -= (grid_pt.u[0]*Wmunu_local[mu][nu])/tau*(DATAaligned->delta_tau);
+        w_rhs -= grid_pt.u[0]/tau*Wmunu_local[mu][nu]*DATAaligned->delta_tau;
     }
-    return(1);
 }
 
 

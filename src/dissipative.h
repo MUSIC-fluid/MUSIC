@@ -40,10 +40,10 @@ class Diss {
                          const VelocityShearVec &sigma_1d,
                          const VorticityVec &omega_1d);
 
-    int Make_uWRHS(const double tau, SCGrid &arena,
-                   const int ix, const int iy, const int ieta,
-                   const int mu, const int nu, double &w_rhs,
-                   const double theta_local, const DumuVec &a_local);
+    void Make_uWRHS(const double tau, SCGrid &arena,
+                    const int ix, const int iy, const int ieta,
+                    const int mu, const int nu, double &w_rhs,
+                    const double theta_local, const DumuVec &a_local);
 
     int Make_uPRHS(const double tau, SCGrid &arena,
                    const int ix, const int iy, const int ieta,
