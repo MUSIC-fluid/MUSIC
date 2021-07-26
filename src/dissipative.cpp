@@ -488,7 +488,7 @@ void Diss::Make_uWRHS(const double tau, SCGrid &arena,
          + (Wmunu_local[3][mu])*(grid_pt.u[nu])*(grid_pt.u[0])
          - (Wmunu_local[0][nu])*(grid_pt.u[mu])*(grid_pt.u[3])
          - (Wmunu_local[0][mu])*(grid_pt.u[nu])*(grid_pt.u[3]))
-         *(grid_pt.u[3]/tau)*DATA.CoorType;
+         *(grid_pt.u[3]/tau)*(1 - DATA.CoorType);
 
     for (int ic = 0; ic < 4; ic++) {
         const double ic_fac = (ic == 0 ? -1.0 : 1.0);
