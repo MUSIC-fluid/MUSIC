@@ -100,6 +100,8 @@ double EOS_base::interpolate2D(const double e, const double rhob,
 
     double frac_e    = (local_ed - (idx_e*delta_e + e0))/delta_e;
     double frac_rhob = (local_nb - (idx_nb*delta_nb + nb0))/delta_nb;
+    // avoid uncontrolled extrapolation at large net baryon density
+    frac_rhob = std::min(1., frac_rhob);
 
     double result;
     double temp1 = table[table_idx][idx_nb][idx_e];
