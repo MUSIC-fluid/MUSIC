@@ -45,9 +45,7 @@ class HydroSourceBullet : public HydroSourceBase{
  public:
 
     //Constructors
-    HydroSourceBullet(std::array<double,3> r, 
-                      std::array<double, 4> pmu,
-                      double tau, const InitData &DATA_in);
+    HydroSourceBullet(const InitData &DATA_in);
     
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)

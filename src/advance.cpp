@@ -126,17 +126,6 @@ void Advance::FirstRKStepT(
                 exit(1);
             }
         }
-        if ( (abs(x_local) < 1E-6) && (abs(y_local) < 1E-6)
-          && (abs(eta_s_local) < 1E-6) ){
-                music_message << "qi[0] source = " << qi_source[0];
-                music_message.flush("info");
-                music_message << "qi[1] source = " << qi_source[1];
-                music_message.flush("info");
-                music_message << "qi[2] source = " << qi_source[2];
-                music_message.flush("info");
-                music_message << "qi[3] source = " << qi_source[3];
-                music_message.flush("info");
-        }
         if (DATA.turn_on_rhob == 1) {
             qi_source[4] = (
                 tau_rk*hydro_source_terms_ptr->get_hydro_rhob_source(

@@ -10,7 +10,7 @@ class HydroSourceBase {
  private:
     double source_tau_max;
     double source_tau_min;
-    double sigma_tau, sigma_x, sigma_eta;
+    double sigma_tau, sigma_x, sigma_y, sigma_eta;
 
  public:
     pretty_ostream music_message;
@@ -22,9 +22,11 @@ class HydroSourceBase {
 
     void set_sigma_tau(double sigma_tau_in) {sigma_tau = sigma_tau_in;}
     void set_sigma_x  (double sigma_x_in  ) {sigma_x   = sigma_x_in  ;}
+    void set_sigma_y  (double sigma_y_in  ) {sigma_y   = sigma_y_in  ;}
     void set_sigma_eta(double sigma_eta_in) {sigma_eta = sigma_eta_in;}
     double get_sigma_tau() const {return(sigma_tau);}
     double get_sigma_x  () const {return(sigma_x  );}
+    double get_sigma_y  () const {return(sigma_y  );}
     double get_sigma_eta() const {return(sigma_eta);}
 
     //! Set the minimum and maximum tau for the source term

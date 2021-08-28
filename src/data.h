@@ -215,6 +215,20 @@ typedef struct init_data {
     double dNdyptdpt_eta_min;
     double dNdyptdpt_eta_max;
 
+    //Bullet insertion (only relevant for IC 941)
+    double total_current_energy;
+    double total_current_momentum_x;
+    double total_current_momentum_y;
+    double total_current_momentum_eta_s;
+    double bullet_size_x;
+    double bullet_size_y;
+    double bullet_size_eta_s;
+    double bullet_position_x;
+    double bullet_position_y;
+    double bullet_position_eta_s;
+    double bullet_initial_time;
+    double bullet_final_time;
+
 } InitData;
 
 #endif  // SRC_DATA_H_

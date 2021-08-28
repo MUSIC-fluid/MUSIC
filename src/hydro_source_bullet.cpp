@@ -3,19 +3,26 @@
 #include "hydro_source_bullet.h"
 //#include "data_struct.h"
 
-HydroSourceBullet::HydroSourceBullet(std::array<double,3> r,
-                      std::array<double, 4> pmu,
-                      double tau, const InitData &DATA_in) :
-                      r_(r), pmu_(pmu), tau_(tau), DATA_(DATA_in),
+HydroSourceBullet::HydroSourceBullet(const InitData &DATA_in) :
+                      tau_(DATA_in.bullet_initial_time), DATA_(DATA_in),
                       point_flagged(DATA_in.nx, DATA_in.ny, DATA_in.neta){
 
-    set_source_tau_max(tau_);
-    set_source_tau_min(tau_);
-    set_sigma_x(tau_);
-    set_sigma_tau(tau_); //Sigma tau unused for now.
-    set_sigma_eta(1./(tau_*sinh(r_[3])));
 
-    point_flagged = TagPointsForFillEllipse(r[0], r[1], r[2]);
+    r_ = {DATA_.bullet_position_x, DATA_.bullet_position_y, DATA_.bullet_position_eta_s};
+    pmu_ = {DATA_.total_current_energy,
+            DATA_.total_current_momentum_x,
+            DATA_.total_current_momentum_y,
+            DATA_.total_current_momentum_eta_s};
+
+    
+
+    set_source_tau_max(DATA_.bullet_final_time);
+    set_source_tau_min(DATA_.bullet_initial_time);
+    set_sigma_x(  DATA_.bullet_size_x);
+    set_sigma_y(  DATA_.bullet_size_y);
+    set_sigma_eta(DATA_.bullet_size_eta_s);
+    
+    point_flagged = TagPointsForFillEllipse(r_[0], r_[1], r_[2]);
 
     //Loop over grid totalizing number of points where we will add energy
     int npoints = 0;
@@ -52,9 +59,9 @@ void HydroSourceBullet::get_hydro_energy_source(
     const double dtau = DATA_.delta_tau;
     j_mu = {0};
 
-    if (tau > tau_+dtau-1.E-6){
+    if (tau > tau_+dtau-dtau/100){
         return;
-    } else if (tau < tau_) {
+    } else if (tau < tau_-dtau/100.) {
         return;
     } else {
         //std::stringstream buf;
@@ -80,11 +87,8 @@ void HydroSourceBullet::get_hydro_energy_source(
             //Compute point volume
             double dz = get_z(tau,eta_s+DATA_.delta_eta/2) - get_z(tau,eta_s-DATA_.delta_eta/2);
             double vol = DATA_.delta_x*DATA_.delta_y*dz;
-            for (int idir=0; idir<4;++idir){
+            for (int idir=0; idir<4;++idir)
                 j_mu[idir] = (pmu_frac_[idir]/vol/DATA_.delta_tau)/Util::hbarc;
-                music_message <<"Setting j_mu["<<idir<<"] = "<< j_mu[idir];
-                music_message.flush("info");
-            }
         }
     }
     return;
@@ -92,7 +96,7 @@ void HydroSourceBullet::get_hydro_energy_source(
 
 //_________________________________________________________________________
 //Algorithm to delimit the kick ellipse
-GridT<int> HydroSourceBullet::TagPointsForFillEllipse(double x0, double y0, double z0){
+GridT<int> HydroSourceBullet::TagPointsForFillEllipse(double x0, double y0, double eta0){
 
     //Stores which points on the grid will be filled
     GridT<int> points_flagged(DATA_.nx, DATA_.ny, DATA_.neta);
@@ -100,27 +104,25 @@ GridT<int> HydroSourceBullet::TagPointsForFillEllipse(double x0, double y0, doub
     //Get the index of the center points
     int ix0 = get_ix(x0);
     int iy0 = get_iy(y0);
-    int ieta0 = get_ieta( get_spatial_rapidity(tau_,z0) );
+    int ieta0 = get_ieta( eta0 );
 
     //Redefine x0, y0, z0 to match the grid
     x0 = get_x(ix0);
     y0 = get_y(iy0);
-    z0 = get_z(tau_,get_eta(ieta0));
+    eta0 = get_eta(ieta0);
+    double z0 = get_z(tau_,get_eta(ieta0));
 
     //Get the index of the points which are at x0+sigma in each direction
-    int ix_r_plus = get_ix(x0+get_sigma_x());
-    int iy_r_plus = get_iy(y0+get_sigma_x());
-    double eta_max = get_spatial_rapidity(tau_,z0)+get_sigma_eta();
-    int ieta_r_plus = get_ieta( eta_max );
-    double z_max = get_z(tau_,eta_max);
-
+    int ix_r_plus   = get_ix(x0+get_sigma_x());
+    int iy_r_plus   = get_iy(y0+get_sigma_y());
+    int ieta_r_plus = get_ieta(eta0+get_sigma_eta());
+    double z_max = get_z(tau_,get_eta(ieta_r_plus));
     //Get the index of the points which are at x0-r in each direction
-    int ix_r_minus = get_ix(x0-get_sigma_x());
-    int iy_r_minus = get_iy(y0-get_sigma_x());
-    double eta_min = get_spatial_rapidity(tau_,z0)-get_sigma_eta();
-    int ieta_r_minus = get_ieta( get_spatial_rapidity(tau_,z0)-get_sigma_eta() );
-    double z_min = get_z(tau_,eta_min);
-
+    int ix_r_minus   = get_ix(x0-get_sigma_x());
+    int iy_r_minus   = get_iy(y0-get_sigma_x());
+    int ieta_r_minus = get_ieta( eta0-get_sigma_eta() );
+    double z_min = get_z(tau_,get_eta(ieta_r_minus));
+    
     double rz = (z_max-z_min)/2.;
 
     //Perform loop tagging
