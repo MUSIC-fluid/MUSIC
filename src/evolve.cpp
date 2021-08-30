@@ -254,6 +254,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
 
+    static bool overwrite_file = true;
+
     std::stringstream strs_name;
     strs_name << "surface_eps_" << std::setprecision(4) << epsFO*hbarc
               << "_" << thread_id << ".dat";
@@ -268,9 +270,13 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     
     // Only append at the end of the file if it's not the first timestep
     // (that is, overwrite file at first timestep)
-    if (tau != DATA.tau0+DATA.delta_tau) {
+    if ((tau != DATA.tau0+DATA.delta_tau)||(!overwrite_file)) {
             modes = modes | std::ios::app;
     }
+    else {
+            overwrite_file=false;
+    }
+    
 
     s_file.open(strs_name.str().c_str(), modes);
 
@@ -989,6 +995,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
 
+    static bool overwrite_file = true;
+
     std::stringstream strs_name;
     if (DATA.boost_invariant == 0) {
         strs_name << "surface_eps_" << std::setprecision(4) << epsFO*hbarc
@@ -1008,8 +1016,11 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     
     // Only append at the end of the file if it's not the first timestep
     // (that is, overwrite file at first timestep)
-    if (tau != DATA.tau0+DATA.delta_tau) {
-            modes = modes | std::ios::app;
+    if ((tau != DATA.tau0+DATA.delta_tau)||(!overwrite_file)) {
+        modes = modes | std::ios::app;
+    }
+    else {
+        overwrite_file=false;
     }
 
     s_file.open(strs_name.str().c_str(), modes);
