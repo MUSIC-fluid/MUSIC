@@ -342,16 +342,9 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     std::ofstream s_file;
     std::ios_base::openmode modes;
 
+    modes = std::ios::out | std::ios::app;
     if (surface_in_binary) {
-        modes=std::ios::out | std::ios::binary;
-    } else {
-        modes=std::ios::out;
-    }
-
-    // Only append at the end of the file if it's not the first timestep
-    // (that is, overwrite file at first timestep)
-    if (tau != DATA.tau0+DATA.delta_tau) {
-        modes = modes | std::ios::app;
+        modes = modes | std::ios::binary;
     }
 
     s_file.open(strs_name.str().c_str(), modes);
@@ -739,16 +732,9 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     std::ofstream s_file;
     std::ios_base::openmode modes;
 
+    modes = std::ios::out | std::ios::app;
     if (surface_in_binary) {
-        modes=std::ios::out | std::ios::binary;
-    } else {
-        modes=std::ios::out;
-    }
-
-    // Only append at the end of the file if it's not the first timestep
-    // (that is, overwrite file at first timestep)
-    if (tau != DATA.tau0+DATA.delta_tau) {
-            modes = modes | std::ios::app;
+        modes = modes | std::ios::binary;
     }
 
     s_file.open(strs_name.str().c_str(), modes);
