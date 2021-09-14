@@ -59,11 +59,7 @@ void HydroSourceBullet::get_hydro_energy_source(
     const double dtau = DATA_.delta_tau;
     j_mu = {0};
 
-    if (tau > tau_+dtau-dtau/100){
-        return;
-    } else if (tau < tau_-dtau/100.) {
-        return;
-    } else {
+    if ((tau_-tau < dtau) && (tau_-tau > 0)) {
         //std::stringstream buf;
     //    std::cout << "Dumping bullet into position x = " << x << ", y = "
     //        << y << ", eta_s = " << eta_s << std::endl;
