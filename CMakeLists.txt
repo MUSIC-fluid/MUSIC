@@ -14,8 +14,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_HOME_DIRECTORY}")
 set(CMAKE_INSTALL_RPATH ${CMAKE_HOME_DIRECTORY})
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-#Find ROOT for this project>
-find_package(ROOT 6 REQUIRED)
+#Find ROOT for this project - Not mandatory
+find_package(ROOT 6)
 if (ROOT_FOUND)
     message("Found ROOT. Will enable ROOT integration.")
     set(CMAKE_CXX_STANDARD 17) # ROOT requires c++17

@@ -7,6 +7,7 @@
 #include <cmath>
 #include <memory>
 #include <fstream>
+#include <iterator>
 
 #ifdef ROOT_FOUND
 #include "TFile.h"
@@ -67,6 +68,7 @@ class Init {
     void initial_MCGlb_with_rhob         (SCGrid &arena_prev, SCGrid &arena_current);
     void initial_UMN_with_rhob           (SCGrid &arena_prev, SCGrid & arena_current);
     void initial_with_jetscape           (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
+    void initial_trento_XY               (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     int read_nexus_profile               (SCGrid &arena_prev, SCGrid &arena_current);
 
     void get_jetscape_preequilibrium_vectors(

@@ -433,7 +433,7 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_yL_frac;
     parameter_list.yL_frac = temp_yL_frac;
 
-    // s_factor:  for use with IP-Glasma initial conditions
+    // s_factor:  for use with IP-Glasma and Trento initial conditions
     double tempsFactor   = 1.0;
     tempinput = Util::StringFind4(input_file, "s_factor");
     if (tempinput != "empty")
