@@ -52,6 +52,12 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
     } else if (DATA.Initial_profile == 8) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
+        if (!profile.is_open()) {
+            music_message << "Initial profile: " << DATA.initName
+                          << " not found.";
+            music_message.flush("error");
+            exit(1);
+        }
         std::string dummy;
         int nx, ny, neta;
         double deta, dx, dy, dummy2;
@@ -75,6 +81,12 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                || DATA.Initial_profile == 92 || DATA.Initial_profile == 93) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
+        if (!profile.is_open()) {
+            music_message << "Initial profile: " << DATA.initName
+                          << " not found.";
+            music_message.flush("error");
+            exit(1);
+        }
         std::string dummy;
         int nx, ny, neta;
         double deta, dx, dy, dummy2;
