@@ -40,17 +40,21 @@ HydroSourceBullet::HydroSourceBullet(const InitData &DATA_in) :
         pmu_[3]/((double) npoints)
     };
 
-    music_message << "Using bullet source term.";
-    music_message.flush("info");
-    music_message << "Energy per cell: " << pmu_frac_[0];
-    music_message.flush("info");
-    music_message << "px per cell: " << pmu_frac_[1];
-    music_message.flush("info");
-    music_message << "py per cell: " << pmu_frac_[2];
-    music_message.flush("info");
-    music_message << "peta per cell: " << pmu_frac_[3];
+    music_message << "----- Using bullet source term. -----";
     music_message.flush("info");
 
+    music_message << "Energy-momentum per cell: (" << pmu_frac_[0] << ", "
+                                                   << pmu_frac_[1] << ", "
+                                                   << pmu_frac_[2] << ", "
+                                                   << pmu_frac_[3] << ")";
+    music_message.flush("info");
+    music_message << "Position: (" << r_[0] <<", " << r_[1] <<", " 
+                                   << r_[2] << ")";
+    music_message.flush("info");
+    music_message << "Radius: (" << get_sigma_x() << ", "
+                                 << get_sigma_y() << ", "
+                                 << get_sigma_eta() << ")";
+    music_message.flush("info");
 };
 
 void HydroSourceBullet::get_hydro_energy_source(
@@ -60,11 +64,6 @@ void HydroSourceBullet::get_hydro_energy_source(
     j_mu = {0};
 
     if ((tau_-tau < dtau) && (tau_-tau > 0)) {
-        //std::stringstream buf;
-    //    std::cout << "Dumping bullet into position x = " << x << ", y = "
-    //        << y << ", eta_s = " << eta_s << std::endl;
-        //music_message.info(buf.str());
-        //music_message.flush("info");
         int  index[3] = {get_ix(x), get_iy(y), get_ieta(eta_s)};
         if (index[0] >= DATA_.nx) {
             music_message << "Out of bounds access in direction x";
@@ -96,6 +95,11 @@ GridT<int> HydroSourceBullet::TagPointsForFillEllipse(double x0, double y0, doub
 
     //Stores which points on the grid will be filled
     GridT<int> points_flagged(DATA_.nx, DATA_.ny, DATA_.neta);
+    for (int ix=0; ix<DATA_.nx;++ix)
+    for (int iy=0; iy<DATA_.ny;++iy)
+    for (int ieta=0; ieta<DATA_.neta;++ieta)
+        points_flagged(ix,iy,ieta) = 0;
+    
 
     //Get the index of the center points
     int ix0 = get_ix(x0);
@@ -115,7 +119,7 @@ GridT<int> HydroSourceBullet::TagPointsForFillEllipse(double x0, double y0, doub
     double z_max = get_z(tau_,get_eta(ieta_r_plus));
     //Get the index of the points which are at x0-r in each direction
     int ix_r_minus   = get_ix(x0-get_sigma_x());
-    int iy_r_minus   = get_iy(y0-get_sigma_x());
+    int iy_r_minus   = get_iy(y0-get_sigma_y());
     int ieta_r_minus = get_ieta( eta0-get_sigma_eta() );
     double z_min = get_z(tau_,get_eta(ieta_r_minus));
     
@@ -129,7 +133,7 @@ GridT<int> HydroSourceBullet::TagPointsForFillEllipse(double x0, double y0, doub
                 double x = get_x(ix);
                 double y = get_y(iy);
                 double z = get_z(tau_,  get_eta(ieta) );
-                if ( pow((x-x0)/get_sigma_x(),2) + pow((y-y0)/get_sigma_x(),2)
+                if ( pow((x-x0)/get_sigma_x(),2) + pow((y-y0)/get_sigma_y(),2)
                      + pow((z-z0)/rz,2) < 1.+1.e-7){
                     points_flagged(ix,iy,ieta) = 1;
                 }
