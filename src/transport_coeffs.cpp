@@ -17,9 +17,9 @@ double TransportCoeffs::get_eta_over_s(double T) const {
     double eta_over_s;
     if (DATA.T_dependent_shear_to_s == 1) {
         eta_over_s = get_temperature_dependent_eta_over_s_default(T);
-    } else if (DATA.T_dependent_bulk_to_s == 2) {
+    } else if (DATA.T_dependent_shear_to_s == 2) {
         eta_over_s = get_temperature_dependent_eta_over_s_duke(T);
-    } else if (DATA.T_dependent_bulk_to_s == 3) {
+    } else if (DATA.T_dependent_shear_to_s == 3) {
         eta_over_s = get_temperature_dependent_eta_over_s_sims(T);
     } else {
         eta_over_s = DATA.shear_to_s;
