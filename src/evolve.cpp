@@ -157,20 +157,23 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         // all the evolution are at here !!!
         AdvanceRK(tau, ap_prev, ap_current, ap_future);
 
+        // "ap_current" is our result at time "tau+dtau", not "tau"
+        const double tau_next = tau + DATA.delta_tau;
+
         //determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
             if (freezeout_lowtemp_flag == 1 && it == it_start) {
-                frozen = FreezeOut_equal_tau_Surface(tau, *ap_current);
+                frozen = FreezeOut_equal_tau_Surface(tau_next, *ap_current);
             }
             // avoid freeze-out at the first time step
             if ((it - it_start)%facTau == 0 && it > it_start) {
                 if (DATA.boost_invariant == 0) {
                     frozen = FindFreezeOutSurface_Cornelius(
-                                tau, *ap_current, arena_freezeout);
+                                tau_next, *ap_current, arena_freezeout);
                 } else {
                     frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
-                                tau, *ap_current, arena_freezeout);
+                                tau_next, *ap_current, arena_freezeout);
                 }
                 store_previous_step_for_freezeout(*ap_current,
                                                   arena_freezeout);
