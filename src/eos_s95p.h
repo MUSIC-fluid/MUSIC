@@ -17,7 +17,7 @@ class EOS_s95p : public EOS_base {
     double get_temperature(double e, double rhob) const;
     double get_pressure   (double e, double rhob) const;
     double get_s2e        (double s, double rhob) const;
-    double get_T2e        (double s, double rhob) const;
+    double get_T2e        (double T_in_GeV, double rhob) const;
 
     void check_eos() const {check_eos_no_muB();}
 };

@@ -182,8 +182,8 @@ int EOS_base::get_table_idx(double e) const {
 
 //! This function returns local energy density [1/fm^4] from
 //! a given temperature T [GeV] and rhob [1/fm^3] using binary search
-double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
-    double T_goal = T/Util::hbarc;         // convert to 1/fm
+double EOS_base::get_T2e_finite_rhob(const double T_in_GeV, const double rhob) const {
+    double T_goal = T_in_GeV/Util::hbarc;         // convert to 1/fm
     double eps_lower = 1e-15;
     double eps_upper = eps_max;
     double eps_mid   = (eps_upper + eps_lower)/2.;
@@ -192,7 +192,7 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
     int ntol         = 1000;
     if (T_goal < 0.0 || T_goal > T_upper) {
         cout << "get_T2e:: T is out of bound, "
-             << "T = " << T << ", T_upper = " << T_upper*Util::hbarc
+             << "T = " << T_in_GeV << " GeV, T_upper = " << T_upper*Util::hbarc
              << ", T_lower = " << T_lower*Util::hbarc << endl;
         exit(1);
     }
@@ -214,7 +214,7 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
     }
     if (iter == ntol) {
         cout << "get_T2e_finite_rhob:: max iteration reached, "
-             << "T = " << T << ", rhob = " << rhob << endl;;
+             << "T = " << T_in_GeV << " GeV, rhob = " << rhob << endl;;
         cout << "T_upper = " << T_upper*Util::hbarc
              << " , T_lower = " << T_lower*Util::hbarc << endl;
         cout << "eps_upper = " << eps_upper

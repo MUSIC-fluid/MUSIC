@@ -68,7 +68,7 @@ class EOS_base {
     double get_dpOverde3(double e, double rhob) const;
     double get_dpOverdrhob2(double e, double rhob) const;
     double get_s2e_finite_rhob(double s, double rhob) const;
-    double get_T2e_finite_rhob(const double T, const double rhob) const;
+    double get_T2e_finite_rhob(const double T_in_GeV, const double rhob) const;
 
     virtual void   initialize_eos () {}
     virtual void   initialize_eos (int eos_id_in) {}
@@ -83,7 +83,7 @@ class EOS_base {
     virtual double get_rhoC       (double epsilon, double rhob) const {return(0.4*rhob);}
     virtual double get_pressure   (double epsilon, double rhob) const {return(0.0);}
     virtual double get_s2e        (double s, double rhob) const {return(0.0);}
-    virtual double get_T2e        (double T, double rhob) const {return(0.0);}
+    virtual double get_T2e        (double T_in_GeV, double rhob) const {return(0.0);}
     virtual void   check_eos      () const {}
     
     void check_eos_with_finite_muB() const;

@@ -101,7 +101,7 @@ double EOS_hotQCD::get_s2e(double s, double rhob) const {
     return(e);
 }
 
-double EOS_hotQCD::get_T2e(double T, double rhob) const {
-    double e = get_T2e_finite_rhob(T, 0.0);
+double EOS_hotQCD::get_T2e(double T_in_GeV, double rhob) const {
+    double e = get_T2e_finite_rhob(T_in_GeV, 0.0);
     return(e);
 }
