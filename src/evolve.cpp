@@ -60,7 +60,9 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double dt    = DATA.delta_tau;
 
     double tau;
-    int it_start = 3;
+    int it_start = 0;
+    if (DATA.Initial_profile == 112)
+        it_start = 3;
     double source_tau_max = 0.0;
     if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
         source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
@@ -213,10 +215,6 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                            100, 100, 0, tau);
         }
 
-        /* execute rk steps */
-        // all the evolution are at here !!!
-        AdvanceRK(tau, ap_prev, ap_current, ap_future);
-
         //determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
@@ -239,6 +237,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                                   arena_freezeout);
             }
         }
+
+        /* execute rk steps */
+        // all the evolution are at here !!!
+        AdvanceRK(tau, ap_prev, ap_current, ap_future);
+
         music_message << emoji::clock()
                       << " Done time step " << it << "/" << itmax
                       << " tau = " << tau << " fm/c";
