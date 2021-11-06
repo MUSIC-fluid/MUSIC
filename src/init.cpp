@@ -1044,8 +1044,8 @@ double Init::energy_eta_profile_normalisation(
     // this function returns the normalization of the eta envelope profile
     // for energy density
     //  \int deta eta_profile_plateau(eta - y_CM, eta_0, sigma_eta)*cosh(eta)
-    double f1 = (exp(eta_0)*erfc(-sqrt(0.5)*sigma_eta)
-                 + exp(-eta_0)*erfc(sqrt(0.5*sigma_eta)));
+    double f1 = (  exp( eta_0)*erfc(-sqrt(0.5)*sigma_eta)
+                 + exp(-eta_0)*erfc( sqrt(0.5)*sigma_eta));
     double f2 = sqrt(M_PI/2.)*sigma_eta*exp(sigma_eta*sigma_eta/2.);
     double f3 = sinh(eta_0 + y_CM) - sinh(-eta_0 + y_CM);
     double norm = cosh(y_CM)*f2*f1 + f3;
@@ -1059,8 +1059,8 @@ double Init::Pz_eta_profile_normalisation(
     // for longitudinal momentum
     //  \int deta eta_profile_plateau(eta, eta_0, sigma_eta)*eta*sinh(eta)
     const double sigma_sq = sigma_eta*sigma_eta;
-    double f1 = (  exp(eta_0)*(eta_0 + sigma_sq)*erfc(-sqrt(0.5)*sigma_eta)
-                 - exp(-eta_0)*(eta_0 - sigma_sq)*erfc(sqrt(0.5*sigma_eta)));
+    double f1 = (  exp( eta_0)*(eta_0 + sigma_sq)*erfc(-sqrt(0.5)*sigma_eta)
+                 - exp(-eta_0)*(eta_0 - sigma_sq)*erfc( sqrt(0.5)*sigma_eta));
     double f2 = sqrt(M_PI/2.)*sigma_eta*exp(sigma_sq/2.)/2.;
     double f3 = sigma_sq*sinh(eta_0);
     double f4 = 2.*eta_0*cosh(eta_0) - 2.*sinh(eta_0);
