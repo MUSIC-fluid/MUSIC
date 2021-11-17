@@ -84,11 +84,12 @@ void HydroSourceBullet::get_hydro_energy_source(
             double vol = DATA_.delta_x*DATA_.delta_y*dz;
             for (int idir=0; idir<4;++idir)
                 j_mu[idir] = (pmu_frac_[idir]/vol/DATA_.delta_tau)/Util::hbarc;
-                //Convert source to Milne coordinates
-                double j_tau = j_mu[0]*cosh(eta_s)-j_mu[3]*sinh(eta_s);
-                double j_eta = (j_mu[3]*cosh(eta_s)-j_mu[0]*sinh(eta_s))/tau;
-                j_mu[0] = j_tau;
-                j_mu[3] = j_eta;
+
+            //Convert source to Milne coordinates
+            double j_tau = j_mu[0]*cosh(eta_s)-j_mu[3]*sinh(eta_s);
+            double j_eta = (j_mu[3]*cosh(eta_s)-j_mu[0]*sinh(eta_s))/tau;
+            j_mu[0] = j_tau;
+            j_mu[3] = j_eta;
         }
     }
     return;
