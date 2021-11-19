@@ -522,7 +522,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         eta_local,
                         aux_tmp.omega_kSP, aux_tmp.omega_k,
                         aux_tmp.omega_th, aux_tmp.omega_T,
-                        aux_tmp.sigma, aux_tmp.DbetaMu);
+                        aux_tmp.sigma_th, aux_tmp.DbetaMu);
                     fluid_aux_cube[1][ii][jj][kk] = aux_tmp;
                     u_derivative_helper.compute_vorticity_shell(
                         tau - DTAU, arena_freezeout_prev, arena_freezeout,
@@ -530,7 +530,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         eta_local,
                         aux_tmp.omega_kSP, aux_tmp.omega_k,
                         aux_tmp.omega_th, aux_tmp.omega_T,
-                        aux_tmp.sigma, aux_tmp.DbetaMu);
+                        aux_tmp.sigma_th, aux_tmp.DbetaMu);
                     fluid_aux_cube[0][ii][jj][kk] = aux_tmp;
                 }
                 auto fluid_center = four_dimension_linear_interpolation(
@@ -631,7 +631,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
                         for (int ii = 0; ii < 10; ii++)
-                            array[58+ii] = -fluid_aux_center.sigma[ii];
+                            array[58+ii] = -fluid_aux_center.sigma_th[ii];
                         for (int ii = 0; ii < 4; ii++)
                             array[68+ii] = -fluid_aux_center.DbetaMu[ii];
                     }
@@ -908,7 +908,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                     // the extra minus sign is from metric
                     // output quantities for g = (1, -1, -1, -1)
                     for (int ii = 0; ii < 10; ii++)
-                        array[58+ii] = -fluid_aux_center.sigma[ii];
+                        array[58+ii] = -fluid_aux_center.sigma_th[ii];
                     for (int ii = 0; ii < 4; ii++)
                         array[68+ii] = -fluid_aux_center.DbetaMu[ii];
                 }

@@ -66,7 +66,7 @@ void U_derivative::compute_vorticity_shell(
         const int ieta, const int ix, const int iy, const double eta,
         VorticityVec &omega_local_kSP, VorticityVec &omega_local_knoSP,
         VorticityVec &omega_local_th, VorticityVec &omega_local_T,
-        VelocityShearVec &sigma_local, DmuMuBoverTVec &DbetaMu) {
+        VelocityShearVec &sigma_th_local, DmuMuBoverTVec &DbetaMu) {
     MakedU(tau, arena_prev, arena_curr, ix, iy, ieta);
     DumuVec a_local;
     calculate_Du_supmu(tau, arena_curr, ieta, ix, iy, a_local);
@@ -83,10 +83,10 @@ void U_derivative::compute_vorticity_shell(
     calculate_T_vorticity(tau, arena_curr, ieta, ix, iy, omega_local);
     omega_local_T = transform_vorticity_to_tz(omega_local, eta);
 
-    VelocityShearVec sigma_Mline;
-    calculate_velocity_shear_tensor(tau, arena_curr, ieta, ix, iy,
-                                    a_local, sigma_Mline);
-    sigma_local = transform_SigmaMuNu_to_tz(sigma_Mline, eta);
+    VelocityShearVec sigma_th_Mline;
+    calculate_thermal_shear_tensor(tau, arena_curr, ieta, ix, iy,
+                                   sigma_th_Mline);
+    sigma_th_local = transform_SigmaMuNu_to_tz(sigma_th_Mline, eta);
     DmuMuBoverTVec DbetaMu_local;
     get_DmuMuBoverTVec(DbetaMu_local);
     DbetaMu = transform_vector_to_tz(DbetaMu_local, eta);
