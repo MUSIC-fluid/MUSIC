@@ -236,11 +236,11 @@ void U_derivative::calculate_thermal_vorticity(
         double omega_thermal[4][4];
         for (int mu = 0; mu < 4; mu++) {
             for (int nu = mu + 1; nu < 4; nu++) {
-                omega_thermal[mu][nu] = -0.5*(
-                    (dUsup_local[nu][mu] - dUsup_local[mu][nu])
+                omega_thermal[mu][nu] = (
+                    - 0.5*(dUsup_local[nu][mu] - dUsup_local[mu][nu])
                     - u_local[3]/(2.*tau*T_local)*(
-                        - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                        + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+                          DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                        - DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
                 );
             }
         }
@@ -258,6 +258,55 @@ void U_derivative::calculate_thermal_vorticity(
         omega[3] = 0.;
         omega[4] = 0.;
         omega[5] = 0.;
+    }
+}
+
+
+//! this function computes the thermal shear tensor
+//! it outputs sigma_th^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
+//! from the ones with g = (1, -1, -1, -1) by a minus sign
+void U_derivative::calculate_thermal_shear_tensor(
+            const double tau, SCGrid &arena, const int ieta,
+            const int ix, const int iy, VelocityShearVec &sigma_th) {
+    // this function computes the thermal shear tensor
+    double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
+                                          arena(ix, iy, ieta).rhob);
+    if (T_local > T_tol) {
+        FlowVec u_local = arena(ix, iy, ieta).u;
+        double dUsup_local[4][4];
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                dUsup_local[i][j] = dUoverTsup[i][j];
+            }
+        }
+
+        double sigma_thermal[4][4];
+        for (int mu = 0; mu < 4; mu++) {
+            for (int nu = mu; nu < 4; nu++) {
+                sigma_thermal[mu][nu] = (
+                    0.5*(dUsup_local[nu][mu] + dUsup_local[mu][nu])
+                    - u_local[3]/(2.*tau*T_local)*(
+                          DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                        + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+                    + u_local[0]/(tau*T_local)*(
+                          DATA.gmunu[mu][3]*DATA.gmunu[nu][3])
+                );
+            }
+        }
+
+        sigma_th[0] = sigma_thermal[0][0];
+        sigma_th[1] = sigma_thermal[0][1];
+        sigma_th[2] = sigma_thermal[0][2];
+        sigma_th[3] = sigma_thermal[0][3];
+        sigma_th[4] = sigma_thermal[1][1];
+        sigma_th[5] = sigma_thermal[1][2];
+        sigma_th[6] = sigma_thermal[1][3];
+        sigma_th[7] = sigma_thermal[2][2];
+        sigma_th[8] = sigma_thermal[2][3];
+        sigma_th[9] = sigma_thermal[3][3];
+    } else {
+        for (auto &sigma_i : sigma_th)
+            sigma_i = 0.;
     }
 }
 
@@ -282,11 +331,11 @@ void U_derivative::calculate_T_vorticity(
     double omega_thermal[4][4];
     for (int mu = 0; mu < 4; mu++) {
         for (int nu = mu + 1; nu < 4; nu++) {
-            omega_thermal[mu][nu] = -0.5*(
-                (dUsup_local[nu][mu] - dUsup_local[mu][nu])
+            omega_thermal[mu][nu] = (
+                - 0.5*(dUsup_local[nu][mu] - dUsup_local[mu][nu])
                 - u_local[3]*T_local/(2.*tau)*(
-                    - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                    + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+                      DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                    - DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
             );
         }
     }
@@ -320,11 +369,11 @@ void U_derivative::calculate_kinetic_vorticity_no_spatial_projection(
     double omega_thermal[4][4];
     for (int mu = 0; mu < 4; mu++) {
         for (int nu = mu + 1; nu < 4; nu++) {
-            omega_thermal[mu][nu] = -0.5*(
-                (dUsup_local[nu][mu] - dUsup_local[mu][nu])
+            omega_thermal[mu][nu] = (
+                - 0.5*(dUsup_local[nu][mu] - dUsup_local[mu][nu])
                 - u_local[3]/(2.*tau)*(
-                    - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                    + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+                    + DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                    - DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
             );
         }
     }
@@ -405,6 +454,7 @@ void U_derivative::calculate_velocity_shear_tensor(
     sigma[8] = sigma_local[2][3];
     sigma[9] = sigma_local[3][3];
 }
+
 
 //! this function returns the vector D^\mu(\mu_B/T)
 void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
