@@ -69,8 +69,28 @@ void MUSIC::generate_hydro_source_terms() {
                                             new HydroSourceTATB (DATA));
         add_hydro_source_terms(hydro_source_ptr);
     } else if (DATA.Initial_profile == 941) {
-        std::array<double,3> r = {.0,.0,.0};
-        std::array<double,4> pmu = {60.,43.,0.,0.}; //See arXiv:2102.11919
+
+        //Load definitions of the grid
+        #ifdef ROOT_FOUND
+        TFile* fIC = TFile::Open(DATA.initName.data(),"READ");
+        TH3D* hE = (TH3D*) fIC->Get("energy_density");
+
+        music_message << "Using Initial_profile=" << DATA.Initial_profile
+                      << ". Overwriting lattice dimensions:";
+
+        DATA.nx = hE->GetXaxis()->GetNbins();
+        DATA.delta_x = hE->GetXaxis()->GetBinWidth(1);
+        DATA.x_size = -2*(hE->GetXaxis()->GetBinCenter(1));
+
+        DATA.ny = hE->GetYaxis()->GetNbins();
+        DATA.delta_y = hE->GetYaxis()->GetBinWidth(1);
+        DATA.y_size = -2*(hE->GetYaxis()->GetBinCenter(1));
+
+        DATA.neta = hE->GetZaxis()->GetNbins();
+        DATA.delta_eta = hE->GetZaxis()->GetBinWidth(1);
+        DATA.eta_size = -2*(hE->GetZaxis()->GetBinCenter(1));
+        #endif
+
         auto hydro_source_ptr = std::shared_ptr<HydroSourceBullet> ( 
                                             new HydroSourceBullet (DATA)
                                             );
