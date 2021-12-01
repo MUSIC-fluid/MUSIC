@@ -834,11 +834,11 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_total_current_momentum_y;
     parameter_list.total_current_momentum_y = temp_total_current_momentum_y;
 
-    double temp_total_current_momentum_eta_s = 0;
-    tempinput = Util::StringFind4(input_file, "total_current_momentum_eta_s");
+    double temp_total_current_momentum_z = 0;
+    tempinput = Util::StringFind4(input_file, "total_current_momentum_z");
     if (tempinput != "empty")
-        istringstream(tempinput) >> temp_total_current_momentum_eta_s;
-    parameter_list.total_current_momentum_eta_s = temp_total_current_momentum_eta_s;
+        istringstream(tempinput) >> temp_total_current_momentum_z;
+    parameter_list.total_current_momentum_z = temp_total_current_momentum_z;
 
     double temp_bullet_size_x = .5;
     tempinput = Util::StringFind4(input_file, "bullet_size_x");

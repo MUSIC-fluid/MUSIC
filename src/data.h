@@ -219,7 +219,7 @@ typedef struct init_data {
     double total_current_energy;
     double total_current_momentum_x;
     double total_current_momentum_y;
-    double total_current_momentum_eta_s;
+    double total_current_momentum_z;
     double bullet_size_x;
     double bullet_size_y;
     double bullet_size_eta_s;

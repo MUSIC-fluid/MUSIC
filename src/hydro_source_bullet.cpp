@@ -12,7 +12,7 @@ HydroSourceBullet::HydroSourceBullet(const InitData &DATA_in) :
     pmu_ = {DATA_.total_current_energy,
             DATA_.total_current_momentum_x,
             DATA_.total_current_momentum_y,
-            DATA_.total_current_momentum_eta_s};
+            DATA_.total_current_momentum_z};
 
     
 
