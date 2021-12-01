@@ -87,7 +87,7 @@ void HydroSourceBullet::get_hydro_energy_source(
 
             //Convert source to Milne coordinates
             double j_tau = j_mu[0]*cosh(eta_s)-j_mu[3]*sinh(eta_s);
-            double j_eta = (j_mu[3]*cosh(eta_s)-j_mu[0]*sinh(eta_s))/tau;
+            double j_eta = (j_mu[3]*cosh(eta_s)-j_mu[0]*sinh(eta_s));
             j_mu[0] = j_tau;
             j_mu[3] = j_eta;
         }
