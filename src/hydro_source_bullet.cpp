@@ -80,8 +80,7 @@ void HydroSourceBullet::get_hydro_energy_source(
         //std::cout << index[0] << ", " << index[1] << ", " << index[2] << std::endl << std::flush;
         if( point_flagged(index[0],index[1],index[2]) ){
             //Compute point volume
-            double dz = get_z(tau,eta_s+DATA_.delta_eta/2) - get_z(tau,eta_s-DATA_.delta_eta/2);
-            double vol = DATA_.delta_x*DATA_.delta_y*dz;
+            double vol = DATA_.delta_x*DATA_.delta_y*DATA_.delta_eta*tau;
             for (int idir=0; idir<4;++idir)
                 j_mu[idir] = (pmu_frac_[idir]/vol/DATA_.delta_tau)/Util::hbarc;
 
