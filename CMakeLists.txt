@@ -9,6 +9,24 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+#Version number
+add_custom_target(
+    version_target ALL #Always runs
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/__version.h
+)
+
+set(tag_def "\\#define TAG ")
+set(url_def "\\#define URL ")
+set(branch_def "\\#define BRANCH ")
+add_custom_command(
+    OUTPUT
+        ${CMAKE_CURRENT_BINARY_DIR}/__version.h # fake! ensure we run!
+    COMMAND echo ${tag_def} \\\"`git describe --tag`\\\" > ${PROJECT_SOURCE_DIR}/src/version.h
+    COMMAND echo ${url_def} \\\"`git remote get-url origin`\\\" >> ${PROJECT_SOURCE_DIR}/src/version.h
+    COMMAND echo ${branch_def} \\\"`git rev-parse --abbrev-ref HEAD`\\\" >> ${PROJECT_SOURCE_DIR}/src/version.h
+)
+
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_HOME_DIRECTORY}")
 
 set(CMAKE_INSTALL_RPATH ${CMAKE_HOME_DIRECTORY})

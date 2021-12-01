@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include<iostream>
+#include "version.h"
 
 namespace MUSIC_LOGO {
 
@@ -72,6 +73,10 @@ void display_code_description_and_copyright() {
     std::cout << "Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, "
               << "Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen"
               << std::endl;
+    std::cout << std::endl
+              << "Commit: " << TAG << std::endl
+              << "Origin: " << URL << std::endl
+              << "Branch: " << BRANCH << std::endl << std::endl;
 }
 
 //! This function prints out the welcome message

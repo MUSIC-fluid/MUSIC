@@ -15,3 +15,4 @@ a.out
 build/
 *.so
 music_input*
+src/version.h
