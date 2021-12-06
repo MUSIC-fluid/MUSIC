@@ -18,7 +18,8 @@ HydroSourceStrings::HydroSourceStrings(const InitData &DATA_in) :
     set_source_tau_min(100.0);
     set_source_tau_max(0.0);
     set_sigma_tau(0.1);
-    set_sigma_x  (0.5);
+    double temsigma_x = DATA.sigma_x;
+    set_sigma_x  (temsigma_x);
     set_sigma_eta(0.5);
     string_dump_mode     = DATA.string_dump_mode;
     string_quench_factor = DATA.string_quench_factor;

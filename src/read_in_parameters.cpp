@@ -440,6 +440,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream ( tempinput ) >> tempsFactor;
     parameter_list.sFactor = tempsFactor;
 
+    // sigma_x:  for use with 3DGlauber initial conditions
+    double tempsigma_x   = 0.5;
+    tempinput = Util::StringFind4(input_file, "sigma_x");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempsigma_x;
+    parameter_list.sigma_x = tempsigma_x;
+    
     // for calculation of spectra:
     // max_pseudorapidity:
     // spectra calculated from zero to this pseudorapidity in +eta and -eta
