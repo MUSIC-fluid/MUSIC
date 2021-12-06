@@ -1868,7 +1868,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
     filename << "momentum_anisotropy_tau_" << tau << ".dat";
     std::fstream of;
     of.open(filename.str().c_str(), std::fstream::out);
-    of << "# tau(fm)  epsilon_p(ideal)(cos)  epsilon_p(ideal)(sin)  "
+    of << "# eta_s  epsilon_p(ideal)(cos)  epsilon_p(ideal)(sin)  "
        << "epsilon_p(shear)(cos)  epsilon_p(shear)(sin)  "
        << "epsilon_p(full)(cos)  epsilon_p(full)(sin)  " << endl;
 
@@ -1876,13 +1876,20 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
     filename1 << "eccentricities_evo_ed_tau_" << tau << ".dat";
     std::fstream of1;
     of1.open(filename1.str().c_str(), std::fstream::out);
-    of1 << "# tau(fm)  ed(GeV/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
+    of1 << "# eta_s  ed(GeV/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
 
     ostringstream filename2;
     filename2 << "eccentricities_evo_nB_tau_" << tau << ".dat";
     std::fstream of2;
     of2.open(filename2.str().c_str(), std::fstream::out);
-    of2 << "# tau(fm)  nB(1/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
+    of2 << "# eta_s  nB(1/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
+
+    ostringstream filename3;
+    filename3 << "meanpT_estimators_tau_" << tau << ".dat";
+    std::fstream of3;
+    of3.open(filename3.str().c_str(), std::fstream::out);
+    of3 << "# eta_s  dE/deta_s (GeV)  dS/deta_s  [s] (1/fm^-3)  [r^2] (fm^2)"
+        << endl;
 
     const int norder = 6;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
@@ -1927,6 +1934,9 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
         std::vector<double> eccn_nB_num1(norder, 0.0);
         std::vector<double> eccn_nB_num2(norder, 0.0);
         std::vector<double> eccn_nB_den (norder, 0.0);
+
+        std::vector<double> meanpT_est_num(4, 0.0);
+        std::vector<double> meanpT_est_den(1, 0.0);
         for (int iy = 0; iy < arena.nY(); iy++)
         for (int ix = 0; ix < arena.nX(); ix++) {
             double x_ed = - DATA.x_size/2. + ix*DATA.delta_x - x_ed_o;
@@ -1942,6 +1952,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
             double P_local    = eos.get_pressure(e_local, rhob_local);
             double enthopy    = e_local + P_local;
+            double s_local    = eos.get_entropy(e_local, rhob_local);
             double u0         = arena(ix, iy, ieta).u[0];
             double ux         = arena(ix, iy, ieta).u[1];
             double uy         = arena(ix, iy, ieta).u[2];
@@ -1950,17 +1961,18 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             double pi_yy      = arena(ix, iy, ieta).Wmunu[7];
             double bulk_Pi    = arena(ix, iy, ieta).pi_b;
 
-            double T_xx_ideal   = enthopy*ux*ux + P_local;
-            double T_xy_ideal   = enthopy*ux*uy;
-            double T_yy_ideal   = enthopy*uy*uy + P_local;
+            double T_00_ideal = enthopy*u0*u0 - P_local;
+            double T_xx_ideal = enthopy*ux*ux + P_local;
+            double T_xy_ideal = enthopy*ux*uy;
+            double T_yy_ideal = enthopy*uy*uy + P_local;
 
-            double T_xx_shear   = T_xx_ideal + pi_xx;
-            double T_xy_shear   = T_xy_ideal + pi_xy;
-            double T_yy_shear   = T_yy_ideal + pi_yy;
+            double T_xx_shear = T_xx_ideal + pi_xx;
+            double T_xy_shear = T_xy_ideal + pi_xy;
+            double T_yy_shear = T_yy_ideal + pi_yy;
 
-            double T_xx_full    = T_xx_shear - bulk_Pi*(-1 - ux*ux);
-            double T_xy_full    = T_xy_shear + bulk_Pi*ux*uy;
-            double T_yy_full    = T_yy_shear - bulk_Pi*(-1 - uy*uy);
+            double T_xx_full  = T_xx_shear - bulk_Pi*(-1 - ux*ux);
+            double T_xy_full  = T_xy_shear + bulk_Pi*ux*uy;
+            double T_yy_full  = T_yy_shear - bulk_Pi*(-1 - uy*uy);
 
             ep_num1[0] += T_xx_ideal - T_yy_ideal;
             ep_num2[0] += 2.*T_xy_ideal;
@@ -1993,6 +2005,12 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
                     eccn_nB_den [i] += w_nB;
                 }
             }
+
+            meanpT_est_num[0] = tau*s_local*u0;         // dS/deta_s
+            meanpT_est_num[1] = tau*T_00_ideal;         // dE/deta_s
+            meanpT_est_num[2] = s_local*u0*e_local;     // [s]
+            meanpT_est_num[3] = r_ed*r_ed*u0*e_local;   // [r^2]
+            meanpT_est_den[0] = u0*e_local;
         }
 
         // output results
@@ -2021,10 +2039,18 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
                 << -eccn_nB_num2[i]/std::max(eccn_nB_den[i], small_eps) << "  ";
         }
         of2 << endl;
+
+        of3 << scientific << setw(18) << setprecision(8)
+            << eta << "  "
+            << meanpT_est_num[0]*hbarc*DATA.delta_x*DATA.delta_y << "  "
+            << meanpT_est_num[1]*DATA.delta_x*DATA.delta_y << "  "
+            << meanpT_est_num[2]/meanpT_est_den[0] << "  "
+            << meanpT_est_num[3]/meanpT_est_den[0] << endl;
     }
     of.close();
     of1.close();
     of2.close();
+    of3.close();
 }
 
 

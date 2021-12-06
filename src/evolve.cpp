@@ -61,6 +61,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     double tau;
     int it_start = 0;
+    if (DATA.Initial_profile == 112)
+        it_start = 3;
     double source_tau_max = 0.0;
     if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
         source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
@@ -228,10 +230,6 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                            100, 100, 0, tau);
         }
 
-        /* execute rk steps */
-        // all the evolution are at here !!!
-        AdvanceRK(tau, ap_prev, ap_current, ap_future);
-
         //determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
@@ -254,6 +252,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                                   arena_freezeout);
             }
         }
+
+        /* execute rk steps */
+        // all the evolution are at here !!!
+        AdvanceRK(tau, ap_prev, ap_current, ap_future);
+
         music_message << emoji::clock()
                       << " Done time step " << it << "/" << itmax
                       << " tau = " << tau << " fm/c";
@@ -359,16 +362,9 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     std::ofstream s_file;
     std::ios_base::openmode modes;
 
+    modes = std::ios::out | std::ios::app;
     if (surface_in_binary) {
-        modes=std::ios::out | std::ios::binary;
-    } else {
-        modes=std::ios::out;
-    }
-
-    // Only append at the end of the file if it's not the first timestep
-    // (that is, overwrite file at first timestep)
-    if (tau != DATA.tau0+DATA.delta_tau) {
-        modes = modes | std::ios::app;
+        modes = modes | std::ios::binary;
     }
 
     s_file.open(strs_name.str().c_str(), modes);
@@ -756,16 +752,9 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     std::ofstream s_file;
     std::ios_base::openmode modes;
 
+    modes = std::ios::out | std::ios::app;
     if (surface_in_binary) {
-        modes=std::ios::out | std::ios::binary;
-    } else {
-        modes=std::ios::out;
-    }
-
-    // Only append at the end of the file if it's not the first timestep
-    // (that is, overwrite file at first timestep)
-    if (tau != DATA.tau0+DATA.delta_tau) {
-            modes = modes | std::ios::app;
+        modes = modes | std::ios::binary;
     }
 
     s_file.open(strs_name.str().c_str(), modes);

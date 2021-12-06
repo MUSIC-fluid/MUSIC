@@ -136,7 +136,7 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         new_string->tau_baryon_left = (
             temp_factor2 + sqrt(temp_factor2*temp_factor2 - temp_factor1));
         new_string->tau_baryon_right = (
-            temp_factor3 + sqrt(temp_factor2*temp_factor2 - temp_factor1));
+            temp_factor3 + sqrt(temp_factor3*temp_factor3 - temp_factor1));
 
         // determine the tau_start and eta_s_start of the string
         if (new_string->eta_s_left > new_string->eta_s_0) {
