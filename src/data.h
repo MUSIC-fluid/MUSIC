@@ -79,6 +79,9 @@ typedef struct init_data {
     double minmod_theta;
 
     double sFactor;     //!< overall normalization on energy density profile
+    
+    double sigma_x;     //!< the width of the string from 3DGlauber initial model
+    
     int whichEOS;       //!< type of EoS
     //! flag for boost invariant simulations
     bool boost_invariant;
