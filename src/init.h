@@ -7,6 +7,7 @@
 #include <cmath>
 #include <memory>
 #include <fstream>
+#include <iostream>
 #include <iterator>
 
 #ifdef ROOT_FOUND
@@ -69,7 +70,10 @@ class Init {
     void initial_UMN_with_rhob           (SCGrid &arena_prev, SCGrid & arena_current);
     void initial_with_jetscape           (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_trento_XY               (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
+    void initial_AMPT_smeared            (SCGrid &arena_prev, SCGrid &arena_current);
     int read_nexus_profile               (SCGrid &arena_prev, SCGrid &arena_current);
+
+    void AMPT_smeared_header();
 
     void get_jetscape_preequilibrium_vectors(
         std::vector<double> e_in,

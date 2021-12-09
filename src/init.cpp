@@ -123,29 +123,29 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
 
         music_message << "Using Initial_profile=" << DATA.Initial_profile
                       << ". Overwriting lattice dimensions:";
-        
+
         DATA.nx = hE->GetXaxis()->GetNbins();
         DATA.delta_x = hE->GetXaxis()->GetBinWidth(1);
         DATA.x_size = -2*(hE->GetXaxis()->GetBinCenter(1));
-        
+
         DATA.ny = hE->GetYaxis()->GetNbins();
         DATA.delta_y = hE->GetYaxis()->GetBinWidth(1);
         DATA.y_size = -2*(hE->GetYaxis()->GetBinCenter(1));
-        
+
         DATA.neta = hE->GetZaxis()->GetNbins();
         DATA.delta_eta = hE->GetZaxis()->GetBinWidth(1);
         DATA.eta_size = -2*(hE->GetZaxis()->GetBinCenter(1));
 
         music_message << " neta=" << DATA.neta << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
-        music_message << " deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x 
+        music_message << " deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
-        music_message << "Leta= "<< DATA.eta_size <<", Lx=" << DATA.x_size<< ", Ly="<<DATA.y_size; 
+        music_message << "Leta= "<< DATA.eta_size <<", Lx=" << DATA.x_size<< ", Ly="<<DATA.y_size;
         music_message.flush("info");
 
         fIC->Close();
         #else
         music_message << "MUSIC was not compiled against ROOT, necessary for ";
-        music_message << "reading ICs with Initial profile = 94 or 95.";
+        music_message << "reading ICs with Initial profile = 94, 941 or 95.";
         music_message.flush("error");
         #endif
     } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111) {
@@ -183,7 +183,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ", nx = " << nx << ", ny = " << ny;
         music_message.flush("info");
         music_message << "deta=" << DATA.delta_eta
-                      << ", dx=" << DATA.delta_x 
+                      << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
         music_message << "x_size = "     << DATA.x_size
@@ -200,7 +200,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ", deta = " << DATA.delta_eta;
         music_message.flush("info");
     } else if (DATA.Initial_profile == 17) {
-        music_message << "Using NeXus initial profile. (Initial_profile = " 
+        music_message << "Using NeXus initial profile. (Initial_profile = "
                       << DATA.Initial_profile <<")";
         music_message.flush("info");
         music_message << "Reading IC from "<< DATA.initName.c_str();
@@ -215,7 +215,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ", nx = " << DATA.nx << ", ny = " << DATA.ny;
         music_message.flush("info");
         music_message << "deta=" << DATA.delta_eta
-                      << ", dx=" << DATA.delta_x 
+                      << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
         music_message << "x_size = "     << DATA.x_size
@@ -223,6 +223,8 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ", eta_size = " << DATA.eta_size;
         music_message.flush("info");
 
+    } else if (DATA.Initial_profile == 22){
+        AMPT_smeared_header();
     }
 
     // initialize arena
@@ -249,6 +251,180 @@ void Init::print_num_of_threads() {
         }
     }
 }
+void Init::AMPT_smeared_header(){
+
+    ifstream input_file(DATA.initName.c_str());
+    std::string input_line;
+
+    music_message << "Overwritting grid dimensions..."
+                  << "\n----------\n";
+
+    auto return_val = [](std::string line, std::string par){
+            size_t found = line.find(par);
+            if (found!=std::string::npos){
+                return line.substr(found+par.size(),line.size() );
+            } else {
+                return std::string("");
+            }
+    };
+
+    while (getline(input_file, input_line)) {
+        if (input_line[0] == '#') { // read only header lines
+            if (return_val(input_line,"nx =").compare("")){
+                DATA.nx = std::stoi(return_val(input_line,"nx ="));
+                music_message << "nx = " << DATA.nx << "\n";
+            }
+            if (return_val(input_line,"ny =").compare("")){
+                DATA.ny = std::stoi(return_val(input_line,"ny ="));
+                music_message << "ny = " << DATA.ny << "\n";
+            }
+            if (return_val(input_line,"neta =").compare("")){
+                DATA.neta = std::stoi(return_val(input_line,"neta ="));
+                music_message << "neta = " << DATA.neta << "\n";
+            }
+            if (return_val(input_line,"Lx =").compare("")){
+                DATA.x_size = std::stod(return_val(input_line,"Lx ="));
+                music_message << "Lx = " << DATA.x_size << "\n";
+            }
+            if (return_val(input_line,"Ly =").compare("")){
+                DATA.y_size = std::stod(return_val(input_line,"Ly ="));
+                music_message << "Ly = " << DATA.y_size << "\n";
+            }
+            if (return_val(input_line,"Leta =").compare("")){
+                DATA.eta_size = std::stod(return_val(input_line,"Leta ="));
+                music_message << "Leta = " << DATA.eta_size << "\n";
+            }
+        }
+    }
+
+    //Now we determine grid spacing
+    DATA.delta_x = DATA.x_size/(DATA.nx-1);
+    DATA.delta_y = DATA.y_size/(DATA.ny-1);
+    DATA.delta_eta = DATA.eta_size/(DATA.neta-1);
+    music_message <<   "dx = "<<DATA.delta_x
+                  << "\ndy = "<<DATA.delta_y
+                  << "\ndeta = "<<DATA.delta_eta;
+
+
+    music_message << "\n----------";
+    music_message.flush("info");
+
+    input_file.close();
+
+
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+///\author Willian M. Serenone
+///\brief Reads the initial condition from smeared AMPT event. Format should be
+/// x y eta epsilon ux uy ueta trace pitautau pitaux pitauy pitaueta pixx pixy pixeta piyy piyeta pietaeta rhob
+void Init::initial_AMPT_smeared(SCGrid &arena_prev, SCGrid &arena_current){
+
+    const size_t nx = arena_current.nX();
+    const size_t ny = arena_current.nY();
+    const size_t neta = arena_current.nEta();
+
+    const float dx = DATA.delta_x;
+    const float dy = DATA.delta_y;
+    const float deta = DATA.delta_eta;
+
+    const float Lx = DATA.x_size;
+    const float Ly = DATA.y_size;
+    const float Leta = DATA.eta_size;
+
+    ifstream input_file(DATA.initName.c_str());
+    std::string input_line;
+
+    long ii=0;
+    while (getline(input_file, input_line)) {
+        if (input_line[0] != '#') { // ignore header lines
+            std::istringstream line_stream(input_line);
+            std::vector<double> line_vector((std::istream_iterator<double>(line_stream)), std::istream_iterator<double>());
+
+            //Check if the number of columns is the one expected
+            if (line_vector.size() != 19){
+                music_message << "Wrong number of columns in input file";
+                music_message.flush("error");
+                exit(1);
+            }
+
+            double x        = line_vector[0];
+            double y        = line_vector[1];
+            double eta      = line_vector[2];
+            double eps      = line_vector[3]/Util::hbarc;
+            double ux       = line_vector[4];
+            double uy       = line_vector[5];
+            double ueta     = line_vector[6];
+            double trace    = line_vector[7]/Util::hbarc;
+            double pitautau = line_vector[8]/Util::hbarc;
+            double pitaux   = line_vector[9]/Util::hbarc;
+            double pitauy   = line_vector[10]/Util::hbarc;
+            double pitaueta = line_vector[11]/Util::hbarc;
+            double pixx     = line_vector[12]/Util::hbarc;
+            double pixy     = line_vector[13]/Util::hbarc;
+            double pixeta   = line_vector[14]/Util::hbarc;
+            double piyy     = line_vector[15]/Util::hbarc;
+            double piyeta   = line_vector[16]/Util::hbarc;
+            double pietaeta = line_vector[17]/Util::hbarc;
+            double rhob     = line_vector[18]/Util::hbarc;
+
+            int ix = std::round( (x + Lx*.5)/dx);
+            int iy = std::round( (y + Ly*.5)/dy);
+            int ieta = std::round( (eta + Leta*.5)/deta);
+
+            if((ix < 0) || (ix >= DATA.nx)){
+                music_message << "ix = " << ix << " is out of boundaries";
+                music_message.flush("error");
+                music_message << "x = " << x;
+                music_message.flush("error");
+                exit(1);
+            }
+            if((iy < 0) || (iy >= DATA.ny)){
+                music_message << "iy = " << iy << " is out of boundaries";
+                music_message.flush("error");
+                music_message << "y = " << y;
+                music_message.flush("error");
+                exit(1);
+            }
+            if((ieta < 0) || (ieta >= DATA.neta)){
+                music_message << "ieta = " << ieta << " is out of boundaries";
+                music_message.flush("error");
+                music_message << "eta_s = " << eta;
+                music_message.flush("error");
+                exit(1);
+            }
+
+
+            double tau_ueta = DATA.tau0*ueta;
+            double utau = sqrt(1+ux*ux + uy*uy + tau_ueta*tau_ueta);
+
+            arena_current(ix, iy, ieta).epsilon = eps*DATA.sFactor;
+            arena_current(ix, iy, ieta).rhob = rhob;
+            arena_current(ix, iy, ieta).u[0] = utau;
+            arena_current(ix, iy, ieta).u[1] = ux;
+            arena_current(ix, iy, ieta).u[2] = uy;
+            arena_current(ix, iy, ieta).u[3] = tau_ueta;
+
+            arena_current(ix, iy, ieta).Wmunu[0] = pitautau;
+            arena_current(ix, iy, ieta).Wmunu[1] = pitaux;
+            arena_current(ix, iy, ieta).Wmunu[2] = pitauy;
+            arena_current(ix, iy, ieta).Wmunu[3] = DATA.tau0*pitaueta;
+            arena_current(ix, iy, ieta).Wmunu[4] = pixx;
+            arena_current(ix, iy, ieta).Wmunu[5] = pixy;
+            arena_current(ix, iy, ieta).Wmunu[6] = DATA.tau0*pixeta;
+            arena_current(ix, iy, ieta).Wmunu[7] = piyy;
+            arena_current(ix, iy, ieta).Wmunu[8] = piyeta;
+            arena_current(ix, iy, ieta).Wmunu[9] = DATA.tau0*DATA.tau0*pietaeta;
+
+            arena_current(ix, iy, ieta).pi_b = (eps-trace)/3.0 - eos.get_pressure(eps,rhob);
+
+            arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
+        }
+    }
+    input_file.close();
+}
+
 
 void Init::initial_trento_XY(int ieta, SCGrid &arena_prev, SCGrid &arena_current) {
     // initial condition is a 2D profile generated by Trento
@@ -340,7 +516,7 @@ int Init::read_nexus_header(ifstream* nexus_IC){
     *nexus_IC >> DATA.nx >> DATA.ny >> DATA.neta;
     double xmin, xmax, ymin, ymax, eta_min, eta_max;
     *nexus_IC >> xmin >> xmax >> ymin >> ymax >> eta_min >> eta_max;
-    
+
     if(xmin > xmax){
         music_message << "xmin > xmax. Check NeXus file format.";
         music_message << "xmin = " << xmin<<". ";
@@ -378,7 +554,7 @@ int Init::read_nexus_header(ifstream* nexus_IC){
         music_message << "Grid size in eta_s is asymmetrical. We will symmetrize it";
         music_message.flush("warning");
     }
-        
+
     DATA.x_size = xmax-xmin;
     DATA.y_size = ymax-ymin;
     DATA.eta_size = eta_max-eta_min;
@@ -386,7 +562,7 @@ int Init::read_nexus_header(ifstream* nexus_IC){
     DATA.delta_x = DATA.x_size/DATA.nx;
     DATA.delta_y = DATA.y_size/DATA.ny;
     DATA.delta_eta = DATA.eta_size/DATA.neta;
-    
+
     return 0;
 
 }
@@ -398,26 +574,26 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
     if (read_nexus_header(&profile_nexus) < 0 ) return -1;
     double tau = DATA.tau0;
     std::string dummy;
-    
+
 
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
     const int neta = arena_current.nEta();
 
-    std::vector<std::vector<std::vector<double>>> temp_profile_ed = 
+    std::vector<std::vector<std::vector<double>>> temp_profile_ed =
         std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
-    std::vector<std::vector<std::vector<double>>> temp_profile_vx = 
+    std::vector<std::vector<std::vector<double>>> temp_profile_vx =
         std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
-    std::vector<std::vector<std::vector<double>>> temp_profile_vy = 
+    std::vector<std::vector<std::vector<double>>> temp_profile_vy =
         std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
-    std::vector<std::vector<std::vector<double>>> temp_profile_veta = 
+    std::vector<std::vector<std::vector<double>>> temp_profile_veta =
         std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
 
-    std::vector<std::vector<std::vector<double>>> temp_profile_net_up = 
+    std::vector<std::vector<std::vector<double>>> temp_profile_net_up =
         std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
-    std::vector<std::vector<std::vector<double>>> temp_profile_net_down = 
+    std::vector<std::vector<std::vector<double>>> temp_profile_net_down =
         std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
-    std::vector<std::vector<std::vector<double>>> temp_profile_net_strange = 
+    std::vector<std::vector<std::vector<double>>> temp_profile_net_strange =
         std::vector<std::vector<std::vector<double>>>(neta,std::vector<std::vector<double>>(ny,std::vector<double>(nx,.0)));
 
     // Ignore T^\mu \nu
@@ -425,16 +601,16 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
 
     // Ignore flavor current
     for (int ignore=0; ignore<12*nx*ny*neta;++ignore) profile_nexus >> dummy;
-    
+
     // Grab energy density
     for (int ieta = 0; ieta < neta; ++ieta)
-        for (int iy = 0; iy < ny; ++iy) 
+        for (int iy = 0; iy < ny; ++iy)
             for (int ix = 0; ix < nx; ++ix)
                 profile_nexus >> temp_profile_ed[ieta][iy][ix];
-    
+
     // Grab velocity (non-relativistic)
     for (int ieta = 0; ieta < neta; ++ieta)
-        for (int iy = 0; iy < ny; ++iy) 
+        for (int iy = 0; iy < ny; ++iy)
             for (int ix = 0; ix < nx; ++ix)
                 profile_nexus >> temp_profile_vx[ieta][iy][ix]
                               >> temp_profile_vy[ieta][iy][ix]
@@ -442,18 +618,18 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
 
     // Grab net flavor densities
     for (int ieta = 0; ieta < neta; ++ieta)
-        for (int iy = 0; iy < ny; ++iy) 
+        for (int iy = 0; iy < ny; ++iy)
             for (int ix = 0; ix < nx; ++ix){
                 profile_nexus >> temp_profile_net_up[ieta][iy][ix];
                 profile_nexus >> temp_profile_net_down[ieta][iy][ix];
                 profile_nexus >> temp_profile_net_strange[ieta][iy][ix];
             }
-    
+
     for (int ieta = 0; ieta < neta; ++ieta){
         for (int iy = 0; iy< ny; iy++) {
             for (int ix = 0; ix < nx; ix++) {
 
-                double rhob = (temp_profile_net_up[ieta][iy][ix] 
+                double rhob = (temp_profile_net_up[ieta][iy][ix]
                                + temp_profile_net_down[ieta][iy][ix]
                                + temp_profile_net_strange[ieta][iy][ix])/3.;
                 double epsilon = (temp_profile_ed[ieta][iy][ix])/hbarc; // Convert to 1/fm^4
@@ -461,25 +637,25 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
 
                 if ( isnan(epsilon) ){
                     music_message << "nan found in energy profile";
-                    music_message.flush("error");    
+                    music_message.flush("error");
                 }
                 if ( isnan(temp_profile_vx[ieta][iy][ix]) ){
                     music_message << "nan found in vx profile";
-                    music_message.flush("error");    
+                    music_message.flush("error");
                 }
                 if ( isnan(temp_profile_vy[ieta][iy][ix]) ){
                     music_message << "nan found in vy profile";
-                    music_message.flush("error");    
+                    music_message.flush("error");
                 }
                 if ( isnan(temp_profile_veta[ieta][iy][ix]) ){
                     music_message << "nan found in veta profile";
-                    music_message.flush("error");    
+                    music_message.flush("error");
                 }
-                
+
 
                 arena_current(ix, iy, ieta).epsilon = epsilon;
                 arena_current(ix, iy, ieta).rhob = rhob;
-                
+
                 double vx = temp_profile_vx[ieta][iy][ix];
                 double vy = temp_profile_vy[ieta][iy][ix];
                 double veta = temp_profile_veta[ieta][iy][ix];
@@ -490,7 +666,7 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
                     music_message.flush("error");
                 }
 
-                double gamma = pow(1.- v2,.5);              
+                double gamma = pow(1.- v2,.5);
 
 
                 arena_current(ix, iy, ieta).u[0] = gamma;
@@ -498,7 +674,7 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
                 arena_current(ix, iy, ieta).u[2] = gamma*vy;
                 arena_current(ix, iy, ieta).u[3] = gamma*veta;
 
-                
+
 
                 if (DATA.turn_on_bulk == 1) {
                     //Make the tensor traceless
@@ -556,7 +732,7 @@ int Init::read_nexus_profile(SCGrid &arena_prev,
 
                 arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
-        }   
+        }
     }
     profile_nexus.close();
     return 0;
@@ -611,7 +787,7 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message.flush("info");
 
         initial_ROOT_XYEta_with_pi(arena_prev, arena_current);
-        
+
     } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111) {
         // read in the transverse profile from file with finite rho_B
         // the initial entropy and net baryon density profile are
@@ -674,6 +850,9 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         for (int ieta = 0; ieta < arena_current.nEta(); ieta++){
             initial_trento_XY(ieta, arena_prev, arena_current);
         }
+    } else if (DATA.Initial_profile == 22){
+        music_message.info("Reading initial profile in AMPT-genesis format");
+        initial_AMPT_smeared(arena_prev, arena_current);
     }
 
     if (DATA.viscosity_flag == 0) {
@@ -1138,7 +1317,7 @@ void Init::initial_ROOT_XYEta_with_pi(SCGrid &arena_prev, SCGrid &arena_current)
 
 
     for (int ieta=0; ieta<neta;++ieta){
-    
+
         std::vector<double> temp_profile_ed(nx*ny, 0.0);
         std::vector<double> temp_profile_utau(nx*ny, 0.0);
         std::vector<double> temp_profile_ux(nx*ny, 0.0);
@@ -1230,7 +1409,7 @@ void Init::initial_ROOT_XYEta_with_pi(SCGrid &arena_prev, SCGrid &arena_current)
                 arena_current(ix, iy, ieta).epsilon = epsilon;
                 arena_current(ix, iy, ieta).rhob = rhob;
 
-            
+
                 arena_current(ix, iy, ieta).u[0] = temp_profile_utau[idx];
                 arena_current(ix, iy, ieta).u[1] = temp_profile_ux[idx];
                 arena_current(ix, iy, ieta).u[2] = temp_profile_uy[idx];
@@ -1250,8 +1429,8 @@ void Init::initial_ROOT_XYEta_with_pi(SCGrid &arena_prev, SCGrid &arena_current)
                 double pressure = eos.get_pressure(epsilon, rhob);
                 if ( DATA.Initial_profile == 94) arena_current(ix, iy, ieta).pi_b = epsilon/3. - pressure;
                 if ( DATA.Initial_profile == 95) arena_current(ix, iy, ieta).pi_b = -pressure;
-                
-            
+
+
                 arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
             }
         }
