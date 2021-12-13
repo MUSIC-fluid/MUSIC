@@ -663,7 +663,7 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     transport_coeff1   = (
             transport_coeffs_.get_delta_PiPi_coeff()*Bulk_Relax_time);
     transport_coeff2   = (
-            transport_coeffs_.get_tau_pipi_coeff()*Bulk_Relax_time);
+            transport_coeffs_.get_tau_PiPi_coeff()*Bulk_Relax_time);
 
     // from kinetic theory
     transport_coeff1_s = (transport_coeffs_.get_lambda_Pipi_coeff()
@@ -691,7 +691,7 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
 
     if (include_coupling_to_shear == 1) {
         auto sigma = Util::UnpackVecToMatrix(sigma_1d);
-	    auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu);
+        auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu);
 
         Wsigma = (  Wmunu[0][0]*sigma[0][0]
                   + Wmunu[1][1]*sigma[1][1]
