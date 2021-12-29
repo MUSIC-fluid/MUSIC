@@ -964,13 +964,33 @@ double Diss::get_temperature_dependent_eta_s(const double T) const {
     const double Tslope = 1.2;
     const double Tlow = 0.1/hbarc;
     double f_T = 1.0;
-    if (T < Tc) {
-        f_T += Tslope*(Tc - T)/(Tc - Tlow);
+    if ((DATA.T_dependent_shear_to_s == 2) || (DATA.T_dependent_shear_to_s == 1)){
+        if (T < Tc) {
+            f_T += Tslope*(Tc - T)/(Tc - Tlow);
+        } else {
+            if (DATA.T_dependent_shear_to_s == 2) {
+                const double Tslope2 = 1.0;
+                const double Thigh = 0.4/hbarc;
+                f_T += Tslope2*(T - Tc)/(Thigh - Tc);
+            }
+        }
     } else {
-        if (DATA.T_dependent_shear_to_s == 2) {
-            const double Tslope2 = 1.0;
-            const double Thigh = 0.4/hbarc;
-            f_T += Tslope2*(T - Tc)/(Thigh - Tc);
+        if (DATA.T_dependent_shear_to_s == 3){
+            //Duke parametrization: https://www.nature.com/articles/s41567-019-0611-8#Sec16
+            //See Eq. 2, and table 1 of supplementary materials
+            const double Tc = .154/hbarc;
+            const double slope = 1.11;
+            const double curve = -.48;
+            const double vis_min = DATA.shear_to_s; //Input should be .093
+            f_T += T > Tc ? (slope/vis_min)*(T-Tc)*pow(T/Tc,curve) : 0;
+        } else if (DATA.T_dependent_shear_to_s == 4) {
+            //Munich parametrization: https://arxiv.org/pdf/2111.08145.pdf
+            //See Eq. 1 and Table 1
+            const double Tc = .141/hbarc;
+            const double slope = 0.8024;
+            const double curve = .1598;
+            const double vis_min = DATA.shear_to_s; //Input should be .085
+            f_T += T > Tc ? (slope/vis_min)*(T-Tc)*pow(T/Tc,curve) : 0;
         }
     }
     return(f_T);
@@ -1073,6 +1093,22 @@ double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
             Tdiff = Tdiff/B_width1;
         }
         bulk = B_norm*exp(-Tdiff*Tdiff);
+    } else if (DATA.T_dependent_zeta_over_s == 10) {
+        // 2019 Duke parametrization: https://doi.org/10.1038/s41567-019-0611-8
+        // See Eq. 3 and table 1 of supplementary materials
+        double const max_bulk = 0.052;
+        double const Tpeak  = .183/hbarc;
+        double const Twidth = 0.022/hbarc;
+
+        return max_bulk/(1+pow((temperature-Tpeak)/Twidth,2));
+    } else if (DATA.T_dependent_zeta_over_s == 11) {
+        // Munich parametrization: https://doi.org/10.1038/s41567-019-0611-8
+        // See Eq. 2 and table 1
+        double const max_bulk = 0.01844;
+        double const Tpeak  = .1889/hbarc;
+        double const Twidth = 0.04252/hbarc;
+
+        return max_bulk/(1+pow((temperature-Tpeak)/Twidth,2));
     }
     return(bulk);
 }
