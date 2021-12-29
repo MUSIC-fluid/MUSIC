@@ -367,7 +367,7 @@ void Init::initial_AMPT_smeared(SCGrid &arena_prev, SCGrid &arena_current){
             double piyy     = line_vector[15]/Util::hbarc;
             double piyeta   = line_vector[16]/Util::hbarc;
             double pietaeta = line_vector[17]/Util::hbarc;
-            double rhob     = line_vector[18]/Util::hbarc;
+            double rhob     = line_vector[18];
 
             int ix = std::round( (x + Lx*.5)/dx);
             int iy = std::round( (y + Ly*.5)/dy);
