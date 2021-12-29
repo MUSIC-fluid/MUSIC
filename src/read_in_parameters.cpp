@@ -197,9 +197,14 @@ InitData read_in_parameters(std::string input_file) {
     // 5: PCE EOS at 160 MeV
     // 6: PCE EOS at 165 MeV
     // 7: lattice EOS with CE match with UrQMD
-    // 10: finite muB EOS from A. Monnai (up to mu_B^4)
-    // 11: finite muB EOS from Pasi
-    // 12: finite muB EOS from A. Monnai (up to mu_B^6)
+    // 10: finite muB EOS from A. Monnai (up to mu_B^4) - NEOS
+    // 11: finite muB EOS from Pasi - NEOS
+    // 12: finite muB EOS from A. Monnai (up to mu_B^6) - NEOS_B
+    // 13: finite muB EOS - NEOS_BS
+    // 14: finite muB EOS - NEOS_BSQ
+    // 10-14: See https://sites.google.com/view/qcdneos/ and https://arxiv.org/pdf/2101.11591.pdf
+    // 17: finite muB EOS with CP from BEST collaboration.
+    // 19: HU EoS
     int tempwhichEOS = 2;
     tempinput = Util::StringFind4(input_file, "EOS_to_use");
     if (tempinput != "empty")
@@ -957,9 +962,10 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
 
     if (parameter_list.useEpsFO == 0) {
         music_message << "freeze-out surface set by temperature is not "
-                      << "support yet. reset use_eps_for_freeze_out to 1.";
+                      << "supported yet. We will use a constant energy value "
+                      << "equivalent to the requested temperature at zero "
+                      << "baryon chemical potential";
         music_message.flush("warning");
-        parameter_list.useEpsFO = 1;
     }
 
     if ((parameter_list.whichEOS > 19 && parameter_list.whichEOS != 91)
