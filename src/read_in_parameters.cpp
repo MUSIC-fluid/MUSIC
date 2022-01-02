@@ -36,6 +36,18 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_string_dump_mode;
     parameter_list.string_dump_mode = temp_string_dump_mode;
 
+    double temp_string_source_sigma_x = 0.5;  // fm
+    tempinput = Util::StringFind4(input_file, "string_source_sigma_x");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_string_source_sigma_x;
+    parameter_list.stringSourceSigmaX = temp_string_source_sigma_x;
+
+    double temp_string_source_sigma_eta = 0.5;
+    tempinput = Util::StringFind4(input_file, "string_source_sigma_eta");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_string_source_sigma_eta;
+    parameter_list.stringSourceSigmaEta = temp_string_source_sigma_eta;
+
     // hydro source
     double temp_string_quench_factor = 0.;
     tempinput = Util::StringFind4(input_file, "string_quench_factor");
