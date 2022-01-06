@@ -17,6 +17,7 @@ HydroSourceStrings::HydroSourceStrings(const InitData &DATA_in) :
     DATA(DATA_in) {
     set_source_tau_min(100.0);
     set_source_tau_max(0.0);
+    set_source_tauStart_max(0.0);
     set_sigma_tau(0.1);
     set_sigma_x  (DATA.stringSourceSigmaX);
     set_sigma_eta(DATA.stringSourceSigmaEta);
@@ -29,6 +30,17 @@ HydroSourceStrings::HydroSourceStrings(const InitData &DATA_in) :
 
 HydroSourceStrings::~HydroSourceStrings() {
     QCD_strings_list.clear();
+}
+
+
+double HydroSourceStrings::getStringEndTau(
+        const double tau_0, const double tau_form,
+        const double eta_s_0, const double eta_s) const {
+    double temp_factor1 = tau_0*tau_0 - tau_form*tau_form;
+    double temp_factor2 = tau_0*cosh(eta_s - eta_s_0);
+    double tau_end_local = (temp_factor2
+                            + sqrt(temp_factor2*temp_factor2 - temp_factor1));
+    return(tau_end_local);
 }
 
 
@@ -115,35 +127,27 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         new_string->sigma_eta = get_sigma_eta();
 
         // compute the string end tau
-        double temp_factor1 = (new_string->tau_0*new_string->tau_0
-                               - new_string->tau_form*new_string->tau_form);
-        double temp_factor2 = (new_string->tau_0
-                        *cosh(new_string->eta_s_left - new_string->eta_s_0));
-        double temp_factor3 = (new_string->tau_0
-                    *cosh(new_string->eta_s_right - new_string->eta_s_0));
-        double tau_end_left_local = (
-            temp_factor2 + sqrt(temp_factor2*temp_factor2 - temp_factor1));
-        double tau_end_right_local = (
-            temp_factor3 + sqrt(temp_factor3*temp_factor3 - temp_factor1));
-        new_string->tau_end_left = tau_end_left_local;
-        new_string->tau_end_right = tau_end_right_local;
+        new_string->tau_end_left = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_left);
+        new_string->tau_end_right = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_right);
 
         // compute the baryon number tau
-        temp_factor2 = (new_string->tau_0*cosh(
-                        new_string->eta_s_baryon_left - new_string->eta_s_0));
-        temp_factor3 = (new_string->tau_0*cosh(
-                        new_string->eta_s_baryon_right - new_string->eta_s_0));
-        new_string->tau_baryon_left = (
-            temp_factor2 + sqrt(temp_factor2*temp_factor2 - temp_factor1));
-        new_string->tau_baryon_right = (
-            temp_factor3 + sqrt(temp_factor3*temp_factor3 - temp_factor1));
+        new_string->tau_baryon_left = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_baryon_left);
+        new_string->tau_baryon_right = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_baryon_right);
 
         // determine the tau_start and eta_s_start of the string
         if (new_string->eta_s_left > new_string->eta_s_0) {
-            new_string->tau_start = tau_end_left_local;
+            new_string->tau_start = new_string->tau_end_left;
             new_string->eta_s_start = new_string->eta_s_left;
         } else if (new_string->eta_s_right < new_string->eta_s_0) {
-            new_string->tau_start = tau_end_right_local;
+            new_string->tau_start = new_string->tau_end_right;
             new_string->eta_s_start = new_string->eta_s_right;
         } else {
             new_string->tau_start = new_string->tau_0 + new_string->tau_form;
@@ -159,6 +163,13 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             source_tau = new_string->tau_end_left;
         } else {
             source_tau = new_string->tau_end_right;
+        }
+
+        if (new_string->eta_s_left < 1 && new_string->eta_s_right > -1) {
+            // the string in the mid-rapidity
+            if (new_string->tau_start > get_source_tauStart_max()) {
+                set_source_tauStart_max(new_string->tau_start);
+            }
         }
 
         // set the maximum tau = 10 fm/c for source terms
