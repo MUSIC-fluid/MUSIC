@@ -102,6 +102,7 @@ double EOS_base::interpolate2D(const double e, const double rhob,
     double frac_rhob = (local_nb - (idx_nb*delta_nb + nb0))/delta_nb;
     // avoid uncontrolled extrapolation at large net baryon density
     frac_rhob = std::min(1., frac_rhob);
+    double frac_rhob_frwd = frac_rhob;
 
     double result;
     double temp1 = table[table_idx][idx_nb][idx_e];
@@ -109,14 +110,24 @@ double EOS_base::interpolate2D(const double e, const double rhob,
     double temp2 = 0.;
     double temp3 = 0;
     if (idx_e == N_e - 1) {
-        temp2 = table[table_idx + 1][idx_nb][0];
-        temp3 = table[table_idx + 1][idx_nb][0];
+        // Forward table may have a different spacing on rho_b. We need to
+        // recompute idx_nb for it and update frac_rhob_aux to compensate.
+        double nb0_frwd = nb_bounds[table_idx+1];
+        double delta_nb_frwd = nb_spacing[table_idx+1];
+        int idx_nb_frwd = static_cast<int>((local_nb - nb0_frwd)/delta_nb_frwd);
+        int N_nb_frwd = nb_length[table_idx+1];
+        idx_nb_frwd = std::min(N_nb_frwd - 2, idx_nb_frwd); //Overflow treatment
+        idx_nb_frwd = std::max(0, idx_nb_frwd); //Underflow treatment
+        double frac_rhob_frwd = (local_nb - (idx_nb_frwd*delta_nb_frwd + nb0_frwd))/delta_nb_frwd;
+        frac_rhob_frwd = std::min(1., frac_rhob_frwd);
+        temp2 = table[table_idx + 1][idx_nb_frwd][0];
+        temp3 = table[table_idx + 1][idx_nb_frwd+1][0];
     } else {
         temp2 = table[table_idx][idx_nb][idx_e + 1];
         temp3 = table[table_idx][idx_nb + 1][idx_e + 1];
     }
-    result = ((temp1*(1. - frac_e) + temp2*frac_e)*(1. - frac_rhob)
-              + (temp3*frac_e + temp4*(1. - frac_e))*frac_rhob);
+    result = (temp1*(1-frac_rhob) + temp4*frac_rhob)*(1. - frac_e)
+              + (temp2*(1-frac_rhob_frwd) + temp3*frac_rhob_frwd)*frac_e;
     return(result);
 }
 
