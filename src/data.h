@@ -58,6 +58,8 @@ typedef struct init_data {
     int string_dump_mode;
     double string_quench_factor;
     double parton_quench_factor;
+    double stringSourceSigmaX;
+    double stringSourceSigmaEta;
 
     int nx;
     int ny;
@@ -160,6 +162,9 @@ typedef struct init_data {
 
     //! flag to include low temperature cell at the initial time
     int doFreezeOut_lowtemp;
+
+    //! Maximum starting time for freeze-out surface
+    double freezeOutTauStartMax;
 
     int freezeOutMethod;        //!< freeze-out method
 
