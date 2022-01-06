@@ -162,7 +162,7 @@ typedef struct init_data {
     int doFreezeOut_lowtemp;
 
     //! Maximum starting time for freeze-out surface
-    double freezeOutTauMax;
+    double freezeOutTauStartMax;
 
     int freezeOutMethod;        //!< freeze-out method
 
