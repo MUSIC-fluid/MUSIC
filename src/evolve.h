@@ -4,6 +4,8 @@
 
 #include <memory>
 #include <vector>
+#include <sys/time.h>
+
 #include "util.h"
 #include "data.h"
 #include "cell.h"
@@ -37,6 +39,7 @@ class Evolve {
     std::vector<double> epsFO_list;
 
     typedef std::unique_ptr<SCGrid, void(*)(SCGrid*)> GridPointer;
+    double get_wall_time() const;
 
  public:
     Evolve(const EOS &eos, const InitData &DATA_in,

@@ -36,6 +36,16 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
     hydro_source_terms_ptr = hydro_source_ptr_in;
 }
 
+// to control performance
+double Evolve::get_wall_time() const{
+    struct timeval time;
+    if (gettimeofday(&time,NULL)){
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}
+
 // master control function for hydrodynamic evolution
 int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                      SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr) {
@@ -102,6 +112,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     }
     #endif
 
+    double start_time = get_wall_time();
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
@@ -265,10 +276,15 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         /* execute rk steps */
         // all the evolution are at here !!!
         AdvanceRK(tau, ap_prev, ap_current, ap_future);
+        double total_time = get_wall_time()-start_time;
 
         music_message << emoji::clock()
                       << " Done time step " << it << "/" << itmax
                       << " tau = " << tau << " fm/c";
+        music_message.flush("info");
+        music_message << emoji::stopwatch()
+                      << "Each time step is taking an average of "
+                      << total_time/(it+1) <<" seconds";
         music_message.flush("info");
         if (frozen == 1 && tau > source_tau_max) {
             if (   DATA.outputEvolutionData == 2
@@ -453,6 +469,15 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     || iy == 0 || iy >= ny - 2*fac_y) {
                 music_message << "Freeze-out cell at the boundary! "
                               << "The grid is too small!";
+                music_message.flush("error");
+                music_message << "Position of Freeze-out at boundary: ix = " << ix
+                              << ", iy = " << iy << ", ieta = "<< ieta;
+                music_message.flush("error");
+                music_message << "eps = "<< arena_current(ix,iy,ieta).epsilon
+                              << ", rhob = " << arena_current(ix,iy,ieta).rhob
+                              << ", Bulk = " << arena_current(ix,iy,ieta).pi_b;
+                music_message.flush("error");
+                music_message << "Freeze out energy density = "<< epsFO;
                 music_message.flush("error");
                 exit(1);
             }
@@ -1309,7 +1334,9 @@ void Evolve::regulate_Wmunu(const FlowVec u, const double Wmunu[4][4],
 
 void Evolve::initialize_freezeout_surface_info() {
     if (DATA.useEpsFO == 0) {
-        const double e_freeze = eos.get_T2e(DATA.TFO, 0.0)*Util::hbarc;
+        const double e_freeze = eos.get_T2e(DATA.TFO, 0.0)*Util::hbarc; //Energy input in GeV. Output in 1/fm^4,
+                                                                        //this is converted to GeV/fm^4 to emulate
+                                                                        //what would be read from the input file.
         n_freeze_surf = 1;
         for (int isurf = 0; isurf < n_freeze_surf; isurf++) {
             epsFO_list.push_back(e_freeze);
