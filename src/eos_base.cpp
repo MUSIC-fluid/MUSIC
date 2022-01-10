@@ -118,8 +118,12 @@ double EOS_base::interpolate2D(const double e, const double rhob,
         int N_nb_frwd = nb_length[table_idx+1];
         idx_nb_frwd = std::min(N_nb_frwd - 2, idx_nb_frwd); //Overflow treatment
         idx_nb_frwd = std::max(0, idx_nb_frwd); //Underflow treatment
-        double frac_rhob_frwd = (local_nb - (idx_nb_frwd*delta_nb_frwd + nb0_frwd))/delta_nb_frwd;
+        frac_rhob_frwd = (local_nb - (idx_nb_frwd*delta_nb_frwd + nb0_frwd))/delta_nb_frwd;
         frac_rhob_frwd = std::min(1., frac_rhob_frwd);
+
+        //We need to update frac_e as well
+        frac_e = (local_ed - (idx_e*delta_e + e0))/(e_bounds[table_idx+1] - idx_e*delta_e + e0);
+
         temp2 = table[table_idx + 1][idx_nb_frwd][0];
         temp3 = table[table_idx + 1][idx_nb_frwd+1][0];
     } else {
