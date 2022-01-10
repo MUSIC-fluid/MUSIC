@@ -86,7 +86,7 @@ class EOS_base {
     virtual double get_rhoC       (double epsilon, double rhob) const {return(0.4*rhob);}
     virtual double get_pressure   (double epsilon, double rhob) const {return(0.0);}
     virtual double get_s2e        (double s, double rhob) const {return(0.0);}
-    virtual double get_T2e        (double T, double rhob) const {return(0.0);}
+    virtual double get_T2e        (double T, double rhob) const {return get_T2e_finite_rhob(T,rhob);}
     virtual void   check_eos      () const {}
 
     void check_eos_with_finite_muB() const;
