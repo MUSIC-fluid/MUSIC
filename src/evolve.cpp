@@ -62,13 +62,15 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double tau;
     int iFreezeStart = 0;
     double source_tau_max = 0.0;
-    if (hydro_source_terms_ptr && freezeout_lowtemp_flag == 1) {
+    if (hydro_source_terms_ptr) {
         source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
-        double freezeOutTauStart = (
-                hydro_source_terms_ptr->get_source_tauStart_max());
-        freezeOutTauStart = std::min(DATA.freezeOutTauStartMax,
-                                     freezeOutTauStart);
-        iFreezeStart = static_cast<int>((freezeOutTauStart - tau0)/dt) + 2;
+        if (freezeout_lowtemp_flag == 1) {
+            double freezeOutTauStart = (
+                    hydro_source_terms_ptr->get_source_tauStart_max());
+            freezeOutTauStart = std::min(DATA.freezeOutTauStartMax,
+                                         freezeOutTauStart);
+            iFreezeStart = static_cast<int>((freezeOutTauStart - tau0)/dt) + 2;
+        }
     }
 
     music_message << "Freeze-out surface starts at " << tau0 + iFreezeStart*dt
