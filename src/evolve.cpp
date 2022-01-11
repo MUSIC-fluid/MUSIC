@@ -76,8 +76,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
         double freezeOutTauStart = (
                 hydro_source_terms_ptr->get_source_tauStart_max());
-        freezeOutTauStart = std::min(DATA.freezeOutTauStartMax,
-                                     freezeOutTauStart);
+        freezeOutTauStart = std::min(DATA.freezeOutTauMax, freezeOutTauStart);
         iFreezeStart = static_cast<int>((freezeOutTauStart - tau0)/dt) + 2;
     }
 
