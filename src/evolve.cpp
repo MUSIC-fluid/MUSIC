@@ -62,7 +62,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double tau;
     int iFreezeStart = 0;
     double source_tau_max = 0.0;
-    if (hydro_source_terms_ptr) {
+    if (hydro_source_terms_ptr && freezeout_lowtemp_flag == 1) {
         source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
         double freezeOutTauStart = (
                 hydro_source_terms_ptr->get_source_tauStart_max());
