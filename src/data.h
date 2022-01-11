@@ -163,9 +163,6 @@ typedef struct init_data {
     //! flag to include low temperature cell at the initial time
     int doFreezeOut_lowtemp;
 
-    //! Maximum starting time for freeze-out surface
-    double freezeOutTauMax;
-
     int freezeOutMethod;        //!< freeze-out method
 
     double TFO;      //!< freeze-out temperature. Used if useEpsFO=0
