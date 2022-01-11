@@ -70,19 +70,13 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double dt    = DATA.delta_tau;
 
     double tau;
-    int iFreezeStart = 0;
+    int it_start = 0;
+    if (DATA.Initial_profile == 112)
+        it_start = 3;
     double source_tau_max = 0.0;
-    if (hydro_source_terms_ptr) {
-        source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
-        double source_tauStart_max = (
-                hydro_source_terms_ptr->get_source_tauStart_max());
-        source_tauStart_max = std::min(2., source_tauStart_max);
-        iFreezeStart = static_cast<int>((source_tauStart_max - tau0)/dt) + 2;
+    if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
+        source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
     }
-
-    music_message << "Freeze-out surface starts at " << tau0 + iFreezeStart*dt
-                  << " fm/c.";
-    music_message.flush("info");
 
     const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
     GridPointer ap_prev   (&arena_prev, closer);
@@ -115,11 +109,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
-        if (hydro_source_terms_ptr) {
-            hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
+        if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
+            hydro_source_terms_ptr.lock()->prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
-        if (it == iFreezeStart) {
+        if (it == it_start) {
             store_previous_step_for_freezeout(*ap_prev, arena_freezeout_prev);
             store_previous_step_for_freezeout(*ap_current, arena_freezeout);
         }
@@ -176,8 +170,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
-        if (it == iFreezeStart || it == iFreezeStart + 10
-            || it == iFreezeStart + 30 || it == iFreezeStart + 50) {
+        if (it == it_start || it == it_start + 10
+            || it == it_start + 30 || it == it_start + 50) {
             grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
         }
         grid_info.output_momentum_anisotropy_vs_tau(
@@ -252,11 +246,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         //determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
-            if (freezeout_lowtemp_flag == 1 && it == iFreezeStart) {
+            if (freezeout_lowtemp_flag == 1 && it == it_start) {
                 frozen = FreezeOut_equal_tau_Surface(tau, *ap_current);
             }
             // avoid freeze-out at the first time step
-            if ((it - iFreezeStart)%facTau == 0 && it > iFreezeStart) {
+            if ((it - it_start)%facTau == 0 && it > it_start) {
                 if (!DATA.boost_invariant) {
                     frozen = FindFreezeOutSurface_Cornelius(
                                 tau, *ap_prev, *ap_current,

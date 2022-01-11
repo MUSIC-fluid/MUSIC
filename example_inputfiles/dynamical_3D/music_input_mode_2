@@ -27,7 +27,7 @@ initialize_with_entropy 0       # 0: with energy density
                                 # 1: with entropy density
 
 # read in initial conditions from external file
-Initial_Distribution_input_filename initial/strings_event_0.dat
+Initial_Distribution_input_filename initial/QCD_strings_Hydro_decelerate.dat
                                # the filename of initial profile 
                                # (for Initial_profile == 8)
 s_factor  1.0                  # normalization factor read in 
@@ -63,7 +63,7 @@ Grid_size_in_y 192            # number of the grid points in y direction
 Grid_size_in_x 192            # number of the grid points in x direction
 #
 #
-EOS_to_use 14                 # type of the equation of state
+EOS_to_use 10                 # type of the equation of state
                               # 0: ideal gas
                               # 1: EOS-Q from azhydro
                               # 2: lattice EOS s95p-v1 

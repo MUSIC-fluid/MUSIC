@@ -20,7 +20,6 @@ HydroSourceTATB::HydroSourceTATB(const InitData &DATA_in) :
     tau_source = std::max(DATA_.tau0, tau_overlap);
     set_source_tau_min(tau_source);
     set_source_tau_max(tau_source);
-    set_source_tauStart_max(tau_source);
     yL_frac_ = DATA_.yL_frac;
     TA_ = 0.;
     TB_ = 0.;

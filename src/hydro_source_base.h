@@ -8,13 +8,9 @@
 
 class HydroSourceBase {
  private:
-    double source_tau_max_ = 0.;
-    double source_tau_min_ = 0.;
-    double source_tauStart_max_ = 0.;
-    double sigma_tau_ = 0.1;
-    double sigma_x_ = 0.1;
-    double sigma_y_ = 0.1;
-    double sigma_eta_ = 0.1;
+    double source_tau_max;
+    double source_tau_min;
+    double sigma_tau, sigma_x, sigma_y, sigma_eta;
 
  public:
     pretty_ostream music_message;
@@ -24,24 +20,22 @@ class HydroSourceBase {
 
     virtual int get_number_of_sources() const {return(0);}
 
-    void set_sigma_tau(double sigma_tau_in) {sigma_tau_ = sigma_tau_in;}
-    void set_sigma_x  (double sigma_x_in  ) {sigma_x_   = sigma_x_in  ;}
-    void set_sigma_y  (double sigma_y_in  ) {sigma_y_   = sigma_y_in  ;}
-    void set_sigma_eta(double sigma_eta_in) {sigma_eta_ = sigma_eta_in;}
-    double get_sigma_tau() const {return(sigma_tau_);}
-    double get_sigma_x  () const {return(sigma_x_  );}
-    double get_sigma_y  () const {return(sigma_y_  );}
-    double get_sigma_eta() const {return(sigma_eta_);}
+    void set_sigma_tau(double sigma_tau_in) {sigma_tau = sigma_tau_in;}
+    void set_sigma_x  (double sigma_x_in  ) {sigma_x   = sigma_x_in  ;}
+    void set_sigma_y  (double sigma_y_in  ) {sigma_y   = sigma_y_in  ;}
+    void set_sigma_eta(double sigma_eta_in) {sigma_eta = sigma_eta_in;}
+    double get_sigma_tau() const {return(sigma_tau);}
+    double get_sigma_x  () const {return(sigma_x  );}
+    double get_sigma_y  () const {return(sigma_y  );}
+    double get_sigma_eta() const {return(sigma_eta);}
 
     //! Set the minimum and maximum tau for the source term
-    void set_source_tau_min(double tau_in) {source_tau_min_ = tau_in;}
-    void set_source_tau_max(double tau_in) {source_tau_max_ = tau_in;}
-    void set_source_tauStart_max(double tau_in) {source_tauStart_max_ = tau_in;}
+    void set_source_tau_min(double tau_in) {source_tau_min = tau_in;}
+    void set_source_tau_max(double tau_in) {source_tau_max = tau_in;}
 
     //! Get the minimum and maximum tau for the source term
-    double get_source_tau_min() const {return(source_tau_min_);}
-    double get_source_tau_max() const {return(source_tau_max_);}
-    double get_source_tauStart_max() const {return(source_tauStart_max_);}
+    double get_source_tau_min() const {return(source_tau_min);}
+    double get_source_tau_max() const {return(source_tau_max);}
 
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
