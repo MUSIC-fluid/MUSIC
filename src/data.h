@@ -58,6 +58,8 @@ typedef struct init_data {
     int string_dump_mode;
     double string_quench_factor;
     double parton_quench_factor;
+    double stringSourceSigmaX;
+    double stringSourceSigmaEta;
 
     int nx;
     int ny;
@@ -79,9 +81,6 @@ typedef struct init_data {
     double minmod_theta;
 
     double sFactor;     //!< overall normalization on energy density profile
-    
-    double sigma_x;     //!< the width of the string from 3DGlauber initial model
-    
     int whichEOS;       //!< type of EoS
     //! flag for boost invariant simulations
     bool boost_invariant;
@@ -161,6 +160,9 @@ typedef struct init_data {
 
     //! flag to include low temperature cell at the initial time
     int doFreezeOut_lowtemp;
+
+    //! Maximum starting time for freeze-out surface
+    double freezeOutTauStartMax;
 
     int freezeOutMethod;        //!< freeze-out method
 
