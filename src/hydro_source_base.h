@@ -14,6 +14,7 @@ class HydroSourceBase {
     double sigma_tau_ = 0.1;
     double sigma_x_ = 0.1;
     double sigma_eta_ = 0.1;
+    double string_slope_ratio_ = 1.0;
 
  public:
     pretty_ostream music_message;
@@ -26,9 +27,11 @@ class HydroSourceBase {
     void set_sigma_tau(double sigma_tau_in) {sigma_tau_ = sigma_tau_in;}
     void set_sigma_x  (double sigma_x_in  ) {sigma_x_   = sigma_x_in  ;}
     void set_sigma_eta(double sigma_eta_in) {sigma_eta_ = sigma_eta_in;}
+    void set_string_slope_ratio(double string_slope_ratio_in) {string_slope_ratio_ = string_slope_ratio_in;}
     double get_sigma_tau() const {return(sigma_tau_);}
     double get_sigma_x  () const {return(sigma_x_  );}
     double get_sigma_eta() const {return(sigma_eta_);}
+    double get_string_slope_ratio() const {return(string_slope_ratio_);}
 
     //! Set the minimum and maximum tau for the source term
     void set_source_tau_min(double tau_in) {source_tau_min_ = tau_in;}

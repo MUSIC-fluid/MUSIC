@@ -21,6 +21,7 @@ HydroSourceStrings::HydroSourceStrings(const InitData &DATA_in) :
     set_sigma_tau(0.1);
     set_sigma_x  (DATA.stringSourceSigmaX);
     set_sigma_eta(DATA.stringSourceSigmaEta);
+    set_string_slope_ratio(DATA.string_Slope_Ratio);
     string_dump_mode     = DATA.string_dump_mode;
     string_quench_factor = DATA.string_quench_factor;
     parton_quench_factor = 1.0;    // no diffusion current from the source
@@ -321,8 +322,11 @@ void HydroSourceStrings::get_hydro_energy_source(
     const double n_sigma_skip = 5.;
     const double exp_tau = 1./tau;
     for (auto const&it: QCD_strings_list_current_tau) {
-        const double sigma_x = it->sigma_x;
-        const double sigma_eta = it->sigma_eta;
+        //const double sigma_x = it->sigma_x;
+        //const double sigma_eta = it->sigma_eta;
+        const double sigma_x   = get_sigma_x();
+        const double sigma_eta = get_sigma_eta();
+        const double string_slope_ratio = get_string_slope_ratio();
         const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
         const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
         const double skip_dis_x = n_sigma_skip*sigma_x;
@@ -338,11 +342,13 @@ void HydroSourceStrings::get_hydro_energy_source(
                                      it->eta_s_right - it->eta_s_left));
         eta_frac = std::max(0., std::min(1., eta_frac));
 
-        const double x_perp = it->x_pl + eta_frac*(it->x_pr - it->x_pl);
+        const double x_perp = it->x_pl + 
+                            string_slope_ratio * eta_frac*(it->x_pr - it->x_pl);
         double x_dis = x - x_perp;
         if (std::abs(x_dis) > skip_dis_x) continue;
 
-        const double y_perp = it->y_pl + eta_frac*(it->y_pr - it->y_pl);
+        const double y_perp = it->y_pl + 
+                            string_slope_ratio * eta_frac*(it->y_pr - it->y_pl);
         double y_dis = y - y_perp;
         if (std::abs(y_dis) > skip_dis_x) continue;
 
@@ -430,8 +436,10 @@ void HydroSourceStrings::get_hydro_energy_source(
     }
 
     for (auto const&it: QCD_strings_remnant_list_current_tau) {
-        const double sigma_x = it->sigma_x;
-        const double sigma_eta = it->sigma_eta;
+        //const double sigma_x = it->sigma_x;
+        //const double sigma_eta = it->sigma_eta;
+        const double sigma_x   = get_sigma_x();
+        const double sigma_eta = get_sigma_eta();
         const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
         const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
         const double skip_dis_x = n_sigma_skip*sigma_x;

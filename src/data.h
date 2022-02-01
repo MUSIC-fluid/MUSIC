@@ -60,6 +60,7 @@ typedef struct init_data {
     double parton_quench_factor;
     double stringSourceSigmaX;
     double stringSourceSigmaEta;
+    double string_Slope_Ratio;
 
     int nx;
     int ny;
