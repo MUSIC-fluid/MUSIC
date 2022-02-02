@@ -43,7 +43,7 @@ void HydroinfoMUSIC::getHydroValues(
     }
 
     int ieta = static_cast<int>((hydro_eta_max + eta)/hydroDeta + 0.0001);
-    if (boost_invariant == 1) {
+    if (boost_invariant) {
         ieta = 0;
     }
 

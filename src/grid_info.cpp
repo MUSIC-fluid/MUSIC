@@ -149,7 +149,7 @@ void Cell_info::OutputEvolutionDataXYEta(SCGrid &arena, double tau) {
     const int n_skip_eta = DATA.output_evolution_every_N_eta;
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         double eta = 0.0;
-        if (DATA.boost_invariant == 0) {
+        if (!DATA.boost_invariant) {
             eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
                     - (DATA.eta_size)/2.0);
         }
@@ -377,7 +377,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
                 double eta = 0.0;
-                if (DATA.boost_invariant == 0) {
+                if (!DATA.boost_invariant) {
                     eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
                             - (DATA.eta_size)/2.0);
                 }
@@ -1273,7 +1273,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
     const double unit_volume = tau*DATA.delta_x*DATA.delta_y*DATA.delta_eta;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
-        if (DATA.boost_invariant == 0) {
+        if (!DATA.boost_invariant) {
             eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
                     - (DATA.eta_size)/2.0);
         }
@@ -1359,14 +1359,14 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     double u_perp_den = 0.0;
     double T_avg_num  = 0.0;
     double T_avg_den  = 0.0;
-    
+
     const int norder = 6;
     std::vector<double> eccn_num1(norder, 0.0);
     std::vector<double> eccn_num2(norder, 0.0);
     std::vector<double> eccn_den (norder, 0.0);
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
-        if (DATA.boost_invariant == 0) {
+        if (!DATA.boost_invariant) {
             eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
                     - (DATA.eta_size)/2.0);
         }
