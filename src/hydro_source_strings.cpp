@@ -123,7 +123,7 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             new_string->eta_s_0 = 0.;
             new_string->tau_form = 0.5;
         }
-        new_string->sigma_x = new_string->tau_form;
+        new_string->sigma_x = get_sigma_x();
         new_string->sigma_eta = get_sigma_eta();
 
         // compute the string end tau
@@ -422,7 +422,9 @@ void HydroSourceStrings::get_hydro_energy_source(
             std::cout << exp_tau << "  " << exp_xperp << "  "
                       << exp_eta_s << "  " << it->norm << std::endl;
             std::cout << x_dis << "  " << y_dis << "  " << sigma_x << std::endl;
-            std::cout << it->x_pl << "  " << it->x_pr << "  " << eta_frac << "  " << it->eta_s_right << "  " << it->eta_s_left << std::endl;
+            std::cout << it->x_pl << "  " << it->x_pr << "  " << eta_frac
+                      << "  " << it->eta_s_right << "  "
+                      << it->eta_s_left << std::endl;
         }
         j_mu[1] += 0.0;
         j_mu[2] += 0.0;
