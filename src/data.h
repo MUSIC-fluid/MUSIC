@@ -120,7 +120,7 @@ typedef struct init_data {
     int include_second_order_terms;
 
     //! flag to include vorticity coupling terms in shear and diffusion
-    int include_vorticity_terms;
+    bool include_vorticity_terms;
 
     //! flag to output vorticity evolution
     int output_vorticity;

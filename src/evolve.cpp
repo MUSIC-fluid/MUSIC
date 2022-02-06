@@ -165,7 +165,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         // check energy conservation
         if (!DATA.boost_invariant) {
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
-            if (DATA.output_vorticity) {
+            if (DATA.output_vorticity == 1) {
                 if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
                     || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
                     grid_info.output_vorticity_distribution(
@@ -620,7 +620,9 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
                     if (DATA.output_vorticity == 1) {
                         for (int ii = 0; ii < 6; ii++) {
-                            array[34+ii] = fluid_aux_center.omega_kSP[ii]/TFO;  // no minus sign because its definition is opposite to the kinetic vorticity
+                            // no minus sign because its definition is
+                            // opposite to the kinetic vorticity
+                            array[34+ii] = fluid_aux_center.omega_kSP[ii]/TFO;
                             // the extra minus sign is from metric
                             // output quantities for g = (1, -1, -1, -1)
                             array[40+ii] = -fluid_aux_center.omega_k[ii]/TFO;

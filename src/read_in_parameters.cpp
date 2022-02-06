@@ -596,7 +596,11 @@ InitData read_in_parameters(std::string input_file) {
     tempinput = Util::StringFind4(input_file, "Include_vorticity_terms");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_vorticity_terms;
-    parameter_list.include_vorticity_terms = tempturn_on_vorticity_terms;
+    if (tempturn_on_vorticity_terms == 0) {
+        parameter_list.include_vorticity_terms = false;
+    } else {
+        parameter_list.include_vorticity_terms = true;
+    }
 
     // Output vorticity evolution
     int tempoutput_vorticity = 0;

@@ -249,7 +249,7 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     /////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////
     double Vorticity_term = 0.0;
-    if (DATA.include_vorticity_terms == 1) {
+    if (DATA.include_vorticity_terms) {
         double transport_coefficient4 = 2.*tau_pi;
         auto omega = Util::UnpackVecToMatrix(omega_1d);
         double term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
@@ -807,7 +807,7 @@ double Diss::Make_uqSource(
 
     // add a new non-linear term (-q_\mu \omega^{\mu\nu})
     double Nonlinear3 = 0.0;
-    if (DATA.include_vorticity_terms == 1) {
+    if (DATA.include_vorticity_terms) {
         double transport_coeff_3 = 1.0*tau_rho;
         auto omega = Util::UnpackVecToMatrix(omega_1d);
         double temp3 = 0.0;

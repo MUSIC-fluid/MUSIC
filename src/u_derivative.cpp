@@ -479,7 +479,7 @@ int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
                                    /delta[direction]);
         }
 
-        if (DATA.include_vorticity_terms == 1) {
+        if (DATA.output_vorticity == 1) {
             const double T   = eos.get_temperature(c.epsilon, c.rhob);
             const double Tp1 = eos.get_temperature(p1.epsilon, p1.rhob);
             const double Tm1 = eos.get_temperature(m1.epsilon, m1.rhob);
@@ -551,7 +551,7 @@ int U_derivative::MakeDTau(const double tau,
         double f = (grid_pt->u[m] - grid_pt_prev->u[m])/DATA.delta_tau;
         dUsup[m][0] = -f;  // g^{00} = -1
 
-        if (DATA.include_vorticity_terms == 1) {
+        if (DATA.output_vorticity == 1) {
             if (T > T_tol && T_prev > T_tol) {
                 double duoverTdtau = (
                     (grid_pt->u[m]/T - grid_pt_prev->u[m]/T_prev)
