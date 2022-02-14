@@ -340,13 +340,13 @@ void HydroSourceStrings::get_hydro_energy_source(
                                      it->eta_s_right - it->eta_s_left));
         eta_frac = std::max(0., std::min(1., eta_frac));
 
-        const double x_perp = (it->x_pr - it->x_pl) * string_slope_ratio * eta_frac
+        const double x_perp = it->x_pl + (it->x_pr - it->x_pl) * string_slope_ratio * eta_frac
                             + (it->x_pr - it->x_pl)/2.
                             - (it->x_pr - it->x_pl) * string_slope_ratio/2.;
         double x_dis = x - x_perp;
         if (std::abs(x_dis) > skip_dis_x) continue;
 
-        const double y_perp = (it->y_pr - it->y_pl) * string_slope_ratio * eta_frac
+        const double y_perp = it->y_pl + (it->y_pr - it->y_pl) * string_slope_ratio * eta_frac
                             + (it->y_pr - it->y_pl)/2.
                             - (it->y_pr - it->y_pl) * string_slope_ratio/2.;
         double y_dis = y - y_perp;
@@ -529,6 +529,7 @@ double HydroSourceStrings::get_hydro_rhob_source(
     for (auto &it: QCD_strings_baryon_list_current_tau) {
         const double sigma_x = it->sigma_x;
         const double sigma_eta = it->sigma_eta;
+        const double string_slope_ratio = it->string_slope_ratio;
         const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
         const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
         const double skip_dis_x = n_sigma_skip*sigma_x;
@@ -567,10 +568,20 @@ double HydroSourceStrings::get_hydro_rhob_source(
         eta_frac_left = std::max(0., std::min(1., eta_frac_left));
         eta_frac_right = std::max(0., std::min(1., eta_frac_right));
 
+        /*
         const double x_perp_left = (
                 it->x_pl + eta_frac_left*(it->x_pr - it->x_pl));
         const double x_perp_right = (
                 it->x_pl + eta_frac_right*(it->x_pr - it->x_pl));
+        */
+        const double x_perp_left = (
+                it->x_pl + (it->x_pr - it->x_pl) * string_slope_ratio * eta_frac_left
+                + (it->x_pr - it->x_pl)/2.
+                - (it->x_pr - it->x_pl) * string_slope_ratio/2.);
+        const double x_perp_right = (
+                it->x_pl + (it->x_pr - it->x_pl) * string_slope_ratio * eta_frac_right
+                + (it->x_pr - it->x_pl)/2.
+                - (it->x_pr - it->x_pl) * string_slope_ratio/2.);
 
         const double x_dis_left  = x - x_perp_left;
         const double x_dis_right = x - x_perp_right;
@@ -579,10 +590,20 @@ double HydroSourceStrings::get_hydro_rhob_source(
             continue;
         }
 
+        /*
         const double y_perp_left = (
                 it->y_pl + eta_frac_left*(it->y_pr - it->y_pl));
         const double y_perp_right = (
                 it->y_pl + eta_frac_right*(it->y_pr - it->y_pl));
+        */
+        const double y_perp_left = (
+                it->y_pl + (it->y_pr - it->y_pl) * string_slope_ratio * eta_frac_left
+                + (it->y_pr - it->y_pl)/2.
+                - (it->y_pr - it->y_pl) * string_slope_ratio/2.);
+        const double y_perp_right = (
+                it->y_pl + (it->y_pr - it->y_pl) * string_slope_ratio * eta_frac_right
+                + (it->y_pr - it->y_pl)/2.
+                - (it->y_pr - it->y_pl) * string_slope_ratio/2.);
 
         const double y_dis_left  = y - y_perp_left;
         const double y_dis_right = y - y_perp_right;
