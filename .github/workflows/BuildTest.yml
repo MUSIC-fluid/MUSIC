@@ -32,3 +32,4 @@ jobs:
         run: |
           pip3 install numpy
           $GITHUB_WORKSPACE/tests/Gubser_flow/RunAutoTest.sh
+          $GITHUB_WORKSPACE/tests/test_1+1DRiemannTest_Cartesian/RunAutoTest.sh
