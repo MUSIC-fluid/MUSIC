@@ -61,7 +61,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                 >> dummy >> deta >> dummy >> dx >> dummy >> dy;
         profile.close();
         music_message << "Using Initial_profile=" << DATA.Initial_profile
-                      << ". Overwriting lattice dimensions:";
+                      << ". Overwriting transverse lattice dimensions:";
         DATA.nx = nx;
         DATA.ny = ny;
         DATA.delta_x = dx;
@@ -87,12 +87,11 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ". Overwriting lattice dimensions:";
         DATA.nx = nx;
         DATA.ny = ny;
-        DATA.neta = neta;
         DATA.delta_x = dx;
         DATA.delta_y = dy;
-        DATA.delta_eta = 0.1;
 
-        music_message << "neta=" << neta << ", nx=" << nx << ", ny=" << ny;
+        music_message << "neta=" << DATA.neta
+                      << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
         music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
