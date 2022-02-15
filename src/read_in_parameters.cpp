@@ -335,11 +335,11 @@ InitData read_in_parameters(std::string input_file) {
 
     /* x-grid, for instance, runs from 0 to nx */
     parameter_list.delta_x =
-            parameter_list.x_size/static_cast<double>(parameter_list.nx - 1); 
+            parameter_list.x_size/static_cast<double>(parameter_list.nx - 1);
     parameter_list.delta_y =
-            parameter_list.y_size/static_cast<double>(parameter_list.ny - 1); 
-    parameter_list.delta_eta =
-            parameter_list.eta_size/static_cast<double>(parameter_list.neta - 1); 
+            parameter_list.y_size/static_cast<double>(parameter_list.ny - 1);
+    parameter_list.delta_eta = (parameter_list.eta_size
+                                /static_cast<double>(parameter_list.neta - 1));
 
     music_message << " DeltaX = " << parameter_list.delta_x << " fm";
     music_message.flush("info");
@@ -479,7 +479,7 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempphi_steps  ;
     parameter_list.phi_steps = tempphi_steps; 
 
-    // min_pt: 
+    // min_pt:
     // spectra calculated from this to max_pt transverse momentum in GeV
     double tempmin_pt   = 0.0;
     tempinput = Util::StringFind4(input_file, "min_pt");
@@ -568,6 +568,58 @@ InitData read_in_parameters(std::string input_file) {
     }
     parameter_list.shear_to_s = tempshear_to_s;
 
+    // If "T_dependent_Shear_to_S_ratio==2",
+    // (eta/s)(T) = eta_over_s_min + eta_over_s_slope*(T − Tc)*(T/Tc)^{eta_over_s_curv}
+    // with T_c=0.154 GeV
+    double temp_eta_over_s_min = 0.08;
+    tempinput = Util::StringFind4(input_file, "shear_viscosity_2_min");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> temp_eta_over_s_min;
+    parameter_list.shear_2_min = temp_eta_over_s_min;
+
+    double temp_eta_over_s_slope = 1.0;
+    tempinput = Util::StringFind4(input_file, "shear_viscosity_2_slope");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> temp_eta_over_s_slope;
+    parameter_list.shear_2_slope = temp_eta_over_s_slope;
+
+    double temp_eta_over_s_curv = 0;
+    tempinput = Util::StringFind4(input_file, "shear_viscosity_2_curv");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> temp_eta_over_s_curv;
+    parameter_list.shear_2_curv = temp_eta_over_s_curv;
+
+
+    // If "T_dependent_Shear_to_S_ratio==3", 
+    double temp_eta_over_s_T_kink_in_GeV = .16;
+    tempinput = Util::StringFind4(input_file,
+                                  "shear_viscosity_3_T_kink_in_GeV");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> temp_eta_over_s_T_kink_in_GeV;
+    parameter_list.shear_3_T_kink_in_GeV = temp_eta_over_s_T_kink_in_GeV;
+
+    double temp_eta_over_s_low_T_slope_in_GeV = 0.0;
+    tempinput = Util::StringFind4(input_file,
+                                  "shear_viscosity_3_low_T_slope_in_GeV");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> temp_eta_over_s_low_T_slope_in_GeV;
+    parameter_list.shear_3_low_T_slope_in_GeV = (
+                                        temp_eta_over_s_low_T_slope_in_GeV);
+
+    double temp_eta_over_s_high_T_slope_in_GeV = 0.0;
+    tempinput = Util::StringFind4(input_file,
+                                  "shear_viscosity_3_high_T_slope_in_GeV");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> temp_eta_over_s_high_T_slope_in_GeV;
+    parameter_list.shear_3_high_T_slope_in_GeV = (
+                                    temp_eta_over_s_high_T_slope_in_GeV);
+
+    double temp_eta_over_s_at_kink = 0.08;
+    tempinput = Util::StringFind4(input_file, "shear_viscosity_3_at_kink");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> temp_eta_over_s_at_kink;
+    parameter_list.shear_3_at_kink = temp_eta_over_s_at_kink;
+
     // the strength for the viscous regulation
     double temp_quest_revert_strength = 10.;
     tempinput = Util::StringFind4(input_file, "quest_revert_strength");
@@ -590,13 +642,63 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempbulk_relaxation_type;
     parameter_list.bulk_relaxation_type = tempbulk_relaxation_type;
 
-
-    // flag for different parameterization of zeta/s(T)
-    int temp_T_dependent_zeta_over_s = 0;
+    // T_dependent_Bulk_to_S_ratio:
+    int tempT_dependent_bulk_to_s = 1;
+    tempinput = Util::StringFind4(input_file, "T_dependent_Bulk_to_S_ratio");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempT_dependent_bulk_to_s;
+    parameter_list.T_dependent_bulk_to_s = tempT_dependent_bulk_to_s;
     tempinput = Util::StringFind4(input_file, "T_dependent_zeta_over_s");
     if (tempinput != "empty")
-        istringstream(tempinput) >> temp_T_dependent_zeta_over_s;
-    parameter_list.T_dependent_zeta_over_s = temp_T_dependent_zeta_over_s;
+        istringstream(tempinput) >> tempT_dependent_bulk_to_s;
+    parameter_list.T_dependent_bulk_to_s = tempT_dependent_bulk_to_s;
+
+    // "T_dependent_Bulk_to_S_ratio=2",
+    // bulk viscosity is parametrized as with "A", "G" and "Tc" as "A*(1/(1+((T-Tc)/G)^2)"
+    double tempBulkViscosityNorm = 0.33;
+    tempinput = Util::StringFind4(input_file,
+                                  "bulk_viscosity_2_normalisation");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempBulkViscosityNorm;
+    parameter_list.bulk_2_normalisation = tempBulkViscosityNorm;
+
+    double tempBulkViscosityWidth = 0.08;
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_2_width_in_GeV");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempBulkViscosityWidth;
+    parameter_list.bulk_2_width_in_GeV = tempBulkViscosityWidth;
+
+    // flag for different parameterization of zeta/s(T)
+    double tempBulkViscosityPeak = 0.18;
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_2_peak_in_GeV");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempBulkViscosityPeak;
+    parameter_list.bulk_2_peak_in_GeV = tempBulkViscosityPeak;
+
+    // "T_dependent_Bulk_to_S_ratio==3",
+    double tempzeta_over_s_max= 0.1;
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_max");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_max;
+    parameter_list.bulk_3_max = tempzeta_over_s_max;
+
+    double tempzeta_over_s_width_in_GeV= 0.05;
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_width_in_GeV");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_width_in_GeV;
+    parameter_list.bulk_3_width_in_GeV = tempzeta_over_s_width_in_GeV;
+
+    double tempzeta_over_s_T_peak_in_GeV= 0.18;
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_T_peak_in_GeV");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_T_peak_in_GeV;
+    parameter_list.bulk_3_T_peak_in_GeV = tempzeta_over_s_T_peak_in_GeV;
+
+    double tempzeta_over_s_lambda_asymm= 0.;
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_lambda_asymm");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_lambda_asymm;
+    parameter_list.bulk_3_lambda_asymm = tempzeta_over_s_lambda_asymm;
 
     // Include secord order terms
     int tempturn_on_second_order = 0;
@@ -625,6 +727,19 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempturn_on_diff;
     parameter_list.turn_on_diff = tempturn_on_diff;
 
+    // Relaxation time factors
+    double tempshear_relax_time_factor= 5.;
+    tempinput = Util::StringFind4(input_file, "shear_relax_time_factor");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempshear_relax_time_factor;
+    parameter_list.shear_relax_time_factor = tempshear_relax_time_factor;
+
+    double tempbulk_relax_time_factor= 1./14.55;
+    tempinput = Util::StringFind4(input_file, "bulk_relax_time_factor");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempbulk_relax_time_factor;
+    parameter_list.bulk_relax_time_factor = tempbulk_relax_time_factor;
+
     // kappa coefficient
     double temp_kappa_coefficient = 0.0;
     tempinput = Util::StringFind4(input_file, "kappa_coefficient");
@@ -632,7 +747,7 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_kappa_coefficient;
     parameter_list.kappa_coefficient = temp_kappa_coefficient;
 
-    // Include_deltaf:  
+    // Include_deltaf:
     // Looks like 0 sets delta_f=0, 1 uses standard quadratic ansatz,
     // and 2 is supposed to use p^(2-alpha)
     int tempinclude_deltaf = 1;
@@ -828,26 +943,77 @@ InitData read_in_parameters(std::string input_file) {
 
 void set_parameter(InitData &parameter_list, std::string parameter_name,
                    double value) {
-    if (parameter_name == "output_evolution_data") {
-        parameter_list.outputEvolutionData = static_cast<int>(value);
-    }
-    if (parameter_name == "output_movie_flag") {
-        parameter_list.output_movie_flag = static_cast<int>(value);
-    }
-    if (parameter_name == "store_hydro_info_in_memory") {
-        parameter_list.store_hydro_info_in_memory = static_cast<int>(value);
-    }
-    if (parameter_name == "Viscosity_Flag_Yes_1_No_0") {
-        parameter_list.viscosity_flag = static_cast<int>(value);
-    }
-    if (parameter_name == "Include_Shear_Visc_Yes_1_No_0") {
-        parameter_list.turn_on_shear = static_cast<int>(value);
-    }
-    if (parameter_name == "Shear_to_S_ratio") {
-        parameter_list.shear_to_s = value;
-    }
-}
+    if (parameter_name == "MUSIC_mode")
+        parameter_list.mode = static_cast<int>(value);
 
+    if (parameter_name == "Initial_time_tau_0")
+        parameter_list.tau0 = value;
+
+    if (parameter_name == "output_evolution_data")
+        parameter_list.outputEvolutionData = static_cast<int>(value);
+
+    if (parameter_name == "output_movie_flag")
+        parameter_list.output_movie_flag = static_cast<int>(value);
+
+    if (parameter_name == "store_hydro_info_in_memory")
+        parameter_list.store_hydro_info_in_memory = static_cast<int>(value);
+
+    if (parameter_name == "Viscosity_Flag_Yes_1_No_0")
+        parameter_list.viscosity_flag = static_cast<int>(value);
+
+    if (parameter_name == "Include_Shear_Visc_Yes_1_No_0")
+        parameter_list.turn_on_shear = static_cast<int>(value);
+
+    if (parameter_name == "Shear_to_S_ratio")
+        parameter_list.shear_to_s = value;
+
+    if (parameter_name == "T_freeze")
+        parameter_list.TFO = value;
+
+    if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0")
+        parameter_list.turn_on_bulk = static_cast<int>(value);
+
+    if (parameter_name == "Include_second_order_terms")
+        parameter_list.include_second_order_terms = static_cast<int>(value);
+
+    if (parameter_name == "T_dependent_Shear_to_S_ratio")
+        parameter_list.T_dependent_shear_to_s = static_cast<int>(value);
+
+    if (parameter_name == "shear_viscosity_2_min")
+        parameter_list.shear_2_min = value;
+    if (parameter_name == "shear_viscosity_slope")
+        parameter_list.shear_2_slope = value;
+    if (parameter_name == "shear_viscosity_curv")
+        parameter_list.shear_2_curv = value;
+
+    if (parameter_name == "shear_viscosity_3_T_kink_in_GeV")
+        parameter_list.shear_3_T_kink_in_GeV = value;
+    if (parameter_name == "shear_viscosity_3_low_T_slope_in_GeV")
+        parameter_list.shear_3_low_T_slope_in_GeV = value;
+    if (parameter_name == "shear_viscosity_3_high_T_slope_in_GeV")
+        parameter_list.shear_3_high_T_slope_in_GeV = value;
+    if (parameter_name == "shear_viscosity_3_at_kink")
+        parameter_list.shear_3_at_kink = value;
+
+    if (parameter_name == "T_dependent_Bulk_to_S_ratio")
+        parameter_list.T_dependent_bulk_to_s = static_cast<int>(value);
+
+    if (parameter_name == "bulk_viscosity_2_normalisation")
+        parameter_list.bulk_2_normalisation = value;
+    if (parameter_name == "bulk_viscosity_2_peak_in_GeV")
+        parameter_list.bulk_2_peak_in_GeV = value;
+    if (parameter_name == "bulk_viscosity_2_width_in_GeV")
+        parameter_list.bulk_2_width_in_GeV = value;
+
+    if (parameter_name == "bulk_viscosity_3_max")
+        parameter_list.bulk_3_max = value;
+    if (parameter_name == "bulk_viscosity_3_width_in_GeV")
+        parameter_list.bulk_3_width_in_GeV = value;
+    if (parameter_name == "bulk_viscosity_3_T_peak_in_GeV")
+        parameter_list.bulk_3_T_peak_in_GeV = value;
+    if (parameter_name == "bulk_viscosity_3_lambda_asymm")
+        parameter_list.bulk_3_lambda_asymm = value;
+}
 
 void check_parameters(InitData &parameter_list, std::string input_file) {
     music_message.info("Checking input parameter list ... ");

@@ -67,7 +67,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                 >> dummy >> deta >> dummy >> dx >> dummy >> dy;
         profile.close();
         music_message << "Using Initial_profile=" << DATA.Initial_profile
-                      << ". Overwriting lattice dimensions:";
+                      << ". Overwriting transverse lattice dimensions:";
         DATA.nx = nx;
         DATA.ny = ny;
         DATA.delta_x = dx;
@@ -93,12 +93,11 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ". Overwriting lattice dimensions:";
         DATA.nx = nx;
         DATA.ny = ny;
-        DATA.neta = neta;
         DATA.delta_x = dx;
         DATA.delta_y = dy;
-        DATA.delta_eta = 0.1;
 
-        music_message << "neta=" << neta << ", nx=" << nx << ", ny=" << ny;
+        music_message << "neta=" << DATA.neta
+                      << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
         music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
@@ -179,6 +178,7 @@ void Init::print_num_of_threads() {
         }
     }
 }
+
 
 //! This is a shell function to initial hydrodynamic fields
 void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
@@ -1060,7 +1060,7 @@ void Init::initial_AMPT_XY(int ieta, SCGrid &arena_prev,
 
 
 void Init::get_jetscape_preequilibrium_vectors(
-        vector<double> e_in,
+        vector<double> e_in, vector<double> P_in,
         vector<double> u_tau_in, vector<double> u_x_in,
         vector<double> u_y_in,   vector<double> u_eta_in,
         vector<double> pi_00_in, vector<double> pi_01_in,
@@ -1070,6 +1070,7 @@ void Init::get_jetscape_preequilibrium_vectors(
         vector<double> pi_23_in, vector<double> pi_33_in,
         vector<double> Bulk_pi_in) {
     jetscape_initial_energy_density = e_in;
+    jetscape_initial_pressure       = P_in;
     jetscape_initial_u_tau          = u_tau_in;
     jetscape_initial_u_x            = u_x_in;
     jetscape_initial_u_y            = u_y_in;
@@ -1092,7 +1093,6 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
                                  SCGrid &arena_current) {
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
-    //const int neta = arena_current.nEta();
 
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
@@ -1105,24 +1105,27 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
 
             arena_current(ix, iy, ieta).epsilon = epsilon;
             arena_current(ix, iy, ieta).rhob = rhob;
+            double pressure = eos.get_pressure(epsilon, rhob);
 
             arena_current(ix, iy, ieta).u[0] = jetscape_initial_u_tau[idx];
             arena_current(ix, iy, ieta).u[1] = jetscape_initial_u_x[idx];
             arena_current(ix, iy, ieta).u[2] = jetscape_initial_u_y[idx];
             arena_current(ix, iy, ieta).u[3] = DATA.tau0*jetscape_initial_u_eta[idx];
 
-            arena_current(ix, iy, ieta).pi_b = jetscape_initial_bulk_pi[idx]/hbarc;
+            arena_current(ix, iy, ieta).pi_b = (DATA.sFactor/hbarc*(
+                jetscape_initial_pressure[idx] + jetscape_initial_bulk_pi[idx])
+                - pressure);
 
-            arena_current(ix, iy, ieta).Wmunu[0] = jetscape_initial_pi_00[idx]/hbarc;
-            arena_current(ix, iy, ieta).Wmunu[1] = jetscape_initial_pi_01[idx]/hbarc;
-            arena_current(ix, iy, ieta).Wmunu[2] = jetscape_initial_pi_02[idx]/hbarc;
-            arena_current(ix, iy, ieta).Wmunu[3] = jetscape_initial_pi_03[idx]/hbarc*DATA.tau0;
-            arena_current(ix, iy, ieta).Wmunu[4] = jetscape_initial_pi_11[idx]/hbarc;
-            arena_current(ix, iy, ieta).Wmunu[5] = jetscape_initial_pi_12[idx]/hbarc;
-            arena_current(ix, iy, ieta).Wmunu[6] = jetscape_initial_pi_13[idx]/hbarc*DATA.tau0;
-            arena_current(ix, iy, ieta).Wmunu[7] = jetscape_initial_pi_22[idx]/hbarc;
-            arena_current(ix, iy, ieta).Wmunu[8] = jetscape_initial_pi_23[idx]/hbarc*DATA.tau0;
-            arena_current(ix, iy, ieta).Wmunu[9] = jetscape_initial_pi_33[idx]/hbarc*DATA.tau0*DATA.tau0;
+            arena_current(ix, iy, ieta).Wmunu[0] = DATA.sFactor*jetscape_initial_pi_00[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[1] = DATA.sFactor*jetscape_initial_pi_01[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[2] = DATA.sFactor*jetscape_initial_pi_02[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[3] = DATA.sFactor*jetscape_initial_pi_03[idx]/hbarc*DATA.tau0;
+            arena_current(ix, iy, ieta).Wmunu[4] = DATA.sFactor*jetscape_initial_pi_11[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[5] = DATA.sFactor*jetscape_initial_pi_12[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[6] = DATA.sFactor*jetscape_initial_pi_13[idx]/hbarc*DATA.tau0;
+            arena_current(ix, iy, ieta).Wmunu[7] = DATA.sFactor*jetscape_initial_pi_22[idx]/hbarc;
+            arena_current(ix, iy, ieta).Wmunu[8] = DATA.sFactor*jetscape_initial_pi_23[idx]/hbarc*DATA.tau0;
+            arena_current(ix, iy, ieta).Wmunu[9] = DATA.sFactor*jetscape_initial_pi_33[idx]/hbarc*DATA.tau0*DATA.tau0;
 
             arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);
         }
@@ -1132,6 +1135,7 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
 void Init::clean_up_jetscape_arrays() {
     // clean up
     jetscape_initial_energy_density.clear();
+    jetscape_initial_pressure.clear();
     jetscape_initial_u_tau.clear();
     jetscape_initial_u_x.clear();
     jetscape_initial_u_y.clear();

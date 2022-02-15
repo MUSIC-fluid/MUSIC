@@ -21,7 +21,7 @@
 
 using std::vector;
 
-MUSIC::MUSIC(std::string input_file) : 
+MUSIC::MUSIC(std::string input_file) :
     DATA(ReadInParameters::read_in_parameters(input_file)),
     eos(DATA.whichEOS) {
 
@@ -141,7 +141,7 @@ void MUSIC::output_transport_coefficients() {
 
 void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
         const double dx, const double dz, const double z_max, const int nz,
-        vector<double> e_in,
+        vector<double> e_in, vector<double> P_in,
         vector<double> u_tau_in, vector<double> u_x_in,
         vector<double> u_y_in,   vector<double> u_eta_in,
         vector<double> pi_00_in, vector<double> pi_01_in,
@@ -165,7 +165,7 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
 
     Init initialization(eos, DATA, hydro_source_terms_ptr);
     initialization.get_jetscape_preequilibrium_vectors(
-        e_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
+        e_in, P_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
         pi_00_in, pi_01_in, pi_02_in, pi_03_in, pi_11_in, pi_12_in, pi_13_in,
         pi_22_in, pi_23_in, pi_33_in, Bulk_pi_in);
     initialization.InitArena(arena_prev, arena_current, arena_future);

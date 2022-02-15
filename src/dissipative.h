@@ -7,6 +7,7 @@
 #include "cell.h"
 #include "grid.h"
 #include "data.h"
+#include "transport_coeffs.h"
 #include "minmod.h"
 #include "pretty_ostream.h"
 
@@ -15,6 +16,7 @@ class Diss {
     const InitData &DATA;
     const EOS &eos;
     const Minmod minmod;
+    TransportCoeffs transport_coeffs_;
     int map_2d_idx_to_1d(int a, int b) {
         static const int index_map[5][4] = {{0,   1,  2,  3},
                                             {1,   4,  5,  6},
@@ -65,10 +67,6 @@ class Diss {
                          const VelocityShearVec &sigma_1d,
                          const VorticityVec &omega_1d,
                          const DmuMuBoverTVec &baryon_diffusion_vec);
-
-    double get_temperature_dependent_eta_s(const double T) const;
-    double get_muB_dependent_eta_s(const double muB) const;
-    double get_temperature_dependent_zeta_s(const double temperature) const;
 
     void output_kappa_T_and_muB_dependence();
     void output_kappa_along_const_sovernB();

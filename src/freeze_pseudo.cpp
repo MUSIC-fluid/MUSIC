@@ -1627,9 +1627,9 @@ void Freeze::OutputIntegratedFlow_vs_y(
     outfilevn2.open(fname2.str().c_str());
     
     // header of the files
-    outfilevn << "#y  dN/dy  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  "
+    outfilevn << "#y  dN/dy dummy  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  "
               << "v4cos  v4sin  v5cos  v5sin  v6cos  v6sin  v7cos  v7sin\n";
-    outfilevn2 << "#eta  dN/deta  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  "
+    outfilevn2 << "#eta  dN/deta dummy  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  "
                << "v4cos  v4sin  v5cos  v5sin  v6cos  v6sin  v7cos  v7sin\n";
    
     double vn[nharmonics][2];
