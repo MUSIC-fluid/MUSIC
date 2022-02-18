@@ -24,7 +24,21 @@ HydroSourceTATB::HydroSourceTATB(const InitData &DATA_in) :
     yL_frac_ = DATA_.yL_frac;
     TA_ = 0.;
     TB_ = 0.;
-    read_in_TATB();
+
+    if (DATA_.Initial_profile == 113) {
+        read_in_participants_and_compute_TATB();
+    } else {
+        read_in_TATB();
+    }
+
+    music_message << "HydroSourceTATB: tau_min = " << get_source_tau_min()
+                  << " fm/c.";
+    music_message.flush("info");
+    music_message << "HydroSourceTATB: tau_max = " << get_source_tau_max()
+                  << " fm/c.";
+    music_message.flush("info");
+    music_message << "Longitudinal velocity fraction yL_frac = " << yL_frac_;
+    music_message.flush("info");
 }
 
 
@@ -86,14 +100,43 @@ void HydroSourceTATB::read_in_TATB() {
                   << "total energy = " << total_energy << " GeV, "
                   << "N_B = " << N_B;
     music_message.flush("info");
+}
 
-    music_message << "HydroSourceTATB: tau_min = " << get_source_tau_min()
-                  << " fm/c.";
+
+//! This function reads in the spatal information of the participants
+//! and compute the nuclear thickness functions
+void HydroSourceTATB::read_in_participants_and_compute_TATB() {
+    music_message << "read in participants from "
+                  << DATA_.initName_participants;
     music_message.flush("info");
-    music_message << "HydroSourceTATB: tau_max = " << get_source_tau_max()
-                  << " fm/c.";
-    music_message.flush("info");
-    music_message << "Longitudinal velocity fraction yL_frac = " << yL_frac_;
+
+    string text_string;
+
+    std::ifstream partFile(DATA_.initName_participants.c_str());
+    if (!partFile) {
+        music_message << "hydro_source::read_in_participants_and_compute_TATB: "
+                      << "can not open participant file: "
+                      << DATA_.initName_participants;
+        music_message.flush("error");
+        exit(1);
+    }
+
+    const int nx = DATA_.nx;
+    const int ny = DATA_.ny;
+    for (int i = 0; i < nx; i++) {
+        std::vector<double> TA_temp(ny, 0.);
+        std::vector<double> TB_temp(ny, 0.);
+        profile_TA.push_back(TA_temp);
+        profile_TB.push_back(TB_temp);
+    }
+
+    partFile.close();
+    double N_B = TA_ + TB_;
+    double total_energy = DATA_.ecm/2.*N_B;
+    music_message << "sqrt{s} = " << DATA_.ecm << " GeV, "
+                  << "beam rapidity = " << DATA_.beam_rapidity << ", "
+                  << "total energy = " << total_energy << " GeV, "
+                  << "N_B = " << N_B;
     music_message.flush("info");
 }
 

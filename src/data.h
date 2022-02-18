@@ -30,6 +30,7 @@ typedef struct init_data {
     // parameters for Initial_profile == 11 || 111
     std::string initName_TA;  //!< filename for nuclear thickness function TA
     std::string initName_TB;  //!< filename for nuclear thickness function TB
+    std::string initName_participants;  //!< filename for participant nucleons
 
     // parameters for Initial_profile == 30
     std::string initName_AMPT;  //!< initial state filename from AMPT

@@ -26,6 +26,8 @@ class HydroSourceTATB : public HydroSourceBase {
     //! functions
     void read_in_TATB();
 
+    void read_in_participants_and_compute_TATB();
+
     double eta_rhob_left_factor(const double eta) const;
     double eta_rhob_right_factor(const double eta) const;
     double energy_eta_profile_normalisation(
