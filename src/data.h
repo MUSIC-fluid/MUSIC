@@ -30,6 +30,8 @@ typedef struct init_data {
     // parameters for Initial_profile == 11 || 111
     std::string initName_TA;  //!< filename for nuclear thickness function TA
     std::string initName_TB;  //!< filename for nuclear thickness function TB
+    std::string initName_participants;  //!< filename for participant nucleons
+    double nucleonWidth;
 
     // parameters for Initial_profile == 30
     std::string initName_AMPT;  //!< initial state filename from AMPT
@@ -58,6 +60,8 @@ typedef struct init_data {
     int string_dump_mode;
     double string_quench_factor;
     double parton_quench_factor;
+    double stringSourceSigmaX;
+    double stringSourceSigmaEta;
 
     int nx;
     int ny;
@@ -158,6 +162,9 @@ typedef struct init_data {
 
     //! flag to include low temperature cell at the initial time
     int doFreezeOut_lowtemp;
+
+    //! Maximum starting time for freeze-out surface
+    double freezeOutTauStartMax;
 
     int freezeOutMethod;        //!< freeze-out method
 

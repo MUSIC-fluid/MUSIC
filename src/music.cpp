@@ -63,7 +63,8 @@ void MUSIC::generate_hydro_source_terms() {
         auto hydro_source_ptr = std::shared_ptr<HydroSourceAMPT> (
                                             new HydroSourceAMPT (DATA));
         add_hydro_source_terms(hydro_source_ptr);
-    } else if (DATA.Initial_profile == 112) {  // source from TA and TB
+    } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
+        // source from TA and TB
         auto hydro_source_ptr = std::shared_ptr<HydroSourceTATB> (
                                             new HydroSourceTATB (DATA));
         add_hydro_source_terms(hydro_source_ptr);

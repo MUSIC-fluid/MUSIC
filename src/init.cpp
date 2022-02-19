@@ -113,7 +113,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         DATA.tau0 = std::max(DATA.tau0, tau_overlap);
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 112) {
+    } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
         double tau_overlap = 2.*7./(sinh(DATA.beam_rapidity));
         DATA.tau0 = std::max(DATA.tau0, tau_overlap) - DATA.delta_tau;
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
@@ -237,7 +237,7 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message.flush("info");
 
         initial_MCGlb_with_rhob(arena_prev, arena_current);
-    } else if (DATA.Initial_profile == 112) {
+    } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
         music_message.info(
                 "Initialize hydro with source terms from TA and TB");
         #pragma omp parallel for

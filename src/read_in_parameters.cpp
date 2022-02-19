@@ -36,6 +36,18 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_string_dump_mode;
     parameter_list.string_dump_mode = temp_string_dump_mode;
 
+    double temp_string_source_sigma_x = 0.5;  // fm
+    tempinput = Util::StringFind4(input_file, "string_source_sigma_x");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_string_source_sigma_x;
+    parameter_list.stringSourceSigmaX = temp_string_source_sigma_x;
+
+    double temp_string_source_sigma_eta = 0.5;
+    tempinput = Util::StringFind4(input_file, "string_source_sigma_eta");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_string_source_sigma_eta;
+    parameter_list.stringSourceSigmaEta = temp_string_source_sigma_eta;
+
     // hydro source
     double temp_string_quench_factor = 0.;
     tempinput = Util::StringFind4(input_file, "string_quench_factor");
@@ -124,6 +136,13 @@ InitData read_in_parameters(std::string input_file) {
             istringstream(tempinput) >> temp_N_freeze_out;
         parameter_list.N_freeze_out = temp_N_freeze_out;
     }
+
+    //! Maximum starting time for freeze-out surface
+    double tempFreezeOutTauStartMax = 2.;
+    tempinput = Util::StringFind4(input_file, "freeze_out_tau_start_max");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempFreezeOutTauStartMax;
+    parameter_list.freezeOutTauStartMax = tempFreezeOutTauStartMax;
 
     string temp_freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
     tempinput = Util::StringFind4(input_file, "freeze_list_filename");
@@ -685,6 +704,19 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         tempinitName_TB.assign(tempinput);
     parameter_list.initName_TB.assign(tempinitName_TB);
+    // Initial_Distribution_Filename for participant list
+    string tempinitName_part = "initial/participantList.dat";
+    tempinput = Util::StringFind4(input_file,
+                                  "Initial_participantList_Filename");
+    if (tempinput != "empty")
+        tempinitName_part.assign(tempinput);
+    parameter_list.initName_participants.assign(tempinitName_part);
+
+    double temp_nucleonWidth = 0.5;
+    tempinput = Util::StringFind4(input_file, "nucleon_width");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_nucleonWidth;
+    parameter_list.nucleonWidth = temp_nucleonWidth;
 
     // Initial_Distribution_AMPT_filename for AMPT
     string tempinitName_AMPT = "initial/initial_AMPT.dat";
