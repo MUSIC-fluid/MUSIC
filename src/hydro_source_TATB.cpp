@@ -31,6 +31,16 @@ HydroSourceTATB::HydroSourceTATB(const InitData &DATA_in) :
         read_in_TATB();
     }
 
+    double N_B = TA_ + TB_;
+    double total_energy = DATA_.ecm/2.*N_B;
+    double total_pz = DATA_.ecm/2.*(TA_ - TB_);
+    music_message << "sqrt{s} = " << DATA_.ecm << " GeV, "
+                  << "beam rapidity = " << DATA_.beam_rapidity << ", "
+                  << "total energy = " << total_energy << " GeV, "
+                  << "net Pz = " << total_pz << " GeV, "
+                  << "N_B = " << N_B;
+    music_message.flush("info");
+
     music_message << "HydroSourceTATB: tau_min = " << get_source_tau_min()
                   << " fm/c.";
     music_message.flush("info");
@@ -91,13 +101,6 @@ void HydroSourceTATB::read_in_TATB() {
     TBfile.close();
     TA_ *= DATA_.delta_x*DATA_.delta_y;
     TB_ *= DATA_.delta_x*DATA_.delta_y;
-    double N_B = TA_ + TB_;
-    double total_energy = DATA_.ecm/2.*N_B;
-    music_message << "sqrt{s} = " << DATA_.ecm << " GeV, "
-                  << "beam rapidity = " << DATA_.beam_rapidity << ", "
-                  << "total energy = " << total_energy << " GeV, "
-                  << "N_B = " << N_B;
-    music_message.flush("info");
 }
 
 
@@ -124,9 +127,11 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
         profile_TB.push_back(TB_temp);
     }
 
+    string strDummy;
     double dummy;
     double x_0, y_0;
     int dir, e;
+    std::getline(partFile, strDummy);
     partFile >> dummy >> x_0 >> y_0 >> dummy >> dir >> e;
     while (!partFile.eof()) {
         computeTATB(x_0, y_0, dir, e);
@@ -137,13 +142,6 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
         partFile >> dummy >> x_0 >> y_0 >> dummy >> dir >> e;
     }
     partFile.close();
-    double N_B = TA_ + TB_;
-    double total_energy = DATA_.ecm/2.*N_B;
-    music_message << "sqrt{s} = " << DATA_.ecm << " GeV, "
-                  << "beam rapidity = " << DATA_.beam_rapidity << ", "
-                  << "total energy = " << total_energy << " GeV, "
-                  << "N_B = " << N_B;
-    music_message.flush("info");
 }
 
 
@@ -155,7 +153,7 @@ void HydroSourceTATB::computeTATB(const double x_0, const double y_0,
         double x_local = - DATA_.x_size/2. + i*DATA_.delta_x;
         for (int j = 0; j < DATA_.ny; j++) {
             double y_local = - DATA_.y_size/2. + j*DATA_.delta_y;
-            double dis_sq = ((x_local - x_0)*(x_local - x_0)
+            double dis_sq = (  (x_local - x_0)*(x_local - x_0)
                              + (y_local - y_0)*(y_local - y_0));
             if (dis_sq < 25.*wsq) {
                 double rholocal = preFact*exp(-dis_sq/(2.*wsq));
@@ -199,13 +197,12 @@ void HydroSourceTATB::get_hydro_energy_source(
                            std::abs(DATA_.beam_rapidity - (y_CM - y_L)));
     double eta_envelop = eta_profile_plateau(eta_s - (y_CM - y_L), eta0,
                                              DATA_.eta_fall_off);
-    double E_norm = tau_source*energy_eta_profile_normalisation(
-                                    y_CM, eta0, DATA_.eta_fall_off);
+    //double E_norm = tau_source*energy_eta_profile_normalisation(
+    //                                y_CM, eta0, DATA_.eta_fall_off);
     //double eta_envelop = eta_profile_plateau_frag(eta_s - (y_CM - y_L), eta0,
     //                                              DATA_.eta_fall_off);
-    //double E_norm = tau_source*energy_eta_profile_normalisation_numerical(
-    //                                y_CM, eta0, DATA_.eta_fall_off);
-    //std::cout << "check E_norm1 = " << E_norm1 << ", E_norm = " << E_norm << std::endl;
+    double E_norm = tau_source*energy_eta_profile_normalisation_numerical(
+                                    y_CM, eta0, DATA_.eta_fall_off);
     double epsilon = M_inv*eta_envelop/E_norm/dtau;  // [1/fm^5]
     j_mu[0] = epsilon*cosh(y_L);  // [1/fm^5]
     j_mu[3] = epsilon*sinh(y_L);  // [1/fm^5]
