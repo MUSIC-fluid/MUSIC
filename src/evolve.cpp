@@ -62,8 +62,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double tau;
     int it_start = 3;
     double source_tau_max = 0.0;
-    if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
-        source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
+    if (!hydro_source_terms_ptr) {
+        source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
     }
 
     const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
@@ -84,8 +84,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
-        if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
-            hydro_source_terms_ptr.lock()->prepare_list_for_current_tau_frame(tau);
+        if (!hydro_source_terms_ptr) {
+            hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
         if (it == it_start) {
@@ -106,14 +106,6 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                 grid_info.output_1p1D_check_file(*ap_current, tau);
             }
         }
-
-        //if (DATA.Initial_profile == 13) {
-        //    if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
-        //        grid_info.output_energy_density_and_rhob_disitrubtion(
-        //                    *ap_current,
-        //                    "energy_density_and_rhob_from_source_terms.dat");
-        //    }
-        //}
 
         if (it % Nskip_timestep == 0) {
             if (DATA.outputEvolutionData == 1) {
@@ -161,7 +153,6 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             grid_info.output_average_phase_diagram_trajectory(
                                             tau, 4.0, 5.0, *ap_current);
         }
-
 
         // check energy conservation
         if (!DATA.boost_invariant) {
@@ -285,6 +276,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     }
     return 1;
 }
+
 
 void Evolve::store_previous_step_for_freezeout(SCGrid &arena_current,
                                                SCGrid &arena_freezeout) {
