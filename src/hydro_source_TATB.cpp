@@ -55,8 +55,6 @@ void HydroSourceTATB::read_in_TATB() {
                   << " and " << DATA_.initName_TB;
     music_message.flush("info");
 
-    string text_string;
-
     std::ifstream TAfile(DATA_.initName_TA.c_str());
     if (!TAfile) {
         music_message << "hydro_source::read_in_TATB: "
@@ -110,8 +108,6 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
                   << DATA_.initName_participants;
     music_message.flush("info");
 
-    string text_string;
-
     std::ifstream partFile(DATA_.initName_participants.c_str());
     if (!partFile) {
         music_message << "hydro_source::read_in_participants_and_compute_TATB: "
@@ -161,7 +157,7 @@ void HydroSourceTATB::computeTATB(const double x_0, const double y_0,
             double y_local = - DATA_.y_size/2. + j*DATA_.delta_y;
             double dis_sq = ((x_local - x_0)*(x_local - x_0)
                              + (y_local - y_0)*(y_local - y_0));
-            if (dis_sq < 25*wsq) {
+            if (dis_sq < 25.*wsq) {
                 double rholocal = preFact*exp(-dis_sq/(2.*wsq));
                 if (dir == 1) {
                     profile_TA[i][j] += rholocal;

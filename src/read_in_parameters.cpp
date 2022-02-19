@@ -700,6 +700,19 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         tempinitName_TB.assign(tempinput);
     parameter_list.initName_TB.assign(tempinitName_TB);
+    // Initial_Distribution_Filename for participant list
+    string tempinitName_part = "initial/participantList.dat";
+    tempinput = Util::StringFind4(input_file,
+                                  "Initial_participantList_Filename");
+    if (tempinput != "empty")
+        tempinitName_part.assign(tempinput);
+    parameter_list.initName_participants.assign(tempinitName_part);
+
+    double temp_nucleonWidth = 0.5;
+    tempinput = Util::StringFind4(input_file, "nucleon_width");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_nucleonWidth;
+    parameter_list.nucleonWidth = temp_nucleonWidth;
 
     // Initial_Distribution_AMPT_filename for AMPT
     string tempinitName_AMPT = "initial/initial_AMPT.dat";
