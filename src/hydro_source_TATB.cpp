@@ -121,15 +121,25 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
         exit(1);
     }
 
-    const int nx = DATA_.nx;
-    const int ny = DATA_.ny;
-    for (int i = 0; i < nx; i++) {
-        std::vector<double> TA_temp(ny, 0.);
-        std::vector<double> TB_temp(ny, 0.);
+    for (int i = 0; i < DATA_.nx; i++) {
+        std::vector<double> TA_temp(DATA_.ny, 0.);
+        std::vector<double> TB_temp(DATA_.ny, 0.);
         profile_TA.push_back(TA_temp);
         profile_TB.push_back(TB_temp);
     }
 
+    double dummy;
+    double x_0, y_0;
+    int dir, e;
+    partFile >> dummy >> x_0 >> y_0 >> dummy >> dir >> e;
+    while (!partFile.eof()) {
+        computeTATB(x_0, y_0, dir, e);
+        if (dir == 1)
+            TA_++;
+        else
+            TB_++;
+        partFile >> dummy >> x_0 >> y_0 >> dummy >> dir >> e;
+    }
     partFile.close();
     double N_B = TA_ + TB_;
     double total_energy = DATA_.ecm/2.*N_B;
@@ -138,6 +148,29 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
                   << "total energy = " << total_energy << " GeV, "
                   << "N_B = " << N_B;
     music_message.flush("info");
+}
+
+
+void HydroSourceTATB::computeTATB(const double x_0, const double y_0,
+                                  const int dir, const int e) {
+    const double wsq = DATA_.nucleonWidth*DATA_.nucleonWidth;
+    const double preFact = 1./(2.*M_PI*wsq);
+    for (int i = 0; i < DATA_.nx; i++) {
+        double x_local = - DATA_.x_size/2. + i*DATA_.delta_x;
+        for (int j = 0; j < DATA_.ny; j++) {
+            double y_local = - DATA_.y_size/2. + j*DATA_.delta_y;
+            double dis_sq = ((x_local - x_0)*(x_local - x_0)
+                             + (y_local - y_0)*(y_local - y_0));
+            if (dis_sq < 25*wsq) {
+                double rholocal = preFact*exp(-dis_sq/(2.*wsq));
+                if (dir == 1) {
+                    profile_TA[i][j] += rholocal;
+                } else {
+                    profile_TB[i][j] += rholocal;
+                }
+            }
+        }
+    }
 }
 
 

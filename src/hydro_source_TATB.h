@@ -27,6 +27,8 @@ class HydroSourceTATB : public HydroSourceBase {
     void read_in_TATB();
 
     void read_in_participants_and_compute_TATB();
+    void computeTATB(const double x_0, const double y_0,
+                     const int dir, const int e);
 
     double eta_rhob_left_factor(const double eta) const;
     double eta_rhob_right_factor(const double eta) const;
