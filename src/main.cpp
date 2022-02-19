@@ -25,7 +25,10 @@ int main(int argc, char *argv[]) {
     if (running_mode == 1 || running_mode == 2) {
         music_hydro.initialize_hydro();
         music_hydro.run_hydro();
-        
+        //music_hydro.prepare_run_hydro_one_time_step();
+        //for (int i = 0; i < 200; i++) {
+        //    music_hydro.run_hydro_one_time_step(i);
+        //}
     }
 
     if (running_mode == 1 || running_mode == 3 || running_mode == 4

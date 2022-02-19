@@ -43,6 +43,12 @@ class Evolve {
            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                  SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr);
+    int EvolveOneTimeStep(const int it,
+                          SCGrid &arena_prev, SCGrid &arena_current,
+                          SCGrid &arena_future,
+                          SCGrid &arena_freezeout_prev,
+                          SCGrid &arena_freezeout,
+                          HydroinfoMUSIC &hydro_info_ptr);
 
     void AdvanceRK(double tau, GridPointer &arena_prev,
                    GridPointer &arena_current, GridPointer &arena_future);

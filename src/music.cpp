@@ -107,6 +107,27 @@ int MUSIC::run_hydro() {
 }
 
 
+//! this is a prepare function to run hydro for one time step
+void MUSIC::prepare_run_hydro_one_time_step() {
+    arena_freezeout_prev = SCGrid(DATA.nx, DATA.ny, DATA.neta);
+    arena_freezeout = SCGrid(DATA.nx, DATA.ny, DATA.neta);
+
+    evolve_ptr_= std::make_shared<Evolve> (eos, DATA, hydro_source_terms_ptr);
+
+    if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
+        hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
+    }
+}
+
+//! this is a shell function to run hydro for one time step
+int MUSIC::run_hydro_one_time_step(const int itau) {
+    int status = evolve_ptr_->EvolveOneTimeStep(
+                    itau, arena_prev, arena_current, arena_future,
+                    arena_freezeout_prev, arena_freezeout, (*hydro_info_ptr));
+    return(status);
+}
+
+
 //! this is a shell function to run Cooper-Frye
 int MUSIC::run_Cooper_Frye() {
 #ifdef GSL

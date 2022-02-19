@@ -9,6 +9,7 @@
 #include "grid.h"
 #include "data.h"
 #include "eos.h"
+#include "evolve.h"
 #include "hydro_source_base.h"
 #include "read_in_parameters.h"
 #include "pretty_ostream.h"
@@ -32,9 +33,13 @@ class MUSIC {
 
     EOS eos;
 
+    std::shared_ptr<Evolve> evolve_ptr_;
+
     SCGrid arena_prev;
     SCGrid arena_current;
     SCGrid arena_future;
+    SCGrid arena_freezeout_prev;
+    SCGrid arena_freezeout;
 
     std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
@@ -57,6 +62,9 @@ class MUSIC {
 
     //! this is a shell function to run hydro
     int run_hydro();
+
+    void prepare_run_hydro_one_time_step();
+    int run_hydro_one_time_step(const int itau);
 
     //! this is a shell function to run Cooper-Frye
     int run_Cooper_Frye();

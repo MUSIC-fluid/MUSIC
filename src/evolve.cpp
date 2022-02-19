@@ -62,7 +62,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double tau;
     int it_start = 3;
     double source_tau_max = 0.0;
-    if (!hydro_source_terms_ptr) {
+    if (hydro_source_terms_ptr) {
         source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
     }
 
@@ -84,7 +84,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
-        if (!hydro_source_terms_ptr) {
+        if (hydro_source_terms_ptr) {
             hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
@@ -278,6 +278,149 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 }
 
 
+int Evolve::EvolveOneTimeStep(const int it, SCGrid &arena_prev,
+                              SCGrid &arena_current, SCGrid &arena_future,
+                              SCGrid &arena_freezeout_prev,
+                              SCGrid &arena_freezeout,
+                              HydroinfoMUSIC &hydro_info_ptr) {
+
+    int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
+    int freezeout_flag          = DATA.doFreezeOut;
+    int freezeout_lowtemp_flag  = DATA.doFreezeOut_lowtemp;
+
+    double eps_max_cur = -1.;
+    const double max_allowed_e_increase_factor = 2.;
+
+    if (DATA.store_hydro_info_in_memory == 1 && it == 0) {
+        hydro_info_ptr.set_grid_infomatioin(DATA);
+    }
+
+    const int it_start = 3;
+    double source_tau_max = 0.0;
+    double tau = DATA.tau0 + it*DATA.delta_tau;
+    if (hydro_source_terms_ptr) {
+        source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
+        hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
+    }
+
+    const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
+    GridPointer ap_prev   (&arena_prev, closer);
+    GridPointer ap_current(&arena_current, closer);
+    GridPointer ap_future (&arena_future, closer);
+
+    // store initial conditions
+    if (it == it_start) {
+        store_previous_step_for_freezeout(*ap_prev, arena_freezeout_prev);
+        store_previous_step_for_freezeout(*ap_current, arena_freezeout);
+    }
+
+    if (DATA.Initial_profile == 0) {
+        if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
+            || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
+            || fabs(tau - 3.0) < 1e-8) {
+            grid_info.Gubser_flow_check_file(*ap_current, tau);
+        }
+    }
+
+    if (it % Nskip_timestep == 0) {
+        if (DATA.outputEvolutionData == 1) {
+            grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
+        } else if (DATA.outputEvolutionData == 2) {
+            grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
+        } else if (DATA.outputEvolutionData == 3) {
+            grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
+        } else if (DATA.outputEvolutionData == 4) {
+            grid_info.OutputEvolutionDataXYEta_vorticity(
+                                        *ap_current, *ap_prev, tau);
+        }
+        if (DATA.store_hydro_info_in_memory == 1) {
+            grid_info.OutputEvolutionDataXYEta_memory(*ap_current, tau,
+                                                      hydro_info_ptr);
+        }
+    }
+
+    // check energy conservation
+    if (!DATA.boost_invariant) {
+        grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
+    }
+
+    double emax_loc = 0.;
+    double Tmax_curr = 0.;
+    double nB_max_curr = 0.;
+    grid_info.get_maximum_energy_density(*ap_current, emax_loc,
+                                         nB_max_curr, Tmax_curr);
+    if (tau > source_tau_max && it > 0) {
+        if (eps_max_cur < 0.) {
+            eps_max_cur = emax_loc;
+        } else {
+            if (emax_loc > max_allowed_e_increase_factor*eps_max_cur) {
+                music_message << "The maximum energy density increased by "
+                              << "more than facotor of "
+                              << max_allowed_e_increase_factor << "! ";
+                music_message << "This should not happen!";
+                music_message.flush("error");
+                exit(1);
+            } else {
+                eps_max_cur = std::min(emax_loc, eps_max_cur);
+            }
+        }
+    }
+
+    /* execute rk steps */
+    // all the evolution are at here !!!
+    AdvanceRK(tau, ap_prev, ap_current, ap_future);
+
+    // "ap_current" is our result at time "tau+dtau", not "tau"
+    const double tau_next = tau + DATA.delta_tau;
+
+    //determine freeze-out surface
+    int frozen = 0;
+    if (freezeout_flag == 1) {
+        if (freezeout_lowtemp_flag == 1 && it == it_start) {
+            frozen = FreezeOut_equal_tau_Surface(tau_next, *ap_current);
+        }
+        // avoid freeze-out at the first time step
+        if ((it - it_start)%DATA.facTau == 0 && it > it_start) {
+            if (!DATA.boost_invariant) {
+                frozen = FindFreezeOutSurface_Cornelius(
+                            tau, *ap_prev, *ap_current,
+                            arena_freezeout_prev, arena_freezeout);
+            } else {
+                frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
+                            tau_next, *ap_current, arena_freezeout);
+            }
+            store_previous_step_for_freezeout(*ap_prev,
+                                              arena_freezeout_prev);
+            store_previous_step_for_freezeout(*ap_current,
+                                              arena_freezeout);
+        }
+    }
+    music_message << emoji::clock()
+                  << " Done time step " << it << ", tau = " << tau << " fm/c";
+    music_message.flush("info");
+    if (frozen == 1 && tau > source_tau_max) {
+        if (   DATA.outputEvolutionData == 2
+            || DATA.outputEvolutionData == 3) {
+            if (eps_max_cur < DATA.output_evolution_e_cut) {
+                music_message << "All cells e < "
+                              << DATA.output_evolution_e_cut
+                              << " GeV/fm^3.";
+                music_message.flush("info");
+            }
+        } else if (DATA.outputEvolutionData == 4) {
+            if (Tmax_curr < DATA.output_evolution_T_cut) {
+                music_message << "All cells T < "
+                              << DATA.output_evolution_T_cut << " GeV.";
+                music_message.flush("info");
+            }
+        } else {
+            music_message.info("All cells frozen out. Exiting.");
+        }
+    }
+    return frozen;
+}
+
+
 void Evolve::store_previous_step_for_freezeout(SCGrid &arena_current,
                                                SCGrid &arena_freezeout) {
     const int nx   = arena_current.nX();
@@ -291,7 +434,8 @@ void Evolve::store_previous_step_for_freezeout(SCGrid &arena_current,
     }
 }
 
-void Evolve::AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future) {
+void Evolve::AdvanceRK(double tau, GridPointer &arena_prev,
+                       GridPointer &arena_current, GridPointer &arena_future) {
     // control function for Runge-Kutta evolution in tau
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
@@ -326,8 +470,11 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau,
                 arena_freezeout_prev, arena_freezeout, thread_id, epsFO);
         }
     }
-
-    return(intersections + 1);
+    int all_frozen = 1;
+    if (intersections > 0) {
+        all_frozen = 0;
+    }
+    return(all_frozen);
 }
 
 int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
@@ -989,7 +1136,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
     static bool overwrite_file = true;
     // If we saved the first timestep's surface, don't overwrite it
     if (DATA.doFreezeOut_lowtemp) {
-	    overwrite_file=false;
+        overwrite_file=false;
     }
 
     // find boost-invariant hyper-surfaces
@@ -1010,14 +1157,13 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
             modes=std::ios::out;
         }
 
-	// Only append at the end of the file if it's not the first timestep
-	// (that is, overwrite file at first timestep)
-	if (!overwrite_file) {
-                modes = modes | std::ios::app;
-	}
-	else {
-		overwrite_file=false;
-	}
+        // Only append at the end of the file if it's not the first timestep
+        // (that is, overwrite file at first timestep)
+        if (!overwrite_file) {
+            modes = modes | std::ios::app;
+        } else {
+            overwrite_file=false;
+        }
 
         s_file.open(strs_name.str().c_str(), modes);
 
