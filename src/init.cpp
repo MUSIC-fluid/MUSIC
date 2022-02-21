@@ -399,7 +399,7 @@ void Init::initial_AMPT_smeared(SCGrid &arena_prev, SCGrid &arena_current){
             double tau_ueta = DATA.tau0*ueta;
             double utau = sqrt(1+ux*ux + uy*uy + tau_ueta*tau_ueta);
 
-            arena_current(ix, iy, ieta).epsilon = eps*DATA.sFactor;
+            arena_current(ix, iy, ieta).epsilon = eps;
             arena_current(ix, iy, ieta).rhob = rhob;
             arena_current(ix, iy, ieta).u[0] = utau;
             arena_current(ix, iy, ieta).u[1] = ux;
@@ -414,7 +414,7 @@ void Init::initial_AMPT_smeared(SCGrid &arena_prev, SCGrid &arena_current){
             arena_current(ix, iy, ieta).Wmunu[5] = pixy;
             arena_current(ix, iy, ieta).Wmunu[6] = DATA.tau0*pixeta;
             arena_current(ix, iy, ieta).Wmunu[7] = piyy;
-            arena_current(ix, iy, ieta).Wmunu[8] = piyeta;
+            arena_current(ix, iy, ieta).Wmunu[8] = DATA.tau0*piyeta;
             arena_current(ix, iy, ieta).Wmunu[9] = DATA.tau0*DATA.tau0*pietaeta;
 
             arena_current(ix, iy, ieta).pi_b = (eps-trace)/3.0 - eos.get_pressure(eps,rhob);
