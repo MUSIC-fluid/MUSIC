@@ -48,6 +48,12 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_string_source_sigma_eta;
     parameter_list.stringSourceSigmaEta = temp_string_source_sigma_eta;
 
+    double temp_stringTransverseShiftFrac = 0.0;
+    tempinput = Util::StringFind4(input_file, "stringTransverseShiftFrac");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_stringTransverseShiftFrac;
+    parameter_list.stringTransverseShiftFrac = temp_stringTransverseShiftFrac;
+
     // hydro source
     double temp_string_quench_factor = 0.;
     tempinput = Util::StringFind4(input_file, "string_quench_factor");
