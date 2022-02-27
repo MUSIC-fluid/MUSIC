@@ -45,7 +45,9 @@ class Evolve {
     Evolve(const EOS &eos, const InitData &DATA_in,
            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
 
-    ~Evolve() {surfaceCellVec_.clear();}
+    ~Evolve() {clearSurfaceCellVector();}
+
+    void clearSurfaceCellVector() {surfaceCellVec_.clear();}
 
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                  SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr);
