@@ -14,6 +14,7 @@
 #include "hydro_source_base.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
+#include "surfaceCell.h"
 
 // this is a control class for the hydrodynamic evolution
 class Evolve {
@@ -36,11 +37,16 @@ class Evolve {
     int n_freeze_surf;
     std::vector<double> epsFO_list;
 
+    std::vector<SurfaceCell> surfaceCellVec_;
+
     typedef std::unique_ptr<SCGrid, void(*)(SCGrid*)> GridPointer;
 
  public:
     Evolve(const EOS &eos, const InitData &DATA_in,
            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
+
+    ~Evolve() {surfaceCellVec_.clear();}
+
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                  SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr);
     int EvolveOneTimeStep(const int it,

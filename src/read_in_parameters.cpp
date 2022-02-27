@@ -173,6 +173,16 @@ InitData read_in_parameters(std::string input_file) {
         parameter_list.freeze_surface_in_binary = true;
     }
 
+    int temp_surface_in_memory = 0;
+    tempinput = Util::StringFind4(input_file, "surface_in_memory");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_surface_in_memory;
+    if (temp_surface_in_memory == 0) {
+        parameter_list.surface_in_memory = false;
+    } else {
+        parameter_list.surface_in_memory = true;
+    }
+
     //particle_spectrum_to_compute:
     // 0: Do all up to number_of_particles_to_include
     // any natural number: Do the particle with this (internal) ID

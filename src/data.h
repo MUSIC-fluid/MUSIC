@@ -206,6 +206,7 @@ typedef struct init_data {
     int freeze_eps_flag;
     std::string freeze_list_filename;
     bool freeze_surface_in_binary;
+    bool surface_in_memory;
 
     // for calculation of spectra
     int pseudofreeze;    //! flag to compute spectra in pseudorapdity
