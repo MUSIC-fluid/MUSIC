@@ -222,6 +222,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
             // avoid freeze-out at the first time step
             if ((it - it_start)%facTau == 0 && it > it_start) {
+                music_message.info("Finding freeze-out surface ...");
                 if (!DATA.boost_invariant) {
                     frozen = FindFreezeOutSurface_Cornelius(
                                 tau, *ap_prev, *ap_current,
@@ -234,6 +235,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                                   arena_freezeout_prev);
                 store_previous_step_for_freezeout(*ap_current,
                                                   arena_freezeout);
+                if (DATA.surface_in_memory) {
+                    music_message << "Surface vector length = "
+                                  << surfaceCellVec_.size();
+                    music_message.flush("info");
+                }
             }
         }
         music_message << emoji::clock()
