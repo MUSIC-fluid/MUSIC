@@ -34,14 +34,14 @@ Initial_Distribution_input_filename example_inputfiles/IPGlasma_2D/input/epsilon
                                # (for Initial_profile == 8)
 s_factor 0.235                 # normalization factor read in 
                                # initial data file
-Eta_plateau_size 20.           # size of the plateau in eta_s
-Eta_fall_off 0.7               # the scale of the fall off of the 
+Eta_plateau_size 6.0           # size of the plateau in eta_s
+Eta_fall_off 1.0               # the scale of the fall off of the 
                                # plateau in eta_s direction
 #
 #######################################
 # parameters for hydrodynamic evolution
 #######################################
-boost_invariant  1            # whether the simulation is boost-invariant 
+boost_invariant  0            # whether the simulation is boost-invariant 
 # grid information
 Initial_time_tau_0 0.6        # starting time of the hydrodynamic 
                               # evolution (fm/c)
@@ -51,7 +51,7 @@ Total_evolution_time_tau 30.  # the maximum allowed running
 Delta_Tau 0.005               # time step to use in the evolution [fm/c]
 Eta_grid_size 14.0            # spatial rapidity range 
                               # [-Eta_grid_size/2, Eta_grid_size/2 - delta_eta]
-Grid_size_in_eta 1            # number of the grid points in spatial 
+Grid_size_in_eta 64           # number of the grid points in spatial 
                               # rapidity direction
                               # Must have at least 4 cells per processor.
                               # Must be an even number.
