@@ -997,7 +997,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     if (parameter_list.initial_eta_profile > 2
             || parameter_list.initial_eta_profile < 0) {
         music_message << "Initial eta profile"
-                      << parameter_list.Initial_profile
+                      << parameter_list.initial_eta_profile
                       << "not defined";
         music_message.flush("error");
         exit(1);
