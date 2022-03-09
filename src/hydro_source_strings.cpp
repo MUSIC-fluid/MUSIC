@@ -83,8 +83,10 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
                     >> new_string->y_r_baryon
                     >> new_string->baryon_frac_l;
         if (!text_stream.eof()) {
-            // read in the last element
-            text_stream >> new_string->baryon_frac_r;
+            // read in the last three elements
+            text_stream >> new_string->baryon_frac_r
+                        >> new_string->px_i
+                        >> new_string->py_i;
         } else {
             // the string is too short
             music_message << "read_in_QCD_strings_and_partons: "
@@ -470,16 +472,26 @@ void HydroSourceStrings::get_hydro_energy_source(
               exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)*sinh(it->y_l - eta_s)
             + exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)*sinh(it->y_r - eta_s)
         );
+        double p_perp_factors = exp_tau*(
+              exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)
+            + exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)
+        );
         double e_remnant_local = 0.0;
         double pz_remnant_local = 0.0;
+        double p_perp_remnant_local = 0.0;
         if (exp_factors > 0) {
             double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                     /(2.*sigma_x*sigma_x));
             e_remnant_local = exp_xperp*exp_factors;
             pz_remnant_local = exp_xperp*pz_factors;
+            p_perp_remnant_local = exp_xperp*p_perp_factors;
         }
-        j_mu[0] += prefactor_etas*prefactor_prep*e_remnant_local;
-        j_mu[3] += prefactor_etas*prefactor_prep*pz_remnant_local;
+        double mT_m_ratio = std::sqrt(it->px_i*it->px_i + it->py_i*it->py_i + it->mass*it->mass)
+                                     /it->mass;
+        j_mu[0] += prefactor_etas*prefactor_prep*e_remnant_local*mT_m_ratio;
+        j_mu[3] += prefactor_etas*prefactor_prep*pz_remnant_local*mT_m_ratio;
+        j_mu[1] += prefactor_etas*prefactor_prep*p_perp_remnant_local*it->px_i/it->mass;
+        j_mu[2] += prefactor_etas*prefactor_prep*p_perp_remnant_local*it->py_i/it->mass;
     }
     const double prefactor_tau = 1./dtau;
     const double unit_convert = 1.0/Util::hbarc;
