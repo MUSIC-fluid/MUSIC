@@ -14,7 +14,7 @@
 using std::string;
 
 
-HydroSourceTATB::HydroSourceTATB(const InitData &DATA_in) :
+HydroSourceTATB::HydroSourceTATB(InitData &DATA_in) :
     DATA_(DATA_in) {
     double tau_overlap = 2.*7./(sinh(DATA_.beam_rapidity));
     tau_source = std::max(DATA_.tau0, tau_overlap);
@@ -120,13 +120,8 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
         exit(1);
     }
 
-    for (int i = 0; i < DATA_.nx; i++) {
-        std::vector<double> TA_temp(DATA_.ny, 0.);
-        std::vector<double> TB_temp(DATA_.ny, 0.);
-        profile_TA.push_back(TA_temp);
-        profile_TB.push_back(TB_temp);
-    }
-
+    // read in participants into a list
+    std::vector<participant> partList;
     string strDummy;
     double dummy;
     double x_0, y_0;
@@ -134,7 +129,12 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
     std::getline(partFile, strDummy);
     partFile >> dummy >> x_0 >> y_0 >> dummy >> dir >> e;
     while (!partFile.eof()) {
-        computeTATB(x_0, y_0, dir, e);
+        participant part_i;
+        part_i.x = x_0;
+        part_i.y = y_0;
+        part_i.dir = dir;
+        part_i.e = e;
+        partList.push_back(part_i);
         if (dir == 1)
             TA_++;
         else
@@ -142,6 +142,49 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
         partFile >> dummy >> x_0 >> y_0 >> dummy >> dir >> e;
     }
     partFile.close();
+
+    // shift the event center to (0, 0)
+    double x_CM = 0.;
+    double y_CM = 0.;
+    for (auto &part_i : partList) {
+        x_CM += part_i.x;
+        y_CM += part_i.y;
+    }
+    x_CM /= static_cast<double>(partList.size());
+    y_CM /= static_cast<double>(partList.size());
+    double x_max = 0.;
+    double y_max = 0.;
+    for (auto &part_i : partList) {
+        part_i.x -= x_CM;
+        part_i.y -= y_CM;
+        if (x_max < std::abs(part_i.x))
+            x_max = std::abs(part_i.x);
+        if (y_max < std::abs(part_i.y))
+            y_max = std::abs(part_i.y);
+    }
+
+    // adjust transverse grid size
+    double gridOffset = std::max(3., 5.*DATA_.nucleonWidth);
+    DATA_.x_size = 2.*(x_max + gridOffset);
+    DATA_.y_size = 2.*(y_max + gridOffset);
+    DATA_.delta_x = DATA_.x_size/(DATA_.nx - 1);
+    DATA_.delta_y = DATA_.y_size/(DATA_.ny - 1);
+    music_message << "[HydroSourceTATB] Grid info: x_size = "
+                  << DATA_.x_size << ", y_size = " << DATA_.y_size
+                  << ", dx = " << DATA_.delta_x << " fm, dy = "
+                  << DATA_.delta_y << " fm.";
+    music_message.flush("info");
+
+    for (int i = 0; i < DATA_.nx; i++) {
+        std::vector<double> TA_temp(DATA_.ny, 0.);
+        std::vector<double> TB_temp(DATA_.ny, 0.);
+        profile_TA.push_back(TA_temp);
+        profile_TB.push_back(TB_temp);
+    }
+
+    for (const auto &part_i : partList) {
+        computeTATB(part_i.x, part_i.y, part_i.dir, part_i.e);
+    }
 }
 
 

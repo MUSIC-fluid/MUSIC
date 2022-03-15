@@ -7,10 +7,16 @@
 #include <memory>
 #include "hydro_source_base.h"
 
+struct participant {
+    double x, y;
+    int dir;
+    int e;
+};
+
 
 class HydroSourceTATB : public HydroSourceBase {
  private:
-    const InitData &DATA_;
+    InitData &DATA_;
     double yL_frac_;
     double tau_source;
     double TA_, TB_;
@@ -19,7 +25,7 @@ class HydroSourceTATB : public HydroSourceBase {
 
  public:
     HydroSourceTATB() = default;
-    HydroSourceTATB(const InitData &DATA_in);
+    HydroSourceTATB(InitData &DATA_in);
     ~HydroSourceTATB();
 
     //! This function reads in the spatal information of the nuclear thickness
