@@ -61,6 +61,7 @@ typedef struct init_data {
     double stringSourceSigmaX;
     double stringSourceSigmaEta;
     double string_Slope_Ratio;
+    double stringTransverseShiftFrac;
 
     int nx;
     int ny;

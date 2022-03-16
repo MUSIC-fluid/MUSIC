@@ -39,6 +39,7 @@ class HydroSourceStrings : public HydroSourceBase {
     int string_dump_mode;
     double string_quench_factor;
     double parton_quench_factor;
+    double stringTransverseShiftFrac_;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list_current_tau;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_remnant_list_current_tau;
@@ -70,6 +71,8 @@ class HydroSourceStrings : public HydroSourceBase {
 
     void prepare_list_for_current_tau_frame(const double tau_local);
     void compute_norm_for_strings(const double total_energy);
+    double getStringTransverseCoord(const double xl, const double xr,
+                                    const double etaFrac) const;
 };
 
 #endif  // SRC_HYDRO_SOURCE_STRINGS_H_
