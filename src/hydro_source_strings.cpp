@@ -13,7 +13,7 @@
 
 using std::string;
 
-HydroSourceStrings::HydroSourceStrings(const InitData &DATA_in) :
+HydroSourceStrings::HydroSourceStrings(InitData &DATA_in) :
     DATA(DATA_in) {
     set_source_tau_min(100.0);
     set_source_tau_max(0.0);
@@ -201,6 +201,29 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     music_message << "total baryon number = " << total_baryon_number;
     music_message.flush("info");
     compute_norm_for_strings(total_energy);
+
+    double xMax = 0.;
+    double yMax = 0.;
+    for (auto const& it : QCD_strings_list) {
+        xMax = std::max(xMax, std::abs(it->x_perp));
+        xMax = std::max(xMax, std::abs(it->x_pl));
+        xMax = std::max(xMax, std::abs(it->x_pr));
+        yMax = std::max(yMax, std::abs(it->y_perp));
+        yMax = std::max(yMax, std::abs(it->y_pl));
+        yMax = std::max(yMax, std::abs(it->y_pr));
+    }
+
+    // adjust transverse grid size
+    double gridOffset = std::max(3., 5.*DATA.stringSourceSigmaX);
+    DATA.x_size = 2.*(x_max + gridOffset);
+    DATA.y_size = 2.*(y_max + gridOffset);
+    DATA.delta_x = DATA.x_size/(DATA.nx - 1);
+    DATA.delta_y = DATA.y_size/(DATA.ny - 1);
+    music_message << "[HydroSourceTATB] Grid info: x_size = "
+                  << DATA.x_size << ", y_size = " << DATA.y_size
+                  << ", dx = " << DATA.delta_x << " fm, dy = "
+                  << DATA.delta_y << " fm.";
+    music_message.flush("info");
 }
 
 
