@@ -215,8 +215,8 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
 
     // adjust transverse grid size
     double gridOffset = std::max(3., 5.*DATA.stringSourceSigmaX);
-    DATA.x_size = 2.*(x_max + gridOffset);
-    DATA.y_size = 2.*(y_max + gridOffset);
+    DATA.x_size = 2.*(xMax + gridOffset);
+    DATA.y_size = 2.*(yMax + gridOffset);
     DATA.delta_x = DATA.x_size/(DATA.nx - 1);
     DATA.delta_y = DATA.y_size/(DATA.ny - 1);
     music_message << "[HydroSourceTATB] Grid info: x_size = "

@@ -46,7 +46,7 @@ class HydroSourceStrings : public HydroSourceBase {
 
  public:
     HydroSourceStrings() = default;
-    HydroSourceStrings(const InitData &DATA_in);
+    HydroSourceStrings(InitData &DATA_in);
     ~HydroSourceStrings();
 
     //! This function reads in the spatal information of the strings
