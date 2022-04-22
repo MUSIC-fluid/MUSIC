@@ -1888,7 +1888,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
     filename3 << "meanpT_estimators_tau_" << tau << ".dat";
     std::fstream of3;
     of3.open(filename3.str().c_str(), std::fstream::out);
-    of3 << "# eta_s  dE/deta_s (GeV)  dS/deta_s  [s] (1/fm^-3)  [r^2] (fm^2)"
+    of3 << "# eta_s  dS/deta_s  dE/deta_s (GeV) [s] (1/fm^-3)  [r^2] (fm^2)"
         << endl;
 
     const int norder = 6;
@@ -2006,11 +2006,11 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
                 }
             }
 
-            meanpT_est_num[0] = tau*s_local*u0;         // dS/deta_s
-            meanpT_est_num[1] = tau*T_00_ideal;         // dE/deta_s
-            meanpT_est_num[2] = s_local*u0*e_local;     // [s]
-            meanpT_est_num[3] = r_ed*r_ed*u0*e_local;   // [r^2]
-            meanpT_est_den[0] = u0*e_local;
+            meanpT_est_num[0] += tau*s_local*u0;         // dS/deta_s
+            meanpT_est_num[1] += tau*T_00_ideal;         // dE/deta_s
+            meanpT_est_num[2] += s_local*u0*e_local;     // [s]
+            meanpT_est_num[3] += r_ed*r_ed*u0*e_local;   // [r^2]
+            meanpT_est_den[0] += u0*e_local;
         }
 
         // output results
@@ -2042,8 +2042,8 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
 
         of3 << scientific << setw(18) << setprecision(8)
             << eta << "  "
-            << meanpT_est_num[0]*hbarc*DATA.delta_x*DATA.delta_y << "  "
-            << meanpT_est_num[1]*DATA.delta_x*DATA.delta_y << "  "
+            << meanpT_est_num[0]*DATA.delta_x*DATA.delta_y << "  "
+            << meanpT_est_num[1]*hbarc*DATA.delta_x*DATA.delta_y << "  "
             << meanpT_est_num[2]/meanpT_est_den[0] << "  "
             << meanpT_est_num[3]/meanpT_est_den[0] << endl;
     }
@@ -2103,6 +2103,19 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                  std::fstream::out | std::fstream::app);
     }
 
+    ostringstream filename3;
+    filename3 << "meanpT_estimators_eta_" << eta_min << "_" << eta_max
+              << ".dat";
+    std::fstream of3;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of3.open(filename3.str().c_str(), std::fstream::out);
+        of3 << "# tau (fm)  dS/deta_s  dE/deta_s (GeV) [s] (1/fm^-3)  "
+            << "[r^2] (fm^2)" << endl;
+    } else {
+        of3.open(filename3.str().c_str(),
+                 std::fstream::out | std::fstream::app);
+    }
+
     double ideal_num1 = 0.0;
     double ideal_num2 = 0.0;
     double ideal_den  = 0.0;
@@ -2132,6 +2145,8 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     std::vector<double> eccn_num1(norder, 0.0);
     std::vector<double> eccn_num2(norder, 0.0);
     std::vector<double> eccn_den (norder, 0.0);
+    std::vector<double> meanpT_est_num(4, 0.0);
+    std::vector<double> meanpT_est_den(1, 0.0);
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
         if (!DATA.boost_invariant) {
@@ -2165,6 +2180,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
                 double P_local    = eos.get_pressure(e_local, rhob_local);
                 double enthopy    = e_local + P_local;
+                double s_local    = eos.get_entropy(e_local, rhob_local);  // 1/fm^3
                 double T_local    = eos.get_temperature(e_local, rhob_local);
                 double u0         = arena(ix, iy, ieta).u[0];
                 double ux         = arena(ix, iy, ieta).u[1];
@@ -2176,6 +2192,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double pi_yy      = arena(ix, iy, ieta).Wmunu[7];
                 double bulk_Pi    = arena(ix, iy, ieta).pi_b;
 
+                double T_00_ideal   = enthopy*u0*u0 - P_local;
                 double T_0x_ideal   = enthopy*u0*ux;
                 double T_0y_ideal   = enthopy*u0*uy;
                 double T_0r_ideal   = sqrt(  T_0x_ideal*T_0x_ideal
@@ -2253,6 +2270,12 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                     eccn_num2[i-1] += weight_local*sin(i*phi_local);
                     eccn_den [i-1] += weight_local;
                 }
+
+                meanpT_est_num[0] += tau*s_local*u0;         // dS/deta_s
+                meanpT_est_num[1] += tau*T_00_ideal;         // dE/deta_s
+                meanpT_est_num[2] += s_local*u0*e_local;     // [s]
+                meanpT_est_num[3] += r_local*r_local*u0*e_local;   // [r^2]
+                meanpT_est_den[0] += u0*e_local;
             }
         }
     }
@@ -2290,6 +2313,14 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
         << tau << "  " << R_shearpi << "  " << R_Pi << "  "
         << u_avg << "  " << T_avg << endl;
     of2.close();
+
+    of3 << scientific << setw(18) << setprecision(8)
+        << tau << "  "
+        << meanpT_est_num[0]*DATA.delta_x*DATA.delta_y << "  "
+        << meanpT_est_num[1]*hbarc*DATA.delta_x*DATA.delta_y << "  "
+        << meanpT_est_num[2]/meanpT_est_den[0] << "  "
+        << meanpT_est_num[3]/meanpT_est_den[0] << endl;
+    of3.close();
 }
 
 
