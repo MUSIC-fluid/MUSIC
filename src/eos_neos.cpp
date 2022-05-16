@@ -93,6 +93,16 @@ void EOS_neos::initialize_eos() {
         flag_muC = true;
         set_flag_muS(flag_muS);
         set_flag_muC(flag_muC);
+    } else if (eos_id == 15) {
+        music_message.info("reading EOS neos_bqs ...");
+        spath << "/EOS/neos_bqs_muB0.9/";
+        string string_tmp[] = {"1qs", "2qs", "3qs", "4qs", "5qs", "6qs", "7qs"};
+        std::copy(std::begin(string_tmp), std::end(string_tmp),
+                  std::begin(eos_file_string_array));
+        flag_muS = true;
+        flag_muC = true;
+        set_flag_muS(flag_muS);
+        set_flag_muC(flag_muC);
     }
 
     string path = spath.str();

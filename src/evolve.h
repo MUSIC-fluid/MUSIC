@@ -21,8 +21,8 @@ class Evolve {
  private:
     const EOS &eos;        // declare EOS object
     const InitData &DATA;
-    std::weak_ptr<HydroSourceBase> hydro_source_terms_ptr;
     std::weak_ptr<CriticalSlowModes> critical_slow_modes_ptr;
+    std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
     Cell_info grid_info;
     Advance advance;

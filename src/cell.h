@@ -60,6 +60,8 @@ class Cell_aux {
     VorticityVec omega_k = {0.};
     VorticityVec omega_th = {0.};
     VorticityVec omega_T = {0.};
+    VelocityShearVec sigma = {0.};
+    DmuMuBoverTVec DbetaMu = {0.};
 
 
     Cell_aux operator + (Cell_aux const &obj) {
@@ -70,6 +72,10 @@ class Cell_aux {
             res.omega_th[i] = omega_th[i] + obj.omega_th[i];
             res.omega_T[i] = omega_T[i] + obj.omega_T[i];
         }
+        for (unsigned int i = 0; i < sigma.size(); i++)
+            res.sigma[i] = sigma[i] + obj.sigma[i];
+        for (unsigned int i = 0; i < DbetaMu.size(); i++)
+            res.DbetaMu[i] = DbetaMu[i] + obj.DbetaMu[i];
         return(res);
     }
 
@@ -82,6 +88,10 @@ class Cell_aux {
             res.omega_th[i] = omega_th[i]*a;
             res.omega_T[i] = omega_T[i]*a;
         }
+        for (unsigned int i = 0; i < sigma.size(); i++)
+            res.sigma[i] = sigma[i]*a;
+        for (unsigned int i = 0; i < DbetaMu.size(); i++)
+            res.DbetaMu[i] = DbetaMu[i]*a;
         return(res);
     }
 };

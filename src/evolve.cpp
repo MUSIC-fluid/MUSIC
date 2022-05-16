@@ -64,11 +64,22 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double dt    = DATA.delta_tau;
 
     double tau;
-    int it_start = 3;
+    int iFreezeStart = 0;
     double source_tau_max = 0.0;
-    if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
-        source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
+    if (hydro_source_terms_ptr) {
+        source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
+        if (freezeout_lowtemp_flag == 1) {
+            double freezeOutTauStart = (
+                    hydro_source_terms_ptr->get_source_tauStart_max());
+            freezeOutTauStart = std::min(DATA.freezeOutTauStartMax,
+                                         freezeOutTauStart);
+            iFreezeStart = static_cast<int>((freezeOutTauStart - tau0)/dt) + 2;
+        }
     }
+
+    music_message << "Freeze-out surface starts at " << tau0 + iFreezeStart*dt
+                  << " fm/c.";
+    music_message.flush("info");
 
     const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
     GridPointer ap_prev   (&arena_prev, closer);
@@ -88,11 +99,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
-        if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
-            hydro_source_terms_ptr.lock()->prepare_list_for_current_tau_frame(tau);
+        if (hydro_source_terms_ptr) {
+            hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
-        if (it == it_start) {
+        if (it == iFreezeStart) {
             store_previous_step_for_freezeout(*ap_prev, arena_freezeout_prev);
             store_previous_step_for_freezeout(*ap_current, arena_freezeout);
         }
@@ -150,8 +161,10 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
-        if (it == it_start)
+        if (it == iFreezeStart || it == iFreezeStart + 10
+            || it == iFreezeStart + 30 || it == iFreezeStart + 50) {
             grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
+        }
         grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *ap_current);
         if (DATA.Initial_profile == 13) {
@@ -221,18 +234,14 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                            100, 100, 0, tau);
         }
 
-        /* execute rk steps */
-        // all the evolution are at here !!!
-        AdvanceRK(tau, ap_prev, ap_current, ap_future);
-
         //determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
-            if (freezeout_lowtemp_flag == 1 && it == it_start) {
+            if (freezeout_lowtemp_flag == 1 && it == iFreezeStart) {
                 frozen = FreezeOut_equal_tau_Surface(tau, *ap_current);
             }
             // avoid freeze-out at the first time step
-            if ((it - it_start)%facTau == 0 && it > it_start) {
+            if ((it - iFreezeStart)%facTau == 0 && it > iFreezeStart) {
                 if (!DATA.boost_invariant) {
                     frozen = FindFreezeOutSurface_Cornelius(
                                 tau, *ap_prev, *ap_current,
@@ -247,6 +256,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                                   arena_freezeout);
             }
         }
+
+        /* execute rk steps */
+        // all the evolution are at here !!!
+        AdvanceRK(tau, ap_prev, ap_current, ap_future);
+
         music_message << emoji::clock()
                       << " Done time step " << it << "/" << itmax
                       << " tau = " << tau << " fm/c";
@@ -350,16 +364,9 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     std::ofstream s_file;
     std::ios_base::openmode modes;
 
+    modes = std::ios::out | std::ios::app;
     if (surface_in_binary) {
-        modes=std::ios::out | std::ios::binary;
-    } else {
-        modes=std::ios::out;
-    }
-
-    // Only append at the end of the file if it's not the first timestep
-    // (that is, overwrite file at first timestep)
-    if (tau != DATA.tau0+DATA.delta_tau) {
-        modes = modes | std::ios::app;
+        modes = modes | std::ios::binary;
     }
 
     s_file.open(strs_name.str().c_str(), modes);
@@ -533,14 +540,16 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
                         aux_tmp.omega_kSP, aux_tmp.omega_k,
-                        aux_tmp.omega_th, aux_tmp.omega_T);
+                        aux_tmp.omega_th, aux_tmp.omega_T,
+                        aux_tmp.sigma, aux_tmp.DbetaMu);
                     fluid_aux_cube[1][ii][jj][kk] = aux_tmp;
                     u_derivative_helper.compute_vorticity_shell(
                         tau - DTAU, arena_freezeout_prev, arena_freezeout,
                         ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
                         eta_local,
                         aux_tmp.omega_kSP, aux_tmp.omega_k,
-                        aux_tmp.omega_th, aux_tmp.omega_T);
+                        aux_tmp.omega_th, aux_tmp.omega_T,
+                        aux_tmp.sigma, aux_tmp.DbetaMu);
                     fluid_aux_cube[0][ii][jj][kk] = aux_tmp;
                 }
                 auto fluid_center = four_dimension_linear_interpolation(
@@ -606,7 +615,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
                 // finally output results !!!!
                 if (surface_in_binary) {
-                    const int FOsize = 34 + DATA.output_vorticity*24;
+                    const int FOsize = 34 + DATA.output_vorticity*(24 + 14);
                     float array[FOsize];
                     array[0] = static_cast<float>(tau_center);
                     array[1] = static_cast<float>(x_center);
@@ -638,6 +647,12 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                             array[52+ii] = (-fluid_aux_center.omega_T[ii]
                                             /TFO/TFO);
                         }
+                        // the extra minus sign is from metric
+                        // output quantities for g = (1, -1, -1, -1)
+                        for (int ii = 0; ii < 10; ii++)
+                            array[58+ii] = -fluid_aux_center.sigma[ii];
+                        for (int ii = 0; ii < 4; ii++)
+                            array[68+ii] = -fluid_aux_center.DbetaMu[ii];
                     }
                     for (int i = 0; i < FOsize; i++)
                         s_file.write((char*) &(array[i]), sizeof(float));
@@ -739,16 +754,9 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     std::ofstream s_file;
     std::ios_base::openmode modes;
 
+    modes = std::ios::out | std::ios::app;
     if (surface_in_binary) {
-        modes=std::ios::out | std::ios::binary;
-    } else {
-        modes=std::ios::out;
-    }
-
-    // Only append at the end of the file if it's not the first timestep
-    // (that is, overwrite file at first timestep)
-    if (tau != DATA.tau0+DATA.delta_tau) {
-            modes = modes | std::ios::app;
+        modes = modes | std::ios::binary;
     }
 
     s_file.open(strs_name.str().c_str(), modes);
@@ -868,7 +876,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
 
             // finally output results
             if (surface_in_binary) {
-                const int FOsize = 34 + DATA.output_vorticity*24;
+                const int FOsize = 34 + DATA.output_vorticity*(24 + 14);
                 float array[FOsize];
                 array[0] = static_cast<float>(tau_center);
                 array[1] = static_cast<float>(x_center);
@@ -906,7 +914,9 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 array[33] = static_cast<float>(qeta_center);
                 if (DATA.output_vorticity == 1) {
                     for (int ii = 0; ii < 6; ii++) {
-                        array[34+ii] = fluid_aux_center.omega_kSP[ii]/T_local;  // no minus sign because its definition is opposite to the kinetic vorticity
+                        // no minus sign because its definition is opposite to
+                        // the kinetic vorticity
+                        array[34+ii] = fluid_aux_center.omega_kSP[ii]/T_local;
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
                         array[40+ii] = -fluid_aux_center.omega_k[ii]/T_local;
@@ -914,6 +924,12 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                         array[52+ii] = (-fluid_aux_center.omega_T[ii]
                                         /T_local/T_local);
                     }
+                    // the extra minus sign is from metric
+                    // output quantities for g = (1, -1, -1, -1)
+                    for (int ii = 0; ii < 10; ii++)
+                        array[58+ii] = -fluid_aux_center.sigma[ii];
+                    for (int ii = 0; ii < 4; ii++)
+                        array[68+ii] = -fluid_aux_center.DbetaMu[ii];
                 }
                 for (int i = 0; i < FOsize; i++) {
                     s_file.write((char*) &(array[i]), sizeof(float));

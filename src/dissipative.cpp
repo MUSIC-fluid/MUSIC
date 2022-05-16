@@ -1062,7 +1062,7 @@ double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
         }
         bulk = B_norm*exp(-Tdiff*Tdiff);
     } else if (DATA.T_dependent_zeta_over_s == 10) {
-        double B_norm = 0.10;
+        double B_norm = 0.05;
         double B_width1 = 0.015/hbarc;
         double B_width2 = 0.10/hbarc;
         double Tpeak = 0.170/hbarc;

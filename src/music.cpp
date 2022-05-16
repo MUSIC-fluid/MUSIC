@@ -21,7 +21,7 @@
 
 using std::vector;
 
-MUSIC::MUSIC(std::string input_file) : 
+MUSIC::MUSIC(std::string input_file) :
     DATA(ReadInParameters::read_in_parameters(input_file)),
     eos(DATA.whichEOS) {
 
@@ -64,7 +64,8 @@ void MUSIC::generate_hydro_source_terms() {
         auto hydro_source_ptr = std::shared_ptr<HydroSourceAMPT> (
                                             new HydroSourceAMPT (DATA));
         add_hydro_source_terms(hydro_source_ptr);
-    } else if (DATA.Initial_profile == 112) {  // source from TA and TB
+    } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
+        // source from TA and TB
         auto hydro_source_ptr = std::shared_ptr<HydroSourceTATB> (
                                             new HydroSourceTATB (DATA));
         add_hydro_source_terms(hydro_source_ptr);
@@ -73,8 +74,7 @@ void MUSIC::generate_hydro_source_terms() {
 
 
 void MUSIC::clean_all_the_surface_files() {
-    system_status_ = system(
-            "rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+    system_status_ = system("rm surface*.dat 2> /dev/null");
 }
 
 
