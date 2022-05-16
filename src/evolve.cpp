@@ -37,7 +37,6 @@ Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
         initialize_freezeout_surface_info();
     }
     hydro_source_terms_ptr  = hydro_source_ptr_in;
-    critical_slow_modes_ptr = critical_slow_modes_in;
 }
 
 // master control function for hydrodynamic evolution
