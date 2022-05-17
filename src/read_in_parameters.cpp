@@ -346,11 +346,11 @@ InitData read_in_parameters(std::string input_file) {
 
     /* x-grid, for instance, runs from 0 to nx */
     parameter_list.delta_x =
-            parameter_list.x_size/static_cast<double>(parameter_list.nx - 1); 
+            parameter_list.x_size/static_cast<double>(parameter_list.nx - 1);
     parameter_list.delta_y =
-            parameter_list.y_size/static_cast<double>(parameter_list.ny - 1); 
-    parameter_list.delta_eta =
-            parameter_list.eta_size/static_cast<double>(parameter_list.neta - 1); 
+            parameter_list.y_size/static_cast<double>(parameter_list.ny - 1);
+    parameter_list.delta_eta = (parameter_list.eta_size
+                                /static_cast<double>(parameter_list.neta - 1));
 
     music_message << " DeltaX = " << parameter_list.delta_x << " fm";
     music_message.flush("info");

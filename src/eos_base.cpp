@@ -206,7 +206,7 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
     int ntol         = 1000;
     if (T_goal < 0.0 || T_goal > T_upper) {
         cout << "get_T2e:: T is out of bound, "
-             << "T = " << T << ", T_upper = " << T_upper*Util::hbarc
+             << "T = " << T << " GeV, T_upper = " << T_upper*Util::hbarc
              << ", T_lower = " << T_lower*Util::hbarc << endl;
         exit(1);
     }
@@ -228,7 +228,7 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
     }
     if (iter == ntol) {
         cout << "get_T2e_finite_rhob:: max iteration reached, "
-             << "T = " << T << ", rhob = " << rhob << endl;;
+             << "T = " << T << " GeV, rhob = " << rhob << endl;;
         cout << "T_upper = " << T_upper*Util::hbarc
              << " , T_lower = " << T_lower*Util::hbarc << endl;
         cout << "eps_upper = " << eps_upper

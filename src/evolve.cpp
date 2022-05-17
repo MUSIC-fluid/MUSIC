@@ -968,6 +968,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
 int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                 double tau, SCGrid &arena_current, SCGrid &arena_freezeout) {
     const bool surface_in_binary = DATA.freeze_surface_in_binary;
+
     // find boost-invariant hyper-surfaces
     int *all_frozen = new int[n_freeze_surf];
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
@@ -980,16 +981,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         std::ofstream s_file;
         std::ios_base::openmode modes;
 
+        modes = std::ios::out | std::ios::app;
         if (surface_in_binary) {
-            modes=std::ios::out | std::ios::binary;
-        } else {
-            modes=std::ios::out;
-        }
-
-        // Only append at the end of the file if it's not the first timestep
-        // (that is, overwrite file at first timestep)
-        if (tau != DATA.tau0+DATA.delta_tau) {
-                modes = modes | std::ios::app;
+            modes = modes | std::ios::binary;
         }
 
         s_file.open(strs_name.str().c_str(), modes);
