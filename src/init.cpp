@@ -52,6 +52,12 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
     } else if (DATA.Initial_profile == 8) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
+        if (!profile.is_open()) {
+            music_message << "Initial profile: " << DATA.initName
+                          << " not found.";
+            music_message.flush("error");
+            exit(1);
+        }
         std::string dummy;
         int nx, ny, neta;
         double deta, dx, dy, dummy2;
@@ -75,6 +81,12 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                || DATA.Initial_profile == 92 || DATA.Initial_profile == 93) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
+        if (!profile.is_open()) {
+            music_message << "Initial profile: " << DATA.initName
+                          << " not found.";
+            music_message.flush("error");
+            exit(1);
+        }
         std::string dummy;
         int nx, ny, neta;
         double deta, dx, dy, dummy2;
@@ -101,7 +113,7 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
         DATA.tau0 = std::max(DATA.tau0, tau_overlap);
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 112) {
+    } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
         double tau_overlap = 2.*7./(sinh(DATA.beam_rapidity));
         DATA.tau0 = std::max(DATA.tau0, tau_overlap) - DATA.delta_tau;
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
@@ -226,7 +238,7 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
         music_message.flush("info");
 
         initial_MCGlb_with_rhob(arena_prev, arena_current);
-    } else if (DATA.Initial_profile == 112) {
+    } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
         music_message.info(
                 "Initialize hydro with source terms from TA and TB");
         #pragma omp parallel for
@@ -1037,8 +1049,8 @@ double Init::energy_eta_profile_normalisation(
     // this function returns the normalization of the eta envelope profile
     // for energy density
     //  \int deta eta_profile_plateau(eta - y_CM, eta_0, sigma_eta)*cosh(eta)
-    double f1 = (exp(eta_0)*erfc(-sqrt(0.5)*sigma_eta)
-                 + exp(-eta_0)*erfc(sqrt(0.5*sigma_eta)));
+    double f1 = (  exp( eta_0)*erfc(-sqrt(0.5)*sigma_eta)
+                 + exp(-eta_0)*erfc( sqrt(0.5)*sigma_eta));
     double f2 = sqrt(M_PI/2.)*sigma_eta*exp(sigma_eta*sigma_eta/2.);
     double f3 = sinh(eta_0 + y_CM) - sinh(-eta_0 + y_CM);
     double norm = cosh(y_CM)*f2*f1 + f3;
@@ -1052,8 +1064,8 @@ double Init::Pz_eta_profile_normalisation(
     // for longitudinal momentum
     //  \int deta eta_profile_plateau(eta, eta_0, sigma_eta)*eta*sinh(eta)
     const double sigma_sq = sigma_eta*sigma_eta;
-    double f1 = (  exp(eta_0)*(eta_0 + sigma_sq)*erfc(-sqrt(0.5)*sigma_eta)
-                 - exp(-eta_0)*(eta_0 - sigma_sq)*erfc(sqrt(0.5*sigma_eta)));
+    double f1 = (  exp( eta_0)*(eta_0 + sigma_sq)*erfc(-sqrt(0.5)*sigma_eta)
+                 - exp(-eta_0)*(eta_0 - sigma_sq)*erfc( sqrt(0.5)*sigma_eta));
     double f2 = sqrt(M_PI/2.)*sigma_eta*exp(sigma_sq/2.)/2.;
     double f3 = sigma_sq*sinh(eta_0);
     double f4 = 2.*eta_0*cosh(eta_0) - 2.*sinh(eta_0);
