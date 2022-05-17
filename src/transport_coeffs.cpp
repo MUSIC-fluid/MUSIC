@@ -128,14 +128,30 @@ double TransportCoeffs::get_zeta_over_s(const double T) const {
         zeta_over_s = get_temperature_dependent_zeta_over_s_bigbroadP(T);
     } else if (DATA.T_dependent_bulk_to_s == 8) {
         // latest param. for IPGlasma + MUSIC + UrQMD
+        // Phys.Rev.C 102 (2020) 4, 044905, e-Print: 2005.14682 [nucl-th]
         const double peak_norm = 0.13;
+        const double B_width1 = 0.01;
+        const double B_width2 = 0.12;
+        const double Tpeak = 0.160;
         zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
-                                                                T, peak_norm);
+                            T, peak_norm, B_width1, B_width2, Tpeak);
     } else if (DATA.T_dependent_bulk_to_s == 9) {
         // latest param. for IPGlasma + KoMPoST + MUSIC + UrQMD
+        // Phys.Rev.C 105 (2022) 1, 014909, e-Print: 2106.11216 [nucl-th]
         const double peak_norm = 0.175;
+        const double B_width1 = 0.01;
+        const double B_width2 = 0.12;
+        const double Tpeak = 0.160;
         zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
-                                                                T, peak_norm);
+                            T, peak_norm, B_width1, B_width2, Tpeak);
+    } else if (DATA.T_dependent_bulk_to_s == 10) {
+        // param. for 3D-Glauber + MUSIC + UrQMD
+        const double peak_norm = 0.05;
+        const double B_width1 = 0.015;      // GeV
+        const double B_width2 = 0.100;      // GeV
+        const double Tpeak = 0.170;         // GeV
+        zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
+                            T, peak_norm, B_width1, B_width2, Tpeak);
     }
     zeta_over_s = std::max(0., zeta_over_s);
     return zeta_over_s;
@@ -257,13 +273,10 @@ double TransportCoeffs::get_temperature_dependent_zeta_over_s_bigbroadP(
 
 
 double TransportCoeffs::get_temperature_dependent_zeta_over_s_AsymGaussian(
-                            const double T_in_fm, const double norm) const {
+        const double T_in_fm, const double B_norm, const double B_width1,
+        const double B_width2, const double Tpeak) const {
     const double T_in_GeV = T_in_fm*hbarc;
-    const double B_norm = norm;
-    const double B_width1 = 0.01;
-    const double B_width2 = 0.12;
-    const double Tpeak = 0.160;
-    double Tdiff = T_in_GeV - Tpeak;
+    double Tdiff = T_in_GeV - Tpeak;        // GeV
     if (Tdiff > 0.) {
         Tdiff = Tdiff/B_width2;
     } else {
