@@ -14,8 +14,9 @@
 using Util::hbarc;
 using Util::small_eps;
 
-Diss::Diss(const EOS &eosIn, const InitData &Data_in) : 
-                    DATA(Data_in), eos(eosIn), minmod(Data_in) {}
+Diss::Diss(const EOS &eosIn, const InitData &Data_in) :
+                DATA(Data_in), eos(eosIn), minmod(Data_in),
+                transport_coeffs_(eosIn, Data_in) {}
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 /* Dissipative parts */
@@ -173,16 +174,9 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     }
 
     T = eos.get_temperature(epsilon, rhob);
+    double muB = eos.get_muB(epsilon, rhob);
 
-    double shear_to_s = DATA.shear_to_s;
-    if (DATA.T_dependent_shear_to_s != 0) {
-        shear_to_s *= get_temperature_dependent_eta_s(T);
-    }
-
-    if (DATA.muB_dependent_shear_to_s != 0) {
-        double muB = eos.get_muB(epsilon, rhob);
-        shear_to_s *= get_muB_dependent_eta_s(muB);
-    }
+    double shear_to_s = transport_coeffs_.get_eta_over_s(T, muB);
 
     bool include_WWterm = false;
     bool include_Wsigma_term = false;
@@ -203,21 +197,26 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     } else {
         shear = shear_to_s*(epsilon + pressure)/std::max(T, small_eps);
     }
-    double tau_pi = 5.0*shear/std::max(epsilon + pressure, small_eps);
+    double tau_pi = (transport_coeffs_.get_shear_relax_time_factor()
+                     *shear/std::max(epsilon + pressure, small_eps));
     tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
-    //double transport_coefficient  = 9./70.*tau_pi/shear*(4./5.);
-    double transport_coefficient  = 9./70.*4./std::max(epsilon + pressure, small_eps);
-    double transport_coefficient2 = 4./3.*tau_pi;
-    double transport_coefficient3 = 10./7.*tau_pi;
+    double transport_coefficient  = (
+            transport_coeffs_.get_phi7_coeff()*tau_pi/shear*(4./5.));
+    double transport_coefficient2 = (
+            transport_coeffs_.get_delta_pipi_coeff()*tau_pi);
+    double transport_coefficient3 = (
+            transport_coeffs_.get_tau_pipi_coeff()*tau_pi);
 
     // transport coefficient for nonlinear terms
     // -- coupling to bulk viscous pressure
     // transport coefficients not yet known -- fixed to zero
-    double transport_coefficient_b  = 6./5.*tau_pi;
+    double transport_coefficient_b  = (
+            transport_coeffs_.get_lambda_pibulkPi_coeff()*tau_pi);
     double transport_coefficient2_b = 0.;
+
 
     /* This source has many terms */
     /* everything in the 1/(tau_pi) piece is here */
@@ -633,17 +632,19 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
     double pressure = eos.get_pressure(epsilon, rhob);
 
     // T dependent bulk viscosity
-    bulk = get_temperature_dependent_zeta_s(temperature);
+    bulk = transport_coeffs_.get_zeta_over_s(temperature);
     bulk = bulk*(epsilon + pressure)/temperature;
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
-    Bulk_Relax_time = (bulk/(14.55*std::max(1./3. - cs2, small_eps)
-                                  *std::max(1./3. - cs2, small_eps))
-                           /std::max(epsilon + pressure, small_eps));
+    double csfactor = std::max(1./3. - cs2, small_eps);
+    Bulk_Relax_time = (transport_coeffs_.get_bulk_relax_time_factor()
+                       /(csfactor*csfactor)
+                       /std::max(epsilon + pressure, small_eps)*bulk);
     if (DATA.bulk_relaxation_type == 1) {
         Bulk_Relax_time = (
-                bulk/(7./5.*std::max(1./3. - cs2, small_eps))
+                bulk/(transport_coeffs_.get_bulk_relax_time_factor()
+                      *csfactor)
                 /std::max(epsilon + pressure, small_eps));
     }
 
@@ -652,11 +653,14 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
         std::min(10., std::max(3.*DATA.delta_tau, Bulk_Relax_time)));
 
     // from kinetic theory, small mass limit
-    transport_coeff1   = 2.0/3.0*(Bulk_Relax_time);
-    transport_coeff2   = 0.;  // not known; put 0
+    transport_coeff1   = (
+            transport_coeffs_.get_delta_bulkPibulkPi_coeff()*Bulk_Relax_time);
+    transport_coeff2   = (
+            transport_coeffs_.get_tau_bulkPibulkPi_coeff()*Bulk_Relax_time);
 
     // from kinetic theory
-    transport_coeff1_s = 8./5.*(1./3.-cs2)*Bulk_Relax_time;
+    transport_coeff1_s = (transport_coeffs_.get_lambda_bulkPipi_coeff()
+                          *(1./3. - cs2)*Bulk_Relax_time);
     transport_coeff2_s = 0.;  // not known;  put 0
 
 
@@ -792,12 +796,12 @@ double Diss::Make_uqSource(
     // a = nu
     double NS = kappa*(baryon_diffusion_vec[nu] + grid_pt->u[nu]*a_local[4]);
 
-    // add a new non-linear term (- q^{\nu} \theta)
-    double transport_coeff = 1.0*tau_rho;   // from conformal kinetic theory
+    // add a new non-linear term (- q \theta)
+    double transport_coeff = transport_coeffs_.get_delta_qq_coeff()*tau_rho;
     double Nonlinear1 = -transport_coeff*q[nu]*theta_local;
 
-    // add a new non-linear term (-q_\mu \sigma^{\mu\nu})
-    double transport_coeff_2 = 3./5.*tau_rho;   // from 14-momentum massless
+    // add a new non-linear term (-q^\mu \sigma_\mu\nu)
+    double transport_coeff_2 = transport_coeffs_.get_lambda_qq_coeff()*tau_rho;
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
     double temptemp = 0.0;
     for (int i = 0 ; i < 4; i++) {
@@ -945,136 +949,6 @@ double Diss::Make_uqRHS(const double tau, SCGrid &arena,
     return(sum*(DATA.delta_tau));
 }
 
-double Diss::get_temperature_dependent_eta_s(const double T) const {
-    const double Tc = 0.165/hbarc;
-    const double Tslope = 1.2;
-    const double Tlow = 0.1/hbarc;
-    double f_T = 1.0;
-    if (T < Tc) {
-        f_T += Tslope*(Tc - T)/(Tc - Tlow);
-    } else {
-        if (DATA.T_dependent_shear_to_s == 2) {
-            const double Tslope2 = 1.0;
-            const double Thigh = 0.4/hbarc;
-            f_T += Tslope2*(T - Tc)/(Thigh - Tc);
-        }
-    }
-    return(f_T);
-}
-
-double Diss::get_muB_dependent_eta_s(const double muB) const {
-    const double alpha = 0.8;
-    const double muB_slope = 0.9;
-    const double muB_scale = 0.6/hbarc;
-    double f_muB = 1.;
-    if (DATA.muB_dependent_shear_to_s == 10) {
-        f_muB += muB_slope*pow(muB/muB_scale, alpha);
-    }
-    return(f_muB);
-}
-
-double Diss::get_temperature_dependent_zeta_s(const double temperature) const {
-    double bulk = 0.0;
-    if (DATA.T_dependent_zeta_over_s == 0) {
-        // T dependent bulk viscosity from Gabriel
-        // used in arXiv: 1502.01675 and 1704.04216
-        double Ttr=0.18/0.1973;
-        double dummy=temperature/Ttr;
-        double A1=-13.77, A2=27.55, A3=13.45;
-        double lambda1=0.9, lambda2=0.25, lambda3=0.9, lambda4=0.22;
-        double sigma1=0.025, sigma2=0.13, sigma3=0.0025, sigma4=0.022;
-
-        bulk = A1*dummy*dummy + A2*dummy - A3;
-        if (temperature < 0.995*Ttr) {
-            bulk = (lambda3*exp((dummy-1)/sigma3)
-                    + lambda4*exp((dummy-1)/sigma4) + 0.03);
-        }
-        if (temperature > 1.05*Ttr) {
-            bulk = (lambda1*exp(-(dummy-1)/sigma1)
-                    + lambda2*exp(-(dummy-1)/sigma2) + 0.001);
-        }
-    } else if (DATA.T_dependent_zeta_over_s == 1) {
-        double Ttr=0.18/0.1973;
-        double dummy=temperature/Ttr;
-        double A1=-79.53, A2=159.067, A3=79.04;
-        double lambda1=0.9, lambda2=0.25, lambda3=0.9, lambda4=0.22;
-        double sigma1=0.025, sigma2=0.13, sigma3=0.0025, sigma4=0.022;
-
-        bulk = A1*dummy*dummy + A2*dummy - A3;
-        if (temperature < 0.997*Ttr) {
-            bulk = (lambda3*exp((dummy-1)/sigma3)
-                    + lambda4*exp((dummy-1)/sigma4) + 0.03);
-        }
-        if (temperature > 1.04*Ttr) {
-            bulk = (lambda1*exp(-(dummy-1)/sigma1)
-                    + lambda2*exp(-(dummy-1)/sigma2) + 0.001);
-        }
-    } else if (DATA.T_dependent_zeta_over_s == 2) {
-        double Ttr=0.18/0.1973;
-        double dummy=temperature/Ttr;
-        double lambda3=0.9, lambda4=0.22;
-        double sigma3=0.0025, sigma4=0.022;
-
-        if (temperature<0.99945*Ttr) {
-            bulk = (lambda3*exp((dummy-1)/sigma3)
-                    + lambda4*exp((dummy-1)/sigma4) + 0.03);
-        }
-        if (temperature>0.99945*Ttr) {
-            bulk = 0.901*exp(14.5*(1.0-dummy)) + 0.061/dummy/dummy;
-        }
-    } else if (DATA.T_dependent_zeta_over_s == 7) {
-        // used in arXiv: 1901.04378 and 1908.06212
-        double B_norm = 0.24;
-        double B_width = 1.5;
-        double Tpeak = 0.165/hbarc;
-        double Ttilde = (temperature/Tpeak - 1.)/B_width;
-        bulk = B_norm/(Ttilde*Ttilde + 1.);
-        if (temperature < Tpeak) {
-            double Tdiff = (temperature - Tpeak)/(0.01/hbarc);
-            bulk = B_norm*exp(-Tdiff*Tdiff);
-        }
-    } else if (DATA.T_dependent_zeta_over_s == 8) {
-        // latest param. for IPGlasma + MUSIC + UrQMD
-        double B_norm = 0.13;
-        double B_width1 = 0.01/hbarc;
-        double B_width2 = 0.12/hbarc;
-        double Tpeak = 0.160/hbarc;
-        double Tdiff = temperature - Tpeak;
-        if (Tdiff > 0.) {
-            Tdiff = Tdiff/B_width2;
-        } else {
-            Tdiff = Tdiff/B_width1;
-        }
-        bulk = B_norm*exp(-Tdiff*Tdiff);
-    } else if (DATA.T_dependent_zeta_over_s == 9) {
-        // latest param. for IPGlasma + KoMPoST + MUSIC + UrQMD
-        double B_norm = 0.175;
-        double B_width1 = 0.01/hbarc;
-        double B_width2 = 0.12/hbarc;
-        double Tpeak = 0.160/hbarc;
-        double Tdiff = temperature - Tpeak;
-        if (Tdiff > 0.) {
-            Tdiff = Tdiff/B_width2;
-        } else {
-            Tdiff = Tdiff/B_width1;
-        }
-        bulk = B_norm*exp(-Tdiff*Tdiff);
-    } else if (DATA.T_dependent_zeta_over_s == 10) {
-        double B_norm = 0.05;
-        double B_width1 = 0.015/hbarc;
-        double B_width2 = 0.10/hbarc;
-        double Tpeak = 0.170/hbarc;
-        double Tdiff = temperature - Tpeak;
-        if (Tdiff > 0.) {
-            Tdiff = Tdiff/B_width2;
-        } else {
-            Tdiff = Tdiff/B_width1;
-        }
-        bulk = B_norm*exp(-Tdiff*Tdiff);
-    }
-    return(bulk);
-}
-
 
 //! this function outputs the T and muB dependence of the baryon diffusion
 //! coefficient, kappa
@@ -1205,12 +1079,7 @@ void Diss::output_eta_over_s_T_and_muB_dependence() {
             double T_local = eos.get_temperature(e_local, rhob_local);
 
             double shear_to_s = DATA.shear_to_s;
-            if (DATA.T_dependent_shear_to_s != 0) {
-                shear_to_s *= get_temperature_dependent_eta_s(T_local);
-            }
-            if (DATA.muB_dependent_shear_to_s != 0) {
-                shear_to_s *= get_muB_dependent_eta_s(mu_B_local);
-            }
+            shear_to_s = transport_coeffs_.get_eta_over_s(T_local, mu_B_local);
 
             double eta_over_s = shear_to_s;
             if (DATA.muB_dependent_shear_to_s != 0) {
@@ -1260,12 +1129,7 @@ void Diss::output_eta_over_s_along_const_sovernB() {
             double T_local = eos.get_temperature(e_local, nB_local);
 
             double shear_to_s = DATA.shear_to_s;
-            if (DATA.T_dependent_shear_to_s != 0) {
-                shear_to_s *= get_temperature_dependent_eta_s(T_local);
-            }
-            if (DATA.muB_dependent_shear_to_s != 0) {
-                shear_to_s *= get_muB_dependent_eta_s(mu_B);
-            }
+            shear_to_s = transport_coeffs_.get_eta_over_s(T_local, mu_B);
 
             double eta_over_s = shear_to_s;
             if (DATA.muB_dependent_shear_to_s != 0) {
@@ -1315,7 +1179,7 @@ void Diss::output_zeta_over_s_T_and_muB_dependence() {
             double s_local = eos.get_entropy(e_local, rhob_local);
             double T_local = eos.get_temperature(e_local, rhob_local);
 
-            double bulk = get_temperature_dependent_zeta_s(T_local);
+            double bulk = transport_coeffs_.get_zeta_over_s(T_local);
             double zeta_over_s = bulk*(e_local + p_local)/(T_local*s_local);
 
             // output
@@ -1360,7 +1224,7 @@ void Diss::output_zeta_over_s_along_const_sovernB() {
             double p_local = eos.get_pressure(e_local, nB_local);
             double s_check = eos.get_entropy(e_local, nB_local);
 
-            double bulk = get_temperature_dependent_zeta_s(T_local);
+            double bulk = transport_coeffs_.get_zeta_over_s(T_local);
             double zeta_over_s = bulk*(e_local + p_local)/(T_local*s_local);
 
             // output

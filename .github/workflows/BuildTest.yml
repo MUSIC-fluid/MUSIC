@@ -32,3 +32,6 @@ jobs:
         run: |
           pip3 install numpy
           $GITHUB_WORKSPACE/tests/Gubser_flow/RunAutoTest.sh
+      - name: IPGlasma 2D Test
+        run: |
+          $GITHUB_WORKSPACE/tests/testIPGlasma2D/RunAutoTest.sh

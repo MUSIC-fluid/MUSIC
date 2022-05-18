@@ -23,6 +23,7 @@ class Init {
 
     // support for JETSCAPE
     std::vector<double> jetscape_initial_energy_density;
+    std::vector<double> jetscape_initial_pressure;
     std::vector<double> jetscape_initial_u_tau;
     std::vector<double> jetscape_initial_u_x;
     std::vector<double> jetscape_initial_u_y;
@@ -59,7 +60,7 @@ class Init {
     void initial_with_jetscape           (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
 
     void get_jetscape_preequilibrium_vectors(
-        std::vector<double> e_in,
+        std::vector<double> e_in, std::vector<double> P_in,
         std::vector<double> u_tau_in, std::vector<double> u_x_in,
         std::vector<double> u_y_in,   std::vector<double> u_eta_in,
         std::vector<double> pi_00_in, std::vector<double> pi_01_in,

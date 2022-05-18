@@ -118,6 +118,35 @@ typedef struct init_data {
     //! flag to include temperature dependent zeta/s(T)
     int T_dependent_zeta_over_s;
 
+    //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==2"
+    double shear_2_min;
+    double shear_2_slope;
+    double shear_2_curv;
+
+    //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==3"
+    double shear_3_T_kink_in_GeV;
+    double shear_3_low_T_slope_in_GeV;
+    double shear_3_high_T_slope_in_GeV;
+    double shear_3_at_kink;
+
+    //! flag to include temperature dependent zeta/s(T)
+    int T_dependent_bulk_to_s;
+
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==2"
+    double bulk_2_normalisation;
+    double bulk_2_width_in_GeV;
+    double bulk_2_peak_in_GeV;
+
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==3"
+    double bulk_3_max;
+    double bulk_3_width_in_GeV;
+    double bulk_3_T_peak_in_GeV;
+    double bulk_3_lambda_asymm;
+
+    //! multiplicative factors for the relaxation times
+    double shear_relax_time_factor;
+    double bulk_relax_time_factor;
+
     //! Type of bulk relaxation time
     int bulk_relaxation_type;
 
