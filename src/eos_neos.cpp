@@ -49,7 +49,7 @@ EOS_neos::~EOS_neos() {
 void EOS_neos::initialize_eos() {
     // read the lattice EOS pressure, temperature, and 
     music_message.info("Using lattice EOS at finite muB from A. Monnai");
-    
+
     auto envPath = get_hydro_env_path();
     stringstream spath;
     spath << envPath;
@@ -93,12 +93,22 @@ void EOS_neos::initialize_eos() {
         flag_muC = true;
         set_flag_muS(flag_muS);
         set_flag_muC(flag_muC);
+    } else if (eos_id == 15) {
+        music_message.info("reading EOS neos_bqs ...");
+        spath << "/EOS/neos_bqs_muB0.9/";
+        string string_tmp[] = {"1qs", "2qs", "3qs", "4qs", "5qs", "6qs", "7qs"};
+        std::copy(std::begin(string_tmp), std::end(string_tmp),
+                  std::begin(eos_file_string_array));
+        flag_muS = true;
+        flag_muC = true;
+        set_flag_muS(flag_muS);
+        set_flag_muC(flag_muC);
     }
-    
+
     string path = spath.str();
     music_message << "from path " << path;
     music_message.flush("info");
-    
+
     const int ntables = 7;
     set_number_of_tables(ntables);
     resize_table_info_arrays();
@@ -215,11 +225,12 @@ void EOS_neos::initialize_eos() {
 
                 pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
                 temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
+                temperature_tb[itable][i][j] = pow(temperature_tb[itable][i][j], 5.);    // 1/fm^5
                 mu_B_tb[itable][i][j]        /= Util::hbarc;    // 1/fm
             }
         }
     }
-    
+
     //double eps_max_in = (e_bounds[6] + e_spacing[6]*e_length[6])/hbarc;
     double eps_max_in = e_bounds[6] + e_spacing[6]*e_length[6];
     set_eps_max(eps_max_in);
@@ -242,9 +253,10 @@ double EOS_neos::p_rho_func(double e, double rhob) const {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_neos::get_temperature(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double T = interpolate2D(e, std::abs(rhob), table_idx,
-                             temperature_tb);  // 1/fm
-    T = std::max(1e-15, T);
+    double T5 = interpolate2D(e, std::abs(rhob), table_idx,
+                              temperature_tb);  // 1/fm^5
+    T5 = std::max(Util::small_eps, T5);
+    double T = pow(T5, 0.2);  // 1/fm
     return(T);
 }
 
@@ -254,7 +266,7 @@ double EOS_neos::get_temperature(double e, double rhob) const {
 double EOS_neos::get_pressure(double e, double rhob) const {
     int table_idx = get_table_idx(e);
     double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb);
-    f = std::max(1e-15, f);
+    f = std::max(Util::small_eps, f);
     return(f);
 }
 
@@ -263,7 +275,7 @@ double EOS_neos::get_pressure(double e, double rhob) const {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_neos::get_muB(double e, double rhob) const {
     int table_idx = get_table_idx(e);
-    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
                                    mu_B_tb);  // 1/fm
     return(mu);
@@ -275,7 +287,7 @@ double EOS_neos::get_muB(double e, double rhob) const {
 double EOS_neos::get_muS(double e, double rhob) const {
     if (!get_flag_muS()) return(0.0);
     int table_idx = get_table_idx(e);
-    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
                                    mu_S_tb);  // 1/fm
     return(mu);
@@ -287,7 +299,7 @@ double EOS_neos::get_muS(double e, double rhob) const {
 double EOS_neos::get_muC(double e, double rhob) const {
     if (!get_flag_muC()) return(0.0);
     int table_idx = get_table_idx(e);
-    double sign = rhob/(std::abs(rhob) + 1e-15);
+    double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
                                    mu_C_tb);  // 1/fm
     return(mu);

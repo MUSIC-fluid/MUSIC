@@ -12,33 +12,35 @@
 //! This is a data structure contains all the parameters for simulation
 typedef struct init_data {
 
-    std::array<std::array<double, 4>, 4> gmunu = 
+    std::array<std::array<double, 4>, 4> gmunu =
       {{{-1,0,0,0},
         { 0,1,0,0},
         { 0,0,1,0},
         { 0,0,0,1}}};
 
     int echo_level;
+
     int mode;               //!< 1: do everything;
-    //!< 2: do hydro evolution only;
-    //!< 3: do calculation of thermal spectra only;
-    //!< 4: do resonance decays only
-    std::string initName;
-    std::string initName_rhob;
-    std::string initName_ux;
-    std::string initName_uy;
-    std::string initName_TA;
-    std::string initName_TB;
-    std::string initName_rhob_TA;
-    std::string initName_rhob_TB;
-    std::string initName_AMPT;
+                            //!< 2: do hydro evolution only;
+                            //!< 3: do calculation of thermal spectra only;
+                            //!< 4: do resonance decays only
+
+    std::string initName;   //!< filename for initial condition T^{\mu\nu}
+
+    // parameters for Initial_profile == 11 || 111
+    std::string initName_TA;  //!< filename for nuclear thickness function TA
+    std::string initName_TB;  //!< filename for nuclear thickness function TB
+    std::string initName_participants;  //!< filename for participant nucleons
+    double nucleonWidth;
+
+    // parameters for Initial_profile == 30
+    std::string initName_AMPT;  //!< initial state filename from AMPT
 
     //! random seed
     int seed;
-    double ecm;
+    double ecm;                 //!< collision energy [GeV]
     double beam_rapidity;
 
-    int initial_eta_profile;
     int initial_eta_rhob_profile;
     // envelope function parameter for energy density in eta_s direction
     double eta_fall_off;
@@ -49,6 +51,8 @@ typedef struct init_data {
     double eta_rhob_plateau_height;  //!< central plateau height profile == 2
     double eta_rhob_width_1;         //!< outside tail Gaussian width profile == 2
     double eta_rhob_width_2;         //!< inside Gaussian width profile == 2
+    double eta_rhob_asym;
+    double yL_frac;
 
     int Initial_profile;    //! type of initial condition
     int initializeEntropy;  //! flag to initial entropy or energy density
@@ -56,6 +60,9 @@ typedef struct init_data {
     int string_dump_mode;
     double string_quench_factor;
     double parton_quench_factor;
+    double stringSourceSigmaX;
+    double stringSourceSigmaEta;
+    double stringTransverseShiftFrac;
 
     int nx;
     int ny;
@@ -102,40 +109,55 @@ typedef struct init_data {
     int turn_on_diff;       //!< flag to include net baryon diffusion
     double shear_to_s;      //!< value of specific shear viscosity
 
+    double quest_revert_strength;
+
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;
+    int muB_dependent_shear_to_s;
+
+    //! flag to include temperature dependent zeta/s(T)
+    int T_dependent_zeta_over_s;
 
     //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==2"
-    double eta_over_s_min;
-    double eta_over_s_slope;
-    double eta_over_s_curv;
+    double shear_2_min;
+    double shear_2_slope;
+    double shear_2_curv;
 
     //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==3"
-    double eta_over_s_T_kink_in_GeV;
-    double eta_over_s_low_T_slope_in_GeV;
-    double eta_over_s_high_T_slope_in_GeV;
-    double eta_over_s_at_kink;
+    double shear_3_T_kink_in_GeV;
+    double shear_3_low_T_slope_in_GeV;
+    double shear_3_high_T_slope_in_GeV;
+    double shear_3_at_kink;
 
     //! flag to include temperature dependent zeta/s(T)
     int T_dependent_bulk_to_s;
 
     //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==2"
-    double bulk_viscosity_normalisation;
-    double bulk_viscosity_width_in_GeV;
-    double bulk_viscosity_peak_in_GeV;
+    double bulk_2_normalisation;
+    double bulk_2_width_in_GeV;
+    double bulk_2_peak_in_GeV;
 
     //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==3"
-    double zeta_over_s_max;
-    double zeta_over_s_width_in_GeV;
-    double zeta_over_s_T_peak_in_GeV;
-    double zeta_over_s_lambda_asymm;
+    double bulk_3_max;
+    double bulk_3_width_in_GeV;
+    double bulk_3_T_peak_in_GeV;
+    double bulk_3_lambda_asymm;
 
     //! multiplicative factors for the relaxation times
     double shear_relax_time_factor;
     double bulk_relax_time_factor;
 
+    //! Type of bulk relaxation time
+    int bulk_relaxation_type;
+
     //! flag to include second order non-linear coupling terms
     int include_second_order_terms;
+
+    //! flag to include vorticity coupling terms in shear and diffusion
+    int include_vorticity_terms;
+
+    //! flag to output vorticity evolution
+    int output_vorticity;
 
     //! coefficient related to the net baryon diff.
     double kappa_coefficient;
@@ -164,11 +186,15 @@ typedef struct init_data {
     int output_evolution_every_N_eta;
     bool output_hydro_params_header;
     double output_evolution_T_cut;
+    double output_evolution_e_cut;
 
     int doFreezeOut;            //!< flag to output freeze-out surface
 
     //! flag to include low temperature cell at the initial time
     int doFreezeOut_lowtemp;
+
+    //! Maximum starting time for freeze-out surface
+    double freezeOutTauStartMax;
 
     int freezeOutMethod;        //!< freeze-out method
 

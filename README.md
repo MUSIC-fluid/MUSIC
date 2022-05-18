@@ -48,11 +48,10 @@ about `generate_music_inputfile.py`,  one can simply type:
 MUSIC uses openMP for parallelization.  For example, to run on two processors 
 and use the sample input file, type:
 
-	export OMP_NUM_THREADS=2
-    ./mpihydro input_example
-=======
+    export OMP_NUM_THREADS=2
+    ./MUSIChydro input_example
 Once the prerequisites are installed, you can build the package using:
 
     make -j 10 #Adjust 10 to the number of cores available.
 
-The result will be an executable named **`mpihydro`**.
+The result will be an executable named **`MUSIChydro`**.

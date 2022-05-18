@@ -18,8 +18,12 @@
 namespace Util {
     const double hbarc = 0.19733;
     const double default_tol = 1.0e-8;
-    const int BT_BUF_SIZE = 500;
     const double small_eps = 1e-16;
+
+    //the mass of a nucleon (averaged over proton and neutron)
+    const double m_N = 0.939;   // [GeV]
+
+    const int BT_BUF_SIZE = 500;
 
     double theta(const double x);
     double gmn(const int a);
@@ -31,6 +35,7 @@ namespace Util {
     int IsFile(std::string);
 
     std::string StringFind4(std::string file_name, std::string str_in);
+    std::string convert_to_lowercase(std::string str_in);
 
     double lin_int(double x1,double x2,double f1,double f2,double x);
 
@@ -46,6 +51,7 @@ namespace Util {
 
     Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector);
     Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector);
+    Mat4x4 UnpackVecToMatrix(const VorticityVec &in_vector);
 
     // check whether a weak pointer is initialized or not
     template <typename T>

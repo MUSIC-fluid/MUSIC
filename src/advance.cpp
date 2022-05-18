@@ -26,13 +26,13 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
     DATA(DATA_in), eos(eosIn),
     diss_helper(eosIn, DATA_in),
     minmod(DATA_in),
-    reconst_helper(eos, DATA_in) {
+    reconst_helper(eos, DATA_in.echo_level) {
 
     hydro_source_terms_ptr = hydro_source_ptr_in;
     flag_add_hydro_source = false;
-    if (!Util::weak_ptr_is_uninitialized(hydro_source_terms_ptr)) {
+    if (hydro_source_terms_ptr) {
         if (DATA.Initial_profile == 42) {
-            if (hydro_source_terms_ptr.lock()->get_number_of_sources() > 0) {
+            if (hydro_source_terms_ptr->get_number_of_sources() > 0) {
                 flag_add_hydro_source = true;
             }
         } else {
@@ -42,11 +42,12 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
 }
 
 //! this function evolves one Runge-Kutta step in tau
-void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
-                       SCGrid &arena_future, int rk_flag) {
-  const int grid_neta = arena_current.nEta();
-  const int grid_nx   = arena_current.nX();
-  const int grid_ny   = arena_current.nY();
+void Advance::AdvanceIt(const double tau,
+                        SCGrid &arena_prev, SCGrid &arena_current,
+                        SCGrid &arena_future, const int rk_flag) {
+    const int grid_neta = arena_current.nEta();
+    const int grid_nx   = arena_current.nX();
+    const int grid_ny   = arena_current.nY();
 
     #pragma omp parallel for collapse(3) schedule(guided)
     for (int ieta = 0; ieta < grid_neta; ieta++)
@@ -69,15 +70,20 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
             DumuVec a_local;
             u_derivative_helper.calculate_Du_supmu(tau, arena_current,
                                                    ieta, ix, iy, a_local);
+
             VelocityShearVec sigma_local;
             u_derivative_helper.calculate_velocity_shear_tensor(
-                        tau, arena_current, ieta, ix, iy, a_local, sigma_local);
+                    tau, arena_current, ieta, ix, iy, a_local, sigma_local);
+
+            VorticityVec omega_local;
+            u_derivative_helper.calculate_kinetic_vorticity_with_spatial_projector(
+                    tau, arena_current, ieta, ix, iy, a_local, omega_local);
 
             DmuMuBoverTVec baryon_diffusion_vector;
             u_derivative_helper.get_DmuMuBoverTVec(baryon_diffusion_vector);
 
-            FirstRKStepW(tau,  arena_prev, arena_current, arena_future, rk_flag,
-                         theta_local, a_local, sigma_local,
+            FirstRKStepW(tau, arena_prev, arena_current, arena_future, rk_flag,
+                         theta_local, a_local, sigma_local, omega_local,
                          baryon_diffusion_vector, ieta, ix, iy);
         }
     }
@@ -85,14 +91,16 @@ void Advance::AdvanceIt(double tau, SCGrid &arena_prev, SCGrid &arena_current,
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
-void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
-        double eta_s_local, SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev, int ix, int iy, int ieta, int rk_flag) {
+void Advance::FirstRKStepT(
+        const double tau, const double x_local, const double y_local,
+        const double eta_s_local,
+        SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev,
+        const int ix, const int iy, const int ieta, const int rk_flag) {
     // this advances the ideal part
     double tau_rk = tau + rk_flag*(DATA.delta_tau);
-    
+
     // Solve partial_a T^{a mu} = -partial_a W^{a mu}
     // Update T^{mu nu}
-    
     // MakeDelatQI gets
     //   qi = q0 if rk_flag = 0 or
     //   qi = q0 + k1 if rk_flag = 1
@@ -101,22 +109,28 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
     // (including geometric terms)
     TJbVec qi = {0};
     MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
-    
+
     TJbVec qi_source = {0.0};
 
     if (flag_add_hydro_source) {
         EnergyFlowVec j_mu = {0};
         FlowVec u_local = arena_current(ix,iy,ieta).u;
 
-        hydro_source_terms_ptr.lock()->get_hydro_energy_source(
+        hydro_source_terms_ptr->get_hydro_energy_source(
                     tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
         for (int ii = 0; ii < 4; ii++) {
             qi_source[ii] = tau_rk*j_mu[ii];
+            if (isnan(qi_source[ii])) {
+                music_message << "qi_source is nan. i = " << ii;
+                music_message.flush("error");
+                exit(0);
+            }
         }
 
         if (DATA.turn_on_rhob == 1) {
-            qi_source[4] = tau_rk*hydro_source_terms_ptr.lock()->get_hydro_rhob_source(
-                            tau_rk, x_local, y_local, eta_s_local, u_local);
+            qi_source[4] = (
+                tau_rk*hydro_source_terms_ptr->get_hydro_rhob_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local));
         }
     }
 
@@ -146,7 +160,7 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
         qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
         qi[alpha] *= 1./(1. + rk_flag);
     }
- 
+
     double tau_next = tau + DATA.delta_tau;
     auto grid_rk_t = reconst_helper.ReconstIt_shell(
                                 tau_next, qi, arena_current(ix, iy, ieta)); 
@@ -154,11 +168,15 @@ void Advance::FirstRKStepT(const double tau, double x_local, double y_local,
 }
 
 
-void Advance::FirstRKStepW(
-    double tau, SCGrid &arena_prev, SCGrid &arena_current, SCGrid &arena_future,
-    int rk_flag, double theta_local, DumuVec &a_local,
-    VelocityShearVec &sigma_local, DmuMuBoverTVec &baryon_diffusion_vector,
-    int ieta, int ix, int iy) {
+void Advance::FirstRKStepW(const double tau, SCGrid &arena_prev,
+                           SCGrid &arena_current, SCGrid &arena_future,
+                           const int rk_flag, const double theta_local,
+                           const DumuVec &a_local,
+                           const VelocityShearVec &sigma_local,
+                           const VorticityVec &omega_local,
+                           const DmuMuBoverTVec &baryon_diffusion_vector,
+                           const int ieta, const int ix, const int iy) {
+
     auto grid_pt_prev = &(arena_prev(ix, iy, ieta));
     auto grid_pt_c = &(arena_current(ix, iy, ieta));
     auto grid_pt_f = &(arena_future(ix, iy, ieta));
@@ -176,7 +194,6 @@ void Advance::FirstRKStepW(
     /* Advance uWmunu */
     double tempf, temps;
     if (DATA.turn_on_shear == 1) {
-        #pragma omp simd
         for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
             double w_rhs = 0.;
             int mu = 0;
@@ -184,11 +201,13 @@ void Advance::FirstRKStepW(
             map_1d_idx_to_2d(idx_1d, mu, nu);
             diss_helper.Make_uWRHS(tau_now, arena_current, ix, iy, ieta,
                                    mu, nu, w_rhs, theta_local, a_local);
-            tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
-                     + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
+            tempf = (
+                  (1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
+                + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0])
+            );
             temps = diss_helper.Make_uWSource(
                     tau_now, grid_pt_c, grid_pt_prev, mu, nu, rk_flag,
-                    theta_local, a_local, sigma_local);
+                    theta_local, a_local, sigma_local, omega_local);
             tempf += temps*(DATA.delta_tau);
             tempf += w_rhs;
             tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
@@ -196,7 +215,6 @@ void Advance::FirstRKStepW(
             grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
         }
     } else {
-        #pragma omp simd
         for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
             grid_pt_f->Wmunu[idx_1d] = 0.0;
         }
@@ -223,7 +241,6 @@ void Advance::FirstRKStepW(
     // CShen: add source term for baryon diffusion
     if (DATA.turn_on_diff == 1) {
         int mu = 4;
-        #pragma omp simd
         for (int idx_1d = 11; idx_1d < 14; idx_1d++) {
             int nu = idx_1d - 10;
             double w_rhs = diss_helper.Make_uqRHS(
@@ -232,7 +249,7 @@ void Advance::FirstRKStepW(
                      + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
             temps = diss_helper.Make_uqSource(
                         tau_now, grid_pt_c, grid_pt_prev, nu, rk_flag,
-                        theta_local, a_local, sigma_local,
+                        theta_local, a_local, sigma_local, omega_local,
                         baryon_diffusion_vector);
             tempf += temps*(DATA.delta_tau);
             tempf += w_rhs;
@@ -243,7 +260,6 @@ void Advance::FirstRKStepW(
             grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
         }
     } else {
-        #pragma omp simd
         for (int idx_1d = 10; idx_1d < 14; idx_1d++) {
             grid_pt_f->Wmunu[idx_1d] = 0.0;
         }
@@ -304,17 +320,18 @@ void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {
 
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
-void Advance::QuestRevert(double tau, Cell_small *grid_pt,
-                          int ieta, int ix, int iy) {
-    double eps_scale = 0.2;   // 1/fm^4
+void Advance::QuestRevert(const double tau, Cell_small *grid_pt,
+                          const int ieta, const int ix, const int iy) {
+    double eps_scale = 0.1;   // 1/fm^4
     double e_local   = grid_pt->epsilon;
     double rhob      = grid_pt->rhob;
 
     // regulation factor in the default MUSIC
     // double factor = 300.*tanh(grid_pt->epsilon/eps_scale);
     double xi = 0.05;
-    double factor = 10.*(1./(exp(-(e_local - eps_scale)/xi) + 1.)
-                          - 1./(exp(eps_scale/xi) + 1.));
+    double factor = 10.*DATA.quest_revert_strength*(
+                        1./(exp(-(e_local - eps_scale)/xi) + 1.)
+                            - 1./(exp(eps_scale/xi) + 1.));
     double factor_bulk = factor;
 
     double pi_00 = grid_pt->Wmunu[0];
@@ -344,7 +361,11 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
 
     // Reducing the shear stress tensor
     double rho_shear_max = 0.1;
-    if (rho_shear > rho_shear_max) {
+    if (std::isnan(rho_shear)) {
+        for (int mu = 0; mu < 10; mu++) {
+            grid_pt->Wmunu[mu] = 0.0;
+        }
+    } else if (rho_shear > rho_shear_max) {
         if (e_local > eps_scale && DATA.echo_level > 5) {
             music_message << "ieta = " << ieta << ", ix = " << ix
                           << ", iy = " << iy
@@ -376,13 +397,14 @@ void Advance::QuestRevert(double tau, Cell_small *grid_pt,
 
 //! this function reduce the size of net baryon diffusion current
 //! in the dilute region to stablize numerical simulations
-void Advance::QuestRevert_qmu(double tau, Cell_small *grid_pt,
-                              int ieta, int ix, int iy) {
-    double eps_scale = 0.2;   // in 1/fm^4
+void Advance::QuestRevert_qmu(const double tau, Cell_small *grid_pt,
+                              const int ieta, const int ix, const int iy) {
+    double eps_scale = 0.1;   // in 1/fm^4
 
     double xi = 0.05;
-    double factor = 10.*(1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
-                          - 1./(exp(eps_scale/xi) + 1.));
+    double factor = 10.*DATA.quest_revert_strength*(
+                            1./(exp(-(grid_pt->epsilon - eps_scale)/xi) + 1.)
+                            - 1./(exp(eps_scale/xi) + 1.));
 
     double q_mu_local[4];
     for (int i = 0; i < 4; i++) {
@@ -454,7 +476,6 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
     EnergyFlowVec T_eta_m = {0.};
     EnergyFlowVec T_eta_p = {0.};
     Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
-        #pragma omp simd
         for (int alpha = 0; alpha < 5; alpha++) {
             const double gphL = qi[alpha];
             const double gphR = tau*get_TJb(p1, alpha, 0);
@@ -487,7 +508,6 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
         double aiph = std::max(aiphL, aiphR);
         double aimh = std::max(aimhL, aimhR);
 
-        #pragma omp simd
         for (int alpha = 0; alpha < 5; alpha++) {
             double FiphL = get_TJb(grid_phL, 0, alpha, direction)*tau_fac[direction];
             double FiphR = get_TJb(grid_phR, 0, alpha, direction)*tau_fac[direction];
@@ -511,8 +531,8 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
     });
 
     // add longitudinal flux with discretized geometric terms
-    double cosh_deta = cosh(delta[3]/2.)/(delta[3] + Util::small_eps);
-    double sinh_deta = sinh(delta[3]/2.)/(delta[3] + Util::small_eps);
+    double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+    double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
     sinh_deta = std::max(0.5, sinh_deta);
     if (DATA.boost_invariant) {
         // if the simulation is boost-invariant,
@@ -530,14 +550,14 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
     //rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
     //rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
 
-    #pragma omp simd
     for (int i = 0; i < 5; i++) {
         qi[i] += rhs[i];
     }
 }
 
 // determine the maximum signal propagation speed at the given direction
-double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {  
+double Advance::MaxSpeed(const double tau, const int direc,
+                         const ReconstCell &grid_p) {
     double g[] = {1., 1., 1./tau};
 
     double utau    = grid_p.u[0];
@@ -577,7 +597,7 @@ double Advance::MaxSpeed(double tau, int direc, const ReconstCell &grid_p) {
         }
     }
     double den = utau2*(1. - vs2) + vs2;
-    double f = num/(den + 1e-15);
+    double f = num/std::max(den, Util::small_eps);
     // check for problems
     if (f < 0.0) {
         fprintf(stderr, "SpeedMax = %e\n is negative.\n", f);

@@ -73,14 +73,15 @@ plt.plot(numeric_tau_3p0[idx, 0], numeric_tau_3p0[idx, 2], color = 'k',
 plt.plot(Analytic_tau3p0[idx, 0], Analytic_tau3p0[idx, 2]*hbarC,
          color = plotColor,
          linestyle = '-', linewidth = plotLinewidth,
-         label = r'$\tau = 2.0$ fm')
+         label = r'$\tau = 3.0$ fm')
          
 hl = plt.legend(loc=(2), fontsize = 17)
 hl.draw_frame(False)
 plt.xlim(-5.0, 5.0)
-plt.ylim(0.0, 0.2)
+plt.ylim(1e-4, 0.2)
+plt.yscale('log')
 plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
-plt.yticks(linspace(0.0, 0.2, 5), color = 'k', size = plotfontsize)
+#plt.yticks(linspace(0.0, 0.2, 5), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$e$ (GeV/fm$^{4}$)', fontsize = plotfontsize)
 plt.savefig('Gubser_e.pdf', format='pdf')

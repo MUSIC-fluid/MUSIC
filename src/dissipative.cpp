@@ -12,10 +12,11 @@
 #include "dissipative.h"
 
 using Util::hbarc;
+using Util::small_eps;
 
-Diss::Diss(const EOS &eosIn, const InitData &Data_in)
-    : DATA(Data_in), eos(eosIn), minmod(Data_in),
-      transport_coeffs_(eosIn, Data_in) {}
+Diss::Diss(const EOS &eosIn, const InitData &Data_in) :
+                DATA(Data_in), eos(eosIn), minmod(Data_in),
+                transport_coeffs_(eosIn, Data_in) {}
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 /* Dissipative parts */
@@ -128,8 +129,8 @@ void Diss::MakeWSource(const double tau,
     }
     // add longitudinal flux with the discretized geometric terms
     // careful about the boost-invariant case when deta could be arbitary
-    double cosh_deta = cosh(delta[3]/2.)/(delta[3] + Util::small_eps);
-    double sinh_deta = sinh(delta[3]/2.)/(delta[3] + Util::small_eps);
+    double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+    double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
     sinh_deta = std::max(0.5, sinh_deta);
     if (DATA.boost_invariant) {
         // if the simulation is boost-invariant,
@@ -150,11 +151,15 @@ void Diss::MakeWSource(const double tau,
     //dwmn[3] += grid_pt.pi_b*(grid_pt.u[0]*grid_pt.u[3]);
 }
 
-double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
-                           int mu, int nu, int rk_flag, double theta_local,
-                           DumuVec &a_local, VelocityShearVec &sigma_1d) {
+double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
+                           const Cell_small *grid_pt_prev,
+                           const int mu, const int nu,
+                           const int rk_flag, const double theta_local,
+                           const DumuVec &a_local,
+                           const VelocityShearVec &sigma_1d,
+                           const VorticityVec &omega_1d) {
     double tempf;
-    double SW, shear, shear_to_s, T, epsilon, rhob;
+    double SW, shear, T, epsilon, rhob;
     double NS_term;
 
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
@@ -169,15 +174,15 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     }
 
     T = eos.get_temperature(epsilon, rhob);
+    double muB = eos.get_muB(epsilon, rhob);
 
-    shear_to_s = transport_coeffs_.get_eta_over_s(T);
+    double shear_to_s = transport_coeffs_.get_eta_over_s(T, muB);
 
-    int include_WWterm         = 0;
-    //int include_Vorticity_term = 0;
-    int include_Wsigma_term    = 0;
+    bool include_WWterm = false;
+    bool include_Wsigma_term = false;
     if (DATA.include_second_order_terms == 1 && DATA.Initial_profile != 0) {
-        include_WWterm      = 1;
-        include_Wsigma_term = 1;
+        include_WWterm = true;
+        include_Wsigma_term = true;
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -186,10 +191,15 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     ////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
     double pressure = eos.get_pressure(epsilon, rhob);
-    shear = (shear_to_s)*(epsilon + pressure)/(T + 1e-15);
+    if (DATA.muB_dependent_shear_to_s == 0) {
+        double entropy = eos.get_entropy(epsilon, rhob);
+        shear = shear_to_s*entropy;
+    } else {
+        shear = shear_to_s*(epsilon + pressure)/std::max(T, small_eps);
+    }
     double tau_pi = (transport_coeffs_.get_shear_relax_time_factor()
-                     *shear/(epsilon + pressure + 1e-15));
-    tau_pi = std::max(3.*DATA.delta_tau, tau_pi);
+                     *shear/std::max(epsilon + pressure, small_eps));
+    tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
@@ -204,7 +214,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     // -- coupling to bulk viscous pressure
     // transport coefficients not yet known -- fixed to zero
     double transport_coefficient_b  = (
-            transport_coeffs_.get_lambda_piPi_coeff()*tau_pi);
+            transport_coeffs_.get_lambda_pibulkPi_coeff()*tau_pi);
     double transport_coefficient2_b = 0.;
 
 
@@ -238,56 +248,30 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     /////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////
     double Vorticity_term = 0.0;
-    // if (include_Vorticity_term == 1) {
-    //     double transport_coefficient4 = 2.*tau_pi;
-    //     double omega[4][4];
-    //     double gmunu[4][4] = {{-1., 0., 0., 0.},
-    //                           { 0., 1., 0., 0.},
-    //                           { 0., 0., 1., 0.},
-    //                           { 0., 0., 0., 1.}};
-    //     double gamma = grid_pt->u[0];
-    //     double ueta  = grid_pt->u[3];
-    //     for (int a = 0; a < 4; a++) {
-    //         for (int b = 0; b < 4; b++) {
-    //             omega[a][b] = (
-    //                 (grid_pt->dUsup[a][b]
-    //                  - grid_pt->dUsup[b][a])/2.
-    //                 + ueta/tau/2.*(  gmunu[a][0]*gmunu[b][3]
-    //                                - gmunu[b][0]*gmunu[a][3])
-    //                 - ueta*gamma/tau/2.
-    //                   *(  gmunu[a][3]*grid_pt->u[b]
-    //                     - gmunu[b][3]*grid_pt->u[a])
-    //                 + ueta*ueta/tau/2.
-    //                   *(   gmunu[a][0]*grid_pt->u[b]
-    //                      - gmunu[b][0]*grid_pt->u[a])
-    //                 + (  grid_pt->u[a]*a_local[b]
-    //                    - grid_pt->u[b]*a_local[a])/2.);
-    //         }
-    //     }
-    //     double term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
-    //                               - Wmunu[nu][0]*omega[mu][0]
-    //                               + Wmunu[mu][1]*omega[nu][1]
-    //                               + Wmunu[nu][1]*omega[mu][1]
-    //                               + Wmunu[mu][2]*omega[nu][2]
-    //                               + Wmunu[nu][2]*omega[mu][2]
-    //                               + Wmunu[mu][3]*omega[nu][3]
-    //                               + Wmunu[nu][3]*omega[mu][3])/2.;
-    //     // multiply term by its respective transport coefficient
-    //     term1_Vorticity = transport_coefficient4*term1_Vorticity;
-    //     // full term is
-    //     Vorticity_term = term1_Vorticity;
-    // } else {
-    //     Vorticity_term = 0.0;
-    // }
+    if (DATA.include_vorticity_terms == 1) {
+        double transport_coefficient4 = 2.*tau_pi;
+        auto omega = Util::UnpackVecToMatrix(omega_1d);
+        double term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
+                                  - Wmunu[nu][0]*omega[mu][0]
+                                  + Wmunu[mu][1]*omega[nu][1]
+                                  + Wmunu[nu][1]*omega[mu][1]
+                                  + Wmunu[mu][2]*omega[nu][2]
+                                  + Wmunu[nu][2]*omega[mu][2]
+                                  + Wmunu[mu][3]*omega[nu][3]
+                                  + Wmunu[nu][3]*omega[mu][3])/2.;
+        // multiply term by its respective transport coefficient
+        Vorticity_term = transport_coefficient4*term1_Vorticity;
+    }
 
-    ///////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////
-    //                  Add nonlinear term in shear-stress tensor                //
-    //  transport_coefficient3*Delta(mu nu)(alpha beta)*Wmu gamma sigma nu gamma //
-    ///////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    //              Add nonlinear term in shear-stress tensor                //
+    //  transport_coefficient3                                               //
+    //                    *Delta(mu nu)(alpha beta)*Wmu gamma sigma nu gamma //
+    ///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
     double Wsigma_term = 0.0;
-    if (include_Wsigma_term == 1) {
+    if (include_Wsigma_term) {
         double Wsigma = (
                Wmunu[0][0]*sigma[0][0]
              + Wmunu[1][1]*sigma[1][1]
@@ -326,7 +310,7 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
     //////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////
     double WW_term = 0.0;
-    if (include_WWterm == 1) {
+    if (include_WWterm) {
         double Wsquare = (  Wmunu[0][0]*Wmunu[0][0]
                           + Wmunu[1][1]*Wmunu[1][1]
                           + Wmunu[2][2]*Wmunu[2][2]
@@ -381,9 +365,10 @@ double Diss::Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_
 }
 
 
-int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                     int mu, int nu, double &w_rhs,
-                     double theta_local, DumuVec &a_local) {
+int Diss::Make_uWRHS(const double tau, SCGrid &arena,
+                     const int ix, const int iy, const int ieta,
+                     const int mu, const int nu, double &w_rhs,
+                     const double theta_local, const DumuVec &a_local) {
     const InitData *const DATAaligned = assume_aligned(&DATA);
     auto& grid_pt = arena(ix, iy, ieta);
 
@@ -487,22 +472,17 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
          - (DATAaligned->gmunu[3][nu])*(Wmunu_local[0][mu])
          + (DATAaligned->gmunu[0][mu])*(Wmunu_local[3][nu])
          + (DATAaligned->gmunu[0][nu])*(Wmunu_local[3][mu])
-         + (Wmunu_local[3][nu])
-         *(grid_pt.u[mu])*(grid_pt.u[0])
-         + (Wmunu_local[3][mu])
-         *(grid_pt.u[nu])*(grid_pt.u[0])
-         - (Wmunu_local[0][nu])
-         *(grid_pt.u[mu])*(grid_pt.u[3])
-         - (Wmunu_local[0][mu])
-         *(grid_pt.u[nu])*(grid_pt.u[3]))*(grid_pt.u[3]/tau);
+         + (Wmunu_local[3][nu])*(grid_pt.u[mu])*(grid_pt.u[0])
+         + (Wmunu_local[3][mu])*(grid_pt.u[nu])*(grid_pt.u[0])
+         - (Wmunu_local[0][nu])*(grid_pt.u[mu])*(grid_pt.u[3])
+         - (Wmunu_local[0][mu])*(grid_pt.u[nu])*(grid_pt.u[3]))
+         *(grid_pt.u[3]/tau);
 
     for (int ic = 0; ic < 4; ic++) {
         const double ic_fac = (ic == 0 ? -1.0 : 1.0);
         tempf += (
-            (Wmunu_local[ic][nu])*(grid_pt.u[mu])
-            *(a_local[ic])*ic_fac
-            + (Wmunu_local[ic][mu])*(grid_pt.u[nu])
-            *(a_local[ic])*ic_fac);
+            (Wmunu_local[ic][nu])*(grid_pt.u[mu])*(a_local[ic])*ic_fac
+            + (Wmunu_local[ic][mu])*(grid_pt.u[nu])*(a_local[ic])*ic_fac);
     }
 
     w_rhs += (tempf*(DATAaligned->delta_tau)
@@ -512,8 +492,9 @@ int Diss::Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 }
 
 
-int Diss::Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                     double *p_rhs, double theta_local) {
+int Diss::Make_uPRHS(const double tau, SCGrid &arena,
+                     const int ix, const int iy, const int ieta,
+                     double *p_rhs, const double theta_local) {
     auto grid_pt = &(arena(ix, iy, ieta));
 
     /* Kurganov-Tadmor for Pi */
@@ -609,8 +590,10 @@ int Diss::Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
 }
 
 
-double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, 
-                        int rk_flag, double theta_local, VelocityShearVec &sigma_1d) {
+double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
+                            const Cell_small *grid_pt_prev, 
+                            const int rk_flag, const double theta_local,
+                            const VelocityShearVec &sigma_1d) {
     double tempf;
     double bulk;
     double Bulk_Relax_time;
@@ -648,27 +631,38 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     double cs2 = eos.get_cs2(epsilon, rhob);
     double pressure = eos.get_pressure(epsilon, rhob);
 
-    // T dependent bulk viscosity from Gabriel
+    // T dependent bulk viscosity
     bulk = transport_coeffs_.get_zeta_over_s(temperature);
     bulk = bulk*(epsilon + pressure)/temperature;
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
+    double csfactor = std::max(1./3. - cs2, small_eps);
     Bulk_Relax_time = (transport_coeffs_.get_bulk_relax_time_factor()
-                       /((1./3. - cs2)*(1./3. - cs2))
-                       /(epsilon + pressure)*bulk);
-    Bulk_Relax_time = std::max(3.*DATA.delta_tau, Bulk_Relax_time);
+                       /(csfactor*csfactor)
+                       /std::max(epsilon + pressure, small_eps)*bulk);
+    if (DATA.bulk_relaxation_type == 1) {
+        Bulk_Relax_time = (
+                bulk/(transport_coeffs_.get_bulk_relax_time_factor()
+                      *csfactor)
+                /std::max(epsilon + pressure, small_eps));
+    }
+
+    // avoid overflow or underflow of the bulk relaxation time
+    Bulk_Relax_time = (
+        std::min(10., std::max(3.*DATA.delta_tau, Bulk_Relax_time)));
 
     // from kinetic theory, small mass limit
     transport_coeff1   = (
-            transport_coeffs_.get_delta_PiPi_coeff()*Bulk_Relax_time);
+            transport_coeffs_.get_delta_bulkPibulkPi_coeff()*Bulk_Relax_time);
     transport_coeff2   = (
-            transport_coeffs_.get_tau_PiPi_coeff()*Bulk_Relax_time);
+            transport_coeffs_.get_tau_bulkPibulkPi_coeff()*Bulk_Relax_time);
 
     // from kinetic theory
-    transport_coeff1_s = (transport_coeffs_.get_lambda_Pipi_coeff()
+    transport_coeff1_s = (transport_coeffs_.get_lambda_bulkPipi_coeff()
                           *(1./3. - cs2)*Bulk_Relax_time);
     transport_coeff2_s = 0.;  // not known;  put 0
+
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
     NS_term = -bulk*theta_local;
@@ -744,9 +738,10 @@ double Diss::Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt
     -u[a]u[b]g[b][e] Dq[e]
 */
 double Diss::Make_uqSource(
-    double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu,
-    int rk_flag, double theta_local, DumuVec &a_local,
-    VelocityShearVec &sigma_1d, DmuMuBoverTVec &baryon_diffusion_vec) {
+    const double tau, const Cell_small *grid_pt, const Cell_small *grid_pt_prev,
+    const int nu, const int rk_flag, const double theta_local,
+    const DumuVec &a_local, const VelocityShearVec &sigma_1d,
+    const VorticityVec &omega_1d, const DmuMuBoverTVec &baryon_diffusion_vec) {
 
     double epsilon, rhob;
     if (rk_flag == 0) {
@@ -760,16 +755,22 @@ double Diss::Make_uqSource(
     double T        = eos.get_temperature(epsilon, rhob);
 
     double kappa_coefficient = DATA.kappa_coefficient;
-    double tau_rho = kappa_coefficient/(T + 1e-15);
-    tau_rho = std::max(3.*DATA.delta_tau, tau_rho);
-    double mub     = eos.get_muB(epsilon, rhob);
-    double alpha   = mub/T;
-    double kappa   = kappa_coefficient*(rhob/(3.*T*tanh(alpha) + 1e-15)
-                                      - rhob*rhob/(epsilon + pressure));
+    double tau_rho = kappa_coefficient/std::max(T, small_eps);
+    tau_rho = std::min(10., std::max(3.*DATA.delta_tau, tau_rho));
+
+    double mub   = eos.get_muB(epsilon, rhob);
+    double alpha = mub/std::max(T, small_eps);
+    double denorm_safe = std::copysign(
+            std::max(std::abs(3.*T*tanh(alpha)), small_eps), 3.*T*tanh(alpha));
+    double kappa = kappa_coefficient*(
+                          rhob/denorm_safe
+                        - rhob*rhob/std::max(epsilon + pressure, small_eps));
 
     if (DATA.Initial_profile == 1) {
         // for 1+1D numerical test
-        kappa = kappa_coefficient*(rhob/mub);
+        double denorm_safe = std::copysign(
+            std::max(std::abs(mub), small_eps), mub);
+        kappa = kappa_coefficient*(rhob/denorm_safe);
     }
 
     // copy the value of \tilde{q^\mu}
@@ -806,12 +807,24 @@ double Diss::Make_uqSource(
     for (int i = 0 ; i < 4; i++) {
         temptemp += q[i]*sigma[i][nu]*DATA.gmunu[i][i];
     }
-    double Nonlinear2 = - transport_coeff_2*temptemp;
+    double Nonlinear2 = -transport_coeff_2*temptemp;
 
-    double SW = (-q[nu] - NS + Nonlinear1 + Nonlinear2)/(tau_rho + 1e-15);
+    // add a new non-linear term (-q_\mu \omega^{\mu\nu})
+    double Nonlinear3 = 0.0;
+    if (DATA.include_vorticity_terms == 1) {
+        double transport_coeff_3 = 1.0*tau_rho;
+        auto omega = Util::UnpackVecToMatrix(omega_1d);
+        double temp3 = 0.0;
+        for (int i = 0 ; i < 4; i++) {
+            temp3 += q[i]*omega[i][nu]*DATA.gmunu[i][i];
+        }
+        Nonlinear3 = -transport_coeff_3*temp3;
+    }
+
+    double SW = (-q[nu] - NS + Nonlinear1 + Nonlinear2 + Nonlinear3)/tau_rho;
     if (DATA.Initial_profile == 1) {
         // for 1+1D numerical test
-        SW = (-q[nu] - NS)/(tau_rho + 1e-15);
+        SW = (-q[nu] - NS)/tau_rho;
     }
 
     // all other geometric terms....
@@ -846,8 +859,9 @@ double Diss::Make_uqSource(
 }
 
 
-double Diss::Make_uqRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                        int mu, int nu) {
+double Diss::Make_uqRHS(const double tau, SCGrid &arena,
+                        const int ix, const int iy, const int ieta,
+                        const int mu, const int nu) {
     /* Kurganov-Tadmor for q */
     /* implement 
       partial_tau (utau qmu) + (1/tau)partial_eta (ueta qmu) 
@@ -935,6 +949,7 @@ double Diss::Make_uqRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
     return(sum*(DATA.delta_tau));
 }
 
+
 //! this function outputs the T and muB dependence of the baryon diffusion
 //! coefficient, kappa
 void Diss::output_kappa_T_and_muB_dependence() {
@@ -966,9 +981,12 @@ void Diss::output_kappa_T_and_muB_dependence() {
             double T_local = eos.get_temperature(e_local, rhob_local);
             double alpha_local = mu_B_local/T_local;
 
+            double denorm_safe = std::copysign(
+                std::max(small_eps, std::abs(3.*T_local*tanh(alpha_local))),
+                3.*T_local*tanh(alpha_local));
             double kappa_local = (DATA.kappa_coefficient
-                    *(rhob_local/(3.*T_local*tanh(alpha_local) + 1e-15)
-                      - rhob_local*rhob_local/(e_local + p_local)));
+                *(rhob_local/denorm_safe
+                  - rhob_local*rhob_local/std::max(e_local + p_local, small_eps)));
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << rhob_local << "   "
@@ -983,7 +1001,8 @@ void Diss::output_kappa_T_and_muB_dependence() {
 //! this function outputs the T and muB dependence of the baryon diffusion
 //! coefficient, kappa_B, along constant s/n_B trajectories
 void Diss::output_kappa_along_const_sovernB() {
-    music_message.info("output kappa_B(T, mu_B) along constant s/n_B trajectories...");
+    music_message.info(
+            "output kappa_B(T, mu_B) along constant s/n_B trajectories...");
 
     double sovernB[] = {10.0, 20.0, 30.0, 51.0, 70.0, 94.0, 144.0, 420.0};
     int array_length = sizeof(sovernB)/sizeof(double);
@@ -1010,9 +1029,12 @@ void Diss::output_kappa_along_const_sovernB() {
                 continue;  // discard points out of the table
             double alpha_local = mu_B/temperature;
 
+            double denorm_safe = std::copysign(
+                std::max(small_eps, std::abs(3.*temperature*tanh(alpha_local))),
+                3.*temperature*tanh(alpha_local));
             double kappa_local = (DATA.kappa_coefficient
-                    *(nB_local/(3.*temperature*tanh(alpha_local) + 1e-15)
-                      - nB_local*nB_local/(e_local + p_local)));
+                    *(nB_local/denorm_safe
+                      - nB_local*nB_local/std::max(e_local + p_local, small_eps)));
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << nB_local << "   "
@@ -1044,21 +1066,25 @@ void Diss::output_eta_over_s_T_and_muB_dependence() {
     int nrhob       = 1000;
     double drhob    = (rhob_max - rhob_min)/(nrhob - 1.);
 
-    double etaT_over_enthropy = DATA.shear_to_s;
     for (int i = 0; i < ne; i++) {
         double e_local = e_min + i*de;
         for (int j = 0; j < nrhob; j++) {
             double rhob_local = rhob_min + j*drhob;
             rhob_local *= rhob_local;
             double mu_B_local = eos.get_muB(e_local, rhob_local);
-            if (mu_B_local*hbarc > 0.78)
+            if (mu_B_local*hbarc > 0.89)
                 continue;  // discard points out of the table
             double p_local = eos.get_pressure(e_local, rhob_local);
             double s_local = eos.get_entropy(e_local, rhob_local);
             double T_local = eos.get_temperature(e_local, rhob_local);
 
-            double eta_over_s = (
-                etaT_over_enthropy*(e_local + p_local)/(T_local*s_local));
+            double shear_to_s = DATA.shear_to_s;
+            shear_to_s = transport_coeffs_.get_eta_over_s(T_local, mu_B_local);
+
+            double eta_over_s = shear_to_s;
+            if (DATA.muB_dependent_shear_to_s != 0) {
+                eta_over_s = shear_to_s*(e_local + p_local)/(T_local*s_local);
+            }
 
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
@@ -1074,9 +1100,9 @@ void Diss::output_eta_over_s_T_and_muB_dependence() {
 //! this function outputs the T and muB dependence of the specific shear
 //! viscosity eta/s along constant s/n_B trajectories
 void Diss::output_eta_over_s_along_const_sovernB() {
-    music_message.info("output eta/s(T, mu_B) along constant s/n_B trajectories...");
+    music_message.info(
+        "output eta/s(T, mu_B) along constant s/n_B trajectories...");
 
-    double etaT_over_enthropy = DATA.shear_to_s;
     double sovernB[] = {10.0, 20.0, 30.0, 51.0, 70.0, 94.0, 144.0, 420.0};
     int array_length = sizeof(sovernB)/sizeof(double);
     double s_0 = 0.00;         // 1/fm^3
@@ -1094,22 +1120,119 @@ void Diss::output_eta_over_s_along_const_sovernB() {
             double s_local = s_0 + j*ds;
             double nB_local = s_local/sovernB[i];
             double e_local = eos.get_s2e(s_local, nB_local);
-            double s_check = eos.get_entropy(e_local, nB_local);
-            double p_local = eos.get_pressure(e_local, nB_local);
-            double temperature = eos.get_temperature(e_local, nB_local);
             double mu_B = eos.get_muB(e_local, nB_local);
-            if (mu_B*hbarc > 0.78)
+            if (mu_B*hbarc > 0.89)
                 continue;  // discard points out of the table
 
-            double eta_over_s = (
-                etaT_over_enthropy*(e_local + p_local)/(temperature*s_local));
+            double p_local = eos.get_pressure(e_local, nB_local);
+            double s_check = eos.get_entropy(e_local, nB_local);
+            double T_local = eos.get_temperature(e_local, nB_local);
+
+            double shear_to_s = DATA.shear_to_s;
+            shear_to_s = transport_coeffs_.get_eta_over_s(T_local, mu_B);
+
+            double eta_over_s = shear_to_s;
+            if (DATA.muB_dependent_shear_to_s != 0) {
+                eta_over_s = shear_to_s*(e_local + p_local)/(T_local*s_local);
+            }
 
             // output
             of << std::scientific << std::setw(18) << std::setprecision(8)
                << e_local*hbarc << "   " << nB_local << "   "
                << s_check << "   "
-               << temperature*hbarc << "   " << mu_B*hbarc << "   "
+               << T_local*hbarc << "   " << mu_B*hbarc << "   "
                << eta_over_s << std::endl;
+        }
+        of.close();  // close the file
+    }
+}
+
+
+//! this function outputs the T and muB dependence of the specific bulk
+//! viscosity zeta/s
+void Diss::output_zeta_over_s_T_and_muB_dependence() {
+    music_message.info("output zeta/s(T, mu_B) ...");
+    std::ofstream of("zeta_over_s_T_and_muB_dependence.dat");
+    // write out the header of the file
+    of << "# e (GeV/fm^3)  rhob (1/fm^3) T (GeV)  mu_B (GeV)  zeta/s"
+       << std::endl;
+
+    // define the grid
+    double e_min    = 1e-5;     // fm^-4
+    double e_max    = 100.0;    // fm^-4
+    int ne          = 1000;
+    double de       = (e_max - e_min)/(ne - 1.);
+    double rhob_min = 0.0;   // fm^-3
+    double rhob_max = sqrt(10.0);  // fm^-3
+    int nrhob       = 1000;
+    double drhob    = (rhob_max - rhob_min)/(nrhob - 1.);
+
+    for (int i = 0; i < ne; i++) {
+        double e_local = e_min + i*de;
+        for (int j = 0; j < nrhob; j++) {
+            double rhob_local = rhob_min + j*drhob;
+            rhob_local *= rhob_local;
+            double mu_B_local = eos.get_muB(e_local, rhob_local);
+            if (mu_B_local*hbarc > 0.89)
+                continue;  // discard points out of the table
+            double p_local = eos.get_pressure(e_local, rhob_local);
+            double s_local = eos.get_entropy(e_local, rhob_local);
+            double T_local = eos.get_temperature(e_local, rhob_local);
+
+            double bulk = transport_coeffs_.get_zeta_over_s(T_local);
+            double zeta_over_s = bulk*(e_local + p_local)/(T_local*s_local);
+
+            // output
+            of << std::scientific << std::setw(18) << std::setprecision(8)
+               << e_local*hbarc << "   " << rhob_local << "   "
+               << T_local*hbarc << "   " << mu_B_local*hbarc << "   "
+               << zeta_over_s << std::endl;
+        }
+    }
+    of.close();  // close the file
+}
+
+
+//! this function outputs the T and muB dependence of the specific bulk
+//! viscosity zeta/s along constant s/n_B trajectories
+void Diss::output_zeta_over_s_along_const_sovernB() {
+    music_message.info(
+        "output zeta/s(T, mu_B) along constant s/n_B trajectories...");
+
+    double sovernB[] = {10.0, 20.0, 30.0, 51.0, 70.0, 94.0, 144.0, 420.0};
+    int array_length = sizeof(sovernB)/sizeof(double);
+    double s_0 = 0.00;         // 1/fm^3
+    double s_max = 100.0;      // 1/fm^3
+    double ds = 0.005;         // 1/fm^3
+    int ns = static_cast<int>((s_max - s_0)/ds) + 1;
+    for (int i = 0; i < array_length; i++) {
+        std::ostringstream file_name;
+        file_name << "zeta_over_s_sovernB_" << sovernB[i] << ".dat";
+        std::ofstream of(file_name.str().c_str());
+        // write out the header of the file
+        of << "# e (GeV/fm^3)  rhob (1/fm^3) s (1/fm^3)  "
+           << "T (GeV)  mu_B (GeV)  eta/s" << std::endl;
+        for (int j = 0; j < ns; j++) {
+            double s_local = s_0 + j*ds;
+            double nB_local = s_local/sovernB[i];
+            double e_local = eos.get_s2e(s_local, nB_local);
+            double mu_B = eos.get_muB(e_local, nB_local);
+            if (mu_B*hbarc > 0.89)
+                continue;  // discard points out of the table
+
+            double T_local = eos.get_temperature(e_local, nB_local);
+            double p_local = eos.get_pressure(e_local, nB_local);
+            double s_check = eos.get_entropy(e_local, nB_local);
+
+            double bulk = transport_coeffs_.get_zeta_over_s(T_local);
+            double zeta_over_s = bulk*(e_local + p_local)/(T_local*s_local);
+
+            // output
+            of << std::scientific << std::setw(18) << std::setprecision(8)
+               << e_local*hbarc << "   " << nB_local << "   "
+               << s_check << "   "
+               << T_local*hbarc << "   " << mu_B*hbarc << "   "
+               << zeta_over_s << std::endl;
         }
         of.close();  // close the file
     }

@@ -4,9 +4,11 @@
 #include <stdio.h>
 #include <string>
 #include <sys/stat.h>
+#include <iostream>
 
 #include "music.h"
 #include "music_logo.h"
+#include "version.h"
 
 // main program
 int main(int argc, char *argv[]) {
@@ -19,6 +21,8 @@ int main(int argc, char *argv[]) {
         input_file = "";
 
     MUSIC_LOGO::welcome_message();
+    std::cout << "Version: (git branch:" << GIT_BRANCH << ") Commit:"
+              << GIT_COMMIT_HASH << std::endl;
     MUSIC music_hydro(input_file);
     int running_mode = music_hydro.get_running_mode();
 

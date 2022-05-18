@@ -73,7 +73,7 @@ void HydroSourceAMPT::read_in_AMPT_partons() {
                             + pz_local*pz_local);
         new_parton->tau      = sqrt(t_local*t_local - z_local*z_local);
         new_parton->eta_s    = 0.5*log( (t_local + z_local)
-                                      /(t_local - z_local + 1e-15));
+                                      /(t_local - z_local + Util::small_eps));
         new_parton->rapidity = 0.5*log( (new_parton->E + pz_local)
                                       /(new_parton->E - pz_local));
         double u_perp = (sqrt(  new_parton->px*new_parton->px

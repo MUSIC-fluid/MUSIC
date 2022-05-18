@@ -7,10 +7,11 @@
 
 class EOS_hotQCD : public EOS_base {
  private:
-   
+    const int eos_id;
+
  public:
-    EOS_hotQCD();
-    
+    EOS_hotQCD(const int eos_id_in);
+
     void initialize_eos();
     double p_e_func       (double e, double rhob) const;
     double get_temperature(double e, double rhob) const;

@@ -15,17 +15,26 @@ class TransportCoeffs {
  public:
     TransportCoeffs(const EOS &eosIn, const InitData &DATA_in);
 
-    double get_eta_over_s(double T) const;
-    double get_zeta_over_s(double T) const;
+    double get_eta_over_s(const double T, const double muB) const;
+    double get_zeta_over_s(const double T) const;
 
-    double get_temperature_dependent_eta_over_s_default(double T) const;
-    double get_temperature_dependent_zeta_over_s_default(double T) const;
+    double get_temperature_dependent_eta_over_s_default(const double T) const;
+    double get_temperature_dependent_zeta_over_s_default(const double T) const;
 
-    double get_temperature_dependent_eta_over_s_duke(double T) const;
-    double get_temperature_dependent_zeta_over_s_duke(double T) const;
+    double get_temperature_dependent_eta_over_s_duke(const double T) const;
+    double get_temperature_dependent_zeta_over_s_duke(const double T) const;
 
-    double get_temperature_dependent_eta_over_s_sims(double T) const;
-    double get_temperature_dependent_zeta_over_s_sims(double T) const;
+    double get_temperature_dependent_eta_over_s_sims(const double T) const;
+    double get_temperature_dependent_zeta_over_s_sims(const double T) const;
+
+    double get_muB_dependence_shear_profile(const double muB) const;
+    double get_temperature_dependence_shear_profile(const double T) const;
+
+    double get_temperature_dependent_zeta_over_s_bigbroadP(
+                                                    const double T) const;
+    double get_temperature_dependent_zeta_over_s_AsymGaussian(
+        const double T_in_fm, const double B_norm, const double B_width1,
+        const double B_width2, const double Tpeak) const;
 
     // Second-order coefficients
     double get_shear_relax_time_factor() const {
@@ -40,12 +49,12 @@ class TransportCoeffs {
     double get_tau_pipi_coeff() const { return(10./7.); }
     double get_delta_pipi_coeff() const { return(4./3.); }
     double get_phi7_coeff() const { return(9./70.); }
-    double get_lambda_piPi_coeff() const { return(6./5.); }
+    double get_lambda_pibulkPi_coeff() const { return(6./5.); }
 
     // bulk
-    double get_lambda_Pipi_coeff() const { return(8./5.); }
-    double get_delta_PiPi_coeff() const { return(2./3.); }
-    double get_tau_PiPi_coeff() const { return(0.); }  // unknown
+    double get_lambda_bulkPipi_coeff() const { return(8./5.); }
+    double get_delta_bulkPibulkPi_coeff() const { return(2./3.); }
+    double get_tau_bulkPibulkPi_coeff() const { return(0.); }  // unknown
 
 
     // net baryon diffusion

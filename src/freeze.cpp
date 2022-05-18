@@ -2,6 +2,7 @@
 // Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
 
 #include "./freeze.h"
+#include <cstring>
 
 using namespace std;
 
@@ -107,15 +108,15 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     music_message << "Determining chemical potentials at freeze out "
                   << "energy density " << ef << " GeV/fm^3.";
     music_message.flush("info");
-    
+
     // get environment path
     const char* EOSPATH = "HYDROPROGRAMPATH";
     char * pre_envPath= getenv(EOSPATH);
     std::string envPath;
     if (pre_envPath == 0) {
-	    envPath = ".";
+        envPath = ".";
     } else {
-	    envPath = pre_envPath;
+        envPath = pre_envPath;
     }
 
     string mu_name;
@@ -130,7 +131,7 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     }
     music_message << "Reading chemical potentials from file " << mu_name; 
     music_message.flush("info");
-    
+
     ifstream mu_file(mu_name.c_str());
     if (!mu_file.is_open()) {
         music_message << "file " << mu_name << "not found. Exiting...";
@@ -145,7 +146,7 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
 
     mu_file >> EPP1 >> deltaEPP1 >> NEPP1;
     mu_file >> numStable;
-      
+
     // chemical potential for every stable particle 
     chemPot = Util::mtx_malloc(numStable+1, NEPP1+1);
 
@@ -155,7 +156,7 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
         }
     }
     mu_file.close();
-    
+
     double frace;
     int ie1, ie2;
     if (ef < EPP1) {
@@ -167,14 +168,14 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
         ie2 = floor((ef-EPP1)/deltaEPP1+1);
         frace = (ef-(ie1*deltaEPP1+EPP1))/deltaEPP1; 
     }
-      
+
     if (ie1 > NEPP1) {
         music_message.error("ERROR in ReadParticleData. out of range.");
         music_message << "ie1=" << ie1 << ",NEPP1=" << NEPP1;
         music_message.flush("error");
         exit(0);
     }
-    
+
     if (ie2 > NEPP1) {
         music_message.error("ERROR in ReadParticleData. out of range.");
         music_message << "ie2=" << ie2 << ",NEPP1=" << NEPP1;
@@ -186,22 +187,22 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     double mu[numStable+1];
     music_message << "num_of_stable_particles = " << numStable;
     music_message.flush("info");
-    
+
     for(int i = 1; i <= numStable; i++) {
         pa = chemPot[i-1][ie1];
         pb = chemPot[i-1][ie2];
-      
+
         if (ef < EPP1) {
             mu[i] = pa*(frace);
         } else {
             mu[i] = pa*(1-frace) + pb*frace;
         }
     }
-     
+
     for (int i = 0; i < DATA->NumberOfParticlesToInclude; i++) {
         particleList[i].muAtFreezeOut = 0.;
     }
-      
+
     if (DATA->NumberOfParticlesToInclude >= 8) {
         for(int i = 1; i <= 8; i++) {
             particleList[i].muAtFreezeOut = mu[i];
@@ -212,7 +213,7 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
         music_message.flush("error");
         exit(1);
     }
-    
+
     if (DATA->whichEOS != 6) {
         if (DATA->NumberOfParticlesToInclude >= 12)
             particleList[12].muAtFreezeOut = mu[9];
@@ -258,7 +259,7 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
 
         if (DATA->NumberOfParticlesToInclude>=110)
             particleList[110].muAtFreezeOut = mu[28];
-      
+
         if (DATA->NumberOfParticlesToInclude>=111)
             particleList[111].muAtFreezeOut = mu[29];
 
@@ -369,9 +370,9 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     std::string envPath;
 
     if (pre_envPath == 0) {
-	    envPath=".";
+        envPath=".";
     } else {
-	    envPath=pre_envPath;
+        envPath=pre_envPath;
     }
     string p_name = envPath + "/EOS/pdg05.dat";
     if (DATA->whichEOS == 7 || DATA->whichEOS == 10) {
@@ -404,20 +405,19 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     int j = 0;
     // read particle data:
     while (i < DATA->NumberOfParticlesToInclude) {
-        int temp;
         //particleList[i].name = Util::char_malloc(50);
-        temp = fscanf(p_file, "%d",  &particleList[i].number );
-        temp = fscanf(p_file, "%s",   particleList[i].name   );
-        temp = fscanf(p_file, "%lf", &particleList[i].mass   );
-        temp = fscanf(p_file, "%lf", &particleList[i].width  );
-        temp = fscanf(p_file, "%d",  &particleList[i].degeneracy);
-        temp = fscanf(p_file, "%d",  &particleList[i].baryon );
-        temp = fscanf(p_file, "%d",  &particleList[i].strange);
-        temp = fscanf(p_file, "%d",  &particleList[i].charm  );
-        temp = fscanf(p_file, "%d",  &particleList[i].bottom );
-        temp = fscanf(p_file, "%d",  &particleList[i].isospin);
-        temp = fscanf(p_file, "%lf", &particleList[i].charge );
-        temp = fscanf(p_file, "%d",  &particleList[i].decays );   // number of decays
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].number );
+        system_status_ = fscanf(p_file, "%s",   particleList[i].name   );
+        system_status_ = fscanf(p_file, "%lf", &particleList[i].mass   );
+        system_status_ = fscanf(p_file, "%lf", &particleList[i].width  );
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].degeneracy);
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].baryon );
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].strange);
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].charm  );
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].bottom );
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].isospin);
+        system_status_ = fscanf(p_file, "%lf", &particleList[i].charge );
+        system_status_ = fscanf(p_file, "%d",  &particleList[i].decays );   // number of decays
 
         partid[MHALF + particleList[i].number] = i;
         particleList[i].stable = 0;
@@ -438,7 +438,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
             }
             j++;   // increase the decay counting variable "j" by 1
         }
-    
+
         // include anti-baryons (there are none in the file)
         if (particleList[i].baryon != 0) {
             i++;
@@ -451,8 +451,9 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
             particleList[i].decays  =  particleList[i-1].decays;
             particleList[i].stable  =  particleList[i-1].stable;
             particleList[i].number  = -particleList[i-1].number;
-            strcpy(particleList[i].name, "Anti-");
-            strcat(particleList[i].name,particleList[i-1].name);
+            std::string antiName = ("Anti-"
+                                    + std::string(particleList[i-1].name));
+            strcpy(particleList[i].name, antiName.c_str());
             particleList[i].mass       =  particleList[i-1].mass;
             particleList[i].degeneracy =  particleList[i-1].degeneracy;
             particleList[i].baryon     = -particleList[i-1].baryon;

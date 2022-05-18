@@ -8,12 +8,16 @@
 #include <string>
 #include "music.h"
 #include "init.h"
-#include "freeze.h"
 #include "evolve.h"
 #include "dissipative.h"
 #include "data_struct.h"
 #include "hydro_source_strings.h"
 #include "hydro_source_ampt.h"
+#include "hydro_source_TATB.h"
+
+#ifdef GSL
+    #include "freeze.h"
+#endif
 
 using std::vector;
 
@@ -50,7 +54,8 @@ void MUSIC::add_hydro_source_terms(
 
 //! This function setup source terms from dynamical initialization
 void MUSIC::generate_hydro_source_terms() {
-    if (DATA.Initial_profile == 13) {  // MC-Glauber-LEXUS
+    if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
+        // MC-Glauber-LEXUS
         auto hydro_source_ptr = std::shared_ptr<HydroSourceStrings> (
                                             new HydroSourceStrings (DATA));
         add_hydro_source_terms(hydro_source_ptr);
@@ -58,12 +63,17 @@ void MUSIC::generate_hydro_source_terms() {
         auto hydro_source_ptr = std::shared_ptr<HydroSourceAMPT> (
                                             new HydroSourceAMPT (DATA));
         add_hydro_source_terms(hydro_source_ptr);
+    } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
+        // source from TA and TB
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceTATB> (
+                                            new HydroSourceTATB (DATA));
+        add_hydro_source_terms(hydro_source_ptr);
     }
 }
 
 
 void MUSIC::clean_all_the_surface_files() {
-    system("rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+    system_status_ = system("rm surface*.dat 2> /dev/null");
 }
 
 
@@ -99,9 +109,11 @@ int MUSIC::run_hydro() {
 
 //! this is a shell function to run Cooper-Frye
 int MUSIC::run_Cooper_Frye() {
+#ifdef GSL
     Freeze cooper_frye(&DATA);
     cooper_frye.CooperFrye_pseudo(DATA.particleSpectrumNumber, mode,
                                   &DATA, &eos);
+#endif
     return(0);
 }
 
@@ -122,6 +134,8 @@ void MUSIC::output_transport_coefficients() {
     temp_dissipative_ptr.output_eta_over_s_along_const_sovernB();
     temp_dissipative_ptr.output_kappa_T_and_muB_dependence();
     temp_dissipative_ptr.output_kappa_along_const_sovernB();
+    temp_dissipative_ptr.output_zeta_over_s_T_and_muB_dependence();
+    temp_dissipative_ptr.output_zeta_over_s_along_const_sovernB();
 }
 
 

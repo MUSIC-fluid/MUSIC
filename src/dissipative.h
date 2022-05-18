@@ -35,33 +35,45 @@ class Diss {
                      const int ix, const int iy, const int ieta,
                      TJbVec &dwmn);
 
-    double Make_uWSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
-                         int mu, int nu, int rk_flag, double theta_local,
-                         DumuVec &a_local, VelocityShearVec &sigma_1d);
+    double Make_uWSource(const double tau, const Cell_small *grid_pt,
+                         const Cell_small *grid_pt_prev,
+                         const int mu, const int nu, const int rk_flag,
+                         const double theta_local, const DumuVec &a_local,
+                         const VelocityShearVec &sigma_1d,
+                         const VorticityVec &omega_1d);
 
-    int Make_uWRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                   int mu, int nu, double &w_rhs,
-                   double theta_local, DumuVec &a_local);
+    int Make_uWRHS(const double tau, SCGrid &arena,
+                   const int ix, const int iy, const int ieta,
+                   const int mu, const int nu, double &w_rhs,
+                   const double theta_local, const DumuVec &a_local);
 
-    int Make_uPRHS(double tau, SCGrid &arena, int ix, int iy, int ieta,
-                   double *p_rhs, double theta_local);
-    double Make_uPiSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev,
-                          int rk_flag, double theta_local, VelocityShearVec &sigma_1d);
+    int Make_uPRHS(const double tau, SCGrid &arena,
+                   const int ix, const int iy, const int ieta,
+                   double *p_rhs, const double theta_local);
 
-    double Make_uqRHS(double tau, SCGrid &arena_current, int ix, int iy, int ieta,
-                      int mu, int nu);
-    double Make_uqSource(double tau, Cell_small *grid_pt, Cell_small *grid_pt_prev, int nu,
-                         int rk_flag, double theta_local, DumuVec &a_local,
-                         VelocityShearVec &sigma_1d,
-                         DmuMuBoverTVec &baryon_diffusion_vec);
+    double Make_uPiSource(const double tau, const Cell_small *grid_pt,
+                          const Cell_small *grid_pt_prev, const int rk_flag,
+                          const double theta_local,
+                          const VelocityShearVec &sigma_1d);
 
-    double get_temperature_dependent_eta_s(double T);
-    double get_temperature_dependent_zeta_s(double temperature);
+    double Make_uqRHS(const double tau, SCGrid &arena_current,
+                      const int ix, const int iy, const int ieta,
+                      const int mu, const int nu);
+
+    double Make_uqSource(const double tau, const Cell_small *grid_pt,
+                         const Cell_small *grid_pt_prev,
+                         const int nu, const int rk_flag,
+                         const double theta_local, const DumuVec &a_local,
+                         const VelocityShearVec &sigma_1d,
+                         const VorticityVec &omega_1d,
+                         const DmuMuBoverTVec &baryon_diffusion_vec);
 
     void output_kappa_T_and_muB_dependence();
     void output_kappa_along_const_sovernB();
     void output_eta_over_s_T_and_muB_dependence();
     void output_eta_over_s_along_const_sovernB();
+    void output_zeta_over_s_T_and_muB_dependence();
+    void output_zeta_over_s_along_const_sovernB();
 };
 
 #endif  // SRC_DISSIPATIVE_H_

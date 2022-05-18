@@ -125,6 +125,8 @@ class Freeze{
     double *eta_s_inte_array, *eta_s_inte_weight;
     double *cosh_eta_s_inte, *sinh_eta_s_inte;
 
+    int system_status_;
+
     pretty_ostream music_message;
     std::vector<SurfaceElement> surface;
     Particle *particleList;

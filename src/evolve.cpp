@@ -14,7 +14,9 @@
 
 #include "evolve.h"
 #include "cornelius.h"
+#include "u_derivative.h"
 #include "emoji.h"
+#include "util.h"
 
 #ifndef _OPENMP
   #define omp_get_thread_num() 0
@@ -25,8 +27,7 @@ using Util::hbarc;
 Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
                std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
     eos(eosIn), DATA(DATA_in),
-    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in),
-    u_derivative(DATA_in, eosIn) {
+    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in) {
 
     rk_order  = DATA_in.rk_order;
     if (DATA.freezeOutMethod == 4) {
@@ -59,30 +60,47 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     double dt    = DATA.delta_tau;
 
     double tau;
-    int it_start = 0;
+    int iFreezeStart = 0;
     double source_tau_max = 0.0;
-    if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
-        source_tau_max = hydro_source_terms_ptr.lock()->get_source_tau_max();
+    if (hydro_source_terms_ptr) {
+        source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
+        if (freezeout_lowtemp_flag == 1) {
+            double freezeOutTauStart = (
+                    hydro_source_terms_ptr->get_source_tauStart_max());
+            freezeOutTauStart = std::min(DATA.freezeOutTauStartMax,
+                                         freezeOutTauStart);
+            iFreezeStart = static_cast<int>((freezeOutTauStart - tau0)/dt) + 2;
+        }
     }
+
+    music_message << "Freeze-out surface starts at " << tau0 + iFreezeStart*dt
+                  << " fm/c.";
+    music_message.flush("info");
 
     const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
     GridPointer ap_prev   (&arena_prev, closer);
     GridPointer ap_current(&arena_current, closer);
     GridPointer ap_future (&arena_future, closer);
 
+    SCGrid arena_freezeout_prev(arena_current.nX(),
+                                arena_current.nY(),
+                                arena_current.nEta());
     SCGrid arena_freezeout(arena_current.nX(),
                            arena_current.nY(),
                            arena_current.nEta());
 
-    double T_max = -1;
-    for (int it = 0; it <= itmax; it++) {
+    int it = 0;
+    double eps_max_cur = -1.;
+    const double max_allowed_e_increase_factor = 2.;
+    for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
-        if (DATA.Initial_profile == 13 || DATA.Initial_profile == 30) {
-            hydro_source_terms_ptr.lock()->prepare_list_for_current_tau_frame(tau);
+        if (hydro_source_terms_ptr) {
+            hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
-        if (it == it_start) {
+        if (it == iFreezeStart) {
+            store_previous_step_for_freezeout(*ap_prev, arena_freezeout_prev);
             store_previous_step_for_freezeout(*ap_current, arena_freezeout);
         }
 
@@ -100,13 +118,13 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
-        if (DATA.Initial_profile == 13) {
-            if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
-                grid_info.output_energy_density_and_rhob_disitrubtion(
-                            *ap_current,
-                            "energy_density_and_rhob_from_source_terms.dat");
-            }
-        }
+        //if (DATA.Initial_profile == 13) {
+        //    if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
+        //        grid_info.output_energy_density_and_rhob_disitrubtion(
+        //                    *ap_current,
+        //                    "energy_density_and_rhob_from_source_terms.dat");
+        //    }
+        //}
 
         if (it % Nskip_timestep == 0) {
             if (DATA.outputEvolutionData == 1) {
@@ -115,20 +133,30 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                 grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 3) {
                 grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
+            } else if (DATA.outputEvolutionData == 4) {
+                grid_info.OutputEvolutionDataXYEta_vorticity(
+                                            *ap_current, *ap_prev, tau);
             }
+
+            if (DATA.output_movie_flag == 1) {
+                grid_info.output_evolution_for_movie(*ap_current, tau);
+            }
+
             if (DATA.store_hydro_info_in_memory == 1) {
                 grid_info.OutputEvolutionDataXYEta_memory(*ap_current, tau,
                                                           hydro_info_ptr);
             }
-            if (DATA.output_movie_flag == 1) {
-                grid_info.output_evolution_for_movie(*ap_current, tau);
-            }
+
             if (DATA.output_outofequilibriumsize == 1) {
                 grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*ap_current,
                                                                   tau);
             }
         }
 
+        if (it == iFreezeStart || it == iFreezeStart + 10
+            || it == iFreezeStart + 30 || it == iFreezeStart + 50) {
+            grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
+        }
         grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *ap_current);
         if (DATA.Initial_profile == 13) {
@@ -144,54 +172,119 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                                             tau, 4.0, 5.0, *ap_current);
         }
 
+
         // check energy conservation
-        if (!DATA.boost_invariant)
+        if (!DATA.boost_invariant) {
             grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
-        T_max = grid_info.get_maximum_energy_density(*ap_current);
+            if (DATA.output_vorticity) {
+                if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
+                    || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
+                    grid_info.output_vorticity_distribution(
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+                }
+                grid_info.compute_angular_momentum(
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+                grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+                grid_info.compute_angular_momentum(
+                                    *ap_current, *ap_prev, tau, -1.0, 1.0);
+                grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau, -1.0, 1.0);
+                grid_info.compute_angular_momentum(
+                                    *ap_current, *ap_prev, tau,
+                                    -DATA.eta_size/2., DATA.eta_size/2.);
+                grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau,
+                                    -DATA.eta_size/2., DATA.eta_size/2.);
+            }
+        }
+
+        double emax_loc = 0.;
+        double Tmax_curr = 0.;
+        double nB_max_curr = 0.;
+        grid_info.get_maximum_energy_density(*ap_current, emax_loc,
+                                             nB_max_curr, Tmax_curr);
+        if (tau > source_tau_max && it > 0) {
+            if (eps_max_cur < 0.) {
+                eps_max_cur = emax_loc;
+            } else {
+                if (emax_loc > max_allowed_e_increase_factor*eps_max_cur) {
+                    music_message << "The maximum energy density increased by "
+                                  << "more than facotor of "
+                                  << max_allowed_e_increase_factor << "! ";
+                    music_message << "This should not happen!";
+                    music_message.flush("error");
+                    exit(1);
+                } else {
+                    eps_max_cur = std::min(emax_loc, eps_max_cur);
+                }
+            }
+        }
 
         if (DATA.output_hydro_debug_info == 1) {
-            grid_info.monitor_fluid_cell(*ap_current, 100, 100, 0, tau);
+            grid_info.monitor_a_fluid_cell(*ap_current, *ap_prev,
+                                           100, 100, 0, tau);
+        }
+
+        //determine freeze-out surface
+        int frozen = 0;
+        if (freezeout_flag == 1) {
+            if (freezeout_lowtemp_flag == 1 && it == iFreezeStart) {
+                frozen = FreezeOut_equal_tau_Surface(tau, *ap_current);
+            }
+            // avoid freeze-out at the first time step
+            if ((it - iFreezeStart)%facTau == 0 && it > iFreezeStart) {
+                if (!DATA.boost_invariant) {
+                    frozen = FindFreezeOutSurface_Cornelius(
+                                tau, *ap_prev, *ap_current,
+                                arena_freezeout_prev, arena_freezeout);
+                } else {
+                    frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
+                                tau, *ap_current, arena_freezeout);
+                }
+                store_previous_step_for_freezeout(*ap_prev,
+                                                  arena_freezeout_prev);
+                store_previous_step_for_freezeout(*ap_current,
+                                                  arena_freezeout);
+            }
         }
 
         /* execute rk steps */
         // all the evolution are at here !!!
         AdvanceRK(tau, ap_prev, ap_current, ap_future);
 
-        // "ap_current" is our result at time "tau+dtau", not "tau"
-        const double tau_next = tau + DATA.delta_tau;
-
-        //determine freeze-out surface
-        int frozen = 0;
-        if (freezeout_flag == 1) {
-            if (freezeout_lowtemp_flag == 1 && it == it_start) {
-                frozen = FreezeOut_equal_tau_Surface(tau_next, *ap_current);
-            }
-            // avoid freeze-out at the first time step
-            if ((it - it_start)%facTau == 0 && it > it_start) {
-                if (!DATA.boost_invariant) {
-                    frozen = FindFreezeOutSurface_Cornelius(
-                                tau_next, *ap_current, arena_freezeout);
-                } else {
-                    frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
-                                tau_next, *ap_current, arena_freezeout);
-                }
-                store_previous_step_for_freezeout(*ap_current,
-                                                  arena_freezeout);
-            }
-        }
         music_message << emoji::clock()
                       << " Done time step " << it << "/" << itmax
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
-        if (frozen == 1) {
-            if (DATA.outputEvolutionData == 0 && DATA.output_movie_flag == 0) {
-                break;
+        if (frozen == 1 && tau > source_tau_max) {
+            if (   DATA.outputEvolutionData == 2
+                || DATA.outputEvolutionData == 3) {
+                if (eps_max_cur < DATA.output_evolution_e_cut) {
+                    music_message << "All cells e < "
+                                  << DATA.output_evolution_e_cut
+                                  << " GeV/fm^3.";
+                    music_message.flush("info");
+                    break;
+                }
+            } else if (DATA.outputEvolutionData == 4) {
+                if (Tmax_curr < DATA.output_evolution_T_cut) {
+                    music_message << "All cells T < "
+                                  << DATA.output_evolution_T_cut << " GeV.";
+                    music_message.flush("info");
+                    break;
+                }
             } else {
-                if (T_max < DATA.output_evolution_T_cut) break;
+                music_message.info("All cells frozen out. Exiting.");
+                break;
             }
         }
     }
-    music_message.info("Finished.");
+    if (it < itmax) {
+        music_message.info("Finished.");
+    } else {
+        music_message.warning("Maximum allowed time reached.");
+    }
     return 1;
 }
 
@@ -227,8 +320,8 @@ void Evolve::AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_c
 
 // Cornelius freeze out  (C. Shen, 11/2014)
 int Evolve::FindFreezeOutSurface_Cornelius(double tau,
-                                           SCGrid &arena_current,
-                                           SCGrid &arena_freezeout) {
+        SCGrid &arena_prev, SCGrid &arena_current,
+        SCGrid &arena_freezeout_prev, SCGrid &arena_freezeout) {
     const int neta = arena_current.nEta();
     const int fac_eta = 1;
     int intersections = 0;
@@ -239,51 +332,34 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau,
         for (int ieta = 0; ieta < (neta-fac_eta); ieta += fac_eta) {
             int thread_id = omp_get_thread_num();
             intersections += FindFreezeOutSurface_Cornelius_XY(
-                tau, ieta, arena_current, arena_freezeout, thread_id, epsFO);
+                tau, ieta, arena_prev, arena_current,
+                arena_freezeout_prev, arena_freezeout, thread_id, epsFO);
         }
     }
 
-    if (intersections == 0) {
-        std::cout << "All cells frozen out. Exiting." << std::endl;
-    }
     return(intersections + 1);
 }
 
 int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
+                                              SCGrid &arena_prev,
                                               SCGrid &arena_current,
+                                              SCGrid &arena_freezeout_prev,
                                               SCGrid &arena_freezeout,
                                               int thread_id, double epsFO) {
     const bool surface_in_binary = DATA.freeze_surface_in_binary;
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
 
-    static bool overwrite_file = true;
-    // If we saved the first timestep's surface, don't overwrite it
-    if (DATA.doFreezeOut_lowtemp) {
-        overwrite_file=false;
-    }
-
     std::stringstream strs_name;
     strs_name << "surface_eps_" << std::setprecision(4) << epsFO*hbarc
               << "_" << thread_id << ".dat";
     std::ofstream s_file;
     std::ios_base::openmode modes;
-    
+
+    modes = std::ios::out | std::ios::app;
     if (surface_in_binary) {
-        modes=std::ios::out | std::ios::binary;
-    } else {
-        modes=std::ios::out;
+        modes = modes | std::ios::binary;
     }
-    
-    // Only append at the end of the file if it's not the first timestep
-    // (that is, overwrite file at first timestep)
-    if (!overwrite_file) {
-            modes = modes | std::ios::app;
-    }
-    else {
-            overwrite_file=false;
-    }
-    
 
     s_file.open(strs_name.str().c_str(), modes);
 
@@ -300,18 +376,28 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     const double DY   = fac_y*DATA.delta_y;
     const double DETA = fac_eta*DATA.delta_eta;
 
+    U_derivative u_derivative_helper(DATA, eos);
+
     // initialize Cornelius
     double lattice_spacing[4] = {DTAU, DX, DY, DETA};
     std::shared_ptr<Cornelius> cornelius_ptr(new Cornelius());
     cornelius_ptr->init(dim, epsFO, lattice_spacing);
 
     // initialize the hyper-cube for Cornelius
+    Cell_small ****fluid_cube = new Cell_small*** [2];
+    Cell_aux ****fluid_aux_cube = new Cell_aux*** [2];
     double ****cube = new double*** [2];
     for (int i = 0; i < 2; i++) {
+        fluid_cube[i] = new Cell_small** [2];
+        fluid_aux_cube[i] = new Cell_aux** [2];
         cube[i] = new double** [2];
         for (int j = 0; j < 2; j++) {
+            fluid_cube[i][j] = new Cell_small* [2];
+            fluid_aux_cube[i][j] = new Cell_aux* [2];
             cube[i][j] = new double* [2];
             for (int k = 0; k < 2; k++) {
+                fluid_cube[i][j][k] = new Cell_small[2];
+                fluid_aux_cube[i][j][k] = new Cell_aux[2];
                 cube[i][j][k] = new double[2];
                 for (int l = 0; l < 2; l++)
                     cube[i][j][k][l] = 0.0;
@@ -356,8 +442,17 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 exit(1);
             }
 
+            if (ix == 0 || ix >= nx - 2*fac_x
+                    || iy == 0 || iy >= ny - 2*fac_y) {
+                music_message << "Freeze-out cell at the boundary! "
+                              << "The grid is too small!";
+                music_message.flush("error");
+                exit(1);
+            }
+
             // if intersect, prepare for the hyper-cube
             intersections++;
+
             cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).epsilon;
             cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).epsilon;
             cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).epsilon;
@@ -375,7 +470,6 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
             cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).epsilon;
             cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).epsilon;
 
-    
             // Now, the magic will happen in the Cornelius ...
             cornelius_ptr->find_surface_4d(cube);
 
@@ -426,527 +520,164 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 const double y_center = y + x_fraction[1][2];
                 const double eta_center = eta + x_fraction[1][3];
 
-                // perform 4-d linear interpolation for all fluid
-                // quantities
 
-                // flow velocity u^x
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).u[1];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).u[1];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).u[1];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).u[1];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).u[1];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).u[1];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).u[1];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).u[1];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).u[1];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).u[1];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).u[1];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).u[1];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).u[1];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).u[1];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).u[1];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).u[1];
-                const double ux_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
+                // perform 4-d linear interpolation for all fluid quantities
+                for (int ii = 0; ii < 2; ii++)
+                for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++) {
+                    fluid_cube[0][ii][jj][kk] = arena_freezeout(
+                            ix + ii*fac_x, iy + jj*fac_y, ieta + kk*fac_eta);
+                    fluid_cube[1][ii][jj][kk] = arena_current(
+                            ix + ii*fac_x, iy + jj*fac_y, ieta + kk*fac_eta);
 
-                // flow velocity u^y
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).u[2];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).u[2];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).u[2];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).u[2];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).u[2];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).u[2];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).u[2];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).u[2];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).u[2];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).u[2];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).u[2];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).u[2];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).u[2];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).u[2];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).u[2];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).u[2];
-                const double uy_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
+                    if (DATA.output_vorticity == 0) continue;
 
-                // flow velocity u^eta
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).u[3];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).u[3];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).u[3];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).u[3];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).u[3];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).u[3];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).u[3];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).u[3];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).u[3];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).u[3];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).u[3];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).u[3];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).u[3];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).u[3];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).u[3];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).u[3];
-                const double ueta_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-
-                // reconstruct u^tau from u^i
-                const double utau_center = sqrt(1. + ux_center*ux_center 
-                                   + uy_center*uy_center 
-                                   + ueta_center*ueta_center);
-
-                // baryon density rho_b
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).rhob;
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).rhob;
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).rhob;
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).rhob;
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).rhob;
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).rhob;
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).rhob;
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).rhob;
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).rhob;
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).rhob;
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).rhob;
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).rhob;
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).rhob;
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).rhob;
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).rhob;
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).rhob;
-                const double rhob_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-          
-                // baryon diffusion current q^tau
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[10];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[10];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[10];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[10];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[10];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[10];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[10];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[10];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[10];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[10];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[10];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[10];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[10];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[10];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[10];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[10];
-                double qtau_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-          
-                // baryon diffusion current q^x
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[11];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[11];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[11];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[11];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[11];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[11];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[11];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[11];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[11];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[11];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[11];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[11];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[11];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[11];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[11];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[11];
-                double qx_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-
-                // baryon diffusion current q^y
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[12];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[12];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[12];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[12];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[12];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[12];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[12];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[12];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[12];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[12];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[12];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[12];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[12];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[12];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[12];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[12];
-                double qy_center = 
-                    Util::four_dimension_linear_interpolation(
-                            lattice_spacing, x_fraction, cube);
-          
-                // baryon diffusion current q^eta
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[13];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[13];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[13];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[13];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[13];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[13];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[13];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[13];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[13];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[13];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[13];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[13];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[13];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[13];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[13];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[13];
-                double qeta_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
+                    // compute the vorticity tensors
+                    Cell_aux aux_tmp;
+                    double eta_local = eta + kk*DETA;
+                    u_derivative_helper.compute_vorticity_shell(
+                        tau, arena_prev, arena_current,
+                        ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
+                        eta_local,
+                        aux_tmp.omega_kSP, aux_tmp.omega_k,
+                        aux_tmp.omega_th, aux_tmp.omega_T,
+                        aux_tmp.sigma, aux_tmp.DbetaMu);
+                    fluid_aux_cube[1][ii][jj][kk] = aux_tmp;
+                    u_derivative_helper.compute_vorticity_shell(
+                        tau - DTAU, arena_freezeout_prev, arena_freezeout,
+                        ieta + kk*fac_eta, ix + ii*fac_eta, iy + jj*fac_eta,
+                        eta_local,
+                        aux_tmp.omega_kSP, aux_tmp.omega_k,
+                        aux_tmp.omega_th, aux_tmp.omega_T,
+                        aux_tmp.sigma, aux_tmp.DbetaMu);
+                    fluid_aux_cube[0][ii][jj][kk] = aux_tmp;
+                }
+                auto fluid_center = four_dimension_linear_interpolation(
+                        lattice_spacing, x_fraction, fluid_cube);
+                Cell_aux fluid_aux_center;
+                if (DATA.output_vorticity == 1) {
+                    fluid_aux_center = four_dimension_linear_interpolation(
+                            lattice_spacing, x_fraction, fluid_aux_cube);
+                }
 
                 // reconstruct q^\tau from the transverality criteria
-                double u_flow[4] = {utau_center, ux_center, uy_center, ueta_center};
-                double q_mu[4]   = {qtau_center, qx_center, qy_center, qeta_center};
+                FlowVec u_flow = fluid_center.u;
+                double q_mu[4] = {
+                    fluid_center.Wmunu[10], fluid_center.Wmunu[11],
+                    fluid_center.Wmunu[12], fluid_center.Wmunu[13]};
                 double q_regulated[4] = {0.0, 0.0, 0.0, 0.0};
-                
                 regulate_qmu(u_flow, q_mu, q_regulated);
-                
-                qtau_center = q_regulated[0];
-                qx_center = q_regulated[1];
-                qy_center = q_regulated[2];
-                qeta_center = q_regulated[3];
-    
-                // bulk viscous pressure pi_b
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).pi_b;
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).pi_b;
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).pi_b;
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).pi_b;
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).pi_b;
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).pi_b;
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).pi_b;
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).pi_b;
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).pi_b;
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).pi_b;
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).pi_b;
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).pi_b;
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).pi_b;
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).pi_b;
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).pi_b;
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).pi_b;
-                const double pi_b_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-
-                // shear viscous tensor W^\tau\tau
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[0];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[0];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[0];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[0];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[0];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[0];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[0];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[0];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[0];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[0];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[0];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[0];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[0];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[0];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[0];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[0];
-                double Wtautau_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-      
-                // shear viscous tensor W^{\tau x}
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[1];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[1];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[1];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[1];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[1];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[1];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[1];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[1];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[1];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[1];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[1];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[1];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[1];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[1];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[1];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[1];
-                double Wtaux_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-
-                // shear viscous tensor W^{\tau y}
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[2];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[2];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[2];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[2];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[2];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[2];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[2];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[2];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[2];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[2];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[2];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[2];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[2];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[2];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[2];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[2];
-                double Wtauy_center = Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-      
-                // shear viscous tensor W^{\tau \eta}
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[3];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[3];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[3];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[3];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[3];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[3];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[3];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[3];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[3];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[3];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[3];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[3];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[3];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[3];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[3];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[3];
-                double Wtaueta_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-      
-                // shear viscous tensor W^{xx}
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[4];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[4];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[4];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[4];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[4];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[4];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[4];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[4];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[4];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[4];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[4];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[4];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[4];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[4];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[4];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[4];
-                double Wxx_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-
-                // shear viscous tensor W^{xy}
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[5];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[5];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[5];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[5];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[5];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[5];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[5];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[5];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[5];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[5];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[5];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[5];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[5];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[5];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[5];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[5];
-                double Wxy_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-
-                // shear viscous tensor W^{x\eta}
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[6];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[6];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[6];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[6];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[6];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[6];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[6];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[6];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[6];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[6];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[6];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[6];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[6];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[6];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[6];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[6];
-                double Wxeta_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-      
-                // shear viscous tensor W^{yy}
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[7];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[7];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[7];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[7];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[7];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[7];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[7];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[7];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[7];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[7];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[7];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[7];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[7];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[7];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[7];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[7];
-                double Wyy_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-      
-                // shear viscous tensor W^{y\eta}
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[8];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[8];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[8];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[8];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[8];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[8];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[8];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[8];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[8];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[8];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[8];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[8];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[8];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[8];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[8];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[8];
-                double Wyeta_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
-      
-                // shear viscous tensor W^{\eta\eta}
-                cube[0][0][0][0] = arena_freezeout(ix      , iy      , ieta        ).Wmunu[9];
-                cube[0][0][1][0] = arena_freezeout(ix      , iy+fac_y, ieta        ).Wmunu[9];
-                cube[0][1][0][0] = arena_freezeout(ix+fac_x, iy      , ieta        ).Wmunu[9];
-                cube[0][1][1][0] = arena_freezeout(ix+fac_x, iy+fac_y, ieta        ).Wmunu[9];
-                cube[1][0][0][0] = arena_current  (ix      , iy      , ieta        ).Wmunu[9];
-                cube[1][0][1][0] = arena_current  (ix      , iy+fac_y, ieta        ).Wmunu[9];
-                cube[1][1][0][0] = arena_current  (ix+fac_x, iy      , ieta        ).Wmunu[9];
-                cube[1][1][1][0] = arena_current  (ix+fac_x, iy+fac_y, ieta        ).Wmunu[9];
-                cube[0][0][0][1] = arena_freezeout(ix      , iy      , ieta+fac_eta).Wmunu[9];
-                cube[0][0][1][1] = arena_freezeout(ix      , iy+fac_y, ieta+fac_eta).Wmunu[9];
-                cube[0][1][0][1] = arena_freezeout(ix+fac_x, iy      , ieta+fac_eta).Wmunu[9];
-                cube[0][1][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[9];
-                cube[1][0][0][1] = arena_current  (ix      , iy      , ieta+fac_eta).Wmunu[9];
-                cube[1][0][1][1] = arena_current  (ix      , iy+fac_y, ieta+fac_eta).Wmunu[9];
-                cube[1][1][0][1] = arena_current  (ix+fac_x, iy      , ieta+fac_eta).Wmunu[9];
-                cube[1][1][1][1] = arena_current  (ix+fac_x, iy+fac_y, ieta+fac_eta).Wmunu[9];
-                double Wetaeta_center = 
-                    Util::four_dimension_linear_interpolation(
-                                lattice_spacing, x_fraction, cube);
+                fluid_center.Wmunu[10] = q_regulated[0];
+                fluid_center.Wmunu[11] = q_regulated[1];
+                fluid_center.Wmunu[12] = q_regulated[2];
+                fluid_center.Wmunu[13] = q_regulated[3];
 
                 // regulate Wmunu according to transversality and traceless
                 double Wmunu_input[4][4];
                 double Wmunu_regulated[4][4];
-                Wmunu_input[0][0] = Wtautau_center;
-                Wmunu_input[0][1] = Wmunu_input[1][0] = Wtaux_center;
-                Wmunu_input[0][2] = Wmunu_input[2][0] = Wtauy_center;
-                Wmunu_input[0][3] = Wmunu_input[3][0] = Wtaueta_center;
-                Wmunu_input[1][1] = Wxx_center;
-                Wmunu_input[1][2] = Wmunu_input[2][1] = Wxy_center;
-                Wmunu_input[1][3] = Wmunu_input[3][1] = Wxeta_center;
-                Wmunu_input[2][2] = Wyy_center;
-                Wmunu_input[2][3] = Wmunu_input[3][2] = Wyeta_center;
-                Wmunu_input[3][3] = Wetaeta_center;
+                Wmunu_input[0][0] = fluid_center.Wmunu[0];
+                Wmunu_input[0][1] = Wmunu_input[1][0] = fluid_center.Wmunu[1];
+                Wmunu_input[0][2] = Wmunu_input[2][0] = fluid_center.Wmunu[2];
+                Wmunu_input[0][3] = Wmunu_input[3][0] = fluid_center.Wmunu[3];
+                Wmunu_input[1][1] = fluid_center.Wmunu[4];
+                Wmunu_input[1][2] = Wmunu_input[2][1] = fluid_center.Wmunu[5];
+                Wmunu_input[1][3] = Wmunu_input[3][1] = fluid_center.Wmunu[6];
+                Wmunu_input[2][2] = fluid_center.Wmunu[7];
+                Wmunu_input[2][3] = Wmunu_input[3][2] = fluid_center.Wmunu[8];
+                Wmunu_input[3][3] = fluid_center.Wmunu[9];
                 regulate_Wmunu(u_flow, Wmunu_input, Wmunu_regulated);
-                Wtautau_center = Wmunu_regulated[0][0];
-                Wtaux_center   = Wmunu_regulated[0][1];
-                Wtauy_center   = Wmunu_regulated[0][2];
-                Wtaueta_center = Wmunu_regulated[0][3];
-                Wxx_center     = Wmunu_regulated[1][1];
-                Wxy_center     = Wmunu_regulated[1][2];
-                Wxeta_center   = Wmunu_regulated[1][3];
-                Wyy_center     = Wmunu_regulated[2][2];
-                Wyeta_center   = Wmunu_regulated[2][3];
-                Wetaeta_center = Wmunu_regulated[3][3];
+                fluid_center.Wmunu[0] = Wmunu_regulated[0][0];
+                fluid_center.Wmunu[1] = Wmunu_regulated[0][1];
+                fluid_center.Wmunu[2] = Wmunu_regulated[0][2];
+                fluid_center.Wmunu[3] = Wmunu_regulated[0][3];
+                fluid_center.Wmunu[4] = Wmunu_regulated[1][1];
+                fluid_center.Wmunu[5] = Wmunu_regulated[1][2];
+                fluid_center.Wmunu[6] = Wmunu_regulated[1][3];
+                fluid_center.Wmunu[7] = Wmunu_regulated[2][2];
+                fluid_center.Wmunu[8] = Wmunu_regulated[2][3];
+                fluid_center.Wmunu[9] = Wmunu_regulated[3][3];
 
                 // 4-dimension interpolation done
-                const double TFO = eos.get_temperature(epsFO, rhob_center);
+                const double TFO = eos.get_temperature(epsFO,
+                                                       fluid_center.rhob);
                 if (TFO < 0) {
                     music_message << "TFO=" << TFO
                                   << "<0. ERROR. exiting.";
                     music_message.flush("error");
                     exit(1);
                 }
-                const double muB = eos.get_muB(epsFO, rhob_center);
-                const double muS = eos.get_muS(epsFO, rhob_center);
-                const double muC = eos.get_muC(epsFO, rhob_center);
+                const double muB = eos.get_muB(epsFO, fluid_center.rhob);
+                const double muS = eos.get_muS(epsFO, fluid_center.rhob);
+                const double muC = eos.get_muC(epsFO, fluid_center.rhob);
 
-                const double pressure = eos.get_pressure(epsFO, rhob_center);
+                const double pressure = eos.get_pressure(epsFO, fluid_center.rhob);
                 const double eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                 // finally output results !!!!
                 if (surface_in_binary) {
-                    float array[] = {static_cast<float>(tau_center),
-                                     static_cast<float>(x_center),
-                                     static_cast<float>(y_center),
-                                     static_cast<float>(eta_center),
-                                     static_cast<float>(FULLSU[0]),
-                                     static_cast<float>(FULLSU[1]),
-                                     static_cast<float>(FULLSU[2]),
-                                     static_cast<float>(FULLSU[3]),
-                                     static_cast<float>(utau_center),
-                                     static_cast<float>(ux_center),
-                                     static_cast<float>(uy_center),
-                                     static_cast<float>(ueta_center),
-                                     static_cast<float>(epsFO),
-                                     static_cast<float>(TFO),
-                                     static_cast<float>(muB),
-                                     static_cast<float>(muS),
-                                     static_cast<float>(muC),
-                                     static_cast<float>(eps_plus_p_over_T_FO),
-                                     static_cast<float>(Wtautau_center),
-                                     static_cast<float>(Wtaux_center),
-                                     static_cast<float>(Wtauy_center),
-                                     static_cast<float>(Wtaueta_center),
-                                     static_cast<float>(Wxx_center),
-                                     static_cast<float>(Wxy_center),
-                                     static_cast<float>(Wxeta_center),
-                                     static_cast<float>(Wyy_center),
-                                     static_cast<float>(Wyeta_center),
-                                     static_cast<float>(Wetaeta_center),
-                                     static_cast<float>(pi_b_center),
-                                     static_cast<float>(rhob_center),
-                                     static_cast<float>(qtau_center),
-                                     static_cast<float>(qx_center),
-                                     static_cast<float>(qy_center),
-                                     static_cast<float>(qeta_center)};
-                    for (int i = 0; i < 34; i++) {
-                        s_file.write((char*) &(array[i]), sizeof(float));
+                    const int FOsize = 34 + DATA.output_vorticity*(24 + 14);
+                    float array[FOsize];
+                    array[0] = static_cast<float>(tau_center);
+                    array[1] = static_cast<float>(x_center);
+                    array[2] = static_cast<float>(y_center);
+                    array[3] = static_cast<float>(eta_center);
+                    for (int ii = 0; ii < 4; ii++)
+                        array[4+ii] = static_cast<float>(FULLSU[ii]);
+                    for (int ii = 0; ii < 4; ii++)
+                        array[8+ii] = static_cast<float>(fluid_center.u[ii]);
+                    array[12] = static_cast<float>(epsFO);
+                    array[13] = static_cast<float>(TFO);
+                    array[14] = static_cast<float>(muB);
+                    array[15] = static_cast<float>(muS);
+                    array[16] = static_cast<float>(muC);
+                    array[17] = static_cast<float>(eps_plus_p_over_T_FO);
+                    for (int ii = 0; ii < 10; ii++)
+                        array[18+ii] = static_cast<float>(fluid_center.Wmunu[ii]);
+                    array[28] = fluid_center.pi_b;
+                    array[29] = fluid_center.rhob;
+                    for (int ii = 0; ii < 4; ii++)
+                        array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
+                    if (DATA.output_vorticity == 1) {
+                        for (int ii = 0; ii < 6; ii++) {
+                            array[34+ii] = fluid_aux_center.omega_kSP[ii]/TFO;  // no minus sign because its definition is opposite to the kinetic vorticity
+                            // the extra minus sign is from metric
+                            // output quantities for g = (1, -1, -1, -1)
+                            array[40+ii] = -fluid_aux_center.omega_k[ii]/TFO;
+                            array[46+ii] = -fluid_aux_center.omega_th[ii];
+                            array[52+ii] = (-fluid_aux_center.omega_T[ii]
+                                            /TFO/TFO);
+                        }
+                        // the extra minus sign is from metric
+                        // output quantities for g = (1, -1, -1, -1)
+                        for (int ii = 0; ii < 10; ii++)
+                            array[58+ii] = -fluid_aux_center.sigma[ii];
+                        for (int ii = 0; ii < 4; ii++)
+                            array[68+ii] = -fluid_aux_center.DbetaMu[ii];
                     }
+                    for (int i = 0; i < FOsize; i++)
+                        s_file.write((char*) &(array[i]), sizeof(float));
                 } else {
                     s_file << std::scientific << std::setprecision(10)
                            << tau_center << " " << x_center << " "
                            << y_center << " " << eta_center << " "
                            << FULLSU[0] << " " << FULLSU[1] << " "
                            << FULLSU[2] << " " << FULLSU[3] << " "
-                           << utau_center << " " << ux_center << " "
-                           << uy_center << " " << ueta_center << " "
+                           << fluid_center.u[0] << " " << fluid_center.u[1] << " "
+                           << fluid_center.u[2] << " " << fluid_center.u[3] << " "
                            << epsFO << " " << TFO << " " << muB << " "
                            << muS << " " << muC << " "
-                           << eps_plus_p_over_T_FO << " "
-                           << Wtautau_center << " " << Wtaux_center << " "
-                           << Wtauy_center << " " << Wtaueta_center << " "
-                           << Wxx_center << " " << Wxy_center << " "
-                           << Wxeta_center << " "
-                           << Wyy_center << " " << Wyeta_center << " "
-                           << Wetaeta_center << " ";
+                           << eps_plus_p_over_T_FO << " ";
+                    for (int ii = 0; ii < 10; ii++)
+                        s_file << std::scientific << std::setprecision(10)
+                               << fluid_center.Wmunu[ii] << " ";
                     if (DATA.turn_on_bulk)
-                        s_file << pi_b_center << " ";
+                        s_file << fluid_center.pi_b << " ";
                     if (DATA.turn_on_rhob)
-                        s_file << rhob_center << " ";
+                        s_file << fluid_center.rhob << " ";
                     if (DATA.turn_on_diff)
-                        s_file << qtau_center << " " << qx_center << " "
-                               << qy_center << " " << qeta_center << " ";
+                        for (int ii = 10; ii < 14; ii++)
+                            s_file << std::scientific << std::setprecision(10)
+                                   << fluid_center.Wmunu[ii] << " ";
                     s_file << std::endl;
                 }
             }
@@ -957,15 +688,25 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     // clean up
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 2; j++) {
-            for (int k = 0; k < 2; k++)
+            for (int k = 0; k < 2; k++) {
                 delete [] cube[i][j][k];
+                delete [] fluid_cube[i][j][k];
+                delete [] fluid_aux_cube[i][j][k];
+            }
             delete [] cube[i][j];
+            delete [] fluid_cube[i][j];
+            delete [] fluid_aux_cube[i][j];
         }
         delete [] cube[i];
+        delete [] fluid_cube[i];
+        delete [] fluid_aux_cube[i];
     }
     delete [] cube;
+    delete [] fluid_cube;
+    delete [] fluid_aux_cube;
     return(intersections);
 }
+
 
 // Cornelius freeze out (C. Shen, 11/2014)
 int Evolve::FreezeOut_equal_tau_Surface(double tau,
@@ -1002,8 +743,6 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
 
-    static bool overwrite_file = true;
-
     std::stringstream strs_name;
     if (!DATA.boost_invariant) {
         strs_name << "surface_eps_" << std::setprecision(4) << epsFO*hbarc
@@ -1015,19 +754,9 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     std::ofstream s_file;
     std::ios_base::openmode modes;
 
+    modes = std::ios::out | std::ios::app;
     if (surface_in_binary) {
-        modes=std::ios::out | std::ios::binary;
-    } else {
-        modes=std::ios::out;
-    }
-    
-    // Only append at the end of the file if it's not the first timestep
-    // (that is, overwrite file at first timestep)
-    if (!overwrite_file) {
-        modes = modes | std::ios::app;
-    }
-    else {
-        overwrite_file=false;
+        modes = modes | std::ios::binary;
     }
 
     s_file.open(strs_name.str().c_str(), modes);
@@ -1035,7 +764,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
     const int fac_x   = DATA.fac_x;
     const int fac_y   = DATA.fac_y;
     const int fac_eta = 1;
-    
+
     const double DX   = fac_x*DATA.delta_x;
     const double DY   = fac_y*DATA.delta_y;
     const double DETA = fac_eta*DATA.delta_eta;
@@ -1078,8 +807,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
             double qeta_center = arena_current(ix, iy, ieta).Wmunu[13];
 
             // reconstruct q^\tau from the transverality criteria
-            double u_flow[]       = {utau_center, ux_center, uy_center, ueta_center};
-            double q_mu[]         = {qtau_center, qx_center, qy_center, qeta_center};
+            FlowVec u_flow = {utau_center, ux_center, uy_center, ueta_center};
+            double q_mu[4] = {qtau_center, qx_center, qy_center, qeta_center};
             double q_regulated[4] = {0.0, 0.0, 0.0, 0.0};
             regulate_qmu(u_flow, q_mu, q_regulated);
             qtau_center = q_regulated[0];
@@ -1126,6 +855,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
             Wyeta_center   = Wmunu_regulated[2][3];
             Wetaeta_center = Wmunu_regulated[3][3];
 
+            Cell_aux fluid_aux_center;
+
             // get other thermodynamical quantities
             double e_local   = arena_current(ix, iy, ieta).epsilon;
             double T_local   = eos.get_temperature(e_local, rhob_center);
@@ -1145,57 +876,78 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
 
             // finally output results
             if (surface_in_binary) {
-                float array[] = {static_cast<float>(tau_center),
-                                 static_cast<float>(x_center),
-                                 static_cast<float>(y_center),
-                                 static_cast<float>(eta_center),
-                                 static_cast<float>(FULLSU[0]),
-                                 static_cast<float>(FULLSU[1]),
-                                 static_cast<float>(FULLSU[2]),
-                                 static_cast<float>(FULLSU[3]),
-                                 static_cast<float>(utau_center),
-                                 static_cast<float>(ux_center),
-                                 static_cast<float>(uy_center),
-                                 static_cast<float>(ueta_center),
-                                 static_cast<float>(e_local),
-                                 static_cast<float>(T_local),
-                                 static_cast<float>(muB_local),
-                                 static_cast<float>(muS_local),
-                                 static_cast<float>(muC_local),
-                                 static_cast<float>(eps_plus_p_over_T),
-                                 static_cast<float>(Wtautau_center),
-                                 static_cast<float>(Wtaux_center),
-                                 static_cast<float>(Wtauy_center),
-                                 static_cast<float>(Wtaueta_center),
-                                 static_cast<float>(Wxx_center),
-                                 static_cast<float>(Wxy_center),
-                                 static_cast<float>(Wxeta_center),
-                                 static_cast<float>(Wyy_center),
-                                 static_cast<float>(Wyeta_center),
-                                 static_cast<float>(Wetaeta_center),
-                                 static_cast<float>(pi_b_center),
-                                 static_cast<float>(rhob_center),
-                                 static_cast<float>(qtau_center),
-                                 static_cast<float>(qx_center),
-                                 static_cast<float>(qy_center),
-                                 static_cast<float>(qeta_center)};
-                for (int i = 0; i < 34; i++) {
+                const int FOsize = 34 + DATA.output_vorticity*(24 + 14);
+                float array[FOsize];
+                array[0] = static_cast<float>(tau_center);
+                array[1] = static_cast<float>(x_center);
+                array[2] = static_cast<float>(y_center);
+                array[3] = static_cast<float>(eta_center);
+                array[4] = static_cast<float>(FULLSU[0]);
+                array[5] = static_cast<float>(FULLSU[1]);
+                array[6] = static_cast<float>(FULLSU[2]);
+                array[7] = static_cast<float>(FULLSU[3]);
+                array[8] = static_cast<float>(utau_center);
+                array[9] = static_cast<float>(ux_center);
+                array[10] = static_cast<float>(uy_center);
+                array[11] = static_cast<float>(ueta_center);
+                array[12] = static_cast<float>(e_local);
+                array[13] = static_cast<float>(T_local);
+                array[14] = static_cast<float>(muB_local);
+                array[15] = static_cast<float>(muS_local);
+                array[16] = static_cast<float>(muC_local);
+                array[17] = static_cast<float>(eps_plus_p_over_T);
+                array[18] = static_cast<float>(Wtautau_center);
+                array[19] = static_cast<float>(Wtaux_center);
+                array[20] = static_cast<float>(Wtauy_center);
+                array[21] = static_cast<float>(Wtaueta_center);
+                array[22] = static_cast<float>(Wxx_center);
+                array[23] = static_cast<float>(Wxy_center);
+                array[24] = static_cast<float>(Wxeta_center);
+                array[25] = static_cast<float>(Wyy_center);
+                array[26] = static_cast<float>(Wyeta_center);
+                array[27] = static_cast<float>(Wetaeta_center);
+                array[28] = static_cast<float>(pi_b_center);
+                array[29] = static_cast<float>(rhob_center);
+                array[30] = static_cast<float>(qtau_center);
+                array[31] = static_cast<float>(qx_center);
+                array[32] = static_cast<float>(qy_center);
+                array[33] = static_cast<float>(qeta_center);
+                if (DATA.output_vorticity == 1) {
+                    for (int ii = 0; ii < 6; ii++) {
+                        // no minus sign because its definition is opposite to
+                        // the kinetic vorticity
+                        array[34+ii] = fluid_aux_center.omega_kSP[ii]/T_local;
+                        // the extra minus sign is from metric
+                        // output quantities for g = (1, -1, -1, -1)
+                        array[40+ii] = -fluid_aux_center.omega_k[ii]/T_local;
+                        array[46+ii] = -fluid_aux_center.omega_th[ii];
+                        array[52+ii] = (-fluid_aux_center.omega_T[ii]
+                                        /T_local/T_local);
+                    }
+                    // the extra minus sign is from metric
+                    // output quantities for g = (1, -1, -1, -1)
+                    for (int ii = 0; ii < 10; ii++)
+                        array[58+ii] = -fluid_aux_center.sigma[ii];
+                    for (int ii = 0; ii < 4; ii++)
+                        array[68+ii] = -fluid_aux_center.DbetaMu[ii];
+                }
+                for (int i = 0; i < FOsize; i++) {
                     s_file.write((char*) &(array[i]), sizeof(float));
                 }
             } else {
                 s_file << std::scientific << std::setprecision(10) 
-                       << tau_center     << " " << x_center          << " " 
-                       << y_center       << " " << eta_center        << " " 
-                       << FULLSU[0]      << " " << FULLSU[1]         << " " 
-                       << FULLSU[2]      << " " << FULLSU[3]         << " " 
-                       << utau_center    << " " << ux_center         << " " 
-                       << uy_center      << " " << ueta_center       << " " 
+                       << tau_center     << " " << x_center          << " "
+                       << y_center       << " " << eta_center        << " "
+                       << FULLSU[0]      << " " << FULLSU[1]         << " "
+                       << FULLSU[2]      << " " << FULLSU[3]         << " "
+                       << utau_center    << " " << ux_center         << " "
+                       << uy_center      << " " << ueta_center       << " "
                        << e_local        << " " << T_local           << " "
                        << muB_local      << " " << muS_local         << " "
-                       << muC_local      << " " << eps_plus_p_over_T << " " 
-                       << Wtautau_center << " " << Wtaux_center      << " " 
-                       << Wtauy_center   << " " << Wtaueta_center    << " " 
-                       << Wxx_center     << " " << Wxy_center        << " " 
+                       << muC_local      << " " << eps_plus_p_over_T << " "
+                       << Wtautau_center << " " << Wtaux_center      << " "
+                       << Wtauy_center   << " " << Wtaueta_center    << " "
+                       << Wxx_center     << " " << Wxy_center        << " "
                        << Wxeta_center   << " " << Wyy_center        << " "
                        << Wyeta_center   << " " << Wetaeta_center    << " " ;
                 if (DATA.turn_on_bulk)
@@ -1203,7 +955,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 if (DATA.turn_on_rhob)
                     s_file << rhob_center << " " ;
                 if (DATA.turn_on_diff)
-                    s_file << qtau_center << " " << qx_center << " " 
+                    s_file << qtau_center << " " << qx_center << " "
                            << qy_center << " " << qeta_center << " " ;
                 s_file << std::endl;
             }
@@ -1217,12 +969,6 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                 double tau, SCGrid &arena_current, SCGrid &arena_freezeout) {
     const bool surface_in_binary = DATA.freeze_surface_in_binary;
 
-    static bool overwrite_file = true;
-    // If we saved the first timestep's surface, don't overwrite it
-    if (DATA.doFreezeOut_lowtemp) {
-	    overwrite_file=false;
-    }
-
     // find boost-invariant hyper-surfaces
     int *all_frozen = new int[n_freeze_surf];
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
@@ -1235,20 +981,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         std::ofstream s_file;
         std::ios_base::openmode modes;
 
+        modes = std::ios::out | std::ios::app;
         if (surface_in_binary) {
-            modes=std::ios::out | std::ios::binary;
-        } else {
-            modes=std::ios::out;
+            modes = modes | std::ios::binary;
         }
-
-	// Only append at the end of the file if it's not the first timestep
-	// (that is, overwrite file at first timestep)
-	if (!overwrite_file) {
-                modes = modes | std::ios::app;
-	}
-	else {
-		overwrite_file=false;
-	}
 
         s_file.open(strs_name.str().c_str(), modes);
 
@@ -1277,10 +1013,13 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         cornelius_ptr->init(dim, epsFO, lattice_spacing);
 
         // initialize the hyper-cube for Cornelius
+        Cell_small ***fluid_cube = new Cell_small ** [2];
         double ***cube = new double ** [2];
         for (int i = 0; i < 2; i++) {
+            fluid_cube[i] = new Cell_small * [2];
             cube[i] = new double * [2];
             for (int j = 0; j < 2; j++) {
+                fluid_cube[i][j] = new Cell_small[2];
                 cube[i][j] = new double[2];
                 for (int k = 0; k < 2; k++)
                     cube[i][j][k] = 0.0;
@@ -1291,7 +1030,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
             double x = ix*(DATA.delta_x) - (DATA.x_size/2.0);
             for (int iy=0; iy < ny - fac_y; iy += fac_y) {
                 double y = iy*(DATA.delta_y) - (DATA.y_size/2.0);
-               
+
                 // judge intersection (from Bjoern)
                 intersect=1;
                 if ((arena_current(ix+fac_x,iy+fac_y,0).epsilon-epsFO)
@@ -1323,7 +1062,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                 cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).epsilon;
                 cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).epsilon;
                 cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).epsilon;
-           
+
                 // Now, the magic will happen in the Cornelius ...
                 cornelius_ptr->find_surface_3d(cube);
 
@@ -1370,298 +1109,59 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     const double eta_center = 0.0;
 
                     // perform 3-d linear interpolation for all fluid quantities
-
-                    // flow velocity u^x
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).u[1];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).u[1];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).u[1];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).u[1];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).u[1];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).u[1];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).u[1];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).u[1];
-                    double ux_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-
-                    // flow velocity u^y
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).u[2];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).u[2];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).u[2];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).u[2];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).u[2];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).u[2];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).u[2];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).u[2];
-                    double uy_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-
-                    // flow velocity u^eta
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).u[3];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).u[3];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).u[3];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).u[3];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).u[3];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).u[3];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).u[3];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).u[3];
-                    double ueta_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-                
-                    const double utau_center = sqrt(1. + ux_center*ux_center 
-                                   + uy_center*uy_center 
-                                   + ueta_center*ueta_center);
-
-                    // baryon density rho_b
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).rhob;
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).rhob;
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).rhob;
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).rhob;
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).rhob;
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).rhob;
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).rhob;
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).rhob;
-                    double rhob_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-
-                    // bulk viscous pressure pi_b
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).pi_b;
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).pi_b;
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).pi_b;
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).pi_b;
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).pi_b;
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).pi_b;
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).pi_b;
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).pi_b;
-                    double pi_b_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-               
-                    // baryon diffusion current q^\tau
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[10];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[10];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[10];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[10];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[10];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[10];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[10];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[10];
-                    double qtau_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-               
-                    // baryon diffusion current q^x
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[11];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[11];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[11];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[11];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[11];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[11];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[11];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[11];
-                    double qx_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-               
-                    // baryon diffusion current q^y
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[12];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[12];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[12];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[12];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[12];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[12];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[12];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[12];
-                    double qy_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-               
-                    // baryon diffusion current q^eta
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[13];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[13];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[13];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[13];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[13];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[13];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[13];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[13];
-                    double qeta_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
+                    fluid_cube[0][0][0] = arena_freezeout(ix      , iy      , 0);
+                    fluid_cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0);
+                    fluid_cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0);
+                    fluid_cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0);
+                    fluid_cube[1][0][0] = arena_current  (ix      , iy      , 0);
+                    fluid_cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0);
+                    fluid_cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0);
+                    fluid_cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0);
+                    auto fluid_center = three_dimension_linear_interpolation(
+                            lattice_spacing, x_fraction, fluid_cube);
 
                     // reconstruct q^\tau from the transverality criteria
-                    double u_flow[4] = {utau_center, ux_center, uy_center, ueta_center};
-                    double q_mu[4]   = {qtau_center, qx_center, qy_center, qeta_center};
+                    FlowVec u_flow = fluid_center.u;
+                    double q_mu[4] = {
+                        fluid_center.Wmunu[10], fluid_center.Wmunu[11],
+                        fluid_center.Wmunu[12], fluid_center.Wmunu[13]};
                     double q_regulated[4] = {0.0, 0.0, 0.0, 0.0};
                     regulate_qmu(u_flow, q_mu, q_regulated);
-                    qtau_center = q_regulated[0];
-                    qx_center = q_regulated[1];
-                    qy_center = q_regulated[2];
-                    qeta_center = q_regulated[3];
-
-                    // shear viscous tensor W^\tau\tau
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[0];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[0];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[0];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[0];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[0];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[0];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[0];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[0];
-                    double Wtautau_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-                  
-                    // shear viscous tensor W^{\tau x}
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[1];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[1];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[1];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[1];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[1];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[1];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[1];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[1];
-                    double Wtaux_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-
-                    // shear viscous tensor W^{\tau y}
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[2];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[2];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[2];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[2];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[2];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[2];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[2];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[2];
-                    double Wtauy_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-                  
-                    // shear viscous tensor W^{\tau \eta}
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[3];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[3];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[3];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[3];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[3];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[3];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[3];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[3];
-                    double Wtaueta_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-                  
-                    // shear viscous tensor W^{xx}
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[4];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[4];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[4];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[4];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[4];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[4];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[4];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[4];
-                    double Wxx_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-
-                    // shear viscous tensor W^{xy}
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[5];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[5];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[5];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[5];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[5];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[5];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[5];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[5];
-                    double Wxy_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-
-                    // shear viscous tensor W^{x \eta}
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[6];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[6];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[6];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[6];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[6];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[6];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[6];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[6];
-                    double Wxeta_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-                  
-                    // shear viscous tensor W^{yy}
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[7];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[7];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[7];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[7];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[7];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[7];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[7];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[7];
-                    double Wyy_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-                  
-                    // shear viscous tensor W^{yeta}
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[8];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[8];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[8];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[8];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[8];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[8];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[8];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[8];
-                    double Wyeta_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
-                  
-                    // shear viscous tensor W^{\eta\eta}
-                    cube[0][0][0] = arena_freezeout(ix      , iy      , 0).Wmunu[9];
-                    cube[0][0][1] = arena_freezeout(ix      , iy+fac_y, 0).Wmunu[9];
-                    cube[0][1][0] = arena_freezeout(ix+fac_x, iy      , 0).Wmunu[9];
-                    cube[0][1][1] = arena_freezeout(ix+fac_x, iy+fac_y, 0).Wmunu[9];
-                    cube[1][0][0] = arena_current  (ix      , iy      , 0).Wmunu[9];
-                    cube[1][0][1] = arena_current  (ix      , iy+fac_y, 0).Wmunu[9];
-                    cube[1][1][0] = arena_current  (ix+fac_x, iy      , 0).Wmunu[9];
-                    cube[1][1][1] = arena_current  (ix+fac_x, iy+fac_y, 0).Wmunu[9];
-                    double Wetaeta_center = (
-                        Util::three_dimension_linear_interpolation(
-                                        lattice_spacing, x_fraction, cube));
+                    fluid_center.Wmunu[10] = q_regulated[0];
+                    fluid_center.Wmunu[11] = q_regulated[1];
+                    fluid_center.Wmunu[12] = q_regulated[2];
+                    fluid_center.Wmunu[13] = q_regulated[3];
 
                     // regulate Wmunu according to transversality and traceless
                     double Wmunu_input[4][4];
                     double Wmunu_regulated[4][4];
-                    Wmunu_input[0][0] = Wtautau_center;
-                    Wmunu_input[0][1] = Wmunu_input[1][0] = Wtaux_center;
-                    Wmunu_input[0][2] = Wmunu_input[2][0] = Wtauy_center;
-                    Wmunu_input[0][3] = Wmunu_input[3][0] = Wtaueta_center;
-                    Wmunu_input[1][1] = Wxx_center;
-                    Wmunu_input[1][2] = Wmunu_input[2][1] = Wxy_center;
-                    Wmunu_input[1][3] = Wmunu_input[3][1] = Wxeta_center;
-                    Wmunu_input[2][2] = Wyy_center;
-                    Wmunu_input[2][3] = Wmunu_input[3][2] = Wyeta_center;
-                    Wmunu_input[3][3] = Wetaeta_center;
+                    Wmunu_input[0][0] = fluid_center.Wmunu[0];
+                    Wmunu_input[0][1] = Wmunu_input[1][0] = fluid_center.Wmunu[1];
+                    Wmunu_input[0][2] = Wmunu_input[2][0] = fluid_center.Wmunu[2];
+                    Wmunu_input[0][3] = Wmunu_input[3][0] = fluid_center.Wmunu[3];
+                    Wmunu_input[1][1] = fluid_center.Wmunu[4];
+                    Wmunu_input[1][2] = Wmunu_input[2][1] = fluid_center.Wmunu[5];
+                    Wmunu_input[1][3] = Wmunu_input[3][1] = fluid_center.Wmunu[6];
+                    Wmunu_input[2][2] = fluid_center.Wmunu[7];
+                    Wmunu_input[2][3] = Wmunu_input[3][2] = fluid_center.Wmunu[8];
+                    Wmunu_input[3][3] = fluid_center.Wmunu[9];
                     regulate_Wmunu(u_flow, Wmunu_input, Wmunu_regulated);
-                    Wtautau_center = Wmunu_regulated[0][0];
-                    Wtaux_center   = Wmunu_regulated[0][1];
-                    Wtauy_center   = Wmunu_regulated[0][2];
-                    Wtaueta_center = Wmunu_regulated[0][3];
-                    Wxx_center     = Wmunu_regulated[1][1];
-                    Wxy_center     = Wmunu_regulated[1][2];
-                    Wxeta_center   = Wmunu_regulated[1][3];
-                    Wyy_center     = Wmunu_regulated[2][2];
-                    Wyeta_center   = Wmunu_regulated[2][3];
-                    Wetaeta_center = Wmunu_regulated[3][3];
+                    fluid_center.Wmunu[0] = Wmunu_regulated[0][0];
+                    fluid_center.Wmunu[1] = Wmunu_regulated[0][1];
+                    fluid_center.Wmunu[2] = Wmunu_regulated[0][2];
+                    fluid_center.Wmunu[3] = Wmunu_regulated[0][3];
+                    fluid_center.Wmunu[4] = Wmunu_regulated[1][1];
+                    fluid_center.Wmunu[5] = Wmunu_regulated[1][2];
+                    fluid_center.Wmunu[6] = Wmunu_regulated[1][3];
+                    fluid_center.Wmunu[7] = Wmunu_regulated[2][2];
+                    fluid_center.Wmunu[8] = Wmunu_regulated[2][3];
+                    fluid_center.Wmunu[9] = Wmunu_regulated[3][3];
 
                     // 3-dimension interpolation done
-                    double TFO = eos.get_temperature(epsFO, rhob_center);
-                    double muB = eos.get_muB(epsFO, rhob_center);
-                    double muS_local = eos.get_muS(epsFO, rhob_center);
-                    double muC_local = eos.get_muC(epsFO, rhob_center);
+                    double TFO = eos.get_temperature(epsFO, fluid_center.rhob);
+                    double muB = eos.get_muB(epsFO, fluid_center.rhob);
+                    double muS = eos.get_muS(epsFO, fluid_center.rhob);
+                    double muC = eos.get_muC(epsFO, fluid_center.rhob);
                     if (TFO < 0) {
                         music_message << "TFO=" << TFO
                                       << "<0. ERROR. exiting.";
@@ -1669,73 +1169,56 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                         exit(1);
                     }
 
-                    double pressure = eos.get_pressure(epsFO, rhob_center);
+                    double pressure = eos.get_pressure(epsFO, fluid_center.rhob);
                     double eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                     // finally output results !!!!
                     if (surface_in_binary) {
-                        float array[] = {static_cast<float>(tau_center),
-                                         static_cast<float>(x_center),
-                                         static_cast<float>(y_center),
-                                         static_cast<float>(eta_center),
-                                         static_cast<float>(FULLSU[0]),
-                                         static_cast<float>(FULLSU[1]),
-                                         static_cast<float>(FULLSU[2]),
-                                         static_cast<float>(FULLSU[3]),
-                                         static_cast<float>(utau_center),
-                                         static_cast<float>(ux_center),
-                                         static_cast<float>(uy_center),
-                                         static_cast<float>(ueta_center),
-                                         static_cast<float>(epsFO),
-                                         static_cast<float>(TFO),
-                                         static_cast<float>(muB),
-                                         static_cast<float>(muS_local),
-                                         static_cast<float>(muC_local),
-                                         static_cast<float>(eps_plus_p_over_T_FO),
-                                         static_cast<float>(Wtautau_center),
-                                         static_cast<float>(Wtaux_center),
-                                         static_cast<float>(Wtauy_center),
-                                         static_cast<float>(Wtaueta_center),
-                                         static_cast<float>(Wxx_center),
-                                         static_cast<float>(Wxy_center),
-                                         static_cast<float>(Wxeta_center),
-                                         static_cast<float>(Wyy_center),
-                                         static_cast<float>(Wyeta_center),
-                                         static_cast<float>(Wetaeta_center),
-                                         static_cast<float>(pi_b_center),
-                                         static_cast<float>(rhob_center),
-                                         static_cast<float>(qtau_center),
-                                         static_cast<float>(qx_center),
-                                         static_cast<float>(qy_center),
-                                         static_cast<float>(qeta_center)};
-                        for (int i = 0; i < 34; i++) {
+                        float array[34];
+                        array[0] = static_cast<float>(tau_center);
+                        array[1] = static_cast<float>(x_center);
+                        array[2] = static_cast<float>(y_center);
+                        array[3] = static_cast<float>(eta_center);
+                        for (int ii = 0; ii < 4; ii++)
+                            array[4+ii] = static_cast<float>(FULLSU[ii]);
+                        for (int ii = 0; ii < 4; ii++)
+                            array[8+ii] = static_cast<float>(fluid_center.u[ii]);
+                        array[12] = static_cast<float>(epsFO);
+                        array[13] = static_cast<float>(TFO);
+                        array[14] = static_cast<float>(muB);
+                        array[15] = static_cast<float>(muS);
+                        array[16] = static_cast<float>(muC);
+                        array[17] = static_cast<float>(eps_plus_p_over_T_FO);
+                        for (int ii = 0; ii < 10; ii++)
+                            array[18+ii] = static_cast<float>(fluid_center.Wmunu[ii]);
+                        array[28] = fluid_center.pi_b;
+                        array[29] = fluid_center.rhob;
+                        for (int ii = 0; ii < 4; ii++)
+                            array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
+                        for (int i = 0; i < 34; i++)
                             s_file.write((char*) &(array[i]), sizeof(float));
-                        }
                     } else {
-                        s_file << std::scientific << std::setprecision(10) 
-                               << tau_center << " " << x_center << " " 
-                               << y_center << " " << eta_center << " " 
-                               << FULLSU[0] << " " << FULLSU[1] << " " 
-                               << FULLSU[2] << " " << FULLSU[3] << " " 
-                               << utau_center << " " << ux_center << " " 
-                               << uy_center << " " << ueta_center << " " 
-                               << epsFO << " " << TFO << " " << muB << " " 
-                               << muS_local << " " << muC_local << " "
-                               << eps_plus_p_over_T_FO << " " 
-                               << Wtautau_center << " " << Wtaux_center << " " 
-                               << Wtauy_center << " " << Wtaueta_center << " " 
-                               << Wxx_center << " " << Wxy_center << " " 
-                               << Wxeta_center << " " 
-                               << Wyy_center << " " << Wyeta_center << " " 
-                               << Wetaeta_center << " " ;
-                        if(DATA.turn_on_bulk)   // 29th column
-                            s_file << pi_b_center << " " ;
-                        if(DATA.turn_on_rhob)   // 30th column
-                            s_file << rhob_center << " " ;
-                        if(DATA.turn_on_diff)   // 31-34th column
-                            s_file << qtau_center << " " << qx_center << " " 
-                                   << qy_center << " " << qeta_center << " " ;
-                        s_file << std::endl;
+                        s_file << std::scientific << std::setprecision(10)
+                               << tau_center << " " << x_center << " "
+                               << y_center << " " << eta_center << " "
+                               << FULLSU[0] << " " << FULLSU[1] << " "
+                               << FULLSU[2] << " " << FULLSU[3] << " "
+                               << fluid_center.u[0] << " " << fluid_center.u[1] << " "
+                               << fluid_center.u[2] << " " << fluid_center.u[3] << " "
+                               << epsFO << " " << TFO << " " << muB << " "
+                               << muS << " " << muC << " "
+                               << eps_plus_p_over_T_FO << " ";
+                        for (int ii = 0; ii < 10; ii++)
+                            s_file << std::scientific << std::setprecision(10)
+                                   << fluid_center.Wmunu[ii] << " ";
+                        if (DATA.turn_on_bulk)
+                            s_file << fluid_center.pi_b << " ";
+                        if (DATA.turn_on_rhob)
+                            s_file << fluid_center.rhob << " ";
+                        if (DATA.turn_on_diff)
+                            for (int ii = 10; ii < 14; ii++)
+                                s_file << std::scientific << std::setprecision(10)
+                                       << fluid_center.Wmunu[ii] << " ";
                     }
                 }
             }
@@ -1745,18 +1228,22 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
 
         // clean up
         for (int i = 0; i < 2; i++) {
-            for (int j = 0; j < 2; j++)
+            for (int j = 0; j < 2; j++) {
                 delete [] cube[i][j];
+                delete [] fluid_cube[i][j];
+            }
             delete [] cube[i];
+            delete [] fluid_cube[i];
         }
         delete [] cube;
+        delete [] fluid_cube;
 
         // judge whether the entire fireball is freeze-out
         all_frozen[i_freezesurf] = 0;
         if (intersections == 0)
             all_frozen[i_freezesurf] = 1;
     }
-   
+
     int all_frozen_flag = 1;
     for (int ii = 0; ii < n_freeze_surf; ii++) {
         all_frozen_flag *= all_frozen[ii];
@@ -1769,7 +1256,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
     return(all_frozen_flag);
 }
 
-void Evolve::regulate_qmu(const double u[], const double q[],
+void Evolve::regulate_qmu(const FlowVec u, const double q[],
                           double q_regulated[]) const {
     double u_dot_q = - u[0]*q[0] + u[1]*q[1] + u[2]*q[2] + u[3]*q[3];
     for (int i = 0; i < 4; i++) {
@@ -1777,7 +1264,7 @@ void Evolve::regulate_qmu(const double u[], const double q[],
     }
 }
 
-void Evolve::regulate_Wmunu(const double u[], const double Wmunu[4][4],
+void Evolve::regulate_Wmunu(const FlowVec u, const double Wmunu[4][4],
                             double Wmunu_regulated[4][4]) const {
     const double gmunu[4][4] = {{-1, 0, 0, 0},
                                 { 0, 1, 0, 0},
@@ -1826,7 +1313,7 @@ void Evolve::initialize_freezeout_surface_info() {
         double freeze_max_ed = DATA.eps_freeze_max;
         double freeze_min_ed = DATA.eps_freeze_min;
         double d_epsFO = ((freeze_max_ed - freeze_min_ed)
-                          /(n_freeze_surf - 1 + 1e-15));
+                          /(n_freeze_surf - 1 + Util::small_eps));
         for (int isurf = 0; isurf < n_freeze_surf; isurf++) {
             double temp_epsFO = freeze_min_ed + isurf*d_epsFO;
             epsFO_list.push_back(temp_epsFO);
@@ -1852,9 +1339,9 @@ void Evolve::initialize_freezeout_surface_info() {
         while(1) {
             freeze_list_file >> temp_epsFO >> dummyd >> dummyd 
                              >> dummyd >> dummyd >> dummyd >> dummyd;  
-            if (!freeze_list_file.eof()) {    
-                epsFO_list.push_back(temp_epsFO);    
-                temp_n_surf++;   
+            if (!freeze_list_file.eof()) {
+                epsFO_list.push_back(temp_epsFO);
+                temp_n_surf++;
             } else {
                 break;
             }
@@ -1870,4 +1357,92 @@ void Evolve::initialize_freezeout_surface_info() {
         music_message.flush("error");
         exit(1);
     }
+}
+
+
+Cell_small Evolve::three_dimension_linear_interpolation(
+        double* lattice_spacing, double fraction[2][3], Cell_small*** cube) {
+    double denorm = 1.0;
+    for (int i = 0; i < 3; i++) {
+        denorm *= lattice_spacing[i];
+    }
+
+    Cell_small results;
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 2; k++) {
+                results = results + (cube[i][j][k]*fraction[i][0]
+                                     *fraction[j][1]*fraction[k][2]);
+            }
+        }
+    }
+    results = results*(1./denorm);
+    return(results);
+}
+
+
+Cell_small Evolve::four_dimension_linear_interpolation(
+        double* lattice_spacing, double fraction[2][4], Cell_small**** cube) {
+    double denorm = 1.0;
+    Cell_small results;
+    for (int i = 0; i < 4; i++) {
+        denorm *= lattice_spacing[i];
+    }
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (int l = 0; l < 2; l++) {
+                    results = results + (
+                        cube[i][j][k][l]*fraction[i][0]*fraction[j][1]
+                        *fraction[k][2]*fraction[l][3]);
+                }
+            }
+        }
+    }
+    results = results*(1./denorm);
+    return (results);
+}
+
+
+Cell_aux Evolve::three_dimension_linear_interpolation(
+        double* lattice_spacing, double fraction[2][3], Cell_aux*** cube) {
+    double denorm = 1.0;
+    for (int i = 0; i < 3; i++) {
+        denorm *= lattice_spacing[i];
+    }
+
+    Cell_aux results;
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 2; k++) {
+                results = results + (cube[i][j][k]*fraction[i][0]
+                                     *fraction[j][1]*fraction[k][2]);
+            }
+        }
+    }
+    results = results*(1./denorm);
+    return(results);
+}
+
+
+Cell_aux Evolve::four_dimension_linear_interpolation(
+        double* lattice_spacing, double fraction[2][4], Cell_aux**** cube) {
+    double denorm = 1.0;
+    Cell_aux results;
+    for (int i = 0; i < 4; i++) {
+        denorm *= lattice_spacing[i];
+    }
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 2; k++) {
+                for (int l = 0; l < 2; l++) {
+                    results = results + (
+                        cube[i][j][k][l]*fraction[i][0]*fraction[j][1]
+                        *fraction[k][2]*fraction[l][3]);
+                }
+            }
+        }
+    }
+    results = results*(1./denorm);
+    return (results);
 }

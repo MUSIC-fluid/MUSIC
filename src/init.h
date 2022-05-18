@@ -53,7 +53,7 @@ class Init {
     void initial_1p1D_eta                (SCGrid &arena_prev, SCGrid &arena_current);
     void initial_IPGlasma_XY             (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_IPGlasma_XY_with_pi     (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_MCGlbLEXUS_with_rhob_XY (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
+    void initial_with_zero_XY            (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_AMPT_XY                 (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
     void initial_MCGlb_with_rhob         (SCGrid &arena_prev, SCGrid &arena_current);
     void initial_UMN_with_rhob           (SCGrid &arena_prev, SCGrid & arena_current);
@@ -71,12 +71,17 @@ class Init {
         std::vector<double> Bulk_pi_in);
     void clean_up_jetscape_arrays();
 
-    double eta_profile_normalisation       (double eta);
-    double eta_rhob_profile_normalisation  (double eta);
-    double eta_profile_left_factor         (double eta);
-    double eta_profile_right_factor        (double eta);
-    double eta_rhob_left_factor            (double eta);
-    double eta_rhob_right_factor           (double eta);
+    double eta_profile_plateau(const double eta, const double eta_0,
+                               const double sigma_eta) const;
+    double energy_eta_profile_normalisation(
+        const double y_CM, const double eta_0, const double sigma_eta) const;
+    double Pz_eta_profile_normalisation(
+        const double eta_0, const double sigma_eta) const;
+    double eta_rhob_profile_normalisation  (const double eta) const;
+    double eta_profile_left_factor         (const double eta) const;
+    double eta_profile_right_factor        (const double eta) const;
+    double eta_rhob_left_factor            (const double eta) const;
+    double eta_rhob_right_factor           (const double eta) const;
     void   output_initial_density_profiles (SCGrid &arena);
 };
 
