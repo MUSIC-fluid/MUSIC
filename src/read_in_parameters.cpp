@@ -1049,6 +1049,15 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
+    if (parameter_list.initial_eta_profile > 2
+            || parameter_list.initial_eta_profile < 0) {
+        music_message << "Initial eta profile"
+                      << parameter_list.initial_eta_profile
+                      << "not defined";
+        music_message.flush("error");
+        exit(1);
+    }
+
     if (parameter_list.initializeEntropy > 1
             || parameter_list.initializeEntropy < 0) {
         music_message.error("Must initialize with entropy or energy");
