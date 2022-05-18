@@ -1219,6 +1219,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                             for (int ii = 10; ii < 14; ii++)
                                 s_file << std::scientific << std::setprecision(10)
                                        << fluid_center.Wmunu[ii] << " ";
+                        s_file << std::endl;
                     }
                 }
             }
