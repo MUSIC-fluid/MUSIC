@@ -214,7 +214,7 @@ double Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
     // -- coupling to bulk viscous pressure
     // transport coefficients not yet known -- fixed to zero
     double transport_coefficient_b  = (
-            transport_coeffs_.get_lambda_piPi_coeff()*tau_pi);
+            transport_coeffs_.get_lambda_pibulkPi_coeff()*tau_pi);
     double transport_coefficient2_b = 0.;
 
 
@@ -654,12 +654,12 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
 
     // from kinetic theory, small mass limit
     transport_coeff1   = (
-            transport_coeffs_.get_delta_PiPi_coeff()*Bulk_Relax_time);
+            transport_coeffs_.get_delta_bulkPibulkPi_coeff()*Bulk_Relax_time);
     transport_coeff2   = (
-            transport_coeffs_.get_tau_PiPi_coeff()*Bulk_Relax_time);
+            transport_coeffs_.get_tau_bulkPibulkPi_coeff()*Bulk_Relax_time);
 
     // from kinetic theory
-    transport_coeff1_s = (transport_coeffs_.get_lambda_Pipi_coeff()
+    transport_coeff1_s = (transport_coeffs_.get_lambda_bulkPipi_coeff()
                           *(1./3. - cs2)*Bulk_Relax_time);
     transport_coeff2_s = 0.;  // not known;  put 0
 

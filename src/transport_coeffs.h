@@ -49,12 +49,12 @@ class TransportCoeffs {
     double get_tau_pipi_coeff() const { return(10./7.); }
     double get_delta_pipi_coeff() const { return(4./3.); }
     double get_phi7_coeff() const { return(9./70.); }
-    double get_lambda_piPi_coeff() const { return(6./5.); }
+    double get_lambda_pibulkPi_coeff() const { return(6./5.); }
 
     // bulk
-    double get_lambda_Pipi_coeff() const { return(8./5.); }
-    double get_delta_PiPi_coeff() const { return(2./3.); }
-    double get_tau_PiPi_coeff() const { return(0.); }  // unknown
+    double get_lambda_bulkPipi_coeff() const { return(8./5.); }
+    double get_delta_bulkPibulkPi_coeff() const { return(2./3.); }
+    double get_tau_bulkPibulkPi_coeff() const { return(0.); }  // unknown
 
 
     // net baryon diffusion
