@@ -29,7 +29,6 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty") istringstream(tempinput) >> tempInitial_profile;
     parameter_list.Initial_profile = tempInitial_profile;
 
-    // Initial_profile:
     int temp_string_dump_mode = 1;
     tempinput = Util::StringFind4(input_file, "string_dump_mode");
     if (tempinput != "empty")
@@ -955,6 +954,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
                    double value) {
     if (parameter_name == "MUSIC_mode")
         parameter_list.mode = static_cast<int>(value);
+
+    if (parameter_name == "Initial_profile")
+	parameter_list.Initial_profile = static_cast<int>(value);
 
     if (parameter_name == "Initial_time_tau_0")
         parameter_list.tau0 = value;
