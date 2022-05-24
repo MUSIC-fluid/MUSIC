@@ -956,7 +956,7 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
         parameter_list.mode = static_cast<int>(value);
 
     if (parameter_name == "Initial_profile")
-	parameter_list.Initial_profile = static_cast<int>(value);
+        parameter_list.Initial_profile = static_cast<int>(value);
 
     if (parameter_name == "Initial_time_tau_0")
         parameter_list.tau0 = value;
