@@ -66,7 +66,7 @@ void EOS_BEST::initialize_eos() {
                             + eos_file_string_array[itable] + ".dat");
         std::ifstream eos_cs2(path + "BEST_eos_cs2_"
                             + eos_file_string_array[itable] + ".dat");
-        std::ifstream eos_CorrLen(path + "BEST_eos_CorrLen_"
+        std::ifstream eos_CorrLen(path + "BEST_eos_corrLength_"
                             + eos_file_string_array[itable] + ".dat");
         if (!eos_p) {
             music_message << "Can not found the EoS file! filename: "
