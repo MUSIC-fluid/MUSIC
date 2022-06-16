@@ -102,7 +102,7 @@ else ()
 endif()
 
 configure_file(
-  ${CMAKE_SOURCE_DIR}/src/version.h.in
+  src/version.h.in
   ${CMAKE_BINARY_DIR}/generated/version.h
 )
 
