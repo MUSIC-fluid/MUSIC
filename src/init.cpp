@@ -970,12 +970,13 @@ void Init::initial_with_jetscape(int ieta, SCGrid &arena_prev,
                                  SCGrid &arena_current) {
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();
+    const int neta = arena_current.nEta();
 
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
             const double rhob = 0.0;
             double epsilon = 0.0;
-            const int idx = iy + ix*ny + ieta*ny*nx;
+            const int idx = (ny*neta)*ix + neta*iy + ieta;
             epsilon = (jetscape_initial_energy_density[idx]
                        *DATA.sFactor/hbarc);  // 1/fm^4
             epsilon = std::max(Util::small_eps, epsilon);
