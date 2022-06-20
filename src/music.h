@@ -58,6 +58,9 @@ class MUSIC {
     //! this is a shell function to run hydro
     int run_hydro();
 
+    //! this is a shell function to output dynamical initial eccentricities only
+    int output_dynamical_eccentricity();
+
     //! this is a shell function to run Cooper-Frye
     int run_Cooper_Frye();
 

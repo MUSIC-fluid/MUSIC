@@ -288,6 +288,188 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     return 1;
 }
 
+// Output the initial eccentricities for dynamical initialization 
+int Evolve::Output_eccentricity(SCGrid &arena_prev, SCGrid &arena_current,
+                                SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr) {
+    // first pass some control parameters
+    facTau                      = DATA.facTau;
+    int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
+    int freezeout_flag          = DATA.doFreezeOut;
+    int freezeout_lowtemp_flag  = DATA.doFreezeOut_lowtemp;
+
+    // Output information about the hydro parameters 
+    // in the format of a C header file
+    //if (DATA.output_hydro_params_header || DATA.outputEvolutionData == 1)
+    //    grid_info.Output_hydro_information_header();
+
+    if (DATA.store_hydro_info_in_memory == 1) {
+        hydro_info_ptr.set_grid_infomatioin(DATA);
+    }
+
+    // main loop starts ...
+    int    itmax = DATA.nt_ecc;
+    double tau0  = DATA.tau0;
+    double dt    = DATA.delta_tau;
+
+    double tau;
+    int iFreezeStart = 0;
+    double source_tau_max = 0.0;
+    if (hydro_source_terms_ptr) {
+        source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
+        if (freezeout_lowtemp_flag == 1) {
+            double freezeOutTauStart = (
+                    hydro_source_terms_ptr->get_source_tauStart_max());
+            freezeOutTauStart = std::min(DATA.freezeOutTauStartMax,
+                                         freezeOutTauStart);
+            iFreezeStart = static_cast<int>((freezeOutTauStart - tau0)/dt) + 2;
+        }
+    }
+
+    music_message << "Output eccentricities starts at " << tau0 + iFreezeStart*dt
+                  << " fm/c.";
+    music_message.flush("info");
+
+    const auto closer = [](SCGrid* g) { /*Don't delete memory we don't own*/ };
+    GridPointer ap_prev   (&arena_prev, closer);
+    GridPointer ap_current(&arena_current, closer);
+    GridPointer ap_future (&arena_future, closer);
+
+    SCGrid arena_freezeout_prev(arena_current.nX(),
+                                arena_current.nY(),
+                                arena_current.nEta());
+    SCGrid arena_freezeout(arena_current.nX(),
+                           arena_current.nY(),
+                           arena_current.nEta());
+
+    int it = 0;
+    double eps_max_cur = -1.;
+    const double max_allowed_e_increase_factor = 2.;
+    for (it = 0; it <= itmax; it++) {
+        tau = tau0 + dt*it;
+        if (hydro_source_terms_ptr) {
+            hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
+        }
+        // store initial conditions
+        if (it == iFreezeStart) {
+            store_previous_step_for_freezeout(*ap_prev, arena_freezeout_prev);
+            store_previous_step_for_freezeout(*ap_current, arena_freezeout);
+        }
+
+        if (DATA.Initial_profile == 0) {
+            if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
+                || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
+                || fabs(tau - 3.0) < 1e-8) {
+                grid_info.Gubser_flow_check_file(*ap_current, tau);
+            }
+        } else if (DATA.Initial_profile == 1) {
+            if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
+                || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8
+                || fabs(tau - 20.0) < 1e-8) {
+                grid_info.output_1p1D_check_file(*ap_current, tau);
+            }
+        }
+
+        if (it % Nskip_timestep == 0) {
+            if (DATA.outputEvolutionData == 1) {
+                grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
+            } else if (DATA.outputEvolutionData == 2) {
+                grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
+            } else if (DATA.outputEvolutionData == 3) {
+                grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
+            } else if (DATA.outputEvolutionData == 4) {
+                grid_info.OutputEvolutionDataXYEta_vorticity(
+                                            *ap_current, *ap_prev, tau);
+            }
+
+            if (DATA.output_movie_flag == 1) {
+                grid_info.output_evolution_for_movie(*ap_current, tau);
+            }
+
+            if (DATA.store_hydro_info_in_memory == 1) {
+                grid_info.OutputEvolutionDataXYEta_memory(*ap_current, tau,
+                                                          hydro_info_ptr);
+            }
+
+            if (DATA.output_outofequilibriumsize == 1) {
+                grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*ap_current,
+                                                                  tau);
+            }
+        }
+
+        if (it == iFreezeStart || it == iFreezeStart + 5
+            || it == iFreezeStart + 10 || it == iFreezeStart + 15
+            || it == iFreezeStart + 20) {
+            grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
+        }
+        // check energy conservation
+        if (!DATA.boost_invariant) {
+            grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
+            if (DATA.output_vorticity) {
+                if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
+                    || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
+                    grid_info.output_vorticity_distribution(
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+                }
+                grid_info.compute_angular_momentum(
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+                grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+                grid_info.compute_angular_momentum(
+                                    *ap_current, *ap_prev, tau, -1.0, 1.0);
+                grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau, -1.0, 1.0);
+                grid_info.compute_angular_momentum(
+                                    *ap_current, *ap_prev, tau,
+                                    -DATA.eta_size/2., DATA.eta_size/2.);
+                grid_info.output_vorticity_time_evolution(
+                                    *ap_current, *ap_prev, tau,
+                                    -DATA.eta_size/2., DATA.eta_size/2.);
+            }
+        }
+
+        double emax_loc = 0.;
+        double Tmax_curr = 0.;
+        double nB_max_curr = 0.;
+        grid_info.get_maximum_energy_density(*ap_current, emax_loc,
+                                             nB_max_curr, Tmax_curr);
+        if (tau > source_tau_max && it > 0) {
+            if (eps_max_cur < 0.) {
+                eps_max_cur = emax_loc;
+            } else {
+                if (emax_loc > max_allowed_e_increase_factor*eps_max_cur) {
+                    music_message << "The maximum energy density increased by "
+                                  << "more than facotor of "
+                                  << max_allowed_e_increase_factor << "! ";
+                    music_message << "This should not happen!";
+                    music_message.flush("error");
+                    exit(1);
+                } else {
+                    eps_max_cur = std::min(emax_loc, eps_max_cur);
+                }
+            }
+        }
+
+        if (DATA.output_hydro_debug_info == 1) {
+            grid_info.monitor_a_fluid_cell(*ap_current, *ap_prev,
+                                           100, 100, 0, tau);
+        }
+
+
+        /* execute rk steps */
+        // all the evolution are at here !!!
+        AdvanceRK(tau, ap_prev, ap_current, ap_future);
+
+        music_message << emoji::clock()
+                      << " Done time step " << it << "/" << itmax
+                      << " tau = " << tau << " fm/c";
+        music_message.flush("info");
+    }
+    music_message << "Output eccentricities finished";
+    music_message.flush("info");
+    return 1;
+}
+
+
 void Evolve::store_previous_step_for_freezeout(SCGrid &arena_current,
                                                SCGrid &arena_freezeout) {
     const int nx   = arena_current.nX();

@@ -27,6 +27,11 @@ int main(int argc, char *argv[]) {
         music_hydro.run_hydro();
     }
 
+    if (running_mode == 9) {
+        music_hydro.initialize_hydro();
+        music_hydro.output_dynamical_eccentricity();
+    }
+
     if (running_mode == 1 || running_mode == 3 || running_mode == 4
             || running_mode == 13 || running_mode == 14) {
         music_hydro.run_Cooper_Frye();

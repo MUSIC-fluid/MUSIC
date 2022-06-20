@@ -105,6 +105,18 @@ int MUSIC::run_hydro() {
     return(0);
 }
 
+//! this is a shell function to output dynamical initial eccentricities only
+int MUSIC::output_dynamical_eccentricity() {
+    Evolve evolve_local(eos, DATA, hydro_source_terms_ptr);
+
+    if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
+        hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
+    }
+    evolve_local.Output_eccentricity(arena_prev, arena_current, arena_future,
+                                     (*hydro_info_ptr));
+    flag_hydro_run = 1;
+    return(0);
+}
 
 //! this is a shell function to run Cooper-Frye
 int MUSIC::run_Cooper_Frye() {

@@ -67,12 +67,14 @@ typedef struct init_data {
     int ny;
     int neta;
     int nt;
+    int nt_ecc;
 
     double x_size;      //!< in fermi -x_size/2 < x < x_size/2
     double y_size;      //!< in fermi, -y_size/2 < y < y_size/2
     double eta_size;    //!< -eta_size/2 < eta < eta_size/2
     double tau_size;    //!< tau_0 < tau < tau0+tau_size
     double tau0;
+    double tau_size_ecc; //!< tau_0 < tau < tau0+tau_size_ecc
 
     double delta_x;
     double delta_y;

@@ -338,6 +338,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temptau_size;
     parameter_list.tau_size = temptau_size;
 
+    // Output eccentricities for dynamical initial condition.
+    double temptau_ecc_size = 1.;
+    tempinput = Util::StringFind4(input_file, "ecc_time_tau");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temptau_ecc_size;
+    parameter_list.tau_size_ecc = temptau_ecc_size;
+
     // Initial_time_tau_0:  in fm
     double temptau0 = 0.4;
     tempinput = Util::StringFind4(input_file, "Initial_time_tau_0");
@@ -405,6 +412,12 @@ InitData read_in_parameters(std::string input_file) {
     music_message.flush("info");
     music_message << "read_in_parameters: Number of time steps required = "
                   << parameter_list.nt;
+    music_message.flush("info");
+
+    parameter_list.nt_ecc = static_cast<int>(
+            parameter_list.tau_size_ecc/(parameter_list.delta_tau) + 0.5);
+    music_message << "read_in_parameters: Number of time steps for eccentricities = "
+                  << parameter_list.nt_ecc;
     music_message.flush("info");
 
     double temp_eta_0 = 3.0;
