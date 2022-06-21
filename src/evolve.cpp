@@ -396,9 +396,7 @@ int Evolve::Output_eccentricity(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
-        if (it == iFreezeStart || it == iFreezeStart + 5
-            || it == iFreezeStart + 10 || it == iFreezeStart + 15
-            || it == iFreezeStart + 20) {
+        if ( fabs(tau -  0.6) < 1e-6 || fabs(tau -  0.55) < 1e-6 || fabs(tau -  0.65) < 1e-6) {
             grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
         }
         // check energy conservation
