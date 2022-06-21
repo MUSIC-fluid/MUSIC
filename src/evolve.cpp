@@ -466,6 +466,7 @@ int Evolve::Output_eccentricity(SCGrid &arena_prev, SCGrid &arena_current,
     }
     music_message << "Output eccentricities finished";
     music_message.flush("info");
+    music_message.info("Finished.");
     return 1;
 }
 
