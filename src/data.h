@@ -143,6 +143,12 @@ typedef struct init_data {
     double bulk_3_T_peak_in_GeV;
     double bulk_3_lambda_asymm;
 
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==10"
+    double bulk_10_max;
+    double bulk_10_width_high;    // GeV
+    double bulk_10_width_low;     // GeV
+    double bulk_10_Tpeak;         // GeV
+
     //! multiplicative factors for the relaxation times
     double shear_relax_time_factor;
     double bulk_relax_time_factor;

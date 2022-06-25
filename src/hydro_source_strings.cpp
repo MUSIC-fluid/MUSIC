@@ -200,7 +200,9 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     }
     music_message << "total baryon number = " << total_baryon_number;
     music_message.flush("info");
-    compute_norm_for_strings(total_energy);
+    music_message << "total energy = " << total_energy << " GeV";
+    music_message.flush("info");
+    compute_norm_for_strings();
 
     double xMax = 0.;
     double yMax = 0.;
@@ -214,12 +216,15 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     }
 
     // adjust transverse grid size
-    double gridOffset = std::max(3., 5.*DATA.stringSourceSigmaX);
+    double energyAddRadius = sqrt(total_energy/total_baryon_number/2760.);
+    double npartAddRadius = total_baryon_number/500.;
+    double gridOffset = std::max(2.5 + energyAddRadius + npartAddRadius,
+                                 5.*DATA.stringSourceSigmaX);
     DATA.x_size = 2.*(xMax + gridOffset);
     DATA.y_size = 2.*(yMax + gridOffset);
     DATA.delta_x = DATA.x_size/(DATA.nx - 1);
     DATA.delta_y = DATA.y_size/(DATA.ny - 1);
-    music_message << "[HydroSourceTATB] Grid info: x_size = "
+    music_message << "[HydroSource] Grid info: x_size = "
                   << DATA.x_size << ", y_size = " << DATA.y_size
                   << ", dx = " << DATA.delta_x << " fm, dy = "
                   << DATA.delta_y << " fm.";
@@ -227,7 +232,7 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
 }
 
 
-void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
+void HydroSourceStrings::compute_norm_for_strings() {
     const int neta = 500;
     const double eta_range = 12.;
     const double deta = 2.*eta_range/(neta - 1);

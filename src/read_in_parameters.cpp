@@ -687,7 +687,7 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.bulk_2_peak_in_GeV = tempBulkViscosityPeak;
 
     // "T_dependent_Bulk_to_S_ratio==3",
-    double tempzeta_over_s_max= 0.1;
+    double tempzeta_over_s_max = 0.1;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_max");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> tempzeta_over_s_max;
@@ -699,17 +699,42 @@ InitData read_in_parameters(std::string input_file) {
         istringstream ( tempinput ) >> tempzeta_over_s_width_in_GeV;
     parameter_list.bulk_3_width_in_GeV = tempzeta_over_s_width_in_GeV;
 
-    double tempzeta_over_s_T_peak_in_GeV= 0.18;
+    double tempzeta_over_s_T_peak_in_GeV = 0.18;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_T_peak_in_GeV");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> tempzeta_over_s_T_peak_in_GeV;
     parameter_list.bulk_3_T_peak_in_GeV = tempzeta_over_s_T_peak_in_GeV;
 
-    double tempzeta_over_s_lambda_asymm= 0.;
+    double tempzeta_over_s_lambda_asymm = 0.;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_lambda_asymm");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> tempzeta_over_s_lambda_asymm;
     parameter_list.bulk_3_lambda_asymm = tempzeta_over_s_lambda_asymm;
+
+    // "T_dependent_Bulk_to_S_ratio==10",
+    tempzeta_over_s_max = 0.05;
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_max");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_max;
+    parameter_list.bulk_10_max = tempzeta_over_s_max;
+
+    double tempzeta_over_s_width_high = 0.100;   // GeV
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_width_high");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_width_high;
+    parameter_list.bulk_10_width_high = tempzeta_over_s_width_high;
+
+    double tempzeta_over_s_width_low = 0.015;   // GeV
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_width_low");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_width_low;
+    parameter_list.bulk_10_width_low = tempzeta_over_s_width_low;
+
+    double tempzeta_over_s_T_peak= 0.170;       // GeV
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_T_peak");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_T_peak;
+    parameter_list.bulk_10_Tpeak = tempzeta_over_s_T_peak;
 
     // Include secord order terms
     int tempturn_on_second_order = 0;

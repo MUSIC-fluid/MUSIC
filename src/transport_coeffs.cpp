@@ -146,10 +146,10 @@ double TransportCoeffs::get_zeta_over_s(const double T) const {
                             T, peak_norm, B_width1, B_width2, Tpeak);
     } else if (DATA.T_dependent_bulk_to_s == 10) {
         // param. for 3D-Glauber + MUSIC + UrQMD
-        const double peak_norm = 0.05;
-        const double B_width1 = 0.015;      // GeV
-        const double B_width2 = 0.100;      // GeV
-        const double Tpeak = 0.170;         // GeV
+        const double peak_norm = DATA.bulk_10_max;
+        const double B_width1 = DATA.bulk_10_width_low;      // GeV
+        const double B_width2 = DATA.bulk_10_width_high;     // GeV
+        const double Tpeak = DATA.bulk_10_Tpeak;             // GeV
         zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
                             T, peak_norm, B_width1, B_width2, Tpeak);
     }
