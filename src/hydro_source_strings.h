@@ -69,7 +69,7 @@ class HydroSourceStrings : public HydroSourceBase {
                                  const FlowVec &u_mu) const ;
 
     void prepare_list_for_current_tau_frame(const double tau_local);
-    void compute_norm_for_strings(const double total_energy);
+    void compute_norm_for_strings();
     double getStringTransverseCoord(const double xl, const double xr,
                                     const double etaFrac) const;
 };
