@@ -153,8 +153,11 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
         }
 
-        if (it == iFreezeStart || it == iFreezeStart + 10
+        /*if (it == iFreezeStart || it == iFreezeStart + 10
             || it == iFreezeStart + 30 || it == iFreezeStart + 50) {
+            grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
+        }*/
+        if ( fabs(tau -  0.6) < 1e-6 || fabs(tau -  0.55) < 1e-6 || fabs(tau -  0.65) < 1e-6) {
             grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
         }
         grid_info.output_momentum_anisotropy_vs_tau(
