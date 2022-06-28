@@ -218,16 +218,20 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     // adjust transverse grid size
     double energyAddRadius = sqrt(total_energy/total_baryon_number/2760.);
     double npartAddRadius = total_baryon_number/500.;
-    double gridOffset = std::max(2.5 + energyAddRadius + npartAddRadius,
+    double gridOffset = std::max(3.0 + energyAddRadius + npartAddRadius,
                                  5.*DATA.stringSourceSigmaX);
     DATA.x_size = 2.*(xMax + gridOffset);
     DATA.y_size = 2.*(yMax + gridOffset);
     DATA.delta_x = DATA.x_size/(DATA.nx - 1);
     DATA.delta_y = DATA.y_size/(DATA.ny - 1);
+    // make sure delta_tau is not too large for delta_x and delta_y
+    DATA.delta_tau = std::min(DATA.delta_tau,
+                              std::min(DATA.delta_x/10.0, DATA.delta_y/10.0));
+    DATA.nt = static_cast<int>(DATA.tau_size/DATA.delta_tau + 0.5);
     music_message << "[HydroSource] Grid info: x_size = "
                   << DATA.x_size << ", y_size = " << DATA.y_size
                   << ", dx = " << DATA.delta_x << " fm, dy = "
-                  << DATA.delta_y << " fm.";
+                  << DATA.delta_y << " fm, dtau = " << DATA.delta_tau << " fm";
     music_message.flush("info");
 }
 
