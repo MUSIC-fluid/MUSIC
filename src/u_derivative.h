@@ -65,6 +65,11 @@ class U_derivative {
     int MakeDTau(const double tau, const Cell_small *grid_pt_prev,
                  const Cell_small *grid_pt);
 
+    //! this function computes the thermal shear tensor
+    void calculate_thermal_shear_tensor(
+            const double tau, SCGrid &arena, const int ieta,
+            const int ix, const int iy, VelocityShearVec &sigma_th);
+
     //! This is a shell function to compute all 4 kinds of vorticity tensors
     void compute_vorticity_shell(
         const double tau, SCGrid &arena_prev, SCGrid &arena_curr,
