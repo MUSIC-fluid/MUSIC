@@ -567,6 +567,24 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempmuB_dependent_shear_to_s;
     parameter_list.muB_dependent_shear_to_s = tempmuB_dependent_shear_to_s;
 
+    double temp_shear_muBDep_alpha = 1.;
+    tempinput = Util::StringFind4(input_file, "shear_muBDep_alpha");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_shear_muBDep_alpha;
+    parameter_list.shear_muBDep_alpha = temp_shear_muBDep_alpha;
+
+    double temp_shear_muBDep_slope = 1.;
+    tempinput = Util::StringFind4(input_file, "shear_muBDep_slope");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_shear_muBDep_slope;
+    parameter_list.shear_muBDep_slope = temp_shear_muBDep_slope;
+
+    double temp_shear_muBDep_scale = 0.6;    // GeV
+    tempinput = Util::StringFind4(input_file, "shear_muBDep_scale");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_shear_muBDep_scale;
+    parameter_list.shear_muBDep_scale = temp_shear_muBDep_scale;
+
     //Shear_to_S_ratio:  constant eta/s
     double tempshear_to_s = 0.08;
     tempinput = Util::StringFind4(input_file, "Shear_to_S_ratio");

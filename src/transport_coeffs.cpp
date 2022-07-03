@@ -56,9 +56,9 @@ double TransportCoeffs::get_temperature_dependence_shear_profile(
 double TransportCoeffs::get_muB_dependence_shear_profile(
                                                 const double muB_in_fm) const {
     const double muB_in_GeV = muB_in_fm*hbarc;
-    const double alpha = 0.8;
-    const double muB_slope = 0.9;
-    const double muB_scale = 0.6;
+    const double alpha = DATA.shear_muBDep_alpha;
+    const double muB_slope = DATA.shear_muBDep_slope;
+    const double muB_scale = DATA.shear_muBDep_scale;
     double f_muB = 1. + muB_slope*pow(muB_in_GeV/muB_scale, alpha);
     return(f_muB);
 }
