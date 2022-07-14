@@ -369,7 +369,6 @@ int Diss::Make_uWRHS(const double tau, SCGrid &arena,
                      const int ix, const int iy, const int ieta,
                      const int mu, const int nu, double &w_rhs,
                      const double theta_local, const DumuVec &a_local) {
-    const InitData *const DATAaligned = assume_aligned(&DATA);
     auto& grid_pt = arena(ix, iy, ieta);
 
     w_rhs = 0.;
@@ -468,10 +467,10 @@ int Diss::Make_uWRHS(const double tau, SCGrid &arena,
 
     double tempf = (
           //   - (((init_data*)(&mydata))->gmunu[3][mu])*(Wmunu_local[0][nu]) //TODO: Ask Bjorn about this
-         - (DATAaligned->gmunu[3][mu])*(Wmunu_local[0][nu])
-         - (DATAaligned->gmunu[3][nu])*(Wmunu_local[0][mu])
-         + (DATAaligned->gmunu[0][mu])*(Wmunu_local[3][nu])
-         + (DATAaligned->gmunu[0][nu])*(Wmunu_local[3][mu])
+         - (DATA.gmunu[3][mu])*(Wmunu_local[0][nu])
+         - (DATA.gmunu[3][nu])*(Wmunu_local[0][mu])
+         + (DATA.gmunu[0][mu])*(Wmunu_local[3][nu])
+         + (DATA.gmunu[0][nu])*(Wmunu_local[3][mu])
          + (Wmunu_local[3][nu])*(grid_pt.u[mu])*(grid_pt.u[0])
          + (Wmunu_local[3][mu])*(grid_pt.u[nu])*(grid_pt.u[0])
          - (Wmunu_local[0][nu])*(grid_pt.u[mu])*(grid_pt.u[3])
@@ -485,9 +484,9 @@ int Diss::Make_uWRHS(const double tau, SCGrid &arena,
             + (Wmunu_local[ic][mu])*(grid_pt.u[nu])*(a_local[ic])*ic_fac);
     }
 
-    w_rhs += (tempf*(DATAaligned->delta_tau)
+    w_rhs += (tempf*(DATA.delta_tau)
               + (- (grid_pt.u[0]*Wmunu_local[mu][nu])/tau
-                 + (theta_local*Wmunu_local[mu][nu]))*(DATAaligned->delta_tau));
+                 + (theta_local*Wmunu_local[mu][nu]))*(DATA.delta_tau));
     return(1);
 }
 
