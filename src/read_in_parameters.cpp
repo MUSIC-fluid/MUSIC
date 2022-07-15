@@ -143,6 +143,13 @@ InitData read_in_parameters(std::string input_file) {
         parameter_list.N_freeze_out = temp_N_freeze_out;
     }
 
+    //! Maximum starting time for freeze-out surface
+    double tempFreezeOutTauStartMax = 2.;
+    tempinput = Util::StringFind4(input_file, "freeze_out_tau_start_max");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempFreezeOutTauStartMax;
+    parameter_list.freezeOutTauStartMax = tempFreezeOutTauStartMax;
+
     string temp_freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
     tempinput = Util::StringFind4(input_file, "freeze_list_filename");
     if (tempinput != "empty")

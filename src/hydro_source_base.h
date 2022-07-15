@@ -8,9 +8,13 @@
 
 class HydroSourceBase {
  private:
-    double source_tau_max;
-    double source_tau_min;
-    double sigma_tau, sigma_x, sigma_y, sigma_eta;
+    double source_tau_max = 0;
+    double source_tau_min = 0;;
+    double source_tauStart_max = 0.;
+    double sigma_tau = 0.1;
+    double sigma_x = 0.1;
+    double sigma_y = 0.1;
+    double sigma_eta = 0.1;
 
  public:
     pretty_ostream music_message;
@@ -32,10 +36,12 @@ class HydroSourceBase {
     //! Set the minimum and maximum tau for the source term
     void set_source_tau_min(double tau_in) {source_tau_min = tau_in;}
     void set_source_tau_max(double tau_in) {source_tau_max = tau_in;}
+    void set_source_tauStart_max(double tau_in) {source_tauStart_max = tau_in;}
 
     //! Get the minimum and maximum tau for the source term
     double get_source_tau_min() const {return(source_tau_min);}
     double get_source_tau_max() const {return(source_tau_max);}
+    double get_source_tauStart_max() const {return(source_tauStart_max);
 
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)

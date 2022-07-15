@@ -455,7 +455,6 @@ void U_derivative::calculate_velocity_shear_tensor(
     sigma[9] = sigma_local[3][3];
 }
 
-
 //! this function returns the vector D^\mu(\mu_B/T)
 void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
     for (int mu = 0; mu < 4; mu++)

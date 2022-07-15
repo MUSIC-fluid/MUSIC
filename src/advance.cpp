@@ -123,7 +123,7 @@ void Advance::FirstRKStepT(
             if (isnan(qi_source[ii])) {
                 music_message << "qi_source is nan. i = " << ii;
                 music_message.flush("error");
-                exit(1);
+                exit(EXIT_FAILURE);
             }
         }
         if (DATA.turn_on_rhob == 1) {

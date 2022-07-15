@@ -3,7 +3,6 @@
 #ifndef SRC_GRID_INFO_H_
 #define SRC_GRID_INFO_H_
 
-
 #include <iostream>
 #include <iomanip>
 #include <string>

@@ -68,7 +68,7 @@ Grid_size_in_y 192            # number of the grid points in y direction
 Grid_size_in_x 192            # number of the grid points in x direction
 #
 #
-EOS_to_use 10                 # type of the equation of state
+EOS_to_use 14                 # type of the equation of state
                               # 0: ideal gas
                               # 1: EOS-Q from azhydro
                               # 2: lattice EOS s95p-v1 
