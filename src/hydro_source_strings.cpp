@@ -122,7 +122,7 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         if (DATA.Initial_profile == 131) {
             new_string->tau_0 = 0.;
             new_string->eta_s_0 = 0.;
-            new_string->tau_form = 0.5;
+            //new_string->tau_form = 0.5;
         }
         new_string->sigma_x = get_sigma_x();
         new_string->sigma_eta = get_sigma_eta();
