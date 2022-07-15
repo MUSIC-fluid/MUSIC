@@ -631,30 +631,31 @@ InitData read_in_parameters(std::string input_file) {
 
     // If "T_dependent_Shear_to_S_ratio==3", 
     double temp_eta_over_s_T_kink_in_GeV = .16;
-    tempinput = Util::StringFind4(input_file,
-                                  "shear_viscosity_3_T_kink_in_GeV");
+    tempinput = Util::StringFind4(
+            input_file, "shear_viscosity_3_eta_over_s_T_kink_in_GeV");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> temp_eta_over_s_T_kink_in_GeV;
     parameter_list.shear_3_T_kink_in_GeV = temp_eta_over_s_T_kink_in_GeV;
 
     double temp_eta_over_s_low_T_slope_in_GeV = 0.0;
-    tempinput = Util::StringFind4(input_file,
-                                  "shear_viscosity_3_low_T_slope_in_GeV");
+    tempinput = Util::StringFind4(
+            input_file, "shear_viscosity_3_eta_over_s_low_T_slope_in_GeV");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> temp_eta_over_s_low_T_slope_in_GeV;
     parameter_list.shear_3_low_T_slope_in_GeV = (
                                         temp_eta_over_s_low_T_slope_in_GeV);
 
     double temp_eta_over_s_high_T_slope_in_GeV = 0.0;
-    tempinput = Util::StringFind4(input_file,
-                                  "shear_viscosity_3_high_T_slope_in_GeV");
+    tempinput = Util::StringFind4(
+            input_file, "shear_viscosity_3_eta_over_s_high_T_slope_in_GeV");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> temp_eta_over_s_high_T_slope_in_GeV;
     parameter_list.shear_3_high_T_slope_in_GeV = (
                                     temp_eta_over_s_high_T_slope_in_GeV);
 
     double temp_eta_over_s_at_kink = 0.08;
-    tempinput = Util::StringFind4(input_file, "shear_viscosity_3_at_kink");
+    tempinput = Util::StringFind4(
+            input_file, "shear_viscosity_3_eta_over_s_at_kink");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> temp_eta_over_s_at_kink;
     parameter_list.shear_3_at_kink = temp_eta_over_s_at_kink;
@@ -716,25 +717,29 @@ InitData read_in_parameters(std::string input_file) {
 
     // "T_dependent_Bulk_to_S_ratio==3",
     double tempzeta_over_s_max = 0.1;
-    tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_max");
+    tempinput = Util::StringFind4(
+            input_file, "bulk_viscosity_3_zeta_over_s_max");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> tempzeta_over_s_max;
     parameter_list.bulk_3_max = tempzeta_over_s_max;
 
     double tempzeta_over_s_width_in_GeV= 0.05;
-    tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_width_in_GeV");
+    tempinput = Util::StringFind4(
+            input_file, "bulk_viscosity_3_zeta_over_s_width_in_GeV");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> tempzeta_over_s_width_in_GeV;
     parameter_list.bulk_3_width_in_GeV = tempzeta_over_s_width_in_GeV;
 
     double tempzeta_over_s_T_peak_in_GeV = 0.18;
-    tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_T_peak_in_GeV");
+    tempinput = Util::StringFind4(
+            input_file, "bulk_viscosity_3_zeta_over_s_T_peak_in_GeV");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> tempzeta_over_s_T_peak_in_GeV;
     parameter_list.bulk_3_T_peak_in_GeV = tempzeta_over_s_T_peak_in_GeV;
 
     double tempzeta_over_s_lambda_asymm = 0.;
-    tempinput = Util::StringFind4(input_file, "bulk_viscosity_3_lambda_asymm");
+    tempinput = Util::StringFind4(
+            input_file, "bulk_viscosity_3_zeta_over_s_lambda_asymm");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> tempzeta_over_s_lambda_asymm;
     parameter_list.bulk_3_lambda_asymm = tempzeta_over_s_lambda_asymm;
