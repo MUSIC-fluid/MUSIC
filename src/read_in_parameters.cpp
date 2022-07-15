@@ -135,7 +135,7 @@ InitData read_in_parameters(std::string input_file) {
             istringstream(tempinput) >> tempepsilonFreeze;
         }
         parameter_list.epsilonFreeze = tempepsilonFreeze;
-        tempinput = Util::StringFind4(input_file, "epsilon_switch");
+        tempinput = Util::StringFind4(input_file, "eps_switch");
         if (tempinput != "empty") {
             istringstream(tempinput) >> tempepsilonFreeze;
         }
