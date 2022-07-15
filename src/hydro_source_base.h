@@ -41,7 +41,7 @@ class HydroSourceBase {
     //! Get the minimum and maximum tau for the source term
     double get_source_tau_min() const {return(source_tau_min);}
     double get_source_tau_max() const {return(source_tau_max);}
-    double get_source_tauStart_max() const {return(source_tauStart_max);
+    double get_source_tauStart_max() const {return(source_tauStart_max);}
 
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
