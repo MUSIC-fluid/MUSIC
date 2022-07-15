@@ -129,8 +129,13 @@ InitData read_in_parameters(std::string input_file) {
     } else if (parameter_list.useEpsFO == 1) {
         // epsilon_freeze: freeze-out energy density in GeV/fm^3
         // only used with use_eps_for_freeze_out = 1
-        double tempepsilonFreeze = 0.12;
+        double tempepsilonFreeze = 0.18;
         tempinput = Util::StringFind4(input_file, "epsilon_freeze");
+        if (tempinput != "empty") {
+            istringstream(tempinput) >> tempepsilonFreeze;
+        }
+        parameter_list.epsilonFreeze = tempepsilonFreeze;
+        tempinput = Util::StringFind4(input_file, "epsilon_switch");
         if (tempinput != "empty") {
             istringstream(tempinput) >> tempepsilonFreeze;
         }
@@ -156,17 +161,22 @@ InitData read_in_parameters(std::string input_file) {
         temp_freeze_list_filename.assign(tempinput);
     parameter_list.freeze_list_filename.assign(temp_freeze_list_filename);
 
-    double temp_eps_freeze_max = 0.18;
-    tempinput = Util::StringFind4(input_file, "eps_freeze_max");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_eps_freeze_max;
-    parameter_list.eps_freeze_max = temp_eps_freeze_max;
+    if (parameter_list.N_freeze_out > 1) {
+        double temp_eps_freeze_max = 0.18;
+        tempinput = Util::StringFind4(input_file, "eps_freeze_max");
+        if (tempinput != "empty")
+            istringstream(tempinput) >> temp_eps_freeze_max;
+        parameter_list.eps_freeze_max = temp_eps_freeze_max;
 
-    double temp_eps_freeze_min = 0.18;
-    tempinput = Util::StringFind4(input_file, "eps_freeze_min");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_eps_freeze_min;
-    parameter_list.eps_freeze_min = temp_eps_freeze_min;
+        double temp_eps_freeze_min = 0.18;
+        tempinput = Util::StringFind4(input_file, "eps_freeze_min");
+        if (tempinput != "empty")
+            istringstream(tempinput) >> temp_eps_freeze_min;
+        parameter_list.eps_freeze_min = temp_eps_freeze_min;
+    } else {
+        parameter_list.eps_freeze_min = parameter_list.epsilonFreeze;
+        parameter_list.eps_freeze_max = parameter_list.epsilonFreeze;
+    }
 
     int temp_freeze_eps_flag = 0;
     tempinput = Util::StringFind4(input_file, "freeze_eps_flag");

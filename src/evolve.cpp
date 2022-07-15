@@ -325,7 +325,8 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau,
     const int neta = arena_current.nEta();
     const int fac_eta = 1;
     int intersections = 0;
-    for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
+    for (unsigned int i_freezesurf = 0; i_freezesurf < epsFO_list.size();
+            i_freezesurf++) {
         const double epsFO = epsFO_list[i_freezesurf]/hbarc;   // 1/fm^4
 
         #pragma omp parallel for reduction(+:intersections)
@@ -719,7 +720,8 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau,
     const int neta = arena_current.nEta();
     const int fac_eta = 1;
 
-    for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
+    for (unsigned int i_freezesurf = 0; i_freezesurf < epsFO_list.size();
+            i_freezesurf++) {
         double epsFO = epsFO_list[i_freezesurf]/hbarc;
         if (!DATA.boost_invariant) {
             #pragma omp parallel for
@@ -972,6 +974,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
     const bool surface_in_binary = DATA.freeze_surface_in_binary;
 
     // find boost-invariant hyper-surfaces
+    int n_freeze_surf = epsFO_list.size();
     int *all_frozen = new int[n_freeze_surf];
     for (int i_freezesurf = 0; i_freezesurf < n_freeze_surf; i_freezesurf++) {
         double epsFO = epsFO_list[i_freezesurf]/hbarc;
@@ -1300,19 +1303,16 @@ void Evolve::regulate_Wmunu(const FlowVec u, const double Wmunu[4][4],
 void Evolve::initialize_freezeout_surface_info() {
     if (DATA.useEpsFO == 0) {
         const double e_freeze = eos.get_T2e(DATA.TFO, 0.0)*Util::hbarc;
-        n_freeze_surf = 1;
-        for (int isurf = 0; isurf < n_freeze_surf; isurf++) {
-            epsFO_list.push_back(e_freeze);
-            music_message << "Freeze out at a constant temperature T = " 
-                          << DATA.TFO << " GeV, e_fo = "
-                          << e_freeze << " GeV/fm^3";
-            music_message.flush("info");
-        }
+        epsFO_list.push_back(e_freeze);
+        music_message << "Freeze out at a constant temperature T = "
+                      << DATA.TFO << " GeV, e_fo = "
+                      << e_freeze << " GeV/fm^3";
+        music_message.flush("info");
     }
     const int freeze_eps_flag = DATA.freeze_eps_flag;
     if (freeze_eps_flag == 0) {
         // constant spacing the energy density
-        n_freeze_surf = DATA.N_freeze_out;
+        int n_freeze_surf = DATA.N_freeze_out;
         double freeze_max_ed = DATA.eps_freeze_max;
         double freeze_min_ed = DATA.eps_freeze_min;
         double d_epsFO = ((freeze_max_ed - freeze_min_ed)
@@ -1350,8 +1350,7 @@ void Evolve::initialize_freezeout_surface_info() {
             }
         }
         freeze_list_file.close();
-        n_freeze_surf = temp_n_surf;
-        music_message << "totally " << n_freeze_surf 
+        music_message << "totally " << temp_n_surf
                       << " freeze-out surface will be generated ...";
         music_message.flush("info");
     } else {
