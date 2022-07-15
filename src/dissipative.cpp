@@ -948,6 +948,7 @@ double Diss::Make_uqRHS(const double tau, SCGrid &arena,
     return(sum*(DATA.delta_tau));
 }
 
+
 //! this function outputs the T and muB dependence of the baryon diffusion
 //! coefficient, kappa
 void Diss::output_kappa_T_and_muB_dependence() {
