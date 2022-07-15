@@ -9,24 +9,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-#Version number
-add_custom_target(
-    version_target ALL #Always runs
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/__version.h
-)
-
-set(tag_def "\\#define TAG ")
-set(url_def "\\#define URL ")
-set(branch_def "\\#define BRANCH ")
-add_custom_command(
-    OUTPUT
-        ${CMAKE_CURRENT_BINARY_DIR}/__version.h # fake! ensure we run!
-    COMMAND echo ${tag_def} \\\"`git describe --tag`\\\" > ${PROJECT_SOURCE_DIR}/src/version.h
-    COMMAND echo ${url_def} \\\"`git remote get-url origin`\\\" >> ${PROJECT_SOURCE_DIR}/src/version.h
-    COMMAND echo ${branch_def} \\\"`git rev-parse --abbrev-ref HEAD`\\\" >> ${PROJECT_SOURCE_DIR}/src/version.h
-)
-
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_HOME_DIRECTORY}")
 
 set(CMAKE_INSTALL_RPATH ${CMAKE_HOME_DIRECTORY})
@@ -103,4 +85,34 @@ string(APPEND CMAKE_CXX_FLAGS " -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-g -O3")
 
+find_package(Git)
+if(Git_FOUND)
+    # Get the current working branch
+    execute_process(
+        COMMAND git rev-parse --abbrev-ref HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_BRANCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    # Get the latest abbreviated commit hash of the working branch
+    execute_process(
+        COMMAND git log -1 --format=%H
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    add_definitions(-DGIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
+    add_definitions(-DGIT_BRANCH="${GIT_BRANCH}")
+else ()
+    add_definitions(-DGIT_COMMIT_HASH="unknown")
+    add_definitions(-DGIT_BRANCH="unknown")
+endif()
+
+configure_file(
+  src/version.h.in
+  ${CMAKE_BINARY_DIR}/generated/version.h
+)
+
+include_directories(${CMAKE_BINARY_DIR}/generated)
 add_subdirectory (src)

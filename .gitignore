@@ -13,6 +13,8 @@ MUSIChydro
 perf.data*
 a.out
 build/
+MUSIChydro
+*.dylib
 *.so
 music_input*
 src/version.h

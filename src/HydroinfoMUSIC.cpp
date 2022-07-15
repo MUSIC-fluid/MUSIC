@@ -43,16 +43,16 @@ void HydroinfoMUSIC::getHydroValues(
     }
 
     int ieta = static_cast<int>((hydro_eta_max + eta)/hydroDeta + 0.0001);
-    if (boost_invariant == 1) {
+    if (boost_invariant) {
         ieta = 0;
     }
 
     const int itau = static_cast<int>((tau - hydroTau0)/hydroDtau + 0.0001);
     const int ix   = static_cast<int>((hydroXmax + x)/hydroDx + 0.0001);
-    const int iy   = static_cast<int>((hydroXmax + y)/hydroDx + 0.0001);
+    const int iy   = static_cast<int>((hydroYmax + y)/hydroDy + 0.0001);
 
     double xfrac = (x - (static_cast<double>(ix)*hydroDx - hydroXmax))/hydroDx;
-    double yfrac = (y - (static_cast<double>(iy)*hydroDx - hydroXmax))/hydroDx;
+    double yfrac = (y - (static_cast<double>(iy)*hydroDy - hydroYmax))/hydroDy;
     double etafrac = (eta/hydroDeta - static_cast<double>(ieta)
                       + 0.5*static_cast<double>(ietamax));
     double taufrac = (tau - hydroTau0)/hydroDtau - static_cast<double>(itau);
@@ -61,10 +61,13 @@ void HydroinfoMUSIC::getHydroValues(
         music_message << "[HydroinfoMUSIC::getHydroValues]: "
                       << "WARNING - x out of range x=" << x
                       << ", ix=" << ix << ", ixmax=" << ixmax;
+        music_message.flush("warning");
         music_message << "x=" << x << " y=" << y << " eta=" << eta
                       << " ix=" << ix << " iy=" << iy << " ieta=" << ieta;
+        music_message.flush("warning");
         music_message << "t=" << t << " tau=" << tau
                       << " itau=" << itau << " itaumax=" << itaumax;
+        music_message.flush("warning");
         music_message.flush("warning");
 
         info->temperature = 0.0;
@@ -77,14 +80,16 @@ void HydroinfoMUSIC::getHydroValues(
         return;
     }
 
-    if (iy < 0 || iy >= ixmax) {
+    if (iy < 0 || iy >= iymax) {
         music_message << "[HydroinfoMUSIC::getHydroValues]: "
                       << "WARNING - y out of range, y=" << y << ", iy="  << iy
-                      << ", iymax=" << ixmax;
+                      << ", iymax=" << iymax;
         music_message << "x=" << x << " y=" << y << " eta=" << eta
                       << " ix=" << ix << " iy=" << iy << " ieta=" << ieta;
+        music_message.flush("warning");
         music_message << "t=" << t << " tau=" << tau
                       << " itau=" << itau << " itaumax=" << itaumax;
+        music_message.flush("warning");
         music_message.flush("warning");
 
         info->temperature = 0.0;
@@ -100,7 +105,9 @@ void HydroinfoMUSIC::getHydroValues(
         music_message << "[HydroinfoMUSIC::getHydroValues]: WARNING - "
                       << "tau out of range, itau=" << itau
                       << ", itaumax=" << itaumax;
+        music_message.flush("warning");
         music_message << "[HydroinfoMUSIC::getHydroValues]: tau= " << tau
+                      << ", hydroTau0 = " << hydroTau0
                       << ", hydroTauMax = " << hydroTauMax
                       << ", hydroDtau = " << hydroDtau;
         music_message.flush("warning");
@@ -140,7 +147,7 @@ void HydroinfoMUSIC::getHydroValues(
         }
         for (int ipy = 0; ipy < 2; ipy++) {
             int py;
-            if (ipy == 0 || iy == ixmax-1) {
+            if (ipy == 0 || iy == iymax-1) {
                 py = iy;
             } else {
                 py = iy + 1;
@@ -160,7 +167,7 @@ void HydroinfoMUSIC::getHydroValues(
                         ptau = itau + 1;
                     }
                     position[ipx][ipy][ipeta][iptau] = (
-                                px + ixmax*(py + ixmax*(peta + ietamax*ptau)));
+                                px + ixmax*(py + iymax*(peta + ietamax*ptau)));
                 }
             }
         }
@@ -325,15 +332,28 @@ void HydroinfoMUSIC::get_fluid_cell_with_index(const int idx,
 void HydroinfoMUSIC::set_grid_infomatioin(const InitData &DATA) {
     use_tau_eta_coordinate = 1;
     boost_invariant = DATA.boost_invariant;
+
     hydroTau0 = DATA.tau0;
     hydroDtau = DATA.delta_tau*DATA.output_evolution_every_N_timesteps;
     hydroXmax = DATA.x_size/2.;
+    hydroYmax = DATA.y_size/2.;
     ixmax = (static_cast<int>((DATA.nx + 1)
                               /DATA.output_evolution_every_N_x) + 1);
+    iymax = (static_cast<int>((DATA.ny + 1)
+                              /DATA.output_evolution_every_N_y) + 1);
     hydro_eta_max = DATA.eta_size/2.;
     ietamax = static_cast<int>(DATA.neta/DATA.output_evolution_every_N_eta);
     hydroDx = DATA.delta_x*DATA.output_evolution_every_N_x;
+    hydroDy = DATA.delta_y*DATA.output_evolution_every_N_y;
     hydroDeta = DATA.delta_eta*DATA.output_evolution_every_N_eta;
+
+    hydroXmax     = DATA.x_size/2.;
+    hydro_eta_max = DATA.eta_size/2.;
+
+    ixmax   = (static_cast<int>((DATA.nx - 1)
+                                /DATA.output_evolution_every_N_x) + 1);
+    ietamax = (static_cast<int>((DATA.neta - 1)
+                                /DATA.output_evolution_every_N_eta) + 1);
 }
 
 void HydroinfoMUSIC::print_grid_information() {
@@ -344,6 +364,7 @@ void HydroinfoMUSIC::print_grid_information() {
     music_message << "itaumax = " << itaumax;
     music_message << "hydro_Xmax = " << hydroXmax << " fm";
     music_message << "hydro_dx = " << hydroDx << " fm";
+    music_message << "hydro_dy = " << hydroDy << " fm";
     music_message << "ixmax = " << ixmax;
     music_message << "hydro_eta_max = " << hydro_eta_max;
     music_message << "hydro_deta = " << hydroDeta;

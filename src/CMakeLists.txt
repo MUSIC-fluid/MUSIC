@@ -30,6 +30,7 @@ set (SOURCES
     emoji.cpp
     music_logo.cpp
     HydroinfoMUSIC.cpp
+    transport_coeffs.cpp
     )
 if (GSL_FOUND)
     set(SOURCES ${SOURCES}
