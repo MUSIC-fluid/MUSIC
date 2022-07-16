@@ -18,6 +18,8 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 find_package(ROOT 6)
 if (ROOT_FOUND)
     message("Found ROOT. Will enable ROOT integration.")
+    message("ROOT Include directory: " ${ROOT_INCLUDE_DIRS})
+    include_directories(${ROOT_INCLUDE_DIRS})
     set(CMAKE_CXX_STANDARD 17) # ROOT requires c++17
     add_definitions( -DROOT_FOUND )
 endif()
