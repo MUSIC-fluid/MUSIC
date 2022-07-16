@@ -204,7 +204,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         double nB_max_curr = 0.;
         grid_info.get_maximum_energy_density(*ap_current, emax_loc,
                                              nB_max_curr, Tmax_curr);
-        if (tau > source_tau_max && it > 0) {
+        if (tau > source_tau_max + dt && it > iFreezeStart) {
             if (eps_max_cur < 0.) {
                 eps_max_cur = emax_loc;
             } else {
