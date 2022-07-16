@@ -101,7 +101,7 @@ double TransportCoeffs::get_temperature_dependent_eta_over_s_sims(
     double high_T_slope = DATA.shear_3_high_T_slope_in_GeV;
     double eta_over_s_at_kink = DATA.shear_3_at_kink;
 
-    const double eta_over_s_min = 1e-6;
+    const double eta_over_s_min = 1e-3;
     double eta_over_s;
     if (T_in_GeV < T_kink_in_GeV) {
         eta_over_s = (eta_over_s_at_kink
