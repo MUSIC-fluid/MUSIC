@@ -68,7 +68,10 @@ class Cell_info {
          *homega_th_xy, *homega_th_xz, *homega_th_yz;
     TH3F *homega_T_tx, *homega_T_ty, *homega_T_tz,
          *homega_T_xy, *homega_T_xz, *homega_T_yz;
-    TH3F* histo_array[33];
+    TH3F *hshear_tt, *hshear_tx, *hshear_ty, *hshear_tz,
+         *hshear_xx, *hshear_xy, *hshear_xz,
+         *hshear_yy, *hshear_yz, *hshear_zz;
+    TH3F* histo_array[43];
     #endif
     
  public:

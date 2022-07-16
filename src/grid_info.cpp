@@ -2586,6 +2586,47 @@ void Cell_info::initialize_root_output_file(SCGrid &arena_curr){
         ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
         neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
 
+    hshear_tt         = new TH3F("hshear_tt","Component tt of thermal shear vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hshear_tx         = new TH3F("hshear_tx","Component tx of thermal shear vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hshear_ty         = new TH3F("hshear_ty","Component ty of thermal shear vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hshear_tz         = new TH3F("hshear_tz","Component tz of thermal shear vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hshear_xx         = new TH3F("hshear_xx","Component xx of thermal shear vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hshear_xy         = new TH3F("hshear_xy","Component xy of thermal shear vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hshear_xz         = new TH3F("hshear_xz","Component xz of thermal shear vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hshear_yy         = new TH3F("hshear_yy","Component yy of thermal shear vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hshear_yz         = new TH3F("hshear_yz","Component yz of thermal shear vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+    hshear_zz         = new TH3F("hshear_zz","Component zz of thermal shear vorticity",
+        nx,   -DATA.x_size/2.0 - DATA.delta_x/2,   DATA.delta_x*(nx-.5)     - DATA.x_size/2.0,
+        ny,   -DATA.y_size/2.0 - DATA.delta_y/2,   DATA.delta_y*(ny-.5)     - DATA.y_size/2.0,
+        neta, -DATA.eta_size/2.0  - DATA.delta_eta/2, DATA.delta_eta*(neta-.5) - DATA.eta_size/2.0);
+
     //Organize histograms in an array
     histo_array[0] = hEnergy; histo_array[1] = hPressure; 
     histo_array[2] = hTemperature;
@@ -2605,8 +2646,12 @@ void Cell_info::initialize_root_output_file(SCGrid &arena_curr){
     histo_array[29] = homega_T_xz; histo_array[30] = homega_T_yz;
     histo_array[31] = hcs2;
     histo_array[32] = hBulkPressure;
+    histo_array[33] = hshear_tt; histo_array[34] = hshear_tx;
+    histo_array[35] = hshear_ty; histo_array[36] = hshear_tz;
+    histo_array[37] = hshear_xx; histo_array[38] = hshear_xy;
+    histo_array[39] = hshear_xz; histo_array[40] = hshear_yy;
+    histo_array[40] = hshear_yz; histo_array[42] = hshear_zz;
 
-    
     for (int hi=0; hi<33; ++hi){
         histo_array[hi]->SetDirectory(0);
         histo_array[hi]->GetXaxis()->SetTitle("x (fm)");
@@ -2651,6 +2696,16 @@ void Cell_info::initialize_root_output_file(SCGrid &arena_curr){
     TFullEvo->Branch("homega_T_xy",&homega_T_xy);
     TFullEvo->Branch("homega_T_xz",&homega_T_xz);
     TFullEvo->Branch("homega_T_yz",&homega_T_yz);
+    TFullEvo->Branch("hshear_tt",&hshear_tt);
+    TFullEvo->Branch("hshear_tx",&hshear_tx);
+    TFullEvo->Branch("hshear_ty",&hshear_ty);
+    TFullEvo->Branch("hshear_tz",&hshear_tz);
+    TFullEvo->Branch("hshear_xx",&hshear_xx);
+    TFullEvo->Branch("hshear_xy",&hshear_xy);
+    TFullEvo->Branch("hshear_xz",&hshear_xz);
+    TFullEvo->Branch("hshear_yy",&hshear_yy);
+    TFullEvo->Branch("hshear_yz",&hshear_yz);
+    TFullEvo->Branch("hshear_zz",&hshear_zz);
     #endif
 }
 
@@ -2737,6 +2792,10 @@ double Cell_info::OutputEvolutionDataXYEta_vorticity_root(
                     // the minus sign is from metric
                     // output quantities for g = (1, -1, -1 , -1)
                     histo_array[25+i]->SetBinContent(ix+1,iy+1,ieta+1,-omega_T[i]*hbarc*hbarc);  //GeV^2
+                for (int i = 0; i < 10; i++)
+                    // the minus sign is from metric
+                    // output quantities for g = (1, -1, -1 , -1)
+                    histo_array[33+i]->SetBinContent(ix+1,iy+1,ieta+1,-sigma_munu[i]);
             }
         }
     }
@@ -2751,6 +2810,6 @@ void Cell_info::finish_root_output_file(){
     evolution_all_xyeta->Write();
     evolution_all_xyeta->Close();
 
-    for(int hi=0; hi<32; ++hi) histo_array[hi]->Delete();
+    for(int hi=0; hi<43; ++hi) histo_array[hi]->Delete();
     #endif
 }
