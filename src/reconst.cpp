@@ -410,7 +410,7 @@ void Reconst::reconst_velocity_fdf(const double v, const double T00,
 
     const double pressure = eos.get_pressure(epsilon, rho);
     const double temp1    = T00 + pressure;
-    const double temp2    = v/temp;
+    const double temp2    = v/std::max(1e-16, temp);
     const double dPde     = eos.get_dpde(epsilon, rho);
     const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
 
