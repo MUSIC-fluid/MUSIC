@@ -49,7 +49,8 @@ double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
     int idx_e = static_cast<int>((local_ed - e0)/delta_e);
 
     // treatment for overflow, use the last two points to do extrapolation
-    idx_e  = std::min(N_e - 2, idx_e);
+    idx_e = std::max(0, idx_e);
+    idx_e = std::min(N_e - 2, idx_e);
 
     double result = 0.;
     if (local_ed < e0) {
@@ -155,14 +156,15 @@ double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob) const {
 
 
 double EOS_base::get_dpOverde3(double e, double rhob) const {
-   double eLeft = 0.9*e;
-   double eRight = 1.1*e;
+    double de = std::max(0.01, 0.1*e);
+    double eLeft = std::max(1e-16, e - de);
+    double eRight = e + de;
 
-   double pL = get_pressure(eLeft, rhob);   // 1/fm^4
-   double pR = get_pressure(eRight, rhob);  // 1/fm^4
+    double pL = get_pressure(eLeft, rhob);   // 1/fm^4
+    double pR = get_pressure(eRight, rhob);  // 1/fm^4
 
-   double dpde = (pR - pL)/(eRight - eLeft);
-   return dpde;
+    double dpde = (pR - pL)/(eRight - eLeft);
+    return dpde;
 }
 
 

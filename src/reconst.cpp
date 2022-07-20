@@ -58,7 +58,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     double M   = sqrt(K00);
     double T00 = q[0];
     double J0  = q[4];
-    
+
     if ((T00 < abs_err)) {
         // T^{0\mu} is too small, directly set it to
         // e = abs_err, u^\mu = (1, 0, 0, 0)
@@ -76,7 +76,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     }
 
     double u[4], epsilon, pressure, rhob;
-    
+
     double v_guess = sqrt(1. - 1./(grid_pt.u[0]*grid_pt.u[0] + abs_err));
     if (v_guess != v_guess) {
         v_guess = 0.0;
@@ -322,7 +322,7 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
     double u0_h = 1e5;
     if (u0_guess >= 1.0) {
         u0_l = std::max(u0_l, 0.5*u0_guess);
-        u0_h = std::min(u0_h, 1.5*u0_guess);
+        u0_h = 1.5*u0_guess;
     }
     double fu0_l, fu0_h;
     double dfdu0_l, dfdu0_h;
@@ -410,7 +410,7 @@ void Reconst::reconst_velocity_fdf(const double v, const double T00,
 
     const double pressure = eos.get_pressure(epsilon, rho);
     const double temp1    = T00 + pressure;
-    const double temp2    = v/temp;
+    const double temp2    = v/std::max(1e-16, temp);
     const double dPde     = eos.get_dpde(epsilon, rho);
     const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
 
