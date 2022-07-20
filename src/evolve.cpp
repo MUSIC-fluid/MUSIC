@@ -91,7 +91,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     int it = 0;
     double eps_max_cur = -1.;
-    const double max_allowed_e_increase_factor = 2.;
+    const double max_allowed_e_increase_factor = 5.;
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
