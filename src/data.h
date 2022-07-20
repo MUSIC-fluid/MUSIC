@@ -20,6 +20,9 @@ typedef struct init_data {
 
     int echo_level;
 
+    bool reRunHydro;
+    int reRunCount;
+
     int mode;               //!< 1: do everything;
                             //!< 2: do hydro evolution only;
                             //!< 3: do calculation of thermal spectra only;

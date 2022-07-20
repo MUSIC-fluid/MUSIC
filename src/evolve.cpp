@@ -24,7 +24,7 @@
 
 using Util::hbarc;
 
-Evolve::Evolve(const EOS &eosIn, const InitData &DATA_in,
+Evolve::Evolve(const EOS &eosIn, InitData &DATA_in,
                std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
     eos(eosIn), DATA(DATA_in),
     grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in) {
@@ -247,6 +247,9 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                 store_previous_step_for_freezeout(*ap_current,
                                                   arena_freezeout);
             }
+            if (DATA.reRunHydro) {
+                return(-1);
+            }
         }
 
         /* execute rk steps */
@@ -335,6 +338,9 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau,
             intersections += FindFreezeOutSurface_Cornelius_XY(
                 tau, ieta, arena_prev, arena_current,
                 arena_freezeout_prev, arena_freezeout, thread_id, epsFO);
+        }
+        if (DATA.reRunHydro) {
+            return(0);
         }
     }
 
@@ -434,13 +440,14 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                                                 intersect=0;
 
             if (intersect==0) continue;
-                
+
             if (ix == 0 || ix >= nx - 2*fac_x
                     || iy == 0 || iy >= ny - 2*fac_y) {
                 music_message << "Freeze-out cell at the boundary! "
                               << "The grid is too small!";
                 music_message.flush("error");
-                exit(1);
+                DATA.reRunHydro = true;
+                return(0);
             }
 
             if (ix == 0 || ix >= nx - 2*fac_x
@@ -448,7 +455,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 music_message << "Freeze-out cell at the boundary! "
                               << "The grid is too small!";
                 music_message.flush("error");
-                exit(1);
+                DATA.reRunHydro = true;
+                return(0);
             }
 
             // if intersect, prepare for the hyper-cube

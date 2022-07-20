@@ -25,6 +25,8 @@ MUSIC::MUSIC(std::string input_file) :
     DATA(ReadInParameters::read_in_parameters(input_file)),
     eos(DATA.whichEOS) {
 
+    DATA.reRunHydro = false;
+    DATA.reRunCount = 0;
     mode                   = DATA.mode;
     flag_hydro_run         = 0;
     flag_hydro_initialized = 0;

@@ -27,8 +27,13 @@ int main(int argc, char *argv[]) {
     int running_mode = music_hydro.get_running_mode();
 
     if (running_mode == 1 || running_mode == 2) {
-        music_hydro.initialize_hydro();
-        music_hydro.run_hydro();
+        do {
+            music_hydro.setReRunHydro(false);
+            music_hydro.initialize_hydro();
+            music_hydro.run_hydro();
+            music_hydro.addReRunCount();
+        } while (   music_hydro.getReRunHydro()
+                 && music_hydro.getReRunCount() < 10);
     }
 
     if (running_mode == 1 || running_mode == 3 || running_mode == 4
