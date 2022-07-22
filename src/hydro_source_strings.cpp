@@ -216,8 +216,8 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     }
 
     // adjust transverse grid size
-    double energyAddRadius = sqrt(total_energy/std::max(1, total_baryon_number)
-                                  /2760.);
+    double energyAddRadius = sqrt(total_energy
+                                  /std::max(1., total_baryon_number)/2760.);
     double npartAddRadius = total_baryon_number/500.;
     double reRunAddRadius = DATA.reRunCount*2.;
     double gridOffset = 3 + energyAddRadius + npartAddRadius + reRunAddRadius;
