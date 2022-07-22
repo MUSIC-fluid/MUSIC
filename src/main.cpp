@@ -23,31 +23,34 @@ int main(int argc, char *argv[]) {
     MUSIC_LOGO::welcome_message();
     std::cout << "Version: (git branch:" << GIT_BRANCH << ") Commit:"
               << GIT_COMMIT_HASH << std::endl;
-    MUSIC music_hydro(input_file);
-    int running_mode = music_hydro.get_running_mode();
 
-    if (running_mode == 1 || running_mode == 2) {
-        do {
-            music_hydro.setReRunHydro(false);
+    int ireRunHydroCount = 0;
+    bool bReRunHydro = false;
+    do {
+        MUSIC music_hydro(input_file);
+        music_hydro.setReRunCount(ireRunHydroCount);
+        music_hydro.setReRunHydro(bReRunHydro);
+
+        int running_mode = music_hydro.get_running_mode();
+        if (running_mode == 1 || running_mode == 2) {
             music_hydro.initialize_hydro();
             music_hydro.run_hydro();
-            music_hydro.addReRunCount();
-        } while (   music_hydro.getReRunHydro()
-                 && music_hydro.getReRunCount() < 10);
-    }
+            bReRunHydro = music_hydro.getReRunHydro();
+        }
 
-    if (running_mode == 1 || running_mode == 3 || running_mode == 4
-            || running_mode == 13 || running_mode == 14) {
-        music_hydro.run_Cooper_Frye();
-    }
+        if (running_mode == 1 || running_mode == 3 || running_mode == 4
+                || running_mode == 13 || running_mode == 14) {
+            music_hydro.run_Cooper_Frye();
+        }
 
-    if (running_mode == 71) {
-        music_hydro.check_eos();
-    }
-    if (running_mode == 73) {
-        music_hydro.output_transport_coefficients();
-    }
-
+        if (running_mode == 71) {
+            music_hydro.check_eos();
+        }
+        if (running_mode == 73) {
+            music_hydro.output_transport_coefficients();
+        }
+        ireRunHydroCount++;
+    } while (bReRunHydro && ireRunHydroCount < 10);
     return(0);
 }  /* main */
 

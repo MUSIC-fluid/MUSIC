@@ -39,7 +39,6 @@ MUSIC::MUSIC(std::string input_file) :
 
     // setup source terms
     hydro_source_terms_ptr = nullptr;
-    generate_hydro_source_terms();
 }
 
 
@@ -88,6 +87,8 @@ void MUSIC::set_parameter(std::string parameter_name, double value) {
 //! This function initialize hydro
 void MUSIC::initialize_hydro() {
     clean_all_the_surface_files();
+
+    generate_hydro_source_terms();
 
     Init initialization(eos, DATA, hydro_source_terms_ptr);
     initialization.InitArena(arena_prev, arena_current, arena_future);

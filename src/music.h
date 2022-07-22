@@ -121,7 +121,7 @@ class MUSIC {
     bool getReRunHydro() const {return(DATA.reRunHydro);}
     void setReRunHydro(bool flag) { DATA.reRunHydro = flag; }
     int getReRunCount() const {return(DATA.reRunCount);}
-    void addReRunCount() { DATA.reRunCount++; }
+    void setReRunCount(int reRunCount) { DATA.reRunCount = reRunCount; }
 };
 
 #endif  // SRC_MUSIC_H_
