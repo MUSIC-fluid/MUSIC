@@ -39,6 +39,7 @@ class HydroSourceStrings : public HydroSourceBase {
     double string_quench_factor;
     double parton_quench_factor;
     double stringTransverseShiftFrac_;
+    double preEqFlowFactor_;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list_current_tau;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_remnant_list_current_tau;

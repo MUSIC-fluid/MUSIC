@@ -25,6 +25,7 @@ HydroSourceStrings::HydroSourceStrings(InitData &DATA_in) :
     string_quench_factor = DATA.string_quench_factor;
     parton_quench_factor = 1.0;    // no diffusion current from the source
     stringTransverseShiftFrac_ = DATA.stringTransverseShiftFrac;
+    preEqFlowFactor_ = DATA.preEqFlowFactor;
     read_in_QCD_strings_and_partons();
 }
 
@@ -359,8 +360,15 @@ void HydroSourceStrings::get_hydro_energy_source(
     const double exp_tau = 1./tau;
     for (auto const&it: QCD_strings_list_current_tau) {
         const double sigma_x = it->sigma_x;
+        const double sigma_x_sq = sigma_x*sigma_x;
         const double sigma_eta = it->sigma_eta;
-        const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
+        const double alpsig = preEqFlowFactor_*sigma_x;
+        const double prefactor_prep = (
+            1./(2.*M_PI*(sigma_x_sq
+                         + exp(alpsig*alpsig/2.)*sqrt(M_PI/2)
+                           *alpsig*sigma_x_sq*erf(alpsig/sqrt(2.)))
+               )
+        );
         const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
         const double skip_dis_x = n_sigma_skip*sigma_x;
         const double skip_dis_eta = n_sigma_skip*sigma_eta;
@@ -441,6 +449,11 @@ void HydroSourceStrings::get_hydro_energy_source(
 
         double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                 /(2.*sigma_x*sigma_x));
+        double cosh_perp = (
+            cosh(preEqFlowFactor_*sqrt(x_dis*x_dis + y_dis*y_dis)));
+        double sinh_perp = (
+            sinh(preEqFlowFactor_*sqrt(x_dis*x_dis + y_dis*y_dis)));
+        double phi_perp = atan2(y_dis, x_dis);
 
         double e_local = exp_tau*exp_xperp*exp_eta_s*it->norm;
         double Delta_eta = it->eta_s_right - it->eta_s_left;
@@ -450,9 +463,9 @@ void HydroSourceStrings::get_hydro_energy_source(
                                      *(eta_s - it->eta_s_left));
         double cosh_long = cosh(y_string - eta_s);
         double sinh_long = sinh(y_string - eta_s);
-        double cosh_perp = 1.0;
-        double local_eperp = prefactor_etas*prefactor_prep*e_local*cosh_perp;
-        j_mu[0] += local_eperp*cosh_long;
+        //double cosh_perp = 1.0;
+        double local_eperp = prefactor_etas*prefactor_prep*e_local;
+        j_mu[0] += local_eperp*cosh_long*cosh_perp;
         if (std::isnan(j_mu[0])) {
             std::cout << local_eperp << "  " << cosh_long << std::endl;
             std::cout << prefactor_etas << "  " << prefactor_prep << "  "
@@ -465,16 +478,24 @@ void HydroSourceStrings::get_hydro_energy_source(
                       << "  " << it->eta_s_right << "  "
                       << it->eta_s_left << std::endl;
         }
-        j_mu[1] += 0.0;
-        j_mu[2] += 0.0;
-        j_mu[3] += local_eperp*sinh_long;
+        j_mu[1] += local_eperp*sinh_perp*cos(phi_perp);
+        j_mu[2] += local_eperp*sinh_perp*sin(phi_perp);
+        j_mu[3] += local_eperp*sinh_long*cosh_perp;
     }
 
     for (auto const&it: QCD_strings_remnant_list_current_tau) {
         const double sigma_x = it->sigma_x;
+        const double sigma_x_sq = sigma_x*sigma_x;
         const double sigma_eta = it->sigma_eta;
-        const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
+        const double alpsig = preEqFlowFactor_*sigma_x;
+        const double prefactor_prep = (
+            1./(2.*M_PI*(sigma_x_sq
+                         + exp(alpsig*alpsig/2.)*sqrt(M_PI/2)
+                           *alpsig*sigma_x_sq*erf(alpsig/sqrt(2.)))
+               )
+        );
         const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
+        const double prefactors = prefactor_prep*prefactor_etas;
         const double skip_dis_x = n_sigma_skip*sigma_x;
         const double skip_dis_eta = n_sigma_skip*sigma_eta;
         // add remnant energy at the string ends
@@ -514,24 +535,32 @@ void HydroSourceStrings::get_hydro_energy_source(
                                        /(2.*sigma_eta*sigma_eta)));
             }
         }
-        double exp_factors = exp_tau*(
+        double cosh_long = exp_tau*(
               exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)*cosh(it->y_l - eta_s)
             + exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)*cosh(it->y_r - eta_s)
         );
-        double pz_factors = exp_tau*(
+        double sinh_long = exp_tau*(
               exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)*sinh(it->y_l - eta_s)
             + exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)*sinh(it->y_r - eta_s)
         );
-        double e_remnant_local = 0.0;
-        double pz_remnant_local = 0.0;
-        if (exp_factors > 0) {
-            double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
-                                    /(2.*sigma_x*sigma_x));
-            e_remnant_local = exp_xperp*exp_factors;
-            pz_remnant_local = exp_xperp*pz_factors;
+
+        double cosh_perp = 1.;
+        double sinh_perp = 0.;
+        double phi_perp = 0.;
+        double exp_xperp = 0.;
+        if (cosh_long > 0) {
+            exp_xperp = (prefactors*exp(-(x_dis*x_dis + y_dis*y_dis)
+                                        /(2.*sigma_x*sigma_x)));
+            cosh_perp = (
+                cosh(preEqFlowFactor_*sqrt(x_dis*x_dis + y_dis*y_dis)));
+            sinh_perp = (
+                sinh(preEqFlowFactor_*sqrt(x_dis*x_dis + y_dis*y_dis)));
+            phi_perp = atan2(y_dis, x_dis);
         }
-        j_mu[0] += prefactor_etas*prefactor_prep*e_remnant_local;
-        j_mu[3] += prefactor_etas*prefactor_prep*pz_remnant_local;
+        j_mu[0] += exp_xperp*cosh_long*cosh_perp;
+        j_mu[1] += exp_xperp*sinh_perp*cos(phi_perp);
+        j_mu[2] += exp_xperp*sinh_perp*sin(phi_perp);
+        j_mu[3] += exp_xperp*sinh_long*cosh_perp;
     }
     const double prefactor_tau = 1./dtau;
     const double unit_convert = 1.0/Util::hbarc;

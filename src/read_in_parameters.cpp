@@ -54,6 +54,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_stringTransverseShiftFrac;
     parameter_list.stringTransverseShiftFrac = temp_stringTransverseShiftFrac;
 
+    double temp_preEqFlowFactor = 0.0;
+    tempinput = Util::StringFind4(input_file, "stringPreEqFlowFactor");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_preEqFlowFactor;
+    temp_preEqFlowFactor = std::max(0., temp_preEqFlowFactor);
+    parameter_list.preEqFlowFactor = temp_preEqFlowFactor;
+
     // hydro source
     double temp_string_quench_factor = 0.;
     tempinput = Util::StringFind4(input_file, "string_quench_factor");
