@@ -356,7 +356,7 @@ void HydroSourceStrings::get_hydro_energy_source(
         && QCD_strings_remnant_list_current_tau.size() == 0) return;
 
     const double dtau = DATA.delta_tau;
-    const double n_sigma_skip = 5.;
+    const double n_sigma_skip = 8.;
     const double exp_tau = 1./tau;
     for (auto const&it: QCD_strings_list_current_tau) {
         const double sigma_x = it->sigma_x;
@@ -579,15 +579,15 @@ double HydroSourceStrings::get_hydro_rhob_source(
     if (QCD_strings_baryon_list_current_tau.size() == 0) return(res);
 
     // flow velocity
-    const double gamma_perp_flow  = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
-    const double y_perp_flow      = acosh(gamma_perp_flow);
-    const double y_long_flow      = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
-    const double sin_phi_flow     = u_mu[1]/gamma_perp_flow;
-    const double cos_phi_flow     = u_mu[2]/gamma_perp_flow;
-    const double dtau             = DATA.delta_tau;
+    const double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
+    const double y_perp_flow     = acosh(gamma_perp_flow);
+    const double y_long_flow     = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
+    const double sin_phi_flow    = u_mu[1]/gamma_perp_flow;
+    const double cos_phi_flow    = u_mu[2]/gamma_perp_flow;
+    const double dtau            = DATA.delta_tau;
 
-    const double exp_tau        = 1.0/tau;
-    const double n_sigma_skip   = 5.;
+    const double exp_tau      = 1.0/tau;
+    const double n_sigma_skip = 8.;
     for (auto &it: QCD_strings_baryon_list_current_tau) {
         const double sigma_x = it->sigma_x;
         const double sigma_eta = it->sigma_eta;
