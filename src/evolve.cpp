@@ -130,8 +130,14 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         //}
 
         if (it % Nskip_timestep == 0) {
-            if (DATA.Initial_profile == 2 && DATA.flag_critical_modes) {
-                grid_info.output_critical_modes_evolution(tau, *ap_current);
+            if (DATA.flag_critical_modes) {
+                if (DATA.Initial_profile == 2) {
+                    grid_info.output_critical_modes_evolutionBJ(
+                                                        tau, *ap_current);
+                } else {
+                    grid_info.output_critical_modes_evolution(
+                                                        tau, *ap_current);
+                }
             }
 
             if (DATA.outputEvolutionData == 1) {

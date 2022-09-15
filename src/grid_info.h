@@ -150,6 +150,7 @@ class Cell_info {
             SCGrid &arena, const double tau, HydroinfoMUSIC &hydro_info_ptr);
 
     void output_critical_modes_evolution(double tau, SCGrid &arena);
+    void output_critical_modes_evolutionBJ(double tau, SCGrid &arena);
 
     //! This function computes the pi^{\mu\nu} in the local rest frame
     //! and in the Cartisian coordinates

@@ -1834,6 +1834,53 @@ void Cell_info::output_critical_modes_evolution(double tau, SCGrid &arena) {
     std::ofstream outputfile;
     std::ofstream outputfile1;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
+        outputfile.open("phiQ_evo.dat", std::ofstream::out);
+        outputfile << "# tau[fm]  Q[1/fm^4]  phiQ_eq  phi_Q  phi_Q/phiQ_eq"
+                   << std::endl;
+    } else {
+        outputfile.open ("phiQ_evo.dat", std::ofstream::app);
+    }
+
+    const double Nx =  arena.nX();
+    const double Ny =  arena.nY();
+    const double NEta =  arena.nEta();
+
+    std::vector<std::array<int, 3>> coordList;
+    std::array<int, 3> coord = {static_cast<int>(Nx/2),
+                                static_cast<int>(Ny/2),
+                                static_cast<int>(NEta/2)};
+    coordList.push_back(coord);
+    int iQ = 0;
+    for (double Q_local : critical_slow_modes_ptr->get_Qvec()) {
+        outputfile << std::scientific
+                   << tau << "  " << Q_local << "  ";
+        for (auto coord_i : coordList) {
+            const double eps = arena(coord_i[0], coord_i[1], coord_i[2]).epsilon;
+            const double n_b = arena(coord_i[0], coord_i[1], coord_i[2]).rhob;
+            //const double T_i = eos.get_temperature(eps, n_b);
+            //const double mu_B = eos.get_muB(eps, n_b);
+            const double xi  = eos.get_correlation_length(eps, n_b);
+
+            const double phiQ_eq = (
+                critical_slow_modes_ptr->compute_phiQ_equilibrium(
+                        Q_local*xi,
+                        arena(coord_i[0], coord_i[1], coord_i[2]).epsilon,
+                        arena(coord_i[0], coord_i[1], coord_i[2]).rhob));
+            outputfile << std::scientific << phiQ_eq << "  "
+                       << arena(coord_i[0], coord_i[1], coord_i[2]).phi_Q[iQ]
+                       << "  ";
+        }
+        outputfile << std::endl;
+        iQ++;
+    }
+    outputfile.close();
+}
+
+
+void Cell_info::output_critical_modes_evolutionBJ(double tau, SCGrid &arena) {
+    std::ofstream outputfile;
+    std::ofstream outputfile1;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
         outputfile.open("phiQ_evo_Bjorken_medium.dat", std::ofstream::out);
         outputfile << "# tau[fm]  Q[1/fm^4]  phiQ_eq  phi_Q  phi_Q/phiQ_eq"
                    << std::endl;
