@@ -1182,7 +1182,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
-    if (parameter_list.useEpsFO == 0) {
+    if (parameter_list.useEpsFO == 0 && parameter_list.turn_on_rhob == 1) {
         music_message << "freeze-out surface set by temperature is not "
                       << "supported yet. We will use a constant energy value "
                       << "equivalent to the requested temperature at zero "
