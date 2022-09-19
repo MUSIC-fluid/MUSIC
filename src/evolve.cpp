@@ -172,7 +172,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
         grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *ap_current);
-        if (DATA.Initial_profile == 13) {
+        if (DATA.Initial_profile == 13
+            || DATA.Initial_profile == 111 || DATA.Initial_profile == 112) {
             grid_info.output_average_phase_diagram_trajectory(
                                             tau, -0.5, 0.5, *ap_current);
             grid_info.output_average_phase_diagram_trajectory(
