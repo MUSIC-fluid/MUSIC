@@ -1835,30 +1835,56 @@ void Cell_info::output_critical_modes_evolution(double tau, SCGrid &arena) {
     std::ofstream outputfile1;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         outputfile.open("phiQ_evo.dat", std::ofstream::out);
-        outputfile << "# tau[fm]  Q[1/fm^4]  phiQ_eq  phi_Q  phi_Q/phiQ_eq"
+        outputfile << "# tau[fm]  Q[1/fm^4]  phiQ_eq  phi_Q"
                    << std::endl;
+        outputfile1.open("phiQ_traj.dat", std::ofstream::out);
+        outputfile1 << "# tau[fm]  T [GeV]  mu_B [GeV]"
+                    << std::endl;
     } else {
         outputfile.open ("phiQ_evo.dat", std::ofstream::app);
+        outputfile1.open ("phiQ_traj.dat", std::ofstream::app);
     }
 
     const double Nx =  arena.nX();
     const double Ny =  arena.nY();
     const double NEta =  arena.nEta();
+    const double deta = DATA.delta_eta;
 
     std::vector<std::array<int, 3>> coordList;
     std::array<int, 3> coord = {static_cast<int>(Nx/2),
                                 static_cast<int>(Ny/2),
                                 static_cast<int>(NEta/2)};
     coordList.push_back(coord);
+    coord = {static_cast<int>(Nx/2),
+             static_cast<int>(Ny/2),
+             static_cast<int>(NEta/2)+5};
+    coordList.push_back(coord);
+    coord = {static_cast<int>(Nx/2),
+             static_cast<int>(Ny/2),
+             static_cast<int>(NEta/2)+8};
+    coordList.push_back(coord);
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+    	outputfile << "# points:";
+    	for (auto coord_i: coordList) {
+            double x_local = - DATA.x_size/2. + DATA.delta_x*coord_i[0];
+            double y_local = - DATA.y_size/2. + DATA.delta_y*coord_i[1];
+            double etas_local = - DATA.eta_size/2. + deta*coord_i[2];
+            outputfile << "  (" << x_local << ", " << y_local << ", "
+                       << etas_local << "), ";
+    	}
+        outputfile << endl;
+    }
     int iQ = 0;
     for (double Q_local : critical_slow_modes_ptr->get_Qvec()) {
         outputfile << std::scientific
                    << tau << "  " << Q_local << "  ";
+        if (iQ == 0)
+            outputfile1 << std::scientific << tau << "  ";
         for (auto coord_i : coordList) {
             const double eps = arena(coord_i[0], coord_i[1], coord_i[2]).epsilon;
             const double n_b = arena(coord_i[0], coord_i[1], coord_i[2]).rhob;
-            //const double T_i = eos.get_temperature(eps, n_b);
-            //const double mu_B = eos.get_muB(eps, n_b);
+            const double T_i = eos.get_temperature(eps, n_b);
+            const double mu_B = eos.get_muB(eps, n_b);
             const double xi  = eos.get_correlation_length(eps, n_b);
 
             const double phiQ_eq = (
@@ -1869,11 +1895,16 @@ void Cell_info::output_critical_modes_evolution(double tau, SCGrid &arena) {
             outputfile << std::scientific << phiQ_eq << "  "
                        << arena(coord_i[0], coord_i[1], coord_i[2]).phi_Q[iQ]
                        << "  ";
+            if (iQ == 0)
+                outputfile1 << std::scientific << T_i << "  " << mu_B << "  ";
         }
         outputfile << std::endl;
+        if (iQ == 0)
+            outputfile1 << std::endl;
         iQ++;
     }
     outputfile.close();
+    outputfile1.close();
 }
 
 
