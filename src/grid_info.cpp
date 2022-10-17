@@ -580,6 +580,26 @@ void Cell_info::OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau) {
                                          static_cast<float>(qz)};
                     fwrite(diffusion, sizeof(float), 3, out_file_xyeta);
                 }
+
+                if (DATA.flag_critical_modes) {
+                    auto Qvec = critical_slow_modes_ptr->get_Qvec();
+                    const int nQ = Qvec.size();
+                    float *phiQ = new float [nQ];
+                    float *phiQ_eq = new float [nQ];
+                    for (int iQ = 0; iQ < nQ; iQ++) {
+                        phiQ[iQ] = (
+                            static_cast<float>(arena(ix, iy, ieta).phi_Q[iQ]));
+                        const double xi = (
+                            eos.get_correlation_length(e_local, rhob_local));
+                        phiQ_eq[iQ] = (
+                            critical_slow_modes_ptr->compute_phiQ_equilibrium(
+                                    Qvec[iQ]*xi, e_local, rhob_local));
+                    }
+                    fwrite(phiQ, sizeof(float), nQ, out_file_xyeta);
+                    fwrite(phiQ_eq, sizeof(float), nQ, out_file_xyeta);
+                    delete [] phiQ;
+                    delete [] phiQ_eq;
+                }
             }
         }
     }
@@ -1864,14 +1884,14 @@ void Cell_info::output_critical_modes_evolution(double tau, SCGrid &arena) {
              static_cast<int>(NEta/2)+8};
     coordList.push_back(coord);
     if (std::abs(tau - DATA.tau0) < 1e-10) {
-    	outputfile << "# points:";
-    	for (auto coord_i: coordList) {
+        outputfile << "# points:";
+        for (auto coord_i: coordList) {
             double x_local = - DATA.x_size/2. + DATA.delta_x*coord_i[0];
             double y_local = - DATA.y_size/2. + DATA.delta_y*coord_i[1];
             double etas_local = - DATA.eta_size/2. + deta*coord_i[2];
             outputfile << "  (" << x_local << ", " << y_local << ", "
                        << etas_local << "), ";
-    	}
+        }
         outputfile << endl;
     }
     int iQ = 0;
@@ -1889,9 +1909,7 @@ void Cell_info::output_critical_modes_evolution(double tau, SCGrid &arena) {
 
             const double phiQ_eq = (
                 critical_slow_modes_ptr->compute_phiQ_equilibrium(
-                        Q_local*xi,
-                        arena(coord_i[0], coord_i[1], coord_i[2]).epsilon,
-                        arena(coord_i[0], coord_i[1], coord_i[2]).rhob));
+                                                    Q_local*xi, eps, n_b));
             outputfile << std::scientific << phiQ_eq << "  "
                        << arena(coord_i[0], coord_i[1], coord_i[2]).phi_Q[iQ]
                        << "  ";
