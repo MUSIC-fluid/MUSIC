@@ -90,9 +90,9 @@ double EOS_base::interpolate2D(const double e, const double rhob,
     int idx_nb = static_cast<int>((local_nb - nb0)/delta_nb);
 
     // treatment for overflow, use the last two points to do extrapolation
-    idx_e  = std::min(N_e - 1, idx_e);
+    idx_e = std::min(N_e - 1, idx_e);
     if (table_idx == number_of_tables - 1)
-        idx_e  = std::min(N_e - 2, idx_e);
+        idx_e = std::min(N_e - 2, idx_e);
     idx_nb = std::min(N_nb - 2, idx_nb);
 
     // check underflow
@@ -403,9 +403,9 @@ void EOS_base::check_eos_no_muB() const {
         double T_local = get_temperature(e_local, 0.0);
         double cs2_local = get_cs2(e_local, 0.0);
         check_file1 << scientific << setw(18) << setprecision(8)
-                   << e_local*hbarc << "   " << p_local*hbarc << "   "
-                   << s_local << "   " << T_local*hbarc << "   "
-                   << cs2_local << endl;
+                    << e_local*hbarc << "   " << p_local*hbarc << "   "
+                    << s_local << "   " << T_local*hbarc << "   "
+                    << cs2_local << endl;
     }
     check_file1.close();
 }

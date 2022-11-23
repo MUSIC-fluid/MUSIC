@@ -42,7 +42,7 @@ class Reconst {
 
     int ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
                                   const TJbVec &q, const Cell_small &grid_pt);
-    
+
     void reconst_velocity_fdf(const double v, const double T00, const double M,
                               const double J0, double &fv, double &dfdv) const;
 
