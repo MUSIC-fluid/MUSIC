@@ -227,13 +227,15 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     DATA.y_size = 2.*(yMax + gridOffset);
     DATA.delta_x = DATA.x_size/(DATA.nx - 1);
     DATA.delta_y = DATA.y_size/(DATA.ny - 1);
-    // make sure delta_tau is not too large for delta_x and delta_y
-    DATA.delta_tau = std::min(DATA.delta_tau,
-                              std::min(DATA.delta_x*DATA.dtaudxRatio,
-                                       DATA.delta_y*DATA.dtaudxRatio));
-    if (DATA.delta_tau > 0.001)
-        DATA.delta_tau = (static_cast<int>(DATA.delta_tau*1000))/1000.;
-    DATA.nt = static_cast<int>(DATA.tau_size/DATA.delta_tau + 0.5);
+    if (DATA.resetDtau) {
+        // make sure delta_tau is not too large for delta_x and delta_y
+        DATA.delta_tau = std::min(DATA.delta_tau,
+                                  std::min(DATA.delta_x*DATA.dtaudxRatio,
+                                           DATA.delta_y*DATA.dtaudxRatio));
+        if (DATA.delta_tau > 0.001)
+            DATA.delta_tau = (static_cast<int>(DATA.delta_tau*1000))/1000.;
+        DATA.nt = static_cast<int>(DATA.tau_size/DATA.delta_tau + 0.5);
+    }
     music_message << "[HydroSource] Grid info: x_size = "
                   << DATA.x_size << ", y_size = " << DATA.y_size
                   << ", dx = " << DATA.delta_x << " fm, dy = "

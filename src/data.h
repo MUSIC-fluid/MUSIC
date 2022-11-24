@@ -85,6 +85,8 @@ typedef struct init_data {
     double delta_tau;
     double dtaudxRatio;
 
+    bool resetDtau;
+
     int rk_order;
     double minmod_theta;
 
