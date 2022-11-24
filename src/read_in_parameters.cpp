@@ -1249,7 +1249,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     if (parameter_list.delta_tau/parameter_list.delta_x
             > parameter_list.dtaudxRatio) {
         music_message << "Warning: Delta_Tau = " << parameter_list.delta_tau
-                      << " maybe too large! "
+                      << " maybe too large! ";
         music_message.flush("warning");
 
         bool reset_dtau_use_CFL_condition = true;
