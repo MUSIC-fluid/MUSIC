@@ -386,6 +386,14 @@ InitData read_in_parameters(std::string input_file) {
     music_message << " DeltaTau = " << parameter_list.delta_tau << " fm";
     music_message.flush("info");
 
+    double tempdtaudxRatio = 0.1;
+    tempinput = Util::StringFind4(input_file, "dtaudxRatio");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempdtaudxRatio;
+    parameter_list.dtaudxRatio = tempdtaudxRatio;
+    music_message << " dtaudxRatio = " << parameter_list.dtaudxRatio;
+    music_message.flush("info");
+
     // output_evolution_data:
     // 1: output bulk information at every grid point at every time step
     int tempoutputEvolutionData = 0;

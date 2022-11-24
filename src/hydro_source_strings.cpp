@@ -229,7 +229,8 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     DATA.delta_y = DATA.y_size/(DATA.ny - 1);
     // make sure delta_tau is not too large for delta_x and delta_y
     DATA.delta_tau = std::min(DATA.delta_tau,
-                              std::min(DATA.delta_x/10.0, DATA.delta_y/10.0));
+                              std::min(DATA.delta_x*DATA.dtaudxRatio,
+                                       DATA.delta_y*DATA.dtaudxRatio));
     if (DATA.delta_tau > 0.001)
         DATA.delta_tau = (static_cast<int>(DATA.delta_tau*1000))/1000.;
     DATA.nt = static_cast<int>(DATA.tau_size/DATA.delta_tau + 0.5);
