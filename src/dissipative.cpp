@@ -625,13 +625,14 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
     //shear = (DATA.shear_to_s)*s_den;   
     // shear viscosity = constant * (e + P)/T
     double temperature = eos.get_temperature(epsilon, rhob);
+    double mu_B = eos.get_muB(epsilon, rhob);
 
     // cs2 is the velocity of sound squared
     double cs2 = eos.get_cs2(epsilon, rhob);
     double pressure = eos.get_pressure(epsilon, rhob);
 
     // T dependent bulk viscosity
-    bulk = transport_coeffs_.get_zeta_over_s(temperature);
+    bulk = transport_coeffs_.get_zeta_over_s(temperature, mu_B);
     bulk = bulk*(epsilon + pressure)/temperature;
 
     // defining bulk relaxation time and additional transport coefficients

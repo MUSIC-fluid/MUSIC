@@ -784,6 +784,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream ( tempinput ) >> tempzeta_over_s_T_peak;
     parameter_list.bulk_10_Tpeak = tempzeta_over_s_T_peak;
 
+    double tempzeta_over_s_T_peak_muBcurv = 0.0;
+    tempinput = Util::StringFind4(input_file,
+                                  "bulk_viscosity_10_T_peak_muBcurv");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_T_peak_muBcurv;
+    parameter_list.bulk_10_Tpeak_muBcurv = tempzeta_over_s_T_peak_muBcurv;
+
     // Include secord order terms
     int tempturn_on_second_order = 0;
     tempinput = Util::StringFind4(input_file, "Include_second_order_terms");
