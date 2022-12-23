@@ -151,7 +151,7 @@ double TransportCoeffs::get_zeta_over_s(const double T,
         const double B_width1 = DATA.bulk_10_width_low;      // GeV
         const double B_width2 = DATA.bulk_10_width_high;     // GeV
         const double Tpeak = (  DATA.bulk_10_Tpeak
-                              + DATA.bulk_10_Tpeak_muBcurv*mu_B);   // GeV
+                              + DATA.bulk_10_Tpeak_muBcurv*mu_B*muB);   // GeV
         zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
                             T, peak_norm, B_width1, B_width2, Tpeak);
     }
