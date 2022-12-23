@@ -1178,8 +1178,9 @@ void Diss::output_zeta_over_s_T_and_muB_dependence() {
             double p_local = eos.get_pressure(e_local, rhob_local);
             double s_local = eos.get_entropy(e_local, rhob_local);
             double T_local = eos.get_temperature(e_local, rhob_local);
+            double mu_B = eos.get_muB(e_local, rhob_local);
 
-            double bulk = transport_coeffs_.get_zeta_over_s(T_local);
+            double bulk = transport_coeffs_.get_zeta_over_s(T_local, mu_B);
             double zeta_over_s = bulk*(e_local + p_local)/(T_local*s_local);
 
             // output
@@ -1224,7 +1225,7 @@ void Diss::output_zeta_over_s_along_const_sovernB() {
             double p_local = eos.get_pressure(e_local, nB_local);
             double s_check = eos.get_entropy(e_local, nB_local);
 
-            double bulk = transport_coeffs_.get_zeta_over_s(T_local);
+            double bulk = transport_coeffs_.get_zeta_over_s(T_local, mu_B);
             double zeta_over_s = bulk*(e_local + p_local)/(T_local*s_local);
 
             // output
