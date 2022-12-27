@@ -38,7 +38,9 @@ Evolve::Evolve(const EOS &eosIn, InitData &DATA_in,
 
 // master control function for hydrodynamic evolution
 int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
-                     SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr) {
+                     SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr,
+                     Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+                     Fields &arenaFieldsNext) {
     // first pass some control parameters
     facTau                      = DATA.facTau;
     int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;

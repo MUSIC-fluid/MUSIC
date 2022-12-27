@@ -11,6 +11,7 @@
 #include "cell.h"
 #include "grid.h"
 #include "eos.h"
+#include "fields.h"
 #include "hydro_source_base.h"
 #include "pretty_ostream.h"
 
@@ -45,19 +46,31 @@ class Init {
          std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
 
     void InitArena(SCGrid &arena_prev, SCGrid &arena_current,
-                   SCGrid &arena_future);
-    void InitTJb  (SCGrid &arena_prev, SCGrid &arena_current);
+                   SCGrid &arena_future,
+                   Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+                   Fields &arenaFieldsNext);
+    void InitTJb  (SCGrid &arena_prev, SCGrid &arena_current,
+                   Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
     void print_num_of_threads();
 
-    void initial_Gubser_XY               (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_1p1D_eta                (SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_IPGlasma_XY             (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_IPGlasma_XY_with_pi     (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_with_zero_XY            (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_AMPT_XY                 (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_MCGlb_with_rhob         (SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_UMN_with_rhob           (SCGrid &arena_prev, SCGrid & arena_current);
-    void initial_with_jetscape           (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
+    void initial_Gubser_XY(int ieta, SCGrid &arena_prev, SCGrid &arena_current,
+                           Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_1p1D_eta(SCGrid &arena_prev, SCGrid &arena_current,
+                          Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_IPGlasma_XY(int ieta, SCGrid &arena_prev, SCGrid &arena_current,
+                             Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev, SCGrid &arena_current,
+                                     Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_with_zero_XY(int ieta, SCGrid &arena_prev, SCGrid &arena_current,
+                              Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_AMPT_XY(int ieta, SCGrid &arena_prev, SCGrid &arena_current,
+                         Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_MCGlb_with_rhob(SCGrid &arena_prev, SCGrid &arena_current,
+                                 Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_UMN_with_rhob(SCGrid &arena_prev, SCGrid & arena_current,
+                               Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_with_jetscape(int ieta, SCGrid &arena_prev, SCGrid &arena_current,
+                               Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
 
     void get_jetscape_preequilibrium_vectors(
         std::vector<double> e_in, std::vector<double> P_in,

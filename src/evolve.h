@@ -11,6 +11,7 @@
 #include "grid_info.h"
 #include "eos.h"
 #include "advance.h"
+#include "fields.h"
 #include "hydro_source_base.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
@@ -41,7 +42,9 @@ class Evolve {
     Evolve(const EOS &eos, InitData &DATA_in,
            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
-                 SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr);
+                 SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr,
+                 Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+                 Fields &arenaFieldsNext);
 
     void AdvanceRK(double tau, GridPointer &arena_prev,
                    GridPointer &arena_current, GridPointer &arena_future);

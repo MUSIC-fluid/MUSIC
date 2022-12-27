@@ -9,6 +9,7 @@
 #include "grid.h"
 #include "data.h"
 #include "eos.h"
+#include "fields.h"
 #include "hydro_source_base.h"
 #include "read_in_parameters.h"
 #include "pretty_ostream.h"
@@ -35,6 +36,10 @@ class MUSIC {
     SCGrid arena_prev;
     SCGrid arena_current;
     SCGrid arena_future;
+
+    Fields arenaFieldsPrev;
+    Fields arenaFieldsCurr;
+    Fields arenaFieldsNext;
 
     std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 

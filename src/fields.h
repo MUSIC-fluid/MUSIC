@@ -15,6 +15,7 @@ class Fields {
     int Ny_   = 0;
     int Neta_ = 0;
 
+ public:
     // Scalar fields
     std::vector<double> e_;
     std::vector<double> rhob_;
@@ -23,7 +24,7 @@ class Fields {
     // Vector & tensor fields
     std::vector<std::vector<double>> u_;
     std::vector<std::vector<double>> Wmunu_;
- public:
+
     Fields() = default;
     Fields(int Nx, int Ny, int Neta) {
         resizeFields(Nx, Ny, Neta);
