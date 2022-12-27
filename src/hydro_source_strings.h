@@ -34,10 +34,12 @@ struct QCD_string {
 
 class HydroSourceStrings : public HydroSourceBase {
  private:
-    const InitData &DATA;
+    InitData &DATA;
     int string_dump_mode;
     double string_quench_factor;
     double parton_quench_factor;
+    double stringTransverseShiftFrac_;
+    double preEqFlowFactor_;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list_current_tau;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_remnant_list_current_tau;
@@ -45,12 +47,15 @@ class HydroSourceStrings : public HydroSourceBase {
 
  public:
     HydroSourceStrings() = default;
-    HydroSourceStrings(const InitData &DATA_in);
+    HydroSourceStrings(InitData &DATA_in);
     ~HydroSourceStrings();
 
     //! This function reads in the spatal information of the strings
     //! and partons which are produced from the MC-Glauber-LEXUS model
     void read_in_QCD_strings_and_partons();
+
+    double getStringEndTau(const double tau0, const double tau_form,
+                           const double eta_s_0, const double eta_s) const;
 
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
@@ -65,7 +70,9 @@ class HydroSourceStrings : public HydroSourceBase {
                                  const FlowVec &u_mu) const ;
 
     void prepare_list_for_current_tau_frame(const double tau_local);
-    void compute_norm_for_strings(const double total_energy);
+    void compute_norm_for_strings();
+    double getStringTransverseCoord(const double xl, const double xr,
+                                    const double etaFrac) const;
 };
 
 #endif  // SRC_HYDRO_SOURCE_STRINGS_H_

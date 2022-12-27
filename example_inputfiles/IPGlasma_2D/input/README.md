@@ -1,0 +1,1 @@
+This is a test event generated using [the publc IP-Glasma](https://github.com/chunshen1987/ipglasma). The parameters for the generation of this file are in `input`, but do not necessarily reflect a calibrated or physical choice of parameters. This event is provided for testing purposes.

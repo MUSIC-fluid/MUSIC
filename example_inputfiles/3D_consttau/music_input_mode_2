@@ -1,0 +1,142 @@
+###################################
+# parameters list
+###################################
+#
+echo_level  1   # control the mount of message output to screen
+mode 2   # MUSIC running mode
+         # 1: Does everything. Evolution. Computation of thermal spectra. 
+         #    Resonance decays. Observables.  
+         #    Only compatible with freeze_out_method=3 and pseudofreeze=1
+         # 2: Evolution only.
+         # 3: Compute all thermal spectra only.
+         # 4: Resonance decays only.
+         # 13: Compute observables from previously-computed thermal spectra
+         # 14: Compute observables from post-decay spectra
+#
+#
+###################################
+# parameters for initial conditions
+###################################
+Initial_profile 112             # type of initial condition 
+                                # 0: for Gubser flow test (future)
+                                # 1: Optical Glauber model
+                                # 3: MC-Glauber model
+                                # 8: Read in initial profile from a file 
+                                #    (e.g., IP-Glasma)
+                                # 9: Read in initial profile from a file
+                                #    (from Bjoern's IP-Glasma)
+                                #    (9: full T^\mu\nu; 91: e and u^\mu; 92: e only, 93: no initial bulk)
+                                # 13: 3D MC-Glauber with dynamical initialization
+                                # 131: 3D MC-Glauber start at tau_0 = 0.5 fm/c
+                                # 112: read in TA and TB from file and start hydro at tau_0
+initialize_with_entropy 0       # 0: with energy density
+                                # 1: with entropy density
+
+Initial_TA_Distribution_Filename initial/initial_TA.dat
+Initial_TB_Distribution_Filename initial/initial_TB.dat
+# parameters for the eta profiles in entropy density and net baryon density
+Eta_plateau_size 5.0           # [-Eta_plateau_size/2, Eta_plateau_size/2] for energy density
+Eta_fall_off 0.6               # Gaussian width fall off for energy density
+eta_rhob_0 3.5                 # peak position of the net baryon density
+eta_rhob_width_1 0.1           # Gaussian width for |eta| > |eta_0|
+eta_rhob_width_2 2.2           # Gaussian width for |eta| < |eta_0|
+rhob_a 1.0                     # Asymmetric parameter in eta for the rho_B profile
+yL_frac 0.0                    # Fraction of longitudinal velocity
+
+s_factor  1.0                  # normalization factor read in initial data file
+#
+#######################################
+# parameters for hydrodynamic evolution
+#######################################
+boost_invariant  0            # whether the simulation is boost-invariant
+# grid information
+Initial_time_tau_0 1.0        # starting time of the hydrodynamic
+                              # evolution (fm/c)
+Total_evolution_time_tau 30.  # the maximum allowed running
+                              # evolution time (fm/c)
+                              # need to be set to some large number
+Delta_Tau 0.01                # time step to use in the evolution [fm/c]
+Eta_grid_size 14.0            # spatial rapidity range
+                              # [-Eta_grid_size/2, Eta_grid_size/2 - delta_eta]
+Grid_size_in_eta 64           # number of the grid points in spatial
+                              # rapidity direction
+                              # Must have at least 4 cells per processor.
+                              # Must be an even number.
+                              # One cell is positioned at eta=0, 
+                              # half the cells are at negative eta,
+                              # the rest (one fewer) are at positive eta
+X_grid_size_in_fm 26.0        # spatial range along x direction in the 
+                              # transverse plane 
+                              # [-X_grid_size_in_fm/2, X_grid_size_in_fm/2]
+Y_grid_size_in_fm 26.0        # spatial range along y direction in the 
+                              # transverse plane 
+                              # [-Y_grid_size_in_fm/2, Y_grid_size_in_fm/2]
+Grid_size_in_y 261            # number of the grid points in y direction
+Grid_size_in_x 261            # number of the grid points in x direction
+#
+#
+EOS_to_use 14                 # type of the equation of state
+                              # 0: ideal gas
+                              # 1: EOS-Q from azhydro
+                              # 2: lattice EOS s95p-v1 
+                              #    (from Huovinen and Petreczky)
+                              # 3: lattice EOS s95p with partial 
+                              #    chemical equilibrium (PCE) at 150 MeV 
+                              #    (see https://wiki.bnl.gov/TECHQM
+                              #         /index.php/QCD_Equation_of_State)
+                              # 4: lattice EOS s95p with chemical freeze 
+                              #    out at 155 MeV
+                              # 5: lattice EOS s95p at 160 MeV
+                              # 6: lattice EOS s95p at 165 MeV
+                              # 7: lattice EOS s95p-v1.2 for UrQMD
+                              # 9: lattice EOS hotQCD with UrQMD
+                              # 91: lattice EOS hotQCD with SMASH
+                              # 14: lattice EOS hotQCD at finite muB
+# transport coefficients
+quest_revert_strength 3.0          # the strength of the viscous regulation
+Viscosity_Flag_Yes_1_No_0 1        # turn on viscosity in the evolution
+Include_Shear_Visc_Yes_1_No_0 1    # include shear viscous effect
+Shear_to_S_ratio 0.10              # value of \eta/s
+T_dependent_Shear_to_S_ratio 11    # flag to use temperature dep. \eta/s(T)
+muB_dependent_Shear_to_S_ratio 10  # flag to use mu_B dep. \eta/s(mu_B)
+Include_Bulk_Visc_Yes_1_No_0 0     # include bulk viscous effect
+Include_second_order_terms 1       # include second order non-linear coupling terms
+Include_vorticity_terms 1          # include the vorticity terms
+Include_Rhob_Yes_1_No_0 1
+turn_on_baryon_diffusion 0
+kappa_coefficient 0.0
+#
+#
+# switches to output evolution information
+output_evolution_data 0            # flag to output evolution history to file
+output_movie_flag 0
+output_evolution_T_cut 0.145
+outputBinaryEvolution  1           # output evolution file in binary format
+output_evolution_every_N_eta  1    # output evolution file every Neta steps
+output_evolution_every_N_y  2      # output evolution file every Ny steps
+output_evolution_every_N_x  2      # output evolution file every Nx steps
+output_evolution_every_N_timesteps  10  # output evolution every Ntime steps
+output_vorticity 0                 # output vorticity terms to files
+#
+#
+###########################################
+# parameters for freeze out and Cooper-Frye 
+###########################################
+Do_FreezeOut_Yes_1_No_0 1       # flag to find freeze-out surface
+Do_FreezeOut_lowtemp 1
+freeze_out_method 4             # method for hyper-surface finder
+                                # 2: Schenke's more complex method
+freeze_surface_in_binary 1      # switch to output surface file in binary format
+average_surface_over_this_many_time_steps 10   # the step skipped in the tau
+freeze_Ncell_x_step 2
+freeze_Ncell_eta_step 1
+freeze_eps_flag 0
+N_freeze_out 1
+eps_freeze_max 0.25
+eps_freeze_min 0.25
+use_eps_for_freeze_out 1        # flag to use energy density as criteria to 
+                                # find freeze-out surface 
+                                # 0: use temperature, 1: use energy density
+#
+#
+EndOfData

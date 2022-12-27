@@ -19,8 +19,8 @@
 class Evolve {
  private:
     const EOS &eos;        // declare EOS object
-    const InitData &DATA;
-    std::weak_ptr<HydroSourceBase> hydro_source_terms_ptr;
+    InitData &DATA;
+    std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
     Cell_info grid_info;
     Advance advance;
@@ -33,13 +33,12 @@ class Evolve {
 
     // information about freeze-out surface
     // (only used when freezeout_method == 4)
-    int n_freeze_surf;
     std::vector<double> epsFO_list;
 
     typedef std::unique_ptr<SCGrid, void(*)(SCGrid*)> GridPointer;
 
  public:
-    Evolve(const EOS &eos, const InitData &DATA_in,
+    Evolve(const EOS &eos, InitData &DATA_in,
            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
     int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                  SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr);

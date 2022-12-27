@@ -49,7 +49,8 @@ double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
     int idx_e = static_cast<int>((local_ed - e0)/delta_e);
 
     // treatment for overflow, use the last two points to do extrapolation
-    idx_e  = std::min(N_e - 2, idx_e);
+    idx_e = std::max(0, idx_e);
+    idx_e = std::min(N_e - 2, idx_e);
 
     double result = 0.;
     if (local_ed < e0) {
@@ -89,9 +90,9 @@ double EOS_base::interpolate2D(const double e, const double rhob,
     int idx_nb = static_cast<int>((local_nb - nb0)/delta_nb);
 
     // treatment for overflow, use the last two points to do extrapolation
-    idx_e  = std::min(N_e - 1, idx_e);
+    idx_e = std::min(N_e - 1, idx_e);
     if (table_idx == number_of_tables - 1)
-        idx_e  = std::min(N_e - 2, idx_e);
+        idx_e = std::min(N_e - 2, idx_e);
     idx_nb = std::min(N_nb - 2, idx_nb);
 
     // check underflow
@@ -155,14 +156,15 @@ double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob) const {
 
 
 double EOS_base::get_dpOverde3(double e, double rhob) const {
-   double eLeft = 0.9*e;
-   double eRight = 1.1*e;
+    double de = std::max(0.01, 0.1*e);
+    double eLeft = std::max(1e-16, e - de);
+    double eRight = e + de;
 
-   double pL = get_pressure(eLeft, rhob);   // 1/fm^4
-   double pR = get_pressure(eRight, rhob);  // 1/fm^4
+    double pL = get_pressure(eLeft, rhob);   // 1/fm^4
+    double pR = get_pressure(eRight, rhob);  // 1/fm^4
 
-   double dpde = (pR - pL)/(eRight - eLeft);
-   return dpde;
+    double dpde = (pR - pL)/(eRight - eLeft);
+    return dpde;
 }
 
 
@@ -206,7 +208,7 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
     int ntol         = 1000;
     if (T_goal < 0.0 || T_goal > T_upper) {
         cout << "get_T2e:: T is out of bound, "
-             << "T = " << T << ", T_upper = " << T_upper*Util::hbarc
+             << "T = " << T << " GeV, T_upper = " << T_upper*Util::hbarc
              << ", T_lower = " << T_lower*Util::hbarc << endl;
         exit(1);
     }
@@ -228,7 +230,7 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
     }
     if (iter == ntol) {
         cout << "get_T2e_finite_rhob:: max iteration reached, "
-             << "T = " << T << ", rhob = " << rhob << endl;;
+             << "T = " << T << " GeV, rhob = " << rhob << endl;;
         cout << "T_upper = " << T_upper*Util::hbarc
              << " , T_lower = " << T_lower*Util::hbarc << endl;
         cout << "eps_upper = " << eps_upper
@@ -401,9 +403,9 @@ void EOS_base::check_eos_no_muB() const {
         double T_local = get_temperature(e_local, 0.0);
         double cs2_local = get_cs2(e_local, 0.0);
         check_file1 << scientific << setw(18) << setprecision(8)
-                   << e_local*hbarc << "   " << p_local*hbarc << "   "
-                   << s_local << "   " << T_local*hbarc << "   "
-                   << cs2_local << endl;
+                    << e_local*hbarc << "   " << p_local*hbarc << "   "
+                    << s_local << "   " << T_local*hbarc << "   "
+                    << cs2_local << endl;
     }
     check_file1.close();
 }

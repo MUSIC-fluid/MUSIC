@@ -17,6 +17,7 @@ Reconst::Reconst(const EOS &eosIn, const int echo_level_in) :
     echo_level(echo_level_in) {}
 
 
+
 ReconstCell Reconst::ReconstIt_shell(double tau, const TJbVec &tauq_vec,
                                      const Cell_small &grid_pt) {
     ReconstCell grid_p1;
@@ -57,7 +58,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     double M   = sqrt(K00);
     double T00 = q[0];
     double J0  = q[4];
-    
+
     if ((T00 < abs_err)) {
         // T^{0\mu} is too small, directly set it to
         // e = abs_err, u^\mu = (1, 0, 0, 0)
@@ -75,7 +76,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     }
 
     double u[4], epsilon, pressure, rhob;
-    
+
     double v_guess = sqrt(1. - 1./(grid_pt.u[0]*grid_pt.u[0] + abs_err));
     if (v_guess != v_guess) {
         v_guess = 0.0;
@@ -295,7 +296,8 @@ int Reconst::solve_u0_Newton(const double u0_guess, const double T00,
             u0_status = 0;
             break;
         }
-    } while (std::abs(abs_error_u0) > abs_err && std::abs(rel_error_u0) > rel_err);
+    } while (std::abs(abs_error_u0) > abs_err
+             && std::abs(rel_error_u0) > rel_err);
 
     u0_solution = u0_next;
     if (u0_status == 0 && echo_level > 5) {
@@ -321,7 +323,7 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
     double u0_h = 1e5;
     if (u0_guess >= 1.0) {
         u0_l = std::max(u0_l, 0.5*u0_guess);
-        u0_h = std::min(u0_h, 1.5*u0_guess);
+        u0_h = 1.5*u0_guess;
     }
     double fu0_l, fu0_h;
     double dfdu0_l, dfdu0_h;
@@ -338,11 +340,13 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
 
     if (fu0_l*fu0_h > 0.) {
         u0_status = 0;
-        music_message << "Reconst u0 Hybrid:: can not find solution!";
-        music_message.flush("error");
-        music_message << "u0_guess = " << u0_guess << ", T00 = " << T00
-                      << ", M = " << M << ", J0 = " << J0;
-        music_message.flush("error");
+        if (echo_level > 5) {
+            music_message << "Reconst u0 Hybrid:: can not find solution!";
+            music_message.flush("error");
+            music_message << "u0_guess = " << u0_guess << ", T00 = " << T00
+                          << ", M = " << M << ", J0 = " << J0;
+            music_message.flush("error");
+        }
         return(u0_status);
     }
 
@@ -380,6 +384,10 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
             u0_status = 0;
             break;
         }
+        if (u0_root != u0_root) {
+            u0_status = 0;
+            break;
+        }
     } while (   std::abs(abs_error_u0) > abs_err
              && std::abs(rel_error_u0) > rel_err);
     u0_solution = u0_root;
@@ -409,7 +417,7 @@ void Reconst::reconst_velocity_fdf(const double v, const double T00,
 
     const double pressure = eos.get_pressure(epsilon, rho);
     const double temp1    = T00 + pressure;
-    const double temp2    = v/temp;
+    const double temp2    = v/std::max(abs_err, temp);
     const double dPde     = eos.get_dpde(epsilon, rho);
     const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
 
@@ -424,14 +432,15 @@ void Reconst::reconst_u0_fdf(const double u0, const double T00,
     const double epsilon = T00 - v*M;
     const double rho     = J0/u0;
 
-    const double dedu0   = - M/(u0*u0*u0*v + abs_err);
+    const double dedu0   = - M/std::max(abs_err, u0*u0*u0*v);
     const double drhodu0 = - J0/(u0*u0);
 
     const double pressure = eos.get_pressure(epsilon, rho);
     const double dPde     = eos.get_dpde(epsilon, rho);
     const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
 
-    const double temp1 = (T00 + pressure)*(T00 + pressure) - K00;
+    const double temp1 = std::max(abs_err,
+                                  (T00 + pressure)*(T00 + pressure) - K00);
     const double denorm1 = sqrt(temp1);
     const double temp = (T00 + pressure)/denorm1;
 

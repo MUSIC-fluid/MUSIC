@@ -31,10 +31,10 @@ class Minmod {
         const double diffup   = (up1 - u)*theta_flux;
         const double diffdown = (u - um1)*theta_flux;
         const double diffmid  = (up1 - um1)*0.5;
-	if(diffup==0.)
-	  return 0.;
-	else
-	  return diffup*std::max(0., std::min(1.,std::min(diffdown/diffup, diffmid/diffup)));
+    if (diffup == 0.)
+        return 0.;
+    else
+        return diffup*std::max(0., std::min(1.,std::min(diffdown/diffup, diffmid/diffup)));
     }/* minmod_dx */
 
 };
