@@ -84,6 +84,10 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
     GridPointer ap_current(&arena_current, closer);
     GridPointer ap_future (&arena_future, closer);
 
+    Fields* fpPrev = &arenaFieldsPrev;
+    Fields* fpCurr = &arenaFieldsCurr;
+    Fields* fpNext = &arenaFieldsNext;
+
     SCGrid arena_freezeout_prev(arena_current.nX(),
                                 arena_current.nY(),
                                 arena_current.nEta());
@@ -256,7 +260,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
         /* execute rk steps */
         // all the evolution are at here !!!
-        AdvanceRK(tau, ap_prev, ap_current, ap_future);
+        AdvanceRK(tau, ap_prev, ap_current, ap_future,
+                  fpPrev, fpCurr, fpNext);
 
         music_message << emoji::clock()
                       << " Done time step " << it << "/" << itmax
@@ -306,19 +311,30 @@ void Evolve::store_previous_step_for_freezeout(SCGrid &arena_current,
     }
 }
 
-void Evolve::AdvanceRK(double tau, GridPointer &arena_prev, GridPointer &arena_current, GridPointer &arena_future) {
+void Evolve::AdvanceRK(double tau, GridPointer &arena_prev,
+                       GridPointer &arena_current, GridPointer &arena_future,
+                       Fields* fpPrev, Fields* fpCurr, Fields* fpNext) {
     // control function for Runge-Kutta evolution in tau
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
         advance.AdvanceIt(tau, *arena_prev, *arena_current, *arena_future,
-                          rk_flag);
+                          *fpPrev, *fpCurr, *fpNext, rk_flag);
         if (rk_flag == 0) {
             auto temp     = std::move(arena_prev);
             arena_prev    = std::move(arena_current);
             arena_current = std::move(arena_future);
             arena_future  = std::move(temp);
+
+            Fields* temp2 = fpPrev;
+            fpPrev = fpCurr;
+            fpCurr = fpNext;
+            fpNext = temp2;
         } else {
             std::swap(arena_current, arena_future);
+
+            Fields* temp = fpCurr;
+            fpCurr = fpNext;
+            fpNext = temp;
         }
     }  /* loop over rk_flag */
 }

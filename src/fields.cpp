@@ -51,3 +51,23 @@ Cell_small Fields::getCell(int ix, int iy, int ieta) {
     return(cell);
 }
 
+
+ReconstCell Fields::getCellIdeal(const int idx) {
+    ReconstCell cell;
+    cell.e = e_[idx];
+    cell.rhob = rhob_[idx];
+    for (int i = 0; i < Nu_; i++) {
+        cell.u[i] = u_[i][idx];
+    }
+    return(cell);
+}
+
+
+ReconstCell Fields::getCellIdeal(int ix, int iy, int ieta) {
+    ix   = std::max(0, std::min(Nx_-1  , ix  ));
+    iy   = std::max(0, std::min(Ny_-1  , iy  ));
+    ieta = std::max(0, std::min(Neta_-1, ieta));
+    int fieldIdx = getFieldIdx(ix, iy, ieta);
+    return(getCellIdeal(fieldIdx));
+}
+

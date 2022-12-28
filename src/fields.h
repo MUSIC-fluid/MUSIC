@@ -4,6 +4,7 @@
 
 #include <vector>
 #include "cell.h"
+#include "data_struct.h"
 
 class Fields {
  private:
@@ -39,6 +40,40 @@ class Fields {
     }
 
     Cell_small getCell(int ix, int iy, int ieta);
+
+    ReconstCell getCellIdeal(const int idx);
+    ReconstCell getCellIdeal(int ix, int iy, int ieta);
 };
+
+
+template<class Func>
+void FieldNeighbourLoopIdeal(Fields &arena, int cx, int cy, int ceta,
+                             Func func) {
+    const std::array<int, 6> dx   = {-1, 1,  0, 0,  0, 0};
+    const std::array<int, 6> dy   = { 0, 0, -1, 1,  0, 0};
+    const std::array<int, 6> deta = { 0, 0,  0, 0, -1, 1};
+    for(int dir = 0; dir < 3; dir++) {
+        int m1nx   = dx  [2*dir];
+        int m1ny   = dy  [2*dir];
+        int m1neta = deta[2*dir];
+        int p1nx   = dx  [2*dir+1];
+        int p1ny   = dy  [2*dir+1];
+        int p1neta = deta[2*dir+1];
+        int m2nx   = 2*m1nx;
+        int m2ny   = 2*m1ny;
+        int m2neta = 2*m1neta;
+        int p2nx   = 2*p1nx;
+        int p2ny   = 2*p1ny;
+        int p2neta = 2*p1neta;
+              auto  c = arena.getCellIdeal(cx,      cy,      ceta       );
+        const auto p1 = arena.getCellIdeal(cx+p1nx, cy+p1ny, ceta+p1neta);
+        const auto p2 = arena.getCellIdeal(cx+p2nx, cy+p2ny, ceta+p2neta);
+        const auto m1 = arena.getCellIdeal(cx+m1nx, cy+m1ny, ceta+m1neta);
+        const auto m2 = arena.getCellIdeal(cx+m2nx, cy+m2ny, ceta+m2neta);
+        func(c, p1, p2, m1, m2, dir+1);
+    }
+}
+
+#define FNLILAMBDAS [&](ReconstCell& c, const ReconstCell& p1, const ReconstCell& p2, const ReconstCell& m1, const ReconstCell& m2, const int direction)
 
 #endif

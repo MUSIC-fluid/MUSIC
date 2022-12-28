@@ -6,6 +6,7 @@
 #include "data.h"
 #include "cell.h"
 #include "grid.h"
+#include "fields.h"
 #include "dissipative.h"
 #include "minmod.h"
 #include "u_derivative.h"
@@ -32,13 +33,18 @@ class Advance {
 
     void AdvanceIt(const double tau_init,
                    SCGrid &arena_prev, SCGrid &arena_current,
-                   SCGrid &arena_future, const int rk_flag);
+                   SCGrid &arena_future,
+                   Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+                   Fields &arenaFieldsNext,
+                   const int rk_flag);
 
     void FirstRKStepT(const double tau, const double x_local,
                       const double y_local, const double eta_s_local,
                       SCGrid &arena_current, SCGrid &arena_future,
                       SCGrid &arena_prev, const int ix, const int iy,
-                      const int ieta, const int rk_flag);
+                      const int ieta, const int rk_flag,
+                      const int fieldIdx, Fields &arenaFieldsCurr,
+                      Fields &arenaFieldsNext, Fields &arenaFieldsPrev);
 
     void FirstRKStepW(const double tau_it, SCGrid &arena_prev,
                       SCGrid &arena_current, SCGrid &arena_future,
@@ -58,11 +64,14 @@ class Advance {
     void MakeDeltaQI(const double tau, SCGrid &arena_current,
                      const int ix, const int iy, const int ieta, TJbVec &qi,
                      const int rk_flag);
+    void MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
+                     const int fieldIdx,
+                     const int ix, const int iy, const int ieta, TJbVec &qi,
+                     const int rk_flag);
     double MaxSpeed(const double tau, const int direc,
                     const ReconstCell &grid_p);
 
-    double get_TJb(const ReconstCell &grid_p, const int rk_flag,
-                   const int mu, const int nu);
+    double get_TJb(const ReconstCell &grid_p, const int mu, const int nu);
     double get_TJb(const Cell_small &grid_p, const int mu, const int nu);
 };
 

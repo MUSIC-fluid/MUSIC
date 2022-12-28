@@ -31,6 +31,8 @@ class Reconst {
 
     ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,
                                 const Cell_small &grid_pt);
+    ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,
+                                const ReconstCell &grid_pt);
 
     int get_max_iter() const {return(max_iter);}
     int get_echo_level() const {return(echo_level);}
@@ -39,9 +41,13 @@ class Reconst {
 
     void revert_grid(ReconstCell &grid_current,
                      const Cell_small &grid_prev) const;
+    void revert_grid(ReconstCell &grid_current,
+                     const ReconstCell &grid_prev) const;
 
     int ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
                                   const TJbVec &q, const Cell_small &grid_pt);
+    int ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
+                                  const TJbVec &q, const ReconstCell &grid_pt);
 
     void reconst_velocity_fdf(const double v, const double T00, const double M,
                               const double J0, double &fv, double &dfdv) const;

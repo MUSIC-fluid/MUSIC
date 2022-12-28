@@ -44,7 +44,10 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
 //! this function evolves one Runge-Kutta step in tau
 void Advance::AdvanceIt(const double tau,
                         SCGrid &arena_prev, SCGrid &arena_current,
-                        SCGrid &arena_future, const int rk_flag) {
+                        SCGrid &arena_future,
+                        Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+                        Fields &arenaFieldsNext,
+                        const int rk_flag) {
     const int grid_neta = arena_current.nEta();
     const int grid_nx   = arena_current.nX();
     const int grid_ny   = arena_current.nY();
@@ -53,13 +56,17 @@ void Advance::AdvanceIt(const double tau,
     for (int ieta = 0; ieta < grid_neta; ieta++)
     for (int ix   = 0; ix   < grid_nx;   ix++  )
     for (int iy   = 0; iy   < grid_ny;   iy++  ) {
+        int fieldIdx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+
         double eta_s_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
         double x_local     = - DATA.x_size  /2. +   ix*DATA.delta_x;
         double y_local     = - DATA.y_size  /2. +   iy*DATA.delta_y;
 
         FirstRKStepT(tau, x_local, y_local, eta_s_local,
                      arena_current, arena_future, arena_prev,
-                     ix, iy, ieta, rk_flag);
+                     ix, iy, ieta, rk_flag,
+                     fieldIdx, arenaFieldsCurr, arenaFieldsNext,
+                     arenaFieldsPrev);
 
         if (DATA.viscosity_flag == 1) {
             U_derivative u_derivative_helper(DATA, eos);
@@ -95,7 +102,9 @@ void Advance::FirstRKStepT(
         const double tau, const double x_local, const double y_local,
         const double eta_s_local,
         SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev,
-        const int ix, const int iy, const int ieta, const int rk_flag) {
+        const int ix, const int iy, const int ieta, const int rk_flag,
+        const int fieldIdx, Fields &arenaFieldsCurr,
+        Fields &arenaFieldsNext, Fields &arenaFieldsPrev) {
     // this advances the ideal part
     double tau_rk = tau + rk_flag*(DATA.delta_tau);
 
@@ -104,11 +113,12 @@ void Advance::FirstRKStepT(
     // MakeDelatQI gets
     //   qi = q0 if rk_flag = 0 or
     //   qi = q0 + k1 if rk_flag = 1
-    // rhs[alpha] is what MakeDeltaQI outputs. 
+    // rhs[alpha] is what MakeDeltaQI outputs.
     // It is the spatial derivative part of partial_a T^{a mu}
     // (including geometric terms)
     TJbVec qi = {0};
     MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
+    MakeDeltaQI(tau_rk, arenaFieldsCurr, fieldIdx, ix, iy, ieta, qi, rk_flag);
 
     TJbVec qi_source = {0.0};
 
@@ -163,7 +173,7 @@ void Advance::FirstRKStepT(
 
     double tau_next = tau + DATA.delta_tau;
     auto grid_rk_t = reconst_helper.ReconstIt_shell(
-                                tau_next, qi, arena_current(ix, iy, ieta)); 
+                                tau_next, qi, arena_current(ix, iy, ieta));
     UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
 }
 
@@ -509,12 +519,113 @@ void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
         double aimh = std::max(aimhL, aimhR);
 
         for (int alpha = 0; alpha < 5; alpha++) {
-            double FiphL = get_TJb(grid_phL, 0, alpha, direction)*tau_fac[direction];
-            double FiphR = get_TJb(grid_phR, 0, alpha, direction)*tau_fac[direction];
-            double FimhL = get_TJb(grid_mhL, 0, alpha, direction)*tau_fac[direction];
-            double FimhR = get_TJb(grid_mhR, 0, alpha, direction)*tau_fac[direction];
+            double FiphL = get_TJb(grid_phL, alpha, direction)*tau_fac[direction];
+            double FiphR = get_TJb(grid_phR, alpha, direction)*tau_fac[direction];
+            double FimhL = get_TJb(grid_mhL, alpha, direction)*tau_fac[direction];
+            double FimhR = get_TJb(grid_mhR, alpha, direction)*tau_fac[direction];
 
-            // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2})/2
+            // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2}))/2
+            //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
+            double Fiph = 0.5*((FiphL + FiphR)
+                               - aiph*(qiphR[alpha] - qiphL[alpha]));
+            double Fimh = 0.5*((FimhL + FimhR)
+                               - aimh*(qimhR[alpha] - qimhL[alpha]));
+            if (direction == 3 && (alpha == 0 || alpha == 3)) {
+                T_eta_m[alpha] = Fimh;
+                T_eta_p[alpha] = Fiph;
+            } else {
+                double DFmmp = (Fimh - Fiph)/delta[direction];
+                rhs[alpha] += DFmmp*(DATA.delta_tau);
+            }
+        }
+    });
+
+    // add longitudinal flux with discretized geometric terms
+    double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+    double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+    sinh_deta = std::max(0.5, sinh_deta);
+    if (DATA.boost_invariant) {
+        // if the simulation is boost-invariant,
+        // we directly use the limiting value at \Delta eta = 0
+        // Longitudinal derivatives should be 0, we set cosh_eta = 0 here
+        cosh_deta = 0.0;
+        sinh_deta = 0.5;
+    }
+    rhs[0] += ((  (T_eta_m[0] - T_eta_p[0])*cosh_deta
+                - (T_eta_m[3] + T_eta_p[3])*sinh_deta)*DATA.delta_tau);
+    rhs[3] += ((  (T_eta_m[3] - T_eta_p[3])*cosh_deta
+                - (T_eta_m[0] + T_eta_p[0])*sinh_deta)*DATA.delta_tau);
+
+    // geometric terms
+    //rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
+    //rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
+
+    for (int i = 0; i < 5; i++) {
+        qi[i] += rhs[i];
+    }
+}
+
+
+void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
+                          const int fieldIdx,
+                          const int ix, const int iy, const int ieta,
+                          TJbVec &qi, const int rk_flag) {
+    const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
+    const double tau_fac[4] = {0.0, tau, tau, 1.0};
+
+    auto cellCurr = arenaFieldsCurr.getCellIdeal(fieldIdx);
+    for (int alpha = 0; alpha < 5; alpha++) {
+        qi[alpha] = get_TJb(cellCurr, alpha, 0)*tau;
+    }
+
+    TJbVec qiphL   = {0.};
+    TJbVec qiphR   = {0.};
+    TJbVec qimhL   = {0.};
+    TJbVec qimhR   = {0.};
+
+    TJbVec rhs     = {0.};
+    EnergyFlowVec T_eta_m = {0.};
+    EnergyFlowVec T_eta_p = {0.};
+    FieldNeighbourLoopIdeal(arenaFieldsCurr, ix, iy, ieta, FNLILAMBDAS{
+        for (int alpha = 0; alpha < 5; alpha++) {
+            const double gphL = qi[alpha];
+            const double gphR = tau*get_TJb(p1, alpha, 0);
+            const double gmhL = tau*get_TJb(m1, alpha, 0);
+            const double gmhR = qi[alpha];
+            const double fphL =  0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
+            const double fphR = -0.5*minmod.minmod_dx(
+                                tau*get_TJb(p2, alpha, 0), gphR, qi[alpha]);
+            const double fmhL =  0.5*minmod.minmod_dx(
+                                qi[alpha], gmhL, tau*get_TJb(m2, alpha, 0));
+            const double fmhR = -fphL;
+            qiphL[alpha] = gphL + fphL;
+            qiphR[alpha] = gphR + fphR;
+            qimhL[alpha] = gmhL + fmhL;
+            qimhR[alpha] = gmhR + fmhR;
+        }
+
+        // for each direction, reconstruct half-way cells
+        // reconstruct e, rhob, and u[4] for half way cells
+        auto grid_phL = reconst_helper.ReconstIt_shell(tau, qiphL, c);
+        auto grid_phR = reconst_helper.ReconstIt_shell(tau, qiphR, c);
+        auto grid_mhL = reconst_helper.ReconstIt_shell(tau, qimhL, c);
+        auto grid_mhR = reconst_helper.ReconstIt_shell(tau, qimhR, c);
+
+        double aiphL = MaxSpeed(tau, direction, grid_phL);
+        double aiphR = MaxSpeed(tau, direction, grid_phR);
+        double aimhL = MaxSpeed(tau, direction, grid_mhL);
+        double aimhR = MaxSpeed(tau, direction, grid_mhR);
+
+        double aiph = std::max(aiphL, aiphR);
+        double aimh = std::max(aimhL, aimhR);
+
+        for (int alpha = 0; alpha < 5; alpha++) {
+            double FiphL = get_TJb(grid_phL, alpha, direction)*tau_fac[direction];
+            double FiphR = get_TJb(grid_phR, alpha, direction)*tau_fac[direction];
+            double FimhL = get_TJb(grid_mhL, alpha, direction)*tau_fac[direction];
+            double FimhR = get_TJb(grid_mhR, alpha, direction)*tau_fac[direction];
+
+            // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2}))/2
             //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
             double Fiph = 0.5*((FiphL + FiphR)
                                - aiph*(qiphR[alpha] - qiphL[alpha]));
@@ -626,8 +737,7 @@ double Advance::MaxSpeed(const double tau, const int direc,
     return f;
 }
 
-double Advance::get_TJb(const ReconstCell &grid_p, const int rk_flag,
-                        const int mu, const int nu) {
+double Advance::get_TJb(const ReconstCell &grid_p, const int mu, const int nu) {
     assert(mu < 5); assert(mu > -1);
     assert(nu < 4); assert(nu > -1);
     double rhob = grid_p.rhob;
