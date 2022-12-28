@@ -856,7 +856,7 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
 //! This function prints to the screen the maximum local energy density,
 //! the maximum temperature in the current grid
 void Cell_info::get_maximum_energy_density(
-        SCGrid &arena, double &e_max, double &nB_max, double &Tmax) {
+        Fields &arena, double &e_max, double &nB_max, double &Tmax) {
     double eps_max  = 0.0;
     double rhob_max = 0.0;
     double T_max    = 0.0;
@@ -870,8 +870,9 @@ void Cell_info::get_maximum_energy_density(
     for (int ieta = 0; ieta < neta; ieta++)
     for (int ix = 0; ix < nx; ix++) 
     for (int iy = 0; iy < ny; iy++) {
-        const auto eps_local  = arena(ix, iy, ieta).epsilon;
-        const auto rhob_local = arena(ix, iy, ieta).rhob;
+        int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+        const auto eps_local  = arena.e_[fieldIdx];
+        const auto rhob_local = arena.rhob_[fieldIdx];
         eps_max  = std::max(eps_max,  eps_local );
         rhob_max = std::max(rhob_max, rhob_local);
         T_max    = std::max(T_max,    eos.get_temperature(eps_local, rhob_local));
@@ -1121,7 +1122,8 @@ void Cell_info::check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
 
 
 //! This function putputs files to check with Gubser flow solution
-void Cell_info::Gubser_flow_check_file(SCGrid &arena, const double tau) {
+//void Cell_info::Gubser_flow_check_file(SCGrid &arena, const double tau) {
+void Cell_info::Gubser_flow_check_file(Fields &arena, const double tau) {
     if (tau > 1.) {
         ostringstream filename_analytic;
         filename_analytic << "tests/Gubser_flow/y=x_tau="
@@ -1155,26 +1157,27 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, const double tau) {
         double piyy_sum  = 0.0;
         double pizz_sum  = 0.0;
         for (int i = 0; i < arena.nX(); i++) {
-            double e_local = arena(i,i,0).epsilon;
+            int fieldIdx = arena.getFieldIdx(i, i, 0);
+            double e_local = arena.e_[fieldIdx];
             double T_local = (
                     eos.get_temperature(e_local, 0.0)*Util::hbarc);
             T_diff += fabs(T_analytic[i] - T_local);
             T_sum += fabs(T_analytic[i]);
-            ux_diff += fabs(ux_analytic[i] - arena(i,i,0).u[1]);
+            ux_diff += fabs(ux_analytic[i] - arena.u_[1][fieldIdx]);
             ux_sum += fabs(ux_analytic[i]);
-            uy_diff += fabs(uy_analytic[i] - arena(i,i,0).u[2]);
+            uy_diff += fabs(uy_analytic[i] - arena.u_[2][fieldIdx]);
             uy_sum += fabs(uy_analytic[i]);
             pixx_diff += (fabs(pixx_analytic[i]
-                               - arena(i,i,0).Wmunu[4]*Util::hbarc));
+                               - arena.Wmunu_[4][fieldIdx]*Util::hbarc));
             pixx_sum += fabs(pixx_analytic[i]);
             pixy_diff += (fabs(pixx_analytic[i]
-                               - arena(i,i,0).Wmunu[5]*Util::hbarc));
+                               - arena.Wmunu_[5][fieldIdx]*Util::hbarc));
             pixy_sum += fabs(pixx_analytic[i]);
             piyy_diff += (fabs(piyy_analytic[i]
-                               - arena(i,i,0).Wmunu[7]*Util::hbarc));
+                               - arena.Wmunu_[7][fieldIdx]*Util::hbarc));
             piyy_sum += fabs(piyy_analytic[i]);
             pizz_diff += (fabs(pizz_analytic[i]
-                               - arena(i,i,0).Wmunu[9]*Util::hbarc));
+                               - arena.Wmunu_[9][fieldIdx]*Util::hbarc));
             pizz_sum += fabs(pizz_analytic[i]);
         }
         music_message << "Autocheck: T_diff = " << T_diff/T_sum
@@ -1199,19 +1202,20 @@ void Cell_info::Gubser_flow_check_file(SCGrid &arena, const double tau) {
     for (int iy = 0; iy < arena.nY(); iy++) {
         double x_local = x_min + ix*dx;
         double y_local = y_min + iy*dy;
-        double e_local = arena(ix,iy,0).epsilon;
-        double rhob_local = arena(ix,iy,0).rhob;
+        int fieldIdx = arena.getFieldIdx(ix, iy, 0);
+        double e_local = arena.e_[fieldIdx];
+        double rhob_local = arena.rhob_[fieldIdx];
         double T_local = eos.get_temperature(e_local, 0.0);
         output_file << scientific << setprecision(8) << setw(18)
                     << x_local << "  " << y_local << "  "
                     << e_local*Util::hbarc << "  " << rhob_local << "  "
                     << T_local*Util::hbarc << "  "
-                    << arena(ix,iy,0).u[1] << "  "
-                    << arena(ix,iy,0).u[2] << "  "
-                    << arena(ix,iy,0).Wmunu[4]*Util::hbarc << "  "
-                    << arena(ix,iy,0).Wmunu[7]*Util::hbarc << "  "
-                    << arena(ix,iy,0).Wmunu[5]*Util::hbarc << "  "
-                    << arena(ix,iy,0).Wmunu[9]*Util::hbarc << "  "
+                    << arena.u_[1][fieldIdx] << "  "
+                    << arena.u_[2][fieldIdx] << "  "
+                    << arena.Wmunu_[4][fieldIdx]*Util::hbarc << "  "
+                    << arena.Wmunu_[7][fieldIdx]*Util::hbarc << "  "
+                    << arena.Wmunu_[5][fieldIdx]*Util::hbarc << "  "
+                    << arena.Wmunu_[9][fieldIdx]*Util::hbarc << "  "
                     << endl;
     }
     output_file.close();

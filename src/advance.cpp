@@ -117,14 +117,15 @@ void Advance::FirstRKStepT(
     // It is the spatial derivative part of partial_a T^{a mu}
     // (including geometric terms)
     TJbVec qi = {0};
-    MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
+    //MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
     MakeDeltaQI(tau_rk, arenaFieldsCurr, fieldIdx, ix, iy, ieta, qi, rk_flag);
 
     TJbVec qi_source = {0.0};
 
     if (flag_add_hydro_source) {
         EnergyFlowVec j_mu = {0};
-        FlowVec u_local = arena_current(ix,iy,ieta).u;
+        //FlowVec u_local = arena_current(ix,iy,ieta).u;
+        FlowVec u_local;
         for (int ii = 0; ii < 4; ii++)
             u_local[ii] = arenaFieldsCurr.u_[ii][fieldIdx];
 

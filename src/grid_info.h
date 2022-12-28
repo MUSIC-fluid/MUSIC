@@ -11,6 +11,7 @@
 #include "data_struct.h"
 #include "eos.h"
 #include "cell.h"
+#include "fields.h"
 #include "grid.h"
 #include "u_derivative.h"
 #include "pretty_ostream.h"
@@ -82,7 +83,8 @@ class Cell_info {
                                                  const double tau) const;
 
     //! This function outputs files to check with Gubser flow solution
-    void Gubser_flow_check_file(SCGrid &arena, const double tau);
+    //void Gubser_flow_check_file(SCGrid &arena, const double tau);
+    void Gubser_flow_check_file(Fields &arena, const double tau);
 
     //! This function outputs files to cross check with 1+1D simulation
     void output_1p1D_check_file(SCGrid &arena, const double tau);
@@ -90,7 +92,7 @@ class Cell_info {
     //! This function prints to the screen the maximum local energy density,
     //! the maximum temperature in the current grid
     void get_maximum_energy_density(
-        SCGrid &arena, double &e_max, double &nB_max, double &Tmax);
+        Fields &arena, double &e_max, double &nB_max, double &Tmax);
 
     //! This function outputs energy density and n_b for making movies
     void output_evolution_for_movie(SCGrid &arena, const double tau);

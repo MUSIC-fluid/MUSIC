@@ -114,7 +114,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
                 || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
                 || fabs(tau - 3.0) < 1e-8) {
-                grid_info.Gubser_flow_check_file(*ap_current, tau);
+                //grid_info.Gubser_flow_check_file(*ap_current, tau);
+                grid_info.Gubser_flow_check_file(*fpCurr, tau);
             }
         } else if (DATA.Initial_profile == 1) {
             if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
@@ -208,7 +209,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         double emax_loc = 0.;
         double Tmax_curr = 0.;
         double nB_max_curr = 0.;
-        grid_info.get_maximum_energy_density(*ap_current, emax_loc,
+        grid_info.get_maximum_energy_density(*fpCurr, emax_loc,
                                              nB_max_curr, Tmax_curr);
         if (tau > source_tau_max + dt && it > iFreezeStart) {
             if (eps_max_cur < 0.) {
@@ -313,7 +314,7 @@ void Evolve::store_previous_step_for_freezeout(SCGrid &arena_current,
 
 void Evolve::AdvanceRK(double tau, GridPointer &arena_prev,
                        GridPointer &arena_current, GridPointer &arena_future,
-                       Fields* fpPrev, Fields* fpCurr, Fields* fpNext) {
+                       Fields* &fpPrev, Fields* &fpCurr, Fields* &fpNext) {
     // control function for Runge-Kutta evolution in tau
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {

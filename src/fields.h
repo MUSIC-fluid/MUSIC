@@ -33,6 +33,10 @@ class Fields {
 
     ~Fields();
 
+    int nX() const {return(Nx_);}
+    int nY() const {return(Ny_);}
+    int nEta() const {return(Neta_);}
+
     void resizeFields(int Nx, int Ny, int Neta);
 
     int getFieldIdx(int ix, int iy, int ieta) {
