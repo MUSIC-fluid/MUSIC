@@ -125,6 +125,8 @@ void Advance::FirstRKStepT(
     if (flag_add_hydro_source) {
         EnergyFlowVec j_mu = {0};
         FlowVec u_local = arena_current(ix,iy,ieta).u;
+        for (int ii = 0; ii < 4; ii++)
+            u_local[ii] = arenaFieldsCurr.u_[ii][fieldIdx];
 
         hydro_source_terms_ptr->get_hydro_energy_source(
                     tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
@@ -148,7 +150,7 @@ void Advance::FirstRKStepT(
     // (including geometric terms)
     TJbVec dwmn ={0.0};
     diss_helper.MakeWSource(tau_rk, arena_current, arena_prev, ix, iy, ieta,
-                            dwmn);
+                            dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
     for (int alpha = 0; alpha < 5; alpha++) {
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn[alpha]*(DATA.delta_tau);
@@ -167,14 +169,23 @@ void Advance::FirstRKStepT(
 
         /* if rk_flag > 0, we now have q0 + k1 + k2. 
          * So add q0 and multiply by 1/2 */
-        qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
+        //qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
+        qi[alpha] += rk_flag*get_TJb(
+                arenaFieldsPrev.getCellIdeal(fieldIdx), alpha, 0)*tau;
         qi[alpha] *= 1./(1. + rk_flag);
     }
 
     double tau_next = tau + DATA.delta_tau;
+    //auto grid_rk_t = reconst_helper.ReconstIt_shell(
+    //                            tau_next, qi, arena_current(ix, iy, ieta));
     auto grid_rk_t = reconst_helper.ReconstIt_shell(
-                                tau_next, qi, arena_current(ix, iy, ieta));
-    UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
+                        tau_next, qi, arenaFieldsCurr.getCellIdeal(fieldIdx));
+    //UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
+    arenaFieldsNext.e_[fieldIdx] = grid_rk_t.e;
+    arenaFieldsNext.rhob_[fieldIdx] = grid_rk_t.rhob;
+    for (int ii = 0; ii < 4; ii++) {
+        arenaFieldsNext.u_[ii][fieldIdx] = grid_rk_t.u[ii];
+    }
 }
 
 

@@ -28,10 +28,15 @@ to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
 void Diss::MakeWSource(const double tau,
                        SCGrid &arena_current, SCGrid &arena_prev,
                        const int ix, const int iy, const int ieta,
-                       TJbVec &dwmn) {
+                       TJbVec &dwmn,
+                       Fields &arenaFieldsCurr, Fields &arenaFieldsPrev,
+                       const int fieldIdx) {
     /* calculate d_m (tau W^{m,alpha}) + (geom source terms) */
-    const auto& grid_pt      = arena_current(ix, iy, ieta);
-    const auto& grid_pt_prev = arena_prev(ix, iy, ieta);
+    //const auto& grid_pt      = arena_current(ix, iy, ieta);
+    //const auto& grid_pt_prev = arena_prev(ix, iy, ieta);
+    const auto& grid_pt      = arenaFieldsCurr.getCell(fieldIdx);
+    const auto& grid_pt_prev = arenaFieldsPrev.getCell(fieldIdx);
+
 
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y,
                                DATA.delta_eta};
@@ -69,7 +74,8 @@ void Diss::MakeWSource(const double tau,
 
         double dWdx  = 0.0;  // partial_i (tau W^{i \alpha})
         double dPidx = 0.0;  // partial_i (tau Pi^{i \alpha})
-        Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
+        //Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
+        FieldNeighbourLoop1(arenaFieldsCurr, ix, iy, ieta, FNLLAMBDAS1{
             int idx_1d  = map_2d_idx_to_1d(alpha, direction);
             double sg   = c.Wmunu[idx_1d]*tau_fac[direction];
             double sgp1 = p1.Wmunu[idx_1d]*tau_fac[direction];

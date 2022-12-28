@@ -7,6 +7,7 @@
 #include "cell.h"
 #include "grid.h"
 #include "data.h"
+#include "fields.h"
 #include "transport_coeffs.h"
 #include "minmod.h"
 #include "pretty_ostream.h"
@@ -33,7 +34,9 @@ class Diss {
     void MakeWSource(const double tau,
                      SCGrid &arena_current, SCGrid &arena_prev,
                      const int ix, const int iy, const int ieta,
-                     TJbVec &dwmn);
+                     TJbVec &dwmn,
+                     Fields &arenaFieldsCurr, Fields &arenaFieldsPrev,
+                     const int fieldIdx);
 
     double Make_uWSource(const double tau, const Cell_small *grid_pt,
                          const Cell_small *grid_pt_prev,

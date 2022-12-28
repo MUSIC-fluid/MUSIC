@@ -37,7 +37,15 @@ void Fields::resizeFields(int Nx, int Ny, int Neta) {
 
 
 Cell_small Fields::getCell(int ix, int iy, int ieta) {
-    int idx = getFieldIdx(ix, iy, ieta);
+    ix   = std::max(0, std::min(Nx_-1  , ix  ));
+    iy   = std::max(0, std::min(Ny_-1  , iy  ));
+    ieta = std::max(0, std::min(Neta_-1, ieta));
+    int fieldIdx = getFieldIdx(ix, iy, ieta);
+    return(getCell(fieldIdx));
+}
+
+
+Cell_small Fields::getCell(const int idx) {
     Cell_small cell;
     cell.epsilon = e_[idx];
     cell.rhob = rhob_[idx];
