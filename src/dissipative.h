@@ -49,8 +49,17 @@ class Diss {
                    const int ix, const int iy, const int ieta,
                    const int mu, const int nu, double &w_rhs,
                    const double theta_local, const DumuVec &a_local);
+    int Make_uWRHS(const double tau, Fields &arena,
+                   const int fieldIdx,
+                   const int ix, const int iy, const int ieta,
+                   const int mu, const int nu, double &w_rhs,
+                   const double theta_local, const DumuVec &a_local);
 
     int Make_uPRHS(const double tau, SCGrid &arena,
+                   const int ix, const int iy, const int ieta,
+                   double *p_rhs, const double theta_local);
+    int Make_uPRHS(const double tau, Fields &arena,
+                   const int fieldIdx,
                    const int ix, const int iy, const int ieta,
                    double *p_rhs, const double theta_local);
 
@@ -60,6 +69,10 @@ class Diss {
                           const VelocityShearVec &sigma_1d);
 
     double Make_uqRHS(const double tau, SCGrid &arena_current,
+                      const int ix, const int iy, const int ieta,
+                      const int mu, const int nu);
+    double Make_uqRHS(const double tau, Fields &arena_current,
+                      const int fieldIdx,
                       const int ix, const int iy, const int ieta,
                       const int mu, const int nu);
 

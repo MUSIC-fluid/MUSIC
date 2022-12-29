@@ -54,6 +54,15 @@ class Advance {
                       const VorticityVec &omega_local,
                       const DmuMuBoverTVec &baryon_diffusion_vector,
                       const int ieta, const int ix, const int iy);
+    void FirstRKStepW(const double tau_it, Fields &arenaFieldsPrev,
+                      Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
+                      const int rk_flag, const double theta_local,
+                      const DumuVec &a_local,
+                      const VelocityShearVec &sigma_local,
+                      const VorticityVec &omega_local,
+                      const DmuMuBoverTVec &baryon_diffusion_vector,
+                      const int ieta, const int ix, const int iy,
+                      const int fieldIdx);
 
     void UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt);
     void QuestRevert(const double tau, Cell_small *grid_pt,

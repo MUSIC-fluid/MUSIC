@@ -495,6 +495,132 @@ int Diss::Make_uWRHS(const double tau, SCGrid &arena,
                  + (theta_local*Wmunu_local[mu][nu]))*(DATA.delta_tau));
     return(1);
 }
+int Diss::Make_uWRHS(const double tau, Fields &arena,
+                     const int fieldIdx,
+                     const int ix, const int iy, const int ieta,
+                     const int mu, const int nu, double &w_rhs,
+                     const double theta_local, const DumuVec &a_local) {
+
+    auto grid_pt = arena.getCell(fieldIdx);
+
+    w_rhs = 0.;
+
+    auto Wmunu_local = Util::UnpackVecToMatrix(grid_pt.Wmunu);
+
+    /* Kurganov-Tadmor for Wmunu */
+    /* implement 
+       partial_tau (utau Wmn) + (1/tau)partial_eta (ueta Wmn) 
+       + partial_x (ux Wmn) + partial_y (uy Wmn) + utau Wmn/tau = SW 
+       or the right hand side of,
+       partial_tau (utau Wmn) = 
+                        - (1/tau)partial_eta (ueta Wmn)
+                        - partial_x (ux Wmn) - partial_y (uy Wmn) 
+                        - utau Wmn/tau + SW*/
+
+    /* the local velocity is just u_x/u_tau, u_y/u_tau, u_eta/tau/u_tau */
+    /* KT flux is given by 
+       H_{j+1/2} = (fRph + fLph)/2 - ax(uRph - uLph) 
+       Here fRph = ux WmnRph and ax uRph = |ux/utau|_max utau Wmn */
+    /* This is the second step in the operator splitting. it uses
+       rk_flag+1 as initial condition */
+    double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta*tau};
+
+    const double delta_tau = DATA.delta_tau;
+    int idx_1d = map_2d_idx_to_1d(mu, nu);
+
+    // pi^\mu\nu is symmetric
+    FieldNeighbourLoop2(arena, ix, iy, ieta, FNLLAMBDAS2{
+        double sum = 0.0;
+        /* Get_uWmns */
+        double g = c.Wmunu[idx_1d];
+        double f = g*c.u[direction];
+        g *=   c.u[0];
+
+        double gp2 = p2.Wmunu[idx_1d];
+        double fp2 = gp2*p2.u[direction];
+        gp2 *= p2.u[0];
+
+        double gp1 = p1.Wmunu[idx_1d];
+        double fp1 = gp1*p1.u[direction];
+        gp1 *= p1.u[0];
+
+        double gm1 = m1.Wmunu[idx_1d];
+        double fm1 = gm1*m1.u[direction];
+        gm1 *= m1.u[0];
+
+        double gm2 = m2.Wmunu[idx_1d];
+        double fm2 = gm2*m2.u[direction];
+        gm2 *= m2.u[0];
+
+        /* MakeuWmnHalfs */
+        /* uWmn */
+        double uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f);
+        double temp  = 0.5*minmod.minmod_dx(fp1, f, fm1);
+        double uWphL = f + temp;
+        double uWmhR = f - temp;
+        double uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
+
+        /* just Wmn */
+        double WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g);
+        temp        = 0.5*minmod.minmod_dx(gp1, g, gm1);
+        double WphL = g + temp;
+        double WmhR = g - temp;
+        double WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
+
+        double a   = std::abs( c.u[direction])/ c.u[0];
+        double am1 = std::abs(m1.u[direction])/m1.u[0];
+        double ap1 = std::abs(p1.u[direction])/p1.u[0];
+
+        double ax = std::max(a, ap1);
+        double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
+
+        ax = std::max(a, am1);
+        double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
+
+        double HW = (HWph - HWmh)/delta[direction];
+
+        /* make partial_i (u^i Wmn) */
+        sum += -HW;
+
+        w_rhs += sum*delta_tau;
+    });
+
+    /* add a source term -u^tau Wmn/tau
+       due to the coordinate change to tau-eta */
+    /* this is from udW = d(uW) - Wdu = RHS */
+    /* or d(uW) = udW + Wdu */
+    /* this term is being added to the rhs so that -4/3 + 1 = -1/3 */
+    /* other source terms due to the coordinate change to tau-eta */
+
+    // align gmunu in data for faster access - also changed **gmunu in data to gmunu[4][4]
+    // moved two sums into w_rhs at top and bottom into one sum in the end
+    // do not symmetrize in the end, just go through all nu's
+    // vectorized innermost loop more efficiently by iterating over 4 indices instead of 3 to avoid masking
+
+    double tempf = (
+          //   - (((init_data*)(&mydata))->gmunu[3][mu])*(Wmunu_local[0][nu]) //TODO: Ask Bjorn about this
+         - (DATA.gmunu[3][mu])*(Wmunu_local[0][nu])
+         - (DATA.gmunu[3][nu])*(Wmunu_local[0][mu])
+         + (DATA.gmunu[0][mu])*(Wmunu_local[3][nu])
+         + (DATA.gmunu[0][nu])*(Wmunu_local[3][mu])
+         + (Wmunu_local[3][nu])*(grid_pt.u[mu])*(grid_pt.u[0])
+         + (Wmunu_local[3][mu])*(grid_pt.u[nu])*(grid_pt.u[0])
+         - (Wmunu_local[0][nu])*(grid_pt.u[mu])*(grid_pt.u[3])
+         - (Wmunu_local[0][mu])*(grid_pt.u[nu])*(grid_pt.u[3]))
+         *(grid_pt.u[3]/tau);
+
+    for (int ic = 0; ic < 4; ic++) {
+        const double ic_fac = (ic == 0 ? -1.0 : 1.0);
+        tempf += (
+            (Wmunu_local[ic][nu])*(grid_pt.u[mu])*(a_local[ic])*ic_fac
+            + (Wmunu_local[ic][mu])*(grid_pt.u[nu])*(a_local[ic])*ic_fac);
+    }
+
+    w_rhs += (tempf*(DATA.delta_tau)
+              + (- (grid_pt.u[0]*Wmunu_local[mu][nu])/tau
+                 + (theta_local*Wmunu_local[mu][nu]))*(DATA.delta_tau));
+    return(1);
+}
 
 
 int Diss::Make_uPRHS(const double tau, SCGrid &arena,
@@ -593,10 +719,104 @@ int Diss::Make_uPRHS(const double tau, SCGrid &arena,
 
      return 1;
 }
+int Diss::Make_uPRHS(const double tau, Fields &arena,
+                     const int fieldIdx,
+                     const int ix, const int iy, const int ieta,
+                     double *p_rhs, const double theta_local) {
+
+    auto grid_pt = arena.getCell(fieldIdx);
+
+    /* Kurganov-Tadmor for Pi */
+    /* implement 
+      partial_tau (utau Pi) + (1/tau)partial_eta (ueta Pi) 
+      + partial_x (ux Pi) + partial_y (uy Pi) + utau Pi/tau = SP 
+      or the right hand side of
+      partial_tau (utau Pi) = -
+      (1/tau)partial_eta (ueta Pi) - partial_x (ux Pi) - partial_y (uy Pi)
+      - utau Pi/tau + SP 
+      */
+
+    /* the local velocity is just u_x/u_tau, u_y/u_tau, u_eta/tau/u_tau */
+    /* KT flux is given by 
+       H_{j+1/2} = (fRph + fLph)/2 - ax(uRph - uLph) 
+       Here fRph = ux PiRph and ax uRph = |ux/utau|_max utau Pin */
+
+    /* This is the second step in the operator splitting. it uses
+       rk_flag+1 as initial condition */
+
+    double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta*tau};
+
+    double sum = 0.0;
+    FieldNeighbourLoop2(arena, ix, iy, ieta, FNLLAMBDAS2{
+        /* Get_uPis */
+        double g = c.pi_b;
+        double f = g*c.u[direction];
+        g *= c.u[0];
+
+        double gp2 = p2.pi_b;
+        double fp2 = gp2*p2.u[direction];
+        gp2 *= p2.u[0];
+
+        double gp1 = p1.pi_b;
+        double fp1 = gp1*p1.u[direction];
+        gp1 *= p1.u[0];
+
+        double gm1 = m1.pi_b;
+        double fm1 = gm1*m1.u[direction];
+        gm1 *= m1.u[0];
+
+        double gm2 = m2.pi_b;
+        double fm2 = gm2*m2.u[direction];
+        gm2 *= m2.u[0];
+
+        /*  Make upi Halfs */
+        /* uPi */
+        double uPiphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f);
+        double temp = 0.5*minmod.minmod_dx(fp1, f, fm1);
+        double uPiphL = f + temp;
+        double uPimhR = f - temp;
+        double uPimhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
+
+        /* just Pi */
+        double PiphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g);
+        temp = 0.5*minmod.minmod_dx(gp1, g, gm1);
+        double PiphL = g + temp;
+        double PimhR = g - temp;
+        double PimhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
+
+        /* MakePimnCurrents following Kurganov-Tadmor */
+        double a = fabs(c.u[direction]);
+        a /= c.u[0];
+
+        double am1 = fabs(m1.u[direction]);
+        am1 /= m1.u[0];
+
+        double ap1 = fabs(p1.u[direction]);
+        ap1 /= p1.u[0];
+
+        double ax = std::max(a, ap1);
+        double HPiph = ((uPiphR + uPiphL) - ax*(PiphR - PiphL))*0.5;
+
+        ax = std::max(a, am1);
+        double HPimh = ((uPimhR + uPimhL) - ax*(PimhR - PimhL))*0.5;
+
+        double HPi = (HPiph - HPimh)/delta[direction];
+
+        /* make partial_i (u^i Pi) */
+        sum += -HPi;
+    });
+
+     /* add a source term due to the coordinate change to tau-eta */
+     sum -= (grid_pt.pi_b)*(grid_pt.u[0])/tau;
+     sum += (grid_pt.pi_b)*theta_local;
+     *p_rhs = sum*(DATA.delta_tau);
+
+     return 1;
+}
 
 
 double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
-                            const Cell_small *grid_pt_prev, 
+                            const Cell_small *grid_pt_prev,
                             const int rk_flag, const double theta_local,
                             const VelocityShearVec &sigma_1d) {
     double tempf;
@@ -912,6 +1132,96 @@ double Diss::Make_uqRHS(const double tau, SCGrid &arena,
         double gm2 = m2.Wmunu[idx_1d];
         double fm2 = gm2*m2.u[direction];
         gm2 *=     m2.u[0];
+
+        /*  MakeuWmnHalfs */
+        /* uWmn */
+        double uWphR = fp1 - 0.5*minmod.minmod_dx(fp2, fp1, f);
+        double temp = 0.5*minmod.minmod_dx(fp1, f, fm1);
+        double uWphL = f + temp;
+        double uWmhR = f - temp;
+        double uWmhL = fm1 + 0.5*minmod.minmod_dx(f, fm1, fm2);
+
+        /* just Wmn */
+        double WphR = gp1 - 0.5*minmod.minmod_dx(gp2, gp1, g);
+        temp = 0.5*minmod.minmod_dx(gp1, g, gm1);
+        double WphL = g + temp;
+        double WmhR = g - temp;
+        double WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
+
+        double a = fabs(c.u[direction])/c.u[0];
+
+        double am1 = (fabs(m1.u[direction])/m1.u[0]);
+        double ap1 = (fabs(p1.u[direction])/p1.u[0]);
+        double ax = std::max(a, ap1);
+        double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
+
+        ax = std::max(a, am1);
+        double HWmh = ((uWmhR + uWmhL) - ax*(WmhR - WmhL))*0.5;
+
+        double HW = (HWph - HWmh)/delta[direction];
+        /* make partial_i (u^i Wmn) */
+        sum += -HW;
+    });
+
+    /* add a source term -u^tau Wmn/tau due to the coordinate 
+     * change to tau-eta */
+    /* Sangyong Nov 18 2014: don't need this. included in the uqSource. */
+    /* this is from udW = d(uW) - Wdu = RHS */
+    /* or d(uW) = udW + Wdu */
+    /* 
+     * sum -= (grid_pt->u[rk_flag][0])*(grid_pt->Wmunu[rk_flag][mu][nu])/tau;
+     * sum += (grid_pt->theta_u[rk_flag])*(grid_pt->Wmunu[rk_flag][mu][nu]);
+    */  
+    return(sum*(DATA.delta_tau));
+}
+double Diss::Make_uqRHS(const double tau, Fields &arena,
+                        const int fieldIdx,
+                        const int ix, const int iy, const int ieta,
+                        const int mu, const int nu) {
+    /* Kurganov-Tadmor for q */
+    /* implement 
+      partial_tau (utau qmu) + (1/tau)partial_eta (ueta qmu) 
+      + partial_x (ux qmu) + partial_y (uy qmu) + utau qmu/tau = SW 
+    or the right hand side of,
+      partial_tau (utau qmu) = 
+      - (1/tau)partial_eta (ueta qmu) - partial_x (ux qmu) - partial_y (uy qmu) 
+      - utau qmu/tau 
+    */
+
+    /* the local velocity is just u_x/u_tau, u_y/u_tau, u_eta/tau/u_tau */
+    /* KT flux is given by 
+       H_{j+1/2} = (fRph + fLph)/2 - ax(uRph - uLph) 
+       Here fRph = ux WmnRph and ax uRph = |ux/utau|_max utau Wmn */
+
+    /* This is the second step in the operator splitting. it uses
+       rk_flag+1 as initial condition */
+
+    double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta*tau};
+
+    // we use the Wmunu[4][nu] = q[nu]
+    int idx_1d = map_2d_idx_to_1d(mu, nu);
+    double sum = 0.0;
+    FieldNeighbourLoop2(arena, ix, iy, ieta, FNLLAMBDAS2{
+        /* Get_uWmns */
+        double g = c.Wmunu[idx_1d];
+        double f = g*c.u[direction];
+        g *=   c.u[0];
+
+        double gp2 = p2.Wmunu[idx_1d];
+        double fp2 = gp2*p2.u[direction];
+        gp2 *= p2.u[0];
+
+        double gp1 = p1.Wmunu[idx_1d];
+        double fp1 = gp1*p1.u[direction];
+        gp1 *= p1.u[0];
+
+        double gm1 = m1.Wmunu[idx_1d];
+        double fm1 = gm1*m1.u[direction];
+        gm1 *= m1.u[0];
+
+        double gm2 = m2.Wmunu[idx_1d];
+        double fm2 = gm2*m2.u[direction];
+        gm2 *= m2.u[0];
 
         /*  MakeuWmnHalfs */
         /* uWmn */

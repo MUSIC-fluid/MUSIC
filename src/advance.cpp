@@ -70,28 +70,42 @@ void Advance::AdvanceIt(const double tau,
 
         if (DATA.viscosity_flag == 1) {
             U_derivative u_derivative_helper(DATA, eos);
-            u_derivative_helper.MakedU(tau, arena_prev, arena_current,
-                                       ix, iy, ieta);
+            //u_derivative_helper.MakedU(tau, arena_prev, arena_current,
+            //                           ix, iy, ieta);
+            u_derivative_helper.MakedU(tau, arenaFieldsPrev, arenaFieldsCurr,
+                                       fieldIdx, ix, iy, ieta);
+            //double theta_local = u_derivative_helper.calculate_expansion_rate(
+            //                                tau, arena_current, ieta, ix, iy);
             double theta_local = u_derivative_helper.calculate_expansion_rate(
-                                            tau, arena_current, ieta, ix, iy);
+                                            tau, arenaFieldsCurr, fieldIdx);
             DumuVec a_local;
-            u_derivative_helper.calculate_Du_supmu(tau, arena_current,
-                                                   ieta, ix, iy, a_local);
+            //u_derivative_helper.calculate_Du_supmu(tau, arena_current,
+            //                                       ieta, ix, iy, a_local);
+            u_derivative_helper.calculate_Du_supmu(tau, arenaFieldsCurr,
+                                                   fieldIdx, a_local);
 
             VelocityShearVec sigma_local;
+            //u_derivative_helper.calculate_velocity_shear_tensor(
+            //        tau, arena_current, ieta, ix, iy, a_local, sigma_local);
             u_derivative_helper.calculate_velocity_shear_tensor(
-                    tau, arena_current, ieta, ix, iy, a_local, sigma_local);
+                    tau, arenaFieldsCurr, fieldIdx, theta_local,
+                    a_local, sigma_local);
 
             VorticityVec omega_local;
+            //u_derivative_helper.calculate_kinetic_vorticity_with_spatial_projector(
+            //        tau, arena_current, ieta, ix, iy, a_local, omega_local);
             u_derivative_helper.calculate_kinetic_vorticity_with_spatial_projector(
-                    tau, arena_current, ieta, ix, iy, a_local, omega_local);
+                    tau, arenaFieldsCurr, fieldIdx, a_local, omega_local);
 
             DmuMuBoverTVec baryon_diffusion_vector;
             u_derivative_helper.get_DmuMuBoverTVec(baryon_diffusion_vector);
 
-            FirstRKStepW(tau, arena_prev, arena_current, arena_future, rk_flag,
-                         theta_local, a_local, sigma_local, omega_local,
-                         baryon_diffusion_vector, ieta, ix, iy);
+            //FirstRKStepW(tau, arena_prev, arena_current, arena_future, rk_flag,
+            //             theta_local, a_local, sigma_local, omega_local,
+            //             baryon_diffusion_vector, ieta, ix, iy);
+            FirstRKStepW(tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext,
+                         rk_flag,theta_local, a_local, sigma_local, omega_local,
+                         baryon_diffusion_vector, ieta, ix, iy, fieldIdx);
         }
     }
 }
@@ -267,6 +281,153 @@ void Advance::FirstRKStepW(const double tau, SCGrid &arena_prev,
             int nu = idx_1d - 10;
             double w_rhs = diss_helper.Make_uqRHS(
                         tau_now, arena_current, ix, iy, ieta, mu, nu);
+            tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
+                     + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
+            temps = diss_helper.Make_uqSource(
+                        tau_now, grid_pt_c, grid_pt_prev, nu, rk_flag,
+                        theta_local, a_local, sigma_local, omega_local,
+                        baryon_diffusion_vector);
+            tempf += temps*(DATA.delta_tau);
+            tempf += w_rhs;
+
+            tempf += rk_flag*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0]);
+            tempf *= 1./(1. + rk_flag);
+
+            grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
+        }
+    } else {
+        for (int idx_1d = 10; idx_1d < 14; idx_1d++) {
+            grid_pt_f->Wmunu[idx_1d] = 0.0;
+        }
+    }
+
+    // re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless
+    grid_pt_f->Wmunu[9] = (
+        (2.*(  grid_pt_f->u[1]*grid_pt_f->u[2]*grid_pt_f->Wmunu[5]
+             + grid_pt_f->u[1]*grid_pt_f->u[3]*grid_pt_f->Wmunu[6]
+             + grid_pt_f->u[2]*grid_pt_f->u[3]*grid_pt_f->Wmunu[8])
+         - (grid_pt_f->u[0]*grid_pt_f->u[0] - grid_pt_f->u[1]*grid_pt_f->u[1])
+           *grid_pt_f->Wmunu[4]
+         - (grid_pt_f->u[0]*grid_pt_f->u[0] - grid_pt_f->u[2]*grid_pt_f->u[2])
+           *grid_pt_f->Wmunu[7])
+        /(grid_pt_f->u[0]*grid_pt_f->u[0] - grid_pt_f->u[3]*grid_pt_f->u[3]));
+
+    // make Wmunu[i][0] using the transversality
+    for (int mu = 1; mu < 4; mu++) {
+        tempf = 0.0;
+        for (int nu = 1; nu < 4; nu++) {
+            int idx_1d = map_2d_idx_to_1d(mu, nu);
+            tempf += grid_pt_f->Wmunu[idx_1d]*grid_pt_f->u[nu];
+        }
+        grid_pt_f->Wmunu[mu] = tempf/(grid_pt_f->u[0]);
+    }
+
+    // make Wmunu[0][0]
+    tempf = 0.0;
+    for (int nu = 1; nu < 4; nu++)
+        tempf += grid_pt_f->Wmunu[nu]*grid_pt_f->u[nu];
+    grid_pt_f->Wmunu[0] = tempf/(grid_pt_f->u[0]);
+
+    // make qmu[0] using transversality
+    tempf = 0.0;
+    for (int nu = 1; nu < 4; nu++) {
+        int idx_1d = map_2d_idx_to_1d(4, nu);
+        tempf += grid_pt_f->Wmunu[idx_1d]*grid_pt_f->u[nu];
+    }
+    grid_pt_f->Wmunu[10] = DATA.turn_on_diff*tempf/(grid_pt_f->u[0]);
+
+    // If the energy density of the fluid element is smaller than 0.01GeV
+    // reduce Wmunu using the QuestRevert algorithm
+    if (DATA.Initial_profile != 0 && DATA.Initial_profile != 1) {
+        QuestRevert(tau, grid_pt_f, ieta, ix, iy);
+        if (DATA.turn_on_diff == 1) {
+            QuestRevert_qmu(tau, grid_pt_f, ieta, ix, iy);
+        }
+    }
+}
+void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
+                           Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
+                           const int rk_flag, const double theta_local,
+                           const DumuVec &a_local,
+                           const VelocityShearVec &sigma_local,
+                           const VorticityVec &omega_local,
+                           const DmuMuBoverTVec &baryon_diffusion_vector,
+                           const int ieta, const int ix, const int iy,
+                           const int fieldIdx) {
+
+    auto grid_p = arenaFieldsPrev.getCell(fieldIdx);
+    auto grid_c = arenaFieldsCurr.getCell(fieldIdx);
+    auto grid_f = arenaFieldsNext.getCell(fieldIdx);
+    Cell_small* grid_pt_prev = &grid_p;
+    Cell_small* grid_pt_c    = &grid_c;
+    Cell_small* grid_pt_f    = &grid_f;
+
+    const double tau_now  = tau + rk_flag*DATA.delta_tau;
+
+    // Solve partial_a (u^a W^{mu nu}) = 0
+    // Update W^{mu nu}
+    // mu = 4 is the baryon current qmu
+
+    // calculate delta uWmunu
+    // need to use u[0][mu], remember rk_flag = 0 here
+    // with the KT flux
+    // solve partial_tau (u^0 W^{kl}) = -partial_i (u^i W^{kl}
+    /* Advance uWmunu */
+    double tempf, temps;
+    if (DATA.turn_on_shear == 1) {
+        for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
+            double w_rhs = 0.;
+            int mu = 0;
+            int nu = 0;
+            map_1d_idx_to_2d(idx_1d, mu, nu);
+            diss_helper.Make_uWRHS(tau_now, arenaFieldsCurr, fieldIdx,
+                                   ix, iy, ieta,
+                                   mu, nu, w_rhs, theta_local, a_local);
+            tempf = (
+                  (1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
+                + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0])
+            );
+            temps = diss_helper.Make_uWSource(
+                    tau_now, grid_pt_c, grid_pt_prev, mu, nu, rk_flag,
+                    theta_local, a_local, sigma_local, omega_local);
+            tempf += temps*(DATA.delta_tau);
+            tempf += w_rhs;
+            tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
+            tempf *= 1./(1. + rk_flag);
+            grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
+        }
+    } else {
+        for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
+            grid_pt_f->Wmunu[idx_1d] = 0.0;
+        }
+    }
+
+    if (DATA.turn_on_bulk == 1) {
+        double p_rhs;
+        diss_helper.Make_uPRHS(tau_now, arenaFieldsCurr, fieldIdx,
+                               ix, iy, ieta,
+                               &p_rhs, theta_local);
+        tempf = ((1. - rk_flag)*(grid_pt_c->pi_b*grid_pt_c->u[0])
+                 + rk_flag*(grid_pt_prev->pi_b*grid_pt_prev->u[0]));
+        temps = diss_helper.Make_uPiSource(
+                tau_now, grid_pt_c, grid_pt_prev, rk_flag,
+                theta_local, sigma_local);
+        tempf += temps*(DATA.delta_tau);
+        tempf += p_rhs;
+        tempf += rk_flag*((grid_pt_c->pi_b)*(grid_pt_c->u[0]));
+        tempf *= 1./(1. + rk_flag);
+        grid_pt_f->pi_b = tempf/(grid_pt_f->u[0]);
+    } else {
+        grid_pt_f->pi_b = 0.0;
+    }
+
+    // CShen: add source term for baryon diffusion
+    if (DATA.turn_on_diff == 1) {
+        int mu = 4;
+        for (int idx_1d = 11; idx_1d < 14; idx_1d++) {
+            int nu = idx_1d - 10;
+            double w_rhs = diss_helper.Make_uqRHS(
+                    tau_now, arenaFieldsCurr, fieldIdx, ix, iy, ieta, mu, nu);
             tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
                      + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
             temps = diss_helper.Make_uqSource(
@@ -598,7 +759,7 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
     TJbVec rhs     = {0.};
     EnergyFlowVec T_eta_m = {0.};
     EnergyFlowVec T_eta_p = {0.};
-    FieldNeighbourLoopIdeal(arenaFieldsCurr, ix, iy, ieta, FNLILAMBDAS{
+    FieldNeighbourLoopIdeal2(arenaFieldsCurr, ix, iy, ieta, FNLILAMBDAS2{
         for (int alpha = 0; alpha < 5; alpha++) {
             const double gphL = qi[alpha];
             const double gphR = tau*get_TJb(p1, alpha, 0);

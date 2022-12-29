@@ -5,6 +5,7 @@
 #include "data.h"
 #include "cell.h"
 #include "grid.h"
+#include "fields.h"
 #include "minmod.h"
 #include "data_struct.h"
 #include <string.h>
@@ -24,14 +25,21 @@ class U_derivative {
     U_derivative(const InitData &DATA_in, const EOS &eosIn);
     void MakedU(const double tau, SCGrid &arena_prev, SCGrid &arena_current,
                 const int ix, const int iy, const int ieta);
+    void MakedU(const double tau,
+                Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+                const int fieldIdx, const int ix, const int iy, const int ieta);
 
     //! this function returns the expansion rate on the grid
     double calculate_expansion_rate(double tau, SCGrid &arena,
                                     int ieta, int ix, int iy);
+    double calculate_expansion_rate(const double tau, Fields &arena,
+                                    const int fieldIdx);
 
     //! this function returns Du^\mu
     void calculate_Du_supmu(const double tau, SCGrid &arena, const int ieta,
                             const int ix, const int iy, DumuVec &a);
+    void calculate_Du_supmu(const double tau, Fields &arena,
+                            const int fieldIdx, DumuVec &a);
 
     //! this function returns the vector D^\mu(\mu_B/T)
     void get_DmuMuBoverTVec(DmuMuBoverTVec &vec);
@@ -41,6 +49,9 @@ class U_derivative {
         const double tau, SCGrid &arena,
         const int ieta, const int ix, const int iy, const DumuVec &a_local,
         VorticityVec &omega);
+    void calculate_kinetic_vorticity_with_spatial_projector(
+        const double tau, Fields &arena, const int fieldIdx,
+        const DumuVec &a_local, VorticityVec &omega);
 
     //! this function computes the kinetic vorticity without spatial projection
     void calculate_kinetic_vorticity_no_spatial_projection(
@@ -59,11 +70,21 @@ class U_derivative {
     void calculate_velocity_shear_tensor(
         const double tau, SCGrid &arena, const int ieta, const int ix,
         const int iy, const DumuVec &a_local, VelocityShearVec &sigma);
+    void calculate_velocity_shear_tensor(
+        const double tau, Fields &arena, const int fieldIdx,
+        const double theta_u_local,
+        const DumuVec &a_local, VelocityShearVec &sigma);
 
     int MakeDSpatial(const double tau, SCGrid &arena, const int ix,
                      const int iy, const int ieta);
+    int MakeDSpatial(const double tau, Fields &arena, const int fieldIdx,
+                     const int ix, const int iy, const int ieta);
+
     int MakeDTau(const double tau, const Cell_small *grid_pt_prev,
                  const Cell_small *grid_pt);
+    int MakeDTau(const double tau,
+                 const Fields &arenaFieldsPrev,
+                 const Fields &arenaFieldsCurr, const int fieldIdx);
 
     //! this function computes the thermal shear tensor
     void calculate_thermal_shear_tensor(

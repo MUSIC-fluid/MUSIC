@@ -52,7 +52,28 @@ class Fields {
 
 
 template<class Func>
-void FieldNeighbourLoopIdeal(Fields &arena, int cx, int cy, int ceta,
+void FieldNeighbourLoopIdeal1(Fields &arena, int cx, int cy, int ceta,
+                             Func func) {
+    const std::array<int, 6> dx   = {-1, 1,  0, 0,  0, 0};
+    const std::array<int, 6> dy   = { 0, 0, -1, 1,  0, 0};
+    const std::array<int, 6> deta = { 0, 0,  0, 0, -1, 1};
+    for(int dir = 0; dir < 3; dir++) {
+        int m1nx   = dx  [2*dir];
+        int m1ny   = dy  [2*dir];
+        int m1neta = deta[2*dir];
+        int p1nx   = dx  [2*dir+1];
+        int p1ny   = dy  [2*dir+1];
+        int p1neta = deta[2*dir+1];
+              auto  c = arena.getCellIdeal(cx,      cy,      ceta       );
+        const auto p1 = arena.getCellIdeal(cx+p1nx, cy+p1ny, ceta+p1neta);
+        const auto m1 = arena.getCellIdeal(cx+m1nx, cy+m1ny, ceta+m1neta);
+        func(c, p1, m1, dir+1);
+    }
+}
+
+
+template<class Func>
+void FieldNeighbourLoopIdeal2(Fields &arena, int cx, int cy, int ceta,
                              Func func) {
     const std::array<int, 6> dx   = {-1, 1,  0, 0,  0, 0};
     const std::array<int, 6> dy   = { 0, 0, -1, 1,  0, 0};
@@ -127,7 +148,9 @@ void FieldNeighbourLoop2(Fields &arena, int cx, int cy, int ceta, Func func) {
     }
 }
 
-#define FNLILAMBDAS [&](ReconstCell& c, const ReconstCell& p1, const ReconstCell& p2, const ReconstCell& m1, const ReconstCell& m2, const int direction)
+#define FNLILAMBDAS1 [&](ReconstCell& c, const ReconstCell& p1, const ReconstCell& m1, const int direction)
+
+#define FNLILAMBDAS2 [&](ReconstCell& c, const ReconstCell& p1, const ReconstCell& p2, const ReconstCell& m1, const ReconstCell& m2, const int direction)
 
 #define FNLLAMBDAS1 [&](Cell_small& c, const Cell_small& p1, const Cell_small& m1, const int direction)
 
