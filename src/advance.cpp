@@ -62,19 +62,10 @@ void Advance::AdvanceIt(const double tau,
         double x_local     = - DATA.x_size  /2. +   ix*DATA.delta_x;
         double y_local     = - DATA.y_size  /2. +   iy*DATA.delta_y;
 
-        //FirstRKStepT(tau, x_local, y_local, eta_s_local,
-        //             arena_current, arena_future, arena_prev,
-        //             ix, iy, ieta, rk_flag);
         FirstRKStepT(tau, x_local, y_local, eta_s_local,
                      ix, iy, ieta, rk_flag,
                      fieldIdx, arenaFieldsCurr, arenaFieldsNext,
                      arenaFieldsPrev);
-        //if (ix == 100 && iy == 100 && ieta == 0){
-        //    std::cout << "e = " << arenaFieldsCurr.e_[fieldIdx] << std::endl;
-        //    for (int ii = 0; ii < 10; ii++) {
-        //        std::cout << "W[" << ii << "] = " << arenaFieldsCurr.Wmunu_[ii][fieldIdx] << std::endl;
-        //    }
-        //}
 
         if (DATA.viscosity_flag == 1) {
             U_derivative u_derivative_helper(DATA, eos);
@@ -108,9 +99,6 @@ void Advance::AdvanceIt(const double tau,
             DmuMuBoverTVec baryon_diffusion_vector;
             u_derivative_helper.get_DmuMuBoverTVec(baryon_diffusion_vector);
 
-            //FirstRKStepW(tau, arena_prev, arena_current, arena_future, rk_flag,
-            //             theta_local, a_local, sigma_local, omega_local,
-            //             baryon_diffusion_vector, ieta, ix, iy);
             FirstRKStepW(tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext,
                          rk_flag,theta_local, a_local, sigma_local, omega_local,
                          baryon_diffusion_vector, ieta, ix, iy, fieldIdx);
@@ -120,81 +108,6 @@ void Advance::AdvanceIt(const double tau,
 
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
-void Advance::FirstRKStepT(
-        const double tau, const double x_local, const double y_local,
-        const double eta_s_local,
-        SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev,
-        const int ix, const int iy, const int ieta, const int rk_flag) {
-    // this advances the ideal part
-    double tau_rk = tau + rk_flag*(DATA.delta_tau);
-
-    // Solve partial_a T^{a mu} = -partial_a W^{a mu}
-    // Update T^{mu nu}
-    // MakeDelatQI gets
-    //   qi = q0 if rk_flag = 0 or
-    //   qi = q0 + k1 if rk_flag = 1
-    // rhs[alpha] is what MakeDeltaQI outputs.
-    // It is the spatial derivative part of partial_a T^{a mu}
-    // (including geometric terms)
-    TJbVec qi = {0};
-    MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
-
-    TJbVec qi_source = {0.0};
-
-    if (flag_add_hydro_source) {
-        EnergyFlowVec j_mu = {0};
-        FlowVec u_local = arena_current(ix,iy,ieta).u;
-
-        hydro_source_terms_ptr->get_hydro_energy_source(
-                    tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
-        for (int ii = 0; ii < 4; ii++) {
-            qi_source[ii] = tau_rk*j_mu[ii];
-            if (isnan(qi_source[ii])) {
-                music_message << "qi_source is nan. i = " << ii;
-                music_message.flush("error");
-                exit(0);
-            }
-        }
-
-        if (DATA.turn_on_rhob == 1) {
-            qi_source[4] = (
-                tau_rk*hydro_source_terms_ptr->get_hydro_rhob_source(
-                            tau_rk, x_local, y_local, eta_s_local, u_local));
-        }
-    }
-
-    // now MakeWSource returns partial_a W^{a mu}
-    // (including geometric terms)
-    TJbVec dwmn ={0.0};
-    diss_helper.MakeWSource(tau_rk, arena_current, arena_prev, ix, iy, ieta,
-                            dwmn);
-    for (int alpha = 0; alpha < 5; alpha++) {
-        /* dwmn is the only one with the minus sign */
-        qi[alpha] -= dwmn[alpha]*(DATA.delta_tau);
-
-        // add energy moemntum and net baryon density source terms
-        qi[alpha] += qi_source[alpha]*DATA.delta_tau;
-
-        // set baryon density back to zero if viscous correction made it
-        // non-zero remove/modify if rho_b!=0
-        // - this is only to remove the viscous correction that
-        // can make rho_b negative which we do not want.
-        //if (DATA.turn_on_rhob == 0) {
-        //    if (alpha == 4 && std::abs(qi[alpha]) > 1e-12)
-        //        qi[alpha] = 0.;
-        //}
-
-        /* if rk_flag > 0, we now have q0 + k1 + k2. 
-         * So add q0 and multiply by 1/2 */
-        qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
-        qi[alpha] *= 1./(1. + rk_flag);
-    }
-
-    double tau_next = tau + DATA.delta_tau;
-    auto grid_rk_t = reconst_helper.ReconstIt_shell(
-                                tau_next, qi, arena_current(ix, iy, ieta));
-    UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
-}
 void Advance::FirstRKStepT(
         const double tau, const double x_local, const double y_local,
         const double eta_s_local,
@@ -281,147 +194,6 @@ void Advance::FirstRKStepT(
 }
 
 
-void Advance::FirstRKStepW(const double tau, SCGrid &arena_prev,
-                           SCGrid &arena_current, SCGrid &arena_future,
-                           const int rk_flag, const double theta_local,
-                           const DumuVec &a_local,
-                           const VelocityShearVec &sigma_local,
-                           const VorticityVec &omega_local,
-                           const DmuMuBoverTVec &baryon_diffusion_vector,
-                           const int ieta, const int ix, const int iy) {
-
-    auto grid_pt_prev = &(arena_prev(ix, iy, ieta));
-    auto grid_pt_c = &(arena_current(ix, iy, ieta));
-    auto grid_pt_f = &(arena_future(ix, iy, ieta));
-
-    const double tau_now  = tau + rk_flag*DATA.delta_tau;
-
-    // Solve partial_a (u^a W^{mu nu}) = 0
-    // Update W^{mu nu}
-    // mu = 4 is the baryon current qmu
-
-    // calculate delta uWmunu
-    // need to use u[0][mu], remember rk_flag = 0 here
-    // with the KT flux
-    // solve partial_tau (u^0 W^{kl}) = -partial_i (u^i W^{kl}
-    /* Advance uWmunu */
-    double tempf, temps;
-    if (DATA.turn_on_shear == 1) {
-        for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
-            double w_rhs = 0.;
-            int mu = 0;
-            int nu = 0;
-            map_1d_idx_to_2d(idx_1d, mu, nu);
-            diss_helper.Make_uWRHS(tau_now, arena_current, ix, iy, ieta,
-                                   mu, nu, w_rhs, theta_local, a_local);
-            tempf = (
-                  (1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
-                + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0])
-            );
-            temps = diss_helper.Make_uWSource(
-                    tau_now, grid_pt_c, grid_pt_prev, mu, nu, rk_flag,
-                    theta_local, a_local, sigma_local, omega_local);
-            tempf += temps*(DATA.delta_tau);
-            tempf += w_rhs;
-            tempf += rk_flag*((grid_pt_c->Wmunu[idx_1d])*(grid_pt_c->u[0]));
-            tempf *= 1./(1. + rk_flag);
-            grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
-        }
-    } else {
-        for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
-            grid_pt_f->Wmunu[idx_1d] = 0.0;
-        }
-    }
-
-    if (DATA.turn_on_bulk == 1) {
-        double p_rhs;
-        diss_helper.Make_uPRHS(tau_now, arena_current, ix, iy, ieta,
-                               &p_rhs, theta_local);
-        tempf = ((1. - rk_flag)*(grid_pt_c->pi_b*grid_pt_c->u[0])
-                 + rk_flag*(grid_pt_prev->pi_b*grid_pt_prev->u[0]));
-        temps = diss_helper.Make_uPiSource(
-                tau_now, grid_pt_c, grid_pt_prev, rk_flag,
-                theta_local, sigma_local);
-        tempf += temps*(DATA.delta_tau);
-        tempf += p_rhs;
-        tempf += rk_flag*((grid_pt_c->pi_b)*(grid_pt_c->u[0]));
-        tempf *= 1./(1. + rk_flag);
-        grid_pt_f->pi_b = tempf/(grid_pt_f->u[0]);
-    } else {
-        grid_pt_f->pi_b = 0.0;
-    }
-
-    // CShen: add source term for baryon diffusion
-    if (DATA.turn_on_diff == 1) {
-        int mu = 4;
-        for (int idx_1d = 11; idx_1d < 14; idx_1d++) {
-            int nu = idx_1d - 10;
-            double w_rhs = diss_helper.Make_uqRHS(
-                        tau_now, arena_current, ix, iy, ieta, mu, nu);
-            tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
-                     + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
-            temps = diss_helper.Make_uqSource(
-                        tau_now, grid_pt_c, grid_pt_prev, nu, rk_flag,
-                        theta_local, a_local, sigma_local, omega_local,
-                        baryon_diffusion_vector);
-            tempf += temps*(DATA.delta_tau);
-            tempf += w_rhs;
-
-            tempf += rk_flag*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0]);
-            tempf *= 1./(1. + rk_flag);
-
-            grid_pt_f->Wmunu[idx_1d] = tempf/(grid_pt_f->u[0]);
-        }
-    } else {
-        for (int idx_1d = 10; idx_1d < 14; idx_1d++) {
-            grid_pt_f->Wmunu[idx_1d] = 0.0;
-        }
-    }
-
-    // re-make Wmunu[3][3] so that Wmunu[mu][nu] is traceless
-    grid_pt_f->Wmunu[9] = (
-        (2.*(  grid_pt_f->u[1]*grid_pt_f->u[2]*grid_pt_f->Wmunu[5]
-             + grid_pt_f->u[1]*grid_pt_f->u[3]*grid_pt_f->Wmunu[6]
-             + grid_pt_f->u[2]*grid_pt_f->u[3]*grid_pt_f->Wmunu[8])
-         - (grid_pt_f->u[0]*grid_pt_f->u[0] - grid_pt_f->u[1]*grid_pt_f->u[1])
-           *grid_pt_f->Wmunu[4]
-         - (grid_pt_f->u[0]*grid_pt_f->u[0] - grid_pt_f->u[2]*grid_pt_f->u[2])
-           *grid_pt_f->Wmunu[7])
-        /(grid_pt_f->u[0]*grid_pt_f->u[0] - grid_pt_f->u[3]*grid_pt_f->u[3]));
-
-    // make Wmunu[i][0] using the transversality
-    for (int mu = 1; mu < 4; mu++) {
-        tempf = 0.0;
-        for (int nu = 1; nu < 4; nu++) {
-            int idx_1d = map_2d_idx_to_1d(mu, nu);
-            tempf += grid_pt_f->Wmunu[idx_1d]*grid_pt_f->u[nu];
-        }
-        grid_pt_f->Wmunu[mu] = tempf/(grid_pt_f->u[0]);
-    }
-
-    // make Wmunu[0][0]
-    tempf = 0.0;
-    for (int nu = 1; nu < 4; nu++)
-        tempf += grid_pt_f->Wmunu[nu]*grid_pt_f->u[nu];
-    grid_pt_f->Wmunu[0] = tempf/(grid_pt_f->u[0]);
-
-    // make qmu[0] using transversality
-    tempf = 0.0;
-    for (int nu = 1; nu < 4; nu++) {
-        int idx_1d = map_2d_idx_to_1d(4, nu);
-        tempf += grid_pt_f->Wmunu[idx_1d]*grid_pt_f->u[nu];
-    }
-    grid_pt_f->Wmunu[10] = DATA.turn_on_diff*tempf/(grid_pt_f->u[0]);
-
-    // If the energy density of the fluid element is smaller than 0.01GeV
-    // reduce Wmunu using the QuestRevert algorithm
-    if (DATA.Initial_profile != 0 && DATA.Initial_profile != 1) {
-        QuestRevert(tau, grid_pt_f, ieta, ix, iy);
-        if (DATA.turn_on_diff == 1) {
-            QuestRevert_qmu(tau, grid_pt_f, ieta, ix, iy);
-        }
-    }
-}
 void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
                            Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
                            const int rk_flag, const double theta_local,
@@ -574,13 +346,6 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
     }
 }
 
-// update results after RK evolution to grid_pt
-void Advance::UpdateTJbRK(const ReconstCell &grid_rk, Cell_small &grid_pt) {
-    grid_pt.epsilon = grid_rk.e;
-    grid_pt.rhob    = grid_rk.rhob;
-    grid_pt.u       = grid_rk.u;
-}/* UpdateTJbRK */
-
 
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
@@ -721,105 +486,6 @@ void Advance::QuestRevert_qmu(const double tau, Cell_small *grid_pt,
 
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(const double tau, SCGrid &arena_current,
-                          const int ix, const int iy, const int ieta,
-                          TJbVec &qi, const int rk_flag) {
-    const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
-    const double tau_fac[4] = {0.0, tau, tau, 1.0};
-
-    for (int alpha = 0; alpha < 5; alpha++) {
-        qi[alpha] = get_TJb(arena_current(ix, iy, ieta), alpha, 0)*tau;
-    }
-
-    TJbVec qiphL   = {0.};
-    TJbVec qiphR   = {0.};
-    TJbVec qimhL   = {0.};
-    TJbVec qimhR   = {0.};
-
-    TJbVec rhs     = {0.};
-    EnergyFlowVec T_eta_m = {0.};
-    EnergyFlowVec T_eta_p = {0.};
-    Neighbourloop(arena_current, ix, iy, ieta, NLAMBDAS{
-        for (int alpha = 0; alpha < 5; alpha++) {
-            const double gphL = qi[alpha];
-            const double gphR = tau*get_TJb(p1, alpha, 0);
-            const double gmhL = tau*get_TJb(m1, alpha, 0);
-            const double gmhR = qi[alpha];
-            const double fphL =  0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
-            const double fphR = -0.5*minmod.minmod_dx(
-                                tau*get_TJb(p2, alpha, 0), gphR, qi[alpha]);
-            const double fmhL =  0.5*minmod.minmod_dx(
-                                qi[alpha], gmhL, tau*get_TJb(m2, alpha, 0));
-            const double fmhR = -fphL;
-            qiphL[alpha] = gphL + fphL;
-            qiphR[alpha] = gphR + fphR;
-            qimhL[alpha] = gmhL + fmhL;
-            qimhR[alpha] = gmhR + fmhR;
-        }
-
-        // for each direction, reconstruct half-way cells
-        // reconstruct e, rhob, and u[4] for half way cells
-        auto grid_phL = reconst_helper.ReconstIt_shell(tau, qiphL, c);
-        auto grid_phR = reconst_helper.ReconstIt_shell(tau, qiphR, c);
-        auto grid_mhL = reconst_helper.ReconstIt_shell(tau, qimhL, c);
-        auto grid_mhR = reconst_helper.ReconstIt_shell(tau, qimhR, c);
-
-        double aiphL = MaxSpeed(tau, direction, grid_phL);
-        double aiphR = MaxSpeed(tau, direction, grid_phR);
-        double aimhL = MaxSpeed(tau, direction, grid_mhL);
-        double aimhR = MaxSpeed(tau, direction, grid_mhR);
-
-        double aiph = std::max(aiphL, aiphR);
-        double aimh = std::max(aimhL, aimhR);
-
-        for (int alpha = 0; alpha < 5; alpha++) {
-            double FiphL = get_TJb(grid_phL, alpha, direction)*tau_fac[direction];
-            double FiphR = get_TJb(grid_phR, alpha, direction)*tau_fac[direction];
-            double FimhL = get_TJb(grid_mhL, alpha, direction)*tau_fac[direction];
-            double FimhR = get_TJb(grid_mhR, alpha, direction)*tau_fac[direction];
-
-            // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2}))/2
-            //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
-            double Fiph = 0.5*((FiphL + FiphR)
-                               - aiph*(qiphR[alpha] - qiphL[alpha]));
-            double Fimh = 0.5*((FimhL + FimhR)
-                               - aimh*(qimhR[alpha] - qimhL[alpha]));
-            if (direction == 3 && (alpha == 0 || alpha == 3)) {
-                T_eta_m[alpha] = Fimh;
-                T_eta_p[alpha] = Fiph;
-            } else {
-                double DFmmp = (Fimh - Fiph)/delta[direction];
-                rhs[alpha] += DFmmp*(DATA.delta_tau);
-            }
-        }
-    });
-
-    // add longitudinal flux with discretized geometric terms
-    double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
-    double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
-    sinh_deta = std::max(0.5, sinh_deta);
-    if (DATA.boost_invariant) {
-        // if the simulation is boost-invariant,
-        // we directly use the limiting value at \Delta eta = 0
-        // Longitudinal derivatives should be 0, we set cosh_eta = 0 here
-        cosh_deta = 0.0;
-        sinh_deta = 0.5;
-    }
-    rhs[0] += ((  (T_eta_m[0] - T_eta_p[0])*cosh_deta
-                - (T_eta_m[3] + T_eta_p[3])*sinh_deta)*DATA.delta_tau);
-    rhs[3] += ((  (T_eta_m[3] - T_eta_p[3])*cosh_deta
-                - (T_eta_m[0] + T_eta_p[0])*sinh_deta)*DATA.delta_tau);
-
-    // geometric terms
-    //rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
-    //rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
-
-    for (int i = 0; i < 5; i++) {
-        qi[i] += rhs[i];
-    }
-}
-
-
 void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
                           const int fieldIdx,
                           const int ix, const int iy, const int ieta,
