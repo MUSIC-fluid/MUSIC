@@ -54,10 +54,10 @@ class Cell_info {
     void Output_hydro_information_header();
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta(SCGrid &arena, double tau);
+    void OutputEvolutionDataXYEta(Fields &arena, double tau);
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta_chun(SCGrid &arena, double tau);
+    void OutputEvolutionDataXYEta_chun(Fields &arena, double tau);
 
     //! This function outputs hydro evolution file in binary format for photon production
     void OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau);
@@ -74,20 +74,17 @@ class Cell_info {
 
     //! This function computes the inverse Reynolds number for a given fluid
     //! cell at (ix, iy, ieta)
-    void calculate_inverse_Reynolds_numbers(
-                        SCGrid &arena_current,
-                        const int ieta, const int ix, const int iy,
-                        double &R_pi, double &R_Pi) const;
+    void calculate_inverse_Reynolds_numbers(Cell_small grid_pt,
+                                            double &R_pi, double &R_Pi) const;
 
-    void OutputEvolution_Knudsen_Reynoldsnumbers(SCGrid &arena,
+    void OutputEvolution_Knudsen_Reynoldsnumbers(Fields &arena,
                                                  const double tau) const;
 
     //! This function outputs files to check with Gubser flow solution
-    //void Gubser_flow_check_file(SCGrid &arena, const double tau);
     void Gubser_flow_check_file(Fields &arena, const double tau);
 
     //! This function outputs files to cross check with 1+1D simulation
-    void output_1p1D_check_file(SCGrid &arena, const double tau);
+    void output_1p1D_check_file(Fields &arena, const double tau);
 
     //! This function prints to the screen the maximum local energy density,
     //! the maximum temperature in the current grid
@@ -101,7 +98,7 @@ class Cell_info {
     //! within a given space-time rapidity range
     void output_average_phase_diagram_trajectory(
         const double tau, const double eta_min, const double eta_max,
-        SCGrid &arena);
+        Fields &arena);
 
     //! This function outputs the vorticity tensor at a given tau
     void output_vorticity_distribution(
@@ -124,7 +121,7 @@ class Cell_info {
 
     //! This function checks the total energy and total net baryon number
     //! at a give proper time
-    void check_conservation_law(SCGrid &arena, SCGrid &arena_prev,
+    void check_conservation_law(Fields &arena, Fields &arena_prev,
                                 const double tau);
 
     //! This function outputs the evolution of hydrodynamic variables at a
@@ -136,12 +133,12 @@ class Cell_info {
     //! This function outputs system's momentum anisotropy as a function of tau
     void output_momentum_anisotropy_vs_tau(
                 const double tau, const double eta_min, const double eta_max,
-                SCGrid &arena) const;
+                Fields &arena) const;
 
     //! This function outputs system's eccentricity and momentum anisotropy
     //! as functions of eta_s
     void output_momentum_anisotropy_vs_etas(const double tau,
-                                            SCGrid &arena) const;
+                                            Fields &arena) const;
 
     //! This function outputs hydro evolution file into memory for JETSCAPE
     void OutputEvolutionDataXYEta_memory(

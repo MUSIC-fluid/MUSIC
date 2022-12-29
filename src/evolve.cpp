@@ -114,14 +114,13 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
                 || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
                 || fabs(tau - 3.0) < 1e-8) {
-                //grid_info.Gubser_flow_check_file(*ap_current, tau);
                 grid_info.Gubser_flow_check_file(*fpCurr, tau);
             }
         } else if (DATA.Initial_profile == 1) {
             if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
                 || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8
                 || fabs(tau - 20.0) < 1e-8) {
-                grid_info.output_1p1D_check_file(*ap_current, tau);
+                grid_info.output_1p1D_check_file(*fpCurr, tau);
             }
         }
 
@@ -135,9 +134,9 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
         if (it % Nskip_timestep == 0) {
             if (DATA.outputEvolutionData == 1) {
-                grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
+                grid_info.OutputEvolutionDataXYEta(*fpCurr, tau);
             } else if (DATA.outputEvolutionData == 2) {
-                grid_info.OutputEvolutionDataXYEta_chun(*ap_current, tau);
+                grid_info.OutputEvolutionDataXYEta_chun(*fpCurr, tau);
             } else if (DATA.outputEvolutionData == 3) {
                 grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 4) {
@@ -155,34 +154,33 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             }
 
             if (DATA.output_outofequilibriumsize == 1) {
-                grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*ap_current,
-                                                                  tau);
+                grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*fpCurr, tau);
             }
         }
 
         if (it == iFreezeStart || it == iFreezeStart + 10
             || it == iFreezeStart + 30 || it == iFreezeStart + 50) {
-            grid_info.output_momentum_anisotropy_vs_etas(tau, *ap_current);
+            grid_info.output_momentum_anisotropy_vs_etas(tau, *fpCurr);
         }
         grid_info.output_momentum_anisotropy_vs_tau(
-                                            tau, -0.5, 0.5, *ap_current);
+                                            tau, -0.5, 0.5, *fpCurr);
         if (DATA.Initial_profile == 13) {
             grid_info.output_average_phase_diagram_trajectory(
-                                            tau, -0.5, 0.5, *ap_current);
+                                            tau, -0.5, 0.5, *fpCurr);
             grid_info.output_average_phase_diagram_trajectory(
-                                            tau, 0.5, 2.0, *ap_current);
+                                            tau, 0.5, 2.0, *fpCurr);
             grid_info.output_average_phase_diagram_trajectory(
-                                            tau, 2.0, 3.0, *ap_current);
+                                            tau, 2.0, 3.0, *fpCurr);
             grid_info.output_average_phase_diagram_trajectory(
-                                            tau, 3.0, 4.0, *ap_current);
+                                            tau, 3.0, 4.0, *fpCurr);
             grid_info.output_average_phase_diagram_trajectory(
-                                            tau, 4.0, 5.0, *ap_current);
+                                            tau, 4.0, 5.0, *fpCurr);
         }
 
 
         // check energy conservation
         if (!DATA.boost_invariant) {
-            grid_info.check_conservation_law(*ap_current, *ap_prev, tau);
+            grid_info.check_conservation_law(*fpCurr, *fpPrev, tau);
             if (DATA.output_vorticity == 1) {
                 if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
                     || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
