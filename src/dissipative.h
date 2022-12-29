@@ -34,6 +34,9 @@ class Diss {
     void MakeWSource(const double tau,
                      SCGrid &arena_current, SCGrid &arena_prev,
                      const int ix, const int iy, const int ieta,
+                     TJbVec &dwmn);
+    void MakeWSource(const double tau,
+                     const int ix, const int iy, const int ieta,
                      TJbVec &dwmn,
                      Fields &arenaFieldsCurr, Fields &arenaFieldsPrev,
                      const int fieldIdx);

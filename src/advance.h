@@ -42,6 +42,10 @@ class Advance {
                       const double y_local, const double eta_s_local,
                       SCGrid &arena_current, SCGrid &arena_future,
                       SCGrid &arena_prev, const int ix, const int iy,
+                      const int ieta, const int rk_flag);
+    void FirstRKStepT(const double tau, const double x_local,
+                      const double y_local, const double eta_s_local,
+                      const int ix, const int iy,
                       const int ieta, const int rk_flag,
                       const int fieldIdx, Fields &arenaFieldsCurr,
                       Fields &arenaFieldsNext, Fields &arenaFieldsPrev);

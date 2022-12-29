@@ -48,9 +48,9 @@ void Advance::AdvanceIt(const double tau,
                         Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                         Fields &arenaFieldsNext,
                         const int rk_flag) {
-    const int grid_neta = arena_current.nEta();
-    const int grid_nx   = arena_current.nX();
-    const int grid_ny   = arena_current.nY();
+    const int grid_neta = arenaFieldsCurr.nEta();
+    const int grid_nx   = arenaFieldsCurr.nX();
+    const int grid_ny   = arenaFieldsCurr.nY();
 
     #pragma omp parallel for collapse(3) schedule(guided)
     for (int ieta = 0; ieta < grid_neta; ieta++)
@@ -62,11 +62,19 @@ void Advance::AdvanceIt(const double tau,
         double x_local     = - DATA.x_size  /2. +   ix*DATA.delta_x;
         double y_local     = - DATA.y_size  /2. +   iy*DATA.delta_y;
 
+        //FirstRKStepT(tau, x_local, y_local, eta_s_local,
+        //             arena_current, arena_future, arena_prev,
+        //             ix, iy, ieta, rk_flag);
         FirstRKStepT(tau, x_local, y_local, eta_s_local,
-                     arena_current, arena_future, arena_prev,
                      ix, iy, ieta, rk_flag,
                      fieldIdx, arenaFieldsCurr, arenaFieldsNext,
                      arenaFieldsPrev);
+        //if (ix == 100 && iy == 100 && ieta == 0){
+        //    std::cout << "e = " << arenaFieldsCurr.e_[fieldIdx] << std::endl;
+        //    for (int ii = 0; ii < 10; ii++) {
+        //        std::cout << "W[" << ii << "] = " << arenaFieldsCurr.Wmunu_[ii][fieldIdx] << std::endl;
+        //    }
+        //}
 
         if (DATA.viscosity_flag == 1) {
             U_derivative u_derivative_helper(DATA, eos);
@@ -116,6 +124,80 @@ void Advance::FirstRKStepT(
         const double tau, const double x_local, const double y_local,
         const double eta_s_local,
         SCGrid &arena_current, SCGrid &arena_future, SCGrid &arena_prev,
+        const int ix, const int iy, const int ieta, const int rk_flag) {
+    // this advances the ideal part
+    double tau_rk = tau + rk_flag*(DATA.delta_tau);
+
+    // Solve partial_a T^{a mu} = -partial_a W^{a mu}
+    // Update T^{mu nu}
+    // MakeDelatQI gets
+    //   qi = q0 if rk_flag = 0 or
+    //   qi = q0 + k1 if rk_flag = 1
+    // rhs[alpha] is what MakeDeltaQI outputs.
+    // It is the spatial derivative part of partial_a T^{a mu}
+    // (including geometric terms)
+    TJbVec qi = {0};
+    MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
+
+    TJbVec qi_source = {0.0};
+
+    if (flag_add_hydro_source) {
+        EnergyFlowVec j_mu = {0};
+        FlowVec u_local = arena_current(ix,iy,ieta).u;
+
+        hydro_source_terms_ptr->get_hydro_energy_source(
+                    tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
+        for (int ii = 0; ii < 4; ii++) {
+            qi_source[ii] = tau_rk*j_mu[ii];
+            if (isnan(qi_source[ii])) {
+                music_message << "qi_source is nan. i = " << ii;
+                music_message.flush("error");
+                exit(0);
+            }
+        }
+
+        if (DATA.turn_on_rhob == 1) {
+            qi_source[4] = (
+                tau_rk*hydro_source_terms_ptr->get_hydro_rhob_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local));
+        }
+    }
+
+    // now MakeWSource returns partial_a W^{a mu}
+    // (including geometric terms)
+    TJbVec dwmn ={0.0};
+    diss_helper.MakeWSource(tau_rk, arena_current, arena_prev, ix, iy, ieta,
+                            dwmn);
+    for (int alpha = 0; alpha < 5; alpha++) {
+        /* dwmn is the only one with the minus sign */
+        qi[alpha] -= dwmn[alpha]*(DATA.delta_tau);
+
+        // add energy moemntum and net baryon density source terms
+        qi[alpha] += qi_source[alpha]*DATA.delta_tau;
+
+        // set baryon density back to zero if viscous correction made it
+        // non-zero remove/modify if rho_b!=0
+        // - this is only to remove the viscous correction that
+        // can make rho_b negative which we do not want.
+        //if (DATA.turn_on_rhob == 0) {
+        //    if (alpha == 4 && std::abs(qi[alpha]) > 1e-12)
+        //        qi[alpha] = 0.;
+        //}
+
+        /* if rk_flag > 0, we now have q0 + k1 + k2. 
+         * So add q0 and multiply by 1/2 */
+        qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
+        qi[alpha] *= 1./(1. + rk_flag);
+    }
+
+    double tau_next = tau + DATA.delta_tau;
+    auto grid_rk_t = reconst_helper.ReconstIt_shell(
+                                tau_next, qi, arena_current(ix, iy, ieta));
+    UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
+}
+void Advance::FirstRKStepT(
+        const double tau, const double x_local, const double y_local,
+        const double eta_s_local,
         const int ix, const int iy, const int ieta, const int rk_flag,
         const int fieldIdx, Fields &arenaFieldsCurr,
         Fields &arenaFieldsNext, Fields &arenaFieldsPrev) {
@@ -131,14 +213,12 @@ void Advance::FirstRKStepT(
     // It is the spatial derivative part of partial_a T^{a mu}
     // (including geometric terms)
     TJbVec qi = {0};
-    //MakeDeltaQI(tau_rk, arena_current, ix, iy, ieta, qi, rk_flag);
     MakeDeltaQI(tau_rk, arenaFieldsCurr, fieldIdx, ix, iy, ieta, qi, rk_flag);
 
     TJbVec qi_source = {0.0};
 
     if (flag_add_hydro_source) {
         EnergyFlowVec j_mu = {0};
-        //FlowVec u_local = arena_current(ix,iy,ieta).u;
         FlowVec u_local;
         for (int ii = 0; ii < 4; ii++)
             u_local[ii] = arenaFieldsCurr.u_[ii][fieldIdx];
@@ -164,7 +244,7 @@ void Advance::FirstRKStepT(
     // now MakeWSource returns partial_a W^{a mu}
     // (including geometric terms)
     TJbVec dwmn ={0.0};
-    diss_helper.MakeWSource(tau_rk, arena_current, arena_prev, ix, iy, ieta,
+    diss_helper.MakeWSource(tau_rk, ix, iy, ieta,
                             dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
     for (int alpha = 0; alpha < 5; alpha++) {
         /* dwmn is the only one with the minus sign */
@@ -191,11 +271,8 @@ void Advance::FirstRKStepT(
     }
 
     double tau_next = tau + DATA.delta_tau;
-    //auto grid_rk_t = reconst_helper.ReconstIt_shell(
-    //                            tau_next, qi, arena_current(ix, iy, ieta));
     auto grid_rk_t = reconst_helper.ReconstIt_shell(
                         tau_next, qi, arenaFieldsCurr.getCellIdeal(fieldIdx));
-    //UpdateTJbRK(grid_rk_t, arena_future(ix, iy, ieta));
     arenaFieldsNext.e_[fieldIdx] = grid_rk_t.e;
     arenaFieldsNext.rhob_[fieldIdx] = grid_rk_t.rhob;
     for (int ii = 0; ii < 4; ii++) {
@@ -490,6 +567,10 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
         if (DATA.turn_on_diff == 1) {
             QuestRevert_qmu(tau, grid_pt_f, ieta, ix, iy);
         }
+    }
+    for (int idx_1d = 0; idx_1d < 14; idx_1d++) {
+        arenaFieldsNext.Wmunu_[idx_1d][fieldIdx] = grid_pt_f->Wmunu[idx_1d];
+        arenaFieldsNext.piBulk_[fieldIdx] = grid_pt_f->pi_b;
     }
 }
 

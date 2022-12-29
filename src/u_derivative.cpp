@@ -622,7 +622,7 @@ int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
     // calculate dUsup[m][n] = partial^n u^m
     Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
         for (int m = 1; m <= 3; m++) {
-            const double f   = c.u[m];
+            const double f   =  c.u[m];
             const double fp1 = p1.u[m];
             const double fm1 = m1.u[m];
             dUsup[m][direction] = (minmod.minmod_dx(fp1, f, fm1)
@@ -630,7 +630,7 @@ int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
         }
 
         if (DATA.output_vorticity == 1) {
-            const double T   = eos.get_temperature(c.epsilon, c.rhob);
+            const double T   = eos.get_temperature( c.epsilon,  c.rhob);
             const double Tp1 = eos.get_temperature(p1.epsilon, p1.rhob);
             const double Tm1 = eos.get_temperature(m1.epsilon, m1.rhob);
             for (int m = 0; m <= 3; m++) {
@@ -735,9 +735,9 @@ int U_derivative::MakeDSpatial(const double tau, Fields &arena,
     /* for u[0], use u[0]u[0] = 1 + u[i]u[i] */
     /* u[0]_m = u[i]_m (u[i]/u[0]) */
     /* for u[0] */
-    for (int n = 1; n <= 3; n++) {
+    for (int n = 1; n < 4; n++) {
         double f = 0.0;
-        for (int m = 1; m <= 3; m++) {
+        for (int m = 1; m < 4; m++) {
             // (partial_n u^m) u[m]
             f += dUsup[m][n]*(arena.u_[m][fieldIdx]);
         }
@@ -798,7 +798,7 @@ int U_derivative::MakeDTau(const double tau,
     // first order is more stable backward derivative
     const double muB = eos.get_muB(eps, rhob);
     const double tildemu = muB/T;
-    const double muB_prev = eos.get_muB(eps, rhob);
+    const double muB_prev = eos.get_muB(eps_prev, rhob_prev);
     const double tildemu_prev = muB_prev/T_prev;
     f = (tildemu - tildemu_prev)/(DATA.delta_tau);
     dUsup[m][0]  = -f;  // g^{00} = -1
@@ -854,7 +854,7 @@ int U_derivative::MakeDTau(const double tau,
     // first order is more stable backward derivative
     const double muB = eos.get_muB(eps, rhob);
     const double tildemu = muB/T;
-    const double muB_prev = eos.get_muB(eps, rhob);
+    const double muB_prev = eos.get_muB(eps_prev, rhob_prev);
     const double tildemu_prev = muB_prev/T_prev;
     f = (tildemu - tildemu_prev)/(DATA.delta_tau);
     dUsup[m][0]  = -f;  // g^{00} = -1
