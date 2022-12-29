@@ -42,11 +42,8 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
 }
 
 //! this function evolves one Runge-Kutta step in tau
-void Advance::AdvanceIt(const double tau,
-                        SCGrid &arena_prev, SCGrid &arena_current,
-                        SCGrid &arena_future,
-                        Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
-                        Fields &arenaFieldsNext,
+void Advance::AdvanceIt(const double tau, Fields &arenaFieldsPrev,
+                        Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
                         const int rk_flag) {
     const int grid_neta = arenaFieldsCurr.nEta();
     const int grid_nx   = arenaFieldsCurr.nX();
@@ -69,30 +66,20 @@ void Advance::AdvanceIt(const double tau,
 
         if (DATA.viscosity_flag == 1) {
             U_derivative u_derivative_helper(DATA, eos);
-            //u_derivative_helper.MakedU(tau, arena_prev, arena_current,
-            //                           ix, iy, ieta);
             u_derivative_helper.MakedU(tau, arenaFieldsPrev, arenaFieldsCurr,
                                        fieldIdx, ix, iy, ieta);
-            //double theta_local = u_derivative_helper.calculate_expansion_rate(
-            //                                tau, arena_current, ieta, ix, iy);
             double theta_local = u_derivative_helper.calculate_expansion_rate(
                                             tau, arenaFieldsCurr, fieldIdx);
             DumuVec a_local;
-            //u_derivative_helper.calculate_Du_supmu(tau, arena_current,
-            //                                       ieta, ix, iy, a_local);
             u_derivative_helper.calculate_Du_supmu(tau, arenaFieldsCurr,
                                                    fieldIdx, a_local);
 
             VelocityShearVec sigma_local;
-            //u_derivative_helper.calculate_velocity_shear_tensor(
-            //        tau, arena_current, ieta, ix, iy, a_local, sigma_local);
             u_derivative_helper.calculate_velocity_shear_tensor(
                     tau, arenaFieldsCurr, fieldIdx, theta_local,
                     a_local, sigma_local);
 
             VorticityVec omega_local;
-            //u_derivative_helper.calculate_kinetic_vorticity_with_spatial_projector(
-            //        tau, arena_current, ieta, ix, iy, a_local, omega_local);
             u_derivative_helper.calculate_kinetic_vorticity_with_spatial_projector(
                     tau, arenaFieldsCurr, fieldIdx, a_local, omega_local);
 

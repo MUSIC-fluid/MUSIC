@@ -31,11 +31,8 @@ class Advance {
     Advance(const EOS &eosIn, const InitData &DATA_in,
             std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
 
-    void AdvanceIt(const double tau_init,
-                   SCGrid &arena_prev, SCGrid &arena_current,
-                   SCGrid &arena_future,
-                   Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
-                   Fields &arenaFieldsNext,
+    void AdvanceIt(const double tau_init, Fields &arenaFieldsPrev,
+                   Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
                    const int rk_flag);
 
     void FirstRKStepT(const double tau, const double x_local,

@@ -138,18 +138,18 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             } else if (DATA.outputEvolutionData == 2) {
                 grid_info.OutputEvolutionDataXYEta_chun(*fpCurr, tau);
             } else if (DATA.outputEvolutionData == 3) {
-                grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
+                grid_info.OutputEvolutionDataXYEta_photon(*fpCurr, tau);
             } else if (DATA.outputEvolutionData == 4) {
                 grid_info.OutputEvolutionDataXYEta_vorticity(
-                                            *ap_current, *ap_prev, tau);
+                                            *fpCurr, *fpPrev, tau);
             }
 
             if (DATA.output_movie_flag == 1) {
-                grid_info.output_evolution_for_movie(*ap_current, tau);
+                grid_info.output_evolution_for_movie(*fpCurr, tau);
             }
 
             if (DATA.store_hydro_info_in_memory == 1) {
-                grid_info.OutputEvolutionDataXYEta_memory(*ap_current, tau,
+                grid_info.OutputEvolutionDataXYEta_memory(*fpCurr, tau,
                                                           hydro_info_ptr);
             }
 
@@ -185,21 +185,21 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
                 if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
                     || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
                     grid_info.output_vorticity_distribution(
-                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+                                    *fpCurr, *fpPrev, tau, -0.5, 0.5);
                 }
                 grid_info.compute_angular_momentum(
                                     *ap_current, *ap_prev, tau, -0.5, 0.5);
                 grid_info.output_vorticity_time_evolution(
-                                    *ap_current, *ap_prev, tau, -0.5, 0.5);
+                                    *fpCurr, *fpPrev, tau, -0.5, 0.5);
                 grid_info.compute_angular_momentum(
                                     *ap_current, *ap_prev, tau, -1.0, 1.0);
                 grid_info.output_vorticity_time_evolution(
-                                    *ap_current, *ap_prev, tau, -1.0, 1.0);
+                                    *fpCurr, *fpPrev, tau, -1.0, 1.0);
                 grid_info.compute_angular_momentum(
                                     *ap_current, *ap_prev, tau,
                                     -DATA.eta_size/2., DATA.eta_size/2.);
                 grid_info.output_vorticity_time_evolution(
-                                    *ap_current, *ap_prev, tau,
+                                    *fpCurr, *fpPrev, tau,
                                     -DATA.eta_size/2., DATA.eta_size/2.);
             }
         }
@@ -227,8 +227,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
 
         if (DATA.output_hydro_debug_info == 1) {
-            grid_info.monitor_a_fluid_cell(*ap_current, *ap_prev,
-                                           100, 100, 0, tau);
+            grid_info.monitor_a_fluid_cell(*fpCurr, *fpPrev, 100, 100, 0, tau);
         }
 
         //determine freeze-out surface
@@ -259,8 +258,7 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
         /* execute rk steps */
         // all the evolution are at here !!!
-        AdvanceRK(tau, ap_prev, ap_current, ap_future,
-                  fpPrev, fpCurr, fpNext);
+        AdvanceRK(tau, fpPrev, fpCurr, fpNext);
 
         music_message << emoji::clock()
                       << " Done time step " << it << "/" << itmax
@@ -310,27 +308,18 @@ void Evolve::store_previous_step_for_freezeout(SCGrid &arena_current,
     }
 }
 
-void Evolve::AdvanceRK(double tau, GridPointer &arena_prev,
-                       GridPointer &arena_current, GridPointer &arena_future,
-                       Fields* &fpPrev, Fields* &fpCurr, Fields* &fpNext) {
+void Evolve::AdvanceRK(double tau, Fields* &fpPrev, Fields* &fpCurr,
+                       Fields* &fpNext) {
     // control function for Runge-Kutta evolution in tau
     // loop over Runge-Kutta steps
     for (int rk_flag = 0; rk_flag < rk_order; rk_flag++) {
-        advance.AdvanceIt(tau, *arena_prev, *arena_current, *arena_future,
-                          *fpPrev, *fpCurr, *fpNext, rk_flag);
+        advance.AdvanceIt(tau, *fpPrev, *fpCurr, *fpNext, rk_flag);
         if (rk_flag == 0) {
-            auto temp     = std::move(arena_prev);
-            arena_prev    = std::move(arena_current);
-            arena_current = std::move(arena_future);
-            arena_future  = std::move(temp);
-
             Fields* temp2 = fpPrev;
             fpPrev = fpCurr;
             fpCurr = fpNext;
             fpNext = temp2;
         } else {
-            std::swap(arena_current, arena_future);
-
             Fields* temp = fpCurr;
             fpCurr = fpNext;
             fpNext = temp;

@@ -371,13 +371,14 @@ void Cell_info::calculate_inverse_Reynolds_numbers(
 
 //! This function outputs hydro evolution file into memory for JETSCAPE
 void Cell_info::OutputEvolutionDataXYEta_memory(
-            SCGrid &arena, const double tau, HydroinfoMUSIC &hydro_info_ptr) {
+            Fields &arena, const double tau, HydroinfoMUSIC &hydro_info_ptr) {
     const int n_skip_x   = DATA.output_evolution_every_N_x;
     const int n_skip_y   = DATA.output_evolution_every_N_y;
     const int n_skip_eta = DATA.output_evolution_every_N_eta;
     for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+                int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
                 double eta = 0.0;
                 if (!DATA.boost_invariant) {
                     eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
@@ -386,13 +387,13 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
                 double cosh_eta = cosh(eta);
                 double sinh_eta = sinh(eta);
 
-                double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
-                double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
+                double e_local    = arena.e_[fieldIdx];         // 1/fm^4
+                double rhob_local = arena.rhob_[fieldIdx];      // 1/fm^3
                 double p_local = eos.get_pressure(e_local, rhob_local);
-                double utau = arena(ix, iy, ieta).u[0];
-                double ux   = arena(ix, iy, ieta).u[1];
-                double uy   = arena(ix, iy, ieta).u[2];
-                double ueta = arena(ix, iy, ieta).u[3];
+                double utau = arena.u_[0][fieldIdx];
+                double ux   = arena.u_[1][fieldIdx];
+                double uy   = arena.u_[2][fieldIdx];
+                double ueta = arena.u_[3][fieldIdx];
                 double ut = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
                 double vx = ux/ut;
                 double vy = uy/ut;
@@ -591,7 +592,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
 
 
 //! This function outputs hydro evolution file in binary format for photon production
-void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
+void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
     // volume = tau*dtau*dx*dy*deta
     // the format of the file is as follows,
     //    volume T ux uy ueta
@@ -633,16 +634,17 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
         double eta_local = - DATA.eta_size/2. + ieta*deta;
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
-                double e_local = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+                int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+                double e_local = arena.e_[fieldIdx];            // 1/fm^4
 
                 if (e_local*hbarc < DATA.output_evolution_e_cut) continue;
                 // only ouput fluid cells that are above cut-off temperature
 
-                double rhob_local = arena(ix, iy, ieta).rhob;  // 1/fm^3
+                double rhob_local = arena.rhob_[fieldIdx];      // 1/fm^3
 
-                double ux   = arena(ix, iy, ieta).u[1];
-                double uy   = arena(ix, iy, ieta).u[2];
-                double ueta = arena(ix, iy, ieta).u[3];
+                double ux   = arena.u_[1][fieldIdx];
+                double uy   = arena.u_[2][fieldIdx];
+                double ueta = arena.u_[3][fieldIdx];
 
                 // T_local is in 1/fm
                 double T_local = eos.get_temperature(e_local, rhob_local);
@@ -659,16 +661,16 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
                 double Wyy = 0.0;
                 double Wyeta = 0.0;
                 if (DATA.turn_on_shear == 1) {
-                    Wxx   = arena(ix, iy, ieta).Wmunu[4]/div_factor;
-                    Wxy   = arena(ix, iy, ieta).Wmunu[5]/div_factor;
-                    Wxeta = arena(ix, iy, ieta).Wmunu[6]/div_factor;
-                    Wyy   = arena(ix, iy, ieta).Wmunu[7]/div_factor;
-                    Wyeta = arena(ix, iy, ieta).Wmunu[8]/div_factor;
+                    Wxx   = arena.Wmunu_[4][fieldIdx]/div_factor;
+                    Wxy   = arena.Wmunu_[5][fieldIdx]/div_factor;
+                    Wxeta = arena.Wmunu_[6][fieldIdx]/div_factor;
+                    Wyy   = arena.Wmunu_[7][fieldIdx]/div_factor;
+                    Wyeta = arena.Wmunu_[8][fieldIdx]/div_factor;
                 }
 
                 double pi_b = 0.0;
                 if (DATA.turn_on_bulk == 1) {
-                    pi_b = arena(ix, iy, ieta).pi_b;   // 1/fm^4
+                    pi_b = arena.piBulk_[fieldIdx];   // 1/fm^4
                 }
 
                 // outputs for baryon diffusion part
@@ -680,9 +682,9 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
                     common_term_q = rhob_local*T_local/div_factor;
                     double kappa_hat = get_deltaf_qmu_coeff(T_local,
                                                             muB_local);
-                    qx   = arena(ix, iy, ieta).Wmunu[11]/kappa_hat;
-                    qy   = arena(ix, iy, ieta).Wmunu[12]/kappa_hat;
-                    qeta = arena(ix, iy, ieta).Wmunu[13]/kappa_hat;
+                    qx   = arena.Wmunu_[11][fieldIdx]/kappa_hat;
+                    qy   = arena.Wmunu_[12][fieldIdx]/kappa_hat;
+                    qeta = arena.Wmunu_[13][fieldIdx]/kappa_hat;
                 }
 
                 float ideal[] = {static_cast<float>(volume),
@@ -729,7 +731,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
 
 //! This function outputs hydro evolution file in binary format
 void Cell_info::OutputEvolutionDataXYEta_vorticity(
-        SCGrid &arena_curr, SCGrid &arena_prev, double tau) {
+        Fields &arena_curr, Fields &arena_prev, double tau) {
     // the format of the file is as follows,
     //    itau ix iy ieta e P T ux uy ueta mu_B
     //    omega^tx omega^ty omega^tz omega^xy omega^xz omega^yz
@@ -748,9 +750,9 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
     double output_dtau = DATA.delta_tau*n_skip_tau;
     int itau = static_cast<int>((tau - DATA.tau0)/(output_dtau) + 0.1);
 
-    int n_skip_x       = DATA.output_evolution_every_N_x;
-    int n_skip_y       = DATA.output_evolution_every_N_y;
-    int n_skip_eta     = DATA.output_evolution_every_N_eta;
+    int n_skip_x   = DATA.output_evolution_every_N_x;
+    int n_skip_y   = DATA.output_evolution_every_N_y;
+    int n_skip_eta = DATA.output_evolution_every_N_eta;
 
     // write out header
     const int output_nx        = static_cast<int>(arena_curr.nX()/n_skip_x);
@@ -781,13 +783,14 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
         double eta_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
         for (int iy = 0; iy < arena_curr.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena_curr.nX(); ix += n_skip_x) {
-                double e_local    = arena_curr(ix, iy, ieta).epsilon;  // 1/fm^4
-                double rhob_local = arena_curr(ix, iy, ieta).rhob;     // 1/fm^3
+                int fieldIdx = arena_curr.getFieldIdx(ix, iy, ieta);
+                double e_local    = arena_curr.e_[fieldIdx];        // 1/fm^4
+                double rhob_local = arena_curr.rhob_[fieldIdx];     // 1/fm^3
                 double p_local    = eos.get_pressure(e_local, rhob_local);
 
-                double ux   = arena_curr(ix, iy, ieta).u[1];
-                double uy   = arena_curr(ix, iy, ieta).u[2];
-                double ueta = arena_curr(ix, iy, ieta).u[3];
+                double ux   = arena_curr.u_[1][fieldIdx];
+                double uy   = arena_curr.u_[2][fieldIdx];
+                double ueta = arena_curr.u_[3][fieldIdx];
 
                 // T_local is in GeV
                 double T_local = eos.get_temperature(e_local, rhob_local)*hbarc;
@@ -804,8 +807,9 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
                 VelocityShearVec sigma_munu = {0.0};
                 DmuMuBoverTVec DbetaMu = {0.0};
                 u_derivative_helper.compute_vorticity_shell(
-                    tau, arena_prev, arena_curr, ieta, ix, iy, eta_local,
-                    omega_kSP, omega_k, omega_th, omega_T, sigma_munu, DbetaMu);
+                    tau, arena_prev, arena_curr, ieta, ix, iy, fieldIdx,
+                    eta_local, omega_kSP, omega_k, omega_th, omega_T,
+                    sigma_munu, DbetaMu);
 
                 float ideal[] = {static_cast<float>(itau),
                                  static_cast<float>(ix/n_skip_x),
@@ -1245,7 +1249,7 @@ void Cell_info::output_1p1D_check_file(Fields &arena, const double tau) {
 
 
 //! This function outputs energy density and n_b for making movies
-void Cell_info::output_evolution_for_movie(SCGrid &arena, const double tau) {
+void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
     const string out_name_xyeta = "evolution_for_movie_xyeta.dat";
     string out_open_mode;
     FILE *out_file_xyeta;
@@ -1298,8 +1302,9 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, const double tau) {
         if (DATA.boost_invariant) eta_local = 0.;
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
-                double e_local = arena(ix, iy, ieta).epsilon;  // 1/fm^4
-                double rhob_local = arena(ix, iy, ieta).rhob;  // 1/fm^3
+                int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+                double e_local = arena.e_[fieldIdx];            // 1/fm^4
+                double rhob_local = arena.rhob_[fieldIdx];      // 1/fm^3
 
                 // T_local is in 1/fm
                 double T_local   = eos.get_temperature(e_local, rhob_local);
@@ -1308,22 +1313,22 @@ void Cell_info::output_evolution_for_movie(SCGrid &arena, const double tau) {
                 double muB_local = eos.get_muB(e_local, rhob_local);  // 1/fm
 
                 double pressure  = eos.get_pressure(e_local, rhob_local);
-                double u0        = arena(ix, iy, ieta).u[0];
-                double u1        = arena(ix, iy, ieta).u[1];
-                double u2        = arena(ix, iy, ieta).u[2];
-                double u3        = arena(ix, iy, ieta).u[3];
+                double u0        = arena.u_[0][fieldIdx];
+                double u1        = arena.u_[1][fieldIdx];
+                double u2        = arena.u_[2][fieldIdx];
+                double u3        = arena.u_[3][fieldIdx];
                 double T00_ideal = (e_local + pressure)*u0*u0 - pressure;
                 double T03_ideal = (e_local + pressure)*u0*u3;
-                double Pi00      = arena(ix, iy, ieta).pi_b*(-1.0 + u0*u0);
-                double Pi03      = arena(ix, iy, ieta).pi_b*u0*u3;
+                double Pi00      = arena.piBulk_[fieldIdx]*(-1.0 + u0*u0);
+                double Pi03      = arena.piBulk_[fieldIdx]*u0*u3;
                 double T00_full  = (  T00_ideal
-                                    + arena(ix, iy, ieta).Wmunu[0] + Pi00);
+                                    + arena.Wmunu_[0][fieldIdx] + Pi00);
                 double T03_full  = (  T03_ideal
-                                    + arena(ix, iy, ieta).Wmunu[3] + Pi03);
+                                    + arena.Wmunu_[3][fieldIdx] + Pi03);
                 double Ttaut     = (  T00_full*cosh(eta_local)
                                     + T03_full*sinh(eta_local));
                 double JBtau     = (  rhob_local*u0
-                                    + arena(ix, iy, ieta).Wmunu[10]);
+                                    + arena.Wmunu_[10][fieldIdx]);
                 float array[] = {static_cast<float>(itau),
                                  static_cast<float>(ix/n_skip_x),
                                  static_cast<float>(iy/n_skip_y),
@@ -1367,9 +1372,10 @@ void Cell_info::output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
 
 //! This function outputs the evolution of hydrodynamic variables at a
 //! give fluid cell
-void Cell_info::monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
+void Cell_info::monitor_a_fluid_cell(Fields &arena_curr, Fields &arena_prev,
                                      const int ix, const int iy,
                                      const int ieta, const double tau) {
+    int fieldIdx = arena_curr.getFieldIdx(ix, iy, ieta);
     ostringstream filename;
     filename << "monitor_fluid_cell_ix_" << ix << "_iy_" << iy
              << "_ieta_" << ieta << ".dat";
@@ -1386,31 +1392,31 @@ void Cell_info::monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
                          std::fstream::out | std::fstream::app);
     }
     output_file << scientific << setprecision(8)
-                << tau << "  " << arena_curr(ix,iy,ieta).epsilon*Util::hbarc
-                << "  " << arena_curr(ix,iy,ieta).rhob << "  ";
+                << tau << "  " << arena_curr.e_[fieldIdx]*Util::hbarc
+                << "  " << arena_curr.rhob_[fieldIdx] << "  ";
     for (int i = 0; i < 4; i++) {
         output_file << scientific << setprecision(8)
-                    << arena_curr(ix, iy, ieta).u[i] << "  ";
+                    << arena_curr.u_[i][fieldIdx] << "  ";
     }
 
-    u_derivative_helper.MakedU(tau, arena_prev, arena_curr, ix, iy, ieta);
+    u_derivative_helper.MakedU(tau, arena_prev, arena_curr, fieldIdx,
+                               ix, iy, ieta);
     auto theta_local = u_derivative_helper.calculate_expansion_rate(
-                                            tau, arena_curr, ieta, ix, iy);
+                                            tau, arena_curr, fieldIdx);
     output_file << scientific << setprecision(8)
-                << arena_curr(ix, iy, ieta).pi_b*Util::hbarc << "  "
+                << arena_curr.piBulk_[fieldIdx]*Util::hbarc << "  "
                 << theta_local << "  ";
     DumuVec a_local;
-    u_derivative_helper.calculate_Du_supmu(tau, arena_curr,
-                                           ieta, ix, iy, a_local);
+    u_derivative_helper.calculate_Du_supmu(tau, arena_curr, fieldIdx, a_local);
     VelocityShearVec sigma_local;
     u_derivative_helper.calculate_velocity_shear_tensor(
-                    tau, arena_curr, ieta, ix, iy, a_local, sigma_local);
+                tau, arena_curr, fieldIdx, theta_local, a_local, sigma_local);
     VorticityVec omega_local;
     u_derivative_helper.calculate_kinetic_vorticity_with_spatial_projector(
-                    tau, arena_curr, ieta, ix, iy, a_local, omega_local);
+                            tau, arena_curr, fieldIdx, a_local, omega_local);
     for (int i = 0; i < 10; i++) {
         output_file << scientific << setprecision(8)
-                    << arena_curr(ix, iy, ieta).Wmunu[i]*Util::hbarc << "  "
+                    << arena_curr.Wmunu_[i][fieldIdx]*Util::hbarc << "  "
                     << sigma_local[i] << "  ";
     }
     for (int i = 0; i < 6; i++) {
@@ -1422,7 +1428,7 @@ void Cell_info::monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
 }
 
 void Cell_info::output_vorticity_distribution(
-                SCGrid &arena_curr, SCGrid &arena_prev, const double tau,
+                Fields &arena_curr, Fields &arena_prev, const double tau,
                 const double eta_min, const double eta_max) {
     // This function outputs the vorticity tensor at a given tau
     ostringstream filename1;
@@ -1479,13 +1485,14 @@ void Cell_info::output_vorticity_distribution(
             double muB_avg = 0.0;
             double weight   = 0.0;
             for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
+                int fieldIdx = arena_curr.getFieldIdx(ix, iy, ieta);
                 double eta_local = - DATA.eta_size/2. + ieta*DATA.delta_eta;
                 if (DATA.boost_invariant)
                     eta_local = 0.0;
                 if (eta_local < eta_max && eta_local > eta_min) {
-                    const double e_local = arena_curr(ix, iy, ieta).epsilon;
+                    const double e_local = arena_curr.e_[fieldIdx];
                     if (e_local < 0.1) continue;
-                    const double rhob_local = arena_curr(ix, iy, ieta).rhob;
+                    const double rhob_local = arena_curr.rhob_[fieldIdx];
                     const double T_local = (
                             eos.get_temperature(e_local, rhob_local));
                     const double muB_local = eos.get_muB(e_local, rhob_local);
@@ -1497,8 +1504,8 @@ void Cell_info::output_vorticity_distribution(
                     VelocityShearVec sigma_local = {0.0};
                     DmuMuBoverTVec DbetaMu = {0.0};
                     u_derivative_helper.compute_vorticity_shell(
-                        tau, arena_prev, arena_curr, ieta, ix, iy, eta_local,
-                        omega_local_1, omega_local_2,
+                        tau, arena_prev, arena_curr, ieta, ix, iy,
+                        fieldIdx, eta_local, omega_local_1, omega_local_2,
                         omega_local_3, omega_local_4, sigma_local, DbetaMu);
                     for (unsigned int ii = 0; ii < omega_k.size(); ii++) {
                         omega_kSP[ii] += e_local*omega_local_1[ii]/T_local;
@@ -1550,7 +1557,7 @@ void Cell_info::output_vorticity_distribution(
 }
 
 void Cell_info::output_vorticity_time_evolution(
-                SCGrid &arena_curr, SCGrid &arena_prev, const double tau,
+                Fields &arena_curr, Fields &arena_prev, const double tau,
                 const double eta_min, const double eta_max) {
     // This function outputs the time evolution of the vorticity tensor
     ostringstream filename1;
@@ -1620,9 +1627,10 @@ void Cell_info::output_vorticity_time_evolution(
         if (eta < eta_max && eta > eta_min) {
             for (int iy = 0; iy < arena_curr.nY(); iy++)
             for (int ix = 0; ix < arena_curr.nX(); ix++) {
-                const double e_local = arena_curr(ix, iy, ieta).epsilon;
+                int fieldIdx = arena_curr.getFieldIdx(ix, iy, ieta);
+                const double e_local = arena_curr.e_[fieldIdx];         // 1/fm^4
                 if (e_local < 0.1) continue;
-                const double rhob_local = arena_curr(ix, iy, ieta).rhob;
+                const double rhob_local = arena_curr.rhob_[fieldIdx];   // 1/fm^3
                 const double T_local = (
                             eos.get_temperature(e_local, rhob_local));
                 VorticityVec omega_local_1, omega_local_2;
@@ -1630,8 +1638,8 @@ void Cell_info::output_vorticity_time_evolution(
                 VelocityShearVec sigma_local = {0.0};
                 DmuMuBoverTVec DbetaMu = {0.0};
                 u_derivative_helper.compute_vorticity_shell(
-                    tau, arena_prev, arena_curr, ieta, ix, iy, eta,
-                    omega_local_1, omega_local_2,
+                    tau, arena_prev, arena_curr, ieta, ix, iy, fieldIdx,
+                    eta, omega_local_1, omega_local_2,
                     omega_local_3, omega_local_4, sigma_local, DbetaMu);
                 for (unsigned int ii = 0; ii < omega_k.size(); ii++) {
                     omega_kSP[ii] += e_local*omega_local_1[ii]/T_local;

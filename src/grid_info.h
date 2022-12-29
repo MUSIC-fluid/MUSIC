@@ -60,11 +60,11 @@ class Cell_info {
     void OutputEvolutionDataXYEta_chun(Fields &arena, double tau);
 
     //! This function outputs hydro evolution file in binary format for photon production
-    void OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau);
+    void OutputEvolutionDataXYEta_photon(Fields &arena, double tau);
 
     //! This function outputs hydro evolution file in binary format
     void OutputEvolutionDataXYEta_vorticity(
-            SCGrid &arena_curr, SCGrid &arena_prev, double tau);
+            Fields &arena_curr, Fields &arena_prev, double tau);
 
     void load_deltaf_qmu_coeff_table(std::string filename);
     void load_deltaf_qmu_coeff_table_14mom(std::string filename);
@@ -92,7 +92,7 @@ class Cell_info {
         Fields &arena, double &e_max, double &nB_max, double &Tmax);
 
     //! This function outputs energy density and n_b for making movies
-    void output_evolution_for_movie(SCGrid &arena, const double tau);
+    void output_evolution_for_movie(Fields &arena, const double tau);
 
     //! This function outputs average T and mu_B as a function of proper tau
     //! within a given space-time rapidity range
@@ -102,12 +102,12 @@ class Cell_info {
 
     //! This function outputs the vorticity tensor at a given tau
     void output_vorticity_distribution(
-        SCGrid &arena_curr, SCGrid &arena_prev, const double tau,
+        Fields &arena_curr, Fields &arena_prev, const double tau,
         const double eta_min, const double eta_max);
 
     //! This function outputs the time evolution of the vorticity tensor
     void output_vorticity_time_evolution(
-        SCGrid &arena_curr, SCGrid &arena_prev, const double tau,
+        Fields &arena_curr, Fields &arena_prev, const double tau,
         const double eta_min, const double eta_max);
 
     //! This function dumps the energy density and net baryon density
@@ -126,7 +126,7 @@ class Cell_info {
 
     //! This function outputs the evolution of hydrodynamic variables at a
     //! give fluid cell
-    void monitor_a_fluid_cell(SCGrid &arena_curr, SCGrid &arena_prev,
+    void monitor_a_fluid_cell(Fields &arena_curr, Fields &arena_prev,
                               const int ix, const int iy, const int ieta,
                               const double tau);
 
@@ -142,7 +142,7 @@ class Cell_info {
 
     //! This function outputs hydro evolution file into memory for JETSCAPE
     void OutputEvolutionDataXYEta_memory(
-            SCGrid &arena, const double tau, HydroinfoMUSIC &hydro_info_ptr);
+            Fields &arena, const double tau, HydroinfoMUSIC &hydro_info_ptr);
 
 
     //! This function computes the pi^{\mu\nu} in the local rest frame

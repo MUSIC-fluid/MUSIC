@@ -97,29 +97,30 @@ void U_derivative::calculate_Du_supmu(const double tau, Fields &arena,
 
 // This is a shell function to compute all 4 kinds of vorticity tensors
 void U_derivative::compute_vorticity_shell(
-        const double tau, SCGrid &arena_prev, SCGrid &arena_curr,
-        const int ieta, const int ix, const int iy, const double eta,
+        const double tau, Fields &arena_prev, Fields &arena_curr,
+        const int ieta, const int ix, const int iy,
+        const int fieldIdx, const double eta,
         VorticityVec &omega_local_kSP, VorticityVec &omega_local_knoSP,
         VorticityVec &omega_local_th, VorticityVec &omega_local_T,
         VelocityShearVec &sigma_th_local, DmuMuBoverTVec &DbetaMu) {
-    MakedU(tau, arena_prev, arena_curr, ix, iy, ieta);
+    MakedU(tau, arena_prev, arena_curr, fieldIdx, ix, iy, ieta);
     DumuVec a_local;
-    calculate_Du_supmu(tau, arena_curr, ieta, ix, iy, a_local);
+    calculate_Du_supmu(tau, arena_curr, fieldIdx, a_local);
 
     VorticityVec omega_local;
     calculate_kinetic_vorticity_with_spatial_projector(
-            tau, arena_curr, ieta, ix, iy, a_local, omega_local);
+            tau, arena_curr, fieldIdx, a_local, omega_local);
     omega_local_kSP = transform_vorticity_to_tz(omega_local, eta);
     calculate_kinetic_vorticity_no_spatial_projection(
-            tau, arena_curr, ieta, ix, iy, omega_local);
+            tau, arena_curr, fieldIdx, omega_local);
     omega_local_knoSP = transform_vorticity_to_tz(omega_local, eta);
-    calculate_thermal_vorticity(tau, arena_curr, ieta, ix, iy, omega_local);
+    calculate_thermal_vorticity(tau, arena_curr, fieldIdx, omega_local);
     omega_local_th = transform_vorticity_to_tz(omega_local, eta);
-    calculate_T_vorticity(tau, arena_curr, ieta, ix, iy, omega_local);
+    calculate_T_vorticity(tau, arena_curr, fieldIdx, omega_local);
     omega_local_T = transform_vorticity_to_tz(omega_local, eta);
 
     VelocityShearVec sigma_th_Mline;
-    calculate_thermal_shear_tensor(tau, arena_curr, ieta, ix, iy,
+    calculate_thermal_shear_tensor(tau, arena_curr, fieldIdx,
                                    sigma_th_Mline);
     sigma_th_local = transform_SigmaMuNu_to_tz(sigma_th_Mline, eta);
     DmuMuBoverTVec DbetaMu_local;
@@ -305,15 +306,16 @@ void U_derivative::calculate_kinetic_vorticity_with_spatial_projector(
 //! it outputs omega^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
 //! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_thermal_vorticity(
-            const double tau, SCGrid &arena, const int ieta,
-            const int ix, const int iy, VorticityVec &omega) {
+            const double tau, Fields &arena, const int fieldIdx,
+            VorticityVec &omega) {
     // this function computes the thermal vorticity
-    FlowVec u_local = arena(ix, iy, ieta).u;
-    double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
-                                          arena(ix, iy, ieta).rhob);
+    double T_local  = eos.get_temperature(arena.e_[fieldIdx],
+                                          arena.rhob_[fieldIdx]);
     if (T_local > T_tol) {
+        FlowVec u_local;
         double dUsup_local[4][4];
         for (int i = 0; i < 4; i++) {
+            u_local[i] = arena.u_[i][fieldIdx];
             for (int j = 0; j < 4; j++) {
                 dUsup_local[i][j] = dUoverTsup[i][j];
             }
@@ -352,15 +354,16 @@ void U_derivative::calculate_thermal_vorticity(
 //! it outputs sigma_th^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
 //! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_thermal_shear_tensor(
-            const double tau, SCGrid &arena, const int ieta,
-            const int ix, const int iy, VelocityShearVec &sigma_th) {
+            const double tau, Fields &arena, const int fieldIdx,
+            VelocityShearVec &sigma_th) {
     // this function computes the thermal shear tensor
-    double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
-                                          arena(ix, iy, ieta).rhob);
+    double T_local  = eos.get_temperature(arena.e_[fieldIdx],
+                                          arena.rhob_[fieldIdx]);
     if (T_local > T_tol) {
-        FlowVec u_local = arena(ix, iy, ieta).u;
+        FlowVec u_local;
         double dUsup_local[4][4];
         for (int i = 0; i < 4; i++) {
+            u_local[i] = arena.u_[i][fieldIdx];
             for (int j = 0; j < 4; j++) {
                 dUsup_local[i][j] = dUoverTsup[i][j];
             }
@@ -401,14 +404,15 @@ void U_derivative::calculate_thermal_shear_tensor(
 //! it outputs omega^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
 //! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_T_vorticity(
-            const double tau, SCGrid &arena, const int ieta,
-            const int ix, const int iy, VorticityVec &omega) {
+            const double tau, Fields &arena, const int fieldIdx,
+            VorticityVec &omega) {
     // this function computes the T-vorticity
-    FlowVec u_local = arena(ix, iy, ieta).u;
-    double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
-                                          arena(ix, iy, ieta).rhob);
+    FlowVec u_local;
+    double T_local  = eos.get_temperature(arena.e_[fieldIdx],
+                                          arena.rhob_[fieldIdx]);
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
+        u_local[i] = arena.u_[i][fieldIdx];
         for (int j = 0; j < 4; j++) {
             dUsup_local[i][j] = dUTsup[i][j];
         }
@@ -439,14 +443,15 @@ void U_derivative::calculate_T_vorticity(
 //! it outputs omega^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
 //! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_kinetic_vorticity_no_spatial_projection(
-            const double tau, SCGrid &arena, const int ieta,
-            const int ix, const int iy, VorticityVec &omega) {
+            const double tau, Fields &arena, const int fieldIdx,
+            VorticityVec &omega) {
     // this function computes the full kinetic vorticity without the spatial
     // projection
     // omega^{\mu\nu} = \partial^\mu u^\nu - \partial^\nu u^\mu
-    FlowVec u_local = arena(ix, iy, ieta).u;
+    FlowVec u_local;
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
+        u_local[i] = arena.u_[i][fieldIdx];
         for (int j = 0; j < 4; j++) {
             dUsup_local[i][j] = dUsup[i][j];
         }

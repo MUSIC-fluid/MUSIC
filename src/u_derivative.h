@@ -55,16 +55,16 @@ class U_derivative {
 
     //! this function computes the kinetic vorticity without spatial projection
     void calculate_kinetic_vorticity_no_spatial_projection(
-        const double tau, SCGrid &arena,
-        const int ieta, const int ix, const int iy, VorticityVec &omega);
+        const double tau, Fields &arena, const int fieldIdx,
+        VorticityVec &omega);
 
     //! this function computes the thermal vorticity
-    void calculate_thermal_vorticity(const double tau, SCGrid &arena,
-        const int ieta, const int ix, const int iy, VorticityVec &omega);
+    void calculate_thermal_vorticity(const double tau, Fields &arena,
+                                     const int fieldIdx, VorticityVec &omega);
 
     //! this function computes the T-vorticity
-    void calculate_T_vorticity(const double tau, SCGrid &arena,
-        const int ieta, const int ix, const int iy, VorticityVec &omega);
+    void calculate_T_vorticity(const double tau, Fields &arena,
+                               const int fieldIdx, VorticityVec &omega);
 
     //! This funciton returns the velocity shear tensor sigma^\mu\nu
     void calculate_velocity_shear_tensor(
@@ -88,13 +88,14 @@ class U_derivative {
 
     //! this function computes the thermal shear tensor
     void calculate_thermal_shear_tensor(
-            const double tau, SCGrid &arena, const int ieta,
-            const int ix, const int iy, VelocityShearVec &sigma_th);
+            const double tau, Fields &arena, const int fieldIdx,
+            VelocityShearVec &sigma_th);
 
     //! This is a shell function to compute all 4 kinds of vorticity tensors
     void compute_vorticity_shell(
-        const double tau, SCGrid &arena_prev, SCGrid &arena_curr,
-        const int ieta, const int ix, const int iy, const double eta,
+        const double tau, Fields &arena_prev, Fields &arena_curr,
+        const int ieta, const int ix, const int iy,
+        const int fieldIdx, const double eta,
         VorticityVec &omega_local_k, VorticityVec &omega_local_knoSP,
         VorticityVec &omega_local_th, VorticityVec &omega_local_T,
         VelocityShearVec &sigma_local, DmuMuBoverTVec &DbetaMu);
