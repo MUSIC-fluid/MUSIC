@@ -62,10 +62,10 @@ class Advance {
                      const int rk_flag);
 
     double MaxSpeed(const double tau, const int direc,
-                    const ReconstCell &grid_p);
+                    const ReconstCell &grid_p, const double pressure);
 
-    double get_TJb(const ReconstCell &grid_p, const int mu, const int nu);
-    double get_TJb(const Cell_small &grid_p, const int mu, const int nu);
+    double get_TJb(const ReconstCell &grid_p, const int mu, const int nu,
+                   const double pressure);
 };
 
 #endif  // SRC_ADVANCE_H_

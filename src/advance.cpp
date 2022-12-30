@@ -145,6 +145,8 @@ void Advance::FirstRKStepT(
     TJbVec dwmn ={0.0};
     diss_helper.MakeWSource(tau_rk, ix, iy, ieta,
                             dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
+    auto cellPrev = arenaFieldsPrev.getCellIdeal(fieldIdx);
+    double pressurePrev = eos.get_pressure(cellPrev.e, cellPrev.rhob);
     for (int alpha = 0; alpha < 5; alpha++) {
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn[alpha]*(DATA.delta_tau);
@@ -161,11 +163,9 @@ void Advance::FirstRKStepT(
         //        qi[alpha] = 0.;
         //}
 
-        /* if rk_flag > 0, we now have q0 + k1 + k2. 
+        /* if rk_flag > 0, we now have q0 + k1 + k2.
          * So add q0 and multiply by 1/2 */
-        //qi[alpha] += rk_flag*get_TJb(arena_prev(ix,iy,ieta), alpha, 0)*tau;
-        qi[alpha] += rk_flag*get_TJb(
-                arenaFieldsPrev.getCellIdeal(fieldIdx), alpha, 0)*tau;
+        qi[alpha] += rk_flag*get_TJb(cellPrev, alpha, 0, pressurePrev)*tau;
         qi[alpha] *= 1./(1. + rk_flag);
     }
 
@@ -472,8 +472,9 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
     const double tau_fac[4] = {0.0, tau, tau, 1.0};
 
     auto cellCurr = arenaFieldsCurr.getCellIdeal(fieldIdx);
+    double pressure = eos.get_pressure(cellCurr.e, cellCurr.rhob);
     for (int alpha = 0; alpha < 5; alpha++) {
-        qi[alpha] = get_TJb(cellCurr, alpha, 0)*tau;
+        qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure)*tau;
     }
 
     TJbVec qiphL   = {0.};
@@ -485,16 +486,22 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
     EnergyFlowVec T_eta_m = {0.};
     EnergyFlowVec T_eta_p = {0.};
     FieldNeighbourLoopIdeal2(arenaFieldsCurr, ix, iy, ieta, FNLILAMBDAS2{
+        double pressureP1 = eos.get_pressure(p1.e, p1.rhob);
+        double pressureP2 = eos.get_pressure(p2.e, p2.rhob);
+        double pressureM1 = eos.get_pressure(m1.e, m1.rhob);
+        double pressureM2 = eos.get_pressure(m2.e, m2.rhob);
         for (int alpha = 0; alpha < 5; alpha++) {
             const double gphL = qi[alpha];
-            const double gphR = tau*get_TJb(p1, alpha, 0);
-            const double gmhL = tau*get_TJb(m1, alpha, 0);
+            const double gphR = tau*get_TJb(p1, alpha, 0, pressureP1);
+            const double gmhL = tau*get_TJb(m1, alpha, 0, pressureM1);
             const double gmhR = qi[alpha];
             const double fphL =  0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
             const double fphR = -0.5*minmod.minmod_dx(
-                                tau*get_TJb(p2, alpha, 0), gphR, qi[alpha]);
+                                    tau*get_TJb(p2, alpha, 0, pressureP2),
+                                    gphR, qi[alpha]);
             const double fmhL =  0.5*minmod.minmod_dx(
-                                qi[alpha], gmhL, tau*get_TJb(m2, alpha, 0));
+                                    qi[alpha], gmhL,
+                                    tau*get_TJb(m2, alpha, 0, pressureM2));
             const double fmhR = -fphL;
             qiphL[alpha] = gphL + fphL;
             qiphR[alpha] = gphR + fphR;
@@ -508,20 +515,27 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
         auto grid_phR = reconst_helper.ReconstIt_shell(tau, qiphR, c);
         auto grid_mhL = reconst_helper.ReconstIt_shell(tau, qimhL, c);
         auto grid_mhR = reconst_helper.ReconstIt_shell(tau, qimhR, c);
+        pressureP1 = eos.get_pressure(grid_phL.e, grid_phL.rhob);
+        pressureP2 = eos.get_pressure(grid_phR.e, grid_phR.rhob);
+        pressureM1 = eos.get_pressure(grid_mhL.e, grid_mhL.rhob);
+        pressureM2 = eos.get_pressure(grid_mhR.e, grid_mhR.rhob);
 
-        double aiphL = MaxSpeed(tau, direction, grid_phL);
-        double aiphR = MaxSpeed(tau, direction, grid_phR);
-        double aimhL = MaxSpeed(tau, direction, grid_mhL);
-        double aimhR = MaxSpeed(tau, direction, grid_mhR);
+        double aiphL = MaxSpeed(tau, direction, grid_phL, pressureP1);
+        double aiphR = MaxSpeed(tau, direction, grid_phR, pressureP2);
+        double aimhL = MaxSpeed(tau, direction, grid_mhL, pressureM1);
+        double aimhR = MaxSpeed(tau, direction, grid_mhR, pressureM2);
 
         double aiph = std::max(aiphL, aiphR);
         double aimh = std::max(aimhL, aimhR);
-
         for (int alpha = 0; alpha < 5; alpha++) {
-            double FiphL = get_TJb(grid_phL, alpha, direction)*tau_fac[direction];
-            double FiphR = get_TJb(grid_phR, alpha, direction)*tau_fac[direction];
-            double FimhL = get_TJb(grid_mhL, alpha, direction)*tau_fac[direction];
-            double FimhR = get_TJb(grid_mhR, alpha, direction)*tau_fac[direction];
+            double FiphL = (tau_fac[direction]
+                            *get_TJb(grid_phL, alpha, direction, pressureP1));
+            double FiphR = (tau_fac[direction]
+                            *get_TJb(grid_phR, alpha, direction, pressureP2));
+            double FimhL = (tau_fac[direction]
+                            *get_TJb(grid_mhL, alpha, direction, pressureM1));
+            double FimhR = (tau_fac[direction]
+                            *get_TJb(grid_mhR, alpha, direction, pressureM2));
 
             // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2}))/2
             //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
@@ -566,7 +580,7 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
 
 // determine the maximum signal propagation speed at the given direction
 double Advance::MaxSpeed(const double tau, const int direc,
-                         const ReconstCell &grid_p) {
+                         const ReconstCell &grid_p, const double pressure) {
     double g[] = {1., 1., 1./tau};
 
     double utau    = grid_p.u[0];
@@ -584,8 +598,7 @@ double Advance::MaxSpeed(const double tau, const int direc,
         num = utau*ux*(1. - vs2) + sqrt(num_temp_sqrt);
     } else {
         double dpde = eos.get_dpde(eps, rhob);
-        double p = eos.get_pressure(eps, rhob);
-        double h = p+eps;
+        double h = pressure + eps;
         if (dpde < 0.001) {
             num = (sqrt(-(h*dpde*h*(dpde*(-1.0 + ut2mux2) - ut2mux2)))
                    - h*(-1.0 + dpde)*utau*ux);
@@ -593,7 +606,7 @@ double Advance::MaxSpeed(const double tau, const int direc,
           fprintf(stderr,"WARNING: in MaxSpeed. \n");
           fprintf(stderr, "Expression under sqrt in num=%lf. \n", num_temp_sqrt);
           fprintf(stderr,"at value e=%lf. \n",eps);
-          fprintf(stderr,"at value p=%lf. \n",p);
+          fprintf(stderr,"at value p=%lf. \n",pressure);
           fprintf(stderr,"at value h=%lf. \n",h);
           fprintf(stderr,"at value rhob=%lf. \n",rhob);
           fprintf(stderr,"at value utau=%lf. \n", utau);
@@ -635,9 +648,11 @@ double Advance::MaxSpeed(const double tau, const int direc,
     return f;
 }
 
-double Advance::get_TJb(const ReconstCell &grid_p, const int mu, const int nu) {
-    assert(mu < 5); assert(mu > -1);
-    assert(nu < 4); assert(nu > -1);
+
+double Advance::get_TJb(const ReconstCell &grid_p, const int mu, const int nu,
+                        const double pressure) {
+    //assert(mu < 5); assert(mu > -1);
+    //assert(nu < 4); assert(nu > -1);
     double rhob = grid_p.rhob;
     const double u_nu = grid_p.u[nu];
     if (mu == 4) {
@@ -655,32 +670,6 @@ double Advance::get_TJb(const ReconstCell &grid_p, const int mu, const int nu) {
     } else {
         u_mu = grid_p.u[mu];
     }
-    const double pressure = eos.get_pressure(e, rhob);
-    const double T_munu   = (e + pressure)*u_mu*u_nu + pressure*gfac;
-    return(T_munu);
-}
-
-double Advance::get_TJb(const Cell_small &grid_p, const int mu, const int nu) {
-    assert(mu < 5); assert(mu > -1);
-    assert(nu < 4); assert(nu > -1);
-    double rhob = grid_p.rhob;
-    const double u_nu = grid_p.u[nu];
-    if (mu == 4) {
-        return rhob*u_nu;
-    }
-    double e = grid_p.epsilon;
-    double gfac = 0.0;
-    double u_mu = 0.0;
-    if (mu == nu) {
-        u_mu = u_nu;
-        gfac = 1.0;
-        if (mu == 0) {
-            gfac = -1.0;
-        }
-    } else {
-        u_mu = grid_p.u[mu];
-    }
-    const double pressure = eos.get_pressure(e, rhob);
-    const double T_munu   = (e + pressure)*u_mu*u_nu + pressure*gfac;
+    const double T_munu = (e + pressure)*u_mu*u_nu + pressure*gfac;
     return(T_munu);
 }
