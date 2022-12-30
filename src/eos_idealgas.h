@@ -10,11 +10,11 @@ class EOS_idealgas : public EOS_base {
  private:
      double Nc;
      double Nf;
-   
+
  public:
     EOS_idealgas();
     ~EOS_idealgas() {}
-    
+
     void set_Nc_and_Nf(double Nc_in, double Nf_in) {Nc = Nc_in; Nf = Nf_in;}
 
     void   initialize_eos();
