@@ -48,28 +48,27 @@ class Diss {
                    std::array<double, 5> &w_rhs,
                    const double theta_local, const DumuVec &a_local);
 
-    int Make_uPRHS(const double tau, Fields &arena,
-                   const int fieldIdx,
-                   const int ix, const int iy, const int ieta,
-                   double *p_rhs, const double theta_local);
+    void Make_uPRHS(const double tau, Fields &arena, const int fieldIdx,
+                    const int ix, const int iy, const int ieta,
+                    double &p_rhs, const double theta_local);
 
     double Make_uPiSource(const double tau, const Cell_small *grid_pt,
                           const Cell_small *grid_pt_prev, const int rk_flag,
                           const double theta_local,
                           const VelocityShearVec &sigma_1d);
 
-    double Make_uqRHS(const double tau, Fields &arena_current,
-                      const int fieldIdx,
-                      const int ix, const int iy, const int ieta,
-                      const int mu, const int nu);
+    void Make_uqRHS(const double tau, Fields &arena_current,
+                    const int fieldIdx, const int ix, const int iy,
+                    const int ieta, std::array<double, 3> rhs);
 
-    double Make_uqSource(const double tau, const Cell_small *grid_pt,
-                         const Cell_small *grid_pt_prev,
-                         const int nu, const int rk_flag,
-                         const double theta_local, const DumuVec &a_local,
-                         const VelocityShearVec &sigma_1d,
-                         const VorticityVec &omega_1d,
-                         const DmuMuBoverTVec &baryon_diffusion_vec);
+    void Make_uqSource(const double tau, const Cell_small *grid_pt,
+                       const Cell_small *grid_pt_prev,
+                       const int rk_flag, const double theta_local,
+                       const DumuVec &a_local,
+                       const VelocityShearVec &sigma_1d,
+                       const VorticityVec &omega_1d,
+                       const DmuMuBoverTVec &baryon_diffusion_vec,
+                       std::array<double, 3> sourceTerms);
 
     void output_kappa_T_and_muB_dependence();
     void output_kappa_along_const_sovernB();
