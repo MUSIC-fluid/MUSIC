@@ -35,17 +35,17 @@ class Diss {
                      Fields &arenaFieldsCurr, Fields &arenaFieldsPrev,
                      const int fieldIdx);
 
-    double Make_uWSource(const double tau, const Cell_small *grid_pt,
-                         const Cell_small *grid_pt_prev,
-                         const int mu, const int nu, const int rk_flag,
-                         const double theta_local, const DumuVec &a_local,
-                         const VelocityShearVec &sigma_1d,
-                         const VorticityVec &omega_1d);
+    void Make_uWSource(const double tau, const Cell_small *grid_pt,
+                       const Cell_small *grid_pt_prev, const int rk_flag,
+                       const double theta_local, const DumuVec &a_local,
+                       const VelocityShearVec &sigma_1d,
+                       const VorticityVec &omega_1d,
+                       std::array<double, 5> &sourceTerms);
 
     int Make_uWRHS(const double tau, Fields &arena,
                    const int fieldIdx,
                    const int ix, const int iy, const int ieta,
-                   const int mu, const int nu, double &w_rhs,
+                   std::array<double, 5> &w_rhs,
                    const double theta_local, const DumuVec &a_local);
 
     int Make_uPRHS(const double tau, Fields &arena,

@@ -51,9 +51,9 @@ class Advance {
                       const int ieta, const int ix, const int iy,
                       const int fieldIdx);
 
-    void QuestRevert(const double tau, Cell_small *grid_pt,
+    void QuestRevert(const double tau, Cell_small &grid_pt,
                      const int ieta, const int ix, const int iy);
-    void QuestRevert_qmu(const double tau, Cell_small *grid_pt,
+    void QuestRevert_qmu(const double tau, Cell_small &grid_pt,
                          const int ieta, const int ix, const int iy);
 
     void MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
