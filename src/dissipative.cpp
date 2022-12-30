@@ -580,10 +580,10 @@ void Diss::Make_uPRHS(const double tau, Fields &arena, const int fieldIdx,
         sum += -HPi;
     });
 
-     /* add a source term due to the coordinate change to tau-eta */
-     sum -= (grid_pt.pi_b)*(grid_pt.u[0])/tau;
-     sum += (grid_pt.pi_b)*theta_local;
-     p_rhs = sum*(DATA.delta_tau);
+    /* add a source term due to the coordinate change to tau-eta */
+    sum -= (grid_pt.pi_b)*(grid_pt.u[0])/tau;
+    sum += (grid_pt.pi_b)*theta_local;
+    p_rhs = sum*(DATA.delta_tau);
 }
 
 
