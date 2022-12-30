@@ -59,7 +59,7 @@ class Diss {
 
     void Make_uqRHS(const double tau, Fields &arena_current,
                     const int fieldIdx, const int ix, const int iy,
-                    const int ieta, std::array<double, 3> rhs);
+                    const int ieta, std::array<double, 3> &rhs);
 
     void Make_uqSource(const double tau, const Cell_small *grid_pt,
                        const Cell_small *grid_pt_prev,
@@ -68,7 +68,7 @@ class Diss {
                        const VelocityShearVec &sigma_1d,
                        const VorticityVec &omega_1d,
                        const DmuMuBoverTVec &baryon_diffusion_vec,
-                       std::array<double, 3> sourceTerms);
+                       std::array<double, 3> &sourceTerms);
 
     void output_kappa_T_and_muB_dependence();
     void output_kappa_along_const_sovernB();

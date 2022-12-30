@@ -742,7 +742,7 @@ void Diss::Make_uqSource(const double tau, const Cell_small *grid_pt,
                          const VelocityShearVec &sigma_1d,
                          const VorticityVec &omega_1d,
                          const DmuMuBoverTVec &baryon_diffusion_vec,
-                         std::array<double, 3> sourceTerms) {
+                         std::array<double, 3> &sourceTerms) {
     double epsilon, rhob;
     if (rk_flag == 0) {
         epsilon = grid_pt->epsilon;
@@ -867,7 +867,7 @@ void Diss::Make_uqSource(const double tau, const Cell_small *grid_pt,
 
 void Diss::Make_uqRHS(const double tau, Fields &arena, const int fieldIdx,
                       const int ix, const int iy, const int ieta,
-                      std::array<double, 3> rhs) {
+                      std::array<double, 3> &rhs) {
     /* Kurganov-Tadmor for q */
     /* implement
       partial_tau (utau qmu) + (1/tau)partial_eta (ueta qmu)
