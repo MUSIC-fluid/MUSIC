@@ -6,7 +6,6 @@
 
 #include "util.h"
 #include "cell.h"
-#include "grid.h"
 #include "data.h"
 #include "eos.h"
 #include "fields.h"
@@ -32,10 +31,6 @@ class MUSIC {
     InitData DATA;
 
     EOS eos;
-
-    SCGrid arena_prev;
-    SCGrid arena_current;
-    SCGrid arena_future;
 
     Fields arenaFieldsPrev;
     Fields arenaFieldsCurr;

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include "cell.h"
-#include "grid.h"
 #include "eos.h"
 #include "reconst.h"
 

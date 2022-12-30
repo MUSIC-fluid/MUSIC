@@ -7,7 +7,6 @@
 #include "util.h"
 #include "data.h"
 #include "cell.h"
-#include "grid.h"
 #include "grid_info.h"
 #include "eos.h"
 #include "advance.h"
@@ -36,38 +35,34 @@ class Evolve {
     // (only used when freezeout_method == 4)
     std::vector<double> epsFO_list;
 
-    typedef std::unique_ptr<SCGrid, void(*)(SCGrid*)> GridPointer;
-
  public:
     Evolve(const EOS &eos, InitData &DATA_in,
            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
-    int EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
-                 SCGrid &arena_future, HydroinfoMUSIC &hydro_info_ptr,
-                 Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
-                 Fields &arenaFieldsNext);
+    int EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+                 Fields &arenaFieldsNext, HydroinfoMUSIC &hydro_info_ptr);
 
     void AdvanceRK(double tau, Fields* &fpPrev, Fields* &fpCurr,
                    Fields* &fpNext);
 
-    int FreezeOut_equal_tau_Surface(double tau, SCGrid &arena_current);
+    int FreezeOut_equal_tau_Surface(double tau, Fields &arena_current);
     void FreezeOut_equal_tau_Surface_XY(double tau,
-                                        int ieta, SCGrid &arena_current,
+                                        int ieta, Fields &arena_current,
                                         int thread_id, double epsFO);
     int FindFreezeOutSurface_Cornelius(double tau,
-        SCGrid &arena_prev, SCGrid &arena_current,
-        SCGrid &arena_freezeout_prev, SCGrid &arena_freezeout);
+        Fields &arena_prev, Fields &arena_current,
+        Fields &arena_freezeout_prev, Fields &arena_freezeout);
 
     int FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
-                                          SCGrid &arena_prev,
-                                          SCGrid &arena_current,
-                                          SCGrid &arena_freezeout_prev,
-                                          SCGrid &arena_freezeout,
+                                          Fields &arena_prev,
+                                          Fields &arena_current,
+                                          Fields &arena_freezeout_prev,
+                                          Fields &arena_freezeout,
                                           int thread_id, double epsFO);
     int FindFreezeOutSurface_boostinvariant_Cornelius(
-                double tau, SCGrid &arena_current, SCGrid &arena_freezeout);
+                double tau, Fields &arena_current, Fields &arena_freezeout);
 
-    void store_previous_step_for_freezeout(SCGrid &arena_current,
-                                           SCGrid &arena_freezeout);
+    void store_previous_step_for_freezeout(Fields &arenaCurr,
+                                           Fields &arenaFreeze);
     void regulate_qmu(const FlowVec u, const double q[],
                       double q_regulated[]) const;
     void regulate_Wmunu(const FlowVec u, const double Wmunu[4][4],

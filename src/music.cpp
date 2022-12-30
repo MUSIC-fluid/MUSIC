@@ -91,8 +91,7 @@ void MUSIC::initialize_hydro() {
     generate_hydro_source_terms();
 
     Init initialization(eos, DATA, hydro_source_terms_ptr);
-    initialization.InitArena(arena_prev, arena_current, arena_future,
-                             arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
+    initialization.InitArena(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
     flag_hydro_initialized = 1;
 }
 
@@ -104,9 +103,8 @@ int MUSIC::run_hydro() {
     if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
     }
-    evolve_local.EvolveIt(arena_prev, arena_current, arena_future,
-                          (*hydro_info_ptr),
-                          arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
+    evolve_local.EvolveIt(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext,
+                          (*hydro_info_ptr));
     flag_hydro_run = 1;
     return(0);
 }
@@ -173,8 +171,7 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
         e_in, P_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
         pi_00_in, pi_01_in, pi_02_in, pi_03_in, pi_11_in, pi_12_in, pi_13_in,
         pi_22_in, pi_23_in, pi_33_in, Bulk_pi_in);
-    initialization.InitArena(arena_prev, arena_current, arena_future,
-                             arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
+    initialization.InitArena(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
     flag_hydro_initialized = 1;
 }
 

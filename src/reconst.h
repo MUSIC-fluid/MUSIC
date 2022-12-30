@@ -6,7 +6,6 @@
 #include <iostream>
 #include "util.h"
 #include "cell.h"
-#include "grid.h"
 #include "eos.h"
 #include "pretty_ostream.h"
 #include "data_struct.h"

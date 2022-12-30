@@ -12,7 +12,6 @@
 #include "eos.h"
 #include "cell.h"
 #include "fields.h"
-#include "grid.h"
 #include "u_derivative.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
@@ -111,11 +110,11 @@ class Cell_info {
         const double eta_min, const double eta_max);
 
     //! This function dumps the energy density and net baryon density
-    void output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
+    void output_energy_density_and_rhob_disitrubtion(Fields &arena,
                                                      std::string filename);
 
     //! This function computes global angular momentum at a give proper time
-    void compute_angular_momentum(SCGrid &arena, SCGrid &arena_prev,
+    void compute_angular_momentum(Fields &arena, Fields &arena_prev,
                                   const double tau,
                                   const double eta_min, const double eta_max);
 

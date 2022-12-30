@@ -903,7 +903,7 @@ void Cell_info::get_maximum_energy_density(
 
 //! This function computes global angular momentum at a give proper time
 void Cell_info::compute_angular_momentum(
-        SCGrid &arena, SCGrid &arena_prev, const double tau,
+        Fields &arena, Fields &arena_prev, const double tau,
         const double eta_min, const double eta_max) {
     ostringstream filename;
     filename << "global_angular_momentum_eta_"
@@ -928,15 +928,16 @@ void Cell_info::compute_angular_momentum(
     const double deta = DATA.delta_eta;
     const double dx   = DATA.delta_x;
     const double dy   = DATA.delta_y;
-    const int neta    = arena.nEta();
-    const int nx      = arena.nX();
-    const int ny      = arena.nY();
+    const int neta = arena.nEta();
+    const int nx   = arena.nX();
+    const int ny   = arena.nY();
     #pragma omp parallel for collapse(3) reduction(+:Lx, Ly, Lz, Ltx, Lty, Ltz)
     for (int ieta = 0; ieta < neta; ieta++)
     for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
-        const auto& c      = arena     (ix, iy, ieta);
-        const auto& c_prev = arena_prev(ix, iy, ieta);
+        int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+        const auto& c      = arena.getCell(fieldIdx);
+        const auto& c_prev = arena_prev.getCell(fieldIdx);
 
         double eta_s = deta*ieta - (DATA.eta_size)/2.0;
         if (DATA.boost_invariant) {
@@ -1352,7 +1353,7 @@ void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
 
 
 //! This function dumps the energy density and net baryon density
-void Cell_info::output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
+void Cell_info::output_energy_density_and_rhob_disitrubtion(Fields &arena,
                                                             string filename) {
     ofstream output_file(filename.c_str());
     const int n_skip_x   = DATA.output_evolution_every_N_x;
@@ -1361,8 +1362,9 @@ void Cell_info::output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta)
     for (int ix   = 0; ix   < arena.nX();   ix += n_skip_x)
     for (int iy   = 0; iy   < arena.nY();   iy += n_skip_y) {
-        double e_local = arena(ix, iy, ieta).epsilon*Util::hbarc;
-        double rhob_local = arena(ix, iy, ieta).rhob;
+        int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+        double e_local = arena.e_[fieldIdx]*Util::hbarc;
+        double rhob_local = arena.rhob_[fieldIdx];
         output_file << scientific << setprecision(5) << setw(18)
                     << e_local << "  " << rhob_local << endl;
     }

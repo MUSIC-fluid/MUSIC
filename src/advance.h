@@ -5,7 +5,6 @@
 #include <memory>
 #include "data.h"
 #include "cell.h"
-#include "grid.h"
 #include "fields.h"
 #include "dissipative.h"
 #include "minmod.h"
