@@ -16,8 +16,8 @@ class Reconst {
     pretty_ostream music_message;
 
     const int max_iter;
-    const double rel_err;
-    const double abs_err;
+    double rel_err;
+    double abs_err;
 
     const double LARGE;
 
@@ -26,7 +26,7 @@ class Reconst {
 
  public:
     Reconst() = default;
-    Reconst(const EOS &eos, const int echo_level_in);
+    Reconst(const EOS &eos, const int echo_level_in, bool fastMode);
 
     ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,
                                 const ReconstCell &grid_pt);

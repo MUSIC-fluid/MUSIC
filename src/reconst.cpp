@@ -6,14 +6,20 @@
 #include "eos.h"
 #include "reconst.h"
 
-Reconst::Reconst(const EOS &eosIn, const int echo_level_in) :
+Reconst::Reconst(const EOS &eosIn, const int echo_level_in, bool fastMode) :
     eos(eosIn),
     max_iter(100),
-    rel_err(1e-16),
-    abs_err(1e-16),
     LARGE(1e20),
     v_critical(0.563624),
-    echo_level(echo_level_in) {}
+    echo_level(echo_level_in) {
+    if (fastMode) {
+        abs_err = 1e-8;
+        rel_err = 1e-6;
+    } else {
+        abs_err = 1e-16;
+        rel_err = 1e-14;
+    }
+}
 
 
 
