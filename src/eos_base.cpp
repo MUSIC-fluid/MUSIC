@@ -162,10 +162,10 @@ double EOS_base::get_entropy(double epsilon, double rhob) const {
     auto T    = get_temperature(epsilon, rhob);
     auto muB  = get_muB(epsilon, rhob);
     auto muS  = get_muS(epsilon, rhob);
-    auto muC  = get_muC(epsilon, rhob);
+    auto muQ  = get_muQ(epsilon, rhob);
     auto rhoS = get_rhoS(epsilon, rhob);
-    auto rhoC = get_rhoC(epsilon, rhob);
-    auto f    = (epsilon + P - muB*rhob - muS*rhoS - muC*rhoC)/(T + small_eps);
+    auto rhoQ = get_rhoQ(epsilon, rhob);
+    auto f    = (epsilon + P - muB*rhob - muS*rhoS - muQ*rhoQ)/(T + small_eps);
     return(std::max(small_eps, f));
 }
 
@@ -466,13 +466,13 @@ void EOS_base::check_eos_with_finite_muB() const {
             double cs2_local  = get_cs2(e_local, rhob_local);
             double mu_b_local = get_muB(e_local, rhob_local);
             double mu_s_local = get_muS(e_local, rhob_local);
-            double mu_c_local = get_muC(e_local, rhob_local);
+            double mu_q_local = get_muQ(e_local, rhob_local);
             check_file << scientific << setw(18) << setprecision(8)
                        << e_local*hbarc << "   " << p_local*hbarc << "   "
                        << s_local << "   " << T_local*hbarc << "   "
                        << cs2_local << "   " << mu_b_local*hbarc << "   "
                        << mu_s_local*hbarc << "   "
-                       << mu_c_local*hbarc << endl;
+                       << mu_q_local*hbarc << endl;
         }
         check_file.close();
         ostringstream file_name1;
@@ -520,13 +520,13 @@ void EOS_base::check_eos_with_finite_muB() const {
             double cs2_local  = get_cs2(e_local, rhob_local);
             double mu_b_local = get_muB(e_local, rhob_local);
             double mu_s_local = get_muS(e_local, rhob_local);
-            double mu_c_local = get_muC(e_local, rhob_local);
+            double mu_q_local = get_muQ(e_local, rhob_local);
             check_file << scientific << setw(18) << setprecision(8)
                        << rhob_local << "   " << p_local*hbarc << "   "
                        << s_local << "   " << T_local*hbarc << "   "
                        << cs2_local << "   " << mu_b_local*hbarc << "   "
                        << mu_s_local*hbarc << "   "
-                       << mu_c_local*hbarc << endl;
+                       << mu_q_local*hbarc << endl;
         }
         check_file.close();
     }
@@ -585,13 +585,13 @@ void EOS_base::check_eos_with_finite_muB() const {
             double temperature = get_temperature(e_local, nB_local)*hbarc;
             double mu_B        = get_muB(e_local, nB_local)*hbarc;
             double mu_S        = get_muS(e_local, nB_local)*hbarc;
-            double mu_C        = get_muC(e_local, nB_local)*hbarc;
+            double mu_Q        = get_muQ(e_local, nB_local)*hbarc;
             check_file9 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "  " << temperature << "  "
                         << cs2_local << "  " << mu_B << "  "
                         << s_check << "  " << nB_local << "  "
                         << dpde << "  " << dpdrho << "  "
-                        << mu_S << "  " << mu_C << endl;
+                        << mu_S << "  " << mu_Q << endl;
         }
         check_file9.close();
     }
@@ -620,12 +620,12 @@ void EOS_base::outputMutable() const {
             double entropy = get_entropy(e_local, nB_local)*hbarc;
             double mu_B = get_muB(e_local, nB_local)*hbarc;
             double mu_S = get_muS(e_local, nB_local)*hbarc;
-            double mu_C = get_muC(e_local, nB_local)*hbarc;
+            double mu_Q = get_muQ(e_local, nB_local)*hbarc;
             check_file9 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "  " << nB_local << "  "
                         << pressure << "   " << entropy << "    "
                         << temperature << "  " << mu_B << "  "
-                        << mu_S << "  " << mu_C << endl;
+                        << mu_S << "  " << mu_Q << endl;
         }
     }
     check_file9.close();

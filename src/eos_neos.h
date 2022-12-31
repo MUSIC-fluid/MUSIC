@@ -19,7 +19,7 @@ class EOS_neos : public EOS_base {
     double get_temperature(double e, double rhob) const;
     double get_muB        (double e, double rhob) const;
     double get_muS        (double e, double rhob) const;
-    double get_muC        (double e, double rhob) const;
+    double get_muQ        (double e, double rhob) const;
     double get_pressure   (double e, double rhob) const;
     double get_s2e        (double s, double rhob) const;
 

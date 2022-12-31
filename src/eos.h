@@ -33,7 +33,7 @@ class EOS {
     double get_dpdrhob    (double e, double rhob) const {return(eos_ptr->p_rho_func(e, rhob));}
     double get_muB        (double e, double rhob) const {return(eos_ptr->get_muB(e, rhob));}
     double get_muS        (double e, double rhob) const {return(eos_ptr->get_muS(e, rhob));}
-    double get_muC        (double e, double rhob) const {return(eos_ptr->get_muC(e, rhob));}
+    double get_muQ        (double e, double rhob) const {return(eos_ptr->get_muQ(e, rhob));}
     double get_s2e        (double s, double rhob) const {return(eos_ptr->get_s2e(s, rhob));}
     double get_T2e        (double T_in_GeV, double rhob) const {return(eos_ptr->get_T2e(T_in_GeV, rhob));}
 

@@ -16,7 +16,7 @@ EOS_eosQ::EOS_eosQ() {
     set_eps_max(1e5);
     set_flag_muB(true);
     set_flag_muS(false);
-    set_flag_muC(false);
+    set_flag_muQ(false);
 }
 
 
@@ -33,11 +33,11 @@ void EOS_eosQ::initialize_eos() {
     // read the lattice EOS pressure, temperature, and 
     music_message.info("Using EOS-Q from AZHYDRO");
     music_message.info("reading EOS eosQ ...");
-    
+
     auto envPath = get_hydro_env_path();
     music_message << "from path " << envPath.c_str() << "/EOS";
     music_message.flush("info");
-    
+
     const int ntables = 2;
     set_number_of_tables(ntables);
     resize_table_info_arrays();
@@ -90,14 +90,14 @@ void EOS_eosQ::initialize_eos() {
                 eos_p >> pressure_tb[itable][i][j];
                 eos_T >> temperature_tb[itable][i][j];
                 eos_mub >> mu_B_tb[itable][i][j];
-                
+
                 pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
                 temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
                 mu_B_tb[itable][i][j]        /= Util::hbarc;    // 1/fm
             }
         }
     }
-    
+
     //double eps_max_in = (e_bounds[1] + e_spacing[1]*e_length[1])/hbarc;
     double eps_max_in = e_bounds[1] + e_spacing[1]*e_length[1];
     set_eps_max(eps_max_in);

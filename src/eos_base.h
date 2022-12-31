@@ -15,7 +15,7 @@ class EOS_base {
     double eps_max;
     bool flag_muB;
     bool flag_muS;
-    bool flag_muC;
+    bool flag_muQ;
 
  public:
     pretty_ostream music_message;
@@ -32,7 +32,7 @@ class EOS_base {
     double ***temperature_tb;
     double ***mu_B_tb;
     double ***mu_S_tb;
-    double ***mu_C_tb;
+    double ***mu_Q_tb;
 
     EOS_base() = default;
     virtual ~EOS_base();
@@ -50,8 +50,8 @@ class EOS_base {
     bool get_flag_muB() const {return(flag_muB);}
     void set_flag_muS(bool flag_muS_in) {flag_muS = flag_muS_in;}
     bool get_flag_muS() const {return(flag_muS);}
-    void set_flag_muC(bool flag_muC_in) {flag_muC = flag_muC_in;}
-    bool get_flag_muC() const {return(flag_muC);}
+    void set_flag_muQ(bool flag_muQ_in) {flag_muQ = flag_muQ_in;}
+    bool get_flag_muQ() const {return(flag_muQ);}
 
     // returns maximum local energy density of the EoS table
     // in the unit of [1/fm^4]
@@ -83,9 +83,9 @@ class EOS_base {
     virtual double get_temperature(double epsilon, double rhob) const {return(0.0);}
     virtual double get_muB        (double epsilon, double rhob) const {return(0.0);}
     virtual double get_muS        (double epsilon, double rhob) const {return(0.0);}
-    virtual double get_muC        (double epsilon, double rhob) const {return(0.0);}
+    virtual double get_muQ        (double epsilon, double rhob) const {return(0.0);}
     virtual double get_rhoS       (double epsilon, double rhob) const {return(0.0);}
-    virtual double get_rhoC       (double epsilon, double rhob) const {return(0.4*rhob);}
+    virtual double get_rhoQ       (double epsilon, double rhob) const {return(0.4*rhob);}
     virtual double get_pressure   (double epsilon, double rhob) const {return(0.0);}
     virtual double get_s2e        (double s, double rhob) const {return(0.0);}
     virtual double get_T2e        (double T_in_GeV, double rhob) const {return(0.0);}
@@ -93,10 +93,10 @@ class EOS_base {
 
     virtual void get_pressure_with_gradients(double epsilon, double rhob,
         double &p, double &dpde, double &dpdrhob, double &cs2) const {
-        p = 0.;
-        dpde = 0;
-        dpdrhob = 0.;
-        cs2 = 0.;
+        p = get_pressure(epsilon, rhob);
+        dpde = get_dpOverde3(epsilon, rhob);
+        dpdrhob = get_dpOverdrhob2(epsilon, rhob);
+        cs2 = dpde + dpdrhob*rhob/(epsilon + p);
     }
 
     void check_eos_with_finite_muB() const;

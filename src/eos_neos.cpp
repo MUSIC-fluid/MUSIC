@@ -16,7 +16,7 @@ EOS_neos::EOS_neos(const int eos_id_in) : eos_id(eos_id_in) {
     set_eps_max(1e5);
     set_flag_muB(true);
     set_flag_muS(false);
-    set_flag_muC(false);
+    set_flag_muQ(false);
 }
 
 
@@ -29,8 +29,8 @@ EOS_neos::~EOS_neos() {
             Util::mtx_free(mu_S_tb[itable],
                            nb_length[itable], e_length[itable]);
         }
-        if (get_flag_muC()) {
-            Util::mtx_free(mu_C_tb[itable],
+        if (get_flag_muQ()) {
+            Util::mtx_free(mu_Q_tb[itable],
                            nb_length[itable], e_length[itable]);
         }
     }
@@ -39,8 +39,8 @@ EOS_neos::~EOS_neos() {
         if (get_flag_muS()) {
             delete [] mu_S_tb;
         }
-        if (get_flag_muC()) {
-            delete [] mu_C_tb;
+        if (get_flag_muQ()) {
+            delete [] mu_Q_tb;
         }
     }
 }
@@ -55,7 +55,7 @@ void EOS_neos::initialize_eos() {
     spath << envPath;
 
     bool flag_muS = false;
-    bool flag_muC = false;
+    bool flag_muQ = false;
     string eos_file_string_array[7];
     if (eos_id == 10) {
         music_message.info("reading EOS neos ...");
@@ -90,9 +90,9 @@ void EOS_neos::initialize_eos() {
         std::copy(std::begin(string_tmp), std::end(string_tmp),
                   std::begin(eos_file_string_array));
         flag_muS = true;
-        flag_muC = true;
+        flag_muQ = true;
         set_flag_muS(flag_muS);
-        set_flag_muC(flag_muC);
+        set_flag_muQ(flag_muQ);
     } else if (eos_id == 15) {
         music_message.info("reading EOS neos_bqs ...");
         spath << "/EOS/neos_bqs_muB0.9/";
@@ -100,9 +100,9 @@ void EOS_neos::initialize_eos() {
         std::copy(std::begin(string_tmp), std::end(string_tmp),
                   std::begin(eos_file_string_array));
         flag_muS = true;
-        flag_muC = true;
+        flag_muQ = true;
         set_flag_muS(flag_muS);
-        set_flag_muC(flag_muC);
+        set_flag_muQ(flag_muQ);
     }
 
     string path = spath.str();
@@ -119,8 +119,8 @@ void EOS_neos::initialize_eos() {
     if (flag_muS) {
         mu_S_tb = new double** [ntables];
     }
-    if (flag_muC) {
-        mu_C_tb = new double** [ntables];
+    if (flag_muQ) {
+        mu_Q_tb = new double** [ntables];
     }
 
     for (int itable = 0; itable < ntables; itable++) {
@@ -138,7 +138,7 @@ void EOS_neos::initialize_eos() {
         std::ifstream eos_mub(path + "neos" + eos_file_string_array[itable]
                               + "_mub.dat");
         std::ifstream eos_muS;
-        std::ifstream eos_muC;
+        std::ifstream eos_muQ;
         if (flag_muS) {
             eos_muS.open(path + "neos" + eos_file_string_array[itable]
                          + "_mus.dat");
@@ -150,10 +150,10 @@ void EOS_neos::initialize_eos() {
                 exit(1);
             }
         }
-        if (flag_muC) {
-            eos_muC.open(path + "neos" + eos_file_string_array[itable]
+        if (flag_muQ) {
+            eos_muQ.open(path + "neos" + eos_file_string_array[itable]
                          + "_muq.dat");
-            if (!eos_muC.is_open()) {
+            if (!eos_muQ.is_open()) {
                 music_message << "Can not open EOS files: "
                               << (path + "neos" + eos_file_string_array[itable]
                                   + "_muc.dat");
@@ -186,9 +186,9 @@ void EOS_neos::initialize_eos() {
             std::getline(eos_muS, dummy);
             std::getline(eos_muS, dummy);
         }
-        if (flag_muC) {
-            std::getline(eos_muC, dummy);
-            std::getline(eos_muC, dummy);
+        if (flag_muQ) {
+            std::getline(eos_muQ, dummy);
+            std::getline(eos_muQ, dummy);
         }
 
         // allocate memory for EOS arrays
@@ -202,8 +202,8 @@ void EOS_neos::initialize_eos() {
             mu_S_tb[itable] = Util::mtx_malloc(nb_length[itable],
                                                e_length[itable]);
         }
-        if (flag_muC) {
-            mu_C_tb[itable] = Util::mtx_malloc(nb_length[itable],
+        if (flag_muQ) {
+            mu_Q_tb[itable] = Util::mtx_malloc(nb_length[itable],
                                                e_length[itable]);
         }
 
@@ -218,9 +218,9 @@ void EOS_neos::initialize_eos() {
                     eos_muS >> mu_S_tb[itable][i][j];
                     mu_S_tb[itable][i][j] /= Util::hbarc;    // 1/fm
                 }
-                if (flag_muC) {
-                    eos_muC >> mu_C_tb[itable][i][j];
-                    mu_C_tb[itable][i][j] /= Util::hbarc;    // 1/fm
+                if (flag_muQ) {
+                    eos_muQ >> mu_Q_tb[itable][i][j];
+                    mu_Q_tb[itable][i][j] /= Util::hbarc;    // 1/fm
                 }
 
                 pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
@@ -296,12 +296,12 @@ double EOS_neos::get_muS(double e, double rhob) const {
 
 //! This function returns the local baryon chemical potential  mu_B in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_neos::get_muC(double e, double rhob) const {
-    if (!get_flag_muC()) return(0.0);
+double EOS_neos::get_muQ(double e, double rhob) const {
+    if (!get_flag_muQ()) return(0.0);
     int table_idx = get_table_idx(e);
     double sign = rhob/(std::abs(rhob) + Util::small_eps);
     double mu = sign*interpolate2D(e, std::abs(rhob), table_idx,
-                                   mu_C_tb);  // 1/fm
+                                   mu_Q_tb);  // 1/fm
     return(mu);
 }
 

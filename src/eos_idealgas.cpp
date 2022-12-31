@@ -11,7 +11,7 @@ EOS_idealgas::EOS_idealgas() {
     Nf = 2.5;
     set_flag_muB(false);
     set_flag_muS(false);
-    set_flag_muC(false);
+    set_flag_muQ(false);
 }
 
 void EOS_idealgas::initialize_eos() {

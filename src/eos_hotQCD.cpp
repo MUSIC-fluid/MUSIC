@@ -16,7 +16,7 @@ EOS_hotQCD::EOS_hotQCD(const int eos_id_in) : eos_id(eos_id_in) {
     set_eps_max(1e5);
     set_flag_muB(false);
     set_flag_muS(false);
-    set_flag_muC(false);
+    set_flag_muQ(false);
 }
 
 

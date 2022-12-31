@@ -618,7 +618,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 }
                 const double muB = eos.get_muB(epsFO, fluid_center.rhob);
                 const double muS = eos.get_muS(epsFO, fluid_center.rhob);
-                const double muC = eos.get_muC(epsFO, fluid_center.rhob);
+                const double muQ = eos.get_muQ(epsFO, fluid_center.rhob);
 
                 const double pressure = eos.get_pressure(epsFO,
                                                          fluid_center.rhob);
@@ -640,7 +640,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     array[13] = static_cast<float>(TFO);
                     array[14] = static_cast<float>(muB);
                     array[15] = static_cast<float>(muS);
-                    array[16] = static_cast<float>(muC);
+                    array[16] = static_cast<float>(muQ);
                     array[17] = static_cast<float>(eps_plus_p_over_T_FO);
                     for (int ii = 0; ii < 10; ii++)
                         array[18+ii] = static_cast<float>(fluid_center.Wmunu[ii]);
@@ -678,7 +678,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                            << fluid_center.u[0] << " " << fluid_center.u[1] << " "
                            << fluid_center.u[2] << " " << fluid_center.u[3] << " "
                            << epsFO << " " << TFO << " " << muB << " "
-                           << muS << " " << muC << " "
+                           << muS << " " << muQ << " "
                            << eps_plus_p_over_T_FO << " ";
                     for (int ii = 0; ii < 10; ii++)
                         s_file << std::scientific << std::setprecision(10)
@@ -885,7 +885,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
             }
             double muB_local = eos.get_muB(e_local, rhob_center);
             double muS_local = eos.get_muS(e_local, rhob_center);
-            double muC_local = eos.get_muC(e_local, rhob_center);
+            double muQ_local = eos.get_muQ(e_local, rhob_center);
 
             double pressure = eos.get_pressure(e_local, rhob_center);
             double eps_plus_p_over_T = (e_local + pressure)/T_local;
@@ -910,7 +910,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 array[13] = static_cast<float>(T_local);
                 array[14] = static_cast<float>(muB_local);
                 array[15] = static_cast<float>(muS_local);
-                array[16] = static_cast<float>(muC_local);
+                array[16] = static_cast<float>(muQ_local);
                 array[17] = static_cast<float>(eps_plus_p_over_T);
                 array[18] = static_cast<float>(Wtautau_center);
                 array[19] = static_cast<float>(Wtaux_center);
@@ -960,7 +960,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                        << uy_center      << " " << ueta_center       << " "
                        << e_local        << " " << T_local           << " "
                        << muB_local      << " " << muS_local         << " "
-                       << muC_local      << " " << eps_plus_p_over_T << " "
+                       << muQ_local      << " " << eps_plus_p_over_T << " "
                        << Wtautau_center << " " << Wtaux_center      << " "
                        << Wtauy_center   << " " << Wtaueta_center    << " "
                        << Wxx_center     << " " << Wxy_center        << " "
@@ -1183,7 +1183,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     double TFO = eos.get_temperature(epsFO, fluid_center.rhob);
                     double muB = eos.get_muB(epsFO, fluid_center.rhob);
                     double muS = eos.get_muS(epsFO, fluid_center.rhob);
-                    double muC = eos.get_muC(epsFO, fluid_center.rhob);
+                    double muQ = eos.get_muQ(epsFO, fluid_center.rhob);
                     if (TFO < 0) {
                         music_message << "TFO=" << TFO
                                       << "<0. ERROR. exiting.";
@@ -1209,7 +1209,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                         array[13] = static_cast<float>(TFO);
                         array[14] = static_cast<float>(muB);
                         array[15] = static_cast<float>(muS);
-                        array[16] = static_cast<float>(muC);
+                        array[16] = static_cast<float>(muQ);
                         array[17] = static_cast<float>(eps_plus_p_over_T_FO);
                         for (int ii = 0; ii < 10; ii++)
                             array[18+ii] = static_cast<float>(fluid_center.Wmunu[ii]);
@@ -1228,7 +1228,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                << fluid_center.u[0] << " " << fluid_center.u[1] << " "
                                << fluid_center.u[2] << " " << fluid_center.u[3] << " "
                                << epsFO << " " << TFO << " " << muB << " "
-                               << muS << " " << muC << " "
+                               << muS << " " << muQ << " "
                                << eps_plus_p_over_T_FO << " ";
                         for (int ii = 0; ii < 10; ii++)
                             s_file << std::scientific << std::setprecision(10)
