@@ -23,6 +23,8 @@ typedef struct init_data {
     bool reRunHydro;
     int reRunCount;
 
+    bool fastMode;
+
     int mode;               //!< 1: do everything;
                             //!< 2: do hydro evolution only;
                             //!< 3: do calculation of thermal spectra only;

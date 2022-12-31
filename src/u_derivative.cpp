@@ -1,7 +1,6 @@
 #include "util.h"
 #include "data.h"
 #include "cell.h"
-#include "grid.h"
 #include "minmod.h"
 #include "eos.h"
 #include "u_derivative.h"
@@ -16,44 +15,43 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn) :
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
-void U_derivative::MakedU(const double tau, SCGrid &arena_prev,
-                          SCGrid &arena_current,
+void U_derivative::MakedU(const double tau, Fields &arenaFieldsPrev,
+                          Fields &arenaFieldsCurr, const int fieldIdx,
                           const int ix, const int iy, const int ieta) {
     dUsup = {0.0};
     dUoverTsup = {0.0};
     dUTsup = {0.0};
 
     // this calculates du/dx, du/dy, (du/deta)/tau
-    MakeDSpatial(tau, arena_current, ix, iy, ieta);
+    MakeDSpatial(tau, arenaFieldsCurr, fieldIdx, ix, iy, ieta);
     // this calculates du/dtau
-    MakeDTau(tau, &arena_prev(ix, iy, ieta), &arena_current(ix, iy, ieta));
+    MakeDTau(tau, arenaFieldsPrev, arenaFieldsCurr, fieldIdx);
 }
 
 
 //! this function returns the expansion rate on the grid
 double U_derivative::calculate_expansion_rate(
-        double tau, SCGrid &arena, int ieta, int ix, int iy) {
+        const double tau, Fields &arena, const int fieldIdx) {
     double partial_mu_u_supmu = 0.0;
     for (int mu = 0; mu < 4; mu++) {
         double gfac = (mu == 0 ? -1.0 : 1.0);
         // for expansion rate: theta
         partial_mu_u_supmu += dUsup[mu][mu]*gfac;
     }
-    double theta = partial_mu_u_supmu + arena(ix,iy,ieta).u[0]/tau;
+    double theta = partial_mu_u_supmu + arena.u_[0][fieldIdx]/tau;
     return(theta);
 }
 
 
 //! this function returns Du^\mu
-void U_derivative::calculate_Du_supmu(const double tau, SCGrid &arena,
-                                      const int ieta, const int ix,
-                                      const int iy, DumuVec &a) {
+void U_derivative::calculate_Du_supmu(const double tau, Fields &arena,
+                                      const int fieldIdx, DumuVec &a) {
     for (int mu = 0; mu <= 4; mu++) {
         double u_supnu_partial_nu_u_supmu = 0.0;
         for (int nu = 0; nu < 4; nu++) {
             double tfac = (nu==0 ? -1.0 : 1.0);
             u_supnu_partial_nu_u_supmu += (
-                tfac*arena(ix,iy,ieta).u[nu]*dUsup[mu][nu]);
+                tfac*arena.u_[nu][fieldIdx]*dUsup[mu][nu]);
         }
         a[mu] = u_supnu_partial_nu_u_supmu;
     }
@@ -62,29 +60,30 @@ void U_derivative::calculate_Du_supmu(const double tau, SCGrid &arena,
 
 // This is a shell function to compute all 4 kinds of vorticity tensors
 void U_derivative::compute_vorticity_shell(
-        const double tau, SCGrid &arena_prev, SCGrid &arena_curr,
-        const int ieta, const int ix, const int iy, const double eta,
+        const double tau, Fields &arena_prev, Fields &arena_curr,
+        const int ieta, const int ix, const int iy,
+        const int fieldIdx, const double eta,
         VorticityVec &omega_local_kSP, VorticityVec &omega_local_knoSP,
         VorticityVec &omega_local_th, VorticityVec &omega_local_T,
         VelocityShearVec &sigma_th_local, DmuMuBoverTVec &DbetaMu) {
-    MakedU(tau, arena_prev, arena_curr, ix, iy, ieta);
+    MakedU(tau, arena_prev, arena_curr, fieldIdx, ix, iy, ieta);
     DumuVec a_local;
-    calculate_Du_supmu(tau, arena_curr, ieta, ix, iy, a_local);
+    calculate_Du_supmu(tau, arena_curr, fieldIdx, a_local);
 
     VorticityVec omega_local;
     calculate_kinetic_vorticity_with_spatial_projector(
-            tau, arena_curr, ieta, ix, iy, a_local, omega_local);
+            tau, arena_curr, fieldIdx, a_local, omega_local);
     omega_local_kSP = transform_vorticity_to_tz(omega_local, eta);
     calculate_kinetic_vorticity_no_spatial_projection(
-            tau, arena_curr, ieta, ix, iy, omega_local);
+            tau, arena_curr, fieldIdx, omega_local);
     omega_local_knoSP = transform_vorticity_to_tz(omega_local, eta);
-    calculate_thermal_vorticity(tau, arena_curr, ieta, ix, iy, omega_local);
+    calculate_thermal_vorticity(tau, arena_curr, fieldIdx, omega_local);
     omega_local_th = transform_vorticity_to_tz(omega_local, eta);
-    calculate_T_vorticity(tau, arena_curr, ieta, ix, iy, omega_local);
+    calculate_T_vorticity(tau, arena_curr, fieldIdx, omega_local);
     omega_local_T = transform_vorticity_to_tz(omega_local, eta);
 
     VelocityShearVec sigma_th_Mline;
-    calculate_thermal_shear_tensor(tau, arena_curr, ieta, ix, iy,
+    calculate_thermal_shear_tensor(tau, arena_curr, fieldIdx,
                                    sigma_th_Mline);
     sigma_th_local = transform_SigmaMuNu_to_tz(sigma_th_Mline, eta);
     DmuMuBoverTVec DbetaMu_local;
@@ -163,12 +162,12 @@ DmuMuBoverTVec U_derivative::transform_vector_to_tz(
 //! Because MUSIC use the metric g = (-1, 1, 1, 1), the output omega^{\mu\nu}
 //! differs from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_kinetic_vorticity_with_spatial_projector(
-            const double tau, SCGrid &arena,
-            const int ieta, const int ix, const int iy,
-            const DumuVec &a_local, VorticityVec &omega) {
-    FlowVec u_local = arena(ix, iy, ieta).u;
+        const double tau, Fields &arena, const int fieldIdx,
+        const DumuVec &a_local, VorticityVec &omega) {
+    FlowVec u_local;
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
+        u_local[i] = arena.u_[i][fieldIdx];
         for (int j = 0; j < 4; j++) {
             dUsup_local[i][j] = dUsup[i][j];
         }
@@ -219,15 +218,16 @@ void U_derivative::calculate_kinetic_vorticity_with_spatial_projector(
 //! it outputs omega^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
 //! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_thermal_vorticity(
-            const double tau, SCGrid &arena, const int ieta,
-            const int ix, const int iy, VorticityVec &omega) {
+            const double tau, Fields &arena, const int fieldIdx,
+            VorticityVec &omega) {
     // this function computes the thermal vorticity
-    FlowVec u_local = arena(ix, iy, ieta).u;
-    double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
-                                          arena(ix, iy, ieta).rhob);
+    double T_local  = eos.get_temperature(arena.e_[fieldIdx],
+                                          arena.rhob_[fieldIdx]);
     if (T_local > T_tol) {
+        FlowVec u_local;
         double dUsup_local[4][4];
         for (int i = 0; i < 4; i++) {
+            u_local[i] = arena.u_[i][fieldIdx];
             for (int j = 0; j < 4; j++) {
                 dUsup_local[i][j] = dUoverTsup[i][j];
             }
@@ -266,15 +266,16 @@ void U_derivative::calculate_thermal_vorticity(
 //! it outputs sigma_th^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
 //! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_thermal_shear_tensor(
-            const double tau, SCGrid &arena, const int ieta,
-            const int ix, const int iy, VelocityShearVec &sigma_th) {
+            const double tau, Fields &arena, const int fieldIdx,
+            VelocityShearVec &sigma_th) {
     // this function computes the thermal shear tensor
-    double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
-                                          arena(ix, iy, ieta).rhob);
+    double T_local  = eos.get_temperature(arena.e_[fieldIdx],
+                                          arena.rhob_[fieldIdx]);
     if (T_local > T_tol) {
-        FlowVec u_local = arena(ix, iy, ieta).u;
+        FlowVec u_local;
         double dUsup_local[4][4];
         for (int i = 0; i < 4; i++) {
+            u_local[i] = arena.u_[i][fieldIdx];
             for (int j = 0; j < 4; j++) {
                 dUsup_local[i][j] = dUoverTsup[i][j];
             }
@@ -315,14 +316,15 @@ void U_derivative::calculate_thermal_shear_tensor(
 //! it outputs omega^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
 //! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_T_vorticity(
-            const double tau, SCGrid &arena, const int ieta,
-            const int ix, const int iy, VorticityVec &omega) {
+            const double tau, Fields &arena, const int fieldIdx,
+            VorticityVec &omega) {
     // this function computes the T-vorticity
-    FlowVec u_local = arena(ix, iy, ieta).u;
-    double T_local  = eos.get_temperature(arena(ix, iy, ieta).epsilon,
-                                          arena(ix, iy, ieta).rhob);
+    FlowVec u_local;
+    double T_local  = eos.get_temperature(arena.e_[fieldIdx],
+                                          arena.rhob_[fieldIdx]);
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
+        u_local[i] = arena.u_[i][fieldIdx];
         for (int j = 0; j < 4; j++) {
             dUsup_local[i][j] = dUTsup[i][j];
         }
@@ -353,14 +355,15 @@ void U_derivative::calculate_T_vorticity(
 //! it outputs omega^{\mu\nu} in the metric g = (-1, 1, 1, 1) which differs
 //! from the ones with g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_kinetic_vorticity_no_spatial_projection(
-            const double tau, SCGrid &arena, const int ieta,
-            const int ix, const int iy, VorticityVec &omega) {
+            const double tau, Fields &arena, const int fieldIdx,
+            VorticityVec &omega) {
     // this function computes the full kinetic vorticity without the spatial
     // projection
     // omega^{\mu\nu} = \partial^\mu u^\nu - \partial^\nu u^\mu
-    FlowVec u_local = arena(ix, iy, ieta).u;
+    FlowVec u_local;
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
+        u_local[i] = arena.u_[i][fieldIdx];
         for (int j = 0; j < 4; j++) {
             dUsup_local[i][j] = dUsup[i][j];
         }
@@ -392,16 +395,17 @@ void U_derivative::calculate_kinetic_vorticity_no_spatial_projection(
 //! Please note that this output differs from the sigma^{\mu\nu} in the metric
 //! g = (1, -1, -1, -1) by a minus sign
 void U_derivative::calculate_velocity_shear_tensor(
-        const double tau, SCGrid &arena, const int ieta, const int ix,
-        const int iy, const DumuVec &a_local, VelocityShearVec &sigma) {
-    FlowVec u_local = arena(ix, iy, ieta).u;
+        const double tau, Fields &arena, const int fieldIdx,
+        const double theta_u_local,
+        const DumuVec &a_local, VelocityShearVec &sigma) {
+    FlowVec u_local;
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
+        u_local[i] = arena.u_[i][fieldIdx];
         for (int j = 0; j < 4; j++) {
             dUsup_local[i][j] = dUsup[i][j];
         }
     }
-    double theta_u_local = calculate_expansion_rate(tau, arena, ieta, ix, iy);
     double gfac = 0.0;
     double sigma_local[4][4];
     for (int a = 1; a < 4; a++) {
@@ -463,28 +467,41 @@ void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
 }
 
 
-int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
+int U_derivative::MakeDSpatial(const double tau, Fields &arena,
+                               const int fieldIdx,
                                const int ix, const int iy, const int ieta) {
     // taken care of the tau factor
     const double delta[4] = {0.0, DATA.delta_x, DATA.delta_y,
                              DATA.delta_eta*tau};
 
     // calculate dUsup[m][n] = partial^n u^m
-    Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
-        for (int m = 1; m <= 3; m++) {
-            const double f   = c.u[m];
+    FieldNeighbourLoopIdeal1(arena, ix, iy, ieta, FNLILAMBDAS1{
+        for (int m = 1; m < 4; m++) {
+            const double f   =  c.u[m];
             const double fp1 = p1.u[m];
             const double fm1 = m1.u[m];
             dUsup[m][direction] = (minmod.minmod_dx(fp1, f, fm1)
                                    /delta[direction]);
         }
 
+        // Sangyong Nov 18 2014
+        // Here we make derivatives of muB/T
+        // dUsup[rk_flag][4][n] = partial_n (muB/T)
+        // partial_x (muB/T) and partial_y (muB/T) first
+        double f   = (eos.get_muB(c.e, c.rhob)
+                      /eos.get_temperature(c.e, c.rhob));
+        double fp1 = (eos.get_muB(p1.e, p1.rhob)
+                      /eos.get_temperature(p1.e, p1.rhob));
+        double fm1 = (eos.get_muB(m1.e, m1.rhob)
+                      /eos.get_temperature(m1.e, m1.rhob));
+        dUsup[4][direction] = minmod.minmod_dx(fp1, f, fm1)/delta[direction];
+
         if (DATA.output_vorticity == 1) {
-            const double T   = eos.get_temperature(c.epsilon, c.rhob);
-            const double Tp1 = eos.get_temperature(p1.epsilon, p1.rhob);
-            const double Tm1 = eos.get_temperature(m1.epsilon, m1.rhob);
+            const double T   = eos.get_temperature( c.e,  c.rhob);
+            const double Tp1 = eos.get_temperature(p1.e, p1.rhob);
+            const double Tm1 = eos.get_temperature(m1.e, m1.rhob);
             for (int m = 0; m <= 3; m++) {
-                const double f   = c.u[m];
+                const double f   =  c.u[m];
                 const double fp1 = p1.u[m];
                 const double fm1 = m1.u[m];
                 if (T > T_tol && Tp1 > T_tol && Tm1 > T_tol) {
@@ -503,65 +520,47 @@ int U_derivative::MakeDSpatial(const double tau, SCGrid &arena,
     /* for u[0], use u[0]u[0] = 1 + u[i]u[i] */
     /* u[0]_m = u[i]_m (u[i]/u[0]) */
     /* for u[0] */
-    for (int n = 1; n <= 3; n++) {
+    for (int n = 1; n < 4; n++) {
         double f = 0.0;
-        for (int m = 1; m <= 3; m++) {
+        for (int m = 1; m < 4; m++) {
             // (partial_n u^m) u[m]
-            f += dUsup[m][n]*(arena(ix, iy, ieta).u[m]);
+            f += dUsup[m][n]*(arena.u_[m][fieldIdx]);
         }
-        f /= arena(ix, iy, ieta).u[0];
+        f /= arena.u_[0][fieldIdx];
         dUsup[0][n] = f;
     }
-
-    // Sangyong Nov 18 2014
-    // Here we make derivatives of muB/T
-    // dUsup[rk_flag][4][n] = partial_n (muB/T)
-    // partial_x (muB/T) and partial_y (muB/T) first
-    const int m = 4;  // means (muB/T)
-    const double rhob = arena(ix, iy, ieta).rhob;
-    const double eps = arena(ix, iy, ieta).epsilon;
-    const double muB = eos.get_muB(eps, rhob);
-    const double T = eos.get_temperature(eps, rhob);
-    const double f = muB/T;
-    Neighbourloop(arena, ix, iy, ieta, NLAMBDAS{
-        const double fp1 = (eos.get_muB(p1.epsilon, p1.rhob)
-                            /eos.get_temperature(p1.epsilon, p1.rhob));
-        const double fm1 = (eos.get_muB(m1.epsilon, m1.rhob)
-                            /eos.get_temperature(m1.epsilon, m1.rhob));
-        dUsup[m][direction] = minmod.minmod_dx(fp1, f, fm1)/delta[direction];
-    });
     return 1;
-}/* MakeDSpatial */
+}  /* MakeDSpatial */
+
 
 int U_derivative::MakeDTau(const double tau,
-                           const Cell_small *grid_pt_prev,
-                           const Cell_small *grid_pt) {
+                           const Fields &arenaFieldsPrev,
+                           const Fields &arenaFieldsCurr, const int fieldIdx) {
     /* this makes dU[m][0] = partial^tau u^m */
     /* note the minus sign at the end because of g[0][0] = -1 */
 
-    const double eps  = grid_pt->epsilon;
-    const double rhob = grid_pt->rhob;
-    const double eps_prev  = grid_pt_prev->epsilon;
-    const double rhob_prev = grid_pt_prev->rhob;
+    const double eps  = arenaFieldsCurr.e_[fieldIdx];
+    const double rhob = arenaFieldsCurr.rhob_[fieldIdx];
+    const double eps_prev  = arenaFieldsPrev.e_[fieldIdx];
+    const double rhob_prev = arenaFieldsPrev.rhob_[fieldIdx];
     const double T = eos.get_temperature(eps, rhob);
     const double T_prev = eos.get_temperature(eps_prev, rhob_prev);
 
     for (int m = 0; m < 4; m++) {
         // first order is more stable
-        double f = (grid_pt->u[m] - grid_pt_prev->u[m])/DATA.delta_tau;
+        double uCurr = arenaFieldsCurr.u_[m][fieldIdx];
+        double uPrev = arenaFieldsPrev.u_[m][fieldIdx];
+        double f = (uCurr - uPrev)/DATA.delta_tau;
         dUsup[m][0] = -f;  // g^{00} = -1
 
         if (DATA.output_vorticity == 1) {
             if (T > T_tol && T_prev > T_tol) {
-                double duoverTdtau = (
-                    (grid_pt->u[m]/T - grid_pt_prev->u[m]/T_prev)
-                    /DATA.delta_tau);
+                double duoverTdtau = (uCurr/T - uPrev/T_prev)/DATA.delta_tau;
                 dUoverTsup[m][0] = -duoverTdtau;   // g^{00} = -1
             } else {
                 dUoverTsup[m][0] = 0.;
             }
-            double duTdtau = ((grid_pt->u[m]*T - grid_pt_prev->u[m]*T_prev)
-                              /DATA.delta_tau);
+            double duTdtau = (uCurr*T - uPrev*T_prev)/DATA.delta_tau;
             dUTsup[m][0] = -duTdtau;   // g^{00} = -1
         }
     }
@@ -574,9 +573,9 @@ int U_derivative::MakeDTau(const double tau,
     double f = 0.0;
     for (int m = 1; m < 4; m++) {
         /* (partial_0 u^m) u[m] */
-        f += dUsup[m][0]*(grid_pt->u[m]);
+        f += dUsup[m][0]*arenaFieldsCurr.u_[m][fieldIdx];
     }
-    dUsup[0][0] = f/grid_pt->u[0];
+    dUsup[0][0] = f/arenaFieldsCurr.u_[0][fieldIdx];
 
     // Sangyong Nov 18 2014
     // Here we make the time derivative of (muB/T)

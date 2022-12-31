@@ -20,8 +20,17 @@ InitData read_in_parameters(std::string input_file) {
     // warning message output during the evolution
     double temp_echo_level = 9;
     tempinput = Util::StringFind4(input_file, "echo_level");
-    if(tempinput != "empty") istringstream ( tempinput ) >> temp_echo_level;
+    if (tempinput != "empty") istringstream ( tempinput ) >> temp_echo_level;
     parameter_list.echo_level = temp_echo_level;
+
+    int tempFastMode = 0;
+    tempinput = Util::StringFind4(input_file, "fastMode");
+    if (tempinput != "empty") istringstream ( tempinput ) >> tempFastMode;
+    if (tempFastMode == 0) {
+        parameter_list.fastMode = false;
+    } else {
+        parameter_list.fastMode = true;
+    }
 
     // Initial_profile:
     int tempInitial_profile = 1;

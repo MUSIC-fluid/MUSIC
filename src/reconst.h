@@ -6,7 +6,6 @@
 #include <iostream>
 #include "util.h"
 #include "cell.h"
-#include "grid.h"
 #include "eos.h"
 #include "pretty_ostream.h"
 #include "data_struct.h"
@@ -17,8 +16,8 @@ class Reconst {
     pretty_ostream music_message;
 
     const int max_iter;
-    const double rel_err;
-    const double abs_err;
+    double rel_err;
+    double abs_err;
 
     const double LARGE;
 
@@ -27,10 +26,10 @@ class Reconst {
 
  public:
     Reconst() = default;
-    Reconst(const EOS &eos, const int echo_level_in);
+    Reconst(const EOS &eos, const int echo_level_in, bool fastMode);
 
     ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,
-                                const Cell_small &grid_pt);
+                                const ReconstCell &grid_pt);
 
     int get_max_iter() const {return(max_iter);}
     int get_echo_level() const {return(echo_level);}
@@ -38,13 +37,15 @@ class Reconst {
     double get_v_critical() const {return(v_critical);}
 
     void revert_grid(ReconstCell &grid_current,
-                     const Cell_small &grid_prev) const;
+                     const ReconstCell &grid_prev) const;
 
     int ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
-                                  const TJbVec &q, const Cell_small &grid_pt);
+                                  const TJbVec &q, const ReconstCell &grid_pt);
 
     void reconst_velocity_fdf(const double v, const double T00, const double M,
                               const double J0, double &fv, double &dfdv) const;
+    void reconst_velocity_f(const double v, const double T00, const double M,
+                            const double J0, double &fv) const;
 
     void reconst_u0_fdf(const double u0, const double T00, const double K00,
                         const double M, const double J0,
@@ -53,7 +54,7 @@ class Reconst {
     int solve_velocity_Newton(const double v_guess, const double T00,
                               const double M, const double J0,
                               double &v_solution);
-    int solve_v_Hybrid(const double v_guess, const double T00,
+    int solve_v_Hybrid(const double T00,
                        const double M, const double J0,
                        double &v_solution);
 

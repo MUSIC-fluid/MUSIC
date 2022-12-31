@@ -10,11 +10,11 @@ class EOS_idealgas : public EOS_base {
  private:
      double Nc;
      double Nf;
-   
+
  public:
     EOS_idealgas();
     ~EOS_idealgas() {}
-    
+
     void set_Nc_and_Nf(double Nc_in, double Nf_in) {Nc = Nc_in; Nf = Nf_in;}
 
     void   initialize_eos();
@@ -27,6 +27,13 @@ class EOS_idealgas : public EOS_base {
     double get_pressure   (double e, double rhob) const {return(1./3.*e);}
     double get_s2e        (double s, double rhob) const;
     double get_T2e        (double T_in_GeV, double rhob) const;
+    virtual void get_pressure_with_gradients(double epsilon, double rhob,
+        double &p, double &dpde, double &dpdrhob, double &cs2) const {
+        dpde = 1/3.;
+        p = dpde*epsilon;
+        dpdrhob = 0.;
+        cs2 = dpde;
+    }
 
     void check_eos() const {check_eos_no_muB();}
 };
