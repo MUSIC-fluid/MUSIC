@@ -107,6 +107,18 @@ double EOS_hotQCD::get_pressure(double e, double rhob) const {
 }
 
 
+//! This function returns the local pressure in [1/fm^4]
+//! the input local energy density [1/fm^4], rhob [1/fm^3]
+void EOS_hotQCD::get_pressure_with_gradients(double e, double rhob,
+        double &p, double &dpde, double &dpdrhob, double &cs2) const {
+    interpolate1D_with_gradients(e, 0, pressure_tb, p, dpde);
+    p = std::max(Util::small_eps, p);           // [1/fm^4]
+    dpde = std::max(Util::small_eps, dpde);
+    dpdrhob = 0.;
+    cs2 = dpde;
+}
+
+
 double EOS_hotQCD::get_s2e(double s, double rhob) const {
     double e = get_s2e_finite_rhob(s, 0.0);
     return(e);

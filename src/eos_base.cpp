@@ -66,6 +66,39 @@ double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
 }
 
 
+void EOS_base::interpolate1D_with_gradients(double e, int table_idx,
+        double ***table, double &p, double &dpde) const {
+// This is a generic linear interpolation routine for EOS at zero mu_B
+// it assumes the class has already read in
+//        P(e), T(e), s(e)
+// as one-dimensional arrays on an equally spacing lattice grid
+// units: e is in 1/fm^4
+// This function uses the interpolation points to compute the local
+// derivatives dP/de.
+    const double e0 = e_bounds[table_idx];
+    const double delta_e = e_spacing[table_idx];
+    const int N_e = e_length[table_idx];
+
+    // compute the indices
+    int idx_e = static_cast<int>((e - e0)/delta_e);
+
+    // treatment for overflow, use the last two points to do extrapolation
+    idx_e = std::min(N_e - 2, std::max(0, idx_e));
+
+    if (e < e0) {
+        // check underflow
+        dpde = table[table_idx][0][0]/e0;
+        p = dpde*e;
+    } else {
+        double temp1 = table[table_idx][0][idx_e];
+        double temp2 = table[table_idx][0][idx_e + 1];
+        dpde = (temp2 - temp1)/delta_e;
+        double frac_e = (e - (idx_e*delta_e + e0))/delta_e;
+        p = temp1*(1. - frac_e) + temp2*frac_e;
+    }
+}
+
+
 double EOS_base::interpolate2D(const double e, const double rhob,
                                const int table_idx, double ***table) const {
 // This is a generic bilinear interpolation routine for EOS at finite mu_B

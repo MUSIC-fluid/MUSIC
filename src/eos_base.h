@@ -59,6 +59,8 @@ class EOS_base {
     double get_eps_max() const {return(eps_max);}
 
     double interpolate1D(double e, int table_idx, double ***table) const;
+    void interpolate1D_with_gradients(double e, int table_idx, double ***table,
+                                      double &p, double &dpde) const;
     double interpolate2D(const double e, const double rhob,
                          const int table_idx, double ***table) const;
 
@@ -88,6 +90,14 @@ class EOS_base {
     virtual double get_s2e        (double s, double rhob) const {return(0.0);}
     virtual double get_T2e        (double T_in_GeV, double rhob) const {return(0.0);}
     virtual void   check_eos      () const {}
+
+    virtual void get_pressure_with_gradients(double epsilon, double rhob,
+        double &p, double &dpde, double &dpdrhob, double &cs2) const {
+        p = 0.;
+        dpde = 0;
+        dpdrhob = 0.;
+        cs2 = 0.;
+    }
 
     void check_eos_with_finite_muB() const;
     void check_eos_no_muB() const;

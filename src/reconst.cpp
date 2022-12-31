@@ -409,7 +409,6 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
 }
 
 
-
 void Reconst::reconst_velocity_fdf(const double v, const double T00,
                                    const double M, const double J0,
                                    double &fv, double &dfdv) const {
@@ -417,15 +416,18 @@ void Reconst::reconst_velocity_fdf(const double v, const double T00,
     const double temp    = sqrt(1. - v*v);
     const double rho     = J0*temp;
 
-    const double pressure = eos.get_pressure(epsilon, rho);
+    double pressure, dPde, dPdrho, cs2;
+    eos.get_pressure_with_gradients(epsilon, rho, pressure, dPde, dPdrho, cs2);
+    //const double pressure = eos.get_pressure(epsilon, rho);
+    //const double dPde     = eos.get_dpde(epsilon, rho);
+    //const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
     const double temp1    = T00 + pressure;
     const double temp2    = v/std::max(abs_err, temp);
-    const double dPde     = eos.get_dpde(epsilon, rho);
-    const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
 
     fv   = v - M/temp1;
     dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0*temp2*dPdrho);
 }
+
 
 void Reconst::reconst_u0_fdf(const double u0, const double T00,
                              const double K00, const double M, const double J0,
@@ -437,9 +439,11 @@ void Reconst::reconst_u0_fdf(const double u0, const double T00,
     const double dedu0   = - M/std::max(abs_err, u0*u0*u0*v);
     const double drhodu0 = - J0/(u0*u0);
 
-    const double pressure = eos.get_pressure(epsilon, rho);
-    const double dPde     = eos.get_dpde(epsilon, rho);
-    const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
+    //const double pressure = eos.get_pressure(epsilon, rho);
+    //const double dPde     = eos.get_dpde(epsilon, rho);
+    //const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
+    double pressure, dPde, dPdrho, cs2;
+    eos.get_pressure_with_gradients(epsilon, rho, pressure, dPde, dPdrho, cs2);
 
     const double temp1 = std::max(abs_err,
                                   (T00 + pressure)*(T00 + pressure) - K00);

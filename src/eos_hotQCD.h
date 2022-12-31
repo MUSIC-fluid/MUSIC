@@ -18,6 +18,8 @@ class EOS_hotQCD : public EOS_base {
     double get_pressure   (double e, double rhob) const;
     double get_s2e        (double s, double rhob) const;
     double get_T2e        (double T, double rhob) const;
+    void get_pressure_with_gradients(double e, double rhob,
+            double &p, double &dpde, double &dpdrhob, double &cs2) const;
 
     void check_eos() const {check_eos_no_muB();}
 };
