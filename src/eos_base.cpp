@@ -573,6 +573,29 @@ void EOS_base::check_eos_with_finite_muB() const {
                        << cs2_local << endl;
         }
         check_file1.close();
+        ostringstream file_name2;
+        file_name2 << "check_EoS_PST_rhob_" << rhob_pick[i] << "_2.dat";
+        ofstream check_file2(file_name2.str().c_str());
+        check_file2 << "#e(GeV/fm^3) P(GeV/fm^3) s(1/fm^3) T(GeV) cs^2" << endl;
+        e0 = 5e-4;
+        emax = 100.;
+        de = 5e-3;
+        ne = (emax - e0)/de + 1;
+        for (int ie = 0; ie < ne; ie++) {
+            double e_local    = (e0 + ie*de)/hbarc;
+            std::vector<double> thermalVec;
+            getThermalVariables(e_local, rhob_local, thermalVec);
+            check_file2 << scientific << setw(18) << setprecision(8)
+                        << e_local*hbarc << "   "
+                        << thermalVec[2]*hbarc << "   "
+                        << thermalVec[12] << "   "
+                        << thermalVec[6]*hbarc << "   "
+                        << thermalVec[5] << "   "
+                        << thermalVec[7]*hbarc << "   "
+                        << thermalVec[8]*hbarc << "   "
+                        << thermalVec[10]*hbarc << endl;
+        }
+        check_file2.close();
     }
 
     // output EoS as a function of rho_b for several energy density
