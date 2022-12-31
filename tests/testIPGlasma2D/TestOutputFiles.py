@@ -22,7 +22,7 @@ ResSum = np.sum(abs(data), axis=0)
 
 Nfailed = 0
 for i, val_i in enumerate(TargetSum):
-    if abs(val_i - ResSum[i]) > 1e-8:
+    if abs(val_i - ResSum[i])/ResSum[i] > 1e-8:
         print("eccentricities_evo: Diff: ", val_i, ResSum[i])
         Nfailed += 1
 
@@ -38,7 +38,7 @@ ResSum = np.sum(abs(data), axis=0)
 
 Nfailed = 0
 for i, val_i in enumerate(TargetSum):
-    if abs(val_i - ResSum[i]) > 1e-8:
+    if abs(val_i - ResSum[i])/ResSum[i] > 1e-8:
         print("inverseReynoldsNumbers: Diff: ", val_i, ResSum[i])
         Nfailed += 1
 
@@ -68,7 +68,7 @@ ResSum = np.sum(abs(data), axis=0)
 
 Nfailed = 0
 for i, val_i in enumerate(TargetSum):
-    if abs(val_i - ResSum[i]) > 1e-8:
+    if abs(val_i - ResSum[i])/ResSum[i] > 1e-8:
         print("momentum_anisotropy_evo: Diff: ", val_i, ResSum[i])
         Nfailed += 1
 
@@ -84,7 +84,7 @@ ResSum = np.sum(abs(data), axis=0)
 
 Nfailed = 0
 for i, val_i in enumerate(TargetSum):
-    if abs(val_i - ResSum[i]) > 1e-8:
+    if abs(val_i - ResSum[i])/ResSum[i] > 1e-8:
         print("meanpTEstimators_evo: Diff: ", val_i, ResSum[i])
         Nfailed += 1
 
