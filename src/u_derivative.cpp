@@ -584,7 +584,7 @@ int U_derivative::MakeDTau(const double tau,
     // first order is more stable backward derivative
     const double muB = eos.get_muB(eps, rhob);
     const double tildemu = muB/T;
-    const double muB_prev = eos.get_muB(eps, rhob);
+    const double muB_prev = eos.get_muB(eps_prev, rhob_prev);
     const double tildemu_prev = muB_prev/T_prev;
     f = (tildemu - tildemu_prev)/(DATA.delta_tau);
     dUsup[m][0]  = -f;  // g^{00} = -1
