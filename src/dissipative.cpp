@@ -39,8 +39,6 @@ void Diss::MakeWSource(const double tau,
     const double tau_fac[4] = {0.0, tau, tau, 1.0};
 
     dwmn = {0.};
-    EnergyFlowVec W_eta_p = {0.};  // save tau*W^{\eta \nu} at eta + deta/2
-    EnergyFlowVec W_eta_m = {0.};  // save tau*W^{\eta \nu} at eta - deta/2
     for (int alpha = 0; alpha < 5; alpha++) {
         /* partial_tau W^tau alpha */
         /* this is partial_tau evaluated at tau */
@@ -48,8 +46,7 @@ void Diss::MakeWSource(const double tau,
         /* Sangyong Nov 18 2014 */
         /* change: alpha first which is the case
                    for everywhere else. also, this change is necessary to use
-                   Wmunu[rk_flag][4][mu] as the dissipative baryon current
-        */
+                   Wmunu[rk_flag][4][mu] as the dissipative baryon current */
         // dW/dtau
         // backward time derivative (first order is more stable)
         int idx_1d_alpha0 = map_2d_idx_to_1d(alpha, 0);
@@ -67,10 +64,28 @@ void Diss::MakeWSource(const double tau,
                                              *grid_pt_prev.u[0]))
                        /DATA.delta_tau);
         }
+        double sf = tau*dWdtau + grid_pt.Wmunu[idx_1d_alpha0];
+        double bf = tau*dPidtau + Pi_alpha0;
+        dwmn[alpha] += sf + bf;
+        if (std::isnan(sf + bf)) {
+            music_message << "[Error]Diss::MakeWSource: ";
+            music_message << "sf=" << sf << " bf=" << bf
+                          << " Wmunu =" << grid_pt.Wmunu[idx_1d_alpha0]
+                          << " pi_b =" << grid_pt.pi_b
+                          << " prev_pi_b=" << grid_pt_prev.pi_b;
+            music_message.flush("error");
+            music_message << "dWdtau = " << dWdtau;
+            music_message.flush("error");
+            music_message << "dPidtau = " << dPidtau
+                          << ", Pi_alpha0 = " << Pi_alpha0;
+            music_message.flush("error");
+        }
+    }
 
-        double dWdx  = 0.0;  // partial_i (tau W^{i \alpha})
-        double dPidx = 0.0;  // partial_i (tau Pi^{i \alpha})
-        FieldNeighbourLoop1(arenaFieldsCurr, ix, iy, ieta, FNLLAMBDAS1{
+    EnergyFlowVec W_eta_p = {0.};  // save tau*W^{\eta \nu} at eta + deta/2
+    EnergyFlowVec W_eta_m = {0.};  // save tau*W^{\eta \nu} at eta - deta/2
+    FieldNeighbourLoop1(arenaFieldsCurr, ix, iy, ieta, FNLLAMBDAS1{
+        for (int alpha = 0; alpha < 5; alpha++) {
             int idx_1d  = map_2d_idx_to_1d(alpha, direction);
             double sg   =  c.Wmunu[idx_1d]*tau_fac[direction];
             double sgp1 = p1.Wmunu[idx_1d]*tau_fac[direction];
@@ -79,14 +94,10 @@ void Diss::MakeWSource(const double tau,
             // use central difference to preserve conservation law exactly
             double W_m = (sg + sgm1)*0.5;
             double W_p = (sg + sgp1)*0.5;
-            if (direction == 3 && (alpha == 0 || alpha == 3)) {
-                W_eta_p[alpha] = W_p;
-                W_eta_m[alpha] = W_m;
-            } else {
-                dWdx += (W_p - W_m)/delta[direction];
-            }
 
-            if (alpha < 4 && DATA.turn_on_bulk == 1) {
+            double Pi_m = 0;
+            double Pi_p = 0;
+            if (DATA.turn_on_bulk == 1 && alpha < 4) {
                 double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
                 double bgp1  = (p1.pi_b*(gfac1 + p1.u[alpha]*p1.u[direction])
                                 *tau_fac[direction]);
@@ -96,38 +107,18 @@ void Diss::MakeWSource(const double tau,
                                 *tau_fac[direction]);
                 //dPidx += minmod.minmod_dx(bgp1, bg, bgm1)/delta[direction];
                 // use central difference to preserve conservation law exactly
-                double Pi_m = (bg + bgm1)*0.5;
-                double Pi_p = (bg + bgp1)*0.5;
-                if (direction == 3 && (alpha == 0 || alpha == 3)) {
-                    W_eta_p[alpha] += Pi_m;
-                    W_eta_m[alpha] += Pi_p;
-                } else {
-                    dPidx += (Pi_p - Pi_m)/delta[direction];
-                }
+                Pi_m = (bg + bgm1)*0.5;
+                Pi_p = (bg + bgp1)*0.5;
             }
-        });
-
-        // partial_m (tau W^mn) = W^0n + tau partial_tau W^mn
-        //                        + partial_i(tau W^in)
-        double sf = tau*dWdtau + grid_pt.Wmunu[idx_1d_alpha0] + dWdx;
-        double bf = tau*dPidtau + Pi_alpha0 + dPidx;
-        dwmn[alpha] += sf + bf;
-        if (std::isnan(sf + bf)) {
-            music_message << "[Error]Diss::MakeWSource: ";
-            music_message << "sf=" << sf << " bf=" << bf
-                          << " Wmunu =" << grid_pt.Wmunu[alpha]
-                          << " pi_b =" << grid_pt.pi_b
-                          << " prev_pi_b=" << grid_pt_prev.pi_b;
-            music_message.flush("error");
-            music_message << "dWdtau = " << dWdtau
-                          << ", dWdx = " << dWdx;
-            music_message.flush("error");
-            music_message << "dPidtau = " << dPidtau
-                          << ", dPidx = " << dPidx
-                          << ", Pi_alpha0 = " << Pi_alpha0;
-            music_message.flush("error");
+            if (direction == 3 && (alpha == 0 || alpha == 3)) {
+                W_eta_p[alpha] = W_p + Pi_m;
+                W_eta_m[alpha] = W_m + Pi_p;
+            } else {
+                dwmn[alpha] += (W_p - W_m + Pi_p - Pi_m)/delta[direction];
+            }
         }
-    }
+    });
+
     // add longitudinal flux with the discretized geometric terms
     // careful about the boost-invariant case when deta could be arbitary
     double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
