@@ -93,8 +93,8 @@ void EOS_base::interpolate1D_with_gradients(double e, int table_idx,
         double temp1 = table[table_idx][0][idx_e];
         double temp2 = table[table_idx][0][idx_e + 1];
         dpde = (temp2 - temp1)/delta_e;
-        double frac_e = (e - (idx_e*delta_e + e0))/delta_e;
-        p = temp1*(1. - frac_e) + temp2*frac_e;
+        double frac_e = e - (idx_e*delta_e + e0);
+        p = temp1 + dpde*frac_e;
     }
 }
 
