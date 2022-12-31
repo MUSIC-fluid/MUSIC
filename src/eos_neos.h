@@ -22,6 +22,8 @@ class EOS_neos : public EOS_base {
     double get_muQ        (double e, double rhob) const;
     double get_pressure   (double e, double rhob) const;
     double get_s2e        (double s, double rhob) const;
+    void get_pressure_with_gradients(double epsilon, double rhob,
+        double &p, double &dpde, double &dpdrhob, double &cs2) const;
 
     void check_eos() const {
         check_eos_with_finite_muB();

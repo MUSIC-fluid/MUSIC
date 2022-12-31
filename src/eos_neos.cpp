@@ -271,6 +271,18 @@ double EOS_neos::get_pressure(double e, double rhob) const {
 }
 
 
+void EOS_neos::get_pressure_with_gradients(double e, double rhob,
+        double &p, double &dpde, double &dpdrhob, double &cs2) const {
+    int table_idx = get_table_idx(e);
+    interpolate2D_with_gradients(e, std::abs(rhob), table_idx, pressure_tb,
+            p, dpde, dpdrhob);
+    p = std::max(Util::small_eps, p);
+    dpde = std::max(Util::small_eps, dpde);
+    dpdrhob = std::max(Util::small_eps, dpdrhob);
+    cs2 = dpde + rhob/(e + p)*dpdrhob;
+}
+
+
 //! This function returns the local baryon chemical potential  mu_B in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_neos::get_muB(double e, double rhob) const {

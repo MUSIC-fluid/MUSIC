@@ -155,6 +155,55 @@ double EOS_base::interpolate2D(const double e, const double rhob,
 }
 
 
+void EOS_base::interpolate2D_with_gradients(
+        const double e, const double rhob, const int table_idx,
+        double ***table, double &p, double &dpde, double &dpdrhob) const {
+// This is a generic bilinear interpolation routine for EOS at finite mu_B
+// it assumes the class has already read in
+//        P(e, rho_b), T(e, rho_b), s(e, rho_b), mu_b(e, rho_b)
+// as two-dimensional arrays on an equally spacing lattice grid
+// units: e is in 1/fm^4, rhob is in 1/fm^3
+// dPde and dPdrhob is also computed with the intepolation points
+    double e0       = e_bounds[table_idx];
+    double nb0      = nb_bounds[table_idx];
+    double delta_e  = e_spacing[table_idx];
+    double delta_nb = nb_spacing[table_idx];
+
+    int N_e  = e_length[table_idx];
+    int N_nb = nb_length[table_idx];
+
+    // compute the indices
+    int idx_e  = static_cast<int>((e - e0)/delta_e);
+    int idx_nb = static_cast<int>((rhob - nb0)/delta_nb);
+
+    // treatment for overflow, use the last two points to do extrapolation
+    idx_e  = std::min( N_e - 2, idx_e);
+    idx_nb = std::min(N_nb - 2, idx_nb);
+
+    // check underflow
+    idx_e  = std::max(0, idx_e);
+    idx_nb = std::max(0, idx_nb);
+
+    double frac_e    = (e - (idx_e*delta_e + e0))/delta_e;
+    double frac_rhob = (rhob - (idx_nb*delta_nb + nb0))/delta_nb;
+    // avoid uncontrolled extrapolation at large net baryon density
+    frac_rhob = std::min(1., frac_rhob);
+
+    double temp1 = table[table_idx][idx_nb  ][idx_e  ];
+    double temp4 = table[table_idx][idx_nb+1][idx_e  ];
+    double temp2 = table[table_idx][idx_nb  ][idx_e+1];
+    double temp3 = table[table_idx][idx_nb+1][idx_e+1];
+
+    double p1 = temp1*(1 - frac_rhob) + temp4*frac_rhob;
+    double p2 = temp2*(1 - frac_rhob) + temp3*frac_rhob;
+    dpde = (p2 - p1)/delta_e;
+    p1 = temp1*(1 - frac_e) + temp2*frac_e;
+    p2 = temp4*(1 - frac_e) + temp3*frac_e;
+    dpdrhob = (p2 - p1)/delta_nb;
+    p = p1*(1 - frac_rhob) + p2*frac_rhob;
+}
+
+
 //! This function returns entropy density in [1/fm^3]
 //! The input local energy density e [1/fm^4], rhob[1/fm^3]
 double EOS_base::get_entropy(double epsilon, double rhob) const {

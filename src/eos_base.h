@@ -63,6 +63,9 @@ class EOS_base {
                                       double &p, double &dpde) const;
     double interpolate2D(const double e, const double rhob,
                          const int table_idx, double ***table) const;
+    void interpolate2D_with_gradients(const double e, const double rhob,
+                            const int table_idx, double ***table,
+                            double &p, double &dpde, double &dpdrhob) const;
 
     int    get_table_idx(double e) const;
     double get_entropy  (double epsilon, double rhob) const;
