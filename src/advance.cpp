@@ -507,10 +507,6 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
         auto grid_phR = reconst_helper.ReconstIt_shell(tau, qiphR, c);
         auto grid_mhL = reconst_helper.ReconstIt_shell(tau, qimhL, c);
         auto grid_mhR = reconst_helper.ReconstIt_shell(tau, qimhR, c);
-        pressureP1 = eos.get_pressure(grid_phL.e, grid_phL.rhob);
-        pressureP2 = eos.get_pressure(grid_phR.e, grid_phR.rhob);
-        pressureM1 = eos.get_pressure(grid_mhL.e, grid_mhL.rhob);
-        pressureM2 = eos.get_pressure(grid_mhR.e, grid_mhR.rhob);
 
         double aiphL = MaxSpeed(tau, direction, grid_phL, pressureP1);
         double aiphR = MaxSpeed(tau, direction, grid_phR, pressureP2);
@@ -572,7 +568,7 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
 
 // determine the maximum signal propagation speed at the given direction
 double Advance::MaxSpeed(const double tau, const int direc,
-                         const ReconstCell &grid_p, const double pressure) {
+                         const ReconstCell &grid_p, double &pressure) {
     double g[] = {1., 1., 1./tau};
 
     double utau    = grid_p.u[0];
@@ -583,13 +579,15 @@ double Advance::MaxSpeed(const double tau, const int direc,
     double eps  = grid_p.e;
     double rhob = grid_p.rhob;
 
-    double vs2 = eos.get_cs2(eps, rhob);
+    //double vs2 = eos.get_cs2(eps, rhob);
+    double dpde, dpdrhob, vs2;
+    eos.get_pressure_with_gradients(eps, rhob, pressure, dpde, dpdrhob, vs2);
     double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.)*vs2)*vs2;
     double num;
     if (num_temp_sqrt >= 0)  {
         num = utau*ux*(1. - vs2) + sqrt(num_temp_sqrt);
     } else {
-        double dpde = eos.get_dpde(eps, rhob);
+        //double dpde = eos.get_dpde(eps, rhob);
         double h = pressure + eps;
         if (dpde < 0.001) {
             num = (sqrt(-(h*dpde*h*(dpde*(-1.0 + ut2mux2) - ut2mux2)))
@@ -604,8 +602,8 @@ double Advance::MaxSpeed(const double tau, const int direc,
           fprintf(stderr,"at value utau=%lf. \n", utau);
           fprintf(stderr,"at value uk=%lf. \n", ux);
           fprintf(stderr,"at value vs^2=%lf. \n", vs2);
-          fprintf(stderr,"at value dpde=%lf. \n", eos.get_dpde(eps, rhob));
-          fprintf(stderr,"at value dpdrhob=%lf. \n", eos.get_dpdrhob(eps, rhob));
+          fprintf(stderr,"at value dpde=%lf. \n", dpde);
+          fprintf(stderr,"at value dpdrhob=%lf. \n", dpdrhob);
           fprintf(stderr, "MaxSpeed: exiting.\n");
           exit(1);
         }
