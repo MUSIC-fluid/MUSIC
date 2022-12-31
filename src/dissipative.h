@@ -35,8 +35,8 @@ class Diss {
                      Fields &arenaFieldsCurr, Fields &arenaFieldsPrev,
                      const int fieldIdx);
 
-    void Make_uWSource(const double tau, const Cell_small *grid_pt,
-                       const Cell_small *grid_pt_prev, const int rk_flag,
+    void Make_uWSource(const double tau, const Cell_small &grid_pt,
+                       const Cell_small &grid_pt_prev, const int rk_flag,
                        const double theta_local, const DumuVec &a_local,
                        const VelocityShearVec &sigma_1d,
                        const VorticityVec &omega_1d,
@@ -48,21 +48,13 @@ class Diss {
                     std::array<double, 9> &w_rhs,
                     const double theta_local, const DumuVec &a_local);
 
-    //void Make_uPRHS(const double tau, Fields &arena, const int fieldIdx,
-    //                const int ix, const int iy, const int ieta,
-    //                double &p_rhs, const double theta_local);
-
-    double Make_uPiSource(const double tau, const Cell_small *grid_pt,
-                          const Cell_small *grid_pt_prev, const int rk_flag,
+    double Make_uPiSource(const double tau, const Cell_small &grid_pt,
+                          const Cell_small &grid_pt_prev, const int rk_flag,
                           const double theta_local,
                           const VelocityShearVec &sigma_1d);
 
-    //void Make_uqRHS(const double tau, Fields &arena_current,
-    //                const int fieldIdx, const int ix, const int iy,
-    //                const int ieta, std::array<double, 3> &rhs);
-
-    void Make_uqSource(const double tau, const Cell_small *grid_pt,
-                       const Cell_small *grid_pt_prev,
+    void Make_uqSource(const double tau, const Cell_small &grid_pt,
+                       const Cell_small &grid_pt_prev,
                        const int rk_flag, const double theta_local,
                        const DumuVec &a_local,
                        const VelocityShearVec &sigma_1d,

@@ -144,23 +144,23 @@ void Diss::MakeWSource(const double tau,
 }
 
 
-void Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
-                         const Cell_small *grid_pt_prev,
+void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
+                         const Cell_small &grid_pt_prev,
                          const int rk_flag, const double theta_local,
                          const DumuVec &a_local,
                          const VelocityShearVec &sigma_1d,
                          const VorticityVec &omega_1d,
                          std::array<double, 5> &sourceTerms) {
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
-    auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu);
+    auto Wmunu = Util::UnpackVecToMatrix(grid_pt.Wmunu);
 
     double epsilon, rhob;
     if (rk_flag == 0) {
-        epsilon = grid_pt->epsilon;
-        rhob = grid_pt->rhob;
+        epsilon = grid_pt.epsilon;
+        rhob = grid_pt.rhob;
     } else {
-        epsilon = grid_pt_prev->epsilon;
-        rhob = grid_pt_prev->rhob;
+        epsilon = grid_pt_prev.epsilon;
+        rhob = grid_pt_prev.rhob;
     }
 
     double T = eos.get_temperature(epsilon, rhob);
@@ -288,8 +288,8 @@ void Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
                                     + Wmunu[nu][3]*sigma[mu][3])/2.;
 
             double term2_Wsigma = (-(1./3.)*(DATA.gmunu[mu][nu]
-                                             + grid_pt->u[mu]
-                                               *grid_pt->u[nu])*Wsigma);
+                                             + grid_pt.u[mu]
+                                               *grid_pt.u[nu])*Wsigma);
             // multiply term by its respective transport coefficient
             term1_Wsigma = transport_coefficient3*term1_Wsigma;
             term2_Wsigma = transport_coefficient3*term2_Wsigma;
@@ -321,7 +321,7 @@ void Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
                                 + Wmunu[mu][2]*Wmunu[nu][2]
                                 + Wmunu[mu][3]*Wmunu[nu][3]);
             double term2_WW = (-(1./3.)*(DATA.gmunu[mu][nu]
-                                    + grid_pt->u[mu]*grid_pt->u[nu])*Wsquare);
+                                    + grid_pt.u[mu]*grid_pt.u[nu])*Wsquare);
 
             // multiply term by its respective transport coefficient
             term1_WW = term1_WW*transport_coefficient;
@@ -341,8 +341,8 @@ void Diss::Make_uWSource(const double tau, const Cell_small *grid_pt,
         ///////////////////////////////////////////////////////////////////////
         double Coupling_to_Bulk = 0.0;
         if (DATA.include_second_order_terms == 1) {
-            double Bulk_Sigma = grid_pt->pi_b*sigma[mu][nu];
-            double Bulk_W = grid_pt->pi_b*Wmunu[mu][nu];
+            double Bulk_Sigma = grid_pt.pi_b*sigma[mu][nu];
+            double Bulk_W = grid_pt.pi_b*Wmunu[mu][nu];
 
             // multiply term by its respective transport coefficient
             double Bulk_Sigma_term = Bulk_Sigma*transport_coefficient_b;
@@ -497,8 +497,8 @@ void Diss::Make_uWRHS(const double tau, Fields &arena,
 }
 
 
-double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
-                            const Cell_small *grid_pt_prev,
+double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
+                            const Cell_small &grid_pt_prev,
                             const int rk_flag, const double theta_local,
                             const VelocityShearVec &sigma_1d) {
     double tempf;
@@ -519,11 +519,11 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
 
     double epsilon, rhob;
     if (rk_flag == 0) {
-        epsilon = grid_pt->epsilon;
-        rhob = grid_pt->rhob;
+        epsilon = grid_pt.epsilon;
+        rhob = grid_pt.rhob;
     } else {
-        epsilon = grid_pt_prev->epsilon;
-        rhob = grid_pt_prev->rhob;
+        epsilon = grid_pt_prev.epsilon;
+        rhob = grid_pt_prev.rhob;
     }
 
     // defining bulk viscosity coefficient
@@ -577,13 +577,12 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
 
     // Computing relaxation term and nonlinear term:
     // - Bulk - transport_coeff1*Bulk*theta
-    tempf = (-(grid_pt->pi_b)
-             - transport_coeff1*theta_local*(grid_pt->pi_b));
+    tempf = (-(grid_pt.pi_b)
+             - transport_coeff1*theta_local*(grid_pt.pi_b));
 
     // Computing nonlinear term: + transport_coeff2*Bulk*Bulk
     if (include_BBterm == 1) {
-        BB_term = (transport_coeff2*(grid_pt->pi_b)
-                   *(grid_pt->pi_b));
+        BB_term = transport_coeff2*(grid_pt.pi_b)*(grid_pt.pi_b);
     } else {
         BB_term = 0.0;
     }
@@ -593,7 +592,7 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
 
     if (include_coupling_to_shear == 1) {
         auto sigma = Util::UnpackVecToMatrix(sigma_1d);
-        auto Wmunu = Util::UnpackVecToMatrix(grid_pt->Wmunu);
+        auto Wmunu = Util::UnpackVecToMatrix(grid_pt.Wmunu);
 
         Wsigma = (  Wmunu[0][0]*sigma[0][0]
                   + Wmunu[1][1]*sigma[1][1]
@@ -645,8 +644,8 @@ double Diss::Make_uPiSource(const double tau, const Cell_small *grid_pt,
     -Delta[a][eta] u[eta] q[tau]/tau
     -u[a]u[b]g[b][e] Dq[e]
 */
-void Diss::Make_uqSource(const double tau, const Cell_small *grid_pt,
-                         const Cell_small *grid_pt_prev,
+void Diss::Make_uqSource(const double tau, const Cell_small &grid_pt,
+                         const Cell_small &grid_pt_prev,
                          const int rk_flag, const double theta_local,
                          const DumuVec &a_local,
                          const VelocityShearVec &sigma_1d,
@@ -655,11 +654,11 @@ void Diss::Make_uqSource(const double tau, const Cell_small *grid_pt,
                          std::array<double, 3> &sourceTerms) {
     double epsilon, rhob;
     if (rk_flag == 0) {
-        epsilon = grid_pt->epsilon;
-        rhob = grid_pt->rhob;
+        epsilon = grid_pt.epsilon;
+        rhob = grid_pt.rhob;
     } else {
-        epsilon = grid_pt_prev->epsilon;
-        rhob = grid_pt_prev->rhob;
+        epsilon = grid_pt_prev.epsilon;
+        rhob = grid_pt_prev.rhob;
     }
     double pressure = eos.get_pressure(epsilon, rhob);
     double T = eos.get_temperature(epsilon, rhob);
@@ -686,7 +685,7 @@ void Diss::Make_uqSource(const double tau, const Cell_small *grid_pt,
     // copy the value of \tilde{q^\mu}
     double q[4];
     for (int i = 0; i < 4; i++) {
-        q[i] = grid_pt->Wmunu[10+i];
+        q[i] = grid_pt.Wmunu[10+i];
     }
 
     /* -(1/tau_rho)(q[a] + kappa g[a][b]Dtildemu[b] 
@@ -713,7 +712,7 @@ void Diss::Make_uqSource(const double tau, const Cell_small *grid_pt,
 
     for (int nu = 1; nu < 4; nu++) {
         double NS = kappa*(baryon_diffusion_vec[nu]
-                           + grid_pt->u[nu]*a_local[4]);
+                           + grid_pt.u[nu]*a_local[4]);
 
         // add a new non-linear term (- q \theta)
         double Nonlinear1 = -transport_coeff*q[nu]*theta_local;
@@ -745,18 +744,18 @@ void Diss::Make_uqSource(const double tau, const Cell_small *grid_pt,
 
         // all other geometric terms....
         // + theta q[a] - q[a] u^\tau/tau
-        sourceTerms[nu-1] += (theta_local - grid_pt->u[0]/tau)*q[nu];
+        sourceTerms[nu-1] += (theta_local - grid_pt.u[0]/tau)*q[nu];
         //if (isnan(SW)) {
         //    cout << "theta term is nan! " << endl;
         //}
 
         // +Delta[a][tau] u[eta] q[eta]/tau
         double tempf = ((DATA.gmunu[nu][0]
-                        + grid_pt->u[nu]*grid_pt->u[0])
-                          *grid_pt->u[3]*q[3]/tau
+                        + grid_pt.u[nu]*grid_pt.u[0])
+                          *grid_pt.u[3]*q[3]/tau
                         - (DATA.gmunu[nu][3]
-                           + grid_pt->u[nu]*grid_pt->u[3])
-                          *grid_pt->u[3]*q[0]/tau);
+                           + grid_pt.u[nu]*grid_pt.u[3])
+                          *grid_pt.u[3]*q[0]/tau);
         sourceTerms[nu-1] += tempf;
         //if (isnan(tempf)) {
         //    cout << "Delta^{a \tau} and Delta^{a \eta} terms are nan!" << endl;
@@ -767,7 +766,7 @@ void Diss::Make_uqSource(const double tau, const Cell_small *grid_pt,
         for (int i = 0; i < 4; i++) {
             tempf += q[i]*Util::gmn(i)*a_local[i];
         }
-        sourceTerms[nu-1] += (grid_pt->u[nu])*tempf;
+        sourceTerms[nu-1] += (grid_pt.u[nu])*tempf;
         //if (isnan(tempf)) {
         //    cout << "u^a q_b Du^b term is nan! " << endl;
         //}
