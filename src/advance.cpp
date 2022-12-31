@@ -195,8 +195,6 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
                            const DmuMuBoverTVec &baryon_diffusion_vector,
                            const int ieta, const int ix, const int iy,
                            const int fieldIdx) {
-
-    auto grid_p = arenaFieldsPrev.getCell(fieldIdx);
     auto grid_c = arenaFieldsCurr.getCell(fieldIdx);
     auto grid_f = arenaFieldsNext.getCell(fieldIdx);
 
@@ -216,15 +214,26 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
     std::array<double, 9> w_rhs = {0.};
     diss_helper.Make_uWRHS(tau_now, arenaFieldsCurr, fieldIdx,
                            ix, iy, ieta, w_rhs, theta_local, a_local);
+
+    std::vector<double> thermalVec;
+    if (rk_flag == 0) {
+        eos.getThermalVariables(grid_c.epsilon, grid_c.rhob, thermalVec);
+    } else {
+        eos.getThermalVariables(arenaFieldsPrev.e_[fieldIdx],
+                                arenaFieldsPrev.rhob_[fieldIdx], thermalVec);
+    }
+
     double tempf;
+    double u0Prev = arenaFieldsPrev.u_[0][fieldIdx];
     if (DATA.turn_on_shear == 1) {
         std::array<double, 5> sourceTerms = {0.};
         diss_helper.Make_uWSource(
-            tau_now, grid_c, grid_p, rk_flag,
-            theta_local, a_local, sigma_local, omega_local, sourceTerms);
+            tau_now, grid_c, theta_local, a_local, sigma_local, omega_local,
+            thermalVec, sourceTerms);
         for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
+            double WmunuPrev = arenaFieldsPrev.Wmunu_[idx_1d][fieldIdx];
             tempf = ((1. - rk_flag)*(grid_c.Wmunu[idx_1d]*grid_c.u[0])
-                     + rk_flag*(grid_p.Wmunu[idx_1d]*grid_p.u[0])
+                     + rk_flag*(WmunuPrev*u0Prev)
             );
             tempf += sourceTerms[idx_1d-4]*(DATA.delta_tau);
             tempf += w_rhs[idx_1d-4];
@@ -239,11 +248,11 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
     }
 
     if (DATA.turn_on_bulk == 1) {
+        double piBulkPrev = arenaFieldsPrev.piBulk_[fieldIdx];
         tempf = ((1. - rk_flag)*(grid_c.pi_b*grid_c.u[0])
-                 + rk_flag*(grid_p.pi_b*grid_p.u[0]));
+                 + rk_flag*piBulkPrev*u0Prev);
         double temps = diss_helper.Make_uPiSource(
-                                tau_now, grid_c, grid_p, rk_flag,
-                                theta_local, sigma_local);
+                    tau_now, grid_c, theta_local, sigma_local, thermalVec);
         tempf += temps*(DATA.delta_tau);
         tempf += w_rhs[5];
         tempf += rk_flag*((grid_c.pi_b)*(grid_c.u[0]));
@@ -256,13 +265,14 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
     // CShen: add source term for baryon diffusion
     if (DATA.turn_on_diff == 1) {
         std::array<double, 3> sourceTerms = {0.};
-        diss_helper.Make_uqSource(tau_now, grid_c, grid_p, rk_flag,
+        diss_helper.Make_uqSource(tau_now, grid_c,
                                   theta_local, a_local, sigma_local,
                                   omega_local, baryon_diffusion_vector,
-                                  sourceTerms);
+                                  thermalVec, sourceTerms);
         for (int idx_1d = 11; idx_1d < 14; idx_1d++) {
+            double WmunuPrev = arenaFieldsPrev.Wmunu_[idx_1d][fieldIdx];
             tempf = ((1. - rk_flag)*(grid_c.Wmunu[idx_1d]*grid_c.u[0])
-                     + rk_flag*(grid_p.Wmunu[idx_1d]*grid_p.u[0]));
+                     + rk_flag*WmunuPrev*u0Prev);
             tempf += sourceTerms[idx_1d-11]*(DATA.delta_tau);
             tempf += w_rhs[idx_1d-5];
             tempf += rk_flag*(grid_c.Wmunu[idx_1d]*grid_c.u[0]);

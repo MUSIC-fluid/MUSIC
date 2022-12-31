@@ -5,6 +5,7 @@
 
 #include "eos_base.h"
 #include <memory>
+#include <vector>
 
 //! This is a wrapper class for the equation of state
 class EOS {
@@ -36,6 +37,11 @@ class EOS {
     double get_muQ        (double e, double rhob) const {return(eos_ptr->get_muQ(e, rhob));}
     double get_s2e        (double s, double rhob) const {return(eos_ptr->get_s2e(s, rhob));}
     double get_T2e        (double T_in_GeV, double rhob) const {return(eos_ptr->get_T2e(T_in_GeV, rhob));}
+
+    void getThermalVariables(double e, double rhob,
+                             std::vector<double> &thermalVec) const {
+        eos_ptr->getThermalVariables(e, rhob, thermalVec);
+    }
 
     double get_eps_max() const {return(eos_ptr->get_eps_max());}
     void   check_eos()   const {return(eos_ptr->check_eos());}

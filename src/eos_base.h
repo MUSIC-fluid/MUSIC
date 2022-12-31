@@ -69,6 +69,8 @@ class EOS_base {
 
     int    get_table_idx(double e) const;
     double get_entropy  (double epsilon, double rhob) const;
+    void getThermalVariables(double epsilon, double rhob,
+                             std::vector<double> &thermalVec) const;
 
     double calculate_velocity_of_sound_sq(double e, double rhob) const;
     double get_dpOverde3(double e, double rhob) const;

@@ -32,13 +32,17 @@ void Diss::MakeWSource(const double tau,
                        const int fieldIdx) {
     /* calculate d_m (tau W^{m,alpha}) + (geom source terms) */
     const auto grid_pt      = arenaFieldsCurr.getCell(fieldIdx);
-    const auto grid_pt_prev = arenaFieldsPrev.getCell(fieldIdx);
 
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y,
                                DATA.delta_eta};
     const double tau_fac[4] = {0.0, tau, tau, 1.0};
 
     dwmn = {0.};
+    double piBulkPrev = arenaFieldsPrev.piBulk_[fieldIdx];
+    double uPrev[4];
+    for (int i = 0; i < 4; i++)
+        uPrev[i] = arenaFieldsPrev.u_[i][fieldIdx];
+
     for (int alpha = 0; alpha < 5; alpha++) {
         /* partial_tau W^tau alpha */
         /* this is partial_tau evaluated at tau */
@@ -50,8 +54,9 @@ void Diss::MakeWSource(const double tau,
         // dW/dtau
         // backward time derivative (first order is more stable)
         int idx_1d_alpha0 = map_2d_idx_to_1d(alpha, 0);
-        double dWdtau = (grid_pt.Wmunu[idx_1d_alpha0]
-                         - grid_pt_prev.Wmunu[idx_1d_alpha0])/DATA.delta_tau;
+        double dWdtau = ((grid_pt.Wmunu[idx_1d_alpha0]
+                          - arenaFieldsPrev.Wmunu_[idx_1d_alpha0][fieldIdx])
+                         /DATA.delta_tau);
 
         /* bulk pressure term */
         double dPidtau = 0.0;
@@ -59,9 +64,7 @@ void Diss::MakeWSource(const double tau,
         if (alpha < 4 && DATA.turn_on_bulk == 1) {
             double gfac = (alpha == 0 ? -1.0 : 0.0);
             Pi_alpha0 = grid_pt.pi_b*(gfac + grid_pt.u[alpha]*grid_pt.u[0]);
-            dPidtau = ((Pi_alpha0 - grid_pt_prev.pi_b
-                                    *(gfac + grid_pt_prev.u[alpha]
-                                             *grid_pt_prev.u[0]))
+            dPidtau = ((Pi_alpha0 - piBulkPrev*(gfac + uPrev[alpha]*uPrev[0]))
                        /DATA.delta_tau);
         }
         double sf = tau*dWdtau + grid_pt.Wmunu[idx_1d_alpha0];
@@ -72,7 +75,7 @@ void Diss::MakeWSource(const double tau,
             music_message << "sf=" << sf << " bf=" << bf
                           << " Wmunu =" << grid_pt.Wmunu[idx_1d_alpha0]
                           << " pi_b =" << grid_pt.pi_b
-                          << " prev_pi_b=" << grid_pt_prev.pi_b;
+                          << " prev_pi_b=" << piBulkPrev;
             music_message.flush("error");
             music_message << "dWdtau = " << dWdtau;
             music_message.flush("error");
@@ -145,26 +148,18 @@ void Diss::MakeWSource(const double tau,
 
 
 void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
-                         const Cell_small &grid_pt_prev,
-                         const int rk_flag, const double theta_local,
+                         const double theta_local,
                          const DumuVec &a_local,
                          const VelocityShearVec &sigma_1d,
                          const VorticityVec &omega_1d,
+                         const std::vector<double> &thermalVec,
                          std::array<double, 5> &sourceTerms) {
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
     auto Wmunu = Util::UnpackVecToMatrix(grid_pt.Wmunu);
 
-    double epsilon, rhob;
-    if (rk_flag == 0) {
-        epsilon = grid_pt.epsilon;
-        rhob = grid_pt.rhob;
-    } else {
-        epsilon = grid_pt_prev.epsilon;
-        rhob = grid_pt_prev.rhob;
-    }
-
-    double T = eos.get_temperature(epsilon, rhob);
-    double muB = eos.get_muB(epsilon, rhob);
+    double epsilon = thermalVec[0];
+    double T = thermalVec[6];
+    double muB = thermalVec[7];
 
     double shear_to_s = transport_coeffs_.get_eta_over_s(T, muB);
 
@@ -180,10 +175,10 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
     //                Defining transport coefficients                     //
     ////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////
-    double pressure = eos.get_pressure(epsilon, rhob);
+    double pressure = thermalVec[2];
     double shear = 0.;
     if (DATA.muB_dependent_shear_to_s == 0) {
-        double entropy = eos.get_entropy(epsilon, rhob);
+        double entropy = thermalVec[12];
         shear = shear_to_s*entropy;
     } else {
         shear = shear_to_s*(epsilon + pressure)/std::max(T, small_eps);
@@ -498,9 +493,9 @@ void Diss::Make_uWRHS(const double tau, Fields &arena,
 
 
 double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
-                            const Cell_small &grid_pt_prev,
-                            const int rk_flag, const double theta_local,
-                            const VelocityShearVec &sigma_1d) {
+                            const double theta_local,
+                            const VelocityShearVec &sigma_1d,
+                            const std::vector<double> &thermalVec) {
     double tempf;
     double bulk;
     double Bulk_Relax_time;
@@ -517,27 +512,19 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
         include_coupling_to_shear = 1;
     }
 
-    double epsilon, rhob;
-    if (rk_flag == 0) {
-        epsilon = grid_pt.epsilon;
-        rhob = grid_pt.rhob;
-    } else {
-        epsilon = grid_pt_prev.epsilon;
-        rhob = grid_pt_prev.rhob;
-    }
-
     // defining bulk viscosity coefficient
-
     // shear viscosity = constant * entropy density
     //s_den = eos.get_entropy(epsilon, rhob);
     //shear = (DATA.shear_to_s)*s_den;   
     // shear viscosity = constant * (e + P)/T
-    double temperature = eos.get_temperature(epsilon, rhob);
-    double mu_B = eos.get_muB(epsilon, rhob);
+    double epsilon = thermalVec[0];
+    double temperature = thermalVec[6];
+    double mu_B = thermalVec[7];
 
     // cs2 is the velocity of sound squared
-    double cs2 = eos.get_cs2(epsilon, rhob);
-    double pressure = eos.get_pressure(epsilon, rhob);
+    //double cs2 = eos.get_cs2(epsilon, thermalVec[1]);
+    double cs2 = thermalVec[5];
+    double pressure = thermalVec[2];
 
     // T dependent bulk viscosity
     bulk = transport_coeffs_.get_zeta_over_s(temperature, mu_B);
@@ -645,29 +632,23 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
     -u[a]u[b]g[b][e] Dq[e]
 */
 void Diss::Make_uqSource(const double tau, const Cell_small &grid_pt,
-                         const Cell_small &grid_pt_prev,
-                         const int rk_flag, const double theta_local,
+                         const double theta_local,
                          const DumuVec &a_local,
                          const VelocityShearVec &sigma_1d,
                          const VorticityVec &omega_1d,
                          const DmuMuBoverTVec &baryon_diffusion_vec,
+                         const std::vector<double> &thermalVec,
                          std::array<double, 3> &sourceTerms) {
-    double epsilon, rhob;
-    if (rk_flag == 0) {
-        epsilon = grid_pt.epsilon;
-        rhob = grid_pt.rhob;
-    } else {
-        epsilon = grid_pt_prev.epsilon;
-        rhob = grid_pt_prev.rhob;
-    }
-    double pressure = eos.get_pressure(epsilon, rhob);
-    double T = eos.get_temperature(epsilon, rhob);
+    double epsilon = thermalVec[0];
+    double rhob = thermalVec[1];
+    double pressure = thermalVec[2];
+    double T = thermalVec[6];
 
     double kappa_coefficient = DATA.kappa_coefficient;
     double tau_rho = kappa_coefficient/std::max(T, small_eps);
     tau_rho = std::min(10., std::max(3.*DATA.delta_tau, tau_rho));
 
-    double mub   = eos.get_muB(epsilon, rhob);
+    double mub   = thermalVec[7];
     double alpha = mub/std::max(T, small_eps);
     double denorm_safe = std::copysign(
             std::max(std::abs(3.*T*tanh(alpha)), small_eps), 3.*T*tanh(alpha));

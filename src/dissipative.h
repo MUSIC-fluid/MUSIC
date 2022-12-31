@@ -36,10 +36,10 @@ class Diss {
                      const int fieldIdx);
 
     void Make_uWSource(const double tau, const Cell_small &grid_pt,
-                       const Cell_small &grid_pt_prev, const int rk_flag,
                        const double theta_local, const DumuVec &a_local,
                        const VelocityShearVec &sigma_1d,
                        const VorticityVec &omega_1d,
+                       const std::vector<double> &thermalVec,
                        std::array<double, 5> &sourceTerms);
 
     void Make_uWRHS(const double tau, Fields &arena,
@@ -49,17 +49,17 @@ class Diss {
                     const double theta_local, const DumuVec &a_local);
 
     double Make_uPiSource(const double tau, const Cell_small &grid_pt,
-                          const Cell_small &grid_pt_prev, const int rk_flag,
                           const double theta_local,
-                          const VelocityShearVec &sigma_1d);
+                          const VelocityShearVec &sigma_1d,
+                          const std::vector<double> &thermalVec);
 
     void Make_uqSource(const double tau, const Cell_small &grid_pt,
-                       const Cell_small &grid_pt_prev,
-                       const int rk_flag, const double theta_local,
+                       const double theta_local,
                        const DumuVec &a_local,
                        const VelocityShearVec &sigma_1d,
                        const VorticityVec &omega_1d,
                        const DmuMuBoverTVec &baryon_diffusion_vec,
+                       const std::vector<double> &thermalVec,
                        std::array<double, 3> &sourceTerms);
 
     void output_kappa_T_and_muB_dependence();

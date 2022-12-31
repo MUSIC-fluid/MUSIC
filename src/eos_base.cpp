@@ -219,6 +219,34 @@ double EOS_base::get_entropy(double epsilon, double rhob) const {
 }
 
 
+//! This function returns entropy density in [1/fm^3]
+//! The input local energy density e [1/fm^4], rhob[1/fm^3]
+void EOS_base::getThermalVariables(double epsilon, double rhob,
+                                   std::vector<double> &thermalVec) const {
+    thermalVec.clear();
+    thermalVec.push_back(epsilon);
+    thermalVec.push_back(rhob);
+    double p, dpde, dpdrhob, cs2;
+    get_pressure_with_gradients(epsilon, rhob, p, dpde, dpdrhob, cs2);
+    thermalVec.push_back(p);
+    thermalVec.push_back(dpde);
+    thermalVec.push_back(dpdrhob);
+    thermalVec.push_back(cs2);
+    thermalVec.push_back(get_temperature(epsilon, rhob));
+    thermalVec.push_back(get_muB(epsilon, rhob));
+    thermalVec.push_back(get_muS(epsilon, rhob));
+    thermalVec.push_back(get_rhoS(epsilon, rhob));
+    thermalVec.push_back(get_muQ(epsilon, rhob));
+    thermalVec.push_back(get_rhoQ(epsilon, rhob));
+    double entropy = ((epsilon + p - thermalVec[7]*rhob
+                       - thermalVec[8]*thermalVec[9]
+                       - thermalVec[10]*thermalVec[11])
+                      /(thermalVec[6] + small_eps));
+    entropy = std::max(small_eps, entropy);
+    thermalVec.push_back(entropy);
+}
+
+
 double EOS_base::get_cs2(double e, double rhob) const {
     double f = calculate_velocity_of_sound_sq(e, rhob);
     return(f);
@@ -238,7 +266,7 @@ double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob) const {
 
 
 double EOS_base::get_dpOverde3(double e, double rhob) const {
-    double de = std::max(0.01, 0.1*e);
+    double de = std::max(0.01, 0.01*e);
     double eLeft = std::max(1e-16, e - de);
     double eRight = e + de;
 
