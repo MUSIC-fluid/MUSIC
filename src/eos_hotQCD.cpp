@@ -113,9 +113,8 @@ void EOS_hotQCD::get_pressure_with_gradients(double e, double rhob,
         double &p, double &dpde, double &dpdrhob, double &cs2) const {
     interpolate1D_with_gradients(e, 0, pressure_tb, p, dpde);
     p = std::max(Util::small_eps, p);           // [1/fm^4]
-    dpde = std::max(Util::small_eps, dpde);
     dpdrhob = 0.;
-    cs2 = dpde;
+    cs2 = std::max(0.01, std::min(1./3., dpde));
 }
 
 
