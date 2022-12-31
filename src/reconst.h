@@ -44,6 +44,8 @@ class Reconst {
 
     void reconst_velocity_fdf(const double v, const double T00, const double M,
                               const double J0, double &fv, double &dfdv) const;
+    void reconst_velocity_f(const double v, const double T00, const double M,
+                            const double J0, double &fv) const;
 
     void reconst_u0_fdf(const double u0, const double T00, const double K00,
                         const double M, const double J0,
@@ -52,7 +54,7 @@ class Reconst {
     int solve_velocity_Newton(const double v_guess, const double T00,
                               const double M, const double J0,
                               double &v_solution);
-    int solve_v_Hybrid(const double v_guess, const double T00,
+    int solve_v_Hybrid(const double T00,
                        const double M, const double J0,
                        double &v_solution);
 
