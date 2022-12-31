@@ -31,7 +31,7 @@ void Diss::MakeWSource(const double tau,
                        Fields &arenaFieldsCurr, Fields &arenaFieldsPrev,
                        const int fieldIdx) {
     /* calculate d_m (tau W^{m,alpha}) + (geom source terms) */
-    const auto grid_pt      = arenaFieldsCurr.getCell(fieldIdx);
+    const auto grid_pt = arenaFieldsCurr.getCell(fieldIdx);
 
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y,
                                DATA.delta_eta};
@@ -90,7 +90,7 @@ void Diss::MakeWSource(const double tau,
     FieldNeighbourLoop1(arenaFieldsCurr, ix, iy, ieta, FNLLAMBDAS1{
         for (int alpha = 0; alpha < 5; alpha++) {
             int idx_1d  = map_2d_idx_to_1d(alpha, direction);
-            double sg   =  c.Wmunu[idx_1d]*tau_fac[direction];
+            double sg   = grid_pt.Wmunu[idx_1d]*tau_fac[direction];
             double sgp1 = p1.Wmunu[idx_1d]*tau_fac[direction];
             double sgm1 = m1.Wmunu[idx_1d]*tau_fac[direction];
             //dWdx += minmod.minmod_dx(sgp1, sg, sgm1)/delta[direction];
@@ -104,8 +104,9 @@ void Diss::MakeWSource(const double tau,
                 double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
                 double bgp1  = (p1.pi_b*(gfac1 + p1.u[alpha]*p1.u[direction])
                                 *tau_fac[direction]);
-                double bg    = (c.pi_b *(gfac1 + c.u[alpha]*c.u[direction])
-                                *tau_fac[direction]);
+                double bg = (grid_pt.pi_b
+                             *(gfac1 + grid_pt.u[alpha]*grid_pt.u[direction])
+                             *tau_fac[direction]);
                 double bgm1  = (m1.pi_b*(gfac1 + m1.u[alpha]*m1.u[direction])
                                 *tau_fac[direction]);
                 //dPidx += minmod.minmod_dx(bgp1, bg, bgm1)/delta[direction];

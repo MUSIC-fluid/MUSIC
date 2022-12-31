@@ -116,10 +116,9 @@ void FieldNeighbourLoop1(Fields &arena, int cx, int cy, int ceta, Func func) {
         int p1nx   = dx  [2*dir+1];
         int p1ny   = dy  [2*dir+1];
         int p1neta = deta[2*dir+1];
-              auto  c = arena.getCell(cx,      cy,      ceta       );
         const auto p1 = arena.getCell(cx+p1nx, cy+p1ny, ceta+p1neta);
         const auto m1 = arena.getCell(cx+m1nx, cy+m1ny, ceta+m1neta);
-        func(c, p1, m1, dir+1);
+        func(p1, m1, dir+1);
     }
 }
 
@@ -155,7 +154,7 @@ void FieldNeighbourLoop2(Fields &arena, int cx, int cy, int ceta, Func func) {
 
 #define FNLILAMBDAS2 [&](ReconstCell& c, const ReconstCell& p1, const ReconstCell& p2, const ReconstCell& m1, const ReconstCell& m2, const int direction)
 
-#define FNLLAMBDAS1 [&](Cell_small& c, const Cell_small& p1, const Cell_small& m1, const int direction)
+#define FNLLAMBDAS1 [&](const Cell_small& p1, const Cell_small& m1, const int direction)
 
 #define FNLLAMBDAS2 [&](CellViscous& c, const CellViscous& p1, const CellViscous& p2, const CellViscous& m1, const CellViscous& m2, const int direction)
 
