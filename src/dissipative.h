@@ -42,24 +42,24 @@ class Diss {
                        const VorticityVec &omega_1d,
                        std::array<double, 5> &sourceTerms);
 
-    int Make_uWRHS(const double tau, Fields &arena,
-                   const int fieldIdx,
-                   const int ix, const int iy, const int ieta,
-                   std::array<double, 5> &w_rhs,
-                   const double theta_local, const DumuVec &a_local);
-
-    void Make_uPRHS(const double tau, Fields &arena, const int fieldIdx,
+    void Make_uWRHS(const double tau, Fields &arena,
+                    const int fieldIdx,
                     const int ix, const int iy, const int ieta,
-                    double &p_rhs, const double theta_local);
+                    std::array<double, 9> &w_rhs,
+                    const double theta_local, const DumuVec &a_local);
+
+    //void Make_uPRHS(const double tau, Fields &arena, const int fieldIdx,
+    //                const int ix, const int iy, const int ieta,
+    //                double &p_rhs, const double theta_local);
 
     double Make_uPiSource(const double tau, const Cell_small *grid_pt,
                           const Cell_small *grid_pt_prev, const int rk_flag,
                           const double theta_local,
                           const VelocityShearVec &sigma_1d);
 
-    void Make_uqRHS(const double tau, Fields &arena_current,
-                    const int fieldIdx, const int ix, const int iy,
-                    const int ieta, std::array<double, 3> &rhs);
+    //void Make_uqRHS(const double tau, Fields &arena_current,
+    //                const int fieldIdx, const int ix, const int iy,
+    //                const int ieta, std::array<double, 3> &rhs);
 
     void Make_uqSource(const double tau, const Cell_small *grid_pt,
                        const Cell_small *grid_pt_prev,

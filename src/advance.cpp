@@ -207,12 +207,14 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
     // with the KT flux
     // solve partial_tau (u^0 W^{kl}) = -partial_i (u^i W^{kl}
     /* Advance uWmunu */
-    double tempf, temps;
+
+    // spatial gradients for all viscous quantities
+    std::array<double, 9> w_rhs = {0.};
+    diss_helper.Make_uWRHS(tau_now, arenaFieldsCurr, fieldIdx,
+                           ix, iy, ieta, w_rhs, theta_local, a_local);
+    double tempf;
     if (DATA.turn_on_shear == 1) {
-        std::array<double, 5> w_rhs = {0.};
         std::array<double, 5> sourceTerms = {0.};
-        diss_helper.Make_uWRHS(tau_now, arenaFieldsCurr, fieldIdx,
-                               ix, iy, ieta, w_rhs, theta_local, a_local);
         diss_helper.Make_uWSource(
             tau_now, grid_pt_c, grid_pt_prev, rk_flag,
             theta_local, a_local, sigma_local, omega_local, sourceTerms);
@@ -234,16 +236,13 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
     }
 
     if (DATA.turn_on_bulk == 1) {
-        double p_rhs;
-        diss_helper.Make_uPRHS(tau_now, arenaFieldsCurr, fieldIdx,
-                               ix, iy, ieta, p_rhs, theta_local);
         tempf = ((1. - rk_flag)*(grid_pt_c->pi_b*grid_pt_c->u[0])
                  + rk_flag*(grid_pt_prev->pi_b*grid_pt_prev->u[0]));
-        temps = diss_helper.Make_uPiSource(
-                tau_now, grid_pt_c, grid_pt_prev, rk_flag,
-                theta_local, sigma_local);
+        double temps = diss_helper.Make_uPiSource(
+                                tau_now, grid_pt_c, grid_pt_prev, rk_flag,
+                                theta_local, sigma_local);
         tempf += temps*(DATA.delta_tau);
-        tempf += p_rhs;
+        tempf += w_rhs[5];
         tempf += rk_flag*((grid_pt_c->pi_b)*(grid_pt_c->u[0]));
         tempf *= 1./(1. + rk_flag);
         grid_f.pi_b = tempf/(grid_f.u[0]);
@@ -253,10 +252,7 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
 
     // CShen: add source term for baryon diffusion
     if (DATA.turn_on_diff == 1) {
-        std::array<double, 3> rhs = {0.};
         std::array<double, 3> sourceTerms = {0.};
-        diss_helper.Make_uqRHS(tau_now, arenaFieldsCurr, fieldIdx,
-                               ix, iy, ieta, rhs);
         diss_helper.Make_uqSource(tau_now, grid_pt_c, grid_pt_prev, rk_flag,
                                   theta_local, a_local, sigma_local,
                                   omega_local, baryon_diffusion_vector,
@@ -265,7 +261,7 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
             tempf = ((1. - rk_flag)*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0])
                      + rk_flag*(grid_pt_prev->Wmunu[idx_1d]*grid_pt_prev->u[0]));
             tempf += sourceTerms[idx_1d-11]*(DATA.delta_tau);
-            tempf += rhs[idx_1d-11];
+            tempf += w_rhs[idx_1d-5];
             tempf += rk_flag*(grid_pt_c->Wmunu[idx_1d]*grid_pt_c->u[0]);
             tempf *= 1./(1. + rk_flag);
 
