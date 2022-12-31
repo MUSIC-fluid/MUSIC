@@ -57,7 +57,6 @@ class Advance {
                          const int ieta, const int ix, const int iy);
 
     void MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
-                     const int fieldIdx,
                      const int ix, const int iy, const int ieta, TJbVec &qi,
                      const int rk_flag);
 

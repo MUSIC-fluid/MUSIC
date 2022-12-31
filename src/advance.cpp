@@ -103,6 +103,9 @@ void Advance::FirstRKStepT(
     // this advances the ideal part
     double tau_rk = tau + rk_flag*(DATA.delta_tau);
 
+    auto cellPrev = arenaFieldsPrev.getCellIdeal(fieldIdx);
+    auto cellCurr = arenaFieldsCurr.getCellIdeal(fieldIdx);
+
     // Solve partial_a T^{a mu} = -partial_a W^{a mu}
     // Update T^{mu nu}
     // MakeDelatQI gets
@@ -112,7 +115,11 @@ void Advance::FirstRKStepT(
     // It is the spatial derivative part of partial_a T^{a mu}
     // (including geometric terms)
     TJbVec qi = {0};
-    MakeDeltaQI(tau_rk, arenaFieldsCurr, fieldIdx, ix, iy, ieta, qi, rk_flag);
+    double pressure = eos.get_pressure(cellCurr.e, cellCurr.rhob);
+    for (int alpha = 0; alpha < 5; alpha++) {
+        qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure)*tau_rk;
+    }
+    MakeDeltaQI(tau_rk, arenaFieldsCurr, ix, iy, ieta, qi, rk_flag);
 
     TJbVec qi_source = {0.0};
 
@@ -145,7 +152,7 @@ void Advance::FirstRKStepT(
     TJbVec dwmn ={0.0};
     diss_helper.MakeWSource(tau_rk, ix, iy, ieta,
                             dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
-    auto cellPrev = arenaFieldsPrev.getCellIdeal(fieldIdx);
+
     double pressurePrev = eos.get_pressure(cellPrev.e, cellPrev.rhob);
     for (int alpha = 0; alpha < 5; alpha++) {
         /* dwmn is the only one with the minus sign */
@@ -170,8 +177,7 @@ void Advance::FirstRKStepT(
     }
 
     double tau_next = tau + DATA.delta_tau;
-    auto grid_rk_t = reconst_helper.ReconstIt_shell(
-                        tau_next, qi, arenaFieldsCurr.getCellIdeal(fieldIdx));
+    auto grid_rk_t = reconst_helper.ReconstIt_shell(tau_next, qi, cellCurr);
     arenaFieldsNext.e_[fieldIdx] = grid_rk_t.e;
     arenaFieldsNext.rhob_[fieldIdx] = grid_rk_t.rhob;
     for (int ii = 0; ii < 4; ii++) {
@@ -458,17 +464,10 @@ void Advance::QuestRevert_qmu(const double tau, Cell_small &grid_pt,
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
 void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
-                          const int fieldIdx,
                           const int ix, const int iy, const int ieta,
                           TJbVec &qi, const int rk_flag) {
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
     const double tau_fac[4] = {0.0, tau, tau, 1.0};
-
-    auto cellCurr = arenaFieldsCurr.getCellIdeal(fieldIdx);
-    double pressure = eos.get_pressure(cellCurr.e, cellCurr.rhob);
-    for (int alpha = 0; alpha < 5; alpha++) {
-        qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure)*tau;
-    }
 
     TJbVec qiphL   = {0.};
     TJbVec qiphR   = {0.};
