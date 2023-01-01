@@ -73,7 +73,7 @@ class Cell_info {
 
     //! This function computes the inverse Reynolds number for a given fluid
     //! cell at (ix, iy, ieta)
-    void calculate_inverse_Reynolds_numbers(Cell_small grid_pt,
+    void calculate_inverse_Reynolds_numbers(Fields &arena, const int Idx,
                                             double &R_pi, double &R_Pi) const;
 
     void OutputEvolution_Knudsen_Reynoldsnumbers(Fields &arena,
@@ -146,7 +146,7 @@ class Cell_info {
 
     //! This function computes the pi^{\mu\nu} in the local rest frame
     //! and in the Cartisian coordinates
-    void get_LRF_shear_stress_tensor(const Cell_small &cell,
+    void get_LRF_shear_stress_tensor(const Fields &cell, const int Idx,
                                      const double eta_s, ShearVisVecLRF &res);
 };
 

@@ -153,72 +153,76 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
             || it == iFreezeStart + 30 || it == iFreezeStart + 50) {
             grid_info.output_momentum_anisotropy_vs_etas(tau, *fpCurr);
         }
-        grid_info.output_momentum_anisotropy_vs_tau(
-                                            tau, -0.5, 0.5, *fpCurr);
-        if (DATA.Initial_profile == 13) {
-            grid_info.output_average_phase_diagram_trajectory(
-                                            tau, -0.5, 0.5, *fpCurr);
-            grid_info.output_average_phase_diagram_trajectory(
-                                            tau, 0.5, 2.0, *fpCurr);
-            grid_info.output_average_phase_diagram_trajectory(
-                                            tau, 2.0, 3.0, *fpCurr);
-            grid_info.output_average_phase_diagram_trajectory(
-                                            tau, 3.0, 4.0, *fpCurr);
-            grid_info.output_average_phase_diagram_trajectory(
-                                            tau, 4.0, 5.0, *fpCurr);
-        }
 
-
-        // check energy conservation
-        if (!DATA.boost_invariant) {
-            grid_info.check_conservation_law(*fpCurr, *fpPrev, tau);
-            if (DATA.output_vorticity == 1) {
-                if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
-                    || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8) {
-                    grid_info.output_vorticity_distribution(
-                                    *fpCurr, *fpPrev, tau, -0.5, 0.5);
-                }
-                grid_info.compute_angular_momentum(
-                                    *fpCurr, *fpPrev, tau, -0.5, 0.5);
-                grid_info.output_vorticity_time_evolution(
-                                    *fpCurr, *fpPrev, tau, -0.5, 0.5);
-                grid_info.compute_angular_momentum(
-                                    *fpCurr, *fpPrev, tau, -1.0, 1.0);
-                grid_info.output_vorticity_time_evolution(
-                                    *fpCurr, *fpPrev, tau, -1.0, 1.0);
-                grid_info.compute_angular_momentum(
-                                    *fpCurr, *fpPrev, tau,
-                                    -DATA.eta_size/2., DATA.eta_size/2.);
-                grid_info.output_vorticity_time_evolution(
-                                    *fpCurr, *fpPrev, tau,
-                                    -DATA.eta_size/2., DATA.eta_size/2.);
+        if (!DATA.fastMode) {
+            grid_info.output_momentum_anisotropy_vs_tau(
+                                            tau, -0.5, 0.5, *fpCurr);
+            if (DATA.Initial_profile == 13) {
+                grid_info.output_average_phase_diagram_trajectory(
+                                                tau, -0.5, 0.5, *fpCurr);
+                grid_info.output_average_phase_diagram_trajectory(
+                                                tau, 0.5, 2.0, *fpCurr);
+                grid_info.output_average_phase_diagram_trajectory(
+                                                tau, 2.0, 3.0, *fpCurr);
+                grid_info.output_average_phase_diagram_trajectory(
+                                                tau, 3.0, 4.0, *fpCurr);
+                grid_info.output_average_phase_diagram_trajectory(
+                                                tau, 4.0, 5.0, *fpCurr);
             }
-        }
+            // check energy conservation
+            if (!DATA.boost_invariant) {
+                grid_info.check_conservation_law(*fpCurr, *fpPrev, tau);
+                if (DATA.output_vorticity == 1) {
+                    if (   std::abs(tau -  1.0) < 1e-8
+                        || std::abs(tau -  2.0) < 1e-8
+                        || std::abs(tau -  5.0) < 1e-8
+                        || std::abs(tau - 10.0) < 1e-8) {
+                        grid_info.output_vorticity_distribution(
+                                        *fpCurr, *fpPrev, tau, -0.5, 0.5);
+                    }
+                    grid_info.compute_angular_momentum(
+                                        *fpCurr, *fpPrev, tau, -0.5, 0.5);
+                    grid_info.output_vorticity_time_evolution(
+                                        *fpCurr, *fpPrev, tau, -0.5, 0.5);
+                    grid_info.compute_angular_momentum(
+                                        *fpCurr, *fpPrev, tau, -1.0, 1.0);
+                    grid_info.output_vorticity_time_evolution(
+                                        *fpCurr, *fpPrev, tau, -1.0, 1.0);
+                    grid_info.compute_angular_momentum(
+                                        *fpCurr, *fpPrev, tau,
+                                        -DATA.eta_size/2., DATA.eta_size/2.);
+                    grid_info.output_vorticity_time_evolution(
+                                        *fpCurr, *fpPrev, tau,
+                                        -DATA.eta_size/2., DATA.eta_size/2.);
+                }
+            }
 
-        double emax_loc = 0.;
-        double Tmax_curr = 0.;
-        double nB_max_curr = 0.;
-        grid_info.get_maximum_energy_density(*fpCurr, emax_loc,
-                                             nB_max_curr, Tmax_curr);
-        if (tau > source_tau_max + dt && it > iFreezeStart) {
-            if (eps_max_cur < 0.) {
-                eps_max_cur = emax_loc;
-            } else {
-                if (emax_loc > max_allowed_e_increase_factor*eps_max_cur) {
-                    music_message << "The maximum energy density increased by "
-                                  << "more than facotor of "
-                                  << max_allowed_e_increase_factor << "! ";
-                    music_message << "This should not happen!";
-                    music_message.flush("error");
-                    exit(1);
+            double emax_loc = 0.;
+            double Tmax_curr = 0.;
+            double nB_max_curr = 0.;
+            grid_info.get_maximum_energy_density(*fpCurr, emax_loc,
+                                                 nB_max_curr, Tmax_curr);
+            if (tau > source_tau_max + dt && it > iFreezeStart) {
+                if (eps_max_cur < 0.) {
+                    eps_max_cur = emax_loc;
                 } else {
-                    eps_max_cur = std::min(emax_loc, eps_max_cur);
+                    if (emax_loc > max_allowed_e_increase_factor*eps_max_cur) {
+                        music_message << "The maximum energy density increased by "
+                                      << "more than facotor of "
+                                      << max_allowed_e_increase_factor << "! ";
+                        music_message << "This should not happen!";
+                        music_message.flush("error");
+                        exit(1);
+                    } else {
+                        eps_max_cur = std::min(emax_loc, eps_max_cur);
+                    }
                 }
             }
-        }
 
-        if (DATA.output_hydro_debug_info == 1) {
-            grid_info.monitor_a_fluid_cell(*fpCurr, *fpPrev, 100, 100, 0, tau);
+            if (DATA.output_hydro_debug_info == 1) {
+                grid_info.monitor_a_fluid_cell(*fpCurr, *fpPrev,
+                                               100, 100, 0, tau);
+            }
         }
 
         //determine freeze-out surface
@@ -254,19 +258,12 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                       << " tau = " << tau << " fm/c";
         music_message.flush("info");
         if (frozen == 1 && tau > source_tau_max) {
-            if (   DATA.outputEvolutionData == 2
-                || DATA.outputEvolutionData == 3) {
+            if (   DATA.outputEvolutionData > 1
+                && DATA.outputEvolutionData < 5) {
                 if (eps_max_cur < DATA.output_evolution_e_cut) {
                     music_message << "All cells e < "
                                   << DATA.output_evolution_e_cut
                                   << " GeV/fm^3.";
-                    music_message.flush("info");
-                    break;
-                }
-            } else if (DATA.outputEvolutionData == 4) {
-                if (Tmax_curr < DATA.output_evolution_T_cut) {
-                    music_message << "All cells T < "
-                                  << DATA.output_evolution_T_cut << " GeV.";
                     music_message.flush("info");
                     break;
                 }

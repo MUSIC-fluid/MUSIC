@@ -323,8 +323,8 @@ void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
                 double R_pi = 0.0;
                 double R_Pi = 0.0;
-                auto cell_i = arena.getCell(fieldIdx);
-                calculate_inverse_Reynolds_numbers(cell_i, R_pi, R_Pi);
+                calculate_inverse_Reynolds_numbers(arena, fieldIdx,
+                                                   R_pi, R_Pi);
 
                 if (DATA.outputBinaryEvolution == 0) {
                     fprintf(out_file_xyeta, "%e %e\n", R_pi, R_Pi);
@@ -341,31 +341,29 @@ void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(
 
 
 void Cell_info::calculate_inverse_Reynolds_numbers(
-                    Cell_small grid_pt, double &R_pi, double &R_Pi) const {
-    const double e_local  = grid_pt.epsilon;
-    const double rhob     = grid_pt.rhob;
+            Fields &arena, const int Idx, double &R_pi, double &R_Pi) const {
+    const double e_local  = arena.e_[Idx];
+    const double rhob     = arena.rhob_[Idx];
     const double pressure = eos.get_pressure(e_local, rhob);
 
-    const double pi_00 = grid_pt.Wmunu[0];
-    const double pi_01 = grid_pt.Wmunu[1];
-    const double pi_02 = grid_pt.Wmunu[2];
-    const double pi_03 = grid_pt.Wmunu[3];
-    const double pi_11 = grid_pt.Wmunu[4];
-    const double pi_12 = grid_pt.Wmunu[5];
-    const double pi_13 = grid_pt.Wmunu[6];
-    const double pi_22 = grid_pt.Wmunu[7];
-    const double pi_23 = grid_pt.Wmunu[8];
-    const double pi_33 = grid_pt.Wmunu[9];
+    const double pi_00 = arena.Wmunu_[0][Idx];
+    const double pi_01 = arena.Wmunu_[1][Idx];
+    const double pi_02 = arena.Wmunu_[2][Idx];
+    const double pi_03 = arena.Wmunu_[3][Idx];
+    const double pi_11 = arena.Wmunu_[4][Idx];
+    const double pi_12 = arena.Wmunu_[5][Idx];
+    const double pi_13 = arena.Wmunu_[6][Idx];
+    const double pi_22 = arena.Wmunu_[7][Idx];
+    const double pi_23 = arena.Wmunu_[8][Idx];
+    const double pi_33 = arena.Wmunu_[9][Idx];
 
     const double pisize = (
            pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
          - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
          + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
 
-    const double pi_local = grid_pt.pi_b;
-
     R_pi = sqrt(pisize)/pressure;
-    R_Pi = pi_local/pressure;
+    R_Pi = arena.piBulk_[Idx]/pressure;
 }
 
 
@@ -508,8 +506,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                     muB_local = eos.get_muB(e_local, rhob_local);
 
                 ShearVisVecLRF piLRF;
-                auto cell_i = arena.getCell(fieldIdx);
-                get_LRF_shear_stress_tensor(cell_i, eta_local,
+                get_LRF_shear_stress_tensor(arena, fieldIdx, eta_local,
                                             piLRF);
                 double div_factor = e_local + p_local;  // 1/fm^4
                 double Wxx = 0.0;
@@ -638,7 +635,7 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                 double e_local = arena.e_[fieldIdx];            // 1/fm^4
 
                 if (e_local*hbarc < DATA.output_evolution_e_cut) continue;
-                // only ouput fluid cells that are above cut-off temperature
+                // only ouput fluid cells that are above cut-off energy density
 
                 double rhob_local = arena.rhob_[fieldIdx];      // 1/fm^3
 
@@ -792,12 +789,11 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
                 double uy   = arena_curr.u_[2][fieldIdx];
                 double ueta = arena_curr.u_[3][fieldIdx];
 
-                // T_local is in GeV
-                double T_local = eos.get_temperature(e_local, rhob_local)*hbarc;
+                if (e_local*hbarc < DATA.output_evolution_e_cut) continue;
+                // only ouput fluid cells that are above cut-off energy density
 
-                if (T_local < DATA.output_evolution_T_cut) continue;
-                // only ouput fluid cells that are above cut-off temperature
-
+                // T_local, muB_local are in 1/fm
+                double T_local = eos.get_temperature(e_local, rhob_local);
                 double muB_local = eos.get_muB(e_local, rhob_local);
 
                 VorticityVec omega_kSP = {0.0};
@@ -817,7 +813,7 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
                                  static_cast<float>(ieta/n_skip_eta),
                                  static_cast<float>(e_local*hbarc),
                                  static_cast<float>(p_local*hbarc),
-                                 static_cast<float>(T_local),
+                                 static_cast<float>(T_local*hbarc),
                                  static_cast<float>(ux),
                                  static_cast<float>(uy),
                                  static_cast<float>(ueta),
@@ -879,7 +875,7 @@ void Cell_info::get_maximum_energy_density(
         const auto rhob_local = arena.rhob_[fieldIdx];
         eps_max  = std::max(eps_max,  eps_local );
         rhob_max = std::max(rhob_max, rhob_local);
-        T_max    = std::max(T_max,    eos.get_temperature(eps_local, rhob_local));
+        T_max    = std::max(T_max, eos.get_temperature(eps_local, rhob_local));
     }
     eps_max *= Util::hbarc;   // GeV/fm^3
     T_max   *= Util::hbarc;   // GeV
@@ -935,9 +931,7 @@ void Cell_info::compute_angular_momentum(
     for (int ieta = 0; ieta < neta; ieta++)
     for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
-        int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
-        const auto& c      = arena.getCell(fieldIdx);
-        const auto& c_prev = arena_prev.getCell(fieldIdx);
+        const int Idx = arena.getFieldIdx(ix, iy, ieta);
 
         double eta_s = deta*ieta - (DATA.eta_size)/2.0;
         if (DATA.boost_invariant) {
@@ -951,25 +945,31 @@ void Cell_info::compute_angular_momentum(
         const double y_local = DATA.x_size/2. + iy*dy;
         const double z_local = tau*sinh_eta;
 
-        const double e_local   = c.epsilon;
-        const double rhob      = c.rhob;
-        const double pressure  = eos.get_pressure(e_local, rhob);
-        const double u0        = c.u[0];
-        const double u1        = c.u[1];
-        const double u2        = c.u[2];
-        const double u3        = c.u[3];
+        const double e_local  = arena.e_[Idx];
+        const double pressure = eos.get_pressure(e_local, arena.rhob_[Idx]);
+        const double u0       = arena.u_[0][Idx];
+        const double u1       = arena.u_[1][Idx];
+        const double u2       = arena.u_[2][Idx];
+        const double u3       = arena.u_[3][Idx];
+        const double uPrev0   = arena_prev.u_[0][Idx];
+        const double uPrev1   = arena_prev.u_[1][Idx];
+        const double uPrev2   = arena_prev.u_[2][Idx];
+        const double uPrev3   = arena_prev.u_[3][Idx];
 
         const double T00_local = (e_local + pressure)*u0*u0 - pressure;
-        const double Pi00_rk_0 = (c_prev.pi_b
-                                  *(-1.0 + c_prev.u[0]*c_prev.u[0]));
+        const double Pi00_rk_0 = arena_prev.piBulk_[Idx]*(-1. + uPrev0*uPrev0);
 
-        const double T_tau_tau = (T00_local + c_prev.Wmunu[0] + Pi00_rk_0);
-        const double T_tau_x   = ((e_local + pressure)*u0*u1 + c_prev.Wmunu[1]
-                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[1]);
-        const double T_tau_y   = ((e_local + pressure)*u0*u2 + c_prev.Wmunu[2]
-                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[2]);
-        const double T_tau_eta = ((e_local + pressure)*u0*u3 + c_prev.Wmunu[3]
-                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[3]);
+        const double T_tau_tau = (T00_local
+                                  + arena_prev.Wmunu_[0][Idx] + Pi00_rk_0);
+        const double T_tau_x = (
+                (e_local + pressure)*u0*u1 + arena_prev.Wmunu_[1][Idx]
+                + arena_prev.piBulk_[Idx]*uPrev0*uPrev1);
+        const double T_tau_y = (
+                (e_local + pressure)*u0*u2 + arena_prev.Wmunu_[2][Idx]
+                + arena_prev.piBulk_[Idx]*uPrev0*uPrev2);
+        const double T_tau_eta = (
+                (e_local + pressure)*u0*u3 + arena_prev.Wmunu_[3][Idx]
+                + arena_prev.piBulk_[Idx]*uPrev0*uPrev3);
         const double T_tau_t = T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
         const double T_tau_z = T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
 
@@ -1034,32 +1034,39 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     for (int ieta = 0; ieta < neta; ieta++)
     for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
-        int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
-        const auto c      = arena.getCell(fieldIdx);
-        const auto c_prev = arena_prev.getCell(fieldIdx);
+        const int Idx = arena.getFieldIdx(ix, iy, ieta);
 
         const double eta_s = deta*ieta - (DATA.eta_size)/2.0;
         const double cosh_eta = cosh(eta_s);
         const double sinh_eta = sinh(eta_s);
-        N_B += (c.rhob*c.u[0] + c_prev.Wmunu[10]);
-        const double e_local   = c.epsilon;
-        const double rhob      = c.rhob;
-        const double pressure  = eos.get_pressure(e_local, rhob);
-        const double u0        = c.u[0];
-        const double u1        = c.u[1];
-        const double u2        = c.u[2];
-        const double u3        = c.u[3];
-        const double T00_local = (e_local + pressure)*u0*u0 - pressure;
-        const double Pi00_rk_0 = (c_prev.pi_b
-                                  *(-1.0 + c_prev.u[0]*c_prev.u[0]));
 
-        const double T_tau_tau = (T00_local + c_prev.Wmunu[0] + Pi00_rk_0);
-        const double T01_local = ((e_local + pressure)*u0*u1 + c_prev.Wmunu[1]
-                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[1]);
-        const double T02_local = ((e_local + pressure)*u0*u2 + c_prev.Wmunu[2]
-                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[2]);
-        const double T_tau_eta = ((e_local + pressure)*u0*u3 + c_prev.Wmunu[3]
-                                  + c_prev.pi_b*c_prev.u[0]*c_prev.u[3]);
+        N_B += arena.rhob_[Idx]*arena.u_[0][Idx] + arena_prev.Wmunu_[10][Idx];
+        const double e_local   = arena.e_[Idx];
+        const double pressure  = eos.get_pressure(e_local, arena.rhob_[Idx]);
+        const double u0        = arena.u_[0][Idx];
+        const double u1        = arena.u_[1][Idx];
+        const double u2        = arena.u_[2][Idx];
+        const double u3        = arena.u_[3][Idx];
+        const double uPrev0    = arena_prev.u_[0][Idx];
+        const double uPrev1    = arena_prev.u_[1][Idx];
+        const double uPrev2    = arena_prev.u_[2][Idx];
+        const double uPrev3    = arena_prev.u_[3][Idx];
+        const double T00_local = (e_local + pressure)*u0*u0 - pressure;
+        const double Pi00_rk_0 = (arena_prev.piBulk_[Idx]
+                                  *(-1.0 + arena_prev.u_[0][Idx]
+                                          *arena_prev.u_[0][Idx]));
+
+        const double T_tau_tau = (T00_local
+                                  + arena_prev.Wmunu_[0][Idx] + Pi00_rk_0);
+        const double T01_local = (
+                (e_local + pressure)*u0*u1 + arena_prev.Wmunu_[1][Idx]
+                + arena_prev.piBulk_[Idx]*uPrev0*uPrev1);
+        const double T02_local = (
+                (e_local + pressure)*u0*u2 + arena_prev.Wmunu_[2][Idx]
+                + arena_prev.piBulk_[Idx]*uPrev0*uPrev2);
+        const double T_tau_eta = (
+                (e_local + pressure)*u0*u3 + arena_prev.Wmunu_[3][Idx]
+                + arena_prev.piBulk_[Idx]*uPrev0*uPrev3);
         T_tau_t += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
         T_tau_x += T01_local;
         T_tau_y += T02_local;
@@ -1068,7 +1075,7 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         // compute the energy-momentum vector on the edge
         if (ieta == 0 || ieta == neta - 1 || ix == 0 || ix == nx - 1
             || iy == 0 || iy == ny - 1) {
-            N_B_edge     += c.rhob*c.u[0] + c_prev.Wmunu[10];
+            N_B_edge     += arena.rhob_[Idx]*u0 + arena_prev.Wmunu_[10][Idx];
             T_tau_t_edge += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
             T_tau_x_edge += T01_local;
             T_tau_y_edge += T02_local;
@@ -2292,13 +2299,12 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 T_avg_den  += weight_local;
 
                 if (e_local > 1e-3) {
-                    double r_shearpi_tmp, r_bulkPi_tmp;
-                    auto cell_i = arena.getCell(fieldIdx);
-                    calculate_inverse_Reynolds_numbers(cell_i, r_shearpi_tmp,
-                                                       r_bulkPi_tmp);
-                    R_shearpi_num += weight_local*r_shearpi_tmp;
+                    double r_shearpi, r_bulkPi;
+                    calculate_inverse_Reynolds_numbers(arena, fieldIdx,
+                                                       r_shearpi, r_bulkPi);
+                    R_shearpi_num += weight_local*r_shearpi;
                     R_shearpi_den += weight_local;
-                    R_Pi_num      += weight_local*r_bulkPi_tmp;
+                    R_Pi_num      += weight_local*r_bulkPi;
                     R_Pi_den      += weight_local;
                 }
 
@@ -2379,16 +2385,16 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
 }
 
 
-void Cell_info::get_LRF_shear_stress_tensor(const Cell_small &cell,
-                                            const double eta_s,
+void Cell_info::get_LRF_shear_stress_tensor(const Fields &arena,
+                                            const int Idx, const double eta_s,
                                             ShearVisVecLRF &res) {
     const double cosh_eta = cosh(eta_s);
     const double sinh_eta = sinh(eta_s);
 
-    double u0 = cell.u[0];
-    double ux = cell.u[1];
-    double uy = cell.u[2];
-    double u3 = cell.u[3];
+    double u0 = arena.u_[0][Idx];
+    double ux = arena.u_[1][Idx];
+    double uy = arena.u_[2][Idx];
+    double u3 = arena.u_[3][Idx];
     double ut = u0*cosh_eta + u3*sinh_eta;
     double uz = u3*cosh_eta + u0*sinh_eta;
     double LorentzBoost[4][4] = {
@@ -2398,7 +2404,10 @@ void Cell_info::get_LRF_shear_stress_tensor(const Cell_small &cell,
         {-uz, ux*uz/(ut+1.), uy*uz/(ut+1.), 1. + uz*uz/(ut+1.)}
     };
 
-    auto ShearVisVec = cell.Wmunu;
+    ViscousVec ShearVisVec;
+    for (unsigned int i = 0; i < ShearVisVec.size(); i++) {
+        ShearVisVec[i] = arena.Wmunu_[i][Idx];
+    }
     double pi_tz[4][4];
     pi_tz[0][0] = (  ShearVisVec[0]*cosh_eta*cosh_eta
                    + 2.*ShearVisVec[3]*cosh_eta*sinh_eta
