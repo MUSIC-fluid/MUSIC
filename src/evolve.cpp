@@ -101,20 +101,6 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
             store_previous_step_for_freezeout(*fpCurr, freezeoutFieldCurr);
         }
 
-        if (DATA.Initial_profile == 0) {
-            if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
-                || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
-                || fabs(tau - 3.0) < 1e-8) {
-                grid_info.Gubser_flow_check_file(*fpCurr, tau);
-            }
-        } else if (DATA.Initial_profile == 1) {
-            if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
-                || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8
-                || fabs(tau - 20.0) < 1e-8) {
-                grid_info.output_1p1D_check_file(*fpCurr, tau);
-            }
-        }
-
         //if (DATA.Initial_profile == 13) {
         //    if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
         //        grid_info.output_energy_density_and_rhob_disitrubtion(
@@ -134,19 +120,18 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                 grid_info.OutputEvolutionDataXYEta_vorticity(
                                             *fpCurr, *fpPrev, tau);
             }
-
-            if (DATA.output_movie_flag == 1) {
-                grid_info.output_evolution_for_movie(*fpCurr, tau);
-            }
-
             if (DATA.store_hydro_info_in_memory == 1) {
                 grid_info.OutputEvolutionDataXYEta_memory(*fpCurr, tau,
                                                           hydro_info_ptr);
             }
 
-            if (DATA.output_outofequilibriumsize == 1) {
-                grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*fpCurr, tau);
-            }
+            //if (DATA.output_movie_flag == 1) {
+            //    grid_info.output_evolution_for_movie(*fpCurr, tau);
+            //}
+            //if (DATA.output_outofequilibriumsize == 1) {
+            //    grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*fpCurr,
+            //                                                      tau);
+            //}
         }
 
         if (it == iFreezeStart || it == iFreezeStart + 10
@@ -155,6 +140,20 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         }
 
         if (!DATA.fastMode) {
+            if (DATA.Initial_profile == 0) {
+                if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
+                    || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
+                    || fabs(tau - 3.0) < 1e-8) {
+                    grid_info.Gubser_flow_check_file(*fpCurr, tau);
+                }
+            } else if (DATA.Initial_profile == 1) {
+                if (   fabs(tau -  1.0) < 1e-8 || fabs(tau -  2.0) < 1e-8
+                    || fabs(tau -  5.0) < 1e-8 || fabs(tau - 10.0) < 1e-8
+                    || fabs(tau - 20.0) < 1e-8) {
+                    grid_info.output_1p1D_check_file(*fpCurr, tau);
+                }
+            }
+
             grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *fpCurr);
             if (DATA.Initial_profile == 13) {
