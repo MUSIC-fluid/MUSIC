@@ -74,6 +74,7 @@ class Cell_info {
     //! This function computes the inverse Reynolds number for a given fluid
     //! cell at (ix, iy, ieta)
     void calculate_inverse_Reynolds_numbers(Fields &arena, const int Idx,
+                                            const double P_local,
                                             double &R_pi, double &R_Pi) const;
 
     void OutputEvolution_Knudsen_Reynoldsnumbers(Fields &arena,
