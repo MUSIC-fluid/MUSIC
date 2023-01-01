@@ -43,14 +43,13 @@ class Fields {
         return(ix + Nx_*(iy + Ny_*ieta));
     }
 
+    int getFieldIdxHalo(int ix, int iy, int ieta);
+
     Cell_small getCell(const int idx);
     Cell_small getCell(int ix, int iy, int ieta);
 
     ReconstCell getCellIdeal(const int idx);
     ReconstCell getCellIdeal(int ix, int iy, int ieta);
-
-    CellViscous getCellViscous(const int idx);
-    CellViscous getCellViscous(int ix, int iy, int ieta);
 };
 
 
@@ -141,12 +140,12 @@ void FieldNeighbourLoop2(Fields &arena, int cx, int cy, int ceta, Func func) {
         int p2nx   = 2*p1nx;
         int p2ny   = 2*p1ny;
         int p2neta = 2*p1neta;
-              auto  c = arena.getCellViscous(cx,      cy,      ceta       );
-        const auto p1 = arena.getCellViscous(cx+p1nx, cy+p1ny, ceta+p1neta);
-        const auto p2 = arena.getCellViscous(cx+p2nx, cy+p2ny, ceta+p2neta);
-        const auto m1 = arena.getCellViscous(cx+m1nx, cy+m1ny, ceta+m1neta);
-        const auto m2 = arena.getCellViscous(cx+m2nx, cy+m2ny, ceta+m2neta);
-        func(c, p1, p2, m1, m2, dir+1);
+        const auto  Ic = arena.getFieldIdxHalo(cx,      cy,      ceta       );
+        const auto Ip1 = arena.getFieldIdxHalo(cx+p1nx, cy+p1ny, ceta+p1neta);
+        const auto Ip2 = arena.getFieldIdxHalo(cx+p2nx, cy+p2ny, ceta+p2neta);
+        const auto Im1 = arena.getFieldIdxHalo(cx+m1nx, cy+m1ny, ceta+m1neta);
+        const auto Im2 = arena.getFieldIdxHalo(cx+m2nx, cy+m2ny, ceta+m2neta);
+        func(Ic, Ip1, Ip2, Im1, Im2, dir+1);
     }
 }
 
@@ -156,6 +155,6 @@ void FieldNeighbourLoop2(Fields &arena, int cx, int cy, int ceta, Func func) {
 
 #define FNLLAMBDAS1 [&](const Cell_small& p1, const Cell_small& m1, const int direction)
 
-#define FNLLAMBDAS2 [&](CellViscous& c, const CellViscous& p1, const CellViscous& p2, const CellViscous& m1, const CellViscous& m2, const int direction)
+#define FNLLAMBDAS2 [&](const int& Ic, const int& Ip1, const int& Ip2, const int& Im1, const int& Im2, const int direction)
 
 #endif

@@ -51,13 +51,6 @@ class Cell_small {
 };
 
 
-class CellViscous {
- public:
-    FlowVec u = {1., 0., 0., 0.};
-    std::array<double, 9> Wmunu = {0.};  // 5(shear) + 1(bulk) + 3(diffusion)
-};
-
-
 class Cell_aux {
  public:
     VorticityVec omega_kSP = {0.};

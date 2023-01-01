@@ -367,23 +367,24 @@ void Diss::Make_uWRHS(const double tau, Fields &arena,
 
     /* Kurganov-Tadmor for Wmunu */
     /* implement 
-       partial_tau (utau Wmn) + (1/tau)partial_eta (ueta Wmn) 
-       + partial_x (ux Wmn) + partial_y (uy Wmn) + utau Wmn/tau = SW 
+       partial_tau (utau Wmn) + (1/tau)partial_eta (ueta Wmn)
+       + partial_x (ux Wmn) + partial_y (uy Wmn) + utau Wmn/tau = SW
        or the right hand side of,
-       partial_tau (utau Wmn) = 
+       partial_tau (utau Wmn) =
                         - (1/tau)partial_eta (ueta Wmn)
-                        - partial_x (ux Wmn) - partial_y (uy Wmn) 
+                        - partial_x (ux Wmn) - partial_y (uy Wmn)
                         - utau Wmn/tau + SW*/
 
     /* the local velocity is just u_x/u_tau, u_y/u_tau, u_eta/tau/u_tau */
-    /* KT flux is given by 
-       H_{j+1/2} = (fRph + fLph)/2 - ax(uRph - uLph) 
+    /* KT flux is given by
+       H_{j+1/2} = (fRph + fLph)/2 - ax(uRph - uLph)
        Here fRph = ux WmnRph and ax uRph = |ux/utau|_max utau Wmn */
     /* This is the second step in the operator splitting. it uses
        rk_flag+1 as initial condition */
     double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta*tau};
     const double delta_tau = DATA.delta_tau;
 
+    int piIdxArr[9] = {4, 5, 6, 7, 8, 9, 11, 12, 13};
     int loopIdx = 5;
     if (DATA.turn_on_bulk) {
         loopIdx = 6;
@@ -394,27 +395,39 @@ void Diss::Make_uWRHS(const double tau, Fields &arena,
 
     // pi^\mu\nu is symmetric
     FieldNeighbourLoop2(arena, ix, iy, ieta, FNLLAMBDAS2{
-        for (int idx_1d = 0; idx_1d < loopIdx; idx_1d++) {
+        double g, gp1, gp2, gm1, gm2;
+        double f, fp1, fp2, fm1, fm2;
+        for (int idx = 0; idx < loopIdx; idx++) {
+            int idx_1d = piIdxArr[idx];
             /* Get_uWmns */
-            double g = c.Wmunu[idx_1d];
-            double f = g*c.u[direction];
-            g *=   c.u[0];
+            if (idx_1d == 9) {
+                g   = arena.piBulk_[Ic ];
+                gp2 = arena.piBulk_[Ip2];
+                gp1 = arena.piBulk_[Ip1];
+                gm1 = arena.piBulk_[Im1];
+                gm2 = arena.piBulk_[Im2];
+            } else {
+                g   = arena.Wmunu_[idx_1d][Ic ];
+                gp2 = arena.Wmunu_[idx_1d][Ip2];
+                gp1 = arena.Wmunu_[idx_1d][Ip1];
+                gm1 = arena.Wmunu_[idx_1d][Im1];
+                gm2 = arena.Wmunu_[idx_1d][Im2];
+            }
 
-            double gp2 = p2.Wmunu[idx_1d];
-            double fp2 = gp2*p2.u[direction];
-            gp2 *= p2.u[0];
+            f = g*arena.u_[direction][Ic];
+            g *= arena.u_[0][Ic];
 
-            double gp1 = p1.Wmunu[idx_1d];
-            double fp1 = gp1*p1.u[direction];
-            gp1 *= p1.u[0];
+            fp2 = gp2*arena.u_[direction][Ip2];
+            gp2 *= arena.u_[0][Ip2];
 
-            double gm1 = m1.Wmunu[idx_1d];
-            double fm1 = gm1*m1.u[direction];
-            gm1 *= m1.u[0];
+            fp1 = gp1*arena.u_[direction][Ip1];
+            gp1 *= arena.u_[0][Ip1];
 
-            double gm2 = m2.Wmunu[idx_1d];
-            double fm2 = gm2*m2.u[direction];
-            gm2 *= m2.u[0];
+            fm1 = gm1*arena.u_[direction][Im1];
+            gm1 *= arena.u_[0][Im1];
+
+            fm2 = gm2*arena.u_[direction][Im2];
+            gm2 *= arena.u_[0][Im2];
 
             /* MakeuWmnHalfs */
             /* uWmn */
@@ -431,9 +444,9 @@ void Diss::Make_uWRHS(const double tau, Fields &arena,
             double WmhR = g - temp;
             double WmhL = gm1 + 0.5*minmod.minmod_dx(g, gm1, gm2);
 
-            double a   = std::abs( c.u[direction])/ c.u[0];
-            double am1 = std::abs(m1.u[direction])/m1.u[0];
-            double ap1 = std::abs(p1.u[direction])/p1.u[0];
+            double a   = std::abs(arena.u_[direction][Ic ])/arena.u_[0][Ic ];
+            double am1 = std::abs(arena.u_[direction][Im1])/arena.u_[0][Im1];
+            double ap1 = std::abs(arena.u_[direction][Ip1])/arena.u_[0][Ip1];
 
             double ax = std::max(a, ap1);
             double HWph = ((uWphR + uWphL) - ax*(WphR - WphL))*0.5;
@@ -443,7 +456,7 @@ void Diss::Make_uWRHS(const double tau, Fields &arena,
 
             double HW = (HWph - HWmh)/delta[direction];
             /* make partial_i (u^i Wmn) */
-            w_rhs[idx_1d] += (-HW)*delta_tau;
+            w_rhs[idx] += (-HW)*delta_tau;
         }
     });
 
