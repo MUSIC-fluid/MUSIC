@@ -23,13 +23,13 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty") istringstream ( tempinput ) >> temp_echo_level;
     parameter_list.echo_level = temp_echo_level;
 
-    int tempFastMode = 0;
-    tempinput = Util::StringFind4(input_file, "fastMode");
-    if (tempinput != "empty") istringstream ( tempinput ) >> tempFastMode;
-    if (tempFastMode == 0) {
-        parameter_list.fastMode = false;
+    int tempBeastMode = 0;
+    tempinput = Util::StringFind4(input_file, "beastMode");
+    if (tempinput != "empty") istringstream ( tempinput ) >> tempBeastMode;
+    if (tempBeastMode == 0) {
+        parameter_list.beastMode = false;
     } else {
-        parameter_list.fastMode = true;
+        parameter_list.beastMode = true;
     }
 
     // Initial_profile:

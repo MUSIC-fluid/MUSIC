@@ -139,7 +139,7 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
             grid_info.output_momentum_anisotropy_vs_etas(tau, *fpCurr);
         }
 
-        if (!DATA.fastMode) {
+        if (!DATA.beastMode) {
             if (DATA.Initial_profile == 0) {
                 if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
                     || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8

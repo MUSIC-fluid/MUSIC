@@ -26,7 +26,7 @@ class Reconst {
 
  public:
     Reconst() = default;
-    Reconst(const EOS &eos, const int echo_level_in, bool fastMode);
+    Reconst(const EOS &eos, const int echo_level_in, bool beastMode);
 
     ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,
                                 const ReconstCell &grid_pt);
