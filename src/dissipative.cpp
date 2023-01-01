@@ -28,21 +28,14 @@ to use Wmunu[rk_flag][4][mu] as the dissipative baryon current*/
 void Diss::MakeWSource(const double tau,
                        const int ix, const int iy, const int ieta,
                        TJbVec &dwmn,
-                       Fields &arenaFieldsCurr, Fields &arenaFieldsPrev,
+                       Fields &arenaCurr, Fields &arenaPrev,
                        const int fieldIdx) {
     /* calculate d_m (tau W^{m,alpha}) + (geom source terms) */
-    const auto grid_pt = arenaFieldsCurr.getCell(fieldIdx);
-
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y,
                                DATA.delta_eta};
     const double tau_fac[4] = {0.0, tau, tau, 1.0};
 
     dwmn = {0.};
-    double piBulkPrev = arenaFieldsPrev.piBulk_[fieldIdx];
-    double uPrev[4];
-    for (int i = 0; i < 4; i++)
-        uPrev[i] = arenaFieldsPrev.u_[i][fieldIdx];
-
     for (int alpha = 0; alpha < 5; alpha++) {
         /* partial_tau W^tau alpha */
         /* this is partial_tau evaluated at tau */
@@ -54,8 +47,8 @@ void Diss::MakeWSource(const double tau,
         // dW/dtau
         // backward time derivative (first order is more stable)
         int idx_1d_alpha0 = map_2d_idx_to_1d(alpha, 0);
-        double dWdtau = ((grid_pt.Wmunu[idx_1d_alpha0]
-                          - arenaFieldsPrev.Wmunu_[idx_1d_alpha0][fieldIdx])
+        double dWdtau = ((  arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx]
+                          - arenaPrev.Wmunu_[idx_1d_alpha0][fieldIdx])
                          /DATA.delta_tau);
 
         /* bulk pressure term */
@@ -63,19 +56,24 @@ void Diss::MakeWSource(const double tau,
         double Pi_alpha0 = 0.0;
         if (alpha < 4 && DATA.turn_on_bulk == 1) {
             double gfac = (alpha == 0 ? -1.0 : 0.0);
-            Pi_alpha0 = grid_pt.pi_b*(gfac + grid_pt.u[alpha]*grid_pt.u[0]);
-            dPidtau = ((Pi_alpha0 - piBulkPrev*(gfac + uPrev[alpha]*uPrev[0]))
+            Pi_alpha0 = (arenaCurr.piBulk_[fieldIdx]
+                         *(gfac +  arenaCurr.u_[alpha][fieldIdx]
+                                  *arenaCurr.u_[0][fieldIdx]));
+            dPidtau = ((Pi_alpha0 - arenaPrev.piBulk_[fieldIdx]
+                                    *(gfac +  arenaPrev.u_[alpha][fieldIdx]
+                                             *arenaPrev.u_[0][fieldIdx]))
                        /DATA.delta_tau);
         }
-        double sf = tau*dWdtau + grid_pt.Wmunu[idx_1d_alpha0];
+        double sf = tau*dWdtau + arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx];
         double bf = tau*dPidtau + Pi_alpha0;
         dwmn[alpha] += sf + bf;
         if (std::isnan(sf + bf)) {
             music_message << "[Error]Diss::MakeWSource: ";
             music_message << "sf=" << sf << " bf=" << bf
-                          << " Wmunu =" << grid_pt.Wmunu[idx_1d_alpha0]
-                          << " pi_b =" << grid_pt.pi_b
-                          << " prev_pi_b=" << piBulkPrev;
+                          << " Wmunu ="
+                          << arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx]
+                          << " pi_b =" << arenaCurr.piBulk_[fieldIdx]
+                          << " prev_pi_b=" << arenaPrev.piBulk_[fieldIdx];
             music_message.flush("error");
             music_message << "dWdtau = " << dWdtau;
             music_message.flush("error");
@@ -87,12 +85,12 @@ void Diss::MakeWSource(const double tau,
 
     EnergyFlowVec W_eta_p = {0.};  // save tau*W^{\eta \nu} at eta + deta/2
     EnergyFlowVec W_eta_m = {0.};  // save tau*W^{\eta \nu} at eta - deta/2
-    FieldNeighbourLoop1(arenaFieldsCurr, ix, iy, ieta, FNLLAMBDAS1{
+    FieldNeighbourLoop1(arenaCurr, ix, iy, ieta, FNLLAMBDAS1{
         for (int alpha = 0; alpha < 5; alpha++) {
             int idx_1d  = map_2d_idx_to_1d(alpha, direction);
-            double sg   = grid_pt.Wmunu[idx_1d]*tau_fac[direction];
-            double sgp1 = p1.Wmunu[idx_1d]*tau_fac[direction];
-            double sgm1 = m1.Wmunu[idx_1d]*tau_fac[direction];
+            double sg   = arenaCurr.Wmunu_[idx_1d][Ic]*tau_fac[direction];
+            double sgp1 = arenaCurr.Wmunu_[idx_1d][Ip1]*tau_fac[direction];
+            double sgm1 = arenaCurr.Wmunu_[idx_1d][Im1]*tau_fac[direction];
             //dWdx += minmod.minmod_dx(sgp1, sg, sgm1)/delta[direction];
             // use central difference to preserve conservation law exactly
             double W_m = (sg + sgm1)*0.5;
@@ -102,12 +100,17 @@ void Diss::MakeWSource(const double tau,
             double Pi_p = 0;
             if (DATA.turn_on_bulk == 1 && alpha < 4) {
                 double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
-                double bgp1  = (p1.pi_b*(gfac1 + p1.u[alpha]*p1.u[direction])
+                double bgp1  = (arenaCurr.piBulk_[Ip1]
+                                *(gfac1 +  arenaCurr.u_[alpha][Ip1]
+                                          *arenaCurr.u_[direction][Ip1])
                                 *tau_fac[direction]);
-                double bg = (grid_pt.pi_b
-                             *(gfac1 + grid_pt.u[alpha]*grid_pt.u[direction])
+                double bg = (arenaCurr.piBulk_[Ic]
+                             *(gfac1 +  arenaCurr.u_[alpha][Ic]
+                                       *arenaCurr.u_[direction][Ic])
                              *tau_fac[direction]);
-                double bgm1  = (m1.pi_b*(gfac1 + m1.u[alpha]*m1.u[direction])
+                double bgm1  = (arenaCurr.piBulk_[Im1]
+                                *(gfac1 +  arenaCurr.u_[alpha][Im1]
+                                          *arenaCurr.u_[direction][Im1])
                                 *tau_fac[direction]);
                 //dPidx += minmod.minmod_dx(bgp1, bg, bgm1)/delta[direction];
                 // use central difference to preserve conservation law exactly
