@@ -19,6 +19,8 @@ typedef struct init_data {
         { 0,0,0,1}}};
 
     int echo_level;
+    bool reRunHydro;
+    int reRunCount;
 
     int mode;               //!< 1: do everything;
                             //!< 2: do hydro evolution only;
@@ -58,6 +60,10 @@ typedef struct init_data {
     int string_dump_mode;
     double string_quench_factor;
     double parton_quench_factor;
+    double stringSourceSigmaX;
+    double stringSourceSigmaEta;
+    double stringTransverseShiftFrac;
+    double preEqFlowFactor;
 
     int nx;
     int ny;
@@ -74,7 +80,9 @@ typedef struct init_data {
     double delta_y;
     double delta_eta;
     double delta_tau;
+    double dtaudxRatio;
 
+    bool resetDtau;
     int rk_order;
     double minmod_theta;
 

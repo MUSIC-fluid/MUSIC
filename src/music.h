@@ -125,6 +125,8 @@ class MUSIC {
     bool is_boost_invariant() const {
         return(hydro_info_ptr->is_boost_invariant());
     }
+    int getReRunCount() const {return(DATA.reRunCount);}
+    void setReRunCount(int reRunCount) { DATA.reRunCount = reRunCount; }
 };
 
 #endif  // SRC_MUSIC_H_

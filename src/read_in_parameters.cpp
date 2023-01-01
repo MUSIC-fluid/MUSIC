@@ -35,6 +35,31 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_string_dump_mode;
     parameter_list.string_dump_mode = temp_string_dump_mode;
 
+    double temp_string_source_sigma_x = 0.5;  // fm
+    tempinput = Util::StringFind4(input_file, "string_source_sigma_x");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_string_source_sigma_x;
+    parameter_list.stringSourceSigmaX = temp_string_source_sigma_x;
+
+    double temp_string_source_sigma_eta = 0.5;
+    tempinput = Util::StringFind4(input_file, "string_source_sigma_eta");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_string_source_sigma_eta;
+    parameter_list.stringSourceSigmaEta = temp_string_source_sigma_eta;
+
+    double temp_stringTransverseShiftFrac = 0.0;
+    tempinput = Util::StringFind4(input_file, "stringTransverseShiftFrac");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_stringTransverseShiftFrac;
+    parameter_list.stringTransverseShiftFrac = temp_stringTransverseShiftFrac;
+
+    double temp_preEqFlowFactor = 0.0;
+    tempinput = Util::StringFind4(input_file, "stringPreEqFlowFactor");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_preEqFlowFactor;
+    temp_preEqFlowFactor = std::max(0., temp_preEqFlowFactor);
+    parameter_list.preEqFlowFactor = temp_preEqFlowFactor;
+
     // Coordinate Type:
     int temp_CoorType = 0;   // Milne
     tempinput = Util::StringFind4(input_file, "CoorType");
@@ -365,6 +390,14 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempdelta_tau;
     parameter_list.delta_tau = tempdelta_tau;
     music_message << " DeltaTau = " << parameter_list.delta_tau << " fm";
+    music_message.flush("info");
+
+    double tempdtaudxRatio = 0.1;
+    tempinput = Util::StringFind4(input_file, "dtaudxRatio");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempdtaudxRatio;
+    parameter_list.dtaudxRatio = tempdtaudxRatio;
+    music_message << " dtaudxRatio = " << parameter_list.dtaudxRatio;
     music_message.flush("info");
 
     // output_evolution_data:
@@ -1177,6 +1210,44 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
             double dtau_CFL = std::min(
                     parameter_list.delta_x/10.0,
                     parameter_list.tau0*parameter_list.delta_eta/10.0);
+            parameter_list.delta_tau = dtau_CFL;
+            parameter_list.nt = static_cast<int>(
+                parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
+            music_message << "read_in_parameters: Time step size = "
+                          << parameter_list.delta_tau;
+            music_message.flush("info");
+            music_message << "read_in_parameters: "
+                          << "Number of time steps required = "
+                          << parameter_list.nt;
+            music_message.flush("info");
+        } else {
+            exit(1);
+        }
+    }
+
+    if (parameter_list.delta_tau/parameter_list.delta_x
+            > parameter_list.dtaudxRatio) {
+        music_message << "Warning: Delta_Tau = " << parameter_list.delta_tau
+                      << " maybe too large! ";
+        music_message.flush("warning");
+
+        bool reset_dtau_use_CFL_condition = true;
+        int temp_CFL_condition = 1;
+        string tempinput = Util::StringFind4(
+                            input_file, "reset_dtau_use_CFL_condition");
+        if (tempinput != "empty")
+            istringstream(tempinput) >> temp_CFL_condition;
+        if (temp_CFL_condition == 0)
+            reset_dtau_use_CFL_condition = false;
+        parameter_list.resetDtau = reset_dtau_use_CFL_condition;
+
+        if (reset_dtau_use_CFL_condition) {
+            music_message.info("reset dtau using CFL condition.");
+            double dtau_CFL = std::min(
+                std::min(parameter_list.delta_x*parameter_list.dtaudxRatio,
+                         parameter_list.delta_y*parameter_list.dtaudxRatio),
+                         parameter_list.tau0*parameter_list.delta_eta
+                         *parameter_list.dtaudxRatio);
             parameter_list.delta_tau = dtau_CFL;
             parameter_list.nt = static_cast<int>(
                 parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);

@@ -28,6 +28,7 @@ MUSIC::MUSIC(std::string input_file) :
     mode                   = DATA.mode;
     flag_hydro_run         = 0;
     flag_hydro_initialized = 0;
+    DATA.reRunCount = 0;
 
     // setup hydro evolution information
     hydro_info_ptr         = nullptr;
