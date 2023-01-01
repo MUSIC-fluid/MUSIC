@@ -477,33 +477,18 @@ int U_derivative::MakeDSpatial(const double tau, Fields &arena,
     // calculate dUsup[m][n] = partial^n u^m
     FieldNeighbourLoopIdeal1(arena, ix, iy, ieta, FNLILAMBDAS1{
         for (int m = 1; m < 4; m++) {
-            const double f   =  c.u[m];
-            const double fp1 = p1.u[m];
-            const double fm1 = m1.u[m];
+            const double f   = arena.u_[m][Ic];
+            const double fp1 = arena.u_[m][Ip1];
+            const double fm1 = arena.u_[m][Im1];
             dUsup[m][direction] = (minmod.minmod_dx(fp1, f, fm1)
                                    /delta[direction]);
-        }
-
-        // Sangyong Nov 18 2014
-        // Here we make derivatives of muB/T
-        // dUsup[rk_flag][4][n] = partial_n (muB/T)
-        // partial_x (muB/T) and partial_y (muB/T) first
-        double f   = (eos.get_muB(c.e, c.rhob)
-                      /eos.get_temperature(c.e, c.rhob));
-        double fp1 = (eos.get_muB(p1.e, p1.rhob)
-                      /eos.get_temperature(p1.e, p1.rhob));
-        double fm1 = (eos.get_muB(m1.e, m1.rhob)
-                      /eos.get_temperature(m1.e, m1.rhob));
-        dUsup[4][direction] = minmod.minmod_dx(fp1, f, fm1)/delta[direction];
-
-        if (DATA.output_vorticity == 1) {
-            const double T   = eos.get_temperature( c.e,  c.rhob);
-            const double Tp1 = eos.get_temperature(p1.e, p1.rhob);
-            const double Tm1 = eos.get_temperature(m1.e, m1.rhob);
-            for (int m = 0; m <= 3; m++) {
-                const double f   =  c.u[m];
-                const double fp1 = p1.u[m];
-                const double fm1 = m1.u[m];
+            if (DATA.output_vorticity == 1) {
+                double T   = eos.get_temperature(arena.e_[Ic],
+                                                 arena.rhob_[Ic]);
+                double Tp1 = eos.get_temperature(arena.e_[Ip1],
+                                                 arena.rhob_[Ip1]);
+                double Tm1 = eos.get_temperature(arena.e_[Im1],
+                                                 arena.rhob_[Im1]);
                 if (T > T_tol && Tp1 > T_tol && Tm1 > T_tol) {
                     dUoverTsup[m][direction] = (
                         minmod.minmod_dx(fp1/Tp1, f/T, fm1/Tm1)
@@ -514,6 +499,23 @@ int U_derivative::MakeDSpatial(const double tau, Fields &arena,
                 dUTsup[m][direction] = (
                     minmod.minmod_dx(fp1*Tp1, f*T, fm1*Tm1)/delta[direction]);
             }
+        }
+
+        // Sangyong Nov 18 2014
+        // Here we make derivatives of muB/T
+        // dUsup[rk_flag][4][n] = partial_n (muB/T)
+        // partial_x (muB/T) and partial_y (muB/T) first
+        if (DATA.turn_on_diff == 1) {
+            double f   = (eos.get_muB(arena.e_[Ic], arena.rhob_[Ic])
+                          /eos.get_temperature(arena.e_[Ic], arena.rhob_[Ic]));
+            double fp1 = (eos.get_muB(arena.e_[Ip1], arena.rhob_[Ip1])
+                          /eos.get_temperature(arena.e_[Ip1],
+                                               arena.rhob_[Ip1]));
+            double fm1 = (eos.get_muB(arena.e_[Im1], arena.rhob_[Im1])
+                          /eos.get_temperature(arena.e_[Im1],
+                                               arena.rhob_[Im1]));
+            dUsup[4][direction] = (minmod.minmod_dx(fp1, f, fm1)
+                                   /delta[direction]);
         }
     });
 

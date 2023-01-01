@@ -66,10 +66,10 @@ void FieldNeighbourLoopIdeal1(Fields &arena, int cx, int cy, int ceta,
         int p1nx   = dx  [2*dir+1];
         int p1ny   = dy  [2*dir+1];
         int p1neta = deta[2*dir+1];
-              auto  c = arena.getCellIdeal(cx,      cy,      ceta       );
-        const auto p1 = arena.getCellIdeal(cx+p1nx, cy+p1ny, ceta+p1neta);
-        const auto m1 = arena.getCellIdeal(cx+m1nx, cy+m1ny, ceta+m1neta);
-        func(c, p1, m1, dir+1);
+        const auto  Ic = arena.getFieldIdxHalo(cx,      cy,      ceta       );
+        const auto Ip1 = arena.getFieldIdxHalo(cx+p1nx, cy+p1ny, ceta+p1neta);
+        const auto Im1 = arena.getFieldIdxHalo(cx+m1nx, cy+m1ny, ceta+m1neta);
+        func(Ic, Ip1, Im1, dir+1);
     }
 }
 
@@ -149,7 +149,7 @@ void FieldNeighbourLoop2(Fields &arena, int cx, int cy, int ceta, Func func) {
     }
 }
 
-#define FNLILAMBDAS1 [&](ReconstCell& c, const ReconstCell& p1, const ReconstCell& m1, const int direction)
+#define FNLILAMBDAS1 [&](const int& Ic, const int& Ip1, const int& Im1, const int direction)
 
 #define FNLILAMBDAS2 [&](ReconstCell& c, const ReconstCell& p1, const ReconstCell& p2, const ReconstCell& m1, const ReconstCell& m2, const int direction)
 
