@@ -84,12 +84,12 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     double u[4], epsilon, pressure, rhob;
 
     double v_solution = 0.0;
-    //double v_guess = sqrt(1. - 1./(grid_pt.u[0]*grid_pt.u[0] + abs_err));
+    double v_guess = sqrt(1. - 1./(grid_pt.u[0]*grid_pt.u[0] + abs_err));
     //if (v_guess != v_guess) {
     //    v_guess = 0.0;
     //}
     //int v_status = solve_velocity_Newton(v_guess, T00, M, J0, v_solution);
-    int v_status = solve_v_Hybrid(T00, M, J0, v_solution);
+    int v_status = solve_v_Hybrid(v_guess, T00, M, J0, v_solution);
     if (v_status == 0) {
         return(-1);
     }
@@ -201,22 +201,20 @@ int Reconst::solve_velocity_Newton(const double v_guess, const double T00,
 }
 
 
-int Reconst::solve_v_Hybrid(const double T00,
+int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
                             const double M, const double J0,
                             double &v_solution) {
     int v_status = 1;
-    double v_l = 0.0;
-    double v_h = 1.0;
+    double v_l = std::max(0., v_guess - 0.05);
+    double v_h = std::min(1., v_guess + 0.05);
     double fv_l, fv_h;
     reconst_velocity_f(v_l, T00, M, J0, fv_l);
     reconst_velocity_f(v_h, T00, M, J0, fv_h);
-    if (std::abs(fv_l) < abs_err) {
-        v_solution = v_l;
-        return(1);
-    }
-    if (std::abs(fv_h) < abs_err) {
-        v_solution = v_h;
-        return(1);
+    if (fv_l*fv_h > 0.) {
+        v_l = 0;
+        v_h = 1;
+        reconst_velocity_f(v_l, T00, M, J0, fv_l);
+        reconst_velocity_f(v_h, T00, M, J0, fv_h);
     }
 
     if (fv_l*fv_h > 0.) {
@@ -224,6 +222,15 @@ int Reconst::solve_v_Hybrid(const double T00,
         music_message.error(
                 "Reconst velocity Hybrid:: can not find solution!");
         return(v_status);
+    }
+
+    if (std::abs(fv_l) < abs_err) {
+        v_solution = v_l;
+        return(1);
+    }
+    if (std::abs(fv_h) < abs_err) {
+        v_solution = v_h;
+        return(1);
     }
 
     double dv_prev = v_h - v_l;

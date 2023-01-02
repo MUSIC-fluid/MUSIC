@@ -54,7 +54,7 @@ class Reconst {
     int solve_velocity_Newton(const double v_guess, const double T00,
                               const double M, const double J0,
                               double &v_solution);
-    int solve_v_Hybrid(const double T00,
+    int solve_v_Hybrid(const double v_guess, const double T00,
                        const double M, const double J0,
                        double &v_solution);
 
