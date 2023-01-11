@@ -176,11 +176,15 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
     DATA.Initial_profile = 42;
     clean_all_the_surface_files();
 
+    DATA.neta = nz;
     if (nz > 1) {
         DATA.boost_invariant = false;
-        DATA.delta_eta       = dz;
-        DATA.neta            = nz;
-        DATA.eta_size        = nz*dz;
+        DATA.delta_eta = dz;
+        DATA.eta_size = nz*dz;
+    } else {
+        DATA.boost_invariant = true;
+        DATA.delta_eta = 0.1;
+        DATA.eta_size = 0.;
     }
     DATA.delta_x = dx;
     DATA.delta_y = dx;
