@@ -15,6 +15,7 @@ Delta_Tau  0.01
 EOS_to_use  0
 Viscosity_Flag_Yes_1_No_0  1
 Include_Shear_Visc_Yes_1_No_0  1
+reset_dtau_use_CFL_condition 0
 Shear_to_S_ratio  0.1
 T_dependent_Shear_to_S_ratio  0
 Include_Bulk_Visc_Yes_1_No_0  0
