@@ -13,6 +13,7 @@ Initial_time_tau_0  0.0
 Total_evolution_time_tau  4.0
 Delta_Tau  0.01
 EOS_to_use  0
+reset_dtau_use_CFL_condition 0
 Viscosity_Flag_Yes_1_No_0  0
 Include_Shear_Visc_Yes_1_No_0  0
 Shear_to_S_ratio  0.0
