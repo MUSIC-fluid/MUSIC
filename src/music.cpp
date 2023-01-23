@@ -25,6 +25,8 @@ MUSIC::MUSIC(std::string input_file) :
     DATA(ReadInParameters::read_in_parameters(input_file)),
     eos(DATA.whichEOS) {
 
+    DATA.reRunHydro = false;
+    DATA.reRunCount = 0;
     mode                   = DATA.mode;
     flag_hydro_run         = 0;
     flag_hydro_initialized = 0;
@@ -38,7 +40,6 @@ MUSIC::MUSIC(std::string input_file) :
 
     // setup source terms
     hydro_source_terms_ptr = nullptr;
-    generate_hydro_source_terms();
 }
 
 
@@ -64,7 +65,8 @@ void MUSIC::generate_hydro_source_terms() {
         auto hydro_source_ptr = std::shared_ptr<HydroSourceAMPT> (
                                             new HydroSourceAMPT (DATA));
         add_hydro_source_terms(hydro_source_ptr);
-    } else if (DATA.Initial_profile == 112) {  // source from TA and TB
+    } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
+        // source from TA and TB
         auto hydro_source_ptr = std::shared_ptr<HydroSourceTATB> (
                                             new HydroSourceTATB (DATA));
         add_hydro_source_terms(hydro_source_ptr);
@@ -73,8 +75,7 @@ void MUSIC::generate_hydro_source_terms() {
 
 
 void MUSIC::clean_all_the_surface_files() {
-    system_status_ = system(
-            "rm surface.dat surface?.dat surface??.dat 2> /dev/null");
+    system_status_ = system("rm surface*.dat 2> /dev/null");
 }
 
 
@@ -88,8 +89,11 @@ void MUSIC::set_parameter(std::string parameter_name, double value) {
 void MUSIC::initialize_hydro() {
     clean_all_the_surface_files();
 
+    generate_hydro_source_terms();
+
     Init initialization(eos, DATA, hydro_source_terms_ptr);
-    initialization.InitArena(arena_prev, arena_current, arena_future);
+    initialization.InitArena(arenaFieldsPrev_, arenaFieldsCurr_,
+                             arenaFieldsNext_);
     flag_hydro_initialized = 1;
 }
 
@@ -101,7 +105,7 @@ int MUSIC::run_hydro() {
     if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
     }
-    evolve_local.EvolveIt(arena_prev, arena_current, arena_future,
+    evolve_local.EvolveIt(arenaFieldsPrev_, arenaFieldsCurr_, arenaFieldsNext_,
                           (*hydro_info_ptr));
     flag_hydro_run = 1;
     return(0);
@@ -110,8 +114,8 @@ int MUSIC::run_hydro() {
 
 //! this is a prepare function to run hydro for one time step
 void MUSIC::prepare_run_hydro_one_time_step() {
-    arena_freezeout_prev = SCGrid(DATA.nx, DATA.ny, DATA.neta);
-    arena_freezeout = SCGrid(DATA.nx, DATA.ny, DATA.neta);
+    freezeoutFieldPrev_.resizeFields(DATA.nx, DATA.ny, DATA.neta);
+    freezeoutFieldCurr_.resizeFields(DATA.nx, DATA.ny, DATA.neta);
 
     evolve_ptr_= std::make_shared<Evolve> (eos, DATA, hydro_source_terms_ptr);
 
@@ -123,8 +127,9 @@ void MUSIC::prepare_run_hydro_one_time_step() {
 //! this is a shell function to run hydro for one time step
 int MUSIC::run_hydro_one_time_step(const int itau) {
     int status = evolve_ptr_->EvolveOneTimeStep(
-                    itau, arena_prev, arena_current, arena_future,
-                    arena_freezeout_prev, arena_freezeout, (*hydro_info_ptr));
+                    itau, arenaFieldsPrev_, arenaFieldsCurr_, arenaFieldsNext_,
+                    freezeoutFieldPrev_, freezeoutFieldCurr_,
+                    (*hydro_info_ptr));
     return(status);
 }
 
@@ -194,7 +199,8 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
         e_in, P_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
         pi_00_in, pi_01_in, pi_02_in, pi_03_in, pi_11_in, pi_12_in, pi_13_in,
         pi_22_in, pi_23_in, pi_33_in, Bulk_pi_in);
-    initialization.InitArena(arena_prev, arena_current, arena_future);
+    initialization.InitArena(arenaFieldsPrev_, arenaFieldsCurr_,
+                             arenaFieldsNext_);
     flag_hydro_initialized = 1;
 }
 

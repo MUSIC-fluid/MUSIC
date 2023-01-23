@@ -35,6 +35,17 @@ HydroSourceStrings::~HydroSourceStrings() {
 }
 
 
+double HydroSourceStrings::getStringEndTau(
+        const double tau_0, const double tau_form,
+        const double eta_s_0, const double eta_s) const {
+    double temp_factor1 = tau_0*tau_0 - tau_form*tau_form;
+    double temp_factor2 = tau_0*cosh(eta_s - eta_s_0);
+    double tau_end_local = (temp_factor2
+                            + sqrt(temp_factor2*temp_factor2 - temp_factor1));
+    return(tau_end_local);
+}
+
+
 //! This function reads in the spatal information of the strings and partons
 //! which are produced from the MC-Glauber-LEXUS model
 void HydroSourceStrings::read_in_QCD_strings_and_partons() {
@@ -114,41 +125,33 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         if (DATA.Initial_profile == 131) {
             new_string->tau_0 = 0.;
             new_string->eta_s_0 = 0.;
-            new_string->tau_form = 0.5;
+            //new_string->tau_form = 0.5;
         }
         new_string->sigma_x = get_sigma_x();
         new_string->sigma_eta = get_sigma_eta();
 
         // compute the string end tau
-        double temp_factor1 = (new_string->tau_0*new_string->tau_0
-                               - new_string->tau_form*new_string->tau_form);
-        double temp_factor2 = (new_string->tau_0
-                        *cosh(new_string->eta_s_left - new_string->eta_s_0));
-        double temp_factor3 = (new_string->tau_0
-                    *cosh(new_string->eta_s_right - new_string->eta_s_0));
-        double tau_end_left_local = (
-            temp_factor2 + sqrt(temp_factor2*temp_factor2 - temp_factor1));
-        double tau_end_right_local = (
-            temp_factor3 + sqrt(temp_factor3*temp_factor3 - temp_factor1));
-        new_string->tau_end_left = tau_end_left_local;
-        new_string->tau_end_right = tau_end_right_local;
+        new_string->tau_end_left = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_left);
+        new_string->tau_end_right = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_right);
 
         // compute the baryon number tau
-        temp_factor2 = (new_string->tau_0*cosh(
-                        new_string->eta_s_baryon_left - new_string->eta_s_0));
-        temp_factor3 = (new_string->tau_0*cosh(
-                        new_string->eta_s_baryon_right - new_string->eta_s_0));
-        new_string->tau_baryon_left = (
-            temp_factor2 + sqrt(temp_factor2*temp_factor2 - temp_factor1));
-        new_string->tau_baryon_right = (
-            temp_factor3 + sqrt(temp_factor2*temp_factor2 - temp_factor1));
+        new_string->tau_baryon_left = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_baryon_left);
+        new_string->tau_baryon_right = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_baryon_right);
 
         // determine the tau_start and eta_s_start of the string
         if (new_string->eta_s_left > new_string->eta_s_0) {
-            new_string->tau_start = tau_end_left_local;
+            new_string->tau_start = new_string->tau_end_left;
             new_string->eta_s_start = new_string->eta_s_left;
         } else if (new_string->eta_s_right < new_string->eta_s_0) {
-            new_string->tau_start = tau_end_right_local;
+            new_string->tau_start = new_string->tau_end_right;
             new_string->eta_s_start = new_string->eta_s_right;
         } else {
             new_string->tau_start = new_string->tau_0 + new_string->tau_form;
@@ -164,6 +167,13 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             source_tau = new_string->tau_end_left;
         } else {
             source_tau = new_string->tau_end_right;
+        }
+
+        if (new_string->eta_s_left < 1 && new_string->eta_s_right > -1) {
+            // the string in the mid-rapidity
+            if (new_string->tau_start > get_source_tauStart_max()) {
+                set_source_tauStart_max(new_string->tau_start);
+            }
         }
 
         // set the maximum tau = 10 fm/c for source terms
@@ -193,7 +203,9 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     }
     music_message << "total baryon number = " << total_baryon_number;
     music_message.flush("info");
-    compute_norm_for_strings(total_energy);
+    music_message << "total energy = " << total_energy << " GeV";
+    music_message.flush("info");
+    compute_norm_for_strings();
 
     double xMax = 0.;
     double yMax = 0.;
@@ -234,7 +246,7 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
 }
 
 
-void HydroSourceStrings::compute_norm_for_strings(const double total_energy) {
+void HydroSourceStrings::compute_norm_for_strings() {
     const int neta = 500;
     const double eta_range = 12.;
     const double deta = 2.*eta_range/(neta - 1);
@@ -349,7 +361,7 @@ void HydroSourceStrings::get_hydro_energy_source(
         && QCD_strings_remnant_list_current_tau.size() == 0) return;
 
     const double dtau = DATA.delta_tau;
-    const double n_sigma_skip = 5.;
+    const double n_sigma_skip = 8.;
     const double exp_tau = 1./tau;
     for (auto const&it: QCD_strings_list_current_tau) {
         const double sigma_x = it->sigma_x;
@@ -442,7 +454,6 @@ void HydroSourceStrings::get_hydro_energy_source(
 
         double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
                                 /(2.*sigma_x*sigma_x));
-
         double cosh_perp = (
             cosh(preEqFlowFactor_*sqrt(x_dis*x_dis + y_dis*y_dis)));
         double sinh_perp = (
@@ -529,7 +540,6 @@ void HydroSourceStrings::get_hydro_energy_source(
                                        /(2.*sigma_eta*sigma_eta)));
             }
         }
-
         double cosh_long = exp_tau*(
               exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)*cosh(it->y_l - eta_s)
             + exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)*cosh(it->y_r - eta_s)
@@ -552,13 +562,10 @@ void HydroSourceStrings::get_hydro_energy_source(
                 sinh(preEqFlowFactor_*sqrt(x_dis*x_dis + y_dis*y_dis)));
             phi_perp = atan2(y_dis, x_dis);
         }
-        //double mT_m_ratio = std::sqrt(it->px_i*it->px_i + it->py_i*it->py_i + it->mass*it->mass)
-        //                             /it->mass;
-        double mT_m_ratio = 1.0;
-        j_mu[0] += exp_xperp*cosh_long*cosh_perp*mT_m_ratio;
+        j_mu[0] += exp_xperp*cosh_long*cosh_perp;
         j_mu[1] += exp_xperp*sinh_perp*cos(phi_perp);
         j_mu[2] += exp_xperp*sinh_perp*sin(phi_perp);
-        j_mu[3] += exp_xperp*sinh_long*cosh_perp*mT_m_ratio;
+        j_mu[3] += exp_xperp*sinh_long*cosh_perp;
     }
     const double prefactor_tau = 1./dtau;
     const double unit_convert = 1.0/Util::hbarc;
@@ -577,15 +584,15 @@ double HydroSourceStrings::get_hydro_rhob_source(
     if (QCD_strings_baryon_list_current_tau.size() == 0) return(res);
 
     // flow velocity
-    const double gamma_perp_flow  = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
-    const double y_perp_flow      = acosh(gamma_perp_flow);
-    const double y_long_flow      = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
-    const double sin_phi_flow     = u_mu[1]/gamma_perp_flow;
-    const double cos_phi_flow     = u_mu[2]/gamma_perp_flow;
-    const double dtau             = DATA.delta_tau;
+    const double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
+    const double y_perp_flow     = acosh(gamma_perp_flow);
+    const double y_long_flow     = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
+    const double sin_phi_flow    = u_mu[1]/gamma_perp_flow;
+    const double cos_phi_flow    = u_mu[2]/gamma_perp_flow;
+    const double dtau            = DATA.delta_tau;
 
-    const double exp_tau        = 1.0/tau;
-    const double n_sigma_skip   = 5.;
+    const double exp_tau      = 1.0/tau;
+    const double n_sigma_skip = 8.;
     for (auto &it: QCD_strings_baryon_list_current_tau) {
         const double sigma_x = it->sigma_x;
         const double sigma_eta = it->sigma_eta;
@@ -631,7 +638,6 @@ double HydroSourceStrings::get_hydro_rhob_source(
                                         it->x_pl, it->x_pr, eta_frac_left);
         const double x_perp_right = getStringTransverseCoord(
                                         it->x_pl, it->x_pr, eta_frac_right);
-
         const double x_dis_left  = x - x_perp_left;
         const double x_dis_right = x - x_perp_right;
         if (std::abs(x_dis_left) > skip_dis_x
@@ -643,7 +649,6 @@ double HydroSourceStrings::get_hydro_rhob_source(
                                         it->y_pl, it->y_pr, eta_frac_left);
         const double y_perp_right = getStringTransverseCoord(
                                         it->y_pl, it->y_pr, eta_frac_right);
-
         const double y_dis_left  = y - y_perp_left;
         const double y_dis_right = y - y_perp_right;
         if (std::abs(y_dis_left) > skip_dis_x
@@ -707,6 +712,7 @@ double HydroSourceStrings::get_hydro_rhob_source(
     res *= prefactor_tau;
     return(res);
 }
+
 
 double HydroSourceStrings::getStringTransverseCoord(
             const double xl, const double xr, const double etaFrac) const {

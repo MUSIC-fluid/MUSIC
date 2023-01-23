@@ -22,6 +22,8 @@ typedef struct init_data {
     bool reRunHydro;
     int reRunCount;
 
+    bool beastMode;
+
     int mode;               //!< 1: do everything;
                             //!< 2: do hydro evolution only;
                             //!< 3: do calculation of thermal spectra only;
@@ -32,6 +34,8 @@ typedef struct init_data {
     // parameters for Initial_profile == 11 || 111
     std::string initName_TA;  //!< filename for nuclear thickness function TA
     std::string initName_TB;  //!< filename for nuclear thickness function TB
+    std::string initName_participants;  //!< filename for participant nucleons
+    double nucleonWidth;
 
     // parameters for Initial_profile == 30
     std::string initName_AMPT;  //!< initial state filename from AMPT
@@ -121,6 +125,10 @@ typedef struct init_data {
     int T_dependent_shear_to_s;
     int muB_dependent_shear_to_s;
 
+    double shear_muBDep_alpha;
+    double shear_muBDep_slope;
+    double shear_muBDep_scale;
+
     //! flag to include temperature dependent zeta/s(T)
     int T_dependent_zeta_over_s;
 
@@ -149,6 +157,13 @@ typedef struct init_data {
     double bulk_3_T_peak_in_GeV;
     double bulk_3_lambda_asymm;
 
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==10"
+    double bulk_10_max;
+    double bulk_10_width_high;              // GeV
+    double bulk_10_width_low;               // GeV
+    double bulk_10_Tpeak;                   // GeV
+    double bulk_10_Tpeak_muBcurv;           // GeV
+
     //! multiplicative factors for the relaxation times
     double shear_relax_time_factor;
     double bulk_relax_time_factor;
@@ -160,7 +175,7 @@ typedef struct init_data {
     int include_second_order_terms;
 
     //! flag to include vorticity coupling terms in shear and diffusion
-    int include_vorticity_terms;
+    bool include_vorticity_terms;
 
     //! flag to output vorticity evolution
     int output_vorticity;
@@ -198,6 +213,9 @@ typedef struct init_data {
 
     //! flag to include low temperature cell at the initial time
     int doFreezeOut_lowtemp;
+
+    //! Maximum starting time for freeze-out surface
+    double freezeOutTauStartMax;
 
     int freezeOutMethod;        //!< freeze-out method
 

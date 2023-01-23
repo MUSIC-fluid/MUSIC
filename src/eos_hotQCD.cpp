@@ -16,7 +16,7 @@ EOS_hotQCD::EOS_hotQCD(const int eos_id_in) : eos_id(eos_id_in) {
     set_eps_max(1e5);
     set_flag_muB(false);
     set_flag_muS(false);
-    set_flag_muC(false);
+    set_flag_muQ(false);
 }
 
 
@@ -104,6 +104,17 @@ double EOS_hotQCD::get_temperature(double e, double rhob) const {
 double EOS_hotQCD::get_pressure(double e, double rhob) const {
     double f = interpolate1D(e, 0, pressure_tb);  // 1/fm^4
     return(std::max(Util::small_eps, f));
+}
+
+
+//! This function returns the local pressure in [1/fm^4]
+//! the input local energy density [1/fm^4], rhob [1/fm^3]
+void EOS_hotQCD::get_pressure_with_gradients(double e, double rhob,
+        double &p, double &dpde, double &dpdrhob, double &cs2) const {
+    interpolate1D_with_gradients(e, 0, pressure_tb, p, dpde);
+    p = std::max(Util::small_eps, p);           // [1/fm^4]
+    dpdrhob = 0.;
+    cs2 = std::max(0.01, std::min(1./3., dpde));
 }
 
 

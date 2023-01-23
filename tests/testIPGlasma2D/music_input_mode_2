@@ -29,7 +29,7 @@ initialize_with_entropy 0       # 0: with energy density
                                 # 1: with entropy density
 
 # read in initial conditions from external file
-Initial_Distribution_input_filename example_inputfiles/2D_IPGlasma/IPGlasma_2D_testEvent/input/epsilon-u-Hydro-t0.6-0.dat
+Initial_Distribution_input_filename example_inputfiles/IPGlasma_2D/input/epsilon-u-Hydro-t0.6-0.dat
                                # the filename of initial profile 
                                # (for Initial_profile == 8)
 s_factor 0.235                 # normalization factor read in
@@ -43,9 +43,9 @@ Eta_fall_off 0.7               # the scale of the fall off of the
 #######################################
 boost_invariant  1            # whether the simulation is boost-invariant
 # grid information
-Initial_time_tau_0 0.4        # starting time of the hydrodynamic
+Initial_time_tau_0 0.6        # starting time of the hydrodynamic 
                               # evolution (fm/c)
-Total_evolution_time_tau 30.  # the maximum allowed running
+Total_evolution_time_tau 0.4  # the maximum allowed running
                               # evolution time (fm/c)
                               # need to be set to some large number
 Delta_Tau 0.005               # time step to use in the evolution [fm/c]

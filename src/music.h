@@ -6,10 +6,10 @@
 
 #include "util.h"
 #include "cell.h"
-#include "grid.h"
 #include "data.h"
 #include "eos.h"
 #include "evolve.h"
+#include "fields.h"
 #include "hydro_source_base.h"
 #include "read_in_parameters.h"
 #include "pretty_ostream.h"
@@ -35,11 +35,11 @@ class MUSIC {
 
     std::shared_ptr<Evolve> evolve_ptr_;
 
-    SCGrid arena_prev;
-    SCGrid arena_current;
-    SCGrid arena_future;
-    SCGrid arena_freezeout_prev;
-    SCGrid arena_freezeout;
+    Fields arenaFieldsPrev_;
+    Fields arenaFieldsCurr_;
+    Fields arenaFieldsNext_;
+    Fields freezeoutFieldPrev_;
+    Fields freezeoutFieldCurr_;
 
     std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
@@ -125,6 +125,9 @@ class MUSIC {
     bool is_boost_invariant() const {
         return(hydro_info_ptr->is_boost_invariant());
     }
+
+    bool getReRunHydro() const {return(DATA.reRunHydro);}
+    void setReRunHydro(bool flag) { DATA.reRunHydro = flag; }
     int getReRunCount() const {return(DATA.reRunCount);}
     void setReRunCount(int reRunCount) { DATA.reRunCount = reRunCount; }
 };

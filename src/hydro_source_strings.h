@@ -55,6 +55,9 @@ class HydroSourceStrings : public HydroSourceBase {
     //! and partons which are produced from the MC-Glauber-LEXUS model
     void read_in_QCD_strings_and_partons();
 
+    double getStringEndTau(const double tau0, const double tau_form,
+                           const double eta_s_0, const double eta_s) const;
+
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(
@@ -68,7 +71,7 @@ class HydroSourceStrings : public HydroSourceBase {
                                  const FlowVec &u_mu) const ;
 
     void prepare_list_for_current_tau_frame(const double tau_local);
-    void compute_norm_for_strings(const double total_energy);
+    void compute_norm_for_strings();
     double getStringTransverseCoord(const double xl, const double xr,
                                     const double etaFrac) const;
 };
