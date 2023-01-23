@@ -102,6 +102,14 @@ void Advance::FirstRKStepT(
         Fields &arenaFieldsNext, Fields &arenaFieldsPrev) {
     // this advances the ideal part
     double tau_rk = tau + rk_flag*(DATA.delta_tau);
+    double tauFactor = tau;
+    double tauRkFactor = tau_rk;
+    double tauNextFactor = tau + DATA.delta_tau;
+    if (DATA.CoorType == 1) {
+        tauFactor = 1.;
+        tauRkFactor = 1.;
+        tauNextFactor = 1.;
+    }
 
     auto cellPrev = arenaFieldsPrev.getCellIdeal(fieldIdx);
     auto cellCurr = arenaFieldsCurr.getCellIdeal(fieldIdx);
@@ -117,9 +125,9 @@ void Advance::FirstRKStepT(
     TJbVec qi = {0};
     double pressure = eos.get_pressure(cellCurr.e, cellCurr.rhob);
     for (int alpha = 0; alpha < 5; alpha++) {
-        qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure)*tau_rk;
+        qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure)*tauRkFactor;
     }
-    MakeDeltaQI(tau_rk, arenaFieldsCurr, ix, iy, ieta, qi, rk_flag);
+    MakeDeltaQI(tauRkFactor, arenaFieldsCurr, ix, iy, ieta, qi, rk_flag);
 
     TJbVec qi_source = {0.0};
 
@@ -132,7 +140,7 @@ void Advance::FirstRKStepT(
         hydro_source_terms_ptr->get_hydro_energy_source(
                     tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
         for (int ii = 0; ii < 4; ii++) {
-            qi_source[ii] = tau_rk*j_mu[ii];
+            qi_source[ii] = tauRkFactor*j_mu[ii];
             if (isnan(qi_source[ii])) {
                 music_message << "qi_source is nan. i = " << ii;
                 music_message.flush("error");
@@ -142,7 +150,7 @@ void Advance::FirstRKStepT(
 
         if (DATA.turn_on_rhob == 1) {
             qi_source[4] = (
-                tau_rk*hydro_source_terms_ptr->get_hydro_rhob_source(
+                tauRkFactor*hydro_source_terms_ptr->get_hydro_rhob_source(
                             tau_rk, x_local, y_local, eta_s_local, u_local));
         }
     }
@@ -172,19 +180,13 @@ void Advance::FirstRKStepT(
 
         /* if rk_flag > 0, we now have q0 + k1 + k2.
          * So add q0 and multiply by 1/2 */
-        if (DATA.CoorType == 0) {
-            qi[alpha] += rk_flag*get_TJb(cellPrev, alpha, 0, pressurePrev)*tau;
-        } else {
-            qi[alpha] += rk_flag*get_TJb(cellPrev, alpha, 0, pressurePrev);
-        }
+        qi[alpha] += (rk_flag
+                      *get_TJb(cellPrev, alpha, 0, pressurePrev)*tauFactor);
         qi[alpha] *= 1./(1. + rk_flag);
     }
 
-    double tau_next = tau + DATA.delta_tau;
-    if (DATA.CoorType == 1) {
-        tau_next = 1.;
-    }
-    auto grid_rk_t = reconst_helper.ReconstIt_shell(tau_next, qi, cellCurr);
+    auto grid_rk_t = reconst_helper.ReconstIt_shell(tauNextFactor, qi,
+                                                    cellCurr);
     arenaFieldsNext.e_[fieldIdx] = grid_rk_t.e;
     arenaFieldsNext.rhob_[fieldIdx] = grid_rk_t.rhob;
     for (int ii = 0; ii < 4; ii++) {
@@ -480,17 +482,9 @@ void Advance::QuestRevert_qmu(const double tau, Cell_small &grid_pt,
 
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
+void Advance::MakeDeltaQI(const double tauFactor, Fields &arenaFieldsCurr,
                           const int ix, const int iy, const int ieta,
                           TJbVec &qi, const int rk_flag) {
-    double tauFactor = tau;
-    if (DATA.CoorType ==  0) {
-        // Milne Coordinates
-        tauFactor = tau;
-    } else {
-        // Cartesian Coordinates
-        tauFactor = 1.0;
-    }
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
     const double tau_fac[4] = {0.0, tauFactor, tauFactor, 1.0};
 
@@ -509,16 +503,16 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
         double pressureM2 = eos.get_pressure(m2.e, m2.rhob);
         for (int alpha = 0; alpha < 5; alpha++) {
             const double gphL = qi[alpha];
-            const double gphR = tau*get_TJb(p1, alpha, 0, pressureP1);
-            const double gmhL = tau*get_TJb(m1, alpha, 0, pressureM1);
+            const double gphR = tauFactor*get_TJb(p1, alpha, 0, pressureP1);
+            const double gmhL = tauFactor*get_TJb(m1, alpha, 0, pressureM1);
             const double gmhR = qi[alpha];
             const double fphL =  0.5*minmod.minmod_dx(gphR, qi[alpha], gmhL);
             const double fphR = -0.5*minmod.minmod_dx(
-                                    tau*get_TJb(p2, alpha, 0, pressureP2),
+                                    tauFactor*get_TJb(p2, alpha, 0, pressureP2),
                                     gphR, qi[alpha]);
             const double fmhL =  0.5*minmod.minmod_dx(
                                     qi[alpha], gmhL,
-                                    tau*get_TJb(m2, alpha, 0, pressureM2));
+                                    tauFactor*get_TJb(m2, alpha, 0, pressureM2));
             const double fmhR = -fphL;
             qiphL[alpha] = gphL + fphL;
             qiphR[alpha] = gphR + fphR;
@@ -533,10 +527,10 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
         auto grid_mhL = reconst_helper.ReconstIt_shell(tauFactor, qimhL, c);
         auto grid_mhR = reconst_helper.ReconstIt_shell(tauFactor, qimhR, c);
 
-        double aiphL = MaxSpeed(tau, direction, grid_phL, pressureP1);
-        double aiphR = MaxSpeed(tau, direction, grid_phR, pressureP2);
-        double aimhL = MaxSpeed(tau, direction, grid_mhL, pressureM1);
-        double aimhR = MaxSpeed(tau, direction, grid_mhR, pressureM2);
+        double aiphL = MaxSpeed(tauFactor, direction, grid_phL, pressureP1);
+        double aiphR = MaxSpeed(tauFactor, direction, grid_phR, pressureP2);
+        double aimhL = MaxSpeed(tauFactor, direction, grid_mhL, pressureM1);
+        double aimhR = MaxSpeed(tauFactor, direction, grid_mhR, pressureM2);
 
         double aiph = std::max(aiphL, aiphR);
         double aimh = std::max(aimhL, aimhR);

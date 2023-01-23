@@ -50,9 +50,9 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         music_message.flush("info");
     } else if (DATA.Initial_profile == 3 || DATA.Initial_profile == 4) {
         music_message << "Using Initial_profile=" << DATA.Initial_profile;
-        music_message << "nx=" << DATA.nx << ", ny=" << DATA.ny;
-        music_message << "dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
-        music_message << "neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
+        music_message << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
+        music_message << ", dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
+        music_message << ", neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
         music_message.flush("info");
     } else if (DATA.Initial_profile == 8) {
         music_message.info(DATA.initName);
