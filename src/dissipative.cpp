@@ -34,9 +34,6 @@ void Diss::MakeWSource(const double tau,
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y,
                                DATA.delta_eta};
     double tau_fac[4] = {0.0, tau, tau, 1.0};
-    if (DATA.CoorType == 1) {
-        tau_fac[3] = tau;
-    }
 
     dwmn = {0.};
     for (int alpha = 0; alpha < 5; alpha++) {

@@ -31,8 +31,7 @@ class U_derivative {
                                     const int fieldIdx);
 
     //! this function returns Du^\mu
-    void calculate_Du_supmu(const double tau, Fields &arena,
-                            const int fieldIdx, DumuVec &a);
+    void calculate_Du_supmu(Fields &arena, const int fieldIdx, DumuVec &a);
 
     //! this function returns the vector D^\mu(\mu_B/T)
     void get_DmuMuBoverTVec(DmuMuBoverTVec &vec);
@@ -64,8 +63,7 @@ class U_derivative {
     int MakeDSpatial(const double tau, Fields &arena, const int fieldIdx,
                      const int ix, const int iy, const int ieta);
 
-    int MakeDTau(const double tau,
-                 const Fields &arenaFieldsPrev,
+    int MakeDTau(const Fields &arenaFieldsPrev,
                  const Fields &arenaFieldsCurr, const int fieldIdx);
 
     //! this function computes the thermal shear tensor

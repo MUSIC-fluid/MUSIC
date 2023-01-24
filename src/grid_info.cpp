@@ -1531,7 +1531,7 @@ void Cell_info::monitor_a_fluid_cell(Fields &arena_curr, Fields &arena_prev,
                 << arena_curr.piBulk_[fieldIdx]*Util::hbarc << "  "
                 << theta_local << "  ";
     DumuVec a_local;
-    u_derivative_helper.calculate_Du_supmu(tau, arena_curr, fieldIdx, a_local);
+    u_derivative_helper.calculate_Du_supmu(arena_curr, fieldIdx, a_local);
     VelocityShearVec sigma_local;
     u_derivative_helper.calculate_velocity_shear_tensor(
                 tau, arena_curr, fieldIdx, theta_local, a_local, sigma_local);

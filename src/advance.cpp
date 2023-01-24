@@ -65,12 +65,13 @@ void Advance::AdvanceIt(const double tau, Fields &arenaFieldsPrev,
 
         if (DATA.viscosity_flag == 1) {
             U_derivative u_derivative_helper(DATA, eos);
-            u_derivative_helper.MakedU(tau, arenaFieldsPrev, arenaFieldsCurr,
+            u_derivative_helper.MakedU(tau, arenaFieldsPrev,
+                                       arenaFieldsCurr,
                                        fieldIdx, ix, iy, ieta);
             double theta_local = u_derivative_helper.calculate_expansion_rate(
                                             tau, arenaFieldsCurr, fieldIdx);
             DumuVec a_local;
-            u_derivative_helper.calculate_Du_supmu(tau, arenaFieldsCurr,
+            u_derivative_helper.calculate_Du_supmu(arenaFieldsCurr,
                                                    fieldIdx, a_local);
 
             VelocityShearVec sigma_local;
@@ -85,9 +86,10 @@ void Advance::AdvanceIt(const double tau, Fields &arenaFieldsPrev,
             DmuMuBoverTVec baryon_diffusion_vector;
             u_derivative_helper.get_DmuMuBoverTVec(baryon_diffusion_vector);
 
-            FirstRKStepW(tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext,
-                         rk_flag,theta_local, a_local, sigma_local, omega_local,
-                         baryon_diffusion_vector, ieta, ix, iy, fieldIdx);
+            FirstRKStepW(tau, arenaFieldsPrev, arenaFieldsCurr,
+                         arenaFieldsNext, rk_flag, theta_local, a_local,
+                         sigma_local, omega_local, baryon_diffusion_vector,
+                         ieta, ix, iy, fieldIdx);
         }
     }
 }
@@ -158,7 +160,7 @@ void Advance::FirstRKStepT(
     // now MakeWSource returns partial_a W^{a mu}
     // (including geometric terms)
     TJbVec dwmn ={0.0};
-    diss_helper.MakeWSource(tau_rk, ix, iy, ieta,
+    diss_helper.MakeWSource(tauRkFactor, ix, iy, ieta,
                             dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
 
     double pressurePrev = eos.get_pressure(cellPrev.e, cellPrev.rhob);
@@ -331,9 +333,9 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
     // If the energy density of the fluid element is smaller than 0.01GeV
     // reduce Wmunu using the QuestRevert algorithm
     if (DATA.Initial_profile != 0 && DATA.Initial_profile != 1) {
-        QuestRevert(tau, grid_f, ieta, ix, iy);
+        QuestRevert(grid_f, ieta, ix, iy);
         if (DATA.turn_on_diff == 1) {
-            QuestRevert_qmu(tau, grid_f, ieta, ix, iy);
+            QuestRevert_qmu(grid_f, ieta, ix, iy);
         }
     }
     for (int idx_1d = 0; idx_1d < 14; idx_1d++) {
@@ -345,7 +347,7 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
 
 //! this function reduce the size of shear stress tensor and bulk pressure
 //! in the dilute region to stablize numerical simulations
-void Advance::QuestRevert(const double tau, Cell_small &grid_pt,
+void Advance::QuestRevert(Cell_small &grid_pt,
                           const int ieta, const int ix, const int iy) {
     double eps_scale = 0.1;   // 1/fm^4
     double e_local   = grid_pt.epsilon;
@@ -422,7 +424,7 @@ void Advance::QuestRevert(const double tau, Cell_small &grid_pt,
 
 //! this function reduce the size of net baryon diffusion current
 //! in the dilute region to stablize numerical simulations
-void Advance::QuestRevert_qmu(const double tau, Cell_small &grid_pt,
+void Advance::QuestRevert_qmu(Cell_small &grid_pt,
                               const int ieta, const int ix, const int iy) {
     double eps_scale = 0.1;   // in 1/fm^4
 
