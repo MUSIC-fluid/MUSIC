@@ -28,13 +28,15 @@ jobs:
           cmake ..
           make -j2
           make install
-      - name: Gubser Flow Test
+      - name: Gubser Flow Test (Ideal + shear)
         run: |
           pip3 install numpy
           $GITHUB_WORKSPACE/tests/Gubser_flow/RunAutoTest.sh
-      - name: Cartesian Test
+      - name: Cartesian Test energy-momentum tensor
           $GITHUB_WORKSPACE/tests/test_1+1DRiemannTest_Cartesian/RunAutoTest.sh
-      - name: IPGlasma 2D Test
+      - name: Cartesian Test net baryon current
+          $GITHUB_WORKSPACE/tests/test_1+1DDiffusionTest_Cartesian/RunAutoTest.sh
+      - name: IPGlasma 2D Test (shear + bulk)
         run: |
           $GITHUB_WORKSPACE/tests/testIPGlasma2D/RunAutoTest.sh
       - name: net baryon diffusion 1D Test
