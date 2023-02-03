@@ -8,18 +8,28 @@ typedef std::array<double, 10>               Arr10;
 
 typedef std::array<double, 4>  EnergyFlowVec;
 typedef std::array<double, 4>  FlowVec;
-typedef std::array<double, 5>  TJbVec;
+
+typedef std::array<double, 7>  TJbVec;
+
 typedef std::array<double, 5>  DumuVec;
 typedef Arr10                  VelocityShearVec;
 typedef std::array<double, 4>  DmuMuBoverTVec;
 typedef std::array<double, 6>  VorticityVec;
 typedef std::array<double, 8>  ShearVisVecLRF;
 typedef std::array<double, 14> ViscousVec;
+
+// *** When dissipative part added for conserved charges, 
+// typedef std::array<std::array<double, 4>, 7> dUsupMat;
 typedef std::array<std::array<double, 4>, 5> dUsupMat;
+// ***
 
 typedef struct {
     double e;
+
     double rhob;
+    double rhoq;
+    double rhos;
+    
     FlowVec u;
 } ReconstCell;
 

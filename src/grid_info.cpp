@@ -104,7 +104,6 @@ void Cell_info::Output_hydro_information_header() {
     outfile << "const bool MUSIC_with_rhob = " << (DATA.turn_on_rhob) << ";\n";
     outfile << "const bool MUSIC_with_diffusion = "
             << ((DATA.viscosity_flag) && (DATA.turn_on_diff)) << ";\n";
-
     outfile << "const bool MUSIC_outputBinaryEvolution="
             << DATA.outputBinaryEvolution << ";" << endl;
 
@@ -407,7 +406,6 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
     }
 }
 
-
 //! This function outputs hydro evolution file in binary format
 void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
     // the format of the file is as follows,
@@ -457,23 +455,28 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
     const double output_ymin   = - DATA.y_size/2.;
     const double output_etamin = - DATA.eta_size/2.;
 
-    const int nVar_per_cell = (11 + DATA.turn_on_rhob*2 + DATA.turn_on_shear*5
+    const int nVar_per_cell = (11 + DATA.turn_on_rhob*2 + 2*DATA.turn_on_QS*2 + DATA.turn_on_shear*5
                                   + DATA.turn_on_bulk*1 + DATA.turn_on_diff*3);
     if (tau == DATA.tau0) {
         float header[] = {
-            static_cast<float>(DATA.tau0), static_cast<float>(output_dtau),
-            static_cast<float>(output_nx), static_cast<float>(output_dx),
+            static_cast<float>(DATA.tau0), 
+	    static_cast<float>(output_dtau),
+            static_cast<float>(output_nx), 
+	    static_cast<float>(output_dx),
             static_cast<float>(output_xmin),
-            static_cast<float>(output_ny), static_cast<float>(output_dy),
+            static_cast<float>(output_ny), 
+	    static_cast<float>(output_dy),
             static_cast<float>(output_ymin),
-            static_cast<float>(output_neta), static_cast<float>(output_deta),
+            static_cast<float>(output_neta), 
+	    static_cast<float>(output_deta),
             static_cast<float>(output_etamin),
             static_cast<float>(DATA.turn_on_rhob),
             static_cast<float>(DATA.turn_on_shear),
             static_cast<float>(DATA.turn_on_bulk),
             static_cast<float>(DATA.turn_on_diff),
-            static_cast<float>(nVar_per_cell)};
-        fwrite(header, sizeof(float), 16, out_file_xyeta);
+            static_cast<float>(nVar_per_cell),
+            static_cast<float>(DATA.turn_on_QS)};
+        fwrite(header, sizeof(float), 17, out_file_xyeta);
     }
     std::vector<double> thermalVec;
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
@@ -485,6 +488,8 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
                 double e_local    = arena.e_[fieldIdx];  // 1/fm^4
                 double rhob_local = arena.rhob_[fieldIdx];     // 1/fm^3
+                double rhoq_local = arena.rhoq_[fieldIdx];     // 1/fm^3
+                double rhos_local = arena.rhos_[fieldIdx];     // 1/fm^3
 
                 if (e_local*hbarc < DATA.output_evolution_e_cut) continue;
                 // only ouput fluid cells that are above cut-off temperature
@@ -555,9 +560,9 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                 fwrite(ideal, sizeof(float), 11, out_file_xyeta);
 
                 if (DATA.turn_on_rhob == 1) {
-                    float mu[] = {static_cast<float>(rhob_local),
+                    float mu_B[] = {static_cast<float>(rhob_local),
                                   static_cast<float>(muB_local*hbarc)};
-                    fwrite(mu, sizeof(float), 2, out_file_xyeta);
+                    fwrite(mu_B, sizeof(float), 2, out_file_xyeta);
                 }
 
                 if (DATA.turn_on_shear == 1) {
@@ -579,6 +584,13 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                                          static_cast<float>(qy),
                                          static_cast<float>(qz)};
                     fwrite(diffusion, sizeof(float), 3, out_file_xyeta);
+                }
+                if (DATA.turn_on_QS == 1) {
+                    float mu_Q[] = {static_cast<float>(rhoq_local)};
+                    float mu_S[] = {static_cast<float>(rhos_local)};
+                                  //static_cast<float>(muB_local*hbarc)};
+                    fwrite(mu_Q, sizeof(float), 1, out_file_xyeta);
+                    fwrite(mu_S, sizeof(float), 1, out_file_xyeta);
                 }
             }
         }
@@ -637,6 +649,8 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                 // only ouput fluid cells that are above cut-off energy density
 
                 double rhob_local = arena.rhob_[fieldIdx];      // 1/fm^3
+                double rhoq_local = arena.rhoq_[fieldIdx];      // 1/fm^3
+                double rhos_local = arena.rhos_[fieldIdx];      // 1/fm^3
 
                 double ux   = arena.u_[1][fieldIdx];
                 double uy   = arena.u_[2][fieldIdx];
@@ -717,6 +731,13 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                                          static_cast<float>(qy),
                                          static_cast<float>(qeta)};
                     fwrite(diffusion, sizeof(float), 4, out_file_xyeta);
+                }
+                if (DATA.turn_on_QS == 1) {
+                    float mu_Q[] = {static_cast<float>(rhoq_local)};
+                    float mu_S[] = {static_cast<float>(rhos_local)};
+                                  //static_cast<float>(muB_local*hbarc)};
+                    fwrite(mu_Q, sizeof(float), 1, out_file_xyeta);
+                    fwrite(mu_S, sizeof(float), 1, out_file_xyeta);
                 }
             }
         }
@@ -1013,11 +1034,17 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
                          std::fstream::out | std::fstream::app);
     }
     double N_B     = 0.0;
+    double N_Q     = 0.0;
+    double N_S     = 0.0;
     double T_tau_t = 0.0;
     double T_tau_x = 0.0;
     double T_tau_y = 0.0;
     double T_tau_z = 0.0;
     double N_B_edge     = 0.0;
+
+    double N_Q_edge     = 0.0;
+    double N_S_edge     = 0.0;
+
     double T_tau_t_edge = 0.0;
     double T_tau_x_edge = 0.0;
     double T_tau_y_edge = 0.0;
@@ -1040,6 +1067,10 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         const double sinh_eta = sinh(eta_s);
 
         N_B += arena.rhob_[Idx]*arena.u_[0][Idx] + arena_prev.Wmunu_[10][Idx];
+	// *** Only checked at ideal hydro level for Q and S.
+	N_Q += arena.rhoq_[Idx]*arena.u_[0][Idx];
+	N_S += arena.rhos_[Idx]*arena.u_[0][Idx];
+	
         const double e_local   = arena.e_[Idx];
         const double pressure  = eos.get_pressure(e_local, arena.rhob_[Idx]);
         const double u0        = arena.u_[0][Idx];
@@ -1075,6 +1106,11 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         if (ieta == 0 || ieta == neta - 1 || ix == 0 || ix == nx - 1
             || iy == 0 || iy == ny - 1) {
             N_B_edge     += arena.rhob_[Idx]*u0 + arena_prev.Wmunu_[10][Idx];
+
+	    //*** Checked only at ideal hydro level for Q and S. 
+            N_Q_edge     += arena.rhoq_[Idx]*u0;
+            N_S_edge     += arena.rhos_[Idx]*u0;
+	    
             T_tau_t_edge += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
             T_tau_x_edge += T01_local;
             T_tau_y_edge += T02_local;
@@ -1089,6 +1125,11 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     T_tau_y *= factor*Util::hbarc;  // GeV
     T_tau_z *= factor*Util::hbarc;  // GeV
     N_B_edge *= factor;
+
+    //*** Other conserved charges.  
+    N_Q_edge *= factor;
+    N_S_edge *= factor;
+
     T_tau_t_edge *= factor*Util::hbarc;  // GeV
     T_tau_x_edge *= factor*Util::hbarc;  // GeV
     T_tau_y_edge *= factor*Util::hbarc;  // GeV
@@ -1127,13 +1168,14 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         exit(1);
     }
     output_file << scientific << setprecision(6)
-                << tau << "  " << T_tau_t << "  " << T_tau_x << "  "
-                << T_tau_y << "  " << T_tau_z << "  " << N_B << std::endl;
+                << tau << "  " << T_tau_t << "  " << T_tau_x << "  " 
+		<< T_tau_y << "  " << T_tau_z << "  " << N_B << "  "
+		<< N_Q << "  " << N_S << std::endl;
     output_file.close();
 }
 
 
-//! This function putputs files to check with Gubser flow solution
+//! This function outputs files to check with Gubser flow solution
 void Cell_info::Gubser_flow_check_file(Fields &arena, const double tau) {
     if (tau > 1.) {
         ostringstream filename_analytic;
@@ -1215,7 +1257,11 @@ void Cell_info::Gubser_flow_check_file(Fields &arena, const double tau) {
         double y_local = y_min + iy*dy;
         int fieldIdx = arena.getFieldIdx(ix, iy, 0);
         double e_local = arena.e_[fieldIdx];
+
         double rhob_local = arena.rhob_[fieldIdx];
+        double rhoq_local = arena.rhoq_[fieldIdx];
+        double rhos_local = arena.rhos_[fieldIdx];
+
         double T_local = eos.get_temperature(e_local, 0.0);
         output_file << scientific << setprecision(8) << setw(18)
                     << x_local << "  " << y_local << "  "
@@ -1227,6 +1273,8 @@ void Cell_info::Gubser_flow_check_file(Fields &arena, const double tau) {
                     << arena.Wmunu_[7][fieldIdx]*Util::hbarc << "  "
                     << arena.Wmunu_[5][fieldIdx]*Util::hbarc << "  "
                     << arena.Wmunu_[9][fieldIdx]*Util::hbarc << "  "
+		    << rhoq_local << "  "
+		    << rhos_local << "  "
                     << endl;
     }
     output_file.close();
@@ -1245,17 +1293,23 @@ void Cell_info::output_1p1D_check_file(Fields &arena, const double tau) {
         double eta_local = eta_min + ieta*deta;
         int fieldIdx = arena.getFieldIdx(1, 1, ieta);
         double e_local = arena.e_[fieldIdx];
+
         double rhob_local = arena.rhob_[fieldIdx];
+        double rhoq_local = arena.rhoq_[fieldIdx];
+        double rhos_local = arena.rhos_[fieldIdx];
+
         output_file << scientific << setprecision(8) << setw(18)
                     << eta_local << "  "
-                    << e_local*Util::hbarc << "  " << rhob_local
+                    << e_local*Util::hbarc << "  " 
+		    << rhob_local << "  "
+		    << rhoq_local << "  "
+		    << rhos_local << "  "
                     << endl;
     }
     output_file.close();
 }
 
-
-//! This function outputs energy density and n_b for making movies
+//! This function outputs energy density and n_b, n_q and n_s for making movies
 void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
     const string out_name_xyeta = "evolution_for_movie_xyeta.dat";
     string out_open_mode;
@@ -1294,12 +1348,16 @@ void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
         const double output_ymin   = - DATA.y_size/2.;
         const double output_etamin = - DATA.eta_size/2.;
         float header[] = {
-            static_cast<float>(DATA.tau0), static_cast<float>(output_dtau),
-            static_cast<float>(output_nx), static_cast<float>(output_dx),
+            static_cast<float>(DATA.tau0), 
+	    static_cast<float>(output_dtau),
+            static_cast<float>(output_nx), 
+	    static_cast<float>(output_dx),
             static_cast<float>(output_xmin),
-            static_cast<float>(output_ny), static_cast<float>(output_dy),
+            static_cast<float>(output_ny), 
+	    static_cast<float>(output_dy),
             static_cast<float>(output_ymin),
-            static_cast<float>(output_neta), static_cast<float>(output_deta),
+            static_cast<float>(output_neta), 
+	    static_cast<float>(output_deta),
             static_cast<float>(output_etamin),
             static_cast<float>(nVar_per_cell)};
         fwrite(header, sizeof(float), 12, out_file_xyeta);
@@ -1312,6 +1370,8 @@ void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
                 double e_local = arena.e_[fieldIdx];            // 1/fm^4
                 double rhob_local = arena.rhob_[fieldIdx];      // 1/fm^3
+                double rhoq_local = arena.rhoq_[fieldIdx];      // 1/fm^3
+                double rhos_local = arena.rhos_[fieldIdx];      // 1/fm^3
 
                 // T_local is in 1/fm
                 double T_local   = eos.get_temperature(e_local, rhob_local);
@@ -1349,14 +1409,15 @@ void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
                                  static_cast<float>(u2),
                                  static_cast<float>(u3),
                                  static_cast<float>(Ttaut*hbarc),
-                                 static_cast<float>(JBtau)};
-                fwrite(array, sizeof(float), 14, out_file_xyeta);
+                                 static_cast<float>(JBtau),
+                                 static_cast<float>(rhoq_local),
+                                 static_cast<float>(rhos_local)};
+                fwrite(array, sizeof(float), 16, out_file_xyeta);
             }
         }
     }
     fclose(out_file_xyeta);
 }
-
 
 //! This function dumps the energy density and net baryon density
 void Cell_info::output_energy_density_and_rhob_disitrubtion(Fields &arena,
@@ -1373,6 +1434,27 @@ void Cell_info::output_energy_density_and_rhob_disitrubtion(Fields &arena,
         double rhob_local = arena.rhob_[fieldIdx];
         output_file << scientific << setprecision(5) << setw(18)
                     << e_local << "  " << rhob_local << endl;
+    }
+    output_file.close();
+}
+
+//! This function dumps the energy density and net densities
+void Cell_info::output_energy_density_and_netdens_disitrubtion(Fields &arena,
+                                                            string filename) {
+    ofstream output_file(filename.c_str());
+    const int n_skip_x   = DATA.output_evolution_every_N_x;
+    const int n_skip_y   = DATA.output_evolution_every_N_y;
+    const int n_skip_eta = DATA.output_evolution_every_N_eta;
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta)
+    for (int ix   = 0; ix   < arena.nX();   ix += n_skip_x)
+    for (int iy   = 0; iy   < arena.nY();   iy += n_skip_y) {
+        int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+        double e_local = arena.e_[fieldIdx]*Util::hbarc;
+        double rhob_local = arena.rhob_[fieldIdx];
+        double rhoq_local = arena.rhoq_[fieldIdx];
+        double rhos_local = arena.rhos_[fieldIdx];
+        output_file << scientific << setprecision(5) << setw(18)
+                    << e_local << "  " << rhob_local << "  " << rhoq_local << "  " << rhos_local<< endl;
     }
     output_file.close();
 }
@@ -1394,7 +1476,9 @@ void Cell_info::monitor_a_fluid_cell(Fields &arena_curr, Fields &arena_prev,
                     << "u^tau  u^x  u^y  tau*u^eta  "
                     << "Bulk_Pi(GeV/fm^3)  theta(1/fm)  "
                     << "pi^{\\mu\\nu}(GeV/fm^3)  sigma^{\\mu\\nu}(1/fm)  "
-                    << "omega^{\\mu\\nu}(1/fm)" << std::endl;
+                    << "omega^{\\mu\\nu}(1/fm)  " 
+		    << "rhoq(1/fm^3) rhos(1/fm^3)"
+		    << std::endl;
     } else {
         output_file.open(filename.str().c_str(),
                          std::fstream::out | std::fstream::app);
@@ -1431,6 +1515,7 @@ void Cell_info::monitor_a_fluid_cell(Fields &arena_curr, Fields &arena_prev,
         output_file << scientific << setprecision(8)
                     << omega_local[i] << "  ";
     }
+    output_file << arena_curr.rhoq_[fieldIdx] << "  " << arena_curr.rhos_[fieldIdx] << "  ";
     output_file << endl;
     output_file.close();
 }

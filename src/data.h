@@ -112,6 +112,11 @@ typedef struct init_data {
     int alpha_max;          //!< dimension of TJb
     int turn_on_rhob;       //!< flag to include baryon current
 
+    int turn_on_QS;	    //!< flag to include electric charge and strangeness currents
+    int use_rhoQS_to_rhoB_ratios; //!< use ratios to rhob for rhoQ and rhoS initial conditions
+    double ratio_q;		//!< ratio rhoq/rhob for electric charge initial conditions
+    double ratio_s;		//!< ratio rhoq/rhob for electric charge initial conditions
+
     int viscosity_flag;     //!< flag to include viscosity in the simulation
     int turn_on_shear;      //!< flag to include shear viscosity
     int turn_on_bulk;       //!< flag to include bulk viscosity

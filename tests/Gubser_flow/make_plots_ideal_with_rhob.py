@@ -1,11 +1,11 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import sys
 sys.path.insert(0, '../../utilities')
 
 from numpy import *
 import matplotlib.pyplot as plt
-plt.style.use('CS_paper')
+#plt.style.use('CS_paper')
 from os import path
 from CSplottools import getPlotElements
 
@@ -129,6 +129,82 @@ plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$n_B$ (1/fm$^{3}$)', fontsize = plotfontsize)
 plt.savefig('Gubser_rhob.pdf', format='pdf')
 
+# plot rhoq
+fig = plt.figure()
+ax = plt.axes([0.13, 0.12, 0.82, 0.83])
+iplot = 0
+
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
+plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, -2], color = plotColor,
+         linestyle = '--', linewidth = plotLinewidth,
+         label = r'$\tau = 1.0$ fm')
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(1)
+plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, -2], color = plotColor,
+         linestyle = '--', linewidth = plotLinewidth,
+         label = r'$\tau = 1.2$ fm')
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(2)
+plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, -2], color = plotColor,
+         linestyle = '--', linewidth = plotLinewidth,
+         label = r'$\tau = 1.5$ fm')
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(3)
+plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, -2], color = plotColor,
+         linestyle = '--', linewidth = plotLinewidth,
+         label = r'$\tau = 2.0$ fm')
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(4)
+plt.plot(numeric_tau_3p0[idx, 0], numeric_tau_3p0[idx, -2], color = plotColor,
+         linestyle = '--', linewidth = plotLinewidth,
+         label = r'$\tau = 3.0$ fm')
+         
+hl = plt.legend(loc=0, ncol = 2)
+hl.draw_frame(False)
+plt.xlim(-5.0, 5.0)
+plt.ylim(2e-3, 5.0)
+plt.yscale('log')
+plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
+plt.yticks(10**linspace(-2, 0, 3), color = 'k', size = plotfontsize)
+plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
+plt.ylabel(r'$n_Q$ (1/fm$^{3}$)', fontsize = plotfontsize)
+plt.savefig('Gubser_rhoq.pdf', format='pdf')
+
+
+# plot rhos
+fig = plt.figure()
+ax = plt.axes([0.13, 0.12, 0.82, 0.83])
+iplot = 0
+
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(0)
+plt.plot(numeric_tau_1p0[idx, 0], numeric_tau_1p0[idx, -1], color = plotColor,
+         linestyle = '--', linewidth = plotLinewidth,
+         label = r'$\tau = 1.0$ fm')
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(1)
+plt.plot(numeric_tau_1p2[idx, 0], numeric_tau_1p2[idx, -1], color = plotColor,
+         linestyle = '--', linewidth = plotLinewidth,
+         label = r'$\tau = 1.2$ fm')
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(2)
+plt.plot(numeric_tau_1p5[idx, 0], numeric_tau_1p5[idx, -1], color = plotColor,
+         linestyle = '--', linewidth = plotLinewidth,
+         label = r'$\tau = 1.5$ fm')
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(3)
+plt.plot(numeric_tau_2p0[idx, 0], numeric_tau_2p0[idx, -1], color = plotColor,
+         linestyle = '--', linewidth = plotLinewidth,
+         label = r'$\tau = 2.0$ fm')
+plotlinestyle, plotMarker, plotColor, plotshadowColor = getPlotElements(4)
+plt.plot(numeric_tau_3p0[idx, 0], numeric_tau_3p0[idx, -1], color = plotColor,
+         linestyle = '--', linewidth = plotLinewidth,
+         label = r'$\tau = 3.0$ fm')
+         
+hl = plt.legend(loc=0, ncol = 2)
+hl.draw_frame(False)
+plt.xlim(-5.0, 5.0)
+plt.ylim(2e-3, 5.0)
+plt.yscale('log')
+plt.xticks(linspace(-5.0, 5.0, 5), color = 'k', size = plotfontsize)
+plt.yticks(10**linspace(-2, 0, 3), color = 'k', size = plotfontsize)
+plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
+plt.ylabel(r'$n_S$ (1/fm$^{3}$)', fontsize = plotfontsize)
+plt.savefig('Gubser_rhos.pdf', format='pdf')
+
+
 # plot ux
 fig = plt.figure()
 ax = plt.axes([0.13, 0.12, 0.82, 0.83])
@@ -174,4 +250,3 @@ plt.yticks(linspace(-3.0, 3.0, 7), color = 'k', size = plotfontsize)
 plt.xlabel(r'$x$ (fm)', {'fontsize': plotfontsize})
 plt.ylabel(r'$u^x$', fontsize = plotfontsize)
 plt.savefig('Gubser_ux.pdf', format='pdf')
-

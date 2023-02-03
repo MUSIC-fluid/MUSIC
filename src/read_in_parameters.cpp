@@ -346,6 +346,36 @@ InitData read_in_parameters(std::string input_file) {
     else
        parameter_list.alpha_max = 4;
 
+    int tempturn_on_QS = 0;
+    tempinput = Util::StringFind4(input_file, "Include_QS_Yes_1_No_0");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempturn_on_QS;
+    parameter_list.turn_on_QS = tempturn_on_QS;
+    if (parameter_list.turn_on_QS == 1)
+       parameter_list.alpha_max = 7;
+    else if (parameter_list.turn_on_rhob == 1)
+       parameter_list.alpha_max = 5;
+    else
+       parameter_list.alpha_max = 4;
+
+    int tempuse_rhoQS_to_rhoB_ratios;
+    tempinput = Util::StringFind4(input_file, "use_rhoQS_to_rhoB_ratios");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempuse_rhoQS_to_rhoB_ratios;
+    parameter_list.use_rhoQS_to_rhoB_ratios = tempuse_rhoQS_to_rhoB_ratios;
+    double temp_ratio_q = 1;
+    double temp_ratio_s = 1;
+    if(parameter_list.use_rhoQS_to_rhoB_ratios == 1){
+	    tempinput = Util::StringFind4(input_file, "ratio_q");
+    	    if (tempinput != "empty")
+            	istringstream(tempinput) >> temp_ratio_q;
+	    tempinput = Util::StringFind4(input_file, "ratio_s");
+    	    if (tempinput != "empty")
+            	istringstream(tempinput) >> temp_ratio_s;
+    }
+    parameter_list.ratio_q = temp_ratio_q;
+    parameter_list.ratio_s = temp_ratio_s;
+    
     // Eta_grid_size:  total length of box in eta direction (minus delta_eta)
     // e.g., neta=8 and eta_size=8 has 8 cells that run from eta=-4 to eta=3
     double tempeta_size = 8.;

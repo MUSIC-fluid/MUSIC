@@ -37,6 +37,7 @@ class U_derivative {
     //! this function returns the vector D^\mu(\mu_B/T)
     void get_DmuMuBoverTVec(DmuMuBoverTVec &vec);
 
+
     //! this function computes the kinetic vorticity
     void calculate_kinetic_vorticity_with_spatial_projector(
         const double tau, Fields &arena, const int fieldIdx,

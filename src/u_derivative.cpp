@@ -466,7 +466,6 @@ void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
         vec[mu] = dUsup[4][mu];
 }
 
-
 int U_derivative::MakeDSpatial(const double tau, Fields &arena,
                                const int fieldIdx,
                                const int ix, const int iy, const int ieta) {

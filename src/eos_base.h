@@ -82,6 +82,7 @@ class EOS_base {
 
     virtual void   initialize_eos () {}
     virtual void   initialize_eos (int eos_id_in) {}
+    // Virtual functions to adapt for multiple conserved charges EoS.
     virtual double get_cs2        (double e, double rhob) const;
     virtual double p_rho_func     (double e, double rhob) const {return(0.0);}
     virtual double p_e_func       (double e, double rhob) const {return(0.0);}

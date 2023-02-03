@@ -116,9 +116,10 @@ void Advance::FirstRKStepT(
     // (including geometric terms)
     TJbVec qi = {0};
     double pressure = eos.get_pressure(cellCurr.e, cellCurr.rhob);
-    for (int alpha = 0; alpha < 5; alpha++) {
+    for (int alpha = 0; alpha < 7; alpha++) {
         qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure)*tau_rk;
     }
+
     MakeDeltaQI(tau_rk, arenaFieldsCurr, ix, iy, ieta, qi, rk_flag);
 
     TJbVec qi_source = {0.0};
@@ -149,16 +150,19 @@ void Advance::FirstRKStepT(
 
     // now MakeWSource returns partial_a W^{a mu}
     // (including geometric terms)
+
     TJbVec dwmn ={0.0};
+
     diss_helper.MakeWSource(tau_rk, ix, iy, ieta,
                             dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
 
+
     double pressurePrev = eos.get_pressure(cellPrev.e, cellPrev.rhob);
-    for (int alpha = 0; alpha < 5; alpha++) {
+    for (int alpha = 0; alpha < 7; alpha++) {
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn[alpha]*(DATA.delta_tau);
 
-        // add energy moemntum and net baryon density source terms
+        // add energy momentum and net baryon density source terms
         qi[alpha] += qi_source[alpha]*DATA.delta_tau;
 
         // set baryon density back to zero if viscous correction made it
@@ -179,7 +183,12 @@ void Advance::FirstRKStepT(
     double tau_next = tau + DATA.delta_tau;
     auto grid_rk_t = reconst_helper.ReconstIt_shell(tau_next, qi, cellCurr);
     arenaFieldsNext.e_[fieldIdx] = grid_rk_t.e;
+
+
     arenaFieldsNext.rhob_[fieldIdx] = grid_rk_t.rhob;
+    arenaFieldsNext.rhoq_[fieldIdx] = grid_rk_t.rhoq;
+    arenaFieldsNext.rhos_[fieldIdx] = grid_rk_t.rhos;
+
     for (int ii = 0; ii < 4; ii++) {
         arenaFieldsNext.u_[ii][fieldIdx] = grid_rk_t.u[ii];
     }
@@ -492,7 +501,7 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
         double pressureP2 = eos.get_pressure(p2.e, p2.rhob);
         double pressureM1 = eos.get_pressure(m1.e, m1.rhob);
         double pressureM2 = eos.get_pressure(m2.e, m2.rhob);
-        for (int alpha = 0; alpha < 5; alpha++) {
+        for (int alpha = 0; alpha < 7; alpha++) {
             const double gphL = qi[alpha];
             const double gphR = tau*get_TJb(p1, alpha, 0, pressureP1);
             const double gmhL = tau*get_TJb(m1, alpha, 0, pressureM1);
@@ -525,7 +534,7 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
 
         double aiph = std::max(aiphL, aiphR);
         double aimh = std::max(aimhL, aimhR);
-        for (int alpha = 0; alpha < 5; alpha++) {
+        for (int alpha = 0; alpha < 7; alpha++) {
             double FiphL = (tau_fac[direction]
                             *get_TJb(grid_phL, alpha, direction, pressureP1));
             double FiphR = (tau_fac[direction]
@@ -571,7 +580,7 @@ void Advance::MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,
     //rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
     //rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 7; i++) {
         qi[i] += rhs[i];
     }
 }
@@ -653,11 +662,24 @@ double Advance::get_TJb(const ReconstCell &grid_p, const int mu, const int nu,
                         const double pressure) {
     //assert(mu < 5); assert(mu > -1);
     //assert(nu < 4); assert(nu > -1);
+
     double rhob = grid_p.rhob;
+    double rhoq = grid_p.rhoq;
+    double rhos = grid_p.rhos;
+
     const double u_nu = grid_p.u[nu];
-    if (mu == 4) {
-        return rhob*u_nu;
+
+    switch ((int) mu){
+    	case 4:
+		return rhob*u_nu;
+    	case 5:
+		return rhoq*u_nu;
+    	case 6:
+		return rhos*u_nu;
+	default:
+		break;
     }
+
     double e = grid_p.e;
     double gfac = 0.0;
     double u_mu = 0.0;

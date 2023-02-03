@@ -43,27 +43,29 @@ class Reconst {
                                   const TJbVec &q, const ReconstCell &grid_pt);
 
     void reconst_velocity_fdf(const double v, const double T00, const double M,
-                              const double J0, double &fv, double &dfdv) const;
+                              const double J0B, double &fv, double &dfdv) const;
+
     void reconst_velocity_f(const double v, const double T00, const double M,
-                            const double J0, double &fv) const;
+                            const double J0B, double &fv) const;
 
     void reconst_u0_fdf(const double u0, const double T00, const double K00,
-                        const double M, const double J0,
+                        const double M, const double J0B,
                         double &fu0, double &dfdu0) const;
 
     int solve_velocity_Newton(const double v_guess, const double T00,
-                              const double M, const double J0,
+                              const double M, const double J0B,
                               double &v_solution);
+
     int solve_v_Hybrid(const double v_guess, const double T00,
-                       const double M, const double J0,
+                       const double M, const double J0B,
                        double &v_solution);
 
     int solve_u0_Newton(const double u0_guess, const double T00,
-                        const double K00, const double M, const double J0,
+                        const double K00, const double M, const double J0B,
                         double &u0_solution);
 
     int solve_u0_Hybrid(const double u0_guess, const double T00,
-                        const double K00, const double M, const double J0,
+                        const double K00, const double M, const double J0B,
                         double &u0_solution);
 
     void regulate_grid(ReconstCell &grid_cell, double elocal) const;
