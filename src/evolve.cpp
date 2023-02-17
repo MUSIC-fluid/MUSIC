@@ -40,8 +40,6 @@ Evolve::Evolve(const EOS &eosIn, InitData &DATA_in,
 int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                      Fields &arenaFieldsNext, HydroinfoMUSIC &hydro_info_ptr) {
     // first pass some control parameters
-    facTau                      = DATA.facTau;
-    int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
     int freezeout_flag          = DATA.doFreezeOut;
     int freezeout_lowtemp_flag  = DATA.doFreezeOut_lowtemp;
 
@@ -57,9 +55,8 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     // main loop starts ...
     int    itmax = DATA.nt;
     double tau0  = DATA.tau0;
-    double dt    = DATA.delta_tau;
+    double tauMax = DATA.tau0 + DATA.nt*DATA.delta_tau;
 
-    double tau;
     int iFreezeStart = 0;
     double source_tau_max = 0.0;
     if (hydro_source_terms_ptr) {
@@ -69,12 +66,13 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                     hydro_source_terms_ptr->get_source_tauStart_max());
             freezeOutTauStart = std::min(DATA.freezeOutTauStartMax,
                                          freezeOutTauStart);
-            iFreezeStart = static_cast<int>((freezeOutTauStart - tau0)/dt) + 2;
+            iFreezeStart = (static_cast<int>((freezeOutTauStart - tau0)
+                                             /DATA.delta_tau) + 2);
         }
     }
 
-    music_message << "Freeze-out surface starts at " << tau0 + iFreezeStart*dt
-                  << " fm/c.";
+    music_message << "Freeze-out surface starts at "
+                  << tau0 + iFreezeStart*DATA.delta_tau << " fm/c.";
     music_message.flush("info");
 
     Fields* fpPrev = &arenaFieldsPrev;
@@ -89,7 +87,20 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     int it = 0;
     double eps_max_cur = -1.;
     const double max_allowed_e_increase_factor = 5.;
-    for (it = 0; it <= itmax; it++) {
+    double tau = tau0;
+    const int NtauBlock = 400;
+    while (tau < tauMax) {
+        if (it > 0 && it % NtauBlock == 0) {
+            DATA.delta_tau *= 2.;
+            DATA.facTau = std::min(1, static_cast<int>(DATA.facTau/2));
+            DATA.output_evolution_every_N_timesteps = (
+                std::min(1, static_cast<int>(
+                        DATA.output_evolution_every_N_timesteps/2)));
+        }
+        int facTau = DATA.facTau;
+        int Nskip_timestep = DATA.output_evolution_every_N_timesteps;
+        double dt = DATA.delta_tau;
+
         tau = tau0 + dt*it;
 
         if (hydro_source_terms_ptr) {
@@ -271,8 +282,9 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                 break;
             }
         }
+        it++;
     }
-    if (it < itmax) {
+    if (tau < tauMax) {
         music_message.info("Finished.");
     } else {
         music_message.warning("Maximum allowed time reached.");
@@ -361,7 +373,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
     const int dim = 4;
     int intersections = 0;
 
-    facTau      = DATA.facTau;   // step to skip in tau direction
+    int facTau = DATA.facTau;   // step to skip in tau direction
     int fac_x   = DATA.fac_x;
     int fac_y   = DATA.fac_y;
     int fac_eta = 1;
@@ -1008,7 +1020,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         int intersect;
         int intersections = 0;
 
-        facTau    = DATA.facTau;   // step to skip in tau direction
+        int facTau = DATA.facTau;   // step to skip in tau direction
         int fac_x = DATA.fac_x;
         int fac_y = DATA.fac_y;
 

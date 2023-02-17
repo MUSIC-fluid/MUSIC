@@ -29,8 +29,6 @@ class Evolve {
     // simulation information
     int rk_order;
 
-    int facTau;
-
     // information about freeze-out surface
     // (only used when freezeout_method == 4)
     std::vector<double> epsFO_list;
