@@ -23,7 +23,7 @@ typedef struct init_data {
     bool reRunHydro;
     int reRunCount;
 
-    bool beastMode;
+    int beastMode;
 
     int mode;               //!< 1: do everything;
                             //!< 2: do hydro evolution only;

@@ -90,12 +90,12 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     double tau = tau0;
     const int NtauBlock = 400;
     while (tau < tauMax) {
-        if (it > 0 && it % NtauBlock == 0) {
-            DATA.delta_tau *= 2.;
-            DATA.facTau = std::min(1, static_cast<int>(DATA.facTau/2));
+        if (DATA.beastMode == 2 && it > 0 && it % NtauBlock == 0) {
+            DATA.delta_tau = std::min(0.05, 2*DATA.delta_tau);
+            DATA.facTau = std::max(1, static_cast<int>(DATA.facTau/2));
             DATA.output_evolution_every_N_timesteps = (
-                std::min(1, static_cast<int>(
-                        DATA.output_evolution_every_N_timesteps/2)));
+                std::max(1, static_cast<int>(
+                                DATA.output_evolution_every_N_timesteps/2)));
         }
         int facTau = DATA.facTau;
         int Nskip_timestep = DATA.output_evolution_every_N_timesteps;
@@ -150,7 +150,7 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
             grid_info.output_momentum_anisotropy_vs_etas(tau, *fpCurr);
         }
 
-        if (!DATA.beastMode) {
+        if (DATA.beastMode == 0) {
             if (DATA.Initial_profile == 0) {
                 if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
                     || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8

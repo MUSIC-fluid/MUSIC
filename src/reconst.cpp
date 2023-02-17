@@ -6,13 +6,13 @@
 #include "eos.h"
 #include "reconst.h"
 
-Reconst::Reconst(const EOS &eosIn, const int echo_level_in, bool beastMode) :
+Reconst::Reconst(const EOS &eosIn, const int echo_level_in, int beastMode) :
     eos(eosIn),
     max_iter(100),
     LARGE(1e20),
     v_critical(0.563624),
     echo_level(echo_level_in) {
-    if (beastMode) {
+    if (beastMode != 0) {
         abs_err = 1e-8;
         rel_err = 1e-6;
     } else {
