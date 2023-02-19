@@ -88,10 +88,10 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     double eps_max_cur = -1.;
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
-    const int NtauBlock = 400;
+    const int NtauBlock = 200;
     while (tau < tauMax) {
         if (DATA.beastMode == 2 && it > 0 && (it % NtauBlock == 0)) {
-            DATA.delta_tau = std::min(0.05, 2*DATA.delta_tau);
+            DATA.delta_tau = std::min(0.04, 2*DATA.delta_tau);
             DATA.facTau = std::max(1, static_cast<int>(DATA.facTau/2));
             DATA.output_evolution_every_N_timesteps = (
                 std::max(1, static_cast<int>(
@@ -100,8 +100,6 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         int facTau = DATA.facTau;
         int Nskip_timestep = DATA.output_evolution_every_N_timesteps;
         double dt = DATA.delta_tau;
-
-        tau += dt;
 
         if (hydro_source_terms_ptr) {
             hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
@@ -167,6 +165,7 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
 
             grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *fpCurr);
+
             if (DATA.Initial_profile == 13) {
                 grid_info.output_average_phase_diagram_trajectory(
                                                 tau, -0.5, 0.5, *fpCurr);
@@ -282,6 +281,7 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                 break;
             }
         }
+        tau += dt;
         it++;
     }
     if (tau < tauMax) {
