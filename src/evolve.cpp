@@ -55,7 +55,7 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     // main loop starts ...
     int    itmax = DATA.nt;
     double tau0  = DATA.tau0;
-    double tauMax = DATA.tau0 + DATA.nt*DATA.delta_tau;
+    double tauMax = DATA.tau0 + (DATA.nt + 0.5)*DATA.delta_tau;
 
     int iFreezeStart = 0;
     double source_tau_max = 0.0;
