@@ -26,11 +26,7 @@ InitData read_in_parameters(std::string input_file) {
     int tempBeastMode = 0;
     tempinput = Util::StringFind4(input_file, "beastMode");
     if (tempinput != "empty") istringstream ( tempinput ) >> tempBeastMode;
-    if (tempBeastMode == 0) {
-        parameter_list.beastMode = false;
-    } else {
-        parameter_list.beastMode = true;
-    }
+    parameter_list.beastMode = tempBeastMode;
 
     // Initial_profile:
     int tempInitial_profile = 1;
