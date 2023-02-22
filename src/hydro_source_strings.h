@@ -61,7 +61,7 @@ class HydroSourceStrings : public HydroSourceBase {
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(
         const double tau, const double x, const double y, const double eta_s,
-        const FlowVec &u_mu, EnergyFlowVec &j_mu) const ;
+        const FlowVec &u_mu, EnergyFlowVec &j_mu);
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)

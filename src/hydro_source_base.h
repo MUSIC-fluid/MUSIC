@@ -13,6 +13,7 @@ class HydroSourceBase {
     double source_tauStart_max_ = 0.;
     double sigma_tau_ = 0.1;
     double sigma_x_ = 0.1;
+    double sigma_y_ = 0.1;
     double sigma_eta_ = 0.1;
 
  public:
@@ -25,9 +26,11 @@ class HydroSourceBase {
 
     void set_sigma_tau(double sigma_tau_in) {sigma_tau_ = sigma_tau_in;}
     void set_sigma_x  (double sigma_x_in  ) {sigma_x_   = sigma_x_in  ;}
+    void set_sigma_y  (double sigma_y_in  ) {sigma_y_   = sigma_y_in  ;}
     void set_sigma_eta(double sigma_eta_in) {sigma_eta_ = sigma_eta_in;}
     double get_sigma_tau() const {return(sigma_tau_);}
     double get_sigma_x  () const {return(sigma_x_  );}
+    double get_sigma_y  () const {return(sigma_y_  );}
     double get_sigma_eta() const {return(sigma_eta_);}
 
     //! Set the minimum and maximum tau for the source term
@@ -44,7 +47,7 @@ class HydroSourceBase {
     //! (tau, x, y, eta_s)
     virtual void get_hydro_energy_source(
         const double tau, const double x, const double y, const double eta_s,
-        const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
+        const FlowVec &u_mu, EnergyFlowVec &j_mu) {
         j_mu = {0.0};
     }
 
@@ -60,7 +63,7 @@ class HydroSourceBase {
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source_before_tau(
         const double tau, const double x, const double y, const double eta_s,
-        EnergyFlowVec &j_mu) const;
+        EnergyFlowVec &j_mu);
 
     //! this function returns the net baryon density source term rho
     //! up to a given point (tau, x, y, eta_s)

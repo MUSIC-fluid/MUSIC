@@ -213,7 +213,7 @@ void HydroSourceTATB::computeTATB(const double x_0, const double y_0,
 
 void HydroSourceTATB::get_hydro_energy_source(
     const double tau, const double x, const double y, const double eta_s,
-    const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
+    const FlowVec &u_mu, EnergyFlowVec &j_mu) {
     const double dtau = DATA_.delta_tau;
     j_mu = {0};
     if (std::abs((tau - tau_source)) > 1./2.*dtau) return;

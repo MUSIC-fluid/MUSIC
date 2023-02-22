@@ -14,6 +14,7 @@
 #include "hydro_source_strings.h"
 #include "hydro_source_ampt.h"
 #include "hydro_source_TATB.h"
+#include "hydro_source_bullet.h"
 
 #ifdef GSL
     #include "freeze.h"
@@ -69,6 +70,40 @@ void MUSIC::generate_hydro_source_terms() {
         auto hydro_source_ptr = std::shared_ptr<HydroSourceTATB> (
                                             new HydroSourceTATB (DATA));
         add_hydro_source_terms(hydro_source_ptr);
+    } else if (DATA.Initial_profile == 941) {
+
+        //Load definitions of the grid
+        #ifdef ROOT_FOUND
+        TFile* fIC = TFile::Open(DATA.initName.data(),"READ");
+        TH3D* hE = (TH3D*) fIC->Get("energy_density");
+
+        music_message << "Using Initial_profile=" << DATA.Initial_profile
+                      << ". Overwriting lattice dimensions:";
+
+        DATA.nx = hE->GetXaxis()->GetNbins();
+        DATA.delta_x = hE->GetXaxis()->GetBinWidth(1);
+        DATA.x_size = -2*(hE->GetXaxis()->GetBinCenter(1));
+
+        DATA.ny = hE->GetYaxis()->GetNbins();
+        DATA.delta_y = hE->GetYaxis()->GetBinWidth(1);
+        DATA.y_size = -2*(hE->GetYaxis()->GetBinCenter(1));
+
+        DATA.neta = hE->GetZaxis()->GetNbins();
+        DATA.delta_eta = hE->GetZaxis()->GetBinWidth(1);
+        DATA.eta_size = -2*(hE->GetZaxis()->GetBinCenter(1));
+        #else
+        music_message << "ROOT not found. Cannot use Initial_profile="
+                      << DATA.Initial_profile;
+        music_message.flush("error");
+        exit(EXIT_FAILURE);
+        #endif
+
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceBullet> ( 
+                                            new HydroSourceBullet (DATA)
+                                            );
+        add_hydro_source_terms(hydro_source_ptr);
+        music_message << "Bullet initialized";
+        music_message.flush("info");
     }
 }
 

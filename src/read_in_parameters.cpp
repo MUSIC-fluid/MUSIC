@@ -1050,6 +1050,79 @@ InitData read_in_parameters(std::string input_file) {
     music_message.info("Done read_in_parameters.");
     check_parameters(parameter_list, input_file);
 
+    //Only relevant for IC 941
+    double temp_total_current_energy = 60;
+    tempinput = Util::StringFind4(input_file, "total_current_energy");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_total_current_energy;
+    parameter_list.total_current_energy = temp_total_current_energy;
+
+    double temp_total_current_momentum_x = 40;
+    tempinput = Util::StringFind4(input_file, "total_current_momentum_x");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_total_current_momentum_x;
+    parameter_list.total_current_momentum_x = temp_total_current_momentum_x;
+
+    double temp_total_current_momentum_y = 0;
+    tempinput = Util::StringFind4(input_file, "total_current_momentum_y");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_total_current_momentum_y;
+    parameter_list.total_current_momentum_y = temp_total_current_momentum_y;
+
+    double temp_total_current_momentum_z = 0;
+    tempinput = Util::StringFind4(input_file, "total_current_momentum_z");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_total_current_momentum_z;
+    parameter_list.total_current_momentum_z = temp_total_current_momentum_z;
+
+    double temp_bullet_size_x = .5;
+    tempinput = Util::StringFind4(input_file, "bullet_size_x");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_bullet_size_x;
+    parameter_list.bullet_size_x = temp_bullet_size_x;
+
+    double temp_bullet_size_y = .5;
+    tempinput = Util::StringFind4(input_file, "bullet_size_y");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_bullet_size_y;
+    parameter_list.bullet_size_y = temp_bullet_size_y;
+
+    double temp_bullet_size_eta_s= 1.;
+    tempinput = Util::StringFind4(input_file, "bullet_size_eta_s");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_bullet_size_eta_s;
+    parameter_list.bullet_size_eta_s = temp_bullet_size_eta_s;
+
+    double temp_bullet_position_x = 0.;
+    tempinput = Util::StringFind4(input_file, "bullet_position_x");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_bullet_position_x;
+    parameter_list.bullet_position_x = temp_bullet_position_x;
+
+    double temp_bullet_position_y = 0.;
+    tempinput = Util::StringFind4(input_file, "bullet_position_y");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_bullet_position_y;
+    parameter_list.bullet_position_y = temp_bullet_position_y;
+
+    double temp_bullet_position_eta_s = 0.;
+    tempinput = Util::StringFind4(input_file, "bullet_position_eta_s");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_bullet_position_eta_s;
+    parameter_list.bullet_position_eta_s = temp_bullet_position_eta_s;
+
+    double temp_bullet_initial_time = .5;
+    tempinput = Util::StringFind4(input_file, "bullet_initial_time");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_bullet_initial_time;
+    parameter_list.bullet_initial_time = temp_bullet_initial_time;
+
+    double temp_bullet_final_time = .5001;
+    tempinput = Util::StringFind4(input_file, "total_bullet_final_time");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_bullet_final_time;
+    parameter_list.bullet_final_time = temp_bullet_final_time;
+
     return parameter_list;
 }
 

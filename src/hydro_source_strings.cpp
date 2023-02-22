@@ -353,7 +353,7 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
 
 void HydroSourceStrings::get_hydro_energy_source(
     const double tau, const double x, const double y, const double eta_s,
-    const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
+    const FlowVec &u_mu, EnergyFlowVec &j_mu) {
     j_mu = {0};
     if (   QCD_strings_list_current_tau.size() == 0
         && QCD_strings_remnant_list_current_tau.size() == 0) return;

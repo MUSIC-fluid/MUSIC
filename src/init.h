@@ -6,6 +6,14 @@
 #include <vector>
 #include <cmath>
 #include <memory>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+
+#ifdef ROOT_FOUND
+#include "TFile.h"
+#include "TH3D.h"
+#endif
 
 #include "data.h"
 #include "cell.h"
@@ -60,6 +68,8 @@ class Init {
                               Fields &arenaFieldsCurr);
     void initial_AMPT_XY(int ieta, Fields &arenaFieldsPrev,
                          Fields &arenaFieldsCurr);
+    void initial_ROOT_XYEta_with_pi(Fields &arenaFieldsCurr, 
+                                    Fields &arena_current);
     void initial_MCGlb_with_rhob(Fields &arenaFieldsPrev,
                                  Fields &arenaFieldsCurr);
     void initial_UMN_with_rhob(Fields &arenaFieldsPrev,

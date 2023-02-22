@@ -106,6 +106,46 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << " fm, dy=" << DATA.delta_y << " fm.";
         music_message.flush("info");
+    } else if (DATA.Initial_profile == 94  ||
+               DATA.Initial_profile == 941 ||
+               DATA.Initial_profile == 95){
+        //Initial profile == 94 => Bulk pressure = eps/3 - pressure => Tmunu is traceless
+        //Initial profile == 941 => Bulk pressure = eps/3 - pressure => Tmunu is traceless
+                              //--> Bullet is present
+        //Initial profile == 95 => Bulk pressure = -pressure => Tmunu is not traceless
+
+        //Open root file
+        #ifdef ROOT_FOUND
+        TFile* fIC = TFile::Open(DATA.initName.data(),"READ");
+        TH3D* hE = (TH3D*) fIC->Get("energy_density");
+
+        music_message << "Using Initial_profile=" << DATA.Initial_profile
+                      << ". Overwriting lattice dimensions:";
+
+        DATA.nx = hE->GetXaxis()->GetNbins();
+        DATA.delta_x = hE->GetXaxis()->GetBinWidth(1);
+        DATA.x_size = -2*(hE->GetXaxis()->GetBinCenter(1));
+
+        DATA.ny = hE->GetYaxis()->GetNbins();
+        DATA.delta_y = hE->GetYaxis()->GetBinWidth(1);
+        DATA.y_size = -2*(hE->GetYaxis()->GetBinCenter(1));
+
+        DATA.neta = hE->GetZaxis()->GetNbins();
+        DATA.delta_eta = hE->GetZaxis()->GetBinWidth(1);
+        DATA.eta_size = -2*(hE->GetZaxis()->GetBinCenter(1));
+
+        music_message << " neta=" << DATA.neta << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
+        music_message << " deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
+                      << ", dy=" << DATA.delta_y;
+        music_message << "Leta= "<< DATA.eta_size <<", Lx=" << DATA.x_size<< ", Ly="<<DATA.y_size;
+        music_message.flush("info");
+
+        fIC->Close();
+        #else
+        music_message << "MUSIC was not compiled against ROOT, necessary for ";
+        music_message << "reading ICs with Initial profile = 94, 941 or 95.";
+        music_message.flush("error");
+        #endif
     } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111) {
         double tau_overlap = 2.*7./(sinh(DATA.beam_rapidity));
         DATA.tau0 = std::max(DATA.tau0, tau_overlap);
@@ -184,7 +224,6 @@ void Init::print_num_of_threads() {
     }
 }
 
-
 //! This is a shell function to initial hydrodynamic fields
 void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
     if (DATA.Initial_profile == 0) {
@@ -224,6 +263,17 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
         for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
             initial_IPGlasma_XY_with_pi(ieta, arenaFieldsPrev, arenaFieldsCurr);
         }
+    } else if (   DATA.Initial_profile == 94  ||
+                  DATA.Initial_profile == 941 ||
+                  DATA.Initial_profile == 95) {
+        // read in the profile from file
+        // - Full Tmunu in ROOT format
+        music_message.info(" ----- information on initial distribution -----");
+        music_message << "file name used: " << DATA.initName;
+        music_message.flush("info");
+
+        initial_ROOT_XYEta_with_pi(arenaFieldsPrev, arenaFieldsCurr);
+
     } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111) {
         // read in the transverse profile from file with finite rho_B
         // the initial entropy and net baryon density profile are
@@ -727,6 +777,116 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, Fields &arenaFieldsPrev,
     }
 }
 
+void Init::initial_ROOT_XYEta_with_pi(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
+    #ifdef ROOT_FOUND
+    // Initial_profile == 94 : full T^\mu\nu(x, y, eta)
+    double tau0 = DATA.tau0;
+    //ifstream profile(DATA.initName.c_str());
+
+    const int nx = arenaFieldsCurr.nX();
+    const int ny = arenaFieldsCurr.nY();
+    const int neta = arenaFieldsCurr.nEta();
+
+    //Open file and get histograms
+    TFile* fIC = TFile::Open(DATA.initName.data(),"READ");
+    TH3D* hE = (TH3D*) fIC->Get("energy_density");
+    TH3D* hux = (TH3D*) fIC->Get("ux");
+    TH3D* huy = (TH3D*) fIC->Get("uy");
+    TH3D* hueta = (TH3D*) fIC->Get("ueta");
+    TH3D* hpixx = (TH3D*) fIC->Get("pi_xx");
+    TH3D* hpixy = (TH3D*) fIC->Get("pi_xy");
+    TH3D* hpixeta = (TH3D*) fIC->Get("pi_xeta");
+    TH3D* hpiyy = (TH3D*) fIC->Get("pi_yy");
+    TH3D* hpiyeta = (TH3D*) fIC->Get("pi_yeta");
+    
+    for (int ix = 0; ix < nx; ix++) {
+        for (int iy = 0; iy < ny; iy++) {
+            for (int ieta=0; ieta<neta;++ieta){
+                int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+
+                double density = hE->GetBinContent(ix+1,iy+1,ieta+1);
+                double ux = hux->GetBinContent(ix+1,iy+1,ieta+1);
+                double uy = huy->GetBinContent(ix+1,iy+1,ieta+1);
+                double ueta = hueta->GetBinContent(ix+1,iy+1,ieta+1);
+                double pixx = hpixx->GetBinContent(ix+1,iy+1,ieta+1)*DATA.sFactor;
+                double pixy = hpixy->GetBinContent(ix+1,iy+1,ieta+1)*DATA.sFactor;
+                double pixeta = hpixeta->GetBinContent(ix+1,iy+1,ieta+1)*tau0*DATA.sFactor;
+                double piyy = hpiyy->GetBinContent(ix+1,iy+1,ieta+1)*DATA.sFactor;
+                double piyeta = hpiyeta->GetBinContent(ix+1,iy+1,ieta+1)*tau0*DATA.sFactor;
+                double utau = sqrt(1.0 + ux*ux + uy*uy + ueta*ueta);
+                ueta = ueta*tau0;
+
+                double pietaeta = ( (2.*(  ux*uy*pixy + ux*ueta*pixeta
+                                         + uy*ueta*piyeta)
+                                        - (utau*utau - ux*ux)*pixx
+                                        - (utau*utau - uy*uy)*piyy)
+                                         /(utau*utau - ueta*ueta));
+                double pitaux = (1./utau
+                    *(  pixx*ux + pixy*uy + pixeta*ueta));
+                double pitauy = (1./utau
+                    *(  pixy*ux + piyy*uy + piyeta*ueta));
+                double pitaueta = (1./utau
+                    *(  pixeta*ux + piyeta*uy  + pietaeta*ueta));
+                double pitautau = (1./utau 
+                    *(  pitaux*ux + pitauy*uy + pitaueta*ueta));
+                
+                double rhob = 0.0;
+                double epsilon = 0.0;
+                epsilon = (density*DATA.sFactor/hbarc);  // 1/fm^4
+                epsilon = std::max(Util::small_eps, epsilon);
+                
+                
+                arenaFieldsCurr.e_[idx] = epsilon;
+                arenaFieldsCurr.rhob_[idx] = rhob;
+                arenaFieldsCurr.u_[0][idx] = utau;
+                arenaFieldsCurr.u_[1][idx] = ux;
+                arenaFieldsCurr.u_[2][idx] = uy;
+                arenaFieldsCurr.u_[3][idx] = ueta;
+
+                arenaFieldsCurr.Wmunu_[0][idx] = pitautau;
+                arenaFieldsCurr.Wmunu_[1][idx] = pitaux;
+                arenaFieldsCurr.Wmunu_[2][idx] = pitauy;
+                arenaFieldsCurr.Wmunu_[3][idx] = pitaueta;
+                arenaFieldsCurr.Wmunu_[4][idx] = pixx;
+                arenaFieldsCurr.Wmunu_[5][idx] = pixy;
+                arenaFieldsCurr.Wmunu_[6][idx] = pixeta;
+                arenaFieldsCurr.Wmunu_[7][idx] = piyy;
+                arenaFieldsCurr.Wmunu_[8][idx] = piyeta;
+                arenaFieldsCurr.Wmunu_[9][idx] = pietaeta;
+
+                double pressure = eos.get_pressure(epsilon, rhob);
+                if ( DATA.Initial_profile == 94) arenaFieldsCurr.piBulk_[idx] = epsilon/3. - pressure;
+                if ( DATA.Initial_profile == 95) arenaFieldsCurr.piBulk_[idx] = epsilon/3. - pressure;
+
+                arenaFieldsPrev.e_[idx] = epsilon;
+                arenaFieldsPrev.rhob_[idx] = rhob;
+                arenaFieldsPrev.u_[0][idx] = utau;
+                arenaFieldsPrev.u_[1][idx] = ux;
+                arenaFieldsPrev.u_[2][idx] = uy;
+                arenaFieldsPrev.u_[3][idx] = ueta;
+
+                arenaFieldsPrev.Wmunu_[0][idx] = pitautau;
+                arenaFieldsPrev.Wmunu_[1][idx] = pitaux;
+                arenaFieldsPrev.Wmunu_[2][idx] = pitauy;
+                arenaFieldsPrev.Wmunu_[3][idx] = pitaueta;
+                arenaFieldsPrev.Wmunu_[4][idx] = pixx;
+                arenaFieldsPrev.Wmunu_[5][idx] = pixy;
+                arenaFieldsPrev.Wmunu_[6][idx] = pixeta;
+                arenaFieldsPrev.Wmunu_[7][idx] = piyy;
+                arenaFieldsPrev.Wmunu_[8][idx] = piyeta;
+                arenaFieldsPrev.Wmunu_[9][idx] = pietaeta;
+
+                arenaFieldsPrev.piBulk_[idx] = arenaFieldsCurr.piBulk_[idx];
+            }
+        }
+    }
+    fIC->Close();
+    #else
+    music_message << "MUSIC not  compiled against CERN-ROOT. You cannot use current Initial_profile option.";
+    music_message.flush("error");
+    exit(EXIT_FAILURE);
+    #endif
+}
 
 void Init::initial_MCGlb_with_rhob(Fields &arenaFieldsPrev,
                                    Fields &arenaFieldsCurr) {
@@ -895,7 +1055,6 @@ void Init::initial_UMN_with_rhob(Fields &arenaFieldsPrev,
 
     profile.close();
 }
-
 
 void Init::initial_AMPT_XY(int ieta, Fields &arenaFieldsPrev,
                            Fields &arenaFieldsCurr) {

@@ -10,6 +10,7 @@ set (SOURCES
     hydro_source_strings.cpp
     hydro_source_ampt.cpp
     hydro_source_TATB.cpp
+    hydro_source_bullet.cpp
     pretty_ostream.cpp
     grid_info.cpp
     util.cpp
@@ -49,6 +50,10 @@ if (GSL_FOUND)
     set(CompileFlags "${CompileFlags} -DGSL")
     target_link_libraries (${libname} ${GSL_LIBRARIES})
 endif()
+if (ROOT_FOUND)
+    target_link_libraries(${libname} ${ROOT_LIBRARIES})
+endif()
+
 set_target_properties (${libname} PROPERTIES COMPILE_FLAGS "${CompileFlags}")
 install(TARGETS ${libname} DESTINATION ${CMAKE_HOME_DIRECTORY})
 
@@ -79,5 +84,7 @@ else (unittest)
         endif (GSL_FOUND)
     endif (link_with_lib)
     set_target_properties (${exename} PROPERTIES COMPILE_FLAGS "${CompileFlags}")
+    target_link_libraries (${exename} ${libname})
     install(TARGETS ${exename} DESTINATION ${CMAKE_HOME_DIRECTORY})
 endif (unittest)
+
