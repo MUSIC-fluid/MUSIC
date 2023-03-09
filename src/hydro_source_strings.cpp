@@ -221,7 +221,8 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
                                   /std::max(1., total_baryon_number)/2760.);
     double npartAddRadius = total_baryon_number/500.;
     double reRunAddRadius = DATA.reRunCount*2.;
-    double gridOffset = 3 + energyAddRadius + npartAddRadius + reRunAddRadius;
+    double gridOffset = (DATA.gridPadding + energyAddRadius
+                         + npartAddRadius + reRunAddRadius);
     gridOffset = std::max(gridOffset, 5.*DATA.stringSourceSigmaX);
     DATA.x_size = 2.*(xMax + gridOffset);
     DATA.y_size = 2.*(yMax + gridOffset);

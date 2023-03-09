@@ -41,6 +41,8 @@ typedef struct init_data {
     // parameters for Initial_profile == 30
     std::string initName_AMPT;  //!< initial state filename from AMPT
 
+    double gridPadding;         //!< grid padding size from user (default: 3 fm)
+
     //! random seed
     int seed;
     double ecm;                 //!< collision energy [GeV]

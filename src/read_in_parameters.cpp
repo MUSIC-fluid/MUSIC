@@ -80,6 +80,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_parton_quench_factor;
     parameter_list.parton_quench_factor = temp_parton_quench_factor;
 
+    // hydro grid information
+    double temp_gridPadding = 3.;      // fm
+    tempinput = Util::StringFind4(input_file, "gridPadding");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_gridPadding;
+    parameter_list.gridPadding = temp_gridPadding;
+
     // boost-invariant
     int temp_boost_invariant = 1;
     tempinput = Util::StringFind4(input_file, "boost_invariant");
