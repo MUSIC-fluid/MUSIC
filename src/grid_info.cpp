@@ -1,6 +1,7 @@
 // Copyright Chun Shen @ 2014-2016
 #include <string>
 #include <iomanip>
+#include <iostream>
 #include <cmath>
 #include <vector>
 
@@ -488,6 +489,17 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
 
                 if (e_local*hbarc < DATA.output_evolution_e_cut) continue;
                 // only ouput fluid cells that are above cut-off temperature
+
+                // check whether the cells are reaching the grid edges
+                if (ix == 0 || ix == arena.nX() - 1
+                        || iy == 0 || iy == arena.nY() - 1) {
+                    std::cout << "Physical cells with e > "
+                              << DATA.output_evolution_e_cut
+                              << " GeV/fm^3, are reaching the grid edge! "
+                              << "ix = " << ix << ", iy = " << iy
+                              << std::endl;
+                    exit(-1);
+                }
 
                 eos.getThermalVariables(e_local, rhob_local, thermalVec);
                 double p_local = thermalVec[2];
