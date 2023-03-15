@@ -125,20 +125,20 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
     string strDummy;
     double dummy;
     double x_0, y_0;
-    int dir, e;
+    double dir, e;
     std::getline(partFile, strDummy);
     partFile >> dummy >> x_0 >> y_0 >> dummy >> dir >> e;
     while (!partFile.eof()) {
         participant part_i;
         part_i.x = x_0;
         part_i.y = y_0;
-        part_i.dir = dir;
+        part_i.dir = static_cast<int>(dir);
         part_i.e = e;
-        partList.push_back(part_i);
-        if (dir == 1)
+        if (part_i.dir == 1)
             TA_++;
         else
             TB_++;
+        partList.push_back(part_i);
         partFile >> dummy >> x_0 >> y_0 >> dummy >> dir >> e;
     }
     partFile.close();
@@ -183,13 +183,13 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
     }
 
     for (const auto &part_i : partList) {
-        computeTATB(part_i.x, part_i.y, part_i.dir, part_i.e);
+        computeTATB(part_i.x, part_i.y, part_i.dir);
     }
 }
 
 
 void HydroSourceTATB::computeTATB(const double x_0, const double y_0,
-                                  const int dir, const int e) {
+                                  const int dir) {
     const double wsq = DATA_.nucleonWidth*DATA_.nucleonWidth;
     const double preFact = 1./(2.*M_PI*wsq);
     for (int i = 0; i < DATA_.nx; i++) {
