@@ -1901,7 +1901,7 @@ void Cell_info::output_average_phase_diagram_trajectory(
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
 
                 double e_local = arena.e_[fieldIdx];    // 1/fm^4
-                if (e_local > 0.16/hbarc)
+                if (e_local*hbarc > DATA.output_evolution_e_cut)
                     V4 += unit_volume;
                 double rhob_local = arena.rhob_[fieldIdx];     // 1/fm^3
                 double utau = arena.u_[0][fieldIdx];
