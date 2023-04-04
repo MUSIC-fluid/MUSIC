@@ -13,11 +13,11 @@ class EOS_WB : public EOS_base {
     ~EOS_WB() {}
     
     void initialize_eos();
-    double get_cs2        (double e, double rhob) const;
-    double p_e_func       (double e, double rhob) const;
-    double get_temperature(double e, double rhob) const;
-    double get_pressure   (double e, double rhob) const;
-    double get_s2e        (double s, double rhob) const;
+    double get_cs2        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double p_e_func       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double get_temperature(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double get_pressure   (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double get_s2e        (double s, double rhob, double rhoq=0.0, double rhos=0.0) const;
 
     void check_eos() const {check_eos_no_muB();}
 };

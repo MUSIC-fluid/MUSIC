@@ -25,13 +25,13 @@ void EOS_WB::initialize_eos() {
 }
 
 
-double EOS_WB::get_cs2(double e, double rhob) const {
+double EOS_WB::get_cs2(double e, double rhob, double rhoq, double rhos) const {
     double f = calculate_velocity_of_sound_sq(e, rhob);
     return(f);
 }
 
 
-double EOS_WB::p_e_func(double e_local, double rhob) const {
+double EOS_WB::p_e_func(double e_local, double rhob, double rhoq, double rhos) const {
     double cs2_local;
     double e1 = e_local;
     double e2 = e1*e1;
@@ -66,7 +66,7 @@ double EOS_WB::p_e_func(double e_local, double rhob) const {
 
 //! This function returns the local temperature in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_WB::get_temperature(double e_local, double rhob) const {
+double EOS_WB::get_temperature(double e_local, double rhob, double rhoq, double rhos) const {
     double temperature;
     double e1 = e_local;
     double e2 = e1*e1;
@@ -97,7 +97,7 @@ double EOS_WB::get_temperature(double e_local, double rhob) const {
 
 //! This function returns the local pressure in [1/fm^4]
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
-double EOS_WB::get_pressure(double e_local, double rhob) const {
+double EOS_WB::get_pressure(double e_local, double rhob, double rhoq, double rhos) const {
     double p;
     double e1 = e_local;
     double e2 = e1*e_local;
@@ -131,7 +131,7 @@ double EOS_WB::get_pressure(double e_local, double rhob) const {
 }
 
 
-double EOS_WB::get_s2e(double s, double rhob) const {
+double EOS_WB::get_s2e(double s, double rhob, double rhoq, double rhos) const {
     double e = get_s2e_finite_rhob(s, 0.0);
     return(e);
 }

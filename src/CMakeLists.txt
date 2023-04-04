@@ -26,6 +26,7 @@ set (SOURCES
     eos_best.cpp
     eos_neos.cpp
     eos_UH.cpp
+    eos_4D.cpp
     evolve.cpp
     emoji.cpp
     music_logo.cpp

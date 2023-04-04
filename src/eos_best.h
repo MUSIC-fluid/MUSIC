@@ -13,12 +13,12 @@ class EOS_BEST : public EOS_base {
     ~EOS_BEST();
 
     void initialize_eos();
-    double p_rho_func     (double e, double rhob) const;
-    double p_e_func       (double e, double rhob) const;
-    double get_temperature(double e, double rhob) const;
-    double get_muB        (double e, double rhob) const;
-    double get_pressure   (double e, double rhob) const;
-    double get_s2e        (double s, double rhob) const;
+    double p_rho_func     (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double p_e_func       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double get_temperature(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double get_muB        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double get_pressure   (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double get_s2e        (double s, double rhob, double rhoq=0.0, double rhos=0.0) const;
 
     void check_eos() const {check_eos_with_finite_muB();}
 };

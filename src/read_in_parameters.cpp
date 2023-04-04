@@ -251,6 +251,7 @@ InitData read_in_parameters(std::string input_file) {
     // 10: finite muB EOS from A. Monnai (up to mu_B^4)
     // 11: finite muB EOS from Pasi
     // 12: finite muB EOS from A. Monnai (up to mu_B^6)
+    // 20: 4D Eos. 
     int tempwhichEOS = 2;
     tempinput = Util::StringFind4(input_file, "EOS_to_use");
     if (tempinput != "empty")
