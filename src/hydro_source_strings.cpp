@@ -711,7 +711,7 @@ double HydroSourceStrings::get_hydro_rhob_source(
         double fsmear = exp_tau*(
                   exp_xperp_l*exp_eta_s_left*it->baryon_frac_l
                 + exp_xperp_r*exp_eta_s_right*it->baryon_frac_r);
-        if (fsmear > 0.) {
+        if (std::abs(fsmear) > 1e-8) {
             double rapidity_local = (
                 (  exp_eta_s_left*(it->baryon_frac_l)*(it->y_l_baryon)
                  + exp_eta_s_right*(it->baryon_frac_r)*(it->y_r_baryon))
@@ -820,8 +820,7 @@ double HydroSourceStrings::get_hydro_rhoQ_source(
 
         double exp_eta_s_left = 0.0;
         if (flag_left == 1) {
-            double eta_dis_left = std::abs(eta_s
-                                           - it->eta_s_Qe_left);
+            double eta_dis_left = std::abs(eta_s - it->eta_s_Qe_left);
             if (eta_dis_left < skip_dis_eta) {
                 exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
                                       /(2.*sigma_eta*sigma_eta)));
@@ -830,8 +829,7 @@ double HydroSourceStrings::get_hydro_rhoQ_source(
 
         double exp_eta_s_right = 0.0;
         if (flag_right == 1) {
-            double eta_dis_right = std::abs(eta_s
-                                            - it->eta_s_Qe_right);
+            double eta_dis_right = std::abs(eta_s - it->eta_s_Qe_right);
             if (eta_dis_right < skip_dis_eta) {
                 exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
                                        /(2.*sigma_eta*sigma_eta)));
@@ -848,7 +846,7 @@ double HydroSourceStrings::get_hydro_rhoQ_source(
         double fsmear = exp_tau*(
                   exp_xperp_l*exp_eta_s_left*it->Qe_left
                 + exp_xperp_r*exp_eta_s_right*it->Qe_right);
-        if (fsmear > 0.) {
+        if (std::abs(fsmear) > 1e-8) {
             double y_dump = y_long_flow;
             double y_dump_perp = parton_quench_factor*y_perp_flow;
             double p_dot_u = 1.;

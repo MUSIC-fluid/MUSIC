@@ -938,8 +938,8 @@ void Cell_info::get_maximum_energy_density(
         Fields &arena, double &e_max, double &nB_max, double &Tmax) {
     double eps_max  = 0.0;
     double rhob_max = 0.0;
-    double rhoq_max = 0.0;
-    double rhos_max = 0.0;
+    double rhoq_max = -10.0;
+    double rhos_max = -10.0;
     double T_max    = 0.0;
 
     // get the grid information
@@ -961,8 +961,8 @@ void Cell_info::get_maximum_energy_density(
         rhob_max = std::max(rhob_max, rhob_local);
         T_max    = std::max(T_max, eos.get_temperature(eps_local, rhob_local,
                                                        rhoq_local, rhos_local));
-        rhoq_max = std::max(0.0, rhoq_local);
-        rhos_max = std::max(0.0, rhos_local);
+        rhoq_max = std::max(rhoq_max, rhoq_local);
+        rhos_max = std::max(rhos_max, rhos_local);
     }
     eps_max *= Util::hbarc;   // GeV/fm^3
     T_max   *= Util::hbarc;   // GeV
@@ -1118,9 +1118,6 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     double T_tau_z = 0.0;
     double N_B_edge     = 0.0;
 
-    double N_Q_edge     = 0.0;
-    double N_S_edge     = 0.0;
-
     double T_tau_t_edge = 0.0;
     double T_tau_x_edge = 0.0;
     double T_tau_y_edge = 0.0;
@@ -1184,9 +1181,6 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
             || iy == 0 || iy == ny - 1) {
             N_B_edge     += arena.rhob_[Idx]*u0 + arena_prev.Wmunu_[10][Idx];
 
-            N_Q_edge     += arena.rhoq_[Idx]*u0;
-            N_S_edge     += arena.rhos_[Idx]*u0;
-
             T_tau_t_edge += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
             T_tau_x_edge += T01_local;
             T_tau_y_edge += T02_local;
@@ -1203,8 +1197,6 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     T_tau_y *= factor*Util::hbarc;  // GeV
     T_tau_z *= factor*Util::hbarc;  // GeV
     N_B_edge *= factor;
-    N_Q_edge *= factor;
-    N_S_edge *= factor;
 
     T_tau_t_edge *= factor*Util::hbarc;  // GeV
     T_tau_x_edge *= factor*Util::hbarc;  // GeV
@@ -1244,7 +1236,7 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         exit(1);
     }
     music_message << "net electric charges N_Q = " << N_Q
-                  << "net strangeness N_S = " << N_S;
+                  << ", net strangeness N_S = " << N_S;
     music_message.flush("info");
     output_file << scientific << setprecision(6)
                 << tau << "  " << T_tau_t << "  " << T_tau_x << "  " 
@@ -1354,8 +1346,7 @@ void Cell_info::Gubser_flow_check_file(Fields &arena, const double tau) {
                     << arena.Wmunu_[7][fieldIdx]*Util::hbarc << "  "
                     << arena.Wmunu_[5][fieldIdx]*Util::hbarc << "  "
                     << arena.Wmunu_[9][fieldIdx]*Util::hbarc << "  "
-		    << rhoq_local << "  "
-		    << rhos_local << "  "
+                    << rhoq_local << "  " << rhos_local << "  "
                     << endl;
     }
     output_file.close();
@@ -1381,11 +1372,9 @@ void Cell_info::output_1p1D_check_file(Fields &arena, const double tau) {
 
         output_file << scientific << setprecision(8) << setw(18)
                     << eta_local << "  "
-                    << e_local*Util::hbarc << "  " 
-		    << rhob_local << "  "
-		    << rhoq_local << "  "
-		    << rhos_local << "  "
-                    << endl;
+                    << e_local*Util::hbarc << "  "
+                    << rhob_local << "  " << rhoq_local << "  "
+                    << rhos_local << "  " << endl;
     }
     output_file.close();
 }
@@ -1429,16 +1418,16 @@ void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
         const double output_ymin   = - DATA.y_size/2.;
         const double output_etamin = - DATA.eta_size/2.;
         float header[] = {
-            static_cast<float>(DATA.tau0), 
-	    static_cast<float>(output_dtau),
-            static_cast<float>(output_nx), 
-	    static_cast<float>(output_dx),
+            static_cast<float>(DATA.tau0),
+            static_cast<float>(output_dtau),
+            static_cast<float>(output_nx),
+            static_cast<float>(output_dx),
             static_cast<float>(output_xmin),
-            static_cast<float>(output_ny), 
-	    static_cast<float>(output_dy),
+            static_cast<float>(output_ny),
+            static_cast<float>(output_dy),
             static_cast<float>(output_ymin),
-            static_cast<float>(output_neta), 
-	    static_cast<float>(output_deta),
+            static_cast<float>(output_neta),
+            static_cast<float>(output_deta),
             static_cast<float>(output_etamin),
             static_cast<float>(nVar_per_cell)};
         fwrite(header, sizeof(float), 12, out_file_xyeta);
@@ -1828,11 +1817,11 @@ void Cell_info::output_vorticity_time_evolution(
                 const double e_local = arena_curr.e_[fieldIdx];         // 1/fm^4
                 if (e_local < 0.1) continue;
 
-		const double rhob_local = arena_curr.rhob_[fieldIdx];   // 1/fm^3
-		const double rhoq_local = arena_curr.rhoq_[fieldIdx];   // 1/fm^3
-		const double rhos_local = arena_curr.rhos_[fieldIdx];   // 1/fm^3
-		const double T_local = (
-			    eos.get_temperature(e_local, rhob_local, rhoq_local, rhos_local));
+                const double rhob_local = arena_curr.rhob_[fieldIdx];   // 1/fm^3
+                const double rhoq_local = arena_curr.rhoq_[fieldIdx];   // 1/fm^3
+                const double rhos_local = arena_curr.rhos_[fieldIdx];   // 1/fm^3
+                const double T_local = eos.get_temperature(
+                                e_local, rhob_local, rhoq_local, rhos_local);
                 VorticityVec omega_local_1, omega_local_2;
                 VorticityVec omega_local_3, omega_local_4;
                 VelocityShearVec sigma_local = {0.0};
