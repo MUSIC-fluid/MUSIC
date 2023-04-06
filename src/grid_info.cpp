@@ -848,22 +848,23 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
                 int fieldIdx = arena_curr.getFieldIdx(ix, iy, ieta);
                 double e_local    = arena_curr.e_[fieldIdx];        // 1/fm^4
                 double rhob_local = arena_curr.rhob_[fieldIdx];     // 1/fm^3
-								    
-		double rhoq_local = arena_curr.rhoq_[fieldIdx];     // 1/fm^3
-		double rhos_local = arena_curr.rhos_[fieldIdx];     // 1/fm^3
-									    //
-		double p_local = eos.get_pressure(e_local, rhob_local, 
-				rhoq_local, rhos_local);
-		// T_local, muB_local are in 1/fm
-		double T_local = eos.get_temperature(e_local, rhob_local,
-				rhoq_local, rhos_local);
-		double muB_local = 0.0; double muQ_local = 0.0;double muS_local = 0.0;
-		muB_local = eos.get_muB(e_local, rhob_local,
-		 	rhoq_local, rhos_local);
-		muQ_local = eos.get_muQ(e_local, rhob_local,
-		 	rhoq_local, rhos_local);
-		muS_local = eos.get_muS(e_local, rhob_local,
-				rhoq_local, rhos_local);
+                double rhoq_local = arena_curr.rhoq_[fieldIdx];     // 1/fm^3
+                double rhos_local = arena_curr.rhos_[fieldIdx];     // 1/fm^3
+
+                double p_local = eos.get_pressure(e_local, rhob_local,
+                                                  rhoq_local, rhos_local);
+                // T_local, muB_local are in 1/fm
+                double T_local = eos.get_temperature(e_local, rhob_local,
+                                                     rhoq_local, rhos_local);
+                double muB_local = 0.0;
+                double muQ_local = 0.0;
+                double muS_local = 0.0;
+                muB_local = eos.get_muB(e_local, rhob_local, 
+                                        rhoq_local, rhos_local);
+                muQ_local = eos.get_muQ(e_local, rhob_local,
+                                        rhoq_local, rhos_local);
+                muS_local = eos.get_muS(e_local, rhob_local,
+                                        rhoq_local, rhos_local);
 
                 double ux   = arena_curr.u_[1][fieldIdx];
                 double uy   = arena_curr.u_[2][fieldIdx];
@@ -871,7 +872,6 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
 
                 if (e_local*hbarc < DATA.output_evolution_e_cut) continue;
                 // only ouput fluid cells that are above cut-off energy density
-
 
                 VorticityVec omega_kSP = {0.0};
                 VorticityVec omega_k   = {0.0};
@@ -895,10 +895,10 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
                                  static_cast<float>(uy),
                                  static_cast<float>(ueta),
                                  static_cast<float>(muB_local*hbarc),
-				 static_cast<float>(muQ_local*hbarc),
-				 static_cast<float>(muS_local*hbarc)
-		};
-		fwrite(ideal, sizeof(float), 13, out_file_xyeta);
+                                 static_cast<float>(muQ_local*hbarc),
+                                 static_cast<float>(muS_local*hbarc)
+                };
+                fwrite(ideal, sizeof(float), 13, out_file_xyeta);
 
                 float vor_vec[6];
                 for (int i = 0; i < 6; i++) {
@@ -977,8 +977,8 @@ void Cell_info::get_maximum_energy_density(
     music_message << "eps_max = " << eps_max << " GeV/fm^3, "
                   << "rhob_max = " << rhob_max << " 1/fm^3, ";
     if (DATA.turn_on_QS) {
-        music_message << "rhoq_max" << rhoq_max << " 1/fm^3, "
-                      << "rhos_max" << rhos_max << " 1/fm^3, ";
+        music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
+                      << "rhos_max = " << rhos_max << " 1/fm^3, ";
     }
     music_message << "T_max = " << T_max << " GeV.";
 
@@ -1038,8 +1038,9 @@ void Cell_info::compute_angular_momentum(
         const double z_local = tau*sinh_eta;
 
         const double e_local  = arena.e_[Idx];
-	const double pressure = eos.get_pressure(e_local, arena.rhob_[Idx], 
-			arena.rhoq_[Idx], arena.rhos_[Idx]);
+        const double pressure = eos.get_pressure(e_local, arena.rhob_[Idx],
+                                                 arena.rhoq_[Idx],
+                                                 arena.rhos_[Idx]);
 
         const double u0       = arena.u_[0][Idx];
         const double u1       = arena.u_[1][Idx];
@@ -1050,7 +1051,7 @@ void Cell_info::compute_angular_momentum(
         const double uPrev2   = arena_prev.u_[2][Idx];
         const double uPrev3   = arena_prev.u_[3][Idx];
 
-	// Adapt these formula to 4D EoS ?
+        // Adapt these formula to 4D EoS ?
         const double T00_local = (e_local + pressure)*u0*u0 - pressure;
         const double Pi00_rk_0 = arena_prev.piBulk_[Idx]*(-1. + uPrev0*uPrev0);
 
