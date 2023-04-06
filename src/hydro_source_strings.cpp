@@ -95,10 +95,13 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
                     >> new_string->eta_s_baryon_right
                     >> new_string->y_l_baryon
                     >> new_string->y_r_baryon
-                    >> new_string->baryon_frac_l;
+                    >> new_string->baryon_frac_l
+                    >> new_string->baryon_frac_r
+                    >> new_string->Qe_left >> new_string->Qe_right
+                    >> new_string->eta_s_Qe_left;
         if (!text_stream.eof()) {
             // read in the last element
-            text_stream >> new_string->baryon_frac_r;
+            text_stream >> new_string->eta_s_Qe_right;
         } else {
             // the string is too short
             music_message << "read_in_QCD_strings_and_partons: "
@@ -143,6 +146,15 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         new_string->tau_baryon_right = getStringEndTau(
                 new_string->tau_0, new_string->tau_form,
                 new_string->eta_s_0, new_string->eta_s_baryon_right);
+
+        // compute the electric charge tau
+        new_string->tau_Qe_left = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_Qe_left);
+        new_string->tau_Qe_right = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_Qe_right);
+
 
         // determine the tau_start and eta_s_start of the string
         if (new_string->eta_s_left > new_string->eta_s_0) {
@@ -196,10 +208,13 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     music_message.flush("info");
 
     double total_baryon_number = 0;
+    double total_electric_charges = 0;
     for (auto const& it : QCD_strings_list) {
         total_baryon_number += it->baryon_frac_l + it->baryon_frac_r;
+        total_electric_charges += it->Qe_left + it->Qe_right;
     }
     music_message << "total baryon number = " << total_baryon_number;
+    music_message << ", total electric charges = " << total_electric_charges;
     music_message.flush("info");
     music_message << "total energy = " << total_energy << " GeV";
     music_message.flush("info");
@@ -320,6 +335,7 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
     double dtau = DATA.delta_tau;
     QCD_strings_list_current_tau.clear();
     QCD_strings_baryon_list_current_tau.clear();
+    QCD_strings_electric_list_current_tau.clear();
     QCD_strings_remnant_list_current_tau.clear();
     for (auto &it: QCD_strings_list) {
         if ((   it->tau_baryon_left >= (tau_local - 1./2.*dtau)
@@ -330,6 +346,15 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
                 && it->baryon_frac_r > 0.)
             ) {
             QCD_strings_baryon_list_current_tau.push_back(it);
+        }
+        if ((   it->tau_Qe_left >= (tau_local - 1./2.*dtau)
+             && it->tau_Qe_left <  (tau_local + 3./2.*dtau)
+             && std::abs(it->Qe_left) > 1e-8)
+            || (   it->tau_Qe_right >= (tau_local - 1./2.*dtau)
+                && it->tau_Qe_right <  (tau_local + 3./2.*dtau)
+                && std::abs(it->Qe_right) > 1e-8)
+            ) {
+            QCD_strings_electric_list_current_tau.push_back(it);
         }
         if ((   it->tau_end_left >= (tau_local - 1./2.*dtau)
              && it->tau_end_left <  (tau_local + 3./2.*dtau))
@@ -346,7 +371,9 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
                   << " number of strings for energy density: "
                   << QCD_strings_list_current_tau.size()
                   << " number of strings for net baryon density: "
-                  << QCD_strings_baryon_list_current_tau.size();
+                  << QCD_strings_baryon_list_current_tau.size()
+                  << " number of strings for net electric charge density: "
+                  << QCD_strings_electric_list_current_tau.size();
     music_message.flush("info");
 }
 
@@ -695,6 +722,134 @@ double HydroSourceStrings::get_hydro_rhob_source(
             );
             double y_dump = ((1. - parton_quench_factor)*rapidity_local
                              + parton_quench_factor*y_long_flow);
+            double y_dump_perp = parton_quench_factor*y_perp_flow;
+            double p_dot_u = 1.;
+            if (parton_quench_factor < 1.) {
+                p_dot_u = (  u_mu[0]*cosh(y_dump)*cosh(y_dump_perp)
+                           - u_mu[1]*sinh(y_dump_perp)*cos_phi_flow
+                           - u_mu[2]*sinh(y_dump_perp)*sin_phi_flow
+                           - u_mu[3]*sinh(y_dump)*cosh(y_dump_perp));
+            }
+            res += prefactor_etas*prefactor_prep*p_dot_u*fsmear;
+        }
+    }
+    const double prefactor_tau  = 1./dtau;
+    res *= prefactor_tau;
+    return(res);
+}
+
+
+double HydroSourceStrings::get_hydro_rhoQ_source(
+        const double tau, const double x, const double y, const double eta_s,
+        const FlowVec &u_mu) const {
+    double res = 0.;
+    if (QCD_strings_electric_list_current_tau.size() == 0) return(res);
+
+    // flow velocity
+    const double gamma_perp_flow = sqrt(1. + u_mu[1]*u_mu[1] + u_mu[2]*u_mu[2]);
+    const double y_perp_flow     = acosh(gamma_perp_flow);
+    const double y_long_flow     = asinh(u_mu[3]/gamma_perp_flow) + eta_s;
+    const double sin_phi_flow    = u_mu[1]/gamma_perp_flow;
+    const double cos_phi_flow    = u_mu[2]/gamma_perp_flow;
+    const double dtau            = DATA.delta_tau;
+
+    const double exp_tau      = 1.0/tau;
+    const double n_sigma_skip = 8.;
+    for (auto &it: QCD_strings_electric_list_current_tau) {
+        const double sigma_x = it->sigma_x;
+        const double sigma_eta = it->sigma_eta;
+        const double prefactor_prep = 1./(2.*M_PI*sigma_x*sigma_x);
+        const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
+        const double skip_dis_x = n_sigma_skip*sigma_x;
+        const double skip_dis_eta = n_sigma_skip*sigma_eta;
+
+        // skip the evaluation if the strings is too far away in the
+        // space-time grid
+        // dumping energy into the medium from the active strings
+        //double tau_dis_left = fabs(tau - it->tau_end_left);
+        //double tau_dis_right = fabs(tau - it->tau_end_right);
+        int flag_left = 0;
+        if (   it->tau_Qe_left >= tau - dtau/2.
+            && it->tau_Qe_left <  tau + dtau/2.
+            && std::abs(it->Qe_left) > 1e-8) {
+            flag_left = 1;
+        }
+
+        int flag_right = 0;
+        if (   it->tau_Qe_right >= tau - dtau/2.
+            && it->tau_Qe_right <  tau + dtau/2.
+            && std::abs(it->Qe_right) > 1e-8) {
+            flag_right = 1;
+        }
+
+        if (flag_left == 0 && flag_right == 0) continue;
+
+        if (eta_s < it->eta_s_left - skip_dis_eta
+                || eta_s > it->eta_s_right + skip_dis_eta) continue;
+
+        double eta_frac_left = (
+                (eta_s - it->eta_s_left)
+                /std::max(Util::small_eps, it->eta_s_right - it->eta_s_left));
+        double eta_frac_right = (
+                (eta_s - it->eta_s_right)
+                /std::max(Util::small_eps, it->eta_s_right - it->eta_s_left));
+        eta_frac_left = std::max(0., std::min(1., eta_frac_left));
+        eta_frac_right = std::max(0., std::min(1., eta_frac_right));
+
+        const double x_perp_left = getStringTransverseCoord(
+                                        it->x_pl, it->x_pr, eta_frac_left);
+        const double x_perp_right = getStringTransverseCoord(
+                                        it->x_pl, it->x_pr, eta_frac_right);
+        const double x_dis_left  = x - x_perp_left;
+        const double x_dis_right = x - x_perp_right;
+        if (std::abs(x_dis_left) > skip_dis_x
+                && std::abs(x_dis_right) > skip_dis_x) {
+            continue;
+        }
+
+        const double y_perp_left = getStringTransverseCoord(
+                                        it->y_pl, it->y_pr, eta_frac_left);
+        const double y_perp_right = getStringTransverseCoord(
+                                        it->y_pl, it->y_pr, eta_frac_right);
+        const double y_dis_left  = y - y_perp_left;
+        const double y_dis_right = y - y_perp_right;
+        if (std::abs(y_dis_left) > skip_dis_x
+                && std::abs(y_dis_right) > skip_dis_x) {
+            continue;
+        }
+
+        double exp_eta_s_left = 0.0;
+        if (flag_left == 1) {
+            double eta_dis_left = std::abs(eta_s
+                                           - it->eta_s_Qe_left);
+            if (eta_dis_left < skip_dis_eta) {
+                exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
+                                      /(2.*sigma_eta*sigma_eta)));
+            }
+        }
+
+        double exp_eta_s_right = 0.0;
+        if (flag_right == 1) {
+            double eta_dis_right = std::abs(eta_s
+                                            - it->eta_s_Qe_right);
+            if (eta_dis_right < skip_dis_eta) {
+                exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
+                                       /(2.*sigma_eta*sigma_eta)));
+            }
+        }
+
+        double exp_xperp_l = exp(
+            -(x_dis_left*x_dis_left + y_dis_left*y_dis_left)
+            /(2.*sigma_x*sigma_x));
+        double exp_xperp_r = exp(
+            -(x_dis_right*x_dis_right + y_dis_right*y_dis_right)
+            /(2.*sigma_x*sigma_x));
+
+        double fsmear = exp_tau*(
+                  exp_xperp_l*exp_eta_s_left*it->Qe_left
+                + exp_xperp_r*exp_eta_s_right*it->Qe_right);
+        if (fsmear > 0.) {
+            double y_dump = y_long_flow;
             double y_dump_perp = parton_quench_factor*y_perp_flow;
             double p_dot_u = 1.;
             if (parton_quench_factor < 1.) {

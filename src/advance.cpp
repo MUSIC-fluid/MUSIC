@@ -118,9 +118,9 @@ void Advance::FirstRKStepT(
     TJbVec qi = {0};
 
 
-    double pressure = eos.get_pressure(cellCurr.e, cellCurr.rhob, 
-		    cellCurr.rhoq, cellCurr.rhos);
-    
+    double pressure = eos.get_pressure(cellCurr.e, cellCurr.rhob,
+                                       cellCurr.rhoq, cellCurr.rhos);
+
     for (int alpha = 0; alpha < 7; alpha++) {
         qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure)*tau_rk;
     }
@@ -151,6 +151,12 @@ void Advance::FirstRKStepT(
                 tau_rk*hydro_source_terms_ptr->get_hydro_rhob_source(
                             tau_rk, x_local, y_local, eta_s_local, u_local));
         }
+
+        if (DATA.turn_on_QS == 1) {
+            qi_source[5] = (
+                tau_rk*hydro_source_terms_ptr->get_hydro_rhoQ_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local));
+        }
     }
 
     // now MakeWSource returns partial_a W^{a mu}
@@ -162,9 +168,9 @@ void Advance::FirstRKStepT(
                             dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
 
 
-    double pressurePrev = eos.get_pressure(cellPrev.e, cellPrev.rhob, 
-		    cellPrev.rhoq, cellPrev.rhos);
-    
+    double pressurePrev = eos.get_pressure(cellPrev.e, cellPrev.rhob,
+                                           cellPrev.rhoq, cellPrev.rhos);
+
     for (int alpha = 0; alpha < 7; alpha++) {
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn[alpha]*(DATA.delta_tau);
@@ -234,13 +240,14 @@ void Advance::FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
     // Adapt for 4D EoS -- For the moment no viscosities for 4D EoS so ok.
     std::vector<double> thermalVec;
     if (rk_flag == 0) {
-        eos.getThermalVariables(grid_c.epsilon, grid_c.rhob, grid_c.rhoq, grid_c.rhos, thermalVec);
+        eos.getThermalVariables(grid_c.epsilon, grid_c.rhob, grid_c.rhoq,
+                                grid_c.rhos, thermalVec);
     } else {
         eos.getThermalVariables(arenaFieldsPrev.e_[fieldIdx],
-                                arenaFieldsPrev.rhob_[fieldIdx], arenaFieldsPrev.rhoq_[fieldIdx], 
-				arenaFieldsPrev.rhos_[fieldIdx], thermalVec);
+                                arenaFieldsPrev.rhob_[fieldIdx],
+                                arenaFieldsPrev.rhoq_[fieldIdx],
+                                arenaFieldsPrev.rhos_[fieldIdx], thermalVec);
     }
-    //
 
     double tempf;
     double u0Prev = arenaFieldsPrev.u_[0][fieldIdx];
@@ -616,7 +623,8 @@ double Advance::MaxSpeed(const double tau, const int direc,
 
     //double vs2 = eos.get_cs2(eps, rhob);
     double dpde, dpdrhob, dpdrhoq, dpdrhos, vs2;
-    eos.get_pressure_with_gradients(eps, rhob, rhoq, rhos, pressure, dpde, dpdrhob, dpdrhoq, dpdrhos,vs2);
+    eos.get_pressure_with_gradients(eps, rhob, rhoq, rhos, pressure,
+                                    dpde, dpdrhob, dpdrhoq, dpdrhos, vs2);
     double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.)*vs2)*vs2;
     double num;
     if (num_temp_sqrt >= 0)  {
@@ -681,21 +689,14 @@ double Advance::get_TJb(const ReconstCell &grid_p, const int mu, const int nu,
     //assert(mu < 5); assert(mu > -1);
     //assert(nu < 4); assert(nu > -1);
 
-    double rhob = grid_p.rhob;
-    double rhoq = grid_p.rhoq;
-    double rhos = grid_p.rhos;
-
     const double u_nu = grid_p.u[nu];
 
-    switch ((int) mu){
-    	case 4:
-		return rhob*u_nu;
-    	case 5:
-		return rhoq*u_nu;
-    	case 6:
-		return rhos*u_nu;
-	default:
-		break;
+    if (mu == 4) {
+        return (grid_p.rhob)*u_nu;
+    } else if (mu == 5) {
+        return (grid_p.rhoq)*u_nu;
+    } else if (mu == 6) {
+        return (grid_p.rhos)*u_nu;
     }
 
     double e = grid_p.e;

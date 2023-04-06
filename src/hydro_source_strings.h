@@ -29,6 +29,9 @@ struct QCD_string {
     double eta_s_baryon_left, eta_s_baryon_right;
     double y_l_baryon, y_r_baryon;
     double baryon_frac_l, baryon_frac_r;
+    double tau_Qe_left, tau_Qe_right;
+    double Qe_left, Qe_right;
+    double eta_s_Qe_left, eta_s_Qe_right;
 };
 
 
@@ -44,6 +47,7 @@ class HydroSourceStrings : public HydroSourceBase {
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list_current_tau;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_remnant_list_current_tau;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_baryon_list_current_tau;
+    std::vector<std::shared_ptr<QCD_string>> QCD_strings_electric_list_current_tau;
 
  public:
     HydroSourceStrings() = default;
@@ -59,15 +63,19 @@ class HydroSourceStrings : public HydroSourceBase {
 
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
-    void get_hydro_energy_source(
-        const double tau, const double x, const double y, const double eta_s,
-        const FlowVec &u_mu, EnergyFlowVec &j_mu) const ;
+    void get_hydro_energy_source(const double tau, const double x,
+                                 const double y, const double eta_s,
+                                 const FlowVec &u_mu,
+                                 EnergyFlowVec &j_mu) const;
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
     double get_hydro_rhob_source(const double tau, const double x,
                                  const double y, const double eta_s,
-                                 const FlowVec &u_mu) const ;
+                                 const FlowVec &u_mu) const;
+    double get_hydro_rhoQ_source(const double tau, const double x,
+                                 const double y, const double eta_s,
+                                 const FlowVec &u_mu) const;
 
     void prepare_list_for_current_tau_frame(const double tau_local);
     void compute_norm_for_strings();
