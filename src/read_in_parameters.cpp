@@ -367,16 +367,16 @@ InitData read_in_parameters(std::string input_file) {
     double temp_ratio_q = 1;
     double temp_ratio_s = 1;
     if(parameter_list.use_rhoQS_to_rhoB_ratios == 1){
-	    tempinput = Util::StringFind4(input_file, "ratio_q");
-    	    if (tempinput != "empty")
-            	istringstream(tempinput) >> temp_ratio_q;
-	    tempinput = Util::StringFind4(input_file, "ratio_s");
-    	    if (tempinput != "empty")
-            	istringstream(tempinput) >> temp_ratio_s;
+        tempinput = Util::StringFind4(input_file, "ratio_q");
+            if (tempinput != "empty")
+                istringstream(tempinput) >> temp_ratio_q;
+        tempinput = Util::StringFind4(input_file, "ratio_s");
+            if (tempinput != "empty")
+                istringstream(tempinput) >> temp_ratio_s;
     }
     parameter_list.ratio_q = temp_ratio_q;
     parameter_list.ratio_s = temp_ratio_s;
-    
+
     // Eta_grid_size:  total length of box in eta direction (minus delta_eta)
     // e.g., neta=8 and eta_size=8 has 8 cells that run from eta=-4 to eta=3
     double tempeta_size = 8.;

@@ -162,8 +162,9 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
-		eos.getThermalVariables(arena.e_[fieldIdx], arena.rhob_[fieldIdx], arena.rhoq_[fieldIdx],
-					arena.rhos_[fieldIdx], thermalVec);
+        eos.getThermalVariables(arena.e_[fieldIdx], arena.rhob_[fieldIdx],
+                                arena.rhoq_[fieldIdx], arena.rhos_[fieldIdx],
+                                thermalVec);
                 double utau = arena.u_[0][fieldIdx];
                 double ux   = arena.u_[1][fieldIdx];
                 double uy   = arena.u_[2][fieldIdx];
@@ -174,7 +175,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                 double uz = ueta*cosh_eta + utau*sinh_eta;
                 double vz = uz/ut;
 
-		// Entropy with other conserved charges ?? 
+                // Entropy with other conserved charges ?? 
                 double enthropy  = thermalVec[0] + thermalVec[2];  // [1/fm^4]
 
                 double Wtautau = 0.0;
@@ -953,15 +954,15 @@ void Cell_info::get_maximum_energy_density(
         int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
         const auto eps_local  = arena.e_[fieldIdx];
         const auto rhob_local = arena.rhob_[fieldIdx];
-	const auto rhoq_local = arena.rhoq_[fieldIdx];
-	const auto rhos_local = arena.rhos_[fieldIdx];
+        const auto rhoq_local = arena.rhoq_[fieldIdx];
+        const auto rhos_local = arena.rhos_[fieldIdx];
 
         eps_max  = std::max(eps_max,  eps_local );
         rhob_max = std::max(rhob_max, rhob_local);
-	T_max    = std::max(T_max, eos.get_temperature(eps_local, rhob_local, 
-				rhoq_local, rhos_local));
-	rhoq_max = std::max(0.0, rhoq_local);
-	rhos_max = std::max(0.0, rhos_local);
+        T_max    = std::max(T_max, eos.get_temperature(eps_local, rhob_local,
+                                                       rhoq_local, rhos_local));
+        rhoq_max = std::max(0.0, rhoq_local);
+        rhos_max = std::max(0.0, rhos_local);
     }
     eps_max *= Util::hbarc;   // GeV/fm^3
     T_max   *= Util::hbarc;   // GeV
@@ -975,14 +976,11 @@ void Cell_info::get_maximum_energy_density(
     }
     music_message << "eps_max = " << eps_max << " GeV/fm^3, "
                   << "rhob_max = " << rhob_max << " 1/fm^3, ";
-    if(DATA.turn_on_QS && DATA.whichEOS == 20){
-	    music_message << "rhoq_max" << rhoq_max << " 1/fm^3, "
-	    << "rhos_max" << rhos_max << " 1/fm^3, "
-                  << "T_max = " << T_max << " GeV.";
+    if (DATA.turn_on_QS) {
+        music_message << "rhoq_max" << rhoq_max << " 1/fm^3, "
+                      << "rhos_max" << rhos_max << " 1/fm^3, ";
     }
-    else{
-                  music_message << "T_max = " << T_max << " GeV.";
-    }
+    music_message << "T_max = " << T_max << " GeV.";
 
     music_message.flush("info");
     e_max = eps_max;
@@ -1133,7 +1131,7 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     const int nx   = arena.nX();
     const int ny   = arena.nY();
 
-    #pragma omp parallel for collapse(3) reduction(+:N_B, T_tau_t, T_tau_x, T_tau_y, T_tau_z, N_B_edge, T_tau_t_edge, T_tau_x_edge, T_tau_y_edge, T_tau_z_edge)
+    #pragma omp parallel for collapse(3) reduction(+:N_B, N_Q, N_S, T_tau_t, T_tau_x, T_tau_y, T_tau_z, N_B_edge, T_tau_t_edge, T_tau_x_edge, T_tau_y_edge, T_tau_z_edge)
     for (int ieta = 0; ieta < neta; ieta++)
     for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
@@ -1144,13 +1142,13 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         const double sinh_eta = sinh(eta_s);
 
         N_B += arena.rhob_[Idx]*arena.u_[0][Idx] + arena_prev.Wmunu_[10][Idx];
-	// *** Only checked at ideal hydro level for Q and S.
-	N_Q += arena.rhoq_[Idx]*arena.u_[0][Idx];
-	N_S += arena.rhos_[Idx]*arena.u_[0][Idx];
-	
+        N_Q += arena.rhoq_[Idx]*arena.u_[0][Idx];
+        N_S += arena.rhos_[Idx]*arena.u_[0][Idx];
+
         const double e_local   = arena.e_[Idx];
-	const double pressure  = eos.get_pressure(e_local, arena.rhob_[Idx], 
-			arena.rhoq_[Idx], arena.rhos_[Idx]);
+        const double pressure  = eos.get_pressure(e_local, arena.rhob_[Idx],
+                                                  arena.rhoq_[Idx],
+                                                  arena.rhos_[Idx]);
         const double u0        = arena.u_[0][Idx];
         const double u1        = arena.u_[1][Idx];
         const double u2        = arena.u_[2][Idx];
@@ -1159,7 +1157,6 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         const double uPrev1    = arena_prev.u_[1][Idx];
         const double uPrev2    = arena_prev.u_[2][Idx];
         const double uPrev3    = arena_prev.u_[3][Idx];
-	// same adapt formulas to 4D EoS ?
         const double T00_local = (e_local + pressure)*u0*u0 - pressure;
         const double Pi00_rk_0 = (arena_prev.piBulk_[Idx]
                                   *(-1.0 + arena_prev.u_[0][Idx]
@@ -1186,10 +1183,9 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
             || iy == 0 || iy == ny - 1) {
             N_B_edge     += arena.rhob_[Idx]*u0 + arena_prev.Wmunu_[10][Idx];
 
-	    //*** Checked only at ideal hydro level for Q and S. 
             N_Q_edge     += arena.rhoq_[Idx]*u0;
             N_S_edge     += arena.rhos_[Idx]*u0;
-	    
+
             T_tau_t_edge += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
             T_tau_x_edge += T01_local;
             T_tau_y_edge += T02_local;
@@ -1199,13 +1195,13 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     // add units
     double factor = tau*dx*dy*deta;
     N_B *= factor;
+    N_Q *= factor;
+    N_S *= factor;
     T_tau_t *= factor*Util::hbarc;  // GeV
     T_tau_x *= factor*Util::hbarc;  // GeV
     T_tau_y *= factor*Util::hbarc;  // GeV
     T_tau_z *= factor*Util::hbarc;  // GeV
     N_B_edge *= factor;
-
-    //*** Other conserved charges.  
     N_Q_edge *= factor;
     N_S_edge *= factor;
 
@@ -1246,10 +1242,13 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         music_message.flush("error");
         exit(1);
     }
+    music_message << "net electric charges N_Q = " << N_Q
+                  << "net strangeness N_S = " << N_S;
+    music_message.flush("info");
     output_file << scientific << setprecision(6)
                 << tau << "  " << T_tau_t << "  " << T_tau_x << "  " 
-		<< T_tau_y << "  " << T_tau_z << "  " << N_B << "  "
-		<< N_Q << "  " << N_S << std::endl;
+                << T_tau_y << "  " << T_tau_z << "  " << N_B << "  "
+                << N_Q << "  " << N_S << std::endl;
     output_file.close();
 }
 
