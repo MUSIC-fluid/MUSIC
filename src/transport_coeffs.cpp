@@ -20,6 +20,7 @@ double TransportCoeffs::get_eta_over_s(const double T, const double muB) const {
     // inputs T [1/fm], muB [1/fm]
     // outputs \eta/s
     double eta_over_s = DATA.shear_to_s;
+
     if (shear_T_ == 3) {
         eta_over_s = get_temperature_dependent_eta_over_s_sims(T);
     } else if (shear_T_ == 1) {

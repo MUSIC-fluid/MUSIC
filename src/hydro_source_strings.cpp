@@ -205,6 +205,10 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     music_message.flush("info");
     compute_norm_for_strings();
 
+    DATA.beam_rapidity = acosh(total_energy/(total_baryon_number*Util::m_N));
+    DATA.eta_size = 2.*(DATA.beam_rapidity + DATA.gridPadding - 1);
+    DATA.delta_eta = DATA.eta_size/(DATA.neta - 1);
+
     double xMax = 0.;
     double yMax = 0.;
     for (auto const& it : QCD_strings_list) {
@@ -228,6 +232,7 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     DATA.y_size = 2.*(yMax + gridOffset);
     DATA.delta_x = DATA.x_size/(DATA.nx - 1);
     DATA.delta_y = DATA.y_size/(DATA.ny - 1);
+
     if (DATA.resetDtau) {
         // make sure delta_tau is not too large for delta_x and delta_y
         DATA.delta_tau = std::min(DATA.delta_tau,
@@ -240,7 +245,9 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     music_message << "[HydroSource] Grid info: x_size = "
                   << DATA.x_size << ", y_size = " << DATA.y_size
                   << ", dx = " << DATA.delta_x << " fm, dy = "
-                  << DATA.delta_y << " fm, dtau = " << DATA.delta_tau << " fm";
+                  << DATA.delta_y << " fm, eta_size = " << DATA.eta_size
+                  << ", deta = " << DATA.delta_eta
+                  << ", dtau = " << DATA.delta_tau << " fm";
     music_message.flush("info");
 }
 
