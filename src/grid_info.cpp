@@ -2202,7 +2202,6 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
         std::cout << " yolo_inin2 " << ieta << " over " << arena.nEta() << std::endl;
         for (int iy = 0; iy < arena.nY(); iy++)
         for (int ix = 0; ix < arena.nX(); ix++) {
-            std::cout << " yolo_ininin " << ieta << " over " << arena.nEta() << " " << iy << " " << ix <<std::endl;
             int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
             double x_ed = - DATA.x_size/2. + ix*DATA.delta_x - x_ed_o;
             double y_ed = - DATA.y_size/2. + iy*DATA.delta_y - y_ed_o;
