@@ -623,8 +623,17 @@ double Advance::MaxSpeed(const double tau, const int direc,
 
     //double vs2 = eos.get_cs2(eps, rhob);
     double dpde, dpdrhob, dpdrhoq, dpdrhos, vs2;
+<<<<<<< Updated upstream
     eos.get_pressure_with_gradients(eps, rhob, rhoq, rhos, pressure,
                                     dpde, dpdrhob, dpdrhoq, dpdrhos, vs2);
+=======
+<<<<<<< HEAD
+    eos.get_pressure_with_gradients(eps, rhob, rhoq, rhos, pressure, dpde, dpdrhob, dpdrhoq, dpdrhos, vs2);
+=======
+    eos.get_pressure_with_gradients(eps, rhob, rhoq, rhos, pressure,
+                                    dpde, dpdrhob, dpdrhoq, dpdrhos, vs2);
+>>>>>>> d872b8c6506f5770b49700d99524a711a6cd90cd
+>>>>>>> Stashed changes
     double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.)*vs2)*vs2;
     double num;
     if (num_temp_sqrt >= 0)  {
@@ -642,6 +651,8 @@ double Advance::MaxSpeed(const double tau, const int direc,
           fprintf(stderr,"at value p=%lf. \n",pressure);
           fprintf(stderr,"at value h=%lf. \n",h);
           fprintf(stderr,"at value rhob=%lf. \n",rhob);
+          fprintf(stderr,"at value rhoq=%lf. \n",rhoq);
+          fprintf(stderr,"at value rhos=%lf. \n",rhos);
           fprintf(stderr,"at value utau=%lf. \n", utau);
           fprintf(stderr,"at value uk=%lf. \n", ux);
           fprintf(stderr,"at value vs^2=%lf. \n", vs2);

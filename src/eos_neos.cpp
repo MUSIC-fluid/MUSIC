@@ -137,7 +137,6 @@ void EOS_neos::initialize_eos() {
                             + "_t.dat");
         std::ifstream eos_mub(path + "neos" + eos_file_string_array[itable]
                               + "_mub.dat");
-	// adapt to 4D EoS
         std::ifstream eos_muS;
         std::ifstream eos_muQ;
         if (flag_muS) {

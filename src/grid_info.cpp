@@ -954,15 +954,45 @@ void Cell_info::get_maximum_energy_density(
         int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
         const auto eps_local  = arena.e_[fieldIdx];
         const auto rhob_local = arena.rhob_[fieldIdx];
+<<<<<<< Updated upstream
         const auto rhoq_local = arena.rhoq_[fieldIdx];
         const auto rhos_local = arena.rhos_[fieldIdx];
 
         eps_max  = std::max(eps_max,  eps_local );
         rhob_max = std::max(rhob_max, rhob_local);
+>>>>>>> Stashed changes
+=======
+<<<<<<< HEAD
+	    const auto rhoq_local = arena.rhoq_[fieldIdx];
+	    const auto rhos_local = arena.rhos_[fieldIdx];
+
+        eps_max  = std::max(eps_max,  eps_local );
+        rhob_max = std::max(rhob_max, rhob_local);
+	T_max    = std::max(T_max, eos.get_temperature(eps_local, rhob_local, 
+				rhoq_local, rhos_local));
+	//T_max    = eos.get_temperature(eps_local, rhob_local, 
+	//			rhoq_local, rhos_local);
+	rhoq_max = std::max(0.0, rhoq_local);
+	rhos_max = std::max(0.0, rhos_local);
+=======
+        const auto rhoq_local = arena.rhoq_[fieldIdx];
+        const auto rhos_local = arena.rhos_[fieldIdx];
+
+        eps_max  = std::max(eps_max,  eps_local );
+        rhob_max = std::max(rhob_max, rhob_local);
+>>>>>>> Stashed changes
         T_max    = std::max(T_max, eos.get_temperature(eps_local, rhob_local,
                                                        rhoq_local, rhos_local));
         rhoq_max = std::max(rhoq_max, rhoq_local);
         rhos_max = std::max(rhos_max, rhos_local);
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+>>>>>>> d872b8c6506f5770b49700d99524a711a6cd90cd
+>>>>>>> Stashed changes
+=======
+>>>>>>> d872b8c6506f5770b49700d99524a711a6cd90cd
+>>>>>>> Stashed changes
     }
     eps_max *= Util::hbarc;   // GeV/fm^3
     T_max   *= Util::hbarc;   // GeV
@@ -976,9 +1006,25 @@ void Cell_info::get_maximum_energy_density(
     }
     music_message << "eps_max = " << eps_max << " GeV/fm^3, "
                   << "rhob_max = " << rhob_max << " 1/fm^3, ";
+<<<<<<< Updated upstream
     if (DATA.turn_on_QS) {
         music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
                       << "rhos_max = " << rhos_max << " 1/fm^3, ";
+=======
+<<<<<<< HEAD
+    if(DATA.turn_on_QS && DATA.whichEOS == 20){
+	    music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
+	    << "rhos_max = " << rhos_max << " 1/fm^3, "
+                  << "T_max = " << T_max << " GeV.";
+    }
+    else{
+                  music_message << "T_max = " << T_max << " GeV.";
+=======
+    if (DATA.turn_on_QS) {
+        music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
+                      << "rhos_max = " << rhos_max << " 1/fm^3, ";
+>>>>>>> d872b8c6506f5770b49700d99524a711a6cd90cd
+>>>>>>> Stashed changes
     }
     music_message << "T_max = " << T_max << " GeV.";
 
@@ -2153,6 +2199,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
     std::vector<double> thermalVec;
     const int norder = 6;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        std::cout << " yolo_inin1 " << ieta << " over " << arena.nEta() << std::endl;
         double eta = 0.0;
         if (!DATA.boost_invariant) {
             eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
@@ -2198,8 +2245,10 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
 
         std::vector<double> meanpT_est_num(4, 0.0);
         std::vector<double> meanpT_est_den(1, 0.0);
+        std::cout << " yolo_inin2 " << ieta << " over " << arena.nEta() << std::endl;
         for (int iy = 0; iy < arena.nY(); iy++)
         for (int ix = 0; ix < arena.nX(); ix++) {
+            std::cout << " yolo_ininin " << ieta << " over " << arena.nEta() << " " << iy << " " << ix <<std::endl;
             int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
             double x_ed = - DATA.x_size/2. + ix*DATA.delta_x - x_ed_o;
             double y_ed = - DATA.y_size/2. + iy*DATA.delta_y - y_ed_o;
@@ -2214,8 +2263,8 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             double rhob_local = arena.rhob_[fieldIdx];     // 1/fm^3
             double rhoq_local = arena.rhoq_[fieldIdx];     // 1/fm^3
             double rhos_local = arena.rhos_[fieldIdx];     // 1/fm^3
-	
-	    eos.getThermalVariables(e_local, rhob_local, 
+
+            eos.getThermalVariables(e_local, rhob_local, 
 			    rhoq_local, rhos_local, thermalVec);
 
             double P_local = thermalVec[2];
@@ -2280,6 +2329,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             meanpT_est_num[3] += r_ed*r_ed*u0*e_local;   // [r^2]
             meanpT_est_den[0] += u0*e_local;
         }
+        std::cout << " yolo_inin3 " << ieta << " over " << arena.nEta() << std::endl;
 
         // output results
         of << scientific << setw(18) << setprecision(8)

@@ -91,6 +91,8 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     const double max_allowed_e_increase_factor = 5.;
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
+        music_message << " yolo_in1 " << tau << " ";
+        music_message.flush("info");
 
         if (hydro_source_terms_ptr) {
             hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
@@ -100,6 +102,8 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
             store_previous_step_for_freezeout(*fpPrev, freezeoutFieldPrev);
             store_previous_step_for_freezeout(*fpCurr, freezeoutFieldCurr);
         }
+        music_message << " yolo_in2 " << tau << " ";
+        music_message.flush("info");
 
         //if (DATA.Initial_profile == 13) {
         //    if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
@@ -133,11 +137,15 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
             //                                                      tau);
             //}
         }
+        music_message << " yolo_in3 " << tau << " ";
+        music_message.flush("info");
 
         if (it == iFreezeStart || it == iFreezeStart + 10
             || it == iFreezeStart + 30 || it == iFreezeStart + 50) {
             grid_info.output_momentum_anisotropy_vs_etas(tau, *fpCurr);
         }
+        music_message << " yolo_in4 " << tau << " ";
+        music_message.flush("info");
 
         if (!DATA.beastMode) {
             if (DATA.Initial_profile == 0) {
@@ -156,6 +164,8 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
 
             grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *fpCurr);
+            music_message << " yolo_in7 " << tau << " ";
+            music_message.flush("info");
             if (DATA.Initial_profile == 13) {
                 grid_info.output_average_phase_diagram_trajectory(
                                                 tau, -0.5, 0.5, *fpCurr);
