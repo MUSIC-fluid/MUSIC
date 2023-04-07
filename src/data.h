@@ -126,9 +126,13 @@ typedef struct init_data {
     int T_dependent_shear_to_s;
     int muB_dependent_shear_to_s;
 
+    double shear_muBf0p2;       //!< for piece-wise parameterization eta/s(muB)
+    double shear_muBf0p4;       //!< for piece-wise parameterization eta/s(muB)
+
     double shear_muBDep_alpha;
     double shear_muBDep_slope;
     double shear_muBDep_scale;
+
 
     //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==2"
     double shear_2_min;

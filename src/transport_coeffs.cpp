@@ -33,9 +33,12 @@ double TransportCoeffs::get_eta_over_s(const double T, const double muB) const {
         eta_over_s = DATA.shear_to_s;
     }
 
-    if (shear_muB_ == 10) {
+    if (shear_muB_ == 7) {
+        eta_over_s *= get_muB_dependence_shear_piecewise(muB);
+    } else if (shear_muB_ == 10) {
         eta_over_s *= get_muB_dependence_shear_profile(muB);
     }
+    eta_over_s = std::max(0., eta_over_s);
     return eta_over_s;
 }
 
@@ -55,6 +58,24 @@ double TransportCoeffs::get_temperature_dependence_shear_profile(
         f_T += Tslope2*(T_in_GeV - Tc)/(Thigh - Tc);
     }
     return(f_T);
+}
+
+
+double TransportCoeffs::get_muB_dependence_shear_piecewise(
+                                                const double muB_in_fm) const {
+    const double muB_in_GeV = std::abs(muB_in_fm)*hbarc;
+    const double f0 = 1.0;
+    const double f1 = DATA.shear_muBf0p2;
+    const double f2 = DATA.shear_muBf0p4;
+    double f_muB = f0;
+    if (muB_in_GeV < 0.2) {
+        f_muB = f0 + (f1 - f0)/0.2*muB_in_GeV;
+    } else if (muB_in_GeV < 0.4) {
+        f_muB = f1 + (f2 - f1)/0.2*(muB_in_GeV - 0.2);
+    } else {
+        f_muB = f2;
+    }
+    return(f_muB);
 }
 
 
