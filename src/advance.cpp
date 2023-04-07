@@ -623,17 +623,8 @@ double Advance::MaxSpeed(const double tau, const int direc,
 
     //double vs2 = eos.get_cs2(eps, rhob);
     double dpde, dpdrhob, dpdrhoq, dpdrhos, vs2;
-<<<<<<< Updated upstream
     eos.get_pressure_with_gradients(eps, rhob, rhoq, rhos, pressure,
                                     dpde, dpdrhob, dpdrhoq, dpdrhos, vs2);
-=======
-<<<<<<< HEAD
-    eos.get_pressure_with_gradients(eps, rhob, rhoq, rhos, pressure, dpde, dpdrhob, dpdrhoq, dpdrhos, vs2);
-=======
-    eos.get_pressure_with_gradients(eps, rhob, rhoq, rhos, pressure,
-                                    dpde, dpdrhob, dpdrhoq, dpdrhos, vs2);
->>>>>>> d872b8c6506f5770b49700d99524a711a6cd90cd
->>>>>>> Stashed changes
     double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.)*vs2)*vs2;
     double num;
     if (num_temp_sqrt >= 0)  {

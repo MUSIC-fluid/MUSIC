@@ -954,45 +954,15 @@ void Cell_info::get_maximum_energy_density(
         int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
         const auto eps_local  = arena.e_[fieldIdx];
         const auto rhob_local = arena.rhob_[fieldIdx];
-<<<<<<< Updated upstream
         const auto rhoq_local = arena.rhoq_[fieldIdx];
         const auto rhos_local = arena.rhos_[fieldIdx];
 
         eps_max  = std::max(eps_max,  eps_local );
         rhob_max = std::max(rhob_max, rhob_local);
->>>>>>> Stashed changes
-=======
-<<<<<<< HEAD
-	    const auto rhoq_local = arena.rhoq_[fieldIdx];
-	    const auto rhos_local = arena.rhos_[fieldIdx];
-
-        eps_max  = std::max(eps_max,  eps_local );
-        rhob_max = std::max(rhob_max, rhob_local);
-	T_max    = std::max(T_max, eos.get_temperature(eps_local, rhob_local, 
-				rhoq_local, rhos_local));
-	//T_max    = eos.get_temperature(eps_local, rhob_local, 
-	//			rhoq_local, rhos_local);
-	rhoq_max = std::max(0.0, rhoq_local);
-	rhos_max = std::max(0.0, rhos_local);
-=======
-        const auto rhoq_local = arena.rhoq_[fieldIdx];
-        const auto rhos_local = arena.rhos_[fieldIdx];
-
-        eps_max  = std::max(eps_max,  eps_local );
-        rhob_max = std::max(rhob_max, rhob_local);
->>>>>>> Stashed changes
         T_max    = std::max(T_max, eos.get_temperature(eps_local, rhob_local,
                                                        rhoq_local, rhos_local));
         rhoq_max = std::max(rhoq_max, rhoq_local);
         rhos_max = std::max(rhos_max, rhos_local);
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
->>>>>>> d872b8c6506f5770b49700d99524a711a6cd90cd
->>>>>>> Stashed changes
-=======
->>>>>>> d872b8c6506f5770b49700d99524a711a6cd90cd
->>>>>>> Stashed changes
     }
     eps_max *= Util::hbarc;   // GeV/fm^3
     T_max   *= Util::hbarc;   // GeV
@@ -1006,25 +976,9 @@ void Cell_info::get_maximum_energy_density(
     }
     music_message << "eps_max = " << eps_max << " GeV/fm^3, "
                   << "rhob_max = " << rhob_max << " 1/fm^3, ";
-<<<<<<< Updated upstream
     if (DATA.turn_on_QS) {
         music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
                       << "rhos_max = " << rhos_max << " 1/fm^3, ";
-=======
-<<<<<<< HEAD
-    if(DATA.turn_on_QS && DATA.whichEOS == 20){
-	    music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
-	    << "rhos_max = " << rhos_max << " 1/fm^3, "
-                  << "T_max = " << T_max << " GeV.";
-    }
-    else{
-                  music_message << "T_max = " << T_max << " GeV.";
-=======
-    if (DATA.turn_on_QS) {
-        music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
-                      << "rhos_max = " << rhos_max << " 1/fm^3, ";
->>>>>>> d872b8c6506f5770b49700d99524a711a6cd90cd
->>>>>>> Stashed changes
     }
     music_message << "T_max = " << T_max << " GeV.";
 
