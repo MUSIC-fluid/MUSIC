@@ -2153,7 +2153,6 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
     std::vector<double> thermalVec;
     const int norder = 6;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
-        std::cout << " yolo_inin1 " << ieta << " over " << arena.nEta() << std::endl;
         double eta = 0.0;
         if (!DATA.boost_invariant) {
             eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
@@ -2199,7 +2198,6 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
 
         std::vector<double> meanpT_est_num(4, 0.0);
         std::vector<double> meanpT_est_den(1, 0.0);
-        std::cout << " yolo_inin2 " << ieta << " over " << arena.nEta() << std::endl;
         for (int iy = 0; iy < arena.nY(); iy++)
         for (int ix = 0; ix < arena.nX(); ix++) {
             int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
@@ -2282,7 +2280,6 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             meanpT_est_num[3] += r_ed*r_ed*u0*e_local;   // [r^2]
             meanpT_est_den[0] += u0*e_local;
         }
-        std::cout << " yolo_inin3 " << ieta << " over " << arena.nEta() << std::endl;
 
         // output results
         of << scientific << setw(18) << setprecision(8)
