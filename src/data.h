@@ -130,9 +130,6 @@ typedef struct init_data {
     double shear_muBDep_slope;
     double shear_muBDep_scale;
 
-    //! flag to include temperature dependent zeta/s(T)
-    int T_dependent_zeta_over_s;
-
     //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==2"
     double shear_2_min;
     double shear_2_slope;
