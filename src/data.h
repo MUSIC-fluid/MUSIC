@@ -161,6 +161,8 @@ typedef struct init_data {
 
     //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==10"
     double bulk_10_max;
+    double bulk_10_max_muB0p2;
+    double bulk_10_max_muB0p4;
     double bulk_10_width_high;              // GeV
     double bulk_10_width_low;               // GeV
     double bulk_10_Tpeak;                   // GeV
