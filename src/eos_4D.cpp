@@ -21,8 +21,8 @@ EOS_4D::EOS_4D(){
 
     pi = 3.141592653589793;
     Nf = 3;
-    alphaNf = 12*(8/45 + 7/60*Nf)*pi*pi;
-    OneoveralphaNf = 1/alphaNf;
+    alphaNf = 12.0*(8/45.0 + 7/60.0*3)*3.141592653589793*3.141592653589793;
+    OneoveralphaNf = 1/(12.0*(8/45.0 + 7/60.0*3)*3.141592653589793*3.141592653589793);
 }
 
 
@@ -88,7 +88,7 @@ int EOS_4D::check_index(int ind, int lim) const {
 }
 
 
-std::vector<double> EOS_4D::FourDLInterp(std::vector<double> data, std::vector<double> TildeVar, bool compute_derivatives) const {
+std::vector<double> EOS_4D::FourDLInterp(std::vector<double>* data, std::vector<double> TildeVar, bool compute_derivatives) const {
     double T = TildeVar[0];
     double mub = TildeVar[1];
     double muq = TildeVar[2];
@@ -133,25 +133,25 @@ std::vector<double> EOS_4D::FourDLInterp(std::vector<double> data, std::vector<d
     
     // store values at surrounding data points on the grid.
     
-    double data_0000 = data[index(iT,  ib, iq, is)];
-    double data_1111 = data[index(iT1,  ib1, iq1, is1)];
+    double data_0000 = (*data)[index(iT,  ib, iq, is)];
+    double data_1111 = (*data)[index(iT1,  ib1, iq1, is1)];
 
-    double data_1000 = data[index(iT1,  ib, iq, is)];
-    double data_0100 = data[index(iT,  ib1, iq, is)];
-    double data_0010 = data[index(iT,  ib, iq1, is)];
-    double data_0001 = data[index(iT,  ib, iq, is1)];
+    double data_1000 = (*data)[index(iT1,  ib, iq, is)];
+    double data_0100 = (*data)[index(iT,  ib1, iq, is)];
+    double data_0010 = (*data)[index(iT,  ib, iq1, is)];
+    double data_0001 = (*data)[index(iT,  ib, iq, is1)];
 
-    double data_1001 = data[index(iT1,  ib, iq, is1)];
-    double data_0101 = data[index(iT,  ib1, iq, is1)];
-    double data_0011 = data[index(iT,  ib, iq1, is1)];
-    double data_1100 = data[index(iT1,  ib1, iq, is)];
-    double data_1010 = data[index(iT1,  ib, iq1, is)];
-    double data_0110 = data[index(iT,  ib1, iq1, is)];
+    double data_1001 = (*data)[index(iT1,  ib, iq, is1)];
+    double data_0101 = (*data)[index(iT,  ib1, iq, is1)];
+    double data_0011 = (*data)[index(iT,  ib, iq1, is1)];
+    double data_1100 = (*data)[index(iT1,  ib1, iq, is)];
+    double data_1010 = (*data)[index(iT1,  ib, iq1, is)];
+    double data_0110 = (*data)[index(iT,  ib1, iq1, is)];
 
-    double data_0111 = data[index(iT,  ib1, iq1, is1)];
-    double data_1011 = data[index(iT1,  ib, iq1, is1)];
-    double data_1101 = data[index(iT1,  ib1, iq, is1)];
-    double data_1110 = data[index(iT1,  ib1, iq1, is)];
+    double data_0111 = (*data)[index(iT,  ib1, iq1, is1)];
+    double data_1011 = (*data)[index(iT1,  ib, iq1, is1)];
+    double data_1101 = (*data)[index(iT1,  ib1, iq, is1)];
+    double data_1110 = (*data)[index(iT1,  ib1, iq1, is)];
 
     // Interpolate the value of the target point using the weights and the values of the sixteen surrounding points
     double interpolated_value = w0000 * data_0000 + w1111 * data_1111  + w1000 * data_1000 
@@ -290,7 +290,7 @@ void EOS_4D::initialize_eos() {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_4D::get_temperature(double e, double rhob, double rhoq, double rhos) const {
     std::vector<double> TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    std::vector<double> interp_output = FourDLInterp(temp_vec, TildeVar);  // 1/fm^5
+    std::vector<double> interp_output = FourDLInterp(t_, TildeVar);  // 1/fm^5
     //double interp_T = std::max(Util::small_eps, interp_output[0]);
     double interp_T = 1.0;
     return(interp_T);
@@ -301,15 +301,17 @@ double EOS_4D::get_temperature(double e, double rhob, double rhoq, double rhos) 
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
 double EOS_4D::get_pressure(double e, double rhob, double rhoq, double rhos) const {
     std::vector<double> TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    std::vector<double> interp_output = FourDLInterp(pressure_vec, TildeVar);  // 1/fm^5
+    //std::vector<double> interp_output = FourDLInterp(pressure_vec, TildeVar);  // 1/fm^5
+    std::vector<double> interp_output = FourDLInterp(p_, TildeVar);  // 1/fm^5
     double interp_p = std::max(Util::small_eps, interp_output[0]);
     return(interp_p);
 }
 
-void EOS_4D::get_pressure_with_gradients(double e, double rhob, double &p, double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos, double &cs2, double rhoq, double rhos) const {
+void EOS_4D::get_pressure_with_gradients(double e, double rhob, double rhoq, double rhos, double &p, double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos, double &cs2) const {
 
     std::vector<double> TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    std::vector<double> interp_output = FourDLInterp(pressure_vec, TildeVar, true);  // 1/fm^5
+    //std::vector<double> interp_output = FourDLInterp(pressure_vec, TildeVar, true);  // 1/fm^5
+    std::vector<double> interp_output = FourDLInterp(p_, TildeVar, true);  // 1/fm^5
     p = std::max(Util::small_eps, interp_output[0]);
 
     dpde = interp_output[1]; 
@@ -328,7 +330,8 @@ void EOS_4D::get_pressure_with_gradients(double e, double rhob, double &p, doubl
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_4D::get_muB(double e, double rhob, double rhoq, double rhos) const {
     std::vector<double> TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    std::vector<double> interp_output = FourDLInterp(mub_vec, TildeVar);  // 1/fm^5
+    //std::vector<double> interp_output = FourDLInterp(mub_vec, TildeVar);  // 1/fm^5
+    std::vector<double> interp_output = FourDLInterp(mub_, TildeVar);  // 1/fm^5
     return(interp_output[0]);
 }
 
@@ -338,7 +341,8 @@ double EOS_4D::get_muB(double e, double rhob, double rhoq, double rhos) const {
 double EOS_4D::get_muS(double e, double rhob, double rhoq, double rhos) const {
     if (!get_flag_muS()) return(0.0);
     std::vector<double> TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    std::vector<double> interp_output = FourDLInterp(mus_vec, TildeVar);  // 1/fm^5
+    //std::vector<double> interp_output = FourDLInterp(mus_vec, TildeVar);  // 1/fm^5
+    std::vector<double> interp_output = FourDLInterp(mus_, TildeVar);  // 1/fm^5
     return(interp_output[0]);
 }
 
@@ -348,6 +352,7 @@ double EOS_4D::get_muS(double e, double rhob, double rhoq, double rhos) const {
 double EOS_4D::get_muQ(double e, double rhob, double rhoq, double rhos) const {
     if (!get_flag_muQ()) return(0.0);
     std::vector<double> TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    std::vector<double> interp_output = FourDLInterp(muq_vec, TildeVar);  // 1/fm^5
+    //std::vector<double> interp_output = FourDLInterp(muq_vec, TildeVar);  // 1/fm^5
+    std::vector<double> interp_output = FourDLInterp(muq_, TildeVar);  // 1/fm^5
     return(interp_output[0]);
 }
