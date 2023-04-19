@@ -1117,6 +1117,8 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     double T_tau_y = 0.0;
     double T_tau_z = 0.0;
     double N_B_edge     = 0.0;
+    double N_Q_edge     = 0.0;
+    double N_S_edge     = 0.0;
 
     double T_tau_t_edge = 0.0;
     double T_tau_x_edge = 0.0;
@@ -1180,6 +1182,8 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         if (ieta == 0 || ieta == neta - 1 || ix == 0 || ix == nx - 1
             || iy == 0 || iy == ny - 1) {
             N_B_edge     += arena.rhob_[Idx]*u0 + arena_prev.Wmunu_[10][Idx];
+            N_Q_edge     += arena.rhob_[Idx]*u0;
+            N_S_edge     += arena.rhob_[Idx]*u0;
 
             T_tau_t_edge += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
             T_tau_x_edge += T01_local;
@@ -1197,6 +1201,8 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     T_tau_y *= factor*Util::hbarc;  // GeV
     T_tau_z *= factor*Util::hbarc;  // GeV
     N_B_edge *= factor;
+    N_Q_edge *= factor;
+    N_S_edge *= factor;
 
     T_tau_t_edge *= factor*Util::hbarc;  // GeV
     T_tau_x_edge *= factor*Util::hbarc;  // GeV
@@ -1210,8 +1216,12 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         outflow_flux[2] += T_tau_y_edge - Pmu_edge_prev[2];
         outflow_flux[3] += T_tau_z_edge - Pmu_edge_prev[3];
         outflow_flux[4] += N_B_edge - Pmu_edge_prev[4];
+        outflow_flux[5] += N_Q_edge - Pmu_edge_prev[5];
+        outflow_flux[6] += N_S_edge - Pmu_edge_prev[6];
 
         N_B     += outflow_flux[4];
+        N_Q     += outflow_flux[5];
+        N_S     += outflow_flux[6];
         T_tau_t += outflow_flux[0];  // GeV
         T_tau_x += outflow_flux[1];  // GeV
         T_tau_y += outflow_flux[2];  // GeV
@@ -1222,6 +1232,8 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     Pmu_edge_prev[2] = T_tau_y_edge;
     Pmu_edge_prev[3] = T_tau_z_edge;
     Pmu_edge_prev[4] = N_B_edge;
+    Pmu_edge_prev[5] = N_Q_edge;
+    Pmu_edge_prev[6] = N_S_edge;
 
     // output results
     music_message << "total energy T^{taut} = " << T_tau_t << " GeV";

@@ -605,19 +605,19 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
                 // 4-dimension interpolation done
                 const double TFO = eos.get_temperature(epsFO,
-                                                       fluid_center.rhob);
+                                                       fluid_center.rhob, fluid_center.rhoq, fluid_center.rhos);
                 if (TFO < 0) {
                     music_message << "TFO=" << TFO
                                   << "<0. ERROR. exiting.";
                     music_message.flush("error");
                     exit(1);
                 }
-                const double muB = eos.get_muB(epsFO, fluid_center.rhob);
-                const double muS = eos.get_muS(epsFO, fluid_center.rhob);
-                const double muQ = eos.get_muQ(epsFO, fluid_center.rhob);
+                const double muB = eos.get_muB(epsFO, fluid_center.rhob, fluid_center.rhoq, fluid_center.rhos);
+                const double muS = eos.get_muS(epsFO, fluid_center.rhob, fluid_center.rhoq, fluid_center.rhos);
+                const double muQ = eos.get_muQ(epsFO, fluid_center.rhob, fluid_center.rhoq, fluid_center.rhos);
 
-                const double pressure = eos.get_pressure(epsFO,
-                                                         fluid_center.rhob);
+                const double pressure = eos.get_pressure(epsFO, fluid_center.rhob, 
+                        fluid_center.rhoq, fluid_center.rhos);
                 const double eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                 // finally output results !!!!
@@ -809,8 +809,10 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                                                + uy_center*uy_center 
                                                + ueta_center*ueta_center);
 
-            // baryon density rho_b
+            // densities
             const double rhob_center = arena_current.rhob_[fieldIdx];
+            const double rhoq_center = arena_current.rhoq_[fieldIdx];
+            const double rhos_center = arena_current.rhos_[fieldIdx];
 
             // baryon diffusion current
             double qtau_center = arena_current.Wmunu_[10][fieldIdx];
@@ -871,7 +873,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
 
             // get other thermodynamical quantities
             double e_local   = arena_current.e_[fieldIdx];
-            double T_local   = eos.get_temperature(e_local, rhob_center);
+            double T_local   = eos.get_temperature(e_local, rhob_center, rhoq_center, rhos_center);
             if (T_local < 0) {
                 music_message << "Evolve::FreezeOut_equal_tau_Surface: "
                               << "T_local = " << T_local
@@ -879,11 +881,11 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 music_message.flush("error");
                 exit(1);
             }
-            double muB_local = eos.get_muB(e_local, rhob_center);
-            double muS_local = eos.get_muS(e_local, rhob_center);
-            double muQ_local = eos.get_muQ(e_local, rhob_center);
+            double muB_local = eos.get_muB(e_local, rhob_center, rhoq_center, rhos_center);
+            double muS_local = eos.get_muS(e_local, rhob_center, rhoq_center, rhos_center);
+            double muQ_local = eos.get_muQ(e_local, rhob_center, rhoq_center, rhos_center);
 
-            double pressure = eos.get_pressure(e_local, rhob_center);
+            double pressure = eos.get_pressure(e_local, rhob_center, rhoq_center, rhos_center);
             double eps_plus_p_over_T = (e_local + pressure)/T_local;
 
             // finally output results
@@ -1176,10 +1178,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     fluid_center.Wmunu[9] = Wmunu_regulated[3][3];
 
                     // 3-dimension interpolation done
-                    double TFO = eos.get_temperature(epsFO, fluid_center.rhob);
-                    double muB = eos.get_muB(epsFO, fluid_center.rhob);
-                    double muS = eos.get_muS(epsFO, fluid_center.rhob);
-                    double muQ = eos.get_muQ(epsFO, fluid_center.rhob);
+                    double TFO = eos.get_temperature(epsFO, fluid_center.rhob, fluid_center.rhoq, fluid_center.rhos);
+                    double muB = eos.get_muB(epsFO, fluid_center.rhob, fluid_center.rhoq, fluid_center.rhos);
+                    double muS = eos.get_muS(epsFO, fluid_center.rhob, fluid_center.rhoq, fluid_center.rhos);
+                    double muQ = eos.get_muQ(epsFO, fluid_center.rhob, fluid_center.rhoq, fluid_center.rhos);
                     if (TFO < 0) {
                         music_message << "TFO=" << TFO
                                       << "<0. ERROR. exiting.";
@@ -1187,7 +1189,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                         exit(1);
                     }
 
-                    double pressure = eos.get_pressure(epsFO, fluid_center.rhob);
+                    double pressure = eos.get_pressure(epsFO, fluid_center.rhob, fluid_center.rhoq, fluid_center.rhos);
                     double eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                     // finally output results !!!!
