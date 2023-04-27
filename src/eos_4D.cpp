@@ -21,8 +21,8 @@ EOS_4D::EOS_4D(){
 
     pi = 3.141592653589793;
     Nf = 3;
-    alphaNf = 12.0*(8/45.0 + 7/60.0*3)*3.141592653589793*3.141592653589793;
-    OneoveralphaNf = 1/(12.0*(8/45.0 + 7/60.0*3)*3.141592653589793*3.141592653589793);
+    alphaNf = (8/45.0 + 7/60.0*3)*3.141592653589793*3.141592653589793;
+    OneoveralphaNf = 1/((8/45.0 + 7/60.0*3)*3.141592653589793*3.141592653589793);
 }
 
 
@@ -48,6 +48,11 @@ void EOS_4D::read_header(std::string filepath){
     dmuqtilde /= Util::hbarc;
     dmustilde /= Util::hbarc;
     dTtilde /= Util::hbarc;
+
+    N_T += 1;
+    N_mub += 1;
+    N_muq += 1;
+    N_mus += 1;
 
     ifs.close();
 }
@@ -79,20 +84,21 @@ std::vector<double> EOS_4D::read_vector(std::string filepath, int header_size){
 }
 
 int EOS_4D::index(int i_T, int i_mub, int i_muq, int i_mus) const {
-	return i_T*N_mub*N_muq*N_mus + i_mub*N_muq*N_mus + i_muq*N_mus + i_mus;
+	//return i_T*N_mub*N_muq*N_mus + i_mub*N_muq*N_mus + i_muq*N_mus + i_mus;
+	return i_T*N_mub*N_muq*N_mus + i_mus*N_muq*N_mub + i_muq*N_mub + i_mub;
 }
 
-//int EOS_4D::Cfloor(double val){
-//	double eps = 0.00000000000001;
-//	int fl = std::floor(val);
-//	int cfl = std::floor(val+eps);
-//	if(cfl != fl){return cfl;}
-//	else{return fl;}
-//}
+int EOS_4D::Cfloor(double val) const {
+	double eps = 0.00000000000001;
+	int fl = std::floor(val);
+	int cfl = std::floor(val+eps);
+	if(cfl != fl){return cfl;}
+	else{return fl;}
+}
 
 int EOS_4D::check_index(int ind, int lim) const {
 	if(ind < 0){return 0;}
-	else if(ind > lim){return lim;}
+	else if(ind > lim-1){return lim-1;}
 	else{return ind;}
 }
 
@@ -103,16 +109,17 @@ std::vector<double> EOS_4D::FourDLInterp(std::vector<double>* data, std::vector<
     double muq = TildeVar[2];
     double mus = TildeVar[3];
 
-    if(T<0.0){T = 0.0;std::cout << "T" << std::endl;}
-    if(T>5.07614213197969550){T = 5.0761421319796955;std::cout << "T" << std::endl;}
-    if(mub<-1.2164216928535225){mub = -1.2164216928535225;std::cout << "mub" << std::endl;}
-    if(mub>3.0410542321338063){mub = 3.0410542321338063;std::cout << "mub" << std::endl;}
+    if(T<0.0){T = 0.0;}
+    if(T>5.07614213197969550){T = 5.0761421319796955;}
 
-    if(muq<-0.25342118601115055){muq = -0.25342118601115055;std::cout << "muq" << std::endl;}
-    if(muq>0.10136847440446022){muq = 0.10136847440446022;std::cout << "muq" << std::endl;}
+    if(mub<-1.2164216928535225){mub = -1.2164216928535225;}
+    if(mub>3.0410542321338063){mub = 3.0410542321338063;}
 
-    if(mus<-0.5068423720223011){mus = -0.5068423720223011;std::cout << "mus" << std::endl;}
-    if(mus>1.2671059300557526){mus = 1.2671059300557526;std::cout << "mus" << std::endl;}
+    if(muq<-0.25342118601115055){muq = -0.25342118601115055;}
+    if(muq>0.10136847440446022){muq = 0.10136847440446022;}
+
+    if(mus<-0.5068423720223011){mus = -0.5068423720223011;}
+    if(mus>1.2671059300557526){mus = 1.2671059300557526;}
 
     // Calculate the weights associated to the sixteen surrounding point 
     
@@ -121,10 +128,19 @@ std::vector<double> EOS_4D::FourDLInterp(std::vector<double>* data, std::vector<
     double indmuq = (muq - muqtilde0)/dmuqtilde;
     double indmus = (mus - mustilde0)/dmustilde;
 
-    int iT = check_index(static_cast<int>(indmuT), N_T);int iT1 = check_index(iT + 1, N_T);
-    int ib = check_index(static_cast<int>(indmub), N_mub);int ib1 = check_index(ib + 1, N_mub);
-    int iq = check_index(static_cast<int>(indmuq), N_muq);int iq1 = check_index(iq + 1, N_muq);
-    int is = check_index(static_cast<int>(indmus), N_mus);int is1 = check_index(is + 1, N_mus);
+    //int iT = check_index(static_cast<int>(indmuT), N_T);int iT1 = check_index(iT + 1, N_T);
+    //int ib = check_index(static_cast<int>(indmub), N_mub);int ib1 = check_index(ib + 1, N_mub);
+    //int iq = check_index(static_cast<int>(indmuq), N_muq);int iq1 = check_index(iq + 1, N_muq);
+    //int is = check_index(static_cast<int>(indmus), N_mus);int is1 = check_index(is + 1, N_mus);
+
+    int iT = static_cast<int>(indmuT);int iT1 = iT + 1;
+    int ib = static_cast<int>(indmub);int ib1 = ib + 1;
+    int iq = static_cast<int>(indmuq);int iq1 = iq + 1;
+    int is = static_cast<int>(indmus);int is1 = is + 1;
+    //int iT = check_index(Cfloor(indmuT), N_T);int iT1 = check_index(iT + 1, N_T);
+    //int ib = check_index(Cfloor(indmub), N_mub);int ib1 = check_index(ib + 1, N_mub);
+    //int iq = check_index(Cfloor(indmuq), N_muq);int iq1 = check_index(iq + 1, N_muq);
+    //int is = check_index(Cfloor(indmus), N_mus);int is1 = check_index(is + 1, N_mus);
 
     double dx = indmuT - (double)iT;
     double dy = indmub - (double)ib;
@@ -274,6 +290,9 @@ std::vector<double> EOS_4D::get_tilde_variables(double e, double rhob, double rh
 	double mubtilde = (5.0 * rhob - rhoq + 2.0*rhos)/(Ttilde*Ttilde); // fm-1 
 	double muqtilde = (2.0 * rhoq - rhob -   rhos)/(Ttilde*Ttilde); // fm-1 
 	double mustilde = (2.0 * rhob - rhoq + 2.0*rhos)/(Ttilde*Ttilde); // fm-1 
+                                                                      //
+    
+    //std::cout << mubtilde << " nb " << rhob << " nq " << rhoq << " ns " << rhos << " T " << Ttilde << std::endl;
 
     // convert to GeV for 4D EoS tables. 
     
@@ -320,6 +339,7 @@ double EOS_4D::get_temperature(double e, double rhob, double rhoq, double rhos) 
     std::vector<double> TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
     std::vector<double> interp_output = FourDLInterp(t_, TildeVar);  // 1/fm^5
     double interp_T = std::max(Util::small_eps, interp_output[0]);
+    if(interp_T > 9){std::cout << interp_T << std::endl;}
     return(interp_T);
 }
 

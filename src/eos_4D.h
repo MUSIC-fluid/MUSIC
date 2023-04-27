@@ -39,7 +39,7 @@ class EOS_4D : public EOS_base {
     std::vector<double> read_vector(std::string filepath, int header_size=2);
     void read_header(std::string filepath);
     int index(int i_T, int i_mub, int i_muq, int i_mus) const;
-    //int Cfloor(double val);
+    int Cfloor(double val) const;
     int check_index(int ind, int lim) const;
     std::vector<double> FourDLInterp(std::vector<double>* data, 
 		    std::vector<double> TildeVar, bool compute_derivatives=false) const;
@@ -67,8 +67,7 @@ class EOS_4D : public EOS_base {
 		    double &cs2) const;
 
     void check_eos() const {
-        check_eos_with_finite_muB();
-        outputMutable();
+        check_4D_eos();
     }
 };
 

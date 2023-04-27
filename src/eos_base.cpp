@@ -207,13 +207,20 @@ void EOS_base::interpolate2D_with_gradients(
 //! This function returns entropy density in [1/fm^3]
 //! The input local energy density e [1/fm^4], rhob[1/fm^3]
 double EOS_base::get_entropy(double epsilon, double rhob, double rhoq, double rhos) const {
-    auto P    = get_pressure(epsilon, rhob);
-    auto T    = get_temperature(epsilon, rhob);
-    auto muB  = get_muB(epsilon, rhob);
-    auto muS  = get_muS(epsilon, rhob);
-    auto muQ  = get_muQ(epsilon, rhob);
-    auto rhoS = get_rhoS(epsilon, rhob);
-    auto rhoQ = get_rhoQ(epsilon, rhob);
+    auto P    = get_pressure(epsilon, rhob, rhoq, rhos);
+    auto T    = get_temperature(epsilon, rhob, rhoq, rhos);
+    auto muB  = get_muB(epsilon, rhob, rhoq, rhos);
+    auto muS  = get_muS(epsilon, rhob, rhoq, rhos);
+    auto muQ  = get_muQ(epsilon, rhob, rhoq, rhos);
+    double rhoS, rhoQ;
+    if(whichEOS == 20){
+        rhoS = rhos;
+        rhoQ = rhoq;
+    }
+    else{
+        rhoS = get_rhoS(epsilon, rhob);
+        rhoQ = get_rhoQ(epsilon, rhob);
+    }
     auto f    = (epsilon + P - muB*rhob - muS*rhoS - muQ*rhoQ)/(T + small_eps);
     return(std::max(small_eps, f));
 }
@@ -519,6 +526,62 @@ void EOS_base::check_eos_no_muB() const {
                     << cs2_local << endl;
     }
     check_file1.close();
+}
+
+void EOS_base::check_4D_eos() const {
+    //int Nb = 10;
+    //int Nq = 10;
+    //int Ns = 10;
+    int Ne = 10000;
+
+    double e0 = 5e-3; double emax = 10000;// fm-4
+    //double nb0 = -0.01; double nbmax = 0.01;// fm-3
+    //double nq0 = -0.001; double nqmax = 0.001; // fm-3
+    //double ns0 = - 0.01; double nsmax = 0.01; // fm-3
+
+    double he = (emax - e0)/Ne;
+    //double hnb = (nbmax - nb0)/Nb;
+    //double hnq = (nqmax - nq0)/Nq;
+    //double hns = (nsmax - ns0)/Ns;
+
+    double e;
+    //, nb, nq, ns;
+    double nb = 0.0;
+    double nq = 0.0;
+    double ns = 0.0;
+
+    ostringstream file_name;
+    file_name << "check_4DEoS.dat";
+    ofstream check_file(file_name.str().c_str());
+    check_file << "#e(GeV/fm^3)  nB(1/fm^3)  nQ(1/fm^3)  nS(1/fm^3)  P(GeV/fm^3)  s(1/fm^3)  T(GeV)  cs^2  "
+               << "mu_B(GeV)  mu_S(GeV)  mu_Q(GeV)" << endl;
+
+    for (int i = 0; i < Ne; i++) {
+        e = e0 + he*i;
+        // compute tilde variables in fm-1
+        double OneoveralphaNf = 0.19198830381654705;
+        double Ttilde = sqrt(sqrt(e/3.0 * OneoveralphaNf)); // fm-1 
+        double mubtilde = (5.0 * nb - nq + 2.0*ns)/(Ttilde*Ttilde); // fm-1 
+        double muqtilde = (2.0 * nq - nb -   ns)/(Ttilde*Ttilde); // fm-1 
+        double mustilde = (2.0 * nb - nq + 2.0*ns)/(Ttilde*Ttilde); // fm-1 
+                                                                          
+        double p_local    = get_pressure(e, nb, nq, ns);
+        double s_local    = get_entropy(e, nb, nq, ns);
+        double T_local    = get_temperature(e, nb, nq, ns);
+        double cs2_local  = get_cs2(e, nb, nq, ns);
+        double mu_b_local = get_muB(e, nb, nq, ns);
+        double mu_s_local = get_muS(e, nb, nq, ns);
+        double mu_q_local = get_muQ(e, nb, nq, ns);
+        check_file << scientific << setw(18) << setprecision(8)
+                   << e*hbarc << "   " << nb*hbarc << "   " 
+                   << nq*hbarc << "   " << ns*hbarc << "   " 
+                   << p_local*hbarc << "   "
+                   << s_local << "   " << T_local*hbarc << "   "
+                   << cs2_local << "   " << mu_b_local*hbarc << "   "
+                   << mu_s_local*hbarc << "   "
+                   << mu_q_local*hbarc << "   " << Ttilde << "   " << mubtilde << "   " << muqtilde << "   " << mustilde << endl;
+    }
+    check_file.close();
 }
 
 
