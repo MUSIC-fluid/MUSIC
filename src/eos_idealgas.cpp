@@ -28,9 +28,20 @@ double EOS_idealgas::get_s2e(double s, double rhob, double rhoq, double rhos) co
 
 double EOS_idealgas::get_muB(double e, double rhob, double rhoq, double rhos) const {
     double T_local = get_temperature(e, rhob);
-    double mu_B = 5.*rhob/(T_local*T_local);  // [1/fm]
+    double mu_B = (5.*rhob - rhoq + 2. * rhos)/(T_local*T_local);  // [1/fm]
     return(mu_B);
 }
+double EOS_idealgas::get_muQ(double e, double rhob, double rhoq, double rhos) const {
+    double T_local = get_temperature(e, rhob);
+    double mu_Q = (2*rhoq - rhob - rhos)/(T_local*T_local);  // [1/fm]
+    return(mu_Q);
+}
+double EOS_idealgas::get_muS(double e, double rhob, double rhoq, double rhos) const {
+    double T_local = get_temperature(e, rhob);
+    double mu_S = (2.*rhob - rhoq + 2.*rhos)/(T_local*T_local);  // [1/fm]
+    return(mu_S);
+}
+
 
 double EOS_idealgas::get_T2e(double T_in_GeV, double rhob, double rhoq, double rhos) const {
     double T_in_fm=T_in_GeV/Util::hbarc;

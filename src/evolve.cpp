@@ -285,6 +285,8 @@ void Evolve::store_previous_step_for_freezeout(Fields &arenaCurr,
                                                Fields &arenaFreeze) {
     arenaFreeze.e_ = arenaCurr.e_;
     arenaFreeze.rhob_ = arenaCurr.rhob_;
+    arenaFreeze.rhoq_ = arenaCurr.rhoq_;
+    arenaFreeze.rhos_ = arenaCurr.rhos_;
     arenaFreeze.piBulk_ = arenaCurr.piBulk_;
     arenaFreeze.u_ = arenaCurr.u_;
     arenaFreeze.Wmunu_ = arenaCurr.Wmunu_;
@@ -622,7 +624,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
 
                 // finally output results !!!!
                 if (surface_in_binary) {
-                    const int FOsize = 34 + DATA.output_vorticity*(24 + 14);
+                    const int FOsize = 36 + DATA.output_vorticity*(24 + 14);
                     float array[FOsize];
                     array[0] = static_cast<float>(tau_center);
                     array[1] = static_cast<float>(x_center);
@@ -642,26 +644,30 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         array[18+ii] = static_cast<float>(fluid_center.Wmunu[ii]);
                     array[28] = fluid_center.pi_b;
                     array[29] = fluid_center.rhob;
+
+                    array[30] = fluid_center.rhoq;
+                    array[31] = fluid_center.rhos;
+
                     for (int ii = 0; ii < 4; ii++)
-                        array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
+                        array[32+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
                     if (DATA.output_vorticity == 1) {
                         for (int ii = 0; ii < 6; ii++) {
                             // no minus sign because its definition is
                             // opposite to the kinetic vorticity
-                            array[34+ii] = fluid_aux_center.omega_kSP[ii]/TFO;
+                            array[36+ii] = fluid_aux_center.omega_kSP[ii]/TFO;
                             // the extra minus sign is from metric
                             // output quantities for g = (1, -1, -1, -1)
-                            array[40+ii] = -fluid_aux_center.omega_k[ii]/TFO;
-                            array[46+ii] = -fluid_aux_center.omega_th[ii];
-                            array[52+ii] = (-fluid_aux_center.omega_T[ii]
+                            array[42+ii] = -fluid_aux_center.omega_k[ii]/TFO;
+                            array[48+ii] = -fluid_aux_center.omega_th[ii];
+                            array[54+ii] = (-fluid_aux_center.omega_T[ii]
                                             /TFO/TFO);
                         }
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
                         for (int ii = 0; ii < 10; ii++)
-                            array[58+ii] = -fluid_aux_center.sigma_th[ii];
+                            array[60+ii] = -fluid_aux_center.sigma_th[ii];
                         for (int ii = 0; ii < 4; ii++)
-                            array[68+ii] = -fluid_aux_center.DbetaMu[ii];
+                            array[70+ii] = -fluid_aux_center.DbetaMu[ii];
                     }
                     for (int i = 0; i < FOsize; i++)
                         s_file.write((char*) &(array[i]), sizeof(float));
@@ -890,7 +896,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
 
             // finally output results
             if (surface_in_binary) {
-                const int FOsize = 34 + DATA.output_vorticity*(24 + 14);
+                const int FOsize = 36 + DATA.output_vorticity*(24 + 14);
                 float array[FOsize];
                 array[0] = static_cast<float>(tau_center);
                 array[1] = static_cast<float>(x_center);
@@ -922,33 +928,36 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 array[27] = static_cast<float>(Wetaeta_center);
                 array[28] = static_cast<float>(pi_b_center);
                 array[29] = static_cast<float>(rhob_center);
-                array[30] = static_cast<float>(qtau_center);
-                array[31] = static_cast<float>(qx_center);
-                array[32] = static_cast<float>(qy_center);
-                array[33] = static_cast<float>(qeta_center);
+                array[30] = static_cast<float>(rhoq_center);
+                array[31] = static_cast<float>(rhos_center);
+                array[32] = static_cast<float>(qtau_center);
+                array[33] = static_cast<float>(qx_center);
+                array[34] = static_cast<float>(qy_center);
+                array[35] = static_cast<float>(qeta_center);
                 if (DATA.output_vorticity == 1) {
                     for (int ii = 0; ii < 6; ii++) {
                         // no minus sign because its definition is opposite to
                         // the kinetic vorticity
-                        array[34+ii] = fluid_aux_center.omega_kSP[ii]/T_local;
+                        array[36+ii] = fluid_aux_center.omega_kSP[ii]/T_local;
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
-                        array[40+ii] = -fluid_aux_center.omega_k[ii]/T_local;
-                        array[46+ii] = -fluid_aux_center.omega_th[ii];
-                        array[52+ii] = (-fluid_aux_center.omega_T[ii]
+                        array[42+ii] = -fluid_aux_center.omega_k[ii]/T_local;
+                        array[48+ii] = -fluid_aux_center.omega_th[ii];
+                        array[54+ii] = (-fluid_aux_center.omega_T[ii]
                                         /T_local/T_local);
                     }
                     // the extra minus sign is from metric
                     // output quantities for g = (1, -1, -1, -1)
                     for (int ii = 0; ii < 10; ii++)
-                        array[58+ii] = -fluid_aux_center.sigma_th[ii];
+                        array[60+ii] = -fluid_aux_center.sigma_th[ii];
                     for (int ii = 0; ii < 4; ii++)
-                        array[68+ii] = -fluid_aux_center.DbetaMu[ii];
+                        array[70+ii] = -fluid_aux_center.DbetaMu[ii];
                 }
                 for (int i = 0; i < FOsize; i++) {
                     s_file.write((char*) &(array[i]), sizeof(float));
                 }
             } else {
+                // Not adapted to rhoq and rhos at pos 30 and 31.
                 s_file << std::scientific << std::setprecision(10) 
                        << tau_center     << " " << x_center          << " "
                        << y_center       << " " << eta_center        << " "
@@ -1194,7 +1203,7 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
 
                     // finally output results !!!!
                     if (surface_in_binary) {
-                        float array[34];
+                        float array[36];
                         array[0] = static_cast<float>(tau_center);
                         array[1] = static_cast<float>(x_center);
                         array[2] = static_cast<float>(y_center);
@@ -1213,11 +1222,14 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                             array[18+ii] = static_cast<float>(fluid_center.Wmunu[ii]);
                         array[28] = fluid_center.pi_b;
                         array[29] = fluid_center.rhob;
+                        array[30] = fluid_center.rhoq;
+                        array[31] = fluid_center.rhos;
                         for (int ii = 0; ii < 4; ii++)
-                            array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
-                        for (int i = 0; i < 34; i++)
+                            array[32+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
+                        for (int i = 0; i < 36; i++)
                             s_file.write((char*) &(array[i]), sizeof(float));
                     } else {
+                        // Not adapted to rhoq and rhos at pos 30 and 31.
                         s_file << std::scientific << std::setprecision(10)
                                << tau_center << " " << x_center << " "
                                << y_center << " " << eta_center << " "

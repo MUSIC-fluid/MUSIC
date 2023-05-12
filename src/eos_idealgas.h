@@ -23,7 +23,8 @@ class EOS_idealgas : public EOS_base {
     double p_e_func       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(1./3.);}
     double get_temperature(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double get_muB        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_muS        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
+    double get_muQ        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double get_muS        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double get_pressure   (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(1./3.*e);}
     double get_s2e        (double s, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double get_T2e        (double T_in_GeV, double rhob, double rhoq=0.0, double rhos=0.0) const;
@@ -34,6 +35,8 @@ class EOS_idealgas : public EOS_base {
         dpde = 1/3.;
         p = dpde*epsilon;
         dpdrhob = 0.;
+        dpdrhoq = 0.;
+        dpdrhos = 0.;
         cs2 = dpde;
     }
 
