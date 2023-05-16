@@ -113,9 +113,10 @@ typedef struct init_data {
     int turn_on_rhob;       //!< flag to include baryon current
 
     int turn_on_QS;         //!< flag to include electric charge and strangeness currents
-    int use_rhoQS_to_rhoB_ratios; //!< use ratios to rhob for rhoQ and rhoS initial conditions
-    double ratio_q;         //!< ratio rhoq/rhob for electric charge initial conditions
-    double ratio_s;         //!< ratio rhoq/rhob for electric charge initial conditions
+    int use_rhoQS_to_rhoB_ratios; //!< use ratios to rhob for rhoQ and rhoS initial conditions for Gubser Flow.
+    double ratio_q;         //!< ratio rhoq/rhob for electric charge initial conditions for Gubser Flow.
+    double ratio_s;         //!< ratio rhoq/rhob for electric charge initial conditions for Gubser Flow.
+    int use_BQ_ratios;          //!< Set the ratio rhoQ/rhoB = 0.4 at initial conditions for 3DMCGlauber.
 
     int viscosity_flag;     //!< flag to include viscosity in the simulation
     int turn_on_shear;      //!< flag to include shear viscosity

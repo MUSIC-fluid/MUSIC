@@ -743,6 +743,12 @@ double HydroSourceStrings::get_hydro_rhoQ_source(
         const double tau, const double x, const double y, const double eta_s,
         const FlowVec &u_mu) const {
     double res = 0.;
+    if(DATA.use_BQ_ratios){
+        double nb = get_hydro_rhob_source(tau, x, y, eta_s, u_mu); 
+        res = 0.4 * nb;
+        return(res);
+    }
+    //ratios here if(){}
     if (QCD_strings_electric_list_current_tau.size() == 0) return(res);
 
     // flow velocity

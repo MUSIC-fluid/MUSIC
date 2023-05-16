@@ -359,6 +359,12 @@ InitData read_in_parameters(std::string input_file) {
     else
        parameter_list.alpha_max = 4;
 
+    int tempuse_BQ_ratios;
+    tempinput = Util::StringFind4(input_file, "use_BQ_ratios");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempuse_BQ_ratios;
+    parameter_list.use_BQ_ratios = tempuse_BQ_ratios;
+
     int tempuse_rhoQS_to_rhoB_ratios;
     tempinput = Util::StringFind4(input_file, "use_rhoQS_to_rhoB_ratios");
     if (tempinput != "empty")
