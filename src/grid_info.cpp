@@ -1182,8 +1182,8 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         if (ieta == 0 || ieta == neta - 1 || ix == 0 || ix == nx - 1
             || iy == 0 || iy == ny - 1) {
             N_B_edge     += arena.rhob_[Idx]*u0 + arena_prev.Wmunu_[10][Idx];
-            N_Q_edge     += arena.rhob_[Idx]*u0;
-            N_S_edge     += arena.rhob_[Idx]*u0;
+            N_Q_edge     += arena.rhoq_[Idx]*u0;
+            N_S_edge     += arena.rhos_[Idx]*u0;
 
             T_tau_t_edge += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
             T_tau_x_edge += T01_local;
