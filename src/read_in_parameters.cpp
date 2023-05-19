@@ -1099,9 +1099,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
 
     if (parameter_name == "surface_in_memory") {
         if (value == 1)
-            parameter_name.surface_in_memory = true;
+            parameter_list.surface_in_memory = true;
         else
-            parameter_name.surface_in_memory = false;
+            parameter_list.surface_in_memory = false;
     }
 
     if (parameter_name == "Viscosity_Flag_Yes_1_No_0")

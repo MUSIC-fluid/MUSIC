@@ -108,6 +108,13 @@ class MUSIC {
     }
     void clear_hydro_info_from_memory();
 
+    int get_number_of_surface_cells() const {
+        return(evolve_ptr_->get_number_of_surface_cells());
+    }
+    void get_surface_cell_with_index(const int idx, SurfaceCell &cell_i) {
+        evolve_ptr_->get_surface_cell_with_index(idx, cell_i);
+    }
+
     double get_hydro_tau0() const {return(hydro_info_ptr->get_hydro_tau0());}
     double get_hydro_dtau() const {return(hydro_info_ptr->get_hydro_dtau());}
     double get_hydro_tau_max() const {

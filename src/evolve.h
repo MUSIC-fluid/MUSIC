@@ -43,6 +43,10 @@ class Evolve {
     ~Evolve() {clearSurfaceCellVector();}
 
     void clearSurfaceCellVector() {surfaceCellVec_.clear();}
+    int get_number_of_surface_cells() const {return(surfaceCellVec_.size());}
+    void get_surface_cell_with_index(const int i, SurfaceCell &cell_i) {
+        cell_i = surfaceCellVec_[i];
+    }
 
     int EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                  Fields &arenaFieldsNext, HydroinfoMUSIC &hydro_info_ptr);
