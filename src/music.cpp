@@ -102,12 +102,12 @@ void MUSIC::initialize_hydro() {
 
 //! this is a shell function to run hydro
 int MUSIC::run_hydro() {
-    Evolve evolve_local(eos, DATA, hydro_source_terms_ptr);
+    evolve_ptr_= std::make_shared<Evolve> (eos, DATA, hydro_source_terms_ptr);
 
     if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
     }
-    evolve_local.EvolveIt(arenaFieldsPrev_, arenaFieldsCurr_, arenaFieldsNext_,
+    evolve_ptr_->EvolveIt(arenaFieldsPrev_, arenaFieldsCurr_, arenaFieldsNext_,
                           (*hydro_info_ptr));
     flag_hydro_run = 1;
     return(0);
