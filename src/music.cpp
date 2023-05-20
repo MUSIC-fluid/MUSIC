@@ -40,6 +40,8 @@ MUSIC::MUSIC(std::string input_file) :
 
     // setup source terms
     hydro_source_terms_ptr = nullptr;
+
+    currTauIdx = 0;
 }
 
 
@@ -125,11 +127,18 @@ void MUSIC::prepare_run_hydro_one_time_step() {
 }
 
 //! this is a shell function to run hydro for one time step
-int MUSIC::run_hydro_one_time_step(const int itau) {
-    int status = evolve_ptr_->EvolveOneTimeStep(
+int MUSIC::run_hydro_upto(const double tauEnd) {
+    int iTauEnd = static_cast<int>((tauEnd - DATA.tau0)/(2.*DATA.delta_tau)
+                                   + 1e-8);
+    int status = 0;
+    for (int itau = currTauIdx; itau < iTauEnd; itau++) {
+        status = evolve_ptr_->EvolveOneTimeStep(
                     itau, arenaFieldsPrev_, arenaFieldsCurr_, arenaFieldsNext_,
                     freezeoutFieldPrev_, freezeoutFieldCurr_,
                     (*hydro_info_ptr));
+    }
+    if (currTauIdx < iTauEnd)
+        currTauIdx = iTauEnd;
     return(status);
 }
 

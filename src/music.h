@@ -47,6 +47,8 @@ class MUSIC {
 
     pretty_ostream music_message;
 
+    int currTauIdx;
+
  public:
     MUSIC(std::string input_file);
     ~MUSIC();
@@ -64,7 +66,7 @@ class MUSIC {
     int run_hydro();
 
     void prepare_run_hydro_one_time_step();
-    int run_hydro_one_time_step(const int itau);
+    int run_hydro_upto(const double tauEnd);
 
     //! this is a shell function to run Cooper-Frye
     int run_Cooper_Frye();

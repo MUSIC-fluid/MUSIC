@@ -37,7 +37,8 @@ int main(int argc, char *argv[]) {
             music_hydro.run_hydro();
             //music_hydro.prepare_run_hydro_one_time_step();
             //for (int i = 0; i < 100; i++) {
-            //    music_hydro.run_hydro_one_time_step(i);
+            //    double tau = 1. + i*0.1;
+            //    music_hydro.run_hydro_upto(tau);
             //}
             bReRunHydro = music_hydro.getReRunHydro();
         }
