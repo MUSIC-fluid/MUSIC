@@ -222,7 +222,9 @@ void U_derivative::calculate_thermal_vorticity(
             VorticityVec &omega) {
     // this function computes the thermal vorticity
     double T_local  = eos.get_temperature(arena.e_[fieldIdx],
-                                          arena.rhob_[fieldIdx]);
+                                          arena.rhob_[fieldIdx],
+                                          arena.rhoq_[fieldIdx],
+                                          arena.rhos_[fieldIdx]);
     if (T_local > T_tol) {
         FlowVec u_local;
         double dUsup_local[4][4];
@@ -270,7 +272,10 @@ void U_derivative::calculate_thermal_shear_tensor(
             VelocityShearVec &sigma_th) {
     // this function computes the thermal shear tensor
     double T_local  = eos.get_temperature(arena.e_[fieldIdx],
-                                          arena.rhob_[fieldIdx]);
+                                          arena.rhob_[fieldIdx],
+                                          arena.rhoq_[fieldIdx],
+                                          arena.rhos_[fieldIdx]);
+
     if (T_local > T_tol) {
         FlowVec u_local;
         double dUsup_local[4][4];
@@ -321,7 +326,9 @@ void U_derivative::calculate_T_vorticity(
     // this function computes the T-vorticity
     FlowVec u_local;
     double T_local  = eos.get_temperature(arena.e_[fieldIdx],
-                                          arena.rhob_[fieldIdx]);
+                                          arena.rhob_[fieldIdx],
+                                          arena.rhoq_[fieldIdx],
+                                          arena.rhos_[fieldIdx]);
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
         u_local[i] = arena.u_[i][fieldIdx];
@@ -483,11 +490,20 @@ int U_derivative::MakeDSpatial(const double tau, Fields &arena,
                                    /delta[direction]);
             if (DATA.output_vorticity == 1) {
                 double T   = eos.get_temperature(arena.e_[Ic],
-                                                 arena.rhob_[Ic]);
+                                                 arena.rhob_[Ic],
+                                                 arena.rhoq_[Ic],
+                                                 arena.rhos_[Ic]);
+
                 double Tp1 = eos.get_temperature(arena.e_[Ip1],
-                                                 arena.rhob_[Ip1]);
+                                                 arena.rhob_[Ip1],
+                                                 arena.rhoq_[Ip1],
+                                                 arena.rhos_[Ip1]);
+
                 double Tm1 = eos.get_temperature(arena.e_[Im1],
-                                                 arena.rhob_[Im1]);
+                                                 arena.rhob_[Im1],
+                                                 arena.rhoq_[Im1],
+                                                 arena.rhos_[Im1]);
+
                 if (T > T_tol && Tp1 > T_tol && Tm1 > T_tol) {
                     dUoverTsup[m][direction] = (
                         minmod.minmod_dx(fp1/Tp1, f/T, fm1/Tm1)
@@ -505,14 +521,12 @@ int U_derivative::MakeDSpatial(const double tau, Fields &arena,
         // dUsup[rk_flag][4][n] = partial_n (muB/T)
         // partial_x (muB/T) and partial_y (muB/T) first
         if (DATA.turn_on_diff == 1) {
-            double f   = (eos.get_muB(arena.e_[Ic], arena.rhob_[Ic])
-                          /eos.get_temperature(arena.e_[Ic], arena.rhob_[Ic]));
-            double fp1 = (eos.get_muB(arena.e_[Ip1], arena.rhob_[Ip1])
-                          /eos.get_temperature(arena.e_[Ip1],
-                                               arena.rhob_[Ip1]));
-            double fm1 = (eos.get_muB(arena.e_[Im1], arena.rhob_[Im1])
-                          /eos.get_temperature(arena.e_[Im1],
-                                               arena.rhob_[Im1]));
+            double f   = (eos.get_muB(arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic], arena.rhos_[Ic])
+                          /eos.get_temperature(arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic], arena.rhos_[Ic]));
+            double fp1 = (eos.get_muB(arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1], arena.rhos_[Ip1])
+                          /eos.get_temperature(arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1], arena.rhos_[Ip1]));
+            double fm1 = (eos.get_muB(arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1], arena.rhos_[Im1])
+                          /eos.get_temperature(arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1], arena.rhos_[Im1]));
             dUsup[4][direction] = (minmod.minmod_dx(fp1, f, fm1)
                                    /delta[direction]);
         }
@@ -542,10 +556,16 @@ int U_derivative::MakeDTau(const double tau,
 
     const double eps  = arenaFieldsCurr.e_[fieldIdx];
     const double rhob = arenaFieldsCurr.rhob_[fieldIdx];
+    const double rhoq = arenaFieldsCurr.rhoq_[fieldIdx];
+    const double rhos = arenaFieldsCurr.rhos_[fieldIdx];
+
     const double eps_prev  = arenaFieldsPrev.e_[fieldIdx];
     const double rhob_prev = arenaFieldsPrev.rhob_[fieldIdx];
-    const double T = eos.get_temperature(eps, rhob);
-    const double T_prev = eos.get_temperature(eps_prev, rhob_prev);
+    const double rhoq_prev = arenaFieldsPrev.rhoq_[fieldIdx];
+    const double rhos_prev = arenaFieldsPrev.rhos_[fieldIdx];
+
+    const double T = eos.get_temperature(eps, rhob, rhoq, rhos);
+    const double T_prev = eos.get_temperature(eps_prev, rhob_prev, rhoq_prev, rhos_prev);
 
     for (int m = 0; m < 4; m++) {
         // first order is more stable
@@ -582,9 +602,9 @@ int U_derivative::MakeDTau(const double tau,
     // Here we make the time derivative of (muB/T)
     int m = 4;
     // first order is more stable backward derivative
-    const double muB = eos.get_muB(eps, rhob);
+    const double muB = eos.get_muB(eps, rhob, rhoq, rhos);
     const double tildemu = muB/T;
-    const double muB_prev = eos.get_muB(eps_prev, rhob_prev);
+    const double muB_prev = eos.get_muB(eps_prev, rhob_prev, rhoq_prev, rhos_prev);
     const double tildemu_prev = muB_prev/T_prev;
     f = (tildemu - tildemu_prev)/(DATA.delta_tau);
     dUsup[m][0]  = -f;  // g^{00} = -1

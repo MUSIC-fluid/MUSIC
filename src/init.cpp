@@ -196,6 +196,23 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
         for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
             initial_Gubser_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);
         }
+
+        if (DATA.turn_on_QS == 1){
+	        if(DATA.use_rhoQS_to_rhoB_ratios == 1){
+	        	music_message.info("Electric charge and strangeness densities initialized with");
+	        	music_message << "rhoQ = " << DATA.ratio_q << " rhoB";	
+	        	music_message << " rhoS = " << DATA.ratio_s << " rhoB";	
+	        	music_message.flush("info");
+	        	for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
+	        		initial_QS_with_rhob_ratios_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);}
+	        }
+	        else{
+	        	music_message.info("Initialize electric charge and strangeness densities to zero"); 
+	        	music_message.flush("info");
+	        	for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
+	        		initial_QS_with_zero_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);}
+	        }
+        }
     } else if (DATA.Initial_profile == 1) {
         // code test in 1+1 D vs Monnai's results
         music_message.info(" Perform 1+1D test vs Monnai's results... ");
@@ -272,23 +289,6 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
     }
 
     // *** This should be modified for each initial conditions case.  
-    if (DATA.turn_on_QS == 1){
-	if(DATA.use_rhoQS_to_rhoB_ratios == 1){
-		music_message.info("Electric charge and strangeness densities initialized with");
-		music_message << "rhoQ = " << DATA.ratio_q << " rhoB";	
-		music_message << " rhoS = " << DATA.ratio_s << " rhoB";	
-		music_message.flush("info");
-		for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
-			initial_QS_with_rhob_ratios_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);}
-	}
-	else{
-		music_message.info("Initialize electric charge and strangeness densities to zero"); 
-		music_message.flush("info");
-		for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
-			initial_QS_with_zero_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);}
-	}
-    }
-    // ***
 
 
     if (DATA.viscosity_flag == 0) {
@@ -865,12 +865,20 @@ void Init::initial_with_zero_XY(int ieta, Fields &arenaFieldsPrev,
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
             double rhob = 0.0;
+            double rhoq = 0.0;
+            double rhos = 0.0;
             double epsilon = 1e-12;
             int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
             arenaFieldsCurr.e_[idx] = epsilon;
             arenaFieldsCurr.rhob_[idx] = rhob;
             arenaFieldsPrev.e_[idx] = epsilon;
             arenaFieldsPrev.rhob_[idx] = rhob;
+
+            arenaFieldsCurr.rhoq_[idx] = rhoq;
+            arenaFieldsPrev.rhoq_[idx] = rhoq;
+
+            arenaFieldsCurr.rhos_[idx] = rhos;
+            arenaFieldsPrev.rhos_[idx] = rhos;
         }
     }
 }

@@ -748,7 +748,6 @@ double HydroSourceStrings::get_hydro_rhoQ_source(
         res = 0.4 * nb;
         return(res);
     }
-    //ratios here if(){}
     if (QCD_strings_electric_list_current_tau.size() == 0) return(res);
 
     // flow velocity
