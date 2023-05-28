@@ -307,7 +307,7 @@ std::vector<double> EOS_4D::get_tilde_variables(double e, double rhob, double rh
     out.push_back(muqtilde);
     out.push_back(mustilde);
     return out;
-} 
+}
 
 void EOS_4D::initialize_eos() {
     music_message.info("Using 4D EOS");
@@ -360,13 +360,13 @@ void EOS_4D::get_pressure_with_gradients(double e, double rhob, double rhoq, dou
     std::vector<double> interp_output = FourDLInterp(p_, TildeVar, true);  // 1/fm^5
     p = std::max(Util::small_eps, interp_output[0]);
 
-    dpde = interp_output[1]; 
-    dpdrhob = interp_output[2]; 
-    dpdrhoq = interp_output[3]; 
-    dpdrhos = interp_output[4]; 
+    dpde = interp_output[1];
+    dpdrhob = interp_output[2];
+    dpdrhoq = interp_output[3];
+    dpdrhos = interp_output[4];
 
-    cs2 = dpde + rhob/(e + p + Util::small_eps)*dpdrhob + 
-        rhoq/(e + p + Util::small_eps)*dpdrhoq + 
+    cs2 = dpde + rhob/(e + p + Util::small_eps)*dpdrhob +
+        rhoq/(e + p + Util::small_eps)*dpdrhoq +
         rhos/(e + p + Util::small_eps)*dpdrhos;
     cs2 = std::max(0.01, std::min(1./3, cs2));
 }
