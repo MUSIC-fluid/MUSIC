@@ -29,15 +29,15 @@ EOS_4D::EOS_4D(){
 EOS_4D::~EOS_4D() {}
 
 void EOS_4D::read_header(std::string filepath){
-	std::ifstream ifs(filepath);
-	if (!ifs.is_open()) {
-		music_message << "Can not open EOS files: "<< filepath;
-		music_message.flush("error");
-		exit(1);
-	}
-	ifs >> mubtilde0 >> muqtilde0 >> mustilde0 >> Ttilde0;
-	ifs >> dmubtilde >> dmuqtilde >> dmustilde >> dTtilde;
-	ifs >> N_mub >> N_muq >> N_mus >> N_T;
+    std::ifstream ifs(filepath);
+    if (!ifs.is_open()) {
+        music_message << "Can not open EOS files: "<< filepath;
+        music_message.flush("error");
+        exit(1);
+    }
+    ifs >> mubtilde0 >> muqtilde0 >> mustilde0 >> Ttilde0;
+    ifs >> dmubtilde >> dmuqtilde >> dmustilde >> dTtilde;
+    ifs >> N_mub >> N_muq >> N_mus >> N_T;
 
     mubtilde0 /= Util::hbarc;
     muqtilde0 /= Util::hbarc;
@@ -58,48 +58,48 @@ void EOS_4D::read_header(std::string filepath){
 }
 
 std::vector<double> EOS_4D::read_vector(std::string filepath, int header_size){
-	std::vector<double> out;
-	std::ifstream eos(filepath);
-	if (!eos.is_open()) {
-		music_message << "Can not open EOS file: "<< filepath;
-		music_message.flush("error");
-		exit(1);
-	}
+    std::vector<double> out;
+    std::ifstream eos(filepath);
+    if (!eos.is_open()) {
+        music_message << "Can not open EOS file: "<< filepath;
+        music_message.flush("error");
+        exit(1);
+    }
 
-	// skip header.
-	std::string dummy;
-	for(int i=0; i<header_size; i++){std::getline(eos, dummy);}
+    // skip header.
+    std::string dummy;
+    for(int i=0; i<header_size; i++){std::getline(eos, dummy);}
 
-	// read file
-	double dum1;
-	std::string line;
+    // read file
+    double dum1;
+    std::string line;
         while(std::getline(eos, line)){
-		for(int i=0; i<5;i++){
-			std::stringstream ss(line);
-			ss >> dum1;out.push_back(dum1/Util::hbarc);}
+        for(int i=0; i<5;i++){
+            std::stringstream ss(line);
+            ss >> dum1;out.push_back(dum1/Util::hbarc);}
                 }
         eos.close();
         out.resize(out.size());
-	return out;
+    return out;
 }
 
 int EOS_4D::index(int i_T, int i_mub, int i_muq, int i_mus) const {
-	//return i_T*N_mub*N_muq*N_mus + i_mub*N_muq*N_mus + i_muq*N_mus + i_mus;
-	return i_T*N_mub*N_muq*N_mus + i_mus*N_muq*N_mub + i_muq*N_mub + i_mub;
+    //return i_T*N_mub*N_muq*N_mus + i_mub*N_muq*N_mus + i_muq*N_mus + i_mus;
+    return i_T*N_mub*N_muq*N_mus + i_mus*N_muq*N_mub + i_muq*N_mub + i_mub;
 }
 
 int EOS_4D::Cfloor(double val) const {
-	double eps = 0.00000000000001;
-	int fl = std::floor(val);
-	int cfl = std::floor(val+eps);
-	if(cfl != fl){return cfl;}
-	else{return fl;}
+    double eps = 0.00000000000001;
+    int fl = std::floor(val);
+    int cfl = std::floor(val+eps);
+    if(cfl != fl){return cfl;}
+    else{return fl;}
 }
 
 int EOS_4D::check_index(int ind, int lim) const {
-	if(ind < 0){return 0;}
-	else if(ind > lim-1){return lim-1;}
-	else{return ind;}
+    if(ind < 0){return 0;}
+    else if(ind > lim-1){return lim-1;}
+    else{return ind;}
 }
 
 
@@ -191,87 +191,87 @@ std::vector<double> EOS_4D::FourDLInterp(std::vector<double>* data, std::vector<
 
     // Interpolate the value of the target point using the weights and the values of the sixteen surrounding points
     double interpolated_value = w0000 * data_0000 + w1111 * data_1111  + w1000 * data_1000 
-	    + w0100 * data_0100 + w0010 * data_0010 + w0001 * data_0001 
-	    + w1001 * data_1001 + w0101 * data_0101 + w0011 * data_0011 
-	    + w1100 * data_1100 + w1010 * data_1010 + w0110 * data_0110 
-	    + w0111 * data_0111 + w1011 * data_1011 + w1101 * data_1101 
-	    + w1110 * data_1110;
+        + w0100 * data_0100 + w0010 * data_0010 + w0001 * data_0001 
+        + w1001 * data_1001 + w0101 * data_0101 + w0011 * data_0011 
+        + w1100 * data_1100 + w1010 * data_1010 + w0110 * data_0110 
+        + w0111 * data_0111 + w1011 * data_1011 + w1101 * data_1101 
+        + w1110 * data_1110;
 
     double dXoverde = 0.0; 
     double dXoverdrhob = 0.0;
     double dXoverdrhoq = 0.0;
     double dXoverdrhos = 0.0;
     if(compute_derivatives){
-    	// Calculate derivatives.
-    	
-    	// Ttilde direction
-    	double wT000 = (1-dy)*(1-dz)*(1-dt);double wT111 = dy*dz*dt;
-    	double wT100 = dy*(1-dz)*(1-dt);double wT110 = dy*dz*(1-dt);
-    	double wT010 = (1-dy)*dz*(1-dt);double wT011 = (1-dy)*dz*dt;
-    	double wT001 = (1-dy)*(1-dz)*dt;double wT101 = dy*(1-dz)*dt;
+        // Calculate derivatives.
+        
+        // Ttilde direction
+        double wT000 = (1-dy)*(1-dz)*(1-dt);double wT111 = dy*dz*dt;
+        double wT100 = dy*(1-dz)*(1-dt);double wT110 = dy*dz*(1-dt);
+        double wT010 = (1-dy)*dz*(1-dt);double wT011 = (1-dy)*dz*dt;
+        double wT001 = (1-dy)*(1-dz)*dt;double wT101 = dy*(1-dz)*dt;
 
-    	double tempT1 = wT000 * data_0000 + wT100 * data_0100 + wT010 * data_0010 + wT001 * data_0001 
-    	        + wT101 * data_0101 + wT011 * data_0011 + wT110 * data_0110 + wT111 * data_0111; 
+        double tempT1 = wT000 * data_0000 + wT100 * data_0100 + wT010 * data_0010 + wT001 * data_0001 
+                + wT101 * data_0101 + wT011 * data_0011 + wT110 * data_0110 + wT111 * data_0111; 
 
-    	double tempT2 = wT111 * data_1111 + wT000 * data_1000 + wT001 * data_1001 + wT100 * data_1100 
-    	        + wT010 * data_1010 + wT011 * data_1011 + wT101 * data_1101 + wT110 * data_1110;
+        double tempT2 = wT111 * data_1111 + wT000 * data_1000 + wT001 * data_1001 + wT100 * data_1100 
+                + wT010 * data_1010 + wT011 * data_1011 + wT101 * data_1101 + wT110 * data_1110;
 
-    	double dXdTtilde = (tempT2 - tempT1)/dTtilde; 
-    	// to test for speed
-    	//double dXdTtilde = (tempT2 - interpolated_value)/((1-dx) * dT);
+        double dXdTtilde = (tempT2 - tempT1)/dTtilde; 
+        // to test for speed
+        //double dXdTtilde = (tempT2 - interpolated_value)/((1-dx) * dT);
 
-    	// mubtilde direction
-    	double wb000 = (1-dx)*(1-dz)*(1-dt);double wb111 = dx*dz*dt;
-    	double wb100 = dx*(1-dz)*(1-dt);double wb110 = dx*dz*(1-dt);
-    	double wb010 = (1-dx)*dz*(1-dt);double wb011 = (1-dx)*dz*dt;
-    	double wb001 = (1-dx)*(1-dz)*dt;double wb101 = dx*(1-dz)*dt;
+        // mubtilde direction
+        double wb000 = (1-dx)*(1-dz)*(1-dt);double wb111 = dx*dz*dt;
+        double wb100 = dx*(1-dz)*(1-dt);double wb110 = dx*dz*(1-dt);
+        double wb010 = (1-dx)*dz*(1-dt);double wb011 = (1-dx)*dz*dt;
+        double wb001 = (1-dx)*(1-dz)*dt;double wb101 = dx*(1-dz)*dt;
 
-    	double tempb1 = wb000 * data_0000 + wb100 * data_1000 + wb010 * data_0010 + wb001 * data_0001 
-    	        + wb101 * data_1001 + wb011 * data_0011 + wb110 * data_1010 + wb111 * data_1011; 
+        double tempb1 = wb000 * data_0000 + wb100 * data_1000 + wb010 * data_0010 + wb001 * data_0001 
+                + wb101 * data_1001 + wb011 * data_0011 + wb110 * data_1010 + wb111 * data_1011; 
 
-    	double tempb2 =  wb111 * data_1111 + wb000 * data_0100 + wb001 * data_0101 + wb100 * data_1100 
-    	        + wb010 * data_0110 + wb011 * data_0111 + wb101 * data_1101 + wb110 * data_1110;
+        double tempb2 =  wb111 * data_1111 + wb000 * data_0100 + wb001 * data_0101 + wb100 * data_1100 
+                + wb010 * data_0110 + wb011 * data_0111 + wb101 * data_1101 + wb110 * data_1110;
 
-    	double dXdmubtilde = (tempb2 - tempb1)/dmubtilde; 
-    	// to test for speed
-    	//double dXdmubtilde = (tempb2 - interpolated_value)/((1-dy) * dmub);
+        double dXdmubtilde = (tempb2 - tempb1)/dmubtilde; 
+        // to test for speed
+        //double dXdmubtilde = (tempb2 - interpolated_value)/((1-dy) * dmub);
 
-    	// muqtilde direction
-    	double wq000 = (1-dx)*(1-dy)*(1-dt);double wq111 = dx*dy*dt;
-    	double wq100 = dx*(1-dy)*(1-dt);double wq110 = dx*dy*(1-dt);
-    	double wq010 = (1-dx)*dy*(1-dt);double wq011 = (1-dx)*dy*dt;
-    	double wq001 = (1-dx)*(1-dy)*dt;double wq101 = dx*(1-dy)*dt;
+        // muqtilde direction
+        double wq000 = (1-dx)*(1-dy)*(1-dt);double wq111 = dx*dy*dt;
+        double wq100 = dx*(1-dy)*(1-dt);double wq110 = dx*dy*(1-dt);
+        double wq010 = (1-dx)*dy*(1-dt);double wq011 = (1-dx)*dy*dt;
+        double wq001 = (1-dx)*(1-dy)*dt;double wq101 = dx*(1-dy)*dt;
 
-    	double tempq1 = wq000 * data_0000 + wq100 * data_1000 + wq010 * data_0100 + wq001 * data_0001 
-    	        + wq101 * data_1001 + wq011 * data_0101 + wq110 * data_1100 + wq111 * data_1101; 
+        double tempq1 = wq000 * data_0000 + wq100 * data_1000 + wq010 * data_0100 + wq001 * data_0001 
+                + wq101 * data_1001 + wq011 * data_0101 + wq110 * data_1100 + wq111 * data_1101; 
 
-    	double tempq2 =  wq111 * data_1111 + wq000 * data_0010 + wq001 * data_0011 + wq100 * data_1010 
-    	        + wq010 * data_0110 + wq011 * data_0111 + wq101 * data_1011 + wq110 * data_1110;
+        double tempq2 =  wq111 * data_1111 + wq000 * data_0010 + wq001 * data_0011 + wq100 * data_1010 
+                + wq010 * data_0110 + wq011 * data_0111 + wq101 * data_1011 + wq110 * data_1110;
 
-    	double dXdmuqtilde = (tempq2 - tempq1)/dmuqtilde; 
-    	// to test for speed
-    	//double dXdmuqtilde = (tempq2 - interpolated_value)/((1-dz) * dmuq);
+        double dXdmuqtilde = (tempq2 - tempq1)/dmuqtilde; 
+        // to test for speed
+        //double dXdmuqtilde = (tempq2 - interpolated_value)/((1-dz) * dmuq);
 
-    	// mustilde direction
-    	double ws000 = (1-dx)*(1-dy)*(1-dz);double ws111 = dx*dy*dz;
-    	double ws100 = dx*(1-dy)*(1-dz);double ws110 = dx*dy*(1-dz);
-    	double ws010 = (1-dx)*dy*(1-dz);double ws011 = (1-dx)*dy*dz;
-    	double ws001 = (1-dx)*(1-dy)*dz;double ws101 = dx*(1-dy)*dz;
+        // mustilde direction
+        double ws000 = (1-dx)*(1-dy)*(1-dz);double ws111 = dx*dy*dz;
+        double ws100 = dx*(1-dy)*(1-dz);double ws110 = dx*dy*(1-dz);
+        double ws010 = (1-dx)*dy*(1-dz);double ws011 = (1-dx)*dy*dz;
+        double ws001 = (1-dx)*(1-dy)*dz;double ws101 = dx*(1-dy)*dz;
 
-    	double temps1 = ws000 * data_0000 + ws100 * data_1000 + ws010 * data_0100 + ws001 * data_0010 
-    	        + ws110 * data_1100 + ws101 * data_1010 + ws011 * data_0110 + ws111 * data_1110;
+        double temps1 = ws000 * data_0000 + ws100 * data_1000 + ws010 * data_0100 + ws001 * data_0010 
+                + ws110 * data_1100 + ws101 * data_1010 + ws011 * data_0110 + ws111 * data_1110;
 
-    	double temps2 =  ws111 * data_1111 + ws000 * data_0001 + ws100 * data_1001 + ws010 * data_0101 
-    	        + ws001 * data_0011 + ws011 * data_0111 + ws101 * data_1011 + ws110 * data_1101; 
+        double temps2 =  ws111 * data_1111 + ws000 * data_0001 + ws100 * data_1001 + ws010 * data_0101 
+                + ws001 * data_0011 + ws011 * data_0111 + ws101 * data_1011 + ws110 * data_1101; 
 
-    	double dXdmustilde = (temps2 - temps1)/dmustilde; 
-    	// to test for speed
-    	//double dXdmustilde = (temps2 - interpolated_value)/((1-dt) * dmus);
+        double dXdmustilde = (temps2 - temps1)/dmustilde; 
+        // to test for speed
+        //double dXdmustilde = (temps2 - interpolated_value)/((1-dt) * dmus);
 
-    	dXoverde = 1/(12 * alphaNf * T * T * T) * dXdTtilde; 
-    	dXoverdrhob = (5 * dXdmubtilde - dXdmuqtilde + 2 * dXdmustilde)/(T * T);
-    	dXoverdrhoq = (- 1 * dXdmubtilde + 2 * dXdmuqtilde - dXdmustilde)/(T * T);
-    	dXoverdrhos = (2 * dXdmubtilde - dXdmuqtilde + 2 * dXdmustilde)/(T * T);
+        dXoverde = 1/(12 * alphaNf * T * T * T) * dXdTtilde; 
+        dXoverdrhob = (5 * dXdmubtilde - dXdmuqtilde + 2 * dXdmustilde)/(T * T);
+        dXoverdrhoq = (- 1 * dXdmubtilde + 2 * dXdmuqtilde - dXdmustilde)/(T * T);
+        dXoverdrhos = (2 * dXdmubtilde - dXdmuqtilde + 2 * dXdmustilde)/(T * T);
     }
     
     std::vector<double> out;
@@ -286,10 +286,10 @@ std::vector<double> EOS_4D::FourDLInterp(std::vector<double>* data, std::vector<
 }
 
 std::vector<double> EOS_4D::get_tilde_variables(double e, double rhob, double rhoq, double rhos) const {
-	double Ttilde = sqrt(sqrt(e/3.0 * OneoveralphaNf)); // fm-1 
-	double mubtilde = (5.0 * rhob - rhoq + 2.0*rhos)/(Ttilde*Ttilde); // fm-1 
-	double muqtilde = (2.0 * rhoq - rhob -   rhos)/(Ttilde*Ttilde); // fm-1 
-	double mustilde = (2.0 * rhob - rhoq + 2.0*rhos)/(Ttilde*Ttilde); // fm-1 
+    double Ttilde = sqrt(sqrt(e/3.0 * OneoveralphaNf)); // fm-1 
+    double mubtilde = (5.0 * rhob - rhoq + 2.0*rhos)/(Ttilde*Ttilde); // fm-1 
+    double muqtilde = (2.0 * rhoq - rhob -   rhos)/(Ttilde*Ttilde); // fm-1 
+    double mustilde = (2.0 * rhob - rhoq + 2.0*rhos)/(Ttilde*Ttilde); // fm-1 
                                                                       //
     
     //std::cout << mubtilde << " nb " << rhob << " nq " << rhoq << " ns " << rhos << " T " << Ttilde << std::endl;
@@ -301,35 +301,35 @@ std::vector<double> EOS_4D::get_tilde_variables(double e, double rhob, double rh
     //muqtilde *= Util::hbarc; // GeV
     //mustilde *= Util::hbarc; // GeV
 
-	std::vector<double> out;
-	out.push_back(Ttilde);
-	out.push_back(mubtilde);
-	out.push_back(muqtilde);
-	out.push_back(mustilde);
-	return out;
+    std::vector<double> out;
+    out.push_back(Ttilde);
+    out.push_back(mubtilde);
+    out.push_back(muqtilde);
+    out.push_back(mustilde);
+    return out;
 } 
 
 void EOS_4D::initialize_eos() {
-	music_message.info("Using 4D EOS");
+    music_message.info("Using 4D EOS");
 
-	auto envPath = get_hydro_env_path();
-	std::stringstream spath;
-	spath << envPath;
-	std::string path = spath.str();
-	music_message << "from path " << path;
-	music_message.flush("info");
+    auto envPath = get_hydro_env_path();
+    std::stringstream spath;
+    spath << envPath;
+    spath << "/EOS/neos4D/";
+    std::string path = spath.str();
+    music_message << "from path " << path;
+    music_message.flush("info");
 
-	// read header info
-	read_header(path+"/EOS/neos4D/neos4d_t.dat");
+    // read header info
+    read_header(path + "neos4d_t.dat");
 
-	// read vectors
-	pressure_vec = read_vector(path+"/EOS/neos4D/neos4d_p.dat");
-	temp_vec = read_vector(path+"/EOS/neos4D/neos4d_t.dat");
-	mub_vec = read_vector(path+"/EOS/neos4D/neos4d_mub.dat");
-	muq_vec = read_vector(path+"/EOS/neos4D/neos4d_muq.dat");
-	mus_vec = read_vector(path+"/EOS/neos4D/neos4d_mus.dat");
-
-	music_message.info("Done reading EOS.");
+    // read vectors
+    pressure_vec = read_vector(path + "neos4d_p.dat");
+    temp_vec = read_vector(path + "neos4d_t.dat");
+    mub_vec = read_vector(path + "neos4d_mub.dat");
+    muq_vec = read_vector(path + "neos4d_muq.dat");
+    mus_vec = read_vector(path + "neos4d_mus.dat");
+    music_message.info("Done reading EOS.");
 }
 
 
@@ -366,8 +366,8 @@ void EOS_4D::get_pressure_with_gradients(double e, double rhob, double rhoq, dou
     dpdrhos = interp_output[4]; 
 
     cs2 = dpde + rhob/(e + p + Util::small_eps)*dpdrhob + 
-	    rhoq/(e + p + Util::small_eps)*dpdrhoq + 
-	    rhos/(e + p + Util::small_eps)*dpdrhos;
+        rhoq/(e + p + Util::small_eps)*dpdrhoq + 
+        rhos/(e + p + Util::small_eps)*dpdrhos;
     cs2 = std::max(0.01, std::min(1./3, cs2));
 }
 
