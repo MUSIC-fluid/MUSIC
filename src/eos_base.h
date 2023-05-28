@@ -67,11 +67,13 @@ class EOS_base {
                             const int table_idx, double ***table,
                             double &p, double &dpde, double &dpdrhob) const;
 
-    int    get_table_idx(double e) const;
-    double get_entropy  (double epsilon, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    int get_table_idx(double e) const;
+    double get_entropy(double epsilon, double rhob,
+                       double rhoq=0.0, double rhos=0.0) const;
 
-    void getThermalVariables(double epsilon, double rhob, 
-		    double rhoq, double rhos, std::vector<double> &thermalVec) const;
+    void getThermalVariables(double epsilon, double rhob, double rhoq,
+                             double rhos,
+                             std::vector<double> &thermalVec) const;
 
     double calculate_velocity_of_sound_sq(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double get_dpOverde3(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
@@ -97,9 +99,10 @@ class EOS_base {
     virtual double get_T2e        (double T_in_GeV, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
     virtual void   check_eos      () const {}
 
-    virtual void get_pressure_with_gradients(double epsilon, double rhob, 
-		    double rhoq, double rhos, double &p, double &dpde, 
-		    double &dpdrhob, double &dpdrhoq, double &dpdrhos, double &cs2) const {
+    virtual void get_pressure_with_gradients(double epsilon, double rhob,
+            double rhoq, double rhos, double &p, double &dpde,
+            double &dpdrhob, double &dpdrhoq, double &dpdrhos,
+            double &cs2) const {
         p = get_pressure(epsilon, rhob);
         dpde = get_dpOverde3(epsilon, rhob);
         dpdrhob = get_dpOverdrhob2(epsilon, rhob);

@@ -41,9 +41,11 @@ class EOS_4D : public EOS_base {
     int index(int i_T, int i_mub, int i_muq, int i_mus) const;
     int Cfloor(double val) const;
     int check_index(int ind, int lim) const;
-    std::vector<double> FourDLInterp(std::vector<double>* data, 
-		    std::vector<double> TildeVar, bool compute_derivatives=false) const;
-    std::vector<double> get_tilde_variables(double e, double nb, double nq, double ns) const;
+    std::vector<double> FourDLInterp(
+        std::vector<double>* data, std::vector<double> TildeVar,
+        bool compute_derivatives=false) const;
+    std::vector<double> get_tilde_variables(
+            double e, double nb, double nq, double ns) const;
 
  public:
     EOS_4D();
@@ -56,15 +58,10 @@ class EOS_4D : public EOS_base {
     double get_muQ        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double get_pressure   (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
 
-    //void get_pressure_with_gradients(double epsilon, double rhob, double &p, 
-	//	    double &dpde, double &dpdrhob, double &cs2, 
-	//	    double rhoq=0.0, double rhos=0.0) const;
-
-    void get_pressure_with_gradients(double epsilon, double rhob, double rhoq, double rhos, 
-            double &p, 
-		    double &dpde, double &dpdrhob, 
-		    double &dpdrhoq, double &dpdrhos, 
-		    double &cs2) const;
+    void get_pressure_with_gradients(
+            double epsilon, double rhob, double rhoq, double rhos,
+            double &p, double &dpde, double &dpdrhob,
+            double &dpdrhoq, double &dpdrhos, double &cs2) const;
 
     void check_eos() const {
         check_4D_eos();

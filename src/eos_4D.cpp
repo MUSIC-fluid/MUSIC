@@ -12,7 +12,7 @@ using std::string;
 
 EOS_4D::EOS_4D(){
     set_EOS_id(20);
-    set_number_of_tables(1);
+    set_number_of_tables(0);
     resize_table_info_arrays();
     set_eps_max(1e5);
     set_flag_muB(true);

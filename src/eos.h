@@ -23,10 +23,12 @@ class EOS {
     // functions to call the function pointers
     double get_pressure   (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_pressure(e, rhob));}
 
-    void get_pressure_with_gradients(double epsilon, double rhob, double rhoq, double rhos, 
-		    double &p, double &dpde, double &dpdrhob, double &dpdrhoq, 
-		    double &dpdrhos, double &cs2) const {
-        eos_ptr->get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
+    void get_pressure_with_gradients(double epsilon, double rhob, double rhoq,
+            double rhos, double &p, double &dpde, double &dpdrhob,
+            double &dpdrhoq, double &dpdrhos, double &cs2) const {
+        eos_ptr->get_pressure_with_gradients(
+                epsilon, rhob, rhoq, rhos,
+                p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
     }
 
     double get_temperature(double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_temperature(e, rhob));}
@@ -40,8 +42,8 @@ class EOS {
     double get_s2e        (double s, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_s2e(s, rhob));}
     double get_T2e        (double T_in_GeV, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_T2e(T_in_GeV, rhob));}
 
-    void getThermalVariables(double e, double rhob, double rhoq, double rhos, 
-		    std::vector<double> &thermalVec) const {
+    void getThermalVariables(double e, double rhob, double rhoq, double rhos,
+                             std::vector<double> &thermalVec) const {
         eos_ptr->getThermalVariables(e, rhob, rhoq, rhos, thermalVec);
     }
 
