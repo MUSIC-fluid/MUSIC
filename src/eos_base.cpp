@@ -539,7 +539,7 @@ void EOS_base::check_4D_eos() const {
     double ns = 0.0;
 
     ostringstream file_name;
-    file_name << "check_4DEoS_nB_0_nQ_0_nS_0.dat";
+    file_name << "check4DEoS_eDep_nB_0_nQ_0_nS_0.dat";
     ofstream check_file(file_name.str().c_str());
     check_file << "# e(GeV/fm^3)  nB(1/fm^3)  nQ(1/fm^3)  nS(1/fm^3)  "
                << "P(GeV/fm^3)  s(1/fm^3)  T(GeV)  cs^2  "
@@ -579,12 +579,12 @@ void EOS_base::check_4D_eos() const {
     double nBmax = 0.3;
     int NB = 101;
     double dnB = (nBmax - nB0)/(NB - 1);
-    std::string filename2 = "check4DEOS_e_0.3_nS_0_nQ_0.4nB.dat";
+    std::string filename2 = "check4DEOS_nBDep_e_0.3_nQ_0.4nB_nS_0.dat";
     ofstream checkFile2(filename2.c_str());
     checkFile2 << "# nB(1/fm^3)  nQ(1/fm^3)  nS(1/fm^3)  "
                << "P(GeV/fm^3)  T(GeV)  cs^2  "
                << "mu_B(GeV)  mu_Q(GeV)  mu_S(GeV)" << endl;
-    std::string filename3 = "check4DEOS_e_0.3_nS_0_nQ_0.dat";
+    std::string filename3 = "check4DEOS_nBDep_e_0.3_nQ_0_nS_0.dat";
     ofstream checkFile3(filename3.c_str());
     checkFile3 << "# nB(1/fm^3)  nQ(1/fm^3)  nS(1/fm^3)  "
                << "P(GeV/fm^3)  T(GeV)  cs^2  "
