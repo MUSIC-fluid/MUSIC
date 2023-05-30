@@ -539,7 +539,7 @@ void EOS_base::check_4D_eos() const {
     double ns = 0.0;
 
     ostringstream file_name;
-    file_name << "check4DEoS_eDep_nB_0_nQ_0_nS_0.dat";
+    file_name << "check4DEOS_eDep_nB_0_nQ_0_nS_0.dat";
     ofstream check_file(file_name.str().c_str());
     check_file << "# e(GeV/fm^3)  nB(1/fm^3)  nQ(1/fm^3)  nS(1/fm^3)  "
                << "P(GeV/fm^3)  s(1/fm^3)  T(GeV)  cs^2  "

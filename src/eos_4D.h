@@ -42,7 +42,7 @@ class EOS_4D : public EOS_base {
     int Cfloor(double val) const;
     int check_index(int ind, int lim) const;
     std::vector<double> FourDLInterp(
-        std::vector<double>* data, std::vector<double> TildeVar,
+        const std::vector<double> &data, const std::vector<double> &TildeVar,
         bool compute_derivatives=false) const;
     std::vector<double> get_tilde_variables(
             double e, double nb, double nq, double ns) const;
