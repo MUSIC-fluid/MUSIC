@@ -57,6 +57,7 @@ class EOS_4D : public EOS_base {
     double get_muS        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double get_muQ        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double get_pressure   (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double get_cs2   (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
 
     void get_pressure_with_gradients(
             double epsilon, double rhob, double rhoq, double rhos,

@@ -21,8 +21,8 @@ EOS_4D::EOS_4D(){
 
     pi = 3.141592653589793;
     Nf = 3;
-    alphaNf = (8/45.0 + 7/60.0*3)*3.141592653589793*3.141592653589793;
-    OneoveralphaNf = 1/((8/45.0 + 7/60.0*3)*3.141592653589793*3.141592653589793);
+    alphaNf = (8/45.0 + 7/60.0*3.0)*3.141592653589793*3.141592653589793;
+    OneoveralphaNf = 1/((8/45.0 + 7/60.0*3.0)*3.141592653589793*3.141592653589793);
 }
 
 
@@ -224,7 +224,7 @@ std::vector<double> EOS_4D::FourDLInterp(const std::vector<double> &data,
 
         double dXdTtilde = (tempT2 - tempT1)/dTtilde; 
         // to test for speed
-        //double dXdTtilde = (tempT2 - interpolated_value)/((1-dx) * dT);
+        //double dXdTtilde = (tempT2 - interpolated_value)/((1-dx) * dTtilde);
 
         // mubtilde direction
         double wb000 = (1-dx)*(1-dz)*(1-dt);double wb111 = dx*dz*dt;
@@ -240,7 +240,7 @@ std::vector<double> EOS_4D::FourDLInterp(const std::vector<double> &data,
 
         double dXdmubtilde = (tempb2 - tempb1)/dmubtilde; 
         // to test for speed
-        //double dXdmubtilde = (tempb2 - interpolated_value)/((1-dy) * dmub);
+        //double dXdmubtilde = (tempb2 - interpolated_value)/((1-dy) * dmubtilde);
 
         // muqtilde direction
         double wq000 = (1-dx)*(1-dy)*(1-dt);double wq111 = dx*dy*dt;
@@ -274,10 +274,10 @@ std::vector<double> EOS_4D::FourDLInterp(const std::vector<double> &data,
         // to test for speed
         //double dXdmustilde = (temps2 - interpolated_value)/((1-dt) * dmus);
 
-        dXoverde = 1/(12 * alphaNf * T * T * T) * dXdTtilde; 
-        dXoverdrhob = (5 * dXdmubtilde - dXdmuqtilde + 2 * dXdmustilde)/(T * T);
-        dXoverdrhoq = (- 1 * dXdmubtilde + 2 * dXdmuqtilde - dXdmustilde)/(T * T);
-        dXoverdrhos = (2 * dXdmubtilde - dXdmuqtilde + 2 * dXdmustilde)/(T * T);
+        dXoverde = 3.0/(19.0 * pi *  pi * T * T * T) * dXdTtilde; 
+        dXoverdrhob = (5.0 * dXdmubtilde - dXdmuqtilde + 2.0 * dXdmustilde)/(T * T);
+        dXoverdrhoq = (- 1.0 * dXdmubtilde + 2.0 * dXdmuqtilde - dXdmustilde)/(T * T);
+        dXoverdrhos = (2.0 * dXdmubtilde - dXdmuqtilde + 2.0 * dXdmustilde)/(T * T);
     }
 
     std::vector<double> out;
@@ -344,7 +344,6 @@ double EOS_4D::get_temperature(double e, double rhob, double rhoq, double rhos) 
     std::vector<double> TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
     std::vector<double> interp_output = FourDLInterp(temp_vec, TildeVar);  // 1/fm
     double interp_T = std::max(Util::small_eps, interp_output[0]);
-    if(interp_T > 9){std::cout << interp_T << std::endl;}
     return(interp_T);
 }
 
@@ -356,6 +355,24 @@ double EOS_4D::get_pressure(double e, double rhob, double rhoq, double rhos) con
     std::vector<double> interp_output = FourDLInterp(pressure_vec, TildeVar);
     double interp_p = std::max(Util::small_eps, interp_output[0]);
     return(interp_p);
+}
+
+//! This function returns the speed of sound. 
+//! the input local energy density [1/fm^4], rhob [1/fm^3], rhoq [1/fm^3], rhos [1/fm^3]
+double EOS_4D::get_cs2(double e, double rhob, double rhoq, double rhos) const {
+    std::vector<double> TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
+    std::vector<double> interp_output = FourDLInterp(pressure_vec, TildeVar, true);
+    double p = std::max(Util::small_eps, interp_output[0]);
+    double dpde = interp_output[1];
+    double dpdrhob = interp_output[2];
+    double dpdrhoq = interp_output[3];
+    double dpdrhos = interp_output[4];
+    double cs2 = dpde + rhob/(e + p + Util::small_eps)*dpdrhob +
+        rhoq/(e + p + Util::small_eps)*dpdrhoq +
+        rhos/(e + p + Util::small_eps)*dpdrhos;
+    cs2 = std::max(0.01, std::min(1./3, cs2));
+    return cs2;
+
 }
 
 void EOS_4D::get_pressure_with_gradients(double e, double rhob, double rhoq, double rhos, double &p, double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos, double &cs2) const {
