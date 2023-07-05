@@ -484,6 +484,10 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
     ostringstream surfdat_stream;
     surfdat_stream << "./surface.dat";
 
+    ostringstream surfCommand;
+    surfCommand << "cat surface_eps_*.dat >> " << surfdat_stream.str();
+    system_status_ = system(surfCommand.str().c_str());
+
     // new counting, mac compatible ...
     if (surface_in_binary) {
         NCells = get_number_of_lines_of_binary_surface_file(
