@@ -1097,13 +1097,6 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "store_hydro_info_in_memory")
         parameter_list.store_hydro_info_in_memory = static_cast<int>(value);
 
-    if (parameter_name == "surface_in_memory") {
-        if (value == 1)
-            parameter_list.surface_in_memory = true;
-        else
-            parameter_list.surface_in_memory = false;
-    }
-
     if (parameter_name == "Viscosity_Flag_Yes_1_No_0")
         parameter_list.viscosity_flag = static_cast<int>(value);
 
@@ -1115,6 +1108,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
 
     if (parameter_name == "T_freeze")
         parameter_list.TFO = value;
+
+    if (parameter_name == "eps_switch")
+        parameter_list.epsilonFreeze = value;
 
     if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0")
         parameter_list.turn_on_bulk = static_cast<int>(value);
