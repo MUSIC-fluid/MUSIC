@@ -234,6 +234,7 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
     double R_shear = 0.;
     double R_bulk = 0.;
     computeInverseReynoldsNumbers(epsilon+pressure, grid_pt, R_shear, R_bulk);
+    R_shear = std::min(1 - 1e-6, R_shear);
     double resummedCorrection = 1./(1. + atanh(R_shear*R_shear));
     shear = shear*resummedCorrection;
     transport_coefficient = transport_coefficient*resummedCorrection;
@@ -610,7 +611,8 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
                           *(1./3. - cs2)*Bulk_Relax_time);
     transport_coeff2_s = 0.;  // not known;  put 0
 
-    double R_bulk = grid_pt.pi_b/(epsilon + pressure);
+    double R_bulk = std::abs(grid_pt.pi_b/(epsilon + pressure));
+    R_bulk = std::min(1 - 1e-6, R_bulk);
     double resummedCorrection = 1./(1. + atanh(R_bulk*R_bulk));
     bulk = bulk*resummedCorrection;
     transport_coeff1 = transport_coeff1*resummedCorrection;
