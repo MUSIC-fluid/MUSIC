@@ -236,11 +236,13 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
     //computeInverseReynoldsNumbers(epsilon+pressure, grid_pt, R_shear, R_bulk);
     computeInverseReynoldsNumbers(pressure, grid_pt, R_shear, R_bulk);
     double resummedCorrection = 1;
-    if (R_shear < 1.)
+    if (R_shear < 1.) {
         resummedCorrection = 1./(1. + atanh(R_shear*R_shear));
-    else
+    } else {
         resummedCorrection = 1e-4;
-    //std::cout << "shear resumCorr = " << resummedCorrection << std::endl;
+        tau_pi = tau_pi*resummedCorrection;
+        tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
+    }
     shear = shear*resummedCorrection;
     transport_coefficient = transport_coefficient*resummedCorrection;
     transport_coefficient2 = transport_coefficient2*resummedCorrection;
@@ -619,10 +621,15 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
 
     double R_bulk = std::abs(grid_pt.pi_b/(epsilon + pressure));
     double resummedCorrection = 1;
-    if (R_bulk < 1.)
+    if (R_bulk < 1.) {
         resummedCorrection = 1./(1. + atanh(R_bulk*R_bulk));
-    else
+    } else {
         resummedCorrection = 1e-4;
+        Bulk_Relax_time = Bulk_Relax_time*resummedCorrection;
+        // avoid overflow or underflow of the bulk relaxation time
+        Bulk_Relax_time = (
+            std::min(10., std::max(3.*DATA.delta_tau, Bulk_Relax_time)));
+    }
     bulk = bulk*resummedCorrection;
     transport_coeff1 = transport_coeff1*resummedCorrection;
     transport_coeff2 = transport_coeff2*resummedCorrection;
