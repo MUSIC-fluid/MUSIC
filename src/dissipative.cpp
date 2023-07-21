@@ -233,8 +233,8 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
 
     double R_shear = 0.;
     double R_bulk = 0.;
-    //computeInverseReynoldsNumbers(epsilon+pressure, grid_pt, R_shear, R_bulk);
-    computeInverseReynoldsNumbers(pressure, grid_pt, R_shear, R_bulk);
+    computeInverseReynoldsNumbers(epsilon+pressure, grid_pt, R_shear, R_bulk);
+    //computeInverseReynoldsNumbers(pressure, grid_pt, R_shear, R_bulk);
     double resummedCorrection = 1;
     if (R_shear < 1.) {
         resummedCorrection = 1./(1. + atanh(R_shear*R_shear));
