@@ -707,6 +707,17 @@ InitData read_in_parameters(std::string input_file) {
     }
     parameter_list.quest_revert_strength = temp_quest_revert_strength;
 
+    int temp_flagResumTransportCoeff = 0;
+    tempinput = Util::StringFind4(input_file, "flag_resum_transportCoeff");
+    if (tempinput != "empty") {
+        istringstream(tempinput) >> temp_flagResumTransportCoeff;
+    }
+    if (temp_flagResumTransportCoeff == 0) {
+        parameter_list.FlagResumTransportCoeff = false;
+    } else {
+        parameter_list.FlagResumTransportCoeff = true;
+    }
+
     // Include_Bulk_Visc_Yes_1_No_0
     int tempturn_on_bulk = 0;
     tempinput = Util::StringFind4(input_file, "Include_Bulk_Visc_Yes_1_No_0");

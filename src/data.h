@@ -121,6 +121,7 @@ typedef struct init_data {
     double shear_to_s;      //!< value of specific shear viscosity
 
     double quest_revert_strength;
+    bool FlagResumTransportCoeff;
 
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;

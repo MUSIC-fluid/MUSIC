@@ -231,24 +231,26 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
             transport_coeffs_.get_lambda_pibulkPi_coeff()*tau_pi);
     double transport_coefficient2_b = 0.;
 
-    double R_shear = 0.;
-    double R_bulk = 0.;
-    computeInverseReynoldsNumbers(epsilon+pressure, grid_pt, R_shear, R_bulk);
-    //computeInverseReynoldsNumbers(pressure, grid_pt, R_shear, R_bulk);
     double resummedCorrection = 1;
-    if (R_shear < 1.) {
-        resummedCorrection = 1./(1. + atanh(R_shear*R_shear));
-    } else {
-        resummedCorrection = 1e-4;
-        tau_pi = tau_pi*resummedCorrection;
-        tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
+    if (DATA.FlagResumTransportCoeff) {
+        double R_shear = 0.;
+        double R_bulk = 0.;
+        computeInverseReynoldsNumbers(epsilon + pressure, grid_pt,
+                                      R_shear, R_bulk);
+        if (R_shear < 1.) {
+            resummedCorrection = 1./(1. + atanh(R_shear*R_shear));
+        } else {
+            resummedCorrection = 1e-4;
+            tau_pi = tau_pi*resummedCorrection;
+            tau_pi = std::min(10., std::max(3.*DATA.delta_tau, tau_pi));
+        }
+        shear = shear*resummedCorrection;
+        transport_coefficient = transport_coefficient*resummedCorrection;
+        transport_coefficient2 = transport_coefficient2*resummedCorrection;
+        transport_coefficient3 = transport_coefficient3*resummedCorrection;
+        transport_coefficient_b = transport_coefficient_b*resummedCorrection;
+        transport_coefficient2_b = transport_coefficient2_b*resummedCorrection;
     }
-    shear = shear*resummedCorrection;
-    transport_coefficient = transport_coefficient*resummedCorrection;
-    transport_coefficient2 = transport_coefficient2*resummedCorrection;
-    transport_coefficient3 = transport_coefficient3*resummedCorrection;
-    transport_coefficient_b = transport_coefficient_b*resummedCorrection;
-    transport_coefficient2_b = transport_coefficient2_b*resummedCorrection;
 
     int mu = 0;
     int nu = 0;
@@ -287,7 +289,8 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
         double Vorticity_term = 0.0;
         if (DATA.include_vorticity_terms) {
             double transport_coefficient4 = 2.*tau_pi;
-            transport_coefficient4 = transport_coefficient4*resummedCorrection;
+            if (DATA.FlagResumTransportCoeff)
+                transport_coefficient4 *= resummedCorrection;
             auto omega = Util::UnpackVecToMatrix(omega_1d);
             double term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
                                       - Wmunu[nu][0]*omega[mu][0]
@@ -619,22 +622,24 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
                           *(1./3. - cs2)*Bulk_Relax_time);
     transport_coeff2_s = 0.;  // not known;  put 0
 
-    double R_bulk = std::abs(grid_pt.pi_b/(epsilon + pressure));
-    double resummedCorrection = 1;
-    if (R_bulk < 1.) {
-        resummedCorrection = 1./(1. + atanh(R_bulk*R_bulk));
-    } else {
-        resummedCorrection = 1e-4;
-        Bulk_Relax_time = Bulk_Relax_time*resummedCorrection;
-        // avoid overflow or underflow of the bulk relaxation time
-        Bulk_Relax_time = (
-            std::min(10., std::max(3.*DATA.delta_tau, Bulk_Relax_time)));
+    if (DATA.FlagResumTransportCoeff) {
+        double resummedCorrection = 1;
+        double R_bulk = std::abs(grid_pt.pi_b/(epsilon + pressure));
+        if (R_bulk < 1.) {
+            resummedCorrection = 1./(1. + atanh(R_bulk*R_bulk));
+        } else {
+            resummedCorrection = 1e-4;
+            Bulk_Relax_time = Bulk_Relax_time*resummedCorrection;
+            // avoid overflow or underflow of the bulk relaxation time
+            Bulk_Relax_time = (
+                std::min(10., std::max(3.*DATA.delta_tau, Bulk_Relax_time)));
+        }
+        bulk = bulk*resummedCorrection;
+        transport_coeff1 = transport_coeff1*resummedCorrection;
+        transport_coeff2 = transport_coeff2*resummedCorrection;
+        transport_coeff1_s = transport_coeff1_s*resummedCorrection;
+        transport_coeff2_s = transport_coeff2_s*resummedCorrection;
     }
-    bulk = bulk*resummedCorrection;
-    transport_coeff1 = transport_coeff1*resummedCorrection;
-    transport_coeff2 = transport_coeff2*resummedCorrection;
-    transport_coeff1_s = transport_coeff1_s*resummedCorrection;
-    transport_coeff2_s = transport_coeff2_s*resummedCorrection;
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
     NS_term = -bulk*theta_local;
