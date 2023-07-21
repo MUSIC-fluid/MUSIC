@@ -151,6 +151,30 @@ void Diss::MakeWSource(const double tau,
 }
 
 
+void Diss::computeInverseReynoldsNumbers(const double enthalpy,
+                                         const Cell_small &grid_pt,
+                                         double &R_shear,
+                                         double &R_bulk) const {
+    double pi_00 = grid_pt.Wmunu[0];
+    double pi_01 = grid_pt.Wmunu[1];
+    double pi_02 = grid_pt.Wmunu[2];
+    double pi_03 = grid_pt.Wmunu[3];
+    double pi_11 = grid_pt.Wmunu[4];
+    double pi_12 = grid_pt.Wmunu[5];
+    double pi_13 = grid_pt.Wmunu[6];
+    double pi_22 = grid_pt.Wmunu[7];
+    double pi_23 = grid_pt.Wmunu[8];
+    double pi_33 = grid_pt.Wmunu[9];
+
+    double pisize = (pi_00*pi_00 + pi_11*pi_11 + pi_22*pi_22 + pi_33*pi_33
+         - 2.*(pi_01*pi_01 + pi_02*pi_02 + pi_03*pi_03)
+         + 2.*(pi_12*pi_12 + pi_13*pi_13 + pi_23*pi_23));
+
+    R_shear = sqrt(pisize)/enthalpy;
+    R_bulk = grid_pt.pi_b/enthalpy;
+}
+
+
 void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
                          const double theta_local,
                          const DumuVec &a_local,
@@ -206,6 +230,17 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
     double transport_coefficient_b  = (
             transport_coeffs_.get_lambda_pibulkPi_coeff()*tau_pi);
     double transport_coefficient2_b = 0.;
+
+    double R_shear = 0.;
+    double R_bulk = 0.;
+    computeInverseReynoldsNumbers(epsilon+pressure, grid_pt, R_shear, R_bulk);
+    double resummedCorrection = 1./(1. + atanh(R_shear*R_shear));
+    shear = shear*resummedCorrection;
+    transport_coefficient = transport_coefficient*resummedCorrection;
+    transport_coefficient2 = transport_coefficient2*resummedCorrection;
+    transport_coefficient3 = transport_coefficient3*resummedCorrection;
+    transport_coefficient_b = transport_coefficient_b*resummedCorrection;
+    transport_coefficient2_b = transport_coefficient2_b*resummedCorrection;
 
     int mu = 0;
     int nu = 0;
@@ -575,6 +610,13 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
                           *(1./3. - cs2)*Bulk_Relax_time);
     transport_coeff2_s = 0.;  // not known;  put 0
 
+    double R_bulk = grid_pt.pi_b/(epsilon + pressure);
+    double resummedCorrection = 1./(1. + atanh(R_bulk*R_bulk));
+    bulk = bulk*resummedCorrection;
+    transport_coeff1 = transport_coeff1*resummedCorrection;
+    transport_coeff2 = transport_coeff2*resummedCorrection;
+    transport_coeff1_s = transport_coeff1_s*resummedCorrection;
+    transport_coeff2_s = transport_coeff2_s*resummedCorrection;
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
     NS_term = -bulk*theta_local;
