@@ -233,9 +233,14 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
 
     double R_shear = 0.;
     double R_bulk = 0.;
-    computeInverseReynoldsNumbers(epsilon+pressure, grid_pt, R_shear, R_bulk);
-    R_shear = std::min(1 - 1e-6, R_shear);
-    double resummedCorrection = 1./(1. + atanh(R_shear*R_shear));
+    //computeInverseReynoldsNumbers(epsilon+pressure, grid_pt, R_shear, R_bulk);
+    computeInverseReynoldsNumbers(pressure, grid_pt, R_shear, R_bulk);
+    double resummedCorrection = 1;
+    if (R_shear < 1.)
+        resummedCorrection = 1./(1. + atanh(R_shear*R_shear));
+    else
+        resummedCorrection = 1e-4;
+    //std::cout << "shear resumCorr = " << resummedCorrection << std::endl;
     shear = shear*resummedCorrection;
     transport_coefficient = transport_coefficient*resummedCorrection;
     transport_coefficient2 = transport_coefficient2*resummedCorrection;
@@ -280,6 +285,7 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
         double Vorticity_term = 0.0;
         if (DATA.include_vorticity_terms) {
             double transport_coefficient4 = 2.*tau_pi;
+            transport_coefficient4 = transport_coefficient4*resummedCorrection;
             auto omega = Util::UnpackVecToMatrix(omega_1d);
             double term1_Vorticity = (- Wmunu[mu][0]*omega[nu][0]
                                       - Wmunu[nu][0]*omega[mu][0]
@@ -612,8 +618,11 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
     transport_coeff2_s = 0.;  // not known;  put 0
 
     double R_bulk = std::abs(grid_pt.pi_b/(epsilon + pressure));
-    R_bulk = std::min(1 - 1e-6, R_bulk);
-    double resummedCorrection = 1./(1. + atanh(R_bulk*R_bulk));
+    double resummedCorrection = 1;
+    if (R_bulk < 1.)
+        resummedCorrection = 1./(1. + atanh(R_bulk*R_bulk));
+    else
+        resummedCorrection = 1e-4;
     bulk = bulk*resummedCorrection;
     transport_coeff1 = transport_coeff1*resummedCorrection;
     transport_coeff2 = transport_coeff2*resummedCorrection;
