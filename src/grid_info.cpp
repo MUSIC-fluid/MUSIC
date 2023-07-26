@@ -2155,6 +2155,12 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
     of2.open(filename2.str().c_str(), std::fstream::out);
     of2 << "# eta_s  nB(1/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
 
+    ostringstream filename2Q;
+    filename2Q << "eccentricities_evo_nQ_tau_" << tau << ".dat";
+    std::fstream of2Q;
+    of2Q.open(filename2Q.str().c_str(), std::fstream::out);
+    of2Q << "# eta_s  nQ(1/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
+
     ostringstream filename3;
     filename3 << "meanpT_estimators_tau_" << tau << ".dat";
     std::fstream of3;
@@ -2172,9 +2178,9 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
         }
 
         // compute the central of mass position
-        double x_ed_o = 0.0, x_nB_o = 0.0;
-        double y_ed_o = 0.0, y_nB_o = 0.0;
-        double w_ed_sum = 0.0, w_nB_sum = 0.0;
+        double x_ed_o = 0.0, x_nB_o = 0.0, x_nQ_o = 0.0;
+        double y_ed_o = 0.0, y_nB_o = 0.0, y_nQ_o = 0.0;
+        double w_ed_sum = 0.0, w_nB_sum = 0.0, w_nQ_sum = 0.0;
         for (int iy = 0; iy < arena.nY(); iy++)
         for (int ix = 0; ix < arena.nX(); ix++) {
             int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
@@ -2182,6 +2188,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             double y_local    = - DATA.y_size/2. + iy*DATA.delta_y;
             double e_local    = arena.e_[fieldIdx];  // 1/fm^4
             double nB_local   = arena.rhob_[fieldIdx];     // 1/fm^3
+            double nQ_local   = arena.rhoq_[fieldIdx];     // 1/fm^3
             double gamma_perp = arena.u_[0][fieldIdx];
             x_ed_o   += x_local*e_local*gamma_perp;
             y_ed_o   += y_local*e_local*gamma_perp;
@@ -2189,11 +2196,16 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             x_nB_o   += x_local*nB_local*gamma_perp;
             y_nB_o   += y_local*nB_local*gamma_perp;
             w_nB_sum += nB_local*gamma_perp;
+            x_nQ_o   += x_local*nQ_local*gamma_perp;
+            y_nQ_o   += y_local*nQ_local*gamma_perp;
+            w_nQ_sum += nQ_local*gamma_perp;
         }
         x_ed_o /= std::max(small_eps, w_ed_sum);
         y_ed_o /= std::max(small_eps, w_ed_sum);
         x_nB_o /= std::max(small_eps, w_nB_sum);
         y_nB_o /= std::max(small_eps, w_nB_sum);
+        x_nQ_o /= std::max(small_eps, w_nQ_sum);
+        y_nQ_o /= std::max(small_eps, w_nQ_sum);
 
         // compute epsilon_p with ideal, ideal + shear, and full T^{\munu}
         std::vector<double> ep_num1(3, 0.0);
@@ -2207,6 +2219,9 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
         std::vector<double> eccn_nB_num1(norder, 0.0);
         std::vector<double> eccn_nB_num2(norder, 0.0);
         std::vector<double> eccn_nB_den (norder, 0.0);
+        std::vector<double> eccn_nQ_num1(norder, 0.0);
+        std::vector<double> eccn_nQ_num2(norder, 0.0);
+        std::vector<double> eccn_nQ_den (norder, 0.0);
 
         std::vector<double> meanpT_est_num(4, 0.0);
         std::vector<double> meanpT_est_den(1, 0.0);
@@ -2217,18 +2232,22 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             double y_ed = - DATA.y_size/2. + iy*DATA.delta_y - y_ed_o;
             double x_nB = - DATA.x_size/2. + ix*DATA.delta_x - x_nB_o;
             double y_nB = - DATA.y_size/2. + iy*DATA.delta_y - y_nB_o;
+            double x_nQ = - DATA.x_size/2. + ix*DATA.delta_x - x_nQ_o;
+            double y_nQ = - DATA.y_size/2. + iy*DATA.delta_y - y_nQ_o;
             double r_ed = sqrt(x_ed*x_ed + y_ed*y_ed);
             double r_nB = sqrt(x_nB*x_nB + y_nB*y_nB);
+            double r_nQ = sqrt(x_nQ*x_nQ + y_nQ*y_nQ);
             double phi_ed = atan2(y_ed, x_ed);
             double phi_nB = atan2(y_nB, x_nB);
+            double phi_nQ = atan2(y_nQ, x_nQ);
 
             double e_local    = arena.e_[fieldIdx];  // 1/fm^4
             double rhob_local = arena.rhob_[fieldIdx];     // 1/fm^3
             double rhoq_local = arena.rhoq_[fieldIdx];     // 1/fm^3
             double rhos_local = arena.rhos_[fieldIdx];     // 1/fm^3
 
-            eos.getThermalVariables(e_local, rhob_local, 
-			    rhoq_local, rhos_local, thermalVec);
+            eos.getThermalVariables(e_local, rhob_local,
+                                    rhoq_local, rhos_local, thermalVec);
 
             double P_local = thermalVec[2];
             double enthopy = e_local + P_local;
@@ -2264,18 +2283,21 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             ep_num2[2] += 2.*T_xy_full;
             ep_den[2]  += T_xx_full + T_yy_full;
 
-            double w_ed = 0.0, w_nB = 0.0;
+            double w_ed = 0.0, w_nB = 0.0, w_nQ = 0.0;
             for (int i = 0; i < norder; i++) {
                 if (i == 1) {
                     w_ed = u0*e_local*pow(r_ed, 3);
                     w_nB = u0*rhob_local*pow(r_nB, 3);
+                    w_nQ = u0*rhoq_local*pow(r_nQ, 3);
                 } else {
                     w_ed = u0*e_local*pow(r_ed, i);
                     w_nB = u0*rhob_local*pow(r_nB, i);
+                    w_nQ = u0*rhoq_local*pow(r_nQ, i);
                 }
                 if (i == 0) {
                     eccn_ed_num1[i] += e_local;
                     eccn_nB_num1[i] += rhob_local;
+                    eccn_nQ_num1[i] += rhoq_local;
                 } else {
                     eccn_ed_num1[i] += w_ed*cos(i*phi_ed);
                     eccn_ed_num2[i] += w_ed*sin(i*phi_ed);
@@ -2283,6 +2305,9 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
                     eccn_nB_num1[i] += w_nB*cos(i*phi_nB);
                     eccn_nB_num2[i] += w_nB*sin(i*phi_nB);
                     eccn_nB_den [i] += w_nB;
+                    eccn_nQ_num1[i] += w_nQ*cos(i*phi_nQ);
+                    eccn_nQ_num2[i] += w_nQ*sin(i*phi_nQ);
+                    eccn_nQ_den [i] += w_nQ;
                 }
             }
 
@@ -2320,6 +2345,16 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
         }
         of2 << endl;
 
+        of2Q << scientific << setw(18) << setprecision(8)
+             << eta << "  "
+             << eccn_nQ_num1[0]*DATA.delta_x*DATA.delta_y << "  ";
+        for (int i = 1; i < norder; i++) {
+            // the minus sign ensure the vector points to the short axis
+            of2Q << -eccn_nQ_num1[i]/std::max(eccn_nQ_den[i], small_eps) << "  "
+                 << -eccn_nQ_num2[i]/std::max(eccn_nQ_den[i], small_eps) << "  ";
+        }
+        of2Q << endl;
+
         of3 << scientific << setw(18) << setprecision(8)
             << eta << "  "
             << meanpT_est_num[0]*DATA.delta_x*DATA.delta_y << "  "
@@ -2330,6 +2365,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
     of.close();
     of1.close();
     of2.close();
+    of2Q.close();
     of3.close();
 }
 
