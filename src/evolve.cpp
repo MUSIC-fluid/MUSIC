@@ -650,30 +650,41 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     array[15] = static_cast<float>(muS);
                     array[16] = static_cast<float>(muQ);
                     array[17] = static_cast<float>(eps_plus_p_over_T_FO);
-                    for (int ii = 0; ii < 10; ii++)
-                        array[18+ii] = static_cast<float>(fluid_center.Wmunu[ii]);
-                    array[28] = fluid_center.pi_b;
-                    array[29] = fluid_center.rhob;
-                    for (int ii = 0; ii < 4; ii++)
-                        array[30+ii] = static_cast<float>(fluid_center.Wmunu[10+ii]);
+                    for (int ii = 0; ii < 10; ii++) {
+                        array[18+ii] = static_cast<float>(
+                                                    fluid_center.Wmunu[ii]);
+                    }
+                    array[28] = static_cast<float>(fluid_center.pi_b);
+                    array[29] = static_cast<float>(fluid_center.rhob);
+                    for (int ii = 0; ii < 4; ii++) {
+                        array[30+ii] = static_cast<float>(
+                                                fluid_center.Wmunu[10+ii]);
+                    }
                     if (DATA.output_vorticity == 1) {
                         for (int ii = 0; ii < 6; ii++) {
                             // no minus sign because its definition is
                             // opposite to the kinetic vorticity
-                            array[34+ii] = fluid_aux_center.omega_kSP[ii]/TFO;
+                            array[34+ii] = static_cast<float>(
+                                    fluid_aux_center.omega_kSP[ii]/TFO);
                             // the extra minus sign is from metric
                             // output quantities for g = (1, -1, -1, -1)
-                            array[40+ii] = -fluid_aux_center.omega_k[ii]/TFO;
-                            array[46+ii] = -fluid_aux_center.omega_th[ii];
-                            array[52+ii] = (-fluid_aux_center.omega_T[ii]
-                                            /TFO/TFO);
+                            array[40+ii] = static_cast<float>(
+                                    -fluid_aux_center.omega_k[ii]/TFO);
+                            array[46+ii] = static_cast<float>(
+                                    -fluid_aux_center.omega_th[ii]);
+                            array[52+ii] = static_cast<float>(
+                                    -fluid_aux_center.omega_T[ii]/TFO/TFO);
                         }
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
-                        for (int ii = 0; ii < 10; ii++)
-                            array[58+ii] = -fluid_aux_center.sigma_th[ii];
-                        for (int ii = 0; ii < 4; ii++)
-                            array[68+ii] = -fluid_aux_center.DbetaMu[ii];
+                        for (int ii = 0; ii < 10; ii++) {
+                            array[58+ii] = static_cast<float>(
+                                    -fluid_aux_center.sigma_th[ii]);
+                        }
+                        for (int ii = 0; ii < 4; ii++) {
+                            array[68+ii] = static_cast<float>(
+                                    -fluid_aux_center.DbetaMu[ii]);
+                        }
                     }
                     for (int i = 0; i < FOsize; i++)
                         s_file.write((char*) &(array[i]), sizeof(float));
@@ -940,20 +951,25 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                     for (int ii = 0; ii < 6; ii++) {
                         // no minus sign because its definition is opposite to
                         // the kinetic vorticity
-                        array[34+ii] = fluid_aux_center.omega_kSP[ii]/T_local;
+                        array[34+ii] = static_cast<float>(
+                                fluid_aux_center.omega_kSP[ii]/T_local);
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
-                        array[40+ii] = -fluid_aux_center.omega_k[ii]/T_local;
-                        array[46+ii] = -fluid_aux_center.omega_th[ii];
-                        array[52+ii] = (-fluid_aux_center.omega_T[ii]
-                                        /T_local/T_local);
+                        array[40+ii] = static_cast<float>(
+                                -fluid_aux_center.omega_k[ii]/T_local);
+                        array[46+ii] = static_cast<float>(
+                                -fluid_aux_center.omega_th[ii]);
+                        array[52+ii] = static_cast<float>(
+                                -fluid_aux_center.omega_T[ii]/T_local/T_local);
                     }
                     // the extra minus sign is from metric
                     // output quantities for g = (1, -1, -1, -1)
                     for (int ii = 0; ii < 10; ii++)
-                        array[58+ii] = -fluid_aux_center.sigma_th[ii];
+                        array[58+ii] = static_cast<float>(
+                                -fluid_aux_center.sigma_th[ii]);
                     for (int ii = 0; ii < 4; ii++)
-                        array[68+ii] = -fluid_aux_center.DbetaMu[ii];
+                        array[68+ii] = static_cast<float>(
+                                -fluid_aux_center.DbetaMu[ii]);
                 }
                 for (int i = 0; i < FOsize; i++) {
                     s_file.write((char*) &(array[i]), sizeof(float));
