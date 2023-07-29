@@ -31,16 +31,16 @@ class EOS {
                 p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
     }
 
-    double get_temperature(double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_temperature(e, rhob));}
-    double get_entropy    (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_entropy(e, rhob));}
-    double get_cs2        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_cs2(e, rhob));}
-    double get_dpde       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->p_e_func(e, rhob));}
+    double get_temperature(double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_temperature(e, rhob, rhoq, rhos));}
+    double get_entropy    (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_entropy(e, rhob, rhoq, rhos));}
+    double get_cs2        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_cs2(e, rhob, rhoq, rhos));}
+    double get_dpde       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->p_e_func(e, rhob, rhoq, rhos));}
     double get_dpdrhob    (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->p_rho_func(e, rhob));}
-    double get_muB        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_muB(e, rhob));}
-    double get_muS        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_muS(e, rhob));}
-    double get_muQ        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_muQ(e, rhob));}
-    double get_s2e        (double s, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_s2e(s, rhob));}
-    double get_T2e        (double T_in_GeV, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_T2e(T_in_GeV, rhob));}
+    double get_muB        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_muB(e, rhob, rhoq, rhos));}
+    double get_muS        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_muS(e, rhob, rhoq, rhos));}
+    double get_muQ        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_muQ(e, rhob, rhoq, rhos));}
+    double get_s2e        (double s, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_s2e(s, rhob, rhoq, rhos));}
+    double get_T2e        (double T_in_GeV, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_T2e(T_in_GeV, rhob, rhoq, rhos));}
 
     void getThermalVariables(double e, double rhob, double rhoq, double rhos,
                              std::vector<double> &thermalVec) const {
