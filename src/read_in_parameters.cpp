@@ -1082,6 +1082,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "MUSIC_mode")
         parameter_list.mode = static_cast<int>(value);
 
+    if (parameter_name == "beastMode")
+        parameter_list.beastMode = static_cast<int>(value);
+
     if (parameter_name == "Initial_profile")
         parameter_list.Initial_profile = static_cast<int>(value);
 
@@ -1106,11 +1109,18 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "Shear_to_S_ratio")
         parameter_list.shear_to_s = value;
 
-    if (parameter_name == "T_freeze")
+    if (parameter_name == "T_freeze") {
         parameter_list.TFO = value;
+        parameter_list.useEpsFO = 0;
+    }
 
-    if (parameter_name == "eps_switch")
+    if (parameter_name == "eps_switch") {
         parameter_list.epsilonFreeze = value;
+        parameter_list.useEpsFO = 1;
+        parameter_list.N_freeze_out = 1;
+        parameter_list.eps_freeze_min = parameter_list.epsilonFreeze;
+        parameter_list.eps_freeze_max = parameter_list.epsilonFreeze;
+    }
 
     if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0")
         parameter_list.turn_on_bulk = static_cast<int>(value);
@@ -1156,6 +1166,7 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "bulk_viscosity_3_lambda_asymm")
         parameter_list.bulk_3_lambda_asymm = value;
 }
+
 
 void check_parameters(InitData &parameter_list, std::string input_file) {
     music_message.info("Checking input parameter list ... ");
