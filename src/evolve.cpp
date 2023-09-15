@@ -1610,6 +1610,7 @@ void Evolve::initialize_freezeout_surface_info() {
                       << DATA.TFO << " GeV, e_fo = "
                       << e_freeze << " GeV/fm^3";
         music_message.flush("info");
+        return;
     }
     const int freeze_eps_flag = DATA.freeze_eps_flag;
     if (freeze_eps_flag == 0) {
