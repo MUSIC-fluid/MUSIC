@@ -1309,10 +1309,13 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         if (reset_dtau_use_CFL_condition) {
             music_message.info("reset dtau using CFL condition.");
             double dtau_CFL = std::min(
-                std::min(parameter_list.delta_x*parameter_list.dtaudxRatio,
-                         parameter_list.delta_y*parameter_list.dtaudxRatio),
+                    parameter_list.delta_x*parameter_list.dtaudxRatio,
+                    parameter_list.delta_y*parameter_list.dtaudxRatio);
+            if (!boost_invariant) {
+                dtau_CFL = std::min(dtau_CFL,
                          parameter_list.tau0*parameter_list.delta_eta
                          *parameter_list.dtaudxRatio);
+            }
             parameter_list.delta_tau = dtau_CFL;
             parameter_list.nt = static_cast<int>(
                 parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
