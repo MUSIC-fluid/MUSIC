@@ -165,6 +165,16 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         music_message.flush("info");
     }
 
+    if (DATA.resetDtau) {
+        // make sure delta_tau is not too large for delta_x and delta_y
+        DATA.delta_tau = std::min(DATA.delta_tau,
+                                  std::min(DATA.delta_x*DATA.dtaudxRatio,
+                                           DATA.delta_y*DATA.dtaudxRatio));
+        if (DATA.delta_tau > 0.001)
+            DATA.delta_tau = (static_cast<int>(DATA.delta_tau*1000))/1000.;
+        DATA.nt = static_cast<int>(DATA.tau_size/DATA.delta_tau + 0.5);
+    }
+
     // initialize arena
     arenaFieldsPrev.resizeFields(DATA.nx, DATA.ny, DATA.neta);
     arenaFieldsCurr.resizeFields(DATA.nx, DATA.ny, DATA.neta);
