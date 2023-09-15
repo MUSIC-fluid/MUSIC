@@ -167,7 +167,7 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
 
     if (DATA.resetDtau) {
         // make sure delta_tau is not too large for delta_x and delta_y
-        DATA.delta_tau = std::min(DATA.delta_tau,
+        DATA.delta_tau = std::min(DATA.delta_tau_org,
                                   std::min(DATA.delta_x*DATA.dtaudxRatio,
                                            DATA.delta_y*DATA.dtaudxRatio));
         if (DATA.delta_tau > 0.001)

@@ -84,6 +84,7 @@ typedef struct init_data {
     double delta_y;
     double delta_eta;
     double delta_tau;
+    double delta_tau_org;
     double dtaudxRatio;
 
     bool resetDtau;

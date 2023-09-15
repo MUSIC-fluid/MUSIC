@@ -1316,6 +1316,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
                          parameter_list.tau0*parameter_list.delta_eta
                          *parameter_list.dtaudxRatio);
             }
+            parameter_list.delta_tau_org = parameter_list.delta_tau;
             parameter_list.delta_tau = dtau_CFL;
             parameter_list.nt = static_cast<int>(
                 parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
