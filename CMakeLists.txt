@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.10)
 project(MUSIChydro VERSION 2.0 LANGUAGES CXX)
 
 set(libname "music")
@@ -30,14 +30,24 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    message("Using Clang compiler without OpenMP parallelization... ")
+    message("Using Clang compiler ... ")
+    find_package(OpenMP COMPONENTS CXX)
+    if (OpenMP_CXX_FOUND)
+        message("OpenMP_CXX_FOUND = ${OpenMP_CXX_FOUND}")
+        set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS})
+        set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${OpenMP_EXE_LINKER_FLAGS})
+        find_library(LIBOMP_LIBRARY NAMES libomp.dylib HINTS /opt/homebrew/opt/libomp/lib/ /usr/local/homebrew/opt/libomp/lib/)
+        message(STATUS "Found OpenMP library: " ${LIBOMP_LIBRARY})
+        message(STATUS "CMAKE_CXX_LINK_FLAGS: " ${CMAKE_CXX_LINK_FLAGS})
+    endif ()
 else ()
-    find_package(OpenMP)
-    if (OpenMP_FOUND)
+    find_package(OpenMP COMPONENTS CXX)
+    if (OpenMP_CXX_FOUND)
         set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS})
         set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${OpenMP_EXE_LINKER_FLAGS})
     endif ()
 endif()
+
 
 # default build type: Release
 if (NOT CMAKE_BUILD_TYPE)
