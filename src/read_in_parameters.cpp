@@ -414,6 +414,15 @@ InitData read_in_parameters(std::string input_file) {
     music_message << " DeltaTau = " << parameter_list.delta_tau << " fm";
     music_message.flush("info");
 
+    bool reset_dtau_use_CFL_condition = true;
+    int temp_CFL_condition = 1;
+    tempinput = Util::StringFind4(input_file, "reset_dtau_use_CFL_condition");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_CFL_condition;
+    if (temp_CFL_condition == 0)
+        reset_dtau_use_CFL_condition = false;
+    parameter_list.resetDtau = reset_dtau_use_CFL_condition;
+
     double tempdtaudxRatio = 0.1;
     tempinput = Util::StringFind4(input_file, "dtaudxRatio");
     if (tempinput != "empty")
@@ -1300,45 +1309,36 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         parameter_list.eta_size = 0.0;
     }
 
+
     double delta_xperp = std::min(parameter_list.delta_x,
                                   parameter_list.delta_y);
     if (parameter_list.delta_tau/delta_xperp > parameter_list.dtaudxRatio) {
         music_message << "Warning: Delta_Tau = " << parameter_list.delta_tau
                       << " maybe too large! ";
         music_message.flush("warning");
+    }
 
-        bool reset_dtau_use_CFL_condition = true;
-        int temp_CFL_condition = 1;
-        string tempinput = Util::StringFind4(
-                            input_file, "reset_dtau_use_CFL_condition");
-        if (tempinput != "empty")
-            istringstream(tempinput) >> temp_CFL_condition;
-        if (temp_CFL_condition == 0)
-            reset_dtau_use_CFL_condition = false;
-        parameter_list.resetDtau = reset_dtau_use_CFL_condition;
-
-        if (reset_dtau_use_CFL_condition) {
-            music_message.info("reset dtau using CFL condition.");
-            double dtau_CFL = std::min(
-                    parameter_list.delta_x*parameter_list.dtaudxRatio,
-                    parameter_list.delta_y*parameter_list.dtaudxRatio);
-            if (!parameter_list.boost_invariant) {
-                dtau_CFL = std::min(dtau_CFL,
-                         parameter_list.tau0*parameter_list.delta_eta
-                         *parameter_list.dtaudxRatio);
-            }
-            parameter_list.delta_tau_org = parameter_list.delta_tau;
-            parameter_list.delta_tau = dtau_CFL;
-            parameter_list.nt = static_cast<int>(
-                parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
-            music_message << "read_in_parameters: Time step size = "
-                          << parameter_list.delta_tau;
-            music_message.flush("info");
-            music_message << "read_in_parameters: "
-                          << "Number of time steps required = "
-                          << parameter_list.nt;
-            music_message.flush("info");
+    if (parameter_list.resetDtau) {
+        music_message.info("reset dtau using CFL condition.");
+        double dtau_CFL = std::min(
+                parameter_list.delta_x*parameter_list.dtaudxRatio,
+                parameter_list.delta_y*parameter_list.dtaudxRatio);
+        if (!parameter_list.boost_invariant) {
+            dtau_CFL = std::min(dtau_CFL,
+                     parameter_list.tau0*parameter_list.delta_eta
+                     *parameter_list.dtaudxRatio);
         }
+        parameter_list.delta_tau_org = parameter_list.delta_tau;
+        parameter_list.delta_tau = dtau_CFL;
+        parameter_list.nt = static_cast<int>(
+            parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
+        music_message << "read_in_parameters: Time step size = "
+                      << parameter_list.delta_tau;
+        music_message.flush("info");
+        music_message << "read_in_parameters: "
+                      << "Number of time steps required = "
+                      << parameter_list.nt;
+        music_message.flush("info");
     }
 
     if (parameter_list.min_pt > parameter_list.max_pt) {

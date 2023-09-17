@@ -173,6 +173,9 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         if (DATA.delta_tau > 0.001)
             DATA.delta_tau = (static_cast<int>(DATA.delta_tau*1000))/1000.;
         DATA.nt = static_cast<int>(DATA.tau_size/DATA.delta_tau + 0.5);
+        music_message << "Reset: dtau = " << DATA.delta_tau
+                      << " fm/c, nTau = " << DATA.nt;
+        music_message.flush("info");
     }
 
     // initialize arena

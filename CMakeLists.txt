@@ -31,14 +31,23 @@ endif()
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
     message("Using Clang compiler ... ")
-    find_package(OpenMP COMPONENTS CXX)
-    if (OpenMP_CXX_FOUND)
-        message("OpenMP_CXX_FOUND = ${OpenMP_CXX_FOUND}")
-        set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS})
-        set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${OpenMP_EXE_LINKER_FLAGS})
-        find_library(LIBOMP_LIBRARY NAMES libomp.dylib HINTS /opt/homebrew/opt/libomp/lib/ /usr/local/homebrew/opt/libomp/lib/)
-        message(STATUS "Found OpenMP library: " ${LIBOMP_LIBRARY})
-        message(STATUS "CMAKE_CXX_LINK_FLAGS: " ${CMAKE_CXX_LINK_FLAGS})
+
+    find_library(LIBOMP_LIBRARY NAMES libomp.dylib HINTS /opt/homebrew/opt/libomp/lib/ /opt/Homebrew/opt/libomp/lib/ /usr/local/opt/libomp/lib/ /usr/local/homebrew/opt/libomp/lib/ /usr/local/Homebrew/opt/libomp/lib/ NO_DEFAULT_PATH)
+
+    if (LIBOMP_LIBRARY)
+
+      set(OpenMP_CXX_FOUND TRUE)
+
+      message("Found OpenMP with Clang ..." ${OpenMP_CXX_FOUND})
+      find_path(OpenMP_incDir omp.h PATHS /opt/homebrew/opt/libomp/include /usr/local/homebrew/opt/libomp/include /opt/Homebrew/opt/libomp/include /usr/local/opt/libomp/include /usr/local/Homebrew/opt/libomp/include NO_DEFAULT_PATH)
+
+      set(OpenMP_CXX_FLAGS "-Xclang -fopenmp -I${OpenMP_incDir} -Wno-unused-command-line-argument")
+      set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${OpenMP_CXX_FLAGS})
+
+      message(STATUS "OpenMP_incDir: " ${OpenMP_incDir})
+      message(STATUS "Found OpenMP library: " ${LIBOMP_LIBRARY})
+      message(STATUS "OpenMP_CXX_FLAGS: ${OpenMP_CXX_FLAGS}")
+
     endif ()
 else ()
     find_package(OpenMP COMPONENTS CXX)
@@ -76,7 +85,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${OpenMP_CXX_FLAGS} -std=c++11 -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    set(CMAKE_CXX_FLAGS "-std=c++11  -stdlib=libc++ -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
+    set(CMAKE_CXX_FLAGS "${OpenMP_CXX_FLAGS} -std=c++11  -stdlib=libc++ -DDOCTEST_CONFIG_DISABLE -DNDEBUG")
 endif()
 
 if (unittest)
