@@ -27,6 +27,7 @@ Grid_size_in_x  3
 Initial_time_tau_0  1.0
 Total_evolution_time_tau  19.0
 Delta_Tau  0.02 
+reset_dtau_use_CFL_condition 0
 EOS_to_use  10 
 Include_Rhob_Yes_1_No_0  1
 Viscosity_Flag_Yes_1_No_0  1 
