@@ -1565,7 +1565,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         all_frozen_flag *= all_frozen[ii];
     }
     if (all_frozen_flag == 1) {
-        music_message.info("All cells frozen out. Exiting.");
+        if (DATA.JSecho > 0) {
+            music_message.info("All cells frozen out. Exiting.");
+        }
     }
 
     delete [] all_frozen;
