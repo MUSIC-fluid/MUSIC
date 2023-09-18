@@ -19,6 +19,7 @@ typedef struct init_data {
         { 0,0,0,1}}};
 
     int echo_level;
+    int JSecho = 1;
     bool reRunHydro;
     int reRunCount;
 

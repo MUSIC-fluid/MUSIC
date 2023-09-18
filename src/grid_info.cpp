@@ -884,10 +884,12 @@ void Cell_info::get_maximum_energy_density(
         music_message.error("Exiting ...");
         exit(1);
     }
-    music_message << "eps_max = " << eps_max << " GeV/fm^3, "
-                  << "rhob_max = " << rhob_max << " 1/fm^3, "
-                  << "T_max = " << T_max << " GeV.";
-    music_message.flush("info");
+    if (DATA.JSecho > 0) {
+        music_message << "eps_max = " << eps_max << " GeV/fm^3, "
+                      << "rhob_max = " << rhob_max << " 1/fm^3, "
+                      << "T_max = " << T_max << " GeV.";
+        music_message.flush("info");
+    }
     e_max = eps_max;
     nB_max = rhob_max;
     Tmax = T_max;

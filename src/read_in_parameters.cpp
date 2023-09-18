@@ -1091,6 +1091,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "MUSIC_mode")
         parameter_list.mode = static_cast<int>(value);
 
+    if (parameter_name == "JSechoLevel")
+        parameter_list.JSecho = static_cast<int>(value);
+
     if (parameter_name == "beastMode")
         parameter_list.beastMode = static_cast<int>(value);
 

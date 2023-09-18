@@ -263,22 +263,28 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         // all the evolution are at here !!!
         AdvanceRK(tau, fpPrev, fpCurr, fpNext);
 
-        music_message << emoji::clock()
-                      << " Done time step " << it << "/" << itmax
-                      << " tau = " << tau << " fm/c";
-        music_message.flush("info");
+        if (DATA.JSecho > 0) {
+            music_message << emoji::clock()
+                          << " Done time step " << it << "/" << itmax
+                          << " tau = " << tau << " fm/c";
+            music_message.flush("info");
+        }
         if (frozen == 1 && tau > source_tau_max) {
             if (   DATA.outputEvolutionData > 1
                 && DATA.outputEvolutionData < 5) {
                 if (eps_max_cur < DATA.output_evolution_e_cut) {
-                    music_message << "All cells e < "
-                                  << DATA.output_evolution_e_cut
-                                  << " GeV/fm^3.";
-                    music_message.flush("info");
+                    if (DATA.JSecho > 0) {
+                        music_message << "All cells e < "
+                                      << DATA.output_evolution_e_cut
+                                      << " GeV/fm^3.";
+                        music_message.flush("info");
+                    }
                     break;
                 }
             } else {
-                music_message.info("All cells frozen out. Exiting.");
+                if (DATA.JSecho > 0) {
+                    music_message.info("All cells frozen out. Exiting.");
+                }
                 break;
             }
         }
@@ -436,7 +442,9 @@ int Evolve::EvolveOneTimeStep(const int itau, Fields &arenaFieldsPrev,
                     break;
                 }
             } else {
-                music_message.info("All cells frozen out. Exiting.");
+                if (DATA.JSecho > 0) {
+                    music_message.info("All cells frozen out. Exiting.");
+                }
                 break;
             }
         }
