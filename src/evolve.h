@@ -33,6 +33,8 @@ class Evolve {
     // (only used when freezeout_method == 4)
     std::vector<double> epsFO_list;
 
+    std::vector<double> FO_nBvsEta_;
+
  public:
     Evolve(const EOS &eos, InitData &DATA_in,
            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);

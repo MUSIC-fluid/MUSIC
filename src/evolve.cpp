@@ -34,6 +34,7 @@ Evolve::Evolve(const EOS &eosIn, InitData &DATA_in,
         initialize_freezeout_surface_info();
     }
     hydro_source_terms_ptr = hydro_source_ptr_in;
+
 }
 
 // master control function for hydrodynamic evolution
@@ -43,14 +44,11 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     int freezeout_flag          = DATA.doFreezeOut;
     int freezeout_lowtemp_flag  = DATA.doFreezeOut_lowtemp;
 
-    // Output information about the hydro parameters 
-    // in the format of a C header file
-    //if (DATA.output_hydro_params_header || DATA.outputEvolutionData == 1)
-    //    grid_info.Output_hydro_information_header();
-
     if (DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr.set_grid_infomatioin(DATA);
     }
+
+    FO_nBvsEta_.resize(arenaFieldsCurr.nEta(), 0);
 
     // main loop starts ...
     int    itmax = DATA.nt;
@@ -283,6 +281,16 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         }
         tau += dt;
         it++;
+    }
+    if (!DATA.boost_invariant) {
+        std::ofstream FOinfo;
+        FOinfo.open("FO_nBvseta.dat");
+        for (unsigned int ieta = 0; ieta < FO_nBvsEta_.size(); ieta++) {
+            double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+            FOinfo << std::scientific << std::setprecision(5)
+                   << eta << "  " << FO_nBvsEta_[ieta] << std::endl;
+        }
+        FOinfo.close();
     }
     if (tau < tauMax) {
         music_message.info("Finished.");
@@ -712,6 +720,12 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                                    << fluid_center.Wmunu[ii] << " ";
                     s_file << std::endl;
                 }
+                double u_dot_dsigma = tau_center*(
+                          FULLSU[0]*fluid_center.u[0]
+                        + FULLSU[1]*fluid_center.u[1]
+                        + FULLSU[2]*fluid_center.u[2]
+                        + FULLSU[3]*fluid_center.u[3]/tau_center);
+                FO_nBvsEta_[ieta] += u_dot_dsigma*fluid_center.rhob;
             }
         }
     }
@@ -804,7 +818,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
 
     double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
     for (int ix = 0; ix < nx - fac_x; ix += fac_x) {
-        double x = ix*(DATA.delta_x) - (DATA.x_size/2.0); 
+        double x = ix*(DATA.delta_x) - (DATA.x_size/2.0);
         for (int iy = 0; iy < ny - fac_y; iy += fac_y) {
             double y = iy*(DATA.delta_y) - (DATA.y_size/2.0);
 
@@ -999,6 +1013,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                            << qy_center << " " << qeta_center << " " ;
                 s_file << std::endl;
             }
+            FO_nBvsEta_[ieta] += FULLSU[0]*rhob_center;
         }
     }
     s_file.close();
