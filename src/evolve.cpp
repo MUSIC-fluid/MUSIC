@@ -725,7 +725,10 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                         + FULLSU[1]*fluid_center.u[1]
                         + FULLSU[2]*fluid_center.u[2]
                         + FULLSU[3]*fluid_center.u[3]/tau_center);
-                FO_nBvsEta_[ieta] += u_dot_dsigma*fluid_center.rhob;
+                if (u_dot_dsigma > 0.) {
+                    // only count the time-like contribution
+                    FO_nBvsEta_[ieta] += u_dot_dsigma*fluid_center.rhob;
+                }
             }
         }
     }
