@@ -1017,10 +1017,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                            << qy_center << " " << qeta_center << " " ;
                 s_file << std::endl;
             }
-            if (u_dot_dsigma > 0.) {
-                // only count the time-like contribution
-                FO_nBvsEta_[ieta] += FULLSU[0]*rhob_center;
-            }
+            FO_nBvsEta_[ieta] += FULLSU[0]*rhob_center;
         }
     }
     s_file.close();
