@@ -288,7 +288,8 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         for (unsigned int ieta = 0; ieta < FO_nBvsEta_.size(); ieta++) {
             double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
             FOinfo << std::scientific << std::setprecision(5)
-                   << eta << "  " << FO_nBvsEta_[ieta] << std::endl;
+                   << eta << "  " << FO_nBvsEta_[ieta]/DATA.delta_eta
+                   << std::endl;
         }
         FOinfo.close();
     }
@@ -1016,7 +1017,10 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                            << qy_center << " " << qeta_center << " " ;
                 s_file << std::endl;
             }
-            FO_nBvsEta_[ieta] += FULLSU[0]*rhob_center;
+            if (u_dot_dsigma > 0.) {
+                // only count the time-like contribution
+                FO_nBvsEta_[ieta] += FULLSU[0]*rhob_center;
+            }
         }
     }
     s_file.close();
