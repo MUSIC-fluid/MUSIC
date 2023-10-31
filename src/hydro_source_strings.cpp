@@ -30,6 +30,24 @@ HydroSourceStrings::HydroSourceStrings(InitData &DATA_in) :
 }
 
 
+HydroSourceStrings::HydroSourceStrings(
+        InitData &DATA_in, std::vector< std::vector<double> > QCDStringList) :
+    DATA(DATA_in) {
+    set_source_tau_min(100.0);
+    set_source_tau_max(0.0);
+    set_source_tauStart_max(0.0);
+    set_sigma_tau(0.1);
+    set_sigma_x  (DATA.stringSourceSigmaX);
+    set_sigma_eta(DATA.stringSourceSigmaEta);
+    string_dump_mode     = DATA.string_dump_mode;
+    string_quench_factor = DATA.string_quench_factor;
+    parton_quench_factor = 1.0;    // no diffusion current from the source
+    stringTransverseShiftFrac_ = DATA.stringTransverseShiftFrac;
+    preEqFlowFactor_ = DATA.preEqFlowFactor;
+    read_in_QCD_strings_and_partons(QCDStringList);
+}
+
+
 HydroSourceStrings::~HydroSourceStrings() {
     QCD_strings_list.clear();
 }
@@ -43,6 +61,165 @@ double HydroSourceStrings::getStringEndTau(
     double tau_end_local = (temp_factor2
                             + sqrt(temp_factor2*temp_factor2 - temp_factor1));
     return(tau_end_local);
+}
+
+
+//! This function reads in the spatal information of the strings and partons
+//! which are produced from the MC-Glauber-LEXUS model
+void HydroSourceStrings::read_in_QCD_strings_and_partons(
+        std::vector< std::vector<double> > QCDStringList_in) {
+    music_message.info("read in QCD strings list from vector");
+
+    for (auto string_i: QCDStringList_in) {
+        std::shared_ptr<QCD_string> new_string(new QCD_string);
+        new_string->mass = string_i[0];
+        new_string->m_over_sigma = string_i[1];
+        new_string->tau_form = string_i[2];
+        new_string->tau_0 = string_i[3];
+        new_string->eta_s_0 = string_i[4];
+        new_string->x_perp = string_i[5];
+        new_string->y_perp = string_i[6];
+        new_string->x_pl = string_i[7];
+        new_string->y_pl = string_i[8];
+        new_string->x_pr = string_i[9];
+        new_string->y_pr = string_i[10];
+        new_string->eta_s_left = string_i[11];
+        new_string->eta_s_right = string_i[12];
+        new_string->y_l = string_i[13];
+        new_string->y_r = string_i[14];
+        new_string->remnant_l = string_i[15];
+        new_string->remnant_r = string_i[16];
+        new_string->y_l_i = string_i[17];
+        new_string->y_r_i = string_i[18];
+        new_string->eta_s_baryon_left = string_i[19];
+        new_string->eta_s_baryon_right = string_i[20];
+        new_string->y_l_baryon = string_i[21];
+        new_string->y_r_baryon = string_i[22]'
+        new_string->baryon_frac_l = string_i[23];
+        new_string->baryon_frac_r = string_i[24]
+        new_string->px_i = string_i[25];
+        new_string->py_i = string_i[26];
+
+        if (DATA.Initial_profile == 131) {
+            new_string->tau_0 = 0.;
+            new_string->eta_s_0 = 0.;
+            //new_string->tau_form = 0.5;
+        }
+        new_string->sigma_x = get_sigma_x();
+        new_string->sigma_eta = get_sigma_eta();
+
+        // compute the string end tau
+        new_string->tau_end_left = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_left);
+        new_string->tau_end_right = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_right);
+
+        // compute the baryon number tau
+        new_string->tau_baryon_left = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_baryon_left);
+        new_string->tau_baryon_right = getStringEndTau(
+                new_string->tau_0, new_string->tau_form,
+                new_string->eta_s_0, new_string->eta_s_baryon_right);
+
+        // determine the tau_start and eta_s_start of the string
+        if (new_string->eta_s_left > new_string->eta_s_0) {
+            new_string->tau_start = new_string->tau_end_left;
+            new_string->eta_s_start = new_string->eta_s_left;
+        } else if (new_string->eta_s_right < new_string->eta_s_0) {
+            new_string->tau_start = new_string->tau_end_right;
+            new_string->eta_s_start = new_string->eta_s_right;
+        } else {
+            new_string->tau_start = new_string->tau_0 + new_string->tau_form;
+            new_string->eta_s_start = new_string->eta_s_0;
+        }
+
+        // read in one string properly
+        QCD_strings_list.push_back(new_string);
+
+        // record the proper time of the first and last string sources
+        double source_tau = new_string->tau_form;
+        if (new_string->tau_end_left > new_string->tau_end_right) {
+            source_tau = new_string->tau_end_left;
+        } else {
+            source_tau = new_string->tau_end_right;
+        }
+
+        if (new_string->eta_s_left < 1 && new_string->eta_s_right > -1) {
+            // the string in the mid-rapidity
+            if (new_string->tau_start > get_source_tauStart_max()) {
+                set_source_tauStart_max(new_string->tau_start);
+            }
+        }
+
+        // set the maximum tau = 10 fm/c for source terms
+        source_tau = std::min(10., source_tau);
+
+        if (get_source_tau_max() < source_tau) {
+            set_source_tau_max(source_tau);
+        }
+
+        if (get_source_tau_min() > new_string->tau_start) {
+            set_source_tau_min(new_string->tau_start);
+        }
+    }
+    music_message << "HydroSourceStrings: tau_min = " << get_source_tau_min()
+                  << " fm/c.";
+    music_message.flush("info");
+    music_message << "HydroSourceStrings: tau_max = " << get_source_tau_max()
+                  << " fm/c.";
+    music_message.flush("info");
+
+    double total_baryon_number = 0;
+    double total_energy = 0.;
+    for (auto const& it : QCD_strings_list) {
+        total_baryon_number += it->baryon_frac_l + it->baryon_frac_r;
+        total_energy += it->mass*(cosh(it->y_l_i) + cosh(it->y_r_i));
+    }
+    music_message << "total baryon number = " << total_baryon_number;
+    music_message.flush("info");
+    music_message << "total energy = " << total_energy << " GeV";
+    music_message.flush("info");
+    compute_norm_for_strings();
+
+    double xMax = 0.;
+    double yMax = 0.;
+    for (auto const& it : QCD_strings_list) {
+        xMax = std::max(xMax, std::abs(it->x_perp));
+        xMax = std::max(xMax, std::abs(it->x_pl));
+        xMax = std::max(xMax, std::abs(it->x_pr));
+        yMax = std::max(yMax, std::abs(it->y_perp));
+        yMax = std::max(yMax, std::abs(it->y_pl));
+        yMax = std::max(yMax, std::abs(it->y_pr));
+    }
+
+    // adjust transverse grid size
+    double energyAddRadius = sqrt(total_energy
+                                  /std::max(1., total_baryon_number)/2760.);
+    double npartAddRadius = total_baryon_number/500.;
+    double reRunAddRadius = DATA.reRunCount*2.;
+    double gridOffset = 3 + energyAddRadius + npartAddRadius + reRunAddRadius;
+    gridOffset = std::max(gridOffset, 5.*DATA.stringSourceSigmaX);
+    DATA.x_size = 2.*(xMax + gridOffset);
+    DATA.y_size = 2.*(yMax + gridOffset);
+    DATA.delta_x = DATA.x_size/(DATA.nx - 1);
+    DATA.delta_y = DATA.y_size/(DATA.ny - 1);
+    if (DATA.resetDtau) {
+        // make sure delta_tau is not too large for delta_x and delta_y
+        DATA.delta_tau = std::min(DATA.delta_tau,
+                                  std::min(DATA.delta_x*DATA.dtaudxRatio,
+                                           DATA.delta_y*DATA.dtaudxRatio));
+        if (DATA.delta_tau > 0.001)
+            DATA.delta_tau = (static_cast<int>(DATA.delta_tau*1000))/1000.;
+        DATA.nt = static_cast<int>(DATA.tau_size/DATA.delta_tau + 0.5);
+    }
+    music_message << "[HydroSource] Grid info: x_size = "
+                  << DATA.x_size << ", y_size = " << DATA.y_size
+                  << ", dx = " << DATA.delta_x << " fm, dy = "
+                  << DATA.delta_y << " fm, dtau = " << DATA.delta_tau << " fm";
+    music_message.flush("info");
 }
 
 

@@ -78,6 +78,10 @@ class MUSIC {
     //! This function setup source terms from dynamical initialization
     void generate_hydro_source_terms();
 
+    //! This function setup source terms from dynamical initialization
+    void generate_hydro_source_terms(
+            std::vector< std::vector<double> > QCDStringList);
+
     //! This function calls routine to check EoS
     void check_eos();
 

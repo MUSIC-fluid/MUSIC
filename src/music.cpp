@@ -76,6 +76,18 @@ void MUSIC::generate_hydro_source_terms() {
 }
 
 
+//! This function setup source terms from dynamical initialization
+void MUSIC::generate_hydro_source_terms(
+        std::vector< std::vector<double> > QCDStringList) {
+    if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
+        // MC-Glauber-LEXUS
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceStrings> (
+                                new HydroSourceStrings (DATA, QCDStringList));
+        add_hydro_source_terms(hydro_source_ptr);
+    }
+}
+
+
 void MUSIC::clean_all_the_surface_files() {
     system_status_ = system("rm surface*.dat 2> /dev/null");
 }
