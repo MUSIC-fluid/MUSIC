@@ -94,9 +94,9 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons(
         new_string->eta_s_baryon_left = string_i[19];
         new_string->eta_s_baryon_right = string_i[20];
         new_string->y_l_baryon = string_i[21];
-        new_string->y_r_baryon = string_i[22]'
+        new_string->y_r_baryon = string_i[22];
         new_string->baryon_frac_l = string_i[23];
-        new_string->baryon_frac_r = string_i[24]
+        new_string->baryon_frac_r = string_i[24];
         new_string->px_i = string_i[25];
         new_string->py_i = string_i[26];
 
