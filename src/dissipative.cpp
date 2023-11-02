@@ -235,10 +235,11 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
     if (DATA.FlagResumTransportCoeff) {
         double R_shear = 0.;
         double R_bulk = 0.;
-        computeInverseReynoldsNumbers(epsilon + pressure, grid_pt,
+        computeInverseReynoldsNumbers(epsilon + pressure, grid_pt, ////////////////////////////////////////////////////////////////////////
                                       R_shear, R_bulk);
-        if (R_shear < 1.) {
-            resummedCorrection = 1./(1. + atanh(R_shear*R_shear));
+        double r_combined = 1.5*(R_shear+abs(R_bulk));
+        if (r_combined < 1.) {
+            resummedCorrection = 1./(1. + atanh(r_combined));
         } else {
             resummedCorrection = 1e-4;
             tau_pi = tau_pi*resummedCorrection;
@@ -246,9 +247,9 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
         }
         shear = shear*resummedCorrection;
         transport_coefficient = transport_coefficient*resummedCorrection;
-        transport_coefficient2 = transport_coefficient2*resummedCorrection;
-        transport_coefficient3 = transport_coefficient3*resummedCorrection;
-        transport_coefficient_b = transport_coefficient_b*resummedCorrection;
+        transport_coefficient2 = transport_coefficient2*resummedCorrection*resummedCorrection;
+        transport_coefficient3 = transport_coefficient3*resummedCorrection*resummedCorrection;
+        transport_coefficient_b = transport_coefficient_b*resummedCorrection*resummedCorrection*resummedCorrection;
         transport_coefficient2_b = transport_coefficient2_b*resummedCorrection;
     }
 
@@ -624,10 +625,14 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
 
     if (DATA.FlagResumTransportCoeff) {
         double resummedCorrection = 1;
-        double R_bulk = std::abs(grid_pt.pi_b/(epsilon + pressure));
-        if (R_bulk < 1.) {
-            resummedCorrection = 1./(1. + atanh(R_bulk*R_bulk));
-        } else {
+        double R_shear = 0.;
+        double R_bulk = 0.;
+        computeInverseReynoldsNumbers(epsilon + pressure, grid_pt, ////////////////////////////////////////////////////////////////////////
+                                      R_shear, R_bulk);
+        double r_combined = 1.5*(R_shear+abs(R_bulk));
+        if (r_combined) {
+            resummedCorrection = 1./(1. + atanh(r_combined));
+        }else {
             resummedCorrection = 1e-4;
             Bulk_Relax_time = Bulk_Relax_time*resummedCorrection;
             // avoid overflow or underflow of the bulk relaxation time
