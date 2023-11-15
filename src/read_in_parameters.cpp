@@ -1080,7 +1080,7 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.dNdyptdpt_eta_max = temp_dNdyptdpt_eta_max;
 
     music_message.info("Done read_in_parameters.");
-    check_parameters(parameter_list, input_file);
+    check_parameters(parameter_list);
 
     return parameter_list;
 }
@@ -1120,6 +1120,14 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
 
     if (parameter_name == "Shear_to_S_ratio")
         parameter_list.shear_to_s = value;
+
+    if (parameter_name == "surface_in_memory") {
+        if (value == 1) {
+            parameter_list.surface_in_memory = true;
+        } else if (value == 0) {
+            parameter_list.surface_in_memory = false;
+        }
+    }
 
     if (parameter_name == "T_freeze") {
         parameter_list.TFO = value;
@@ -1180,7 +1188,7 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
 }
 
 
-void check_parameters(InitData &parameter_list, std::string input_file) {
+void check_parameters(InitData &parameter_list) {
     music_message.info("Checking input parameter list ... ");
 
     if (parameter_list.Initial_profile < 0) {

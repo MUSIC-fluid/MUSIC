@@ -61,6 +61,7 @@ class MUSIC {
 
     //! This function change the parameter value in DATA
     void set_parameter(std::string parameter_name, double value);
+    void check_parameters();
 
     //! this is a shell function to run hydro
     int run_hydro();
