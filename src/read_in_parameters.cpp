@@ -1122,9 +1122,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
         parameter_list.shear_to_s = value;
 
     if (parameter_name == "surface_in_memory") {
-        if (value == 1) {
+        if (static_cast<int>(value) == 1) {
             parameter_list.surface_in_memory = true;
-        } else if (value == 0) {
+        } else if (static_cast<int>(value) == 0) {
             parameter_list.surface_in_memory = false;
         }
     }
