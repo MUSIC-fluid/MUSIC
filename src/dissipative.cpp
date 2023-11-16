@@ -235,9 +235,9 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
     if (DATA.FlagResumTransportCoeff) {
         double R_shear = 0.;
         double R_bulk = 0.;
-        computeInverseReynoldsNumbers(epsilon + pressure, grid_pt, ////////////////////////////////////////////////////////////////////////
+        computeInverseReynoldsNumbers(epsilon + pressure, grid_pt,
                                       R_shear, R_bulk);
-        double r_combined = 1.5*(R_shear+abs(R_bulk));
+        double r_combined = 1.5*(R_shear + std::abs(R_bulk));
         if (r_combined < 1.) {
             resummedCorrection = 1./(1. + atanh(r_combined));
         } else {
@@ -627,12 +627,12 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
         double resummedCorrection = 1;
         double R_shear = 0.;
         double R_bulk = 0.;
-        computeInverseReynoldsNumbers(epsilon + pressure, grid_pt, ////////////////////////////////////////////////////////////////////////
+        computeInverseReynoldsNumbers(epsilon + pressure, grid_pt,
                                       R_shear, R_bulk);
-        double r_combined = 1.5*(R_shear+abs(R_bulk));
-        if (r_combined) {
+        double r_combined = 1.5*(R_shear + std::abs(R_bulk));
+        if (r_combined < 1.) {
             resummedCorrection = 1./(1. + atanh(r_combined));
-        }else {
+        } else {
             resummedCorrection = 1e-4;
             Bulk_Relax_time = Bulk_Relax_time*resummedCorrection;
             // avoid overflow or underflow of the bulk relaxation time
