@@ -34,6 +34,8 @@ class Evolve {
     std::vector<double> epsFO_list;
 
     std::vector<double> FO_nBvsEta_;
+    std::vector<double> FO_nQvsEta_;
+    std::vector<double> FO_nSvsEta_;
 
  public:
     Evolve(const EOS &eos, InitData &DATA_in,

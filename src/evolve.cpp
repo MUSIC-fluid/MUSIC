@@ -48,6 +48,8 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     }
 
     FO_nBvsEta_.resize(arenaFieldsCurr.nEta(), 0);
+    FO_nQvsEta_.resize(arenaFieldsCurr.nEta(), 0);
+    FO_nSvsEta_.resize(arenaFieldsCurr.nEta(), 0);
 
     // main loop starts ...
     int    itmax = DATA.nt;
@@ -291,6 +293,24 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                    << std::endl;
         }
         FOinfo.close();
+        std::ofstream FOinfoQ;
+        FOinfoQ.open("FO_nQvseta.dat");
+        for (unsigned int ieta = 0; ieta < FO_nQvsEta_.size(); ieta++) {
+            double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+            FOinfoQ << std::scientific << std::setprecision(5)
+                   << eta << "  " << FO_nQvsEta_[ieta]/DATA.delta_eta
+                   << std::endl;
+        }
+        FOinfoQ.close();
+        std::ofstream FOinfoS;
+        FOinfoS.open("FO_nSvseta.dat");
+        for (unsigned int ieta = 0; ieta < FO_nSvsEta_.size(); ieta++) {
+            double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+            FOinfoQ << std::scientific << std::setprecision(5)
+                   << eta << "  " << FO_nSvsEta_[ieta]/DATA.delta_eta
+                   << std::endl;
+        }
+        FOinfoS.close();
     }
     if (tau < tauMax) {
         music_message.info("Finished.");
@@ -725,6 +745,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 if (u_dot_dsigma > 0.) {
                     // only count the time-like contribution
                     FO_nBvsEta_[ieta] += u_dot_dsigma*fluid_center.rhob;
+                    FO_nQvsEta_[ieta] += u_dot_dsigma*fluid_center.rhoq;
+                    FO_nSvsEta_[ieta] += u_dot_dsigma*fluid_center.rhos;
                 }
             }
         }
@@ -1014,6 +1036,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 s_file << std::endl;
             }
             FO_nBvsEta_[ieta] += FULLSU[0]*rhob_center;
+            FO_nQvsEta_[ieta] += FULLSU[0]*rhoq_center;
+            FO_nSvsEta_[ieta] += FULLSU[0]*rhos_center;
         }
     }
     s_file.close();
