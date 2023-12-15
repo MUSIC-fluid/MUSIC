@@ -34,7 +34,6 @@ Evolve::Evolve(const EOS &eosIn, InitData &DATA_in,
         initialize_freezeout_surface_info();
     }
     hydro_source_terms_ptr = hydro_source_ptr_in;
-
 }
 
 // master control function for hydrodynamic evolution
@@ -417,8 +416,9 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 fluid_cube[i][j][k] = new Cell_small[2];
                 fluid_aux_cube[i][j][k] = new Cell_aux[2];
                 cube[i][j][k] = new double[2];
-                for (int l = 0; l < 2; l++)
+                for (int l = 0; l < 2; l++){
                     cube[i][j][k][l] = 0.0;
+                }
             }
         }
     }
@@ -690,6 +690,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                             array[60+ii] = -fluid_aux_center.sigma_th[ii];
                         for (int ii = 0; ii < 4; ii++)
                             array[70+ii] = -fluid_aux_center.DbetaMu[ii];
+                    }
                     for (int i = 0; i < FOsize; i++)
                         s_file.write((char*) &(array[i]), sizeof(float));
                 } else {

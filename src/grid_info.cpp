@@ -522,7 +522,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                 double muQ_local = thermalVec[10];
                 double muS_local = thermalVec[8];
                 
-                eos.getThermalVariables(e_local, rhob_local, thermalVec);
+                eos.getThermalVariables(e_local, rhob_local, rhoq_local, rhos_local, thermalVec);
                 double p_local = thermalVec[2];
                 double cs2 = thermalVec[5];
 
