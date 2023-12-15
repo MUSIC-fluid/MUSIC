@@ -488,7 +488,12 @@ int U_derivative::MakeDSpatial(const double tau, Fields &arena,
             const double fm1 = arena.u_[m][Im1];
             dUsup[m][direction] = (minmod.minmod_dx(fp1, f, fm1)
                                    /delta[direction]);
-            if (DATA.output_vorticity == 1) {
+        }
+        if (DATA.output_vorticity == 1) {
+            for (int m = 0; m < 4; m++) {
+                const double f   = arena.u_[m][Ic];
+                const double fp1 = arena.u_[m][Ip1];
+                const double fm1 = arena.u_[m][Im1];
                 double T   = eos.get_temperature(arena.e_[Ic],
                                                  arena.rhob_[Ic],
                                                  arena.rhoq_[Ic],
