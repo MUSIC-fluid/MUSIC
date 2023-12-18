@@ -290,27 +290,11 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
             double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
             FOinfo << std::scientific << std::setprecision(5)
                    << eta << "  " << FO_nBvsEta_[ieta]/DATA.delta_eta
+                   << "  " << FO_nQvsEta_[ieta]/DATA.delta_eta
+                   << "  " << FO_nSvsEta_[ieta]/DATA.delta_eta
                    << std::endl;
         }
         FOinfo.close();
-        std::ofstream FOinfoQ;
-        FOinfoQ.open("FO_nQvseta.dat");
-        for (unsigned int ieta = 0; ieta < FO_nQvsEta_.size(); ieta++) {
-            double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-            FOinfoQ << std::scientific << std::setprecision(5)
-                   << eta << "  " << FO_nQvsEta_[ieta]/DATA.delta_eta
-                   << std::endl;
-        }
-        FOinfoQ.close();
-        std::ofstream FOinfoS;
-        FOinfoS.open("FO_nSvseta.dat");
-        for (unsigned int ieta = 0; ieta < FO_nSvsEta_.size(); ieta++) {
-            double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-            FOinfoQ << std::scientific << std::setprecision(5)
-                   << eta << "  " << FO_nSvsEta_[ieta]/DATA.delta_eta
-                   << std::endl;
-        }
-        FOinfoS.close();
     }
     if (tau < tauMax) {
         music_message.info("Finished.");
