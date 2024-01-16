@@ -134,8 +134,9 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
             } else if (DATA.outputEvolutionData == 3) {
                 grid_info.OutputEvolutionDataXYEta_photon(*ap_current, tau);
             } else if (DATA.outputEvolutionData == 4) {
-                grid_info.OutputEvolutionDataXYEta_vorticity(
-                                            *ap_current, *ap_prev, tau);
+                grid_info.OutputEvolutionDataXYEta_vorticity(*ap_current, *ap_prev, tau);
+            } else if (DATA.outputEvolutionData == 5) {
+                grid_info.OutputEvolutionDataXYEta_Bulk(*ap_current, tau);
             }
 
             if (DATA.output_movie_flag == 1) {

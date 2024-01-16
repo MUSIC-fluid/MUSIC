@@ -78,7 +78,8 @@ void Init::InitArena(SCGrid &arena_prev, SCGrid &arena_current,
                       << ", dy=" << DATA.delta_y;
         music_message.flush("info");
     } else if (   DATA.Initial_profile == 9 || DATA.Initial_profile == 91
-               || DATA.Initial_profile == 92 || DATA.Initial_profile == 93) {
+               || DATA.Initial_profile == 92 || DATA.Initial_profile == 93
+               || DATA.Initial_profile == 94) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
         if (!profile.is_open()) {
@@ -213,7 +214,8 @@ void Init::InitTJb(SCGrid &arena_prev, SCGrid &arena_current) {
             initial_IPGlasma_XY(ieta, arena_prev, arena_current);
         }
     } else if (   DATA.Initial_profile == 9 || DATA.Initial_profile == 91
-               || DATA.Initial_profile == 92 || DATA.Initial_profile == 93) {
+               || DATA.Initial_profile == 92 || DATA.Initial_profile == 93
+               || DATA.Initial_profile == 94) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
         // and initial shear viscous tensor
@@ -560,6 +562,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
     // Initial_profile == 91: e and u^\mu
     // Initial_profile == 92: e only
     // Initial_profile == 93: e, u^\mu, and pi^\mu\nu, no bulk Pi
+    // Initial_profile == 94: e, u^\mu, pi^\mu\nu and read a bulk_PI
     double tau0 = DATA.tau0;
     ifstream profile(DATA.initName.c_str());
 
@@ -584,12 +587,14 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
     std::vector<double> temp_profile_piyy(nx*ny, 0.0);
     std::vector<double> temp_profile_piyeta(nx*ny, 0.0);
     std::vector<double> temp_profile_pietaeta(nx*ny, 0.0);
+    std::vector<double> temp_profile_PI_bulk(nx*ny, 0.0);
 
     // read the one slice
     double density, dummy1, dummy2, dummy3;
     double ux, uy, utau, ueta;
     double pitautau, pitaux, pitauy, pitaueta;
     double pixx, pixy, pixeta, piyy, piyeta, pietaeta;
+    double PI_bulk;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
             int idx = iy + ix*ny;
@@ -610,6 +615,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
             temp_profile_pixeta[idx] = pixeta*tau0*DATA.sFactor;
             temp_profile_piyy  [idx] = piyy*DATA.sFactor;
             temp_profile_piyeta[idx] = piyeta*tau0*DATA.sFactor;
+            temp_profile_PI_bulk[idx] = PI_bulk*DATA.sFactor/hbarc; // 1/fm^4
 
             utau = temp_profile_utau[idx];
             temp_profile_pietaeta[idx] = (
@@ -683,7 +689,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
                 arena_current(ix, iy, ieta).u[3] = temp_profile_ueta[idx];
             }
 
-            if (DATA.Initial_profile == 9 || DATA.Initial_profile == 93) {
+            if (DATA.Initial_profile == 9 || DATA.Initial_profile == 93 || DATA.Initial_profile == 94) {
                 arena_current(ix, iy, ieta).Wmunu[0] = temp_profile_pitautau[idx];
                 arena_current(ix, iy, ieta).Wmunu[1] = temp_profile_pitaux[idx];
                 arena_current(ix, iy, ieta).Wmunu[2] = temp_profile_pitauy[idx];
@@ -698,6 +704,8 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
                 if (DATA.Initial_profile == 9) {
                     double pressure = eos.get_pressure(epsilon, rhob);
                     arena_current(ix, iy, ieta).pi_b = epsilon/3. - pressure;
+                } else if (DATA.Initial_profile == 94) {
+                    arena_current(ix, iy, ieta).pi_b = temp_profile_PI_bulk[idx]; //1/fm^4
                 }
             }
             arena_prev(ix, iy, ieta) = arena_current(ix, iy, ieta);

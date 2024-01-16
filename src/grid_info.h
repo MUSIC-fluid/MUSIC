@@ -61,6 +61,9 @@ class Cell_info {
     //! This function outputs hydro evolution file in binary format for photon production
     void OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau);
 
+    //! This function outputs hydro evoltion file for energy, bulk pressure and entropy
+    void OutputEvolutionDataXYEta_Bulk(SCGrid &arena, double tau);
+
     //! This function outputs hydro evolution file in binary format
     void OutputEvolutionDataXYEta_vorticity(
             SCGrid &arena_curr, SCGrid &arena_prev, double tau);

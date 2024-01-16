@@ -726,6 +726,72 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
     fclose(out_file_xyeta);
 }
 
+// Print bulk or other transport coefficients
+void Cell_info::OutputEvolutionDataXYEta_Bulk(SCGrid &arena, double tau) {
+    const string out_name_bulk = "evolution_energy_and_bulk.dat";
+    string out_open_mode;
+    FILE *out_file_bulk      = NULL;
+
+    // If it's the first timestep, overwrite the previous file
+    if (tau == DATA.tau0) {
+        out_open_mode = "w";
+    } else {
+        out_open_mode = "a";
+    }
+    // If we output in binary, set the mode accordingly
+    if (0 == DATA.outputBinaryEvolution) {
+        out_open_mode += "b";
+    }
+    if ((DATA.turn_on_shear == 1)&&(DATA.turn_on_bulk == 1)) {
+        out_file_bulk = fopen(out_name_bulk.c_str(),
+                                 out_open_mode.c_str());
+    }
+    
+    const int n_skip_x   = DATA.output_evolution_every_N_x;
+    const int n_skip_y   = DATA.output_evolution_every_N_y;
+    const int n_skip_eta = DATA.output_evolution_every_N_eta;
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+        double eta = 0.0;
+        if (DATA.boost_invariant == 0) {
+            eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
+                    - (DATA.eta_size)/2.0);
+        }
+        double cosh_eta = cosh(eta);
+        double sinh_eta = sinh(eta);
+        for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
+                double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
+                double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
+                double p_local = eos.get_pressure(e_local, rhob_local);
+                double entropy  = e_local + p_local;  // [1/fm^4]
+
+                double bulk_Pi = 0.0;
+                // exclude the actual coordinates from the output to save space:
+                if (DATA.outputBinaryEvolution == 0) {
+                    if ((DATA.viscosity_flag == 1)&&(DATA.turn_on_shear)&&(DATA.turn_on_bulk == 1)) {
+                        bulk_Pi = arena(ix, iy, ieta).pi_b;  // [1/fm^4]
+                        fprintf(out_file_bulk,
+                                "%e %e %e\n",
+                                e_local*hbarc, bulk_Pi*hbarc, entropy*hbarc); // print in GeV/fm^3
+                    }
+                } else {
+                    if (DATA.viscosity_flag == 1) {
+                        if ((DATA.turn_on_shear == 1)&&(DATA.turn_on_bulk == 1)) {
+                            float array2[] = {static_cast<float>(e_local*hbarc),
+                                              static_cast<float>(bulk_Pi*hbarc),
+                                              static_cast<float>(entropy*hbarc)};
+                            fwrite(array2, sizeof(float), 3,
+                                   out_file_bulk);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if ((DATA.turn_on_shear == 1)&&(DATA.turn_on_bulk == 1)&&(DATA.turn_on_bulk == 1)) {
+        fclose(out_file_bulk);
+    }
+}
 
 //! This function outputs hydro evolution file in binary format
 void Cell_info::OutputEvolutionDataXYEta_vorticity(
