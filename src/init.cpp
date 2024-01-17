@@ -603,7 +603,7 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, SCGrid &arena_prev,
             ss >> dummy1 >> dummy2 >> dummy3
                >> density >> utau >> ux >> uy >> ueta
                >> pitautau >> pitaux >> pitauy >> pitaueta
-               >> pixx >> pixy >> pixeta >> piyy >> piyeta >> pietaeta;
+               >> pixx >> pixy >> pixeta >> piyy >> piyeta >> pietaeta >> PI_bulk;
             ueta = ueta*tau0;
             temp_profile_ed    [idx] = density;
             temp_profile_ux    [idx] = ux;
