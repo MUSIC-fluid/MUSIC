@@ -35,6 +35,14 @@ typedef struct init_data {
     // parameters for Initial_profile == 11 || 111
     std::string initName_TA;  //!< filename for nuclear thickness function TA
     std::string initName_TB;  //!< filename for nuclear thickness function TB
+
+    // SMASH Oscar reading parameters
+    std::string initName_SMASH; //! filename for smash input file
+    int event_id_SMASH_output; //! selected event index. 
+    int average_SMASH_events; //! Average over events until reaching event_id_SMASH
+    int extended_SMASH_output; //! Consider extended Oscar input. 
+    int reject_SMASH_spectators; //! Do not consider spectators. Default: 1.
+
     std::string initName_participants;  //!< filename for participant nucleons
     double nucleonWidth;
 

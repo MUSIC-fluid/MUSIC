@@ -154,7 +154,10 @@ void Advance::FirstRKStepT(
 
         if (DATA.turn_on_QS == 1) {
             qi_source[5] = (
-                tau_rk*hydro_source_terms_ptr->get_hydro_rhoQ_source(
+                tau_rk*hydro_source_terms_ptr->get_hydro_rhoq_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local));
+            qi_source[6] = (
+                tau_rk*hydro_source_terms_ptr->get_hydro_rhos_source(
                             tau_rk, x_local, y_local, eta_s_local, u_local));
         }
     }
