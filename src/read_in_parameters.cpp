@@ -965,6 +965,38 @@ InitData read_in_parameters(std::string input_file) {
         tempinitName.assign(tempinput);
     parameter_list.initName.assign(tempinitName);
 
+    // Initial_Distribution_Filename for SMASH
+    string tempinitName_SMASH = "initial/SMASH_IC.oscar";
+    tempinput = Util::StringFind4(input_file,
+                                  "Initial_Distribution_SMASH_filename");
+    if (tempinput != "empty")
+        tempinitName_SMASH.assign(tempinput);
+    parameter_list.initName_SMASH.assign(tempinitName_SMASH);
+
+    int tempSMASHeventid = 1;
+    tempinput = Util::StringFind4(input_file, "event_id_SMASH_output");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempSMASHeventid;
+    parameter_list.event_id_SMASH_output = tempSMASHeventid;
+
+    int tempSMASHaverage = 0;
+    tempinput = Util::StringFind4(input_file, "average_SMASH_events");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempSMASHaverage;
+    parameter_list.average_SMASH_events = tempSMASHaverage;
+
+    int tempExtendedOutput = 0;
+    tempinput = Util::StringFind4(input_file, "extended_SMASH_output");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempExtendedOutput;
+    parameter_list.extended_SMASH_output = tempExtendedOutput;
+
+    int tempRejectSpec = 0;
+    tempinput = Util::StringFind4(input_file, "reject_SMASH_spectators");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> tempRejectSpec;
+    parameter_list.reject_SMASH_spectators = tempRejectSpec;
+
     // Initial_Distribution_Filename for TA
     string tempinitName_TA = "initial/initial_TA.dat";
     tempinput = Util::StringFind4(input_file,

@@ -123,6 +123,8 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         DATA.tau0 = std::max(0.1, DATA.tau0);
     } else if (DATA.Initial_profile == 30) {
         DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
+    } else if (DATA.Initial_profile == 31) {
+        DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
     } else if (DATA.Initial_profile == 42) {
         // initial condition from the JETSCAPE framework
         music_message << "Using Initial_profile=" << DATA.Initial_profile
@@ -270,6 +272,12 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
         #pragma omp parallel for
         for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
             initial_AMPT_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);
+        }
+    } else if (DATA.Initial_profile == 31) {
+        music_message.info("Initialize hydro with SMASH");
+        #pragma omp parallel for
+        for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
+            initial_SMASH_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);
         }
     } else if (DATA.Initial_profile == 42) {
         // initialize hydro with vectors from JETSCAPE
@@ -1002,6 +1010,67 @@ void Init::initial_AMPT_XY(int ieta, Fields &arenaFieldsPrev,
             }
         }
     }
+}
+
+void Init::initial_SMASH_XY(int ieta, Fields &arenaFieldsPrev,
+                           Fields &arenaFieldsCurr) {
+    double u[4] = {1.0, 0.0, 0.0, 0.0};
+    EnergyFlowVec j_mu = {0.0, 0.0, 0.0, 0.0};
+
+    double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+    double tau0 = DATA.tau0;
+    const int nx = arenaFieldsCurr.nX();
+    const int ny = arenaFieldsCurr.nY();
+    for (int ix = 0; ix < nx; ix++) {
+        double x_local = - DATA.x_size/2. + ix*DATA.delta_x;
+        for (int iy = 0; iy < ny; iy++) {
+            double y_local = - DATA.y_size/2. + iy*DATA.delta_y;
+            double epsilon = 0.0;
+            double rhob = 0.0;
+            double rhoq = 0.0;
+            double rhos = 0.0;
+            if (DATA.turn_on_rhob == 1) {
+                rhob = hydro_source_terms_ptr.lock()->get_hydro_rhob_source_before_tau(
+                                                tau0, x_local, y_local, eta);
+            } else {
+                rhob = 0.0;
+            }
+            if (DATA.turn_on_QS == 1) {
+                rhoq = hydro_source_terms_ptr.lock()->get_hydro_rhoq_source_before_tau(
+                                                tau0, x_local, y_local, eta);
+                rhos = hydro_source_terms_ptr.lock()->get_hydro_rhos_source_before_tau(
+                                                tau0, x_local, y_local, eta);
+            } else {
+                rhoq = 0.0;
+                rhos = 0.0;
+            }
+
+
+            hydro_source_terms_ptr.lock()->get_hydro_energy_source_before_tau(
+                                    tau0, x_local, y_local, eta, j_mu);
+
+            epsilon = j_mu[0];           // 1/fm^4
+
+            epsilon = std::max(Util::small_eps, epsilon);
+
+            int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+            arenaFieldsCurr.e_[idx] = epsilon;
+            arenaFieldsCurr.rhob_[idx] = rhob;
+            arenaFieldsCurr.rhoq_[idx] = rhoq;
+            arenaFieldsCurr.rhos_[idx] = rhos;
+
+            arenaFieldsPrev.e_[idx] = epsilon;
+            arenaFieldsPrev.rhob_[idx] = rhob;
+            arenaFieldsPrev.rhoq_[idx] = rhoq;
+            arenaFieldsPrev.rhos_[idx] = rhos;
+
+            for (int jj = 0; jj < 4; jj++) {
+                arenaFieldsCurr.u_[jj][idx] = u[jj];
+                arenaFieldsPrev.u_[jj][idx] = u[jj];
+            }
+        }
+    }
+
 }
 
 

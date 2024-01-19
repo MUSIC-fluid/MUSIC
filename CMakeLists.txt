@@ -75,7 +75,7 @@ endif()
 
 string(APPEND CMAKE_CXX_FLAGS " -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "-g -O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-g -O0")
 
 find_package(Git)
 if(Git_FOUND)
