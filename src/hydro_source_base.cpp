@@ -40,7 +40,48 @@ double HydroSourceBase::get_hydro_rhob_source_before_tau(
     int n_tau_steps = static_cast<int>((tau - tau0)/dtau);
     for (int i = 0; i < n_tau_steps; i++) {
         const double tau_local = tau0 + (i + 0.5)*dtau;
-        const double res_local = get_hydro_rhob_source(
+        const double res_local = get_hydro_rhob_source(tau_local, x, y, eta_s, u);
+        res += tau_local*res_local*dtau;
+    }
+
+    return(res/tau);
+}
+
+double HydroSourceBase::get_hydro_rhoq_source_before_tau(
+                                const double tau, const double x,
+                                const double y, const double eta_s) const {
+    FlowVec u = {0};
+    u[0] = 1.0;
+
+    double res  = 0.;
+    double tau0 = 0.0;
+    double dtau = 0.005;
+
+    int n_tau_steps = static_cast<int>((tau - tau0)/dtau);
+    for (int i = 0; i < n_tau_steps; i++) {
+        const double tau_local = tau0 + (i + 0.5)*dtau;
+        const double res_local = get_hydro_rhoq_source(
+                                                tau_local, x, y, eta_s, u);
+        res += tau_local*res_local*dtau;
+    }
+
+    return(res/tau);
+}
+
+double HydroSourceBase::get_hydro_rhos_source_before_tau(
+                                const double tau, const double x,
+                                const double y, const double eta_s) const {
+    FlowVec u = {0};
+    u[0] = 1.0;
+
+    double res  = 0.;
+    double tau0 = 0.0;
+    double dtau = 0.005;
+
+    int n_tau_steps = static_cast<int>((tau - tau0)/dtau);
+    for (int i = 0; i < n_tau_steps; i++) {
+        const double tau_local = tau0 + (i + 0.5)*dtau;
+        const double res_local = get_hydro_rhos_source(
                                                 tau_local, x, y, eta_s, u);
         res += tau_local*res_local*dtau;
     }

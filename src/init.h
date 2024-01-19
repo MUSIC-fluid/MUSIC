@@ -66,10 +66,8 @@ class Init {
     void initial_QS_with_rhob_ratios_XY(int ieta, Fields &arenaFieldsPrev,
                               Fields &arenaFieldsCurr);
 
-
-
-
-
+    void initial_SMASH_XY(int ieta, Fields &arenaFieldsPrev,
+                         Fields &arenaFieldsCurr);
     void initial_AMPT_XY(int ieta, Fields &arenaFieldsPrev,
                          Fields &arenaFieldsCurr);
     void initial_MCGlb_with_rhob(Fields &arenaFieldsPrev,

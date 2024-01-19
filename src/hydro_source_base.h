@@ -58,7 +58,12 @@ class HydroSourceBase {
 
     //! this function returns the net electric charge density source term rho
     //! at a given point (tau, x, y, eta_s)
-    virtual double get_hydro_rhoQ_source(const double tau, const double x,
+    virtual double get_hydro_rhoq_source(const double tau, const double x,
+                                 const double y, const double eta_s,
+                                 const FlowVec &u_mu) const {
+        return(0.0);
+    }
+    virtual double get_hydro_rhos_source(const double tau, const double x,
                                  const double y, const double eta_s,
                                  const FlowVec &u_mu) const {
         return(0.0);
@@ -73,6 +78,12 @@ class HydroSourceBase {
     //! this function returns the net baryon density source term rho
     //! up to a given point (tau, x, y, eta_s)
     double get_hydro_rhob_source_before_tau(const double tau, const double x,
+                                            const double y,
+                                            const double eta_s) const;
+    double get_hydro_rhoq_source_before_tau(const double tau, const double x,
+                                            const double y,
+                                            const double eta_s) const;
+    double get_hydro_rhos_source_before_tau(const double tau, const double x,
                                             const double y,
                                             const double eta_s) const;
 
