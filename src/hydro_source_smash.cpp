@@ -191,6 +191,7 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event,
             new_hadron.y = y;
             new_hadron.eta_s = 0.5 * std::log((t + z) / (t - z));
             new_hadron.rapidity = 0.5 * std::log((p0 + pz) / (p0 - pz));
+            new_hadron.pz = pz;
             new_hadron.E = p0;
             new_hadron.px = px;
             new_hadron.py = py;
@@ -494,7 +495,7 @@ void HydroSourceSMASH::prepare_list_for_current_tau_frame(
 double HydroSourceSMASH::covariant_smearing_kernel(const double x_diff, 
         const double y_diff, const double eta_diff, const double vx, 
         const double vy, const double veta, const double sigma, 
-        const double tau) {
+        const double tau) const {
     // Calculate the squared distance and scalar product
     // tau factors from Milne metric
     const double r_squared = x_diff * x_diff + y_diff * y_diff 
@@ -503,7 +504,6 @@ double HydroSourceSMASH::covariant_smearing_kernel(const double x_diff,
 
     // Compute and return the smoothing kernel
     return exp((-r_squared - ru_scalar * ru_scalar) / (sigma * sigma));
-
 }
 
 void HydroSourceSMASH::get_hydro_energy_source(
@@ -545,7 +545,7 @@ void HydroSourceSMASH::get_hydro_energy_source(
 
             // kinematic quantities
             const double mass = list_hadrons_current_tau_.at(ipart).mass;
-            const double E = list_hadrons_current_tau_.at(ipart).p0;
+            const double E = list_hadrons_current_tau_.at(ipart).E;
             const double px = list_hadrons_current_tau_.at(ipart).px;
             const double py = list_hadrons_current_tau_.at(ipart).py;
             const double pz = list_hadrons_current_tau_.at(ipart).pz;
@@ -561,7 +561,7 @@ void HydroSourceSMASH::get_hydro_energy_source(
                 const double peta = mT * sinh(rapidity - list_hadrons_current_tau_.at(ipart).eta_s);
                 const double veta = peta / mass;
 
-                val_smearing_kernel = gamma * covariant_smearing_kernel(x_dis,y_dis,eta_s_dis,vx,vy,veta,sigma_x,tau);
+                val_smearing_kernel = exp_tau * gamma * covariant_smearing_kernel(x_dis,y_dis,eta_s_dis,vx,vy,veta,sigma_x,tau);
             } else {
                 const double exp_xperp =
                     exp(-(x_dis * x_dis + y_dis * y_dis) / (sigma_x * sigma_x));
@@ -576,10 +576,10 @@ void HydroSourceSMASH::get_hydro_energy_source(
             j_mu[2] += py * val_smearing_kernel;
             j_mu[3] += mT * sinh(list_hadrons_current_tau_.at(ipart).rapidity - eta_s) * val_smearing_kernel;
         }
-        double norm = DATA.sFactor / Util::hbarc;     // 1/fm^4
-        double prefactor = norm 
+        double norm = DATA.sFactor / Util::hbarc; // 1/fm^4
+        double prefactor = norm;
         if (covariant_smearing_kernel_) {
-            prefactor *= prefactor_cov * prefactor_tau; // is the prefactor_tau needed???
+            prefactor *= prefactor_tau * prefactor_cov;
         } else {
             prefactor *= prefactor_tau * prefactor_prep * prefactor_etas;
         }
@@ -658,7 +658,7 @@ double HydroSourceSMASH::calculate_source(const double tau, const double x,
 
             // kinematic quantities
             const double mass = list_hadrons_current_tau_.at(ipart).mass;
-            const double E = list_hadrons_current_tau_.at(ipart).p0;
+            const double E = list_hadrons_current_tau_.at(ipart).E;
             const double px = list_hadrons_current_tau_.at(ipart).px;
             const double py = list_hadrons_current_tau_.at(ipart).py;
             const double pz = list_hadrons_current_tau_.at(ipart).pz;
@@ -674,7 +674,7 @@ double HydroSourceSMASH::calculate_source(const double tau, const double x,
                 const double peta = mT * sinh(rapidity - list_hadrons_current_tau_.at(ipart).eta_s);
                 const double veta = peta / mass;
 
-                val_smearing_kernel = gamma * covariant_smearing_kernel(x_dis,y_dis,eta_s_dis,vx,vy,veta,sigma_x,tau);
+                val_smearing_kernel = exp_tau * gamma * covariant_smearing_kernel(x_dis,y_dis,eta_s_dis,vx,vy,veta,sigma_x,tau);
             } else {
                 const double exp_xperp =
                     exp(-(x_dis * x_dis + y_dis * y_dis) / (sigma_x * sigma_x));
