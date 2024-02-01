@@ -14,7 +14,7 @@ struct hadron {
     double tau, x, y, eta_s;
     double rapidity;
     double rapidity_perp;
-    double E, px, py;
+    double E, px, py, pz;
     double mass;
     double ncoll;
     double form_time;
@@ -69,7 +69,7 @@ class HydroSourceSMASH : public HydroSourceBase {
     //! defines a covariant formulation of a smearing kernel
     double covariant_smearing_kernel(const double x_diff, const double y_diff, 
         const double eta_diff, const double vx, const double vy, 
-        const double veta, const double sigma, const double tau);
+        const double veta, const double sigma, const double tau) const;
 
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
