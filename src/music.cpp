@@ -193,7 +193,7 @@ void MUSIC::output_transport_coefficients() {
 
 
 void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
-        const double dx, const double dz, const double z_max, const int nz,
+        const double tau0, const double dx, const double dz, const double z_max, const int nz,
         vector<double> e_in, vector<double> P_in,
         vector<double> u_tau_in, vector<double> u_x_in,
         vector<double> u_y_in,   vector<double> u_eta_in,
@@ -219,6 +219,7 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
     }
     DATA.delta_x = dx;
     DATA.delta_y = dx;
+    DATA.tau0 = tau0;
 
     Init initialization(eos, DATA, hydro_source_terms_ptr);
     initialization.get_jetscape_preequilibrium_vectors(
