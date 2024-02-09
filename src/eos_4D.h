@@ -37,12 +37,12 @@ class EOS_4D : public EOS_base {
     std::vector<float> mus_vec;
     std::vector<float> cs_vec;
 
-    //std::vector<float>* p_ = &pressure_vec;
-    //std::vector<float>* t_ = &temp_vec;
-    //std::vector<float>* mub_ = &mub_vec;
-    //std::vector<float>* muq_ = &muq_vec;
-    //std::vector<float>* mus_ = &mus_vec;
-    //std::vector<float>* cs_ = &cs_vec;
+    std::vector<float>* p_ = &pressure_vec;
+    std::vector<float>* t_ = &temp_vec;
+    std::vector<float>* mub_ = &mub_vec;
+    std::vector<float>* muq_ = &muq_vec;
+    std::vector<float>* mus_ = &mus_vec;
+    std::vector<float>* cs_ = &cs_vec;
 
 
 
