@@ -93,8 +93,8 @@ double EOS_hotQCD::p_e_func(
 
 //! This function returns the local temperature in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_hotQCD::get_temperature(d
-        ouble e, double rhob, double rhoq, double rhos) const {
+double EOS_hotQCD::get_temperature(
+        double e, double rhob, double rhoq, double rhos) const {
     double T5 = interpolate1D(e, 0, temperature_tb);  // e/T^5
     double T = pow(T5, 0.2);  // 1/fm
     return(std::max(Util::small_eps, T));
