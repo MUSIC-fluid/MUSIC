@@ -225,17 +225,18 @@ double EOS_base::get_entropy(double epsilon, double rhob, double rhoq, double rh
     return(std::max(small_eps, f));
 }
 
-void EOS_base::getThermalVariables(double epsilon, double rhob, double rhoq, double rhos,
-		std::vector<double> &thermalVec) const {
 
+void EOS_base::getThermalVariables(
+        double epsilon, double rhob, double rhoq, double rhos,
+        std::vector<double> &thermalVec) const {
     thermalVec.clear();
     thermalVec.push_back(epsilon);
     thermalVec.push_back(rhob);
     double p, dpde, dpdrhob, cs2;
     double dpdrhoq = 0.0;
     double dpdrhos = 0.0;
-    get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, p, dpde, dpdrhob, dpdrhoq, 
-		    dpdrhos, cs2);
+    get_pressure_with_gradients(epsilon, rhob, rhoq, rhos,
+                                p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
     thermalVec.push_back(p);
     thermalVec.push_back(dpde);
     thermalVec.push_back(dpdrhob);
