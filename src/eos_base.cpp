@@ -206,18 +206,18 @@ void EOS_base::interpolate2D_with_gradients(
 
 //! This function returns entropy density in [1/fm^3]
 //! The input local energy density e [1/fm^4], rhob[1/fm^3]
-double EOS_base::get_entropy(double epsilon, double rhob, double rhoq, double rhos) const {
+double EOS_base::get_entropy(
+        double epsilon, double rhob, double rhoq, double rhos) const {
     auto P    = get_pressure(epsilon, rhob, rhoq, rhos);
     auto T    = get_temperature(epsilon, rhob, rhoq, rhos);
     auto muB  = get_muB(epsilon, rhob, rhoq, rhos);
     auto muS  = get_muS(epsilon, rhob, rhoq, rhos);
     auto muQ  = get_muQ(epsilon, rhob, rhoq, rhos);
     double rhoS, rhoQ;
-    if(whichEOS == 20){
+    if (whichEOS == 20) {
         rhoS = rhos;
         rhoQ = rhoq;
-    }
-    else{
+    } else {
         rhoS = get_rhoS(epsilon, rhob);
         rhoQ = get_rhoQ(epsilon, rhob);
     }
@@ -256,13 +256,15 @@ void EOS_base::getThermalVariables(
 }
 
 
-double EOS_base::get_cs2(double e, double rhob, double rhoq, double rhos) const {
+double EOS_base::get_cs2(double e, double rhob,
+                         double rhoq, double rhos) const {
     double f = calculate_velocity_of_sound_sq(e, rhob);
     return(f);
 }
 
 
-double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob, double rhoq, double rhos) const {
+double EOS_base::calculate_velocity_of_sound_sq(
+        double e, double rhob, double rhoq, double rhos) const {
     double v_min = 0.01;
     double v_max = 1./3;
     double dpde = p_e_func(e, rhob);
@@ -274,7 +276,8 @@ double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob, double rh
 }
 
 
-double EOS_base::get_dpOverde3(double e, double rhob, double rhoq, double rhos) const {
+double EOS_base::get_dpOverde3(double e, double rhob,
+                               double rhoq, double rhos) const {
     double de = std::max(0.01, 0.01*e);
     double eLeft = std::max(1e-16, e - de);
     double eRight = e + de;
@@ -287,7 +290,8 @@ double EOS_base::get_dpOverde3(double e, double rhob, double rhoq, double rhos) 
 }
 
 
-double EOS_base::get_dpOverdrhob2(double e, double rhob, double rhoq, double rhos) const {
+double EOS_base::get_dpOverdrhob2(double e, double rhob,
+                                  double rhoq, double rhos) const {
     int table_idx = get_table_idx(e);
     double deltaRhob = nb_spacing[table_idx];
     //double rhob_max = nb_bounds[table_idx] + nb_length[table_idx]*deltaRhob;
@@ -317,7 +321,8 @@ int EOS_base::get_table_idx(double e) const {
 
 //! This function returns local energy density [1/fm^4] from
 //! a given temperature T [GeV] and rhob [1/fm^3] using binary search
-double EOS_base::get_T2e_finite_rhob(const double T, const double rhob, double rhoq, double rhos) const {
+double EOS_base::get_T2e_finite_rhob(
+        const double T, const double rhob, double rhoq, double rhos) const {
     double T_goal = T/Util::hbarc;         // convert to 1/fm
     double eps_lower = small_eps;
     double eps_upper = eps_max;
@@ -364,7 +369,8 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob, double r
 //! This function returns local energy density [1/fm^4] from
 //! a given entropy density [1/fm^3] and rhob [1/fm^3]
 //! using binary search
-double EOS_base::get_s2e_finite_rhob(double s, double rhob, double rhoq, double rhos) const {
+double EOS_base::get_s2e_finite_rhob(
+        double s, double rhob, double rhoq, double rhos) const {
     double eps_lower = small_eps;
     double eps_upper = eps_max;
     double eps_mid   = (eps_upper + eps_lower)/2.;
@@ -529,6 +535,7 @@ void EOS_base::check_eos_no_muB() const {
     check_file1.close();
 }
 
+
 void EOS_base::check_4D_eos() const {
     int Ne = 101;
     double e0 = 5e-3; double emax = 3/0.19733;  // fm-4
@@ -690,7 +697,8 @@ void EOS_base::check_eos_with_finite_muB() const {
         for (int ie = 0; ie < ne; ie++) {
             double e_local    = (e0 + ie*de)/hbarc;
             std::vector<double> thermalVec;
-            getThermalVariables(e_local, rhob_local, rhoq_local, rhos_local, thermalVec);
+            getThermalVariables(e_local, rhob_local, rhoq_local, rhos_local,
+                                thermalVec);
             check_file2 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "   "
                         << thermalVec[2]*hbarc << "   "

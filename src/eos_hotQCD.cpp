@@ -85,14 +85,16 @@ void EOS_hotQCD::initialize_eos() {
 }
 
 
-double EOS_hotQCD::p_e_func(double e, double rhob, double rhoq, double rhos) const {
+double EOS_hotQCD::p_e_func(
+        double e, double rhob, double rhoq, double rhos) const {
     return(get_dpOverde3(e, rhob));
 }
 
 
 //! This function returns the local temperature in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_hotQCD::get_temperature(double e, double rhob, double rhoq, double rhos) const {
+double EOS_hotQCD::get_temperature(d
+        ouble e, double rhob, double rhoq, double rhos) const {
     double T5 = interpolate1D(e, 0, temperature_tb);  // e/T^5
     double T = pow(T5, 0.2);  // 1/fm
     return(std::max(Util::small_eps, T));
@@ -101,7 +103,8 @@ double EOS_hotQCD::get_temperature(double e, double rhob, double rhoq, double rh
 
 //! This function returns the local pressure in [1/fm^4]
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
-double EOS_hotQCD::get_pressure(double e, double rhob, double rhoq, double rhos) const {
+double EOS_hotQCD::get_pressure(
+        double e, double rhob, double rhoq, double rhos) const {
     double f = interpolate1D(e, 0, pressure_tb);  // 1/fm^4
     return(std::max(Util::small_eps, f));
 }
@@ -109,8 +112,10 @@ double EOS_hotQCD::get_pressure(double e, double rhob, double rhoq, double rhos)
 
 //! This function returns the local pressure in [1/fm^4]
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
-void EOS_hotQCD::get_pressure_with_gradients(double e, double rhob, double rhoq, double rhos,
-        double &p, double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos, double &cs2) const {
+void EOS_hotQCD::get_pressure_with_gradients(
+        double e, double rhob, double rhoq, double rhos,
+        double &p, double &dpde, double &dpdrhob, double &dpdrhoq,
+        double &dpdrhos, double &cs2) const {
     interpolate1D_with_gradients(e, 0, pressure_tb, p, dpde);
     p = std::max(Util::small_eps, p);           // [1/fm^4]
     dpdrhob = 0.;
@@ -118,12 +123,14 @@ void EOS_hotQCD::get_pressure_with_gradients(double e, double rhob, double rhoq,
 }
 
 
-double EOS_hotQCD::get_s2e(double s, double rhob, double rhoq, double rhos) const {
+double EOS_hotQCD::get_s2e(
+        double s, double rhob, double rhoq, double rhos) const {
     double e = get_s2e_finite_rhob(s, 0.0);
     return(e);
 }
 
-double EOS_hotQCD::get_T2e(double T_in_GeV, double rhob, double rhoq, double rhos) const {
+double EOS_hotQCD::get_T2e(
+        double T_in_GeV, double rhob, double rhoq, double rhos) const {
     double e = get_T2e_finite_rhob(T_in_GeV, 0.0);
     return(e);
 }

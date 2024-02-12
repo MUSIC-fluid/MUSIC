@@ -7,11 +7,11 @@
 
 class EOS_WB : public EOS_base {
  private:
-   
+
  public:
     EOS_WB();
     ~EOS_WB() {}
-    
+
     void initialize_eos();
     double get_cs2        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double p_e_func       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;

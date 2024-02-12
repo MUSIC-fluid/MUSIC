@@ -75,29 +75,68 @@ class EOS_base {
                              double rhos,
                              std::vector<double> &thermalVec) const;
 
-    double calculate_velocity_of_sound_sq(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_dpOverde3(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_dpOverdrhob2(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_s2e_finite_rhob(double s, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_T2e_finite_rhob(const double T, const double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double calculate_velocity_of_sound_sq(
+            double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double get_dpOverde3(double e, double rhob,
+                         double rhoq=0.0, double rhos=0.0) const;
+    double get_dpOverdrhob2(double e, double rhob,
+                            double rhoq=0.0, double rhos=0.0) const;
+    double get_s2e_finite_rhob(double s, double rhob,
+                               double rhoq=0.0, double rhos=0.0) const;
+    double get_T2e_finite_rhob(const double T, const double rhob,
+                               double rhoq=0.0, double rhos=0.0) const;
     void map_TmuB2erhoB(const double T, const double muB,
                         double &e, double &rhob) const;
 
-    virtual void   initialize_eos () {}
-    virtual void   initialize_eos (int eos_id_in) {}
-    virtual double get_cs2        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    virtual double p_rho_func     (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
-    virtual double p_e_func       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
-    virtual double get_temperature(double epsilon, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
-    virtual double get_muB        (double epsilon, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
-    virtual double get_muS        (double epsilon, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
-    virtual double get_muQ        (double epsilon, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
-    virtual double get_rhoS       (double epsilon, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
-    virtual double get_rhoQ       (double epsilon, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.4*rhob);}
-    virtual double get_pressure   (double epsilon, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
-    virtual double get_s2e        (double s, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
-    virtual double get_T2e        (double T_in_GeV, double rhob, double rhoq=0.0, double rhos=0.0) const {return(0.0);}
-    virtual void   check_eos      () const {}
+    virtual void initialize_eos () {}
+    virtual void initialize_eos (int eos_id_in) {}
+    virtual double get_cs2(double e, double rhob,
+                           double rhoq=0., double rhos=0.) const;
+    virtual double p_rho_func(double e, double rhob,
+                              double rhoq=0., double rhos=0.) const {
+        return(0.0);
+    }
+    virtual double p_e_func(double e, double rhob,
+                            double rhoq=0., double rhos=0.) const {
+        return(0.0);
+    }
+    virtual double get_temperature(double epsilon, double rhob,
+                                   double rhoq=0.0, double rhos=0.0) const {
+        return(0.0);
+    }
+    virtual double get_muB(double epsilon, double rhob,
+                           double rhoq=0.0, double rhos=0.0) const {
+        return(0.0);
+    }
+    virtual double get_muS(double epsilon, double rhob,
+                           double rhoq=0.0, double rhos=0.0) const {
+        return(0.0);
+    }
+    virtual double get_muQ(double epsilon, double rhob,
+                           double rhoq=0.0, double rhos=0.0) const {
+        return(0.0);
+    }
+    virtual double get_rhoS(double epsilon, double rhob,
+                            double rhoq=0.0, double rhos=0.0) const {
+        return(0.0);
+    }
+    virtual double get_rhoQ(double epsilon, double rhob,
+                            double rhoq=0.0, double rhos=0.0) const {
+        return(0.4*rhob);
+    }
+    virtual double get_pressure(double epsilon, double rhob,
+                                double rhoq=0.0, double rhos=0.0) const {
+        return(0.0);
+    }
+    virtual double get_s2e(double s, double rhob,
+                           double rhoq=0.0, double rhos=0.0) const {
+        return(0.0);
+    }
+    virtual double get_T2e(double T_in_GeV, double rhob,
+                           double rhoq=0.0, double rhos=0.0) const {
+        return(0.0);
+    }
+    virtual void check_eos() const {}
 
     virtual void get_pressure_with_gradients(double epsilon, double rhob,
             double rhoq, double rhos, double &p, double &dpde,
