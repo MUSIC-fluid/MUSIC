@@ -471,7 +471,7 @@ void Reconst::reconst_u0_fdf(const double u0, const double T00,
     double pressure, dPde, dPdrho, cs2;
     eos.get_pressure_with_gradients(epsilon, rho, pressure, dPde, dPdrho, cs2);
 
-    const double temp1 = std::max(abs_err,
+    const double temp1 = std::max(abs_err*abs_err,
                                   (T00 + pressure)*(T00 + pressure) - K00);
     const double denorm1 = sqrt(temp1);
     const double temp = (T00 + pressure)/denorm1;
