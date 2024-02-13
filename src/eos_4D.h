@@ -5,6 +5,8 @@
 
 #include "eos_base.h"
 #include <math.h>
+#include <array>
+#include <vector>
 
 class EOS_4D : public EOS_base {
  private:
