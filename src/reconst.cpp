@@ -8,7 +8,7 @@
 
 Reconst::Reconst(const EOS &eosIn, const int echo_level_in, int beastMode) :
     eos(eosIn),
-    max_iter(100),
+    max_iter(200),
     LARGE(1e20),
     v_critical(0.563624),
     echo_level(echo_level_in) {
@@ -383,7 +383,7 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
             music_message << "Reconst u0 Hybrid:: can not find solution!";
             music_message.flush("error");
             music_message << "u0_guess = " << u0_guess << ", T00 = " << T00
-                          << ", M = " << M << ", J0B = " << J0B;
+                          << ", M = " << M << ", J0B = " << J0B << ", J0Q = " << J0Q << ", J0S = " << J0S;
             music_message.flush("error");
         }
         return(u0_status);
@@ -478,9 +478,6 @@ void Reconst::reconst_velocity_fdf(const double v, const double T00,
     eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
                                     dPde, dPdrhob, dPdrhoq, dPdrhos, cs2);
 
-    //const double pressure = eos.get_pressure(epsilon, rho);
-    //const double dPde     = eos.get_dpde(epsilon, rho);
-    //const double dPdrho   = eos.get_dpdrhob(epsilon, rho);
     const double temp1    = T00 + pressure;
     const double temp2    = v/std::max(abs_err, temp);
 
@@ -513,12 +510,38 @@ void Reconst::reconst_u0_fdf(const double u0, const double T00,
     eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
                                     dPde, dPdrhob, dPdrhoq, dPdrhos,cs2);
 
-    const double temp1 = std::max(abs_err,
-                                  (T00 + pressure)*(T00 + pressure) - K00);
+
+    // Introducing a scaling alpha to conserve double precision
+    const double alpha = compute_scaling(T00+pressure, sqrt(K00));
+    const double A = alpha*(T00+pressure);
+    const double B = alpha*sqrt(K00);
+
+    //const double temp1 = std::max(abs_err,
+    //                              (T00 + pressure)*(T00 + pressure) - K00);
+    //const double denorm1 = sqrt(temp1);
+
+    const double temp1 = A*A - B*B;
     const double denorm1 = sqrt(temp1);
-    const double temp = (T00 + pressure)/denorm1;
+
+    const double temp2 = alpha*B*B/(temp1*denorm1);
+    //const double temp = (T00 + pressure)/denorm1;
+
+    //const double temp = (T00 + pressure)/denorm1;
+    const double temp = A/denorm1;
 
     fu0    = u0 - temp;
-    dfdu0  = 1. + (dedu0*dPde + drhobdu0*dPdrhob + drhoqdu0*dPdrhoq
-                   + drhosdu0*dPdrhos)*K00/(temp1*denorm1);
+    //dfdu0  = 1. + (dedu0*dPde + drhobdu0*dPdrhob + drhoqdu0*dPdrhoq + drhosdu0*dPdrhos)*K00/(temp1*denorm1);
+    dfdu0  = 1. + (dedu0*dPde + drhobdu0*dPdrhob + drhoqdu0*dPdrhoq + drhosdu0*dPdrhos)*temp2;
+    //std::cout << "u0 : " << u0 << " temp : " << temp << std::endl;
+}
+
+double Reconst::compute_scaling(const double A, const double B, const double precision) const{
+    const bool A_smaller = A<B;
+    if(A > precision && B > precision){return 1.0;}
+    else if(A < precision && B > precision){return 1/A;}
+    else if(A > precision && B < precision){return 1/B;}
+    else{
+        if(A_smaller){return 1/A;}
+        else{return 1/B;}
+    }
 }
