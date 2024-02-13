@@ -537,9 +537,8 @@ void EOS_base::check_eos_no_muB() const {
 
 
 void EOS_base::check_4D_eos() const {
-    double muB_local = get_muB(0.3/0.19733, 0, 0, 0);
     int Ne = 101;
-    double e0 = 5e-3; double emax = 3/0.19733;  // fm-4
+    double e0 = 5e-3; double emax = 3/hbarc;    // fm-4
     double he = (emax - e0)/Ne;
 
     double nb = 0.0;
@@ -572,14 +571,14 @@ void EOS_base::check_4D_eos() const {
                    << cs2 << "   " << mu_b_local*hbarc << "   "
                    << mu_s_local*hbarc << "   "
                    << mu_q_local*hbarc << "   "
-                   << dPde << "   " << dPdrhoB << "   "
-                   << dPdrhoQ << "   " << dPdrhoS << endl;
+                   << dPde << "   " << dPdrhoB*hbarc << "   "
+                   << dPdrhoQ*hbarc << "   " << dPdrhoS*hbarc << endl;
     }
     check_file.close();
 
-    double eps = 0.3/0.19733;  // 1/fm^4
+    double eps = 0.3/hbarc;  // 1/fm^4
     double nB0 = 0.;
-    double nBmax = 0.3;
+    double nBmax = 0.3;      // 1/fm^3
     int NB = 101;
     double dnB = (nBmax - nB0)/(NB - 1);
     std::string filename2 = "check4DEOS_nBDep_e_0.3_nQ_0.4nB_nS_0.dat";
@@ -605,13 +604,13 @@ void EOS_base::check_4D_eos() const {
         double muS_local = get_muS(eps, nB_local, nQ_local, nS_local);
         double muQ_local = get_muQ(eps, nB_local, nQ_local, nS_local);
         checkFile2 << scientific << setw(18) << setprecision(8)
-                   << nB_local*hbarc << "   " << nQ_local*hbarc << "   "
-                   << nS_local*hbarc << "   " << p_local*hbarc << "   "
+                   << nB_local << "   " << nQ_local << "   "
+                   << nS_local << "   " << p_local*hbarc << "   "
                    << T_local*hbarc << "   " << cs2 << "   "
                    << muB_local*hbarc << "   " << muQ_local*hbarc << "   "
                    << muS_local*hbarc << "   " << dPde << "   "
-                   << dPdrhoB << "   " << dPdrhoQ << "   " << dPdrhoS
-                   << std::endl;
+                   << dPdrhoB*hbarc << "   " << dPdrhoQ*hbarc << "   "
+                   << dPdrhoS*hbarc << std::endl;
         nQ_local = 0;
         get_pressure_with_gradients(
                 eps, nB_local, nQ_local, nS_local,
@@ -621,13 +620,13 @@ void EOS_base::check_4D_eos() const {
         muS_local = get_muS(eps, nB_local, nQ_local, nS_local);
         muQ_local = get_muQ(eps, nB_local, nQ_local, nS_local);
         checkFile3 << scientific << setw(18) << setprecision(8)
-                   << nB_local*hbarc << "   " << nQ_local*hbarc << "   "
-                   << nS_local*hbarc << "   " << p_local*hbarc << "   "
+                   << nB_local << "   " << nQ_local << "   "
+                   << nS_local << "   " << p_local*hbarc << "   "
                    << T_local*hbarc << "   " << cs2 << "   "
                    << muB_local*hbarc << "   " << muQ_local*hbarc << "   "
                    << muS_local*hbarc << "   " << dPde << "   "
-                   << dPdrhoB << "   " << dPdrhoQ << "   " << dPdrhoS
-                   << std::endl;
+                   << dPdrhoB*hbarc << "   " << dPdrhoQ*hbarc << "   "
+                   << dPdrhoS*hbarc << std::endl;
     }
     checkFile2.close();
     checkFile3.close();
