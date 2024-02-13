@@ -8,6 +8,7 @@ string_source_sigma_eta  0.5
 stringTransverseShiftFrac  1.0
 stringPreEqFlowFactor  0.5
 Initial_Distribution_SMASH_filename initial/SMASH_IC.oscar
+Use_Cov_Smearing 0
 event_id_SMASH_output 1
 average_SMASH_events 0
 extended_SMASH_output 1

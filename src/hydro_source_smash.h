@@ -36,7 +36,7 @@ class HydroSourceSMASH : public HydroSourceBase {
     std::vector<hadron> list_hadrons_;
     std::vector<hadron> list_hadrons_current_tau_;
     std::vector<hadron> list_spectators_;
-    bool covariant_smearing_kernel_ = true;
+    int covariant_smearing_kernel_;
 
     int average_events_;
     int number_events_;
@@ -62,7 +62,7 @@ class HydroSourceSMASH : public HydroSourceBase {
         int extended_output, int reject_spectators);
     
     //! set the covariant smearing kernel to true or false
-    void set_covariant_smearing_kernel(bool cov_kernel) { 
+    void set_covariant_smearing_kernel(int cov_kernel) { 
         covariant_smearing_kernel_ = cov_kernel;
     }
 

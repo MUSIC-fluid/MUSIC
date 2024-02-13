@@ -32,6 +32,7 @@ HydroSourceSMASH::HydroSourceSMASH(InitData &DATA_in) :
     int extended_output = DATA.extended_SMASH_output;
     int reject_spectators = DATA.reject_SMASH_spectators;
     read_in_SMASH_hadrons(i_event, extended_output, reject_spectators);
+    set_covariant_smearing_kernel(DATA.use_cov_smearing);
 }
 
 
@@ -297,6 +298,7 @@ void HydroSourceSMASH::get_hydro_energy_source(
     const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
     j_mu = {0};
     if (list_hadrons_current_tau_.size() == 0) return;
+
     
     const double sigma_tau = get_sigma_tau();
     const double sigma_x = get_sigma_x();
