@@ -163,9 +163,10 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
-        eos.getThermalVariables(arena.e_[fieldIdx], arena.rhob_[fieldIdx],
-                                arena.rhoq_[fieldIdx], arena.rhos_[fieldIdx],
-                                thermalVec);
+                eos.getThermalVariables(
+                        arena.e_[fieldIdx], arena.rhob_[fieldIdx],
+                        arena.rhoq_[fieldIdx], arena.rhos_[fieldIdx],
+                        thermalVec);
                 double utau = arena.u_[0][fieldIdx];
                 double ux   = arena.u_[1][fieldIdx];
                 double uy   = arena.u_[2][fieldIdx];
@@ -516,13 +517,11 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                 }
 
                 // Adapted for 4D EoS. ThermalVec shape has not been changed.
-                eos.getThermalVariables(e_local, rhob_local, rhoq_local, 
-                        rhos_local, thermalVec);
+                eos.getThermalVariables(e_local, rhob_local, rhoq_local,
+                                        rhos_local, thermalVec);
                 double muB_local = thermalVec[7];
                 double muQ_local = thermalVec[10];
                 double muS_local = thermalVec[8];
-                
-                eos.getThermalVariables(e_local, rhob_local, rhoq_local, rhos_local, thermalVec);
                 double p_local = thermalVec[2];
                 double cs2 = thermalVec[5];
 
@@ -2507,9 +2506,9 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 double phi_local = atan2(y_local, x_local);
 
                 double e_local = arena.e_[fieldIdx];        // 1/fm^4
-		eos.getThermalVariables(e_local, arena.rhob_[fieldIdx], 
-				arena.rhoq_[fieldIdx], arena.rhos_[fieldIdx],
-					thermalVec);
+                eos.getThermalVariables(
+                    e_local, arena.rhob_[fieldIdx], arena.rhoq_[fieldIdx],
+                    arena.rhos_[fieldIdx], thermalVec);
 
                 double P_local = thermalVec[2];
                 double enthopy = e_local + P_local;

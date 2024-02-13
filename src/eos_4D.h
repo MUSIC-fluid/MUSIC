@@ -4,6 +4,9 @@
 #define SRC_EOS_4D_H_
 
 #include "eos_base.h"
+#include <math.h>
+#include <array>
+#include <vector>
 
 class EOS_4D : public EOS_base {
  private:
@@ -19,15 +22,13 @@ class EOS_4D : public EOS_base {
     float mus_tilde_max;
     //double Ttilde, mubtilde, muqtilde, mustilde;
 
-    // useful constants 
-    double pi;
-    int Nf;
-    double alphaNf;
-    double OneoveralphaNf;
+    // useful constants
+    const int Nf = 3;
+    const double alphaNf = (8/45.0 + 7/60.0*3.0)*M_PI*M_PI;
+    const double OneoveralphaNf = 1./alphaNf;
 
-    bool EoS_file_in_binary;
-    bool file_for_cs;
-
+    bool EoS_file_in_binary_;
+    bool file_for_cs_;
 
     // 1D tables.
     std::vector<float> pressure_vec;
@@ -37,18 +38,11 @@ class EOS_4D : public EOS_base {
     std::vector<float> mus_vec;
     std::vector<float> cs_vec;
 
-    std::vector<float>* p_ = &pressure_vec;
-    std::vector<float>* t_ = &temp_vec;
-    std::vector<float>* mub_ = &mub_vec;
-    std::vector<float>* muq_ = &muq_vec;
-    std::vector<float>* mus_ = &mus_vec;
-    std::vector<float>* cs_ = &cs_vec;
-
-
-
     // method to read/mainupalate header info and data
-    std::vector<float> read_eos(std::string filepath, bool is_cs, int header_size=2);
-    std::vector<float> read_eos_binary(std::string filepath, bool is_cs, int header_size=12);
+    std::vector<float> read_eos(
+            std::string filepath, bool is_cs, int header_size=2);
+    std::vector<float> read_eos_binary(
+            std::string filepath, bool is_cs, int header_size=12);
 
     void get_eos_max_values();
 
@@ -58,11 +52,12 @@ class EOS_4D : public EOS_base {
     // Shift in the index corresponds to the header size.
     int index(int i_T, int i_mub, int i_muq, int i_mus) const;
 
-    std::vector<float> FourDLInterp(
-        const std::vector<float> &data, const std::vector<float> &TildeVar,
-        bool compute_derivatives=false) const;
-    std::vector<float> get_tilde_variables(
-            double e, double nb, double nq, double ns) const;
+    void FourDLInterp(const std::vector<float> &data,
+                      const std::array<float, 4> &TildeVar,
+                      std::array<float, 5> &ResArr,
+                      bool compute_derivatives=false) const;
+    void get_tilde_variables(double e, double nb, double nq, double ns,
+                             std::array<float, 4> &TildeVar) const;
 
  public:
     EOS_4D();
@@ -70,8 +65,10 @@ class EOS_4D : public EOS_base {
 
     void initialize_eos();
 
-    void set_eos_file_in_binary(bool is_binary){EoS_file_in_binary=is_binary;}
-    bool get_eos_file_in_binary(){return EoS_file_in_binary;}
+    void set_eos_file_in_binary(bool is_binary) {
+        EoS_file_in_binary_ = is_binary;
+    }
+    bool get_eos_file_in_binary() { return EoS_file_in_binary_; }
 
     double get_temperature(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double get_muB        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;

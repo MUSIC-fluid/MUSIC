@@ -8,10 +8,10 @@
 class EOS_s95p : public EOS_base {
  private:
     const int eos_id;
-   
+
  public:
     EOS_s95p(const int eos_id_in);
-    
+
     void initialize_eos();
     double p_e_func       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double get_temperature(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;

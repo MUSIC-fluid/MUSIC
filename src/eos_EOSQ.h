@@ -7,11 +7,11 @@
 
 class EOS_eosQ : public EOS_base {
  private:
-   
+
  public:
     EOS_eosQ();
     ~EOS_eosQ();
-    
+
     void initialize_eos();
     double p_rho_func     (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double p_e_func       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;

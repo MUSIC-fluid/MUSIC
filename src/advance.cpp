@@ -64,7 +64,7 @@ void Advance::AdvanceIt(const double tau, Fields &arenaFieldsPrev,
                      arenaFieldsPrev);
 
         if (DATA.viscosity_flag == 1) {
-	    // No viscosity for 4D EoS -> no need to modify u_derivative class.
+            // No viscosity for 4D EoS -> no need to modify u_derivative class.
             U_derivative u_derivative_helper(DATA, eos);
             u_derivative_helper.MakedU(tau, arenaFieldsPrev, arenaFieldsCurr,
                                        fieldIdx, ix, iy, ieta);

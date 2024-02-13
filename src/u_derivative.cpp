@@ -526,12 +526,21 @@ int U_derivative::MakeDSpatial(const double tau, Fields &arena,
         // dUsup[rk_flag][4][n] = partial_n (muB/T)
         // partial_x (muB/T) and partial_y (muB/T) first
         if (DATA.turn_on_diff == 1) {
-            double f   = (eos.get_muB(arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic], arena.rhos_[Ic])
-                          /eos.get_temperature(arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic], arena.rhos_[Ic]));
-            double fp1 = (eos.get_muB(arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1], arena.rhos_[Ip1])
-                          /eos.get_temperature(arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1], arena.rhos_[Ip1]));
-            double fm1 = (eos.get_muB(arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1], arena.rhos_[Im1])
-                          /eos.get_temperature(arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1], arena.rhos_[Im1]));
+            double f   = (eos.get_muB(arena.e_[Ic], arena.rhob_[Ic],
+                                      arena.rhoq_[Ic], arena.rhos_[Ic])
+                          /eos.get_temperature(arena.e_[Ic], arena.rhob_[Ic],
+                                               arena.rhoq_[Ic],
+                                               arena.rhos_[Ic]));
+            double fp1 = (eos.get_muB(arena.e_[Ip1], arena.rhob_[Ip1],
+                                      arena.rhoq_[Ip1], arena.rhos_[Ip1])
+                          /eos.get_temperature(arena.e_[Ip1], arena.rhob_[Ip1],
+                                               arena.rhoq_[Ip1],
+                                               arena.rhos_[Ip1]));
+            double fm1 = (eos.get_muB(arena.e_[Im1], arena.rhob_[Im1],
+                                      arena.rhoq_[Im1], arena.rhos_[Im1])
+                          /eos.get_temperature(arena.e_[Im1], arena.rhob_[Im1],
+                                               arena.rhoq_[Im1],
+                                               arena.rhos_[Im1]));
             dUsup[4][direction] = (minmod.minmod_dx(fp1, f, fm1)
                                    /delta[direction]);
         }
@@ -570,7 +579,8 @@ int U_derivative::MakeDTau(const double tau,
     const double rhos_prev = arenaFieldsPrev.rhos_[fieldIdx];
 
     const double T = eos.get_temperature(eps, rhob, rhoq, rhos);
-    const double T_prev = eos.get_temperature(eps_prev, rhob_prev, rhoq_prev, rhos_prev);
+    const double T_prev = eos.get_temperature(eps_prev, rhob_prev,
+                                              rhoq_prev, rhos_prev);
 
     for (int m = 0; m < 4; m++) {
         // first order is more stable
@@ -609,9 +619,10 @@ int U_derivative::MakeDTau(const double tau,
     // first order is more stable backward derivative
     const double muB = eos.get_muB(eps, rhob, rhoq, rhos);
     const double tildemu = muB/T;
-    const double muB_prev = eos.get_muB(eps_prev, rhob_prev, rhoq_prev, rhos_prev);
+    const double muB_prev = eos.get_muB(eps_prev, rhob_prev,
+                                        rhoq_prev, rhos_prev);
     const double tildemu_prev = muB_prev/T_prev;
     f = (tildemu - tildemu_prev)/(DATA.delta_tau);
-    dUsup[m][0]  = -f;  // g^{00} = -1
+    dUsup[m][0] = -f;  // g^{00} = -1
     return 1;
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-cd EOS; rm -fr neos_2; tar -xf neos_2.tar.gz; cd ..
+cd EOS; bash download_Neos2D.sh 2; cd ..
 
 ./MUSIChydro tests/test_1+1D_with_Akihiko/music_input_test_baryon_diffusion
 

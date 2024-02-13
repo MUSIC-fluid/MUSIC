@@ -206,18 +206,18 @@ void EOS_base::interpolate2D_with_gradients(
 
 //! This function returns entropy density in [1/fm^3]
 //! The input local energy density e [1/fm^4], rhob[1/fm^3]
-double EOS_base::get_entropy(double epsilon, double rhob, double rhoq, double rhos) const {
+double EOS_base::get_entropy(
+        double epsilon, double rhob, double rhoq, double rhos) const {
     auto P    = get_pressure(epsilon, rhob, rhoq, rhos);
     auto T    = get_temperature(epsilon, rhob, rhoq, rhos);
     auto muB  = get_muB(epsilon, rhob, rhoq, rhos);
     auto muS  = get_muS(epsilon, rhob, rhoq, rhos);
     auto muQ  = get_muQ(epsilon, rhob, rhoq, rhos);
     double rhoS, rhoQ;
-    if(whichEOS == 20){
+    if (whichEOS == 20) {
         rhoS = rhos;
         rhoQ = rhoq;
-    }
-    else{
+    } else {
         rhoS = get_rhoS(epsilon, rhob);
         rhoQ = get_rhoQ(epsilon, rhob);
     }
@@ -225,17 +225,18 @@ double EOS_base::get_entropy(double epsilon, double rhob, double rhoq, double rh
     return(std::max(small_eps, f));
 }
 
-void EOS_base::getThermalVariables(double epsilon, double rhob, double rhoq, double rhos,
-		std::vector<double> &thermalVec) const {
 
+void EOS_base::getThermalVariables(
+        double epsilon, double rhob, double rhoq, double rhos,
+        std::vector<double> &thermalVec) const {
     thermalVec.clear();
     thermalVec.push_back(epsilon);
     thermalVec.push_back(rhob);
     double p, dpde, dpdrhob, cs2;
     double dpdrhoq = 0.0;
     double dpdrhos = 0.0;
-    get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, p, dpde, dpdrhob, dpdrhoq, 
-		    dpdrhos, cs2);
+    get_pressure_with_gradients(epsilon, rhob, rhoq, rhos,
+                                p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
     thermalVec.push_back(p);
     thermalVec.push_back(dpde);
     thermalVec.push_back(dpdrhob);
@@ -255,13 +256,15 @@ void EOS_base::getThermalVariables(double epsilon, double rhob, double rhoq, dou
 }
 
 
-double EOS_base::get_cs2(double e, double rhob, double rhoq, double rhos) const {
+double EOS_base::get_cs2(double e, double rhob,
+                         double rhoq, double rhos) const {
     double f = calculate_velocity_of_sound_sq(e, rhob);
     return(f);
 }
 
 
-double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob, double rhoq, double rhos) const {
+double EOS_base::calculate_velocity_of_sound_sq(
+        double e, double rhob, double rhoq, double rhos) const {
     double v_min = 0.01;
     double v_max = 1./3;
     double dpde = p_e_func(e, rhob);
@@ -273,7 +276,8 @@ double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob, double rh
 }
 
 
-double EOS_base::get_dpOverde3(double e, double rhob, double rhoq, double rhos) const {
+double EOS_base::get_dpOverde3(double e, double rhob,
+                               double rhoq, double rhos) const {
     double de = std::max(0.01, 0.01*e);
     double eLeft = std::max(1e-16, e - de);
     double eRight = e + de;
@@ -286,7 +290,8 @@ double EOS_base::get_dpOverde3(double e, double rhob, double rhoq, double rhos) 
 }
 
 
-double EOS_base::get_dpOverdrhob2(double e, double rhob, double rhoq, double rhos) const {
+double EOS_base::get_dpOverdrhob2(double e, double rhob,
+                                  double rhoq, double rhos) const {
     int table_idx = get_table_idx(e);
     double deltaRhob = nb_spacing[table_idx];
     //double rhob_max = nb_bounds[table_idx] + nb_length[table_idx]*deltaRhob;
@@ -316,7 +321,8 @@ int EOS_base::get_table_idx(double e) const {
 
 //! This function returns local energy density [1/fm^4] from
 //! a given temperature T [GeV] and rhob [1/fm^3] using binary search
-double EOS_base::get_T2e_finite_rhob(const double T, const double rhob, double rhoq, double rhos) const {
+double EOS_base::get_T2e_finite_rhob(
+        const double T, const double rhob, double rhoq, double rhos) const {
     double T_goal = T/Util::hbarc;         // convert to 1/fm
     double eps_lower = small_eps;
     double eps_upper = eps_max;
@@ -363,7 +369,8 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob, double r
 //! This function returns local energy density [1/fm^4] from
 //! a given entropy density [1/fm^3] and rhob [1/fm^3]
 //! using binary search
-double EOS_base::get_s2e_finite_rhob(double s, double rhob, double rhoq, double rhos) const {
+double EOS_base::get_s2e_finite_rhob(
+        double s, double rhob, double rhoq, double rhos) const {
     double eps_lower = small_eps;
     double eps_upper = eps_max;
     double eps_mid   = (eps_upper + eps_lower)/2.;
@@ -528,12 +535,12 @@ void EOS_base::check_eos_no_muB() const {
     check_file1.close();
 }
 
+
 void EOS_base::check_4D_eos() const {
     int Ne = 101;
-    double e0 = 5e-3; double emax = 3/0.19733;  // fm-4
+    double e0 = 5e-3; double emax = 3/hbarc;    // fm-4
     double he = (emax - e0)/Ne;
 
-    double e;
     double nb = 0.0;
     double nq = 0.0;
     double ns = 0.0;
@@ -546,18 +553,13 @@ void EOS_base::check_4D_eos() const {
                << "mu_B(GeV)  mu_S(GeV)  mu_Q(GeV)" << endl;
 
     for (int i = 0; i < Ne; i++) {
-        e = e0 + he*i;
-        // compute tilde variables in fm-1
-        double OneoveralphaNf = 0.19198830381654705;
-        double Ttilde = sqrt(sqrt(e/3.0 * OneoveralphaNf)); // fm-1
-        double mubtilde = (5.0 * nb - nq + 2.0*ns)/(Ttilde*Ttilde); // fm-1
-        double muqtilde = (2.0 * nq - nb -   ns)/(Ttilde*Ttilde); // fm-1
-        double mustilde = (2.0 * nb - nq + 2.0*ns)/(Ttilde*Ttilde); // fm-1
-
-        double p_local    = get_pressure(e, nb, nq, ns);
+        double e = e0 + he*i;
+        double p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2;
+        get_pressure_with_gradients(
+                e, nb, nq, ns,
+                p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2);
         double s_local    = get_entropy(e, nb, nq, ns);
         double T_local    = get_temperature(e, nb, nq, ns);
-        double cs2_local  = get_cs2(e, nb, nq, ns);
         double mu_b_local = get_muB(e, nb, nq, ns);
         double mu_s_local = get_muS(e, nb, nq, ns);
         double mu_q_local = get_muQ(e, nb, nq, ns);
@@ -566,17 +568,17 @@ void EOS_base::check_4D_eos() const {
                    << nq*hbarc << "   " << ns*hbarc << "   " 
                    << p_local*hbarc << "   "
                    << s_local << "   " << T_local*hbarc << "   "
-                   << cs2_local << "   " << mu_b_local*hbarc << "   "
+                   << cs2 << "   " << mu_b_local*hbarc << "   "
                    << mu_s_local*hbarc << "   "
                    << mu_q_local*hbarc << "   "
-                   << Ttilde << "   " << mubtilde << "   "
-                   << muqtilde << "   " << mustilde << endl;
+                   << dPde << "   " << dPdrhoB*hbarc << "   "
+                   << dPdrhoQ*hbarc << "   " << dPdrhoS*hbarc << endl;
     }
     check_file.close();
 
-    double eps = 0.3/0.19733;  // 1/fm^4
+    double eps = 0.3/hbarc;  // 1/fm^4
     double nB0 = 0.;
-    double nBmax = 0.3;
+    double nBmax = 0.3;      // 1/fm^3
     int NB = 101;
     double dnB = (nBmax - nB0)/(NB - 1);
     std::string filename2 = "check4DEOS_nBDep_e_0.3_nQ_0.4nB_nS_0.dat";
@@ -593,31 +595,38 @@ void EOS_base::check_4D_eos() const {
         double nB_local = nB0 + dnB*i;
         double nQ_local = 0.4*nB_local;
         double nS_local = 0.;
-        double P_local = get_pressure(eps, nB_local, nQ_local, nS_local);
+        double p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2;
+        get_pressure_with_gradients(
+                eps, nB_local, nQ_local, nS_local,
+                p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2);
         double T_local = get_temperature(eps, nB_local, nQ_local, nS_local);
-        double cs2_local = get_cs2(eps, nB_local, nQ_local, nS_local);
         double muB_local = get_muB(eps, nB_local, nQ_local, nS_local);
         double muS_local = get_muS(eps, nB_local, nQ_local, nS_local);
         double muQ_local = get_muQ(eps, nB_local, nQ_local, nS_local);
         checkFile2 << scientific << setw(18) << setprecision(8)
-                   << nB_local*hbarc << "   " << nQ_local*hbarc << "   "
-                   << nS_local*hbarc << "   " << P_local*hbarc << "   "
-                   << T_local*hbarc << "   " << cs2_local << "   "
+                   << nB_local << "   " << nQ_local << "   "
+                   << nS_local << "   " << p_local*hbarc << "   "
+                   << T_local*hbarc << "   " << cs2 << "   "
                    << muB_local*hbarc << "   " << muQ_local*hbarc << "   "
-                   << muS_local*hbarc << std::endl;
+                   << muS_local*hbarc << "   " << dPde << "   "
+                   << dPdrhoB*hbarc << "   " << dPdrhoQ*hbarc << "   "
+                   << dPdrhoS*hbarc << std::endl;
         nQ_local = 0;
-        P_local = get_pressure(eps, nB_local, nQ_local, nS_local);
+        get_pressure_with_gradients(
+                eps, nB_local, nQ_local, nS_local,
+                p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2);
         T_local = get_temperature(eps, nB_local, nQ_local, nS_local);
-        cs2_local = get_cs2(eps, nB_local, nQ_local, nS_local);
         muB_local = get_muB(eps, nB_local, nQ_local, nS_local);
         muS_local = get_muS(eps, nB_local, nQ_local, nS_local);
         muQ_local = get_muQ(eps, nB_local, nQ_local, nS_local);
         checkFile3 << scientific << setw(18) << setprecision(8)
-                   << nB_local*hbarc << "   " << nQ_local*hbarc << "   "
-                   << nS_local*hbarc << "   " << P_local*hbarc << "   "
-                   << T_local*hbarc << "   " << cs2_local << "   "
+                   << nB_local << "   " << nQ_local << "   "
+                   << nS_local << "   " << p_local*hbarc << "   "
+                   << T_local*hbarc << "   " << cs2 << "   "
                    << muB_local*hbarc << "   " << muQ_local*hbarc << "   "
-                   << muS_local*hbarc << std::endl;
+                   << muS_local*hbarc << "   " << dPde << "   "
+                   << dPdrhoB*hbarc << "   " << dPdrhoQ*hbarc << "   "
+                   << dPdrhoS*hbarc << std::endl;
     }
     checkFile2.close();
     checkFile3.close();
@@ -689,7 +698,8 @@ void EOS_base::check_eos_with_finite_muB() const {
         for (int ie = 0; ie < ne; ie++) {
             double e_local    = (e0 + ie*de)/hbarc;
             std::vector<double> thermalVec;
-            getThermalVariables(e_local, rhob_local, rhoq_local, rhos_local, thermalVec);
+            getThermalVariables(e_local, rhob_local, rhoq_local, rhos_local,
+                                thermalVec);
             check_file2 << scientific << setw(18) << setprecision(8)
                         << e_local*hbarc << "   "
                         << thermalVec[2]*hbarc << "   "
