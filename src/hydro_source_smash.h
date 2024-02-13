@@ -14,7 +14,7 @@ struct hadron {
     double tau, x, y, eta_s;
     double rapidity;
     double rapidity_perp;
-    double E, px, py;
+    double E, px, py, pz;
     double mass;
     double ncoll;
     double form_time;
@@ -36,6 +36,7 @@ class HydroSourceSMASH : public HydroSourceBase {
     std::vector<hadron> list_hadrons_;
     std::vector<hadron> list_hadrons_current_tau_;
     std::vector<hadron> list_spectators_;
+    bool covariant_smearing_kernel_ = true;
 
     int average_events_;
     int number_events_;
@@ -49,6 +50,8 @@ class HydroSourceSMASH : public HydroSourceBase {
     double py_total_;
     double pz_total_;
 
+    enum QuantityType { BARYON_NUMBER, ELECTRIC_CHARGE, STRANGENESS, ENERGY_SOURCE };
+
  public:
     HydroSourceSMASH() = default;
     HydroSourceSMASH(InitData &DATA_in);
@@ -58,11 +61,27 @@ class HydroSourceSMASH : public HydroSourceBase {
     void read_in_SMASH_hadrons(int i_event,
         int extended_output, int reject_spectators);
     
+    //! set the covariant smearing kernel to true or false
+    void set_covariant_smearing_kernel(bool cov_kernel) { 
+        covariant_smearing_kernel_ = cov_kernel;
+    }
+
+    //! defines a covariant formulation of a smearing kernel
+    double covariant_smearing_kernel(const double x_diff, const double y_diff, 
+        const double eta_diff, const double vx, const double vy, 
+        const double veta, const double sigma, const double tau) const;
+
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(
         const double tau, const double x, const double y, const double eta_s,
         const FlowVec &u_mu, EnergyFlowVec &j_mu) const ;
+
+    //! this function computes the source for a given QuantityType at point
+    //! (tau, x, y, eta_s)
+    double calculate_source(const double tau, const double x, 
+                        const double y, const double eta_s,
+                        const FlowVec &u_mu, const int quantityType) const ;
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
