@@ -27,8 +27,8 @@ EOS_4D::~EOS_4D() {}
 void EOS_4D::get_eos_max_values() {
     T_tilde_max = Ttilde0 + (N_T - 1)*dTtilde;
     mub_tilde_max = mubtilde0 + (N_mub - 1)*dmubtilde;
-    muq_tilde_max = muqtilde0 + (N_mub - 1)*dmuqtilde;
-    mus_tilde_max = mustilde0 + (N_mub - 1)*dmustilde;
+    muq_tilde_max = muqtilde0 + (N_muq - 1)*dmuqtilde;
+    mus_tilde_max = mustilde0 + (N_mus - 1)*dmustilde;
 }
 
 
