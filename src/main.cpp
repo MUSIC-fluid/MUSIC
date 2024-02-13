@@ -49,6 +49,9 @@ int main(int argc, char *argv[]) {
         if (running_mode == 73) {
             music_hydro.output_transport_coefficients();
         }
+        if (running_mode == 74) {
+            music_hydro.check_source();
+        }
         ireRunHydroCount++;
     } while (bReRunHydro && ireRunHydroCount < 10);
     return(0);

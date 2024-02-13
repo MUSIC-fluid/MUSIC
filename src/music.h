@@ -71,6 +71,9 @@ class MUSIC {
     //! This function calls routine to check EoS
     void check_eos();
 
+    //! This function calls routine to check hydro source
+    void check_source(); 
+
     //! this is a test function to output the transport coefficients as
     //! function of T and mu_B
     void output_transport_coefficients();

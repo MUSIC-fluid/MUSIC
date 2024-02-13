@@ -78,6 +78,8 @@ class Reconst {
             const double J0S, double &u0_solution);
 
     void regulate_grid(ReconstCell &grid_cell, double elocal) const;
+
+    double compute_scaling(const double A, const double B, const double precision=1e-7) const;
 };
 
 #endif  // SRC_RECONST_H_
