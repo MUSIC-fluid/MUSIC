@@ -537,11 +537,11 @@ void EOS_base::check_eos_no_muB() const {
 
 
 void EOS_base::check_4D_eos() const {
+    double muB_local = get_muB(0.3/0.19733, 0, 0, 0);
     int Ne = 101;
     double e0 = 5e-3; double emax = 3/0.19733;  // fm-4
     double he = (emax - e0)/Ne;
 
-    double e;
     double nb = 0.0;
     double nq = 0.0;
     double ns = 0.0;
@@ -554,18 +554,13 @@ void EOS_base::check_4D_eos() const {
                << "mu_B(GeV)  mu_S(GeV)  mu_Q(GeV)" << endl;
 
     for (int i = 0; i < Ne; i++) {
-        e = e0 + he*i;
-        // compute tilde variables in fm-1
-        double OneoveralphaNf = 0.19198830381654705;
-        double Ttilde = sqrt(sqrt(e/3.0 * OneoveralphaNf)); // fm-1
-        double mubtilde = (5.0 * nb - nq + 2.0*ns)/(Ttilde*Ttilde); // fm-1
-        double muqtilde = (2.0 * nq - nb -   ns)/(Ttilde*Ttilde); // fm-1
-        double mustilde = (2.0 * nb - nq + 2.0*ns)/(Ttilde*Ttilde); // fm-1
-
-        double p_local    = get_pressure(e, nb, nq, ns);
+        double e = e0 + he*i;
+        double p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2;
+        get_pressure_with_gradients(
+                e, nb, nq, ns,
+                p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2);
         double s_local    = get_entropy(e, nb, nq, ns);
         double T_local    = get_temperature(e, nb, nq, ns);
-        double cs2_local  = get_cs2(e, nb, nq, ns);
         double mu_b_local = get_muB(e, nb, nq, ns);
         double mu_s_local = get_muS(e, nb, nq, ns);
         double mu_q_local = get_muQ(e, nb, nq, ns);
@@ -574,11 +569,11 @@ void EOS_base::check_4D_eos() const {
                    << nq*hbarc << "   " << ns*hbarc << "   " 
                    << p_local*hbarc << "   "
                    << s_local << "   " << T_local*hbarc << "   "
-                   << cs2_local << "   " << mu_b_local*hbarc << "   "
+                   << cs2 << "   " << mu_b_local*hbarc << "   "
                    << mu_s_local*hbarc << "   "
                    << mu_q_local*hbarc << "   "
-                   << Ttilde << "   " << mubtilde << "   "
-                   << muqtilde << "   " << mustilde << endl;
+                   << dPde << "   " << dPdrhoB << "   "
+                   << dPdrhoQ << "   " << dPdrhoS << endl;
     }
     check_file.close();
 
@@ -601,31 +596,38 @@ void EOS_base::check_4D_eos() const {
         double nB_local = nB0 + dnB*i;
         double nQ_local = 0.4*nB_local;
         double nS_local = 0.;
-        double P_local = get_pressure(eps, nB_local, nQ_local, nS_local);
+        double p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2;
+        get_pressure_with_gradients(
+                eps, nB_local, nQ_local, nS_local,
+                p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2);
         double T_local = get_temperature(eps, nB_local, nQ_local, nS_local);
-        double cs2_local = get_cs2(eps, nB_local, nQ_local, nS_local);
         double muB_local = get_muB(eps, nB_local, nQ_local, nS_local);
         double muS_local = get_muS(eps, nB_local, nQ_local, nS_local);
         double muQ_local = get_muQ(eps, nB_local, nQ_local, nS_local);
         checkFile2 << scientific << setw(18) << setprecision(8)
                    << nB_local*hbarc << "   " << nQ_local*hbarc << "   "
-                   << nS_local*hbarc << "   " << P_local*hbarc << "   "
-                   << T_local*hbarc << "   " << cs2_local << "   "
+                   << nS_local*hbarc << "   " << p_local*hbarc << "   "
+                   << T_local*hbarc << "   " << cs2 << "   "
                    << muB_local*hbarc << "   " << muQ_local*hbarc << "   "
-                   << muS_local*hbarc << std::endl;
+                   << muS_local*hbarc << "   " << dPde << "   "
+                   << dPdrhoB << "   " << dPdrhoQ << "   " << dPdrhoS
+                   << std::endl;
         nQ_local = 0;
-        P_local = get_pressure(eps, nB_local, nQ_local, nS_local);
+        get_pressure_with_gradients(
+                eps, nB_local, nQ_local, nS_local,
+                p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2);
         T_local = get_temperature(eps, nB_local, nQ_local, nS_local);
-        cs2_local = get_cs2(eps, nB_local, nQ_local, nS_local);
         muB_local = get_muB(eps, nB_local, nQ_local, nS_local);
         muS_local = get_muS(eps, nB_local, nQ_local, nS_local);
         muQ_local = get_muQ(eps, nB_local, nQ_local, nS_local);
         checkFile3 << scientific << setw(18) << setprecision(8)
                    << nB_local*hbarc << "   " << nQ_local*hbarc << "   "
-                   << nS_local*hbarc << "   " << P_local*hbarc << "   "
-                   << T_local*hbarc << "   " << cs2_local << "   "
+                   << nS_local*hbarc << "   " << p_local*hbarc << "   "
+                   << T_local*hbarc << "   " << cs2 << "   "
                    << muB_local*hbarc << "   " << muQ_local*hbarc << "   "
-                   << muS_local*hbarc << std::endl;
+                   << muS_local*hbarc << "   " << dPde << "   "
+                   << dPdrhoB << "   " << dPdrhoQ << "   " << dPdrhoS
+                   << std::endl;
     }
     checkFile2.close();
     checkFile3.close();

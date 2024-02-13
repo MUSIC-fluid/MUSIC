@@ -156,7 +156,8 @@ std::vector<float> EOS_4D::read_eos_binary(
         exit(1);
     }
     float number;
-    while (eos_binary_file.read(reinterpret_cast<char*>(&number), sizeof(float))) {
+    while (eos_binary_file.read(reinterpret_cast<char*>(&number),
+            sizeof(float))) {
         out.push_back(number/dimension);
     }
     eos_binary_file.close();
@@ -174,9 +175,10 @@ int EOS_4D::index(int i_T, int i_mub, int i_muq, int i_mus) const {
 }
 
 
-std::vector<float> EOS_4D::FourDLInterp(const std::vector<float> &data,
-                                        const std::vector<float> &TildeVar,
-                                        bool compute_derivatives) const {
+void EOS_4D::FourDLInterp(const std::vector<float> &data,
+                          const std::array<float, 4> &TildeVar,
+                          std::array<float, 5> &ResArr,
+                          bool compute_derivatives) const {
     // Constrain the input tilde variables values to the table boundaries.
     float T = std::max(Ttilde0, std::min(T_tilde_max, TildeVar[0]));
     float mub = std::max(mubtilde0, std::min(mub_tilde_max, TildeVar[1]));
@@ -250,143 +252,141 @@ std::vector<float> EOS_4D::FourDLInterp(const std::vector<float> &data,
         + w0111 * data_0111 + w1011 * data_1011 + w1101 * data_1101
         + w1110 * data_1110);
 
-    float dXoverde = 0.0; 
-    float dXoverdrhob = 0.0;
-    float dXoverdrhoq = 0.0;
-    float dXoverdrhos = 0.0;
-    if (compute_derivatives) {
-        // Calculate derivatives.
-        // Ttilde direction
-        float wT000 = w0000 + w1000;
-        float wT111 = w0111 + w1111;
-        float wT100 = w0100 + w1100;
-        float wT110 = w0110 + w1110;
-        float wT010 = w0010 + w1010;
-        float wT011 = w0011 + w1011;
-        float wT001 = w0001 + w1001;
-        float wT101 = w0101 + w1101;
+    ResArr[0] = interpolated_value;
 
-        float tempT1 = (
-                wT000 * data_0000 + wT100 * data_0100
-                + wT010 * data_0010 + wT001 * data_0001
-                + wT101 * data_0101 + wT011 * data_0011
-                + wT110 * data_0110 + wT111 * data_0111);
+    if (!compute_derivatives)
+        return;
 
-        float tempT2 = (
-                wT111 * data_1111 + wT000 * data_1000
-                + wT001 * data_1001 + wT100 * data_1100
-                + wT010 * data_1010 + wT011 * data_1011
-                + wT101 * data_1101 + wT110 * data_1110);
+    // Calculate derivatives.
+    // Ttilde direction
+    float wT000 = w0000 + w1000;
+    float wT111 = w0111 + w1111;
+    float wT100 = w0100 + w1100;
+    float wT110 = w0110 + w1110;
+    float wT010 = w0010 + w1010;
+    float wT011 = w0011 + w1011;
+    float wT001 = w0001 + w1001;
+    float wT101 = w0101 + w1101;
 
-        float dXdTtilde = (tempT2 - tempT1)/dTtilde;
-        // to test for speed
-        //float dXdTtilde = (tempT2 - interpolated_value)/((1-dx) * dTtilde);
+    float tempT1 = (
+              wT000 * data_0000 + wT100 * data_0100
+            + wT010 * data_0010 + wT001 * data_0001
+            + wT101 * data_0101 + wT011 * data_0011
+            + wT110 * data_0110 + wT111 * data_0111);
 
-        // mubtilde direction
-        float wb000 = w0000 + w0100;
-        float wb111 = w1011 + w1111;
-        float wb100 = w1000 + w1100;
-        float wb110 = w1010 + w1110;
-        float wb010 = w0010 + w0110;
-        float wb011 = w0011 + w0111;
-        float wb001 = w0001 + w0101;
-        float wb101 = w1001 + w1101;
+    float tempT2 = (
+              wT111 * data_1111 + wT000 * data_1000
+            + wT001 * data_1001 + wT100 * data_1100
+            + wT010 * data_1010 + wT011 * data_1011
+            + wT101 * data_1101 + wT110 * data_1110);
 
-        float tempb1 = (
-                  wb000 * data_0000 + wb100 * data_1000 + wb010 * data_0010
-                + wb001 * data_0001 + wb101 * data_1001 + wb011 * data_0011
-                + wb110 * data_1010 + wb111 * data_1011);
+    //float dXdTtilde = (tempT2 - tempT1)/dTtilde;
+    float T1 = Ttilde0 + iT*dTtilde;
+    float T2 = T1 + dTtilde;
+    float dXdTtilde = (
+        5*(tempT2 - tempT1)/(pow(T2, 5) - pow(T1, 5))*pow(T, 4));
+    // to test for speed
+    //float dXdTtilde = (tempT2 - interpolated_value)/((1-dx) * dTtilde);
 
-        float tempb2 = (
-                  wb111 * data_1111 + wb000 * data_0100 + wb001 * data_0101
-                + wb100 * data_1100 + wb010 * data_0110 + wb011 * data_0111
-                + wb101 * data_1101 + wb110 * data_1110);
+    // mubtilde direction
+    float wb000 = w0000 + w0100;
+    float wb111 = w1011 + w1111;
+    float wb100 = w1000 + w1100;
+    float wb110 = w1010 + w1110;
+    float wb010 = w0010 + w0110;
+    float wb011 = w0011 + w0111;
+    float wb001 = w0001 + w0101;
+    float wb101 = w1001 + w1101;
 
-        float dXdmubtilde = (tempb2 - tempb1)/dmubtilde;
-        // to test for speed
-        //float dXdmubtilde = (tempb2 - interpolated_value)/((1-dy) * dmubtilde);
+    float tempb1 = (
+              wb000 * data_0000 + wb100 * data_1000 + wb010 * data_0010
+            + wb001 * data_0001 + wb101 * data_1001 + wb011 * data_0011
+            + wb110 * data_1010 + wb111 * data_1011);
 
-        // muqtilde direction
-        float wq000 = w0000 + w0010;
-        float wq111 = w1101 + w1111;
-        float wq100 = w1000 + w1010;
-        float wq110 = w1100 + w1110;
-        float wq010 = w0100 + w0110;
-        float wq011 = w0101 + w0111;
-        float wq001 = w0001 + w0011;
-        float wq101 = w1001 + w1011;
+    float tempb2 = (
+              wb111 * data_1111 + wb000 * data_0100 + wb001 * data_0101
+            + wb100 * data_1100 + wb010 * data_0110 + wb011 * data_0111
+            + wb101 * data_1101 + wb110 * data_1110);
 
-        float tempq1 = (
-                  wq000 * data_0000 + wq100 * data_1000 + wq010 * data_0100
-                + wq001 * data_0001 + wq101 * data_1001 + wq011 * data_0101
-                + wq110 * data_1100 + wq111 * data_1101);
+    float dXdmubtilde = (tempb2 - tempb1)/dmubtilde;
+    // to test for speed
+    //float dXdmubtilde = (tempb2 - interpolated_value)/((1-dy) * dmubtilde);
 
-        float tempq2 = (
-                  wq111 * data_1111 + wq000 * data_0010 + wq001 * data_0011
-                + wq100 * data_1010 + wq010 * data_0110 + wq011 * data_0111
-                + wq101 * data_1011 + wq110 * data_1110);
+    // muqtilde direction
+    float wq000 = w0000 + w0010;
+    float wq111 = w1101 + w1111;
+    float wq100 = w1000 + w1010;
+    float wq110 = w1100 + w1110;
+    float wq010 = w0100 + w0110;
+    float wq011 = w0101 + w0111;
+    float wq001 = w0001 + w0011;
+    float wq101 = w1001 + w1011;
 
-        float dXdmuqtilde = (tempq2 - tempq1)/dmuqtilde;
-        // to test for speed
-        //float dXdmuqtilde = (tempq2 - interpolated_value)/((1-dz) * dmuq);
+    float tempq1 = (
+              wq000 * data_0000 + wq100 * data_1000 + wq010 * data_0100
+            + wq001 * data_0001 + wq101 * data_1001 + wq011 * data_0101
+            + wq110 * data_1100 + wq111 * data_1101);
 
-        // mustilde direction
-        float ws000 = w0000 + w0001;
-        float ws111 = w1110 + w1111;
-        float ws100 = w1000 + w1001;
-        float ws110 = w1100 + w1101;
-        float ws010 = w0100 + w0101;
-        float ws011 = w0110 + w0111;
-        float ws001 = w0010 + w0011;
-        float ws101 = w1010 + w1011;
+    float tempq2 = (
+              wq111 * data_1111 + wq000 * data_0010 + wq001 * data_0011
+            + wq100 * data_1010 + wq010 * data_0110 + wq011 * data_0111
+            + wq101 * data_1011 + wq110 * data_1110);
 
-        float temps1 = (
-                    ws000 * data_0000 + ws100 * data_1000 + ws010 * data_0100
-                  + ws001 * data_0010 + ws110 * data_1100 + ws101 * data_1010
-                  + ws011 * data_0110 + ws111 * data_1110);
+    float dXdmuqtilde = (tempq2 - tempq1)/dmuqtilde;
+    // to test for speed
+    //float dXdmuqtilde = (tempq2 - interpolated_value)/((1-dz) * dmuq);
 
-        float temps2 = (
-                    ws111 * data_1111 + ws000 * data_0001 + ws100 * data_1001
-                  + ws010 * data_0101 + ws001 * data_0011 + ws011 * data_0111
-                  + ws101 * data_1011 + ws110 * data_1101);
+    // mustilde direction
+    float ws000 = w0000 + w0001;
+    float ws111 = w1110 + w1111;
+    float ws100 = w1000 + w1001;
+    float ws110 = w1100 + w1101;
+    float ws010 = w0100 + w0101;
+    float ws011 = w0110 + w0111;
+    float ws001 = w0010 + w0011;
+    float ws101 = w1010 + w1011;
 
-        float dXdmustilde = (temps2 - temps1)/dmustilde;
-        // to test for speed
-        //float dXdmustilde = (temps2 - interpolated_value)/((1-dt) * dmus);
+    float temps1 = (
+                ws000 * data_0000 + ws100 * data_1000 + ws010 * data_0100
+              + ws001 * data_0010 + ws110 * data_1100 + ws101 * data_1010
+              + ws011 * data_0110 + ws111 * data_1110);
 
-        dXoverde = 3.0/(19.0*M_PI*M_PI * T * T * T) * dXdTtilde;
-        dXoverdrhob = ((5.0 * dXdmubtilde - dXdmuqtilde + 2.0 * dXdmustilde)
-                       /(T * T));
-        dXoverdrhoq = ((- 1.0 * dXdmubtilde + 2.0 * dXdmuqtilde - dXdmustilde)
-                       /(T * T));
-        dXoverdrhos = ((2.0 * dXdmubtilde - dXdmuqtilde + 2.0 * dXdmustilde)
-                       /(T * T));
-    }
+    float temps2 = (
+                ws111 * data_1111 + ws000 * data_0001 + ws100 * data_1001
+              + ws010 * data_0101 + ws001 * data_0011 + ws011 * data_0111
+              + ws101 * data_1011 + ws110 * data_1101);
 
-    std::vector<float> out;
-    out.push_back(interpolated_value);
-    out.push_back(dXoverde);
-    out.push_back(dXoverdrhob);
-    out.push_back(dXoverdrhoq);
-    out.push_back(dXoverdrhos);
-    return out;
+    float dXdmustilde = (temps2 - temps1)/dmustilde;
+    // to test for speed
+    //float dXdmustilde = (temps2 - interpolated_value)/((1-dt) * dmus);
+
+    // dXoverde
+    ResArr[1] = 3.0/(19.0*M_PI*M_PI * T * T * T) * dXdTtilde;
+    // dXoverdrhob
+    ResArr[2] = ((5.0 * dXdmubtilde - dXdmuqtilde + 2.0 * dXdmustilde)
+                   /(T * T));
+    // dXoverdrhoq
+    ResArr[3] = ((- 1.0 * dXdmubtilde + 2.0 * dXdmuqtilde - dXdmustilde)
+                   /(T * T));
+    // dXoverdrhos
+    ResArr[4] = ((2.0 * dXdmubtilde - dXdmuqtilde + 2.0 * dXdmustilde)
+                   /(T * T));
 }
 
 
-std::vector<float> EOS_4D::get_tilde_variables(
-        double e, double rhob, double rhoq, double rhos) const {
-    double Ttilde = sqrt(sqrt(e/3.0 * OneoveralphaNf));          // fm-1
-    double Ttilde_sq = Ttilde*Ttilde;
-    double mubtilde = (5.0 * rhob - rhoq + 2.0*rhos)/Ttilde_sq;  // fm-1
-    double muqtilde = (2.0 * rhoq - rhob -   rhos)/Ttilde_sq;    // fm-1
-    double mustilde = (2.0 * rhob - rhoq + 2.0*rhos)/Ttilde_sq;  // fm-1
+void EOS_4D::get_tilde_variables(
+        double e, double rhob, double rhoq, double rhos,
+        std::array<float, 4> &TildeVar) const {
+    double Ttilde_sq = sqrt(e/3.0 * OneoveralphaNf);
+    double Ttilde = sqrt(Ttilde_sq);                       // fm-1
+    double mubtilde = (5*rhob - rhoq + 2*rhos)/Ttilde_sq;  // fm-1
+    double muqtilde = (- rhob + 2*rhoq - rhos)/Ttilde_sq;  // fm-1
+    double mustilde = (2*rhob - rhoq + 2*rhos)/Ttilde_sq;  // fm-1
 
-    std::vector<float> out;
-    out.push_back(static_cast<float>(Ttilde));
-    out.push_back(static_cast<float>(mubtilde));
-    out.push_back(static_cast<float>(muqtilde));
-    out.push_back(static_cast<float>(mustilde));
-    return out;
+    TildeVar[0] = static_cast<float>(Ttilde);
+    TildeVar[1] = static_cast<float>(mubtilde);
+    TildeVar[2] = static_cast<float>(muqtilde);
+    TildeVar[3] = static_cast<float>(mustilde);
 }
 
 
@@ -446,9 +446,11 @@ void EOS_4D::initialize_eos() {
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_4D::get_temperature(double e, double rhob,
                                double rhoq, double rhos) const {
-    auto TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    auto interp_output = FourDLInterp(temp_vec, TildeVar);  // 1/fm
-    return(std::max(Util::small_eps, static_cast<double>(interp_output[0])));
+    std::array<float, 4> TildeVar{};
+    get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    std::array<float, 5> ResArr{};
+    FourDLInterp(temp_vec, TildeVar, ResArr);  // 1/fm
+    return(std::max(Util::small_eps, static_cast<double>(ResArr[0])));
 }
 
 
@@ -456,9 +458,11 @@ double EOS_4D::get_temperature(double e, double rhob,
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
 double EOS_4D::get_pressure(double e, double rhob,
                             double rhoq, double rhos) const {
-    auto TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    auto interp_output = FourDLInterp(pressure_vec, TildeVar);
-    return(std::max(Util::small_eps, static_cast<double>(interp_output[0])));
+    std::array<float, 4> TildeVar{};
+    get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    std::array<float, 5> ResArr{};
+    FourDLInterp(pressure_vec, TildeVar, ResArr);
+    return(std::max(Util::small_eps, static_cast<double>(ResArr[0])));
 }
 
 
@@ -466,22 +470,24 @@ double EOS_4D::get_pressure(double e, double rhob,
 //! the input local energy density [1/fm^4], rhob [1/fm^3],
 //! rhoq [1/fm^3], rhos [1/fm^3]
 double EOS_4D::get_cs2(double e, double rhob, double rhoq, double rhos) const {
-    auto TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
+    std::array<float, 4> TildeVar{};
+    get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    std::array<float, 5> ResArr{};
     double cs2;
     double interp_cs;
     if (file_for_cs_) {
         // read cs from file
-        auto interp_output = FourDLInterp(cs_vec, TildeVar);
-        interp_cs = std::max(Util::small_eps, (double) interp_output[0]);
+        FourDLInterp(cs_vec, TildeVar, ResArr);
+        interp_cs = std::max(Util::small_eps, static_cast<double>(ResArr[0]));
         cs2 = interp_cs*interp_cs;
     } else {
         // compute cs2
-        auto interp_output = FourDLInterp(pressure_vec, TildeVar, true);
-        float p = std::max(Util::small_eps, (double) interp_output[0]);
-        float dpde = interp_output[1];
-        float dpdrhob = interp_output[2];
-        float dpdrhoq = interp_output[3];
-        float dpdrhos = interp_output[4];
+        FourDLInterp(pressure_vec, TildeVar, ResArr, true);
+        float p = std::max(Util::small_eps, static_cast<double>(ResArr[0]));
+        float dpde = ResArr[1];
+        float dpdrhob = ResArr[2];
+        float dpdrhoq = ResArr[3];
+        float dpdrhos = ResArr[4];
         cs2 = (dpde + rhob/(e + p + Util::small_eps)*dpdrhob
                + rhoq/(e + p + Util::small_eps)*dpdrhoq
                + rhos/(e + p + Util::small_eps)*dpdrhos);
@@ -496,19 +502,20 @@ void EOS_4D::get_pressure_with_gradients(
         double e, double rhob, double rhoq, double rhos,
         double &p, double &dpde, double &dpdrhob, double &dpdrhoq,
         double &dpdrhos, double &cs2) const {
+    std::array<float, 4> TildeVar{};
+    get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    std::array<float, 5> ResArr{};
+    FourDLInterp(pressure_vec, TildeVar, ResArr, true);
+    p = std::max(Util::small_eps, static_cast<double>(ResArr[0]));
 
-    auto TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    auto interp_output = FourDLInterp(pressure_vec, TildeVar, true);
-    p = std::max(Util::small_eps, (double) interp_output[0]);
-
-    dpde = static_cast<double>(interp_output[1]);
-    dpdrhob = static_cast<double>(interp_output[2]);
-    dpdrhoq = static_cast<double>(interp_output[3]);
-    dpdrhos = static_cast<double>(interp_output[4]);
+    dpde = static_cast<double>(ResArr[1]);
+    dpdrhob = static_cast<double>(ResArr[2]);
+    dpdrhoq = static_cast<double>(ResArr[3]);
+    dpdrhos = static_cast<double>(ResArr[4]);
 
     if (file_for_cs_) {
-        std::vector<float> interp_cs = FourDLInterp(cs_vec, TildeVar);
-        cs2 = static_cast<double>(interp_cs[0]*interp_cs[0]);
+        FourDLInterp(cs_vec, TildeVar, ResArr);
+        cs2 = static_cast<double>(ResArr[0]*ResArr[0]);
     } else {
         cs2 = (dpde + rhob/(e + p + Util::small_eps)*dpdrhob
                 + rhoq/(e + p + Util::small_eps)*dpdrhoq
@@ -521,25 +528,31 @@ void EOS_4D::get_pressure_with_gradients(
 //! This function returns the local baryon chemical potential  mu_B in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_4D::get_muB(double e, double rhob, double rhoq, double rhos) const {
-    auto TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    auto interp_output = FourDLInterp(mub_vec, TildeVar);  // 1/fm
-    return(static_cast<double>(interp_output[0]));
+    std::array<float, 4> TildeVar{};
+    get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    std::array<float, 5> ResArr{};
+    FourDLInterp(mub_vec, TildeVar, ResArr);  // 1/fm
+    return(static_cast<double>(ResArr[0]));
 }
 
 
 //! This function returns the local baryon chemical potential  mu_B in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_4D::get_muS(double e, double rhob, double rhoq, double rhos) const {
-    auto TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    auto interp_output = FourDLInterp(mus_vec, TildeVar);  // 1/fm
-    return(static_cast<double>(interp_output[0]));
+    std::array<float, 4> TildeVar{};
+    get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    std::array<float, 5> ResArr{};
+    FourDLInterp(mus_vec, TildeVar, ResArr);  // 1/fm
+    return(static_cast<double>(ResArr[0]));
 }
 
 
 //! This function returns the local baryon chemical potential  mu_B in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
 double EOS_4D::get_muQ(double e, double rhob, double rhoq, double rhos) const {
-    auto TildeVar = get_tilde_variables(e, rhob, rhoq, rhos);
-    auto interp_output = FourDLInterp(muq_vec, TildeVar);  // 1/fm
-    return(static_cast<double>(interp_output[0]));
+    std::array<float, 4> TildeVar{};
+    get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    std::array<float, 5> ResArr{};
+    FourDLInterp(muq_vec, TildeVar, ResArr);  // 1/fm
+    return(static_cast<double>(ResArr[0]));
 }

@@ -37,8 +37,10 @@ class EOS_4D : public EOS_base {
     std::vector<float> cs_vec;
 
     // method to read/mainupalate header info and data
-    std::vector<float> read_eos(std::string filepath, bool is_cs, int header_size=2);
-    std::vector<float> read_eos_binary(std::string filepath, bool is_cs, int header_size=12);
+    std::vector<float> read_eos(
+            std::string filepath, bool is_cs, int header_size=2);
+    std::vector<float> read_eos_binary(
+            std::string filepath, bool is_cs, int header_size=12);
 
     void get_eos_max_values();
 
@@ -48,11 +50,12 @@ class EOS_4D : public EOS_base {
     // Shift in the index corresponds to the header size.
     int index(int i_T, int i_mub, int i_muq, int i_mus) const;
 
-    std::vector<float> FourDLInterp(
-        const std::vector<float> &data, const std::vector<float> &TildeVar,
-        bool compute_derivatives=false) const;
-    std::vector<float> get_tilde_variables(
-            double e, double nb, double nq, double ns) const;
+    void FourDLInterp(const std::vector<float> &data,
+                      const std::array<float, 4> &TildeVar,
+                      std::array<float, 5> &ResArr,
+                      bool compute_derivatives=false) const;
+    void get_tilde_variables(double e, double nb, double nq, double ns,
+                             std::array<float, 4> &TildeVar) const;
 
  public:
     EOS_4D();
