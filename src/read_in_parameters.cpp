@@ -73,6 +73,12 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_string_quench_factor;
     parameter_list.string_quench_factor = temp_string_quench_factor;
 
+    int temp_cov_smearing = 1;
+    tempinput = Util::StringFind4(input_file, "Use_Cov_Smearing");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_cov_smearing;
+    parameter_list.use_cov_smearing = temp_cov_smearing;
+
     // hydro source
     double temp_parton_quench_factor = 1.;
     tempinput = Util::StringFind4(input_file, "parton_quench_factor");

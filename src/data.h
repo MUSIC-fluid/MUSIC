@@ -42,6 +42,7 @@ typedef struct init_data {
     int average_SMASH_events; //! Average over events until reaching event_id_SMASH
     int extended_SMASH_output; //! Consider extended Oscar input. 
     int reject_SMASH_spectators; //! Do not consider spectators. Default: 1.
+    int use_cov_smearing; //! Use covariant smearing.
 
     std::string initName_participants;  //!< filename for participant nucleons
     double nucleonWidth;
