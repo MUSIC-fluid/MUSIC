@@ -96,8 +96,8 @@ void EOS_4D::read_header_binary(std::string filepath, int header_size) {
     N_mus += 1;
 
     ifs.close();
-    std::cout << N_T << " " << N_mub << "  " << N_muq << "  " << N_mus
-              << std::endl;
+    //std::cout << N_T << " " << N_mub << "  " << N_muq << "  " << N_mus
+    //          << std::endl;
 }
 
 
