@@ -21,6 +21,10 @@
 #endif
 
 using std::vector;
+using std::setw;
+using std::setprecision;
+using std::scientific;
+
 
 MUSIC::MUSIC(std::string input_file) :
     DATA(ReadInParameters::read_in_parameters(input_file)),
@@ -222,13 +226,11 @@ void MUSIC::check_source() {
                 rhoq /= tau0;
                 rhos /= tau0;
 
-                 rhob *= DATA.delta_tau;
-                 rhoq *= DATA.delta_tau;
-                 rhos *= DATA.delta_tau;
+                rhob *= DATA.delta_tau;
+                rhoq *= DATA.delta_tau;
+                rhos *= DATA.delta_tau;
 
-
-
-                check_file << std::scientific << std::setw(18) << std::setprecision(8)
+                check_file << scientific << setw(18) << std::setprecision(8)
                     << tau0 << "   " << x_local << "   " << y_local << " " << eta << " "
                     <<  epsilon << "   " << j_1 << "   " << j_2 << "  " << j_3
                     << "  " << rhob << "  " << rhoq << "  " << rhos << std::endl;
