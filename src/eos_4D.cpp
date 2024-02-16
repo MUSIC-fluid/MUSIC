@@ -501,7 +501,7 @@ double EOS_4D::get_cs2(double e, double rhob, double rhoq, double rhos) const {
 void EOS_4D::get_pressure_with_gradients(
         double e, double rhob, double rhoq, double rhos,
         double &p, double &dpde, double &dpdrhob, double &dpdrhoq,
-        double &dpdrhos, double &cs2) const {
+        double &dpdrhos) const {
     std::array<float, 4> TildeVar{};
     get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
     std::array<float, 5> ResArr{};
@@ -512,8 +512,19 @@ void EOS_4D::get_pressure_with_gradients(
     dpdrhob = static_cast<double>(ResArr[2]);
     dpdrhoq = static_cast<double>(ResArr[3]);
     dpdrhos = static_cast<double>(ResArr[4]);
+}
 
+
+void EOS_4D::get_pressure_with_gradients_and_cs2(
+        double e, double rhob, double rhoq, double rhos,
+        double &p, double &dpde, double &dpdrhob, double &dpdrhoq,
+        double &dpdrhos, double &cs2) const {
+    std::array<float, 4> TildeVar{};
+    get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    get_pressure_with_gradients(e, rhob, rhoq, rhos,
+                                p, dpde, dpdrhob, dpdrhoq, dpdrhos);
     if (file_for_cs_) {
+        std::array<float, 5> ResArr{};
         FourDLInterp(cs_vec, TildeVar, ResArr);
         cs2 = static_cast<double>(ResArr[0]*ResArr[0]);
     } else {

@@ -80,6 +80,11 @@ class EOS_4D : public EOS_base {
     void get_pressure_with_gradients(
             double epsilon, double rhob, double rhoq, double rhos,
             double &p, double &dpde, double &dpdrhob,
+            double &dpdrhoq, double &dpdrhos) const;
+
+    void get_pressure_with_gradients_and_cs2(
+            double epsilon, double rhob, double rhoq, double rhos,
+            double &p, double &dpde, double &dpdrhob,
             double &dpdrhoq, double &dpdrhos, double &cs2) const;
 
     void check_eos() const {

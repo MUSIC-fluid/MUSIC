@@ -21,12 +21,24 @@ class EOS {
     ~EOS() {};
 
     // functions to call the function pointers
-    double get_pressure   (double e, double rhob, double rhoq=0.0, double rhos=0.0) const {return(eos_ptr->get_pressure(e, rhob));}
+    double get_pressure(double e, double rhob,
+                        double rhoq=0.0, double rhos=0.0) const {
+        return(eos_ptr->get_pressure(e, rhob));
+    }
 
     void get_pressure_with_gradients(double epsilon, double rhob, double rhoq,
             double rhos, double &p, double &dpde, double &dpdrhob,
-            double &dpdrhoq, double &dpdrhos, double &cs2) const {
+            double &dpdrhoq, double &dpdrhos) const {
         eos_ptr->get_pressure_with_gradients(
+                epsilon, rhob, rhoq, rhos,
+                p, dpde, dpdrhob, dpdrhoq, dpdrhos);
+    }
+
+    void get_pressure_with_gradients_and_cs2(
+            double epsilon, double rhob, double rhoq,
+            double rhos, double &p, double &dpde, double &dpdrhob,
+            double &dpdrhoq, double &dpdrhos, double &cs2) const {
+        eos_ptr->get_pressure_with_gradients_and_cs2(
                 epsilon, rhob, rhoq, rhos,
                 p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
     }

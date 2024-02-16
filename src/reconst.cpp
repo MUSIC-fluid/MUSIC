@@ -479,9 +479,8 @@ void Reconst::reconst_velocity_fdf(const double v, const double T00,
     double dPdrhob = 0;
     double dPdrhoq = 0;
     double dPdrhos = 0;
-    double cs2 = 0;
     eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
-                                    dPde, dPdrhob, dPdrhoq, dPdrhos, cs2);
+                                    dPde, dPdrhob, dPdrhoq, dPdrhos);
 
     const double temp1 = T00 + pressure;
     const double temp2 = v/std::max(abs_err, temp);
@@ -513,9 +512,8 @@ void Reconst::reconst_u0_fdf(const double u0, const double T00,
     double dPdrhob = 0;
     double dPdrhoq = 0;
     double dPdrhos = 0;
-    double cs2 = 0;
     eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
-                                    dPde, dPdrhob, dPdrhoq, dPdrhos,cs2);
+                                    dPde, dPdrhob, dPdrhoq, dPdrhos);
 
     const double temp1 = std::max(abs_err*abs_err,
                                   (T00 + pressure)*(T00 + pressure) - K00);

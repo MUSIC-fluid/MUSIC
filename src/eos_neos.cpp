@@ -278,7 +278,7 @@ double EOS_neos::get_pressure(
 void EOS_neos::get_pressure_with_gradients(
         double e, double rhob, double rhoq, double rhos,
         double &p, double &dpde, double &dpdrhob, double &dpdrhoq,
-        double &dpdrhos, double &cs2) const {
+        double &dpdrhos) const {
     int table_idx = get_table_idx(e);
     interpolate2D_with_gradients(e, std::abs(rhob), table_idx, pressure_tb,
                                  p, dpde, dpdrhob);
@@ -287,8 +287,6 @@ void EOS_neos::get_pressure_with_gradients(
     //dpdrhob = std::max(Util::small_eps, dpdrhob);
     dpdrhoq = 0.;
     dpdrhos = 0.;
-    cs2 = dpde + rhob/(e + p + Util::small_eps)*dpdrhob;
-    cs2 = std::max(0.01, std::min(1./3, cs2));
 }
 
 

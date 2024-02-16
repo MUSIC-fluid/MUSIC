@@ -140,14 +140,22 @@ class EOS_base {
 
     virtual void get_pressure_with_gradients(double epsilon, double rhob,
             double rhoq, double rhos, double &p, double &dpde,
-            double &dpdrhob, double &dpdrhoq, double &dpdrhos,
-            double &cs2) const {
+            double &dpdrhob, double &dpdrhoq, double &dpdrhos) const {
         p = get_pressure(epsilon, rhob);
         dpde = get_dpOverde3(epsilon, rhob);
         dpdrhob = get_dpOverdrhob2(epsilon, rhob);
         dpdrhoq = 0;
         dpdrhos = 0;
-        cs2 = dpde + dpdrhob*rhob/(epsilon + p);
+    }
+
+    virtual void get_pressure_with_gradients_and_cs2(
+            double epsilon, double rhob, double rhoq, double rhos,
+            double &p, double &dpde, double &dpdrhob, double &dpdrhoq,
+            double &dpdrhos, double &cs2) const {
+        get_pressure_with_gradients(epsilon, rhob, rhoq, rhos,
+                                    p, dpde, dpdrhob, dpdrhoq, dpdrhos);
+        cs2 = dpde + (dpdrhob*rhob + dpdrhos*rhos + dpdrhoq*rhoq)/(epsilon + p);
+        cs2 = std::max(0.01, std::min(1./3., cs2));
     }
 
     void check_eos_with_finite_muB() const;

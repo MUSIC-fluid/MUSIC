@@ -235,8 +235,9 @@ void EOS_base::getThermalVariables(
     double p, dpde, dpdrhob, cs2;
     double dpdrhoq = 0.0;
     double dpdrhos = 0.0;
-    get_pressure_with_gradients(epsilon, rhob, rhoq, rhos,
-                                p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
+    get_pressure_with_gradients_and_cs2(
+            epsilon, rhob, rhoq, rhos,
+            p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
     thermalVec.push_back(p);
     thermalVec.push_back(dpde);
     thermalVec.push_back(dpdrhob);
@@ -555,7 +556,7 @@ void EOS_base::check_4D_eos() const {
     for (int i = 0; i < Ne; i++) {
         double e = e0 + he*i;
         double p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2;
-        get_pressure_with_gradients(
+        get_pressure_with_gradients_and_cs2(
                 e, nb, nq, ns,
                 p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2);
         double s_local    = get_entropy(e, nb, nq, ns);
@@ -596,7 +597,7 @@ void EOS_base::check_4D_eos() const {
         double nQ_local = 0.4*nB_local;
         double nS_local = 0.;
         double p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2;
-        get_pressure_with_gradients(
+        get_pressure_with_gradients_and_cs2(
                 eps, nB_local, nQ_local, nS_local,
                 p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2);
         double T_local = get_temperature(eps, nB_local, nQ_local, nS_local);
@@ -612,7 +613,7 @@ void EOS_base::check_4D_eos() const {
                    << dPdrhoB*hbarc << "   " << dPdrhoQ*hbarc << "   "
                    << dPdrhoS*hbarc << std::endl;
         nQ_local = 0;
-        get_pressure_with_gradients(
+        get_pressure_with_gradients_and_cs2(
                 eps, nB_local, nQ_local, nS_local,
                 p_local, dPde, dPdrhoB, dPdrhoQ, dPdrhoS, cs2);
         T_local = get_temperature(eps, nB_local, nQ_local, nS_local);

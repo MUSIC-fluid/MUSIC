@@ -29,16 +29,15 @@ class EOS_idealgas : public EOS_base {
     double get_s2e        (double s, double rhob, double rhoq=0.0, double rhos=0.0) const;
     double get_T2e        (double T_in_GeV, double rhob, double rhoq=0.0, double rhos=0.0) const;
 
-    virtual void get_pressure_with_gradients(
+    void get_pressure_with_gradients(
             double epsilon, double rhob, double rhoq,
             double rhos, double &p, double &dpde, double &dpdrhob,
-            double &dpdrhoq, double &dpdrhos, double &cs2) const {
+            double &dpdrhoq, double &dpdrhos) const {
         dpde = 1/3.;
         p = dpde*epsilon;
         dpdrhob = 0.;
         dpdrhoq = 0.;
         dpdrhos = 0.;
-        cs2 = dpde;
     }
 
     void check_eos() const {check_eos_no_muB();}
