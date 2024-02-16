@@ -404,7 +404,7 @@ void EOS_4D::initialize_eos() {
     // Set the type of EoS. Should be connected to parameters.
     set_eos_file_in_binary(true);
     // Set if the cs2 file is here.
-    file_for_cs_ = true;
+    file_for_cs_ = false;
 
     if (EoS_file_in_binary_) {
         // Read EoS in binary
