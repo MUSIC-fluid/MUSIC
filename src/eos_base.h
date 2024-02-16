@@ -145,6 +145,8 @@ class EOS_base {
         p = get_pressure(epsilon, rhob);
         dpde = get_dpOverde3(epsilon, rhob);
         dpdrhob = get_dpOverdrhob2(epsilon, rhob);
+        dpdrhoq = 0;
+        dpdrhos = 0;
         cs2 = dpde + dpdrhob*rhob/(epsilon + p);
     }
 

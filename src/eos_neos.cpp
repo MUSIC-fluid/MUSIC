@@ -285,6 +285,8 @@ void EOS_neos::get_pressure_with_gradients(
     p = std::max(Util::small_eps, p);
     //dpde = std::max(Util::small_eps, dpde);
     //dpdrhob = std::max(Util::small_eps, dpdrhob);
+    dpdrhoq = 0.;
+    dpdrhos = 0.;
     cs2 = dpde + rhob/(e + p + Util::small_eps)*dpdrhob;
     cs2 = std::max(0.01, std::min(1./3, cs2));
 }

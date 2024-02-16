@@ -474,7 +474,12 @@ void Reconst::reconst_velocity_fdf(const double v, const double T00,
     const double rhoq = J0Q*temp;
     const double rhos = J0S*temp;
 
-    double pressure, dPde, dPdrhob, dPdrhoq, dPdrhos, cs2;
+    double pressure = 0;
+    double dPde = 0;
+    double dPdrhob = 0;
+    double dPdrhoq = 0;
+    double dPdrhos = 0;
+    double cs2 = 0;
     eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
                                     dPde, dPdrhob, dPdrhoq, dPdrhos, cs2);
 
@@ -503,7 +508,12 @@ void Reconst::reconst_u0_fdf(const double u0, const double T00,
     const double drhoqdu0 = - J0Q/(u0*u0);
     const double drhosdu0 = - J0S/(u0*u0);
 
-    double pressure, dPde, dPdrhob, dPdrhoq, dPdrhos,cs2;
+    double pressure = 0;
+    double dPde = 0;
+    double dPdrhob = 0;
+    double dPdrhoq = 0;
+    double dPdrhos = 0;
+    double cs2 = 0;
     eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
                                     dPde, dPdrhob, dPdrhoq, dPdrhos,cs2);
 
