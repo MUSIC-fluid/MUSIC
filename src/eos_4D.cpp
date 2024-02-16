@@ -409,17 +409,17 @@ void EOS_4D::initialize_eos() {
     if (EoS_file_in_binary_) {
         // Read EoS in binary
         // 1D Tables
-        pressure_vec = read_eos_binary(path + "neos4d_urqmd_p_b.dat", false);
-        temp_vec = read_eos_binary(path + "neos4d_urqmd_t_b.dat", false);
-        mub_vec = read_eos_binary(path  + "neos4d_urqmd_mub_b.dat", false);
-        muq_vec = read_eos_binary(path  + "neos4d_urqmd_muq_b.dat", false);
-        mus_vec = read_eos_binary(path  + "neos4d_urqmd_mus_b.dat", false);
+        pressure_vec = read_eos_binary(path + "neos4d_p_b.dat", false);
+        temp_vec = read_eos_binary(path + "neos4d_t_b.dat", false);
+        mub_vec = read_eos_binary(path  + "neos4d_mub_b.dat", false);
+        muq_vec = read_eos_binary(path  + "neos4d_muq_b.dat", false);
+        mus_vec = read_eos_binary(path  + "neos4d_mus_b.dat", false);
         if (file_for_cs_) {
-            cs_vec = read_eos_binary(path + "neos4d_urqmd_cs_b.dat", true);
+            cs_vec = read_eos_binary(path + "neos4d_cs_b.dat", true);
         }
 
         // Header info
-        read_header_binary(path + "neos4d_urqmd_t_b.dat");
+        read_header_binary(path + "neos4d_t_b.dat");
     } else {
         // read 4D eos in txt format. 
         // read header info
