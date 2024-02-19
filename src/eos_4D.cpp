@@ -101,71 +101,78 @@ void EOS_4D::read_header_binary(std::string filepath, int header_size) {
 }
 
 
-std::vector<float> EOS_4D::read_eos(
-        std::string filepath, bool is_cs, int header_size) {
-    std::vector<float> out;
+void EOS_4D::read_eos(std::string filepath, bool is_cs,
+                      std::vector<float> &out, int header_size) {
     std::ifstream eos(filepath);
 
     // EoS is in GeV, MUSIC in fm-1
     // cs is dimensionless
     float dimension = Util::hbarc;
-    if (is_cs)
+    if (is_cs) {
         dimension = 1.0;
+    }
 
     if (!eos.is_open()) {
-        music_message << "Can not open EOS file: "<< filepath;
-        music_message.flush("error");
-        exit(1);
-    }
-
-    // skip header
-    std::string dummy;
-    for(int i = 0; i < header_size; i++) {
-        std::getline(eos, dummy);
-    }
-
-    // read file
-    float dum1;
-    std::string line;
-    while (std::getline(eos, line)) {
-        std::stringstream ss(line);
-        for(int i = 0; i < 5; i++) {
-            ss >> dum1;
-            out.push_back(dum1/dimension);
+        if (is_cs) {
+            file_for_cs_ = false;
+        } else {
+            music_message << "Can not open EOS file: "<< filepath;
+            music_message.flush("error");
+            exit(1);
         }
+    } else {
+        // skip header
+        std::string dummy;
+        for(int i = 0; i < header_size; i++) {
+            std::getline(eos, dummy);
+        }
+
+        // read file
+        float dum1;
+        std::string line;
+        while (std::getline(eos, line)) {
+            std::stringstream ss(line);
+            for(int i = 0; i < 5; i++) {
+                ss >> dum1;
+                out.push_back(dum1/dimension);
+            }
+        }
+        eos.close();
     }
-    eos.close();
-    return out;
 }
 
 
-std::vector<float> EOS_4D::read_eos_binary(
-        std::string filepath, bool is_cs, int header_size) {
+void EOS_4D::read_eos_binary(std::string filepath, bool is_cs,
+                             std::vector<float> &out, int header_size) {
     std::ifstream eos_binary_file(filepath, std::ios::in | std::ios::binary);
-    std::vector<float> out;
 
     // EoS is in GeV, MUSIC in fm-1
     // cs is dimensionless
     float dimension = Util::hbarc;
-    if (is_cs)
+    if (is_cs) {
         dimension = 1.0;
+    }
 
     if (!eos_binary_file.is_open()) {
-        music_message << "Can not open EOS file: "<< filepath;
-        music_message.flush("error");
-        exit(1);
-    }
-    float number;
-    while (eos_binary_file.read(reinterpret_cast<char*>(&number),
-            sizeof(float))) {
-        out.push_back(number/dimension);
-    }
-    eos_binary_file.close();
+        if (is_cs) {
+            file_for_cs_ = false;
+        } else {
+            music_message << "Can not open EOS file: "<< filepath;
+            music_message.flush("error");
+            exit(1);
+        }
+    } else {
+        float number;
+        while (eos_binary_file.read(reinterpret_cast<char*>(&number),
+                sizeof(float))) {
+            out.push_back(number/dimension);
+        }
+        eos_binary_file.close();
 
-    // remove header
-    out.erase(out.begin(), out.begin() + header_size);
-    out.resize(out.size());
-    return out;
+        // remove header
+        out.erase(out.begin(), out.begin() + header_size);
+        out.resize(out.size());
+    }
 }
 
 
@@ -409,31 +416,27 @@ void EOS_4D::initialize_eos() {
     if (EoS_file_in_binary_) {
         // Read EoS in binary
         // 1D Tables
-        pressure_vec = read_eos_binary(path + "neos4d_p_b.dat", false);
-        temp_vec = read_eos_binary(path + "neos4d_t_b.dat", false);
-        mub_vec = read_eos_binary(path  + "neos4d_mub_b.dat", false);
-        muq_vec = read_eos_binary(path  + "neos4d_muq_b.dat", false);
-        mus_vec = read_eos_binary(path  + "neos4d_mus_b.dat", false);
-        if (file_for_cs_) {
-            cs_vec = read_eos_binary(path + "neos4d_cs_b.dat", true);
-        }
+        read_eos_binary(path + "neos4d_p_b.dat", false, pressure_vec);
+        read_eos_binary(path + "neos4d_t_b.dat", false, temp_vec);
+        read_eos_binary(path  + "neos4d_mub_b.dat", false, mub_vec);
+        read_eos_binary(path  + "neos4d_muq_b.dat", false, muq_vec);
+        read_eos_binary(path  + "neos4d_mus_b.dat", false, mus_vec);
+        read_eos_binary(path + "neos4d_cs_b.dat", true, cs_vec);
 
         // Header info
         read_header_binary(path + "neos4d_t_b.dat");
     } else {
-        // read 4D eos in txt format. 
+        // read 4D eos in txt format.
         // read header info
         read_header(path + "neos4d_t.dat");
 
         // read 1D data into 1D tables
-        pressure_vec = read_eos(path + "neos4d_p.dat", false);
-        temp_vec = read_eos(path + "neos4d_t.dat", false);
-        mub_vec = read_eos(path + "neos4d_mub.dat", false);
-        muq_vec = read_eos(path + "neos4d_muq.dat", false);
-        mus_vec = read_eos(path + "neos4d_mus.dat", false);
-        if (file_for_cs_) {
-            cs_vec = read_eos(path + "neos4d_cs.dat", true);
-        }
+        read_eos(path + "neos4d_p.dat", false, pressure_vec);
+        read_eos(path + "neos4d_t.dat", false, temp_vec);
+        read_eos(path + "neos4d_mub.dat", false, mub_vec);
+        read_eos(path + "neos4d_muq.dat", false, muq_vec);
+        read_eos(path + "neos4d_mus.dat", false, mus_vec);
+        read_eos(path + "neos4d_cs.dat", true, cs_vec);
     }
 
     // Get max values of EoS table for interpolation boundary.

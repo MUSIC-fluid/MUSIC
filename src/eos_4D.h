@@ -39,10 +39,10 @@ class EOS_4D : public EOS_base {
     std::vector<float> cs_vec;
 
     // method to read/mainupalate header info and data
-    std::vector<float> read_eos(
-            std::string filepath, bool is_cs, int header_size=2);
-    std::vector<float> read_eos_binary(
-            std::string filepath, bool is_cs, int header_size=12);
+    void read_eos(std::string filepath, bool is_cs,
+                  std::vector<float> &out, int header_size=2);
+    void read_eos_binary(std::string filepath, bool is_cs,
+                         std::vector<float> &out, int header_size=12);
 
     void get_eos_max_values();
 
