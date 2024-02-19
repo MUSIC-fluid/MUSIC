@@ -17,7 +17,7 @@ then
 fi
 
 # Check for cs file before downloading
-if [ "$EOS_TYPE"="UrQMD" ]; then
+if [[ "$EOS_TYPE" == "UrQMD" ]]; then
     FILE_NAME_LIST=("cs" "mub" "muq" "mus" "p" "t")
 else
     FILE_NAME_LIST=("mub" "muq" "mus" "p" "t")
