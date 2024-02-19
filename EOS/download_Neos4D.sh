@@ -8,12 +8,16 @@ BRANCH="main"
 API_BASE_URL="https://api.bitbucket.org/2.0/"
 
 # NEOS version and considered quantities
-#
-EOS_TYPE="UrQMD"
-CS_FILE="on"
+# UrQMD or pdg
+
+EOS_TYPE=$1
+if [ -z ${EOS_TYPE} ]
+then
+    EOS_TYPE="UrQMD"
+fi
 
 # Check for cs file before downloading
-if [ "$CS_FILE"="on" ]; then
+if [ "$EOS_TYPE"="UrQMD" ]; then
     FILE_NAME_LIST=("cs" "mub" "muq" "mus" "p" "t")
 else
     FILE_NAME_LIST=("mub" "muq" "mus" "p" "t")
