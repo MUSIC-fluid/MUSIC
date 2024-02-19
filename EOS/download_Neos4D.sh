@@ -37,3 +37,6 @@ done
 # Move to correct folder for use in MUSIC
 mkdir -p neos4D
 mv neos4d_*_b.dat neos4D/
+
+# Keep a label for the EoS tables
+touch neos4D/Neos4D_${EOS_TYPE}
