@@ -117,6 +117,17 @@ void MUSIC::initialize_hydro() {
 }
 
 
+//! This function initialize hydro within the XSCAPE framework
+void MUSIC::initialize_hydro_xscape() {
+    clean_all_the_surface_files();
+
+    Init initialization(eos, DATA, hydro_source_terms_ptr);
+    initialization.InitArena(arenaFieldsPrev_, arenaFieldsCurr_,
+                             arenaFieldsNext_);
+    flag_hydro_initialized = 1;
+}
+
+
 //! this is a shell function to run hydro
 int MUSIC::run_hydro() {
     evolve_ptr_= std::make_shared<Evolve> (eos, DATA, hydro_source_terms_ptr);
