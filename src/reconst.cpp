@@ -482,13 +482,8 @@ void Reconst::reconst_velocity_fdf(const double v, const double T00,
     eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
                                     dPde, dPdrhob, dPdrhoq, dPdrhos);
 
-<<<<<<< HEAD
-    const double temp1 = T00 + pressure;
-    const double temp2 = v/std::max(abs_err, temp);
-=======
     const double temp1    = T00 + pressure;
     const double temp2    = v/std::max(abs_err, temp);
->>>>>>> 8423988 (Scaling in reconst u0 Newton methods)
 
     fv   = v - M/temp1;
     dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0B*temp2*dPdrhob
