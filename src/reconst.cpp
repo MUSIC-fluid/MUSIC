@@ -282,9 +282,12 @@ int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
         }
         abs_error_v = std::abs(dv_curr);
         rel_error_v = abs_error_v/(v_root + abs_err);
-        //reconst_velocity_fdf(v_root, T00, M, J0B, J0Q, J0S, fv, dfdv);
-        reconst_velocity_f(v_root, T00, M, J0B, J0Q, J0S, fv);
-        dfdv = (fv - fv_prev)/(v_root - v_prev);
+        if (std::abs(v_root - v_prev) > 0.02*v_root) {
+            reconst_velocity_fdf(v_root, T00, M, J0B, J0Q, J0S, fv, dfdv);
+        } else {
+            reconst_velocity_f(v_root, T00, M, J0B, J0Q, J0S, fv);
+            dfdv = (fv - fv_prev)/(v_root - v_prev + abs_err);
+        }
         if (fv*fv_l < 0.) {
             v_h  = v_root;
             fv_h = fv;
