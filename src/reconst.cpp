@@ -235,13 +235,12 @@ int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
         v_h = 1;
         reconst_velocity_f(v_l, T00, M, J0B, J0Q, J0S, fv_l);
         reconst_velocity_f(v_h, T00, M, J0B, J0Q, J0S, fv_h);
-    }
-
-    if (fv_l*fv_h > 0.) {
-        v_status = 0;
-        music_message.error(
-                "Reconst velocity Hybrid:: can not find solution!");
-        return(v_status);
+        if (fv_l*fv_h > 0.) {
+            v_status = 0;
+            music_message.error(
+                    "Reconst velocity Hybrid:: can not find solution!");
+            return(v_status);
+        }
     }
 
     if (std::abs(fv_l) < abs_err) {
@@ -452,10 +451,10 @@ void Reconst::reconst_velocity_f(const double v, const double T00,
                                  const double J0Q, const double J0S,
                                  double &fv) const {
     const double epsilon = T00 - v*M;
-    const double rhob = J0B*sqrt(1. - v*v);
-
-    const double rhoq = J0Q*sqrt(1. - v*v);
-    const double rhos = J0S*sqrt(1. - v*v);
+    const double temp = sqrt(1. - v*v);
+    const double rhob = J0B*temp;
+    const double rhoq = J0Q*temp;
+    const double rhos = J0S*temp;
 
     double pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
 
@@ -463,31 +462,43 @@ void Reconst::reconst_velocity_f(const double v, const double T00,
 }
 
 
+//void Reconst::reconst_velocity_fdf(const double v, const double T00,
+//                                   const double M, const double J0B,
+//                                   const double J0Q, const double J0S,
+//                                   double &fv, double &dfdv) const {
+//    const double epsilon = T00 - v*M;
+//    const double temp = sqrt(1. - v*v);
+//    const double rhob = J0B*temp;
+//
+//    const double rhoq = J0Q*temp;
+//    const double rhos = J0S*temp;
+//
+//    double pressure = 0;
+//    double dPde = 0;
+//    double dPdrhob = 0;
+//    double dPdrhoq = 0;
+//    double dPdrhos = 0;
+//    eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
+//                                    dPde, dPdrhob, dPdrhoq, dPdrhos);
+//
+//    const double temp1 = T00 + pressure;
+//    const double temp2 = v/std::max(abs_err, temp);
+//
+//    fv   = v - M/temp1;
+//    dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0B*temp2*dPdrhob
+//                                 + J0Q*temp2*dPdrhoq + J0S*temp2*dPdrhos);
+//}
+
+
 void Reconst::reconst_velocity_fdf(const double v, const double T00,
                                    const double M, const double J0B,
                                    const double J0Q, const double J0S,
                                    double &fv, double &dfdv) const {
-    const double epsilon = T00 - v*M;
-    const double temp = sqrt(1. - v*v);
-    const double rhob = J0B*temp;
-
-    const double rhoq = J0Q*temp;
-    const double rhos = J0S*temp;
-
-    double pressure = 0;
-    double dPde = 0;
-    double dPdrhob = 0;
-    double dPdrhoq = 0;
-    double dPdrhos = 0;
-    eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
-                                    dPde, dPdrhob, dPdrhoq, dPdrhos);
-
-    const double temp1 = T00 + pressure;
-    const double temp2 = v/std::max(abs_err, temp);
-
-    fv   = v - M/temp1;
-    dfdv = 1. - M/(temp1*temp1)*(M*dPde + J0B*temp2*dPdrhob
-                                 + J0Q*temp2*dPdrhoq + J0S*temp2*dPdrhos);
+    reconst_velocity_f(v, T00, M, J0B, J0Q, J0S, fv);
+    double fv1;
+    double v1 = v*0.999;
+    reconst_velocity_f(v1, T00, M, J0B, J0Q, J0S, fv1);
+    dfdv = (fv - fv1)/(v - v1);
 }
 
 
@@ -495,32 +506,65 @@ void Reconst::reconst_u0_fdf(const double u0, const double T00,
                              const double K00, const double M, const double J0B,
                              const double J0Q, const double J0S,
                              double &fu0, double &dfdu0) const {
-    const double v = sqrt(1. - 1./(u0*u0));
-    const double epsilon = T00 - v*M;
+    reconst_u0_f(u0, T00, K00, M, J0B, J0Q, J0S, fu0);
 
-    const double rhob = J0B/u0;
-    const double rhoq = J0Q/u0;
-    const double rhos = J0S/u0;
-
-    const double dedu0 = - M/std::max(abs_err, u0*u0*u0*v);
-    const double drhobdu0 = - J0B/(u0*u0);
-    const double drhoqdu0 = - J0Q/(u0*u0);
-    const double drhosdu0 = - J0S/(u0*u0);
-
-    double pressure = 0;
-    double dPde = 0;
-    double dPdrhob = 0;
-    double dPdrhoq = 0;
-    double dPdrhos = 0;
-    eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
-                                    dPde, dPdrhob, dPdrhoq, dPdrhos);
-
-    const double temp1 = std::max(abs_err*abs_err,
-                                  (T00 + pressure)*(T00 + pressure) - K00);
-    const double denorm1 = sqrt(temp1);
-    const double temp = (T00 + pressure)/denorm1;
-
-    fu0    = u0 - temp;
-    dfdu0  = 1. + (dedu0*dPde + drhobdu0*dPdrhob + drhoqdu0*dPdrhoq
-                   + drhosdu0*dPdrhos)*K00/(temp1*denorm1);
+    double u02 = u0*1.001;
+    double fu02;
+    reconst_u0_f(u02, T00, K00, M, J0B, J0Q, J0S, fu02);
+    dfdu0 = (fu02 - fu0)/(u02 - u0);
 }
+
+
+void Reconst::reconst_u0_f(const double u0, const double T00,
+                           const double K00, const double M, const double J0B,
+                           const double J0Q, const double J0S,
+                           double &fu0) const {
+    const double u0_inv = 1./u0;
+    const double v = sqrt(1. - u0_inv*u0_inv);
+
+    const double epsilon = T00 - v*M;
+    const double rhob = J0B*u0_inv;
+    const double rhoq = J0Q*u0_inv;
+    const double rhos = J0S*u0_inv;
+
+    double pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
+    const double temp1 = 1. - K00/((T00 + pressure)*(T00 + pressure));
+    fu0 = u0 - 1./sqrt(temp1);
+}
+
+
+//void Reconst::reconst_u0_fdf(const double u0, const double T00,
+//                           const double K00, const double M, const double J0B,
+//                           const double J0Q, const double J0S,
+//                           double &fu0, double &dfdu0) const {
+//    const double u0_inv = 1./u0;
+//    const double v = sqrt(1. - u0_inv*u0_inv);
+//
+//    const double epsilon = T00 - v*M;
+//    const double rhob = J0B*u0_inv;
+//    const double rhoq = J0Q*u0_inv;
+//    const double rhos = J0S*u0_inv;
+//
+//    const double dedu0 = - M/std::max(abs_err, u0*u0*u0*v);
+//    const double drhobdu0 = - J0B/(u0*u0);
+//    const double drhoqdu0 = - J0Q/(u0*u0);
+//    const double drhosdu0 = - J0S/(u0*u0);
+//
+//    double pressure = 0;
+//    double dPde = 0;
+//    double dPdrhob = 0;
+//    double dPdrhoq = 0;
+//    double dPdrhos = 0;
+//    eos.get_pressure_with_gradients(epsilon, rhob, rhoq, rhos, pressure,
+//                                    dPde, dPdrhob, dPdrhoq, dPdrhos);
+//
+//    const double temp1 = std::max(abs_err*abs_err,
+//                                  (T00 + pressure)*(T00 + pressure) - K00);
+//    const double denorm1 = sqrt(temp1);
+//    const double temp = (T00 + pressure)/denorm1;
+//
+//    fu0    = u0 - temp;
+//    dfdu0  = 1. + (dedu0*dPde + drhobdu0*dPdrhob + drhoqdu0*dPdrhoq
+//                   + drhosdu0*dPdrhos)*K00/(temp1*denorm1);
+//}
+

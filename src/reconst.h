@@ -52,6 +52,11 @@ class Reconst {
             const double J0B, const double J0Q, const double J0S,
             double &fv) const;
 
+    void reconst_u0_f(
+            const double u0, const double T00, const double K00,
+            const double M, const double J0B, const double J0Q,
+            const double J0S, double &fu0) const;
+
     void reconst_u0_fdf(
             const double u0, const double T00, const double K00,
             const double M, const double J0B, const double J0Q,
