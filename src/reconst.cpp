@@ -255,13 +255,21 @@ int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
     double dv_prev = v_h - v_l;
     double dv_curr = dv_prev;
     double v_root = (v_h + v_l)/2.;
-    double fv, dfdv;
-    reconst_velocity_fdf(v_root, T00, M, J0B, J0Q, J0S, fv, dfdv);
+    double fv = 0;
+    double dfdv = 0;
+    if (dv_prev > 0.02*v_root) {
+        reconst_velocity_fdf(v_root, T00, M, J0B, J0Q, J0S, fv, dfdv);
+    } else {
+        reconst_velocity_f(v_root, T00, M, J0B, J0Q, J0S, fv);
+        dfdv = (fv_h - fv_l)/(v_h - v_l);
+    }
     double abs_error_v = 10.0;
     double rel_error_v = 10.0;
     int iter_v = 0;
     do {
         iter_v++;
+        double v_prev = v_root;
+        double fv_prev = fv;
         if (((v_root - v_h)*dfdv - fv)*((v_root - v_l)*dfdv - fv) > 0.
             || (std::abs(2.*fv) > std::abs(dv_prev*dfdv))) {
             dv_prev = dv_curr;
@@ -274,7 +282,9 @@ int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
         }
         abs_error_v = std::abs(dv_curr);
         rel_error_v = abs_error_v/(v_root + abs_err);
-        reconst_velocity_fdf(v_root, T00, M, J0B, J0Q, J0S, fv, dfdv);
+        //reconst_velocity_fdf(v_root, T00, M, J0B, J0Q, J0S, fv, dfdv);
+        reconst_velocity_f(v_root, T00, M, J0B, J0Q, J0S, fv);
+        dfdv = (fv - fv_prev)/(v_root - v_prev);
         if (fv*fv_l < 0.) {
             v_h  = v_root;
             fv_h = fv;
@@ -364,9 +374,8 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
         u0_h = 1.01*u0_guess;
     }
     double fu0_l, fu0_h;
-    double dfdu0_l, dfdu0_h;
-    reconst_u0_fdf(u0_l, T00, K00, M, J0B, J0Q, J0S, fu0_l, dfdu0_l);
-    reconst_u0_fdf(u0_h, T00, K00, M, J0B, J0Q, J0S, fu0_h, dfdu0_h);
+    reconst_u0_f(u0_l, T00, K00, M, J0B, J0Q, J0S, fu0_l);
+    reconst_u0_f(u0_h, T00, K00, M, J0B, J0Q, J0S, fu0_h);
     if (std::abs(fu0_l) < abs_err) {
         u0_solution = u0_l;
         return(1);
@@ -391,13 +400,16 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
     double du0_prev = u0_h - u0_l;
     double du0_curr = du0_prev;
     double u0_root = (u0_h + u0_l)/2.;
-    double fu0, dfdu0;
-    reconst_u0_fdf(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0, dfdu0);
+    double fu0 = 0;
+    reconst_u0_f(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0);
+    double dfdu0 = (fu0_h - fu0_l)/(u0_h - u0_l);
     double abs_error_u0 = 10.0;
     double rel_error_u0 = 10.0;
     int iter_u0 = 0;
     do {
         iter_u0++;
+        double u0_prev = u0_root;
+        double fu0_prev = fu0;
         if (((u0_root - u0_h)*dfdu0 - fu0)*((u0_root - u0_l)*dfdu0 - fu0) > 0.
             || (std::abs(2.*fu0) > std::abs(du0_prev*dfdu0))) {
             du0_prev = du0_curr;
@@ -408,7 +420,12 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
             du0_curr = fu0/dfdu0;
             u0_root  = u0_root - du0_curr;
         }
-        reconst_u0_fdf(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0, dfdu0);
+        if (u0_root != u0_root) {
+            u0_status = 0;
+            break;
+        }
+        reconst_u0_f(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0);
+        dfdu0 = (fu0 - fu0_prev)/(u0_root - u0_prev);
         abs_error_u0 = du0_curr;
         rel_error_u0 = du0_curr/u0_root;
         if (fu0*fu0_l < 0.) {
@@ -419,10 +436,6 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
             fu0_l = fu0;
         }
         if (iter_u0 > max_iter) {
-            u0_status = 0;
-            break;
-        }
-        if (u0_root != u0_root) {
             u0_status = 0;
             break;
         }
