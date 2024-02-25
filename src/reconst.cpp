@@ -257,7 +257,7 @@ int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
     double v_root = (v_h + v_l)/2.;
     double fv = 0;
     double dfdv = 0;
-    if (dv_prev > 0.02*v_root) {
+    if (dv_prev > 0.1*v_root) {
         reconst_velocity_fdf(v_root, T00, M, J0B, J0Q, J0S, fv, dfdv);
     } else {
         reconst_velocity_f(v_root, T00, M, J0B, J0Q, J0S, fv);
@@ -282,7 +282,7 @@ int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
         }
         abs_error_v = std::abs(dv_curr);
         rel_error_v = abs_error_v/(v_root + abs_err);
-        if (std::abs(v_root - v_prev) > 0.02*v_root) {
+        if (std::abs(v_root - v_prev) > 0.1*v_root) {
             reconst_velocity_fdf(v_root, T00, M, J0B, J0Q, J0S, fv, dfdv);
         } else {
             reconst_velocity_f(v_root, T00, M, J0B, J0Q, J0S, fv);
@@ -474,7 +474,7 @@ void Reconst::reconst_velocity_f(const double v, const double T00,
 
     double pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
 
-    fv = v - M/(T00 + pressure);
+    fv = v*(T00 + pressure) - M;
 }
 
 
@@ -545,7 +545,8 @@ void Reconst::reconst_u0_f(const double u0, const double T00,
 
     double pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
     const double temp1 = 1. - K00/((T00 + pressure)*(T00 + pressure));
-    fu0 = u0 - 1./sqrt(temp1);
+    //fu0 = u0 - 1./sqrt(temp1);
+    fu0 = u0*sqrt(temp1) - 1.;
 }
 
 
