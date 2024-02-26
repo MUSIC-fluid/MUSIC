@@ -299,12 +299,12 @@ int Reconst::solve_v_Hybrid(const double v_guess, const double T00,
             v_status = 0;
             break;
         }
-        if (iter_v > 30) {
-            std::cout << "iter_v = " << iter_v
-                      << ", v = " << v_root
-                      << ", abs_err = " << abs_error_v
-                      << ", rel_err = " << rel_error_v << std::endl;
-        }
+        //if (iter_v > 50) {
+        //    std::cout << "iter_v = " << iter_v
+        //              << ", v = " << v_root
+        //              << ", abs_err = " << abs_error_v
+        //              << ", rel_err = " << rel_error_v << std::endl;
+        //}
     } while (abs_error_v > abs_err && rel_error_v > rel_err);
     v_solution = v_root;
 
