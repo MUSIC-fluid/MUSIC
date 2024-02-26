@@ -105,7 +105,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     rhoq = J0Q/u[0];
     rhos = J0S/u[0];
 
-    if (v_solution > v_critical) {
+    if (v_solution > v_critical && epsilon > 1e-6) {
         // for large velocity, solve u0
         double u0_solution = u[0];
         int u0_status = solve_u0_Hybrid(u[0], T00, K00, M, J0B, J0Q, J0S,
