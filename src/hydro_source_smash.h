@@ -11,22 +11,13 @@
 struct hadron {
     int pdgid;
     int ID;
-    double tau, x, y, eta_s;
+    double tau, x, y, eta_s, t, z;
     double rapidity;
-    double rapidity_perp;
     double E, px, py, pz;
     double mass;
-    double ncoll;
-    double form_time;
-    double cross_section_factor;
-    double time_last_coll;
     int baryon_number;
-    int strangeness;
     int electric_charge;
-    int proc_id_origin;
-    int proc_type_origin;
-    int pdg_mother1;
-    int pdg_mother2; 
+    int strangeness;
 };
 
 class HydroSourceSMASH : public HydroSourceBase {
@@ -49,6 +40,7 @@ class HydroSourceSMASH : public HydroSourceBase {
     double px_total_;
     double py_total_;
     double pz_total_;
+    double current_covariant_norm_;
 
     enum QuantityType { BARYON_NUMBER, ELECTRIC_CHARGE, STRANGENESS, ENERGY_SOURCE };
 
@@ -66,10 +58,13 @@ class HydroSourceSMASH : public HydroSourceBase {
         covariant_smearing_kernel_ = cov_kernel;
     }
 
+    //! Compute the norm for the covariant smearing kernel
+    void compute_covariant_norm(double tau);
+
     //! defines a covariant formulation of a smearing kernel
     double covariant_smearing_kernel(const double x_diff, const double y_diff, 
-        const double eta_diff, const double vx, const double vy, 
-        const double veta, const double sigma, const double tau) const;
+        const double z_diff, const double ux, const double uy, 
+        const double ueta, const double sigma) const;
 
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
