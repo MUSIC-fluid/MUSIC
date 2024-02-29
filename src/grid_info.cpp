@@ -2226,6 +2226,8 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
         y_nB_o /= std::max(small_eps, w_nB_sum);
         x_nQ_o /= std::max(small_eps, w_nQ_sum);
         y_nQ_o /= std::max(small_eps, w_nQ_sum);
+        x_nS_o /= std::max(small_eps, w_nS_sum);
+        y_nS_o /= std::max(small_eps, w_nS_sum);
 
         // compute epsilon_p with ideal, ideal + shear, and full T^{\munu}
         std::vector<double> ep_num1(3, 0.0);
