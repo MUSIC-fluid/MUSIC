@@ -21,8 +21,8 @@ HydroSourceSMASH::HydroSourceSMASH(InitData &DATA_in) :
     set_source_tau_min(100.0);
     set_source_tau_max(0.0);
     set_sigma_tau(0.1);
-    set_sigma_x  (0.5);
-    set_sigma_eta(0.2);
+    set_sigma_x  (1.0);//0.5
+    set_sigma_eta(1.0);//0.2
     parton_quench_factor = 1.;    // no diffusion current from the source
     int i_event = DATA.event_id_SMASH_output;
     if (i_event < 1) {
@@ -281,7 +281,7 @@ void HydroSourceSMASH::prepare_list_for_current_tau_frame(
 
 void HydroSourceSMASH::compute_covariant_norm(double tau) {
     double norm = 0.0;
-    const double n_sigma_skip = 7.;
+    const double n_sigma_skip = 5.;
     const double sigma_tau = get_sigma_tau();
     const double sigma_x = get_sigma_x();
     const double prefactor_cov = 1. / pow(M_PI*sigma_x*sigma_x, 3./2.);
@@ -291,6 +291,7 @@ void HydroSourceSMASH::compute_covariant_norm(double tau) {
     const double dx = DATA.delta_x;
     const double dy = DATA.delta_y;
     const double deta = DATA.delta_eta;
+    const double dtau = DATA.delta_tau;
 
     for (int ieta = 0; ieta < neta; ieta++) {
         for (int ix = 0; ix < nx; ix++) {
@@ -380,7 +381,7 @@ void HydroSourceSMASH::get_hydro_energy_source(
     const double prefactor_prep = 1. / (M_PI * sigma_x * sigma_x);
     const double prefactor_tau = 1. / dtau;
     const double prefactor_etas = 1. / (sqrt(M_PI) * sigma_eta);
-    const double n_sigma_skip = 7.;
+    const double n_sigma_skip = 5.;
     const double skip_dis_x = n_sigma_skip * sigma_x;
     const double skip_dis_eta = n_sigma_skip * sigma_eta;
     const double exp_tau = 1. / tau;
@@ -502,7 +503,7 @@ double HydroSourceSMASH::calculate_source(const double tau, const double x,
     const double prefactor_prep = 1.0 / (M_PI * sigma_x * sigma_x);
     const double prefactor_etas = 1.0 / (sqrt(M_PI) * sigma_eta);
     const double prefactor_tau = 1.0 / dtau;
-    const double n_sigma_skip = 7.;
+    const double n_sigma_skip = 5.;
     const double skip_dis_x = n_sigma_skip * sigma_x;
     const double skip_dis_eta = n_sigma_skip * sigma_eta;
 
@@ -613,7 +614,7 @@ double HydroSourceSMASH::calculate_source(const double tau, const double x,
             const double p_dot_u = u_mu[0] * (u_mu[0] -
                 tanh(y_dump_perp) * sinh_y_perp_flow / cosh(y_dump_long - eta_s) -
                 tanh(y_dump_long - eta_s) * u_mu[3]);
-            result += p_dot_u * val_smearing_kernel * quantity_now;
+            result += val_smearing_kernel;//p_dot_u * val_smearing_kernel * quantity_now;
         }
         if (covariant_smearing_kernel_) {
             result *= exp_tau * prefactor_tau * prefactor_cov * weight_event_ / current_covariant_norm_;
