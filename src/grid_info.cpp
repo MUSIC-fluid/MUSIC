@@ -1106,14 +1106,14 @@ void Cell_info::compute_angular_momentum(
 
 
 //! This function checks the total energy and total net baryon, electric charge and strangeness number
-//! at a give proper time
+//! at a given proper time
 void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
                                        const double tau) {
     std::string filename = "global_conservation_laws.dat";
     ofstream output_file;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         output_file.open(filename.c_str(), std::ofstream::out);
-        output_file << "# tau(fm)  E(GeV)  Px(GeV)  Py(GeV)  Pz(GeV)  N_B "
+        output_file << "# tau(fm)  E(GeV)  Px(GeV)  Py(GeV)  Pz(GeV)  N_B  N_Q  N_S"
                     << std::endl;
     } else {
         output_file.open(filename.c_str(),

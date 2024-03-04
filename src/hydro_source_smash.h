@@ -40,7 +40,7 @@ class HydroSourceSMASH : public HydroSourceBase {
     double px_total_;
     double py_total_;
     double pz_total_;
-    double current_covariant_norm_;
+    std::vector<double> covariant_smearing_norm_;
 
     enum QuantityType { BARYON_NUMBER, ELECTRIC_CHARGE, STRANGENESS, ENERGY_SOURCE };
 
@@ -59,7 +59,7 @@ class HydroSourceSMASH : public HydroSourceBase {
     }
 
     //! Compute the norm for the covariant smearing kernel
-    void compute_covariant_norm(double tau);
+    double compute_covariant_norm(const double tau, int ipart) const;
 
     //! defines a covariant formulation of a smearing kernel
     double covariant_smearing_kernel(const double x_diff, const double y_diff, 
