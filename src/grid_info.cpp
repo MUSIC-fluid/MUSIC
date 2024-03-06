@@ -2327,9 +2327,9 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
                 }
                 if (i == 0) {
                     eccn_ed_num1[i] += e_local;
-                    eccn_nB_num1[i] += rhob_local;
-                    eccn_nQ_num1[i] += rhoq_local;
-                    eccn_nS_num1[i] += rhos_local;
+                    eccn_nB_num1[i] += rhob_local*u0;
+                    eccn_nQ_num1[i] += rhoq_local*u0;
+                    eccn_nS_num1[i] += rhos_local*u0;
                 } else {
                     eccn_ed_num1[i] += w_ed*cos(i*phi_ed);
                     eccn_ed_num2[i] += w_ed*sin(i*phi_ed);
@@ -2372,7 +2372,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
         of1 << endl;
         of2 << scientific << setw(18) << setprecision(8)
             << eta << "  "
-            << eccn_nB_num1[0]*DATA.delta_x*DATA.delta_y << "  ";
+            << eccn_nB_num1[0]*DATA.delta_x*DATA.delta_y*tau << "  "; // nB is dimensionless. Only integration over eta is need for analysis.
         for (int i = 1; i < norder; i++) {
             // the minus sign ensure the vector points to the short axis
             of2 << -eccn_nB_num1[i]/std::max(eccn_nB_den[i], small_eps) << "  "
@@ -2382,7 +2382,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
 
         of2Q << scientific << setw(18) << setprecision(8)
              << eta << "  "
-             << eccn_nQ_num1[0]*DATA.delta_x*DATA.delta_y << "  ";
+             << eccn_nQ_num1[0]*DATA.delta_x*DATA.delta_y*tau << "  "; // nQ is dimensionless. Only integration over eta is need for analysis.
         for (int i = 1; i < norder; i++) {
             // the minus sign ensure the vector points to the short axis
             of2Q << -eccn_nQ_num1[i]/std::max(eccn_nQ_den[i], small_eps) << "  "
@@ -2392,7 +2392,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
 
         of2S << scientific << setw(18) << setprecision(8)
              << eta << "  "
-             << eccn_nS_num1[0]*DATA.delta_x*DATA.delta_y << "  ";
+             << eccn_nS_num1[0]*DATA.delta_x*DATA.delta_y*tau << "  "; // nS is dimensionless. Only integration over eta is need for analysis.
         for (int i = 1; i < norder; i++) {
             // the minus sign ensure the vector points to the short axis
             of2S << -eccn_nS_num1[i]/std::max(eccn_nS_den[i], small_eps) << "  "
