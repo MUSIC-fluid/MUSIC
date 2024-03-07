@@ -63,8 +63,8 @@ class HydroSourceSMASH : public HydroSourceBase {
 
     //! defines a covariant formulation of a smearing kernel
     double covariant_smearing_kernel(const double x_diff, const double y_diff, 
-        const double z_diff, const double ux, const double uy, 
-        const double ueta, const double sigma) const;
+        const double eta_diff, const double ux, const double uy, 
+        const double ueta, const double sigma, const double tau) const;
 
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)

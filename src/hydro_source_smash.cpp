@@ -162,8 +162,8 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event,
             // cuts in rapidity.
             //double rapidity = 0.5 * std::log((p0 + pz) / (p0 - pz));
             //double eta_s =  0.5 * std::log((t + z) / (t - z));
-            //if(eta_s > 2.0) continue;
-            //if(eta_s < -2.0) continue;
+            //if(eta_s > 1.0) continue;
+            //if(eta_s < -1.0) continue;
 
             // Put info in a new hadron
             hadron new_hadron;
@@ -287,43 +287,38 @@ double HydroSourceSMASH::compute_covariant_norm(const double tau, int ipart) con
     const double n_sigma_skip = 5.;
     const double sigma_tau = get_sigma_tau();
     const double sigma_x = get_sigma_x();
-    int nx = DATA.nx;
-    int ny = DATA.ny;
-    int neta = DATA.neta;
+    const int nx = DATA.nx;
+    const int ny = DATA.ny;
+    const int neta = DATA.neta;
     const double dx = DATA.delta_x;
     const double dy = DATA.delta_y;
     const double deta = DATA.delta_eta;
 
     for (int ieta = 0; ieta < neta; ieta++) {
-        double eta_s = - DATA.eta_size/2. + ieta*deta;
+        const double eta_s = - DATA.eta_size/2. + ieta*deta;
         for (int ix = 0; ix < nx; ix++) {
-            double x = - DATA.x_size/2. + ix*dx;
+            const double x = - DATA.x_size/2. + ix*dx;
             for (int iy = 0; iy < ny; iy++) {
-                double y = - DATA.y_size/2. + iy*dy;
+                const double y = - DATA.y_size/2. + iy*dy;
                 
                 double tau_dis_max = tau - get_source_tau_max();
                 if (tau_dis_max < n_sigma_skip * sigma_tau) {
-                    double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
-                    double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
+                    const double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
+                    const double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
+                    const double eta_s_dis = eta_s - list_hadrons_current_tau_.at(ipart).eta_s;
 
                     const double mass = list_hadrons_current_tau_.at(ipart).mass;
                     const double px = list_hadrons_current_tau_.at(ipart).px;
                     const double py = list_hadrons_current_tau_.at(ipart).py;
-                    const double pz = list_hadrons_current_tau_.at(ipart).pz;
-                    double ux = px / mass;
-                    double uy = py / mass;
-                    double uz = pz / mass;
+                    const double ux = px / mass;
+                    const double uy = py / mass;
+                    const double mT = sqrt(mass*mass + px*px + py*py);
+                    const double rapidity = list_hadrons_current_tau_.at(ipart).rapidity;
+                    const double eta = list_hadrons_current_tau_.at(ipart).eta_s;
+                    const double peta = mT * sinh(rapidity - eta + eta_s_dis);
+                    const double ueta = peta / mass;
 
-                    //convert eta of the grid into z
-                    const double z = tau * sinh(eta_s);
-                    const double z_dis = z - list_hadrons_current_tau_.at(ipart).z;
-
-                    const double dr2 = x_dis*x_dis+y_dis*y_dis+z_dis*z_dis;
-                    const double udr = ux*x_dis + uy*y_dis + uz*z_dis; 
-                    if (dr2 + udr*udr > n_sigma_skip*n_sigma_skip*sigma_x*sigma_x) {
-                        continue;
-                    }
-                    norm += covariant_smearing_kernel(x_dis,y_dis,z_dis,ux,uy,uz,sigma_x);
+                    norm += covariant_smearing_kernel(x_dis,y_dis,eta_s_dis,ux,uy,ueta,sigma_x,tau);
                 }
             }
         }
@@ -333,12 +328,12 @@ double HydroSourceSMASH::compute_covariant_norm(const double tau, int ipart) con
 
 
 double HydroSourceSMASH::covariant_smearing_kernel(const double x_diff, 
-        const double y_diff, const double z_diff, const double ux, 
-        const double uy, const double uz, const double sigma) const {
+        const double y_diff, const double eta_diff, const double ux, 
+        const double uy, const double ueta, const double sigma, const double tau) const {
     // Calculate the squared distance and scalar product r*u
     const double r_squared = x_diff * x_diff + y_diff * y_diff  
-                            + z_diff * z_diff;
-    const double ru_scalar = x_diff * ux + y_diff * uy + z_diff * uz;
+                            + eta_diff * eta_diff * tau * tau;
+    const double ru_scalar = x_diff * ux + y_diff * uy + eta_diff * ueta * tau * tau;
 
     // Compute and return the smoothing kernel
     return exp((-r_squared - ru_scalar * ru_scalar) / (sigma * sigma));
@@ -372,29 +367,26 @@ void HydroSourceSMASH::get_hydro_energy_source(
         for (int ipart = 0; ipart < n_hadrons_now; ipart++) {
 
             if (covariant_smearing_kernel_) {
-                double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
-                double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
+                if (covariant_smearing_norm_.at(ipart) < 1e-16) {
+                    continue;
+                }
+                const double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
+                const double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
+                const double eta_s_dis = eta_s - list_hadrons_current_tau_.at(ipart).eta_s;
 
                 const double mass = list_hadrons_current_tau_.at(ipart).mass;
                 const double px = list_hadrons_current_tau_.at(ipart).px;
                 const double py = list_hadrons_current_tau_.at(ipart).py;
-                const double pz = list_hadrons_current_tau_.at(ipart).pz;
-                double ux = px / mass;
-                double uy = py / mass;
-                double uz = pz / mass;
-
-                //convert eta of the grid into z
-                const double z = tau * sinh(eta_s);
-                const double z_dis = z - list_hadrons_current_tau_.at(ipart).z;
-                
-                const double dr2 = x_dis*x_dis+y_dis*y_dis+z_dis*z_dis;
-                const double udr = ux*x_dis + uy*y_dis + uz*z_dis; 
-                if (dr2 + udr*udr > n_sigma_skip*n_sigma_skip*sigma_x*sigma_x) {
-                    continue;
-                }
+                const double ux = px / mass;
+                const double uy = py / mass;
+                const double mT = sqrt(mass*mass + px*px + py*py);
+                const double rapidity = list_hadrons_current_tau_.at(ipart).rapidity;
+                const double eta = list_hadrons_current_tau_.at(ipart).eta_s;
+                const double peta = mT * sinh(rapidity - eta + eta_s_dis);
+                const double ueta = peta / mass;
                 
                 val_smearing_kernel = 
-                    covariant_smearing_kernel(x_dis,y_dis,z_dis,ux,uy,uz,sigma_x) 
+                    covariant_smearing_kernel(x_dis,y_dis,eta_s_dis,ux,uy,ueta,sigma_x,tau)
                     / covariant_smearing_norm_.at(ipart);
             } else {
                 double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
@@ -426,12 +418,14 @@ void HydroSourceSMASH::get_hydro_energy_source(
             j_mu[2] += py * val_smearing_kernel;
             j_mu[3] += mT * sinh(rapidity - eta_s) * val_smearing_kernel;
         }
-        double norm = DATA.sFactor / Util::hbarc; // 1/fm^4
+        const double norm = DATA.sFactor / Util::hbarc; // 1/fm^4
         double prefactor = norm;
         if (covariant_smearing_kernel_) {
-            prefactor *= prefactor_tau / (DATA.delta_x*DATA.delta_y*DATA.delta_eta*tau);
+            prefactor *= prefactor_tau 
+                        / (DATA.delta_x*DATA.delta_y*DATA.delta_eta*tau);
         } else {
-            prefactor *= exp_tau * prefactor_tau * prefactor_prep * prefactor_etas;
+            prefactor *= exp_tau * prefactor_tau 
+                    * prefactor_prep * prefactor_etas;
         }
         j_mu[0] *= prefactor * weight_event_;
         j_mu[1] *= prefactor * weight_event_;
@@ -494,39 +488,37 @@ double HydroSourceSMASH::calculate_source(const double tau, const double x,
             }
 
             if (covariant_smearing_kernel_) {
-                double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
-                double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
+                if (covariant_smearing_norm_.at(ipart) < 1e-16) {
+                    continue;
+                }
+                const double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
+                const double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
+                const double eta_s_dis = eta_s - list_hadrons_current_tau_.at(ipart).eta_s;
 
                 const double mass = list_hadrons_current_tau_.at(ipart).mass;
                 const double px = list_hadrons_current_tau_.at(ipart).px;
                 const double py = list_hadrons_current_tau_.at(ipart).py;
-                const double pz = list_hadrons_current_tau_.at(ipart).pz;
-                double ux = px / mass;
-                double uy = py / mass;
-                double uz = pz / mass;
+                const double ux = px / mass;
+                const double uy = py / mass;
+                const double mT = sqrt(mass*mass + px*px + py*py);
+                const double rapidity = list_hadrons_current_tau_.at(ipart).rapidity;
+                const double eta = list_hadrons_current_tau_.at(ipart).eta_s;
+                const double peta = mT * sinh(rapidity - eta + eta_s_dis);
+                const double ueta = peta / mass;
 
-                //convert eta of the grid into z
-                const double z = tau * sinh(eta_s);
-                const double z_dis = z - list_hadrons_current_tau_.at(ipart).z;
-                
-                const double dr2 = x_dis*x_dis+y_dis*y_dis+z_dis*z_dis;
-                const double udr = ux*x_dis + uy*y_dis + uz*z_dis; 
-                if (dr2 + udr*udr > n_sigma_skip*n_sigma_skip*sigma_x*sigma_x) {
-                    continue;
-                }
                 val_smearing_kernel = 
-                    covariant_smearing_kernel(x_dis,y_dis,z_dis,ux,uy,uz,sigma_x)
+                    covariant_smearing_kernel(x_dis,y_dis,eta_s_dis,ux,uy,ueta,sigma_x,tau)
                     / covariant_smearing_norm_.at(ipart);
             } else {
                 // skip the evaluation if the strings is too far away in the
                 // space-time grid
-                double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
+                const double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
                 if (std::abs(x_dis) > skip_dis_x) continue;
 
-                double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
+                const double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
                 if (std::abs(y_dis) > skip_dis_x) continue;
 
-                double eta_s_dis = eta_s - list_hadrons_current_tau_.at(ipart).eta_s;
+                const double eta_s_dis = eta_s - list_hadrons_current_tau_.at(ipart).eta_s;
                 if (std::abs(eta_s_dis) > skip_dis_eta) continue;
 
                 const double exp_xperp =
@@ -558,9 +550,11 @@ double HydroSourceSMASH::calculate_source(const double tau, const double x,
             result += p_dot_u * val_smearing_kernel * quantity_now;
         }
         if (covariant_smearing_kernel_) {
-            result *= prefactor_tau * weight_event_ / (DATA.delta_x*DATA.delta_y*DATA.delta_eta*tau);
+            result *= prefactor_tau * weight_event_ 
+                    / (DATA.delta_x*DATA.delta_y*DATA.delta_eta*tau);
         } else {
-            result *= exp_tau * prefactor_tau * prefactor_prep * prefactor_etas * weight_event_;
+            result *= exp_tau * prefactor_tau * prefactor_prep 
+                    * prefactor_etas * weight_event_;
         }
     }
     return result;
