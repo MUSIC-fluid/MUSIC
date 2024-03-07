@@ -188,7 +188,9 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event,
             // Note, if average_events_ = 1
             // list_hadrons contains hadrons
             // for all event in IC file.
-            list_hadrons_.push_back(new_hadron);
+            if (new_hadron.pdgid != 22) {
+                list_hadrons_.push_back(new_hadron);
+            }
 
             // get/set source tau in the HydroSourceBase class
             if (get_source_tau_max() < new_hadron.tau) {
@@ -367,9 +369,6 @@ void HydroSourceSMASH::get_hydro_energy_source(
         for (int ipart = 0; ipart < n_hadrons_now; ipart++) {
 
             if (covariant_smearing_kernel_) {
-                if (covariant_smearing_norm_.at(ipart) < 1e-16) {
-                    continue;
-                }
                 const double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
                 const double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
                 const double eta_s_dis = eta_s - list_hadrons_current_tau_.at(ipart).eta_s;
@@ -384,7 +383,7 @@ void HydroSourceSMASH::get_hydro_energy_source(
                 const double eta = list_hadrons_current_tau_.at(ipart).eta_s;
                 const double peta = mT * sinh(rapidity - eta + eta_s_dis);
                 const double ueta = peta / mass;
-                
+
                 val_smearing_kernel = 
                     covariant_smearing_kernel(x_dis,y_dis,eta_s_dis,ux,uy,ueta,sigma_x,tau)
                     / covariant_smearing_norm_.at(ipart);
@@ -488,9 +487,6 @@ double HydroSourceSMASH::calculate_source(const double tau, const double x,
             }
 
             if (covariant_smearing_kernel_) {
-                if (covariant_smearing_norm_.at(ipart) < 1e-16) {
-                    continue;
-                }
                 const double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
                 const double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
                 const double eta_s_dis = eta_s - list_hadrons_current_tau_.at(ipart).eta_s;
