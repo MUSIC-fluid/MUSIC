@@ -21,8 +21,8 @@ HydroSourceSMASH::HydroSourceSMASH(InitData &DATA_in) :
     set_source_tau_min(100.0);
     set_source_tau_max(0.0);
     set_sigma_tau(0.1);
-    set_sigma_x  (0.5);
-    set_sigma_eta(0.2);
+    set_sigma_x  (1.0);
+    set_sigma_eta(1.0);
     parton_quench_factor = 1.;    // no diffusion current from the source
     int i_event = DATA.event_id_SMASH_output;
     if (i_event < 1) {
@@ -295,19 +295,24 @@ double HydroSourceSMASH::compute_covariant_norm(const double tau, int ipart) con
     const double dx = DATA.delta_x;
     const double dy = DATA.delta_y;
     const double deta = DATA.delta_eta;
+    const double skip_dis_x = n_sigma_skip * sigma_x;
 
+    #pragma omp parallel for collapse(3) schedule(guided) reduction(+: norm)
     for (int ieta = 0; ieta < neta; ieta++) {
-        const double eta_s = - DATA.eta_size/2. + ieta*deta;
         for (int ix = 0; ix < nx; ix++) {
-            const double x = - DATA.x_size/2. + ix*dx;
             for (int iy = 0; iy < ny; iy++) {
+                const double eta_s = - DATA.eta_size/2. + ieta*deta;
+                const double x = - DATA.x_size/2. + ix*dx;
                 const double y = - DATA.y_size/2. + iy*dy;
                 
                 double tau_dis_max = tau - get_source_tau_max();
                 if (tau_dis_max < n_sigma_skip * sigma_tau) {
                     const double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
+                    if (std::abs(x_dis) > skip_dis_x) continue;
                     const double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
+                    if (std::abs(y_dis) > skip_dis_x) continue;
                     const double eta_s_dis = eta_s - list_hadrons_current_tau_.at(ipart).eta_s;
+                    if (std::abs(eta_s_dis) > skip_dis_x) continue;
 
                     const double mass = list_hadrons_current_tau_.at(ipart).mass;
                     const double px = list_hadrons_current_tau_.at(ipart).px;
@@ -370,8 +375,11 @@ void HydroSourceSMASH::get_hydro_energy_source(
 
             if (covariant_smearing_kernel_) {
                 const double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
+                if (std::abs(x_dis) > skip_dis_x) continue;
                 const double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
+                if (std::abs(y_dis) > skip_dis_x) continue;
                 const double eta_s_dis = eta_s - list_hadrons_current_tau_.at(ipart).eta_s;
+                if (std::abs(eta_s_dis) > skip_dis_x) continue;
 
                 const double mass = list_hadrons_current_tau_.at(ipart).mass;
                 const double px = list_hadrons_current_tau_.at(ipart).px;
@@ -488,8 +496,11 @@ double HydroSourceSMASH::calculate_source(const double tau, const double x,
 
             if (covariant_smearing_kernel_) {
                 const double x_dis = x - list_hadrons_current_tau_.at(ipart).x;
+                if (std::abs(x_dis) > skip_dis_x) continue;
                 const double y_dis = y - list_hadrons_current_tau_.at(ipart).y;
+                if (std::abs(y_dis) > skip_dis_x) continue;
                 const double eta_s_dis = eta_s - list_hadrons_current_tau_.at(ipart).eta_s;
+                if (std::abs(eta_s_dis) > skip_dis_x) continue;
 
                 const double mass = list_hadrons_current_tau_.at(ipart).mass;
                 const double px = list_hadrons_current_tau_.at(ipart).px;
