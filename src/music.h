@@ -58,7 +58,8 @@ class MUSIC {
 
     //! This function initialize hydro
     void initialize_hydro();
-    void initialize_hydro_xscape();
+    void initialize_hydro_xscape(int nx, int ny, int nz, 
+                                double dx, double dy, double dz);
 
     //! This function change the parameter value in DATA
     void set_parameter(std::string parameter_name, double value);

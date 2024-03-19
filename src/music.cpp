@@ -117,9 +117,20 @@ void MUSIC::initialize_hydro() {
 }
 
 
-//! This function initialize hydro within the XSCAPE framework
-void MUSIC::initialize_hydro_xscape() {
+//! This function initializes hydro within the X-SCAPE framework
+void MUSIC::initialize_hydro_xscape(int nx, int ny, int nz, 
+                                    double dx, double dy, double dz) {
     clean_all_the_surface_files();
+
+    DATA.nx = nx;
+    DATA.ny = ny;
+    DATA.neta = nz;
+    DATA.delta_x = dx;
+    DATA.delta_y = dy;
+    DATA.delta_eta = dz;
+    DATA.x_size = dx*nx;
+    DATA.y_size = dy*ny;
+    DATA.eta_size = dz*nz;
 
     Init initialization(eos, DATA, hydro_source_terms_ptr);
     initialization.InitArena(arenaFieldsPrev_, arenaFieldsCurr_,
