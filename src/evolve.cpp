@@ -816,11 +816,11 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     aFreezeCell.mu_S = static_cast<float>(muS*hbarc);
                     aFreezeCell.mu_Q = static_cast<float>(muQ*hbarc);
                     aFreezeCell.bulk_Pi = (
-                                    static_cast<float>(fluid_center.pi_b));
+                                static_cast<float>(fluid_center.pi_b*hbarc));
                     aFreezeCell.rho_b = static_cast<float>(fluid_center.rhob);
                     for (int ii = 0; ii < 10; ii++) {
                         aFreezeCell.shear_pi[ii] = static_cast<float>(
-                                                    fluid_center.Wmunu[ii]);
+                                                fluid_center.Wmunu[ii]*hbarc);
                     }
                     surfaceCellVec_.push_back(aFreezeCell);
                 } else if (surface_in_binary) {
@@ -1117,18 +1117,18 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 aFreezeCell.mu_B = static_cast<float>(muB_local*hbarc);
                 aFreezeCell.mu_S = static_cast<float>(muS_local*hbarc);
                 aFreezeCell.mu_Q = static_cast<float>(muQ_local*hbarc);
-                aFreezeCell.bulk_Pi = static_cast<float>(pi_b_center);
+                aFreezeCell.bulk_Pi = static_cast<float>(pi_b_center*hbarc);
                 aFreezeCell.rho_b = static_cast<float>(rhob_center);
-                aFreezeCell.shear_pi[0] = static_cast<float>(Wtautau_center);
-                aFreezeCell.shear_pi[1] = static_cast<float>(Wtaux_center);
-                aFreezeCell.shear_pi[2] = static_cast<float>(Wtauy_center);
-                aFreezeCell.shear_pi[3] = static_cast<float>(Wtaueta_center);
-                aFreezeCell.shear_pi[4] = static_cast<float>(Wxx_center);
-                aFreezeCell.shear_pi[5] = static_cast<float>(Wxy_center);
-                aFreezeCell.shear_pi[6] = static_cast<float>(Wxeta_center);
-                aFreezeCell.shear_pi[7] = static_cast<float>(Wyy_center);
-                aFreezeCell.shear_pi[8] = static_cast<float>(Wyeta_center);
-                aFreezeCell.shear_pi[9] = static_cast<float>(Wetaeta_center);
+                aFreezeCell.shear_pi[0] = static_cast<float>(Wtautau_center*hbarc);
+                aFreezeCell.shear_pi[1] = static_cast<float>(Wtaux_center*hbarc);
+                aFreezeCell.shear_pi[2] = static_cast<float>(Wtauy_center*hbarc);
+                aFreezeCell.shear_pi[3] = static_cast<float>(Wtaueta_center*hbarc);
+                aFreezeCell.shear_pi[4] = static_cast<float>(Wxx_center*hbarc);
+                aFreezeCell.shear_pi[5] = static_cast<float>(Wxy_center*hbarc);
+                aFreezeCell.shear_pi[6] = static_cast<float>(Wxeta_center*hbarc);
+                aFreezeCell.shear_pi[7] = static_cast<float>(Wyy_center*hbarc);
+                aFreezeCell.shear_pi[8] = static_cast<float>(Wyeta_center*hbarc);
+                aFreezeCell.shear_pi[9] = static_cast<float>(Wetaeta_center*hbarc);
                 surfaceCellVec_.push_back(aFreezeCell);
             } else if (surface_in_binary) {
                 const int FOsize = 34 + DATA.output_vorticity*(24 + 14);
@@ -1468,12 +1468,13 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                         aFreezeCell.mu_S = static_cast<float>(muS*hbarc);
                         aFreezeCell.mu_Q = static_cast<float>(muQ*hbarc);
                         aFreezeCell.bulk_Pi = (
-                                        static_cast<float>(fluid_center.pi_b));
+                            static_cast<float>(fluid_center.pi_b*hbarc));
                         aFreezeCell.rho_b = (
                                         static_cast<float>(fluid_center.rhob));
                         for (int ii = 0; ii < 10; ii++) {
                             aFreezeCell.shear_pi[ii] = (
-                                static_cast<float>(fluid_center.Wmunu[ii]));
+                                static_cast<float>(
+                                    fluid_center.Wmunu[ii]*hbarc));
                         }
                         surfaceCellVec_.push_back(aFreezeCell);
                     } else if (surface_in_binary) {
