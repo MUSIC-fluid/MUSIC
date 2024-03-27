@@ -23,7 +23,6 @@ struct hadron {
 class HydroSourceSMASH : public HydroSourceBase {
  private:
     InitData &DATA;
-    double parton_quench_factor;
     std::vector<hadron> list_hadrons_;
     std::vector<hadron> list_hadrons_current_tau_;
     std::vector<hadron> list_spectators_;
@@ -40,9 +39,9 @@ class HydroSourceSMASH : public HydroSourceBase {
     double px_total_;
     double py_total_;
     double pz_total_;
-    std::vector<double> covariant_smearing_norm_;
+    std::vector<double> smearing_norm_;
 
-    enum QuantityType { BARYON_NUMBER, ELECTRIC_CHARGE, STRANGENESS, ENERGY_SOURCE };
+    enum QuantityType { BARYON_NUMBER, ELECTRIC_CHARGE, STRANGENESS };
 
  public:
     HydroSourceSMASH() = default;
@@ -59,7 +58,10 @@ class HydroSourceSMASH : public HydroSourceBase {
     }
 
     //! Compute the norm for the covariant smearing kernel
-    double compute_covariant_norm(const double tau, int ipart) const;
+    double compute_covariant_norm(const double tau, int ihad) const;
+
+    //! Compute the norm for the Gaussian smearing kernel
+    double compute_norm(const double tau, int ihad) const;
 
     //! defines a covariant formulation of a smearing kernel
     double covariant_smearing_kernel(const double x_diff, const double y_diff, 
@@ -76,7 +78,7 @@ class HydroSourceSMASH : public HydroSourceBase {
     //! (tau, x, y, eta_s)
     double calculate_source(const double tau, const double x, 
                         const double y, const double eta_s,
-                        const FlowVec &u_mu, const int quantityType) const ;
+                        const FlowVec &u_mu, const QuantityType quantityType) const ;
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
