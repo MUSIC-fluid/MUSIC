@@ -18,13 +18,14 @@ struct hadron {
     int baryon_number;
     int electric_charge;
     int strangeness;
+    double norm;
 };
 
 class HydroSourceSMASH : public HydroSourceBase {
  private:
     InitData &DATA;
     std::vector<hadron> list_hadrons_;
-    std::vector<hadron> list_hadrons_current_tau_;
+    std::vector<hadron*> list_hadrons_current_tau_;
     std::vector<hadron> list_spectators_;
     int covariant_smearing_kernel_;
 
@@ -47,21 +48,21 @@ class HydroSourceSMASH : public HydroSourceBase {
     HydroSourceSMASH() = default;
     HydroSourceSMASH(InitData &DATA_in);
     ~HydroSourceSMASH();
-    
+
     //! This function reads in the hadron information from the SMASH model
     void read_in_SMASH_hadrons(int i_event,
         int extended_output, int reject_spectators);
-    
+
     //! set the covariant smearing kernel to true or false
     void set_covariant_smearing_kernel(int cov_kernel) { 
         covariant_smearing_kernel_ = cov_kernel;
     }
 
     //! Compute the norm for the covariant smearing kernel
-    double compute_covariant_norm(const double tau, int ihad) const;
+    void compute_covariant_norm(const double tau, hadron* hadron_i) const;
 
     //! Compute the norm for the Gaussian smearing kernel
-    double compute_norm(const double tau, int ihad) const;
+    void compute_norm(const double tau, hadron* hadron_i) const;
 
     //! defines a covariant formulation of a smearing kernel
     double covariant_smearing_kernel(const double x_diff, const double y_diff, 
