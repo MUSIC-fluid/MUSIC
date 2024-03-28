@@ -124,7 +124,8 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     } else if (DATA.Initial_profile == 30) {
         DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
     } else if (DATA.Initial_profile == 31) {
-        DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
+        DATA.tau0 = (hydro_source_terms_ptr.lock()->get_source_tau_min()
+                     - DATA.delta_tau);
     } else if (DATA.Initial_profile == 42) {
         // initial condition from the JETSCAPE framework
         music_message << "Using Initial_profile=" << DATA.Initial_profile

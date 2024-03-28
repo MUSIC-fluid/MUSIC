@@ -105,6 +105,12 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     rhoq = J0Q/u[0];
     rhos = J0S/u[0];
 
+    if (std::isnan(epsilon)) {
+        std::cout << "reconst: e is nan! "
+                  << T00 << ", " << v_solution << ", " << K00 << std::endl;
+        exit(1);
+    }
+
     if (v_solution > v_critical && epsilon > 1e-8) {
         // for large velocity, solve u0
         double u0_solution = u[0];

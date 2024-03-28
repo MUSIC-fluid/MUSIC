@@ -25,7 +25,7 @@ class HydroSourceSMASH : public HydroSourceBase {
  private:
     InitData &DATA;
     std::vector<hadron> list_hadrons_;
-    std::vector<hadron*> list_hadrons_current_tau_;
+    std::vector<hadron> list_hadrons_current_tau_;
     std::vector<hadron> list_spectators_;
     int covariant_smearing_kernel_;
 
@@ -40,7 +40,6 @@ class HydroSourceSMASH : public HydroSourceBase {
     double px_total_;
     double py_total_;
     double pz_total_;
-    std::vector<double> smearing_norm_;
 
     enum QuantityType { BARYON_NUMBER, ELECTRIC_CHARGE, STRANGENESS };
 
