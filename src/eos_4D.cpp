@@ -187,26 +187,29 @@ void EOS_4D::FourDLInterp(const std::vector<float> &data,
                           std::array<float, 5> &ResArr,
                           bool compute_derivatives) const {
     // Constrain the input tilde variables values to the table boundaries.
-    float T = std::max(Ttilde0, std::min(T_tilde_max, TildeVar[0]));
-    float mub = std::max(mubtilde0, std::min(mub_tilde_max, TildeVar[1]));
-    float muq = std::max(muqtilde0, std::min(muq_tilde_max, TildeVar[2]));
-    float mus = std::max(mustilde0, std::min(mus_tilde_max, TildeVar[3]));
+    double Tfrac = (TildeVar[0] - Ttilde0)/dTtilde;
+    double mubfrac = (TildeVar[1] - mubtilde0)/dmubtilde;
+    double muqfrac = (TildeVar[2] - muqtilde0)/dmuqtilde;
+    double musfrac = (TildeVar[3] - mustilde0)/dmustilde;
 
-    // Calculate the weights associated to the sixteen surrounding point 
-    float indmuT = (T - Ttilde0)/dTtilde;
-    float indmub = (mub - mubtilde0)/dmubtilde;
-    float indmuq = (muq - muqtilde0)/dmuqtilde;
-    float indmus = (mus - mustilde0)/dmustilde;
+    // Calculate the weights associated to the sixteen surrounding point
+    int iT = static_cast<int>(Tfrac);
+    iT = std::max(0, std::min(N_T - 2, iT));
+    int iT1 = iT + 1;
+    int ib = static_cast<int>(mubfrac);
+    ib = std::max(0, std::min(N_mub - 2, ib));
+    int ib1 = ib + 1;
+    int iq = static_cast<int>(muqfrac);
+    iq = std::max(0, std::min(N_muq - 2, iq));
+    int iq1 = iq + 1;
+    int is = static_cast<int>(musfrac);
+    is = std::max(0, std::min(N_mus - 2, is));
+    int is1 = is + 1;
 
-    int iT = static_cast<int>(indmuT); int iT1 = iT + 1;
-    int ib = static_cast<int>(indmub); int ib1 = ib + 1;
-    int iq = static_cast<int>(indmuq); int iq1 = iq + 1;
-    int is = static_cast<int>(indmus); int is1 = is + 1;
-
-    float dx = indmuT - iT;
-    float dy = indmub - ib;
-    float dz = indmuq - iq;
-    float dt = indmus - is;
+    float dx = std::max(0., std::min(1., Tfrac - iT));
+    float dy = std::max(0., std::min(1., mubfrac - ib));
+    float dz = std::max(0., std::min(1., muqfrac - iq));
+    float dt = std::max(0., std::min(1., musfrac - is));
 
     float w0000 = (1 - dx) * (1 - dy) * (1 - dz) * (1 - dt);
     float w1111 = dx * dy * dz * dt;
@@ -290,6 +293,7 @@ void EOS_4D::FourDLInterp(const std::vector<float> &data,
     //float dXdTtilde = (tempT2 - tempT1)/dTtilde;
     float T1 = Ttilde0 + iT*dTtilde;
     float T2 = T1 + dTtilde;
+    float T = std::max(Ttilde0, std::min(T_tilde_max, TildeVar[0]));
     float dXdTtilde = (
         5*(tempT2 - tempT1)/(pow(T2, 5) - pow(T1, 5))*pow(T, 4));
     // to test for speed
