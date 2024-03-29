@@ -152,7 +152,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
     int iphimax = DATA->phi_steps;  // number of points
                                     // (phi=2pi equal to phi=0)
     double deltaphi = 2*M_PI/iphimax;
-  
+
     // Reuse rapidity variables (Need to reuse variable y
     // so resonance decay routine can be used as is.
     // Might as well misuse ymax and deltaY too)
@@ -163,11 +163,11 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
                   << particleList[j].name << "("
                   << particleList[j].number << ") ... ";
     music_message.flush("info");
- 
+
     particleList[j].ny = DATA->pseudo_steps + 1;
     particleList[j].npt = iptmax;
     particleList[j].nphi = iphimax;
-  
+
     // set particle properties
     double m = particleList[j].mass;
     int deg = particleList[j].degeneracy;
@@ -183,23 +183,13 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
     }
 
     // open files to write
-    FILE *d_file;
-    char *buf = new char[10];
-    sprintf (buf, "%d", 0);
-    
-    char *specString=new char[30];
-    strcpy(specString, "yptphiSpectra");
-    strcat(specString, buf);
-    strcat(specString, ".dat");
-    char* s_name = specString;
+    std::string s_name = "yptphiSpectra0.dat";
     FILE *s_file;
-    s_file = fopen(s_name, "w");
-
-    delete[] specString;
-    delete[] buf;
+    s_file = fopen(s_name.c_str(), "w");
 
     // -----------------------------------------------------------------------
     // write information in the particle information file
+    FILE *d_file;
     const char* d_name = "particleInformation.dat";
     d_file = fopen(d_name, "a");
     fprintf(d_file, "%d %e %d %e %e %d %d \n",
@@ -222,7 +212,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
         pt_array[ipt] = pt;
         particleList[j].pt[ipt] = pt;
     }
-    
+
     double *bulk_deltaf_coeffs = new double[3];
     if (DATA_ptr->turn_on_bulk == 1 && DATA_ptr->include_deltaf_bulk == 1) {
         if (bulk_deltaf_kind == 0) {
@@ -231,7 +221,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
             bulk_deltaf_coeffs = new double[2];
         }
     }
-      
+
     double alpha = 0.0;
     // main loop begins ...
     // store E dN/d^3p as function of phi,
