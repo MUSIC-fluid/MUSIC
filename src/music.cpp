@@ -140,8 +140,6 @@ void MUSIC::check_source() {
     generate_hydro_source_terms();
 
     double tau0 = hydro_source_terms_ptr->get_source_tau_min();
-    //double tau0 = 0.5;
-    //double tau0 = hydro_source_terms_ptr->get_source_tau_max();
     double nx = DATA.nx;
     double ny = DATA.ny;
     double neta = DATA.neta;
@@ -160,15 +158,8 @@ void MUSIC::check_source() {
 
     hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau0);
 
-    double tau_i = 0.0;
-    double dtau = 0.005;
-
-    // start with tau0
-    int n_tau_steps = static_cast<int>((tau0 - tau_i)/dtau);
-
     for (int ieta = 0; ieta < neta; ieta++){
         double eta = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
-        //double eta = 0;
         for (int ix = 0; ix < nx; ix++) {
             double x_local = - DATA.x_size/2. + ix*DATA.delta_x;
             for (int iy = 0; iy < ny; iy++) {
@@ -177,58 +168,16 @@ void MUSIC::check_source() {
                 double j_2 = 0.0;double j_3 = 0.0;
                 double rhob = 0.0;double rhoq = 0.0;double rhos = 0.0;
                 double rhob_local = 0.0;double rhoq_local = 0.0;double rhos_local = 0.0;
-                //hydro_source_terms_ptr->get_hydro_energy_source(
-                //                   tau0, x_local, y_local, eta, u, j_mu);
-                //epsilon = j_mu[0];
-                //j_1 = j_mu[1];
-                //j_2 = j_mu[2];
-                //j_3 = j_mu[3];
 
                 j_mu = {0.0};
-
-                for (int i = 0; i < n_tau_steps; i++) {
-                    double tau_local = tau_i + (i + 0.5)*dtau;
-
-                    j_mu_one_step = {0};
-                    hydro_source_terms_ptr->get_hydro_energy_source(tau_local, x_local, y_local, eta, u, j_mu_one_step);
-                    for (int j = 0; j < 4; j++) {
-                        j_mu[j] += tau_local*j_mu_one_step[j]*dtau;
-                    }
-
-                    if (DATA.turn_on_rhob == 1) {
-                        rhob_local = hydro_source_terms_ptr->get_hydro_rhob_source(
-                                tau_local, x_local, y_local, eta, u);
-                    } else {
-                        rhob_local = 0.0;
-                    }
-                    if (DATA.turn_on_QS == 1) {
-                        rhoq_local = hydro_source_terms_ptr->get_hydro_rhoq_source(
-                                tau_local, x_local, y_local, eta, u);
-                        rhos_local = hydro_source_terms_ptr->get_hydro_rhos_source(
-                                tau_local, x_local, y_local, eta, u);
-                    } else {
-                        rhoq_local = 0.0;
-                        rhos_local = 0.0;
-                    }
-                    rhob += tau_local*rhob_local*dtau;
-                    rhoq += tau_local*rhoq_local*dtau;
-                    rhos += tau_local*rhos_local*dtau;
-                }
-                for (int j = 0; j < 4; j++) {
-                    j_mu[j] /= tau0;
-                    j_mu[j] *= DATA.delta_tau;
-                }
+                hydro_source_terms_ptr->get_hydro_energy_source(tau0, x_local, y_local, eta, u, j_mu);
+                rhob = hydro_source_terms_ptr->get_hydro_rhob_source(tau0, x_local, y_local, eta, u);
+                rhoq = hydro_source_terms_ptr->get_hydro_rhoq_source(tau0, x_local, y_local, eta, u);
+                rhos = hydro_source_terms_ptr->get_hydro_rhos_source(tau0, x_local, y_local, eta, u);
                 epsilon = j_mu[0];
                 j_1 = j_mu[1];
                 j_2 = j_mu[2];
                 j_3 = j_mu[3];
-                rhob /= tau0;
-                rhoq /= tau0;
-                rhos /= tau0;
-
-                rhob *= DATA.delta_tau;
-                rhoq *= DATA.delta_tau;
-                rhos *= DATA.delta_tau;
 
                 check_file << scientific << setw(18) << std::setprecision(8)
                     << tau0 << "   " << x_local << "   " << y_local << " " << eta << " "
