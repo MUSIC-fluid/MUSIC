@@ -21,8 +21,8 @@ HydroSourceSMASH::HydroSourceSMASH(InitData &DATA_in) :
     set_source_tau_min(100.0);
     set_source_tau_max(0.0);
     set_sigma_tau(0.1);
-    set_sigma_x  (1.0);
-    set_sigma_eta(1.0);
+    set_sigma_x  (0.5);
+    set_sigma_eta(0.5);
     int i_event = DATA.event_id_SMASH_output;
     if (i_event < 1) {
         i_event = 1;

@@ -147,7 +147,6 @@ void MUSIC::check_source() {
     FlowVec u                   = {0};
     u[0]                        = 1.0;
     EnergyFlowVec j_mu          = {0};
-    EnergyFlowVec j_mu_one_step = {0};
 
     std::ostringstream file_name;
     file_name << "check_hydro_source_tau0.dat";
@@ -167,7 +166,6 @@ void MUSIC::check_source() {
                 double epsilon = 0.0;double j_1 = 0.0;
                 double j_2 = 0.0;double j_3 = 0.0;
                 double rhob = 0.0;double rhoq = 0.0;double rhos = 0.0;
-                double rhob_local = 0.0;double rhoq_local = 0.0;double rhos_local = 0.0;
 
                 j_mu = {0.0};
                 hydro_source_terms_ptr->get_hydro_energy_source(tau0, x_local, y_local, eta, u, j_mu);
@@ -190,13 +188,6 @@ void MUSIC::check_source() {
     }
     check_file.close();
 }
-
-
-
-
-
-
-
 
 //! this is a test function to output the transport coefficients as
 //! function of T and mu_B
