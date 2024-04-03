@@ -19,13 +19,11 @@ class Reconst {
     double rel_err;
     double abs_err;
 
-    const double LARGE;
-
     const double v_critical;
     const int echo_level;
 
  public:
-    Reconst() = default;
+    Reconst() = delete;
     Reconst(const EOS &eos, const int echo_level_in, int beastMode);
 
     ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,
@@ -47,16 +45,20 @@ class Reconst {
     void reconst_velocity_f(const double v, const double T00, const double M,
                             const double J0, double &fv) const;
 
-    void reconst_u0_fdf(const double u0, const double T00, const double K00,
-                        const double M, const double J0,
-                        double &fu0, double &dfdu0) const;
-
     int solve_velocity_Newton(const double v_guess, const double T00,
                               const double M, const double J0,
                               double &v_solution);
     int solve_v_Hybrid(const double v_guess, const double T00,
                        const double M, const double J0,
                        double &v_solution);
+    void reconst_u0_f(
+            const double u0, const double T00, const double K00,
+            const double M, const double J0B, double &fu0) const;
+
+    void reconst_u0_fdf(
+            const double u0, const double T00, const double K00,
+            const double M, const double J0B,
+            double &fu0, double &dfdu0) const;
 
     int solve_u0_Newton(const double u0_guess, const double T00,
                         const double K00, const double M, const double J0,

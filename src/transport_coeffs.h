@@ -3,17 +3,20 @@
 #define SRC_TRANSPORT_H_
 
 #include "data.h"
-#include "eos.h"
 
 class TransportCoeffs {
  private:
     const InitData &DATA;
-    const EOS &eos;
     double shear_relax_time_factor_;
     double bulk_relax_time_factor_;
 
+    const int shear_T_;
+    const int shear_muB_;
+    const int bulk_T_;
+
  public:
-    TransportCoeffs(const EOS &eosIn, const InitData &DATA_in);
+    TransportCoeffs() = delete;
+    TransportCoeffs(const InitData &DATA_in);
 
     double get_eta_over_s(const double T, const double muB) const;
     double get_zeta_over_s(const double T, const double muB) const;
@@ -28,6 +31,7 @@ class TransportCoeffs {
     double get_temperature_dependent_zeta_over_s_sims(const double T) const;
 
     double get_muB_dependence_shear_profile(const double muB) const;
+    double get_muB_dependence_shear_piecewise(const double muB) const;
     double get_temperature_dependence_shear_profile(const double T) const;
 
     double get_temperature_dependent_zeta_over_s_bigbroadP(

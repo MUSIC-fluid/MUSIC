@@ -16,7 +16,7 @@ using Util::map_1d_idx_to_2d;
 
 Diss::Diss(const EOS &eosIn, const InitData &Data_in) :
                 DATA(Data_in), eos(eosIn), minmod(Data_in),
-                transport_coeffs_(eosIn, Data_in) {}
+                transport_coeffs_(Data_in) {}
 
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 /* Dissipative parts */

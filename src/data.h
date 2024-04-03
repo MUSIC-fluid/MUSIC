@@ -41,6 +41,8 @@ typedef struct init_data {
     // parameters for Initial_profile == 30
     std::string initName_AMPT;  //!< initial state filename from AMPT
 
+    double gridPadding;         //!< grid padding size from user (default: 3 fm)
+
     //! random seed
     int seed;
     double ecm;                 //!< collision energy [GeV]
@@ -127,12 +129,13 @@ typedef struct init_data {
     int T_dependent_shear_to_s;
     int muB_dependent_shear_to_s;
 
+    double shear_muBf0p2;       //!< for piece-wise parameterization eta/s(muB)
+    double shear_muBf0p4;       //!< for piece-wise parameterization eta/s(muB)
+
     double shear_muBDep_alpha;
     double shear_muBDep_slope;
     double shear_muBDep_scale;
 
-    //! flag to include temperature dependent zeta/s(T)
-    int T_dependent_zeta_over_s;
 
     //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==2"
     double shear_2_min;
@@ -161,6 +164,8 @@ typedef struct init_data {
 
     //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==10"
     double bulk_10_max;
+    double bulk_10_max_muB0p2;
+    double bulk_10_max_muB0p4;
     double bulk_10_width_high;              // GeV
     double bulk_10_width_low;               // GeV
     double bulk_10_Tpeak;                   // GeV

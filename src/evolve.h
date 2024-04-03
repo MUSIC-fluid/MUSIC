@@ -35,6 +35,7 @@ class Evolve {
     std::vector<double> epsFO_list;
 
     std::vector<SurfaceCell> surfaceCellVec_;
+    std::vector<double> FO_nBvsEta_;
 
  public:
     Evolve(const EOS &eos, InitData &DATA_in,

@@ -6,8 +6,11 @@
 
 using Util::hbarc;
 
-TransportCoeffs::TransportCoeffs(const EOS &eosIn, const InitData &Data_in)
-    : DATA(Data_in), eos(eosIn) {
+TransportCoeffs::TransportCoeffs(const InitData &Data_in)
+    : DATA(Data_in),
+      shear_T_(DATA.T_dependent_shear_to_s),
+      shear_muB_(DATA.muB_dependent_shear_to_s),
+      bulk_T_(DATA.T_dependent_bulk_to_s) {
     shear_relax_time_factor_ = DATA.shear_relax_time_factor;
     bulk_relax_time_factor_  = DATA.bulk_relax_time_factor;
 }
@@ -17,20 +20,27 @@ double TransportCoeffs::get_eta_over_s(const double T, const double muB) const {
     // inputs T [1/fm], muB [1/fm]
     // outputs \eta/s
     double eta_over_s = DATA.shear_to_s;
-    if (DATA.T_dependent_shear_to_s == 1) {
-        eta_over_s = get_temperature_dependent_eta_over_s_default(T);
-    } else if (DATA.T_dependent_shear_to_s == 2) {
-        eta_over_s = get_temperature_dependent_eta_over_s_duke(T);
-    } else if (DATA.T_dependent_shear_to_s == 3) {
+
+    if (shear_T_ == 0) {
+        eta_over_s = DATA.shear_to_s;
+    } else if (shear_T_ == 3) {
         eta_over_s = get_temperature_dependent_eta_over_s_sims(T);
-    } else if (DATA.T_dependent_shear_to_s == 11) {
+    } else if (shear_T_ == 1) {
+        eta_over_s = get_temperature_dependent_eta_over_s_default(T);
+    } else if (shear_T_ == 2) {
+        eta_over_s = get_temperature_dependent_eta_over_s_duke(T);
+    } else if (shear_T_ == 11) {
         eta_over_s *= get_temperature_dependence_shear_profile(T);
     } else {
         eta_over_s = DATA.shear_to_s;
     }
-    if (DATA.muB_dependent_shear_to_s == 10) {
+
+    if (shear_muB_ == 7) {
+        eta_over_s *= get_muB_dependence_shear_piecewise(muB);
+    } else if (shear_muB_ == 10) {
         eta_over_s *= get_muB_dependence_shear_profile(muB);
     }
+    eta_over_s = std::max(0., eta_over_s);
     return eta_over_s;
 }
 
@@ -50,6 +60,24 @@ double TransportCoeffs::get_temperature_dependence_shear_profile(
         f_T += Tslope2*(T_in_GeV - Tc)/(Thigh - Tc);
     }
     return(f_T);
+}
+
+
+double TransportCoeffs::get_muB_dependence_shear_piecewise(
+                                                const double muB_in_fm) const {
+    const double muB_in_GeV = std::abs(muB_in_fm)*hbarc;
+    const double f0 = 1.0;
+    const double f1 = DATA.shear_muBf0p2;
+    const double f2 = DATA.shear_muBf0p4;
+    double f_muB = f0;
+    if (muB_in_GeV < 0.2) {
+        f_muB = f0 + (f1 - f0)/0.2*muB_in_GeV;
+    } else if (muB_in_GeV < 0.4) {
+        f_muB = f1 + (f2 - f1)/0.2*(muB_in_GeV - 0.2);
+    } else {
+        f_muB = f2;
+    }
+    return(f_muB);
 }
 
 
@@ -120,15 +148,28 @@ double TransportCoeffs::get_zeta_over_s(const double T,
     // input T [1/fm], mu_B [1/fm]
     double muB_in_GeV = mu_B*hbarc;
     double zeta_over_s = 0.;
-    if (DATA.T_dependent_bulk_to_s == 2) {
-        zeta_over_s = get_temperature_dependent_zeta_over_s_duke(T);
-    } else if (DATA.T_dependent_bulk_to_s == 3) {
-        zeta_over_s = get_temperature_dependent_zeta_over_s_sims(T);
-    } else if (DATA.T_dependent_bulk_to_s == 1) {
-        zeta_over_s = get_temperature_dependent_zeta_over_s_default(T);
-    } else if (DATA.T_dependent_bulk_to_s == 7) {
-        zeta_over_s = get_temperature_dependent_zeta_over_s_bigbroadP(T);
-    } else if (DATA.T_dependent_bulk_to_s == 8) {
+    if (bulk_T_ == 10) {
+        // param. for 3D-Glauber + MUSIC + UrQMD
+        double peak_norm = DATA.bulk_10_max;
+        if (muB_in_GeV < 0.2) {
+            peak_norm = (DATA.bulk_10_max
+                         + (DATA.bulk_10_max_muB0p2 - DATA.bulk_10_max)
+                           /0.2*muB_in_GeV);
+        } else if (muB_in_GeV < 0.4) {
+            peak_norm = (DATA.bulk_10_max_muB0p2
+                         + (DATA.bulk_10_max_muB0p4 - DATA.bulk_10_max_muB0p2)
+                           /0.2*(muB_in_GeV - 0.2));
+        } else {
+            peak_norm = DATA.bulk_10_max_muB0p4;
+        }
+        const double Tpeak = (DATA.bulk_10_Tpeak
+                              + DATA.bulk_10_Tpeak_muBcurv
+                                *muB_in_GeV*muB_in_GeV);       // GeV
+        const double B_width1 = DATA.bulk_10_width_low;        // GeV
+        const double B_width2 = DATA.bulk_10_width_high;       // GeV
+        zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
+                            T, peak_norm, B_width1, B_width2, Tpeak);
+    } else if (bulk_T_ == 8) {
         // latest param. for IPGlasma + MUSIC + UrQMD
         // Phys.Rev.C 102 (2020) 4, 044905, e-Print: 2005.14682 [nucl-th]
         const double peak_norm = 0.13;
@@ -137,7 +178,15 @@ double TransportCoeffs::get_zeta_over_s(const double T,
         const double Tpeak = 0.160;
         zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
                             T, peak_norm, B_width1, B_width2, Tpeak);
-    } else if (DATA.T_dependent_bulk_to_s == 9) {
+    } else if (bulk_T_ == 1) {
+        zeta_over_s = get_temperature_dependent_zeta_over_s_default(T);
+    } else if (bulk_T_ == 2) {
+        zeta_over_s = get_temperature_dependent_zeta_over_s_duke(T);
+    } else if (bulk_T_ == 3) {
+        zeta_over_s = get_temperature_dependent_zeta_over_s_sims(T);
+    } else if (bulk_T_ == 7) {
+        zeta_over_s = get_temperature_dependent_zeta_over_s_bigbroadP(T);
+    } else if (bulk_T_ == 9) {
         // latest param. for IPGlasma + KoMPoST + MUSIC + UrQMD
         // Phys.Rev.C 105 (2022) 1, 014909, e-Print: 2106.11216 [nucl-th]
         const double peak_norm = 0.175;
@@ -146,17 +195,8 @@ double TransportCoeffs::get_zeta_over_s(const double T,
         const double Tpeak = 0.160;
         zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
                             T, peak_norm, B_width1, B_width2, Tpeak);
-    } else if (DATA.T_dependent_bulk_to_s == 10) {
-        // param. for 3D-Glauber + MUSIC + UrQMD
-        const double peak_norm = DATA.bulk_10_max;
-        const double B_width1 = DATA.bulk_10_width_low;      // GeV
-        const double B_width2 = DATA.bulk_10_width_high;     // GeV
-        const double Tpeak = (DATA.bulk_10_Tpeak
-                              + DATA.bulk_10_Tpeak_muBcurv
-                                *muB_in_GeV*muB_in_GeV);   // GeV
-        zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
-                            T, peak_norm, B_width1, B_width2, Tpeak);
     }
+
     zeta_over_s = std::max(0., zeta_over_s);
     return zeta_over_s;
 }

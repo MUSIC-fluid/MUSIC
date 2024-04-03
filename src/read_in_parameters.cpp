@@ -93,6 +93,13 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_parton_quench_factor;
     parameter_list.parton_quench_factor = temp_parton_quench_factor;
 
+    // hydro grid information
+    double temp_gridPadding = 3.;      // fm
+    tempinput = Util::StringFind4(input_file, "gridPadding");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_gridPadding;
+    parameter_list.gridPadding = temp_gridPadding;
+
     // boost-invariant
     int temp_boost_invariant = 1;
     tempinput = Util::StringFind4(input_file, "boost_invariant");
@@ -629,6 +636,18 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempmuB_dependent_shear_to_s;
     parameter_list.muB_dependent_shear_to_s = tempmuB_dependent_shear_to_s;
 
+    double temp_shear_muBf0p4 = 1.;
+    tempinput = Util::StringFind4(input_file, "shear_muBf0p4");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_shear_muBf0p4;
+    parameter_list.shear_muBf0p4 = temp_shear_muBf0p4;
+
+    double temp_shear_muBf0p2 = (1. + parameter_list.shear_muBf0p4)/2.;
+    tempinput = Util::StringFind4(input_file, "shear_muBf0p2");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_shear_muBf0p2;
+    parameter_list.shear_muBf0p2 = temp_shear_muBf0p2;
+
     double temp_shear_muBDep_alpha = 1.;
     tempinput = Util::StringFind4(input_file, "shear_muBDep_alpha");
     if (tempinput != "empty")
@@ -797,11 +816,24 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.bulk_3_lambda_asymm = tempzeta_over_s_lambda_asymm;
 
     // "T_dependent_Bulk_to_S_ratio==10",
-    tempzeta_over_s_max = 0.05;
+    tempzeta_over_s_max = 0.0;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_max");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> tempzeta_over_s_max;
     parameter_list.bulk_10_max = tempzeta_over_s_max;
+
+    tempzeta_over_s_max = parameter_list.bulk_10_max;
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_max_muB0p4");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_max;
+    parameter_list.bulk_10_max_muB0p4 = tempzeta_over_s_max;
+
+    tempzeta_over_s_max = (parameter_list.bulk_10_max
+                           + parameter_list.bulk_10_max_muB0p4)/2.;
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_max_muB0p2");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempzeta_over_s_max;
+    parameter_list.bulk_10_max_muB0p2 = tempzeta_over_s_max;
 
     double tempzeta_over_s_width_high = 0.100;   // GeV
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_width_high");
