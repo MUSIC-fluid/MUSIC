@@ -19,13 +19,11 @@ class Reconst {
     double rel_err;
     double abs_err;
 
-    const double LARGE;
-
     const double v_critical;
     const int echo_level;
 
  public:
-    Reconst() = default;
+    Reconst() = delete;
     Reconst(const EOS &eos, const int echo_level_in, int beastMode);
 
     ReconstCell ReconstIt_shell(double tau, const TJbVec &tauq_vec,

@@ -9,7 +9,6 @@
 Reconst::Reconst(const EOS &eosIn, const int echo_level_in, int beastMode) :
     eos(eosIn),
     max_iter(100),
-    LARGE(1e20),
     v_critical(0.563624),
     echo_level(echo_level_in) {
     if (beastMode != 0) {

@@ -6,8 +6,8 @@
 
 using Util::hbarc;
 
-TransportCoeffs::TransportCoeffs(const EOS &eosIn, const InitData &Data_in)
-    : DATA(Data_in), eos(eosIn),
+TransportCoeffs::TransportCoeffs(const InitData &Data_in)
+    : DATA(Data_in),
       shear_T_(DATA.T_dependent_shear_to_s),
       shear_muB_(DATA.muB_dependent_shear_to_s),
       bulk_T_(DATA.T_dependent_bulk_to_s) {
