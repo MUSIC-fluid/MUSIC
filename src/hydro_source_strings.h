@@ -46,7 +46,7 @@ class HydroSourceStrings : public HydroSourceBase {
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_baryon_list_current_tau;
 
  public:
-    HydroSourceStrings() = default;
+    HydroSourceStrings() = delete;
     HydroSourceStrings(InitData &DATA_in);
     ~HydroSourceStrings();
 

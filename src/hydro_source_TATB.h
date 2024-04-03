@@ -24,7 +24,7 @@ class HydroSourceTATB : public HydroSourceBase {
     std::vector<std::vector<double>> profile_TB;
 
  public:
-    HydroSourceTATB() = default;
+    HydroSourceTATB() = delete;
     HydroSourceTATB(InitData &DATA_in);
     ~HydroSourceTATB();
 
