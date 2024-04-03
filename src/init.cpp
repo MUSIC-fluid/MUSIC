@@ -200,21 +200,26 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
             initial_Gubser_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);
         }
 
-        if (DATA.turn_on_QS == 1){
-	        if(DATA.use_rhoQS_to_rhoB_ratios == 1){
-	        	music_message.info("Electric charge and strangeness densities initialized with");
-	        	music_message << "rhoQ = " << DATA.ratio_q << " rhoB";	
-	        	music_message << " rhoS = " << DATA.ratio_s << " rhoB";	
-	        	music_message.flush("info");
-	        	for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
-	        		initial_QS_with_rhob_ratios_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);}
-	        }
-	        else{
-	        	music_message.info("Initialize electric charge and strangeness densities to zero"); 
-	        	music_message.flush("info");
-	        	for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
-	        		initial_QS_with_zero_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);}
-	        }
+        if (DATA.turn_on_QS == 1) {
+            if (DATA.use_rhoQS_to_rhoB_ratios == 1) {
+                music_message << "Electric charge and strangeness densities "
+                              << "initialized with"
+                              << "rhoQ = " << DATA.ratio_q << " rhoB"
+                              << " rhoS = " << DATA.ratio_s << " rhoB";
+                music_message.flush("info");
+                for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
+                    initial_QS_with_rhob_ratios_XY(
+                            ieta, arenaFieldsPrev, arenaFieldsCurr);
+                }
+            } else {
+                music_message << "Initialize electric charge and strangeness "
+                              << "densities to zero";
+                music_message.flush("info");
+                for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
+                    initial_QS_with_zero_XY(ieta, arenaFieldsPrev,
+                                            arenaFieldsCurr);
+                }
+            }
         }
     } else if (DATA.Initial_profile == 1) {
         // code test in 1+1 D vs Monnai's results
@@ -1325,9 +1330,10 @@ void Init::output_initial_density_profiles(Fields &arena) {
     of << "# x(fm)  y(fm)  eta  ed(GeV/fm^3)";
     if (DATA.turn_on_rhob == 1){
         of << "  rhob(1/fm^3)";}
-    if(DATA.turn_on_QS){
-	of << " rhoq(1/fm^3)";
-	of << " rhos(1/fm^3)";}
+    if (DATA.turn_on_QS) {
+        of << " rhoq(1/fm^3)";
+        of << " rhos(1/fm^3)";
+    }
     of << std::endl;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta_local = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
@@ -1340,8 +1346,9 @@ void Init::output_initial_density_profiles(Fields &arena) {
                    << x_local << "   " << y_local << "   "
                    << eta_local << "   " << arena.e_[fieldIdx]*hbarc;
                 if (DATA.turn_on_rhob == 1) {
-                    of << "   " << arena.rhob_[fieldIdx];}
-		if(DATA.turn_on_QS == 1){
+                    of << "   " << arena.rhob_[fieldIdx];
+                }
+                if (DATA.turn_on_QS == 1) {
                     of << "   " << arena.rhoq_[fieldIdx];
                     of << "   " << arena.rhos_[fieldIdx];
                 }

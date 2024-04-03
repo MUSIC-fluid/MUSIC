@@ -1677,8 +1677,6 @@ void Cell_info::output_vorticity_distribution(
             VorticityVec omega_T   = {0.0};
             double T_avg = 0.0;
             double muB_avg = 0.0;
-            double muS_avg = 0.0;
-            double muQ_avg = 0.0;
             double weight   = 0.0;
             for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
                 int fieldIdx = arena_curr.getFieldIdx(ix, iy, ieta);
@@ -1689,23 +1687,16 @@ void Cell_info::output_vorticity_distribution(
                     const double e_local = arena_curr.e_[fieldIdx];
                     if (e_local < 0.1) continue;
 
-		    const double rhob_local = arena_curr.rhob_[fieldIdx];
-		    const double rhoq_local = arena_curr.rhoq_[fieldIdx];
-		    const double rhos_local = arena_curr.rhos_[fieldIdx];
-
-		    const double T_local = eos.get_temperature(e_local, rhob_local, 
-				    rhoq_local, rhos_local);
-		    const double muB_local = eos.get_muB(e_local, rhob_local, 
-				    rhoq_local, rhos_local);
-		    const double muQ_local = eos.get_muQ(e_local, rhob_local, 
-				    rhoq_local, rhos_local);
-		    const double muS_local = eos.get_muS(e_local, rhob_local, 
-				    rhoq_local, rhos_local);
+                    const double rhob_local = arena_curr.rhob_[fieldIdx];
+                    const double rhoq_local = arena_curr.rhoq_[fieldIdx];
+                    const double rhos_local = arena_curr.rhos_[fieldIdx];
+                    const double T_local = eos.get_temperature(
+                        e_local, rhob_local, rhoq_local, rhos_local);
+                    const double muB_local = eos.get_muB(
+                        e_local, rhob_local, rhoq_local, rhos_local);
 
                     T_avg += e_local*T_local*hbarc;
                     muB_avg += e_local*muB_local*hbarc;
-                    muQ_avg += e_local*muQ_local*hbarc;
-                    muS_avg += e_local*muS_local*hbarc;
 
                     VorticityVec omega_local_1, omega_local_2;
                     VorticityVec omega_local_3, omega_local_4;
