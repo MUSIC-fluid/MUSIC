@@ -15,7 +15,7 @@ class EOS {
     std::unique_ptr<EOS_base> eos_ptr;
 
  public:
-    EOS() = default;
+    EOS() = delete;
     EOS(const int eos_id_in);
 
     ~EOS() {};

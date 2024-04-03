@@ -8,8 +8,7 @@
 
 Reconst::Reconst(const EOS &eosIn, const int echo_level_in, int beastMode) :
     eos(eosIn),
-    max_iter(200),
-    LARGE(1e20),
+    max_iter(100),
     v_critical(0.563624),
     echo_level(echo_level_in) {
     if (beastMode != 0) {
@@ -570,7 +569,6 @@ void Reconst::reconst_u0_f(const double u0, const double T00,
     double pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
     const double temp1 = 1. - K00/((T00 + pressure)*(T00 + pressure));
     fu0 = u0 - 1./sqrt(temp1);
-    //fu0 = u0*sqrt(temp1) - 1.;
 }
 
 
