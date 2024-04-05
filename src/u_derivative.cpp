@@ -9,18 +9,18 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn) :
     DATA(DATA_in),
     eos(eosIn),
     minmod(DATA_in) {
-    dUsup = {0.0};        // dUsup[m][n] = partial^n u^m
-    dUoverTsup = {0.0};   // dUoverTsup[m][n] = partial^n (u^m/T)
-    dUTsup = {0.0};       // dUTsup[m][n] = partial^n (Tu^m)
+    dUsup = {{{0.0}}};        // dUsup[m][n] = partial^n u^m
+    dUoverTsup = {{{0.0}}};   // dUoverTsup[m][n] = partial^n (u^m/T)
+    dUTsup = {{{0.0}}};       // dUTsup[m][n] = partial^n (Tu^m)
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
 void U_derivative::MakedU(const double tau, Fields &arenaFieldsPrev,
                           Fields &arenaFieldsCurr, const int fieldIdx,
                           const int ix, const int iy, const int ieta) {
-    dUsup = {0.0};
-    dUoverTsup = {0.0};
-    dUTsup = {0.0};
+    dUsup = {{{0.0}}};
+    dUoverTsup = {{{0.0}}};
+    dUTsup = {{{0.0}}};
 
     // this calculates du/dx, du/dy, (du/deta)/tau
     MakeDSpatial(tau, arenaFieldsCurr, fieldIdx, ix, iy, ieta);

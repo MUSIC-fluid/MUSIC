@@ -361,26 +361,27 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempturn_on_QS;
     parameter_list.turn_on_QS = tempturn_on_QS;
-    if (parameter_list.turn_on_QS == 1)
+    if (parameter_list.turn_on_QS == 1) {
        parameter_list.alpha_max = 7;
-    else if (parameter_list.turn_on_rhob == 1)
+    } else if (parameter_list.turn_on_rhob == 1) {
        parameter_list.alpha_max = 5;
-    else
+    } else {
        parameter_list.alpha_max = 4;
+    }
 
-    int tempuse_BQ_ratios;
+    int tempuse_BQ_ratios = 0;
     tempinput = Util::StringFind4(input_file, "use_BQ_ratios");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempuse_BQ_ratios;
     parameter_list.use_BQ_ratios = tempuse_BQ_ratios;
 
-    int tempuse_rhoQS_to_rhoB_ratios;
+    int tempuse_rhoQS_to_rhoB_ratios = 0;
     tempinput = Util::StringFind4(input_file, "use_rhoQS_to_rhoB_ratios");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempuse_rhoQS_to_rhoB_ratios;
     parameter_list.use_rhoQS_to_rhoB_ratios = tempuse_rhoQS_to_rhoB_ratios;
-    double temp_ratio_q = 1;
-    double temp_ratio_s = 1;
+    double temp_ratio_q = 0.4;
+    double temp_ratio_s = 0.;
     if(parameter_list.use_rhoQS_to_rhoB_ratios == 1){
         tempinput = Util::StringFind4(input_file, "ratio_q");
             if (tempinput != "empty")

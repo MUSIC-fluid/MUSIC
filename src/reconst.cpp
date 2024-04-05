@@ -8,8 +8,7 @@
 
 Reconst::Reconst(const EOS &eosIn, const int echo_level_in, int beastMode) :
     eos(eosIn),
-    max_iter(200),
-    LARGE(1e20),
+    max_iter(100),
     v_critical(0.563624),
     echo_level(echo_level_in) {
     if (beastMode != 0) {
@@ -418,13 +417,8 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
     double du0_curr = du0_prev;
     double u0_root = (u0_h + u0_l)/2.;
     double fu0 = 0;
-    double dfdu0 = 0;;
-    if (du0_prev > 0.1*u0_root) {
-        reconst_u0_fdf(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0, dfdu0);
-    } else {
-        reconst_u0_f(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0);
-        dfdu0 = (fu0_h - fu0_l)/(u0_h - u0_l);
-    }
+    reconst_u0_f(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0);
+    double dfdu0 = (fu0_h - fu0_l)/(u0_h - u0_l);
     double abs_error_u0 = 10.0;
     double rel_error_u0 = 10.0;
     int iter_u0 = 0;
@@ -446,12 +440,8 @@ int Reconst::solve_u0_Hybrid(const double u0_guess, const double T00,
             u0_status = 0;
             break;
         }
-        if (std::abs(u0_root - u0_prev) > 0.1*u0_root) {
-            reconst_u0_fdf(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0, dfdu0);
-        } else {
-            reconst_u0_f(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0);
-            dfdu0 = (fu0 - fu0_prev)/(u0_root - u0_prev);
-        }
+        reconst_u0_f(u0_root, T00, K00, M, J0B, J0Q, J0S, fu0);
+        dfdu0 = (fu0 - fu0_prev)/(u0_root - u0_prev);
         abs_error_u0 = du0_curr;
         rel_error_u0 = du0_curr/u0_root;
         if (fu0*fu0_l < 0.) {
@@ -570,7 +560,6 @@ void Reconst::reconst_u0_f(const double u0, const double T00,
     double pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
     const double temp1 = 1. - K00/((T00 + pressure)*(T00 + pressure));
     fu0 = u0 - 1./sqrt(temp1);
-    //fu0 = u0*sqrt(temp1) - 1.;
 }
 
 

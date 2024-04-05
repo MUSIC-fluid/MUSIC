@@ -44,7 +44,7 @@ class HydroSourceSMASH : public HydroSourceBase {
     enum QuantityType { BARYON_NUMBER, ELECTRIC_CHARGE, STRANGENESS };
 
  public:
-    HydroSourceSMASH() = default;
+    HydroSourceSMASH() = delete;
     HydroSourceSMASH(InitData &DATA_in);
     ~HydroSourceSMASH();
 

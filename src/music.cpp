@@ -189,13 +189,6 @@ void MUSIC::check_source() {
     check_file.close();
 }
 
-
-
-
-
-
-
-
 //! this is a test function to output the transport coefficients as
 //! function of T and mu_B
 void MUSIC::output_transport_coefficients() {

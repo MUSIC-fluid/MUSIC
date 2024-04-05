@@ -28,13 +28,13 @@ class HydroSourceAMPT : public HydroSourceBase {
     std::vector<std::shared_ptr<parton>> parton_list_current_tau;
 
  public:
-    HydroSourceAMPT() = default;
+    HydroSourceAMPT() = delete;
     HydroSourceAMPT(const InitData &DATA_in);
     ~HydroSourceAMPT();
-    
+
     //! This function reads in the partons information from the AMPT model
     void read_in_AMPT_partons();
-    
+
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(

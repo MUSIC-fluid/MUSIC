@@ -7,8 +7,7 @@ void HydroSourceBase::get_hydro_energy_source_before_tau(
     const double tau, const double x, const double y, const double eta_s,
     EnergyFlowVec &j_mu) const {
 
-    FlowVec u                   = {0};
-    u[0]                        = 1.0;
+    FlowVec u = {1., 0., 0., 0.};
     EnergyFlowVec j_mu_one_step = {0};
 
     double tau0 = 0.0;
@@ -30,8 +29,7 @@ void HydroSourceBase::get_hydro_energy_source_before_tau(
 double HydroSourceBase::get_hydro_rhob_source_before_tau(
                                 const double tau, const double x,
                                 const double y, const double eta_s) const {
-    FlowVec u = {0};
-    u[0] = 1.0;
+    FlowVec u = {1., 0., 0., 0.};
 
     double res  = 0.;
     double tau0 = 0.0;
