@@ -279,10 +279,12 @@ void HydroSourceSMASH::prepare_list_for_current_tau_frame(
     if (covariant_smearing_kernel_) {
         for (auto hadron_i: list_hadrons_current_tau_) {
             compute_covariant_norm(tau_local, &hadron_i);
+            //std::cout << "Norm = " << hadron_i.norm << std::endl;
         }
     } else {
         for (auto hadron_i: list_hadrons_current_tau_) {
             compute_norm(tau_local, &hadron_i);
+            //std::cout << "Norm = " << hadron_i.norm << std::endl;
         }
     }
 }
@@ -299,6 +301,7 @@ void HydroSourceSMASH::compute_covariant_norm(const double tau,
     const double dy = DATA.delta_y;
     const double deta = DATA.delta_eta;
     const double skip_dis_x = n_sigma_skip * sigma_x;
+    const double skip_dis_eta = skip_dis_x;
     const double cov_prefac = pow(M_PI*sigma_x*sigma_x,-1.5);
 
     #pragma omp parallel for collapse(3) schedule(guided) reduction(+: norm)
@@ -316,7 +319,7 @@ void HydroSourceSMASH::compute_covariant_norm(const double tau,
                 if (std::abs(y_dis) > skip_dis_x) continue;
 
                 double eta_s_dis = eta_s - hadron_i->eta_s;
-                if (std::abs(eta_s_dis) > skip_dis_x) continue;
+                if (std::abs(eta_s_dis) > skip_dis_eta) continue;
 
                 double mass = hadron_i->mass;
                 double px = hadron_i->px;
@@ -331,7 +334,7 @@ void HydroSourceSMASH::compute_covariant_norm(const double tau,
                 double peta = mT * sinh(rapidity - eta_s);
                 double ueta = peta / mass;
 
-                double gamma = hadron_i->E/mass;
+                double gamma = mT * cosh(rapidity - eta_s) / mass;
                 norm += (
                     gamma*covariant_smearing_kernel(x_dis, y_dis, eta_s_dis,
                                                     ux, uy, ueta,
@@ -341,7 +344,8 @@ void HydroSourceSMASH::compute_covariant_norm(const double tau,
         }
     }
     hadron_i->norm = (norm*cov_prefac
-                      *(DATA.delta_x*DATA.delta_y*DATA.delta_eta*tau));
+                      *(DATA.delta_x*DATA.delta_y*DATA.delta_eta*tau)
+                      );
 }
 
 
@@ -447,7 +451,7 @@ void HydroSourceSMASH::get_hydro_energy_source(
 
             const double peta = mT * sinh(rapidity - eta_s);
             const double ueta = peta / mass;
-            const double gamma = hadron_i.E/mass;
+            const double gamma = mT * cosh(rapidity - eta_s) / mass;
 
             val_smearing_kernel = (
                 gamma*covariant_smearing_kernel(x_dis, y_dis, eta_s_dis,
@@ -485,7 +489,7 @@ void HydroSourceSMASH::get_hydro_energy_source(
     const double norm = DATA.sFactor / Util::hbarc; // 1/fm^4
     double prefactor = norm;
     if (covariant_smearing_kernel_) {
-        prefactor *= prefactor_tau * cov_prefac; 
+        prefactor *= prefactor_tau * cov_prefac;
     } else {
         prefactor *= prefactor_tau * prefactor_etas * prefactor_prep;
     }
@@ -553,7 +557,7 @@ double HydroSourceSMASH::calculate_source(
             const double peta = mT*sinh(rapidity - eta_s);
             const double ueta = peta/mass;
 
-            const double gamma = hadron_i.E/mass;
+            const double gamma = mT * cosh(rapidity - eta_s) / mass;
             val_smearing_kernel = (
                 gamma*covariant_smearing_kernel(x_dis, y_dis, eta_s_dis,
                                                 ux, uy, ueta,
@@ -572,9 +576,9 @@ double HydroSourceSMASH::calculate_source(
     }
 
     if (covariant_smearing_kernel_) {
-        result *= prefactor_tau*cov_prefac;
+        result *= prefactor_tau * cov_prefac;
     } else {
-        result *= prefactor_tau*prefactor_etas*prefactor_prep;
+        result *= prefactor_tau * prefactor_etas * prefactor_prep;
     }
     return (result*weight_event_);
 }
