@@ -2158,7 +2158,8 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     std::fstream of1;
     if (std::abs(tau - DATA.tau0) < 1e-10) {
         of1.open(filename1.str().c_str(), std::fstream::out);
-        of1 << "# tau(fm)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
+        of1 << "# tau(fm)  ecc_n(cos)  ecc_n(sin) (n=1-6) x_o (fm)  y_o (fm)"
+            << endl;
     } else {
         of1.open(filename1.str().c_str(),
                  std::fstream::out | std::fstream::app);
@@ -2221,6 +2222,9 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     std::vector<double> meanpT_est_num(4, 0.0);
     std::vector<double> meanpT_est_den(1, 0.0);
     std::vector<double> thermalVec;
+    double x_o   = 0.0;
+    double y_o   = 0.0;
+    double w_sum = 0.0;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
         if (!DATA.boost_invariant) {
@@ -2228,9 +2232,6 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                     - (DATA.eta_size)/2.0);
         }
         if (eta < eta_max && eta > eta_min) {
-            double x_o   = 0.0;
-            double y_o   = 0.0;
-            double w_sum = 0.0;
             for (int iy = 0; iy < arena.nY(); iy++)
             for (int ix = 0; ix < arena.nX(); ix++) {
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
@@ -2242,8 +2243,17 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                 y_o   += y_local*e_local*gamma_perp;
                 w_sum += e_local*gamma_perp;
             }
-            x_o /= w_sum;
-            y_o /= w_sum;
+        }
+    }
+    x_o /= w_sum;
+    y_o /= w_sum;
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        double eta = 0.0;
+        if (!DATA.boost_invariant) {
+            eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
+                    - (DATA.eta_size)/2.0);
+        }
+        if (eta < eta_max && eta > eta_min) {
             for (int iy = 0; iy < arena.nY(); iy++)
             for (int ix = 0; ix < arena.nX(); ix++) {
                 int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
@@ -2380,6 +2390,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
         of1 << -eccn_num1[i]/std::max(eccn_den[i], small_eps) << "  "
             << -eccn_num2[i]/std::max(eccn_den[i], small_eps)<< "  ";
     }
+    of1 << x_o << "  " << y_o;
     of1 << endl;
     of1.close();
 
