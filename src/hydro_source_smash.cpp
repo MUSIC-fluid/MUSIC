@@ -279,12 +279,10 @@ void HydroSourceSMASH::prepare_list_for_current_tau_frame(
     if (covariant_smearing_kernel_) {
         for (auto hadron_i: list_hadrons_current_tau_) {
             compute_covariant_norm(tau_local, &hadron_i);
-            //std::cout << "Norm = " << hadron_i.norm << std::endl;
         }
     } else {
         for (auto hadron_i: list_hadrons_current_tau_) {
             compute_norm(tau_local, &hadron_i);
-            //std::cout << "Norm = " << hadron_i.norm << std::endl;
         }
     }
 }
@@ -301,8 +299,8 @@ void HydroSourceSMASH::compute_covariant_norm(const double tau,
     const double dy = DATA.delta_y;
     const double deta = DATA.delta_eta;
     const double skip_dis_x = n_sigma_skip * sigma_x;
-    const double skip_dis_eta = skip_dis_x;
-    const double cov_prefac = pow(M_PI*sigma_x*sigma_x,-1.5);
+    const double skip_dis_eta = skip_dis_x / tau;
+    const double cov_prefac = tau / (pow(M_PI,1.5)*sigma_x*sigma_x*sigma_x);
 
     #pragma omp parallel for collapse(3) schedule(guided) reduction(+: norm)
     for (int ieta = 0; ieta < neta; ieta++) {
@@ -344,7 +342,7 @@ void HydroSourceSMASH::compute_covariant_norm(const double tau,
         }
     }
     hadron_i->norm = (norm*cov_prefac
-                      *(DATA.delta_x*DATA.delta_y*DATA.delta_eta*tau)
+                      *(DATA.delta_x*DATA.delta_y*DATA.delta_eta)
                       );
 }
 
@@ -389,7 +387,7 @@ void HydroSourceSMASH::compute_norm(const double tau, hadron* hadron_i) const {
         }
     }
     hadron_i->norm = (norm*prefactor_etas*prefactor_prep
-                      *(DATA.delta_x*DATA.delta_y*DATA.delta_eta*tau));
+                      *(DATA.delta_x*DATA.delta_y*DATA.delta_eta));
 }
 
 
@@ -423,15 +421,14 @@ void HydroSourceSMASH::get_hydro_energy_source(
 
     double skip_dis_eta = n_sigma_skip * sigma_eta;
     if (covariant_smearing_kernel_) {
-        skip_dis_eta = skip_dis_x;
+        skip_dis_eta = skip_dis_x / tau;
     }
 
     double val_smearing_kernel = 0.;
-    const double cov_prefac = pow(M_PI*sigma_x*sigma_x,-1.5);
+    const double cov_prefac = tau / (pow(M_PI,1.5)*sigma_x*sigma_x*sigma_x);
     const double prefactor_etas = 1. / (sqrt(M_PI) * sigma_eta);
     const double prefactor_prep = 1. / (M_PI * sigma_x * sigma_x);
 
-    // SMASH hadron sources
     for (auto hadron_i: list_hadrons_current_tau_) {
         const double x_dis = x - hadron_i.x;
         if (std::abs(x_dis) > skip_dis_x) continue;
@@ -511,17 +508,16 @@ double HydroSourceSMASH::calculate_source(
     const double sigma_x = get_sigma_x();
     const double sigma_eta = get_sigma_eta();
 
-    // Extract flow velocity components
     const double dtau = DATA.delta_tau;
     const double prefactor_tau = 1.0 / dtau;
     const double n_sigma_skip = 5.;
     const double skip_dis_x = n_sigma_skip * sigma_x;
     double skip_dis_eta = n_sigma_skip * sigma_eta;
     if (covariant_smearing_kernel_) {
-        skip_dis_eta = skip_dis_x;
+        skip_dis_eta = skip_dis_x / tau;
     }
 
-    const double cov_prefac = pow(M_PI*sigma_x*sigma_x, -1.5);
+    const double cov_prefac = tau / (pow(M_PI,1.5)*sigma_x*sigma_x*sigma_x);
     const double prefactor_etas = 1./(sqrt(M_PI) * sigma_eta);
     const double prefactor_prep = 1./(M_PI * sigma_x * sigma_x);
 
