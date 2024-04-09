@@ -728,9 +728,9 @@ void Cell_info::OutputEvolutionDataXYEta_photon(SCGrid &arena, double tau) {
 
 // Print bulk or other transport coefficients
 void Cell_info::OutputEvolutionDataXYEta_Bulk(SCGrid &arena, double tau) {
-    const string out_name_bulk = "evolution_energy_and_bulk.dat";
+    const string out_name_coeff = "evolution_coeff.dat";
     string out_open_mode;
-    FILE *out_file_bulk      = NULL;
+    FILE *out_file_coeff      = NULL;
 
     // If it's the first timestep, overwrite the previous file
     if (tau == DATA.tau0) {
@@ -743,7 +743,7 @@ void Cell_info::OutputEvolutionDataXYEta_Bulk(SCGrid &arena, double tau) {
         out_open_mode += "b";
     }
     if ((DATA.turn_on_shear == 1)&&(DATA.turn_on_bulk == 1)) {
-        out_file_bulk = fopen(out_name_bulk.c_str(),
+        out_file_coeff = fopen(out_name_coeff.c_str(),
                                  out_open_mode.c_str());
     }
     
@@ -762,34 +762,83 @@ void Cell_info::OutputEvolutionDataXYEta_Bulk(SCGrid &arena, double tau) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
                 double e_local    = arena(ix, iy, ieta).epsilon;  // 1/fm^4
                 double rhob_local = arena(ix, iy, ieta).rhob;     // 1/fm^3
-                double p_local = eos.get_pressure(e_local, rhob_local);
-                double entropy  = e_local + p_local;  // [1/fm^4]
+                double T_local  = eos.get_temperature(e_local, rhob_local); // 1/fm
+                double p_local  = eos.get_pressure(e_local, rhob_local);   // 1/fm^4
+                double s_local = eos.get_entropy(e_local, rhob_local);  // 1/fm^3
+                double cs2 = eos.get_cs2(e_local, rhob_local);
 
+                double utau = arena(ix, iy, ieta).u[0];
+                double ux   = arena(ix, iy, ieta).u[1];
+                double uy   = arena(ix, iy, ieta).u[2];
+                double ueta = arena(ix, iy, ieta).u[3];
+
+                double Wtautau = 0.0;
+                double Wtaux   = 0.0;
+                double Wtauy   = 0.0;
+                double Wtaueta = 0.0;
+                double Wxx     = 0.0;
+                double Wxy     = 0.0;
+                double Wxeta   = 0.0;
+                double Wyy     = 0.0;
+                double Wyeta   = 0.0;
+                double Wetaeta = 0.0;
                 double bulk_Pi = 0.0;
-                // exclude the actual coordinates from the output to save space:
+                if (DATA.turn_on_bulk == 1){
+                    bulk_Pi = arena(ix, iy, ieta).pi_b; //1/fm^4
+                }
+                if (DATA.turn_on_shear == 1){ // in fm units
+                    Wtautau = arena(ix, iy, ieta).Wmunu[0];
+                    Wtaux   = arena(ix, iy, ieta).Wmunu[1];
+                    Wtauy   = arena(ix, iy, ieta).Wmunu[2];
+                    Wtaueta = arena(ix, iy, ieta).Wmunu[3];
+                    Wxx     = arena(ix, iy, ieta).Wmunu[4];
+                    Wxy     = arena(ix, iy, ieta).Wmunu[5];
+                    Wxeta   = arena(ix, iy, ieta).Wmunu[6];
+                    Wyy     = arena(ix, iy, ieta).Wmunu[7];
+                    Wyeta   = arena(ix, iy, ieta).Wmunu[8];
+                    Wetaeta = arena(ix, iy, ieta).Wmunu[9];
+                }
+                // select what you want to print
                 if (DATA.outputBinaryEvolution == 0) {
-                    if ((DATA.viscosity_flag == 1)&&(DATA.turn_on_shear)&&(DATA.turn_on_bulk == 1)) {
-                        bulk_Pi = arena(ix, iy, ieta).pi_b;  // [1/fm^4]
-                        fprintf(out_file_bulk,
-                                "%e %e %e\n",
-                                e_local*hbarc, bulk_Pi*hbarc, entropy*hbarc); // print in GeV/fm^3
+                    if (DATA.viscosity_flag == 1){
+                        fprintf(out_file_coeff,
+                                "%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e \n",
+                                e_local*hbarc, utau, ux, uy, ueta, Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta, Wyy, Wyeta, 
+                                Wyeta, bulk_Pi*hbarc, s_local*hbarc, T_local*hbarc, p_local*hbarc, cs2); // print in GeV/fm^3
                     }
                 } else {
                     if (DATA.viscosity_flag == 1) {
                         if ((DATA.turn_on_shear == 1)&&(DATA.turn_on_bulk == 1)) {
-                            float array2[] = {static_cast<float>(e_local*hbarc),
+                            float array[] = {static_cast<float>(e_local*hbarc),
+                                              static_cast<float>(utau),
+                                              static_cast<float>(ux),
+                                              static_cast<float>(uy),
+                                              static_cast<float>(ueta),
+                                              static_cast<float>(Wtautau),
+                                              static_cast<float>(Wtaux),
+                                              static_cast<float>(Wtauy),
+                                              static_cast<float>(Wtaueta),
+                                              static_cast<float>(Wxx),
+                                              static_cast<float>(Wxy),
+                                              static_cast<float>(Wxeta),
+                                              static_cast<float>(Wyy),
+                                              static_cast<float>(Wyeta),
+                                              static_cast<float>(Wetaeta),
                                               static_cast<float>(bulk_Pi*hbarc),
-                                              static_cast<float>(entropy*hbarc)};
-                            fwrite(array2, sizeof(float), 3,
-                                   out_file_bulk);
+                                              static_cast<float>(s_local*hbarc),
+                                              static_cast<float>(T_local*hbarc),
+                                              static_cast<float>(p_local*hbarc),
+                                              static_cast<float>(cs2)};
+                            fwrite(array, sizeof(float), 20,
+                                   out_file_coeff);
                         }
                     }
                 }
             }
         }
     }
-    if ((DATA.turn_on_shear == 1)&&(DATA.turn_on_bulk == 1)&&(DATA.turn_on_bulk == 1)) {
-        fclose(out_file_bulk);
+    if ((DATA.turn_on_shear == 1)&&(DATA.turn_on_bulk == 1)) {
+        fclose(out_file_coeff);
     }
 }
 
