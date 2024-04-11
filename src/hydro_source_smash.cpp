@@ -287,20 +287,16 @@ void HydroSourceSMASH::prepare_list_for_current_tau_frame(
     if (covariant_smearing_kernel_) {
         for (auto hadron_i: list_hadrons_current_tau_) {
             compute_covariant_norm(tau_local, &hadron_i);
-            std::cout << "Norm = " << hadron_i.norm << std::endl;
         }
     } else {
         for (auto hadron_i: list_hadrons_current_tau_) {
             compute_norm(tau_local, &hadron_i);
-            std::cout << "Norm = " << hadron_i.norm << std::endl;
         }
     }
 }
 
 void HydroSourceSMASH::compute_covariant_norm(const double tau,
                                                 hadron* hadron_i) const {
-    
-    std::cout << "tau_MUSIC = " << tau << ", tau_hadron = " << hadron_i->tau << std::endl;
     double norm = 0.0;
     const double n_sigma_skip = 5.;
     const double sigma_x = get_sigma_x();
@@ -313,6 +309,17 @@ void HydroSourceSMASH::compute_covariant_norm(const double tau,
     const double skip_dis_x = n_sigma_skip * sigma_x;
     const double skip_dis_eta = skip_dis_x / tau;
     const double cov_prefac = tau / (pow(M_PI,1.5)*sigma_x*sigma_x*sigma_x);
+
+    const double mass = hadron_i->mass;
+    const double px = hadron_i->px;
+    const double py = hadron_i->py;
+    const double ux = px / mass;
+    const double uy = py / mass;
+    const double mT = sqrt(mass * mass + px * px + py * py);
+    const double rapidity = hadron_i->rapidity;
+    const double peta = mT * sinh(rapidity - hadron_i->eta_s);
+    const double ueta = peta / mass;
+    const double gamma = mT * cosh(rapidity - hadron_i->eta_s) / mass;
 
     #pragma omp parallel for collapse(3) schedule(guided) reduction(+: norm)
     for (int ieta = 0; ieta < neta; ieta++) {
@@ -331,22 +338,7 @@ void HydroSourceSMASH::compute_covariant_norm(const double tau,
                 double eta_s_dis = eta_s - hadron_i->eta_s;
                 if (std::abs(eta_s_dis) > skip_dis_eta) continue;
 
-                double mass = hadron_i->mass;
-                double px = hadron_i->px;
-                double py = hadron_i->py;
-
-                double ux = px / mass;
-                double uy = py / mass;
-
-                double mT = sqrt(mass * mass + px * px + py * py);
-                double rapidity = hadron_i->rapidity;
-
-                double peta = mT * sinh(rapidity - hadron_i->eta_s);
-                double ueta = peta / mass;
-
-                double gamma = mT * cosh(rapidity - hadron_i->eta_s) / mass;
-                norm += (
-                    gamma*covariant_smearing_kernel(x_dis, y_dis, eta_s_dis,
+                norm += (gamma*covariant_smearing_kernel(x_dis, y_dis, eta_s_dis,
                                                     ux, uy, ueta,
                                                     sigma_x, tau)
                 );
