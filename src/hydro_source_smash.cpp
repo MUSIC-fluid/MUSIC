@@ -266,7 +266,7 @@ void HydroSourceSMASH::prepare_list_for_current_tau_frame(
     list_hadrons_current_tau_.clear();
     for (auto hadron_i : list_hadrons_) {
         if (hadron_i.tau >= (tau_local - 0.5*dtau)
-            && hadron_i.tau < (tau_local + 1.5*dtau)) {
+            && hadron_i.tau < (tau_local + 0.5*dtau)) {
             list_hadrons_current_tau_.push_back(hadron_i);
         }
     }
@@ -279,16 +279,20 @@ void HydroSourceSMASH::prepare_list_for_current_tau_frame(
     if (covariant_smearing_kernel_) {
         for (auto hadron_i: list_hadrons_current_tau_) {
             compute_covariant_norm(tau_local, &hadron_i);
+            std::cout << "Norm = " << hadron_i.norm << std::endl;
         }
     } else {
         for (auto hadron_i: list_hadrons_current_tau_) {
             compute_norm(tau_local, &hadron_i);
+            std::cout << "Norm = " << hadron_i.norm << std::endl;
         }
     }
 }
 
 void HydroSourceSMASH::compute_covariant_norm(const double tau,
                                                 hadron* hadron_i) const {
+    
+    std::cout << "tau_MUSIC = " << tau << ", tau_hadron = " << hadron_i->tau << std::endl;
     double norm = 0.0;
     const double n_sigma_skip = 5.;
     const double sigma_x = get_sigma_x();
@@ -329,10 +333,10 @@ void HydroSourceSMASH::compute_covariant_norm(const double tau,
                 double mT = sqrt(mass * mass + px * px + py * py);
                 double rapidity = hadron_i->rapidity;
 
-                double peta = mT * sinh(rapidity - eta_s);
+                double peta = mT * sinh(rapidity - hadron_i->eta_s);
                 double ueta = peta / mass;
 
-                double gamma = mT * cosh(rapidity - eta_s) / mass;
+                double gamma = mT * cosh(rapidity - hadron_i->eta_s) / mass;
                 norm += (
                     gamma*covariant_smearing_kernel(x_dis, y_dis, eta_s_dis,
                                                     ux, uy, ueta,
@@ -399,7 +403,7 @@ double HydroSourceSMASH::covariant_smearing_kernel(
     const double r_squared = (x_diff * x_diff + y_diff * y_diff
                               + eta_diff * eta_diff * tau * tau);
     const double ru_scalar = (x_diff * ux + y_diff * uy
-                              + eta_diff * ueta * tau * tau);
+                              + eta_diff * ueta * tau);
     // Compute and return the smoothing kernel
     return exp((-r_squared - ru_scalar * ru_scalar) / (sigma * sigma));
 }
@@ -446,9 +450,9 @@ void HydroSourceSMASH::get_hydro_energy_source(
             const double ux = px / mass;
             const double uy = py / mass;
 
-            const double peta = mT * sinh(rapidity - eta_s);
+            const double peta = mT * sinh(rapidity - hadron_i.eta_s);
             const double ueta = peta / mass;
-            const double gamma = mT * cosh(rapidity - eta_s) / mass;
+            const double gamma = mT * cosh(rapidity - hadron_i.eta_s) / mass;
 
             val_smearing_kernel = (
                 gamma*covariant_smearing_kernel(x_dis, y_dis, eta_s_dis,
@@ -486,7 +490,7 @@ void HydroSourceSMASH::get_hydro_energy_source(
     const double norm = DATA.sFactor / Util::hbarc; // 1/fm^4
     double prefactor = norm;
     if (covariant_smearing_kernel_) {
-        prefactor *= prefactor_tau * cov_prefac;
+        prefactor *= prefactor_tau * cov_prefac / tau;
     } else {
         prefactor *= prefactor_tau * prefactor_etas * prefactor_prep;
     }
@@ -550,10 +554,10 @@ double HydroSourceSMASH::calculate_source(
             const double mT = sqrt(mass*mass + px*px + py*py);
 
             const double rapidity = hadron_i.rapidity;
-            const double peta = mT*sinh(rapidity - eta_s);
+            const double peta = mT*sinh(rapidity - hadron_i.eta_s);
             const double ueta = peta/mass;
 
-            const double gamma = mT * cosh(rapidity - eta_s) / mass;
+            const double gamma = mT * cosh(rapidity - hadron_i.eta_s) / mass;
             val_smearing_kernel = (
                 gamma*covariant_smearing_kernel(x_dis, y_dis, eta_s_dis,
                                                 ux, uy, ueta,
@@ -572,7 +576,7 @@ double HydroSourceSMASH::calculate_source(
     }
 
     if (covariant_smearing_kernel_) {
-        result *= prefactor_tau * cov_prefac;
+        result *= prefactor_tau * cov_prefac / tau;
     } else {
         result *= prefactor_tau * prefactor_etas * prefactor_prep;
     }
