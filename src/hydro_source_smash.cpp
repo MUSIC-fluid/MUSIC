@@ -208,11 +208,15 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event,
             if (out_of_range_x || out_of_range_y || out_of_range_eta) {
                 music_message << "HydroSourceSMASH:: hadronic source is out of range.";
                 music_message.flush("info");
-                music_message << "HydroSourceSMASH::     pdgid = " << new_hadron.pdgid;
+                music_message << "HydroSourceSMASH::     pdgid = "
+                              << new_hadron.pdgid;
                 music_message.flush("info");
-                music_message << "HydroSourceSMASH::     (x, y) = (" << new_hadron.x << ", " << new_hadron.y << ") fm.";
+                music_message << "HydroSourceSMASH::     (x, y) = ("
+                              << new_hadron.x << ", "
+                              << new_hadron.y << ") fm.";
                 music_message.flush("info");
-                music_message << "HydroSourceSMASH::     eta_s = " << new_hadron.eta_s;
+                music_message << "HydroSourceSMASH::     eta_s = "
+                              << new_hadron.eta_s;
                 music_message.flush("info");
             }
 
@@ -233,8 +237,10 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event,
         if(event_of_interest){number_events_ += 1;}
     }// End of event loop.
     weight_event_ = 1. / (double)number_events_;
-    music_message << "HydroSourceSMASH:: read in " << list_hadrons_.size() << "/"
-                  << n_hadrons << " hadrons and " << n_spectators << " spectators from "
+    music_message << "HydroSourceSMASH:: read in "
+                  << list_hadrons_.size() << "/"
+                  << n_hadrons << " hadrons and "
+                  << n_spectators << " spectators from "
                   << number_events_ << " events.";
     music_message.flush("info");
     music_message << "HydroSourceSMASH:: tau_min = " << get_source_tau_min()
@@ -253,9 +259,11 @@ void HydroSourceSMASH::read_in_SMASH_hadrons(int i_event,
     music_message.flush("info");
     music_message << "HydroSourceSMASH:: baryon_total = " << baryon_total_;
     music_message.flush("info");
-    music_message << "HydroSourceSMASH:: electric_charge_total = " << charge_total_;
+    music_message << "HydroSourceSMASH:: electric_charge_total = "
+                  << charge_total_;
     music_message.flush("info");
-    music_message << "HydroSourceSMASH:: strangeness_total = " << strangeness_total_;
+    music_message << "HydroSourceSMASH:: strangeness_total = "
+                  << strangeness_total_;
     music_message.flush("info");
 }
 
@@ -432,6 +440,7 @@ void HydroSourceSMASH::get_hydro_energy_source(
     const double cov_prefac = tau / (pow(M_PI,1.5)*sigma_x*sigma_x*sigma_x);
     const double prefactor_etas = 1. / (sqrt(M_PI) * sigma_eta);
     const double prefactor_prep = 1. / (M_PI * sigma_x * sigma_x);
+    const double exp_tau = 1./tau;
 
     for (auto hadron_i: list_hadrons_current_tau_) {
         const double x_dis = x - hadron_i.x;
@@ -490,9 +499,9 @@ void HydroSourceSMASH::get_hydro_energy_source(
     const double norm = DATA.sFactor / Util::hbarc; // 1/fm^4
     double prefactor = norm;
     if (covariant_smearing_kernel_) {
-        prefactor *= prefactor_tau * cov_prefac / tau;
+        prefactor *= exp_tau * prefactor_tau * cov_prefac;
     } else {
-        prefactor *= prefactor_tau * prefactor_etas * prefactor_prep;
+        prefactor *= exp_tau * prefactor_tau * prefactor_etas * prefactor_prep;
     }
     j_mu[0] *= prefactor * weight_event_;
     j_mu[1] *= prefactor * weight_event_;
@@ -524,6 +533,7 @@ double HydroSourceSMASH::calculate_source(
     const double cov_prefac = tau / (pow(M_PI,1.5)*sigma_x*sigma_x*sigma_x);
     const double prefactor_etas = 1./(sqrt(M_PI) * sigma_eta);
     const double prefactor_prep = 1./(M_PI * sigma_x * sigma_x);
+    const double exp_tau = 1.0/tau;
 
     double val_smearing_kernel = 0.;
     for (auto hadron_i: list_hadrons_current_tau_) {
@@ -576,9 +586,9 @@ double HydroSourceSMASH::calculate_source(
     }
 
     if (covariant_smearing_kernel_) {
-        result *= prefactor_tau * cov_prefac / tau;
+        result *= exp_tau * prefactor_tau * cov_prefac;
     } else {
-        result *= prefactor_tau * prefactor_etas * prefactor_prep;
+        result *= exp_tau * prefactor_tau * prefactor_etas * prefactor_prep;
     }
     return (result*weight_event_);
 }
