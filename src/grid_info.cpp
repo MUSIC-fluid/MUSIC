@@ -2114,7 +2114,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             of2 << -eccn_nB_num1[i]/std::max(eccn_nB_den[i], small_eps) << "  "
                 << -eccn_nB_num2[i]/std::max(eccn_nB_den[i], small_eps) << "  ";
         }
-        of1 << x_nB_o << "  " << y_nB_o;
+        of2 << x_nB_o << "  " << y_nB_o;
         of2 << endl;
 
         of3 << scientific << setw(18) << setprecision(8)
