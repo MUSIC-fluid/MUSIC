@@ -1945,13 +1945,15 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
     filename1 << "eccentricities_evo_ed_tau_" << tau << ".dat";
     std::fstream of1;
     of1.open(filename1.str().c_str(), std::fstream::out);
-    of1 << "# eta_s  ed(GeV/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
+    of1 << "# eta_s  ed(GeV/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)  "
+        << "x_o(ed)(fm)  y_o(ed)(fm)" << endl;
 
     ostringstream filename2;
     filename2 << "eccentricities_evo_nB_tau_" << tau << ".dat";
     std::fstream of2;
     of2.open(filename2.str().c_str(), std::fstream::out);
-    of2 << "# eta_s  nB(1/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)"<< endl;
+    of2 << "# eta_s  nB(1/fm^3)  ecc_n(cos)  ecc_n(sin) (n=1-6)  "
+        << "x_o(nB)(fm)  y_o(nB)(fm)" << endl;
 
     ostringstream filename3;
     filename3 << "meanpT_estimators_tau_" << tau << ".dat";
@@ -2102,6 +2104,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             of1 << -eccn_ed_num1[i]/std::max(eccn_ed_den[i], small_eps) << "  "
                 << -eccn_ed_num2[i]/std::max(eccn_ed_den[i], small_eps) << "  ";
         }
+        of1 << x_ed_o << "  " << y_ed_o;
         of1 << endl;
         of2 << scientific << setw(18) << setprecision(8)
             << eta << "  "
@@ -2111,6 +2114,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             of2 << -eccn_nB_num1[i]/std::max(eccn_nB_den[i], small_eps) << "  "
                 << -eccn_nB_num2[i]/std::max(eccn_nB_den[i], small_eps) << "  ";
         }
+        of1 << x_nB_o << "  " << y_nB_o;
         of2 << endl;
 
         of3 << scientific << setw(18) << setprecision(8)
