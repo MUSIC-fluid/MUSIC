@@ -106,6 +106,9 @@ class MUSIC {
         std::vector<double> pi_23_in, std::vector<double> pi_33_in,
         std::vector<double> Bulk_pi_in);
 
+    // return the dtau from the actual simulation
+    double get_hydro_dtau_grid() const { return DATA.delta_tau; }
+
     void get_hydro_info(
         const double x, const double y, const double z, const double t,
         fluidCell* fluid_cell_info);
@@ -125,6 +128,7 @@ class MUSIC {
     }
 
     double get_hydro_tau0() const {return(hydro_info_ptr->get_hydro_tau0());}
+    // return the hydro dtau from the coarse grained history file
     double get_hydro_dtau() const {return(hydro_info_ptr->get_hydro_dtau());}
     double get_hydro_tau_max() const {
         return(hydro_info_ptr->get_hydro_tau_max());
