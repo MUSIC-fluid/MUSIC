@@ -489,10 +489,11 @@ void EOS_base::check_eos_no_muB() const {
     int ne = (emax - e0)/de + 1;
     for (int i = 0; i < ne; i++) {
         double e_local = pow(e0 + i*de, 4)/hbarc;
-        double p_local = get_pressure(e_local, 0.0);
+        double p_local, dpde, dpdrhob, cs2_local;
+        get_pressure_with_gradients(
+            e_local, 0.0, p_local, dpde, dpdrhob, cs2_local);
         double s_local = get_entropy(e_local, 0.0);
         double T_local = get_temperature(e_local, 0.0);
-        double cs2_local = get_cs2(e_local, 0.0);
         check_file << scientific << setw(18) << setprecision(8)
                    << e_local*hbarc << "   " << p_local*hbarc << "   "
                    << s_local << "   " << T_local*hbarc << "   "

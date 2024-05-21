@@ -103,9 +103,8 @@ double EOS_1DGenerator::get_pressure(double e, double rhob) const {
 void EOS_1DGenerator::get_pressure_with_gradients(double e, double rhob,
         double &p, double &dpde, double &dpdrhob, double &cs2) const {
     double etilde = pow(e, 0.25);
-    interpolate1D_with_gradients(etilde, 0, pressure_tb, p, dpde);
+    interpolate1D_with_weighted_gradient(etilde, 0, pressure_tb, p, dpde);
     p = std::max(Util::small_eps, p);           // [1/fm^4]
-    dpde = dpde/(4.*etilde*etilde*etilde);
     dpdrhob = 0.;
     //cs2 = std::max(0.01, std::min(1./3., dpde));
     cs2 = std::max(0.01, dpde);
@@ -120,4 +119,39 @@ double EOS_1DGenerator::get_s2e(double s, double rhob) const {
 double EOS_1DGenerator::get_T2e(double T_in_GeV, double rhob) const {
     double e = get_T2e_finite_rhob(T_in_GeV, 0.0);
     return(e);
+}
+
+
+void EOS_1DGenerator::interpolate1D_with_weighted_gradient(
+    double e, int table_idx, double ***table, double &p, double &dpde) const {
+// This is a generic linear interpolation routine for EOS at zero mu_B
+// it assumes the class has already read in
+//        P(e), T(e), s(e)
+// as one-dimensional arrays on an equally spacing lattice grid
+// units: e is in 1/fm^4
+// This function uses the interpolation points to compute the local
+// derivatives dP/de.
+    const double e0 = e_bounds[table_idx];
+    const double delta_e = e_spacing[table_idx];
+    const int N_e = e_length[table_idx];
+
+    // compute the indices
+    int idx_e = static_cast<int>((e - e0)/delta_e);
+
+    // treatment for overflow, use the last two points to do extrapolation
+    idx_e = std::min(N_e - 2, std::max(0, idx_e));
+
+    if (e < e0) {
+        // check underflow
+        dpde = table[table_idx][0][0]/e0;
+        p = dpde*e;
+        dpde = 5./4.*table[table_idx][0][0]/pow(e0, 5)*e;
+    } else {
+        double e1 = e0 + idx_e*delta_e;
+        double e2 = e1 + delta_e;
+        double temp1 = table[table_idx][0][idx_e];
+        double temp2 = table[table_idx][0][idx_e + 1];
+        p = temp1 + (temp2 - temp1)/delta_e*(e - e1);
+        dpde = 5./4.*(temp2 - temp1)/(pow(e2, 5) - pow(e1, 5))*e;
+    }
 }

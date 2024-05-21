@@ -20,6 +20,9 @@ class EOS_1DGenerator : public EOS_base {
     double get_T2e        (double T, double rhob) const;
     void get_pressure_with_gradients(double e, double rhob,
             double &p, double &dpde, double &dpdrhob, double &cs2) const;
+    void interpolate1D_with_weighted_gradient(
+            double e, int table_idx, double ***table,
+            double &p, double &dpde) const;
 
     void check_eos() const {check_eos_no_muB();}
 };
