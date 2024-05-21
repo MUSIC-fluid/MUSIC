@@ -255,7 +255,8 @@ double EOS_base::get_cs2(double e, double rhob) const {
 
 double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob) const {
     double v_min = 0.01;
-    double v_max = 1./3;
+    //double v_max = 1./3;
+    double v_max = 1.0;
     double dpde = p_e_func(e, rhob);
     double dpdrho = p_rho_func(e, rhob);
     double pressure = get_pressure(e, rhob);
