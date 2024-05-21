@@ -482,12 +482,12 @@ void EOS_base::check_eos_no_muB() const {
     file_name << "check_EoS_" << whichEOS << "_PST.dat";
     ofstream check_file(file_name.str().c_str());
     check_file << "#e(GeV/fm^3) P(GeV/fm^3) s(1/fm^3) T(GeV) cs^2" << endl;
-    double e0 = 5e-4;
-    double emax = 100.;
+    double e0 = pow(1e-8, 0.25);
+    double emax = pow(1500., 0.25);
     double de = 5e-3;
     int ne = (emax - e0)/de + 1;
     for (int i = 0; i < ne; i++) {
-        double e_local = (e0 + i*de)/hbarc;
+        double e_local = pow(e0 + i*de, 4)/hbarc;
         double p_local = get_pressure(e_local, 0.0);
         double s_local = get_entropy(e_local, 0.0);
         double T_local = get_temperature(e_local, 0.0);
@@ -498,26 +498,6 @@ void EOS_base::check_eos_no_muB() const {
                    << cs2_local << endl;
     }
     check_file.close();
-    ostringstream file_name1;
-    file_name1 << "check_EoS_" << whichEOS << "_PST_lowdensity.dat";
-    ofstream check_file1(file_name1.str().c_str());
-    check_file1 << "#e(GeV/fm^3) P(GeV/fm^3) s(1/fm^3) T(GeV) cs^2" << endl;
-    e0 = 1e-8;
-    emax = 1e-1;
-    de = 2;
-    ne = log(emax/e0)/log(de) + 1;
-    for (int i = 0; i < ne; i++) {
-        double e_local = e0*pow(de, i)/hbarc;
-        double p_local = get_pressure(e_local, 0.0);
-        double s_local = get_entropy(e_local, 0.0);
-        double T_local = get_temperature(e_local, 0.0);
-        double cs2_local = get_cs2(e_local, 0.0);
-        check_file1 << scientific << setw(18) << setprecision(8)
-                    << e_local*hbarc << "   " << p_local*hbarc << "   "
-                    << s_local << "   " << T_local*hbarc << "   "
-                    << cs2_local << endl;
-    }
-    check_file1.close();
 }
 
 
