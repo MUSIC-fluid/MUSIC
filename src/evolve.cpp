@@ -422,6 +422,7 @@ int Evolve::EvolveOneTimeStep(const int itau, Fields &arenaFieldsPrev,
                 store_previous_step_for_freezeout(*fpCurr, freezeoutFieldCurr);
             }
         }
+        frozenStatus = frozen;
 
         /* execute rk steps */
         // all the evolution are at here !!!
