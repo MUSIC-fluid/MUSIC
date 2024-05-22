@@ -169,7 +169,7 @@ void Diss::Make_uWSource(const double tau, const Cell_small &grid_pt,
 
     bool include_WWterm = false;
     bool include_Wsigma_term = false;
-    if (DATA.include_second_order_terms == 1 && DATA.Initial_profile != 0) {
+    if (DATA.include_second_order_terms == 1) {
         include_WWterm = true;
         include_Wsigma_term = true;
     }
@@ -522,11 +522,11 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
     double Final_Answer;
 
     // switch to include non-linear coupling terms in the bulk pi evolution
-    int include_BBterm = 0;
-    int include_coupling_to_shear = 0;
+    bool include_BBterm = false;
+    bool include_coupling_to_shear = false;
     if (DATA.include_second_order_terms == 1) {
-        include_BBterm = 1;
-        include_coupling_to_shear = 1;
+        include_BBterm = true;
+        include_coupling_to_shear = true;
     }
 
     // defining bulk viscosity coefficient
@@ -549,15 +549,22 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
-    double csfactor = std::max(1./3. - cs2, small_eps);
-    Bulk_Relax_time = (transport_coeffs_.get_bulk_relax_time_factor()
-                       /(csfactor*csfactor)
-                       /std::max(epsilon + pressure, small_eps)*bulk);
-    if (DATA.bulk_relaxation_type == 1) {
+    if (DATA.bulk_relaxation_type == 0) {
+        double csfactor = std::max(1./3. - cs2, small_eps);
         Bulk_Relax_time = (
-                bulk/(transport_coeffs_.get_bulk_relax_time_factor()
-                      *csfactor)
+             transport_coeffs_.get_bulk_relax_time_factor()
+             *bulk/(csfactor*csfactor)
+             /std::max(epsilon + pressure, small_eps));
+    } else if (DATA.bulk_relaxation_type == 1) {
+        double csfactor = std::max(1./3. - cs2, small_eps);
+        Bulk_Relax_time = (
+                transport_coeffs_.get_bulk_relax_time_factor()
+                *bulk/csfactor
                 /std::max(epsilon + pressure, small_eps));
+    } else if (DATA.bulk_relaxation_type == 2) {
+        Bulk_Relax_time = (
+             transport_coeffs_.get_bulk_relax_time_factor()
+             *bulk/std::max(epsilon + pressure, small_eps));
     }
 
     // avoid overflow or underflow of the bulk relaxation time
@@ -573,6 +580,10 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
     // from kinetic theory
     transport_coeff1_s = (transport_coeffs_.get_lambda_bulkPipi_coeff()
                           *(1./3. - cs2)*Bulk_Relax_time);
+    if (DATA.bulk_relaxation_type == 2) {
+        transport_coeff1_s = (transport_coeffs_.get_lambda_bulkPipi_coeff()
+                              *1./3.*Bulk_Relax_time);
+    }
     transport_coeff2_s = 0.;  // not known;  put 0
 
 
@@ -585,7 +596,7 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
              - transport_coeff1*theta_local*(grid_pt.pi_b));
 
     // Computing nonlinear term: + transport_coeff2*Bulk*Bulk
-    if (include_BBterm == 1) {
+    if (include_BBterm) {
         BB_term = transport_coeff2*(grid_pt.pi_b)*(grid_pt.pi_b);
     } else {
         BB_term = 0.0;
@@ -594,7 +605,7 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
     // Computing terms that Couple with shear-stress tensor
     double Wsigma, WW, Shear_Sigma_term, Shear_Shear_term, Coupling_to_Shear;
 
-    if (include_coupling_to_shear == 1) {
+    if (include_coupling_to_shear) {
         auto sigma = Util::UnpackVecToMatrix(sigma_1d);
         auto Wmunu = Util::UnpackVecToMatrix(grid_pt.Wmunu);
 
