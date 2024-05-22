@@ -126,6 +126,7 @@ class MUSIC {
     void get_surface_cell_with_index(const int idx, SurfaceCell &cell_i) {
         evolve_ptr_->get_surface_cell_with_index(idx, cell_i);
     }
+    void clear_surface_cell_vector() {evolve_ptr_->clearSurfaceCellVector();}
 
     double get_hydro_tau0() const {return(hydro_info_ptr->get_hydro_tau0());}
     // return the hydro dtau from the coarse grained history file
