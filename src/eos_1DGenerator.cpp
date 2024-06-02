@@ -106,8 +106,9 @@ void EOS_1DGenerator::get_pressure_with_gradients(double e, double rhob,
     interpolate1D_with_weighted_gradient(etilde, 0, pressure_tb, p, dpde);
     p = std::max(Util::small_eps, p);           // [1/fm^4]
     dpdrhob = 0.;
+    dpde = std::max(0.01, std::min(1./2., dpde));
     //cs2 = std::max(0.01, std::min(1./3., dpde));
-    cs2 = std::max(0.01, dpde);
+    cs2 = dpde;
 }
 
 
