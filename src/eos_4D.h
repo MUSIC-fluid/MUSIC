@@ -23,7 +23,6 @@ class EOS_4D : public EOS_base {
     //double Ttilde, mubtilde, muqtilde, mustilde;
 
     // useful constants
-    const int Nf = 3;
     const double alphaNf = (8/45.0 + 7/60.0*3.0)*M_PI*M_PI;
     const double OneoveralphaNf = 1./alphaNf;
 

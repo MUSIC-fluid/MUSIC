@@ -9,7 +9,6 @@
 Reconst::Reconst(const EOS &eosIn, const int echo_level_in, int beastMode) :
     eos(eosIn),
     max_iter(100),
-    LARGE(1e20),
     v_critical(0.563624),
     echo_level(echo_level_in) {
     if (beastMode != 0) {
@@ -105,7 +104,7 @@ int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
     rhoq = J0Q/u[0];
     rhos = J0S/u[0];
 
-    if (v_solution > v_critical) {
+    if (v_solution > v_critical && epsilon > 1e-6) {
         // for large velocity, solve u0
         double u0_solution = u[0];
         int u0_status = solve_u0_Hybrid(u[0], T00, K00, M, J0B, J0Q, J0S,
@@ -474,7 +473,8 @@ void Reconst::reconst_velocity_f(const double v, const double T00,
 
     double pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
 
-    fv = v*(T00 + pressure) - M;
+    //fv = v*(T00 + pressure) - M;
+    fv = v - M/(T00 + pressure);
 }
 
 
@@ -545,8 +545,8 @@ void Reconst::reconst_u0_f(const double u0, const double T00,
 
     double pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
     const double temp1 = 1. - K00/((T00 + pressure)*(T00 + pressure));
-    //fu0 = u0 - 1./sqrt(temp1);
-    fu0 = u0*sqrt(temp1) - 1.;
+    fu0 = u0 - 1./sqrt(temp1);
+    //fu0 = u0*sqrt(temp1) - 1.;
 }
 
 
