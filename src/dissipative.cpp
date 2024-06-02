@@ -515,7 +515,7 @@ double Diss::Make_uPiSource(const double tau, const Cell_small &grid_pt,
                             const std::vector<double> &thermalVec) {
     double tempf;
     double bulk;
-    double Bulk_Relax_time;
+    double Bulk_Relax_time = 0.2;  // fm
     double transport_coeff1, transport_coeff2;
     double transport_coeff1_s, transport_coeff2_s;
     double NS_term, BB_term;

@@ -133,7 +133,7 @@ void Advance::FirstRKStepT(
                     tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
         for (int ii = 0; ii < 4; ii++) {
             qi_source[ii] = tau_rk*j_mu[ii];
-            if (isnan(qi_source[ii])) {
+            if (std::isnan(qi_source[ii])) {
                 music_message << "qi_source is nan. i = " << ii;
                 music_message.flush("error");
                 exit(0);
@@ -593,21 +593,18 @@ double Advance::MaxSpeed(const double tau, const int direc,
     double dpde, dpdrhob, vs2;
     eos.get_pressure_with_gradients(eps, rhob, pressure, dpde, dpdrhob, vs2);
     double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.)*vs2)*vs2;
-    double num;
-    if (num_temp_sqrt >= 0)  {
-        num = utau*ux*(1. - vs2) + sqrt(num_temp_sqrt);
-    } else {
+    double num = utau*ux*(1. - vs2) + sqrt(num_temp_sqrt);
+    if (std::isnan(num))  {
         //double dpde = eos.get_dpde(eps, rhob);
-        double h = pressure + eps;
         if (dpde < 0.001) {
+            double h = pressure + eps;
             num = (sqrt(-(h*dpde*h*(dpde*(-1.0 + ut2mux2) - ut2mux2)))
                    - h*(-1.0 + dpde)*utau*ux);
         } else {
           fprintf(stderr,"WARNING: in MaxSpeed. \n");
-          fprintf(stderr, "Expression under sqrt in num=%lf. \n", num_temp_sqrt);
+          fprintf(stderr,"Expression under sqrt in num=%lf.\n", num_temp_sqrt);
           fprintf(stderr,"at value e=%lf. \n",eps);
           fprintf(stderr,"at value p=%lf. \n",pressure);
-          fprintf(stderr,"at value h=%lf. \n",h);
           fprintf(stderr,"at value rhob=%lf. \n",rhob);
           fprintf(stderr,"at value utau=%lf. \n", utau);
           fprintf(stderr,"at value uk=%lf. \n", ux);
@@ -625,9 +622,9 @@ double Advance::MaxSpeed(const double tau, const int direc,
         fprintf(stderr, "SpeedMax = %e\n is negative.\n", f);
         fprintf(stderr, "Can't happen.\n");
         exit(0);
-    } else if (f <  ux/utau) {
+    } else if (f < ux/utau) {
         if (num != 0.0) {
-            if (fabs(f-ux/utau)<0.0001) {
+            if (std::abs(f - ux/utau) < 0.0001) {
                 f = ux/utau;
             } else {
                 fprintf(stderr, "SpeedMax-v = %lf\n", f-ux/utau);
@@ -641,7 +638,8 @@ double Advance::MaxSpeed(const double tau, const int direc,
         fprintf(stderr, "Can't happen.\n");
         fprintf(stderr, "SpeedMax = num/den, num = %e, den = %e \n", num, den);
         fprintf(stderr, "cs2 = %e \n", vs2);
-        f =1.;
+        fprintf(stderr, "utau = %e, ux = %e \n", utau, ux);
+        f = 1.;
         exit(1);
     }
     f *= g[direc-1];
