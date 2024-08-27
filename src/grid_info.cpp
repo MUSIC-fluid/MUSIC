@@ -1298,7 +1298,7 @@ void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
         const int output_nx   = static_cast<int>(arena.nX()/n_skip_x);
         const int output_ny   = static_cast<int>(arena.nY()/n_skip_y);
         const int output_neta = (
-                std::min(1, static_cast<int>(arena.nEta()/n_skip_eta)));
+                std::max(1, static_cast<int>(arena.nEta()/n_skip_eta)));
         const double output_dx     = DATA.delta_x*n_skip_x;
         const double output_dy     = DATA.delta_y*n_skip_y;
         const double output_deta   = DATA.delta_eta*n_skip_eta;
