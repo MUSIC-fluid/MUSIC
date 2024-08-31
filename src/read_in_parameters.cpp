@@ -433,6 +433,11 @@ InitData read_in_parameters(std::string input_file) {
         getParameter(input_file, "Do_FreezeOut_Yes_1_No_0", 1));
     parameter_list.doFreezeOut_lowtemp = (
         getParameter(input_file, "Do_FreezeOut_lowtemp", 1));
+    // freeze_out_method:
+    // 2: Schenke's more complex method
+    // 4: Cornelius
+    parameter_list.freezeOutMethod = (
+            getParameter(input_file, "freeze_out_method", 4));
 
     // use_eps_for_freeze_out:
     // 0: freeze out at constant temperature T_freeze
@@ -491,12 +496,6 @@ InitData read_in_parameters(std::string input_file) {
     } else {
         parameter_list.freeze_surface_in_binary = true;
     }
-
-    // freeze_out_method:
-    // 2: Schenke's more complex method
-    // 4: Cornelius
-    parameter_list.freezeOutMethod = (
-            getParameter(input_file, "freeze_out_method", 4));
 
     // average_surface_over_this_many_time_steps:
     // Only save every N timesteps for finding freeze out surface

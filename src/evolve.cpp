@@ -1411,14 +1411,19 @@ void Evolve::initialize_freezeout_surface_info() {
             }
         }
         freeze_list_file.close();
-        music_message << "totally " << temp_n_surf
-                      << " freeze-out surface will be generated ...";
-        music_message.flush("info");
     } else {
         music_message << "Evolve::initialize_freezeout_surface_info: "
                       << "unrecoginze freeze_eps_flag = " << freeze_eps_flag;
         music_message.flush("error");
         exit(1);
+    }
+    music_message << "In total, " << DATA.N_freeze_out
+                  << " freeze-out surface will be generated ...";
+    music_message.flush("info");
+    for (int isurf = 0; isurf < DATA.N_freeze_out; isurf++) {
+        music_message << "eps_freezeout = " << epsFO_list[isurf]
+                      << " GeV/fm^3.";
+        music_message.flush("info");
     }
 }
 
