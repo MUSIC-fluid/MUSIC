@@ -454,7 +454,7 @@ InitData read_in_parameters(std::string input_file) {
         parameter_list.TFO = getParameter(input_file, "T_freeze", 0.12);
         // only one freeze-out is allowed
         parameter_list.N_freeze_out = 1;
-    } else if (parameter_list.useEpsFO == 1) {
+    } else {
         // epsilon_freeze: freeze-out energy density in GeV/fm^3
         // only used with use_eps_for_freeze_out = 1
         // allow multiple parameter names for backward compitibility
@@ -503,7 +503,7 @@ InitData read_in_parameters(std::string input_file) {
             getParameter(input_file,
                          "average_surface_over_this_many_time_steps", 1));
     parameter_list.fac_x = getParameter(input_file, "freeze_Ncell_x_step", 1);
-    parameter_list.fac_y = parameter_list.fac_y;;
+    parameter_list.fac_y = parameter_list.fac_x;
     parameter_list.fac_eta = (
             getParameter(input_file, "freeze_Ncell_eta_step", 1));
 

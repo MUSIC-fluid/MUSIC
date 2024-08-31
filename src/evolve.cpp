@@ -29,7 +29,7 @@ Evolve::Evolve(const EOS &eosIn, InitData &DATA_in,
     eos(eosIn), DATA(DATA_in),
     grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in) {
 
-    rk_order  = DATA_in.rk_order;
+    rk_order = DATA_in.rk_order;
     if (DATA.freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
     }
@@ -1396,7 +1396,6 @@ void Evolve::initialize_freezeout_surface_info() {
             music_message.flush("error");
             exit(1);
         }
-        int temp_n_surf = 0;
         std::string dummy;
         double temp_epsFO, dummyd;
         getline(freeze_list_file, dummy);  // get rid of the comment
@@ -1405,7 +1404,6 @@ void Evolve::initialize_freezeout_surface_info() {
                              >> dummyd >> dummyd >> dummyd >> dummyd;  
             if (!freeze_list_file.eof()) {
                 epsFO_list.push_back(temp_epsFO);
-                temp_n_surf++;
             } else {
                 break;
             }
