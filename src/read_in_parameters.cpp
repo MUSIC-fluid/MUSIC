@@ -495,12 +495,19 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_yL_frac;
     parameter_list.yL_frac = temp_yL_frac;
 
-    // s_factor:  for use with IP-Glasma initial conditions
-    double tempsFactor   = 1.0;
+    // s_factor: for use with IP-Glasma initial conditions
+    double tempsFactor = 1.0;
     tempinput = Util::StringFind4(input_file, "s_factor");
     if (tempinput != "empty")
         istringstream ( tempinput ) >> tempsFactor;
     parameter_list.sFactor = tempsFactor;
+
+    // preEqVisFactor: for use with IP-Glasma initial conditions
+    double tempVisFactor = 1.0;
+    tempinput = Util::StringFind4(input_file, "preEqVisFactor");
+    if (tempinput != "empty")
+        istringstream ( tempinput ) >> tempVisFactor;
+    parameter_list.preEqVisFactor = tempVisFactor;
 
     // for calculation of spectra:
     // max_pseudorapidity:
