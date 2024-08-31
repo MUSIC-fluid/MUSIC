@@ -183,10 +183,12 @@ InitData read_in_parameters(std::string input_file) {
             parameter_list.x_size/static_cast<double>(parameter_list.nx - 1);
     parameter_list.delta_y =
             parameter_list.y_size/static_cast<double>(parameter_list.ny - 1);
-    parameter_list.delta_eta = (parameter_list.eta_size
+    if (parameter_list.neta > 1) {
+        parameter_list.delta_eta = (parameter_list.eta_size
                                 /static_cast<double>(parameter_list.neta - 1));
-
-
+    } else {
+        parameter_list.delta_eta = 0.1;
+    }
     music_message << " DeltaX = " << parameter_list.delta_x << " fm";
     music_message.flush("info");
     music_message << " DeltaY = " << parameter_list.delta_y << " fm";
@@ -290,7 +292,7 @@ InitData read_in_parameters(std::string input_file) {
         getParameter(input_file, "shear_relax_time_factor", 5.0));
 
     parameter_list.T_dependent_shear_to_s = (
-        getParameter(input_file, "T_dependent_shear_to_s", 0));
+        getParameter(input_file, "T_dependent_Shear_to_S_ratio", 0));
     // If "T_dependent_Shear_to_S_ratio==2",
     // (eta/s)(T) = eta_over_s_min + eta_over_s_slope*(T − Tc)*(T/Tc)^{eta_over_s_curv}
     // with T_c=0.154 GeV
@@ -315,7 +317,7 @@ InitData read_in_parameters(std::string input_file) {
         getParameter(input_file, "shear_viscosity_3_eta_over_s_at_kink", 0.08));
 
     parameter_list.muB_dependent_shear_to_s = (
-        getParameter(input_file, "muB_dependent_shear_to_s", 0));
+        getParameter(input_file, "muB_dependent_Shear_to_S_ratio", 0));
     parameter_list.shear_muBf0p4 = (
         getParameter(input_file, "shear_muBf0p4", 1.));
     parameter_list.shear_muBf0p2 = (
@@ -337,7 +339,8 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.T_dependent_bulk_to_s = (
         getParameter(input_file, "T_dependent_Bulk_to_S_ratio", 1));
     parameter_list.T_dependent_bulk_to_s = (
-        getParameter(input_file, "T_dependent_bulk_to_s", 1));
+        getParameter(input_file, "T_dependent_zeta_over_s",
+                     parameter_list.T_dependent_bulk_to_s));
     // "T_dependent_Bulk_to_S_ratio=2",
     // bulk viscosity is parametrized as with "A", "G" and "Tc" as
     // "A*(1/(1+((T-Tc)/G)^2)"
@@ -451,9 +454,13 @@ InitData read_in_parameters(std::string input_file) {
         // only used with use_eps_for_freeze_out = 1
         // allow multiple parameter names for backward compitibility
         parameter_list.epsilonFreeze = (
-            getParameter(input_file, "epsilon_freeze", 0.18));  // GeV/fm^3
-        parameter_list.epsilonFreeze = (
             getParameter(input_file, "eps_switch", 0.18));      // GeV/fm^3
+        parameter_list.epsilonFreeze = (
+            getParameter(input_file, "epsilon_freeze",
+                         parameter_list.epsilonFreeze));        // GeV/fm^3
+        parameter_list.epsilonFreeze = (
+            getParameter(input_file, "eps_freeze_max",
+                         parameter_list.epsilonFreeze));        // GeV/fm^3
         parameter_list.N_freeze_out = (
             getParameter(input_file, "N_freeze_out", 1));
     }
