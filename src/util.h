@@ -34,6 +34,10 @@ namespace Util {
 
     int IsFile(std::string);
 
+    int getParameter(std::string paramFileName, std::string paramName,
+                     int defaultValue);
+    double getParameter(std::string paramFileName, std::string paramName,
+                        double defaultValue);
     std::string StringFind4(std::string file_name, std::string str_in);
     std::string convert_to_lowercase(std::string str_in);
 
