@@ -66,6 +66,26 @@ int IsFile(string file_name) {
 }
 
 
+int getParameter(string paramFileName, string paramName,
+                 int defaultValue) {
+    int paramVal = defaultValue;
+    string tempinput = Util::StringFind4(paramFileName, paramName);
+    if (tempinput != "empty")
+        std::istringstream ( tempinput ) >> paramVal;
+    return(paramVal);
+}
+
+
+double getParameter(string paramFileName, string paramName,
+                    double defaultValue) {
+    double paramVal = defaultValue;
+    string tempinput = Util::StringFind4(paramFileName, paramName);
+    if (tempinput != "empty")
+        std::istringstream ( tempinput ) >> paramVal;
+    return(paramVal);
+}
+
+
 // support comments in the parameters file
 // comments need to start with #
 // case-insensitive

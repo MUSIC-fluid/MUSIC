@@ -610,16 +610,20 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, Fields &arenaFieldsPrev,
                >> pitautau >> pitaux >> pitauy >> pitaueta
                >> pixx >> pixy >> pixeta >> piyy >> piyeta >> pietaeta;
             ueta = ueta*tau0;
-            temp_profile_ed    [idx] = density;
+            temp_profile_ed    [idx] = density*DATA.sFactor/hbarc;  // 1/fm^4
             temp_profile_ux    [idx] = ux;
             temp_profile_uy    [idx] = uy;
             temp_profile_ueta  [idx] = ueta;
             temp_profile_utau  [idx] = sqrt(1. + ux*ux + uy*uy + ueta*ueta);
-            temp_profile_pixx  [idx] = pixx*DATA.sFactor;
-            temp_profile_pixy  [idx] = pixy*DATA.sFactor;
-            temp_profile_pixeta[idx] = pixeta*tau0*DATA.sFactor;
-            temp_profile_piyy  [idx] = piyy*DATA.sFactor;
-            temp_profile_piyeta[idx] = piyeta*tau0*DATA.sFactor;
+
+            // no hbarc factor for the viscous components
+            // they are already in 1/fm^4 from the IP-Glasma output
+            double visFactor = DATA.sFactor*DATA.preEqVisFactor;
+            temp_profile_pixx  [idx] = pixx*visFactor;
+            temp_profile_pixy  [idx] = pixy*visFactor;
+            temp_profile_pixeta[idx] = pixeta*tau0*visFactor;
+            temp_profile_piyy  [idx] = piyy*visFactor;
+            temp_profile_piyeta[idx] = piyeta*tau0*visFactor;
 
             utau = temp_profile_utau[idx];
             temp_profile_pietaeta[idx] = (
@@ -662,21 +666,12 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, Fields &arenaFieldsPrev,
     double eta = (DATA.delta_eta)*(ieta) - (DATA.eta_size)/2.0;
     double eta_envelop_ed = eta_profile_plateau(eta, DATA.eta_flat/2.0,
                                                 DATA.eta_fall_off);
-    int entropy_flag = DATA.initializeEntropy;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy< ny; iy++) {
             int idx = iy + ix*ny;
-            double rhob = 0.0;
-            double epsilon = 0.0;
-            if (entropy_flag == 0) {
-                epsilon = (temp_profile_ed[idx]*eta_envelop_ed
-                           *DATA.sFactor/hbarc);  // 1/fm^4
-            } else {
-                double local_sd = (temp_profile_ed[idx]*DATA.sFactor
-                                   *eta_envelop_ed);
-                epsilon = eos.get_s2e(local_sd, rhob);
-            }
-            epsilon = std::max(Util::small_eps, epsilon);
+            const double rhob = 0.0;
+            double epsilon = std::max(Util::small_eps,
+                                      temp_profile_ed[idx]*eta_envelop_ed);
 
             int Fidx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
             arenaFieldsCurr.e_[Fidx] = epsilon;
@@ -710,7 +705,8 @@ void Init::initial_IPGlasma_XY_with_pi(int ieta, Fields &arenaFieldsPrev,
 
                 if (DATA.Initial_profile == 9) {
                     double pressure = eos.get_pressure(epsilon, rhob);
-                    arenaFieldsCurr.piBulk_[Fidx] = epsilon/3. - pressure;
+                    arenaFieldsCurr.piBulk_[Fidx] = (
+                        (epsilon/3. - pressure)*DATA.preEqVisFactor);
                 }
             }
 

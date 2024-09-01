@@ -95,6 +95,10 @@ typedef struct init_data {
     double minmod_theta;
 
     double sFactor;     //!< overall normalization on energy density profile
+
+    //! A scale factor for initial shear and bulk viscous pressure
+    double preEqVisFactor;
+
     int whichEOS;       //!< type of EoS
     //! flag for boost invariant simulations
     bool boost_invariant;
