@@ -89,11 +89,14 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     const int NtauBlock = 200;
     while (tau < tauMax) {
         if (DATA.beastMode == 2 && it > 0 && (it % NtauBlock == 0)) {
-            DATA.delta_tau = std::min(0.04, 2*DATA.delta_tau);
-            DATA.facTau = std::max(1, static_cast<int>(DATA.facTau/2));
-            DATA.output_evolution_every_N_timesteps = (
-                std::max(1, static_cast<int>(
-                                DATA.output_evolution_every_N_timesteps/2)));
+            if (DATA.delta_x/(2.*DATA.delta_tau) > 5) {
+                DATA.delta_tau = 2.*DATA.delta_tau;
+                DATA.facTau = std::max(1, static_cast<int>(DATA.facTau/2.));
+                DATA.output_evolution_every_N_timesteps = (
+                    std::max(1, static_cast<int>(
+                                    DATA.output_evolution_every_N_timesteps/2))
+                );
+            }
         }
         int facTau = DATA.facTau;
         int Nskip_timestep = DATA.output_evolution_every_N_timesteps;
