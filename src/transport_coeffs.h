@@ -4,6 +4,8 @@
 
 #include "data.h"
 
+#include <vector>
+
 class TransportCoeffs {
  private:
     const InitData &DATA;
@@ -14,9 +16,16 @@ class TransportCoeffs {
     const int shear_muB_;
     const int bulk_T_;
 
+    std::vector<double> TArr_;
+    std::vector<double> shearArr_;
+    std::vector<double> bulkArr_;
+
  public:
     TransportCoeffs() = delete;
     TransportCoeffs(const InitData &DATA_in);
+
+    void read_in_shear_from_file();
+    void read_in_bulk_from_file();
 
     double get_eta_over_s(const double T, const double muB) const;
     double get_zeta_over_s(const double T, const double muB) const;

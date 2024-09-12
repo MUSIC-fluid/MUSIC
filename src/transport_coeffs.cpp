@@ -1,6 +1,10 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 
 #include <cmath>
+#include <string>
+#include <fstream>
+#include <iostream>
+
 #include "util.h"
 #include "transport_coeffs.h"
 
@@ -13,6 +17,53 @@ TransportCoeffs::TransportCoeffs(const InitData &Data_in)
       bulk_T_(DATA.T_dependent_bulk_to_s) {
     shear_relax_time_factor_ = DATA.shear_relax_time_factor;
     bulk_relax_time_factor_  = DATA.bulk_relax_time_factor;
+
+    if (shear_T_ == 23) {
+        read_in_shear_from_file();
+    }
+    if (bulk_T_ == 23) {
+        read_in_bulk_from_file();
+    }
+}
+
+
+void TransportCoeffs::read_in_shear_from_file() {
+    std::string path = "/EOS/shear_1DGen.bin";
+    std::ifstream shearFile;
+    shearFile.open(path, std::ios::binary);
+    if (!shearFile) {
+        std::cout << "Can not find the shear viscosity file." << std::endl;
+        exit(1);
+    }
+    TArr_.resize(100);
+    shearArr_.resize(100);
+
+    for (int i = 0; i < 100; i++) {
+        shearFile.read((char*)&TArr_[i], sizeof(double));
+        shearFile.read((char*)&shearArr_[i], sizeof(double));
+    }
+
+    shearFile.close();
+}
+
+
+void TransportCoeffs::read_in_bulk_from_file() {
+    std::string path = "/EOS/bulk_1DGen.bin";
+    std::ifstream bulkFile;
+    bulkFile.open(path, std::ios::binary);
+    if (!bulkFile) {
+        std::cout << "Can not find the bulk viscosity file." << std::endl;
+        exit(1);
+    }
+    TArr_.resize(100);
+    bulkArr_.resize(100);
+
+    for (int i = 0; i < 100; i++) {
+        bulkFile.read((char*)&TArr_[i], sizeof(double));
+        bulkFile.read((char*)&bulkArr_[i], sizeof(double));
+    }
+
+    bulkFile.close();
 }
 
 
@@ -23,6 +74,14 @@ double TransportCoeffs::get_eta_over_s(const double T, const double muB) const {
 
     if (shear_T_ == 0) {
         eta_over_s = DATA.shear_to_s;
+    } else if (shear_T_ == 23) {
+        double T_in_GeV = T*hbarc;
+        int Tidx = static_cast<int>(
+            (T_in_GeV - TArr_[0])/(TArr_[1] - TArr_[0]));
+        Tidx = std::max(0, std::min(static_cast<int>(TArr_.size() - 2), Tidx));
+        double Tfrac = (T_in_GeV - TArr_[Tidx])/(TArr_[1] - TArr_[0]);
+        Tfrac = std::max(0., std::min(1., Tfrac));
+        eta_over_s = (1. - Tfrac)*shearArr_[Tidx] + Tfrac*shearArr_[Tidx + 1];
     } else if (shear_T_ == 3) {
         eta_over_s = get_temperature_dependent_eta_over_s_sims(T);
     } else if (shear_T_ == 1) {
@@ -148,7 +207,15 @@ double TransportCoeffs::get_zeta_over_s(const double T,
     // input T [1/fm], mu_B [1/fm]
     double muB_in_GeV = mu_B*hbarc;
     double zeta_over_s = 0.;
-    if (bulk_T_ == 10) {
+    if (bulk_T_ == 23) {
+        double T_in_GeV = T*hbarc;
+        int Tidx = static_cast<int>(
+            (T_in_GeV - TArr_[0])/(TArr_[1] - TArr_[0]));
+        Tidx = std::max(0, std::min(static_cast<int>(TArr_.size() - 2), Tidx));
+        double Tfrac = (T_in_GeV - TArr_[Tidx])/(TArr_[1] - TArr_[0]);
+        Tfrac = std::max(0., std::min(1., Tfrac));
+        zeta_over_s = (1. - Tfrac)*bulkArr_[Tidx] + Tfrac*bulkArr_[Tidx + 1];
+    } else if (bulk_T_ == 10) {
         // param. for 3D-Glauber + MUSIC + UrQMD
         double peak_norm = DATA.bulk_10_max;
         if (muB_in_GeV < 0.2) {
