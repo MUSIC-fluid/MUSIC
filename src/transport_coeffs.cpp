@@ -28,11 +28,12 @@ TransportCoeffs::TransportCoeffs(const InitData &Data_in)
 
 
 void TransportCoeffs::read_in_shear_from_file() {
-    std::string path = "/EOS/shear_1DGen.bin";
+    std::string path = "./EOS/shear_1DGen.bin";
     std::ifstream shearFile;
     shearFile.open(path, std::ios::binary);
     if (!shearFile) {
-        std::cout << "Can not find the shear viscosity file." << std::endl;
+        std::cout << "Can not find the shear viscosity file: "
+                  << path << std::endl;
         exit(1);
     }
     TArr_.resize(100);
@@ -48,11 +49,12 @@ void TransportCoeffs::read_in_shear_from_file() {
 
 
 void TransportCoeffs::read_in_bulk_from_file() {
-    std::string path = "/EOS/bulk_1DGen.bin";
+    std::string path = "./EOS/bulk_1DGen.bin";
     std::ifstream bulkFile;
     bulkFile.open(path, std::ios::binary);
     if (!bulkFile) {
-        std::cout << "Can not find the bulk viscosity file." << std::endl;
+        std::cout << "Can not find the bulk viscosity file: "
+                  << path << std::endl;
         exit(1);
     }
     TArr_.resize(100);
