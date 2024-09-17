@@ -16,6 +16,7 @@ set (SOURCES
     util.cpp
     read_in_parameters.cpp
     advance.cpp
+    fields.cpp
     eos.cpp
     eos_base.cpp
     eos_idealgas.cpp

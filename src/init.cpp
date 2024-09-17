@@ -200,6 +200,9 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
         // code test in 1+1 D vs Monnai's results
         music_message.info(" Perform 1+1D test vs Monnai's results... ");
         initial_1p1D_eta(arenaFieldsPrev, arenaFieldsCurr);
+    }  else if (Data.Initial_profile == 17){
+        //new profile for hydro_soruce_Tmunu.cpp
+        music_message.info(" ----- information on initial distribution -----");
     } else if (DATA.Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
