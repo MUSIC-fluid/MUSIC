@@ -14,7 +14,6 @@
 class HydroSourceTmunu : public HydroSourceBase {
  private:
     InitData &DATA;
-    const EOS &eos;
 
     std::vector<std::vector<std::vector<double>>> energy_density_;
     std::vector<std::vector<std::vector<std::array<double, 4>>>> velocity_;
@@ -24,7 +23,7 @@ class HydroSourceTmunu : public HydroSourceBase {
 
  public:
     HydroSourceTmunu() = delete; 
-    HydroSourceTmunu(InitData &DATA_in, const EOS &eos_in);
+    HydroSourceTmunu(InitData &DATA_in);
     //~HydroSourceTmunu() = default; 
     void get_hydro_energy_source(const double tau, const double x, const double y, const double eta_s,
                                  const std::array<double, 4>& u_mu, std::array<double, 4>& j_mu) const;

@@ -14,6 +14,7 @@
 #include "hydro_source_strings.h"
 #include "hydro_source_ampt.h"
 #include "hydro_source_TATB.h"
+#include "hydro_source_Tmunu.h"
 
 #ifdef GSL
     #include "freeze.h"
@@ -70,6 +71,13 @@ void MUSIC::generate_hydro_source_terms() {
                                             new HydroSourceTATB (DATA));
         add_hydro_source_terms(hydro_source_ptr);
     }
+    else if (DATA.Initial_profile == 17 ){
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceTmunu> (
+                                            new HydroSourceTmunu (DATA));
+        
+        add_hydro_source_terms(hydro_source_ptr);
+
+    } 
 }
 
 

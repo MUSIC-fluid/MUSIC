@@ -12,8 +12,8 @@
 using Util::hbarc;
 
 // Constructor
-HydroSourceTmunu::HydroSourceTmunu(InitData &DATA_in, const EOS &eos_in)
-    : DATA(DATA_in), eos(eos_in) {
+HydroSourceTmunu::HydroSourceTmunu(InitData &DATA_in)
+    : DATA(DATA_in) {
     // Read the IP-Glasma event file
     readIPGevent();
 }
