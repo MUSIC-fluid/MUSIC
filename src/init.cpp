@@ -100,12 +100,18 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         DATA.ny = ny;
         DATA.delta_x = dx;
         DATA.delta_y = dy;
-
         music_message << "neta=" << DATA.neta
                       << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
         music_message << "deta=" << DATA.delta_eta << ", dx=" << DATA.delta_x
                       << " fm, dy=" << DATA.delta_y << " fm.";
         music_message.flush("info");
+        if (DATA.resetDtau
+            && DATA.delta_tau/DATA.delta_x > DATA.dtaudxRatio) {
+            DATA.delta_tau = DATA.delta_x*DATA.dtaudxRatio;
+            music_message << "Resetting Delta_Tau = " << DATA.delta_tau
+                          << "acording to the CFL condition.";
+            music_message.flush("info");
+        }
     } else if (DATA.Initial_profile == 11 || DATA.Initial_profile == 111) {
         double tau_overlap = 2.*7./(sinh(DATA.beam_rapidity));
         DATA.tau0 = std::max(DATA.tau0, tau_overlap);

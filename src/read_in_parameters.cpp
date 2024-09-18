@@ -796,22 +796,24 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         music_message.flush("warning");
 
         bool reset_dtau_use_CFL_condition = true;
-        int temp_CFL_condition = 1;
-        string tempinput = Util::StringFind4(
-                            input_file, "reset_dtau_use_CFL_condition");
-        if (tempinput != "empty")
-            istringstream(tempinput) >> temp_CFL_condition;
-        if (temp_CFL_condition == 0)
+        int temp_CFL_condition = (
+            getParameter(input_file, "reset_dtau_use_CFL_condition", 1));
+        if (temp_CFL_condition == 0) {
             reset_dtau_use_CFL_condition = false;
+        }
         parameter_list.resetDtau = reset_dtau_use_CFL_condition;
 
         if (reset_dtau_use_CFL_condition) {
             music_message.info("reset dtau using CFL condition.");
             double dtau_CFL = std::min(
-                std::min(parameter_list.delta_x*parameter_list.dtaudxRatio,
-                         parameter_list.delta_y*parameter_list.dtaudxRatio),
-                         parameter_list.tau0*parameter_list.delta_eta
-                         *parameter_list.dtaudxRatio);
+                parameter_list.delta_x*parameter_list.dtaudxRatio,
+                parameter_list.delta_y*parameter_list.dtaudxRatio);
+            if (!parameter_list.boost_invariant) {
+                dtau_CFL = (
+                    std::min(dtau_CFL,
+                             parameter_list.tau0*parameter_list.delta_eta
+                             *parameter_list.dtaudxRatio));
+            }
             parameter_list.delta_tau = dtau_CFL;
             parameter_list.nt = static_cast<int>(
                 parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
@@ -822,8 +824,6 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
                           << "Number of time steps required = "
                           << parameter_list.nt;
             music_message.flush("info");
-        } else {
-            exit(1);
         }
     }
 
