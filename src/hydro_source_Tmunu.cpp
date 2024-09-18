@@ -71,7 +71,7 @@ void HydroSourceTmunu::readIPGevent() {
     int ix, iy, ieta;
 
     double e, utau, ux, uy, ueta;
-    double density, dummy1, dummy2, dummy3;
+    double density = 0, dummy2 = 0, dummy3 = 0;
     double pixx, pixy, pixeta, piyy, piyeta, pietaeta, pitautau, pitaux, pitauy, pitaueta;
 
     for (ix = 0; ix < nx; ix++) {
