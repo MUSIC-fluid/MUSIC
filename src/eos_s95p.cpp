@@ -15,14 +15,14 @@ EOS_s95p::EOS_s95p(const int eos_id_in) : eos_id(eos_id_in) {
     set_eps_max(1e5);
     set_flag_muB(false);
     set_flag_muS(false);
-    set_flag_muC(false);
+    set_flag_muQ(false);
 }
 
 
 void EOS_s95p::initialize_eos() {
     // read the lattice EOS pressure, temperature, and 
     music_message.info("reading EOS s95p ...");
-    
+
     auto envPath = get_hydro_env_path();
     stringstream spath;
     spath << envPath;
@@ -55,7 +55,7 @@ void EOS_s95p::initialize_eos() {
             "Using lattice EOS from Huovinen/Petreczky s95p-v1.2 (for UrQMD)");
         spath << "/EOS/s95p-v1.2/";
     }
-    
+
     music_message << "from path " << spath.str();
     music_message.flush("info");
 
@@ -64,11 +64,11 @@ void EOS_s95p::initialize_eos() {
     } else if (eos_id == 7) {
         spath << "s95p-v1.2_";
     }
-    
+
     const int ntables = 7;
     set_number_of_tables(ntables);
     resize_table_info_arrays();
-    
+
     string eos_file_string_array[7] = {"1", "2", "3", "4", "5", "6", "7"};
     pressure_tb    = new double** [ntables];
     temperature_tb = new double** [ntables];
@@ -82,18 +82,18 @@ void EOS_s95p::initialize_eos() {
         // deltaEpsilon, number of epsilon steps (i.e. # of lines)
         eos_d >> e_bounds[itable];
         eos_d >> e_spacing[itable] >> e_length[itable];
-        
+
         e_bounds[itable]  /= Util::hbarc;   // 1/fm^4
         e_spacing[itable] /= Util::hbarc;   // 1/fm^4
-        
+
         // skip the header in T file
         string dummy;
         std::getline(eos_T, dummy);
         std::getline(eos_T, dummy);
-        
+
         // no rho_b dependence at the moment
         nb_length[itable] = 1;
-        
+
         // allocate memory for pressure arrays
         pressure_tb[itable] = Util::mtx_malloc(nb_length[itable],
                                                e_length[itable]);
@@ -109,7 +109,7 @@ void EOS_s95p::initialize_eos() {
             eos_d >> pressure_tb[itable][i][j];
             eos_d >> d_dummy >> dummy >> dummy;;
             eos_T >> temperature_tb[itable][i][j] >> dummy >> dummy;
-                
+
             pressure_tb[itable][i][j]    /= Util::hbarc;    // 1/fm^4
             temperature_tb[itable][i][j] /= Util::hbarc;    // 1/fm
         }
@@ -151,7 +151,7 @@ double EOS_s95p::get_s2e(double s, double rhob) const {
     return(e);
 }
 
-double EOS_s95p::get_T2e(double T, double rhob) const {
-    double e = get_T2e_finite_rhob(T, 0.0);
+double EOS_s95p::get_T2e(double T_in_GeV, double rhob) const {
+    double e = get_T2e_finite_rhob(T_in_GeV, 0.0);
     return(e);
 }

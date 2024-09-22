@@ -16,16 +16,19 @@ class HydroinfoMUSIC {
     double hydroDtau;       // step dtau in fm/c in the hydro data files
     double hydroXmax;       // maximum x in fm in the hydro data files
                             // [-xmax, +xmax] for both x and y
+    double hydroYmax;       // maximum y in fm in the hydro data files
+                            // [-ymax, +ymax] for both x and y
     double hydro_eta_max;   // maximum z in fm in the hydro data files
                             // [-zmax, +zmax] for 3D hydro
     double hydroDx;         // step dx in fm in the hydro data files
+    double hydroDy;         // step dy in fm in the hydro data files
     double hydroDeta;       // step dz in fm in the hydro data files in
                             // the z-direction for 3D hydro
 
     int use_tau_eta_coordinate;
     bool boost_invariant;
 
-    int itaumax, ixmax, ietamax;
+    int itaumax, ixmax, iymax, ietamax;
 
     std::vector<fluidCell_ideal> lattice_ideal;
     pretty_ostream music_message;
@@ -39,11 +42,14 @@ class HydroinfoMUSIC {
     double get_hydro_tau0() const    {return(hydroTau0);}
     double get_hydro_dtau() const    {return(hydroDtau);}
     double get_hydro_dx() const      {return(hydroDx);}
+    double get_hydro_dy() const      {return(hydroDy);}
     double get_hydro_deta() const    {return(hydroDeta);}
     double get_hydro_eta_max() const {return(hydro_eta_max);}
     double get_hydro_x_max() const   {return(hydroXmax);}
+    double get_hydro_y_max() const   {return(hydroYmax);}
     int get_ntau() const {return(itaumax);}
     int get_nx()   const {return(ixmax  );}
+    int get_ny()   const {return(iymax  );}
     int get_neta() const {return(ietamax);}
     bool is_boost_invariant() const {return(boost_invariant);}
 

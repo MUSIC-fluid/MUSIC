@@ -9,8 +9,8 @@
 
 #include "data.h"
 #include "cell.h"
-#include "grid.h"
 #include "eos.h"
+#include "fields.h"
 #include "hydro_source_base.h"
 #include "pretty_ostream.h"
 
@@ -23,6 +23,7 @@ class Init {
 
     // support for JETSCAPE
     std::vector<double> jetscape_initial_energy_density;
+    std::vector<double> jetscape_initial_pressure;
     std::vector<double> jetscape_initial_u_tau;
     std::vector<double> jetscape_initial_u_x;
     std::vector<double> jetscape_initial_u_y;
@@ -43,23 +44,31 @@ class Init {
     Init(const EOS &eos, InitData &DATA_in,
          std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
 
-    void InitArena(SCGrid &arena_prev, SCGrid &arena_current,
-                   SCGrid &arena_future);
-    void InitTJb  (SCGrid &arena_prev, SCGrid &arena_current);
+    void InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+                   Fields &arenaFieldsNext);
+    void InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
     void print_num_of_threads();
 
-    void initial_Gubser_XY               (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_1p1D_eta                (SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_IPGlasma_XY             (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_IPGlasma_XY_with_pi     (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_with_zero_XY            (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_AMPT_XY                 (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_MCGlb_with_rhob         (SCGrid &arena_prev, SCGrid &arena_current);
-    void initial_UMN_with_rhob           (SCGrid &arena_prev, SCGrid & arena_current);
-    void initial_with_jetscape           (int ieta, SCGrid &arena_prev, SCGrid &arena_current);
+    void initial_Gubser_XY(int ieta, Fields &arenaFieldsPrev,
+                           Fields &arenaFieldsCurr);
+    void initial_1p1D_eta(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_IPGlasma_XY(int ieta, Fields &arenaFieldsPrev,
+                             Fields &arenaFieldsCurr);
+    void initial_IPGlasma_XY_with_pi(int ieta, Fields &arenaFieldsPrev,
+                                     Fields &arenaFieldsCurr);
+    void initial_with_zero_XY(int ieta, Fields &arenaFieldsPrev,
+                              Fields &arenaFieldsCurr);
+    void initial_AMPT_XY(int ieta, Fields &arenaFieldsPrev,
+                         Fields &arenaFieldsCurr);
+    void initial_MCGlb_with_rhob(Fields &arenaFieldsPrev,
+                                 Fields &arenaFieldsCurr);
+    void initial_UMN_with_rhob(Fields &arenaFieldsPrev,
+                               Fields &arenaFieldsCurr);
+    void initial_with_jetscape(int ieta, Fields &arenaFieldsPrev,
+                               Fields &arenaFieldsCurr);
 
     void get_jetscape_preequilibrium_vectors(
-        std::vector<double> e_in,
+        std::vector<double> e_in, std::vector<double> P_in,
         std::vector<double> u_tau_in, std::vector<double> u_x_in,
         std::vector<double> u_y_in,   std::vector<double> u_eta_in,
         std::vector<double> pi_00_in, std::vector<double> pi_01_in,
@@ -81,7 +90,7 @@ class Init {
     double eta_profile_right_factor        (const double eta) const;
     double eta_rhob_left_factor            (const double eta) const;
     double eta_rhob_right_factor           (const double eta) const;
-    void   output_initial_density_profiles (SCGrid &arena);
+    void   output_initial_density_profiles (Fields &arena);
 };
 
 #endif  // SRC_INIT_H_

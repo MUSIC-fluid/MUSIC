@@ -6,9 +6,9 @@
 
 #include "util.h"
 #include "cell.h"
-#include "grid.h"
 #include "data.h"
 #include "eos.h"
+#include "fields.h"
 #include "hydro_source_base.h"
 #include "read_in_parameters.h"
 #include "pretty_ostream.h"
@@ -32,9 +32,9 @@ class MUSIC {
 
     EOS eos;
 
-    SCGrid arena_prev;
-    SCGrid arena_current;
-    SCGrid arena_future;
+    Fields arenaFieldsPrev;
+    Fields arenaFieldsCurr;
+    Fields arenaFieldsNext;
 
     std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
@@ -58,16 +58,13 @@ class MUSIC {
     //! this is a shell function to run hydro
     int run_hydro();
 
-    //! this is a shell function to output dynamical initial eccentricities only
-    int output_dynamical_eccentricity();
-
     //! this is a shell function to run Cooper-Frye
     int run_Cooper_Frye();
 
     //! this function adds hydro source terms pointer
     void add_hydro_source_terms(
             std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
-    
+
     //! This function setup source terms from dynamical initialization
     void generate_hydro_source_terms();
 
@@ -82,7 +79,7 @@ class MUSIC {
 
     void initialize_hydro_from_jetscape_preequilibrium_vectors(
         const double dx, const double dz, const double z_max, const int nz,
-        std::vector<double> e_in,
+        std::vector<double> e_in, std::vector<double> P_in,
         std::vector<double> u_tau_in, std::vector<double> u_x_in,
         std::vector<double> u_y_in,   std::vector<double> u_eta_in,
         std::vector<double> pi_00_in, std::vector<double> pi_01_in,
@@ -120,6 +117,11 @@ class MUSIC {
     bool is_boost_invariant() const {
         return(hydro_info_ptr->is_boost_invariant());
     }
+
+    bool getReRunHydro() const {return(DATA.reRunHydro);}
+    void setReRunHydro(bool flag) { DATA.reRunHydro = flag; }
+    int getReRunCount() const {return(DATA.reRunCount);}
+    void setReRunCount(int reRunCount) { DATA.reRunCount = reRunCount; }
 };
 
 #endif  // SRC_MUSIC_H_

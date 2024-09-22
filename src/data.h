@@ -20,6 +20,11 @@ typedef struct init_data {
 
     int echo_level;
 
+    bool reRunHydro;
+    int reRunCount;
+
+    int beastMode;
+
     int mode;               //!< 1: do everything;
                             //!< 2: do hydro evolution only;
                             //!< 3: do calculation of thermal spectra only;
@@ -30,9 +35,13 @@ typedef struct init_data {
     // parameters for Initial_profile == 11 || 111
     std::string initName_TA;  //!< filename for nuclear thickness function TA
     std::string initName_TB;  //!< filename for nuclear thickness function TB
+    std::string initName_participants;  //!< filename for participant nucleons
+    double nucleonWidth;
 
     // parameters for Initial_profile == 30
     std::string initName_AMPT;  //!< initial state filename from AMPT
+
+    double gridPadding;         //!< grid padding size from user (default: 3 fm)
 
     //! random seed
     int seed;
@@ -60,31 +69,36 @@ typedef struct init_data {
     double parton_quench_factor;
     double stringSourceSigmaX;
     double stringSourceSigmaEta;
-    double string_Slope_Ratio;
     double stringTransverseShiftFrac;
+    double preEqFlowFactor;
 
     int nx;
     int ny;
     int neta;
     int nt;
-    int nt_ecc;
 
     double x_size;      //!< in fermi -x_size/2 < x < x_size/2
     double y_size;      //!< in fermi, -y_size/2 < y < y_size/2
     double eta_size;    //!< -eta_size/2 < eta < eta_size/2
     double tau_size;    //!< tau_0 < tau < tau0+tau_size
     double tau0;
-    double tau_size_ecc; //!< tau_0 < tau < tau0+tau_size_ecc
 
     double delta_x;
     double delta_y;
     double delta_eta;
     double delta_tau;
+    double dtaudxRatio;
+
+    bool resetDtau;
 
     int rk_order;
     double minmod_theta;
 
     double sFactor;     //!< overall normalization on energy density profile
+
+    //! A scale factor for initial shear and bulk viscous pressure
+    double preEqVisFactor;
+
     int whichEOS;       //!< type of EoS
     //! flag for boost invariant simulations
     bool boost_invariant;
@@ -116,8 +130,51 @@ typedef struct init_data {
     int T_dependent_shear_to_s;
     int muB_dependent_shear_to_s;
 
+    double shear_muBf0p2;       //!< for piece-wise parameterization eta/s(muB)
+    double shear_muBf0p4;       //!< for piece-wise parameterization eta/s(muB)
+
+    double shear_muBDep_alpha;
+    double shear_muBDep_slope;
+    double shear_muBDep_scale;
+
+
+    //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==2"
+    double shear_2_min;
+    double shear_2_slope;
+    double shear_2_curv;
+
+    //! flag to control the temperature dependence of eta/s(T) if "T_dependent_shear_to_s==3"
+    double shear_3_T_kink_in_GeV;
+    double shear_3_low_T_slope_in_GeV;
+    double shear_3_high_T_slope_in_GeV;
+    double shear_3_at_kink;
+
     //! flag to include temperature dependent zeta/s(T)
-    int T_dependent_zeta_over_s;
+    int T_dependent_bulk_to_s;
+
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==2"
+    double bulk_2_normalisation;
+    double bulk_2_width_in_GeV;
+    double bulk_2_peak_in_GeV;
+
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==3"
+    double bulk_3_max;
+    double bulk_3_width_in_GeV;
+    double bulk_3_T_peak_in_GeV;
+    double bulk_3_lambda_asymm;
+
+    //! flag to control the temperature dependence of zeta/s(T) if "T_dependent_bulk_to_s==10"
+    double bulk_10_max;
+    double bulk_10_max_muB0p2;
+    double bulk_10_max_muB0p4;
+    double bulk_10_width_high;              // GeV
+    double bulk_10_width_low;               // GeV
+    double bulk_10_Tpeak;                   // GeV
+    double bulk_10_Tpeak_muBcurv;           // GeV
+
+    //! multiplicative factors for the relaxation times
+    double shear_relax_time_factor;
+    double bulk_relax_time_factor;
 
     //! Type of bulk relaxation time
     int bulk_relaxation_type;
@@ -126,7 +183,7 @@ typedef struct init_data {
     int include_second_order_terms;
 
     //! flag to include vorticity coupling terms in shear and diffusion
-    int include_vorticity_terms;
+    bool include_vorticity_terms;
 
     //! flag to output vorticity evolution
     int output_vorticity;

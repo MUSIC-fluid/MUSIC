@@ -5,8 +5,9 @@
 #include <array>
 #include "util.h"
 #include "cell.h"
-#include "grid.h"
 #include "data.h"
+#include "fields.h"
+#include "transport_coeffs.h"
 #include "minmod.h"
 #include "pretty_ostream.h"
 
@@ -15,6 +16,7 @@ class Diss {
     const InitData &DATA;
     const EOS &eos;
     const Minmod minmod;
+    TransportCoeffs transport_coeffs_;
     int map_2d_idx_to_1d(int a, int b) {
         static const int index_map[5][4] = {{0,   1,  2,  3},
                                             {1,   4,  5,  6},
@@ -29,46 +31,36 @@ class Diss {
  public:
     Diss(const EOS &eosIn, const InitData &DATA_in);
     void MakeWSource(const double tau,
-                     SCGrid &arena_current, SCGrid &arena_prev,
-                     const int ix, const int iy, const int ieta,
-                     TJbVec &dwmn);
+                     const int ix, const int iy, const int ieta, TJbVec &dwmn,
+                     Fields &arenaFieldsCurr, Fields &arenaFieldsPrev,
+                     const int fieldIdx);
 
-    double Make_uWSource(const double tau, const Cell_small *grid_pt,
-                         const Cell_small *grid_pt_prev,
-                         const int mu, const int nu, const int rk_flag,
-                         const double theta_local, const DumuVec &a_local,
-                         const VelocityShearVec &sigma_1d,
-                         const VorticityVec &omega_1d);
+    void Make_uWSource(const double tau, const Cell_small &grid_pt,
+                       const double theta_local, const DumuVec &a_local,
+                       const VelocityShearVec &sigma_1d,
+                       const VorticityVec &omega_1d,
+                       const std::vector<double> &thermalVec,
+                       std::array<double, 5> &sourceTerms);
 
-    int Make_uWRHS(const double tau, SCGrid &arena,
-                   const int ix, const int iy, const int ieta,
-                   const int mu, const int nu, double &w_rhs,
-                   const double theta_local, const DumuVec &a_local);
+    void Make_uWRHS(const double tau, Fields &arena,
+                    const int fieldIdx,
+                    const int ix, const int iy, const int ieta,
+                    std::array<double, 9> &w_rhs,
+                    const double theta_local, const DumuVec &a_local);
 
-    int Make_uPRHS(const double tau, SCGrid &arena,
-                   const int ix, const int iy, const int ieta,
-                   double *p_rhs, const double theta_local);
-
-    double Make_uPiSource(const double tau, const Cell_small *grid_pt,
-                          const Cell_small *grid_pt_prev, const int rk_flag,
+    double Make_uPiSource(const double tau, const Cell_small &grid_pt,
                           const double theta_local,
-                          const VelocityShearVec &sigma_1d);
+                          const VelocityShearVec &sigma_1d,
+                          const std::vector<double> &thermalVec);
 
-    double Make_uqRHS(const double tau, SCGrid &arena_current,
-                      const int ix, const int iy, const int ieta,
-                      const int mu, const int nu);
-
-    double Make_uqSource(const double tau, const Cell_small *grid_pt,
-                         const Cell_small *grid_pt_prev,
-                         const int nu, const int rk_flag,
-                         const double theta_local, const DumuVec &a_local,
-                         const VelocityShearVec &sigma_1d,
-                         const VorticityVec &omega_1d,
-                         const DmuMuBoverTVec &baryon_diffusion_vec);
-
-    double get_temperature_dependent_eta_s(const double T) const;
-    double get_muB_dependent_eta_s(const double muB) const;
-    double get_temperature_dependent_zeta_s(const double temperature) const;
+    void Make_uqSource(const double tau, const Cell_small &grid_pt,
+                       const double theta_local,
+                       const DumuVec &a_local,
+                       const VelocityShearVec &sigma_1d,
+                       const VorticityVec &omega_1d,
+                       const DmuMuBoverTVec &baryon_diffusion_vec,
+                       const std::vector<double> &thermalVec,
+                       std::array<double, 3> &sourceTerms);
 
     void output_kappa_T_and_muB_dependence();
     void output_kappa_along_const_sovernB();

@@ -21,10 +21,12 @@
 
 using std::vector;
 
-MUSIC::MUSIC(std::string input_file) : 
+MUSIC::MUSIC(std::string input_file) :
     DATA(ReadInParameters::read_in_parameters(input_file)),
     eos(DATA.whichEOS) {
 
+    DATA.reRunHydro = false;
+    DATA.reRunCount = 0;
     mode                   = DATA.mode;
     flag_hydro_run         = 0;
     flag_hydro_initialized = 0;
@@ -37,7 +39,6 @@ MUSIC::MUSIC(std::string input_file) :
 
     // setup source terms
     hydro_source_terms_ptr = nullptr;
-    generate_hydro_source_terms();
 }
 
 
@@ -63,7 +64,8 @@ void MUSIC::generate_hydro_source_terms() {
         auto hydro_source_ptr = std::shared_ptr<HydroSourceAMPT> (
                                             new HydroSourceAMPT (DATA));
         add_hydro_source_terms(hydro_source_ptr);
-    } else if (DATA.Initial_profile == 112) {  // source from TA and TB
+    } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
+        // source from TA and TB
         auto hydro_source_ptr = std::shared_ptr<HydroSourceTATB> (
                                             new HydroSourceTATB (DATA));
         add_hydro_source_terms(hydro_source_ptr);
@@ -86,8 +88,10 @@ void MUSIC::set_parameter(std::string parameter_name, double value) {
 void MUSIC::initialize_hydro() {
     clean_all_the_surface_files();
 
+    generate_hydro_source_terms();
+
     Init initialization(eos, DATA, hydro_source_terms_ptr);
-    initialization.InitArena(arena_prev, arena_current, arena_future);
+    initialization.InitArena(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
     flag_hydro_initialized = 1;
 }
 
@@ -99,24 +103,12 @@ int MUSIC::run_hydro() {
     if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
     }
-    evolve_local.EvolveIt(arena_prev, arena_current, arena_future,
+    evolve_local.EvolveIt(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext,
                           (*hydro_info_ptr));
     flag_hydro_run = 1;
     return(0);
 }
 
-//! this is a shell function to output dynamical initial eccentricities only
-int MUSIC::output_dynamical_eccentricity() {
-    Evolve evolve_local(eos, DATA, hydro_source_terms_ptr);
-
-    if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
-        hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
-    }
-    evolve_local.Output_eccentricity(arena_prev, arena_current, arena_future,
-                                     (*hydro_info_ptr));
-    flag_hydro_run = 1;
-    return(0);
-}
 
 //! this is a shell function to run Cooper-Frye
 int MUSIC::run_Cooper_Frye() {
@@ -152,7 +144,7 @@ void MUSIC::output_transport_coefficients() {
 
 void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
         const double dx, const double dz, const double z_max, const int nz,
-        vector<double> e_in,
+        vector<double> e_in, vector<double> P_in,
         vector<double> u_tau_in, vector<double> u_x_in,
         vector<double> u_y_in,   vector<double> u_eta_in,
         vector<double> pi_00_in, vector<double> pi_01_in,
@@ -165,21 +157,25 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
     DATA.Initial_profile = 42;
     clean_all_the_surface_files();
 
+    DATA.neta = nz;
     if (nz > 1) {
         DATA.boost_invariant = false;
-        DATA.delta_eta       = dz;
-        DATA.neta            = nz;
-        DATA.eta_size        = nz*dz;
+        DATA.delta_eta = dz;
+        DATA.eta_size = nz*dz;
+    } else {
+        DATA.boost_invariant = true;
+        DATA.delta_eta = 0.1;
+        DATA.eta_size = 0.;
     }
     DATA.delta_x = dx;
     DATA.delta_y = dx;
 
     Init initialization(eos, DATA, hydro_source_terms_ptr);
     initialization.get_jetscape_preequilibrium_vectors(
-        e_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
+        e_in, P_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
         pi_00_in, pi_01_in, pi_02_in, pi_03_in, pi_11_in, pi_12_in, pi_13_in,
         pi_22_in, pi_23_in, pi_33_in, Bulk_pi_in);
-    initialization.InitArena(arena_prev, arena_current, arena_future);
+    initialization.InitArena(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
     flag_hydro_initialized = 1;
 }
 

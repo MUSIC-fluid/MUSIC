@@ -15,6 +15,7 @@ set (SOURCES
     util.cpp
     read_in_parameters.cpp
     advance.cpp
+    fields.cpp
     eos.cpp
     eos_base.cpp
     eos_idealgas.cpp
@@ -29,6 +30,7 @@ set (SOURCES
     emoji.cpp
     music_logo.cpp
     HydroinfoMUSIC.cpp
+    transport_coeffs.cpp
     )
 if (GSL_FOUND)
     set(SOURCES ${SOURCES}

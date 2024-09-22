@@ -75,7 +75,6 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose) {
         for (int ieta = 0; ieta <= pseudo_steps; ieta++) {
             particleList[ip].y[ieta] = ieta*deltaeta - etamax;
         }
-    
     }
     particleMax = ip + 1;
 
@@ -88,7 +87,7 @@ void Freeze::ReadSpectra_pseudo(InitData* DATA, int full, int verbose) {
         s_file = fopen(sf_name.c_str(), "r");
     else
         s_file = fopen(s_name.c_str(), "r");
-  
+
     if (verbose) {
         music_message << "ietamax = " << pseudo_steps+1;
         music_message.flush("info");
@@ -152,7 +151,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
     int iphimax = DATA->phi_steps;  // number of points
                                     // (phi=2pi equal to phi=0)
     double deltaphi = 2*M_PI/iphimax;
-  
+
     // Reuse rapidity variables (Need to reuse variable y
     // so resonance decay routine can be used as is.
     // Might as well misuse ymax and deltaY too)
@@ -163,11 +162,11 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
                   << particleList[j].name << "("
                   << particleList[j].number << ") ... ";
     music_message.flush("info");
- 
+
     particleList[j].ny = DATA->pseudo_steps + 1;
     particleList[j].npt = iptmax;
     particleList[j].nphi = iphimax;
-  
+
     // set particle properties
     double m = particleList[j].mass;
     int deg = particleList[j].degeneracy;
@@ -183,23 +182,13 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
     }
 
     // open files to write
-    FILE *d_file;
-    char *buf = new char[10];
-    sprintf (buf, "%d", 0);
-    
-    char *specString=new char[30];
-    strcpy(specString, "yptphiSpectra");
-    strcat(specString, buf);
-    strcat(specString, ".dat");
-    char* s_name = specString;
+    std::string s_name = "yptphiSpectra0.dat";
     FILE *s_file;
-    s_file = fopen(s_name, "w");
-
-    delete[] specString;
-    delete[] buf;
+    s_file = fopen(s_name.c_str(), "w");
 
     // -----------------------------------------------------------------------
     // write information in the particle information file
+    FILE *d_file;
     const char* d_name = "particleInformation.dat";
     d_file = fopen(d_name, "a");
     fprintf(d_file, "%d %e %d %e %e %d %d \n",
@@ -222,7 +211,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
         pt_array[ipt] = pt;
         particleList[j].pt[ipt] = pt;
     }
-    
+
     double *bulk_deltaf_coeffs = new double[3];
     if (DATA_ptr->turn_on_bulk == 1 && DATA_ptr->include_deltaf_bulk == 1) {
         if (bulk_deltaf_kind == 0) {
@@ -231,7 +220,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(InitData *DATA,
             bulk_deltaf_coeffs = new double[2];
         }
     }
-      
+
     double alpha = 0.0;
     // main loop begins ...
     // store E dN/d^3p as function of phi,
@@ -829,7 +818,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
                             total_deltaf *= f/fabs(total_deltaf);
                         }
                         sum = (f + total_deltaf)*pdSigma;
-                    
+
                         if (sum > 10000) {
                             music_message << "sum>10000 in summation. sum = "
                                  << sum 
@@ -878,7 +867,6 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
         delete[] temp_sum[ipt];
     }
     delete[] temp_sum;
-    
     if (DATA_ptr->turn_on_bulk == 1 && DATA_ptr->include_deltaf_bulk == 1) {
         delete [] bulk_deltaf_coeffs;
     }
@@ -896,13 +884,13 @@ void Freeze::OutputFullParticleSpectrum_pseudo(InitData *DATA, int number,
     FILE *d_file;
     const char* d_name = "FparticleInformation.dat";
     d_file = fopen(d_name, "a");
-  
+
     fprintf(d_file, "%d %e %d %e %e %d %d \n",
             number,  DATA->max_pseudorapidity, DATA->pseudo_steps+1,
             DATA->min_pt, DATA->max_pt, DATA->pt_steps+1, DATA->phi_steps);
 
     fclose(d_file);
-  
+
     FILE *s_file;
     const char* s_name = "FyptphiSpectra.dat";
     s_file = fopen(s_name, "a");
@@ -1627,9 +1615,9 @@ void Freeze::OutputIntegratedFlow_vs_y(
     outfilevn2.open(fname2.str().c_str());
     
     // header of the files
-    outfilevn << "#y  dN/dy  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  "
+    outfilevn << "#y  dN/dy dummy  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  "
               << "v4cos  v4sin  v5cos  v5sin  v6cos  v6sin  v7cos  v7sin\n";
-    outfilevn2 << "#eta  dN/deta  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  "
+    outfilevn2 << "#eta  dN/deta dummy  v1cos  v1sin  v2cos  v2sin  v3cos  v3sin  "
                << "v4cos  v4sin  v5cos  v5sin  v6cos  v6sin  v7cos  v7sin\n";
    
     double vn[nharmonics][2];
