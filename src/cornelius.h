@@ -1,12 +1,13 @@
 #ifndef CORNELIUS_H
 #define CORNELIUS_H
 
-#include <iostream>
-#include <fstream>
 #include <math.h>
 #include <stdlib.h>
 
-//using namespace std;
+#include <fstream>
+#include <iostream>
+
+// using namespace std;
 
 /**
  *
@@ -14,8 +15,7 @@
  * from this.
  *
  */
-class GeneralElement
-{
+class GeneralElement {
   protected:
     static const int DIM = 4;
     double *centroid;
@@ -25,6 +25,7 @@ class GeneralElement
     virtual void calculate_centroid() {};
     virtual void calculate_normal() {};
     void check_normal_direction(double *normal, double *out);
+
   public:
     GeneralElement();
     ~GeneralElement();
@@ -38,12 +39,11 @@ class GeneralElement
  * calculate the centroid and normal of the line.
  *
  */
-class Line : public GeneralElement
-{
+class Line : public GeneralElement {
   private:
     static const int LINE_CORNERS = 2;
     static const int LINE_DIM = 2;
-    int x1,x2;
+    int x1, x2;
     int start_point;
     int end_point;
     double **corners;
@@ -51,10 +51,11 @@ class Line : public GeneralElement
     int *const_i;
     void calculate_centroid();
     void calculate_normal();
+
   public:
     Line();
     ~Line();
-    void init(double**,double*,int*);
+    void init(double **, double *, int *);
     void flip_start_end();
     double *get_start();
     double *get_end();
@@ -67,25 +68,25 @@ class Line : public GeneralElement
  * the centroid and normal of the polygon.
  *
  */
-class Polygon : public GeneralElement
-{
+class Polygon : public GeneralElement {
   private:
     static const int MAX_LINES = 24;
     static const int POLYGON_DIM = 3;
     Line **lines;
     int Nlines;
-    int x1,x2,x3;
+    int x1, x2, x3;
     int const_i;
     void calculate_centroid();
     void calculate_normal();
+
   public:
     Polygon();
     ~Polygon();
     void init(int);
-    bool add_line(Line*,int);
+    bool add_line(Line *, int);
     int get_Nlines();
-    Line** get_lines();
-    void print(std::ofstream &file,double*);
+    Line **get_lines();
+    void print(std::ofstream &file, double *);
 };
 
 /**
@@ -94,23 +95,23 @@ class Polygon : public GeneralElement
  * the normal and centroid of the polyhedron.
  *
  */
-class Polyhedron : public GeneralElement
-{
+class Polyhedron : public GeneralElement {
   private:
     static const int MAX_POLYGONS = 24;
     Polygon **polygons;
     int Npolygons;
     int Ntetrahedra;
-    int x1,x2,x3,x4;
-    bool lines_equal(Line*,Line*);
-    void tetravolume(double*,double*,double*,double*);
+    int x1, x2, x3, x4;
+    bool lines_equal(Line *, Line *);
+    void tetravolume(double *, double *, double *, double *);
     void calculate_centroid();
     void calculate_normal();
+
   public:
     Polyhedron();
     ~Polyhedron();
     void init();
-    bool add_polygon(Polygon*,int);
+    bool add_polygon(Polygon *, int);
 };
 
 /**
@@ -122,8 +123,7 @@ class Polyhedron : public GeneralElement
  * 13.10.2011 Hannu Holopainen
  *
  */
-class Square
-{
+class Square {
   private:
     static const int DIM = 4;
     static const int SQUARE_DIM = 2;
@@ -144,14 +144,15 @@ class Square
     int ambiguous;
     void ends_of_edge(double);
     void find_outside(double);
+
   public:
     Square();
     ~Square();
-    void init(double**,int*,double*,double*);
+    void init(double **, int *, double *, double *);
     void construct_lines(double);
     int is_ambiguous();
     int get_Nlines();
-    Line* get_lines();
+    Line *get_lines();
 };
 
 /**
@@ -162,8 +163,7 @@ class Square
  * 13.10.2011 Hannu Holopainen
  *
  */
-class Cube
-{
+class Cube {
   private:
     static const int DIM = 4;
     static const int CUBE_DIM = 4;
@@ -179,21 +179,21 @@ class Cube
     int ambiguous;
     int const_i;
     double const_value;
-    int x1,x2,x3;
+    int x1, x2, x3;
     double *dx;
     void split_to_squares();
     void check_ambiguous(int);
+
   public:
     Cube();
     ~Cube();
-    void init(double***&,int,double,double*&);
+    void init(double ***&, int, double, double *&);
     void construct_polygons(double);
     int get_Nlines();
     int get_Npolygons();
     int is_ambiguous();
-    Polygon* get_polygons();
+    Polygon *get_polygons();
 };
-
 
 /**
  *
@@ -203,8 +203,7 @@ class Cube
  * 13.10.2011 Hannu Holopainen
  *
  */
-class Hypercube
-{
+class Hypercube {
   private:
     static const int DIM = 4;
     static const int MAX_POLY = 10;
@@ -216,17 +215,18 @@ class Hypercube
     Cube *cubes;
     int Npolyhedrons;
     int ambiguous;
-    int x1,x2,x3,x4;
+    int x1, x2, x3, x4;
     double *dx;
     void split_to_cubes();
     void check_ambiguous(double);
+
   public:
     Hypercube();
     ~Hypercube();
-    void init(double****,double*);
+    void init(double ****, double *);
     void construct_polyhedrons(double);
     int get_Npolyhedrons();
-    Polyhedron* get_polyhedrons();
+    Polyhedron *get_polyhedrons();
 };
 
 /**
@@ -241,8 +241,7 @@ class Hypercube
  * 23.04.2012 Hannu Holopainen
  *
  */
-class Cornelius
-{
+class Cornelius {
   private:
     static const int STEPS = 2;
     static const int DIM = 4;
@@ -256,26 +255,27 @@ class Cornelius
     double value0;
     double *dx;
     std::ofstream output_print;
-    void surface_3d(double***,double*,int);
+    void surface_3d(double ***, double *, int);
     Square cu2d;
     Cube cu3d;
     Hypercube cu4d;
+
   public:
     Cornelius();
     ~Cornelius();
-    void init(int,double,double*);
+    void init(int, double, double *);
     void init_print(std::string);
-    void find_surface_2d(double**);
-    void find_surface_3d(double***);
-    void find_surface_3d_print(double***,double*);
-    void find_surface_4d(double****);
+    void find_surface_2d(double **);
+    void find_surface_3d(double ***);
+    void find_surface_3d_print(double ***, double *);
+    void find_surface_4d(double ****);
     int get_Nelements();
     double **get_normals();
     double **get_centroids();
     double **get_normals_4d();
     double **get_centroids_4d();
-    double get_centroid_elem(int,int);
-    double get_normal_elem(int,int);
+    double get_centroid_elem(int, int);
+    double get_normal_elem(int, int);
 };
 
 #endif /* CORNELIUS_H */

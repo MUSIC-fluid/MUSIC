@@ -3,8 +3,9 @@
 #ifndef SRC_HYDRO_SOURCE_TATB_H_
 #define SRC_HYDRO_SOURCE_TATB_H_
 
-#include <vector>
 #include <memory>
+#include <vector>
+
 #include "hydro_source_base.h"
 
 struct participant {
@@ -13,9 +14,8 @@ struct participant {
     double e;
 };
 
-
 class HydroSourceTATB : public HydroSourceBase {
- private:
+  private:
     InitData &DATA_;
     double yL_frac_;
     double tau_source;
@@ -23,7 +23,7 @@ class HydroSourceTATB : public HydroSourceBase {
     std::vector<std::vector<double>> profile_TA;
     std::vector<std::vector<double>> profile_TB;
 
- public:
+  public:
     HydroSourceTATB() = delete;
     HydroSourceTATB(InitData &DATA_in);
     ~HydroSourceTATB();
@@ -33,8 +33,7 @@ class HydroSourceTATB : public HydroSourceBase {
     void read_in_TATB();
 
     void read_in_participants_and_compute_TATB();
-    void computeTATB(const double x_0, const double y_0,
-                     const int dir);
+    void computeTATB(const double x_0, const double y_0, const int dir);
 
     double eta_rhob_left_factor(const double eta) const;
     double eta_rhob_right_factor(const double eta) const;
@@ -47,13 +46,13 @@ class HydroSourceTATB : public HydroSourceBase {
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(
         const double tau, const double x, const double y, const double eta_s,
-        const FlowVec &u_mu, EnergyFlowVec &j_mu) const ;
+        const FlowVec &u_mu, EnergyFlowVec &j_mu) const;
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
-    double get_hydro_rhob_source(const double tau, const double x,
-                                 const double y, const double eta_s,
-                                 const FlowVec &u_mu) const ;
+    double get_hydro_rhob_source(
+        const double tau, const double x, const double y, const double eta_s,
+        const FlowVec &u_mu) const;
     double eta_profile_plateau_frag(
         const double eta, const double eta_0, const double sigma_eta) const;
     double energy_eta_profile_normalisation_numerical(

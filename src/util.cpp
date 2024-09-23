@@ -1,90 +1,77 @@
-// MUSIC - a 3+1D viscous relativistic hydrodynamic code for heavy ion collisions
-// Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
+// MUSIC - a 3+1D viscous relativistic hydrodynamic code for heavy ion
+// collisions Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon,
+// Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
 
 #include "util.h"
+
+#include <execinfo.h>
+
+#include <algorithm>
 #include <iostream>
 #include <string>
-#include <execinfo.h>
-#include <algorithm>
 
 using std::string;
 
 namespace Util {
 
-
 double theta(const double x) {
     if (x < 0.) {
-        return(0.0);
+        return (0.0);
     } else {
-        return(1.0);
+        return (1.0);
     }
 }
-
 
 double gmn(const int a) {
     if (a == 0) {
-        return(-1.0);
+        return (-1.0);
     } else {
-        return(1.0);
+        return (1.0);
     }
 }
 
-
 double **mtx_malloc(const int n1, const int n2) {
-    double **d1_ptr; 
+    double **d1_ptr;
     d1_ptr = new double *[n1];
 
-    for(int i=0; i<n1; i++) 
-        d1_ptr[i] = new double [n2];
+    for (int i = 0; i < n1; i++) d1_ptr[i] = new double[n2];
 
-    for(int i=0; i<n1; i++) 
-    for(int j=0; j<n2; j++) 
-        d1_ptr[i][j] = 0.0;
+    for (int i = 0; i < n1; i++)
+        for (int j = 0; j < n2; j++) d1_ptr[i][j] = 0.0;
 
     return d1_ptr;
 }
 
-
-
 void mtx_free(double **m, const int n1, const int n2) {
-    for (int j = 0; j < n1; j++) 
-        delete [] m[j];
-    delete [] m;
+    for (int j = 0; j < n1; j++) delete[] m[j];
+    delete[] m;
 }
-
-
 
 int IsFile(string file_name) {
     FILE *temp;
 
-    if ((temp = fopen(file_name.c_str(),"r")) == NULL) {
-        return(0);
-    } else  {
+    if ((temp = fopen(file_name.c_str(), "r")) == NULL) {
+        return (0);
+    } else {
         fclose(temp);
-        return(1);
+        return (1);
     }
 }
 
-
-int getParameter(string paramFileName, string paramName,
-                 int defaultValue) {
+int getParameter(string paramFileName, string paramName, int defaultValue) {
     int paramVal = defaultValue;
     string tempinput = Util::StringFind4(paramFileName, paramName);
-    if (tempinput != "empty")
-        std::istringstream ( tempinput ) >> paramVal;
-    return(paramVal);
+    if (tempinput != "empty") std::istringstream(tempinput) >> paramVal;
+    return (paramVal);
 }
 
-
-double getParameter(string paramFileName, string paramName,
-                    double defaultValue) {
+double getParameter(
+    string paramFileName, string paramName, double defaultValue) {
     double paramVal = defaultValue;
     string tempinput = Util::StringFind4(paramFileName, paramName);
-    if (tempinput != "empty")
-        std::istringstream ( tempinput ) >> paramVal;
-    return(paramVal);
+    if (tempinput != "empty") std::istringstream(tempinput) >> paramVal;
+    return (paramVal);
 }
-
 
 // support comments in the parameters file
 // comments need to start with #
@@ -111,7 +98,7 @@ string StringFind4(string file_name, string str_in) {
         tmp_file << "EndOfData" << std::endl;
         tmp_file.close();
         exit(1);
-    }/* if isfile */
+    } /* if isfile */
 
     // pass checking, now read in the parameter file
     string temp_string;
@@ -127,7 +114,7 @@ string StringFind4(string file_name, string str_in) {
         std::stringstream temp_ss(temp_string);
         getline(temp_ss, para_string, '#');  // remove the comments
         if (para_string.compare("") != 0
-                && para_string.find_first_not_of(' ') != std::string::npos) {
+            && para_string.find_first_not_of(' ') != std::string::npos) {
             // check the read in string is not empty
             std::stringstream para_stream(para_string);
             para_stream >> para_name >> para_val;
@@ -135,45 +122,43 @@ string StringFind4(string file_name, string str_in) {
                 // find the desired parameter
                 ind++;
                 input.close();
-                return(para_val);
-            }  /* if right, return */
+                return (para_val);
+            } /* if right, return */
         }
         getline(input, temp_string);  // read in the next entry
     }
-    input.close(); // finish read in and close the file
+    input.close();  // finish read in and close the file
 
     // the desired parameter is not in the parameter file, then return "empty"
     if (ind == 0) {
-        return("empty");
+        return ("empty");
     }
     // should not cross here !!!
     std::cout << "Error in StringFind4 !!!\n";
-    return("empty");
+    return ("empty");
 }
-
 
 // this function convert string to lower case
 string convert_to_lowercase(string str_in) {
     std::transform(str_in.begin(), str_in.end(), str_in.begin(), ::tolower);
-    return(str_in);
+    return (str_in);
 }
 
-
-double lin_int(double x1,double x2,double f1,double f2,double x) {
+double lin_int(double x1, double x2, double f1, double f2, double x) {
     double aa, bb;
 
     if (x2 == x1) {
         aa = 0.0;
     } else {
-        aa =(f2-f1)/(x2-x1);
+        aa = (f2 - f1) / (x2 - x1);
     }
     bb = f1 - aa * x1;
 
-    return aa*x + bb;
+    return aa * x + bb;
 }
 
 double four_dimension_linear_interpolation(
-            double* lattice_spacing, double fraction[2][4], double**** cube) {
+    double *lattice_spacing, double fraction[2][4], double ****cube) {
     double denorm = 1.0;
     double results = 0.0;
     for (int i = 0; i < 4; i++) {
@@ -183,19 +168,19 @@ double four_dimension_linear_interpolation(
         for (int j = 0; j < 2; j++) {
             for (int k = 0; k < 2; k++) {
                 for (int l = 0; l < 2; l++) {
-                    results += (cube[i][j][k][l]*fraction[i][0]*fraction[j][1]
-                                *fraction[k][2]*fraction[l][3]);
+                    results +=
+                        (cube[i][j][k][l] * fraction[i][0] * fraction[j][1]
+                         * fraction[k][2] * fraction[l][3]);
                 }
             }
         }
     }
-    results = results/denorm;
+    results = results / denorm;
     return (results);
 }
 
-
 double three_dimension_linear_interpolation(
-            double* lattice_spacing, double fraction[2][3], double*** cube) {
+    double *lattice_spacing, double fraction[2][3], double ***cube) {
     double denorm = 1.0;
     double results = 0.0;
     for (int i = 0; i < 3; i++) {
@@ -204,46 +189,46 @@ double three_dimension_linear_interpolation(
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 2; j++) {
             for (int k = 0; k < 2; k++) {
-                results += (cube[i][j][k]*fraction[i][0]
-                            *fraction[j][1]*fraction[k][2]);
+                results +=
+                    (cube[i][j][k] * fraction[i][0] * fraction[j][1]
+                     * fraction[k][2]);
             }
         }
     }
-    results = results/denorm;
-    return(results);
+    results = results / denorm;
+    return (results);
 }
 
-
-//! this function return the left index of the array where x sits in 
+//! this function return the left index of the array where x sits in
 //! between array[idx] and array[idx+1]
-//! this function assumes that the input array is monotonic 
-int binary_search(double* array, int length, double x) {
+//! this function assumes that the input array is monotonic
+int binary_search(double *array, int length, double x) {
     if (length < 3)  // array is too short
-        return(0);
+        return (0);
 
     int low_idx, mid_idx, high_idx;
     low_idx = 0;
     high_idx = length - 1;
     // first check the boundaries
-    if ((array[low_idx] - x)*(array[high_idx] - x) > 0.) {
+    if ((array[low_idx] - x) * (array[high_idx] - x) > 0.) {
         fprintf(stderr, "Util::binary_search: can not find idx!\n");
-        fprintf(stderr, "a[0] = %e, a[end] = %e, a = %e \n",
-                array[low_idx], array[high_idx], x);
+        fprintf(
+            stderr, "a[0] = %e, a[end] = %e, a = %e \n", array[low_idx],
+            array[high_idx], x);
         exit(-1);
     }
 
     // find the index
     while (high_idx - low_idx > 1) {
-        mid_idx = (int)((high_idx + low_idx)/2.);
-        if ((array[low_idx] - x)*(array[mid_idx] - x) > 0.) {
+        mid_idx = (int)((high_idx + low_idx) / 2.);
+        if ((array[low_idx] - x) * (array[mid_idx] - x) > 0.) {
             low_idx = mid_idx;
         } else {
             high_idx = mid_idx;
         }
     }
-    return(low_idx);
+    return (low_idx);
 }
-
 
 void print_backtrace_errors() {
     int nptrs;
@@ -264,16 +249,15 @@ void print_backtrace_errors() {
     exit(1);
 }
 
-
 int map_2d_idx_to_1d(int a, int b) {
-    static const int index_map[5][4] = {{ 0,  1,  2,  3},
-                                        { 1,  4,  5,  6},
-                                        { 2,  5,  7,  8},
-                                        { 3,  6,  8,  9},
-                                        {10, 11, 12, 13}};
+    static const int index_map[5][4] = {
+        {0, 1, 2, 3},
+        {1, 4, 5, 6},
+        {2, 5, 7, 8},
+        {3, 6, 8, 9},
+        {10, 11, 12, 13}};
     return index_map[a][b];
 }
-
 
 void map_1d_idx_to_2d(int idx_1d, int &a, int &b) {
     static const int index_1d_a[5] = {1, 1, 1, 2, 2};
@@ -281,7 +265,6 @@ void map_1d_idx_to_2d(int idx_1d, int &a, int &b) {
     a = index_1d_a[idx_1d - 4];
     b = index_1d_b[idx_1d - 4];
 }
-
 
 Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector) {
     Mat4x4 out_matrix;
@@ -304,7 +287,6 @@ Mat4x4 UnpackVecToMatrix(const Arr10 &in_vector) {
     return out_matrix;
 }
 
-
 Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector) {
     Mat4x4 out_matrix;
     out_matrix[0][0] = in_vector[0];
@@ -325,7 +307,6 @@ Mat4x4 UnpackVecToMatrix(const ViscousVec &in_vector) {
     out_matrix[3][3] = in_vector[9];
     return out_matrix;
 }
-
 
 Mat4x4 UnpackVecToMatrix(const VorticityVec &in_vector) {
     Mat4x4 out_matrix;
@@ -348,4 +329,4 @@ Mat4x4 UnpackVecToMatrix(const VorticityVec &in_vector) {
     return out_matrix;
 }
 
-}
+}  // namespace Util

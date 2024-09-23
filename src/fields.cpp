@@ -1,8 +1,8 @@
 // Copyright 2021 Chun Shen
 
 #include "fields.h"
-#include "cell.h"
 
+#include "cell.h"
 
 Fields::~Fields() {
     e_.clear();
@@ -12,12 +12,11 @@ Fields::~Fields() {
     Wmunu_.clear();
 }
 
-
 void Fields::resizeFields(int Nx, int Ny, int Neta) {
-    Nx_   = Nx;
-    Ny_   = Ny;
+    Nx_ = Nx;
+    Ny_ = Ny;
     Neta_ = Neta;
-    int Npoints = Nx*Ny*Neta;
+    int Npoints = Nx * Ny * Neta;
 
     e_.resize(Npoints, 0.);
     rhob_.resize(Npoints, 0.);
@@ -35,15 +34,13 @@ void Fields::resizeFields(int Nx, int Ny, int Neta) {
     }
 }
 
-
 Cell_small Fields::getCell(int ix, int iy, int ieta) {
-    ix   = std::max(0, std::min(Nx_-1  , ix  ));
-    iy   = std::max(0, std::min(Ny_-1  , iy  ));
-    ieta = std::max(0, std::min(Neta_-1, ieta));
+    ix = std::max(0, std::min(Nx_ - 1, ix));
+    iy = std::max(0, std::min(Ny_ - 1, iy));
+    ieta = std::max(0, std::min(Neta_ - 1, ieta));
     int fieldIdx = getFieldIdx(ix, iy, ieta);
-    return(getCell(fieldIdx));
+    return (getCell(fieldIdx));
 }
-
 
 Cell_small Fields::getCell(const int idx) {
     Cell_small cell;
@@ -56,17 +53,15 @@ Cell_small Fields::getCell(const int idx) {
         cell.Wmunu[i] = Wmunu_[i][idx];
     }
     cell.pi_b = piBulk_[idx];
-    return(cell);
+    return (cell);
 }
-
 
 int Fields::getFieldIdxHalo(int ix, int iy, int ieta) {
-    ix   = std::max(0, std::min(Nx_-1  , ix  ));
-    iy   = std::max(0, std::min(Ny_-1  , iy  ));
-    ieta = std::max(0, std::min(Neta_-1, ieta));
-    return(getFieldIdx(ix, iy, ieta));
+    ix = std::max(0, std::min(Nx_ - 1, ix));
+    iy = std::max(0, std::min(Ny_ - 1, iy));
+    ieta = std::max(0, std::min(Neta_ - 1, ieta));
+    return (getFieldIdx(ix, iy, ieta));
 }
-
 
 ReconstCell Fields::getCellIdeal(const int idx) {
     ReconstCell cell;
@@ -75,15 +70,13 @@ ReconstCell Fields::getCellIdeal(const int idx) {
     for (int i = 0; i < Nu_; i++) {
         cell.u[i] = u_[i][idx];
     }
-    return(cell);
+    return (cell);
 }
-
 
 ReconstCell Fields::getCellIdeal(int ix, int iy, int ieta) {
-    ix   = std::max(0, std::min(Nx_-1  , ix  ));
-    iy   = std::max(0, std::min(Ny_-1  , iy  ));
-    ieta = std::max(0, std::min(Neta_-1, ieta));
+    ix = std::max(0, std::min(Nx_ - 1, ix));
+    iy = std::max(0, std::min(Ny_ - 1, iy));
+    ieta = std::max(0, std::min(Neta_ - 1, ieta));
     int fieldIdx = getFieldIdx(ix, iy, ieta);
-    return(getCellIdeal(fieldIdx));
+    return (getCellIdeal(fieldIdx));
 }
-

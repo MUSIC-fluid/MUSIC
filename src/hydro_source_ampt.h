@@ -3,8 +3,9 @@
 #ifndef SRC_HYDRO_SOURCE_AMPT_H_
 #define SRC_HYDRO_SOURCE_AMPT_H_
 
-#include <vector>
 #include <memory>
+#include <vector>
+
 #include "hydro_source_base.h"
 
 //! This data structure stores parton information
@@ -19,15 +20,14 @@ struct parton {
     double electric_charge;
 };
 
-
 class HydroSourceAMPT : public HydroSourceBase {
- private:
+  private:
     const InitData &DATA;
     double parton_quench_factor;
     std::vector<std::shared_ptr<parton>> parton_list;
     std::vector<std::shared_ptr<parton>> parton_list_current_tau;
 
- public:
+  public:
     HydroSourceAMPT() = delete;
     HydroSourceAMPT(const InitData &DATA_in);
     ~HydroSourceAMPT();
@@ -39,16 +39,15 @@ class HydroSourceAMPT : public HydroSourceBase {
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(
         const double tau, const double x, const double y, const double eta_s,
-        const FlowVec &u_mu, EnergyFlowVec &j_mu) const ;
+        const FlowVec &u_mu, EnergyFlowVec &j_mu) const;
 
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
-    double get_hydro_rhob_source(const double tau, const double x,
-                                 const double y, const double eta_s,
-                                 const FlowVec &u_mu) const ;
+    double get_hydro_rhob_source(
+        const double tau, const double x, const double y, const double eta_s,
+        const FlowVec &u_mu) const;
 
     void prepare_list_for_current_tau_frame(const double tau_local);
 };
 
 #endif  // SRC_HYDRO_SOURCE_AMPT_H_
-

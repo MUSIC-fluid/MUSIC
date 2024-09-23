@@ -1,15 +1,17 @@
-// MUSIC - a 3+1D viscous relativistic hydrodynamic code for heavy ion collisions
-// Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon, Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
+// MUSIC - a 3+1D viscous relativistic hydrodynamic code for heavy ion
+// collisions Copyright (C) 2017  Gabriel Denicol, Charles Gale, Sangyong Jeon,
+// Matthew Luzum, Jean-François Paquet, Björn Schenke, Chun Shen
 
 #include "./freeze.h"
+
 #include <cstring>
 
 using namespace std;
 
-Freeze::Freeze(InitData* DATA_in) {
+Freeze::Freeze(InitData *DATA_in) {
     if (etasize < DATA_in->pseudo_steps + 1) {
-        music_message << __func__
-            << "etasize is smaller than pseudo_steps + 1! "
+        music_message
+            << __func__ << "etasize is smaller than pseudo_steps + 1! "
             << "Please increase the value of etasize >= pseudo_steps + 1 "
             << "in freeze.h";
         music_message.flush("error");
@@ -22,11 +24,11 @@ Freeze::Freeze(InitData* DATA_in) {
     // for final particle spectra and flow analysis, define the list
     // of charged hadrons that have a long enough lifetime to reach
     // the detectors
-    int temp_list [] = {211, -211, 321, -321, 2212, -2212, 3222, -3222,
-                        3112, -3112, 3312, -3312};
-    charged_hadron_list_length = sizeof(temp_list)/sizeof(int);
-    charged_hadron_list = new int [charged_hadron_list_length];
-    for(int i = 0; i < charged_hadron_list_length; i++)
+    int temp_list[] = {211,  -211,  321,  -321,  2212, -2212,
+                       3222, -3222, 3112, -3112, 3312, -3312};
+    charged_hadron_list_length = sizeof(temp_list) / sizeof(int);
+    charged_hadron_list = new int[charged_hadron_list_length];
+    for (int i = 0; i < charged_hadron_list_length; i++)
         charged_hadron_list[i] = temp_list[i];
 
     particleMax = DATA_ptr->NumberOfParticlesToInclude;
@@ -38,10 +40,10 @@ Freeze::Freeze(InitData* DATA_in) {
     if (DATA_ptr->turn_on_diff == 1 && DATA_ptr->include_deltaf_qmu == 1) {
         if (DATA_ptr->deltaf_14moments == 1) {
             load_deltaf_qmu_coeff_table_14mom(
-                            "tables/deltaf_coefficients_14moments.dat");
+                "tables/deltaf_coefficients_14moments.dat");
         } else if (DATA_ptr->include_deltaf_qmu == 1) {
             load_deltaf_qmu_coeff_table(
-                            "tables/Coefficients_RTA_diffusion.dat");
+                "tables/Coefficients_RTA_diffusion.dat");
         }
     }
 
@@ -50,21 +52,19 @@ Freeze::Freeze(InitData* DATA_in) {
         // define the gauss integration points along eta_s
         // the weights already take care of the factor of 2
         // from -infty to +infty
-        double temp_gauss[] = {
-            2.4014964e-02, 1.2545322e-01, 3.0358683e-01,
-            5.5116454e-01, 8.5805566e-01, 1.2116973e+00,
-            1.5976118e+00, 2.0000000e+00, 2.4023882e+00,
-            2.7883027e+00, 3.1419444e+00, 3.4488355e+00,
-            3.6964132e+00, 3.8745468e+00, 3.9759850e+00
-        };
+        double temp_gauss[] = {2.4014964e-02, 1.2545322e-01, 3.0358683e-01,
+                               5.5116454e-01, 8.5805566e-01, 1.2116973e+00,
+                               1.5976118e+00, 2.0000000e+00, 2.4023882e+00,
+                               2.7883027e+00, 3.1419444e+00, 3.4488355e+00,
+                               3.6964132e+00, 3.8745468e+00, 3.9759850e+00};
         double temp_gauss_weight[] = {
-            1.2301297e-01, 2.8146419e-01, 4.2863688e-01,
-            5.5828271e-01, 6.6507682e-01, 7.4464400e-01,
-            7.9372594e-01, 8.1031297e-01, 7.9372594e-01,
-            7.4464400e-01, 6.6507682e-01, 5.5828271e-01,
+            1.2301297e-01, 2.8146419e-01, 4.2863688e-01, 5.5828271e-01,
+            6.6507682e-01, 7.4464400e-01, 7.9372594e-01, 8.1031297e-01,
+            7.9372594e-01, 7.4464400e-01, 6.6507682e-01, 5.5828271e-01,
             4.2863688e-01, 2.8146419e-01, 1.2301297e-01,
         };
-        n_eta_s_integral = static_cast<int>(sizeof(temp_gauss)/sizeof(double));
+        n_eta_s_integral =
+            static_cast<int>(sizeof(temp_gauss) / sizeof(double));
         eta_s_inte_array = new double[n_eta_s_integral];
         eta_s_inte_weight = new double[n_eta_s_integral];
         cosh_eta_s_inte = new double[n_eta_s_integral];
@@ -95,7 +95,7 @@ Freeze::~Freeze() {
     surface.clear();
 }
 
-void Freeze::checkForReadError(FILE *file, const char* name) {
+void Freeze::checkForReadError(FILE *file, const char *name) {
     if (!(file)) {
         music_message << "file " << name << " not found. Exiting...";
         music_message.flush("error");
@@ -103,15 +103,15 @@ void Freeze::checkForReadError(FILE *file, const char* name) {
     }
 }
 
-void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
+void Freeze::read_particle_PCE_mu(InitData *DATA, EOS *eos) {
     double ef = DATA->epsilonFreeze;
     music_message << "Determining chemical potentials at freeze out "
                   << "energy density " << ef << " GeV/fm^3.";
     music_message.flush("info");
 
     // get environment path
-    const char* EOSPATH = "HYDROPROGRAMPATH";
-    char * pre_envPath= getenv(EOSPATH);
+    const char *EOSPATH = "HYDROPROGRAMPATH";
+    char *pre_envPath = getenv(EOSPATH);
     std::string envPath;
     if (pre_envPath == 0) {
         envPath = ".";
@@ -129,7 +129,7 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     } else if (DATA->whichEOS == 6) {
         mu_name = envPath + "/EOS/s95p-PCE165-v0/s95p-PCE165-v0_pichem1.dat";
     }
-    music_message << "Reading chemical potentials from file " << mu_name; 
+    music_message << "Reading chemical potentials from file " << mu_name;
     music_message.flush("info");
 
     ifstream mu_file(mu_name.c_str());
@@ -138,19 +138,19 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
         music_message.flush("error");
         exit(0);
     }
-    double EPP1;            // start value for \mu_B and epsilon
-    double deltaEPP1;       // step size for \mu_B and epsilon
-    int NEPP1;              // number of entries for \mu_B and epsilon
-    int numStable = 0;      // number of stable particles
+    double EPP1;        // start value for \mu_B and epsilon
+    double deltaEPP1;   // step size for \mu_B and epsilon
+    int NEPP1;          // number of entries for \mu_B and epsilon
+    int numStable = 0;  // number of stable particles
     double **chemPot;
 
     mu_file >> EPP1 >> deltaEPP1 >> NEPP1;
     mu_file >> numStable;
 
-    // chemical potential for every stable particle 
-    chemPot = Util::mtx_malloc(numStable+1, NEPP1+1);
+    // chemical potential for every stable particle
+    chemPot = Util::mtx_malloc(numStable + 1, NEPP1 + 1);
 
-    for (int j = NEPP1-1; j >= 0; j--) {
+    for (int j = NEPP1 - 1; j >= 0; j--) {
         for (int i = 0; i < numStable; i++) {
             mu_file >> chemPot[i][j];
         }
@@ -162,11 +162,11 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     if (ef < EPP1) {
         ie1 = 0;
         ie2 = 1;
-        frace = ef/(EPP1);
+        frace = ef / (EPP1);
     } else {
-        ie1 = floor((ef-EPP1)/deltaEPP1);
-        ie2 = floor((ef-EPP1)/deltaEPP1+1);
-        frace = (ef-(ie1*deltaEPP1+EPP1))/deltaEPP1; 
+        ie1 = floor((ef - EPP1) / deltaEPP1);
+        ie2 = floor((ef - EPP1) / deltaEPP1 + 1);
+        frace = (ef - (ie1 * deltaEPP1 + EPP1)) / deltaEPP1;
     }
 
     if (ie1 > NEPP1) {
@@ -184,18 +184,18 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     }
 
     double pa, pb;
-    double mu[numStable+1];
+    double mu[numStable + 1];
     music_message << "num_of_stable_particles = " << numStable;
     music_message.flush("info");
 
-    for(int i = 1; i <= numStable; i++) {
-        pa = chemPot[i-1][ie1];
-        pb = chemPot[i-1][ie2];
+    for (int i = 1; i <= numStable; i++) {
+        pa = chemPot[i - 1][ie1];
+        pb = chemPot[i - 1][ie2];
 
         if (ef < EPP1) {
-            mu[i] = pa*(frace);
+            mu[i] = pa * (frace);
         } else {
-            mu[i] = pa*(1-frace) + pb*frace;
+            mu[i] = pa * (1 - frace) + pb * frace;
         }
     }
 
@@ -204,12 +204,12 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     }
 
     if (DATA->NumberOfParticlesToInclude >= 8) {
-        for(int i = 1; i <= 8; i++) {
+        for (int i = 1; i <= 8; i++) {
             particleList[i].muAtFreezeOut = mu[i];
         }
     } else {
         music_message << "Need at least 8 particles. "
-             << "Increase number of particles to include. Exiting.";
+                      << "Increase number of particles to include. Exiting.";
         music_message.flush("error");
         exit(1);
     }
@@ -219,104 +219,104 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
             particleList[12].muAtFreezeOut = mu[9];
         if (DATA->NumberOfParticlesToInclude >= 17)
             particleList[17].muAtFreezeOut = mu[10];
-        if (DATA->NumberOfParticlesToInclude>=18)
+        if (DATA->NumberOfParticlesToInclude >= 18)
             particleList[18].muAtFreezeOut = mu[11];
-        if (DATA->NumberOfParticlesToInclude>=19)
+        if (DATA->NumberOfParticlesToInclude >= 19)
             particleList[19].muAtFreezeOut = mu[12];
-        if (DATA->NumberOfParticlesToInclude>=20)
+        if (DATA->NumberOfParticlesToInclude >= 20)
             particleList[20].muAtFreezeOut = mu[13];
-        if (DATA->NumberOfParticlesToInclude>=21)
+        if (DATA->NumberOfParticlesToInclude >= 21)
             particleList[21].muAtFreezeOut = mu[14];
 
-        if (DATA->NumberOfParticlesToInclude>=26)
+        if (DATA->NumberOfParticlesToInclude >= 26)
             particleList[26].muAtFreezeOut = mu[15];
-        if (DATA->NumberOfParticlesToInclude>=27)
+        if (DATA->NumberOfParticlesToInclude >= 27)
             particleList[27].muAtFreezeOut = mu[16];
-        if (DATA->NumberOfParticlesToInclude>=28)
+        if (DATA->NumberOfParticlesToInclude >= 28)
             particleList[28].muAtFreezeOut = mu[17];
 
-        if (DATA->NumberOfParticlesToInclude>=30)
+        if (DATA->NumberOfParticlesToInclude >= 30)
             particleList[30].muAtFreezeOut = mu[18];
-        if (DATA->NumberOfParticlesToInclude>=31)
+        if (DATA->NumberOfParticlesToInclude >= 31)
             particleList[31].muAtFreezeOut = mu[19];
-        if (DATA->NumberOfParticlesToInclude>=32)
+        if (DATA->NumberOfParticlesToInclude >= 32)
             particleList[32].muAtFreezeOut = mu[20];
-        if (DATA->NumberOfParticlesToInclude>=33)
+        if (DATA->NumberOfParticlesToInclude >= 33)
             particleList[33].muAtFreezeOut = mu[21];
-        if (DATA->NumberOfParticlesToInclude>=34)
+        if (DATA->NumberOfParticlesToInclude >= 34)
             particleList[34].muAtFreezeOut = mu[22];
-        if (DATA->NumberOfParticlesToInclude>=35)
+        if (DATA->NumberOfParticlesToInclude >= 35)
             particleList[35].muAtFreezeOut = mu[23];
 
-        if (DATA->NumberOfParticlesToInclude>=60)
+        if (DATA->NumberOfParticlesToInclude >= 60)
             particleList[60].muAtFreezeOut = mu[24];
-        if (DATA->NumberOfParticlesToInclude>=61)
+        if (DATA->NumberOfParticlesToInclude >= 61)
             particleList[61].muAtFreezeOut = mu[25];
-        if (DATA->NumberOfParticlesToInclude>=62)
+        if (DATA->NumberOfParticlesToInclude >= 62)
             particleList[62].muAtFreezeOut = mu[26];
-        if (DATA->NumberOfParticlesToInclude>=63)
+        if (DATA->NumberOfParticlesToInclude >= 63)
             particleList[63].muAtFreezeOut = mu[27];
 
-        if (DATA->NumberOfParticlesToInclude>=110)
+        if (DATA->NumberOfParticlesToInclude >= 110)
             particleList[110].muAtFreezeOut = mu[28];
 
-        if (DATA->NumberOfParticlesToInclude>=111)
+        if (DATA->NumberOfParticlesToInclude >= 111)
             particleList[111].muAtFreezeOut = mu[29];
 
-        if (DATA->NumberOfParticlesToInclude>=117)
+        if (DATA->NumberOfParticlesToInclude >= 117)
             particleList[117].muAtFreezeOut = mu[30];
-        if (DATA->NumberOfParticlesToInclude>=118)
+        if (DATA->NumberOfParticlesToInclude >= 118)
             particleList[118].muAtFreezeOut = mu[31];
-        if (DATA->NumberOfParticlesToInclude>=119)
+        if (DATA->NumberOfParticlesToInclude >= 119)
             particleList[119].muAtFreezeOut = mu[32];
-        if (DATA->NumberOfParticlesToInclude>=120)
+        if (DATA->NumberOfParticlesToInclude >= 120)
             particleList[120].muAtFreezeOut = mu[33];
 
-        if (DATA->NumberOfParticlesToInclude>=170)
+        if (DATA->NumberOfParticlesToInclude >= 170)
             particleList[170].muAtFreezeOut = mu[34];
-        if (DATA->NumberOfParticlesToInclude>=171)
+        if (DATA->NumberOfParticlesToInclude >= 171)
             particleList[171].muAtFreezeOut = mu[35];
-    } else {   
-        if (DATA->NumberOfParticlesToInclude>=17)
+    } else {
+        if (DATA->NumberOfParticlesToInclude >= 17)
             particleList[17].muAtFreezeOut = mu[9];
-        if (DATA->NumberOfParticlesToInclude>=18)
+        if (DATA->NumberOfParticlesToInclude >= 18)
             particleList[18].muAtFreezeOut = mu[10];
-        if (DATA->NumberOfParticlesToInclude>=19)
+        if (DATA->NumberOfParticlesToInclude >= 19)
             particleList[19].muAtFreezeOut = mu[11];
-        if (DATA->NumberOfParticlesToInclude>=20)
+        if (DATA->NumberOfParticlesToInclude >= 20)
             particleList[20].muAtFreezeOut = mu[12];
-        if (DATA->NumberOfParticlesToInclude>=21)
+        if (DATA->NumberOfParticlesToInclude >= 21)
             particleList[21].muAtFreezeOut = mu[13];
-        if (DATA->NumberOfParticlesToInclude>=26)
+        if (DATA->NumberOfParticlesToInclude >= 26)
             particleList[26].muAtFreezeOut = mu[14];
-        if (DATA->NumberOfParticlesToInclude>=27)
+        if (DATA->NumberOfParticlesToInclude >= 27)
             particleList[27].muAtFreezeOut = mu[15];
-        if (DATA->NumberOfParticlesToInclude>=28)
+        if (DATA->NumberOfParticlesToInclude >= 28)
             particleList[28].muAtFreezeOut = mu[16];
 
-        if (DATA->NumberOfParticlesToInclude>=30)
+        if (DATA->NumberOfParticlesToInclude >= 30)
             particleList[30].muAtFreezeOut = mu[17];
-        if (DATA->NumberOfParticlesToInclude>=31)
+        if (DATA->NumberOfParticlesToInclude >= 31)
             particleList[31].muAtFreezeOut = mu[18];
-        if (DATA->NumberOfParticlesToInclude>=32)
+        if (DATA->NumberOfParticlesToInclude >= 32)
             particleList[32].muAtFreezeOut = mu[19];
-        if (DATA->NumberOfParticlesToInclude>=33)
+        if (DATA->NumberOfParticlesToInclude >= 33)
             particleList[33].muAtFreezeOut = mu[20];
-        if (DATA->NumberOfParticlesToInclude>=34)
+        if (DATA->NumberOfParticlesToInclude >= 34)
             particleList[34].muAtFreezeOut = mu[21];
-        if (DATA->NumberOfParticlesToInclude>=35)
+        if (DATA->NumberOfParticlesToInclude >= 35)
             particleList[35].muAtFreezeOut = mu[22];
-        if (DATA->NumberOfParticlesToInclude>=60)
+        if (DATA->NumberOfParticlesToInclude >= 60)
             particleList[60].muAtFreezeOut = mu[23];
-        if (DATA->NumberOfParticlesToInclude>=61)
+        if (DATA->NumberOfParticlesToInclude >= 61)
             particleList[61].muAtFreezeOut = mu[24];
-        if (DATA->NumberOfParticlesToInclude>=62)
+        if (DATA->NumberOfParticlesToInclude >= 62)
             particleList[62].muAtFreezeOut = mu[25];
-        if (DATA->NumberOfParticlesToInclude>=63)
+        if (DATA->NumberOfParticlesToInclude >= 63)
             particleList[63].muAtFreezeOut = mu[26];
-        if (DATA->NumberOfParticlesToInclude>=170)
+        if (DATA->NumberOfParticlesToInclude >= 170)
             particleList[170].muAtFreezeOut = mu[27];
-        if (DATA->NumberOfParticlesToInclude>=171)
+        if (DATA->NumberOfParticlesToInclude >= 171)
             particleList[171].muAtFreezeOut = mu[28];
     }
     music_message << "Got the chemical potentials at freeze out for "
@@ -324,7 +324,7 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
     music_message.flush("info");
 
     int k = 0;
-    for(int i = 1; i < DATA->NumberOfParticlesToInclude; i++) {
+    for (int i = 1; i < DATA->NumberOfParticlesToInclude; i++) {
         // skip the photon (i=0)
         if (particleList[i].muAtFreezeOut == 0) {
             if (particleList[i].baryon == -1) {
@@ -332,47 +332,49 @@ void Freeze::read_particle_PCE_mu(InitData* DATA, EOS *eos) {
             }
             for (int j = 1; j <= particleList[i].decays; j++) {
                 k++;
-                for (int m=0; m<abs(decay[k].numpart); m++) {
+                for (int m = 0; m < abs(decay[k].numpart); m++) {
                     if (particleList[i].baryon == -1
-                        && particleList[partid[MHALF+decay[k].part[m]]].baryon != 0) {
-                        particleList[i].muAtFreezeOut += (
-                            decay[k].branch
-                            *particleList[partid[MHALF-decay[k].part[m]]].muAtFreezeOut);
+                        && particleList[partid[MHALF + decay[k].part[m]]].baryon
+                               != 0) {
+                        particleList[i].muAtFreezeOut +=
+                            (decay[k].branch
+                             * particleList[partid[MHALF - decay[k].part[m]]]
+                                   .muAtFreezeOut);
                     } else {
-                        particleList[i].muAtFreezeOut += (
-                            decay[k].branch
-                            *particleList[partid[MHALF+decay[k].part[m]]].muAtFreezeOut);
+                        particleList[i].muAtFreezeOut +=
+                            (decay[k].branch
+                             * particleList[partid[MHALF + decay[k].part[m]]]
+                                   .muAtFreezeOut);
                     }
                 }
             }
         } else {
             for (int j = 1; j <= particleList[i].decays; j++) {
-                if (particleList[i].baryon > -1)
-                    k++;
+                if (particleList[i].baryon > -1) k++;
             }
         }
     }
-    music_message << "Got the chemical potentials at freeze-out for the resonances.";
+    music_message
+        << "Got the chemical potentials at freeze-out for the resonances.";
     music_message.flush("info");
 
     // clean up
-    Util::mtx_free(chemPot, numStable+1, NEPP1+1);
+    Util::mtx_free(chemPot, numStable + 1, NEPP1 + 1);
 }
-
 
 void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     // read in particle and decay information from file:
-    partid = new int[MAXINTV]; 
+    partid = new int[MAXINTV];
     music_message.info("reading particle data");
     // open particle data file:
-    const char* EOSPATH = "HYDROPROGRAMPATH";
-    char * pre_envPath= getenv(EOSPATH);
+    const char *EOSPATH = "HYDROPROGRAMPATH";
+    char *pre_envPath = getenv(EOSPATH);
     std::string envPath;
 
     if (pre_envPath == 0) {
-        envPath=".";
+        envPath = ".";
     } else {
-        envPath=pre_envPath;
+        envPath = pre_envPath;
     }
     string p_name = envPath + "/EOS/pdg05.dat";
     if (DATA->whichEOS == 7 || DATA->whichEOS == 10) {
@@ -386,16 +388,15 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     p_file = fopen(p_name.c_str(), "r");
     checkForReadError(p_file, p_name.c_str());
 
-    for (int k = 0; k < MAXINTV; k++) 
-        partid[k] = -1; 
+    for (int k = 0; k < MAXINTV; k++) partid[k] = -1;
 
     if (DATA->echo_level > 5) {
-        music_message << "size_of_Particle= " << sizeof(Particle)/1024/1024
+        music_message << "size_of_Particle= " << sizeof(Particle) / 1024 / 1024
                       << " MB";
         music_message.flush("info");
     }
     particleList = (Particle *)malloc(
-                    (DATA->NumberOfParticlesToInclude + 2)*sizeof(Particle));
+        (DATA->NumberOfParticlesToInclude + 2) * sizeof(Particle));
     if (DATA->echo_level > 5) {
         music_message << "after first (check if there is enough memory... "
                       << "seg fault may be due to lack of memory)";
@@ -405,60 +406,61 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     int j = 0;
     // read particle data:
     while (i < DATA->NumberOfParticlesToInclude) {
-        //particleList[i].name = Util::char_malloc(50);
-        system_status_ = fscanf(p_file, "%d",  &particleList[i].number );
-        system_status_ = fscanf(p_file, "%s",   particleList[i].name   );
-        system_status_ = fscanf(p_file, "%lf", &particleList[i].mass   );
-        system_status_ = fscanf(p_file, "%lf", &particleList[i].width  );
-        system_status_ = fscanf(p_file, "%d",  &particleList[i].degeneracy);
-        system_status_ = fscanf(p_file, "%d",  &particleList[i].baryon );
-        system_status_ = fscanf(p_file, "%d",  &particleList[i].strange);
-        system_status_ = fscanf(p_file, "%d",  &particleList[i].charm  );
-        system_status_ = fscanf(p_file, "%d",  &particleList[i].bottom );
-        system_status_ = fscanf(p_file, "%d",  &particleList[i].isospin);
-        system_status_ = fscanf(p_file, "%lf", &particleList[i].charge );
-        system_status_ = fscanf(p_file, "%d",  &particleList[i].decays );   // number of decays
+        // particleList[i].name = Util::char_malloc(50);
+        system_status_ = fscanf(p_file, "%d", &particleList[i].number);
+        system_status_ = fscanf(p_file, "%s", particleList[i].name);
+        system_status_ = fscanf(p_file, "%lf", &particleList[i].mass);
+        system_status_ = fscanf(p_file, "%lf", &particleList[i].width);
+        system_status_ = fscanf(p_file, "%d", &particleList[i].degeneracy);
+        system_status_ = fscanf(p_file, "%d", &particleList[i].baryon);
+        system_status_ = fscanf(p_file, "%d", &particleList[i].strange);
+        system_status_ = fscanf(p_file, "%d", &particleList[i].charm);
+        system_status_ = fscanf(p_file, "%d", &particleList[i].bottom);
+        system_status_ = fscanf(p_file, "%d", &particleList[i].isospin);
+        system_status_ = fscanf(p_file, "%lf", &particleList[i].charge);
+        system_status_ =
+            fscanf(p_file, "%d", &particleList[i].decays);  // number of decays
 
         partid[MHALF + particleList[i].number] = i;
         particleList[i].stable = 0;
 
         int h;
-        for(int k = 0; k < particleList[i].decays; k++) {
-            h = fscanf(p_file, "%i%i%lf%i%i%i%i%i",
-                       &decay[j].reso, &decay[j].numpart, &decay[j].branch, 
-                       &decay[j].part[0], &decay[j].part[1], &decay[j].part[2],
-                       &decay[j].part[3], &decay[j].part[4]);
+        for (int k = 0; k < particleList[i].decays; k++) {
+            h = fscanf(
+                p_file, "%i%i%lf%i%i%i%i%i", &decay[j].reso, &decay[j].numpart,
+                &decay[j].branch, &decay[j].part[0], &decay[j].part[1],
+                &decay[j].part[2], &decay[j].part[3], &decay[j].part[4]);
             if (h != 8) {
                 printf("Error in scanf decay \n");
                 exit(0);
             }
             if (decay[j].numpart == 1) {
-                // "decays" into one particle, i.e. is stable 
+                // "decays" into one particle, i.e. is stable
                 particleList[i].stable = 1;
             }
-            j++;   // increase the decay counting variable "j" by 1
+            j++;  // increase the decay counting variable "j" by 1
         }
 
         // include anti-baryons (there are none in the file)
         if (particleList[i].baryon != 0) {
             i++;
-            //particleList[i].name  = Util::char_malloc(50);
-            particleList[i].width   =  particleList[i-1].width;
-            particleList[i].charm   = -particleList[i-1].charm;
-            particleList[i].bottom  = -particleList[i-1].bottom;
-            particleList[i].isospin =  particleList[i-1].isospin;
-            particleList[i].charge  = -particleList[i-1].charge;
-            particleList[i].decays  =  particleList[i-1].decays;
-            particleList[i].stable  =  particleList[i-1].stable;
-            particleList[i].number  = -particleList[i-1].number;
-            std::string antiName = ("Anti-"
-                                    + std::string(particleList[i-1].name));
+            // particleList[i].name  = Util::char_malloc(50);
+            particleList[i].width = particleList[i - 1].width;
+            particleList[i].charm = -particleList[i - 1].charm;
+            particleList[i].bottom = -particleList[i - 1].bottom;
+            particleList[i].isospin = particleList[i - 1].isospin;
+            particleList[i].charge = -particleList[i - 1].charge;
+            particleList[i].decays = particleList[i - 1].decays;
+            particleList[i].stable = particleList[i - 1].stable;
+            particleList[i].number = -particleList[i - 1].number;
+            std::string antiName =
+                ("Anti-" + std::string(particleList[i - 1].name));
             strcpy(particleList[i].name, antiName.c_str());
-            particleList[i].mass       =  particleList[i-1].mass;
-            particleList[i].degeneracy =  particleList[i-1].degeneracy;
-            particleList[i].baryon     = -particleList[i-1].baryon;
-            particleList[i].strange    = -particleList[i-1].strange;
-            particleList[i].charge     = -particleList[i-1].charge;
+            particleList[i].mass = particleList[i - 1].mass;
+            particleList[i].degeneracy = particleList[i - 1].degeneracy;
+            particleList[i].baryon = -particleList[i - 1].baryon;
+            particleList[i].strange = -particleList[i - 1].strange;
+            particleList[i].charge = -particleList[i - 1].charge;
             partid[MHALF + particleList[i].number] = i;
         }
         i++;
@@ -477,7 +479,6 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
     music_message.info("Done reading particle data.");
 }
 
-
 void Freeze::ReadFreezeOutSurface(InitData *DATA) {
     music_message.info("reading freeze-out surface");
 
@@ -490,11 +491,10 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
 
     // new counting, mac compatible ...
     if (surface_in_binary) {
-        NCells = get_number_of_lines_of_binary_surface_file(
-                                                    surfdat_stream.str());
+        NCells =
+            get_number_of_lines_of_binary_surface_file(surfdat_stream.str());
     } else {
-        NCells = get_number_of_lines_of_text_surface_file(
-                                                    surfdat_stream.str());
+        NCells = get_number_of_lines_of_text_surface_file(surfdat_stream.str());
     }
     music_message << "NCells = " << NCells;
     music_message.flush("info");
@@ -506,7 +506,7 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
         surfdat.open(surfdat_stream.str().c_str());
     }
     // Now allocate memory: array of surfaceElements with length NCells
-    //surface = (SurfaceElement *) malloc((NCells)*sizeof(SurfaceElement));
+    // surface = (SurfaceElement *) malloc((NCells)*sizeof(SurfaceElement));
     int i = 0;
     while (i < NCells) {
         SurfaceElement temp_cell;
@@ -514,7 +514,7 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
             float array[34];
             for (int ii = 0; ii < 34; ii++) {
                 float temp = 0.;
-                surfdat.read((char*)&temp, sizeof(float));
+                surfdat.read((char *)&temp, sizeof(float));
                 array[ii] = temp;
             }
             temp_cell.x[0] = array[0];
@@ -535,11 +535,11 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
             temp_cell.u[2] = array[10];
             temp_cell.u[3] = array[11];
 
-            temp_cell.epsilon_f            = array[12];
-            temp_cell.T_f                  = array[13];
-            temp_cell.mu_B                 = array[14];
-            temp_cell.mu_S                 = array[15];
-            temp_cell.mu_C                 = array[16];
+            temp_cell.epsilon_f = array[12];
+            temp_cell.T_f = array[13];
+            temp_cell.mu_B = array[14];
+            temp_cell.mu_S = array[15];
+            temp_cell.mu_C = array[16];
             temp_cell.eps_plus_p_over_T_FO = array[17];
 
             temp_cell.W[0][0] = array[18];
@@ -553,7 +553,7 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
             temp_cell.W[2][3] = array[26];
             temp_cell.W[3][3] = array[27];
 
-            temp_cell.pi_b  = array[28];
+            temp_cell.pi_b = array[28];
             temp_cell.rho_B = array[29];
 
             temp_cell.q[0] = array[30];
@@ -562,27 +562,26 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
             temp_cell.q[3] = array[33];
         } else {
             // position in (tau, x, y, eta)
-            surfdat >> temp_cell.x[0] >> temp_cell.x[1]
-                    >> temp_cell.x[2] >> temp_cell.x[3];
+            surfdat >> temp_cell.x[0] >> temp_cell.x[1] >> temp_cell.x[2]
+                >> temp_cell.x[3];
 
             // hypersurface vector in (tau, x, y, eta)
-            surfdat >> temp_cell.s[0] >> temp_cell.s[1]
-                    >> temp_cell.s[2] >> temp_cell.s[3];
+            surfdat >> temp_cell.s[0] >> temp_cell.s[1] >> temp_cell.s[2]
+                >> temp_cell.s[3];
 
             // flow velocity in (tau, x, y, eta)
-            surfdat >> temp_cell.u[0] >> temp_cell.u[1]
-                    >> temp_cell.u[2] >> temp_cell.u[3];
+            surfdat >> temp_cell.u[0] >> temp_cell.u[1] >> temp_cell.u[2]
+                >> temp_cell.u[3];
 
-            surfdat >> temp_cell.epsilon_f >> temp_cell.T_f
-                    >> temp_cell.mu_B >> temp_cell.mu_S >> temp_cell.mu_C
-                    >> temp_cell.eps_plus_p_over_T_FO;
+            surfdat >> temp_cell.epsilon_f >> temp_cell.T_f >> temp_cell.mu_B
+                >> temp_cell.mu_S >> temp_cell.mu_C
+                >> temp_cell.eps_plus_p_over_T_FO;
 
             // freeze-out Wmunu
             surfdat >> temp_cell.W[0][0] >> temp_cell.W[0][1]
-                    >> temp_cell.W[0][2] >> temp_cell.W[0][3]
-                    >> temp_cell.W[1][1] >> temp_cell.W[1][2]
-                    >> temp_cell.W[1][3] >> temp_cell.W[2][2]
-                    >> temp_cell.W[2][3] >> temp_cell.W[3][3];
+                >> temp_cell.W[0][2] >> temp_cell.W[0][3] >> temp_cell.W[1][1]
+                >> temp_cell.W[1][2] >> temp_cell.W[1][3] >> temp_cell.W[2][2]
+                >> temp_cell.W[2][3] >> temp_cell.W[3][3];
             if (DATA->turn_on_bulk) {
                 surfdat >> temp_cell.pi_b;
             } else {
@@ -594,8 +593,8 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
                 temp_cell.rho_B = 0.;
             }
             if (DATA->turn_on_diff) {
-                surfdat >> temp_cell.q[0] >> temp_cell.q[1]
-                        >> temp_cell.q[2] >> temp_cell.q[3];
+                surfdat >> temp_cell.q[0] >> temp_cell.q[1] >> temp_cell.q[2]
+                    >> temp_cell.q[3];
             } else {
                 temp_cell.q[0] = 0.;
                 temp_cell.q[1] = 0.;
@@ -606,7 +605,7 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
         temp_cell.sinh_eta_s = sinh(temp_cell.x[3]);
         temp_cell.cosh_eta_s = cosh(temp_cell.x[3]);
 
-        if (temp_cell.epsilon_f < 0)  {
+        if (temp_cell.epsilon_f < 0) {
             music_message.error("epsilon_f < 0.!");
             exit(1);
         }
@@ -620,20 +619,18 @@ void Freeze::ReadFreezeOutSurface(InitData *DATA) {
     surfdat.close();
 }
 
-
 int Freeze::get_number_of_lines_of_binary_surface_file(string filename) {
     std::ifstream surface_file(filename.c_str(), std::ios::binary);
     int count = 0;
     float temp = 0.;
-    while(surface_file) {
-        surface_file.read((char*) &temp, sizeof(float));
+    while (surface_file) {
+        surface_file.read((char *)&temp, sizeof(float));
         count++;
     }
-    int counted_line = count/34;
+    int counted_line = count / 34;
     surface_file.close();
-    return(counted_line);
+    return (counted_line);
 }
-
 
 int Freeze::get_number_of_lines_of_text_surface_file(string filename) {
     std::ifstream surface_file(filename.c_str(), std::ios::binary);
@@ -643,5 +640,5 @@ int Freeze::get_number_of_lines_of_text_surface_file(string filename) {
         ++counted_lines;
     }
     surface_file.close();
-    return(counted_lines);
+    return (counted_lines);
 }
