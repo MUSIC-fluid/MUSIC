@@ -80,7 +80,7 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                       << " fm, dy=" << DATA.delta_y << " fm.";
         music_message.flush("info");
     } else if (   DATA.Initial_profile == 9 || DATA.Initial_profile == 91
-               || DATA.Initial_profile == 92 || DATA.Initial_profile == 93) {
+               || DATA.Initial_profile == 92 || DATA.Initial_profile == 93 ) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
         if (!profile.is_open()) {
@@ -121,9 +121,7 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         music_message.flush("info");
     } else if (DATA.Initial_profile == 17) {
         music_message.info("Initialize hydro with source terms from pre-equilibrium model");
-    }
-    
-    else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
+    } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
         DATA.tau0 = (hydro_source_terms_ptr.lock()->get_source_tau_min()
                      - DATA.delta_tau);
         DATA.tau0 = static_cast<int>(DATA.tau0/0.02)*0.02;
@@ -164,10 +162,7 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         music_message << "dx = " << DATA.delta_x << " fm, dy = "
                       << DATA.delta_y << " fm, deta = " << DATA.delta_eta;
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 17){
-        music_message.info ("Initialize hydro with source terms from pre-equilibrium model");
-
-    }
+    } 
 
     // initialize arena
     arenaFieldsPrev.resizeFields(DATA.nx, DATA.ny, DATA.neta);
