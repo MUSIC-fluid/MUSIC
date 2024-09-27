@@ -670,6 +670,8 @@ double Advance::MaxSpeed(
         fprintf(stderr, "Can't happen.\n");
         fprintf(stderr, "SpeedMax = num/den, num = %e, den = %e \n", num, den);
         fprintf(stderr, "cs2 = %e \n", vs2);
+        fprintf(stderr, "at value e=%e, rhob = %e \n", eps, rhob);
+        fprintf(stderr, "utau = %e, ux = %e \n", utau, ux);
         f = 1.;
         exit(1);
     }

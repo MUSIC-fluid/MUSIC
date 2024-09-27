@@ -183,7 +183,7 @@ void Diss::Make_uWSource(
 
     bool include_WWterm = false;
     bool include_Wsigma_term = false;
-    if (DATA.include_second_order_terms == 1 && DATA.Initial_profile != 0) {
+    if (DATA.include_second_order_terms == 1) {
         include_WWterm = true;
         include_Wsigma_term = true;
     }
@@ -529,18 +529,18 @@ double Diss::Make_uPiSource(
     const VelocityShearVec &sigma_1d, const std::vector<double> &thermalVec) {
     double tempf;
     double bulk;
-    double Bulk_Relax_time;
+    double Bulk_Relax_time = 0.2;  // fm
     double transport_coeff1, transport_coeff2;
     double transport_coeff1_s, transport_coeff2_s;
     double NS_term, BB_term;
     double Final_Answer;
 
     // switch to include non-linear coupling terms in the bulk pi evolution
-    int include_BBterm = 0;
-    int include_coupling_to_shear = 0;
+    bool include_BBterm = false;
+    bool include_coupling_to_shear = false;
     if (DATA.include_second_order_terms == 1) {
-        include_BBterm = 1;
-        include_coupling_to_shear = 1;
+        include_BBterm = true;
+        include_coupling_to_shear = true;
     }
 
     // defining bulk viscosity coefficient
@@ -563,13 +563,19 @@ double Diss::Make_uPiSource(
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
-    double csfactor = std::max(1. / 3. - cs2, small_eps);
-    Bulk_Relax_time =
-        (transport_coeffs_.get_bulk_relax_time_factor() / (csfactor * csfactor)
-         / std::max(epsilon + pressure, small_eps) * bulk);
-    if (DATA.bulk_relaxation_type == 1) {
+    if (DATA.bulk_relaxation_type == 0) {
+        double csfactor = std::max(1. / 3. - cs2, small_eps);
         Bulk_Relax_time =
-            (bulk / (transport_coeffs_.get_bulk_relax_time_factor() * csfactor)
+            (transport_coeffs_.get_bulk_relax_time_factor() * bulk
+             / (csfactor * csfactor) / std::max(epsilon + pressure, small_eps));
+    } else if (DATA.bulk_relaxation_type == 1) {
+        double csfactor = std::max(1. / 3. - cs2, small_eps);
+        Bulk_Relax_time =
+            (transport_coeffs_.get_bulk_relax_time_factor() * bulk / csfactor
+             / std::max(epsilon + pressure, small_eps));
+    } else if (DATA.bulk_relaxation_type == 2) {
+        Bulk_Relax_time =
+            (transport_coeffs_.get_bulk_relax_time_factor() * bulk
              / std::max(epsilon + pressure, small_eps));
     }
 
@@ -587,6 +593,11 @@ double Diss::Make_uPiSource(
     transport_coeff1_s =
         (transport_coeffs_.get_lambda_bulkPipi_coeff() * (1. / 3. - cs2)
          * Bulk_Relax_time);
+    if (DATA.bulk_relaxation_type == 2) {
+        transport_coeff1_s =
+            (transport_coeffs_.get_lambda_bulkPipi_coeff() * 1. / 3.
+             * Bulk_Relax_time);
+    }
     transport_coeff2_s = 0.;  // not known;  put 0
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
@@ -606,7 +617,7 @@ double Diss::Make_uPiSource(
     // Computing terms that Couple with shear-stress tensor
     double Wsigma, WW, Shear_Sigma_term, Shear_Shear_term, Coupling_to_Shear;
 
-    if (include_coupling_to_shear == 1) {
+    if (include_coupling_to_shear) {
         auto sigma = Util::UnpackVecToMatrix(sigma_1d);
         auto Wmunu = Util::UnpackVecToMatrix(grid_pt.Wmunu);
 

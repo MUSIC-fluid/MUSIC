@@ -686,7 +686,8 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         parameter_list.useEpsFO = 1;
     }
 
-    if ((parameter_list.whichEOS > 19 && parameter_list.whichEOS != 91)
+    if ((parameter_list.whichEOS > 19 && parameter_list.whichEOS != 91
+         && parameter_list.whichEOS != 42)
         || parameter_list.whichEOS < 0) {
         music_message << "EOS_to_use unspecified or invalid option: "
                       << parameter_list.whichEOS;
@@ -787,11 +788,13 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         if (reset_dtau_use_CFL_condition) {
             music_message.info("reset dtau using CFL condition.");
             double dtau_CFL = std::min(
-                std::min(
-                    parameter_list.delta_x * parameter_list.dtaudxRatio,
-                    parameter_list.delta_y * parameter_list.dtaudxRatio),
-                parameter_list.tau0 * parameter_list.delta_eta
-                    * parameter_list.dtaudxRatio);
+                parameter_list.delta_x * parameter_list.dtaudxRatio,
+                parameter_list.delta_y * parameter_list.dtaudxRatio);
+            if (!parameter_list.boost_invariant) {
+                dtau_CFL = (std::min(
+                    dtau_CFL, parameter_list.tau0 * parameter_list.delta_eta
+                                  * parameter_list.dtaudxRatio));
+            }
             parameter_list.delta_tau = dtau_CFL;
             parameter_list.nt = static_cast<int>(
                 parameter_list.tau_size / (parameter_list.delta_tau) + 0.5);
@@ -802,8 +805,6 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
                           << "Number of time steps required = "
                           << parameter_list.nt;
             music_message.flush("info");
-        } else {
-            exit(1);
         }
     }
 

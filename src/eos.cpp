@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 
+#include "eos_1DGenerator.h"
 #include "eos_EOSQ.h"
 #include "eos_UH.h"
 #include "eos_WB.h"
@@ -31,6 +32,8 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in) {
         eos_ptr = std::unique_ptr<EOS_BEST>(new EOS_BEST());
     } else if (eos_id == 19) {
         eos_ptr = std::unique_ptr<EOS_UH>(new EOS_UH());
+    } else if (eos_id == 42) {
+        eos_ptr = std::unique_ptr<EOS_1DGenerator>(new EOS_1DGenerator(eos_id));
     } else {
         std::cout << "No EOS for eos_id = " << std::endl;
         exit(1);
