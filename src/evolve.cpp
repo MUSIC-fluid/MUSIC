@@ -148,7 +148,8 @@ int Evolve::EvolveIt(
 
         if (it == iFreezeStart || it == iFreezeStart + 10
             || it == iFreezeStart + 30 || it == iFreezeStart + 50) {
-            grid_info.output_momentum_anisotropy_vs_etas(tau, *fpCurr);
+            grid_info.output_momentum_anisotropy_vs_etas(
+                it - iFreezeStart, tau, *fpCurr);
         }
 
         if (DATA.beastMode == 0) {

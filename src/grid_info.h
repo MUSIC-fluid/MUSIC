@@ -136,7 +136,7 @@ class Cell_info {
     //! This function outputs system's eccentricity and momentum anisotropy
     //! as functions of eta_s
     void output_momentum_anisotropy_vs_etas(
-        const double tau, Fields &arena) const;
+        const int itau, const double tau, Fields &arena) const;
 
     //! This function outputs hydro evolution file into memory for JETSCAPE
     void OutputEvolutionDataXYEta_memory(
