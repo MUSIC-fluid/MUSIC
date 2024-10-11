@@ -176,6 +176,10 @@ double TransportCoeffs::get_zeta_over_s(const double T,
         const double B_width1 = 0.01;
         const double B_width2 = 0.12;
         const double Tpeak = 0.160;
+        peak_norm = DATA.bulk_10_max;
+        B_width1 = DATA.bulk_10_width_low;   
+        B_width2 = DATA.bulk_10_width_high; 
+        Tpeak = DATA.bulk_10_Tpeak;
         zeta_over_s = get_temperature_dependent_zeta_over_s_AsymGaussian(
                             T, peak_norm, B_width1, B_width2, Tpeak);
     } else if (bulk_T_ == 1) {
