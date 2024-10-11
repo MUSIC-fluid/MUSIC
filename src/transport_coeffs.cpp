@@ -172,10 +172,10 @@ double TransportCoeffs::get_zeta_over_s(const double T,
     } else if (bulk_T_ == 8) {
         // latest param. for IPGlasma + MUSIC + UrQMD
         // Phys.Rev.C 102 (2020) 4, 044905, e-Print: 2005.14682 [nucl-th]
-        const double peak_norm = 0.13;
-        const double B_width1 = 0.01;
-        const double B_width2 = 0.12;
-        const double Tpeak = 0.160;
+        double peak_norm = 0.13;
+        double B_width1 = 0.01;
+        double B_width2 = 0.12;
+        double Tpeak = 0.160;
         peak_norm = DATA.bulk_10_max;
         B_width1 = DATA.bulk_10_width_low;   
         B_width2 = DATA.bulk_10_width_high; 
