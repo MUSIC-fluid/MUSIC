@@ -7,7 +7,6 @@
 #include <cstdlib>
 #include <vector>
 #include <array>
-#include <omp.h>  // Include for OpenMP
 
 using Util::hbarc;
 
@@ -32,11 +31,11 @@ void HydroSourceTmunu::readIPGevent() {
     // Step1: Initialize containers for energy density, velocity, and shear tensor
     energy_density_ = std::vector<std::vector<std::vector<double>>>(
         DATA.nx, std::vector<std::vector<double>>(DATA.ny, std::vector<double>(DATA.neta, 0.0)));
-    
+
     velocity_ = std::vector<std::vector<std::vector<std::array<double, 4>>>>(
         DATA.nx, std::vector<std::vector<std::array<double, 4>>>(
             DATA.ny, std::vector<std::array<double, 4>>(DATA.neta)));
-    
+
     shear_tensor_ = std::vector<std::vector<std::vector<std::array<double, 10>>>>(
         DATA.nx, std::vector<std::vector<std::array<double, 10>>>(
             DATA.ny, std::vector<std::array<double, 10>>(DATA.neta)));
@@ -126,12 +125,10 @@ void HydroSourceTmunu::readIPGevent() {
             if (ix == 0 && iy == 0) {
                 DATA.x_size = -dummy2 * 2;
                 DATA.y_size = -dummy3 * 2;
-                if (omp_get_thread_num() == 0) {
-                    music_message << "eta_size=" << DATA.eta_size
-                                  << ", x_size=" << DATA.x_size
-                                  << ", y_size=" << DATA.y_size;
-                    music_message.flush("info");
-                }
+                music_message << "eta_size=" << DATA.eta_size
+                              << ", x_size=" << DATA.x_size
+                              << ", y_size=" << DATA.y_size;
+                music_message.flush("info");
             }
         }
 
