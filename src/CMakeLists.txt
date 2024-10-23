@@ -10,6 +10,7 @@ set (SOURCES
     hydro_source_strings.cpp
     hydro_source_ampt.cpp
     hydro_source_TATB.cpp
+    hydro_source_Tmunu.cpp 
     pretty_ostream.cpp
     grid_info.cpp
     util.cpp

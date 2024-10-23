@@ -123,6 +123,9 @@ void Init::InitArena(
         DATA.tau0 = std::max(DATA.tau0, tau_overlap) - DATA.delta_tau;
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
+    } else if (DATA.Initial_profile == 17) {
+        music_message.info(
+            "Initialize hydro with source terms from pre-equilibrium model");
     } else if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
         DATA.tau0 =
             (hydro_source_terms_ptr.lock()->get_source_tau_min()
@@ -244,6 +247,13 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
         initial_MCGlb_with_rhob(arenaFieldsPrev, arenaFieldsCurr);
     } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
         music_message.info("Initialize hydro with source terms from TA and TB");
+#pragma omp parallel for
+        for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
+            initial_with_zero_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);
+        }
+    } else if (DATA.Initial_profile == 17) {
+        music_message.info(
+            "Initialize hydro with source terms from pre-equilibrium model");
 #pragma omp parallel for
         for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
             initial_with_zero_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);

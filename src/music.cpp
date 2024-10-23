@@ -13,6 +13,7 @@
 #include "dissipative.h"
 #include "evolve.h"
 #include "hydro_source_TATB.h"
+#include "hydro_source_Tmunu.h"
 #include "hydro_source_ampt.h"
 #include "hydro_source_strings.h"
 #include "init.h"
@@ -65,6 +66,10 @@ void MUSIC::generate_hydro_source_terms() {
         // source from TA and TB
         auto hydro_source_ptr =
             std::shared_ptr<HydroSourceTATB>(new HydroSourceTATB(DATA));
+        add_hydro_source_terms(hydro_source_ptr);
+    } else if (DATA.Initial_profile == 17) {
+        auto hydro_source_ptr =
+            std::shared_ptr<HydroSourceTmunu>(new HydroSourceTmunu(DATA));
         add_hydro_source_terms(hydro_source_ptr);
     }
 }
