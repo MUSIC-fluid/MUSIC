@@ -1149,7 +1149,7 @@ void Init::initial_with_jetscape(int ieta, Fields &arenaFieldsPrev,
         for (int iy = 0; iy< ny; iy++) {
             const double rhob = 0.0;
             double epsilon = 0.0;
-            const int idx = (nx*neta)*ix + neta*iy + ieta;
+            const int idx = (ny*neta)*ix + neta*iy + ieta;
             epsilon = (jetscape_initial_energy_density[idx]
                        *DATA.sFactor/hbarc);  // 1/fm^4
             epsilon = std::max(Util::small_eps, epsilon);
