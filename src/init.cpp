@@ -78,7 +78,8 @@ void Init::InitArena(
         music_message.flush("info");
     } else if (
         DATA.Initial_profile == 9 || DATA.Initial_profile == 91
-        || DATA.Initial_profile == 92 || DATA.Initial_profile == 93) {
+        || DATA.Initial_profile == 92 || DATA.Initial_profile == 93
+        || DATA.Initial_profile == 94) {
         music_message.info(DATA.initName);
         ifstream profile(DATA.initName.c_str());
         if (!profile.is_open()) {
@@ -221,7 +222,8 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
         }
     } else if (
         DATA.Initial_profile == 9 || DATA.Initial_profile == 91
-        || DATA.Initial_profile == 92 || DATA.Initial_profile == 93) {
+        || DATA.Initial_profile == 92 || DATA.Initial_profile == 93
+        || DATA.Initial_profile == 94) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
         // and initial shear viscous tensor
@@ -579,6 +581,7 @@ void Init::initial_IPGlasma_XY_with_pi(
     // Initial_profile == 91: e and u^\mu
     // Initial_profile == 92: e only
     // Initial_profile == 93: e, u^\mu, and pi^\mu\nu, no bulk Pi
+    // Initial_profile == 94: e, u^\mu, pi^\mu\nu and read a bulk_PI
     double tau0 = DATA.tau0;
     ifstream profile(DATA.initName.c_str());
 
@@ -603,12 +606,14 @@ void Init::initial_IPGlasma_XY_with_pi(
     std::vector<double> temp_profile_piyy(nx * ny, 0.0);
     std::vector<double> temp_profile_piyeta(nx * ny, 0.0);
     std::vector<double> temp_profile_pietaeta(nx * ny, 0.0);
+    std::vector<double> temp_profile_PI_bulk(nx*ny, 0.0);
 
     // read the one slice
     double density, dummy1, dummy2, dummy3;
     double ux, uy, utau, ueta;
     double pitautau, pitaux, pitauy, pitaueta;
     double pixx, pixy, pixeta, piyy, piyeta, pietaeta;
+    double PI_bulk;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
             int idx = iy + ix * ny;
@@ -616,7 +621,7 @@ void Init::initial_IPGlasma_XY_with_pi(
             std::stringstream ss(dummy);
             ss >> dummy1 >> dummy2 >> dummy3 >> density >> utau >> ux >> uy
                 >> ueta >> pitautau >> pitaux >> pitauy >> pitaueta >> pixx
-                >> pixy >> pixeta >> piyy >> piyeta >> pietaeta;
+                >> pixy >> pixeta >> piyy >> piyeta >> pietaeta >> PI_bulk;
             ueta = ueta * tau0;
             temp_profile_ed[idx] = density * DATA.sFactor / hbarc;  // 1/fm^4
             temp_profile_ux[idx] = ux;
@@ -632,6 +637,8 @@ void Init::initial_IPGlasma_XY_with_pi(
             temp_profile_pixeta[idx] = pixeta * tau0 * visFactor;
             temp_profile_piyy[idx] = piyy * visFactor;
             temp_profile_piyeta[idx] = piyeta * tau0 * visFactor;
+
+            temp_profile_PI_bulk[idx] = PI_bulk*DATA.sFactor/hbarc; // 1/fm^4
 
             utau = temp_profile_utau[idx];
             temp_profile_pietaeta[idx] =
@@ -702,7 +709,8 @@ void Init::initial_IPGlasma_XY_with_pi(
                 arenaFieldsCurr.u_[3][Fidx] = temp_profile_ueta[idx];
             }
 
-            if (DATA.Initial_profile == 9 || DATA.Initial_profile == 93) {
+            if (DATA.Initial_profile == 9 || DATA.Initial_profile == 93
+                || DATA.Initial_profile == 94) {
                 arenaFieldsCurr.Wmunu_[0][Fidx] = temp_profile_pitautau[idx];
                 arenaFieldsCurr.Wmunu_[1][Fidx] = temp_profile_pitaux[idx];
                 arenaFieldsCurr.Wmunu_[2][Fidx] = temp_profile_pitauy[idx];
@@ -718,6 +726,9 @@ void Init::initial_IPGlasma_XY_with_pi(
                     double pressure = eos.get_pressure(epsilon, rhob);
                     arenaFieldsCurr.piBulk_[Fidx] =
                         ((epsilon / 3. - pressure) * DATA.preEqVisFactor);
+                } else if (DATA.Initial_profile == 94) {
+                    arenaFieldsCurr.piBulk_[Fidx] = 
+                        temp_profile_PI_bulk[idx]; //1/fm^4
                 }
             }
 
