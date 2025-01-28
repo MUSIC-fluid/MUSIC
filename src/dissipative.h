@@ -62,6 +62,10 @@ class Diss {
         const std::vector<double> &thermalVec,
         std::array<double, 3> &sourceTerms);
 
+    void computeInverseReynoldsNumbers(
+        const double enthalpy, const Cell_small &grid_pt, double &R_shear,
+        double &R_bulk) const;
+
     void output_kappa_T_and_muB_dependence();
     void output_kappa_along_const_sovernB();
     void output_eta_over_s_T_and_muB_dependence();

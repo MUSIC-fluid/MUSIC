@@ -392,3 +392,15 @@ double TransportCoeffs::get_temperature_dependent_zeta_over_s_AsymGaussian(
     double bulk = B_norm * exp(-Tdiff * Tdiff);
     return (bulk);
 }
+
+double TransportCoeffs::getResummedCorrFactor(
+    const double Rshear, const double Rbulk) const {
+    double resummedCorrection = 1e-4;
+    double r_combined = 1.5 * (Rshear + Rbulk);
+    if (r_combined < 1.0) {
+        double atanhFactor = atanh(r_combined);
+        resummedCorrection = (std::max(
+            resummedCorrection, 1. / (1. + atanhFactor * atanhFactor)));
+    }
+    return (resummedCorrection);
+}

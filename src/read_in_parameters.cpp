@@ -281,6 +281,15 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.quest_revert_strength =
         (getParameter(input_file, "quest_revert_strength", 10.));
 
+    // Switch to use Resummed transport coefficients
+    if (getParameter(input_file, "FlagResumTransportCoeff", 0) == 1) {
+        parameter_list.FlagResumTransportCoeff = true;
+    } else {
+        parameter_list.FlagResumTransportCoeff = false;
+    }
+    parameter_list.resumTransCoeffAlpha =
+        (getParameter(input_file, "resumTransCoeffAlpha", 1.5));
+
     // Shear_to_S_ratio:  constant eta/s
     parameter_list.shear_to_s =
         (getParameter(input_file, "Shear_to_S_ratio", 0.08));

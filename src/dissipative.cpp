@@ -167,6 +167,29 @@ void Diss::MakeWSource(
     // dwmn[3] += grid_pt.pi_b*(grid_pt.u[0]*grid_pt.u[3]);
 }
 
+void Diss::computeInverseReynoldsNumbers(
+    const double enthalpy, const Cell_small &grid_pt, double &R_shear,
+    double &R_bulk) const {
+    double pi_00 = grid_pt.Wmunu[0];
+    double pi_01 = grid_pt.Wmunu[1];
+    double pi_02 = grid_pt.Wmunu[2];
+    double pi_03 = grid_pt.Wmunu[3];
+    double pi_11 = grid_pt.Wmunu[4];
+    double pi_12 = grid_pt.Wmunu[5];
+    double pi_13 = grid_pt.Wmunu[6];
+    double pi_22 = grid_pt.Wmunu[7];
+    double pi_23 = grid_pt.Wmunu[8];
+    double pi_33 = grid_pt.Wmunu[9];
+
+    double pisize =
+        (pi_00 * pi_00 + pi_11 * pi_11 + pi_22 * pi_22 + pi_33 * pi_33
+         - 2. * (pi_01 * pi_01 + pi_02 * pi_02 + pi_03 * pi_03)
+         + 2. * (pi_12 * pi_12 + pi_13 * pi_13 + pi_23 * pi_23));
+
+    R_shear = sqrt(pisize) / enthalpy;
+    R_bulk = std::abs(grid_pt.pi_b) / enthalpy;
+}
+
 void Diss::Make_uWSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
     const DumuVec &a_local, const VelocityShearVec &sigma_1d,
@@ -222,6 +245,23 @@ void Diss::Make_uWSource(
         (transport_coeffs_.get_lambda_pibulkPi_coeff() * tau_pi);
     double transport_coefficient2_b = 0.;
 
+    double resummedCorrection = 1;
+    if (DATA.FlagResumTransportCoeff) {
+        double R_shear = 0.;
+        double R_bulk = 0.;
+        computeInverseReynoldsNumbers(
+            epsilon + pressure, grid_pt, R_shear, R_bulk);
+        resummedCorrection =
+            (transport_coeffs_.getResummedCorrFactor(R_shear, R_bulk));
+        double resummedCorrSq = resummedCorrection * resummedCorrection;
+        shear *= resummedCorrection;
+        transport_coefficient *= resummedCorrection;
+        transport_coefficient2 *= resummedCorrSq;
+        transport_coefficient3 *= resummedCorrSq;
+        transport_coefficient_b *= resummedCorrSq;
+        transport_coefficient2_b *= resummedCorrection;
+    }
+
     int mu = 0;
     int nu = 0;
     for (int idx_1d = 4; idx_1d < 9; idx_1d++) {
@@ -259,6 +299,9 @@ void Diss::Make_uWSource(
         double Vorticity_term = 0.0;
         if (DATA.include_vorticity_terms) {
             double transport_coefficient4 = 2. * tau_pi;
+            if (DATA.FlagResumTransportCoeff) {
+                transport_coefficient4 *= resummedCorrection;
+            }
             auto omega = Util::UnpackVecToMatrix(omega_1d);
             double term1_Vorticity =
                 (-Wmunu[mu][0] * omega[nu][0] - Wmunu[nu][0] * omega[mu][0]
@@ -599,6 +642,21 @@ double Diss::Make_uPiSource(
              * Bulk_Relax_time);
     }
     transport_coeff2_s = 0.;  // not known;  put 0
+
+    if (DATA.FlagResumTransportCoeff) {
+        double resummedCorrection = 1;
+        double R_shear = 0.;
+        double R_bulk = 0.;
+        computeInverseReynoldsNumbers(
+            epsilon + pressure, grid_pt, R_shear, R_bulk);
+        resummedCorrection =
+            (transport_coeffs_.getResummedCorrFactor(R_shear, R_bulk));
+        bulk *= resummedCorrection;
+        transport_coeff1 *= resummedCorrection;
+        transport_coeff2 *= resummedCorrection;
+        transport_coeff1_s *= resummedCorrection;
+        transport_coeff2_s *= resummedCorrection;
+    }
 
     // Computing Navier-Stokes term (-bulk viscosity * theta)
     NS_term = -bulk * theta_local;
