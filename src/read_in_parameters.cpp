@@ -1135,8 +1135,11 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "Initial_time_tau_0")
         parameter_list.tau0 = value;
 
-    if (parameter_name == "dtau")
+    if (parameter_name == "dtau") {
         parameter_list.delta_tau = value;
+        parameter_list.nt = static_cast<int>(
+            parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
+    }
 
     if (parameter_name == "output_evolution_data")
         parameter_list.outputEvolutionData = static_cast<int>(value);
