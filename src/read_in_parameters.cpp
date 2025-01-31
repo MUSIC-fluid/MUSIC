@@ -1141,6 +1141,11 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "output_evolution_data")
         parameter_list.outputEvolutionData = static_cast<int>(value);
 
+    if (parameter_name == "output_evolution_every_N_timesteps") {
+        parameter_list.output_evolution_every_N_timesteps = (
+                static_cast<int>(value));
+    }
+
     if (parameter_name == "output_movie_flag")
         parameter_list.output_movie_flag = static_cast<int>(value);
 
