@@ -457,13 +457,14 @@ InitData read_in_parameters(std::string input_file) {
         // only used with use_eps_for_freeze_out = 1
         // allow multiple parameter names for backward compitibility
         parameter_list.epsilonFreeze =
-            (getParameter(input_file, "eps_switch", 0.18));  // GeV/fm^3
-        parameter_list.epsilonFreeze = (getParameter(
-            input_file, "epsilon_freeze",
-            parameter_list.epsilonFreeze));  // GeV/fm^3
+            (getParameter(input_file, "epsilon_freeze", 0.18));  // GeV/fm^3
         parameter_list.epsilonFreeze = (getParameter(
             input_file, "eps_freeze_max",
             parameter_list.epsilonFreeze));  // GeV/fm^3
+        parameter_list.epsilonFreeze = (getParameter(
+            input_file, "eps_switch",
+            parameter_list.epsilonFreeze));  // GeV/fm^3
+        // ensure "eps_switch" is the last to be assigned to epsilonFreeze
         parameter_list.N_freeze_out =
             (getParameter(input_file, "N_freeze_out", 1));
     }
