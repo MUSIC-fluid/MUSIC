@@ -253,6 +253,7 @@ InitData read_in_parameters(std::string input_file) {
     // 7: lattice EOS with CE match with UrQMD
     // 10: finite muB EOS from A. Monnai (up to mu_B^4)
     // 11: finite muB EOS from Pasi
+<<<<<<< HEAD
     // 12: finite muB EOS from A. Monnai (up to mu_B^6)
     // 20: 4D Eos. 
     int tempwhichEOS = 2;
@@ -260,6 +261,273 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty")
         istringstream(tempinput) >> tempwhichEOS;
     parameter_list.whichEOS = tempwhichEOS;
+=======
+    // 12: NEoS-B
+    // 13: NEoS-BS
+    // 14: NEoS-BQS
+    // 17: BEST-EOS
+    // 18: UH-EOS
+    // 20: NEoS-4D
+    parameter_list.whichEOS = getParameter(input_file, "EOS_to_use", 9);
+
+    // Viscosity_Flag_Yes_1_No_0:   set to 0 for ideal hydro
+    parameter_list.viscosity_flag =
+        (getParameter(input_file, "Viscosity_Flag_Yes_1_No_0", 1));
+    // Include_Shear_Visc_Yes_1_No_0
+    parameter_list.turn_on_shear =
+        (getParameter(input_file, "Include_Shear_Visc_Yes_1_No_0", 0));
+    // Include_Bulk_Visc_Yes_1_No_0
+    parameter_list.turn_on_bulk =
+        (getParameter(input_file, "Include_Bulk_Visc_Yes_1_No_0", 0));
+    // Include secord order terms
+    parameter_list.include_second_order_terms =
+        (getParameter(input_file, "Include_second_order_terms", 0));
+    int tempturn_on_vorticity_terms =
+        (getParameter(input_file, "Include_vorticity_terms", 0));
+    if (tempturn_on_vorticity_terms == 0) {
+        parameter_list.include_vorticity_terms = false;
+    } else {
+        parameter_list.include_vorticity_terms = true;
+    }
+    parameter_list.turn_on_diff =
+        (getParameter(input_file, "turn_on_baryon_diffusion", 0));
+
+    // the strength for the viscous regulation
+    parameter_list.quest_revert_strength =
+        (getParameter(input_file, "quest_revert_strength", 10.));
+
+    // Switch to use Resummed transport coefficients
+    if (getParameter(input_file, "FlagResumTransportCoeff", 0) == 1) {
+        parameter_list.FlagResumTransportCoeff = true;
+    } else {
+        parameter_list.FlagResumTransportCoeff = false;
+    }
+    parameter_list.resumTransCoeffAlpha =
+        (getParameter(input_file, "resumTransCoeffAlpha", 1.5));
+
+    // Shear_to_S_ratio:  constant eta/s
+    parameter_list.shear_to_s =
+        (getParameter(input_file, "Shear_to_S_ratio", 0.08));
+    // Relaxation time factors
+    parameter_list.shear_relax_time_factor =
+        (getParameter(input_file, "shear_relax_time_factor", 5.0));
+
+    parameter_list.T_dependent_shear_to_s =
+        (getParameter(input_file, "T_dependent_Shear_to_S_ratio", 0));
+    // If "T_dependent_Shear_to_S_ratio==2",
+    // (eta/s)(T) = eta_over_s_min + eta_over_s_slope*(T −
+    // Tc)*(T/Tc)^{eta_over_s_curv} with T_c=0.154 GeV
+    parameter_list.shear_2_min =
+        (getParameter(input_file, "shear_viscosity_2_min", 0.08));
+    parameter_list.shear_2_slope =
+        (getParameter(input_file, "shear_viscosity_2_slope", 1.0));
+    parameter_list.shear_2_curv =
+        (getParameter(input_file, "shear_viscosity_2_curv", 0.0));
+
+    // If "T_dependent_Shear_to_S_ratio==3",
+    parameter_list.shear_3_T_kink_in_GeV = (getParameter(
+        input_file, "shear_viscosity_3_eta_over_s_T_kink_in_GeV", 0.16));
+    parameter_list.shear_3_low_T_slope_in_GeV = (getParameter(
+        input_file, "shear_viscosity_3_eta_over_s_low_T_slope_in_GeV", 0.0));
+    parameter_list.shear_3_high_T_slope_in_GeV = (getParameter(
+        input_file, "shear_viscosity_3_eta_over_s_high_T_slope_in_GeV", 0.0));
+    parameter_list.shear_3_at_kink = (getParameter(
+        input_file, "shear_viscosity_3_eta_over_s_at_kink", 0.08));
+
+    parameter_list.muB_dependent_shear_to_s =
+        (getParameter(input_file, "muB_dependent_Shear_to_S_ratio", 0));
+    parameter_list.shear_muBf0p4 =
+        (getParameter(input_file, "shear_muBf0p4", 1.));
+    parameter_list.shear_muBf0p2 = (getParameter(
+        input_file, "shear_muBf0p2", (1. + parameter_list.shear_muBf0p4) / 2.));
+    parameter_list.shear_muBDep_alpha =
+        (getParameter(input_file, "shear_muBDep_alpha", 1.));
+    parameter_list.shear_muBDep_slope =
+        (getParameter(input_file, "shear_muBDep_slope", 1.0));
+    parameter_list.shear_muBDep_scale =
+        (getParameter(input_file, "shear_muBDep_scale", 0.6));
+
+    // type of bulk relaxation time parameterization
+    parameter_list.bulk_relaxation_type =
+        (getParameter(input_file, "Bulk_relaxation_time_type", 0));
+    parameter_list.bulk_relax_time_factor =
+        (getParameter(input_file, "bulk_relax_time_factor", 1. / 14.55));
+
+    parameter_list.T_dependent_bulk_to_s =
+        (getParameter(input_file, "T_dependent_Bulk_to_S_ratio", 1));
+    parameter_list.T_dependent_bulk_to_s = (getParameter(
+        input_file, "T_dependent_zeta_over_s",
+        parameter_list.T_dependent_bulk_to_s));
+    // "T_dependent_Bulk_to_S_ratio=2",
+    // bulk viscosity is parametrized as with "A", "G" and "Tc" as
+    // "A*(1/(1+((T-Tc)/G)^2)"
+    parameter_list.bulk_2_normalisation =
+        (getParameter(input_file, "bulk_viscosity_2_normalisation", 0.33));
+    parameter_list.bulk_2_width_in_GeV =
+        (getParameter(input_file, "bulk_viscosity_2_width_in_GeV", 0.08));
+    parameter_list.bulk_2_peak_in_GeV =
+        (getParameter(input_file, "bulk_viscosity_2_peak_in_GeV", 0.18));
+
+    // "T_dependent_Bulk_to_S_ratio==3",
+    parameter_list.bulk_3_max =
+        (getParameter(input_file, "bulk_viscosity_3_zeta_over_s_max", 0.1));
+    parameter_list.bulk_3_width_in_GeV = (getParameter(
+        input_file, "bulk_viscosity_3_zeta_over_s_width_in_GeV", 0.05));
+    parameter_list.bulk_3_T_peak_in_GeV = (getParameter(
+        input_file, "bulk_viscosity_3_zeta_over_s_T_peak_in_GeV", 0.18));
+    parameter_list.bulk_3_lambda_asymm = (getParameter(
+        input_file, "bulk_viscosity_3_zeta_over_s_lambda_asymm", 0.0));
+
+    // "T_dependent_Bulk_to_S_ratio==10",
+    parameter_list.bulk_10_max =
+        (getParameter(input_file, "bulk_viscosity_10_max", 0.0));
+    parameter_list.bulk_10_max_muB0p4 = (getParameter(
+        input_file, "bulk_viscosity_10_max_muB0p4",
+        parameter_list.bulk_10_max));
+    parameter_list.bulk_10_max_muB0p2 = (getParameter(
+        input_file, "bulk_viscosity_10_max_muB0p2",
+        (parameter_list.bulk_10_max + parameter_list.bulk_10_max_muB0p4) / 2.));
+    parameter_list.bulk_10_width_high =
+        (getParameter(input_file, "bulk_viscosity_10_width_high", 0.1));  // GeV
+    parameter_list.bulk_10_width_low = (getParameter(
+        input_file, "bulk_viscosity_10_width_low", 0.015));  // GeV
+    parameter_list.bulk_10_Tpeak =
+        (getParameter(input_file, "bulk_viscosity_10_T_peak", 0.17));  // GeV
+    parameter_list.bulk_10_Tpeak_muBcurv =
+        (getParameter(input_file, "bulk_viscosity_10_T_peak_muBcurv", 0.0));
+
+    // net baryon diffusion: kappa coefficient
+    parameter_list.kappa_coefficient =
+        (getParameter(input_file, "kappa_coefficient", 0.0));
+
+    parameter_list.store_hydro_info_in_memory =
+        (getParameter(input_file, "store_hydro_info_in_memory", 0));
+    // output_evolution_data:
+    // 2: output bulk information in binary format
+    parameter_list.outputEvolutionData =
+        (getParameter(input_file, "output_evolution_data", 0));
+
+    // only works for output_evolution_data == 1
+    parameter_list.outputBinaryEvolution =
+        (getParameter(input_file, "outputBinaryEvolution", 0));
+    parameter_list.output_hydro_params_header =
+        (getParameter(input_file, "output_hydro_params_header", 0));
+
+    parameter_list.output_movie_flag =
+        (getParameter(input_file, "output_movie_flag", 0));
+    parameter_list.output_outofequilibriumsize =
+        (getParameter(input_file, "output_outofequilibriumsize", 0));
+    parameter_list.output_vorticity =
+        (getParameter(input_file, "output_vorticity", 0));
+    parameter_list.output_hydro_debug_info =
+        (getParameter(input_file, "output_hydro_debug_info", 0));
+
+    // The evolution is outputted every
+    // "output_evolution_every_N_timesteps" timesteps
+    parameter_list.output_evolution_every_N_timesteps =
+        (getParameter(input_file, "output_evolution_every_N_timesteps", 1));
+    parameter_list.output_evolution_every_N_x =
+        (getParameter(input_file, "output_evolution_every_N_x", 1));
+    parameter_list.output_evolution_every_N_y =
+        (parameter_list.output_evolution_every_N_x);
+    parameter_list.output_evolution_every_N_eta =
+        (getParameter(input_file, "output_evolution_every_N_eta", 1));
+    parameter_list.output_evolution_T_cut =
+        (getParameter(input_file, "output_evolution_T_cut", 0.105));
+    parameter_list.output_evolution_e_cut =
+        (getParameter(input_file, "output_evolution_e_cut", 0.15));  // GeV/fm^3
+
+    //////////////////////////////////////////////////////////////////////////
+    // Freeze-out surface parameters
+    //////////////////////////////////////////////////////////////////////////
+    // Do_FreezeOut_Yes_1_No_0
+    // set to 0 to bypass freeze out surface finder
+    parameter_list.doFreezeOut =
+        (getParameter(input_file, "Do_FreezeOut_Yes_1_No_0", 1));
+    parameter_list.doFreezeOut_lowtemp =
+        (getParameter(input_file, "Do_FreezeOut_lowtemp", 1));
+    // freeze_out_method:
+    // 2: Schenke's more complex method
+    // 4: Cornelius
+    parameter_list.freezeOutMethod =
+        (getParameter(input_file, "freeze_out_method", 4));
+
+    // use_eps_for_freeze_out:
+    // 0: freeze out at constant temperature T_freeze
+    // 1: freeze out at constant energy density epsilon_freeze
+    // if set in input input_file, overide above defaults
+    parameter_list.useEpsFO =
+        (getParameter(input_file, "use_eps_for_freeze_out", 1));
+    parameter_list.freeze_eps_flag =
+        (getParameter(input_file, "freeze_eps_flag", 0));
+
+    // T_freeze: freeze out temperature
+    // only used with use_eps_for_freeze_out = 0
+    if (parameter_list.useEpsFO == 0) {
+        parameter_list.TFO = getParameter(input_file, "T_freeze", 0.12);
+        // only one freeze-out is allowed
+        parameter_list.N_freeze_out = 1;
+    } else {
+        // epsilon_freeze: freeze-out energy density in GeV/fm^3
+        // only used with use_eps_for_freeze_out = 1
+        // allow multiple parameter names for backward compitibility
+        parameter_list.epsilonFreeze =
+            (getParameter(input_file, "epsilon_freeze", 0.18));  // GeV/fm^3
+        parameter_list.epsilonFreeze = (getParameter(
+            input_file, "eps_freeze_max",
+            parameter_list.epsilonFreeze));  // GeV/fm^3
+        parameter_list.epsilonFreeze = (getParameter(
+            input_file, "eps_switch",
+            parameter_list.epsilonFreeze));  // GeV/fm^3
+        // ensure "eps_switch" is the last to be assigned to epsilonFreeze
+        parameter_list.N_freeze_out =
+            (getParameter(input_file, "N_freeze_out", 1));
+    }
+    if (parameter_list.N_freeze_out > 1) {
+        parameter_list.eps_freeze_max =
+            (getParameter(input_file, "eps_freeze_max", 0.18));
+        parameter_list.eps_freeze_min =
+            (getParameter(input_file, "eps_freeze_min", 0.18));
+    } else {
+        parameter_list.eps_freeze_min = parameter_list.epsilonFreeze;
+        parameter_list.eps_freeze_max = parameter_list.epsilonFreeze;
+    }
+
+    //! Maximum starting time for freeze-out surface
+    parameter_list.freezeOutTauStartMax =
+        (getParameter(input_file, "freeze_out_tau_start_max", 2.));
+
+    string temp_freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
+    tempinput = Util::StringFind4(input_file, "freeze_list_filename");
+    if (tempinput != "empty") temp_freeze_list_filename.assign(tempinput);
+    parameter_list.freeze_list_filename.assign(temp_freeze_list_filename);
+
+    int temp_freeze_surface_binary =
+        (getParameter(input_file, "freeze_surface_in_binary", 1));
+    if (temp_freeze_surface_binary == 0) {
+        parameter_list.freeze_surface_in_binary = false;
+    } else {
+        parameter_list.freeze_surface_in_binary = true;
+    }
+
+    // average_surface_over_this_many_time_steps:
+    // Only save every N timesteps for finding freeze out surface
+    parameter_list.facTau = (getParameter(
+        input_file, "average_surface_over_this_many_time_steps", 1));
+    parameter_list.fac_x = getParameter(input_file, "freeze_Ncell_x_step", 1);
+    parameter_list.fac_y = parameter_list.fac_x;
+    parameter_list.fac_eta =
+        (getParameter(input_file, "freeze_Ncell_eta_step", 1));
+
+    //////////////////////////////////////////////////////////////////////////
+    // Cooper-Frye (mode 3)
+    //////////////////////////////////////////////////////////////////////////
+    // particle_spectrum_to_compute:
+    // 0: Do all up to number_of_particles_to_include
+    // any natural number: Do the particle with this (internal) ID
+    parameter_list.particleSpectrumNumber =
+        (getParameter(input_file, "particle_spectrum_to_compute", 0));
+>>>>>>> b191bf8 (fixed a bug that eps_freeze_max was setting the freeze-out energy)
 
     // number_of_particles_to_include:
     // This determines up to which particle in the list spectra
