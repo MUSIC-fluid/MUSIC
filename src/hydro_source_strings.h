@@ -32,6 +32,7 @@ struct QCD_string {
     double tau_Qe_left, tau_Qe_right;
     double Qe_left, Qe_right;
     double eta_s_Qe_left, eta_s_Qe_right;
+    double px_i, py_i;       // px and py of the strings 
 };
 
 
@@ -52,11 +53,15 @@ class HydroSourceStrings : public HydroSourceBase {
  public:
     HydroSourceStrings() = delete;
     HydroSourceStrings(InitData &DATA_in);
+    HydroSourceStrings(InitData &DATA_in,
+                       std::vector< std::vector<double> > QCDStringList);
     ~HydroSourceStrings();
 
     //! This function reads in the spatal information of the strings
     //! and partons which are produced from the MC-Glauber-LEXUS model
     void read_in_QCD_strings_and_partons();
+    void read_in_QCD_strings_and_partons(
+        std::vector< std::vector<double> > QCDStringList);
 
     double getStringEndTau(const double tau0, const double tau_form,
                            const double eta_s_0, const double eta_s) const;

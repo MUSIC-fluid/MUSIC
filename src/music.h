@@ -8,6 +8,7 @@
 #include "cell.h"
 #include "data.h"
 #include "eos.h"
+#include "evolve.h"
 #include "fields.h"
 #include "hydro_source_base.h"
 #include "read_in_parameters.h"
@@ -32,15 +33,21 @@ class MUSIC {
 
     EOS eos;
 
-    Fields arenaFieldsPrev;
-    Fields arenaFieldsCurr;
-    Fields arenaFieldsNext;
+    std::shared_ptr<Evolve> evolve_ptr_;
+
+    Fields arenaFieldsPrev_;
+    Fields arenaFieldsCurr_;
+    Fields arenaFieldsNext_;
+    Fields freezeoutFieldPrev_;
+    Fields freezeoutFieldCurr_;
 
     std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
 
     std::shared_ptr<HydroinfoMUSIC> hydro_info_ptr;
 
     pretty_ostream music_message;
+
+    int currTauIdx;
 
  public:
     MUSIC(std::string input_file);
@@ -51,12 +58,17 @@ class MUSIC {
 
     //! This function initialize hydro
     void initialize_hydro();
+    void initialize_hydro_xscape();
 
     //! This function change the parameter value in DATA
     void set_parameter(std::string parameter_name, double value);
+    void check_parameters();
 
     //! this is a shell function to run hydro
     int run_hydro();
+
+    void prepare_run_hydro_one_time_step();
+    int run_hydro_upto(const double tauEnd);
 
     //! this is a shell function to run Cooper-Frye
     int run_Cooper_Frye();
@@ -68,6 +80,10 @@ class MUSIC {
     //! This function setup source terms from dynamical initialization
     void generate_hydro_source_terms();
 
+    //! This function setup source terms from dynamical initialization
+    void generate_hydro_source_terms(
+            std::vector< std::vector<double> > QCDStringList);
+
     //! This function calls routine to check EoS
     void check_eos();
 
@@ -78,7 +94,7 @@ class MUSIC {
     void clean_all_the_surface_files();
 
     void initialize_hydro_from_jetscape_preequilibrium_vectors(
-        const double dx, const double dz, const double z_max, const int nz,
+        const double tau0, const double dx, const double dz, const double z_max, const int nz,
         std::vector<double> e_in, std::vector<double> P_in,
         std::vector<double> u_tau_in, std::vector<double> u_x_in,
         std::vector<double> u_y_in,   std::vector<double> u_eta_in,
@@ -99,6 +115,13 @@ class MUSIC {
         return(hydro_info_ptr->get_fluid_cell_with_index(idx, info));
     }
     void clear_hydro_info_from_memory();
+
+    int get_number_of_surface_cells() const {
+        return(evolve_ptr_->get_number_of_surface_cells());
+    }
+    void get_surface_cell_with_index(const int idx, SurfaceCell &cell_i) {
+        evolve_ptr_->get_surface_cell_with_index(idx, cell_i);
+    }
 
     double get_hydro_tau0() const {return(hydro_info_ptr->get_hydro_tau0());}
     double get_hydro_dtau() const {return(hydro_info_ptr->get_hydro_dtau());}

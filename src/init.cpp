@@ -35,7 +35,7 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         music_message << ", dx=" << DATA.delta_x << " fm, dy="
                       << DATA.delta_y << " fm.";
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 1) {
+    } else if (DATA.Initial_profile == 1 || DATA.Initial_profile == 2) {
         music_message << "Using Initial_profile=" << DATA.Initial_profile;
         DATA.nx = 2;
         DATA.ny = 2;
@@ -47,6 +47,12 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         music_message << ", dx=" << DATA.delta_x << " fm, dy="
                       << DATA.delta_y << " fm. ";
         music_message << "neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
+        music_message.flush("info");
+    } else if (DATA.Initial_profile == 3 || DATA.Initial_profile == 4) {
+        music_message << "Using Initial_profile=" << DATA.Initial_profile;
+        music_message << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
+        music_message << ", dx=" << DATA.delta_x << ", dy=" << DATA.delta_y;
+        music_message << ", neta=" << DATA.neta << ", deta=" << DATA.delta_eta;
         music_message.flush("info");
     } else if (DATA.Initial_profile == 8) {
         music_message.info(DATA.initName);
@@ -159,6 +165,19 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         music_message.flush("info");
     }
 
+    if (DATA.resetDtau) {
+        // make sure delta_tau is not too large for delta_x and delta_y
+        DATA.delta_tau = std::min(DATA.delta_tau_org,
+                                  std::min(DATA.delta_x*DATA.dtaudxRatio,
+                                           DATA.delta_y*DATA.dtaudxRatio));
+        if (DATA.delta_tau > 0.001)
+            DATA.delta_tau = (static_cast<int>(DATA.delta_tau*1000))/1000.;
+        DATA.nt = static_cast<int>(DATA.tau_size/DATA.delta_tau + 0.5);
+        music_message << "Reset: dtau = " << DATA.delta_tau
+                      << " fm/c, nTau = " << DATA.nt;
+        music_message.flush("info");
+    }
+
     // initialize arena
     arenaFieldsPrev.resizeFields(DATA.nx, DATA.ny, DATA.neta);
     arenaFieldsCurr.resizeFields(DATA.nx, DATA.ny, DATA.neta);
@@ -222,6 +241,18 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
         // code test in 1+1 D vs Monnai's results
         music_message.info(" Perform 1+1D test vs Monnai's results... ");
         initial_1p1D_eta(arenaFieldsPrev, arenaFieldsCurr);
+    } else if (DATA.Initial_profile == 2) {
+        // code test in 0+1 D Bjorken expansion
+        music_message.info(" Perform 0+1D Bjorken expansion ... ");
+        initial_0p1D_Bjorken(arenaFieldsPrev, arenaFieldsCurr);
+    } else if (DATA.Initial_profile == 3) {
+        // code test in 1+1 D Relativistic Riemann Problem
+        music_message.info(" Perform 1+1D Riemann test ... ");
+        initial_1p1D_Riemann(arenaFieldsPrev, arenaFieldsCurr);
+    } else if (DATA.Initial_profile == 4) {
+        // code test in 1+1 D Relativistic diffusion equation
+        music_message.info(" Perform 1+1D diffusion test ... ");
+        initial_1p1D_Diffusion(arenaFieldsPrev, arenaFieldsCurr);
     } else if (DATA.Initial_profile == 8) {
         // read in the profile from file
         // - IPGlasma initial conditions with initial flow
@@ -451,6 +482,144 @@ void Init::initial_Gubser_XY(int ieta, Fields &arenaFieldsPrev,
             }
             for (int i = 0; i < 10; i++) {
                 arenaFieldsPrev.Wmunu_[i][idx] = arenaFieldsCurr.Wmunu_[i][idx];
+            }
+        }
+    }
+}
+
+
+void Init::initial_0p1D_Bjorken(Fields &arenaFieldsPrev,
+                                Fields &arenaFieldsCurr) {
+    const int neta = arenaFieldsCurr.nEta();
+    const int nx = arenaFieldsCurr.nX();
+    const int ny = arenaFieldsCurr.nY();
+    for (int ieta = 0; ieta < neta; ieta++) {
+        double rhob = 0.;
+        double epsilon = 20./hbarc;   // fm^-4
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy< ny; iy++) {
+                int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+                // set all values in the grid element:
+                arenaFieldsCurr.e_[idx] = epsilon;
+                arenaFieldsCurr.rhob_[idx] = rhob;
+
+                arenaFieldsCurr.u_[0][idx] = 1.0;
+                arenaFieldsCurr.u_[1][idx] = 0.0;
+                arenaFieldsCurr.u_[2][idx] = 0.0;
+                arenaFieldsCurr.u_[3][idx] = 0.0;
+
+                arenaFieldsPrev.e_[idx] = epsilon;
+                arenaFieldsPrev.rhob_[idx] = rhob;
+
+                arenaFieldsPrev.u_[0][idx] = 1.0;
+                arenaFieldsPrev.u_[1][idx] = 0.0;
+                arenaFieldsPrev.u_[2][idx] = 0.0;
+                arenaFieldsPrev.u_[3][idx] = 0.0;
+            }
+        }
+    }
+}
+
+
+void Init::initial_1p1D_Riemann(Fields &arenaFieldsPrev,
+                                Fields &arenaFieldsCurr) {
+    const int neta = arenaFieldsCurr.nEta();
+    const int nx = arenaFieldsCurr.nX();
+    const int ny = arenaFieldsCurr.nY();
+    const double T0 = 0.4;  // GeV
+    const double T4 = 0.2;  // GeV
+    const double g = 16.;
+    const double rhob = 0.;
+    for (int ieta = 0; ieta < neta; ieta++) {
+        double eta_local = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+        for (int ix = 0; ix < nx; ix++) {
+            double x_local = (DATA.delta_x)*ix - (DATA.x_size)/2.;
+            for (int iy = 0; iy< ny; iy++) {
+                int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+                double y_local = (DATA.delta_y)*iy - (DATA.y_size)/2.;
+
+                double epsilon = 3*g/(M_PI*M_PI)*pow(T0, 4)/pow(hbarc, 4);       // fm^-4
+                if (DATA.Test1DDirection == 3) {
+                    if (eta_local > 0)
+                        epsilon = 3*g/(M_PI*M_PI)*pow(T4, 4)/pow(hbarc, 4);      // fm^-4
+                } else if (DATA.Test1DDirection == 2) {
+                    if (y_local > 0)
+                        epsilon = 3*g/(M_PI*M_PI)*pow(T4, 4)/pow(hbarc, 4);      // fm^-4
+                } else if (DATA.Test1DDirection == 1) {
+                    if (x_local > 0)
+                        epsilon = 3*g/(M_PI*M_PI)*pow(T4, 4)/pow(hbarc, 4);      // fm^-4
+                }
+
+                // set all values in the grid element:
+                arenaFieldsCurr.e_[idx] = epsilon;
+                arenaFieldsCurr.rhob_[idx] = rhob;
+
+                arenaFieldsCurr.u_[0][idx] = 1.0;
+                arenaFieldsCurr.u_[1][idx] = 0.0;
+                arenaFieldsCurr.u_[2][idx] = 0.0;
+                arenaFieldsCurr.u_[3][idx] = 0.0;
+
+                arenaFieldsPrev.e_[idx] = epsilon;
+                arenaFieldsPrev.rhob_[idx] = rhob;
+
+                arenaFieldsPrev.u_[0][idx] = 1.0;
+                arenaFieldsPrev.u_[1][idx] = 0.0;
+                arenaFieldsPrev.u_[2][idx] = 0.0;
+                arenaFieldsPrev.u_[3][idx] = 0.0;
+            }
+        }
+    }
+}
+
+
+void Init::initial_1p1D_Diffusion(Fields &arenaFieldsPrev,
+                                  Fields &arenaFieldsCurr) {
+    const int neta = arenaFieldsCurr.nEta();
+    const int nx = arenaFieldsCurr.nX();
+    const int ny = arenaFieldsCurr.nY();
+    const double v = 0.5;
+    const double gamma = 1./sqrt(1. - v*v);
+    for (int ieta = 0; ieta < neta; ieta++) {
+        double eta_local = (DATA.delta_eta)*ieta - (DATA.eta_size)/2.0;
+        for (int ix = 0; ix < nx; ix++) {
+            double x_local = (DATA.delta_x)*ix - (DATA.x_size)/2.;
+            for (int iy = 0; iy< ny; iy++) {
+                double y_local = (DATA.delta_y)*iy - (DATA.y_size)/2.;
+                int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+
+                double rhob = 0.;
+                double epsilon = 1.0;   // fm^-4
+                if (DATA.Test1DDirection == 3) {
+                    if (eta_local > -1 && eta_local < 0.)
+                        rhob = 1.;
+                    arenaFieldsCurr.u_[1][idx] = 0.0;
+                    arenaFieldsCurr.u_[2][idx] = 0.0;
+                    arenaFieldsCurr.u_[3][idx] = gamma*v;
+                } else if (DATA.Test1DDirection == 2) {
+                    if (y_local > -1 && y_local < 0.)
+                        rhob = 1.;
+                    arenaFieldsCurr.u_[1][idx] = 0.0;
+                    arenaFieldsCurr.u_[2][idx] = gamma*v;
+                    arenaFieldsCurr.u_[3][idx] = 0.0;
+                } else if (DATA.Test1DDirection == 1) {
+                    if (x_local > -1 && x_local < 0.)
+                        rhob = 1.;
+                    arenaFieldsCurr.u_[1][idx] = gamma*v;
+                    arenaFieldsCurr.u_[2][idx] = 0.0;
+                    arenaFieldsCurr.u_[3][idx] = 0.0;
+                }
+
+                // set all values in the grid element:
+                arenaFieldsCurr.e_[idx] = epsilon;
+                arenaFieldsCurr.rhob_[idx] = rhob;
+
+                arenaFieldsCurr.u_[0][idx] = gamma;
+
+                arenaFieldsPrev.e_[idx] = arenaFieldsCurr.e_[idx];
+                arenaFieldsPrev.rhob_[idx] = arenaFieldsCurr.rhob_[idx];
+                for (int ii = 0; ii < 4; ii++) {
+                    arenaFieldsPrev.u_[ii][idx] = arenaFieldsCurr.u_[ii][idx];
+                }
             }
         }
     }

@@ -51,6 +51,10 @@ class Init {
 
     void initial_Gubser_XY(int ieta, Fields &arenaFieldsPrev,
                            Fields &arenaFieldsCurr);
+    void initial_0p1D_Bjorken(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_1p1D_Riemann(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial_1p1D_Diffusion(Fields &arenaFieldsPrev,
+                                Fields &arenaFieldsCurr);
     void initial_1p1D_eta(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
     void initial_IPGlasma_XY(int ieta, Fields &arenaFieldsPrev,
                              Fields &arenaFieldsCurr);

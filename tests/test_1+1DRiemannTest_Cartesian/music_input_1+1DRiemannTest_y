@@ -1,0 +1,26 @@
+echo_level  1
+mode  2
+Initial_profile  3
+CoorType 1
+Test1DDirection 2
+X_grid_size_in_fm  10.0
+Y_grid_size_in_fm  10.0
+Eta_grid_size  10
+Grid_size_in_eta  2
+Grid_size_in_y  401
+Grid_size_in_x  2
+Initial_time_tau_0  0.0
+Total_evolution_time_tau  4.0
+Delta_Tau  0.01
+reset_dtau_use_CFL_condition 0
+EOS_to_use  0
+Viscosity_Flag_Yes_1_No_0  0
+Include_Shear_Visc_Yes_1_No_0  0
+Shear_to_S_ratio  0.0
+T_dependent_Shear_to_S_ratio  0
+Include_Bulk_Visc_Yes_1_No_0  0
+turn_on_baryon_diffusion  0
+boost_invariant  0
+Do_FreezeOut_Yes_1_No_0  0
+Minmod_Theta 1.8
+EndOfData

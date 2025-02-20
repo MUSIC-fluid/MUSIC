@@ -37,7 +37,7 @@ class Reconst {
     void revert_grid(ReconstCell &grid_current,
                      const ReconstCell &grid_prev) const;
 
-    int ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
+    int ReconstIt_velocity_Newton(ReconstCell &grid_p,
                                   const TJbVec &q, const ReconstCell &grid_pt);
 
     void reconst_velocity_fdf(

@@ -29,7 +29,7 @@ typedef struct {
     double rhob;
     double rhoq;
     double rhos;
-    
+
     FlowVec u;
 } ReconstCell;
 

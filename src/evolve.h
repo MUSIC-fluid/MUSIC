@@ -14,6 +14,7 @@
 #include "hydro_source_base.h"
 #include "pretty_ostream.h"
 #include "HydroinfoMUSIC.h"
+#include "surfaceCell.h"
 
 // this is a control class for the hydrodynamic evolution
 class Evolve {
@@ -33,6 +34,7 @@ class Evolve {
     // (only used when freezeout_method == 4)
     std::vector<double> epsFO_list;
 
+    std::vector<SurfaceCell> surfaceCellVec_;
     std::vector<double> FO_nBvsEta_;
     std::vector<double> FO_nQvsEta_;
     std::vector<double> FO_nSvsEta_;
@@ -40,8 +42,23 @@ class Evolve {
  public:
     Evolve(const EOS &eos, InitData &DATA_in,
            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
+
+    ~Evolve() {clearSurfaceCellVector();}
+
+    void clearSurfaceCellVector() {surfaceCellVec_.clear();}
+    int get_number_of_surface_cells() const {return(surfaceCellVec_.size());}
+    void get_surface_cell_with_index(const int i, SurfaceCell &cell_i) {
+        cell_i = surfaceCellVec_[i];
+    }
+
     int EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                  Fields &arenaFieldsNext, HydroinfoMUSIC &hydro_info_ptr);
+
+    int EvolveOneTimeStep(const int itau, Fields &arenaFieldsPrev,
+                          Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
+                          Fields &freezeoutFieldPrev,
+                          Fields &freezeoutFieldCurr,
+                          HydroinfoMUSIC &hydro_info_ptr);
 
     void AdvanceRK(double tau, Fields* &fpPrev, Fields* &fpCurr,
                    Fields* &fpNext);

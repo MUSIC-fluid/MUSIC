@@ -14,6 +14,7 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn) :
     dUTsup = {{{0.0}}};       // dUTsup[m][n] = partial^n (Tu^m)
 }
 
+
 //! This function is a shell function to calculate parital^\nu u^\mu
 void U_derivative::MakedU(const double tau, Fields &arenaFieldsPrev,
                           Fields &arenaFieldsCurr, const int fieldIdx,
@@ -25,7 +26,7 @@ void U_derivative::MakedU(const double tau, Fields &arenaFieldsPrev,
     // this calculates du/dx, du/dy, (du/deta)/tau
     MakeDSpatial(tau, arenaFieldsCurr, fieldIdx, ix, iy, ieta);
     // this calculates du/dtau
-    MakeDTau(tau, arenaFieldsPrev, arenaFieldsCurr, fieldIdx);
+    MakeDTau(arenaFieldsPrev, arenaFieldsCurr, fieldIdx);
 }
 
 
@@ -38,13 +39,18 @@ double U_derivative::calculate_expansion_rate(
         // for expansion rate: theta
         partial_mu_u_supmu += dUsup[mu][mu]*gfac;
     }
-    double theta = partial_mu_u_supmu + arena.u_[0][fieldIdx]/tau;
+    double theta = partial_mu_u_supmu;
+
+    if (DATA.CoorType == 0) {
+        // add the geometric term
+        theta += arena.u_[0][fieldIdx]/tau;
+    }
     return(theta);
 }
 
 
 //! this function returns Du^\mu
-void U_derivative::calculate_Du_supmu(const double tau, Fields &arena,
+void U_derivative::calculate_Du_supmu(Fields &arena,
                                       const int fieldIdx, DumuVec &a) {
     for (int mu = 0; mu <= 4; mu++) {
         double u_supnu_partial_nu_u_supmu = 0.0;
@@ -68,27 +74,51 @@ void U_derivative::compute_vorticity_shell(
         VelocityShearVec &sigma_th_local, DmuMuBoverTVec &DbetaMu) {
     MakedU(tau, arena_prev, arena_curr, fieldIdx, ix, iy, ieta);
     DumuVec a_local;
-    calculate_Du_supmu(tau, arena_curr, fieldIdx, a_local);
+    calculate_Du_supmu(arena_curr, fieldIdx, a_local);
 
     VorticityVec omega_local;
     calculate_kinetic_vorticity_with_spatial_projector(
             tau, arena_curr, fieldIdx, a_local, omega_local);
-    omega_local_kSP = transform_vorticity_to_tz(omega_local, eta);
+    if (DATA.CoorType == 0) {
+        omega_local_kSP = transform_vorticity_to_tz(omega_local, eta);
+    } else {
+        omega_local_kSP = omega_local;
+    }
     calculate_kinetic_vorticity_no_spatial_projection(
             tau, arena_curr, fieldIdx, omega_local);
-    omega_local_knoSP = transform_vorticity_to_tz(omega_local, eta);
+    if (DATA.CoorType == 0) {
+        omega_local_knoSP = transform_vorticity_to_tz(omega_local, eta);
+    } else {
+        omega_local_knoSP = omega_local;
+    }
     calculate_thermal_vorticity(tau, arena_curr, fieldIdx, omega_local);
-    omega_local_th = transform_vorticity_to_tz(omega_local, eta);
+    if (DATA.CoorType == 0) {
+        omega_local_th = transform_vorticity_to_tz(omega_local, eta);
+    } else {
+        omega_local_th = omega_local;
+    }
     calculate_T_vorticity(tau, arena_curr, fieldIdx, omega_local);
-    omega_local_T = transform_vorticity_to_tz(omega_local, eta);
-
+    if (DATA.CoorType == 0) {
+        //Milne
+        omega_local_T = transform_vorticity_to_tz(omega_local, eta);
+    } else {
+        //Cartesian
+        omega_local_T = omega_local;
+    }
     VelocityShearVec sigma_th_Mline;
     calculate_thermal_shear_tensor(tau, arena_curr, fieldIdx,
                                    sigma_th_Mline);
-    sigma_th_local = transform_SigmaMuNu_to_tz(sigma_th_Mline, eta);
     DmuMuBoverTVec DbetaMu_local;
     get_DmuMuBoverTVec(DbetaMu_local);
-    DbetaMu = transform_vector_to_tz(DbetaMu_local, eta);
+    if (DATA.CoorType == 0) {
+        //Milne
+        sigma_th_local = transform_SigmaMuNu_to_tz(sigma_th_Mline, eta);
+        DbetaMu = transform_vector_to_tz(DbetaMu_local, eta);
+    } else {
+        //Cartesian
+        sigma_th_local = sigma_th_Mline;
+        DbetaMu = DbetaMu_local;
+    }
 }
 
 
@@ -184,13 +214,15 @@ void U_derivative::calculate_kinetic_vorticity_with_spatial_projector(
             omega_local[mu][nu] = 0.5*(
                   (dUsup_local[nu][mu] - dUsup_local[mu][nu])
                 + (u_local[mu]*a_local[nu] - u_local[nu]*a_local[mu])
-                + u_local[3]*u_local[0]/tau*(  u_local[mu]*DATA.gmunu[nu][3]
-                                             - u_local[nu]*DATA.gmunu[mu][3])
-                //- u_local[3]/tau*(- DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                //                  + DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
-                //+ u_local[3]*u_local[3]/tau*(- u_local[mu]*DATA.gmunu[nu][0]
-                //                             + u_local[nu]*DATA.gmunu[mu][0])
             );
+
+            if (DATA.CoorType == 0) {
+                omega_local[nu][mu] += (
+                    u_local[3]*u_local[0]/tau*(  u_local[mu]*DATA.gmunu[nu][3]
+                                               - u_local[nu]*DATA.gmunu[mu][3])
+                );
+            }
+
             omega_local[nu][mu] = -omega_local[mu][nu];
         }
     }
@@ -238,12 +270,15 @@ void U_derivative::calculate_thermal_vorticity(
         double omega_thermal[4][4];
         for (int mu = 0; mu < 4; mu++) {
             for (int nu = mu + 1; nu < 4; nu++) {
-                omega_thermal[mu][nu] = (
-                    - 0.5*(dUsup_local[nu][mu] - dUsup_local[mu][nu])
-                    - u_local[3]/(2.*tau*T_local)*(
-                          DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                        - DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+                omega_thermal[mu][nu] = -0.5*(
+                    (dUsup_local[nu][mu] - dUsup_local[mu][nu])
                 );
+                if (DATA.CoorType == 0) {
+                    omega_thermal[mu][nu] += (
+                        - u_local[3]/(2.*tau*T_local)*(
+                            - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                            + DATA.gmunu[mu][3]*DATA.gmunu[nu][0]));
+                }
             }
         }
 
@@ -346,6 +381,12 @@ void U_derivative::calculate_T_vorticity(
                       DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
                     - DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
             );
+            if (DATA.CoorType == 0) {
+                omega_thermal[mu][nu] += (
+                    - u_local[3]/(2*tau*T_local)*(
+                        - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                        + DATA.gmunu[mu][3]*DATA.gmunu[nu][0]));
+                }
         }
     }
 
@@ -379,12 +420,15 @@ void U_derivative::calculate_kinetic_vorticity_no_spatial_projection(
     double omega_thermal[4][4];
     for (int mu = 0; mu < 4; mu++) {
         for (int nu = mu + 1; nu < 4; nu++) {
-            omega_thermal[mu][nu] = (
-                - 0.5*(dUsup_local[nu][mu] - dUsup_local[mu][nu])
-                - u_local[3]/(2.*tau)*(
-                    + DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
-                    - DATA.gmunu[mu][3]*DATA.gmunu[nu][0])
+            omega_thermal[mu][nu] = -0.5*(
+                (dUsup_local[nu][mu] - dUsup_local[mu][nu])
             );
+            if (DATA.CoorType == 0) {
+                omega_thermal[mu][nu] += (
+                    - u_local[3]/(2.*tau)*(
+                        - DATA.gmunu[mu][0]*DATA.gmunu[nu][3]
+                        + DATA.gmunu[mu][3]*DATA.gmunu[nu][0]));
+            }
         }
     }
 
@@ -424,10 +468,16 @@ void U_derivative::calculate_velocity_shear_tensor(
             }
             sigma_local[a][b] = ((dUsup_local[a][b] + dUsup_local[b][a])/2.
                 - (gfac + u_local[a]*u_local[b])*theta_u_local/3.
-                + u_local[0]/tau*DATA.gmunu[a][3]*DATA.gmunu[b][3]
-                + u_local[3]*u_local[0]/tau/2.
+                + (u_local[a]*a_local[b] + u_local[b]*a_local[a])/2.
+                );
+
+            if (DATA.CoorType == 0) {
+                sigma_local[a][b] += (
+                    u_local[0]/tau*DATA.gmunu[a][3]*DATA.gmunu[b][3]
+                    + u_local[3]*u_local[0]/tau/2.
                   *(DATA.gmunu[a][3]*u_local[b] + DATA.gmunu[b][3]*u_local[a])
-                + (u_local[a]*a_local[b] + u_local[b]*a_local[a])/2.);
+                  );
+            }
             sigma_local[b][a] = sigma_local[a][b];
         }
     }
@@ -476,9 +526,11 @@ void U_derivative::get_DmuMuBoverTVec(DmuMuBoverTVec &vec) {
 int U_derivative::MakeDSpatial(const double tau, Fields &arena,
                                const int fieldIdx,
                                const int ix, const int iy, const int ieta) {
-    // taken care of the tau factor
+    double tauFac = tau;
+    if (DATA.CoorType == 1)
+        tauFac = 1.;
     const double delta[4] = {0.0, DATA.delta_x, DATA.delta_y,
-                             DATA.delta_eta*tau};
+                             DATA.delta_eta*tauFac};
 
     // calculate dUsup[m][n] = partial^n u^m
     FieldNeighbourLoopIdeal1(arena, ix, iy, ieta, FNLILAMBDAS1{
@@ -562,8 +614,7 @@ int U_derivative::MakeDSpatial(const double tau, Fields &arena,
 }  /* MakeDSpatial */
 
 
-int U_derivative::MakeDTau(const double tau,
-                           const Fields &arenaFieldsPrev,
+int U_derivative::MakeDTau(const Fields &arenaFieldsPrev,
                            const Fields &arenaFieldsCurr, const int fieldIdx) {
     /* this makes dU[m][0] = partial^tau u^m */
     /* note the minus sign at the end because of g[0][0] = -1 */
