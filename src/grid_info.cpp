@@ -390,17 +390,12 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
                 double ux   = arena.u_[1][fieldIdx];
                 double uy   = arena.u_[2][fieldIdx];
                 double ueta = arena.u_[3][fieldIdx];
-                double ut = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
-                double vx = ux/ut;
-                double vy = uy/ut;
-                double uz = ueta*cosh_eta + utau*sinh_eta;
-                double vz = uz/ut;
 
                 double T_local = eos.get_temperature(e_local, rhob_local);
                 double s_local = eos.get_entropy(e_local, rhob_local);
 
                 hydro_info_ptr.dump_ideal_info_to_memory(
-                    tau, eta, e_local, p_local, s_local, T_local, vx, vy, vz);
+                    tau, eta, e_local, p_local, s_local, T_local, ux, uy, ueta);
             }
         }
     }
