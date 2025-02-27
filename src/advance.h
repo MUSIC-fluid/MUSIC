@@ -41,7 +41,7 @@ class Advance {
                       const int fieldIdx, Fields &arenaFieldsCurr,
                       Fields &arenaFieldsNext, Fields &arenaFieldsPrev);
 
-    void FirstRKStepW(const double tau_it, Fields &arenaFieldsPrev,
+    void FirstRKStepW(const double tau, Fields &arenaFieldsPrev,
                       Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
                       const int rk_flag, const double theta_local,
                       const DumuVec &a_local,
@@ -51,9 +51,9 @@ class Advance {
                       const int ieta, const int ix, const int iy,
                       const int fieldIdx);
 
-    void QuestRevert(const double tau, Cell_small &grid_pt,
+    void QuestRevert(Cell_small &grid_pt,
                      const int ieta, const int ix, const int iy);
-    void QuestRevert_qmu(const double tau, Cell_small &grid_pt,
+    void QuestRevert_qmu(Cell_small &grid_pt,
                          const int ieta, const int ix, const int iy);
 
     void MakeDeltaQI(const double tau, Fields &arenaFieldsCurr,

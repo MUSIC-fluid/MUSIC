@@ -19,7 +19,7 @@ typedef struct init_data {
         { 0,0,0,1}}};
 
     int echo_level;
-
+    int JSecho = 1;
     bool reRunHydro;
     int reRunCount;
 
@@ -87,12 +87,15 @@ typedef struct init_data {
     double delta_y;
     double delta_eta;
     double delta_tau;
+    double delta_tau_org;
     double dtaudxRatio;
 
     bool resetDtau;
-
     int rk_order;
     double minmod_theta;
+
+    int CoorType;       //!< 0: Milne; 1: Cartesian
+    int Test1DDirection;
 
     double sFactor;     //!< overall normalization on energy density profile
     int whichEOS;       //!< type of EoS
@@ -242,6 +245,7 @@ typedef struct init_data {
     int freeze_eps_flag;
     std::string freeze_list_filename;
     bool freeze_surface_in_binary;
+    bool surface_in_memory;
 
     // for calculation of spectra
     int pseudofreeze;    //! flag to compute spectra in pseudorapdity

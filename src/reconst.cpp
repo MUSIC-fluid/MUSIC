@@ -30,7 +30,7 @@ ReconstCell Reconst::ReconstIt_shell(double tau, const TJbVec &tauq_vec,
         q_vec[i] = tauq_vec[i]/tau;
     }
 
-    int flag = ReconstIt_velocity_Newton(grid_p1, tau, q_vec, grid_pt);
+    int flag = ReconstIt_velocity_Newton(grid_p1, q_vec, grid_pt);
 
     if (flag == -1) {
         revert_grid(grid_p1, grid_pt);
@@ -57,7 +57,7 @@ void Reconst::revert_grid(ReconstCell &grid_current,
 //! reconstruct TJb from q[0] - q[4]
 //! reconstruct velocity first for finite mu_B case
 //! use Newton's method to solve v and u0
-int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p, double tau,
+int Reconst::ReconstIt_velocity_Newton(ReconstCell &grid_p,
                                        const TJbVec &q,
                                        const ReconstCell &grid_pt) {
 

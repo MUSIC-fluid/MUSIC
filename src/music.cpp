@@ -30,6 +30,7 @@ MUSIC::MUSIC(std::string input_file) :
     mode                   = DATA.mode;
     flag_hydro_run         = 0;
     flag_hydro_initialized = 0;
+    DATA.reRunCount = 0;
 
     // setup hydro evolution information
     hydro_info_ptr         = nullptr;
@@ -39,6 +40,8 @@ MUSIC::MUSIC(std::string input_file) :
 
     // setup source terms
     hydro_source_terms_ptr = nullptr;
+
+    currTauIdx = 0;
 }
 
 
@@ -73,6 +76,18 @@ void MUSIC::generate_hydro_source_terms() {
 }
 
 
+//! This function setup source terms from dynamical initialization
+void MUSIC::generate_hydro_source_terms(
+        std::vector< std::vector<double> > QCDStringList) {
+    if (DATA.Initial_profile == 13 || DATA.Initial_profile == 131) {
+        // MC-Glauber-LEXUS
+        auto hydro_source_ptr = std::shared_ptr<HydroSourceStrings> (
+                                new HydroSourceStrings (DATA, QCDStringList));
+        add_hydro_source_terms(hydro_source_ptr);
+    }
+}
+
+
 void MUSIC::clean_all_the_surface_files() {
     system_status_ = system("rm surface*.dat 2> /dev/null");
 }
@@ -84,6 +99,11 @@ void MUSIC::set_parameter(std::string parameter_name, double value) {
 }
 
 
+void MUSIC::check_parameters() {
+    ReadInParameters::check_parameters(DATA);
+}
+
+
 //! This function initialize hydro
 void MUSIC::initialize_hydro() {
     clean_all_the_surface_files();
@@ -91,22 +111,63 @@ void MUSIC::initialize_hydro() {
     generate_hydro_source_terms();
 
     Init initialization(eos, DATA, hydro_source_terms_ptr);
-    initialization.InitArena(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
+    initialization.InitArena(arenaFieldsPrev_, arenaFieldsCurr_,
+                             arenaFieldsNext_);
+    flag_hydro_initialized = 1;
+}
+
+
+//! This function initialize hydro within the XSCAPE framework
+void MUSIC::initialize_hydro_xscape() {
+    clean_all_the_surface_files();
+
+    Init initialization(eos, DATA, hydro_source_terms_ptr);
+    initialization.InitArena(arenaFieldsPrev_, arenaFieldsCurr_,
+                             arenaFieldsNext_);
     flag_hydro_initialized = 1;
 }
 
 
 //! this is a shell function to run hydro
 int MUSIC::run_hydro() {
-    Evolve evolve_local(eos, DATA, hydro_source_terms_ptr);
+    evolve_ptr_= std::make_shared<Evolve> (eos, DATA, hydro_source_terms_ptr);
 
     if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
     }
-    evolve_local.EvolveIt(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext,
+    evolve_ptr_->EvolveIt(arenaFieldsPrev_, arenaFieldsCurr_, arenaFieldsNext_,
                           (*hydro_info_ptr));
     flag_hydro_run = 1;
     return(0);
+}
+
+
+//! this is a prepare function to run hydro for one time step
+void MUSIC::prepare_run_hydro_one_time_step() {
+    freezeoutFieldPrev_.resizeFields(DATA.nx, DATA.ny, DATA.neta);
+    freezeoutFieldCurr_.resizeFields(DATA.nx, DATA.ny, DATA.neta);
+
+    evolve_ptr_= std::make_shared<Evolve> (eos, DATA, hydro_source_terms_ptr);
+
+    if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
+        hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
+    }
+}
+
+//! this is a shell function to run hydro for one time step
+int MUSIC::run_hydro_upto(const double tauEnd) {
+    int iTauEnd = static_cast<int>((tauEnd - DATA.tau0)/(2.*DATA.delta_tau)
+                                   + 1e-8);
+    int status = 0;
+    for (int itau = currTauIdx; itau < iTauEnd; itau++) {
+        status = evolve_ptr_->EvolveOneTimeStep(
+                    itau, arenaFieldsPrev_, arenaFieldsCurr_, arenaFieldsNext_,
+                    freezeoutFieldPrev_, freezeoutFieldCurr_,
+                    (*hydro_info_ptr));
+    }
+    if (currTauIdx < iTauEnd)
+        currTauIdx = iTauEnd;
+    return(status);
 }
 
 
@@ -143,7 +204,7 @@ void MUSIC::output_transport_coefficients() {
 
 
 void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
-        const double dx, const double dz, const double z_max, const int nz,
+        const double tau0, const double dx, const double dz, const double z_max, const int nz,
         vector<double> e_in, vector<double> P_in,
         vector<double> u_tau_in, vector<double> u_x_in,
         vector<double> u_y_in,   vector<double> u_eta_in,
@@ -169,13 +230,15 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
     }
     DATA.delta_x = dx;
     DATA.delta_y = dx;
+    DATA.tau0 = tau0;
 
     Init initialization(eos, DATA, hydro_source_terms_ptr);
     initialization.get_jetscape_preequilibrium_vectors(
         e_in, P_in, u_tau_in, u_x_in, u_y_in, u_eta_in,
         pi_00_in, pi_01_in, pi_02_in, pi_03_in, pi_11_in, pi_12_in, pi_13_in,
         pi_22_in, pi_23_in, pi_33_in, Bulk_pi_in);
-    initialization.InitArena(arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext);
+    initialization.InitArena(arenaFieldsPrev_, arenaFieldsCurr_,
+                             arenaFieldsNext_);
     flag_hydro_initialized = 1;
 }
 

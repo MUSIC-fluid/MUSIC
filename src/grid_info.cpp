@@ -34,8 +34,6 @@ Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in) :
                         "tables/Coefficients_RTA_diffusion.dat");
         }
     }
-    Pmu_edge_prev = {0.};
-    outflow_flux = {0.};
 }
 
 Cell_info::~Cell_info() {
@@ -404,15 +402,10 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
                 double ux   = arena.u_[1][fieldIdx];
                 double uy   = arena.u_[2][fieldIdx];
                 double ueta = arena.u_[3][fieldIdx];
-                double ut = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
-                double vx = ux/ut;
-                double vy = uy/ut;
-                double uz = ueta*cosh_eta + utau*sinh_eta;
-                double vz = uz/ut;
 
 
                 hydro_info_ptr.dump_ideal_info_to_memory(
-                    tau, eta, e_local, p_local, s_local, T_local, vx, vy, vz);
+                    tau, eta, e_local, p_local, s_local, T_local, ux, uy, ueta);
             }
         }
     }
@@ -984,15 +977,17 @@ void Cell_info::get_maximum_energy_density(
         music_message.error("Exiting ...");
         exit(1);
     }
-    music_message << "eps_max = " << eps_max << " GeV/fm^3, "
-                  << "rhob_max = " << rhob_max << " 1/fm^3, ";
-    if (DATA.turn_on_QS) {
-        music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
-                      << "rhos_max = " << rhos_max << " 1/fm^3, ";
-    }
-    music_message << "T_max = " << T_max << " GeV.";
+    if (DATA.JSecho > 0) {
+        music_message << "eps_max = " << eps_max << " GeV/fm^3, "
+                      << "rhob_max = " << rhob_max << " 1/fm^3, ";
+        if (DATA.turn_on_QS) {
+            music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
+                          << "rhos_max = " << rhos_max << " 1/fm^3, ";
+        }
+        music_message << "T_max = " << T_max << " GeV.";
 
-    music_message.flush("info");
+        music_message.flush("info");
+    }
     e_max = eps_max;
     nB_max = rhob_max;
     Tmax = T_max;
@@ -1126,14 +1121,6 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     double T_tau_x = 0.0;
     double T_tau_y = 0.0;
     double T_tau_z = 0.0;
-    double N_B_edge     = 0.0;
-    double N_Q_edge     = 0.0;
-    double N_S_edge     = 0.0;
-
-    double T_tau_t_edge = 0.0;
-    double T_tau_x_edge = 0.0;
-    double T_tau_y_edge = 0.0;
-    double T_tau_z_edge = 0.0;
     double deta    = DATA.delta_eta;
     double dx      = DATA.delta_x;
     double dy      = DATA.delta_y;
@@ -1141,15 +1128,19 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     const int nx   = arena.nX();
     const int ny   = arena.nY();
 
-    #pragma omp parallel for collapse(3) reduction(+:N_B, N_Q, N_S, T_tau_t, T_tau_x, T_tau_y, T_tau_z, N_B_edge, T_tau_t_edge, T_tau_x_edge, T_tau_y_edge, T_tau_z_edge)
+    #pragma omp parallel for collapse(3) reduction(+:N_B, N_Q, N_S, T_tau_t, T_tau_x, T_tau_y, T_tau_z)
     for (int ieta = 0; ieta < neta; ieta++)
     for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
         const int Idx = arena.getFieldIdx(ix, iy, ieta);
 
         const double eta_s = deta*ieta - (DATA.eta_size)/2.0;
-        const double cosh_eta = cosh(eta_s);
-        const double sinh_eta = sinh(eta_s);
+        double cosh_eta = 1.0;
+        double sinh_eta = 0.0;
+        if (DATA.CoorType == 0) {
+            cosh_eta = cosh(eta_s);
+            sinh_eta = sinh(eta_s);
+        }
 
         N_B += arena.rhob_[Idx]*arena.u_[0][Idx] + arena_prev.Wmunu_[10][Idx];
         N_Q += arena.rhoq_[Idx]*arena.u_[0][Idx];
@@ -1187,22 +1178,12 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
         T_tau_x += T01_local;
         T_tau_y += T02_local;
         T_tau_z += T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
-
-        // compute the energy-momentum vector on the edge
-        if (ieta == 0 || ieta == neta - 1 || ix == 0 || ix == nx - 1
-            || iy == 0 || iy == ny - 1) {
-            N_B_edge     += arena.rhob_[Idx]*u0 + arena_prev.Wmunu_[10][Idx];
-            N_Q_edge     += arena.rhoq_[Idx]*u0;
-            N_S_edge     += arena.rhos_[Idx]*u0;
-
-            T_tau_t_edge += T_tau_tau*cosh_eta + T_tau_eta*sinh_eta;
-            T_tau_x_edge += T01_local;
-            T_tau_y_edge += T02_local;
-            T_tau_z_edge += T_tau_tau*sinh_eta + T_tau_eta*cosh_eta;
-        }
     }
     // add units
-    double factor = tau*dx*dy*deta;
+    double factor = dx*dy*deta;
+    if (DATA.CoorType == 0) {
+        factor *= tau;
+    }
     N_B *= factor;
     N_Q *= factor;
     N_S *= factor;
@@ -1210,40 +1191,6 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     T_tau_x *= factor*Util::hbarc;  // GeV
     T_tau_y *= factor*Util::hbarc;  // GeV
     T_tau_z *= factor*Util::hbarc;  // GeV
-    N_B_edge *= factor;
-    N_Q_edge *= factor;
-    N_S_edge *= factor;
-
-    T_tau_t_edge *= factor*Util::hbarc;  // GeV
-    T_tau_x_edge *= factor*Util::hbarc;  // GeV
-    T_tau_y_edge *= factor*Util::hbarc;  // GeV
-    T_tau_z_edge *= factor*Util::hbarc;  // GeV
-
-    // compute the outflow flux
-    if (tau > DATA.tau0) {
-        outflow_flux[0] += T_tau_t_edge - Pmu_edge_prev[0];
-        outflow_flux[1] += T_tau_x_edge - Pmu_edge_prev[1];
-        outflow_flux[2] += T_tau_y_edge - Pmu_edge_prev[2];
-        outflow_flux[3] += T_tau_z_edge - Pmu_edge_prev[3];
-        outflow_flux[4] += N_B_edge - Pmu_edge_prev[4];
-        outflow_flux[5] += N_Q_edge - Pmu_edge_prev[5];
-        outflow_flux[6] += N_S_edge - Pmu_edge_prev[6];
-
-        N_B     += outflow_flux[4];
-        N_Q     += outflow_flux[5];
-        N_S     += outflow_flux[6];
-        T_tau_t += outflow_flux[0];  // GeV
-        T_tau_x += outflow_flux[1];  // GeV
-        T_tau_y += outflow_flux[2];  // GeV
-        T_tau_z += outflow_flux[3];  // GeV
-    }
-    Pmu_edge_prev[0] = T_tau_t_edge;
-    Pmu_edge_prev[1] = T_tau_x_edge;
-    Pmu_edge_prev[2] = T_tau_y_edge;
-    Pmu_edge_prev[3] = T_tau_z_edge;
-    Pmu_edge_prev[4] = N_B_edge;
-    Pmu_edge_prev[5] = N_Q_edge;
-    Pmu_edge_prev[6] = N_S_edge;
 
     // output results
     music_message << "total energy T^{taut} = " << T_tau_t << " GeV";
@@ -1401,7 +1348,163 @@ void Cell_info::output_1p1D_check_file(Fields &arena, const double tau) {
     output_file.close();
 }
 
+<<<<<<< HEAD
 //! This function outputs energy density and n_b, n_q and n_s for making movies
+=======
+
+//! This function outputs files to cross check with 1+1D simulation
+void Cell_info::output_1p1D_RiemannTest(
+        Fields &arena_prev, Fields &arena_curr, const double tau) {
+    ostringstream filename;
+    filename << "1+1D_RiemannTest_tau_" << tau << ".dat";
+    ofstream output_file(filename.str().c_str());
+    if (DATA.Test1DDirection == 3) {
+        output_file << "# z(fm)  e(GeV/fm^3)  v  theta(1/fm)  pi^zz(GeV/fm^3)"
+                    << "  Pi(GeV/fm^3)" << endl;
+
+        double deta = DATA.delta_eta;
+        double eta_min = -DATA.eta_size/2.;
+        for (int ieta = 0; ieta < arena_curr.nEta(); ieta++) {
+            int fieldIdx = arena_curr.getFieldIdx(0, 0, ieta);
+            double eta_local = eta_min + ieta*deta;
+            double e_local = arena_curr.e_[fieldIdx];
+            double pizz = arena_curr.Wmunu_[9][fieldIdx];
+            double uz = arena_curr.u_[3][fieldIdx];
+            double pi_b = arena_curr.piBulk_[fieldIdx];
+            double vz = uz/sqrt(1. + uz*uz);
+            u_derivative_helper.MakedU(tau, arena_prev, arena_curr,
+                                       fieldIdx, 0, 0, ieta);
+            auto theta_local = u_derivative_helper.calculate_expansion_rate(
+                                                tau, arena_curr, fieldIdx);
+            output_file << scientific << setprecision(8) << setw(18)
+                        << eta_local << "  "
+                        << e_local*Util::hbarc << "  "
+                        << vz << "  "
+                        << theta_local << "  "
+                        << pizz*Util::hbarc << "  " << pi_b*Util::hbarc
+                        << endl;
+        }
+    } else if (DATA.Test1DDirection == 2) {
+        output_file << "# y(fm)  e(GeV/fm^3)  v  theta(1/fm)  pi^yy(GeV/fm^3)"
+                    << "  Pi(GeV/fm^3)" << endl;
+
+        double dy = DATA.delta_y;
+        double y_min = -DATA.y_size/2.;
+        for (int iy = 0; iy < arena_curr.nY(); iy++) {
+            int fieldIdx = arena_curr.getFieldIdx(0, iy, 0);
+            double y_local = y_min + iy*dy;
+            double e_local = arena_curr.e_[fieldIdx];
+            double uy = arena_curr.u_[2][fieldIdx];
+            double piyy = arena_curr.Wmunu_[7][fieldIdx];
+            double pi_b = arena_curr.piBulk_[fieldIdx];
+            double vy = uy/sqrt(1. + uy*uy);
+            u_derivative_helper.MakedU(tau, arena_prev, arena_curr,
+                                       fieldIdx, 0, iy, 0);
+            auto theta_local = u_derivative_helper.calculate_expansion_rate(
+                                                tau, arena_curr, fieldIdx);
+            output_file << scientific << setprecision(8) << setw(18)
+                        << y_local << "  "
+                        << e_local*Util::hbarc << "  "
+                        << vy << "  "
+                        << theta_local << "  "
+                        << piyy*Util::hbarc << "  " << pi_b*Util::hbarc
+                        << endl;
+        }
+    } else if (DATA.Test1DDirection == 1) {
+        output_file << "# x(fm)  e(GeV/fm^3)  v  theta(1/fm)  pi^xx(GeV/fm^3)"
+                    << "  Pi(GeV/fm^3)" << endl;
+
+        double dx = DATA.delta_x;
+        double x_min = -DATA.x_size/2.;
+        for (int ix = 0; ix < arena_curr.nX(); ix++) {
+            int fieldIdx = arena_curr.getFieldIdx(ix, 0, 0);
+            double x_local = x_min + ix*dx;
+            double e_local = arena_curr.e_[fieldIdx];
+            double ux = arena_curr.u_[1][fieldIdx];
+            double pixx = arena_curr.Wmunu_[4][fieldIdx];
+            double pi_b = arena_curr.piBulk_[fieldIdx];
+            double vx = ux/sqrt(1. + ux*ux);
+            u_derivative_helper.MakedU(tau, arena_prev, arena_curr,
+                                       fieldIdx, ix, 0, 0);
+            auto theta_local = u_derivative_helper.calculate_expansion_rate(
+                                                tau, arena_curr, fieldIdx);
+            output_file << scientific << setprecision(8) << setw(18)
+                        << x_local << "  "
+                        << e_local*Util::hbarc << "  "
+                        << vx << "  "
+                        << theta_local << "  "
+                        << pixx*Util::hbarc << "  " << pi_b*Util::hbarc
+                        << endl;
+        }
+    }
+    output_file.close();
+}
+
+
+//! This function outputs files to cross check with 1+1D simulation
+void Cell_info::output_1p1D_DiffusionTest(Fields &arena, const double tau) {
+    ostringstream filename;
+    filename << "1+1D_DiffusionTest_tau_" << tau << ".dat";
+    ofstream output_file(filename.str().c_str());
+    if (DATA.Test1DDirection == 3) {
+        output_file << "# z (fm)   e (GeV/fm^3)  rhob (1/fm^3)" << endl;
+        double deta = DATA.delta_eta;
+        double eta_min = -DATA.eta_size/2.;
+        for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+            int fieldIdx = arena.getFieldIdx(0, 0, ieta);
+            double eta_local = eta_min + ieta*deta;
+            double e_local = arena.e_[fieldIdx];
+            double rhob_local = arena.rhob_[fieldIdx];
+            double uz = arena.u_[3][fieldIdx];
+            double vz = uz/sqrt(1. + uz*uz);
+            output_file << scientific << setprecision(8) << setw(18)
+                        << eta_local << "  "
+                        << e_local*Util::hbarc << "  "
+                        << rhob_local << "  "
+                        << vz << endl;
+        }
+    } else if (DATA.Test1DDirection == 2) {
+        output_file << "# y (fm)   e (GeV/fm^3)  rhob (1/fm^3)" << endl;
+        double dy = DATA.delta_y;
+        double y_min = -DATA.y_size/2.;
+        for (int iy = 0; iy < arena.nY(); iy++) {
+            int fieldIdx = arena.getFieldIdx(0, iy, 0);
+            double y_local = y_min + iy*dy;
+            double e_local = arena.e_[fieldIdx];
+            double rhob_local = arena.rhob_[fieldIdx];
+            double uy = arena.u_[2][fieldIdx];
+            double vy = uy/sqrt(1. + uy*uy);
+            output_file << scientific << setprecision(8) << setw(18)
+                        << y_local << "  "
+                        << e_local*Util::hbarc << "  "
+                        << rhob_local << "  "
+                        << vy << endl;
+        }
+    } else if (DATA.Test1DDirection == 1) {
+        output_file << "# x (fm)   e (GeV/fm^3)  rhob (1/fm^3)" << endl;
+        double dx = DATA.delta_x;
+        double x_min = -DATA.x_size/2.;
+        for (int ix = 0; ix < arena.nX(); ix++) {
+            int fieldIdx = arena.getFieldIdx(ix, 0, 0);
+            double x_local = x_min + ix*dx;
+            double e_local = arena.e_[fieldIdx];
+            double rhob_local = arena.rhob_[fieldIdx];
+            double ux = arena.u_[1][fieldIdx];
+            double vx = ux/sqrt(1. + ux*ux);
+            output_file << scientific << setprecision(8) << setw(18)
+                        << x_local << "  "
+                        << e_local*Util::hbarc << "  "
+                        << rhob_local << "  "
+                        << vx << endl;
+        }
+    }
+
+    output_file.close();
+}
+
+
+//! This function outputs energy density and n_b for making movies
+>>>>>>> JETSCAPE
 void Cell_info::output_evolution_for_movie(Fields &arena, const double tau) {
     const string out_name_xyeta = "evolution_for_movie_xyeta.dat";
     string out_open_mode;
@@ -1600,7 +1703,7 @@ void Cell_info::monitor_a_fluid_cell(Fields &arena_curr, Fields &arena_prev,
                 << arena_curr.piBulk_[fieldIdx]*Util::hbarc << "  "
                 << theta_local << "  ";
     DumuVec a_local;
-    u_derivative_helper.calculate_Du_supmu(tau, arena_curr, fieldIdx, a_local);
+    u_derivative_helper.calculate_Du_supmu(arena_curr, fieldIdx, a_local);
     VelocityShearVec sigma_local;
     u_derivative_helper.calculate_velocity_shear_tensor(
                 tau, arena_curr, fieldIdx, theta_local, a_local, sigma_local);

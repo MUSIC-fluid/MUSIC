@@ -29,7 +29,7 @@ initialize_with_entropy 0       # 0: with energy density
                                 # 1: with entropy density
 
 # read in initial conditions from external file
-Initial_Distribution_input_filename example_inputfiles/IPGlasma_2D/input/epsilon-u-Hydro-t0.6-0.dat
+Initial_Distribution_input_filename example_inputfiles/2D_IPGlasma/IPGlasma_2D_testEvent/input/epsilon-u-Hydro-t0.6-0.dat
                                # the filename of initial profile 
                                # (for Initial_profile == 8)
 s_factor 0.235                 # normalization factor read in

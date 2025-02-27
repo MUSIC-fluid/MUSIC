@@ -34,7 +34,6 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty") istringstream(tempinput) >> tempInitial_profile;
     parameter_list.Initial_profile = tempInitial_profile;
 
-    // Initial_profile:
     int temp_string_dump_mode = 1;
     tempinput = Util::StringFind4(input_file, "string_dump_mode");
     if (tempinput != "empty")
@@ -65,6 +64,20 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_preEqFlowFactor;
     temp_preEqFlowFactor = std::max(0., temp_preEqFlowFactor);
     parameter_list.preEqFlowFactor = temp_preEqFlowFactor;
+
+    // Coordinate Type:
+    int temp_CoorType = 0;   // Milne
+    tempinput = Util::StringFind4(input_file, "CoorType");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_CoorType;
+    parameter_list.CoorType = temp_CoorType;
+
+    // Cartesian 1D Test Direction
+    int temp_TestDirection = 3;   // Along z-axis
+    tempinput = Util::StringFind4(input_file, "Test1DDirection");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_TestDirection;
+    parameter_list.Test1DDirection = temp_TestDirection;
 
     // hydro source
     double temp_string_quench_factor = 0.;
@@ -211,6 +224,16 @@ InitData read_in_parameters(std::string input_file) {
         parameter_list.freeze_surface_in_binary = false;
     } else {
         parameter_list.freeze_surface_in_binary = true;
+    }
+
+    int temp_surface_in_memory = 0;
+    tempinput = Util::StringFind4(input_file, "surface_in_memory");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_surface_in_memory;
+    if (temp_surface_in_memory == 0) {
+        parameter_list.surface_in_memory = false;
+    } else {
+        parameter_list.surface_in_memory = true;
     }
 
     //particle_spectrum_to_compute:
@@ -435,6 +458,15 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.delta_tau = tempdelta_tau;
     music_message << " DeltaTau = " << parameter_list.delta_tau << " fm";
     music_message.flush("info");
+
+    bool reset_dtau_use_CFL_condition = true;
+    int temp_CFL_condition = 1;
+    tempinput = Util::StringFind4(input_file, "reset_dtau_use_CFL_condition");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_CFL_condition;
+    if (temp_CFL_condition == 0)
+        reset_dtau_use_CFL_condition = false;
+    parameter_list.resetDtau = reset_dtau_use_CFL_condition;
 
     double tempdtaudxRatio = 0.1;
     tempinput = Util::StringFind4(input_file, "dtaudxRatio");
@@ -1118,7 +1150,7 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.dNdyptdpt_eta_max = temp_dNdyptdpt_eta_max;
 
     music_message.info("Done read_in_parameters.");
-    check_parameters(parameter_list, input_file);
+    check_parameters(parameter_list);
 
     return parameter_list;
 }
@@ -1129,11 +1161,31 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "MUSIC_mode")
         parameter_list.mode = static_cast<int>(value);
 
+    if (parameter_name == "JSechoLevel")
+        parameter_list.JSecho = static_cast<int>(value);
+
+    if (parameter_name == "beastMode")
+        parameter_list.beastMode = static_cast<int>(value);
+
+    if (parameter_name == "Initial_profile")
+        parameter_list.Initial_profile = static_cast<int>(value);
+
     if (parameter_name == "Initial_time_tau_0")
         parameter_list.tau0 = value;
 
+    if (parameter_name == "dtau") {
+        parameter_list.delta_tau = value;
+        parameter_list.nt = static_cast<int>(
+            parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
+    }
+
     if (parameter_name == "output_evolution_data")
         parameter_list.outputEvolutionData = static_cast<int>(value);
+
+    if (parameter_name == "output_evolution_every_N_timesteps") {
+        parameter_list.output_evolution_every_N_timesteps = (
+                static_cast<int>(value));
+    }
 
     if (parameter_name == "output_movie_flag")
         parameter_list.output_movie_flag = static_cast<int>(value);
@@ -1150,8 +1202,26 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "Shear_to_S_ratio")
         parameter_list.shear_to_s = value;
 
-    if (parameter_name == "T_freeze")
+    if (parameter_name == "surface_in_memory") {
+        if (static_cast<int>(value) == 1) {
+            parameter_list.surface_in_memory = true;
+        } else if (static_cast<int>(value) == 0) {
+            parameter_list.surface_in_memory = false;
+        }
+    }
+
+    if (parameter_name == "T_freeze") {
         parameter_list.TFO = value;
+        parameter_list.useEpsFO = 0;
+    }
+
+    if (parameter_name == "eps_switch") {
+        parameter_list.epsilonFreeze = value;
+        parameter_list.useEpsFO = 1;
+        parameter_list.N_freeze_out = 1;
+        parameter_list.eps_freeze_min = parameter_list.epsilonFreeze;
+        parameter_list.eps_freeze_max = parameter_list.epsilonFreeze;
+    }
 
     if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0")
         parameter_list.turn_on_bulk = static_cast<int>(value);
@@ -1198,7 +1268,8 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
         parameter_list.bulk_3_lambda_asymm = value;
 }
 
-void check_parameters(InitData &parameter_list, std::string input_file) {
+
+void check_parameters(InitData &parameter_list) {
     music_message.info("Checking input parameter list ... ");
 
     if (parameter_list.Initial_profile < 0) {
@@ -1330,42 +1401,36 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         parameter_list.eta_size = 0.0;
     }
 
-    if (parameter_list.delta_tau/parameter_list.delta_x
-            > parameter_list.dtaudxRatio) {
+
+    double delta_xperp = std::min(parameter_list.delta_x,
+                                  parameter_list.delta_y);
+    if (parameter_list.delta_tau/delta_xperp > parameter_list.dtaudxRatio) {
         music_message << "Warning: Delta_Tau = " << parameter_list.delta_tau
                       << " maybe too large! ";
         music_message.flush("warning");
+    }
 
-        bool reset_dtau_use_CFL_condition = true;
-        int temp_CFL_condition = 1;
-        string tempinput = Util::StringFind4(
-                            input_file, "reset_dtau_use_CFL_condition");
-        if (tempinput != "empty")
-            istringstream(tempinput) >> temp_CFL_condition;
-        if (temp_CFL_condition == 0)
-            reset_dtau_use_CFL_condition = false;
-        parameter_list.resetDtau = reset_dtau_use_CFL_condition;
-
-        if (reset_dtau_use_CFL_condition) {
-            music_message.info("reset dtau using CFL condition.");
-            double dtau_CFL = std::min(
-                std::min(parameter_list.delta_x*parameter_list.dtaudxRatio,
-                         parameter_list.delta_y*parameter_list.dtaudxRatio),
-                         parameter_list.tau0*parameter_list.delta_eta
-                         *parameter_list.dtaudxRatio);
-            parameter_list.delta_tau = dtau_CFL;
-            parameter_list.nt = static_cast<int>(
-                parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
-            music_message << "read_in_parameters: Time step size = "
-                          << parameter_list.delta_tau;
-            music_message.flush("info");
-            music_message << "read_in_parameters: "
-                          << "Number of time steps required = "
-                          << parameter_list.nt;
-            music_message.flush("info");
-        } else {
-            exit(1);
+    if (parameter_list.resetDtau) {
+        music_message.info("reset dtau using CFL condition.");
+        double dtau_CFL = std::min(
+                parameter_list.delta_x*parameter_list.dtaudxRatio,
+                parameter_list.delta_y*parameter_list.dtaudxRatio);
+        if (!parameter_list.boost_invariant) {
+            dtau_CFL = std::min(dtau_CFL,
+                     parameter_list.tau0*parameter_list.delta_eta
+                     *parameter_list.dtaudxRatio);
         }
+        parameter_list.delta_tau_org = parameter_list.delta_tau;
+        parameter_list.delta_tau = dtau_CFL;
+        parameter_list.nt = static_cast<int>(
+            parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
+        music_message << "read_in_parameters: Time step size = "
+                      << parameter_list.delta_tau;
+        music_message.flush("info");
+        music_message << "read_in_parameters: "
+                      << "Number of time steps required = "
+                      << parameter_list.nt;
+        music_message.flush("info");
     }
 
     if (parameter_list.min_pt > parameter_list.max_pt) {

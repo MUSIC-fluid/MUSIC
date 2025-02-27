@@ -8,7 +8,6 @@
 #include "data.h"
 #include "data_struct.h"
 #include "eos.h"
-#include "cell.h"
 #include "fields.h"
 #include "u_derivative.h"
 #include "pretty_ostream.h"
@@ -40,8 +39,6 @@ class Cell_info {
     double **deltaf_coeff_tb_14mom_BV;
     double **deltaf_coeff_tb_14mom_DV;
     double **deltaf_coeff_tb_14mom_Bpi_shear;
-
-    TJbVec Pmu_edge_prev, outflow_flux;
 
  public:
     Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in);
@@ -83,6 +80,15 @@ class Cell_info {
 
     //! This function outputs files to cross check with 1+1D simulation
     void output_1p1D_check_file(Fields &arena, const double tau);
+
+    //! This function outputs files to cross check with 1+1D simulation
+    //! for Riemann Test
+    void output_1p1D_RiemannTest(Fields &arena_prev, Fields &arena_curr,
+                                 const double tau);
+
+    //! This function outputs files to cross check with 1+1D simulation
+    //! for Diffusion Test
+    void output_1p1D_DiffusionTest(Fields &arena, const double tau);
 
     //! This function prints to the screen the maximum local energy density,
     //! the maximum temperature in the current grid

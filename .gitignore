@@ -16,4 +16,5 @@ build/
 MUSIChydro
 *.dylib
 *.so
+*.swp
 music_input*

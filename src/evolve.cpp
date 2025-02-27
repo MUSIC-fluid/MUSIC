@@ -36,6 +36,7 @@ Evolve::Evolve(const EOS &eosIn, InitData &DATA_in,
     hydro_source_terms_ptr = hydro_source_ptr_in;
 }
 
+
 // master control function for hydrodynamic evolution
 int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                      Fields &arenaFieldsNext, HydroinfoMUSIC &hydro_info_ptr) {
@@ -231,9 +232,9 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                 grid_info.monitor_a_fluid_cell(*fpCurr, *fpPrev,
                                                100, 100, 0, tau);
             }
-        }
+        }  // if for not beast mode
 
-        //determine freeze-out surface
+        // determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
             if (freezeout_lowtemp_flag == 1 && it == iFreezeStart) {
@@ -261,23 +262,36 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         // all the evolution are at here !!!
         AdvanceRK(tau, fpPrev, fpCurr, fpNext);
 
-        music_message << emoji::clock()
-                      << " Done time step " << it << "/" << itmax
-                      << " tau = " << tau << " fm/c";
-        music_message.flush("info");
+        if (DATA.JSecho > 0) {
+            music_message << emoji::clock()
+                          << " Done time step " << it << "/" << itmax
+                          << " tau = " << tau << " fm/c";
+            music_message.flush("info");
+        }
         if (frozen == 1 && tau > source_tau_max) {
             if (   DATA.outputEvolutionData > 1
                 && DATA.outputEvolutionData < 5) {
                 if (eps_max_cur < DATA.output_evolution_e_cut) {
-                    music_message << "All cells e < "
-                                  << DATA.output_evolution_e_cut
-                                  << " GeV/fm^3.";
-                    music_message.flush("info");
+                    if (DATA.JSecho > 0) {
+                        music_message << "All cells e < "
+                                      << DATA.output_evolution_e_cut
+                                      << " GeV/fm^3.";
+                        music_message.flush("info");
+                    }
                     break;
                 }
             } else {
-                music_message.info("All cells frozen out. Exiting.");
+                if (DATA.JSecho > 0) {
+                    music_message.info("All cells frozen out. Exiting.");
+                }
                 break;
+            }
+        }
+        if (it == itmax) {
+            if (DATA.Initial_profile == 3) {
+                grid_info.output_1p1D_RiemannTest(*fpPrev, *fpCurr, tau);
+            } else if (DATA.Initial_profile == 4) {
+                grid_info.output_1p1D_DiffusionTest(*fpCurr, tau);
             }
         }
         tau += dt;
@@ -305,6 +319,152 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
 }
 
 
+int Evolve::EvolveOneTimeStep(const int itau, Fields &arenaFieldsPrev,
+                              Fields &arenaFieldsCurr, Fields &arenaFieldsNext,
+                              Fields &freezeoutFieldPrev,
+                              Fields &freezeoutFieldCurr,
+                              HydroinfoMUSIC &hydro_info_ptr) {
+
+    int Nskip_timestep          = DATA.output_evolution_every_N_timesteps;
+    int freezeout_flag          = DATA.doFreezeOut;
+    int freezeout_lowtemp_flag  = DATA.doFreezeOut_lowtemp;
+
+    double eps_max_cur = -1.;
+    const double max_allowed_e_increase_factor = 2.;
+
+    if (DATA.store_hydro_info_in_memory == 1 && itau == 0) {
+        hydro_info_ptr.set_grid_infomatioin(DATA);
+    }
+
+    const int it_start = 3;
+    double source_tau_max = 0.0;
+    if (hydro_source_terms_ptr) {
+        source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
+    }
+
+    Fields* fpPrev = &arenaFieldsPrev;
+    Fields* fpCurr = &arenaFieldsCurr;
+    Fields* fpNext = &arenaFieldsNext;
+
+    int frozenStatus = 0;
+    for (int it = 0; it < 2; it++) {
+        int tauIdx = 2*itau + it;
+        double tau = DATA.tau0 + tauIdx*DATA.delta_tau;
+        if (hydro_source_terms_ptr) {
+            hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
+        }
+
+        // store initial conditions
+        if (tauIdx == it_start) {
+            store_previous_step_for_freezeout(*fpPrev, freezeoutFieldPrev);
+            store_previous_step_for_freezeout(*fpCurr, freezeoutFieldCurr);
+        }
+
+        if (tauIdx % Nskip_timestep == 0) {
+            if (DATA.outputEvolutionData == 1) {
+                grid_info.OutputEvolutionDataXYEta(*fpCurr, tau);
+            } else if (DATA.outputEvolutionData == 2) {
+                grid_info.OutputEvolutionDataXYEta_chun(*fpCurr, tau);
+            } else if (DATA.outputEvolutionData == 3) {
+                grid_info.OutputEvolutionDataXYEta_photon(*fpCurr, tau);
+            } else if (DATA.outputEvolutionData == 4) {
+                grid_info.OutputEvolutionDataXYEta_vorticity(
+                                            *fpCurr, *fpPrev, tau);
+            }
+            if (DATA.store_hydro_info_in_memory == 1) {
+                grid_info.OutputEvolutionDataXYEta_memory(*fpCurr, tau,
+                                                          hydro_info_ptr);
+            }
+        }
+
+        if (DATA.Initial_profile == 0) {
+            if (   fabs(tau - 1.0) < 1e-8 || fabs(tau - 1.2) < 1e-8
+                || fabs(tau - 1.5) < 1e-8 || fabs(tau - 2.0) < 1e-8
+                || fabs(tau - 3.0) < 1e-8) {
+                grid_info.Gubser_flow_check_file(*fpCurr, tau);
+            }
+        }
+
+        if (!DATA.beastMode) {
+            // check energy conservation
+            if (!DATA.boost_invariant) {
+                grid_info.check_conservation_law(*fpCurr, *fpPrev, tau);
+            }
+
+            double emax_loc = 0.;
+            double Tmax_curr = 0.;
+            double nB_max_curr = 0.;
+            grid_info.get_maximum_energy_density(*fpCurr, emax_loc,
+                                                 nB_max_curr, Tmax_curr);
+            if (tau > source_tau_max && tauIdx > 0) {
+                if (eps_max_cur < 0.) {
+                    eps_max_cur = emax_loc;
+                } else {
+                    if (emax_loc > max_allowed_e_increase_factor*eps_max_cur) {
+                        music_message << "The maximum energy density increased by "
+                                      << "more than facotor of "
+                                      << max_allowed_e_increase_factor << "! ";
+                        music_message << "This should not happen!";
+                        music_message.flush("error");
+                        exit(1);
+                    } else {
+                        eps_max_cur = std::min(emax_loc, eps_max_cur);
+                    }
+                }
+            }
+        }
+
+        //determine freeze-out surface
+        int frozen = 0;
+        if (freezeout_flag == 1) {
+            if (freezeout_lowtemp_flag == 1 && tauIdx == it_start) {
+                frozen = FreezeOut_equal_tau_Surface(tau, *fpCurr);
+            }
+            // avoid freeze-out at the first time step
+            if ((tauIdx - it_start)%DATA.facTau == 0 && tauIdx > it_start) {
+                if (!DATA.boost_invariant) {
+                    frozen = FindFreezeOutSurface_Cornelius(
+                                tau, *fpPrev, *fpCurr,
+                                freezeoutFieldPrev, freezeoutFieldCurr);
+                } else {
+                    frozen = FindFreezeOutSurface_boostinvariant_Cornelius(
+                                tau, *fpCurr, freezeoutFieldCurr);
+                }
+                store_previous_step_for_freezeout(*fpPrev, freezeoutFieldPrev);
+                store_previous_step_for_freezeout(*fpCurr, freezeoutFieldCurr);
+            }
+        }
+
+        /* execute rk steps */
+        // all the evolution are at here !!!
+        AdvanceRK(tau, fpPrev, fpCurr, fpNext);
+
+        music_message << emoji::clock()
+                      << " Done time step " << tauIdx
+                      << ", tau = " << tau << " fm/c";
+        music_message.flush("info");
+        if (frozen == 1 && tau > source_tau_max) {
+            if (   DATA.outputEvolutionData > 1
+                && DATA.outputEvolutionData < 5) {
+                if (eps_max_cur < DATA.output_evolution_e_cut) {
+                    music_message << "All cells e < "
+                                  << DATA.output_evolution_e_cut
+                                  << " GeV/fm^3.";
+                    music_message.flush("info");
+                    break;
+                }
+            } else {
+                if (DATA.JSecho > 0) {
+                    music_message.info("All cells frozen out. Exiting.");
+                }
+                break;
+            }
+        }
+    }
+    return frozenStatus;
+}
+
+
 void Evolve::store_previous_step_for_freezeout(Fields &arenaCurr,
                                                Fields &arenaFreeze) {
     arenaFreeze.e_ = arenaCurr.e_;
@@ -315,6 +475,7 @@ void Evolve::store_previous_step_for_freezeout(Fields &arenaCurr,
     arenaFreeze.u_ = arenaCurr.u_;
     arenaFreeze.Wmunu_ = arenaCurr.Wmunu_;
 }
+
 
 void Evolve::AdvanceRK(double tau, Fields* &fpPrev, Fields* &fpCurr,
                        Fields* &fpNext) {
@@ -346,7 +507,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau,
             i_freezesurf++) {
         const double epsFO = epsFO_list[i_freezesurf]/hbarc;   // 1/fm^4
 
-        #pragma omp parallel for reduction(+:intersections)
+        //#pragma omp parallel for reduction(+:intersections)
         for (int ieta = 0; ieta < (neta-fac_eta); ieta += fac_eta) {
             int thread_id = omp_get_thread_num();
             intersections += FindFreezeOutSurface_Cornelius_XY(
@@ -357,8 +518,11 @@ int Evolve::FindFreezeOutSurface_Cornelius(double tau,
             return(0);
         }
     }
-
-    return(intersections + 1);
+    int all_frozen = 1;
+    if (intersections > 0) {
+        all_frozen = 0;
+    }
+    return(all_frozen);
 }
 
 int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
@@ -648,7 +812,33 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                 const double eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                 // finally output results !!!!
-                if (surface_in_binary) {
+                if (DATA.surface_in_memory) {
+                    SurfaceCell aFreezeCell;
+                    aFreezeCell.xmu[0] = static_cast<float>(tau_center);
+                    aFreezeCell.xmu[1] = static_cast<float>(x_center);
+                    aFreezeCell.xmu[2] = static_cast<float>(y_center);
+                    aFreezeCell.xmu[3] = static_cast<float>(eta_center);
+                    for (int ii = 0; ii < 4; ii++) {
+                        aFreezeCell.d3sigma_mu[ii] = static_cast<float>(
+                                                                FULLSU[ii]);
+                        aFreezeCell.umu[ii] = static_cast<float>(
+                                                        fluid_center.u[ii]);
+                    }
+                    aFreezeCell.energy_density = (
+                                            static_cast<float>(epsFO*hbarc));
+                    aFreezeCell.temperature = static_cast<float>(TFO*hbarc);
+                    aFreezeCell.mu_B = static_cast<float>(muB*hbarc);
+                    aFreezeCell.mu_S = static_cast<float>(muS*hbarc);
+                    aFreezeCell.mu_Q = static_cast<float>(muQ*hbarc);
+                    aFreezeCell.bulk_Pi = (
+                                static_cast<float>(fluid_center.pi_b*hbarc));
+                    aFreezeCell.rho_b = static_cast<float>(fluid_center.rhob);
+                    for (int ii = 0; ii < 10; ii++) {
+                        aFreezeCell.shear_pi[ii] = static_cast<float>(
+                                                fluid_center.Wmunu[ii]*hbarc);
+                    }
+                    surfaceCellVec_.push_back(aFreezeCell);
+                } else if (surface_in_binary) {
                     const int FOsize = 36 + DATA.output_vorticity*(24 + 14);
                     float array[FOsize];
                     array[0] = static_cast<float>(tau_center);
@@ -703,22 +893,27 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                            << y_center << " " << eta_center << " "
                            << FULLSU[0] << " " << FULLSU[1] << " "
                            << FULLSU[2] << " " << FULLSU[3] << " "
-                           << fluid_center.u[0] << " " << fluid_center.u[1] << " "
-                           << fluid_center.u[2] << " " << fluid_center.u[3] << " "
+                           << fluid_center.u[0] << " "
+                           << fluid_center.u[1] << " "
+                           << fluid_center.u[2] << " "
+                           << fluid_center.u[3] << " "
                            << epsFO << " " << TFO << " " << muB << " "
                            << muS << " " << muQ << " "
                            << eps_plus_p_over_T_FO << " ";
-                    for (int ii = 0; ii < 10; ii++)
+                    for (int ii = 0; ii < 10; ii++) {
                         s_file << std::scientific << std::setprecision(10)
                                << fluid_center.Wmunu[ii] << " ";
+                    }
                     if (DATA.turn_on_bulk)
                         s_file << fluid_center.pi_b << " ";
                     if (DATA.turn_on_rhob)
                         s_file << fluid_center.rhob << " ";
-                    if (DATA.turn_on_diff)
-                        for (int ii = 10; ii < 14; ii++)
+                    if (DATA.turn_on_diff) {
+                        for (int ii = 10; ii < 14; ii++) {
                             s_file << std::scientific << std::setprecision(10)
                                    << fluid_center.Wmunu[ii] << " ";
+                        }
+                    }
                     s_file << std::endl;
                 }
                 double u_dot_dsigma = tau_center*(
@@ -773,7 +968,7 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau,
             i_freezesurf++) {
         double epsFO = epsFO_list[i_freezesurf]/hbarc;
         if (!DATA.boost_invariant) {
-            #pragma omp parallel for
+            //#pragma omp parallel for
             for (int ieta = 0; ieta < neta - fac_eta; ieta += fac_eta) {
                 int thread_id = omp_get_thread_num();
                 FreezeOut_equal_tau_Surface_XY(tau,  ieta, arena_current,
@@ -932,7 +1127,39 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
             double eps_plus_p_over_T = (e_local + pressure)/T_local;
 
             // finally output results
-            if (surface_in_binary) {
+            if (DATA.surface_in_memory) {
+                SurfaceCell aFreezeCell;
+                aFreezeCell.xmu[0] = static_cast<float>(tau_center);
+                aFreezeCell.xmu[1] = static_cast<float>(x_center);
+                aFreezeCell.xmu[2] = static_cast<float>(y_center);
+                aFreezeCell.xmu[3] = static_cast<float>(eta_center);
+                for (int ii = 0; ii < 4; ii++) {
+                    aFreezeCell.d3sigma_mu[ii] = static_cast<float>(
+                                                            FULLSU[ii]);
+                }
+                aFreezeCell.umu[0] = static_cast<float>(utau_center);
+                aFreezeCell.umu[1] = static_cast<float>(ux_center);
+                aFreezeCell.umu[2] = static_cast<float>(uy_center);
+                aFreezeCell.umu[3] = static_cast<float>(ueta_center);
+                aFreezeCell.energy_density = static_cast<float>(e_local*hbarc);
+                aFreezeCell.temperature = static_cast<float>(T_local*hbarc);
+                aFreezeCell.mu_B = static_cast<float>(muB_local*hbarc);
+                aFreezeCell.mu_S = static_cast<float>(muS_local*hbarc);
+                aFreezeCell.mu_Q = static_cast<float>(muQ_local*hbarc);
+                aFreezeCell.bulk_Pi = static_cast<float>(pi_b_center*hbarc);
+                aFreezeCell.rho_b = static_cast<float>(rhob_center);
+                aFreezeCell.shear_pi[0] = static_cast<float>(Wtautau_center*hbarc);
+                aFreezeCell.shear_pi[1] = static_cast<float>(Wtaux_center*hbarc);
+                aFreezeCell.shear_pi[2] = static_cast<float>(Wtauy_center*hbarc);
+                aFreezeCell.shear_pi[3] = static_cast<float>(Wtaueta_center*hbarc);
+                aFreezeCell.shear_pi[4] = static_cast<float>(Wxx_center*hbarc);
+                aFreezeCell.shear_pi[5] = static_cast<float>(Wxy_center*hbarc);
+                aFreezeCell.shear_pi[6] = static_cast<float>(Wxeta_center*hbarc);
+                aFreezeCell.shear_pi[7] = static_cast<float>(Wyy_center*hbarc);
+                aFreezeCell.shear_pi[8] = static_cast<float>(Wyeta_center*hbarc);
+                aFreezeCell.shear_pi[9] = static_cast<float>(Wetaeta_center*hbarc);
+                surfaceCellVec_.push_back(aFreezeCell);
+            } else if (surface_in_binary) {
                 const int FOsize = 36 + DATA.output_vorticity*(24 + 14);
                 float array[FOsize];
                 array[0] = static_cast<float>(tau_center);
@@ -1032,6 +1259,12 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                 double tau, Fields &arena_current, Fields &arena_freezeout) {
     const bool surface_in_binary = DATA.freeze_surface_in_binary;
 
+    static bool overwrite_file = true;
+    // If we saved the first timestep's surface, don't overwrite it
+    if (DATA.doFreezeOut_lowtemp) {
+        overwrite_file=false;
+    }
+
     // find boost-invariant hyper-surfaces
     int n_freeze_surf = epsFO_list.size();
     int *all_frozen = new int[n_freeze_surf];
@@ -1048,6 +1281,14 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         modes = std::ios::out | std::ios::app;
         if (surface_in_binary) {
             modes = modes | std::ios::binary;
+        }
+
+        // Only append at the end of the file if it's not the first timestep
+        // (that is, overwrite file at first timestep)
+        if (!overwrite_file) {
+            modes = modes | std::ios::app;
+        } else {
+            overwrite_file=false;
         }
 
         s_file.open(strs_name.str().c_str(), modes);
@@ -1242,16 +1483,48 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                     double eps_plus_p_over_T_FO = (epsFO + pressure)/TFO;
 
                     // finally output results !!!!
-                    if (surface_in_binary) {
+                    if (DATA.surface_in_memory) {
+                        SurfaceCell aFreezeCell;
+                        aFreezeCell.xmu[0] = static_cast<float>(tau_center);
+                        aFreezeCell.xmu[1] = static_cast<float>(x_center);
+                        aFreezeCell.xmu[2] = static_cast<float>(y_center);
+                        aFreezeCell.xmu[3] = static_cast<float>(eta_center);
+                        for (int ii = 0; ii < 4; ii++) {
+                            aFreezeCell.d3sigma_mu[ii] = static_cast<float>(
+                                                                FULLSU[ii]);
+                            aFreezeCell.umu[ii] = static_cast<float>(
+                                                        fluid_center.u[ii]);
+                        }
+                        aFreezeCell.energy_density = (
+                                            static_cast<float>(epsFO*hbarc));
+                        aFreezeCell.temperature = (
+                                            static_cast<float>(TFO*hbarc));
+                        aFreezeCell.mu_B = static_cast<float>(muB*hbarc);
+                        aFreezeCell.mu_S = static_cast<float>(muS*hbarc);
+                        aFreezeCell.mu_Q = static_cast<float>(muQ*hbarc);
+                        aFreezeCell.bulk_Pi = (
+                            static_cast<float>(fluid_center.pi_b*hbarc));
+                        aFreezeCell.rho_b = (
+                                        static_cast<float>(fluid_center.rhob));
+                        for (int ii = 0; ii < 10; ii++) {
+                            aFreezeCell.shear_pi[ii] = (
+                                static_cast<float>(
+                                    fluid_center.Wmunu[ii]*hbarc));
+                        }
+                        surfaceCellVec_.push_back(aFreezeCell);
+                    } else if (surface_in_binary) {
                         float array[36];
                         array[0] = static_cast<float>(tau_center);
                         array[1] = static_cast<float>(x_center);
                         array[2] = static_cast<float>(y_center);
                         array[3] = static_cast<float>(eta_center);
-                        for (int ii = 0; ii < 4; ii++)
+                        for (int ii = 0; ii < 4; ii++) {
                             array[4+ii] = static_cast<float>(FULLSU[ii]);
-                        for (int ii = 0; ii < 4; ii++)
-                            array[8+ii] = static_cast<float>(fluid_center.u[ii]);
+                        }
+                        for (int ii = 0; ii < 4; ii++) {
+                            array[8+ii] = static_cast<float>(
+                                                        fluid_center.u[ii]);
+                        }
                         array[12] = static_cast<float>(epsFO);
                         array[13] = static_cast<float>(TFO);
                         array[14] = static_cast<float>(muB);
@@ -1259,7 +1532,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                         array[16] = static_cast<float>(muQ);
                         array[17] = static_cast<float>(eps_plus_p_over_T_FO);
                         for (int ii = 0; ii < 10; ii++)
-                            array[18+ii] = static_cast<float>(fluid_center.Wmunu[ii]);
+                            array[18+ii] = static_cast<float>(
+                                                    fluid_center.Wmunu[ii]);
                         array[28] = fluid_center.pi_b;
                         array[29] = fluid_center.rhob;
                         array[30] = fluid_center.rhoq;
@@ -1275,22 +1549,28 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                << y_center << " " << eta_center << " "
                                << FULLSU[0] << " " << FULLSU[1] << " "
                                << FULLSU[2] << " " << FULLSU[3] << " "
-                               << fluid_center.u[0] << " " << fluid_center.u[1] << " "
-                               << fluid_center.u[2] << " " << fluid_center.u[3] << " "
+                               << fluid_center.u[0] << " "
+                               << fluid_center.u[1] << " "
+                               << fluid_center.u[2] << " "
+                               << fluid_center.u[3] << " "
                                << epsFO << " " << TFO << " " << muB << " "
                                << muS << " " << muQ << " "
                                << eps_plus_p_over_T_FO << " ";
-                        for (int ii = 0; ii < 10; ii++)
+                        for (int ii = 0; ii < 10; ii++) {
                             s_file << std::scientific << std::setprecision(10)
                                    << fluid_center.Wmunu[ii] << " ";
+                        }
                         if (DATA.turn_on_bulk)
                             s_file << fluid_center.pi_b << " ";
                         if (DATA.turn_on_rhob)
                             s_file << fluid_center.rhob << " ";
-                        if (DATA.turn_on_diff)
-                            for (int ii = 10; ii < 14; ii++)
-                                s_file << std::scientific << std::setprecision(10)
+                        if (DATA.turn_on_diff) {
+                            for (int ii = 10; ii < 14; ii++) {
+                                s_file << std::scientific
+                                       << std::setprecision(10)
                                        << fluid_center.Wmunu[ii] << " ";
+                            }
+                        }
                         s_file << std::endl;
                     }
                 }
@@ -1322,7 +1602,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         all_frozen_flag *= all_frozen[ii];
     }
     if (all_frozen_flag == 1) {
-        music_message.info("All cells frozen out. Exiting.");
+        if (DATA.JSecho > 0) {
+            music_message.info("All cells frozen out. Exiting.");
+        }
     }
 
     delete [] all_frozen;

@@ -33,7 +33,7 @@ void Diss::MakeWSource(const double tau,
     /* calculate d_m (tau W^{m,alpha}) + (geom source terms) */
     const double delta[4]   = {0.0, DATA.delta_x, DATA.delta_y,
                                DATA.delta_eta};
-    const double tau_fac[4] = {0.0, tau, tau, 1.0};
+    double tau_fac[4] = {0.0, tau, tau, 1.0};
 
     dwmn = {0.};
     for (int alpha = 0; alpha < 5; alpha++) {
@@ -126,28 +126,30 @@ void Diss::MakeWSource(const double tau,
         }
     });
 
-    // add longitudinal flux with the discretized geometric terms
-    // careful about the boost-invariant case when deta could be arbitary
-    double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
-    double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
-    sinh_deta = std::max(0.5, sinh_deta);
-    if (DATA.boost_invariant) {
-        // if the simulation is boost-invariant,
-        // we directly use the limiting value at \Delta eta = 0
-        // Longitudinal derivatives should be 0, we set cosh_deta = 0 here
-        cosh_deta = 0.0;
-        sinh_deta = 0.5;
-    }
-    dwmn[0] += (  (W_eta_p[0] - W_eta_m[0])*cosh_deta
-                + (W_eta_p[3] + W_eta_m[3])*sinh_deta);
-    dwmn[3] += (  (W_eta_p[3] - W_eta_m[3])*cosh_deta
-                + (W_eta_p[0] + W_eta_m[0])*sinh_deta);
+    if (DATA.CoorType == 0) {
+        // add longitudinal flux with the discretized geometric terms
+        // careful about the boost-invariant case when deta could be arbitary
+        double cosh_deta = cosh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+        double sinh_deta = sinh(delta[3]/2.)/std::max(delta[3], Util::small_eps);
+        sinh_deta = std::max(0.5, sinh_deta);
+        if (DATA.boost_invariant) {
+            // if the simulation is boost-invariant,
+            // we directly use the limiting value at \Delta eta = 0
+            // Longitudinal derivatives should be 0, we set cosh_deta = 0 here
+            cosh_deta = 0.0;
+            sinh_deta = 0.5;
+        }
+        dwmn[0] += (  (W_eta_p[0] - W_eta_m[0])*cosh_deta
+                    + (W_eta_p[3] + W_eta_m[3])*sinh_deta);
+        dwmn[3] += (  (W_eta_p[3] - W_eta_m[3])*cosh_deta
+                    + (W_eta_p[0] + W_eta_m[0])*sinh_deta);
 
-    // sources due to coordinate transform this is added to partial_m W^mn
-    //dwmn[0] += grid_pt.Wmunu[9];
-    //dwmn[0] += grid_pt.pi_b*(1.0 + grid_pt.u[3]*grid_pt.u[3]);
-    //dwmn[3] += grid_pt.Wmunu[3];
-    //dwmn[3] += grid_pt.pi_b*(grid_pt.u[0]*grid_pt.u[3]);
+        // sources due to coordinate transform this is added to partial_m W^mn
+        //dwmn[0] += grid_pt.Wmunu[9];
+        //dwmn[0] += grid_pt.pi_b*(1.0 + grid_pt.u[3]*grid_pt.u[3]);
+        //dwmn[3] += grid_pt.Wmunu[3];
+        //dwmn[3] += grid_pt.pi_b*(grid_pt.u[0]*grid_pt.u[3]);
+    }
 }
 
 
@@ -385,6 +387,10 @@ void Diss::Make_uWRHS(const double tau, Fields &arena,
     /* This is the second step in the operator splitting. it uses
        rk_flag+1 as initial condition */
     double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta*tau};
+    if (DATA.CoorType == 1) {
+        delta[3] = DATA.delta_eta;
+    }
+
     const double delta_tau = DATA.delta_tau;
 
     int piIdxArr[9] = {4, 5, 6, 7, 8, 9, 11, 12, 13};
