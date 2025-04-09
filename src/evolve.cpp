@@ -140,10 +140,9 @@ int Evolve::EvolveIt(
             // if (DATA.output_movie_flag == 1) {
             //     grid_info.output_evolution_for_movie(*fpCurr, tau);
             // }
-            // if (DATA.output_outofequilibriumsize == 1) {
-            //     grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*fpCurr,
-            //                                                       tau);
-            // }
+            if (DATA.output_outofequilibriumsize == 1) {
+                grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*fpCurr, tau);
+            }
         }
 
         if (it == iFreezeStart || it == iFreezeStart + 10

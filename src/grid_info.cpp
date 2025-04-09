@@ -328,11 +328,14 @@ void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(
                     arena, fieldIdx, arena.e_[fieldIdx] + P_local, R_pi, R_Pi);
 
                 if (DATA.outputBinaryEvolution == 0) {
-                    fprintf(out_file_xyeta, "%e %e\n", R_pi, R_Pi);
+                    fprintf(
+                        out_file_xyeta, "%e %e %e\n", arena.e_[fieldIdx], R_pi,
+                        R_Pi);
                 } else {
                     float array[] = {
+                        static_cast<float>(arena.e_[fieldIdx]),
                         static_cast<float>(R_pi), static_cast<float>(R_Pi)};
-                    fwrite(array, sizeof(float), 2, out_file_xyeta);
+                    fwrite(array, sizeof(float), 3, out_file_xyeta);
                 }
             }
         }
@@ -2205,17 +2208,6 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
             filename2.str().c_str(), std::fstream::out | std::fstream::app);
     }
 
-    ostringstream filename21;
-    filename21 << "inverse_Reynolds_number_eta_0_x_0_y_0.dat";
-    std::fstream of21;
-    if (std::abs(tau - DATA.tau0) < 1e-10) {
-        of21.open(filename21.str().c_str(), std::fstream::out);
-        of21 << "# tau(fm)  R_shearpi  R_Pi  gamma  T[GeV]" << endl;
-    } else {
-        of21.open(
-            filename21.str().c_str(), std::fstream::out | std::fstream::app);
-    }
-
     ostringstream filename3;
     filename3 << "meanpT_estimators_eta_" << eta_min << "_" << eta_max
               << ".dat";
@@ -2375,13 +2367,6 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                         R_shearpi_den += weight_local;
                         R_Pi_num += weight_local * r_bulkPi;
                         R_Pi_den += weight_local;
-                        if (ieta == arena.nEta() / 2 && ix == arena.nX() / 2
-                            && iy == arena.nY() / 2) {
-                            of21 << scientific << setw(18) << setprecision(8)
-                                 << tau << "  " << r_shearpi << "  " << r_bulkPi
-                                 << "   " << u0 << "   " << thermalVec[6]
-                                 << endl;
-                        }
                     }
 
                     for (int i = 0; i < 2; i++) {
@@ -2455,7 +2440,6 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     of2 << scientific << setw(18) << setprecision(8) << tau << "  " << R_shearpi
         << "  " << R_Pi << "  " << u_avg << "  " << T_avg << endl;
     of2.close();
-    of21.close();
 
     of3 << scientific << setw(18) << setprecision(8) << tau << "  "
         << meanpT_est_num[0] * DATA.delta_x * DATA.delta_y << "  "
