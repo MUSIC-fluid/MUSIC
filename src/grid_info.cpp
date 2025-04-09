@@ -325,7 +325,7 @@ void Cell_info::OutputEvolution_Knudsen_Reynoldsnumbers(
                 double R_pi = 0.0;
                 double R_Pi = 0.0;
                 calculate_inverse_Reynolds_numbers(
-                    arena, fieldIdx, P_local, R_pi, R_Pi);
+                    arena, fieldIdx, arena.e_[fieldIdx] + P_local, R_pi, R_Pi);
 
                 if (DATA.outputBinaryEvolution == 0) {
                     fprintf(out_file_xyeta, "%e %e\n", R_pi, R_Pi);
@@ -2205,6 +2205,17 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
             filename2.str().c_str(), std::fstream::out | std::fstream::app);
     }
 
+    ostringstream filename21;
+    filename21 << "inverse_Reynolds_number_eta_0_x_0_y_0.dat";
+    std::fstream of21;
+    if (std::abs(tau - DATA.tau0) < 1e-10) {
+        of21.open(filename21.str().c_str(), std::fstream::out);
+        of21 << "# tau(fm)  R_shearpi  R_Pi  gamma  T[GeV]" << endl;
+    } else {
+        of21.open(
+            filename21.str().c_str(), std::fstream::out | std::fstream::app);
+    }
+
     ostringstream filename3;
     filename3 << "meanpT_estimators_eta_" << eta_min << "_" << eta_max
               << ".dat";
@@ -2261,7 +2272,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                  - (DATA.eta_size) / 2.0);
         }
         if (eta < eta_max && eta > eta_min) {
-            for (int iy = 0; iy < arena.nY(); iy++)
+            for (int iy = 0; iy < arena.nY(); iy++) {
                 for (int ix = 0; ix < arena.nX(); ix++) {
                     int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
                     double x_local = -DATA.x_size / 2. + ix * DATA.delta_x;
@@ -2272,6 +2283,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                     y_o += y_local * e_local * gamma_perp;
                     w_sum += e_local * gamma_perp;
                 }
+            }
         }
     }
     x_o /= w_sum;
@@ -2284,7 +2296,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                  - (DATA.eta_size) / 2.0);
         }
         if (eta < eta_max && eta > eta_min) {
-            for (int iy = 0; iy < arena.nY(); iy++)
+            for (int iy = 0; iy < arena.nY(); iy++) {
                 for (int ix = 0; ix < arena.nX(); ix++) {
                     int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
                     double x_local =
@@ -2357,11 +2369,19 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                     if (e_local > 1e-3) {
                         double r_shearpi, r_bulkPi;
                         calculate_inverse_Reynolds_numbers(
-                            arena, fieldIdx, P_local, r_shearpi, r_bulkPi);
+                            arena, fieldIdx, e_local + P_local, r_shearpi,
+                            r_bulkPi);
                         R_shearpi_num += weight_local * r_shearpi;
                         R_shearpi_den += weight_local;
                         R_Pi_num += weight_local * r_bulkPi;
                         R_Pi_den += weight_local;
+                        if (ieta == arena.nEta() / 2 && ix == arena.nX() / 2
+                            && iy == arena.nY() / 2) {
+                            of21 << scientific << setw(18) << setprecision(8)
+                                 << tau << "  " << r_shearpi << "  " << r_bulkPi
+                                 << "   " << u0 << "   " << thermalVec[6]
+                                 << endl;
+                        }
                     }
 
                     for (int i = 0; i < 2; i++) {
@@ -2400,6 +2420,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
                         r_local * r_local * u0 * e_local;  // [r^2]
                     meanpT_est_den[0] += u0 * e_local;
                 }
+            }
         }
     }
     double R_shearpi = R_shearpi_num / std::max(R_shearpi_den, small_eps);
@@ -2434,6 +2455,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     of2 << scientific << setw(18) << setprecision(8) << tau << "  " << R_shearpi
         << "  " << R_Pi << "  " << u_avg << "  " << T_avg << endl;
     of2.close();
+    of21.close();
 
     of3 << scientific << setw(18) << setprecision(8) << tau << "  "
         << meanpT_est_num[0] * DATA.delta_x * DATA.delta_y << "  "
