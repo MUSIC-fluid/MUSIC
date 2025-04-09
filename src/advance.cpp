@@ -4,6 +4,8 @@
 #include <omp.h>
 #endif
 
+#include <Eigen/Core>
+#include <Eigen/Eigenvalues>
 #include <cassert>
 #include <cmath>
 #include <memory>
@@ -16,6 +18,8 @@
 #include "reconst.h"
 #include "util.h"
 
+using Eigen::EigenSolver;
+using Eigen::MatrixXd;
 using Util::hbarc;
 using Util::map_1d_idx_to_2d;
 using Util::map_2d_idx_to_1d;
@@ -27,7 +31,8 @@ Advance::Advance(
       eos(eosIn),
       diss_helper(eosIn, DATA_in),
       minmod(DATA_in),
-      reconst_helper(eos, DATA_in.echo_level, DATA_in.beastMode) {
+      reconst_helper(eos, DATA_in.echo_level, DATA_in.beastMode),
+      transport_coeffs_(DATA_in) {
     hydro_source_terms_ptr = hydro_source_ptr_in;
     flag_add_hydro_source = false;
     if (hydro_source_terms_ptr) {
@@ -331,6 +336,10 @@ void Advance::FirstRKStepW(
     if (DATA.Initial_profile != 0 && DATA.Initial_profile != 1) {
         if (DATA.FlagResumTransportCoeff) {
             QuestRevertResummedTransCoeff(grid_f);
+        }
+        if (DATA.FlagCausalityMethod == 1) {
+            solveEigenvaluesWmunu(grid_f);
+            nCausalityConstraints(grid_f);
         }
         QuestRevert(grid_f, ieta, ix, iy);
         if (DATA.turn_on_diff == 1) {
@@ -736,4 +745,108 @@ double Advance::get_TJb(
     }
     const double T_munu = (e + pressure) * u_mu * u_nu + pressure * gfac;
     return (T_munu);
+}
+
+void Advance::solveEigenvaluesWmunu(Cell_small &grid_pt) {
+    MatrixXd A = MatrixXd::Zero(4, 4);
+
+    A(0, 0) = -grid_pt.Wmunu[0];
+    A(0, 1) = grid_pt.Wmunu[1];
+    A(0, 2) = grid_pt.Wmunu[2];
+    A(0, 3) = grid_pt.Wmunu[3];
+
+    A(1, 0) = -grid_pt.Wmunu[1];
+    A(1, 1) = grid_pt.Wmunu[4];
+    A(1, 2) = grid_pt.Wmunu[5];
+    A(1, 3) = grid_pt.Wmunu[6];
+
+    A(2, 0) = -grid_pt.Wmunu[2];
+    A(2, 1) = grid_pt.Wmunu[5];
+    A(2, 2) = grid_pt.Wmunu[7];
+    A(2, 3) = grid_pt.Wmunu[8];
+
+    A(3, 0) = -grid_pt.Wmunu[3];
+    A(3, 1) = grid_pt.Wmunu[6];
+    A(3, 2) = grid_pt.Wmunu[8];
+    A(3, 3) = grid_pt.Wmunu[9];
+
+    EigenSolver<MatrixXd> es;
+    es.compute(A, false);
+
+    double min = es.eigenvalues().real()[0];
+    double max = min;
+
+    for (int i = 1; i < 4; i++) {
+        double temp = es.eigenvalues().real()[i];
+        if (temp > max) {
+            max = temp;
+        } else if (temp < min) {
+            min = temp;
+        }
+    }
+    grid_pt.Lambdas[0] = min;
+    grid_pt.Lambdas[1] = -min - max;
+    grid_pt.Lambdas[2] = max;
+}
+
+void Advance::nCausalityConstraints(Cell_small &grid_pt) {
+    // check causality first, if violated, calculate alpha
+    // and store them in an array. (alpha = 1 otherwise),
+    // pick the min alpha between 0 and 1
+    double eps = grid_pt.epsilon;
+    double rhob = grid_pt.rhob;
+    double cs2 = eos.get_cs2(eps, rhob);
+    double P = eos.get_pressure(eps, rhob);
+    double transportPart_n13 =
+        2. * 1. / transport_coeffs_.get_shear_relax_time_factor();
+    double viscousPart1_n13 = transport_coeffs_.get_lambda_pibulkPi_coeff();
+    double viscousPart2_n13 = -1. / 2. * transport_coeffs_.get_tau_pipi_coeff();
+    double transportPart_n56 =
+        cs2 + 4. / 3. * 1. / transport_coeffs_.get_shear_relax_time_factor()
+        + 1. / transport_coeffs_.get_bulk_relax_time_factor() * (1. / 3. - cs2)
+              * (1. / 3. - cs2);
+    double viscousPart1_n56 =
+        2. / 3. * transport_coeffs_.get_lambda_pibulkPi_coeff()
+        + transport_coeffs_.get_delta_bulkPibulkPi_coeff() + cs2;
+    double viscousPart2_n56 =
+        transport_coeffs_.get_delta_pipi_coeff()
+        + 1. / 3. * transport_coeffs_.get_tau_pipi_coeff()
+        + transport_coeffs_.get_lambda_bulkPipi_coeff() * (1. / 3. - cs2) + cs2;
+
+    double n1 = transportPart_n13 + viscousPart1_n13 * grid_pt.pi_b / (eps + P)
+                + viscousPart2_n13 * std::abs(grid_pt.Lambdas[0]) / (eps + P);
+    double n3 = transportPart_n13 + viscousPart1_n13 * grid_pt.pi_b / (eps + P)
+                + viscousPart2_n13 * grid_pt.Lambdas[2] / (eps + P);
+    double n5 = transportPart_n56 + viscousPart1_n56 * grid_pt.pi_b / (eps + P)
+                + viscousPart2_n56 * grid_pt.Lambdas[0] / (eps + P);
+    double n6 = (1. - transportPart_n56)
+                + (1. - viscousPart1_n56) * grid_pt.pi_b / (eps + P)
+                + (1. - viscousPart2_n56) * grid_pt.Lambdas[2] / (eps + P);
+
+    double minAlp = 1;
+    double alp = 1.;
+    if (n1 < 0) {
+        alp = -transportPart_n13 / (n1 - transportPart_n13);
+        minAlp = std::max(0., std::min(minAlp, alp));
+    }
+
+    if (n3 < 0) {
+        alp = -transportPart_n13 / (n3 - transportPart_n13);
+        minAlp = std::max(0., std::min(minAlp, alp));
+    }
+
+    if (n5 < 0) {
+        alp = -transportPart_n56 / (n5 - transportPart_n56);
+        minAlp = std::max(0., std::min(minAlp, alp));
+    }
+
+    if (n6 < 0) {
+        alp = -(1. - transportPart_n56) / (n6 - (1. - transportPart_n56));
+        minAlp = std::max(0., std::min(minAlp, alp));
+    }
+
+    for (double &pi : grid_pt.Wmunu) {
+        pi = pi * minAlp;
+    }
+    grid_pt.pi_b = grid_pt.pi_b * minAlp;
 }

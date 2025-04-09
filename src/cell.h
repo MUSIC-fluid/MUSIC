@@ -15,6 +15,7 @@ class Cell_small {
 
     ViscousVec Wmunu = {0.};
     double pi_b = 0.;
+    std::array<double, 3> Lambdas = {0.};
 
     Cell_small operator+(Cell_small const &obj) {
         Cell_small res;

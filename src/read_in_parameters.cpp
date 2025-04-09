@@ -289,6 +289,8 @@ InitData read_in_parameters(std::string input_file) {
     }
     parameter_list.resumTransCoeffAlpha =
         (getParameter(input_file, "resumTransCoeffAlpha", 1.5));
+    parameter_list.FlagCausalityMethod =
+        (getParameter(input_file, "FlagResetCausality", 0));
 
     // Shear_to_S_ratio:  constant eta/s
     parameter_list.shear_to_s =

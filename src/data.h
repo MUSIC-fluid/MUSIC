@@ -124,6 +124,7 @@ typedef struct init_data {
     double quest_revert_strength;
     bool FlagResumTransportCoeff;
     double resumTransCoeffAlpha;
+    int FlagCausalityMethod;
 
     //! flag to include temperature dependent eta/s(T)
     int T_dependent_shear_to_s;

@@ -12,6 +12,7 @@
 #include "minmod.h"
 #include "pretty_ostream.h"
 #include "reconst.h"
+#include "transport_coeffs.h"
 #include "u_derivative.h"
 
 class Advance {
@@ -24,6 +25,7 @@ class Advance {
     Minmod minmod;
     Reconst reconst_helper;
     pretty_ostream music_message;
+    TransportCoeffs transport_coeffs_;
 
     bool flag_add_hydro_source;
 
@@ -67,6 +69,9 @@ class Advance {
     double get_TJb(
         const ReconstCell &grid_p, const int mu, const int nu,
         const double pressure);
+
+    void solveEigenvaluesWmunu(Cell_small &grid_pt);
+    void nCausalityConstraints(Cell_small &grid_pt);
 };
 
 #endif  // SRC_ADVANCE_H_
