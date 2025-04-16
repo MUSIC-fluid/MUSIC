@@ -70,6 +70,7 @@ class Init {
     void initial_with_jetscape(
         int ieta, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
 
+    void regulationResummedTransCoeff(Cell_small &grid_pt);
     void get_jetscape_preequilibrium_vectors(
         std::vector<double> e_in, std::vector<double> P_in,
         std::vector<double> u_tau_in, std::vector<double> u_x_in,
