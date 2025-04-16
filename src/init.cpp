@@ -627,6 +627,9 @@ void Init::initial_IPGlasma_XY_with_pi(
             // no hbarc factor for the viscous components
             // they are already in 1/fm^4 from the IP-Glasma output
             double visFactor = DATA.sFactor * DATA.preEqVisFactor;
+            if (DATA.FlagResumTransportCoeff) {
+                visFactor = DATA.sFactor;
+            }
             temp_profile_pixx[idx] = pixx * visFactor;
             temp_profile_pixy[idx] = pixy * visFactor;
             temp_profile_pixeta[idx] = pixeta * tau0 * visFactor;
@@ -768,7 +771,7 @@ void Init::regulationResummedTransCoeff(Cell_small &grid_pt) {
     double Rshear = sqrt(pisize) / (e_local + p_local + 1e-16);
     double Rbulk = std::abs(pi_local) / (e_local + pi_local + 1e-16);
     double r_combined = 1.5 * (Rshear + Rbulk) + 1e-16;
-    double renorm = std::min(1., (1. - 1e-6) / r_combined);
+    double renorm = std::min(1., DATA.preEqVisFactor / r_combined);
     for (int mu = 0; mu < 10; mu++) {
         grid_pt.Wmunu[mu] = renorm * grid_pt.Wmunu[mu];
     }
