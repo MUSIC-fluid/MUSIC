@@ -10,11 +10,13 @@ set (SOURCES
     hydro_source_strings.cpp
     hydro_source_ampt.cpp
     hydro_source_TATB.cpp
+    hydro_source_Tmunu.cpp 
     pretty_ostream.cpp
     grid_info.cpp
     util.cpp
     read_in_parameters.cpp
     advance.cpp
+    fields.cpp
     eos.cpp
     eos_base.cpp
     eos_idealgas.cpp
@@ -25,6 +27,7 @@ set (SOURCES
     eos_best.cpp
     eos_neos.cpp
     eos_UH.cpp
+    eos_1DGenerator.cpp
     evolve.cpp
     emoji.cpp
     music_logo.cpp
@@ -46,7 +49,7 @@ if (APPLE)
 endif (APPLE)
 if (GSL_FOUND)
     set(CompileFlags "${CompileFlags} -DGSL")
-    target_link_libraries (${libname} ${GSL_LIBRARIES})
+    target_link_libraries (${libname} ${GSL_LIBRARIES} ${EIGEN3_LIBRARIES})
 endif()
 set_target_properties (${libname} PROPERTIES COMPILE_FLAGS "${CompileFlags}")
 install(TARGETS ${libname} DESTINATION ${CMAKE_HOME_DIRECTORY})

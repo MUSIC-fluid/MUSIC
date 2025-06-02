@@ -1,12 +1,14 @@
 // Copyright Chun Shen @ 2017
 // This class is inspired by the JetScapeLogger class written by Joern Putschke
 
-#include <iomanip>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <algorithm>
-
 #include "pretty_ostream.h"
+
+#include <sys/resource.h>
+#include <sys/time.h>
+
+#include <algorithm>
+#include <iomanip>
+
 #include "emoji.h"
 
 using std::cout;
@@ -16,7 +18,6 @@ using std::string;
 pretty_ostream::pretty_ostream() {}
 
 pretty_ostream::~pretty_ostream() {}
-
 
 //! This function flushes out message to the screen
 void pretty_ostream::flush(string type) {
@@ -36,11 +37,10 @@ void pretty_ostream::flush(string type) {
 
 //! This function output information message
 void pretty_ostream::info(string message) {
-    //cout << "[Info] " << get_memory_usage() << " " << message << endl;
-    cout << emoji::music_note() << " " << get_memory_usage() << " "
-         << message << endl;
+    // cout << "[Info] " << get_memory_usage() << " " << message << endl;
+    cout << emoji::music_note() << " " << get_memory_usage() << " " << message
+         << endl;
 }
-
 
 //! This function output debug message
 void pretty_ostream::debug(string message) {
@@ -48,13 +48,11 @@ void pretty_ostream::debug(string message) {
          << message << RESET << endl;
 }
 
-
 //! This function output warning message
 void pretty_ostream::warning(string message) {
-    cout << BOLD << YELLOW << emoji::warning() << " " << message
-         << RESET << endl;
+    cout << BOLD << YELLOW << emoji::warning() << " " << message << RESET
+         << endl;
 }
-
 
 //! This function output error message
 void pretty_ostream::error(string message) {
@@ -68,15 +66,14 @@ string pretty_ostream::get_memory_usage() {
     if (getrusage(RUSAGE_SELF, &usage) == 0) {
         double memory_usage_in_MB = 0.0;
 #ifdef APPLE
-        memory_usage_in_MB = usage.ru_maxrss/1024./1024.;  // MB in Apple
+        memory_usage_in_MB = usage.ru_maxrss / 1024. / 1024.;  // MB in Apple
 #else
-        memory_usage_in_MB = usage.ru_maxrss/1024.;   // MB in linux
+        memory_usage_in_MB = usage.ru_maxrss / 1024.;  // MB in linux
 #endif
         std::ostringstream memory_usage;
-        memory_usage << std::setprecision(4)
-                     << memory_usage_in_MB << " MB";
-        return(memory_usage.str());
+        memory_usage << std::setprecision(4) << memory_usage_in_MB << " MB";
+        return (memory_usage.str());
     } else {
-        return(0);
+        return (0);
     }
 }

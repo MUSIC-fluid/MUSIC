@@ -85,6 +85,7 @@ EOS_to_use 9                  # type of the equation of state
                               # 91: lattice EOS hotQCD with SMASH
                               # 14: lattice EOS hotQCD at finite muB
 # transport coefficients
+quest_revert_strength 1
 Viscosity_Flag_Yes_1_No_0 1        # turn on viscosity in the evolution
 Include_Shear_Visc_Yes_1_No_0 1    # include shear viscous effect
 Shear_to_S_ratio 0.12              # value of \eta/s
@@ -121,8 +122,7 @@ freeze_Ncell_x_step 1
 freeze_Ncell_eta_step 1
 freeze_eps_flag 0
 N_freeze_out 1
-eps_freeze_max 0.18
-eps_freeze_min 0.18
+eps_switch 0.18
 use_eps_for_freeze_out 1        # flag to use energy density as criteria to 
                                 # find freeze-out surface 
                                 # 0: use temperature, 1: use energy density

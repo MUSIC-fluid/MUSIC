@@ -15,13 +15,16 @@ TargetSum = [
     2.9834954427416056e+02,
     2.1920881825318106e+03,]
 
-data = np.loadtxt("Gubser_flow_check_tau_1.2.dat")
+filename = "Gubser_flow_check_tau_1.2.dat"
+data = np.loadtxt(filename)
 ResSum = np.sum(abs(data), axis=0)
 
 Nfailed = 0
 for i, val_i in enumerate(TargetSum):
-    if abs(val_i - ResSum[i]) > 1e-8:
-        print("Tau 1.2: Diff: ", val_i, ResSum[i])
+    diff = abs(val_i - ResSum[i])/(val_i + 1e-16)
+    if diff > 1e-8:
+        print("{0}: Diff: {1:.16e} {2:.16e} {3:.6e}".format(filename, val_i,
+                                                            ResSum[i], diff))
         Nfailed += 1
 
 TargetSum = [
@@ -37,12 +40,15 @@ TargetSum = [
     2.1643887395530089e+02,
     1.0811562366304145e+03,]
 
-data = np.loadtxt("Gubser_flow_check_tau_1.5.dat")
+filename = "Gubser_flow_check_tau_1.5.dat"
+data = np.loadtxt(filename)
 ResSum = np.sum(abs(data), axis=0)
 
 for i, val_i in enumerate(TargetSum):
-    if abs(val_i - ResSum[i]) > 1e-8:
-        print("Tau 1.5: Diff: ", val_i, ResSum[i])
+    diff = abs(val_i - ResSum[i])/(val_i + 1e-16)
+    if diff > 1e-8:
+        print("{0}: Diff: {1:.16e} {2:.16e} {3:.6e}".format(filename, val_i,
+                                                            ResSum[i], diff))
         Nfailed += 1
 
 TargetSum = [
@@ -58,12 +64,15 @@ TargetSum = [
     1.4504254181735934e+02,
     4.3268368451460509e+02,]
 
-data = np.loadtxt("Gubser_flow_check_tau_2.dat")
+filename = "Gubser_flow_check_tau_2.dat"
+data = np.loadtxt(filename)
 ResSum = np.sum(abs(data), axis=0)
 
 for i, val_i in enumerate(TargetSum):
-    if abs(val_i - ResSum[i]) > 1e-8:
-        print("Tau 2: Diff: ", val_i, ResSum[i])
+    diff = abs(val_i - ResSum[i])/(val_i + 1e-16)
+    if diff > 1e-8:
+        print("{0}: Diff: {1:.16e} {2:.16e} {3:.6e}".format(filename, val_i,
+                                                            ResSum[i], diff))
         Nfailed += 1
 
 exit(Nfailed)

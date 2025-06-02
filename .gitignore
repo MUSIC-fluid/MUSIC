@@ -17,3 +17,5 @@ MUSIChydro
 *.dylib
 *.so
 music_input*
+.vscode/
+input.default

@@ -1,5 +1,6 @@
-#include "doctest.h"
 #include "minmod.h"
+
+#include "doctest.h"
 
 TEST_CASE("Check Minmod theta") {
     Minmod test(1.5);

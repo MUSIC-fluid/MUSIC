@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.10)
 project(MUSIChydro VERSION 2.0 LANGUAGES CXX)
 
 set(libname "music")
@@ -22,6 +22,10 @@ if (GSL_FOUND)
 elseif()
     message("Did not find GSL library, will build MUSIC alone")
 endif()
+
+#find_package (Eigen3 REQUIRED)
+include_directories(${CMAKE_SOURCE_DIR}/eigen-3.4.0)
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6.0)
