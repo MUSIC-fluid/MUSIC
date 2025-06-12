@@ -617,7 +617,7 @@ void Init::initial_IPGlasma_XY_with_pi(
                >> pitautau >> pitaux >> pitauy >> pitaueta
                >> pixx >> pixy >> pixeta >> piyy >> piyeta >> pietaeta >> PI_bulk;
             ueta = ueta*tau0;
-            temp_profile_ed    [idx] = density;
+            temp_profile_ed    [idx] = density * DATA.sFactor / hbarc; // 1/fm^4
             temp_profile_ux    [idx] = ux;
             temp_profile_uy    [idx] = uy;
             temp_profile_ueta  [idx] = ueta;
@@ -633,7 +633,7 @@ void Init::initial_IPGlasma_XY_with_pi(
             temp_profile_pixeta[idx] = pixeta * tau0 * visFactor;
             temp_profile_piyy[idx] = piyy * visFactor;
             temp_profile_piyeta[idx] = piyeta * tau0 * visFactor;
-            temp_profile_PI_bulk[idx] = PI_bulk*DATA.sFactor/hbarc; // 1/fm^4
+            temp_profile_PI_bulk[idx] = PI_bulk * visFactor / hbarc; // 1/fm^4
 
             utau = temp_profile_utau[idx];
             temp_profile_pietaeta[idx] =
