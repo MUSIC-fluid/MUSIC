@@ -461,9 +461,13 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
     const double output_ymin = -DATA.y_size / 2.;
     const double output_etamin = -DATA.eta_size / 2.;
 
-    const int nVar_per_cell =
+    int nVar_per_cell =
         (11 + DATA.turn_on_rhob * 2 + DATA.turn_on_shear * 5
          + DATA.turn_on_bulk * 1 + DATA.turn_on_diff * 3);
+    if (DATA.output_evolution_ideal_only) {
+        nVar_per_cell = 11 + DATA.turn_on_rhob * 2;
+    }
+
     if (tau == DATA.tau0) {
         float header[] = {static_cast<float>(DATA.tau0),
                           static_cast<float>(output_dtau),
@@ -481,6 +485,11 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                           static_cast<float>(DATA.turn_on_bulk),
                           static_cast<float>(DATA.turn_on_diff),
                           static_cast<float>(nVar_per_cell)};
+        if (DATA.output_evolution_ideal_only) {
+            header[12] = 0.0;  // turn on shear
+            header[13] = 0.0;  // turn on bulk
+            header[14] = 0.0;  // turn on diff
+        }
         fwrite(header, sizeof(float), 16, out_file_xyeta);
     }
     std::vector<double> thermalVec;
@@ -578,24 +587,26 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                     fwrite(mu, sizeof(float), 2, out_file_xyeta);
                 }
 
-                if (DATA.turn_on_shear == 1) {
-                    float shear_pi[] = {
-                        static_cast<float>(Wxx), static_cast<float>(Wxy),
-                        static_cast<float>(Wxz), static_cast<float>(Wyy),
-                        static_cast<float>(Wyz)};
-                    fwrite(shear_pi, sizeof(float), 5, out_file_xyeta);
-                }
+                if (!DATA.output_evolution_ideal_only) {
+                    if (DATA.turn_on_shear == 1) {
+                        float shear_pi[] = {
+                            static_cast<float>(Wxx), static_cast<float>(Wxy),
+                            static_cast<float>(Wxz), static_cast<float>(Wyy),
+                            static_cast<float>(Wyz)};
+                        fwrite(shear_pi, sizeof(float), 5, out_file_xyeta);
+                    }
 
-                if (DATA.turn_on_bulk == 1) {
-                    float bulk_pi[] = {static_cast<float>(pi_b)};
-                    fwrite(bulk_pi, sizeof(float), 1, out_file_xyeta);
-                }
+                    if (DATA.turn_on_bulk == 1) {
+                        float bulk_pi[] = {static_cast<float>(pi_b)};
+                        fwrite(bulk_pi, sizeof(float), 1, out_file_xyeta);
+                    }
 
-                if (DATA.turn_on_diff == 1) {
-                    float diffusion[] = {
-                        static_cast<float>(qx), static_cast<float>(qy),
-                        static_cast<float>(qz)};
-                    fwrite(diffusion, sizeof(float), 3, out_file_xyeta);
+                    if (DATA.turn_on_diff == 1) {
+                        float diffusion[] = {
+                            static_cast<float>(qx), static_cast<float>(qy),
+                            static_cast<float>(qz)};
+                        fwrite(diffusion, sizeof(float), 3, out_file_xyeta);
+                    }
                 }
             }
         }

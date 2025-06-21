@@ -423,6 +423,11 @@ InitData read_in_parameters(std::string input_file) {
         (getParameter(input_file, "output_evolution_T_cut", 0.105));
     parameter_list.output_evolution_e_cut =
         (getParameter(input_file, "output_evolution_e_cut", 0.15));  // GeV/fm^3
+    if (getParameter(input_file, "output_evolution_ideal_only", 0) == 0) {
+        parameter_list.output_evolution_ideal_only = false;
+    } else {
+        parameter_list.output_evolution_ideal_only = true;
+    }
 
     //////////////////////////////////////////////////////////////////////////
     // Freeze-out surface parameters

@@ -220,6 +220,7 @@ typedef struct init_data {
     bool output_hydro_params_header;
     double output_evolution_T_cut;
     double output_evolution_e_cut;
+    bool output_evolution_ideal_only;
 
     int doFreezeOut;  //!< flag to output freeze-out surface
 
