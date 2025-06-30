@@ -59,6 +59,8 @@ class Init {
         int ieta, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
     void initial_IPGlasma_XY_with_pi(
         int ieta, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
+    void initial3D_IPGlasma_XY_with_pi(
+        Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
     void initial_with_zero_XY(
         int ieta, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr);
     void initial_AMPT_XY(
