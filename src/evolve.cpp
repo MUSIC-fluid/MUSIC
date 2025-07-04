@@ -271,7 +271,12 @@ int Evolve::EvolveIt(
         music_message.flush("info");
         if (frozen == 1 && tau > source_tau_max) {
             if (DATA.outputEvolutionData > 1 && DATA.outputEvolutionData < 5) {
-                if (eps_max_cur < DATA.output_evolution_e_cut) {
+                double emax_loc = 0.;
+                double Tmax_curr = 0.;
+                double nB_max_curr = 0.;
+                grid_info.get_maximum_energy_density(
+                    *fpCurr, emax_loc, nB_max_curr, Tmax_curr);
+                if (emax_loc < DATA.output_evolution_e_cut) {
                     music_message << "All cells e < "
                                   << DATA.output_evolution_e_cut
                                   << " GeV/fm^3.";
