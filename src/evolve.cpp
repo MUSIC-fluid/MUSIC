@@ -34,6 +34,10 @@ Evolve::Evolve(const EOS &eosIn, InitData &DATA_in,
         initialize_freezeout_surface_info();
     }
     hydro_source_terms_ptr = hydro_source_ptr_in;
+
+    FO_nBvsEta_.resize(DATA.neta, 0);
+    FO_nQvsEta_.resize(DATA.neta, 0);
+    FO_nSvsEta_.resize(DATA.neta, 0);
 }
 
 
