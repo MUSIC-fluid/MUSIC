@@ -78,7 +78,7 @@ class HydroSourceStrings : public HydroSourceBase {
     double get_hydro_rhob_source(const double tau, const double x,
                                  const double y, const double eta_s,
                                  const FlowVec &u_mu) const;
-    double get_hydro_rhoQ_source(const double tau, const double x,
+    double get_hydro_rhoq_source(const double tau, const double x,
                                  const double y, const double eta_s,
                                  const FlowVec &u_mu) const;
 
