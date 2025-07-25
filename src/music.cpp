@@ -159,6 +159,7 @@ void MUSIC::prepare_run_hydro_one_time_step() {
     freezeoutFieldCurr_.resizeFields(DATA.nx, DATA.ny, DATA.neta);
 
     evolve_ptr_= std::make_shared<Evolve> (eos, DATA, hydro_source_terms_ptr);
+    currTauIdx = 0;
 
     if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
