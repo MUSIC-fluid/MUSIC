@@ -1226,6 +1226,14 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
         parameter_list.eps_freeze_max = parameter_list.epsilonFreeze;
     }
 
+    if (parameter_name == "Do_FreezeOut_lowtemp") {
+        parameter_list.doFreezeOut_lowtemp = static_cast<int>(value);
+    }
+
+    if (parameter_name == "average_surface_over_this_many_time_steps") {
+        parameter_list.facTau = static_cast<int>(value);
+    }
+
     if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0")
         parameter_list.turn_on_bulk = static_cast<int>(value);
 
@@ -1387,6 +1395,14 @@ void check_parameters(InitData &parameter_list) {
     if (parameter_list.freezeOutMethod != 4) {
         music_message << "Invalid option for freeze_out_method: "
                       << parameter_list.freezeOutMethod;
+        music_message.flush("error");
+        exit(1);
+    }
+
+    if (parameter_list.doFreezeOut_lowtemp != 0 
+        && parameter_list.doFreezeOut_lowtemp != 1) {
+        music_message << "Invalid option for Do_FreezeOut_lowtemp: "
+                      << parameter_list.doFreezeOut_lowtemp;
         music_message.flush("error");
         exit(1);
     }

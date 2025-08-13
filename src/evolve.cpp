@@ -340,10 +340,14 @@ int Evolve::EvolveOneTimeStep(const int itau, Fields &arenaFieldsPrev,
         hydro_info_ptr.set_grid_infomatioin(DATA);
     }
 
-    const int it_start = 3;
     double source_tau_max = 0.0;
+    int iFreezeStart = 0;
     if (hydro_source_terms_ptr) {
         source_tau_max = hydro_source_terms_ptr->get_source_tau_max();
+        if (freezeout_lowtemp_flag == 1) {
+            iFreezeStart = (static_cast<int>((source_tau_max - DATA.tau0)
+                                             /DATA.delta_tau) + 2);
+        }
     }
 
     Fields* fpPrev = &arenaFieldsPrev;
@@ -359,7 +363,7 @@ int Evolve::EvolveOneTimeStep(const int itau, Fields &arenaFieldsPrev,
         }
 
         // store initial conditions
-        if (tauIdx == it_start) {
+        if (tauIdx == iFreezeStart) {
             store_previous_step_for_freezeout(*fpPrev, freezeoutFieldPrev);
             store_previous_step_for_freezeout(*fpCurr, freezeoutFieldCurr);
         }
@@ -421,11 +425,11 @@ int Evolve::EvolveOneTimeStep(const int itau, Fields &arenaFieldsPrev,
         //determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
-            if (freezeout_lowtemp_flag == 1 && tauIdx == it_start) {
+            if (freezeout_lowtemp_flag == 1 && tauIdx == iFreezeStart) {
                 frozen = FreezeOut_equal_tau_Surface(tau, *fpCurr);
             }
             // avoid freeze-out at the first time step
-            if ((tauIdx - it_start)%DATA.facTau == 0 && tauIdx > it_start) {
+            if ((tauIdx - iFreezeStart) % DATA.facTau == 0 && tauIdx > iFreezeStart) {
                 if (!DATA.boost_invariant) {
                     frozen = FindFreezeOutSurface_Cornelius(
                                 tau, *fpPrev, *fpCurr,
