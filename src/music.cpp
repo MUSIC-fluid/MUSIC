@@ -172,7 +172,7 @@ int MUSIC::run_hydro_upto(const double tauEnd) {
                                    + 1e-8);
     int status = 0;
     for (int itau = currTauIdx; itau < iTauEnd; itau++) {
-        status = evolve_ptr_->EvolveOneTimeStep(
+        status += evolve_ptr_->EvolveOneTimeStep(
                     itau, arenaFieldsPrev_, arenaFieldsCurr_, arenaFieldsNext_,
                     freezeoutFieldPrev_, freezeoutFieldCurr_,
                     (*hydro_info_ptr));
