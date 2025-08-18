@@ -43,6 +43,8 @@ class Fields {
 
     void resizeFields(int Nx, int Ny, int Neta);
 
+    void clearFields();
+
     int getFieldIdx(int ix, int iy, int ieta) {
         return(ix + Nx_*(iy + Ny_*ieta));
     }

@@ -196,6 +196,9 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     }
 
     // initialize arena
+    arenaFieldsPrev.clearFields();
+    arenaFieldsCurr.clearFields();
+    arenaFieldsNext.clearFields();
     arenaFieldsPrev.resizeFields(DATA.nx, DATA.ny, DATA.neta);
     arenaFieldsCurr.resizeFields(DATA.nx, DATA.ny, DATA.neta);
     arenaFieldsNext.resizeFields(DATA.nx, DATA.ny, DATA.neta);

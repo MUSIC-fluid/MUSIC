@@ -5,15 +5,7 @@
 
 
 Fields::~Fields() {
-    e_.clear();
-
-    rhob_.clear();
-    rhoq_.clear();
-    rhos_.clear();
-
-    piBulk_.clear();
-    u_.clear();
-    Wmunu_.clear();
+    clearFields();
 }
 
 
@@ -41,6 +33,18 @@ void Fields::resizeFields(int Nx, int Ny, int Neta) {
     for (int i = 0; i < NWmunu_; i++) {
         Wmunu_[i].resize(Npoints, 0.);
     }
+}
+
+void Fields::clearFields() {
+    e_.clear();
+
+    rhob_.clear();
+    rhoq_.clear();
+    rhos_.clear();
+
+    piBulk_.clear();
+    u_.clear();
+    Wmunu_.clear();
 }
 
 
