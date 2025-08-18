@@ -10,6 +10,8 @@ class SurfaceCell {
     float pressure;             //!< Thermal pressure [GeV/fm^3]
     float umu[4];               //!< Flow velocity
     float rho_b;                //!< baryon density [1/fm^3]
+    float rho_q;                //!< electric charge density [1/fm^3]
+    float rho_s;                //!< strangeness density [1/fm^3]
     float mu_B;                 //!< Net baryon chemical potential [GeV]
     float mu_Q;                 //!< Net charge chemical potential [GeV]
     float mu_S;                 //!< Net strangeness chemical potential [GeV]

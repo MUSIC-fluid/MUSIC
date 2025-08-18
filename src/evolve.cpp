@@ -842,6 +842,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(double tau, int ieta,
                     aFreezeCell.bulk_Pi = (
                                 static_cast<float>(fluid_center.pi_b*hbarc));
                     aFreezeCell.rho_b = static_cast<float>(fluid_center.rhob);
+                    aFreezeCell.rho_q = static_cast<float>(fluid_center.rhoq);
+                    aFreezeCell.rho_s = static_cast<float>(fluid_center.rhos);
                     for (int ii = 0; ii < 10; ii++) {
                         aFreezeCell.shear_pi[ii] = static_cast<float>(
                                                 fluid_center.Wmunu[ii]*hbarc);
@@ -1157,6 +1159,8 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(double tau, int ieta,
                 aFreezeCell.mu_Q = static_cast<float>(muQ_local*hbarc);
                 aFreezeCell.bulk_Pi = static_cast<float>(pi_b_center*hbarc);
                 aFreezeCell.rho_b = static_cast<float>(rhob_center);
+                aFreezeCell.rho_q = static_cast<float>(rhoq_center);
+                aFreezeCell.rho_s = static_cast<float>(rhos_center);
                 aFreezeCell.shear_pi[0] = static_cast<float>(Wtautau_center*hbarc);
                 aFreezeCell.shear_pi[1] = static_cast<float>(Wtaux_center*hbarc);
                 aFreezeCell.shear_pi[2] = static_cast<float>(Wtauy_center*hbarc);
@@ -1515,6 +1519,10 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                             static_cast<float>(fluid_center.pi_b*hbarc));
                         aFreezeCell.rho_b = (
                                         static_cast<float>(fluid_center.rhob));
+                        aFreezeCell.rho_q = (
+                                        static_cast<float>(fluid_center.rhoq));
+                        aFreezeCell.rho_s = (
+                                        static_cast<float>(fluid_center.rhos));
                         for (int ii = 0; ii < 10; ii++) {
                             aFreezeCell.shear_pi[ii] = (
                                 static_cast<float>(
