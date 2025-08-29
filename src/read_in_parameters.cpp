@@ -1262,9 +1262,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
 
     if (parameter_name == "shear_viscosity_2_min")
         parameter_list.shear_2_min = value;
-    if (parameter_name == "shear_viscosity_slope")
+    if (parameter_name == "shear_viscosity_2_slope")
         parameter_list.shear_2_slope = value;
-    if (parameter_name == "shear_viscosity_curv")
+    if (parameter_name == "shear_viscosity_2_curv")
         parameter_list.shear_2_curv = value;
 
     if (parameter_name == "shear_viscosity_3_T_kink_in_GeV")
