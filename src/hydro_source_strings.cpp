@@ -176,7 +176,11 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons(
     double total_energy = 0.;
     for (auto const& it : QCD_strings_list) {
         total_baryon_number += it->baryon_frac_l + it->baryon_frac_r;
-        total_energy += it->mass*(cosh(it->y_l_i) + cosh(it->y_r_i));
+        double E_string = (it->mass*cosh(it->y_l_i) + it->mass*cosh(it->y_r_i)
+                           - it->mass*cosh(it->y_l) - it->mass*cosh(it->y_r));
+        double E_remnant_L = it->remnant_l*it->mass*cosh(it->y_l);
+        double E_remnant_R = it->remnant_r*it->mass*cosh(it->y_r);
+        total_energy += E_string + E_remnant_L + E_remnant_R;
     }
     music_message << "total baryon number = " << total_baryon_number;
     music_message.flush("info");
