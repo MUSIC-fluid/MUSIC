@@ -661,7 +661,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
                 // finally output results !!!!
                 if (surface_in_binary) {
                     const int FOsize = 34 + DATA.output_vorticity * (24 + 14);
-                    float array[FOsize];
+                    std::vector<float> array(FOsize);
                     array[0] = static_cast<float>(tau_center);
                     array[1] = static_cast<float>(x_center);
                     array[2] = static_cast<float>(y_center);
@@ -942,7 +942,7 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(
             // finally output results
             if (surface_in_binary) {
                 const int FOsize = 34 + DATA.output_vorticity * (24 + 14);
-                float array[FOsize];
+                std::vector<float> array(FOsize);
                 array[0] = static_cast<float>(tau_center);
                 array[1] = static_cast<float>(x_center);
                 array[2] = static_cast<float>(y_center);

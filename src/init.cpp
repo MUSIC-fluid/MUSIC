@@ -345,40 +345,41 @@ void Init::initial_Gubser_XY(
 
     const int nx = arenaFieldsCurr.nX();
     const int ny = arenaFieldsCurr.nY();
-    double temp_profile_ed[nx][ny];
-    double temp_profile_ux[nx][ny];
-    double temp_profile_uy[nx][ny];
-    double temp_profile_ed_prev[nx][ny];
-    double temp_profile_rhob[nx][ny];
-    double temp_profile_rhob_prev[nx][ny];
-    double temp_profile_ux_prev[nx][ny];
-    double temp_profile_uy_prev[nx][ny];
-    double temp_profile_pixx[nx][ny];
-    double temp_profile_piyy[nx][ny];
-    double temp_profile_pixy[nx][ny];
-    double temp_profile_pi00[nx][ny];
-    double temp_profile_pi0x[nx][ny];
-    double temp_profile_pi0y[nx][ny];
-    double temp_profile_pi33[nx][ny];
+    const int nPoints = nx * ny;
+    std::vector<double> temp_profile_ed(nPoints, 0);
+    std::vector<double> temp_profile_ux(nPoints, 0);
+    std::vector<double> temp_profile_uy(nPoints, 0);
+    std::vector<double> temp_profile_ed_prev(nPoints, 0);
+    std::vector<double> temp_profile_rhob(nPoints, 0);
+    std::vector<double> temp_profile_rhob_prev(nPoints, 0);
+    std::vector<double> temp_profile_ux_prev(nPoints, 0);
+    std::vector<double> temp_profile_uy_prev(nPoints, 0);
+    std::vector<double> temp_profile_pixx(nPoints, 0);
+    std::vector<double> temp_profile_piyy(nPoints, 0);
+    std::vector<double> temp_profile_pixy(nPoints, 0);
+    std::vector<double> temp_profile_pi00(nPoints, 0);
+    std::vector<double> temp_profile_pi0x(nPoints, 0);
+    std::vector<double> temp_profile_pi0y(nPoints, 0);
+    std::vector<double> temp_profile_pi33(nPoints, 0);
 
     double dummy;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
+            int idx = ix * ny + iy;
             if (DATA.turn_on_shear == 1) {
-                profile >> dummy >> dummy >> temp_profile_ed[ix][iy]
-                    >> temp_profile_ux[ix][iy] >> temp_profile_uy[ix][iy];
-                profile >> temp_profile_pixx[ix][iy]
-                    >> temp_profile_piyy[ix][iy] >> temp_profile_pixy[ix][iy]
-                    >> temp_profile_pi00[ix][iy] >> temp_profile_pi0x[ix][iy]
-                    >> temp_profile_pi0y[ix][iy] >> temp_profile_pi33[ix][iy];
+                profile >> dummy >> dummy >> temp_profile_ed[idx]
+                    >> temp_profile_ux[idx] >> temp_profile_uy[idx];
+                profile >> temp_profile_pixx[idx] >> temp_profile_piyy[idx]
+                    >> temp_profile_pixy[idx] >> temp_profile_pi00[idx]
+                    >> temp_profile_pi0x[idx] >> temp_profile_pi0y[idx]
+                    >> temp_profile_pi33[idx];
             } else {
-                profile >> dummy >> dummy >> temp_profile_ed[ix][iy]
-                    >> temp_profile_rhob[ix][iy] >> temp_profile_ux[ix][iy]
-                    >> temp_profile_uy[ix][iy];
-                profile_prev >> dummy >> dummy >> temp_profile_ed_prev[ix][iy]
-                    >> temp_profile_rhob_prev[ix][iy]
-                    >> temp_profile_ux_prev[ix][iy]
-                    >> temp_profile_uy_prev[ix][iy];
+                profile >> dummy >> dummy >> temp_profile_ed[idx]
+                    >> temp_profile_rhob[idx] >> temp_profile_ux[idx]
+                    >> temp_profile_uy[idx];
+                profile_prev >> dummy >> dummy >> temp_profile_ed_prev[idx]
+                    >> temp_profile_rhob_prev[idx] >> temp_profile_ux_prev[idx]
+                    >> temp_profile_uy_prev[idx];
             }
         }
     }
@@ -389,11 +390,12 @@ void Init::initial_Gubser_XY(
 
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
+            int idx_loc = ix * ny + iy;
             double rhob = 0.0;
             if (DATA.turn_on_shear == 0 && DATA.turn_on_rhob == 1) {
-                rhob = temp_profile_rhob[ix][iy];
+                rhob = temp_profile_rhob[idx_loc];
             }
-            double epsilon = temp_profile_ed[ix][iy];
+            double epsilon = temp_profile_ed[idx_loc];
 
             int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
             arenaFieldsPrev.e_[idx] = epsilon;
@@ -402,11 +404,11 @@ void Init::initial_Gubser_XY(
             arenaFieldsCurr.rhob_[idx] = rhob;
 
             double utau_local = sqrt(
-                1. + temp_profile_ux[ix][iy] * temp_profile_ux[ix][iy]
-                + temp_profile_uy[ix][iy] * temp_profile_uy[ix][iy]);
+                1. + temp_profile_ux[idx_loc] * temp_profile_ux[idx_loc]
+                + temp_profile_uy[idx_loc] * temp_profile_uy[idx_loc]);
             arenaFieldsCurr.u_[0][idx] = utau_local;
-            arenaFieldsCurr.u_[1][idx] = temp_profile_ux[ix][iy];
-            arenaFieldsCurr.u_[2][idx] = temp_profile_uy[ix][iy];
+            arenaFieldsCurr.u_[1][idx] = temp_profile_ux[idx_loc];
+            arenaFieldsCurr.u_[2][idx] = temp_profile_uy[idx_loc];
             arenaFieldsCurr.u_[3][idx] = 0.;
             for (int i = 0; i < 4; i++) {
                 arenaFieldsPrev.u_[i][idx] = arenaFieldsCurr.u_[i][idx];
@@ -415,27 +417,27 @@ void Init::initial_Gubser_XY(
             if (DATA.turn_on_shear == 0) {
                 double utau_prev = sqrt(
                     1.
-                    + temp_profile_ux_prev[ix][iy]
-                          * temp_profile_ux_prev[ix][iy]
-                    + temp_profile_uy_prev[ix][iy]
-                          * temp_profile_uy_prev[ix][iy]);
+                    + temp_profile_ux_prev[idx_loc]
+                          * temp_profile_ux_prev[idx_loc]
+                    + temp_profile_uy_prev[idx_loc]
+                          * temp_profile_uy_prev[idx_loc]);
                 arenaFieldsPrev.u_[0][idx] = utau_prev;
-                arenaFieldsPrev.u_[1][idx] = temp_profile_ux_prev[ix][iy];
-                arenaFieldsPrev.u_[2][idx] = temp_profile_uy_prev[ix][iy];
+                arenaFieldsPrev.u_[1][idx] = temp_profile_ux_prev[idx_loc];
+                arenaFieldsPrev.u_[2][idx] = temp_profile_uy_prev[idx_loc];
                 arenaFieldsPrev.u_[3][idx] = 0.;
             }
 
             if (DATA.turn_on_shear == 1) {
-                arenaFieldsCurr.Wmunu_[0][idx] = temp_profile_pi00[ix][iy];
-                arenaFieldsCurr.Wmunu_[1][idx] = temp_profile_pi0x[ix][iy];
-                arenaFieldsCurr.Wmunu_[2][idx] = temp_profile_pi0y[ix][iy];
+                arenaFieldsCurr.Wmunu_[0][idx] = temp_profile_pi00[idx_loc];
+                arenaFieldsCurr.Wmunu_[1][idx] = temp_profile_pi0x[idx_loc];
+                arenaFieldsCurr.Wmunu_[2][idx] = temp_profile_pi0y[idx_loc];
                 arenaFieldsCurr.Wmunu_[3][idx] = 0.;
-                arenaFieldsCurr.Wmunu_[4][idx] = temp_profile_pixx[ix][iy];
-                arenaFieldsCurr.Wmunu_[5][idx] = temp_profile_pixy[ix][iy];
+                arenaFieldsCurr.Wmunu_[4][idx] = temp_profile_pixx[idx_loc];
+                arenaFieldsCurr.Wmunu_[5][idx] = temp_profile_pixy[idx_loc];
                 arenaFieldsCurr.Wmunu_[6][idx] = 0.;
-                arenaFieldsCurr.Wmunu_[7][idx] = temp_profile_piyy[ix][iy];
+                arenaFieldsCurr.Wmunu_[7][idx] = temp_profile_piyy[idx_loc];
                 arenaFieldsCurr.Wmunu_[8][idx] = 0.;
-                arenaFieldsCurr.Wmunu_[9][idx] = temp_profile_pi33[ix][iy];
+                arenaFieldsCurr.Wmunu_[9][idx] = temp_profile_pi33[idx_loc];
             }
             for (int i = 0; i < 10; i++) {
                 arenaFieldsPrev.Wmunu_[i][idx] = arenaFieldsCurr.Wmunu_[i][idx];
@@ -468,8 +470,8 @@ void Init::initial_1p1D_eta(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
     }
 
     const int neta = arenaFieldsCurr.nEta();
-    double temp_profile_ed[neta];
-    double temp_profile_rhob[neta];
+    std::vector<double> temp_profile_ed(neta);
+    std::vector<double> temp_profile_rhob(neta);
 
     double dummy;
     for (int ieta = 0; ieta < neta; ieta++) {
@@ -506,22 +508,23 @@ void Init::initial_IPGlasma_XY(
 
     const int nx = arenaFieldsCurr.nX();
     const int ny = arenaFieldsCurr.nY();
-    double temp_profile_ed[nx][ny];
-    double temp_profile_utau[nx][ny];
-    double temp_profile_ux[nx][ny];
-    double temp_profile_uy[nx][ny];
+    std::vector<double> temp_profile_ed(nx * ny);
+    std::vector<double> temp_profile_utau(nx * ny);
+    std::vector<double> temp_profile_ux(nx * ny);
+    std::vector<double> temp_profile_uy(nx * ny);
 
     // read the one slice
     double density, dummy1, dummy2, dummy3;
     double ux, uy, utau;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
+            int idx = ix * ny + iy;
             profile >> dummy1 >> dummy2 >> dummy3 >> density >> utau >> ux >> uy
                 >> dummy >> dummy >> dummy >> dummy;
-            temp_profile_ed[ix][iy] = density;
-            temp_profile_ux[ix][iy] = ux;
-            temp_profile_uy[ix][iy] = uy;
-            temp_profile_utau[ix][iy] = sqrt(1. + ux * ux + uy * uy);
+            temp_profile_ed[idx] = density;
+            temp_profile_ux[idx] = ux;
+            temp_profile_uy[idx] = uy;
+            temp_profile_utau[idx] = sqrt(1. + ux * ux + uy * uy);
             if (ix == 0 && iy == 0) {
                 DATA.x_size = -dummy2 * 2;
                 DATA.y_size = -dummy3 * 2;
@@ -542,17 +545,18 @@ void Init::initial_IPGlasma_XY(
     int entropy_flag = DATA.initializeEntropy;
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
+            int idx_loc = ix * ny + iy;
             int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
 
             double rhob = 0.0;
             double epsilon = 0.0;
             if (entropy_flag == 0) {
                 epsilon =
-                    (temp_profile_ed[ix][iy] * eta_envelop_ed * DATA.sFactor
+                    (temp_profile_ed[idx_loc] * eta_envelop_ed * DATA.sFactor
                      / hbarc);  // 1/fm^4
             } else {
                 double local_sd =
-                    (temp_profile_ed[ix][iy] * DATA.sFactor * eta_envelop_ed);
+                    (temp_profile_ed[idx_loc] * DATA.sFactor * eta_envelop_ed);
                 epsilon = eos.get_s2e(local_sd, rhob);
             }
             epsilon = std::max(Util::small_eps, epsilon);
@@ -562,9 +566,9 @@ void Init::initial_IPGlasma_XY(
             arenaFieldsPrev.e_[idx] = epsilon;
             arenaFieldsPrev.rhob_[idx] = rhob;
 
-            arenaFieldsCurr.u_[0][idx] = temp_profile_utau[ix][iy];
-            arenaFieldsCurr.u_[1][idx] = temp_profile_ux[ix][iy];
-            arenaFieldsCurr.u_[2][idx] = temp_profile_uy[ix][iy];
+            arenaFieldsCurr.u_[0][idx] = temp_profile_utau[idx_loc];
+            arenaFieldsCurr.u_[1][idx] = temp_profile_ux[idx_loc];
+            arenaFieldsCurr.u_[2][idx] = temp_profile_uy[idx_loc];
             arenaFieldsCurr.u_[3][idx] = 0.;
             for (int i = 0; i < 4; i++) {
                 arenaFieldsPrev.u_[i][idx] = arenaFieldsCurr.u_[i][idx];
@@ -787,14 +791,17 @@ void Init::initial_MCGlb_with_rhob(
     const int nx = arenaFieldsCurr.nX();
     const int ny = arenaFieldsCurr.nY();
     const int neta = arenaFieldsCurr.nEta();
-    double temp_profile_TA[nx][ny];
-    double temp_profile_TB[nx][ny];
+
+    std::vector<double> temp_profile_TA(nx * ny);
+    std::vector<double> temp_profile_TB(nx * ny);
+
     double N_B = 0.0;
     for (int i = 0; i < nx; i++) {
         for (int j = 0; j < ny; j++) {
-            profile_TA >> temp_profile_TA[i][j];
-            profile_TB >> temp_profile_TB[i][j];
-            N_B += temp_profile_TA[i][j] + temp_profile_TB[i][j];
+            int idx = i * ny + j;
+            profile_TA >> temp_profile_TA[idx];
+            profile_TB >> temp_profile_TB[idx];
+            N_B += temp_profile_TA[idx] + temp_profile_TB[idx];
         }
     }
     profile_TA.close();
@@ -819,12 +826,13 @@ void Init::initial_MCGlb_with_rhob(
 
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy < ny; iy++) {
+                int idx = ix * ny + iy;
                 double rhob = 0.0;
                 double epsilon = 0.0;
                 if (DATA.turn_on_rhob == 1) {
                     rhob =
-                        (temp_profile_TA[ix][iy] * eta_rhob_right
-                         + temp_profile_TB[ix][iy] * eta_rhob_left);
+                        (temp_profile_TA[idx] * eta_rhob_right
+                         + temp_profile_TB[idx] * eta_rhob_left);
                 } else {
                     rhob = 0.0;
                 }
@@ -845,21 +853,21 @@ void Init::initial_MCGlb_with_rhob(
                     double eta_envelop =
                         eta_profile_plateau(eta, eta_0, sigma_eta);
                     epsilon =
-                        ((((temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy])
+                        ((((temp_profile_TA[idx] + temp_profile_TB[idx])
                                * norm_even
-                           + (temp_profile_TA[ix][iy] - temp_profile_TB[ix][iy])
+                           + (temp_profile_TA[idx] - temp_profile_TB[idx])
                                  * norm_odd * eta / DATA.beam_rapidity)
                           * eta_envelop)
                          / Util::hbarc);
                 } else if (DATA.Initial_profile == 111) {
                     double y_CM = atanh(
-                        (temp_profile_TA[ix][iy] - temp_profile_TB[ix][iy])
-                        / (temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy]
+                        (temp_profile_TA[idx] - temp_profile_TB[idx])
+                        / (temp_profile_TA[idx] + temp_profile_TB[idx]
                            + Util::small_eps)
                         * tanh(DATA.beam_rapidity));
                     // local energy density [1/fm]
                     double E_lrf =
-                        ((temp_profile_TA[ix][iy] + temp_profile_TB[ix][iy])
+                        ((temp_profile_TA[idx] + temp_profile_TB[idx])
                          * Util::m_N * cosh(DATA.beam_rapidity) / Util::hbarc);
                     double eta0 = std::min(
                         DATA.eta_flat / 2.0,
@@ -874,9 +882,9 @@ void Init::initial_MCGlb_with_rhob(
                 }
                 epsilon = std::max(Util::small_eps, epsilon);
 
-                int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
-                arenaFieldsCurr.e_[idx] = epsilon;
-                arenaFieldsCurr.rhob_[idx] = rhob;
+                int idx_f = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+                arenaFieldsCurr.e_[idx_f] = epsilon;
+                arenaFieldsCurr.rhob_[idx_f] = rhob;
 
                 T_tau_t += epsilon * cosh(eta);
             }

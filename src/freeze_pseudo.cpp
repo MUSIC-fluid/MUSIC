@@ -270,12 +270,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
             // first create a private copy for every omp_thread
             // use critical clause at the end to add the private 2d arrays
             // together from individual omp_thread
-            double temp_sum_private[iptmax][iphimax];
-            for (int ii = 0; ii < iptmax; ii++) {
-                for (int jj = 0; jj < iphimax; jj++) {
-                    temp_sum_private[ii][jj] = 0.0;
-                }
-            }
+            std::vector<double> temp_sum_private(iptmax * iphimax, 0);
 
 #pragma omp for
             for (int icell = 0; icell < NCells; icell++) {
@@ -515,7 +510,8 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
                                               << " GeV, E = " << E << " GeV";
                                 music_message.flush("error");
                             }
-                            temp_sum_private[ipt][iphi] += sum;
+                            int idx = ipt * iphimax + iphi;
+                            temp_sum_private[idx] += sum;
                         }
                     }
                 }
@@ -524,7 +520,8 @@ void Freeze::ComputeParticleSpectrum_pseudo_improved(
             {
                 for (int ipt = 0; ipt < iptmax; ipt++) {
                     for (int iphi = 0; iphi < iphimax; iphi++) {
-                        temp_sum[ipt][iphi] += temp_sum_private[ipt][iphi];
+                        int idx = ipt * iphimax + iphi;
+                        temp_sum[ipt][iphi] += temp_sum_private[idx];
                     }
                 }
             }
@@ -667,11 +664,7 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
         // first create a private copy for every omp_thread
         // use critical clause at the end to add the private 2d arrays
         // together from individual omp_thread
-        double temp_sum_private[iptmax][iphimax];
-        for (int ii = 0; ii < iptmax; ii++)
-            for (int jj = 0; jj < iphimax; jj++) {
-                temp_sum_private[ii][jj] = 0.0;
-            }
+        std::vector<double> temp_sum_private(iptmax * iphimax, 0);
 
 #pragma omp for
         for (int icell = 0; icell < NCells; icell++) {
@@ -838,7 +831,8 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
                                 << ", E=" << E << ", mu=" << mu;
                             music_message.flush("warning");
                         }
-                        temp_sum_private[ipt][iphi] +=
+                        int idx = ipt * iphimax + iphi;
+                        temp_sum_private[idx] +=
                             (sum * eta_s_inte_weight[ieta_s]);
                     }
                 }
@@ -848,7 +842,8 @@ void Freeze::ComputeParticleSpectrum_pseudo_boost_invariant(
         {
             for (int ipt = 0; ipt < iptmax; ipt++) {
                 for (int iphi = 0; iphi < iphimax; iphi++) {
-                    temp_sum[ipt][iphi] += temp_sum_private[ipt][iphi];
+                    int idx = ipt * iphimax + iphi;
+                    temp_sum[ipt][iphi] += temp_sum_private[idx];
                 }
             }
         }

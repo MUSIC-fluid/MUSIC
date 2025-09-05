@@ -184,7 +184,7 @@ void Freeze::read_particle_PCE_mu(InitData *DATA, EOS *eos) {
     }
 
     double pa, pb;
-    double mu[numStable + 1];
+    std::vector<double> mu(numStable + 1);
     music_message << "num_of_stable_particles = " << numStable;
     music_message.flush("info");
 
