@@ -362,6 +362,10 @@ int Evolve::EvolveOneTimeStep(const int itau, Fields &arenaFieldsPrev,
     for (int it = 0; it < 2; it++) {
         int tauIdx = 2*itau + it;
         double tau = DATA.tau0 + tauIdx*DATA.delta_tau;
+        // Just place this here for testing purposes, should be placed with the
+        // other output functions in the future when this should be kept in
+        // the code for longer time.
+        grid_info.compute_Lmunu(*fpCurr, *fpPrev, tau);
         if (hydro_source_terms_ptr) {
             hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
         }
