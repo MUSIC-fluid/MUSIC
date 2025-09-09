@@ -123,7 +123,10 @@ class Cell_info {
     void output_energy_density_and_netdens_disitrubtion(Fields &arena,
                                                      std::string filename);
     // *** 
-    
+
+    //! This function computes the L^{\mu\nu} tensor at a given proper time
+    void compute_Lmunu(Fields &arena, Fields &arena_prev, const double tau);
+
     //! This function computes global angular momentum at a give proper time
     void compute_angular_momentum(Fields &arena, Fields &arena_prev,
                                   const double tau,

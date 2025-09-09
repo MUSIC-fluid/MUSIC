@@ -94,6 +94,10 @@ int Evolve::EvolveIt(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     double tau = tau0;
     const int NtauBlock = 200;
     while (tau < tauMax) {
+        // Just place this here for testing purposes, should be placed with the
+        // other output functions in the future when this should be kept in
+        // the code for longer time.
+        grid_info.compute_Lmunu(*fpCurr, *fpPrev, tau);
         if (DATA.beastMode == 2 && it > 0 && (it % NtauBlock == 0)) {
             DATA.delta_tau = std::min(0.04, 2*DATA.delta_tau);
             DATA.facTau = std::max(1, static_cast<int>(DATA.facTau/2));
