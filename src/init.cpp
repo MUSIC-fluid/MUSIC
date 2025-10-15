@@ -118,6 +118,14 @@ void Init::InitArena(
         DATA.tau0 = std::max(DATA.tau0, tau_overlap);
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
+        if (DATA.reRunCount > 0) {
+            int padding = 10;
+            DATA.nx += 2 * padding;
+            DATA.ny += 2 * padding;
+            music_message << "reRunCount = " << DATA.reRunCount
+                          << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
+            music_message.flush("info");
+        }
     } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
         double tau_overlap = 2. * 7. / (sinh(DATA.beam_rapidity));
         DATA.tau0 = std::max(DATA.tau0, tau_overlap) - DATA.delta_tau;
@@ -882,7 +890,9 @@ void Init::initial_MCGlb_with_rhob(
                 }
                 epsilon = std::max(Util::small_eps, epsilon);
 
-                int idx_f = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+                int paddingOffset = DATA.reRunCount * 10;
+                int idx_f = arenaFieldsCurr.getFieldIdx(
+                                ix + paddingOffset, iy + paddingOffset, ieta);
                 arenaFieldsCurr.e_[idx_f] = epsilon;
                 arenaFieldsCurr.rhob_[idx_f] = rhob;
 
