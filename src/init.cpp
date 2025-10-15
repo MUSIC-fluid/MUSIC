@@ -892,7 +892,7 @@ void Init::initial_MCGlb_with_rhob(
 
                 int paddingOffset = DATA.reRunCount * 10;
                 int idx_f = arenaFieldsCurr.getFieldIdx(
-                                ix + paddingOffset, iy + paddingOffset, ieta);
+                    ix + paddingOffset, iy + paddingOffset, ieta);
                 arenaFieldsCurr.e_[idx_f] = epsilon;
                 arenaFieldsCurr.rhob_[idx_f] = rhob;
 
