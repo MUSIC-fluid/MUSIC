@@ -118,10 +118,12 @@ void Init::InitArena(
         DATA.tau0 = std::max(DATA.tau0, tau_overlap);
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
-        if (DATA.reRunCount > 0) {
-            int padding = 10;
-            DATA.nx += 2 * padding;
-            DATA.ny += 2 * padding;
+        if (DATA.reRunCount == 0) {
+            DATA.gridPadding = 0;
+        } else {
+            DATA.gridPadding += 10;  // count one side
+            DATA.nx += 20;
+            DATA.ny += 20;
             music_message << "reRunCount = " << DATA.reRunCount
                           << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
             music_message.flush("info");
@@ -796,8 +798,10 @@ void Init::initial_MCGlb_with_rhob(
     ifstream profile_TA(DATA.initName_TA.c_str());
     ifstream profile_TB(DATA.initName_TB.c_str());
 
-    const int nx = arenaFieldsCurr.nX();
-    const int ny = arenaFieldsCurr.nY();
+    const int nx =
+        arenaFieldsCurr.nX() - 2 * static_cast<int>(DATA.gridPadding);
+    const int ny =
+        arenaFieldsCurr.nY() - 2 * static_cast<int>(DATA.gridPadding);
     const int neta = arenaFieldsCurr.nEta();
 
     std::vector<double> temp_profile_TA(nx * ny);
@@ -890,9 +894,9 @@ void Init::initial_MCGlb_with_rhob(
                 }
                 epsilon = std::max(Util::small_eps, epsilon);
 
-                int paddingOffset = DATA.reRunCount * 10;
                 int idx_f = arenaFieldsCurr.getFieldIdx(
-                    ix + paddingOffset, iy + paddingOffset, ieta);
+                    static_cast<int>(ix + DATA.gridPadding),
+                    static_cast<int>(iy + DATA.gridPadding), ieta);
                 arenaFieldsCurr.e_[idx_f] = epsilon;
                 arenaFieldsCurr.rhob_[idx_f] = rhob;
 
