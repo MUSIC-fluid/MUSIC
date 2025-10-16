@@ -121,9 +121,9 @@ void Init::InitArena(
         if (DATA.reRunCount == 0) {
             DATA.gridPadding = 0;
         } else {
-            DATA.gridPadding += 10;  // count one side
-            DATA.nx += 20;
-            DATA.ny += 20;
+            DATA.gridPadding = 10 * DATA.reRunCount;  // count one side
+            DATA.nx += 2 * DATA.gridPadding;
+            DATA.ny += 2 * DATA.gridPadding;
             music_message << "reRunCount = " << DATA.reRunCount
                           << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
             music_message.flush("info");
