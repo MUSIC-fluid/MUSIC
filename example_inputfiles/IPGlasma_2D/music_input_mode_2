@@ -128,4 +128,22 @@ use_eps_for_freeze_out 1        # flag to use energy density as criteria to
                                 # 0: use temperature, 1: use energy density
 #
 #
+########################################
+# chem-bulk runtime toggles
+########################################
+chem_bulk_on 1            # 0=off (baseline), 1=use runtime tau_Pi(e,Pi), zeta(e,Pi)
+C_tauPi 5.0               # tau_Π = 1/[C_tauPi * T(e) * (1+sqrt(Y_q))^2]
+tauPi_min 1.0e-3          # [fm/c] floor
+Yq_eps 1.0e-16            # small epsilon inside sqrt/clamp
+
+# (optional) lightweight logging
+chem_bulk_log_on 0
+chem_bulk_log_file example_inputfiles/chem_bulk_probe.dat
+chem_bulk_probe1_ix 64
+chem_bulk_probe1_iy 64
+chem_bulk_probe1_ieta 0
+chem_bulk_probe2_ix -1
+chem_bulk_probe2_iy -1
+chem_bulk_probe2_ieta -1
+
 EndOfData

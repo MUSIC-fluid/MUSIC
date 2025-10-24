@@ -22,6 +22,11 @@
 #include "freeze.h"
 #endif
 
+// ----------------- chem-bulk additions (runtime tau_Pi, zeta) -----------------
+#include "bulk_pi_chem.h"   // BulkPiChem and runtime coeffs interface
+BulkPiChem* g_bulkPiChem = nullptr;  // definition used by dissipative.cpp
+// ------------------------------------------------------------------------
+
 using std::vector;
 
 MUSIC::MUSIC(std::string input_file)
@@ -41,9 +46,27 @@ MUSIC::MUSIC(std::string input_file)
 
     // setup source terms
     hydro_source_terms_ptr = nullptr;
+
+    // ----------------- chem-bulk: construct helper from DATA -----------------
+    {
+        ChemBulkConfig cb_cfg;
+        cb_cfg.chem_bulk_on = DATA.chem_bulk_on;
+        cb_cfg.C_tauPi      = DATA.chem_tauPi_C;
+        cb_cfg.tauPi_min    = DATA.chem_tauPi_min;
+        cb_cfg.Yq_eps       = DATA.chem_Yq_eps;
+        g_bulkPiChem = new BulkPiChem(cb_cfg, &eos);
+        // Note: dissipative.cpp should have:
+        //   #include "bulk_pi_chem.h"
+        //   extern BulkPiChem* g_bulkPiChem;
+    }
+    // -------------------------------------------------------------------------
 }
 
-MUSIC::~MUSIC() {}
+MUSIC::~MUSIC() {
+    // ----------------- chem-bulk cleanup ------------------------------------
+    delete g_bulkPiChem; g_bulkPiChem = nullptr;
+    // -------------------------------------------------------------------------
+}
 
 //! This function adds hydro source terms pointer
 void MUSIC::add_hydro_source_terms(

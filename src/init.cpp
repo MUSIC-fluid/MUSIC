@@ -7,6 +7,8 @@
 #include <string>
 
 #include "util.h"
+#include "bulk_pi_chem.h"
+extern BulkPiChem* g_bulkPiChem; // defined in music.cpp
 
 #ifndef _OPENMP
 #define omp_get_thread_num() 0
@@ -475,7 +477,7 @@ void Init::initial_1p1D_eta(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
 
     double dummy;
     for (int ieta = 0; ieta < neta; ieta++) {
-        profile_ed >> dummy >> temp_profile_ed[ieta];
+        profile_ed   >> dummy >> temp_profile_ed[ieta];
         profile_rhob >> dummy >> temp_profile_rhob[ieta];
     }
     profile_ed.close();
@@ -484,19 +486,34 @@ void Init::initial_1p1D_eta(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
     const int nx = arenaFieldsCurr.nX();
     const int ny = arenaFieldsCurr.nY();
     for (int ieta = 0; ieta < neta; ieta++) {
-        double rhob = temp_profile_rhob[ieta];
+        double rhob    = temp_profile_rhob[ieta];
         double epsilon = temp_profile_ed[ieta] / hbarc;  // fm^-4
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy < ny; iy++) {
                 int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
-                arenaFieldsCurr.e_[idx] = epsilon;
+                arenaFieldsCurr.e_[idx]    = epsilon;
                 arenaFieldsCurr.rhob_[idx] = rhob;
+
+                // ---- chem-bulk Π(τ0) IC ----
+                if (DATA.chem_bulk_on) {
+                    const double Pi0 = (DATA.chem_bulk_ic_type == 0)
+                        ? g_bulkPiChem->Pi_from_Yq(epsilon, rhob, DATA.chem_bulk_Yq0)
+                        : DATA.chem_bulk_Pi0;
+                    arenaFieldsCurr.piBulk_[idx] = Pi0;
+                } else {
+                    arenaFieldsCurr.piBulk_[idx] = 0.0;
+                }
+                // -----------------------------
             }
         }
     }
-    arenaFieldsPrev.e_ = arenaFieldsCurr.e_;
-    arenaFieldsPrev.rhob_ = arenaFieldsCurr.rhob_;
+
+    // copy to previous buffers
+    arenaFieldsPrev.e_      = arenaFieldsCurr.e_;
+    arenaFieldsPrev.rhob_   = arenaFieldsCurr.rhob_;
+    arenaFieldsPrev.piBulk_ = arenaFieldsCurr.piBulk_;  // keep Π(τ0) consistent
 }
+
 
 void Init::initial_IPGlasma_XY(
     int ieta, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
@@ -520,11 +537,11 @@ void Init::initial_IPGlasma_XY(
         for (int iy = 0; iy < ny; iy++) {
             int idx = ix * ny + iy;
             profile >> dummy1 >> dummy2 >> dummy3 >> density >> utau >> ux >> uy
-                >> dummy >> dummy >> dummy >> dummy;
-            temp_profile_ed[idx] = density;
-            temp_profile_ux[idx] = ux;
-            temp_profile_uy[idx] = uy;
-            temp_profile_utau[idx] = sqrt(1. + ux * ux + uy * uy);
+                    >> dummy >> dummy >> dummy >> dummy;
+            temp_profile_ed[idx]  = density;
+            temp_profile_ux[idx]  = ux;
+            temp_profile_uy[idx]  = uy;
+            temp_profile_utau[idx]= sqrt(1. + ux * ux + uy * uy);
             if (ix == 0 && iy == 0) {
                 DATA.x_size = -dummy2 * 2;
                 DATA.y_size = -dummy3 * 2;
@@ -543,28 +560,26 @@ void Init::initial_IPGlasma_XY(
     double eta_envelop_ed =
         eta_profile_plateau(eta, DATA.eta_flat / 2.0, DATA.eta_fall_off);
     int entropy_flag = DATA.initializeEntropy;
+
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
             int idx_loc = ix * ny + iy;
-            int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+            int idx     = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
 
             double rhob = 0.0;
             double epsilon = 0.0;
             if (entropy_flag == 0) {
-                epsilon =
-                    (temp_profile_ed[idx_loc] * eta_envelop_ed * DATA.sFactor
-                     / hbarc);  // 1/fm^4
+                epsilon = (temp_profile_ed[idx_loc] * eta_envelop_ed * DATA.sFactor / hbarc);  // 1/fm^4
             } else {
-                double local_sd =
-                    (temp_profile_ed[idx_loc] * DATA.sFactor * eta_envelop_ed);
+                double local_sd = (temp_profile_ed[idx_loc] * DATA.sFactor * eta_envelop_ed);
                 epsilon = eos.get_s2e(local_sd, rhob);
             }
             epsilon = std::max(Util::small_eps, epsilon);
 
-            arenaFieldsCurr.e_[idx] = epsilon;
-            arenaFieldsCurr.rhob_[idx] = rhob;
-            arenaFieldsPrev.e_[idx] = epsilon;
-            arenaFieldsPrev.rhob_[idx] = rhob;
+            arenaFieldsCurr.e_[idx]   = epsilon;
+            arenaFieldsCurr.rhob_[idx]= rhob;
+            arenaFieldsPrev.e_[idx]   = epsilon;
+            arenaFieldsPrev.rhob_[idx]= rhob;
 
             arenaFieldsCurr.u_[0][idx] = temp_profile_utau[idx_loc];
             arenaFieldsCurr.u_[1][idx] = temp_profile_ux[idx_loc];
@@ -573,16 +588,30 @@ void Init::initial_IPGlasma_XY(
             for (int i = 0; i < 4; i++) {
                 arenaFieldsPrev.u_[i][idx] = arenaFieldsCurr.u_[i][idx];
             }
+
+            // ---------- [chem-bulk Pi(tau0) IC] INSERT START ----------
+            if (DATA.chem_bulk_on) {
+                const double Pi0 = (DATA.chem_bulk_ic_type == 0)
+                    ? g_bulkPiChem->Pi_from_Yq(epsilon, rhob, DATA.chem_bulk_Yq0)
+                    : DATA.chem_bulk_Pi0;
+                arenaFieldsCurr.piBulk_[idx] = Pi0;
+                arenaFieldsPrev.piBulk_[idx] = Pi0;
+            } else {
+                // keep explicitly zero to avoid uninitialized values
+                arenaFieldsCurr.piBulk_[idx] = 0.0;
+                arenaFieldsPrev.piBulk_[idx] = 0.0;
+            }
+            // ---------- [chem-bulk Pi(tau0) IC] INSERT END ----------
         }
     }
 }
 
 void Init::initial_IPGlasma_XY_with_pi(
     int ieta, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
-    // Initial_profile == 9 : full T^\mu\nu
-    // Initial_profile == 91: e and u^\mu
-    // Initial_profile == 92: e only
-    // Initial_profile == 93: e, u^\mu, and pi^\mu\nu, no bulk Pi
+    // Initial_profile == 9  : full T^\mu\nu (includes bulk Pi)
+    // Initial_profile == 91 : e and u^\mu
+    // Initial_profile == 92 : e only
+    // Initial_profile == 93 : e, u^\mu, and pi^\mu\nu, no bulk Pi
     double tau0 = DATA.tau0;
     ifstream profile(DATA.initName.c_str());
 
@@ -619,33 +648,31 @@ void Init::initial_IPGlasma_XY_with_pi(
             std::getline(profile, dummy);
             std::stringstream ss(dummy);
             ss >> dummy1 >> dummy2 >> dummy3 >> density >> utau >> ux >> uy
-                >> ueta >> pitautau >> pitaux >> pitauy >> pitaueta >> pixx
-                >> pixy >> pixeta >> piyy >> piyeta >> pietaeta;
+               >> ueta >> pitautau >> pitaux >> pitauy >> pitaueta >> pixx
+               >> pixy >> pixeta >> piyy >> piyeta >> pietaeta;
             ueta = ueta * tau0;
-            temp_profile_ed[idx] = density * DATA.sFactor / hbarc;  // 1/fm^4
-            temp_profile_ux[idx] = ux;
-            temp_profile_uy[idx] = uy;
+            temp_profile_ed[idx]   = density * DATA.sFactor / hbarc;  // 1/fm^4
+            temp_profile_ux[idx]   = ux;
+            temp_profile_uy[idx]   = uy;
             temp_profile_ueta[idx] = ueta;
             temp_profile_utau[idx] = sqrt(1. + ux * ux + uy * uy + ueta * ueta);
 
-            // no hbarc factor for the viscous components
-            // they are already in 1/fm^4 from the IP-Glasma output
+            // no hbarc factor for the viscous components (already in 1/fm^4)
             double visFactor = DATA.sFactor * DATA.preEqVisFactor;
             if (DATA.FlagResumTransportCoeff) {
                 visFactor = DATA.sFactor;
             }
-            temp_profile_pixx[idx] = pixx * visFactor;
-            temp_profile_pixy[idx] = pixy * visFactor;
+            temp_profile_pixx[idx]   = pixx   * visFactor;
+            temp_profile_pixy[idx]   = pixy   * visFactor;
             temp_profile_pixeta[idx] = pixeta * tau0 * visFactor;
-            temp_profile_piyy[idx] = piyy * visFactor;
+            temp_profile_piyy[idx]   = piyy   * visFactor;
             temp_profile_piyeta[idx] = piyeta * tau0 * visFactor;
 
             utau = temp_profile_utau[idx];
             temp_profile_pietaeta[idx] =
-                ((2.
-                      * (ux * uy * temp_profile_pixy[idx]
-                         + ux * ueta * temp_profile_pixeta[idx]
-                         + uy * ueta * temp_profile_piyeta[idx])
+                ((2. * (ux * uy * temp_profile_pixy[idx]
+                        + ux * ueta * temp_profile_pixeta[idx]
+                        + uy * ueta * temp_profile_piyeta[idx])
                   - (utau * utau - ux * ux) * temp_profile_pixx[idx]
                   - (utau * utau - uy * uy) * temp_profile_piyy[idx])
                  / (utau * utau - ueta * ueta));
@@ -684,17 +711,18 @@ void Init::initial_IPGlasma_XY_with_pi(
     double eta = (DATA.delta_eta) * (ieta) - (DATA.eta_size) / 2.0;
     double eta_envelop_ed =
         eta_profile_plateau(eta, DATA.eta_flat / 2.0, DATA.eta_fall_off);
+
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
-            int idx = iy + ix * ny;
+            int idx  = iy + ix * ny;
             const double rhob = 0.0;
-            double epsilon = std::max(
-                Util::small_eps, temp_profile_ed[idx] * eta_envelop_ed);
+            double epsilon = std::max(Util::small_eps,
+                                      temp_profile_ed[idx] * eta_envelop_ed);
 
             int Fidx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
-            arenaFieldsCurr.e_[Fidx] = epsilon;
+            arenaFieldsCurr.e_[Fidx]    = epsilon;
             arenaFieldsCurr.rhob_[Fidx] = rhob;
-            arenaFieldsPrev.e_[Fidx] = epsilon;
+            arenaFieldsPrev.e_[Fidx]    = epsilon;
             arenaFieldsPrev.rhob_[Fidx] = rhob;
 
             if (DATA.Initial_profile == 92) {
@@ -724,31 +752,43 @@ void Init::initial_IPGlasma_XY_with_pi(
                 if (DATA.Initial_profile == 9) {
                     double pressure = eos.get_pressure(epsilon, rhob);
                     arenaFieldsCurr.piBulk_[Fidx] =
-                        ((epsilon / 3. - pressure) * DATA.preEqVisFactor);
+                        (epsilon / 3. - pressure) * DATA.preEqVisFactor;
                 }
             }
+
+            // ---- chem-bulk Pi(tau0) IC (apply for 91/92/93; do NOT override 9) ----
+            if (DATA.chem_bulk_on && DATA.Initial_profile != 9) {
+                const double Pi0 = (DATA.chem_bulk_ic_type == 0)
+                    ? g_bulkPiChem->Pi_from_Yq(epsilon, rhob, DATA.chem_bulk_Yq0)
+                    : DATA.chem_bulk_Pi0;
+                arenaFieldsCurr.piBulk_[Fidx] = Pi0;
+            } else if (DATA.Initial_profile != 9) {
+                // ensure well-defined when not using chem-bulk
+                arenaFieldsCurr.piBulk_[Fidx] = 0.0;
+            }
+            // --------------------------------------------------------------------
 
             if (DATA.FlagResumTransportCoeff) {
                 auto grid_c = arenaFieldsCurr.getCell(Fidx);
                 regulationResummedTransCoeff(grid_c);
                 for (int idx_1d = 0; idx_1d < 10; idx_1d++) {
                     arenaFieldsCurr.Wmunu_[idx_1d][Fidx] = grid_c.Wmunu[idx_1d];
-                    arenaFieldsCurr.piBulk_[Fidx] = grid_c.pi_b;
+                    arenaFieldsCurr.piBulk_[Fidx]        = grid_c.pi_b;
                 }
             }
 
             for (int i = 0; i < 4; i++) {
                 arenaFieldsPrev.u_[i][Fidx] = arenaFieldsCurr.u_[i][Fidx];
             }
-
             for (int i = 0; i < 10; i++) {
-                arenaFieldsPrev.Wmunu_[i][Fidx] =
-                    (arenaFieldsCurr.Wmunu_[i][Fidx]);
+                arenaFieldsPrev.Wmunu_[i][Fidx] = arenaFieldsCurr.Wmunu_[i][Fidx];
             }
             arenaFieldsPrev.piBulk_[Fidx] = arenaFieldsCurr.piBulk_[Fidx];
         }
     }
 }
+
+
 
 void Init::regulationResummedTransCoeff(Cell_small &grid_pt) {
     double e_local = grid_pt.epsilon;
@@ -909,13 +949,28 @@ void Init::initial_with_zero_XY(
             double rhob = 0.0;
             double epsilon = 1e-12;
             int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
-            arenaFieldsCurr.e_[idx] = epsilon;
+
+            arenaFieldsCurr.e_[idx]    = epsilon;
             arenaFieldsCurr.rhob_[idx] = rhob;
-            arenaFieldsPrev.e_[idx] = epsilon;
+            arenaFieldsPrev.e_[idx]    = epsilon;
             arenaFieldsPrev.rhob_[idx] = rhob;
+
+            // ---- chem-bulk Pi(tau0) IC ----
+            if (DATA.chem_bulk_on) {
+                const double Pi0 = (DATA.chem_bulk_ic_type == 0)
+                    ? g_bulkPiChem->Pi_from_Yq(epsilon, rhob, DATA.chem_bulk_Yq0)
+                    : DATA.chem_bulk_Pi0;
+                arenaFieldsCurr.piBulk_[idx] = Pi0;
+                arenaFieldsPrev.piBulk_[idx] = Pi0;
+            } else {
+                arenaFieldsCurr.piBulk_[idx] = 0.0;
+                arenaFieldsPrev.piBulk_[idx] = 0.0;
+            }
+            // ----------------------------
         }
     }
 }
+
 
 void Init::initial_UMN_with_rhob(
     Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
@@ -930,8 +985,8 @@ void Init::initial_UMN_with_rhob(
     std::string dummy_s;
     std::getline(profile, dummy_s);
 
-    const int nx = arenaFieldsCurr.nX();
-    const int ny = arenaFieldsCurr.nY();
+    const int nx   = arenaFieldsCurr.nX();
+    const int ny   = arenaFieldsCurr.nY();
     const int neta = arenaFieldsCurr.nEta();
 
     double dummy;
@@ -940,22 +995,35 @@ void Init::initial_UMN_with_rhob(
         for (int ix = 0; ix < nx; ix++) {
             for (int iy = 0; iy < ny; iy++) {
                 profile >> dummy >> dummy >> dummy >> rhob_local >> ed_local;
-                double rhob = rhob_local;
+                double rhob    = rhob_local;
                 double epsilon = ed_local * DATA.sFactor / hbarc;  // 1/fm^4
-
                 epsilon = std::max(Util::small_eps, epsilon);
 
                 int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
-                arenaFieldsCurr.e_[idx] = epsilon;
+                arenaFieldsCurr.e_[idx]    = epsilon;
                 arenaFieldsCurr.rhob_[idx] = rhob;
+
+                // ---- chem-bulk Π(τ0) IC ----
+                if (DATA.chem_bulk_on) {
+                    const double Pi0 = (DATA.chem_bulk_ic_type == 0)
+                        ? g_bulkPiChem->Pi_from_Yq(epsilon, rhob, DATA.chem_bulk_Yq0)
+                        : DATA.chem_bulk_Pi0;
+                    arenaFieldsCurr.piBulk_[idx] = Pi0;
+                } else {
+                    arenaFieldsCurr.piBulk_[idx] = 0.0;
+                }
+                // -----------------------------
             }
         }
     }
-    arenaFieldsPrev.e_ = arenaFieldsCurr.e_;
-    arenaFieldsPrev.rhob_ = arenaFieldsCurr.rhob_;
+    // copy to previous buffers
+    arenaFieldsPrev.e_      = arenaFieldsCurr.e_;
+    arenaFieldsPrev.rhob_   = arenaFieldsCurr.rhob_;
+    arenaFieldsPrev.piBulk_ = arenaFieldsCurr.piBulk_;
 
     profile.close();
 }
+
 
 void Init::initial_AMPT_XY(
     int ieta, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {

@@ -277,6 +277,32 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.turn_on_diff =
         (getParameter(input_file, "turn_on_baryon_diffusion", 0));
 
+    //------Chem bulk runtime coeff(new)------
+    parameter_list.chem_bulk_on =
+        (getParameter(input_file, "chem_bulk_on", 0));
+    parameter_list.chem_C =
+        (getParameter(input_file, "chem_C", 0.0));
+    parameter_list.chem_tauPi_C =
+        (getParameter(input_file, "chem_bulk_tauPi_C", parameter_list.chem_tauPi_C));
+    parameter_list.chem_tauPi_C =
+        (getParameter(input_file, "C_tauPi", parameter_list.chem_tauPi_C));
+    parameter_list.chem_tauPi_min =
+        (getParameter(input_file, "chem_bulk_tauPi_min", parameter_list.chem_tauPi_min));
+    parameter_list.chem_tauPi_min =
+        (getParameter(input_file, "tauPi_min", parameter_list.chem_tauPi_min));
+    parameter_list.chem_Yq_eps =
+        (getParameter(input_file, "chem_bulk_Yq_eps", parameter_list.chem_Yq_eps));
+    parameter_list.chem_Yq_eps =
+        (getParameter(input_file, "Yq_eps", parameter_list.chem_Yq_eps));
+    //------Chem bulk IC (new)------
+    parameter_list.chem_bulk_ic_type =
+        (getParameter(input_file, "chem_bulk_ic_type", 0));   // 0:Yq, 1:Pi
+    parameter_list.chem_bulk_Yq0 =
+        (getParameter(input_file, "chem_bulk_Yq0", 0.0));     // used if type==0
+    parameter_list.chem_bulk_Pi0 =
+        (getParameter(input_file, "chem_bulk_Pi0", 0.0));     // used if type==1
+
+
     // the strength for the viscous regulation
     parameter_list.quest_revert_strength =
         (getParameter(input_file, "quest_revert_strength", 10.));
@@ -655,6 +681,21 @@ void set_parameter(
         parameter_list.bulk_3_T_peak_in_GeV = value;
     if (parameter_name == "bulk_viscosity_3_lambda_asymm")
         parameter_list.bulk_3_lambda_asymm = value;
+    
+        // new chem bulk parameters
+    if (parameter_name == "chem_bulk_on")
+        parameter_list.chem_bulk_on = static_cast<int>(value);
+    if (parameter_name == "chem_bulk_tauPi_C")
+        parameter_list.chem_tauPi_C = value;
+    if (parameter_name == "chem_bulk_tauPi_min")
+        parameter_list.chem_tauPi_min = value;
+    if (parameter_name == "chem_bulk_ic_type")
+        parameter_list.chem_bulk_ic_type = static_cast<int>(value);
+    if (parameter_name == "chem_bulk_Yq0")
+        parameter_list.chem_bulk_Yq0 = value;
+    if (parameter_name == "chem_bulk_Pi0")
+        parameter_list.chem_bulk_Pi0 = value;
+    
 }
 
 void check_parameters(InitData &parameter_list, std::string input_file) {
@@ -824,6 +865,17 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
             music_message.flush("info");
         }
     }
+        // Chem bulk: keep numerical floor sensible(new)
+        if (parameter_list.chem_bulk_on
+            && parameter_list.chem_tauPi_min < 3.*parameter_list.delta_tau) {
+            music_message << "chem_tauPi_min (" << parameter_list.chem_tauPi_min
+                          << ") < 3*Delta_Tau; resetting to "
+                          << 3.*parameter_list.delta_tau;
+            music_message.flush("warning");
+            parameter_list.chem_tauPi_min = 3.*parameter_list.delta_tau;
+        }
+    
+
 
     if (parameter_list.min_pt > parameter_list.max_pt) {
         music_message << "min_pt = " << parameter_list.min_pt << " > "

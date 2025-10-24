@@ -284,6 +284,18 @@ typedef struct init_data {
     double dNdyptdpt_eta_min;
     double dNdyptdpt_eta_max;
 
+    // defaults
+    int    chem_bulk_on   = 0;
+    double chem_C         = 0.0;
+    double chem_tauPi_C   = 5.0;
+    double chem_tauPi_min = 1e-3;   // fm/c
+    double chem_Yq_eps    = 1e-16;
+
+    // chemical bulk IC options
+    int    chem_bulk_ic_type = 0;  // 0: use Y_q(tau_0) -> Pi ; 1: direct Pi(tau_0)
+    double chem_bulk_Yq0     = 0.0;
+    double chem_bulk_Pi0     = 0.0;
+
 } InitData;
 
 #endif  // SRC_DATA_H_

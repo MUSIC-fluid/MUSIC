@@ -10,10 +10,13 @@
 #include "cell.h"
 #include "data.h"
 #include "util.h"
+#include "bulk_pi_chem.h"
 
 using Util::hbarc;
 using Util::map_1d_idx_to_2d;
 using Util::small_eps;
+
+extern BulkPiChem* g_bulkPiChem; // defined in music.cpp
 
 Diss::Diss(const EOS &eosIn, const InitData &Data_in)
     : DATA(Data_in), eos(eosIn), minmod(Data_in), transport_coeffs_(Data_in) {}
@@ -570,15 +573,34 @@ void Diss::Make_uWRHS(
 double Diss::Make_uPiSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
     const VelocityShearVec &sigma_1d, const std::vector<double> &thermalVec) {
+    // ---- chem-bulk: prefer global instance, fallback to local default ----
+    // We do NOT delete or alter your existing structure; we only add a pointer
+    // selection that prefers g_bulkPiChem (constructed in music.cpp).
+    BulkPiChem* rt = g_bulkPiChem;
+    static BulkPiChem* s_bulk_rt = nullptr;
+    if (!rt) {
+        // If the global was not created, construct a safe local default
+        // (chem_bulk_on=0 means runtime calls reduce to baseline behavior).
+        if (!s_bulk_rt) {
+            ChemBulkConfig cfg;
+            cfg.chem_bulk_on = 0;    // default off unless enabled via input
+            cfg.C_tauPi      = 5.0;
+            cfg.tauPi_min    = 1e-3;
+            cfg.Yq_eps       = 1e-16;
+            s_bulk_rt = new BulkPiChem(cfg, &eos);
+        }
+        rt = s_bulk_rt;
+    }
+    // ----------------------------------------------------------------------
+
     double tempf;
-    double bulk;
-    double Bulk_Relax_time = 0.2;  // fm
+    double bulk;                      // this is zeta (not zeta/s)
+    double Bulk_Relax_time = 0.2;     // fm
     double transport_coeff1, transport_coeff2;
     double transport_coeff1_s, transport_coeff2_s;
     double NS_term, BB_term;
     double Final_Answer;
 
-    // switch to include non-linear coupling terms in the bulk pi evolution
     bool include_BBterm = false;
     bool include_coupling_to_shear = false;
     if (DATA.include_second_order_terms == 1) {
@@ -586,33 +608,26 @@ double Diss::Make_uPiSource(
         include_coupling_to_shear = true;
     }
 
-    // defining bulk viscosity coefficient
-    // shear viscosity = constant * entropy density
-    // s_den = eos.get_entropy(epsilon, rhob);
-    // shear = (DATA.shear_to_s)*s_den;
-    // shear viscosity = constant * (e + P)/T
-    double epsilon = thermalVec[0];
-    double temperature = thermalVec[6];
-    double mu_B = thermalVec[7];
+    double epsilon    = thermalVec[0];
+    double rhob       = thermalVec[1];
+    double temperature= thermalVec[6];
+    double mu_B       = thermalVec[7];
 
-    // cs2 is the velocity of sound squared
-    // double cs2 = eos.get_cs2(epsilon, thermalVec[1]);
-    double cs2 = thermalVec[5];
+    double cs2      = thermalVec[5];
     double pressure = thermalVec[2];
 
-    // T dependent bulk viscosity
+    // ---------- baseline zeta (from table) ----------
     bulk = transport_coeffs_.get_zeta_over_s(temperature, mu_B);
-    bulk = bulk * (epsilon + pressure) / temperature;
+    bulk = bulk * (epsilon + pressure) / std::max(temperature, small_eps); // zeta_eq(e)
 
-    // defining bulk relaxation time and additional transport coefficients
-    // Bulk relaxation time from kinetic theory
+    // ---------- baseline tau_Pi (kinetic variants) ----------
     if (DATA.bulk_relaxation_type == 0) {
-        double csfactor = std::max(1. / 3. - cs2, small_eps);
+        double csfactor = std::max(1./3. - cs2, small_eps);
         Bulk_Relax_time =
             (transport_coeffs_.get_bulk_relax_time_factor() * bulk
              / (csfactor * csfactor) / std::max(epsilon + pressure, small_eps));
     } else if (DATA.bulk_relaxation_type == 1) {
-        double csfactor = std::max(1. / 3. - cs2, small_eps);
+        double csfactor = std::max(1./3. - cs2, small_eps);
         Bulk_Relax_time =
             (transport_coeffs_.get_bulk_relax_time_factor() * bulk / csfactor
              / std::max(epsilon + pressure, small_eps));
@@ -621,98 +636,83 @@ double Diss::Make_uPiSource(
             (transport_coeffs_.get_bulk_relax_time_factor() * bulk
              / std::max(epsilon + pressure, small_eps));
     }
-
-    // avoid overflow or underflow of the bulk relaxation time
     Bulk_Relax_time =
-        (std::min(10., std::max(3. * DATA.delta_tau, Bulk_Relax_time)));
+        std::min(10., std::max(3.*DATA.delta_tau, Bulk_Relax_time));
 
-    // from kinetic theory, small mass limit
-    transport_coeff1 =
-        (transport_coeffs_.get_delta_bulkPibulkPi_coeff() * Bulk_Relax_time);
-    transport_coeff2 =
-        (transport_coeffs_.get_tau_bulkPibulkPi_coeff() * Bulk_Relax_time);
+    // ---------- resummation on baseline ----------
+    double transport_coeff1_resc, transport_coeff2_resc;
+    transport_coeff1_resc = transport_coeffs_.get_delta_bulkPibulkPi_coeff();
+    transport_coeff2_resc = transport_coeffs_.get_tau_bulkPibulkPi_coeff();
+    transport_coeff1 = transport_coeff1_resc * Bulk_Relax_time;
+    transport_coeff2 = transport_coeff2_resc * Bulk_Relax_time;
 
-    // from kinetic theory
     transport_coeff1_s =
-        (transport_coeffs_.get_lambda_bulkPipi_coeff() * (1. / 3. - cs2)
+        (transport_coeffs_.get_lambda_bulkPipi_coeff()
+         * (DATA.bulk_relaxation_type == 2 ? 1./3. : (1./3. - cs2))
          * Bulk_Relax_time);
-    if (DATA.bulk_relaxation_type == 2) {
-        transport_coeff1_s =
-            (transport_coeffs_.get_lambda_bulkPipi_coeff() * 1. / 3.
-             * Bulk_Relax_time);
-    }
-    transport_coeff2_s = 0.;  // not known;  put 0
+    transport_coeff2_s = 0.;
 
     if (DATA.FlagResumTransportCoeff) {
-        double resummedCorrection = 1;
-        double R_shear = 0.;
-        double R_bulk = 0.;
-        computeInverseReynoldsNumbers(
-            epsilon + pressure, grid_pt, R_shear, R_bulk);
-        resummedCorrection =
-            (transport_coeffs_.getResummedCorrFactor(R_shear, R_bulk));
-        bulk *= resummedCorrection;
-        transport_coeff1 *= resummedCorrection;
-        transport_coeff2 *= resummedCorrection;
-        transport_coeff1_s *= resummedCorrection;
-        transport_coeff2_s *= resummedCorrection;
+        double R_shear = 0., R_bulk = 0.;
+        computeInverseReynoldsNumbers(epsilon + pressure, grid_pt, R_shear, R_bulk);
+        double res = transport_coeffs_.getResummedCorrFactor(R_shear, R_bulk);
+        bulk *= res;
+        transport_coeff1 *= res;
+        transport_coeff2 *= res;
+        transport_coeff1_s *= res;
+        transport_coeff2_s *= res;
     }
 
-    // Computing Navier-Stokes term (-bulk viscosity * theta)
+    // ---------- RUNTIME CHEMISTRY OVERRIDE (keeps same IS form) ----------
+    // Always evaluate; if chem is off in config, rt->tau/zeta reduce to baselines.
+    {
+        const double Pi_tot = grid_pt.pi_b;
+        const double tau_run  = rt->tau_Pi_runtime(epsilon, rhob, Pi_tot);
+        const double zeta_run = rt->zeta_runtime(epsilon, rhob, Pi_tot, bulk);
+        Bulk_Relax_time = std::min(10., std::max(3.*DATA.delta_tau, tau_run));
+        bulk = zeta_run;  // use zeta(e,Pi)
+    }
+    // ---------------------------------------------------------------------
+
+    // ---------- NS + nonlinear structure (unchanged) ----------
     NS_term = -bulk * theta_local;
 
-    // Computing relaxation term and nonlinear term:
-    // - Bulk - transport_coeff1*Bulk*theta
     tempf = (-(grid_pt.pi_b) - transport_coeff1 * theta_local * (grid_pt.pi_b));
 
-    // Computing nonlinear term: + transport_coeff2*Bulk*Bulk
-    if (include_BBterm == 1) {
+    if (include_BBterm) {
         BB_term = transport_coeff2 * (grid_pt.pi_b) * (grid_pt.pi_b);
     } else {
         BB_term = 0.0;
     }
 
-    // Computing terms that Couple with shear-stress tensor
-    double Wsigma, WW, Shear_Sigma_term, Shear_Shear_term, Coupling_to_Shear;
-
+    double Coupling_to_Shear = 0.0;
     if (include_coupling_to_shear) {
         auto sigma = Util::UnpackVecToMatrix(sigma_1d);
         auto Wmunu = Util::UnpackVecToMatrix(grid_pt.Wmunu);
 
-        Wsigma =
-            (Wmunu[0][0] * sigma[0][0] + Wmunu[1][1] * sigma[1][1]
-             + Wmunu[2][2] * sigma[2][2] + Wmunu[3][3] * sigma[3][3]
-             - 2.
-                   * (Wmunu[0][1] * sigma[0][1] + Wmunu[0][2] * sigma[0][2]
-                      + Wmunu[0][3] * sigma[0][3])
-             + 2.
-                   * (Wmunu[1][2] * sigma[1][2] + Wmunu[1][3] * sigma[1][3]
-                      + Wmunu[2][3] * sigma[2][3]));
+        double Wsigma =
+            (Wmunu[0][0]*sigma[0][0] + Wmunu[1][1]*sigma[1][1]
+             + Wmunu[2][2]*sigma[2][2] + Wmunu[3][3]*sigma[3][3]
+             - 2.*(Wmunu[0][1]*sigma[0][1] + Wmunu[0][2]*sigma[0][2] + Wmunu[0][3]*sigma[0][3])
+             + 2.*(Wmunu[1][2]*sigma[1][2] + Wmunu[1][3]*sigma[1][3] + Wmunu[2][3]*sigma[2][3]));
 
-        WW =
-            (Wmunu[0][0] * Wmunu[0][0] + Wmunu[1][1] * Wmunu[1][1]
-             + Wmunu[2][2] * Wmunu[2][2] + Wmunu[3][3] * Wmunu[3][3]
-             - 2.
-                   * (Wmunu[0][1] * Wmunu[0][1] + Wmunu[0][2] * Wmunu[0][2]
-                      + Wmunu[0][3] * Wmunu[0][3])
-             + 2.
-                   * (Wmunu[1][2] * Wmunu[1][2] + Wmunu[1][3] * Wmunu[1][3]
-                      + Wmunu[2][3] * Wmunu[2][3]));
-        // multiply term by its respective transport coefficient
-        Shear_Sigma_term = Wsigma * transport_coeff1_s;
-        Shear_Shear_term = WW * transport_coeff2_s;
+        double WW =
+            (Wmunu[0][0]*Wmunu[0][0] + Wmunu[1][1]*Wmunu[1][1]
+             + Wmunu[2][2]*Wmunu[2][2] + Wmunu[3][3]*Wmunu[3][3]
+             - 2.*(Wmunu[0][1]*Wmunu[0][1] + Wmunu[0][2]*Wmunu[0][2] + Wmunu[0][3]*Wmunu[0][3])
+             + 2.*(Wmunu[1][2]*Wmunu[1][2] + Wmunu[1][3]*Wmunu[1][3] + Wmunu[2][3]*Wmunu[2][3]));
 
-        // full term that couples to shear is
+        double Shear_Sigma_term = Wsigma * transport_coeff1_s;
+        double Shear_Shear_term = WW     * transport_coeff2_s;
         Coupling_to_Shear = -Shear_Sigma_term + Shear_Shear_term;
-    } else {
-        Coupling_to_Shear = 0.0;
     }
 
-    // Final Answer
     Final_Answer = NS_term + tempf + BB_term + Coupling_to_Shear;
+    return Final_Answer / Bulk_Relax_time;
+}
 
-    return Final_Answer / (Bulk_Relax_time);
-} /* Make_uPiSource */
+
+/* Make_uPiSource */
 
 /* Sangyong Nov 18 2014 */
 /* baryon current parts */

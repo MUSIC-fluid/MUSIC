@@ -17,6 +17,7 @@
 #include "evolve.h"
 #include "reconst.h"
 #include "util.h"
+#include "bulk_pi_chem.h"
 
 using Eigen::EigenSolver;
 using Eigen::MatrixXd;
@@ -127,9 +128,24 @@ void Advance::FirstRKStepT(
     // (including geometric terms)
     TJbVec qi = {0};
     double pressure = eos.get_pressure(cellCurr.e, cellCurr.rhob);
+
+    // [chem-bulk] compute Π_chem and P_tot = P + Π_chem (algebraic; not evolved)
+    // Π_chem = -chem_C * I(e,rhob), with I = ε - 3P  (via eos.get_I added in eos.h)
+    double BulkPiChem = 0.0;                         // [chem-bulk]
+    if (DATA.chem_bulk_on) {                         // [chem-bulk]
+        BulkPiChem = - DATA.chem_C * eos.get_I(cellCurr.e, cellCurr.rhob);
+    }                                                // [chem-bulk]
+    const double pressure_tot = pressure + BulkPiChem; // [chem-bulk]
+
     for (int alpha = 0; alpha < 5; alpha++) {
         qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure) * tau_rk;
     }
+
+    // [chem-bulk] overwrite qi with P_tot version (keeps original loop intact)
+    for (int alpha = 0; alpha < 5; alpha++) {        // [chem-bulk]
+        qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure_tot) * tau_rk;
+    }                                                // [chem-bulk]
+
     MakeDeltaQI(tau_rk, arenaFieldsCurr, ix, iy, ieta, qi, rk_flag);
 
     TJbVec qi_source = {0.0};
@@ -166,6 +182,14 @@ void Advance::FirstRKStepT(
         tau_rk, ix, iy, ieta, dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
 
     double pressurePrev = eos.get_pressure(cellPrev.e, cellPrev.rhob);
+
+    // [chem-bulk] compute Π_chem(prev) and P_tot(prev) for RK correction
+    double BulkPiChemPrev = 0.0;                     // [chem-bulk]
+    if (DATA.chem_bulk_on) {                         // [chem-bulk]
+        BulkPiChemPrev = - DATA.chem_C * eos.get_I(cellPrev.e, cellPrev.rhob);
+    }                                                // [chem-bulk]
+    const double pressurePrev_tot = pressurePrev + BulkPiChemPrev; // [chem-bulk]
+
     for (int alpha = 0; alpha < 5; alpha++) {
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn[alpha] * (DATA.delta_tau);
@@ -185,6 +209,15 @@ void Advance::FirstRKStepT(
         /* if rk_flag > 0, we now have q0 + k1 + k2.
          * So add q0 and multiply by 1/2 */
         qi[alpha] += rk_flag * get_TJb(cellPrev, alpha, 0, pressurePrev) * tau;
+
+        // [chem-bulk] add the delta due to Π_chem at previous state, without removing the line above
+        // i.e. add: rk_flag * ( T(P_tot_prev) - T(P_prev) ) * tau
+        if (rk_flag) {  // avoids extra work when rk_flag==0              [chem-bulk]
+            const double T_with_Ptot = get_TJb(cellPrev, alpha, 0, pressurePrev_tot); // [chem-bulk]
+            const double T_with_P    = get_TJb(cellPrev, alpha, 0, pressurePrev);     // [chem-bulk]
+            qi[alpha] += rk_flag * (T_with_Ptot - T_with_P) * tau;                    // [chem-bulk]
+        }                                                                              // [chem-bulk]
+
         qi[alpha] *= 1. / (1. + rk_flag);
     }
 
@@ -196,6 +229,7 @@ void Advance::FirstRKStepT(
         arenaFieldsNext.u_[ii][fieldIdx] = grid_rk_t.u[ii];
     }
 }
+
 
 void Advance::FirstRKStepW(
     const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
@@ -542,6 +576,23 @@ void Advance::MakeDeltaQI(
             double pressureP2 = eos.get_pressure(p2.e, p2.rhob);
             double pressureM1 = eos.get_pressure(m1.e, m1.rhob);
             double pressureM2 = eos.get_pressure(m2.e, m2.rhob);
+
+            // [chem-bulk] compute Π_chem for each neighbor and form P_tot = P + Π_chem
+            double BulkPiChemP1 = 0.0;                                       // [chem-bulk]
+            double BulkPiChemP2 = 0.0;                                       // [chem-bulk]
+            double BulkPiChemM1 = 0.0;                                       // [chem-bulk]
+            double BulkPiChemM2 = 0.0;                                       // [chem-bulk]
+            if (DATA.chem_bulk_on) {                                         // [chem-bulk]
+                BulkPiChemP1 = - DATA.chem_C * eos.get_I(p1.e, p1.rhob);     // [chem-bulk]
+                BulkPiChemP2 = - DATA.chem_C * eos.get_I(p2.e, p2.rhob);     // [chem-bulk]
+                BulkPiChemM1 = - DATA.chem_C * eos.get_I(m1.e, m1.rhob);     // [chem-bulk]
+                BulkPiChemM2 = - DATA.chem_C * eos.get_I(m2.e, m2.rhob);     // [chem-bulk]
+            }                                                                // [chem-bulk]
+            double pressureP1_tot = pressureP1 + BulkPiChemP1;         // [chem-bulk]
+            double pressureP2_tot = pressureP2 + BulkPiChemP2;         // [chem-bulk]
+            double pressureM1_tot = pressureM1 + BulkPiChemM1;         // [chem-bulk]
+            double pressureM2_tot = pressureM2 + BulkPiChemM2;         // [chem-bulk]
+
             for (int alpha = 0; alpha < 5; alpha++) {
                 const double gphL = qi[alpha];
                 const double gphR = tau * get_TJb(p1, alpha, 0, pressureP1);
@@ -563,6 +614,26 @@ void Advance::MakeDeltaQI(
                 qiphR[alpha] = gphR + fphR;
                 qimhL[alpha] = gmhL + fmhL;
                 qimhR[alpha] = gmhR + fmhR;
+
+                // [chem-bulk] re-build face states with P_tot (keep originals intact)
+                const double gphL_tot = gphL;                                           // [chem-bulk]
+                const double gphR_tot = tau * get_TJb(p1, alpha, 0, pressureP1_tot);    // [chem-bulk]
+                const double gmhL_tot = tau * get_TJb(m1, alpha, 0, pressureM1_tot);   // [chem-bulk]
+                const double gmhR_tot = gmhR;                                           // [chem-bulk]
+                const double fphL_tot =
+                    0.5 * minmod.minmod_dx(gphR_tot, qi[alpha], gmhL_tot);             // [chem-bulk]
+                const double fphR_tot = -0.5 * minmod.minmod_dx(                        // [chem-bulk]
+                    tau * get_TJb(p2, alpha, 0, pressureP2_tot),
+                    gphR_tot, qi[alpha]);
+                const double fmhL_tot =
+                    0.5 * minmod.minmod_dx(                                             // [chem-bulk]
+                        qi[alpha], gmhL_tot,
+                        tau * get_TJb(m2, alpha, 0, pressureM2_tot));
+                const double fmhR_tot = -fphL_tot;                                      // [chem-bulk]
+                qiphL[alpha] = gphL_tot + fphL_tot;                                     // [chem-bulk]
+                qiphR[alpha] = gphR_tot + fphR_tot;                                     // [chem-bulk]
+                qimhL[alpha] = gmhL_tot + fmhL_tot;                                     // [chem-bulk]
+                qimhR[alpha] = gmhR_tot + fmhR_tot;                                     // [chem-bulk]
             }
 
             // for each direction, reconstruct half-way cells
@@ -576,6 +647,12 @@ void Advance::MakeDeltaQI(
             double aiphR = MaxSpeed(tau, direction, grid_phR, pressureP2);
             double aimhL = MaxSpeed(tau, direction, grid_mhL, pressureM1);
             double aimhR = MaxSpeed(tau, direction, grid_mhR, pressureM2);
+
+            // [chem-bulk] recompute local signal speeds using P_tot (overwrite)
+            aiphL = MaxSpeed(tau, direction, grid_phL, pressureP1_tot); // [chem-bulk]
+            aiphR = MaxSpeed(tau, direction, grid_phR, pressureP2_tot); // [chem-bulk]
+            aimhL = MaxSpeed(tau, direction, grid_mhL, pressureM1_tot); // [chem-bulk]
+            aimhR = MaxSpeed(tau, direction, grid_mhR, pressureM2_tot); // [chem-bulk]
 
             double aiph = std::max(aiphL, aiphR);
             double aimh = std::max(aimhL, aimhR);
@@ -592,6 +669,16 @@ void Advance::MakeDeltaQI(
                 double FimhR =
                     (tau_fac[direction]
                      * get_TJb(grid_mhR, alpha, direction, pressureM2));
+
+                // [chem-bulk] overwrite flux building blocks with P_tot
+                FiphL = (tau_fac[direction]
+                         * get_TJb(grid_phL, alpha, direction, pressureP1_tot)); // [chem-bulk]
+                FiphR = (tau_fac[direction]
+                         * get_TJb(grid_phR, alpha, direction, pressureP2_tot)); // [chem-bulk]
+                FimhL = (tau_fac[direction]
+                         * get_TJb(grid_mhL, alpha, direction, pressureM1_tot)); // [chem-bulk]
+                FimhR = (tau_fac[direction]
+                         * get_TJb(grid_mhR, alpha, direction, pressureM2_tot)); // [chem-bulk]
 
                 // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2}))/2
                 //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
@@ -641,6 +728,7 @@ void Advance::MakeDeltaQI(
         qi[i] += rhs[i];
     }
 }
+
 
 // determine the maximum signal propagation speed at the given direction
 double Advance::MaxSpeed(

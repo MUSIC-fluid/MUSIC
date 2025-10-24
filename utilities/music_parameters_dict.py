@@ -157,6 +157,11 @@ hydro_dict = {
                                                   # (only work for freeze_out_method = 4)
     'eps_freeze_max': 0.508,                      # the maximum freeze-out energy density (GeV/fm^3)
     'eps_freeze_min': 0.100,                      # the minimum freeze-out energy density (GeV/fm^3)
+    
+    #------Chemical bulk BulkPiChem ----------
+    'chem_bulk_on'  : 0,                      # switch to turn on chemical bulk Pi 0: off 1: on
+    'chem_C': 0.0,                           # constant C in the chemical bulk viscosity formula Pi_chem  = -C*(I_QCD-I0)  
+    'chem_I0_mode': 0 ,                  # I0(e)=0 (default)
 }
 
 ###########################################
@@ -177,8 +182,11 @@ freeze_out_dict = {
 
     'Include_deltaf': 1,                          # flag to include delta f correction in Cooper-Frye formula
     'Include_deltaf_qmu': 0,                      # flag to include delta f for qmu
-    'Inlucde_deltaf_bulk': 0,                     # flag to include delta f for bulk viscosity
+    'Include_deltaf_bulk': 0,                     # flag to include delta f for bulk viscosity
     'deltaf_14moments': 0,                        # use delta f from 14 moments approximation
+# Add bulk pressure to equilibrium pressure when computing equilibrium contributions
+    # and when exporting the pressure with spectra
+    'add_bulkPi_to_equilibrium_pressure': 1,
 }
 
 ###########################################################
