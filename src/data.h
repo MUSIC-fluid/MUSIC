@@ -123,6 +123,7 @@ typedef struct init_data {
 
     double quest_revert_strength;
     bool FlagResumTransportCoeff;
+    bool FlagBulkChem;
     double resumTransCoeffAlpha;
     int FlagCausalityMethod;
 
