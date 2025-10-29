@@ -131,7 +131,7 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         DATA.tau0 = hydro_source_terms_ptr.lock()->get_source_tau_min();
     } else if (DATA.Initial_profile == 42) {
         // initial condition from the JETSCAPE framework
-        music_message << "Using Initial_profile=" << DATA.Initial_profile
+        music_message << "Using Initial_profile = " << DATA.Initial_profile
                       << ". Overwriting lattice dimensions:";
         music_message.flush("info");
 
@@ -154,7 +154,24 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
                       << " fm, y_size = "   << DATA.y_size
                       << " fm, eta_size = " << DATA.eta_size;
         music_message.flush("info");
-    } else if (DATA.Initial_profile == 101) {
+    } else if (DATA.Initial_profile == 43) {
+        // initial condition from the JETSCAPE framework with only source terms
+        music_message << "Using Initial_profile = " << DATA.Initial_profile
+                      << ". Overwriting lattice dimensions:";
+        music_message.flush("info");
+        // grid initialization done in MUSIC::initialize_hydro_xscape
+        music_message << "neta = " << DATA.neta
+                << ", nx = " << DATA.nx << ", ny = " << DATA.ny;
+        music_message.flush("info");
+        music_message << "deta=" << DATA.delta_eta
+                        << ", dx=" << DATA.delta_x
+                        << " fm, dy=" << DATA.delta_y << " fm.";
+        music_message.flush("info");
+        music_message << "x_size = "     << DATA.x_size
+                        << " fm, y_size = "   << DATA.y_size
+                        << " fm, eta_size = " << DATA.eta_size;
+        music_message.flush("info");
+    }else if (DATA.Initial_profile == 101) {
         music_message << "Using Initial_profile = " << DATA.Initial_profile;
         music_message.flush("info");
         music_message << "nx = " << DATA.nx << ", ny = " << DATA.ny
@@ -179,6 +196,9 @@ void Init::InitArena(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     }
 
     // initialize arena
+    arenaFieldsPrev.clearFields();
+    arenaFieldsCurr.clearFields();
+    arenaFieldsNext.clearFields();
     arenaFieldsPrev.resizeFields(DATA.nx, DATA.ny, DATA.neta);
     arenaFieldsCurr.resizeFields(DATA.nx, DATA.ny, DATA.neta);
     arenaFieldsNext.resizeFields(DATA.nx, DATA.ny, DATA.neta);

@@ -979,6 +979,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "MUSIC_mode")
         parameter_list.mode = static_cast<int>(value);
 
+    if (parameter_name == "EOS")
+        parameter_list.whichEOS = static_cast<int>(value);
+
     if (parameter_name == "JSechoLevel")
         parameter_list.JSecho = static_cast<int>(value);
 
@@ -1041,20 +1044,45 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
         parameter_list.eps_freeze_max = parameter_list.epsilonFreeze;
     }
 
+    if (parameter_name == "Do_FreezeOut_lowtemp") {
+        parameter_list.doFreezeOut_lowtemp = static_cast<int>(value);
+    }
+
+    if (parameter_name == "average_surface_over_this_many_time_steps") {
+        parameter_list.facTau = static_cast<int>(value);
+    }
+
     if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0")
         parameter_list.turn_on_bulk = static_cast<int>(value);
 
     if (parameter_name == "Include_second_order_terms")
         parameter_list.include_second_order_terms = static_cast<int>(value);
 
+    if (parameter_name == "Include_Rhob")
+        parameter_list.turn_on_rhob = static_cast<int>(value);
+    if (parameter_list.turn_on_rhob == 1)
+       parameter_list.alpha_max = 5;
+    else
+       parameter_list.alpha_max = 4;
+
+    if (parameter_name == "Include_QS")
+        parameter_list.turn_on_QS = static_cast<int>(value);
+    if (parameter_list.turn_on_QS == 1) {
+       parameter_list.alpha_max = 7;
+    } else if (parameter_list.turn_on_rhob == 1) {
+       parameter_list.alpha_max = 5;
+    } else {
+       parameter_list.alpha_max = 4;
+    }
+
     if (parameter_name == "T_dependent_Shear_to_S_ratio")
         parameter_list.T_dependent_shear_to_s = static_cast<int>(value);
 
     if (parameter_name == "shear_viscosity_2_min")
         parameter_list.shear_2_min = value;
-    if (parameter_name == "shear_viscosity_slope")
+    if (parameter_name == "shear_viscosity_2_slope")
         parameter_list.shear_2_slope = value;
-    if (parameter_name == "shear_viscosity_curv")
+    if (parameter_name == "shear_viscosity_2_curv")
         parameter_list.shear_2_curv = value;
 
     if (parameter_name == "shear_viscosity_3_T_kink_in_GeV")
@@ -1065,6 +1093,21 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
         parameter_list.shear_3_high_T_slope_in_GeV = value;
     if (parameter_name == "shear_viscosity_3_at_kink")
         parameter_list.shear_3_at_kink = value;
+
+    if (parameter_name == "muB_dependent_Shear_to_S_ratio")
+        parameter_list.muB_dependent_shear_to_s = value;
+
+    if (parameter_name == "shear_10_muBDep_alpha")
+        parameter_list.shear_muBDep_alpha = value;
+    if (parameter_name == "shear_10_muBDep_slope")
+        parameter_list.shear_muBDep_slope = value;
+    if (parameter_name == "shear_10_muBDep_scale")
+        parameter_list.shear_muBDep_scale = value;
+
+    if (parameter_name == "shear_7_muBf0p2")
+        parameter_list.shear_muBf0p2 = value;
+    if (parameter_name == "shear_7_muBf0p4")
+        parameter_list.shear_muBf0p4 = value;
 
     if (parameter_name == "T_dependent_Bulk_to_S_ratio")
         parameter_list.T_dependent_bulk_to_s = static_cast<int>(value);
@@ -1084,6 +1127,24 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
         parameter_list.bulk_3_T_peak_in_GeV = value;
     if (parameter_name == "bulk_viscosity_3_lambda_asymm")
         parameter_list.bulk_3_lambda_asymm = value;
+
+    if (parameter_name == "bulk_viscosity_10_max")
+        parameter_list.bulk_10_max = value;
+    if (parameter_name == "bulk_viscosity_10_max_muB0p2")
+        parameter_list.bulk_10_max_muB0p2 = value;
+    if (parameter_name == "bulk_viscosity_10_max_muB0p4")
+        parameter_list.bulk_10_max_muB0p4 = value;
+    if (parameter_name == "bulk_viscosity_10_width_high")
+        parameter_list.bulk_10_width_high = value;
+    if (parameter_name == "bulk_viscosity_10_width_low")
+        parameter_list.bulk_10_width_low = value;
+    if (parameter_name == "bulk_viscosity_10_T_peak")
+        parameter_list.bulk_10_Tpeak = value;
+    if (parameter_name == "bulk_viscosity_10_T_peak_muBcurv")
+        parameter_list.bulk_10_Tpeak_muBcurv = value;
+
+    if (parameter_name == "CoorType")
+        parameter_list.CoorType = static_cast<int>(value);
 }
 
 
@@ -1159,6 +1220,14 @@ void check_parameters(InitData &parameter_list) {
         exit(1);
     }
 
+    if (parameter_list.doFreezeOut_lowtemp != 0 
+        && parameter_list.doFreezeOut_lowtemp != 1) {
+        music_message << "Invalid option for Do_FreezeOut_lowtemp: "
+                      << parameter_list.doFreezeOut_lowtemp;
+        music_message.flush("error");
+        exit(1);
+    }
+
     if (parameter_list.facTau <= 0) {
         music_message << "average_surface_over_this_many_time_steps <= 0: "
                       << parameter_list.facTau;
@@ -1219,6 +1288,12 @@ void check_parameters(InitData &parameter_list) {
         parameter_list.eta_size = 0.0;
     }
 
+    if (parameter_list.CoorType != 0 && parameter_list.CoorType != 1) {
+        music_message << "Invalid option for CoorType: "
+                      << parameter_list.CoorType;
+        music_message.flush("error");
+        exit(1);
+    }
 
     double delta_xperp = std::min(parameter_list.delta_x,
                                   parameter_list.delta_y);

@@ -58,7 +58,8 @@ class MUSIC {
 
     //! This function initialize hydro
     void initialize_hydro();
-    void initialize_hydro_xscape();
+    void initialize_hydro_xscape(int nx, int ny, int nz, 
+                                double dx, double dy, double dz);
 
     //! This function change the parameter value in DATA
     void set_parameter(std::string parameter_name, double value);
@@ -105,6 +106,9 @@ class MUSIC {
         std::vector<double> pi_23_in, std::vector<double> pi_33_in,
         std::vector<double> Bulk_pi_in);
 
+    // return the dtau from the actual simulation
+    double get_hydro_dtau_grid() const { return DATA.delta_tau; }
+
     void get_hydro_info(
         const double x, const double y, const double z, const double t,
         fluidCell* fluid_cell_info);
@@ -122,8 +126,10 @@ class MUSIC {
     void get_surface_cell_with_index(const int idx, SurfaceCell &cell_i) {
         evolve_ptr_->get_surface_cell_with_index(idx, cell_i);
     }
+    void clear_surface_cell_vector() {evolve_ptr_->clearSurfaceCellVector();}
 
     double get_hydro_tau0() const {return(hydro_info_ptr->get_hydro_tau0());}
+    // return the hydro dtau from the coarse grained history file
     double get_hydro_dtau() const {return(hydro_info_ptr->get_hydro_dtau());}
     double get_hydro_tau_max() const {
         return(hydro_info_ptr->get_hydro_tau_max());

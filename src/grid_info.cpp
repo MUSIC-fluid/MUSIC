@@ -383,34 +383,25 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
                     eta = ((static_cast<double>(ieta))*(DATA.delta_eta)
                             - (DATA.eta_size)/2.0);
                 }
-                double cosh_eta = cosh(eta);
-                double sinh_eta = sinh(eta);
-
                 double e_local = arena.e_[fieldIdx];         // 1/fm^4
                 double rhob_local = arena.rhob_[fieldIdx];      // 1/fm^3
                 double rhoq_local = arena.rhoq_[fieldIdx];      // 1/fm^3
                 double rhos_local = arena.rhos_[fieldIdx];      // 1/fm^3
-								
-		double p_local = eos.get_pressure(e_local, rhob_local, rhoq_local, 
-				rhos_local);
-		double T_local = eos.get_temperature(e_local, rhoq_local, 
-				rhos_local);
-		double s_local = eos.get_entropy(e_local, rhoq_local, 
-				rhos_local);
 
-                double utau = arena.u_[0][fieldIdx];
+                double p_local = eos.get_pressure(
+                    e_local, rhob_local, rhoq_local, rhos_local);
+                double T_local = eos.get_temperature(
+                    e_local, rhob_local, rhoq_local, rhos_local);
+                double s_local = eos.get_entropy(
+                    e_local, rhob_local, rhoq_local, rhos_local);
+
                 double ux   = arena.u_[1][fieldIdx];
                 double uy   = arena.u_[2][fieldIdx];
                 double ueta = arena.u_[3][fieldIdx];
-                double ut = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
-                double vx = ux/ut;
-                double vy = uy/ut;
-                double uz = ueta*cosh_eta + utau*sinh_eta;
-                double vz = uz/ut;
 
 
                 hydro_info_ptr.dump_ideal_info_to_memory(
-                    tau, eta, e_local, p_local, s_local, T_local, vx, vy, vz);
+                    tau, eta, e_local, p_local, s_local, T_local, ux, uy, ueta);
             }
         }
     }
@@ -984,8 +975,13 @@ void Cell_info::get_maximum_energy_density(
     }
     if (DATA.JSecho > 0) {
         music_message << "eps_max = " << eps_max << " GeV/fm^3, "
-                      << "rhob_max = " << rhob_max << " 1/fm^3, "
-                      << "T_max = " << T_max << " GeV.";
+                      << "rhob_max = " << rhob_max << " 1/fm^3, ";
+        if (DATA.turn_on_QS) {
+            music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
+                          << "rhos_max = " << rhos_max << " 1/fm^3, ";
+        }
+        music_message << "T_max = " << T_max << " GeV.";
+
         music_message.flush("info");
         if (DATA.turn_on_QS) {
             music_message << "rhoq_max = " << rhoq_max << " 1/fm^3, "
@@ -1125,7 +1121,6 @@ void Cell_info::check_conservation_law(Fields &arena, Fields &arena_prev,
     double T_tau_x = 0.0;
     double T_tau_y = 0.0;
     double T_tau_z = 0.0;
-
     double deta    = DATA.delta_eta;
     double dx      = DATA.delta_x;
     double dy      = DATA.delta_y;
@@ -2196,15 +2191,15 @@ void Cell_info::output_average_phase_diagram_trajectory(
                 double rhob_local = arena.rhob_[fieldIdx];     // 1/fm^3
                 double rhoq_local = arena.rhoq_[fieldIdx];     // 1/fm^3
                 double rhos_local = arena.rhos_[fieldIdx];     // 1/fm^3
-							       //
+
                 double utau = arena.u_[0][fieldIdx];
                 double ueta = arena.u_[3][fieldIdx];
                 double ut = utau*cosh_eta + ueta*sinh_eta;  // gamma factor
-							    //
-		double T_local = eos.get_temperature(e_local, rhob_local, rhoq_local, rhos_local);
-		double muB_local = eos.get_muB(e_local, rhob_local, rhoq_local, rhos_local);
-		double muQ_local = eos.get_muQ(e_local, rhob_local, rhoq_local, rhos_local);
-		double muS_local = eos.get_muS(e_local, rhob_local, rhoq_local, rhos_local);
+
+                double T_local = eos.get_temperature(e_local, rhob_local, rhoq_local, rhos_local);
+                double muB_local = eos.get_muB(e_local, rhob_local, rhoq_local, rhos_local);
+                double muQ_local = eos.get_muQ(e_local, rhob_local, rhoq_local, rhos_local);
+                double muS_local = eos.get_muS(e_local, rhob_local, rhoq_local, rhos_local);
 
                 double weight_local = e_local*ut;
                 avg_T  += T_local*weight_local;

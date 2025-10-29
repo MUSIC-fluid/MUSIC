@@ -117,9 +117,20 @@ void MUSIC::initialize_hydro() {
 }
 
 
-//! This function initialize hydro within the XSCAPE framework
-void MUSIC::initialize_hydro_xscape() {
+//! This function initializes hydro within the X-SCAPE framework
+void MUSIC::initialize_hydro_xscape(int nx, int ny, int nz, 
+                                    double dx, double dy, double dz) {
     clean_all_the_surface_files();
+
+    DATA.nx = nx;
+    DATA.ny = ny;
+    DATA.neta = nz;
+    DATA.delta_x = dx;
+    DATA.delta_y = dy;
+    DATA.delta_eta = dz;
+    DATA.x_size = dx*nx;
+    DATA.y_size = dy*ny;
+    DATA.eta_size = dz*nz;
 
     Init initialization(eos, DATA, hydro_source_terms_ptr);
     initialization.InitArena(arenaFieldsPrev_, arenaFieldsCurr_,
@@ -148,6 +159,7 @@ void MUSIC::prepare_run_hydro_one_time_step() {
     freezeoutFieldCurr_.resizeFields(DATA.nx, DATA.ny, DATA.neta);
 
     evolve_ptr_= std::make_shared<Evolve> (eos, DATA, hydro_source_terms_ptr);
+    currTauIdx = 0;
 
     if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC> ();
@@ -160,7 +172,7 @@ int MUSIC::run_hydro_upto(const double tauEnd) {
                                    + 1e-8);
     int status = 0;
     for (int itau = currTauIdx; itau < iTauEnd; itau++) {
-        status = evolve_ptr_->EvolveOneTimeStep(
+        status += evolve_ptr_->EvolveOneTimeStep(
                     itau, arenaFieldsPrev_, arenaFieldsCurr_, arenaFieldsNext_,
                     freezeoutFieldPrev_, freezeoutFieldCurr_,
                     (*hydro_info_ptr));

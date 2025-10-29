@@ -167,7 +167,7 @@ void HydroinfoMUSIC::getHydroValues(
                         ptau = itau + 1;
                     }
                     position[ipx][ipy][ipeta][iptau] = (
-                                px + ixmax*(py + iymax*(peta + ietamax*ptau)));
+                                peta + ietamax*(py + iymax*(px + ixmax*ptau)));
                 }
             }
         }
@@ -337,10 +337,6 @@ void HydroinfoMUSIC::set_grid_infomatioin(const InitData &DATA) {
     hydroDtau = DATA.delta_tau*DATA.output_evolution_every_N_timesteps;
     hydroXmax = DATA.x_size/2.;
     hydroYmax = DATA.y_size/2.;
-    ixmax = (static_cast<int>((DATA.nx + 1)
-                              /DATA.output_evolution_every_N_x) + 1);
-    iymax = (static_cast<int>((DATA.ny + 1)
-                              /DATA.output_evolution_every_N_y) + 1);
     hydro_eta_max = DATA.eta_size/2.;
     ietamax = static_cast<int>(DATA.neta/DATA.output_evolution_every_N_eta);
     hydroDx = DATA.delta_x*DATA.output_evolution_every_N_x;
@@ -352,6 +348,8 @@ void HydroinfoMUSIC::set_grid_infomatioin(const InitData &DATA) {
 
     ixmax   = (static_cast<int>((DATA.nx - 1)
                                 /DATA.output_evolution_every_N_x) + 1);
+    iymax   = (static_cast<int>((DATA.ny - 1)
+                                /DATA.output_evolution_every_N_y) + 1);
     ietamax = (static_cast<int>((DATA.neta - 1)
                                 /DATA.output_evolution_every_N_eta) + 1);
 }

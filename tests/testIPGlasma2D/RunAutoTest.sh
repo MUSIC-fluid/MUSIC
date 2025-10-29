@@ -2,7 +2,7 @@
 
 cd EOS; bash download_hotQCD.sh; cd ..
 
-(cd example_inputfiles/IPGlasma_2D/input; bash download_testIPGevent.sh)
+(cd example_inputfiles/2D_IPGlasma/IPGlasma_2D_testEvent/input; bash download_testIPGevent.sh)
 
 ./MUSIChydro tests/testIPGlasma2D/music_input_mode_2
 

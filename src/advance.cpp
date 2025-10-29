@@ -130,10 +130,10 @@ void Advance::FirstRKStepT(
                                        cellCurr.rhoq, cellCurr.rhos);
 
     for (int alpha = 0; alpha < 7; alpha++) {
-        qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure)*tau_rk;
+        qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure)*tauRkFactor;
     }
 
-    MakeDeltaQI(tau_rk, arenaFieldsCurr, ix, iy, ieta, qi, rk_flag);
+    MakeDeltaQI(tauRkFactor, arenaFieldsCurr, ix, iy, ieta, qi, rk_flag);
 
     TJbVec qi_source = {0.0};
 
@@ -162,7 +162,10 @@ void Advance::FirstRKStepT(
 
         if (DATA.turn_on_QS == 1) {
             qi_source[5] = (
-                tau_rk*hydro_source_terms_ptr->get_hydro_rhoQ_source(
+                tauRkFactor*hydro_source_terms_ptr->get_hydro_rhoq_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local));
+            qi_source[6] = (
+                tauRkFactor*hydro_source_terms_ptr->get_hydro_rhos_source(
                             tau_rk, x_local, y_local, eta_s_local, u_local));
         }
     }
