@@ -188,41 +188,49 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons(
     music_message.flush("info");
     compute_norm_for_strings();
 
-    double xMax = 0.;
-    double yMax = 0.;
-    for (auto const& it : QCD_strings_list) {
-        xMax = std::max(xMax, std::abs(it->x_perp));
-        xMax = std::max(xMax, std::abs(it->x_pl));
-        xMax = std::max(xMax, std::abs(it->x_pr));
-        yMax = std::max(yMax, std::abs(it->y_perp));
-        yMax = std::max(yMax, std::abs(it->y_pl));
-        yMax = std::max(yMax, std::abs(it->y_pr));
-    }
+    if (DATA.dynamicGridPadding) {
+        DATA.beam_rapidity = acosh(total_energy/(total_baryon_number*Util::m_N));
+        DATA.eta_size = 2.*(DATA.beam_rapidity + DATA.gridPadding - 1);
+        DATA.delta_eta = DATA.eta_size/(DATA.neta - 1);
 
-    // adjust transverse grid size
-    double energyAddRadius = sqrt(total_energy
-                                  /std::max(1., total_baryon_number)/2760.);
-    double npartAddRadius = total_baryon_number/500.;
-    double reRunAddRadius = DATA.reRunCount*2.;
-    double gridOffset = 3 + energyAddRadius + npartAddRadius + reRunAddRadius;
-    gridOffset = std::max(gridOffset, 5.*DATA.stringSourceSigmaX);
-    DATA.x_size = 2.*(xMax + gridOffset);
-    DATA.y_size = 2.*(yMax + gridOffset);
-    DATA.delta_x = DATA.x_size/(DATA.nx - 1);
-    DATA.delta_y = DATA.y_size/(DATA.ny - 1);
-    if (DATA.resetDtau) {
-        // make sure delta_tau is not too large for delta_x and delta_y
-        DATA.delta_tau = std::min(DATA.delta_tau,
-                                  std::min(DATA.delta_x*DATA.dtaudxRatio,
-                                           DATA.delta_y*DATA.dtaudxRatio));
-        if (DATA.delta_tau > 0.001)
-            DATA.delta_tau = (static_cast<int>(DATA.delta_tau*1000))/1000.;
-        DATA.nt = static_cast<int>(DATA.tau_size/DATA.delta_tau + 0.5);
+        double xMax = 0.;
+        double yMax = 0.;
+        for (auto const& it : QCD_strings_list) {
+            xMax = std::max(xMax, std::abs(it->x_perp));
+            xMax = std::max(xMax, std::abs(it->x_pl));
+            xMax = std::max(xMax, std::abs(it->x_pr));
+            yMax = std::max(yMax, std::abs(it->y_perp));
+            yMax = std::max(yMax, std::abs(it->y_pl));
+            yMax = std::max(yMax, std::abs(it->y_pr));
+        }
+
+        // adjust transverse grid size
+        double energyAddRadius = sqrt(total_energy
+                                      /std::max(1., total_baryon_number)/2760.);
+        double npartAddRadius = total_baryon_number/500.;
+        double reRunAddRadius = DATA.reRunCount*2.;
+        double gridOffset = 3 + energyAddRadius + npartAddRadius + reRunAddRadius;
+        gridOffset = std::max(gridOffset, 5.*DATA.stringSourceSigmaX);
+        DATA.x_size = 2.*(xMax + gridOffset);
+        DATA.y_size = 2.*(yMax + gridOffset);
+        DATA.delta_x = DATA.x_size/(DATA.nx - 1);
+        DATA.delta_y = DATA.y_size/(DATA.ny - 1);
+        if (DATA.resetDtau) {
+            // make sure delta_tau is not too large for delta_x and delta_y
+            DATA.delta_tau = std::min(DATA.delta_tau,
+                                      std::min(DATA.delta_x*DATA.dtaudxRatio,
+                                               DATA.delta_y*DATA.dtaudxRatio));
+            if (DATA.delta_tau > 0.001)
+                DATA.delta_tau = (static_cast<int>(DATA.delta_tau*1000))/1000.;
+            DATA.nt = static_cast<int>(DATA.tau_size/DATA.delta_tau + 0.5);
+        }
     }
     music_message << "[HydroSource] Grid info: x_size = "
                   << DATA.x_size << ", y_size = " << DATA.y_size
                   << ", dx = " << DATA.delta_x << " fm, dy = "
-                  << DATA.delta_y << " fm, dtau = " << DATA.delta_tau << " fm";
+                  << DATA.delta_y << " fm, eta_size = " << DATA.eta_size
+                  << ", deta = " << DATA.delta_eta
+                  << ", dtau = " << DATA.delta_tau << " fm";
     music_message.flush("info");
 }
 

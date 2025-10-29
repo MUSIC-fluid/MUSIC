@@ -42,6 +42,7 @@ typedef struct init_data {
     std::string initName_AMPT;  //!< initial state filename from AMPT
 
     double gridPadding;         //!< grid padding size from user (default: 3 fm)
+    bool dynamicGridPadding;    //!< flag to use dynamic grid padding
 
     //! random seed
     int seed;

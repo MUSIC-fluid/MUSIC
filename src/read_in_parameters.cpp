@@ -101,6 +101,15 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_gridPadding;
     parameter_list.gridPadding = temp_gridPadding;
 
+    int temp_dynamicGridPadding = 0;
+    tempinput = Util::StringFind4(input_file, "dynamicGridPadding");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_dynamicGridPadding;
+    if (temp_dynamicGridPadding == 0)
+        parameter_list.dynamicGridPadding = false;
+    else
+        parameter_list.dynamicGridPadding = true;
+
     // boost-invariant
     int temp_boost_invariant = 1;
     tempinput = Util::StringFind4(input_file, "boost_invariant");
