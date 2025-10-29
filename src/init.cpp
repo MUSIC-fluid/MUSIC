@@ -733,9 +733,15 @@ void Init::initial_IPGlasma_XY_with_pi(
 
                 if (DATA.Initial_profile == 9) {
                     double pressure = eos.get_pressure(epsilon, rhob);
-                    arenaFieldsCurr.piBulk_[Fidx] = 0;
-                    arenaFieldsCurr.piBulkChem_[Fidx] = 
-                        ((epsilon / 3. - pressure) * DATA.preEqVisFactor);
+                    if(DATA.FlagBulkChem) {
+                        arenaFieldsCurr.piBulk_[Fidx] = 0;
+                        arenaFieldsCurr.piBulkChem_[Fidx] = 
+                            (epsilon / 3. - pressure) * DATA.preEqVisFactor;
+                    } else { 
+                        arenaFieldsCurr.piBulk_[Fidx] =
+                            (epsilon / 3. - pressure) * DATA.preEqVisFactor;
+                        arenaFieldsCurr.piBulkChem_[Fidx] = 0;
+                    }
                 }
             }
 
@@ -745,13 +751,6 @@ void Init::initial_IPGlasma_XY_with_pi(
                 for (int idx_1d = 0; idx_1d < 10; idx_1d++) {
                     arenaFieldsCurr.Wmunu_[idx_1d][Fidx] = grid_c.Wmunu[idx_1d];
                     arenaFieldsCurr.piBulk_[Fidx] = grid_c.pi_b;
-                    arenaFieldsCurr.piBulkChem_[Fidx] = grid_c.pi_b_chem;
-                }
-            }
-            if (DATA.FlagBulkChem){
-                auto grid_c = arenaFieldsCurr.getCell(Fidx);
-                regulationResummedTransCoeff(grid_c);
-                for (int idx_1d = 0; idx_1d < 10; idx_1d++) {
                     arenaFieldsCurr.piBulkChem_[Fidx] = grid_c.pi_b_chem;
                 }
             }

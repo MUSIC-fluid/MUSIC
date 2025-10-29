@@ -287,6 +287,11 @@ InitData read_in_parameters(std::string input_file) {
     } else {
         parameter_list.FlagResumTransportCoeff = false;
     }
+    if (getParameter(input_file, "FlagBulkChem", 0) == 1) {
+        parameter_list.FlagBulkChem = true;
+    } else {
+        parameter_list.FlagBulkChem = false;
+    }
     parameter_list.resumTransCoeffAlpha =
         (getParameter(input_file, "resumTransCoeffAlpha", 1.5));
     parameter_list.FlagCausalityMethod =
