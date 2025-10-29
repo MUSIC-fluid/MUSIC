@@ -260,6 +260,7 @@ void Advance::FirstRKStepW(
 
     if (DATA.turn_on_bulk == 1) {
         double piBulkPrev = arenaFieldsPrev.piBulk_[fieldIdx];
+        double piBulkChemPrev = arenaFieldsPrev.piBulkChem_[fieldIdx];
         tempf =
             ((1. - rk_flag) * (grid_c.pi_b * grid_c.u[0])
              + rk_flag * piBulkPrev * u0Prev);
@@ -349,6 +350,7 @@ void Advance::FirstRKStepW(
     for (int idx_1d = 0; idx_1d < 14; idx_1d++) {
         arenaFieldsNext.Wmunu_[idx_1d][fieldIdx] = grid_f.Wmunu[idx_1d];
         arenaFieldsNext.piBulk_[fieldIdx] = grid_f.pi_b;
+        arenaFieldsNext.piBulkChem_[fieldIdx] = grid_f.pi_b_chem;
     }
 }
 
