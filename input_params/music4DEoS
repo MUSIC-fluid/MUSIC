@@ -13,6 +13,7 @@ Initial_time_tau_0  1.8
 Delta_Tau  0.01
 Total_evolution_time_tau  30.0
 boost_invariant  0
+CoorType 0
 Eta_grid_size  12.0
 Grid_size_in_eta  64
 X_grid_size_in_fm  26.0

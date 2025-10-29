@@ -1324,6 +1324,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
         parameter_list.bulk_10_Tpeak = value;
     if (parameter_name == "bulk_viscosity_10_T_peak_muBcurv")
         parameter_list.bulk_10_Tpeak_muBcurv = value;
+
+    if (parameter_name == "CoorType")
+        parameter_list.CoorType = static_cast<int>(value);
 }
 
 
@@ -1467,6 +1470,12 @@ void check_parameters(InitData &parameter_list) {
         parameter_list.eta_size = 0.0;
     }
 
+    if (parameter_list.CoorType != 0 && parameter_list.CoorType != 1) {
+        music_message << "Invalid option for CoorType: "
+                      << parameter_list.CoorType;
+        music_message.flush("error");
+        exit(1);
+    }
 
     double delta_xperp = std::min(parameter_list.delta_x,
                                   parameter_list.delta_y);
