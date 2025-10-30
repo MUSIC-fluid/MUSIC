@@ -54,19 +54,17 @@ void Diss::MakeWSource(
         double Pi_alpha0 = 0.0;
         if (alpha < 4 && DATA.turn_on_bulk == 1) {
             double gfac = (alpha == 0 ? -1.0 : 0.0);
-            Pi_alpha0 =
-                (arenaCurr.piBulk_[fieldIdx]
-                 * (gfac
-                    + arenaCurr.u_[alpha][fieldIdx]
-                          * arenaCurr.u_[0][fieldIdx]));
-            dPidtau =
-                ((Pi_alpha0
-                  - arenaPrev.piBulk_[fieldIdx]
-                        * (gfac
-                           + arenaPrev.u_[alpha][fieldIdx]
-                                 * arenaPrev.u_[0][fieldIdx]))
-                 / DATA.delta_tau);
+            double PiCurr = arenaCurr.piBulk_[fieldIdx] + arenaCurr.piBulkChem_[fieldIdx];
+            double PiPrev = arenaPrev.piBulk_[fieldIdx] + arenaPrev.piBulkChem_[fieldIdx];
+
+            Pi_alpha0 = PiCurr* (gfac + arenaCurr.u_[alpha][fieldIdx]
+                                       * arenaCurr.u_[0][fieldIdx]);
+            dPidtau = (Pi_alpha0
+                       - PiPrev* (gfac + arenaPrev.u_[alpha][fieldIdx]
+                                           * arenaPrev.u_[0][fieldIdx]))
+                      / DATA.delta_tau;
         }
+
         double sf = tau * dWdtau + arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx];
         double bf = tau * dPidtau + Pi_alpha0;
         dwmn[alpha] += sf + bf;
@@ -75,7 +73,9 @@ void Diss::MakeWSource(
             music_message << "sf=" << sf << " bf=" << bf << " Wmunu ="
                           << arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx]
                           << " pi_b =" << arenaCurr.piBulk_[fieldIdx]
-                          << " prev_pi_b=" << arenaPrev.piBulk_[fieldIdx];
+                          << " prev_pi_b=" << arenaPrev.piBulk_[fieldIdx]
+                          <<" pi_b_chem =" << arenaCurr.piBulkChem_[fieldIdx]
+                          << " prev_pi_b_chem=" << arenaPrev.piBulkChem_[fieldIdx];
             music_message.flush("error");
             music_message << "dWdtau = " << dWdtau;
             music_message.flush("error");
@@ -105,24 +105,27 @@ void Diss::MakeWSource(
                 double Pi_p = 0;
                 if (DATA.turn_on_bulk == 1 && alpha < 4) {
                     double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
-                    double bgp1 =
-                        (arenaCurr.piBulk_[Ip1]
-                         * (gfac1
+                    double PiIp1 =
+                        arenaCurr.piBulk_[Ip1] + arenaCurr.piBulkChem_[Ip1];
+                    double PiIc =
+                        arenaCurr.piBulk_[Ic] + arenaCurr.piBulkChem_[Ic];
+                    double PiIm1 =
+                        arenaCurr.piBulk_[Im1] + arenaCurr.piBulkChem_[Im1];
+                    
+                    double bgp1 =PiIp1 * (gfac1
                             + arenaCurr.u_[alpha][Ip1]
                                   * arenaCurr.u_[direction][Ip1])
-                         * tau_fac[direction]);
+                         * tau_fac[direction];
                     double bg =
-                        (arenaCurr.piBulk_[Ic]
-                         * (gfac1
-                            + arenaCurr.u_[alpha][Ic]
-                                  * arenaCurr.u_[direction][Ic])
-                         * tau_fac[direction]);
+                        PiIc * (gfac1
+                                + arenaCurr.u_[alpha][Ic]
+                                      * arenaCurr.u_[direction][Ic])
+                             * tau_fac[direction];
                     double bgm1 =
-                        (arenaCurr.piBulk_[Im1]
-                         * (gfac1
-                            + arenaCurr.u_[alpha][Im1]
-                                  * arenaCurr.u_[direction][Im1])
-                         * tau_fac[direction]);
+                        PiIm1 * (gfac1
+                                + arenaCurr.u_[alpha][Im1]
+                                      * arenaCurr.u_[direction][Im1])
+                             * tau_fac[direction];
                     // dPidx += minmod.minmod_dx(bgp1, bg,
                     // bgm1)/delta[direction];
                     //  use central difference to preserve conservation law
