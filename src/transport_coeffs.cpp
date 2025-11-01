@@ -99,7 +99,7 @@ double TransportCoeffs::get_eta_over_s(const double T, const double muB) const {
     } else if (shear_muB_ == 10) {
         eta_over_s *= get_muB_dependence_shear_profile(muB);
     }
-    eta_over_s = std::max(0., eta_over_s);
+    eta_over_s = std::min(0.5, std::max(0., eta_over_s));
     return eta_over_s;
 }
 
