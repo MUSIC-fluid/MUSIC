@@ -447,7 +447,7 @@ void Diss::Make_uWRHS(
     if (DATA.turn_on_bulk) {
         loopIdx = 6;
     }
-    if (DATA.FlagBulkChem) {
+    if (DATA.turn_on_bulk_chem) {
         loopIdx = 7;
     }
     if (DATA.turn_on_diff) {
@@ -579,7 +579,7 @@ void Diss::Make_uWRHS(
         w_rhs[5] += (grid_pt.pi_b) * theta_local * DATA.delta_tau;
     }
 
-    if(DATA.FlagBulkChem) {
+    if(DATA.turn_on_bulk_chem == 1) {
         w_rhs[6] -= (grid_pt.pi_b_chem) * (grid_pt.u[0]) / tau * DATA.delta_tau;
         w_rhs[6] += (grid_pt.pi_b_chem) * theta_local * DATA.delta_tau;
     }
