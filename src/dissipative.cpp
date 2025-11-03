@@ -442,10 +442,13 @@ void Diss::Make_uWRHS(
     double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta * tau};
     const double delta_tau = DATA.delta_tau;
 
-    int piIdxArr[9] = {4, 5, 6, 7, 8, 9, 11, 12, 13};
+    int piIdxArr[10] = {4, 5, 6, 7, 8, 9, 14, 11, 12, 13}; // take 14 for piBulkChem
     int loopIdx = 5;
     if (DATA.turn_on_bulk) {
         loopIdx = 6;
+    }
+    if (DATA.FlagBulkChem) {
+        loopIdx = 7;
     }
     if (DATA.turn_on_diff) {
         loopIdx = 9;
@@ -465,7 +468,14 @@ void Diss::Make_uWRHS(
                     gp1 = arena.piBulk_[Ip1];
                     gm1 = arena.piBulk_[Im1];
                     gm2 = arena.piBulk_[Im2];
-                } else {
+                } else if (idx_1d == 14) {
+                    g = arena.piBulkChem_[Ic];
+                    gp2 = arena.piBulkChem_[Ip2];
+                    gp1 = arena.piBulkChem_[Ip1];
+                    gm1 = arena.piBulkChem_[Im1];
+                    gm2 = arena.piBulkChem_[Im2];
+                }   
+                else {
                     g = arena.Wmunu_[idx_1d][Ic];
                     gp2 = arena.Wmunu_[idx_1d][Ip2];
                     gp1 = arena.Wmunu_[idx_1d][Ip1];
@@ -567,6 +577,11 @@ void Diss::Make_uWRHS(
     if (DATA.turn_on_bulk == 1) {
         w_rhs[5] -= (grid_pt.pi_b) * (grid_pt.u[0]) / tau * DATA.delta_tau;
         w_rhs[5] += (grid_pt.pi_b) * theta_local * DATA.delta_tau;
+    }
+
+    if(DATA.FlagBulkChem) {
+        w_rhs[6] -= (grid_pt.pi_b_chem) * (grid_pt.u[0]) / tau * DATA.delta_tau;
+        w_rhs[6] += (grid_pt.pi_b_chem) * theta_local * DATA.delta_tau;
     }
 }
 
