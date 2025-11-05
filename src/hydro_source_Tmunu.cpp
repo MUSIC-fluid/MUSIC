@@ -100,10 +100,27 @@ void HydroSourceTmunu::readIPGevent() {
 
             // Adjust ueta and shear tensor components
             ueta *= tau0;
-            pitaueta *= tau0 * DATA.sFactor;
-            pietaeta *= tau0 * tau0 * DATA.sFactor;
-            pixeta *= tau0 * DATA.sFactor;
-            piyeta *= tau0 * DATA.sFactor;
+            utau = sqrt(1. + ux * ux + uy * uy + ueta * ueta);
+            double visFactor = DATA.sFactor * DATA.preEqVisFactor;
+            if (DATA.FlagResumTransportCoeff) {
+                visFactor = DATA.sFactor;
+            }
+            pixx = pixx * visFactor;
+            pixy = pixy * visFactor;
+            pixeta = pixeta * visFactor;
+            piyy = piyy * visFactor;
+            piyeta = piyeta * visFactor;
+            pietaeta =
+                ((2.
+                      * (ux * uy * pixy + ux * ueta * pixeta
+                         + uy * ueta * piyeta)
+                  - (utau * utau - ux * ux) * pixx
+                  - (utau * utau - uy * uy) * piyy)
+                 / (utau * utau - ueta * ueta));
+            pitaux = (pixx * ux + pixy * uy + pixeta * ueta) / utau;
+            pitauy = (pixy * ux + piyy * uy + piyeta * ueta) / utau;
+            pitaueta = (pixeta * ux + piyeta * uy + pietaeta * ueta) / utau;
+            pitautau = (pitaux * ux + pitauy * uy + pitaueta * ueta) / utau;
 
             // Store the values in the containers
             energy_density_[ix][iy] = e * DATA.sFactor / Util::hbarc;  // 1/fm^4
@@ -155,22 +172,11 @@ void HydroSourceTmunu::get_hydro_energy_source(
     const auto &Wmunu = shear_tensor_[ix][iy];
     const auto &u = velocity_[ix][iy];
 
-    // Extract individual elements
-    double u0 = u[0];
-    double u1 = u[1];
-    double u2 = u[2];
-    double u3 = u[3];
-
-    double Wmunu0 = Wmunu[0];
-    double Wmunu1 = Wmunu[1];
-    double Wmunu2 = Wmunu[2];
-    double Wmunu3 = Wmunu[3];
-
     // Compute j^0 and j^i  (energy-momentum source term)
-    j_mu[0] = epsilon * u0 * u0 - (epsilon / 3.0) * (1.0 - u0 * u0) + Wmunu0;
-    j_mu[1] = epsilon * u0 * u1 + (epsilon / 3.0) * u0 * u1 + Wmunu1;
-    j_mu[2] = epsilon * u0 * u2 + (epsilon / 3.0) * u0 * u2 + Wmunu2;
-    j_mu[3] = epsilon * u0 * u3 + (epsilon / 3.0) * u0 * u3 + Wmunu3;
+    j_mu[0] = 4. / 3. * epsilon * u[0] * u[0] - (epsilon / 3.) + Wmunu[0];
+    j_mu[1] = 4. / 3. * epsilon * u[0] * u[1] + Wmunu[1];
+    j_mu[2] = 4. / 3. * epsilon * u[0] * u[2] + Wmunu[2];
+    j_mu[3] = 4. / 3. * epsilon * u[0] * u[3] + Wmunu[3];
 
     const double prefactors = 1.0 / dtau;
     for (int i = 0; i < 4; ++i) {
