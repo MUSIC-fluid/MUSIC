@@ -197,7 +197,6 @@ void Advance::FirstRKStepT(
     }
 }
 
-```cpp
 void Advance::FirstRKStepW(
     const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
     Fields &arenaFieldsNext, const int rk_flag, const double theta_local,
@@ -279,10 +278,6 @@ void Advance::FirstRKStepW(
 
     // ---------------------------------------------------------------------
     // NEW: chemical-equilibration bulk pressure evolution (pi_b_chem)
-    // Requires:
-    //   1) DATA.turn_on_bulk_chem == 1
-    //   2) diss_helper.Make_uPiChemSource(...) implemented
-    //   3) Diss::Make_uWRHS fills w_rhs[6] when turn_on_bulk_chem == 1
     // ---------------------------------------------------------------------
     if (DATA.turn_on_bulk_chem == 1) {
         double piBulkChemPrev_local = arenaFieldsPrev.piBulkChem_[fieldIdx];
@@ -381,8 +376,6 @@ void Advance::FirstRKStepW(
         arenaFieldsNext.piBulkChem_[fieldIdx] = grid_f.pi_b_chem;
     }
 }
-```
-
 
 void Advance::QuestRevertResummedTransCoeff(Cell_small &grid_pt) {
     double e_local = grid_pt.epsilon;

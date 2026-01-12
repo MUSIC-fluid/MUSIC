@@ -197,6 +197,9 @@ typedef struct init_data {
     //! coefficient related to the net baryon diff.
     double kappa_coefficient;
 
+    //! chemical reaction rate constant for bulk viscosity from chemical non-equilibrium
+    double chem_rate_C;
+
     //! decide whether to output the evolution data (1) or not (0)
     int outputEvolutionData;
 
