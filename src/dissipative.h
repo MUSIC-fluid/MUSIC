@@ -54,6 +54,11 @@ class Diss {
         const VelocityShearVec &sigma_1d,
         const std::vector<double> &thermalVec);
 
+    double Make_uPiChemSource(
+        const double tau, const Cell_small &grid_pt, const double theta_local,
+        const VelocityShearVec &sigma_1d,
+        const std::vector<double> &thermalVec);
+
     void Make_uqSource(
         const double tau, const Cell_small &grid_pt, const double theta_local,
         const DumuVec &a_local, const VelocityShearVec &sigma_1d,

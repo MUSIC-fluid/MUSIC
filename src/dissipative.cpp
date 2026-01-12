@@ -744,6 +744,63 @@ double Diss::Make_uPiSource(
     -Delta[a][eta] u[eta] q[tau]/tau
     -u[a]u[b]g[b][e] Dq[e]
 */
+
+double Diss::Make_uPiChemSource(
+    const double /*tau*/, const Cell_small &grid_pt, const double theta_local,
+    const VelocityShearVec &/*sigma_1d*/, const std::vector<double> &thermalVec) {
+
+    // --- read thermal variables already provided by MUSIC ---
+    const double epsilon     = thermalVec[0];
+    const double pressure    = thermalVec[2];
+    const double cs2         = thermalVec[5];
+    const double temperature = thermalVec[6];
+
+    // --- Eq. (69): close Y_q using I_QCD and Pi_chem ---
+    // I_QCD = e - 3P
+    const double Iqcd = (epsilon - 3.0 * pressure);
+    const double Iqcd_safe =
+        std::copysign(std::max(std::abs(Iqcd), small_eps), Iqcd);
+
+    // x = sqrt(Y_q) = 1 - 3 Pi_chem / I_QCD, clamp to [0, 1]
+    double x = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
+    x = std::max(0.0, std::min(1.0, x));
+
+    // --- Eq. (73): tau_Pi_chem = 1 / (C * T * (1 + x)^2) ---
+    // You must provide DATA.chem_rate_C (your constant C in R = C*T)
+    const double C = std::max(DATA.chem_rate_C, small_eps);
+    const double one_plus_x = (1.0 + x);
+
+    double tau_Pi_chem =
+        1.0 / std::max(C * std::max(temperature, small_eps)
+                           * one_plus_x * one_plus_x,
+                       small_eps);
+
+    // same clamp style as Make_uPiSource
+    tau_Pi_chem = std::min(10.0, std::max(3.0 * DATA.delta_tau, tau_Pi_chem));
+
+    // --- Eq. (76): (zeta/s)_chem = [(1-x)/(3 C (1+x)^2)] * (dI/de) ---
+    // with I=e-3P => dI/de = 1 - 3 cs^2
+    const double dIde = (1.0 - 3.0 * cs2);
+
+    double zeta_over_s =
+        (1.0 - x) / (3.0 * C * one_plus_x * one_plus_x) * dIde;
+
+    // keep robust/physical
+    zeta_over_s = std::max(0.0, zeta_over_s);
+
+    // convert to zeta using s = (e + P)/T (mu_B=0 case)
+    const double s =
+        (epsilon + pressure) / std::max(temperature, small_eps);
+    const double zeta = zeta_over_s * s;
+
+    // Israel–Stewart form (same structure as Make_uPiSource):
+    // D Pi_chem = [ - zeta*theta - Pi_chem ] / tau_Pi_chem
+    const double NS_term = -zeta * theta_local;
+    const double relax_term = -(grid_pt.pi_b_chem);
+
+    return (NS_term + relax_term) / std::max(tau_Pi_chem, small_eps);
+}
+
 void Diss::Make_uqSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
     const DumuVec &a_local, const VelocityShearVec &sigma_1d,
