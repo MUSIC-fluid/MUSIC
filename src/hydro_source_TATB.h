@@ -41,7 +41,13 @@ class HydroSourceTATB : public HydroSourceBase {
         const double y_CM, const double eta_0, const double sigma_eta) const;
     double eta_profile_plateau(
         const double eta, const double eta_0, const double sigma_eta) const;
-
+    double compute_yL(const double TA, const double TB, const double ycm, const double eta_0, const double sigma_eta, const double eta_m) const;
+    double eta_envelope_f(
+        const double eta, const double eta_m, const double sigma_eta) const;
+    double energy_eta_profile_normalisation_tilted(
+        const double TA, const double TB, const double eta_0, const double eta_m, const double sigma_eta,
+        const double ycm, const double M, const double yL
+    ) const;
     //! this function returns the energy source term J^\mu at a given point
     //! (tau, x, y, eta_s)
     void get_hydro_energy_source(
