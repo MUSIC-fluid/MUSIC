@@ -199,8 +199,13 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                 }
 
                 double bulk_Pi = 0.0;
+                double bulk_Pi_kinetic = 0.0;
+                double bulk_Pi_chem = 0.0;
                 if (DATA.turn_on_bulk == 1) {
-                    bulk_Pi = arena.piBulk_[fieldIdx];  // [1/fm^4]
+                    // Output separate components for analysis
+                    bulk_Pi_kinetic = arena.piBulk_[fieldIdx];  // [1/fm^4]
+                    bulk_Pi_chem = arena.piBulkChem_[fieldIdx];  // [1/fm^4]
+                    bulk_Pi = bulk_Pi_kinetic + bulk_Pi_chem;  // Total [1/fm^4]
                 }
 
                 // outputs for baryon diffusion part
@@ -235,7 +240,8 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                         }
                         if (DATA.turn_on_bulk) {
                             fprintf(
-                                out_file_bulkpi_xyeta, "%e %e %e\n", bulk_Pi,
+                                out_file_bulkpi_xyeta, "%e %e %e %e %e %e\n",
+                                tau, bulk_Pi_kinetic, bulk_Pi_chem, bulk_Pi,
                                 enthropy, thermalVec[5]);
                         }
                     }
@@ -262,11 +268,14 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                         }
                         if (DATA.turn_on_bulk == 1) {
                             float array1[] = {
+                                static_cast<float>(tau),
+                                static_cast<float>(bulk_Pi_kinetic),
+                                static_cast<float>(bulk_Pi_chem),
                                 static_cast<float>(bulk_Pi),
                                 static_cast<float>(enthropy),
                                 static_cast<float>(thermalVec[5])};
                             fwrite(
-                                array1, sizeof(float), 3,
+                                array1, sizeof(float), 6,
                                 out_file_bulkpi_xyeta);
                         }
                         if (DATA.turn_on_diff == 1) {

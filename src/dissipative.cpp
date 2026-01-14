@@ -766,7 +766,7 @@ double Diss::Make_uPiChemSource(
     x = std::max(0.0, std::min(1.0, x));
 
     // --- Eq. (73): tau_Pi_chem = 1 / (C * T * (1 + x)^2) ---
-    // You must provide DATA.chem_rate_C (your constant C in R = C*T)
+    //  Provide DATA.chem_rate_C constant C in R = C*T
     const double C = std::max(DATA.chem_rate_C, small_eps);
     const double one_plus_x = (1.0 + x);
 
@@ -775,7 +775,6 @@ double Diss::Make_uPiChemSource(
                            * one_plus_x * one_plus_x,
                        small_eps);
 
-    // same clamp style as Make_uPiSource
     tau_Pi_chem = std::min(10.0, std::max(3.0 * DATA.delta_tau, tau_Pi_chem));
 
     // --- Eq. (76): (zeta/s)_chem = [(1-x)/(3 C (1+x)^2)] * (dI/de) ---
@@ -785,7 +784,7 @@ double Diss::Make_uPiChemSource(
     double zeta_over_s =
         (1.0 - x) / (3.0 * C * one_plus_x * one_plus_x) * dIde;
 
-    // keep robust/physical
+    // keep robust/physical values
     zeta_over_s = std::max(0.0, zeta_over_s);
 
     // convert to zeta using s = (e + P)/T (mu_B=0 case)
@@ -793,7 +792,7 @@ double Diss::Make_uPiChemSource(
         (epsilon + pressure) / std::max(temperature, small_eps);
     const double zeta = zeta_over_s * s;
 
-    // Israel–Stewart form (same structure as Make_uPiSource):
+    // Israel–Stewart form 
     // D Pi_chem = [ - zeta*theta - Pi_chem ] / tau_Pi_chem
     const double NS_term = -zeta * theta_local;
     const double relax_term = -(grid_pt.pi_b_chem);

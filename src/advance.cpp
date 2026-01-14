@@ -260,7 +260,6 @@ void Advance::FirstRKStepW(
 
     if (DATA.turn_on_bulk == 1) {
         double piBulkPrev = arenaFieldsPrev.piBulk_[fieldIdx];
-        double piBulkChemPrev = arenaFieldsPrev.piBulkChem_[fieldIdx];
         tempf =
             ((1. - rk_flag) * (grid_c.pi_b * grid_c.u[0])
              + rk_flag * piBulkPrev * u0Prev);
