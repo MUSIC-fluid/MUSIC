@@ -286,10 +286,10 @@ InitData read_in_parameters(std::string input_file) {
     } else {
         parameter_list.FlagResumTransportCoeff = false;
     }
-    if (getParameter(input_file, "FlagBulkChem", 0) == 1) {
-        parameter_list.FlagBulkChem = true;
+    if (getParameter(input_file, "turn_on_bulk_chem", 0) == 1) {
+        parameter_list.turn_on_bulk_chem = 1;
     } else {
-        parameter_list.FlagBulkChem = false;
+        parameter_list.turn_on_bulk_chem = 0;
     }
     parameter_list.resumTransCoeffAlpha =
         (getParameter(input_file, "resumTransCoeffAlpha", 1.5));
@@ -395,11 +395,11 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.chem_rate_C =
         (getParameter(input_file, "chem_rate_C", 1.0));
 
-    // Set turn_on_bulk_chem automatically based on FlagBulkChem
-    if (parameter_list.FlagBulkChem) {
+    // Set turn_on_bulk_chem automatically based on turn_on_bulk_chem
+    if (parameter_list.turn_on_bulk_chem == 1) {
         parameter_list.turn_on_bulk_chem = 1;
         music_message << "turn_on_bulk_chem is automatically set to 1 "
-                      << "because FlagBulkChem = 1";
+                      << "because turn_on_bulk_chem = 1";
         music_message.flush("info");
     } else {
         parameter_list.turn_on_bulk_chem = 0;

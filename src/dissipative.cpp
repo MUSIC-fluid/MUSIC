@@ -296,6 +296,27 @@ void Diss::Make_uWSource(
 
         ///////////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////
+        //              Add coupling to bulk viscous pressure                //
+        //             transport_coefficient_b*Bulk*sigma^mu nu              //
+        //              transport_coefficient2_b*Bulk*W^mu nu                //
+        ///////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////
+        double Coupling_to_Bulk = 0.0;
+        if (DATA.include_second_order_terms == 1) {
+            double Bulk_Sigma = grid_pt.pi_b * sigma[mu][nu];
+            double Bulk_W = grid_pt.pi_b * Wmunu[mu][nu];
+
+            // multiply term by its respective transport coefficient
+            double Bulk_Sigma_term = Bulk_Sigma * transport_coefficient_b;
+            double Bulk_W_term = Bulk_W * transport_coefficient2_b;
+
+            // full term is
+            // first term: sign changes according to metric sign convention
+            Coupling_to_Bulk = -Bulk_Sigma_term + Bulk_W_term;
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////
         //                      Vorticity Term                               //
         ///////////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////
@@ -387,27 +408,6 @@ void Diss::Make_uWSource(
             WW_term = -term1_WW - term2_WW;
         }
 
-        ///////////////////////////////////////////////////////////////////////
-        ///////////////////////////////////////////////////////////////////////
-        //              Add coupling to bulk viscous pressure                //
-        //             transport_coefficient_b*Bulk*sigma^mu nu              //
-        //              transport_coefficient2_b*Bulk*W^mu nu                //
-        ///////////////////////////////////////////////////////////////////////
-        ///////////////////////////////////////////////////////////////////////
-        double Coupling_to_Bulk = 0.0;
-        if (DATA.include_second_order_terms == 1) {
-            double Bulk_Sigma = grid_pt.pi_b * sigma[mu][nu];
-            double Bulk_W = grid_pt.pi_b * Wmunu[mu][nu];
-
-            // multiply term by its respective transport coefficient
-            double Bulk_Sigma_term = Bulk_Sigma * transport_coefficient_b;
-            double Bulk_W_term = Bulk_W * transport_coefficient2_b;
-
-            // full term is
-            // first term: sign changes according to metric sign convention
-            Coupling_to_Bulk = -Bulk_Sigma_term + Bulk_W_term;
-        }
-
         // final answer is
         sourceTerms[idx_1d - 4] =
             ((NS_term + tempf + Vorticity_term + Wsigma_term + WW_term
@@ -444,14 +444,14 @@ void Diss::Make_uWRHS(
 
     int piIdxArr[10] = {4, 5, 6, 7, 8, 9, 14, 11, 12, 13}; // take 14 for piBulkChem
     int loopIdx = 5;
-    if (DATA.turn_on_bulk) {
+    if (DATA.turn_on_bulk == 1){
         loopIdx = 6;
     }
-    if (DATA.turn_on_bulk_chem) {
+    if (DATA.turn_on_bulk_chem == 1){
         loopIdx = 7;
     }
-    if (DATA.turn_on_diff) {
-        loopIdx = 9;
+    if (DATA.turn_on_diff == 1){
+        loopIdx = 10;
     }
 
     // pi^\mu\nu is symmetric
@@ -749,49 +749,43 @@ double Diss::Make_uPiChemSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
     const VelocityShearVec &/*sigma_1d*/, const std::vector<double> &thermalVec) {
 
-    // --- read thermal variables already provided by MUSIC ---
+    // --- read thermal variables  ---
     const double epsilon     = thermalVec[0];
     const double pressure    = thermalVec[2];
     const double cs2         = thermalVec[5];
     const double temperature = thermalVec[6];  // 1/fm in MUSIC units
 
-    // --- Eq. (69): close Y_q using I_QCD and Pi_chem ---
+    // Solve Y_q using I_QCD and Pi_chem ---
     // I_QCD = e - 3P
     const double Iqcd = (epsilon - 3.0 * pressure);
     const double Iqcd_safe =
         std::copysign(std::max(std::abs(Iqcd), small_eps), Iqcd);
 
-    // x = sqrt(Y_q) = 1 - 3 Pi_chem / I_QCD, clamp to [0, 1]
-    const double x_raw = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
-    const double y_q_raw = x_raw * x_raw;
-    double x = std::max(0.0, std::min(1.0, x_raw));
+    // sqrt(Y_q) = 1 - 3 Pi_chem / I_QCD, clamp to [0, 1]
+    const double y_q_sqrt_raw = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
+    const double y_q_raw = y_q_sqrt_raw * y_q_sqrt_raw;
+    double y_q_sqrt = std::max(0.0, std::min(1.0, y_q_sqrt_raw));
 
-    // --- Eq. (73): tau_Pi_chem = 1 / (C * T * (1 + x)^2) ---
+    // Solve tau_Pi_chem = 1 / (C * T * (1 + sqrt(Y_q))^2) ---
     //  Provide DATA.chem_rate_C constant C in R = C*T
     const double C = std::max(DATA.chem_rate_C, small_eps);
-    const double one_plus_x = (1.0 + x);
+    const double one_plus_y_q_sqrt = (1.0 + y_q_sqrt);
 
     double tau_Pi_chem =
         1.0 / std::max(C * std::max(temperature, small_eps)
-                           * one_plus_x * one_plus_x,
+                           * one_plus_y_q_sqrt * one_plus_y_q_sqrt,
                        small_eps);
 
     tau_Pi_chem = std::min(10.0, std::max(3.0 * DATA.delta_tau, tau_Pi_chem));
 
-    // --- Eq. (76): (zeta/s)_chem = [(1-x)/(3 C (1+x)^2)] * (dI/de) ---
+    // Solve zeta_chem = [(1-sqrt(Y_q))/(3 C (1+sqrt(Y_q))^2)] * (dI/de) * s ---
     // with I=e-3P => dI/de = 1 - 3 cs^2
     const double dIde = (1.0 - 3.0 * cs2);
-
-    const double zeta_over_s_raw =
-        (1.0 - x) / (3.0 * C * one_plus_x * one_plus_x) * dIde;
-
-    // keep robust/physical values
-    const double zeta_over_s = std::max(0.0, zeta_over_s_raw);
-
-    // convert to zeta using s = (e + P)/T (mu_B=0 case)
-    const double s =
-        (epsilon + pressure) / std::max(temperature, small_eps);
-    const double zeta = zeta_over_s * s;
+    const double s = thermalVec[12];
+    const double zeta_raw =
+        (1.0 - y_q_sqrt) / (3.0 * C * one_plus_y_q_sqrt * one_plus_y_q_sqrt)
+        * dIde * s;
+    const double zeta = std::max(0.0, zeta_raw);
 
     // Israel–Stewart form 
     // D Pi_chem = [ - zeta*theta - Pi_chem ] / tau_Pi_chem
@@ -806,7 +800,8 @@ double Diss::Make_uPiChemSource(
 
     if (y_q_raw > 1.0 + 1e-6 && yq_reports < report_limit) {
         music_message << "[chem-bulk] Y_q>1 at tau=" << tau
-                      << " Y_q=" << y_q_raw << " x_raw=" << x_raw
+                      << " Y_q=" << y_q_raw
+                      << " sqrt(Y_q)_raw=" << y_q_sqrt_raw
                       << " Pi_chem=" << grid_pt.pi_b_chem
                       << " Iqcd=" << Iqcd << " T=" << temperature * hbarc
                       << " GeV";
@@ -814,10 +809,10 @@ double Diss::Make_uPiChemSource(
         yq_reports++;
     }
 
-    if (zeta_over_s_raw < -1e-12 && zeta_reports < report_limit) {
-        music_message << "[chem-bulk] zeta/s < 0 at tau=" << tau
-                      << " zeta/s_raw=" << zeta_over_s_raw
-                      << " cs2=" << cs2 << " x=" << x;
+    if (zeta_raw < -1e-12 && zeta_reports < report_limit) {
+        music_message << "[chem-bulk] zeta_chem < 0 at tau=" << tau
+                      << " zeta_chem_raw=" << zeta_raw
+                      << " cs2=" << cs2 << " sqrt(Y_q)=" << y_q_sqrt;
         music_message.flush("warning");
         zeta_reports++;
     }

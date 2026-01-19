@@ -733,7 +733,7 @@ void Init::initial_IPGlasma_XY_with_pi(
 
                 if (DATA.Initial_profile == 9) {
                     double pressure = eos.get_pressure(epsilon, rhob);
-                    if(DATA.FlagBulkChem) {
+                    if (DATA.turn_on_bulk_chem == 1) {
                         arenaFieldsCurr.piBulk_[Fidx] = 0;
                         arenaFieldsCurr.piBulkChem_[Fidx] = 
                             (epsilon / 3. - pressure) * DATA.preEqVisFactor;
