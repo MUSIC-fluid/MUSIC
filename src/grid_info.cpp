@@ -174,6 +174,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                 double vz = uz / ut;
 
                 double enthropy = thermalVec[0] + thermalVec[2];  // [1/fm^4]
+                double trace_anomaly = thermalVec[0] - 3.0 * thermalVec[2];
 
                 double Wtautau = 0.0;
                 double Wtaux = 0.0;
@@ -240,9 +241,10 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                         }
                         if (DATA.turn_on_bulk) {
                             fprintf(
-                                out_file_bulkpi_xyeta, "%e %e %e %e %e %e\n",
+                                out_file_bulkpi_xyeta,
+                                "%e %e %e %e %e %e %e\n",
                                 tau, bulk_Pi_kinetic, bulk_Pi_chem, bulk_Pi,
-                                enthropy, thermalVec[5]);
+                                enthropy, thermalVec[5], trace_anomaly);
                         }
                     }
                 } else {
@@ -273,9 +275,10 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                                 static_cast<float>(bulk_Pi_chem),
                                 static_cast<float>(bulk_Pi),
                                 static_cast<float>(enthropy),
-                                static_cast<float>(thermalVec[5])};
+                                static_cast<float>(thermalVec[5]),
+                                static_cast<float>(trace_anomaly)};
                             fwrite(
-                                array1, sizeof(float), 6,
+                                array1, sizeof(float), 7,
                                 out_file_bulkpi_xyeta);
                         }
                         if (DATA.turn_on_diff == 1) {

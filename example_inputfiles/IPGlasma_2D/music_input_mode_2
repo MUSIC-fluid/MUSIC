@@ -92,8 +92,6 @@ Shear_to_S_ratio 0.12              # value of \eta/s
 T_dependent_Shear_to_S_ratio  0    # flag to use temperature dep. \eta/s(T)
 Include_Bulk_Visc_Yes_1_No_0 1     # include bulk viscous effect
 T_dependent_Bulk_to_S_ratio 8      # include Temperature-dependent \zeta/s(T)
-FlagBulkChem 1                     # include bulk viscosity from chemical non-equilibrium
-chem_rate_C 1.0                    # chemical reaction rate constant C (in units of 1/GeV)
 Include_second_order_terms 1       # include second order non-linear coupling terms
 Include_Rhob_Yes_1_No_0 0
 turn_on_baryon_diffusion 0

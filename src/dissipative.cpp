@@ -746,14 +746,14 @@ double Diss::Make_uPiSource(
 */
 
 double Diss::Make_uPiChemSource(
-    const double /*tau*/, const Cell_small &grid_pt, const double theta_local,
+    const double tau, const Cell_small &grid_pt, const double theta_local,
     const VelocityShearVec &/*sigma_1d*/, const std::vector<double> &thermalVec) {
 
     // --- read thermal variables already provided by MUSIC ---
     const double epsilon     = thermalVec[0];
     const double pressure    = thermalVec[2];
     const double cs2         = thermalVec[5];
-    const double temperature = thermalVec[6];
+    const double temperature = thermalVec[6];  // 1/fm in MUSIC units
 
     // --- Eq. (69): close Y_q using I_QCD and Pi_chem ---
     // I_QCD = e - 3P
@@ -762,8 +762,9 @@ double Diss::Make_uPiChemSource(
         std::copysign(std::max(std::abs(Iqcd), small_eps), Iqcd);
 
     // x = sqrt(Y_q) = 1 - 3 Pi_chem / I_QCD, clamp to [0, 1]
-    double x = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
-    x = std::max(0.0, std::min(1.0, x));
+    const double x_raw = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
+    const double y_q_raw = x_raw * x_raw;
+    double x = std::max(0.0, std::min(1.0, x_raw));
 
     // --- Eq. (73): tau_Pi_chem = 1 / (C * T * (1 + x)^2) ---
     //  Provide DATA.chem_rate_C constant C in R = C*T
@@ -781,11 +782,11 @@ double Diss::Make_uPiChemSource(
     // with I=e-3P => dI/de = 1 - 3 cs^2
     const double dIde = (1.0 - 3.0 * cs2);
 
-    double zeta_over_s =
+    const double zeta_over_s_raw =
         (1.0 - x) / (3.0 * C * one_plus_x * one_plus_x) * dIde;
 
     // keep robust/physical values
-    zeta_over_s = std::max(0.0, zeta_over_s);
+    const double zeta_over_s = std::max(0.0, zeta_over_s_raw);
 
     // convert to zeta using s = (e + P)/T (mu_B=0 case)
     const double s =
@@ -796,6 +797,47 @@ double Diss::Make_uPiChemSource(
     // D Pi_chem = [ - zeta*theta - Pi_chem ] / tau_Pi_chem
     const double NS_term = -zeta * theta_local;
     const double relax_term = -(grid_pt.pi_b_chem);
+
+    // Sanity diagnostics (rate-limited to avoid log spam)
+    const int report_limit = 20;
+    static int yq_reports = 0;
+    static int zeta_reports = 0;
+    static int ns_reports = 0;
+
+    if (y_q_raw > 1.0 + 1e-6 && yq_reports < report_limit) {
+        music_message << "[chem-bulk] Y_q>1 at tau=" << tau
+                      << " Y_q=" << y_q_raw << " x_raw=" << x_raw
+                      << " Pi_chem=" << grid_pt.pi_b_chem
+                      << " Iqcd=" << Iqcd << " T=" << temperature * hbarc
+                      << " GeV";
+        music_message.flush("warning");
+        yq_reports++;
+    }
+
+    if (zeta_over_s_raw < -1e-12 && zeta_reports < report_limit) {
+        music_message << "[chem-bulk] zeta/s < 0 at tau=" << tau
+                      << " zeta/s_raw=" << zeta_over_s_raw
+                      << " cs2=" << cs2 << " x=" << x;
+        music_message.flush("warning");
+        zeta_reports++;
+    }
+
+    const double pi_ns = NS_term;
+    const double pi_ns_mag = std::abs(pi_ns);
+    const double pi_chem_mag = std::abs(grid_pt.pi_b_chem);
+    if ((pi_ns_mag > 1e-6 || pi_chem_mag > 1e-6)
+        && ns_reports < report_limit) {
+        const double denom = std::max(pi_ns_mag, 1e-6);
+        const double rel = (grid_pt.pi_b_chem - pi_ns) / denom;
+        if (grid_pt.pi_b_chem * pi_ns < 0.0 || std::abs(rel) > 1.0) {
+            music_message << "[chem-bulk] Pi_chem vs NS at tau=" << tau
+                          << " Pi_chem=" << grid_pt.pi_b_chem
+                          << " Pi_NS=" << pi_ns << " theta=" << theta_local
+                          << " zeta=" << zeta;
+            music_message.flush("info");
+            ns_reports++;
+        }
+    }
 
     return (NS_term + relax_term) / std::max(tau_Pi_chem, small_eps);
 }
