@@ -763,11 +763,11 @@ const double Iqcd_safe =
 
 // Eq.(69) with I_3 = I_QCD and I_0 = 0:
 // Y_q = (1 - 3 Pi_chem / I_QCD)^2, clamp to [0, 1]
-const double a = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
-const double y_q_raw = a * a;
+const double y_q_inner = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
+const double y_q_raw = y_q_inner * y_q_inner;
 const double y_q = std::max(0.0, std::min(1.0, y_q_raw));
-// sqrt(Y_q) = |a|, but consistent with clamp -> cap at 1
-const double y_q_sqrt = std::min(1.0, std::abs(a));
+// sqrt(Y_q) = |y_q_inner|, but consistent with clamp -> cap at 1
+const double y_q_sqrt = std::min(1.0, std::abs(y_q_inner));
 
 // Solve tau_Pi_chem = 1 / (C * T * (1 + sqrt(Y_q))^2) ---
 //  Provide DATA.chem_rate_C constant C in R = C*T
