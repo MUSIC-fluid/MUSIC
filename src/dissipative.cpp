@@ -755,42 +755,43 @@ double Diss::Make_uPiChemSource(
     const double cs2         = thermalVec[5];
     const double temperature = thermalVec[6];  // 1/fm in MUSIC units
 
-    // Solve Y_q using I_QCD and Pi_chem ---
-    // I_QCD = e - 3P
-    const double Iqcd = (epsilon - 3.0 * pressure);
-    const double Iqcd_safe =
-        std::copysign(std::max(std::abs(Iqcd), small_eps), Iqcd);
+ // Solve Y_q using I_QCD and Pi_chem ---
+// I_QCD = e - 3P
+const double Iqcd = (epsilon - 3.0 * pressure);
+const double Iqcd_safe =
+    std::copysign(std::max(std::abs(Iqcd), small_eps), Iqcd);
 
-    // sqrt(Y_q) = 1 - 3 Pi_chem / I_QCD, clamp to [0, 1]
-    const double y_q_sqrt_raw = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
-    const double y_q_raw = y_q_sqrt_raw * y_q_sqrt_raw;
-    double y_q_sqrt = std::max(0.0, std::min(1.0, y_q_sqrt_raw));
+// Eq.(69) with I_3 = I_QCD and I_0 = 0:
+// Y_q = (1 - 3 Pi_chem / I_QCD)^2, clamp to [0, 1]
+const double a = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
+const double y_q_raw = a * a;
+const double y_q = std::max(0.0, std::min(1.0, y_q_raw));
+// sqrt(Y_q) = |a|, but consistent with clamp -> cap at 1
+const double y_q_sqrt = std::min(1.0, std::abs(a));
 
-    // Solve tau_Pi_chem = 1 / (C * T * (1 + sqrt(Y_q))^2) ---
-    //  Provide DATA.chem_rate_C constant C in R = C*T
-    const double C = std::max(DATA.chem_rate_C, small_eps);
-    const double one_plus_y_q_sqrt = (1.0 + y_q_sqrt);
+// Solve tau_Pi_chem = 1 / (C * T * (1 + sqrt(Y_q))^2) ---
+//  Provide DATA.chem_rate_C constant C in R = C*T
+const double C = std::max(DATA.chem_rate_C, small_eps);
+double tau_Pi_chem =
+    1.0 / std::max(C * std::max(temperature, small_eps)
+                       * (1.0 + y_q_sqrt) * (1.0 + y_q_sqrt),
+                   small_eps);
 
-    double tau_Pi_chem =
-        1.0 / std::max(C * std::max(temperature, small_eps)
-                           * one_plus_y_q_sqrt * one_plus_y_q_sqrt,
-                       small_eps);
+tau_Pi_chem = std::min(10.0, std::max(3.0 * DATA.delta_tau, tau_Pi_chem));
 
-    tau_Pi_chem = std::min(10.0, std::max(3.0 * DATA.delta_tau, tau_Pi_chem));
+// Eq.(58) with I_0 = 0 and I(e,Y_q) = sqrt(Y_q) * I_3(e):
+// zeta_chem = tau_Pi_chem * (1/3) * (1 - sqrt(Y_q)) * (dI3/de) * (e + P)
+// with I_3 = I_QCD = e - 3P => dI3/de = 1 - 3 cs^2
+const double dI3de = (1.0 - 3.0 * cs2);
+const double zeta_raw =
+    tau_Pi_chem * (1.0 / 3.0) * (1.0 - y_q_sqrt) * dI3de * (epsilon + pressure);
+const double zeta = std::max(0.0, zeta_raw);
 
-    // Solve zeta_chem = [(1-sqrt(Y_q))/(3 C (1+sqrt(Y_q))^2)] * (dI/de) * s ---
-    // with I=e-3P => dI/de = 1 - 3 cs^2
-    const double dIde = (1.0 - 3.0 * cs2);
-    const double s = thermalVec[12];
-    const double zeta_raw =
-        (1.0 - y_q_sqrt) / (3.0 * C * one_plus_y_q_sqrt * one_plus_y_q_sqrt)
-        * dIde * s;
-    const double zeta = std::max(0.0, zeta_raw);
+// Israel–Stewart form
+// D Pi_chem = [ - zeta*theta - Pi_chem ] / tau_Pi_chem
+const double NS_term = -zeta * theta_local;
+const double relax_term = -(grid_pt.pi_b_chem);
 
-    // Israel–Stewart form 
-    // D Pi_chem = [ - zeta*theta - Pi_chem ] / tau_Pi_chem
-    const double NS_term = -zeta * theta_local;
-    const double relax_term = -(grid_pt.pi_b_chem);
 
     // Sanity diagnostics (rate-limited to avoid log spam)
     const int report_limit = 20;
@@ -800,8 +801,9 @@ double Diss::Make_uPiChemSource(
 
     if (y_q_raw > 1.0 + 1e-6 && yq_reports < report_limit) {
         music_message << "[chem-bulk] Y_q>1 at tau=" << tau
-                      << " Y_q=" << y_q_raw
-                      << " sqrt(Y_q)_raw=" << y_q_sqrt_raw
+                      << " Y_q_raw=" << y_q_raw
+                      << " Y_q=" << y_q
+                      << " sqrt(Y_q)=" << y_q_sqrt
                       << " Pi_chem=" << grid_pt.pi_b_chem
                       << " Iqcd=" << Iqcd << " T=" << temperature * hbarc
                       << " GeV";
