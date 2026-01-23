@@ -374,6 +374,7 @@ void Advance::FirstRKStepW(
         arenaFieldsNext.piBulk_[fieldIdx] = grid_f.pi_b;
         arenaFieldsNext.piBulkChem_[fieldIdx] = grid_f.pi_b_chem;
     }
+    arenaFieldsNext.piBulk_[fieldIdx] = grid_f.pi_b;
 }
 
 void Advance::QuestRevertResummedTransCoeff(Cell_small &grid_pt) {

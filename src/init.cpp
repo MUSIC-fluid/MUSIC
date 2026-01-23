@@ -753,6 +753,7 @@ void Init::initial_IPGlasma_XY_with_pi(
                     arenaFieldsCurr.piBulk_[Fidx] = grid_c.pi_b;
                     arenaFieldsCurr.piBulkChem_[Fidx] = grid_c.pi_b_chem;
                 }
+                arenaFieldsCurr.piBulk_[Fidx] = grid_c.pi_b;
             }
             for (int i = 0; i < 4; i++) {
                 arenaFieldsPrev.u_[i][Fidx] = arenaFieldsCurr.u_[i][Fidx];
