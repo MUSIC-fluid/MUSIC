@@ -18,6 +18,7 @@ TEST_CASE("Does cell = work") {
     CHECK(cell2.u == cell1.u);
     CHECK(cell2.Wmunu == cell1.Wmunu);
     CHECK(cell2.pi_b == cell1.pi_b);
+    CHECK(cell2.pi_b_chem == cell1.pi_b_chem);
 }
 
 TEST_CASE("Does cell + work") {

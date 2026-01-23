@@ -15,6 +15,7 @@ class Cell_small {
 
     ViscousVec Wmunu = {0.};
     double pi_b = 0.;
+    double pi_b_chem = 0;
     std::array<double, 3> Lambdas = {0.};
 
     Cell_small operator+(Cell_small const &obj) {
@@ -31,6 +32,7 @@ class Cell_small {
             res.Wmunu[i] = Wmunu[i] + obj.Wmunu[i];
         }
         res.pi_b = pi_b + obj.pi_b;
+        res.pi_b_chem = pi_b_chem + obj.pi_b_chem;
         return (res);
     }
 
@@ -48,6 +50,7 @@ class Cell_small {
             res.Wmunu[i] = Wmunu[i] * a;
         }
         res.pi_b = pi_b * a;
+        res.pi_b_chem = pi_b_chem * a;
         return (res);
     }
 };

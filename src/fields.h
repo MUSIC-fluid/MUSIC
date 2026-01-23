@@ -22,6 +22,7 @@ class Fields {
     std::vector<double> e_;
     std::vector<double> rhob_;
     std::vector<double> piBulk_;
+    std::vector<double> piBulkChem_;
 
     // Vector & tensor fields
     std::vector<std::vector<double>> u_;
