@@ -392,8 +392,7 @@ InitData read_in_parameters(std::string input_file) {
         (getParameter(input_file, "kappa_coefficient", 0.0));
 
     // chemical reaction rate for bulk viscosity from chemical non-equilibrium
-    parameter_list.chem_rate_C =
-        (getParameter(input_file, "chem_rate_C", 1.0));
+    parameter_list.chem_rate_C = (getParameter(input_file, "chem_rate_C", 1.0));
 
     // Set turn_on_bulk_chem automatically based on turn_on_bulk_chem
     if (parameter_list.turn_on_bulk_chem == 1) {

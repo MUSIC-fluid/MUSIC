@@ -204,7 +204,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                 double bulk_Pi_chem = 0.0;
                 if (DATA.turn_on_bulk == 1) {
                     // Output separate components for analysis
-                    bulk_Pi_kinetic = arena.piBulk_[fieldIdx];  // [1/fm^4]
+                    bulk_Pi_kinetic = arena.piBulk_[fieldIdx];   // [1/fm^4]
                     bulk_Pi_chem = arena.piBulkChem_[fieldIdx];  // [1/fm^4]
                     bulk_Pi = bulk_Pi_kinetic + bulk_Pi_chem;  // Total [1/fm^4]
                 }
@@ -241,8 +241,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
                         }
                         if (DATA.turn_on_bulk) {
                             fprintf(
-                                out_file_bulkpi_xyeta,
-                                "%e %e %e %e %e %e %e\n",
+                                out_file_bulkpi_xyeta, "%e %e %e %e %e %e %e\n",
                                 tau, bulk_Pi_kinetic, bulk_Pi_chem, bulk_Pi,
                                 enthropy, thermalVec[5], trace_anomaly);
                         }
