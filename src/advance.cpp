@@ -371,9 +371,9 @@ void Advance::FirstRKStepW(
     }
     for (int idx_1d = 0; idx_1d < 14; idx_1d++) {
         arenaFieldsNext.Wmunu_[idx_1d][fieldIdx] = grid_f.Wmunu[idx_1d];
-        arenaFieldsNext.piBulk_[fieldIdx] = grid_f.pi_b;
-        arenaFieldsNext.piBulkChem_[fieldIdx] = grid_f.pi_b_chem;
     }
+    arenaFieldsNext.piBulk_[fieldIdx] = grid_f.pi_b;
+    arenaFieldsNext.piBulkChem_[fieldIdx] = grid_f.pi_b_chem;
 }
 
 void Advance::QuestRevertResummedTransCoeff(Cell_small &grid_pt) {

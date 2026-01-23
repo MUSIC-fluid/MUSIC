@@ -750,9 +750,9 @@ void Init::initial_IPGlasma_XY_with_pi(
                 regulationResummedTransCoeff(grid_c);
                 for (int idx_1d = 0; idx_1d < 10; idx_1d++) {
                     arenaFieldsCurr.Wmunu_[idx_1d][Fidx] = grid_c.Wmunu[idx_1d];
-                    arenaFieldsCurr.piBulk_[Fidx] = grid_c.pi_b;
-                    arenaFieldsCurr.piBulkChem_[Fidx] = grid_c.pi_b_chem;
                 }
+                arenaFieldsCurr.piBulk_[Fidx] = grid_c.pi_b;
+                arenaFieldsCurr.piBulkChem_[Fidx] = grid_c.pi_b_chem;
             }
             for (int i = 0; i < 4; i++) {
                 arenaFieldsPrev.u_[i][Fidx] = arenaFieldsCurr.u_[i][Fidx];
