@@ -220,7 +220,7 @@ void Advance::FirstRKStepW(
     /* Advance uWmunu */
 
     // spatial gradients for all viscous quantities
-    std::array<double, 9> w_rhs = {0.};
+    std::array<double, 10> w_rhs = {0.};
     diss_helper.Make_uWRHS(
         tau_now, arenaFieldsCurr, fieldIdx, ix, iy, ieta, w_rhs, theta_local,
         a_local);
@@ -309,7 +309,7 @@ void Advance::FirstRKStepW(
                 ((1. - rk_flag) * (grid_c.Wmunu[idx_1d] * grid_c.u[0])
                  + rk_flag * WmunuPrev * u0Prev);
             tempf += sourceTerms[idx_1d - 11] * (DATA.delta_tau);
-            tempf += w_rhs[idx_1d - 5];
+            tempf += w_rhs[idx_1d - 4];
             tempf += rk_flag * (grid_c.Wmunu[idx_1d] * grid_c.u[0]);
             tempf *= 1. / (1. + rk_flag);
 

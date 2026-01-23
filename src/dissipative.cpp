@@ -426,7 +426,7 @@ void Diss::Make_uWSource(
 
 void Diss::Make_uWRHS(
     const double tau, Fields &arena, const int fieldIdx, const int ix,
-    const int iy, const int ieta, std::array<double, 9> &w_rhs,
+    const int iy, const int ieta, std::array<double, 10> &w_rhs,
     const double theta_local, const DumuVec &a_local) {
     auto grid_pt = arena.getCell(fieldIdx);
     auto Wmunu_local = Util::UnpackVecToMatrix(grid_pt.Wmunu);
@@ -771,20 +771,19 @@ double Diss::Make_uPiChemSource(
 
     // Eq.(69) with I_3 = I_QCD and I_0 = 0:
     // Y_q = (1 - 3 Pi_chem / I_QCD)^2, clamp to [0, 1]
-    const double y_q_inner = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
-    const double y_q_raw = y_q_inner * y_q_inner;
-    const double y_q = std::max(0.0, std::min(1.0, y_q_raw));
     // sqrt(Y_q) = |y_q_inner|, but consistent with clamp -> cap at 1
+    const double y_q_inner = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
     const double y_q_sqrt = std::min(1.0, std::abs(y_q_inner));
+    const double y_q_raw = y_q_inner * y_q_inner;
 
     // Solve tau_Pi_chem = 1 / (C * T * (1 + sqrt(Y_q))^2) ---
     //  Provide DATA.chem_rate_C constant C in R = C*T
-    const double C = std::max(DATA.chem_rate_C, small_eps);
-    double tau_Pi_chem = 1.0
-                         / std::max(
-                             C * std::max(temperature, small_eps)
-                                 * (1.0 + y_q_sqrt) * (1.0 + y_q_sqrt),
-                             small_eps);
+    const double chem_rate_C = std::max(DATA.chem_rate_C, small_eps);
+    double tau_Pi_chem =
+        1.0
+        / std::max(
+            chem_rate_C * temperature * (1.0 + y_q_sqrt) * (1.0 + y_q_sqrt),
+            small_eps);
 
     tau_Pi_chem = std::min(10.0, std::max(3.0 * DATA.delta_tau, tau_Pi_chem));
 
@@ -801,47 +800,22 @@ double Diss::Make_uPiChemSource(
     const double NS_term = -zeta * theta_local;
     const double relax_term = -(grid_pt.pi_b_chem);
 
-    // Sanity diagnostics (rate-limited to avoid log spam)
-    const int report_limit = 20;
-    static int yq_reports = 0;
-    static int zeta_reports = 0;
-    static int ns_reports = 0;
-
-    if (y_q_raw > 1.0 + 1e-6 && yq_reports < report_limit) {
+    if (y_q_raw > 1.0 + 1e-6 && echo_level_ > 5) {
         music_message << "[chem-bulk] Y_q>1 at tau=" << tau
-                      << " Y_q_raw=" << y_q_raw << " Y_q=" << y_q
-                      << " sqrt(Y_q)=" << y_q_sqrt
+                      << " Y_q_raw=" << y_q_raw << " sqrt(Y_q)=" << y_q_sqrt
                       << " Pi_chem=" << grid_pt.pi_b_chem << " Iqcd=" << Iqcd
                       << " T=" << temperature * hbarc << " GeV";
         music_message.flush("warning");
-        yq_reports++;
     }
 
-    if (zeta_raw < -1e-12 && zeta_reports < report_limit) {
+    if (zeta_raw < -1e-12 && echo_level_ > 5) {
         music_message << "[chem-bulk] zeta_chem < 0 at tau=" << tau
                       << " zeta_chem_raw=" << zeta_raw << " cs2=" << cs2
                       << " sqrt(Y_q)=" << y_q_sqrt;
         music_message.flush("warning");
-        zeta_reports++;
     }
 
-    const double pi_ns = NS_term;
-    const double pi_ns_mag = std::abs(pi_ns);
-    const double pi_chem_mag = std::abs(grid_pt.pi_b_chem);
-    if ((pi_ns_mag > 1e-6 || pi_chem_mag > 1e-6) && ns_reports < report_limit) {
-        const double denom = std::max(pi_ns_mag, 1e-6);
-        const double rel = (grid_pt.pi_b_chem - pi_ns) / denom;
-        if (grid_pt.pi_b_chem * pi_ns < 0.0 || std::abs(rel) > 1.0) {
-            music_message << "[chem-bulk] Pi_chem vs NS at tau=" << tau
-                          << " Pi_chem=" << grid_pt.pi_b_chem
-                          << " Pi_NS=" << pi_ns << " theta=" << theta_local
-                          << " zeta=" << zeta;
-            music_message.flush("info");
-            ns_reports++;
-        }
-    }
-
-    return (NS_term + relax_term) / std::max(tau_Pi_chem, small_eps);
+    return (NS_term + relax_term) / tau_Pi_chem;
 }
 
 void Diss::Make_uqSource(
