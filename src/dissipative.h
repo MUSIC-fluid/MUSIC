@@ -29,6 +29,7 @@ class Diss {
         return index_map[a][b];
     }
 
+    const int echo_level_ = DATA.echo_level;
     pretty_ostream music_message;
 
   public:
@@ -46,7 +47,7 @@ class Diss {
 
     void Make_uWRHS(
         const double tau, Fields &arena, const int fieldIdx, const int ix,
-        const int iy, const int ieta, std::array<double, 9> &w_rhs,
+        const int iy, const int ieta, std::array<double, 10> &w_rhs,
         const double theta_local, const DumuVec &a_local);
 
     double Make_uPiSource(
