@@ -214,92 +214,155 @@ void HydroSourceTATB::get_hydro_energy_source(
         static_cast<int>((x + DATA_.x_size / 2.) / DATA_.delta_x + 0.1);
     const int iy =
         static_cast<int>((y + DATA_.y_size / 2.) / DATA_.delta_y + 0.1);
-
-    double eta_flat = DATA_.eta_flat;
+    /*
     if (DATA_.ecm > 2000.) {
         // at LHC energies, we vary eta_flat according to TA + TB
         double total_num_nucleons = 208. * 2.;  // for PbPb runs
         double slope = -0.4;
         eta_flat = eta_flat + ((TA_ + TB_) / total_num_nucleons - 0.5) * slope;
     }
-
+    */
     double y_CM = atanh(
         (profile_TA[ix][iy] - profile_TB[ix][iy])
         / (profile_TA[ix][iy] + profile_TB[ix][iy] + Util::small_eps)
         * tanh(DATA_.beam_rapidity));
-    double y_L = yL_frac_ * y_CM;
+    //double y_L = yL_frac_ * y_CM;
+    double eta0 = DATA_.eta_flat/2.0;
+    double y_L = compute_yL(profile_TA[ix][iy], profile_TB[ix][iy], y_CM, eta0, DATA_.eta_fall_off, DATA_.eta_m) ;
+    /*
     double M_inv =
         ((profile_TA[ix][iy] + profile_TB[ix][iy]) * Util::m_N
          * cosh(DATA_.beam_rapidity) / Util::hbarc);  // [1/fm^3]
+    
     double eta0 =
         std::min(eta_flat / 2.0, std::abs(DATA_.beam_rapidity - (y_CM - y_L)));
-    double eta_envelop =
-        eta_profile_plateau(eta_s - (y_CM - y_L), eta0, DATA_.eta_fall_off);
+    */
+   double f_plus = eta_envelope_f(eta_s, DATA_.eta_m, DATA_.eta_fall_off);
+   double f_minus = eta_envelope_f(-eta_s, DATA_.eta_m, DATA_.eta_fall_off);
+   /*
+   double eta_envelop =
+        eta_profile_plateau(eta_s, eta0, DATA_.eta_fall_off);
+    */
+   double M =
+        profile_TA[ix][iy]*profile_TA[ix][iy] + profile_TB[ix][iy]*profile_TB[ix][iy] + 2*profile_TA[ix][iy]*profile_TB[ix][iy]*Util::m_N*cosh(2*DATA_.beam_rapidity);  // [1/fm^3]
+
+    /*
     double E_norm =
         tau_source
         * energy_eta_profile_normalisation(y_CM, eta0, DATA_.eta_fall_off);
+    */
     // double eta_envelop = eta_profile_plateau_frag(eta_s - (y_CM - y_L), eta0,
     //                                               DATA_.eta_fall_off);
     // double E_norm = tau_source*energy_eta_profile_normalisation_numerical(
     //                                 y_CM, eta0, DATA_.eta_fall_off);
-    double epsilon = M_inv * eta_envelop / E_norm / dtau;  // [1/fm^5]
+    //double epsilon = M_inv * eta_envelop / E_norm / dtau;  // [1/fm^5]
+    double tilted_epsilon = pow(profile_TA[ix][iy], f_plus)*pow(profile_TB[ix][iy], f_minus);
+    double shifted_epsilon = eta_profile_plateau(eta_s - (y_CM - y_L), eta0,
+                                                  DATA_.eta_fall_off);
+    double tilted_norm = tau_source*energy_eta_profile_normalisation_tilted(
+                                    profile_TA[ix][iy], profile_TB[ix][iy],
+                                    eta0, DATA_.eta_m, DATA_.eta_fall_off,
+                                    y_CM, M, y_L);
+    double C_eta = std::exp(eta0) * std::erfc(-DATA_.eta_fall_off/sqrt(2)) + exp(-eta0) * std::erfc(DATA_.eta_fall_off/sqrt(2));
+    double shifted_norm = tau_source * M / (2.0 * std::sinh(eta0) + std::sqrt(M_PI / 2.0) * DATA_.eta_fall_off * std::exp(DATA_.eta_fall_off * DATA_.eta_fall_off / 2.0) * C_eta
+);
+
+    double beta = DATA_.tilted_fraction;
+    double epsilon = (beta * tilted_epsilon * tilted_norm + (1. - beta) * shifted_epsilon * shifted_norm) / dtau; // [1/fm^5]
+
     j_mu[0] = epsilon * cosh(y_L);                         // [1/fm^5]
     j_mu[3] = epsilon * sinh(y_L);                         // [1/fm^5]
 }
 
 double HydroSourceTATB::get_hydro_rhob_source(
-    const double tau, const double x, const double y, const double eta_s,
-    const FlowVec &u_mu) const {
+        const double tau, const double x, const double y, const double eta_s,
+        const FlowVec &u_mu) const {
     const double dtau = DATA_.delta_tau;
     double res = 0.;
-    if (std::abs((tau - tau_source)) > 1. / 2. * dtau) return (res);
+    if (std::abs((tau - tau_source)) > 1./2.*dtau) return(res);
 
-    const int ix =
-        static_cast<int>((x + DATA_.x_size / 2.) / DATA_.delta_x + 0.1);
-    const int iy =
-        static_cast<int>((y + DATA_.y_size / 2.) / DATA_.delta_y + 0.1);
-    double eta_rhob_left = eta_rhob_left_factor(eta_s);
-    double eta_rhob_right = eta_rhob_right_factor(eta_s);
-    res = 0.5
-          * (profile_TA[ix][iy]
-                 * ((1. + DATA_.eta_rhob_asym) * eta_rhob_right
-                    + (1. - DATA_.eta_rhob_asym) * eta_rhob_left)
-             + profile_TB[ix][iy]
-                   * ((1. + DATA_.eta_rhob_asym) * eta_rhob_left
-                      + (1. - DATA_.eta_rhob_asym)
-                            * eta_rhob_right));  // [1/fm^3]
-    res /= dtau;                                 // [1/fm^4]
-    return (res);
+    const int ix = static_cast<int>((x + DATA_.x_size/2.)/DATA_.delta_x + 0.1);
+    const int iy = static_cast<int>((y + DATA_.y_size/2.)/DATA_.delta_y + 0.1);
+    double TA = profile_TA[ix][iy];
+    double TB = profile_TB[ix][iy];
+    double eta_rhob_plus  = eta_rhob_left_factor(eta_s);
+    double eta_rhob_minus = eta_rhob_right_factor(eta_s);
+    double norm_B = sqrt(2./M_PI)*1/(tau_source*(DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2));
+    double norm_B_prime = sqrt(2./M_PI)*(TA + TB)/(tau_source*(DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2)*(2*TA*TB));
+    const double omega = DATA_.omega_rhob;
+    /*
+    res = 0.5*(
+          profile_TA[ix][iy]*(  (1. + DATA_.eta_rhob_asym)*eta_rhob_minus
+                              + (1. - DATA_.eta_rhob_asym)*eta_rhob_plus)
+        + profile_TB[ix][iy]*(  (1. + DATA_.eta_rhob_asym)*eta_rhob_plus
+                              + (1. - DATA_.eta_rhob_asym)*eta_rhob_minus)
+    );   // [1/fm^3]
+    res /= dtau;  // [1/fm^4]
+    */
+    res = norm_B*(1 - omega)*(TA*eta_rhob_plus + TB*eta_rhob_minus)
+          + norm_B_prime*omega*TA*TB*(eta_rhob_plus + eta_rhob_minus);
+    return(res);
 }
+/*
+double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
+    double eta_0       = -std::abs(DATA_.eta_rhob_0);
+    double delta_eta_1 = DATA_.eta_rhob_width_1;
+    double delta_eta_2 = DATA_.eta_rhob_width_2;
+    double norm        = 2./(sqrt(M_PI)*tau_source*(delta_eta_1 + delta_eta_2));
+    double exp_arg     = 0.0;
+    if (eta < eta_0) {
+        exp_arg = (eta - eta_0)/delta_eta_1;
+    } else {
+        exp_arg = (eta - eta_0)/delta_eta_2;
+    }
+    double res = norm*exp(-exp_arg*exp_arg);
+    return(res);
+}
+*/
 
 double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
-    double eta_0 = -std::abs(DATA_.eta_rhob_0);
-    double delta_eta_1 = DATA_.eta_rhob_width_1;
-    double delta_eta_2 = DATA_.eta_rhob_width_2;
-    double norm = 2. / (sqrt(M_PI) * tau_source * (delta_eta_1 + delta_eta_2));
-    double exp_arg = 0.0;
-    if (eta < eta_0) {
-        exp_arg = (eta - eta_0) / delta_eta_1;
-    } else {
-        exp_arg = (eta - eta_0) / delta_eta_2;
-    }
-    double res = norm * exp(-exp_arg * exp_arg);
-    return (res);
+    double eta_0_nB       = -std::abs(DATA_.eta_rhob_0);
+    double sigma_B_plus = DATA_.eta_rhob_width_1;
+    double sigma_B_minus = DATA_.eta_rhob_width_2;
+    
+    //double norm        = 1./(sqrt(M_PI)*tau_source*sigma_B_plus);
+    double exp_arg_1     = (eta - eta_0_nB)/sigma_B_plus;
+    double exp_arg_2     = (eta - eta_0_nB)/sigma_B_minus;
+
+    double res = Util::theta(eta - eta_0_nB)*std::exp(-exp_arg_1*exp_arg_1/2.) +
+                 Util::theta(eta_0_nB - eta)*std::exp(-exp_arg_2*exp_arg_2/2.);
+    return(res);
 }
 
+/*
 double HydroSourceTATB::eta_rhob_right_factor(const double eta) const {
-    double eta_0 = std::abs(DATA_.eta_rhob_0);
+    double eta_0       = std::abs(DATA_.eta_rhob_0);
     double delta_eta_1 = DATA_.eta_rhob_width_1;
     double delta_eta_2 = DATA_.eta_rhob_width_2;
-    double norm = 2. / (sqrt(M_PI) * tau_source * (delta_eta_1 + delta_eta_2));
-    double exp_arg = 0.0;
+    double norm        = 2./(sqrt(M_PI)*tau_source*(delta_eta_1 + delta_eta_2));
+    double exp_arg     = 0.0;
     if (eta < eta_0) {
-        exp_arg = (eta - eta_0) / delta_eta_2;
+        exp_arg = (eta - eta_0)/delta_eta_2;
     } else {
-        exp_arg = (eta - eta_0) / delta_eta_1;
+        exp_arg = (eta - eta_0)/delta_eta_1;
     }
-    double res = norm * exp(-exp_arg * exp_arg);
-    return (res);
+    double res = norm*exp(-exp_arg*exp_arg);
+    return(res);
+}
+*/
+
+double HydroSourceTATB::eta_rhob_right_factor(const double eta) const {
+    double eta_0_nB       = std::abs(DATA_.eta_rhob_0);
+    double sigma_B_plus = DATA_.eta_rhob_width_1;
+    double sigma_B_minus = DATA_.eta_rhob_width_2;
+    
+    //double norm        = 1./(sqrt(M_PI)*tau_source*sigma_B_plus);
+    double exp_arg_1     = (eta + eta_0_nB)/sigma_B_plus;
+    double exp_arg_2     = (eta + eta_0_nB)/sigma_B_minus;
+
+    double res = Util::theta(eta + eta_0_nB)*std::exp(-exp_arg_1*exp_arg_1/2.) +
+                 Util::theta(- eta_0_nB - eta)*std::exp(-exp_arg_2*exp_arg_2/2.);
+    return(res);
 }
 
 double HydroSourceTATB::eta_profile_plateau(
@@ -360,3 +423,173 @@ double HydroSourceTATB::energy_eta_profile_normalisation_numerical(
     f_eta *= deta;
     return (f_eta);
 }
+
+// the functions defined for the new energy profile
+double HydroSourceTATB::compute_yL(
+    const double TA, const double TB, const double ycm, const double eta_0, const double sigma_eta, const double eta_m) const{
+    // this function computes the longitudinal shift yL given TA and TB
+
+    double yL;
+
+    // ------------------------------
+    // 1. Basic ratios
+    // ------------------------------
+    double a   = TB/TA;
+    // regularize a ≈ 1
+    if (std::abs(a - 1.0) < Util::small_eps)
+            a = 1.0 + Util::small_eps;
+    double loga = std::log(std::max(a, Util::small_eps));
+    double sqrt_a = std::sqrt(a);
+
+    // ------------------------------
+    // 2. Denominator base
+    // ------------------------------
+    double denom_base = 4.0 * eta_m * eta_m - loga * loga;
+
+    // robust regularization
+    denom_base = std::copysign(
+            std::max(std::abs(denom_base), Util::small_eps),
+            denom_base
+        );
+
+    double denom = sqrt_a * denom_base;
+
+    // ------------------------------
+    // 3. denum
+    // ------------------------------
+    double den_A = (1.0 + a) * (std::sinh(eta_0) - std::sinh(eta_m));
+
+    double den_B = (1.0 + a) *
+        (std::exp(0.5 * sigma_eta * sigma_eta)
+             * std::sqrt(M_PI / 2.0)
+             * sigma_eta
+             * (std::cosh(eta_0)
+                + std::erf(sigma_eta / std::sqrt(2.0)) * std::sinh(eta_0)));
+
+    double den_C =
+            sqrt_a *
+            (2.0 * eta_m *
+             ( -((a - 1.0) * std::cosh(eta_m) * loga)
+               + 2.0 * (1.0 + a) * eta_m * std::sinh(eta_m) ))
+            / denom;
+
+    double denum = den_A + den_B + den_C;
+
+    // enforce positivity (by design)
+    denum = std::max(denum, Util::small_eps);
+
+    // ------------------------------
+    // 4. num
+    // ------------------------------
+    double num_A = (1.0 - a) * (std::cosh(eta_0) - std::cosh(eta_m));
+
+    double num_B = (1.0 - a) *
+        (std::exp(0.5 * sigma_eta * sigma_eta)
+         * std::sqrt(M_PI / 2.0)
+         * sigma_eta
+             * (std::cosh(eta_0) * std::erf(sigma_eta / std::sqrt(2.0))
+                + std::sinh(eta_0)));
+
+    double num_C =
+            -sqrt_a *
+            (2.0 * eta_m *
+             (2.0 * (a - 1.0) * eta_m * std::cosh(eta_m)
+              - (1.0 + a) * loga * std::sinh(eta_m)))
+            / denom;
+
+    double num = num_A + num_B + num_C;
+
+    // ------------------------------
+    // 5. Solve for yL
+    // ------------------------------
+    double RHS = num / denum;
+
+    // clip for atanh
+    RHS = std::min(0.999999, std::max(-0.999999, RHS));
+    yL = ycm - std::atanh(RHS);
+    
+
+    return yL;
+}
+
+double HydroSourceTATB::eta_envelope_f(
+    const double eta, const double eta_m, const double sigma_eta) const {
+    // eta_envelope_f, the envelope function for the forward going nucleus
+    double f = (eta >= eta_m) ? 1.0 :
+               (eta <= -eta_m) ? 0.0 :
+                                 0.5*(1.0 + eta/eta_m);
+    return f;
+}
+
+double HydroSourceTATB::energy_eta_profile_normalisation_tilted(
+    const double TA, const double TB, const double eta_0, const double eta_m, const double sigma_eta, 
+    const double ycm, const double M, const double yL
+) const {
+    // this function returns the normalization of the eta envelope profile
+    // for energy density in the tilted source model
+    
+    // a = TA / TB
+    double a = TA / TB;
+
+    // protect a ~ 1
+    if (std::abs(a - 1.0) < Util::small_eps)
+        a = 1.0 + Util::small_eps;
+
+    double loga   = std::log(std::max(a, Util::small_eps));
+    double sqrt_a = std::sqrt(a);
+
+    // ------------------------------
+    // Term 1
+    // ------------------------------
+    double term1 = (TA + TB)
+        * (std::sinh(eta_0) - std::sinh(eta_m));
+
+    // ------------------------------
+    // Term 2
+    // ------------------------------
+    double term2 = (TA + TB)
+        * (std::exp(0.5 * sigma_eta * sigma_eta)
+           * std::sqrt(M_PI / 2.0)
+           * sigma_eta
+           * (std::cosh(eta_0)
+              + std::erf(sigma_eta / std::sqrt(2.0))
+                * std::sinh(eta_0)));
+
+    // ------------------------------
+    // Term 3 denominator
+    // ------------------------------
+    double denom_base = 4.0 * eta_m * eta_m - loga * loga;
+
+    // robust regularization
+    denom_base = std::copysign(
+        std::max(std::abs(denom_base), Util::small_eps),
+        denom_base
+    );
+
+    double denom = sqrt_a * denom_base;
+
+    // ------------------------------
+    // Term 3
+    // ------------------------------
+    double term3 =
+        std::sqrt(TA * TB) *
+        (2.0 * eta_m *
+         ( -((a - 1.0) * std::cosh(eta_m) * loga)
+           + 2.0 * (1.0 + a) * eta_m * std::sinh(eta_m) ))
+        / denom;
+
+    // ------------------------------
+    // Combine numerator
+    // ------------------------------
+    double num = term1 + term2 + term3;
+
+    // protect against tiny / negative num
+    num = std::max(num, Util::small_eps);
+
+    // ------------------------------
+    // epsilon0
+    // ------------------------------
+    double epsilon0 = M * std::cosh(ycm - yL) / num;
+    return epsilon0;
+}
+

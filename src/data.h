@@ -49,6 +49,8 @@ typedef struct init_data {
     // envelope function parameter for energy density in eta_s direction
     double eta_fall_off;
     double eta_flat;
+    double eta_m; //this is the extra parameter added for the envelope for the new energy density
+    double tilted_fraction; //this is the parameter that determines the fraction of shifted energy density
     // envelope function parameter for rhoB in eta_s direction
     double eta_rhob_0;               //!< peak position
     double eta_rhob_width;           //!< Gaussian width for profile == 1
@@ -57,6 +59,8 @@ typedef struct init_data {
     double eta_rhob_width_2;  //!< inside Gaussian width profile == 2
     double eta_rhob_asym;
     double yL_frac;
+
+    double omega_rhob;   //fraction between tilted and shifted baryon density profile
 
     int Initial_profile;    //! type of initial condition
     int initializeEntropy;  //! flag to initial entropy or energy density
