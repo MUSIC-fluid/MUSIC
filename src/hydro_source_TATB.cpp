@@ -48,7 +48,7 @@ HydroSourceTATB::HydroSourceTATB(InitData &DATA_in) : DATA_(DATA_in) {
 
     ybeam_ = DATA_.beam_rapidity;
     tanhYbeam_ = tanh(ybeam_);
-    coshYbeam_ = cosh(ybeam_);
+    cosh2Ybeam_ = cosh(2 * ybeam_);
 
     yL_frac_ = DATA_.yL_frac;
     music_message << "Longitudinal velocity fraction yL_frac = " << yL_frac_;
@@ -63,6 +63,14 @@ HydroSourceTATB::HydroSourceTATB(InitData &DATA_in) : DATA_(DATA_in) {
     eta0_ = DATA_.eta_flat / 2.;
     eta_m_ = DATA_.eta_m;
     sigma_eta_ = DATA_.eta_fall_off;
+    C_eta_ =
+        (2. * std::sinh(eta0_)
+         + std::sqrt(M_PI / 2.0) * sigma_eta_
+               * std::exp(sigma_eta_ * sigma_eta_ / 2.0)
+               * (std::exp(eta0_) * std::erfc(-sigma_eta_ / sqrt(2))
+                  + std::exp(-eta0_) * std::erfc(sigma_eta_ / sqrt(2))));
+
+    beta_ = DATA_.tilted_fraction;
 }
 
 HydroSourceTATB::~HydroSourceTATB() {
@@ -255,8 +263,8 @@ void HydroSourceTATB::get_hydro_energy_source(
     double eta_envelop =
          eta_profile_plateau(eta_s, eta0, DATA_.eta_fall_off);
      */
-    double M = TA * TA + TB * TB
-               + 2 * TA * TB * Util::m_N * cosh(2 * ybeam_);  // [1/fm^4]
+    double M =
+        TA * TA + TB * TB + 2 * TA * TB * Util::m_N * cosh2Ybeam_;  // [1/fm^4]
 
     /*
     double E_norm =
@@ -274,17 +282,10 @@ void HydroSourceTATB::get_hydro_energy_source(
     double tilted_norm = tau_source
                          * energy_eta_profile_normalisation_tilted(
                              TA, TB, eta0_, eta_m_, sigma_eta_, y_CM, M, y_L);
-    double C_eta = std::exp(eta0_) * std::erfc(-sigma_eta_ / sqrt(2))
-                   + exp(-eta0_) * std::erfc(sigma_eta_ / sqrt(2));
-    double shifted_norm =
-        tau_source * M
-        / (2.0 * std::sinh(eta0_)
-           + std::sqrt(M_PI / 2.0) * sigma_eta_
-                 * std::exp(sigma_eta_ * sigma_eta_ / 2.0) * C_eta);
+    double shifted_norm = tau_source * M / C_eta_;
 
-    double beta = DATA_.tilted_fraction;
-    double epsilon = (beta * tilted_epsilon * tilted_norm
-                      + (1. - beta) * shifted_epsilon * shifted_norm)
+    double epsilon = (beta_ * tilted_epsilon * tilted_norm
+                      + (1. - beta_) * shifted_epsilon * shifted_norm)
                      / gridDtau_;  // [1/fm^5]
 
     j_mu[0] = epsilon * cosh(y_L);  // [1/fm^5]

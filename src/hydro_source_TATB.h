@@ -22,10 +22,12 @@ class HydroSourceTATB : public HydroSourceBase {
     double TA_, TB_;
     std::vector<std::vector<double>> profile_TA;
     std::vector<std::vector<double>> profile_TB;
-    double ybeam_, tanhYbeam_, coshYbeam_;
+    double ybeam_, tanhYbeam_, cosh2Ybeam_;
     double gridXmin_, gridYmin_, gridDX_, gridDY_;
     double gridDtau_;
     double eta0_, eta_m_, sigma_eta_;
+    double C_eta_;
+    double beta_;
 
   public:
     HydroSourceTATB() = delete;
