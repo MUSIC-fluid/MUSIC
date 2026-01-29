@@ -119,6 +119,9 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.eta_fall_off = getParameter(input_file, "Eta_fall_off", 0.4);
     // yL_frac: the fraction of Y_CM in the longitudinal velocity
     parameter_list.yL_frac = getParameter(input_file, "yL_frac", 0.0);
+    parameter_list.eta_m = getParameter(input_file, "eta_m", 5.0);
+    parameter_list.tilted_fraction = getParameter(input_file,
+                                                  "tilted_fraction", 0);
 
     // eta envelope function parameter for rhob
     parameter_list.initial_eta_rhob_profile =
@@ -134,6 +137,7 @@ InitData read_in_parameters(std::string input_file) {
         (getParameter(input_file, "eta_rhob_width_2", 1.0));
     parameter_list.eta_rhob_asym =
         (getParameter(input_file, "eta_rhob_asym", 1.0));
+    parameter_list.omega_rhob = getParameter(input_file, "omega_rhob", 0.0);
 
     // initialize_with_entropy: 0: with energy density, 1: with entropy density
     parameter_list.initializeEntropy =
