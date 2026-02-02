@@ -312,7 +312,7 @@ double HydroSourceTATB::get_hydro_rhob_source(
     double norm_B_prime =
         sqrt(2. / M_PI) * (TA + TB)
         / (tau_source * (DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2)
-           * (2 * TA * TB));
+           * (2 * TA * TB + Util::small_eps));
     const double omega = DATA_.omega_rhob;
     /*
     res = 0.5*(
