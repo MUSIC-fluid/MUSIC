@@ -49,8 +49,10 @@ typedef struct init_data {
     // envelope function parameter for energy density in eta_s direction
     double eta_fall_off;
     double eta_flat;
-    double eta_m; //this is the extra parameter added for the envelope for the new energy density
-    double tilted_fraction; //this is the parameter that determines the fraction of shifted energy density
+    double eta_m;  // this is the extra parameter added for the envelope for the
+                   // new energy density
+    double tilted_fraction;  // this is the parameter that determines the
+                             // fraction of shifted energy density
     // envelope function parameter for rhoB in eta_s direction
     double eta_rhob_0;               //!< peak position
     double eta_rhob_width;           //!< Gaussian width for profile == 1
@@ -60,7 +62,8 @@ typedef struct init_data {
     double eta_rhob_asym;
     double yL_frac;
 
-    double omega_rhob;   //fraction between tilted and shifted baryon density profile
+    double omega_rhob;  // fraction between tilted and shifted baryon density
+                        // profile
 
     int Initial_profile;    //! type of initial condition
     int initializeEntropy;  //! flag to initial entropy or energy density
@@ -119,11 +122,13 @@ typedef struct init_data {
     int alpha_max;     //!< dimension of TJb
     int turn_on_rhob;  //!< flag to include baryon current
 
-    int viscosity_flag;  //!< flag to include viscosity in the simulation
-    int turn_on_shear;   //!< flag to include shear viscosity
-    int turn_on_bulk;    //!< flag to include bulk viscosity
-    int turn_on_diff;    //!< flag to include net baryon diffusion
-    double shear_to_s;   //!< value of specific shear viscosity
+    int viscosity_flag;     //!< flag to include viscosity in the simulation
+    int turn_on_shear;      //!< flag to include shear viscosity
+    int turn_on_bulk;       //!< flag to include bulk viscosity
+    int turn_on_bulk_chem;  //!< flag to include bulk viscosity from chemical
+                            //!< non-equilibrium
+    int turn_on_diff;       //!< flag to include net baryon diffusion
+    double shear_to_s;      //!< value of specific shear viscosity
 
     double quest_revert_strength;
     bool FlagResumTransportCoeff;
@@ -198,6 +203,10 @@ typedef struct init_data {
 
     //! coefficient related to the net baryon diff.
     double kappa_coefficient;
+
+    //! chemical reaction rate constant for bulk viscosity from chemical
+    //! non-equilibrium
+    double chem_rate_C;
 
     //! decide whether to output the evolution data (1) or not (0)
     int outputEvolutionData;

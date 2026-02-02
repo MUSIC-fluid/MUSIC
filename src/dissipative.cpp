@@ -54,19 +54,23 @@ void Diss::MakeWSource(
         double Pi_alpha0 = 0.0;
         if (alpha < 4 && DATA.turn_on_bulk == 1) {
             double gfac = (alpha == 0 ? -1.0 : 0.0);
+            double PiCurr =
+                arenaCurr.piBulk_[fieldIdx] + arenaCurr.piBulkChem_[fieldIdx];
+            double PiPrev =
+                arenaPrev.piBulk_[fieldIdx] + arenaPrev.piBulkChem_[fieldIdx];
+
             Pi_alpha0 =
-                (arenaCurr.piBulk_[fieldIdx]
-                 * (gfac
-                    + arenaCurr.u_[alpha][fieldIdx]
-                          * arenaCurr.u_[0][fieldIdx]));
-            dPidtau =
-                ((Pi_alpha0
-                  - arenaPrev.piBulk_[fieldIdx]
-                        * (gfac
-                           + arenaPrev.u_[alpha][fieldIdx]
-                                 * arenaPrev.u_[0][fieldIdx]))
-                 / DATA.delta_tau);
+                PiCurr
+                * (gfac
+                   + arenaCurr.u_[alpha][fieldIdx] * arenaCurr.u_[0][fieldIdx]);
+            dPidtau = (Pi_alpha0
+                       - PiPrev
+                             * (gfac
+                                + arenaPrev.u_[alpha][fieldIdx]
+                                      * arenaPrev.u_[0][fieldIdx]))
+                      / DATA.delta_tau;
         }
+
         double sf = tau * dWdtau + arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx];
         double bf = tau * dPidtau + Pi_alpha0;
         dwmn[alpha] += sf + bf;
@@ -75,7 +79,10 @@ void Diss::MakeWSource(
             music_message << "sf=" << sf << " bf=" << bf << " Wmunu ="
                           << arenaCurr.Wmunu_[idx_1d_alpha0][fieldIdx]
                           << " pi_b =" << arenaCurr.piBulk_[fieldIdx]
-                          << " prev_pi_b=" << arenaPrev.piBulk_[fieldIdx];
+                          << " prev_pi_b=" << arenaPrev.piBulk_[fieldIdx]
+                          << " pi_b_chem =" << arenaCurr.piBulkChem_[fieldIdx]
+                          << " prev_pi_b_chem="
+                          << arenaPrev.piBulkChem_[fieldIdx];
             music_message.flush("error");
             music_message << "dWdtau = " << dWdtau;
             music_message.flush("error");
@@ -105,24 +112,28 @@ void Diss::MakeWSource(
                 double Pi_p = 0;
                 if (DATA.turn_on_bulk == 1 && alpha < 4) {
                     double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
-                    double bgp1 =
-                        (arenaCurr.piBulk_[Ip1]
-                         * (gfac1
-                            + arenaCurr.u_[alpha][Ip1]
-                                  * arenaCurr.u_[direction][Ip1])
-                         * tau_fac[direction]);
-                    double bg =
-                        (arenaCurr.piBulk_[Ic]
-                         * (gfac1
-                            + arenaCurr.u_[alpha][Ic]
-                                  * arenaCurr.u_[direction][Ic])
-                         * tau_fac[direction]);
-                    double bgm1 =
-                        (arenaCurr.piBulk_[Im1]
-                         * (gfac1
-                            + arenaCurr.u_[alpha][Im1]
-                                  * arenaCurr.u_[direction][Im1])
-                         * tau_fac[direction]);
+                    double PiIp1 =
+                        arenaCurr.piBulk_[Ip1] + arenaCurr.piBulkChem_[Ip1];
+                    double PiIc =
+                        arenaCurr.piBulk_[Ic] + arenaCurr.piBulkChem_[Ic];
+                    double PiIm1 =
+                        arenaCurr.piBulk_[Im1] + arenaCurr.piBulkChem_[Im1];
+
+                    double bgp1 = PiIp1
+                                  * (gfac1
+                                     + arenaCurr.u_[alpha][Ip1]
+                                           * arenaCurr.u_[direction][Ip1])
+                                  * tau_fac[direction];
+                    double bg = PiIc
+                                * (gfac1
+                                   + arenaCurr.u_[alpha][Ic]
+                                         * arenaCurr.u_[direction][Ic])
+                                * tau_fac[direction];
+                    double bgm1 = PiIm1
+                                  * (gfac1
+                                     + arenaCurr.u_[alpha][Im1]
+                                           * arenaCurr.u_[direction][Im1])
+                                  * tau_fac[direction];
                     // dPidx += minmod.minmod_dx(bgp1, bg,
                     // bgm1)/delta[direction];
                     //  use central difference to preserve conservation law
@@ -293,6 +304,27 @@ void Diss::Make_uWSource(
 
         ///////////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////
+        //              Add coupling to bulk viscous pressure                //
+        //             transport_coefficient_b*Bulk*sigma^mu nu              //
+        //              transport_coefficient2_b*Bulk*W^mu nu                //
+        ///////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////
+        double Coupling_to_Bulk = 0.0;
+        if (DATA.include_second_order_terms == 1) {
+            double Bulk_Sigma = grid_pt.pi_b * sigma[mu][nu];
+            double Bulk_W = grid_pt.pi_b * Wmunu[mu][nu];
+
+            // multiply term by its respective transport coefficient
+            double Bulk_Sigma_term = Bulk_Sigma * transport_coefficient_b;
+            double Bulk_W_term = Bulk_W * transport_coefficient2_b;
+
+            // full term is
+            // first term: sign changes according to metric sign convention
+            Coupling_to_Bulk = -Bulk_Sigma_term + Bulk_W_term;
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////
         //                      Vorticity Term                               //
         ///////////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////
@@ -384,27 +416,6 @@ void Diss::Make_uWSource(
             WW_term = -term1_WW - term2_WW;
         }
 
-        ///////////////////////////////////////////////////////////////////////
-        ///////////////////////////////////////////////////////////////////////
-        //              Add coupling to bulk viscous pressure                //
-        //             transport_coefficient_b*Bulk*sigma^mu nu              //
-        //              transport_coefficient2_b*Bulk*W^mu nu                //
-        ///////////////////////////////////////////////////////////////////////
-        ///////////////////////////////////////////////////////////////////////
-        double Coupling_to_Bulk = 0.0;
-        if (DATA.include_second_order_terms == 1) {
-            double Bulk_Sigma = grid_pt.pi_b * sigma[mu][nu];
-            double Bulk_W = grid_pt.pi_b * Wmunu[mu][nu];
-
-            // multiply term by its respective transport coefficient
-            double Bulk_Sigma_term = Bulk_Sigma * transport_coefficient_b;
-            double Bulk_W_term = Bulk_W * transport_coefficient2_b;
-
-            // full term is
-            // first term: sign changes according to metric sign convention
-            Coupling_to_Bulk = -Bulk_Sigma_term + Bulk_W_term;
-        }
-
         // final answer is
         sourceTerms[idx_1d - 4] =
             ((NS_term + tempf + Vorticity_term + Wsigma_term + WW_term
@@ -415,7 +426,7 @@ void Diss::Make_uWSource(
 
 void Diss::Make_uWRHS(
     const double tau, Fields &arena, const int fieldIdx, const int ix,
-    const int iy, const int ieta, std::array<double, 9> &w_rhs,
+    const int iy, const int ieta, std::array<double, 10> &w_rhs,
     const double theta_local, const DumuVec &a_local) {
     auto grid_pt = arena.getCell(fieldIdx);
     auto Wmunu_local = Util::UnpackVecToMatrix(grid_pt.Wmunu);
@@ -439,13 +450,17 @@ void Diss::Make_uWRHS(
     double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta * tau};
     const double delta_tau = DATA.delta_tau;
 
-    int piIdxArr[9] = {4, 5, 6, 7, 8, 9, 11, 12, 13};
+    int piIdxArr[10] = {4, 5,  6,  7,  8,
+                        9, 14, 11, 12, 13};  // take 14 for piBulkChem
     int loopIdx = 5;
-    if (DATA.turn_on_bulk) {
+    if (DATA.turn_on_bulk == 1) {
         loopIdx = 6;
     }
-    if (DATA.turn_on_diff) {
-        loopIdx = 9;
+    if (DATA.turn_on_bulk_chem == 1) {
+        loopIdx = 7;
+    }
+    if (DATA.turn_on_diff == 1) {
+        loopIdx = 10;
     }
 
     // pi^\mu\nu is symmetric
@@ -462,6 +477,12 @@ void Diss::Make_uWRHS(
                     gp1 = arena.piBulk_[Ip1];
                     gm1 = arena.piBulk_[Im1];
                     gm2 = arena.piBulk_[Im2];
+                } else if (idx_1d == 14) {
+                    g = arena.piBulkChem_[Ic];
+                    gp2 = arena.piBulkChem_[Ip2];
+                    gp1 = arena.piBulkChem_[Ip1];
+                    gm1 = arena.piBulkChem_[Im1];
+                    gm2 = arena.piBulkChem_[Im2];
                 } else {
                     g = arena.Wmunu_[idx_1d][Ic];
                     gp2 = arena.Wmunu_[idx_1d][Ip2];
@@ -564,6 +585,11 @@ void Diss::Make_uWRHS(
     if (DATA.turn_on_bulk == 1) {
         w_rhs[5] -= (grid_pt.pi_b) * (grid_pt.u[0]) / tau * DATA.delta_tau;
         w_rhs[5] += (grid_pt.pi_b) * theta_local * DATA.delta_tau;
+    }
+
+    if (DATA.turn_on_bulk_chem == 1) {
+        w_rhs[6] -= (grid_pt.pi_b_chem) * (grid_pt.u[0]) / tau * DATA.delta_tau;
+        w_rhs[6] += (grid_pt.pi_b_chem) * theta_local * DATA.delta_tau;
     }
 }
 
@@ -726,6 +752,72 @@ double Diss::Make_uPiSource(
     -Delta[a][eta] u[eta] q[tau]/tau
     -u[a]u[b]g[b][e] Dq[e]
 */
+
+double Diss::Make_uPiChemSource(
+    const double tau, const Cell_small &grid_pt, const double theta_local,
+    const VelocityShearVec & /*sigma_1d*/,
+    const std::vector<double> &thermalVec) {
+    // --- read thermal variables  ---
+    const double epsilon = thermalVec[0];
+    const double pressure = thermalVec[2];
+    const double cs2 = thermalVec[5];
+    const double temperature = thermalVec[6];  // 1/fm in MUSIC units
+
+    // Solve Y_q using I_QCD and Pi_chem ---
+    // I_QCD = e - 3P
+    const double Iqcd = (epsilon - 3.0 * pressure);
+    const double Iqcd_safe =
+        std::copysign(std::max(std::abs(Iqcd), small_eps), Iqcd);
+
+    // Eq.(69) with I_3 = I_QCD and I_0 = 0:
+    // Y_q = (1 - 3 Pi_chem / I_QCD)^2, clamp to [0, 1]
+    // sqrt(Y_q) = |y_q_inner|, but consistent with clamp -> cap at 1
+    const double y_q_inner = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
+    const double y_q_sqrt = std::min(1.0, std::abs(y_q_inner));
+    const double y_q_raw = y_q_inner * y_q_inner;
+
+    // Solve tau_Pi_chem = 1 / (C * T * (1 + sqrt(Y_q))^2) ---
+    //  Provide DATA.chem_rate_C constant C in R = C*T
+    const double chem_rate_C = std::max(DATA.chem_rate_C, small_eps);
+    double tau_Pi_chem =
+        1.0
+        / std::max(
+            chem_rate_C * temperature * (1.0 + y_q_sqrt) * (1.0 + y_q_sqrt),
+            small_eps);
+
+    tau_Pi_chem = std::min(10.0, std::max(3.0 * DATA.delta_tau, tau_Pi_chem));
+
+    // Eq.(58) with I_0 = 0 and I(e,Y_q) = sqrt(Y_q) * I_3(e):
+    // zeta_chem = tau_Pi_chem * (1/3) * (1 - sqrt(Y_q)) * (dI3/de) * (e + P)
+    // with I_3 = I_QCD = e - 3P => dI3/de = 1 - 3 cs^2
+    const double dI3de = (1.0 - 3.0 * cs2);
+    const double zeta_raw = tau_Pi_chem * (1.0 / 3.0) * (1.0 - y_q_sqrt) * dI3de
+                            * (epsilon + pressure);
+    const double zeta = std::max(0.0, zeta_raw);
+
+    // Israel–Stewart form
+    // D Pi_chem = [ - zeta*theta - Pi_chem ] / tau_Pi_chem
+    const double NS_term = -zeta * theta_local;
+    const double relax_term = -(grid_pt.pi_b_chem);
+
+    if (y_q_raw > 1.0 + 1e-6 && echo_level_ > 5) {
+        music_message << "[chem-bulk] Y_q>1 at tau=" << tau
+                      << " Y_q_raw=" << y_q_raw << " sqrt(Y_q)=" << y_q_sqrt
+                      << " Pi_chem=" << grid_pt.pi_b_chem << " Iqcd=" << Iqcd
+                      << " T=" << temperature * hbarc << " GeV";
+        music_message.flush("warning");
+    }
+
+    if (zeta_raw < -1e-12 && echo_level_ > 5) {
+        music_message << "[chem-bulk] zeta_chem < 0 at tau=" << tau
+                      << " zeta_chem_raw=" << zeta_raw << " cs2=" << cs2
+                      << " sqrt(Y_q)=" << y_q_sqrt;
+        music_message.flush("warning");
+    }
+
+    return (NS_term + relax_term) / tau_Pi_chem;
+}
+
 void Diss::Make_uqSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
     const DumuVec &a_local, const VelocityShearVec &sigma_1d,

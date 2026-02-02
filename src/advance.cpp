@@ -220,7 +220,7 @@ void Advance::FirstRKStepW(
     /* Advance uWmunu */
 
     // spatial gradients for all viscous quantities
-    std::array<double, 9> w_rhs = {0.};
+    std::array<double, 10> w_rhs = {0.};
     diss_helper.Make_uWRHS(
         tau_now, arenaFieldsCurr, fieldIdx, ix, iy, ieta, w_rhs, theta_local,
         a_local);
@@ -272,7 +272,30 @@ void Advance::FirstRKStepW(
         grid_f.pi_b = tempf / (grid_f.u[0]);
     } else {
         grid_f.pi_b = 0.0;
+        grid_f.pi_b_chem = 0.0;
     }
+
+    // ---------------------------------------------------------------------
+    // NEW: chemical-equilibration bulk pressure evolution (pi_b_chem)
+    // ---------------------------------------------------------------------
+    if (DATA.turn_on_bulk_chem == 1) {
+        double piBulkChemPrev_local = arenaFieldsPrev.piBulkChem_[fieldIdx];
+
+        tempf =
+            ((1. - rk_flag) * (grid_c.pi_b_chem * grid_c.u[0])
+             + rk_flag * piBulkChemPrev_local * u0Prev);
+
+        double temps_chem = diss_helper.Make_uPiChemSource(
+            tau_now, grid_c, theta_local, sigma_local, thermalVec);
+
+        tempf += temps_chem * (DATA.delta_tau);
+        tempf += w_rhs[6];
+        tempf += rk_flag * ((grid_c.pi_b_chem) * (grid_c.u[0]));
+        tempf *= 1. / (1. + rk_flag);
+
+        grid_f.pi_b_chem = tempf / (grid_f.u[0]);
+    }
+    // ---------------------------------------------------------------------
 
     // CShen: add source term for baryon diffusion
     if (DATA.turn_on_diff == 1) {
@@ -286,7 +309,7 @@ void Advance::FirstRKStepW(
                 ((1. - rk_flag) * (grid_c.Wmunu[idx_1d] * grid_c.u[0])
                  + rk_flag * WmunuPrev * u0Prev);
             tempf += sourceTerms[idx_1d - 11] * (DATA.delta_tau);
-            tempf += w_rhs[idx_1d - 5];
+            tempf += w_rhs[idx_1d - 4];
             tempf += rk_flag * (grid_c.Wmunu[idx_1d] * grid_c.u[0]);
             tempf *= 1. / (1. + rk_flag);
 
@@ -350,6 +373,7 @@ void Advance::FirstRKStepW(
         arenaFieldsNext.Wmunu_[idx_1d][fieldIdx] = grid_f.Wmunu[idx_1d];
     }
     arenaFieldsNext.piBulk_[fieldIdx] = grid_f.pi_b;
+    arenaFieldsNext.piBulkChem_[fieldIdx] = grid_f.pi_b_chem;
 }
 
 void Advance::QuestRevertResummedTransCoeff(Cell_small &grid_pt) {

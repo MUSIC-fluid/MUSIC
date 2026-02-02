@@ -1,4 +1,3 @@
-
 #include "read_in_parameters.h"
 
 #include <cstring>
@@ -120,6 +119,9 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.eta_fall_off = getParameter(input_file, "Eta_fall_off", 0.4);
     // yL_frac: the fraction of Y_CM in the longitudinal velocity
     parameter_list.yL_frac = getParameter(input_file, "yL_frac", 0.0);
+    parameter_list.eta_m = getParameter(input_file, "eta_m", 5.0);
+    parameter_list.tilted_fraction =
+        getParameter(input_file, "tilted_fraction", 0);
 
     // eta envelope function parameter for rhob
     parameter_list.initial_eta_rhob_profile =
@@ -135,6 +137,7 @@ InitData read_in_parameters(std::string input_file) {
         (getParameter(input_file, "eta_rhob_width_2", 1.0));
     parameter_list.eta_rhob_asym =
         (getParameter(input_file, "eta_rhob_asym", 1.0));
+    parameter_list.omega_rhob = getParameter(input_file, "omega_rhob", 0.0);
 
     // initialize_with_entropy: 0: with energy density, 1: with entropy density
     parameter_list.initializeEntropy =
@@ -287,6 +290,11 @@ InitData read_in_parameters(std::string input_file) {
     } else {
         parameter_list.FlagResumTransportCoeff = false;
     }
+    if (getParameter(input_file, "turn_on_bulk_chem", 0) == 1) {
+        parameter_list.turn_on_bulk_chem = 1;
+    } else {
+        parameter_list.turn_on_bulk_chem = 0;
+    }
     parameter_list.resumTransCoeffAlpha =
         (getParameter(input_file, "resumTransCoeffAlpha", 1.5));
     parameter_list.FlagCausalityMethod =
@@ -386,6 +394,9 @@ InitData read_in_parameters(std::string input_file) {
     // net baryon diffusion: kappa coefficient
     parameter_list.kappa_coefficient =
         (getParameter(input_file, "kappa_coefficient", 0.0));
+
+    // chemical reaction rate for bulk viscosity from chemical non-equilibrium
+    parameter_list.chem_rate_C = getParameter(input_file, "chem_rate_C", 1.0);
 
     parameter_list.store_hydro_info_in_memory =
         (getParameter(input_file, "store_hydro_info_in_memory", 0));

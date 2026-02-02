@@ -28,6 +28,7 @@ typedef struct {
     float vx, vy, vz;
     float pi[4][4];
     float bulkPi;
+    float bulkPi_chem;
 } fluidCell;
 
 typedef struct {

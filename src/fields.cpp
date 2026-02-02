@@ -8,6 +8,7 @@ Fields::~Fields() {
     e_.clear();
     rhob_.clear();
     piBulk_.clear();
+    piBulkChem_.clear();
     u_.clear();
     Wmunu_.clear();
 }
@@ -21,6 +22,7 @@ void Fields::resizeFields(int Nx, int Ny, int Neta) {
     e_.resize(Npoints, 0.);
     rhob_.resize(Npoints, 0.);
     piBulk_.resize(Npoints, 0.);
+    piBulkChem_.resize(Npoints, 0.);
 
     u_.resize(Nu_);
     u_[0].resize(Npoints, 1.);
@@ -53,6 +55,7 @@ Cell_small Fields::getCell(const int idx) {
         cell.Wmunu[i] = Wmunu_[i][idx];
     }
     cell.pi_b = piBulk_[idx];
+    cell.pi_b_chem = piBulkChem_[idx];
     return (cell);
 }
 
