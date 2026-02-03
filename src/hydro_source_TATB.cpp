@@ -461,7 +461,7 @@ double HydroSourceTATB::compute_yL(
     // ------------------------------
     // 1. Basic ratios
     // ------------------------------
-    double a = TB / TA;
+    double a = TB / (TA + Util::small_eps);
     // regularize a ≈ 1
     if (std::abs(a - 1.0) < Util::small_eps) a = 1.0 + Util::small_eps;
     double loga = std::log(std::max(a, Util::small_eps));
@@ -549,7 +549,7 @@ double HydroSourceTATB::energy_eta_profile_normalisation_tilted(
     // for energy density in the tilted source model
 
     // a = TA / TB
-    double a = TA / TB;
+    double a = TA / (TB + Util::small_eps);
 
     // protect a ~ 1
     if (std::abs(a - 1.0) < Util::small_eps) a = 1.0 + Util::small_eps;
