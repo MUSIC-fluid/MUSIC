@@ -120,8 +120,8 @@ InitData read_in_parameters(std::string input_file) {
     // yL_frac: the fraction of Y_CM in the longitudinal velocity
     parameter_list.yL_frac = getParameter(input_file, "yL_frac", 0.0);
     parameter_list.eta_m = getParameter(input_file, "eta_m", 5.0);
-    parameter_list.tilted_fraction = getParameter(input_file,
-                                                  "tilted_fraction", 0);
+    parameter_list.tilted_fraction =
+        getParameter(input_file, "tilted_fraction", 0);
 
     // eta envelope function parameter for rhob
     parameter_list.initial_eta_rhob_profile =
