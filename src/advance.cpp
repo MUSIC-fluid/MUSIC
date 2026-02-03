@@ -483,6 +483,24 @@ void Advance::QuestRevert(
         }
         grid_pt.pi_b = (rho_bulk_max / rho_bulk) * grid_pt.pi_b;
     }
+
+    // Reducing bulk_chem
+    double rho_bulkChem =
+        (sqrt(3. * grid_pt.pi_b_chem * grid_pt.pi_b_chem / eq_size)
+         / factor_bulk);
+    double rho_bulkChem_max = 0.1;
+    if (rho_bulkChem > rho_bulkChem_max) {
+        if (e_local > eps_scale && DATA.echo_level > 5) {
+            music_message << "ieta = " << ieta << ", ix = " << ix
+                          << ", iy = " << iy
+                          << ", energy density = " << e_local * hbarc
+                          << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
+                          << rho_bulk;
+            music_message.flush("warning");
+        }
+        grid_pt.pi_b_chem =
+            (rho_bulkChem_max / rho_bulkChem) * grid_pt.pi_b_chem;
+    }
 }
 
 //! this function reduce the size of net baryon diffusion current
