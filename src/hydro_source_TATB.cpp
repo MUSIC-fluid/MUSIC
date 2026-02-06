@@ -472,8 +472,7 @@ double HydroSourceTATB::compute_yL(
     double denom = sqrt_a * denom_base;
 
     // robust regularization
-    denom = std::copysign(
-        std::max(std::abs(denom), Util::small_eps), denom);
+    denom = std::copysign(std::max(std::abs(denom), Util::small_eps), denom);
 
     // ------------------------------
     // 3. denum
@@ -575,8 +574,7 @@ double HydroSourceTATB::energy_eta_profile_normalisation_tilted(
     double denom_base = 4.0 * eta_m * eta_m - loga * loga;
     double denom = sqrt_a * denom_base;
     // robust regularization
-    denom = std::copysign(
-        std::max(std::abs(denom), Util::small_eps), denom);
+    denom = std::copysign(std::max(std::abs(denom), Util::small_eps), denom);
 
     // ------------------------------
     // Term 3
