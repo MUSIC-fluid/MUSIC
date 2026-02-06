@@ -30,6 +30,8 @@ struct QCD_string {
     double eta_s_baryon_left, eta_s_baryon_right;
     double y_l_baryon, y_r_baryon;
     double baryon_frac_l, baryon_frac_r;
+    double electricQ_frac_l, electricQ_frac_r;
+    double eta_s_electricQ_left, eta_s_electricQ_right;
 };
 
 class HydroSourceStrings : public HydroSourceBase {

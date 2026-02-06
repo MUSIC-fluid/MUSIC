@@ -85,10 +85,12 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             >> new_string->remnant_r >> new_string->y_l_i >> new_string->y_r_i
             >> new_string->eta_s_baryon_left >> new_string->eta_s_baryon_right
             >> new_string->y_l_baryon >> new_string->y_r_baryon
-            >> new_string->baryon_frac_l;
+            >> new_string->baryon_frac_l >> new_string->baryon_frac_r
+            >> new_string->electricQ_frac_l >> new_string->electricQ_frac_r
+            >> new_string->eta_s_electricQ_left;
         if (!text_stream.eof()) {
             // read in the last element
-            text_stream >> new_string->baryon_frac_r;
+            text_stream >> new_string->eta_s_electricQ_right;
         } else {
             // the string is too short
             music_message << "read_in_QCD_strings_and_partons: "
