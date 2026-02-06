@@ -263,8 +263,7 @@ void HydroSourceTATB::get_hydro_energy_source(
     double eta_envelop =
          eta_profile_plateau(eta_s, eta0, DATA_.eta_fall_off);
      */
-    double M =
-        TA * TA + TB * TB + 2 * TA * TB * Util::m_N * cosh2Ybeam_;  // [1/fm^4]
+    double M = Util::m_N * std::sqrt(TA * TA + TB * TB + 2 * TA * TB * cosh2Ybeam_);  // [1/fm^4]
 
     /*
     double E_norm =
