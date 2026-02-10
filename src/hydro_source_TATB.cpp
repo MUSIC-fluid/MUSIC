@@ -304,8 +304,7 @@ double HydroSourceTATB::get_hydro_rhob_source(
     double eta_rhob_plus = eta_rhob_left_factor(eta_s);
     double eta_rhob_minus = eta_rhob_right_factor(eta_s);
     double norm_B =
-        sqrt(2. / M_PI) * 1
-        / (tau_source * (DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2));
+        sqrt(2. / M_PI) / (tau_source * (DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2));
     double norm_B_prime =
         sqrt(2. / M_PI) * (TA + TB)
         / (tau_source * (DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2)
@@ -342,7 +341,7 @@ double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
 */
 
 double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
-    double eta_0_nB = -std::abs(DATA_.eta_rhob_0);
+    double eta_0_nB = std::abs(DATA_.eta_rhob_0);
     double sigma_B_plus = DATA_.eta_rhob_width_1;
     double sigma_B_minus = DATA_.eta_rhob_width_2;
 
