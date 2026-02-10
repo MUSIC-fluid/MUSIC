@@ -263,8 +263,7 @@ void HydroSourceTATB::get_hydro_energy_source(
     double eta_envelop =
          eta_profile_plateau(eta_s, eta0, DATA_.eta_fall_off);
      */
-    double M =
-        TA * TA + TB * TB + 2 * TA * TB * Util::m_N * cosh2Ybeam_;  // [1/fm^4]
+    double M = Util::m_N * std::sqrt(TA * TA + TB * TB + 2 * TA * TB * cosh2Ybeam_);  // [1/fm^4]
 
     /*
     double E_norm =
@@ -305,8 +304,7 @@ double HydroSourceTATB::get_hydro_rhob_source(
     double eta_rhob_plus = eta_rhob_left_factor(eta_s);
     double eta_rhob_minus = eta_rhob_right_factor(eta_s);
     double norm_B =
-        sqrt(2. / M_PI) * 1
-        / (tau_source * (DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2));
+        sqrt(2. / M_PI) / (tau_source * (DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2));
     double norm_B_prime =
         sqrt(2. / M_PI) * (TA + TB)
         / (tau_source * (DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2)
@@ -343,7 +341,7 @@ double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
 */
 
 double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
-    double eta_0_nB = -std::abs(DATA_.eta_rhob_0);
+    double eta_0_nB = std::abs(DATA_.eta_rhob_0);
     double sigma_B_plus = DATA_.eta_rhob_width_1;
     double sigma_B_minus = DATA_.eta_rhob_width_2;
 
@@ -396,7 +394,7 @@ double HydroSourceTATB::eta_profile_plateau(
     double res;
     double exparg1 = (std::abs(eta) - eta_0) / sigma_eta;
     double exparg = exparg1 * exparg1 / 2.0;
-    res = exp(-exparg * Util::theta(exparg1));
+    res = exp(-exparg * Util::theta(std::abs(eta) - eta_0));
     return res;
 }
 
