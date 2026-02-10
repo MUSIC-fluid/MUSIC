@@ -394,7 +394,7 @@ double HydroSourceTATB::eta_profile_plateau(
     double res;
     double exparg1 = (std::abs(eta) - eta_0) / sigma_eta;
     double exparg = exparg1 * exparg1 / 2.0;
-    res = exp(-exparg * Util::theta(exparg1));
+    res = exp(-exparg * Util::theta(std::abs(eta) - eta_0));
     return res;
 }
 
