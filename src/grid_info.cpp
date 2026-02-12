@@ -524,6 +524,7 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                               << DATA.output_evolution_e_cut
                               << " GeV/fm^3, are reaching the grid edge! "
                               << "ix = " << ix << ", iy = " << iy << std::endl;
+                    fclose(out_file_xyeta);
                     return (-1);
                 }
 
