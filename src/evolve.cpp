@@ -121,11 +121,13 @@ int Evolve::EvolveIt(
         //     }
         // }
 
+        int evoFileStatus = 0;
         if (it % Nskip_timestep == 0) {
             if (DATA.outputEvolutionData == 1) {
                 grid_info.OutputEvolutionDataXYEta(*fpCurr, tau);
             } else if (DATA.outputEvolutionData == 2) {
-                grid_info.OutputEvolutionDataXYEta_chun(*fpCurr, tau);
+                evoFileStatus =
+                    grid_info.OutputEvolutionDataXYEta_chun(*fpCurr, tau);
             } else if (DATA.outputEvolutionData == 3) {
                 grid_info.OutputEvolutionDataXYEta_photon(*fpCurr, tau);
             } else if (DATA.outputEvolutionData == 4) {
@@ -143,6 +145,10 @@ int Evolve::EvolveIt(
             if (DATA.output_outofequilibriumsize == 1) {
                 grid_info.OutputEvolution_Knudsen_Reynoldsnumbers(*fpCurr, tau);
             }
+        }
+        if (evoFileStatus == -1) {
+            DATA.reRunHydro = true;
+            return (-1);
         }
 
         if (it == iFreezeStart || it == iFreezeStart + 10

@@ -420,7 +420,7 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
 }
 
 //! This function outputs hydro evolution file in binary format
-void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
+int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
     // the format of the file is as follows,
     //    itau ix iy ieta e P T cs^2 ux uy ueta
     // if turn_on_shear == 1:
@@ -524,7 +524,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
                               << DATA.output_evolution_e_cut
                               << " GeV/fm^3, are reaching the grid edge! "
                               << "ix = " << ix << ", iy = " << iy << std::endl;
-                    exit(-1);
+                    return (-1);
                 }
 
                 eos.getThermalVariables(e_local, rhob_local, thermalVec);
@@ -623,6 +623,7 @@ void Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
         }
     }
     fclose(out_file_xyeta);
+    return 0;
 }
 
 //! This function outputs hydro evolution file in binary format for photon

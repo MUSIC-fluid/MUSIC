@@ -33,15 +33,18 @@ int main(int argc, char *argv[]) {
         music_hydro.setReRunHydro(false);
 
         int running_mode = music_hydro.get_running_mode();
+        int evoStatus = 0;
         if (running_mode == 1 || running_mode == 2) {
             music_hydro.initialize_hydro();
-            music_hydro.run_hydro();
+            evoStatus = music_hydro.run_hydro();
             bReRunHydro = music_hydro.getReRunHydro();
         }
 
-        if (running_mode == 1 || running_mode == 3 || running_mode == 4
-            || running_mode == 13 || running_mode == 14) {
-            music_hydro.run_Cooper_Frye();
+        if (evoStatus == 1) {
+            if (running_mode == 1 || running_mode == 3 || running_mode == 4
+                || running_mode == 13 || running_mode == 14) {
+                music_hydro.run_Cooper_Frye();
+            }
         }
 
         if (running_mode == 71) {

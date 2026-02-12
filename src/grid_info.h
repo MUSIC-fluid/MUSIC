@@ -54,7 +54,7 @@ class Cell_info {
     void OutputEvolutionDataXYEta(Fields &arena, double tau);
 
     //! This function outputs hydro evolution file in binary format
-    void OutputEvolutionDataXYEta_chun(Fields &arena, double tau);
+    int OutputEvolutionDataXYEta_chun(Fields &arena, double tau);
 
     //! This function outputs hydro evolution file in binary format for photon
     //! production
