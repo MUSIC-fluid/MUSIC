@@ -101,10 +101,12 @@ int MUSIC::run_hydro() {
     if (hydro_info_ptr == nullptr && DATA.store_hydro_info_in_memory == 1) {
         hydro_info_ptr = std::make_shared<HydroinfoMUSIC>();
     }
-    evolve_local.EvolveIt(
+    int evoStatus = evolve_local.EvolveIt(
         arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext, (*hydro_info_ptr));
-    flag_hydro_run = 1;
-    return (0);
+    if (evoStatus == 1) {
+        flag_hydro_run = 1;
+    }
+    return (evoStatus);
 }
 
 //! this is a shell function to run Cooper-Frye
