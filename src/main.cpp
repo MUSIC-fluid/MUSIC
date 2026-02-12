@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
         music_hydro.setReRunCount(ireRunHydroCount);
         music_hydro.setReRunHydro(false);
 
+        std::ignore = std::system("rm -fr *.dat 2> /dev/null");
         int running_mode = music_hydro.get_running_mode();
         int evoStatus = 0;
         if (running_mode == 1 || running_mode == 2) {
