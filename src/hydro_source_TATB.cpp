@@ -323,6 +323,7 @@ double HydroSourceTATB::get_hydro_rhob_source(
     */
     res = norm_B * (1 - omega) * (TA * eta_rhob_plus + TB * eta_rhob_minus)
           + norm_B_prime * omega * TA * TB * (eta_rhob_plus + eta_rhob_minus);
+    res /= dtau;
     return (res);
 }
 /*
