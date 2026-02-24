@@ -246,7 +246,7 @@ void HydroSourceTATB::get_hydro_energy_source(
     }
     */
     double y_CM = atanh((TA - TB) / (TA + TB + Util::small_eps) * tanhYbeam_);
-    //double y_L = yL_frac_ * y_CM;
+    // double y_L = yL_frac_ * y_CM;
     double y_L = compute_yL(TA, TB, y_CM, eta0_, sigma_eta_, eta_m_);
 
     /*
@@ -263,7 +263,10 @@ void HydroSourceTATB::get_hydro_energy_source(
     double eta_envelop =
          eta_profile_plateau(eta_s, eta0, DATA_.eta_fall_off);
      */
-    double M = Util::m_N * std::sqrt(TA * TA + TB * TB + 2.0 * TA * TB * std::cosh(2.0 * ybeam_))/(Util::hbarc);
+    double M =
+        Util::m_N
+        * std::sqrt(TA * TA + TB * TB + 2.0 * TA * TB * std::cosh(2.0 * ybeam_))
+        / (Util::hbarc);
     /*
     double E_norm =
         tau_source
@@ -274,12 +277,14 @@ void HydroSourceTATB::get_hydro_energy_source(
     // double E_norm = tau_source*energy_eta_profile_normalisation_numerical(
     //                                 y_CM, eta0, DATA_.eta_fall_off);
     // double epsilon = M_inv * eta_envelop / E_norm / dtau;  // [1/fm^5]
-    double tilted_epsilon = eta_profile_plateau(eta_s, eta0_, sigma_eta_) * pow(TA, f_plus) * pow(TB, f_minus);
+    double tilted_epsilon = eta_profile_plateau(eta_s, eta0_, sigma_eta_)
+                            * pow(TA, f_plus) * pow(TB, f_minus);
     double shifted_epsilon =
         eta_profile_plateau(eta_s - (y_CM - y_L), eta0_, sigma_eta_);
     double tilted_norm = energy_eta_profile_normalisation_tilted(
-                             TA, TB, eta0_, eta_m_, sigma_eta_, y_CM, M, y_L)/tau_source;
-    double shifted_norm = M / C_eta_/tau_source;
+                             TA, TB, eta0_, eta_m_, sigma_eta_, y_CM, M, y_L)
+                         / tau_source;
+    double shifted_norm = M / C_eta_ / tau_source;
 
     double epsilon = (beta_ * tilted_epsilon * tilted_norm
                       + (1. - beta_) * shifted_epsilon * shifted_norm)
