@@ -264,8 +264,9 @@ void HydroSourceTATB::get_hydro_energy_source(
          eta_profile_plateau(eta_s, eta0, DATA_.eta_fall_off);
      */
     double M =
-        TA * TA + TB * TB + 2 * TA * TB * Util::m_N * cosh2Ybeam_;  // [1/fm^4]
-
+        Util::m_N
+        * std::sqrt(TA * TA + TB * TB + 2.0 * TA * TB * std::cosh(2.0 * ybeam_))
+        / (Util::hbarc);
     /*
     double E_norm =
         tau_source
@@ -276,13 +277,14 @@ void HydroSourceTATB::get_hydro_energy_source(
     // double E_norm = tau_source*energy_eta_profile_normalisation_numerical(
     //                                 y_CM, eta0, DATA_.eta_fall_off);
     // double epsilon = M_inv * eta_envelop / E_norm / dtau;  // [1/fm^5]
-    double tilted_epsilon = pow(TA, f_plus) * pow(TB, f_minus);
+    double tilted_epsilon = eta_profile_plateau(eta_s, eta0_, sigma_eta_)
+                            * pow(TA, f_plus) * pow(TB, f_minus);
     double shifted_epsilon =
         eta_profile_plateau(eta_s - (y_CM - y_L), eta0_, sigma_eta_);
-    double tilted_norm = tau_source
-                         * energy_eta_profile_normalisation_tilted(
-                             TA, TB, eta0_, eta_m_, sigma_eta_, y_CM, M, y_L);
-    double shifted_norm = tau_source * M / C_eta_;
+    double tilted_norm = energy_eta_profile_normalisation_tilted(
+                             TA, TB, eta0_, eta_m_, sigma_eta_, y_CM, M, y_L)
+                         / tau_source;
+    double shifted_norm = M / C_eta_ / tau_source;
 
     double epsilon = (beta_ * tilted_epsilon * tilted_norm
                       + (1. - beta_) * shifted_epsilon * shifted_norm)
@@ -323,6 +325,7 @@ double HydroSourceTATB::get_hydro_rhob_source(
     */
     res = norm_B * (1 - omega) * (TA * eta_rhob_plus + TB * eta_rhob_minus)
           + norm_B_prime * omega * TA * TB * (eta_rhob_plus + eta_rhob_minus);
+    res /= gridDtau_;
     return (res);
 }
 /*
@@ -343,7 +346,7 @@ double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
 */
 
 double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
-    double eta_0_nB = -std::abs(DATA_.eta_rhob_0);
+    double eta_0_nB = std::abs(DATA_.eta_rhob_0);
     double sigma_B_plus = DATA_.eta_rhob_width_1;
     double sigma_B_minus = DATA_.eta_rhob_width_2;
 
