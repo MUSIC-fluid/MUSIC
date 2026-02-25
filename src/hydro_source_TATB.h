@@ -26,7 +26,6 @@ class HydroSourceTATB : public HydroSourceBase {
     double gridXmin_, gridYmin_, gridDX_, gridDY_;
     double gridDtau_;
     double eta0_, eta_m_, sigma_eta_;
-    double C_eta_;
     double beta_;
 
   public:

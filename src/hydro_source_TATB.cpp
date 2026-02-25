@@ -63,12 +63,6 @@ HydroSourceTATB::HydroSourceTATB(InitData &DATA_in) : DATA_(DATA_in) {
     eta0_ = DATA_.eta_flat / 2.;
     eta_m_ = DATA_.eta_m;
     sigma_eta_ = DATA_.eta_fall_off;
-    C_eta_ =
-        (2. * std::sinh(eta0_)
-         + std::sqrt(M_PI / 2.0) * sigma_eta_
-               * std::exp(sigma_eta_ * sigma_eta_ / 2.0)
-               * (std::exp(eta0_) * std::erfc(-sigma_eta_ / sqrt(2))
-                  + std::exp(-eta0_) * std::erfc(sigma_eta_ / sqrt(2))));
 
     beta_ = DATA_.tilted_fraction;
 }
@@ -237,54 +231,38 @@ void HydroSourceTATB::get_hydro_energy_source(
 
     const double TA = profile_TA[ix][iy];
     const double TB = profile_TB[ix][iy];
-    /*
-    if (DATA_.ecm > 2000.) {
-        // at LHC energies, we vary eta_flat according to TA + TB
-        double total_num_nucleons = 208. * 2.;  // for PbPb runs
-        double slope = -0.4;
-        eta_flat = eta_flat + ((TA_ + TB_) / total_num_nucleons - 0.5) * slope;
-    }
-    */
+
     double y_CM = atanh((TA - TB) / (TA + TB + Util::small_eps) * tanhYbeam_);
-    // double y_L = yL_frac_ * y_CM;
-    double y_L = compute_yL(TA, TB, y_CM, eta0_, sigma_eta_, eta_m_);
-
-    /*
     double M_inv =
-        ((profile_TA[ix][iy] + profile_TB[ix][iy]) * Util::m_N
-         * cosh(DATA_.beam_rapidity) / Util::hbarc);  // [1/fm^3]
-
-    double eta0 =
-        std::min(eta_flat / 2.0, std::abs(DATA_.beam_rapidity - (y_CM - y_L)));
-    */
-    double f_plus = eta_envelope_f(eta_s, eta_m_);
-    double f_minus = eta_envelope_f(-eta_s, eta_m_);
-    /*
-    double eta_envelop =
-         eta_profile_plateau(eta_s, eta0, DATA_.eta_fall_off);
-     */
-    double M =
         Util::m_N
         * std::sqrt(TA * TA + TB * TB + 2.0 * TA * TB * std::cosh(2.0 * ybeam_))
         / (Util::hbarc);
-    /*
-    double E_norm =
-        tau_source
-        * energy_eta_profile_normalisation(y_CM, eta0, DATA_.eta_fall_off);
-    */
-    // double eta_envelop = eta_profile_plateau_frag(eta_s - (y_CM - y_L), eta0,
-    //                                               DATA_.eta_fall_off);
-    // double E_norm = tau_source*energy_eta_profile_normalisation_numerical(
-    //                                 y_CM, eta0, DATA_.eta_fall_off);
-    // double epsilon = M_inv * eta_envelop / E_norm / dtau;  // [1/fm^5]
+
+    double y_L = yL_frac_ * y_CM;
+    if (beta_ > 1e-8) {
+        // for mixed profile, use yL solved from tilted source model
+        y_L = compute_yL(TA, TB, y_CM, eta0_, sigma_eta_, eta_m_);
+    }
+    // shifted source model
+    double eta0_shifted = std::min(eta0_, std::abs(ybeam_ - (y_CM - y_L)));
+    double C_eta_shifted =
+        (2. * sinh(eta0_shifted)
+         + sqrt(M_PI / 2.0) * sigma_eta_ * exp(sigma_eta_ * sigma_eta_ / 2.0)
+               * (exp(eta0_shifted) * std::erfc(-sigma_eta_ / sqrt(2))
+                  + exp(-eta0_shifted) * std::erfc(sigma_eta_ / sqrt(2))));
+    double shifted_epsilon =
+        eta_profile_plateau(eta_s - (y_CM - y_L), eta0_shifted, sigma_eta_);
+    double shifted_norm = M_inv / C_eta_shifted / tau_source;
+
+    // tilted source model
+    double f_plus = eta_envelope_f(eta_s, eta_m_);
+    double f_minus = eta_envelope_f(-eta_s, eta_m_);
     double tilted_epsilon = eta_profile_plateau(eta_s, eta0_, sigma_eta_)
                             * pow(TA, f_plus) * pow(TB, f_minus);
-    double shifted_epsilon =
-        eta_profile_plateau(eta_s - (y_CM - y_L), eta0_, sigma_eta_);
-    double tilted_norm = energy_eta_profile_normalisation_tilted(
-                             TA, TB, eta0_, eta_m_, sigma_eta_, y_CM, M, y_L)
-                         / tau_source;
-    double shifted_norm = M / C_eta_ / tau_source;
+    double tilted_norm =
+        (energy_eta_profile_normalisation_tilted(
+             TA, TB, eta0_, eta_m_, sigma_eta_, y_CM, M_inv, y_L)
+         / tau_source);
 
     double epsilon = (beta_ * tilted_epsilon * tilted_norm
                       + (1. - beta_) * shifted_epsilon * shifted_norm)
@@ -314,15 +292,7 @@ double HydroSourceTATB::get_hydro_rhob_source(
         / (tau_source * (DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2)
            * (2 * TA * TB + Util::small_eps));
     const double omega = DATA_.omega_rhob;
-    /*
-    res = 0.5*(
-          profile_TA[ix][iy]*(  (1. + DATA_.eta_rhob_asym)*eta_rhob_minus
-                              + (1. - DATA_.eta_rhob_asym)*eta_rhob_plus)
-        + profile_TB[ix][iy]*(  (1. + DATA_.eta_rhob_asym)*eta_rhob_plus
-                              + (1. - DATA_.eta_rhob_asym)*eta_rhob_minus)
-    );   // [1/fm^3]
-    res /= dtau;  // [1/fm^4]
-    */
+
     res = norm_B * (1 - omega) * (TA * eta_rhob_plus + TB * eta_rhob_minus)
           + norm_B_prime * omega * TA * TB * (eta_rhob_plus + eta_rhob_minus);
     res /= gridDtau_;
