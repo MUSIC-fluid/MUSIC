@@ -98,8 +98,8 @@ void Diss::MakeWSource(const double tau,
                 double Pi_m = (bg + bgm1)*0.5;
                 double Pi_p = (bg + bgp1)*0.5;
                 if (direction == 3 && (alpha == 0 || alpha == 3)) {
-                    W_eta_p[alpha] += Pi_m;
-                    W_eta_m[alpha] += Pi_p;
+                    W_eta_p[alpha] += Pi_p;
+                    W_eta_m[alpha] += Pi_m;
                 } else {
                     dPidx += (Pi_p - Pi_m)/delta[direction];
                 }
