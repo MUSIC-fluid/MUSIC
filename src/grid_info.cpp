@@ -765,6 +765,116 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
     fclose(out_file_xyeta);
 }
 
+// Print bulk or other transport coefficients
+void Cell_info::OutputEvolutionDataXYEta_Bulk(Fields &arena_curr, double tau) {
+    const string out_name_coeff = "evolution_coeff.dat";
+    string out_open_mode;
+    FILE *out_file_coeff      = NULL;
+
+    // If it's the first timestep, overwrite the previous file
+    if (tau == DATA.tau0) {
+        out_open_mode = "w";
+    } else {
+        out_open_mode = "a";
+    }
+    // If we output in binary, set the mode accordingly
+    if (0 == DATA.outputBinaryEvolution) {
+        out_open_mode += "b";
+    }
+    if ((DATA.turn_on_shear == 1)&&(DATA.turn_on_bulk == 1)) {
+        out_file_coeff = fopen(out_name_coeff.c_str(),
+                                 out_open_mode.c_str());
+    }
+    
+    const int n_skip_x   = DATA.output_evolution_every_N_x;
+    const int n_skip_y   = DATA.output_evolution_every_N_y;
+    const int n_skip_eta = DATA.output_evolution_every_N_eta;
+    for (int ieta = 0; ieta < arena_curr.nEta(); ieta += n_skip_eta) {
+        for (int iy = 0; iy < arena_curr.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena_curr.nX(); ix += n_skip_x) {
+                int fieldIdx = arena_curr.getFieldIdx(ix, iy, ieta);
+                double e_local    = arena_curr.e_[fieldIdx];  // 1/fm^4
+                double rhob_local = arena_curr.rhob_[fieldIdx];     // 1/fm^3
+                double T_local  = eos.get_temperature(e_local, rhob_local); // 1/fm
+                double p_local  = eos.get_pressure(e_local, rhob_local);   // 1/fm^4
+                double s_local = eos.get_entropy(e_local, rhob_local);  // 1/fm^3
+                double cs2 = eos.get_cs2(e_local, rhob_local);
+
+                double utau = arena_curr.u_[0][fieldIdx];
+                double ux   = arena_curr.u_[1][fieldIdx];
+                double uy   = arena_curr.u_[2][fieldIdx];
+                double ueta = arena_curr.u_[3][fieldIdx];
+
+                double Wtautau = 0.0;
+                double Wtaux   = 0.0;
+                double Wtauy   = 0.0;
+                double Wtaueta = 0.0;
+                double Wxx     = 0.0;
+                double Wxy     = 0.0;
+                double Wxeta   = 0.0;
+                double Wyy     = 0.0;
+                double Wyeta   = 0.0;
+                double Wetaeta = 0.0;
+                double bulk_Pi = 0.0;
+                if (DATA.turn_on_bulk == 1){
+                    bulk_Pi = arena_curr.piBulk_[fieldIdx]; //1/fm^4
+                }
+                if (DATA.turn_on_shear == 1){ // in fm units
+                    Wtautau = arena_curr.Wmunu_[0][fieldIdx];
+                    Wtaux   = arena_curr.Wmunu_[1][fieldIdx];
+                    Wtauy   = arena_curr.Wmunu_[2][fieldIdx];
+                    Wtaueta = arena_curr.Wmunu_[3][fieldIdx];
+                    Wxx     = arena_curr.Wmunu_[4][fieldIdx];
+                    Wxy     = arena_curr.Wmunu_[5][fieldIdx];
+                    Wxeta   = arena_curr.Wmunu_[6][fieldIdx];
+                    Wyy     = arena_curr.Wmunu_[7][fieldIdx];
+                    Wyeta   = arena_curr.Wmunu_[8][fieldIdx];
+                    Wetaeta = arena_curr.Wmunu_[9][fieldIdx];
+                }
+                // select what you want to print
+                if (DATA.outputBinaryEvolution == 0) {
+                    if (DATA.viscosity_flag == 1){
+                        fprintf(out_file_coeff,
+                                "%e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e %e \n",
+                                e_local*hbarc, utau, ux, uy, ueta, Wtautau, Wtaux, Wtauy, Wtaueta, Wxx, Wxy, Wxeta, Wyy, Wyeta, 
+                                Wyeta, bulk_Pi*hbarc, s_local*hbarc, T_local*hbarc, p_local*hbarc, cs2); // print in GeV/fm^3
+                    }
+                } else {
+                    if (DATA.viscosity_flag == 1) {
+                        if ((DATA.turn_on_shear == 1)&&(DATA.turn_on_bulk == 1)) {
+                            float array[] = {static_cast<float>(e_local*hbarc),
+                                              static_cast<float>(utau),
+                                              static_cast<float>(ux),
+                                              static_cast<float>(uy),
+                                              static_cast<float>(ueta),
+                                              static_cast<float>(Wtautau),
+                                              static_cast<float>(Wtaux),
+                                              static_cast<float>(Wtauy),
+                                              static_cast<float>(Wtaueta),
+                                              static_cast<float>(Wxx),
+                                              static_cast<float>(Wxy),
+                                              static_cast<float>(Wxeta),
+                                              static_cast<float>(Wyy),
+                                              static_cast<float>(Wyeta),
+                                              static_cast<float>(Wetaeta),
+                                              static_cast<float>(bulk_Pi*hbarc),
+                                              static_cast<float>(s_local*hbarc),
+                                              static_cast<float>(T_local*hbarc),
+                                              static_cast<float>(p_local*hbarc),
+                                              static_cast<float>(cs2)};
+                            fwrite(array, sizeof(float), 20,
+                                   out_file_coeff);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if ((DATA.turn_on_shear == 1)&&(DATA.turn_on_bulk == 1)) {
+        fclose(out_file_coeff);
+    }
+}
+
 //! This function outputs hydro evolution file in binary format
 void Cell_info::OutputEvolutionDataXYEta_vorticity(
     Fields &arena_curr, Fields &arena_prev, double tau) {
