@@ -27,7 +27,7 @@ typedef struct init_data {
 
     std::string initName;   //!< filename for initial condition T^{\mu\nu}
 
-    //Switches for alpha string update and two string profile
+    //Switch for string tilt update
     int string_t_update;        //! 0 => default StringTransverseShift
 			       //! 1 => strings are tilited 
    
