@@ -235,72 +235,98 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     music_message.flush("info");
 }
 
-
 void HydroSourceStrings::compute_norm_for_strings() {
+
+
     const int neta = 500;
     const double eta_range = 12.;
-    const double deta = 2.*eta_range/(neta - 1);
+    const double deta = 2. * eta_range / (neta - 1);
 
-    double E_string_total  = 0.0;
+    double E_string_total = 0.0;
     double E_remnant_total = 0.0;
-    double Pz_string_total  = 0.0;
+    double Pz_string_total = 0.0;
     double Pz_remnant_total = 0.0;
-    for (auto &it: QCD_strings_list) {
-        const double sigma_eta = it->sigma_eta;
-        const double prefactor_etas = 1./(sqrt(2.*M_PI)*sigma_eta);
+    int Enable_string_tilt = DATA.string_t_update;
+    
 
-        double E_string_norm    = 0.;
+    for (auto &it : QCD_strings_list) {
+        const double sigma_eta = it->sigma_eta;
+        const double prefactor_etas = 1. / (sqrt(2. * M_PI) * sigma_eta);
+
+        double E_string_norm = 0.;
         double E_remnant_L_norm = 0.;
         double E_remnant_R_norm = 0.;
+	double Pz_string_first_moment = 0.0;
+
+        const double eta_c = 0.5 * (it->eta_s_left + it->eta_s_right);
         for (int ieta = 0; ieta < neta; ieta++) {
-            double eta_local = - eta_range + ieta*deta;
+            double eta_local = -eta_range + ieta * deta;
             double Delta_eta = it->eta_s_right - it->eta_s_left;
             double denorm_safe = std::copysign(
                 std::max(Util::small_eps, std::abs(Delta_eta)), Delta_eta);
-            double y_eta = (it->y_l + (it->y_r - it->y_l)/denorm_safe
-                                      *(eta_local - it->eta_s_left));
-            double expon_left  = (
-                        (it->eta_s_left  - eta_local)/(sqrt(2.)*sigma_eta));
-            double expon_right = (
-                        (it->eta_s_right - eta_local)/(sqrt(2.)*sigma_eta));
-            double e_eta = 0.5*(- erf(expon_left) + erf(expon_right));
-            E_string_norm += e_eta*cosh(y_eta);
+            double y_eta =
+                (it->y_l
+                 + (it->y_r - it->y_l) / denorm_safe
+                       * (eta_local - it->eta_s_left));
+            double expon_left =
+                ((it->eta_s_left - eta_local) / (sqrt(2.) * sigma_eta));
+            double expon_right =
+                ((it->eta_s_right - eta_local) / (sqrt(2.) * sigma_eta));
+            double e_eta = 0.5 * (-erf(expon_left) + erf(expon_right));
+            E_string_norm += e_eta * cosh(y_eta);
 
-            double e_remnant_L = exp(-expon_left*expon_left);
-            double e_remnant_R = exp(-expon_right*expon_right);
-            E_remnant_L_norm += e_remnant_L*cosh(it->y_l);
-            E_remnant_R_norm += e_remnant_R*cosh(it->y_r);
+            Pz_string_first_moment +=
+            ((eta_local - eta_c) /( 0.5 * denorm_safe)) * e_eta * sinh(y_eta);
+
+            double e_remnant_L = exp(-expon_left * expon_left);
+            double e_remnant_R = exp(-expon_right * expon_right);
+            E_remnant_L_norm += e_remnant_L * cosh(it->y_l);
+            E_remnant_R_norm += e_remnant_R * cosh(it->y_r);
         }
-        E_string_norm *= prefactor_etas*deta;
-        double E_string = (it->mass*cosh(it->y_l_i) + it->mass*cosh(it->y_r_i)
-                           - it->mass*cosh(it->y_l) - it->mass*cosh(it->y_r));
-        it->norm = E_string/std::max(E_string_norm, Util::small_eps);
+        E_string_norm *= prefactor_etas * deta;
+	Pz_string_first_moment *= prefactor_etas * deta;
+        double E_string =
+            (it->mass * cosh(it->y_l_i) + it->mass * cosh(it->y_r_i)
+             - it->mass * cosh(it->y_l) - it->mass * cosh(it->y_r));
+        it->norm = E_string / std::max(E_string_norm, Util::small_eps);
         E_string_total += E_string;
-        double Pz_string = (  it->mass*sinh(it->y_l_i) - it->mass*sinh(it->y_l)
-                            + it->mass*sinh(it->y_r_i) - it->mass*sinh(it->y_r));
+        double Pz_string =
+            (it->mass * sinh(it->y_l_i) - it->mass * sinh(it->y_l)
+             + it->mass * sinh(it->y_r_i) - it->mass * sinh(it->y_r));
         Pz_string_total += Pz_string;
 
+	double deltaPz_loss = it->mass * (sinh(it->y_r_i) - sinh(it->y_r) - sinh(it->y_l_i) + sinh(it->y_l));
+	Pz_string_first_moment *= it->norm;
+	it->string_t = stringTransverseShiftFrac_ ;
+
+        if( Enable_string_tilt == 1 ){
+           if (std::abs(it->mass == MASS_PARTON)< MASS_PARTON_TOLERANCE) {
+              if (std::abs(Pz_string_first_moment) >= Util::small_eps) {
+                     it->string_t =  deltaPz_loss / Pz_string_first_moment; 	   
+                }
+            }       
+         }
         // here the E_norm is for the energy of remnants at the string ends
-        E_remnant_L_norm *= prefactor_etas*deta;
-        E_remnant_R_norm *= prefactor_etas*deta;
-        double E_remnant_L   = it->remnant_l*it->mass*cosh(it->y_l);
-        double E_remnant_R   = it->remnant_r*it->mass*cosh(it->y_r);
-        it->E_remnant_norm_L = (E_remnant_L
-                                /std::max(E_remnant_L_norm, Util::small_eps));
-        it->E_remnant_norm_R = (E_remnant_R
-                                /std::max(E_remnant_R_norm, Util::small_eps));
+        E_remnant_L_norm *= prefactor_etas * deta;
+        E_remnant_R_norm *= prefactor_etas * deta;
+        double E_remnant_L = it->remnant_l * it->mass * cosh(it->y_l);
+        double E_remnant_R = it->remnant_r * it->mass * cosh(it->y_r);
+        it->E_remnant_norm_L =
+            (E_remnant_L / std::max(E_remnant_L_norm, Util::small_eps));
+        it->E_remnant_norm_R =
+            (E_remnant_R / std::max(E_remnant_R_norm, Util::small_eps));
         E_remnant_total += E_remnant_L + E_remnant_R;
-        double Pz_remnant_L = it->remnant_l*it->mass*sinh(it->y_l);
-        double Pz_remnant_R = it->remnant_r*it->mass*sinh(it->y_r);
+        double Pz_remnant_L = it->remnant_l * it->mass * sinh(it->y_l);
+        double Pz_remnant_R = it->remnant_r * it->mass * sinh(it->y_r);
         Pz_remnant_total += Pz_remnant_L + Pz_remnant_R;
     }
-    music_message << "E_total = "
-                  << E_string_total + E_remnant_total << " GeV. "
-                  << "E_string_total = " << E_string_total << " GeV, "
+    music_message << "E_total = " << E_string_total + E_remnant_total
+                  << " GeV. "
+                  << "E_string_total = " << E_string_total << " GeV,"
                   << "E_remnant_total = " << E_remnant_total << " GeV.";
     music_message.flush("info");
-    music_message << "Pz_total = "
-                  << Pz_string_total + Pz_remnant_total << " GeV. "
+    music_message << "Pz_total = " << Pz_string_total + Pz_remnant_total
+                  << " GeV. "
                   << "Pz_string_total = " << Pz_string_total << " GeV, "
                   << "Pz_remnant_total = " << Pz_remnant_total << " GeV.";
     music_message.flush("info");
@@ -346,6 +372,8 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
 void HydroSourceStrings::get_hydro_energy_source(
     const double tau, const double x, const double y, const double eta_s,
     const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
+    
+
     j_mu = {0};
     if (   QCD_strings_list_current_tau.size() == 0
         && QCD_strings_remnant_list_current_tau.size() == 0) return;
@@ -371,15 +399,17 @@ void HydroSourceStrings::get_hydro_energy_source(
                                      it->eta_s_right - it->eta_s_left));
         eta_frac = std::max(0., std::min(1., eta_frac));
 
-        const double x_perp = getStringTransverseCoord(it->x_pl, it->x_pr,
-                                                       eta_frac);
+        const double x_perp =
+            getStringTransverseCoord(it->x_pl, it->x_pr, eta_frac, it->string_t);
         double x_dis = x - x_perp;
         if (std::abs(x_dis) > skip_dis_x) continue;
 
-        const double y_perp = getStringTransverseCoord(it->y_pl, it->y_pr,
-                                                       eta_frac);
+        const double y_perp =
+            getStringTransverseCoord(it->y_pl, it->y_pr, eta_frac, it->string_t);
         double y_dis = y - y_perp;
         if (std::abs(y_dis) > skip_dis_x) continue;
+
+
 
         // calculate the crossed string segments in the eta direction
         // normally, there will be two segments
@@ -442,6 +472,8 @@ void HydroSourceStrings::get_hydro_energy_source(
         double Delta_eta = it->eta_s_right - it->eta_s_left;
         double denorm_safe = std::copysign(
                 std::max(Util::small_eps, std::abs(Delta_eta)), Delta_eta);
+
+
         double y_string = (it->y_l + (it->y_r - it->y_l)/denorm_safe
                                      *(eta_s - it->eta_s_left));
         double cosh_long = cosh(y_string - eta_s);
@@ -488,11 +520,7 @@ void HydroSourceStrings::get_hydro_energy_source(
             flag_right = true;
         }
 
-        double x_dis = x - it->x_perp;
-        if (std::abs(x_dis) > skip_dis_x) continue;
 
-        double y_dis = y - it->y_perp;
-        if (std::abs(y_dis) > skip_dis_x) continue;
 
         double exp_eta_s_left = 0.0;
         if (flag_left) {
@@ -510,25 +538,59 @@ void HydroSourceStrings::get_hydro_energy_source(
                                        /(2.*sigma_eta*sigma_eta)));
             }
         }
-        double exp_factors = exp_tau*(
-              exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)*cosh(it->y_l - eta_s)
-            + exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)*cosh(it->y_r - eta_s)
-        );
-        double pz_factors = exp_tau*(
-              exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)*sinh(it->y_l - eta_s)
-            + exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)*sinh(it->y_r - eta_s)
-        );
-        double e_remnant_local = 0.0;
-        double pz_remnant_local = 0.0;
-        if (exp_factors > 0) {
-            double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
-                                    /(2.*sigma_x*sigma_x));
-            e_remnant_local = exp_xperp*exp_factors;
-            pz_remnant_local = exp_xperp*pz_factors;
-        }
-        j_mu[0] += prefactor_etas*prefactor_prep*e_remnant_local;
-        j_mu[3] += prefactor_etas*prefactor_prep*pz_remnant_local;
-    }
+
+        if (flag_left){
+	    double x_dis = x - it->x_pl;
+	    if (std::abs(x_dis) <= skip_dis_x){
+		    double y_dis = y - it->y_pl;
+		    if (std::abs(y_dis) <= skip_dis_x){
+			double exp_factors = exp_tau*(
+                                             exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)*cosh(it->y_l - eta_s)); 
+			double pz_factors  = exp_tau*(
+                                             exp_eta_s_left*(it->remnant_l)*(it->E_remnant_norm_L)*sinh(it->y_l - eta_s));
+                        double e_remnant_local = 0.0;
+                        double pz_remnant_local = 0.0;
+                        if (exp_factors > 0) {
+                                    double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
+                                                      /(2.*sigma_x*sigma_x));
+                                    e_remnant_local = exp_xperp*exp_factors;
+                                    pz_remnant_local = exp_xperp*pz_factors;
+                        }
+                        j_mu[0] += prefactor_etas*prefactor_prep*e_remnant_local;
+                        j_mu[3] += prefactor_etas*prefactor_prep*pz_remnant_local;
+			                                
+		    }
+	      }
+         }
+
+
+        if (flag_right){
+	    double x_dis = x - it->x_pr;
+	    if (std::abs(x_dis) <= skip_dis_x){
+		    double y_dis = y - it->y_pr;
+		    if (std::abs(y_dis) <= skip_dis_x){
+			double exp_factors = exp_tau*(
+                                             exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)*cosh(it->y_r - eta_s)); 
+			double pz_factors  = exp_tau*(
+                                             exp_eta_s_right*(it->remnant_r)*(it->E_remnant_norm_R)*sinh(it->y_r - eta_s));
+                        double e_remnant_local = 0.0;
+                        double pz_remnant_local = 0.0;
+                        if (exp_factors > 0) {
+                                    double exp_xperp = exp(-(x_dis*x_dis + y_dis*y_dis)
+                                                      /(2.*sigma_x*sigma_x));
+                                    e_remnant_local = exp_xperp*exp_factors;
+                                    pz_remnant_local = exp_xperp*pz_factors;
+                        }
+                        j_mu[0] += prefactor_etas*prefactor_prep*e_remnant_local;
+                        j_mu[3] += prefactor_etas*prefactor_prep*pz_remnant_local;
+			                                
+		    }
+	      }
+         }
+
+
+   }
+
     const double prefactor_tau = 1./dtau;
     const double unit_convert = 1.0/Util::hbarc;
     const double prefactors = prefactor_tau*unit_convert;
@@ -584,102 +646,126 @@ double HydroSourceStrings::get_hydro_rhob_source(
 
         if (flag_left == 0 && flag_right == 0) continue;
 
-        if (eta_s < it->eta_s_left - skip_dis_eta
-                || eta_s > it->eta_s_right + skip_dis_eta) continue;
 
-        double eta_frac_left = (
-                (eta_s - it->eta_s_left)
-                /std::max(Util::small_eps, it->eta_s_right - it->eta_s_left));
-        double eta_frac_right = (
-                (eta_s - it->eta_s_right)
-                /std::max(Util::small_eps, it->eta_s_right - it->eta_s_left));
-        eta_frac_left = std::max(0., std::min(1., eta_frac_left));
-        eta_frac_right = std::max(0., std::min(1., eta_frac_right));
-
-        const double x_perp_left = getStringTransverseCoord(
-                                        it->x_pl, it->x_pr, eta_frac_left);
-        const double x_perp_right = getStringTransverseCoord(
-                                        it->x_pl, it->x_pr, eta_frac_right);
-        const double x_dis_left  = x - x_perp_left;
-        const double x_dis_right = x - x_perp_right;
-        if (std::abs(x_dis_left) > skip_dis_x
-                && std::abs(x_dis_right) > skip_dis_x) {
-            continue;
-        }
-
-        const double y_perp_left = getStringTransverseCoord(
-                                        it->y_pl, it->y_pr, eta_frac_left);
-        const double y_perp_right = getStringTransverseCoord(
-                                        it->y_pl, it->y_pr, eta_frac_right);
-        const double y_dis_left  = y - y_perp_left;
-        const double y_dis_right = y - y_perp_right;
-        if (std::abs(y_dis_left) > skip_dis_x
-                && std::abs(y_dis_right) > skip_dis_x) {
-            continue;
-        }
-
-        double exp_eta_s_left = 0.0;
         if (flag_left == 1) {
-            double eta_dis_left = std::abs(eta_s
-                                           - it->eta_s_baryon_left);
-            if (eta_dis_left < skip_dis_eta) {
-                exp_eta_s_left = (exp(-eta_dis_left*eta_dis_left
-                                      /(2.*sigma_eta*sigma_eta)));
+            double eta_dis = eta_s - it->eta_s_baryon_left;
+            if (std::abs(eta_dis) <= skip_dis_eta) {
+                double exp_eta_left =
+                    exp(-(eta_dis*eta_dis)/(2.*sigma_eta*sigma_eta));
+
+                double x_dis = x - it->x_pl;
+                if (std::abs(x_dis) <= skip_dis_x) {
+                    double y_dis = y - it->y_pl;
+                    if (std::abs(y_dis) <= skip_dis_x) {
+
+                        double exp_xperp =
+                            exp(-(x_dis*x_dis + y_dis*y_dis)
+                                /(2.*sigma_x*sigma_x));
+
+                        double fsmear_left = exp_tau*(
+                                exp_xperp*exp_eta_left*(it->baryon_frac_l));
+
+                        if (fsmear_left > 0.) {
+                            double rapidity_local = it->y_l_baryon;
+
+                            double y_dump =
+                                ((1. - parton_quench_factor)*rapidity_local
+                                 + parton_quench_factor*y_long_flow);
+
+                            double y_dump_perp =
+                                parton_quench_factor*y_perp_flow;
+
+                            double p_dot_u = 1.;
+                            if (parton_quench_factor < 1.) {
+                                p_dot_u =
+                                    (  u_mu[0]*cosh(y_dump)*cosh(y_dump_perp)
+                                     - u_mu[1]*sinh(y_dump_perp)*cos_phi_flow
+                                     - u_mu[2]*sinh(y_dump_perp)*sin_phi_flow
+                                     - u_mu[3]*sinh(y_dump)*cosh(y_dump_perp));
+                            }
+
+                            res += prefactor_etas*prefactor_prep*p_dot_u*fsmear_left;
+                        }
+                    }
+                }
             }
         }
 
-        double exp_eta_s_right = 0.0;
         if (flag_right == 1) {
-            double eta_dis_right = std::abs(eta_s
-                                            - it->eta_s_baryon_right);
-            if (eta_dis_right < skip_dis_eta) {
-                exp_eta_s_right = (exp(-eta_dis_right*eta_dis_right
-                                       /(2.*sigma_eta*sigma_eta)));
-            }
-        }
+            double eta_dis = eta_s - it->eta_s_baryon_right;
+            if (std::abs(eta_dis) <= skip_dis_eta) {
+                double exp_eta_right =
+                    exp(-(eta_dis*eta_dis)/(2.*sigma_eta*sigma_eta));
 
-        double exp_xperp_l = exp(
-            -(x_dis_left*x_dis_left + y_dis_left*y_dis_left)
-            /(2.*sigma_x*sigma_x));
-        double exp_xperp_r = exp(
-            -(x_dis_right*x_dis_right + y_dis_right*y_dis_right)
-            /(2.*sigma_x*sigma_x));
+                double x_dis = x - it->x_pr;
+                if (std::abs(x_dis) <= skip_dis_x) {
+                    double y_dis = y - it->y_pr;
+                    if (std::abs(y_dis) <= skip_dis_x) {
 
-        double fsmear = exp_tau*(
-                  exp_xperp_l*exp_eta_s_left*it->baryon_frac_l
-                + exp_xperp_r*exp_eta_s_right*it->baryon_frac_r);
-        if (fsmear > 0.) {
-            double rapidity_local = (
-                (  exp_eta_s_left*(it->baryon_frac_l)*(it->y_l_baryon)
-                 + exp_eta_s_right*(it->baryon_frac_r)*(it->y_r_baryon))
-                /(std::max(Util::small_eps,
-                           (exp_eta_s_left*(it->baryon_frac_l)
-                            + exp_eta_s_right*(it->baryon_frac_r)))
-                 )
-            );
-            double y_dump = ((1. - parton_quench_factor)*rapidity_local
-                             + parton_quench_factor*y_long_flow);
-            double y_dump_perp = parton_quench_factor*y_perp_flow;
-            double p_dot_u = 1.;
-            if (parton_quench_factor < 1.) {
-                p_dot_u = (  u_mu[0]*cosh(y_dump)*cosh(y_dump_perp)
-                           - u_mu[1]*sinh(y_dump_perp)*cos_phi_flow
-                           - u_mu[2]*sinh(y_dump_perp)*sin_phi_flow
-                           - u_mu[3]*sinh(y_dump)*cosh(y_dump_perp));
+                        double exp_xperp =
+                            exp(-(x_dis*x_dis + y_dis*y_dis)
+                                /(2.*sigma_x*sigma_x));
+
+                        double fsmear_right = exp_tau*(
+                                exp_xperp*exp_eta_right*(it->baryon_frac_r));
+
+                        if (fsmear_right > 0.) {
+                            double rapidity_local = it->y_r_baryon;
+
+                            double y_dump =
+                                ((1. - parton_quench_factor)*rapidity_local
+                                 + parton_quench_factor*y_long_flow);
+
+                            double y_dump_perp =
+                                parton_quench_factor*y_perp_flow;
+
+                            double p_dot_u = 1.;
+                            if (parton_quench_factor < 1.) {
+                                p_dot_u =
+                                    (  u_mu[0]*cosh(y_dump)*cosh(y_dump_perp)
+                                     - u_mu[1]*sinh(y_dump_perp)*cos_phi_flow
+                                     - u_mu[2]*sinh(y_dump_perp)*sin_phi_flow
+                                     - u_mu[3]*sinh(y_dump)*cosh(y_dump_perp));
+                            }
+
+                            res += prefactor_etas*prefactor_prep*p_dot_u*fsmear_right;
+                        }
+                    }
+                }
             }
-            res += prefactor_etas*prefactor_prep*p_dot_u*fsmear;
         }
     }
-    const double prefactor_tau  = 1./dtau;
+
+    const double prefactor_tau = 1./dtau;
     res *= prefactor_tau;
     return(res);
 }
-
-
+     
 double HydroSourceStrings::getStringTransverseCoord(
-            const double xl, const double xr, const double etaFrac) const {
-    double xT = ((xl + xr)/2.
-                 + stringTransverseShiftFrac_*(0.5 - etaFrac)*(xl - xr)/2.);
-    return(xT);
+    const double xl, const double xr,
+    const double etaFrac, const double string_tilt) const
+
+{   
+    const double x_c = 0.5 * (xl + xr);
+
+    const double S_transverse_position =
+        x_c + string_tilt * (0.5 - etaFrac)  * (xl - xr);
+
+    double xT;
+    double sub_nucleon_distance = 2.0 ;                                         //fm 
+					  
+    xT = S_transverse_position;
+
+    if (string_tilt > 0.0){                                                           
+       if ((S_transverse_position - x_c) > sub_nucleon_distance) {
+          xT = x_c + sub_nucleon_distance;}
+	 
+       else if ((S_transverse_position - x_c) < - sub_nucleon_distance) {
+          xT = x_c - sub_nucleon_distance;
+       }
+   }
+     return xT;
 }
+
+
 

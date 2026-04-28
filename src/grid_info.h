@@ -114,8 +114,12 @@ class Cell_info {
     //! This function dumps the energy density and net baryon density
     void output_energy_density_and_rhob_disitrubtion(SCGrid &arena,
                                                      std::string filename);
+    
+    //! This function writes OAM area densities Lmunu at a given proper time
+    void compute_Lmunu(SCGrid &arena, SCGrid &arena_prev, const double tau);
 
-    //! This function computes global angular momentum at a give proper time
+
+    //! This function computes global angular momentum at a given proper time
     void compute_angular_momentum(SCGrid &arena, SCGrid &arena_prev,
                                   const double tau,
                                   const double eta_min, const double eta_max);

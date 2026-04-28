@@ -27,6 +27,11 @@ typedef struct init_data {
 
     std::string initName;   //!< filename for initial condition T^{\mu\nu}
 
+    //Switches for alpha string update and two string profile
+    int string_t_update;        //! 0 => default StringTransverseShift
+			       //! 1 => strings are tilited 
+   
+
     // parameters for Initial_profile == 11 || 111
     std::string initName_TA;  //!< filename for nuclear thickness function TA
     std::string initName_TB;  //!< filename for nuclear thickness function TB
@@ -190,9 +195,11 @@ typedef struct init_data {
     int output_evolution_every_N_x;
     int output_evolution_every_N_y;
     int output_evolution_every_N_eta;
+    int output_OAM_density_Evolution;              //! output OAM area density evolution =>  0 to turn off,   1 for initial time step only , 2 for all time steps
     bool output_hydro_params_header;
     double output_evolution_T_cut;
     double output_evolution_e_cut;
+
 
     int doFreezeOut;            //!< flag to output freeze-out surface
 

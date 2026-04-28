@@ -852,6 +852,148 @@ void Cell_info::OutputEvolutionDataXYEta_vorticity(
     fclose(out_file_xyeta);
 }
 
+//! This function computes Lmunu at a give proper time
+void Cell_info::compute_Lmunu(
+    SCGrid &arena, SCGrid &arena_prev, const double tau) {
+
+    const double deta = DATA.delta_eta;
+    const double dx = DATA.delta_x;
+    const double dy = DATA.delta_y;
+    const int neta = arena.nEta();
+    const int nx = arena.nX();
+    const int ny = arena.nY();
+
+    ostringstream tau_suffix;
+    tau_suffix << std::fixed << std::setfill('0') << std::setw(7) << std::setprecision(3) << tau;
+    ostringstream filename;
+    filename << "Lmunu_angular_momentum_tau_" << tau_suffix.str() << ".dat";
+
+    ofstream output_file;
+           output_file.open(filename.str().c_str(), std::ofstream::out);
+           output_file << "# Tau = " << tau << "\n";
+           output_file << "# deta = " << deta << "\n";
+           output_file << "# dx = " << dx << "\n";
+           output_file << "# dy = " << dy << "\n";
+           output_file << "# neta = " << neta << "\n";
+           output_file << "# nx = " << nx << "\n";
+           output_file << "# ny = " << ny << "\n";
+
+           output_file << "Lx_xy[hbar]   Ly_xy[hbar]   Lz_xy[hbar]   "
+                    << "L^{tx}_xy[hbar]   L^{ty}_xy[hbar]   L^{tz}_xy[hbar]"
+                    << std::endl;
+
+
+
+
+    std::vector<std::vector<std::vector<double>>> Lx(neta, std::vector<std::vector<double>>(nx, std::vector<double>(ny, 0.0)));
+    std::vector<std::vector<std::vector<double>>> Ly = Lx;
+    std::vector<std::vector<std::vector<double>>> Lz = Lx;
+    std::vector<std::vector<std::vector<double>>> Ltx = Lx;
+    std::vector<std::vector<std::vector<double>>> Lty = Lx;
+    std::vector<std::vector<std::vector<double>>> Ltz = Lx;
+
+    std::vector<std::vector<double>> Lx_xy(nx, std::vector<double>(ny, 0.0));
+    std::vector<std::vector<double>> Ly_xy(nx, std::vector<double>(ny, 0.0));
+    std::vector<std::vector<double>> Lz_xy(nx, std::vector<double>(ny, 0.0));
+    std::vector<std::vector<double>> Ltx_xy(nx, std::vector<double>(ny, 0.0));
+    std::vector<std::vector<double>> Lty_xy(nx, std::vector<double>(ny, 0.0));
+    std::vector<std::vector<double>> Ltz_xy(nx, std::vector<double>(ny, 0.0));
+       
+  
+
+    for (int ieta = 0; ieta < neta; ieta++){
+        for (int ix = 0; ix < nx; ix++){
+            for (int iy = 0; iy < ny; iy++) {
+                double eta_s = deta * ieta - (DATA.eta_size) / 2.0;
+                const double cosh_eta = cosh(eta_s);
+                const double sinh_eta = sinh(eta_s);
+                const double t_local = tau * cosh_eta;
+                const double x_local = - DATA.x_size / 2.0 + ix * dx;
+                const double y_local = - DATA.y_size / 2.0 + iy * dy;
+                const double z_local = tau * sinh_eta;
+
+                const auto &cell = arena(ix, iy, ieta);
+                const auto &cell_prev = arena_prev(ix, iy, ieta);
+                const double e_local = cell.epsilon;
+                const double rhob_local = cell.rhob;
+                const double pressure = eos.get_pressure(e_local, rhob_local);
+                const double u0 = cell.u[0];
+                const double u1 = cell.u[1];
+                const double u2 = cell.u[2];
+                const double u3 = cell.u[3];
+                const double uPrev0 = cell_prev.u[0];
+                const double uPrev1 = cell_prev.u[1];
+                const double uPrev2 = cell_prev.u[2];
+                const double uPrev3 = cell_prev.u[3];
+
+                const double T00_local =
+                    (e_local + pressure) * u0 * u0 - pressure;
+                const double Pi00_rk_0 =
+                    cell_prev.pi_b * (-1. + uPrev0 * uPrev0);
+
+                const double T_tau_tau =
+                    (T00_local + cell_prev.Wmunu[0] + Pi00_rk_0);
+                const double T_tau_x =
+                    ((e_local + pressure) * u0 * u1 + cell_prev.Wmunu[1]
+                     + cell_prev.pi_b * uPrev0 * uPrev1);
+                const double T_tau_y =
+                    ((e_local + pressure) * u0 * u2 + cell_prev.Wmunu[2]
+                     + cell_prev.pi_b * uPrev0 * uPrev2);
+                const double T_tau_eta =
+                    ((e_local + pressure) * u0 * u3 + cell_prev.Wmunu[3]
+                     + cell_prev.pi_b * uPrev0 * uPrev3);
+                const double T_tau_t =
+                    T_tau_tau * cosh_eta + T_tau_eta * sinh_eta;
+                const double T_tau_z =
+                    T_tau_tau * sinh_eta + T_tau_eta * cosh_eta;
+
+                
+                   Lx[ieta][ix][iy]  = y_local * T_tau_z - z_local * T_tau_y;
+                   Ly[ieta][ix][iy]  = z_local * T_tau_x - x_local * T_tau_z;
+                   Lz[ieta][ix][iy]  = x_local * T_tau_y - y_local * T_tau_x;
+
+                   Ltx[ieta][ix][iy] = t_local * T_tau_x - x_local * T_tau_t;
+                   Lty[ieta][ix][iy] = t_local * T_tau_y - y_local * T_tau_t;
+                   Ltz[ieta][ix][iy] = t_local * T_tau_z - z_local * T_tau_t;
+
+
+
+               }		  		   
+		 
+	}
+    }        
+
+
+// Integration over eta 
+// Lmunu area densities are written 
+
+  for (int ix = 0; ix < nx; ++ix) {
+     for (int iy = 0; iy < ny; ++iy) {
+         for (int ieta = 0; ieta < neta; ++ieta) {
+            
+            const double dz = tau * deta;
+            Lx_xy[ix][iy]  += Lx[ieta][ix][iy]*dz;
+            Ly_xy[ix][iy]  += Ly[ieta][ix][iy]*dz;
+            Lz_xy[ix][iy]  += Lz[ieta][ix][iy]*dz;
+            Ltx_xy[ix][iy] += Ltx[ieta][ix][iy]*dz;
+            Lty_xy[ix][iy] += Lty[ieta][ix][iy]*dz;
+            Ltz_xy[ix][iy] += Ltz[ieta][ix][iy]*dz;
+        }
+
+        output_file << std::scientific << std::setprecision(6)
+                    << Lx_xy[ix][iy]  << " "
+                    << Ly_xy[ix][iy]  << " "
+                    << Lz_xy[ix][iy]  << " "
+                    << Ltx_xy[ix][iy] << " "
+                    << Lty_xy[ix][iy] << " "
+                    << Ltz_xy[ix][iy] << std::endl;
+       }
+  }
+  output_file.close();
+
+}
+
+
 
 //! This function prints to the screen the maximum local energy density,
 //! the maximum temperature in the current grid

@@ -91,7 +91,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
 
     int it = 0;
     double eps_max_cur = -1.;
-    const double max_allowed_e_increase_factor = 2.;
+    int it_source_max = static_cast<int>((source_tau_max - tau0)/dt + 0.5) + 1 ;
+    const double max_allowed_e_increase_factor = 2.;           
     for (it = 0; it <= itmax; it++) {
         tau = tau0 + dt*it;
 
@@ -126,6 +127,8 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         //    }
         //}
 
+	
+        
         if (it % Nskip_timestep == 0) {
             if (DATA.outputEvolutionData == 1) {
                 grid_info.OutputEvolutionDataXYEta(*ap_current, tau);
@@ -159,6 +162,15 @@ int Evolve::EvolveIt(SCGrid &arena_prev, SCGrid &arena_current,
         }
         grid_info.output_momentum_anisotropy_vs_tau(
                                             tau, -0.5, 0.5, *ap_current);
+
+
+	if (DATA.output_OAM_density_Evolution == 2 ||
+                 (DATA.output_OAM_density_Evolution == 1 &&
+                 it == it_source_max)) {
+            grid_info.compute_Lmunu(*ap_current, *ap_prev, tau);
+        }
+
+
         if (DATA.Initial_profile == 13) {
             grid_info.output_average_phase_diagram_trajectory(
                                             tau, -0.5, 0.5, *ap_current);

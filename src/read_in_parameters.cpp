@@ -29,6 +29,16 @@ InitData read_in_parameters(std::string input_file) {
     if (tempinput != "empty") istringstream(tempinput) >> tempInitial_profile;
     parameter_list.Initial_profile = tempInitial_profile;
 
+    // switch to alpha_string tilt
+    int temp_string_t_update = 0;
+    tempinput = Util::StringFind4(input_file, "string_t_update");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_string_t_update;
+    parameter_list.string_t_update = temp_string_t_update;
+    
+
+ 
+
     // Initial_profile:
     int temp_string_dump_mode = 1;
     tempinput = Util::StringFind4(input_file, "string_dump_mode");
@@ -757,6 +767,14 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> tempoutput_vorticity;
     parameter_list.output_vorticity = tempoutput_vorticity;
 
+    // Output Lmunu Evolution files 
+    int temp_output_OAM_density_Evolution = 0;
+    tempinput = Util::StringFind4(input_file, "output_OAM_density_Evolution");
+    if (tempinput != "empty")
+        istringstream(tempinput) >> temp_output_OAM_density_Evolution;
+    parameter_list.output_OAM_density_Evolution = temp_output_OAM_density_Evolution;
+
+
     int tempturn_on_diff = 0;
     tempinput = Util::StringFind4(input_file, "turn_on_baryon_diffusion");
     if (tempinput != "empty")
@@ -1074,6 +1092,22 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
+    if (parameter_list.string_t_update < 0
+              || parameter_list.string_t_update > 1) {
+          music_message << "string_t_update must be 0 or 1: "
+                        << parameter_list.string_t_update;
+          music_message.flush("error");
+          exit(1);
+    }
+
+   
+    if (parameter_list.string_t_update == 1
+        && parameter_list.stringTransverseShiftFrac > 0.0) {
+        music_message << "while string_t_update is turned on, StringTransverseShift cannot be  > 0 " ;
+        music_message.flush("error");
+        exit(1);
+    }
+    
     if (parameter_list.initializeEntropy > 1
             || parameter_list.initializeEntropy < 0) {
         music_message.error("Must initialize with entropy or energy");
@@ -1313,6 +1347,14 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     if (parameter_list.output_evolution_every_N_eta <= 0) {
         music_message.error("output_evolution_every_N_eta < 0!");
         exit(1);
+    }
+
+    if (parameter_list.output_OAM_density_Evolution < 0
+              || parameter_list.output_OAM_density_Evolution > 2) {
+          music_message << "output_OAM_density_Evolution must be 0, 1, or 2: "
+                        << parameter_list.output_OAM_density_Evolution;
+          music_message.flush("error");
+          exit(1);
     }
 
     if (parameter_list.dNdy_y_min > parameter_list.dNdy_y_max) {

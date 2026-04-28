@@ -48,7 +48,6 @@ void Advance::AdvanceIt(const double tau,
     const int grid_neta = arena_current.nEta();
     const int grid_nx   = arena_current.nX();
     const int grid_ny   = arena_current.nY();
-
     #pragma omp parallel for collapse(3) schedule(guided)
     for (int ieta = 0; ieta < grid_neta; ieta++)
     for (int ix   = 0; ix   < grid_nx;   ix++  )
