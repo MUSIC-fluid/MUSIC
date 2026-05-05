@@ -29,7 +29,7 @@ typedef struct init_data {
 
     //Switch for string tilt update
     int string_t_update;        //! 0 => default StringTransverseShift
-			       //! 1 => strings are tilited 
+			                    //! 1 => strings are tilited 
    
 
     // parameters for Initial_profile == 11 || 111
