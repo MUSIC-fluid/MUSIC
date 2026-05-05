@@ -300,10 +300,11 @@ void HydroSourceStrings::compute_norm_for_strings() {
 	it->string_t = stringTransverseShiftFrac_ ;
 
         if( Enable_string_tilt == 1 ){
-           if (std::abs(it->mass == MASS_PARTON)< MASS_PARTON_TOLERANCE) {
-              if (std::abs(Pz_string_first_moment) >= Util::small_eps) {
+           if (std::abs(it->mass - MASS_PARTON) < MASS_PARTON_TOLERANCE) && 
+              std::abs(Pz_string_first_moment) >= Util::small_eps {
                      it->string_t =  deltaPz_loss / Pz_string_first_moment; 	   
-                }
+                } else {
+			it->string_t = 0.0;
             }       
          }
         // here the E_norm is for the energy of remnants at the string ends
