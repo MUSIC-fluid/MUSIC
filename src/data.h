@@ -28,6 +28,8 @@ typedef struct init_data {
                //!< 4: do resonance decays only
 
     std::string initName;  //!< filename for initial condition T^{\mu\nu}
+    int string_t_update;        //! 0 => default StringTransverseShift 
+			        //! 1 => strings are tilited 
 
     // parameters for Initial_profile == 11 || 111
     std::string initName_TA;  //!< filename for nuclear thickness function TA
