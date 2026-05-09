@@ -317,16 +317,17 @@ double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
 
 double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
     double eta_0_nB = std::abs(DATA_.eta_rhob_0);
-    double sigma_B_plus = DATA_.eta_rhob_width_1;
-    double sigma_B_minus = DATA_.eta_rhob_width_2;
 
-    // double norm        = 1./(sqrt(M_PI)*tau_source*sigma_B_plus);
-    double exp_arg_1 = (eta - eta_0_nB) / sigma_B_plus;
-    double exp_arg_2 = (eta - eta_0_nB) / sigma_B_minus;
-
-    double res =
-        Util::theta(eta - eta_0_nB) * std::exp(-exp_arg_1 * exp_arg_1 / 2.)
-        + Util::theta(eta_0_nB - eta) * std::exp(-exp_arg_2 * exp_arg_2 / 2.);
+    double res = 0.;
+    if (eta < eta_0_nB) {
+        double sigma_B_minus = DATA_.eta_rhob_width_2;
+        double exp_arg_2 = (eta - eta_0_nB) / sigma_B_minus;
+        res = exp(-exp_arg_2 * exp_arg_2 / 2.);
+    } else {
+        double sigma_B_plus = DATA_.eta_rhob_width_1;
+        double exp_arg_1 = (eta - eta_0_nB) / sigma_B_plus;
+        res = exp(-exp_arg_1 * exp_arg_1 / 2.);
+    }
     return (res);
 }
 
@@ -348,17 +349,17 @@ double HydroSourceTATB::eta_rhob_right_factor(const double eta) const {
 */
 
 double HydroSourceTATB::eta_rhob_right_factor(const double eta) const {
-    double eta_0_nB = std::abs(DATA_.eta_rhob_0);
-    double sigma_B_plus = DATA_.eta_rhob_width_1;
-    double sigma_B_minus = DATA_.eta_rhob_width_2;
-
-    // double norm        = 1./(sqrt(M_PI)*tau_source*sigma_B_plus);
-    double exp_arg_1 = (eta + eta_0_nB) / sigma_B_minus;
-    double exp_arg_2 = (eta + eta_0_nB) / sigma_B_plus;
-
-    double res =
-        Util::theta(eta + eta_0_nB) * std::exp(-exp_arg_1 * exp_arg_1 / 2.)
-        + Util::theta(-eta_0_nB - eta) * std::exp(-exp_arg_2 * exp_arg_2 / 2.);
+    double eta_0_nB = -std::abs(DATA_.eta_rhob_0);
+    double res = 0;
+    if (eta < eta_0_nB) {
+        double sigma_B_plus = DATA_.eta_rhob_width_1;
+        double exp_arg_1 = (eta - eta_0_nB) / sigma_B_plus;
+        res = exp(-exp_arg_1 * exp_arg_1 / 2.);
+    } else {
+        double sigma_B_minus = DATA_.eta_rhob_width_2;
+        double exp_arg_2 = (eta - eta_0_nB) / sigma_B_minus;
+        res = exp(-exp_arg_2 * exp_arg_2 / 2.);
+    }
     return (res);
 }
 
