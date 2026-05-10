@@ -133,6 +133,8 @@ int Evolve::EvolveIt(
             } else if (DATA.outputEvolutionData == 4) {
                 grid_info.OutputEvolutionDataXYEta_vorticity(
                     *fpCurr, *fpPrev, tau);
+            } else if (DATA.outputEvolutionData == 7) {
+                grid_info.OutputEvolutionDataXYEta_MLtraining(*fpCurr, tau);
             }
             if (DATA.store_hydro_info_in_memory == 1) {
                 grid_info.OutputEvolutionDataXYEta_memory(

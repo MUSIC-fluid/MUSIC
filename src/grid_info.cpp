@@ -627,6 +627,101 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
     return 0;
 }
 
+//! This function outputs hydro evolution file in binary format
+void Cell_info::OutputEvolutionDataXYEta_MLtraining(Fields &arena, double tau) {
+    // the format of the file is as follows,
+    //    e P ux uy ueta Wxx Wxy Wxeta Wyy Wyeta bulk_pi rhob
+    const string out_name_xyeta = "evolution_all_xyeta_ML.dat";
+    string out_open_mode;
+    FILE *out_file_xyeta;
+    // If it's the first timestep, overwrite the previous file
+    if (tau == DATA.tau0) {
+        out_open_mode = "wb";
+    } else {
+        out_open_mode = "ab";
+    }
+    out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
+
+    int n_skip_tau = DATA.output_evolution_every_N_timesteps;
+    double output_dtau = DATA.delta_tau * n_skip_tau;
+
+    int n_skip_x = DATA.output_evolution_every_N_x;
+    int n_skip_y = DATA.output_evolution_every_N_y;
+    int n_skip_eta = DATA.output_evolution_every_N_eta;
+
+    // write out header
+    const int output_nx = static_cast<int>(arena.nX() / n_skip_x);
+    const int output_ny = static_cast<int>(arena.nY() / n_skip_y);
+    const int output_neta = static_cast<int>(arena.nEta() / n_skip_eta);
+    const double output_dx = DATA.delta_x * n_skip_x;
+    const double output_dy = DATA.delta_y * n_skip_y;
+    const double output_deta = DATA.delta_eta * n_skip_eta;
+    const double output_xmin = -DATA.x_size / 2.;
+    const double output_ymin = -DATA.y_size / 2.;
+    const double output_etamin = -DATA.eta_size / 2.;
+
+    int nVar_per_cell = 12;
+
+    if (tau == DATA.tau0) {
+        float header[] = {static_cast<float>(DATA.tau0),
+                          static_cast<float>(output_dtau),
+                          static_cast<float>(output_nx),
+                          static_cast<float>(output_dx),
+                          static_cast<float>(output_xmin),
+                          static_cast<float>(output_ny),
+                          static_cast<float>(output_dy),
+                          static_cast<float>(output_ymin),
+                          static_cast<float>(output_neta),
+                          static_cast<float>(output_deta),
+                          static_cast<float>(output_etamin),
+                          static_cast<float>(nVar_per_cell)};
+        fwrite(header, sizeof(float), 12, out_file_xyeta);
+    }
+    std::vector<double> thermalVec;
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+        for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
+                int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+                double e_local = arena.e_[fieldIdx];        // 1/fm^4
+                double rhob_local = arena.rhob_[fieldIdx];  // 1/fm^3
+
+                eos.getThermalVariables(e_local, rhob_local, thermalVec);
+                double p_local = thermalVec[2];
+
+                double ux = arena.u_[1][fieldIdx];
+                double uy = arena.u_[2][fieldIdx];
+                double ueta = arena.u_[3][fieldIdx];
+
+                double div_factor = e_local + p_local;  // 1/fm^4
+                double Wxx = arena.Wmunu_[4][fieldIdx] / div_factor;
+                double Wxy = arena.Wmunu_[5][fieldIdx] / div_factor;
+                double Wxeta = arena.Wmunu_[6][fieldIdx] / div_factor;
+                double Wyy = arena.Wmunu_[7][fieldIdx] / div_factor;
+                double Wyeta = arena.Wmunu_[8][fieldIdx] / div_factor;
+                double pi_b = arena.piBulk_[fieldIdx] / div_factor;
+
+                float fluidCell[] = {
+                    static_cast<float>(e_local * hbarc),
+                    static_cast<float>(p_local * hbarc),
+                    static_cast<float>(ux),
+                    static_cast<float>(uy),
+                    static_cast<float>(ueta),
+                    static_cast<float>(Wxx),
+                    static_cast<float>(Wxy),
+                    static_cast<float>(Wxeta),
+                    static_cast<float>(Wyy),
+                    static_cast<float>(Wyeta),
+                    static_cast<float>(pi_b),
+                    static_cast<float>(rhob_local),
+                };
+
+                fwrite(fluidCell, sizeof(float), 12, out_file_xyeta);
+            }
+        }
+    }
+    fclose(out_file_xyeta);
+}
+
 //! This function outputs hydro evolution file in binary format for photon
 //! production
 void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
