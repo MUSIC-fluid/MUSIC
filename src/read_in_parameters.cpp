@@ -405,12 +405,13 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.outputEvolutionData =
         (getParameter(input_file, "output_evolution_data", 0));
     if (parameter_list.outputEvolutionData != 0) {
-        if (parameter_list.beastMode == 2)
+        if (parameter_list.beastMode == 2) {
             music_message
                 << "output_evolution_data is incompatible with beastMode=2, "
                 << "resetting beastMode=1";
-        music_message.flush("info");
-        parameter_list.beastMode = 1;
+            music_message.flush("info");
+            parameter_list.beastMode = 1;
+        }
     }
 
     // only works for output_evolution_data == 1
