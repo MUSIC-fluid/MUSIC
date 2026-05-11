@@ -115,6 +115,9 @@ class Cell_info {
     void output_energy_density_and_rhob_disitrubtion(
         Fields &arena, std::string filename);
 
+    //! This function writes OAM area densities Lmunu at a given proper time
+    void compute_Lmunu(Fields &arena, Fields &arena_prev, const double tau);
+
     //! This function computes global angular momentum at a give proper time
     void compute_angular_momentum(
         Fields &arena, Fields &arena_prev, const double tau,

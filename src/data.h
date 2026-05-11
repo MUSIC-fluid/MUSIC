@@ -230,6 +230,7 @@ typedef struct init_data {
     int output_evolution_every_N_x;
     int output_evolution_every_N_y;
     int output_evolution_every_N_eta;
+    int output_OAM_density_Evolution;              //! output OAM area density evolution =>  0 to turn off,   1 for initial time step only , 2 for all time steps
     bool output_hydro_params_header;
     double output_evolution_T_cut;
     double output_evolution_e_cut;

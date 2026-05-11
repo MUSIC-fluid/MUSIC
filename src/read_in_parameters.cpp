@@ -426,6 +426,8 @@ InitData read_in_parameters(std::string input_file) {
         (getParameter(input_file, "output_outofequilibriumsize", 0));
     parameter_list.output_vorticity =
         (getParameter(input_file, "output_vorticity", 0));
+    parameter_list.output_OAM_density_Evolution=
+        (getParameter(input_file, "output_OAM_density_Evolution", 0));
     parameter_list.output_hydro_debug_info =
         (getParameter(input_file, "output_hydro_debug_info", 0));
 
@@ -935,6 +937,12 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
+    if (parameter_list.output_OAM_density_Evolution < 0
+              || parameter_list.output_OAM_density_Evolution > 2) {
+          music_message << "output_OAM_density_Evolution must be 0, 1, or 2: ";
+          music_message.flush("error");
+          exit(1);
+    }
     if (parameter_list.dNdy_eta_min > parameter_list.dNdy_eta_max) {
         music_message << "dNdy_eta_min = " << parameter_list.dNdy_eta_min
                       << " < "
