@@ -46,6 +46,10 @@ InitData read_in_parameters(std::string input_file) {
         parameter_list.boost_invariant = true;
     }
 
+    parameter_list.string_t_update =
+        (getParameter(input_file, "string_t_update", 0));
+
+
     parameter_list.output_initial_density_profiles =
         (getParameter(input_file, "output_initial_density_profiles", 0));
 
@@ -939,10 +943,28 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
 
     if (parameter_list.output_OAM_density_Evolution < 0
               || parameter_list.output_OAM_density_Evolution > 2) {
-          music_message << "output_OAM_density_Evolution must be 0, 1, or 2: ";
+          music_message << "output_OAM_density_Evolution must be 0, 1, or 2";
           music_message.flush("error");
           exit(1);
     }
+
+
+    if (parameter_list.string_t_update < 0
+              || parameter_list.string_t_update > 1) {
+          music_message << "string_t_update must be 0 or 1";
+          music_message.flush("error");
+          exit(1);
+    }
+
+   
+    if (parameter_list.string_t_update == 1
+        && parameter_list.stringTransverseShiftFrac > 0.0) {
+        music_message << "while string_t_update is turned on, StringTransverseShiftFrac cannot be  > 0 " ;
+        music_message.flush("error");
+        exit(1);
+    }
+
+
     if (parameter_list.dNdy_eta_min > parameter_list.dNdy_eta_max) {
         music_message << "dNdy_eta_min = " << parameter_list.dNdy_eta_min
                       << " < "
