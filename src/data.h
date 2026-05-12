@@ -27,9 +27,9 @@ typedef struct init_data {
                //!< 3: do calculation of thermal spectra only;
                //!< 4: do resonance decays only
 
-    std::string initName;  //!< filename for initial condition T^{\mu\nu}
-    int string_t_update;        //! 0 => default StringTransverseShift 
-			        //! 1 => strings are tilited 
+    std::string initName;    //!< filename for initial condition T^{\mu\nu}
+    int string_tilt_update;  //! 0 => default StringTransverseShift
+                             //! 1 => strings are tilited
 
     // parameters for Initial_profile == 11 || 111
     std::string initName_TA;  //!< filename for nuclear thickness function TA
@@ -232,7 +232,9 @@ typedef struct init_data {
     int output_evolution_every_N_x;
     int output_evolution_every_N_y;
     int output_evolution_every_N_eta;
-    int output_OAM_density_Evolution;              //! output OAM area density evolution =>  0 to turn off,   1 for initial time step only , 2 for all time steps
+    int output_OAM_density_Evolution;  //! output OAM area density evolution =>
+                                       //! 0 to turn off,   1 for initial time
+                                       //! step only , 2 for all time steps
     bool output_hydro_params_header;
     double output_evolution_T_cut;
     double output_evolution_e_cut;

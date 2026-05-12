@@ -87,7 +87,8 @@ int Evolve::EvolveIt(
 
     int it = 0;
     double eps_max_cur = -1.;
-    int it_source_max = static_cast<int>((source_tau_max - tau0)/DATA.delta_tau + 0.5) + 1 ;
+    int it_source_max =
+        static_cast<int>((source_tau_max - tau0) / DATA.delta_tau + 0.5) + 1;
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
     const int NtauBlock = 200;
@@ -217,12 +218,11 @@ int Evolve::EvolveIt(
                 }
             }
 
-            if (DATA.output_OAM_density_Evolution == 2 ||
-                     (DATA.output_OAM_density_Evolution == 1 &&
-                     it == it_source_max)) {
+            if (DATA.output_OAM_density_Evolution == 2
+                || (DATA.output_OAM_density_Evolution == 1
+                    && it == it_source_max)) {
                 grid_info.compute_Lmunu(*fpCurr, *fpPrev, tau);
             }
-
 
             double emax_loc = 0.;
             double Tmax_curr = 0.;
