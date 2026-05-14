@@ -6,28 +6,34 @@
 #include "eos_base.h"
 
 class EOS_neos : public EOS_base {
- private:
+  private:
     const int eos_id;
 
- public:
+  public:
     EOS_neos(const int eos_id_in);
     ~EOS_neos();
 
     void initialize_eos();
-    double p_rho_func     (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double p_e_func       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_temperature(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_muB        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_muS        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_muQ        (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_pressure   (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_s2e        (double s, double rhob, double rhoq=0.0, double rhos=0.0) const;
-
+    double p_rho_func(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double p_e_func(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_temperature(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_muB(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_muS(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_muQ(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_pressure(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_s2e(
+        double s, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
 
     void get_pressure_with_gradients(
-            double epsilon, double rhob, double rhoq,
-            double rhos, double &p, double &dpde, double &dpdrhob,
-            double &dpdrhoq, double &dpdrhos) const;
+        double epsilon, double rhob, double rhoq, double rhos, double &p,
+        double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos) const;
 
     void check_eos() const {
         check_eos_with_finite_muB();

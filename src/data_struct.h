@@ -4,21 +4,21 @@
 #include <array>
 
 typedef std::array<std::array<double, 4>, 4> Mat4x4;
-typedef std::array<double, 10>               Arr10;
+typedef std::array<double, 10> Arr10;
 
-typedef std::array<double, 4>  EnergyFlowVec;
-typedef std::array<double, 4>  FlowVec;
+typedef std::array<double, 4> EnergyFlowVec;
+typedef std::array<double, 4> FlowVec;
 
-typedef std::array<double, 7>  TJbVec;
+typedef std::array<double, 7> TJbVec;
 
-typedef std::array<double, 5>  DumuVec;
-typedef Arr10                  VelocityShearVec;
-typedef std::array<double, 4>  DmuMuBoverTVec;
-typedef std::array<double, 6>  VorticityVec;
-typedef std::array<double, 8>  ShearVisVecLRF;
+typedef std::array<double, 5> DumuVec;
+typedef Arr10 VelocityShearVec;
+typedef std::array<double, 4> DmuMuBoverTVec;
+typedef std::array<double, 6> VorticityVec;
+typedef std::array<double, 8> ShearVisVecLRF;
 typedef std::array<double, 14> ViscousVec;
 
-// *** When dissipative part added for conserved charges, 
+// *** When dissipative part added for conserved charges,
 // typedef std::array<std::array<double, 4>, 7> dUsupMat;
 typedef std::array<std::array<double, 4>, 5> dUsupMat;
 // ***
@@ -29,15 +29,15 @@ typedef struct {
     double rhob;
     double rhoq;
     double rhos;
-    
+
     FlowVec u;
 } ReconstCell;
 
 typedef struct {
-   float ed, sd, temperature, pressure;
-   float vx, vy, vz;
-   float pi[4][4];
-   float bulkPi;
+    float ed, sd, temperature, pressure;
+    float vx, vy, vz;
+    float pi[4][4];
+    float bulkPi;
 } fluidCell;
 
 typedef struct {
@@ -46,25 +46,24 @@ typedef struct {
     float ux, uy, ueta;
 } fluidCell_ideal;
 
-//template<typename T>
-//T assume_aligned(T x) {
-//  #if defined(__AVX512__)
-//    constexpr int i = 64;
-//  #elif defined(__AVX__)
-//    constexpr int i = 32;
-//  #elif defined(__SSE2__)
-//    constexpr int i = 16;
-//  #else
-//  #error please set alignment i 
-//  #endif
-//  #ifdef __ICC
-//    T r = x;
-//    __assume_aligned(r,i);
-//    return r;
-//  #else
-//    return reinterpret_cast<T>(__builtin_assume_aligned(x,i));
-//  #endif
-//}
-
+// template<typename T>
+// T assume_aligned(T x) {
+//   #if defined(__AVX512__)
+//     constexpr int i = 64;
+//   #elif defined(__AVX__)
+//     constexpr int i = 32;
+//   #elif defined(__SSE2__)
+//     constexpr int i = 16;
+//   #else
+//   #error please set alignment i
+//   #endif
+//   #ifdef __ICC
+//     T r = x;
+//     __assume_aligned(r,i);
+//     return r;
+//   #else
+//     return reinterpret_cast<T>(__builtin_assume_aligned(x,i));
+//   #endif
+// }
 
 #endif  // _SRC_DATA_STRUCT_H_

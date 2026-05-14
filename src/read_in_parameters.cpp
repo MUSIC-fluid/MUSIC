@@ -1,7 +1,9 @@
 
-#include <iostream>
-#include <cstring>
 #include "read_in_parameters.h"
+
+#include <cstring>
+#include <iostream>
+
 #include "util.h"
 
 using namespace std;
@@ -20,12 +22,12 @@ InitData read_in_parameters(std::string input_file) {
     // warning message output during the evolution
     double temp_echo_level = 9;
     tempinput = Util::StringFind4(input_file, "echo_level");
-    if (tempinput != "empty") istringstream ( tempinput ) >> temp_echo_level;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_echo_level;
     parameter_list.echo_level = temp_echo_level;
 
     int tempBeastMode = 0;
     tempinput = Util::StringFind4(input_file, "beastMode");
-    if (tempinput != "empty") istringstream ( tempinput ) >> tempBeastMode;
+    if (tempinput != "empty") istringstream(tempinput) >> tempBeastMode;
     parameter_list.beastMode = tempBeastMode;
 
     // Initial_profile:
@@ -37,8 +39,7 @@ InitData read_in_parameters(std::string input_file) {
     // Initial_profile:
     int temp_string_dump_mode = 1;
     tempinput = Util::StringFind4(input_file, "string_dump_mode");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_string_dump_mode;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_string_dump_mode;
     parameter_list.string_dump_mode = temp_string_dump_mode;
 
     double temp_string_source_sigma_x = 0.5;  // fm
@@ -61,8 +62,7 @@ InitData read_in_parameters(std::string input_file) {
 
     double temp_preEqFlowFactor = 0.0;
     tempinput = Util::StringFind4(input_file, "stringPreEqFlowFactor");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_preEqFlowFactor;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_preEqFlowFactor;
     temp_preEqFlowFactor = std::max(0., temp_preEqFlowFactor);
     parameter_list.preEqFlowFactor = temp_preEqFlowFactor;
 
@@ -81,17 +81,15 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.parton_quench_factor = temp_parton_quench_factor;
 
     // hydro grid information
-    double temp_gridPadding = 3.;      // fm
+    double temp_gridPadding = 3.;  // fm
     tempinput = Util::StringFind4(input_file, "gridPadding");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_gridPadding;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_gridPadding;
     parameter_list.gridPadding = temp_gridPadding;
 
     // boost-invariant
     int temp_boost_invariant = 1;
     tempinput = Util::StringFind4(input_file, "boost_invariant");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_boost_invariant;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_boost_invariant;
     if (temp_boost_invariant == 0) {
         parameter_list.boost_invariant = false;
     } else {
@@ -99,37 +97,34 @@ InitData read_in_parameters(std::string input_file) {
     }
 
     int temp_output_initial_profile = 0;
-    tempinput = Util::StringFind4(input_file,
-                                  "output_initial_density_profiles");
+    tempinput =
+        Util::StringFind4(input_file, "output_initial_density_profiles");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_output_initial_profile;
     parameter_list.output_initial_density_profiles =
-                                            temp_output_initial_profile;
+        temp_output_initial_profile;
 
     // eta envelope function parameter for rhob
     int temp_rhob_flag = 1;
     tempinput = Util::StringFind4(input_file, "initial_eta_rhob_profile");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_rhob_flag;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_rhob_flag;
     parameter_list.initial_eta_rhob_profile = temp_rhob_flag;
 
-    //initialize_with_entropy:
-    //0: scale with energy density
-    //1: scale with entropy density
+    // initialize_with_entropy:
+    // 0: scale with energy density
+    // 1: scale with entropy density
     int tempinitializeEntropy = 0;
     tempinput = Util::StringFind4(input_file, "initialize_with_entropy");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempinitializeEntropy;
+    if (tempinput != "empty") istringstream(tempinput) >> tempinitializeEntropy;
     parameter_list.initializeEntropy = tempinitializeEntropy;
 
-    //use_eps_for_freeze_out: 
-    // 0: freeze out at constant temperature T_freeze
-    // 1: freeze out at constant energy density epsilon_freeze
-    // if set in input input_file, overide above defaults
+    // use_eps_for_freeze_out:
+    //  0: freeze out at constant temperature T_freeze
+    //  1: freeze out at constant energy density epsilon_freeze
+    //  if set in input input_file, overide above defaults
     int tempuseEpsFO = 1;
     tempinput = Util::StringFind4(input_file, "use_eps_for_freeze_out");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempuseEpsFO;
+    if (tempinput != "empty") istringstream(tempinput) >> tempuseEpsFO;
     parameter_list.useEpsFO = tempuseEpsFO;
 
     // T_freeze: freeze out temperature
@@ -162,8 +157,7 @@ InitData read_in_parameters(std::string input_file) {
 
         int temp_N_freeze_out = 1;
         tempinput = Util::StringFind4(input_file, "N_freeze_out");
-        if (tempinput != "empty")
-            istringstream(tempinput) >> temp_N_freeze_out;
+        if (tempinput != "empty") istringstream(tempinput) >> temp_N_freeze_out;
         parameter_list.N_freeze_out = temp_N_freeze_out;
     }
 
@@ -176,8 +170,7 @@ InitData read_in_parameters(std::string input_file) {
 
     string temp_freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
     tempinput = Util::StringFind4(input_file, "freeze_list_filename");
-    if (tempinput != "empty")
-        temp_freeze_list_filename.assign(tempinput);
+    if (tempinput != "empty") temp_freeze_list_filename.assign(tempinput);
     parameter_list.freeze_list_filename.assign(temp_freeze_list_filename);
 
     if (parameter_list.N_freeze_out > 1) {
@@ -199,8 +192,7 @@ InitData read_in_parameters(std::string input_file) {
 
     int temp_freeze_eps_flag = 0;
     tempinput = Util::StringFind4(input_file, "freeze_eps_flag");
-    if (tempinput != "empty")
-        istringstream (tempinput) >> temp_freeze_eps_flag;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_freeze_eps_flag;
     parameter_list.freeze_eps_flag = temp_freeze_eps_flag;
 
     int temp_freeze_surface_binary = 1;
@@ -213,16 +205,16 @@ InitData read_in_parameters(std::string input_file) {
         parameter_list.freeze_surface_in_binary = true;
     }
 
-    //particle_spectrum_to_compute:
-    // 0: Do all up to number_of_particles_to_include
-    // any natural number: Do the particle with this (internal) ID
+    // particle_spectrum_to_compute:
+    //  0: Do all up to number_of_particles_to_include
+    //  any natural number: Do the particle with this (internal) ID
     int tempparticleSpectrumNumber = 0;
     tempinput = Util::StringFind4(input_file, "particle_spectrum_to_compute");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempparticleSpectrumNumber;
     parameter_list.particleSpectrumNumber = tempparticleSpectrumNumber;
 
-    // mode: 
+    // mode:
     // 1: Does everything. Evolution. Computation of thermal spectra.
     //    Resonance decays. Observables.
     // 2: Evolution only.
@@ -240,25 +232,24 @@ InitData read_in_parameters(std::string input_file) {
     }
     parameter_list.mode = tempmode;
 
-    //EOS_to_use:
-    // 0: ideal gas
-    // 1: EOS-Q from azhydro
-    // 2: lattice EOS from Huovinen and Petreczky
-    // 3: lattice EOS from Huovinen and Petreczky
-    //    with partial chemical equilibrium (PCE) at 150 MeV
-    //    (see https://wiki.bnl.gov/TECHQM/index.php/QCD_Equation_of_State)
-    // 4: PCE EOS with chemical freeze out at 155 MeV
-    // 5: PCE EOS at 160 MeV
-    // 6: PCE EOS at 165 MeV
-    // 7: lattice EOS with CE match with UrQMD
-    // 10: finite muB EOS from A. Monnai (up to mu_B^4)
-    // 11: finite muB EOS from Pasi
-    // 12: finite muB EOS from A. Monnai (up to mu_B^6)
-    // 20: 4D Eos. 
+    // EOS_to_use:
+    //  0: ideal gas
+    //  1: EOS-Q from azhydro
+    //  2: lattice EOS from Huovinen and Petreczky
+    //  3: lattice EOS from Huovinen and Petreczky
+    //     with partial chemical equilibrium (PCE) at 150 MeV
+    //     (see https://wiki.bnl.gov/TECHQM/index.php/QCD_Equation_of_State)
+    //  4: PCE EOS with chemical freeze out at 155 MeV
+    //  5: PCE EOS at 160 MeV
+    //  6: PCE EOS at 165 MeV
+    //  7: lattice EOS with CE match with UrQMD
+    //  10: finite muB EOS from A. Monnai (up to mu_B^4)
+    //  11: finite muB EOS from Pasi
+    //  12: finite muB EOS from A. Monnai (up to mu_B^6)
+    //  20: 4D Eos.
     int tempwhichEOS = 2;
     tempinput = Util::StringFind4(input_file, "EOS_to_use");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempwhichEOS;
+    if (tempinput != "empty") istringstream(tempinput) >> tempwhichEOS;
     parameter_list.whichEOS = tempwhichEOS;
 
     // number_of_particles_to_include:
@@ -266,8 +257,7 @@ InitData read_in_parameters(std::string input_file) {
     // should be computed (mode=3) or resonances should be included (mode=4)
     // current maximum = 319
     int tempNumberOfParticlesToInclude = 2;
-    tempinput = Util::StringFind4(input_file,
-                                  "number_of_particles_to_include");
+    tempinput = Util::StringFind4(input_file, "number_of_particles_to_include");
     if (tempinput != "empty")
         istringstream(tempinput) >> tempNumberOfParticlesToInclude;
     parameter_list.NumberOfParticlesToInclude = tempNumberOfParticlesToInclude;
@@ -276,97 +266,85 @@ InitData read_in_parameters(std::string input_file) {
     // 2: Schenke's more complex method
     int tempfreezeOutMethod = 4;
     tempinput = Util::StringFind4(input_file, "freeze_out_method");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempfreezeOutMethod;
+    if (tempinput != "empty") istringstream(tempinput) >> tempfreezeOutMethod;
     parameter_list.freezeOutMethod = tempfreezeOutMethod;
 
     // average_surface_over_this_many_time_steps:
     // Only save every N timesteps for finding freeze out surface
     int tempfacTau = 1;
-    tempinput = Util::StringFind4(input_file,
-                                  "average_surface_over_this_many_time_steps");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempfacTau;
+    tempinput = Util::StringFind4(
+        input_file, "average_surface_over_this_many_time_steps");
+    if (tempinput != "empty") istringstream(tempinput) >> tempfacTau;
     parameter_list.facTau = tempfacTau;
 
     int tempfac_x = 1;
     tempinput = Util::StringFind4(input_file, "freeze_Ncell_x_step");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempfac_x;
+    if (tempinput != "empty") istringstream(tempinput) >> tempfac_x;
     parameter_list.fac_x = tempfac_x;
     parameter_list.fac_y = tempfac_x;
 
     int tempfac_eta = 1;
     tempinput = Util::StringFind4(input_file, "freeze_Ncell_eta_step");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempfac_eta;
+    if (tempinput != "empty") istringstream(tempinput) >> tempfac_eta;
     parameter_list.fac_eta = tempfac_eta;
 
     // Grid_size_in_*
     // number of cells in x,y direction
     int tempnx = 10;
     tempinput = Util::StringFind4(input_file, "Grid_size_in_x");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempnx;
+    if (tempinput != "empty") istringstream(tempinput) >> tempnx;
     parameter_list.nx = tempnx;
     int tempny = 10;
     tempinput = Util::StringFind4(input_file, "Grid_size_in_y");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempny;
+    if (tempinput != "empty") istringstream(tempinput) >> tempny;
     parameter_list.ny = tempny;
 
     // Grid_size_in_eta
     // number of cells in eta direction.
-    // One cell is positioned at eta=0, 
+    // One cell is positioned at eta=0,
     // half the cells are at negative eta,
     // the rest (one fewer) are at positive eta
     int tempneta = 1;
     tempinput = Util::StringFind4(input_file, "Grid_size_in_eta");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempneta;
+    if (tempinput != "empty") istringstream(tempinput) >> tempneta;
     parameter_list.neta = tempneta;
 
     // grid_size_in_fm:
     // total length of box in x,y direction in fm (minus delta_*)
     double tempx_size = 25.;
     tempinput = Util::StringFind4(input_file, "X_grid_size_in_fm");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempx_size;
+    if (tempinput != "empty") istringstream(tempinput) >> tempx_size;
     parameter_list.x_size = tempx_size;
     double tempy_size = 25.;
     tempinput = Util::StringFind4(input_file, "Y_grid_size_in_fm");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempy_size;
+    if (tempinput != "empty") istringstream(tempinput) >> tempy_size;
     parameter_list.y_size = tempy_size;
 
     // switch for baryon current propagation
     int tempturn_on_rhob = 0;
     tempinput = Util::StringFind4(input_file, "Include_Rhob_Yes_1_No_0");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempturn_on_rhob;
+    if (tempinput != "empty") istringstream(tempinput) >> tempturn_on_rhob;
     parameter_list.turn_on_rhob = tempturn_on_rhob;
     if (parameter_list.turn_on_rhob == 1)
-       parameter_list.alpha_max = 5;
+        parameter_list.alpha_max = 5;
     else
-       parameter_list.alpha_max = 4;
+        parameter_list.alpha_max = 4;
 
     int tempturn_on_QS = 0;
     tempinput = Util::StringFind4(input_file, "Include_QS_Yes_1_No_0");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempturn_on_QS;
+    if (tempinput != "empty") istringstream(tempinput) >> tempturn_on_QS;
     parameter_list.turn_on_QS = tempturn_on_QS;
     if (parameter_list.turn_on_QS == 1) {
-       parameter_list.alpha_max = 7;
+        parameter_list.alpha_max = 7;
     } else if (parameter_list.turn_on_rhob == 1) {
-       parameter_list.alpha_max = 5;
+        parameter_list.alpha_max = 5;
     } else {
-       parameter_list.alpha_max = 4;
+        parameter_list.alpha_max = 4;
     }
 
     int tempuse_BQ_ratios = 0;
     tempinput = Util::StringFind4(input_file, "use_BQ_ratios");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempuse_BQ_ratios;
+    if (tempinput != "empty") istringstream(tempinput) >> tempuse_BQ_ratios;
     parameter_list.use_BQ_ratios = tempuse_BQ_ratios;
 
     int tempuse_rhoQS_to_rhoB_ratios = 0;
@@ -376,13 +354,11 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.use_rhoQS_to_rhoB_ratios = tempuse_rhoQS_to_rhoB_ratios;
     double temp_ratio_q = 0.4;
     double temp_ratio_s = 0.;
-    if(parameter_list.use_rhoQS_to_rhoB_ratios == 1){
+    if (parameter_list.use_rhoQS_to_rhoB_ratios == 1) {
         tempinput = Util::StringFind4(input_file, "ratio_q");
-            if (tempinput != "empty")
-                istringstream(tempinput) >> temp_ratio_q;
+        if (tempinput != "empty") istringstream(tempinput) >> temp_ratio_q;
         tempinput = Util::StringFind4(input_file, "ratio_s");
-            if (tempinput != "empty")
-                istringstream(tempinput) >> temp_ratio_s;
+        if (tempinput != "empty") istringstream(tempinput) >> temp_ratio_s;
     }
     parameter_list.ratio_q = temp_ratio_q;
     parameter_list.ratio_s = temp_ratio_s;
@@ -391,8 +367,7 @@ InitData read_in_parameters(std::string input_file) {
     // e.g., neta=8 and eta_size=8 has 8 cells that run from eta=-4 to eta=3
     double tempeta_size = 8.;
     tempinput = Util::StringFind4(input_file, "Eta_grid_size");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempeta_size;
+    if (tempinput != "empty") istringstream(tempinput) >> tempeta_size;
     parameter_list.eta_size = tempeta_size;
 
     // Total_evolution_time_tau
@@ -400,24 +375,23 @@ InitData read_in_parameters(std::string input_file) {
     // evolution will halt earlier if all cells are frozen out.
     double temptau_size = 50.;
     tempinput = Util::StringFind4(input_file, "Total_evolution_time_tau");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temptau_size;
+    if (tempinput != "empty") istringstream(tempinput) >> temptau_size;
     parameter_list.tau_size = temptau_size;
 
     // Initial_time_tau_0:  in fm
     double temptau0 = 1.0;
     tempinput = Util::StringFind4(input_file, "Initial_time_tau_0");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temptau0;
+    if (tempinput != "empty") istringstream(tempinput) >> temptau0;
     parameter_list.tau0 = temptau0;
 
     /* x-grid, for instance, runs from 0 to nx */
     parameter_list.delta_x =
-            parameter_list.x_size/static_cast<double>(parameter_list.nx - 1);
+        parameter_list.x_size / static_cast<double>(parameter_list.nx - 1);
     parameter_list.delta_y =
-            parameter_list.y_size/static_cast<double>(parameter_list.ny - 1);
-    parameter_list.delta_eta = (parameter_list.eta_size
-                                /static_cast<double>(parameter_list.neta - 1));
+        parameter_list.y_size / static_cast<double>(parameter_list.ny - 1);
+    parameter_list.delta_eta =
+        (parameter_list.eta_size
+         / static_cast<double>(parameter_list.neta - 1));
 
     music_message << " DeltaX = " << parameter_list.delta_x << " fm";
     music_message.flush("info");
@@ -430,16 +404,14 @@ InitData read_in_parameters(std::string input_file) {
     // time step to use in [fm].
     double tempdelta_tau = 0.02;
     tempinput = Util::StringFind4(input_file, "Delta_Tau");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempdelta_tau;
+    if (tempinput != "empty") istringstream(tempinput) >> tempdelta_tau;
     parameter_list.delta_tau = tempdelta_tau;
     music_message << " DeltaTau = " << parameter_list.delta_tau << " fm";
     music_message.flush("info");
 
     double tempdtaudxRatio = 0.1;
     tempinput = Util::StringFind4(input_file, "dtaudxRatio");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempdtaudxRatio;
+    if (tempinput != "empty") istringstream(tempinput) >> tempdtaudxRatio;
     parameter_list.dtaudxRatio = tempdtaudxRatio;
     music_message << " dtaudxRatio = " << parameter_list.dtaudxRatio;
     music_message.flush("info");
@@ -456,8 +428,7 @@ InitData read_in_parameters(std::string input_file) {
     tempinput = Util::StringFind4(input_file, "store_hydro_info_in_memory");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_store_hydro_info_in_memory;
-    parameter_list.store_hydro_info_in_memory =
-                                            temp_store_hydro_info_in_memory;
+    parameter_list.store_hydro_info_in_memory = temp_store_hydro_info_in_memory;
 
     int temp_output_movie_flag = 0;
     tempinput = Util::StringFind4(input_file, "output_movie_flag");
@@ -469,11 +440,11 @@ InitData read_in_parameters(std::string input_file) {
     tempinput = Util::StringFind4(input_file, "output_outofequilibriumsize");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_output_outofequilibriumsize;
-    parameter_list.output_outofequilibriumsize = (
-                                        temp_output_outofequilibriumsize);
+    parameter_list.output_outofequilibriumsize =
+        (temp_output_outofequilibriumsize);
 
     parameter_list.nt = static_cast<int>(
-            parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
+        parameter_list.tau_size / (parameter_list.delta_tau) + 0.5);
     music_message << "read_in_parameters: Time step size = "
                   << parameter_list.delta_tau;
     music_message.flush("info");
@@ -483,11 +454,11 @@ InitData read_in_parameters(std::string input_file) {
 
     double temp_eta_0 = 3.0;
     tempinput = Util::StringFind4(input_file, "eta_rhob_0");
-    if (tempinput != "empty") istringstream (tempinput) >> temp_eta_0;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_eta_0;
     parameter_list.eta_rhob_0 = temp_eta_0;
     double temp_eta_width = 1.0;
     tempinput = Util::StringFind4(input_file, "eta_rhob_width");
-    if (tempinput != "empty") istringstream (tempinput) >> temp_eta_width;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_eta_width;
     parameter_list.eta_rhob_width = temp_eta_width;
     double temp_eta_plateau_height = 0.5;
     tempinput = Util::StringFind4(input_file, "eta_rhob_plateau_height");
@@ -496,48 +467,41 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.eta_rhob_plateau_height = temp_eta_plateau_height;
     double temp_eta_width_1 = 1.0;
     tempinput = Util::StringFind4(input_file, "eta_rhob_width_1");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_eta_width_1;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_eta_width_1;
     parameter_list.eta_rhob_width_1 = temp_eta_width_1;
     double temp_eta_width_2 = 1.0;
     tempinput = Util::StringFind4(input_file, "eta_rhob_width_2");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_eta_width_2;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_eta_width_2;
     parameter_list.eta_rhob_width_2 = temp_eta_width_2;
     double temp_eta_rhob_asym = 1.0;
     tempinput = Util::StringFind4(input_file, "eta_rhob_asym");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_eta_rhob_asym;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_eta_rhob_asym;
     parameter_list.eta_rhob_asym = temp_eta_rhob_asym;
 
     // Eta_fall_off:
     // width of half-Gaussian on each side of a central pleateau in eta
-    double tempeta_fall_off  = 0.4;
+    double tempeta_fall_off = 0.4;
     tempinput = Util::StringFind4(input_file, "Eta_fall_off");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempeta_fall_off ;
-    parameter_list.eta_fall_off  = tempeta_fall_off;
+    if (tempinput != "empty") istringstream(tempinput) >> tempeta_fall_off;
+    parameter_list.eta_fall_off = tempeta_fall_off;
 
     // Eta_plateau_size:
     // width of the flat region symmetrical around eta=0
     double tempeta_flat = 20.0;
     tempinput = Util::StringFind4(input_file, "Eta_plateau_size");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempeta_flat;
+    if (tempinput != "empty") istringstream(tempinput) >> tempeta_flat;
     parameter_list.eta_flat = tempeta_flat;
 
     // yL_frac: the fraction of Y_CM in the longitudinal velocity
     double temp_yL_frac = 0.0;  // default is 0: Bjorken flow
     tempinput = Util::StringFind4(input_file, "yL_frac");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_yL_frac;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_yL_frac;
     parameter_list.yL_frac = temp_yL_frac;
 
     // s_factor:  for use with IP-Glasma initial conditions
-    double tempsFactor   = 1.0;
+    double tempsFactor = 1.0;
     tempinput = Util::StringFind4(input_file, "s_factor");
-    if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempsFactor;
+    if (tempinput != "empty") istringstream(tempinput) >> tempsFactor;
     parameter_list.sFactor = tempsFactor;
 
     // for calculation of spectra:
@@ -553,77 +517,67 @@ InitData read_in_parameters(std::string input_file) {
     // steps in pseudorapidity in calculation of spectra
     int temppseudo_steps = 51;
     tempinput = Util::StringFind4(input_file, "pseudo_steps");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temppseudo_steps;
-    parameter_list.pseudo_steps = temppseudo_steps; 
+    if (tempinput != "empty") istringstream(tempinput) >> temppseudo_steps;
+    parameter_list.pseudo_steps = temppseudo_steps;
 
     // phi_steps
     // steps in azimuthal angle in calculation of spectra
     int tempphi_steps = 48;
     tempinput = Util::StringFind4(input_file, "phi_steps");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempphi_steps  ;
-    parameter_list.phi_steps = tempphi_steps; 
+    if (tempinput != "empty") istringstream(tempinput) >> tempphi_steps;
+    parameter_list.phi_steps = tempphi_steps;
 
     // min_pt:
     // spectra calculated from this to max_pt transverse momentum in GeV
-    double tempmin_pt   = 0.0;
+    double tempmin_pt = 0.0;
     tempinput = Util::StringFind4(input_file, "min_pt");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempmin_pt  ;
+    if (tempinput != "empty") istringstream(tempinput) >> tempmin_pt;
     parameter_list.min_pt = tempmin_pt;
 
     // max_pt:
     // spectra calculated from min_pt to this transverse momentum in GeV
-    double tempmax_pt   = 3.0;
+    double tempmax_pt = 3.0;
     tempinput = Util::StringFind4(input_file, "max_pt");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempmax_pt;
+    if (tempinput != "empty") istringstream(tempinput) >> tempmax_pt;
     parameter_list.max_pt = tempmax_pt;
 
     // pt_steps:
     // steps in transverse momentum in calculation of spectra
-    int temppt_steps   = 60;
+    int temppt_steps = 60;
     tempinput = Util::StringFind4(input_file, "pt_steps");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temppt_steps  ;
-    parameter_list.pt_steps = temppt_steps;   
+    if (tempinput != "empty") istringstream(tempinput) >> temppt_steps;
+    parameter_list.pt_steps = temppt_steps;
 
     // pseudofreeze
     // Calculate spectra at fixed,
     // equally-spaced grid in pseudorapidity, pt, and phi
     int temppseudofreeze = 1;
     tempinput = Util::StringFind4(input_file, "pseudofreeze");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temppseudofreeze;
+    if (tempinput != "empty") istringstream(tempinput) >> temppseudofreeze;
     parameter_list.pseudofreeze = temppseudofreeze;
 
     // Runge_Kutta_order:  must be 1 or 2
     int temprk_order = 2;
     tempinput = Util::StringFind4(input_file, "Runge_Kutta_order");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temprk_order;
+    if (tempinput != "empty") istringstream(tempinput) >> temprk_order;
     parameter_list.rk_order = temprk_order;
 
     // Minmod_Theta: theta parameter in the min-mod like limiter
-    double tempminmod_theta   = 1.8;
+    double tempminmod_theta = 1.8;
     tempinput = Util::StringFind4(input_file, "Minmod_Theta");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempminmod_theta  ;
+    if (tempinput != "empty") istringstream(tempinput) >> tempminmod_theta;
     parameter_list.minmod_theta = tempminmod_theta;
 
     // Viscosity_Flag_Yes_1_No_0:   set to 0 for ideal hydro
     int tempviscosity_flag = 1;
     tempinput = Util::StringFind4(input_file, "Viscosity_Flag_Yes_1_No_0");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempviscosity_flag;
+    if (tempinput != "empty") istringstream(tempinput) >> tempviscosity_flag;
     parameter_list.viscosity_flag = tempviscosity_flag;
 
     // Include_Shear_Visc_Yes_1_No_0
     int tempturn_on_shear = 0;
     tempinput = Util::StringFind4(input_file, "Include_Shear_Visc_Yes_1_No_0");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempturn_on_shear;
+    if (tempinput != "empty") istringstream(tempinput) >> tempturn_on_shear;
     parameter_list.turn_on_shear = tempturn_on_shear;
 
     // T_dependent_Shear_to_S_ratio:
@@ -644,14 +598,12 @@ InitData read_in_parameters(std::string input_file) {
 
     double temp_shear_muBf0p4 = 1.;
     tempinput = Util::StringFind4(input_file, "shear_muBf0p4");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_shear_muBf0p4;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_shear_muBf0p4;
     parameter_list.shear_muBf0p4 = temp_shear_muBf0p4;
 
-    double temp_shear_muBf0p2 = (1. + parameter_list.shear_muBf0p4)/2.;
+    double temp_shear_muBf0p2 = (1. + parameter_list.shear_muBf0p4) / 2.;
     tempinput = Util::StringFind4(input_file, "shear_muBf0p2");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_shear_muBf0p2;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_shear_muBf0p2;
     parameter_list.shear_muBf0p2 = temp_shear_muBf0p2;
 
     double temp_shear_muBDep_alpha = 1.;
@@ -666,75 +618,72 @@ InitData read_in_parameters(std::string input_file) {
         istringstream(tempinput) >> temp_shear_muBDep_slope;
     parameter_list.shear_muBDep_slope = temp_shear_muBDep_slope;
 
-    double temp_shear_muBDep_scale = 0.6;    // GeV
+    double temp_shear_muBDep_scale = 0.6;  // GeV
     tempinput = Util::StringFind4(input_file, "shear_muBDep_scale");
     if (tempinput != "empty")
         istringstream(tempinput) >> temp_shear_muBDep_scale;
     parameter_list.shear_muBDep_scale = temp_shear_muBDep_scale;
 
-    //Shear_to_S_ratio:  constant eta/s
+    // Shear_to_S_ratio:  constant eta/s
     double tempshear_to_s = 0.08;
     tempinput = Util::StringFind4(input_file, "Shear_to_S_ratio");
     if (tempinput != "empty") {
         istringstream(tempinput) >> tempshear_to_s;
-    } else if (parameter_list.turn_on_shear == 1
-                && parameter_list.T_dependent_shear_to_s == 0) {
+    } else if (
+        parameter_list.turn_on_shear == 1
+        && parameter_list.T_dependent_shear_to_s == 0) {
         cerr << "please define Shear_to_S_ratio!" << endl;
         exit(1);
     }
     parameter_list.shear_to_s = tempshear_to_s;
 
     // If "T_dependent_Shear_to_S_ratio==2",
-    // (eta/s)(T) = eta_over_s_min + eta_over_s_slope*(T − Tc)*(T/Tc)^{eta_over_s_curv}
-    // with T_c=0.154 GeV
+    // (eta/s)(T) = eta_over_s_min + eta_over_s_slope*(T −
+    // Tc)*(T/Tc)^{eta_over_s_curv} with T_c=0.154 GeV
     double temp_eta_over_s_min = 0.08;
     tempinput = Util::StringFind4(input_file, "shear_viscosity_2_min");
-    if (tempinput != "empty")
-        istringstream ( tempinput ) >> temp_eta_over_s_min;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_eta_over_s_min;
     parameter_list.shear_2_min = temp_eta_over_s_min;
 
     double temp_eta_over_s_slope = 1.0;
     tempinput = Util::StringFind4(input_file, "shear_viscosity_2_slope");
-    if (tempinput != "empty")
-        istringstream ( tempinput ) >> temp_eta_over_s_slope;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_eta_over_s_slope;
     parameter_list.shear_2_slope = temp_eta_over_s_slope;
 
     double temp_eta_over_s_curv = 0;
     tempinput = Util::StringFind4(input_file, "shear_viscosity_2_curv");
-    if (tempinput != "empty")
-        istringstream ( tempinput ) >> temp_eta_over_s_curv;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_eta_over_s_curv;
     parameter_list.shear_2_curv = temp_eta_over_s_curv;
 
-
-    // If "T_dependent_Shear_to_S_ratio==3", 
+    // If "T_dependent_Shear_to_S_ratio==3",
     double temp_eta_over_s_T_kink_in_GeV = .16;
     tempinput = Util::StringFind4(
-            input_file, "shear_viscosity_3_eta_over_s_T_kink_in_GeV");
+        input_file, "shear_viscosity_3_eta_over_s_T_kink_in_GeV");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> temp_eta_over_s_T_kink_in_GeV;
+        istringstream(tempinput) >> temp_eta_over_s_T_kink_in_GeV;
     parameter_list.shear_3_T_kink_in_GeV = temp_eta_over_s_T_kink_in_GeV;
 
     double temp_eta_over_s_low_T_slope_in_GeV = 0.0;
     tempinput = Util::StringFind4(
-            input_file, "shear_viscosity_3_eta_over_s_low_T_slope_in_GeV");
+        input_file, "shear_viscosity_3_eta_over_s_low_T_slope_in_GeV");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> temp_eta_over_s_low_T_slope_in_GeV;
-    parameter_list.shear_3_low_T_slope_in_GeV = (
-                                        temp_eta_over_s_low_T_slope_in_GeV);
+        istringstream(tempinput) >> temp_eta_over_s_low_T_slope_in_GeV;
+    parameter_list.shear_3_low_T_slope_in_GeV =
+        (temp_eta_over_s_low_T_slope_in_GeV);
 
     double temp_eta_over_s_high_T_slope_in_GeV = 0.0;
     tempinput = Util::StringFind4(
-            input_file, "shear_viscosity_3_eta_over_s_high_T_slope_in_GeV");
+        input_file, "shear_viscosity_3_eta_over_s_high_T_slope_in_GeV");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> temp_eta_over_s_high_T_slope_in_GeV;
-    parameter_list.shear_3_high_T_slope_in_GeV = (
-                                    temp_eta_over_s_high_T_slope_in_GeV);
+        istringstream(tempinput) >> temp_eta_over_s_high_T_slope_in_GeV;
+    parameter_list.shear_3_high_T_slope_in_GeV =
+        (temp_eta_over_s_high_T_slope_in_GeV);
 
     double temp_eta_over_s_at_kink = 0.08;
-    tempinput = Util::StringFind4(
-            input_file, "shear_viscosity_3_eta_over_s_at_kink");
+    tempinput =
+        Util::StringFind4(input_file, "shear_viscosity_3_eta_over_s_at_kink");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> temp_eta_over_s_at_kink;
+        istringstream(tempinput) >> temp_eta_over_s_at_kink;
     parameter_list.shear_3_at_kink = temp_eta_over_s_at_kink;
 
     // the strength for the viscous regulation
@@ -748,8 +697,7 @@ InitData read_in_parameters(std::string input_file) {
     // Include_Bulk_Visc_Yes_1_No_0
     int tempturn_on_bulk = 0;
     tempinput = Util::StringFind4(input_file, "Include_Bulk_Visc_Yes_1_No_0");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempturn_on_bulk;
+    if (tempinput != "empty") istringstream(tempinput) >> tempturn_on_bulk;
     parameter_list.turn_on_bulk = tempturn_on_bulk;
 
     // type of bulk relaxation time parameterization
@@ -771,99 +719,93 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.T_dependent_bulk_to_s = tempT_dependent_bulk_to_s;
 
     // "T_dependent_Bulk_to_S_ratio=2",
-    // bulk viscosity is parametrized as with "A", "G" and "Tc" as "A*(1/(1+((T-Tc)/G)^2)"
+    // bulk viscosity is parametrized as with "A", "G" and "Tc" as
+    // "A*(1/(1+((T-Tc)/G)^2)"
     double tempBulkViscosityNorm = 0.33;
-    tempinput = Util::StringFind4(input_file,
-                                  "bulk_viscosity_2_normalisation");
-    if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempBulkViscosityNorm;
+    tempinput = Util::StringFind4(input_file, "bulk_viscosity_2_normalisation");
+    if (tempinput != "empty") istringstream(tempinput) >> tempBulkViscosityNorm;
     parameter_list.bulk_2_normalisation = tempBulkViscosityNorm;
 
     double tempBulkViscosityWidth = 0.08;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_2_width_in_GeV");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempBulkViscosityWidth;
+        istringstream(tempinput) >> tempBulkViscosityWidth;
     parameter_list.bulk_2_width_in_GeV = tempBulkViscosityWidth;
 
     // flag for different parameterization of zeta/s(T)
     double tempBulkViscosityPeak = 0.18;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_2_peak_in_GeV");
-    if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempBulkViscosityPeak;
+    if (tempinput != "empty") istringstream(tempinput) >> tempBulkViscosityPeak;
     parameter_list.bulk_2_peak_in_GeV = tempBulkViscosityPeak;
 
     // "T_dependent_Bulk_to_S_ratio==3",
     double tempzeta_over_s_max = 0.1;
-    tempinput = Util::StringFind4(
-            input_file, "bulk_viscosity_3_zeta_over_s_max");
-    if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_max;
+    tempinput =
+        Util::StringFind4(input_file, "bulk_viscosity_3_zeta_over_s_max");
+    if (tempinput != "empty") istringstream(tempinput) >> tempzeta_over_s_max;
     parameter_list.bulk_3_max = tempzeta_over_s_max;
 
-    double tempzeta_over_s_width_in_GeV= 0.05;
+    double tempzeta_over_s_width_in_GeV = 0.05;
     tempinput = Util::StringFind4(
-            input_file, "bulk_viscosity_3_zeta_over_s_width_in_GeV");
+        input_file, "bulk_viscosity_3_zeta_over_s_width_in_GeV");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_width_in_GeV;
+        istringstream(tempinput) >> tempzeta_over_s_width_in_GeV;
     parameter_list.bulk_3_width_in_GeV = tempzeta_over_s_width_in_GeV;
 
     double tempzeta_over_s_T_peak_in_GeV = 0.18;
     tempinput = Util::StringFind4(
-            input_file, "bulk_viscosity_3_zeta_over_s_T_peak_in_GeV");
+        input_file, "bulk_viscosity_3_zeta_over_s_T_peak_in_GeV");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_T_peak_in_GeV;
+        istringstream(tempinput) >> tempzeta_over_s_T_peak_in_GeV;
     parameter_list.bulk_3_T_peak_in_GeV = tempzeta_over_s_T_peak_in_GeV;
 
     double tempzeta_over_s_lambda_asymm = 0.;
     tempinput = Util::StringFind4(
-            input_file, "bulk_viscosity_3_zeta_over_s_lambda_asymm");
+        input_file, "bulk_viscosity_3_zeta_over_s_lambda_asymm");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_lambda_asymm;
+        istringstream(tempinput) >> tempzeta_over_s_lambda_asymm;
     parameter_list.bulk_3_lambda_asymm = tempzeta_over_s_lambda_asymm;
 
     // "T_dependent_Bulk_to_S_ratio==10",
     tempzeta_over_s_max = 0.0;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_max");
-    if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_max;
+    if (tempinput != "empty") istringstream(tempinput) >> tempzeta_over_s_max;
     parameter_list.bulk_10_max = tempzeta_over_s_max;
 
     tempzeta_over_s_max = parameter_list.bulk_10_max;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_max_muB0p4");
-    if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_max;
+    if (tempinput != "empty") istringstream(tempinput) >> tempzeta_over_s_max;
     parameter_list.bulk_10_max_muB0p4 = tempzeta_over_s_max;
 
-    tempzeta_over_s_max = (parameter_list.bulk_10_max
-                           + parameter_list.bulk_10_max_muB0p4)/2.;
+    tempzeta_over_s_max =
+        (parameter_list.bulk_10_max + parameter_list.bulk_10_max_muB0p4) / 2.;
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_max_muB0p2");
-    if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_max;
+    if (tempinput != "empty") istringstream(tempinput) >> tempzeta_over_s_max;
     parameter_list.bulk_10_max_muB0p2 = tempzeta_over_s_max;
 
-    double tempzeta_over_s_width_high = 0.100;   // GeV
+    double tempzeta_over_s_width_high = 0.100;  // GeV
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_width_high");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_width_high;
+        istringstream(tempinput) >> tempzeta_over_s_width_high;
     parameter_list.bulk_10_width_high = tempzeta_over_s_width_high;
 
-    double tempzeta_over_s_width_low = 0.015;   // GeV
+    double tempzeta_over_s_width_low = 0.015;  // GeV
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_width_low");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_width_low;
+        istringstream(tempinput) >> tempzeta_over_s_width_low;
     parameter_list.bulk_10_width_low = tempzeta_over_s_width_low;
 
-    double tempzeta_over_s_T_peak= 0.170;       // GeV
+    double tempzeta_over_s_T_peak = 0.170;  // GeV
     tempinput = Util::StringFind4(input_file, "bulk_viscosity_10_T_peak");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_T_peak;
+        istringstream(tempinput) >> tempzeta_over_s_T_peak;
     parameter_list.bulk_10_Tpeak = tempzeta_over_s_T_peak;
 
     double tempzeta_over_s_T_peak_muBcurv = 0.0;
-    tempinput = Util::StringFind4(input_file,
-                                  "bulk_viscosity_10_T_peak_muBcurv");
+    tempinput =
+        Util::StringFind4(input_file, "bulk_viscosity_10_T_peak_muBcurv");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempzeta_over_s_T_peak_muBcurv;
+        istringstream(tempinput) >> tempzeta_over_s_T_peak_muBcurv;
     parameter_list.bulk_10_Tpeak_muBcurv = tempzeta_over_s_T_peak_muBcurv;
 
     // Include secord order terms
@@ -887,27 +829,25 @@ InitData read_in_parameters(std::string input_file) {
     // Output vorticity evolution
     int tempoutput_vorticity = 0;
     tempinput = Util::StringFind4(input_file, "output_vorticity");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempoutput_vorticity;
+    if (tempinput != "empty") istringstream(tempinput) >> tempoutput_vorticity;
     parameter_list.output_vorticity = tempoutput_vorticity;
 
     int tempturn_on_diff = 0;
     tempinput = Util::StringFind4(input_file, "turn_on_baryon_diffusion");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempturn_on_diff;
+    if (tempinput != "empty") istringstream(tempinput) >> tempturn_on_diff;
     parameter_list.turn_on_diff = tempturn_on_diff;
 
     // Relaxation time factors
-    double tempshear_relax_time_factor= 5.;
+    double tempshear_relax_time_factor = 5.;
     tempinput = Util::StringFind4(input_file, "shear_relax_time_factor");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempshear_relax_time_factor;
+        istringstream(tempinput) >> tempshear_relax_time_factor;
     parameter_list.shear_relax_time_factor = tempshear_relax_time_factor;
 
-    double tempbulk_relax_time_factor= 1./14.55;
+    double tempbulk_relax_time_factor = 1. / 14.55;
     tempinput = Util::StringFind4(input_file, "bulk_relax_time_factor");
     if (tempinput != "empty")
-        istringstream ( tempinput ) >> tempbulk_relax_time_factor;
+        istringstream(tempinput) >> tempbulk_relax_time_factor;
     parameter_list.bulk_relax_time_factor = tempbulk_relax_time_factor;
 
     // kappa coefficient
@@ -922,8 +862,7 @@ InitData read_in_parameters(std::string input_file) {
     // and 2 is supposed to use p^(2-alpha)
     int tempinclude_deltaf = 1;
     tempinput = Util::StringFind4(input_file, "Include_deltaf");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempinclude_deltaf;
+    if (tempinput != "empty") istringstream(tempinput) >> tempinclude_deltaf;
     parameter_list.include_deltaf = tempinclude_deltaf;
 
     int tempinclude_deltaf_bulk = 0;
@@ -940,16 +879,14 @@ InitData read_in_parameters(std::string input_file) {
 
     int temp_deltaf_14moments = 0;
     tempinput = Util::StringFind4(input_file, "deltaf_14moments");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_deltaf_14moments;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_deltaf_14moments;
     parameter_list.deltaf_14moments = temp_deltaf_14moments;
 
     // Do_FreezeOut_Yes_1_No_0
     // set to 0 to bypass freeze out surface finder
     int tempdoFreezeOut = 1;
     tempinput = Util::StringFind4(input_file, "Do_FreezeOut_Yes_1_No_0");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> tempdoFreezeOut;
+    if (tempinput != "empty") istringstream(tempinput) >> tempdoFreezeOut;
     parameter_list.doFreezeOut = tempdoFreezeOut;
 
     int tempdoFreezeOut_lowtemp = 1;
@@ -960,55 +897,48 @@ InitData read_in_parameters(std::string input_file) {
 
     // Initial_Distribution_input_filename
     string tempinitName = "initial/initial_ed.dat";
-    tempinput = Util::StringFind4(input_file,
-                                  "Initial_Distribution_input_filename");
-    if (tempinput != "empty")
-        tempinitName.assign(tempinput);
+    tempinput =
+        Util::StringFind4(input_file, "Initial_Distribution_input_filename");
+    if (tempinput != "empty") tempinitName.assign(tempinput);
     parameter_list.initName.assign(tempinitName);
 
     // Initial_Distribution_Filename for TA
     string tempinitName_TA = "initial/initial_TA.dat";
-    tempinput = Util::StringFind4(input_file,
-                                  "Initial_TA_Distribution_Filename");
-    if (tempinput != "empty")
-        tempinitName_TA.assign(tempinput);
+    tempinput =
+        Util::StringFind4(input_file, "Initial_TA_Distribution_Filename");
+    if (tempinput != "empty") tempinitName_TA.assign(tempinput);
     parameter_list.initName_TA.assign(tempinitName_TA);
     // Initial_Distribution_Filename for TB
     string tempinitName_TB = "initial/initial_TB.dat";
-    tempinput = Util::StringFind4(input_file,
-                                  "Initial_TB_Distribution_Filename");
-    if (tempinput != "empty")
-        tempinitName_TB.assign(tempinput);
+    tempinput =
+        Util::StringFind4(input_file, "Initial_TB_Distribution_Filename");
+    if (tempinput != "empty") tempinitName_TB.assign(tempinput);
     parameter_list.initName_TB.assign(tempinitName_TB);
     // Initial_Distribution_Filename for participant list
     string tempinitName_part = "initial/participantList.dat";
-    tempinput = Util::StringFind4(input_file,
-                                  "Initial_participantList_Filename");
-    if (tempinput != "empty")
-        tempinitName_part.assign(tempinput);
+    tempinput =
+        Util::StringFind4(input_file, "Initial_participantList_Filename");
+    if (tempinput != "empty") tempinitName_part.assign(tempinput);
     parameter_list.initName_participants.assign(tempinitName_part);
 
     double temp_nucleonWidth = 0.5;
     tempinput = Util::StringFind4(input_file, "nucleon_width");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_nucleonWidth;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_nucleonWidth;
     parameter_list.nucleonWidth = temp_nucleonWidth;
 
     // Initial_Distribution_AMPT_filename for AMPT
     string tempinitName_AMPT = "initial/initial_AMPT.dat";
-    tempinput = Util::StringFind4(input_file,
-                                  "Initial_Distribution_AMPT_filename");
-    if (tempinput != "empty")
-        tempinitName_AMPT.assign(tempinput);
+    tempinput =
+        Util::StringFind4(input_file, "Initial_Distribution_AMPT_filename");
+    if (tempinput != "empty") tempinitName_AMPT.assign(tempinput);
     parameter_list.initName_AMPT.assign(tempinitName_AMPT);
 
     // compute beam rapidity according to the collision energy
     double temp_ecm = 200;
     tempinput = Util::StringFind4(input_file, "ecm");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_ecm;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_ecm;
     parameter_list.ecm = temp_ecm;
-    double y_beam = acosh(temp_ecm/(2.*Util::m_N));
+    double y_beam = acosh(temp_ecm / (2. * Util::m_N));
     parameter_list.beam_rapidity = y_beam;
 
     int tempoutputBinaryEvolution = 0;
@@ -1028,33 +958,30 @@ InitData read_in_parameters(std::string input_file) {
     // The evolution is outputted every
     // "output_evolution_every_N_timesteps" timesteps
     int temp_evo_N_tau = 1;
-    tempinput = Util::StringFind4(input_file,
-                                  "output_evolution_every_N_timesteps");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_evo_N_tau;
+    tempinput =
+        Util::StringFind4(input_file, "output_evolution_every_N_timesteps");
+    if (tempinput != "empty") istringstream(tempinput) >> temp_evo_N_tau;
     parameter_list.output_evolution_every_N_timesteps = temp_evo_N_tau;
 
     int temp_evo_N_x = 1;
     tempinput = Util::StringFind4(input_file, "output_evolution_every_N_x");
-    if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_x;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_evo_N_x;
     parameter_list.output_evolution_every_N_x = temp_evo_N_x;
     parameter_list.output_evolution_every_N_y = temp_evo_N_x;
 
     int temp_evo_N_eta = 1;
     tempinput = Util::StringFind4(input_file, "output_evolution_every_N_eta");
-    if(tempinput != "empty") istringstream ( tempinput ) >> temp_evo_N_eta;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_evo_N_eta;
     parameter_list.output_evolution_every_N_eta = temp_evo_N_eta;
 
     double temp_evo_T_cut = 0.105;  // GeV
     tempinput = Util::StringFind4(input_file, "output_evolution_T_cut");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_evo_T_cut;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_evo_T_cut;
     parameter_list.output_evolution_T_cut = temp_evo_T_cut;
 
     double temp_evo_e_cut = 0.15;  // GeV/fm^3
     tempinput = Util::StringFind4(input_file, "output_evolution_e_cut");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_evo_e_cut;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_evo_e_cut;
     parameter_list.output_evolution_e_cut = temp_evo_e_cut;
 
     // Make MUSIC output a C header input_file containing
@@ -1069,40 +996,37 @@ InitData read_in_parameters(std::string input_file) {
     // initial parameters for mode 14
     double temp_dNdy_y_min = -0.5;
     tempinput = Util::StringFind4(input_file, "dNdy_y_min");
-    if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_y_min;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_dNdy_y_min;
     parameter_list.dNdy_y_min = temp_dNdy_y_min;
 
     double temp_dNdy_y_max = 0.5;
     tempinput = Util::StringFind4(input_file, "dNdy_y_max");
-    if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_y_max;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_dNdy_y_max;
     parameter_list.dNdy_y_max = temp_dNdy_y_max;
 
     double temp_dNdy_eta_min = -2.0;
     tempinput = Util::StringFind4(input_file, "dNdy_eta_min");
-    if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_eta_min;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_dNdy_eta_min;
     parameter_list.dNdy_eta_min = temp_dNdy_eta_min;
 
     double temp_dNdy_eta_max = 2.0;
     tempinput = Util::StringFind4(input_file, "dNdy_eta_max");
-    if(tempinput != "empty") istringstream ( tempinput ) >> temp_dNdy_eta_max;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_dNdy_eta_max;
     parameter_list.dNdy_eta_max = temp_dNdy_eta_max;
 
     int temp_dNdy_nrap = 30;
     tempinput = Util::StringFind4(input_file, "dNdy_nrap");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_dNdy_nrap;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_dNdy_nrap;
     parameter_list.dNdy_nrap = temp_dNdy_nrap;
 
     double temp_dNdyptdpt_y_min = -0.5;
     tempinput = Util::StringFind4(input_file, "dNdyptdpt_y_min");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_dNdyptdpt_y_min;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_dNdyptdpt_y_min;
     parameter_list.dNdyptdpt_y_min = temp_dNdyptdpt_y_min;
 
     double temp_dNdyptdpt_y_max = 0.5;
     tempinput = Util::StringFind4(input_file, "dNdyptdpt_y_max");
-    if (tempinput != "empty")
-        istringstream(tempinput) >> temp_dNdyptdpt_y_max;
+    if (tempinput != "empty") istringstream(tempinput) >> temp_dNdyptdpt_y_max;
     parameter_list.dNdyptdpt_y_max = temp_dNdyptdpt_y_max;
 
     double temp_dNdyptdpt_eta_min = -0.5;
@@ -1123,14 +1047,12 @@ InitData read_in_parameters(std::string input_file) {
     return parameter_list;
 }
 
-
-void set_parameter(InitData &parameter_list, std::string parameter_name,
-                   double value) {
+void set_parameter(
+    InitData &parameter_list, std::string parameter_name, double value) {
     if (parameter_name == "MUSIC_mode")
         parameter_list.mode = static_cast<int>(value);
 
-    if (parameter_name == "Initial_time_tau_0")
-        parameter_list.tau0 = value;
+    if (parameter_name == "Initial_time_tau_0") parameter_list.tau0 = value;
 
     if (parameter_name == "output_evolution_data")
         parameter_list.outputEvolutionData = static_cast<int>(value);
@@ -1147,11 +1069,9 @@ void set_parameter(InitData &parameter_list, std::string parameter_name,
     if (parameter_name == "Include_Shear_Visc_Yes_1_No_0")
         parameter_list.turn_on_shear = static_cast<int>(value);
 
-    if (parameter_name == "Shear_to_S_ratio")
-        parameter_list.shear_to_s = value;
+    if (parameter_name == "Shear_to_S_ratio") parameter_list.shear_to_s = value;
 
-    if (parameter_name == "T_freeze")
-        parameter_list.TFO = value;
+    if (parameter_name == "T_freeze") parameter_list.TFO = value;
 
     if (parameter_name == "Include_Bulk_Visc_Yes_1_No_0")
         parameter_list.turn_on_bulk = static_cast<int>(value);
@@ -1209,7 +1129,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     }
 
     if (parameter_list.initializeEntropy > 1
-            || parameter_list.initializeEntropy < 0) {
+        || parameter_list.initializeEntropy < 0) {
         music_message.error("Must initialize with entropy or energy");
         exit(1);
     }
@@ -1224,7 +1144,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     } else {
         if (parameter_list.epsilonFreeze <= 0) {
             music_message.error(
-                    "Freeze out energy density must be greater than zero");
+                "Freeze out energy density must be greater than zero");
             exit(1);
         }
     }
@@ -1232,8 +1152,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     if (parameter_list.useEpsFO > 1 || parameter_list.useEpsFO < 0) {
         music_message << "did not set either freeze out energy density "
                       << "or temperature, or invalid option for "
-                      << "use_eps_for_freeze_out:"
-                      << parameter_list.useEpsFO;
+                      << "use_eps_for_freeze_out:" << parameter_list.useEpsFO;
         music_message.flush("error");
         exit(1);
     }
@@ -1256,7 +1175,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     }
 
     if (parameter_list.whichEOS > 1 && parameter_list.whichEOS < 7
-            && parameter_list.NumberOfParticlesToInclude > 320) {
+        && parameter_list.NumberOfParticlesToInclude > 320) {
         music_message << "Invalid option for number_of_particles_to_include:"
                       << parameter_list.NumberOfParticlesToInclude;
         music_message.flush("error");
@@ -1276,7 +1195,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         exit(1);
     }
 
-    double freeze_dtau = parameter_list.facTau*parameter_list.delta_tau;
+    double freeze_dtau = parameter_list.facTau * parameter_list.delta_tau;
     if (freeze_dtau > 1.) {
         music_message << "freeze-out time setp is too large! "
                       << "freeze_dtau = " << freeze_dtau
@@ -1306,7 +1225,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     }
 
     if (parameter_list.neta < 2 && !parameter_list.boost_invariant) {
-        music_message << "Grid size in eta = " << parameter_list.neta 
+        music_message << "Grid size in eta = " << parameter_list.neta
                       << "is too small for a (3+1)-d run! "
                       << "Please increase Grid_size_in_eta to be "
                       << "larger than 2 at least!";
@@ -1315,8 +1234,8 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     }
 
     if (parameter_list.boost_invariant && parameter_list.neta > 1) {
-        music_message << "Grid size in eta is set to "
-                      << parameter_list.neta << " for a (2+1)-d simulation! "
+        music_message << "Grid size in eta is set to " << parameter_list.neta
+                      << " for a (2+1)-d simulation! "
                       << "This is redundant! Reset neta to 1! ";
         music_message.flush("warning");
         parameter_list.neta = 1;
@@ -1330,32 +1249,32 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         parameter_list.eta_size = 0.0;
     }
 
-    if (parameter_list.delta_tau/parameter_list.delta_x
-            > parameter_list.dtaudxRatio) {
+    if (parameter_list.delta_tau / parameter_list.delta_x
+        > parameter_list.dtaudxRatio) {
         music_message << "Warning: Delta_Tau = " << parameter_list.delta_tau
                       << " maybe too large! ";
         music_message.flush("warning");
 
         bool reset_dtau_use_CFL_condition = true;
         int temp_CFL_condition = 1;
-        string tempinput = Util::StringFind4(
-                            input_file, "reset_dtau_use_CFL_condition");
+        string tempinput =
+            Util::StringFind4(input_file, "reset_dtau_use_CFL_condition");
         if (tempinput != "empty")
             istringstream(tempinput) >> temp_CFL_condition;
-        if (temp_CFL_condition == 0)
-            reset_dtau_use_CFL_condition = false;
+        if (temp_CFL_condition == 0) reset_dtau_use_CFL_condition = false;
         parameter_list.resetDtau = reset_dtau_use_CFL_condition;
 
         if (reset_dtau_use_CFL_condition) {
             music_message.info("reset dtau using CFL condition.");
             double dtau_CFL = std::min(
-                std::min(parameter_list.delta_x*parameter_list.dtaudxRatio,
-                         parameter_list.delta_y*parameter_list.dtaudxRatio),
-                         parameter_list.tau0*parameter_list.delta_eta
-                         *parameter_list.dtaudxRatio);
+                std::min(
+                    parameter_list.delta_x * parameter_list.dtaudxRatio,
+                    parameter_list.delta_y * parameter_list.dtaudxRatio),
+                parameter_list.tau0 * parameter_list.delta_eta
+                    * parameter_list.dtaudxRatio);
             parameter_list.delta_tau = dtau_CFL;
             parameter_list.nt = static_cast<int>(
-                parameter_list.tau_size/(parameter_list.delta_tau) + 0.5);
+                parameter_list.tau_size / (parameter_list.delta_tau) + 0.5);
             music_message << "read_in_parameters: Time step size = "
                           << parameter_list.delta_tau;
             music_message.flush("info");
@@ -1394,8 +1313,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         music_message.flush("info");
     }
 
-    if (parameter_list.minmod_theta < 1.
-            || parameter_list.minmod_theta > 2.) {
+    if (parameter_list.minmod_theta < 1. || parameter_list.minmod_theta > 2.) {
         music_message << "minmod = " << parameter_list.minmod_theta
                       << " is out of allowed range [1., 2]";
         music_message.flush("error");
@@ -1405,14 +1323,13 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     if (parameter_list.turn_on_shear == 0 && parameter_list.shear_to_s > 0) {
         music_message << "non-zero eta/s = " << parameter_list.shear_to_s
                       << " is set with "
-                      << "Include_Shear_Visc = "
-                      << parameter_list.turn_on_shear
+                      << "Include_Shear_Visc = " << parameter_list.turn_on_shear
                       << ". Please check you want to run ideal hydro!";
         music_message.flush("warning");
     }
 
     if (parameter_list.turn_on_shear == 0
-            && parameter_list.include_deltaf == 1) {
+        && parameter_list.include_deltaf == 1) {
         music_message << "hydro with zero shear viscosity does not need "
                       << "shear delta f in Cooper-Frye! ";
         music_message << "input Include_deltaf = "
@@ -1423,7 +1340,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     }
 
     if (parameter_list.turn_on_bulk == 0
-            && parameter_list.include_deltaf_bulk == 1) {
+        && parameter_list.include_deltaf_bulk == 1) {
         music_message << "hydro with zero bulk viscosity does not need "
                       << "bulk delta f in Cooper-Frye!";
         music_message << "input Include_deltaf_bulk = "
@@ -1454,7 +1371,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     }
 
     if (parameter_list.dNdy_y_min > parameter_list.dNdy_y_max) {
-        music_message << "dNdy_y_min = " << parameter_list.dNdy_y_min << " < " 
+        music_message << "dNdy_y_min = " << parameter_list.dNdy_y_min << " < "
                       << "dNdy_y_max = " << parameter_list.dNdy_y_max << "!";
         music_message.flush("error");
         exit(1);
@@ -1462,7 +1379,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
 
     if (parameter_list.dNdy_eta_min > parameter_list.dNdy_eta_max) {
         music_message << "dNdy_eta_min = " << parameter_list.dNdy_eta_min
-                      << " < " 
+                      << " < "
                       << "dNdy_eta_max = " << parameter_list.dNdy_eta_max
                       << "!";
         music_message.flush("error");
@@ -1470,18 +1387,17 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     }
 
     if (parameter_list.dNdyptdpt_y_min > parameter_list.dNdyptdpt_y_max) {
-        music_message << "dNdyptdpt_y_min = "
-                      << parameter_list.dNdyptdpt_y_min << " < " 
-                      << "dNdyptdpt_y_max = "
-                      << parameter_list.dNdyptdpt_y_max << "!";
+        music_message << "dNdyptdpt_y_min = " << parameter_list.dNdyptdpt_y_min
+                      << " < "
+                      << "dNdyptdpt_y_max = " << parameter_list.dNdyptdpt_y_max
+                      << "!";
         music_message.flush("error");
         exit(1);
     }
 
-    if (parameter_list.dNdyptdpt_eta_min
-            > parameter_list.dNdyptdpt_eta_max) {
+    if (parameter_list.dNdyptdpt_eta_min > parameter_list.dNdyptdpt_eta_max) {
         music_message << "dNdyptdpt_eta_min = "
-                      << parameter_list.dNdyptdpt_eta_min << " < " 
+                      << parameter_list.dNdyptdpt_eta_min << " < "
                       << "dNdyptdpt_eta_max = "
                       << parameter_list.dNdyptdpt_eta_max << "!";
         music_message.flush("error");
@@ -1489,11 +1405,10 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
     }
 
     music_message << "Finished checking input parameter list. "
-                  << "Everything looks reasonable so far "
-                  << emoji::success() << emoji::thumbup()
-                  << emoji::beer() << emoji::beer()
+                  << "Everything looks reasonable so far " << emoji::success()
+                  << emoji::thumbup() << emoji::beer() << emoji::beer()
                   << emoji::beerclinking() << emoji::beerclinking();
     music_message.flush("info");
 }
 
-}
+}  // namespace ReadInParameters

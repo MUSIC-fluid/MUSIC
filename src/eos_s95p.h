@@ -6,20 +6,26 @@
 #include "eos_base.h"
 
 class EOS_s95p : public EOS_base {
- private:
+  private:
     const int eos_id;
 
- public:
+  public:
     EOS_s95p(const int eos_id_in);
 
     void initialize_eos();
-    double p_e_func       (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_temperature(double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_pressure   (double e, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_s2e        (double s, double rhob, double rhoq=0.0, double rhos=0.0) const;
-    double get_T2e        (double T_in_GeV, double rhob, double rhoq=0.0, double rhos=0.0) const;
+    double p_e_func(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_temperature(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_pressure(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_s2e(
+        double s, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_T2e(
+        double T_in_GeV, double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const;
 
-    void check_eos() const {check_eos_no_muB();}
+    void check_eos() const { check_eos_no_muB(); }
 };
 
 #endif  // SRC_EOS_s95p_H_
