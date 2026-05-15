@@ -670,57 +670,58 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
                 // finally output results !!!!
                 if (surface_in_binary) {
                     const int FOsize = 36 + DATA.output_vorticity * (24 + 14);
-                    float array[FOsize];
-                    array[0] = static_cast<float>(tau_center);
-                    array[1] = static_cast<float>(x_center);
-                    array[2] = static_cast<float>(y_center);
-                    array[3] = static_cast<float>(eta_center);
+                    std::vector<float> FOarray(FOsize, 0.0);
+                    FOarray[0] = static_cast<float>(tau_center);
+                    FOarray[1] = static_cast<float>(x_center);
+                    FOarray[2] = static_cast<float>(y_center);
+                    FOarray[3] = static_cast<float>(eta_center);
                     for (int ii = 0; ii < 4; ii++)
-                        array[4 + ii] = static_cast<float>(FULLSU[ii]);
+                        FOarray[4 + ii] = static_cast<float>(FULLSU[ii]);
                     for (int ii = 0; ii < 4; ii++)
-                        array[8 + ii] = static_cast<float>(fluid_center.u[ii]);
-                    array[12] = static_cast<float>(epsFO);
-                    array[13] = static_cast<float>(TFO);
-                    array[14] = static_cast<float>(muB);
-                    array[15] = static_cast<float>(muS);
-                    array[16] = static_cast<float>(muQ);
-                    array[17] = static_cast<float>(eps_plus_p_over_T_FO);
+                        FOarray[8 + ii] =
+                            static_cast<float>(fluid_center.u[ii]);
+                    FOarray[12] = static_cast<float>(epsFO);
+                    FOarray[13] = static_cast<float>(TFO);
+                    FOarray[14] = static_cast<float>(muB);
+                    FOarray[15] = static_cast<float>(muS);
+                    FOarray[16] = static_cast<float>(muQ);
+                    FOarray[17] = static_cast<float>(eps_plus_p_over_T_FO);
                     for (int ii = 0; ii < 10; ii++)
-                        array[18 + ii] =
+                        FOarray[18 + ii] =
                             static_cast<float>(fluid_center.Wmunu[ii]);
-                    array[28] = fluid_center.pi_b;
-                    array[29] = fluid_center.rhob;
+                    FOarray[28] = fluid_center.pi_b;
+                    FOarray[29] = fluid_center.rhob;
 
-                    array[30] = fluid_center.rhoq;
-                    array[31] = fluid_center.rhos;
+                    FOarray[30] = fluid_center.rhoq;
+                    FOarray[31] = fluid_center.rhos;
 
                     for (int ii = 0; ii < 4; ii++)
-                        array[32 + ii] =
+                        FOarray[32 + ii] =
                             static_cast<float>(fluid_center.Wmunu[10 + ii]);
 
                     if (DATA.output_vorticity == 1) {
                         for (int ii = 0; ii < 6; ii++) {
                             // no minus sign because its definition is
                             // opposite to the kinetic vorticity
-                            array[36 + ii] =
+                            FOarray[36 + ii] =
                                 fluid_aux_center.omega_kSP[ii] / TFO;
                             // the extra minus sign is from metric
                             // output quantities for g = (1, -1, -1, -1)
-                            array[42 + ii] =
+                            FOarray[42 + ii] =
                                 -fluid_aux_center.omega_k[ii] / TFO;
-                            array[48 + ii] = -fluid_aux_center.omega_th[ii];
-                            array[54 + ii] =
+                            FOarray[48 + ii] = -fluid_aux_center.omega_th[ii];
+                            FOarray[54 + ii] =
                                 (-fluid_aux_center.omega_T[ii] / TFO / TFO);
                         }
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
                         for (int ii = 0; ii < 10; ii++)
-                            array[60 + ii] = -fluid_aux_center.sigma_th[ii];
+                            FOarray[60 + ii] = -fluid_aux_center.sigma_th[ii];
                         for (int ii = 0; ii < 4; ii++)
-                            array[70 + ii] = -fluid_aux_center.DbetaMu[ii];
+                            FOarray[70 + ii] = -fluid_aux_center.DbetaMu[ii];
                     }
                     for (int i = 0; i < FOsize; i++)
-                        s_file.write((char *)&(array[i]), sizeof(float));
+                        s_file.write((char *)&(FOarray[i]), sizeof(float));
                 } else {
                     s_file << std::scientific << std::setprecision(10)
                            << tau_center << " " << x_center << " " << y_center
@@ -958,66 +959,66 @@ void Evolve::FreezeOut_equal_tau_Surface_XY(
             // finally output results
             if (surface_in_binary) {
                 const int FOsize = 36 + DATA.output_vorticity * (24 + 14);
-                float array[FOsize];
-                array[0] = static_cast<float>(tau_center);
-                array[1] = static_cast<float>(x_center);
-                array[2] = static_cast<float>(y_center);
-                array[3] = static_cast<float>(eta_center);
-                array[4] = static_cast<float>(FULLSU[0]);
-                array[5] = static_cast<float>(FULLSU[1]);
-                array[6] = static_cast<float>(FULLSU[2]);
-                array[7] = static_cast<float>(FULLSU[3]);
-                array[8] = static_cast<float>(utau_center);
-                array[9] = static_cast<float>(ux_center);
-                array[10] = static_cast<float>(uy_center);
-                array[11] = static_cast<float>(ueta_center);
-                array[12] = static_cast<float>(e_local);
-                array[13] = static_cast<float>(T_local);
-                array[14] = static_cast<float>(muB_local);
-                array[15] = static_cast<float>(muS_local);
-                array[16] = static_cast<float>(muQ_local);
-                array[17] = static_cast<float>(eps_plus_p_over_T);
-                array[18] = static_cast<float>(Wtautau_center);
-                array[19] = static_cast<float>(Wtaux_center);
-                array[20] = static_cast<float>(Wtauy_center);
-                array[21] = static_cast<float>(Wtaueta_center);
-                array[22] = static_cast<float>(Wxx_center);
-                array[23] = static_cast<float>(Wxy_center);
-                array[24] = static_cast<float>(Wxeta_center);
-                array[25] = static_cast<float>(Wyy_center);
-                array[26] = static_cast<float>(Wyeta_center);
-                array[27] = static_cast<float>(Wetaeta_center);
-                array[28] = static_cast<float>(pi_b_center);
-                array[29] = static_cast<float>(rhob_center);
-                array[30] = static_cast<float>(rhoq_center);
-                array[31] = static_cast<float>(rhos_center);
-                array[32] = static_cast<float>(qtau_center);
-                array[33] = static_cast<float>(qx_center);
-                array[34] = static_cast<float>(qy_center);
-                array[35] = static_cast<float>(qeta_center);
+                std::vector<float> FOarray(FOsize, 0);
+                FOarray[0] = static_cast<float>(tau_center);
+                FOarray[1] = static_cast<float>(x_center);
+                FOarray[2] = static_cast<float>(y_center);
+                FOarray[3] = static_cast<float>(eta_center);
+                FOarray[4] = static_cast<float>(FULLSU[0]);
+                FOarray[5] = static_cast<float>(FULLSU[1]);
+                FOarray[6] = static_cast<float>(FULLSU[2]);
+                FOarray[7] = static_cast<float>(FULLSU[3]);
+                FOarray[8] = static_cast<float>(utau_center);
+                FOarray[9] = static_cast<float>(ux_center);
+                FOarray[10] = static_cast<float>(uy_center);
+                FOarray[11] = static_cast<float>(ueta_center);
+                FOarray[12] = static_cast<float>(e_local);
+                FOarray[13] = static_cast<float>(T_local);
+                FOarray[14] = static_cast<float>(muB_local);
+                FOarray[15] = static_cast<float>(muS_local);
+                FOarray[16] = static_cast<float>(muQ_local);
+                FOarray[17] = static_cast<float>(eps_plus_p_over_T);
+                FOarray[18] = static_cast<float>(Wtautau_center);
+                FOarray[19] = static_cast<float>(Wtaux_center);
+                FOarray[20] = static_cast<float>(Wtauy_center);
+                FOarray[21] = static_cast<float>(Wtaueta_center);
+                FOarray[22] = static_cast<float>(Wxx_center);
+                FOarray[23] = static_cast<float>(Wxy_center);
+                FOarray[24] = static_cast<float>(Wxeta_center);
+                FOarray[25] = static_cast<float>(Wyy_center);
+                FOarray[26] = static_cast<float>(Wyeta_center);
+                FOarray[27] = static_cast<float>(Wetaeta_center);
+                FOarray[28] = static_cast<float>(pi_b_center);
+                FOarray[29] = static_cast<float>(rhob_center);
+                FOarray[30] = static_cast<float>(rhoq_center);
+                FOarray[31] = static_cast<float>(rhos_center);
+                FOarray[32] = static_cast<float>(qtau_center);
+                FOarray[33] = static_cast<float>(qx_center);
+                FOarray[34] = static_cast<float>(qy_center);
+                FOarray[35] = static_cast<float>(qeta_center);
                 if (DATA.output_vorticity == 1) {
                     for (int ii = 0; ii < 6; ii++) {
                         // no minus sign because its definition is opposite to
                         // the kinetic vorticity
-                        array[36 + ii] =
+                        FOarray[36 + ii] =
                             fluid_aux_center.omega_kSP[ii] / T_local;
                         // the extra minus sign is from metric
                         // output quantities for g = (1, -1, -1, -1)
-                        array[42 + ii] =
+                        FOarray[42 + ii] =
                             -fluid_aux_center.omega_k[ii] / T_local;
-                        array[48 + ii] = -fluid_aux_center.omega_th[ii];
-                        array[54 + ii] =
+                        FOarray[48 + ii] = -fluid_aux_center.omega_th[ii];
+                        FOarray[54 + ii] =
                             (-fluid_aux_center.omega_T[ii] / T_local / T_local);
                     }
                     // the extra minus sign is from metric
                     // output quantities for g = (1, -1, -1, -1)
                     for (int ii = 0; ii < 10; ii++)
-                        array[60 + ii] = -fluid_aux_center.sigma_th[ii];
+                        FOarray[60 + ii] = -fluid_aux_center.sigma_th[ii];
                     for (int ii = 0; ii < 4; ii++)
-                        array[70 + ii] = -fluid_aux_center.DbetaMu[ii];
+                        FOarray[70 + ii] = -fluid_aux_center.DbetaMu[ii];
                 }
                 for (int i = 0; i < FOsize; i++) {
-                    s_file.write((char *)&(array[i]), sizeof(float));
+                    s_file.write((char *)&(FOarray[i]), sizeof(float));
                 }
             } else {
                 // Not adapted to rhoq and rhos at pos 30 and 31.

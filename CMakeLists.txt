@@ -19,7 +19,7 @@ find_package(GSL)
 if (GSL_FOUND)
     message("Found GSL library ${GSL_INCLUDE_DIR}, will build MUSIC with GSL")
     include_directories(${GSL_INCLUDE_DIR})
-elseif()
+else()
     message("Did not find GSL library, will build MUSIC alone")
 endif()
 
