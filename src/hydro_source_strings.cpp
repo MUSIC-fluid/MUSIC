@@ -667,10 +667,12 @@ double HydroSourceStrings::get_hydro_rhob_source(
         eta_frac_left = std::max(0., std::min(1., eta_frac_left));
         eta_frac_right = std::max(0., std::min(1., eta_frac_right));
 
-        const double x_perp_left =
-            getStringTransverseCoord(it->x_pl, it->x_pr, eta_frac_left);
-        const double x_perp_right =
-            getStringTransverseCoord(it->x_pl, it->x_pr, eta_frac_right);
+        // const double x_perp_left =
+        //     getStringTransverseCoord(it->x_pl, it->x_pr, eta_frac_left);
+        // const double x_perp_right =
+        //     getStringTransverseCoord(it->x_pl, it->x_pr, eta_frac_right);
+        const double x_perp_left = it->x_perp;
+        const double x_perp_right = it->x_perp;
         const double x_dis_left = x - x_perp_left;
         const double x_dis_right = x - x_perp_right;
         if (std::abs(x_dis_left) > skip_dis_x
@@ -678,10 +680,12 @@ double HydroSourceStrings::get_hydro_rhob_source(
             continue;
         }
 
-        const double y_perp_left =
-            getStringTransverseCoord(it->y_pl, it->y_pr, eta_frac_left);
-        const double y_perp_right =
-            getStringTransverseCoord(it->y_pl, it->y_pr, eta_frac_right);
+        // const double y_perp_left =
+        //     getStringTransverseCoord(it->y_pl, it->y_pr, eta_frac_left);
+        // const double y_perp_right =
+        //     getStringTransverseCoord(it->y_pl, it->y_pr, eta_frac_right);
+        const double y_perp_left = it->y_perp;
+        const double y_perp_right = it->y_perp;
         const double y_dis_left = y - y_perp_left;
         const double y_dis_right = y - y_perp_right;
         if (std::abs(y_dis_left) > skip_dis_x
@@ -811,10 +815,12 @@ double HydroSourceStrings::get_hydro_rhoQ_source(
         eta_frac_left = std::max(0., std::min(1., eta_frac_left));
         eta_frac_right = std::max(0., std::min(1., eta_frac_right));
 
-        const double x_perp_left =
-            getStringTransverseCoord(it->x_pl, it->x_pr, eta_frac_left);
-        const double x_perp_right =
-            getStringTransverseCoord(it->x_pl, it->x_pr, eta_frac_right);
+        // const double x_perp_left =
+        //     getStringTransverseCoord(it->x_pl, it->x_pr, eta_frac_left);
+        // const double x_perp_right =
+        //     getStringTransverseCoord(it->x_pl, it->x_pr, eta_frac_right);
+        const double x_perp_left = it->x_perp;
+        const double x_perp_right = it->x_perp;
         const double x_dis_left = x - x_perp_left;
         const double x_dis_right = x - x_perp_right;
         if (std::abs(x_dis_left) > skip_dis_x
@@ -822,10 +828,12 @@ double HydroSourceStrings::get_hydro_rhoQ_source(
             continue;
         }
 
-        const double y_perp_left =
-            getStringTransverseCoord(it->y_pl, it->y_pr, eta_frac_left);
-        const double y_perp_right =
-            getStringTransverseCoord(it->y_pl, it->y_pr, eta_frac_right);
+        // const double y_perp_left =
+        //     getStringTransverseCoord(it->y_pl, it->y_pr, eta_frac_left);
+        // const double y_perp_right =
+        //     getStringTransverseCoord(it->y_pl, it->y_pr, eta_frac_right);
+        const double y_perp_left = it->y_perp;
+        const double y_perp_right = it->y_perp;
         const double y_dis_left = y - y_perp_left;
         const double y_dis_right = y - y_perp_right;
         if (std::abs(y_dis_left) > skip_dis_x
