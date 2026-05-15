@@ -1263,7 +1263,7 @@ void Cell_info::check_conservation_law(
     music_message << "net longitudinal momentum Pz = " << T_tau_z << " GeV";
     music_message.flush("info");
     music_message << "net baryon number N_B = " << N_B;
-    if (N_B > 0. && N_B < 500.) {
+    if (N_B >= 0. && N_B < 500.) {
         music_message.flush("info");
     } else {
         music_message.flush("error");
