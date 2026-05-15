@@ -135,8 +135,6 @@ int Evolve::EvolveIt(
             } else if (DATA.outputEvolutionData == 4) {
                 grid_info.OutputEvolutionDataXYEta_vorticity(
                     *fpCurr, *fpPrev, tau);
-            } else if (DATA.outputEvolutionData == 5) {
-                grid_info.OutputEvolutionDataXYEta_Bulk(*fpCurr, tau);
             } else if (DATA.outputEvolutionData == 7) {
                 grid_info.OutputEvolutionDataXYEta_MLtraining(*fpCurr, tau);
             }
