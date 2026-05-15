@@ -56,6 +56,9 @@ class Cell_info {
     //! This function outputs hydro evolution file in binary format
     int OutputEvolutionDataXYEta_chun(Fields &arena, double tau);
 
+    //! This function outputs hydro evolution file in binary format
+    void OutputEvolutionDataXYEta_MLtraining(Fields &arena, double tau);
+
     //! This function outputs hydro evolution file in binary format for photon
     //! production
     void OutputEvolutionDataXYEta_photon(Fields &arena, double tau);
@@ -114,6 +117,9 @@ class Cell_info {
     //! This function dumps the energy density and net baryon density
     void output_energy_density_and_rhob_disitrubtion(
         Fields &arena, std::string filename);
+
+    //! This function writes OAM area densities Lmunu at a given proper time
+    void compute_Lmunu(Fields &arena, Fields &arena_prev, const double tau);
 
     //! This function computes global angular momentum at a give proper time
     void compute_angular_momentum(

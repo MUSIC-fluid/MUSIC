@@ -142,8 +142,8 @@ void Diss::MakeWSource(
                     Pi_p = (bg + bgp1) * 0.5;
                 }
                 if (direction == 3 && (alpha == 0 || alpha == 3)) {
-                    W_eta_p[alpha] = W_p + Pi_m;
-                    W_eta_m[alpha] = W_m + Pi_p;
+                    W_eta_p[alpha] = W_p + Pi_p;
+                    W_eta_m[alpha] = W_m + Pi_m;
                 } else {
                     dwmn[alpha] += (W_p - W_m + Pi_p - Pi_m) / delta[direction];
                 }

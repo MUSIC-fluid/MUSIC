@@ -23,6 +23,7 @@ HydroSourceTATB::HydroSourceTATB(InitData &DATA_in) : DATA_(DATA_in) {
 
     TA_ = 0.;
     TB_ = 0.;
+    TATB_ = 0.;
     if (DATA_.Initial_profile == 113) {
         read_in_participants_and_compute_TATB();
     } else {
@@ -107,6 +108,7 @@ void HydroSourceTATB::read_in_TATB() {
             TB_temp.push_back(TB);
             TA_ += TA;
             TB_ += TB;
+            TATB_ += TA * TB;
         }
         profile_TA.push_back(TA_temp);
         profile_TB.push_back(TB_temp);
@@ -115,6 +117,7 @@ void HydroSourceTATB::read_in_TATB() {
     TBfile.close();
     TA_ *= DATA_.delta_x * DATA_.delta_y;
     TB_ *= DATA_.delta_x * DATA_.delta_y;
+    TATB_ *= DATA_.delta_x * DATA_.delta_y;
 }
 
 //! This function reads in the spatal information of the participants
@@ -195,6 +198,13 @@ void HydroSourceTATB::read_in_participants_and_compute_TATB() {
     for (const auto &part_i : partList) {
         computeTATB(part_i.x, part_i.y, part_i.dir);
     }
+
+    for (int i = 0; i < DATA_.nx; i++) {
+        for (int j = 0; j < DATA_.ny; j++) {
+            TATB_ += profile_TA[i][j] * profile_TB[i][j];
+        }
+    }
+    TATB_ *= DATA_.delta_x * DATA_.delta_y;
 }
 
 void HydroSourceTATB::computeTATB(
@@ -287,10 +297,7 @@ double HydroSourceTATB::get_hydro_rhob_source(
     double norm_B =
         sqrt(2. / M_PI) * 1
         / (tau_source * (DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2));
-    double norm_B_prime =
-        sqrt(2. / M_PI) * (TA + TB)
-        / (tau_source * (DATA_.eta_rhob_width_1 + DATA_.eta_rhob_width_2)
-           * (2 * TA * TB + Util::small_eps));
+    double norm_B_prime = norm_B * (TA_ + TB_) / (2 * TATB_ + Util::small_eps);
     const double omega = DATA_.omega_rhob;
 
     res = norm_B * (1 - omega) * (TA * eta_rhob_plus + TB * eta_rhob_minus)
@@ -317,16 +324,17 @@ double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
 
 double HydroSourceTATB::eta_rhob_left_factor(const double eta) const {
     double eta_0_nB = std::abs(DATA_.eta_rhob_0);
-    double sigma_B_plus = DATA_.eta_rhob_width_1;
-    double sigma_B_minus = DATA_.eta_rhob_width_2;
 
-    // double norm        = 1./(sqrt(M_PI)*tau_source*sigma_B_plus);
-    double exp_arg_1 = (eta - eta_0_nB) / sigma_B_plus;
-    double exp_arg_2 = (eta - eta_0_nB) / sigma_B_minus;
-
-    double res =
-        Util::theta(eta - eta_0_nB) * std::exp(-exp_arg_1 * exp_arg_1 / 2.)
-        + Util::theta(eta_0_nB - eta) * std::exp(-exp_arg_2 * exp_arg_2 / 2.);
+    double res = 0.;
+    if (eta < eta_0_nB) {
+        double sigma_B_minus = DATA_.eta_rhob_width_2;
+        double exp_arg_2 = (eta - eta_0_nB) / sigma_B_minus;
+        res = exp(-exp_arg_2 * exp_arg_2 / 2.);
+    } else {
+        double sigma_B_plus = DATA_.eta_rhob_width_1;
+        double exp_arg_1 = (eta - eta_0_nB) / sigma_B_plus;
+        res = exp(-exp_arg_1 * exp_arg_1 / 2.);
+    }
     return (res);
 }
 
@@ -348,17 +356,17 @@ double HydroSourceTATB::eta_rhob_right_factor(const double eta) const {
 */
 
 double HydroSourceTATB::eta_rhob_right_factor(const double eta) const {
-    double eta_0_nB = std::abs(DATA_.eta_rhob_0);
-    double sigma_B_plus = DATA_.eta_rhob_width_1;
-    double sigma_B_minus = DATA_.eta_rhob_width_2;
-
-    // double norm        = 1./(sqrt(M_PI)*tau_source*sigma_B_plus);
-    double exp_arg_1 = (eta + eta_0_nB) / sigma_B_plus;
-    double exp_arg_2 = (eta + eta_0_nB) / sigma_B_minus;
-
-    double res =
-        Util::theta(eta + eta_0_nB) * std::exp(-exp_arg_1 * exp_arg_1 / 2.)
-        + Util::theta(-eta_0_nB - eta) * std::exp(-exp_arg_2 * exp_arg_2 / 2.);
+    double eta_0_nB = -std::abs(DATA_.eta_rhob_0);
+    double res = 0;
+    if (eta < eta_0_nB) {
+        double sigma_B_plus = DATA_.eta_rhob_width_1;
+        double exp_arg_1 = (eta - eta_0_nB) / sigma_B_plus;
+        res = exp(-exp_arg_1 * exp_arg_1 / 2.);
+    } else {
+        double sigma_B_minus = DATA_.eta_rhob_width_2;
+        double exp_arg_2 = (eta - eta_0_nB) / sigma_B_minus;
+        res = exp(-exp_arg_2 * exp_arg_2 / 2.);
+    }
     return (res);
 }
 

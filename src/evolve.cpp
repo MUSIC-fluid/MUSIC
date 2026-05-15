@@ -87,6 +87,8 @@ int Evolve::EvolveIt(
 
     int it = 0;
     double eps_max_cur = -1.;
+    int it_source_max =
+        static_cast<int>((source_tau_max - tau0) / DATA.delta_tau + 0.5) + 1;
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
     const int NtauBlock = 200;
@@ -135,6 +137,8 @@ int Evolve::EvolveIt(
                     *fpCurr, *fpPrev, tau);
             } else if (DATA.outputEvolutionData == 5) {
                 grid_info.OutputEvolutionDataXYEta_Bulk(*fpCurr, tau);
+            } else if (DATA.outputEvolutionData == 7) {
+                grid_info.OutputEvolutionDataXYEta_MLtraining(*fpCurr, tau);
             }
             if (DATA.store_hydro_info_in_memory == 1) {
                 grid_info.OutputEvolutionDataXYEta_memory(
@@ -214,6 +218,12 @@ int Evolve::EvolveIt(
                         *fpCurr, *fpPrev, tau, -DATA.eta_size / 2.,
                         DATA.eta_size / 2.);
                 }
+            }
+
+            if (DATA.output_OAM_density_Evolution == 2
+                || (DATA.output_OAM_density_Evolution == 1
+                    && it == it_source_max)) {
+                grid_info.compute_Lmunu(*fpCurr, *fpPrev, tau);
             }
 
             double emax_loc = 0.;

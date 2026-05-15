@@ -7,10 +7,13 @@
 #include <vector>
 
 #include "hydro_source_base.h"
+const double MASS_PARTON = 0.312000006;
+const double MASS_PARTON_TOLERANCE = 1e-6;
 
 //! This data structure contains a QCD string object
 struct QCD_string {
-    double norm;  // normalization for the string energy
+    double norm;         // normalization for the string energy
+    double string_tilt;  // strings transverse tilt
     double E_remnant_norm_L, E_remnant_norm_R;
     double m_over_sigma;  // m/sigma [fm] sigma is the string tension
 
@@ -40,7 +43,6 @@ class HydroSourceStrings : public HydroSourceBase {
     int string_dump_mode;
     double string_quench_factor;
     double parton_quench_factor;
-    double stringTransverseShiftFrac_;
     double preEqFlowFactor_;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list;
     std::vector<std::shared_ptr<QCD_string>> QCD_strings_list_current_tau;
@@ -77,7 +79,8 @@ class HydroSourceStrings : public HydroSourceBase {
     void prepare_list_for_current_tau_frame(const double tau_local);
     void compute_norm_for_strings();
     double getStringTransverseCoord(
-        const double xl, const double xr, const double etaFrac) const;
+        const double xl, const double xr, const double etaFrac,
+        const double string_tilt) const;
 };
 
 #endif  // SRC_HYDRO_SOURCE_STRINGS_H_

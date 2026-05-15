@@ -627,6 +627,101 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
     return 0;
 }
 
+//! This function outputs hydro evolution file in binary format
+void Cell_info::OutputEvolutionDataXYEta_MLtraining(Fields &arena, double tau) {
+    // the format of the file is as follows,
+    //    e P ux uy ueta Wxx Wxy Wxeta Wyy Wyeta bulk_pi rhob
+    const string out_name_xyeta = "evolution_all_xyeta_ML.dat";
+    string out_open_mode;
+    FILE *out_file_xyeta;
+    // If it's the first timestep, overwrite the previous file
+    if (tau == DATA.tau0) {
+        out_open_mode = "wb";
+    } else {
+        out_open_mode = "ab";
+    }
+    out_file_xyeta = fopen(out_name_xyeta.c_str(), out_open_mode.c_str());
+
+    int n_skip_tau = DATA.output_evolution_every_N_timesteps;
+    double output_dtau = DATA.delta_tau * n_skip_tau;
+
+    int n_skip_x = DATA.output_evolution_every_N_x;
+    int n_skip_y = DATA.output_evolution_every_N_y;
+    int n_skip_eta = DATA.output_evolution_every_N_eta;
+
+    // write out header
+    const int output_nx = static_cast<int>(arena.nX() / n_skip_x);
+    const int output_ny = static_cast<int>(arena.nY() / n_skip_y);
+    const int output_neta = static_cast<int>(arena.nEta() / n_skip_eta);
+    const double output_dx = DATA.delta_x * n_skip_x;
+    const double output_dy = DATA.delta_y * n_skip_y;
+    const double output_deta = DATA.delta_eta * n_skip_eta;
+    const double output_xmin = -DATA.x_size / 2.;
+    const double output_ymin = -DATA.y_size / 2.;
+    const double output_etamin = -DATA.eta_size / 2.;
+
+    int nVar_per_cell = 12;
+
+    if (tau == DATA.tau0) {
+        float header[] = {static_cast<float>(DATA.tau0),
+                          static_cast<float>(output_dtau),
+                          static_cast<float>(output_nx),
+                          static_cast<float>(output_dx),
+                          static_cast<float>(output_xmin),
+                          static_cast<float>(output_ny),
+                          static_cast<float>(output_dy),
+                          static_cast<float>(output_ymin),
+                          static_cast<float>(output_neta),
+                          static_cast<float>(output_deta),
+                          static_cast<float>(output_etamin),
+                          static_cast<float>(nVar_per_cell)};
+        fwrite(header, sizeof(float), 12, out_file_xyeta);
+    }
+    std::vector<double> thermalVec;
+    for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
+        for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
+            for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
+                int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+                double e_local = arena.e_[fieldIdx];        // 1/fm^4
+                double rhob_local = arena.rhob_[fieldIdx];  // 1/fm^3
+
+                eos.getThermalVariables(e_local, rhob_local, thermalVec);
+                double p_local = thermalVec[2];
+
+                double ux = arena.u_[1][fieldIdx];
+                double uy = arena.u_[2][fieldIdx];
+                double ueta = arena.u_[3][fieldIdx];
+
+                double div_factor = e_local + p_local;  // 1/fm^4
+                double Wxx = arena.Wmunu_[4][fieldIdx] / div_factor;
+                double Wxy = arena.Wmunu_[5][fieldIdx] / div_factor;
+                double Wxeta = arena.Wmunu_[6][fieldIdx] / div_factor;
+                double Wyy = arena.Wmunu_[7][fieldIdx] / div_factor;
+                double Wyeta = arena.Wmunu_[8][fieldIdx] / div_factor;
+                double pi_b = arena.piBulk_[fieldIdx] / div_factor;
+
+                float fluidCell[] = {
+                    static_cast<float>(e_local * hbarc),
+                    static_cast<float>(p_local * hbarc),
+                    static_cast<float>(ux),
+                    static_cast<float>(uy),
+                    static_cast<float>(ueta),
+                    static_cast<float>(Wxx),
+                    static_cast<float>(Wxy),
+                    static_cast<float>(Wxeta),
+                    static_cast<float>(Wyy),
+                    static_cast<float>(Wyeta),
+                    static_cast<float>(pi_b),
+                    static_cast<float>(rhob_local),
+                };
+
+                fwrite(fluidCell, sizeof(float), 12, out_file_xyeta);
+            }
+        }
+    }
+    fclose(out_file_xyeta);
+}
+
 //! This function outputs hydro evolution file in binary format for photon
 //! production
 void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
@@ -1052,6 +1147,135 @@ void Cell_info::get_maximum_energy_density(
     Tmax = T_max;
 }
 
+//! This function computes OAM area density at a give proper time
+void Cell_info::compute_Lmunu(
+    Fields &arena, Fields &arena_prev, const double tau) {
+    const double deta = DATA.delta_eta;
+    const double dx = DATA.delta_x;
+    const double dy = DATA.delta_y;
+    const int neta = arena.nEta();
+    const int nx = arena.nX();
+    const int ny = arena.nY();
+
+    ostringstream tau_suffix;
+    tau_suffix << std::fixed << std::setfill('0') << std::setw(7)
+               << std::setprecision(3) << tau;
+    ostringstream filename;
+    filename << "Lmunu_angular_momentum_tau_" << tau_suffix.str() << ".dat";
+
+    ofstream output_file;
+    output_file.open(filename.str().c_str(), std::ofstream::out);
+    output_file << "# Tau = " << tau << "\n";
+    output_file << "# deta = " << deta << "\n";
+    output_file << "# dx = " << dx << "\n";
+    output_file << "# dy = " << dy << "\n";
+    output_file << "# neta = " << neta << "\n";
+    output_file << "# nx = " << nx << "\n";
+    output_file << "# ny = " << ny << "\n";
+
+    output_file
+        << "Lx_xy[hbar fm^-2]   Ly_xy[hbar fm^-2]   Lz_xy[hbar fm^-2]   "
+        << "L^{tx}_xy[hbar fm^-2]   L^{ty}_xy[hbar fm^-2]   L^{tz}_xy[hbar "
+           "fm^-2]"
+        << std::endl;
+
+    std::vector<std::vector<std::vector<double>>> Lx(
+        neta,
+        std::vector<std::vector<double>>(nx, std::vector<double>(ny, 0.0)));
+    std::vector<std::vector<std::vector<double>>> Ly = Lx;
+    std::vector<std::vector<std::vector<double>>> Lz = Lx;
+    std::vector<std::vector<std::vector<double>>> Ltx = Lx;
+    std::vector<std::vector<std::vector<double>>> Lty = Lx;
+    std::vector<std::vector<std::vector<double>>> Ltz = Lx;
+
+    std::vector<std::vector<double>> Lx_xy(nx, std::vector<double>(ny, 0.0));
+    std::vector<std::vector<double>> Ly_xy(nx, std::vector<double>(ny, 0.0));
+    std::vector<std::vector<double>> Lz_xy(nx, std::vector<double>(ny, 0.0));
+    std::vector<std::vector<double>> Ltx_xy(nx, std::vector<double>(ny, 0.0));
+    std::vector<std::vector<double>> Lty_xy(nx, std::vector<double>(ny, 0.0));
+    std::vector<std::vector<double>> Ltz_xy(nx, std::vector<double>(ny, 0.0));
+
+    for (int ieta = 0; ieta < neta; ieta++) {
+        for (int ix = 0; ix < nx; ix++) {
+            for (int iy = 0; iy < ny; iy++) {
+                const int Idx = arena.getFieldIdx(ix, iy, ieta);
+
+                double eta_s = deta * ieta - (DATA.eta_size) / 2.0;
+                const double cosh_eta = cosh(eta_s);
+                const double sinh_eta = sinh(eta_s);
+                const double t_local = tau * cosh_eta;
+                const double x_local = -DATA.x_size / 2.0 + ix * dx;
+                const double y_local = -DATA.y_size / 2.0 + iy * dy;
+                const double z_local = tau * sinh_eta;
+
+                const double e_local = arena.e_[Idx];
+                const double pressure =
+                    eos.get_pressure(e_local, arena.rhob_[Idx]);
+                const double u0 = arena.u_[0][Idx];
+                const double u1 = arena.u_[1][Idx];
+                const double u2 = arena.u_[2][Idx];
+                const double u3 = arena.u_[3][Idx];
+                const double uPrev0 = arena_prev.u_[0][Idx];
+                const double uPrev1 = arena_prev.u_[1][Idx];
+                const double uPrev2 = arena_prev.u_[2][Idx];
+                const double uPrev3 = arena_prev.u_[3][Idx];
+
+                const double T00_local =
+                    (e_local + pressure) * u0 * u0 - pressure;
+                const double Pi00_rk_0 =
+                    arena_prev.piBulk_[Idx] * (-1. + uPrev0 * uPrev0);
+
+                const double T_tau_tau =
+                    (T00_local + arena_prev.Wmunu_[0][Idx] + Pi00_rk_0);
+                const double T_tau_x =
+                    ((e_local + pressure) * u0 * u1 + arena_prev.Wmunu_[1][Idx]
+                     + arena_prev.piBulk_[Idx] * uPrev0 * uPrev1);
+                const double T_tau_y =
+                    ((e_local + pressure) * u0 * u2 + arena_prev.Wmunu_[2][Idx]
+                     + arena_prev.piBulk_[Idx] * uPrev0 * uPrev2);
+                const double T_tau_eta =
+                    ((e_local + pressure) * u0 * u3 + arena_prev.Wmunu_[3][Idx]
+                     + arena_prev.piBulk_[Idx] * uPrev0 * uPrev3);
+                const double T_tau_t =
+                    T_tau_tau * cosh_eta + T_tau_eta * sinh_eta;
+                const double T_tau_z =
+                    T_tau_tau * sinh_eta + T_tau_eta * cosh_eta;
+
+                Lx[ieta][ix][iy] = y_local * T_tau_z - z_local * T_tau_y;
+                Ly[ieta][ix][iy] = z_local * T_tau_x - x_local * T_tau_z;
+                Lz[ieta][ix][iy] = x_local * T_tau_y - y_local * T_tau_x;
+
+                Ltx[ieta][ix][iy] = t_local * T_tau_x - x_local * T_tau_t;
+                Lty[ieta][ix][iy] = t_local * T_tau_y - y_local * T_tau_t;
+                Ltz[ieta][ix][iy] = t_local * T_tau_z - z_local * T_tau_t;
+            }
+        }
+    }
+
+    // Integration over eta
+    // Lmunu area densities are written
+
+    for (int ix = 0; ix < nx; ++ix) {
+        for (int iy = 0; iy < ny; ++iy) {
+            for (int ieta = 0; ieta < neta; ++ieta) {
+                const double dz = tau * deta;
+                Lx_xy[ix][iy] += Lx[ieta][ix][iy] * dz;
+                Ly_xy[ix][iy] += Ly[ieta][ix][iy] * dz;
+                Lz_xy[ix][iy] += Lz[ieta][ix][iy] * dz;
+                Ltx_xy[ix][iy] += Ltx[ieta][ix][iy] * dz;
+                Lty_xy[ix][iy] += Lty[ieta][ix][iy] * dz;
+                Ltz_xy[ix][iy] += Ltz[ieta][ix][iy] * dz;
+            }
+
+            output_file << std::scientific << std::setprecision(6)
+                        << Lx_xy[ix][iy] << " " << Ly_xy[ix][iy] << " "
+                        << Lz_xy[ix][iy] << " " << Ltx_xy[ix][iy] << " "
+                        << Lty_xy[ix][iy] << " " << Ltz_xy[ix][iy] << std::endl;
+        }
+    }
+    output_file.close();
+}
+
 //! This function computes global angular momentum at a give proper time
 void Cell_info::compute_angular_momentum(
     Fields &arena, Fields &arena_prev, const double tau, const double eta_min,
@@ -1286,7 +1510,7 @@ void Cell_info::check_conservation_law(
     music_message << "net longitudinal momentum Pz = " << T_tau_z << " GeV";
     music_message.flush("info");
     music_message << "net baryon number N_B = " << N_B;
-    if (N_B > 0. || N_B < 500.) {
+    if (N_B > 0. && N_B < 500.) {
         music_message.flush("info");
     } else {
         music_message.flush("error");
