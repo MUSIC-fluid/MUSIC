@@ -62,6 +62,7 @@ class Evolve {
     int FindFreezeOutSurface_boostinvariant_Cornelius(
         double tau, Fields &arena_current, Fields &arena_freezeout);
 
+    void coarseGrainAndEnlargeGrid(Fields &arenaCurr, double gridPadding);
     void store_previous_step_for_freezeout(
         Fields &arenaCurr, Fields &arenaFreeze);
     void regulate_qmu(

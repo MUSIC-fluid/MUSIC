@@ -91,15 +91,25 @@ int Evolve::EvolveIt(
         static_cast<int>((source_tau_max - tau0) / DATA.delta_tau + 0.5) + 1;
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
-    const int NtauBlock = 200;
+    const int NtauBlock = 500;
     while (tau < tauMax) {
-        if (DATA.beastMode == 2 && it > 0 && (it % NtauBlock == 0)) {
-            if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
+        if (it > 0 && (it % NtauBlock == 0)) {
+            if (DATA.beastMode == 3) {
                 DATA.delta_tau = 2. * DATA.delta_tau;
-                DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
-                DATA.output_evolution_every_N_timesteps = (std::max(
-                    1, static_cast<int>(
-                           DATA.output_evolution_every_N_timesteps / 2)));
+                coarseGrainAndEnlargeGrid(*fpPrev, DATA.gridPadding);
+                coarseGrainAndEnlargeGrid(*fpCurr, DATA.gridPadding);
+                coarseGrainAndEnlargeGrid(*fpNext, DATA.gridPadding);
+                coarseGrainAndEnlargeGrid(freezeoutFieldPrev, DATA.gridPadding);
+                coarseGrainAndEnlargeGrid(freezeoutFieldCurr, DATA.gridPadding);
+            } else if (DATA.beastMode == 2) {
+                if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
+                    DATA.delta_tau = 2. * DATA.delta_tau;
+                    DATA.facTau =
+                        std::max(1, static_cast<int>(DATA.facTau / 2.));
+                    DATA.output_evolution_every_N_timesteps = (std::max(
+                        1, static_cast<int>(
+                               DATA.output_evolution_every_N_timesteps / 2)));
+                }
             }
         }
         int facTau = DATA.facTau;
@@ -332,6 +342,39 @@ void Evolve::store_previous_step_for_freezeout(
     arenaFreeze.piBulk_ = arenaCurr.piBulk_;
     arenaFreeze.u_ = arenaCurr.u_;
     arenaFreeze.Wmunu_ = arenaCurr.Wmunu_;
+}
+
+void Evolve::coarseGrainAndEnlargeGrid(Fields &arenaCurr, double gridPadding) {
+    // this function coarse grid the transverse grid by douuble dx and dy
+    // it allows to enlarge the grid by gridPadding on both sides
+    Fields arenaCopy = arenaCurr;
+    DATA.delta_x = DATA.delta_x * 2;
+    DATA.delta_y = DATA.delta_y * 2;
+    int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
+    int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
+    DATA.nx = static_cast<int>(DATA.nx / 2) + 2 * gridOffset_x;
+    DATA.ny = static_cast<int>(DATA.ny / 2) + 2 * gridOffset_y;
+    DATA.x_size = DATA.delta_x * (DATA.nx - 1);
+    DATA.y_size = DATA.delta_y * (DATA.ny - 1);
+    arenaCurr.resizeFields(DATA.nx, DATA.ny, arenaCurr.nEta());
+    for (int ieta = 0; ieta < arenaCurr.nEta(); ieta++) {
+        for (int ix = 0; ix < arenaCopy.nX(); ix += 2) {
+            for (int iy = 0; iy < arenaCopy.nY(); iy += 2) {
+                int idxOld = arenaCopy.getFieldIdx(ix, iy, ieta);
+                int idxNew = arenaCurr.getFieldIdx(
+                    ix / 2 + gridOffset_x, iy / 2 + gridOffset_y, ieta);
+                arenaCurr.e_[idxNew] = arenaCopy.e_[idxOld];
+                arenaCurr.rhob_[idxNew] = arenaCopy.rhob_[idxOld];
+                for (int nu = 0; nu < 4; nu++) {
+                    arenaCurr.u_[nu][idxNew] = arenaCopy.u_[nu][idxOld];
+                }
+                for (int nu = 0; nu < 10; nu++) {
+                    arenaCurr.Wmunu_[nu][idxNew] = arenaCopy.Wmunu_[nu][idxOld];
+                }
+                arenaCurr.piBulk_[idxNew] = arenaCopy.piBulk_[idxOld];
+            }
+        }
+    }
 }
 
 void Evolve::AdvanceRK(
