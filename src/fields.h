@@ -37,6 +37,7 @@ class Fields {
     int nY() const { return (Ny_); }
     int nEta() const { return (Neta_); }
 
+    void clearFields();
     void resizeFields(int Nx, int Ny, int Neta);
 
     int getFieldIdx(int ix, int iy, int ieta) {

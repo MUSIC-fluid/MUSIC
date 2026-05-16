@@ -101,6 +101,9 @@ int Evolve::EvolveIt(
                 DATA.output_evolution_every_N_timesteps = (std::max(
                     1, static_cast<int>(
                            DATA.output_evolution_every_N_timesteps / 2)));
+                music_message << "changed delta_tau = " << DATA.delta_tau
+                              << " fm/c";
+                music_message.flush("info");
             } else if (DATA.beastMode == 3 && DATA.delta_tau < 0.1) {
                 DATA.delta_tau = 2. * DATA.delta_tau;
                 DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
@@ -112,11 +115,26 @@ int Evolve::EvolveIt(
                     gridPadding = DATA.gridPadding;
                     gridEnlargedTimes++;
                 }
+                DATA.delta_x = DATA.delta_x * 2;
+                DATA.delta_y = DATA.delta_y * 2;
+                int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
+                int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
+                DATA.nx = static_cast<int>(DATA.nx / 2) + 2 * gridOffset_x;
+                DATA.ny = static_cast<int>(DATA.ny / 2) + 2 * gridOffset_y;
+                DATA.x_size = DATA.delta_x * (DATA.nx - 1);
+                DATA.y_size = DATA.delta_y * (DATA.ny - 1);
                 coarseGrainAndEnlargeGrid(*fpPrev, gridPadding);
                 coarseGrainAndEnlargeGrid(*fpCurr, gridPadding);
                 coarseGrainAndEnlargeGrid(*fpNext, gridPadding);
                 coarseGrainAndEnlargeGrid(freezeoutFieldPrev, gridPadding);
                 coarseGrainAndEnlargeGrid(freezeoutFieldCurr, gridPadding);
+                music_message << "changed delta_tau = " << DATA.delta_tau
+                              << " fm/c, dx = " << DATA.delta_x << " fm, "
+                              << "dy  = " << DATA.delta_y << " fm, "
+                              << "nx = " << DATA.nx << ", ny = " << DATA.ny
+                              << ", x_size = " << DATA.x_size << " fm, "
+                              << "y_size = " << DATA.y_size << " fm";
+                music_message.flush("info");
             }
         }
         int facTau = DATA.facTau;
@@ -347,6 +365,7 @@ void Evolve::store_previous_step_for_freezeout(
     arenaFreeze.e_ = arenaCurr.e_;
     arenaFreeze.rhob_ = arenaCurr.rhob_;
     arenaFreeze.piBulk_ = arenaCurr.piBulk_;
+    arenaFreeze.piBulkChem_ = arenaCurr.piBulkChem_;
     arenaFreeze.u_ = arenaCurr.u_;
     arenaFreeze.Wmunu_ = arenaCurr.Wmunu_;
 }
@@ -354,19 +373,14 @@ void Evolve::store_previous_step_for_freezeout(
 void Evolve::coarseGrainAndEnlargeGrid(Fields &arenaCurr, double gridPadding) {
     // this function coarse grid the transverse grid by douuble dx and dy
     // it allows to enlarge the grid by gridPadding on both sides
-    Fields arenaCopy = arenaCurr;
-    DATA.delta_x = DATA.delta_x * 2;
-    DATA.delta_y = DATA.delta_y * 2;
+    Fields arenaCopy(arenaCurr.nX(), arenaCurr.nY(), arenaCurr.nEta());
+    store_previous_step_for_freezeout(arenaCurr, arenaCopy);
     int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
     int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
-    DATA.nx = static_cast<int>(DATA.nx / 2) + 2 * gridOffset_x;
-    DATA.ny = static_cast<int>(DATA.ny / 2) + 2 * gridOffset_y;
-    DATA.x_size = DATA.delta_x * (DATA.nx - 1);
-    DATA.y_size = DATA.delta_y * (DATA.ny - 1);
     arenaCurr.resizeFields(DATA.nx, DATA.ny, arenaCurr.nEta());
-    for (int ieta = 0; ieta < arenaCurr.nEta(); ieta++) {
-        for (int ix = 0; ix < arenaCopy.nX(); ix += 2) {
-            for (int iy = 0; iy < arenaCopy.nY(); iy += 2) {
+    for (int ieta = 0; ieta < arenaCopy.nEta(); ieta++) {
+        for (int iy = 0; iy < arenaCopy.nY(); iy += 2) {
+            for (int ix = 0; ix < arenaCopy.nX(); ix += 2) {
                 int idxOld = arenaCopy.getFieldIdx(ix, iy, ieta);
                 int idxNew = arenaCurr.getFieldIdx(
                     ix / 2 + gridOffset_x, iy / 2 + gridOffset_y, ieta);
@@ -375,10 +389,11 @@ void Evolve::coarseGrainAndEnlargeGrid(Fields &arenaCurr, double gridPadding) {
                 for (int nu = 0; nu < 4; nu++) {
                     arenaCurr.u_[nu][idxNew] = arenaCopy.u_[nu][idxOld];
                 }
-                for (int nu = 0; nu < 10; nu++) {
+                for (int nu = 0; nu < 14; nu++) {
                     arenaCurr.Wmunu_[nu][idxNew] = arenaCopy.Wmunu_[nu][idxOld];
                 }
                 arenaCurr.piBulk_[idxNew] = arenaCopy.piBulk_[idxOld];
+                arenaCurr.piBulkChem_[idxNew] = arenaCopy.piBulkChem_[idxOld];
             }
         }
     }
@@ -545,16 +560,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
             if (ix == 0 || ix >= nx - 2 * fac_x || iy == 0
                 || iy >= ny - 2 * fac_y) {
                 music_message << "Freeze-out cell at the boundary! "
-                              << "The grid is too small!";
-                music_message.flush("error");
-                DATA.reRunHydro = true;
-                return (0);
-            }
-
-            if (ix == 0 || ix >= nx - 2 * fac_x || iy == 0
-                || iy >= ny - 2 * fac_y) {
-                music_message << "Freeze-out cell at the boundary! "
-                              << "The grid is too small!";
+                              << "The grid is too small! ix = " << ix
+                              << " iy = " << iy;
                 music_message.flush("error");
                 DATA.reRunHydro = true;
                 return (0);
@@ -1189,7 +1196,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                 if (ix == 0 || ix >= nx - 2 * fac_x || iy == 0
                     || iy >= ny - 2 * fac_y) {
                     music_message << "Freeze-out cell at the boundary! "
-                                  << "The grid is too small!";
+                                  << "The grid is too small! ix = " << ix
+                                  << " iy = " << iy;
                     music_message.flush("error");
                     exit(1);
                 }
