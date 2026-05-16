@@ -91,29 +91,32 @@ int Evolve::EvolveIt(
         static_cast<int>((source_tau_max - tau0) / DATA.delta_tau + 0.5) + 1;
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
-    const int NtauBlock = 300;
+    const int NtauBlock = 200;
+    int gridEnlargedTimes = 0;
     while (tau < tauMax) {
-        if (it > 0 && (it % NtauBlock == 0)) {
-            if (DATA.beastMode == 3) {
+        if (DATA.beastMode > 1 && it > 0 && (it % NtauBlock == 0)) {
+            if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
                 DATA.delta_tau = 2. * DATA.delta_tau;
+                DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
+                DATA.output_evolution_every_N_timesteps = (std::max(
+                    1, static_cast<int>(
+                           DATA.output_evolution_every_N_timesteps / 2)));
+            } else if (DATA.beastMode == 3 && DATA.delta_tau < 0.1) {
+                DATA.delta_tau = 2. * DATA.delta_tau;
+                DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
+                DATA.output_evolution_every_N_timesteps = (std::max(
+                    1, static_cast<int>(
+                           DATA.output_evolution_every_N_timesteps / 2)));
                 double gridPadding = 0.;
-                if (it % (2 * NtauBlock) == 0) {
+                if (tau > 6. * (gridEnlargedTimes + 1)) {
                     gridPadding = DATA.gridPadding;
+                    gridEnlargedTimes++;
                 }
                 coarseGrainAndEnlargeGrid(*fpPrev, gridPadding);
                 coarseGrainAndEnlargeGrid(*fpCurr, gridPadding);
                 coarseGrainAndEnlargeGrid(*fpNext, gridPadding);
                 coarseGrainAndEnlargeGrid(freezeoutFieldPrev, gridPadding);
                 coarseGrainAndEnlargeGrid(freezeoutFieldCurr, gridPadding);
-            } else if (DATA.beastMode == 2) {
-                if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
-                    DATA.delta_tau = 2. * DATA.delta_tau;
-                    DATA.facTau =
-                        std::max(1, static_cast<int>(DATA.facTau / 2.));
-                    DATA.output_evolution_every_N_timesteps = (std::max(
-                        1, static_cast<int>(
-                               DATA.output_evolution_every_N_timesteps / 2)));
-                }
             }
         }
         int facTau = DATA.facTau;
