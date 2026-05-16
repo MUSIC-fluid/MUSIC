@@ -91,16 +91,20 @@ int Evolve::EvolveIt(
         static_cast<int>((source_tau_max - tau0) / DATA.delta_tau + 0.5) + 1;
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
-    const int NtauBlock = 500;
+    const int NtauBlock = 300;
     while (tau < tauMax) {
         if (it > 0 && (it % NtauBlock == 0)) {
             if (DATA.beastMode == 3) {
                 DATA.delta_tau = 2. * DATA.delta_tau;
-                coarseGrainAndEnlargeGrid(*fpPrev, DATA.gridPadding);
-                coarseGrainAndEnlargeGrid(*fpCurr, DATA.gridPadding);
-                coarseGrainAndEnlargeGrid(*fpNext, DATA.gridPadding);
-                coarseGrainAndEnlargeGrid(freezeoutFieldPrev, DATA.gridPadding);
-                coarseGrainAndEnlargeGrid(freezeoutFieldCurr, DATA.gridPadding);
+                double gridPadding = 0.;
+                if (it % (2 * NtauBlock) == 0) {
+                    gridPadding = DATA.gridPadding;
+                }
+                coarseGrainAndEnlargeGrid(*fpPrev, gridPadding);
+                coarseGrainAndEnlargeGrid(*fpCurr, gridPadding);
+                coarseGrainAndEnlargeGrid(*fpNext, gridPadding);
+                coarseGrainAndEnlargeGrid(freezeoutFieldPrev, gridPadding);
+                coarseGrainAndEnlargeGrid(freezeoutFieldCurr, gridPadding);
             } else if (DATA.beastMode == 2) {
                 if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
                     DATA.delta_tau = 2. * DATA.delta_tau;
