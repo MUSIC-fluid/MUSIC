@@ -4,7 +4,9 @@
 
 #include "cell.h"
 
-Fields::~Fields() {
+Fields::~Fields() { clearFields(); }
+
+void Fields::clearFields() {
     e_.clear();
     rhob_.clear();
     piBulk_.clear();
@@ -14,6 +16,7 @@ Fields::~Fields() {
 }
 
 void Fields::resizeFields(int Nx, int Ny, int Neta) {
+    clearFields();
     Nx_ = Nx;
     Ny_ = Ny;
     Neta_ = Neta;
