@@ -101,10 +101,11 @@ int Evolve::EvolveIt(
                 DATA.output_evolution_every_N_timesteps = (std::max(
                     1, static_cast<int>(
                            DATA.output_evolution_every_N_timesteps / 2)));
-                music_message << "changed delta_tau = " << DATA.delta_tau
-                              << " fm/c";
+                music_message << "BeastMode: changed delta_tau = "
+                              << DATA.delta_tau << " fm/c";
                 music_message.flush("info");
-            } else if (DATA.beastMode == 3 && DATA.delta_tau < 0.1) {
+            } else if (DATA.beastMode == 3 && DATA.delta_tau < 0.05) {
+                // maximum delta_tau < 0.1 fm/c
                 DATA.delta_tau = 2. * DATA.delta_tau;
                 DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
                 DATA.output_evolution_every_N_timesteps = (std::max(
@@ -128,12 +129,13 @@ int Evolve::EvolveIt(
                 coarseGrainAndEnlargeGrid(*fpNext, gridPadding);
                 coarseGrainAndEnlargeGrid(freezeoutFieldPrev, gridPadding);
                 coarseGrainAndEnlargeGrid(freezeoutFieldCurr, gridPadding);
-                music_message << "changed delta_tau = " << DATA.delta_tau
-                              << " fm/c, dx = " << DATA.delta_x << " fm, "
-                              << "dy  = " << DATA.delta_y << " fm, "
-                              << "nx = " << DATA.nx << ", ny = " << DATA.ny
-                              << ", x_size = " << DATA.x_size << " fm, "
-                              << "y_size = " << DATA.y_size << " fm";
+                music_message << "BeastMode: changed delta_tau = "
+                              << DATA.delta_tau << " fm/c, dx = "
+                              << DATA.delta_x << " fm, dy  = "
+                              << DATA.delta_y << " fm, nx = "
+                              << DATA.nx << ", ny = " << DATA.ny
+                              << ", x_size = " << DATA.x_size
+                              << " fm, y_size = " << DATA.y_size << " fm";
                 music_message.flush("info");
             }
         }
@@ -377,23 +379,60 @@ void Evolve::coarseGrainAndEnlargeGrid(Fields &arenaCurr, double gridPadding) {
     store_previous_step_for_freezeout(arenaCurr, arenaCopy);
     int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
     int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
+    double sigma = std::min(0.1, 0.2 * gridPadding);
     arenaCurr.resizeFields(DATA.nx, DATA.ny, arenaCurr.nEta());
-    for (int ieta = 0; ieta < arenaCopy.nEta(); ieta++) {
-        for (int iy = 0; iy < arenaCopy.nY(); iy += 2) {
-            for (int ix = 0; ix < arenaCopy.nX(); ix += 2) {
-                int idxOld = arenaCopy.getFieldIdx(ix, iy, ieta);
-                int idxNew = arenaCurr.getFieldIdx(
-                    ix / 2 + gridOffset_x, iy / 2 + gridOffset_y, ieta);
-                arenaCurr.e_[idxNew] = arenaCopy.e_[idxOld];
-                arenaCurr.rhob_[idxNew] = arenaCopy.rhob_[idxOld];
-                for (int nu = 0; nu < 4; nu++) {
-                    arenaCurr.u_[nu][idxNew] = arenaCopy.u_[nu][idxOld];
+    for (int ieta = 0; ieta < arenaCurr.nEta(); ieta++) {
+        for (int iy = 0; iy < arenaCurr.nY(); iy++) {
+            for (int ix = 0; ix < arenaCurr.nX(); ix++) {
+                int idxNew = arenaCurr.getFieldIdx(ix, iy, ieta);
+                double scaleFactor = 1.0;
+                int idx_x_old = (ix - gridOffset_x) * 2;
+                if (idx_x_old < 0) {
+                    idx_x_old = 0;
+                    double xdis = (gridOffset_x - ix) * DATA.delta_x / sigma;
+                    scaleFactor *= exp(-xdis * xdis / 2.);
+                } else if (idx_x_old >= arenaCopy.nX()) {
+                    idx_x_old = arenaCopy.nX() - 1;
+                    double xdis =
+                        ((ix
+                          - (gridOffset_x
+                             + static_cast<int>(arenaCopy.nX() / 2)))
+                         * DATA.delta_x / sigma);
+                    scaleFactor *= exp(-xdis * xdis / 2.);
                 }
+                int idx_y_old = (iy - gridOffset_y) * 2;
+                if (idx_y_old < 0) {
+                    idx_y_old = 0;
+                    double ydis = (gridOffset_y - iy) * DATA.delta_y / sigma;
+                    scaleFactor *= exp(-ydis * ydis / 2.);
+                } else if (idx_y_old >= arenaCopy.nY()) {
+                    idx_y_old = arenaCopy.nY() - 1;
+                    double ydis =
+                        ((iy
+                          - (gridOffset_y
+                             + static_cast<int>(arenaCopy.nY() / 2)))
+                         * DATA.delta_y / sigma);
+                    scaleFactor *= exp(-ydis * ydis / 2.);
+                }
+                int idxOld = arenaCopy.getFieldIdx(idx_x_old, idx_y_old, ieta);
+                arenaCurr.e_[idxNew] = arenaCopy.e_[idxOld] * scaleFactor;
+                arenaCurr.rhob_[idxNew] = arenaCopy.rhob_[idxOld] * scaleFactor;
+                for (int nu = 1; nu < 4; nu++) {
+                    arenaCurr.u_[nu][idxNew] =
+                        arenaCopy.u_[nu][idxOld] * scaleFactor;
+                }
+                arenaCurr.u_[0][idxNew] = sqrt(
+                    1. + arenaCurr.u_[1][idxNew] * arenaCurr.u_[1][idxNew]
+                    + arenaCurr.u_[2][idxNew] * arenaCurr.u_[2][idxNew]
+                    + arenaCurr.u_[3][idxNew] * arenaCurr.u_[3][idxNew]);
                 for (int nu = 0; nu < 14; nu++) {
-                    arenaCurr.Wmunu_[nu][idxNew] = arenaCopy.Wmunu_[nu][idxOld];
+                    arenaCurr.Wmunu_[nu][idxNew] =
+                        arenaCopy.Wmunu_[nu][idxOld] * scaleFactor;
                 }
-                arenaCurr.piBulk_[idxNew] = arenaCopy.piBulk_[idxOld];
-                arenaCurr.piBulkChem_[idxNew] = arenaCopy.piBulkChem_[idxOld];
+                arenaCurr.piBulk_[idxNew] =
+                    arenaCopy.piBulk_[idxOld] * scaleFactor;
+                arenaCurr.piBulkChem_[idxNew] =
+                    arenaCopy.piBulkChem_[idxOld] * scaleFactor;
             }
         }
     }
