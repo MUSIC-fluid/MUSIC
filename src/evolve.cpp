@@ -91,22 +91,27 @@ int Evolve::EvolveIt(
         static_cast<int>((source_tau_max - tau0) / DATA.delta_tau + 0.5) + 1;
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
-    const int NtauBlock = 200;
+    int NtauBlock = 192;
     int gridEnlargedTimes = 0;
     while (tau < tauMax) {
         if (DATA.beastMode > 1 && it > 0 && (it % NtauBlock == 0)) {
             if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
                 DATA.delta_tau = 2. * DATA.delta_tau;
+                NtauBlock =
+                    std::max(192, static_cast<int>(3.84 / DATA.delta_tau));
                 DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
                 DATA.output_evolution_every_N_timesteps = (std::max(
                     1, static_cast<int>(
                            DATA.output_evolution_every_N_timesteps / 2)));
-                music_message << "BeastMode: changed delta_tau = "
-                              << DATA.delta_tau << " fm/c";
+                music_message
+                    << "BeastMode: changed delta_tau = " << DATA.delta_tau
+                    << " fm/c";
                 music_message.flush("info");
             } else if (DATA.beastMode == 3 && DATA.delta_tau < 0.05) {
                 // maximum delta_tau < 0.1 fm/c
                 DATA.delta_tau = 2. * DATA.delta_tau;
+                NtauBlock =
+                    std::max(192, static_cast<int>(3.84 / DATA.delta_tau));
                 DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
                 DATA.output_evolution_every_N_timesteps = (std::max(
                     1, static_cast<int>(
@@ -129,13 +134,12 @@ int Evolve::EvolveIt(
                 coarseGrainAndEnlargeGrid(*fpNext, gridPadding);
                 coarseGrainAndEnlargeGrid(freezeoutFieldPrev, gridPadding);
                 coarseGrainAndEnlargeGrid(freezeoutFieldCurr, gridPadding);
-                music_message << "BeastMode: changed delta_tau = "
-                              << DATA.delta_tau << " fm/c, dx = "
-                              << DATA.delta_x << " fm, dy  = "
-                              << DATA.delta_y << " fm, nx = "
-                              << DATA.nx << ", ny = " << DATA.ny
-                              << ", x_size = " << DATA.x_size
-                              << " fm, y_size = " << DATA.y_size << " fm";
+                music_message
+                    << "BeastMode: changed delta_tau = " << DATA.delta_tau
+                    << " fm/c, dx = " << DATA.delta_x
+                    << " fm, dy  = " << DATA.delta_y << " fm, nx = " << DATA.nx
+                    << ", ny = " << DATA.ny << ", x_size = " << DATA.x_size
+                    << " fm, y_size = " << DATA.y_size << " fm";
                 music_message.flush("info");
             }
         }
