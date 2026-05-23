@@ -164,15 +164,32 @@ InitData read_in_parameters(std::string input_file) {
     // 4: Resonance decays only.
     // 13: Compute observables from previously-computed thermal spectra
     // 14: Compute observables from post-decay spectra
-    int tempmode = 1;
-    tempinput = Util::StringFind4(input_file, "mode");
-    if (tempinput != "empty") {
-        istringstream(tempinput) >> tempmode;
-    } else {
-        music_message.error("Must specify mode. Exiting.");
-        exit(1);
+    parameter_list.mode = getParameter(input_file, "mode", 2);
+
+    // Initial_profile:
+    parameter_list.Initial_profile =
+        (getParameter(input_file, "Initial_profile", 1));
+
+    // dynamicGridDetermination
+    parameter_list.dynamicGridDetermination = false;
+    if (parameter_list.Initial_profile == 13
+        || parameter_list.Initial_profile == 131) {
+        int tempdynamicGridDetermination =
+            (getParameter(input_file, "dynamicGridDetermination", 1));
+        if (tempdynamicGridDetermination == 0) {
+            parameter_list.dynamicGridDetermination = false;
+        } else {
+            parameter_list.dynamicGridDetermination = true;
+        }
     }
-    parameter_list.mode = tempmode;
+
+    // boost-invariant
+    int temp_boost_invariant = getParameter(input_file, "boost_invariant", 1);
+    if (temp_boost_invariant == 0) {
+        parameter_list.boost_invariant = false;
+    } else {
+        parameter_list.boost_invariant = true;
+    }
 
     //EOS_to_use:
     // 0: ideal gas
