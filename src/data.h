@@ -21,6 +21,7 @@ typedef struct init_data {
     int reRunCount;
 
     int beastMode;
+    bool dynamicGridDetermination;
 
     int mode;  //!< 1: do everything;
                //!< 2: do hydro evolution only;
