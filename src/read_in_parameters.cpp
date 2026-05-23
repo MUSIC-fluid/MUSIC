@@ -183,14 +183,6 @@ InitData read_in_parameters(std::string input_file) {
         }
     }
 
-    // boost-invariant
-    int temp_boost_invariant = getParameter(input_file, "boost_invariant", 1);
-    if (temp_boost_invariant == 0) {
-        parameter_list.boost_invariant = false;
-    } else {
-        parameter_list.boost_invariant = true;
-    }
-
     //EOS_to_use:
     // 0: ideal gas
     // 1: EOS-Q from azhydro
