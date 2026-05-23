@@ -38,6 +38,19 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.Initial_profile =
         (getParameter(input_file, "Initial_profile", 1));
 
+    // dynamicGridDetermination
+    parameter_list.dynamicGridDetermination = false;
+    if (parameter_list.Initial_profile == 13
+        || parameter_list.Initial_profile == 131) {
+        int tempdynamicGridDetermination =
+            (getParameter(input_file, "dynamicGridDetermination", 1));
+        if (tempdynamicGridDetermination == 0) {
+            parameter_list.dynamicGridDetermination = false;
+        } else {
+            parameter_list.dynamicGridDetermination = true;
+        }
+    }
+
     // boost-invariant
     int temp_boost_invariant = getParameter(input_file, "boost_invariant", 1);
     if (temp_boost_invariant == 0) {

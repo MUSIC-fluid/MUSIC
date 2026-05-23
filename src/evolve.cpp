@@ -91,12 +91,14 @@ int Evolve::EvolveIt(
         static_cast<int>((source_tau_max - tau0) / DATA.delta_tau + 0.5) + 1;
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
-    const int NtauBlock = 200;
+    int NtauBlock = 192;
     int gridEnlargedTimes = 0;
     while (tau < tauMax) {
         if (DATA.beastMode > 1 && it > 0 && (it % NtauBlock == 0)) {
             if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
                 DATA.delta_tau = 2. * DATA.delta_tau;
+                NtauBlock =
+                    std::max(192, static_cast<int>(3.84 / DATA.delta_tau));
                 DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
                 DATA.output_evolution_every_N_timesteps = (std::max(
                     1, static_cast<int>(
@@ -108,6 +110,8 @@ int Evolve::EvolveIt(
             } else if (DATA.beastMode == 3 && DATA.delta_tau < 0.05) {
                 // maximum delta_tau < 0.1 fm/c
                 DATA.delta_tau = 2. * DATA.delta_tau;
+                NtauBlock =
+                    std::max(192, static_cast<int>(3.84 / DATA.delta_tau));
                 DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
                 DATA.output_evolution_every_N_timesteps = (std::max(
                     1, static_cast<int>(
