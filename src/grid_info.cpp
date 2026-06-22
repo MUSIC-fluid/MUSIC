@@ -660,7 +660,7 @@ void Cell_info::OutputEvolutionDataXYEta_MLtraining(Fields &arena, double tau) {
     const double output_ymin = -DATA.y_size / 2.;
     const double output_etamin = -DATA.eta_size / 2.;
 
-    int nVar_per_cell = 12;
+    int nVar_per_cell = 13;
 
     if (tau == DATA.tau0) {
         float header[] = {static_cast<float>(DATA.tau0),
@@ -687,6 +687,8 @@ void Cell_info::OutputEvolutionDataXYEta_MLtraining(Fields &arena, double tau) {
 
                 eos.getThermalVariables(e_local, rhob_local, thermalVec);
                 double p_local = thermalVec[2];
+                double T_local = thermalVec[6] * hbarc;  // GeV
+                // double muB_local = thermalVec[7] * hbarc;  // GeV
 
                 double ux = arena.u_[1][fieldIdx];
                 double uy = arena.u_[2][fieldIdx];
@@ -713,9 +715,10 @@ void Cell_info::OutputEvolutionDataXYEta_MLtraining(Fields &arena, double tau) {
                     static_cast<float>(Wyeta),
                     static_cast<float>(pi_b),
                     static_cast<float>(rhob_local),
+                    static_cast<float>(T_local),
                 };
 
-                fwrite(fluidCell, sizeof(float), 12, out_file_xyeta);
+                fwrite(fluidCell, sizeof(float), nVar_per_cell, out_file_xyeta);
             }
         }
     }
