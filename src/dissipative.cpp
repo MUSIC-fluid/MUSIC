@@ -769,27 +769,28 @@ double Diss::Make_uPiChemSource(
     const double Iqcd_safe =
         std::copysign(std::max(std::abs(Iqcd), small_eps), Iqcd);
 
-    // Eq.(69) with I_3 = I_QCD and I_0 = 0:
-    // Y_q = (1 - 3 Pi_chem / I_QCD)^2, clamp to [0, 1]
-    // sqrt(Y_q) = |y_q_inner|, but consistent with clamp -> cap at 1
+    // Eq.(14) with Ieq = I_QCD and I0 = 0:
+    // Pi_chem = (1/3)(1 - sqrt(Y_q))[Ieq(e) - I0(e)]
+    // => sqrt(Y_q) = 1 - 3 Pi_chem / Ieq(e), clamp to [0, 1]
     const double y_q_inner = 1.0 - 3.0 * grid_pt.pi_b_chem / Iqcd_safe;
     const double y_q_sqrt = std::min(1.0, std::abs(y_q_inner));
     const double y_q_raw = y_q_inner * y_q_inner;
 
-    // Solve tau_Pi_chem = 1 / (C * T * (1 + sqrt(Y_q))^2) ---
+    // Eq.(18)/(20): tau_Pi_chem = 2 / [R (1 + sqrt(Y_q))(sqrt(2) + sqrt(Y_q))]
     //  Provide DATA.chem_rate_C constant C in R = C*T
     const double chem_rate_C = std::max(DATA.chem_rate_C, small_eps);
     double tau_Pi_chem =
-        1.0
+        2.0
         / std::max(
-            chem_rate_C * temperature * (1.0 + y_q_sqrt) * (1.0 + y_q_sqrt),
+            chem_rate_C * temperature * (1.0 + y_q_sqrt)
+                * (std::sqrt(2.0) + y_q_sqrt),
             small_eps);
 
     tau_Pi_chem = std::min(10.0, std::max(3.0 * DATA.delta_tau, tau_Pi_chem));
 
-    // Eq.(58) with I_0 = 0 and I(e,Y_q) = sqrt(Y_q) * I_3(e):
-    // zeta_chem = tau_Pi_chem * (1/3) * (1 - sqrt(Y_q)) * (dI3/de) * (e + P)
-    // with I_3 = I_QCD = e - 3P => dI3/de = 1 - 3 cs^2
+    // Eq.(19) with I0 = 0 and I(e,Y_q) = sqrt(Y_q) * Ieq(e):
+    // zeta_chem = tau_Pi_chem * (1/3) * (1 - sqrt(Y_q)) * (dIeq/de) * (e + P)
+    // with Ieq = I_QCD = e - 3P => dIeq/de = 1 - 3 cs^2
     const double dI3de = (1.0 - 3.0 * cs2);
     const double zeta_raw = tau_Pi_chem * (1.0 / 3.0) * (1.0 - y_q_sqrt) * dI3de
                             * (epsilon + pressure);
