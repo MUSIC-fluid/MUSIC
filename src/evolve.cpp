@@ -916,7 +916,7 @@ int Evolve::FreezeOut_equal_tau_Surface(double tau, Fields &arena_current) {
 void Evolve::FreezeOut_equal_tau_Surface_XY(
     double tau, int ieta, Fields &arena_current, int thread_id, double epsFO) {
     const bool surface_in_binary = DATA.freeze_surface_in_binary;
-    double epsFO_low = 0.05 / hbarc;  // 1/fm^4
+    const double epsFO_low = DATA.epsFO_low / hbarc;  // 1/fm^4
 
     const int nx = arena_current.nX();
     const int ny = arena_current.nY();

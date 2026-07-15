@@ -513,6 +513,7 @@ InitData read_in_parameters(std::string input_file) {
         parameter_list.N_freeze_out =
             (getParameter(input_file, "N_freeze_out", 1));
     }
+    parameter_list.epsFO_low = getParameter(input_file, "epsFO_low", 0.05);  // GeV/fm^3
     if (parameter_list.N_freeze_out > 1) {
         parameter_list.eps_freeze_max =
             (getParameter(input_file, "eps_freeze_max", 0.18));
