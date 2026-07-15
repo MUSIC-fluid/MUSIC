@@ -779,12 +779,11 @@ double Diss::Make_uPiChemSource(
     // Eq.(18)/(20): tau_Pi_chem = 2 / [R (1 + sqrt(Y_q))(sqrt(2) + sqrt(Y_q))]
     //  Provide DATA.chem_rate_C constant C in R = C*T
     const double chem_rate_C = std::max(DATA.chem_rate_C, small_eps);
-    double tau_Pi_chem =
-        2.0
-        / std::max(
-            chem_rate_C * temperature * (1.0 + y_q_sqrt)
-                * (std::sqrt(2.0) + y_q_sqrt),
-            small_eps);
+    double tau_Pi_chem = 2.0
+                         / std::max(
+                             chem_rate_C * temperature * (1.0 + y_q_sqrt)
+                                 * (std::sqrt(2.0) + y_q_sqrt),
+                             small_eps);
 
     tau_Pi_chem = std::min(10.0, std::max(3.0 * DATA.delta_tau, tau_Pi_chem));
 

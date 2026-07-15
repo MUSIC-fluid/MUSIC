@@ -258,7 +258,8 @@ typedef struct init_data {
                    //!< if 0 use temperature in TFO
 
     double epsilonFreeze;  //!< freeze-out energy density in GeV/fm^3
-    double epsFO_low;      //!< the lowest freeze-out energy density for the cold corona in GeV/fm^3
+    double epsFO_low;  //!< the lowest freeze-out energy density for the cold
+                       //!< corona in GeV/fm^3
     int N_freeze_out;
     double eps_freeze_min;
     double eps_freeze_max;
