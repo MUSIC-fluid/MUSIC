@@ -48,7 +48,7 @@ void EOS_1DGenerator::initialize_eos() {
             exit(1);
         }
 
-        e_length[itable] = 200;
+        e_length[itable] = 1000;
         nb_length[itable] = 1;
         // allocate memory for pressure arrays
         pressure_tb[itable] =
@@ -57,17 +57,17 @@ void EOS_1DGenerator::initialize_eos() {
             Util::mtx_malloc(nb_length[itable], e_length[itable]);
         double temp;
         for (int ii = 0; ii < e_length[itable]; ii++) {
-            eos_file.read((char *)&temp, sizeof(double));  // e^{1/4} (GeV)
-            temp /= Util::hbarc;                           // 1/fm
+            eos_file.read((char *)&temp, sizeof(float));  // e (GeV/fm^3)
+            temp = pow(temp / Util::hbarc, 0.25);         // e^{1/4} (1/fm)
             if (ii == 0) e_bounds[itable] = temp;
             if (ii == 1) e_spacing[itable] = temp - e_bounds[itable];
             if (ii == e_length[itable] - 1) set_eps_max(temp);
 
-            eos_file.read((char *)&temp, sizeof(double));  // P (GeV^4)
-            pressure_tb[itable][0][ii] = temp / pow(Util::hbarc, 4);  // 1/fm^4
+            eos_file.read((char *)&temp, sizeof(float));      // P (GeV/fm^3)
+            pressure_tb[itable][0][ii] = temp / Util::hbarc;  // 1/fm^4
 
-            eos_file.read((char *)&temp, sizeof(double));  // T (GeV)
-            temp /= Util::hbarc;                           // 1/fm
+            eos_file.read((char *)&temp, sizeof(float));  // T (GeV)
+            temp /= Util::hbarc;                          // 1/fm
             temperature_tb[itable][0][ii] = temp;
         }
     }
