@@ -55,7 +55,7 @@ void EOS_1DGenerator::initialize_eos() {
             Util::mtx_malloc(nb_length[itable], e_length[itable]);
         temperature_tb[itable] =
             Util::mtx_malloc(nb_length[itable], e_length[itable]);
-        double temp;
+        float temp;
         for (int ii = 0; ii < e_length[itable]; ii++) {
             eos_file.read((char *)&temp, sizeof(float));  // e (GeV/fm^3)
             temp = pow(temp / Util::hbarc, 0.25);         // e^{1/4} (1/fm)
