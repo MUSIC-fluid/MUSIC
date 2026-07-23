@@ -300,7 +300,8 @@ void HydroSourceTATB::get_hydro_energy_source(
     double e_mx = 0;
     compute_energy_density(
         profile_TA[idx_x][iy], profile_TB[idx_x][iy], eta_s, e_mx, y_temp);
-    double de_dx = (e_px - e_mx) / (2. * gridDX_ * epsilon);  // [1/fm]
+    double de_dx =
+        (e_px - e_mx) / (2. * gridDX_ * epsilon + Util::small_eps);  // [1/fm]
     int idx_y = std::min(gridNY_ - 1, iy + 1);
     double e_py = 0;
     compute_energy_density(
@@ -309,11 +310,15 @@ void HydroSourceTATB::get_hydro_energy_source(
     double e_my = 0;
     compute_energy_density(
         profile_TA[ix][idx_y], profile_TB[ix][idx_y], eta_s, e_my, y_temp);
-    double de_dy = (e_py - e_my) / (2. * gridDY_ * epsilon);  // [1/fm]
+    double de_dy =
+        (e_py - e_my) / (2. * gridDY_ * epsilon + Util::small_eps);  // [1/fm]
 
     double eta_x = -preEqFlowFactor_ * de_dx;
     double eta_y = -preEqFlowFactor_ * de_dy;
     double eta_perp = sqrt(eta_x * eta_x + eta_y * eta_y);
+    if (epsilon < 1e-6) eta_perp = 0;
+    eta_perp = std::min(20., eta_perp);
+
     double phi = atan2(eta_y, eta_x);
     double gamma_perp = cosh(eta_perp);
     double u_perp = sinh(eta_perp);
