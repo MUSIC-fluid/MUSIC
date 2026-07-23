@@ -39,8 +39,8 @@ void TransportCoeffs::read_in_shear_from_file() {
     shearArr_.resize(100);
 
     for (int i = 0; i < 100; i++) {
-        shearFile.read((char *)&TArr_[i], sizeof(double));
-        shearFile.read((char *)&shearArr_[i], sizeof(double));
+        shearFile.read((char *)&TArr_[i], sizeof(float));
+        shearFile.read((char *)&shearArr_[i], sizeof(float));
     }
 
     shearFile.close();
@@ -59,8 +59,8 @@ void TransportCoeffs::read_in_bulk_from_file() {
     bulkArr_.resize(100);
 
     for (int i = 0; i < 100; i++) {
-        bulkFile.read((char *)&TArr_[i], sizeof(double));
-        bulkFile.read((char *)&bulkArr_[i], sizeof(double));
+        bulkFile.read((char *)&TArr_[i], sizeof(float));
+        bulkFile.read((char *)&bulkArr_[i], sizeof(float));
     }
 
     bulkFile.close();
