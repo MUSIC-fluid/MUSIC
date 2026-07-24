@@ -280,8 +280,10 @@ void HydroSourceTATB::get_hydro_energy_source(
     j_mu = {0};
     if (std::abs((tau - tau_source)) > 1. / 2. * gridDtau_) return;
 
-    const int ix = static_cast<int>((x - gridXmin_) / gridDX_ + 0.1);
-    const int iy = static_cast<int>((y - gridYmin_) / gridDY_ + 0.1);
+    int ix = static_cast<int>((x - gridXmin_) / gridDX_ + 0.1);
+    int iy = static_cast<int>((y - gridYmin_) / gridDY_ + 0.1);
+    ix = std::max(0, std::min(gridNX_ - 1, ix));
+    iy = std::max(0, std::min(gridNY_ - 1, iy));
 
     const double TA = profile_TA[ix][iy];
     const double TB = profile_TB[ix][iy];
@@ -337,8 +339,11 @@ double HydroSourceTATB::get_hydro_rhob_source(
     double res = 0.;
     if (std::abs((tau - tau_source)) > 1. / 2. * gridDtau_) return (res);
 
-    const int ix = static_cast<int>((x - gridXmin_) / gridDX_ + 0.1);
-    const int iy = static_cast<int>((y - gridYmin_) / gridDY_ + 0.1);
+    int ix = static_cast<int>((x - gridXmin_) / gridDX_ + 0.1);
+    int iy = static_cast<int>((y - gridYmin_) / gridDY_ + 0.1);
+    ix = std::max(0, std::min(gridNX_ - 1, ix));
+    iy = std::max(0, std::min(gridNY_ - 1, iy));
+
     const double TA = profile_TA[ix][iy];
     const double TB = profile_TB[ix][iy];
     double eta_rhob_plus = eta_rhob_left_factor(eta_s);

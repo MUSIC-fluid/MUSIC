@@ -134,6 +134,16 @@ void Init::InitArena(
         DATA.tau0 = std::max(DATA.tau0, tau_overlap) - DATA.delta_tau;
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
+        if (DATA.reRunCount == 0) {
+            DATA.gridPadding = 0;
+        } else {
+            DATA.gridPadding = 10 * DATA.reRunCount;  // count one side
+            DATA.nx += 2 * DATA.gridPadding;
+            DATA.ny += 2 * DATA.gridPadding;
+            music_message << "reRunCount = " << DATA.reRunCount
+                          << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
+            music_message.flush("info");
+        }
     } else if (DATA.Initial_profile == 17) {
         music_message.info(
             "Initialize hydro with source terms from pre-equilibrium model");
