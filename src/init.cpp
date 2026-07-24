@@ -125,8 +125,12 @@ void Init::InitArena(
             DATA.gridPadding = 10 * DATA.reRunCount;  // count one side
             DATA.nx += 2 * DATA.gridPadding;
             DATA.ny += 2 * DATA.gridPadding;
+            DATA.x_size = DATA.delta_x * DATA.nx;
+            DATA.y_size = DATA.delta_y * DATA.ny;
             music_message << "reRunCount = " << DATA.reRunCount
                           << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
+            music_message << " x_size=" << DATA.x_size
+                          << " fm, y_size=" << DATA.y_size << " fm.";
             music_message.flush("info");
         }
     } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
@@ -140,8 +144,12 @@ void Init::InitArena(
             DATA.gridPadding = 10 * DATA.reRunCount;  // count one side
             DATA.nx += 2 * DATA.gridPadding;
             DATA.ny += 2 * DATA.gridPadding;
+            DATA.x_size = DATA.delta_x * DATA.nx;
+            DATA.y_size = DATA.delta_y * DATA.ny;
             music_message << "reRunCount = " << DATA.reRunCount
                           << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
+            music_message << " x_size=" << DATA.x_size
+                          << " fm, y_size=" << DATA.y_size << " fm.";
             music_message.flush("info");
         }
     } else if (DATA.Initial_profile == 17) {
