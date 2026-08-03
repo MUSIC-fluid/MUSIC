@@ -3,6 +3,7 @@
 #ifndef SRC_GRID_INFO_H_
 #define SRC_GRID_INFO_H_
 
+#include <memory>
 #include <string>
 
 #include "HydroinfoMUSIC.h"
@@ -14,12 +15,21 @@
 #include "pretty_ostream.h"
 #include "u_derivative.h"
 
+class EOS_chem;
+
 class Cell_info {
   private:
     const InitData &DATA;
     const EOS &eos;
     U_derivative u_derivative_helper;
     pretty_ostream music_message;
+
+    // Y_q-dependent EOS lookup for the chemical equilibration bulk pressure.
+    // Constructed directly (see the NOTE in eos.cpp for why this cannot go
+    // through EOS_to_use), only when turn_on_bulk_chem == 1. Used in
+    // OutputEvolutionDataXYEta_photon to get the Y_q-corrected temperature
+    // T(e,Y_q), as opposed to the equilibrium T_eq(e) from the primary eos.
+    std::unique_ptr<EOS_chem> eos_chem_ptr;
 
     int deltaf_qmu_coeff_table_length_T;
     int deltaf_qmu_coeff_table_length_mu;

@@ -22,25 +22,28 @@ class EOS {
     ~EOS() {};
 
     // functions to call the function pointers
-    double get_pressure(double e, double rhob) const {
-        return (eos_ptr->get_pressure(e, rhob));
+    // Y_q defaults to 1 (full chemical equilibrium) so that existing call
+    // sites that omit it keep their current behavior (see eos_base.h)
+    double get_pressure(double e, double rhob, double Y_q = 1.0) const {
+        return (eos_ptr->get_pressure(e, rhob, Y_q));
     }
     void get_pressure_with_gradients(
         double e, double rhob, double &p, double &dpde, double &dpdrhob,
-        double &cs2) const {
-        eos_ptr->get_pressure_with_gradients(e, rhob, p, dpde, dpdrhob, cs2);
+        double &cs2, double Y_q = 1.0) const {
+        eos_ptr->get_pressure_with_gradients(
+            e, rhob, p, dpde, dpdrhob, cs2, Y_q);
     }
-    double get_temperature(double e, double rhob) const {
-        return (eos_ptr->get_temperature(e, rhob));
+    double get_temperature(double e, double rhob, double Y_q = 1.0) const {
+        return (eos_ptr->get_temperature(e, rhob, Y_q));
     }
-    double get_entropy(double e, double rhob) const {
-        return (eos_ptr->get_entropy(e, rhob));
+    double get_entropy(double e, double rhob, double Y_q = 1.0) const {
+        return (eos_ptr->get_entropy(e, rhob, Y_q));
     }
     double get_cs2(double e, double rhob) const {
         return (eos_ptr->get_cs2(e, rhob));
     }
-    double get_dpde(double e, double rhob) const {
-        return (eos_ptr->p_e_func(e, rhob));
+    double get_dpde(double e, double rhob, double Y_q = 1.0) const {
+        return (eos_ptr->p_e_func(e, rhob, Y_q));
     }
     double get_dpdrhob(double e, double rhob) const {
         return (eos_ptr->p_rho_func(e, rhob));
@@ -54,11 +57,11 @@ class EOS {
     double get_muQ(double e, double rhob) const {
         return (eos_ptr->get_muQ(e, rhob));
     }
-    double get_s2e(double s, double rhob) const {
-        return (eos_ptr->get_s2e(s, rhob));
+    double get_s2e(double s, double rhob, double Y_q = 1.0) const {
+        return (eos_ptr->get_s2e(s, rhob, Y_q));
     }
-    double get_T2e(double T_in_GeV, double rhob) const {
-        return (eos_ptr->get_T2e(T_in_GeV, rhob));
+    double get_T2e(double T_in_GeV, double rhob, double Y_q = 1.0) const {
+        return (eos_ptr->get_T2e(T_in_GeV, rhob, Y_q));
     }
 
     void getThermalVariables(

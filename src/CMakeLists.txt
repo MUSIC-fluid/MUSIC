@@ -27,6 +27,7 @@ set (SOURCES
     eos_best.cpp
     eos_neos.cpp
     eos_UH.cpp
+    eos_chem.cpp
     eos_1DGenerator.cpp
     evolve.cpp
     emoji.cpp

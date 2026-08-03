@@ -70,24 +70,38 @@ class EOS_base {
         double &p, double &dpde, double &dpdrhob) const;
 
     int get_table_idx(double e) const;
-    double get_entropy(double epsilon, double rhob) const;
+    double get_entropy(double epsilon, double rhob, double Y_q = 1.0) const;
     void getThermalVariables(
         double epsilon, double rhob, std::vector<double> &thermalVec) const;
 
     double calculate_velocity_of_sound_sq(double e, double rhob) const;
-    double get_dpOverde3(double e, double rhob) const;
+    double get_dpOverde3(double e, double rhob, double Y_q = 1.0) const;
     double get_dpOverdrhob2(double e, double rhob) const;
-    double get_s2e_finite_rhob(double s, double rhob) const;
-    double get_T2e_finite_rhob(const double T, const double rhob) const;
+    double get_s2e_finite_rhob(double s, double rhob, double Y_q = 1.0) const;
+    double get_T2e_finite_rhob(
+        const double T, const double rhob, const double Y_q = 1.0) const;
     void map_TmuB2erhoB(
         const double T, const double muB, double &e, double &rhob) const;
 
+    // Y_q in [0,1] is the chemical composition variable of the chemical
+    // equilibration EOS (see eos_chem.h): Y_q = 1 is full chemical
+    // equilibrium, which every equilibrium EOS below assumes implicitly,
+    // so it is the default and existing call sites that omit it keep
+    // their current behavior. Only EOS_chem reads Y_q; all other EOS
+    // implementations ignore it. The default value is declared HERE ONLY
+    // and must not be repeated (or changed) in any subclass declaration:
+    // default arguments on virtual functions are resolved from the static
+    // type of the caller, so a subclass declaring a different default
+    // would silently not apply through EOS_base pointers.
     virtual void initialize_eos() {}
     virtual void initialize_eos(int eos_id_in) {}
     virtual double get_cs2(double e, double rhob) const;
     virtual double p_rho_func(double e, double rhob) const { return (0.0); }
-    virtual double p_e_func(double e, double rhob) const { return (0.0); }
-    virtual double get_temperature(double epsilon, double rhob) const {
+    virtual double p_e_func(double e, double rhob, double Y_q = 1.0) const {
+        return (0.0);
+    }
+    virtual double get_temperature(
+        double epsilon, double rhob, double Y_q = 1.0) const {
         return (0.0);
     }
     virtual double get_muB(double epsilon, double rhob) const { return (0.0); }
@@ -97,18 +111,24 @@ class EOS_base {
     virtual double get_rhoQ(double epsilon, double rhob) const {
         return (0.4 * rhob);
     }
-    virtual double get_pressure(double epsilon, double rhob) const {
+    virtual double get_pressure(
+        double epsilon, double rhob, double Y_q = 1.0) const {
         return (0.0);
     }
-    virtual double get_s2e(double s, double rhob) const { return (0.0); }
-    virtual double get_T2e(double T_in_GeV, double rhob) const { return (0.0); }
+    virtual double get_s2e(double s, double rhob, double Y_q = 1.0) const {
+        return (0.0);
+    }
+    virtual double get_T2e(
+        double T_in_GeV, double rhob, double Y_q = 1.0) const {
+        return (0.0);
+    }
     virtual void check_eos() const {}
 
     virtual void get_pressure_with_gradients(
         double epsilon, double rhob, double &p, double &dpde, double &dpdrhob,
-        double &cs2) const {
-        p = get_pressure(epsilon, rhob);
-        dpde = get_dpOverde3(epsilon, rhob);
+        double &cs2, double Y_q = 1.0) const {
+        p = get_pressure(epsilon, rhob, Y_q);
+        dpde = get_dpOverde3(epsilon, rhob, Y_q);
         dpdrhob = get_dpOverdrhob2(epsilon, rhob);
         cs2 = dpde + dpdrhob * rhob / (epsilon + p);
     }

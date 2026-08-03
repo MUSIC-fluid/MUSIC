@@ -13,14 +13,14 @@ class EOS_hotQCD : public EOS_base {
     EOS_hotQCD(const int eos_id_in);
 
     void initialize_eos();
-    double p_e_func(double e, double rhob) const;
-    double get_temperature(double e, double rhob) const;
-    double get_pressure(double e, double rhob) const;
-    double get_s2e(double s, double rhob) const;
-    double get_T2e(double T, double rhob) const;
+    double p_e_func(double e, double rhob, double Y_q) const;
+    double get_temperature(double e, double rhob, double Y_q) const;
+    double get_pressure(double e, double rhob, double Y_q) const;
+    double get_s2e(double s, double rhob, double Y_q) const;
+    double get_T2e(double T, double rhob, double Y_q) const;
     void get_pressure_with_gradients(
         double e, double rhob, double &p, double &dpde, double &dpdrhob,
-        double &cs2) const;
+        double &cs2, double Y_q) const;
 
     void check_eos() const { check_eos_no_muB(); }
 };

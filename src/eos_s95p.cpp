@@ -123,13 +123,13 @@ void EOS_s95p::initialize_eos() {
     music_message.info("Done reading EOS.");
 }
 
-double EOS_s95p::p_e_func(double e, double rhob) const {
+double EOS_s95p::p_e_func(double e, double rhob, double Y_q) const {
     return (get_dpOverde3(e, rhob));
 }
 
 //! This function returns the local temperature in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_s95p::get_temperature(double e, double rhob) const {
+double EOS_s95p::get_temperature(double e, double rhob, double Y_q) const {
     int table_idx = get_table_idx(e);
     double T = interpolate1D(e, table_idx, temperature_tb);  // 1/fm
     return (std::max(Util::small_eps, T));
@@ -137,18 +137,18 @@ double EOS_s95p::get_temperature(double e, double rhob) const {
 
 //! This function returns the local pressure in [1/fm^4]
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
-double EOS_s95p::get_pressure(double e, double rhob) const {
+double EOS_s95p::get_pressure(double e, double rhob, double Y_q) const {
     int table_idx = get_table_idx(e);
     double f = interpolate1D(e, table_idx, pressure_tb);  // 1/fm^4
     return (std::max(Util::small_eps, f));
 }
 
-double EOS_s95p::get_s2e(double s, double rhob) const {
+double EOS_s95p::get_s2e(double s, double rhob, double Y_q) const {
     double e = get_s2e_finite_rhob(s, 0.0);
     return (e);
 }
 
-double EOS_s95p::get_T2e(double T_in_GeV, double rhob) const {
+double EOS_s95p::get_T2e(double T_in_GeV, double rhob, double Y_q) const {
     double e = get_T2e_finite_rhob(T_in_GeV, 0.0);
     return (e);
 }

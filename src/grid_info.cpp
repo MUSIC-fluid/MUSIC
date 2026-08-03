@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "eos_chem.h"
 #include "util.h"
 
 using std::endl;
@@ -31,6 +32,14 @@ Cell_info::Cell_info(const InitData &DATA_in, const EOS &eos_in)
                 load_deltaf_qmu_coeff_table(
                     "tables/Coefficients_RTA_diffusion.dat");
         }
+    }
+    // Y_q-dependent EO, read once here rather than per-cell/per-timestep in
+    // OutputEvolutionDataXYEta_photon. Constructed directly with a genuine
+    // Y_q argument at call time, not through EOS_to_use -- see the NOTE
+    // above EOS::EOS in eos.cpp for why that matters.
+    if (DATA.turn_on_bulk_chem == 1) {
+        eos_chem_ptr = std::unique_ptr<EOS_chem>(new EOS_chem(16));
+        eos_chem_ptr->initialize_eos();
     }
     Pmu_edge_prev = {0.};
     outflow_flux = {0.};
@@ -741,9 +750,21 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
     //    volume T ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta
     // if turn_on_rhob == 1 and turn_on_shear == 1 and turn_on_diff == 1:
     //    volume T ux uy ueta mu_B Wxx Wxy Wxeta Wyy Wyeta qx qy qeta
+    // if turn_on_bulk_chem == 1, Y_q and T_chem are appended after the
+    // fields above:
+    //    ... Y_q T_chem
     // Here ueta = tau*ueta, Wieta = tau*Wieta, qeta = tau*qeta
     // Here Wij is reduced variables Wij/(e+P) used in delta f
     // and qi is reduced variables qi/kappa_hat
+    // Here Y_q is the chemical composition variable of the chemical
+    // equilibration EOS (Y_q = 1 is full chemical equilibrium, Y_q = 0 is
+    // the pure-glue limit), computed from the evolved chemical bulk
+    // pressure pi_b_chem and the equilibrium trace anomaly I_qcd = e - 3P
+    // via sqrt(Y_q) = clamp(|1 - 3*pi_b_chem/I_qcd|, 0, 1), the same
+    // relation used in Diss::Make_uPiChemSource. T_chem = T(e,Y_q) from the
+    // EOS_chem lookup table, i.e. the Y_q-corrected local temperature, as
+    // opposed to T above, which is the equilibrium T_eq(e) from the
+    // primary eos and ignores Y_q entirely.
     const string out_name_xyeta = "evolution_for_photon_xyeta.dat";
     string out_open_mode;
     FILE *out_file_xyeta;
@@ -809,6 +830,31 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                     pi_b = arena.piBulk_[fieldIdx];  // 1/fm^4
                 }
 
+                // Y_q from the evolved chemical bulk pressure pi_b_chem,
+                // same relation as Diss::Make_uPiChemSource:
+                //   I_qcd = e - 3P
+                //   sqrt(Y_q) = clamp(|1 - 3*pi_b_chem/I_qcd|, 0, 1)
+                double Y_q_local = 1.0;
+                if (DATA.turn_on_bulk_chem == 1) {
+                    double pi_b_chem_local = arena.piBulkChem_[fieldIdx];
+                    double Iqcd = e_local - 3.0 * p_local;
+                    double Iqcd_safe = std::copysign(
+                        std::max(std::abs(Iqcd), small_eps), Iqcd);
+                    double y_q_inner = 1.0 - 3.0 * pi_b_chem_local / Iqcd_safe;
+                    double y_q_sqrt = std::min(1.0, std::abs(y_q_inner));
+                    Y_q_local = y_q_sqrt * y_q_sqrt;
+                }
+
+                // T(e,Y_q) from the EOS_chem lookup table -- the
+                // Y_q-corrected local temperature, as opposed to T_local
+                // above, which is the equilibrium T_eq(e) from the primary
+                // eos and does not depend on Y_q at all.
+                double T_chem_local = T_local;
+                if (DATA.turn_on_bulk_chem == 1 && eos_chem_ptr) {
+                    T_chem_local = eos_chem_ptr->get_temperature(
+                        e_local, rhob_local, Y_q_local);
+                }
+
                 // outputs for baryon diffusion part
                 double common_term_q = 0.0;
                 double qx = 0.0;
@@ -856,6 +902,13 @@ void Cell_info::OutputEvolutionDataXYEta_photon(Fields &arena, double tau) {
                         static_cast<float>(qx), static_cast<float>(qy),
                         static_cast<float>(qeta)};
                     fwrite(diffusion, sizeof(float), 4, out_file_xyeta);
+                }
+
+                if (DATA.turn_on_bulk_chem == 1) {
+                    float chem_yq[] = {
+                        static_cast<float>(Y_q_local),
+                        static_cast<float>(T_chem_local * hbarc)};
+                    fwrite(chem_yq, sizeof(float), 2, out_file_xyeta);
                 }
             }
         }

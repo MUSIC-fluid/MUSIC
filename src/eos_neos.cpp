@@ -241,7 +241,7 @@ void EOS_neos::initialize_eos() {
     music_message.info("Done reading EOS.");
 }
 
-double EOS_neos::p_e_func(double e, double rhob) const {
+double EOS_neos::p_e_func(double e, double rhob, double Y_q) const {
     return (get_dpOverde3(e, rhob));
 }
 
@@ -251,7 +251,7 @@ double EOS_neos::p_rho_func(double e, double rhob) const {
 
 //! This function returns the local temperature in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_neos::get_temperature(double e, double rhob) const {
+double EOS_neos::get_temperature(double e, double rhob, double Y_q) const {
     int table_idx = get_table_idx(e);
     double T5 = interpolate2D(
         e, std::abs(rhob), table_idx,
@@ -263,7 +263,7 @@ double EOS_neos::get_temperature(double e, double rhob) const {
 
 //! This function returns the local pressure in [1/fm^4]
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
-double EOS_neos::get_pressure(double e, double rhob) const {
+double EOS_neos::get_pressure(double e, double rhob, double Y_q) const {
     int table_idx = get_table_idx(e);
     double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb);
     f = std::max(Util::small_eps, f);
@@ -272,7 +272,7 @@ double EOS_neos::get_pressure(double e, double rhob) const {
 
 void EOS_neos::get_pressure_with_gradients(
     double e, double rhob, double& p, double& dpde, double& dpdrhob,
-    double& cs2) const {
+    double& cs2, double Y_q) const {
     int table_idx = get_table_idx(e);
     interpolate2D_with_gradients(
         e, std::abs(rhob), table_idx, pressure_tb, p, dpde, dpdrhob);
@@ -321,7 +321,7 @@ double EOS_neos::get_muQ(double e, double rhob) const {
     return (mu);
 }
 
-double EOS_neos::get_s2e(double s, double rhob) const {
+double EOS_neos::get_s2e(double s, double rhob, double Y_q) const {
     double e = get_s2e_finite_rhob(s, rhob);
     return (e);
 }

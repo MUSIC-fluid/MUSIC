@@ -13,11 +13,11 @@ class EOS_UH : public EOS_base {
 
     void initialize_eos();
     double p_rho_func(double e, double rhob) const;
-    double p_e_func(double e, double rhob) const;
-    double get_temperature(double e, double rhob) const;
+    double p_e_func(double e, double rhob, double Y_q) const;
+    double get_temperature(double e, double rhob, double Y_q) const;
     double get_muB(double e, double rhob) const;
-    double get_pressure(double e, double rhob) const;
-    double get_s2e(double s, double rhob) const;
+    double get_pressure(double e, double rhob, double Y_q) const;
+    double get_s2e(double s, double rhob, double Y_q) const;
 
     void check_eos() const { check_eos_with_finite_muB(); }
 };

@@ -269,6 +269,10 @@ InitData read_in_parameters(std::string input_file) {
     // 12: NEoS-B
     // 13: NEoS-BS
     // 14: NEoS-BQS
+    // 16: NOT usable here -- EOS_chem (Y_q dependent chemical
+    //     equilibration EOS, see eos_chem.h) must be constructed directly,
+    //     not selected as the primary EOS_to_use. Setting this will exit
+    //     with an explanatory error (see the NOTE in eos.cpp).
     // 17: BEST-EOS
     // 18: UH-EOS
     // 20: NEoS-4D

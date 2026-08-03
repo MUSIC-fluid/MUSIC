@@ -104,7 +104,7 @@ void EOS_eosQ::initialize_eos() {
     music_message.info("Done reading EOS.");
 }
 
-double EOS_eosQ::p_e_func(double e, double rhob) const {
+double EOS_eosQ::p_e_func(double e, double rhob, double Y_q) const {
     return (get_dpOverde3(e, rhob));
 }
 
@@ -114,7 +114,7 @@ double EOS_eosQ::p_rho_func(double e, double rhob) const {
 
 //! This function returns the local temperature in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_eosQ::get_temperature(double e, double rhob) const {
+double EOS_eosQ::get_temperature(double e, double rhob, double Y_q) const {
     int table_idx = get_table_idx(e);
     double T = interpolate2D(
         e, std::abs(rhob), table_idx,
@@ -124,7 +124,7 @@ double EOS_eosQ::get_temperature(double e, double rhob) const {
 
 //! This function returns the local pressure in [1/fm^4]
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
-double EOS_eosQ::get_pressure(double e, double rhob) const {
+double EOS_eosQ::get_pressure(double e, double rhob, double Y_q) const {
     int table_idx = get_table_idx(e);
     double f = interpolate2D(e, std::abs(rhob), table_idx, pressure_tb);
     return (std::max(Util::small_eps, f));
@@ -142,7 +142,7 @@ double EOS_eosQ::get_mu(double e, double rhob) const {
     return (mu);
 }
 
-double EOS_eosQ::get_s2e(double s, double rhob) const {
+double EOS_eosQ::get_s2e(double s, double rhob, double Y_q) const {
     double e = get_s2e_finite_rhob(s, rhob);
     return (e);
 }

@@ -203,9 +203,9 @@ void EOS_base::interpolate2D_with_gradients(
 
 //! This function returns entropy density in [1/fm^3]
 //! The input local energy density e [1/fm^4], rhob[1/fm^3]
-double EOS_base::get_entropy(double epsilon, double rhob) const {
-    auto P = get_pressure(epsilon, rhob);
-    auto T = get_temperature(epsilon, rhob);
+double EOS_base::get_entropy(double epsilon, double rhob, double Y_q) const {
+    auto P = get_pressure(epsilon, rhob, Y_q);
+    auto T = get_temperature(epsilon, rhob, Y_q);
     auto muB = get_muB(epsilon, rhob);
     auto muS = get_muS(epsilon, rhob);
     auto muQ = get_muQ(epsilon, rhob);
@@ -259,13 +259,13 @@ double EOS_base::calculate_velocity_of_sound_sq(double e, double rhob) const {
     return (v_sound);
 }
 
-double EOS_base::get_dpOverde3(double e, double rhob) const {
+double EOS_base::get_dpOverde3(double e, double rhob, double Y_q) const {
     double de = std::max(0.01, 0.01 * e);
     double eLeft = std::max(1e-16, e - de);
     double eRight = e + de;
 
-    double pL = get_pressure(eLeft, rhob);   // 1/fm^4
-    double pR = get_pressure(eRight, rhob);  // 1/fm^4
+    double pL = get_pressure(eLeft, rhob, Y_q);   // 1/fm^4
+    double pR = get_pressure(eRight, rhob, Y_q);  // 1/fm^4
 
     double dpde = (pR - pL) / (eRight - eLeft);
     return dpde;
@@ -299,13 +299,14 @@ int EOS_base::get_table_idx(double e) const {
 
 //! This function returns local energy density [1/fm^4] from
 //! a given temperature T [GeV] and rhob [1/fm^3] using binary search
-double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
+double EOS_base::get_T2e_finite_rhob(
+    const double T, const double rhob, const double Y_q) const {
     double T_goal = T / Util::hbarc;  // convert to 1/fm
     double eps_lower = small_eps;
     double eps_upper = eps_max;
     double eps_mid = (eps_upper + eps_lower) / 2.;
-    double T_lower = get_temperature(eps_lower, rhob);
-    double T_upper = get_temperature(eps_upper, rhob);
+    double T_lower = get_temperature(eps_lower, rhob, Y_q);
+    double T_upper = get_temperature(eps_upper, rhob, Y_q);
     int ntol = 1000;
     if (T_goal < 0.0 || T_goal > T_upper) {
         cout << "get_T2e:: T is out of bound, "
@@ -322,7 +323,7 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
     while (((eps_upper - eps_lower) / eps_mid > rel_accuracy
             && (eps_upper - eps_lower) > abs_accuracy)
            && iter < ntol) {
-        T_mid = get_temperature(eps_mid, rhob);
+        T_mid = get_temperature(eps_mid, rhob, Y_q);
         if (T_goal < T_mid)
             eps_upper = eps_mid;
         else
@@ -346,12 +347,12 @@ double EOS_base::get_T2e_finite_rhob(const double T, const double rhob) const {
 //! This function returns local energy density [1/fm^4] from
 //! a given entropy density [1/fm^3] and rhob [1/fm^3]
 //! using binary search
-double EOS_base::get_s2e_finite_rhob(double s, double rhob) const {
+double EOS_base::get_s2e_finite_rhob(double s, double rhob, double Y_q) const {
     double eps_lower = small_eps;
     double eps_upper = eps_max;
     double eps_mid = (eps_upper + eps_lower) / 2.;
-    double s_lower = get_entropy(eps_lower, rhob);
-    double s_upper = get_entropy(eps_upper, rhob);
+    double s_lower = get_entropy(eps_lower, rhob, Y_q);
+    double s_upper = get_entropy(eps_upper, rhob, Y_q);
     int ntol = 1000;
     if (s < 0.0 || s > s_upper) {
         cout << "get_s2e_finite_rhob:: s is out of bound, "
@@ -368,7 +369,7 @@ double EOS_base::get_s2e_finite_rhob(double s, double rhob) const {
     while (((eps_upper - eps_lower) / eps_mid > rel_accuracy
             && (eps_upper - eps_lower) > abs_accuracy)
            && iter < ntol) {
-        s_mid = get_entropy(eps_mid, rhob);
+        s_mid = get_entropy(eps_mid, rhob, Y_q);
         if (s < s_mid)
             eps_upper = eps_mid;
         else
@@ -379,8 +380,8 @@ double EOS_base::get_s2e_finite_rhob(double s, double rhob) const {
     if (iter == ntol) {
         cout << "get_s2e_finite_rhob:: max iteration reached, "
              << "s = " << s << ", rhob = " << rhob << endl;
-        cout << "s_upper = " << get_entropy(eps_upper, rhob)
-             << " , s_lower = " << get_entropy(eps_lower, rhob) << endl;
+        cout << "s_upper = " << get_entropy(eps_upper, rhob, Y_q)
+             << " , s_lower = " << get_entropy(eps_lower, rhob, Y_q) << endl;
         cout << "eps_upper = " << eps_upper << " , eps_lower = " << eps_lower
              << ", diff = " << (eps_upper - eps_lower) << endl;
         exit(1);

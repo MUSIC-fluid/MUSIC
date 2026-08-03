@@ -430,6 +430,19 @@ void Init::initial_Gubser_XY(
             arenaFieldsPrev.rhob_[idx] = rhob;
             arenaFieldsCurr.rhob_[idx] = rhob;
 
+            if (DATA.turn_on_bulk_chem == 1) {
+                // seed the chemical bulk pressure at tau0 away from its
+                // equilibrium value (pi_b_chem = 0 corresponds to Y_q = 1,
+                // a fixed point of the relaxation equation). Same relation
+                // used for Initial_profile == 9:
+                //   pi_b_chem(tau0) = (e/3 - P_eq(e)) * preEqVisFactor
+                double pressure = eos.get_pressure(epsilon, rhob);
+                double pi_b_chem_init =
+                    (epsilon / 3. - pressure) * DATA.preEqVisFactor;
+                arenaFieldsCurr.piBulkChem_[idx] = pi_b_chem_init;
+                arenaFieldsPrev.piBulkChem_[idx] = pi_b_chem_init;
+            }
+
             double utau_local = sqrt(
                 1. + temp_profile_ux[idx_loc] * temp_profile_ux[idx_loc]
                 + temp_profile_uy[idx_loc] * temp_profile_uy[idx_loc]);

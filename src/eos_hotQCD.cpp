@@ -84,13 +84,13 @@ void EOS_hotQCD::initialize_eos() {
     music_message.info("Done reading EOS.");
 }
 
-double EOS_hotQCD::p_e_func(double e, double rhob) const {
+double EOS_hotQCD::p_e_func(double e, double rhob, double Y_q) const {
     return (get_dpOverde3(e, rhob));
 }
 
 //! This function returns the local temperature in [1/fm]
 //! input local energy density eps [1/fm^4] and rhob [1/fm^3]
-double EOS_hotQCD::get_temperature(double e, double rhob) const {
+double EOS_hotQCD::get_temperature(double e, double rhob, double Y_q) const {
     double T5 = interpolate1D(e, 0, temperature_tb);  // e/T^5
     double T = pow(T5, 0.2);                          // 1/fm
     return (std::max(Util::small_eps, T));
@@ -98,7 +98,7 @@ double EOS_hotQCD::get_temperature(double e, double rhob) const {
 
 //! This function returns the local pressure in [1/fm^4]
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
-double EOS_hotQCD::get_pressure(double e, double rhob) const {
+double EOS_hotQCD::get_pressure(double e, double rhob, double Y_q) const {
     double f = interpolate1D(e, 0, pressure_tb);  // 1/fm^4
     return (std::max(Util::small_eps, f));
 }
@@ -107,19 +107,19 @@ double EOS_hotQCD::get_pressure(double e, double rhob) const {
 //! the input local energy density [1/fm^4], rhob [1/fm^3]
 void EOS_hotQCD::get_pressure_with_gradients(
     double e, double rhob, double &p, double &dpde, double &dpdrhob,
-    double &cs2) const {
+    double &cs2, double Y_q) const {
     interpolate1D_with_gradients(e, 0, pressure_tb, p, dpde);
     p = std::max(Util::small_eps, p);  // [1/fm^4]
     dpdrhob = 0.;
     cs2 = std::max(0.01, std::min(1. / 3., dpde));
 }
 
-double EOS_hotQCD::get_s2e(double s, double rhob) const {
+double EOS_hotQCD::get_s2e(double s, double rhob, double Y_q) const {
     double e = get_s2e_finite_rhob(s, 0.0);
     return (e);
 }
 
-double EOS_hotQCD::get_T2e(double T_in_GeV, double rhob) const {
+double EOS_hotQCD::get_T2e(double T_in_GeV, double rhob, double Y_q) const {
     double e = get_T2e_finite_rhob(T_in_GeV, 0.0);
     return (e);
 }
