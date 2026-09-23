@@ -42,6 +42,7 @@ class MUSIC {
     Fields freezeoutFieldCurr_;
 
     std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
+    std::shared_ptr<HydroSourceBase> hydro_source_terms_from_jet_ptr_;
 
     std::shared_ptr<HydroinfoMUSIC> hydro_info_ptr;
 
@@ -76,6 +77,8 @@ class MUSIC {
 
     //! this function adds hydro source terms pointer
     void add_hydro_source_terms(
+            std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
+    void add_hydro_source_terms_from_jet(
             std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
 
     //! This function setup source terms from dynamical initialization

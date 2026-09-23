@@ -21,13 +21,15 @@ using Util::map_1d_idx_to_2d;
 using Util::hbarc;
 
 Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
-                 std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
+                 std::shared_ptr<HydroSourceBase> hydro_source_ptr_in,
+                 std::shared_ptr<HydroSourceBase> hydro_source_ptr_from_jets_in) :
     DATA(DATA_in), eos(eosIn),
     diss_helper(eosIn, DATA_in),
     minmod(DATA_in),
     reconst_helper(eos, DATA_in.echo_level, DATA_in.beastMode) {
 
     hydro_source_terms_ptr = hydro_source_ptr_in;
+    hydro_source_terms_from_jets_ptr_ = hydro_source_ptr_from_jets_in;
     flag_add_hydro_source = false;
     if (hydro_source_terms_ptr) {
         if (DATA.Initial_profile == 42) {
@@ -37,6 +39,10 @@ Advance::Advance(const EOS &eosIn, const InitData &DATA_in,
         } else {
             flag_add_hydro_source = true;
         }
+    }
+    flag_add_hydro_source_from_jets_ = false;
+    if (hydro_source_terms_from_jets_ptr_) {
+        flag_add_hydro_source_from_jets_ = true;
     }
 }
 
@@ -170,6 +176,40 @@ void Advance::FirstRKStepT(
         }
     }
 
+    TJbVec qi_source_from_jets = {0.0};
+    if (flag_add_hydro_source_from_jets_) {
+        EnergyFlowVec j_mu = {0};
+        FlowVec u_local;
+        for (int ii = 0; ii < 4; ii++)
+            u_local[ii] = arenaFieldsCurr.u_[ii][fieldIdx];
+
+        hydro_source_terms_from_jets_ptr_->get_hydro_energy_source(
+                    tau_rk, x_local, y_local, eta_s_local, u_local, j_mu);
+        for (int ii = 0; ii < 4; ii++) {
+            qi_source_from_jets[ii] = tauRkFactor*j_mu[ii];
+            if (isnan(qi_source_from_jets[ii])) {
+                music_message << "qi_source_from_jets is nan. i = " << ii;
+                music_message.flush("error");
+                exit(0);
+            }
+        }
+
+        if (DATA.turn_on_rhob == 1) {
+            qi_source_from_jets[4] = (
+                tauRkFactor*hydro_source_terms_from_jets_ptr_->get_hydro_rhob_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local));
+        }
+
+        if (DATA.turn_on_QS == 1) {
+            qi_source_from_jets[5] = (
+                tauRkFactor*hydro_source_terms_from_jets_ptr_->get_hydro_rhoq_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local));
+            qi_source_from_jets[6] = (
+                tauRkFactor*hydro_source_terms_from_jets_ptr_->get_hydro_rhos_source(
+                            tau_rk, x_local, y_local, eta_s_local, u_local));
+        }
+    }
+
     // now MakeWSource returns partial_a W^{a mu}
     // (including geometric terms)
 
@@ -187,6 +227,9 @@ void Advance::FirstRKStepT(
 
         // add energy momentum and net baryon density source terms
         qi[alpha] += qi_source[alpha]*DATA.delta_tau;
+
+        // add energy momentum and net baryon density source terms
+        qi[alpha] += qi_source_from_jets[alpha]*DATA.delta_tau;
 
         // set baryon density back to zero if viscous correction made it
         // non-zero remove/modify if rho_b!=0

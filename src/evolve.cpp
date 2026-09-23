@@ -25,15 +25,17 @@
 using Util::hbarc;
 
 Evolve::Evolve(const EOS &eosIn, InitData &DATA_in,
-               std::shared_ptr<HydroSourceBase> hydro_source_ptr_in) :
+               std::shared_ptr<HydroSourceBase> hydro_source_ptr_in,
+               std::shared_ptr<HydroSourceBase> hydro_source_from_jets_ptr_in) :
     eos(eosIn), DATA(DATA_in),
-    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in) {
+    grid_info(DATA_in, eosIn), advance(eosIn, DATA_in, hydro_source_ptr_in, hydro_source_from_jets_ptr_in) {
 
     rk_order  = DATA_in.rk_order;
     if (DATA.freezeOutMethod == 4) {
         initialize_freezeout_surface_info();
     }
     hydro_source_terms_ptr = hydro_source_ptr_in;
+    hydro_source_terms_from_jets_ptr_ = hydro_source_from_jets_ptr_in;
 
     FO_nBvsEta_.resize(DATA.neta, 0);
     FO_nQvsEta_.resize(DATA.neta, 0);

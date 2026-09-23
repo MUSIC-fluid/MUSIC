@@ -22,6 +22,7 @@ class Evolve {
     const EOS &eos;        // declare EOS object
     InitData &DATA;
     std::shared_ptr<HydroSourceBase> hydro_source_terms_ptr;
+    std::shared_ptr<HydroSourceBase> hydro_source_terms_from_jets_ptr_;
 
     Cell_info grid_info;
     Advance advance;
@@ -41,7 +42,8 @@ class Evolve {
 
  public:
     Evolve(const EOS &eos, InitData &DATA_in,
-           std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
+           std::shared_ptr<HydroSourceBase> hydro_source_ptr_in,
+           std::shared_ptr<HydroSourceBase> hydro_source_from_jets_ptr_in);
 
     ~Evolve() {clearSurfaceCellVector();}
 
