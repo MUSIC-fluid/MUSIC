@@ -1,7 +1,7 @@
 
 # MUSIC
 
-MUSIC is a 3+1D relativistic second-order viscous hydrodynamics for heavy ion collisions written in C++. A user manual for MUSIC is available here: https://webhome.phy.duke.edu/~jp401/old_music_manual/
+MUSIC is a 3+1D relativistic second-order viscous hydrodynamics for heavy ion collisions written in C++. A user manual for MUSIC is available here: https://j-f-paquet.github.io/music_manual/
 
 
 
