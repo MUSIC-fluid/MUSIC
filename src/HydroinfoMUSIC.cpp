@@ -169,7 +169,10 @@ void HydroinfoMUSIC::getHydroValues(
                         ptau = itau + 1;
                     }
                     position[ipx][ipy][ipeta][iptau] =
-                        (px + ixmax * (py + iymax * (peta + ietamax * ptau)));
+                        // must match the storage order in
+                        // Cell_info::OutputEvolutionDataXYEta_memory:
+                        // x outermost, then y, eta innermost
+                        (peta + ietamax * (py + iymax * (px + ixmax * ptau)));
                 }
             }
         }
@@ -344,10 +347,12 @@ void HydroinfoMUSIC::set_grid_infomatioin(const InitData &DATA) {
     hydroDtau = DATA.delta_tau * DATA.output_evolution_every_N_timesteps;
     hydroXmax = DATA.x_size / 2.;
     hydroYmax = DATA.y_size / 2.;
+    // number of cells stored per direction by
+    // Cell_info::OutputEvolutionDataXYEta_memory (0, N, 2N, ... < n)
     ixmax =
-        (static_cast<int>((DATA.nx + 1) / DATA.output_evolution_every_N_x) + 1);
+        (static_cast<int>((DATA.nx - 1) / DATA.output_evolution_every_N_x) + 1);
     iymax =
-        (static_cast<int>((DATA.ny + 1) / DATA.output_evolution_every_N_y) + 1);
+        (static_cast<int>((DATA.ny - 1) / DATA.output_evolution_every_N_y) + 1);
     hydro_eta_max = DATA.eta_size / 2.;
     ietamax = static_cast<int>(DATA.neta / DATA.output_evolution_every_N_eta);
     hydroDx = DATA.delta_x * DATA.output_evolution_every_N_x;

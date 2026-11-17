@@ -420,14 +420,18 @@ InitData read_in_parameters(std::string input_file) {
     // 2: output bulk information in binary format
     parameter_list.outputEvolutionData =
         (getParameter(input_file, "output_evolution_data", 0));
-    if (parameter_list.outputEvolutionData != 0) {
-        if (parameter_list.beastMode == 2) {
-            music_message
-                << "output_evolution_data is incompatible with beastMode=2, "
-                << "resetting beastMode=1";
-            music_message.flush("info");
-            parameter_list.beastMode = 1;
-        }
+    // beastMode >= 2 changes delta_tau (and for beastMode 3 also the
+    // transverse grid) during the evolution, while the evolution file
+    // header and the in-memory hydro grid are only set once at tau0
+    if (parameter_list.beastMode >= 2
+        && (parameter_list.outputEvolutionData != 0
+            || parameter_list.store_hydro_info_in_memory != 0)) {
+        music_message << "output_evolution_data and "
+                      << "store_hydro_info_in_memory are incompatible with "
+                      << "beastMode=" << parameter_list.beastMode
+                      << ", resetting beastMode=1";
+        music_message.flush("info");
+        parameter_list.beastMode = 1;
     }
 
     // only works for output_evolution_data == 1

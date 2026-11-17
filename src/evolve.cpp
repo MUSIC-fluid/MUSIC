@@ -125,8 +125,11 @@ int Evolve::EvolveIt(
                 DATA.delta_y = DATA.delta_y * 2;
                 int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
                 int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
-                DATA.nx = static_cast<int>(DATA.nx / 2) + 2 * gridOffset_x;
-                DATA.ny = static_cast<int>(DATA.ny / 2) + 2 * gridOffset_y;
+                // odd n -> (n+1)/2 points on the even sub-lattice,
+                // even n -> n/2 points at the centres of cell pairs;
+                // both keep the coarse grid centred at x = y = 0
+                DATA.nx = (fpCurr->nX() + 1) / 2 + 2 * gridOffset_x;
+                DATA.ny = (fpCurr->nY() + 1) / 2 + 2 * gridOffset_y;
                 DATA.x_size = DATA.delta_x * (DATA.nx - 1);
                 DATA.y_size = DATA.delta_y * (DATA.ny - 1);
                 coarseGrainAndEnlargeGrid(*fpPrev, gridPadding);
@@ -377,66 +380,102 @@ void Evolve::store_previous_step_for_freezeout(
 }
 
 void Evolve::coarseGrainAndEnlargeGrid(Fields &arenaCurr, double gridPadding) {
-    // this function coarse grid the transverse grid by douuble dx and dy
+    // this function coarse grains the transverse grid by doubling dx and dy
     // it allows to enlarge the grid by gridPadding on both sides
+    //
+    // Old grid: n points at x_i = -(n-1)dx/2 + i dx.
+    // New grid (before padding): nBase = (n+1)/2 points with spacing 2dx,
+    // centred at x = 0.
+    //   n odd : new point j sits exactly on old point 2j
+    //   n even: new point j sits at the midpoint of old points 2j and 2j+1,
+    //           so we average the two
+    // This keeps the fluid at the same physical position after coarsening.
+    // DATA.delta_x/y must already be the new (doubled) spacings.
     Fields arenaCopy(arenaCurr.nX(), arenaCurr.nY(), arenaCurr.nEta());
     store_previous_step_for_freezeout(arenaCurr, arenaCopy);
-    int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
-    int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
-    double sigma = std::min(0.1, 0.2 * gridPadding);
+    const int nxOld = arenaCopy.nX();
+    const int nyOld = arenaCopy.nY();
+    const int nxBase = (nxOld + 1) / 2;
+    const int nyBase = (nyOld + 1) / 2;
+    const bool avgX = (nxOld % 2 == 0);
+    const bool avgY = (nyOld % 2 == 0);
+    const int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
+    const int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
+    const double sigma = std::min(0.1, 0.2 * gridPadding);
     arenaCurr.resizeFields(DATA.nx, DATA.ny, arenaCurr.nEta());
+
+    // for a new index (without padding offset) return the contributing old
+    // indices and the Gaussian damping factor for padding cells. The
+    // distance is measured from the nearest edge cell of the original
+    // fluid, so both sides are tapered symmetrically.
+    auto oldIndices = [](int j, int nBase, bool avg, double dx, double sig,
+                         int idx[2], int &nIdx, double &damp) {
+        damp = 1.0;
+        int jClamped = std::max(0, std::min(nBase - 1, j));
+        if (jClamped != j) {
+            double dis = std::abs(j - jClamped) * dx / sig;
+            damp = exp(-dis * dis / 2.);
+        }
+        idx[0] = 2 * jClamped;
+        nIdx = 1;
+        if (avg) {
+            idx[1] = 2 * jClamped + 1;
+            nIdx = 2;
+        }
+    };
+
     for (int ieta = 0; ieta < arenaCurr.nEta(); ieta++) {
         for (int iy = 0; iy < arenaCurr.nY(); iy++) {
+            int iyOld[2];
+            int nyIdx;
+            double dampY;
+            oldIndices(
+                iy - gridOffset_y, nyBase, avgY, DATA.delta_y, sigma, iyOld,
+                nyIdx, dampY);
             for (int ix = 0; ix < arenaCurr.nX(); ix++) {
+                int ixOld[2];
+                int nxIdx;
+                double dampX;
+                oldIndices(
+                    ix - gridOffset_x, nxBase, avgX, DATA.delta_x, sigma,
+                    ixOld, nxIdx, dampX);
+                const double scaleFactor = dampX * dampY;
+                const double weight = scaleFactor / (nxIdx * nyIdx);
+
                 int idxNew = arenaCurr.getFieldIdx(ix, iy, ieta);
-                double scaleFactor = 1.0;
-                int idx_x_old = (ix - gridOffset_x) * 2;
-                if (idx_x_old < 0) {
-                    idx_x_old = 0;
-                    double xdis = (gridOffset_x - ix) * DATA.delta_x / sigma;
-                    scaleFactor *= exp(-xdis * xdis / 2.);
-                } else if (idx_x_old >= arenaCopy.nX()) {
-                    idx_x_old = arenaCopy.nX() - 1;
-                    double xdis =
-                        ((ix
-                          - (gridOffset_x
-                             + static_cast<int>(arenaCopy.nX() / 2)))
-                         * DATA.delta_x / sigma);
-                    scaleFactor *= exp(-xdis * xdis / 2.);
+                double e = 0., rhob = 0., piB = 0., piBChem = 0.;
+                double u[4] = {0., 0., 0., 0.};
+                double W[14] = {0.};
+                for (int a = 0; a < nxIdx; a++) {
+                    for (int b = 0; b < nyIdx; b++) {
+                        int idxOld =
+                            arenaCopy.getFieldIdx(ixOld[a], iyOld[b], ieta);
+                        e += arenaCopy.e_[idxOld];
+                        rhob += arenaCopy.rhob_[idxOld];
+                        piB += arenaCopy.piBulk_[idxOld];
+                        piBChem += arenaCopy.piBulkChem_[idxOld];
+                        for (int nu = 1; nu < 4; nu++) {
+                            u[nu] += arenaCopy.u_[nu][idxOld];
+                        }
+                        for (int nu = 0; nu < 14; nu++) {
+                            W[nu] += arenaCopy.Wmunu_[nu][idxOld];
+                        }
+                    }
                 }
-                int idx_y_old = (iy - gridOffset_y) * 2;
-                if (idx_y_old < 0) {
-                    idx_y_old = 0;
-                    double ydis = (gridOffset_y - iy) * DATA.delta_y / sigma;
-                    scaleFactor *= exp(-ydis * ydis / 2.);
-                } else if (idx_y_old >= arenaCopy.nY()) {
-                    idx_y_old = arenaCopy.nY() - 1;
-                    double ydis =
-                        ((iy
-                          - (gridOffset_y
-                             + static_cast<int>(arenaCopy.nY() / 2)))
-                         * DATA.delta_y / sigma);
-                    scaleFactor *= exp(-ydis * ydis / 2.);
-                }
-                int idxOld = arenaCopy.getFieldIdx(idx_x_old, idx_y_old, ieta);
-                arenaCurr.e_[idxNew] = arenaCopy.e_[idxOld] * scaleFactor;
-                arenaCurr.rhob_[idxNew] = arenaCopy.rhob_[idxOld] * scaleFactor;
+                arenaCurr.e_[idxNew] = e * weight;
+                arenaCurr.rhob_[idxNew] = rhob * weight;
                 for (int nu = 1; nu < 4; nu++) {
-                    arenaCurr.u_[nu][idxNew] =
-                        arenaCopy.u_[nu][idxOld] * scaleFactor;
+                    arenaCurr.u_[nu][idxNew] = u[nu] * weight;
                 }
                 arenaCurr.u_[0][idxNew] = sqrt(
                     1. + arenaCurr.u_[1][idxNew] * arenaCurr.u_[1][idxNew]
                     + arenaCurr.u_[2][idxNew] * arenaCurr.u_[2][idxNew]
                     + arenaCurr.u_[3][idxNew] * arenaCurr.u_[3][idxNew]);
                 for (int nu = 0; nu < 14; nu++) {
-                    arenaCurr.Wmunu_[nu][idxNew] =
-                        arenaCopy.Wmunu_[nu][idxOld] * scaleFactor;
+                    arenaCurr.Wmunu_[nu][idxNew] = W[nu] * weight;
                 }
-                arenaCurr.piBulk_[idxNew] =
-                    arenaCopy.piBulk_[idxOld] * scaleFactor;
-                arenaCurr.piBulkChem_[idxNew] =
-                    arenaCopy.piBulkChem_[idxOld] * scaleFactor;
+                arenaCurr.piBulk_[idxNew] = piB * weight;
+                arenaCurr.piBulkChem_[idxNew] = piBChem * weight;
             }
         }
     }

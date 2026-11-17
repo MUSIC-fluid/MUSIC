@@ -1210,8 +1210,8 @@ void Cell_info::compute_angular_momentum(
                 const double cosh_eta = cosh(eta_s);
                 const double sinh_eta = sinh(eta_s);
                 const double t_local = tau * cosh_eta;
-                const double x_local = DATA.x_size / 2. + ix * dx;
-                const double y_local = DATA.x_size / 2. + iy * dy;
+                const double x_local = -DATA.x_size / 2. + ix * dx;
+                const double y_local = -DATA.y_size / 2. + iy * dy;
                 const double z_local = tau * sinh_eta;
 
                 const double e_local = arena.e_[Idx];
