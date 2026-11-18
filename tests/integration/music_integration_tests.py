@@ -11,6 +11,9 @@ golden numbers.
   conservation_outflow  the same while the fluid leaves through the grid
                         faces: the diagnostic adds the time-integrated face
                         flux
+  lumpy_ideal           E, Pz and N_B are conserved in a lumpy ideal TATB
+                        event (the superluminal-momentum cap in the dilute
+                        cells must keep T^{tau eta})
   lumpy_second_order    a lumpy TATB event with second-order shear terms
                         stays stable (phi7 must not diverge where eta -> 0)
   lumpy_diffusion       the same event with baryon diffusion keeps N_B
@@ -397,6 +400,26 @@ def _write_lumpy_TATB(wd, n, size):
             T += (np.exp(-((X - px)**2 + (Y - py)**2) / (2. * width**2))
                   / (2. * np.pi * width**2))
         np.savetxt(os.path.join(wd, name), T, fmt="%.10e")
+
+
+def test_lumpy_ideal(r):
+    # the dilute cells at the edges of the lumps are pushed past the light
+    # cone every step and capped to |M| = 0.999 T^{tau tau}. Scaling
+    # T^{tau eta} along with the transverse momentum removed sinh(eta)
+    # tau T^{tau eta} from E in each of them: E fell by 3.2e-4 and Pz drifted
+    # by 4e-5, independent of dtau. Now 1.6e-5 and 1e-5; the rest comes
+    # from the few cells where T^{tau eta} alone is superluminal and falls
+    # with deta.
+    n, size = 41, 12.0
+    wd = r.workdir("lumpy_ideal")
+    _write_lumpy_TATB(wd, n, size)
+    r.run(wd, tatb_params(n, size, 17, 10.0, 2.0))
+    tau, E, Px, Py, Pz, NB = read_conservation(wd).T
+    print("    tau = {:.3f} -> {:.3f} fm/c, E0 = {:.4g} GeV".format(
+        tau[0], tau[-1], E[0]))
+    report("max |E/E0 - 1|", np.max(np.abs(E / E[0] - 1)), 5e-5)
+    report("max |Pz - Pz0| / E0", np.max(np.abs(Pz - Pz[0])) / E[0], 2e-5)
+    report("max |N_B/N_B0 - 1|", np.max(np.abs(NB / NB[0] - 1)), 2e-5)
 
 
 def test_lumpy_second_order(r):
@@ -868,6 +891,7 @@ TESTS = [
     ("conservation_ideal", test_conservation_ideal),
     ("conservation_viscous", test_conservation_viscous),
     ("conservation_outflow", test_conservation_outflow),
+    ("lumpy_ideal", test_lumpy_ideal),
     ("lumpy_second_order", test_lumpy_second_order),
     ("lumpy_diffusion", test_lumpy_diffusion),
     ("freezeout_balance", test_freezeout_balance),

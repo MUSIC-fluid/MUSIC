@@ -610,9 +610,32 @@ TEST_CASE("Reconst caps a superluminal T^{0mu} and keeps T00 and J0") {
     const double T00 = (sol.e + P) * sol.u[0] * sol.u[0] - P;
     CHECK(T00 == doctest::Approx(1.0).epsilon(1e-10));
     CHECK(sol.rhob * sol.u[0] == doctest::Approx(0.05).epsilon(1e-10));
-    // the momentum keeps its direction
-    CHECK(sol.u[3] / sol.u[1] == doctest::Approx(0.9 / 0.8).epsilon(1e-10));
     CHECK(sol.e > 0.);
+    // T^{tau eta} is kept (it enters the Cartesian E and P_z); only the
+    // transverse momentum is reduced, to |M| = 0.999 T00
+    const double h = (sol.e + P) * sol.u[0];
+    CHECK(h * sol.u[3] == doctest::Approx(0.9).epsilon(1e-8));
+    const double M = h * std::sqrt(sol.u[1] * sol.u[1] + sol.u[3] * sol.u[3]);
+    CHECK(M == doctest::Approx(0.999).epsilon(1e-8));
+    CHECK(sol.u[2] == 0.);
+}
+
+TEST_CASE("Reconst caps a superluminal T^{tau eta} by scaling all of M") {
+    // T^{tau eta} alone above T00: the transverse momentum cannot absorb it
+    EOS eos(0);
+    Reconst reconst(eos, 0, 0);
+    ReconstCell guess;
+    guess.e = 0.1;
+    guess.rhob = 0.01;
+    guess.u = {1., 0., 0., 0.};
+    const TJbVec tauq = {1.0, 0.3, 0.0, 1.1, 0.05};
+    const ReconstCell sol = reconst.ReconstIt_shell(1.0, tauq, guess);
+    const double P = eos.get_pressure(sol.e, sol.rhob);
+    const double h = (sol.e + P) * sol.u[0];
+    CHECK(h * sol.u[0] - P == doctest::Approx(1.0).epsilon(1e-10));
+    CHECK(sol.u[3] / sol.u[1] == doctest::Approx(1.1 / 0.3).epsilon(1e-8));
+    CHECK(h * std::sqrt(sol.u[1] * sol.u[1] + sol.u[3] * sol.u[3])
+          == doctest::Approx(0.999).epsilon(1e-8));
 }
 
 TEST_CASE("Advance::MakeDeltaQI conserves P_x and N_B at a fast/rest interface") {

@@ -34,12 +34,27 @@ ReconstCell Reconst::ReconstIt_shell(
     // A superluminal T^{0mu} (|M| >= T00) has no solution. Instead of
     // reverting the cell, which does not conserve energy and net baryon
     // number, keep T00 and J0 and cap the momentum below T00.
+    // The Cartesian E and P_z of a cell depend only on T^{tau tau} and
+    // T^{tau eta} (E = cosh(eta) T^{tau tau} + sinh(eta) tau T^{tau eta}),
+    // so only the transverse momentum is reduced: scaling T^{tau eta} as
+    // well removed energy from every capped cell that flows outward in eta
+    // (3e-4 of E in a lumpy event). Only if T^{tau eta} alone is
+    // superluminal (under-resolved eta gradients) is all of M scaled.
     const double M =
         sqrt(q_vec[1] * q_vec[1] + q_vec[2] * q_vec[2] + q_vec[3] * q_vec[3]);
     if (q_vec[0] >= abs_err && M >= q_vec[0]) {
-        const double scale = max_M_over_T00 * q_vec[0] / M;
-        for (int i = 1; i < 4; i++) {
-            q_vec[i] *= scale;
+        const double Mmax2 = std::pow(max_M_over_T00 * q_vec[0], 2);
+        const double Mperp2 = q_vec[1] * q_vec[1] + q_vec[2] * q_vec[2];
+        const double Meta2 = q_vec[3] * q_vec[3];
+        if (Meta2 < Mmax2 && Mperp2 > 0.) {
+            const double scale = std::sqrt((Mmax2 - Meta2) / Mperp2);
+            q_vec[1] *= scale;
+            q_vec[2] *= scale;
+        } else {
+            const double scale = max_M_over_T00 * q_vec[0] / M;
+            for (int i = 1; i < 4; i++) {
+                q_vec[i] *= scale;
+            }
         }
     }
 
