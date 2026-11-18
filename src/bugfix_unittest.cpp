@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -34,6 +35,7 @@
 #include "music.h"
 #include "pretty_ostream.h"
 #include "read_in_parameters.h"
+#include "reconst.h"
 #include "util.h"
 
 namespace {
@@ -551,4 +553,90 @@ TEST_CASE("Evolve reads the last freeze-out entry without a newline") {
     const auto &eps = evolve.getFreezeOutEnergyDensities();
     REQUIRE(eps.size() == 3);
     CHECK(eps[2] == doctest::Approx(0.3));
+}
+
+// ---------------------------------------------------------------------------
+// reconstruction reverts: conservation of the KT update
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Reconst caps a superluminal T^{0mu} and keeps T00 and J0") {
+    // |M| > T00 has no solution; reverting to the old cell did not conserve
+    // energy and net baryon number
+    EOS eos(0);
+    Reconst reconst(eos, 0, 0);
+    ReconstCell guess;
+    guess.e = 0.1;
+    guess.rhob = 0.01;
+    guess.u = {1., 0., 0., 0.};
+
+    const double tau = 1.0;
+    const TJbVec tauq = {1.0, 0.8, 0.0, 0.9, 0.05};  // |M| = 1.2 > T00
+    const ReconstCell sol = reconst.ReconstIt_shell(tau, tauq, guess);
+
+    const double P = eos.get_pressure(sol.e, sol.rhob);
+    const double T00 = (sol.e + P) * sol.u[0] * sol.u[0] - P;
+    CHECK(T00 == doctest::Approx(1.0).epsilon(1e-10));
+    CHECK(sol.rhob * sol.u[0] == doctest::Approx(0.05).epsilon(1e-10));
+    // the momentum keeps its direction
+    CHECK(sol.u[3] / sol.u[1] == doctest::Approx(0.9 / 0.8).epsilon(1e-10));
+    CHECK(sol.e > 0.);
+}
+
+TEST_CASE("Advance::MakeDeltaQI conserves P_x and N_B at a fast/rest interface") {
+    // the half-way state on the neighbour's side was reconstructed with the
+    // own cell as the guess; when its solution was rejected the two
+    // neighbours used different interface fluxes
+    InitData DATA = defaultParameters("Include_Rhob_Yes_1_No_0 1\n");
+    DATA.boost_invariant = true;
+    DATA.nx = 12;
+    DATA.ny = 1;
+    DATA.neta = 1;
+    DATA.delta_x = 0.1;
+    DATA.delta_y = 0.1;
+    DATA.delta_eta = 0.1;
+    DATA.delta_tau = 0.01;
+    DATA.x_size = DATA.delta_x * (DATA.nx - 1);
+    DATA.y_size = 0.;
+    DATA.eta_size = 0.;
+    EOS eos(0);
+    Advance advance(eos, DATA, nullptr);
+
+    Fields arena(DATA.nx, 1, 1);
+    for (int ix = 0; ix < DATA.nx; ix++) {
+        const int idx = arena.getFieldIdx(ix, 0, 0);
+        const bool moving = (ix >= 5 && ix <= 6);
+        const double ux = moving ? 300. : 0.;
+        arena.e_[idx] = 1.;
+        arena.rhob_[idx] = 0.1;
+        arena.u_[0][idx] = sqrt(1. + ux * ux);
+        arena.u_[1][idx] = ux;
+        arena.u_[2][idx] = 0.;
+        arena.u_[3][idx] = 0.;
+    }
+
+    // cells at rest at both edges: no flux through the boundary, so the
+    // updates must sum to zero
+    const double tau = 1.0;
+    // (tau T^{tau x} and J^tau are pure fluxes in x; the energy row also
+    // carries the Milne geometric source)
+    double sumPx = 0., sumNB = 0., scalePx = 0., scaleNB = 0.;
+    for (int ix = 0; ix < DATA.nx; ix++) {
+        // MakeDeltaQI adds the flux update to the cell's own tau T^{tau mu}
+        const ReconstCell cell = arena.getCellIdeal(ix, 0, 0);
+        const double P = eos.get_pressure(cell.e, cell.rhob);
+        TJbVec q0, qi;
+        for (int alpha = 0; alpha < 5; alpha++) {
+            q0[alpha] = tau * advance.get_TJb(cell, alpha, 0, P);
+            qi[alpha] = q0[alpha];
+        }
+        advance.MakeDeltaQI(tau, arena, ix, 0, 0, qi, 0);
+        sumPx += qi[1] - q0[1];
+        sumNB += qi[4] - q0[4];
+        scalePx = std::max(scalePx, std::abs(qi[1] - q0[1]));
+        scaleNB = std::max(scaleNB, std::abs(qi[4] - q0[4]));
+    }
+    REQUIRE(scalePx > 0.);
+    REQUIRE(scaleNB > 0.);
+    CHECK(std::abs(sumPx) < 1e-12 * scalePx);
+    CHECK(std::abs(sumNB) < 1e-12 * scaleNB);
 }

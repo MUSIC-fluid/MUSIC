@@ -609,9 +609,12 @@ void Advance::MakeDeltaQI(
 
             // for each direction, reconstruct half-way cells
             // reconstruct e, rhob, and u[4] for half way cells
+            // each half-way state uses the cell on its own side of the
+            // interface as the guess (and fallback), so that both neighbours
+            // compute the identical flux and the scheme stays conservative
             auto grid_phL = reconst_helper.ReconstIt_shell(tau, qiphL, c);
-            auto grid_phR = reconst_helper.ReconstIt_shell(tau, qiphR, c);
-            auto grid_mhL = reconst_helper.ReconstIt_shell(tau, qimhL, c);
+            auto grid_phR = reconst_helper.ReconstIt_shell(tau, qiphR, p1);
+            auto grid_mhL = reconst_helper.ReconstIt_shell(tau, qimhL, m1);
             auto grid_mhR = reconst_helper.ReconstIt_shell(tau, qimhR, c);
 
             double aiphL = MaxSpeed(tau, direction, grid_phL, pressureP1);

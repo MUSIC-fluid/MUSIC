@@ -31,6 +31,18 @@ ReconstCell Reconst::ReconstIt_shell(
         q_vec[i] = tauq_vec[i] / tau;
     }
 
+    // A superluminal T^{0mu} (|M| >= T00) has no solution. Instead of
+    // reverting the cell, which does not conserve energy and net baryon
+    // number, keep T00 and J0 and cap the momentum below T00.
+    const double M =
+        sqrt(q_vec[1] * q_vec[1] + q_vec[2] * q_vec[2] + q_vec[3] * q_vec[3]);
+    if (q_vec[0] >= abs_err && M >= q_vec[0]) {
+        const double scale = max_M_over_T00 * q_vec[0] / M;
+        for (int i = 1; i < 4; i++) {
+            q_vec[i] *= scale;
+        }
+    }
+
     int flag = ReconstIt_velocity_Newton(grid_p1, tau, q_vec, grid_pt);
 
     if (flag == -1) {

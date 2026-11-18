@@ -21,6 +21,8 @@ class Reconst {
     double abs_err;
 
     const double v_critical;
+    // |T^{0i}|/T^{00} after capping a superluminal T^{0mu} (|M| >= T00)
+    static constexpr double max_M_over_T00 = 0.999;
     const int echo_level;
 
   public:
