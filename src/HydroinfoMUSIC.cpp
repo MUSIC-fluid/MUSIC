@@ -55,8 +55,10 @@ void HydroinfoMUSIC::getHydroValues(
     double yfrac =
         (y - (static_cast<double>(iy) * hydroDy - hydroYmax)) / hydroDy;
     double etafrac =
-        (eta / hydroDeta - static_cast<double>(ieta)
-         + 0.5 * static_cast<double>(ietamax));
+        ((hydro_eta_max + eta) / hydroDeta - static_cast<double>(ieta));
+    if (boost_invariant) {
+        etafrac = 0.;
+    }
     double taufrac = (tau - hydroTau0) / hydroDtau - static_cast<double>(itau);
 
     if (ix < 0 || ix >= ixmax) {
@@ -103,7 +105,8 @@ void HydroinfoMUSIC::getHydroValues(
         info->vz = 0.0;
         return;
     }
-    if (itau < 0 || itau > itaumax) {
+    // itaumax is the number of stored time slices
+    if (itau < 0 || itau >= itaumax) {
         music_message << "[HydroinfoMUSIC::getHydroValues]: WARNING - "
                       << "tau out of range, itau=" << itau
                       << ", itaumax=" << itaumax;

@@ -260,7 +260,7 @@ double HydroSourceAMPT::get_hydro_rhob_source(
                 (u_mu[0]
                  - tanh(y_dump_perp) * sinh_y_perp_flow / cosh(y_dump - eta_s)
                  - tanh(y_dump - eta_s) * u_mu[3]);
-            res += p_dot_u * f_smear;
+            res += it->baryon_number * p_dot_u * f_smear;
         }
         res *= prefactor_tau * prefactor_prep * prefactor_etas;
     }

@@ -49,6 +49,9 @@ class MUSIC {
     //! this function returns the running mode
     int get_running_mode() { return (mode); }
 
+    //! read-only access to the run parameters
+    const InitData &getParameters() const { return (DATA); }
+
     //! This function initialize hydro
     void initialize_hydro();
 

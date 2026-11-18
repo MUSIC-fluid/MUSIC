@@ -393,27 +393,21 @@ void Cell_info::OutputEvolutionDataXYEta_memory(
                         ((static_cast<double>(ieta)) * (DATA.delta_eta)
                          - (DATA.eta_size) / 2.0);
                 }
-                double cosh_eta = cosh(eta);
-                double sinh_eta = sinh(eta);
-
                 double e_local = arena.e_[fieldIdx];        // 1/fm^4
                 double rhob_local = arena.rhob_[fieldIdx];  // 1/fm^3
                 double p_local = eos.get_pressure(e_local, rhob_local);
-                double utau = arena.u_[0][fieldIdx];
+                // store the Milne components u^x, u^y, tau*u^eta;
+                // HydroinfoMUSIC converts them to Cartesian velocities
                 double ux = arena.u_[1][fieldIdx];
                 double uy = arena.u_[2][fieldIdx];
                 double ueta = arena.u_[3][fieldIdx];
-                double ut = utau * cosh_eta + ueta * sinh_eta;  // gamma factor
-                double vx = ux / ut;
-                double vy = uy / ut;
-                double uz = ueta * cosh_eta + utau * sinh_eta;
-                double vz = uz / ut;
 
                 double T_local = eos.get_temperature(e_local, rhob_local);
                 double s_local = eos.get_entropy(e_local, rhob_local);
 
                 hydro_info_ptr.dump_ideal_info_to_memory(
-                    tau, eta, e_local, p_local, s_local, T_local, vx, vy, vz);
+                    tau, eta, e_local, p_local, s_local, T_local, ux, uy,
+                    ueta);
             }
         }
     }
@@ -1400,7 +1394,8 @@ void Cell_info::check_conservation_law(
     music_message << "net longitudinal momentum Pz = " << T_tau_z << " GeV";
     music_message.flush("info");
     music_message << "net baryon number N_B = " << N_B;
-    if (N_B > 0. && N_B < 500.) {
+    // N_B is exactly 0 without baryon transport, so 0 must pass
+    if (N_B >= 0. && N_B < 500.) {
         music_message.flush("info");
     } else {
         music_message.flush("error");

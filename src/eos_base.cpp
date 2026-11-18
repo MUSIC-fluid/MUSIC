@@ -1,6 +1,7 @@
 
 #include "eos_base.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -141,8 +142,23 @@ double EOS_base::interpolate2D(
     double temp2 = 0.;
     double temp3 = 0;
     if (idx_e == N_e - 1) {
-        temp2 = table[table_idx + 1][idx_nb][0];
-        temp3 = table[table_idx + 1][idx_nb][0];
+        // the next e point is the first e row of the next table, whose
+        // nb grid can differ; interpolate it in nb at the two nb values
+        // of the current cell
+        const int next = table_idx + 1;
+        const double nb0_next = nb_bounds[next];
+        const double dnb_next = nb_spacing[next];
+        const int N_nb_next = nb_length[next];
+        auto nextTableAtNb = [&](double nb) {
+            int i = static_cast<int>((nb - nb0_next) / dnb_next);
+            i = std::max(0, std::min(N_nb_next - 2, i));
+            double f = (nb - (i * dnb_next + nb0_next)) / dnb_next;
+            f = std::max(0., std::min(1., f));
+            return (
+                table[next][i][0] * (1. - f) + table[next][i + 1][0] * f);
+        };
+        temp2 = nextTableAtNb(idx_nb * delta_nb + nb0);
+        temp3 = nextTableAtNb((idx_nb + 1) * delta_nb + nb0);
     } else {
         temp2 = table[table_idx][idx_nb][idx_e + 1];
         temp3 = table[table_idx][idx_nb + 1][idx_e + 1];
