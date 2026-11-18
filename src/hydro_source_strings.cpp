@@ -199,8 +199,12 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     if (DATA.dynamicGridDetermination) {
         DATA.beam_rapidity =
             acosh(total_energy / (total_baryon_number * Util::m_N));
-        DATA.eta_size = 2. * DATA.beam_rapidity;
-        DATA.delta_eta = DATA.eta_size / (DATA.neta - 1);
+        // a boost-invariant run has a single eta slice at eta = 0; keep
+        // eta_size = 0 and the delta_eta set in read_in_parameters
+        if (!DATA.boost_invariant && DATA.neta > 1) {
+            DATA.eta_size = 2. * DATA.beam_rapidity;
+            DATA.delta_eta = DATA.eta_size / (DATA.neta - 1);
+        }
 
         double xMax = 0.;
         double yMax = 0.;

@@ -632,7 +632,8 @@ double Diss::Make_uPiSource(
 
     // T dependent bulk viscosity
     bulk = transport_coeffs_.get_zeta_over_s(temperature, mu_B);
-    bulk = bulk * (epsilon + pressure) / temperature;
+    // guard T -> 0 (e.g. cells at the energy floor), as for the shear
+    bulk = bulk * (epsilon + pressure) / std::max(temperature, small_eps);
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
