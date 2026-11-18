@@ -52,7 +52,10 @@ void Diss::MakeWSource(
         /* bulk pressure term */
         double dPidtau = 0.0;
         double Pi_alpha0 = 0.0;
-        if (alpha < 4 && DATA.turn_on_bulk == 1) {
+        // the total bulk pressure Pi = Pi_bulk + Pi_chem enters T^{mu nu}
+        // whenever either part is evolved
+        if (alpha < 4
+            && (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1)) {
             double gfac = (alpha == 0 ? -1.0 : 0.0);
             double PiCurr =
                 arenaCurr.piBulk_[fieldIdx] + arenaCurr.piBulkChem_[fieldIdx];
@@ -110,7 +113,8 @@ void Diss::MakeWSource(
 
                 double Pi_m = 0;
                 double Pi_p = 0;
-                if (DATA.turn_on_bulk == 1 && alpha < 4) {
+                if ((DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1)
+                    && alpha < 4) {
                     double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
                     double PiIp1 =
                         arenaCurr.piBulk_[Ip1] + arenaCurr.piBulkChem_[Ip1];

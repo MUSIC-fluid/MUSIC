@@ -147,7 +147,7 @@ void Advance::FirstRKStepT(
             if (isnan(qi_source[ii])) {
                 music_message << "qi_source is nan. i = " << ii;
                 music_message.flush("error");
-                exit(0);
+                exit(1);
             }
         }
 
@@ -735,7 +735,7 @@ double Advance::MaxSpeed(
     if (f < 0.0) {
         fprintf(stderr, "SpeedMax = %e\n is negative.\n", f);
         fprintf(stderr, "Can't happen.\n");
-        exit(0);
+        exit(1);
     } else if (f < ux / utau) {
         if (num != 0.0) {
             if (fabs(f - ux / utau) < 0.0001) {
@@ -746,7 +746,7 @@ double Advance::MaxSpeed(
                     stderr, "SpeedMax = %e\n is smaller than v = %e.\n", f,
                     ux / utau);
                 fprintf(stderr, "Can't happen.\n");
-                exit(0);
+                exit(1);
             }
         }
     } else if (f > 1.0) {

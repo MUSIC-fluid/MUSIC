@@ -99,7 +99,7 @@ void Freeze::checkForReadError(FILE *file, const char *name) {
     if (!(file)) {
         music_message << "file " << name << " not found. Exiting...";
         music_message.flush("error");
-        exit(0);
+        exit(1);
     }
 }
 
@@ -136,7 +136,7 @@ void Freeze::read_particle_PCE_mu(InitData *DATA, EOS *eos) {
     if (!mu_file.is_open()) {
         music_message << "file " << mu_name << "not found. Exiting...";
         music_message.flush("error");
-        exit(0);
+        exit(1);
     }
     double EPP1;        // start value for \mu_B and epsilon
     double deltaEPP1;   // step size for \mu_B and epsilon
@@ -173,14 +173,14 @@ void Freeze::read_particle_PCE_mu(InitData *DATA, EOS *eos) {
         music_message.error("ERROR in ReadParticleData. out of range.");
         music_message << "ie1=" << ie1 << ",NEPP1=" << NEPP1;
         music_message.flush("error");
-        exit(0);
+        exit(1);
     }
 
     if (ie2 > NEPP1) {
         music_message.error("ERROR in ReadParticleData. out of range.");
         music_message << "ie2=" << ie2 << ",NEPP1=" << NEPP1;
         music_message.flush("error");
-        exit(0);
+        exit(1);
     }
 
     double pa, pb;
@@ -432,7 +432,7 @@ void Freeze::ReadParticleData(InitData *DATA, EOS *eos) {
                 &decay[j].part[2], &decay[j].part[3], &decay[j].part[4]);
             if (h != 8) {
                 printf("Error in scanf decay \n");
-                exit(0);
+                exit(1);
             }
             if (decay[j].numpart == 1) {
                 // "decays" into one particle, i.e. is stable
