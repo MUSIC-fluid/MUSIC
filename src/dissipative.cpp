@@ -246,8 +246,15 @@ void Diss::Make_uWSource(
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
+    // phi7 pi pi enters as transport_coefficient * pi pi / tau_pi, with
+    // transport_coefficient = phi7 (4/5) tau_pi / eta = phi7 (4/5) b_pi /
+    // (e + P). Use the enthalpy form: tau_pi is clamped (>= 3 dtau) while
+    // eta -> 0 in near-vacuum cells, and tau_pi / eta then diverges; a little
+    // pi flowing into such a cell runs away to the regulator cap.
     double transport_coefficient =
-        (transport_coeffs_.get_phi7_coeff() * tau_pi / shear * (4. / 5.));
+        (transport_coeffs_.get_phi7_coeff()
+         * transport_coeffs_.get_shear_relax_time_factor()
+         / std::max(epsilon + pressure, small_eps) * (4. / 5.));
     double transport_coefficient2 =
         (transport_coeffs_.get_delta_pipi_coeff() * tau_pi);
     double transport_coefficient3 =
