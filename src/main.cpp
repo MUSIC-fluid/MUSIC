@@ -57,6 +57,18 @@ void removeOldOutputDatFiles(const InitData &DATA) {
     closedir(dir);
 }
 
+//! A re-run only helps if the next attempt uses a larger grid. That is
+//! the case for the TATB profiles (11, 111), which add padding cells, and
+//! for the string source (13, 131) when the grid is determined from the
+//! strings. Any other setup would repeat the same evolution.
+bool reRunEnlargesGrid(const InitData &DATA) {
+    const int profile = DATA.Initial_profile;
+    if (profile == 11 || profile == 111) return (true);
+    if ((profile == 13 || profile == 131) && DATA.dynamicGridDetermination)
+        return (true);
+    return (false);
+}
+
 }  // namespace
 
 // main program
@@ -87,6 +99,16 @@ int main(int argc, char *argv[]) {
             music_hydro.initialize_hydro();
             evoStatus = music_hydro.run_hydro();
             bReRunHydro = music_hydro.getReRunHydro();
+            if (bReRunHydro
+                && !reRunEnlargesGrid(music_hydro.getParameters())) {
+                std::cout << "The fluid reached the grid edge, but a re-run "
+                          << "with Initial_profile = "
+                          << music_hydro.getParameters().Initial_profile
+                          << " would use the same grid. Not re-running; "
+                          << "please enlarge the grid in the input file."
+                          << std::endl;
+                bReRunHydro = false;
+            }
         }
 
         if (evoStatus == 1) {

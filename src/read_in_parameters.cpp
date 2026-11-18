@@ -830,20 +830,24 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         parameter_list.eta_size = 0.0;
     }
 
-    if (parameter_list.delta_tau / parameter_list.delta_x
-        > parameter_list.dtaudxRatio) {
-        music_message << "Warning: Delta_Tau = " << parameter_list.delta_tau
-                      << " maybe too large! ";
-        music_message.flush("warning");
-
-        bool reset_dtau_use_CFL_condition = true;
+    // reset_dtau_use_CFL_condition: read it unconditionally, because the
+    // initial-condition and source code also check it after changing dx
+    bool reset_dtau_use_CFL_condition = true;
+    {
         int temp_CFL_condition = 1;
         string tempinput =
             Util::StringFind4(input_file, "reset_dtau_use_CFL_condition");
         if (tempinput != "empty")
             istringstream(tempinput) >> temp_CFL_condition;
         if (temp_CFL_condition == 0) reset_dtau_use_CFL_condition = false;
-        parameter_list.resetDtau = reset_dtau_use_CFL_condition;
+    }
+    parameter_list.resetDtau = reset_dtau_use_CFL_condition;
+
+    if (parameter_list.delta_tau / parameter_list.delta_x
+        > parameter_list.dtaudxRatio) {
+        music_message << "Warning: Delta_Tau = " << parameter_list.delta_tau
+                      << " maybe too large! ";
+        music_message.flush("warning");
 
         if (reset_dtau_use_CFL_condition) {
             music_message.info("reset dtau using CFL condition.");

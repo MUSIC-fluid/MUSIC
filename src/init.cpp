@@ -1,6 +1,7 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include "init.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -125,8 +126,13 @@ void Init::InitArena(
             DATA.gridPaddingCells = 10 * DATA.reRunCount;  // count one side
             DATA.nx += 2 * DATA.gridPaddingCells;
             DATA.ny += 2 * DATA.gridPaddingCells;
+            // keep dx, dy fixed and the grid centred at x = y = 0
+            DATA.x_size = DATA.delta_x * (DATA.nx - 1);
+            DATA.y_size = DATA.delta_y * (DATA.ny - 1);
             music_message << "reRunCount = " << DATA.reRunCount
-                          << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
+                          << ", nx=" << DATA.nx << ", ny=" << DATA.ny
+                          << ", x_size=" << DATA.x_size
+                          << " fm, y_size=" << DATA.y_size << " fm";
             music_message.flush("info");
         }
     } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
@@ -975,6 +981,13 @@ void Init::initial_MCGlb_with_rhob(
     const int nx = arenaFieldsCurr.nX() - 2 * DATA.gridPaddingCells;
     const int ny = arenaFieldsCurr.nY() - 2 * DATA.gridPaddingCells;
     const int neta = arenaFieldsCurr.nEta();
+
+    // the padding cells added on a re-run get the same floor as the
+    // rest of the grid instead of e = 0 exactly (which gives T = 0)
+    std::fill(
+        arenaFieldsCurr.e_.begin(), arenaFieldsCurr.e_.end(),
+        Util::small_eps);
+    std::fill(arenaFieldsCurr.rhob_.begin(), arenaFieldsCurr.rhob_.end(), 0.);
 
     std::vector<double> temp_profile_TA(nx * ny);
     std::vector<double> temp_profile_TB(nx * ny);
