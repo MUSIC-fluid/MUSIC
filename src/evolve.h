@@ -72,6 +72,7 @@ class Evolve {
         const std::vector<Fields *> &fieldList, double gridPadding,
         bool coarsen);
     bool fluidNearGridEdge(Fields &arena);
+    bool hotCellsRemain(const Fields &arena, const double epsFO) const;
     void extrapolatePrevForNewDtau(
         Fields &arenaCurr, Fields &arenaPrev, double dtauRatio);
     void store_previous_step_for_freezeout(

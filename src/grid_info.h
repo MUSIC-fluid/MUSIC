@@ -41,7 +41,7 @@ class Cell_info {
     double **deltaf_coeff_tb_14mom_DV;
     double **deltaf_coeff_tb_14mom_Bpi_shear;
 
-    TJbVec Pmu_edge_prev, outflow_flux;
+    TJbVec outflow_flux;
 
   public:
     Cell_info(const InitData &DATA_in, const EOS &eos_ptr_in);
@@ -127,6 +127,10 @@ class Cell_info {
     //! at a give proper time
     void check_conservation_law(
         Fields &arena, Fields &arena_prev, const double tau);
+
+    //! rate at which E, Px, Py, Pz [GeV] and N_B leave the grid faces
+    void boundary_outflow_rate(
+        Fields &arena, const double tau, TJbVec &rate) const;
 
     //! This function outputs the evolution of hydrodynamic variables at a
     //! give fluid cell

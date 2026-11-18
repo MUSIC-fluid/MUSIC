@@ -4,12 +4,13 @@
 Each test generates its own small initial state (no downloads), runs
 MUSIChydro in a temporary directory, and checks a physical invariant or the
 agreement of two code paths that must give the same answer, instead of
-golden numbers. Note: global_conservation_laws.dat counts changes of the
-edge-cell content as outflow, so the tests that read it keep the fluid away
-from the grid edges.
+golden numbers.
 
   conservation_ideal    E, P and N_B are conserved in a 3D ideal TATB run
   conservation_viscous  the same with shear and bulk viscosity
+  conservation_outflow  the same while the fluid leaves through the grid
+                        faces: the diagnostic adds the time-integrated face
+                        flux
   freezeout_balance     E, Px, Pz through the Cornelius surface equal the
                         initial content of the hot region (ideal 3D)
   beastmode3            beastMode 3 (grid enlargement, dtau doubling,
@@ -18,6 +19,7 @@ from the grid edges.
                         on a larger grid and agrees with a large-grid run; a
                         profile that cannot enlarge the grid stops; input
                         files survive the output clean-up
+  rerun_2d              the same for a boost-invariant run
   threads               results do not depend on the number of OpenMP threads
   ipglasma_paths        the same T^{mu nu} given as initial condition
                         (profile 9) and as source term (profile 17) give the
@@ -362,6 +364,20 @@ def test_conservation_viscous(r):
     _conservation(r, "conservation_viscous", viscous=True)
 
 
+def test_conservation_outflow(r):
+    # an 8 fm box: matter flows out through the x, y and eta faces
+    wd = r.workdir("conservation_outflow")
+    write_TATB(wd, 27, 8.0, NA=15., NB=10., b=1.0)
+    r.run(wd, tatb_params(27, 8.0, 17, 4.0, 3.0))
+    tau, E, Px, Py, Pz, NB = read_conservation(wd).T
+    print("    tau = {:.3f} -> {:.3f} fm/c, E0 = {:.4g} GeV".format(
+        tau[0], tau[-1], E[0]))
+    report("max |E/E0 - 1|", np.max(np.abs(E / E[0] - 1)), 5e-5)
+    report("max |N_B/N_B0 - 1|", np.max(np.abs(NB / NB[0] - 1)), 5e-5)
+    report("max |Pz - Pz0| / E0", np.max(np.abs(Pz - Pz[0])) / E[0], 1e-5)
+    report("max |Px - Px0| / E0", np.max(np.abs(Px - Px[0])) / E[0], 1e-6)
+
+
 def _fireball_3d(n=41, size=12.0, neta=41, eta_size=8.0):
     x = np.linspace(-size / 2., size / 2., n)
     eta = np.linspace(-eta_size / 2., eta_size / 2., neta)
@@ -543,6 +559,34 @@ def test_rerun(r):
           "missing the message about not re-running")
 
 
+def test_rerun_2d(r):
+    # the boost-invariant finder must also stop at the grid edge and re-run
+    n, size, pad = 27, 8.0, 20
+    dx = size / (n - 1)
+    common = dict(boost_invariant=1, **freeze_out_params(0.3, every=5))
+    wd = r.workdir("rerun_2d")
+    write_TATB(wd, n, size, sigma=1.5, NA=30., NB=25., b=0.5)
+    log, _, _ = r.run(wd, tatb_params(n, size, 1, 0., 30., **common))
+    nstart = log.count("initArena")
+    print("    hydro started {} times".format(nstart))
+    check(nstart >= 2, "the 2D run that reached the grid edge was not re-run")
+    f_rr = surface_fluxes(read_surface(wd))
+
+    ref = r.workdir("rerun_2d_reference")
+    for name in ("TA.dat", "TB.dat"):
+        T = np.loadtxt(os.path.join(wd, name))
+        np.savetxt(os.path.join(ref, name), np.pad(T, pad), fmt="%.10e")
+    nref = n + 2 * pad
+    log, _, _ = r.run(ref, tatb_params(nref, dx * (nref - 1), 1, 0., 30.,
+                                       **common))
+    check(log.count("initArena") == 1, "the reference run was re-run")
+    f_ref = surface_fluxes(read_surface(ref))
+    report("|E_rerun / E_ref - 1| (surface energy)",
+           rel(f_rr["E"], f_ref["E"]), 1e-3)
+    report("|S_rerun / S_ref - 1| (entropy flux)", rel(f_rr["S"], f_ref["S"]),
+           1e-3)
+
+
 def test_threads(r):
     nthreads = 4
     out = {}
@@ -710,9 +754,11 @@ def test_memory_history(r):
 TESTS = [
     ("conservation_ideal", test_conservation_ideal),
     ("conservation_viscous", test_conservation_viscous),
+    ("conservation_outflow", test_conservation_outflow),
     ("freezeout_balance", test_freezeout_balance),
     ("beastmode3", test_beastmode3),
     ("rerun", test_rerun),
+    ("rerun_2d", test_rerun_2d),
     ("threads", test_threads),
     ("ipglasma_paths", test_ipglasma_paths),
     ("boost_invariance", test_boost_invariance),

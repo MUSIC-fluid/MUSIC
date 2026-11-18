@@ -675,6 +675,16 @@ int Evolve::FindFreezeOutSurface_Cornelius(
                 intersections += nCells;
             }
         }
+        if (!hitGridBoundary && intersections == 0
+            && hotCellsRemain(arena_current, epsFO)) {
+            // the hot region has no boundary inside the grid
+            music_message << "No freeze-out surface at tau = " << tau
+                          << " fm/c, but cells are above e_FO = "
+                          << epsFO * hbarc << " GeV/fm^3. "
+                          << "The grid is too small!";
+            music_message.flush("error");
+            hitGridBoundary = true;
+        }
         if (hitGridBoundary) {
             DATA.reRunHydro = true;
         }
@@ -684,6 +694,14 @@ int Evolve::FindFreezeOutSurface_Cornelius(
     }
 
     return (intersections + 1);
+}
+
+bool Evolve::hotCellsRemain(const Fields &arena, const double epsFO) const {
+    // true if any cell is above the freeze-out energy density
+    for (const double e : arena.e_) {
+        if (e > epsFO) return true;
+    }
+    return false;
 }
 
 int Evolve::FindFreezeOutSurface_Cornelius_XY(
@@ -1411,7 +1429,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
             }
         }
 
-        for (int ix = 0; ix < nx - fac_x; ix += fac_x) {
+        bool hitGridBoundary = false;
+        for (int ix = 0; ix < nx - fac_x && !hitGridBoundary; ix += fac_x) {
             double x = ix * (DATA.delta_x) - (DATA.x_size / 2.0);
             for (int iy = 0; iy < ny - fac_y; iy += fac_y) {
                 double y = iy * (DATA.delta_y) - (DATA.y_size / 2.0);
@@ -1445,7 +1464,8 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
                                   << "The grid is too small! ix = " << ix
                                   << " iy = " << iy;
                     music_message.flush("error");
-                    exit(1);
+                    hitGridBoundary = true;
+                    break;
                 }
 
                 // if intersect, prepare for the hyper-cube
@@ -1652,6 +1672,24 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         }
         delete[] cube;
         delete[] fluid_cube;
+
+        if (!hitGridBoundary && intersections == 0
+            && hotCellsRemain(arena_current, epsFO)) {
+            // the hot region has no boundary inside the grid
+            music_message << "No freeze-out surface at tau = " << tau
+                          << " fm/c, but cells are above e_FO = "
+                          << epsFO * hbarc << " GeV/fm^3. "
+                          << "The grid is too small!";
+            music_message.flush("error");
+            hitGridBoundary = true;
+        }
+        if (hitGridBoundary) {
+            // like the 3D finder: the caller stops and main re-runs on a
+            // larger grid where the initial profile allows it
+            DATA.reRunHydro = true;
+            delete[] all_frozen;
+            return (0);
+        }
 
         // judge whether the entire fireball is freeze-out
         all_frozen[i_freezesurf] = 0;
