@@ -140,6 +140,23 @@ void Init::InitArena(
         DATA.tau0 = std::max(DATA.tau0, tau_overlap) - DATA.delta_tau;
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
+        if (DATA.reRunCount == 0) {
+            DATA.gridPaddingCells = 0;
+        } else {
+            // the source keeps TA, TB on the original grid and is zero
+            // outside it, so only the hydro grid is enlarged
+            DATA.gridPaddingCells = 10 * DATA.reRunCount;  // count one side
+            DATA.nx += 2 * DATA.gridPaddingCells;
+            DATA.ny += 2 * DATA.gridPaddingCells;
+            // keep dx, dy fixed and the grid centred at x = y = 0
+            DATA.x_size = DATA.delta_x * (DATA.nx - 1);
+            DATA.y_size = DATA.delta_y * (DATA.ny - 1);
+            music_message << "reRunCount = " << DATA.reRunCount
+                          << ", nx=" << DATA.nx << ", ny=" << DATA.ny
+                          << ", x_size=" << DATA.x_size
+                          << " fm, y_size=" << DATA.y_size << " fm";
+            music_message.flush("info");
+        }
     } else if (DATA.Initial_profile == 17) {
         music_message.info(
             "Initialize hydro with source terms from pre-equilibrium model");

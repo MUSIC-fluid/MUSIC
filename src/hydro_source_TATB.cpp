@@ -60,6 +60,11 @@ HydroSourceTATB::HydroSourceTATB(InitData &DATA_in) : DATA_(DATA_in) {
     gridDX_ = DATA_.delta_x;
     gridDY_ = DATA_.delta_y;
 
+    // dimensions of profile_TA/TB, used to clamp the gradient stencil
+    gridNX_ = static_cast<int>(profile_TA.size());
+    gridNY_ = gridNX_ > 0 ? static_cast<int>(profile_TA[0].size()) : 0;
+    preEqFlowFactor_ = DATA_.preEqFlowFactor;
+
     eta0_ = DATA_.eta_flat / 2.;
     eta_m_ = DATA_.eta_m;
     sigma_eta_ = DATA_.eta_fall_off;
@@ -229,26 +234,16 @@ void HydroSourceTATB::computeTATB(
     }
 }
 
-void HydroSourceTATB::get_hydro_energy_source(
-    const double tau, const double x, const double y, const double eta_s,
-    const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
-    j_mu = {0};
-    if (std::abs((tau - tau_source)) > 1. / 2. * DATA_.delta_tau) return;
-
-    const int ix = static_cast<int>((x - gridXmin_) / gridDX_ + 0.1);
-    const int iy = static_cast<int>((y - gridYmin_) / gridDY_ + 0.1);
-    if (!profileIndexInRange(ix, iy)) return;
-
-    const double TA = profile_TA[ix][iy];
-    const double TB = profile_TB[ix][iy];
-
+void HydroSourceTATB::compute_energy_density(
+    const double TA, const double TB, const double eta_s, double &epsilon,
+    double &y_L) const {
     double y_CM = atanh((TA - TB) / (TA + TB + Util::small_eps) * tanhYbeam_);
     double M_inv =
         Util::m_N
         * std::sqrt(TA * TA + TB * TB + 2.0 * TA * TB * std::cosh(2.0 * ybeam_))
         / (Util::hbarc);
 
-    double y_L = yL_frac_ * y_CM;
+    y_L = yL_frac_ * y_CM;
     if (beta_ > 1e-8) {
         // for mixed profile, use yL solved from tilted source model
         y_L = compute_yL(TA, TB, y_CM, eta0_, sigma_eta_, eta_m_);
@@ -274,12 +269,71 @@ void HydroSourceTATB::get_hydro_energy_source(
              TA, TB, eta0_, eta_m_, sigma_eta_, y_CM, M_inv, y_L)
          / tau_source);
 
-    double epsilon = (beta_ * tilted_epsilon * tilted_norm
-                      + (1. - beta_) * shifted_epsilon * shifted_norm)
-                     / DATA_.delta_tau;  // [1/fm^5]
+    epsilon =
+        (beta_ * tilted_epsilon * tilted_norm
+         + (1. - beta_) * shifted_epsilon * shifted_norm);  // [1/fm^4]
+}
 
-    j_mu[0] = epsilon * cosh(y_L);  // [1/fm^5]
-    j_mu[3] = epsilon * sinh(y_L);  // [1/fm^5]
+void HydroSourceTATB::get_hydro_energy_source(
+    const double tau, const double x, const double y, const double eta_s,
+    const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
+    j_mu = {0};
+    if (std::abs((tau - tau_source)) > 1. / 2. * DATA_.delta_tau) return;
+
+    // outside the stored profile (e.g. a re-run on an enlarged grid) TA and
+    // TB are zero
+    // floor, not a cast: a cast truncates -0.9 to 0, so the padding cell
+    // next to the profile would repeat its edge column
+    const int ix = static_cast<int>(std::floor((x - gridXmin_) / gridDX_ + 0.1));
+    const int iy = static_cast<int>(std::floor((y - gridYmin_) / gridDY_ + 0.1));
+    if (!profileIndexInRange(ix, iy)) return;
+
+    const double TA = profile_TA[ix][iy];
+    const double TB = profile_TB[ix][iy];
+
+    double epsilon = 0;
+    double y_L = 0;
+    compute_energy_density(TA, TB, eta_s, epsilon, y_L);
+
+    // compute the transverse gradient of the energy density
+    int idx_x = std::min(gridNX_ - 1, ix + 1);
+    double e_px = 0;
+    double y_temp = 0;
+    compute_energy_density(
+        profile_TA[idx_x][iy], profile_TB[idx_x][iy], eta_s, e_px, y_temp);
+    idx_x = std::max(0, ix - 1);
+    double e_mx = 0;
+    compute_energy_density(
+        profile_TA[idx_x][iy], profile_TB[idx_x][iy], eta_s, e_mx, y_temp);
+    double de_dx =
+        (e_px - e_mx) / (2. * gridDX_ * epsilon + Util::small_eps);  // [1/fm]
+    int idx_y = std::min(gridNY_ - 1, iy + 1);
+    double e_py = 0;
+    compute_energy_density(
+        profile_TA[ix][idx_y], profile_TB[ix][idx_y], eta_s, e_py, y_temp);
+    idx_y = std::max(0, iy - 1);
+    double e_my = 0;
+    compute_energy_density(
+        profile_TA[ix][idx_y], profile_TB[ix][idx_y], eta_s, e_my, y_temp);
+    double de_dy =
+        (e_py - e_my) / (2. * gridDY_ * epsilon + Util::small_eps);  // [1/fm]
+
+    double eta_x = -preEqFlowFactor_ * de_dx;
+    double eta_y = -preEqFlowFactor_ * de_dy;
+    double eta_perp = sqrt(eta_x * eta_x + eta_y * eta_y);
+    if (epsilon < 1e-6) eta_perp = 0;
+    eta_perp = std::min(20., eta_perp);
+
+    double phi = atan2(eta_y, eta_x);
+    double gamma_perp = cosh(eta_perp);
+    double u_perp = sinh(eta_perp);
+
+    double de_dtau = epsilon / DATA_.delta_tau;  // [1/fm^5]
+
+    j_mu[0] = de_dtau * cosh(y_L);                       // [1/fm^5]
+    j_mu[1] = de_dtau * u_perp * cos(phi) / gamma_perp;  // [1/fm^5]
+    j_mu[2] = de_dtau * u_perp * sin(phi) / gamma_perp;  // [1/fm^5]
+    j_mu[3] = de_dtau * sinh(y_L);                       // [1/fm^5]
 }
 
 double HydroSourceTATB::get_hydro_rhob_source(
@@ -288,8 +342,8 @@ double HydroSourceTATB::get_hydro_rhob_source(
     double res = 0.;
     if (std::abs((tau - tau_source)) > 1. / 2. * DATA_.delta_tau) return (res);
 
-    const int ix = static_cast<int>((x - gridXmin_) / gridDX_ + 0.1);
-    const int iy = static_cast<int>((y - gridYmin_) / gridDY_ + 0.1);
+    const int ix = static_cast<int>(std::floor((x - gridXmin_) / gridDX_ + 0.1));
+    const int iy = static_cast<int>(std::floor((y - gridYmin_) / gridDY_ + 0.1));
     if (!profileIndexInRange(ix, iy)) return (res);
     const double TA = profile_TA[ix][iy];
     const double TB = profile_TB[ix][iy];

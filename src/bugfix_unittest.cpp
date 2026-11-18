@@ -351,7 +351,7 @@ TEST_CASE("reRunEnlargesGrid only for setups that enlarge the grid") {
     // item 8
     InitData DATA;
     DATA.dynamicGridDetermination = false;
-    for (int profile : {11, 111}) {
+    for (int profile : {11, 111, 112, 113}) {
         DATA.Initial_profile = profile;
         CHECK(MUSICRunControl::reRunEnlargesGrid(DATA));
     }
@@ -362,7 +362,7 @@ TEST_CASE("reRunEnlargesGrid only for setups that enlarge the grid") {
         DATA.dynamicGridDetermination = true;
         CHECK(MUSICRunControl::reRunEnlargesGrid(DATA));
     }
-    for (int profile : {8, 9, 42, 112}) {
+    for (int profile : {8, 9, 42}) {
         DATA.Initial_profile = profile;
         CHECK_FALSE(MUSICRunControl::reRunEnlargesGrid(DATA));
     }
@@ -371,6 +371,39 @@ TEST_CASE("reRunEnlargesGrid only for setups that enlarge the grid") {
 // ---------------------------------------------------------------------------
 // item 9: IP-Glasma Tmunu source, tau0 scaling of pi^{x eta}, pi^{y eta}
 // ---------------------------------------------------------------------------
+
+TEST_CASE("HydroSourceTATB: zero outside the stored TA, TB profile") {
+    // a re-run pads the hydro grid; the cells next to the stored profile
+    // must not repeat its edge column (int cast of -0.9 gives 0)
+    const std::string dir = makeTempDir();
+    std::ostringstream profile;
+    for (int i = 0; i < 9; i++) profile << "1.0\n";
+    InitData DATA = defaultParameters();
+    DATA.Initial_profile = 112;
+    DATA.initName_TA = writeFile(dir, "TA.dat", profile.str());
+    DATA.initName_TB = writeFile(dir, "TB.dat", profile.str());
+    DATA.nx = DATA.ny = 3;
+    DATA.x_size = DATA.y_size = 2.;
+    DATA.delta_x = DATA.delta_y = 1.;
+    DATA.delta_tau = 0.02;
+    DATA.ecm = 19.6;
+    DATA.beam_rapidity = acosh(DATA.ecm / (2. * 0.938));
+    DATA.tau0 = 1.;
+    HydroSourceTATB source(DATA);
+    const double tau = source.get_source_tau_min();
+
+    EnergyFlowVec j_mu;
+    source.get_hydro_energy_source(tau, -1., 0., 0., {1, 0, 0, 0}, j_mu);
+    CHECK(j_mu[0] > 0.);  // edge of the profile
+    for (double x : {-2., -1.5, 2., 3.}) {
+        source.get_hydro_energy_source(tau, x, 0., 0., {1, 0, 0, 0}, j_mu);
+        CHECK(j_mu[0] == 0.);
+        CHECK(source.get_hydro_rhob_source(tau, x, 0., 0., {1, 0, 0, 0})
+              == 0.);
+    }
+    source.get_hydro_energy_source(tau, 0., -2., 0., {1, 0, 0, 0}, j_mu);
+    CHECK(j_mu[0] == 0.);
+}
 
 TEST_CASE("HydroSourceTmunu: pi^{x eta} is scaled by tau0 like u^eta") {
     const std::string dir = makeTempDir();

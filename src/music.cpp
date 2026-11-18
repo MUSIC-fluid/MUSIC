@@ -246,7 +246,8 @@ void removeOldOutputDatFiles(const InitData &DATA) {
 //! strings. Any other setup would repeat the same evolution.
 bool reRunEnlargesGrid(const InitData &DATA) {
     const int profile = DATA.Initial_profile;
-    if (profile == 11 || profile == 111) return (true);
+    if (profile == 11 || profile == 111 || profile == 112 || profile == 113)
+        return (true);
     if ((profile == 13 || profile == 131) && DATA.dynamicGridDetermination)
         return (true);
     return (false);

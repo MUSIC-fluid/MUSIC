@@ -20,6 +20,7 @@ golden numbers.
                         profile that cannot enlarge the grid stops; input
                         files survive the output clean-up
   rerun_2d              the same for a boost-invariant run
+  rerun_source          the same for the TATB source (Initial_profile 112)
   threads               results do not depend on the number of OpenMP threads
   ipglasma_paths        the same T^{mu nu} given as initial condition
                         (profile 9) and as source term (profile 17) give the
@@ -587,6 +588,39 @@ def test_rerun_2d(r):
            1e-3)
 
 
+def test_rerun_source(r):
+    # the source keeps TA, TB on the original grid; the re-run only pads
+    # the hydro grid, so it must match a run on the padded TA, TB.
+    # 23 cells (6.8 fm): the 112 fireball reaches the edge
+    dx = 8.0 / 26
+    n, pad = 23, 20
+    size = dx * (n - 1)
+    common = dict(Initial_profile=112, **freeze_out_params(0.3, every=5))
+    wd = r.workdir("rerun_source")
+    write_TATB(wd, n, size, sigma=1.5, NA=30., NB=25., b=0.5)
+    log, _, _ = r.run(wd, tatb_params(n, size, 17, 8.0, 30., **common))
+    nstart = log.count("initArena")
+    print("    hydro started {} times".format(nstart))
+    check(nstart >= 2, "the 112 run that reached the grid edge was not "
+          "re-run")
+    check("All cells frozen out" in log, "the re-run did not freeze out")
+    f_rr = surface_fluxes(read_surface(wd))
+
+    ref = r.workdir("rerun_source_reference")
+    for name in ("TA.dat", "TB.dat"):
+        T = np.loadtxt(os.path.join(wd, name))
+        np.savetxt(os.path.join(ref, name), np.pad(T, pad), fmt="%.10e")
+    nref = n + 2 * pad
+    log, _, _ = r.run(ref, tatb_params(nref, dx * (nref - 1), 17, 8.0, 30.,
+                                       **common))
+    check(log.count("initArena") == 1, "the reference run was re-run")
+    f_ref = surface_fluxes(read_surface(ref))
+    report("|E_rerun / E_ref - 1| (surface energy)",
+           rel(f_rr["E"], f_ref["E"]), 1e-3)
+    report("|S_rerun / S_ref - 1| (entropy flux)", rel(f_rr["S"], f_ref["S"]),
+           1e-3)
+
+
 def test_threads(r):
     nthreads = 4
     out = {}
@@ -759,6 +793,7 @@ TESTS = [
     ("beastmode3", test_beastmode3),
     ("rerun", test_rerun),
     ("rerun_2d", test_rerun_2d),
+    ("rerun_source", test_rerun_source),
     ("threads", test_threads),
     ("ipglasma_paths", test_ipglasma_paths),
     ("boost_invariance", test_boost_invariance),
