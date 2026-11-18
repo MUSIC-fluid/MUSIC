@@ -29,7 +29,19 @@ class Advance {
 
     bool flag_add_hydro_source;
 
+    // Deferred correction of the viscous time-derivative term (see
+    // FirstRKStepT). Valid only if the grid and delta_tau are unchanged
+    // since the last full RK2 step.
+    bool viscousCorrectionValid_ = false;
+    double viscousCorrectionTau_ = 0.;  // tau_{n+1} + delta_tau
+    // the correction is applied where |V_{n+1} - V*| <= this * |V_{n+1} -
+    // V_n|, i.e. where V is resolved smoothly in time
+    static constexpr double viscousCorrectionSmoothness_ = 0.25;
+
   public:
+    //! call when the grid or delta_tau changes between time steps
+    void invalidateViscousCorrection() { viscousCorrectionValid_ = false; }
+
     Advance(
         const EOS &eosIn, const InitData &DATA_in,
         std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);

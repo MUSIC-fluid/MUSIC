@@ -103,6 +103,12 @@ void Advance::AdvanceIt(
                         baryon_diffusion_vector, ieta, ix, iy, fieldIdx);
                 }
             }
+    if (rk_flag == 1) {
+        // arenaFieldsCurr holds the predictor V*; after the pointer swap in
+        // Evolve::AdvanceRK it is the next step's arenaFieldsNext
+        viscousCorrectionValid_ = true;
+        viscousCorrectionTau_ = tau + 2. * DATA.delta_tau;
+    }
 }
 
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
@@ -165,10 +171,51 @@ void Advance::FirstRKStepT(
     diss_helper.MakeWSource(
         tau_rk, ix, iy, ieta, dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
 
+    // Deferred correction of the viscous time-derivative term. With
+    // V^alpha = W^{alpha tau} + Pi (g^{alpha tau} + u^alpha u^tau), the two
+    // RK stages subtract (tau_{n+1} V_n - tau_n V_{n-1}) and
+    // (tau_{n+2} V* - tau_{n+1} V_n), V* being the predictor. Their average
+    // telescopes only if V* = V_{n+1}; the remainder 1/2 tau_{n+2}
+    // (V_{n+1} - V*) is O(dtau^2) per step and adds up to an O(dtau) drift
+    // of E and P. At the start of the next step arenaFieldsNext still holds
+    // V* and arenaFieldsCurr holds V_{n+1}, so the first stage removes it.
+    // It is applied twice here because the RK average halves the first
+    // stage. Cells where V is not resolved smoothly in time (regulated,
+    // dilute edges) are left alone: there V* can miss V_{n+1} by O(V) and
+    // the correction would feed back on the flow.
+    TJbVec viscCorr = {0.};
+    if (rk_flag == 0 && viscousCorrectionValid_ && DATA.viscosity_flag == 1) {
+        const bool withPi =
+            (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1);
+        auto V = [&](const Fields &f, const int alpha) {
+            const int idx = alpha < 4 ? alpha : 10;  // W^{alpha tau}, q^tau
+            double v = f.Wmunu_[idx][fieldIdx];
+            if (alpha < 4 && withPi) {
+                const double g = (alpha == 0 ? -1. : 0.);
+                const double Pi = f.piBulk_[fieldIdx] + f.piBulkChem_[fieldIdx];
+                v += Pi * (g + f.u_[alpha][fieldIdx] * f.u_[0][fieldIdx]);
+            }
+            return v;
+        };
+        double predictorMiss = 0.;
+        double stepChange = 0.;
+        for (int alpha = 0; alpha < 5; alpha++) {
+            const double Vn1 = V(arenaFieldsCurr, alpha);
+            const double Vstar = V(arenaFieldsNext, alpha);
+            viscCorr[alpha] = viscousCorrectionTau_ * (Vn1 - Vstar);
+            predictorMiss += std::abs(Vn1 - Vstar);
+            stepChange += std::abs(Vn1 - V(arenaFieldsPrev, alpha));
+        }
+        if (predictorMiss > viscousCorrectionSmoothness_ * stepChange) {
+            viscCorr = {0.};
+        }
+    }
+
     double pressurePrev = eos.get_pressure(cellPrev.e, cellPrev.rhob);
     for (int alpha = 0; alpha < 5; alpha++) {
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn[alpha] * (DATA.delta_tau);
+        qi[alpha] -= viscCorr[alpha];
 
         // add energy moemntum and net baryon density source terms
         qi[alpha] += qi_source[alpha] * DATA.delta_tau;

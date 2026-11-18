@@ -126,6 +126,7 @@ int Evolve::EvolveIt(
                 // them to tau - delta_tau_new so that backward time
                 // derivatives (curr - prev)/delta_tau stay consistent
                 extrapolatePrevForNewDtau(*fpCurr, *fpPrev, 2.);
+                advance.invalidateViscousCorrection();
                 if (freezeStarted) {
                     extrapolatePrevForNewDtau(
                         freezeoutFieldCurr, freezeoutFieldPrev, 2.);
@@ -153,6 +154,7 @@ int Evolve::EvolveIt(
             const double padding = std::max(
                 DATA.gridPadding, std::max(DATA.delta_x, DATA.delta_y));
             regridTransverse(allFields, padding, false);
+            advance.invalidateViscousCorrection();
             music_message << "BeastMode: enlarged the grid by " << padding
                           << " fm on each side, nx = " << DATA.nx
                           << ", ny = " << DATA.ny

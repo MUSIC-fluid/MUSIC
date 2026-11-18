@@ -346,14 +346,13 @@ def _conservation(r, name, viscous):
     # the TATB model puts sqrt(s)/2 per participant into the fluid
     report("|E0 / (sqrt(s)/2 (N_A + N_B)) - 1|", rel(E[0], 9.8 * 25.), 1e-3)
     report("|N_B0 / (N_A + N_B) - 1|", rel(NB[0], 25.), 1e-3)
-    # with viscosity, E and Pz are conserved to O(dtau) (~1.5e-4 per fm/c
-    # at dtau = 0.02); N_B exactly
-    tol = 1e-3 if viscous else 2e-5
-    report("max |E/E0 - 1|", np.max(np.abs(E / E[0] - 1)), tol)
+    # the diagnostic reports the two-level total the scheme conserves; with
+    # the deferred viscous correction the viscous run is conserved to
+    # O(dtau^2) (2e-6 at dtau = 0.02)
+    report("max |E/E0 - 1|", np.max(np.abs(E / E[0] - 1)), 2e-5)
     report("max |N_B/N_B0 - 1|", np.max(np.abs(NB / NB[0] - 1)), 2e-5)
-    report("max |Pz - Pz0| / E0", np.max(np.abs(Pz - Pz[0])) / E[0], tol)
-    report("max |Px - Px0| / E0", np.max(np.abs(Px - Px[0])) / E[0],
-           2e-6 if viscous else 1e-7)
+    report("max |Pz - Pz0| / E0", np.max(np.abs(Pz - Pz[0])) / E[0], 2e-5)
+    report("max |Px - Px0| / E0", np.max(np.abs(Px - Px[0])) / E[0], 1e-7)
     report("max |Py| / E0", np.max(np.abs(Py)) / E[0], 1e-8)
 
 

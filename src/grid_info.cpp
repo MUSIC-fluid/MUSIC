@@ -1305,36 +1305,44 @@ void Cell_info::check_conservation_law(
                 const double cosh_eta = cosh(eta_s);
                 const double sinh_eta = sinh(eta_s);
 
-                N_B += arena.rhob_[Idx] * arena.u_[0][Idx]
-                       + arena_prev.Wmunu_[10][Idx];
+                // The KT/RK2 update conserves tau_n T_ideal^{tau mu}(n) +
+                // 1/2 [tau_{n+1} V(n) + tau_n V(n-1)], with V^mu = W^{tau mu}
+                // + Pi (g^{tau mu} + u^tau u^mu) and Pi = Pi_bulk + Pi_chem
+                // at each time level (see Advance::FirstRKStepT). Divided by
+                // tau here; the factor below multiplies by tau.
+                const double wCurr = 0.5 * (1. + DATA.delta_tau / tau);
+                const double wPrev = 0.5;
                 const double e_local = arena.e_[Idx];
                 const double pressure =
                     eos.get_pressure(e_local, arena.rhob_[Idx]);
-                const double u0 = arena.u_[0][Idx];
-                const double u1 = arena.u_[1][Idx];
-                const double u2 = arena.u_[2][Idx];
-                const double u3 = arena.u_[3][Idx];
-                const double uPrev0 = arena_prev.u_[0][Idx];
-                const double uPrev1 = arena_prev.u_[1][Idx];
-                const double uPrev2 = arena_prev.u_[2][Idx];
-                const double uPrev3 = arena_prev.u_[3][Idx];
-                const double T00_local =
-                    (e_local + pressure) * u0 * u0 - pressure;
-                const double Pi00_rk_0 =
-                    (arena_prev.piBulk_[Idx]
-                     * (-1.0 + arena_prev.u_[0][Idx] * arena_prev.u_[0][Idx]));
-
-                const double T_tau_tau =
-                    (T00_local + arena_prev.Wmunu_[0][Idx] + Pi00_rk_0);
-                const double T01_local =
-                    ((e_local + pressure) * u0 * u1 + arena_prev.Wmunu_[1][Idx]
-                     + arena_prev.piBulk_[Idx] * uPrev0 * uPrev1);
-                const double T02_local =
-                    ((e_local + pressure) * u0 * u2 + arena_prev.Wmunu_[2][Idx]
-                     + arena_prev.piBulk_[Idx] * uPrev0 * uPrev2);
-                const double T_tau_eta =
-                    ((e_local + pressure) * u0 * u3 + arena_prev.Wmunu_[3][Idx]
-                     + arena_prev.piBulk_[Idx] * uPrev0 * uPrev3);
+                const double PiCurr =
+                    arena.piBulk_[Idx] + arena.piBulkChem_[Idx];
+                const double PiPrev =
+                    arena_prev.piBulk_[Idx] + arena_prev.piBulkChem_[Idx];
+                double T[4];
+                for (int a = 0; a < 4; a++) {
+                    const double g = (a == 0 ? -1. : 0.);
+                    const double VCurr =
+                        arena.Wmunu_[a][Idx]
+                        + PiCurr * (g + arena.u_[0][Idx] * arena.u_[a][Idx]);
+                    const double VPrev =
+                        arena_prev.Wmunu_[a][Idx]
+                        + PiPrev
+                              * (g
+                                 + arena_prev.u_[0][Idx]
+                                       * arena_prev.u_[a][Idx]);
+                    T[a] = (e_local + pressure) * arena.u_[0][Idx]
+                               * arena.u_[a][Idx]
+                           + (a == 0 ? -pressure : 0.) + wCurr * VCurr
+                           + wPrev * VPrev;
+                }
+                N_B += arena.rhob_[Idx] * arena.u_[0][Idx]
+                       + wCurr * arena.Wmunu_[10][Idx]
+                       + wPrev * arena_prev.Wmunu_[10][Idx];
+                const double T_tau_tau = T[0];
+                const double T01_local = T[1];
+                const double T02_local = T[2];
+                const double T_tau_eta = T[3];
                 T_tau_t += T_tau_tau * cosh_eta + T_tau_eta * sinh_eta;
                 T_tau_x += T01_local;
                 T_tau_y += T02_local;
@@ -1378,7 +1386,7 @@ void Cell_info::check_conservation_law(
         music_message.flush("error");
         exit(1);
     }
-    output_file << scientific << setprecision(6) << tau << "  " << T_tau_t
+    output_file << scientific << setprecision(10) << tau << "  " << T_tau_t
                 << "  " << T_tau_x << "  " << T_tau_y << "  " << T_tau_z << "  "
                 << N_B << std::endl;
     output_file.close();
