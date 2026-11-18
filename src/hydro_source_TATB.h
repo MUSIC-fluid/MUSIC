@@ -36,6 +36,11 @@ class HydroSourceTATB : public HydroSourceBase {
     double beta_;
 
   public:
+    //! Integrals of exp(k eta) cosh(eta) and exp(k eta) sinh(eta) over the
+    //! plateau [-eta_m, eta_m], finite also at k = +-1 (|ln a| = 2 eta_m)
+    static void plateauExpIntegrals(
+        const double k, const double eta_m, double &I_cosh, double &I_sinh);
+
     HydroSourceTATB() = delete;
     HydroSourceTATB(InitData &DATA_in);
     ~HydroSourceTATB();

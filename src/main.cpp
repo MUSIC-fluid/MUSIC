@@ -1,75 +1,15 @@
 // Original copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 // Massively cleaned up and improved by Chun Shen 2015-2016
 
-#include <dirent.h>
 #include <stdio.h>
-#include <cstdio>
 #include <sys/stat.h>
 
 #include <iostream>
 #include <string>
-#include <utility>
-#include <vector>
 
 #include "music.h"
 #include "music_logo.h"
 #include "version.h"
-
-namespace {
-
-//! Remove the *.dat files in the working directory left by a previous run
-//! (some outputs are opened in append mode), but keep every input file
-//! named in the parameters, e.g. the default freeze-out list
-//! eps_freeze_list_s95p_v1.dat or an initial profile given as a bare name.
-void removeOldOutputDatFiles(const InitData &DATA) {
-    const std::vector<std::string> inputFiles = {
-        DATA.initName,      DATA.initName_TA,
-        DATA.initName_TB,   DATA.initName_participants,
-        DATA.initName_AMPT, DATA.freeze_list_filename,
-    };
-    // identify input files by device and inode, so relative paths such as
-    // "./file.dat" or symbolic links are matched too
-    std::vector<std::pair<dev_t, ino_t>> keep;
-    for (const auto &name : inputFiles) {
-        struct stat st;
-        if (!name.empty() && stat(name.c_str(), &st) == 0) {
-            keep.emplace_back(st.st_dev, st.st_ino);
-        }
-    }
-
-    DIR *dir = opendir(".");
-    if (dir == nullptr) return;
-    while (struct dirent *entry = readdir(dir)) {
-        const std::string name = entry->d_name;
-        if (name.size() <= 4 || name.compare(name.size() - 4, 4, ".dat") != 0)
-            continue;
-        struct stat st;
-        if (lstat(name.c_str(), &st) != 0 || !S_ISREG(st.st_mode)) continue;
-        bool isInput = false;
-        for (const auto &k : keep) {
-            if (k.first == st.st_dev && k.second == st.st_ino) {
-                isInput = true;
-                break;
-            }
-        }
-        if (!isInput) std::remove(name.c_str());
-    }
-    closedir(dir);
-}
-
-//! A re-run only helps if the next attempt uses a larger grid. That is
-//! the case for the TATB profiles (11, 111), which add padding cells, and
-//! for the string source (13, 131) when the grid is determined from the
-//! strings. Any other setup would repeat the same evolution.
-bool reRunEnlargesGrid(const InitData &DATA) {
-    const int profile = DATA.Initial_profile;
-    if (profile == 11 || profile == 111) return (true);
-    if ((profile == 13 || profile == 131) && DATA.dynamicGridDetermination)
-        return (true);
-    return (false);
-}
-
-}  // namespace
 
 // main program
 int main(int argc, char *argv[]) {
@@ -92,7 +32,7 @@ int main(int argc, char *argv[]) {
         music_hydro.setReRunCount(ireRunHydroCount);
         music_hydro.setReRunHydro(false);
 
-        removeOldOutputDatFiles(music_hydro.getParameters());
+        MUSICRunControl::removeOldOutputDatFiles(music_hydro.getParameters());
         int running_mode = music_hydro.get_running_mode();
         int evoStatus = 0;
         if (running_mode == 1 || running_mode == 2) {
@@ -100,7 +40,8 @@ int main(int argc, char *argv[]) {
             evoStatus = music_hydro.run_hydro();
             bReRunHydro = music_hydro.getReRunHydro();
             if (bReRunHydro
-                && !reRunEnlargesGrid(music_hydro.getParameters())) {
+                && !MUSICRunControl::reRunEnlargesGrid(
+                       music_hydro.getParameters())) {
                 std::cout << "The fluid reached the grid edge, but a re-run "
                           << "with Initial_profile = "
                           << music_hydro.getParameters().Initial_profile

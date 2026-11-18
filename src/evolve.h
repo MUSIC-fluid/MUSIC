@@ -83,6 +83,11 @@ class Evolve {
         double Wmunu_regulated[4][4]) const;
 
     void initialize_freezeout_surface_info();
+    //! freeze-out energy densities [GeV/fm^3] set by
+    //! initialize_freezeout_surface_info()
+    const std::vector<double> &getFreezeOutEnergyDensities() const {
+        return (epsFO_list);
+    }
 
     Cell_small four_dimension_linear_interpolation(
         double *lattice_spacing, double fraction[2][4], Cell_small ****cube);

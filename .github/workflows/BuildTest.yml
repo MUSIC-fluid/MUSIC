@@ -32,6 +32,13 @@ jobs:
           cmake ..
           make -j2
           make install
+      - name: Unit Tests
+        run: |
+          mkdir build_unittest
+          cd build_unittest
+          cmake .. -Dunittest=ON
+          make -j2 unittest_bugfix.e
+          ./src/unittest_bugfix.e
       - name: Gubser Flow Test
         run: |
           pip3 install numpy

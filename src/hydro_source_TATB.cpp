@@ -439,11 +439,13 @@ double sinhc(const double x) {
     return (std::sinh(x) / x);
 }
 
+}  // namespace
+
 //! Integrals of exp(k eta) cosh(eta) and exp(k eta) sinh(eta) over
 //! [-eta_m, eta_m], written with sinhc so they stay finite at k = +-1
 //! (|ln a| = 2 eta_m), where the textbook closed form has a removable
 //! 1/(4 eta_m^2 - ln^2 a) singularity.
-void plateauExpIntegrals(
+void HydroSourceTATB::plateauExpIntegrals(
     const double k, const double eta_m, double &I_cosh, double &I_sinh) {
     if (eta_m <= 0.) {
         I_cosh = 0.;
@@ -455,8 +457,6 @@ void plateauExpIntegrals(
     I_cosh = eta_m * (gp + gm);
     I_sinh = eta_m * (gp - gm);
 }
-
-}  // namespace
 
 double HydroSourceTATB::compute_yL(
     const double TA, const double TB, const double ycm, const double eta_0,

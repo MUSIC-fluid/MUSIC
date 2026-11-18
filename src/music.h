@@ -129,4 +129,13 @@ class MUSIC {
     void setReRunCount(int reRunCount) { DATA.reRunCount = reRunCount; }
 };
 
+//! helpers used by main() around each (re-)run of the hydro evolution
+namespace MUSICRunControl {
+//! remove *.dat outputs of a previous run from the working directory,
+//! keeping the input files named in DATA
+void removeOldOutputDatFiles(const InitData &DATA);
+//! whether a re-run after the fluid hit the grid edge uses a larger grid
+bool reRunEnlargesGrid(const InitData &DATA);
+}  // namespace MUSICRunControl
+
 #endif  // SRC_MUSIC_H_
