@@ -120,11 +120,11 @@ void Init::InitArena(
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
         if (DATA.reRunCount == 0) {
-            DATA.gridPadding = 0;
+            DATA.gridPaddingCells = 0;
         } else {
-            DATA.gridPadding = 10 * DATA.reRunCount;  // count one side
-            DATA.nx += 2 * DATA.gridPadding;
-            DATA.ny += 2 * DATA.gridPadding;
+            DATA.gridPaddingCells = 10 * DATA.reRunCount;  // count one side
+            DATA.nx += 2 * DATA.gridPaddingCells;
+            DATA.ny += 2 * DATA.gridPaddingCells;
             music_message << "reRunCount = " << DATA.reRunCount
                           << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
             music_message.flush("info");
@@ -972,10 +972,8 @@ void Init::initial_MCGlb_with_rhob(
     ifstream profile_TA(DATA.initName_TA.c_str());
     ifstream profile_TB(DATA.initName_TB.c_str());
 
-    const int nx =
-        arenaFieldsCurr.nX() - 2 * static_cast<int>(DATA.gridPadding);
-    const int ny =
-        arenaFieldsCurr.nY() - 2 * static_cast<int>(DATA.gridPadding);
+    const int nx = arenaFieldsCurr.nX() - 2 * DATA.gridPaddingCells;
+    const int ny = arenaFieldsCurr.nY() - 2 * DATA.gridPaddingCells;
     const int neta = arenaFieldsCurr.nEta();
 
     std::vector<double> temp_profile_TA(nx * ny);
@@ -1069,8 +1067,8 @@ void Init::initial_MCGlb_with_rhob(
                 epsilon = std::max(Util::small_eps, epsilon);
 
                 int idx_f = arenaFieldsCurr.getFieldIdx(
-                    static_cast<int>(ix + DATA.gridPadding),
-                    static_cast<int>(iy + DATA.gridPadding), ieta);
+                    ix + DATA.gridPaddingCells, iy + DATA.gridPaddingCells,
+                    ieta);
                 arenaFieldsCurr.e_[idx_f] = epsilon;
                 arenaFieldsCurr.rhob_[idx_f] = rhob;
 

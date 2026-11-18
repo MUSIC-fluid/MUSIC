@@ -23,8 +23,15 @@ class HydroSourceTATB : public HydroSourceBase {
     std::vector<std::vector<double>> profile_TA;
     std::vector<std::vector<double>> profile_TB;
     double ybeam_, tanhYbeam_, cosh2Ybeam_;
+    // grid on which profile_TA/TB are stored (the initial hydro grid). It is
+    // kept fixed even if beastMode later changes the hydro grid.
     double gridXmin_, gridYmin_, gridDX_, gridDY_;
-    double gridDtau_;
+
+    bool profileIndexInRange(const int ix, const int iy) const {
+        return (
+            ix >= 0 && iy >= 0 && ix < static_cast<int>(profile_TA.size())
+            && iy < static_cast<int>(profile_TA[ix].size()));
+    }
     double eta0_, eta_m_, sigma_eta_;
     double beta_;
 

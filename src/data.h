@@ -42,6 +42,9 @@ typedef struct init_data {
     std::string initName_AMPT;  //!< initial state filename from AMPT
 
     double gridPadding;  //!< grid padding size from user (default: 3 fm)
+    //! extra grid cells added on each side when re-running hydro
+    //! (used by Initial_profile 11/111; in number of cells, not fm)
+    int gridPaddingCells;
 
     //! random seed
     int seed;

@@ -90,6 +90,7 @@ InitData read_in_parameters(std::string input_file) {
         (getParameter(input_file, "parton_quench_factor", 1.0));
 
     parameter_list.gridPadding = getParameter(input_file, "gridPadding", 3.0);
+    parameter_list.gridPaddingCells = 0;
 
     //////////////////////////////////////////////////////////////////////////
     // parameters for parameteric initial conditions

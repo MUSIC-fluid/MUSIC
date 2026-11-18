@@ -72,9 +72,15 @@ int Evolve::EvolveIt(
         }
     }
 
-    music_message << "Freeze-out surface starts at "
-                  << tau0 + iFreezeStart * DATA.delta_tau << " fm/c.";
+    // beastMode >= 2 changes delta_tau during the evolution, so the
+    // freeze-out start is tracked in tau, not in time-step index
+    const double tauFreezeStart = tau0 + iFreezeStart * DATA.delta_tau;
+    music_message << "Freeze-out surface starts at " << tauFreezeStart
+                  << " fm/c.";
     music_message.flush("info");
+    bool freezeStarted = false;
+    int itFreezeStart = -1;     // time step at which freeze-out started
+    double tauLastFreeze = 0.;  // tau of the stored freeze-out slice
 
     Fields *fpPrev = &arenaFieldsPrev;
     Fields *fpCurr = &arenaFieldsCurr;
@@ -92,10 +98,20 @@ int Evolve::EvolveIt(
     const double max_allowed_e_increase_factor = 5.;
     double tau = tau0;
     int NtauBlock = 192;
-    int gridEnlargedTimes = 0;
     while (tau < tauMax) {
+        const std::vector<Fields *> allFields = {
+            fpPrev, fpCurr, fpNext, &freezeoutFieldPrev, &freezeoutFieldCurr};
         if (DATA.beastMode > 1 && it > 0 && (it % NtauBlock == 0)) {
+            bool doubleDtau = false;
+            bool coarsenGrid = false;
             if (DATA.delta_x / (2. * DATA.delta_tau) > 5) {
+                doubleDtau = true;
+            } else if (DATA.beastMode == 3 && DATA.delta_tau < 0.05) {
+                // maximum delta_tau < 0.1 fm/c
+                doubleDtau = true;
+                coarsenGrid = true;
+            }
+            if (doubleDtau) {
                 DATA.delta_tau = 2. * DATA.delta_tau;
                 NtauBlock =
                     std::max(192, static_cast<int>(3.84 / DATA.delta_tau));
@@ -103,48 +119,43 @@ int Evolve::EvolveIt(
                 DATA.output_evolution_every_N_timesteps = (std::max(
                     1, static_cast<int>(
                            DATA.output_evolution_every_N_timesteps / 2)));
+                if (coarsenGrid) {
+                    regridTransverse(allFields, 0., true);
+                }
+                // the previous slices are one old time step behind; shift
+                // them to tau - delta_tau_new so that backward time
+                // derivatives (curr - prev)/delta_tau stay consistent
+                extrapolatePrevForNewDtau(*fpCurr, *fpPrev, 2.);
+                if (freezeStarted) {
+                    extrapolatePrevForNewDtau(
+                        freezeoutFieldCurr, freezeoutFieldPrev, 2.);
+                }
                 music_message
                     << "BeastMode: changed delta_tau = " << DATA.delta_tau
                     << " fm/c";
-                music_message.flush("info");
-            } else if (DATA.beastMode == 3 && DATA.delta_tau < 0.05) {
-                // maximum delta_tau < 0.1 fm/c
-                DATA.delta_tau = 2. * DATA.delta_tau;
-                NtauBlock =
-                    std::max(192, static_cast<int>(3.84 / DATA.delta_tau));
-                DATA.facTau = std::max(1, static_cast<int>(DATA.facTau / 2.));
-                DATA.output_evolution_every_N_timesteps = (std::max(
-                    1, static_cast<int>(
-                           DATA.output_evolution_every_N_timesteps / 2)));
-                double gridPadding = 0.;
-                if (tau > 6. * (gridEnlargedTimes + 1)) {
-                    gridPadding = DATA.gridPadding;
-                    gridEnlargedTimes++;
+                if (coarsenGrid) {
+                    music_message << ", dx = " << DATA.delta_x
+                                  << " fm, dy = " << DATA.delta_y
+                                  << " fm, nx = " << DATA.nx
+                                  << ", ny = " << DATA.ny
+                                  << ", x_size = " << DATA.x_size
+                                  << " fm, y_size = " << DATA.y_size << " fm";
                 }
-                DATA.delta_x = DATA.delta_x * 2;
-                DATA.delta_y = DATA.delta_y * 2;
-                int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
-                int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
-                // odd n -> (n+1)/2 points on the even sub-lattice,
-                // even n -> n/2 points at the centres of cell pairs;
-                // both keep the coarse grid centred at x = y = 0
-                DATA.nx = (fpCurr->nX() + 1) / 2 + 2 * gridOffset_x;
-                DATA.ny = (fpCurr->nY() + 1) / 2 + 2 * gridOffset_y;
-                DATA.x_size = DATA.delta_x * (DATA.nx - 1);
-                DATA.y_size = DATA.delta_y * (DATA.ny - 1);
-                coarseGrainAndEnlargeGrid(*fpPrev, gridPadding);
-                coarseGrainAndEnlargeGrid(*fpCurr, gridPadding);
-                coarseGrainAndEnlargeGrid(*fpNext, gridPadding);
-                coarseGrainAndEnlargeGrid(freezeoutFieldPrev, gridPadding);
-                coarseGrainAndEnlargeGrid(freezeoutFieldCurr, gridPadding);
-                music_message
-                    << "BeastMode: changed delta_tau = " << DATA.delta_tau
-                    << " fm/c, dx = " << DATA.delta_x
-                    << " fm, dy  = " << DATA.delta_y << " fm, nx = " << DATA.nx
-                    << ", ny = " << DATA.ny << ", x_size = " << DATA.x_size
-                    << " fm, y_size = " << DATA.y_size << " fm";
                 music_message.flush("info");
             }
+        }
+        // enlarge the transverse grid whenever the fluid above the
+        // freeze-out energy density approaches the grid edge
+        if (DATA.beastMode == 3 && DATA.gridPadding > 0.
+            && fluidNearGridEdge(*fpCurr)) {
+            regridTransverse(allFields, DATA.gridPadding, false);
+            music_message << "BeastMode: enlarged the grid by "
+                          << DATA.gridPadding
+                          << " fm on each side, nx = " << DATA.nx
+                          << ", ny = " << DATA.ny
+                          << ", x_size = " << DATA.x_size
+                          << " fm, y_size = " << DATA.y_size << " fm";
+            music_message.flush("info");
         }
         int facTau = DATA.facTau;
         int Nskip_timestep = DATA.output_evolution_every_N_timesteps;
@@ -154,10 +165,16 @@ int Evolve::EvolveIt(
             hydro_source_terms_ptr->prepare_list_for_current_tau_frame(tau);
         }
         // store initial conditions
-        if (it == iFreezeStart) {
+        const bool isFreezeStartStep =
+            (!freezeStarted && tau > tauFreezeStart - 0.5 * dt);
+        if (isFreezeStartStep) {
+            freezeStarted = true;
+            itFreezeStart = it;
+            tauLastFreeze = tau;
             store_previous_step_for_freezeout(*fpPrev, freezeoutFieldPrev);
             store_previous_step_for_freezeout(*fpCurr, freezeoutFieldCurr);
         }
+        const int itSinceFreezeStart = freezeStarted ? it - itFreezeStart : -1;
 
         // if (DATA.Initial_profile == 13) {
         //     if (tau >= source_tau_max + dt && tau < source_tau_max + 2*dt) {
@@ -199,10 +216,10 @@ int Evolve::EvolveIt(
             return (-1);
         }
 
-        if (it == iFreezeStart || it == iFreezeStart + 10
-            || it == iFreezeStart + 30 || it == iFreezeStart + 50) {
+        if (itSinceFreezeStart == 0 || itSinceFreezeStart == 10
+            || itSinceFreezeStart == 30 || itSinceFreezeStart == 50) {
             grid_info.output_momentum_anisotropy_vs_etas(
-                it - iFreezeStart, tau, *fpCurr);
+                itSinceFreezeStart, tau, *fpCurr);
         }
 
         if (DATA.beastMode == 0) {
@@ -273,7 +290,7 @@ int Evolve::EvolveIt(
             double nB_max_curr = 0.;
             grid_info.get_maximum_energy_density(
                 *fpCurr, emax_loc, nB_max_curr, Tmax_curr);
-            if (tau > source_tau_max + dt && it > iFreezeStart) {
+            if (tau > source_tau_max + dt && itSinceFreezeStart > 0) {
                 if (eps_max_cur < 0.) {
                     eps_max_cur = emax_loc;
                 } else {
@@ -301,11 +318,17 @@ int Evolve::EvolveIt(
         // determine freeze-out surface
         int frozen = 0;
         if (freezeout_flag == 1) {
-            if (freezeout_lowtemp_flag == 1 && it == iFreezeStart) {
+            if (freezeout_lowtemp_flag == 1 && isFreezeStartStep) {
                 frozen = FreezeOut_equal_tau_Surface(tau, *fpCurr);
             }
             // avoid freeze-out at the first time step
-            if ((it - iFreezeStart) % facTau == 0 && it > iFreezeStart) {
+            // Freeze-out is done every facTau*dt in tau. The interval is
+            // measured from the stored slice, so it stays correct when
+            // beastMode changes delta_tau and facTau mid-interval.
+            if (itSinceFreezeStart > 0
+                && tau - tauLastFreeze > (facTau - 0.5) * dt) {
+                freezeoutDTau_ = tau - tauLastFreeze;
+                tauLastFreeze = tau;
                 if (!DATA.boost_invariant) {
                     frozen = FindFreezeOutSurface_Cornelius(
                         tau, *fpPrev, *fpCurr, freezeoutFieldPrev,
@@ -379,104 +402,228 @@ void Evolve::store_previous_step_for_freezeout(
     arenaFreeze.Wmunu_ = arenaCurr.Wmunu_;
 }
 
-void Evolve::coarseGrainAndEnlargeGrid(Fields &arenaCurr, double gridPadding) {
-    // this function coarse grains the transverse grid by doubling dx and dy
-    // it allows to enlarge the grid by gridPadding on both sides
-    //
-    // Old grid: n points at x_i = -(n-1)dx/2 + i dx.
-    // New grid (before padding): nBase = (n+1)/2 points with spacing 2dx,
-    // centred at x = 0.
-    //   n odd : new point j sits exactly on old point 2j
-    //   n even: new point j sits at the midpoint of old points 2j and 2j+1,
-    //           so we average the two
-    // This keeps the fluid at the same physical position after coarsening.
-    // DATA.delta_x/y must already be the new (doubled) spacings.
-    Fields arenaCopy(arenaCurr.nX(), arenaCurr.nY(), arenaCurr.nEta());
-    store_previous_step_for_freezeout(arenaCurr, arenaCopy);
-    const int nxOld = arenaCopy.nX();
-    const int nyOld = arenaCopy.nY();
-    const int nxBase = (nxOld + 1) / 2;
-    const int nyBase = (nyOld + 1) / 2;
-    const bool avgX = (nxOld % 2 == 0);
-    const bool avgY = (nyOld % 2 == 0);
+void Evolve::regridTransverse(
+    const std::vector<Fields *> &fieldList, double gridPadding, bool coarsen) {
+    // update the transverse grid information in DATA and remap all fields
+    // coarsen = true : double dx and dy (coarse grid stays centred at 0)
+    // gridPadding > 0: add gridPadding [fm] of padding cells on both sides
+    if (fieldList.empty()) return;
+    const int nxOld = fieldList[0]->nX();
+    const int nyOld = fieldList[0]->nY();
+    if (coarsen) {
+        DATA.delta_x = DATA.delta_x * 2;
+        DATA.delta_y = DATA.delta_y * 2;
+    }
     const int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
     const int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
-    const double sigma = std::min(0.1, 0.2 * gridPadding);
+    // odd n -> (n+1)/2 points on the even sub-lattice,
+    // even n -> n/2 points at the centres of cell pairs
+    const int nxBase = coarsen ? (nxOld + 1) / 2 : nxOld;
+    const int nyBase = coarsen ? (nyOld + 1) / 2 : nyOld;
+    DATA.nx = nxBase + 2 * gridOffset_x;
+    DATA.ny = nyBase + 2 * gridOffset_y;
+    DATA.x_size = DATA.delta_x * (DATA.nx - 1);
+    DATA.y_size = DATA.delta_y * (DATA.ny - 1);
+    for (auto &field : fieldList) {
+        coarseGrainAndEnlargeGrid(*field, gridPadding, coarsen);
+    }
+}
+
+void Evolve::coarseGrainAndEnlargeGrid(
+    Fields &arenaCurr, double gridPadding, bool coarsen) {
+    // this function remaps the transverse grid onto DATA.nx x DATA.ny.
+    // coarsen = true: dx and dy are doubled (DATA.delta_x/y must already be
+    // the new spacings).
+    //   Old grid: n points at x_i = -(n-1)dx/2 + i dx.
+    //   New grid (before padding): (n+1)/2 points with spacing 2dx,
+    //   centred at x = 0.
+    //     n odd : new point j sits on old point 2j; use the 1/4-1/2-1/4
+    //             filter over old points 2j-1, 2j, 2j+1
+    //     n even: new point j sits at the midpoint of old points 2j and 2j+1;
+    //             average the two
+    //   Both keep the fluid at the same physical position and conserve
+    //   integral of each density over the plane.
+    // gridPadding > 0: gridPadding [fm] of padding cells is added on both
+    // sides. Padding cells copy the nearest edge cell of the original fluid
+    // with e, rhob, and u^i damped by a Gaussian in the distance from that
+    // edge. They are set to local equilibrium (no dissipative fields), so
+    // that pi^{mu nu} stays transverse to u and traceless.
+    Fields arenaCopy(arenaCurr.nX(), arenaCurr.nY(), arenaCurr.nEta());
+    store_previous_step_for_freezeout(arenaCurr, arenaCopy);
+    const int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
+    const int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
+    const double sigma = std::max(1e-6, 0.2 * gridPadding);
     arenaCurr.resizeFields(DATA.nx, DATA.ny, arenaCurr.nEta());
 
-    // for a new index (without padding offset) return the contributing old
-    // indices and the Gaussian damping factor for padding cells. The
-    // distance is measured from the nearest edge cell of the original
-    // fluid, so both sides are tapered symmetrically.
-    auto oldIndices = [](int j, int nBase, bool avg, double dx, double sig,
-                         int idx[2], int &nIdx, double &damp) {
-        damp = 1.0;
-        int jClamped = std::max(0, std::min(nBase - 1, j));
-        if (jClamped != j) {
-            double dis = std::abs(j - jClamped) * dx / sig;
-            damp = exp(-dis * dis / 2.);
-        }
-        idx[0] = 2 * jClamped;
-        nIdx = 1;
-        if (avg) {
-            idx[1] = 2 * jClamped + 1;
-            nIdx = 2;
-        }
+    struct Stencil {
+        int idx[3];
+        double w[3];
+        int n;
+        double damp;
+        bool isPadding;
     };
+    // build the mapping from new to old indices along one direction
+    auto buildStencils = [&](int nOld, int nNew, int offset, double dx) {
+        const int nBase = coarsen ? (nOld + 1) / 2 : nOld;
+        std::vector<Stencil> stencils(nNew);
+        for (int i = 0; i < nNew; i++) {
+            Stencil &st = stencils[i];
+            const int j = i - offset;
+            const int jClamped = std::max(0, std::min(nBase - 1, j));
+            st.isPadding = (jClamped != j);
+            st.damp = 1.0;
+            if (st.isPadding) {
+                double dis = std::abs(j - jClamped) * dx / sigma;
+                st.damp = exp(-dis * dis / 2.);
+            }
+            auto clampOld = [nOld](int k) {
+                return std::max(0, std::min(nOld - 1, k));
+            };
+            if (!coarsen) {
+                st.n = 1;
+                st.idx[0] = jClamped;
+                st.w[0] = 1.0;
+            } else if (nOld % 2 == 1) {
+                st.n = 3;
+                st.idx[0] = clampOld(2 * jClamped - 1);
+                st.idx[1] = clampOld(2 * jClamped);
+                st.idx[2] = clampOld(2 * jClamped + 1);
+                st.w[0] = 0.25;
+                st.w[1] = 0.5;
+                st.w[2] = 0.25;
+            } else {
+                st.n = 2;
+                st.idx[0] = 2 * jClamped;
+                st.idx[1] = 2 * jClamped + 1;
+                st.w[0] = 0.5;
+                st.w[1] = 0.5;
+            }
+        }
+        return stencils;
+    };
+    const auto stencilX = buildStencils(
+        arenaCopy.nX(), arenaCurr.nX(), gridOffset_x, DATA.delta_x);
+    const auto stencilY = buildStencils(
+        arenaCopy.nY(), arenaCurr.nY(), gridOffset_y, DATA.delta_y);
 
     for (int ieta = 0; ieta < arenaCurr.nEta(); ieta++) {
         for (int iy = 0; iy < arenaCurr.nY(); iy++) {
-            int iyOld[2];
-            int nyIdx;
-            double dampY;
-            oldIndices(
-                iy - gridOffset_y, nyBase, avgY, DATA.delta_y, sigma, iyOld,
-                nyIdx, dampY);
+            const Stencil &sy = stencilY[iy];
             for (int ix = 0; ix < arenaCurr.nX(); ix++) {
-                int ixOld[2];
-                int nxIdx;
-                double dampX;
-                oldIndices(
-                    ix - gridOffset_x, nxBase, avgX, DATA.delta_x, sigma,
-                    ixOld, nxIdx, dampX);
-                const double scaleFactor = dampX * dampY;
-                const double weight = scaleFactor / (nxIdx * nyIdx);
-
-                int idxNew = arenaCurr.getFieldIdx(ix, iy, ieta);
+                const Stencil &sx = stencilX[ix];
                 double e = 0., rhob = 0., piB = 0., piBChem = 0.;
                 double u[4] = {0., 0., 0., 0.};
                 double W[14] = {0.};
-                for (int a = 0; a < nxIdx; a++) {
-                    for (int b = 0; b < nyIdx; b++) {
+                for (int a = 0; a < sx.n; a++) {
+                    for (int b = 0; b < sy.n; b++) {
+                        const double w = sx.w[a] * sy.w[b];
                         int idxOld =
-                            arenaCopy.getFieldIdx(ixOld[a], iyOld[b], ieta);
-                        e += arenaCopy.e_[idxOld];
-                        rhob += arenaCopy.rhob_[idxOld];
-                        piB += arenaCopy.piBulk_[idxOld];
-                        piBChem += arenaCopy.piBulkChem_[idxOld];
+                            arenaCopy.getFieldIdx(sx.idx[a], sy.idx[b], ieta);
+                        e += w * arenaCopy.e_[idxOld];
+                        rhob += w * arenaCopy.rhob_[idxOld];
+                        piB += w * arenaCopy.piBulk_[idxOld];
+                        piBChem += w * arenaCopy.piBulkChem_[idxOld];
                         for (int nu = 1; nu < 4; nu++) {
-                            u[nu] += arenaCopy.u_[nu][idxOld];
+                            u[nu] += w * arenaCopy.u_[nu][idxOld];
                         }
                         for (int nu = 0; nu < 14; nu++) {
-                            W[nu] += arenaCopy.Wmunu_[nu][idxOld];
+                            W[nu] += w * arenaCopy.Wmunu_[nu][idxOld];
                         }
                     }
                 }
-                arenaCurr.e_[idxNew] = e * weight;
-                arenaCurr.rhob_[idxNew] = rhob * weight;
+                const bool isPadding = sx.isPadding || sy.isPadding;
+                const double damp = sx.damp * sy.damp;
+                const double dissFactor = isPadding ? 0. : 1.;
+
+                int idxNew = arenaCurr.getFieldIdx(ix, iy, ieta);
+                arenaCurr.e_[idxNew] = e * damp;
+                if (isPadding) {
+                    arenaCurr.e_[idxNew] =
+                        std::max(Util::small_eps, arenaCurr.e_[idxNew]);
+                }
+                arenaCurr.rhob_[idxNew] = rhob * damp;
                 for (int nu = 1; nu < 4; nu++) {
-                    arenaCurr.u_[nu][idxNew] = u[nu] * weight;
+                    arenaCurr.u_[nu][idxNew] = u[nu] * damp;
                 }
                 arenaCurr.u_[0][idxNew] = sqrt(
                     1. + arenaCurr.u_[1][idxNew] * arenaCurr.u_[1][idxNew]
                     + arenaCurr.u_[2][idxNew] * arenaCurr.u_[2][idxNew]
                     + arenaCurr.u_[3][idxNew] * arenaCurr.u_[3][idxNew]);
                 for (int nu = 0; nu < 14; nu++) {
-                    arenaCurr.Wmunu_[nu][idxNew] = W[nu] * weight;
+                    arenaCurr.Wmunu_[nu][idxNew] = W[nu] * dissFactor;
                 }
-                arenaCurr.piBulk_[idxNew] = piB * weight;
-                arenaCurr.piBulkChem_[idxNew] = piBChem * weight;
+                arenaCurr.piBulk_[idxNew] = piB * dissFactor;
+                arenaCurr.piBulkChem_[idxNew] = piBChem * dissFactor;
             }
+        }
+    }
+}
+
+bool Evolve::fluidNearGridEdge(Fields &arena) {
+    // returns true if any cell within a band near the transverse grid edges
+    // has energy density above the lowest freeze-out energy density
+    if (epsFO_list.empty()) return false;
+    const double eThreshold =
+        (*std::min_element(epsFO_list.begin(), epsFO_list.end())) / hbarc;
+    const int nx = arena.nX();
+    const int ny = arena.nY();
+    // the freeze-out finder fails within 2*fac cells of the edge;
+    // warn earlier, at least half of the padding size away from the edge
+    const int bandX = std::min(
+        nx / 2,
+        std::max(
+            2 * DATA.fac_x + 2, static_cast<int>(std::ceil(
+                                    0.5 * DATA.gridPadding / DATA.delta_x))));
+    const int bandY = std::min(
+        ny / 2,
+        std::max(
+            2 * DATA.fac_y + 2, static_cast<int>(std::ceil(
+                                    0.5 * DATA.gridPadding / DATA.delta_y))));
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        for (int iy = 0; iy < ny; iy++) {
+            const bool yEdge = (iy < bandY || iy >= ny - bandY);
+            for (int ix = 0; ix < nx; ix++) {
+                if (!yEdge && ix >= bandX && ix < nx - bandX) {
+                    ix = nx - bandX - 1;  // skip the interior
+                    continue;
+                }
+                if (arena.e_[arena.getFieldIdx(ix, iy, ieta)] > eThreshold) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void Evolve::extrapolatePrevForNewDtau(
+    Fields &arenaCurr, Fields &arenaPrev, double dtauRatio) {
+    // arenaPrev is at tau - dtau_old. Linearly extrapolate it to
+    // tau - dtauRatio*dtau_old, so that (curr - prev)/dtau_new gives the
+    // same backward time derivative as before the change of delta_tau.
+    const int nCells = static_cast<int>(arenaCurr.e_.size());
+    auto extrap = [dtauRatio](double curr, double prev) {
+        return curr + dtauRatio * (prev - curr);
+    };
+    for (int i = 0; i < nCells; i++) {
+        arenaPrev.e_[i] =
+            std::max(Util::small_eps, extrap(arenaCurr.e_[i], arenaPrev.e_[i]));
+        arenaPrev.rhob_[i] = extrap(arenaCurr.rhob_[i], arenaPrev.rhob_[i]);
+        arenaPrev.piBulk_[i] =
+            extrap(arenaCurr.piBulk_[i], arenaPrev.piBulk_[i]);
+        arenaPrev.piBulkChem_[i] =
+            extrap(arenaCurr.piBulkChem_[i], arenaPrev.piBulkChem_[i]);
+        for (int nu = 1; nu < 4; nu++) {
+            arenaPrev.u_[nu][i] =
+                extrap(arenaCurr.u_[nu][i], arenaPrev.u_[nu][i]);
+        }
+        arenaPrev.u_[0][i] = sqrt(
+            1. + arenaPrev.u_[1][i] * arenaPrev.u_[1][i]
+            + arenaPrev.u_[2][i] * arenaPrev.u_[2][i]
+            + arenaPrev.u_[3][i] * arenaPrev.u_[3][i]);
+        for (int nu = 0; nu < 14; nu++) {
+            arenaPrev.Wmunu_[nu][i] =
+                extrap(arenaCurr.Wmunu_[nu][i], arenaPrev.Wmunu_[nu][i]);
         }
     }
 }
@@ -550,12 +697,12 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
     const int dim = 4;
     int intersections = 0;
 
-    int facTau = DATA.facTau;  // step to skip in tau direction
     int fac_x = DATA.fac_x;
     int fac_y = DATA.fac_y;
     int fac_eta = 1;
 
-    const double DTAU = facTau * DATA.delta_tau;
+    // tau distance between arena_freezeout and arena_current
+    const double DTAU = freezeoutDTau_;
     const double DX = fac_x * DATA.delta_x;
     const double DY = fac_y * DATA.delta_y;
     const double DETA = fac_eta * DATA.delta_eta;
@@ -1217,14 +1364,14 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         int intersect;
         int intersections = 0;
 
-        int facTau = DATA.facTau;  // step to skip in tau direction
         int fac_x = DATA.fac_x;
         int fac_y = DATA.fac_y;
 
         const double DX = fac_x * DATA.delta_x;
         const double DY = fac_y * DATA.delta_y;
         const double DETA = 1.0;
-        const double DTAU = facTau * DATA.delta_tau;
+        // tau distance between arena_freezeout and arena_current
+        const double DTAU = freezeoutDTau_;
 
         double lattice_spacing[3] = {DTAU, DX, DY};
         double x_fraction[2][3];

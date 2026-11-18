@@ -36,6 +36,10 @@ class Evolve {
 
     std::vector<double> FO_nBvsEta_;
 
+    // time distance between the two tau slices used by the Cornelius
+    // freeze-out finder (set by EvolveIt before each call)
+    double freezeoutDTau_ = 0.;
+
   public:
     Evolve(
         const EOS &eos, InitData &DATA_in,
@@ -62,7 +66,14 @@ class Evolve {
     int FindFreezeOutSurface_boostinvariant_Cornelius(
         double tau, Fields &arena_current, Fields &arena_freezeout);
 
-    void coarseGrainAndEnlargeGrid(Fields &arenaCurr, double gridPadding);
+    void coarseGrainAndEnlargeGrid(
+        Fields &arenaCurr, double gridPadding, bool coarsen = true);
+    void regridTransverse(
+        const std::vector<Fields *> &fieldList, double gridPadding,
+        bool coarsen);
+    bool fluidNearGridEdge(Fields &arena);
+    void extrapolatePrevForNewDtau(
+        Fields &arenaCurr, Fields &arenaPrev, double dtauRatio);
     void store_previous_step_for_freezeout(
         Fields &arenaCurr, Fields &arenaFreeze);
     void regulate_qmu(

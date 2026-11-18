@@ -59,7 +59,6 @@ HydroSourceTATB::HydroSourceTATB(InitData &DATA_in) : DATA_(DATA_in) {
     gridYmin_ = -DATA_.y_size / 2.;
     gridDX_ = DATA_.delta_x;
     gridDY_ = DATA_.delta_y;
-    gridDtau_ = DATA_.delta_tau;
 
     eta0_ = DATA_.eta_flat / 2.;
     eta_m_ = DATA_.eta_m;
@@ -234,10 +233,11 @@ void HydroSourceTATB::get_hydro_energy_source(
     const double tau, const double x, const double y, const double eta_s,
     const FlowVec &u_mu, EnergyFlowVec &j_mu) const {
     j_mu = {0};
-    if (std::abs((tau - tau_source)) > 1. / 2. * gridDtau_) return;
+    if (std::abs((tau - tau_source)) > 1. / 2. * DATA_.delta_tau) return;
 
     const int ix = static_cast<int>((x - gridXmin_) / gridDX_ + 0.1);
     const int iy = static_cast<int>((y - gridYmin_) / gridDY_ + 0.1);
+    if (!profileIndexInRange(ix, iy)) return;
 
     const double TA = profile_TA[ix][iy];
     const double TB = profile_TB[ix][iy];
@@ -276,7 +276,7 @@ void HydroSourceTATB::get_hydro_energy_source(
 
     double epsilon = (beta_ * tilted_epsilon * tilted_norm
                       + (1. - beta_) * shifted_epsilon * shifted_norm)
-                     / gridDtau_;  // [1/fm^5]
+                     / DATA_.delta_tau;  // [1/fm^5]
 
     j_mu[0] = epsilon * cosh(y_L);  // [1/fm^5]
     j_mu[3] = epsilon * sinh(y_L);  // [1/fm^5]
@@ -286,10 +286,11 @@ double HydroSourceTATB::get_hydro_rhob_source(
     const double tau, const double x, const double y, const double eta_s,
     const FlowVec &u_mu) const {
     double res = 0.;
-    if (std::abs((tau - tau_source)) > 1. / 2. * gridDtau_) return (res);
+    if (std::abs((tau - tau_source)) > 1. / 2. * DATA_.delta_tau) return (res);
 
     const int ix = static_cast<int>((x - gridXmin_) / gridDX_ + 0.1);
     const int iy = static_cast<int>((y - gridYmin_) / gridDY_ + 0.1);
+    if (!profileIndexInRange(ix, iy)) return (res);
     const double TA = profile_TA[ix][iy];
     const double TB = profile_TB[ix][iy];
     double eta_rhob_plus = eta_rhob_left_factor(eta_s);
@@ -302,7 +303,7 @@ double HydroSourceTATB::get_hydro_rhob_source(
 
     res = norm_B * (1 - omega) * (TA * eta_rhob_plus + TB * eta_rhob_minus)
           + norm_B_prime * omega * TA * TB * (eta_rhob_plus + eta_rhob_minus);
-    res /= gridDtau_;
+    res /= DATA_.delta_tau;
     return (res);
 }
 /*
