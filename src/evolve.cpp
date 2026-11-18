@@ -148,9 +148,12 @@ int Evolve::EvolveIt(
         // freeze-out energy density approaches the grid edge
         if (DATA.beastMode == 3 && DATA.gridPadding > 0.
             && fluidNearGridEdge(*fpCurr)) {
-            regridTransverse(allFields, DATA.gridPadding, false);
-            music_message << "BeastMode: enlarged the grid by "
-                          << DATA.gridPadding
+            // add at least one cell per side; a padding smaller than dx
+            // would leave the grid unchanged and repeat this every step
+            const double padding = std::max(
+                DATA.gridPadding, std::max(DATA.delta_x, DATA.delta_y));
+            regridTransverse(allFields, padding, false);
+            music_message << "BeastMode: enlarged the grid by " << padding
                           << " fm on each side, nx = " << DATA.nx
                           << ", ny = " << DATA.ny
                           << ", x_size = " << DATA.x_size
@@ -1745,26 +1748,31 @@ void Evolve::initialize_freezeout_surface_info() {
         std::string dummy;
         double temp_epsFO, dummyd;
         getline(freeze_list_file, dummy);  // get rid of the comment
-        while (1) {
-            freeze_list_file >> temp_epsFO >> dummyd >> dummyd >> dummyd
-                >> dummyd >> dummyd >> dummyd;
-            if (!freeze_list_file.eof()) {
-                epsFO_list.push_back(temp_epsFO);
-            } else {
-                break;
-            }
+        // keep every complete line, including a last line without a
+        // trailing newline (checking eof() after reading dropped it)
+        while (freeze_list_file >> temp_epsFO >> dummyd >> dummyd >> dummyd
+               >> dummyd >> dummyd >> dummyd) {
+            epsFO_list.push_back(temp_epsFO);
         }
         freeze_list_file.close();
+        if (epsFO_list.empty()) {
+            music_message << "Evolve::initialize_freezeout_surface_info: "
+                          << "no freeze-out energy density found in "
+                          << eps_freeze_list_filename;
+            music_message.flush("error");
+            exit(1);
+        }
     } else {
         music_message << "Evolve::initialize_freezeout_surface_info: "
                       << "unrecoginze freeze_eps_flag = " << freeze_eps_flag;
         music_message.flush("error");
         exit(1);
     }
-    music_message << "In total, " << DATA.N_freeze_out
+    // the list read from file can have a different length than N_freeze_out
+    music_message << "In total, " << epsFO_list.size()
                   << " freeze-out surface will be generated ...";
     music_message.flush("info");
-    for (int isurf = 0; isurf < DATA.N_freeze_out; isurf++) {
+    for (unsigned int isurf = 0; isurf < epsFO_list.size(); isurf++) {
         music_message << "eps_freezeout = " << epsFO_list[isurf]
                       << " GeV/fm^3.";
         music_message.flush("info");

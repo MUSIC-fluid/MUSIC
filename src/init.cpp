@@ -963,7 +963,7 @@ void Init::regulationResummedTransCoeff(Cell_small &grid_pt) {
     double pi_local = grid_pt.pi_b;
 
     double Rshear = sqrt(pisize) / (e_local + p_local + 1e-16);
-    double Rbulk = std::abs(pi_local) / (e_local + pi_local + 1e-16);
+    double Rbulk = std::abs(pi_local) / (e_local + p_local + 1e-16);
     double r_combined = 1.5 * (Rshear + Rbulk) + 1e-16;
     double renorm = std::min(1., DATA.preEqVisFactor / r_combined);
     for (int mu = 0; mu < 10; mu++) {
@@ -977,6 +977,13 @@ void Init::initial_MCGlb_with_rhob(
     // first load in the transverse profile
     ifstream profile_TA(DATA.initName_TA.c_str());
     ifstream profile_TB(DATA.initName_TB.c_str());
+    if (!profile_TA.is_open() || !profile_TB.is_open()) {
+        music_message << "Init::initial_MCGlb_with_rhob: can not open "
+                      << (profile_TA.is_open() ? DATA.initName_TB
+                                               : DATA.initName_TA);
+        music_message.flush("error");
+        exit(1);
+    }
 
     const int nx = arenaFieldsCurr.nX() - 2 * DATA.gridPaddingCells;
     const int ny = arenaFieldsCurr.nY() - 2 * DATA.gridPaddingCells;
@@ -1000,6 +1007,12 @@ void Init::initial_MCGlb_with_rhob(
             profile_TB >> temp_profile_TB[idx];
             N_B += temp_profile_TA[idx] + temp_profile_TB[idx];
         }
+    }
+    if (!profile_TA || !profile_TB) {
+        music_message << "Init::initial_MCGlb_with_rhob: TA/TB files have "
+                      << "fewer than nx*ny = " << nx * ny << " values";
+        music_message.flush("error");
+        exit(1);
     }
     profile_TA.close();
     profile_TB.close();
@@ -1280,7 +1293,7 @@ void Init::initial_with_jetscape(
                                               / hbarc * DATA.tau0 * DATA.tau0;
 
             arenaFieldsPrev.e_[Fidx] = arenaFieldsCurr.e_[Fidx];
-            arenaFieldsPrev.rhob_[Fidx] = arenaFieldsPrev.rhob_[Fidx];
+            arenaFieldsPrev.rhob_[Fidx] = arenaFieldsCurr.rhob_[Fidx];
             for (int i = 0; i < 4; i++) {
                 arenaFieldsPrev.u_[i][Fidx] = arenaFieldsCurr.u_[i][Fidx];
             }

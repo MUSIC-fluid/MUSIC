@@ -399,7 +399,7 @@ void Advance::QuestRevertResummedTransCoeff(Cell_small &grid_pt) {
     double pi_local = grid_pt.pi_b;
 
     double Rshear = sqrt(pisize) / (e_local + p_local + 1e-16);
-    double Rbulk = std::abs(pi_local) / (e_local + pi_local + 1e-16);
+    double Rbulk = std::abs(pi_local) / (e_local + p_local + 1e-16);
     double r_combined = 1.5 * (Rshear + Rbulk) + 1e-16;
     double renorm = std::min(1., (1. - 1e-6) / r_combined);
     for (int mu = 0; mu < 10; mu++) {
@@ -494,8 +494,8 @@ void Advance::QuestRevert(
             music_message << "ieta = " << ieta << ", ix = " << ix
                           << ", iy = " << iy
                           << ", energy density = " << e_local * hbarc
-                          << " GeV/fm^3, bulk |Pi/(epsilon+3*P)| = "
-                          << rho_bulk;
+                          << " GeV/fm^3, bulk_chem |Pi/(epsilon+3*P)| = "
+                          << rho_bulkChem;
             music_message.flush("warning");
         }
         grid_pt.pi_b_chem =

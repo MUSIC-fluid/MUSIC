@@ -91,7 +91,9 @@ void HydroSourceTmunu::readIPGevent() {
             if (ix == 0 && iy == 0) {
                 DATA.x_size = -dummy2 * 2;
                 DATA.y_size = -dummy3 * 2;
-                DATA.eta_size = DATA.delta_eta * DATA.neta;
+                // cells sit at -eta_size/2 + ieta*deta, ieta = 0..neta-1;
+                // a boost-invariant run (neta = 1) keeps eta_size = 0
+                DATA.eta_size = DATA.delta_eta * (DATA.neta - 1);
                 music_message << "eta_size=" << DATA.eta_size
                               << ", x_size=" << DATA.x_size
                               << ", y_size=" << DATA.y_size;
