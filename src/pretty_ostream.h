@@ -16,15 +16,33 @@
 #define PRETTY_OSTREAM_H_
 
 #include <iostream>
+#include <map>
+#include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
+#include <thread>
 
+//! Thread-safe message logger. Loggers are shared class members that are
+//! also used inside OpenMP parallel loops, so every thread builds its
+//! message in its own buffer, and each finished line is written to the
+//! screen in one piece under a lock.
 class pretty_ostream {
   private:
-    std::ostringstream message_stream;
+    std::mutex buffersMutex_;
+    std::map<std::thread::id, std::unique_ptr<std::ostringstream>> buffers_;
+
+    //! the message buffer of the calling thread
+    std::ostringstream& threadBuffer();
+
+    //! write one complete line to std::cout
+    static void writeLine(const std::string& line);
 
   public:
     pretty_ostream();
+    // a copy starts with empty buffers; pending messages are not copied
+    pretty_ostream(const pretty_ostream&);
+    pretty_ostream& operator=(const pretty_ostream&);
     ~pretty_ostream();
 
     void flush(std::string type);
@@ -48,7 +66,7 @@ class pretty_ostream {
     //! reload the << operator
     template <typename T>
     pretty_ostream& operator<<(T const& value) {
-        message_stream << value;
+        threadBuffer() << value;
         return (*this);
     }
 };

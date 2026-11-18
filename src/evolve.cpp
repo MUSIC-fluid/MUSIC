@@ -658,12 +658,22 @@ int Evolve::FindFreezeOutSurface_Cornelius(
          i_freezesurf++) {
         const double epsFO = epsFO_list[i_freezesurf] / hbarc;  // 1/fm^4
 
-#pragma omp parallel for reduction(+ : intersections)
+        bool hitGridBoundary = false;
+#pragma omp parallel for reduction(+ : intersections) \
+    reduction(|| : hitGridBoundary)
         for (int ieta = 0; ieta < (neta - fac_eta); ieta += fac_eta) {
             int thread_id = omp_get_thread_num();
-            intersections += FindFreezeOutSurface_Cornelius_XY(
+            int nCells = FindFreezeOutSurface_Cornelius_XY(
                 tau, ieta, arena_prev, arena_current, arena_freezeout_prev,
                 arena_freezeout, thread_id, epsFO);
+            if (nCells < 0) {
+                hitGridBoundary = true;
+            } else {
+                intersections += nCells;
+            }
+        }
+        if (hitGridBoundary) {
+            DATA.reRunHydro = true;
         }
         if (DATA.reRunHydro) {
             return (0);
@@ -737,7 +747,10 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
 
     double x_fraction[2][4];
     double eta = (DATA.delta_eta) * ieta - (DATA.eta_size) / 2.0;
-    for (int ix = 0; ix < nx - fac_x; ix += fac_x) {
+    // set when a freeze-out cell touches the grid edge; this function runs
+    // inside an OpenMP loop, so it must not write the shared DATA itself
+    bool hitGridBoundary = false;
+    for (int ix = 0; ix < nx - fac_x && !hitGridBoundary; ix += fac_x) {
         double x = ix * (DATA.delta_x) - (DATA.x_size / 2.0);
         for (int iy = 0; iy < ny - fac_y; iy += fac_y) {
             double y = iy * (DATA.delta_y) - (DATA.y_size / 2.0);
@@ -792,8 +805,8 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
                               << "The grid is too small! ix = " << ix
                               << " iy = " << iy;
                 music_message.flush("error");
-                DATA.reRunHydro = true;
-                return (0);
+                hitGridBoundary = true;
+                break;
             }
 
             // if intersect, prepare for the hyper-cube
@@ -1071,6 +1084,7 @@ int Evolve::FindFreezeOutSurface_Cornelius_XY(
     delete[] cube;
     delete[] fluid_cube;
     delete[] fluid_aux_cube;
+    if (hitGridBoundary) return (-1);
     return (intersections);
 }
 
