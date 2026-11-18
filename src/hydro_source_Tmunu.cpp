@@ -107,9 +107,11 @@ void HydroSourceTmunu::readIPGevent() {
             }
             pixx = pixx * visFactor;
             pixy = pixy * visFactor;
-            pixeta = pixeta * visFactor;
+            // like u^eta, the eta components are stored as tau*pi^{x eta},
+            // tau*pi^{y eta} (same as the IP-Glasma reader in init.cpp)
+            pixeta = pixeta * tau0 * visFactor;
             piyy = piyy * visFactor;
-            piyeta = piyeta * visFactor;
+            piyeta = piyeta * tau0 * visFactor;
             pietaeta =
                 ((2.
                       * (ux * uy * pixy + ux * ueta * pixeta

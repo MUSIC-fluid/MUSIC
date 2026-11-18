@@ -589,10 +589,10 @@ void HydroSourceStrings::get_hydro_energy_source(
                                  / (2. * sigma_x * sigma_x)));
                         cosh_perp = (cosh(
                             preEqFlowFactor_
-                            * sqrt(x_dis * x_dis + y_dis * y_dis)));
+                            * sqrt(x_dis * x_dis + y_dis * y_dis) / sigma_x));
                         sinh_perp = (sinh(
                             preEqFlowFactor_
-                            * sqrt(x_dis * x_dis + y_dis * y_dis)));
+                            * sqrt(x_dis * x_dis + y_dis * y_dis) / sigma_x));
                         phi_perp = atan2(y_dis, x_dis);
                     }
 
@@ -628,10 +628,10 @@ void HydroSourceStrings::get_hydro_energy_source(
                                  / (2. * sigma_x * sigma_x)));
                         cosh_perp = (cosh(
                             preEqFlowFactor_
-                            * sqrt(x_dis * x_dis + y_dis * y_dis)));
+                            * sqrt(x_dis * x_dis + y_dis * y_dis) / sigma_x));
                         sinh_perp = (sinh(
                             preEqFlowFactor_
-                            * sqrt(x_dis * x_dis + y_dis * y_dis)));
+                            * sqrt(x_dis * x_dis + y_dis * y_dis) / sigma_x));
                         phi_perp = atan2(y_dis, x_dis);
                     }
 
