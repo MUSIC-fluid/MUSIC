@@ -468,7 +468,10 @@ void Reconst::reconst_velocity_fdf(
     double &fv, double &dfdv) const {
     reconst_velocity_f(v, T00, M, J0, fv);
     double fv1;
-    double v1 = v * 0.999;
+    // finite-difference step 1e-3 v; at v -> 0 that step vanishes and
+    // dfdv = 0/0, so use a minimum step and step upwards near v = 0
+    const double h = std::max(1e-3 * v, 1e-8);
+    const double v1 = (v > h) ? v - h : v + h;
     reconst_velocity_f(v1, T00, M, J0, fv1);
     dfdv = (fv - fv1) / (v - v1);
 }

@@ -37,8 +37,10 @@ jobs:
           mkdir build_unittest
           cd build_unittest
           cmake .. -Dunittest=ON
-          make -j2 unittest_bugfix.e
-          ./src/unittest_bugfix.e
+          make -j2
+          for test in bugfix reconst cell minmod grid; do
+            ./src/unittest_${test}.e
+          done
       - name: Gubser Flow Test
         run: |
           pip3 install numpy
