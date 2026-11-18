@@ -859,6 +859,11 @@ void Diss::Make_uqSource(
             std::copysign(std::max(std::abs(mub), small_eps), mub);
         kappa = kappa_coefficient * (rhob / denorm_safe);
     }
+    // The kinetic-theory kappa turns negative where e + P < 3 n T tanh(muB/T)
+    // (cold, baryon-rich cells with less than a nucleon mass of energy per
+    // baryon, e.g. between the lumps of a lumpy TATB event). kappa < 0 is
+    // anti-diffusion, which is ill-posed and blows up.
+    kappa = std::max(0., kappa);
 
     // copy the value of \tilde{q^\mu}
     double q[4];

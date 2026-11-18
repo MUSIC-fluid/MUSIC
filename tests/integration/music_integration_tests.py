@@ -13,6 +13,8 @@ golden numbers.
                         flux
   lumpy_second_order    a lumpy TATB event with second-order shear terms
                         stays stable (phi7 must not diverge where eta -> 0)
+  lumpy_diffusion       the same event with baryon diffusion keeps N_B
+                        positive and conserved (kappa must not turn negative)
   freezeout_balance     E, Px, Pz through the Cornelius surface equal the
                         initial content of the hot region (ideal 3D)
   beastmode3            beastMode 3 (grid enlargement, dtau doubling,
@@ -380,13 +382,8 @@ def test_conservation_outflow(r):
     report("max |Px - Px0| / E0", np.max(np.abs(Px - Px[0])) / E[0], 1e-6)
 
 
-def test_lumpy_second_order(r):
-    # 40 nucleons of width 0.5 fm per nucleus: near-vacuum cells between the
-    # lumps have eta -> 0 while tau_pi is clamped. The phi7 pi pi term used
-    # to diverge there, drive pi to the regulator cap (7.6 (e + P)) and
-    # blow up the event within ~1 fm/c.
-    n, size = 41, 12.0
-    wd = r.workdir("lumpy_second_order")
+def _write_lumpy_TATB(wd, n, size):
+    # 40 nucleons of width 0.5 fm per nucleus
     x = np.linspace(-size / 2., size / 2., n)
     X, Y = np.meshgrid(x, x, indexing="ij")
     rng = np.random.default_rng(7)
@@ -399,6 +396,16 @@ def test_lumpy_second_order(r):
             T += (np.exp(-((X - px)**2 + (Y - py)**2) / (2. * width**2))
                   / (2. * np.pi * width**2))
         np.savetxt(os.path.join(wd, name), T, fmt="%.10e")
+
+
+def test_lumpy_second_order(r):
+    # 40 nucleons of width 0.5 fm per nucleus: near-vacuum cells between the
+    # lumps have eta -> 0 while tau_pi is clamped. The phi7 pi pi term used
+    # to diverge there, drive pi to the regulator cap (7.6 (e + P)) and
+    # blow up the event within ~1 fm/c.
+    n, size = 41, 12.0
+    wd = r.workdir("lumpy_second_order")
+    _write_lumpy_TATB(wd, n, size)
     params = tatb_params(n, size, 17, 10.0, 1.0)
     params.update({
         "Viscosity_Flag_Yes_1_No_0": 1,
@@ -420,6 +427,31 @@ def test_lumpy_second_order(r):
     # lumps the deferred viscous correction is skipped (W not smooth in time)
     tau, E = read_conservation(wd)[:, :2].T
     report("max |E/E0 - 1|", np.max(np.abs(E / E[0] - 1)), 1e-3)
+
+
+def test_lumpy_diffusion(r):
+    # cells between the lumps get n ~ 0.7 fm^-3 with e ~ 0.1 GeV/fm^3 (less
+    # than a nucleon mass per baryon); there the kinetic-theory kappa used to
+    # turn negative (anti-diffusion) and N_B blew up within ~0.5 fm/c
+    n, size = 41, 12.0
+    wd = r.workdir("lumpy_diffusion")
+    _write_lumpy_TATB(wd, n, size)
+    params = tatb_params(n, size, 17, 10.0, 2.0)
+    params.update({
+        "Viscosity_Flag_Yes_1_No_0": 1,
+        "turn_on_baryon_diffusion": 1,
+        "kappa_coefficient": 0.2,
+    })
+    log, status, _ = r.run(wd, params, expect_success=False)
+    check(status == 0, "the lumpy event with diffusion did not finish "
+          "(exit {}, see music_input.log)".format(status))
+    tau, NB = read_conservation(wd)[:, [0, 5]].T
+    print("    tau = {:.3f} -> {:.3f} fm/c, N_B0 = {:.4g}".format(
+        tau[0], tau[-1], NB[0]))
+    check(np.all(NB > 0.), "N_B went negative")
+    # a few 1e-3 here: not converged in dtau (cells where the diffusion
+    # current is not smooth in time); smooth events conserve N_B to 1e-5
+    report("max |N_B/N_B0 - 1|", np.max(np.abs(NB / NB[0] - 1)), 2e-2)
 
 
 def _fireball_3d(n=41, size=12.0, neta=41, eta_size=8.0):
@@ -833,6 +865,7 @@ TESTS = [
     ("conservation_viscous", test_conservation_viscous),
     ("conservation_outflow", test_conservation_outflow),
     ("lumpy_second_order", test_lumpy_second_order),
+    ("lumpy_diffusion", test_lumpy_diffusion),
     ("freezeout_balance", test_freezeout_balance),
     ("beastmode3", test_beastmode3),
     ("rerun", test_rerun),
