@@ -14,7 +14,8 @@ golden numbers.
   lumpy_second_order    a lumpy TATB event with second-order shear terms
                         stays stable (phi7 must not diverge where eta -> 0)
   lumpy_diffusion       the same event with baryon diffusion keeps N_B
-                        positive and conserved (kappa must not turn negative)
+                        positive and conserved (kappa must not turn negative,
+                        q must stay smooth in time)
   freezeout_balance     E, Px, Pz through the Cornelius surface equal the
                         initial content of the hot region (ideal 3D)
   beastmode3            beastMode 3 (grid enlargement, dtau doubling,
@@ -432,7 +433,10 @@ def test_lumpy_second_order(r):
 def test_lumpy_diffusion(r):
     # cells between the lumps get n ~ 0.7 fm^-3 with e ~ 0.1 GeV/fm^3 (less
     # than a nucleon mass per baryon); there the kinetic-theory kappa used to
-    # turn negative (anti-diffusion) and N_B blew up within ~0.5 fm/c
+    # turn negative (anti-diffusion) and N_B blew up within ~0.5 fm/c. With
+    # muB/T ~ 50 there, D(muB/T) from a backward time difference put
+    # time-step-scale noise on q and N_B drifted by 4e-3, growing as
+    # dtau -> 0; D(muB/T) now comes from the ideal equations of motion.
     n, size = 41, 12.0
     wd = r.workdir("lumpy_diffusion")
     _write_lumpy_TATB(wd, n, size)
@@ -449,9 +453,9 @@ def test_lumpy_diffusion(r):
     print("    tau = {:.3f} -> {:.3f} fm/c, N_B0 = {:.4g}".format(
         tau[0], tau[-1], NB[0]))
     check(np.all(NB > 0.), "N_B went negative")
-    # a few 1e-3 here: not converged in dtau (cells where the diffusion
-    # current is not smooth in time); smooth events conserve N_B to 1e-5
-    report("max |N_B/N_B0 - 1|", np.max(np.abs(NB / NB[0] - 1)), 2e-2)
+    # 8e-4 at dtau = 0.02, falling with dtau (the deferred viscous correction
+    # is skipped where q is not smooth in time); smooth events reach 1e-5
+    report("max |N_B/N_B0 - 1|", np.max(np.abs(NB / NB[0] - 1)), 2e-3)
 
 
 def _fireball_3d(n=41, size=12.0, neta=41, eta_size=8.0):

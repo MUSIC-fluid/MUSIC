@@ -830,6 +830,31 @@ double Diss::Make_uPiChemSource(
     return (NS_term + relax_term) / tau_Pi_chem;
 }
 
+//! D(muB/T) = u^mu partial_mu (muB/T) from the ideal equations of motion,
+//! De = -(e + P) theta and Dn = -n theta:
+//! D(muB/T) = -theta [(e + P) d(muB/T)/de|_n + n d(muB/T)/dn|_e]
+double Diss::D_muB_over_T_ideal(
+    const double epsilon, const double rhob, const double pressure,
+    const double theta) const {
+    auto alpha = [this](const double e, const double n) {
+        return (eos.get_muB(e, n)
+                / std::max(eos.get_temperature(e, n), small_eps));
+    };
+    if (epsilon < small_eps) return 0.;
+    const double de = 1e-4 * epsilon;
+    const double dalpha_de =
+        (alpha(epsilon + de, rhob) - alpha(epsilon - de, rhob)) / (2. * de);
+    double dalpha_dn = 0.;
+    if (std::abs(rhob) > small_eps) {
+        const double dn = 1e-4 * std::abs(rhob);
+        dalpha_dn =
+            (alpha(epsilon, rhob + dn) - alpha(epsilon, rhob - dn)) / (2. * dn);
+    }
+    const double Dalpha =
+        -theta * ((epsilon + pressure) * dalpha_de + rhob * dalpha_dn);
+    return std::isfinite(Dalpha) ? Dalpha : 0.;
+}
+
 void Diss::Make_uqSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
     const DumuVec &a_local, const VelocityShearVec &sigma_1d,
@@ -894,9 +919,19 @@ void Diss::Make_uqSource(
     // add a new non-linear term (-q^\mu \sigma_\mu\nu)
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
 
+    // D(muB/T) from the ideal equations of motion instead of a_local[4],
+    // which uses a backward time difference of muB/T. The time and spatial
+    // parts of u^a partial_a (muB/T) nearly cancel where muB/T is large and
+    // the lagged difference cannot track the limited spatial derivative:
+    // q then carries time-step-scale noise that grows as dtau -> 0 (and
+    // spoils N_B conservation in lumpy events). The two forms differ by
+    // terms of second order in gradients (partial_mu q^mu, pi^{mu nu}
+    // sigma_{mu nu}, ...).
+    const double DmuBoverT =
+        D_muB_over_T_ideal(epsilon, rhob, pressure, theta_local);
+
     for (int nu = 1; nu < 4; nu++) {
-        double NS =
-            kappa * (baryon_diffusion_vec[nu] + grid_pt.u[nu] * a_local[4]);
+        double NS = kappa * (baryon_diffusion_vec[nu] + grid_pt.u[nu] * DmuBoverT);
 
         // add a new non-linear term (- q \theta)
         double Nonlinear1 = -transport_coeff * q[nu] * theta_local;

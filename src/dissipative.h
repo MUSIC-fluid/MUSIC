@@ -68,6 +68,10 @@ class Diss {
         const std::vector<double> &thermalVec,
         std::array<double, 3> &sourceTerms);
 
+    double D_muB_over_T_ideal(
+        const double epsilon, const double rhob, const double pressure,
+        const double theta) const;
+
     void computeInverseReynoldsNumbers(
         const double enthalpy, const Cell_small &grid_pt, double &R_shear,
         double &R_bulk) const;
