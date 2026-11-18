@@ -57,7 +57,7 @@ for i, val_i in enumerate(TargetSum):
 TargetSum = [
     2.4151200000000008e+03,
     3.3092294190849242e+02,
-    8.0846736634900793e+00,
+    8.0846739661327280e+00,
 ]
 
 filename = "1+1D_check_tau_20.dat"
