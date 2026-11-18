@@ -4604,7 +4604,10 @@ struct FatalConditionHandler {
     static struct sigaction
         oldSigActions[sizeof(signalDefs) / sizeof(SignalDefs)];
     static stack_t oldSigStack;
-    static char altStackMem[SIGSTKSZ];
+    // glibc >= 2.34 makes SIGSTKSZ a run-time value, so use a fixed size
+    // (32 KiB, as upstream doctest does)
+    static const std::size_t altStackSize = 32768;
+    static char altStackMem[altStackSize];
 
     static void handleSignal(int sig) {
         std::string name = "<unknown signal>";
@@ -4625,7 +4628,7 @@ struct FatalConditionHandler {
         isSet = true;
         stack_t sigStack;
         sigStack.ss_sp = altStackMem;
-        sigStack.ss_size = SIGSTKSZ;
+        sigStack.ss_size = altStackSize;
         sigStack.ss_flags = 0;
         sigaltstack(&sigStack, &oldSigStack);
         struct sigaction sa = {0};
@@ -4658,7 +4661,7 @@ bool FatalConditionHandler::isSet = false;
 struct sigaction FatalConditionHandler::oldSigActions
     [sizeof(signalDefs) / sizeof(SignalDefs)] = {};
 stack_t FatalConditionHandler::oldSigStack = {};
-char FatalConditionHandler::altStackMem[SIGSTKSZ] = {};
+char FatalConditionHandler::altStackMem[FatalConditionHandler::altStackSize] = {};
 
 #endif  // DOCTEST_PLATFORM_WINDOWS
 #endif  // DOCTEST_CONFIG_POSIX_SIGNALS || DOCTEST_CONFIG_WINDOWS_SEH
