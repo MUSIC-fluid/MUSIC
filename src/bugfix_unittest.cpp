@@ -36,6 +36,7 @@
 #include "pretty_ostream.h"
 #include "read_in_parameters.h"
 #include "reconst.h"
+#include "u_derivative.h"
 #include "util.h"
 
 namespace {
@@ -636,6 +637,64 @@ TEST_CASE("Reconst caps a superluminal T^{tau eta} by scaling all of M") {
     CHECK(sol.u[3] / sol.u[1] == doctest::Approx(1.1 / 0.3).epsilon(1e-8));
     CHECK(h * std::sqrt(sol.u[1] * sol.u[1] + sol.u[3] * sol.u[3])
           == doctest::Approx(0.999).epsilon(1e-8));
+}
+
+TEST_CASE("U_derivative: Du from the ideal equations of motion") {
+    // a fluid at rest in a linear pressure gradient starts to accelerate,
+    // Du^x = -partial_x P / (e + P); the backward time difference of u
+    // (u unchanged since the previous step) gives 0. The ideal form is used
+    // only in dilute cells: e ~ 0.3 GeV/fm^3 here, so with the default
+    // e_dilute = 0.01 GeV/fm^3 the cell keeps the backward difference.
+    struct Config {
+        std::string input;
+        bool ideal;
+    };
+    const Config configs[] = {
+        {"Du_from_ideal_EoM 0\n", false},
+        {"Du_from_ideal_EoM 1\nDu_from_ideal_EoM_e_dilute 10.\n", true},
+        {"Du_from_ideal_EoM 1\n", false},
+    };
+    for (const auto &config : configs) {
+        InitData DATA = defaultParameters(config.input);
+        DATA.boost_invariant = true;
+        DATA.nx = 11;
+        DATA.ny = 1;
+        DATA.neta = 1;
+        DATA.delta_x = 0.1;
+        DATA.delta_y = 0.1;
+        DATA.delta_eta = 0.1;
+        DATA.delta_tau = 0.01;
+        DATA.x_size = DATA.delta_x * (DATA.nx - 1);
+        DATA.y_size = 0.;
+        DATA.eta_size = 0.;
+        EOS eos(0);
+        Fields arena(DATA.nx, 1, 1);
+        for (int ix = 0; ix < DATA.nx; ix++) {
+            const int idx = arena.getFieldIdx(ix, 0, 0);
+            arena.e_[idx] = 1. + 0.1 * ix;
+            arena.rhob_[idx] = 0.;
+            arena.u_[0][idx] = 1.;
+            for (int i = 1; i < 4; i++) arena.u_[i][idx] = 0.;
+        }
+        U_derivative uder(DATA, eos);
+        const double tau = 1.0;
+        const int ix = 5;
+        const int idx = arena.getFieldIdx(ix, 0, 0);
+        uder.MakedU(tau, arena, arena, idx, ix, 0, 0);
+        DumuVec a;
+        uder.calculate_Du_supmu(tau, arena, idx, a);
+        const double e = arena.e_[idx];
+        const double P = eos.get_pressure(e, 0.);
+        const double dPdx = (eos.get_pressure(e + 0.1, 0.)
+                             - eos.get_pressure(e - 0.1, 0.))
+                            / (2. * DATA.delta_x);
+        const double expected = (config.ideal ? -dPdx / (e + P) : 0.);
+        CHECK(a[1] == doctest::Approx(expected).epsilon(1e-6));
+        CHECK(a[2] == doctest::Approx(0.));
+        CHECK(a[3] == doctest::Approx(0.));
+        CHECK(uder.calculate_expansion_rate(tau, arena, idx)
+              == doctest::Approx(1. / tau).epsilon(1e-10));
+    }
 }
 
 TEST_CASE("Advance::MakeDeltaQI conserves P_x and N_B at a fast/rest interface") {

@@ -301,6 +301,13 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.quest_revert_strength =
         (getParameter(input_file, "quest_revert_strength", 10.));
 
+    // partial_tau u^i in dilute cells from the ideal equations of motion
+    // (1, default) or everywhere from a backward time difference (0)
+    parameter_list.Du_from_ideal_EoM =
+        (getParameter(input_file, "Du_from_ideal_EoM", 1));
+    parameter_list.Du_from_ideal_EoM_e_dilute =
+        (getParameter(input_file, "Du_from_ideal_EoM_e_dilute", 0.003));
+
     // Switch to use Resummed transport coefficients
     if (getParameter(input_file, "FlagResumTransportCoeff", 0) == 1) {
         parameter_list.FlagResumTransportCoeff = true;

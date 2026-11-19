@@ -16,9 +16,15 @@ golden numbers.
                         cells must keep T^{tau eta})
   lumpy_second_order    a lumpy TATB event with second-order shear terms
                         stays stable (phi7 must not diverge where eta -> 0)
+  lumpy_viscous_Du      the lumpy event with shear and bulk viscosity
+                        conserves E and Pz to O(dtau^2) with partial_tau u
+                        from the ideal equations of motion in dilute cells
+                        (default), and stays stable with the backward
+                        difference everywhere (Du_from_ideal_EoM = 0)
   lumpy_diffusion       the same event with baryon diffusion keeps N_B
                         positive and conserved (kappa must not turn negative,
-                        q must stay smooth in time)
+                        q must stay smooth in time, the J^tau correction
+                        must not be skipped)
   freezeout_balance     E, Px, Pz through the Cornelius surface equal the
                         initial content of the hot region (ideal 3D)
   beastmode3            beastMode 3 (grid enlargement, dtau doubling,
@@ -447,10 +453,42 @@ def test_lumpy_second_order(r):
     # the event only expands: the maximum energy density must not grow
     report("max eps_max / initial eps_max - 1",
            max(eps_max) / eps_max[0] - 1., 1e-2)
-    # O(dtau) here (2e-4 at dtau = 0.02): in the dilute cells between the
-    # lumps the deferred viscous correction is skipped (W not smooth in time)
+    # 4e-6 at dtau = 0.02 (2e-4 with Du_from_ideal_EoM = 0, see
+    # lumpy_viscous_Du)
     tau, E = read_conservation(wd)[:, :2].T
-    report("max |E/E0 - 1|", np.max(np.abs(E / E[0] - 1)), 1e-3)
+    report("max |E/E0 - 1|", np.max(np.abs(E / E[0] - 1)), 2e-5)
+
+
+def test_lumpy_viscous_Du(r):
+    # with partial_tau u from a backward time difference the viscous terms
+    # are not smooth in time in the dilute, fast cells between the lumps;
+    # their deferred conservation correction has to be skipped there
+    # (smoothness guard 0.25) and E drifts by 2.8e-4 (O(dtau)). By default
+    # partial_tau u comes from the ideal equations of motion in cells below
+    # 0.003 GeV/fm^3 (blended up to 0.015), where the guard is relaxed to 4:
+    # 5e-6.
+    n, size = 41, 12.0
+    for flag, limit_E, limit_Pz in ((None, 2e-5, 1e-5), (0, 1e-3, 1e-4)):
+        name = "lumpy_viscous_Du" + ("" if flag is None else "_backward")
+        wd = r.workdir(name)
+        _write_lumpy_TATB(wd, n, size)
+        params = tatb_params(n, size, 17, 10.0, 2.0)
+        params.update({
+            "Viscosity_Flag_Yes_1_No_0": 1,
+            "Include_Shear_Visc_Yes_1_No_0": 1,
+            "Shear_to_S_ratio": 0.12,
+            "Include_Bulk_Visc_Yes_1_No_0": 1,
+            "Include_second_order_terms": 1,
+        })
+        if flag is not None:
+            params["Du_from_ideal_EoM"] = flag
+        r.run(wd, params, input_name="music_input")
+        tau, E, Px, Py, Pz, NB = read_conservation(wd).T
+        print("    Du_from_ideal_EoM = {}: tau -> {:.3f} fm/c".format(
+            "default" if flag is None else flag, tau[-1]))
+        report("max |E/E0 - 1|", np.max(np.abs(E / E[0] - 1)), limit_E)
+        report("max |Pz - Pz0| / E0", np.max(np.abs(Pz - Pz[0])) / E[0],
+               limit_Pz)
 
 
 def test_lumpy_diffusion(r):
@@ -476,9 +514,10 @@ def test_lumpy_diffusion(r):
     print("    tau = {:.3f} -> {:.3f} fm/c, N_B0 = {:.4g}".format(
         tau[0], tau[-1], NB[0]))
     check(np.all(NB > 0.), "N_B went negative")
-    # 8e-4 at dtau = 0.02, falling with dtau (the deferred viscous correction
-    # is skipped where q is not smooth in time); smooth events reach 1e-5
-    report("max |N_B/N_B0 - 1|", np.max(np.abs(NB / NB[0] - 1)), 2e-3)
+    # 8e-5 at dtau = 0.02. The J^tau part of the deferred viscous correction
+    # has its own smoothness guard (4); with the shared guard (0.25) it was
+    # skipped in the cold, baryon-rich cells and N_B drifted by 7e-4
+    report("max |N_B/N_B0 - 1|", np.max(np.abs(NB / NB[0] - 1)), 3e-4)
 
 
 def _fireball_3d(n=41, size=12.0, neta=41, eta_size=8.0):
@@ -893,6 +932,7 @@ TESTS = [
     ("conservation_outflow", test_conservation_outflow),
     ("lumpy_ideal", test_lumpy_ideal),
     ("lumpy_second_order", test_lumpy_second_order),
+    ("lumpy_viscous_Du", test_lumpy_viscous_Du),
     ("lumpy_diffusion", test_lumpy_diffusion),
     ("freezeout_balance", test_freezeout_balance),
     ("beastmode3", test_beastmode3),

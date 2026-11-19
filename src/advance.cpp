@@ -197,17 +197,28 @@ void Advance::FirstRKStepT(
             }
             return v;
         };
-        double predictorMiss = 0.;
-        double stepChange = 0.;
+        // the guard is applied separately to T^{tau mu} (alpha < 4) and to
+        // J^tau (alpha = 4)
+        double predictorMiss[2] = {0., 0.};
+        double stepChange[2] = {0., 0.};
         for (int alpha = 0; alpha < 5; alpha++) {
             const double Vn1 = V(arenaFieldsCurr, alpha);
             const double Vstar = V(arenaFieldsNext, alpha);
             viscCorr[alpha] = viscousCorrectionTau_ * (Vn1 - Vstar);
-            predictorMiss += std::abs(Vn1 - Vstar);
-            stepChange += std::abs(Vn1 - V(arenaFieldsPrev, alpha));
+            const int k = (alpha < 4 ? 0 : 1);
+            predictorMiss[k] += std::abs(Vn1 - Vstar);
+            stepChange[k] += std::abs(Vn1 - V(arenaFieldsPrev, alpha));
         }
-        if (predictorMiss > viscousCorrectionSmoothness_ * stepChange) {
-            viscCorr = {0.};
+        const double w = U_derivative::idealEoMWeight(DATA, cellCurr.e);
+        const double smoothness =
+            ((1. - w) * viscousCorrectionSmoothnessBackward_
+             + w * viscousCorrectionSmoothnessIdealEoM_);
+        if (predictorMiss[0] > smoothness * stepChange[0]) {
+            for (int alpha = 0; alpha < 4; alpha++) viscCorr[alpha] = 0.;
+        }
+        if (predictorMiss[1]
+            > viscousCorrectionSmoothnessBaryon_ * stepChange[1]) {
+            viscCorr[4] = 0.;
         }
     }
 

@@ -1,5 +1,7 @@
 #include "u_derivative.h"
 
+#include <cmath>
+
 #include "cell.h"
 #include "data.h"
 #include "minmod.h"
@@ -10,6 +12,7 @@ U_derivative::U_derivative(const InitData &DATA_in, const EOS &eosIn)
     dUsup = {{{0.0}}};       // dUsup[m][n] = partial^n u^m
     dUoverTsup = {{{0.0}}};  // dUoverTsup[m][n] = partial^n (u^m/T)
     dUTsup = {{{0.0}}};      // dUTsup[m][n] = partial^n (Tu^m)
+    dPsup = {0.0};
 }
 
 //! This function is a shell function to calculate parital^\nu u^\mu
@@ -19,11 +22,15 @@ void U_derivative::MakedU(
     dUsup = {{{0.0}}};
     dUoverTsup = {{{0.0}}};
     dUTsup = {{{0.0}}};
+    dPsup = {0.0};
 
     // this calculates du/dx, du/dy, (du/deta)/tau
     MakeDSpatial(tau, arenaFieldsCurr, fieldIdx, ix, iy, ieta);
     // this calculates du/dtau
     MakeDTau(tau, arenaFieldsPrev, arenaFieldsCurr, fieldIdx);
+    if (DATA.Du_from_ideal_EoM == 1) {
+        MakeDTauIdealEoM(tau, arenaFieldsCurr, fieldIdx);
+    }
 }
 
 //! this function returns the expansion rate on the grid
@@ -493,6 +500,16 @@ int U_derivative::MakeDSpatial(
                 }
             }
 
+            if (DATA.Du_from_ideal_EoM == 1) {
+                const double P = eos.get_pressure(arena.e_[Ic], arena.rhob_[Ic]);
+                const double Pp1 =
+                    eos.get_pressure(arena.e_[Ip1], arena.rhob_[Ip1]);
+                const double Pm1 =
+                    eos.get_pressure(arena.e_[Im1], arena.rhob_[Im1]);
+                dPsup[direction] =
+                    (minmod.minmod_dx(Pp1, P, Pm1) / delta[direction]);
+            }
+
             // Sangyong Nov 18 2014
             // Here we make derivatives of muB/T
             // dUsup[rk_flag][4][n] = partial_n (muB/T)
@@ -526,6 +543,74 @@ int U_derivative::MakeDSpatial(
     }
     return 1;
 } /* MakeDSpatial */
+
+double U_derivative::idealEoMWeight(const InitData &DATA, const double eps) {
+    // vacuum (eps < 1e-8): keep the backward difference
+    if (DATA.Du_from_ideal_EoM != 1 || eps < 1e-8) return 0.;
+    const double eDilute = DATA.Du_from_ideal_EoM_e_dilute / Util::hbarc;
+    constexpr double blendRange = 5.;
+    if (eps >= blendRange * eDilute) return 0.;
+    if (eps <= eDilute) return 1.;
+    return 1. - std::log(eps / eDilute) / std::log(blendRange);
+}
+
+//! partial_tau u^mu from the ideal equations of motion,
+//!   (e + P) Du^i = -(partial^i P + u^i DP),  DP = -theta (e + P) c_s^2,
+//! with De = -(e + P) theta and Dn = -n theta. In the components
+//! (u^tau, u^x, u^y, tau u^eta) and with partial_eta / tau,
+//!   u^tau partial_tau u^i = a^i - u^j partial_j u^i [- u^tau u^eta for i = eta]
+//! and theta = partial_tau u^tau + partial_i u^i + u^tau / tau is affine in
+//! itself, so it is solved exactly. The backward time difference of u is
+//! noisy in dilute, fast cells; there it made the viscous terms non-smooth
+//! in time, so their deferred conservation correction had to be skipped
+//! and a lumpy event lost 3e-4 of its energy. The ideal form drops the
+//! viscous force (Gubser flow at eta/s = 0.2: 1.6% error in u^x instead of
+//! 0.35% if used everywhere), so it is used only in dilute cells, e <
+//! e_dilute (0.003 GeV/fm^3 by default, far below freeze-out), and blended
+//! into the backward difference (linear in log e) up to 5 e_dilute.
+void U_derivative::MakeDTauIdealEoM(
+    const double tau, const Fields &arena, const int fieldIdx) {
+    const double eps = arena.e_[fieldIdx];
+    const double weight = idealEoMWeight(DATA, eps);
+    if (weight <= 0.) return;
+    double P, dpde, dpdrhob, cs2;
+    eos.get_pressure_with_gradients(
+        eps, arena.rhob_[fieldIdx], P, dpde, dpdrhob, cs2);
+    const double enthalpy = eps + P;
+    const double K = enthalpy * cs2;  // DP = -K theta
+    double u[4];
+    for (int m = 0; m < 4; m++) u[m] = arena.u_[m][fieldIdx];
+    double spatialDiv = 0.;
+    for (int n = 1; n < 4; n++) spatialDiv += dUsup[n][n];
+
+    // returns theta computed from the partial_tau u^mu that follow from
+    // the trial value th
+    auto solve = [&](const double th, double dtu[4]) {
+        double udtu = 0.;
+        for (int i = 1; i < 4; i++) {
+            double conv = 0.;
+            for (int n = 1; n < 4; n++) conv += u[n] * dUsup[i][n];
+            const double a = -(dPsup[i] - u[i] * K * th) / enthalpy;
+            const double christoffel = (i == 3 ? u[0] * u[3] / tau : 0.);
+            dtu[i] = (a - conv - christoffel) / u[0];
+            udtu += u[i] * dtu[i];
+        }
+        dtu[0] = udtu / u[0];
+        return dtu[0] + spatialDiv + u[0] / tau;
+    };
+    double dtu[4];
+    const double theta0 = solve(0., dtu);
+    const double slope = solve(1., dtu) - theta0;  // = c_s^2 v^2 < 1
+    const double theta = theta0 / (1. - slope);
+    solve(theta, dtu);
+    for (int m = 0; m < 4; m++) {
+        if (!std::isfinite(dtu[m])) return;
+    }
+    for (int m = 0; m < 4; m++) {
+        // g^{00} = -1
+        dUsup[m][0] = (1. - weight) * dUsup[m][0] - weight * dtu[m];
+    }
+}
 
 int U_derivative::MakeDTau(
     const double tau, const Fields &arenaFieldsPrev,
