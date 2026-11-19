@@ -71,26 +71,31 @@ void Advance::AdvanceIt(
                     arenaFieldsPrev);
 
                 if (DATA.viscosity_flag == 1) {
+                    // arenaFieldsCurr is at tau_rk: tau_n in the first RK
+                    // stage, tau_{n+1} (the predictor) in the second. The
+                    // derivatives need its tau (u^tau / tau in theta, the
+                    // Christoffel terms, tau delta_eta)
+                    const double tau_rk = tau + rk_flag * DATA.delta_tau;
                     U_derivative u_derivative_helper(DATA, eos);
                     u_derivative_helper.MakedU(
-                        tau, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, ix, iy,
-                        ieta);
+                        tau_rk, arenaFieldsPrev, arenaFieldsCurr, fieldIdx, ix,
+                        iy, ieta);
                     double theta_local =
                         u_derivative_helper.calculate_expansion_rate(
-                            tau, arenaFieldsCurr, fieldIdx);
+                            tau_rk, arenaFieldsCurr, fieldIdx);
                     DumuVec a_local;
                     u_derivative_helper.calculate_Du_supmu(
-                        tau, arenaFieldsCurr, fieldIdx, a_local);
+                        tau_rk, arenaFieldsCurr, fieldIdx, a_local);
 
                     VelocityShearVec sigma_local;
                     u_derivative_helper.calculate_velocity_shear_tensor(
-                        tau, arenaFieldsCurr, fieldIdx, theta_local, a_local,
+                        tau_rk, arenaFieldsCurr, fieldIdx, theta_local, a_local,
                         sigma_local);
 
                     VorticityVec omega_local;
                     u_derivative_helper
                         .calculate_kinetic_vorticity_with_spatial_projector(
-                            tau, arenaFieldsCurr, fieldIdx, a_local,
+                            tau_rk, arenaFieldsCurr, fieldIdx, a_local,
                             omega_local);
 
                     DmuMuBoverTVec baryon_diffusion_vector;
@@ -283,14 +288,11 @@ void Advance::FirstRKStepW(
         tau_now, arenaFieldsCurr, fieldIdx, ix, iy, ieta, w_rhs, theta_local,
         a_local);
 
+    // the sources are evaluated at the stage's own state (the predictor in
+    // the second RK stage), like theta, sigma and Du; the transport
+    // coefficients of tau_n there made the scheme first order in dtau
     std::vector<double> thermalVec;
-    if (rk_flag == 0) {
-        eos.getThermalVariables(grid_c.epsilon, grid_c.rhob, thermalVec);
-    } else {
-        eos.getThermalVariables(
-            arenaFieldsPrev.e_[fieldIdx], arenaFieldsPrev.rhob_[fieldIdx],
-            thermalVec);
-    }
+    eos.getThermalVariables(grid_c.epsilon, grid_c.rhob, thermalVec);
 
     double tempf;
     double u0Prev = arenaFieldsPrev.u_[0][fieldIdx];

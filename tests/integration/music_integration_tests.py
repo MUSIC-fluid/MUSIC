@@ -40,6 +40,9 @@ golden numbers.
                         (profile 9) and as source term (profile 17) give the
                         same T, v_x, v_z fields
   boost_invariance      a 3D run of an eta-independent state matches 2+1D
+  bjorken_rk_order      viscous Bjorken flow is second order in dtau (the
+                        second RK stage must use its own tau and transport
+                        coefficients)
   tatb_source           the TATB source (112) deposits the same E, Pz and
                         N_B as the TATB initial condition (111), and both
                         match the model totals sqrt(s)/2 (N_A + N_B)
@@ -878,6 +881,46 @@ def test_boost_invariance(r):
                   / scale[cols]), 1e-3)
 
 
+def test_bjorken_rk_order(r):
+    # uniform, boost-invariant fluid with shear and bulk viscosity: theta =
+    # u^tau / tau exactly and nothing depends on the spatial resolution, so
+    # the change of T(tau) with dtau measures the time-integration error.
+    # The second RK stage used tau_n for theta and the transport
+    # coefficients of tau_n while its fields are at tau_{n+1}: first order,
+    # T changed by 6e-4 between dtau = 0.02 and 0.01 (rounding to the 7
+    # digits of the output after the fix)
+    n, size, tau0, tau_end = 21, 6.0, 0.4, 1.4
+    x = np.linspace(-size / 2., size / 2., n)
+    e = 30. * np.ones((n, n))
+    zero = np.zeros_like(e)
+    T_center = {}
+    for dtau in (0.02, 0.01):
+        wd = r.workdir("bjorken_rk_order_{}".format(dtau))
+        write_ipglasma_file(os.path.join(wd, "ic.dat"), x, x, e, zero, zero,
+                            zero, tau0)
+        params = base_params(
+            Initial_profile=9, Initial_Distribution_input_filename="ic.dat",
+            boost_invariant=1, Initial_time_tau_0=tau0,
+            Total_evolution_time_tau=tau_end - tau0, Delta_Tau=dtau,
+            X_grid_size_in_fm=size, Y_grid_size_in_fm=size,
+            Grid_size_in_x=n, Grid_size_in_y=n,
+            Eta_grid_size=0., Grid_size_in_eta=1, Eta_plateau_size=100.,
+            Viscosity_Flag_Yes_1_No_0=1, Include_Shear_Visc_Yes_1_No_0=1,
+            Shear_to_S_ratio=0.2, Include_Bulk_Visc_Yes_1_No_0=1,
+            Include_second_order_terms=1,
+            output_evolution_data=1, outputBinaryEvolution=0,
+            output_evolution_every_N_timesteps=int(round(0.1 / dtau)),
+            output_evolution_every_N_x=1, output_evolution_every_N_y=1,
+            output_evolution_every_N_eta=1)
+        r.run(wd, params)
+        fields = _read_evolution(wd, n, n, 1)
+        check(len(fields) == 11, "expected 11 time slices")
+        # the edges are 3 fm away: the center is still uniform Bjorken flow
+        T_center[dtau] = fields[-1, 0, n // 2, n // 2, 0]
+    report("|T(dtau = 0.02) / T(dtau = 0.01) - 1| at tau = 1.4",
+           abs(T_center[0.02] / T_center[0.01] - 1.), 2e-6)
+
+
 def test_tatb_source(r):
     results = {}
     NA, NB = 15., 10.
@@ -942,6 +985,7 @@ TESTS = [
     ("threads", test_threads),
     ("ipglasma_paths", test_ipglasma_paths),
     ("boost_invariance", test_boost_invariance),
+    ("bjorken_rk_order", test_bjorken_rk_order),
     ("tatb_source", test_tatb_source),
     ("memory_history", test_memory_history),
 ]
