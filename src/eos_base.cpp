@@ -1,6 +1,8 @@
 
 #include "eos_base.h"
 
+#include <limits>
+
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
@@ -217,18 +219,74 @@ void EOS_base::interpolate2D_with_gradients(
     p = p1 * (1 - frac_rhob) + p2 * frac_rhob;
 }
 
+//! Finds, for each e column of the (e, n_B) tables, the n_B where the table
+//! stops being a physical state: the start of the run of rows at large n_B
+//! where mu_B is capped (0.8 GeV for neos_2, 0.6 GeV for neos_bqs), or the
+//! end of the column. neos_2 repeats the capped state in all quantities;
+//! neos_bqs keeps mu_B at the cap and lets T, P, mu_S, mu_Q vary until they
+//! are capped as well, and (e + P - mu n) / T turns negative there too.
+//! interpolate2D clamps n_B at the end of the column.
+void EOS_base::find_baryon_table_edges() {
+    nb_edge.assign(number_of_tables, std::vector<double>());
+    int nPlateau = 0;
+    int nColumns = 0;
+    for (int t = 0; t < number_of_tables; t++) {
+        const int N_nb = nb_length[t];
+        const int N_e = e_length[t];
+        nb_edge[t].resize(N_e);
+        for (int j = 0; j < N_e; j++) {
+            const double muLast = mu_B_tb[t][N_nb - 1][j];
+            int i0 = N_nb - 1;
+            while (i0 > 0 && mu_B_tb[t][i0 - 1][j] == muLast) i0--;
+            if (i0 < N_nb - 1) nPlateau++;
+            nColumns++;
+            nb_edge[t][j] = nb_bounds[t] + i0 * nb_spacing[t];
+        }
+    }
+    music_message << "EoS table: " << nPlateau << " of " << nColumns
+                  << " e columns have mu_B capped at large n_B; "
+                  << "s is evaluated at the n_B where the cap starts";
+    music_message.flush("info");
+}
+
+//! n_B [1/fm^3] where the table ends at energy density e [1/fm^4],
+//! linear in e between the columns
+double EOS_base::get_rhob_edge(const double e) const {
+    if (nb_edge.empty()) return (std::numeric_limits<double>::max());
+    const int t = get_table_idx(e);
+    const int N_e = e_length[t];
+    const double x = (e - e_bounds[t]) / e_spacing[t];
+    if (x <= 0.) return (nb_edge[t][0]);
+    const int j = static_cast<int>(x);
+    if (j >= N_e - 1) return (nb_edge[t][N_e - 1]);
+    const double f = x - j;
+    return (nb_edge[t][j] * (1. - f) + nb_edge[t][j + 1] * f);
+}
+
+double EOS_base::get_rhob_in_table(const double e, const double rhob) const {
+    const double nEdge = get_rhob_edge(e);
+    if (std::abs(rhob) <= nEdge) return (rhob);
+    return (std::copysign(nEdge, rhob));
+}
+
 //! This function returns entropy density in [1/fm^3]
 //! The input local energy density e [1/fm^4], rhob[1/fm^3]
+//! Beyond the edge of an (e, n_B) table mu_B is capped and the tabulated
+//! state is no longer the one at (e, n_B); s = (e + P - mu n) / T with the
+//! actual n falls linearly with n_B and turns negative (it was floored at
+//! 1e-16, so eta = (eta/s) s and tau_pi vanished in those cells). The
+//! baryon (and charge) terms use n_edge instead.
 double EOS_base::get_entropy(double epsilon, double rhob) const {
     auto P = get_pressure(epsilon, rhob);
     auto T = get_temperature(epsilon, rhob);
     auto muB = get_muB(epsilon, rhob);
     auto muS = get_muS(epsilon, rhob);
     auto muQ = get_muQ(epsilon, rhob);
-    auto rhoS = get_rhoS(epsilon, rhob);
-    auto rhoQ = get_rhoQ(epsilon, rhob);
+    const double rhobT = get_rhob_in_table(epsilon, rhob);
+    auto rhoS = get_rhoS(epsilon, rhobT);
+    auto rhoQ = get_rhoQ(epsilon, rhobT);
     auto f =
-        (epsilon + P - muB * rhob - muS * rhoS - muQ * rhoQ) / (T + small_eps);
+        (epsilon + P - muB * rhobT - muS * rhoS - muQ * rhoQ) / (T + small_eps);
     return (std::max(small_eps, f));
 }
 
@@ -251,9 +309,12 @@ void EOS_base::getThermalVariables(
     thermalVec.push_back(get_rhoS(epsilon, rhob));
     thermalVec.push_back(get_muQ(epsilon, rhob));
     thermalVec.push_back(get_rhoQ(epsilon, rhob));
+    // n_B of the tabulated state (see get_entropy)
+    const double rhobT = get_rhob_in_table(epsilon, rhob);
     double entropy =
-        ((epsilon + p - thermalVec[7] * rhob - thermalVec[8] * thermalVec[9]
-          - thermalVec[10] * thermalVec[11])
+        ((epsilon + p - thermalVec[7] * rhobT
+          - thermalVec[8] * get_rhoS(epsilon, rhobT)
+          - thermalVec[10] * get_rhoQ(epsilon, rhobT))
          / (thermalVec[6] + small_eps));
     entropy = std::max(small_eps, entropy);
     thermalVec.push_back(entropy);

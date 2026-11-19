@@ -101,6 +101,7 @@ void EOS_eosQ::initialize_eos() {
     double eps_max_in = e_bounds[1] + e_spacing[1] * e_length[1];
     set_eps_max(eps_max_in);
 
+    find_baryon_table_edges();
     music_message.info("Done reading EOS.");
 }
 

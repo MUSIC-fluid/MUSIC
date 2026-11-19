@@ -259,6 +259,108 @@ TEST_CASE("EOS_base::interpolate2D is exact for a linear EoS at a seam") {
     }
 }
 
+namespace {
+// a one-table (e, n_B) EoS whose columns stop at n_edge = (3 + j) 0.1,
+// where mu_B reaches its cap. Beyond it the rows repeat the edge state (as
+// neos_2 does) or, with continued = true, only mu_B stays capped while P
+// keeps changing (as neos_bqs does)
+class CappedTableEOS : public EOS_base {
+  public:
+    static constexpr int Ne = 4, Nnb = 10;
+    static constexpr double de = 1., dnb = 0.1;
+    static double P(double e, double nb) { return (e / 3. + nb); }
+    static double mu(double nb) { return (10. * nb); }
+    explicit CappedTableEOS(const bool continued = false) {
+        set_flag_muB(true);
+        set_flag_muS(false);
+        set_flag_muQ(false);
+        set_number_of_tables(1);
+        resize_table_info_arrays();
+        e_bounds[0] = 1.;
+        e_spacing[0] = de;
+        e_length[0] = Ne;
+        nb_bounds[0] = 0.;
+        nb_spacing[0] = dnb;
+        nb_length[0] = Nnb;
+        pressure_tb = new double **[1];
+        temperature_tb = new double **[1];
+        mu_B_tb = new double **[1];
+        pressure_tb[0] = Util::mtx_malloc(Nnb, Ne);
+        temperature_tb[0] = Util::mtx_malloc(Nnb, Ne);
+        mu_B_tb[0] = Util::mtx_malloc(Nnb, Ne);
+        for (int j = 0; j < Ne; j++) {
+            for (int i = 0; i < Nnb; i++) {
+                const double nb = std::min(i, 3 + j) * dnb;
+                pressure_tb[0][i][j] =
+                    P(1. + j * de, continued ? i * dnb : nb);
+                temperature_tb[0][i][j] = 1.;
+                mu_B_tb[0][i][j] = mu(nb);
+            }
+        }
+        find_baryon_table_edges();
+    }
+    ~CappedTableEOS() {
+        Util::mtx_free(mu_B_tb[0], Nnb, Ne);
+        delete[] mu_B_tb;
+    }
+    double get_pressure(double e, double rhob) const override {
+        return (interpolate2D(e, std::abs(rhob), 0, pressure_tb));
+    }
+    double get_temperature(double e, double rhob) const override {
+        return (interpolate2D(e, std::abs(rhob), 0, temperature_tb));
+    }
+    double get_muB(double e, double rhob) const override {
+        // signed, as in EOS_neos
+        return (std::copysign(
+            interpolate2D(e, std::abs(rhob), 0, mu_B_tb), rhob));
+    }
+};
+}  // namespace
+
+TEST_CASE("EOS_base: s is evaluated at the edge of an (e, n_B) table") {
+    CappedTableEOS eos;
+    using C = CappedTableEOS;
+    for (int j = 0; j < C::Ne; j++) {
+        CHECK(eos.nb_edge[0][j] == doctest::Approx((3 + j) * C::dnb));
+    }
+    CHECK(eos.get_rhob_edge(1.5) == doctest::Approx(0.35));
+    for (int j = 0; j < C::Ne; j++) {
+        const double e = 1. + j * C::de;
+        const double nEdge = (3 + j) * C::dnb;
+        // inside the table: s = (e + P - mu n) / T
+        const double nIn = 0.5 * nEdge;
+        CHECK(
+            eos.get_entropy(e, nIn)
+            == doctest::Approx(e + C::P(e, nIn) - C::mu(nIn) * nIn));
+        // beyond the edge T, P and mu are those of (e, n_edge), and so is s;
+        // with the actual n it would be negative (at n = 0.9 for j = 0)
+        const double sEdge = e + C::P(e, nEdge) - C::mu(nEdge) * nEdge;
+        for (double nb : {nEdge + 0.05, 0.9, 1.5, -0.9}) {
+            CHECK(eos.get_entropy(e, nb) == doctest::Approx(sEdge));
+            std::vector<double> thermalVec;
+            eos.getThermalVariables(e, nb, thermalVec);
+            CHECK(thermalVec[12] == doctest::Approx(sEdge));
+        }
+        CHECK(sEdge > 0.);
+    }
+    CHECK(1. + C::P(1., 0.3) - C::mu(0.3) * 0.9 < 0.);
+    // mu_B capped while P keeps changing (neos_bqs): the edge is where the
+    // cap starts, and only the mu n term uses it
+    CappedTableEOS bqs(true);
+    for (int j = 0; j < C::Ne; j++) {
+        const double e = 1. + j * C::de;
+        const double nEdge = (3 + j) * C::dnb;
+        CHECK(bqs.nb_edge[0][j] == doctest::Approx(nEdge));
+        const double nb = 0.85;
+        CHECK(
+            bqs.get_entropy(e, nb)
+            == doctest::Approx(e + C::P(e, nb) - C::mu(nEdge) * nEdge));
+    }
+    // EoS without n_B tables are not touched
+    EOS_base plain;
+    CHECK(plain.get_rhob_in_table(1., 123.) == 123.);
+}
+
 // ---------------------------------------------------------------------------
 // item 5: AMPT net-baryon source
 // ---------------------------------------------------------------------------
