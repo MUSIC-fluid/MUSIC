@@ -26,6 +26,7 @@
 #include "doctest.h"
 #include "eos.h"
 #include "eos_base.h"
+#include "eos_idealgas.h"
 #include "evolve.h"
 #include "fields.h"
 #include "grid_info.h"
@@ -359,6 +360,59 @@ TEST_CASE("EOS_base: s is evaluated at the edge of an (e, n_B) table") {
     // EoS without n_B tables are not touched
     EOS_base plain;
     CHECK(plain.get_rhob_in_table(1., 123.) == 123.);
+}
+
+TEST_CASE("EOS_idealgas is a thermodynamically consistent free QGP") {
+    EOS_idealgas eos;
+    const double Nc = 3., Nf = 2.5;
+    const double a = M_PI * M_PI / 90. * (2. * (Nc * Nc - 1.) + 3.5 * Nc * Nf);
+    // P(T, mu_B) of the free massless quark-gluon gas
+    auto P = [&](const double T, const double muB) {
+        const double mq = muB / 3.;
+        return (a * pow(T, 4)
+                + Nc * Nf
+                      * (mq * mq * T * T / 6.
+                         + pow(mq, 4) / (12. * M_PI * M_PI)));
+    };
+    int nChecked = 0;
+    for (double e : {1e-3, 0.05, 1., 20., 500.}) {         // [1/fm^4]
+        for (double n : {0., 1e-3, 0.03, 0.3, 3., 30.}) {  // [1/fm^3]
+            const double T = eos.get_temperature(e, n);
+            const double mu = eos.get_muB(e, n);
+            const double s = eos.get_entropy(e, n);
+            const double nIn = eos.get_rhob_in_table(e, n);
+            CHECK(s > 0.);
+            CHECK(mu / T <= 10. + 1e-12);
+            CHECK(nIn <= n);
+            // the state at (e, n_B) solves e = 3P and n_B = dP/dmu_B
+            const double h = 1e-6 * (std::abs(mu) + T);
+            const double nOfState = (P(T, mu + h) - P(T, mu - h)) / (2. * h);
+            const double sOfState = (P(T + h, mu) - P(T - h, mu)) / (2. * h);
+            CHECK(3. * P(T, mu) == doctest::Approx(e).epsilon(1e-10));
+            CHECK(nOfState == doctest::Approx(nIn).epsilon(1e-6));
+            CHECK(s == doctest::Approx(sOfState).epsilon(1e-6));
+            CHECK(eos.get_pressure(e, n) == doctest::Approx(e / 3.));
+            // inverse functions
+            CHECK(eos.get_s2e(s, nIn) == doctest::Approx(e).epsilon(1e-9));
+            CHECK(
+                eos.get_T2e(T * Util::hbarc, nIn)
+                == doctest::Approx(e).epsilon(1e-9));
+            std::vector<double> thermalVec;
+            eos.getThermalVariables(e, n, thermalVec);
+            CHECK(thermalVec[12] == doctest::Approx(s));
+            if (nIn == n) nChecked++;
+        }
+        // n_B = 0 is the old Stefan-Boltzmann state; mu_B is odd in n_B
+        CHECK(
+            eos.get_temperature(e, 0.)
+            == doctest::Approx(pow(e / (3. * a), 0.25)));
+        CHECK(eos.get_muB(e, -0.3) == doctest::Approx(-eos.get_muB(e, 0.3)));
+    }
+    CHECK(nChecked > 15);  // most points are below the mu_B / T cap
+    // the old mu_B = 5 n_B / T^2 with n_B-independent T gave s < 0 here
+    const double e = 1., n = 0.3, T0 = pow(e / (3. * a), 0.25);
+    CHECK((e + e / 3. - 5. * n / (T0 * T0) * n) / T0 < 0.);
+    CHECK(eos.get_entropy(e, n) > 0.);
 }
 
 // ---------------------------------------------------------------------------

@@ -552,3 +552,22 @@ TEST_CASE("Test reconst main function") {
     CHECK(cell_sol.u[2] == doctest::Approx(uy).epsilon(uy * 1e-9));
     CHECK(cell_sol.u[3] == doctest::Approx(ueta).epsilon(ueta * 2e-8));
 }
+
+TEST_CASE("A regulated cell keeps its net baryon density") {
+    EOS eos_ideal(0);
+    Reconst reconst_test(eos_ideal, 9, 0);
+    // T^{tau tau} < 0: the cell is reset to rest at e = abs_err; its
+    // J^tau stays, so N_B is conserved
+    const double tau = 1.8;
+    const double nB = 0.3;
+    TJbVec tauq_vec = {-tau * 1e-3, tau * 2e-3, 0., 0., tau * nB};
+    ReconstCell prev;
+    prev.e = 1e-6;
+    prev.rhob = 0.05;
+    prev.u = {1.0, 0.0, 0.0, 0.0};
+    auto cell = reconst_test.ReconstIt_shell(tau, tauq_vec, prev);
+    CHECK(cell.e <= 1e-10);
+    CHECK(cell.u[0] == 1.);
+    CHECK(cell.u[1] == 0.);
+    CHECK(cell.rhob == doctest::Approx(nB));
+}

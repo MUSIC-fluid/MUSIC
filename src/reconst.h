@@ -73,7 +73,8 @@ class Reconst {
         const double u0_guess, const double T00, const double K00,
         const double M, const double J0, double &u0_solution);
 
-    void regulate_grid(ReconstCell &grid_cell, double elocal) const;
+    void regulate_grid(
+        ReconstCell &grid_cell, double elocal, double J0) const;
 };
 
 #endif  // SRC_RECONST_H_

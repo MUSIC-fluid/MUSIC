@@ -63,7 +63,7 @@ ReconstCell Reconst::ReconstIt_shell(
     if (flag == -1) {
         revert_grid(grid_p1, grid_pt);
     } else if (flag == -2) {
-        regulate_grid(grid_p1, q_vec[0]);
+        regulate_grid(grid_p1, q_vec[0], q_vec[4]);
     }
 
     return grid_p1;
@@ -175,10 +175,15 @@ int Reconst::ReconstIt_velocity_Newton(
     return (1);
 }
 
-//! This function regulate the grid information
-void Reconst::regulate_grid(ReconstCell &grid_cell, double elocal) const {
+//! This function regulate the grid information: a cell whose T^{tau tau}
+//! dropped below abs_err is set to rest at e = abs_err. It keeps its net
+//! baryon density, n_B = J^tau at rest, so N_B stays conserved; setting it
+//! to zero removed up to 2e-3 of N_B in lumpy viscous events, from nearly
+//! empty, baryon-rich cells at the edge of the lumps.
+void Reconst::regulate_grid(
+    ReconstCell &grid_cell, double elocal, const double J0) const {
     grid_cell.e = std::max(abs_err, elocal);
-    grid_cell.rhob = 0.0;
+    grid_cell.rhob = J0;
     grid_cell.u[0] = 1.0;
     grid_cell.u[1] = 0.0;
     grid_cell.u[2] = 0.0;

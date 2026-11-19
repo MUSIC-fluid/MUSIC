@@ -79,10 +79,10 @@ class EOS_base {
     void find_baryon_table_edges();
     double get_rhob_edge(double e) const;
     //! n_B at which the tabulated state is evaluated, with the sign of rhob
-    double get_rhob_in_table(double e, double rhob) const;
+    virtual double get_rhob_in_table(double e, double rhob) const;
 
-    double get_entropy(double epsilon, double rhob) const;
-    void getThermalVariables(
+    virtual double get_entropy(double epsilon, double rhob) const;
+    virtual void getThermalVariables(
         double epsilon, double rhob, std::vector<double> &thermalVec) const;
 
     double calculate_velocity_of_sound_sq(double e, double rhob) const;
