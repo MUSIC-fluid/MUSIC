@@ -209,8 +209,7 @@ TEST_CASE("removeOldOutputDatFiles keeps the input files") {
     DATA.initName = "./myinit.dat";
     DATA.initName_TA = "initial/initial_TA.dat";
     DATA.freeze_list_filename = "eps_freeze_list_s95p_v1.dat";
-    inDirectory(
-        dir, [&] { MUSICRunControl::removeOldOutputDatFiles(DATA); });
+    inDirectory(dir, [&] { MUSICRunControl::removeOldOutputDatFiles(DATA); });
 
     CHECK(fileExists(dir + "/eps_freeze_list_s95p_v1.dat"));
     CHECK(fileExists(dir + "/myinit.dat"));
@@ -292,8 +291,7 @@ class CappedTableEOS : public EOS_base {
         for (int j = 0; j < Ne; j++) {
             for (int i = 0; i < Nnb; i++) {
                 const double nb = std::min(i, 3 + j) * dnb;
-                pressure_tb[0][i][j] =
-                    P(1. + j * de, continued ? i * dnb : nb);
+                pressure_tb[0][i][j] = P(1. + j * de, continued ? i * dnb : nb);
                 temperature_tb[0][i][j] = 1.;
                 mu_B_tb[0][i][j] = mu(nb);
             }
@@ -304,16 +302,21 @@ class CappedTableEOS : public EOS_base {
         Util::mtx_free(mu_B_tb[0], Nnb, Ne);
         delete[] mu_B_tb;
     }
-    double get_pressure(double e, double rhob) const override {
+    double get_pressure(
+        double e, double rhob, double rhoq = 0.,
+        double rhos = 0.) const override {
         return (interpolate2D(e, std::abs(rhob), 0, pressure_tb));
     }
-    double get_temperature(double e, double rhob) const override {
+    double get_temperature(
+        double e, double rhob, double rhoq = 0.,
+        double rhos = 0.) const override {
         return (interpolate2D(e, std::abs(rhob), 0, temperature_tb));
     }
-    double get_muB(double e, double rhob) const override {
+    double get_muB(double e, double rhob, double rhoq = 0., double rhos = 0.)
+        const override {
         // signed, as in EOS_neos
-        return (std::copysign(
-            interpolate2D(e, std::abs(rhob), 0, mu_B_tb), rhob));
+        return (
+            std::copysign(interpolate2D(e, std::abs(rhob), 0, mu_B_tb), rhob));
     }
 };
 }  // namespace
@@ -339,7 +342,7 @@ TEST_CASE("EOS_base: s is evaluated at the edge of an (e, n_B) table") {
         for (double nb : {nEdge + 0.05, 0.9, 1.5, -0.9}) {
             CHECK(eos.get_entropy(e, nb) == doctest::Approx(sEdge));
             std::vector<double> thermalVec;
-            eos.getThermalVariables(e, nb, thermalVec);
+            eos.getThermalVariables(e, nb, 0., 0., thermalVec);
             CHECK(thermalVec[12] == doctest::Approx(sEdge));
         }
         CHECK(sEdge > 0.);
@@ -369,10 +372,10 @@ TEST_CASE("EOS_idealgas is a thermodynamically consistent free QGP") {
     // P(T, mu_B) of the free massless quark-gluon gas
     auto P = [&](const double T, const double muB) {
         const double mq = muB / 3.;
-        return (a * pow(T, 4)
-                + Nc * Nf
-                      * (mq * mq * T * T / 6.
-                         + pow(mq, 4) / (12. * M_PI * M_PI)));
+        return (
+            a * pow(T, 4)
+            + Nc * Nf
+                  * (mq * mq * T * T / 6. + pow(mq, 4) / (12. * M_PI * M_PI)));
     };
     int nChecked = 0;
     for (double e : {1e-3, 0.05, 1., 20., 500.}) {         // [1/fm^4]
@@ -398,7 +401,7 @@ TEST_CASE("EOS_idealgas is a thermodynamically consistent free QGP") {
                 eos.get_T2e(T * Util::hbarc, nIn)
                 == doctest::Approx(e).epsilon(1e-9));
             std::vector<double> thermalVec;
-            eos.getThermalVariables(e, n, thermalVec);
+            eos.getThermalVariables(e, n, 0., 0., thermalVec);
             CHECK(thermalVec[12] == doctest::Approx(s));
             if (nIn == n) nChecked++;
         }
@@ -438,16 +441,14 @@ TEST_CASE("HydroSourceAMPT: rhob source is weighted by baryon number") {
     HydroSourceAMPT pair(DATA);
     pair.prepare_list_for_current_tau_frame(tau);
     CHECK(
-        pair.get_hydro_rhob_source(tau, 0., 0., 0., u)
-        == doctest::Approx(0.));
+        pair.get_hydro_rhob_source(tau, 0., 0., 0., u) == doctest::Approx(0.));
 
     DATA.initName_AMPT = writeFile(dir, "quark.dat", quarkOnly);
     HydroSourceAMPT quark(DATA);
     quark.prepare_list_for_current_tau_frame(tau);
     // sigma_x = 0.5 fm, sigma_eta = 0.2 (constructor defaults)
     const double expected =
-        (1. / 3.) / tau
-        / (DATA.delta_tau * M_PI * 0.25 * sqrt(M_PI) * 0.2);
+        (1. / 3.) / tau / (DATA.delta_tau * M_PI * 0.25 * sqrt(M_PI) * 0.2);
     CHECK(
         quark.get_hydro_rhob_source(tau, 0., 0., 0., u)
         == doctest::Approx(expected));
@@ -555,8 +556,7 @@ TEST_CASE("HydroSourceTATB: zero outside the stored TA, TB profile") {
     for (double x : {-2., -1.5, 2., 3.}) {
         source.get_hydro_energy_source(tau, x, 0., 0., {1, 0, 0, 0}, j_mu);
         CHECK(j_mu[0] == 0.);
-        CHECK(source.get_hydro_rhob_source(tau, x, 0., 0., {1, 0, 0, 0})
-              == 0.);
+        CHECK(source.get_hydro_rhob_source(tau, x, 0., 0., {1, 0, 0, 0}) == 0.);
     }
     source.get_hydro_energy_source(tau, 0., -2., 0., {1, 0, 0, 0}, j_mu);
     CHECK(j_mu[0] == 0.);
@@ -572,8 +572,7 @@ TEST_CASE("HydroSourceTmunu: pi^{x eta} is scaled by tau0 like u^eta") {
     for (double x : {-0.5, 0.5}) {
         for (double y : {-0.5, 0.5}) {
             file << x << " " << y << " 0 " << e << " 1 " << ux << " " << uy
-                 << " " << uetaIn << " 0 0 0 0 0 0 " << pixetaIn
-                 << " 0 0 0\n";
+                 << " " << uetaIn << " 0 0 0 0 0 0 " << pixetaIn << " 0 0 0\n";
         }
     }
     InitData DATA = defaultParameters();
@@ -649,10 +648,10 @@ TEST_CASE("Diss::Make_uPiSource is finite at T = 0") {
     Cell_small cell;
     cell.epsilon = 1e-3;
     std::vector<double> thermalVec(13, 0.);
-    thermalVec[0] = 1e-3;        // e
-    thermalVec[2] = 1e-3 / 3.;   // P
-    thermalVec[5] = 0.2;         // cs^2
-    thermalVec[6] = 0.;          // T
+    thermalVec[0] = 1e-3;       // e
+    thermalVec[2] = 1e-3 / 3.;  // P
+    thermalVec[5] = 0.2;        // cs^2
+    thermalVec[6] = 0.;         // T
     VelocityShearVec sigma = {0.};
     const double res = diss.Make_uPiSource(1.0, cell, 0.1, sigma, thermalVec);
     CHECK(std::isfinite(res));
@@ -729,9 +728,10 @@ TEST_CASE("Advance::QuestRevertResummedTransCoeff uses e + P for Rbulk") {
 
 TEST_CASE("Evolve reads the last freeze-out entry without a newline") {
     const std::string dir = makeTempDir();
-    const std::string list =
-        writeFile(dir, "fo.dat", "# e\n0.1 0 0 0 0 0 0\n0.2 0 0 0 0 0 0\n"
-                                 "0.3 0 0 0 0 0 0");
+    const std::string list = writeFile(
+        dir, "fo.dat",
+        "# e\n0.1 0 0 0 0 0 0\n0.2 0 0 0 0 0 0\n"
+        "0.3 0 0 0 0 0 0");
     InitData DATA = defaultParameters();
     DATA.freezeOutMethod = 4;
     DATA.useEpsFO = 1;
@@ -791,8 +791,9 @@ TEST_CASE("Reconst caps a superluminal T^{tau eta} by scaling all of M") {
     const double h = (sol.e + P) * sol.u[0];
     CHECK(h * sol.u[0] - P == doctest::Approx(1.0).epsilon(1e-10));
     CHECK(sol.u[3] / sol.u[1] == doctest::Approx(1.1 / 0.3).epsilon(1e-8));
-    CHECK(h * std::sqrt(sol.u[1] * sol.u[1] + sol.u[3] * sol.u[3])
-          == doctest::Approx(0.999).epsilon(1e-8));
+    CHECK(
+        h * std::sqrt(sol.u[1] * sol.u[1] + sol.u[3] * sol.u[3])
+        == doctest::Approx(0.999).epsilon(1e-8));
 }
 
 TEST_CASE("U_derivative: Du from the ideal equations of motion") {
@@ -841,19 +842,21 @@ TEST_CASE("U_derivative: Du from the ideal equations of motion") {
         uder.calculate_Du_supmu(tau, arena, idx, a);
         const double e = arena.e_[idx];
         const double P = eos.get_pressure(e, 0.);
-        const double dPdx = (eos.get_pressure(e + 0.1, 0.)
-                             - eos.get_pressure(e - 0.1, 0.))
-                            / (2. * DATA.delta_x);
+        const double dPdx =
+            (eos.get_pressure(e + 0.1, 0.) - eos.get_pressure(e - 0.1, 0.))
+            / (2. * DATA.delta_x);
         const double expected = (config.ideal ? -dPdx / (e + P) : 0.);
         CHECK(a[1] == doctest::Approx(expected).epsilon(1e-6));
         CHECK(a[2] == doctest::Approx(0.));
         CHECK(a[3] == doctest::Approx(0.));
-        CHECK(uder.calculate_expansion_rate(tau, arena, idx)
-              == doctest::Approx(1. / tau).epsilon(1e-10));
+        CHECK(
+            uder.calculate_expansion_rate(tau, arena, idx)
+            == doctest::Approx(1. / tau).epsilon(1e-10));
     }
 }
 
-TEST_CASE("Advance::MakeDeltaQI conserves P_x and N_B at a fast/rest interface") {
+TEST_CASE(
+    "Advance::MakeDeltaQI conserves P_x and N_B at a fast/rest interface") {
     // the half-way state on the neighbour's side was reconstructed with the
     // own cell as the guess; when its solution was rejected the two
     // neighbours used different interface fluxes

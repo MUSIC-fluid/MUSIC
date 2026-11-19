@@ -177,7 +177,7 @@ void MUSIC::initialize_hydro_from_jetscape_preequilibrium_vectors(
 
 void MUSIC::get_hydro_info(
     const double x, const double y, const double z, const double t,
-    fluidCell* fluid_cell_info) {
+    fluidCell *fluid_cell_info) {
     if (DATA.store_hydro_info_in_memory == 0 || hydro_info_ptr == nullptr) {
         music_message << "hydro evolution informaiton is not stored "
                       << "in the momeory! Please set the parameter "

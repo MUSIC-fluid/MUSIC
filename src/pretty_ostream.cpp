@@ -63,8 +63,7 @@ void pretty_ostream::flush(string type) {
 //! This function output information message
 void pretty_ostream::info(string message) {
     std::ostringstream line;
-    line << emoji::music_note() << " " << get_memory_usage() << " "
-         << message;
+    line << emoji::music_note() << " " << get_memory_usage() << " " << message;
     writeLine(line.str());
 }
 

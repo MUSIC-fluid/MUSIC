@@ -20,7 +20,11 @@ class Fields {
   public:
     // Scalar fields
     std::vector<double> e_;
+
     std::vector<double> rhob_;
+    std::vector<double> rhoq_;
+    std::vector<double> rhos_;
+
     std::vector<double> piBulk_;
     std::vector<double> piBulkChem_;
 

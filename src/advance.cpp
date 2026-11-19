@@ -137,10 +137,14 @@ void Advance::FirstRKStepT(
     // It is the spatial derivative part of partial_a T^{a mu}
     // (including geometric terms)
     TJbVec qi = {0};
-    double pressure = eos.get_pressure(cellCurr.e, cellCurr.rhob);
-    for (int alpha = 0; alpha < 5; alpha++) {
+
+    double pressure = eos.get_pressure(
+        cellCurr.e, cellCurr.rhob, cellCurr.rhoq, cellCurr.rhos);
+
+    for (int alpha = 0; alpha < 7; alpha++) {
         qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure) * tau_rk;
     }
+
     MakeDeltaQI(tau_rk, arenaFieldsCurr, ix, iy, ieta, qi, rk_flag);
 
     TJbVec qi_source = {0.0};
@@ -168,11 +172,20 @@ void Advance::FirstRKStepT(
                  * hydro_source_terms_ptr->get_hydro_rhob_source(
                      tau_rk, x_local, y_local, eta_s_local, u_local));
         }
+
+        if (DATA.turn_on_QS == 1) {
+            qi_source[5] =
+                (tau_rk
+                 * hydro_source_terms_ptr->get_hydro_rhoQ_source(
+                     tau_rk, x_local, y_local, eta_s_local, u_local));
+        }
     }
 
     // now MakeWSource returns partial_a W^{a mu}
     // (including geometric terms)
+
     TJbVec dwmn = {0.0};
+
     diss_helper.MakeWSource(
         tau_rk, ix, iy, ieta, dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
 
@@ -227,13 +240,14 @@ void Advance::FirstRKStepT(
         }
     }
 
-    double pressurePrev = eos.get_pressure(cellPrev.e, cellPrev.rhob);
-    for (int alpha = 0; alpha < 5; alpha++) {
+    double pressurePrev = eos.get_pressure(
+        cellPrev.e, cellPrev.rhob, cellPrev.rhoq, cellPrev.rhos);
+    for (int alpha = 0; alpha < 7; alpha++) {
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn[alpha] * (DATA.delta_tau);
         qi[alpha] -= viscCorr[alpha];
 
-        // add energy moemntum and net baryon density source terms
+        // add energy momentum and net baryon density source terms
         qi[alpha] += qi_source[alpha] * DATA.delta_tau;
 
         // set baryon density back to zero if viscous correction made it
@@ -254,7 +268,11 @@ void Advance::FirstRKStepT(
     double tau_next = tau + DATA.delta_tau;
     auto grid_rk_t = reconst_helper.ReconstIt_shell(tau_next, qi, cellCurr);
     arenaFieldsNext.e_[fieldIdx] = grid_rk_t.e;
+
     arenaFieldsNext.rhob_[fieldIdx] = grid_rk_t.rhob;
+    arenaFieldsNext.rhoq_[fieldIdx] = grid_rk_t.rhoq;
+    arenaFieldsNext.rhos_[fieldIdx] = grid_rk_t.rhos;
+
     for (int ii = 0; ii < 4; ii++) {
         arenaFieldsNext.u_[ii][fieldIdx] = grid_rk_t.u[ii];
     }
@@ -292,7 +310,8 @@ void Advance::FirstRKStepW(
     // the second RK stage), like theta, sigma and Du; the transport
     // coefficients of tau_n there made the scheme first order in dtau
     std::vector<double> thermalVec;
-    eos.getThermalVariables(grid_c.epsilon, grid_c.rhob, thermalVec);
+    eos.getThermalVariables(
+        grid_c.epsilon, grid_c.rhob, grid_c.rhoq, grid_c.rhos, thermalVec);
 
     double tempf;
     double u0Prev = arenaFieldsPrev.u_[0][fieldIdx];
@@ -439,7 +458,8 @@ void Advance::FirstRKStepW(
 void Advance::QuestRevertResummedTransCoeff(Cell_small &grid_pt) {
     double e_local = grid_pt.epsilon;
     double rhob = grid_pt.rhob;
-    double p_local = eos.get_pressure(e_local, rhob);
+    double p_local =
+        eos.get_pressure(e_local, rhob, grid_pt.rhoq, grid_pt.rhos);
 
     double pi_00 = grid_pt.Wmunu[0];
     double pi_01 = grid_pt.Wmunu[1];
@@ -475,6 +495,8 @@ void Advance::QuestRevert(
     double eps_scale = 0.1;  // 1/fm^4
     double e_local = grid_pt.epsilon;
     double rhob = grid_pt.rhob;
+    double rhoq = grid_pt.rhoq;
+    double rhos = grid_pt.rhos;
 
     // regulation factor in the default MUSIC
     // double factor = 300.*tanh(grid_pt.epsilon/eps_scale);
@@ -503,7 +525,7 @@ void Advance::QuestRevert(
     double pi_local = grid_pt.pi_b;
     double bulksize = 3. * pi_local * pi_local;
 
-    double p_local = eos.get_pressure(e_local, rhob);
+    double p_local = eos.get_pressure(e_local, rhob, rhoq, rhos);
     double eq_size = e_local * e_local + 3. * p_local * p_local;
 
     // In default MUSIC
@@ -640,11 +662,16 @@ void Advance::MakeDeltaQI(
     EnergyFlowVec T_eta_p = {0.};
     FieldNeighbourLoopIdeal2(
         arenaFieldsCurr, ix, iy, ieta, FNLILAMBDAS2 {
-            double pressureP1 = eos.get_pressure(p1.e, p1.rhob);
-            double pressureP2 = eos.get_pressure(p2.e, p2.rhob);
-            double pressureM1 = eos.get_pressure(m1.e, m1.rhob);
-            double pressureM2 = eos.get_pressure(m2.e, m2.rhob);
-            for (int alpha = 0; alpha < 5; alpha++) {
+            double pressureP1 =
+                eos.get_pressure(p1.e, p1.rhob, p1.rhoq, p1.rhos);
+            double pressureP2 =
+                eos.get_pressure(p2.e, p2.rhob, p2.rhoq, p2.rhos);
+            double pressureM1 =
+                eos.get_pressure(m1.e, m1.rhob, m1.rhoq, m1.rhos);
+            double pressureM2 =
+                eos.get_pressure(m2.e, m2.rhob, m2.rhoq, m2.rhos);
+
+            for (int alpha = 0; alpha < 7; alpha++) {
                 const double gphL = qi[alpha];
                 const double gphR = tau * get_TJb(p1, alpha, 0, pressureP1);
                 const double gmhL = tau * get_TJb(m1, alpha, 0, pressureM1);
@@ -684,7 +711,7 @@ void Advance::MakeDeltaQI(
 
             double aiph = std::max(aiphL, aiphR);
             double aimh = std::max(aimhL, aimhR);
-            for (int alpha = 0; alpha < 5; alpha++) {
+            for (int alpha = 0; alpha < 7; alpha++) {
                 double FiphL =
                     (tau_fac[direction]
                      * get_TJb(grid_phL, alpha, direction, pressureP1));
@@ -742,7 +769,7 @@ void Advance::MakeDeltaQI(
     // rhs[0] -= get_TJb(arena_current(ix, iy, ieta), 3, 3)*DATA.delta_tau;
     // rhs[3] -= get_TJb(arena_current(ix, iy, ieta), 3, 0)*DATA.delta_tau;
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 7; i++) {
         qi[i] += rhs[i];
     }
 }
@@ -760,10 +787,13 @@ double Advance::MaxSpeed(
 
     double eps = grid_p.e;
     double rhob = grid_p.rhob;
+    double rhoq = grid_p.rhoq;
+    double rhos = grid_p.rhos;
 
     // double vs2 = eos.get_cs2(eps, rhob);
-    double dpde, dpdrhob, vs2;
-    eos.get_pressure_with_gradients(eps, rhob, pressure, dpde, dpdrhob, vs2);
+    double dpde, dpdrhob, dpdrhoq, dpdrhos, vs2;
+    eos.get_pressure_with_gradients_and_cs2(
+        eps, rhob, rhoq, rhos, pressure, dpde, dpdrhob, dpdrhoq, dpdrhos, vs2);
     double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.) * vs2) * vs2;
     double num;
     if (num_temp_sqrt >= 0) {
@@ -783,11 +813,15 @@ double Advance::MaxSpeed(
             fprintf(stderr, "at value p=%lf. \n", pressure);
             fprintf(stderr, "at value h=%lf. \n", h);
             fprintf(stderr, "at value rhob=%lf. \n", rhob);
+            fprintf(stderr, "at value rhoq=%lf. \n", rhoq);
+            fprintf(stderr, "at value rhos=%lf. \n", rhos);
             fprintf(stderr, "at value utau=%lf. \n", utau);
             fprintf(stderr, "at value uk=%lf. \n", ux);
             fprintf(stderr, "at value vs^2=%lf. \n", vs2);
             fprintf(stderr, "at value dpde=%lf. \n", dpde);
             fprintf(stderr, "at value dpdrhob=%lf. \n", dpdrhob);
+            fprintf(stderr, "at value dpdrhoq=%lf. \n", dpdrhoq);
+            fprintf(stderr, "at value dpdrhos=%lf. \n", dpdrhos);
             fprintf(stderr, "MaxSpeed: exiting.\n");
             exit(1);
         }
@@ -831,11 +865,17 @@ double Advance::get_TJb(
     const double pressure) {
     // assert(mu < 5); assert(mu > -1);
     // assert(nu < 4); assert(nu > -1);
-    double rhob = grid_p.rhob;
+
     const double u_nu = grid_p.u[nu];
+
     if (mu == 4) {
-        return rhob * u_nu;
+        return (grid_p.rhob) * u_nu;
+    } else if (mu == 5) {
+        return (grid_p.rhoq) * u_nu;
+    } else if (mu == 6) {
+        return (grid_p.rhos) * u_nu;
     }
+
     double e = grid_p.e;
     double gfac = 0.0;
     double u_mu = 0.0;
@@ -900,8 +940,8 @@ void Advance::nCausalityConstraints(Cell_small &grid_pt) {
     // pick the min alpha between 0 and 1
     double eps = grid_pt.epsilon;
     double rhob = grid_pt.rhob;
-    double cs2 = eos.get_cs2(eps, rhob);
-    double P = eos.get_pressure(eps, rhob);
+    double cs2 = eos.get_cs2(eps, rhob, grid_pt.rhoq, grid_pt.rhos);
+    double P = eos.get_pressure(eps, rhob, grid_pt.rhoq, grid_pt.rhos);
     double transportPart_n13 =
         2. * 1. / transport_coeffs_.get_shear_relax_time_factor();
     double viscousPart1_n13 = transport_coeffs_.get_lambda_pibulkPi_coeff();

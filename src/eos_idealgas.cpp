@@ -26,8 +26,8 @@ double EOS_idealgas::coeff_a() const {
 
 double EOS_idealgas::D_of_x(const double x) const {
     const double x2 = x * x;
-    return (coeff_a()
-            + coeff_b() * (x2 / 54. + x2 * x2 / (972. * M_PI * M_PI)));
+    return (
+        coeff_a() + coeff_b() * (x2 / 54. + x2 * x2 / (972. * M_PI * M_PI)));
 }
 
 double EOS_idealgas::N_of_x(const double x) const {
@@ -69,9 +69,9 @@ void EOS_idealgas::build_x_table() {
         const double rho = static_cast<double>(i) / (Nt - 1);
         // the small-x solution, then continuation from the previous point
         const double guess =
-            (i == 1) ? 27. * rho * r_cap_ * pow(3. * coeff_a(), 0.75)
-                           / coeff_b()
-                     : x_table_[i - 1];
+            (i == 1)
+                ? 27. * rho * r_cap_ * pow(3. * coeff_a(), 0.75) / coeff_b()
+                : x_table_[i - 1];
         x_table_[i] = x_of_rho(rho, guess);
     }
     x_table_[Nt - 1] = xMax;
@@ -107,11 +107,13 @@ double EOS_idealgas::get_muB_over_T(const double e, const double rhob) const {
     return (x_of_rho(rho, x_table_[i] * (1. - f) + x_table_[i + 1] * f));
 }
 
-double EOS_idealgas::get_temperature(double eps, double rhob) const {
+double EOS_idealgas::get_temperature(
+    double eps, double rhob, double rhoq, double rhos) const {
     return (T_of_e_x(eps, get_muB_over_T(eps, rhob)));
 }
 
-double EOS_idealgas::get_muB(double e, double rhob) const {
+double EOS_idealgas::get_muB(
+    double e, double rhob, double rhoq, double rhos) const {
     const double x = get_muB_over_T(e, rhob);
     return (std::copysign(x * T_of_e_x(e, x), rhob));  // [1/fm]
 }
@@ -126,23 +128,27 @@ double EOS_idealgas::get_rhob_in_table(double e, double rhob) const {
 }
 
 //! s = dP/dT = T^3 S(x); beyond the cap this is (e + P - mu_B n_cap) / T
-double EOS_idealgas::get_entropy(double e, double rhob) const {
+double EOS_idealgas::get_entropy(
+    double e, double rhob, double rhoq, double rhos) const {
     const double x = get_muB_over_T(e, rhob);
     const double T = T_of_e_x(e, x);
     return (std::max(Util::small_eps, T * T * T * S_of_x(x)));
 }
 
 void EOS_idealgas::getThermalVariables(
-    double e, double rhob, std::vector<double> &thermalVec) const {
+    double e, double rhob, double rhoq, double rhos,
+    std::vector<double> &thermalVec) const {
     const double x = get_muB_over_T(e, rhob);
     const double T = T_of_e_x(e, x);
     thermalVec = std::vector<double>(
         {e, rhob, e / 3., 1. / 3., 0., 1. / 3., T, std::copysign(x * T, rhob),
-         0., 0., 0., 0., std::max(Util::small_eps, T * T * T * S_of_x(x))});
+         0., rhos, 0., rhoq, std::max(Util::small_eps, T * T * T * S_of_x(x)),
+         0., 0.});
 }
 
 //! e at entropy density s and n_B: n_B / s = N(x) / S(x) rises with x
-double EOS_idealgas::get_s2e(double s, double rhob) const {
+double EOS_idealgas::get_s2e(
+    double s, double rhob, double rhoq, double rhos) const {
     if (s <= 0.) return (0.);
     const double r = std::abs(rhob) / s;
     double x = 0.;
@@ -170,7 +176,8 @@ double EOS_idealgas::get_s2e(double s, double rhob) const {
 }
 
 //! e at temperature T and n_B: n_B / T^3 = N(x) rises with x
-double EOS_idealgas::get_T2e(double T_in_GeV, double rhob) const {
+double EOS_idealgas::get_T2e(
+    double T_in_GeV, double rhob, double rhoq, double rhos) const {
     const double T = T_in_GeV / Util::hbarc;
     if (T <= 0.) return (0.);
     const double r = std::abs(rhob) / (T * T * T);

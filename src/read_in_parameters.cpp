@@ -242,10 +242,31 @@ InitData read_in_parameters(std::string input_file) {
     // switch for baryon current propagation
     parameter_list.turn_on_rhob =
         (getParameter(input_file, "Include_Rhob_Yes_1_No_0", 0));
-    if (parameter_list.turn_on_rhob == 1) {
+
+    // switch for electric charge and strangeness current propagation
+    parameter_list.turn_on_QS =
+        (getParameter(input_file, "Include_QS_Yes_1_No_0", 0));
+    if (parameter_list.turn_on_QS == 1) {
+        parameter_list.alpha_max = 7;
+    } else if (parameter_list.turn_on_rhob == 1) {
         parameter_list.alpha_max = 5;
     } else {
         parameter_list.alpha_max = 4;
+    }
+
+    // rho_Q = 0.4 rho_B for the 3D-Glauber string sources
+    parameter_list.use_BQ_ratios =
+        (getParameter(input_file, "use_BQ_ratios", 0));
+
+    // rho_Q and rho_S as fixed ratios to rho_B for the Gubser initial
+    // conditions
+    parameter_list.use_rhoQS_to_rhoB_ratios =
+        (getParameter(input_file, "use_rhoQS_to_rhoB_ratios", 0));
+    parameter_list.ratio_q = 0.4;
+    parameter_list.ratio_s = 0.;
+    if (parameter_list.use_rhoQS_to_rhoB_ratios == 1) {
+        parameter_list.ratio_q = getParameter(input_file, "ratio_q", 0.4);
+        parameter_list.ratio_s = getParameter(input_file, "ratio_s", 0.);
     }
 
     // Runge_Kutta_order:  must be 1 or 2
@@ -755,7 +776,7 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         parameter_list.useEpsFO = 1;
     }
 
-    if ((parameter_list.whichEOS > 19 && parameter_list.whichEOS != 91
+    if ((parameter_list.whichEOS > 20 && parameter_list.whichEOS != 91
          && parameter_list.whichEOS != 42)
         || parameter_list.whichEOS < 0) {
         music_message << "EOS_to_use unspecified or invalid option: "

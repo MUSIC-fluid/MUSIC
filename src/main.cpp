@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
             bReRunHydro = music_hydro.getReRunHydro();
             if (bReRunHydro
                 && !MUSICRunControl::reRunEnlargesGrid(
-                       music_hydro.getParameters())) {
+                    music_hydro.getParameters())) {
                 std::cout << "The fluid reached the grid edge, but a re-run "
                           << "with Initial_profile = "
                           << music_hydro.getParameters().Initial_profile

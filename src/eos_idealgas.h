@@ -50,26 +50,62 @@ class EOS_idealgas : public EOS_base {
     }
 
     void initialize_eos();
-    double get_cs2(double e, double rhob) const { return (1. / 3.); }
-    double p_rho_func(double e, double rhob) const { return (0.0); }
-    double get_rhob_in_table(double e, double rhob) const override;
+    // n_Q and n_S are carried by the fluid but do not enter this EoS:
+    // mu_Q = mu_S = 0 and the state depends on (e, n_B) only
+    double get_cs2(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const {
+        return (1. / 3.);
+    }
+    double p_rho_func(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const {
+        return (0.0);
+    }
+    double p_e_func(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const {
+        return (1. / 3.);
+    }
+    double get_rhob_in_table(double e, double rhob) const;
     // one solve for x per call
-    double get_entropy(double e, double rhob) const override;
+    double get_entropy(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const;
     void getThermalVariables(
-        double e, double rhob, std::vector<double> &thermalVec) const override;
-    double p_e_func(double e, double rhob) const { return (1. / 3.); }
-    double get_temperature(double e, double rhob) const;
-    double get_muB(double e, double rhob) const;
-    double get_muS(double e, double rhob) const { return (0.0); }
-    double get_pressure(double e, double rhob) const { return (1. / 3. * e); }
-    double get_s2e(double s, double rhob) const;
-    double get_T2e(double T_in_GeV, double rhob) const;
-    virtual void get_pressure_with_gradients(
-        double epsilon, double rhob, double &p, double &dpde, double &dpdrhob,
-        double &cs2) const {
+        double e, double rhob, double rhoq, double rhos,
+        std::vector<double> &thermalVec) const;
+    double get_temperature(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const;
+    double get_muB(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const;
+    double get_muQ(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const {
+        return (0.0);
+    }
+    double get_muS(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const {
+        return (0.0);
+    }
+    double get_pressure(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const {
+        return (1. / 3. * e);
+    }
+    double get_s2e(
+        double s, double rhob, double rhoq = 0., double rhos = 0.) const;
+    double get_T2e(
+        double T_in_GeV, double rhob, double rhoq = 0., double rhos = 0.) const;
+    void get_pressure_with_gradients(
+        double epsilon, double rhob, double rhoq, double rhos, double &p,
+        double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos) const {
         dpde = 1 / 3.;
         p = dpde * epsilon;
         dpdrhob = 0.;
+        dpdrhoq = 0.;
+        dpdrhos = 0.;
+    }
+    void get_pressure_with_gradients_and_cs2(
+        double epsilon, double rhob, double rhoq, double rhos, double &p,
+        double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos,
+        double &cs2) const {
+        get_pressure_with_gradients(
+            epsilon, rhob, rhoq, rhos, p, dpde, dpdrhob, dpdrhoq, dpdrhos);
         cs2 = dpde;
     }
 

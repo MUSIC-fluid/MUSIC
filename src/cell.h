@@ -10,7 +10,10 @@
 class Cell_small {
   public:
     double epsilon = 0;
+
     double rhob = 0;
+    double rhoq = 0;
+    double rhos = 0;
     FlowVec u = {1., 0., 0., 0.};
 
     ViscousVec Wmunu = {0.};
@@ -21,7 +24,11 @@ class Cell_small {
     Cell_small operator+(Cell_small const &obj) {
         Cell_small res;
         res.epsilon = epsilon + obj.epsilon;
+
         res.rhob = rhob + obj.rhob;
+        res.rhoq = rhoq + obj.rhoq;
+        res.rhos = rhos + obj.rhos;
+
         res.u[1] = u[1] + obj.u[1];
         res.u[2] = u[2] + obj.u[2];
         res.u[3] = u[3] + obj.u[3];
@@ -39,7 +46,11 @@ class Cell_small {
     Cell_small operator*(const double a) {
         Cell_small res;
         res.epsilon = epsilon * a;
+
         res.rhob = rhob * a;
+        res.rhoq = rhoq * a;
+        res.rhos = rhos * a;
+
         res.u[1] = u[1] * a;
         res.u[2] = u[2] * a;
         res.u[3] = u[3] * a;
@@ -62,7 +73,10 @@ class Cell_aux {
     VorticityVec omega_th = {0.};
     VorticityVec omega_T = {0.};
     VelocityShearVec sigma_th = {0.};
+
+    /// To change when viscous part considered.
     DmuMuBoverTVec DbetaMu = {0.};
+    ///
 
     Cell_aux operator+(Cell_aux const &obj) {
         Cell_aux res;
@@ -75,7 +89,7 @@ class Cell_aux {
         for (unsigned int i = 0; i < sigma_th.size(); i++)
             res.sigma_th[i] = sigma_th[i] + obj.sigma_th[i];
         for (unsigned int i = 0; i < DbetaMu.size(); i++)
-            res.DbetaMu[i] = DbetaMu[i] + obj.DbetaMu[i];
+            res.DbetaMu[i] = DbetaMu[i] + obj.DbetaMu[i];  ///
         return (res);
     }
 
@@ -90,7 +104,7 @@ class Cell_aux {
         for (unsigned int i = 0; i < sigma_th.size(); i++)
             res.sigma_th[i] = sigma_th[i] * a;
         for (unsigned int i = 0; i < DbetaMu.size(); i++)
-            res.DbetaMu[i] = DbetaMu[i] * a;
+            res.DbetaMu[i] = DbetaMu[i] * a;  ///
         return (res);
     }
 };

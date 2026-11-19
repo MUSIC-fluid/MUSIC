@@ -33,8 +33,9 @@ struct QCD_string {
     double eta_s_baryon_left, eta_s_baryon_right;
     double y_l_baryon, y_r_baryon;
     double baryon_frac_l, baryon_frac_r;
-    double electricQ_frac_l, electricQ_frac_r;
-    double eta_s_electricQ_left, eta_s_electricQ_right;
+    double tau_Qe_left, tau_Qe_right;
+    double Qe_left, Qe_right;
+    double eta_s_Qe_left, eta_s_Qe_right;
 };
 
 class HydroSourceStrings : public HydroSourceBase {
@@ -50,6 +51,8 @@ class HydroSourceStrings : public HydroSourceBase {
         QCD_strings_remnant_list_current_tau;
     std::vector<std::shared_ptr<QCD_string>>
         QCD_strings_baryon_list_current_tau;
+    std::vector<std::shared_ptr<QCD_string>>
+        QCD_strings_electric_list_current_tau;
 
   public:
     HydroSourceStrings() = delete;
@@ -73,6 +76,9 @@ class HydroSourceStrings : public HydroSourceBase {
     //! this function returns the net baryon density source term rho
     //! at a given point (tau, x, y, eta_s)
     double get_hydro_rhob_source(
+        const double tau, const double x, const double y, const double eta_s,
+        const FlowVec &u_mu) const;
+    double get_hydro_rhoQ_source(
         const double tau, const double x, const double y, const double eta_s,
         const FlowVec &u_mu) const;
 

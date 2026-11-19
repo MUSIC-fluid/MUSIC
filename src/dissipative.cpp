@@ -837,8 +837,8 @@ double Diss::D_muB_over_T_ideal(
     const double epsilon, const double rhob, const double pressure,
     const double theta) const {
     auto alpha = [this](const double e, const double n) {
-        return (eos.get_muB(e, n)
-                / std::max(eos.get_temperature(e, n), small_eps));
+        return (
+            eos.get_muB(e, n) / std::max(eos.get_temperature(e, n), small_eps));
     };
     if (epsilon < small_eps) return 0.;
     const double de = 1e-4 * epsilon;
@@ -931,7 +931,8 @@ void Diss::Make_uqSource(
         D_muB_over_T_ideal(epsilon, rhob, pressure, theta_local);
 
     for (int nu = 1; nu < 4; nu++) {
-        double NS = kappa * (baryon_diffusion_vec[nu] + grid_pt.u[nu] * DmuBoverT);
+        double NS =
+            kappa * (baryon_diffusion_vec[nu] + grid_pt.u[nu] * DmuBoverT);
 
         // add a new non-linear term (- q \theta)
         double Nonlinear1 = -transport_coeff * q[nu] * theta_local;

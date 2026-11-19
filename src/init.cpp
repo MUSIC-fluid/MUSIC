@@ -238,6 +238,28 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
         for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
             initial_Gubser_XY(ieta, arenaFieldsPrev, arenaFieldsCurr);
         }
+
+        if (DATA.turn_on_QS == 1) {
+            if (DATA.use_rhoQS_to_rhoB_ratios == 1) {
+                music_message << "Electric charge and strangeness densities "
+                              << "initialized with"
+                              << "rhoQ = " << DATA.ratio_q << " rhoB"
+                              << " rhoS = " << DATA.ratio_s << " rhoB";
+                music_message.flush("info");
+                for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
+                    initial_QS_with_rhob_ratios_XY(
+                        ieta, arenaFieldsPrev, arenaFieldsCurr);
+                }
+            } else {
+                music_message << "Initialize electric charge and strangeness "
+                              << "densities to zero";
+                music_message.flush("info");
+                for (int ieta = 0; ieta < arenaFieldsCurr.nEta(); ieta++) {
+                    initial_QS_with_zero_XY(
+                        ieta, arenaFieldsPrev, arenaFieldsCurr);
+                }
+            }
+        }
     } else if (DATA.Initial_profile == 1) {
         // code test in 1+1 D vs Monnai's results
         music_message.info(" Perform 1+1D test vs Monnai's results... ");
@@ -317,6 +339,8 @@ void Init::InitTJb(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
         music_message.flush("info");
         initial_UMN_with_rhob(arenaFieldsPrev, arenaFieldsCurr);
     }
+
+    // *** This should be modified for each initial conditions case.
 
     if (DATA.viscosity_flag == 0) {
         // for ideal hydrodynamic simualtions set all viscous tensor to zero
@@ -1009,8 +1033,7 @@ void Init::initial_MCGlb_with_rhob(
     // the padding cells added on a re-run get the same floor as the
     // rest of the grid instead of e = 0 exactly (which gives T = 0)
     std::fill(
-        arenaFieldsCurr.e_.begin(), arenaFieldsCurr.e_.end(),
-        Util::small_eps);
+        arenaFieldsCurr.e_.begin(), arenaFieldsCurr.e_.end(), Util::small_eps);
     std::fill(arenaFieldsCurr.rhob_.begin(), arenaFieldsCurr.rhob_.end(), 0.);
 
     std::vector<double> temp_profile_TA(nx * ny);
@@ -1136,12 +1159,58 @@ void Init::initial_with_zero_XY(
     for (int ix = 0; ix < nx; ix++) {
         for (int iy = 0; iy < ny; iy++) {
             double rhob = 0.0;
+            double rhoq = 0.0;
+            double rhos = 0.0;
             double epsilon = 1e-12;
             int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
             arenaFieldsCurr.e_[idx] = epsilon;
             arenaFieldsCurr.rhob_[idx] = rhob;
             arenaFieldsPrev.e_[idx] = epsilon;
             arenaFieldsPrev.rhob_[idx] = rhob;
+
+            arenaFieldsCurr.rhoq_[idx] = rhoq;
+            arenaFieldsPrev.rhoq_[idx] = rhoq;
+
+            arenaFieldsCurr.rhos_[idx] = rhos;
+            arenaFieldsPrev.rhos_[idx] = rhos;
+        }
+    }
+}
+
+void Init::initial_QS_with_zero_XY(
+    int ieta, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
+    double rhoq = 0.0;
+    double rhos = 0.0;
+    const int nx = arenaFieldsCurr.nX();
+    const int ny = arenaFieldsCurr.nY();
+    for (int ix = 0; ix < nx; ix++) {
+        for (int iy = 0; iy < ny; iy++) {
+            int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+            arenaFieldsCurr.rhoq_[idx] = rhoq;
+            arenaFieldsPrev.rhoq_[idx] = rhoq;
+            arenaFieldsCurr.rhos_[idx] = rhos;
+            arenaFieldsPrev.rhos_[idx] = rhos;
+        }
+    }
+}
+
+void Init::initial_QS_with_rhob_ratios_XY(
+    int ieta, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
+    double ratio_rhoq_to_rhob = DATA.ratio_q;
+    double ratio_rhos_to_rhob = DATA.ratio_s;
+    double rhob_prev, rhob_curr;
+    const int nx = arenaFieldsCurr.nX();
+    const int ny = arenaFieldsCurr.nY();
+    for (int ix = 0; ix < nx; ix++) {
+        for (int iy = 0; iy < ny; iy++) {
+            int idx = arenaFieldsCurr.getFieldIdx(ix, iy, ieta);
+            rhob_curr = arenaFieldsCurr.rhob_[idx];
+            arenaFieldsCurr.rhoq_[idx] = ratio_rhoq_to_rhob * rhob_curr;
+            arenaFieldsCurr.rhos_[idx] = ratio_rhos_to_rhob * rhob_curr;
+
+            rhob_prev = arenaFieldsPrev.rhob_[idx];
+            arenaFieldsPrev.rhoq_[idx] = ratio_rhoq_to_rhob * rhob_prev;
+            arenaFieldsPrev.rhos_[idx] = ratio_rhos_to_rhob * rhob_prev;
         }
     }
 }
@@ -1486,7 +1555,13 @@ void Init::output_initial_density_profiles(Fields &arena) {
     music_message.info("output initial density profiles into a file... ");
     std::ofstream of("check_initial_density_profiles.dat");
     of << "# x(fm)  y(fm)  eta  ed(GeV/fm^3)";
-    if (DATA.turn_on_rhob == 1) of << "  rhob(1/fm^3)";
+    if (DATA.turn_on_rhob == 1) {
+        of << "  rhob(1/fm^3)";
+    }
+    if (DATA.turn_on_QS) {
+        of << " rhoq(1/fm^3)";
+        of << " rhos(1/fm^3)";
+    }
     of << std::endl;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta_local = (DATA.delta_eta) * ieta - (DATA.eta_size) / 2.0;
@@ -1500,6 +1575,10 @@ void Init::output_initial_density_profiles(Fields &arena) {
                    << arena.e_[fieldIdx] * hbarc;
                 if (DATA.turn_on_rhob == 1) {
                     of << "   " << arena.rhob_[fieldIdx];
+                }
+                if (DATA.turn_on_QS == 1) {
+                    of << "   " << arena.rhoq_[fieldIdx];
+                    of << "   " << arena.rhos_[fieldIdx];
                 }
                 of << std::endl;
             }

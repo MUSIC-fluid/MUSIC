@@ -45,14 +45,14 @@ int main(int argc, char *argv[]) {
     const int sx = DATA.output_evolution_every_N_x;
     const int sy = DATA.output_evolution_every_N_y;
     const int seta = DATA.output_evolution_every_N_eta;
-    const int nslice = music.get_hydro_tau_max() > 0
-                           ? static_cast<int>(
-                                 (music.get_hydro_tau_max()
-                                  - music.get_hydro_tau0())
-                                     / music.get_hydro_dtau()
-                                 + 0.5)
-                                 + 1
-                           : 0;
+    const int nslice =
+        music.get_hydro_tau_max() > 0
+            ? static_cast<int>(
+                  (music.get_hydro_tau_max() - music.get_hydro_tau0())
+                      / music.get_hydro_dtau()
+                  + 0.5)
+                  + 1
+            : 0;
 
     long npoints = 0;
     double maxdT = 0., maxdv = 0., Tscale = 0.;
@@ -61,10 +61,9 @@ int main(int argc, char *argv[]) {
         const double tau =
             music.get_hydro_tau0() + itau * music.get_hydro_dtau();
         for (int ieta = 0; ieta < neta; ieta += seta) {
-            const double eta =
-                DATA.boost_invariant
-                    ? 0.
-                    : ieta * DATA.delta_eta - DATA.eta_size / 2.;
+            const double eta = DATA.boost_invariant
+                                   ? 0.
+                                   : ieta * DATA.delta_eta - DATA.eta_size / 2.;
             for (int iy = 0; iy < ny; iy += sy) {
                 const double y = iy * DATA.delta_y - DATA.y_size / 2.;
                 for (int ix = 0; ix < nx; ix += sx) {

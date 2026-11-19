@@ -222,8 +222,9 @@ void U_derivative::calculate_kinetic_vorticity_with_spatial_projector(
 void U_derivative::calculate_thermal_vorticity(
     const double tau, Fields &arena, const int fieldIdx, VorticityVec &omega) {
     // this function computes the thermal vorticity
-    double T_local =
-        eos.get_temperature(arena.e_[fieldIdx], arena.rhob_[fieldIdx]);
+    double T_local = eos.get_temperature(
+        arena.e_[fieldIdx], arena.rhob_[fieldIdx], arena.rhoq_[fieldIdx],
+        arena.rhos_[fieldIdx]);
     if (T_local > T_tol) {
         FlowVec u_local;
         double dUsup_local[4][4];
@@ -268,8 +269,10 @@ void U_derivative::calculate_thermal_shear_tensor(
     const double tau, Fields &arena, const int fieldIdx,
     VelocityShearVec &sigma_th) {
     // this function computes the thermal shear tensor
-    double T_local =
-        eos.get_temperature(arena.e_[fieldIdx], arena.rhob_[fieldIdx]);
+    double T_local = eos.get_temperature(
+        arena.e_[fieldIdx], arena.rhob_[fieldIdx], arena.rhoq_[fieldIdx],
+        arena.rhos_[fieldIdx]);
+
     if (T_local > T_tol) {
         FlowVec u_local;
         double dUsup_local[4][4];
@@ -315,8 +318,9 @@ void U_derivative::calculate_T_vorticity(
     const double tau, Fields &arena, const int fieldIdx, VorticityVec &omega) {
     // this function computes the T-vorticity
     FlowVec u_local;
-    double T_local =
-        eos.get_temperature(arena.e_[fieldIdx], arena.rhob_[fieldIdx]);
+    double T_local = eos.get_temperature(
+        arena.e_[fieldIdx], arena.rhob_[fieldIdx], arena.rhoq_[fieldIdx],
+        arena.rhos_[fieldIdx]);
     double dUsup_local[4][4];
     for (int i = 0; i < 4; i++) {
         u_local[i] = arena.u_[i][fieldIdx];
@@ -481,12 +485,18 @@ int U_derivative::MakeDSpatial(
                     const double f = arena.u_[m][Ic];
                     const double fp1 = arena.u_[m][Ip1];
                     const double fm1 = arena.u_[m][Im1];
-                    double T =
-                        eos.get_temperature(arena.e_[Ic], arena.rhob_[Ic]);
-                    double Tp1 =
-                        eos.get_temperature(arena.e_[Ip1], arena.rhob_[Ip1]);
-                    double Tm1 =
-                        eos.get_temperature(arena.e_[Im1], arena.rhob_[Im1]);
+                    double T = eos.get_temperature(
+                        arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic],
+                        arena.rhos_[Ic]);
+
+                    double Tp1 = eos.get_temperature(
+                        arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1],
+                        arena.rhos_[Ip1]);
+
+                    double Tm1 = eos.get_temperature(
+                        arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1],
+                        arena.rhos_[Im1]);
+
                     if (T > T_tol && Tp1 > T_tol && Tm1 > T_tol) {
                         dUoverTsup[m][direction] =
                             (minmod.minmod_dx(fp1 / Tp1, f / T, fm1 / Tm1)
@@ -501,11 +511,14 @@ int U_derivative::MakeDSpatial(
             }
 
             if (DATA.Du_from_ideal_EoM == 1) {
-                const double P = eos.get_pressure(arena.e_[Ic], arena.rhob_[Ic]);
-                const double Pp1 =
-                    eos.get_pressure(arena.e_[Ip1], arena.rhob_[Ip1]);
-                const double Pm1 =
-                    eos.get_pressure(arena.e_[Im1], arena.rhob_[Im1]);
+                auto pressureAt = [&](const int I) {
+                    return (eos.get_pressure(
+                        arena.e_[I], arena.rhob_[I], arena.rhoq_[I],
+                        arena.rhos_[I]));
+                };
+                const double P = pressureAt(Ic);
+                const double Pp1 = pressureAt(Ip1);
+                const double Pm1 = pressureAt(Im1);
                 dPsup[direction] =
                     (minmod.minmod_dx(Pp1, P, Pm1) / delta[direction]);
             }
@@ -514,16 +527,28 @@ int U_derivative::MakeDSpatial(
             // Here we make derivatives of muB/T
             // dUsup[rk_flag][4][n] = partial_n (muB/T)
             // partial_x (muB/T) and partial_y (muB/T) first
-            if (DATA.turn_on_diff == 1 || DATA.output_vorticity == 1) {
+            if (DATA.turn_on_diff == 1) {
                 double f =
-                    (eos.get_muB(arena.e_[Ic], arena.rhob_[Ic])
-                     / eos.get_temperature(arena.e_[Ic], arena.rhob_[Ic]));
+                    (eos.get_muB(
+                         arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic],
+                         arena.rhos_[Ic])
+                     / eos.get_temperature(
+                         arena.e_[Ic], arena.rhob_[Ic], arena.rhoq_[Ic],
+                         arena.rhos_[Ic]));
                 double fp1 =
-                    (eos.get_muB(arena.e_[Ip1], arena.rhob_[Ip1])
-                     / eos.get_temperature(arena.e_[Ip1], arena.rhob_[Ip1]));
+                    (eos.get_muB(
+                         arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1],
+                         arena.rhos_[Ip1])
+                     / eos.get_temperature(
+                         arena.e_[Ip1], arena.rhob_[Ip1], arena.rhoq_[Ip1],
+                         arena.rhos_[Ip1]));
                 double fm1 =
-                    (eos.get_muB(arena.e_[Im1], arena.rhob_[Im1])
-                     / eos.get_temperature(arena.e_[Im1], arena.rhob_[Im1]));
+                    (eos.get_muB(
+                         arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1],
+                         arena.rhos_[Im1])
+                     / eos.get_temperature(
+                         arena.e_[Im1], arena.rhob_[Im1], arena.rhoq_[Im1],
+                         arena.rhos_[Im1]));
                 dUsup[4][direction] =
                     (minmod.minmod_dx(fp1, f, fm1) / delta[direction]);
             }
@@ -558,7 +583,8 @@ double U_derivative::idealEoMWeight(const InitData &DATA, const double eps) {
 //!   (e + P) Du^i = -(partial^i P + u^i DP),  DP = -theta (e + P) c_s^2,
 //! with De = -(e + P) theta and Dn = -n theta. In the components
 //! (u^tau, u^x, u^y, tau u^eta) and with partial_eta / tau,
-//!   u^tau partial_tau u^i = a^i - u^j partial_j u^i [- u^tau u^eta for i = eta]
+//!   u^tau partial_tau u^i = a^i - u^j partial_j u^i [- u^tau u^eta for i =
+//!   eta]
 //! and theta = partial_tau u^tau + partial_i u^i + u^tau / tau is affine in
 //! itself, so it is solved exactly. The backward time difference of u is
 //! noisy in dilute, fast cells; there it made the viscous terms non-smooth
@@ -573,10 +599,13 @@ void U_derivative::MakeDTauIdealEoM(
     const double eps = arena.e_[fieldIdx];
     const double weight = idealEoMWeight(DATA, eps);
     if (weight <= 0.) return;
-    double P, dpde, dpdrhob, cs2;
-    eos.get_pressure_with_gradients(
-        eps, arena.rhob_[fieldIdx], P, dpde, dpdrhob, cs2);
+    double P, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2;
+    eos.get_pressure_with_gradients_and_cs2(
+        eps, arena.rhob_[fieldIdx], arena.rhoq_[fieldIdx],
+        arena.rhos_[fieldIdx], P, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
     const double enthalpy = eps + P;
+    // De = -(e + P) theta and Dn = -n theta for each charge, so
+    // DP = -(e + P) c_s^2 theta
     const double K = enthalpy * cs2;  // DP = -K theta
     double u[4];
     for (int m = 0; m < 4; m++) u[m] = arena.u_[m][fieldIdx];
@@ -620,10 +649,17 @@ int U_derivative::MakeDTau(
 
     const double eps = arenaFieldsCurr.e_[fieldIdx];
     const double rhob = arenaFieldsCurr.rhob_[fieldIdx];
+    const double rhoq = arenaFieldsCurr.rhoq_[fieldIdx];
+    const double rhos = arenaFieldsCurr.rhos_[fieldIdx];
+
     const double eps_prev = arenaFieldsPrev.e_[fieldIdx];
     const double rhob_prev = arenaFieldsPrev.rhob_[fieldIdx];
-    const double T = eos.get_temperature(eps, rhob);
-    const double T_prev = eos.get_temperature(eps_prev, rhob_prev);
+    const double rhoq_prev = arenaFieldsPrev.rhoq_[fieldIdx];
+    const double rhos_prev = arenaFieldsPrev.rhos_[fieldIdx];
+
+    const double T = eos.get_temperature(eps, rhob, rhoq, rhos);
+    const double T_prev =
+        eos.get_temperature(eps_prev, rhob_prev, rhoq_prev, rhos_prev);
 
     for (int m = 0; m < 4; m++) {
         // first order is more stable
@@ -661,9 +697,10 @@ int U_derivative::MakeDTau(
     // Here we make the time derivative of (muB/T)
     int m = 4;
     // first order is more stable backward derivative
-    const double muB = eos.get_muB(eps, rhob);
+    const double muB = eos.get_muB(eps, rhob, rhoq, rhos);
     const double tildemu = muB / T;
-    const double muB_prev = eos.get_muB(eps_prev, rhob_prev);
+    const double muB_prev =
+        eos.get_muB(eps_prev, rhob_prev, rhoq_prev, rhos_prev);
     const double tildemu_prev = muB_prev / T_prev;
     f = (tildemu - tildemu_prev) / (DATA.delta_tau);
     dUsup[m][0] = -f;  // g^{00} = -1

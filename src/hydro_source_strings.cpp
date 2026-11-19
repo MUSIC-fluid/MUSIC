@@ -85,11 +85,11 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
             >> new_string->eta_s_baryon_left >> new_string->eta_s_baryon_right
             >> new_string->y_l_baryon >> new_string->y_r_baryon
             >> new_string->baryon_frac_l >> new_string->baryon_frac_r
-            >> new_string->electricQ_frac_l >> new_string->electricQ_frac_r
-            >> new_string->eta_s_electricQ_left;
+            >> new_string->Qe_left >> new_string->Qe_right
+            >> new_string->eta_s_Qe_left;
         if (!text_stream.eof()) {
             // read in the last element
-            text_stream >> new_string->eta_s_electricQ_right;
+            text_stream >> new_string->eta_s_Qe_right;
         } else {
             // the string is too short
             music_message << "read_in_QCD_strings_and_partons: "
@@ -134,6 +134,14 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
         new_string->tau_baryon_right = getStringEndTau(
             new_string->tau_0, new_string->tau_form, new_string->eta_s_0,
             new_string->eta_s_baryon_right);
+
+        // compute the electric charge tau
+        new_string->tau_Qe_left = getStringEndTau(
+            new_string->tau_0, new_string->tau_form, new_string->eta_s_0,
+            new_string->eta_s_Qe_left);
+        new_string->tau_Qe_right = getStringEndTau(
+            new_string->tau_0, new_string->tau_form, new_string->eta_s_0,
+            new_string->eta_s_Qe_right);
 
         // determine the tau_start and eta_s_start of the string
         if (new_string->eta_s_left > new_string->eta_s_0) {
@@ -187,10 +195,13 @@ void HydroSourceStrings::read_in_QCD_strings_and_partons() {
     music_message.flush("info");
 
     double total_baryon_number = 0;
+    double total_electric_charges = 0;
     for (auto const &it : QCD_strings_list) {
         total_baryon_number += it->baryon_frac_l + it->baryon_frac_r;
+        total_electric_charges += it->Qe_left + it->Qe_right;
     }
     music_message << "total baryon number = " << total_baryon_number;
+    music_message << ", total electric charges = " << total_electric_charges;
     music_message.flush("info");
     music_message << "total energy = " << total_energy << " GeV";
     music_message.flush("info");
@@ -356,6 +367,7 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
     double dtau = DATA.delta_tau;
     QCD_strings_list_current_tau.clear();
     QCD_strings_baryon_list_current_tau.clear();
+    QCD_strings_electric_list_current_tau.clear();
     QCD_strings_remnant_list_current_tau.clear();
     for (auto &it : QCD_strings_list) {
         if ((it->tau_baryon_left >= (tau_local - 1. / 2. * dtau)
@@ -365,6 +377,14 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
                 && it->tau_baryon_right < (tau_local + 3. / 2. * dtau)
                 && it->baryon_frac_r > 0.)) {
             QCD_strings_baryon_list_current_tau.push_back(it);
+        }
+        if ((it->tau_Qe_left >= (tau_local - 1. / 2. * dtau)
+             && it->tau_Qe_left < (tau_local + 3. / 2. * dtau)
+             && std::abs(it->Qe_left) > 1e-8)
+            || (it->tau_Qe_right >= (tau_local - 1. / 2. * dtau)
+                && it->tau_Qe_right < (tau_local + 3. / 2. * dtau)
+                && std::abs(it->Qe_right) > 1e-8)) {
+            QCD_strings_electric_list_current_tau.push_back(it);
         }
         if ((it->tau_end_left >= (tau_local - 1. / 2. * dtau)
              && it->tau_end_left < (tau_local + 3. / 2. * dtau))
@@ -382,7 +402,9 @@ void HydroSourceStrings::prepare_list_for_current_tau_frame(
                   << " number of strings for energy density: "
                   << QCD_strings_list_current_tau.size()
                   << " number of strings for net baryon density: "
-                  << QCD_strings_baryon_list_current_tau.size();
+                  << QCD_strings_baryon_list_current_tau.size()
+                  << " number of strings for net electric charge density: "
+                  << QCD_strings_electric_list_current_tau.size();
     music_message.flush("info");
 }
 
@@ -809,6 +831,96 @@ double HydroSourceStrings::get_hydro_rhob_source(
         }
     }
 
+    const double prefactor_tau = 1. / dtau;
+    res *= prefactor_tau;
+    return (res);
+}
+
+double HydroSourceStrings::get_hydro_rhoQ_source(
+    const double tau, const double x, const double y, const double eta_s,
+    const FlowVec &u_mu) const {
+    double res = 0.;
+    if (DATA.use_BQ_ratios) {
+        double nb = get_hydro_rhob_source(tau, x, y, eta_s, u_mu);
+        res = 0.4 * nb;
+        return (res);
+    }
+    if (QCD_strings_electric_list_current_tau.size() == 0) return (res);
+
+    // flow velocity
+    const double gamma_perp_flow =
+        sqrt(1. + u_mu[1] * u_mu[1] + u_mu[2] * u_mu[2]);
+    const double y_perp_flow = acosh(gamma_perp_flow);
+    const double y_long_flow = asinh(u_mu[3] / gamma_perp_flow) + eta_s;
+    // u^x = sinh(y_perp) cos(phi), u^y = sinh(y_perp) sin(phi)
+    const double u_perp_flow = sqrt(u_mu[1] * u_mu[1] + u_mu[2] * u_mu[2]);
+    const double cos_phi_flow =
+        (u_perp_flow > Util::small_eps ? u_mu[1] / u_perp_flow : 1.);
+    const double sin_phi_flow =
+        (u_perp_flow > Util::small_eps ? u_mu[2] / u_perp_flow : 0.);
+    const double dtau = DATA.delta_tau;
+
+    // the charges are deposited at rest in the fluid (y = y_long_flow);
+    // only the transverse flow is quenched
+    const double y_dump = y_long_flow;
+    const double y_dump_perp = parton_quench_factor * y_perp_flow;
+    double p_dot_u = 1.;
+    if (parton_quench_factor < 1.) {
+        p_dot_u =
+            (u_mu[0] * cosh(y_dump - eta_s) * cosh(y_dump_perp)
+             - u_mu[1] * sinh(y_dump_perp) * cos_phi_flow
+             - u_mu[2] * sinh(y_dump_perp) * sin_phi_flow
+             - u_mu[3] * sinh(y_dump - eta_s) * cosh(y_dump_perp));
+    }
+
+    const double exp_tau = 1.0 / tau;
+    const double n_sigma_skip = 8.;
+    for (auto &it : QCD_strings_electric_list_current_tau) {
+        const double sigma_x = it->sigma_x;
+        const double sigma_eta = it->sigma_eta;
+        const double prefactor_prep = 1. / (2. * M_PI * sigma_x * sigma_x);
+        const double prefactor_etas = 1. / (sqrt(2. * M_PI) * sigma_eta);
+        const double skip_dis_x = n_sigma_skip * sigma_x;
+        const double skip_dis_eta = n_sigma_skip * sigma_eta;
+
+        const bool flag_left =
+            (it->tau_Qe_left >= tau - dtau / 2.
+             && it->tau_Qe_left < tau + dtau / 2.
+             && std::abs(it->Qe_left) > 1e-8);
+        const bool flag_right =
+            (it->tau_Qe_right >= tau - dtau / 2.
+             && it->tau_Qe_right < tau + dtau / 2.
+             && std::abs(it->Qe_right) > 1e-8);
+        if (!flag_left && !flag_right) continue;
+
+        if (eta_s < it->eta_s_left - skip_dis_eta
+            || eta_s > it->eta_s_right + skip_dis_eta)
+            continue;
+
+        // each string end deposits its charge, as for the net baryon number
+        // (see get_hydro_rhob_source)
+        auto addEnd = [&](const double eta_end, const double x_end,
+                          const double y_end, const double Qe) {
+            const double eta_dis = eta_s - eta_end;
+            if (std::abs(eta_dis) > skip_dis_eta) return;
+            const double x_dis = x - x_end;
+            if (std::abs(x_dis) > skip_dis_x) return;
+            const double y_dis = y - y_end;
+            if (std::abs(y_dis) > skip_dis_x) return;
+            const double exp_eta =
+                exp(-(eta_dis * eta_dis) / (2. * sigma_eta * sigma_eta));
+            const double exp_xperp = exp(
+                -(x_dis * x_dis + y_dis * y_dis) / (2. * sigma_x * sigma_x));
+            res +=
+                (prefactor_etas * prefactor_prep * p_dot_u * exp_tau * exp_xperp
+                 * exp_eta * Qe);
+        };
+        if (flag_left)
+            addEnd(it->eta_s_Qe_left, it->x_pl, it->y_pl, it->Qe_left);
+        if (flag_right) {
+            addEnd(it->eta_s_Qe_right, it->x_pr, it->y_pr, it->Qe_right);
+        }
+    }
     const double prefactor_tau = 1. / dtau;
     res *= prefactor_tau;
     return (res);

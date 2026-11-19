@@ -284,8 +284,10 @@ void HydroSourceTATB::get_hydro_energy_source(
     // TB are zero
     // floor, not a cast: a cast truncates -0.9 to 0, so the padding cell
     // next to the profile would repeat its edge column
-    const int ix = static_cast<int>(std::floor((x - gridXmin_) / gridDX_ + 0.1));
-    const int iy = static_cast<int>(std::floor((y - gridYmin_) / gridDY_ + 0.1));
+    const int ix =
+        static_cast<int>(std::floor((x - gridXmin_) / gridDX_ + 0.1));
+    const int iy =
+        static_cast<int>(std::floor((y - gridYmin_) / gridDY_ + 0.1));
     if (!profileIndexInRange(ix, iy)) return;
 
     const double TA = profile_TA[ix][iy];
@@ -342,8 +344,10 @@ double HydroSourceTATB::get_hydro_rhob_source(
     double res = 0.;
     if (std::abs((tau - tau_source)) > 1. / 2. * DATA_.delta_tau) return (res);
 
-    const int ix = static_cast<int>(std::floor((x - gridXmin_) / gridDX_ + 0.1));
-    const int iy = static_cast<int>(std::floor((y - gridYmin_) / gridDY_ + 0.1));
+    const int ix =
+        static_cast<int>(std::floor((x - gridXmin_) / gridDX_ + 0.1));
+    const int iy =
+        static_cast<int>(std::floor((y - gridYmin_) / gridDY_ + 0.1));
     if (!profileIndexInRange(ix, iy)) return (res);
     const double TA = profile_TA[ix][iy];
     const double TB = profile_TB[ix][iy];

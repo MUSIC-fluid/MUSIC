@@ -267,10 +267,10 @@ def read_conservation(workdir):
     data = np.loadtxt(path)
     check(data.ndim == 2 and len(data) > 2,
           "global_conservation_laws.dat has too few rows")
-    return data  # tau, E, Px, Py, Pz, N_B
+    return data[:, :6]  # tau, E, Px, Py, Pz, N_B (N_Q, N_S follow)
 
 
-def read_surface(workdir, nfloat=34):
+def read_surface(workdir, nfloat=36):
     files = sorted(glob.glob(os.path.join(workdir, "surface_eps_*.dat")))
     check(files, "no freeze-out surface written")
     chunks = [np.fromfile(f, dtype=np.float32) for f in files]

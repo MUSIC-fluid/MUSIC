@@ -81,50 +81,117 @@ class EOS_base {
     //! n_B at which the tabulated state is evaluated, with the sign of rhob
     virtual double get_rhob_in_table(double e, double rhob) const;
 
-    virtual double get_entropy(double epsilon, double rhob) const;
-    virtual void getThermalVariables(
-        double epsilon, double rhob, std::vector<double> &thermalVec) const;
+    //! true if the EoS takes n_Q and n_S as independent inputs (4D EoS);
+    //! otherwise n_Q and n_S follow from (e, n_B), e.g. n_Q = 0.4 n_B
+    virtual bool has_QS_densities() const { return (false); }
+    //! n_B, n_Q and n_S of the state the EoS evaluates at (e, n_B, n_Q, n_S)
+    void get_densities_in_table(
+        double e, double rhob, double rhoq, double rhos, double &nB, double &nQ,
+        double &nS) const;
 
-    double calculate_velocity_of_sound_sq(double e, double rhob) const;
-    double get_dpOverde3(double e, double rhob) const;
-    double get_dpOverdrhob2(double e, double rhob) const;
-    double get_s2e_finite_rhob(double s, double rhob) const;
-    double get_T2e_finite_rhob(const double T, const double rhob) const;
+    virtual double get_entropy(
+        double epsilon, double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const;
+    virtual void getThermalVariables(
+        double epsilon, double rhob, double rhoq, double rhos,
+        std::vector<double> &thermalVec) const;
+
+    double calculate_velocity_of_sound_sq(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_dpOverde3(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_dpOverdrhob2(
+        double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_s2e_finite_rhob(
+        double s, double rhob, double rhoq = 0.0, double rhos = 0.0) const;
+    double get_T2e_finite_rhob(
+        const double T, const double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const;
     void map_TmuB2erhoB(
         const double T, const double muB, double &e, double &rhob) const;
 
     virtual void initialize_eos() {}
     virtual void initialize_eos(int eos_id_in) {}
-    virtual double get_cs2(double e, double rhob) const;
-    virtual double p_rho_func(double e, double rhob) const { return (0.0); }
-    virtual double p_e_func(double e, double rhob) const { return (0.0); }
-    virtual double get_temperature(double epsilon, double rhob) const {
+    virtual double get_cs2(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const;
+    virtual double p_rho_func(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const {
         return (0.0);
     }
-    virtual double get_muB(double epsilon, double rhob) const { return (0.0); }
-    virtual double get_muS(double epsilon, double rhob) const { return (0.0); }
-    virtual double get_muQ(double epsilon, double rhob) const { return (0.0); }
-    virtual double get_rhoS(double epsilon, double rhob) const { return (0.0); }
-    virtual double get_rhoQ(double epsilon, double rhob) const {
+    virtual double p_e_func(
+        double e, double rhob, double rhoq = 0., double rhos = 0.) const {
+        return (0.0);
+    }
+    virtual double get_temperature(
+        double epsilon, double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const {
+        return (0.0);
+    }
+    virtual double get_muB(
+        double epsilon, double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const {
+        return (0.0);
+    }
+    virtual double get_muS(
+        double epsilon, double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const {
+        return (0.0);
+    }
+    virtual double get_muQ(
+        double epsilon, double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const {
+        return (0.0);
+    }
+    virtual double get_rhoS(
+        double epsilon, double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const {
+        return (0.0);
+    }
+    virtual double get_rhoQ(
+        double epsilon, double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const {
         return (0.4 * rhob);
     }
-    virtual double get_pressure(double epsilon, double rhob) const {
+    virtual double get_pressure(
+        double epsilon, double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const {
         return (0.0);
     }
-    virtual double get_s2e(double s, double rhob) const { return (0.0); }
-    virtual double get_T2e(double T_in_GeV, double rhob) const { return (0.0); }
+    virtual double get_s2e(
+        double s, double rhob, double rhoq = 0.0, double rhos = 0.0) const {
+        return (0.0);
+    }
+    virtual double get_T2e(
+        double T_in_GeV, double rhob, double rhoq = 0.0,
+        double rhos = 0.0) const {
+        return (0.0);
+    }
     virtual void check_eos() const {}
 
     virtual void get_pressure_with_gradients(
-        double epsilon, double rhob, double &p, double &dpde, double &dpdrhob,
-        double &cs2) const {
+        double epsilon, double rhob, double rhoq, double rhos, double &p,
+        double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos) const {
         p = get_pressure(epsilon, rhob);
         dpde = get_dpOverde3(epsilon, rhob);
         dpdrhob = get_dpOverdrhob2(epsilon, rhob);
-        cs2 = dpde + dpdrhob * rhob / (epsilon + p);
+        dpdrhoq = 0;
+        dpdrhos = 0;
+    }
+
+    virtual void get_pressure_with_gradients_and_cs2(
+        double epsilon, double rhob, double rhoq, double rhos, double &p,
+        double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos,
+        double &cs2) const {
+        get_pressure_with_gradients(
+            epsilon, rhob, rhoq, rhos, p, dpde, dpdrhob, dpdrhoq, dpdrhos);
+        cs2 = dpde
+              + (dpdrhob * rhob + dpdrhos * rhos + dpdrhoq * rhoq)
+                    / (epsilon + p);
+        cs2 = std::max(0.01, std::min(1. / 3., cs2));
     }
 
     void check_eos_with_finite_muB() const;
+    void check_4D_eos() const;
     void check_eos_no_muB() const;
     void outputMutable() const;
 };
