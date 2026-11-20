@@ -589,14 +589,19 @@ void EOS_base::resize_table_info_arrays() {
 //! the last column (get_table_idx switches tables first and the blend is
 //! never used). Any other gap makes P, T, mu_B and the mu_B cap jump at
 //! the seam. Returns false and logs the offending seams otherwise.
+//! Seams between two 1D tables (nb_length == 1, e.g. s95p) are skipped:
+//! interpolate1D extrapolates within each table and never blends.
+//! The tolerance allows for rounding in e spacings read from ASCII
+//! headers, which (e_length - 1) * e_spacing amplifies.
 bool EOS_base::check_table_seams() const {
     pretty_ostream msg;
     bool ok = true;
     for (int t = 0; t + 1 < number_of_tables; t++) {
+        if (nb_length[t] == 1 && nb_length[t + 1] == 1) continue;
         const double de = e_spacing[t];
         const double eLast = e_bounds[t] + (e_length[t] - 1) * de;
         const double gap = e_bounds[t + 1] - eLast;
-        const double tol = 1e-6 * de;
+        const double tol = 1e-3 * de;
         const bool increasing = e_bounds[t + 1] > e_bounds[t];
         const bool oneStep = std::abs(gap - de) <= tol;
         const bool overlap = gap <= tol;

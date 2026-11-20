@@ -35,7 +35,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in) {
     } else if (eos_id == 42) {
         eos_ptr = std::unique_ptr<EOS_1DGenerator>(new EOS_1DGenerator(eos_id));
     } else {
-        std::cout << "No EOS for eos_id = " << std::endl;
+        std::cout << "No EOS for eos_id = " << eos_id << std::endl;
         exit(1);
     }
     eos_ptr->initialize_eos();

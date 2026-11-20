@@ -849,7 +849,10 @@ bool Evolve::hotCellsAtGridEdge(const Fields &arena, const double epsFO) const {
     // transverse band where the Cornelius finders cannot place a surface
     // (ix, iy < fac or >= n - 2 fac, cf. "Freeze-out cell at the boundary":
     // the finders flag the cube starting at index 0, which spans [0, fac],
-    // and cubes starting at index >= n - 2 fac)
+    // and cubes starting at index >= n - 2 fac). This is only called when
+    // no surface was found, so every sampled corner is cold or every one is
+    // hot. Index fac is a sampled corner: it is hot only when index 0 is
+    // hot too, so it need not be in the band.
     const int nx = arena.nX();
     const int ny = arena.nY();
     const int lowX = std::min(nx, DATA.fac_x);
