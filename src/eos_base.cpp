@@ -589,23 +589,41 @@ void EOS_base::resize_table_info_arrays() {
 //! the last column (get_table_idx switches tables first and the blend is
 //! never used). Any other gap makes P, T, mu_B and the mu_B cap jump at
 //! the seam. Returns false and logs the offending seams otherwise.
-//! Seams between two 1D tables (nb_length == 1, e.g. s95p) are skipped:
-//! interpolate1D extrapolates within each table and never blends.
+//! Every table needs e_spacing > 0 and increasing e_bounds (get_table_idx
+//! and the interpolation rely on both). The gap test is skipped between
+//! two 1D tables (nb_length == 1, e.g. s95p): interpolate1D extrapolates
+//! within each table and never blends.
 //! The tolerance allows for rounding in e spacings read from ASCII
 //! headers, which (e_length - 1) * e_spacing amplifies.
 bool EOS_base::check_table_seams() const {
     pretty_ostream msg;
     bool ok = true;
+    for (int t = 0; t < number_of_tables; t++) {
+        if (e_spacing[t] > 0.) continue;
+        ok = false;
+        msg << "EoS table " << t << " has e spacing " << e_spacing[t]
+            << "; it must be positive.";
+        msg.flush("error");
+    }
     for (int t = 0; t + 1 < number_of_tables; t++) {
+        if (!(e_bounds[t + 1] > e_bounds[t])) {
+            ok = false;
+            msg << "EoS table " << t + 1 << " starts at "
+                << e_bounds[t + 1] * Util::hbarc << " GeV/fm^3, not above "
+                << "table " << t << " (" << e_bounds[t] * Util::hbarc
+                << " GeV/fm^3).";
+            msg.flush("error");
+            continue;
+        }
         if (nb_length[t] == 1 && nb_length[t + 1] == 1) continue;
         const double de = e_spacing[t];
+        if (!(de > 0.)) continue;  // reported above
         const double eLast = e_bounds[t] + (e_length[t] - 1) * de;
         const double gap = e_bounds[t + 1] - eLast;
-        const double tol = 1e-3 * de;
-        const bool increasing = e_bounds[t + 1] > e_bounds[t];
+        const double tol = std::max(1e-3, 1e-6 * (e_length[t] - 1)) * de;
         const bool oneStep = std::abs(gap - de) <= tol;
         const bool overlap = gap <= tol;
-        if (increasing && de > 0. && (oneStep || overlap)) continue;
+        if (oneStep || overlap) continue;
         ok = false;
         msg << "EoS table seam " << t << " -> " << t + 1
             << ": the last e column of table " << t << " is at "

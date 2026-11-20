@@ -998,11 +998,27 @@ TEST_CASE("EOS_base::check_table_seams accepts only seams the blend handles") {
     CHECK(s.eos.check_table_seams());
     s.eos.e_bounds[1] = 4. + 5e-3;
     CHECK_FALSE(s.eos.check_table_seams());
-    // 1D tables (s95p) use interpolate1D, which never blends across seams
-    s.eos.e_bounds[1] = 4.5;
+    // tolerance grows with the column count: 1e-6 * 2000 = 2e-3 spacings
+    s.eos.e_length[0] = 2001;
+    s.eos.e_bounds[1] = 2000. + 1.5e-3;  // last column at 2000
+    CHECK(s.eos.check_table_seams());
+    s.eos.e_length[0] = 4;
+    // 1D tables (s95p) use interpolate1D, which never blends across seams,
+    // but they still need increasing bounds and a positive spacing
+    const int nbLen[2] = {s.eos.nb_length[0], s.eos.nb_length[1]};
     s.eos.nb_length[0] = 1;
     s.eos.nb_length[1] = 1;
+    s.eos.e_bounds[1] = 4.5;
     CHECK(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 0.;
+    CHECK_FALSE(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 4.;
+    s.eos.e_spacing[0] = 0.;
+    CHECK_FALSE(s.eos.check_table_seams());
+    s.eos.e_spacing[0] = 1.;
+    // the destructor frees nb_length rows
+    s.eos.nb_length[0] = nbLen[0];
+    s.eos.nb_length[1] = nbLen[1];
 }
 
 TEST_CASE("Evolve::coarseGrainAndEnlargeGrid conserves T^{tau mu}, J^tau") {
@@ -1097,26 +1113,35 @@ TEST_CASE("Evolve::hotCellsAtGridEdge only sees the edge band") {
     CHECK(evolve.hotCellsAtGridEdge(arena, 0.5));
 }
 
-TEST_CASE("Evolve::hotCellsAtGridEdge low band matches the finder") {
-    // fac = 2: the finder flags the cube at index 0, which spans [0, 2];
-    // the cube at index 2 spans [2, 4] and is interior
+TEST_CASE("Evolve::hotCellsAtGridEdge band matches the finder") {
+    // fac = 2: the finder starts cubes at even indices and flags the cube
+    // at 0 and those starting at >= n - 4
     InitData DATA = defaultParameters();
     DATA.fac_x = 2;
     DATA.fac_y = 2;
     EOS eos(0);
     Evolve evolve(eos, DATA, nullptr);
-    Fields arena(11, 11, 1);
-    auto onlyHot = [&](int ix, int iy) {
+    auto onlyHot = [&](int n, int ix, int iy) {
+        Fields arena(n, n, 1);
         for (auto &e : arena.e_) e = 0.;
         arena.e_[arena.getFieldIdx(ix, iy, 0)] = 1.;
         return (evolve.hotCellsAtGridEdge(arena, 0.5));
     };
-    CHECK(onlyHot(1, 5));  // inside the flagged cube, between samples
-    CHECK(onlyHot(5, 1));
-    CHECK_FALSE(onlyHot(3, 5));  // between samples of an interior cube
-    CHECK_FALSE(onlyHot(5, 3));
-    CHECK(onlyHot(7, 5));  // high side: cube at 6 >= 11 - 4 is flagged
-    CHECK(onlyHot(5, 7));
+    // n = 11: cubes at 0, 2, 4, 6, 8; flagged 0 and 8 (8 >= 7)
+    CHECK(onlyHot(11, 1, 5));  // inside the cube at 0, between samples
+    CHECK(onlyHot(11, 5, 1));
+    CHECK_FALSE(onlyHot(11, 3, 5));  // inside the interior cube at 2
+    CHECK_FALSE(onlyHot(11, 5, 3));
+    CHECK_FALSE(onlyHot(11, 7, 5));  // inside the interior cube at 6
+    CHECK_FALSE(onlyHot(11, 5, 7));
+    CHECK(onlyHot(11, 9, 5));  // inside the flagged cube at 8
+    CHECK(onlyHot(11, 5, 9));
+    // n = 10: cubes at 0, 2, 4, 6; flagged 0 and 6 (6 >= 6); index 9 lies
+    // past the last sampled corner (8)
+    CHECK_FALSE(onlyHot(10, 5, 5));
+    CHECK(onlyHot(10, 7, 5));
+    CHECK(onlyHot(10, 9, 5));
+    CHECK(onlyHot(10, 5, 9));
 }
 
 TEST_CASE("EOS_base: scalar and gradient interpolation agree at a seam") {

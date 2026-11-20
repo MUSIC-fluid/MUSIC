@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
+set -euo pipefail
+# download into this script's directory (EOS/), where MUSIC looks
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
-FILETYPE=$1
+FILETYPE=${1:-}
 if [ -z ${FILETYPE} ]
 then
     # options: binary (match with UrQCD, chemical equilibrium) [default]
@@ -20,7 +23,7 @@ FILE_PATH="hrg_hotqcd_eos_${FILETYPE}.dat"
 # Set the name of URL
 API_FILE_URL="${API_BASE_URL}/repositories/${USERNAME}/${REPO_SLUG}/src/${BRANCH}/${FILE_PATH}"
 
-curl -L -o "${FILE_PATH}" "${API_FILE_URL}"
+curl -fL -o "${FILE_PATH}" "${API_FILE_URL}"
 
 mkdir -p hotQCD
 mv ${FILE_PATH} hotQCD/${FILE_PATH}

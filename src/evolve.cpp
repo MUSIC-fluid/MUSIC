@@ -847,24 +847,32 @@ bool Evolve::hotCellsRemain(const Fields &arena, const double epsFO) const {
 bool Evolve::hotCellsAtGridEdge(const Fields &arena, const double epsFO) const {
     // true if any cell above the freeze-out energy density lies in the
     // transverse band where the Cornelius finders cannot place a surface
-    // (ix, iy < fac or >= n - 2 fac, cf. "Freeze-out cell at the boundary":
-    // the finders flag the cube starting at index 0, which spans [0, fac],
-    // and cubes starting at index >= n - 2 fac). This is only called when
-    // no surface was found, so every sampled corner is cold or every one is
-    // hot. Index fac is a sampled corner: it is hot only when index 0 is
-    // hot too, so it need not be in the band.
+    // (cf. "Freeze-out cell at the boundary"). The finders start cubes at
+    // multiples of fac and flag the cube at index 0, which spans [0, fac],
+    // and every cube starting at index >= n - 2 fac; cells past the last
+    // sampled corner are never sampled at all. The band is therefore
+    // ix < fac and ix >= the first multiple of fac that is >= n - 2 fac
+    // (likewise for iy). This is only called when no surface was found,
+    // so every sampled corner is cold or every one is hot. Index fac is a
+    // sampled corner: it is hot only when index 0 is hot too, so it need
+    // not be in the band.
     const int nx = arena.nX();
     const int ny = arena.nY();
+    auto firstFlaggedCube = [](int n, int fac) {
+        const int lowest = n - 2 * fac;
+        if (lowest <= 0) return (0);
+        return (((lowest + fac - 1) / fac) * fac);
+    };
     const int lowX = std::min(nx, DATA.fac_x);
     const int lowY = std::min(ny, DATA.fac_y);
-    const int highX = std::min(nx, 2 * DATA.fac_x);
-    const int highY = std::min(ny, 2 * DATA.fac_y);
+    const int highStartX = std::max(lowX, firstFlaggedCube(nx, DATA.fac_x));
+    const int highStartY = std::max(lowY, firstFlaggedCube(ny, DATA.fac_y));
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         for (int iy = 0; iy < ny; iy++) {
-            const bool yEdge = (iy < lowY || iy >= ny - highY);
+            const bool yEdge = (iy < lowY || iy >= highStartY);
             for (int ix = 0; ix < nx; ix++) {
-                if (!yEdge && ix >= lowX && ix < nx - highX) {
-                    ix = nx - highX - 1;  // skip the interior
+                if (!yEdge && ix >= lowX && ix < highStartX) {
+                    ix = highStartX - 1;  // skip the interior
                     continue;
                 }
                 if (arena.e_[arena.getFieldIdx(ix, iy, ieta)] > epsFO) {
