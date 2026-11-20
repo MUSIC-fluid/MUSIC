@@ -39,4 +39,9 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in) {
         exit(1);
     }
     eos_ptr->initialize_eos();
+    if (!eos_ptr->check_table_seams()) {
+        std::cout << "The EoS tables for eos_id = " << eos_id
+                  << " do not join up; stopping." << std::endl;
+        exit(1);
+    }
 }

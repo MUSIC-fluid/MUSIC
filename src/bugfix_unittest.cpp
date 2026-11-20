@@ -978,6 +978,23 @@ TEST_CASE("EOS_base::get_rhob_edge interpolates across a table seam") {
     CHECK(s.eos.get_rhob_edge(20.) == doctest::Approx(1.6));
 }
 
+TEST_CASE("EOS_base::check_table_seams accepts only seams the blend handles") {
+    // table 0 has columns e = 0, 1, 2, 3; the blend across the seam runs
+    // from e = 3 to e = 3 + 1
+    SeamEOS s;
+    CHECK(s.eos.check_table_seams());  // next table at 4: one spacing
+    s.eos.e_bounds[1] = 3.;            // shares the last column (NEoS)
+    CHECK(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 2.;  // overlaps by one column (s95p tables 5, 6)
+    CHECK(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 4.5;  // 1.5 spacings: the blend overshoots
+    CHECK_FALSE(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 3.5;  // 0.5 spacings: the blend stops short
+    CHECK_FALSE(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 0.;  // not increasing
+    CHECK_FALSE(s.eos.check_table_seams());
+}
+
 TEST_CASE("Evolve::coarseGrainAndEnlargeGrid conserves T^{tau mu}, J^tau") {
     // two cells e = 1, u^x = +-1 with the same rest-frame shear; averaging
     // e and u gave a rest cell with e = 1 (T^{tau tau} 14/3 -> 2) and

@@ -581,6 +581,39 @@ void EOS_base::resize_table_info_arrays() {
     e_length.resize(number_of_tables, 0);
 }
 
+//! Checks the e grids where consecutive tables meet. interpolate2D,
+//! interpolate2D_with_gradients and get_rhob_edge blend from the last
+//! column of table t to the first column of table t + 1 over one
+//! e_spacing[t], so the next table must start either one e_spacing[t]
+//! after the last column (the blend reaches it exactly) or at or before
+//! the last column (get_table_idx switches tables first and the blend is
+//! never used). Any other gap makes P, T, mu_B and the mu_B cap jump at
+//! the seam. Returns false and logs the offending seams otherwise.
+bool EOS_base::check_table_seams() const {
+    pretty_ostream msg;
+    bool ok = true;
+    for (int t = 0; t + 1 < number_of_tables; t++) {
+        const double de = e_spacing[t];
+        const double eLast = e_bounds[t] + (e_length[t] - 1) * de;
+        const double gap = e_bounds[t + 1] - eLast;
+        const double tol = 1e-6 * de;
+        const bool increasing = e_bounds[t + 1] > e_bounds[t];
+        const bool oneStep = std::abs(gap - de) <= tol;
+        const bool overlap = gap <= tol;
+        if (increasing && de > 0. && (oneStep || overlap)) continue;
+        ok = false;
+        msg << "EoS table seam " << t << " -> " << t + 1
+            << ": the last e column of table " << t << " is at "
+            << eLast * Util::hbarc << " GeV/fm^3 and table " << t + 1
+            << " starts at " << e_bounds[t + 1] * Util::hbarc
+            << " GeV/fm^3, a gap of " << gap / de
+            << " e spacings. The interpolation across the seam "
+            << "needs a gap of 1 spacing, or 0 or less.";
+        msg.flush("error");
+    }
+    return (ok);
+}
+
 void EOS_base::check_eos_no_muB() const {
     // output EoS as function of e
     ostringstream file_name;

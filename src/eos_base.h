@@ -43,6 +43,7 @@ class EOS_base {
     void set_number_of_tables(int ntables) { number_of_tables = ntables; }
     int get_number_of_tables() const { return (number_of_tables); }
     void resize_table_info_arrays();
+    bool check_table_seams() const;
 
     void set_EOS_id(int eos_id) { whichEOS = eos_id; }
     int get_EOS_id() const { return (whichEOS); }
