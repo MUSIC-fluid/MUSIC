@@ -911,3 +911,161 @@ TEST_CASE("Advance::MakeDeltaQI conserves P_x and N_B at a fast/rest interface")
     CHECK(std::abs(sumPx) < 1e-12 * scalePx);
     CHECK(std::abs(sumNB) < 1e-12 * scaleNB);
 }
+
+// ---------------------------------------------------------------------------
+// PR #38 review: EoS table seams, conservative coarsening, freeze-out
+// ---------------------------------------------------------------------------
+
+namespace {
+//! two tables with nb spacings 1 and 0.5 and P(e, nb) = e + nb^2; the seam
+//! is between e = 3 (last column of table 0) and e = 4 (table 1)
+struct SeamEOS {
+    EOS_base eos;
+    static double P(double e, double nb) { return (e + nb * nb); }
+    SeamEOS() {
+        eos.set_number_of_tables(2);
+        eos.resize_table_info_arrays();
+        const double e0[2] = {0., 4.}, de[2] = {1., 2.};
+        const double dnb[2] = {1., 0.5};
+        const int Ne[2] = {4, 4}, Nnb[2] = {4, 8};
+        eos.pressure_tb = new double **[2];
+        eos.temperature_tb = new double **[2];
+        for (int t = 0; t < 2; t++) {
+            eos.e_bounds[t] = e0[t];
+            eos.e_spacing[t] = de[t];
+            eos.e_length[t] = Ne[t];
+            eos.nb_bounds[t] = 0.;
+            eos.nb_spacing[t] = dnb[t];
+            eos.nb_length[t] = Nnb[t];
+            eos.pressure_tb[t] = Util::mtx_malloc(Nnb[t], Ne[t]);
+            eos.temperature_tb[t] = Util::mtx_malloc(Nnb[t], Ne[t]);
+            for (int i = 0; i < Nnb[t]; i++) {
+                for (int j = 0; j < Ne[t]; j++) {
+                    eos.pressure_tb[t][i][j] = P(e0[t] + j * de[t], i * dnb[t]);
+                }
+            }
+        }
+    }
+};
+}  // namespace
+
+TEST_CASE("EOS_base::interpolate2D is continuous in e at a table seam") {
+    // the next table was interpolated at the current table's nb nodes and
+    // then again in nb: at nb = 1.3 it gave 4 + 1.90 just below e = 4 but
+    // 4 + 1.75 at it
+    SeamEOS s;
+    for (double nb : {0.2, 1.3, 2.7}) {
+        const double below =
+            s.eos.interpolate2D(4. - 1e-10, nb, 0, s.eos.pressure_tb);
+        const double at = s.eos.interpolate2D(4., nb, 1, s.eos.pressure_tb);
+        CHECK(below == doctest::Approx(at).epsilon(1e-8));
+    }
+    CHECK(
+        s.eos.interpolate2D(4., 1.3, 1, s.eos.pressure_tb)
+        == doctest::Approx(4. + 1.75));
+}
+
+TEST_CASE("EOS_base::get_rhob_edge interpolates across a table seam") {
+    SeamEOS s;
+    s.eos.nb_edge = {{0.3, 0.4, 0.5, 0.6}, {1.0, 1.2, 1.4, 1.6}};
+    // halfway between e = 3 (edge 0.6) and e = 4 (edge 1.0)
+    CHECK(s.eos.get_rhob_edge(3.5) == doctest::Approx(0.8));
+    CHECK(
+        s.eos.get_rhob_edge(4. - 1e-10)
+        == doctest::Approx(s.eos.get_rhob_edge(4.)).epsilon(1e-8));
+    // inside a table and past the last table it is unchanged
+    CHECK(s.eos.get_rhob_edge(1.5) == doctest::Approx(0.45));
+    CHECK(s.eos.get_rhob_edge(20.) == doctest::Approx(1.6));
+}
+
+TEST_CASE("Evolve::coarseGrainAndEnlargeGrid conserves T^{tau mu}, J^tau") {
+    // two cells e = 1, u^x = +-1 with the same rest-frame shear; averaging
+    // e and u gave a rest cell with e = 1 (T^{tau tau} 14/3 -> 2) and
+    // pi^{tau tau} != 0
+    InitData DATA = defaultParameters("Include_Rhob_Yes_1_No_0 1\n");
+    DATA.boost_invariant = true;
+    DATA.nx = 2;
+    DATA.ny = 1;
+    DATA.neta = 1;
+    DATA.delta_x = 1.;
+    DATA.delta_y = 1.;
+    DATA.x_size = 1.;
+    DATA.y_size = 0.;
+    EOS eos(0);
+    Evolve evolve(eos, DATA, nullptr);
+    Fields arena(2, 1, 1);
+    const double a = 0.02;
+    const double sq2 = std::sqrt(2.);
+    for (int ix = 0; ix < 2; ix++) {
+        const int idx = arena.getFieldIdx(ix, 0, 0);
+        const double s = (ix == 0 ? 1. : -1.);
+        arena.e_[idx] = 1.;
+        arena.rhob_[idx] = 0.1;
+        arena.u_[0][idx] = sq2;
+        arena.u_[1][idx] = s;
+        arena.u_[2][idx] = 0.;
+        arena.u_[3][idx] = 0.;
+        for (int k = 0; k < 14; k++) arena.Wmunu_[k][idx] = 0.;
+        // rest-frame pi = diag(0, 2a, -a, -a) boosted along x
+        arena.Wmunu_[0][idx] = 2. * a;
+        arena.Wmunu_[1][idx] = s * 2. * sq2 * a;
+        arena.Wmunu_[4][idx] = 4. * a;
+        arena.Wmunu_[7][idx] = -a;
+        arena.Wmunu_[9][idx] = -a;
+        arena.piBulk_[idx] = 0.;
+        arena.piBulkChem_[idx] = 0.;
+    }
+    auto content = [&](const Fields &f, double dx, double out[5]) {
+        for (int m = 0; m < 5; m++) out[m] = 0.;
+        for (int idx = 0; idx < f.nX(); idx++) {
+            const double e = f.e_[idx];
+            const double P = eos.get_pressure(e, f.rhob_[idx]);
+            for (int m = 0; m < 4; m++) {
+                const double g = (m == 0 ? -1. : 0.);
+                out[m] += dx
+                          * ((e + P) * f.u_[0][idx] * f.u_[m][idx] + P * g
+                             + f.Wmunu_[m][idx]);
+            }
+            out[4] += dx * (f.rhob_[idx] * f.u_[0][idx] + f.Wmunu_[10][idx]);
+        }
+    };
+    double before[5], after[5];
+    content(arena, 1., before);
+    evolve.regridTransverse({&arena}, 0., true);
+    REQUIRE(arena.nX() == 1);
+    content(arena, 2., after);
+    for (int m = 0; m < 5; m++) {
+        CHECK(after[m] == doctest::Approx(before[m]).epsilon(1e-10));
+    }
+    // the coarse cell is at rest and its shear is transverse and traceless
+    CHECK(std::abs(arena.u_[1][0]) < 1e-10);
+    const double uLow[4] = {
+        -arena.u_[0][0], arena.u_[1][0], arena.u_[2][0], arena.u_[3][0]};
+    const int widx[4][4] = {
+        {0, 1, 2, 3}, {1, 4, 5, 6}, {2, 5, 7, 8}, {3, 6, 8, 9}};
+    for (int n = 0; n < 4; n++) {
+        double uPi = 0.;
+        for (int m = 0; m < 4; m++)
+            uPi += uLow[m] * arena.Wmunu_[widx[m][n]][0];
+        CHECK(std::abs(uPi) < 1e-12);
+    }
+    const double trace = -arena.Wmunu_[0][0] + arena.Wmunu_[4][0]
+                         + arena.Wmunu_[7][0] + arena.Wmunu_[9][0];
+    CHECK(std::abs(trace) < 1e-12);
+}
+
+TEST_CASE("Evolve::hotCellsAtGridEdge only sees the edge band") {
+    InitData DATA = defaultParameters();
+    DATA.fac_x = 2;
+    DATA.fac_y = 2;
+    EOS eos(0);
+    Evolve evolve(eos, DATA, nullptr);
+    Fields arena(11, 11, 1);
+    for (auto &e : arena.e_) e = 0.;
+    // an interior hot cell that a stride-2 finder can miss: no enlargement
+    arena.e_[arena.getFieldIdx(5, 5, 0)] = 1.;
+    CHECK(evolve.hotCellsRemain(arena, 0.5));
+    CHECK_FALSE(evolve.hotCellsAtGridEdge(arena, 0.5));
+    arena.e_[arena.getFieldIdx(10, 4, 0)] = 1.;
+    CHECK(evolve.hotCellsAtGridEdge(arena, 0.5));
+}

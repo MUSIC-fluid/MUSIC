@@ -145,8 +145,8 @@ double EOS_base::interpolate2D(
     double temp3 = 0;
     if (idx_e == N_e - 1) {
         // the next e point is the first e row of the next table, whose
-        // nb grid can differ; interpolate it in nb at the two nb values
-        // of the current cell
+        // nb grid can differ; evaluate it directly at the requested nb so
+        // that the result is continuous when get_table_idx switches tables
         const int next = table_idx + 1;
         const double nb0_next = nb_bounds[next];
         const double dnb_next = nb_spacing[next];
@@ -159,8 +159,9 @@ double EOS_base::interpolate2D(
             return (
                 table[next][i][0] * (1. - f) + table[next][i + 1][0] * f);
         };
-        temp2 = nextTableAtNb(idx_nb * delta_nb + nb0);
-        temp3 = nextTableAtNb((idx_nb + 1) * delta_nb + nb0);
+        const double curr = temp1 * (1. - frac_rhob) + temp4 * frac_rhob;
+        const double nextVal = nextTableAtNb(local_nb);
+        return (curr * (1. - frac_e) + nextVal * frac_e);
     } else {
         temp2 = table[table_idx][idx_nb][idx_e + 1];
         temp3 = table[table_idx][idx_nb + 1][idx_e + 1];
@@ -258,7 +259,14 @@ double EOS_base::get_rhob_edge(const double e) const {
     const double x = (e - e_bounds[t]) / e_spacing[t];
     if (x <= 0.) return (nb_edge[t][0]);
     const int j = static_cast<int>(x);
-    if (j >= N_e - 1) return (nb_edge[t][N_e - 1]);
+    if (j >= N_e - 1) {
+        // between the last column of this table and the first column of
+        // the next one, interpolate the cap the same way interpolate2D
+        // interpolates the thermodynamic quantities across the seam
+        if (t + 1 >= number_of_tables) return (nb_edge[t][N_e - 1]);
+        const double f = std::min(1., x - (N_e - 1));
+        return (nb_edge[t][N_e - 1] * (1. - f) + nb_edge[t + 1][0] * f);
+    }
     const double f = x - j;
     return (nb_edge[t][j] * (1. - f) + nb_edge[t][j + 1] * f);
 }

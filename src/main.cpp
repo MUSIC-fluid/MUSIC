@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
 
     int ireRunHydroCount = 0;
     bool bReRunHydro = false;
+    bool bGridTooSmall = false;
     do {
         MUSIC music_hydro(input_file);
         music_hydro.setReRunCount(ireRunHydroCount);
@@ -49,6 +50,7 @@ int main(int argc, char *argv[]) {
                           << "please enlarge the grid in the input file."
                           << std::endl;
                 bReRunHydro = false;
+                bGridTooSmall = true;
             }
         }
 
@@ -67,5 +69,11 @@ int main(int argc, char *argv[]) {
         }
         ireRunHydroCount++;
     } while (bReRunHydro && ireRunHydroCount < 10);
+    if (bReRunHydro) bGridTooSmall = true;  // ran out of re-runs
+    if (bGridTooSmall) {
+        std::cerr << "Hydro evolution was truncated at the grid edge; "
+                  << "the output is incomplete." << std::endl;
+        return (1);
+    }
     return (0);
 } /* main */

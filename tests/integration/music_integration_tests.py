@@ -696,7 +696,8 @@ def test_rerun(r):
         X_grid_size_in_fm=6., Y_grid_size_in_fm=6., Grid_size_in_x=21,
         Grid_size_in_y=21, Eta_grid_size=4., Grid_size_in_eta=11,
         Eta_plateau_size=100., **freeze_out_params(0.3))
-    log, _, _ = r.run(st, params)
+    log, status, _ = r.run(st, params, expect_success=False)
+    check(status != 0, "a run truncated at the grid edge exited with 0")
     check("The grid is too small" in log,
           "profile 95 on a 6 fm grid did not reach the grid edge")
     check(log.count("initArena") == 1, "profile 95 was re-run on the same grid")

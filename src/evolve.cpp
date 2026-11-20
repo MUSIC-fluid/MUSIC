@@ -446,8 +446,12 @@ void Evolve::coarseGrainAndEnlargeGrid(
     //             filter over old points 2j-1, 2j, 2j+1
     //     n even: new point j sits at the midpoint of old points 2j and 2j+1;
     //             average the two
-    //   Both keep the fluid at the same physical position and conserve
-    //   integral of each density over the plane.
+    //   Both keep the fluid at the same physical position. The filter is
+    //   applied to the conserved densities T^{tau mu} (ideal + W + Pi) and
+    //   J^tau, so their integrals over the plane are conserved; e, n_B and
+    //   u of the coarse cell are reconstructed from them, and pi^{mu nu}
+    //   and q^mu are projected to be transverse to (and pi traceless with
+    //   respect to) the reconstructed u.
     // gridPadding > 0: gridPadding [fm] of padding cells is added on both
     // sides. Padding cells copy the nearest edge cell of the original fluid
     // with e, rhob, and u^i damped by a Gaussian in the distance from that
@@ -511,6 +515,49 @@ void Evolve::coarseGrainAndEnlargeGrid(
     const auto stencilY = buildStencils(
         arenaCopy.nY(), arenaCurr.nY(), gridOffset_y, DATA.delta_y);
 
+    // W^{mu nu} index for (mu, nu) in tau, x, y, eta; q^mu is W[10 + mu]
+    const int widx[4][4] = {
+        {0, 1, 2, 3}, {1, 4, 5, 6}, {2, 5, 7, 8}, {3, 6, 8, 9}};
+    const double gDiag[4] = {-1., 1., 1., 1.};
+    // projects pi^{mu nu} and q^mu of Win onto the frame of u:
+    // pi -> Delta^{mu nu}_{alpha beta} pi^{alpha beta}, q -> Delta^mu_a q^a
+    auto projectDissipative = [&](const FlowVec &uu, const double *Win,
+                                  double *Wout) {
+        double Delta[4][4];  // Delta^mu_alpha = delta^mu_alpha + u^mu u_alpha
+        for (int m = 0; m < 4; m++) {
+            for (int a = 0; a < 4; a++) {
+                Delta[m][a] = (m == a ? 1. : 0.) + uu[m] * uu[a] * gDiag[a];
+            }
+        }
+        double A[4][4];
+        for (int m = 0; m < 4; m++) {
+            for (int n = m; n < 4; n++) {
+                double sum = 0.;
+                for (int a = 0; a < 4; a++) {
+                    for (int b = 0; b < 4; b++) {
+                        sum += Delta[m][a] * Delta[n][b] * Win[widx[a][b]];
+                    }
+                }
+                A[m][n] = sum;
+                A[n][m] = sum;
+            }
+        }
+        double trace = 0.;
+        for (int a = 0; a < 4; a++) trace += gDiag[a] * A[a][a];
+        for (int m = 0; m < 4; m++) {
+            for (int n = m; n < 4; n++) {
+                const double DeltaUp = (m == n ? gDiag[m] : 0.) + uu[m] * uu[n];
+                Wout[widx[m][n]] = A[m][n] - trace / 3. * DeltaUp;
+            }
+        }
+        for (int m = 0; m < 4; m++) {
+            double sum = 0.;
+            for (int a = 0; a < 4; a++) sum += Delta[m][a] * Win[10 + a];
+            Wout[10 + m] = sum;
+        }
+    };
+    Reconst reconstHelper(eos, DATA.echo_level, DATA.beastMode);
+
     for (int ieta = 0; ieta < arenaCurr.nEta(); ieta++) {
         for (int iy = 0; iy < arenaCurr.nY(); iy++) {
             const Stencil &sy = stencilY[iy];
@@ -519,11 +566,34 @@ void Evolve::coarseGrainAndEnlargeGrid(
                 double e = 0., rhob = 0., piB = 0., piBChem = 0.;
                 double u[4] = {0., 0., 0., 0.};
                 double W[14] = {0.};
+                double Ttot[4] = {0., 0., 0., 0.};  // total T^{tau mu}
+                double Jtot = 0.;                   // total J^tau
                 for (int a = 0; a < sx.n; a++) {
                     for (int b = 0; b < sy.n; b++) {
                         const double w = sx.w[a] * sy.w[b];
                         int idxOld =
                             arenaCopy.getFieldIdx(sx.idx[a], sy.idx[b], ieta);
+                        {
+                            const double eOld = arenaCopy.e_[idxOld];
+                            const double nOld = arenaCopy.rhob_[idxOld];
+                            const double POld = eos.get_pressure(eOld, nOld);
+                            const double PiOld =
+                                arenaCopy.piBulk_[idxOld]
+                                + arenaCopy.piBulkChem_[idxOld];
+                            const double u0Old = arenaCopy.u_[0][idxOld];
+                            for (int m = 0; m < 4; m++) {
+                                const double g = (m == 0 ? -1. : 0.);
+                                const double uu =
+                                    u0Old * arenaCopy.u_[m][idxOld];
+                                Ttot[m] += w
+                                           * ((eOld + POld) * uu + POld * g
+                                              + arenaCopy.Wmunu_[m][idxOld]
+                                              + PiOld * (g + uu));
+                            }
+                            Jtot +=
+                                w
+                                * (nOld * u0Old + arenaCopy.Wmunu_[10][idxOld]);
+                        }
                         e += w * arenaCopy.e_[idxOld];
                         rhob += w * arenaCopy.rhob_[idxOld];
                         piB += w * arenaCopy.piBulk_[idxOld];
@@ -556,6 +626,47 @@ void Evolve::coarseGrainAndEnlargeGrid(
                     + arenaCurr.u_[3][idxNew] * arenaCurr.u_[3][idxNew]);
                 for (int nu = 0; nu < 14; nu++) {
                     arenaCurr.Wmunu_[nu][idxNew] = W[nu] * dissFactor;
+                }
+                if (coarsen && !isPadding && sx.n * sy.n > 1) {
+                    // conservative remap: subtract the dissipative part of
+                    // the averaged T^{tau mu}, J^tau at the coarse-cell u
+                    // and reconstruct e, n_B, u from the ideal remainder;
+                    // iterate since the projected W depends on u
+                    const double PiTot = piB + piBChem;
+                    ReconstCell cell;
+                    cell.e = arenaCurr.e_[idxNew];
+                    cell.rhob = arenaCurr.rhob_[idxNew];
+                    for (int m = 0; m < 4; m++) {
+                        cell.u[m] = arenaCurr.u_[m][idxNew];
+                    }
+                    double Wp[14];
+                    for (int iter = 0; iter < 20; iter++) {
+                        projectDissipative(cell.u, W, Wp);
+                        TJbVec q;
+                        for (int m = 0; m < 4; m++) {
+                            const double g = (m == 0 ? -1. : 0.);
+                            q[m] = Ttot[m] - Wp[m]
+                                   - PiTot * (g + cell.u[0] * cell.u[m]);
+                        }
+                        q[4] = Jtot - Wp[10];
+                        const ReconstCell next =
+                            reconstHelper.ReconstIt_shell(1., q, cell);
+                        double du = 0.;
+                        for (int m = 0; m < 4; m++) {
+                            du = std::max(du, std::abs(next.u[m] - cell.u[m]));
+                        }
+                        cell = next;
+                        if (du < 1e-12) break;
+                    }
+                    projectDissipative(cell.u, W, Wp);
+                    arenaCurr.e_[idxNew] = cell.e;
+                    arenaCurr.rhob_[idxNew] = cell.rhob;
+                    for (int m = 0; m < 4; m++) {
+                        arenaCurr.u_[m][idxNew] = cell.u[m];
+                    }
+                    for (int nu = 0; nu < 14; nu++) {
+                        arenaCurr.Wmunu_[nu][idxNew] = Wp[nu];
+                    }
                 }
                 arenaCurr.piBulk_[idxNew] = piB * dissFactor;
                 arenaCurr.piBulkChem_[idxNew] = piBChem * dissFactor;
@@ -659,6 +770,7 @@ int Evolve::FindFreezeOutSurface_Cornelius(
     const int neta = arena_current.nEta();
     const int fac_eta = 1;
     int intersections = 0;
+    bool unresolvedHotCells = false;
     for (unsigned int i_freezesurf = 0; i_freezesurf < epsFO_list.size();
          i_freezesurf++) {
         const double epsFO = epsFO_list[i_freezesurf] / hbarc;  // 1/fm^4
@@ -679,13 +791,25 @@ int Evolve::FindFreezeOutSurface_Cornelius(
         }
         if (!hitGridBoundary && intersections == 0
             && hotCellsRemain(arena_current, epsFO)) {
-            // the hot region has no boundary inside the grid
-            music_message << "No freeze-out surface at tau = " << tau
-                          << " fm/c, but cells are above e_FO = "
-                          << epsFO * hbarc << " GeV/fm^3. "
-                          << "The grid is too small!";
-            music_message.flush("error");
-            hitGridBoundary = true;
+            if (hotCellsAtGridEdge(arena_current, epsFO)) {
+                // the hot region has no boundary inside the grid
+                music_message << "No freeze-out surface at tau = " << tau
+                              << " fm/c, but cells at the grid edge are "
+                              << "above e_FO = " << epsFO * hbarc
+                              << " GeV/fm^3. The grid is too small!";
+                music_message.flush("error");
+                hitGridBoundary = true;
+            } else {
+                // interior hot cells missed by the sampling stride: a
+                // larger grid does not help; keep evolving until they cool
+                unresolvedHotCells = true;
+                music_message << "No freeze-out surface at tau = " << tau
+                              << " fm/c, but interior cells are above e_FO = "
+                              << epsFO * hbarc << " GeV/fm^3 (missed by "
+                              << "the freeze-out sampling stride). "
+                              << "Continuing the evolution.";
+                music_message.flush("warning");
+            }
         }
         if (hitGridBoundary) {
             DATA.reRunHydro = true;
@@ -695,6 +819,8 @@ int Evolve::FindFreezeOutSurface_Cornelius(
         }
     }
 
+    // 1 signals that the whole fireball is frozen out
+    if (unresolvedHotCells) intersections++;
     return (intersections + 1);
 }
 
@@ -702,6 +828,31 @@ bool Evolve::hotCellsRemain(const Fields &arena, const double epsFO) const {
     // true if any cell is above the freeze-out energy density
     for (const double e : arena.e_) {
         if (e > epsFO) return true;
+    }
+    return false;
+}
+
+bool Evolve::hotCellsAtGridEdge(const Fields &arena, const double epsFO) const {
+    // true if any cell above the freeze-out energy density lies in the
+    // transverse band where the Cornelius finders cannot place a surface
+    // (ix, iy < fac or >= n - 2 fac, cf. "Freeze-out cell at the boundary")
+    const int nx = arena.nX();
+    const int ny = arena.nY();
+    const int bandX = std::min(nx, 2 * DATA.fac_x);
+    const int bandY = std::min(ny, 2 * DATA.fac_y);
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        for (int iy = 0; iy < ny; iy++) {
+            const bool yEdge = (iy < bandY || iy >= ny - bandY);
+            for (int ix = 0; ix < nx; ix++) {
+                if (!yEdge && ix >= bandX && ix < nx - bandX) {
+                    ix = nx - bandX - 1;  // skip the interior
+                    continue;
+                }
+                if (arena.e_[arena.getFieldIdx(ix, iy, ieta)] > epsFO) {
+                    return true;
+                }
+            }
+        }
     }
     return false;
 }
@@ -1675,15 +1826,28 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
         delete[] cube;
         delete[] fluid_cube;
 
+        bool unresolvedHotCells = false;
         if (!hitGridBoundary && intersections == 0
             && hotCellsRemain(arena_current, epsFO)) {
-            // the hot region has no boundary inside the grid
-            music_message << "No freeze-out surface at tau = " << tau
-                          << " fm/c, but cells are above e_FO = "
-                          << epsFO * hbarc << " GeV/fm^3. "
-                          << "The grid is too small!";
-            music_message.flush("error");
-            hitGridBoundary = true;
+            if (hotCellsAtGridEdge(arena_current, epsFO)) {
+                // the hot region has no boundary inside the grid
+                music_message << "No freeze-out surface at tau = " << tau
+                              << " fm/c, but cells at the grid edge are "
+                              << "above e_FO = " << epsFO * hbarc
+                              << " GeV/fm^3. The grid is too small!";
+                music_message.flush("error");
+                hitGridBoundary = true;
+            } else {
+                // interior hot cells missed by the sampling stride; do not
+                // declare this surface frozen, keep evolving
+                unresolvedHotCells = true;
+                music_message << "No freeze-out surface at tau = " << tau
+                              << " fm/c, but interior cells are above e_FO = "
+                              << epsFO * hbarc << " GeV/fm^3 (missed by "
+                              << "the freeze-out sampling stride). "
+                              << "Continuing the evolution.";
+                music_message.flush("warning");
+            }
         }
         if (hitGridBoundary) {
             // like the 3D finder: the caller stops and main re-runs on a
@@ -1695,7 +1859,9 @@ int Evolve::FindFreezeOutSurface_boostinvariant_Cornelius(
 
         // judge whether the entire fireball is freeze-out
         all_frozen[i_freezesurf] = 0;
-        if (intersections == 0) all_frozen[i_freezesurf] = 1;
+        if (intersections == 0 && !unresolvedHotCells) {
+            all_frozen[i_freezesurf] = 1;
+        }
     }
 
     int all_frozen_flag = 1;
