@@ -29,31 +29,33 @@ class Advance {
 
     bool flag_add_hydro_source;
 
-    // Deferred correction of the viscous time-derivative term (see
-    // FirstRKStepT). Valid only if the grid and delta_tau are unchanged
-    // since the last full RK2 step.
-    bool viscousCorrectionValid_ = false;
-    double viscousCorrectionTau_ = 0.;  // tau_{n+1} + delta_tau
-    // the correction is applied where |V_{n+1} - V*| <= threshold * |V_{n+1}
-    // - V_n|, i.e. where V is resolved smoothly in time. The threshold is 4
-    // where partial_tau u comes from the ideal equations of motion and 0.25
-    // where it comes from the backward time difference, blended with the
-    // same weight (U_derivative::idealEoMWeight). NOTE: use 0.25 whenever
-    // the backward difference is used (Du_from_ideal_EoM = 0, or dense
-    // cells): it makes V noisy in dilute, fast cells and the correction
-    // then feeds back on the flow (lumpy events blow up with 4).
-    static constexpr double viscousCorrectionSmoothnessBackward_ = 0.25;
-    static constexpr double viscousCorrectionSmoothnessIdealEoM_ = 4.;
-    // the J^tau correction (q^tau) has its own guard: it reaches the flow
-    // only through rho_B in the EoS, and with 0.25 it was skipped in the
-    // cold, baryon-rich cells between the lumps (N_B drifted by up to
-    // 1.6e-3; 2e-4 with 4)
-    static constexpr double viscousCorrectionSmoothnessBaryon_ = 4.;
+    // Local fixed point that puts the end-of-step viscous part V_{n+1} into
+    // the time derivative of the second RK stage (see
+    // stage2ViscousFixedPoint): at most stage2MaxIterations_ updates,
+    // stopped when the shift changes by less than stage2Tolerance_ times
+    // |tau T^{tau tau}| (|tau J^tau| for the baryon current).
+    static constexpr int stage2MaxIterations_ = 16;
+    static constexpr double stage2Tolerance_ = 1e-8;
+
+    void stage2ViscousFixedPoint(
+        const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+        Fields &arenaFieldsNext, const TJbVec &qiFinal,
+        const double theta_local, const DumuVec &a_local,
+        const VelocityShearVec &sigma_local, const VorticityVec &omega_local,
+        const DmuMuBoverTVec &baryon_diffusion_vector, const int ieta,
+        const int ix, const int iy, const int fieldIdx);
+
+    //! the viscous part of T^{tau alpha} (alpha < 4) and J^tau (alpha = 4)
+    //! that enters the time derivative in Diss::MakeWSource
+    double viscousTimeComponent(
+        const Fields &arena, const int fieldIdx, const int alpha) const;
+
+    //! reconstruct e, n and u from tau T^{tau mu} and store them
+    void reconstructAndStore(
+        const double tau_next, const TJbVec &qi, const ReconstCell &guess,
+        Fields &arenaFieldsNext, const int fieldIdx);
 
   public:
-    //! call when the grid or delta_tau changes between time steps
-    void invalidateViscousCorrection() { viscousCorrectionValid_ = false; }
-
     Advance(
         const EOS &eosIn, const InitData &DATA_in,
         std::shared_ptr<HydroSourceBase> hydro_source_ptr_in);
@@ -66,7 +68,7 @@ class Advance {
         const double tau, const double x_local, const double y_local,
         const double eta_s_local, const int ix, const int iy, const int ieta,
         const int rk_flag, const int fieldIdx, Fields &arenaFieldsCurr,
-        Fields &arenaFieldsNext, Fields &arenaFieldsPrev);
+        Fields &arenaFieldsNext, Fields &arenaFieldsPrev, TJbVec &qiFinal);
 
     void FirstRKStepW(
         const double tau_it, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,

@@ -8,6 +8,7 @@
 #include <Eigen/Eigenvalues>
 #include <cassert>
 #include <cmath>
+#include <limits>
 #include <memory>
 
 #include "advance.h"
@@ -65,10 +66,11 @@ void Advance::AdvanceIt(
                 double x_local = -DATA.x_size / 2. + ix * DATA.delta_x;
                 double y_local = -DATA.y_size / 2. + iy * DATA.delta_y;
 
+                TJbVec qiFinal = {0.};
                 FirstRKStepT(
                     tau, x_local, y_local, eta_s_local, ix, iy, ieta, rk_flag,
-                    fieldIdx, arenaFieldsCurr, arenaFieldsNext,
-                    arenaFieldsPrev);
+                    fieldIdx, arenaFieldsCurr, arenaFieldsNext, arenaFieldsPrev,
+                    qiFinal);
 
                 if (DATA.viscosity_flag == 1) {
                     // arenaFieldsCurr is at tau_rk: tau_n in the first RK
@@ -106,13 +108,120 @@ void Advance::AdvanceIt(
                         tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext,
                         rk_flag, theta_local, a_local, sigma_local, omega_local,
                         baryon_diffusion_vector, ieta, ix, iy, fieldIdx);
+
+                    if (rk_flag == 1) {
+                        stage2ViscousFixedPoint(
+                            tau, arenaFieldsPrev, arenaFieldsCurr,
+                            arenaFieldsNext, qiFinal, theta_local, a_local,
+                            sigma_local, omega_local, baryon_diffusion_vector,
+                            ieta, ix, iy, fieldIdx);
+                    }
                 }
             }
-    if (rk_flag == 1) {
-        // arenaFieldsCurr holds the predictor V*; after the pointer swap in
-        // Evolve::AdvanceRK it is the next step's arenaFieldsNext
-        viscousCorrectionValid_ = true;
-        viscousCorrectionTau_ = tau + 2. * DATA.delta_tau;
+}
+
+// The viscous part V of T^{tau alpha} (and q^tau of J^tau) enters through
+// the backward difference (tau_rk + dtau) V_rk - tau_rk V_prev in
+// Diss::MakeWSource. The first RK stage subtracts tau_{n+1} V_n - tau_n
+// V_{n-1}, the second tau_{n+2} V* - tau_{n+1} V_n with the predictor V*,
+// so the RK average telescopes only if V* = V_{n+1}; the remainder
+// 1/2 tau_{n+2} (V_{n+1} - V*) drifts E, P and N_B wherever V changes
+// quickly (Pi right after string deposition: 0.5% of E). The term involves
+// only this cell, so V* is replaced by V_{n+1} with a local fixed point:
+// shift the stage-2 result by s, reconstruct, and update W again (the
+// fluxes and gradients do not depend on it), until
+// s = 1/2 tau_{n+2} (V_{n+1}(s) - V*). The average then telescopes to the
+// 1/2 (tau_{n+2} V_{n+1} + tau_{n+1} V_n) that
+// Cell_info::check_conservation_law adds.
+// The updates start as full steps, which converge in one or two steps in
+// almost all cells. Where the miss grows (stiff baryon diffusion, cells
+// with Pi ~ -(e + P)) the step is halved, and a cell that does not
+// converge keeps the visited shift with the smallest miss (at worst s = 0,
+// the predictor). A fixed number of full steps diverged in such cells, and
+// a fixed under-relaxation did not converge right after string deposition;
+// both made viscous string events blow up.
+void Advance::stage2ViscousFixedPoint(
+    const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
+    Fields &arenaFieldsNext, const TJbVec &qiFinal, const double theta_local,
+    const DumuVec &a_local, const VelocityShearVec &sigma_local,
+    const VorticityVec &omega_local,
+    const DmuMuBoverTVec &baryon_diffusion_vector, const int ieta, const int ix,
+    const int iy, const int fieldIdx) {
+    const double tau_next = tau + DATA.delta_tau;
+    const double tau_np2 = tau + 2. * DATA.delta_tau;
+    const auto guess = arenaFieldsCurr.getCellIdeal(fieldIdx);
+    const double scaleT = std::abs(qiFinal[0]);
+    const double scaleJ = std::abs(qiFinal[4]) + 1e-12 * scaleT;
+
+    auto applyShift = [&](const TJbVec &shift) {
+        TJbVec qi = qiFinal;
+        for (int alpha = 0; alpha < 5; alpha++) qi[alpha] -= shift[alpha];
+        reconstructAndStore(tau_next, qi, guess, arenaFieldsNext, fieldIdx);
+        FirstRKStepW(
+            tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext, 1,
+            theta_local, a_local, sigma_local, omega_local,
+            baryon_diffusion_vector, ieta, ix, iy, fieldIdx);
+    };
+
+    TJbVec shift = {0.};  // the state in arenaFieldsNext has this shift
+    TJbVec best = shift;
+    double bestMiss = std::numeric_limits<double>::max();
+    double prevMiss = std::numeric_limits<double>::max();
+    double lastMiss = 0.;
+    double relaxation = 1.;
+    for (int iter = 0; iter <= stage2MaxIterations_; iter++) {
+        TJbVec target = {0.};
+        double miss = 0.;
+        bool converged = true;
+        for (int alpha = 0; alpha < 5; alpha++) {
+            target[alpha] =
+                0.5 * tau_np2
+                * (viscousTimeComponent(arenaFieldsNext, fieldIdx, alpha)
+                   - viscousTimeComponent(arenaFieldsCurr, fieldIdx, alpha));
+            const double scale = (alpha < 4 ? scaleT : scaleJ);
+            const double d = std::abs(target[alpha] - shift[alpha]);
+            miss += d / scale;
+            if (d > stage2Tolerance_ * scale) converged = false;
+        }
+        lastMiss = miss;
+        if (converged && iter > 0) return;
+        if (miss < bestMiss) {
+            bestMiss = miss;
+            best = shift;
+        }
+        if (iter == stage2MaxIterations_) break;
+        if (iter > 0 && miss > prevMiss) relaxation *= 0.5;
+        prevMiss = miss;
+        for (int alpha = 0; alpha < 5; alpha++) {
+            shift[alpha] += relaxation * (target[alpha] - shift[alpha]);
+        }
+        applyShift(shift);
+    }
+    if (lastMiss > bestMiss) applyShift(best);
+}
+
+double Advance::viscousTimeComponent(
+    const Fields &arena, const int fieldIdx, const int alpha) const {
+    if (alpha == 4) return arena.Wmunu_[10][fieldIdx];  // q^tau
+    double v = arena.Wmunu_[alpha][fieldIdx];           // W^{alpha tau}
+    if (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1) {
+        const double g = (alpha == 0 ? -1. : 0.);
+        const double Pi = arena.piBulk_[fieldIdx] + arena.piBulkChem_[fieldIdx];
+        v += Pi * (g + arena.u_[alpha][fieldIdx] * arena.u_[0][fieldIdx]);
+    }
+    return v;
+}
+
+void Advance::reconstructAndStore(
+    const double tau_next, const TJbVec &qi, const ReconstCell &guess,
+    Fields &arenaFieldsNext, const int fieldIdx) {
+    auto grid_rk_t = reconst_helper.ReconstIt_shell(tau_next, qi, guess);
+    arenaFieldsNext.e_[fieldIdx] = grid_rk_t.e;
+    arenaFieldsNext.rhob_[fieldIdx] = grid_rk_t.rhob;
+    arenaFieldsNext.rhoq_[fieldIdx] = grid_rk_t.rhoq;
+    arenaFieldsNext.rhos_[fieldIdx] = grid_rk_t.rhos;
+    for (int ii = 0; ii < 4; ii++) {
+        arenaFieldsNext.u_[ii][fieldIdx] = grid_rk_t.u[ii];
     }
 }
 
@@ -121,7 +230,7 @@ void Advance::FirstRKStepT(
     const double tau, const double x_local, const double y_local,
     const double eta_s_local, const int ix, const int iy, const int ieta,
     const int rk_flag, const int fieldIdx, Fields &arenaFieldsCurr,
-    Fields &arenaFieldsNext, Fields &arenaFieldsPrev) {
+    Fields &arenaFieldsNext, Fields &arenaFieldsPrev, TJbVec &qiFinal) {
     // this advances the ideal part
     double tau_rk = tau + rk_flag * (DATA.delta_tau);
 
@@ -189,63 +298,11 @@ void Advance::FirstRKStepT(
     diss_helper.MakeWSource(
         tau_rk, ix, iy, ieta, dwmn, arenaFieldsCurr, arenaFieldsPrev, fieldIdx);
 
-    // Deferred correction of the viscous time-derivative term. With
-    // V^alpha = W^{alpha tau} + Pi (g^{alpha tau} + u^alpha u^tau), the two
-    // RK stages subtract (tau_{n+1} V_n - tau_n V_{n-1}) and
-    // (tau_{n+2} V* - tau_{n+1} V_n), V* being the predictor. Their average
-    // telescopes only if V* = V_{n+1}; the remainder 1/2 tau_{n+2}
-    // (V_{n+1} - V*) is O(dtau^2) per step and adds up to an O(dtau) drift
-    // of E and P. At the start of the next step arenaFieldsNext still holds
-    // V* and arenaFieldsCurr holds V_{n+1}, so the first stage removes it.
-    // It is applied twice here because the RK average halves the first
-    // stage. Cells where V is not resolved smoothly in time (regulated,
-    // dilute edges) are left alone: there V* can miss V_{n+1} by O(V) and
-    // the correction would feed back on the flow.
-    TJbVec viscCorr = {0.};
-    if (rk_flag == 0 && viscousCorrectionValid_ && DATA.viscosity_flag == 1) {
-        const bool withPi =
-            (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1);
-        auto V = [&](const Fields &f, const int alpha) {
-            const int idx = alpha < 4 ? alpha : 10;  // W^{alpha tau}, q^tau
-            double v = f.Wmunu_[idx][fieldIdx];
-            if (alpha < 4 && withPi) {
-                const double g = (alpha == 0 ? -1. : 0.);
-                const double Pi = f.piBulk_[fieldIdx] + f.piBulkChem_[fieldIdx];
-                v += Pi * (g + f.u_[alpha][fieldIdx] * f.u_[0][fieldIdx]);
-            }
-            return v;
-        };
-        // the guard is applied separately to T^{tau mu} (alpha < 4) and to
-        // J^tau (alpha = 4)
-        double predictorMiss[2] = {0., 0.};
-        double stepChange[2] = {0., 0.};
-        for (int alpha = 0; alpha < 5; alpha++) {
-            const double Vn1 = V(arenaFieldsCurr, alpha);
-            const double Vstar = V(arenaFieldsNext, alpha);
-            viscCorr[alpha] = viscousCorrectionTau_ * (Vn1 - Vstar);
-            const int k = (alpha < 4 ? 0 : 1);
-            predictorMiss[k] += std::abs(Vn1 - Vstar);
-            stepChange[k] += std::abs(Vn1 - V(arenaFieldsPrev, alpha));
-        }
-        const double w = U_derivative::idealEoMWeight(DATA, cellCurr.e);
-        const double smoothness =
-            ((1. - w) * viscousCorrectionSmoothnessBackward_
-             + w * viscousCorrectionSmoothnessIdealEoM_);
-        if (predictorMiss[0] > smoothness * stepChange[0]) {
-            for (int alpha = 0; alpha < 4; alpha++) viscCorr[alpha] = 0.;
-        }
-        if (predictorMiss[1]
-            > viscousCorrectionSmoothnessBaryon_ * stepChange[1]) {
-            viscCorr[4] = 0.;
-        }
-    }
-
     double pressurePrev = eos.get_pressure(
         cellPrev.e, cellPrev.rhob, cellPrev.rhoq, cellPrev.rhos);
     for (int alpha = 0; alpha < 7; alpha++) {
         /* dwmn is the only one with the minus sign */
         qi[alpha] -= dwmn[alpha] * (DATA.delta_tau);
-        qi[alpha] -= viscCorr[alpha];
 
         // add energy momentum and net baryon density source terms
         qi[alpha] += qi_source[alpha] * DATA.delta_tau;
@@ -265,17 +322,9 @@ void Advance::FirstRKStepT(
         qi[alpha] *= 1. / (1. + rk_flag);
     }
 
-    double tau_next = tau + DATA.delta_tau;
-    auto grid_rk_t = reconst_helper.ReconstIt_shell(tau_next, qi, cellCurr);
-    arenaFieldsNext.e_[fieldIdx] = grid_rk_t.e;
-
-    arenaFieldsNext.rhob_[fieldIdx] = grid_rk_t.rhob;
-    arenaFieldsNext.rhoq_[fieldIdx] = grid_rk_t.rhoq;
-    arenaFieldsNext.rhos_[fieldIdx] = grid_rk_t.rhos;
-
-    for (int ii = 0; ii < 4; ii++) {
-        arenaFieldsNext.u_[ii][fieldIdx] = grid_rk_t.u[ii];
-    }
+    qiFinal = qi;
+    reconstructAndStore(
+        tau + DATA.delta_tau, qi, cellCurr, arenaFieldsNext, fieldIdx);
 }
 
 void Advance::FirstRKStepW(

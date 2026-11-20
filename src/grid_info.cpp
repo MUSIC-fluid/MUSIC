@@ -1388,7 +1388,7 @@ void Cell_info::check_conservation_law(
                 // The KT/RK2 update conserves tau_n T_ideal^{tau mu}(n) +
                 // 1/2 [tau_{n+1} V(n) + tau_n V(n-1)], with V^mu = W^{tau mu}
                 // + Pi (g^{tau mu} + u^tau u^mu) and Pi = Pi_bulk + Pi_chem
-                // at each time level (see Advance::FirstRKStepT). Divided by
+                // at each time level (see Advance::AdvanceIt). Divided by
                 // tau here; the factor below multiplies by tau.
                 const double wCurr = 0.5 * (1. + DATA.delta_tau / tau);
                 const double wPrev = 0.5;

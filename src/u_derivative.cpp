@@ -587,9 +587,9 @@ double U_derivative::idealEoMWeight(const InitData &DATA, const double eps) {
 //!   eta]
 //! and theta = partial_tau u^tau + partial_i u^i + u^tau / tau is affine in
 //! itself, so it is solved exactly. The backward time difference of u is
-//! noisy in dilute, fast cells; there it made the viscous terms non-smooth
-//! in time, so their deferred conservation correction had to be skipped
-//! and a lumpy event lost 3e-4 of its energy. The ideal form drops the
+//! noisy in dilute, fast cells and makes the viscous terms non-smooth in
+//! time there (a lumpy event lost 3e-4 of its energy with the earlier,
+//! guarded correction of the viscous time derivative). The ideal form drops the
 //! viscous force (Gubser flow at eta/s = 0.2: 1.6% error in u^x instead of
 //! 0.35% if used everywhere), so it is used only in dilute cells, e <
 //! e_dilute (0.003 GeV/fm^3 by default, far below freeze-out), and blended
