@@ -30,7 +30,7 @@ Initial_Distribution_input_filename tests/test_source_terms/strings_event_0.dat
 s_factor  1.0                  # normalization factor read in
                                # initial data file
 string_source_sigma_x 0.2
-stringPreEqFlowFactor 2.0
+stringPreEqFlowFactor 1.0
 #
 #######################################
 # parameters for hydrodynamic evolution
