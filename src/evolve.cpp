@@ -847,17 +847,21 @@ bool Evolve::hotCellsRemain(const Fields &arena, const double epsFO) const {
 bool Evolve::hotCellsAtGridEdge(const Fields &arena, const double epsFO) const {
     // true if any cell above the freeze-out energy density lies in the
     // transverse band where the Cornelius finders cannot place a surface
-    // (ix, iy < fac or >= n - 2 fac, cf. "Freeze-out cell at the boundary")
+    // (ix, iy < fac or >= n - 2 fac, cf. "Freeze-out cell at the boundary":
+    // the finders flag the cube starting at index 0, which spans [0, fac],
+    // and cubes starting at index >= n - 2 fac)
     const int nx = arena.nX();
     const int ny = arena.nY();
-    const int bandX = std::min(nx, 2 * DATA.fac_x);
-    const int bandY = std::min(ny, 2 * DATA.fac_y);
+    const int lowX = std::min(nx, DATA.fac_x);
+    const int lowY = std::min(ny, DATA.fac_y);
+    const int highX = std::min(nx, 2 * DATA.fac_x);
+    const int highY = std::min(ny, 2 * DATA.fac_y);
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         for (int iy = 0; iy < ny; iy++) {
-            const bool yEdge = (iy < bandY || iy >= ny - bandY);
+            const bool yEdge = (iy < lowY || iy >= ny - highY);
             for (int ix = 0; ix < nx; ix++) {
-                if (!yEdge && ix >= bandX && ix < nx - bandX) {
-                    ix = nx - bandX - 1;  // skip the interior
+                if (!yEdge && ix >= lowX && ix < nx - highX) {
+                    ix = nx - highX - 1;  // skip the interior
                     continue;
                 }
                 if (arena.e_[arena.getFieldIdx(ix, iy, ieta)] > epsFO) {
