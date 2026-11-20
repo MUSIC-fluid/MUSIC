@@ -1073,9 +1073,11 @@ TEST_CASE("Evolve::hotCellsAtGridEdge only sees the edge band") {
 TEST_CASE("EOS_base: scalar and gradient interpolation agree at a seam") {
     // interpolate2D_with_gradients extrapolated the current table across
     // the seam: 5.4 instead of 5.325 at e = 3.5, n_B = 1.3
+    // n_B = 3.2 and 3.8 lie beyond the last row of table 0 (n_B = 3), and
+    // 3.8 also beyond table 1 (3.5): the clamped columns are flat in n_B
     SeamEOS s;
     for (double e : {2.5, 3.2, 3.5, 3.9}) {
-        for (double nb : {0.2, 1.3, 2.7}) {
+        for (double nb : {0.2, 1.3, 2.7, 3.2, 3.8}) {
             const int t = s.eos.get_table_idx(e);
             double p, dpde, dpdnb;
             s.eos.interpolate2D_with_gradients(
@@ -1099,6 +1101,10 @@ TEST_CASE("EOS_base: scalar and gradient interpolation agree at a seam") {
     s.eos.interpolate2D_with_gradients(
         3.5, 1.3, 0, s.eos.pressure_tb, p, dpde, dpdnb);
     CHECK(p == doctest::Approx(5.325));
+    // the reviewer's case: only the next table varies at n_B = 3.2
+    s.eos.interpolate2D_with_gradients(
+        3.5, 3.2, 0, s.eos.pressure_tb, p, dpde, dpdnb);
+    CHECK(dpdnb == doctest::Approx(3.25));
 }
 
 namespace {

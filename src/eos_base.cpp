@@ -208,6 +208,7 @@ void EOS_base::interpolate2D_with_gradients(
     double frac_e = (e - (idx_e * delta_e + e0)) / delta_e;
     double frac_rhob = (rhob - (idx_nb * delta_nb + nb0)) / delta_nb;
     // avoid uncontrolled extrapolation at large net baryon density
+    const bool nbClamped = (frac_rhob > 1.);
     frac_rhob = std::min(1., frac_rhob);
 
     double temp1 = table[table_idx][idx_nb][idx_e];
@@ -221,14 +222,17 @@ void EOS_base::interpolate2D_with_gradients(
         const int N_nb_next = nb_length[next];
         int i = static_cast<int>((rhob - nb0_next) / dnb_next);
         i = std::max(0, std::min(N_nb_next - 2, i));
-        double f = (rhob - (i * dnb_next + nb0_next)) / dnb_next;
-        f = std::max(0., std::min(1., f));
+        const double fRaw = (rhob - (i * dnb_next + nb0_next)) / dnb_next;
+        const double f = std::max(0., std::min(1., fRaw));
         const double nextVal =
             table[next][i][0] * (1. - f) + table[next][i + 1][0] * f;
+        // a column clamped in nb is flat there, like the scalar pressure
         const double dnextdnb =
-            (table[next][i + 1][0] - table[next][i][0]) / dnb_next;
+            (fRaw < 0. || fRaw > 1.)
+                ? 0.
+                : (table[next][i + 1][0] - table[next][i][0]) / dnb_next;
         const double curr = temp1 * (1. - frac_rhob) + temp4 * frac_rhob;
-        const double dcurrdnb = (temp4 - temp1) / delta_nb;
+        const double dcurrdnb = nbClamped ? 0. : (temp4 - temp1) / delta_nb;
         p = curr * (1. - frac_e) + nextVal * frac_e;
         dpde = (nextVal - curr) / delta_e;
         dpdrhob = dcurrdnb * (1. - frac_e) + dnextdnb * frac_e;
@@ -242,7 +246,9 @@ void EOS_base::interpolate2D_with_gradients(
     dpde = (p2 - p1) / delta_e;
     p1 = temp1 * (1 - frac_e) + temp2 * frac_e;
     p2 = temp4 * (1 - frac_e) + temp3 * frac_e;
-    dpdrhob = (p2 - p1) / delta_nb;
+    // beyond the last nb row p is clamped, so it does not change with nb
+    // (also keeps dP/dnb continuous at the seam, where the same holds)
+    dpdrhob = nbClamped ? 0. : (p2 - p1) / delta_nb;
     p = p1 * (1 - frac_rhob) + p2 * frac_rhob;
 }
 

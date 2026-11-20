@@ -79,6 +79,19 @@ int main(int argc, char *argv[]) {
                     music.get_hydro_info(
                         x, y, tau * std::sinh(eta), tau * std::cosh(eta),
                         &cell);
+                    // std::max drops NaNs, so a non-finite value on either
+                    // side would otherwise leave the errors at zero
+                    const double vals[8] = {
+                        T,       vx,      vy,     vz, cell.temperature,
+                        cell.vx, cell.vy, cell.vz};
+                    for (const double v : vals) {
+                        if (!std::isfinite(v)) {
+                            std::cerr << "non-finite value at itau = " << itau
+                                      << ", ix = " << ix << ", iy = " << iy
+                                      << ", ieta = " << ieta << std::endl;
+                            return 1;
+                        }
+                    }
                     Tscale = std::max(Tscale, T);
                     maxdT = std::max(maxdT, std::abs(cell.temperature - T));
                     maxdv = std::max(
