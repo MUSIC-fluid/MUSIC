@@ -851,11 +851,12 @@ bool Evolve::hotCellsAtGridEdge(const Fields &arena, const double epsFO) const {
     // multiples of fac and flag the cube at index 0, which spans [0, fac],
     // and every cube starting at index >= n - 2 fac; cells past the last
     // sampled corner are never sampled at all. The band is therefore
-    // ix < fac and ix >= the first multiple of fac that is >= n - 2 fac
-    // (likewise for iy). This is only called when no surface was found,
-    // so every sampled corner is cold or every one is hot. Index fac is a
-    // sampled corner: it is hot only when index 0 is hot too, so it need
-    // not be in the band.
+    // ix <= fac and ix >= the first multiple of fac that is >= n - 2 fac
+    // (likewise for iy), i.e. every cell of a flagged cube, corners
+    // included. The corners cannot be left out: the finders' intersection
+    // test only compares each corner at the current time with the opposite
+    // corner at the freeze-out time, so "no surface found" does not mean
+    // that all corners at the current time are on the same side of e_FO.
     const int nx = arena.nX();
     const int ny = arena.nY();
     auto firstFlaggedCube = [](int n, int fac) {
@@ -863,8 +864,8 @@ bool Evolve::hotCellsAtGridEdge(const Fields &arena, const double epsFO) const {
         if (lowest <= 0) return (0);
         return (((lowest + fac - 1) / fac) * fac);
     };
-    const int lowX = std::min(nx, DATA.fac_x);
-    const int lowY = std::min(ny, DATA.fac_y);
+    const int lowX = std::min(nx, DATA.fac_x + 1);
+    const int lowY = std::min(ny, DATA.fac_y + 1);
     const int highStartX = std::max(lowX, firstFlaggedCube(nx, DATA.fac_x));
     const int highStartY = std::max(lowY, firstFlaggedCube(ny, DATA.fac_y));
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {

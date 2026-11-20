@@ -160,7 +160,7 @@ void EOS_neos::initialize_eos() {
             if (!eos_muQ.is_open()) {
                 music_message << "Can not open EOS files: "
                               << (path + "neos" + eos_file_string_array[itable]
-                                  + "_muc.dat");
+                                  + "_muq.dat");
                 music_message.flush("error");
                 exit(1);
             }

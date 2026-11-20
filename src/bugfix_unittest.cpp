@@ -1130,6 +1130,10 @@ TEST_CASE("Evolve::hotCellsAtGridEdge band matches the finder") {
     // n = 11: cubes at 0, 2, 4, 6, 8; flagged 0 and 8 (8 >= 7)
     CHECK(onlyHot(11, 1, 5));  // inside the cube at 0, between samples
     CHECK(onlyHot(11, 5, 1));
+    CHECK(onlyHot(11, 2, 5));  // far corner of the cube at 0
+    CHECK(onlyHot(11, 5, 2));
+    CHECK(onlyHot(11, 8, 5));  // near corner of the flagged cube at 8
+    CHECK(onlyHot(11, 5, 8));
     CHECK_FALSE(onlyHot(11, 3, 5));  // inside the interior cube at 2
     CHECK_FALSE(onlyHot(11, 5, 3));
     CHECK_FALSE(onlyHot(11, 7, 5));  // inside the interior cube at 6
