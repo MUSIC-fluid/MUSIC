@@ -1069,3 +1069,103 @@ TEST_CASE("Evolve::hotCellsAtGridEdge only sees the edge band") {
     arena.e_[arena.getFieldIdx(10, 4, 0)] = 1.;
     CHECK(evolve.hotCellsAtGridEdge(arena, 0.5));
 }
+
+TEST_CASE("EOS_base: scalar and gradient interpolation agree at a seam") {
+    // interpolate2D_with_gradients extrapolated the current table across
+    // the seam: 5.4 instead of 5.325 at e = 3.5, n_B = 1.3
+    SeamEOS s;
+    for (double e : {2.5, 3.2, 3.5, 3.9}) {
+        for (double nb : {0.2, 1.3, 2.7}) {
+            const int t = s.eos.get_table_idx(e);
+            double p, dpde, dpdnb;
+            s.eos.interpolate2D_with_gradients(
+                e, nb, t, s.eos.pressure_tb, p, dpde, dpdnb);
+            auto P = [&](double ee, double nn) {
+                return (s.eos.interpolate2D(ee, nn, t, s.eos.pressure_tb));
+            };
+            CHECK(p == doctest::Approx(P(e, nb)));
+            const double h = 1e-6;
+            CHECK(
+                dpde
+                == doctest::Approx((P(e + h, nb) - P(e - h, nb)) / (2. * h))
+                       .epsilon(1e-5));
+            CHECK(
+                dpdnb
+                == doctest::Approx((P(e, nb + h) - P(e, nb - h)) / (2. * h))
+                       .epsilon(1e-5));
+        }
+    }
+    double p, dpde, dpdnb;
+    s.eos.interpolate2D_with_gradients(
+        3.5, 1.3, 0, s.eos.pressure_tb, p, dpde, dpdnb);
+    CHECK(p == doctest::Approx(5.325));
+}
+
+namespace {
+//! integrated T^{tau mu} and J^tau of an (nx, ny, 1) arena
+void gridContent(
+    const Fields &f, const EOS &eos, double dx, double dy, double out[5]) {
+    for (int m = 0; m < 5; m++) out[m] = 0.;
+    for (int idx = 0; idx < static_cast<int>(f.e_.size()); idx++) {
+        const double e = f.e_[idx];
+        const double P = eos.get_pressure(e, f.rhob_[idx]);
+        const double Pi = f.piBulk_[idx] + f.piBulkChem_[idx];
+        for (int m = 0; m < 4; m++) {
+            const double g = (m == 0 ? -1. : 0.);
+            const double uu = f.u_[0][idx] * f.u_[m][idx];
+            out[m] +=
+                dx * dy
+                * ((e + P) * uu + P * g + f.Wmunu_[m][idx] + Pi * (g + uu));
+        }
+        out[4] += dx * dy * (f.rhob_[idx] * f.u_[0][idx] + f.Wmunu_[10][idx]);
+    }
+}
+}  // namespace
+
+TEST_CASE("Evolve: coarsening conserves content on odd and singleton grids") {
+    // the clamped 1/4-1/2-1/4 stencil turned 5 uniform cells at dx = 1 into
+    // 3 cells at dx = 2 with content 6; a singleton y doubled its dy
+    for (int ny : {1, 3}) {
+        InitData DATA = defaultParameters("Include_Rhob_Yes_1_No_0 1\n");
+        DATA.boost_invariant = true;
+        DATA.nx = 5;
+        DATA.ny = ny;
+        DATA.neta = 1;
+        DATA.delta_x = 1.;
+        DATA.delta_y = 1.;
+        DATA.x_size = 4.;
+        DATA.y_size = ny - 1.;
+        EOS eos(0);
+        Evolve evolve(eos, DATA, nullptr);
+        Fields arena(5, ny, 1);
+        for (int iy = 0; iy < ny; iy++) {
+            for (int ix = 0; ix < 5; ix++) {
+                const int idx = arena.getFieldIdx(ix, iy, 0);
+                const double ux = 0.3 * (ix - 2) + 0.1 * iy;
+                const double uy = 0.2 * (iy - 1);
+                arena.e_[idx] = 1. + 0.2 * ix + 0.1 * iy;
+                arena.rhob_[idx] = 0.1 + 0.01 * ix;
+                arena.u_[1][idx] = ux;
+                arena.u_[2][idx] = uy;
+                arena.u_[3][idx] = 0.;
+                arena.u_[0][idx] = std::sqrt(1. + ux * ux + uy * uy);
+                for (int k = 0; k < 14; k++) arena.Wmunu_[k][idx] = 0.;
+                arena.piBulk_[idx] = 0.;
+                arena.piBulkChem_[idx] = 0.;
+            }
+        }
+        double before[5], after[5];
+        gridContent(arena, eos, DATA.delta_x, DATA.delta_y, before);
+        evolve.regridTransverse({&arena}, 0., true);
+        CHECK(arena.nX() == 3);
+        CHECK(arena.nY() == (ny == 1 ? 1 : 2));
+        CHECK(DATA.delta_x == doctest::Approx(2.));
+        CHECK(DATA.delta_y == doctest::Approx(ny == 1 ? 1. : 2.));
+        gridContent(arena, eos, DATA.delta_x, DATA.delta_y, after);
+        for (int m = 0; m < 5; m++) {
+            CHECK(
+                after[m]
+                == doctest::Approx(before[m]).epsilon(1e-10).scale(1.));
+        }
+    }
+}

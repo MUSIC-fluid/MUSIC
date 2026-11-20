@@ -415,16 +415,18 @@ void Evolve::regridTransverse(
     if (fieldList.empty()) return;
     const int nxOld = fieldList[0]->nX();
     const int nyOld = fieldList[0]->nY();
-    if (coarsen) {
-        DATA.delta_x = DATA.delta_x * 2;
-        DATA.delta_y = DATA.delta_y * 2;
-    }
+    // a dimension with a single cell is not coarsened (its spacing is
+    // only a normalisation, and doubling it would double the content)
+    const bool coarsenX = coarsen && nxOld > 1;
+    const bool coarsenY = coarsen && nyOld > 1;
+    if (coarsenX) DATA.delta_x = DATA.delta_x * 2;
+    if (coarsenY) DATA.delta_y = DATA.delta_y * 2;
     const int gridOffset_x = static_cast<int>(gridPadding / DATA.delta_x);
     const int gridOffset_y = static_cast<int>(gridPadding / DATA.delta_y);
     // odd n -> (n+1)/2 points on the even sub-lattice,
     // even n -> n/2 points at the centres of cell pairs
-    const int nxBase = coarsen ? (nxOld + 1) / 2 : nxOld;
-    const int nyBase = coarsen ? (nyOld + 1) / 2 : nyOld;
+    const int nxBase = coarsenX ? (nxOld + 1) / 2 : nxOld;
+    const int nyBase = coarsenY ? (nyOld + 1) / 2 : nyOld;
     DATA.nx = nxBase + 2 * gridOffset_x;
     DATA.ny = nyBase + 2 * gridOffset_y;
     DATA.x_size = DATA.delta_x * (DATA.nx - 1);
@@ -443,7 +445,10 @@ void Evolve::coarseGrainAndEnlargeGrid(
     //   New grid (before padding): (n+1)/2 points with spacing 2dx,
     //   centred at x = 0.
     //     n odd : new point j sits on old point 2j; use the 1/4-1/2-1/4
-    //             filter over old points 2j-1, 2j, 2j+1
+    //             filter over old points 2j-1, 2j, 2j+1. Neighbours outside
+    //             the grid are dropped (not clamped), so every old cell
+    //             gets a total weight of 1/2 and the content is conserved
+    //     n = 1 : the direction is not coarsened
     //     n even: new point j sits at the midpoint of old points 2j and 2j+1;
     //             average the two
     //   Both keep the fluid at the same physical position. The filter is
@@ -473,7 +478,8 @@ void Evolve::coarseGrainAndEnlargeGrid(
     };
     // build the mapping from new to old indices along one direction
     auto buildStencils = [&](int nOld, int nNew, int offset, double dx) {
-        const int nBase = coarsen ? (nOld + 1) / 2 : nOld;
+        const bool coarsenDir = coarsen && nOld > 1;
+        const int nBase = coarsenDir ? (nOld + 1) / 2 : nOld;
         std::vector<Stencil> stencils(nNew);
         for (int i = 0; i < nNew; i++) {
             Stencil &st = stencils[i];
@@ -485,21 +491,20 @@ void Evolve::coarseGrainAndEnlargeGrid(
                 double dis = std::abs(j - jClamped) * dx / sigma;
                 st.damp = exp(-dis * dis / 2.);
             }
-            auto clampOld = [nOld](int k) {
-                return std::max(0, std::min(nOld - 1, k));
-            };
-            if (!coarsen) {
+            if (!coarsenDir) {
                 st.n = 1;
                 st.idx[0] = jClamped;
                 st.w[0] = 1.0;
             } else if (nOld % 2 == 1) {
-                st.n = 3;
-                st.idx[0] = clampOld(2 * jClamped - 1);
-                st.idx[1] = clampOld(2 * jClamped);
-                st.idx[2] = clampOld(2 * jClamped + 1);
-                st.w[0] = 0.25;
-                st.w[1] = 0.5;
-                st.w[2] = 0.25;
+                st.n = 0;
+                const double w3[3] = {0.25, 0.5, 0.25};
+                for (int k = 0; k < 3; k++) {
+                    const int iOld = 2 * jClamped - 1 + k;
+                    if (iOld < 0 || iOld >= nOld) continue;
+                    st.idx[st.n] = iOld;
+                    st.w[st.n] = w3[k];
+                    st.n++;
+                }
             } else {
                 st.n = 2;
                 st.idx[0] = 2 * jClamped;
@@ -563,7 +568,9 @@ void Evolve::coarseGrainAndEnlargeGrid(
             const Stencil &sy = stencilY[iy];
             for (int ix = 0; ix < arenaCurr.nX(); ix++) {
                 const Stencil &sx = stencilX[ix];
-                double e = 0., rhob = 0., piB = 0., piBChem = 0.;
+                // densities are filtered with the stencil weights (their sum
+                // is below 1 at an edge of an odd grid); u is averaged
+                double e = 0., rhob = 0., piB = 0., piBChem = 0., wSum = 0.;
                 double u[4] = {0., 0., 0., 0.};
                 double W[14] = {0.};
                 double Ttot[4] = {0., 0., 0., 0.};  // total T^{tau mu}
@@ -601,6 +608,7 @@ void Evolve::coarseGrainAndEnlargeGrid(
                         for (int nu = 1; nu < 4; nu++) {
                             u[nu] += w * arenaCopy.u_[nu][idxOld];
                         }
+                        wSum += w;
                         for (int nu = 0; nu < 14; nu++) {
                             W[nu] += w * arenaCopy.Wmunu_[nu][idxOld];
                         }
@@ -618,7 +626,7 @@ void Evolve::coarseGrainAndEnlargeGrid(
                 }
                 arenaCurr.rhob_[idxNew] = rhob * damp;
                 for (int nu = 1; nu < 4; nu++) {
-                    arenaCurr.u_[nu][idxNew] = u[nu] * damp;
+                    arenaCurr.u_[nu][idxNew] = u[nu] / wSum * damp;
                 }
                 arenaCurr.u_[0][idxNew] = sqrt(
                     1. + arenaCurr.u_[1][idxNew] * arenaCurr.u_[1][idxNew]
@@ -776,7 +784,10 @@ int Evolve::FindFreezeOutSurface_Cornelius(
         const double epsFO = epsFO_list[i_freezesurf] / hbarc;  // 1/fm^4
 
         bool hitGridBoundary = false;
-#pragma omp parallel for reduction(+ : intersections) \
+        // crossings of this threshold; the retry check must not see the
+        // crossings of the other thresholds
+        int surfaceIntersections = 0;
+#pragma omp parallel for reduction(+ : surfaceIntersections) \
     reduction(|| : hitGridBoundary)
         for (int ieta = 0; ieta < (neta - fac_eta); ieta += fac_eta) {
             int thread_id = omp_get_thread_num();
@@ -786,10 +797,11 @@ int Evolve::FindFreezeOutSurface_Cornelius(
             if (nCells < 0) {
                 hitGridBoundary = true;
             } else {
-                intersections += nCells;
+                surfaceIntersections += nCells;
             }
         }
-        if (!hitGridBoundary && intersections == 0
+        intersections += surfaceIntersections;
+        if (!hitGridBoundary && surfaceIntersections == 0
             && hotCellsRemain(arena_current, epsFO)) {
             if (hotCellsAtGridEdge(arena_current, epsFO)) {
                 // the hot region has no boundary inside the grid

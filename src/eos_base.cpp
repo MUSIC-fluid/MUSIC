@@ -194,7 +194,11 @@ void EOS_base::interpolate2D_with_gradients(
     int idx_nb = static_cast<int>((rhob - nb0) / delta_nb);
 
     // treatment for overflow, use the last two points to do extrapolation
-    idx_e = std::min(N_e - 2, idx_e);
+    // (as in interpolate2D, only the last table extrapolates in e; between
+    // the last column of the other tables and the next table's first
+    // column the two tables are blended)
+    idx_e = std::min(N_e - 1, idx_e);
+    if (table_idx == number_of_tables - 1) idx_e = std::min(N_e - 2, idx_e);
     idx_nb = std::min(N_nb - 2, idx_nb);
 
     // check underflow
@@ -208,6 +212,28 @@ void EOS_base::interpolate2D_with_gradients(
 
     double temp1 = table[table_idx][idx_nb][idx_e];
     double temp4 = table[table_idx][idx_nb + 1][idx_e];
+    if (idx_e == N_e - 1) {
+        // same seam blend as interpolate2D: the current table's last column
+        // and the next table's first column, both at the requested nb
+        const int next = table_idx + 1;
+        const double nb0_next = nb_bounds[next];
+        const double dnb_next = nb_spacing[next];
+        const int N_nb_next = nb_length[next];
+        int i = static_cast<int>((rhob - nb0_next) / dnb_next);
+        i = std::max(0, std::min(N_nb_next - 2, i));
+        double f = (rhob - (i * dnb_next + nb0_next)) / dnb_next;
+        f = std::max(0., std::min(1., f));
+        const double nextVal =
+            table[next][i][0] * (1. - f) + table[next][i + 1][0] * f;
+        const double dnextdnb =
+            (table[next][i + 1][0] - table[next][i][0]) / dnb_next;
+        const double curr = temp1 * (1. - frac_rhob) + temp4 * frac_rhob;
+        const double dcurrdnb = (temp4 - temp1) / delta_nb;
+        p = curr * (1. - frac_e) + nextVal * frac_e;
+        dpde = (nextVal - curr) / delta_e;
+        dpdrhob = dcurrdnb * (1. - frac_e) + dnextdnb * frac_e;
+        return;
+    }
     double temp2 = table[table_idx][idx_nb][idx_e + 1];
     double temp3 = table[table_idx][idx_nb + 1][idx_e + 1];
 
