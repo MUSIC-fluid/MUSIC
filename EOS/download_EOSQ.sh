@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 USERNAME="wayne_state_nuclear_theory"
-REPO_SLUG="hotqcd"
+REPO_SLUG="eos_q"
 BRANCH="main"
 
 # Bitbucket API base url
