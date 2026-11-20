@@ -22,9 +22,20 @@ class U_derivative {
     dUsupMat dUsup;
     Mat4x4 dUoverTsup;
     Mat4x4 dUTsup;
+    std::array<double, 4> dPsup;  // dPsup[n] = partial_n P (n = x, y, eta)
+
+    //! replaces partial_tau u^mu by its value from the ideal equations of
+    //! motion (needs MakeDSpatial first)
+    void MakeDTauIdealEoM(
+        const double tau, const Fields &arena, const int fieldIdx);
 
   public:
     U_derivative(const InitData &DATA_in, const EOS &eosIn);
+
+    //! weight of the ideal equations of motion in partial_tau u^mu at the
+    //! energy density eps [1/fm^4]: 1 below Du_from_ideal_EoM_e_dilute, 0
+    //! above 5 times it (backward time difference), linear in log(eps)
+    static double idealEoMWeight(const InitData &DATA, const double eps);
     void MakedU(
         const double tau, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
         const int fieldIdx, const int ix, const int iy, const int ieta);

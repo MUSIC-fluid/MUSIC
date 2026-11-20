@@ -91,7 +91,9 @@ void HydroSourceTmunu::readIPGevent() {
             if (ix == 0 && iy == 0) {
                 DATA.x_size = -dummy2 * 2;
                 DATA.y_size = -dummy3 * 2;
-                DATA.eta_size = DATA.delta_eta * DATA.neta;
+                // cells sit at -eta_size/2 + ieta*deta, ieta = 0..neta-1;
+                // a boost-invariant run (neta = 1) keeps eta_size = 0
+                DATA.eta_size = DATA.delta_eta * (DATA.neta - 1);
                 music_message << "eta_size=" << DATA.eta_size
                               << ", x_size=" << DATA.x_size
                               << ", y_size=" << DATA.y_size;
@@ -107,9 +109,11 @@ void HydroSourceTmunu::readIPGevent() {
             }
             pixx = pixx * visFactor;
             pixy = pixy * visFactor;
-            pixeta = pixeta * visFactor;
+            // like u^eta, the eta components are stored as tau*pi^{x eta},
+            // tau*pi^{y eta} (same as the IP-Glasma reader in init.cpp)
+            pixeta = pixeta * tau0 * visFactor;
             piyy = piyy * visFactor;
-            piyeta = piyeta * visFactor;
+            piyeta = piyeta * tau0 * visFactor;
             pietaeta =
                 ((2.
                       * (ux * uy * pixy + ux * ueta * pixeta

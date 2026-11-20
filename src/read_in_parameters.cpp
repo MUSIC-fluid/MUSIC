@@ -90,6 +90,7 @@ InitData read_in_parameters(std::string input_file) {
         (getParameter(input_file, "parton_quench_factor", 1.0));
 
     parameter_list.gridPadding = getParameter(input_file, "gridPadding", 3.0);
+    parameter_list.gridPaddingCells = 0;
 
     //////////////////////////////////////////////////////////////////////////
     // parameters for parameteric initial conditions
@@ -300,6 +301,13 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.quest_revert_strength =
         (getParameter(input_file, "quest_revert_strength", 10.));
 
+    // partial_tau u^i in dilute cells from the ideal equations of motion
+    // (1, default) or everywhere from a backward time difference (0)
+    parameter_list.Du_from_ideal_EoM =
+        (getParameter(input_file, "Du_from_ideal_EoM", 1));
+    parameter_list.Du_from_ideal_EoM_e_dilute =
+        (getParameter(input_file, "Du_from_ideal_EoM_e_dilute", 0.003));
+
     // Switch to use Resummed transport coefficients
     if (getParameter(input_file, "FlagResumTransportCoeff", 0) == 1) {
         parameter_list.FlagResumTransportCoeff = true;
@@ -420,14 +428,18 @@ InitData read_in_parameters(std::string input_file) {
     // 2: output bulk information in binary format
     parameter_list.outputEvolutionData =
         (getParameter(input_file, "output_evolution_data", 0));
-    if (parameter_list.outputEvolutionData != 0) {
-        if (parameter_list.beastMode == 2) {
-            music_message
-                << "output_evolution_data is incompatible with beastMode=2, "
-                << "resetting beastMode=1";
-            music_message.flush("info");
-            parameter_list.beastMode = 1;
-        }
+    // beastMode >= 2 changes delta_tau (and for beastMode 3 also the
+    // transverse grid) during the evolution, while the evolution file
+    // header and the in-memory hydro grid are only set once at tau0
+    if (parameter_list.beastMode >= 2
+        && (parameter_list.outputEvolutionData != 0
+            || parameter_list.store_hydro_info_in_memory != 0)) {
+        music_message << "output_evolution_data and "
+                      << "store_hydro_info_in_memory are incompatible with "
+                      << "beastMode=" << parameter_list.beastMode
+                      << ", resetting beastMode=1";
+        music_message.flush("info");
+        parameter_list.beastMode = 1;
     }
 
     // only works for output_evolution_data == 1
@@ -827,20 +839,24 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         parameter_list.eta_size = 0.0;
     }
 
-    if (parameter_list.delta_tau / parameter_list.delta_x
-        > parameter_list.dtaudxRatio) {
-        music_message << "Warning: Delta_Tau = " << parameter_list.delta_tau
-                      << " maybe too large! ";
-        music_message.flush("warning");
-
-        bool reset_dtau_use_CFL_condition = true;
+    // reset_dtau_use_CFL_condition: read it unconditionally, because the
+    // initial-condition and source code also check it after changing dx
+    bool reset_dtau_use_CFL_condition = true;
+    {
         int temp_CFL_condition = 1;
         string tempinput =
             Util::StringFind4(input_file, "reset_dtau_use_CFL_condition");
         if (tempinput != "empty")
             istringstream(tempinput) >> temp_CFL_condition;
         if (temp_CFL_condition == 0) reset_dtau_use_CFL_condition = false;
-        parameter_list.resetDtau = reset_dtau_use_CFL_condition;
+    }
+    parameter_list.resetDtau = reset_dtau_use_CFL_condition;
+
+    if (parameter_list.delta_tau / parameter_list.delta_x
+        > parameter_list.dtaudxRatio) {
+        music_message << "Warning: Delta_Tau = " << parameter_list.delta_tau
+                      << " maybe too large! ";
+        music_message.flush("warning");
 
         if (reset_dtau_use_CFL_condition) {
             music_message.info("reset dtau using CFL condition.");

@@ -10,7 +10,7 @@
 
 TEST_CASE("Check Reconst constructor") {
     EOS eos_ideal(0);
-    Reconst reconst_test(eos_ideal, 9);
+    Reconst reconst_test(eos_ideal, 9, 0);  // beastMode 0: tight tolerances
     CHECK(reconst_test.get_max_iter() == 100);
     CHECK(reconst_test.get_echo_level() == 9);
     CHECK(reconst_test.get_abs_err() == doctest::Approx(1e-16).epsilon(1e-16));
@@ -21,148 +21,152 @@ TEST_CASE("Check Reconst constructor") {
 
 TEST_CASE("Test Newton solver v") {
     EOS eos_ideal(0);
-    Reconst reconst_test(eos_ideal, 9);
+    Reconst reconst_test(eos_ideal, 9, 0);  // beastMode 0: tight tolerances
+    // the solvers stop at rel_err = 1e-14, so compare to that
     double v_sol = 10.0;
-    reconst_test.solve_velocity_Newton(0.0, 1.0, 0.0, 0.0, v_sol);
+    // v = 0 is the root for M = 0 (the finite-difference derivative used
+    // to be 0/0 there)
+    CHECK(reconst_test.solve_velocity_Newton(0.0, 1.0, 0.0, 0.0, v_sol) == 1);
     CHECK(v_sol == doctest::Approx(0.0).epsilon(1e-16));
 
     double M0 = 1.0;
     double M = 0.5;
     double v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1.0;
     M = 0.99;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1.0;
     M = 1.0 - 1e-6;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1.0;
     M = 1e-6;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1.0;
     M = 1.0 - 1e-10;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1.0;
     M = 1e-10;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1e-8;
     M = 1e-12;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1e-12;
     M = 3.23e-15;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1e-14;
     M = M0 - 2.43e-18;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_velocity_Newton(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 }
 
 TEST_CASE("Test hybrid solver v") {
     EOS eos_ideal(0);
-    Reconst reconst_test(eos_ideal, 9);
+    Reconst reconst_test(eos_ideal, 9, 0);  // beastMode 0: tight tolerances
+    // the solvers stop at rel_err = 1e-14, so compare to that
     double v_sol = 10.0;
-    reconst_test.solve_v_Hybrid(0.0, 1.0, 0.0, 0.0, v_sol);
+    CHECK(reconst_test.solve_v_Hybrid(0.0, 1.0, 0.0, 0.0, v_sol) == 1);
     CHECK(v_sol == doctest::Approx(0.0).epsilon(1e-16));
 
     double M0 = 1.0;
     double M = 0.5;
     double v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1.0;
     M = 0.99;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1.0;
     M = 1.0 - 1e-6;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(2e-16));
+    CHECK(reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1.0;
     M = 1e-6;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
     M0 = 1.0;
     M = 1.0 - 1e-10;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1.0;
     M = 1e-10;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1e-8;
     M = 1e-12;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1e-12;
     M = 3.23e-15;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 
     M0 = 1e-14;
     M = M0 - 2.43e-18;
     v_correct = 3. * M / (2. * M0 + sqrt(4. * M0 * M0 - 3. * M * M));
     std::cout << "check v = " << v_correct << std::endl;
-    reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol);
-    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-16));
+    CHECK(reconst_test.solve_v_Hybrid(0.0, M0, M, 0.0, v_sol) == 1);
+    CHECK(v_sol == doctest::Approx(v_correct).epsilon(1e-14));
 }
 
 TEST_CASE("Test Newton solver u0") {
     EOS eos_ideal(0);
-    Reconst reconst_test(eos_ideal, 9);
+    Reconst reconst_test(eos_ideal, 9, 0);  // beastMode 0: tight tolerances
 
     double u0_sol = 0.0;
     double M0 = 1.0;
@@ -231,7 +235,7 @@ TEST_CASE("Test Newton solver u0") {
 
 TEST_CASE("Test Newton solver u0 hybrid") {
     EOS eos_ideal(0);
-    Reconst reconst_test(eos_ideal, 9);
+    Reconst reconst_test(eos_ideal, 9, 0);  // beastMode 0: tight tolerances
 
     double u0_sol = 0.0;
     double M0 = 1.0;
@@ -240,7 +244,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     double u0_correct = 1. / sqrt(1. - v_correct * v_correct);
     double utol = u0_correct * 1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(0.0, M0, M * M, M, 0.0, u0_sol);
+    CHECK(reconst_test.solve_u0_Hybrid(0.0, M0, M * M, M, 0.0, u0_sol) == 1);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
 
     M0 = 1.0;
@@ -249,7 +253,13 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1. / sqrt(1. - v_correct * v_correct);
     utol = u0_correct * 1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(2.0, M0, M * M, M, 0.0, u0_sol);
+    // a guess >= 1 only brackets [0.99, 1.01] x guess (in MUSIC the guess
+    // comes from the velocity solution); a far-off guess must report failure
+    CHECK(reconst_test.solve_u0_Hybrid(2.0, M0, M * M, M, 0.0, u0_sol) == 0);
+    CHECK(
+        reconst_test.solve_u0_Hybrid(
+            1.01 * u0_correct, M0, M * M, M, 0.0, u0_sol)
+        == 1);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
 
     M0 = 1.0;
@@ -258,7 +268,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1. / sqrt(1. - v_correct * v_correct);
     utol = u0_correct * 1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(1.0, M0, M * M, M, 0.0, u0_sol);
+    CHECK(reconst_test.solve_u0_Hybrid(1.0, M0, M * M, M, 0.0, u0_sol) == 1);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
 
     M0 = 1.0;
@@ -267,7 +277,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1. / sqrt(1. - v_correct * v_correct);
     utol = u0_correct * 1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(0.0, M0, M * M, M, 0.0, u0_sol);
+    CHECK(reconst_test.solve_u0_Hybrid(0.0, M0, M * M, M, 0.0, u0_sol) == 1);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
 
     M0 = 1.0;
@@ -276,7 +286,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1. / sqrt(1. - v_correct * v_correct);
     utol = u0_correct * 1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(0.0, M0, M * M, M, 0.0, u0_sol);
+    CHECK(reconst_test.solve_u0_Hybrid(0.0, M0, M * M, M, 0.0, u0_sol) == 1);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
 
     M0 = 1e-15;
@@ -285,7 +295,7 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1. / sqrt(1. - v_correct * v_correct);
     utol = u0_correct * 1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(0.0, M0, M * M, M, 0.0, u0_sol);
+    CHECK(reconst_test.solve_u0_Hybrid(0.0, M0, M * M, M, 0.0, u0_sol) == 1);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
 
     M0 = 1e-15;
@@ -294,13 +304,13 @@ TEST_CASE("Test Newton solver u0 hybrid") {
     u0_correct = 1. / sqrt(1. - v_correct * v_correct);
     utol = u0_correct * 1e-14;
     std::cout << "check u0 = " << u0_correct << std::endl;
-    reconst_test.solve_u0_Hybrid(0.0, M0, M * M, M, 0.0, u0_sol);
+    CHECK(reconst_test.solve_u0_Hybrid(0.0, M0, M * M, M, 0.0, u0_sol) == 1);
     CHECK(u0_sol == doctest::Approx(u0_correct).epsilon(utol));
 }
 
 TEST_CASE("Test reconst main function") {
     EOS eos_ideal(0);
-    Reconst reconst_test(eos_ideal, 9);
+    Reconst reconst_test(eos_ideal, 9, 0);  // beastMode 0: tight tolerances
 
     const double rel_tol = 1e-12;
     const double abs_tol = 1e-16;
@@ -318,10 +328,10 @@ TEST_CASE("Test reconst main function") {
         tau * (e_local + p_local) * utau * ux,
         tau * (e_local + p_local) * utau * uy,
         tau * (e_local + p_local) * utau * ueta, tau * rhob_local * utau};
-    Cell_small temp_grid;
-    temp_grid.epsilon = 1e-5;
+    ReconstCell temp_grid;
+    temp_grid.e = 1e-5;
+    temp_grid.rhob = 0.0;
     temp_grid.u = {1.0, 0.0, 0.0, 0.0};
-    temp_grid.Wmunu = {0.0};
 
     auto cell_sol = reconst_test.ReconstIt_shell(tau, tauq_vec, temp_grid);
     CHECK(
@@ -541,4 +551,23 @@ TEST_CASE("Test reconst main function") {
     CHECK(cell_sol.u[1] == doctest::Approx(ux).epsilon(ux * 1e-11));
     CHECK(cell_sol.u[2] == doctest::Approx(uy).epsilon(uy * 1e-9));
     CHECK(cell_sol.u[3] == doctest::Approx(ueta).epsilon(ueta * 2e-8));
+}
+
+TEST_CASE("A regulated cell keeps its net baryon density") {
+    EOS eos_ideal(0);
+    Reconst reconst_test(eos_ideal, 9, 0);
+    // T^{tau tau} < 0: the cell is reset to rest at e = abs_err; its
+    // J^tau stays, so N_B is conserved
+    const double tau = 1.8;
+    const double nB = 0.3;
+    TJbVec tauq_vec = {-tau * 1e-3, tau * 2e-3, 0., 0., tau * nB};
+    ReconstCell prev;
+    prev.e = 1e-6;
+    prev.rhob = 0.05;
+    prev.u = {1.0, 0.0, 0.0, 0.0};
+    auto cell = reconst_test.ReconstIt_shell(tau, tauq_vec, prev);
+    CHECK(cell.e <= 1e-10);
+    CHECK(cell.u[0] == 1.);
+    CHECK(cell.u[1] == 0.);
+    CHECK(cell.rhob == doctest::Approx(nB));
 }

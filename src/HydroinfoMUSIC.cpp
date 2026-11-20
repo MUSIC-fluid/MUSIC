@@ -55,8 +55,10 @@ void HydroinfoMUSIC::getHydroValues(
     double yfrac =
         (y - (static_cast<double>(iy) * hydroDy - hydroYmax)) / hydroDy;
     double etafrac =
-        (eta / hydroDeta - static_cast<double>(ieta)
-         + 0.5 * static_cast<double>(ietamax));
+        ((hydro_eta_max + eta) / hydroDeta - static_cast<double>(ieta));
+    if (boost_invariant) {
+        etafrac = 0.;
+    }
     double taufrac = (tau - hydroTau0) / hydroDtau - static_cast<double>(itau);
 
     if (ix < 0 || ix >= ixmax) {
@@ -103,7 +105,8 @@ void HydroinfoMUSIC::getHydroValues(
         info->vz = 0.0;
         return;
     }
-    if (itau < 0 || itau > itaumax) {
+    // itaumax is the number of stored time slices
+    if (itau < 0 || itau >= itaumax) {
         music_message << "[HydroinfoMUSIC::getHydroValues]: WARNING - "
                       << "tau out of range, itau=" << itau
                       << ", itaumax=" << itaumax;
@@ -169,7 +172,10 @@ void HydroinfoMUSIC::getHydroValues(
                         ptau = itau + 1;
                     }
                     position[ipx][ipy][ipeta][iptau] =
-                        (px + ixmax * (py + iymax * (peta + ietamax * ptau)));
+                        // must match the storage order in
+                        // Cell_info::OutputEvolutionDataXYEta_memory:
+                        // x outermost, then y, eta innermost
+                        (peta + ietamax * (py + iymax * (px + ixmax * ptau)));
                 }
             }
         }
@@ -344,10 +350,12 @@ void HydroinfoMUSIC::set_grid_infomatioin(const InitData &DATA) {
     hydroDtau = DATA.delta_tau * DATA.output_evolution_every_N_timesteps;
     hydroXmax = DATA.x_size / 2.;
     hydroYmax = DATA.y_size / 2.;
+    // number of cells stored per direction by
+    // Cell_info::OutputEvolutionDataXYEta_memory (0, N, 2N, ... < n)
     ixmax =
-        (static_cast<int>((DATA.nx + 1) / DATA.output_evolution_every_N_x) + 1);
+        (static_cast<int>((DATA.nx - 1) / DATA.output_evolution_every_N_x) + 1);
     iymax =
-        (static_cast<int>((DATA.ny + 1) / DATA.output_evolution_every_N_y) + 1);
+        (static_cast<int>((DATA.ny - 1) / DATA.output_evolution_every_N_y) + 1);
     hydro_eta_max = DATA.eta_size / 2.;
     ietamax = static_cast<int>(DATA.neta / DATA.output_evolution_every_N_eta);
     hydroDx = DATA.delta_x * DATA.output_evolution_every_N_x;

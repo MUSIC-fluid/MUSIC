@@ -25,11 +25,11 @@ double Freeze::Edndp3(double yr, double ptr, double phirin, int res_num) {
     // if pseudofreeze flag is set, yr is the *pseudorapidity* of the resonance
     if (phirin < 0.0) {
         printf("ERROR: phir %15.8le < 0 !!! \n", phirin);
-        exit(0);
+        exit(1);
     }
     if (phirin > 2.0 * M_PI) {
         printf("ERROR: phir %15.8le > 2PI !!! \n", phirin);
-        exit(0);
+        exit(1);
     }
     double phir = phirin;
     int pn = partid[MHALF + res_num];
@@ -376,7 +376,7 @@ double Freeze::gauss(
             break;
         default:
             printf("\ngauss():%d points not in list\n", n);
-            exit(0);
+            exit(1);
     }
     xoffs = 0.5 * (xlo + xhi);
     xdiff = 0.5 * (xhi - xlo);
@@ -810,7 +810,7 @@ void Freeze::add_reso(int pn, int pnR, int k, int j) {
         default: {
             printf("ERROR in add_reso! \n");
             printf("%i decay not implemented ! \n", abs(decay[j].numpart));
-            exit(0);
+            exit(1);
         }
     }
 }

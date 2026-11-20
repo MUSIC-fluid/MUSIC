@@ -23,14 +23,26 @@ class HydroSourceTATB : public HydroSourceBase {
     std::vector<std::vector<double>> profile_TA;
     std::vector<std::vector<double>> profile_TB;
     double ybeam_, tanhYbeam_, cosh2Ybeam_;
+    // grid on which profile_TA/TB are stored (the initial hydro grid). It is
+    // kept fixed even if beastMode later changes the hydro grid.
     double gridXmin_, gridYmin_, gridDX_, gridDY_;
+
+    bool profileIndexInRange(const int ix, const int iy) const {
+        return (
+            ix >= 0 && iy >= 0 && ix < static_cast<int>(profile_TA.size())
+            && iy < static_cast<int>(profile_TA[ix].size()));
+    }
     int gridNX_, gridNY_;
-    double gridDtau_;
     double preEqFlowFactor_;
     double eta0_, eta_m_, sigma_eta_;
     double beta_;
 
   public:
+    //! Integrals of exp(k eta) cosh(eta) and exp(k eta) sinh(eta) over the
+    //! plateau [-eta_m, eta_m], finite also at k = +-1 (|ln a| = 2 eta_m)
+    static void plateauExpIntegrals(
+        const double k, const double eta_m, double &I_cosh, double &I_sinh);
+
     HydroSourceTATB() = delete;
     HydroSourceTATB(InitData &DATA_in);
     ~HydroSourceTATB();

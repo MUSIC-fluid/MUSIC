@@ -567,8 +567,11 @@ DOCTEST_CLANG_SUPPRESS_WARNING("-Wc++98-compat-pedantic")
 #define DOCTEST_GLOBAL_NO_WARNINGS_END() DOCTEST_CLANG_SUPPRESS_WARNING_POP
 
 // should probably take a look at https://github.com/scottt/debugbreak
-#ifdef DOCTEST_PLATFORM_MAC
+#if defined(DOCTEST_PLATFORM_MAC) && (defined(__x86_64__) || defined(__i386__))
 #define DOCTEST_BREAK_INTO_DEBUGGER() __asm__("int $3\n" : :)
+#elif defined(DOCTEST_PLATFORM_MAC)
+// "int $3" is x86-only; use the compiler builtin on Apple Silicon
+#define DOCTEST_BREAK_INTO_DEBUGGER() __builtin_debugtrap()
 #elif DOCTEST_MSVC
 #define DOCTEST_BREAK_INTO_DEBUGGER() __debugbreak()
 #elif defined(__MINGW32__)
@@ -4602,7 +4605,10 @@ struct FatalConditionHandler {
     static struct sigaction
         oldSigActions[sizeof(signalDefs) / sizeof(SignalDefs)];
     static stack_t oldSigStack;
-    static char altStackMem[SIGSTKSZ];
+    // glibc >= 2.34 makes SIGSTKSZ a run-time value, so use a fixed size
+    // (32 KiB, as upstream doctest does)
+    static const std::size_t altStackSize = 32768;
+    static char altStackMem[altStackSize];
 
     static void handleSignal(int sig) {
         std::string name = "<unknown signal>";
@@ -4623,7 +4629,7 @@ struct FatalConditionHandler {
         isSet = true;
         stack_t sigStack;
         sigStack.ss_sp = altStackMem;
-        sigStack.ss_size = SIGSTKSZ;
+        sigStack.ss_size = altStackSize;
         sigStack.ss_flags = 0;
         sigaltstack(&sigStack, &oldSigStack);
         struct sigaction sa = {0};
@@ -4656,7 +4662,7 @@ bool FatalConditionHandler::isSet = false;
 struct sigaction FatalConditionHandler::oldSigActions
     [sizeof(signalDefs) / sizeof(SignalDefs)] = {};
 stack_t FatalConditionHandler::oldSigStack = {};
-char FatalConditionHandler::altStackMem[SIGSTKSZ] = {};
+char FatalConditionHandler::altStackMem[FatalConditionHandler::altStackSize] = {};
 
 #endif  // DOCTEST_PLATFORM_WINDOWS
 #endif  // DOCTEST_CONFIG_POSIX_SIGNALS || DOCTEST_CONFIG_WINDOWS_SEH

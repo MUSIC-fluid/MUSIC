@@ -71,6 +71,15 @@ if (unittest)
     add_executable (unittest_minmod.e minmod_unittest.cpp)
     target_link_libraries (unittest_minmod.e ${libname})
     install(TARGETS unittest_minmod.e DESTINATION ${CMAKE_HOME_DIRECTORY})
+
+    find_package(Threads REQUIRED)
+    add_executable (unittest_bugfix.e bugfix_unittest.cpp)
+    target_link_libraries (unittest_bugfix.e ${libname} Threads::Threads)
+    install(TARGETS unittest_bugfix.e DESTINATION ${CMAKE_HOME_DIRECTORY})
+
+    # driver for the in-memory history check in tests/integration
+    add_executable (integration_hydro_memory.e integration_hydro_memory.cpp)
+    target_link_libraries (integration_hydro_memory.e ${libname})
 else (unittest)
     if (link_with_lib)
         add_executable (${exename} main.cpp)

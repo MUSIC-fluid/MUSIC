@@ -17,46 +17,77 @@ using std::string;
 
 pretty_ostream::pretty_ostream() {}
 
+pretty_ostream::pretty_ostream(const pretty_ostream&) {}
+
+pretty_ostream& pretty_ostream::operator=(const pretty_ostream&) {
+    return (*this);
+}
+
 pretty_ostream::~pretty_ostream() {}
+
+std::ostringstream& pretty_ostream::threadBuffer() {
+    std::lock_guard<std::mutex> lock(buffersMutex_);
+    // std::map never invalidates references to existing elements, and only
+    // the owning thread uses its buffer, so it can be used after unlocking
+    std::unique_ptr<std::ostringstream>& buffer =
+        buffers_[std::this_thread::get_id()];
+    if (!buffer) buffer.reset(new std::ostringstream);
+    return (*buffer);
+}
+
+void pretty_ostream::writeLine(const string& line) {
+    static std::mutex outputMutex;
+    std::lock_guard<std::mutex> lock(outputMutex);
+    cout << line << endl;
+}
 
 //! This function flushes out message to the screen
 void pretty_ostream::flush(string type) {
+    std::ostringstream& buffer = threadBuffer();
+    const string message = buffer.str();
+    buffer.str("");
+    buffer.clear();
+
     std::transform(type.begin(), type.end(), type.begin(), ::tolower);
     if (type == "info") {
-        info(message_stream.str());
+        info(message);
     } else if (type == "warning") {
-        warning(message_stream.str());
+        warning(message);
     } else if (type == "error") {
-        error(message_stream.str());
+        error(message);
     } else if (type == "debug") {
-        debug(message_stream.str());
+        debug(message);
     }
-    message_stream.str("");
-    message_stream.clear();
 }
 
 //! This function output information message
 void pretty_ostream::info(string message) {
-    // cout << "[Info] " << get_memory_usage() << " " << message << endl;
-    cout << emoji::music_note() << " " << get_memory_usage() << " " << message
-         << endl;
+    std::ostringstream line;
+    line << emoji::music_note() << " " << get_memory_usage() << " "
+         << message;
+    writeLine(line.str());
 }
 
 //! This function output debug message
 void pretty_ostream::debug(string message) {
-    cout << CYAN << emoji::debug() << " " << get_memory_usage() << " "
-         << message << RESET << endl;
+    std::ostringstream line;
+    line << CYAN << emoji::debug() << " " << get_memory_usage() << " "
+         << message << RESET;
+    writeLine(line.str());
 }
 
 //! This function output warning message
 void pretty_ostream::warning(string message) {
-    cout << BOLD << YELLOW << emoji::warning() << " " << message << RESET
-         << endl;
+    std::ostringstream line;
+    line << BOLD << YELLOW << emoji::warning() << " " << message << RESET;
+    writeLine(line.str());
 }
 
 //! This function output error message
 void pretty_ostream::error(string message) {
-    cout << BOLD << RED << emoji::error() << " " << message << RESET << endl;
+    std::ostringstream line;
+    line << BOLD << RED << emoji::error() << " " << message << RESET;
+    writeLine(line.str());
 }
 
 //! This function returns a string for the memory usage

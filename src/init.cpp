@@ -1,6 +1,7 @@
 // Copyright 2011 @ Bjoern Schenke, Sangyong Jeon, and Charles Gale
 #include "init.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -120,17 +121,18 @@ void Init::InitArena(
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
         if (DATA.reRunCount == 0) {
-            DATA.gridPadding = 0;
+            DATA.gridPaddingCells = 0;
         } else {
-            DATA.gridPadding = 10 * DATA.reRunCount;  // count one side
-            DATA.nx += 2 * DATA.gridPadding;
-            DATA.ny += 2 * DATA.gridPadding;
-            DATA.x_size = DATA.delta_x * DATA.nx;
-            DATA.y_size = DATA.delta_y * DATA.ny;
+            DATA.gridPaddingCells = 10 * DATA.reRunCount;  // count one side
+            DATA.nx += 2 * DATA.gridPaddingCells;
+            DATA.ny += 2 * DATA.gridPaddingCells;
+            // keep dx, dy fixed and the grid centred at x = y = 0
+            DATA.x_size = DATA.delta_x * (DATA.nx - 1);
+            DATA.y_size = DATA.delta_y * (DATA.ny - 1);
             music_message << "reRunCount = " << DATA.reRunCount
-                          << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
-            music_message << " x_size=" << DATA.x_size
-                          << " fm, y_size=" << DATA.y_size << " fm.";
+                          << ", nx=" << DATA.nx << ", ny=" << DATA.ny
+                          << ", x_size=" << DATA.x_size
+                          << " fm, y_size=" << DATA.y_size << " fm";
             music_message.flush("info");
         }
     } else if (DATA.Initial_profile == 112 || DATA.Initial_profile == 113) {
@@ -139,17 +141,20 @@ void Init::InitArena(
         music_message << "tau0 = " << DATA.tau0 << " fm/c.";
         music_message.flush("info");
         if (DATA.reRunCount == 0) {
-            DATA.gridPadding = 0;
+            DATA.gridPaddingCells = 0;
         } else {
-            DATA.gridPadding = 10 * DATA.reRunCount;  // count one side
-            DATA.nx += 2 * DATA.gridPadding;
-            DATA.ny += 2 * DATA.gridPadding;
-            DATA.x_size = DATA.delta_x * DATA.nx;
-            DATA.y_size = DATA.delta_y * DATA.ny;
+            // the source keeps TA, TB on the original grid and is zero
+            // outside it, so only the hydro grid is enlarged
+            DATA.gridPaddingCells = 10 * DATA.reRunCount;  // count one side
+            DATA.nx += 2 * DATA.gridPaddingCells;
+            DATA.ny += 2 * DATA.gridPaddingCells;
+            // keep dx, dy fixed and the grid centred at x = y = 0
+            DATA.x_size = DATA.delta_x * (DATA.nx - 1);
+            DATA.y_size = DATA.delta_y * (DATA.ny - 1);
             music_message << "reRunCount = " << DATA.reRunCount
-                          << ", nx=" << DATA.nx << ", ny=" << DATA.ny;
-            music_message << " x_size=" << DATA.x_size
-                          << " fm, y_size=" << DATA.y_size << " fm.";
+                          << ", nx=" << DATA.nx << ", ny=" << DATA.ny
+                          << ", x_size=" << DATA.x_size
+                          << " fm, y_size=" << DATA.y_size << " fm";
             music_message.flush("info");
         }
     } else if (DATA.Initial_profile == 17) {
@@ -975,7 +980,7 @@ void Init::regulationResummedTransCoeff(Cell_small &grid_pt) {
     double pi_local = grid_pt.pi_b;
 
     double Rshear = sqrt(pisize) / (e_local + p_local + 1e-16);
-    double Rbulk = std::abs(pi_local) / (e_local + pi_local + 1e-16);
+    double Rbulk = std::abs(pi_local) / (e_local + p_local + 1e-16);
     double r_combined = 1.5 * (Rshear + Rbulk) + 1e-16;
     double renorm = std::min(1., DATA.preEqVisFactor / r_combined);
     for (int mu = 0; mu < 10; mu++) {
@@ -989,12 +994,24 @@ void Init::initial_MCGlb_with_rhob(
     // first load in the transverse profile
     ifstream profile_TA(DATA.initName_TA.c_str());
     ifstream profile_TB(DATA.initName_TB.c_str());
+    if (!profile_TA.is_open() || !profile_TB.is_open()) {
+        music_message << "Init::initial_MCGlb_with_rhob: can not open "
+                      << (profile_TA.is_open() ? DATA.initName_TB
+                                               : DATA.initName_TA);
+        music_message.flush("error");
+        exit(1);
+    }
 
-    const int nx =
-        arenaFieldsCurr.nX() - 2 * static_cast<int>(DATA.gridPadding);
-    const int ny =
-        arenaFieldsCurr.nY() - 2 * static_cast<int>(DATA.gridPadding);
+    const int nx = arenaFieldsCurr.nX() - 2 * DATA.gridPaddingCells;
+    const int ny = arenaFieldsCurr.nY() - 2 * DATA.gridPaddingCells;
     const int neta = arenaFieldsCurr.nEta();
+
+    // the padding cells added on a re-run get the same floor as the
+    // rest of the grid instead of e = 0 exactly (which gives T = 0)
+    std::fill(
+        arenaFieldsCurr.e_.begin(), arenaFieldsCurr.e_.end(),
+        Util::small_eps);
+    std::fill(arenaFieldsCurr.rhob_.begin(), arenaFieldsCurr.rhob_.end(), 0.);
 
     std::vector<double> temp_profile_TA(nx * ny);
     std::vector<double> temp_profile_TB(nx * ny);
@@ -1007,6 +1024,12 @@ void Init::initial_MCGlb_with_rhob(
             profile_TB >> temp_profile_TB[idx];
             N_B += temp_profile_TA[idx] + temp_profile_TB[idx];
         }
+    }
+    if (!profile_TA || !profile_TB) {
+        music_message << "Init::initial_MCGlb_with_rhob: TA/TB files have "
+                      << "fewer than nx*ny = " << nx * ny << " values";
+        music_message.flush("error");
+        exit(1);
     }
     profile_TA.close();
     profile_TB.close();
@@ -1087,8 +1110,8 @@ void Init::initial_MCGlb_with_rhob(
                 epsilon = std::max(Util::small_eps, epsilon);
 
                 int idx_f = arenaFieldsCurr.getFieldIdx(
-                    static_cast<int>(ix + DATA.gridPadding),
-                    static_cast<int>(iy + DATA.gridPadding), ieta);
+                    ix + DATA.gridPaddingCells, iy + DATA.gridPaddingCells,
+                    ieta);
                 arenaFieldsCurr.e_[idx_f] = epsilon;
                 arenaFieldsCurr.rhob_[idx_f] = rhob;
 
@@ -1287,7 +1310,7 @@ void Init::initial_with_jetscape(
                                               / hbarc * DATA.tau0 * DATA.tau0;
 
             arenaFieldsPrev.e_[Fidx] = arenaFieldsCurr.e_[Fidx];
-            arenaFieldsPrev.rhob_[Fidx] = arenaFieldsPrev.rhob_[Fidx];
+            arenaFieldsPrev.rhob_[Fidx] = arenaFieldsCurr.rhob_[Fidx];
             for (int i = 0; i < 4; i++) {
                 arenaFieldsPrev.u_[i][Fidx] = arenaFieldsCurr.u_[i][Fidx];
             }

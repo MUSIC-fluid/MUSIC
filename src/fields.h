@@ -40,7 +40,7 @@ class Fields {
     void clearFields();
     void resizeFields(int Nx, int Ny, int Neta);
 
-    int getFieldIdx(int ix, int iy, int ieta) {
+    int getFieldIdx(int ix, int iy, int ieta) const {
         return (ix + Nx_ * (iy + Ny_ * ieta));
     }
 

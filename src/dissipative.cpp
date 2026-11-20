@@ -52,7 +52,10 @@ void Diss::MakeWSource(
         /* bulk pressure term */
         double dPidtau = 0.0;
         double Pi_alpha0 = 0.0;
-        if (alpha < 4 && DATA.turn_on_bulk == 1) {
+        // the total bulk pressure Pi = Pi_bulk + Pi_chem enters T^{mu nu}
+        // whenever either part is evolved
+        if (alpha < 4
+            && (DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1)) {
             double gfac = (alpha == 0 ? -1.0 : 0.0);
             double PiCurr =
                 arenaCurr.piBulk_[fieldIdx] + arenaCurr.piBulkChem_[fieldIdx];
@@ -110,7 +113,8 @@ void Diss::MakeWSource(
 
                 double Pi_m = 0;
                 double Pi_p = 0;
-                if (DATA.turn_on_bulk == 1 && alpha < 4) {
+                if ((DATA.turn_on_bulk == 1 || DATA.turn_on_bulk_chem == 1)
+                    && alpha < 4) {
                     double gfac1 = (alpha == (direction) ? 1.0 : 0.0);
                     double PiIp1 =
                         arenaCurr.piBulk_[Ip1] + arenaCurr.piBulkChem_[Ip1];
@@ -242,8 +246,15 @@ void Diss::Make_uWSource(
 
     // transport coefficient for nonlinear terms -- shear only terms
     // transport coefficients of a massless gas of single component particles
+    // phi7 pi pi enters as transport_coefficient * pi pi / tau_pi, with
+    // transport_coefficient = phi7 (4/5) tau_pi / eta = phi7 (4/5) b_pi /
+    // (e + P). Use the enthalpy form: tau_pi is clamped (>= 3 dtau) while
+    // eta -> 0 in near-vacuum cells, and tau_pi / eta then diverges; a little
+    // pi flowing into such a cell runs away to the regulator cap.
     double transport_coefficient =
-        (transport_coeffs_.get_phi7_coeff() * tau_pi / shear * (4. / 5.));
+        (transport_coeffs_.get_phi7_coeff()
+         * transport_coeffs_.get_shear_relax_time_factor()
+         / std::max(epsilon + pressure, small_eps) * (4. / 5.));
     double transport_coefficient2 =
         (transport_coeffs_.get_delta_pipi_coeff() * tau_pi);
     double transport_coefficient3 =
@@ -628,7 +639,8 @@ double Diss::Make_uPiSource(
 
     // T dependent bulk viscosity
     bulk = transport_coeffs_.get_zeta_over_s(temperature, mu_B);
-    bulk = bulk * (epsilon + pressure) / temperature;
+    // guard T -> 0 (e.g. cells at the energy floor), as for the shear
+    bulk = bulk * (epsilon + pressure) / std::max(temperature, small_eps);
 
     // defining bulk relaxation time and additional transport coefficients
     // Bulk relaxation time from kinetic theory
@@ -818,6 +830,31 @@ double Diss::Make_uPiChemSource(
     return (NS_term + relax_term) / tau_Pi_chem;
 }
 
+//! D(muB/T) = u^mu partial_mu (muB/T) from the ideal equations of motion,
+//! De = -(e + P) theta and Dn = -n theta:
+//! D(muB/T) = -theta [(e + P) d(muB/T)/de|_n + n d(muB/T)/dn|_e]
+double Diss::D_muB_over_T_ideal(
+    const double epsilon, const double rhob, const double pressure,
+    const double theta) const {
+    auto alpha = [this](const double e, const double n) {
+        return (eos.get_muB(e, n)
+                / std::max(eos.get_temperature(e, n), small_eps));
+    };
+    if (epsilon < small_eps) return 0.;
+    const double de = 1e-4 * epsilon;
+    const double dalpha_de =
+        (alpha(epsilon + de, rhob) - alpha(epsilon - de, rhob)) / (2. * de);
+    double dalpha_dn = 0.;
+    if (std::abs(rhob) > small_eps) {
+        const double dn = 1e-4 * std::abs(rhob);
+        dalpha_dn =
+            (alpha(epsilon, rhob + dn) - alpha(epsilon, rhob - dn)) / (2. * dn);
+    }
+    const double Dalpha =
+        -theta * ((epsilon + pressure) * dalpha_de + rhob * dalpha_dn);
+    return std::isfinite(Dalpha) ? Dalpha : 0.;
+}
+
 void Diss::Make_uqSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
     const DumuVec &a_local, const VelocityShearVec &sigma_1d,
@@ -847,6 +884,11 @@ void Diss::Make_uqSource(
             std::copysign(std::max(std::abs(mub), small_eps), mub);
         kappa = kappa_coefficient * (rhob / denorm_safe);
     }
+    // The kinetic-theory kappa turns negative where e + P < 3 n T tanh(muB/T)
+    // (cold, baryon-rich cells with less than a nucleon mass of energy per
+    // baryon, e.g. between the lumps of a lumpy TATB event). kappa < 0 is
+    // anti-diffusion, which is ill-posed and blows up.
+    kappa = std::max(0., kappa);
 
     // copy the value of \tilde{q^\mu}
     double q[4];
@@ -877,9 +919,19 @@ void Diss::Make_uqSource(
     // add a new non-linear term (-q^\mu \sigma_\mu\nu)
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
 
+    // D(muB/T) from the ideal equations of motion instead of a_local[4],
+    // which uses a backward time difference of muB/T. The time and spatial
+    // parts of u^a partial_a (muB/T) nearly cancel where muB/T is large and
+    // the lagged difference cannot track the limited spatial derivative:
+    // q then carries time-step-scale noise that grows as dtau -> 0 (and
+    // spoils N_B conservation in lumpy events). The two forms differ by
+    // terms of second order in gradients (partial_mu q^mu, pi^{mu nu}
+    // sigma_{mu nu}, ...).
+    const double DmuBoverT =
+        D_muB_over_T_ideal(epsilon, rhob, pressure, theta_local);
+
     for (int nu = 1; nu < 4; nu++) {
-        double NS =
-            kappa * (baryon_diffusion_vec[nu] + grid_pt.u[nu] * a_local[4]);
+        double NS = kappa * (baryon_diffusion_vec[nu] + grid_pt.u[nu] * DmuBoverT);
 
         // add a new non-linear term (- q \theta)
         double Nonlinear1 = -transport_coeff * q[nu] * theta_local;
