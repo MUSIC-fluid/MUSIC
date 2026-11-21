@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -1261,4 +1262,84 @@ TEST_CASE("Evolve: coarsening conserves content on odd and singleton grids") {
                 == doctest::Approx(before[m]).epsilon(1e-10).scale(1.));
         }
     }
+}
+
+TEST_CASE("the 4D EoS pressure gradients match finite differences of P") {
+    // dP/de at fixed n_B, n_Q, n_S needs the mu-tilde term: mu-tilde ~
+    // n / sqrt(e) changes with e. Without it dP/de was biased by ~-8% at
+    // low Ttilde and high density. Needs the 4D table
+    // (EOS/download_Neos4D.sh).
+    const char *envPath = std::getenv("HYDROPROGRAMPATH");
+    const std::string table =
+        std::string(envPath ? envPath : ".") + "/EOS/neos4D/neos4d_p_b.dat";
+    if (!std::ifstream(table).good()) {
+        MESSAGE("skipped: no 4D EoS table at " << table);
+        return;
+    }
+    EOS eos(20);
+    const double alphaNf = (8 / 45.0 + 7 / 60.0 * 3.0) * M_PI * M_PI;
+    const double dTtilde = 0.008 / Util::hbarc;  // the table's Ttilde step
+    auto eOf = [&](const double Tt) { return 3. * alphaNf * std::pow(Tt, 4); };
+
+    // dP/de against a central difference over +-1 Ttilde cell (which
+    // averages over the cell structure), as the mean over a Ttilde window:
+    // the T^5-shaped slope scatters by a few % around it within each cell
+    for (const auto &window :
+         {std::array<double, 2> {0.06, 0.12},
+          std::array<double, 2> {0.12, 0.20}}) {
+        const int nPts = 40;
+        double sum = 0., sum2 = 0.;
+        for (int i = 0; i < nPts; i++) {
+            const double Tt =
+                (window[0] + (window[1] - window[0]) * (i + 0.5) / nPts)
+                / Util::hbarc;
+            const double nb = 0.3 * Tt * Tt * Tt, nq = 0.4 * nb;
+            double p, dpde, dpdnb, dpdnq, dpdns;
+            eos.get_pressure_with_gradients(
+                eOf(Tt), nb, nq, 0., p, dpde, dpdnb, dpdnq, dpdns);
+            const double eL = eOf(Tt - dTtilde), eR = eOf(Tt + dTtilde);
+            const double ref = (eos.get_pressure(eR, nb, nq, 0.)
+                                - eos.get_pressure(eL, nb, nq, 0.))
+                               / (eR - eL);
+            sum += dpde / ref - 1.;
+            sum2 += (dpde / ref - 1.) * (dpde / ref - 1.);
+        }
+        CAPTURE(window[0]);
+        CHECK(std::abs(sum / nPts) < 0.015);
+        CHECK(std::sqrt(sum2 / nPts) < 0.06);
+    }
+
+    // dP/dn: linear in mu-tilde within a cell, so a 1% match to a small
+    // central difference away from the table nodes (8 MeV apart in Ttilde
+    // and mu-tilde, with mu-tilde = 0 on a node)
+    int nChecked = 0;
+    for (const double TtGeV : {0.123, 0.171, 0.253, 0.405}) {
+        const double Tt = TtGeV / Util::hbarc;
+        for (const double c : {0.005, 0.03, 0.1}) {
+            const std::array<double, 4> q = {
+                eOf(Tt), c * Tt * Tt * Tt, 0.4 * c * Tt * Tt * Tt,
+                0.1 * c * Tt * Tt * Tt};
+            double p, g[4];
+            eos.get_pressure_with_gradients(
+                q[0], q[1], q[2], q[3], p, g[0], g[1], g[2], g[3]);
+            for (int k = 1; k < 4; k++) {
+                const double h = 1e-3 * Tt * Tt * Tt;
+                std::array<double, 4> a = q, b = q;
+                a[k] -= h;
+                b[k] += h;
+                const double fd = (eos.get_pressure(b[0], b[1], b[2], b[3])
+                                   - eos.get_pressure(a[0], a[1], a[2], a[3]))
+                                  / (2. * h);
+                // small at small n, so at least 1% of P / n_scale
+                const double tol =
+                    1e-2 * std::max(std::abs(fd), p / (Tt * Tt * Tt));
+                CAPTURE(TtGeV);
+                CAPTURE(c);
+                CAPTURE(k);
+                CHECK(std::abs(g[k] - fd) <= tol);
+                nChecked++;
+            }
+        }
+    }
+    CHECK(nChecked == 36);
 }
