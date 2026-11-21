@@ -123,6 +123,10 @@ class Advance {
     double MaxSpeed(
         const double tau, const int direc, const ReconstCell &grid_p,
         double &pressure);
+    //! MaxSpeed with the EoS at grid_p already known
+    double MaxSpeed(
+        const double tau, const int direc, const ReconstCell &grid_p,
+        const ReconstEos &eosState);
 
     double get_TJb(
         const ReconstCell &grid_p, const int mu, const int nu,

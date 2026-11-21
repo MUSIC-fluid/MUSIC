@@ -31,6 +31,10 @@ class EOS_4D : public EOS_base {
     bool EoS_file_in_binary_;
     bool file_for_cs_;
 
+    //! Ttilde_{iT+1}^5 - Ttilde_{iT}^5 of each Ttilde cell, for the slope
+    //! in FourDLInterp (set in get_eos_max_values)
+    std::vector<double> T5diff_;
+
     // 1D tables.
     std::vector<float> pressure_vec;
     std::vector<float> temp_vec;

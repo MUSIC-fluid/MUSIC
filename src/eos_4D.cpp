@@ -28,6 +28,14 @@ void EOS_4D::get_eos_max_values() {
     mub_tilde_max = mubtilde0 + (N_mub - 1) * dmubtilde;
     muq_tilde_max = muqtilde0 + (N_muq - 1) * dmuqtilde;
     mus_tilde_max = mustilde0 + (N_mus - 1) * dmustilde;
+
+    // the same float node values and double pow as FourDLInterp used inline
+    T5diff_.resize(std::max(N_T - 1, 1));
+    for (int iT = 0; iT < N_T - 1; iT++) {
+        const float T1 = Ttilde0 + iT * dTtilde;
+        const float T2 = T1 + dTtilde;
+        T5diff_[iT] = pow(T2, 5) - pow(T1, 5);
+    }
 }
 
 void EOS_4D::read_header(std::string filepath) {
@@ -196,16 +204,12 @@ void EOS_4D::FourDLInterp(
     // Calculate the weights associated to the sixteen surrounding point
     int iT = static_cast<int>(Tfrac);
     iT = std::max(0, std::min(N_T - 2, iT));
-    int iT1 = iT + 1;
     int ib = static_cast<int>(mubfrac);
     ib = std::max(0, std::min(N_mub - 2, ib));
-    int ib1 = ib + 1;
     int iq = static_cast<int>(muqfrac);
     iq = std::max(0, std::min(N_muq - 2, iq));
-    int iq1 = iq + 1;
     int is = static_cast<int>(musfrac);
     is = std::max(0, std::min(N_mus - 2, is));
-    int is1 = is + 1;
 
     float dx = std::max(0., std::min(1., Tfrac - iT));
     float dy = std::max(0., std::min(1., mubfrac - ib));
@@ -232,26 +236,32 @@ void EOS_4D::FourDLInterp(
     float w1101 = dx * dy * (1 - dz) * dt;
     float w1110 = dx * dy * dz * (1 - dt);
 
-    // store values at surrounding data points on the grid.
-    float data_0000 = data[index(iT, ib, iq, is)];
-    float data_1111 = data[index(iT1, ib1, iq1, is1)];
+    // store values at surrounding data points on the grid: index() is
+    // linear in each index, so the corners are the base plus fixed strides
+    const int oB = 1;
+    const int oQ = N_mub;
+    const int oS = N_mub * N_muq;
+    const int oT = N_mub * N_muq * N_mus;
+    const float *d0 = data.data() + index(iT, ib, iq, is);
+    float data_0000 = d0[0];
+    float data_1111 = d0[oT + oB + oQ + oS];
 
-    float data_1000 = data[index(iT1, ib, iq, is)];
-    float data_0100 = data[index(iT, ib1, iq, is)];
-    float data_0010 = data[index(iT, ib, iq1, is)];
-    float data_0001 = data[index(iT, ib, iq, is1)];
+    float data_1000 = d0[oT];
+    float data_0100 = d0[oB];
+    float data_0010 = d0[oQ];
+    float data_0001 = d0[oS];
 
-    float data_1001 = data[index(iT1, ib, iq, is1)];
-    float data_0101 = data[index(iT, ib1, iq, is1)];
-    float data_0011 = data[index(iT, ib, iq1, is1)];
-    float data_1100 = data[index(iT1, ib1, iq, is)];
-    float data_1010 = data[index(iT1, ib, iq1, is)];
-    float data_0110 = data[index(iT, ib1, iq1, is)];
+    float data_1001 = d0[oT + oS];
+    float data_0101 = d0[oB + oS];
+    float data_0011 = d0[oQ + oS];
+    float data_1100 = d0[oT + oB];
+    float data_1010 = d0[oT + oQ];
+    float data_0110 = d0[oB + oQ];
 
-    float data_0111 = data[index(iT, ib1, iq1, is1)];
-    float data_1011 = data[index(iT1, ib, iq1, is1)];
-    float data_1101 = data[index(iT1, ib1, iq, is1)];
-    float data_1110 = data[index(iT1, ib1, iq1, is)];
+    float data_0111 = d0[oB + oQ + oS];
+    float data_1011 = d0[oT + oQ + oS];
+    float data_1101 = d0[oT + oB + oS];
+    float data_1110 = d0[oT + oB + oQ];
 
     // Interpolate the value of the target point using the weights
     // and the values of the sixteen surrounding points
@@ -292,11 +302,10 @@ void EOS_4D::FourDLInterp(
     // X linear in Ttilde^5 across the cell: P ~ Ttilde^4, so this follows the
     // smooth dX/dTtilde closer than the cell-constant slope of the linear
     // interpolation (rms 0.5-1.2% against 2-6% above Ttilde = 0.12 GeV)
-    float T1 = Ttilde0 + iT * dTtilde;
-    float T2 = T1 + dTtilde;
     float T = std::max(Ttilde0, std::min(T_tilde_max, TildeVar[0]));
-    float dXdTtilde =
-        (5 * (tempT2 - tempT1) / (pow(T2, 5) - pow(T1, 5)) * pow(T, 4));
+    // T^2 of a float is exact in double, so T^4 is rounded once, as by pow
+    const double Tsq = static_cast<double>(T) * T;
+    float dXdTtilde = (5 * (tempT2 - tempT1) / T5diff_[iT] * (Tsq * Tsq));
 
     // mubtilde direction
     float wb000 = w0000 + w0100;
@@ -389,7 +398,8 @@ void EOS_4D::FourDLInterp(
     // and mu-tilde = A n / Ttilde^2, so d(mu-tilde)/dn = A / Ttilde^2 and, at
     // fixed n, d(mu-tilde)/de = -mu-tilde / (2 e)
     // dX/de at fixed n_B, n_Q, n_S (the mu-tilde term vanishes at n = 0)
-    const double eLocal = 3. * alphaNf * std::pow(TildeVar[0], 4);
+    const double T0sq = static_cast<double>(TildeVar[0]) * TildeVar[0];
+    const double eLocal = 3. * alphaNf * (T0sq * T0sq);
     ResArr[1] = 3.0 / (19.0 * M_PI * M_PI * T * T * T) * dXdTtilde
                 - 0.5
                       * (TildeVar[1] * dXdmubtilde + TildeVar[2] * dXdmuqtilde
@@ -524,8 +534,8 @@ void EOS_4D::get_pressure_with_gradients(
         // mu-tilde ~ n / sqrt(e): dP/de|_n = g - sum_a n_a dg/dn_a / 2 and
         // dP/dn_a = scale^2 (dP/dn_a)_ref, with n_ref = n / scale^2.
         const double s2 = static_cast<double>(scale) * scale;
-        const double eref =
-            3. * alphaNf * std::pow(static_cast<double>(TildeVar[0]), 4);
+        const double Tsq = static_cast<double>(TildeVar[0]) * TildeVar[0];
+        const double eref = 3. * alphaNf * (Tsq * Tsq);
         const double pref = ResArr[0];
         const double ndpdn =
             (rhob * ResArr[2] + rhoq * ResArr[3] + rhos * ResArr[4]) / s2;

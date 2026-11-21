@@ -23,7 +23,9 @@ Reconst::Reconst(const EOS &eosIn, const int echo_level_in, int beastMode)
 }
 
 ReconstCell Reconst::ReconstIt_shell(
-    double tau, const TJbVec &tauq_vec, const ReconstCell &grid_pt) {
+    double tau, const TJbVec &tauq_vec, const ReconstCell &grid_pt,
+    ReconstEos *eosOut) {
+    if (eosOut != nullptr) eosOut->valid = false;
     ReconstCell grid_p1;
 
     TJbVec q_vec;
@@ -58,7 +60,7 @@ ReconstCell Reconst::ReconstIt_shell(
         }
     }
 
-    int flag = ReconstIt_velocity_Newton(grid_p1, tau, q_vec, grid_pt);
+    int flag = ReconstIt_velocity_Newton(grid_p1, tau, q_vec, grid_pt, eosOut);
 
     if (flag == -1) {
         revert_grid(grid_p1, grid_pt);
@@ -85,7 +87,8 @@ void Reconst::revert_grid(
 //! use Newton's method to solve v and u0
 int Reconst::ReconstIt_velocity_Newton(
     ReconstCell &grid_p, double tau, const TJbVec &q,
-    const ReconstCell &grid_pt) {
+    const ReconstCell &grid_pt, ReconstEos *eosOut) {
+    if (eosOut != nullptr) eosOut->valid = false;
     double K00 = q[1] * q[1] + q[2] * q[2] + q[3] * q[3];
     double M = sqrt(K00);
     double T00 = q[0];
@@ -169,7 +172,15 @@ int Reconst::ReconstIt_velocity_Newton(
     grid_p.rhoq = rhoq;
     grid_p.rhos = rhos;
 
-    pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
+    if (eosOut != nullptr) {
+        eos.get_pressure_with_gradients_and_cs2(
+            epsilon, rhob, rhoq, rhos, eosOut->p, eosOut->dpde, eosOut->dpdrhob,
+            eosOut->dpdrhoq, eosOut->dpdrhos, eosOut->cs2);
+        eosOut->valid = true;
+        pressure = eosOut->p;
+    } else {
+        pressure = eos.get_pressure(epsilon, rhob, rhoq, rhos);
+    }
 
     // individual components of velocity
     double velocity_inverse_factor = u[0] / (T00 + pressure);

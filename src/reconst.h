@@ -11,6 +11,19 @@
 #include "pretty_ostream.h"
 #include "util.h"
 
+//! the EoS at a reconstructed state: P, its gradients and c_s^2, from
+//! get_pressure_with_gradients_and_cs2. valid is false when the solve did
+//! not give the state (reverted or regulated cell).
+struct ReconstEos {
+    bool valid = false;
+    double p = 0.;
+    double dpde = 0.;
+    double dpdrhob = 0.;
+    double dpdrhoq = 0.;
+    double dpdrhos = 0.;
+    double cs2 = 0.;
+};
+
 class Reconst {
   private:
     const EOS &eos;
@@ -29,8 +42,12 @@ class Reconst {
     Reconst() = delete;
     Reconst(const EOS &eos, const int echo_level_in, int beastMode);
 
+    //! eosOut (optional): filled with the EoS at the solution, which then
+    //! comes from get_pressure_with_gradients_and_cs2 instead of
+    //! get_pressure (one EoS call for the solution and its signal speed)
     ReconstCell ReconstIt_shell(
-        double tau, const TJbVec &tauq_vec, const ReconstCell &grid_pt);
+        double tau, const TJbVec &tauq_vec, const ReconstCell &grid_pt,
+        ReconstEos *eosOut = nullptr);
 
     int get_max_iter() const { return (max_iter); }
     int get_echo_level() const { return (echo_level); }
@@ -42,7 +59,7 @@ class Reconst {
 
     int ReconstIt_velocity_Newton(
         ReconstCell &grid_p, double tau, const TJbVec &q,
-        const ReconstCell &grid_pt);
+        const ReconstCell &grid_pt, ReconstEos *eosOut = nullptr);
 
     void reconst_velocity_fdf(
         const double v, const double T00, const double M, const double J0B,

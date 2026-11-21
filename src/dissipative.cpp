@@ -495,7 +495,7 @@ void Diss::computeWFluxDivergence(
         wFaceFluxes_.resize(static_cast<size_t>(nComp) * nFaces);
 
         // the flux through the face between the cells L = f - 1 and R = f
-#pragma omp parallel for collapse(3) schedule(guided)
+#pragma omp parallel for collapse(3) schedule(dynamic, 64)
         for (int feta = 0; feta < nfeta; feta++)
             for (int fy = 0; fy < nfy; fy++)
                 for (int fx = 0; fx < nfx; fx++) {
@@ -541,7 +541,7 @@ void Diss::computeWFluxDivergence(
                 }
 
         // make partial_i (u^i Wmn), accumulated over the directions in order
-#pragma omp parallel for collapse(3) schedule(guided)
+#pragma omp parallel for collapse(3) schedule(dynamic, 64)
         for (int ieta = 0; ieta < neta; ieta++)
             for (int iy = 0; iy < ny; iy++)
                 for (int ix = 0; ix < nx; ix++) {

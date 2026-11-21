@@ -65,7 +65,7 @@ void Advance::AdvanceIt(
             tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, wFluxDiv_);
     }
 
-#pragma omp parallel for collapse(3) schedule(guided)
+#pragma omp parallel for collapse(3) schedule(dynamic, 64)
     for (int ieta = 0; ieta < grid_neta; ieta++)
         for (int ix = 0; ix < grid_nx; ix++)
             for (int iy = 0; iy < grid_ny; iy++) {
@@ -739,7 +739,7 @@ void Advance::computeFaceFluxes(
         const int nfx = nx + (direction == 1);
         const int nfy = ny + (direction == 2);
         const int nfeta = neta + (direction == 3);
-#pragma omp parallel for collapse(3) schedule(guided)
+#pragma omp parallel for collapse(3) schedule(dynamic, 64)
         for (int feta = 0; feta < nfeta; feta++)
             for (int fy = 0; fy < nfy; fy++)
                 for (int fx = 0; fx < nfx; fx++) {
@@ -791,12 +791,25 @@ void Advance::computeFaceFlux(
 
     // reconstruct e, rhob, and u[4] for the half-way states. Each uses the
     // cell on its own side of the face as the guess (and fallback)
-    auto gridL = reconst_helper.ReconstIt_shell(tau, qL, cL);
-    auto gridR = reconst_helper.ReconstIt_shell(tau, qR, cR);
+    // and returns the EoS at its solution, which MaxSpeed reuses
+    ReconstEos eosL, eosR;
+    auto gridL = reconst_helper.ReconstIt_shell(tau, qL, cL, &eosL);
+    auto gridR = reconst_helper.ReconstIt_shell(tau, qR, cR, &eosR);
 
-    double pressureL, pressureR;  // of the half-way states, from MaxSpeed
-    const double aL = MaxSpeed(tau, direction, gridL, pressureL);
-    const double aR = MaxSpeed(tau, direction, gridR, pressureR);
+    double pressureL, pressureR;  // of the half-way states
+    double aL, aR;
+    if (eosL.valid) {
+        aL = MaxSpeed(tau, direction, gridL, eosL);
+        pressureL = eosL.p;
+    } else {
+        aL = MaxSpeed(tau, direction, gridL, pressureL);
+    }
+    if (eosR.valid) {
+        aR = MaxSpeed(tau, direction, gridR, eosR);
+        pressureR = eosR.p;
+    } else {
+        aR = MaxSpeed(tau, direction, gridR, pressureR);
+    }
     const double a = std::max(aL, aR);
     for (int alpha = 0; alpha < 7; alpha++) {
         const double FL =
@@ -875,6 +888,19 @@ void Advance::MakeDeltaQI(
 double Advance::MaxSpeed(
     const double tau, const int direc, const ReconstCell &grid_p,
     double &pressure) {
+    ReconstEos eosState;
+    eos.get_pressure_with_gradients_and_cs2(
+        grid_p.e, grid_p.rhob, grid_p.rhoq, grid_p.rhos, eosState.p,
+        eosState.dpde, eosState.dpdrhob, eosState.dpdrhoq, eosState.dpdrhos,
+        eosState.cs2);
+    eosState.valid = true;
+    pressure = eosState.p;
+    return (MaxSpeed(tau, direc, grid_p, eosState));
+}
+
+double Advance::MaxSpeed(
+    const double tau, const int direc, const ReconstCell &grid_p,
+    const ReconstEos &eosState) {
     double g[] = {1., 1., 1. / tau};
 
     double utau = grid_p.u[0];
@@ -887,10 +913,12 @@ double Advance::MaxSpeed(
     double rhoq = grid_p.rhoq;
     double rhos = grid_p.rhos;
 
-    // double vs2 = eos.get_cs2(eps, rhob);
-    double dpde, dpdrhob, dpdrhoq, dpdrhos, vs2;
-    eos.get_pressure_with_gradients_and_cs2(
-        eps, rhob, rhoq, rhos, pressure, dpde, dpdrhob, dpdrhoq, dpdrhos, vs2);
+    const double pressure = eosState.p;
+    const double dpde = eosState.dpde;
+    const double dpdrhob = eosState.dpdrhob;
+    const double dpdrhoq = eosState.dpdrhoq;
+    const double dpdrhos = eosState.dpdrhos;
+    const double vs2 = eosState.cs2;
     double num_temp_sqrt = (ut2mux2 - (ut2mux2 - 1.) * vs2) * vs2;
     double num;
     if (num_temp_sqrt >= 0) {
