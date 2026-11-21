@@ -33,6 +33,16 @@ class Advance {
     //! AdvanceIt so that the stencils do not call the EoS for every neighbour
     std::vector<double> pressureCurr_;
 
+    //! KT fluxes through the faces of arenaFieldsCurr, filled at the start
+    //! of each AdvanceIt (computeFaceFluxes)
+    FaceFluxes faceFluxes_;
+
+    //! KT flux through one face (see computeFaceFluxes)
+    void computeFaceFlux(
+        const double tau, const Fields &arena,
+        const std::vector<double> &pressure, const int direction, const int fx,
+        const int fy, const int feta, TJbVec &flux);
+
     // Local fixed point that puts the end-of-step viscous part V_{n+1} into
     // the time derivative of the second RK stage (see
     // stage2ViscousFixedPoint): at most stage2MaxIterations_ updates,
@@ -95,11 +105,17 @@ class Advance {
     void QuestRevert_qmu(
         Cell_small &grid_pt, const int ieta, const int ix, const int iy);
 
-    //! pressureCurr: computePressure of arenaFieldsCurr
+    //! fills fluxes with the KT fluxes of arena at tau through every face;
+    //! pressure: computePressure of arena
+    void computeFaceFluxes(
+        const double tau, const Fields &arena,
+        const std::vector<double> &pressure, FaceFluxes &fluxes);
+
+    //! adds the flux divergence (and the Milne geometric terms) of the
+    //! cell (ix, iy, ieta) times delta_tau to qi; fluxes: computeFaceFluxes
     void MakeDeltaQI(
-        const double tau, Fields &arenaFieldsCurr,
-        const std::vector<double> &pressureCurr, const int ix, const int iy,
-        const int ieta, TJbVec &qi, const int rk_flag);
+        const FaceFluxes &fluxes, const int ix, const int iy, const int ieta,
+        TJbVec &qi);
 
     double MaxSpeed(
         const double tau, const int direc, const ReconstCell &grid_p,

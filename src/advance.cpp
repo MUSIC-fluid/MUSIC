@@ -56,6 +56,9 @@ void Advance::AdvanceIt(
     const int grid_ny = arenaFieldsCurr.nY();
 
     computePressure(arenaFieldsCurr, pressureCurr_);
+    computeFaceFluxes(
+        tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, pressureCurr_,
+        faceFluxes_);
 
 #pragma omp parallel for collapse(3) schedule(guided)
     for (int ieta = 0; ieta < grid_neta; ieta++)
@@ -277,8 +280,7 @@ void Advance::FirstRKStepT(
         qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure) * tau_rk;
     }
 
-    MakeDeltaQI(
-        tau_rk, arenaFieldsCurr, pressureCurr, ix, iy, ieta, qi, rk_flag);
+    MakeDeltaQI(faceFluxes_, ix, iy, ieta, qi);
 
     TJbVec qi_source = {0.0};
 
@@ -715,103 +717,120 @@ void Advance::QuestRevert_qmu(
     }
 }
 
-//! This function computes the rhs array. It computes the spatial
-//! derivatives of T^\mu\nu using the KT algorithm
-void Advance::MakeDeltaQI(
-    const double tau, Fields &arenaFieldsCurr,
-    const std::vector<double> &pressureCurr, const int ix, const int iy,
-    const int ieta, TJbVec &qi, const int rk_flag) {
-    const double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
-    const double tau_fac[4] = {0.0, tau, tau, 1.0};
+//! KT flux through every face of arena in the three directions
+//! (see FaceFluxes). Each face is computed once, from the two cells on
+//! either side and their outer neighbours (clamped at the grid edges).
+void Advance::computeFaceFluxes(
+    const double tau, const Fields &arena, const std::vector<double> &pressure,
+    FaceFluxes &fluxes) {
+    const int nx = arena.nX();
+    const int ny = arena.nY();
+    const int neta = arena.nEta();
+    fluxes.resize(nx, ny, neta);
+    for (int direction = 1; direction <= 3; direction++) {
+        const int nfx = nx + (direction == 1);
+        const int nfy = ny + (direction == 2);
+        const int nfeta = neta + (direction == 3);
+#pragma omp parallel for collapse(3) schedule(guided)
+        for (int feta = 0; feta < nfeta; feta++)
+            for (int fy = 0; fy < nfy; fy++)
+                for (int fx = 0; fx < nfx; fx++) {
+                    TJbVec flux;
+                    computeFaceFlux(
+                        tau, arena, pressure, direction, fx, fy, feta, flux);
+                    const int faceIdx =
+                        fluxes.getFaceIdx(direction, fx, fy, feta);
+                    for (int alpha = 0; alpha < 7; alpha++) {
+                        fluxes.flux(direction, alpha, faceIdx) = flux[alpha];
+                    }
+                }
+    }
+}
 
-    TJbVec qiphL = {0.};
-    TJbVec qiphR = {0.};
-    TJbVec qimhL = {0.};
-    TJbVec qimhR = {0.};
+//! KT flux through the face (fx, fy, feta) normal to direction: the face
+//! between the cells with coordinate f - 1 (L) and f (R) along direction
+void Advance::computeFaceFlux(
+    const double tau, const Fields &arena, const std::vector<double> &pressure,
+    const int direction, const int fx, const int fy, const int feta,
+    TJbVec &flux) {
+    const double tau_fac[4] = {0.0, tau, tau, 1.0};
+    const int dx = (direction == 1);
+    const int dy = (direction == 2);
+    const int deta = (direction == 3);
+    const int ILL =
+        arena.getFieldIdxHalo(fx - 2 * dx, fy - 2 * dy, feta - 2 * deta);
+    const int IL = arena.getFieldIdxHalo(fx - dx, fy - dy, feta - deta);
+    const int IR = arena.getFieldIdxHalo(fx, fy, feta);
+    const int IRR = arena.getFieldIdxHalo(fx + dx, fy + dy, feta + deta);
+    const auto cLL = arena.getCellIdeal(ILL);
+    const auto cL = arena.getCellIdeal(IL);
+    const auto cR = arena.getCellIdeal(IR);
+    const auto cRR = arena.getCellIdeal(IRR);
+
+    // the half-way states on the left and right side of the face
+    TJbVec qL = {0.};
+    TJbVec qR = {0.};
+    for (int alpha = 0; alpha < 7; alpha++) {
+        const double gLL = tau * get_TJb(cLL, alpha, 0, pressure[ILL]);
+        const double gL = tau * get_TJb(cL, alpha, 0, pressure[IL]);
+        const double gR = tau * get_TJb(cR, alpha, 0, pressure[IR]);
+        const double gRR = tau * get_TJb(cRR, alpha, 0, pressure[IRR]);
+        const double fL = 0.5 * minmod.minmod_dx(gR, gL, gLL);
+        const double fR = -0.5 * minmod.minmod_dx(gRR, gR, gL);
+        qL[alpha] = gL + fL;
+        qR[alpha] = gR + fR;
+    }
+
+    // reconstruct e, rhob, and u[4] for the half-way states. Each uses the
+    // cell on its own side of the face as the guess (and fallback)
+    auto gridL = reconst_helper.ReconstIt_shell(tau, qL, cL);
+    auto gridR = reconst_helper.ReconstIt_shell(tau, qR, cR);
+
+    double pressureL, pressureR;  // of the half-way states, from MaxSpeed
+    const double aL = MaxSpeed(tau, direction, gridL, pressureL);
+    const double aR = MaxSpeed(tau, direction, gridR, pressureR);
+    const double a = std::max(aL, aR);
+    for (int alpha = 0; alpha < 7; alpha++) {
+        const double FL =
+            (tau_fac[direction] * get_TJb(gridL, alpha, direction, pressureL));
+        const double FR =
+            (tau_fac[direction] * get_TJb(gridR, alpha, direction, pressureR));
+        // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2}))/2
+        //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
+        flux[alpha] = 0.5 * ((FL + FR) - a * (qR[alpha] - qL[alpha]));
+    }
+}
+
+//! This function computes the rhs array. It computes the spatial
+//! derivatives of T^\mu\nu using the KT algorithm, from the face fluxes
+//! of computeFaceFluxes
+void Advance::MakeDeltaQI(
+    const FaceFluxes &fluxes, const int ix, const int iy, const int ieta,
+    TJbVec &qi) {
+    const double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
 
     TJbVec rhs = {0.};
     EnergyFlowVec T_eta_m = {0.};
     EnergyFlowVec T_eta_p = {0.};
-    FieldNeighbourLoopIdeal2(
-        arenaFieldsCurr, ix, iy, ieta, FNLILAMBDAS2 {
-            // copies: MaxSpeed overwrites them with the pressures of the
-            // half-way states
-            double pressureP1 = pressureCurr[Ip1];
-            double pressureP2 = pressureCurr[Ip2];
-            double pressureM1 = pressureCurr[Im1];
-            double pressureM2 = pressureCurr[Im2];
-
-            for (int alpha = 0; alpha < 7; alpha++) {
-                const double gphL = qi[alpha];
-                const double gphR = tau * get_TJb(p1, alpha, 0, pressureP1);
-                const double gmhL = tau * get_TJb(m1, alpha, 0, pressureM1);
-                const double gmhR = qi[alpha];
-                const double fphL =
-                    0.5 * minmod.minmod_dx(gphR, qi[alpha], gmhL);
-                const double fphR = -0.5
-                                    * minmod.minmod_dx(
-                                        tau * get_TJb(p2, alpha, 0, pressureP2),
-                                        gphR, qi[alpha]);
-                const double fmhL =
-                    0.5
-                    * minmod.minmod_dx(
-                        qi[alpha], gmhL,
-                        tau * get_TJb(m2, alpha, 0, pressureM2));
-                const double fmhR = -fphL;
-                qiphL[alpha] = gphL + fphL;
-                qiphR[alpha] = gphR + fphR;
-                qimhL[alpha] = gmhL + fmhL;
-                qimhR[alpha] = gmhR + fmhR;
+    for (int direction = 1; direction <= 3; direction++) {
+        const int dx = (direction == 1);
+        const int dy = (direction == 2);
+        const int deta = (direction == 3);
+        const int Imh = fluxes.getFaceIdx(direction, ix, iy, ieta);
+        const int Iph =
+            fluxes.getFaceIdx(direction, ix + dx, iy + dy, ieta + deta);
+        for (int alpha = 0; alpha < 7; alpha++) {
+            const double Fiph = fluxes.flux(direction, alpha, Iph);
+            const double Fimh = fluxes.flux(direction, alpha, Imh);
+            if (direction == 3 && (alpha == 0 || alpha == 3)) {
+                T_eta_m[alpha] = Fimh;
+                T_eta_p[alpha] = Fiph;
+            } else {
+                double DFmmp = (Fimh - Fiph) / delta[direction];
+                rhs[alpha] += DFmmp * (DATA.delta_tau);
             }
-
-            // for each direction, reconstruct half-way cells
-            // reconstruct e, rhob, and u[4] for half way cells
-            // each half-way state uses the cell on its own side of the
-            // interface as the guess (and fallback), so that both neighbours
-            // compute the identical flux and the scheme stays conservative
-            auto grid_phL = reconst_helper.ReconstIt_shell(tau, qiphL, c);
-            auto grid_phR = reconst_helper.ReconstIt_shell(tau, qiphR, p1);
-            auto grid_mhL = reconst_helper.ReconstIt_shell(tau, qimhL, m1);
-            auto grid_mhR = reconst_helper.ReconstIt_shell(tau, qimhR, c);
-
-            double aiphL = MaxSpeed(tau, direction, grid_phL, pressureP1);
-            double aiphR = MaxSpeed(tau, direction, grid_phR, pressureP2);
-            double aimhL = MaxSpeed(tau, direction, grid_mhL, pressureM1);
-            double aimhR = MaxSpeed(tau, direction, grid_mhR, pressureM2);
-
-            double aiph = std::max(aiphL, aiphR);
-            double aimh = std::max(aimhL, aimhR);
-            for (int alpha = 0; alpha < 7; alpha++) {
-                double FiphL =
-                    (tau_fac[direction]
-                     * get_TJb(grid_phL, alpha, direction, pressureP1));
-                double FiphR =
-                    (tau_fac[direction]
-                     * get_TJb(grid_phR, alpha, direction, pressureP2));
-                double FimhL =
-                    (tau_fac[direction]
-                     * get_TJb(grid_mhL, alpha, direction, pressureM1));
-                double FimhR =
-                    (tau_fac[direction]
-                     * get_TJb(grid_mhR, alpha, direction, pressureM2));
-
-                // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2}))/2
-                //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
-                double Fiph =
-                    0.5
-                    * ((FiphL + FiphR) - aiph * (qiphR[alpha] - qiphL[alpha]));
-                double Fimh =
-                    0.5
-                    * ((FimhL + FimhR) - aimh * (qimhR[alpha] - qimhL[alpha]));
-                if (direction == 3 && (alpha == 0 || alpha == 3)) {
-                    T_eta_m[alpha] = Fimh;
-                    T_eta_p[alpha] = Fiph;
-                } else {
-                    double DFmmp = (Fimh - Fiph) / delta[direction];
-                    rhs[alpha] += DFmmp * (DATA.delta_tau);
-                }
-            }
-        });
+        }
+    }
 
     // add longitudinal flux with discretized geometric terms
     double cosh_deta =

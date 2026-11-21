@@ -47,7 +47,7 @@ void Fields::resizeFields(int Nx, int Ny, int Neta) {
     }
 }
 
-Cell_small Fields::getCell(int ix, int iy, int ieta) {
+Cell_small Fields::getCell(int ix, int iy, int ieta) const {
     ix = std::max(0, std::min(Nx_ - 1, ix));
     iy = std::max(0, std::min(Ny_ - 1, iy));
     ieta = std::max(0, std::min(Neta_ - 1, ieta));
@@ -55,7 +55,7 @@ Cell_small Fields::getCell(int ix, int iy, int ieta) {
     return (getCell(fieldIdx));
 }
 
-Cell_small Fields::getCell(const int idx) {
+Cell_small Fields::getCell(const int idx) const {
     Cell_small cell;
     cell.epsilon = e_[idx];
 
@@ -74,14 +74,14 @@ Cell_small Fields::getCell(const int idx) {
     return (cell);
 }
 
-int Fields::getFieldIdxHalo(int ix, int iy, int ieta) {
+int Fields::getFieldIdxHalo(int ix, int iy, int ieta) const {
     ix = std::max(0, std::min(Nx_ - 1, ix));
     iy = std::max(0, std::min(Ny_ - 1, iy));
     ieta = std::max(0, std::min(Neta_ - 1, ieta));
     return (getFieldIdx(ix, iy, ieta));
 }
 
-ReconstCell Fields::getCellIdeal(const int idx) {
+ReconstCell Fields::getCellIdeal(const int idx) const {
     ReconstCell cell;
     cell.e = e_[idx];
 
@@ -95,7 +95,7 @@ ReconstCell Fields::getCellIdeal(const int idx) {
     return (cell);
 }
 
-ReconstCell Fields::getCellIdeal(int ix, int iy, int ieta) {
+ReconstCell Fields::getCellIdeal(int ix, int iy, int ieta) const {
     ix = std::max(0, std::min(Nx_ - 1, ix));
     iy = std::max(0, std::min(Ny_ - 1, iy));
     ieta = std::max(0, std::min(Neta_ - 1, ieta));
