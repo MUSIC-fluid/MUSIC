@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+set -euo pipefail
+# download into this script's directory (EOS/), where MUSIC looks
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
 USERNAME="wayne_state_nuclear_theory"
 REPO_SLUG="neos"
@@ -10,7 +13,7 @@ API_BASE_URL="https://api.bitbucket.org/2.0/"
 # NEOS version and considered quantities
 # UrQMD or pdg
 
-EOS_TYPE=$1
+EOS_TYPE=${1:-}
 if [ -z ${EOS_TYPE} ]
 then
     EOS_TYPE="UrQMD"
@@ -31,7 +34,7 @@ for name in "${FILE_NAME_LIST[@]}"; do
     API_FILE_URL="${API_BASE_URL}repositories/${USERNAME}/${REPO_SLUG}/src/${BRANCH}/${FILE_PATH}"
 
     LOCAL_DESTINATION="neos4d_${name}_b.dat"
-    curl -L -o "$LOCAL_DESTINATION" "$API_FILE_URL"
+    curl -fL -o "$LOCAL_DESTINATION" "$API_FILE_URL"
 done
 
 # Move to correct folder for use in MUSIC

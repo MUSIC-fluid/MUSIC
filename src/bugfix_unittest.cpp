@@ -914,3 +914,345 @@ TEST_CASE(
     CHECK(std::abs(sumPx) < 1e-12 * scalePx);
     CHECK(std::abs(sumNB) < 1e-12 * scaleNB);
 }
+
+// ---------------------------------------------------------------------------
+// PR #38 review: EoS table seams, conservative coarsening, freeze-out
+// ---------------------------------------------------------------------------
+
+namespace {
+//! two tables with nb spacings 1 and 0.5 and P(e, nb) = e + nb^2; the seam
+//! is between e = 3 (last column of table 0) and e = 4 (table 1)
+struct SeamEOS {
+    EOS_base eos;
+    static double P(double e, double nb) { return (e + nb * nb); }
+    SeamEOS() {
+        eos.set_number_of_tables(2);
+        eos.resize_table_info_arrays();
+        const double e0[2] = {0., 4.}, de[2] = {1., 2.};
+        const double dnb[2] = {1., 0.5};
+        const int Ne[2] = {4, 4}, Nnb[2] = {4, 8};
+        eos.pressure_tb = new double **[2];
+        eos.temperature_tb = new double **[2];
+        for (int t = 0; t < 2; t++) {
+            eos.e_bounds[t] = e0[t];
+            eos.e_spacing[t] = de[t];
+            eos.e_length[t] = Ne[t];
+            eos.nb_bounds[t] = 0.;
+            eos.nb_spacing[t] = dnb[t];
+            eos.nb_length[t] = Nnb[t];
+            eos.pressure_tb[t] = Util::mtx_malloc(Nnb[t], Ne[t]);
+            eos.temperature_tb[t] = Util::mtx_malloc(Nnb[t], Ne[t]);
+            for (int i = 0; i < Nnb[t]; i++) {
+                for (int j = 0; j < Ne[t]; j++) {
+                    eos.pressure_tb[t][i][j] = P(e0[t] + j * de[t], i * dnb[t]);
+                }
+            }
+        }
+    }
+};
+}  // namespace
+
+TEST_CASE("EOS_base::interpolate2D is continuous in e at a table seam") {
+    // the next table was interpolated at the current table's nb nodes and
+    // then again in nb: at nb = 1.3 it gave 4 + 1.90 just below e = 4 but
+    // 4 + 1.75 at it
+    SeamEOS s;
+    for (double nb : {0.2, 1.3, 2.7}) {
+        const double below =
+            s.eos.interpolate2D(4. - 1e-10, nb, 0, s.eos.pressure_tb);
+        const double at = s.eos.interpolate2D(4., nb, 1, s.eos.pressure_tb);
+        CHECK(below == doctest::Approx(at).epsilon(1e-8));
+    }
+    CHECK(
+        s.eos.interpolate2D(4., 1.3, 1, s.eos.pressure_tb)
+        == doctest::Approx(4. + 1.75));
+}
+
+TEST_CASE("EOS_base::get_rhob_edge interpolates across a table seam") {
+    SeamEOS s;
+    s.eos.nb_edge = {{0.3, 0.4, 0.5, 0.6}, {1.0, 1.2, 1.4, 1.6}};
+    // halfway between e = 3 (edge 0.6) and e = 4 (edge 1.0)
+    CHECK(s.eos.get_rhob_edge(3.5) == doctest::Approx(0.8));
+    CHECK(
+        s.eos.get_rhob_edge(4. - 1e-10)
+        == doctest::Approx(s.eos.get_rhob_edge(4.)).epsilon(1e-8));
+    // inside a table and past the last table it is unchanged
+    CHECK(s.eos.get_rhob_edge(1.5) == doctest::Approx(0.45));
+    CHECK(s.eos.get_rhob_edge(20.) == doctest::Approx(1.6));
+}
+
+TEST_CASE("EOS_base::check_table_seams accepts only seams the blend handles") {
+    // table 0 has columns e = 0, 1, 2, 3; the blend across the seam runs
+    // from e = 3 to e = 3 + 1
+    SeamEOS s;
+    CHECK(s.eos.check_table_seams());  // next table at 4: one spacing
+    s.eos.e_bounds[1] = 3.;            // shares the last column (NEoS)
+    CHECK(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 2.;  // overlaps by one column (s95p tables 5, 6)
+    CHECK(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 4.5;  // 1.5 spacings: the blend overshoots
+    CHECK_FALSE(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 3.5;  // 0.5 spacings: the blend stops short
+    CHECK_FALSE(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 0.;  // not increasing
+    CHECK_FALSE(s.eos.check_table_seams());
+    // rounding in an ASCII e spacing, amplified by the column count
+    s.eos.e_bounds[1] = 4. + 5e-4;
+    CHECK(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 4. + 5e-3;
+    CHECK_FALSE(s.eos.check_table_seams());
+    // tolerance grows with the column count: 1e-6 * 2000 = 2e-3 spacings
+    s.eos.e_length[0] = 2001;
+    s.eos.e_bounds[1] = 2000. + 1.5e-3;  // last column at 2000
+    CHECK(s.eos.check_table_seams());
+    s.eos.e_length[0] = 4;
+    // 1D tables (s95p) use interpolate1D, which never blends across seams,
+    // but they still need increasing bounds and a positive spacing
+    const int nbLen[2] = {s.eos.nb_length[0], s.eos.nb_length[1]};
+    s.eos.nb_length[0] = 1;
+    s.eos.nb_length[1] = 1;
+    s.eos.e_bounds[1] = 4.5;
+    CHECK(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 0.;
+    CHECK_FALSE(s.eos.check_table_seams());
+    s.eos.e_bounds[1] = 4.;
+    s.eos.e_spacing[0] = 0.;
+    CHECK_FALSE(s.eos.check_table_seams());
+    s.eos.e_spacing[0] = 1.;
+    // the destructor frees nb_length rows
+    s.eos.nb_length[0] = nbLen[0];
+    s.eos.nb_length[1] = nbLen[1];
+}
+
+TEST_CASE("Evolve::coarseGrainAndEnlargeGrid conserves T^{tau mu}, J^tau") {
+    // two cells e = 1, u^x = +-1 with the same rest-frame shear; averaging
+    // e and u gave a rest cell with e = 1 (T^{tau tau} 14/3 -> 2) and
+    // pi^{tau tau} != 0
+    InitData DATA = defaultParameters("Include_Rhob_Yes_1_No_0 1\n");
+    DATA.boost_invariant = true;
+    DATA.nx = 2;
+    DATA.ny = 1;
+    DATA.neta = 1;
+    DATA.delta_x = 1.;
+    DATA.delta_y = 1.;
+    DATA.x_size = 1.;
+    DATA.y_size = 0.;
+    EOS eos(0);
+    Evolve evolve(eos, DATA, nullptr);
+    Fields arena(2, 1, 1);
+    const double a = 0.02;
+    const double sq2 = std::sqrt(2.);
+    for (int ix = 0; ix < 2; ix++) {
+        const int idx = arena.getFieldIdx(ix, 0, 0);
+        const double s = (ix == 0 ? 1. : -1.);
+        arena.e_[idx] = 1.;
+        arena.rhob_[idx] = 0.1;
+        arena.u_[0][idx] = sq2;
+        arena.u_[1][idx] = s;
+        arena.u_[2][idx] = 0.;
+        arena.u_[3][idx] = 0.;
+        for (int k = 0; k < 14; k++) arena.Wmunu_[k][idx] = 0.;
+        // rest-frame pi = diag(0, 2a, -a, -a) boosted along x
+        arena.Wmunu_[0][idx] = 2. * a;
+        arena.Wmunu_[1][idx] = s * 2. * sq2 * a;
+        arena.Wmunu_[4][idx] = 4. * a;
+        arena.Wmunu_[7][idx] = -a;
+        arena.Wmunu_[9][idx] = -a;
+        arena.piBulk_[idx] = 0.;
+        arena.piBulkChem_[idx] = 0.;
+    }
+    auto content = [&](const Fields &f, double dx, double out[5]) {
+        for (int m = 0; m < 5; m++) out[m] = 0.;
+        for (int idx = 0; idx < f.nX(); idx++) {
+            const double e = f.e_[idx];
+            const double P = eos.get_pressure(e, f.rhob_[idx]);
+            for (int m = 0; m < 4; m++) {
+                const double g = (m == 0 ? -1. : 0.);
+                out[m] += dx
+                          * ((e + P) * f.u_[0][idx] * f.u_[m][idx] + P * g
+                             + f.Wmunu_[m][idx]);
+            }
+            out[4] += dx * (f.rhob_[idx] * f.u_[0][idx] + f.Wmunu_[10][idx]);
+        }
+    };
+    double before[5], after[5];
+    content(arena, 1., before);
+    evolve.regridTransverse({&arena}, 0., true);
+    REQUIRE(arena.nX() == 1);
+    content(arena, 2., after);
+    for (int m = 0; m < 5; m++) {
+        CHECK(after[m] == doctest::Approx(before[m]).epsilon(1e-10));
+    }
+    // the coarse cell is at rest and its shear is transverse and traceless
+    CHECK(std::abs(arena.u_[1][0]) < 1e-10);
+    const double uLow[4] = {
+        -arena.u_[0][0], arena.u_[1][0], arena.u_[2][0], arena.u_[3][0]};
+    const int widx[4][4] = {
+        {0, 1, 2, 3}, {1, 4, 5, 6}, {2, 5, 7, 8}, {3, 6, 8, 9}};
+    for (int n = 0; n < 4; n++) {
+        double uPi = 0.;
+        for (int m = 0; m < 4; m++)
+            uPi += uLow[m] * arena.Wmunu_[widx[m][n]][0];
+        CHECK(std::abs(uPi) < 1e-12);
+    }
+    const double trace = -arena.Wmunu_[0][0] + arena.Wmunu_[4][0]
+                         + arena.Wmunu_[7][0] + arena.Wmunu_[9][0];
+    CHECK(std::abs(trace) < 1e-12);
+}
+
+TEST_CASE("Evolve::hotCellsAtGridEdge only sees the edge band") {
+    InitData DATA = defaultParameters();
+    DATA.fac_x = 2;
+    DATA.fac_y = 2;
+    EOS eos(0);
+    Evolve evolve(eos, DATA, nullptr);
+    Fields arena(11, 11, 1);
+    for (auto &e : arena.e_) e = 0.;
+    // an interior hot cell that a stride-2 finder can miss: no enlargement
+    arena.e_[arena.getFieldIdx(5, 5, 0)] = 1.;
+    CHECK(evolve.hotCellsRemain(arena, 0.5));
+    CHECK_FALSE(evolve.hotCellsAtGridEdge(arena, 0.5));
+    arena.e_[arena.getFieldIdx(10, 4, 0)] = 1.;
+    CHECK(evolve.hotCellsAtGridEdge(arena, 0.5));
+}
+
+TEST_CASE("Evolve::hotCellsAtGridEdge band matches the finder") {
+    // fac = 2: the finder starts cubes at even indices and flags the cube
+    // at 0 and those starting at >= n - 4
+    InitData DATA = defaultParameters();
+    DATA.fac_x = 2;
+    DATA.fac_y = 2;
+    EOS eos(0);
+    Evolve evolve(eos, DATA, nullptr);
+    auto onlyHot = [&](int n, int ix, int iy) {
+        Fields arena(n, n, 1);
+        for (auto &e : arena.e_) e = 0.;
+        arena.e_[arena.getFieldIdx(ix, iy, 0)] = 1.;
+        return (evolve.hotCellsAtGridEdge(arena, 0.5));
+    };
+    // n = 11: cubes at 0, 2, 4, 6, 8; flagged 0 and 8 (8 >= 7)
+    CHECK(onlyHot(11, 1, 5));  // inside the cube at 0, between samples
+    CHECK(onlyHot(11, 5, 1));
+    CHECK(onlyHot(11, 2, 5));  // far corner of the cube at 0
+    CHECK(onlyHot(11, 5, 2));
+    CHECK(onlyHot(11, 8, 5));  // near corner of the flagged cube at 8
+    CHECK(onlyHot(11, 5, 8));
+    CHECK_FALSE(onlyHot(11, 3, 5));  // inside the interior cube at 2
+    CHECK_FALSE(onlyHot(11, 5, 3));
+    CHECK_FALSE(onlyHot(11, 7, 5));  // inside the interior cube at 6
+    CHECK_FALSE(onlyHot(11, 5, 7));
+    CHECK(onlyHot(11, 9, 5));  // inside the flagged cube at 8
+    CHECK(onlyHot(11, 5, 9));
+    // n = 10: cubes at 0, 2, 4, 6; flagged 0 and 6 (6 >= 6); index 9 lies
+    // past the last sampled corner (8)
+    CHECK_FALSE(onlyHot(10, 5, 5));
+    CHECK(onlyHot(10, 7, 5));
+    CHECK(onlyHot(10, 9, 5));
+    CHECK(onlyHot(10, 5, 9));
+}
+
+TEST_CASE("EOS_base: scalar and gradient interpolation agree at a seam") {
+    // interpolate2D_with_gradients extrapolated the current table across
+    // the seam: 5.4 instead of 5.325 at e = 3.5, n_B = 1.3
+    // n_B = 3.2 and 3.8 lie beyond the last row of table 0 (n_B = 3), and
+    // 3.8 also beyond table 1 (3.5): the clamped columns are flat in n_B
+    SeamEOS s;
+    for (double e : {2.5, 3.2, 3.5, 3.9}) {
+        for (double nb : {0.2, 1.3, 2.7, 3.2, 3.8}) {
+            const int t = s.eos.get_table_idx(e);
+            double p, dpde, dpdnb;
+            s.eos.interpolate2D_with_gradients(
+                e, nb, t, s.eos.pressure_tb, p, dpde, dpdnb);
+            auto P = [&](double ee, double nn) {
+                return (s.eos.interpolate2D(ee, nn, t, s.eos.pressure_tb));
+            };
+            CHECK(p == doctest::Approx(P(e, nb)));
+            const double h = 1e-6;
+            CHECK(
+                dpde
+                == doctest::Approx((P(e + h, nb) - P(e - h, nb)) / (2. * h))
+                       .epsilon(1e-5));
+            CHECK(
+                dpdnb
+                == doctest::Approx((P(e, nb + h) - P(e, nb - h)) / (2. * h))
+                       .epsilon(1e-5));
+        }
+    }
+    double p, dpde, dpdnb;
+    s.eos.interpolate2D_with_gradients(
+        3.5, 1.3, 0, s.eos.pressure_tb, p, dpde, dpdnb);
+    CHECK(p == doctest::Approx(5.325));
+    // the reviewer's case: only the next table varies at n_B = 3.2
+    s.eos.interpolate2D_with_gradients(
+        3.5, 3.2, 0, s.eos.pressure_tb, p, dpde, dpdnb);
+    CHECK(dpdnb == doctest::Approx(3.25));
+}
+
+namespace {
+//! integrated T^{tau mu} and J^tau of an (nx, ny, 1) arena
+void gridContent(
+    const Fields &f, const EOS &eos, double dx, double dy, double out[5]) {
+    for (int m = 0; m < 5; m++) out[m] = 0.;
+    for (int idx = 0; idx < static_cast<int>(f.e_.size()); idx++) {
+        const double e = f.e_[idx];
+        const double P = eos.get_pressure(e, f.rhob_[idx]);
+        const double Pi = f.piBulk_[idx] + f.piBulkChem_[idx];
+        for (int m = 0; m < 4; m++) {
+            const double g = (m == 0 ? -1. : 0.);
+            const double uu = f.u_[0][idx] * f.u_[m][idx];
+            out[m] +=
+                dx * dy
+                * ((e + P) * uu + P * g + f.Wmunu_[m][idx] + Pi * (g + uu));
+        }
+        out[4] += dx * dy * (f.rhob_[idx] * f.u_[0][idx] + f.Wmunu_[10][idx]);
+    }
+}
+}  // namespace
+
+TEST_CASE("Evolve: coarsening conserves content on odd and singleton grids") {
+    // the clamped 1/4-1/2-1/4 stencil turned 5 uniform cells at dx = 1 into
+    // 3 cells at dx = 2 with content 6; a singleton y doubled its dy
+    for (int ny : {1, 3}) {
+        InitData DATA = defaultParameters("Include_Rhob_Yes_1_No_0 1\n");
+        DATA.boost_invariant = true;
+        DATA.nx = 5;
+        DATA.ny = ny;
+        DATA.neta = 1;
+        DATA.delta_x = 1.;
+        DATA.delta_y = 1.;
+        DATA.x_size = 4.;
+        DATA.y_size = ny - 1.;
+        EOS eos(0);
+        Evolve evolve(eos, DATA, nullptr);
+        Fields arena(5, ny, 1);
+        for (int iy = 0; iy < ny; iy++) {
+            for (int ix = 0; ix < 5; ix++) {
+                const int idx = arena.getFieldIdx(ix, iy, 0);
+                const double ux = 0.3 * (ix - 2) + 0.1 * iy;
+                const double uy = 0.2 * (iy - 1);
+                arena.e_[idx] = 1. + 0.2 * ix + 0.1 * iy;
+                arena.rhob_[idx] = 0.1 + 0.01 * ix;
+                arena.u_[1][idx] = ux;
+                arena.u_[2][idx] = uy;
+                arena.u_[3][idx] = 0.;
+                arena.u_[0][idx] = std::sqrt(1. + ux * ux + uy * uy);
+                for (int k = 0; k < 14; k++) arena.Wmunu_[k][idx] = 0.;
+                arena.piBulk_[idx] = 0.;
+                arena.piBulkChem_[idx] = 0.;
+            }
+        }
+        double before[5], after[5];
+        gridContent(arena, eos, DATA.delta_x, DATA.delta_y, before);
+        evolve.regridTransverse({&arena}, 0., true);
+        CHECK(arena.nX() == 3);
+        CHECK(arena.nY() == (ny == 1 ? 1 : 2));
+        CHECK(DATA.delta_x == doctest::Approx(2.));
+        CHECK(DATA.delta_y == doctest::Approx(ny == 1 ? 1. : 2.));
+        gridContent(arena, eos, DATA.delta_x, DATA.delta_y, after);
+        for (int m = 0; m < 5; m++) {
+            CHECK(
+                after[m]
+                == doctest::Approx(before[m]).epsilon(1e-10).scale(1.));
+        }
+    }
+}

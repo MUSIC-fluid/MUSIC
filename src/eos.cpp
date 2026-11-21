@@ -27,7 +27,7 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in) {
         eos_ptr = std::unique_ptr<EOS_WB>(new EOS_WB());
     } else if (eos_id == 9 || eos_id == 91) {
         eos_ptr = std::unique_ptr<EOS_hotQCD>(new EOS_hotQCD(eos_id));
-    } else if (eos_id >= 10 && eos_id <= 15) {
+    } else if (eos_id >= 10 && eos_id <= 14) {
         eos_ptr = std::unique_ptr<EOS_neos>(new EOS_neos(eos_id));
     } else if (eos_id == 17) {
         eos_ptr = std::unique_ptr<EOS_BEST>(new EOS_BEST());
@@ -38,8 +38,13 @@ EOS::EOS(const int eos_id_in) : eos_id(eos_id_in) {
     } else if (eos_id == 20) {
         eos_ptr = std::unique_ptr<EOS_4D>(new EOS_4D());
     } else {
-        std::cout << "No EOS for eos_id = " << std::endl;
+        std::cout << "No EOS for eos_id = " << eos_id << std::endl;
         exit(1);
     }
     eos_ptr->initialize_eos();
+    if (!eos_ptr->check_table_seams()) {
+        std::cout << "The EoS tables for eos_id = " << eos_id
+                  << " do not join up; stopping." << std::endl;
+        exit(1);
+    }
 }

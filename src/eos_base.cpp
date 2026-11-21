@@ -144,8 +144,8 @@ double EOS_base::interpolate2D(
     double temp3 = 0;
     if (idx_e == N_e - 1) {
         // the next e point is the first e row of the next table, whose
-        // nb grid can differ; interpolate it in nb at the two nb values
-        // of the current cell
+        // nb grid can differ; evaluate it directly at the requested nb so
+        // that the result is continuous when get_table_idx switches tables
         const int next = table_idx + 1;
         const double nb0_next = nb_bounds[next];
         const double dnb_next = nb_spacing[next];
@@ -157,8 +157,9 @@ double EOS_base::interpolate2D(
             f = std::max(0., std::min(1., f));
             return (table[next][i][0] * (1. - f) + table[next][i + 1][0] * f);
         };
-        temp2 = nextTableAtNb(idx_nb * delta_nb + nb0);
-        temp3 = nextTableAtNb((idx_nb + 1) * delta_nb + nb0);
+        const double curr = temp1 * (1. - frac_rhob) + temp4 * frac_rhob;
+        const double nextVal = nextTableAtNb(local_nb);
+        return (curr * (1. - frac_e) + nextVal * frac_e);
     } else {
         temp2 = table[table_idx][idx_nb][idx_e + 1];
         temp3 = table[table_idx][idx_nb + 1][idx_e + 1];
@@ -191,7 +192,11 @@ void EOS_base::interpolate2D_with_gradients(
     int idx_nb = static_cast<int>((rhob - nb0) / delta_nb);
 
     // treatment for overflow, use the last two points to do extrapolation
-    idx_e = std::min(N_e - 2, idx_e);
+    // (as in interpolate2D, only the last table extrapolates in e; between
+    // the last column of the other tables and the next table's first
+    // column the two tables are blended)
+    idx_e = std::min(N_e - 1, idx_e);
+    if (table_idx == number_of_tables - 1) idx_e = std::min(N_e - 2, idx_e);
     idx_nb = std::min(N_nb - 2, idx_nb);
 
     // check underflow
@@ -201,10 +206,36 @@ void EOS_base::interpolate2D_with_gradients(
     double frac_e = (e - (idx_e * delta_e + e0)) / delta_e;
     double frac_rhob = (rhob - (idx_nb * delta_nb + nb0)) / delta_nb;
     // avoid uncontrolled extrapolation at large net baryon density
+    const bool nbClamped = (frac_rhob > 1.);
     frac_rhob = std::min(1., frac_rhob);
 
     double temp1 = table[table_idx][idx_nb][idx_e];
     double temp4 = table[table_idx][idx_nb + 1][idx_e];
+    if (idx_e == N_e - 1) {
+        // same seam blend as interpolate2D: the current table's last column
+        // and the next table's first column, both at the requested nb
+        const int next = table_idx + 1;
+        const double nb0_next = nb_bounds[next];
+        const double dnb_next = nb_spacing[next];
+        const int N_nb_next = nb_length[next];
+        int i = static_cast<int>((rhob - nb0_next) / dnb_next);
+        i = std::max(0, std::min(N_nb_next - 2, i));
+        const double fRaw = (rhob - (i * dnb_next + nb0_next)) / dnb_next;
+        const double f = std::max(0., std::min(1., fRaw));
+        const double nextVal =
+            table[next][i][0] * (1. - f) + table[next][i + 1][0] * f;
+        // a column clamped in nb is flat there, like the scalar pressure
+        const double dnextdnb =
+            (fRaw < 0. || fRaw > 1.)
+                ? 0.
+                : (table[next][i + 1][0] - table[next][i][0]) / dnb_next;
+        const double curr = temp1 * (1. - frac_rhob) + temp4 * frac_rhob;
+        const double dcurrdnb = nbClamped ? 0. : (temp4 - temp1) / delta_nb;
+        p = curr * (1. - frac_e) + nextVal * frac_e;
+        dpde = (nextVal - curr) / delta_e;
+        dpdrhob = dcurrdnb * (1. - frac_e) + dnextdnb * frac_e;
+        return;
+    }
     double temp2 = table[table_idx][idx_nb][idx_e + 1];
     double temp3 = table[table_idx][idx_nb + 1][idx_e + 1];
 
@@ -213,7 +244,9 @@ void EOS_base::interpolate2D_with_gradients(
     dpde = (p2 - p1) / delta_e;
     p1 = temp1 * (1 - frac_e) + temp2 * frac_e;
     p2 = temp4 * (1 - frac_e) + temp3 * frac_e;
-    dpdrhob = (p2 - p1) / delta_nb;
+    // beyond the last nb row p is clamped, so it does not change with nb
+    // (also keeps dP/dnb continuous at the seam, where the same holds)
+    dpdrhob = nbClamped ? 0. : (p2 - p1) / delta_nb;
     p = p1 * (1 - frac_rhob) + p2 * frac_rhob;
 }
 
@@ -256,7 +289,14 @@ double EOS_base::get_rhob_edge(const double e) const {
     const double x = (e - e_bounds[t]) / e_spacing[t];
     if (x <= 0.) return (nb_edge[t][0]);
     const int j = static_cast<int>(x);
-    if (j >= N_e - 1) return (nb_edge[t][N_e - 1]);
+    if (j >= N_e - 1) {
+        // between the last column of this table and the first column of
+        // the next one, interpolate the cap the same way interpolate2D
+        // interpolates the thermodynamic quantities across the seam
+        if (t + 1 >= number_of_tables) return (nb_edge[t][N_e - 1]);
+        const double f = std::min(1., x - (N_e - 1));
+        return (nb_edge[t][N_e - 1] * (1. - f) + nb_edge[t + 1][0] * f);
+    }
     const double f = x - j;
     return (nb_edge[t][j] * (1. - f) + nb_edge[t][j + 1] * f);
 }
@@ -564,6 +604,62 @@ void EOS_base::resize_table_info_arrays() {
     e_bounds.resize(number_of_tables, 0.0);
     e_spacing.resize(number_of_tables, 0.0);
     e_length.resize(number_of_tables, 0);
+}
+
+//! Checks the e grids where consecutive tables meet. interpolate2D,
+//! interpolate2D_with_gradients and get_rhob_edge blend from the last
+//! column of table t to the first column of table t + 1 over one
+//! e_spacing[t], so the next table must start either one e_spacing[t]
+//! after the last column (the blend reaches it exactly) or at or before
+//! the last column (get_table_idx switches tables first and the blend is
+//! never used). Any other gap makes P, T, mu_B and the mu_B cap jump at
+//! the seam. Returns false and logs the offending seams otherwise.
+//! Every table needs e_spacing > 0 and increasing e_bounds (get_table_idx
+//! and the interpolation rely on both). The gap test is skipped between
+//! two 1D tables (nb_length == 1, e.g. s95p): interpolate1D extrapolates
+//! within each table and never blends.
+//! The tolerance allows for rounding in e spacings read from ASCII
+//! headers, which (e_length - 1) * e_spacing amplifies.
+bool EOS_base::check_table_seams() const {
+    pretty_ostream msg;
+    bool ok = true;
+    for (int t = 0; t < number_of_tables; t++) {
+        if (e_spacing[t] > 0.) continue;
+        ok = false;
+        msg << "EoS table " << t << " has e spacing " << e_spacing[t]
+            << "; it must be positive.";
+        msg.flush("error");
+    }
+    for (int t = 0; t + 1 < number_of_tables; t++) {
+        if (!(e_bounds[t + 1] > e_bounds[t])) {
+            ok = false;
+            msg << "EoS table " << t + 1 << " starts at "
+                << e_bounds[t + 1] * Util::hbarc << " GeV/fm^3, not above "
+                << "table " << t << " (" << e_bounds[t] * Util::hbarc
+                << " GeV/fm^3).";
+            msg.flush("error");
+            continue;
+        }
+        if (nb_length[t] == 1 && nb_length[t + 1] == 1) continue;
+        const double de = e_spacing[t];
+        if (!(de > 0.)) continue;  // reported above
+        const double eLast = e_bounds[t] + (e_length[t] - 1) * de;
+        const double gap = e_bounds[t + 1] - eLast;
+        const double tol = std::max(1e-3, 1e-6 * (e_length[t] - 1)) * de;
+        const bool oneStep = std::abs(gap - de) <= tol;
+        const bool overlap = gap <= tol;
+        if (oneStep || overlap) continue;
+        ok = false;
+        msg << "EoS table seam " << t << " -> " << t + 1
+            << ": the last e column of table " << t << " is at "
+            << eLast * Util::hbarc << " GeV/fm^3 and table " << t + 1
+            << " starts at " << e_bounds[t + 1] * Util::hbarc
+            << " GeV/fm^3, a gap of " << gap / de
+            << " e spacings. The interpolation across the seam "
+            << "needs a gap of 1 spacing, or 0 or less.";
+        msg.flush("error");
+    }
+    return (ok);
 }
 
 void EOS_base::check_eos_no_muB() const {

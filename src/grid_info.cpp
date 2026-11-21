@@ -1514,7 +1514,8 @@ void Cell_info::boundary_outflow_rate(
         const double rhoq = arena.rhoq_[Idx];
         const double rhos = arena.rhos_[Idx];
         const double P = eos.get_pressure(e, rhob, rhoq, rhos);
-        const double Pi = arena.piBulk_[Idx];
+        // total bulk pressure, as in MakeWSource and the cell content
+        const double Pi = arena.piBulk_[Idx] + arena.piBulkChem_[Idx];
         double u[4];
         for (int i = 0; i < 4; i++) u[i] = arena.u_[i][Idx];
         double T[4];  // hat T^{mu nu}, nu = tau, x, y, eta
