@@ -162,6 +162,9 @@ int Evolve::EvolveIt(
                           << " fm, y_size = " << DATA.y_size << " fm";
             music_message.flush("info");
         }
+        // the freeze-out and output stencils read past the grid edge
+        for (Fields *field : allFields) field->updateGhosts();
+
         int facTau = DATA.facTau;
         int Nskip_timestep = DATA.output_evolution_every_N_timesteps;
         double dt = DATA.delta_tau;
@@ -401,14 +404,7 @@ int Evolve::EvolveIt(
 
 void Evolve::store_previous_step_for_freezeout(
     Fields &arenaCurr, Fields &arenaFreeze) {
-    arenaFreeze.e_ = arenaCurr.e_;
-    arenaFreeze.rhob_ = arenaCurr.rhob_;
-    arenaFreeze.rhoq_ = arenaCurr.rhoq_;
-    arenaFreeze.rhos_ = arenaCurr.rhos_;
-    arenaFreeze.piBulk_ = arenaCurr.piBulk_;
-    arenaFreeze.piBulkChem_ = arenaCurr.piBulkChem_;
-    arenaFreeze.u_ = arenaCurr.u_;
-    arenaFreeze.Wmunu_ = arenaCurr.Wmunu_;
+    arenaFreeze = arenaCurr;
 }
 
 void Evolve::regridTransverse(
@@ -746,7 +742,9 @@ void Evolve::extrapolatePrevForNewDtau(
     // arenaPrev is at tau - dtau_old. Linearly extrapolate it to
     // tau - dtauRatio*dtau_old, so that (curr - prev)/dtau_new gives the
     // same backward time derivative as before the change of delta_tau.
-    const int nCells = static_cast<int>(arenaCurr.e_.size());
+    // every cell, ghost cells included: the ghosts stay copies of the
+    // edge cells
+    const int nCells = arenaCurr.nStorage();
     auto extrap = [dtauRatio](double curr, double prev) {
         return curr + dtauRatio * (prev - curr);
     };
@@ -861,8 +859,14 @@ int Evolve::FindFreezeOutSurface_Cornelius(
 
 bool Evolve::hotCellsRemain(const Fields &arena, const double epsFO) const {
     // true if any cell is above the freeze-out energy density
-    for (const double e : arena.e_) {
-        if (e > epsFO) return true;
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        for (int iy = 0; iy < arena.nY(); iy++) {
+            for (int ix = 0; ix < arena.nX(); ix++) {
+                if (arena.e_[arena.getFieldIdx(ix, iy, ieta)] > epsFO) {
+                    return true;
+                }
+            }
+        }
     }
     return false;
 }

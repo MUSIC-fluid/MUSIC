@@ -550,8 +550,8 @@ void Init::initial_1p1D_eta(Fields &arenaFieldsPrev, Fields &arenaFieldsCurr) {
             }
         }
     }
-    arenaFieldsPrev.e_ = arenaFieldsCurr.e_;
-    arenaFieldsPrev.rhob_ = arenaFieldsCurr.rhob_;
+    arenaFieldsPrev.e_.copyFrom(arenaFieldsCurr.e_);
+    arenaFieldsPrev.rhob_.copyFrom(arenaFieldsCurr.rhob_);
 }
 
 void Init::initial_IPGlasma_XY(
@@ -1032,9 +1032,8 @@ void Init::initial_MCGlb_with_rhob(
 
     // the padding cells added on a re-run get the same floor as the
     // rest of the grid instead of e = 0 exactly (which gives T = 0)
-    std::fill(
-        arenaFieldsCurr.e_.begin(), arenaFieldsCurr.e_.end(), Util::small_eps);
-    std::fill(arenaFieldsCurr.rhob_.begin(), arenaFieldsCurr.rhob_.end(), 0.);
+    arenaFieldsCurr.e_.fill(Util::small_eps);
+    arenaFieldsCurr.rhob_.fill(0.);
 
     std::vector<double> temp_profile_TA(nx * ny);
     std::vector<double> temp_profile_TB(nx * ny);
@@ -1148,8 +1147,8 @@ void Init::initial_MCGlb_with_rhob(
     music_message << "energy norm = " << norm;
     music_message.flush("info");
 
-    arenaFieldsPrev.e_ = arenaFieldsCurr.e_;
-    arenaFieldsPrev.rhob_ = arenaFieldsCurr.rhob_;
+    arenaFieldsPrev.e_.copyFrom(arenaFieldsCurr.e_);
+    arenaFieldsPrev.rhob_.copyFrom(arenaFieldsCurr.rhob_);
 }
 
 void Init::initial_with_zero_XY(
@@ -1249,8 +1248,8 @@ void Init::initial_UMN_with_rhob(
             }
         }
     }
-    arenaFieldsPrev.e_ = arenaFieldsCurr.e_;
-    arenaFieldsPrev.rhob_ = arenaFieldsCurr.rhob_;
+    arenaFieldsPrev.e_.copyFrom(arenaFieldsCurr.e_);
+    arenaFieldsPrev.rhob_.copyFrom(arenaFieldsCurr.rhob_);
 
     profile.close();
 }

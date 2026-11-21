@@ -55,6 +55,7 @@ void Advance::AdvanceIt(
     const int grid_nx = arenaFieldsCurr.nX();
     const int grid_ny = arenaFieldsCurr.nY();
 
+    arenaFieldsCurr.updateGhosts();
     computePressure(arenaFieldsCurr, pressureCurr_);
     computeFaceFluxes(
         tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, pressureCurr_,
@@ -131,6 +132,7 @@ void Advance::AdvanceIt(
                     }
                 }
             }
+    arenaFieldsNext.updateGhosts();
 }
 
 // The viscous part V of T^{tau alpha} (and q^tau of J^tau) enters through
@@ -241,7 +243,9 @@ void Advance::reconstructAndStore(
 
 void Advance::computePressure(
     const Fields &arena, std::vector<double> &pressure) const {
-    const int ncells = arena.nX() * arena.nY() * arena.nEta();
+    // every cell, ghost cells included, so that the stencils can read the
+    // pressure past the grid edge
+    const int ncells = arena.nStorage();
     pressure.resize(ncells);
 #pragma omp parallel for
     for (int idx = 0; idx < ncells; idx++) {

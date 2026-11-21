@@ -2,39 +2,100 @@
 #ifndef FIELDS_H_
 #define FIELDS_H_
 
+#include <algorithm>
 #include <array>
 #include <vector>
 
 #include "cell.h"
 #include "data_struct.h"
 
-class Fields {
+//! one component of Fields: a non-owning view of its block in the
+//! contiguous Fields buffer, indexed by Fields::getFieldIdx
+class FieldComponent {
   private:
-    const int NWmunu_ = 14;  // dimension for pi^{\mu\nu}
-    const int Nu_ = 4;       // dimension for u^\mu
+    double* p_ = nullptr;
+    int n_ = 0;  // cells in the block, including the ghost cells
+    friend class Fields;
+
+  public:
+    FieldComponent() = default;
+    FieldComponent(const FieldComponent&) = delete;
+    FieldComponent& operator=(const FieldComponent&) = delete;
+
+    double& operator[](const int idx) { return p_[idx]; }
+    const double& operator[](const int idx) const { return p_[idx]; }
+
+    //! copies all cells (ghost cells included) of a component of the same size
+    void copyFrom(const FieldComponent& other);
+
+    //! sets all cells (ghost cells included) to value
+    void fill(const double value) { std::fill(p_, p_ + n_, value); }
+};
+
+//! the hydrodynamic fields on the grid, stored as one contiguous, 64-byte
+//! aligned buffer of Ncomp_ components (structure of arrays). Each block
+//! holds the nx x ny x neta cells and Nghost_ ghost layers on both sides
+//! along every direction with more than one cell, so that the stencils
+//! can read up to Nghost_ cells past the grid edge without clamping. The
+//! ghost cells hold copies of the nearest edge cell (updateGhosts), which
+//! is the zero-gradient boundary condition that clamping used to give. A
+//! direction with a single cell has no ghost layers and stride 0, so any
+//! offset along it maps back to that cell.
+class Fields {
+  public:
+    static constexpr int Nghost_ = 2;
+
+  private:
+    static constexpr int NWmunu_ = 14;  // dimension for pi^{\mu\nu}
+    static constexpr int Nu_ = 4;       // dimension for u^\mu
+    static constexpr int Ncomp_ = 6 + Nu_ + NWmunu_;
+    static constexpr int alignDoubles_ = 8;  // 64 bytes
 
     // field size in 3D
     int Nx_ = 0;
     int Ny_ = 0;
     int Neta_ = 0;
 
+    // ghost layers, padded sizes, and strides of the blocks
+    int gx_ = 0, gy_ = 0, geta_ = 0;
+    int Sx_ = 0, Sy_ = 0, Seta_ = 0;
+    int strideX_ = 0, strideY_ = 0, strideEta_ = 0;
+    int offset0_ = 0;      // index of the cell (0, 0, 0)
+    int nStorage_ = 0;     // cells in a block, ghost cells included
+    int blockStride_ = 0;  // nStorage_ rounded up to the alignment
+
+    struct AlignedBuffer {
+        double* ptr = nullptr;
+        size_t size = 0;
+        void allocate(size_t n);
+        void release();
+        ~AlignedBuffer() { release(); }
+    };
+    AlignedBuffer data_;
+
+    void bindComponents();
+    FieldComponent& component(int comp);
+    const FieldComponent& component(int comp) const;
+
   public:
     // Scalar fields
-    std::vector<double> e_;
+    FieldComponent e_;
 
-    std::vector<double> rhob_;
-    std::vector<double> rhoq_;
-    std::vector<double> rhos_;
+    FieldComponent rhob_;
+    FieldComponent rhoq_;
+    FieldComponent rhos_;
 
-    std::vector<double> piBulk_;
-    std::vector<double> piBulkChem_;
+    FieldComponent piBulk_;
+    FieldComponent piBulkChem_;
 
     // Vector & tensor fields
-    std::vector<std::vector<double>> u_;
-    std::vector<std::vector<double>> Wmunu_;
+    std::array<FieldComponent, Nu_> u_;
+    std::array<FieldComponent, NWmunu_> Wmunu_;
 
     Fields() = default;
     Fields(int Nx, int Ny, int Neta) { resizeFields(Nx, Ny, Neta); }
+    Fields(const Fields& other);
+    Fields& operator=(const Fields& other);
 
     ~Fields();
 
@@ -42,14 +103,36 @@ class Fields {
     int nY() const { return (Ny_); }
     int nEta() const { return (Neta_); }
 
+    //! number of cells in a component block, ghost cells included: the
+    //! range of every index from getFieldIdx and getFieldIdxHalo
+    int nStorage() const { return (nStorage_); }
+
     void clearFields();
     void resizeFields(int Nx, int Ny, int Neta);
 
+    //! copies all components of an arena of the same size
+    void copyDataFrom(const Fields& other);
+
+    //! sets the ghost cells to the nearest edge cell; needed after the
+    //! cells were changed and before a stencil reads past the grid edge
+    void updateGhosts();
+
     int getFieldIdx(int ix, int iy, int ieta) const {
-        return (ix + Nx_ * (iy + Ny_ * ieta));
+        return (offset0_ + strideX_ * ix + strideY_ * iy + strideEta_ * ieta);
     }
 
-    int getFieldIdxHalo(int ix, int iy, int ieta) const;
+    //! index of a cell up to Nghost_ cells past the grid edge (a ghost
+    //! cell); it reads the right value only if the ghosts are up to date
+    int getFieldIdxHalo(int ix, int iy, int ieta) const {
+#ifdef MUSIC_CHECK_GHOSTS
+        checkGhost(ix, iy, ieta);
+#endif
+        return (getFieldIdx(ix, iy, ieta));
+    }
+
+    //! aborts if the cell (ix, iy, ieta) is a ghost cell that differs from
+    //! its edge cell or lies beyond the ghost layers
+    void checkGhost(int ix, int iy, int ieta) const;
 
     Cell_small getCell(const int idx) const;
     Cell_small getCell(int ix, int iy, int ieta) const;

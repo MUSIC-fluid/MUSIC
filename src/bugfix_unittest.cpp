@@ -124,7 +124,7 @@ TEST_CASE("HydroinfoMUSIC: stored u^mu give the right Cartesian velocity") {
 
     const double ux = 0.5, uy = -0.2, ueta = 0.3;  // ueta = tau u^eta
     Fields arena(3, 3, 3);
-    for (unsigned int i = 0; i < arena.e_.size(); i++) {
+    for (int i = 0; i < arena.nStorage(); i++) {
         arena.e_[i] = 1.0 / Util::hbarc;
         arena.u_[1][i] = ux;
         arena.u_[2][i] = uy;
@@ -833,6 +833,7 @@ TEST_CASE("U_derivative: Du from the ideal equations of motion") {
             arena.u_[0][idx] = 1.;
             for (int i = 1; i < 4; i++) arena.u_[i][idx] = 0.;
         }
+        arena.updateGhosts();
         U_derivative uder(DATA, eos);
         const double tau = 1.0;
         const int ix = 5;
@@ -894,6 +895,7 @@ TEST_CASE(
     // (tau T^{tau x} and J^tau are pure fluxes in x; the energy row also
     // carries the Milne geometric source)
     double sumPx = 0., sumNB = 0., scalePx = 0., scaleNB = 0.;
+    arena.updateGhosts();
     std::vector<double> pressure;
     advance.computePressure(arena, pressure);
     FaceFluxes fluxes;
@@ -1067,7 +1069,8 @@ TEST_CASE("Evolve::coarseGrainAndEnlargeGrid conserves T^{tau mu}, J^tau") {
     }
     auto content = [&](const Fields &f, double dx, double out[5]) {
         for (int m = 0; m < 5; m++) out[m] = 0.;
-        for (int idx = 0; idx < f.nX(); idx++) {
+        for (int ix = 0; ix < f.nX(); ix++) {
+            const int idx = f.getFieldIdx(ix, 0, 0);
             const double e = f.e_[idx];
             const double P = eos.get_pressure(e, f.rhob_[idx]);
             for (int m = 0; m < 4; m++) {
@@ -1111,7 +1114,7 @@ TEST_CASE("Evolve::hotCellsAtGridEdge only sees the edge band") {
     EOS eos(0);
     Evolve evolve(eos, DATA, nullptr);
     Fields arena(11, 11, 1);
-    for (auto &e : arena.e_) e = 0.;
+    arena.e_.fill(0.);
     // an interior hot cell that a stride-2 finder can miss: no enlargement
     arena.e_[arena.getFieldIdx(5, 5, 0)] = 1.;
     CHECK(evolve.hotCellsRemain(arena, 0.5));
@@ -1130,7 +1133,7 @@ TEST_CASE("Evolve::hotCellsAtGridEdge band matches the finder") {
     Evolve evolve(eos, DATA, nullptr);
     auto onlyHot = [&](int n, int ix, int iy) {
         Fields arena(n, n, 1);
-        for (auto &e : arena.e_) e = 0.;
+        arena.e_.fill(0.);
         arena.e_[arena.getFieldIdx(ix, iy, 0)] = 1.;
         return (evolve.hotCellsAtGridEdge(arena, 0.5));
     };
@@ -1197,19 +1200,22 @@ namespace {
 void gridContent(
     const Fields &f, const EOS &eos, double dx, double dy, double out[5]) {
     for (int m = 0; m < 5; m++) out[m] = 0.;
-    for (int idx = 0; idx < static_cast<int>(f.e_.size()); idx++) {
-        const double e = f.e_[idx];
-        const double P = eos.get_pressure(e, f.rhob_[idx]);
-        const double Pi = f.piBulk_[idx] + f.piBulkChem_[idx];
-        for (int m = 0; m < 4; m++) {
-            const double g = (m == 0 ? -1. : 0.);
-            const double uu = f.u_[0][idx] * f.u_[m][idx];
-            out[m] +=
-                dx * dy
-                * ((e + P) * uu + P * g + f.Wmunu_[m][idx] + Pi * (g + uu));
+    for (int ix = 0; ix < f.nX(); ix++)
+        for (int iy = 0; iy < f.nY(); iy++) {
+            const int idx = f.getFieldIdx(ix, iy, 0);
+            const double e = f.e_[idx];
+            const double P = eos.get_pressure(e, f.rhob_[idx]);
+            const double Pi = f.piBulk_[idx] + f.piBulkChem_[idx];
+            for (int m = 0; m < 4; m++) {
+                const double g = (m == 0 ? -1. : 0.);
+                const double uu = f.u_[0][idx] * f.u_[m][idx];
+                out[m] +=
+                    dx * dy
+                    * ((e + P) * uu + P * g + f.Wmunu_[m][idx] + Pi * (g + uu));
+            }
+            out[4] +=
+                dx * dy * (f.rhob_[idx] * f.u_[0][idx] + f.Wmunu_[10][idx]);
         }
-        out[4] += dx * dy * (f.rhob_[idx] * f.u_[0][idx] + f.Wmunu_[10][idx]);
-    }
 }
 }  // namespace
 
