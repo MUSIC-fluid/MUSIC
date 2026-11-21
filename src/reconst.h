@@ -72,6 +72,17 @@ class Reconst {
         const double J0B, const double J0Q, const double J0S,
         double &v_solution);
 
+    //! secant iteration for v from v_guess (the velocity of the previous
+    //! state), started with a finite-difference slope. Returns 0 without
+    //! a solution if an iterate leaves [0, 1), f or the slope is not
+    //! finite, or it has not converged after maxGuessIter_ steps; the
+    //! caller then uses solve_v_Hybrid.
+    int solve_v_from_guess(
+        const double v_guess, const double T00, const double M,
+        const double J0B, const double J0Q, const double J0S,
+        double &v_solution) const;
+    static constexpr int maxGuessIter_ = 8;
+
     int solve_u0_Newton(
         const double u0_guess, const double T00, const double K00,
         const double M, const double J0B, const double J0Q, const double J0S,

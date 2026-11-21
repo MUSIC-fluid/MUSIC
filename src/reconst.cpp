@@ -117,7 +117,13 @@ int Reconst::ReconstIt_velocity_Newton(
     // if (v_guess != v_guess) {
     //     v_guess = 0.0;
     // }
-    int v_status = solve_v_Hybrid(v_guess, T00, M, J0B, J0Q, J0S, v_solution);
+    // the previous state is usually close: iterate from it, and bracket the
+    // root only if that fails
+    int v_status =
+        solve_v_from_guess(v_guess, T00, M, J0B, J0Q, J0S, v_solution);
+    if (v_status == 0) {
+        v_status = solve_v_Hybrid(v_guess, T00, M, J0B, J0Q, J0S, v_solution);
+    }
 
     if (v_status == 0) {
         return (-1);
@@ -341,6 +347,40 @@ int Reconst::solve_v_Hybrid(
         music_message.flush("warning");
     }
     return (v_status);
+}
+
+int Reconst::solve_v_from_guess(
+    const double v_guess, const double T00, const double M, const double J0B,
+    const double J0Q, const double J0S, double &v_solution) const {
+    if (!(v_guess >= 0. && v_guess < 1.)) return (0);
+    double v = v_guess;
+    double fv, dfdv;
+    reconst_velocity_fdf(v, T00, M, J0B, J0Q, J0S, fv, dfdv);
+    if (!std::isfinite(fv)) return (0);
+    if (std::abs(fv) < abs_err) {
+        v_solution = v;
+        return (1);
+    }
+    for (int iter = 0; iter < maxGuessIter_; iter++) {
+        if (!std::isfinite(dfdv) || dfdv == 0.) return (0);
+        const double dv = fv / dfdv;
+        const double v_next = v - dv;
+        if (!(v_next >= 0. && v_next < 1.)) return (0);
+        double fv_next;
+        reconst_velocity_f(v_next, T00, M, J0B, J0Q, J0S, fv_next);
+        if (!std::isfinite(fv_next)) return (0);
+        // the same stopping rule as solve_v_Hybrid
+        const double abs_error_v = std::abs(dv);
+        const double rel_error_v = abs_error_v / (v_next + abs_err);
+        if (abs_error_v <= abs_err || rel_error_v <= rel_err) {
+            v_solution = v_next;
+            return (1);
+        }
+        dfdv = (fv_next - fv) / (v_next - v + abs_err);
+        v = v_next;
+        fv = fv_next;
+    }
+    return (0);
 }
 
 int Reconst::solve_u0_Newton(
