@@ -20,12 +20,7 @@ EOS_eosQ::EOS_eosQ() {
     set_flag_muQ(false);
 }
 
-EOS_eosQ::~EOS_eosQ() {
-    int ntables = get_number_of_tables();
-    for (int itable = 0; itable < ntables; itable++) {
-        Util::mtx_free(mu_B_tb[itable], nb_length[itable], e_length[itable]);
-    }
-}
+EOS_eosQ::~EOS_eosQ() {}
 
 void EOS_eosQ::initialize_eos() {
     // read the lattice EOS pressure, temperature, and
@@ -41,9 +36,9 @@ void EOS_eosQ::initialize_eos() {
     resize_table_info_arrays();
 
     string eos_file_string_array[2] = {"1", "2"};
-    pressure_tb = new double **[ntables];
-    temperature_tb = new double **[ntables];
-    mu_B_tb = new double **[ntables];
+    pressure_tb.resize(ntables);
+    temperature_tb.resize(ntables);
+    mu_B_tb.resize(ntables);
 
     for (int itable = 0; itable < ntables; itable++) {
         std::ifstream eos_p(
@@ -77,11 +72,9 @@ void EOS_eosQ::initialize_eos() {
         std::getline(eos_mub, dummy);
 
         // allocate memory for EOS arrays
-        pressure_tb[itable] =
-            Util::mtx_malloc(nb_length[itable], e_length[itable]);
-        temperature_tb[itable] =
-            Util::mtx_malloc(nb_length[itable], e_length[itable]);
-        mu_B_tb[itable] = Util::mtx_malloc(nb_length[itable], e_length[itable]);
+        pressure_tb.allocate(itable, nb_length[itable], e_length[itable]);
+        temperature_tb.allocate(itable, nb_length[itable], e_length[itable]);
+        mu_B_tb.allocate(itable, nb_length[itable], e_length[itable]);
 
         // read pressure, temperature and chemical potential values
         for (int j = 0; j < e_length[itable]; j++) {

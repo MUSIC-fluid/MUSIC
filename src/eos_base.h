@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "data_struct.h"
+#include "eos_table.h"
 #include "pretty_ostream.h"
 
 class EOS_base {
@@ -30,11 +31,11 @@ class EOS_base {
     std::vector<int> nb_length;
     std::vector<int> e_length;
 
-    double ***pressure_tb = nullptr;
-    double ***temperature_tb = nullptr;
-    double ***mu_B_tb = nullptr;
-    double ***mu_S_tb = nullptr;
-    double ***mu_Q_tb = nullptr;
+    EosTable pressure_tb;
+    EosTable temperature_tb;
+    EosTable mu_B_tb;
+    EosTable mu_S_tb;
+    EosTable mu_Q_tb;
 
     EOS_base() = default;
     virtual ~EOS_base();
@@ -61,16 +62,16 @@ class EOS_base {
     void set_eps_max(double eps_max_in) { eps_max = eps_max_in; }
     double get_eps_max() const { return (eps_max); }
 
-    double interpolate1D(double e, int table_idx, double ***table) const;
+    double interpolate1D(double e, int table_idx, const EosTable &table) const;
     void interpolate1D_with_gradients(
-        double e, int table_idx, double ***table, double &p,
+        double e, int table_idx, const EosTable &table, double &p,
         double &dpde) const;
     double interpolate2D(
         const double e, const double rhob, const int table_idx,
-        double ***table) const;
+        const EosTable &table) const;
     void interpolate2D_with_gradients(
-        const double e, const double rhob, const int table_idx, double ***table,
-        double &p, double &dpde, double &dpdrhob) const;
+        const double e, const double rhob, const int table_idx,
+        const EosTable &table, double &p, double &dpde, double &dpdrhob) const;
 
     int get_table_idx(double e) const;
 

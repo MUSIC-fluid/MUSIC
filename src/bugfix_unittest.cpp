@@ -234,8 +234,8 @@ TEST_CASE("EOS_base::interpolate2D is exact for a linear EoS at a seam") {
     const double e0[2] = {0., 4.}, de[2] = {1., 2.};
     const double dnb[2] = {1., 0.5};
     const int Ne[2] = {4, 4}, Nnb[2] = {4, 8};
-    eos.pressure_tb = new double **[2];
-    eos.temperature_tb = new double **[2];
+    eos.pressure_tb.resize(2);
+    eos.temperature_tb.resize(2);
     for (int t = 0; t < 2; t++) {
         eos.e_bounds[t] = e0[t];
         eos.e_spacing[t] = de[t];
@@ -243,8 +243,8 @@ TEST_CASE("EOS_base::interpolate2D is exact for a linear EoS at a seam") {
         eos.nb_bounds[t] = 0.;
         eos.nb_spacing[t] = dnb[t];
         eos.nb_length[t] = Nnb[t];
-        eos.pressure_tb[t] = Util::mtx_malloc(Nnb[t], Ne[t]);
-        eos.temperature_tb[t] = Util::mtx_malloc(Nnb[t], Ne[t]);
+        eos.pressure_tb.allocate(t, Nnb[t], Ne[t]);
+        eos.temperature_tb.allocate(t, Nnb[t], Ne[t]);
         for (int i = 0; i < Nnb[t]; i++) {
             for (int j = 0; j < Ne[t]; j++) {
                 eos.pressure_tb[t][i][j] = P(e0[t] + j * de[t], i * dnb[t]);
@@ -282,12 +282,12 @@ class CappedTableEOS : public EOS_base {
         nb_bounds[0] = 0.;
         nb_spacing[0] = dnb;
         nb_length[0] = Nnb;
-        pressure_tb = new double **[1];
-        temperature_tb = new double **[1];
-        mu_B_tb = new double **[1];
-        pressure_tb[0] = Util::mtx_malloc(Nnb, Ne);
-        temperature_tb[0] = Util::mtx_malloc(Nnb, Ne);
-        mu_B_tb[0] = Util::mtx_malloc(Nnb, Ne);
+        pressure_tb.resize(1);
+        temperature_tb.resize(1);
+        mu_B_tb.resize(1);
+        pressure_tb.allocate(0, Nnb, Ne);
+        temperature_tb.allocate(0, Nnb, Ne);
+        mu_B_tb.allocate(0, Nnb, Ne);
         for (int j = 0; j < Ne; j++) {
             for (int i = 0; i < Nnb; i++) {
                 const double nb = std::min(i, 3 + j) * dnb;
@@ -297,10 +297,6 @@ class CappedTableEOS : public EOS_base {
             }
         }
         find_baryon_table_edges();
-    }
-    ~CappedTableEOS() {
-        Util::mtx_free(mu_B_tb[0], Nnb, Ne);
-        delete[] mu_B_tb;
     }
     double get_pressure(
         double e, double rhob, double rhoq = 0.,
@@ -937,8 +933,8 @@ struct SeamEOS {
         const double e0[2] = {0., 4.}, de[2] = {1., 2.};
         const double dnb[2] = {1., 0.5};
         const int Ne[2] = {4, 4}, Nnb[2] = {4, 8};
-        eos.pressure_tb = new double **[2];
-        eos.temperature_tb = new double **[2];
+        eos.pressure_tb.resize(2);
+        eos.temperature_tb.resize(2);
         for (int t = 0; t < 2; t++) {
             eos.e_bounds[t] = e0[t];
             eos.e_spacing[t] = de[t];
@@ -946,8 +942,8 @@ struct SeamEOS {
             eos.nb_bounds[t] = 0.;
             eos.nb_spacing[t] = dnb[t];
             eos.nb_length[t] = Nnb[t];
-            eos.pressure_tb[t] = Util::mtx_malloc(Nnb[t], Ne[t]);
-            eos.temperature_tb[t] = Util::mtx_malloc(Nnb[t], Ne[t]);
+            eos.pressure_tb.allocate(t, Nnb[t], Ne[t]);
+            eos.temperature_tb.allocate(t, Nnb[t], Ne[t]);
             for (int i = 0; i < Nnb[t]; i++) {
                 for (int j = 0; j < Ne[t]; j++) {
                     eos.pressure_tb[t][i][j] = P(e0[t] + j * de[t], i * dnb[t]);

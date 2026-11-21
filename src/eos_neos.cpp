@@ -20,29 +20,7 @@ EOS_neos::EOS_neos(const int eos_id_in) : eos_id(eos_id_in) {
     set_flag_muQ(false);
 }
 
-EOS_neos::~EOS_neos() {
-    int ntables = get_number_of_tables();
-    for (int itable = 0; itable < ntables; itable++) {
-        Util::mtx_free(mu_B_tb[itable], nb_length[itable], e_length[itable]);
-        if (get_flag_muS()) {
-            Util::mtx_free(
-                mu_S_tb[itable], nb_length[itable], e_length[itable]);
-        }
-        if (get_flag_muQ()) {
-            Util::mtx_free(
-                mu_Q_tb[itable], nb_length[itable], e_length[itable]);
-        }
-    }
-    if (ntables > 0) {
-        delete[] mu_B_tb;
-        if (get_flag_muS()) {
-            delete[] mu_S_tb;
-        }
-        if (get_flag_muQ()) {
-            delete[] mu_Q_tb;
-        }
-    }
-}
+EOS_neos::~EOS_neos() {}
 
 void EOS_neos::initialize_eos() {
     // read the lattice EOS pressure, temperature, and
@@ -106,14 +84,14 @@ void EOS_neos::initialize_eos() {
     set_number_of_tables(ntables);
     resize_table_info_arrays();
 
-    pressure_tb = new double **[ntables];
-    temperature_tb = new double **[ntables];
-    mu_B_tb = new double **[ntables];
+    pressure_tb.resize(ntables);
+    temperature_tb.resize(ntables);
+    mu_B_tb.resize(ntables);
     if (flag_muS) {
-        mu_S_tb = new double **[ntables];
+        mu_S_tb.resize(ntables);
     }
     if (flag_muQ) {
-        mu_Q_tb = new double **[ntables];
+        mu_Q_tb.resize(ntables);
     }
 
     for (int itable = 0; itable < ntables; itable++) {
@@ -184,18 +162,14 @@ void EOS_neos::initialize_eos() {
         }
 
         // allocate memory for EOS arrays
-        pressure_tb[itable] =
-            Util::mtx_malloc(nb_length[itable], e_length[itable]);
-        temperature_tb[itable] =
-            Util::mtx_malloc(nb_length[itable], e_length[itable]);
-        mu_B_tb[itable] = Util::mtx_malloc(nb_length[itable], e_length[itable]);
+        pressure_tb.allocate(itable, nb_length[itable], e_length[itable]);
+        temperature_tb.allocate(itable, nb_length[itable], e_length[itable]);
+        mu_B_tb.allocate(itable, nb_length[itable], e_length[itable]);
         if (flag_muS) {
-            mu_S_tb[itable] =
-                Util::mtx_malloc(nb_length[itable], e_length[itable]);
+            mu_S_tb.allocate(itable, nb_length[itable], e_length[itable]);
         }
         if (flag_muQ) {
-            mu_Q_tb[itable] =
-                Util::mtx_malloc(nb_length[itable], e_length[itable]);
+            mu_Q_tb.allocate(itable, nb_length[itable], e_length[itable]);
         }
 
         // read pressure, temperature and chemical potential values

@@ -37,8 +37,8 @@ void EOS_hotQCD::initialize_eos() {
 
     int ntables = get_number_of_tables();
 
-    pressure_tb = new double **[ntables];
-    temperature_tb = new double **[ntables];
+    pressure_tb.resize(ntables);
+    temperature_tb.resize(ntables);
     for (int itable = 0; itable < ntables; itable++) {
         std::ifstream eos_file;
         if (eos_id == 9) {
@@ -57,10 +57,8 @@ void EOS_hotQCD::initialize_eos() {
         e_length[itable] = 100000;
         nb_length[itable] = 1;
         // allocate memory for pressure arrays
-        pressure_tb[itable] =
-            Util::mtx_malloc(nb_length[itable], e_length[itable]);
-        temperature_tb[itable] =
-            Util::mtx_malloc(nb_length[itable], e_length[itable]);
+        pressure_tb.allocate(itable, nb_length[itable], e_length[itable]);
+        temperature_tb.allocate(itable, nb_length[itable], e_length[itable]);
         double temp;
         for (int ii = 0; ii < e_length[itable]; ii++) {
             eos_file.read((char *)&temp, sizeof(double));  // e

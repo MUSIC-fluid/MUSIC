@@ -37,8 +37,8 @@ void EOS_1DGenerator::initialize_eos() {
 
     int ntables = get_number_of_tables();
 
-    pressure_tb = new double **[ntables];
-    temperature_tb = new double **[ntables];
+    pressure_tb.resize(ntables);
+    temperature_tb.resize(ntables);
     for (int itable = 0; itable < ntables; itable++) {
         std::ifstream eos_file;
         eos_file.open(path, std::ios::binary);
@@ -51,10 +51,8 @@ void EOS_1DGenerator::initialize_eos() {
         e_length[itable] = 1000;
         nb_length[itable] = 1;
         // allocate memory for pressure arrays
-        pressure_tb[itable] =
-            Util::mtx_malloc(nb_length[itable], e_length[itable]);
-        temperature_tb[itable] =
-            Util::mtx_malloc(nb_length[itable], e_length[itable]);
+        pressure_tb.allocate(itable, nb_length[itable], e_length[itable]);
+        temperature_tb.allocate(itable, nb_length[itable], e_length[itable]);
         float temp;
         for (int ii = 0; ii < e_length[itable]; ii++) {
             eos_file.read((char *)&temp, sizeof(float));  // e (GeV/fm^3)
@@ -133,7 +131,8 @@ double EOS_1DGenerator::get_T2e(
 }
 
 void EOS_1DGenerator::interpolate1D_with_weighted_gradient(
-    double e, int table_idx, double ***table, double &p, double &dpde) const {
+    double e, int table_idx, const EosTable &table, double &p,
+    double &dpde) const {
     // This is a generic linear interpolation routine for EOS at zero mu_B
     // it assumes the class has already read in
     //        P(e), T(e), s(e)

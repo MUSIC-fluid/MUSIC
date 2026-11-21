@@ -32,7 +32,7 @@ class EOS_1DGenerator : public EOS_base {
         double &dpde, double &dpdrhob, double &dpdrhoq, double &dpdrhos,
         double &cs2) const;
     void interpolate1D_with_weighted_gradient(
-        double e, int table_idx, double ***table, double &p,
+        double e, int table_idx, const EosTable &table, double &p,
         double &dpde) const;
 
     void check_eos() const { check_eos_no_muB(); }

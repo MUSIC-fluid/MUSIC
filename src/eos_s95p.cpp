@@ -70,8 +70,8 @@ void EOS_s95p::initialize_eos() {
     resize_table_info_arrays();
 
     string eos_file_string_array[7] = {"1", "2", "3", "4", "5", "6", "7"};
-    pressure_tb = new double **[ntables];
-    temperature_tb = new double **[ntables];
+    pressure_tb.resize(ntables);
+    temperature_tb.resize(ntables);
     for (int itable = 0; itable < ntables; itable++) {
         std::ifstream eos_d(
             spath.str() + "dens" + eos_file_string_array[itable] + ".dat");
@@ -95,10 +95,8 @@ void EOS_s95p::initialize_eos() {
         nb_length[itable] = 1;
 
         // allocate memory for pressure arrays
-        pressure_tb[itable] =
-            Util::mtx_malloc(nb_length[itable], e_length[itable]);
-        temperature_tb[itable] =
-            Util::mtx_malloc(nb_length[itable], e_length[itable]);
+        pressure_tb.allocate(itable, nb_length[itable], e_length[itable]);
+        temperature_tb.allocate(itable, nb_length[itable], e_length[itable]);
 
         // read pressure, temperature and chemical potential values
         // files have it backwards, so I start with maximum j and count down

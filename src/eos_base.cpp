@@ -21,20 +21,10 @@ using std::string;
 using Util::hbarc;
 using Util::small_eps;
 
-EOS_base::~EOS_base() {
-    for (int itable = 0; itable < number_of_tables; itable++) {
-        Util::mtx_free(
-            pressure_tb[itable], nb_length[itable], e_length[itable]);
-        Util::mtx_free(
-            temperature_tb[itable], nb_length[itable], e_length[itable]);
-    }
-    if (number_of_tables > 0) {
-        delete[] pressure_tb;
-        delete[] temperature_tb;
-    }
-}
+EOS_base::~EOS_base() {}
 
-double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
+double EOS_base::interpolate1D(
+    double e, int table_idx, const EosTable &table) const {
     // This is a generic linear interpolation routine for EOS at zero mu_B
     // it assumes the class has already read in
     //        P(e), T(e), s(e)
@@ -68,7 +58,8 @@ double EOS_base::interpolate1D(double e, int table_idx, double ***table) const {
 }
 
 void EOS_base::interpolate1D_with_gradients(
-    double e, int table_idx, double ***table, double &p, double &dpde) const {
+    double e, int table_idx, const EosTable &table, double &p,
+    double &dpde) const {
     // This is a generic linear interpolation routine for EOS at zero mu_B
     // it assumes the class has already read in
     //        P(e), T(e), s(e)
@@ -101,7 +92,7 @@ void EOS_base::interpolate1D_with_gradients(
 
 double EOS_base::interpolate2D(
     const double e, const double rhob, const int table_idx,
-    double ***table) const {
+    const EosTable &table) const {
     // This is a generic bilinear interpolation routine for EOS at finite mu_B
     // it assumes the class has already read in
     //        P(e, rho_b), T(e, rho_b), s(e, rho_b), mu_b(e, rho_b)
@@ -171,8 +162,8 @@ double EOS_base::interpolate2D(
 }
 
 void EOS_base::interpolate2D_with_gradients(
-    const double e, const double rhob, const int table_idx, double ***table,
-    double &p, double &dpde, double &dpdrhob) const {
+    const double e, const double rhob, const int table_idx,
+    const EosTable &table, double &p, double &dpde, double &dpdrhob) const {
     // This is a generic bilinear interpolation routine for EOS at finite mu_B
     // it assumes the class has already read in
     //        P(e, rho_b), T(e, rho_b), s(e, rho_b), mu_b(e, rho_b)

@@ -233,25 +233,25 @@ void EOS_4D::FourDLInterp(
     float w1110 = dx * dy * dz * (1 - dt);
 
     // store values at surrounding data points on the grid.
-    float data_0000 = data.at(index(iT, ib, iq, is));
-    float data_1111 = data.at(index(iT1, ib1, iq1, is1));
+    float data_0000 = data[index(iT, ib, iq, is)];
+    float data_1111 = data[index(iT1, ib1, iq1, is1)];
 
-    float data_1000 = data.at(index(iT1, ib, iq, is));
-    float data_0100 = data.at(index(iT, ib1, iq, is));
-    float data_0010 = data.at(index(iT, ib, iq1, is));
-    float data_0001 = data.at(index(iT, ib, iq, is1));
+    float data_1000 = data[index(iT1, ib, iq, is)];
+    float data_0100 = data[index(iT, ib1, iq, is)];
+    float data_0010 = data[index(iT, ib, iq1, is)];
+    float data_0001 = data[index(iT, ib, iq, is1)];
 
-    float data_1001 = data.at(index(iT1, ib, iq, is1));
-    float data_0101 = data.at(index(iT, ib1, iq, is1));
-    float data_0011 = data.at(index(iT, ib, iq1, is1));
-    float data_1100 = data.at(index(iT1, ib1, iq, is));
-    float data_1010 = data.at(index(iT1, ib, iq1, is));
-    float data_0110 = data.at(index(iT, ib1, iq1, is));
+    float data_1001 = data[index(iT1, ib, iq, is1)];
+    float data_0101 = data[index(iT, ib1, iq, is1)];
+    float data_0011 = data[index(iT, ib, iq1, is1)];
+    float data_1100 = data[index(iT1, ib1, iq, is)];
+    float data_1010 = data[index(iT1, ib, iq1, is)];
+    float data_0110 = data[index(iT, ib1, iq1, is)];
 
-    float data_0111 = data.at(index(iT, ib1, iq1, is1));
-    float data_1011 = data.at(index(iT1, ib, iq1, is1));
-    float data_1101 = data.at(index(iT1, ib1, iq, is1));
-    float data_1110 = data.at(index(iT1, ib1, iq1, is));
+    float data_0111 = data[index(iT, ib1, iq1, is1)];
+    float data_1011 = data[index(iT1, ib, iq1, is1)];
+    float data_1101 = data[index(iT1, ib1, iq, is1)];
+    float data_1110 = data[index(iT1, ib1, iq1, is)];
 
     // Interpolate the value of the target point using the weights
     // and the values of the sixteen surrounding points
