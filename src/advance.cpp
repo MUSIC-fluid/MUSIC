@@ -775,6 +775,11 @@ void Advance::computeFaceFlux(
     const auto cR = arena.getCellIdeal(IR);
     const auto cRR = arena.getCellIdeal(IRR);
 
+    if (DATA.face_reconstruction == 1) {
+        computeFaceFluxPrimitive(tau, direction, cLL, cL, cR, cRR, flux);
+        return;
+    }
+
     // the half-way states on the left and right side of the face
     TJbVec qL = {0.};
     TJbVec qR = {0.};
@@ -819,6 +824,61 @@ void Advance::computeFaceFlux(
         // KT: H_{j+1/2} = (f(u^+_{j+1/2}) + f(u^-_{j+1/2}))/2
         //                  - a_{j+1/2}(u_{j+1/2}^+ - u^-_{j+1/2})/2
         flux[alpha] = 0.5 * ((FL + FR) - a * (qR[alpha] - qL[alpha]));
+    }
+}
+
+//! face_reconstruction = 1: the half-way states are limited in the
+//! primitive variables e, n_B, n_Q, n_S and u^x, u^y, u^eta (with u^tau
+//! from the normalisation, so any limited u^i is a valid velocity), and
+//! tau T^{tau mu}, tau J^tau follow from them. minmod keeps each face value
+//! between the neighbouring cells (theta <= 2), so e stays positive.
+//! The flux is the same KT flux as with face_reconstruction = 0.
+void Advance::computeFaceFluxPrimitive(
+    const double tau, const int direction, const ReconstCell &cLL,
+    const ReconstCell &cL, const ReconstCell &cR, const ReconstCell &cRR,
+    TJbVec &flux) {
+    const double tau_fac[4] = {0.0, tau, tau, 1.0};
+    ReconstCell gridL, gridR;
+    auto limit = [&](const double xLL, const double xL, const double xR,
+                     const double xRR, double &faceL, double &faceR) {
+        faceL = xL + 0.5 * minmod.minmod_dx(xR, xL, xLL);
+        faceR = xR - 0.5 * minmod.minmod_dx(xRR, xR, xL);
+    };
+    limit(cLL.e, cL.e, cR.e, cRR.e, gridL.e, gridR.e);
+    limit(cLL.rhob, cL.rhob, cR.rhob, cRR.rhob, gridL.rhob, gridR.rhob);
+    limit(cLL.rhoq, cL.rhoq, cR.rhoq, cRR.rhoq, gridL.rhoq, gridR.rhoq);
+    limit(cLL.rhos, cL.rhos, cR.rhos, cRR.rhos, gridL.rhos, gridR.rhos);
+    double u2L = 0.;
+    double u2R = 0.;
+    for (int i = 1; i < 4; i++) {
+        limit(cLL.u[i], cL.u[i], cR.u[i], cRR.u[i], gridL.u[i], gridR.u[i]);
+        u2L += gridL.u[i] * gridL.u[i];
+        u2R += gridR.u[i] * gridR.u[i];
+    }
+    gridL.u[0] = std::sqrt(1. + u2L);
+    gridR.u[0] = std::sqrt(1. + u2R);
+
+    ReconstEos eosL, eosR;
+    eos.get_pressure_with_gradients_and_cs2(
+        gridL.e, gridL.rhob, gridL.rhoq, gridL.rhos, eosL.p, eosL.dpde,
+        eosL.dpdrhob, eosL.dpdrhoq, eosL.dpdrhos, eosL.cs2);
+    eos.get_pressure_with_gradients_and_cs2(
+        gridR.e, gridR.rhob, gridR.rhoq, gridR.rhos, eosR.p, eosR.dpde,
+        eosR.dpdrhob, eosR.dpdrhoq, eosR.dpdrhos, eosR.cs2);
+    eosL.valid = true;
+    eosR.valid = true;
+
+    const double aL = MaxSpeed(tau, direction, gridL, eosL);
+    const double aR = MaxSpeed(tau, direction, gridR, eosR);
+    const double a = std::max(aL, aR);
+    for (int alpha = 0; alpha < 7; alpha++) {
+        const double qL = tau * get_TJb(gridL, alpha, 0, eosL.p);
+        const double qR = tau * get_TJb(gridR, alpha, 0, eosR.p);
+        const double FL =
+            (tau_fac[direction] * get_TJb(gridL, alpha, direction, eosL.p));
+        const double FR =
+            (tau_fac[direction] * get_TJb(gridR, alpha, direction, eosR.p));
+        flux[alpha] = 0.5 * ((FL + FR) - a * (qR - qL));
     }
 }
 

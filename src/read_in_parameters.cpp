@@ -273,6 +273,14 @@ InitData read_in_parameters(std::string input_file) {
     parameter_list.rk_order = getParameter(input_file, "Runge_Kutta_order", 2);
     // Minmod_Theta: theta parameter in the min-mod like limiter
     parameter_list.minmod_theta = getParameter(input_file, "Minmod_Theta", 1.8);
+    // face_reconstruction: what the KT face fluxes limit with minmod
+    // 0: tau T^{tau mu} and tau J^tau, solved for (e, n, u) at each face
+    // 1: the primitive variables e, n_B, n_Q, n_S and u^x, u^y, u^eta
+    //    (no root solve at the faces, ~1.5x faster)
+    // default: 1 with beastMode > 0, 0 otherwise
+    parameter_list.face_reconstruction = getParameter(
+        input_file, "face_reconstruction",
+        (parameter_list.beastMode > 0 ? 1 : 0));
 
     // EOS_to_use:
     // 0: ideal gas
@@ -928,6 +936,14 @@ void check_parameters(InitData &parameter_list, std::string input_file) {
         music_message.flush("info");
     }
 
+    if (parameter_list.face_reconstruction != 0
+        && parameter_list.face_reconstruction != 1) {
+        music_message << "face_reconstruction = "
+                      << parameter_list.face_reconstruction
+                      << " is not supported, it must be 0 or 1";
+        music_message.flush("error");
+        exit(1);
+    }
     if (parameter_list.minmod_theta < 1. || parameter_list.minmod_theta > 2.) {
         music_message << "minmod = " << parameter_list.minmod_theta
                       << " is out of allowed range [1., 2]";

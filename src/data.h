@@ -104,6 +104,12 @@ typedef struct init_data {
     int rk_order;
     double minmod_theta;
 
+    //! what the KT face fluxes limit: 0 tau T^{tau mu} and tau J^tau,
+    //! inverted back to (e, n, u) at each face side; 1 the primitive
+    //! variables e, n_B, n_Q, n_S, u^x, u^y, u^eta, so the faces need no
+    //! root solve. The default is 1 with beastMode > 0 and 0 otherwise.
+    int face_reconstruction = 0;
+
     double sFactor;  //!< overall normalization on energy density profile
 
     //! A scale factor for initial shear and bulk viscous pressure

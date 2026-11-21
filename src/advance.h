@@ -123,6 +123,14 @@ class Advance {
     double MaxSpeed(
         const double tau, const int direc, const ReconstCell &grid_p,
         double &pressure);
+    //! the KT flux through one face with the half-way states limited in
+    //! the primitive variables (face_reconstruction = 1); cLL, cL, cR, cRR
+    //! are the four cells along direction around the face
+    void computeFaceFluxPrimitive(
+        const double tau, const int direction, const ReconstCell &cLL,
+        const ReconstCell &cL, const ReconstCell &cR, const ReconstCell &cRR,
+        TJbVec &flux);
+
     //! MaxSpeed with the EoS at grid_p already known
     double MaxSpeed(
         const double tau, const int direc, const ReconstCell &grid_p,

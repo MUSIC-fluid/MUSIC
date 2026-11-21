@@ -43,6 +43,10 @@ golden numbers.
   bjorken_rk_order      viscous Bjorken flow is second order in dtau (the
                         second RK stage must use its own tau and transport
                         coefficients)
+  gubser_face_reconstruction
+                        ideal Gubser flow with n_B against the analytic
+                        solution with face_reconstruction = 0 and 1; mode 1
+                        must be within 1e-3 and closer than mode 0
   tatb_source           the TATB source (112) deposits the same E, Pz and
                         N_B as the TATB initial condition (111), and both
                         match the model totals sqrt(s)/2 (N_A + N_B)
@@ -607,10 +611,14 @@ def test_beastmode3(r):
     # dx = 0.19 fm, dtau = 0.02 fm/c: after 192 steps dx/(2 dtau) < 5, so
     # beastMode 3 doubles dtau and coarsens the grid. The fireball fits in
     # the 8.36 fm start grid at tau0 but outgrows it later.
+    # beastMode > 0 limits the face states in the primitive variables
+    # (face_reconstruction = 1), so the reference does too: this test is
+    # about the grid changes, not the face scheme
     tau0, e_fo = 0.6, 0.3
     ref = r.workdir("beastmode3_reference")
     x = _write_2d_fireball(ref, 161, 30.4, tau0)
-    log, _, t_ref = r.run(ref, _fireball_2d_params(x, tau0, e_fo))
+    log, _, t_ref = r.run(ref, _fireball_2d_params(
+        x, tau0, e_fo, face_reconstruction=1))
     check("All cells frozen out" in log, "reference run did not freeze out")
     f_ref = surface_fluxes(read_surface(ref))
 
@@ -970,6 +978,69 @@ def test_memory_history(r):
           "file")
 
 
+def _write_gubser_ideal(path, tau, n=201, size=10.0, q=1.0, e0=1.0,
+                        nb0=0.5):
+    """the ideal Gubser solution with net baryon density, in the format of
+    tests/Gubser_flow/Gubser_solution_ideal.py: x, y, e [1/fm^4],
+    n_B [1/fm^3], u^x, u^y with y running fastest"""
+    x = np.linspace(-size / 2., size / 2., n)
+    X, Y = np.meshgrid(x, x, indexing="ij")
+    e, nb, ux, uy = _gubser_ideal(X, Y, tau, q, e0, nb0)
+    np.savetxt(path, np.column_stack([
+        X.ravel(), Y.ravel(), e.ravel(), nb.ravel(), ux.ravel(), uy.ravel()]),
+        fmt="%.8e")
+
+
+def _gubser_ideal(X, Y, tau, q=1.0, e0=1.0, nb0=0.5):
+    r = np.sqrt(X**2 + Y**2)
+    den = 1. + 2. * q**2 * (tau**2 + r**2) + q**4 * (tau**2 - r**2)**2
+    e = e0 / tau**(4. / 3.) * (2. * q)**(8. / 3.) / den**(4. / 3.)
+    nb = nb0 / tau**3 * 4. * (q * tau)**2 / den
+    ur = np.sinh(np.arctanh(2. * q**2 * tau * r
+                            / (1. + q**2 * tau**2 + q**2 * r**2)))
+    rs = np.where(r > 0., r, 1.)
+    return e, nb, ur * X / rs, ur * Y / rs
+
+
+def test_gubser_face_reconstruction(r):
+    # ideal Gubser flow with n_B (conformal EoS) against the analytic
+    # solution, with the KT face states limited in T^{tau mu}
+    # (face_reconstruction = 0) and in e, n, u^i (1). Relative L1 errors
+    # on y = 0 at tau = 1.5 fm/c: 1.9e-3 (e), 1.4e-3 (n_B), 1.3e-3 (u^x)
+    # for mode 0 and 5.2e-4, 2.6e-4, 6.5e-4 for mode 1.
+    hbarc = 0.19733
+    tau_end = 1.5
+    errors = {}
+    for mode in (0, 1):
+        wd = r.workdir("gubser_face_reconstruction_{}".format(mode))
+        gdir = os.path.join(wd, "tests", "Gubser_flow")
+        os.makedirs(gdir)
+        for tau in (0.98, 1.0):
+            _write_gubser_ideal(
+                os.path.join(gdir, "y=0_tau={:4.2f}_ideal.dat".format(tau)),
+                tau)
+        r.run(wd, base_params(
+            Initial_profile=0, boost_invariant=1, Grid_size_in_eta=1,
+            Eta_grid_size=10.0, Initial_time_tau_0=1.0,
+            Total_evolution_time_tau=tau_end - 1.0, Delta_Tau=0.02,
+            UseCFL_condition=0, X_grid_size_in_fm=10.0,
+            Y_grid_size_in_fm=10.0, Grid_size_in_x=201, Grid_size_in_y=201,
+            Include_Rhob_Yes_1_No_0=1, face_reconstruction=mode))
+        d = np.loadtxt(os.path.join(
+            wd, "Gubser_flow_check_tau_{:g}.dat".format(tau_end)))
+        d = d[np.abs(d[:, 1]) < 1e-6]
+        e, nb, ux, _ = _gubser_ideal(d[:, 0], d[:, 1], tau_end)
+        l1 = lambda num, ana: np.sum(np.abs(num - ana)) / np.sum(np.abs(ana))
+        errors[mode] = (l1(d[:, 2] / hbarc, e), l1(d[:, 3], nb),
+                        l1(d[:, 5], ux))
+    for i, name in enumerate(("e", "n_B", "u^x")):
+        print("    L1 error of {:4s} mode 0: {:.2e}, mode 1: {:.2e}".format(
+            name, errors[0][i], errors[1][i]))
+        report("mode 1 L1 error of " + name, errors[1][i], 1e-3)
+        check(errors[1][i] < errors[0][i],
+              "face_reconstruction = 1 is less accurate than 0 in " + name)
+
+
 TESTS = [
     ("conservation_ideal", test_conservation_ideal),
     ("conservation_viscous", test_conservation_viscous),
@@ -987,6 +1058,7 @@ TESTS = [
     ("ipglasma_paths", test_ipglasma_paths),
     ("boost_invariance", test_boost_invariance),
     ("bjorken_rk_order", test_bjorken_rk_order),
+    ("gubser_face_reconstruction", test_gubser_face_reconstruction),
     ("tatb_source", test_tatb_source),
     ("memory_history", test_memory_history),
 ]

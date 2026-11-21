@@ -107,6 +107,8 @@ hydro_dict = {
                       # 10: lattice EOS at finite muB (from A. Monnai)
     'check_eos': 0,   # switch to out check files for EoS
     'Minmod_Theta': 1.8,     # theta parameter in the min-mod like limiter
+    'face_reconstruction': 0,  # KT faces limit: 0 tau T^{tau mu}, 1 e, n, u^i
+                               # (MUSIC's default is 1 when beastMode > 0)
     'Runge_Kutta_order': 2,  # order of Runge_Kutta for temporal evolution (must be 1 or 2)
     'boost_invariant': 0,    # initial condition is boost invariant
 
