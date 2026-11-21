@@ -104,17 +104,25 @@ void Advance::AdvanceIt(
                     u_derivative_helper.get_DmuMuBoverTVec(
                         baryon_diffusion_vector);
 
+                    // the spatial part of the W update depends only on
+                    // arenaFieldsCurr, theta and Du: compute it once, also
+                    // for the iterations of the stage-2 fixed point
+                    std::array<double, 10> w_rhs = {0.};
+                    diss_helper.Make_uWRHS(
+                        tau_rk, arenaFieldsCurr, fieldIdx, ix, iy, ieta, w_rhs,
+                        theta_local, a_local);
+
                     FirstRKStepW(
                         tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext,
                         rk_flag, theta_local, a_local, sigma_local, omega_local,
-                        baryon_diffusion_vector, ieta, ix, iy, fieldIdx);
+                        baryon_diffusion_vector, w_rhs, ieta, ix, iy, fieldIdx);
 
                     if (rk_flag == 1) {
                         stage2ViscousFixedPoint(
                             tau, arenaFieldsPrev, arenaFieldsCurr,
                             arenaFieldsNext, qiFinal, theta_local, a_local,
                             sigma_local, omega_local, baryon_diffusion_vector,
-                            ieta, ix, iy, fieldIdx);
+                            w_rhs, ieta, ix, iy, fieldIdx);
                     }
                 }
             }
@@ -145,7 +153,8 @@ void Advance::stage2ViscousFixedPoint(
     Fields &arenaFieldsNext, const TJbVec &qiFinal, const double theta_local,
     const DumuVec &a_local, const VelocityShearVec &sigma_local,
     const VorticityVec &omega_local,
-    const DmuMuBoverTVec &baryon_diffusion_vector, const int ieta, const int ix,
+    const DmuMuBoverTVec &baryon_diffusion_vector,
+    const std::array<double, 10> &w_rhs, const int ieta, const int ix,
     const int iy, const int fieldIdx) {
     const double tau_next = tau + DATA.delta_tau;
     const double tau_np2 = tau + 2. * DATA.delta_tau;
@@ -160,7 +169,7 @@ void Advance::stage2ViscousFixedPoint(
         FirstRKStepW(
             tau, arenaFieldsPrev, arenaFieldsCurr, arenaFieldsNext, 1,
             theta_local, a_local, sigma_local, omega_local,
-            baryon_diffusion_vector, ieta, ix, iy, fieldIdx);
+            baryon_diffusion_vector, w_rhs, ieta, ix, iy, fieldIdx);
     };
 
     TJbVec shift = {0.};  // the state in arenaFieldsNext has this shift
@@ -332,7 +341,8 @@ void Advance::FirstRKStepW(
     Fields &arenaFieldsNext, const int rk_flag, const double theta_local,
     const DumuVec &a_local, const VelocityShearVec &sigma_local,
     const VorticityVec &omega_local,
-    const DmuMuBoverTVec &baryon_diffusion_vector, const int ieta, const int ix,
+    const DmuMuBoverTVec &baryon_diffusion_vector,
+    const std::array<double, 10> &w_rhs, const int ieta, const int ix,
     const int iy, const int fieldIdx) {
     auto grid_c = arenaFieldsCurr.getCell(fieldIdx);
     auto grid_f = arenaFieldsNext.getCell(fieldIdx);
@@ -349,11 +359,8 @@ void Advance::FirstRKStepW(
     // solve partial_tau (u^0 W^{kl}) = -partial_i (u^i W^{kl}
     /* Advance uWmunu */
 
-    // spatial gradients for all viscous quantities
-    std::array<double, 10> w_rhs = {0.};
-    diss_helper.Make_uWRHS(
-        tau_now, arenaFieldsCurr, fieldIdx, ix, iy, ieta, w_rhs, theta_local,
-        a_local);
+    // w_rhs: spatial gradients for all viscous quantities (Diss::Make_uWRHS
+    // at tau_now, computed by the caller)
 
     // the sources are evaluated at the stage's own state (the predictor in
     // the second RK stage), like theta, sigma and Du; the transport

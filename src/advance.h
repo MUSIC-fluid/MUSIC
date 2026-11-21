@@ -42,8 +42,9 @@ class Advance {
         Fields &arenaFieldsNext, const TJbVec &qiFinal,
         const double theta_local, const DumuVec &a_local,
         const VelocityShearVec &sigma_local, const VorticityVec &omega_local,
-        const DmuMuBoverTVec &baryon_diffusion_vector, const int ieta,
-        const int ix, const int iy, const int fieldIdx);
+        const DmuMuBoverTVec &baryon_diffusion_vector,
+        const std::array<double, 10> &w_rhs, const int ieta, const int ix,
+        const int iy, const int fieldIdx);
 
     //! the viscous part of T^{tau alpha} (alpha < 4) and J^tau (alpha = 4)
     //! that enters the time derivative in Diss::MakeWSource
@@ -75,8 +76,9 @@ class Advance {
         Fields &arenaFieldsNext, const int rk_flag, const double theta_local,
         const DumuVec &a_local, const VelocityShearVec &sigma_local,
         const VorticityVec &omega_local,
-        const DmuMuBoverTVec &baryon_diffusion_vector, const int ieta,
-        const int ix, const int iy, const int fieldIdx);
+        const DmuMuBoverTVec &baryon_diffusion_vector,
+        const std::array<double, 10> &w_rhs, const int ieta, const int ix,
+        const int iy, const int fieldIdx);
 
     void QuestRevertResummedTransCoeff(Cell_small &grid_pt);
     void QuestRevert(
