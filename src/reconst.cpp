@@ -366,16 +366,18 @@ int Reconst::solve_v_from_guess(
         const double dv = fv / dfdv;
         const double v_next = v - dv;
         if (!(v_next >= 0. && v_next < 1.)) return (0);
-        double fv_next;
-        reconst_velocity_f(v_next, T00, M, J0B, J0Q, J0S, fv_next);
-        if (!std::isfinite(fv_next)) return (0);
-        // the same stopping rule as solve_v_Hybrid
+        // the same stopping rule as solve_v_Hybrid. It depends only on the
+        // step, so check it before evaluating f at v_next, which only the
+        // next step needs
         const double abs_error_v = std::abs(dv);
         const double rel_error_v = abs_error_v / (v_next + abs_err);
         if (abs_error_v <= abs_err || rel_error_v <= rel_err) {
             v_solution = v_next;
             return (1);
         }
+        double fv_next;
+        reconst_velocity_f(v_next, T00, M, J0B, J0Q, J0S, fv_next);
+        if (!std::isfinite(fv_next)) return (0);
         dfdv = (fv_next - fv) / (v_next - v + abs_err);
         v = v_next;
         fv = fv_next;

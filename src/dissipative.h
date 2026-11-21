@@ -3,6 +3,7 @@
 #define SRC_DISSIPATIVE_H_
 
 #include <array>
+#include <vector>
 
 #include "cell.h"
 #include "data.h"
@@ -32,6 +33,12 @@ class Diss {
     const int echo_level_ = DATA.echo_level;
     pretty_ostream music_message;
 
+    //! the face fluxes of one direction (computeWFluxDivergence)
+    std::vector<double> wFaceFluxes_;
+
+    //! the number of W components that Make_uWRHS evolves
+    int nWComponents() const;
+
   public:
     Diss(const EOS &eosIn, const InitData &DATA_in);
     void MakeWSource(
@@ -45,9 +52,21 @@ class Diss {
         const VorticityVec &omega_1d, const ThermalVec &thermalVec,
         std::array<double, 5> &sourceTerms);
 
+    //! components of the W flux divergence, see computeWFluxDivergence
+    static constexpr int kWComponents = 10;
+
+    //! the KT flux part of Make_uWRHS for every cell of arena:
+    //! -delta_tau (H_{i+1/2} - H_{i-1/2}) / delta_i of u^i W, summed over
+    //! the directions, with each face flux computed once. Component idx of
+    //! cell fieldIdx is at wFluxDiv[idx * arena.nStorage() + fieldIdx].
+    void computeWFluxDivergence(
+        const double tau, const Fields &arena, std::vector<double> &wFluxDiv);
+
+    //! w_rhs: the spatial part of the W update; wFluxDiv from
+    //! computeWFluxDivergence on the same arena and tau
     void Make_uWRHS(
-        const double tau, Fields &arena, const int fieldIdx, const int ix,
-        const int iy, const int ieta, std::array<double, 10> &w_rhs,
+        const double tau, Fields &arena, const int fieldIdx,
+        const std::vector<double> &wFluxDiv, std::array<double, 10> &w_rhs,
         const double theta_local, const DumuVec &a_local);
 
     double Make_uPiSource(

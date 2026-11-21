@@ -32,6 +32,9 @@ class Advance {
     //! P(e, n_B, n_Q, n_S) of arenaFieldsCurr, filled at the start of each
     //! AdvanceIt so that the stencils do not call the EoS for every neighbour
     std::vector<double> pressureCurr_;
+    //! the KT flux part of the W update for every cell of the current
+    //! stage (Diss::computeWFluxDivergence)
+    std::vector<double> wFluxDiv_;
 
     //! KT fluxes through the faces of arenaFieldsCurr, filled at the start
     //! of each AdvanceIt (computeFaceFluxes)

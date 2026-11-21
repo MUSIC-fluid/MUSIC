@@ -1,9 +1,11 @@
 // Copyright Chun Shen @ 2014-2016
 #include "grid_info.h"
 
+#include <array>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -1065,7 +1067,10 @@ void Cell_info::get_maximum_energy_density(
     const int nx = arena.nX();
     const int ny = arena.nY();
 
-#pragma omp parallel for collapse(3) reduction(max : eps_max, rhob_max, T_max)
+// every maximum is a reduction: shared updates of rhoq_max and rhos_max
+// raced between the threads
+#pragma omp parallel for collapse(3) \
+    reduction(max : eps_max, rhob_max, rhoq_max, rhos_max, T_max)
     for (int ieta = 0; ieta < neta; ieta++)
         for (int ix = 0; ix < nx; ix++)
             for (int iy = 0; iy < ny; iy++) {
@@ -2495,9 +2500,14 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
     of3 << "# eta_s  dS/deta_s  dE/deta_s (GeV) [s] (1/fm^-3)  [r^2] (fm^2)"
         << endl;
 
-    ThermalVec thermalVec;
     const int norder = 6;
-    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+    // each eta slice is summed on its own, so the slices run in parallel;
+    // their lines are collected here and written in order below
+    const int neta = arena.nEta();
+    std::vector<std::array<std::ostringstream, 5>> lines(neta);
+#pragma omp parallel for schedule(dynamic)
+    for (int ieta = 0; ieta < neta; ieta++) {
+        ThermalVec thermalVec;
         double eta = 0.0;
         if (!DATA.boost_invariant) {
             eta =
@@ -2647,51 +2657,74 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
             }
 
         // output results
-        of << scientific << setw(18) << setprecision(8) << eta << "  ";
+        lines[ieta][0] << scientific << setw(18) << setprecision(8) << eta
+                       << "  ";
         for (int i = 0; i < 3; i++) {
-            of << ep_num1[i] / std::max(ep_den[i], small_eps) << "  "
-               << ep_num2[i] / std::max(ep_den[i], small_eps) << "  ";
+            lines[ieta][0] << ep_num1[i] / std::max(ep_den[i], small_eps)
+                           << "  "
+                           << ep_num2[i] / std::max(ep_den[i], small_eps)
+                           << "  ";
         }
-        of << endl;
-        of1 << scientific << setw(18) << setprecision(8) << eta << "  "
-            << eccn_ed_num1[0] * DATA.delta_x * DATA.delta_y * hbarc << "  ";
+        lines[ieta][0] << endl;
+        lines[ieta][1] << scientific << setw(18) << setprecision(8) << eta
+                       << "  "
+                       << eccn_ed_num1[0] * DATA.delta_x * DATA.delta_y * hbarc
+                       << "  ";
         for (int i = 1; i < norder; i++) {
             // the minus sign ensure the vector points to the short axis
-            of1 << -eccn_ed_num1[i] / std::max(eccn_ed_den[i], small_eps)
-                << "  "
-                << -eccn_ed_num2[i] / std::max(eccn_ed_den[i], small_eps)
-                << "  ";
+            lines[ieta][1] << -eccn_ed_num1[i]
+                                  / std::max(eccn_ed_den[i], small_eps)
+                           << "  "
+                           << -eccn_ed_num2[i]
+                                  / std::max(eccn_ed_den[i], small_eps)
+                           << "  ";
         }
-        of1 << x_ed_o << "  " << y_ed_o;
-        of1 << endl;
-        of2 << scientific << setw(18) << setprecision(8) << eta << "  "
-            << eccn_nB_num1[0] * DATA.delta_x * DATA.delta_y << "  ";
+        lines[ieta][1] << x_ed_o << "  " << y_ed_o;
+        lines[ieta][1] << endl;
+        lines[ieta][2] << scientific << setw(18) << setprecision(8) << eta
+                       << "  " << eccn_nB_num1[0] * DATA.delta_x * DATA.delta_y
+                       << "  ";
         for (int i = 1; i < norder; i++) {
             // the minus sign ensure the vector points to the short axis
-            of2 << -eccn_nB_num1[i] / std::max(eccn_nB_den[i], small_eps)
-                << "  "
-                << -eccn_nB_num2[i] / std::max(eccn_nB_den[i], small_eps)
-                << "  ";
+            lines[ieta][2] << -eccn_nB_num1[i]
+                                  / std::max(eccn_nB_den[i], small_eps)
+                           << "  "
+                           << -eccn_nB_num2[i]
+                                  / std::max(eccn_nB_den[i], small_eps)
+                           << "  ";
         }
-        of2 << x_nB_o << "  " << y_nB_o;
-        of2 << endl;
+        lines[ieta][2] << x_nB_o << "  " << y_nB_o;
+        lines[ieta][2] << endl;
 
-        of2Q << scientific << setw(18) << setprecision(8) << eta << "  "
-             << eccn_nQ_num1[0] * DATA.delta_x * DATA.delta_y << "  ";
+        lines[ieta][3] << scientific << setw(18) << setprecision(8) << eta
+                       << "  " << eccn_nQ_num1[0] * DATA.delta_x * DATA.delta_y
+                       << "  ";
         for (int i = 1; i < norder; i++) {
             // the minus sign ensure the vector points to the short axis
-            of2Q << -eccn_nQ_num1[i] / std::max(eccn_nQ_den[i], small_eps)
-                 << "  "
-                 << -eccn_nQ_num2[i] / std::max(eccn_nQ_den[i], small_eps)
-                 << "  ";
+            lines[ieta][3] << -eccn_nQ_num1[i]
+                                  / std::max(eccn_nQ_den[i], small_eps)
+                           << "  "
+                           << -eccn_nQ_num2[i]
+                                  / std::max(eccn_nQ_den[i], small_eps)
+                           << "  ";
         }
-        of2Q << endl;
+        lines[ieta][3] << endl;
 
-        of3 << scientific << setw(18) << setprecision(8) << eta << "  "
-            << meanpT_est_num[0] * DATA.delta_x * DATA.delta_y << "  "
-            << meanpT_est_num[1] * hbarc * DATA.delta_x * DATA.delta_y << "  "
-            << meanpT_est_num[2] / meanpT_est_den[0] << "  "
-            << meanpT_est_num[3] / meanpT_est_den[0] << endl;
+        lines[ieta][4] << scientific << setw(18) << setprecision(8) << eta
+                       << "  "
+                       << meanpT_est_num[0] * DATA.delta_x * DATA.delta_y
+                       << "  "
+                       << meanpT_est_num[1] * hbarc * DATA.delta_x
+                              * DATA.delta_y
+                       << "  " << meanpT_est_num[2] / meanpT_est_den[0] << "  "
+                       << meanpT_est_num[3] / meanpT_est_den[0] << endl;
+    }
+    for (int ieta = 0; ieta < neta; ieta++) {
+        of << lines[ieta][0].str();
+        of1 << lines[ieta][1].str();
+        of2 << lines[ieta][2].str();
+        of2Q << lines[ieta][3].str();
+        of3 << lines[ieta][4].str();
     }
     of.close();
     of1.close();
@@ -2761,195 +2794,257 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
             filename3.str().c_str(), std::fstream::out | std::fstream::app);
     }
 
-    double ideal_num1 = 0.0;
-    double ideal_num2 = 0.0;
-    double ideal_den = 0.0;
-    double shear_num1 = 0.0;
-    double shear_num2 = 0.0;
-    double shear_den = 0.0;
-    double full_num1 = 0.0;
-    double full_num2 = 0.0;
-    double full_den = 0.0;
-    double u_perp_num = 0.0;
-    double u_perp_den = 0.0;
-    double T_avg_num = 0.0;
-    double T_avg_den = 0.0;
-    double R_Pi_num = 0.0;
-    double R_Pi_den = 0.0;
-    double R_shearpi_num = 0.0;
-    double R_shearpi_den = 0.0;
-
-    // compute epsilon_{p2} and epsilon_{p3} using T^{0\mu} vector
-    // epsilon_{pn} = (\int (T^{0r} exp(i n \phi_u))/(\int T^{0r})
-    // for every n, we compute T^{0\mu} for ideal, ideal + shear, and full
-    std::vector<double> ep_num1(6, 0.0);
-    std::vector<double> ep_num2(6, 0.0);
-    std::vector<double> ep_den(6, 0.0);
-
+    // The sums run over the rows (eta, y) of the eta window in parallel:
+    // each row is summed over x on its own, and the row sums are added in
+    // row order, so the result does not depend on the number of threads.
     const int norder = 6;
-    std::vector<double> eccn_num1(norder, 0.0);
-    std::vector<double> eccn_num2(norder, 0.0);
-    std::vector<double> eccn_den(norder, 0.0);
-    std::vector<double> meanpT_est_num(4, 0.0);
-    std::vector<double> meanpT_est_den(1, 0.0);
-    ThermalVec thermalVec;
+    enum {
+        kIdealNum1,
+        kIdealNum2,
+        kIdealDen,
+        kShearNum1,
+        kShearNum2,
+        kShearDen,
+        kFullNum1,
+        kFullNum2,
+        kFullDen,
+        kUPerpNum,
+        kUPerpDen,
+        kTAvgNum,
+        kTAvgDen,
+        kRPiNum,
+        kRPiDen,
+        kRShearNum,
+        kRShearDen,
+        // epsilon_{p2} and epsilon_{p3} from the T^{0 mu} vector,
+        // epsilon_{pn} = (int T^{0r} exp(i n phi_u)) / (int T^{0r}), for
+        // ideal, ideal + shear, and full T^{mu nu}
+        kEpNum1,
+        kEpNum2 = kEpNum1 + 6,
+        kEpDen = kEpNum2 + 6,
+        kEccNum1 = kEpDen + 6,
+        kEccNum2 = kEccNum1 + norder,
+        kEccDen = kEccNum2 + norder,
+        kMeanNum = kEccDen + norder,
+        kMeanDen = kMeanNum + 4,
+        kNSums = kMeanDen + 1
+    };
+    std::vector<int> rowEta;
+    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
+        double eta = 0.0;
+        if (!DATA.boost_invariant) {
+            eta =
+                ((static_cast<double>(ieta)) * (DATA.delta_eta)
+                 - (DATA.eta_size) / 2.0);
+        }
+        if (eta < eta_max && eta > eta_min) rowEta.push_back(ieta);
+    }
+    const int ny = arena.nY();
+    const int nRows = static_cast<int>(rowEta.size()) * ny;
+
+    // the centre of mass
+    std::vector<std::array<double, 3>> rowCm(nRows);
+#pragma omp parallel for schedule(dynamic)
+    for (int row = 0; row < nRows; row++) {
+        const int ieta = rowEta[row / ny];
+        const int iy = row % ny;
+        std::array<double, 3> cm = {0.0, 0.0, 0.0};
+        for (int ix = 0; ix < arena.nX(); ix++) {
+            int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+            double x_local = -DATA.x_size / 2. + ix * DATA.delta_x;
+            double y_local = -DATA.y_size / 2. + iy * DATA.delta_y;
+            double e_local = arena.e_[fieldIdx];  // 1/fm^4
+            double gamma_perp = arena.u_[0][fieldIdx];
+            cm[0] += x_local * e_local * gamma_perp;
+            cm[1] += y_local * e_local * gamma_perp;
+            cm[2] += e_local * gamma_perp;
+        }
+        rowCm[row] = cm;
+    }
     double x_o = 0.0;
     double y_o = 0.0;
     double w_sum = 0.0;
-    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
-        double eta = 0.0;
-        if (!DATA.boost_invariant) {
-            eta =
-                ((static_cast<double>(ieta)) * (DATA.delta_eta)
-                 - (DATA.eta_size) / 2.0);
-        }
-        if (eta < eta_max && eta > eta_min) {
-            for (int iy = 0; iy < arena.nY(); iy++) {
-                for (int ix = 0; ix < arena.nX(); ix++) {
-                    int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
-                    double x_local = -DATA.x_size / 2. + ix * DATA.delta_x;
-                    double y_local = -DATA.y_size / 2. + iy * DATA.delta_y;
-                    double e_local = arena.e_[fieldIdx];  // 1/fm^4
-                    double gamma_perp = arena.u_[0][fieldIdx];
-                    x_o += x_local * e_local * gamma_perp;
-                    y_o += y_local * e_local * gamma_perp;
-                    w_sum += e_local * gamma_perp;
-                }
-            }
-        }
+    for (int row = 0; row < nRows; row++) {
+        x_o += rowCm[row][0];
+        y_o += rowCm[row][1];
+        w_sum += rowCm[row][2];
     }
     x_o /= w_sum;
     y_o /= w_sum;
-    for (int ieta = 0; ieta < arena.nEta(); ieta++) {
-        double eta = 0.0;
-        if (!DATA.boost_invariant) {
-            eta =
-                ((static_cast<double>(ieta)) * (DATA.delta_eta)
-                 - (DATA.eta_size) / 2.0);
-        }
-        if (eta < eta_max && eta > eta_min) {
-            for (int iy = 0; iy < arena.nY(); iy++) {
-                for (int ix = 0; ix < arena.nX(); ix++) {
-                    int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
-                    double x_local =
-                        (-DATA.x_size / 2. + ix * DATA.delta_x - x_o);
-                    double y_local =
-                        (-DATA.y_size / 2. + iy * DATA.delta_y - y_o);
-                    double r_local =
-                        sqrt(x_local * x_local + y_local * y_local);
-                    double phi_local = atan2(y_local, x_local);
 
-                    double e_local = arena.e_[fieldIdx];  // 1/fm^4
-                    eos.getThermalVariables(
-                        e_local, arena.rhob_[fieldIdx], arena.rhoq_[fieldIdx],
-                        arena.rhos_[fieldIdx], thermalVec);
+    std::vector<std::array<double, kNSums>> rowSums(nRows);
+#pragma omp parallel for schedule(dynamic)
+    for (int row = 0; row < nRows; row++) {
+        const int ieta = rowEta[row / ny];
+        const int iy = row % ny;
+        std::array<double, kNSums> sums;
+        sums.fill(0.0);
+        double &ideal_num1 = sums[kIdealNum1];
+        double &ideal_num2 = sums[kIdealNum2];
+        double &ideal_den = sums[kIdealDen];
+        double &shear_num1 = sums[kShearNum1];
+        double &shear_num2 = sums[kShearNum2];
+        double &shear_den = sums[kShearDen];
+        double &full_num1 = sums[kFullNum1];
+        double &full_num2 = sums[kFullNum2];
+        double &full_den = sums[kFullDen];
+        double &u_perp_num = sums[kUPerpNum];
+        double &u_perp_den = sums[kUPerpDen];
+        double &T_avg_num = sums[kTAvgNum];
+        double &T_avg_den = sums[kTAvgDen];
+        double &R_Pi_num = sums[kRPiNum];
+        double &R_Pi_den = sums[kRPiDen];
+        double &R_shearpi_num = sums[kRShearNum];
+        double &R_shearpi_den = sums[kRShearDen];
+        double *ep_num1 = &sums[kEpNum1];
+        double *ep_num2 = &sums[kEpNum2];
+        double *ep_den = &sums[kEpDen];
+        double *eccn_num1 = &sums[kEccNum1];
+        double *eccn_num2 = &sums[kEccNum2];
+        double *eccn_den = &sums[kEccDen];
+        double *meanpT_est_num = &sums[kMeanNum];
+        double *meanpT_est_den = &sums[kMeanDen];
+        ThermalVec thermalVec;
+        for (int ix = 0; ix < arena.nX(); ix++) {
+            int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+            double x_local = (-DATA.x_size / 2. + ix * DATA.delta_x - x_o);
+            double y_local = (-DATA.y_size / 2. + iy * DATA.delta_y - y_o);
+            double r_local = sqrt(x_local * x_local + y_local * y_local);
+            double phi_local = atan2(y_local, x_local);
 
-                    double P_local = thermalVec[2];
-                    double enthopy = e_local + P_local;
-                    double u0 = arena.u_[0][fieldIdx];
-                    double ux = arena.u_[1][fieldIdx];
-                    double uy = arena.u_[2][fieldIdx];
-                    double pi_0x = arena.Wmunu_[1][fieldIdx];
-                    double pi_0y = arena.Wmunu_[2][fieldIdx];
-                    double pi_xx = arena.Wmunu_[4][fieldIdx];
-                    double pi_xy = arena.Wmunu_[5][fieldIdx];
-                    double pi_yy = arena.Wmunu_[7][fieldIdx];
-                    double bulk_Pi = arena.piBulk_[fieldIdx];
+            double e_local = arena.e_[fieldIdx];  // 1/fm^4
+            eos.getThermalVariables(
+                e_local, arena.rhob_[fieldIdx], arena.rhoq_[fieldIdx],
+                arena.rhos_[fieldIdx], thermalVec);
 
-                    double T_00_ideal = enthopy * u0 * u0 - P_local;
-                    double T_0x_ideal = enthopy * u0 * ux;
-                    double T_0y_ideal = enthopy * u0 * uy;
-                    double T_0r_ideal =
-                        sqrt(T_0x_ideal * T_0x_ideal + T_0y_ideal * T_0y_ideal);
-                    double phi_u_ideal = atan2(T_0y_ideal, T_0x_ideal);
-                    double T_xx_ideal = enthopy * ux * ux + P_local;
-                    double T_xy_ideal = enthopy * ux * uy;
-                    double T_yy_ideal = enthopy * uy * uy + P_local;
+            double P_local = thermalVec[2];
+            double enthopy = e_local + P_local;
+            double u0 = arena.u_[0][fieldIdx];
+            double ux = arena.u_[1][fieldIdx];
+            double uy = arena.u_[2][fieldIdx];
+            double pi_0x = arena.Wmunu_[1][fieldIdx];
+            double pi_0y = arena.Wmunu_[2][fieldIdx];
+            double pi_xx = arena.Wmunu_[4][fieldIdx];
+            double pi_xy = arena.Wmunu_[5][fieldIdx];
+            double pi_yy = arena.Wmunu_[7][fieldIdx];
+            double bulk_Pi = arena.piBulk_[fieldIdx];
 
-                    double T_0x_shear = T_0x_ideal + pi_0x;
-                    double T_0y_shear = T_0y_ideal + pi_0y;
-                    double T_0r_shear =
-                        sqrt(T_0x_shear * T_0x_shear + T_0y_shear * T_0y_shear);
-                    double phi_u_shear = atan2(T_0y_shear, T_0x_shear);
-                    double T_xx_shear = T_xx_ideal + pi_xx;
-                    double T_xy_shear = T_xy_ideal + pi_xy;
-                    double T_yy_shear = T_yy_ideal + pi_yy;
+            double T_00_ideal = enthopy * u0 * u0 - P_local;
+            double T_0x_ideal = enthopy * u0 * ux;
+            double T_0y_ideal = enthopy * u0 * uy;
+            double T_0r_ideal =
+                sqrt(T_0x_ideal * T_0x_ideal + T_0y_ideal * T_0y_ideal);
+            double phi_u_ideal = atan2(T_0y_ideal, T_0x_ideal);
+            double T_xx_ideal = enthopy * ux * ux + P_local;
+            double T_xy_ideal = enthopy * ux * uy;
+            double T_yy_ideal = enthopy * uy * uy + P_local;
 
-                    double T_0x_full = T_0x_shear + bulk_Pi * u0 * ux;
-                    double T_0y_full = T_0y_shear + bulk_Pi * u0 * uy;
-                    double T_0r_full =
-                        sqrt(T_0x_full * T_0x_full + T_0y_full * T_0y_full);
-                    double phi_u_full = atan2(T_0y_full, T_0x_full);
-                    double T_xx_full = T_xx_shear - bulk_Pi * (-1 - ux * ux);
-                    double T_xy_full = T_xy_shear + bulk_Pi * ux * uy;
-                    double T_yy_full = T_yy_shear - bulk_Pi * (-1 - uy * uy);
+            double T_0x_shear = T_0x_ideal + pi_0x;
+            double T_0y_shear = T_0y_ideal + pi_0y;
+            double T_0r_shear =
+                sqrt(T_0x_shear * T_0x_shear + T_0y_shear * T_0y_shear);
+            double phi_u_shear = atan2(T_0y_shear, T_0x_shear);
+            double T_xx_shear = T_xx_ideal + pi_xx;
+            double T_xy_shear = T_xy_ideal + pi_xy;
+            double T_yy_shear = T_yy_ideal + pi_yy;
 
-                    ideal_num1 += T_xx_ideal - T_yy_ideal;
-                    ideal_num2 += 2. * T_xy_ideal;
-                    ideal_den += T_xx_ideal + T_yy_ideal;
-                    shear_num1 += T_xx_shear - T_yy_shear;
-                    shear_num2 += 2. * T_xy_shear;
-                    shear_den += T_xx_shear + T_yy_shear;
-                    full_num1 += T_xx_full - T_yy_full;
-                    full_num2 += 2. * T_xy_full;
-                    full_den += T_xx_full + T_yy_full;
+            double T_0x_full = T_0x_shear + bulk_Pi * u0 * ux;
+            double T_0y_full = T_0y_shear + bulk_Pi * u0 * uy;
+            double T_0r_full =
+                sqrt(T_0x_full * T_0x_full + T_0y_full * T_0y_full);
+            double phi_u_full = atan2(T_0y_full, T_0x_full);
+            double T_xx_full = T_xx_shear - bulk_Pi * (-1 - ux * ux);
+            double T_xy_full = T_xy_shear + bulk_Pi * ux * uy;
+            double T_yy_full = T_yy_shear - bulk_Pi * (-1 - uy * uy);
 
-                    double weight_local = e_local;
-                    u_perp_num += weight_local * u0;
-                    u_perp_den += weight_local;
-                    T_avg_num += weight_local * thermalVec[6];
-                    T_avg_den += weight_local;
+            ideal_num1 += T_xx_ideal - T_yy_ideal;
+            ideal_num2 += 2. * T_xy_ideal;
+            ideal_den += T_xx_ideal + T_yy_ideal;
+            shear_num1 += T_xx_shear - T_yy_shear;
+            shear_num2 += 2. * T_xy_shear;
+            shear_den += T_xx_shear + T_yy_shear;
+            full_num1 += T_xx_full - T_yy_full;
+            full_num2 += 2. * T_xy_full;
+            full_den += T_xx_full + T_yy_full;
 
-                    if (e_local > 1e-3) {
-                        double r_shearpi, r_bulkPi;
-                        calculate_inverse_Reynolds_numbers(
-                            arena, fieldIdx, e_local + P_local, r_shearpi,
-                            r_bulkPi);
-                        R_shearpi_num += weight_local * r_shearpi;
-                        R_shearpi_den += weight_local;
-                        R_Pi_num += weight_local * r_bulkPi;
-                        R_Pi_den += weight_local;
-                    }
+            double weight_local = e_local;
+            u_perp_num += weight_local * u0;
+            u_perp_den += weight_local;
+            T_avg_num += weight_local * thermalVec[6];
+            T_avg_den += weight_local;
 
-                    for (int i = 0; i < 2; i++) {
-                        int idx = 3 * i;
-                        int iorder = 2 + i;
-                        ep_num1[idx] += T_0r_ideal * cos(iorder * phi_u_ideal);
-                        ep_num2[idx] += T_0r_ideal * sin(iorder * phi_u_ideal);
-                        ep_den[idx] += T_0r_ideal;
-                        ep_num1[idx + 1] +=
-                            T_0r_shear * cos(iorder * phi_u_shear);
-                        ep_num2[idx + 1] +=
-                            T_0r_shear * sin(iorder * phi_u_shear);
-                        ep_den[idx + 1] += T_0r_shear;
-                        ep_num1[idx + 2] +=
-                            T_0r_full * cos(iorder * phi_u_full);
-                        ep_num2[idx + 2] +=
-                            T_0r_full * sin(iorder * phi_u_full);
-                        ep_den[idx + 2] += T_0r_full;
-                    }
-                    for (int i = 1; i <= norder; i++) {
-                        if (i == 1) {
-                            weight_local = u0 * e_local * pow(r_local, 3);
-                        } else {
-                            weight_local = u0 * e_local * pow(r_local, i);
-                        }
-                        eccn_num1[i - 1] += weight_local * cos(i * phi_local);
-                        eccn_num2[i - 1] += weight_local * sin(i * phi_local);
-                        eccn_den[i - 1] += weight_local;
-                    }
-
-                    meanpT_est_num[0] +=
-                        tau * thermalVec[12] * u0;          // dS/deta_s
-                    meanpT_est_num[1] += tau * T_00_ideal;  // dE/deta_s
-                    meanpT_est_num[2] += thermalVec[12] * u0 * e_local;  // [s]
-                    meanpT_est_num[3] +=
-                        r_local * r_local * u0 * e_local;  // [r^2]
-                    meanpT_est_den[0] += u0 * e_local;
-                }
+            if (e_local > 1e-3) {
+                double r_shearpi, r_bulkPi;
+                calculate_inverse_Reynolds_numbers(
+                    arena, fieldIdx, e_local + P_local, r_shearpi, r_bulkPi);
+                R_shearpi_num += weight_local * r_shearpi;
+                R_shearpi_den += weight_local;
+                R_Pi_num += weight_local * r_bulkPi;
+                R_Pi_den += weight_local;
             }
+
+            for (int i = 0; i < 2; i++) {
+                int idx = 3 * i;
+                int iorder = 2 + i;
+                ep_num1[idx] += T_0r_ideal * cos(iorder * phi_u_ideal);
+                ep_num2[idx] += T_0r_ideal * sin(iorder * phi_u_ideal);
+                ep_den[idx] += T_0r_ideal;
+                ep_num1[idx + 1] += T_0r_shear * cos(iorder * phi_u_shear);
+                ep_num2[idx + 1] += T_0r_shear * sin(iorder * phi_u_shear);
+                ep_den[idx + 1] += T_0r_shear;
+                ep_num1[idx + 2] += T_0r_full * cos(iorder * phi_u_full);
+                ep_num2[idx + 2] += T_0r_full * sin(iorder * phi_u_full);
+                ep_den[idx + 2] += T_0r_full;
+            }
+            for (int i = 1; i <= norder; i++) {
+                if (i == 1) {
+                    weight_local = u0 * e_local * pow(r_local, 3);
+                } else {
+                    weight_local = u0 * e_local * pow(r_local, i);
+                }
+                eccn_num1[i - 1] += weight_local * cos(i * phi_local);
+                eccn_num2[i - 1] += weight_local * sin(i * phi_local);
+                eccn_den[i - 1] += weight_local;
+            }
+
+            meanpT_est_num[0] += tau * thermalVec[12] * u0;         // dS/deta_s
+            meanpT_est_num[1] += tau * T_00_ideal;                  // dE/deta_s
+            meanpT_est_num[2] += thermalVec[12] * u0 * e_local;     // [s]
+            meanpT_est_num[3] += r_local * r_local * u0 * e_local;  // [r^2]
+            meanpT_est_den[0] += u0 * e_local;
         }
+        rowSums[row] = sums;
     }
+    std::array<double, kNSums> total;
+    total.fill(0.0);
+    for (int row = 0; row < nRows; row++) {
+        for (int k = 0; k < kNSums; k++) total[k] += rowSums[row][k];
+    }
+    const double ideal_num1 = total[kIdealNum1];
+    const double ideal_num2 = total[kIdealNum2];
+    const double ideal_den = total[kIdealDen];
+    const double shear_num1 = total[kShearNum1];
+    const double shear_num2 = total[kShearNum2];
+    const double shear_den = total[kShearDen];
+    const double full_num1 = total[kFullNum1];
+    const double full_num2 = total[kFullNum2];
+    const double full_den = total[kFullDen];
+    const double u_perp_num = total[kUPerpNum];
+    const double u_perp_den = total[kUPerpDen];
+    const double T_avg_num = total[kTAvgNum];
+    const double T_avg_den = total[kTAvgDen];
+    const double R_Pi_num = total[kRPiNum];
+    const double R_Pi_den = total[kRPiDen];
+    const double R_shearpi_num = total[kRShearNum];
+    const double R_shearpi_den = total[kRShearDen];
+    const double *ep_num1 = &total[kEpNum1];
+    const double *ep_num2 = &total[kEpNum2];
+    const double *ep_den = &total[kEpDen];
+    const double *eccn_num1 = &total[kEccNum1];
+    const double *eccn_num2 = &total[kEccNum2];
+    const double *eccn_den = &total[kEccDen];
+    const double *meanpT_est_num = &total[kMeanNum];
+    const double *meanpT_est_den = &total[kMeanDen];
     double R_shearpi = R_shearpi_num / std::max(R_shearpi_den, small_eps);
     double R_Pi = R_Pi_num / std::max(R_Pi_den, small_eps);
     double u_avg = u_perp_num / std::max(u_perp_den, small_eps);

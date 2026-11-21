@@ -60,6 +60,10 @@ void Advance::AdvanceIt(
     computeFaceFluxes(
         tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, pressureCurr_,
         faceFluxes_);
+    if (DATA.viscosity_flag == 1) {
+        diss_helper.computeWFluxDivergence(
+            tau + rk_flag * DATA.delta_tau, arenaFieldsCurr, wFluxDiv_);
+    }
 
 #pragma omp parallel for collapse(3) schedule(guided)
     for (int ieta = 0; ieta < grid_neta; ieta++)
@@ -115,7 +119,7 @@ void Advance::AdvanceIt(
                     // for the iterations of the stage-2 fixed point
                     std::array<double, 10> w_rhs = {0.};
                     diss_helper.Make_uWRHS(
-                        tau_rk, arenaFieldsCurr, fieldIdx, ix, iy, ieta, w_rhs,
+                        tau_rk, arenaFieldsCurr, fieldIdx, wFluxDiv_, w_rhs,
                         theta_local, a_local);
 
                     FirstRKStepW(

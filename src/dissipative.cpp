@@ -435,34 +435,7 @@ void Diss::Make_uWSource(
     }
 }
 
-void Diss::Make_uWRHS(
-    const double tau, Fields &arena, const int fieldIdx, const int ix,
-    const int iy, const int ieta, std::array<double, 10> &w_rhs,
-    const double theta_local, const DumuVec &a_local) {
-    auto grid_pt = arena.getCell(fieldIdx);
-    auto Wmunu_local = Util::UnpackVecToMatrix(grid_pt.Wmunu);
-
-    /* Kurganov-Tadmor for Wmunu */
-    /* implement
-       partial_tau (utau Wmn) + (1/tau)partial_eta (ueta Wmn)
-       + partial_x (ux Wmn) + partial_y (uy Wmn) + utau Wmn/tau = SW
-       or the right hand side of,
-       partial_tau (utau Wmn) =
-                        - (1/tau)partial_eta (ueta Wmn)
-                        - partial_x (ux Wmn) - partial_y (uy Wmn)
-                        - utau Wmn/tau + SW*/
-
-    /* the local velocity is just u_x/u_tau, u_y/u_tau, u_eta/tau/u_tau */
-    /* KT flux is given by
-       H_{j+1/2} = (fRph + fLph)/2 - ax(uRph - uLph)
-       Here fRph = ux WmnRph and ax uRph = |ux/utau|_max utau Wmn */
-    /* This is the second step in the operator splitting. it uses
-       rk_flag+1 as initial condition */
-    double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta * tau};
-    const double delta_tau = DATA.delta_tau;
-
-    int piIdxArr[10] = {4, 5,  6,  7,  8,
-                        9, 14, 11, 12, 13};  // take 14 for piBulkChem
+int Diss::nWComponents() const {
     int loopIdx = 5;
     if (DATA.turn_on_bulk == 1) {
         loopIdx = 6;
@@ -473,82 +446,138 @@ void Diss::Make_uWRHS(
     if (DATA.turn_on_diff == 1) {
         loopIdx = 10;
     }
+    return (loopIdx);
+}
 
-    // pi^\mu\nu is symmetric
-    FieldNeighbourLoop2(
-        arena, ix, iy, ieta, FNLLAMBDAS2 {
-            double g, gp1, gp2, gm1, gm2;
-            double f, fp1, fp2, fm1, fm2;
-            for (int idx = 0; idx < loopIdx; idx++) {
-                int idx_1d = piIdxArr[idx];
-                /* Get_uWmns */
-                if (idx_1d == 9) {
-                    g = arena.piBulk_[Ic];
-                    gp2 = arena.piBulk_[Ip2];
-                    gp1 = arena.piBulk_[Ip1];
-                    gm1 = arena.piBulk_[Im1];
-                    gm2 = arena.piBulk_[Im2];
-                } else if (idx_1d == 14) {
-                    g = arena.piBulkChem_[Ic];
-                    gp2 = arena.piBulkChem_[Ip2];
-                    gp1 = arena.piBulkChem_[Ip1];
-                    gm1 = arena.piBulkChem_[Im1];
-                    gm2 = arena.piBulkChem_[Im2];
-                } else {
-                    g = arena.Wmunu_[idx_1d][Ic];
-                    gp2 = arena.Wmunu_[idx_1d][Ip2];
-                    gp1 = arena.Wmunu_[idx_1d][Ip1];
-                    gm1 = arena.Wmunu_[idx_1d][Im1];
-                    gm2 = arena.Wmunu_[idx_1d][Im2];
+/* Kurganov-Tadmor for Wmunu */
+/* implement
+   partial_tau (utau Wmn) + (1/tau)partial_eta (ueta Wmn)
+   + partial_x (ux Wmn) + partial_y (uy Wmn) + utau Wmn/tau = SW
+   or the right hand side of,
+   partial_tau (utau Wmn) =
+                    - (1/tau)partial_eta (ueta Wmn)
+                    - partial_x (ux Wmn) - partial_y (uy Wmn)
+                    - utau Wmn/tau + SW*/
+
+/* the local velocity is just u_x/u_tau, u_y/u_tau, u_eta/tau/u_tau */
+/* KT flux is given by
+   H_{j+1/2} = (fRph + fLph)/2 - ax(uRph - uLph)
+   Here fRph = ux WmnRph and ax uRph = |ux/utau|_max utau Wmn */
+void Diss::computeWFluxDivergence(
+    const double tau, const Fields &arena, std::vector<double> &wFluxDiv) {
+    // the W components, with 9 for piBulk and 14 for piBulkChem
+    static const int piIdxArr[kWComponents] = {4, 5,  6,  7,  8,
+                                               9, 14, 11, 12, 13};
+    const int nComp = nWComponents();
+    const int nx = arena.nX();
+    const int ny = arena.nY();
+    const int neta = arena.nEta();
+    const int nStorage = arena.nStorage();
+    const double delta[4] = {
+        0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta * tau};
+    const double delta_tau = DATA.delta_tau;
+    wFluxDiv.resize(static_cast<size_t>(kWComponents) * nStorage);
+
+    auto component = [&](const int idx_1d) -> const FieldComponent & {
+        if (idx_1d == 9) return (arena.piBulk_);
+        if (idx_1d == 14) return (arena.piBulkChem_);
+        return (arena.Wmunu_[idx_1d]);
+    };
+
+    for (int direction = 1; direction <= 3; direction++) {
+        const int dx = (direction == 1);
+        const int dy = (direction == 2);
+        const int deta = (direction == 3);
+        const int nfx = nx + dx;
+        const int nfy = ny + dy;
+        const int nfeta = neta + deta;
+        const int nFaces = nfx * nfy * nfeta;
+        wFaceFluxes_.resize(static_cast<size_t>(nComp) * nFaces);
+
+        // the flux through the face between the cells L = f - 1 and R = f
+#pragma omp parallel for collapse(3) schedule(guided)
+        for (int feta = 0; feta < nfeta; feta++)
+            for (int fy = 0; fy < nfy; fy++)
+                for (int fx = 0; fx < nfx; fx++) {
+                    const int ILL = arena.getFieldIdxHalo(
+                        fx - 2 * dx, fy - 2 * dy, feta - 2 * deta);
+                    const int IL =
+                        arena.getFieldIdxHalo(fx - dx, fy - dy, feta - deta);
+                    const int IR = arena.getFieldIdxHalo(fx, fy, feta);
+                    const int IRR =
+                        arena.getFieldIdxHalo(fx + dx, fy + dy, feta + deta);
+                    const int faceIdx = fx + nfx * (fy + nfy * feta);
+
+                    const double aL =
+                        std::abs(arena.u_[direction][IL]) / arena.u_[0][IL];
+                    const double aR =
+                        std::abs(arena.u_[direction][IR]) / arena.u_[0][IR];
+                    const double ax = std::max(aL, aR);
+                    for (int idx = 0; idx < nComp; idx++) {
+                        const FieldComponent &W = component(piIdxArr[idx]);
+                        // u^i W and u^tau W at the four cells
+                        const double fLL = W[ILL] * arena.u_[direction][ILL];
+                        const double fL = W[IL] * arena.u_[direction][IL];
+                        const double fR = W[IR] * arena.u_[direction][IR];
+                        const double fRR = W[IRR] * arena.u_[direction][IRR];
+                        const double gLL = W[ILL] * arena.u_[0][ILL];
+                        const double gL = W[IL] * arena.u_[0][IL];
+                        const double gR = W[IR] * arena.u_[0][IR];
+                        const double gRR = W[IRR] * arena.u_[0][IRR];
+
+                        /* MakeuWmnHalfs */
+                        const double uWR =
+                            fR - 0.5 * minmod.minmod_dx(fRR, fR, fL);
+                        const double uWL =
+                            fL + 0.5 * minmod.minmod_dx(fR, fL, fLL);
+                        const double WR =
+                            gR - 0.5 * minmod.minmod_dx(gRR, gR, gL);
+                        const double WL =
+                            gL + 0.5 * minmod.minmod_dx(gR, gL, gLL);
+                        wFaceFluxes_
+                            [static_cast<size_t>(idx) * nFaces + faceIdx] =
+                                ((uWR + uWL) - ax * (WR - WL)) * 0.5;
+                    }
                 }
 
-                f = g * arena.u_[direction][Ic];
-                g *= arena.u_[0][Ic];
+        // make partial_i (u^i Wmn), accumulated over the directions in order
+#pragma omp parallel for collapse(3) schedule(guided)
+        for (int ieta = 0; ieta < neta; ieta++)
+            for (int iy = 0; iy < ny; iy++)
+                for (int ix = 0; ix < nx; ix++) {
+                    const int fieldIdx = arena.getFieldIdx(ix, iy, ieta);
+                    const int Imh = ix + nfx * (iy + nfy * ieta);
+                    const int Iph =
+                        (ix + dx) + nfx * ((iy + dy) + nfy * (ieta + deta));
+                    for (int idx = 0; idx < nComp; idx++) {
+                        const size_t off = static_cast<size_t>(idx) * nFaces;
+                        const double HW =
+                            (wFaceFluxes_[off + Iph] - wFaceFluxes_[off + Imh])
+                            / delta[direction];
+                        double &div = wFluxDiv
+                            [static_cast<size_t>(idx) * nStorage + fieldIdx];
+                        if (direction == 1) div = 0.;
+                        div += (-HW) * delta_tau;
+                    }
+                }
+    }
+}
 
-                fp2 = gp2 * arena.u_[direction][Ip2];
-                gp2 *= arena.u_[0][Ip2];
+void Diss::Make_uWRHS(
+    const double tau, Fields &arena, const int fieldIdx,
+    const std::vector<double> &wFluxDiv, std::array<double, 10> &w_rhs,
+    const double theta_local, const DumuVec &a_local) {
+    auto grid_pt = arena.getCell(fieldIdx);
+    auto Wmunu_local = Util::UnpackVecToMatrix(grid_pt.Wmunu);
 
-                fp1 = gp1 * arena.u_[direction][Ip1];
-                gp1 *= arena.u_[0][Ip1];
-
-                fm1 = gm1 * arena.u_[direction][Im1];
-                gm1 *= arena.u_[0][Im1];
-
-                fm2 = gm2 * arena.u_[direction][Im2];
-                gm2 *= arena.u_[0][Im2];
-
-                /* MakeuWmnHalfs */
-                /* uWmn */
-                double uWphR = fp1 - 0.5 * minmod.minmod_dx(fp2, fp1, f);
-                double temp = 0.5 * minmod.minmod_dx(fp1, f, fm1);
-                double uWphL = f + temp;
-                double uWmhR = f - temp;
-                double uWmhL = fm1 + 0.5 * minmod.minmod_dx(f, fm1, fm2);
-
-                /* just Wmn */
-                double WphR = gp1 - 0.5 * minmod.minmod_dx(gp2, gp1, g);
-                temp = 0.5 * minmod.minmod_dx(gp1, g, gm1);
-                double WphL = g + temp;
-                double WmhR = g - temp;
-                double WmhL = gm1 + 0.5 * minmod.minmod_dx(g, gm1, gm2);
-
-                double a = std::abs(arena.u_[direction][Ic]) / arena.u_[0][Ic];
-                double am1 =
-                    std::abs(arena.u_[direction][Im1]) / arena.u_[0][Im1];
-                double ap1 =
-                    std::abs(arena.u_[direction][Ip1]) / arena.u_[0][Ip1];
-
-                double ax = std::max(a, ap1);
-                double HWph = ((uWphR + uWphL) - ax * (WphR - WphL)) * 0.5;
-
-                ax = std::max(a, am1);
-                double HWmh = ((uWmhR + uWmhL) - ax * (WmhR - WmhL)) * 0.5;
-
-                double HW = (HWph - HWmh) / delta[direction];
-                /* make partial_i (u^i Wmn) */
-                w_rhs[idx] += (-HW) * delta_tau;
-            }
-        });
+    /* This is the second step in the operator splitting. it uses
+       rk_flag+1 as initial condition */
+    // the KT flux part, from computeWFluxDivergence
+    const int nStorage = arena.nStorage();
+    const int nComp = nWComponents();
+    for (int idx = 0; idx < nComp; idx++) {
+        w_rhs[idx] += wFluxDiv[static_cast<size_t>(idx) * nStorage + fieldIdx];
+    }
 
     /* add a source term -u^tau Wmn/tau
        due to the coordinate change to tau-eta */

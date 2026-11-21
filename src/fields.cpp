@@ -119,11 +119,12 @@ void Fields::copyDataFrom(const Fields& other) {
 
 void Fields::updateGhosts() {
     if (nStorage_ == 0) return;
-    for (int comp = 0; comp < Ncomp_; comp++) {
-        double* p = component(comp).p_;
-        // the x ghosts of the rows inside the grid
-        if (gx_ > 0) {
+    // the x ghosts of the rows inside the grid ...
+    if (gx_ > 0) {
+#pragma omp parallel for collapse(2)
+        for (int comp = 0; comp < Ncomp_; comp++) {
             for (int peta = geta_; peta < geta_ + Neta_; peta++) {
+                double* p = component(comp).p_;
                 for (int py = gy_; py < gy_ + Ny_; py++) {
                     double* row = p + Sx_ * (py + Sy_ * peta);
                     for (int k = 0; k < gx_; k++) {
@@ -133,8 +134,13 @@ void Fields::updateGhosts() {
                 }
             }
         }
-        // the ghost rows: copies of the nearest row inside the grid
+    }
+    // ... then the ghost rows: copies of the nearest row inside the grid,
+    // with its x ghosts
+#pragma omp parallel for collapse(2)
+    for (int comp = 0; comp < Ncomp_; comp++) {
         for (int peta = 0; peta < Seta_; peta++) {
+            double* p = component(comp).p_;
             const int ceta =
                 geta_ + std::max(0, std::min(Neta_ - 1, peta - geta_));
             for (int py = 0; py < Sy_; py++) {
