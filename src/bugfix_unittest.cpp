@@ -894,6 +894,8 @@ TEST_CASE(
     // (tau T^{tau x} and J^tau are pure fluxes in x; the energy row also
     // carries the Milne geometric source)
     double sumPx = 0., sumNB = 0., scalePx = 0., scaleNB = 0.;
+    std::vector<double> pressure;
+    advance.computePressure(arena, pressure);
     for (int ix = 0; ix < DATA.nx; ix++) {
         // MakeDeltaQI adds the flux update to the cell's own tau T^{tau mu}
         const ReconstCell cell = arena.getCellIdeal(ix, 0, 0);
@@ -903,7 +905,7 @@ TEST_CASE(
             q0[alpha] = tau * advance.get_TJb(cell, alpha, 0, P);
             qi[alpha] = q0[alpha];
         }
-        advance.MakeDeltaQI(tau, arena, ix, 0, 0, qi, 0);
+        advance.MakeDeltaQI(tau, arena, pressure, ix, 0, 0, qi, 0);
         sumPx += qi[1] - q0[1];
         sumNB += qi[4] - q0[4];
         scalePx = std::max(scalePx, std::abs(qi[1] - q0[1]));

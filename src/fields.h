@@ -98,12 +98,21 @@ void FieldNeighbourLoopIdeal2(
         int p2nx = 2 * p1nx;
         int p2ny = 2 * p1ny;
         int p2neta = 2 * p1neta;
-        auto c = arena.getCellIdeal(cx, cy, ceta);
-        const auto p1 = arena.getCellIdeal(cx + p1nx, cy + p1ny, ceta + p1neta);
-        const auto p2 = arena.getCellIdeal(cx + p2nx, cy + p2ny, ceta + p2neta);
-        const auto m1 = arena.getCellIdeal(cx + m1nx, cy + m1ny, ceta + m1neta);
-        const auto m2 = arena.getCellIdeal(cx + m2nx, cy + m2ny, ceta + m2neta);
-        func(c, p1, p2, m1, m2, dir + 1);
+        const int Ic = arena.getFieldIdxHalo(cx, cy, ceta);
+        const int Ip1 =
+            arena.getFieldIdxHalo(cx + p1nx, cy + p1ny, ceta + p1neta);
+        const int Ip2 =
+            arena.getFieldIdxHalo(cx + p2nx, cy + p2ny, ceta + p2neta);
+        const int Im1 =
+            arena.getFieldIdxHalo(cx + m1nx, cy + m1ny, ceta + m1neta);
+        const int Im2 =
+            arena.getFieldIdxHalo(cx + m2nx, cy + m2ny, ceta + m2neta);
+        auto c = arena.getCellIdeal(Ic);
+        const auto p1 = arena.getCellIdeal(Ip1);
+        const auto p2 = arena.getCellIdeal(Ip2);
+        const auto m1 = arena.getCellIdeal(Im1);
+        const auto m2 = arena.getCellIdeal(Im2);
+        func(c, p1, p2, m1, m2, Ip1, Ip2, Im1, Im2, dir + 1);
     }
 }
 
@@ -164,7 +173,8 @@ void FieldNeighbourLoop2(Fields& arena, int cx, int cy, int ceta, Func func) {
 
 #define FNLILAMBDAS2                                                   \
     [&](ReconstCell & c, const ReconstCell& p1, const ReconstCell& p2, \
-        const ReconstCell& m1, const ReconstCell& m2, const int direction)
+        const ReconstCell& m1, const ReconstCell& m2, const int Ip1,     \
+        const int Ip2, const int Im1, const int Im2, const int direction)
 
 #define FNLLAMBDAS1 \
     [&](const int& Ic, const int& Ip1, const int& Im1, const int direction)

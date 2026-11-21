@@ -29,6 +29,10 @@ class Advance {
 
     bool flag_add_hydro_source;
 
+    //! P(e, n_B, n_Q, n_S) of arenaFieldsCurr, filled at the start of each
+    //! AdvanceIt so that the stencils do not call the EoS for every neighbour
+    std::vector<double> pressureCurr_;
+
     // Local fixed point that puts the end-of-step viscous part V_{n+1} into
     // the time derivative of the second RK stage (see
     // stage2ViscousFixedPoint): at most stage2MaxIterations_ updates,
@@ -69,7 +73,12 @@ class Advance {
         const double tau, const double x_local, const double y_local,
         const double eta_s_local, const int ix, const int iy, const int ieta,
         const int rk_flag, const int fieldIdx, Fields &arenaFieldsCurr,
-        Fields &arenaFieldsNext, Fields &arenaFieldsPrev, TJbVec &qiFinal);
+        Fields &arenaFieldsNext, Fields &arenaFieldsPrev,
+        const std::vector<double> &pressureCurr, TJbVec &qiFinal);
+
+    //! fills pressure[idx] = P(e, n_B, n_Q, n_S) of every cell of arena
+    void computePressure(
+        const Fields &arena, std::vector<double> &pressure) const;
 
     void FirstRKStepW(
         const double tau_it, Fields &arenaFieldsPrev, Fields &arenaFieldsCurr,
@@ -86,8 +95,10 @@ class Advance {
     void QuestRevert_qmu(
         Cell_small &grid_pt, const int ieta, const int ix, const int iy);
 
+    //! pressureCurr: computePressure of arenaFieldsCurr
     void MakeDeltaQI(
-        const double tau, Fields &arenaFieldsCurr, const int ix, const int iy,
+        const double tau, Fields &arenaFieldsCurr,
+        const std::vector<double> &pressureCurr, const int ix, const int iy,
         const int ieta, TJbVec &qi, const int rk_flag);
 
     double MaxSpeed(

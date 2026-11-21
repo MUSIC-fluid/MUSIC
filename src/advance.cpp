@@ -55,6 +55,8 @@ void Advance::AdvanceIt(
     const int grid_nx = arenaFieldsCurr.nX();
     const int grid_ny = arenaFieldsCurr.nY();
 
+    computePressure(arenaFieldsCurr, pressureCurr_);
+
 #pragma omp parallel for collapse(3) schedule(guided)
     for (int ieta = 0; ieta < grid_neta; ieta++)
         for (int ix = 0; ix < grid_nx; ix++)
@@ -70,7 +72,7 @@ void Advance::AdvanceIt(
                 FirstRKStepT(
                     tau, x_local, y_local, eta_s_local, ix, iy, ieta, rk_flag,
                     fieldIdx, arenaFieldsCurr, arenaFieldsNext, arenaFieldsPrev,
-                    qiFinal);
+                    pressureCurr_, qiFinal);
 
                 if (DATA.viscosity_flag == 1) {
                     // arenaFieldsCurr is at tau_rk: tau_n in the first RK
@@ -234,12 +236,25 @@ void Advance::reconstructAndStore(
     }
 }
 
+void Advance::computePressure(
+    const Fields &arena, std::vector<double> &pressure) const {
+    const int ncells = arena.nX() * arena.nY() * arena.nEta();
+    pressure.resize(ncells);
+#pragma omp parallel for
+    for (int idx = 0; idx < ncells; idx++) {
+        pressure[idx] = eos.get_pressure(
+            arena.e_[idx], arena.rhob_[idx], arena.rhoq_[idx],
+            arena.rhos_[idx]);
+    }
+}
+
 /* %%%%%%%%%%%%%%%%%%%%%% First steps begins here %%%%%%%%%%%%%%%%%% */
 void Advance::FirstRKStepT(
     const double tau, const double x_local, const double y_local,
     const double eta_s_local, const int ix, const int iy, const int ieta,
     const int rk_flag, const int fieldIdx, Fields &arenaFieldsCurr,
-    Fields &arenaFieldsNext, Fields &arenaFieldsPrev, TJbVec &qiFinal) {
+    Fields &arenaFieldsNext, Fields &arenaFieldsPrev,
+    const std::vector<double> &pressureCurr, TJbVec &qiFinal) {
     // this advances the ideal part
     double tau_rk = tau + rk_flag * (DATA.delta_tau);
 
@@ -256,14 +271,14 @@ void Advance::FirstRKStepT(
     // (including geometric terms)
     TJbVec qi = {0};
 
-    double pressure = eos.get_pressure(
-        cellCurr.e, cellCurr.rhob, cellCurr.rhoq, cellCurr.rhos);
+    const double pressure = pressureCurr[fieldIdx];
 
     for (int alpha = 0; alpha < 7; alpha++) {
         qi[alpha] = get_TJb(cellCurr, alpha, 0, pressure) * tau_rk;
     }
 
-    MakeDeltaQI(tau_rk, arenaFieldsCurr, ix, iy, ieta, qi, rk_flag);
+    MakeDeltaQI(
+        tau_rk, arenaFieldsCurr, pressureCurr, ix, iy, ieta, qi, rk_flag);
 
     TJbVec qi_source = {0.0};
 
@@ -703,7 +718,8 @@ void Advance::QuestRevert_qmu(
 //! This function computes the rhs array. It computes the spatial
 //! derivatives of T^\mu\nu using the KT algorithm
 void Advance::MakeDeltaQI(
-    const double tau, Fields &arenaFieldsCurr, const int ix, const int iy,
+    const double tau, Fields &arenaFieldsCurr,
+    const std::vector<double> &pressureCurr, const int ix, const int iy,
     const int ieta, TJbVec &qi, const int rk_flag) {
     const double delta[4] = {0.0, DATA.delta_x, DATA.delta_y, DATA.delta_eta};
     const double tau_fac[4] = {0.0, tau, tau, 1.0};
@@ -718,14 +734,12 @@ void Advance::MakeDeltaQI(
     EnergyFlowVec T_eta_p = {0.};
     FieldNeighbourLoopIdeal2(
         arenaFieldsCurr, ix, iy, ieta, FNLILAMBDAS2 {
-            double pressureP1 =
-                eos.get_pressure(p1.e, p1.rhob, p1.rhoq, p1.rhos);
-            double pressureP2 =
-                eos.get_pressure(p2.e, p2.rhob, p2.rhoq, p2.rhos);
-            double pressureM1 =
-                eos.get_pressure(m1.e, m1.rhob, m1.rhoq, m1.rhos);
-            double pressureM2 =
-                eos.get_pressure(m2.e, m2.rhob, m2.rhoq, m2.rhos);
+            // copies: MaxSpeed overwrites them with the pressures of the
+            // half-way states
+            double pressureP1 = pressureCurr[Ip1];
+            double pressureP2 = pressureCurr[Ip2];
+            double pressureM1 = pressureCurr[Im1];
+            double pressureM2 = pressureCurr[Im2];
 
             for (int alpha = 0; alpha < 7; alpha++) {
                 const double gphL = qi[alpha];
