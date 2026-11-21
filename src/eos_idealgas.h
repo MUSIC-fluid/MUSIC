@@ -70,7 +70,7 @@ class EOS_idealgas : public EOS_base {
         double e, double rhob, double rhoq = 0., double rhos = 0.) const;
     void getThermalVariables(
         double e, double rhob, double rhoq, double rhos,
-        std::vector<double> &thermalVec) const;
+        ThermalVec &thermalVec) const;
     double get_temperature(
         double e, double rhob, double rhoq = 0., double rhos = 0.) const;
     double get_muB(

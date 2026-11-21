@@ -42,7 +42,7 @@ class Diss {
     void Make_uWSource(
         const double tau, const Cell_small &grid_pt, const double theta_local,
         const DumuVec &a_local, const VelocityShearVec &sigma_1d,
-        const VorticityVec &omega_1d, const std::vector<double> &thermalVec,
+        const VorticityVec &omega_1d, const ThermalVec &thermalVec,
         std::array<double, 5> &sourceTerms);
 
     void Make_uWRHS(
@@ -52,21 +52,18 @@ class Diss {
 
     double Make_uPiSource(
         const double tau, const Cell_small &grid_pt, const double theta_local,
-        const VelocityShearVec &sigma_1d,
-        const std::vector<double> &thermalVec);
+        const VelocityShearVec &sigma_1d, const ThermalVec &thermalVec);
 
     double Make_uPiChemSource(
         const double tau, const Cell_small &grid_pt, const double theta_local,
-        const VelocityShearVec &sigma_1d,
-        const std::vector<double> &thermalVec);
+        const VelocityShearVec &sigma_1d, const ThermalVec &thermalVec);
 
     void Make_uqSource(
         const double tau, const Cell_small &grid_pt, const double theta_local,
         const DumuVec &a_local, const VelocityShearVec &sigma_1d,
         const VorticityVec &omega_1d,
         const DmuMuBoverTVec &baryon_diffusion_vec,
-        const std::vector<double> &thermalVec,
-        std::array<double, 3> &sourceTerms);
+        const ThermalVec &thermalVec, std::array<double, 3> &sourceTerms);
 
     double D_muB_over_T_ideal(
         const double epsilon, const double rhob, const double pressure,

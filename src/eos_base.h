@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "data_struct.h"
 #include "pretty_ostream.h"
 
 class EOS_base {
@@ -95,7 +96,7 @@ class EOS_base {
         double rhos = 0.0) const;
     virtual void getThermalVariables(
         double epsilon, double rhob, double rhoq, double rhos,
-        std::vector<double> &thermalVec) const;
+        ThermalVec &thermalVec) const;
 
     double calculate_velocity_of_sound_sq(
         double e, double rhob, double rhoq = 0.0, double rhos = 0.0) const;

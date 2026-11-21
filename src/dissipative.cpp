@@ -208,7 +208,7 @@ void Diss::computeInverseReynoldsNumbers(
 void Diss::Make_uWSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
     const DumuVec &a_local, const VelocityShearVec &sigma_1d,
-    const VorticityVec &omega_1d, const std::vector<double> &thermalVec,
+    const VorticityVec &omega_1d, const ThermalVec &thermalVec,
     std::array<double, 5> &sourceTerms) {
     auto sigma = Util::UnpackVecToMatrix(sigma_1d);
     auto Wmunu = Util::UnpackVecToMatrix(grid_pt.Wmunu);
@@ -606,7 +606,7 @@ void Diss::Make_uWRHS(
 
 double Diss::Make_uPiSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
-    const VelocityShearVec &sigma_1d, const std::vector<double> &thermalVec) {
+    const VelocityShearVec &sigma_1d, const ThermalVec &thermalVec) {
     double tempf;
     double bulk;
     double Bulk_Relax_time = 0.2;  // fm
@@ -767,8 +767,7 @@ double Diss::Make_uPiSource(
 
 double Diss::Make_uPiChemSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
-    const VelocityShearVec & /*sigma_1d*/,
-    const std::vector<double> &thermalVec) {
+    const VelocityShearVec & /*sigma_1d*/, const ThermalVec &thermalVec) {
     // --- read thermal variables  ---
     const double epsilon = thermalVec[0];
     const double pressure = thermalVec[2];
@@ -859,7 +858,7 @@ void Diss::Make_uqSource(
     const double tau, const Cell_small &grid_pt, const double theta_local,
     const DumuVec &a_local, const VelocityShearVec &sigma_1d,
     const VorticityVec &omega_1d, const DmuMuBoverTVec &baryon_diffusion_vec,
-    const std::vector<double> &thermalVec, std::array<double, 3> &sourceTerms) {
+    const ThermalVec &thermalVec, std::array<double, 3> &sourceTerms) {
     double epsilon = thermalVec[0];
     double rhob = thermalVec[1];
     double pressure = thermalVec[2];

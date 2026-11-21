@@ -137,13 +137,13 @@ double EOS_idealgas::get_entropy(
 
 void EOS_idealgas::getThermalVariables(
     double e, double rhob, double rhoq, double rhos,
-    std::vector<double> &thermalVec) const {
+    ThermalVec &thermalVec) const {
     const double x = get_muB_over_T(e, rhob);
     const double T = T_of_e_x(e, x);
-    thermalVec = std::vector<double>(
+    thermalVec = ThermalVec {
         {e, rhob, e / 3., 1. / 3., 0., 1. / 3., T, std::copysign(x * T, rhob),
          0., rhos, 0., rhoq, std::max(Util::small_eps, T * T * T * S_of_x(x)),
-         0., 0.});
+         0., 0.}};
 }
 
 //! e at entropy density s and n_B: n_B / s = N(x) / S(x) rises with x

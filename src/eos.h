@@ -86,7 +86,7 @@ class EOS {
 
     void getThermalVariables(
         double e, double rhob, double rhoq, double rhos,
-        std::vector<double> &thermalVec) const {
+        ThermalVec &thermalVec) const {
         eos_ptr->getThermalVariables(e, rhob, rhoq, rhos, thermalVec);
     }
 

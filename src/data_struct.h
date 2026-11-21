@@ -18,6 +18,11 @@ typedef std::array<double, 6> VorticityVec;
 typedef std::array<double, 8> ShearVisVecLRF;
 typedef std::array<double, 14> ViscousVec;
 
+//! thermodynamic variables of a cell (EOS::getThermalVariables):
+//! 0 e, 1 n_B, 2 P, 3 dP/de, 4 dP/dn_B, 5 c_s^2, 6 T, 7 mu_B, 8 mu_S,
+//! 9 n_S, 10 mu_Q, 11 n_Q, 12 s, 13 dP/dn_Q, 14 dP/dn_S
+typedef std::array<double, 15> ThermalVec;
+
 // *** When dissipative part added for conserved charges,
 // typedef std::array<std::array<double, 4>, 7> dUsupMat;
 typedef std::array<std::array<double, 4>, 5> dUsupMat;

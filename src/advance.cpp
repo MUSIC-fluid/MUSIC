@@ -20,7 +20,7 @@
 #include "util.h"
 
 using Eigen::EigenSolver;
-using Eigen::MatrixXd;
+using Eigen::Matrix4d;
 using Util::hbarc;
 using Util::map_1d_idx_to_2d;
 using Util::map_2d_idx_to_1d;
@@ -386,7 +386,7 @@ void Advance::FirstRKStepW(
     // the sources are evaluated at the stage's own state (the predictor in
     // the second RK stage), like theta, sigma and Du; the transport
     // coefficients of tau_n there made the scheme first order in dtau
-    std::vector<double> thermalVec;
+    ThermalVec thermalVec;
     eos.getThermalVariables(
         grid_c.epsilon, grid_c.rhob, grid_c.rhoq, grid_c.rhos, thermalVec);
 
@@ -986,7 +986,7 @@ double Advance::get_TJb(
 }
 
 void Advance::solveEigenvaluesWmunu(Cell_small &grid_pt) {
-    MatrixXd A = MatrixXd::Zero(4, 4);
+    Matrix4d A = Matrix4d::Zero();
 
     A(0, 0) = -grid_pt.Wmunu[0];
     A(0, 1) = grid_pt.Wmunu[1];
@@ -1008,7 +1008,7 @@ void Advance::solveEigenvaluesWmunu(Cell_small &grid_pt) {
     A(3, 2) = grid_pt.Wmunu[8];
     A(3, 3) = grid_pt.Wmunu[9];
 
-    EigenSolver<MatrixXd> es;
+    EigenSolver<Matrix4d> es;
     es.compute(A, false);
 
     double min = es.eigenvalues().real()[0];

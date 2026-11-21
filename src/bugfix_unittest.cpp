@@ -341,7 +341,7 @@ TEST_CASE("EOS_base: s is evaluated at the edge of an (e, n_B) table") {
         const double sEdge = e + C::P(e, nEdge) - C::mu(nEdge) * nEdge;
         for (double nb : {nEdge + 0.05, 0.9, 1.5, -0.9}) {
             CHECK(eos.get_entropy(e, nb) == doctest::Approx(sEdge));
-            std::vector<double> thermalVec;
+            ThermalVec thermalVec;
             eos.getThermalVariables(e, nb, 0., 0., thermalVec);
             CHECK(thermalVec[12] == doctest::Approx(sEdge));
         }
@@ -400,7 +400,7 @@ TEST_CASE("EOS_idealgas is a thermodynamically consistent free QGP") {
             CHECK(
                 eos.get_T2e(T * Util::hbarc, nIn)
                 == doctest::Approx(e).epsilon(1e-9));
-            std::vector<double> thermalVec;
+            ThermalVec thermalVec;
             eos.getThermalVariables(e, n, 0., 0., thermalVec);
             CHECK(thermalVec[12] == doctest::Approx(s));
             if (nIn == n) nChecked++;
@@ -647,7 +647,7 @@ TEST_CASE("Diss::Make_uPiSource is finite at T = 0") {
     Diss diss(eos, DATA);
     Cell_small cell;
     cell.epsilon = 1e-3;
-    std::vector<double> thermalVec(13, 0.);
+    ThermalVec thermalVec = {0.};
     thermalVec[0] = 1e-3;       // e
     thermalVec[2] = 1e-3 / 3.;  // P
     thermalVec[5] = 0.2;        // cs^2

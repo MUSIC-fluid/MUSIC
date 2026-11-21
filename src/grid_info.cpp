@@ -146,7 +146,7 @@ void Cell_info::OutputEvolutionDataXYEta(Fields &arena, double tau) {
     const int n_skip_x = DATA.output_evolution_every_N_x;
     const int n_skip_y = DATA.output_evolution_every_N_y;
     const int n_skip_eta = DATA.output_evolution_every_N_eta;
-    std::vector<double> thermalVec;
+    ThermalVec thermalVec;
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         double eta = 0.0;
         if (!DATA.boost_invariant) {
@@ -504,7 +504,7 @@ int Cell_info::OutputEvolutionDataXYEta_chun(Fields &arena, double tau) {
         }
         fwrite(header, sizeof(float), 17, out_file_xyeta);
     }
-    std::vector<double> thermalVec;
+    ThermalVec thermalVec;
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         double eta_local = -DATA.eta_size / 2. + ieta * DATA.delta_eta;
         double cosh_eta = cosh(eta_local);
@@ -692,7 +692,7 @@ void Cell_info::OutputEvolutionDataXYEta_MLtraining(Fields &arena, double tau) {
                           static_cast<float>(nVar_per_cell)};
         fwrite(header, sizeof(float), 12, out_file_xyeta);
     }
-    std::vector<double> thermalVec;
+    ThermalVec thermalVec;
     for (int ieta = 0; ieta < arena.nEta(); ieta += n_skip_eta) {
         for (int iy = 0; iy < arena.nY(); iy += n_skip_y) {
             for (int ix = 0; ix < arena.nX(); ix += n_skip_x) {
@@ -2495,7 +2495,7 @@ void Cell_info::output_momentum_anisotropy_vs_etas(
     of3 << "# eta_s  dS/deta_s  dE/deta_s (GeV) [s] (1/fm^-3)  [r^2] (fm^2)"
         << endl;
 
-    std::vector<double> thermalVec;
+    ThermalVec thermalVec;
     const int norder = 6;
     for (int ieta = 0; ieta < arena.nEta(); ieta++) {
         double eta = 0.0;
@@ -2792,7 +2792,7 @@ void Cell_info::output_momentum_anisotropy_vs_tau(
     std::vector<double> eccn_den(norder, 0.0);
     std::vector<double> meanpT_est_num(4, 0.0);
     std::vector<double> meanpT_est_den(1, 0.0);
-    std::vector<double> thermalVec;
+    ThermalVec thermalVec;
     double x_o = 0.0;
     double y_o = 0.0;
     double w_sum = 0.0;

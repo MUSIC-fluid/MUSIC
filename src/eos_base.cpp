@@ -347,25 +347,24 @@ double EOS_base::get_entropy(
 
 void EOS_base::getThermalVariables(
     double epsilon, double rhob, double rhoq, double rhos,
-    std::vector<double> &thermalVec) const {
-    thermalVec.clear();
-    thermalVec.push_back(epsilon);
-    thermalVec.push_back(rhob);
+    ThermalVec &thermalVec) const {
+    thermalVec[0] = epsilon;
+    thermalVec[1] = rhob;
     double p, dpde, dpdrhob, cs2;
     double dpdrhoq = 0.0;
     double dpdrhos = 0.0;
     get_pressure_with_gradients_and_cs2(
         epsilon, rhob, rhoq, rhos, p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
-    thermalVec.push_back(p);
-    thermalVec.push_back(dpde);
-    thermalVec.push_back(dpdrhob);
-    thermalVec.push_back(cs2);
-    thermalVec.push_back(get_temperature(epsilon, rhob, rhoq, rhos));
-    thermalVec.push_back(get_muB(epsilon, rhob, rhoq, rhos));
-    thermalVec.push_back(get_muS(epsilon, rhob, rhoq, rhos));
-    thermalVec.push_back(has_QS_densities() ? rhos : get_rhoS(epsilon, rhob));
-    thermalVec.push_back(get_muQ(epsilon, rhob, rhoq, rhos));
-    thermalVec.push_back(has_QS_densities() ? rhoq : get_rhoQ(epsilon, rhob));
+    thermalVec[2] = p;
+    thermalVec[3] = dpde;
+    thermalVec[4] = dpdrhob;
+    thermalVec[5] = cs2;
+    thermalVec[6] = get_temperature(epsilon, rhob, rhoq, rhos);
+    thermalVec[7] = get_muB(epsilon, rhob, rhoq, rhos);
+    thermalVec[8] = get_muS(epsilon, rhob, rhoq, rhos);
+    thermalVec[9] = (has_QS_densities() ? rhos : get_rhoS(epsilon, rhob));
+    thermalVec[10] = get_muQ(epsilon, rhob, rhoq, rhos);
+    thermalVec[11] = (has_QS_densities() ? rhoq : get_rhoQ(epsilon, rhob));
     // densities of the tabulated state (see get_entropy)
     double rhobT, rhoQ, rhoS;
     get_densities_in_table(epsilon, rhob, rhoq, rhos, rhobT, rhoQ, rhoS);
@@ -374,9 +373,9 @@ void EOS_base::getThermalVariables(
           - thermalVec[10] * rhoQ)
          / (thermalVec[6] + small_eps));
     entropy = std::max(small_eps, entropy);
-    thermalVec.push_back(entropy);
-    thermalVec.push_back(dpdrhoq);
-    thermalVec.push_back(dpdrhos);
+    thermalVec[12] = entropy;
+    thermalVec[13] = dpdrhoq;
+    thermalVec[14] = dpdrhos;
 }
 
 double EOS_base::get_cs2(
@@ -844,7 +843,7 @@ void EOS_base::check_eos_with_finite_muB() const {
         ne = (emax - e0) / de + 1;
         for (int ie = 0; ie < ne; ie++) {
             double e_local = (e0 + ie * de) / hbarc;
-            std::vector<double> thermalVec;
+            ThermalVec thermalVec;
             getThermalVariables(
                 e_local, rhob_local, rhoq_local, rhos_local, thermalVec);
             check_file2 << scientific << setw(18) << setprecision(8)
