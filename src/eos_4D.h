@@ -37,7 +37,6 @@ class EOS_4D : public EOS_base {
     std::vector<float> mub_vec;
     std::vector<float> muq_vec;
     std::vector<float> mus_vec;
-    std::vector<float> cs_vec;
 
     // method to read/mainupalate header info and data
     void read_eos(
@@ -61,6 +60,17 @@ class EOS_4D : public EOS_base {
     void get_tilde_variables(
         double e, double nb, double nq, double ns,
         std::array<float, 4> &TildeVar) const;
+
+    //! Below Ttilde_dilute_ the table is not usable: P is interpolated
+    //! linearly in Ttilde from P = 0 at Ttilde = 0 (P/e ~ e^{-3/4} near
+    //! vacuum), the cs table is zero, and most nodes have the chemical
+    //! potentials at the bounds of the table generator. There the EoS is
+    //! read at Ttilde_dilute_ with the same mu-tilde and scaled: P and its
+    //! e-derivative as e, T and mu as Ttilde (P = e g(mu-tilde)).
+    //! Returns Ttilde / Ttilde_dilute_ (1 outside the dilute region) and
+    //! moves TildeVar[0] up to Ttilde_dilute_.
+    float diluteScale(std::array<float, 4> &TildeVar) const;
+    static constexpr double Ttilde_dilute_GeV_ = 0.040;
 
   public:
     EOS_4D();

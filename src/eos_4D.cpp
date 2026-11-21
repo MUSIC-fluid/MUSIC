@@ -369,6 +369,20 @@ void EOS_4D::FourDLInterp(
     // to test for speed
     // float dXdmustilde = (temps2 - interpolated_value)/((1-dt) * dmus);
 
+    // Outside the table the value is clamped to the edge, so the derivative
+    // along that direction is zero (the slope of the edge cell would be
+    // inconsistent with the clamped value).
+    if (TildeVar[0] > T_tilde_max) dXdTtilde = 0.;
+    if (TildeVar[1] < mubtilde0 || TildeVar[1] > mub_tilde_max) {
+        dXdmubtilde = 0.;
+    }
+    if (TildeVar[2] < muqtilde0 || TildeVar[2] > muq_tilde_max) {
+        dXdmuqtilde = 0.;
+    }
+    if (TildeVar[3] < mustilde0 || TildeVar[3] > mus_tilde_max) {
+        dXdmustilde = 0.;
+    }
+
     // dXoverde
     ResArr[1] = 3.0 / (19.0 * M_PI * M_PI * T * T * T) * dXdTtilde;
     // dXoverdrhob
@@ -397,6 +411,14 @@ void EOS_4D::get_tilde_variables(
     TildeVar[3] = static_cast<float>(mustilde);
 }
 
+float EOS_4D::diluteScale(std::array<float, 4> &TildeVar) const {
+    const float Tref = Ttilde_dilute_GeV_ / Util::hbarc;
+    if (TildeVar[0] >= Tref) return 1.f;
+    const float scale = TildeVar[0] / Tref;
+    TildeVar[0] = Tref;
+    return scale;
+}
+
 void EOS_4D::initialize_eos() {
     music_message.info("Using 4D EOS");
 
@@ -410,9 +432,6 @@ void EOS_4D::initialize_eos() {
 
     // Set the type of EoS. Should be connected to parameters.
     set_eos_file_in_binary(true);
-    // Set if the cs2 file is here.
-    file_for_cs_ = true;
-
     if (EoS_file_in_binary_) {
         // Read EoS in binary
         // 1D Tables
@@ -421,7 +440,7 @@ void EOS_4D::initialize_eos() {
         read_eos_binary(path + "neos4d_mub_b.dat", false, mub_vec);
         read_eos_binary(path + "neos4d_muq_b.dat", false, muq_vec);
         read_eos_binary(path + "neos4d_mus_b.dat", false, mus_vec);
-        read_eos_binary(path + "neos4d_cs_b.dat", true, cs_vec);
+        // the cs table is not read: c_s^2 follows from the pressure
 
         // Header info
         read_header_binary(path + "neos4d_t_b.dat");
@@ -436,7 +455,7 @@ void EOS_4D::initialize_eos() {
         read_eos(path + "neos4d_mub.dat", false, mub_vec);
         read_eos(path + "neos4d_muq.dat", false, muq_vec);
         read_eos(path + "neos4d_mus.dat", false, mus_vec);
-        read_eos(path + "neos4d_cs.dat", true, cs_vec);
+        // the cs table is not read: c_s^2 follows from the pressure
     }
 
     // Get max values of EoS table for interpolation boundary.
@@ -450,8 +469,10 @@ double EOS_4D::get_temperature(
     double e, double rhob, double rhoq, double rhos) const {
     std::array<float, 4> TildeVar {};
     get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    const float scale = diluteScale(TildeVar);
     std::array<float, 5> ResArr {};
-    FourDLInterp(temp_vec, TildeVar, ResArr);  // 1/fm
+    FourDLInterp(temp_vec, TildeVar, ResArr);
+    ResArr[0] *= scale;  // 1/fm
     return (std::max(Util::small_eps, static_cast<double>(ResArr[0])));
 }
 
@@ -461,39 +482,22 @@ double EOS_4D::get_pressure(
     double e, double rhob, double rhoq, double rhos) const {
     std::array<float, 4> TildeVar {};
     get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    const float scale = diluteScale(TildeVar);
     std::array<float, 5> ResArr {};
     FourDLInterp(pressure_vec, TildeVar, ResArr);
+    ResArr[0] *= scale * scale * scale * scale;
     return (std::max(Util::small_eps, static_cast<double>(ResArr[0])));
 }
 
-//! This function returns the speed of sound.
-//! the input local energy density [1/fm^4], rhob [1/fm^3],
-//! rhoq [1/fm^3], rhos [1/fm^3]
+//! This function returns the speed of sound squared, from the derivatives
+//! of the interpolated pressure. The cs table is not used: it is zero in
+//! the dilute and the cool baryon-rich cells (outside the mu-tilde range),
+//! where the pressure derivatives give c_s^2 ~ 0.1, and it is not
+//! consistent with the pressure that the hydro evolves.
 double EOS_4D::get_cs2(double e, double rhob, double rhoq, double rhos) const {
-    std::array<float, 4> TildeVar {};
-    get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
-    std::array<float, 5> ResArr {};
-    double cs2;
-    double interp_cs;
-    if (file_for_cs_) {
-        // read cs from file
-        FourDLInterp(cs_vec, TildeVar, ResArr);
-        interp_cs = std::max(Util::small_eps, static_cast<double>(ResArr[0]));
-        cs2 = interp_cs * interp_cs;
-    } else {
-        // compute cs2
-        FourDLInterp(pressure_vec, TildeVar, ResArr, true);
-        float p = std::max(Util::small_eps, static_cast<double>(ResArr[0]));
-        float dpde = ResArr[1];
-        float dpdrhob = ResArr[2];
-        float dpdrhoq = ResArr[3];
-        float dpdrhos = ResArr[4];
-        cs2 =
-            (dpde + rhob / (e + p + Util::small_eps) * dpdrhob
-             + rhoq / (e + p + Util::small_eps) * dpdrhoq
-             + rhos / (e + p + Util::small_eps) * dpdrhos);
-    }
-    cs2 = std::max(0.01, std::min(1. / 3, cs2));
+    double p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2;
+    get_pressure_with_gradients_and_cs2(
+        e, rhob, rhoq, rhos, p, dpde, dpdrhob, dpdrhoq, dpdrhos, cs2);
     return cs2;
 }
 
@@ -502,10 +506,27 @@ void EOS_4D::get_pressure_with_gradients(
     double &dpdrhob, double &dpdrhoq, double &dpdrhos) const {
     std::array<float, 4> TildeVar {};
     get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    const float scale = diluteScale(TildeVar);
     std::array<float, 5> ResArr {};
     FourDLInterp(pressure_vec, TildeVar, ResArr, true);
+    if (scale < 1.f) {
+        // P = e g(mu-tilde) with g = P_ref / e_ref at the same mu-tilde, and
+        // mu-tilde ~ n / sqrt(e): dP/de|_n = g - sum_a n_a dg/dn_a / 2 and
+        // dP/dn_a = scale^2 (dP/dn_a)_ref, with n_ref = n / scale^2.
+        const double s2 = static_cast<double>(scale) * scale;
+        const double eref =
+            3. * alphaNf * std::pow(static_cast<double>(TildeVar[0]), 4);
+        const double pref = ResArr[0];
+        const double ndpdn =
+            (rhob * ResArr[2] + rhoq * ResArr[3] + rhos * ResArr[4]) / s2;
+        p = std::max(Util::small_eps, pref * s2 * s2);
+        dpde = (pref - 0.5 * ndpdn) / eref;
+        dpdrhob = s2 * ResArr[2];
+        dpdrhoq = s2 * ResArr[3];
+        dpdrhos = s2 * ResArr[4];
+        return;
+    }
     p = std::max(Util::small_eps, static_cast<double>(ResArr[0]));
-
     dpde = static_cast<double>(ResArr[1]);
     dpdrhob = static_cast<double>(ResArr[2]);
     dpdrhoq = static_cast<double>(ResArr[3]);
@@ -515,20 +536,10 @@ void EOS_4D::get_pressure_with_gradients(
 void EOS_4D::get_pressure_with_gradients_and_cs2(
     double e, double rhob, double rhoq, double rhos, double &p, double &dpde,
     double &dpdrhob, double &dpdrhoq, double &dpdrhos, double &cs2) const {
-    std::array<float, 4> TildeVar {};
-    get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
     get_pressure_with_gradients(
         e, rhob, rhoq, rhos, p, dpde, dpdrhob, dpdrhoq, dpdrhos);
-    if (file_for_cs_) {
-        std::array<float, 5> ResArr {};
-        FourDLInterp(cs_vec, TildeVar, ResArr);
-        cs2 = static_cast<double>(ResArr[0] * ResArr[0]);
-    } else {
-        cs2 =
-            (dpde + rhob / (e + p + Util::small_eps) * dpdrhob
-             + rhoq / (e + p + Util::small_eps) * dpdrhoq
-             + rhos / (e + p + Util::small_eps) * dpdrhos);
-    }
+    const double enthalpy = e + p + Util::small_eps;
+    cs2 = dpde + (rhob * dpdrhob + rhoq * dpdrhoq + rhos * dpdrhos) / enthalpy;
     cs2 = std::max(0.01, std::min(1. / 3, cs2));
 }
 
@@ -537,8 +548,10 @@ void EOS_4D::get_pressure_with_gradients_and_cs2(
 double EOS_4D::get_muB(double e, double rhob, double rhoq, double rhos) const {
     std::array<float, 4> TildeVar {};
     get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    const float scale = diluteScale(TildeVar);
     std::array<float, 5> ResArr {};
-    FourDLInterp(mub_vec, TildeVar, ResArr);  // 1/fm
+    FourDLInterp(mub_vec, TildeVar, ResArr);
+    ResArr[0] *= scale;  // 1/fm
     return (static_cast<double>(ResArr[0]));
 }
 
@@ -547,8 +560,10 @@ double EOS_4D::get_muB(double e, double rhob, double rhoq, double rhos) const {
 double EOS_4D::get_muS(double e, double rhob, double rhoq, double rhos) const {
     std::array<float, 4> TildeVar {};
     get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    const float scale = diluteScale(TildeVar);
     std::array<float, 5> ResArr {};
-    FourDLInterp(mus_vec, TildeVar, ResArr);  // 1/fm
+    FourDLInterp(mus_vec, TildeVar, ResArr);
+    ResArr[0] *= scale;  // 1/fm
     return (static_cast<double>(ResArr[0]));
 }
 
@@ -557,7 +572,9 @@ double EOS_4D::get_muS(double e, double rhob, double rhoq, double rhos) const {
 double EOS_4D::get_muQ(double e, double rhob, double rhoq, double rhos) const {
     std::array<float, 4> TildeVar {};
     get_tilde_variables(e, rhob, rhoq, rhos, TildeVar);
+    const float scale = diluteScale(TildeVar);
     std::array<float, 5> ResArr {};
-    FourDLInterp(muq_vec, TildeVar, ResArr);  // 1/fm
+    FourDLInterp(muq_vec, TildeVar, ResArr);
+    ResArr[0] *= scale;  // 1/fm
     return (static_cast<double>(ResArr[0]));
 }
